@@ -46,9 +46,18 @@ SQLBundleStore::get(int bundle_id)
  * Store the given bundle in the persistent store.
  */
 int
-SQLBundleStore::put(Bundle* bundle)
+SQLBundleStore::insert(Bundle* bundle)
 {
-    return store_->put(bundle);
+    return store_->insert(bundle);
+}
+
+/**
+ * Update the given bundle in the persistent store.
+ */
+int
+SQLBundleStore::update(Bundle* bundle)
+{
+    return store_->update(bundle, bundle->bundleid_);
 }
 
 /**

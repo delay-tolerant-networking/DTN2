@@ -52,8 +52,8 @@ public:
      * Basic storage methods.
      */
     virtual Bundle* get(int bundle_id) = 0;
-    virtual int     put(Bundle* bundle) = 0;
-    virtual int     put(Bundle* bundle, u_int32_t id) { return put (bundle) ; }
+    virtual int     insert(Bundle* bundle) = 0;
+    virtual int     update(Bundle* bundle) = 0;
     virtual int     del(int bundle_id) = 0;
     /// @}
     

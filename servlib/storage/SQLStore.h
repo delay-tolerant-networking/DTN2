@@ -34,10 +34,16 @@ public:
      *  Put an obj in the sql store. 
      *  @return 0 if success, -1 on error
      */
-    int put(SerializableObject* obj);
+    int insert(SerializableObject* obj);
     
     /**
-     *  Delete an obj  (identified by key)
+     *  Update the object's state in the sql store.
+     *  @return number updated on success, -1 on error
+     */
+    int update(SerializableObject* obj, const int key);
+    
+    /**
+     *  Delete an obj (identified by key)
      *  @return 0 if success, -1 on error
      */
     int del(const int key);

@@ -23,13 +23,15 @@ public:
      */
     SQLQuery(action_t type, const char* initial_query = 0);
 
-
-    virtual void end_action();
-
     /**
      * Return the constructed query string.
      */
-    const char* query();
+    const char* query() { return query_.c_str(); }
+    
+    /**
+     * Return a reference to the query buffer.
+     */
+    StringBuffer* querybuf() { return &query_; }
     
 protected:
     StringBuffer query_;
@@ -49,8 +51,46 @@ public:
     SQLInsert(const char* table_name, SQLImplementation *db);
   
     virtual void begin_action();
+    virtual void end_action();
+    
     /**
      * Since insert doesn't modify the object, define a variant of
+     * action() that operates on a const SerializableObject.
+     */
+    int action(const SerializableObject* const_object)
+    {
+        return(SerializeAction::action((SerializableObject*)const_object));
+    }
+        
+    // Virtual functions inherited from SerializeAction
+    void process(const char* name, u_int32_t* i);
+    void process(const char* name, u_int16_t* i);
+    void process(const char* name, u_int8_t* i);
+    void process(const char* name, int32_t* i);
+    void process(const char* name, int16_t* i);
+    void process(const char* name, int8_t* i);
+    void process(const char* name, bool* b);
+    void process(const char* name, u_char* bp, size_t len);
+    void process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy);
+    void process(const char* name, std::string* s);
+};
+
+/**
+ * SQLUpdate is a SerializeAction that builts up a SQL "UPDATE"
+ * query statement based on the values in an object.
+ */
+class SQLUpdate : public SQLQuery {
+public:
+    /**
+     * Constructor.
+     */
+    SQLUpdate(const char* table_name, SQLImplementation *db);
+  
+    virtual void begin_action();
+    virtual void end_action();
+    
+    /**
+     * Since update doesn't modify the object, define a variant of
      * action() that operates on a const SerializableObject.
      */
     int action(const SerializableObject* const_object)
@@ -83,7 +123,8 @@ public:
     SQLTableFormat(const char* table_name, SQLImplementation *db);
     
     virtual void begin_action();
-
+    virtual void end_action();
+    
     /**
      * Since table format doesn't modify the object, define a variant
      * of action() that operates on a const SerializableObject.

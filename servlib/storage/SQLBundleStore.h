@@ -26,7 +26,8 @@ public:
      * Virtual methods inheritied from BundleStore
      */
     Bundle* get(int bundle_id) ;
-    int     put(Bundle* bundle);
+    int     insert(Bundle* bundle);
+    int     update(Bundle* bundle);
     int     del(int bundle_id) ;
     int delete_expired(const time_t now);
     bool is_custodian(int bundle_id);

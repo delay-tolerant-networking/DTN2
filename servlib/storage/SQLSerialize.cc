@@ -20,28 +20,6 @@ SQLQuery::SQLQuery(action_t type, const char* initial_query)
 }
 
 
-const char*
-SQLQuery::query()
-{
-      return query_.c_str();
-}
-
-/**
- * Clean the query  in the end.
- * The process() functions of all subclasses append ',' after each
- * value, so trim a trailing ',' before returning the string.
- * Also, add a closing bracket.
- */
- 
-
-void 
-SQLQuery::end_action() 
-{
-    if (query_.data()[query_.length() - 1] == ',') {
-	query_.data()[query_.length() - 1] = ')';
-    }
-}
-
 
 /******************************************************************************
  *
@@ -53,7 +31,7 @@ SQLQuery::end_action()
  * Constructor.
  */
 SQLInsert::SQLInsert(const char* table_name, SQLImplementation* sql_impl)
-    :SQLQuery(MARSHAL)
+    : SQLQuery(MARSHAL)
 {
     table_name_ = table_name;
     sql_impl_ = sql_impl ; 
@@ -62,10 +40,25 @@ SQLInsert::SQLInsert(const char* table_name, SQLImplementation* sql_impl)
 
 // Virtual functions inherited from SerializeAction
 
+/**
+ * Initialize the query buffer.
+ */
 void 
 SQLInsert::begin_action() 
 {
- query_.appendf("INSERT INTO %s  VALUES(",table_name_);
+    query_.appendf("INSERT INTO %s  VALUES(",table_name_);
+}
+
+/**
+ * Clean the query in the end, trimming the trailing ',' and adding a
+ * closing parenthesis.
+ */
+void 
+SQLInsert::end_action() 
+{
+    if (query_.data()[query_.length() - 1] == ',') {
+	query_.data()[query_.length() - 1] = ')';
+    }
 }
 
 
@@ -119,31 +112,114 @@ SQLInsert::process(const char* name, bool* b) {
 void 
 SQLInsert::process(const char* name, std::string* s) 
 {
-    const char *from = s->c_str();
-    const char* to = sql_impl_->escape_string(from);
-    
-    query_.append("'");
-    query_.append(to);
-    query_.append("'");
-
-    query_.append(',');
+    query_.appendf("'%s',", sql_impl_->escape_string(s->c_str()));
 }
 
 void 
 SQLInsert::process(const char* name, u_char* bp, size_t len)
 {
-
-    const char* to = (char *)sql_impl_->escape_binary(bp,len);
-    
-    query_.append("'");
-    query_.append(to);
-    query_.append("'");
-
-    query_.append(',');
+    query_.appendf("'%s',", sql_impl_->escape_binary(bp, len));
 }
 
 void 
 SQLInsert::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
+{
+    NOTIMPLEMENTED;
+}
+
+/******************************************************************************
+ *
+ * SQLUpdate
+ *
+ *****************************************************************************/
+
+/**
+ * Constructor.
+ */
+SQLUpdate::SQLUpdate(const char* table_name, SQLImplementation* sql_impl)
+    : SQLQuery(MARSHAL)
+{
+    table_name_ = table_name;
+    sql_impl_ = sql_impl ; 
+}
+
+
+// Virtual functions inherited from SerializeAction
+void 
+SQLUpdate::begin_action() 
+{
+    query_.appendf("UPDATE %s SET ",table_name_);
+}
+
+void 
+SQLUpdate::end_action() 
+{
+    if (query_.data()[query_.length() - 2] == ',') {
+	query_.data()[query_.length() - 2] =  ' ';
+    }
+}
+
+void 
+SQLUpdate::process(const char* name, u_int32_t* i)
+{
+    query_.appendf("%s = %u, ", name, *i);
+}
+
+void 
+SQLUpdate::process(const char* name, u_int16_t* i)
+{
+    query_.appendf("%s = %u, ", name, *i);
+}
+
+void 
+SQLUpdate::process(const char* name, u_int8_t* i)
+{
+    query_.appendf("%s = %u, ", name, *i);
+}
+
+void 
+SQLUpdate::process(const char* name, int32_t* i)
+{
+    query_.appendf("%s = %d, ", name, *i);
+}
+
+void 
+SQLUpdate::process(const char* name, int16_t* i)
+{
+    query_.appendf("%s = %d, ", name, *i);
+}
+
+void 
+SQLUpdate::process(const char* name, int8_t* i)
+{
+    query_.appendf("%s = %d, ", name, *i);
+}
+
+void 
+SQLUpdate::process(const char* name, bool* b) {
+
+    if (*b) {
+        query_.appendf("%s = 'TRUE', ", name);
+    } else {
+        query_.appendf("%s = 'FALSE', ", name);
+    }
+}
+
+
+void 
+SQLUpdate::process(const char* name, std::string* s) 
+{
+    query_.appendf("%s = '%s', ", name, sql_impl_->escape_string(s->c_str()));
+}
+
+void 
+SQLUpdate::process(const char* name, u_char* bp, size_t len)
+{
+    query_.appendf("%s = '%s', ", name, sql_impl_->escape_binary(bp, len));
+}
+
+void 
+SQLUpdate::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
 {
     NOTIMPLEMENTED;
 }
@@ -158,8 +234,9 @@ SQLInsert::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
  * Constructor.
  */
 
-SQLTableFormat::SQLTableFormat(const char* table_name, SQLImplementation* sql_impl)
-    :SQLQuery(INFO)
+SQLTableFormat::SQLTableFormat(const char* table_name,
+                               SQLImplementation* sql_impl)
+    : SQLQuery(INFO)
 {
     table_name_ = table_name;
     sql_impl_ = sql_impl ; 
@@ -171,9 +248,16 @@ SQLTableFormat::SQLTableFormat(const char* table_name, SQLImplementation* sql_im
 void 
 SQLTableFormat::begin_action() 
 {
-    query_.appendf(" CREATE TABLE  %s  (",table_name_);
+    query_.appendf("CREATE TABLE  %s  (",table_name_);
 }
 
+void 
+SQLTableFormat::end_action() 
+{
+    if (query_.data()[query_.length() - 1] == ',') {
+	query_.data()[query_.length() - 1] =  ')';
+    }
+}
 
 
 void
@@ -218,7 +302,7 @@ void
 SQLTableFormat::process(const char* name, bool* b)
 {
 //    append(name, "BOOLEAN");
-      append(name, "TEXT");
+    append(name, "TEXT");
 }
 
 void 
@@ -331,9 +415,10 @@ SQLExtract::process(const char* name, std::string* s)
 {
     const char* buf = next_field();
     if (buf == NULL) return;
+    
     s->assign(buf);
-    size_t len;
-    len = s->length();
+    
+    size_t len = s->length();
     
     if (log_) logf(log_, LOG_DEBUG, "<=string(%d: '%.*s')",
                    len, len < 32 ? len : 32, s->data());
@@ -342,7 +427,6 @@ SQLExtract::process(const char* name, std::string* s)
 void 
 SQLExtract::process(const char* name, u_char* bp, size_t len)
 {
-
     const char* buf = next_field();
     if (buf == NULL) return;
  
