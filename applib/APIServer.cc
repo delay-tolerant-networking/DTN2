@@ -50,6 +50,11 @@
 #include "routing/BundleRouter.h"
 #include "storage/GlobalStore.h"
 
+#ifndef MIN
+#define MIN(x, y) ((x)<(y) ? (x) : (y))
+#endif
+
+
 #ifdef __CYGWIN__
 // Cygwin's xdr.h file is k&r, so we need to make the declarations
 // more specific here to avoid errors when compiling with g++ instead
@@ -597,11 +602,6 @@ ClientAPIServer::handle_send()
 
     return 0;
 }
-
-// MIN is not available on CYGWIN, fix it here before we use it
-#ifndef MIN
-# define MIN(x, y) ((x)<(y) ? (x) : (y))
-#endif
 
 // Size for temporary memory buffer used when delivering bundles
 // via files.
