@@ -36,7 +36,7 @@ set up 60
 set down 180   
 ## Length of downtime
 
-set OFFSET_VAL 10
+set OFFSET_VAL  120
 
 
 
@@ -128,7 +128,8 @@ set downtime_str ""
 if {$linkdynamics == 1} {
     for {set i 1} {$i <  $maxnodes} {incr i} {
     #Do stuff for the ith link
-	set offset [expr $OFFSET_VAL*[expr $i - 1]]
+#	set offset [expr $OFFSET_VAL*[expr $i - 1]]
+	set offset [expr ($OFFSET_VAL*[expr $i - 1]) %  ($up + $down)  ]
 	sched $offset
 	## Now you have uplist and downlist and use them to schedule your events
 	

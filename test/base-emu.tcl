@@ -112,10 +112,12 @@ for {set i 1} {$i <  $maxnodes} {incr i} {
 $ns rtproto $protocol
 
 
+
+
 if {$linkdynamics == 1} {
     for {set i 1} {$i <  $maxnodes} {incr i} {
-    #Do stuff for the ith link
-	set offset [expr $OFFSET_VAL*[expr $i - 1]]
+	#Do stuff for the ith link
+	set offset [expr ($OFFSET_VAL*[expr $i - 1]) %  ($up + $down)  ]
 	sched $offset
 	## Now you have uplist and downlist and use them to schedule your events
 	
