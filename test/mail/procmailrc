@@ -8,11 +8,3 @@ LOGFILE=$MAILDIR/from
 LOCKFILE=$HOME/.lockmail
 
 
-
-:0                              # Anything from thf
-* ^Subject.*sendmail
-| /bin/csh /proj/DTN/nsdi/DTN2/test/mail/got_file.sh sendmail $MATCH
-
-
-:0
-default 

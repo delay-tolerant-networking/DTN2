@@ -20,7 +20,7 @@ proc scan_dir {dest_addr dir} {
     puts "scanning dir $dir..."
     set files [glob -nocomplain -- "$dir/*"]
     
-    set index 0
+    set index 1 
     foreach file $files {
     	file stat $file file_stat
 	
@@ -47,11 +47,11 @@ proc send_file {dest_addr file index} {
 
     puts "sending file $file"
     
-    set subject "sendmail"
+    set subject "sendmail_$index"
     #append subject "sendmail"
     set foo [exec mail -s $subject $dest_addr < $file]
     
-    puts $logfd "[time] :: sending file $file at [timef] " 
+    puts $logfd "[time] :: sending subject:$subject file:$file at [timef] " 
     flush $logfd
 }
 

@@ -47,6 +47,12 @@ set localtmpdir       =  /tmp/log-$proto.$id
 set txdir       = $localtmpdir/txfiles
 
 
+
+
+#user etc
+set username=`whoami`
+set userhome=/users/$username
+
 # Make the log directories
 
 if (! -e $localtmpdir) then

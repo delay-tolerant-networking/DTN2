@@ -10,8 +10,11 @@ proc mkfile {sz name} {
     set fd [open $name w]
     set todo [expr $FACTOR * $sz ] 
     set payload ""
+    set i 0
     while {$todo > 0} {
-	set  payload [format "%4d: 0123456789abcdef\n" [string length $payload]]
+	#set  payload [format "%4d: 0123456789abcdef\n" [string length $payload]]
+	set  payload [format "%09d\n" [ expr $i*10 ] ]
+	incr i
 	puts -nonewline $fd $payload
 	set todo [expr $todo - [string length $payload]]
     }
