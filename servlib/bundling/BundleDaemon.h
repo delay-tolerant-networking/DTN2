@@ -66,7 +66,9 @@ public:
      * Singleton accessor.
      */
     static BundleDaemon* instance() {
-        ASSERT(instance_ != NULL);
+        if (instance_ == NULL) {
+            PANIC("BundleDaemon::init not called yet");
+        }
         return instance_;
     }
 
@@ -74,7 +76,7 @@ public:
      * Constructor.
      */
     BundleDaemon();
-
+    
     /**
      * Boot time initializer.
      */
@@ -85,7 +87,7 @@ public:
         }
         instance_ = instance;
     }
-    
+
     /**
      * Queues the given event on the pending list of events.
      */
