@@ -21,8 +21,9 @@
          Intel Research Berkeley
       </organization>
    </author>
+
    <date month="March" year="2005"/>
-   
+
    <abstract><t> This internet draft describes a protocol for
       implementing a Convergence Layer as described in the <xref
       target="refs.dtnarch">Architecture for Delay Tolerant Networking
