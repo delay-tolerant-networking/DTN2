@@ -120,6 +120,18 @@ protected:
                                    BundleActionList* actions);
     
     /**
+     * Default event handler when a new contact is available.
+     */
+    void handle_contact_available(ContactAvailableEvent* event,
+                                  BundleActionList* actions);
+    
+    /**
+     * Default event handler when a contact is broken.
+     */
+    void handle_contact_broken(ContactBrokenEvent* event,
+                               BundleActionList* actions);
+    
+    /**
      * Default event handler when a new route is added by the command
      * or management interface.
      *
@@ -132,8 +144,12 @@ protected:
     /**
      * Get all matching entries from the routing table, and add a
      * corresponding forwarding action to the action list.
+     *
+     * Note that if the include_local flag is set, then local routes
+     * (i.e. registrations) are included in the list.
      */
-    void fwd_to_matching(Bundle* bundle, BundleActionList* actions);
+    void fwd_to_matching(Bundle* bundle, BundleActionList* actions,
+                         bool include_local);
     
     /**
      * Called whenever a new consumer (i.e. registration or contact)

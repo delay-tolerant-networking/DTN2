@@ -3,6 +3,7 @@
 #include "RouteTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
+#include "bundling/Contact.h"
 #include "bundling/FragmentManager.h"
 #include "reg/Registration.h"
 #include <stdlib.h>
@@ -78,11 +79,11 @@ BundleRouter::handle_event(BundleEvent* e,
         break;
 
     case CONTACT_AVAILABLE:
-	log_info("Ignoring contact available event...no action taken");
+        handle_contact_available((ContactAvailableEvent*)e, actions);
         break;
 
     case CONTACT_BROKEN:
-	log_info("Ignoring contact broken event...no action taken");
+        handle_contact_broken((ContactBrokenEvent*)e, actions);
         break;
 
     default:
@@ -107,36 +108,23 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     
     log_debug("BUNDLE_RECEIVED bundle id %d", bundle->bundleid_);
 
-    // XXX/demmer test for fragmentation code
-    if (bundle->payload_.length() > proactive_frag_threshold_) {
-        Bundle* fragment;
-        
-        int todo = bundle->payload_.length();
-        int offset = 0;
-        int fraglen;
-        while (todo > 0) {
-            fraglen = random() % proactive_frag_threshold_;
-            if (fraglen < 100) fraglen = 100;
-            if ((fraglen + offset) > (int)bundle->payload_.length()) {
-                fraglen = bundle->payload_.length() - offset;
-            }
-
-            fragment = FragmentManager::instance()->fragment(bundle, offset, fraglen);
-            ASSERT(fragment);
-
-            pending_bundles_->push_back(fragment);
-            actions->push_back(new BundleAction(STORE_ADD, fragment));
-            fwd_to_matching(fragment, actions);
-            
-            offset += fraglen;
-            todo -= fraglen;
-        }
-        return;
+    /*
+     * Check if the bundle isn't complete. If so, do reactive
+     * fragmentation.
+     *
+     * XXX/demmer this should maybe be changed to do the reactive
+     * fragmentation in the forwarder?
+     */
+    if (event->bytes_received_ != bundle->payload_.length()) {
+        log_debug("partial bundle, making fragment of %d bytes",
+                  event->bytes_received_);
+        FragmentManager::instance()->
+            convert_to_fragment(bundle, event->bytes_received_);
     }
 
     pending_bundles_->push_back(bundle);
     actions->push_back(new BundleAction(STORE_ADD, bundle));
-    fwd_to_matching(bundle, actions);
+    fwd_to_matching(bundle, actions, true);
 }
 
 void
@@ -153,14 +141,6 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
               bundle->bundleid_, event->bytes_sent_,
               event->acked_ ? "ACKED" : "UNACKED",
               event->consumer_->dest_tuple()->c_str());
-        
-    /*
-     * Check for reactive fragmentation, potentially splitting off
-     * the unsent portion, if necessary.
-     */
-    if (event->bytes_sent_ != bundle->payload_.length()) {
-        PANIC("reactive fragmentation not implemented");
-    }
 
     /*
      * If the whole bundle was sent and this is the last destination
@@ -169,6 +149,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
      */
     if (bundle->num_containers() == 1) {
         log_debug("last consumer, removing bundle from pending list");
+        log_debug("XXX/demmer this is bogus");
 
         // XXX/demmer this should go through the bundle's backpointer
         // iterator rather than traversing the whole pending bundles
@@ -177,6 +158,28 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
         ASSERT(removed);
         
         actions->push_back(new BundleAction(STORE_DEL, bundle));
+    }
+
+    /*
+     * Check for reactive fragmentation, potentially splitting off the
+     * unsent portion as a new bundle, if necessary.
+     */
+    size_t payload_len = bundle->payload_.length();
+
+    if (event->bytes_sent_ != payload_len) {
+        size_t frag_off = event->bytes_sent_;
+        size_t frag_len = payload_len - event->bytes_sent_;
+
+        log_debug("incomplete transmission: creating reactive fragment "
+                  "(offset %d len %d/%d)", frag_off, frag_len, payload_len);
+
+        Bundle* tail = FragmentManager::instance()->
+                       create_fragment(bundle, frag_off, frag_len);
+        
+        // treat the new fragment as if it just arrived.
+        pending_bundles_->push_back(tail);
+        actions->push_back(new BundleAction(STORE_ADD, tail));
+        fwd_to_matching(tail, actions, false);
     }
 }
 
@@ -197,8 +200,45 @@ BundleRouter::handle_registration_added(RegistrationAddedEvent* event,
 
     RouteEntry* entry = new RouteEntry(registration->endpoint(),
                                        registration, FORWARD_REASSEMBLE);
+    entry->local_ = true;
     route_table_->add_entry(entry);
     new_next_hop(registration->endpoint(), registration, actions);
+}
+
+/**
+ * Default event handler when a new contact is available.
+ */
+void
+BundleRouter::handle_contact_available(ContactAvailableEvent* event,
+                                       BundleActionList* actions)
+{
+    log_info("CONTACT_AVAILABLE *%p", event->contact_);
+}
+
+/**
+ * Default event handler when a contact is broken
+ */
+void
+BundleRouter::handle_contact_broken(ContactBrokenEvent* event,
+                                    BundleActionList* actions)
+{
+    Contact* contact = event->contact_;
+    log_info("CONTACT_BROKEN *%p: re-routing queued bundles", contact);
+    
+    Bundle* bundle;
+    BundleList::iterator iter;
+
+    BundleList temp("temp");
+    contact->bundle_list()->move_contents(&temp);
+    
+    ScopeLock lock(temp.lock());
+    
+    for (iter = temp.begin(); iter != temp.end(); ++iter) {
+        bundle = *iter;
+        fwd_to_matching(bundle, actions, false);
+    }
+
+    contact->close();
 }
 
 /**
@@ -222,7 +262,8 @@ BundleRouter::handle_route_add(RouteAddEvent* event,
  * to the action list.
  */
 void
-BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions)
+BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
+                              bool include_local)
 {
     RouteEntry* entry;
     RouteEntrySet matches;
@@ -234,6 +275,9 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions)
 
     for (iter = matches.begin(); iter != matches.end(); ++iter) {
         entry = *iter;
+        if ((include_local == false) && entry->local_)
+            continue;
+        
         actions->push_back(
             new BundleForwardAction(entry->action_, bundle, entry->next_hop_));
     }
