@@ -9,12 +9,6 @@
  */
 class BufferedSerializeAction : public SerializeAction {
 public:
-    /**
-     * The basic action function is the same for marshalling and
-     * unmarshalling.
-     */
-    int action(SerializableObject* object);
-
     /** 
      * Since BufferedSerializeAction ignores the name field, calling
      * process() on a contained object is the same as just calling the

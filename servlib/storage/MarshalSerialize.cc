@@ -15,25 +15,6 @@ BufferedSerializeAction::BufferedSerializeAction(action_t action,
 }
 
 /**
- * Call the virtual serialize() callback which will, in turn, call the
- * various process() callbacks on ourself. If any of the process
- * functions fails due to insufficient buffer space, it will set
- * error_ to true.
- */
-int
-BufferedSerializeAction::action(SerializableObject* object)
-{
-    error_ = false;
-    
-    object->serialize(this);
-    
-    if (error_ == true)
-        return -1;
-    
-    return 0;
-}
-
-/**
  * Return the next chunk of buffer. If there was a previous error or
  * if the buffer isn't big enough, set the error_ flag and return
  * NULL.

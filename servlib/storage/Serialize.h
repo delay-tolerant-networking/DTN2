@@ -41,7 +41,7 @@ public:
      *
      * @return 0 if success, -1 on error
      */
-    virtual int action(SerializableObject* object) = 0;
+    virtual int action(SerializableObject* object);
 
     /**
      * Action type codes, one for each action type of SerializeAction.
@@ -118,24 +118,24 @@ public:
     /**
      * Adaptor functions for signed/unsigned compatibility
      */
-    void process(const char* name, int32_t* i)
+    virtual void process(const char* name, int32_t* i)
     {
         process(name, (u_int32_t*)i);
     }
     
-    void process(const char* name, int16_t* i)
+    virtual void process(const char* name, int16_t* i)
     {
         process(name, (u_int16_t*)i);
     }
 
-    void process(const char* name, int8_t* i)
+    virtual void process(const char* name, int8_t* i)
     {
         process(name, (u_int8_t*)i);
     }
 
-    void process(const char* name, char* bp, size_t len)
+    virtual void process(const char* name, char* bp, size_t len)
     {
-        process(name, (char*)bp, len);
+        process(name, (u_char*)bp, len);
     }
     /// @}
     
