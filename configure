@@ -260,6 +260,8 @@ done
 # Make sure the compiler a) works b) is some gcc variant and c) is an
 # acceptable version.
 #
+if [ $target = "native" ]; then
+
 cat > config.$$.c <<EOF
 #include <stdio.h>
 int 
@@ -275,18 +277,27 @@ fi
 
 rm -f config.$$.c
 
+ccver=`a.out`
+rm -f a.out
+
+elif [ "$target" = "arm" ]; then
+ccver=2.95
+sql_disabled=-D__SQL_DISABLED__
+mysql_disabled=-D__MYSQL_DISABLED__
+postgres_disabled=-D__POSTGRES_DISABLED__
+defs="$db_disabled $sql_disabled $mysql_disabled $postgres_disabled"
+fi
+
 #
 # Now set some options based on the compiler version
 #
-ccver=`a.out`
-rm -f a.out
 case "$ccver" in
     #
     # for gcc 2.9.X and 3.1, the auto-dependency features don't work, and 
     # _GNU_SOURCE isn't defined, so do both those things here
     #
     3.1|2.9*)
-        defs='-D_GNU_SOURCE'
+        defs+='-D_GNU_SOURCE'
 	depflags=''
 	echo "*** warning: using old compiler $cc version $ccver,"
 	echo "             automatic dependency generation will not work"
@@ -329,17 +340,17 @@ if [ ! "$tcldir" = "" ]; then
   # Make sure the directory the user specified is ok
   #
   if [ -r $tcldir/include/tcl.h ]; then
-	tclincdir=-I$tcldir
+	tclincdir=-I$tcldir/include
   else
 	echo "can't find tcl.h in $tcldir"
 	exit 1
   fi
 
   if   [ -r $tcldir/lib/libtcl.$libext ]; then
-	tcllibdir=-L$tcldir
+	tcllibdir=-L$tcldir/lib
 	tcllib=-ltcl
   elif [ -r $tcldir/lib/libtcl$tclver.$libext ]; then
-	tcllibdir=-L$tcldir
+	tcllibdir=-L$tcldir/lib
 	tcllib=-ltcl$tclver
   else
 	echo "can't find libtcl.$libext or libtcl$tclver.$libext in $tcldir"

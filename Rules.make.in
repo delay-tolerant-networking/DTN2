@@ -59,7 +59,6 @@ CPP         = @CPP@
 DEPFLAGS    = @DEPFLAGS@
 DEFS        = @DEFS@
 STRIP       = strip
-POST        =
 INSTALL     = install
 RM          = rm
 RPCGEN      = rpcgen
@@ -75,13 +74,16 @@ endif
 #  CC=arm-linux-gcc ./configure --host=i686-linux --build=i686-linux --target=arm-linux --prefix=/usr/local/ARM
 #
 ifeq ($(TARGET),arm)
-ARMDIR=/usr/local/ARM
-INCDIRS += -I${ARMDIR}/include
-LIBDIRS += -L${ARMDIR}/lib @ALLSTATIC@
-CC = ${ARMDIR}/bin/libtool --mode=compile arm-linux-gcc @STATIC@
-LINK= ${ARMDIR}/bin/libtool --mode=link arm-linux-gcc @STATIC@
-STRIP = -arm-linux-strip
-POST = striplibs
+ARMDIR		=/opt/Embedix/tools/arm-linux
+INCDIRS 	+= -I$(ARMDIR)/include @INCDIRS@ 
+LIBDIRS 	= -L$(ARMDIR)/lib @LIBDIRS@
+CC 		= @CC@
+CPP		= @CPP@
+DEPFLAGS        = @DEPFLAGS@
+DEFS            = @DEFS@
+LINK		= @CC@
+STRIP 		= -arm-linux-strip
+RPCGEN		= rpcgen
 INSTALL = ${ARMDIR}/bin/libtool --mode=install cp
 RM = ${ARMDIR}/bin/libtool --mode=clean rm
 endif
