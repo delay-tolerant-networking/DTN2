@@ -25,6 +25,8 @@ BundleForwarding::input(Bundle* bundle)
     Contact* next_hop;
     log_debug("input *%p", bundle);
 
+    BundleStore::instance()->put(bundle, bundle->bundleid_);
+
     next_hop = RouteTable::instance()->next_hop(bundle);
 
     if (next_hop) {
