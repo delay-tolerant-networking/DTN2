@@ -114,7 +114,7 @@ $ns rtproto $protocol
 
 ## this is only for random sched generation
 
-if {$offset != -1 }  {
+if {$OFFSET_VAL != -1 }  {
     exit ;
 }
 

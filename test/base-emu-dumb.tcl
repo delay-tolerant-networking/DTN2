@@ -66,21 +66,28 @@ while {$start < $MAX_SIM_TIME} {
     set thisloopuplist ""
     set thisloopdownlist ""
 
+    set count 0 
     ## Start up state (link is down before offset)
-    if {$offset != 0} {
-
+    if {$offset > 0} {
+	
 	lappend thisloopdownlist [expr $start + 1]
 	lappend thisloopuplist [expr $start + $offset   ]
     } else {
 	lappend thisloopuplist [expr $start + 1]
     }
-
+    
+    
+    
 
    # puts "Outer loop $start"
     set current [expr $start + $offset]
     set limit [expr $start + $ONE_CYCLE_LENGTH ]
     while {$current  < $limit} {
-	set current [expr $current + $up]
+
+#	=====
+#	set current [expr $current + $up]
+	set current [expr $current + $offset_up($count)]
+
 	if {$current > $limit} break ; 
 	lappend thisloopdownlist $current
 
@@ -88,6 +95,14 @@ while {$start < $MAX_SIM_TIME} {
 	if {$current > $limit} break ; 
 
 	lappend thisloopuplist $current
+#	=====
+
+	set current exp$current + $offset_up(i)
+	
+	lappend thisloopuplist 
+	lappend thisloopdownlist $current + $offset_up(i) + $up
+	incr count
+
     }
 
     puts "START  is $start  offset is $offset"

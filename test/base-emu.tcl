@@ -42,7 +42,7 @@ set start $WARMUPTIME
 while {$start < $MAX_SIM_TIME} {
 
     ## Start up state (link is down before offset)
-    if {$offset != 0} {
+    if {$offset > 0} {
 	lappend downlist [expr $start + 1]
 	lappend uplist [expr $start + $offset   ]
     }  else {
