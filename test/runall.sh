@@ -7,9 +7,9 @@ function run_set() {
 	./gen-emu.sh rabin $nodes $num $size $lossrate $bwkb "$types"  "$prots" $waittime 
 	modexp -r -s -e DTN,rabin tmp/rabin.emu
 	sleep $sleeptime 
-	key=rabin-N$nodes-L$lossrate-S$size-B$bw
-	dir=/proj/DTN/logs/rabin/$key
-	mkdir $key
+	key=rabin-N$nodes-L$lossrate-M$num-S$size-B$bw
+	dir=/proj/DTN/nsdi/logs/rabin/$key
+	mkdir $dir
 	for prot in $prots; do
 		for type in $types; do
 			if [ "$type" == "ph" ]; then
@@ -17,56 +17,67 @@ function run_set() {
 			else
 				typeind=0
 			fi
-			echo "rm -rf $dir/$prot$typeind"
-			echo "cp -rf /proj/DTN/logs/rabin/$prot$typeind $dir"
+			rm -rf $dir/$prot$typeind
+			cp -rf /proj/DTN/nsdi/logs/rabin/$prot$typeind $dir
 		done
 	done
 } 
 
 
 bw=100
-num=10
+
+
+prots="tcp mail"
+types="ph e2e"
+
 lossrate=0
 
-
-sleeptime=1000
-prots="mail"
-types="ph"
-
-
-waittime=1000
-sleeptime=1500
+waittime=600
+sleeptime=3000
+num=10
 size=500
-nodes=4
-run_set;
-nodes=3
-run_set;
-nodes=2
+nodes=5
 run_set;
 
-exit;
 
-waittime=250
-sleeptime=1600
+
+lossrate=0.05
+
+waittime=600
+sleeptime=3000
+size=500
+num=10
+nodes=5
+run_set;
+
+waittime=600
+sleeptime=3000
 size=100
+num=50
 nodes=5
 run_set;
-nodes=4
-run_set;
-nodes=3
-run_set;
-nodes=2
-run_set;
 
-
+waittime=600
+sleeptime=3000
 size=10
+num=500
 nodes=5
 run_set;
-nodes=4
+
+
+
+
+prots="dtn"
+types="ph e2e"
+lossrate=0
+
+waittime=600
+sleeptime=3000
+num=10
+size=500
+nodes=5
 run_set;
-nodes=3
-run_set;
-nodes=2
-run_set;
+
+
 
 
