@@ -106,30 +106,37 @@ AC_SUBST(STATIC)
 dnl
 dnl Handle --with-cc=CC
 dnl
+ac_with_cc=
 AC_ARG_WITH(cc,
     AC_HELP_STRING([--with-cc=CC],
 		   [name (or path) of the C compiler to use]),
                    ac_with_cc=$withval)
 
-if test x$ac_with_gcc = x ; then
-    ac_try_cc="gcc gcc-3.3 gcc-3.2 gcc-2.95"
-    ac_try_cxx="g++ g++-3.3 g++-3.2 g++-2.95"
+if test x$ac_with_cc = x ; then
+    ac_try_cc="gcc gcc-3.3 gcc-3.2 gcc-2.96 gcc296 gcc-2.95 gcc295"
+    ac_try_cxx="g++ g++-3.3 g++-3.2 g++-2.96 g++296 g++-2.95 g++295"
 else
-    ac_try_cc=$ac_with_gcc
-    ac_try_cxx=`echo $ac_with_gcc | sed 's/cc/++/'`
+    ac_try_cc=$ac_with_cc
+    ac_try_cxx=`echo $ac_with_cc | sed 's/cc/++/'`
 fi
 
 dnl -------------------------------------------------------------------------
 dnl Checks for programs and libraries
 dnl -------------------------------------------------------------------------
-AC_PROG_AWK
+AC_MSG_CHECKING([for a C compiler (trying $ac_try_cc)])
+AC_MSG_RESULT([])
 AC_PROG_CC($ac_try_cc)
+AC_MSG_CHECKING([for a C++ compiler (trying $ac_try_cxx)])
+AC_MSG_RESULT([])
 AC_PROG_CXX($ac_try_cxx)
+AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
-AC_CHECK_LIB(pthread, pthread_create)
 AC_OASYS_CONFIG_GCC
+AC_CHECK_LIB(pthread, pthread_create)
+AC_CHECK_LIB(socket, socket)
+AC_CHECK_LIB(nsl, gethostbyname)
 AC_OASYS_TCLCONFIG
 AC_DTN_DBCONFIG
 AC_DTN_PGCONFIG
@@ -161,7 +168,7 @@ dnl Checks for header files.
 dnl -------------------------------------------------------------------------
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/cdefs.h sys/ioctl.h sys/socket.h sys/time.h unistd.h wchar.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/ioctl.h sys/socket.h sys/time.h unistd.h wchar.h])
 
 dnl -------------------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -175,6 +182,8 @@ AC_TYPE_SIZE_T
 AC_HEADER_TIME
 AC_C_VOLATILE
 AC_CHECK_TYPES([ptrdiff_t])
+AC_CHECK_TYPES([uint32_t])
+AC_CHECK_TYPES([u_int32_t])
 
 dnl -------------------------------------------------------------------------
 dnl Checks for library functions.

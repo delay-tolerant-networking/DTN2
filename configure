@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR TARGET DEBUG OPTIMIZE OPTIMIZE_WARN STATIC AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB DEPFLAGS DB_ENABLED POSTGRES_ENABLED MYSQL_ENABLED SQL_ENABLED CPP EGREP LIBOBJS POW_LIB LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR TARGET DEBUG OPTIMIZE OPTIMIZE_WARN STATIC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB DEPFLAGS DB_ENABLED POSTGRES_ENABLED MYSQL_ENABLED SQL_ENABLED CPP EGREP LIBOBJS POW_LIB LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1411,6 +1411,7 @@ STATIC=
 test $static = yes && STATIC=yes
 
 
+ac_with_cc=
 
 # Check whether --with-cc or --without-cc was given.
 if test "${with_cc+set}" = set; then
@@ -1418,54 +1419,18 @@ if test "${with_cc+set}" = set; then
   ac_with_cc=$withval
 fi;
 
-if test x$ac_with_gcc = x ; then
-    ac_try_cc="gcc gcc-3.3 gcc-3.2 gcc-2.95"
-    ac_try_cxx="g++ g++-3.3 g++-3.2 g++-2.95"
+if test x$ac_with_cc = x ; then
+    ac_try_cc="gcc gcc-3.3 gcc-3.2 gcc-2.96 gcc296 gcc-2.95 gcc295"
+    ac_try_cxx="g++ g++-3.3 g++-3.2 g++-2.96 g++296 g++-2.95 g++295"
 else
-    ac_try_cc=$ac_with_gcc
-    ac_try_cxx=`echo $ac_with_gcc | sed 's/cc/++/'`
+    ac_try_cc=$ac_with_cc
+    ac_try_cxx=`echo $ac_with_cc | sed 's/cc/++/'`
 fi
 
-for ac_prog in gawk mawk nawk awk
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_prog_AWK+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  if test -n "$AWK"; then
-  ac_cv_prog_AWK="$AWK" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_AWK="$ac_prog"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-fi
-fi
-AWK=$ac_cv_prog_AWK
-if test -n "$AWK"; then
-  echo "$as_me:$LINENO: result: $AWK" >&5
-echo "${ECHO_T}$AWK" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-  test -n "$AWK" && break
-done
-
+echo "$as_me:$LINENO: checking for a C compiler (trying $ac_try_cc)" >&5
+echo $ECHO_N "checking for a C compiler (trying $ac_try_cc)... $ECHO_C" >&6
+echo "$as_me:$LINENO: result: " >&5
+echo "${ECHO_T}" >&6
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -2117,6 +2082,10 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+echo "$as_me:$LINENO: checking for a C++ compiler (trying $ac_try_cxx)" >&5
+echo $ECHO_N "checking for a C++ compiler (trying $ac_try_cxx)... $ECHO_C" >&6
+echo "$as_me:$LINENO: result: " >&5
+echo "${ECHO_T}" >&6
 ac_ext=cc
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -2437,6 +2406,46 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+for ac_prog in gawk mawk nawk awk
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_prog_AWK+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$AWK"; then
+  ac_cv_prog_AWK="$AWK" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_AWK="$ac_prog"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+fi
+fi
+AWK=$ac_cv_prog_AWK
+if test -n "$AWK"; then
+  echo "$as_me:$LINENO: result: $AWK" >&5
+echo "${ECHO_T}$AWK" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  test -n "$AWK" && break
+done
+
 # Find a good install program.  We prefer a C program (faster),
 # so one script is as good as another.  But avoid the broken or
 # incompatible versions:
@@ -2624,6 +2633,53 @@ else
 fi
 
 
+    echo "$as_me:$LINENO: checking for the version of the gcc compiler" >&5
+echo $ECHO_N "checking for the version of the gcc compiler... $ECHO_C" >&6
+if test "${oasys_cv_prog_gccver+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+      oasys_cv_prog_gccver=`$CC --version | head -1`
+      oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/gcc (GCC) //'`
+      oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/ .*//'`
+
+fi
+echo "$as_me:$LINENO: result: $oasys_cv_prog_gccver" >&5
+echo "${ECHO_T}$oasys_cv_prog_gccver" >&6
+
+    #
+    # Set version-specific compiler options
+    #
+    case "$oasys_cv_prog_gccver" in
+        #
+        # for gcc 2.9.X and 3.1, the auto-dependency features don't work, and
+        # _GNU_SOURCE isn't defined, so do both those things here
+        #
+        3.1*|2.9*)
+            DEFS="$DEFS -D_GNU_SOURCE"
+	    DEPFLAGS=""
+            echo "*** warning: using old compiler $cc version $oasys_cv_prog_gccver,"
+	    echo "             automatic dependency generation will not work"
+	    ;;
+	#
+	# For 3.2 and beyond, use auto-dependency flags.
+	# Note that for m4 to output a '$' requires the '$' heinosity below.
+	#
+	3.*)
+	    DEPFLAGS='-MMD -MP -MT "$*.o $*.E $*.po"'
+	    ;;
+	#
+	# Otherwise bail
+	#
+        *)
+	    echo "error: unsupported compiler version $oasys_cv_prog_gccver"
+	    exit  1
+	    ;;
+    esac
+
+
+
+
 
 echo "$as_me:$LINENO: checking for pthread_create in -lpthread" >&5
 echo $ECHO_N "checking for pthread_create in -lpthread... $ECHO_C" >&6
@@ -2689,51 +2745,132 @@ _ACEOF
 fi
 
 
-    echo "$as_me:$LINENO: checking for the version of the gcc compiler" >&5
-echo $ECHO_N "checking for the version of the gcc compiler... $ECHO_C" >&6
-if test "${oasys_cv_prog_gccver+set}" = set; then
+echo "$as_me:$LINENO: checking for socket in -lsocket" >&5
+echo $ECHO_N "checking for socket in -lsocket... $ECHO_C" >&6
+if test "${ac_cv_lib_socket_socket+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lsocket  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
 
-      oasys_cv_prog_gccver=`$CC --version | head -1`
-      oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/gcc (GCC) //'`
-      oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/ .*//'`
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char socket ();
+int
+main ()
+{
+socket ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_socket_socket=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_socket_socket=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_socket_socket" >&5
+echo "${ECHO_T}$ac_cv_lib_socket_socket" >&6
+if test $ac_cv_lib_socket_socket = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSOCKET 1
+_ACEOF
+
+  LIBS="-lsocket $LIBS"
 
 fi
-echo "$as_me:$LINENO: result: $oasys_cv_prog_gccver" >&5
-echo "${ECHO_T}$oasys_cv_prog_gccver" >&6
-
-    #
-    # Set version-specific compiler options
-    #
-    case "$oasys_cv_prog_gccver" in
-        #
-        # for gcc 2.9.X and 3.1, the auto-dependency features don't work, and
-        # _GNU_SOURCE isn't defined, so do both those things here
-        #
-        3.1*|2.9*)
-            DEFS="$DEFS -D_GNU_SOURCE"
-	    DEPFLAGS=""
-            echo "*** warning: using old compiler $cc version $oasys_cv_prog_gccver,"
-	    echo "             automatic dependency generation will not work"
-	    ;;
-	#
-	# For 3.2 and beyond, use auto-dependency flags.
-	# Note that for m4 to output a '$' requires the '$' heinosity below.
-	#
-	3.*)
-	    DEPFLAGS='-MMD -MP -MT "$*.o $*.E $*.po"'
-	    ;;
-	#
-	# Otherwise bail
-	#
-        *)
-	    echo "error: unsupported compiler version $oasys_cv_prog_gccver"
-	    exit  1
-	    ;;
-    esac
 
 
+echo "$as_me:$LINENO: checking for gethostbyname in -lnsl" >&5
+echo $ECHO_N "checking for gethostbyname in -lnsl... $ECHO_C" >&6
+if test "${ac_cv_lib_nsl_gethostbyname+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnsl  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char gethostbyname ();
+int
+main ()
+{
+gethostbyname ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_nsl_gethostbyname=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_nsl_gethostbyname=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_nsl_gethostbyname" >&5
+echo "${ECHO_T}$ac_cv_lib_nsl_gethostbyname" >&6
+if test $ac_cv_lib_nsl_gethostbyname = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBNSL 1
+_ACEOF
+
+  LIBS="-lnsl $LIBS"
+
+fi
 
 
 
@@ -4316,7 +4453,8 @@ done
 
 
 
-for ac_header in arpa/inet.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/cdefs.h sys/ioctl.h sys/socket.h sys/time.h unistd.h wchar.h
+
+for ac_header in arpa/inet.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/ioctl.h sys/socket.h sys/time.h unistd.h wchar.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
@@ -5086,6 +5224,118 @@ if test $ac_cv_type_ptrdiff_t = yes; then
 
 cat >>confdefs.h <<_ACEOF
 #define HAVE_PTRDIFF_T 1
+_ACEOF
+
+
+fi
+
+echo "$as_me:$LINENO: checking for uint32_t" >&5
+echo $ECHO_N "checking for uint32_t... $ECHO_C" >&6
+if test "${ac_cv_type_uint32_t+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+int
+main ()
+{
+if ((uint32_t *) 0)
+  return 0;
+if (sizeof (uint32_t))
+  return 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_type_uint32_t=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_type_uint32_t=no
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_type_uint32_t" >&5
+echo "${ECHO_T}$ac_cv_type_uint32_t" >&6
+if test $ac_cv_type_uint32_t = yes; then
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_UINT32_T 1
+_ACEOF
+
+
+fi
+
+echo "$as_me:$LINENO: checking for u_int32_t" >&5
+echo $ECHO_N "checking for u_int32_t... $ECHO_C" >&6
+if test "${ac_cv_type_u_int32_t+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+int
+main ()
+{
+if ((u_int32_t *) 0)
+  return 0;
+if (sizeof (u_int32_t))
+  return 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_type_u_int32_t=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_type_u_int32_t=no
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_type_u_int32_t" >&5
+echo "${ECHO_T}$ac_cv_type_u_int32_t" >&6
+if test $ac_cv_type_u_int32_t = yes; then
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_U_INT32_T 1
 _ACEOF
 
 
@@ -6911,7 +7161,6 @@ s,@DEBUG@,$DEBUG,;t t
 s,@OPTIMIZE@,$OPTIMIZE,;t t
 s,@OPTIMIZE_WARN@,$OPTIMIZE_WARN,;t t
 s,@STATIC@,$STATIC,;t t
-s,@AWK@,$AWK,;t t
 s,@CC@,$CC,;t t
 s,@CFLAGS@,$CFLAGS,;t t
 s,@LDFLAGS@,$LDFLAGS,;t t
@@ -6922,6 +7171,7 @@ s,@OBJEXT@,$OBJEXT,;t t
 s,@CXX@,$CXX,;t t
 s,@CXXFLAGS@,$CXXFLAGS,;t t
 s,@ac_ct_CXX@,$ac_ct_CXX,;t t
+s,@AWK@,$AWK,;t t
 s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
 s,@INSTALL_SCRIPT@,$INSTALL_SCRIPT,;t t
 s,@INSTALL_DATA@,$INSTALL_DATA,;t t
