@@ -14,10 +14,14 @@ LogCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         wrong_num_args(argc, argv, 1, 4);
         return TCL_ERROR;
     }
+
+    log_level_t level = str2level(argv[2]);
+    if (level == LOG_INVALID) {
+        resultf("invalid log level %s", argv[2]);
+        return TCL_ERROR;
+    }
     
-    ::logf(const_cast<char*>(argv[1]),
-           str2level(const_cast<char*>(argv[2])), 
-           const_cast<char*>(argv[3]));
+    ::logf(argv[1], level, argv[3]);
 
     return TCL_OK;
 }
