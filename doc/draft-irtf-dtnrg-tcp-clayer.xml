@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+
+<rfc ipr="full3667" docName="draft-irtf-dtnrg-bundle-tcpcl.txt">
+ 
+<?xml-stylesheet type="text/xsl" href="rfc2629.xslt" ?>
+
+<?rfc toc="yes"?>
+<?rfc sortrefs="yes" ?>
+<?rfc iprnotified="no"?>
+<?rfc compact="yes"?>
+
+<front>
+   <title abbrev="TCP Bundling Convergence Layer">
+      Protocol for the TCP Bundling Convergence Layer
+   </title>
+  
+   <author initials="M.J." surname="Demmer" fullname="Michael J. Demmer">
+      <organization abbrev="UC Berkeley / Intel Research">
+         University of California, Berkeley
+         Intel Research Berkeley
+      </organization>
+   </author>
+   <date month="March" year="2005"/>
+   
+   <abstract><t> This internet draft describes a protocol for
+      implementing a Convergence Layer as described in the <xref
+      target="refs.dtnarch">Architecture for Delay Tolerant Networking
+      </xref> (DTN), using the TCP transport protocol.
+   </t></abstract> </front>
+
+<middle>
+
+<section title="Introduction">
+<t>
+   This document describes the protocol used when implementing a TCP
+   Convergence Layer, as described in the <xref target="refs.dtnarch">
+   Architecture for Delay Tolerant Networking </xref> (DTN).
+</t>
+
+<t>
+   Note that this document describes version 2 of the protocol.
+   Version 1 was never specified in an Internet Draft or other public
+   document, although it was implemented in the <xref
+   target="refs.dtnimpl">DTN reference implementation</xref> versions
+   2.0.1 and 2.0.2.
+</t>
+
+<t>
+   Communication between two Bundle daemons using the TCP Convergence
+   Layer is initiated by one daemon opening a TCP session via the
+   normal TCP connection establishment mechanism (i.e. the connect()
+   call in the BSD sockets API). This operation establishes a new TCP
+   session between the two nodes, herein termed a "connection".
+</t>
+
+<t>
+   In this protocol, one side of the connection is termed the "sender"
+   and one side is the "receiver". All bundle transmissions occur in
+   only one direction, from sender to receiver. However, other
+   messages are transmitted from receiver to sender, as described
+   below. In addition, as will be described in <xref
+   target="tcpcl:receiver_connect"/>, the party that initiates the TCP
+   connection is not necessarily the sender.
+</t>
+
+<t>
+   XXX something about byte order
+</t>
+
+</section>
+
+<section title="Contact Header" anchor="tcpcl:contact">
+
+<t>
+   When a connection is established between a sender and receiver,
+   both parties MUST transmit a Contact Header upon establishing a
+   connection.
+</t>
+   
+<figure anchor="fig:tcpcl:contact_header"
+   title="Contact Header Format">
+   <preamble>
+      The format for the Contact Header is as follows:
+   </preamble>
+   
+   <artwork>
+                     1                   2                   3  
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++---------------+---------------+---------------+---------------+
+|                     magic='dtn'               |    version    |
++---------------+---------------+---------------+---------------+
+|     flags     |  __unused__   |        partial_ack_len        |
++---------------+---------------+---------------+---------------+
+|        idle_close_time        |       keepalive_interval      |
++---------------+---------------+---------------+---------------+
+   </artwork>
+</figure>
+
+<t>
+   The fields of the contact header are:
+</t>
+
+<t>
+<list style="hanging" hangIndent="5">
+   <t hangText="magic:"> A three byte field that always contains the
+      bytes (in order) 0x64 0x76 0x6e, i.e. the ASCII string "dtn".
+   </t>
+   <t></t>
+   
+   <t hangText="version:"> A one byte field value containing the
+	 current version of the protocol.
+   </t>
+   <t></t>
+
+   <t hangText="flags:"> A one byte field containing optional
+      connection flags. The first five bits are unused and must be set
+      to zero. The last three bits are interpreted as follows.
+   </t>
+</list>
+</t>
+
+<texttable anchor="tcpcl:contact:flags"
+           title="Contact Header Flags">
+   <ttcol align="center">Value</ttcol>
+   <ttcol align="center">Meaning</ttcol>
+
+   <c>001</c>
+   <c>Request acknowledgement of bundle reception.</c>
+
+   <c>010</c>
+   <c>Connection initiator is the receiver.</c>
+
+   <c>100</c>
+   <c>Request reactive fragmentation.</c>
+</texttable>
+
+<t>
+<list style="hanging" hangIndent="5">
+
+   <t hangText="__unused__:"> A one byte field that is ignored.
+   </t>
+   <t></t>
+
+   <t hangText="partial_ack_len:"> A two byte field containing the
+      length in bytes for which partial reception acknowledgements are
+      requested (see <xref target="tcpcl:partial"/>).
+   </t>
+   <t></t>
+   
+   <t hangText="idle_close_time:"> A two byte field containing the
+      number of seconds that a connection should be maintained when no
+      data (bundles or acknowledgements) are being exchanged (see
+      <xref target="tcpcl:idle"/>).
+   </t>
+   <t></t>
+
+   <t hangText="keepalive_interval:"> A two byte field containing the
+      number of seconds between exchanges of keepalive messages on the
+      connection (see <xref target="tcpcl:keepalive"/>).
+   </t>
+</list>
+</t>
+</section>
+
+<section title="Contact header validation and negotiation">
+<t>
+   Upon receipt of the contact header from the other side, both the
+   sender and receiver follow the following semantics for validating the 
+   the value of each connection flag and parameter.
+</t>
+
+<t>
+   If either side does not send the correct magic string, the
+   connection SHOULD be terminated. The intent of the magic string is
+   to provide some more apparent protection against an inadvertent
+   connection to a TCP convergence layer. To prevent a flood of
+   repeated connections, either side may choose to hold an invalid
+   connection open for some time before closing it.
+</t>
+
+<t>
+   If one party receives a version number that is greater than that
+   node's current version of the protocol, the receiver SHOULD
+   interpret all fields as described in this document. This behavior
+   rests on the assumption that future revisions of this protocol will
+   continue to be backwards-compatible. However, if either side
+   receives version number 21 (i.e. the ascii code '!'), then the
+   other side is assumed to be an implementation of version 1 of the
+   protocol, and the connection SHOULD therefore be terminated.
+</t>
+
+<t>
+   XXX fill in the rest of the negotiation parameters
+</t>
+
+</section>
+
+<section title="Message Type Codes" anchor="tcpcl:types">
+
+<t>
+   After the initial exchange of a contact header, all messages
+   transmitted over the connection are preceded by a one byte message
+   type code.
+</t>
+
+<texttable anchor="tcpcl:types:codes"
+           title="TCPCL Header Types">
+
+   <preamble>
+      The types and values for the message type code are as follows.
+   </preamble>
+   
+   <ttcol align="center" width="18%">Header</ttcol>
+   <ttcol align="center" width="8%">Type</ttcol>
+   <ttcol align="left" width="74%">Comment</ttcol>
+
+   <c>BUNDLE_DATA</c>
+   <c>0x01</c>
+   <c>Precedes the transmission of a Bundle Data Header, which itself
+      precedes the transmission of a Bundle.
+   </c>
+
+   <c>BUNDLE_ACK</c>
+   <c>0x02</c>
+   <c>Precedes the transmission of a Bundle Acknowledgement Header.</c>
+
+   <c>KEEPALIVE</c>
+   <c>0x03</c>
+   <c>Described in <xref target="tcpcl:keepalive"/>.</c>
+   
+   <c>SHUTDOWN</c>
+   <c>0x04</c>
+   <c>Indicates that the transmitting side of the connection wishes to
+      cleanly terminate the connection.
+   </c>
+</texttable>
+</section>
+
+<section title="Bundle Data" anchor="tcpcl:data">
+   
+<t>
+   The sender side transmits a bundle to the receiver side by first
+   transmitting a BUNDLE_DATA message code, and then transmitting a
+   Bundle Data Header.
+</t>
+
+<figure anchor="fig:tcpcl:data_header"
+        title="Bundle Data Header Format">
+
+   <preamble>
+      The format for the Bundle Data Header and the preceding type is
+      as follows.
+   </preamble>
+
+   <artwork>
+                     1                   2                   3  
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++---------------+
+| BUNDLE_DATA   |
++---------------+---------------+---------------+---------------+
+|                           bundle_id                           |
++---------------+---------------+---------------+---------------+
+|                         bundle_length                         |
++---------------+---------------+---------------+---------------+
+|         header_length         |          __unused__           |
++---------------+---------------+---------------+---------------+
+   </artwork>
+</figure>
+
+<t>
+   The fields of the bundle data header are:
+</t>
+
+<t>
+<list style="hanging" hangIndent="5">
+   <t hangText="bundle_id:"> A four byte field that contains an
+      identifier for the bundle at the sender. The format and
+      specification for this field is implementation specific.
+   </t>
+   <t></t>
+
+   <t hangText="bundle_length:"> A four byte field the contains the
+      total length of the bundle transmission that immediately
+      follows.
+   </t>
+   <t></t>
+
+   <t hangText="header_length:"> A two byte field the contains the
+      total length of the bundle transmission that follows the bundle
+      data header.
+   </t>
+   <t></t>
+
+   <t hangText="__unused__:"> A two byte field that is ignored.</t>
+</list>
+</t>
+
+<t>
+   Immediately following the Bundle Data Header is the transmission of
+   a bundle, as specified in XXX cite bundle protocol.
+</t>
+
+</section>
+
+<section title="Bundle Acknowledgements" anchor="tcpcl:acks">
+   
+<t>
+   When sending acknowledgements of receipt of data, the receiver side
+   of the connection first transmits a BUNDLE_ACK message type code
+   and then transmits a Bundle Acknowledgement Header.
+</t>
+
+<figure anchor="fig:tcpcl:ack_header"
+        title="Bundle Acknowledgement Header Format">
+
+   <preamble>
+      The format for the Bundle Acknowledgement Header and the
+      preceding type code is as follows.
+   </preamble>
+
+   <artwork>
+                     1                   2                   3  
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++---------------+
+|  BUNDLE_ACK   |    
++---------------+---------------+---------------+---------------+
+|                           bundle_id                           |
++---------------+---------------+---------------+---------------+
+|                          acked_length                         |
++---------------+---------------+---------------+---------------+
+   </artwork>
+</figure>
+
+<t>
+   The fields of the bundle acknowledgement header are:
+</t>
+
+<t>
+<list style="hanging" hangIndent="5">
+   <t hangText="bundle_id:"> A four byte field that contains the
+      identifier for the bundle at the sender that was transmitted in
+      the bundle data header.
+   </t>
+   <t></t>
+
+   <t hangText="acked_length:"> A four byte field the contains the
+      total length in bytes of the amount of data that has been
+      successfully received and is being acknowledged.
+   </t>
+</list>
+</t>
+
+<t>
+   If, during the exchange of contact headers, both the sender and
+   receiver set the BUNDLE_ACK_ENABLED flag (see <xref
+   target="tcpcl:contact"/>), then when it successfully receives a bundle,
+   the receiver MUST transmit a bundle acknowledgement header.
+</t>
+
+</section>
+
+<section title="Partial Bundle Acknowledgements" anchor="tcpcl:partial">
+<t>
+   The protocol also includes a provision for bundle acknowledgements
+   to be transmitted before the entire bundle is received. The
+   motivation behind this feature is to enable the bundle daemon to
+   implement "reactive fragmentation", splitting a bundle into two
+   fragments if a connection is interrupted before the entire
+   transmission is completed.
+</t>
+
+<t>
+   As described in <xref target="tcpcl:contact"/>, one of the
+   parameters in the Contact Header is the partial_ack_len. The sender
+   populates this field with a length in bytes, which the
+   sender requests to receive acknowledgements of
+   
+   meaning of this field is a byte length which the sender requests to
+</t>
+</section>
+
+<section title="Keepalive Messages" anchor="tcpcl:keepalive">
+</section>
+
+<section title="Idle Connection Shutdown" anchor="tcpcl:idle">
+</section>
+
+<section title="Receiver Initated Connection" anchor="tcpcl:receiver_connect">
+</section>
+
+
+
+<section title="Requirements notation">
+   <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+      NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
+      "OPTIONAL" in this document are to be interpreted as described
+      in <xref target="RFC2119"/>.</t> </section>
+
+<section title="Security Considerations">
+   <t>None.</t>
+</section>
+
+</middle>
+
+<back>
+<references>
+   <reference anchor="RFC2119">
+      <front>
+         <title>XXX</title>
+         <author initials="X." surname="YZ" fullname="XYZ">
+            <organization abbrev="XXX">XXX</organization>
+         </author>
+      </front>
+   </reference>
+
+   <reference anchor="refs.dtnarch">
+      <front>
+         <title>Delay-Tolerant Network Architecture</title>
+         <author initials="V." surname="Cerf et al" fullname="Vinton Cerf">
+            <organization abbrev="MCI/Jet Propulsion Laboratory">
+               MCI/Jet Propulsion Laboratory
+            </organization>
+         </author>
+      </front>
+      <format type='TXT' octets='0'
+              target='http://somewhere'/>
+   </reference>
+   <reference anchor="refs.dtnimpl">
+      <front>
+         <title>Implementing Delay Tolerant Networking</title>
+         <author initials="M." surname="Demmer et al"
+                 fullname="Michael Demmer et al">
+            <organization abbrev="UC Berkeley / Intel Research">
+               University of California, Berkeley
+               Intel Research Berkeley
+            </organization>
+         </author>
+      </front>
+      <format type='TXT' octets='0'
+              target='http://somewhere'/>
+   </reference>
+   
+</references>
+</back>
+
+</rfc>
