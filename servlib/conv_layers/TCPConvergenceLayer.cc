@@ -820,11 +820,14 @@ TCPConvergenceLayer::Connection::recv_bundle()
         if (cc == oasys::IOTIMEOUT) {
             log_warn("recv_bundle: timeout reading bundle data block");
             goto done;
+        } else if (cc == oasys::IOEOF) {
+            log_info("recv_bundle: eof reading bundle data block");
+            goto done;
         } else if (cc < 0) {
             log_warn("recv_bundle: error reading bundle data block: %s",
                      strerror(errno));
             goto done;
-        }
+        } 
 
         log_debug("recv_bundle: got %d byte chunk, rcvd_len %d", cc, rcvd_len);
         
