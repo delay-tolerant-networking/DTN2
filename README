@@ -12,6 +12,12 @@ Note that by default, the configure script will also run configure
 inside the oasys/ subdirectory. If this results in an error, run
 configure manually within that directory.
 
+Reporting Bugs / Other Help
+---------------------------
+As of this release, there is no bug tracking system in place. We plan
+to set up a bug database in the future, and will make an announcement
+on the dtn-interest mailing list.
+
 DTN2 Directory Structure
 ------------------------
 
