@@ -14,12 +14,8 @@ class Interface;
  * An entry in the routing table.
  */
 struct RouteEntry {
-    BundleTuple next_hop_;	///< The admin name of the next hop
-                                ///< bundle daemon.
-
-    contact_type_t type_;	///< The contact type
-
-    Interface* interface_;	///< Interface to send from
+    BundleTuple next_hop_;	///< Address of the next hop contact.
+    Contact* contact_;		///< The contact object
 };
 
 /**
@@ -50,7 +46,7 @@ public:
      */
     void add_route(const std::string& dst_region,
                    const std::string& next_hop_region,
-                   const std::string& next_hop_addr,
+                   const std::string& next_hop_admin,
                    contact_type_t type);
 
     /**
@@ -58,7 +54,7 @@ public:
      */
     void del_route(const std::string& dst_region,
                    const std::string& next_hop_region,
-                   const std::string& next_hop_addr,
+                   const std::string& next_hop_admin,
                    contact_type_t type);
     
     /**

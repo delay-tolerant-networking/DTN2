@@ -13,3 +13,9 @@ void
 RouteTable::serialize(SerializeAction* a)
 {
 }
+
+Contact*
+RouteTable::next_hop(Bundle* b)
+{
+    NOTIMPLEMENTED;
+}
