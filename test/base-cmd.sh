@@ -75,7 +75,8 @@ endif
 
 set pingfile = $logroot/pinglog.$id
 echo "#Check ping commands ...." > $pingfile 
-set nextnode=node-`expr $id+1` 
+set idplus  = `expr $id + 1`
+set nextnode=node-$idplus 
 sh $dtn2testroot/check_ping.sh $nextnode >> $pingfile &
 
 

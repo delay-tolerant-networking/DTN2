@@ -19,9 +19,9 @@ do
     ping -q -w $TIMEOUT -i $INTERVAL -c $COUNT -s $PACKET_SIZE $OTHERHOST 2>/dev/null >/tmp/ping.$OTHERHOST 
     ret=$?
     if [ "$ret" == "0" ]; then
-        echo $incr UP "Retry after $RETRY seconds"  
+        echo $incr UP "Retry after $RETRY seconds to $OTHERHOST"  
     else
-        echo $incr DOWN "Retry after $RETRY seconds"
+        echo $incr DOWN "Retry after $RETRY seconds to $OTHERHOST"
     fi
     sleep $RETRY 
 done
