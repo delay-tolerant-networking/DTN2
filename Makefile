@@ -47,7 +47,7 @@ tags TAGS:
 # And a rule to make sure that configure has been run recently enough.
 #
 .PHONY: checkconfigure
-checkconfigure: configure config.h Rules.make
+checkconfigure: configure Rules.make
 
 Rules.make: Rules.make.in configure
 	@[ ! -z `echo "$(MAKECMDGOALS)" | grep clean` ] || \
