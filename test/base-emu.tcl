@@ -5,11 +5,14 @@ set finish 711
 set delay 5ms
 set queue DropTail
 set protocol Static
+set linkdynamics 0
 
 ## Length of uptime
 set up 70
 ## Length of downtime
 set down 40  
+
+set WARMUPTIME 10
 
 ## generates output in two lists up and down 
 proc sched {offset} {
@@ -104,26 +107,25 @@ set uplist ""
 # Time list when to fire down event
 set downlist ""
 
-for {set i 1} {$i <  $maxnodes} {incr i} {
+if {$linkdynamics == 1} {
+    for {set i 1} {$i <  $maxnodes} {incr i} {
     #Do stuff for the ith link
-    set offset [expr 10*$i]
-    sched {offset}
-    ## Now you have uplist and downlist and use them to schedule your events
-    
-    set linkname "link-$i"
-    foreach uptime $uplist {
-	$ns at $uptime "$linkname up"
+	set offset [expr 10*$i]
+	sched {offset}
+	## Now you have uplist and downlist and use them to schedule your events
+	
+	set linkname "link-$i"
+	foreach uptime $uplist {
+	    $ns at $uptime "$linkname up"
+	}
+	foreach downtime $downlist {
+	    $ns at $downtime "$linkname down"
+	}
     }
-    foreach downtime $downlist {
-	$ns at $downtime "$linkname down"
-    }
-
 }
 
-
-
 ### Node programs
-set WARMUPTIME 10
+
 for {set i 1} {$i <=  $maxnodes} {incr i} {
     set starttime $WARMUPTIME
      foreach proto $protos {
