@@ -70,6 +70,11 @@ public:
     const RouteTable* route_table() { return route_table_; }
 
     /**
+     * Accessor for the pending bundles list.
+     */
+    const BundleList* pending_bundles() { return pending_bundles_; }
+    
+    /**
      * The monster routing decision function that is called in
      * response to all received events.
      *
