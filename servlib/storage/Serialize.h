@@ -2,6 +2,7 @@
 #define _SERIALIZE_H_
 
 #include <string>
+#include <vector>
 
 /**
  * This file defines the core set of objects that define the
@@ -22,6 +23,10 @@ public:
     virtual void serialize(SerializeAction* a) = 0;
 };
 
+/**
+ * A vector of SerializableObjects.
+ */
+typedef std::vector<SerializableObject*> SerializableObjectVector;
 
 /**
  * The SerializeAction is responsible for implementing callback
@@ -52,8 +57,6 @@ public:
      * Control the cleanup after executing an action.
      */
     virtual void end_action();
-
-
 
     /**
      * Action type codes, one for each action type of SerializeAction.
