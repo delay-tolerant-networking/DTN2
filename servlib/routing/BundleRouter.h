@@ -84,6 +84,9 @@ public:
     virtual void handle_event(BundleEvent* event,
                               BundleActionList* actions);
 
+    // XXX/demmer temp for testing fragmentation
+    static size_t proactive_frag_threshold_;
+    
 protected:
     /**
      * Default event handler for new bundle arrivals.

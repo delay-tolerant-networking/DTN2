@@ -13,6 +13,8 @@ void
 RouteCommand::at_reg()
 {
     bind_s("type", &BundleRouter::type_, "static");
+    bind_i("proactive_frag_threshold",
+           (int*)&BundleRouter::proactive_frag_threshold_, 1024);
 }
 
 const char*

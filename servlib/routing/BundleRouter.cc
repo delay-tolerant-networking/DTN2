@@ -3,11 +3,14 @@
 #include "RouteTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
+#include "bundling/FragmentManager.h"
 #include "reg/Registration.h"
+#include <stdlib.h>
 
 #include "StaticBundleRouter.h"
 
 std::string BundleRouter::type_;
+size_t BundleRouter::proactive_frag_threshold_;
 
 /**
  * Factory method to create the correct subclass of BundleRouter
@@ -103,9 +106,35 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     Bundle* bundle = event->bundleref_.bundle();
     
     log_debug("BUNDLE_RECEIVED bundle id %d", bundle->bundleid_);
-    
+
+    // XXX/demmer test for fragmentation code
+    if (bundle->payload_.length() > proactive_frag_threshold_) {
+        Bundle* fragment;
+        
+        int todo = bundle->payload_.length();
+        int offset = 0;
+        int fraglen;
+        while (todo > 0) {
+            fraglen = random() % proactive_frag_threshold_;
+            if (fraglen < 100) fraglen = 100;
+            if ((fraglen + offset) > (int)bundle->payload_.length()) {
+                fraglen = bundle->payload_.length() - offset;
+            }
+
+            fragment = FragmentManager::instance()->fragment(bundle, offset, fraglen);
+            ASSERT(fragment);
+
+            pending_bundles_->push_back(fragment);
+            actions->push_back(new BundleAction(STORE_ADD, fragment));
+            fwd_to_matching(fragment, actions);
+            
+            offset += fraglen;
+            todo -= fraglen;
+        }
+        return;
+    }
+
     pending_bundles_->push_back(bundle);
-    
     actions->push_back(new BundleAction(STORE_ADD, bundle));
     fwd_to_matching(bundle, actions);
 }
