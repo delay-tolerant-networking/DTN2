@@ -55,6 +55,15 @@
 % * (Note that we use #defines to get the comments as well)
 % */
 %
+%/* CYGWIN does not provide an ARG_MAX */
+%#if __CYGWIN__
+%# include <limits.h>
+%# ifndef ARG_MAX
+%#  define ARG_MAX _POSIX_ARG_MAX
+%# endif
+%  /* cygwin's rpcgen skips this include? ick! */
+%# include <rpc/rpc.h>
+%#endif
 %
 %#define DTN_MAX_TUPLE 1024		/* max tuple size (bytes) */
 %#define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
@@ -254,7 +263,8 @@ enum dtn_bundle_payload_location_t {
     DTN_PAYLOAD_FILE,
     DTN_PAYLOAD_MEM
 };
-typedef enum dtn_bundle_payload_location_t dtn_bundle_payload_location_t;
+%// XXX/jra: not used (?) and Cygwin chokes on it
+%//typedef enum dtn_bundle_payload_location_t dtn_bundle_payload_location_t;
 
 union dtn_bundle_payload_t switch(dtn_bundle_payload_location_t location)
 {
@@ -271,3 +281,4 @@ union dtn_bundle_payload_t switch(dtn_bundle_payload_location_t location)
 struct dtn_bundle_auth_t {
     opaque	blob<DTN_MAX_AUTHDATA>;
 };
+

@@ -58,6 +58,8 @@ debug='-g'
 # optimizewarn='-Wuninitialized' # depends on -O
 optimize=''
 optimizewarn=''
+nowarn=''
+librpc=''
 
 #
 # External libraries
@@ -228,6 +230,23 @@ if [ ! -f oasys/Rules.make ]; then
     (cd oasys && ./configure $*)
 fi
 
+platform=`uname`
+cygwin=`uname | sed 's/_.*$//'`
+
+if [ "$cygwin" = "CYGWIN" ]; then
+    aout="./a.exe"
+    platform=$cygwin
+else
+    aout="./a.out"
+fi
+
+# Cygwin needs an extra -lrpc to link right and gives false alarms on
+# printf warnings.
+if [ "$cygwin" = "CYGWIN" ]; then
+    librpc="-lrpc"
+    nowarn="$nowarn -Wno-format"
+fi
+
 #
 # Make sure the compiler a) works b) is some gcc variant and c) is an
 # acceptable version.
@@ -242,24 +261,22 @@ main(int argc, const char** argv) {
 }
 EOF
 $cc config.$$.c > /dev/null 2> /dev/null
-if [ $? != 0 -o ! -f ./a.out ]; then
+if [ $? != 0 -o ! -f "$aout" ]; then
     echo "error: non-functional or non-gnu compiler $cc"
     exit 1
 fi
 
 rm -f config.$$.c
 
-ccver=`./a.out`
-rm -f ./a.out
+ccver=`$aout`
+rm -f "$aout"
 
 else # non-native target
-
-if [ $ccver = "auto" ]; then
-   echo "Non-native target $target:"
-   echo " must specify compiler version using --with-ccver"
-   exit 1
-fi
-
+    if [ $ccver = "auto" ]; then
+        echo "Non-native target $target:"
+        echo " must specify compiler version using --with-ccver"
+        exit 1
+    fi
 fi
 
 #
@@ -374,7 +391,7 @@ fi
 # Find the berkeley db library (version 4.2)
 #
 
-function db_help() {
+db_help () {
 cat <<EOF
 Configure error with berkeleydb...
 
@@ -681,6 +698,7 @@ echo > Rules.make <<EOF
 EOF
 
 sed -e "
+s%@PLATFORM@%$platform%g
 s%@TARGET@%$target%g
 s%@SRCDIR@%$srcdir%g
 s%@CFLAGS@%$cflags%g
@@ -694,8 +712,10 @@ s%@OPTIMIZE_WARN@%$optimizewarn%g
 s%@INCDIRS@%$incdirs%g
 s%@LIBDIRS@%$libdirs%g
 s%@LIBS@%$libs%g
+s%@LIBRPC@%$librpc%g
 s%@STATIC_LIBS@%$staticlibs%g
 s%@PTHREAD_FLAG@%$pthreadflag%g
+s%@NOWARN@%$nowarn%g
 
 " Rules.make.in >> Rules.make
 chmod oag-w Rules.make

@@ -122,7 +122,7 @@ dtnipc_open(dtnipc_handle_t* handle)
         handle->err = DTN_COMMERR;
         return -1;
     }
-    
+
     // now call connect to the session peer so can just use send and
     // recv from now on.
     if (connect(handle->sock, (struct sockaddr*)&handle->sa,
@@ -161,7 +161,6 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
         handle->err = DTN_COMMERR;
         return -1;
     }
-
     
     return 0;
 }

@@ -2,12 +2,14 @@
 # Rules.make: common makefile rules for the dtn project.
 #
 
+PLATFORM = @PLATFORM@
 exec_prefix = @EXEC_PREFIX@
 BINDIR  = @BINDIR@
 SBINDIR = @SBINDIR@
 LIBDIR  = @LIBDIR@
 MANDIR  = @MANDIR@
 INCDIR  = @INCDIR@
+LIBRPC  = @LIBRPC@
 
 INCDIRS := -I$(SRCDIR) -I$(SRCDIR)/servlib
 
@@ -60,7 +62,7 @@ endif
 #
 DEBUG 		= @DEBUG@
 OPTIMIZE	= @OPTIMIZE@
-WARN  		= -Wall -Werror @OPTIMIZE_WARN@
+WARN  		= -Wall -Werror @OPTIMIZE_WARN@ @NOWARN@
 CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(DEPFLAGS) $(WARN)
 LFLAGS		= $(LIBDIRS) @STATIC@
 

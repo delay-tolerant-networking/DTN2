@@ -39,6 +39,13 @@
 #define DTN_IPC_H
 
 #include <rpc/rpc.h>
+
+#ifdef __CYGWIN__
+#include <stdio.h>
+#include <string.h>
+#include <cygwin/socket.h>
+#endif
+
 #include "dtn_api_internal.h" // DTN_MAX_API_MSG
 
 /*************************************************************

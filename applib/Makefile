@@ -6,7 +6,7 @@
 XDRHDRS := dtn_types.h
 XDRSRCS := dtn_types_xdr.c
 
-GENFILES := $(XDRHDRS) $(XDRSRCS)
+GENFILES := $(XDRHDRS) $(XDRSRCS) .cygwin-done
 
 # Sources for the client side of the library
 CLIENTLIB_SRCS := 			\
@@ -32,7 +32,19 @@ ALLSRCS := $(CLIENTLIB_SRCS) $(SERVERLIB_SRCS)
 #
 # Default target is to build the two libraries
 #
-all: clientlib serverlib
+all: copy_xdr clientlib serverlib
+
+# The cygwin rpcgen is too broken to use (generates k&r files, cannot deal
+# with some of the types we use, etc). So we use these pre-generated files
+# from Linux's rpcgen. 
+#
+copy_xdr:
+	@if [ "$(PLATFORM)" = "CYGWIN" -a ! -f .cygwin-done ]; then \
+		echo "Copying cygwin/* to applib."; \
+		cp cygwin/dtn_types.h .; \
+		cp cygwin/dtn_types_xdr.c .; \
+		touch .cygwin-done; \
+	fi
 
 clientlib: libdtnapi.a
 libdtnapi.a: $(CLIENTLIB_OBJS)
@@ -52,10 +64,11 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 .SUFFIXES: .x
 .x.h:
 	-$(RM) -f $@
-	$(RPCGEN) -h -N -C $< -o $@
+	$(RPCGEN) -h $< -o $@
 
 %_xdr.c: %.x
-	$(RPCGEN) -c -N $< -o $@
+	-$(RM) -f $@
+	$(RPCGEN) -c $< -o $@
 
 #
 # rpcgen emits code that has unused variables, so we can't use our

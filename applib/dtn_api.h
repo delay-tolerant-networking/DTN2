@@ -40,6 +40,13 @@
 
 #include "dtn_types.h"
 
+#ifdef __CYGWIN__
+# include <sys/cdefs.h>
+# include <stdlib.h>
+# include <string.h>
+# include <stdio.h>
+#endif
+
 /**
  * The basic handle for communication with the dtn router.
  */
