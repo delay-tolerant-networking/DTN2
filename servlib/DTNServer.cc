@@ -6,7 +6,6 @@
 #include "bundling/BundleForwarder.h"
 #include "bundling/InterfaceTable.h"
 
-#include "cmd/APICommand.h"
 #include "cmd/BundleCommand.h"
 #include "cmd/InterfaceCommand.h"
 #include "cmd/ParamCommand.h"
@@ -49,7 +48,6 @@ DTNServer::init_commands()
 {
     TclCommandInterp* interp = TclCommandInterp::instance();
     
-    interp->reg(new APICommand());
     interp->reg(new BundleCommand());
     interp->reg(new InterfaceCommand());
     interp->reg(new ParamCommand());

@@ -18,6 +18,16 @@ class APIServer {
 public:
     APIServer();
 
+    /**
+     * Initialize and register all the api server related dtn commands.
+     */
+    static void init_commands();
+
+    /**
+     * Post configuration, start up all components.
+     */
+    static void start_master();
+
     static in_addr_t local_addr_;	///< loopback address to use
     static u_int16_t handshake_port_;	///< handshaking udp port
     static u_int16_t session_port_;	///< api session port

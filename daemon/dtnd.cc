@@ -101,6 +101,7 @@ main(int argc, char* argv[])
     TclCommandInterp* interp = TclCommandInterp::instance();
     interp->reg(&testcmd);
     DTNServer::init_commands();
+    APIServer::init_commands();
 
     // Set up components
     TimerSystem::init();
@@ -123,9 +124,8 @@ main(int argc, char* argv[])
         interp->exec_command(testcmd.initscript_.c_str());
     }
 
-    // now boot up the application interface
-    MasterAPIServer* apiserv = new MasterAPIServer();
-    apiserv->start();
+    // boot the application server
+    APIServer::start_master();
     
     // finally, run the main command or event loop (shouldn't return)
     if (daemon) {

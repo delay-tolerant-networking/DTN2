@@ -3,6 +3,7 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
+#include "cmd/APICommand.h"
 #include "io/UDPClient.h"
 #include "io/NetUtils.h"
 #include "reg/Registration.h"
@@ -13,6 +14,19 @@
 in_addr_t APIServer::local_addr_ = htonl(INADDR_LOOPBACK);
 u_int16_t APIServer::handshake_port_ = DTN_API_HANDSHAKE_PORT;
 u_int16_t APIServer::session_port_ = DTN_API_SESSION_PORT;
+
+void
+APIServer::init_commands()
+{
+    TclCommandInterp::instance()->reg(new APICommand());
+}
+
+void
+APIServer::start_master()
+{
+    MasterAPIServer* apiserv = new MasterAPIServer();
+    apiserv->start();
+}
 
 APIServer::APIServer()
 {
@@ -402,7 +416,7 @@ ClientAPIServer::handle_send()
                              payload.dtn_bundle_payload_t_u.buf.buf_len);
         payload_len = payload.dtn_bundle_payload_t_u.buf.buf_len;
     } else {
-        char filename[512];
+        char filename[PATH_MAX];
         FILE * file;
         struct stat finfo;
         int r, left;
@@ -414,10 +428,7 @@ ClientAPIServer::handle_send()
 
         if (stat(filename, &finfo) || (file = fopen(filename, "r")) == NULL)
         {
-            char buffer[4096];
-            sprintf(buffer, "payload file %s does not exist!", filename);
-            log_err(buffer);
-
+            log_err("payload file %s does not exist!", filename);
             ret = DTN_INVAL;
             goto done;
         }
