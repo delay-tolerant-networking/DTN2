@@ -287,7 +287,8 @@ Link::size()
 {
     size_t retval =0;
     retval += bundle_list_->size();
-    if (isopen()) {
+
+    if ((type_ == ONDEMAND) && isopen()) {
         /*
          * If link is open, there should not be queued messages
          * on link queue. 
