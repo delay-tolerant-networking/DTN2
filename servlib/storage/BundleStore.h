@@ -52,9 +52,9 @@ public:
      * Basic storage methods.
      */
     virtual Bundle* get(int bundle_id) = 0;
-    virtual int     insert(Bundle* bundle) = 0;
-    virtual int     update(Bundle* bundle) = 0;
-    virtual int     del(int bundle_id) = 0;
+    virtual bool     insert(Bundle* bundle) = 0;
+    virtual bool     update(Bundle* bundle) = 0;
+    virtual bool     del(int bundle_id) = 0;
     /// @}
     
 //     /**

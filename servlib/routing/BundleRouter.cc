@@ -4,6 +4,7 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleList.h"
 #include "reg/Registration.h"
+#include "storage/BundleStore.h"
 #include "util/StringBuffer.h"
 
 BundleRouterList BundleRouter::routers_;
@@ -117,8 +118,12 @@ BundleRouter::handle_event(BundleEvent* e,
         log_debug("BUNDLE_RECEIVED bundle id %d", bundle->bundleid_);
 
         pending_bundles_->push_back(bundle);
-        get_matching(bundle, actions);
+
+        bool added = BundleStore::instance()->insert(bundle);
+        ASSERT(added);
         
+        get_matching(bundle, actions);
+
         break;
     }
 
@@ -155,6 +160,8 @@ BundleRouter::handle_event(BundleEvent* e,
         if (bundle->num_containers() == 1) {
             log_debug("last consumer, removing bundle from pending list");
             bool removed = pending_bundles_->remove(bundle);
+            ASSERT(removed);
+            removed = BundleStore::instance()->del(bundle->bundleid_);
             ASSERT(removed);
         }
         

@@ -2,6 +2,7 @@
 #include "SQLBundleStore.h"
 #include "SQLImplementation.h"
 #include "SQLStore.h"
+#include "StorageConfig.h"
 #include "bundling/Bundle.h"
 
 /******************************************************************************
@@ -45,28 +46,28 @@ SQLBundleStore::get(int bundle_id)
 /**
  * Store the given bundle in the persistent store.
  */
-int
+bool
 SQLBundleStore::insert(Bundle* bundle)
 {
-    return store_->insert(bundle);
+    return store_->insert(bundle) == 0;
 }
 
 /**
  * Update the given bundle in the persistent store.
  */
-int
+bool
 SQLBundleStore::update(Bundle* bundle)
 {
-    return store_->update(bundle, bundle->bundleid_);
+    return store_->update(bundle, bundle->bundleid_) == 0;
 }
 
 /**
  * Delete the given bundle from the persistent store.
  */
-int
+bool
 SQLBundleStore::del(int bundle_id)
 {
-    return store_->del(bundle_id);
+    return store_->del(bundle_id) == 0;
 }
 
 
