@@ -320,3 +320,32 @@ BundleList::end()
     
     return list_.end();
 }
+
+/**
+ * Const iterator used to iterate through the list. Iterations 
+ * _must_ be completed while holding the list lock, and this 
+ * method will assert as such.
+ */
+BundleList::const_iterator
+BundleList::begin() const
+{
+    if (!lock_->is_locked_by_me())
+        PANIC("Must lock BundleList before using iterator");
+    
+    return list_.begin();
+}
+
+
+/**
+ * Const iterator used to mark the end of the list. Iterations
+ * _must_ be completed while holding the list lock, and this
+ * method will assert as such.
+ */
+BundleList::const_iterator
+BundleList::end() const
+{
+    if (!lock_->is_locked_by_me())
+        PANIC("Must lock BundleList before using iterator");
+    
+    return list_.end();
+}

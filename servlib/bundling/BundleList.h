@@ -134,6 +134,11 @@ public:
      * Type for an iterator.
      */
     typedef ListType::iterator iterator;
+    
+    /**
+     * Type for a const iterator.
+     */
+    typedef ListType::const_iterator const_iterator;
 
     /**
      * Iterator used to iterate through the list. Iterations _must_ be
@@ -141,18 +146,32 @@ public:
      * assert as such.
      */
     iterator begin();
- 
+    
     /**
      * Iterator used to mark the end of the list. Iterations _must_ be
      * completed while holding the list lock, and this method will
      * assert as such.
      */
     iterator end();
-    
+
+    /**
+     * Const iterator used to iterate through the list. Iterations
+     * _must_ be completed while holding the list lock, and this
+     * method will assert as such.
+     */
+    const_iterator begin() const;
+
+    /**
+     * Const iterator used to mark the end of the list. Iterations
+     * _must_ be completed while holding the list lock, and this
+     * method will assert as such.
+     */
+    const_iterator end() const;
+
     /**
      * Return the internal lock on this list.
      */
-    SpinLock* lock() { return lock_; }
+    SpinLock* lock() const { return lock_; }
 
     /**
      * Return the identifier name of this list.
