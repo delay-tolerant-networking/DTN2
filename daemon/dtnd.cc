@@ -1,8 +1,9 @@
 
-#include <stdio.h>
+#include "debug/Log.h"
 
 int
 main(int argc, const char** argv)
 {
-    printf("DTN2 linked!\n");
+    Log::init();
+    logf("/daemon", LOG_INFO, "bundle daemon initializing...");
 }
