@@ -3,6 +3,7 @@
 
 class BundleList;
 class ContactInfo;
+class ConvergenceLayer;
 
 #include "debug/Debug.h"
 #include "debug/Formatter.h"
@@ -13,6 +14,8 @@ class ContactInfo;
  */
 typedef enum
 {
+    CONTACT_INVALID = -1,
+    
     /**
      * The contact is expected to be either ALWAYS available, or can
      * be made available easily. Examples include DSL (always), and
@@ -39,7 +42,7 @@ contact_type_t;
  * Contact type string conversion.
  */
 inline const char*
-contact_type_toa(contact_type_t type)
+contact_type_to_str(contact_type_t type)
 {
     switch(type) {
     case ONDEMAND: 	return "ONDEMAND";
@@ -47,6 +50,21 @@ contact_type_toa(contact_type_t type)
     case OPPORTUNISTIC: return "OPPORTUNISTIC";
     default: 		PANIC("bogus contact_type_t");
     }
+}
+
+inline contact_type_t
+str_to_contact_type(const char* str)
+{
+    if (strcasecmp(str, "ONDEMAND") == 0)
+        return ONDEMAND;
+    
+    if (strcasecmp(str, "SCHEDULED") == 0)
+        return SCHEDULED;
+    
+    if (strcasecmp(str, "OPPORTUNISTIC") == 0)
+        return OPPORTUNISTIC;
+    
+    return CONTACT_INVALID;
 }
 
 /**
@@ -63,6 +81,22 @@ public:
     virtual ~Contact();
     
     /**
+     * Open a channel to the contact for bundle transmission.
+     */
+    void open();
+    
+    /**
+     * Close the transmission channel. May be triggered by the
+     * convergence layer in case the underlying channel is torn down.
+     */
+    void close();
+
+    /**
+     * Return the state of the contact.
+     */
+    bool isopen() { return open_; }
+
+    /**
      * Accessor for the list of bundles in this contact.
      */
     BundleList* bundle_list() { return bundle_list_; }
@@ -75,18 +109,28 @@ public:
         ASSERT(contact_info_ == NULL);
         contact_info_ = contact_info;
     }
-    
+
+    /**
+     * Accessor to the contact info.
+     */
     ContactInfo* contact_info() { return contact_info_; }
 
+    /**
+     * Accessor to this contact's convergence layer.
+     */
+    ConvergenceLayer* clayer() { return clayer_; }
+    
     // virtual from Formatter
     int format(char* buf, size_t sz);
 
 protected:
     contact_type_t type_;
     BundleTuple tuple_;
+    bool open_;
     
     ContactInfo* contact_info_;
     BundleList* bundle_list_;
+    ConvergenceLayer* clayer_;
 };
 
 /**
