@@ -783,8 +783,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
     u_int16_t header_len;
     size_t bundle_len;
     size_t block_len;
-    size_t rcvd_len;
-    size_t payload_len;
+    size_t rcvd_len = 0;
+    size_t payload_len = 0;
 
     bool valid = false;
     bool recvok = false;

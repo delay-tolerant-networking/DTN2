@@ -292,7 +292,7 @@ shutdown:
 void
 UDPConvergenceLayer::Receiver::run()
 {
-    int fd;
+    int fd = 0;
     in_addr_t addr;
     u_int16_t port;
     char* pt_payload = (char*)malloc(MAX_UDP_PACKET);

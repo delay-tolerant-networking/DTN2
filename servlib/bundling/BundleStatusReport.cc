@@ -86,8 +86,7 @@ void
 BundleStatusReport::set_status_time(status_report_flag_t flag)
 {
     StatusReport* report = (StatusReport*)payload_.memory_data();
-
-    u_int64_t* ts;
+    u_int64_t* ts = 0;
     
     switch(flag) {
     case STATUS_RECEIVED:

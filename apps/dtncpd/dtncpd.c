@@ -70,7 +70,7 @@ main(int argc, const char** argv)
     char* endpoint;
     int debug = 1;
 
-    char * bundle_dir;
+    char * bundle_dir = 0;
 
     char * region;
     int source_admin_len, dest_admin_len;
