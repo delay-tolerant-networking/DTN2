@@ -2,26 +2,21 @@
 # Top level makefile for DTN2.
 #
 
-# Default rule is to build the server library, the daemon, and all
-# applications
-all: servlib daemon apps
+#
+# Define a set of dispatch rules that simply call make on the
+# constituent subdirectories
+#
+all:   servlib daemon apps
+clean: servlib daemon apps
+check: servlib daemon apps
 
-# Build the server library
-.PHONY: servlib
-servlib: 
-	$(MAKE) -C servlib $(MAKECMDGOALS)
+.PHONY: servlib daemon apps
+servlib daemon apps:  
+	$(MAKE) -C $@ $(MAKECMDGOALS)
 
-# Build the daemon
-.PHONY: daemon
-daemon: 
-	$(MAKE) -C daemon $(MAKECMDGOALS)
-
-.PHONY: apps
-apps: 
-	$(MAKE) -C apps $(MAKECMDGOALS)
-
-
+#
 # Generate the doxygen documentation
+#
 doxygen:
 	doxygen doc/doxyfile
 
@@ -36,6 +31,3 @@ tags TAGS:
 		xargs etags -l c++
 	find . -name \*.h -or -name \*.c -or -name \*.cc | \
 		xargs ctags 
-
-SRCDIR := .
--include $(SRCDIR)/Rules.make
