@@ -57,7 +57,7 @@ InterfaceTable::find(const char* tuplestr, InterfaceList::iterator* iter)
 {
     for (*iter = iflist_.begin(); *iter != iflist_.end(); ++(*iter)) {
         
-        if ((**iter)->tuple()->tuple().compare(tuplestr) == 0) {
+        if ((**iter)->tuple().tuple().compare(tuplestr) == 0) {
             return true;
         }
     }        
