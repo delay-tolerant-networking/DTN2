@@ -38,9 +38,12 @@ proc timef {} {
 
 proc scan_dir {host dir} {
     global period
+    global begin_time
 
     puts "scanning dir $dir..."
     set files [glob -nocomplain -- "$dir/*"]
+    
+    set begin_time "[time]"
     
     foreach file $files {
 	file stat $file file_stat
@@ -102,9 +105,12 @@ proc send_file {host file} {
     global got_ack
     global ack_timer
     global sock
+    global begin_time
+
     set fd [open $file]
 
     puts "[time] trying to send  file $file size [file size $file]"
+    set start_send_time "[time]"
 
     if {! [info exists sock]} {
 	while  { [  catch {socket $host $port } sock] } {
@@ -126,6 +132,7 @@ proc send_file {host file} {
 	    return -1
 	}
 	
+
 	## Send SYN
 	puts "[time] sending handshake ack"
 
@@ -149,9 +156,8 @@ proc send_file {host file} {
 	
    
     fconfigure $sock -blocking 1
+ 
 
-    puts $logfd "[time] :: file actually sent [file tail $file]   " 
-    flush $logfd
     ## Send the filename and size
     if [catch {
 	puts $sock "[file tail $file] [file size $file]"
@@ -192,7 +198,8 @@ proc send_file {host file} {
 
     if {$got_ack} {
 	puts "[time] :: file  actually sent $file"
-	
+	puts $logfd "$start_send_time $begintime :: file actually sent [file tail $file]   " 
+	flush $logfd
 
 	return 1
     } else {
