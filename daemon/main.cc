@@ -39,7 +39,8 @@ main(int argc, char** argv)
     new IntOpt("l", &testcmd.loopback_, "loopback",
                "test option for loopback");
     
-    // Parse argv
+    // Set up the command interpreter, then parse argv
+    CommandInterp::init();
     Options::getopt(argv[0], argc, argv);
 
     // Seed the random number generator
@@ -52,7 +53,6 @@ main(int argc, char** argv)
     srand(random_seed);
 
     // Set up all components
-    CommandInterp::init();
     ConvergenceLayer::init_clayers();
     BundleForwarding::init();
     InterfaceTable::init();
