@@ -38,12 +38,8 @@ MysqlSQLImplementation::get_value(int tuple_no, int field_no)
 
     ASSERT(query_result_);
     mysql_data_seek(query_result_, tuple_no);
-
     MYSQL_ROW r = mysql_fetch_row(query_result_);
-
-    // plus 1, is bcos in MYSQL fields no. start from 1.
     ret = r[field_no];
- 
     return ret;
 }
 
@@ -64,12 +60,10 @@ MysqlSQLImplementation::has_table(const char* tablename)
         query_result_ = 0;
     }
 
-    log_debug("checking for table '%s'", tablename);
     query_result_ = mysql_list_tables(data_base_pointer_, tablename);
     
     if (mysql_num_rows(query_result_) == 1)
         retval = 1;
-    
     mysql_free_result(query_result_);
     query_result_ = NULL;
 
@@ -89,16 +83,13 @@ int
 MysqlSQLImplementation::exec_query(const char* query)
 {
     int ret = -1;
-
     // free previous result state
     if (query_result_ != NULL) {
         mysql_free_result(query_result_);
         query_result_ = NULL;
     }
- 
-    log_debug("executing query '%s'", query);
     ret = mysql_query(data_base_pointer_,query);
-    
+    if (ret == 1) return ret ; 
     query_result_ = mysql_store_result(data_base_pointer_);
     
     return ret;

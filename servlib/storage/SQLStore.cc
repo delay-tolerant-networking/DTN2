@@ -1,20 +1,16 @@
 
 #include "SQLStore.h"
 #include "SQLImplementation.h"
-
-#include <iostream>
 #include "bundling/Bundle.h"
-
-using namespace std;
-
 
 /**
  * Constructor.
  */
 
 SQLStore::SQLStore(const char* table_name, SQLImplementation* db)
+     : Logger("/storage/sqlstore")
 {
-    cout << " trying to initialize sql store ... " ; 
+
     data_base_pointer_ = db;
     table_name_ = table_name;
 }
@@ -22,28 +18,24 @@ SQLStore::SQLStore(const char* table_name, SQLImplementation* db)
 int 
 SQLStore::get(SerializableObject* obj, const int key) 
 {
+    
+    
+    ASSERT(key_name_); //key_name_ must be initialized 
+
     StringBuffer query ;
     query.appendf("SELECT * FROM %s where %s = %d",table_name_,key_name_,key);
 
-    cout << "  query is " << query.c_str() << endl ; 
     int status = exec_query(query.c_str());
-    if ( status == 0) {
-        cout <<  "query done properly ...get type\n";
-    }
-    else {
-        cout <<  "query  error  \n";
-        return -1;
-    }
-    // use SQLExtract to fill obj
-    SQLExtract xt (data_base_pointer_) ;
-    xt.action(obj);
+    if ( status != 0)  return status ; 
+    
+    SQLExtract xt (data_base_pointer_) ;     
+    xt.action(obj); // use SQLExtract to fill the object
     return 0;
 }
 
      
 int 
 SQLStore::put(SerializableObject* obj){
-
     
     SQLInsert s(table_name_); ;
     s.action(obj);
@@ -57,6 +49,8 @@ SQLStore::put(SerializableObject* obj){
 int 
 SQLStore::del(const int key)
 {
+
+    ASSERT(key_name_); //key_name_ must be initialized 
     StringBuffer query ;
     query.appendf("DELETE FROM %s where %s = %d",table_name_,key_name_,key);
     int retval = exec_query(query.c_str());
@@ -69,71 +63,84 @@ int
 SQLStore::num_elements()
 {
     StringBuffer query;
+
     query.appendf(" SELECT  count(*) FROM  %s ",table_name_);
     int status = exec_query(query.c_str());
-    if ( status == 0) {
-        cout <<  "query done properly \n";
-    }
-    else {
-        cout <<  "query  error  \n";
-        return -1;
-    }
+    if ( status != 0) return -1;
+
     const char* answer = data_base_pointer_->get_value(0,0);
     if (answer == NULL) return 0;
+    ASSERT(answer >= 0);
     return atoi(answer);
 }
 
 
-void 
+int
 SQLStore::keys(std::vector<int> l) 
 {
+    ASSERT(key_name_); //key_name_ must be initialized 
     StringBuffer query ;
     query.appendf("SELECT %s FROM %s ",key_name_,table_name_);
     int status = exec_query(query.c_str());
-    if ( status == 0) {
-        cout <<  "query done properly \n";
-    }
-    else {
-        cout <<  "query  error  \n";
-        return ;
-    }
+    if ( status != 0) return status;
+    
     int n = data_base_pointer_->tuples();
+    if (n < 0) return -1;
+
     for(int i=0;i<n;i++) {
         // ith element is set to 
         const char* answer = data_base_pointer_->get_value(i,0);
         int answer_int =  atoi(answer);
         l[i]=answer_int;
     }
+    return 0;
 }
 
-void 
+int 
 SQLStore::elements(std::vector<SerializableObject*> l) 
 {
     int n = num_elements();
-    vector<int> vec_ids(n) ;
+    if (n < 0) return -1;
+    int ret = 0;
+    std::vector<int> vec_ids(n) ;
     keys(vec_ids);
     for(int i =0;i<n;i++) {
-        get(l[i],vec_ids[i]);
+        int tmp_ret = get(l[i],vec_ids[i]);
+	if (tmp_ret == -1) ret = -1;
     }
-
+    return ret;
 }
 
-// Protected functions
+/******************************************************************************
+ *
+ * Protected functions
+ *
+ *****************************************************************************/
+
+
+
+bool 
+SQLStore::has_table(const char* name) {
+    
+    log_debug("checking for existence of table '%s'", name);
+    bool retval =  data_base_pointer_->has_table(name);
+    
+    if (retval) 
+	log_debug("table with name '%s' exists", name);
+    else
+    	log_debug("table with name '%s' does not exists", name);
+    return retval; 
+}
 
 int
 SQLStore::create_table(SerializableObject* obj) 
 {
-
-    if (data_base_pointer_->has_table(table_name_)) {
-	cout << " Table with name  " << table_name_ << " exists " << endl ; 
+    
+    if (has_table(table_name_)) {
 	return 0;
     }
-    cout << " trying to create table .." ; 
-    // create sql string that corresponds to table creation
     SQLTableFormat t(table_name_);
-
     t.action(obj);
-
     int retval = exec_query(t.query());
     return retval;
 }
@@ -146,8 +153,11 @@ SQLStore::table_name()
  
 int
 SQLStore::exec_query(const char* query) 
-{    
+{   
+    log_debug("executing query '%s'", query);
     int ret = data_base_pointer_->exec_query(query);
+    log_debug("query result status %d", ret);
+
     return ret;
 }
 

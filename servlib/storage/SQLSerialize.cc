@@ -4,8 +4,7 @@
 #include "debug/Log.h"
 #include "util/StringUtils.h"
 
-#include "iostream"
-using namespace std;
+
 /******************************************************************************
  *
  * SQLQuery
@@ -42,7 +41,6 @@ SQLQuery::end_action()
         query_.trim(1);
 	query_.append(')');
     }
-    cout << " query returned is " << query_.c_str() << endl ; 
 }
 
 
@@ -169,22 +167,11 @@ SQLTableFormat::begin_action()
 void
 SQLTableFormat::process(const char* name,  SerializableObject* object) 
 {
-
-    //   StringBuffer olds ;
-    // olds.append(column_prefix_.c_str());
-
     int old_len = column_prefix_.length();
-    // const char* old = column_prefix_.c_str();
+
     column_prefix_.appendf("%s__", name);
     object->serialize(this);
-
-    // std::cout << " string is " << query_.c_str() << " col is " << column_prefix_.c_str() << std::endl ; 
-    // cout << " old is  "  << old << " len is " << column_prefix_.length() << "( old len is )" << old_len << "\n";
- 
     column_prefix_.trim(column_prefix_.length() - old_len);
-
-    //column_prefix_ = olds ; 
-
 }
 
 void 

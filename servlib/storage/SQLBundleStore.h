@@ -17,39 +17,25 @@ public:
     /**
      * Constructor -- takes as a parameter an abstract pointer to the
      * underlying storage technology so as to implement the basic
-     * methods.
+     * methods. The table_name identifies the table in which all bundles
+     * will be stored
      */
-    SQLBundleStore(const char*, SQLImplementation* db);
-    //       : BundleStore(store) {}
-
+    SQLBundleStore(const char* table_name, SQLImplementation* db);
     
-    
-    /// @{
     /**
-     * Basic storage methods. 
+     * Virtual methods inheritied from BundleStore
      */
     Bundle* get(int bundle_id) ;
     int     put(Bundle* bundle);
     int     del(int bundle_id) ;
-    /// @}
-    
-    /**
-     * Delete expired bundles
-     *
-     * (was sweepOldBundles)
-     */
-    // REMOVE FROM bundles where bundles.expiration > now
     int delete_expired(const time_t now);
+    bool is_custodian(int bundle_id);
+    
+private:
     
     /**
-     * Return true if we're the custodian of the given bundle.
-     * TODO: is this really needed??
-     *
-     * (was db_bundle_retain)
+     * The SQLStore instance used to store all the bundles.
      */
-    bool is_custodian(int bundle_id);
-
-private:
     SQLStore* store_;
 };
 

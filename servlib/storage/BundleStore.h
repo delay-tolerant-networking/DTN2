@@ -44,8 +44,7 @@ public:
 
     /// @{
     /**
-     * Basic storage methods. These just dispatch to use the generic
-     * PersistentStore interface.
+     * Basic storage methods.
      */
     virtual Bundle* get(int bundle_id) = 0;
     virtual int     put(Bundle* bundle) = 0;
@@ -77,9 +76,8 @@ public:
 
 protected:
     static BundleStore* instance_; ///< singleton instance
-
     int next_bundle_id_; 	/// running serial number for bundles
-//    PersistentStore* store_;	/// abstract persistent storage implementation
+
 };
 
 #endif /* _BUNDLE_STORE_H_ */

@@ -8,13 +8,12 @@
 
 #include "storage/SQLBundleStore.h"
 
-#include "iostream"
-using namespace std;
 
 
-class foo : public SerializableObject {
+
+class foo : public SerializableObject, public Logger {
 public:
-  foo() {} ;
+  foo() : Logger ("/test/foo") {} ;
   virtual ~foo() {} ; 
   u_int16_t id ;
   u_int32_t  f1;
@@ -29,7 +28,8 @@ public:
 void
 foo::print() {
 
-  cout << " this object is  " << f1 << "  char is---" << f2 << "--- id is  " << id <<  endl ; 
+    log_info("this object is %d char is %d  and id is %d \n",f1,f2,id);
+
 
 }
 
@@ -47,65 +47,48 @@ void
 playsql(int i) {
 
     const char* database = "dtn";
-
-  //  foo o1; o1.id = 771 ; o1.f1 = 123; o1.f2 = 'a'; foo o2;
-  
-   const char* table_name = "try";
-  
-   
- 
+    
+    //  foo o1; o1.id = 771 ; o1.f1 = 123; o1.f2 = 'a'; foo o2;
+    
+    const char* table_name = "try";
     SQLImplementation *db ;
-
+    
     if (i ==1)
-   db  =  new PostgresSQLImplementation(database);
+       db  =  new PostgresSQLImplementation(database);
     else
-    db =  new MysqlSQLImplementation(database);
-
-
-    cout << " connection established ,  \n" << endl;
-
-  BundleStore *bstore = new SQLBundleStore(table_name,db);
-  BundleStore::init(bstore);
-
-  cout << " bundle store created ,  \n" << endl;
-
-  Bundle o1, o2;  
-  int id1 = 121;
-  int id2 = 555;
-
-  o1.source_.set_tuple("bundles://internet/tcp://foo"); o1.bundleid_ = id1; 
-  o2.source_.set_tuple("bundles://google/tcp://foo");o2.bundleid_ =  id2;
-
-  cout << " read stuff,  \n" << i << endl;
-  // cin >> o1.id  >> o1.f1 >> o1.f2 ;
-  // cout << "  read end  \n\n" ; 
-
-  
-   
-  
-   int retval2 = bstore->put(&o1,id1);
-
-   retval2 = bstore->put(&o2,id2);
-
-
-   cout << " answer is " << retval2 << endl;
-
-   
-     Bundle *g1 = bstore->get(id1);
-      Bundle *g2 = bstore->get(id2);
+	db =  new MysqlSQLImplementation(database);
     
-     retval2 = bstore->put(g1,id1);
-
-
-   ASSERT (o1.bundleid_ == g1->bundleid_) ; 
-      ASSERT (o2.bundleid_ == g2->bundleid_) ; 
+    BundleStore *bstore = new SQLBundleStore(table_name,db);
+    BundleStore::init(bstore);
     
- 
-  //db = NULL; 
-     db->close();
-  // PQfinish(pgconn_db);
-  exit(0);
-
+    
+    Bundle o1, o2;  
+    int id1 = 121;
+    int id2 = 555;
+   
+    o1.source_.set_tuple("bundles://internet/tcp://foo"); o1.bundleid_ = id1; 
+    o2.source_.set_tuple("bundles://google/tcp://foo");o2.bundleid_ =  id2;
+    
+    int retval2 = bstore->put(&o1,id1);
+   
+    retval2 = bstore->put(&o2,id2);
+   
+    
+    Bundle *g1 = bstore->get(id1);
+    Bundle *g2 = bstore->get(id2);
+    
+    retval2 = bstore->put(g1,id1);
+    
+    
+    ASSERT (o1.bundleid_ == g1->bundleid_) ; 
+    ASSERT (o2.bundleid_ == g2->bundleid_) ; 
+    
+    
+    
+    db->close();
+    
+    exit(0);
+    
 }  
 
 int
@@ -113,7 +96,7 @@ main(int argc, const char** argv)
 {
 
 
-    Log::init();
+    Log::init(LOG_DEBUG);
     playsql(atoi(argv[1]));
     Bundle b, b2;
     b.bundleid_ = 100;

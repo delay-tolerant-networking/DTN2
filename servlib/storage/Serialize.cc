@@ -2,8 +2,7 @@
 
 #include "Serialize.h"
 
-#include "iostream"
-using namespace std;
+
 
 SerializeAction::SerializeAction(action_t type)
     : type_(type), error_(false), log_(0)

@@ -2,10 +2,7 @@
 #include "SQLBundleStore.h"
 #include "bundling/Bundle.h"
 
-#include <iostream>
 
-
-using namespace std;
 
 
 /******************************************************************************
@@ -26,7 +23,6 @@ SQLBundleStore::SQLBundleStore(const char* table_name, SQLImplementation* db)
     store_ = new SQLStore(table_name,db);
     store_->create_table(&tmpobj);
     store_->set_key_name("bundleid");
-
     next_bundle_id_ = 0;
 }
 
@@ -34,9 +30,10 @@ SQLBundleStore::SQLBundleStore(const char* table_name, SQLImplementation* db)
 
 /**
  * Create a new bundle instance, then make a generic call into the
- * persistent store to look up the bundle and fill in it's members if
+ * bundleStore to look up the bundle and fill in it's members if
  * found.
  */
+
 Bundle*
 SQLBundleStore::get(int bundle_id)
 {
@@ -85,7 +82,6 @@ SQLBundleStore::delete_expired(const time_t now)
 bool
 SQLBundleStore::is_custodian(int bundle_id) 
 {
-
     NOTIMPLEMENTED;
     return -1;
 }

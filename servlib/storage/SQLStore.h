@@ -4,47 +4,119 @@
 #include <sys/time.h>
 #include "BundleStore.h"
 #include "SQLSerialize.h"
-
+#include "debug/Log.h"
+#include <vector>
 
 /**
  * Implementation of a StorageManager with an underlying SQL
  * database.
  */
-class SQLStore  {
+class SQLStore: public Logger  {
 public:
+    
+    /**
+     * Create a SQLStore with specfied table_name.
+     * Parameter db, points to the actual implementation to which
+     * different queries are forwarded
+     */
+
     SQLStore(const char* table_name, SQLImplementation *db);
     
     /// @{ 
-
-
+    
+    /**
+     *  Get an obj (identified by key) from the sql store. 
+     *  @return 0 if success, -1 on error
+     */
     int get(SerializableObject* obj, const int key);
  
+    /**
+     *  Put an obj in the sql store. 
+     *  @return 0 if success, -1 on error
+     */
     int put(SerializableObject* obj);
+    
+    /**
+     *  Delete an obj  (identified by key)
+     *  @return 0 if success, -1 on error
+     */
     int del(const int key);
+
+    /**
+     *  Return number of elements in the store.
+     *  @return number of elements if success, -1 on error
+     */
     int num_elements();
-    void keys(std::vector<int> l);
-    void elements(std::vector<SerializableObject*> l);
+
+    
+    /**
+     *  Return list of keys for all elements in the store.
+     *  @return 0 if success, -1 on error
+     */
+    int keys(std::vector<int> l);
+    
+
+    /**
+     *  Return list of all elements in the store.
+     *  @return 0 if success, -1 on error
+     */
+    int elements(std::vector<SerializableObject*> l);
+
+
       
 
     /// @}
 
 protected:
 
-    
+    /**
+     * Returns the table name associated with this store
+     */
     const char* table_name(); 
+
+    /**
+     * Checks if the table already exists.
+     * @return 1 if table exits, 0 otherwise
+     */
+    bool has_table(const char *name);
+
+    /**
+     * Creates table a table in the store for objects which has the same type as obj. 
+     * Checks if the table already exists.
+     * @return 0 if success, -1 on error
+     */
     int create_table(SerializableObject* obj);
+
+
+    /**
+     * Executes the given query. Essentially forwards the query to data_base_pointer_
+     * @return 0 if success, -1 on error
+     */
     int exec_query(const char* query);
+
+    /**
+     * Set's the key name. The key name is used in all functions which need
+     * to create a query which refers to key. Must be initialized for proper
+     * operation.
+     */
     void set_key_name(const char* name);
 
     friend class SQLBundleStore;
 
 private:
-    const char* table_name_;
-   
-    // Name of the field by which the objects are keyed. 
-    const char*  key_name_;
+
+    /**
+     * Name of the table in the database to which this SQLStore corresponds
+     */
+    const char* table_name_;    
+    
+    /**
+     * Field name by which the objects are keyed. 
+     */
+    const char*  key_name_; 
 
     SQLImplementation* data_base_pointer_;
+
 };
 
 

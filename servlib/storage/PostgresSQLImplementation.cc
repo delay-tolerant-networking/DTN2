@@ -22,24 +22,28 @@ PostgresSQLImplementation::connect_db(const char* dbName)
     PGconn *conn;
  
     log_debug("connecting to database %s", dbName);
-    
+
     /*
      * begin, by setting the parameters for a backend connection if
      * the parameters are null, then the system will try to use
      * reasonable defaults by looking up environment variables or,
      * failing that, using hardwired constants
      */
+
     pghost = NULL;   	/* host name of the backend server */
     pgport = NULL;   	/* port of the backend server */
     pgoptions = NULL;   /* special options to start up the backend
                          * server */
     pgtty = NULL;   	/* debugging tty for the backend server */
     
-    /* make a connection to the database */
-    conn = PQsetdb(pghost, pgport, pgoptions, pgtty, dbName);
-
+    /**
+     *  make a connection to the database 
+     *
+     */
     
-    /*
+    conn = PQsetdb(pghost, pgport, pgoptions, pgtty, dbName);
+        
+    /**
      * check to see that the backend connection was successfully made
      */
     if (PQstatus(conn) == CONNECTION_BAD)
@@ -74,13 +78,10 @@ PostgresSQLImplementation::has_table(const char* tablename)
     bool retval = 0;
     StringBuffer query;
     
-    log_debug("checking for table '%s'", tablename);
-    
     query.appendf("select * from pg_tables where tablename = '%s'", tablename);
     int ret = exec_query(query.c_str());
     ASSERT(ret == 0);
-    if (tuples() == 1)
-        retval = 1;
+    if (tuples() == 1) retval  = 1;
 
     return retval;
 }
@@ -108,8 +109,6 @@ PostgresSQLImplementation::exec_query(const char* query)
 {
     int ret = -1;
 
-    log_debug("executing query '%s'", query);
-
     if (query_result_ != NULL) {
         PQclear(query_result_);
         query_result_ = NULL;
@@ -117,10 +116,9 @@ PostgresSQLImplementation::exec_query(const char* query)
     
     query_result_ = PQexec(data_base_pointer_,query);
     ASSERT(query_result_);
-    
     ExecStatusType t = PQresultStatus(query_result_);
-
     ret = status_to_int(t);
     
+ 
     return ret;
 }

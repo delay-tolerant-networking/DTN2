@@ -45,13 +45,11 @@ public:
 
     /**
      * Control the initialization done before executing an action.
-     * 
      */
     virtual void begin_action();
 
     /**
      * Control the cleanup after executing an action.
-     * 
      */
     virtual void end_action();
 
