@@ -90,7 +90,7 @@ while {$start < $MAX_SIM_TIME} {
 	lappend thisloopuplist $current
     }
 
-    puts "START  is $start "
+    puts "START  is $start  offset is $offset"
     puts "DOWN LIST  $thisloopdownlist "
     puts "UP  LIST  $thisloopuplist "
 
