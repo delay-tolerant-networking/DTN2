@@ -56,8 +56,12 @@ proc send_file {host file} {
     puts "sending file $file"
     puts $logfd "[time] :: sending file [file tail $file]   " 
     flush $logfd
-    set sock [socket $host $port]
-    puts $sock "[file tail $file]"
+    while  { [  catch {socket $host $port } sock] } {
+	puts "Trying to connect, will try again after  5 seconds "
+	after 5000
+    }
+    
+puts $sock "[file tail $file]"
     puts -nonewline $sock $payload
     flush $sock
     close $sock
