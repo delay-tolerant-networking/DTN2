@@ -31,10 +31,10 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         }
         
         Bundle* b = new Bundle();
-        b->source_.set_tuple(Tcl_GetStringFromObj(objv[2], 0));
-        b->replyto_.set_tuple(Tcl_GetStringFromObj(objv[2], 0));
-        b->custodian_.set_tuple(Tcl_GetStringFromObj(objv[2], 0));
-        b->dest_.set_tuple(Tcl_GetStringFromObj(objv[3], 0));
+        b->source_.assign(Tcl_GetStringFromObj(objv[2], 0));
+        b->replyto_.assign(Tcl_GetStringFromObj(objv[2], 0));
+        b->custodian_.assign(Tcl_GetStringFromObj(objv[2], 0));
+        b->dest_.assign(Tcl_GetStringFromObj(objv[3], 0));
 
         int payload_len;
         u_char* payload_data = Tcl_GetByteArrayFromObj(objv[4], &payload_len);

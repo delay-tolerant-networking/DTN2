@@ -147,8 +147,8 @@ SimConvergenceLayer::msg2bundle(Message* m)
 	const char* src = id2node(m->src());
 	const char* dst = id2node(m->dst());
 
-	b->source_.set_tuple(src);
-	b->dest_.set_tuple(dst);
+	b->source_.assign(src);
+	b->dest_.assign(dst);
 	b->payload_.set_length((int)m->size());
     }
     return  b;

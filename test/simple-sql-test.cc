@@ -70,7 +70,7 @@ playsql(int i) {
     int id1 = 121;
     int id2 = 555;
    
-    o1.source_.set_tuple("bundles://internet/tcp://foo. Hello I'Am Sushant");
+    o1.source_.assign("bundles://internet/tcp://foo. Hello I'Am Sushant");
     o1.bundleid_ = id1;
     o1.custreq_ = 1;
     o1.fwd_rcpt_ = 1;
@@ -80,7 +80,7 @@ playsql(int i) {
     o1.test_binary_[2] = 38;
     o1.test_binary_[3] = o1.test_binary_[1] +     o1.test_binary_[2] ;
     
-    o2.source_.set_tuple("bundles://google/tcp://foo");
+    o2.source_.assign("bundles://google/tcp://foo");
     o2.bundleid_ =  id2;
     o2.return_rcpt_ = 1;
     
@@ -123,7 +123,7 @@ main(int argc, const char** argv)
     ASSERT(!b.source_.valid());
     ASSERT(!b2.source_.valid());
     
-    b.source_.set_tuple("bundles://internet/tcp://foo");
+    b.source_.assign("bundles://internet/tcp://foo");
     ASSERT(b.source_.valid());
     ASSERT(b.source_.region().compare("internet") == 0);
     ASSERT(b.source_.admin().compare("tcp://foo") == 0);

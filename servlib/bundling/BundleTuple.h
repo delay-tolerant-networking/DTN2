@@ -23,9 +23,23 @@ public:
     virtual ~BundleTuple();
 
     /**
+     * Copy the given tuple.
+     */
+    void assign(const BundleTuple& tuple);
+
+    /**
+     * Assignment operator.
+     */
+    BundleTuple& operator =(const BundleTuple& other)
+    {
+        assign(other);
+        return *this;
+    }
+    
+    /**
      * Parse and assign the given tuple string.
      */
-    void set_tuple(const std::string& tuple)
+    void assign(const std::string& tuple)
     {
         tuple_.assign(tuple);
         parse_tuple();
@@ -34,9 +48,14 @@ public:
     /**
      * Parse and assign the given tuple string.
      */
-    void set_tuple(u_char* str, size_t len)
+    void assign(const char* str, size_t len = 0)
     {
-        tuple_.assign((char*)str, len);
+        if (len == 0) {
+            tuple_.assign(str);
+        } else {
+            tuple_.assign(str, len);
+        }
+        
         parse_tuple();
     }
     
@@ -44,7 +63,7 @@ public:
      * Parse and assign the given tuple string from it's component
      * parts
      */
-    void set_tuple(const std::string& region, const std::string& admin)
+    void assign(const std::string& region, const std::string& admin)
     {
         tuple_.assign("bundles://");
         tuple_.append(region);
@@ -58,8 +77,8 @@ public:
     /**
      * Parse and assign the given tuple string.
      */
-    void set_tuple(u_char* region, size_t regionlen,
-                   u_char* admin,  size_t adminlen)
+    void assign(u_char* region, size_t regionlen,
+                u_char* admin,  size_t adminlen)
     {
         tuple_.assign("bundles://");
         tuple_.append((char*)region, regionlen);
@@ -115,6 +134,7 @@ public:
     virtual void serialize(SerializeAction* a);
 
 protected:
+    
     void parse_tuple();
     
     bool valid_;

@@ -195,8 +195,8 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     admin_id  = primary->what_##id & 0xf;                               \
     ASSERT((region_id <= 0xf) && (admin_id <= 0xf));                    \
                                                                         \
-    bundle->what_.set_tuple(tupledata[region_id], tuplelen[region_id],  \
-                            tupledata[admin_id],  tuplelen[admin_id]);  \
+    bundle->what_.assign(tupledata[region_id], tuplelen[region_id],     \
+                         tupledata[admin_id],  tuplelen[admin_id]);     \
                                                                         \
     if (! bundle->what_.valid()) {                                      \
         logf(log, LOG_ERR, "invalid %s tuple '%s'", #what_,             \

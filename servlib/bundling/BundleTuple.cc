@@ -28,6 +28,16 @@ BundleTuple::BundleTuple(const BundleTuple& other)
 {
 }
 
+void
+BundleTuple::assign(const BundleTuple& other)
+{
+    valid_ = other.valid_;
+    tuple_.assign(other.tuple_);
+    region_.assign(other.region_);
+    proto_.assign(other.proto_);
+    admin_.assign(other.admin_);
+}
+
 BundleTuple::~BundleTuple()
 {
 }

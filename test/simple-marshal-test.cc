@@ -14,7 +14,7 @@ main(int argc, const char** argv)
     ASSERT(!b.source_.valid());
     ASSERT(!b2.source_.valid());
     
-    b.source_.set_tuple("bundles://internet/tcp://foo");
+    b.source_.assign("bundles://internet/tcp://foo");
     ASSERT(b.source_.valid());
     ASSERT(b.source_.region().compare("internet") == 0);
     ASSERT(b.source_.admin().compare("tcp://foo") == 0);
