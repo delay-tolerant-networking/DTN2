@@ -29,7 +29,7 @@ BerkeleyDBManager::init()
     struct stat st;
     if (stat(dbdir, &st) == -1) {
         if (errno == ENOENT) {
-            log_info("creating new database directory %s", dbdir);
+            log_info("creating new database directory '%s'", dbdir);
         }
         
         if (mkdir(dbdir, 0700) != 0) {
@@ -91,7 +91,7 @@ BerkeleyDBManager::init()
     if (stat(dbpath.c_str(), &st) == -1) {
         if(errno == ENOENT) {
             Db db(dbenv_, 0);
-            log_info("creating new database file");
+            log_info("creating new database file '%s'", cfg->dbfile_.c_str());
             
             try {
                 db.open(NO_TX, cfg->dbfile_.c_str(), "0", DB_HASH, DB_CREATE, 0);
