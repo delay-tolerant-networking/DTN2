@@ -84,7 +84,7 @@ SimContact::chew_message(Message* msg)
         new Event_chew_fin(tmp,this,msg,Simulator::time());
     chewing_event_ = e2;
     log_debug("ChSt-ChEvent[%d]: event:%p",id(), e2);
-    Simulator::add_event(e2);
+    Simulator::post(e2);
 }
 
 
@@ -113,7 +113,7 @@ SimContact::chewing_complete(double size, Message* msg)
     if (size != 0) {
         Event_message_received* e = 
             new Event_message_received(Simulator::time()+latency_,dst_,size,this,msg);
-        Simulator::add_event(e);
+        Simulator::post(e);
     }
     src_->chewing_complete(this,size,msg);
 }
@@ -138,7 +138,7 @@ SimContact::open_contact(bool forever)
         // schedule a link down event
         double next = up_;
         Event_contact_down* e = new Event_contact_down(Simulator::time()+next,this);
-        Simulator::add_event(e);
+        Simulator::post(e);
         future_updown_event_ = e;
     }
     
@@ -159,7 +159,7 @@ SimContact::close_contact(bool forever)
         // schedule a link up event
         double next = down_;
         Event_contact_up* e = new Event_contact_up(Simulator::time()+next,this);
-        Simulator::add_event(e);
+        Simulator::post(e);
         future_updown_event_ = e;
     }
     

@@ -36,21 +36,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _EVENTHANDLER_H_
-#define _EVENTHANDLER_H_
+#ifndef _DTN_SIM_EVENT_HANDLER_H_
+#define _DTN_SIM_EVENT_HANDLER_H_
 
 namespace dtnsim {
 
-class Event;
+class SimEvent;
 
 /**
  * Interface implemented by all objects that handle simulator events
  */
-class EventHandler {
+class SimEventHandler {
 public:
-    virtual void process(Event* e) = 0;
+    virtual void process(SimEvent* e) = 0;
 };
 
 } // namespace dtnsim
 
-#endif /* _EVENTHANDLER_H_ */
+#endif /* _DTN_SIM_EVENT_HANDLER_H_ */

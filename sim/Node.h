@@ -41,7 +41,7 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
-#include "EventHandler.h"
+#include "SimEventHandler.h"
 #include "bundling/BundleDaemon.h"
 
 using namespace dtn;
@@ -62,7 +62,7 @@ namespace dtnsim {
  * processed that relates to a node, that node is installed as the
  * BundleDaemon::instance().
  */
-class Node : public EventHandler, public BundleDaemon {
+class Node : public SimEventHandler, public BundleDaemon {
 public:
     /**
      * Constructor
@@ -88,7 +88,7 @@ public:
     /**
      * Virtual function from processable
      */
-    virtual void process(Event *e);
+    virtual void process(SimEvent *e);
 
     /**
      * Process all pending bundle events until the queue is empty.

@@ -157,7 +157,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             // XXX/demmer fix this FORWARD_COPY
             RouteEntry* entry = new RouteEntry(dest, consumer, FORWARD_COPY);
             BundleEvent* e = new RouteAddEvent(entry);
-            Simulator::add_event(new SimRouterEvent(time, node_, e));
+            Simulator::post(new SimRouterEvent(time, node_, e));
             
             return TCL_OK;
         }
@@ -230,7 +230,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
             Registration* r = new SimRegistration(node_, demux_tuple);
             RegistrationAddedEvent* e = new RegistrationAddedEvent(r);
-            Simulator::add_event(new SimRouterEvent(time, node_, e));
+            Simulator::post(new SimRouterEvent(time, node_, e));
             
             return TCL_OK;
         }        

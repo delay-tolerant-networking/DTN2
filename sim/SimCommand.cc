@@ -175,7 +175,7 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
 //         Event_contact_up* e = 
 //             new Event_contact_up(time,Topology::contact(id));
 //         e->forever_ = forever;
-//         Simulator::add_event(e);
+//         Simulator::post(e);
 //     }
 
     
@@ -189,14 +189,14 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
 //         Event_contact_down* e = 
 //             new Event_contact_down(time,Topology::contact(id));
 //         e->forever_ = forever;
-//         Simulator::add_event(e);
+//         Simulator::post(e);
 //     }
     
 //     if (strcmp(cmd, "print_stats") == 0) {
 //         Event_print_stats* e = 
 //             new Event_print_stats(time,Simulator::instance());
 //         log_info("COM: print_stats at:%3f event:%p",time,e);
-//         Simulator::add_event(e);
+//         Simulator::post(e);
 //     }
 
     resultf("sim: unsupported subcommand %s", cmd);

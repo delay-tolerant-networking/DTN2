@@ -35,8 +35,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _EVENT_H_
-#define _EVENT_H_
+#ifndef _DTN_SIM_EVENT_H_
+#define _DTN_SIM_EVENT_H_
 
 #include "bundling/BundleEvent.h"
 
@@ -44,7 +44,7 @@ using namespace dtn;
 
 namespace dtnsim {
 
-class EventHandler;
+class SimEventHandler;
 
 /******************************************************************************
  *
@@ -83,15 +83,15 @@ ev2str(sim_event_type_t event) {
  * Base Event Class
  *
  *****************************************************************************/
-class Event {
+class SimEvent {
 public:
     /**
      * Constructor 
      */
-    Event(sim_event_type_t type, int time, EventHandler *handler)
+    SimEvent(sim_event_type_t type, int time, SimEventHandler *handler)
         : type_(type), time_(time), handler_(handler), valid_(true) {}
 
-    EventHandler* handler()  { return handler_; }
+    SimEventHandler* handler()  { return handler_; }
     int time()               { return time_ ; }
     bool is_valid()          { return valid_; }
     sim_event_type_t type()  { return type_ ; }
@@ -102,7 +102,7 @@ public:
 private:
     sim_event_type_t type_;	///< Type of the event
     int time_; 		      	///< Time when the event will fire
-    EventHandler* handler_;	///< Handler that will process the event
+    SimEventHandler* handler_;	///< Handler that will process the event
     bool valid_;		///< Indicator if the event was cancelled
 };
 
@@ -112,12 +112,12 @@ private:
  * EventCompare
  *
  *****************************************************************************/
-class EventCompare {
+class SimEventCompare {
 public:
     /**
      * The comparator function used in the priority queue.
      */
-    bool operator () (Event* a, Event* b)
+    bool operator () (SimEvent* a, SimEvent* b)
     {
         return a->time() > b->time();
     }
@@ -129,15 +129,15 @@ public:
  *
  ******************************************************************/
 
-class SimRouterEvent : public Event {
+class SimRouterEvent : public SimEvent {
 public:
-    SimRouterEvent(int time, EventHandler* handler, BundleEvent* event)
+    SimRouterEvent(int time, SimEventHandler* handler, BundleEvent* event)
         
-	: Event(SIM_ROUTER_EVENT, time, handler), event_(event) {}
+	: SimEvent(SIM_ROUTER_EVENT, time, handler), event_(event) {}
     
     BundleEvent* event_;
 };
 
 } // namespace dtnsim
 
-#endif /* _EVENT_H_ */
+#endif /* _DTN_SIM_EVENT_H_ */

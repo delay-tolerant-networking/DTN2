@@ -43,7 +43,7 @@
 
 #include "routing/RouteTable.h"
 #include "routing/BundleRouter.h"
-#include "Event.h"
+#include "SimEvent.h"
 #include "Simulator.h"
 #include "Simdtn2Command.h"
 #include "SimConvergenceLayer.h"
@@ -101,7 +101,7 @@ Simdtn2Command::exec(int argc, const char** argv, Tcl_Interp* interp)
         int src = atoi(src_str);
         Event_for_br* e = 
             new Event_for_br(time,Topology::node(src),new RouteAddEvent(entry));
-        Simulator::add_event(e);
+        Simulator::post(e);
 
     }
     else {

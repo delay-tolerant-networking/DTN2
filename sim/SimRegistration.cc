@@ -54,9 +54,6 @@ SimRegistration::SimRegistration(Node* node, const BundleTuple& demux_tuple)
     logpathf("/reg/%s/%d", node->name(), regid_);
 
     log_debug("new sim registration");
-
-    RegistrationAddedEvent* e = new RegistrationAddedEvent(this);
-    Simulator::add_event(new SimRouterEvent(Simulator::time(), node, e));
 }
 
 void

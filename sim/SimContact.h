@@ -45,7 +45,7 @@
 
 #include "Node.h"
 #include "Processable.h"
-#include "Event.h"
+#include "SimEvent.h"
 #include "Message.h"
 
 namespace dtnsim {

@@ -39,15 +39,15 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
-#include "Event.h"
-#include "EventHandler.h"
+#include "SimEvent.h"
+#include "SimEventHandler.h"
 
 namespace dtnsim {
 
 /**
  * The main simulator class. This defines the main event loop
  */
-class Simulator : public oasys::Logger, public EventHandler {
+class Simulator : public oasys::Logger, public SimEventHandler {
 public:
     /**
      * Singleton instance accessor.
@@ -84,7 +84,7 @@ public:
     /**
      * Add an event to the main event queue.
      */
-    static void add_event(Event *e);
+    static void post(SimEvent *e);
     
     /**
      * Stops simulation and exits the loop
@@ -96,20 +96,23 @@ public:
      */
     void run();
     
-    static int runtill_; 	 ///< time to end the simulation
+    static int runtill_;		///< time to end the simulation
     
 protected:
-    static Simulator* instance_; ///< singleton instance
-    void process(Event* e);      ///< virtual from processable
+    static Simulator* instance_;	///< singleton instance
+    void process(SimEvent* e);		///< virtual from SimEventHandler
 
 private:
     
-    int time_; ///< current time
+    int time_;		///< current time
 
-    bool is_running_; ///< maintains the state if the simulator is
-                      ///< running or paused
+    bool is_running_;	///< maintains the state if the simulator is
+    			///< running or paused
+                     
     
-    std::priority_queue<Event*, std::vector<Event*>, EventCompare> eventq_;
+    std::priority_queue<SimEvent*,
+                        std::vector<SimEvent*>,
+                        SimEventCompare> eventq_;
 };
 
 } // namespace dtnsim

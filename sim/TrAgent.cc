@@ -39,7 +39,7 @@
 #include "TrAgent.h"
 #include "Simulator.h"
 #include "Node.h"
-#include "Event.h"
+#include "SimEvent.h"
 #include "bundling/Bundle.h"
 
 namespace dtnsim {
@@ -51,11 +51,11 @@ TrAgent::TrAgent(Node* node, int start_time,
       node_(node), src_(src), dst_(dst), size_(size),
       reps_(reps), batchsize_(batchsize), gap_(gap)
 {
-    Simulator::add_event(new Event(SIM_NEXT_SENDTIME, start_time, this));
+    Simulator::post(new SimEvent(SIM_NEXT_SENDTIME, start_time, this));
 }
 
 void
-TrAgent::process(Event* e)
+TrAgent::process(SimEvent* e)
 {
     if (e->type() == SIM_NEXT_SENDTIME) {
 	for (int i = 0; i < batchsize_; i++) {
@@ -64,7 +64,7 @@ TrAgent::process(Event* e)
         
 	if (--reps_ > 0) {
 	    int sendtime = Simulator::time() + gap_;
-	    Simulator::add_event(new Event(SIM_NEXT_SENDTIME, sendtime, this));
+	    Simulator::post(new SimEvent(SIM_NEXT_SENDTIME, sendtime, this));
         }
 	else {
 	    log_info("All batches finished");
@@ -90,7 +90,7 @@ TrAgent::send_bundle()
              node_->name(), b->bundleid_, src_.c_str(), dst_.c_str(), size_);
 
     BundleReceivedEvent* e = new BundleReceivedEvent(b, EVENTSRC_APP, size_);
-    Simulator::add_event(new SimRouterEvent(Simulator::time(), node_, e));
+    Simulator::post(new SimRouterEvent(Simulator::time(), node_, e));
 }
 
 

@@ -41,21 +41,21 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
-#include "Event.h"
-#include "EventHandler.h"
+#include "SimEvent.h"
+#include "SimEventHandler.h"
 #include "bundling/BundleTuple.h"
 
 namespace dtnsim {
 class Node;
 
-class TrAgent : public EventHandler, public oasys::Logger {
+class TrAgent : public SimEventHandler, public oasys::Logger {
 public:
     TrAgent(Node* node, int start_time,
             const BundleTuple& src, const BundleTuple& dst,
             int size, int reps, int batchsize, int gap);
     virtual ~TrAgent() {}
 
-    void process(Event *e);
+    void process(SimEvent *e);
 
 private:
     void send_bundle();

@@ -35,7 +35,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "Event.h"
+#include "SimEvent.h"
 #include "Node.h"
 #include "SimBundleActions.h"
 #include "bundling/ContactManager.h"
@@ -101,7 +101,7 @@ Node::process_bundle_events()
 
 
 void
-Node::process(Event *e)
+Node::process(SimEvent *e)
 {
     log_debug("handling event %s", ev2str(e->type()));
     

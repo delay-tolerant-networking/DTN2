@@ -54,7 +54,7 @@ Simulator::Simulator()
 
 
 void
-Simulator::add_event(Event* e)
+Simulator::post(SimEvent* e)
 {
     instance_->eventq_.push(e);
 }
@@ -88,7 +88,7 @@ Simulator::run()
 
      while(!eventq_.empty()) {
         if (is_running_) {
-            Event* e = eventq_.top();
+            SimEvent* e = eventq_.top();
             eventq_.pop();
             /* Move the clock */
             time_ =  e->time();
@@ -112,7 +112,7 @@ Simulator::run()
 
 
 void
-Simulator::process(Event *e)
+Simulator::process(SimEvent *e)
 {
     NOTIMPLEMENTED;
 }
