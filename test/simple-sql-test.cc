@@ -50,7 +50,6 @@ playsql(int i) {
     
     //  foo o1; o1.id = 771 ; o1.f1 = 123; o1.f2 = 'a'; foo o2;
     
-    const char* table_name = "try";
     SQLImplementation *db ;
     
     if (i ==1)
@@ -60,7 +59,7 @@ playsql(int i) {
 
     db->exec_query("drop table try;");
     
-    BundleStore *bstore = new SQLBundleStore(table_name,db);
+    BundleStore *bstore = new SQLBundleStore(db, "try");
     BundleStore::init(bstore);
     
     
