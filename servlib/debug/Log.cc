@@ -47,6 +47,8 @@ Log::Log()
     lock_ = new SpinLock();
 }
 
+
+
 void
 Log::init(log_level_t defaultlvl, const char* debug_path)
 {
@@ -282,6 +284,14 @@ Log::log_level(const char *path)
     }
 }
 
+timeval 
+Log::gettimeofday_() {
+// tack on a timestamp
+    timeval tv;
+    gettimeofday(&tv, 0);
+    return tv;
+}
+
 int
 Log::vlogf(const char *path, log_level_t level, const char *fmt, va_list ap)
 {
@@ -325,11 +335,13 @@ Log::vlogf(const char *path, log_level_t level, const char *fmt, va_list ap)
     int buflen = LOG_MAX_LINELEN - 1; /* Save a character for newline. */
     int len;
 
+    
+    
     // tack on a timestamp
-    timeval tv;
-    gettimeofday(&tv, 0);
+    timeval tv = gettimeofday_();
     len = snprintf(ptr, buflen, "[%ld.%06ld %s %s] ",
                    tv.tv_sec, tv.tv_usec, path, level2str(level));
+       
 
     buflen -= len;
     ptr += len;

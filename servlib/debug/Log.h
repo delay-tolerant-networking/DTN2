@@ -57,7 +57,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <sys/time.h>
 #include <string>
 #include <vector>
 
@@ -127,12 +127,24 @@ public:
         return instance_; 
     }
 
+    
+    /**
+     * Made public to support specific implementations of log time printing
+     */
+    static Log* instance_;	///< Singleton instance of the Logging system
+
     /**
      * Initialize the logging system. Must be called exactly once.
      */
     static void init(log_level_t defaultlvl = LOG_DEFAULT_THRESHOLD,
                      const char *debug_path = LOG_DEFAULT_DBGFILE);
 
+
+  
+    /**
+     *  Sets the time to print for the logging 
+     */
+    virtual timeval gettimeofday_();
     /**
      * Core logging function that is the guts of the implementation of
      * all other variants. Returns the number of bytes written, i.e.
@@ -155,10 +167,21 @@ public:
      * Add a new rule to the list.
      */
     void add_debug_rule(const char* path, log_level_t threshold);
+
+    
+
+    Log();
+    virtual ~Log() {} // never called
+
+    /**
+     * Initialize logging, should be called exactly once from the
+     * static Log::init.
+     */
+    void do_init(log_level_t defaultlvl, const char* debug_path);
     
 private:
-    Log();
-    ~Log(); // never called
+   
+  
 
     /**
      * Structure used to store a log rule as parsed from the debug
@@ -207,13 +230,8 @@ private:
      */
     void print_rules();
 
-    /**
-     * Initialize logging, should be called exactly once from the
-     * static Log::init.
-     */
-    void do_init(log_level_t defaultlvl, const char* debug_path);
-
-    static Log* instance_;	///< Singleton instance of the Logging system
+   
+    
     bool inited_;		///< Flag to ensure one-time intialization
     
     RuleList* rule_list_;	///< List of logging rules
