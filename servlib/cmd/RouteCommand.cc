@@ -2,6 +2,7 @@
 #include "RouteCommand.h"
 #include "bundling/Contact.h"
 #include "routing/BundleRouter.h"
+#include "util/StringBuffer.h"
 
 RouteCommand RouteCommand::instance_;
 
@@ -11,7 +12,8 @@ const char*
 RouteCommand::help_string()
 {
     return "route add <dest> <nexthop> <type> <args>\n"
-        "route del <dest> <nexthop>"; 
+        "route del <dest> <nexthop>\n"
+        "route dump";
 }
 
 int
@@ -70,6 +72,26 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
                 return TCL_ERROR;
             }
         }
+    }
+
+    else if (strcmp(cmd, "del") == 0) {
+        resultf("route delete unimplemented");
+        return TCL_ERROR;
+    }
+
+    else if (strcmp(cmd, "dump") == 0) {
+        StringBuffer buf;
+
+        BundleRouter* router;
+        BundleRouterList* routers = BundleRouter::routers();
+        BundleRouterList::iterator iter;
+        for (iter = routers->begin(); iter != routers->end(); ++iter) {
+            router = *iter;
+            router->dump(&buf);
+        }
+
+        set_result(buf.c_str());
+        return TCL_OK;
     }
     else {
         resultf("unimplemented route subcommand %s", cmd);
