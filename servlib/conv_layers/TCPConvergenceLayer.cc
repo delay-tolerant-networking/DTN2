@@ -273,7 +273,7 @@ TCPConvergenceLayer::Connection::Connection(Contact* contact,
     // Connection thread, not from the caller thread
     sock_ = new oasys::TCPClient();
 
-    // XXX/demmer the basic socket logging emits errros and the like
+    // XXX/demmer the basic socket logging emits errors and the like
     // when connections break. that may not be great since we kinda
     // expect them to happen... so either we should add some flag as
     // to the severity of error messages that can be passed into the
@@ -1032,6 +1032,10 @@ TCPConvergenceLayer::Connection::send_loop()
     // keep track of the time we got data
     struct timeval now, data_rcvd, keepalive_sent;
 
+    // let's give the remote end credit for data, even though all they
+    // have done so far is open the connection.
+    ::gettimeofday(&data_rcvd, 0);
+
     // main loop
     while (1) {
         // first see if someone wants us to stop
@@ -1089,7 +1093,7 @@ TCPConvergenceLayer::Connection::send_loop()
         // list notifier indicating there's a new bundle for us to
         // send
         //
-        // note that we pass the negoatiated keepalive as the timeout
+        // note that we pass the negotiated keepalive as the timeout
         // to the poll call to make sure the other side sends its
         // keepalive in time
         pollfds[0].revents = 0;
