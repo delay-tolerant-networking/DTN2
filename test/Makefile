@@ -4,18 +4,17 @@
 SRCDIR := ..
 
 #
-# Default target is to build all tests
+# Default target is to build all unit tests
 #
-all: test
+all: unit_tests
 
-BINFILES :=			\
-	address-family-test	\
-	bundle-list-test	\
-	simple-marshal-test	\
-	simple-sql-test		\
+BINFILES :=				\
+	unit_tests/address-family-test	\
+	unit_tests/bundle-list-test	\
+	unit_tests/simple-marshal-test	\
+	unit_tests/simple-sql-test	\
 
-
-test: $(BINFILES)
+unit_tests: $(BINFILES)
 
 #
 # Include the servlib Makefile to get the list of servlib objects
@@ -35,10 +34,10 @@ COMPONENT_LIBS := \
 #
 # Default pattern rule to build the tests
 #
-%-test.o: %-test.cc
+unit_tests/%-test.o: unit_tests/%-test.cc
 	$(CPP) $(CFLAGS) -c $< -o $@
 
-%-test: %-test.o $(COMPONENT_LIBS)
+unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
 	$(CPP) $(CFLAGS) $< $(COMPONENT_LIBS) \
 		-o $@ $(LFLAGS) $(LIBS) 
 
