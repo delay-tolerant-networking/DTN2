@@ -532,7 +532,7 @@ static int exponent(char *, int, int);
  */
 int
 //__vfprintf(FILE *fp, const char *fmt0, va_list ap)
-vsnprintf(char *str, size_t strsz, const char *fmt0, va_list ap)
+vsnprintf(char *str, size_t strsz, const char *fmt0, va_list ap) __THROW
 {
 	char *fmt;		/* format string */
 	int ch;			/* character from fmt */
@@ -1389,7 +1389,7 @@ error:
 }
 
 int
-snprintf(char *str, size_t strsz, const char *fmt, ...)
+snprintf(char *str, size_t strsz, const char *fmt, ...) __THROW
 {
 	va_list ap;
 	int ret;
