@@ -75,9 +75,11 @@ proc file_injector_scan {dir source dest period} {
 	
 	log /file_injector INFO " sending bundle [file tail $file] $len byte payload"
 
-#	puts $fd_ftplog "[time] :: sending bundle [file tail $file]  $len byte  "
-#	flush $fd_ftplog
+	if {[info exists fd_ftplog]} {
+	    puts $fd_ftplog "[time] :: sending bundle [file tail $file]  $len byte  "
+	    flush $fd_ftplog
 	
+	}
 	bundle inject $source "$dest/[file tail $file]" $payload $len
 
 	file delete $file
