@@ -1,0 +1,37 @@
+DTN2 TODO LIST
+-------------
+
+Before NSDI (October 15):
+- reactive fragmentation [melissa]
+  - maybe proactive as well?
+- timer implementation using stl heap
+- bundle expiration timers
+- tcpcl configuration hooks 
+  - ackblocksz, ack disabling, keepalive timer
+- tcpcl keepalives
+- client api specification
+- dns style region pattern matching [naveel]
+- bundle overwrite feature specification
+- tcl smtpd/smtp client integration (temporary)
+- big payloads carried in files
+- berkeley db backing store implementation
+  - maybe files as well
+- aravind / mssrf traces?
+- testing platform: planetlab? emulab?
+- honor bundle priority bits in forwarding
+
+Maybe before NSDI:
+- simulator engine
+- simple epidemic routing (zebranet?)
+- bundle overwrite feature implementation
+- scheduled contacts?
+
+After NSDI:
+- client api implementation
+  - exposed through tcl api
+- full epidemic routing implementation
+- custody transfer
+- smtp proxy app (both daemon and client)
+- parse / carry through extension headers
+- class of service notification features
+- udp convergence layer
