@@ -1,0 +1,57 @@
+<html>
+<head>
+<title> DTN2 Manual: Compiling DTN2 </title>
+</head>
+<body>
+<h1>Compiling DTN2
+</h1>
+
+<p>
+At the moment, DTN2 comes in source form only. Before you can install
+it and start using it, you need to compile it.
+
+<h2> On Unix </h2>
+
+<p>
+First, unpack the release:
+
+<blockquote><pre>$ gunzip -c DTN2-2.0.2.tgz | tar xvf -
+</pre></blockquote>
+
+<p>
+If you want to get the latest bug fixes before they get into a
+release, you'll want to get the source code from the anonymous
+CVS repository instead. Please understand that you're using PRE-ALPHA
+software if you use the copy from CVS. We try to keep what's in
+CVS working, but it is under active development, and you might see
+bugs. Before reporting them, please always use "cvs up" to get the
+newest copy, then recompile and reproduce the bug.
+
+<blockquote><pre>$ cvs -d :pserver:anonymous@code.dtnrg.org:/orig login
+(password is "bundles")
+$ cvs -d :pserver:anonymous@code.dtnrg.org:/orig checkout DTN2
+</pre></blockquote>
+
+<p>
+For the time being, DTN2 releases are not happening very often, so
+you'll probably be best served by using CVS to get DTN2's source
+code.
+
+<p>Next, configure DTN2:
+
+<blockquote><pre>$ cd DTN2
+$ sh configure
+</pre></blockquote>
+
+
+
+<h2> On Windows </h2>
+
+<p>
+DTN2 does not yet work as a native Windows application. It does,
+however, work with the <a href="http://www.cygwin.com">Cygwin</a>
+environment.
+
+</body>
+</html>
+
