@@ -15,7 +15,7 @@ set DELAY_FOR_SOURCE_NODE 2
 ## Adjust the following if links are dynamic 
 
 set linkdynamics 0
-set up 30 ## Length of uptime
+set up 60 ## Length of uptime
 set down 180   ## Length of downtime
 
 set OFFSET_VAL 15

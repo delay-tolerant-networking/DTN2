@@ -3,14 +3,21 @@
 OTHERHOST=$1
 
     
-COUNT=4; 
+COUNT=4
 PACKET_SIZE=50;
-INTERVAL=0.1
+INTERVAL=0.2
 TIMEOUT=3
 RETRY=5
 rm -f /tmp/ping.$OTHERHOST
 
 starttime=`date +%s`
+ps aux > /tmp/o
+#CHeck if already running, if yes then exitcat
+num=`grep check_ping /tmp/o | wc -l` 
+echo $num
+if [ $num -gt 1 ]; then
+    exit 0
+fi
 
 while [ 1 ]
 do
