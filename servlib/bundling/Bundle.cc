@@ -189,7 +189,7 @@ Bundle::add_pending()
 }
 
 /**
- * Bump doen the pending transmission count
+ * Bump down the pending transmission count
  */
 int
 Bundle::del_pending()
