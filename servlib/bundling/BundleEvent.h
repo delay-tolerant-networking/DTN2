@@ -1,6 +1,8 @@
 #ifndef _BUNDLE_EVENT_H_
 #define _BUNDLE_EVENT_H_
 
+#include "BundleRef.h"
+
 /**
  * All signaling from various components to the routing layer is done
  * via the Bundle Event message abstraction. This file defines the
@@ -34,17 +36,22 @@ typedef enum {
 class BundleEvent {
 public:
     /**
-     * The type code of the event.
+     * The event type code;
      */
-    const event_type_t type_;		///< The event type code
+    const event_type_t type_;
 
+    /**
+     * Need a virtual destructor to make sure all the right bits are
+     * cleaned up.
+     */
+    virtual ~BundleEvent() {}
+    
 protected:
     /**
      * Constructor (protected since one of the subclasses should
      * always be that which is actually initialized.
      */
     BundleEvent(event_type_t type) : type_(type) {};
-    virtual ~BundleEvent() {}
     
 };
 
@@ -53,12 +60,31 @@ protected:
  */
 class BundleReceivedEvent : public BundleEvent {
 public:
-    BundleReceivedEvent(Bundle* bundle) :
-        BundleEvent(BUNDLE_RECEIVED), bundle_(bundle) {}
-    ~BundleReceivedEvent() {}
+    BundleReceivedEvent(Bundle* bundle)
+        : BundleEvent(BUNDLE_RECEIVED),
+          bundleref_(bundle) {}
 
     /// The newly arrived bundle
-    Bundle* bundle_;
+    BundleRef bundleref_;
+};
+
+/**
+ * Event class for bundle or fragment transmission.
+ */
+class BundleTransmittedEvent : public BundleEvent {
+public:
+    BundleTransmittedEvent(Bundle* bundle, size_t bytes_sent, bool acked)
+        : BundleEvent(BUNDLE_TRANSMITTED),
+          bundleref_(bundle), bytes_sent_(bytes_sent), acked_(acked) {}
+    
+    /// The transmitted bundle
+    BundleRef bundleref_;
+
+    /// Total number of bytes sent
+    size_t bytes_sent_;
+
+    /// Indication if the destination acknowledged bundle receipt
+    bool acked_;
 };
 
 /**
@@ -68,7 +94,6 @@ class RegistrationAddedEvent : public BundleEvent {
 public:
     RegistrationAddedEvent(Registration* reg)
         : BundleEvent(REGISTRATION_ADDED), registration_(reg) {}
-    ~RegistrationAddedEvent() {}
 
     /// The newly added registration
     Registration* registration_;
