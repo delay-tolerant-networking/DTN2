@@ -261,6 +261,12 @@ EOF
   esac
 done
 
+# XXX/demmer at least temporarily, run configure in oasys as well
+if [ ! -f oasys/Rules.make ]; then
+    echo "Configuring oasys library..."
+    (cd oasys && ./configure $*)
+fi
+
 #
 # Make sure the compiler a) works b) is some gcc variant and c) is an
 # acceptable version.

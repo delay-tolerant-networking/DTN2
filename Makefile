@@ -8,20 +8,18 @@
 # by default.
 #
 
-all:   applib servlib daemon apps sim
+SUBDIRS := oasys applib servlib daemon apps sim
+
+all: checkconfigure $(SUBDIRS)
+
+clean objclean depclean genclean binclean: $(SUBDIRS)
+
 alltest:
 	$(MAKE) all
 	$(MAKE) test
 
-check:    applib servlib daemon apps test sim
-clean:    applib servlib daemon apps test sim
-objclean: applib servlib daemon apps test sim
-depclean: applib servlib daemon apps test sim
-genclean: applib servlib daemon apps test sim
-binclean: applib servlib daemon apps test sim
-
-.PHONY: applib servlib daemon apps test sim
-applib servlib daemon apps test sim:
+.PHONY: $(SUBDIRS)
+$(SUBDIRS) test:
 	$(MAKE) -C $@ $(MAKECMDGOALS)
 
 #
@@ -41,3 +39,18 @@ tags TAGS:
 		xargs etags -l c++
 	find . -name \*.h -or -name \*.c -or -name \*.cc | \
 		xargs ctags 
+
+#
+# And a rule to make sure that configure has been run recently enough.
+#
+.PHONY: checkconfigure 
+checkconfigure: Rules.make
+
+Rules.make.in:
+	@echo SRCDIR: $(SRCDIR)
+	@echo error -- Makefile did not set SRCDIR properly
+	@exit 1
+
+Rules.make: Rules.make.in configure
+	@echo $@ is out of date, need to rerun configure
+	@exit 1
