@@ -174,13 +174,13 @@ ContactManager::dump(oasys::StringBuffer* buf) const
 {
     buf->append("contact manager info:\n");
 
-    buf->append("Links::\n");
+    buf->append("Links:\n");
     LinkSet::iterator iter;
     Link* link = NULL;
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        buf->appendf("\t link (type %s): (name) %s -> (peer) %s - (status) %s, %s",
+        buf->appendf("\t link (type %s): (name) %s -> (peer) %s - (status) %s, %s\n",
                      link->type_str(),
                      link->name(),
 //                     link->clayer()->proto(),
