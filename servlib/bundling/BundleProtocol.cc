@@ -1,9 +1,7 @@
 
 #include "Bundle.h"
-#include "BundleEvent.h"
 #include "BundleProtocol.h"
 #include "debug/Debug.h"
-#include "routing/BundleRouter.h"
 #include <netinet/in.h>
 #include <algorithm>
 #include <string>
