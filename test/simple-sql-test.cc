@@ -48,17 +48,6 @@ playsql(int i) {
 
   //  foo o1; o1.id = 771 ; o1.f1 = 123; o1.f2 = 'a'; foo o2;
   
-  Bundle o1, o2;  
-  int id1 = 121;
-  int id2 = 555;
-
-  o1.source_.set_tuple("bundles://internet/tcp://foo"); o1.bundleid_ = id1; 
-  o2.source_.set_tuple("bundles://google/tcp://foo");o2.bundleid_ =  id2;
-
-  cout << " read stuff,  \n" << i << endl;
-  // cin >> o1.id  >> o1.f1 >> o1.f2 ;
-  // cout << "  read end  \n\n" ; 
-
    const char* table_name = "try";
   
    
@@ -74,13 +63,26 @@ playsql(int i) {
     cout << " connection established ,  \n" << endl;
 
   BundleStore *bstore = new SQLBundleStore(table_name,db);
+  BundleStore::init(bstore);
 
   cout << " bundle store created ,  \n" << endl;
-   int retval2 = bstore->put(&o1,id1);
+
+  Bundle o1, o2;  
+  int id1 = 121;
+  int id2 = 555;
+
+  o1.source_.set_tuple("bundles://internet/tcp://foo"); o1.bundleid_ = id1; 
+  o2.source_.set_tuple("bundles://google/tcp://foo");o2.bundleid_ =  id2;
+
+  cout << " read stuff,  \n" << i << endl;
+  // cin >> o1.id  >> o1.f1 >> o1.f2 ;
+  // cout << "  read end  \n\n" ; 
 
   
    
   
+   int retval2 = bstore->put(&o1,id1);
+
    retval2 = bstore->put(&o2,id2);
 
 
