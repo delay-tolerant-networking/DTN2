@@ -73,6 +73,7 @@ STORAGE_SRCS :=					\
         storage/MysqlSQLImplementation.cc       \
 
 SERVLIB_SRCS := 				\
+	../version.c				\
 	DTNServer.cc				\
 	$(BUNDLING_SRCS) 			\
 	$(CONV_LAYER_SRCS)			\

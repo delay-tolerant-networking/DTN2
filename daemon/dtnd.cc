@@ -48,6 +48,7 @@
 #include <oasys/util/Options.h>
 #include <oasys/util/StringBuffer.h>
 
+#include "version.h"
 #include "applib/APIServer.h"
 #include "cmd/TestCommand.h"
 #include "servlib/DTNServer.h"
@@ -67,11 +68,16 @@ main(int argc, char* argv[])
     std::string        logfile("-");
     std::string        loglevelstr;
     oasys::log_level_t loglevel;
+    bool	       print_version = false;
 
     // Register all command line options
+    new oasys::BoolOpt('v', "version", &print_version,
+                       "print version information and exit");
+    
     new oasys::StringOpt('o', "output",
                          &logfile, "<output>",
-                         "file name for logging output ([-o -] indicates stdout)");
+                         "file name for logging output "
+                         "(default - indicates stdout)");
 
     new oasys::StringOpt('l', NULL,
                          &loglevelstr, "<level>",
@@ -96,10 +102,17 @@ main(int argc, char* argv[])
                       &random_seed, &random_seed_set, "<seed>",
                       "random number generator seed");
 
-    new oasys::IntOpt('i', 0, &testcmd.id_, "<id>", "set the test id");
-    new oasys::BoolOpt('f', 0, &testcmd.fork_, "test scripts fork child daemons");
+    new oasys::IntOpt('i', 0, &testcmd.id_, "<id>",
+                      "set the test id");
+    new oasys::BoolOpt('f', 0, &testcmd.fork_,
+                       "test scripts fork child daemons");
 
     oasys::Options::getopt(argv[0], argc, argv);
+
+    if (print_version) {
+        printf("%s\n", dtn_version);
+        exit(0);
+    }
 
     // Parse the debugging level argument
     if (loglevelstr.length() == 0) {
