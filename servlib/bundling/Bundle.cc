@@ -2,12 +2,13 @@
 #include "Bundle.h"
 #include "BundleList.h"
 #include "thread/SpinLock.h"
+#include "storage/GlobalStore.h"
 
 void
 Bundle::init()
 {
     refcount_		= 0;
-    bundleid_		= 0;
+    bundleid_		= GlobalStore::instance()->next_bundleid();
     priority_		= COS_NORMAL;
     expiration_		= 0;
     custreq_		= false;
@@ -16,6 +17,7 @@ Bundle::init()
     fwd_rcpt_		= false;
     return_rcpt_	= false;
     expiration_		= 0; // XXX/demmer
+    payload_.init(bundleid_);
     
     gettimeofday(&creation_ts_, 0);
 }
@@ -25,23 +27,12 @@ Bundle::Bundle()
     init();
 }
 
-Bundle::Bundle(const std::string& source,
-               const std::string& dest)
-{
-    init();
-    source_.set_tuple(source);
-    replyto_.set_tuple(source);
-    custodian_.set_tuple(source);
-    dest_.set_tuple(dest);
-}
-
 Bundle::~Bundle()
 {
     ASSERT(containers_.size() == 0);
     // XXX/demmer remove the bundle from the database
     
     bundleid_ = 0xdeadf00d;
-    payload_.set_data("(dead bundle data");
 }
 
 int

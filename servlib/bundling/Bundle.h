@@ -42,13 +42,6 @@ public:
     Bundle();
 
     /**
-     * Minimal constructor for a valid routable bundle (uses source
-     * for reply-to and custodian).
-     */
-    Bundle(const std::string& source,
-           const std::string& dest);
-
-    /**
      * Special constructor for a temporary (invalid) bundle, used to
      * create the database table schema for SQL databases.
      */

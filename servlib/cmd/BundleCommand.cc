@@ -32,7 +32,11 @@ BundleCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        Bundle* b = new Bundle(argv[2], argv[3]);
+        Bundle* b = new Bundle();
+        b->source_.set_tuple(argv[2]);
+        b->replyto_.set_tuple(argv[2]);
+        b->custodian_.set_tuple(argv[2]);
+        b->dest_.set_tuple(argv[3]);
         
         int len = strlen(argv[4]);
         if (argc == 5) {
