@@ -2,6 +2,7 @@
 #define _BUNDLE_EVENT_H_
 
 #include "BundleRef.h"
+#include "BundleList.h"
 
 /**
  * All signaling from various components to the routing layer is done
@@ -30,11 +31,13 @@ typedef enum {
     REGISTRATION_REMOVED,	///< Registration removed
     REGISTRATION_EXPIRED,	///< Registration expired
 
+    REASSEMBLY_COMPLETED,	///< Reassembly completed
+
     // These events are injected from the management interface and/or
     // the console
     ROUTE_ADD,			///< Add a new entry to the route table
     ROUTE_DEL,			///< Remove an entry from the route table
-        
+
 } event_type_t;
 
 /**
@@ -103,6 +106,8 @@ public:
 
     /// Indication if the destination acknowledged bundle receipt
     bool acked_;
+
+    /// XXX/demmer should have bytes_acked 
 };
 
 
@@ -151,6 +156,26 @@ public:
     
     /// The route table entry to be added
     RouteEntry* entry_;
+};
+
+/**
+ * Event class for reassembly completion.
+ */
+class ReassemblyCompletedEvent : public BundleEvent {
+public:
+    ReassemblyCompletedEvent(Bundle* bundle, BundleList* fragments)
+        : BundleEvent(REASSEMBLY_COMPLETED),
+          bundle_(bundle, "ReassemblyCompletedEvent"),
+          fragments_("ReassemblyCompletedEvent")
+    {
+        fragments->move_contents(&fragments_);
+    }
+
+    /// The newly reassembled bundle
+    BundleRef bundle_;
+
+    /// The list of bundle fragments
+    BundleList fragments_;
 };
 
 #endif /* _BUNDLE_EVENT_H_ */
