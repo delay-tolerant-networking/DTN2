@@ -151,6 +151,10 @@ Thread::yield()
 void
 Thread::spin_yield()
 {
+// XXX/demmer -- fix me with a real fix. for now, force it to yield
+// since we keep hitting spin limits
+#define NO_SMP
+    
 #ifdef NO_SMP
 #ifdef _POSIX_THREAD_IS_CAPRICCIO
     PANIC("SpinLock should never be contended under capriccio");
