@@ -12,6 +12,7 @@ TestCommand::bind_vars()
     bind_i("id", &id_);
     bind_s("initscript", &initscript_);
     bind_s("argv", &argv_);
+    bind_b("log_to_stdout", &log_to_stdout_);
 }
 
 int

@@ -3,25 +3,6 @@
 #
   
 #
-# Cleans up the log files in directory logs/
-#
-proc clean_logs { num_nodes } { 
-    set logdir "logs"
-    set idfile "test/ids"
-    set numnodefile "test/nn"
-    #clean up
-    log /test INFO "cleaning the logging directory"
-    file delete -force $logdir
-    file mkdir $logdir
-    set fd [open $idfile {WRONLY CREAT TRUNC}]
-    puts $fd "0"
-    close $fd
-    set fd [open $numnodefile {WRONLY CREAT TRUNC}]
-    puts $fd $num_nodes
-    close $fd
-}
-
-#
 # Creates "num_nodes" daemons (w/default configurations)
 #
 proc create_bundle_daemons { num_nodes } {
@@ -38,7 +19,10 @@ proc create_bundle_daemons { num_nodes } {
 	lappend argv -i $childid
 	lappend argv -d
 	lappend argv < /dev/null
-	lappend argv -o $log_path
+
+	if {! [test set log_to_stdout]} {
+	    lappend argv -o $log_path
+	}
 	
 	puts "booting daemon: $argv"
 	eval exec $argv &

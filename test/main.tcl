@@ -11,11 +11,6 @@ if {! [info exists num_nodes]} {
     set num_nodes 2
 }
 
-# Clean all the previous logs...
-if {$id == 0} {
-    clean_logs $num_nodes
-}
-
 # Create the children who will run with us
 create_bundle_daemons $num_nodes
 

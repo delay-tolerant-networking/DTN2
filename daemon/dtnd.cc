@@ -48,8 +48,10 @@ main(int argc, char* argv[])
     // Open the output file descriptor
     int logfd;
     if (logfile.compare("-") == 0) {
+        testcmd.log_to_stdout_ = true;
         logfd = 1; // stdout
     } else {
+        testcmd.log_to_stdout_ = false;
         logfd = open(logfile.c_str(), O_CREAT | O_WRONLY | O_APPEND,
                      S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
@@ -80,7 +82,7 @@ main(int argc, char* argv[])
     }
         
     Log::init(logfd, loglevel, prefix.c_str(), "~/.dtndebug");
-    logf("/daemon", LOG_DEBUG, "Bundle Daemon Initializing...");
+    logf("/daemon", LOG_INFO, "Bundle Daemon Initializing...");
 
     // bind a copy of argv to be accessible to test scripts
     for (int i = 0; i < argc; ++i) {
