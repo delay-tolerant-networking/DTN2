@@ -90,7 +90,7 @@ IO::lseek(int fd, off_t offset, int whence, const char* log)
 int
 IO::open(const char* path, int flags, mode_t mode, const char* log)
 {
-    int fd = ::open(path, flags);
+    int fd = ::open(path, flags, mode);
     if (log) {
         logf(log, LOG_DEBUG, "open %s (flags 0x%x mode 0x%x): fd %d",
              path, flags, mode, fd);
