@@ -1,0 +1,356 @@
+<title>Fragmentation: Delay Tolerant Networks</title>
+
+<pre>
+<u><b>Fragmentation in Delay Tolerant Networks</b></u>
+
+<small>
+Revision History
+02.19.04 Initial Revision, mh
+02.23.04 Rewrote requirements, added header spec. mh
+02.24.04 Edits, Added Non-functional requirements, mh
+02.25.04 Edits, Added some definitions, extended intro, mh
+03.26.04 Added design section, updated header specifications, mh
+</small>
+
+<b>I. Introduction</b>
+
+This document covers the requirements for the fragmentation interface, as 
+integrated with the bundle processing.
+
+Our main goals are to be able to (i) fork a bundle across multiple links and
+(ii) send a bundle over the same link using multiple contacts (assuming the
+contact disconnects and reconnects later). A secondary goal is to integrate
+digital fountain so we can have a sort of hop-by-hop error control.
+
+There is a main assumption that the routing layer will contain and control all
+knowledge about the fragmentation capabilities of other dtn gateways and 
+routers, so it can make essential fragmentation decisions.
+
+<b>II. Design Overview</b>
+
+In terms of basic mechanics, the Fragmentation Manager knows how to create 
+fragments from an original bundle, as well as how to create a bundle from
+its constituent fragments.  When the bundle to be fragmented is ready to be
+scheduled for delivery, the Routing Layer will make a decision as to 
+how the bundle should be fragmented, and on which channel(s) the fragments 
+should be sent. Once the fragment it on a particular channel, it is treated
+exactly like any other bundle. Upon receipt of a bundle fragment, it is
+funnelled into the Fragment Manager, until we know that a bundle can be 
+reconstructed. At this point, the bundleDaemon will reconstruct the bundle
+and treat it as if had just been received from the convergence layer.
+
+We would also like the Fragmentation Manager to be stateless, so information
+about the fragments should be stored in its own persistent database table.
+
+<b>III. Functional Requirements</b>
+
+M - Must Have
+S - Should Have
+C - Could Have
+W - Want to Have
+
+DF: related to digital fountain feature (raptor codes)
+FRAG: fragmentation without digital fountain
+CUST: related to custody transfer
+REAC: related to reactive/dynamic fragmentation
+
+<u>A. Routing Layer Changes</u>
+
+RA1 S) For a particular route and convergence layer,
+     a S) determine necessary level of redundancy needed to increase 
+        probability of end-to-end delivery (or just next hop), which may 
+        depend on characteristics of underlying protocol
+     b M) Decide what type and level of fragmentation is feasible
+        - Could choose none, if underlying layer takes care of it properly
+        - DF vs FRAG, or combination of two (DF some fragments)
+            - could choose to FRAG, then DF portions if especially large file
+            - could choose to DF, and then FRAG code blocks, if downstream
+              links need fragments smaller than ~16 bytes
+            - could choose only one or another
+            - based on endpoint capability - does it support DF?
+                - oracle: list of known df-capable routers
+                - possibly based on entity part of tuple
+        - choose maximum fragment size (MFS)
+            - default to what is reasonable for the next hop
+            - decide what is the largest block size that can be sent over
+              all of the known expected hops in the route, based on 
+              the medium and protocols that will be used
+            - only need to fragment up to next "layover", can reassemble and
+              fragment downstream when it is being buffered. (e.g. fragment
+              during the DakNet bus ride)
+        - DF: Choose how many coding blocks we need (what factor)
+            - estimate downstream loss rate, and produce 
+              (s*1.05 + 800)/mfs x (1 + loss rate) fragments, where
+              s is the number of bytes in the file, and mfs is the size of
+              the coding block.
+            - based on past history from custody transfers?
+            - pre-determined fixed value based on prior monitoring (more
+              for scheduled contacts, but also for on-average homogeneous
+              performance)
+            - this is basically error control!
+RA2 M) Given a bundle and a particular route, do the following:
+   a M) Decide if fragmentation is necessary (or error coding)
+   b M) Choose appropriate fragmentation, based on bundle size, MFS
+   c M) if bundle is too big, fragment according to specification
+RA3 W) Given a bundle, send fragments along different routes/channels
+RA4 M) CUST: Upon custody ACK, stop sending fragments, and clear rtx buffers
+RA5 M) CUST: Upon retransmission timeout, send fragments out again 
+     a S) CUST/DF: If custody transfer timeout occurs, retransmit bundle using
+      a new set of pseodorandom keys. (Rather than duplicating data)
+     b S) FRAG: same fragments
+     c W) FRAG: guess which fragments haven't been recieved
+     d C) Optionally choose a new route (or set of routes)
+RA6 S) REAC: Upon unexpected termination of contact 
+     a W) recalculate route for remaining packets, and shift to new
+        contact queue. This entails shifting bundles back out of the 
+        convergence layer and into the bundle layer again.
+     b S) DF: upon reconnect, just continue sending messages from new q
+     c S) FRAG: upon reconnect send rest of fragments, then maybe fragments 
+        that have we guess may have dropped because connection terminated just 
+        prior to their sending. (pseudo-FEC)
+     Note: This implies that the queues are managed on in the routing layer
+     rather than the convergence layer, or that we implement
+     revocation - allowing the routing layer to tell the convergence layer
+     that it no longer needs to send specific pending bundles or bundle 
+     fragments.
+RA7 M) Identify bundles as fragments, and decide where it should go:
+     a M) Fragmentation Manager if we need to reassemble, may choose to do this
+        always if all contacts are idle or busy.
+     b S) Immediate relay if contact is open, and fragment size is okay
+     c M) Buffer fragments until sufficient to assume custody
+       - DF: original_size * 1.05 + 800 bytes, rounded up to nearest
+         encoding unit size multiple
+       - FRAG: reassemble packet to verify all bytes
+     d M) Fragment if packet too large for downstream route
+     e M) If bundle fragment has arrived at last hop, wait for rest of bundle
+        so it can be reassembled prior to delivery. (i.e. Applications do 
+        not get fragments.)
+RA8 S) Recall fragments from Fragmentation Manager if a new contact has 
+      arrived and we can relay immediately.
+      ?) Are bundle fragments copied to manager from routing layer?
+      ?) Does routing layer track which fragments are in fragmentation manager?
+      ?) Should requests for fragments be non-blocking? Should routing layer
+        request to send fragments, or should fragmentation manager ask routing
+        layer to send fragments as they are ready?
+RA9 S) Identify and process partial custody ACKs 
+     a S) upon custody transfer timeout, only retransmit portions that are not
+        ACKed
+     b S) if entire bundle has been ACKed by same custodian, then allow 
+        custody transfer
+RA10 M) Generate bundle status report for bundle, if requested.
+     S) Generate report of which fragments received
+     C) Set timer, so receipt of multiple fragments can be placed in
+          single report
+RA11 M) Track which bundles are being reassembled, and assembly status
+      a M) DF: decoding is optional, can just gather fragments and count
+      b M) FRAG: produce partial ACK report
+RA12 M) Request fragments for a particular bundle, specifying maximum fragment
+      size, fragmentation type, number of fragments needed (if DF), seed for
+      pseudo random generator (if DF), offset start/end (if FRAG)
+      - callback, routing layer registers request, and frag mgr delivers
+        bundle fragments as they are ready
+      - if relaying DF fragments, MFS and seed are not necessary
+RA13 M) Tell Fragmentation Manager when it can clean up fragments for a 
+      given bundle.
+RA14 W) Replicate or Split fragments for a given bundle across multiple
+      channels to increase probability or speed of delivery.
+
+<u>B. Fragmentation Manager</u>
+
+RB1 M) Accept New Bundle and Fragmentation request.
+RB2 M) Accept requests for fragments for bundles that arrived as fragments
+RB3 M) Generate Bundle Fragments using Raptor Codes (DF)
+      - optional initial seed parameter for key generator
+      - code block size specified by routing layer
+      - fragments include key, source size, and data (as payload)
+      - if code blocks are not subdivisible, then code block size is 40 bytes
+        and bundle fragments may carry multiple code blocks
+RB4 M) Generate Bundle Fragments using Basic Fragmentation (FRAG)
+      - fragment segment size specified by routing layer
+      - fragments include source size, fragment offset, and data (as payload)
+      - allow fragmentation to begin from a specific offset
+RB5 S) FRAG: Generate Bundle Fragments from partial assembly
+      - in case not all fragments have been received, allow fragment creation
+RB7 M) Accept and Track Fragments from routing layer
+      a M) DF: Maintain fragment count, keep fragments generated using
+           different encoding unit sizes separated 
+      b M) DF: Remove duplicate fragments
+      c M) CUST: Notify Routing layer if sufficient fragments have been 
+           recieved to accept custody (based on parameters provided by routing 
+           layer, and if custody has been requested)
+      d M) CUST: Update custody id of each fragment once custody is accepted
+      e M) FRAG: Order fragments, and track which bytes have arrived
+RB8 M) Reassemble Bundle from received fragments (DF/FRAG)
+RB9 M) Allow relay of existing fragments (no assembly/refragmenting)
+RB10 W) REAC: Reactive Fragmentation - buffer fragments or partial payload 
+      until contact resumes.
+RB11 M) Garbage collection
+      - remove fragments for bundles that have already been sent
+      - remove fragments for expired bundles
+
+<u>Remaining Questions</u>
+
+* Can we fragment pre-encoded blocks further by splitting the information
+  in such a way that the <i>code block fragments</i> are still useful to the 
+  decoder?
+    - retain key, source size, and original encoding block size
+    - include offset of this code block fragment
+* If not, is there a value add to fragmenting as small as possible and 
+  including multiple code blocks in a given bundle fragment?
+    - suggested "quantum" code block size is 40 bytes
+* If we split a bundle across multiple channels, how does custody transfer 
+  work?
+* Should we allow partial ACKs for custody transfer? 
+* Where/how should fragment queueing occur? - currently managed by routing
+  layer, with the fragmentation functionality being stateless
+* Could we reduce fragment overhead by only sending the duplicate headers
+  with some subset of the fragments? Thus, fragments 0, 5, and 10 will carry
+  the original headers, and the rest will carry some matching hash identifier.
+  This reduces the duplicate information being sent out....
+
+<b>III. Non-Functional Requirements</b>
+
+NF1 ?) The Fragmentation Manager should be stateless
+       - client handles filesystem and memory allocation
+NF2 M) Maximize the utility of contacts by sending fragments of packets
+       and reassembling them later. (see RA14)
+NF3 S) Consider resource limitations.
+NF4 M) Digital Fountain encode/decode functionality must be optional
+       - we may require routers to be df-aware?
+
+<b>IV. Header Specification</b>
+
+There will be two headers for fragments, one for traditional fragmentation
+and another for Digital Fountain Bundle Fragments.
+
+<u>Standard Bundle Fragment Header</u>
+
+   +----------------+----------------+----------------+----------------+ 
+   |  Next Header   |  Length of original bundle payload (4 bytes) 
+   +----------------+----------------+----------------+----------------+ 
+                    |  Offset of this bundle fragment (4 bytes)         
+   +----------------+--------------------------------------------------+ 
+                    | 
+   -----------------+ 
+
+   Bundle fragment headers are present in all bundle fragments whose 
+   offsets from the beginning of the original bundle are non-zero.  
+   Bundle fragment headers MAY also appear in bundles whose offsets from 
+   the beginning of the original bundle are zero. 
+    
+   The fields of the Bundle Fragment Header are: 
+    
+   Next Header Type. The Next Header Type field is a 1-byte field that 
+          indicates the type of the header that immediately follows this 
+          one.  Header types are listed in Table 1 above. 
+    
+   Length of Original Bundle Payload.  This is the total length of the 
+          original bundle's payload before any fragmentation. 
+    
+   Fragment Offset.  The byte offset of the beginning of this fragment 
+          within the original bundle. 
+    
+   Note: The length of the fragment itself is included in the Bundle
+   Payload Header. 
+
+<u>Digital Fountain Bundle Fragment Header (Proposed Version A)</u>
+
+   +----------------+----------------+----------------+----------------+ 
+   |  Next Header   |  Length of original bundle payload (4 bytes) 
+   +----------------+----------------+----------------+----------------+ 
+                    |  Code Block Size (4 bytes)         
+   +----------------+--------------------------------------------------+ 
+                    |  Number of Code Blocks (4 bytes)         
+   +----------------+--------------------------------------------------+ 
+                    | 
+   -----------------+ 
+
+   Digital Fountain Bundle Fragment Headers appear in all bundles where 
+   the payload consists of one or more raptor-encoded coded blocks.
+    
+   The fields of the Bundle Fragment Header are: 
+    
+   Next Header Type. The Next Header Type field is a 1-byte field that 
+          indicates the type of the header that immediately follows this 
+          one.  Header types are listed in Table 1 above. 
+    
+   Length of Original Bundle Payload.  This is the total length of the 
+          original bundle's payload before any fragmentation. 
+    
+   Code Block Size.  This is the size of the encoding unit.
+
+   Number of Code Blocks.  This is the number of code blocks included in
+          the payload.
+
+    
+   Note: The bundle payload in this case MUST consist of a series of code
+   blocks, each preceded by a 4 byte key corresponding to the key used 
+   to generate the code block. This key determines the graph used to encode
+   the data in the code block. The size of the payload will be a multiple of
+   4 bytes + the code block size.
+
+<u>Digital Fountain Bundle Fragment Header (Proposed Version B)</u>
+
+   +----------------+----------------+----------------+----------------+ 
+   |  Next Header   |  Length of original bundle payload (4 bytes) 
+   +----------------+----------------+----------------+----------------+ 
+                    |  Code Block Size (4 bytes)         
+   +----------------+--------------------------------------------------+ 
+                    |  Code Block Key (4 bytes)
+   +----------------+--------------------------------------------------+ 
+                    | 
+   -----------------+ 
+
+   Digital Fountain Bundle Fragment Headers appear in all bundles where 
+   the payload consists of one or more raptor-encoded coded blocks.
+    
+   The fields of the Bundle Fragment Header are: 
+    
+   Next Header Type. The Next Header Type field is a 1-byte field that 
+          indicates the type of the header that immediately follows this 
+          one.  Header types are listed in Table 1 above. 
+    
+   Length of Original Bundle Payload.  This is the total length of the 
+          original bundle's payload before any fragmentation. 
+    
+   Code Block Size.  This is the size of the encoding unit.
+
+   Code Block Key. This key uniquely identifies the code block and is used
+          as the key for determining the graph used to generate this code
+          block.
+
+   Note: The bundle payload in this case MUST be a digital-fountain encoded
+   code block of the size specified as the code block size.
+
+   Thoughts: We could eliminate the Code Block Size field and make that
+   implicit in the bundle payload length specified in that header. This 
+   version differs from (A) in that there is only one code block per
+   bundle fragment.
+
+<b>Glossary</b>
+
+<u>code block</u> - a set of bits generated using digital fountain's raptor 
+codes that can be used with other blocks to decode an encoded payload.
+
+<u>key</u> - the number used to pseudo-randomly generate the degree and
+connections for a given block. Also can be used as a unique identifier
+
+<u>custody id</u> - the tuple of the current custodian of the bundle 
+or bundle fragment
+
+<u>custody timeout</u> - if the current custodian has not received a custody
+ack within this time, the custodian must retransmit the bundle
+
+<u>custody ack</u> - when a downstream custodian decides to accept custody
+of a particular bundle, it sends an ack to the current custodian, so it can
+release custody
+
+<u>partial custody ack</u> - if a downstream custodian only has a fragment
+of the original bundle (or some percentage of the DF fragments) then it can
+send a partial custody ack, telling the current custodian that it accepts the
+custody of those fragments
+
+<u>fragmentation manager</u> - encapsulation of the code that knows how to
+break bundles into bundle fragments, and how to reassemble them
+
+</pre>

@@ -1,0 +1,93 @@
+<title>Issues in Identity Management for DTNs</title>
+
+<pre>
+<b><u>Issues in Identity Management for Delay Tolerant Networks</u></b>
+
+<small>
+Revision History
+02.06.04 Initial Revision, mh
+02.12.04 Update following DTN group meetings, mh
+</small>
+
+<u>I. Issues</u>
+
+   - How do you secure an identity?
+     
+     Identities are 
+
+   - How do you verify an identity?
+   - Within a region how do you validate that a device should have
+     access to resources, given that it has already obtained the
+     relevant token?
+   - Token expiration? Token renewal? Does expiration even make sense in
+     a disconnected context? Perhaps it should be governed on a region by
+     region basis.
+   - Is there a concept of tranference between regions?
+   - Can we use locality and identity to determine which network a 
+     particular device can use to obtain credentials? (ie, based on 
+     SSID location map, choose number to dial in order to obtain 
+     access to a channel for which you have authority to access)
+
+
+<u>II. Identity Management Solutions</u>
+
+    A. Ensim&reg; Unify and Ensim Server Manager
+       [from Keshav]  
+       - Use Active Directory to store identities
+       - Use Unify to manage them
+       - Mobile users get identity from Unify, and then can assert
+         rights to resources without having to log in every time
+
+       Questions:
+       - How will this operate in the context of mobile stations?
+       - How will this operate in a disconnected context, given that
+         mobile users may never be directly connected to the datacenter?
+
+       Active Directory and Linux
+          Since Unify is a Windows based management system, with the option? of
+	  managing Linux servers as well, then the Linux servers would have to 
+	  talk to the Windows server - and authenticate against it. 
+
+	  http://www.securityfocus.com/infocus/1563
+	  
+	  Major Issues
+	  - Non-supported by MS
+	  - Possibly not multi-platform friendly
+	  - AD vs LDAP
+	  - AD4Unix needs to be installed on datacenter and seems to
+	    be potentially very finicky.
+
+	General Assessment
+	  No clear relationship between Unify and DTN, platform issues, 
+	  however, some ideas/problems solved may be relevant to DTN. 
+	  Basic utility is the idea of using Active Directory/LDAP for 
+	  authentication and authorization.
+  
+    B. Authd (Brent)
+       - software package for obtaining and verifying user credentials
+         based on RSA
+       - cluster-wide RSA public/private key pair allows clients 
+         to verify user identity from anywhere
+    
+    C. LDAP
+       - supports SSL, Kerberos, cleartext passwords, and SASL
+       - OpenLDAP (SleepyCat backend) http://www.openldap.org
+       - client/server interaction
+         - client establishes session (BIND)
+	 - client performs ldap operation (supported list)
+	 - client ends session (UNBIND)
+	 - session can be ABANDONed
+       - supports ACLs to control access rights
+      
+      http://quark.humbug.org.au/publications/system_auth/sage-au/system_auth.html      
+
+      Actualization Items
+       - write an LDAP/PAM/NSS DTN proxy for authentication
+          - encapsulate bind and operation(s) into single request
+	  - each query/update must be authenticated
+	  - asynchronize communication
+	  - supports whatever DTN security infrastructure we come up with
+       - determine how acls are communicated
+       - determine token issuing 
+
+</pre>

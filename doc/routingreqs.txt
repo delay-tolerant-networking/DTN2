@@ -1,0 +1,270 @@
+Routing in Delay Tolerant Networks
+
+Revision History
+04.28.04 Initial Revision, mh
+
+I. Introduction
+
+This document covers the routing requirements for Delay Tolerant Networking.
+Our objective is to minimize the delay of bundles, and in doing so maximize the
+probability of delivery, and reduce resource (buffer and network) contention.
+
+II. Scenarios
+
+A. Scheduled: Interplanetary Internet 
+
+   Nodes in this network are characterized by high latency links that
+   attenuate with distance, leading to variable bandwidth. In addition,
+   they experience frequent scheduled disconnection due to orbital visibility
+   constraints.
+
+   Regional boundaries may be established along geographical lines, or the 
+   entire Interplanetary Internet can be considered to be a region unto itself.
+   If the latter, then all routing within the region is intra-regional, and
+   any identifiers for particular nodes in the internet are in the admin id.
+   If the former, then the routing layer will determine the best next hop
+   necessary to reach the destination region using parameters in its inter-
+   regional routing table.
+
+B. Internetworking: Sensor Networks->Gateway->Internet
+
+   There are several approaches to enabling sensor networks to communicate
+   reliably with the internet. In one scenario, each sensor is a DTN node,
+   and uses custody transfer to ensure delivery to a DTN gateway at the 
+   edge of the sensor net. In another scenario, a DTN mule walks among the
+   sensors on a scheduled route, collects the data, and transports it
+   to a DTN gateway, which serves as an interface between the sensor region
+   and the internet region.
+
+C. Unreliable: Wireless Radio 
+
+   Wireless radio links are characterized by frequent and unpredictable
+   disconnection, due to interference, power management or other issues.
+   Using DTN, a node can choose to transfer bundles to another node that 
+   is "closer" to the destination, or to store the bundle until it sees
+   the destination node. In most cases this will entail intra-regional routing
+   and the routing mechanism will be entirely up to the region administrator.
+   For other regions to communicate with a wireless ad hoc region, however,
+   they will need to know the predicted/probabilistic delay between the
+   gateways in the region, as well as the frequency of contacts. (Delay is
+   the latency once a bundle has been sent through the convergence layer,
+   which includes in-network delay if buffering is required at intermediary
+   nodes. The frequency of contacts determines the additional predicted delay 
+   due to initial disconnection.  
+
+D. Opportunistic: Military Ad Hoc
+
+   Some connections are opportunistic, meaning that they are not necessarily
+   predictable, but are still useful when available.  In some cases, the 
+   appearance of an opportunistic connection will allow earlier transmission
+   than expected (which would require the ability to rechedule bundles already
+   designated for a particular contact). In other cases, one could depend
+   entirely on opportunistic connection for intercommunication between 
+   regions (or within). Thus a bundle could be scheduled for the "next 
+   available" contact for a particular next hop, or it could be placed on an
+   unscheduled list, for review next time a contact is available. Like 
+   scenario C, particular nodes may have an expected probability of next 
+   contact.  A region might correspond to the nodes that are expected to
+   be together at all times (such as a particular unit), or it may correspond
+   to the set of nodes that may be in contact over time. In the latter case,
+   routing between nodes is delegated to the region and not governed by
+   the dtn specification.
+
+E. Contact Discovery: Datamule Bus(es) passing a PDA 
+
+   Given a small DTN node that knows very little about the current routing 
+   topology, it should be able to make use of opportunistic contacts as
+   they become available.  A new contact might advertise the length of time the
+   contact will be available, the bandwidth, the buffer capacity, and what 
+   regions it knows. Some of these calculations can be done in the convergence 
+   layer, and other Most likely, though, the contact 
+   duration will not be advertised, and both sides will employ reactive
+   fragmentation to make maximum use of the connection. Potential issues are
+   link congestion (what happens if everyone attacks the link at once) and
+   reliability.
+ 
+   * How does the PDA know that this contact will relay the bundle 
+     successfully?
+   * How can custody acknowledgements or application data be sent to the PDA?  
+   * Would it make sense to employ gps-based geographic routing and
+     attempt to send the data to the general physical area where the pda was
+     last found? 
+   * How would that impact the inter-regional routing? 
+   * Where are the region boundaries in this case?
+
+F. Multi-protocol: Personal regions
+
+   Here I describe the scenario in which one region supports multiple 
+   protocols. The classic example is the "Internet region" which will support
+   requests from a number of protocols, including gprs, tcp, and udp. Another
+   conceivable application is the concept of the "personal" region. Since 
+   region identifiers are used to aid routing between regions, one could
+   conceive of a region mapping to your set of personal DTN nodes, including
+   a laptop, your phone, and a number of bluetooth devices. The laptop and
+   phone can serve as gateways, and intra-regional routing can direct bundles
+   to the interface/convergence layer corresponding to the other devices.
+   Each gateway has convergence layers for the interfaces it supports.
+
+G. Internetworking: Village Scenario (from Sushant's paper)
+
+   A village kiosk is connected to a nearby town via a digital courier (man on
+   motorbike), a wired dialup Internet connection, and a LEO. Actually, I'll 
+   take the paragraph straight out of the paper:
+
+   "We begin with a hypoteical village equipped with a digital courier, a wired
+   dialup Internet connection, and a LEO (e.g. PACSAT) satellite store-and-
+   forward connection. These satellites have low to moderate bandwidth (around 
+   10kbps) and are visible for 4-5 short periods of time ('passes') per day 
+   (lasting arund 10 minutes per pass, depending on orbit inclination and 
+   location on Earth).  We call the opportunity to communicate a contact, which
+   is characterized by a duration of time, a capacity, ad a latency (assumed to
+   remain constant during the contact duration). In addition, depending on the 
+   type of connection used, finite buffering constraints related to the contact
+   may need to be considered. The digital courier service thus represents a 
+   high-bandwidth, high-latency contact, the dialup represents a low-bandwidth,
+   low-latency contact, and the LEO satellite represents a moderate-bandwidth, 
+   low-latency contact. The problem of selecting which contacts to carry 
+   traffic (and consequently what time to send traffic) represents an instance 
+   of the DTN routing problem..."
+
+III. Definitions
+
+A. Tuple: A pair of identifiers <region id, administrative id> is used in 
+   routing a message to its final destination. The region id is used 
+   throughout the DTN to get the bundle to its destination region, and the
+   admin id is used within the region.
+
+B. Inter-regional Routing: Bundles destined for other regions are routed
+   using a well-known routing standard. This may entail, but is not limited
+   to, hand configured tables, machine-learned, or dynamic routing updates.
+
+C. Intra-regional Routing: This is region-specific routing for bundles that
+   are already within their target region. This allows each node in a region
+   to decide whether to try and deliver the bundle directly to the app, or
+   to another DTN node within the same region. The exact implementation and
+   mechanism may differ from region to region.
+
+D. Contact: A period of time when data can be transmitted over a particular
+   interface.
+
+E. Custody Overlay: There is a question of whether special routing should
+   be done to send 
+
+IV. Bundle Layer Interface
+
+A. Inter-regional Routing - non-matching region identifier
+
+    Given a bundle, the routing layer will determine which next hops are 
+    best, given the destination region, bandwidth and storage requirements, 
+    and whether custodial transfer has been requested. Specific bundle 
+    parameters that affect this decision are priority, custody transfer,, 
+    bundle size, and destination region id. The destination admin id does
+    NOT affect this decision.  Given a particular next hop, the convergence
+    layer is responsible for getting the bundle to that particular node, and
+    may employ intermediary hosts not within the DTN overlay.
+
+    The routing layer should return a set of next hop identifiers, together
+    with the corresponding fragment offsets and lengths.  The routing layer
+    may choose to replicate some or all of the bundle across different
+    contacts. In addition, the routing layer may choose to delegate scheduling
+    until later, if no known path is yet available.
+
+B. Intra-regional Routing - matching region identifier
+
+   Once a bundle has reached its destination region, the bundle daemon can 
+   use the admin id to determine the next end point. Design and implementation
+   of this mechanism is left up to the region administrator, but may use a 
+   similar mechanism as inter-regional routing.
+
+C. Non-DTN Routing - between DTN hops
+
+   Between DTN hops, it is up to the underlying technology to determine which
+   path is the most appropriate for delivering bundles between DTN nodes.
+   For ad hoc regions, this may entail AODV, DSDV, or even epidemic routing.
+
+V. Routing Considerations
+
+The following is the data we can take into account in determining the best
+set of routes for a given bundle. We have the option of choosing one or more
+routes
+
+A. Contacts Schedule
+
+   This includes pre-arranged, recurring, and probabilistic contacts. The 
+   probabilistic contacts may involve some level of machine learning, but
+   if all of your contacts are recurring, then this can be set by hand and 
+   ignored thereafter. This schedule should be modifiable by a management
+   interface. Information in this table includes latency and bandwidth for
+   each contact. Information may also include buffer availability.
+
+   Note: Buffer availability may also be used as a form of hop-by-hop 
+   congestion control.
+   
+B. Contact->Region Map
+   
+   Particular contacts can reach specific regions.  If this is an oracle, it
+   would include the number of DTN hops to, the effective throughput of, and 
+   the frequency of contact with each region. 
+
+C. Region->Region Map   
+
+   Some regions may be named hierarchically, in which case regions can be
+   matched by longest match. In other cases, we know that we can reach
+   certain regions through other regions. For example, the sensor network
+   gateway may not recognize the interplanetary region, but has an entry for
+   "*" to some Internet gateway that might know. Eventually, bundles 
+   routed to "*" entries will reach a gateway that can identify the region.
+
+D. Traffic Demand Schedule
+   
+   In anticipation of higher traffic demand, a routing algorithm may be able
+   to optimize by distributing load, either by proactively fragmenting the
+   bundle or by sending bundles on different routes via some form of round
+   robin routing.
+
+   Note: This will probably not be a factor in routing.
+
+E. Queueing Considerations
+
+   The contacts schedule should track immediate Queue state.  However, if
+   it is known that a downsteam queue will not have sufficient capacity, the 
+   routing layer may decide to use a different path, to prevent future loss or
+   delays. 
+
+F. Custodial Nodes
+
+   If we are using custody transfer for the bundle, we may choose a route
+   that has more custodians, rather than a route without custodians.
+
+VI. Cost Factors (from Sushant's paper)
+
+Delay Components:
+ * queuing time: time until a contact becomes available
+ * transmission delay: time to inject a message into an edge
+ * propagation delay: time for a message to arrive at next hop 
+
+Route Stability:
+ * how often do topology changes occur? Is source routing viable?
+ * proactive vs reactive routing
+ * scheduled routes: for recurring contacts, we can set up known scheduled
+   routes, allowing for pre-planning of buffer space and load
+ * with delay tolerant networking, there is no way to propagate route changes
+   instantaneously
+ * source routing vs per hop routing:
+   - network queuing time may be large compared to forwarding delay
+   - topological changes will probably occur while a message is in transit
+   - potential loops
+
+Resource Consumption:
+ * a routing protocol will consume some amount of overhead
+ * the decision to replicate must be weigh the increased reliability against 
+   overhead of additional traffic
+
+Fragmentation
+ * routing layer may choose to split a bundle across multiple subsequent
+   contacts, if the throughput of a given contact is insufficient to transport
+   the whole thing
+ * routing layer may choose to splite a bundle across differnt paths entirely
+   to improve load balancing and reduce delay
+   (e.g. you have 14 phone lines and the node two hops down as a T1 to the 
+   destination, so you use all 14 at once to send the message)
