@@ -30,7 +30,12 @@ BundleForwarding::input(Bundle* bundle)
     
     log_debug("input *%p", bundle);
 
-    BundleStore::instance()->put(bundle, bundle->bundleid_);
+    BundleStore::instance()->insert(bundle);
+
+    // XXX/demmer temporarily take a local reference. this should go
+    // away so instead, the bundle should be on an unassigned list or
+    // some such entity
+    bundle->add_ref();
 
     // check for matching registrations
     count = RegistrationTable::instance()->get_matching(bundle->dest_, &reglist);
@@ -47,4 +52,6 @@ BundleForwarding::input(Bundle* bundle)
     } else {
         log_debug("no next hop, storing bundle");
     }
+    
+    bundle->del_ref();
 }

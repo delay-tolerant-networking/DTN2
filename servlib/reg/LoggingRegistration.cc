@@ -63,5 +63,7 @@ LoggingRegistration::run()
                 len = 128;
             log_info("        payload (binary): %.*s", len, hex.data());
         }
+
+        b->del_ref();
     }
 }

@@ -228,22 +228,22 @@ TCPConvergenceLayer::Connection::send_loop()
         int iovcnt = 8;
         int total;
         struct iovec iov[iovcnt + 1];
+        
+        log_debug("connection send loop waiting for bundle");
 
-        // grab a bundle and format the iovec with it, leaving a space
-        // for the framing header
+        // grab a bundle, which keeps a local reference to it
         bundle = contact_->bundle_list()->pop_blocking();
-
         log_debug("got bundle %p, starting to format", bundle);
         
+        // fill in the iovec, leaving space for the framing header
         total = BundleProtocol::fill_iov(bundle, &iov[1], &iovcnt);
-
-        log_debug("format complete %d byte bundle", total);
+        log_debug("format completed, %d byte bundle", total);
         
         // stuff in the framing header (just the total length for now)
         iov[0].iov_base = &total;
         iov[0].iov_len = 4;
-                
-        // we've got something to do, see if we need to try to connect
+        
+        // we've got something to do, now loop, trying to connect
         if (state_ != ESTABLISHED) {
             while (connect(remote_addr_, remote_port_) != 0) {
                 log_info("connection attempt to %s:%d failed... will retry in 10 seconds",
@@ -252,6 +252,7 @@ TCPConvergenceLayer::Connection::send_loop()
             }
         }
 
+        // ok, all set to go, now write it out
         if (writevall(iov, iovcnt + 1) <= 0) {
             log_err("error writing out bundle");
             // XXX error could be the other side shutting down, so
@@ -261,12 +262,9 @@ TCPConvergenceLayer::Connection::send_loop()
 
         // free up the data used by the flattened representation
         BundleProtocol::free_iovmem(bundle, &iov[1], iovcnt);
-
-        // remove the reference on the bundle and clean it up
-        bundle->delref();
-        if (bundle->refcount() == 0) {
-            delete bundle;
-        }
+        
+        // remove the reference on the bundle (may delete it)
+        bundle->del_ref();
     }
 }
 
