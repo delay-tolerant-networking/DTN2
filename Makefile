@@ -14,7 +14,7 @@ all: checkconfigure $(SUBDIRS)
 
 alltest:
 	$(MAKE) all
-	$(MAKE) -C test $(MAKECMDGOALS)
+	$(MAKE) -C test
 
 #
 # Generate the doxygen documentation
