@@ -48,15 +48,20 @@
 void
 usage()
 {
-    fprintf(stderr, "usage: ping [tuple]\n");
+    fprintf(stderr, "usage: ping [-c count] [-i interval] tuple\n");
     exit(1);
 }
+
+void doOptions(int argc, const char **argv);
+
+int sleepVal = 1;
+int count = 0;
+char dest_tuple_str[DTN_MAX_TUPLE] = "";
 
 int
 main(int argc, const char** argv)
 {
     int i;
-    int cnt = INT_MAX;
     int ret;
     char b;
     dtn_handle_t handle;
@@ -67,18 +72,15 @@ main(int argc, const char** argv)
     dtn_bundle_spec_t reply_spec;
     dtn_bundle_payload_t ping_payload;
     dtn_bundle_payload_t reply_payload;
-    char* dest_tuple_str;
     int debug = 1;
 
     struct timeval start, end;
     
-    if (argc != 2) {
-        usage();
-    }
+    doOptions(argc, argv);
 
     // first off, make sure it's a valid destination tuple
     memset(&ping_spec, 0, sizeof(ping_spec));
-    dest_tuple_str = (char*)argv[1];
+    //dest_tuple_str = (char*)argv[1];
     if (dtn_parse_tuple_string(&ping_spec.dest, dest_tuple_str)) {
         fprintf(stderr, "invalid destination tuple string '%s'\n",
                 dest_tuple_str);
@@ -134,7 +136,7 @@ main(int argc, const char** argv)
            ping_spec.dest.admin.admin_len, ping_spec.dest.admin.admin_val);
     
     // loop, sending pings and getting replies.
-    for (i = 0; i < cnt; ++i) {
+    for (i = 0; count==0 || i < count; ++i) {
         gettimeofday(&start, NULL);
         
         if ((ret = dtn_send(handle, &ping_spec, &ping_payload)) != 0) {
@@ -164,8 +166,31 @@ main(int argc, const char** argv)
                ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                 (double)(end.tv_usec - start.tv_usec)/1000.0));
         
-        sleep(1);
+        sleep(sleepVal);
     }
     
     return 0;
 }
+
+void
+doOptions(int argc, const char **argv)
+{
+    int c;
+    while ( (c=getopt(argc, (char **) argv, "c:i:d:")) !=EOF ) {
+        switch (c) {
+        case 'c':
+            count = atoi(optarg);
+            break;
+        case 'i':
+            sleepVal = atoi(optarg);
+            break;
+        case 'd':
+            strcpy(dest_tuple_str, optarg);
+            break;
+        }
+    }
+    if ( strlen(dest_tuple_str)==0 ) {
+            strcpy(dest_tuple_str, argv[argc-1]);
+    }
+}
+
