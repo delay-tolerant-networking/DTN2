@@ -470,15 +470,18 @@ BundleRouter::handle_contact_down(ContactDownEvent* event,
     Link* link = contact->link();
     log_info("CONTACT_DOWN *%p: re-routing %d queued bundles",
              contact, contact->bundle_list()->size());
-    
-    ASSERT(link->bundle_list()->size() == 0);
+
+    // note that there is a chance we didn't get a contact_up (perhaps
+    // the initial connection attept failed), so don't make assertions
+    // about the state of the link's bundle list
+    // XXX/demmer revisit this
     actions->move_contents(contact, link);
     
     // Close the contact
     actions->close_link(link);
 
     // Check is link is suppoed to be available and if yes
-    // try to open the link
+    // try to reopen the link
 
     if ((link->size() > 0) && link->isavailable()) {
         actions->open_link(link);

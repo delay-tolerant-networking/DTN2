@@ -458,13 +458,14 @@ TCPConvergenceLayer::Connection::run()
     {
         if (! connect()) {
             /*
-             * If the connection fails, then the router hasn't gotten
-             * a CONTACT_UP event so we can't shut down using the
-             * normal mechanism. XXX/demmer deal with this somehow!
+             * If the connection fails, even though the router hasn't
+             * gotten a CONTACT_UP event, we still send a CONTACT_DOWN
+             * event. XXX/demmer revisit this.
              */
             log_debug("connection failed");
-            set_should_stop();
-            sock_->close();
+            break_contact();
+//             set_should_stop();
+//             sock_->close();
             return;
         }
     } else {
