@@ -73,4 +73,19 @@ str2hex(const std::string& str, u_char* bp, size_t len)
 #undef HEXTONUM
 }
 
+/**
+ * Return true if the string contains only printable characters.
+ */
+inline bool
+str_isascii(const u_char* bp, size_t len)
+{
+    for (size_t i = 0; i < len; ++i) {
+        if (!isascii(*bp++)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 #endif /* _STRING_UTILS_H_ */
