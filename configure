@@ -2645,7 +2645,7 @@ if test "${oasys_cv_prog_gccver+set}" = set; then
 else
 
       oasys_cv_prog_gccver=`$CC --version | head -1`
-      oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/gcc (GCC) //'`
+      oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/gcc.*(GCC) //'`
       oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/ .*//'`
 
 fi
@@ -2827,8 +2827,8 @@ echo "$as_me:$LINENO: result: $oasys_cv_prog_gcc_string_broken" >&5
 echo "${ECHO_T}$oasys_cv_prog_gcc_string_broken" >&6
 
     if test $oasys_cv_prog_gcc_string_broken = yes ; then
-        { { echo "$as_me:$LINENO: error: broken std::string -- upgrade compiler" >&5
-echo "$as_me: error: broken std::string -- upgrade compiler" >&2;}
+        { { echo "$as_me:$LINENO: error: broken std::string::reserve() -- upgrade your compiler" >&5
+echo "$as_me: error: broken std::string::reserve() -- upgrade your compiler" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
