@@ -9,7 +9,7 @@ set protocol Static
 
 
 ### time to finish one run of the experiment
-set finish 711
+#set finish 711
 set linkdynamics 0
 
 ## Length of uptime
@@ -79,7 +79,7 @@ proc get-cmd {id perhopl protol} {
 # This is a simple ns script that demonstrates loops.
 set ns [new Simulator]                  
 source tb_compat.tcl
-set os rhl-os1
+set os rhl-os3
 
 #Create nodes
 for {set i 1} {$i <= $maxnodes} {incr i} {
