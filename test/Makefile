@@ -11,10 +11,6 @@ all: test
 BINFILES :=			\
 	address-family-test	\
 	bundle-list-test	\
-	timer-test		\
-
-BROKEN := 			\
-	command-test		\
 	simple-marshal-test	\
 	simple-sql-test		\
 
