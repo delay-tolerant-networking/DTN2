@@ -63,12 +63,18 @@ main(int argc, char** argv)
         
         char* line = fgets(buf, sizeof(buf), stdin);
         if (!line) {
-            logf("/daemon", LOG_INFO, "got eof on stdin, exiting: %s", strerror(errno));
+            logf("/daemon", LOG_INFO, "got eof on stdin, exiting: %s",
+                 strerror(errno));
             continue;
         }
-        
-        line[strlen(line) - 1] = '\0';
-        logf("/daemon", LOG_DEBUG, "got line '%s'", line);
+
+        size_t len = strlen(line);
+        if (len == 0) {
+            continue; // short circuit blank lines
+        }
+
+        // trim trailing newline
+        line[len - 1] = '\0';
         
         if (CommandInterp::instance()->exec_command(buf) != TCL_OK) {
             fprintf(stdout, "error: ");
