@@ -9,6 +9,7 @@ Bundle::init(u_int32_t id, BundlePayload::location_t location)
 {
     bundleid_		= id;
     refcount_		= 0;
+    pendingtxcount_     = 0;
     priority_		= COS_NORMAL;
     expiration_		= 0;
     custreq_		= false;

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include "StaticBundleRouter.h"
+#include "FloodBundleRouter.h"
 
 std::string BundleRouter::type_;
 size_t BundleRouter::proactive_frag_threshold_;
@@ -22,7 +23,11 @@ BundleRouter::create_router(const char* type)
 {
     if (!strcmp(type, "static")) {
         return new StaticBundleRouter();
-    } else {
+    }
+    else if (!strcmp(type, "flood")) {
+        return new FloodBundleRouter();
+    }
+    else {
         PANIC("unknown type %s for router", type);
     }
 }
@@ -147,9 +152,10 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
      * that needs a copy of the bundle, we can safely remove it from
      * the pending list.
      */
-    if (bundle->num_containers() == 1) {
-        log_debug("last consumer, removing bundle from pending list");
-        log_debug("XXX/demmer this is bogus");
+    if (bundle->del_pending() == 0) {
+        log_debug("no more pending transmissions, removing from list");
+        //log_debug("last consumer, removing bundle from pending list");
+        //log_debug("XXX/demmer this is bogus");
 
         // XXX/demmer this should go through the bundle's backpointer
         // iterator rather than traversing the whole pending bundles
@@ -284,6 +290,7 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
         actions->push_back(
             new BundleForwardAction(entry->action_, bundle, entry->next_hop_));
         ++count;
+        bundle->add_pending();
     }
 
     log_debug("fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);

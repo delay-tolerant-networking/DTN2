@@ -68,6 +68,7 @@ REGISTRATION_SRCS :=				\
 ROUTING_SRCS :=					\
 	routing/RouteTable.cc			\
 	routing/BundleRouter.cc			\
+	routing/FloodBundleRouter.cc		\
 
 STORAGE_SRCS :=					\
 	storage/Serialize.cc			\
