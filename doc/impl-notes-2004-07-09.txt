@@ -1,0 +1,76 @@
+July 9 DTN Reference Implementation Discussion 
+10.00a - 12.30p
+
+DCE/NDR Research Overview - Ting
+     - TING looked more into how NDR does serialization, etc
+        - looks like it's hard to pull NDR apart from DCE RPC
+	- unlike RPC which can be separated
+	- Conclusion: use RPCGEN to generate marshalling code and another transport
+      - some desire to use the Storage marshalling code as well
+	- but not for app to bundleDaemon protocol
+
+Storage discussion:
+ - Mike checked in a bunch of class headers that define the storage layer
+ - Based on Marshalling 
+    - serializer action that does the "right" type of serialization
+      (e.g. SQL, XML, file/blob, etc)
+
+ - Object specific Storage Interfaces:
+   - Store: BundleStore (: SQLBundleStore, : FileBundleStore, etc)
+   - Store: RegistrationStore
+   - Store: RoutingStore
+   - bundle formats: 1) in-memory convenient rep
+		     2) on-wire representation (specified)
+		     3) various on-disk representations
+   - sushant started installing postgres on playground
+	- before going ahead w/ postgres, it would be good to have a berkeley db
+	  or files version as well
+
+Implementation plan:
+*   - Mike: start hacking out a limping daemon
+	 - will use the tier style support classes (for now)
+	 - simple convergence layer
+	 - will use the same framing protocol as the current and the Java one (eventually)
+*   - Ting: start hacking on client app / daemon protocol
+
+On the client <-> daemon api:
+    - get rid of all the RPC specific stuff from the api
+ 	- keep the XDR part, keep the same interface
+    - design protocol and general application control flow to use the api
+    - inclination is to avoid callbacks, move towards a socket-like api
+	- interface ideas: 
+		dtn_socket()	 - create a new handle for bundle communication
+		dtn_bind() 	 - map a demux string to an open dtn socket
+		dtn_poll()	 - non blocking check (on a bound socket) for new bundles
+		dtn_recv()	 - blocking wait for new bundles on a bound socket
+		dtn_send()	 - send a new bundle 
+	        dtn_register()   - create a new registration in the permanent db
+		dtn_unregister() - delete a registration in the permanent db
+	- app control flow:  register(), socket(), bind(), read(), read(), read()...
+
+On handle multiple apps registering for the same demux string:
+	- scott: disallow it
+		- not really flushed out in the spec yet, so don't put it in
+		  the reference implementation (for now?)
+		- only notion of the identity of bundle destination is the demux string
+	- keith: can't have a promiscuous listener (bad for bundle tcpdump)
+	- but that means bob can't contribute to it 
+	- so this means that the initial implementation should have the structure to accomodate
+	  multiple application identifiers on the same demux string
+		- but the first verison of the client protocol does not need to handle this
+	- this means that the registration database is keyed on {demux, app_token} tuple,
+	  as are the instruction rules for how to handle bundles
+
+Question (again) of the purpose of the reference implementation
+	- Scott's assuming it WON'T be used - just a petagogical exercise
+	- Bob suspects not
+		- DARPA expects it to be the basis of integrated research projects
+		- Mike and Tier are going to use it
+	- But maybe it's possible to have both -- simple implementation that's extensible
+		- Keith is concerned that simplifying assumptions will make future
+		  extensions prohibitively expensive
+
+ARs
+* mike, sushant, ting to start hacking
+* nabeel will work on the convergence layer api
+  - document current api and what needs to be done
