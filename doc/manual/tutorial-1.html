@@ -7,7 +7,7 @@
 </h1>
 
 <p>
-In this turorial, you'll learn how to configure and start an instance
+In this tutorial, you'll learn how to configure and start an instance
 of dtnd, then make it answer a ping.
 
 <h2> Configuration </h2>
@@ -125,6 +125,9 @@ command</a>.
 <p>
 Because in this tutorial, we are setting up a standalone dtnd,
 we will not need any <tt>link</tt> or <tt>route</tt> statements.
+You'll end up with a Disruption Tolerant Network made up of
+only one daemon. Not much to brag about, but out of simple
+beginnings come great things!
 
 <h2> Initializing the Database </h2>
 
@@ -193,15 +196,62 @@ Here's an example of starting up the server:
 Note that this installation of TCL is missing the optional
 <i>tclreadline</i> package. As a result we get a warning from dtnd
 at startup, but it will still work correctly. The user interface
-is just slightly more difficult to use.
+is just slightly more difficult to use because you cannot go back
+through your command history and edit previous commands.
 
 <p>
 Use the online help system to learn what you can do from here. Type
 <b>help</b>. For help on a specific command, type <b>help
-<i>command</i></b>.
+<i>command</i></b>. For now, though, you don't need to use any
+commands. Just let dtnd run in its own window. When we start talking
+to dtnd with an application you'll see log messages in the window
+where dtnd is running.
+
+<h2> Pinging the daemon </h2>
 
 <p>
-Two commands you might like 
+A Disruption Tolerant Network is made up of a number of
+servers whose job is to move bundles through the system.
+But where do the bundles come from? They come from applications.
+In the future, you can expect to see applications to move
+scientific data, web pages, e-mail, and other data that
+needs to traverse a network region prone to disruption.
+For now though, the best way to see your new DTN (consisting
+of just your one server) operate is to send a ping bundle into
+to it, and see what comes back out!
+
+<p>
+To ping your server, run the <tt>dtnping</tt> command. It lives
+in the <tt>DTN2/apps/dtnping</tt> directory. You'll need to give it
+one argument, which is the tuple address of the endpoint that you
+want to ping. Since there is only one server in your DTN, the
+choice should be simple. You need to use the local tuple
+that you set in the configuration file. If you'd like to
+check what dtnd thinks it's local tuple name is, use the
+<tt>route dump</tt> command in the window where dtnd is running.
+
+<p>
+Here's an example of how to ping a server who's local tuple
+is <i>bundles://internet/host://dtn-a</i>:
+
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtnping/dtnping bundles://internet/host://dtn-a</font>
+local_tuple [internet host://dtn-a/ping]
+dtn_register succeeded, regid 0xa
+PING [internet host://dtn-a]...
+69 bytes from [internet host://dtn-a]: time=202.00 ms
+69 bytes from [internet host://dtn-a]: time=208.00 ms
+<font color=blue>Ctrl-C</font></pre></blockquote>
+
+<h2> What next? </h2>
+
+<p>
+You've set up a standalone dtnd and pinged it. From here, you
+can explore two directions. In the <a href="tutorial-2.html">
+DTN2 applications</a> tutorial, you can learn how to use the other
+applications that come with DTN2 to interact with your nnew little
+DTN. In the <a href="tutorial-3.html">building a bigger DTN</a>
+tutorial, you can see how to use links to make several nodes work
+together as part of a bigger DTN.
 
 </body>
 </html>

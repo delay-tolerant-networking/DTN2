@@ -1,0 +1,212 @@
+<html>
+<head>
+<title> DTN2 Manual: DTN2 Applications </title>
+</head>
+<body>
+<h1>DTN2 Applications
+</h1>
+
+<p>
+In this tutorial, you'll learn how to use the programs in
+the <tt>apps</tt> directory to send data of various kinds
+through your DTN. You'll get to see more things happening if you've
+followed the instructions in <a href="tutorial-3.html">
+Building a Bigger DTN</a> first, but even with a standalone
+dtnd, you can send and receive bundles.
+
+<h2> dtnsend and dtnrecv </h2>
+
+<p>
+The most basic tools to send bundles through the DTN network
+are <tt>dtnsend</tt> and <tt>dtnrecv</tt>. You can use
+<tt>dtnsend</tt> to create a bundle and set various options
+in it. The bundle will move through the DTN until it gets
+to the destination node. You'll then use <tt>dtnrecv</tt>
+to retrieve the bundle out of the final dtnd.
+
+<p>
+First, take a look at the options <tt>dtnsend</tt> takes:
+
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend -h</font>
+usage: dtnsend [opts] -s &lt;source_tuple&gt; -d &lt;dest_tuple&gt; -t
+&lt;type&gt; -p &lt;payload&gt;
+options:
+ -s &lt;tuple|demux_string&gt; source tuple)
+ -d &lt;tuple|demux_string&gt; destination tuple)
+ -r &lt;tuple|demux_string&gt; reply to tuple)
+ -t &lt;f|m|d&gt; payload type: file, message, or date
+ -p &lt;filename|string&gt; payload data
+ -v verbose
+ -h help
+ -n copies of the bundle to send
+ -e request for end-to-end return receipt
+ -f request for bundle forwarding receipts
+ -w wait for bundle status reports
+ -i registration id for reply to
+</pre></blockquote>
+
+<p>
+To use <tt>dtnsend</tt>, you need to give it a source and
+destination. Then you tell it what kind of data to send, and
+where to find it. You may use other command line options to
+set some optional flags in the bundle.
+
+<p>
+First, let's send in a little test message that we will be
+able to see inside the daemon, and then will be able to fetch with
+<tt>dtnrecv</tt>.
+
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend -s bundles://internet/host://dtn-a/me
+    -d bundles://internet/host://dtn-a/testing
+    -t m -p "testing"</font></pre></blockquote>
+
+<p> You can use a command like that, but instead of using the example
+hostname <i>dtn-a</i>, use the local tuple you configured in your
+dtn.conf file. When you run <tt>dtnsend</tt>, you should see a line
+like this show up in the window where dtnd is running:
+
+<blockquote><pre>[1109563831.574628 /route info] BUNDLE_RECEIVED id:0 (7 of 7 bytes)</pre></blockquote>
+
+<p>
+In that window, type "bundle list". You should get something
+like this:
+
+<blockquote><pre>dtn% <font color=blue>bundle list</font>
+Currently Pending Bundles (1):
+        0  : bundles://internet/host://dtn-a/me -&gt; bundles://internet/host://dtn-a/testing length 7
+</pre></blockquote>
+
+<p>
+There's a couple things to note here. First, see how the bundle is
+shown with length 7? That's what we'd expect, because we sent a
+payload from the command line of the letters "testing". The bundle
+consists of <b>exactly</b> those 7 letters. There's no terminating
+NUL character, nor a newline. Second, notice that our tuples now have
+an extra string on them, in contast to the local tuple we set in
+the configuration file in the first tutorial. It's easiest to think of
+these as the equivalent of TCP ports. For more details on how
+addressing works in the DTN world, see the <a href="arch.html">
+architecture</a> section of the manual. 
+
+<p>
+In another window, go take a look behind the scenes at the
+directory where you told dtnd to store the bundles in transit. You should
+find a file there named bundle_0.dat. It should be no surprise by
+now that this file is 7 bytes long, and contains the string
+"testing". Generally, you'll never need to do anything with the
+files in this directory. They are managed by dtnd for you. But
+it's always nice to have an idea what's going on, so now you know.
+
+<p>
+So now we've gotten a bundle into the system, and the bundle has
+made it's way across the DTN to its final destination. "Big deal", you
+say, "the final destination is the same place we put it in!". Ok,
+you've got a point. But later we'll try something fancier and
+with some imagination, you'll be able to pretend you've sent a
+bundle all the way to Mars. Before that though, we've got to get our
+bundle back out. And for that, we use <tt>dtnrecv</tt>.
+
+<p>
+The usage of <tt>dtnrecv</tt> is much easier to remember than
+that of <tt>dtnsend</tt>. You only need to tell it the name of
+the endpoint who's bundles you want to pick up. Because
+<tt>dtnrecv</tt> cannot pick up bundles from across the DTN, but only
+on the local node, it's options are much simpler.
+
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtnrecv/dtnrecv testing</font>
+opening connection to dtn router...
+opened connection to dtn router...
+calling dtn_build_local_tuple.
+local_tuple [internet host://dtn-a/testing]
+dtn_register succeeded, regid 0xa
+dtn_recv [internet host://dtn-a/testing]...
+7 bytes from [internet host://dtn-a/me]: transit time=0 ms
+0000000 7465 7374 696e 67                       |  testing
+<font color=blue>Ctrl-C</font></pre></blockquote>
+
+<p>
+As before, there's a couple of things to note here. First, notice
+how <tt>dtnrecv</tt> was able to figure out the local tuple for the
+local dtnd, and them add the argument onto the end to make the
+complete tuple. It did that by asking the local server what its
+local tuple is. The second thing to notice is that the answer 
+did indeed come back correctly. The 7 bytes we put into the DTN
+with <tt>dtnsend</tt> came back out with <tt>dtnrecv</tt>. Finally,
+note that <tt>dtnrecv</tt> stayed running until we killed it with
+Ctrl-C. It was waiting for more bundles for that endpoint to arrive.
+
+<p>
+Turn your attention to the window where dtnd is running. Type
+"bundle list" again and notice that there are no currently
+pending bundles. Great! The server did it's job and held the
+bundle until an application registered and requested that
+bundles for that endpoint get delivered. This is a key difference
+between sending data with TCP or UDP and sending data over a DTN.
+In a DTN, every part of the network, from the link protocols up
+to the applications themselves need to recognize and tolerate
+delays and disruptions. Typically applications do this by
+operating asynchronously. Another way applications can operate
+is by arranging with the DTN bundle router to make a callback
+to the application when bundles arrive.
+<i>Stay tuned for a future
+tutorial showing how that works when I figure it out myself! -jra
+</i>
+
+<h3> Other payload types </h3>
+
+<p> In the example above, we used the "-t m" parameter to indicate we
+wanted to specify the bundle contents from the command line.  But what
+if you wanted to send a movie through a DTN? You'd want to use "-t f"
+to indicate you are sending a file, then the argument following "-p"
+will be interpreted as a filename. dtnd will open that file and read
+it in to fill up the bundle. Be aware that dtnd needs to make a copy
+of your file and put it in the bundle directory, even if your file is
+quite big. Once dtnd has gotten another server someplace else in the
+DTN to take custody of the bundle, it will be deleted from the local
+server. (However, custody transfer is not currently implemented in DTN2.)
+
+<p>
+The final payload type is "d", for date. When you use this,
+you do not need -p. A payload consisting of the date is made up
+automatically for you. This is useful for testing, but not for much
+else.
+
+<h3> Getting a receipt, waiting for it to arrive </h3>
+
+<p>
+If you add the -e and -w options to the <tt>dtnsend</tt> command
+above, something different happens. The -e argument asks the
+far end DTN server (in this case, still our local server) to
+make up a receipt and send it via the DTN back to our reply
+address. Because we did not use the -r argument to explicitly
+set a reply address, the receipt will come to the source tuple
+we specified with the -s option. The -w argument tells
+<tt>dtnsend</tt> to wait for incoming messages to the reply
+endpoint. So, here's an example of it in action:
+
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend -e -w -s bundles://internet/host://dtn-a/me
+    -d bundles://internet/host://dtn-a/testing
+    -t m -p "testing"</font>
+got 67 byte report from [internet host://dtn-a]: time=18893.0 ms
+</pre></blockquote>
+
+<p>
+18.893 seconds?!? What kind of broken network could possibly take
+18.893 seconds to deliver a little 7 byte bundle? What's going on here?
+
+
+<p>
+Well, recall that this is a disruption tolerant network, and that
+the application on the other end may not have been running at the time
+we sent the message. In fact it was not. The 18 seconds was how long
+it took me to find another window and run <tt>dtnrecv</tt>. (So
+I type slow. Sue me.) The dtnd server couldn't create and send a
+receipt until it had delivered the bundle to the final destination,
+which in this case was the <tt>dtnrecv</tt> process that I started
+a few seconds after I ran <tt>dtnsend</tt>. If I'd had my
+<tt>dtnrecv</tt> up and running before I ran <tt>dtnsend</tt> the
+receipt would have arrived in just a few milliseconds.
+
+</body>
+</html>
+
