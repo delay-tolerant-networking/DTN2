@@ -111,7 +111,12 @@ main(int argc, char* argv[])
     new oasys::BoolOpt('f', 0, &testcmd.fork_,
                        "test scripts fork child daemons");
 
-    oasys::Options::getopt(argv[0], argc, argv);
+    int remainder = oasys::Options::getopt(argv[0], argc, argv);
+    if (remainder != argc) {
+        fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
+        oasys::Options::usage("dtnd");
+        exit(1);
+    }
 
     if (print_version) {
         printf("%s\n", dtn_version);
