@@ -1,8 +1,8 @@
 #
-# Makefile for DTN2/apps/dtn_recv
+# Makefile for DTN2/apps/dtncpd
 #
 
-SRCS   := dtn_recv.c
+SRCS   := dtncpd.c
 APP    := dtncpd
 SRCDIR := ../..
 

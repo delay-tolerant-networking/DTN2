@@ -1,8 +1,8 @@
 #
-# Makefile for DTN2/apps/ping
+# Makefile for DTN2/apps/dtnsend
 #
 
-SRCS   := dtn_send.c
+SRCS   := dtnsend.c
 APP    := dtnsend
 SRCDIR := ../..
 
