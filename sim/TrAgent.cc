@@ -36,6 +36,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/util/Options.h>
+#include <oasys/util/OptParser.h>
+
 #include "TrAgent.h"
 #include "Simulator.h"
 #include "Node.h"
@@ -44,26 +47,61 @@
 
 namespace dtnsim {
 
-TrAgent::TrAgent(Node* node, int start_time, 
-                 const BundleTuple& src, const BundleTuple& dst,
-                 int size, int reps, int batchsize, int gap)
-    : Logger ("/sim/tr_agent"), 
-      node_(node), src_(src), dst_(dst), size_(size),
-      reps_(reps), batchsize_(batchsize), gap_(gap)
+TrAgent::TrAgent(Node* node, const BundleTuple& src, const BundleTuple& dst)
+    : node_(node), src_(src), dst_(dst),
+      size_(0), reps_(0), batch_(1), interval_(0)
 {
-    Simulator::post(new SimEvent(SIM_NEXT_SENDTIME, start_time, this));
+    logpathf("/tragent/%s", node->name());
+}
+
+TrAgent*
+TrAgent::init(Node* node, int start_time, 
+              const BundleTuple& src, const BundleTuple& dst,
+              int argc, const char** argv)
+{
+    TrAgent* a = new TrAgent(node, src, dst);
+
+    oasys::OptParser p;
+    p.addopt(new oasys::IntOpt("size", &a->size_));
+    p.addopt(new oasys::IntOpt("reps", &a->reps_));
+    p.addopt(new oasys::IntOpt("batch", &a->batch_));
+    p.addopt(new oasys::IntOpt("interval", &a->interval_));
+
+    const char* invalid;
+    if (! p.parse(argc, argv, &invalid)) {
+        a->logf(oasys::LOG_ERR, "invalid option: %s", invalid);
+        return NULL;
+    }
+
+    if (a->size_ == 0) {
+        a->logf(oasys::LOG_ERR, "size must be set in configuration");
+        return NULL;
+    }
+
+    if (a->reps_ == 0) {
+        a->logf(oasys::LOG_ERR, "reps must be set in configuration");
+        return NULL;
+    }
+
+    if (a->interval_ == 0) {
+        a->logf(oasys::LOG_ERR, "interval must be set in configuration");
+        return NULL;
+    }
+
+    Simulator::post(new SimEvent(SIM_NEXT_SENDTIME, start_time, a));
+    return a;
 }
 
 void
 TrAgent::process(SimEvent* e)
 {
     if (e->type() == SIM_NEXT_SENDTIME) {
-	for (int i = 0; i < batchsize_; i++) {
+	for (int i = 0; i < batch_; i++) {
 	    send_bundle();
 	}
         
 	if (--reps_ > 0) {
-	    int sendtime = Simulator::time() + gap_;
+	    int sendtime = Simulator::time() + interval_;
 	    Simulator::post(new SimEvent(SIM_NEXT_SENDTIME, sendtime, this));
         }
 	else {

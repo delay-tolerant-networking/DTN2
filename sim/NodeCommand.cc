@@ -154,14 +154,15 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     else if (strcmp(cmd, "link") == 0)
     {
         if (strcmp(subcmd, "add") == 0) {
-            // <node1> X link add <node2> <type> <args>
+            // <node1> X link add <name> <peer> <type> <args>
             if (argc < 6) {
-                wrong_num_args(argc, argv, 2, 6, INT_MAX);
+                wrong_num_args(argc, argv, 2, 7, INT_MAX);
                 return TCL_ERROR;
             }
 
-            const char* nexthop_name = argv[4];
-            const char* type_str = argv[5];
+            const char* name = argv[4];
+            const char* nexthop_name = argv[5];
+            const char* type_str = argv[6];
             
             Node* nexthop = Topology::find_node(nexthop_name);
 
@@ -176,20 +177,9 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
                 return TCL_ERROR;
             }
 
-            int id = 1;
-            char name[64];
-            snprintf(name, sizeof(name), "%s-%s",
-                     node_->name(), nexthop_name);
-            
-            while (node_->contactmgr()->find_link(name)) {
-                snprintf(name, sizeof(name), "%s-%s.%d",
-                         node_->name(), nexthop_name, id);
-                ++id;
-            }
-
             SimConvergenceLayer* simcl = SimConvergenceLayer::instance();
             Link* link = Link::create_link(name, type, simcl, nexthop->name(),
-                                           argc - 6, &argv[6]);
+                                           argc - 7, &argv[7]);
             if (!link)
                 return TCL_ERROR;
             
@@ -226,17 +216,13 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     else if (strcmp(cmd, "tragent") == 0)
     {
-        if (argc != 9) {
-            wrong_num_args(argc, argv, 3, 9, 9);
+        if (argc < 5) {
+            wrong_num_args(argc, argv, 3, 5, INT_MAX);
             return TCL_ERROR;
         }
         
         const char* src = argv[3];
         const char* dst = argv[4];
-        int size	= atoi(argv[5]);
-        int reps 	= atoi(argv[6]);
-        int batchsize	= atoi(argv[7]);
-        int gap		= atoi(argv[8]);
 
         // see if src/dest are node names, in which case we use its
         // local tuple as the source address
@@ -264,9 +250,13 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             }
         }
         
+        TrAgent* a = TrAgent::init(node_, time, src_tuple, dst_tuple,
+                                   argc - 5, argv + 5);
+        if (!a) {
+            resultf("error in tragent config");
+            return TCL_ERROR;
+        }
         
-        new TrAgent(node_, time, src_tuple, dst_tuple, size,
-                    reps, batchsize, gap);
         return TCL_OK;
     }
 

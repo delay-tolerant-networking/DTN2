@@ -50,14 +50,17 @@ class Node;
 
 class TrAgent : public SimEventHandler, public oasys::Logger {
 public:
-    TrAgent(Node* node, int start_time,
-            const BundleTuple& src, const BundleTuple& dst,
-            int size, int reps, int batchsize, int gap);
+    static TrAgent* init(Node* node, int start_time,
+                         const BundleTuple& src, const BundleTuple& dst,
+                         int argc, const char** argv);
+
     virtual ~TrAgent() {}
 
     void process(SimEvent *e);
 
 private:
+    TrAgent(Node* node, const BundleTuple& src, const BundleTuple& dst);
+    
     void send_bundle();
 
     Node* node_;	///< node where the traffic is injected
@@ -65,8 +68,8 @@ private:
     BundleTuple dst_;	///< destination tuple
     int size_;		///< size of each message
     int reps_;		///< total number of reps/batches
-    int batchsize_;	///< no of messages in each batch
-    int gap_;		///< time gap between two batches
+    int batch_;		///< no of messages in each batch
+    int interval_;	///< time gap between two batches
 };
 
 } // namespace dtnsim
