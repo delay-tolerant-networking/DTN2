@@ -28,9 +28,11 @@ SIM_SRCS := \
 	Node.cc			\
 	NodeCommand.cc		\
 	Simulator.cc		\
+	SimBundleActions.cc	\
 	SimCommand.cc		\
 	SimRegistration.cc	\
 	Topology.cc		\
+	TrAgent.cc		\
 
 SIM_OBJS := $(SIM_SRCS:.cc=.o)
 
