@@ -5,7 +5,6 @@
 #
 
 if [catch {
-    error "test"
     package require tclreadline
 
     # Run the command loop with the given prompt
