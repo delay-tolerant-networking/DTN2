@@ -58,7 +58,12 @@ public:
      */
     SQLStore(const char* table_name, SQLImplementation *db);
     
-    /// @{ 
+    /// @{
+
+    /**
+     * Close the table.
+     */
+    int close();
     
     /**
      *  Get an obj (identified by key) from the sql store. 

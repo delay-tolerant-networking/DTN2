@@ -55,9 +55,19 @@ public:
     static void init_components();
 
     /**
+     * Post configuration, initialize the datastore.
+     */
+    static void init_datastore();
+
+    /**
      * Post configuration, start up all components.
      */
     static void start();
+
+    /**
+     * Close and sync the data store.
+     */
+    static void close_datastore();
 
  protected:
     static void init_dir(const char * dirname);

@@ -44,7 +44,6 @@
 class Bundle;
 class BundleList;
 class PersistentStore;
-//class StorageImpl;
 
 /**
  * Abstract base class for bundle storage.
@@ -90,6 +89,11 @@ public:
      */
     bool load();
 
+    /**
+     * Close (and flush) the data store.
+     */
+    void close();
+    
     /// @{
     /**
      * Basic storage methods.
@@ -100,21 +104,6 @@ public:
     bool     del(int bundle_id);
     /// @}
     
-//     /**
-//      * Delete expired bundles
-//      *
-//      * (was sweepOldBundles)
-//      */
-//     virtual int delete_expired(const time_t now) = 0;
-
-//     /**
-//      * Return true if we're the custodian of the given bundle.
-//      * TODO: is this really needed??
-//      *
-//      * (was db_bundle_retain)
-//      */
-//     virtual bool is_custodian(int bundle_id) = 0;
-
 protected:
     static BundleStore* instance_; ///< singleton instance
 

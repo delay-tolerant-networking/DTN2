@@ -149,3 +149,11 @@ GlobalStore::update()
     return true;
 }
 
+void
+GlobalStore::close()
+{
+    log_debug("closing global store");
+    if (store_->close() != 0) {
+        log_err("error closing global store");
+    }
+}

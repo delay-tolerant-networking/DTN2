@@ -54,6 +54,7 @@ public:
     static BerkeleyDBManager* instance() { return &instance_; }
     
     void init();
+    void close();
 
     Db* open_table(const char* tablename);
     
@@ -69,10 +70,11 @@ protected:
  */
 class BerkeleyDBStore : public PersistentStore, public Logger {
 public:
-    BerkeleyDBStore(const char* table);
+    BerkeleyDBStore(const char* tablename);
     virtual ~BerkeleyDBStore();
 
     /// @{ Virtual overrides from PersistentStore
+    int close();
     int exists(const int key);
     int get(SerializableObject* obj, const int key);
     int add(SerializableObject* obj, const int key);

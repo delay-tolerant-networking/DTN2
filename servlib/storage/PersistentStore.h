@@ -52,6 +52,10 @@
  */
 class PersistentStore {
 public:
+    /**
+     * Close and flush the store.
+     */
+    virtual int close() = 0;
     
     /**
      * Fill in the fields of the object referred to by *obj with the

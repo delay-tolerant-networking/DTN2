@@ -122,7 +122,7 @@ RegistrationStore::load(RegistrationList* reg_list)
 bool
 RegistrationStore::add(Registration* reg)
 {
-#ifdef __REG_STORE_ENABLED__ 
+#ifdef __REG_STORE_ENABLED__
     // ignore reserved registration ids
     if (reg->regid() < 10)
     {
@@ -165,3 +165,11 @@ RegistrationStore::update(Registration* reg)
 #endif /* __REG_STORE_ENABLED__ */
 }
 
+void
+RegistrationStore::close()
+{
+    log_debug("closing registration store");
+    if (store_->close() != 0) {
+        log_err("error closing registration store");
+    }
+}

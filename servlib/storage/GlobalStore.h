@@ -60,8 +60,6 @@ public:
     virtual ~Globals();
 };
 
-
-
 /**
  * Class for those elements of the router that need to
  * be persistently stored but are singleton global values. Examples
@@ -103,7 +101,7 @@ public:
     /**
      * Constructor.
      */
-    GlobalStore(PersistentStore * store);
+    GlobalStore(PersistentStore* store);
 
     /**
      * Destructor.
@@ -135,6 +133,11 @@ public:
      * Update the globals in the store.
      */
     bool update();
+
+    /**
+     * Close (and flush) the data store.
+     */
+    void close();
     
     static GlobalStore* instance_; ///< singleton instance
     

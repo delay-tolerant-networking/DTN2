@@ -90,6 +90,11 @@ public:
     bool load();
 
     /**
+     * Close (and flush) the data store.
+     */
+    void close();
+
+    /**
      * Load in the whole database of registrations, populating the
      * given list.
      */

@@ -108,3 +108,13 @@ BundleStore::del(int bundle_id)
     return store_->del(bundle_id) == 0;
 }
 
+
+void
+BundleStore::close()
+{
+    log_debug("closing bundle store");
+
+    if (store_->close() != 0) {
+        log_err("error closing bundle store");
+    }
+}

@@ -165,6 +165,15 @@ BerkeleyDBManager::init()
     log_info("database file '%s' validated", dbpath.c_str());
 }
 
+void
+BerkeleyDBManager::close()
+{
+    log_info("closing database file...");
+    dbenv_->close(0);
+    delete dbenv_;
+    dbenv_ = NULL;
+}
+
 Db*
 BerkeleyDBManager::open_table(const char* tablename)
 {
@@ -202,6 +211,15 @@ BerkeleyDBStore::BerkeleyDBStore(const char* tablename)
 BerkeleyDBStore::~BerkeleyDBStore()
 {
     NOTIMPLEMENTED;
+}
+
+int
+BerkeleyDBStore::close()
+{
+    db_->close(0);
+    delete db_;
+    db_ = NULL;
+    return 0;
 }
 
 int

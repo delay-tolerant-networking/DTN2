@@ -59,6 +59,16 @@ SQLStore::SQLStore(const char* table_name, SQLImplementation* db)
     key_name_ = NULL;
 }
 
+/**
+ * Close the table.
+ */
+int
+SQLStore::close()
+{
+    // nothing to do
+    return 0;
+}
+    
 int 
 SQLStore::get(SerializableObject* obj, const int key) 
 {

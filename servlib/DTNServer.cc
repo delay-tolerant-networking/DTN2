@@ -119,16 +119,8 @@ DTNServer::init_components()
  * Post configuration, start up all components.
  */
 void
-DTNServer::start()
+DTNServer::init_datastore()
 {
-    BundleRouter* router;
-    router = BundleRouter::create_router(BundleRouter::type_.c_str());
-
-    BundleForwarder* forwarder = BundleForwarder::instance();
-    forwarder->set_active_router(router);
-    forwarder->start();
-
-    // Initialize Storage
     StorageConfig* cfg = StorageConfig::instance();
 
     if (cfg->tidy_) 
@@ -157,7 +149,6 @@ DTNServer::start()
 #ifdef __DB_ENABLED__
     DTNServer::validate_dir(cfg->dbdir_.c_str());
 #endif
-
 
     // initialize the data storage objects
     std::string& storage_type = StorageConfig::instance()->type_;
@@ -225,8 +216,19 @@ DTNServer::start()
     GlobalStore::init(global_store);
     BundleStore::init(bundle_store);
     RegistrationStore::init(reg_store);
+}
     
-     // create (and auto-register) the default administrative registration
+void
+DTNServer::start()
+{
+    BundleRouter* router;
+    router = BundleRouter::create_router(BundleRouter::type_.c_str());
+
+    BundleForwarder* forwarder = BundleForwarder::instance();
+    forwarder->set_active_router(router);
+    forwarder->start();
+
+    // create (and auto-register) the default administrative registration
     RegistrationTable::init(RegistrationStore::instance());
     new AdminRegistration();
 
@@ -238,7 +240,26 @@ DTNServer::start()
     log_debug("/dtnserver", "started dtn server");
 }
 
-void DTNServer::init_dir(const char * dirname)
+void
+DTNServer::close_datastore()
+{
+    std::string& storage_type = StorageConfig::instance()->type_;
+
+    // need to make sure the GlobalStore has been updated at least once
+    // XXX/demmer see if there's a better way to do this
+    GlobalStore::instance()->update();
+    
+    GlobalStore::instance()->close();
+    BundleStore::instance()->close();
+    RegistrationStore::instance()->close();
+
+    if (storage_type.compare("berkeleydb") == 0) {
+        BerkeleyDBManager::instance()->close();
+    }
+}
+
+void
+DTNServer::init_dir(const char * dirname)
 {
     struct stat st;
     int statret;
@@ -259,7 +280,8 @@ void DTNServer::init_dir(const char * dirname)
     }
 }
 
-void DTNServer::tidy_dir(const char * dirname)
+void
+DTNServer::tidy_dir(const char * dirname)
 {
     char cmd[256];
     struct stat st;
@@ -288,7 +310,8 @@ void DTNServer::tidy_dir(const char * dirname)
     }
 }
 
-void DTNServer::validate_dir(const char * dirname)
+void
+DTNServer::validate_dir(const char * dirname)
 {
     struct stat st;
     
