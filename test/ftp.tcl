@@ -1,4 +1,3 @@
-
 #
 # Simple client/server code that scans a directory for new data and sends
 # that data to a remote host.
@@ -8,21 +7,22 @@
 #
 #
 
+
+# after 1000
+# set y [clock clicks -milliseconds]
+# set f [expr $y - $x]
+
+
+
 set port 17600
 set period 1000
 
 set blocksz 8192
 
-
-
 proc time {} {
     global starttime
     return " [clock seconds] ::  [expr [clock clicks -milliseconds] - $starttime] :: "
 }
-
-#proc time {} {
-#    return [clock seconds]
-#}
 
 proc timef {} {
     return [clock format [clock seconds]]
@@ -49,7 +49,7 @@ proc scan_dir {host dir} {
 	set sent_file 0
 	while {$sent_file != 1} {
 	    set sent_file [send_file $host $file]
-	   # after 2000
+	    if {$sent_file != 1} { after 2000 }
 	}
 
 	file delete -force $file
@@ -59,7 +59,9 @@ proc scan_dir {host dir} {
 }
 
 proc ack_arrived {sock} {
+
     global got_ack ack_timer
+  
     after cancel $ack_timer
     set got_ack 1
 
@@ -67,13 +69,14 @@ proc ack_arrived {sock} {
     if [eof $sock] {
 	puts " [time] eof waiting for ack!"
 	set got_ack 0
-	fileevent $sock readable
+	fileevent $sock readable ""
+	catch {close $sock}
 	return
     }
     if {$ack != "ACK"} {
 	puts "[time] ERROR in ack_arrived: got '$ack', expected ACK"
 	set got_ack 0
-	fileevent $sock readable 
+	fileevent $sock readable ""
 	return
     }
 }
@@ -100,84 +103,90 @@ proc send_file {host file} {
 	    puts "[time] Trying to connect, will try again after  2 seconds "
 	    after 2000
 	}
-    
+	puts "[time] Successfull new connection "
 	fconfigure $sock -translation binary
 	fconfigure $sock -encoding binary
+	
+	
+	if [catch {
+	    puts $sock "SYN"
+	    flush $sock
+	}] {
+	    close $sock
+	    unset sock
+	    close $fd
+	    return -1
+	}
+	
+	## Send SYN
+	puts "[time] sending handshake ack"
+
+	# read the handshake ack
+	# fconfigure $sock -blocking 0
+	set got_ack -1
+	fileevent $sock readable "ack_arrived $sock"
+	set ack_timer [after 10000 ack_timeout]
+	vwait got_ack
+	
+	if {!$got_ack} {
+	    puts "[time] timeout waiting for handshake ack"
+	    close $fd
+	    close $sock
+	    unset sock
+	    return -1
+	}	else {
+	    puts "[time] got handshake ack"
+	}
     }
 	
+   
+    ## Send the filename and size
     if [catch {
-	puts -nonewline $sock "[file tail $file] "
-	flush $sock
-#	after 500
-	puts $sock "[file size $file]"
+	puts $sock "[file tail $file] [file size $file]"
 	flush $sock
     }] {
-	puts $sock "[time] failure in sending header "
 	close $sock
 	unset sock
 	close $fd
 	return -1
     }
-
-    # read the handshake ack
-    # set got_ack -1
-    # fileevent $sock readable "ack_arrived $sock"
-    # set ack_timer [after 10000 ack_timeout]
-    # vwait got_ack
     
-    # if {!$got_ack} {
-    # 	puts "[time] timeout waiting for handshake ack"
-    #	close $fd
-    #	close $sock
-    #	unset sock
-    #	return -1
-    #    }
-    # puts "[time] got handshake ack -- sending file"
-
-
+    ## Send the payload
     while {![eof $fd]} {
 	if {[catch {
 	    set payload [read $fd $blocksz]
-	    puts "[time] sending [string length $payload] byte chunk"
+	    #	    puts "sending [string length $payload] byte chunk"
 	    puts -nonewline $sock $payload
 	    flush $sock
 	} ]} {
-	    
-	    puts "[time] failure at sender "
 	    close $sock
 	    unset sock
 	    close $fd
 	    return -1
 	}
     }	
-
+    
     close $fd
- 
-    	puts "[time] :: file  actually sent $file"
-    	puts $logfd "[time] :: file actually sent [file tail $file]   " 
-    	flush $logfd
-
-    return 1
+    
     # wait for an ack or timeout
-    # puts "[time] sent whole file, waiting for ack"
-    # fconfigure $sock -blocking 0
-    # set got_ack -1
-    # fileevent $sock readable "ack_arrived $sock"
-    # set ack_timer [after 5000 ack_timeout]
-    # vwait got_ack
+    puts "[time] sent whole file, waiting for ack"
+    fconfigure $sock -blocking 0
+    set got_ack -1
+    fileevent $sock readable "ack_arrived $sock"
+    set ack_timer [after 5000 ack_timeout]
+    vwait got_ack
 
-    # if {$got_ack} {
-    #	puts "[time] :: file  actually sent $file"
-    #	puts $logfd "[time] :: file actually sent [file tail $file]   " 
-    #	flush $logfd
-    #
-    #   return 1
-#    } else {
-#	puts "[time] :: file sent but not acked"
-#	close $sock
-#	unset sock
-#	return -1
+    if {$got_ack} {
+	puts "[time] :: file  actually sent $file"
+	puts $logfd "[time] :: file actually sent [file tail $file]   " 
+	flush $logfd
 
+	return 1
+    } else {
+	puts "[time] :: file sent but not acked"
+	close $sock
+	unset sock
+	return -1
     }
 }
 
@@ -192,7 +201,7 @@ proc recv_files {dest_dir} {
 proc new_client {dest_dir sock addr port} {
     global conns
 
-    puts "[time] Accept $sock from $addr port $port"
+    puts " Accept $sock from $addr port $port"
     
     # Used for debugging
     set conns(addr,$sock) [list $addr $port]
@@ -201,44 +210,62 @@ proc new_client {dest_dir sock addr port} {
     fconfigure $sock -encoding binary
     fconfigure $sock -blocking 0 
     
-    fileevent $sock readable "header_arrived $dest_dir $sock"
+    fileevent $sock readable "syn_arrived $dest_dir $sock"
 }
+
+
+proc syn_arrived {dest_dir sock} {
+    
+    global length_remaining
+    global conns
+
+    if {[eof $sock]} {
+	puts "[time] Close $conns(addr,$sock) EOF SYN received"
+	close $sock	
+	unset conns(addr,$sock)
+	return 
+    }
+    
+    set L [gets $sock]
+    while {$L == ""} {
+	puts "[time] partial syn received... waiting for more"
+	after 20
+	set L [gets $sock]
+    }
+    
+    # Check if this is really a SYN
+    puts "[time] got SYN"
+    puts $sock "ACK"
+    flush $sock
+
+    fileevent $sock readable "header_arrived $dest_dir $sock"
+
+}
+
 
 proc header_arrived {dest_dir sock} {
     global length_remaining
     global conns
-    global partial
-
+    
     puts "[time] header arrived"
-
+    set L [gets $sock]
     if {[eof $sock]} {
-	puts "[time] Close $conns(addr,$sock) EOF received header.. "
+	puts "[time] Close $conns(addr,$sock) EOF received"
 	close $sock	
 	unset conns(addr,$sock)
 	return 
     }
 
-    # try to read a line
-    set L [gets $sock]
     while {$L == ""} {
-	puts "[time] partial header line received... waiting for more"
+	if {[eof $sock]} { puts "Unexpected EOF reached, check check"  }
+	puts "[time] partial header line received... waiting for more "
 	after 20
 	set L [gets $sock]
     }
     
-    if {[info exists partial($sock)]} {
-	puts "[time] merging partial line '$partial($sock)' with '$L'"
-	set L "$partial($sock)$L"
-	unset partial($sock)
-    }
-    
     foreach {filename length} $L {}
-
-    puts "[time] getting file $filename length $length"
     
-    # puts $sock "ACK"
-    # flush $sock
-    
+    puts "[time] getting file $filename length is: $length"
     set to_fd [open "$dest_dir/$filename" w]
     set length_remaining($sock) $length
     
@@ -253,14 +280,13 @@ proc file_arrived {file to_fd dest_dir sock} {
     global length_remaining
     
     if {[eof $sock]} {
-	puts "[time] Close $conns(addr,$sock) EOF received file"
+	puts "[time] Close $conns(addr,$sock) EOF received"
 	close $sock	
 	unset conns(addr,$sock)
 	return
     } 
-
-
-    set payload [read $sock $length_remaining($sock)] 
+    
+    set payload [read $sock $length_remaining($sock)]
     puts -nonewline $to_fd $payload
     set got [string length $payload]
     set todo [expr $length_remaining($sock) - $got]
@@ -271,15 +297,14 @@ proc file_arrived {file to_fd dest_dir sock} {
     }
     
     if {$todo == 0} {
-	# puts $sock "ACK"
-	# flush $sock
-	# puts "[time] sending ack for file $file"
-	
+	puts $sock "ACK"
+	flush $sock
+	puts "[time] sending ack for file $file"
+
 	fileevent $sock readable "header_arrived $dest_dir $sock"
 	puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
 	close $to_fd
 	flush $logfd
-	
     }
     
     set length_remaining($sock) $todo
@@ -303,7 +328,6 @@ set argc [llength $argv]
 if {$argc < 3} {
     usage
 }
-
 
 set mode [lindex $argv 0]
 set dir  [lindex $argv 1]

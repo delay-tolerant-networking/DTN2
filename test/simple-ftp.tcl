@@ -1,4 +1,3 @@
-
 #
 # Simple client/server code that scans a directory for new data and sends
 # that data to a remote host.
@@ -197,20 +196,36 @@ proc new_client {dest_dir sock addr port} {
 proc header_arrived {dest_dir sock} {
     global length_remaining
     global conns
+    global partial
 
     puts "[time] header arrived"
     
-    set L [gets $sock]
+   
     
-    if {$L == {} || [eof $sock]} {
+    if {[eof $sock]} {
 	puts "[time] Close $conns(addr,$sock) EOF received"
 	close $sock	
 	unset conns(addr,$sock)
 	return 
     }
     
-    foreach {filename length} $L {}
 
+
+    set L [gets $sock]
+    while {$L == ""} {
+	puts "[time] partial header line received... waiting for more"
+	after 20
+	set L [gets $sock]
+    }
+    
+    if {[info exists partial($sock)]} {
+	puts "[time] merging partial line '$partial($sock)' with '$L'"
+	set L "$partial($sock)$L"
+	unset partial($sock)
+    }
+    
+    foreach {filename length} $L {}
+    
     puts "[time] getting file $filename length $length"
     
     puts $sock "ACK"
@@ -236,14 +251,14 @@ proc file_arrived {file to_fd dest_dir sock} {
 	return
     } 
 
-    #[catch {gets $sock line}]
-    #	    puts "Abnormal close $conns(addr,$sock)"
+    
+
     set payload [read $sock]
     puts -nonewline $to_fd $payload
     set got [string length $payload]
     set todo [expr $length_remaining($sock) - $got]
-#    puts "got $got byte chunk ($todo to go)"
-
+    puts "got $got byte chunk ($todo to go)"
+    
     if {$todo < 0} {
 	error "negative todo"
     }
