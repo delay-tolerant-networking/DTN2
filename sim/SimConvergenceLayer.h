@@ -46,15 +46,8 @@ using namespace dtn;
 namespace dtnsim {
 
 /**
- * Does the actual forwarding of abundle on a contact.
- * This is done by implementing -send_bundles- function.
- *
- * Also maintains, mapping between various components of DTN2 and 
- * Simulator. Specifically,  maps: DTN2 contacts <-> Simulator Contacts
- * ids from simulator <-> end point id's of DTN2
- * also, bundles <-> messages
+ * Simulator implementation of the Convergence Layer API.
  */
-
 class SimConvergenceLayer : public ConvergenceLayer {
     
 public:
@@ -82,7 +75,7 @@ public:
     bool init_link(Link* link, int argc, const char* argv[]);
     
     /**
-     * Send bundles queued on the given contact.
+     * Send any bundles queued on the given contact.
      */
     void send_bundles(Contact* contact);
     
