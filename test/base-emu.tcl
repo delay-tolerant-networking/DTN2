@@ -1,18 +1,11 @@
 # Start of Base Script to setup Emulab DTN2 experiments
 
-# Use: cat base-emu.tcl | sed 's/711/finishtime' 
-# set ftp_impl "simple-ftp.tcl"
-# set ftp_impl "simple-ftp-noack.tcl"
 
 # Modify ftp_impl if needed
 
 set delay 5ms
 set queue DropTail
 set protocol Static
-
-set ftp_proto "simple-ftp.tcl"
-#set ftp_proto "simple-ftp-noack.tcl"
-
 
 
 set WARMUPTIME 10 
