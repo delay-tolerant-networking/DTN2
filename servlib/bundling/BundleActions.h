@@ -117,4 +117,4 @@ public:
 
 } // namespace dtn
 
-#endif /* _BUNDLE_ACTION_H_ */
+#endif /* _BUNDLE_ACTIONS_H_ */
