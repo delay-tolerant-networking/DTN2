@@ -297,7 +297,7 @@ case "$ccver" in
     # _GNU_SOURCE isn't defined, so do both those things here
     #
     3.1|2.9*)
-        defs+='-D_GNU_SOURCE'
+        defs="$defs -D_GNU_SOURCE"
 	depflags=''
 	echo "*** warning: using old compiler $cc version $ccver,"
 	echo "             automatic dependency generation will not work"
@@ -306,7 +306,6 @@ case "$ccver" in
     # For later 3.X, use auto-dependency flags
     #
     3.*)
-	defs=''
 	depflags='-MMD -MP -MT "$*.o $*.E $*.po"'
 	;;
     *)
