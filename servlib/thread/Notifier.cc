@@ -88,8 +88,8 @@ Notifier::wait(SpinLock* lock, int timeout)
             if (ret == -1 && errno == EINTR) {
                 continue;
             }
-            log_crit("unexpected error return from poll: %s", strerror(errno));
-            exit(1);
+            PANIC("fatal: error return from notifier poll: %s",
+                  strerror(errno));
         } else {
             break;
         }
