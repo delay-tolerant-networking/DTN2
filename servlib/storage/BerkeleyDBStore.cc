@@ -62,9 +62,9 @@ BerkeleyDBManager::init()
         log_warn("pruning contents of db dir: '%s'", cmd);
         system(cmd);
         if (mkdir(dbdir, 0700) != 0) {
-            log_crit("can't create datastore directory %s: %s",
+            log_crit("can't create datastore directory %s: %s (XXX continuing anyway)",
                      dbdir, strerror(errno));
-            exit(-1);
+            //exit(-1);
         }
     }
 
