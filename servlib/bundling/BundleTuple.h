@@ -6,10 +6,12 @@
 /**
  * Class to wrap a bundle tuple of the general form:
  *
+ * @code
  * bundles://<region>/<admin>
+ * @endcode
  *
- * The region must not contain any '/' characters, and may determine a
- * particular AddressFamily entry to use when parsing the admin
+ * The region must not contain any '/' characters. and determines a
+ * particular convergence layer to use, based on parsing the admin
  * portion.
  */
 class BundleTuple : public SerializableObject {
