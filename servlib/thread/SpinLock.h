@@ -12,7 +12,10 @@
  */
 #ifdef __NO_ATOMIC__
 #include "Mutex.h"
-typedef SpinLock Mutex;
+class SpinLock : public Mutex {
+public:
+    SpinLock() : Mutex("spinlock", TYPE_RECURSIVE, true) {}
+};
 #else
 
 /**
