@@ -44,6 +44,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <stdlib.h>
 
 #include "dtn_api.h"
 #include "dtn_ipc.h"
@@ -57,7 +58,7 @@ dtn_open()
 {
     dtnipc_handle_t* handle;
 
-    handle = malloc(sizeof(struct dtnipc_handle));
+    handle = (dtnipc_handle_t *) malloc(sizeof(struct dtnipc_handle));
     if (!handle)
         return 0;
     
