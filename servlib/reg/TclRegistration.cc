@@ -74,12 +74,12 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
 
     // read in all the payload data (XXX/demmer this will not be nice
     // for big bundles)
-    const char* payload_data = b->payload_.read_data(0, b->payload_.length());
+    u_char* payload_data = (u_char*)b->payload_.read_data(0, b->payload_.length());
     
     Tcl_Obj* objv[4];
     objv[0] = Tcl_NewStringObj(b->source_.data(), b->source_.length());
     objv[1] = Tcl_NewStringObj(b->dest_.data(), b->dest_.length());
-    objv[2] = Tcl_NewStringObj(payload_data, b->payload_.length());
+    objv[2] = Tcl_NewByteArrayObj(payload_data, b->payload_.length());
     objv[3] = Tcl_NewIntObj(b->payload_.length());
 
     cmdinterp->set_objresult(Tcl_NewListObj(4, objv));
