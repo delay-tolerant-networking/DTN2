@@ -359,6 +359,8 @@ ClientAPIServer::handle_send()
         ret = DTN_INVAL;
         goto done;
     }
+
+    b->custodian_.assign(BundleRouter::local_tuple_);
     
     // the priority code
     switch (spec.priority) {
