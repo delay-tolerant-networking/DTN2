@@ -22,7 +22,7 @@ proc setup_linear_topology {type cl {args ""}} {
 	route add bundles://internet/host://$peeraddr/* link-$peerid
     }
 
-    # and previous hop in chain as well, along with a default route
+    # and previous a hop in chain as well
     if { $id != 0 } {
 	set peerid [expr $id - 1]
 	set peeraddr $hosts($peerid)
@@ -30,8 +30,6 @@ proc setup_linear_topology {type cl {args ""}} {
 		$type $cl $args
 
 	route add bundles://internet/host://$peeraddr/* link-$peerid
-
-	route add bundles://*/* link-$peerid
     }
 }
 
