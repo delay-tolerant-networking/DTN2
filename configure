@@ -286,8 +286,8 @@ rm -f ./a.out
 
 elif [ "$target" = "arm" ]; then
 ccver=2.95
-mysqllib='none'
-postgreslib='none'
+mysql_enabled='false'
+postgres_enabled='false'
 fi
 
 #
