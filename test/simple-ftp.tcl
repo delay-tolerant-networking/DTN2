@@ -165,7 +165,7 @@ proc send_file {host file} {
 proc recv_files {dest_dir} {
     global port
     global conns
-    puts "waiting for files:  $dest_dir"
+    puts "[time] waiting for files:  $dest_dir"
     set conns(main) [socket -server "new_client $dest_dir" $port]
 }
 
@@ -189,7 +189,7 @@ proc header_arrived {dest_dir sock} {
     global length_remaining
     global conns
 
-    puts "header arrived"
+    puts "[time] header arrived"
     
     set L [gets $sock]
     
@@ -202,7 +202,7 @@ proc header_arrived {dest_dir sock} {
     
     foreach {filename length} $L {}
 
-    puts "getting file $filename length $length"
+    puts "[time] getting file $filename length $length"
     
     puts $sock "ACK"
     flush $sock
