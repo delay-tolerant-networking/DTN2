@@ -1,6 +1,16 @@
 Release Notes for DTN2
 ----------------------
 
+2.1.1 (March 2005)
+------------------
+- Patch to configure script to fix build problems on Apple OS X due to
+  a conflict with a system include file (demmer).
+
+- Bug fix in oasys/io/NetUtils.cc so getaddrinfo works properly on OS
+  X (or generally any IPv6 enabled system).
+
+- Minor updates to the manual and tutorials (jra).
+
 2.1.0 (March 2005)
 ------------------
 - Major restructuring of the configuration and build process to use
