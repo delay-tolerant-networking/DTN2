@@ -20,16 +20,16 @@ class IO {
 public:
     //@{
     /// System call wrapper (for logging)
-    static int read(int fd, char* bp, int len,
+    static int read(int fd, char* bp, size_t len,
                     const char* log = NULL);
     
-    static int readv(int fd, struct iovec* iov, int iovcnt,
+    static int readv(int fd, const struct iovec* iov, int iovcnt,
                      const char* log = NULL);
     
-    static int write(int fd, const char* bp, int len,
+    static int write(int fd, const char* bp, size_t len,
                      const char* log = NULL);
     
-    static int writev(int fd, struct iovec* iov, int iovcnt,
+    static int writev(int fd, const struct iovec* iov, int iovcnt,
                       const char* log = NULL);
     //@}
     
@@ -39,12 +39,22 @@ public:
                     const char* log = NULL);
     
     //@{
+    /// Fill in the entire supplied buffer, potentially
+    /// requiring multiple calls to read().
+    static int readall(int fd, char* bp, size_t len,
+                       const char* log = NULL);
+
+    static int readvall(int fd, const struct iovec* iov, int iovcnt,
+                         const char* log = NULL);
+    //@}
+    
+    //@{
     /// Write out the entire supplied buffer, potentially
     /// requiring multiple calls to write().
-    static int writeall(int fd, const char* bp, int len,
+    static int writeall(int fd, const char* bp, size_t len,
                         const char* log = NULL);
 
-    static int writevall(int fd, struct iovec* iov, int iovcnt,
+    static int writevall(int fd, const struct iovec* iov, int iovcnt,
                          const char* log = NULL);
     //@}
 
@@ -56,10 +66,10 @@ public:
      * @return the number of bytes read or the appropriate
      * IOTimeoutReturn_t code
      */
-    static int timeout_read(int fd, char* bp, int len, int timeout_ms,
+    static int timeout_read(int fd, char* bp, size_t len, int timeout_ms,
                             const char* log = NULL);
     
-    static int timeout_readv(int fd, struct iovec* iov, int iovcnt,
+    static int timeout_readv(int fd, const struct iovec* iov, int iovcnt,
                              int timeout_ms, const char* log = NULL);
     //@}
     
@@ -69,6 +79,15 @@ public:
 private:
     IO();  // don't ever instantiate
 
+    typedef ssize_t(*rw_func_t)(int, void*, size_t);
+    typedef ssize_t(*rw_vfunc_t)(int, const struct iovec*, int);
+
+    static int rwall(rw_func_t rw, int fd, char* bp, size_t len,
+                     const char* log);
+    
+    static int rwvall(rw_vfunc_t rw, int fd,
+                      const struct iovec* iov, int iovcnt,
+                      const char* log);
 };
 
 #endif /* _IO_H_ */

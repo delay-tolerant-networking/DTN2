@@ -20,17 +20,19 @@ public:
 
     //@{
     /// Virtual functions from IOClient interface
-    virtual int read(char* bp, int len);
-    virtual int readv(struct iovec* iov, int iovcnt);
-    virtual int write(const char* bp, int len);
-    virtual int writev(struct iovec* iov, int iovcnt);
+    virtual int read(char* bp, size_t len);
+    virtual int readv(const struct iovec* iov, int iovcnt);
+    virtual int write(const char* bp, size_t len);
+    virtual int writev(const struct iovec* iov, int iovcnt);
 
-    /// Write out the entire supplied buffer, potentially
+    /// Read or write out the entire supplied buffer, potentially
     /// requiring multiple calls to write().
-    virtual int writeall(const char* bp, int len);
+    virtual int readall(char* bp, size_t len);
+    virtual int writeall(const char* bp, size_t len);
 
     /// Similar function for iovec
-    virtual int writevall(struct iovec* iov, int iovcnt);
+    virtual int readvall(const struct iovec* iov, int iovcnt);
+    virtual int writevall(const struct iovec* iov, int iovcnt);
     //@}
 
     //@{
@@ -41,8 +43,8 @@ public:
      * @return the number of bytes read or the appropriate
      * IOTimeoutReturn_t code
      */
-    virtual int timeout_read(char* bp, int len, int timeout_ms);
-    virtual int timeout_readv(struct iovec* iov, int iovcnt, int timeout_ms);
+    virtual int timeout_read(char* bp, size_t len, int timeout_ms);
+    virtual int timeout_readv(const struct iovec* iov, int iovcnt, int timeout_ms);
     //@}
 
     //@{

@@ -131,7 +131,7 @@ TCPClient::timeout_connect(in_addr_t remote_addr, u_int16_t remote_port,
 }
 
 int
-TCPClient::read(char* bp, int len)
+TCPClient::read(char* bp, size_t len)
 {
 // debugging hack to make sure that callers can handle short reads
 // #define TEST_SHORT_READ
@@ -146,43 +146,55 @@ TCPClient::read(char* bp, int len)
 }
 
 int
-TCPClient::readv(struct iovec* iov, int iovcnt)
+TCPClient::readv(const struct iovec* iov, int iovcnt)
 {
     return IO::readv(fd_, iov, iovcnt, logpath_);
 }
 
 int
-TCPClient::write(const char* bp, int len)
+TCPClient::write(const char* bp, size_t len)
 {
     return IO::write(fd_, bp, len, logpath_);
 }
 
 int
-TCPClient::writev(struct iovec* iov, int iovcnt)
+TCPClient::writev(const struct iovec* iov, int iovcnt)
 {
     return IO::writev(fd_, iov, iovcnt, logpath_);
 }
 
 int
-TCPClient::writeall(const char* bp, int len)
+TCPClient::readall(char* bp, size_t len)
+{
+    return IO::readall(fd_, bp, len, logpath_);
+}
+
+int
+TCPClient::writeall(const char* bp, size_t len)
 {
     return IO::writeall(fd_, bp, len, logpath_);
 }
 
 int
-TCPClient::writevall(struct iovec* iov, int iovcnt)
+TCPClient::readvall(const struct iovec* iov, int iovcnt)
+{
+    return IO::readvall(fd_, iov, iovcnt, logpath_);
+}
+
+int
+TCPClient::writevall(const struct iovec* iov, int iovcnt)
 {
     return IO::writevall(fd_, iov, iovcnt, logpath_);
 }
 
 int
-TCPClient::timeout_read(char* bp, int len, int timeout_ms)
+TCPClient::timeout_read(char* bp, size_t len, int timeout_ms)
 {
     return IO::timeout_read(fd_, bp, len, timeout_ms, logpath_);
 }
 
 int
-TCPClient::timeout_readv(struct iovec* iov, int iovcnt, int timeout_ms)
+TCPClient::timeout_readv(const struct iovec* iov, int iovcnt, int timeout_ms)
 {
     return IO::timeout_readv(fd_, iov, iovcnt, timeout_ms, logpath_);
 }
