@@ -146,3 +146,9 @@ genclean:
 binclean:
 	@echo "removing binary files: $(BINFILES)..."
 	@test -z "$(BINFILES)" || rm -f $(BINFILES)
+
+.PHONY: distclean
+CFGFILES := Rules.make config.h
+distclean: clean
+	@echo "removing configure generated files: $(CFGFILES)..."
+	@test -z "$(CFGFILES)" || rm -f $(CFGFILES)
