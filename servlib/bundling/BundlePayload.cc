@@ -244,7 +244,7 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
         }
 
         // case 3: fully overwriting data in the buffer
-        else if ((offset + len) < data_.length()) {
+        else if ((offset + len) <= data_.length()) {
             data_.replace(offset, len, (const char*)bp, len);
         }
 
@@ -377,6 +377,8 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf,
         return (u_char*)data_.data() + offset;
         
     } else {
+        ASSERT(buf);
+        
         reopen_file();
         
         // check if we need to seek first
