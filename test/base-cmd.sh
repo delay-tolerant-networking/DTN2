@@ -29,13 +29,13 @@ set proto  = $proto_orig$perhop
 
 ## place to find DTN2. This will link to exe files
 set dtnroot = /proj/DTN/nsdi
-set dtn2root = /proj/DTN/nsdi/DTN2
-set dtn2testroot = /proj/DTN/nsdi/DTN2/test
+set dtn2root = $dtnroot/DTN2
+set dtn2testroot = $dtn2root/test
 
 # Root location to store log files
 
 #set logroot = /proj/DTN/exp/$exp/logs/$proto
-set logrootbase = /proj/DTN/nsdi/logs/$exp
+set logrootbase = $dtnroot/logs/$exp
 set logroot     = $logrootbase/$proto
 set txdir       = "$logroot/txfiles"
 set rcvdir      = "$logroot/rcvfiles"
