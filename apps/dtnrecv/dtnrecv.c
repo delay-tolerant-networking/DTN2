@@ -89,8 +89,6 @@ main(int argc, const char** argv)
                spec.source.admin.admin_len,
                spec.source.admin.admin_val,
                0);
-        
-        sleep(1);
     }
     
     return 0;
