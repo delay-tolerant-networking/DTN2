@@ -75,8 +75,16 @@ proc ack_arrived {sock} {
   
     after cancel $ack_timer
     set got_ack 1
-
-    set ack [gets $sock]
+    
+    if {[catch {
+	set ack [gets $sock]
+    }]} {
+	set got_ack 0
+	fileevent $sock readable ""
+	return 
+    }
+    
+    
     if [eof $sock] {
 	puts " [time] eof waiting for ack!"
 	set got_ack 0
