@@ -1,0 +1,18 @@
+DTN Reference Implementation
+----------------------------
+
+Directory Structure:
+
+applib/			dtn interface library
+apps/			example dtn applications
+doc/			documentation
+daemon/			bundle daemon sources
+ideas/			temporary code idea repository
+servlib/		dtn router internals
+servlib/cmd/		command interface
+servlib/conv_layers/	convergence layers
+servlib/debug/		debugging support code
+servlib/io/		I/O and networking support code
+servlib/routing/	bundle forwarding and routing logic
+servlib/storage/	persistent storage management
+servlib/thread/		thread / lock support implementation
