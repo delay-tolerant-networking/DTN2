@@ -58,8 +58,8 @@ BerkeleyDBManager::init()
     // handle the tidy option
     if (cfg->tidy_) {
         char cmd[256];
-        log_warn("pruning contents of db dir %s", dbdir);
         sprintf(cmd, "/bin/rm -rf %s", dbdir);
+        log_warn("pruning contents of db dir: '%s'", cmd);
         system(cmd);
         if (mkdir(dbdir, 0700) != 0) {
             log_crit("can't create datastore directory %s: %s",
