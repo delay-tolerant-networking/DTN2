@@ -39,11 +39,8 @@
 #include "TCPConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
 #include "FileConvergenceLayer.h"
-#include "../sim/SimConvergenceLayer.h"
 
 namespace dtn {
-
-class SimConvergenceLayer;
 
 ConvergenceLayer::~ConvergenceLayer()
 {
