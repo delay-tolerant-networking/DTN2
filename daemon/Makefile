@@ -14,8 +14,13 @@ DAEMON_OBJS := $(DAEMON_SRCS:.cc=.o)
 #
 all: dtnd
 
-dtnd: $(DAEMON_OBJS) $(SRCDIR)/servlib/libdtnserv.a $(SRCDIR)/applib/libdtnapisrv.a
-	$(CPP) $(DAEMON_OBJS) $(LINK_SERVLIB) $(SRCDIR)/applib/libdtnapisrv.a\
+COMPONENT_LIBS := \
+	$(SRCDIR)/applib/libdtnapisrv.a \
+	$(SRCDIR)/servlib/libdtnserv.a 	\
+	$(SRCDIR)/oasys/liboasys.a 	\
+
+dtnd: $(DAEMON_OBJS) $(COMPONENT_LIBS)
+	$(CPP) $(DAEMON_OBJS) $(COMPONENT_LIBS) \
 		$(STATIC_LIBS) -o $@ $(LFLAGS) $(LIBS)
 
 #

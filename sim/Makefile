@@ -29,8 +29,10 @@ SIM_OBJS := $(SIM_SRCS:.cc=.o)
 #
 all: sim
 
-sim: $(SIM_OBJS) $(SRCDIR)/servlib/libdtnserv.a
-	$(CPP) $(SIM_OBJS) $(LINK_SERVLIB) $(STATIC_LIBS) -o $@ $(LFLAGS) $(LIBS)
+COMPONENT_LIBS := $(SRCDIR)/servlib/libdtnserv.a $(SRCDIR)/oasys/liboasys.a 
+sim: $(SIM_OBJS) $(COMPONENT_LIBS)
+	$(CPP) $(SIM_OBJS) $(COMPONENT_LIBS) $(STATIC_LIBS) \
+		-o $@ $(LFLAGS) $(LIBS)
 
 #
 # Include the common rules
