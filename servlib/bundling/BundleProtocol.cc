@@ -96,7 +96,8 @@ BundleProtocol::fill_iov(const Bundle* bundle, struct iovec* iov, int* iovcnt)
     // and last, the payload header. the actual data will immediately
     // follow the payload header in the iovec construction below
     PayloadHeader* payload = (PayloadHeader*)malloc(sizeof(PayloadHeader));
-    payload->length = htonl(bundle->payload_.length());
+    u_int32_t payloadlen = htonl(bundle->payload_.length());
+    memcpy(&payload->length, &payloadlen, 4);
     
     // all done... set up the header type chaining
     primary->next_header_type 	 = DICTIONARY;
@@ -232,8 +233,9 @@ BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
     buf += sizeof(PayloadHeader);
     len -= sizeof(PayloadHeader);
 
-    int payloadlen = ntohl(payload->length);
-    bundle->payload_.set_data(payload->data, payloadlen);
+    u_int32_t payloadlen;
+    memcpy(&payloadlen, &payload->length, 4);
+    bundle->payload_.set_data(payload->data, ntohl(payloadlen));
 
     logf(log, LOG_DEBUG, "parsed payload length %d", payloadlen);
     
