@@ -8,6 +8,11 @@ size_t BundlePayload::mem_threshold_;
 std::string BundlePayload::dir_;
 bool BundlePayload::test_no_remove_;
 
+// XXX/demmer don't keep the payload file open forever, instead
+// maintain an LRU list.
+// XXX/demmer use the bundle's lock, fix the read_data interface to be
+// MT safe
+
 BundlePayload::BundlePayload()
     : location_(DISK), length_(0), rcvd_length_(0), file_(NULL), offset_(0)
 {
