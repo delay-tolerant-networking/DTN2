@@ -127,10 +127,19 @@ ContactManager::find_peer(const char* address)
  *
  *********************************************/
 void
-ContactManager::add_link(Link *link)
+ContactManager::add_link(Link* link)
 {
     log_debug("adding link %s", link->name());
     links_->insert(link);
+    
+    Peer* peer = find_peer(link->nexthop());
+    if (peer == NULL) {
+        peer = new Peer(link->nexthop());
+        add_peer(peer);
+    }
+    link->peer_ = peer;
+    peer->add_link(link);
+    
     BundleDaemon::post(new LinkCreatedEvent(link));
 
     // ONDEMAND links are assumed to be available

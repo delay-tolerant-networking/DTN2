@@ -93,13 +93,6 @@ Link::Link(std::string name, link_type_t type,
     default: 		PANIC("bogus link_type_t");
     }
 
-    peer_ = BundleDaemon::instance()->contactmgr()->find_peer(nexthop);
-    if (peer_ == NULL) {
-        peer_ = new Peer(nexthop);
-        BundleDaemon::instance()->contactmgr()->add_peer(peer_);
-    }
-    peer_->add_link(this);
-     
     // By default link does not have an associated contact or any cl
     // info, but all links get a bundle list
     contact_ = NULL ;
