@@ -73,7 +73,7 @@ public:
      * Reserved registration identifiers.
      */
     static const u_int32_t ADMIN_REGID = 0;
-    static const u_int32_t RESERVED_REGID = 1;
+    static const u_int32_t MAX_RESERVED_REGID = 9;
     
     /**
      * Type enumerating the option requested by the registration for

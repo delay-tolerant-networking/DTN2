@@ -38,6 +38,7 @@
 
 #include "GlobalStore.h"
 #include "StorageConfig.h"
+#include "reg/Registration.h"
 
 
 GlobalStore* GlobalStore::instance_;
@@ -46,7 +47,7 @@ GlobalStore::GlobalStore(PersistentStore * store)
     : Logger("/storage/globals")
 {
     globals.next_bundleid_ = 0;
-    globals.next_regid_ = 10; // reg ids 0-9 are reserved
+    globals.next_regid_ = Registration::MAX_RESERVED_REGID + 1;
     store_ = store;
 }
 
