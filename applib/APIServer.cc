@@ -487,6 +487,9 @@ ClientAPIServer::handle_recv()
         return -1;
     }
 
+    BundleForwarder::post(
+        new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
+    
     return 0;
 }
 
