@@ -133,9 +133,7 @@ Link::~Link()
 
 /**
  * Open a channel to the link for bundle transmission.
- * Relevant only if Link is ONDEMAND
- * Move this to subclasses ? XXX/Sushant
- *
+ * Relevant if Link is ONDEMAND or OPPORTUNISTIC
  */
 void
 Link::open()
@@ -143,9 +141,14 @@ Link::open()
     ASSERT(isavailable());
     log_debug("Link::open");
     ASSERT(!isopen());
+    
     if (!isopen()) {
         contact_ = new Contact(this);
         closing_ = false; //--keith
+
+        if (type_ == ONDEMAND)
+            clayer()->open_contact(contact_);
+        
     } else {
         log_warn("Trying to open an already open link %s",name());
     }
@@ -184,7 +187,10 @@ Link::close()
     
     // Close the contact
     clayer()->close_contact(contact_);
-    ASSERT(contact_->contact_info() == NULL) ; 
+
+    // Make sure the convergence layer cleaned up its state
+    ASSERT(link_info_ == NULL); 
+    ASSERT(contact_->contact_info() == NULL);
 
     // Clean it up
     delete contact_;
@@ -194,6 +200,11 @@ Link::close()
     contact_ = NULL;
 
     // Clear out the closing bit
+
+    // Unless this is an ondemand link, once it's closed, it's no
+    // longer available.
+    if (type_ != ONDEMAND)
+        set_link_unavailable();
 
     log_debug("Link::close complete");
 }
