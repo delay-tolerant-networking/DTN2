@@ -29,8 +29,8 @@ public:
     int     insert(Bundle* bundle);
     int     update(Bundle* bundle);
     int     del(int bundle_id) ;
-    int delete_expired(const time_t now);
-    bool is_custodian(int bundle_id);
+    int     delete_expired(const time_t now);
+    bool    is_custodian(int bundle_id);
     
 private:
     
