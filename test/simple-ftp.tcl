@@ -57,14 +57,15 @@ proc send_file {host file} {
     puts $logfd "[time] :: sending file [file tail $file]   " 
     flush $logfd
     while  { [  catch {socket $host $port } sock] } {
-	puts "Trying to connect, will try again after  5 seconds "
-	after 5000
+	puts "Trying to connect, will try again after  2 seconds "
+	after 2000
     }
     
 puts $sock "[file tail $file]"
     puts -nonewline $sock $payload
     flush $sock
     close $sock
+
 }
 
 proc recv_files {dest_dir} {
@@ -77,7 +78,7 @@ proc file_arrived {dest_dir sock addr port} {
     global logfd
     set file [gets $sock]
     set payload [read $sock]
-    close $sock
+    #close $sock
 
     puts "got file $file"
     puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
