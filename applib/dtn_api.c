@@ -66,7 +66,7 @@ dtn_open()
     xdr_setpos(&handle->xdr_encode, 0);
     xdr_setpos(&handle->xdr_decode, 0);
 
-    return handle;
+    return (char*)handle;
 }
 
 /**
@@ -393,6 +393,8 @@ dtn_build_local_tuple(dtn_handle_t handle,
 {
     dtn_tuple_t* local_tuple;
     dtn_info_response_t info;
+    int appendslash = 0;
+    
     int ret = dtn_get_info(handle, DTN_INFOREQ_INTERFACES, &info);
     if (ret != 0)
         return ret;
@@ -403,16 +405,17 @@ dtn_build_local_tuple(dtn_handle_t handle,
     tuple->admin.admin_len = local_tuple->admin.admin_len +
                              strlen(endpoint) + 1;
 
-    // XXX/demmer memory leak here?
+    if (local_tuple->admin.admin_val[local_tuple->admin.admin_len-1] != '/') {
+        appendslash = 1;
+        tuple->admin.admin_len++;
+    }
+
+    // XXX/demmer memory leak?
     tuple->admin.admin_val = (char*)malloc(tuple->admin.admin_len);
-    
-    memcpy(tuple->admin.admin_val, local_tuple->admin.admin_val,
-           local_tuple->admin.admin_len);
-    
-    memcpy(&tuple->admin.admin_val[local_tuple->admin.admin_len],
-           endpoint, strlen(endpoint));
-    
-    tuple->admin.admin_val[tuple->admin.admin_len - 1] = '\0';
+
+    snprintf(tuple->admin.admin_val, tuple->admin.admin_len, "%.*s%s%s",
+             local_tuple->admin.admin_len, local_tuple->admin.admin_val,
+             appendslash ? "/" : "", endpoint);
     
     return 0;
 }
