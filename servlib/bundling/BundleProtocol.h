@@ -12,36 +12,36 @@ class Bundle;
 class BundleProtocol {
 public:
     /**
-     * The maximum number of iovecs needed to format a bundle.
+     * The maximum number of iovecs needed to format the bundle header.
      */
     static const int MAX_IOVCNT = 6;
     
     /**
-     * Fill in an iovec suitable for a call to writev to send the
-     * bundle on the "wire".
+     * Fill in the given iovec with the formatted bundle header.
      *
-     * @return false if iovcnt isn't big enough
+     * @return the total length of the header
      */
-    static int fill_iov(const Bundle* bundle,
-                        struct iovec* iov, int* iovcnt);
+    static size_t fill_header_iov(const Bundle* bundle,
+                                  struct iovec* iov, int* iovcnt);
     
     /**
-     * Free dynamic memory allocated in fill_iov.
+     * Free dynamic memory allocated in fill_header_iov.
      */
-    static void free_iovmem(const Bundle* bundle,
-                            struct iovec* iov, int iovcnt);
+    static void free_header_iovmem(const Bundle* bundle,
+                                   struct iovec* iov, int iovcnt);
 
     /**
-     * Parse the buffer into a new bundle and pass it to the routing
-     * layer for consumption.
+     * Parse the header data, filling in the bundle.
+     *
+     * @return the length consumed or -1 on error
      */
-    static bool process_buf(u_char* buf, size_t len, Bundle** bundlep = 0);
+    static int parse_headers(Bundle* bundle, u_char* buf, size_t len);
 
 protected:
     /**
      * The current version of the bundling protocol.
      */
-    static const int CURRENT_VERSION = 0x03;
+    static const int CURRENT_VERSION = 0x04;
 
     /**
      * Enum to enumerate the valid type codes for headers.
@@ -53,17 +53,20 @@ protected:
      * functionality.
      */
     typedef enum {
-        NONE 		= 0x00,
-        PRIMARY 	= 0x01,
-        DICTIONARY	= 0x02,
-        RESERVED 	= 0x03,
-        RESERVED2	= 0x04,
-        PAYLOAD 	= 0x05,
-        RESERVED3	= 0x06,
-        AUTHENTICATION 	= 0x07,
-        PAYLOAD_SECURITY= 0x08,
-        FRAGMENT 	= 0x09,
-    } header_type_t;
+        NONE 			= 0x00,
+        PRIMARY 		= 0x01,
+        DICTIONARY		= 0x02,
+        RESERVED 		= 0x03,
+        RESERVED2		= 0x04,
+        PAYLOAD 		= 0x05,
+        RESERVED3		= 0x06,
+        AUTHENTICATION 		= 0x07,
+        PAYLOAD_SECURITY	= 0x08,
+        FRAGMENT 		= 0x09,
+        EXT1			= 0x10,
+        EXT2			= 0x11,
+        EXT4			= 0x12,
+    } bundle_header_type_t;
 
     /**
      * The primary bundle header.
@@ -79,7 +82,7 @@ protected:
         u_int8_t  custodian_id;
         u_int64_t creation_ts;
         u_int32_t expiration;
-    };
+    } __attribute__((packed));
 
     /**
      * The dictionary header.
@@ -90,7 +93,7 @@ protected:
         u_int8_t  next_header_type;
         u_int8_t  string_count;
         u_char    records[0];
-    };
+    } __attribute__((packed));
 
     /**
      * The bundle payload header.
@@ -101,8 +104,7 @@ protected:
         u_int8_t  next_header_type;
         u_int32_t length;
         u_char    data[0];
-    };
-
+    } __attribute__((packed));
 
     static u_int8_t format_cos(const Bundle* bundle);
     static void parse_cos(Bundle* bundle, u_int8_t cos);

@@ -47,8 +47,8 @@ add_to_dict(u_int8_t* id, const BundleTuple& tuple,
     *id = ((region_id << 4) | admin_id);
 }
 
-int
-BundleProtocol::fill_iov(const Bundle* bundle, struct iovec* iov, int* iovcnt)
+size_t
+BundleProtocol::fill_header_iov(const Bundle* bundle, struct iovec* iov, int* iovcnt)
 {
     // make sure that iovcnt is big enough for:
     // 1) primary header
@@ -111,37 +111,31 @@ BundleProtocol::fill_iov(const Bundle* bundle, struct iovec* iov, int* iovcnt)
     iov[1].iov_len  = dictlen;
     iov[2].iov_base = payload;
     iov[2].iov_len  = sizeof(PayloadHeader);
-    iov[3].iov_base = (void*)bundle->payload_.data();
-    iov[3].iov_len  = bundle->payload_.length();
 
     // store the count and return the total length
-    *iovcnt = 4;
-    return iov[0].iov_len + iov[1].iov_len + iov[2].iov_len + iov[3].iov_len;
+    *iovcnt = 3;
+    return iov[0].iov_len + iov[1].iov_len + iov[2].iov_len;
 }
 
 void
-BundleProtocol::free_iovmem(const Bundle* bundle, struct iovec* iov, int iovcnt)
+BundleProtocol::free_header_iovmem(const Bundle* bundle, struct iovec* iov, int iovcnt)
 {
     free(iov[0].iov_base); // primary header
     free(iov[1].iov_base); // dictionary header
     free(iov[2].iov_base); // payload header
 }
 
-bool
-BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
+int
+BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
 {
     static const char* log = "/bundle/protocol";
+    size_t origlen = len;
 
-    // allocate a new bundle
-    Bundle* bundle = new Bundle();
-    
     // always starts with the primary header
     if (len < sizeof(PrimaryHeader)) {
  tooshort:
         logf(log, LOG_ERR, "bundle too short (length %d)", len);
- bail:
-        delete bundle;
-        return false;
+        return -1;
     }
     PrimaryHeader* primary = (PrimaryHeader*)buf;
     buf += sizeof(PrimaryHeader);
@@ -150,7 +144,7 @@ BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
     if (primary->version != CURRENT_VERSION) {
         logf(log, LOG_WARN, "protocol version mismatch %d != %d",
              primary->version, CURRENT_VERSION);
-        goto bail;
+        return -1;
     }
 
     // now pull out the fields from the primary header
@@ -163,7 +157,7 @@ BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
     // the dictionary header should follow
     if (primary->next_header_type != DICTIONARY) {
         logf(log, LOG_ERR, "dictionary header doesn't follow primary");
-        goto bail;
+        return -1;
     }
 
     if (len < sizeof(DictionaryHeader)) {
@@ -209,7 +203,7 @@ BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
     if (! bundle->what_.valid()) {                                      \
         logf(log, LOG_ERR, "invalid %s tuple '%s'", #what_,             \
              bundle->what_.c_str());                                    \
-        goto bail;                                                      \
+        return -1;                                                      \
     }                                                                   \
     logf(log, LOG_DEBUG, "parsed %s tuple (ids %d, %d) %s", #what_,     \
          region_id, admin_id, bundle->what_.c_str());                   \
@@ -222,7 +216,7 @@ BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
     // next should be the payload header
     if (dictionary->next_header_type != PAYLOAD) {
         logf(log, LOG_ERR, "payload header doesn't follow dictionary");
-        goto bail;
+        return -1;
     }
     
     if (len < sizeof(PayloadHeader)) {
@@ -235,26 +229,12 @@ BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
 
     u_int32_t payloadlen;
     memcpy(&payloadlen, &payload->length, 4);
-    bundle->payload_.set_data(payload->data, ntohl(payloadlen));
+    bundle->payload_.set_length(ntohl(payloadlen));
 
-    logf(log, LOG_DEBUG, "parsed payload length %d", payloadlen);
+    logf(log, LOG_DEBUG, "parsed payload length %d", bundle->payload_.length());
     
-    // that should be it
-    len -= payloadlen;
-    if (len != 0) {
-        logf(log, LOG_ERR, "got %d extra bytes in bundle", len);
-        goto bail;
-    }
-
-    // Bundle looks good. Notify the router of the new arrival
-    BundleRouter::dispatch(new BundleReceivedEvent(bundle));
-    ASSERT(bundle->refcount() > 0);
-
-    // If the caller requests it, return a pointer to the new bundle.
-    if (bundlep)
-        *bundlep = bundle;
-    
-    return true;
+    // that's all we parse, return the amount we consumed
+    return origlen - len;
 }
 
 u_int8_t
