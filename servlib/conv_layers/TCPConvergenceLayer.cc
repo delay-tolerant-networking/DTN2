@@ -551,7 +551,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
  blocked:
         int revents;
         do {
-            cc = sock_->poll(POLLIN | POLLOUT, &revents, 5000);
+            cc = sock_->poll(POLLIN | POLLOUT, &revents, params_.rtt_timeout_);
             if (cc < 0) {
                 log_warn("send_bundle: error waiting for ack: %s",
                          strerror(errno));
@@ -591,15 +591,14 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     }
 
     // now we've written the whole payload, so loop and block until we
-    // get all the acks, but cap the wait at 5 seconds. XXX/demmer
-    // maybe this should be adjustable based on the keepalive timer?
+    // get all the acks, but cap the wait based on rtt_timeout
     payload_len = bundle->payload_.length();
 
     while (*acked_len < payload_len) {
         log_debug("send_bundle: acked %d/%d, waiting for more",
                   *acked_len, payload_len);
 
-        cc = sock_->poll(POLLIN, NULL, 5000);
+        cc = sock_->poll(POLLIN, NULL, params_.rtt_timeout_);
         if (cc < 0) {
             log_warn("send_bundle: error waiting for ack: %s",
                      strerror(errno));
@@ -796,7 +795,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
             buf = (u_char*)malloc(block_len);
         }
 
-        cc = sock_->timeout_readall((char*)buf, block_len, 5000);
+        cc = sock_->timeout_readall((char*)buf, block_len, params_.rtt_timeout_);
         if (cc == oasys::IOTIMEOUT) {
             log_warn("recv_bundle: timeout reading block data");
             goto done;
