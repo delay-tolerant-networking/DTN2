@@ -17,6 +17,12 @@ class BundleList;
 class BundleMapping;
 class SQLBundleStore;
 
+// XXX/namespace
+class Bundle;
+namespace dtn {
+typedef ::Bundle Bundle;
+}
+
 /**
  * The internal representation of a bundle.
  *

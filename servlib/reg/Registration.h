@@ -14,6 +14,12 @@ class Bundle;
 class BundleList;
 class BundleMapping;
 
+class Registration;
+// XXX/namespace
+namespace dtn {
+typedef ::Registration Registration;
+};
+
 /**
  * Class used to represent an "application" registration, loosly
  * defined to also include internal router mechanisms that consume

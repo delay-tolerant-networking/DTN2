@@ -15,6 +15,11 @@ class BundleEvent;
 class BundleRouter;
 class StringBuffer;
 
+class BundleForwarder;
+namespace dtn {
+typedef ::BundleForwarder BundleForwarder;
+}
+
 /**
  * Class that handles the flow of bundle events through the system.
  */

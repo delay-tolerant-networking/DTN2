@@ -5,6 +5,14 @@
 
 struct dtn_tuple_t;
 class AddressFamily;
+class BundleTuple;
+class BundleTuplePattern;
+
+// XXX/namespace
+namespace dtn {
+typedef ::BundleTuple BundleTuple;
+typedef ::BundleTuplePattern BundleTuplePattern;
+}
 
 /**
  * Class to wrap a bundle tuple of the general form:
