@@ -157,7 +157,7 @@ protected:
  */
 class ContactInfo {
 public:
-    virtual ~ContactInfo(){}
+    virtual ~ContactInfo() {}
 };
 
 #endif /* _CONTACT_H_ */
