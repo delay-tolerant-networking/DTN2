@@ -1,9 +1,9 @@
 <html>
 <head>
-<title> DTN2 Manual: Tutorial 1 </title>
+<title> DTN2 Manual: Starting dtnd and sending a ping </title>
 </head>
 <body>
-<h1>Tutorial 1
+<h1>Starting dtnd and sending a ping
 </h1>
 
 <p>
@@ -152,15 +152,56 @@ and you have:
 </pre>
 </blockquote>
 
-<h2> Starting the Daemon </h2>
+<h2> Running the Daemon </h2>
 
 <p>
 For now, you start dtnd from the commandline, like any other
 Unix command. By default, the TCL interpreter takes input from
-standard in, so you should leave it running in the foreground. While
+standard in, so you will need to leave it running in the foreground. While
 you are learning the ins and outs of dtnd, it is best to run it
 this way, so that you can interact with it. Use the <tt>-c</tt>
 argument to tell it where to find the configuration file.
+For information on other arguments you can give dtnd, see
+the <a href="man/dtnd.html">dtnd man page</a>.
+
+<p>
+Once you start dtnd with a command like <tt>DTN2/daemon/dtnd -c
+/home/fred/dtn/dtn.conf</tt>, it will put out some messages, then
+give you the <tt>dtn%</tt> prompt. This means the server is up
+and running, awaiting commands from you. Things you type at the
+prompt are interpreted by the same TCL interpreter that just parsed
+the configuration file. In a way, you can consider the configuration
+file a list of commands that will be issued for you
+each time you start the server.
+
+<p>
+Here's an example of starting up the server:
+
+<blockquote><pre>
+[1108500270.498718 /dtnd info] Bundle Daemon Initializing...
+[1108500270.498718 /dtnd info] random seed is 498718
+[1108500270.546718 /dtnd info] parsing configuration file /home/fred/dtn/dtn.conf...
+[1108500270.553718 /dtnd info] dtnd parsing configuration...
+[1108500270.557718 /interface info] adding interface tcp host://0.0.0.0:5000/
+[1108500270.577718 /dtnd info] dtnd configuration parsing complete
+[1108500270.985718 /storage/berkeleydb info] database file '/home/fred/dtn/db/DTN.db' validated
+[1108500271.136718 /tcl info] can't load tclreadline: can't find package tclreadline
+[1108500271.142718 /tcl info] fall back to simple command loop
+</pre></blockquote>
+
+<p>
+Note that this installation of TCL is missing the optional
+<i>tclreadline</i> package. As a result we get a warning from dtnd
+at startup, but it will still work correctly. The user interface
+is just slightly more difficult to use.
+
+<p>
+Use the online help system to learn what you can do from here. Type
+<b>help</b>. For help on a specific command, type <b>help
+<i>command</i></b>.
+
+<p>
+Two commands you might like 
 
 </body>
 </html>

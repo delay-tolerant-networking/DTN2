@@ -56,4 +56,10 @@ StorageCommand::StorageCommand()
     bind_s("payloaddir",&cfg->payloaddir_);
 }
 
+const char*
+StorageCommand::help_string()
+{
+    return("storage set <var> <val>");
+}
+
 } // namespace dtn
