@@ -43,6 +43,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <oasys/compat/inet_aton.h>
 #include <oasys/compat/inttypes.h>
 
 #include "dtn_ipc.h"
@@ -84,7 +85,7 @@ dtnipc_open(dtnipc_handle_t* handle)
     handshake_port = DTN_API_HANDSHAKE_PORT;
     
     if ((env = getenv("DTNAPI_ADDR")) != NULL) {
-        if (inet_pton(AF_INET, env, (struct in_addr*)&ipc_addr) == 0)
+        if (inet_aton(env, (struct in_addr*)&ipc_addr) == 0)
         {
             fprintf(stderr, "DTNAPI_ADDR environment variable (%s) "
                     "not a valid ip address\n", env);
