@@ -142,7 +142,7 @@ int
 Bundle::del_pending()
 {
     lock_.lock();
-    ASSERT(pendingtxcount_ >= 0);
+    ASSERT(pendingtxcount_ > 0);
     int ret = --pendingtxcount_;
     log_debug("/bundle/pending",
               "bundle id %d: pendingtxcount %d -> %d",
