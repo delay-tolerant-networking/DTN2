@@ -6,6 +6,7 @@
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
 #include "io/NetUtils.h"
+#include "thread/Timer.h"
 #include "util/URL.h"
 
 #include <sys/poll.h>
@@ -200,13 +201,16 @@ TCPConvergenceLayer::Connection::Connection(Contact* contact,
     Thread::flags_ |= INTERRUPTABLE;
 
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
+    ack_blocksz_ = TCPConvergenceLayer::Defaults.ack_blocksz_;
+
+    // cache the remote addr and port in the fields in the socket
+    // since we want to actually connect to the peer side from the
+    // Connection thread, not from the caller thread
     sock_ = new TCPClient(logpath_);
     sock_->set_logfd(false);
-    
     sock_->set_remote_addr(remote_addr);
     sock_->set_remote_port(remote_port);
-    ack_blocksz_ = TCPConvergenceLayer::Defaults.ack_blocksz_;
-}
+}    
 
 TCPConvergenceLayer::Connection::Connection(int fd,
                                             in_addr_t remote_addr,
@@ -214,10 +218,10 @@ TCPConvergenceLayer::Connection::Connection(int fd,
     : contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
+    ack_blocksz_ = TCPConvergenceLayer::Defaults.ack_blocksz_;
+
     sock_ = new TCPClient(fd, remote_addr, remote_port, logpath_);
     sock_->set_logfd(false);
-    
-    ack_blocksz_ = TCPConvergenceLayer::Defaults.ack_blocksz_;
 }
 
 TCPConvergenceLayer::Connection::~Connection()
@@ -237,8 +241,10 @@ void
 TCPConvergenceLayer::Connection::run()
 {
     if (contact_) {
+        connect(sock_->remote_addr(), sock_->remote_port());
         send_loop();
     } else {
+        accept();
         recv_loop();
     }
 }
@@ -246,10 +252,10 @@ TCPConvergenceLayer::Connection::run()
 /**
  * Send one bundle over the wire.
  *
- * Return the amount of payload acked, or -1 on error.
+ * Return true if the bundle was sent successfully, false if not.
  */
 bool
-TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
+TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
 {
     int iovcnt = BundleProtocol::MAX_IOVCNT;
     struct iovec iov[iovcnt + 2];
@@ -271,7 +277,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     log_debug("send_bundle: bundle id %d, header_length %d payload_length %d",
               bundle->bundleid_, header_len, payload_len);
 
-    // now fill in the frame header
+    // fill in the frame header
     starthdr.bundle_id = bundle->bundleid_;
     starthdr.bundle_length = htonl(header_len + payload_len);
     starthdr.header_length = htons(header_len);
@@ -294,6 +300,11 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
               1 + sizeof(BundleStartHeader), header_len);
     int cc = sock_->writevall(iov, iovcnt + 2);
     int total = 1 + sizeof(BundleStartHeader) + header_len;
+
+    // free up the iovec data used in the header representation
+    BundleProtocol::free_header_iovmem(bundle, &iov[2], iovcnt);
+
+    // make sure the write was successful
     if (cc != total) {
         log_err("send_bundle: error writing bundle header (wrote %d/%d): %s",
                 cc, total, strerror(errno));
@@ -303,37 +314,33 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         return false;
     }
         
-    // free up the iovec data used in the header representation
-    BundleProtocol::free_header_iovmem(bundle, &iov[2], iovcnt);
-        
     // now write out the first (and maybe only) payload block
     log_debug("send_bundle: sending %d byte first payload block", block_len);
     const char* payload_data = bundle->payload_.read_data(0, block_len);
-    log_debug("send_bundle: block %s", payload_data);
     cc = sock_->writeall(payload_data, block_len);
 
     if (cc != (int)block_len) {
         log_err("send_bundle: error writing bundle block (wrote %d/%d): %s",
                 cc, block_len, strerror(errno));
             
-        // XXX error could be the other side going away, so need
-        // to deal with the contact going away
+        // XXX/demmer error could be the other side going away, so
+        // need to deal with the contact going away -- reactive
+        // fragmentation
         return false;
     }
-
+    
     // update payload_len and payload_offset to count the chunk we
     // just wrote
     size_t payload_offset;
     payload_offset = block_len;
     payload_len   -= block_len;
-    
 
-    // loop through the rest of the payload, sending blocks and
+    // now loop through the rest of the payload, sending blocks and
     // checking for acks as they come in. we intentionally send a
     // second data block before checking for any acks since it's
     // likely that there's no ack to read the first time through and
     // this way we get a second block out on the wire
-    *acked_len = 0;
+    size_t acked_len = 0;
         
     while (payload_len > 0) {
         BundleBlockHeader blockhdr;
@@ -375,7 +382,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
         // check for acks. we use timeout_read() with a 0ms timeout so
         // we don't block
-        cc = handle_ack(bundle, 0, acked_len);
+        cc = handle_ack(bundle, 0, &acked_len);
         if (cc == IOEOF || cc == IOERROR)
         {
             log_err("error checking for ack: %d", cc);
@@ -397,10 +404,11 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     // now loop and block until we get all the acks, but cap the wait
     // at 5 seconds. 
     payload_len = bundle->payload_.length();
-    while (*acked_len < payload_len) {
+    while (acked_len < payload_len) {
         log_debug("send_bundle: acked %d/%d, waiting for more",
-                  *acked_len, payload_len);
-        cc = handle_ack(bundle, 5000, acked_len);
+                  acked_len, payload_len);
+        
+        cc = handle_ack(bundle, 5000, &acked_len);
         if (cc == IOEOF || cc == IOERROR || cc == IOTIMEOUT)
         {
             log_err("error or timeout waiting for ack: %d", cc);
@@ -410,8 +418,24 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         ASSERT(cc == 1);
     }
 
+    ASSERT(acked_len > 0);
+    
+    // cons up a transmission event and pass it to the router
+    BundleForwarder::post(
+        new BundleTransmittedEvent(bundle, contact_, acked_len, true));
+    
     // all done!
     return true;
+}
+
+/**
+ * Receive one bundle over the wire. We've just consumed the one byte
+ * BUNDLE_START typecode off the wire.
+ */
+bool
+TCPConvergenceLayer::Connection::recv_bundle()
+{
+    NOTIMPLEMENTED;
 }
 
 /**
@@ -445,7 +469,9 @@ TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
 }
 
 /**
- * Handle an incoming ack, updating the acked length count.
+ * Handle an incoming ack, updating the acked length count. Timeout
+ * specifies the amount of time the sender is willing to wait for the
+ * ack.
  */
 int
 TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, int timeout,
@@ -511,10 +537,13 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, int timeout,
 }
 
 /**
- * The sender side main thread loop.
+ * Sender side of the initial handshake. First connect to the peer
+ * side, then exchange ContactHeaders and negotiate session
+ * parameters.
  */
 void
-TCPConvergenceLayer::Connection::send_loop()
+TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
+                                         u_int16_t remote_port)
 {
     // first of all, connect to the receiver side
     ASSERT(sock_->state() != IPSocket::ESTABLISHED);
@@ -536,7 +565,7 @@ TCPConvergenceLayer::Connection::send_loop()
     contacthdr.ackblock_sz = ack_blocksz_;
     contacthdr.keepalive_sec = 2;
 
-    int keepalive_msec = contacthdr.keepalive_sec * 1000;
+    keepalive_msec_ = contacthdr.keepalive_sec * 1000;
     
     log_debug("send_loop: "
               "connection established, sending contact header handshake.,.");
@@ -544,10 +573,7 @@ TCPConvergenceLayer::Connection::send_loop()
     if (cc != sizeof(ContactHeader)) {
         log_err("error writing contact header (wrote %d/%d): %s",
                 cc, sizeof(ContactHeader), strerror(errno));
- shutdown:
-        sock_->close();
-        Thread::set_flag(STOPPED);
-        contact_->close();
+        break_contact();
         return;
     }
 
@@ -556,135 +582,19 @@ TCPConvergenceLayer::Connection::send_loop()
     if (cc != sizeof(ContactHeader)) {
         log_err("error reading contact header reply (read %d/%d): %s", 
                 cc, sizeof(ContactHeader), strerror(errno));
-        goto shutdown;
+        break_contact();
+        return;
     }
-
-    // extract the agreed-upon keepalive timer, and set up the timer
-    // event queue and the timer object itself
-    log_debug("send_loop: got contact header: keepalive %d milliseconds",
-              keepalive_msec);
-    
-    // build up a poll vector so we can block waiting for a) bundle
-    // input from the main daemon thread, b) a message from the other
-    // side, or c) the keepalive timer firing
-    struct pollfd pollfds[3];
-    struct pollfd* bundle_poll 	= &pollfds[0];
-    struct pollfd* sock_poll 	= &pollfds[1];
-    struct pollfd* timer_poll 	= &pollfds[2];
-    
-    bundle_poll->fd = contact_->bundle_list()->read_fd();
-    bundle_poll->events = POLLIN | POLLPRI;
-    sock_poll->fd = sock_->fd();
-    sock_poll->events = POLLIN | POLLPRI;
-    timer_poll->fd = 0;
-
-    // XXX/demmer todo: add timer poll
-
-    // main loop
-    while (1) {
-        Bundle* bundle;
-
-        // first check the contact's bundle list to see if there's a
-        // bundle already there... if not, we'll block waiting for
-        // input either from the remote side (i.e. a keepalive) or the
-        // bundle list notifier
-        //
-        // note that pop_front does _not_ decrement the reference
-        // count, so we now have a local reference to the bundle
-
-        bundle = contact_->bundle_list()->pop_front();
-
-        if (!bundle) {
-            pollfds[0].revents = 0;
-            pollfds[1].revents = 0;
-            pollfds[2].revents = 0;
-        
-            log_debug("send_loop: calling poll");
-            int ret = poll(pollfds, 2, -1);
-            if (ret <= 0) {
-                if (errno == EINTR) continue;
-                log_err("error return %d from poll: %s", ret, strerror(errno));
-                goto shutdown;
-            }
-            log_debug("send_loop: poll returned %d", ret);
-
-            // check for a message (or shutdown) from the other side
-            if (sock_poll->revents != 0) {
-                if ((sock_poll->revents & POLLHUP) ||
-                    (sock_poll->revents & POLLERR))
-                {
-                    log_warn("send_loop: "
-                             "remote connection unexpectedly closed");
-                    goto shutdown;
-                }
-                else if ((sock_poll->revents & POLLIN) ||
-                         (sock_poll->revents & POLLPRI))
-                {
-                    char typecode;
-                    int ret = sock_->read(&typecode, 1);
-                    if (ret == -1 || ret == 0)
-                    {
-                        log_warn("send_loop: "
-                                 "remote connection unexpectedly closed");
-                        goto shutdown;
-                    }
-
-                    log_err("XXX/demmer todo handle keepalive");
-                    goto shutdown;
-                }
-                else
-                {
-                    PANIC("unknown revents value 0x%x", sock_poll->revents);
-                }
-            }
-
-            // XXX/demmer check keepalive timer
-        
-            // if the bundle list wasn't triggered, loop again waiting
-            // for input
-            if (bundle_poll->revents == 0) {
-                continue;
-            }
-
-            // otherwise, we've been notified that a bundle is there,
-            // so grab it off the list
-            ASSERT(bundle_poll->revents == POLLIN);
-            bundle = contact_->bundle_list()->pop_front();
-            ASSERT(bundle);
-            contact_->bundle_list()->drain_pipe();
-        }
-
-        // we got a legit bundle, send it off
-        size_t acked_len = 0;
-        if (! send_bundle(bundle, &acked_len)) {
-            goto shutdown;
-        }
-
-        ASSERT(acked_len > 0);
-
-        // cons up a transmission event and pass it to the router
-        BundleForwarder::post(
-            new BundleTransmittedEvent(bundle, contact_, acked_len, true));
-        
-        // finally, remove our local reference on the bundle, which
-        // may delete it
-        bundle->del_ref();
-        bundle = NULL;
-    }
-
-    goto shutdown;
 }
 
+/**
+ * Receiver side of the initial handshake.
+ */
 void
-TCPConvergenceLayer::Connection::recv_loop()
+TCPConvergenceLayer::Connection::accept()
 {
-    ASSERT(contact_ == NULL); // XXX/demmer for now
+    ASSERT(contact_ == NULL);
 
-    // declare dynamic storage elements that may need to be cleaned up
-    // on error
-    char* buf = NULL;
-    Bundle* bundle = NULL;
-        
     // read and write back the contact header
     ContactHeader contacthdr;
     log_debug("recv_loop: waiting for contact header...");
@@ -692,25 +602,193 @@ TCPConvergenceLayer::Connection::recv_loop()
     if (cc != sizeof(ContactHeader)) {
         log_err("error reading contact header (read %d/%d): %s",
                 cc, sizeof(ContactHeader), strerror(errno));
- shutdown:
-        if (buf)
-            free(buf);
-
-        if (bundle)
-            delete bundle;
-        
-        sock_->close();
+        break_contact();
         return;
     }
+
+    // XXX/demmer do some "negotiation" here
+    
+    keepalive_msec_ = contacthdr.keepalive_sec * 1000;
     
     log_debug("recv_loop: got contact header, sending reply...");
     cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
     if (cc != sizeof(ContactHeader)) {
         log_err("error reading contact header reply (read %d/%d): %s", 
                 cc, sizeof(ContactHeader), strerror(errno));
-        goto shutdown;
+        break_contact();
+        return;
     }
+}
 
+/**
+ * Send an event to the system indicating that this contact is broken
+ * and close the side of the connection.
+ *
+ * This results in the Connection thread stopping and the system
+ * calling the contact->close() call which cleans up the connection.
+ */
+void
+TCPConvergenceLayer::Connection::break_contact()
+{
+    ASSERT(sock_);
+    sock_->close();
+
+    // mark the connection thread as "stopped" since we're about to
+    Thread::set_flag(STOPPED);
+    if (contact_) {
+        contact_->close();
+    }
+    BundleForwarder::post(new ContactBrokenEvent(contact_));
+}
+
+/**
+ * The sender side main thread loop.
+ */
+void
+TCPConvergenceLayer::Connection::send_loop()
+{
+    Bundle* bundle;
+    char typecode;
+    int ret;
+
+    // extract the agreed-upon keepalive timer, and set up the timer
+    // event queue and the timer object itself
+    log_debug("send_loop: got contact header: keepalive %d milliseconds",
+              keepalive_msec_);
+    
+    // build up a poll vector since we need to block below on input
+    // from both the socket and the bundle list notifier
+    struct pollfd pollfds[2];
+    
+    struct pollfd* bundle_poll = &pollfds[0];
+    bundle_poll->fd = contact_->bundle_list()->read_fd();
+    bundle_poll->events = POLLIN;
+    
+    struct pollfd* sock_poll = &pollfds[1];
+    sock_poll->fd = sock_->fd();
+    sock_poll->events = POLLIN;
+
+    // keep track of the keepalive times
+    struct timeval keepalive_sent, keepalive_rcvd;
+    ::gettimeofday(&keepalive_rcvd, 0);
+    
+    // main loop
+    while (1) {
+        // first check the contact's bundle list to see if there's a
+        // bundle already there. 
+        bundle = contact_->bundle_list()->pop_front();
+
+        if (bundle) {
+            // we got a bundle, so send it off. note that pop_front
+            // does _not_ decrement the reference count, so we now
+            // have a local reference to the bundle
+            if (! send_bundle(bundle)) {
+                bundle->del_ref();
+                goto shutdown;
+            }
+
+            // remove our local reference on the bundle (which may
+            // delete it) and loop again, looking for another bundle
+            // to send
+            bundle->del_ref();
+            bundle = NULL;
+            continue;
+        }
+
+        // no bundle, so we'll block waiting for a) some activity on
+        // the socket, i.e. a keepalive or shutdown, or b) the bundle
+        // list notifier indicating there's a new bundle for us to
+        // send
+        //
+        // note that we pass the negoatiated keepalive as the timeout
+        // to the poll call to make sure the other side sends its
+        // keepalive in time
+        pollfds[0].revents = 0;
+        pollfds[1].revents = 0;
+        pollfds[2].revents = 0;
+        
+        log_debug("send_loop: calling poll");
+        int nready = poll(pollfds, 2, keepalive_msec_);
+        if (nready < 0) {
+            if (errno == EINTR) continue;
+            log_err("error return %d from poll: %s", nready, strerror(errno));
+            goto shutdown;
+        }
+
+        // check for a message (or shutdown) from the other side
+        if (sock_poll->revents != 0) {
+            if ((sock_poll->revents & POLLHUP) ||
+                (sock_poll->revents & POLLERR))
+            {
+                log_warn("send_loop: remote connection error");
+                goto shutdown;
+            }
+
+            if (! (sock_poll->revents & POLLIN)) {
+                PANIC("unknown revents value 0x%x", sock_poll->revents);
+            }
+
+            log_debug("send_loop: data available on the socket");
+            ret = sock_->read(&typecode, 1);
+            if (ret != 1) {
+                log_warn("send_loop: "
+                         "remote connection unexpectedly closed");
+                goto shutdown;
+            }
+
+            if (typecode != KEEPALIVE) {
+                log_warn("send_loop: "
+                         "got unexpected frame code %d", typecode);
+                goto shutdown;
+            }
+
+            // mark that we got a keepalive as expected
+            ::gettimeofday(&keepalive_rcvd, 0);
+        }
+        
+        // if the bundle list was triggered, we check the list at the
+        // beginning of the loop, but make sure to drain the pipe here
+        if (bundle_poll->revents != 0) {
+            ASSERT(bundle_poll->revents == POLLIN);
+            ASSERT(contact_->bundle_list()->front() != NULL);
+            contact_->bundle_list()->drain_pipe();
+        }
+
+        // check that it hasn't been too long since the other side
+        // sent us a keepalive
+        int elapsed = TIMEVAL_DIFF_MSEC(keepalive_sent, keepalive_rcvd);
+        if (elapsed > (2 * keepalive_msec_)) {
+            log_warn("send_loop: no keepalive heard for %d msecs -- "
+                     "closing contact", elapsed);
+            goto shutdown;
+        }
+        
+        // if nready is zero then the command timed out, implying that
+        // it's time to send a keepalive.
+        if (nready == 0) {
+            log_debug("send_loop: timeout fired, sending keepalive");
+            typecode = KEEPALIVE;
+            ret = sock_->write(&typecode, 1);
+            if (ret != 1) {
+                log_warn("send_loop: "
+                         "remote connection unexpectedly closed");
+                goto shutdown;
+            }
+
+            ::gettimeofday(&keepalive_sent, 0);
+        }
+    }
+    
+ shutdown:
+    break_contact();
+}
+
+void
+TCPConvergenceLayer::Connection::recv_loop()
+{
+    char* buf = NULL;
+    Bundle* bundle = NULL;
+        
     char typecode;
     BundleStartHeader starthdr;
     BundleBlockHeader blockhdr;
@@ -723,19 +801,40 @@ TCPConvergenceLayer::Connection::recv_loop()
     while (1) {
         // block on the one byte typecode
         log_debug("recv_loop: blocking on frame typecode...");
-        cc = sock_->read(&typecode, 1);
-        if (cc == 0) {
+        int ret = sock_->timeout_read(&typecode, 1, 2 * keepalive_msec_);
+        if (ret == IOEOF || ret == IOERROR) {
             log_warn("recv_loop: remote connection unexpectedly closed");
-            goto shutdown;
+ shutdown:
+            if (buf)
+                free(buf);
             
-        }
-        if (cc != 1) {
-            log_err("recv_loop: error reading frame type code: %s",
-                    strerror(errno));
+            if (bundle)
+                delete bundle;
+
+            break_contact();
+            return;
+            
+        } else if (ret == IOTIMEOUT) {
+            log_warn("recv_loop: no message heard for > %d msecs -- "
+                     "breaking contact", 2 * keepalive_msec_);
             goto shutdown;
         }
+        
+        ASSERT(ret == 1);
 
         log_debug("recv_loop: got frame packet type 0x%x...", typecode);
+
+        if (typecode == KEEPALIVE) {
+            log_debug("recv_loop: "
+                      "got keepalive, sending response");
+            ret = sock_->write(&typecode, 1);
+            if (ret != 1) {
+                log_warn("recv_loop: remote connection unexpectedly closed");
+                goto shutdown;
+            }
+            continue;
+        }
+        
         if (typecode != BUNDLE_START) {
             log_err("recv_loop: "
                     "unexpected typecode 0x%x waiting for BUNDLE_START",
@@ -745,7 +844,7 @@ TCPConvergenceLayer::Connection::recv_loop()
 
         // now read the rest of the start header
         log_debug("recv_loop: reading start header...");
-        cc = sock_->readall((char*)&starthdr, sizeof(BundleStartHeader));
+        int cc = sock_->readall((char*)&starthdr, sizeof(BundleStartHeader));
         if (cc != sizeof(BundleStartHeader)) {
             log_err("recv_loop: error reading start header (read %d/%d): %s",
                     cc, sizeof(BundleStartHeader), strerror(errno));

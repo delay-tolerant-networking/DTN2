@@ -93,16 +93,24 @@ protected:
         
     protected:
         virtual void run();
+        
+        void connect(in_addr_t remote_addr, u_int16_t remote_port);
+        void accept();
+        void break_contact();
+        
         void send_loop();
         void recv_loop();
 
-        bool send_bundle(Bundle* bundle, size_t* acked_len);
-        bool send_ack(u_int32_t bundle_id, size_t acked_len);
+        bool send_bundle(Bundle* bundle);
         int handle_ack(Bundle* bundle, int timeout, size_t* acked_len);
-        
+
+        bool recv_bundle();
+        bool send_ack(u_int32_t bundle_id, size_t acked_len);
+
         Contact* contact_;
         TCPClient* sock_;
         size_t ack_blocksz_;
+        int keepalive_msec_;
     };
 };
 
