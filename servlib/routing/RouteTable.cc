@@ -12,6 +12,7 @@ RouteEntry::RouteEntry(const BundleTuplePattern& pattern,
     : pattern_(pattern),
       action_(action),
       next_hop_(next_hop),
+      local_(false),
       info_(NULL)
 {
 }
