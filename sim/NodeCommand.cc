@@ -133,31 +133,17 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             }
 
             const char* dest_str = argv[4];
-            const char* name = argv[5];
+            const char* nexthop = argv[5];
 
-            log_debug("adding route to %s through %s", dest_str, name);
+            log_debug("adding route to %s through %s", dest_str, nexthop);
             
             BundleTuplePattern dest(dest_str);
             if (!dest.valid()) {
                 resultf("invalid destination tuple %s", dest_str);
                 return TCL_ERROR;
             }
-            
-            BundleConsumer* consumer = NULL;
-            consumer = node_->contactmgr()->find_link(name);
-            if (consumer == NULL) {
-                consumer = node_->contactmgr()->find_peer(name);
-            }
-            
-            if (consumer == NULL) {
-                resultf("no such link or node exists, %s", name);
-                return TCL_ERROR;
-            }
 
-            // XXX/demmer fix this FORWARD_COPY
-            RouteEntry* entry = new RouteEntry(dest, consumer, FORWARD_COPY);
-            BundleEvent* e = new RouteAddEvent(entry);
-            Simulator::post(new SimRouterEvent(time, node_, e));
+            Simulator::post(new SimAddRouteEvent(time, node_, dest, nexthop));
             
             return TCL_OK;
         }
@@ -207,7 +193,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             if (!link)
                 return TCL_ERROR;
             
-            //Simulator::post(new SimLinkCreatedEvent(time, node, link));
+            Simulator::post(new SimAddLinkEvent(time, node_, link));
 
             return TCL_OK;
         }

@@ -40,7 +40,10 @@
 #include "SimBundleActions.h"
 #include "bundling/ContactManager.h"
 #include "bundling/FragmentManager.h"
+#include "bundling/Link.h"
+#include "bundling/Peer.h"
 #include "routing/BundleRouter.h"
+#include "routing/RouteTable.h"
 #include "reg/Registration.h"
 
 using namespace dtn;
@@ -101,22 +104,53 @@ Node::process_bundle_events()
 
 
 void
-Node::process(SimEvent *e)
+Node::process(SimEvent* simevent)
 {
-    log_debug("handling event %s", ev2str(e->type()));
+    log_debug("handling event %s", ev2str(simevent->type()));
+
+    set_active();
     
-    switch(e->type()) {
+    switch(simevent->type()) {
     case SIM_ROUTER_EVENT:
-        post_event(((SimRouterEvent*)e)->event_);
+        post_event(((SimRouterEvent*)simevent)->event_);
         break;
+
+    case SIM_ADD_LINK: {
+        SimAddLinkEvent* e = (SimAddLinkEvent*)simevent;
+
+        // Add the link to contact manager, which posts a
+        // LinkCreatedEvent to the daemon
+        BundleDaemon::instance()->contactmgr()->add_link(e->link_);
         
+        break;
+    }
+        
+    case SIM_ADD_ROUTE: {
+        SimAddRouteEvent* e = (SimAddRouteEvent*)simevent;
+        
+        BundleConsumer* nexthop = NULL;
+        nexthop = contactmgr()->find_link(e->nexthop_.c_str());
+        if (nexthop == NULL) {
+            nexthop = contactmgr()->find_peer(e->nexthop_.c_str());
+        }
+            
+        if (nexthop == NULL) {
+            PANIC("no such link or node exists %s", e->nexthop_.c_str());
+        }
+
+        // XXX/demmer fix this FORWARD_COPY
+        RouteEntry* entry = new RouteEntry(e->dest_, nexthop, FORWARD_COPY);
+        BundleDaemon::post(new RouteAddEvent(entry));
+        break;
+    }
+            
     default:
-        PANIC("no Node handler for event %s", ev2str(e->type()));
+        PANIC("no Node handler for event %s", ev2str(simevent->type()));
     }
     
     process_bundle_events();
 
-    delete e;
+    delete simevent;
 }
 
 } // namespace dtnsim

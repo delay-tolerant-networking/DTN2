@@ -55,6 +55,8 @@ typedef enum {
     SIM_ROUTER_EVENT = 0x1,	///< Event to be delivered to the router
     SIM_ADD_LINK,		///< Link added
     SIM_DEL_LINK,		///< Link deleted
+    SIM_ADD_ROUTE,		///< Route added
+    SIM_DEL_ROUTE,		///< Route deleted
     SIM_CONTACT_UP,		///< SimContact is available
     SIM_CONTACT_DOWN,		///< SimContact abnormally terminated
     SIM_NEXT_SENDTIME,		///< Used by traffic agent to send data
@@ -70,6 +72,8 @@ ev2str(sim_event_type_t event) {
     case SIM_ROUTER_EVENT:		return "SIM_ROUTER_EVENT";
     case SIM_ADD_LINK:			return "SIM_ADD_LINK";
     case SIM_DEL_LINK:			return "SIM_DEL_LINK";
+    case SIM_ADD_ROUTE:			return "SIM_ADD_ROUTE";
+    case SIM_DEL_ROUTE:			return "SIM_DEL_ROUTE";
     case SIM_CONTACT_UP:		return "SIM_CONTACT_UP";
     case SIM_CONTACT_DOWN:		return "SIM_CONTACT_DOWN";
     case SIM_NEXT_SENDTIME:		return "SIM_NEXT_SENDTIME";
@@ -109,7 +113,7 @@ private:
 
 /******************************************************************************
  *
- * EventCompare
+ * SimEventCompare
  *
  *****************************************************************************/
 class SimEventCompare {
@@ -125,17 +129,58 @@ public:
 
 /*******************************************************************
  *
- * Events for Node
+ * SimRouterEvent -- catch all event class to wrap delivering an event
+ * to the bundle router at a particular time.
  *
  ******************************************************************/
-
 class SimRouterEvent : public SimEvent {
 public:
     SimRouterEvent(int time, SimEventHandler* handler, BundleEvent* event)
-        
 	: SimEvent(SIM_ROUTER_EVENT, time, handler), event_(event) {}
     
     BundleEvent* event_;
+};
+
+/*******************************************************************
+ *
+ * SimAddLinkEvent
+ *
+ ******************************************************************/
+class SimAddLinkEvent : public SimEvent {
+public:
+    SimAddLinkEvent(int time, SimEventHandler* handler, Link* link)
+	: SimEvent(SIM_ADD_LINK, time, handler), link_(link) {}
+    
+    Link* link_;
+};
+
+/*******************************************************************
+ *
+ * SimDelLinkEvent
+ *
+ ******************************************************************/
+class SimDelLinkEvent : public SimEvent {
+public:
+    SimDelLinkEvent(int time, SimEventHandler* handler, Link* link)
+	: SimEvent(SIM_DEL_LINK, time, handler), link_(link) {}
+    
+    Link* link_;
+};
+
+/*******************************************************************
+ *
+ * SimAddRouteEvent
+ *
+ ******************************************************************/
+class SimAddRouteEvent : public SimEvent {
+public:
+    SimAddRouteEvent(int time, SimEventHandler* handler,
+                     const BundleTuplePattern& dest, const char* nexthop)
+	: SimEvent(SIM_ADD_ROUTE, time, handler),
+          dest_(dest), nexthop_(nexthop) {}
+    
+    BundleTuplePattern dest_;
+    std::string nexthop_;
 };
 
 } // namespace dtnsim
