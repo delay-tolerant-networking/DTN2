@@ -2,6 +2,7 @@
 #include <string>
 #include <sys/time.h>
 #include "debug/Log.h"
+#include "applib/APIServer.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/InterfaceTable.h"
 #include "reg/RegistrationTable.h"
@@ -151,6 +152,10 @@ main(int argc, char** argv)
     if (testcmd.initscript_.length() != 0) {
         CommandInterp::instance()->exec_command(testcmd.initscript_.c_str());
     }
+
+    // now boot up the application interface
+    MasterAPIServer* apiserv = new MasterAPIServer();
+    apiserv->start();
 
     // finally, run the main command or event loop (shouldn't return)
     if (daemon) {

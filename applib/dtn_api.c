@@ -1,0 +1,307 @@
+/*
+ * IMPORTANT:  READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+ * By downloading, copying, installing or using the software you agree to this
+ * license.  If you do not agree to this license, do not download, install,
+ * copy or use the software.
+ * 
+ * Intel Open Source License 
+ * 
+ * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 	Redistributions of source code must retain the above copyright notice,
+ * 	this list of conditions and the following disclaimer. 
+ * 
+ * 	Redistributions in binary form must reproduce the above copyright
+ * 	notice, this list of conditions and the following disclaimer in the
+ * 	documentation and/or other materials provided with the distribution. 
+ * 
+ * 	Neither the name of the Intel Corporation nor the names of its
+ * 	contributors may be used to endorse or promote products derived from
+ * 	this software without specific prior written permission.
+ *  
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE INTEL OR ITS  CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "dtn_api.h"
+#include "dtn_ipc.h"
+#include <sys/errno.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+
+/**
+ * Open a new connection to the router.
+ * Returns the new handle on success, 0 on error.
+ */
+dtn_handle_t
+dtn_open()
+{
+    dtnipc_handle_t* handle;
+
+    handle = malloc(sizeof(struct dtnipc_handle));
+    if (!handle)
+        return 0;
+    
+    if (dtnipc_open(handle) != 0) {
+        free(handle);
+        return 0;
+    }
+
+    return handle;
+}
+
+/**
+ * Close an open dtn handle.
+ */
+int
+dtn_close(dtn_handle_t handle)
+{
+    return -1;
+}
+
+/**
+ * Get the error associated with the given handle.
+ */
+int
+dtn_errno(dtn_handle_t handle)
+{
+    return ((dtnipc_handle_t*)handle)->err;
+}
+
+/**
+ * Information request function.
+ */
+int
+dtn_get_info(dtn_handle_t h,
+             dtn_info_request_t request,
+             dtn_info_response_t* response)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    XDR* xdr_decode = &handle->xdr_decode;
+    
+    // pack the request
+    xdr_setpos(&handle->xdr_encode, 0);
+    if (!xdr_dtn_info_request_t(xdr_encode, &request)) {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send(handle, DTN_GETINFO) != 0) {
+        return -1;
+    }
+
+    // block waiting for the reply
+    if (dtnipc_recv(handle) < 0) {
+        return -1;
+    }
+
+    // unpack the response
+    if (!xdr_dtn_info_response_t(xdr_decode, response)) {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+
+    return 0;
+}
+
+    
+/**
+ * Send a bundle either from memory or from a file.
+ */
+int
+dtn_send(dtn_handle_t h,
+         dtn_bundle_spec_t* spec,
+         dtn_bundle_payload_t* payload)
+{
+    long result;
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    XDR* xdr_decode = &handle->xdr_decode;
+
+    // pack the arguments
+    xdr_setpos(&handle->xdr_encode, 0);
+    if ((!xdr_dtn_bundle_spec_t(xdr_encode, spec)) ||
+        (!xdr_dtn_bundle_payload_t(xdr_encode, payload)))
+    {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send(handle, DTN_SEND) != 0) {
+        return -1;
+    }
+
+    // wait for a response
+    if (dtnipc_recv(handle) != 0) {
+        return -1;
+    }
+
+    /* unpack the response and return */
+    if (!xdr_getlong(xdr_decode, &result)) {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+    
+    return result;
+}
+
+
+/*************************************************************
+ *
+ *                     Utility Functions
+ *
+ *************************************************************/
+
+/*
+ * Sets the value of the tuple to the given region, admin, and demux
+ * strings.
+ *
+ * Note that the region and admin strings may be set to the special
+ * values of DTN_REGION_LOCAL and DTN_ADMIN_LOCAL in which case the
+ * corresponding length arguments are ignored.
+ *
+ * Returns: 0 on success, DTN_INVAL if the arguments are invalid.
+ */
+int dtn_set_tuple(dtn_tuple_t* tuple,
+                  char* region, size_t region_len,
+                  char* admin, size_t admin_len)
+{
+    return 0;
+}
+
+
+/*
+ * Parses the given string according to the generic schema
+ * bundles://<region>/<admin> and assigns it to the given tuple.
+ *
+ * Returns: 0 on success, DTN_INVAL if the given string is not a valid
+ * tuple.
+ */
+int
+dtn_set_tuple_string(dtn_tuple_t* tuple, char* str)
+{
+    char *s, *end;
+    size_t len;
+
+    s = strchr(str, ':');
+    if (!s) {
+        return DTN_INVAL;
+    }
+    
+    s++;
+    if ((s[0] != '/') || s[1] != '/') {
+        return DTN_INVAL;
+    }
+    s += 2;
+
+    // s now points to the start of the region string, so search to
+    // the next '/' character
+    end = strchr(s, '/');
+    if (!end) {
+        return DTN_INVAL;
+    }
+
+    // copy the region string
+    len = end - s;
+    memcpy(&tuple->region, s, len);
+    tuple->region[len] = '\0';
+
+    // the admin part is everything past the '/'
+    s = end + 1;
+    len = strlen(s);
+    tuple->admin.admin_len = len + 1;
+
+    // XXX/demmer memory leak here?
+    tuple->admin.admin_val = (char*)malloc(len + 1);
+    memcpy(tuple->admin.admin_val, s, len);
+    tuple->admin.admin_val[len] = '\0';
+
+    return 0;
+}
+
+/*
+ * Queries the router for the default local tuple and appends the
+ * given endpoint string to the url, assigning the result to the given
+ * tuple pointer.
+ *
+ * Returns: 0 on success, XXX/demmer fill in others
+ */
+int
+dtn_build_local_tuple(dtn_handle_t* handle,
+                      dtn_tuple_t* tuple, char* endpoint)
+{
+    dtn_tuple_t* local_tuple;
+    dtn_info_response_t info;
+    int ret = dtn_get_info(handle, DTN_INFOREQ_INTERFACES, &info);
+    if (ret != 0)
+        return ret;
+
+    local_tuple = &info.dtn_info_response_t_u.interfaces.local_tuple;
+    strncpy(tuple->region, local_tuple->region, DTN_MAX_REGION_LEN);
+    
+    tuple->admin.admin_len = local_tuple->admin.admin_len +
+                             strlen(endpoint) + 1;
+
+    // XXX/demmer memory leak here?
+    tuple->admin.admin_val = (char*)malloc(tuple->admin.admin_len);
+    
+    memcpy(tuple->admin.admin_val, local_tuple->admin.admin_val,
+           local_tuple->admin.admin_len);
+    
+    memcpy(&tuple->admin.admin_val[local_tuple->admin.admin_len],
+           endpoint, strlen(endpoint));
+    
+    tuple->admin.admin_val[tuple->admin.admin_len - 1] = '\0';
+    
+    return 0;
+}
+
+
+/*
+ * Sets the value of the given payload structure to either a memory
+ * buffer or a file location.
+ *
+ * Returns: 0 on success, DTN_TOOBIG if the memory location is
+ * selected and the payload is too big.
+ */
+int
+dtn_set_payload(dtn_bundle_payload_t* payload,
+                dtn_bundle_payload_location_t location,
+                char* val, int len)
+{
+    payload->location = location;
+
+    if (location == DTN_PAYLOAD_MEM && len > DTN_MAX_BUNDLE_MEM) {
+        return DTN_TOOBIG;
+    }
+    
+    switch (location) {
+    case DTN_PAYLOAD_MEM:
+        payload->dtn_bundle_payload_t_u.buf.buf_val = val;
+        payload->dtn_bundle_payload_t_u.buf.buf_len = len;
+        break;
+    case DTN_PAYLOAD_FILE:
+        payload->dtn_bundle_payload_t_u.filename.filename_val = val;
+        payload->dtn_bundle_payload_t_u.filename.filename_len = len;
+        break;
+    }
+
+    return 0;
+}
+

@@ -35,13 +35,82 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DTNAPI_INTERNAL_H
-#define DTNAPI_INTERNAL_H
+#ifndef DTN_IPC_H
+#define DTN_IPC_H
 
-/*****
- * Internal structures for the dtn IPC layer.
+#include <rpc/rpc.h>
+
+/*************************************************************
+ *
+ * Internal structures and functions that implement the DTN
+ * IPC layer. Generally, this is not exposed to applications.
+ *
+ *************************************************************/
+
+/**
+ * Default api ports. The handshake port is used for initial contact
+ * with the daemon to establish a session, and the latter is used for
+ * individual sessions.
  */
-#define DTN_MAX_API_MSG 65536		/* max IPC message size (bytes) */
+#define DTN_API_HANDSHAKE_PORT 5010
+#define DTN_API_SESSION_PORT   5011
+
+/**
+ * max IPC message size (bytes)
+ */
+#define DTN_MAX_API_MSG 65536	
+
+/**
+ * State of a DTN IPC channel.
+ */
+struct dtnipc_handle {
+    int sock;			///< Socket file descriptor
+    struct sockaddr_in sa;	///< Address of other side
+    socklen_t sa_len;		///< Length of the address
+    int err;			///< Error code
+    char buf[DTN_MAX_API_MSG];	///< send/recv buffer
+    XDR xdr_encode;		///< XDR encoder
+    XDR xdr_decode;		///< XDR decoder
+};
+
+typedef struct dtnipc_handle dtnipc_handle_t;
+
+/*
+ * Type codes for api messages.
+ */
+typedef enum {
+    DTN_OPEN	     = 1,
+    DTN_CLOSE,
+    DTN_GETINFO,
+    DTN_REGISTER,
+    DTN_UNREGISTER,
+    DTN_SEND,
+    DTN_RECV,
+    DTN_POLL
+} dtnapi_message_type_t;
+
+/*
+ * Initialize the handle structure and a new ipc session with the
+ * daemon.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int dtnipc_open(dtnipc_handle_t* handle);
+
+/*
+ * Send a message over the dtn ipc protocol.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type);
+
+/*
+ * Receive a message response on the ipc channel. May block if there
+ * is no pending message.
+ *
+ * Returns the length of the message on success, -1 on error.
+ */
+int dtnipc_recv(dtnipc_handle_t* handle);
 
 
-#endif /* DTNAPI_INTERNAL_H */
+#endif /* DTN_IPC_H */
