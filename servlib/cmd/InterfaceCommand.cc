@@ -7,7 +7,7 @@ InterfaceCommand InterfaceCommand::instance_;
 InterfaceCommand::InterfaceCommand() : AutoCommandModule("interface") {}
 
 char *
-InterfaceCommand::helpString()
+InterfaceCommand::help_string()
 {
     return("interface <tuple> [<args>?]\n\
 \t\tinterface remove <tuple>");

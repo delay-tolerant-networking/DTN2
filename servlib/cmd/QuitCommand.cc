@@ -14,7 +14,7 @@ QuitCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 }
 
 char *
-QuitCommand::helpString()
+QuitCommand::help_string()
 {
     return("not sure if this is needed; 'exit' seems to quit (cleanly?)");
 }

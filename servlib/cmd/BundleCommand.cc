@@ -8,7 +8,7 @@ BundleCommand BundleCommand::instance_;
 BundleCommand::BundleCommand() : AutoCommandModule("bundle") {}
 
 char *
-BundleCommand::helpString()
+BundleCommand::help_string()
 {
     return("inject <source> <dest> <payload>");
 }

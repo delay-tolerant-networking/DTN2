@@ -7,7 +7,7 @@ LogCommand LogCommand::instance_;
 LogCommand::LogCommand() : AutoCommandModule("log") {}
 
 char *
-LogCommand::helpString()
+LogCommand::help_string()
 {
     return("log path level string");
 }

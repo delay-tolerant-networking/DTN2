@@ -7,7 +7,7 @@ RegistrationCommand RegistrationCommand::instance_;
 RegistrationCommand::RegistrationCommand() : AutoCommandModule("registration") {}
 
 char *
-RegistrationCommand::helpString()
+RegistrationCommand::help_string()
 {
     return("registration logger add <demux>\n\
 \t\tregistration logger del <regid> <demux>");

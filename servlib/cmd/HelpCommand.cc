@@ -14,7 +14,7 @@ HelpCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     theList = CommandInterp::instance()->modules();
 
     for ( j = theList->begin(); j!=theList->end(); j++ ) {
-        printf("\t%s - %s\n", (*j)->name(), (*j)->helpString());
+        printf("\t%s - %s\n", (*j)->name(), (*j)->help_string());
     }
 
 
@@ -22,7 +22,7 @@ HelpCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 }
 
 char *
-HelpCommand::helpString()
+HelpCommand::help_string()
 {
     return("print this message.\n");
 }
