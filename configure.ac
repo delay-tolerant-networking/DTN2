@@ -141,8 +141,8 @@ AC_CHECK_LIB(nsl, gethostbyname)
 AC_CHECK_LIB(rt, sched_yield)
 AC_OASYS_CONFIG_TCL
 AC_DTN_CONFIG_DB
-AC_DTN_PGCONFIG
-AC_DTN_MYSQLCONFIG
+AC_DTN_CONFIG_POSTGRES
+AC_DTN_CONFIG_MYSQL
 
 #
 # Make sure there's at least one valid storage option
@@ -203,6 +203,15 @@ AC_CHECK_FUNCS([bzero getaddrinfo gethostbyname gethostbyname_r getopt_long gett
 dnl -------------------------------------------------------------------------
 dnl Output
 dnl -------------------------------------------------------------------------
+
+dnl
+dnl We defer setting the various CFLAGS to avoid interfering with the 
+dnl basic system tests.
+dnl
+CPPFLAGS="$CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
+LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
+LIBS="$LIBS $OASYS_LIBS $DTN_LIBS"
+
 AC_CONFIG_FILES(Rules.make config.h)
 AC_CONFIG_HEADER([auto.config.h:auto.config.h.in])
 
@@ -236,5 +245,5 @@ if test $POSTGRES_ENABLED = 1 ; then
 fi
 
 if test $MYSQL_ENABLED = 1 ; then 
-  echo "  mysql: $dtn_cv_path_mysql_h/libpq-fe.h -L $dtn_cv_path_mysql_lib -lpq"
+  echo "  mysql: $dtn_cv_path_mysql_h/libpq-fe.h -L $dtn_cv_path_mysql_lib -lmysqlclient"
 fi

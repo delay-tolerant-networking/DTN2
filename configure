@@ -862,12 +862,12 @@ Optional Packages:
   --with-cc=CC            name (or path) of the C compiler to use
   --with-tcl=DIR          location of a tcl installation (default system)
   --with-tcldir=DIR       same as --with-tcl
-  --with-tclver=VERSION   tcl version to use (default $ac_tclvers)
+  --with-tclver=VERSION   tcl version to use (default 8.4 or 8.3)
   --with-db=DIR           location of a Berkeley DB installation (default
                           system)
-  --with-dbver=VERSION    Berkeley DB versions to try (default $ac_dbver)
-  --with-postgres=DIR     location of a postgres installation (default system)
-  --with-mysql=DIR        location of a mysql installation (default system)
+  --with-dbver=VERSION    Berkeley DB versions to try (default 4.3 or 4.2)
+  --with-postgres=DIR     location of a postgres installation (default none)
+  --with-mysql=DIR        location of a mysql installation (default none)
 
 Some influential environment variables:
   CC          C compiler command
@@ -3140,18 +3140,18 @@ echo "$as_me: error: can't find usable tcl.h" >&2;}
     fi
 
     if test ! $oasys_cv_path_tcl_h = /usr/include ; then
-        CPPFLAGS="$CPPFLAGS -I$oasys_cv_path_tcl_h"
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_tcl_h"
     fi
 
     if test ! $oasys_cv_path_tcl_lib = /usr/lib ; then
-        LDFLAGS="$LDFLAGS -L$oasys_cv_path_tcl_lib"
+        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_tcl_lib"
     fi
 
-    LIBS="$LIBS -l$oasys_cv_lib_tcl"
+    OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_tcl"
 
 
     ac_dbvers='4.3 4.2'
-    ac_dbdir='system'
+    ac_dbdir='yes'
 
 
 # Check whether --with-db or --without-db was given.
@@ -3167,7 +3167,7 @@ if test "${with_dbver+set}" = set; then
   ac_dbvers=$withval
 fi;
 
-                if test x$ac_dbdir = xnone ; then
+                if test x$ac_dbdir = xno ; then
     DB_ENABLED=0
     else
     DB_ENABLED=1
@@ -3177,12 +3177,14 @@ fi;
     else
 
     dtn_cv_path_db_h=
+    dtn_cv_path_db_lib=
+    dtn_cv_lib_db=
 
     ac_save_CPPFLAGS="$CPPFLAGS"
     ac_save_LDFLAGS="$LDFLAGS"
     ac_save_LIBS="$LIBS"
 
-    if test ! x"$ac_dbdir" = x"system" ; then
+    if test ! x"$ac_dbdir" = x"yes" ; then
         ac_dbincdirs=$ac_dbdir/include
     else
         ac_dbincdirs="/usr/include /usr/local/include/db4"
@@ -3192,7 +3194,7 @@ fi;
         done
     fi
 
-    if test ! x"$ac_dbdir" = x"system" ; then
+    if test ! x"$ac_dbdir" = x"yes" ; then
         ac_dblibdirs="$ac_dbdir/lib"
     else
         ac_dblibdirs="/usr/lib /usr/local/lib"
@@ -3363,21 +3365,21 @@ echo "$as_me: error: can't find usable Berkeley DB installation" >&2;}
     fi
 
     if test ! $dtn_cv_path_db_h = /usr/include ; then
-        CPPFLAGS="$CPPFLAGS -I$dtn_cv_path_db_h"
+        DTN_CPPFLAGS="$DTN_CPPFLAGS -I$dtn_cv_path_db_h"
     fi
 
     if test ! $dtn_cv_path_db_lib = /usr/lib ; then
-        LDFLAGS="$LDFLAGS -L$dtn_cv_path_db_lib"
+        DTN_LDFLAGS="$DTN_LDFLAGS -L$dtn_cv_path_db_lib"
     fi
 
-    LIBS="$LIBS -l$dtn_cv_lib_db"
+    DTN_LIBS="$DTN_LIBS -l$dtn_cv_lib_db"
 
-    fi # if DB_ENABLED
-
-
+    fi # DB_ENABLED
 
 
-    ac_postgresdir='none'
+
+
+    ac_postgresdir='no'
 
 
 # Check whether --with-postgres or --without-postgres was given.
@@ -3386,94 +3388,43 @@ if test "${with_postgres+set}" = set; then
   ac_postgresdir=$withval
 fi;
 
-                if test x$ac_postgresdir = xnone ; then
+                if test x$ac_postgresdir = xno ; then
     POSTGRES_ENABLED=0
     else
     POSTGRES_ENABLED=1
 
-                if test x$dtn_cv_path_postgres_h = x ; then
-        echo "checking for postgres header file..."
-
-  if test "${dtn_cv_path_postgres_h+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
+                if test ! x$dtn_cv_path_postgres_h = x ; then
+        echo "checking for postgres installation... (cached) $dtn_cv_path_postgres_h/libpq-fe.h, $dtn_cv_path_postgres_lib -lpq"
+    else
 
     dtn_cv_path_postgres_h=
+    dtn_cv_path_postgres_lib=
 
-    if test ! x"$ac_postgresdir" = x"system" ; then
-        ac_postgresincdirs=$ac_postgresdir/include/
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    ac_save_LDFLAGS="$LDFLAGS"
+    ac_save_LIBS="$LIBS"
+
+    if test ! x"$ac_postgresdir" = x"yes" ; then
+        ac_postgresincdirs=$ac_postgresdir/include
     else
         ac_postgresincdirs="/usr/include /usr/include/postgresql /usr/local/pgsql/include"
     fi
 
-    for ac_postgresincdir in $ac_postgresincdirs; do
-        as_ac_File=`echo "ac_cv_file_$ac_postgresincdir/libpq-fe.h" | $as_tr_sh`
-echo "$as_me:$LINENO: checking for $ac_postgresincdir/libpq-fe.h" >&5
-echo $ECHO_N "checking for $ac_postgresincdir/libpq-fe.h... $ECHO_C" >&6
-if eval "test \"\${$as_ac_File+set}\" = set"; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  test "$cross_compiling" = yes &&
-  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "$ac_postgresincdir/libpq-fe.h"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_File'}'`" >&5
-echo "${ECHO_T}`eval echo '${'$as_ac_File'}'`" >&6
-if test `eval echo '${'$as_ac_File'}'` = yes; then
-  dtn_cv_path_postgres_h=$ac_postgresincdir
-		       break
-fi
-
-    done
-
-fi
-
-
-  if test x$dtn_cv_path_postgres_h = x ; then
-        { { echo "$as_me:$LINENO: error: can't find usable postgres.h" >&5
-echo "$as_me: error: can't find usable postgres.h" >&2;}
-   { (exit 1); exit 1; }; }
-  fi
-
+    if test ! x"$ac_postgresdir" = x"yes" ; then
+        ac_postgreslibdirs="$ac_postgresdir/lib"
     else
-        echo "checking for postgres header... (cached) $dtn_cv_path_postgres_h"
+        ac_postgreslibdirs="/usr/lib /usr/lib/pgsql /usr/local/pgsql/lib"
     fi
 
-    if test ! $dtn_cv_path_postgres_h = /usr/include ; then
-        CPPFLAGS="$CPPFLAGS -I$dtn_cv_path_postgres_h"
-    fi
+    for ac_postgresincdir in $ac_postgresincdirs; do
 
-                if test x$dtn_cv_path_postgres_lib = x ; then
-        echo "checking for postgres library..."
+	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_postgresincdir"
+	LDFLAGS="$ac_save_LDFLAGS"
+	LIBS="$ac_save_LIBS"
 
-    if test "${dtn_cv_path_postgres_lib+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-        if test ! x"$ac_postgresdir" = x"system" ; then
-            ac_postgreslibdirs=$ac_postgresdir/lib/
-        else
-            ac_postgreslibdirs="/usr/lib /usr/lib/pgsql /usr/local/pgsql/lib"
-        fi
-
-        for dtn_cv_path_postgres_lib in $ac_postgreslibdirs; do
-            as_ac_Lib=`echo "ac_cv_lib_pq_PQdb_-L$dtn_cv_path_postgres_lib" | $as_tr_sh`
-echo "$as_me:$LINENO: checking for PQdb in -lpq with -L$dtn_cv_path_postgres_lib" >&5
-echo $ECHO_N "checking for PQdb in -lpq with -L$dtn_cv_path_postgres_lib... $ECHO_C" >&6
-if eval "test \"\${$as_ac_Lib+set}\" = set"; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-ac_check_lib_save_LDFLAGS=$LDFLAGS
-LIBS="-lpq  $LIBS"
-LDFLAGS="-L$dtn_cv_path_postgres_lib $LDFLAGS"
-cat >conftest.$ac_ext <<_ACEOF
+					        echo "$as_me:$LINENO: checking for postgres header libpq-fe.h in $ac_postgresincdir" >&5
+echo $ECHO_N "checking for postgres header libpq-fe.h in $ac_postgresincdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
 /* confdefs.h.  */
 _ACEOF
@@ -3481,17 +3432,13 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char PQdb ();
+                #include <libpq-fe.h>
+
 int
 main ()
 {
-PQdb ();
+
+
   ;
   return 0;
 }
@@ -3508,29 +3455,91 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  eval "$as_ac_Lib=yes"
+
+	      echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              dtn_cv_path_postgres_h=$ac_postgresincdir
+	      break
+
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-eval "$as_ac_Lib=no"
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+	      continue
+
 fi
 rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-LDFLAGS=$ac_check_lib_save_LDFLAGS
-fi
-echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Lib'}'`" >&5
-echo "${ECHO_T}`eval echo '${'$as_ac_Lib'}'`" >&6
-if test `eval echo '${'$as_ac_Lib'}'` = yes; then
-  break
+    done
+
+    if test x$dtn_cv_path_postgres_h = x ; then
+        { { echo "$as_me:$LINENO: error: can't find usable postgres installation" >&5
+echo "$as_me: error: can't find usable postgres installation" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    for ac_postgreslibdir in $ac_postgreslibdirs; do
+
+	LDFLAGS="$ac_save_LDFLAGS -L$ac_postgreslibdir"
+	LIBS="$ac_save_LIBS -lpq"
+
+        echo "$as_me:$LINENO: checking for postgres library libpq in $ac_postgreslibdir" >&5
+echo $ECHO_N "checking for postgres library libpq in $ac_postgreslibdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <libpq-fe.h>
+
+int
+main ()
+{
+
+	        PGconn *conn = PQconnectStart("");
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              dtn_cv_path_postgres_lib=$ac_postgreslibdir
+              break
+
 else
-  dtn_cv_path_postgres_lib=
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
 fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
 
-        done
-
-fi
-
+    CPPFLAGS="$ac_save_CPPFLAGS"
+    LDFLAGS="$ac_save_LDFLAGS"
+    LIBS="$ac_save_LIBS"
 
     if test x$dtn_cv_path_postgres_lib = x ; then
         { { echo "$as_me:$LINENO: error: can't find usable postgres library" >&5
@@ -3538,20 +3547,24 @@ echo "$as_me: error: can't find usable postgres library" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
-    else
-        echo "checking for postgres library... (cached) $dtn_cv_path_postgres_lib"
     fi
 
-    if test ! x$dtn_cv_path_postgres_lib = x/usr/lib ; then
-        LDFLAGS="$LDFLAGS -L$dtn_cv_path_postgres_lib"
+    if test ! $dtn_cv_path_postgres_h = /usr/include ; then
+        DTN_CPPFLAGS="$DTN_CPPFLAGS -I$dtn_cv_path_postgres_h"
     fi
-    LIBS="$LIBS -lpq"
+
+    if test ! $dtn_cv_path_postgres_lib = /usr/lib ; then
+        DTN_LDFLAGS="$DTN_LDFLAGS -L$dtn_cv_path_postgres_lib"
+    fi
+
+    DTN_LIBS="$DTN_LIBS -lpq"
 
     fi # POSTGRES_ENABLED
 
 
 
-    ac_mysqldir='none'
+
+    ac_mysqldir='no'
 
 
 # Check whether --with-mysql or --without-mysql was given.
@@ -3560,94 +3573,43 @@ if test "${with_mysql+set}" = set; then
   ac_mysqldir=$withval
 fi;
 
-                if test x$ac_mysqldir = xnone ; then
+                if test x$ac_mysqldir = xno; then
     MYSQL_ENABLED=0
     else
     MYSQL_ENABLED=1
 
-                if test x$dtn_cv_path_mysql_h = x ; then
-        echo "checking for mysql header file..."
-
-  if test "${dtn_cv_path_mysql_h+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
+                if test ! x$dtn_cv_path_mysql_h = x ; then
+        echo "checking for mysql installation... (cached) $dtn_cv_path_mysql_h/mysql.h, $dtn_cv_path_mysql_lib -lmysql"
+    else
 
     dtn_cv_path_mysql_h=
+    dtn_cv_path_mysql_lib=
 
-    if test ! x"$ac_mysqldir" = x"system" ; then
-        ac_mysqlincdirs=$ac_mysqldir/include/
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    ac_save_LDFLAGS="$LDFLAGS"
+    ac_save_LIBS="$LIBS"
+
+    if test ! x"$ac_mysqldir" = x"yes" ; then
+        ac_mysqlincdirs=$ac_mysqldir/include
     else
         ac_mysqlincdirs="/usr/include /usr/include/mysql /usr/local/mysql/include"
     fi
 
-    for ac_mysqlincdir in $ac_mysqlincdirs; do
-        as_ac_File=`echo "ac_cv_file_$ac_mysqlincdir/mysql.h" | $as_tr_sh`
-echo "$as_me:$LINENO: checking for $ac_mysqlincdir/mysql.h" >&5
-echo $ECHO_N "checking for $ac_mysqlincdir/mysql.h... $ECHO_C" >&6
-if eval "test \"\${$as_ac_File+set}\" = set"; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  test "$cross_compiling" = yes &&
-  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "$ac_mysqlincdir/mysql.h"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_File'}'`" >&5
-echo "${ECHO_T}`eval echo '${'$as_ac_File'}'`" >&6
-if test `eval echo '${'$as_ac_File'}'` = yes; then
-  dtn_cv_path_mysql_h=$ac_mysqlincdir
-		       break
-fi
-
-    done
-
-fi
-
-
-  if test x$dtn_cv_path_mysql_h = x ; then
-        { { echo "$as_me:$LINENO: error: can't find usable mysql.h" >&5
-echo "$as_me: error: can't find usable mysql.h" >&2;}
-   { (exit 1); exit 1; }; }
-  fi
-
+    if test ! x"$ac_mysqldir" = x"yes" ; then
+        ac_mysqllibdirs="$ac_mysqldir/lib"
     else
-        echo "checking for mysql header... (cached) $dtn_cv_path_mysql_h"
+        ac_mysqllibdirs="/usr/lib /usr/lib/mysql /usr/local/mysql/lib"
     fi
 
-    if test ! $dtn_cv_path_mysql_h = /usr/include ; then
-        CPPFLAGS="$CPPFLAGS -I$dtn_cv_path_mysql_h"
-    fi
+    for ac_mysqlincdir in $ac_mysqlincdirs; do
 
-                if test x$dtn_cv_path_mysql_lib = x ; then
-        echo "checking for mysql library..."
+	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_mysqlincdir"
+	LDFLAGS="$ac_save_LDFLAGS"
+	LIBS="$ac_save_LIBS"
 
-    if test "${dtn_cv_path_mysql_lib+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-        if test ! x"$ac_mysqldir" = x"system" ; then
-            ac_mysqllibdirs=$ac_mysqldir/lib/
-        else
-            ac_mysqllibdirs="/usr/lib /usr/lib/mysql /usr/local/mysql/lib"
-        fi
-
-        for dtn_cv_path_mysql_lib in $ac_mysqllibdirs; do
-            as_ac_Lib=`echo "ac_cv_lib_mysqlclient_mysql_init_-L$dtn_cv_path_mysql_lib" | $as_tr_sh`
-echo "$as_me:$LINENO: checking for mysql_init in -lmysqlclient with -L$dtn_cv_path_mysql_lib" >&5
-echo $ECHO_N "checking for mysql_init in -lmysqlclient with -L$dtn_cv_path_mysql_lib... $ECHO_C" >&6
-if eval "test \"\${$as_ac_Lib+set}\" = set"; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-ac_check_lib_save_LDFLAGS=$LDFLAGS
-LIBS="-lmysqlclient  $LIBS"
-LDFLAGS="-L$dtn_cv_path_mysql_lib $LDFLAGS"
-cat >conftest.$ac_ext <<_ACEOF
+					        echo "$as_me:$LINENO: checking for mysql header mysql.h in $ac_mysqlincdir" >&5
+echo $ECHO_N "checking for mysql header mysql.h in $ac_mysqlincdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
 /* confdefs.h.  */
 _ACEOF
@@ -3655,17 +3617,13 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char mysql_init ();
+                #include <mysql.h>
+
 int
 main ()
 {
-mysql_init ();
+
+
   ;
   return 0;
 }
@@ -3682,29 +3640,92 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  eval "$as_ac_Lib=yes"
+
+	      echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              dtn_cv_path_mysql_h=$ac_mysqlincdir
+	      break
+
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-eval "$as_ac_Lib=no"
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+	      continue
+
 fi
 rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-LDFLAGS=$ac_check_lib_save_LDFLAGS
-fi
-echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Lib'}'`" >&5
-echo "${ECHO_T}`eval echo '${'$as_ac_Lib'}'`" >&6
-if test `eval echo '${'$as_ac_Lib'}'` = yes; then
-  break
+    done
+
+    if test x$dtn_cv_path_mysql_h = x ; then
+        { { echo "$as_me:$LINENO: error: can't find usable mysql installation" >&5
+echo "$as_me: error: can't find usable mysql installation" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    for ac_mysqllibdir in $ac_mysqllibdirs; do
+
+	LDFLAGS="$ac_save_LDFLAGS -L$ac_mysqllibdir"
+	LIBS="$ac_save_LIBS -lmysqlclient"
+
+        echo "$as_me:$LINENO: checking for mysql library libmysql in $ac_mysqllibdir" >&5
+echo $ECHO_N "checking for mysql library libmysql in $ac_mysqllibdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <mysql.h>
+
+int
+main ()
+{
+
+		MYSQL m;
+	        mysql_init(&m);
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              dtn_cv_path_mysql_lib=$ac_mysqllibdir
+              break
+
 else
-  dtn_cv_path_mysql_lib=
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
 fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
 
-        done
-
-fi
-
+    CPPFLAGS="$ac_save_CPPFLAGS"
+    LDFLAGS="$ac_save_LDFLAGS"
+    LIBS="$ac_save_LIBS"
 
     if test x$dtn_cv_path_mysql_lib = x ; then
         { { echo "$as_me:$LINENO: error: can't find usable mysql library" >&5
@@ -3712,14 +3733,17 @@ echo "$as_me: error: can't find usable mysql library" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
-    else
-        echo "checking for mysql library... (cached) $dtn_cv_path_mysql_lib"
     fi
 
-    if test ! x$dtn_cv_path_mysql_lib = x/usr/lib ; then
-        LDFLAGS="$LDFLAGS -L$dtn_cv_path_mysql_lib"
+    if test ! $dtn_cv_path_mysql_h = /usr/include ; then
+        DTN_CPPFLAGS="$DTN_CPPFLAGS -I$dtn_cv_path_mysql_h"
     fi
-    LIBS="$LIBS -lpq"
+
+    if test ! $dtn_cv_path_mysql_lib = /usr/lib ; then
+        DTN_LDFLAGS="$DTN_LDFLAGS -L$dtn_cv_path_mysql_lib"
+    fi
+
+    DTN_LIBS="$DTN_LIBS -lmysqlclient"
 
     fi # MYSQL_ENABLED
 
@@ -6665,6 +6689,11 @@ fi
 done
 
 
+
+CPPFLAGS="$CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
+LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
+LIBS="$LIBS $OASYS_LIBS $DTN_LIBS"
+
                     ac_config_files="$ac_config_files Rules.make config.h"
 
           ac_config_headers="$ac_config_headers auto.config.h:auto.config.h.in"
@@ -7945,5 +7974,5 @@ if test $POSTGRES_ENABLED = 1 ; then
 fi
 
 if test $MYSQL_ENABLED = 1 ; then
-  echo "  mysql: $dtn_cv_path_mysql_h/libpq-fe.h -L $dtn_cv_path_mysql_lib -lpq"
+  echo "  mysql: $dtn_cv_path_mysql_h/libpq-fe.h -L $dtn_cv_path_mysql_lib -lmysqlclient"
 fi
