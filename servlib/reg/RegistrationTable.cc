@@ -41,6 +41,8 @@
 #include "bundling/BundleForwarder.h"
 #include "storage/RegistrationStore.h"
 
+namespace dtn {
+
 RegistrationTable* RegistrationTable::instance_ = NULL;
 
 RegistrationTable::RegistrationTable(RegistrationStore* store)
@@ -210,3 +212,5 @@ RegistrationTable::get_matching(const BundleTuple& demux,
 
     return count;
 }
+
+} // namespace dtn

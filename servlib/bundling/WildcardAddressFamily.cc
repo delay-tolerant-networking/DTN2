@@ -37,6 +37,8 @@
  */
 #include "WildcardAddressFamily.h"
 
+namespace dtn {
+
 /**
  * Determine if the administrative string is valid.
  */
@@ -57,3 +59,5 @@ WildcardAddressFamily::match(const std::string& pattern,
 {
     return true;
 }
+
+} // namespace dtn

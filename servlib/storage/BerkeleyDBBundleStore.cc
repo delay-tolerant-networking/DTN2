@@ -44,6 +44,8 @@
 #include "BerkeleyDBBundleStore.h"
 #include "bundling/Bundle.h"
 
+namespace dtn {
+
 BerkeleyDBBundleStore::BerkeleyDBBundleStore()
 {
     store_ = new BerkeleyDBStore("bundles");
@@ -82,5 +84,7 @@ BerkeleyDBBundleStore::del(int bundle_id)
 {
     return store_->del(bundle_id) == 0;
 }
+
+} // namespace dtn
 
 #endif /* __DB_ENABLED__ */

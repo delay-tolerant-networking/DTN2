@@ -38,6 +38,8 @@
 
 #include "IPConvergenceLayer.h"
 
+namespace dtn {
+
 bool
 IPConvergenceLayer::validate(const std::string& admin)
 {
@@ -50,3 +52,5 @@ IPConvergenceLayer::match(const std::string& demux, const std::string& admin)
     NOTIMPLEMENTED;
 }
 
+
+} // namespace dtn

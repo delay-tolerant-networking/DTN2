@@ -40,6 +40,8 @@
 
 #include "BundleRouter.h"
 
+namespace dtn {
+
 /**
  * This is the implementation of the basic bundle routing algorithm
  * that only does static routing. Routes can be parsed from a
@@ -55,5 +57,7 @@ class StaticBundleRouter : public BundleRouter {
 public:
     StaticBundleRouter() {}
 };
+
+} // namespace dtn
 
 #endif /* _STATIC_BUNDLE_ROUTER_H_ */

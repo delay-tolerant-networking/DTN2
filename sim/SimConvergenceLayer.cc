@@ -42,6 +42,8 @@
 #include "Topology.h"
 #include "bundling/BundleList.h"
 
+namespace dtn {
+
 /******************************************************************************
  *
  * SimConvergenceLayer
@@ -86,7 +88,7 @@ SimConvergenceLayer::send_bundles(Contact* contact)
     
     Bundle* iter_bundle;
     BundleList::iterator iter;
-    ScopeLock lock(blist->lock());
+    oasys::ScopeLock lock(blist->lock());
     
     log_info("N[%d] CL: current bundle list:",sc->src()->id());
         
@@ -238,3 +240,5 @@ Message* SimConvergenceLayer::messages_[MAX_BUNDLES];
 //Contact* SimConvergenceLayer::contacts_[MAX_CONTACTS];
 Link* SimConvergenceLayer::links_[MAX_LINKS];
     
+
+} // namespace dtn

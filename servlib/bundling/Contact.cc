@@ -44,6 +44,8 @@
 #include "BundleForwarder.h"
 #include "BundleEvent.h"
 
+namespace dtn {
+
 /**
  * Constructor
  */
@@ -86,3 +88,5 @@ Contact::format(char* buf, size_t sz)
 {
     return link_->format(buf,sz);
 }
+
+} // namespace dtn

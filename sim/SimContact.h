@@ -52,11 +52,13 @@
 #include "Event.h"
 #include "Message.h"
 
+namespace dtn {
+
 
 class Event;
 class Event_chew_fin;
 
-class SimContact : public Logger, public Processable {
+class SimContact : public oasys::Logger, public Processable {
 
 public:
     
@@ -109,5 +111,6 @@ private:
     void  process(Event* e) ;       ///> Inherited from processable
     void  chewing_complete(double size, Message* msg) ;
 };
+} // namespace dtn
 
 #endif /* _SIM_CONTACT_H_ */

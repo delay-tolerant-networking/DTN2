@@ -43,12 +43,14 @@
 #include "SQLRegistrationStore.h"
 #include "SQLStore.h"
 
+namespace dtn {
+
 static const char* TABLENAME = "registration";
 
 /**
  * Constructor
  */
-SQLRegistrationStore::SQLRegistrationStore(SQLImplementation* impl)
+SQLRegistrationStore::SQLRegistrationStore(oasys::SQLImplementation* impl)
 {
     store_ = new SQLStore(TABLENAME, impl);
 }
@@ -101,5 +103,7 @@ SQLRegistrationStore::update(Registration* reg)
 {
     NOTIMPLEMENTED;
 }
+
+} // namespace dtn
 
 #endif /* __SQL_ENABLED__ */

@@ -41,6 +41,8 @@
 #include <oasys/debug/Debug.h>
 #include "BundleList.h"
 
+namespace dtn {
+
 /**
  * Each time a bundle is put on a bundle list, a mapping is maintained
  * in the bundle structure containing information about the
@@ -100,5 +102,7 @@ struct BundleMapping {
     u_int32_t timeout_;			///< Timeout for the mapping
     RouterInfo* router_info_;		///< Slot_ for router private state
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_MAPPING_H_ */

@@ -43,6 +43,8 @@
 #include "BerkeleyDBStore.h"
 #include "BerkeleyDBGlobalStore.h"
 
+namespace dtn {
+
 BerkeleyDBGlobalStore::BerkeleyDBGlobalStore()
 {
     store_ = new BerkeleyDBStore("globals");
@@ -66,5 +68,7 @@ BerkeleyDBGlobalStore::update()
     log_crit("%s not implemented", __FUNCTION__);
     return false;
 }
+
+} // namespace dtn
 
 #endif /* __DB_ENABLED__ */

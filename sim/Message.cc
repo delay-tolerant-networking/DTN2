@@ -37,6 +37,8 @@
  */
 #include "Message.h"
 
+namespace dtn {
+
 long Message::total_ = 0;
 
 Message::Message() {}
@@ -73,3 +75,5 @@ Message::rm_bytes(double len)
     size_ = size_ - len;
 }
     
+
+} // namespace dtn

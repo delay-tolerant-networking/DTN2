@@ -44,6 +44,8 @@
 #include "BundleForwarder.h"
 #include "BundleEvent.h"
 
+namespace dtn {
+
 /**
  * Static constructor to create different type of links
  */
@@ -275,3 +277,5 @@ Link::size()
     // TODO, for scheduled links check on queues of future contacts
     return retval;
 }
+
+} // namespace dtn

@@ -40,10 +40,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * Class to control the simulator
  */
-class SimulatorCommand : public AutoTclCommand {
+class SimulatorCommand : public oasys::AutoTclCommand {
 public:
     SimulatorCommand();
     void at_reg();
@@ -60,5 +62,6 @@ protected:
     static SimulatorCommand instance_;
  };
 
+} // namespace dtn
 
 #endif /* _SIMULATOR_COMMAND_H_ */

@@ -45,6 +45,8 @@
 #include "BundleList.h"
 #include "Peer.h"
 
+namespace dtn {
+
 class ConvergenceLayer;
 class Contact;
 class Link;
@@ -171,7 +173,7 @@ class LinkSet : public std::set<Link*> {};
  *
  *
 */
-class Link : public Formatter, public BundleConsumer {
+class Link : public oasys::Formatter, public BundleConsumer {
 public:
 /**
  * Valid types for a link.
@@ -391,5 +393,7 @@ class LinkInfo {
 public:
     virtual ~LinkInfo() {}
 };
+
+} // namespace dtn
 
 #endif /* _LINK_H_ */

@@ -42,6 +42,8 @@
 #include "SmtpAddressFamily.h"
 #include "WildcardAddressFamily.h"
 
+namespace dtn {
+
 AddressFamilyTable* AddressFamilyTable::instance_;
 
 /**
@@ -164,3 +166,5 @@ AddressFamilyTable::lookup(const std::string& admin, bool* validp)
     
     return family;
 }
+
+} // namespace dtn

@@ -40,8 +40,13 @@
 
 #include "RegistrationStore.h"
 
-class SQLStore;
+namespace oasys {
 class SQLImplementation;
+}
+
+namespace dtn {
+
+class SQLStore;
 
 /**
  * Implementation of RegistrationStore that uses an underlying SQL database.
@@ -51,7 +56,7 @@ public:
     /**
      * Constructor
      */
-    SQLRegistrationStore(SQLImplementation* impl);
+    SQLRegistrationStore(oasys::SQLImplementation* impl);
 
     /**
      * Destructor
@@ -85,5 +90,6 @@ public:
 protected:
     SQLStore* store_;
 };
+} // namespace dtn
 
 #endif /* _SQL_REGISTRATION_STORE_H_ */

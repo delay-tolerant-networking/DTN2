@@ -46,9 +46,11 @@
 
 #include "Node.h"
 
+namespace dtn {
 
 
-class GlueNode : public Processable, public Logger {
+
+class GlueNode : public Processable, public oasys::Logger {
 
 public:
     static long next() {
@@ -75,5 +77,6 @@ private:
     //   BundleTuple name_;
 };
 
-   
+} // namespace dtn
+
 #endif /* _NODE2_H_ */

@@ -54,36 +54,36 @@
 
 #include "bundling/ContactManager.h"
 
+using namespace dtn;
 
 int
 main(int argc, char** argv)
 {
-    
     // Initialize logging
-    LogSim::init(LOG_INFO);
+    LogSim::init(oasys::LOG_INFO);
 
     // Initialize the simulator
     Simulator* s = new Simulator();
     Simulator::init(s);
-    logf("/sim", LOG_INFO, "simulator initializing...");
+    log_info("/sim", "simulator initializing...");
 
     // command line parameter vars
     std::string conffile("sim/top.conf");
     int random_seed;
     bool random_seed_set = false;
     
-    new StringOpt('c', "conf", &conffile, "conf", "config file");
-    new IntOpt('s', "seed", &random_seed, &random_seed_set, "seed",
-               "random number generator seed");
+    new oasys::StringOpt('c', "conf", &conffile, "conf", "config file");
+    new oasys::IntOpt('s', "seed", &random_seed, &random_seed_set, "seed",
+                      "random number generator seed");
 
     // Set up the command interpreter, then parse argv
-    TclCommandInterp::init(argv[0]);
-    TclCommandInterp* interp = TclCommandInterp::instance();
+    oasys::TclCommandInterp::init(argv[0]);
+    oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
     
     interp->reg(new ParamCommand());
     interp->reg(new RouteCommand());
 
-    Options::getopt(argv[0], argc, argv);
+    oasys::Options::getopt(argv[0], argc, argv);
 
     // Seed the random number generator
     if (!random_seed_set) {
@@ -91,7 +91,7 @@ main(int argc, char** argv)
         gettimeofday(&tv, NULL);
         random_seed = tv.tv_usec;
     }
-    logf("/sim", LOG_INFO, "random seed is %u\n", random_seed);
+    log_info("/sim", "random seed is %u\n", random_seed);
     srand(random_seed);
 
     AddressFamilyTable::init();
@@ -104,12 +104,11 @@ main(int argc, char** argv)
     // Parse / exec the config file
     if (conffile.length() != 0) {
         if (interp->exec_file(conffile.c_str()) != 0) {
-            logf("/sim", LOG_ERR, "error in configuration file, exiting...");
+            log_err("/sim", "error in configuration file, exiting...");
             exit(1);
         }
     }
 
     // Run the event loop of simulator
     Simulator::instance()->run();
-
 }

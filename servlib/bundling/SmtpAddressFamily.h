@@ -40,6 +40,8 @@
 
 #include "AddressFamily.h"
 
+namespace dtn {
+
 class SmtpAddressFamily : public AddressFamily {
 public:
     SmtpAddressFamily() : AddressFamily("smtp") {}
@@ -56,5 +58,7 @@ public:
     bool match(const std::string& pattern,
                const std::string& admin);
 };
+
+} // namespace dtn
 
 #endif /* _SMTP_ADDRESS_FAMILY_H_ */

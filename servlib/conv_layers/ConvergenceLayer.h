@@ -40,13 +40,16 @@
 
 #include <string>
 #include <oasys/debug/Log.h>
+
 #include "bundling/Contact.h"
 #include "bundling/Interface.h"
+
+namespace dtn {
 
 /**
  * The abstract interface for a convergence layer.
  */
-class ConvergenceLayer : public Logger {
+class ConvergenceLayer : public oasys::Logger {
 public:
     /**
      * Constructor. In general, most initialization is deferred to the
@@ -158,5 +161,7 @@ protected:
      */
     static Protocol* protocol_list_;
 };
+
+} // namespace dtn
 
 #endif /* _CONVERGENCE_LAYER_H_ */

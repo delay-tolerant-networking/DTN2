@@ -41,6 +41,8 @@
 #include "BundleTuple.h"
 #include <oasys/debug/Log.h>
 
+namespace dtn {
+
 class Bundle;
 class BundleList;
 class BundleMapping;
@@ -50,7 +52,7 @@ class BundleTuple;
  * Base class used for "next hops" in the bundle forwarding logic, i.e
  * either a local registration or a Contact/Link/Peer.
  */
-class BundleConsumer : public Logger {
+class BundleConsumer : public oasys::Logger {
 public:
     /**
      * Constructor. It is the responsibility of the subclass to
@@ -116,5 +118,7 @@ private:
      */
     BundleConsumer();
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_CONSUMER_H_ */

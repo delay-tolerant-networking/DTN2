@@ -41,6 +41,8 @@
 #include "Bundle.h"
 #include "BundleProtocol.h"
 
+namespace dtn {
+
 /**
  * A special bundle class whose payload is a status report. Used at
  * the source to generate the report that is then sent to the 
@@ -55,5 +57,7 @@ public:
      */
     void set_status_time(status_report_flag_t flag);
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_STATUS_REPORT_H_ */

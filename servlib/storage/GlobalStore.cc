@@ -40,6 +40,7 @@
 #include "StorageConfig.h"
 #include "reg/Registration.h"
 
+namespace dtn {
 
 GlobalStore* GlobalStore::instance_;
 
@@ -56,7 +57,7 @@ GlobalStore::~GlobalStore()
 }
 
 void
-Globals::serialize(SerializeAction* a)
+Globals::serialize(oasys::SerializeAction* a)
 {
     a->process("next_bundleid", &next_bundleid_);
     a->process("next_regid",    &next_regid_);
@@ -157,3 +158,5 @@ GlobalStore::close()
         log_err("error closing global store");
     }
 }
+
+} // namespace dtn

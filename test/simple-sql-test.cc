@@ -49,7 +49,7 @@
 
 
 
-class foo : public SerializableObject, public Logger {
+class foo : public oasys::SerializableObject, public oasys::Logger {
 public:
   foo() : Logger ("/test/foo") {} ;
   virtual ~foo() {} ; 
@@ -58,7 +58,7 @@ public:
   u_int8_t f2 ; 
   bool b1;
   std::string  s1;
-  void serialize(SerializeAction* a) ;
+  void serialize(oasys::SerializeAction* a) ;
 
   void print() ; 
 };
@@ -72,7 +72,7 @@ foo::print() {
 }
 
 void
-foo::serialize(SerializeAction* a)
+foo::serialize(oasys::SerializeAction* a)
 {
   a->process("id", &id);
   a->process("f1", &f1);
@@ -88,7 +88,7 @@ playsql(int i) {
     
     //  foo o1; o1.id = 771 ; o1.f1 = 123; o1.f2 = 'a'; foo o2;
     
-    SQLImplementation *db ;
+    oasys::SQLImplementation *db ;
     
     if (i ==1) 
        db  =  new PostgresSQLImplementation();

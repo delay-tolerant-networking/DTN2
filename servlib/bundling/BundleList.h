@@ -41,9 +41,14 @@
 #include <list>
 #include <oasys/thread/Notifier.h>
 
+namespace oasys {
+class SpinLock;
+}
+
+namespace dtn {
+
 class Bundle;
 class BundleMapping;
-class SpinLock;
 
 /**
  * List structure for handling bundles.
@@ -71,7 +76,8 @@ class SpinLock;
  * reference count.
  * 
  */
-class BundleList : public Notifier {
+
+class BundleList : public oasys::Notifier {
 public:
     /**
      * Type for the list itself.
@@ -231,7 +237,7 @@ public:
     /**
      * Return the internal lock on this list.
      */
-    SpinLock* lock() const { return lock_; }
+    oasys::SpinLock* lock() const { return lock_; }
 
     /**
      * Return the identifier name of this list.
@@ -252,9 +258,11 @@ protected:
      */
     Bundle* del_bundle(iterator pos, BundleMapping** mappingp);
     
-    SpinLock* lock_;
+    oasys::SpinLock* lock_;
     ListType list_;
     std::string name_;
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_LIST_H_ */

@@ -38,6 +38,8 @@
 #include "LogSim.h"
 #include "Simulator.h"
 
+namespace dtn {
+
 LogSim::LogSim() : Log()
 {
 }
@@ -50,8 +52,10 @@ LogSim::getlogtime(struct timeval* t)
 }
 
 void
-LogSim::init(log_level_t level, const char* path) 
+LogSim::init(oasys::log_level_t level, const char* path) 
 {
     LogSim* log = new LogSim();
     log->do_init("-", level, NULL, path); 
 }
+
+} // namespace dtn

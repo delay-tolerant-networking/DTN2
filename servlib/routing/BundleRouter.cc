@@ -51,9 +51,11 @@
 #include "StaticBundleRouter.h"
 #include "FloodBundleRouter.h"
 
+namespace dtn {
+
 std::string BundleRouter::type_;
 size_t BundleRouter::proactive_frag_threshold_;
-StringVector BundleRouter::local_regions_;
+oasys::StringVector BundleRouter::local_regions_;
 BundleTuple BundleRouter::local_tuple_;
 
 /*
@@ -616,7 +618,7 @@ BundleRouter::new_next_hop(const BundleTuplePattern& dest,
               next_hop->dest_tuple()->c_str());
     BundleList::iterator iter;
 
-    ScopeLock l(pending_bundles_->lock());
+    oasys::ScopeLock l(pending_bundles_->lock());
     
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();
@@ -652,3 +654,5 @@ BundleRouter::delete_from_pending(Bundle* bundle, BundleActionList* actions)
     
     pending_bundles_->erase(mapping->position_, NULL);
 }
+
+} // namespace dtn

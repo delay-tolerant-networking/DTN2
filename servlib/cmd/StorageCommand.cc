@@ -39,6 +39,8 @@
 #include "StorageCommand.h"
 #include "storage/StorageConfig.h"
 
+namespace dtn {
+
 StorageCommand::StorageCommand()
     : TclCommand("storage")
 {
@@ -53,3 +55,5 @@ StorageCommand::StorageCommand()
     bind_s("sqldb",	&cfg->sqldb_);
     bind_s("payloaddir",&cfg->payloaddir_);
 }
+
+} // namespace dtn

@@ -43,7 +43,9 @@
 
 #include "PersistentStore.h"
 
-class Globals : public SerializableObject
+namespace dtn {
+
+class Globals : public oasys::SerializableObject
 {
 public:
     u_int32_t next_bundleid_;	///< running serial number for bundles
@@ -52,7 +54,7 @@ public:
     /**
      * Virtual from SerializableObject.
      */
-    virtual void serialize(SerializeAction* a);
+    virtual void serialize(oasys::SerializeAction* a);
 
     /**
      * Destructor.
@@ -70,7 +72,7 @@ public:
  * serializable object, since it contains all the fields that need to
  * be stored.
  */
-class GlobalStore : public Logger {
+class GlobalStore : public oasys::Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -144,5 +146,6 @@ public:
     PersistentStore * store_;   ///< persistent storage object
     Globals globals;
 };
+} // namespace dtn
 
 #endif /* _GLOBAL_STORE_H_ */

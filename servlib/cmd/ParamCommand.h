@@ -40,10 +40,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * Parameter setting command
  */
-class ParamCommand : public TclCommand {
+class ParamCommand : public oasys::TclCommand {
 public:
     ParamCommand();
     
@@ -53,5 +55,7 @@ public:
     const char* help_string();
 };
 
+
+} // namespace dtn
 
 #endif /* _PARAM_COMMAND_H_ */

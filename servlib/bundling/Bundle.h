@@ -50,15 +50,11 @@
 #include "BundlePayload.h"
 #include "BundleTuple.h"
 
+namespace dtn {
+
 class BundleList;
 class BundleMapping;
 class SQLBundleStore;
-
-// XXX/namespace
-class Bundle;
-namespace dtn {
-typedef ::Bundle Bundle;
-}
 
 /**
  * The internal representation of a bundle.
@@ -81,7 +77,7 @@ typedef ::Bundle Bundle;
  * invariant that the entiries of this set correlate exactly with the
  * list pointers.
  */
-class Bundle : public Formatter, public SerializableObject {
+class Bundle : public oasys::Formatter, public oasys::SerializableObject {
 public:
     /**
      * Default constructor to create an empty bundle, initializing all
@@ -114,7 +110,7 @@ public:
     /**
      * Virtual from SerializableObject
      */
-    void serialize(SerializeAction* a);
+    void serialize(oasys::SerializeAction* a);
 
     /**
      * Return the bundle's reference count, corresponding to the
@@ -258,7 +254,7 @@ public:
      * Internal fields for managing the bundle.
      */
     
-    SpinLock lock_;		///< Lock for bundle data that can be
+    oasys::SpinLock lock_;		///< Lock for bundle data that can be
                                 ///  updated by multiple threads, e.g.
                                 ///  containers_ and refcount_.
     BundleMappings mappings_;	///< The set of BundleLists that
@@ -274,5 +270,7 @@ private:
     void init(u_int32_t id, BundlePayload::location_t location);
 };
 
+
+} // namespace dtn
 
 #endif /* _BUNDLE_H_ */

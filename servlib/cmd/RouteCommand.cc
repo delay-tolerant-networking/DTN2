@@ -49,6 +49,8 @@
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
 
+namespace dtn {
+
 RouteCommand::RouteCommand()
     : TclCommand("route")
 {
@@ -160,3 +162,5 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     
     return TCL_OK;
 }
+
+} // namespace dtn

@@ -40,10 +40,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * API options command
  */
-class APICommand : public TclCommand {
+class APICommand : public oasys::TclCommand {
 public:
     APICommand();
     
@@ -53,5 +55,7 @@ public:
     const char* help_string();
 };
 
+
+} // namespace dtn
 
 #endif /* _API_COMMAND_H_ */

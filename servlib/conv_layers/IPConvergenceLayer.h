@@ -40,6 +40,8 @@
 
 #include "ConvergenceLayer.h"
 
+namespace dtn {
+
 /**
  * Base class for the TCP and UDP convergence layers.
  */
@@ -139,5 +141,7 @@ public:
         u_int32_t acked_length;		///< total length received
     } __attribute__((packed));
 };
+
+} // namespace dtn
 
 #endif /* _IP_CONVERGENCE_LAYER_H_ */

@@ -40,6 +40,8 @@
 
 #include <sys/uio.h>
 
+namespace dtn {
+
 class Bundle;
 
 /**
@@ -200,5 +202,7 @@ protected:
     static void parse_payload_security(Bundle* bundle,
                                        u_int8_t payload_security);
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_PROTOCOL_H_ */

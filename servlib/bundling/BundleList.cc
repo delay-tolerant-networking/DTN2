@@ -43,6 +43,8 @@
 #include "BundleList.h"
 #include "BundleMapping.h"
 
+namespace dtn {
+
 // XXX/demmer want some sort of expiration handler registration per
 // list so things know when their bundles have been expired
 
@@ -50,7 +52,7 @@
 // descriptors... we only really need it for the contact
 
 BundleList::BundleList(const std::string& name)
-    : lock_(new SpinLock()), name_(name)
+    : lock_(new oasys::SpinLock()), name_(name)
 {
 }
 
@@ -66,7 +68,7 @@ BundleList::~BundleList()
 Bundle*
 BundleList::front()
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
 
     if (list_.empty())
         return NULL;
@@ -80,7 +82,7 @@ BundleList::front()
 Bundle*
 BundleList::back()
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
 
     if (list_.empty())
         return NULL;
@@ -217,7 +219,7 @@ BundleList::del_bundle(iterator pos, BundleMapping** mappingp)
 Bundle*
 BundleList::pop_front(BundleMapping** mappingp)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
 
     // always drain the pipe to make sure that if the list is empty,
     // then the pipe must be empty as well
@@ -235,7 +237,7 @@ BundleList::pop_front(BundleMapping** mappingp)
 Bundle*
 BundleList::pop_back(BundleMapping** mappingp)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
 
     // always drain the pipe to maintain the invariant that if the
     // list is empty, then the pipe must be empty as well
@@ -289,7 +291,7 @@ BundleList::pop_blocking(BundleMapping** mappingp, int timeout)
 void
 BundleList::erase(iterator& pos, BundleMapping** mappingp)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
     
     Bundle* b = del_bundle(pos, mappingp);
     b->del_ref("bundle_list", name_.c_str());
@@ -301,8 +303,8 @@ BundleList::erase(iterator& pos, BundleMapping** mappingp)
 void
 BundleList::move_contents(BundleList* other)
 {
-    ScopeLock l1(lock_);
-    ScopeLock l2(other->lock_);
+    oasys::ScopeLock l1(lock_);
+    oasys::ScopeLock l2(other->lock_);
 
     Bundle* b;
     BundleMapping* m;
@@ -322,7 +324,7 @@ void
 BundleList::clear()
 {
     Bundle* b;
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
     
     while (!list_.empty()) {
         b = pop_front();
@@ -337,7 +339,7 @@ BundleList::clear()
 size_t
 BundleList::size() const
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
     return list_.size();
 }
 
@@ -397,3 +399,5 @@ BundleList::end() const
     
     return list_.end();
 }
+
+} // namespace dtn

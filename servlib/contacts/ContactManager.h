@@ -39,6 +39,9 @@
 #define _CONTACT_MANAGER_H_
 
 #include <oasys/debug/Log.h>
+#include <oasys/util/StringBuffer.h>
+
+namespace dtn {
 
 class BundleTuple;
 class Contact;
@@ -47,16 +50,12 @@ class LinkSet;
 class Peer;
 class PeerSet;
 
-namespace oasys {
-class StringBuffer;
-}
-
 /**
  * A contact manager singleton class.
  * Maintains topological information regarding available
  * links, peers, contacts.
  */
-class ContactManager : public Logger {
+class ContactManager : public oasys::Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -162,5 +161,7 @@ protected:
     LinkSet* links_;                  ///< Set of all links
 };
 
+
+} // namespace dtn
 
 #endif /* _CONTACT_MANAGER_H_ */

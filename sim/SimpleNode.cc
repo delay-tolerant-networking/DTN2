@@ -37,6 +37,8 @@
  */
 #include "SimpleNode.h"
 
+namespace dtn {
+
 SimpleNode::SimpleNode( int id, const char* logpath) 
     : Node(id,logpath),msgq_(0)
 {
@@ -167,3 +169,5 @@ SimpleNode::process(Event* e)
     else
 	PANIC("unimplemented action code");
 }
+
+} // namespace dtn

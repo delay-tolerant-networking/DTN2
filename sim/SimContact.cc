@@ -38,6 +38,7 @@
 #include "SimContact.h"
 #include "Simulator.h"
 
+namespace dtn {
 
 
 SimContact::SimContact (int id, Node* src, Node* dst, 
@@ -230,3 +231,5 @@ SimContact::process(Event* e)
 
 
 
+
+} // namespace dtn

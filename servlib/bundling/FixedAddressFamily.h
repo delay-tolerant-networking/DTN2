@@ -40,6 +40,8 @@
 
 #include "AddressFamily.h"
 
+namespace dtn {
+
 class FixedAddressFamily : public AddressFamily {
 public:
     FixedAddressFamily() : AddressFamily("__fixed__") {}
@@ -58,5 +60,7 @@ public:
                const std::string& admin);
 
 };
+
+} // namespace dtn
 
 #endif /* _FIXED_ADDRESS_FAMILY_H_ */

@@ -44,6 +44,8 @@
 #include "BundleMapping.h"
 #include "storage/GlobalStore.h"
 
+namespace dtn {
+
 void
 Bundle::init(u_int32_t id, BundlePayload::location_t location)
 {
@@ -96,7 +98,7 @@ Bundle::format(char* buf, size_t sz)
 }
 
 void
-Bundle::serialize(SerializeAction* a)
+Bundle::serialize(oasys::SerializeAction* a)
 {
     a->process("bundleid", &bundleid_);
     a->process("source", &source_);
@@ -203,7 +205,7 @@ Bundle::del_pending()
 BundleMapping*
 Bundle::add_mapping(BundleList* blist, const BundleMapping* mapping_info)
 {
-    ScopeLock l(&lock_);
+    oasys::ScopeLock l(&lock_);
     
     log_debug("/bundle/mapping", "bundle id %d add mapping [%s]",
               bundleid_, blist->name().c_str());
@@ -235,7 +237,7 @@ Bundle::add_mapping(BundleList* blist, const BundleMapping* mapping_info)
 BundleMapping* 
 Bundle::del_mapping(BundleList* blist)
 {
-    ScopeLock l(&lock_);
+    oasys::ScopeLock l(&lock_);
 
     log_debug("/bundle/mapping", "bundle id %d del mapping [%s]",
               bundleid_, blist->name().c_str());
@@ -262,7 +264,7 @@ Bundle::del_mapping(BundleList* blist)
 BundleMapping*
 Bundle::get_mapping(BundleList* blist)
 {
-    ScopeLock l(&lock_);
+    oasys::ScopeLock l(&lock_);
 
     BundleMappings::iterator iter = mappings_.find(blist);
     if (iter == mappings_.end()) {
@@ -296,3 +298,5 @@ Bundle::mappings_end()
     
     return mappings_.end();
 }
+
+} // namespace dtn

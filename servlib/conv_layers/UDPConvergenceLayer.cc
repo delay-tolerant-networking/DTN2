@@ -50,6 +50,8 @@
 #include "bundling/BundleProtocol.h"
 #include "bundling/InternetAddressFamily.h"
 
+namespace dtn {
+
 /******************************************************************************
  *
  * UDPConvergenceLayer
@@ -103,7 +105,8 @@ UDPConvergenceLayer::add_interface(Interface* iface,
     receiver->logpathf("%s/iface/%s:%d", logpath_, intoa(addr), port);
 
     if (receiver->bind(addr, port) != 0) {
-        receiver->logf(LOG_ERR, "error binding to requested socket: %s",
+        receiver->logf(oasys::LOG_ERR,
+                       "error binding to requested socket: %s",
                        strerror(errno));
         return false;
     }
@@ -129,7 +132,7 @@ bool UDPConvergenceLayer::del_interface(Interface* iface) {
     receiver->interrupt();
     
     while (! receiver->is_stopped()) {
-        Thread::yield();
+        oasys::Thread::yield();
     }
 
     delete receiver;
@@ -182,7 +185,7 @@ bool UDPConvergenceLayer::close_contact(Contact* contact) {
             }
             
             log_warn("waiting for connection thread to stop...");
-            Thread::yield();
+            oasys::Thread::yield();
         }
         
         delete snd;
@@ -304,14 +307,14 @@ UDPConvergenceLayer::Receiver::run()
             if (errno == EINTR) {
                 continue;
             }
-            logf(LOG_ERR, "error in recvfrom(): %d %s",
-                 errno, strerror(errno));
+            log_err("error in recvfrom(): %d %s",
+                    errno, strerror(errno));
             close();
             break;
         }
         
-	logf(LOG_DEBUG, "Received data on fd %d from %s:%d",
-	     fd, intoa(addr), port);	         
+	log_debug("Received data on fd %d from %s:%d",
+                  fd, intoa(addr), port);	         
 	process_data(pt_payload, ret);
     }
 }
@@ -333,7 +336,7 @@ UDPConvergenceLayer::Sender::Sender(Contact* contact,
     Thread::flags_ |= INTERRUPTABLE;
 
     logpathf("/cl/udp/conn/%s:%d", intoa(remote_addr), remote_port);
-    sock_ = new UDPClient(logpath_);
+    sock_ = new oasys::UDPClient(logpath_);
     sock_->set_logfd(false);
     
     sock_->set_remote_addr(remote_addr);
@@ -454,7 +457,7 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
 void UDPConvergenceLayer::Sender::send_loop() {
 
     // first of all, connect to the receiver side
-    ASSERT(sock_->state() != IPSocket::ESTABLISHED);   
+    ASSERT(sock_->state() != oasys::IPSocket::ESTABLISHED);
 
     log_debug("send_loop: connecting to %s:%d...", 
 	      intoa(sock_->remote_addr()), sock_->remote_port());
@@ -598,3 +601,5 @@ UDPConvergenceLayer::Sender::break_contact()
     if (contact_)
         BundleForwarder::post(new ContactDownEvent(contact_));
 }
+
+} // namespace dtn

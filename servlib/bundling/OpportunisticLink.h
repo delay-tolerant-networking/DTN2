@@ -42,6 +42,8 @@ class Link;
 
 #include "Link.h"
 
+namespace dtn {
+
 /**
  * Abstraction for a OPPORTUNISTIC link. It has to be opened
  * everytime one wants to use it. It has by definition only
@@ -64,5 +66,7 @@ public:
     
 protected:
 };
+
+} // namespace dtn
 
 #endif /* _OPPORTUNISTIC_LINK_H_ */

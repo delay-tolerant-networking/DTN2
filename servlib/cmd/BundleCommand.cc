@@ -43,6 +43,8 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
 
+namespace dtn {
+
 BundleCommand::BundleCommand()
     : TclCommand("bundle") {}
 
@@ -126,3 +128,5 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
     }
 }
 
+
+} // namespace dtn

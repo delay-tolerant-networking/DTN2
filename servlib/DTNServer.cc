@@ -84,10 +84,12 @@
 #include "storage/PostgresSQLImplementation.h"
 #endif
 
+namespace dtn {
+
 void
 DTNServer::init_commands()
 {
-    TclCommandInterp* interp = TclCommandInterp::instance();
+    oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
     
     interp->reg(new BundleCommand());
     interp->reg(new InterfaceCommand());
@@ -170,7 +172,7 @@ DTNServer::init_datastore()
                (storage_type.compare("postgres") == 0))
     {
 #if __SQL_ENABLED__
-        SQLImplementation* impl = NULL;
+        oasys::SQLImplementation* impl = NULL;
         
         if (storage_type.compare("mysql") == 0)
         {
@@ -214,7 +216,8 @@ DTNServer::init_datastore()
     GlobalStore::init(global_store);
     BundleStore::init(bundle_store);
     RegistrationStore::init(reg_store);
-
+    return;
+    
 unimpl:
     log_err("/dtnserver", "storage type %s not implemented, exiting...",
             storage_type.c_str());
@@ -330,3 +333,5 @@ DTNServer::validate_dir(const char * dirname)
         exit(1);
     }
 }
+
+} // namespace dtn

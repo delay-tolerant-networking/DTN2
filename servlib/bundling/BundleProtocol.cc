@@ -46,16 +46,18 @@
 #include "Bundle.h"
 #include "BundleProtocol.h"
 
+namespace dtn {
+
 /**
  * For the region and admin parts of the given tuple, fill in the
  * corresponding index into the string vector.
  */
 static inline void
 add_to_dict(u_int8_t* id, const BundleTuple& tuple,
-            StringVector* tuples, size_t* dictlen)
+            oasys::StringVector* tuples, size_t* dictlen)
 {
     u_int8_t region_id, admin_id;
-    StringVector::iterator iter;
+    oasys::StringVector::iterator iter;
 
     // first the region string
     iter = std::find(tuples->begin(), tuples->end(), tuple.region());
@@ -127,7 +129,7 @@ BundleProtocol::format_headers(const Bundle* bundle,
     // unique ones in a temp vector and assigning the corresponding
     // string ids in the primary header. keep track of the total
     // length of the dictionary header in the process
-    StringVector tuples;
+    oasys::StringVector tuples;
     size_t dictlen = sizeof(DictionaryHeader);
     add_to_dict(&primary->source_id,    bundle->source_,    &tuples, &dictlen);
     add_to_dict(&primary->dest_id,      bundle->dest_,      &tuples, &dictlen);
@@ -213,7 +215,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     PrimaryHeader* primary;
     if (len < sizeof(PrimaryHeader)) {
  tooshort:
-        logf(log, LOG_ERR, "bundle too short (length %d)", len);
+        log_err(log, "bundle too short (length %d)", len);
         return -1;
     }
     
@@ -222,8 +224,8 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     len -= sizeof(PrimaryHeader);
 
     if (primary->version != CURRENT_VERSION) {
-        logf(log, LOG_WARN, "protocol version mismatch %d != %d",
-             primary->version, CURRENT_VERSION);
+        log_warn(log, "protocol version mismatch %d != %d",
+                 primary->version, CURRENT_VERSION);
         return -1;
     }
 
@@ -239,7 +241,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     //
     DictionaryHeader* dictionary;
     if (primary->next_header_type != HEADER_DICTIONARY) {
-        logf(log, LOG_ERR, "dictionary header doesn't follow primary");
+        log_err(log, "dictionary header doesn't follow primary");
         return -1;
     }
 
@@ -293,12 +295,12 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
                          tupledata[admin_id],  tuplelen[admin_id]);     \
                                                                         \
     if (! bundle->_what.valid()) {                                      \
-        logf(log, LOG_ERR, "invalid %s tuple '%s'", #_what,             \
-             bundle->_what.c_str());                                    \
+        log_err(log, "invalid %s tuple '%s'", #_what,                   \
+                bundle->_what.c_str());                                 \
         return -1;                                                      \
     }                                                                   \
-    logf(log, LOG_DEBUG, "parsed %s tuple (ids %d, %d) %s", #_what,     \
-         region_id, admin_id, bundle->_what.c_str());
+    log_debug(log, "parsed %s tuple (ids %d, %d) %s", #_what,           \
+              region_id, admin_id, bundle->_what.c_str());
 
     EXTRACT_DICTIONARY_TUPLE(source_);
     EXTRACT_DICTIONARY_TUPLE(dest_);
@@ -309,11 +311,11 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     while (next_header_type != HEADER_NONE) {
         switch (next_header_type) {
         case HEADER_PRIMARY:
-            logf(log, LOG_ERR, "found a second primary header");
+            log_err(log, "found a second primary header");
             return -1;
 
         case HEADER_DICTIONARY:
-            logf(log, LOG_ERR, "found a second dictionary header");
+            log_err(log, "found a second dictionary header");
             return -1;
 
         case HEADER_FRAGMENT: {
@@ -348,8 +350,8 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
             len -= sizeof(PayloadHeader);
 
             if (payload->next_header_type != HEADER_NONE) {
-                logf(log, LOG_ERR, "payload header must be last (next type %d)",
-                     payload->next_header_type);
+                log_err(log, "payload header must be last (next type %d)",
+                        payload->next_header_type);
                 return -1;
             }
 
@@ -358,13 +360,13 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
             memcpy(&payload_len, &payload->length, 4);
             bundle->payload_.set_length(ntohl(payload_len));
 
-            logf(log, LOG_DEBUG, "parsed payload length %d",
-                 bundle->payload_.length());
+            log_debug(log, "parsed payload length %d",
+                      bundle->payload_.length());
             break;
         }
 
         default:
-            logf(log, LOG_ERR, "unknown header type %d", next_header_type);
+            log_err(log, "unknown header type %d", next_header_type);
             return -1;
         }
     }
@@ -431,3 +433,5 @@ BundleProtocol::parse_payload_security(Bundle* bundle,
                                        u_int8_t payload_security)
 {
 }
+
+} // namespace dtn

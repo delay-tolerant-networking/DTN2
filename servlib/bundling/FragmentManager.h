@@ -42,9 +42,14 @@
 #include <oasys/debug/Log.h>
 #include <oasys/util/StringUtils.h>
 
+namespace oasys {
+class SpinLock;
+}
+
+namespace dtn {
+
 class Bundle;
 class BundleList;
-class SpinLock;
 
 // XXX/demmer should change the overall flow of the reassembly so all
 // arriving bundle fragments are enqueued onto the appropriate
@@ -58,7 +63,7 @@ class SpinLock;
  * It also implements the routine for creating bundle fragments from
  * larger bundles.
  */
-class FragmentManager : public Logger {
+class FragmentManager : public oasys::Logger {
 public:
     /**
      * Constructor.
@@ -125,11 +130,13 @@ public:
     static FragmentManager instance_;
     
     /// Table of partial bundles
-    typedef StringHashMap<ReassemblyState*> ReassemblyTable;
+    typedef oasys::StringHashMap<ReassemblyState*> ReassemblyTable;
     ReassemblyTable reassembly_table_;
 
     /// Lock
-    SpinLock* lock_;
+    oasys::SpinLock* lock_;
 };
+
+} // namespace dtn
 
 #endif /* __FRAGMENT_MANAGER_H__ */

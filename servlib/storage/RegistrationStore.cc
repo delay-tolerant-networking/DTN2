@@ -40,6 +40,8 @@
 #include "RegistrationStore.h"
 #include "PersistentStore.h"
 
+namespace dtn {
+
 RegistrationStore* RegistrationStore::instance_;
 
 /**
@@ -173,3 +175,5 @@ RegistrationStore::close()
         log_err("error closing registration store");
     }
 }
+
+} // namespace dtn

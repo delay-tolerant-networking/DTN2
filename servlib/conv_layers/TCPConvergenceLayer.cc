@@ -53,6 +53,8 @@
 #include "bundling/FragmentManager.h"
 #include "bundling/InternetAddressFamily.h"
 
+namespace dtn {
+
 struct TCPConvergenceLayer::_defaults TCPConvergenceLayer::Defaults;
 
 /******************************************************************************
@@ -110,17 +112,19 @@ TCPConvergenceLayer::add_interface(Interface* iface,
 
     // XXX/demmer temporary hack
     if (ret != 0 && errno == EADDRINUSE) {
-        listener->logf(LOG_WARN,
+        listener->logf(oasys::LOG_WARN,
                        "WARNING: error binding to requested socket: %s",
                        strerror(errno));
-        listener->logf(LOG_WARN, "waiting for 10 seconds then trying again");
+        listener->logf(oasys::LOG_WARN,
+                       "waiting for 10 seconds then trying again");
         sleep(10);
 
         ret = listener->bind(addr, port);
     }
 
     if (ret != 0) {
-        listener->logf(LOG_ERR, "error binding to requested socket: %s",
+        listener->logf(oasys::LOG_ERR,
+                       "error binding to requested socket: %s",
                        strerror(errno));
         return false;
     }
@@ -151,7 +155,7 @@ TCPConvergenceLayer::del_interface(Interface* iface)
     listener->interrupt();
     
     while (! listener->is_stopped()) {
-        Thread::yield();
+        oasys::Thread::yield();
     }
 
     delete listener;
@@ -213,7 +217,7 @@ TCPConvergenceLayer::close_contact(Contact* contact)
             }
             
             log_warn("waiting for connection thread to stop...");
-            Thread::yield();
+            oasys::Thread::yield();
         }
         
         log_debug("thread stopped, deleting connection...");
@@ -267,7 +271,7 @@ TCPConvergenceLayer::Connection::Connection(Contact* contact,
     // cache the remote addr and port in the fields in the socket
     // since we want to actually connect to the peer side from the
     // Connection thread, not from the caller thread
-    sock_ = new TCPClient();
+    sock_ = new oasys::TCPClient();
 
     // XXX/demmer the basic socket logging emits errros and the like
     // when connections break. that may not be great since we kinda
@@ -289,7 +293,7 @@ TCPConvergenceLayer::Connection::Connection(int fd,
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
     ack_blocksz_ = TCPConvergenceLayer::Defaults.ack_blocksz_;
 
-    sock_ = new TCPClient(fd, remote_addr, remote_port, logpath_);
+    sock_ = new oasys::TCPClient(fd, remote_addr, remote_port, logpath_);
     sock_->set_logfd(false);
 }
 
@@ -500,7 +504,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
             if (revents & POLLIN) {
                 cc = handle_ack(bundle, acked_len);
                 
-                if (cc == IOERROR) {
+                if (cc == oasys::IOERROR) {
                     goto done;
                 }
                 ASSERT(cc == 1);
@@ -546,7 +550,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         ASSERT(cc == 1);
         
         cc = handle_ack(bundle, acked_len);
-        if (cc == IOERROR) {
+        if (cc == oasys::IOERROR) {
             goto done;
         }
         ASSERT(cc == 1);
@@ -679,7 +683,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
         }
 
         cc = sock_->timeout_read(&typecode, 1, 5000);
-        if (cc == IOTIMEOUT) {
+        if (cc == oasys::IOTIMEOUT) {
             log_warn("recv_bundle: timeout waiting for next typecode");
             goto done;
         }
@@ -698,7 +702,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
             
         cc = sock_->timeout_readall((char*)&blockhdr, sizeof(blockhdr),
                                     5000);
-        if (cc == IOTIMEOUT) {
+        if (cc == oasys::IOTIMEOUT) {
             log_warn("recv_bundle: timeout reading block header");
             goto done;
         }
@@ -727,7 +731,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
         }
 
         cc = sock_->timeout_readall((char*)buf, block_len, 5000);
-        if (cc == IOTIMEOUT) {
+        if (cc == oasys::IOTIMEOUT) {
             log_warn("recv_bundle: timeout reading block data");
             goto done;
         }
@@ -822,7 +826,7 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
     if (cc != 1) {
         log_err("handle_ack: error reading typecode: %s",
                 strerror(errno));
-        return IOERROR;
+        return oasys::IOERROR;
     }
 
     // ignore KEEPALIVE messages 
@@ -834,7 +838,7 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
     if (typecode != BUNDLE_ACK) {
         log_err("handle_ack: unexpected frame header type code 0x%x",
                 typecode);
-        return IOERROR;
+        return oasys::IOERROR;
     }
 
     // now just read in the ack header and validate the acked length
@@ -845,7 +849,7 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
     {
         log_err("handle_ack: error reading ack header (got %d/%d): %s",
                 cc, sizeof(BundleAckHeader), strerror(errno));
-        return IOERROR;
+        return oasys::IOERROR;
     }
 
     new_acked_len = ntohl(ackhdr.acked_length);
@@ -858,7 +862,7 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
     {
         log_err("handle_ack: error: bundle id mismatch %d != %d",
                 ackhdr.bundle_id, bundle->bundleid_);
-        return IOERROR;
+        return oasys::IOERROR;
     }
 
     if (new_acked_len < *acked_len ||
@@ -866,7 +870,7 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
     {
         log_err("handle_ack: invalid acked length %d (acked %d, bundle %d)",
                 new_acked_len, *acked_len, payload_len);
-        return IOERROR;
+        return oasys::IOERROR;
     }
 
     *acked_len = new_acked_len;
@@ -892,7 +896,7 @@ TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
     keepalive_msec_ = contacthdr.keepalive_sec * 1000;
     
     // first of all, connect to the receiver side
-    ASSERT(sock_->state() != IPSocket::ESTABLISHED);
+    ASSERT(sock_->state() != oasys::IPSocket::ESTABLISHED);
     log_debug("send_loop: connecting to %s:%d...",
               intoa(sock_->remote_addr()), sock_->remote_port());
 
@@ -921,7 +925,7 @@ TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
     cc = sock_->timeout_readall((char*)&contacthdr, sizeof(ContactHeader),
                                 keepalive_msec_);
 
-    if (cc == IOTIMEOUT) {
+    if (cc == oasys::IOTIMEOUT) {
         log_warn("timeout reading contact header");
         return false;
     }
@@ -1191,13 +1195,13 @@ TCPConvergenceLayer::Connection::recv_loop()
         log_debug("recv_loop: blocking on frame typecode... (timeout %d)",
                   timeout);
         int ret = sock_->timeout_read(&typecode, 1, timeout);
-        if (ret == IOEOF || ret == IOERROR) {
+        if (ret == oasys::IOEOF || ret == oasys::IOERROR) {
             log_warn("recv_loop: remote connection unexpectedly closed");
  shutdown:
             break_contact();
             return;
             
-        } else if (ret == IOTIMEOUT) {
+        } else if (ret == oasys::IOTIMEOUT) {
             log_warn("recv_loop: no message heard for > %d msecs -- "
                      "breaking contact", 2 * keepalive_msec_);
             goto shutdown;
@@ -1231,3 +1235,5 @@ TCPConvergenceLayer::Connection::recv_loop()
         }
      }
 }
+
+} // namespace dtn

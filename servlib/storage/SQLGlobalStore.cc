@@ -44,9 +44,11 @@
 #include "SQLStore.h"
 #include "StorageConfig.h"
 
+namespace dtn {
+
 static const char* TABLENAME = "globals";
 
-SQLGlobalStore::SQLGlobalStore(SQLImplementation* impl)
+SQLGlobalStore::SQLGlobalStore(oasys::SQLImplementation* impl)
 {
     store_ = new SQLStore(TABLENAME, impl);
     store_->create_table(this);
@@ -62,7 +64,7 @@ SQLGlobalStore::load()
 {
     log_debug("loading global store");
 
-    SerializableObjectVector elements;
+    oasys::SerializableObjectVector elements;
     elements.push_back(this);
     
     int cnt = store_->elements(&elements);
@@ -102,5 +104,7 @@ SQLGlobalStore::update()
     
     return true;
 }
+
+} // namespace dtn
 
 #endif /* __SQL_ENABLED__ */

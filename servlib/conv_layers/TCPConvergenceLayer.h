@@ -43,6 +43,8 @@
 
 #include "IPConvergenceLayer.h"
 
+namespace dtn {
+
 class TCPConvergenceLayer : public IPConvergenceLayer {
 public:
     /**
@@ -95,7 +97,7 @@ protected:
      * Helper class (and thread) that listens on a registered
      * interface for new connections.
      */
-    class Listener : public InterfaceInfo, public TCPServerThread {
+    class Listener : public InterfaceInfo, public oasys::TCPServerThread {
     public:
         Listener();
         void accepted(int fd, in_addr_t addr, u_int16_t port);
@@ -109,7 +111,7 @@ protected:
      * Connection is either a receiver or a sender, as negotiated by
      * the convergence layer specific framing protocol.
      */
-    class Connection : public ContactInfo, public Thread, public Logger {
+    class Connection : public ContactInfo, public oasys::Thread, public oasys::Logger {
     public:
         /**
          * Constructor for the active connection side of a connection.
@@ -151,10 +153,12 @@ protected:
         bool recv_bundle();
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
         Contact* contact_;
-        TCPClient* sock_;
+        oasys::TCPClient* sock_;
         size_t ack_blocksz_;
         int keepalive_msec_;
     };
 };
+
+} // namespace dtn
 
 #endif /* _TCP_CONVERGENCE_LAYER_H_ */

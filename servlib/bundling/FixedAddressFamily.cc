@@ -38,6 +38,8 @@
 
 #include "FixedAddressFamily.h"
 
+namespace dtn {
+
 /**
  * Determine if the administrative string is valid.
  *
@@ -74,3 +76,5 @@ FixedAddressFamily::match(const std::string& pattern,
 {
     return pattern.compare(tuple) == 0;
 }
+
+} // namespace dtn

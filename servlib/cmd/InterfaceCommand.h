@@ -40,10 +40,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * CommandModule for the "interface" command.
  */
-class InterfaceCommand : public TclCommand {
+class InterfaceCommand : public oasys::TclCommand {
 public:
     InterfaceCommand();
     
@@ -53,5 +55,7 @@ public:
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
     virtual const char* help_string();
 };
+
+} // namespace dtn
 
 #endif /* _INTERFACE_COMMAND_H_ */

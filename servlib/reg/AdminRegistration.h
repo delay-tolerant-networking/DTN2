@@ -40,6 +40,8 @@
 
 #include "Registration.h"
 
+namespace dtn {
+
 /**
  * Internal registration that recieves all administrative bundles
  * destined for the router itself (i.e. status reports, custody
@@ -66,5 +68,7 @@ public:
      */
     bool is_queued(Bundle* bundle);
 };
+
+} // namespace dtn
 
 #endif /* _ADMIN_REGISTRATION_H_ */

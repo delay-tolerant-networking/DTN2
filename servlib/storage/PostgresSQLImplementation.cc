@@ -45,6 +45,8 @@
 #include <oasys/util/StringBuffer.h>
 #include "PostgresSQLImplementation.h"
 
+namespace dtn {
+
 PostgresSQLImplementation::PostgresSQLImplementation()
     : SQLImplementation("BYTEA", "BOOLEAN"),
       Logger("/storage/postgresql")
@@ -198,5 +200,7 @@ PostgresSQLImplementation::unescape_binary(const u_char* from)
     const u_char* to = PQunescapeBytea(from1,&to_length);
     return to;
 }
+
+} // namespace dtn
 
 #endif /* __POSTGRES_ENABLED__ */

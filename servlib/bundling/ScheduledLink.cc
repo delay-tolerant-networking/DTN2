@@ -37,6 +37,8 @@
  */
 #include "ScheduledLink.h"
 
+namespace dtn {
+
 /**
  * Constructor / Destructor
  */
@@ -77,3 +79,5 @@ ScheduledLink::convert_fc(FutureContact* fc)
 {
     NOTIMPLEMENTED ;
 }
+
+} // namespace dtn

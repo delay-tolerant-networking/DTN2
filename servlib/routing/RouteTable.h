@@ -40,16 +40,15 @@
 
 #include <set>
 #include <oasys/debug/Log.h>
+#include <oasys/util/StringBuffer.h>
 
 #include "bundling/BundleMapping.h"
 #include "bundling/BundleTuple.h"
 
+namespace dtn {
+
 class BundleConsumer;
 class RouteEntryInfo;
-
-namespace oasys {
-class StringBuffer;
-}
 
 /**
  * A route table entry. Each entry contains a tuple pattern that is
@@ -96,7 +95,7 @@ typedef std::set<RouteEntry*> RouteEntrySet;
  * Class that implements the routing table, currently implemented
  * using a stl set.
  */
-class RouteTable : public Logger {
+class RouteTable : public oasys::Logger {
 public:
     /**
      * Constructor
@@ -146,5 +145,7 @@ class RouteEntryInfo {
 public:
     virtual ~RouteEntryInfo() {}
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_ROUTETABLE_H_ */

@@ -41,6 +41,8 @@
 #include "BundleRef.h"
 #include "BundleList.h"
 
+namespace dtn {
+
 /**
  * All signaling from various components to the routing layer is done
  * via the Bundle Event message abstraction. This file defines the
@@ -319,5 +321,7 @@ public:
     /// The list of bundle fragments
     BundleList fragments_;
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_EVENT_H_ */

@@ -43,6 +43,8 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/io/FileIOClient.h>
 
+namespace dtn {
+
 /**
  * The representation of a bundle payload.
  *
@@ -51,7 +53,7 @@
  * payload.
  *
  */
-class BundlePayload : public SerializableObject {
+class BundlePayload : public oasys::SerializableObject {
 public:
     BundlePayload();
     virtual ~BundlePayload();
@@ -69,7 +71,7 @@ public:
     /**
      * Actual payload initialization function.
      */
-    void init(SpinLock* lock, int bundleid, location_t location);
+    void init(oasys::SpinLock* lock, int bundleid, location_t location);
   
     /**
      * Set the payload length in preparation for filling in with data.
@@ -159,7 +161,7 @@ public:
     /**
      * Virtual from SerializableObject
      */
-    virtual void serialize(SerializeAction* a);
+    virtual void serialize(oasys::SerializeAction* a);
 
     /*
      * Tunable parameters
@@ -175,10 +177,12 @@ protected:
     size_t length_;     	///< the payload length
     size_t rcvd_length_;     	///< the payload length we actually have
     std::string fname_;		///< payload file name
-    FileIOClient* file_;	///< file handle if on disk
+    oasys::FileIOClient* file_;	///< file handle if on disk
     size_t cur_offset_;		///< cache of current fd position
     size_t base_offset_;	///< for fragments, offset into the file (todo)
-    SpinLock* lock_;		///< the lock for the given bundle
+    oasys::SpinLock* lock_;		///< the lock for the given bundle
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_PAYLOAD_H_ */

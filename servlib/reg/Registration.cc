@@ -43,6 +43,8 @@
 #include "bundling/BundleMapping.h"
 #include "storage/GlobalStore.h"
 
+namespace dtn {
+
 void
 Registration::init(u_int32_t regid,
                    const BundleTuplePattern& endpoint,
@@ -118,7 +120,7 @@ Registration::~Registration()
  * Virtual from SerializableObject.
  */
 void
-Registration::serialize(SerializeAction* a)
+Registration::serialize(oasys::SerializeAction* a)
 {
     a->process("endpoint", &endpoint_);
     a->process("regid", &regid_);
@@ -126,3 +128,5 @@ Registration::serialize(SerializeAction* a)
     a->process("script", &script_);
     a->process("expiration", (u_int32_t*)&expiration_);
 }
+
+} // namespace dtn

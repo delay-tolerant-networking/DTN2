@@ -40,6 +40,8 @@
 #include "BundleProtocol.h"
 #include <netinet/in.h>
 
+namespace dtn {
+
 BundleStatusReport::BundleStatusReport(Bundle* orig_bundle, BundleTuple& source)
     : Bundle()
 {
@@ -121,3 +123,5 @@ BundleStatusReport::set_status_time(status_report_flag_t flag)
     *ts = ((u_int64_t)htonl(now.tv_sec)) << 32;
     *ts	|= (u_int64_t)htonl(now.tv_usec);
 }
+
+} // namespace dtn

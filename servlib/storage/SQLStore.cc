@@ -48,11 +48,13 @@
 #include "bundling/Bundle.h"
 #include <oasys/util/StringBuffer.h>
 
+namespace dtn {
+
 /**
  * Constructor.
  */
 
-SQLStore::SQLStore(const char* table_name, SQLImplementation* db)
+SQLStore::SQLStore(const char* table_name, oasys::SQLImplementation* db)
      : Logger("/storage/sqlstore")
 {
     sql_impl_ = db;
@@ -71,7 +73,7 @@ SQLStore::close()
 }
     
 int 
-SQLStore::get(SerializableObject* obj, const int key) 
+SQLStore::get(oasys::SerializableObject* obj, const int key) 
 {
     ASSERT(key_name_); //key_name_ must be initialized 
     
@@ -84,22 +86,21 @@ SQLStore::get(SerializableObject* obj, const int key)
         return status;
     }
     
-    SQLExtract xt(sql_impl_) ;     
+    oasys::SQLExtract xt(sql_impl_) ;     
     xt.action(obj); // use SQLExtract to fill the object
     return 0;
 }
 
 int
-SQLStore::put(SerializableObject* obj, const int key)
+SQLStore::put(oasys::SerializableObject* obj, const int key)
 {
-    update(obj, key);
+    return update(obj, key);
 }
-
      
 int 
-SQLStore::add(SerializableObject* obj, const int key)
+SQLStore::add(oasys::SerializableObject* obj, const int key)
 {
-    SQLInsert s(table_name_, sql_impl_);
+    oasys::SQLInsert s(table_name_, sql_impl_);
     s.action(obj);
     const char* insert_str = s.query();
     int retval = exec_query(insert_str);
@@ -107,9 +108,9 @@ SQLStore::add(SerializableObject* obj, const int key)
 }
      
 int 
-SQLStore::update(SerializableObject* obj, const int key)
+SQLStore::update(oasys::SerializableObject* obj, const int key)
 {
-    SQLUpdate s(table_name_, sql_impl_);
+    oasys::SQLUpdate s(table_name_, sql_impl_);
     s.action(obj);
 
     if (key_name_) {
@@ -180,7 +181,7 @@ SQLStore::keys(std::vector<int> * l)
 }
 
 int 
-SQLStore::elements(SerializableObjectVector* elements) 
+SQLStore::elements(oasys::SerializableObjectVector* elements) 
 {
     oasys::StringBuffer query;
     query.appendf("SELECT * from %s", table_name_);
@@ -197,12 +198,13 @@ SQLStore::elements(SerializableObjectVector* elements)
     }
 
     if (n > elements->size()) {
-        log_err("element count %d greater than vector %d", n, elements->size());
+        log_err("element count %d greater than vector %d",
+                n, elements->size());
         return -1;
     }
 
-    SQLExtract extract(sql_impl_);
-    SerializableObjectVector::iterator iter = elements->begin();
+    oasys::SQLExtract extract(sql_impl_);
+    oasys::SerializableObjectVector::iterator iter = elements->begin();
     for (size_t i = 0; i < n; i++) {
         extract.action(*iter);
         ++iter;
@@ -233,7 +235,7 @@ SQLStore::has_table(const char* name) {
 }
 
 int
-SQLStore::create_table(SerializableObject* obj) 
+SQLStore::create_table(oasys::SerializableObject* obj) 
 {
     if (has_table(table_name_)) {
         if (StorageConfig::instance()->tidy_) {
@@ -248,7 +250,7 @@ SQLStore::create_table(SerializableObject* obj)
         }
     }
     
-    SQLTableFormat t(table_name_,sql_impl_);
+    oasys::SQLTableFormat t(table_name_,sql_impl_);
     t.action(obj);
     int retval = exec_query(t.query());
     return retval;
@@ -278,5 +280,7 @@ SQLStore::set_key_name(const char* name)
 {    
     key_name_ = name;
 }
+
+} // namespace dtn
 
 #endif /* __SQL_ENABLED__ */

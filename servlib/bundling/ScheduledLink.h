@@ -41,6 +41,8 @@
 #include "Link.h"
 #include <set>
 
+namespace dtn {
+
 /**
  * Abstraction for a SCHEDULED link.
  *
@@ -111,5 +113,7 @@ protected:
     time_t duration_;
 };
 
+
+} // namespace dtn
 
 #endif /* _SCHEDULED_LINK_H_ */

@@ -44,6 +44,8 @@
 #include "BundleRef.h"
 #include "Link.h"
 
+namespace dtn {
+
 class BundleConsumer;
 
 /**
@@ -166,5 +168,7 @@ public:
     Link* link_;		///< link
 };
 
+
+} // namespace dtn
 
 #endif /* _BUNDLE_ACTION_H_ */

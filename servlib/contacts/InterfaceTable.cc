@@ -39,6 +39,8 @@
 #include "InterfaceTable.h"
 #include "conv_layers/ConvergenceLayer.h"
 
+namespace dtn {
+
 InterfaceTable* InterfaceTable::instance_ = NULL;
 
 InterfaceTable::InterfaceTable()
@@ -124,3 +126,5 @@ InterfaceTable::del(const std::string& admin, ConvergenceLayer* cl,
     
     return true;
 }
+
+} // namespace dtn

@@ -41,6 +41,8 @@
 #include "FileConvergenceLayer.h"
 #include "../sim/SimConvergenceLayer.h"
 
+namespace dtn {
+
 class SimConvergenceLayer;
 
 ConvergenceLayer::~ConvergenceLayer()
@@ -139,3 +141,5 @@ ConvergenceLayer::send_bundles(Contact* contact)
 {
     log_debug("sending bundles for contact *%p", contact);
 }
+
+} // namespace dtn

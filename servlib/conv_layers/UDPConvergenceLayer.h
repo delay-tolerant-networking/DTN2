@@ -43,6 +43,8 @@
 
 #include "IPConvergenceLayer.h"
 
+namespace dtn {
+
 class UDPConvergenceLayer : public IPConvergenceLayer {
 public:
     /**
@@ -92,7 +94,9 @@ public:
      * Helper class (and thread) that listens on a registered
      * interface for incoming data 
      */
-    class Receiver : public InterfaceInfo, public IPSocket, public Thread {
+    class Receiver : public InterfaceInfo,
+                     public oasys::IPSocket,
+                     public oasys::Thread {
 public:
         Receiver();
         void process_data(char* payload, size_t payload_len);
@@ -117,7 +121,7 @@ public:
      * a connection. The receiver will just receive data. Therefore,
      * we don't need a passive side of a connection
      */
-    class Sender : public ContactInfo, public Thread, public Logger {
+    class Sender : public ContactInfo, public oasys::Thread, public oasys::Logger {
 public:
         /**
          * Constructor for the active connection side of a connection.
@@ -145,9 +149,10 @@ protected:
          */
         void break_contact();
         Contact* contact_;
-        UDPClient* sock_; 
+        oasys::UDPClient* sock_; 
     };   
-    
 };
+
+} // namespace dtn
 
 #endif /* _UDP_CONVERGENCE_LAYER_H_ */

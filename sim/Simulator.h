@@ -45,13 +45,15 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
+namespace dtn {
+
 
 class Event;
 class EventCompare;
 
 class Event_print_stats;
 
-class Simulator : public Logger, public Processable {
+class Simulator : public oasys::Logger, public Processable {
 public:
     /**
      * Singleton instance accessor.
@@ -135,5 +137,7 @@ private:
 
     bool is_running_; /// maintains the state if the simulator is running or paused
     std::priority_queue<Event*, std::vector<Event*>, EventCompare> eventq_;
-
 };
+
+} // namespace dtn
+    

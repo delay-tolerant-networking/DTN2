@@ -40,15 +40,18 @@
 
 #include <oasys/debug/Log.h>
 
+namespace dtn {
 
-class LogSim : public Log {
+class LogSim : public oasys::Log {
 
 public:
     virtual void getlogtime(struct timeval* tv);
     LogSim();
-    static void init(log_level_t defaultlvl = LOG_DEFAULT_THRESHOLD,
+    static void init(oasys::log_level_t defaultlvl = LOG_DEFAULT_THRESHOLD,
                      const char *debug_path = LOG_DEFAULT_DBGFILE);
     
 };
+
+} // namespace dtn
 
 #endif /* _LOG_SIM_H */

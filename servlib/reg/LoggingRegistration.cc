@@ -45,6 +45,8 @@
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
 
+namespace dtn {
+
 LoggingRegistration::LoggingRegistration(const BundleTuplePattern& endpoint)
     : Registration(endpoint, Registration::ABORT)
 {
@@ -87,12 +89,12 @@ LoggingRegistration::run()
         u_char payload_buf[payload_len];
         const u_char* data = b->payload_.read_data(0, len, payload_buf);
 
-	if (str_isascii(data, len)) {
+	if (oasys::str_isascii(data, len)) {
             log_info("        payload (ascii): length %d '%.*s'",
                      payload_len, (int)len, data);
         } else {
             std::string hex;
-            hex2str(&hex, data, len);
+            oasys::hex2str(&hex, data, len);
             len *= 2;
             if (len > 128)
                 len = 128;
@@ -106,3 +108,5 @@ LoggingRegistration::run()
         b->del_ref("LoggingRegistration");
     }
 }
+
+} // namespace dtn

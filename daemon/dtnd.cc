@@ -53,58 +53,60 @@
 #include "servlib/DTNServer.h"
 #include "storage/StorageConfig.h"
 
+using namespace dtn;
+
 int
 main(int argc, char* argv[])
 {
-    TestCommand testcmd;
-    int         random_seed;
-    bool        random_seed_set = false;
-    bool	daemon = false;
-    std::string conf_file;
-    bool        conf_file_set = false;
-    std::string logfile("-");
-    std::string loglevelstr;
-    log_level_t loglevel;
+    TestCommand        testcmd;
+    int                random_seed;
+    bool               random_seed_set = false;
+    bool	       daemon = false;
+    std::string        conf_file;
+    bool               conf_file_set = false;
+    std::string        logfile("-");
+    std::string        loglevelstr;
+    oasys::log_level_t loglevel;
 
     // Register all command line options
-    new StringOpt('o', "output",
-                  &logfile, "<output>",
-                  "file name for logging output ([-o -] indicates stdout)");
+    new oasys::StringOpt('o', "output",
+                         &logfile, "<output>",
+                         "file name for logging output ([-o -] indicates stdout)");
 
-    new StringOpt('l', NULL,
-                  &loglevelstr, "<level>",
-                  "default log level [debug|warn|info|crit]");
+    new oasys::StringOpt('l', NULL,
+                         &loglevelstr, "<level>",
+                         "default log level [debug|warn|info|crit]");
 
-    new StringOpt('c', "conf",
-                  &conf_file, &conf_file_set, "<conf>",
-                  "config file");
+    new oasys::StringOpt('c', "conf",
+                         &conf_file, &conf_file_set, "<conf>",
+                         "config file");
     
-    new BoolOpt('d', "daemon",
-                &daemon, "run as a daemon");
+    new oasys::BoolOpt('d', "daemon",
+                       &daemon, "run as a daemon");
     
-    new BoolOpt('t', "tidy",
-                &StorageConfig::instance()->tidy_,
-                "clear database and initialize tables on startup");
+    new oasys::BoolOpt('t', "tidy",
+                       &StorageConfig::instance()->tidy_,
+                       "clear database and initialize tables on startup");
     
-    new BoolOpt(0, "init-db",
-                &StorageConfig::instance()->init_,
-                "initialize database on startup");
+    new oasys::BoolOpt(0, "init-db",
+                       &StorageConfig::instance()->init_,
+                       "initialize database on startup");
 
-    new IntOpt('s', "seed",
-               &random_seed, &random_seed_set, "<seed>",
-               "random number generator seed");
+    new oasys::IntOpt('s', "seed",
+                      &random_seed, &random_seed_set, "<seed>",
+                      "random number generator seed");
 
-    new IntOpt('i', 0, &testcmd.id_, "<id>", "set the test id");
-    new BoolOpt('f', 0, &testcmd.fork_, "test scripts fork child daemons");
+    new oasys::IntOpt('i', 0, &testcmd.id_, "<id>", "set the test id");
+    new oasys::BoolOpt('f', 0, &testcmd.fork_, "test scripts fork child daemons");
 
-    Options::getopt(argv[0], argc, argv);
+    oasys::Options::getopt(argv[0], argc, argv);
 
     // Parse the debugging level argument
     if (loglevelstr.length() == 0) {
         loglevel = LOG_DEFAULT_THRESHOLD;
     } else {
-        loglevel = str2level(loglevelstr.c_str());
-        if (loglevel == LOG_INVALID) {
+        loglevel = oasys::str2level(loglevelstr.c_str());
+        if (loglevel == oasys::LOG_INVALID) {
             fprintf(stderr, "invalid level value '%s' for -l option, "
                     "expected debug | info | warning | error | crit\n",
                     loglevelstr.c_str());
@@ -113,7 +115,7 @@ main(int argc, char* argv[])
     }
 
     const char* log = "/dtnd";
-    Log::init(logfile.c_str(), loglevel, "", "~/.dtndebug");
+    oasys::Log::init(logfile.c_str(), loglevel, "", "~/.dtndebug");
     log_info(log, "Bundle Daemon Initializing...");
 
     // bind a copy of argv to be accessible to test scripts
@@ -132,16 +134,16 @@ main(int argc, char* argv[])
     srand(random_seed);
     
     // Set up the command interpreter
-    TclCommandInterp::init(argv[0]);
-    TclCommandInterp* interp = TclCommandInterp::instance();
+    oasys::TclCommandInterp::init(argv[0]);
+    oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
     testcmd.bind_vars();
     interp->reg(&testcmd);
     DTNServer::init_commands();
     APIServer::init_commands();
 
     // Set up components
-    TimerSystem::init();
-    Log::instance()->add_rotate_handler(SIGUSR1);
+    oasys::TimerSystem::init();
+    oasys::Log::instance()->add_rotate_handler(SIGUSR1);
     DTNServer::init_components();
 
     // Check the supplied config file and/or check for defaults, as
@@ -207,5 +209,5 @@ main(int argc, char* argv[])
         interp->command_loop("dtn");
     }
     
-    logf(log, LOG_ERR, "command loop exited unexpectedly");
+    log_err(log, "command loop exited unexpectedly");
 }

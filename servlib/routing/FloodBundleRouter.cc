@@ -49,6 +49,8 @@
 //#include "debug/Debug.h"
 #include <stdlib.h>
 
+namespace dtn {
+
 /**
  * Constructor.
  */
@@ -106,7 +108,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     Bundle* iter_bundle;
     BundleList::iterator iter;
 
-    ScopeLock lock(pending_bundles_->lock());
+    oasys::ScopeLock lock(pending_bundles_->lock());
     
     // bundle is always pending until expired or acked
     // note: ack is not implemented
@@ -256,7 +258,7 @@ FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
     Bundle* bundle;
     BundleList::iterator iter;
 
-    ScopeLock lock(pending_bundles_->lock());
+    oasys::ScopeLock lock(pending_bundles_->lock());
     
     // upon arrival of new contact, send all pending bundles over contact
     for (iter = pending_bundles_->begin(); 
@@ -298,3 +300,5 @@ FloodBundleRouter::fwd_to_matching(
     log_info("FLOOD: local_fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);
     return count;
 }
+
+} // namespace dtn

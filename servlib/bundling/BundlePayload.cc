@@ -44,6 +44,8 @@
 #include "BundlePayload.h"
 #include "storage/StorageConfig.h"
 
+namespace dtn {
+
 /*
  * Configurable settings.
  */
@@ -63,7 +65,7 @@ BundlePayload::BundlePayload()
  * Actual payload initialization function.
  */
 void
-BundlePayload::init(SpinLock* lock, int bundleid, location_t location)
+BundlePayload::init(oasys::SpinLock* lock, int bundleid, location_t location)
 {
     StorageConfig* cfg = StorageConfig::instance();
     lock_ = lock;
@@ -74,7 +76,7 @@ BundlePayload::init(SpinLock* lock, int bundleid, location_t location)
     if (location != NODATA) {
         oasys::StringBuffer path("%s/bundle_%d.dat",
                                  cfg->payloaddir_.c_str(), bundleid);
-        file_ = new FileIOClient();
+        file_ = new oasys::FileIOClient();
         file_->logpathf("/bundle/payload/%d", bundleid);
         if (file_->open(path.c_str(),
                         O_EXCL | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR) < 0)
@@ -103,7 +105,7 @@ BundlePayload::~BundlePayload()
  * Virtual from SerializableObject
  */
 void
-BundlePayload::serialize(SerializeAction* a)
+BundlePayload::serialize(oasys::SerializeAction* a)
 {
     a->process("filename",    &fname_);
     a->process("length",      &length_);
@@ -118,7 +120,7 @@ BundlePayload::serialize(SerializeAction* a)
 void
 BundlePayload::set_length(size_t length, location_t location)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
 
     length_ = length;
     
@@ -141,7 +143,7 @@ BundlePayload::set_length(size_t length, location_t location)
 void
 BundlePayload::truncate(size_t length)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
     
     ASSERT(length <= length_);
     ASSERT(length <= rcvd_length_);
@@ -210,7 +212,7 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
 void
 BundlePayload::set_data(const u_char* bp, size_t len)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
     
     ASSERT(length_ == 0 && rcvd_length_ == 0);
     set_length(len);
@@ -227,7 +229,7 @@ BundlePayload::set_data(const u_char* bp, size_t len)
 void
 BundlePayload::append_data(const u_char* bp, size_t len)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
     
     ASSERT(length_ > 0);
     ASSERT(file_->is_open());
@@ -242,7 +244,7 @@ BundlePayload::append_data(const u_char* bp, size_t len)
 void
 BundlePayload::write_data(const u_char* bp, size_t offset, size_t len)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
     
     ASSERT(length_ >= (len + offset));
     ASSERT(file_->is_open());
@@ -259,7 +261,7 @@ void
 BundlePayload::write_data(BundlePayload* src, size_t src_offset,
                           size_t len, size_t dst_offset)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
 
     log_debug("/bundle/payload",
               "write_data: file=%s length_=%d src_offset=%d dst_offset=%d len %d", file_->path(),
@@ -287,7 +289,7 @@ const u_char*
 BundlePayload::read_data(size_t offset, size_t len, u_char* buf,
                          bool keep_file_open)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
     
     ASSERT(length_ >= (len + offset));
     
@@ -312,3 +314,5 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf,
     }
 }
 
+
+} // namespace dtn

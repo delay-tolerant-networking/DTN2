@@ -41,6 +41,8 @@
 #include <sys/time.h>
 #include "BundleStore.h"
 
+namespace dtn {
+
 class SQLImplementation;
 class SQLStore;
 
@@ -57,7 +59,7 @@ public:
      * methods. The table_name identifies the table in which all bundles
      * will be stored
      */
-    SQLBundleStore(SQLImplementation* db, const char* table_name = "bundles");
+    SQLBundleStore(oasys::SQLImplementation* db, const char* table_name = "bundles");
     
     /**
      * Virtual methods inheritied from BundleStore
@@ -76,5 +78,6 @@ private:
      */
     SQLStore* store_;
 };
+} // namespace dtn
 
 #endif /* _SQL_BUNDLE_STORE_H_ */

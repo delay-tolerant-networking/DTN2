@@ -38,11 +38,6 @@
 #ifndef _CONTACT_H_
 #define _CONTACT_H_
 
-class Bundle;
-class BundleList;
-class ContactInfo;
-class ConvergenceLayer;
-
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Formatter.h>
 
@@ -50,6 +45,10 @@ class ConvergenceLayer;
 #include "BundleTuple.h"
 #include "Link.h"
 
+namespace dtn {
+
+class Bundle;
+class BundleList;
 class ContactInfo;
 class ConvergenceLayer;
 
@@ -58,7 +57,7 @@ class ConvergenceLayer;
  * contains a list of bundles that are destined for it, as well as a
  * slot to store any convergence layer specific attributes.
  */
-class Contact : public Formatter, public BundleConsumer {
+class Contact : public oasys::Formatter, public BundleConsumer {
 public:
     /**
      * Constructor / Destructor
@@ -111,7 +110,6 @@ protected:
     ContactInfo* contact_info_; ///< convergence layer specific info
 };
 
-
 /**
  * Abstract base class for convergence layer specific portions of a
  * contact.
@@ -121,5 +119,6 @@ public:
     virtual ~ContactInfo() {}
 };
 
+} // namespace dtn
 
 #endif /* _CONTACT_H_ */

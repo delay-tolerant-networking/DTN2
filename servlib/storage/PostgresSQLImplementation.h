@@ -42,10 +42,12 @@
 #include <oasys/debug/Log.h>
 #include <oasys/serialize/SQLImplementation.h>
 
+namespace dtn {
+
 /**
  * Postgres based implementation of SQL database.
  */
-class PostgresSQLImplementation : public SQLImplementation, public Logger {
+class PostgresSQLImplementation : public oasys::SQLImplementation, public oasys::Logger {
 public:
     PostgresSQLImplementation();
     
@@ -70,5 +72,6 @@ private:
     PGconn* db_;  		///< the db connection
     PGresult* query_result_;	/// result of the last query performed
 };
+} // namespace dtn
 
 #endif /* _POSTGRES_SQL_IMPLEMENTATION_H_ */

@@ -40,6 +40,8 @@
 
 #include "Bundle.h"
 
+namespace dtn {
+
 /**
  * Simple smart pointer class to maintain reference counts on Bundles.
  */
@@ -71,5 +73,7 @@ private:
 
     const char *what1_, *what2_;
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLEREF_H_ */

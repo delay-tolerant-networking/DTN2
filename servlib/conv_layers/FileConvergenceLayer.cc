@@ -55,6 +55,8 @@
 #include "bundling/BundleProtocol.h"
 #include "bundling/BundleForwarder.h"
 
+namespace dtn {
+
 /******************************************************************************
  *
  * FileConvergenceLayer
@@ -94,7 +96,7 @@ FileConvergenceLayer::match(const std::string& demux, const std::string& admin)
 bool
 FileConvergenceLayer::extract_dir(const BundleTuple& tuple, std::string* dirp)
 {
-    URL url(tuple.admin());
+    oasys::URL url(tuple.admin());
     
     if (! url.valid()) {
         log_err("extract_dir: admin '%s' of tuple '%s' not a valid url",
@@ -275,7 +277,7 @@ FileConvergenceLayer::send_bundles(Contact* contact)
 
         // now write everything out
         int total = sizeof(FileHeader) + header_len + payload_len;
-        int cc = IO::writevall(fd, iov, iovcnt, logpath_);
+        int cc = oasys::IO::writevall(fd, iov, iovcnt, logpath_);
         if (cc != total) {
             log_err("error writing out bundle (wrote %d/%d): %s",
                     cc, total, strerror(errno));
@@ -354,7 +356,7 @@ FileConvergenceLayer::Scanner::run()
                 continue;
             }
 
-            int cc = IO::readall(fd, (char*)&filehdr, sizeof(FileHeader));
+            int cc = oasys::IO::readall(fd, (char*)&filehdr, sizeof(FileHeader));
             if (cc != sizeof(FileHeader)) {
                 log_warn("can't read in FileHeader (read %d/%d): %s",
                          cc, sizeof(FileHeader), strerror(errno));
@@ -375,7 +377,7 @@ FileConvergenceLayer::Scanner::run()
 
             // read in and parse the headers
             buf = (u_char*)malloc(header_len);
-            cc = IO::readall(fd, (char*)buf, header_len);
+            cc = oasys::IO::readall(fd, (char*)buf, header_len);
             if (cc != header_len) {
                 log_err("error reading file %s header (read %d/%d): %s",
                         path.c_str(), cc, header_len, strerror(errno));
@@ -404,7 +406,7 @@ FileConvergenceLayer::Scanner::run()
 
             // Looks good, now read in and assign the data
             buf = (u_char*)malloc(payload_len);
-            cc = IO::readall(fd, (char*)buf, payload_len);
+            cc = oasys::IO::readall(fd, (char*)buf, payload_len);
             if (cc != (int)payload_len) {
                 log_err("error reading file %s payload (read %d/%d): %s",
                         path.c_str(), cc, payload_len, strerror(errno));
@@ -436,3 +438,5 @@ FileConvergenceLayer::Scanner::run()
     }
 }
 
+
+} // namespace dtn

@@ -41,6 +41,8 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/util/StringUtils.h>
 
+namespace dtn {
+
 /**
  * To support different types of addressing within different regions,
  * each region identifier is used as a lookup key into the table of
@@ -133,11 +135,13 @@ public:
 protected:
     static AddressFamilyTable* instance_;
     
-    typedef StringHashMap<AddressFamily*> AFTable;
+    typedef oasys::StringHashMap<AddressFamily*> AFTable;
     AFTable table_;
 
     AddressFamily* fixed_family_;
     AddressFamily* wildcard_family_;
 };
+
+} // namespace dtn
 
 #endif /* _ADDRESS_FAMILY_H_ */

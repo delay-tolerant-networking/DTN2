@@ -44,6 +44,8 @@
 #include "Registration.h"
 #include "bundling/BundleTuple.h"
 
+namespace dtn {
+
 
 /**
  * A simple utility class used mostly for testing registrations.
@@ -55,10 +57,12 @@
  * to arrive on the registration's bundle list, then logging the
  * bundles and looping again.
  */
-class LoggingRegistration : public Registration, public Thread {
+class LoggingRegistration : public Registration, public oasys::Thread {
 public:
     LoggingRegistration(const BundleTuplePattern& endpoint);
     virtual void run();
 };
+
+} // namespace dtn
 
 #endif /* _LOGGING_REGISTRATION_H_ */

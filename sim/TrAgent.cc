@@ -41,6 +41,8 @@
 #include "Simulator.h"
 #include "Node.h"
 
+namespace dtn {
+
 TrAgent::TrAgent(double t,int src, int dst, int size, int batchsize, int reps, int gap) 
 : Logger ("/sim/tragent") {
     start_time_ = t;
@@ -95,3 +97,5 @@ TrAgent::process(Event* e) {
 }
 
 
+
+} // namespace dtn

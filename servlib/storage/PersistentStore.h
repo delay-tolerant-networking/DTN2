@@ -42,6 +42,8 @@
 #include <vector>
 #include <oasys/serialize/Serialize.h>
 
+namespace dtn {
+
 /**
  * The abstract base class implementing a persistent storage system.
  * Specific implementations (i.e. Berkeley DB or SQL) should derive
@@ -61,17 +63,17 @@ public:
      * Fill in the fields of the object referred to by *obj with the
      * value stored at the given key.
      */
-    virtual int get(SerializableObject* obj, const int key) = 0;
+    virtual int get(oasys::SerializableObject* obj, const int key) = 0;
     
     /**
      * Store the object with the given key.
      */
-    virtual int add(SerializableObject* obj, const int key) = 0;
+    virtual int add(oasys::SerializableObject* obj, const int key) = 0;
 
     /**
      * Update the object with the given key.
      */
-    virtual int update(SerializableObject* obj, const int key) = 0;
+    virtual int update(oasys::SerializableObject* obj, const int key) = 0;
 
     /**
      * Delete the object at the given key.
@@ -90,5 +92,6 @@ public:
     virtual void keys(std::vector<int> * v) = 0;
 
 };
+} // namespace dtn
 
 #endif /* _PERSISTENT_STORE_H_ */

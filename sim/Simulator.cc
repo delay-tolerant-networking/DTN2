@@ -37,6 +37,7 @@
  */
 #include "Simulator.h"
 
+namespace dtn {
 
 Simulator* Simulator::instance_; ///< singleton instance
 
@@ -114,3 +115,5 @@ Simulator::process(Event *e)
     }
 
 }
+
+} // namespace dtn

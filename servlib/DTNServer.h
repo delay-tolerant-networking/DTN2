@@ -38,6 +38,8 @@
 #ifndef _DTNSERVER_H_
 #define _DTNSERVER_H_
 
+namespace dtn {
+
 /**
   * Encapsulation class for the "guts" of the server library. All
   * functions and member variables are static.
@@ -74,5 +76,7 @@ public:
     static void tidy_dir(const char * dirname);
     static void validate_dir(const char * dirname);
 };
+
+} // namespace dtn
 
 #endif /* _DTNSERVER_H_ */

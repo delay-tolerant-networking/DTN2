@@ -41,6 +41,8 @@
 
 #include "InternetAddressFamily.h"
 
+namespace dtn {
+
 /**
  * Given an admin string , parse out the ip address and port.
  * Potentially does a hostname lookup if the admin string doesn't
@@ -57,18 +59,18 @@ InternetAddressFamily::parse(const std::string& admin,
     // XXX/demmer validate that the AF in the tuple is in fact of type
     // InternetAddressFamily
 
-    URL url(admin);
+    oasys::URL url(admin);
     if (! url.valid()) {
-        logf("/af/internet", LOG_DEBUG,
-             "admin string '%s' not a valid url", admin.c_str());
+        log_debug("/af/internet",
+                  "admin string '%s' not a valid url", admin.c_str());
         return false;
     }
 
     // look up the hostname in the url
     *addr = INADDR_NONE;
-    if (gethostbyname(url.host_.c_str(), addr) != 0) {
-        logf("/af/internet", LOG_DEBUG,
-             "admin host '%s' not a valid hostname", url.host_.c_str());
+    if (oasys::gethostbyname(url.host_.c_str(), addr) != 0) {
+        log_debug("/af/internet",
+                  "admin host '%s' not a valid hostname", url.host_.c_str());
         return false;
     }
 
@@ -114,3 +116,5 @@ InternetAddressFamily::match(const std::string& pattern,
     return false;
 
 }
+
+} // namespace dtn

@@ -42,10 +42,12 @@
 #include <oasys/debug/Log.h>
 #include <oasys/serialize/SQLImplementation.h>
 
+namespace dtn {
+
 /**
  * Mysql based implementation of SQL database.
  */
-class MysqlSQLImplementation : public SQLImplementation, public Logger {
+class MysqlSQLImplementation : public oasys::SQLImplementation, public oasys::Logger {
 public:
     MysqlSQLImplementation();
 
@@ -71,5 +73,6 @@ private:
     MYSQL* db_;  		///< the db connection
     MYSQL_RES* query_result_;	/// result of the last query performed
 };
+} // namespace dtn
 
 #endif /* _MYSQL_SQL_IMPLEMENTATION_H_ */

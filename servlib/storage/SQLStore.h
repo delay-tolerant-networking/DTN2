@@ -43,12 +43,15 @@
 #include <oasys/debug/Log.h>
 #include <oasys/serialize/SQLSerialize.h>
 #include "BundleStore.h"
+#include "PersistentStore.h"
+
+namespace dtn {
 
 /**
  * Implementation of a StorageManager with an underlying SQL
  * database.
  */
-class SQLStore: public PersistentStore, public Logger  {
+class SQLStore : public PersistentStore, public oasys::Logger  {
 public:
     
     /**
@@ -56,7 +59,7 @@ public:
      * Parameter db, points to the actual implementation to which
      * different queries are forwarded
      */
-    SQLStore(const char* table_name, SQLImplementation *db);
+    SQLStore(const char* table_name, oasys::SQLImplementation *db);
     
     /// @{
 
@@ -69,24 +72,24 @@ public:
      *  Get an obj (identified by key) from the sql store. 
      *  @return 0 if success, -1 on error
      */
-    int get(SerializableObject* obj, const int key);
+    int get(oasys::SerializableObject* obj, const int key);
  
     /**
      * Store the object with the given key.
      */
-    int put(SerializableObject* obj, const int key);
+    int put(oasys::SerializableObject* obj, const int key);
 
     /**
      *  Put an obj in the sql store. 
      *  @return 0 if success, -1 on error
      */
-    int add(SerializableObject* obj, const int key);
+    int add(oasys::SerializableObject* obj, const int key);
     
     /**
      *  Update the object's state in the sql store.
      *  @return number updated on success, -1 on error
      */
-    int update(SerializableObject* obj, const int key);
+    int update(oasys::SerializableObject* obj, const int key);
     
     /**
      *  Delete an obj (identified by key)
@@ -119,7 +122,7 @@ public:
      *
      *  @return count of extracted elements, or -1 on error
      */
-    int elements(SerializableObjectVector* elements);
+    int elements(oasys::SerializableObjectVector* elements);
 
     /**
      * Returns the table name associated with this store
@@ -137,7 +140,7 @@ public:
      * Checks if the table already exists.
      * @return 0 if success, -1 on error
      */
-    int create_table(SerializableObject* obj);
+    int create_table(oasys::SerializableObject* obj);
 
 
     /**
@@ -165,10 +168,9 @@ private:
      */
     const char*  key_name_; 
 
-    SQLImplementation*  sql_impl_;
-
+    oasys::SQLImplementation*  sql_impl_;
 };
 
-
+} // namespace dtn
 
 #endif /* _SQL_STORE_H_ */

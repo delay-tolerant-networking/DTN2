@@ -38,6 +38,8 @@
 
 #include "TestCommand.h"
 
+namespace dtn {
+
 TestCommand::TestCommand()
     : TclCommand("test"), id_(0)
 {
@@ -57,3 +59,5 @@ TestCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
     return TCL_ERROR;
 }
+
+} // namespace dtn

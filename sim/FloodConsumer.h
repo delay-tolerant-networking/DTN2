@@ -42,6 +42,8 @@
 #include "bundling/BundleTuple.h"
 #include "routing/BundleRouter.h"
 
+namespace dtn {
+
 class FloodConsumer: public Registration {
 public:
     FloodConsumer(u_int32_t regid, const BundleTuplePattern& endpoint);
@@ -51,5 +53,6 @@ public:
 protected:
     BundleRouter *router_;
 };
+} // namespace dtn
 
 #endif

@@ -41,6 +41,7 @@
 #include "bundling/ContactManager.h"
 #include <oasys/util/StringBuffer.h>
 
+namespace dtn {
 
 LinkCommand::LinkCommand()
     : TclCommand("link")
@@ -108,3 +109,5 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     
     return TCL_OK;
 }
+
+} // namespace dtn

@@ -43,12 +43,14 @@
 #include "BundleRef.h"
 #include "FragmentManager.h"
 
+namespace dtn {
+
 FragmentManager FragmentManager::instance_;
 
 FragmentManager::FragmentManager()
     : Logger("/bundle/fragment")
 {
-    lock_ = new SpinLock();
+    lock_ = new oasys::SpinLock();
 }
 
 Bundle* 
@@ -250,7 +252,7 @@ FragmentManager::check_completed(ReassemblyState* state)
 Bundle* 
 FragmentManager::process(Bundle* fragment)
 {
-    ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_);
 
     ReassemblyState* state;
     ReassemblyTable::iterator iter;
@@ -286,7 +288,7 @@ FragmentManager::process(Bundle* fragment)
 
     // grab a lock on the fragment list and tack on the new fragment
     // to the fragment list
-    ScopeLock fraglock(state->fragments_.lock());
+    oasys::ScopeLock fraglock(state->fragments_.lock());
     state->fragments_.insert_sorted(fragment, NULL,
                                     BundleList::SORT_FRAG_OFFSET);
     
@@ -322,3 +324,5 @@ FragmentManager::process(Bundle* fragment)
 }
 
 
+
+} // namespace dtn

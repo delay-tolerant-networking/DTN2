@@ -42,11 +42,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
-// XXX/namespace
-class InternetAddressFamily;
 namespace dtn {
-typedef ::InternetAddressFamily InternetAddressFamily;
-}
 
 /**
  * Address family to represent internet-style addresses.
@@ -86,5 +82,7 @@ public:
                       in_addr_t* addr, u_int16_t* port);
      
 };
+
+} // namespace dtn
 
 #endif /* _INTERNET_ADDRESS_FAMILY_H_ */

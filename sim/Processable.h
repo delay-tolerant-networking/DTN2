@@ -46,6 +46,8 @@
 
 #include "Event.h"
 
+namespace dtn {
+
 class Event;
 
 class Processable {
@@ -55,5 +57,6 @@ public:
 
 };
 
+} // namespace dtn
 
 #endif /* _PROCESSABLE_H_ */

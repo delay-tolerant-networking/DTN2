@@ -45,6 +45,8 @@
 
 #include "MysqlSQLImplementation.h"
 
+namespace dtn {
+
 MysqlSQLImplementation::MysqlSQLImplementation()
     : SQLImplementation("BLOB", "BOOLEAN"),
       Logger("/storage/mysql")
@@ -183,7 +185,9 @@ MysqlSQLImplementation::escape_binary(const u_char* from, int from_length)
 const u_char* 
 MysqlSQLImplementation::unescape_binary(const u_char* from) 
 {
-    return from ; 
+    return from; 
 }
+
+} // namespace dtn
 
 #endif /* __MYSQL_ENABLED__ */

@@ -40,11 +40,7 @@
 
 #include <string>
 
-// XXX/namespace
-class StorageConfig;
 namespace dtn {
-typedef ::StorageConfig StorageConfig;
-}
 
 /**
  * Simple singleton class that just contains the storage-specific
@@ -68,5 +64,6 @@ public:
 protected:
     static StorageConfig instance_;
 };
+} // namespace dtn
 
 #endif /* _STORAGE_CONFIG_H_ */

@@ -43,6 +43,8 @@
 #include "bundling/BundleProtocol.h"
 #include "routing/BundleRouter.h"
 
+namespace dtn {
+
 AdminRegistration::AdminRegistration()
     : Registration(ADMIN_REGID, BundleRouter::local_tuple_, ABORT)
 {
@@ -129,3 +131,5 @@ AdminRegistration::is_queued(Bundle* bundle)
 {
     return false;
 }
+
+} // namespace dtn

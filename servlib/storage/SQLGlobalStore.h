@@ -40,8 +40,13 @@
 
 #include "GlobalStore.h"
 
-class SQLStore;
+namespace oasys {
 class SQLImplementation;
+}
+
+namespace dtn {
+
+class SQLStore;
 
 /**
  * Implementation of GlobalStore that uses an underlying SQL database.
@@ -51,7 +56,7 @@ public:
     /**
      * Constructor
      */
-    SQLGlobalStore(SQLImplementation* impl);
+    SQLGlobalStore(oasys::SQLImplementation* impl);
 
     /**
      * Destructor
@@ -71,5 +76,6 @@ public:
 protected:
     SQLStore* store_;
 };
+} // namespace dtn
 
 #endif /* _SQL_GLOBAL_STORE_H_ */

@@ -40,10 +40,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * The "registration" command.
  */
-class RegistrationCommand : public TclCommand {
+class RegistrationCommand : public oasys::TclCommand {
 public:
     RegistrationCommand();
     
@@ -53,5 +55,7 @@ public:
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
     virtual const char* help_string();
 };
+
+} // namespace dtn
 
 #endif /* _REGISTRATION_COMMAND_H_ */

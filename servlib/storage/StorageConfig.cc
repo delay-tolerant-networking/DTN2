@@ -38,6 +38,8 @@
 
 #include "StorageConfig.h"
 
+namespace dtn {
+
 StorageConfig StorageConfig::instance_;
 
 StorageConfig::StorageConfig()
@@ -52,3 +54,5 @@ StorageConfig::StorageConfig()
     dberrlog_	= "error.log";
     sqldb_ 	= "DTN";
 }
+
+} // namespace dtn

@@ -41,15 +41,12 @@
 #include <oasys/serialize/Serialize.h>
 
 struct dtn_tuple_t;
+
+namespace dtn {
+
 class AddressFamily;
 class BundleTuple;
 class BundleTuplePattern;
-
-// XXX/namespace
-namespace dtn {
-typedef ::BundleTuple BundleTuple;
-typedef ::BundleTuplePattern BundleTuplePattern;
-}
 
 /**
  * Class to wrap a bundle tuple of the general form:
@@ -62,7 +59,7 @@ typedef ::BundleTuplePattern BundleTuplePattern;
  * particular convergence layer to use, based on parsing the admin
  * portion.
  */
-class BundleTuple : public SerializableObject {
+class BundleTuple : public oasys::SerializableObject {
 public:
     BundleTuple();
     BundleTuple(const char* tuple);
@@ -181,7 +178,7 @@ public:
     /**
      * Virtual from SerializableObject
      */
-    virtual void serialize(SerializeAction* a);
+    virtual void serialize(oasys::SerializeAction* a);
 
 protected:
     
@@ -215,5 +212,7 @@ public:
 protected:
     bool match_region(const std::string& tuple_region) const;
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_TUPLE_H_ */

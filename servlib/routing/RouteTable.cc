@@ -41,6 +41,8 @@
 #include "RouteTable.h"
 #include "bundling/BundleConsumer.h"
 
+namespace dtn {
+
 /**
  * RouteEntry constructor.
  */
@@ -184,3 +186,5 @@ RouteTable::dump(oasys::StringBuffer* buf) const
                      bundle_fwd_action_toa(entry->action_));
     }
 }
+
+} // namespace dtn

@@ -40,6 +40,8 @@
 
 #include "AddressFamily.h"
 
+namespace dtn {
+
 class WildcardAddressFamily : public AddressFamily {
 public:
     WildcardAddressFamily() : AddressFamily("*") {}
@@ -56,5 +58,7 @@ public:
     bool match(const std::string& pattern,
                const std::string& admin);
 };
+
+} // namespace dtn
 
 #endif /* _WILDCARD_ADDRESS_FAMILY_H_ */

@@ -39,6 +39,8 @@
 #include "APICommand.h"
 #include "applib/APIServer.h"
 
+namespace dtn {
+
 APICommand::APICommand()
     : TclCommand("api")
 {
@@ -52,3 +54,5 @@ APICommand::help_string()
 {
     return("api set <var> <val>");
 }
+
+} // namespace dtn

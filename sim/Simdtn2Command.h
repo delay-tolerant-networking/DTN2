@@ -40,12 +40,14 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * CommandModule for the "simdtn2" command.
  * These are the commands specific to DTN2 and sim
  * For example commands to access bundlerouterifo from simulator
  */
-class Simdtn2Command : public AutoTclCommand {
+class Simdtn2Command : public oasys::AutoTclCommand {
 public:
     Simdtn2Command();
     
@@ -59,5 +61,6 @@ public:
 protected:
     static Simdtn2Command instance_;
 };
+} // namespace dtn
 
 #endif /* _SIM_DTN2_COMMAND_H_ */

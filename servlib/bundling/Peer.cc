@@ -40,6 +40,8 @@
 #include "Bundle.h"
 #include "BundleList.h"
 
+namespace dtn {
+
 /**
  * Constructor / Destructor
  */
@@ -92,3 +94,5 @@ Peer::delete_link(Link *link)
         links_->erase(link);
     }
 }
+
+} // namespace dtn

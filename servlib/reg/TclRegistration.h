@@ -45,6 +45,8 @@
 #include "Registration.h"
 #include "bundling/BundleTuple.h"
 
+namespace dtn {
+
 /**
  * A simple utility class used mostly for testing registrations.
  *
@@ -77,5 +79,7 @@ public:
 protected:
     Tcl_Channel notifier_channel_;
 };
+
+} // namespace dtn
 
 #endif /* _TCL_REGISTRATION_H_ */

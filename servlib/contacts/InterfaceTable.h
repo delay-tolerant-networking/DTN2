@@ -42,6 +42,8 @@
 #include <list>
 #include <oasys/debug/Debug.h>
 
+namespace dtn {
+
 class ConvergenceLayer;
 class Interface;
 
@@ -53,7 +55,7 @@ typedef std::list<Interface*> InterfaceList;
 /**
  * Class for the in-memory interface table.
  */
-class InterfaceTable : public Logger {
+class InterfaceTable : public oasys::Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -115,5 +117,7 @@ protected:
     bool find(const std::string& admin, ConvergenceLayer* cl, 
               InterfaceList::iterator* iter);
 };
+
+} // namespace dtn
 
 #endif /* _INTERFACE_TABLE_H_ */

@@ -46,6 +46,8 @@
 
 #include "bundling/BundleEvent.h"
 
+namespace dtn {
+
 class SimContact;
 class Node;
 class Message;
@@ -251,5 +253,6 @@ public:
     
 };
 
+} // namespace dtn
 
 #endif /* _EVENT_H_ */

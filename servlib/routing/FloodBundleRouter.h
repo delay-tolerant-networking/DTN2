@@ -40,6 +40,8 @@
 
 #include "BundleRouter.h"
 
+namespace dtn {
+
 /**
  * This is the implementation of the basic bundle routing algorithm
  * that only does flood routing. Routes can be parsed from a
@@ -127,5 +129,7 @@ protected:
 protected:
     BundleTuplePattern all_tuples_;
 };
+
+} // namespace dtn
 
 #endif /* _FLOOD_BUNDLE_ROUTER_H_ */

@@ -39,12 +39,15 @@
 #define _PEER_H_
 
 #include <set>
+
 #include <oasys/debug/Formatter.h>
 #include <oasys/debug/Debug.h>
 #include <oasys/util/StringBuffer.h>
 #include "BundleConsumer.h"
 #include "BundleTuple.h"
 #include "Link.h"
+
+namespace dtn {
 
 class Link;
 class LinkSet;
@@ -53,7 +56,7 @@ class Peer;
 /**
  * Set of peers
  */
-class PeerSet : public std::set<Peer*> {};
+class PeerSet : public ::std::set<Peer*> {};
 
 /**
  * Encapsulation of a next-hop DTN node. The object
@@ -63,7 +66,7 @@ class PeerSet : public std::set<Peer*> {};
  * a common destination but yet to be assigned to a particular
  * link.
  */
-class Peer : public Formatter,  public BundleConsumer {
+class Peer : public oasys::Formatter,  public BundleConsumer {
 public:
     /**
      * Constructor / Destructor
@@ -111,5 +114,7 @@ protected:
     BundleTuple tuple_;    ///< Identity of peer
 
 };
+
+} // namespace dtn
 
 #endif /* _PEER_H_ */

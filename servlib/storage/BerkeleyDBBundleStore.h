@@ -40,6 +40,8 @@
 
 #include "BundleStore.h"
 
+namespace dtn {
+
 class BerkeleyDBStore;
 
 /**
@@ -70,5 +72,6 @@ protected:
     BerkeleyDBStore* store_;
 };
 
+} // namespace dtn
 
 #endif /* _BERKELEYDB_BUNDLESTORE_H_ */

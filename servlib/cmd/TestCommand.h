@@ -42,10 +42,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * CommandModule for the "test" command.
  */
-class TestCommand : public TclCommand {
+class TestCommand : public oasys::TclCommand {
 public:
     TestCommand();
 
@@ -65,5 +67,7 @@ public:
     std::string argv_;		///< "list" of space-separated args
     bool fork_;			///< hook for test scripts to fork off children
 };
+
+} // namespace dtn
 
 #endif /* _TEST_COMMAND_H_ */

@@ -45,6 +45,8 @@
 #include "StorageConfig.h"
 #include "bundling/Bundle.h"
 
+namespace dtn {
+
 /******************************************************************************
  *
  * SQLBundleStore
@@ -55,7 +57,7 @@
  * Constructor.
  */
 
-SQLBundleStore::SQLBundleStore(SQLImplementation* db, const char* table_name)
+SQLBundleStore::SQLBundleStore(oasys::SQLImplementation* db, const char* table_name)
     : BundleStore()
 {
     Bundle tmpobj(this);
@@ -138,5 +140,7 @@ SQLBundleStore::is_custodian(int bundle_id)
      * return (b.is_custodian()) ;
      */
 }
+
+} // namespace dtn
 
 #endif /* __SQL_ENABLED__ */

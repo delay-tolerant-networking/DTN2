@@ -43,6 +43,8 @@
 
 #include "Registration.h"
 
+namespace dtn {
+
 class RegistrationStore;
 
 /**
@@ -50,7 +52,7 @@ class RegistrationStore;
  * table are made persistent via the abstract RegistrationStore
  * interface.
  */
-class RegistrationTable : public Logger {
+class RegistrationTable : public oasys::Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -149,5 +151,7 @@ protected:
      */
     RegistrationList reglist_;
 };
+
+} // namespace dtn
 
 #endif /* _REGISTRATION_TABLE_H_ */

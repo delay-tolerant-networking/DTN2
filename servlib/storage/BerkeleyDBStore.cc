@@ -51,6 +51,8 @@
 #include "BerkeleyDBStore.h"
 #include "StorageConfig.h"
 
+namespace dtn {
+
 #define NO_TX  0 // for easily going back and changing TX id's later
 
 BerkeleyDBManager BerkeleyDBManager::instance_;
@@ -253,7 +255,7 @@ BerkeleyDBStore::exists(const int key)
 }
 
 int
-BerkeleyDBStore::get(SerializableObject* obj, const int key)
+BerkeleyDBStore::get(oasys::SerializableObject* obj, const int key)
 {
     Dbt k;
     int dbkey = key;
@@ -277,8 +279,8 @@ BerkeleyDBStore::get(SerializableObject* obj, const int key)
         return -1;
     }
 
-    Unmarshal unmarshal(SerializeAction::CONTEXT_LOCAL,
-                        (u_char*)d.get_data(), d.get_size());
+    oasys::Unmarshal unmarshal(oasys::SerializeAction::CONTEXT_LOCAL,
+                               (u_char*)d.get_data(), d.get_size());
     oasys::StringBuffer buf("/store/%s", tablename_.c_str());
 
     if (unmarshal.action(obj) < 0) {
@@ -291,12 +293,12 @@ BerkeleyDBStore::get(SerializableObject* obj, const int key)
 }
 
 int
-BerkeleyDBStore::add(SerializableObject* obj, const int key)
+BerkeleyDBStore::add(oasys::SerializableObject* obj, const int key)
 {
     //    del(key);
  
     // figure out the flattened size of the object
-    MarshalSize marshalsize(SerializeAction::CONTEXT_LOCAL);
+    oasys::MarshalSize marshalsize(oasys::SerializeAction::CONTEXT_LOCAL);
     int ret = marshalsize.action(obj);
     ASSERT(ret == 0);
     size_t size = marshalsize.size();
@@ -304,8 +306,8 @@ BerkeleyDBStore::add(SerializableObject* obj, const int key)
 
     // do the flattening
     u_char* buf = (u_char*)malloc(size);
-    Marshal marshal(SerializeAction::CONTEXT_LOCAL,
-                    buf, size);
+    oasys::Marshal marshal(oasys::SerializeAction::CONTEXT_LOCAL,
+                           buf, size);
     oasys::StringBuffer logbuf("/store/%s", tablename_.c_str());
     ret = marshal.action(obj);
     ASSERT(ret == 0);
@@ -344,7 +346,7 @@ BerkeleyDBStore::add(SerializableObject* obj, const int key)
 }
 
 int
-BerkeleyDBStore::update(SerializableObject* obj, const int key)
+BerkeleyDBStore::update(oasys::SerializableObject* obj, const int key)
 {
     // del(key);
     return add(obj, key);
@@ -429,4 +431,7 @@ BerkeleyDBStore::keys(std::vector<int> * v)
 
     
 }
+
+} // namespace dtn
+
 #endif /* __DB_ENABLED__ */

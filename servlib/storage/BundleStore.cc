@@ -42,6 +42,7 @@
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleEvent.h"
 
+namespace dtn {
 
 BundleStore* BundleStore::instance_;
 
@@ -118,3 +119,5 @@ BundleStore::close()
         log_err("error closing bundle store");
     }
 }
+
+} // namespace dtn

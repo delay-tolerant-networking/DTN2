@@ -40,10 +40,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * Class to control the storage system.
  */
-class StorageCommand : public TclCommand {
+class StorageCommand : public oasys::TclCommand {
 public:    
     StorageCommand();
     
@@ -51,5 +53,7 @@ protected:
     bool inited_;
 };
 
+
+} // namespace dtn
 
 #endif /* _STORAGE_COMMAND_H_ */

@@ -40,10 +40,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * The "link" command.
  */
-class LinkCommand : public TclCommand {
+class LinkCommand : public oasys::TclCommand {
 public:
     LinkCommand();
     
@@ -53,5 +55,7 @@ public:
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
     virtual const char* help_string();
 };
+
+} // namespace dtn
 
 #endif /* _LINK_COMMAND_H_ */

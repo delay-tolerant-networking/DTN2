@@ -44,6 +44,8 @@
 #include "Link.h"
 #include "Peer.h"
 
+namespace dtn {
+
 /**
  * Define the singleton contact manager instance
  */
@@ -189,3 +191,5 @@ ContactManager::dump(oasys::StringBuffer* buf) const
 }
 
 
+
+} // namespace dtn

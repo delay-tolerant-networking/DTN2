@@ -40,10 +40,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * Debug command for hand manipulation of bundles.
  */
-class BundleCommand : public TclCommand {
+class BundleCommand : public oasys::TclCommand {
 public:
     BundleCommand();
     
@@ -53,5 +55,7 @@ public:
     virtual int exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp);
     virtual const char* help_string();
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_COMMAND_H_ */

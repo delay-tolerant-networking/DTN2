@@ -40,10 +40,12 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+namespace dtn {
+
 /**
  * The "route" command.
  */
-class RouteCommand : public TclCommand {
+class RouteCommand : public oasys::TclCommand {
 public:
     RouteCommand();
     
@@ -53,5 +55,7 @@ public:
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
     virtual const char* help_string();
 };
+
+} // namespace dtn
 
 #endif /* _ROUTE_COMMAND_H_ */

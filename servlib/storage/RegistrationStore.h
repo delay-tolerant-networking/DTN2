@@ -41,12 +41,14 @@
 #include <string>
 #include "reg/Registration.h"
 
+namespace dtn {
+
 class PersistentStore;
 
 /**
  * Abstract base class for the persistent registration store.
  */
-class RegistrationStore : public Logger {
+class RegistrationStore : public oasys::Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -123,5 +125,6 @@ protected:
 
     PersistentStore * store_;
 };
+} // namespace dtn
 
 #endif /* _REGISTRATION_STORE_H_ */

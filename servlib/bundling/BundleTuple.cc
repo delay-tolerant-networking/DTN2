@@ -42,6 +42,8 @@
 #include "AddressFamily.h"
 #include "applib/dtn_types.h"
 
+namespace dtn {
+
 BundleTuple::BundleTuple()
     : valid_(false)
 {
@@ -177,10 +179,10 @@ BundleTuple::parse_tuple()
 }
 
 void
-BundleTuple::serialize(SerializeAction* a)
+BundleTuple::serialize(oasys::SerializeAction* a)
 {
     a->process("tuple", &tuple_);
-    if (a->action() == Serialize::UNMARSHAL) {
+    if (a->action() == oasys::Serialize::UNMARSHAL) {
         parse_tuple();
     }
 }
@@ -212,3 +214,5 @@ BundleTuplePattern::match(const BundleTuple& tuple) const
 
     return true;
 }
+
+} // namespace dtn

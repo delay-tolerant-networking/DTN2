@@ -42,6 +42,8 @@
 #include "Contact.h"
 #include <oasys/debug/Log.h>
 
+namespace dtn {
+
 class ConvergenceLayer;
 class InterfaceInfo;
 
@@ -81,5 +83,7 @@ class InterfaceInfo {
 public:
     virtual ~InterfaceInfo() {}
 };
+
+} // namespace dtn
 
 #endif /* _INTERFACE_H_ */

@@ -42,6 +42,8 @@
 
 #include "BerkeleyDBRegistrationStore.h"
 
+namespace dtn {
+
 /**
  * Constructor
  */
@@ -98,5 +100,7 @@ BerkeleyDBRegistrationStore::update(Registration* reg)
 {
     NOTIMPLEMENTED;
 }
+
+} // namespace dtn
 
 #endif /* __DB_ENABLED__ */

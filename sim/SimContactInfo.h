@@ -40,6 +40,8 @@
 
 #include "bundling/Contact.h"
 
+namespace dtn {
+
 class SimContactInfo: public ContactInfo {
 
 public:
@@ -50,5 +52,6 @@ private:
     int simid_; // id used to identify this contact globally
 	
 };
+} // namespace dtn
 
 #endif /* _SIM_CONTACT_INFO */

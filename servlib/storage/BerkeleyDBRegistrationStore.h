@@ -40,6 +40,8 @@
 
 #include "RegistrationStore.h"
 
+namespace dtn {
+
 class BerkeleyDBStore;
 
 /**
@@ -85,5 +87,6 @@ public:
 protected:
     BerkeleyDBStore* store_;
 };
+} // namespace dtn
 
 #endif /* _BERKELEY_DB_REGISTRATION_STORE_H_ */

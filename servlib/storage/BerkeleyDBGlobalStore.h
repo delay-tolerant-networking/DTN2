@@ -40,6 +40,8 @@
 
 #include "GlobalStore.h"
 
+namespace dtn {
+
 class BerkeleyDBStore;
 
 class BerkeleyDBGlobalStore : public GlobalStore {
@@ -67,5 +69,6 @@ public:
 protected:
     BerkeleyDBStore* store_;
 };
+} // namespace dtn
 
 #endif /* _BERKELEY_DB_GLOBAL_STORE_H_ */

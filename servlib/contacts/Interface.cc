@@ -38,6 +38,8 @@
 
 #include "Interface.h"
 
+namespace dtn {
+
 Interface::Interface(const std::string& admin,
                      ConvergenceLayer* clayer)
     : admin_(admin), clayer_(clayer), info_(NULL)
@@ -47,3 +49,5 @@ Interface::Interface(const std::string& admin,
 Interface::~Interface()
 {
 }
+
+} // namespace dtn

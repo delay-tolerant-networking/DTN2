@@ -41,6 +41,8 @@
 #include "ConvergenceLayer.h"
 #include <oasys/thread/Thread.h>
 
+namespace dtn {
+
 class FileConvergenceLayer : public ConvergenceLayer {
 public:
     /**
@@ -134,7 +136,7 @@ protected:
      * Helper class (and thread) that periodically scans a directory
      * for new bundle files.
      */
-    class Scanner : public InterfaceInfo, public Logger, public Thread {
+    class Scanner : public InterfaceInfo, public oasys::Logger, public oasys::Thread {
     public:
         /**
          * Constructor.
@@ -151,5 +153,7 @@ protected:
         std::string dir_;	///< directory to scan for bundles.
     };
 };
+
+} // namespace dtn
 
 #endif /* _FILE_CONVERGENCE_LAYER_H_ */

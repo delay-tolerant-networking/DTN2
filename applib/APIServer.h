@@ -45,7 +45,12 @@
 #include "dtn_ipc.h"
 #include "dtn_types.h"
 
+namespace oasys {
 class UDPClient;
+}
+
+namespace dtn {
+
 class RegistrationList;
 
 /**
@@ -75,7 +80,7 @@ protected:
 
     char* buf_;
     size_t buflen_;
-    UDPClient* sock_;
+    oasys::UDPClient* sock_;
     XDR* xdr_encode_;
     XDR* xdr_decode_;
 };
@@ -84,7 +89,9 @@ protected:
  * Class for the generic listening server that just accepts open
  * messages and creates client servers.
  */
-class MasterAPIServer : public APIServer, public Thread, public Logger {
+class MasterAPIServer : public APIServer,
+                        public oasys::Thread,
+                        public oasys::Logger {
 public:
     MasterAPIServer();
     virtual void run();
@@ -93,7 +100,9 @@ public:
 /**
  * Class for the per-client connection server.
  */
-class ClientAPIServer : public APIServer, public Thread, public Logger {
+class ClientAPIServer : public APIServer,
+                        public oasys::Thread,
+                        public oasys::Logger {
 public:
     ClientAPIServer(in_addr_t remote_host, u_int16_t remote_port);
     virtual void run();
@@ -110,5 +119,6 @@ protected:
     RegistrationList* bindings_;
 };
 
+} // namespace dtn
 
 #endif /* _APISERVER_H_ */

@@ -41,6 +41,8 @@
 #include "bundling/InterfaceTable.h"
 #include "conv_layers/ConvergenceLayer.h"
 
+namespace dtn {
+
 InterfaceCommand::InterfaceCommand()
     : TclCommand("interface") {}
 
@@ -103,3 +105,5 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     return TCL_OK;
 }
+
+} // namespace dtn

@@ -41,6 +41,8 @@
 #include "BundleList.h"
 #include "BundleMapping.h"
 
+namespace dtn {
+
 BundleConsumer::BundleConsumer(const BundleTuple* dest_tuple, bool is_local, const char* type_str)
     : Logger("/bundle/consumer"), dest_tuple_(dest_tuple),
       is_local_(is_local),
@@ -82,3 +84,5 @@ BundleConsumer::is_queued(Bundle* bundle)
     return (bundle->get_mapping(bundle_list_) != NULL);
 }
 
+
+} // namespace dtn

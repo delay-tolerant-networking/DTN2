@@ -51,10 +51,12 @@
 #include "SimContact.h"
 #include "Message.h"
 
+namespace dtn {
+
 class SimContact;
 
 
-class Node : public Processable, public Logger {
+class Node : public Processable, public oasys::Logger {
 
 public:
 
@@ -97,5 +99,6 @@ protected:
    
 };
 
+} // namespace dtn
 
 #endif /* _NODE_H_ */

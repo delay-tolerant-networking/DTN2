@@ -43,10 +43,9 @@
 #include <oasys/debug/Log.h>
 #include <oasys/thread/Thread.h>
 #include <oasys/thread/MsgQueue.h>
+#include <oasys/util/StringBuffer.h>
 
-namespace oasys {
-class StringBuffer;
-}
+namespace dtn {
 
 class Bundle;
 class BundleAction;
@@ -55,15 +54,10 @@ class BundleConsumer;
 class BundleEvent;
 class BundleRouter;
 
-class BundleForwarder;
-namespace dtn {
-typedef ::BundleForwarder BundleForwarder;
-}
-
 /**
  * Class that handles the flow of bundle events through the system.
  */
-class BundleForwarder : public Logger, public Thread {
+class BundleForwarder : public oasys::Logger, public oasys::Thread {
 public:
     /**
      * Singleton accessor.
@@ -131,7 +125,7 @@ protected:
     BundleRouter* router_;
 
     /// The event queue
-    MsgQueue<BundleEvent*> eventq_;
+    oasys::MsgQueue<BundleEvent*> eventq_;
 
     /// Statistics
     u_int32_t bundles_received_;
@@ -141,5 +135,7 @@ protected:
     
     static BundleForwarder* instance_;
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_FORWARDING_H_ */

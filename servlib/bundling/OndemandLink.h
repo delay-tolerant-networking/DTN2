@@ -40,6 +40,8 @@
 
 #include "Link.h"
 
+namespace dtn {
+
 /**
  * Abstraction for a ONDEMAND link. It has to be opened everytime
  * one wants to use it. It has by definition only -one contact-
@@ -59,5 +61,7 @@ protected:
   
 };
 
+
+} // namespace dtn
 
 #endif /* _ONDEMAND_LINK_H_ */

@@ -40,6 +40,7 @@
 #include "SimpleNode.h"
 #include "SimConvergenceLayer.h"
 
+namespace dtn {
 
 Node* Topology::nodes_[MAX_NODES_];
 SimContact* Topology::contacts_[MAX_CONTACTS_];
@@ -58,7 +59,7 @@ Topology::create_node(int id)
     } else if (Topology::node_type_ == 2) {
 	nd = new GlueNode(id,"/sim/gluenode"); //DTN2-Simulator glue
     } else {
-	logf("/sim/topology",LOG_CRIT, "unimplemented node type");
+	PANIC("unimplemented node type");
     }
 
    Topology::nodes_[id] = nd;
@@ -90,3 +91,5 @@ Topology::create_contact(int id, int src, int dst, int bw,
     num_cts_++;
 }
 
+
+} // namespace dtn

@@ -41,6 +41,8 @@
 #include "reg/RegistrationTable.h"
 #include "reg/TclRegistration.h"
 
+namespace dtn {
+
 RegistrationCommand::RegistrationCommand()
     : TclCommand("registration") {}
 
@@ -123,3 +125,5 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     resultf("invalid registration subcommand '%s'", op);
     return TCL_ERROR;
 }
+
+} // namespace dtn

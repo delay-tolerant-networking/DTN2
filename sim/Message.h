@@ -47,6 +47,8 @@
 
 #include <vector>
 
+namespace dtn {
+
 class Message  {
     
 public:
@@ -87,7 +89,9 @@ protected:
 
 };
 
+} // namespace dtn
 
 #endif /* _MESSAGE_H_ */
+
 
 

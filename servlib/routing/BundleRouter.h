@@ -47,6 +47,8 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleTuple.h"
 
+namespace dtn {
+    
 class BundleConsumer;
 class BundleRouter;
 class RouteTable;
@@ -80,7 +82,7 @@ typedef std::vector<BundleRouter*> BundleRouterList;
  * As new algorithms are added to the system, new cases should be
  * added to the "create_router" function.
  */
-class BundleRouter : public Logger {
+class BundleRouter : public oasys::Logger {
 public:
     /**
      * Factory method to create the correct subclass of BundleRouter
@@ -134,7 +136,7 @@ public:
     /**
      * The set of local regions that this router is configured as "in".
      */
-    static StringVector local_regions_;
+    static oasys::StringVector local_regions_;
 
     /**
      * The default tuple for reaching this router, used for bundle
@@ -252,7 +254,7 @@ protected:
      */
     virtual int fwd_to_matching(Bundle* bundle, BundleActionList* actions,
                                 bool include_local);
-    
+
     /**
      * Called whenever a new consumer (i.e. registration or contact)
      * arrives. This walks the list of all pending bundles, forwarding
@@ -278,5 +280,6 @@ protected:
     /// The list of all bundles that I have custody of
     BundleList* custody_bundles_;
 };
- 
+} // namespace dtn
+
 #endif /* _BUNDLE_ROUTER_H_ */

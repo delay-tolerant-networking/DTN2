@@ -36,8 +36,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/util/StringBuffer.h>
-
 #include "Bundle.h"
 #include "BundleEvent.h"
 #include "BundleAction.h"
@@ -46,6 +44,8 @@
 #include "Contact.h"
 #include "routing/BundleRouter.h"
 #include "storage/BundleStore.h"
+
+namespace dtn {
 
 BundleForwarder* BundleForwarder::instance_ = NULL;
 
@@ -118,7 +118,7 @@ BundleForwarder::get_pending(oasys::StringBuffer* buf)
     BundleList::const_iterator iter;
     const BundleList* pending = active_router()->pending_bundles();
     
-    ScopeLock l(pending->lock());
+    oasys::ScopeLock l(pending->lock());
 
     buf->appendf("Currently Pending Bundles (%d): \n", pending->size());
     
@@ -216,3 +216,5 @@ BundleForwarder::run()
     }
 }
 
+
+} // namespace dtn

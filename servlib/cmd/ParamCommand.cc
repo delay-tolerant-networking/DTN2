@@ -41,6 +41,8 @@
 #include "conv_layers/TCPConvergenceLayer.h"
 #include "routing/BundleRouter.h"
 
+namespace dtn {
+
 ParamCommand::ParamCommand() 
     : TclCommand("param")
 {
@@ -65,3 +67,5 @@ ParamCommand::help_string()
 {
     return("param set <var> <val");
 }
+
+} // namespace dtn

@@ -47,15 +47,11 @@
 #include "../bundling/BundleConsumer.h"
 #include "../bundling/BundleTuple.h"
 
+namespace dtn {
+
 class Bundle;
 class BundleList;
 class BundleMapping;
-
-class Registration;
-// XXX/namespace
-namespace dtn {
-typedef ::Registration Registration;
-};
 
 /**
  * Class used to represent an "application" registration, loosly
@@ -67,7 +63,7 @@ typedef ::Registration Registration;
  *
  * Registration state is stored persistently in the database.
  */
-class Registration : public BundleConsumer, public SerializableObject {
+class Registration : public BundleConsumer, public oasys::SerializableObject {
 public:
     /**
      * Reserved registration identifiers. XXX/demmer fix me
@@ -136,7 +132,7 @@ public:
     /**
      * Virtual from SerializableObject.
      */
-    void serialize(SerializeAction* a);
+    void serialize(oasys::SerializeAction* a);
  
 protected:
     void init(u_int32_t regid,
@@ -157,5 +153,7 @@ protected:
  * Typedef for a list of Registrations.
  */
 class RegistrationList : public std::list<Registration*> {};
+
+} // namespace dtn
 
 #endif /* _REGISTRATION_H_ */

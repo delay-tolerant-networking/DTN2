@@ -52,6 +52,8 @@
 #include "SimContact.h"
 #include "Message.h"
 
+namespace dtn {
+
 /**
  * Does the actual forwarding of abundle on a contact.
  * This is done by implementing -send_bundles- function.
@@ -119,5 +121,6 @@ public:
     static Link* links_[];
     
 };
+} // namespace dtn
 
 #endif /* _SIM_CONVERGENCE_LAYER_H_ */

@@ -41,6 +41,8 @@
 #include <vector>
 #include <oasys/debug/Debug.h>
 
+namespace dtn {
+
 class Bundle;
 class BundleList;
 class PersistentStore;
@@ -48,7 +50,7 @@ class PersistentStore;
 /**
  * Abstract base class for bundle storage.
  */
-class BundleStore : public Logger {
+class BundleStore : public oasys::Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -109,5 +111,7 @@ protected:
 
     PersistentStore * store_;
 };
+
+} // namespace dtn
 
 #endif /* _BUNDLE_STORE_H_ */

@@ -41,6 +41,8 @@
 #include "FloodConsumer.h"
 #include "reg/Registration.h"
 
+namespace dtn {
+
 FloodConsumer::FloodConsumer(u_int32_t regid,
                              const BundleTuplePattern& endpoint)
     : Registration(regid, endpoint, Registration::ABORT)
@@ -65,3 +67,5 @@ FloodConsumer::set_router(BundleRouter *router)
 {
     router_ = router;
 }
+
+} // namespace dtn

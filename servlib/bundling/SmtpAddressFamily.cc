@@ -37,6 +37,8 @@
  */
 #include "SmtpAddressFamily.h"
 
+namespace dtn {
+
 /**
  * Determine if the administrative string is valid.
  */
@@ -56,3 +58,5 @@ SmtpAddressFamily::match(const std::string& pattern,
 {
     NOTIMPLEMENTED;
 }
+
+} // namespace dtn

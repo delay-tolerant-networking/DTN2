@@ -36,8 +36,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/io/UDPClient.h>
 #include <oasys/io/NetUtils.h>
+#include <oasys/io/UDPClient.h>
 
 #include "APIServer.h"
 #include "bundling/Bundle.h"
@@ -49,6 +49,8 @@
 #include "routing/BundleRouter.h"
 #include "storage/GlobalStore.h"
 
+namespace dtn {
+
 in_addr_t APIServer::local_addr_ = htonl(INADDR_LOOPBACK);
 u_int16_t APIServer::handshake_port_ = DTN_API_HANDSHAKE_PORT;
 u_int16_t APIServer::session_port_ = DTN_API_SESSION_PORT;
@@ -56,7 +58,7 @@ u_int16_t APIServer::session_port_ = DTN_API_SESSION_PORT;
 void
 APIServer::init_commands()
 {
-    TclCommandInterp::instance()->reg(new APICommand());
+    oasys::TclCommandInterp::instance()->reg(new APICommand());
 }
 
 void
@@ -68,7 +70,7 @@ APIServer::start_master()
 
 APIServer::APIServer()
 {
-    sock_ = new UDPClient();
+    sock_ = new oasys::UDPClient();
     sock_->set_logfd(false);
     sock_->logpathf("/apisrv/sock");
     
@@ -595,3 +597,4 @@ ClientAPIServer::handle_recv()
     return 0;
 }
 
+} // namespace dtn

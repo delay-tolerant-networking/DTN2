@@ -44,6 +44,8 @@
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
 
+namespace dtn {
+
 TclRegistration::TclRegistration(const BundleTuplePattern& endpoint,
                                  Tcl_Interp* interp)
     
@@ -61,7 +63,7 @@ TclRegistration::TclRegistration(const BundleTuplePattern& endpoint,
 int
 TclRegistration::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
-    TclCommandInterp* cmdinterp = TclCommandInterp::instance();
+    oasys::TclCommandInterp* cmdinterp = oasys::TclCommandInterp::instance();
     if (argc < 1) {
         cmdinterp->wrong_num_args(argc, argv, 0, 1, INT_MAX);
         return TCL_ERROR;
@@ -86,7 +88,7 @@ TclRegistration::exec(int argc, const char** argv, Tcl_Interp* interp)
 int
 TclRegistration::get_list_channel(Tcl_Interp* interp)
 {
-    TclCommandInterp* cmdinterp = TclCommandInterp::instance();
+    oasys::TclCommandInterp* cmdinterp = oasys::TclCommandInterp::instance();
     cmdinterp->set_result(Tcl_GetChannelName(notifier_channel_));
     return TCL_OK;
 }
@@ -95,7 +97,7 @@ TclRegistration::get_list_channel(Tcl_Interp* interp)
 int
 TclRegistration::get_bundle_data(Tcl_Interp* interp)
 {
-    TclCommandInterp* cmdinterp = TclCommandInterp::instance();
+    oasys::TclCommandInterp* cmdinterp = oasys::TclCommandInterp::instance();
     Bundle* b = bundle_list_->pop_front();
     if (!b) {
         cmdinterp->set_objresult(Tcl_NewListObj(0, 0));
@@ -128,3 +130,5 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         
     return TCL_OK;
 }
+
+} // namespace dtn
