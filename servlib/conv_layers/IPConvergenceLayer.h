@@ -58,20 +58,6 @@ protected:
     
 public:
     /**
-     * Hook to validate the admin part of a bundle tuple.
-     *
-     * @return true if the admin string is valid
-     */
-    virtual bool validate(const std::string& admin);
-
-    /**
-     * Hook to match the admin part of a bundle tuple.
-     *
-     * @return true if the demux matches the tuple.
-     */
-    virtual bool match(const std::string& demux, const std::string& admin);
-
-    /**
      * Current version of the TCP / UDP framing protocol.
      */
     static const u_int8_t CURRENT_VERSION = 0x01;

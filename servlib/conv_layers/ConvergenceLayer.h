@@ -52,8 +52,7 @@ namespace dtn {
 class ConvergenceLayer : public oasys::Logger {
 public:
     /**
-     * Constructor. In general, most initialization is deferred to the
-     * init() function.
+     * Constructor.
      */
     ConvergenceLayer(const char* logpath)
         : Logger(logpath)
@@ -61,34 +60,10 @@ public:
     }
 
     /**
-     * Need a virtual destructor to define the vtable.
+     * Destructor.
      */
     virtual ~ConvergenceLayer();
     
-    /**
-     * The meat of the initialization happens here.
-     */
-    virtual void init() = 0;
-
-    /**
-     * Hook for shutdown.
-     */
-    virtual void fini() = 0;
-
-    /**
-     * Hook to validate the admin part of a bundle tuple.
-     *
-     * @return true if the admin string is valid
-     */
-    virtual bool validate(const std::string& admin) = 0;
-
-    /**
-     * Hook to match the admin part of a bundle tuple.
-     *
-     * @return true if the demux matches the tuple.
-     */
-    virtual bool match(const std::string& demux, const std::string& admin) = 0;
-
     /**
      * Register a new interface.
      */

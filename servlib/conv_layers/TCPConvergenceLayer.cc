@@ -84,16 +84,6 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     defaults_.test_fragment_size_ = -1;
 }
 
-void
-TCPConvergenceLayer::init()
-{
-}
-
-void
-TCPConvergenceLayer::fini()
-{
-}
-
 /**
  * Parse variable args into a parameter structure.
  */
@@ -483,7 +473,7 @@ TCPConvergenceLayer::Connection::run()
          * enter the send loop.
          */
         if (params_.receiver_connect_) {
-            ContactManager* cm = ContactManager::instance();
+            ContactManager* cm = BundleDaemon::instance()->contactmgr();
 
             ConvergenceLayer* clayer = ConvergenceLayer::find_clayer("tcp");
             ASSERT(clayer);

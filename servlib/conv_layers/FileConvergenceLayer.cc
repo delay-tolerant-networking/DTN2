@@ -67,28 +67,6 @@ FileConvergenceLayer::FileConvergenceLayer()
 {
 }
 
-void
-FileConvergenceLayer::init()
-{
-}
-
-void
-FileConvergenceLayer::fini()
-{
-}
-
-bool
-FileConvergenceLayer::validate(const std::string& admin)
-{
-    NOTIMPLEMENTED;
-}
-
-bool
-FileConvergenceLayer::match(const std::string& demux, const std::string& admin)
-{
-    NOTIMPLEMENTED;
-}
-
 /**
  * Pull a filesystem directory out of the next hop admin address.
  */

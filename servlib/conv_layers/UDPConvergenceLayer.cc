@@ -63,17 +63,6 @@ UDPConvergenceLayer::UDPConvergenceLayer()
 {
 }
 
-void
-UDPConvergenceLayer::init()
-{
-}
-
-void
-UDPConvergenceLayer::fini()
-{
-}
-
-
 /*
  * Register a new Interface 
  */

@@ -53,16 +53,6 @@ public:
     UDPConvergenceLayer();
         
     /**
-     * The meat of the initialization happens here.
-     */
-    virtual void init();
-
-    /**
-     * Hook for shutdown.
-     */
-    virtual void fini();
-    
-    /**
      * Register a new interface.
      */
     bool add_interface(Interface* iface, int argc, const char* argv[]);
