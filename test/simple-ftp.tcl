@@ -11,6 +11,15 @@
 set port 17600
 set period 1000
 
+
+proc time {} {
+    return [clock seconds]
+}
+
+proc timef {} {
+    return [clock format [clock seconds]]
+}
+
 proc scan_dir {host dir} {
     global period
 
@@ -45,7 +54,7 @@ proc send_file {host file} {
     close $fd
 
     puts "sending file $file"
-    puts $logfd "[clock format [clock seconds]] :: sending file $file " 
+    puts $logfd "[time] :: sending file $file at [timef] " 
     flush $logfd
     set sock [socket $host $port]
     puts $sock "[file tail $file]"
@@ -67,7 +76,7 @@ proc file_arrived {dest_dir sock addr port} {
     close $sock
 
     puts "got file $file"
-    puts $logfd "[clock format [clock seconds]] :: got file $file " 
+    puts $logfd "[time] :: got file $file  at [timef]" 
     flush $logfd
     set fd [open "$dest_dir/$file" w]
     puts -nonewline $fd $payload
@@ -79,8 +88,8 @@ set dir  [lindex $argv 1]
 set logfile  [lindex $argv 2]
 set logfd [open $logfile w]
 
-puts $logfd "[clock format [clock seconds]] :: Starting in $mode, dir is $dir " 
-flush $logfd
+puts "Starting in $mode, dir is $dir at [timef]" 
+
 
 if {$mode == "server"} {
     recv_files $dir

@@ -70,7 +70,7 @@ proc file_injector_scan {dir source dest period} {
 	set payload [read $fd]
 	close $fd
 
-	log /file_injector debug "got $len byte payload"
+	log /file_injector debug "gotnow $len byte payload"
 
 	bundle inject $source $dest $payload $len
 
