@@ -114,10 +114,10 @@ proc send_file {host file} {
     close $sock
 
     if {$got_ack} {
-	puts " file  actually sent $file"
+	puts "[time] :: file  actually sent $file"
 	return 1
     } else {
-	puts "file sent but not acked"
+	puts "[time] :: file sent but not acked"
 	return -1
     }
 }
