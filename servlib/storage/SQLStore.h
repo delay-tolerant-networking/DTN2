@@ -3,8 +3,8 @@
 
 #include <sys/time.h>
 #include "BundleStore.h"
-#include "SQLSerialize.h"
 #include "debug/Log.h"
+#include "serialize/SQLSerialize.h"
 #include <vector>
 
 /**
@@ -19,7 +19,6 @@ public:
      * Parameter db, points to the actual implementation to which
      * different queries are forwarded
      */
-
     SQLStore(const char* table_name, SQLImplementation *db);
     
     /// @{ 

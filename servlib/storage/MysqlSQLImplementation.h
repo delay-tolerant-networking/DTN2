@@ -1,9 +1,9 @@
 #ifndef _MYSQL_SQL_IMPLEMENTATION_H_
 #define _MYSQL_SQL_IMPLEMENTATION_H_
 
-#include "SQLImplementation.h"
-#include "debug/Log.h"
 #include "mysql.h"
+#include "debug/Log.h"
+#include "serialize/SQLImplementation.h"
 
 /**
  * Mysql based implementation of SQL database.

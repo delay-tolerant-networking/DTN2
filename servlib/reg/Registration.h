@@ -6,7 +6,7 @@
 #include "bundling/BundleConsumer.h"
 #include "bundling/BundleTuple.h"
 #include "debug/Log.h"
-#include "storage/Serialize.h"
+#include "serialize/Serialize.h"
 
 class Bundle;
 class BundleList;

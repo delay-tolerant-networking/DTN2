@@ -2,7 +2,7 @@
 #define _BUNDLE_PAYLOAD_H_
 
 #include <string>
-#include "storage/Serialize.h"
+#include "serialize/Serialize.h"
 #include "debug/Debug.h"
 #include "io/FileIOClient.h"
 

@@ -4,7 +4,7 @@
 #include "BundlePayload.h"
 #include "BundleTuple.h"
 #include "debug/Formatter.h"
-#include "storage/Serialize.h"
+#include "serialize/Serialize.h"
 #include "thread/SpinLock.h"
 #include <sys/time.h>
 #include <map>

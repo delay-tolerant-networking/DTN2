@@ -1,7 +1,7 @@
 #ifndef _BUNDLE_TUPLE_H_
 #define _BUNDLE_TUPLE_H_
 
-#include "storage/Serialize.h"
+#include "serialize/Serialize.h"
 
 struct dtn_tuple_t;
 class AddressFamily;

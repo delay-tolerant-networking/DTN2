@@ -173,8 +173,7 @@ BerkeleyDBStore::get(SerializableObject* obj, const int key)
         return -1;
     }
 
-    Unmarshal unmarshal(SerializeAction::CONTEXT_LOCAL,
-                        (u_char*)d.get_data(), d.get_size());
+    Unmarshal unmarshal((u_char*)d.get_data(), d.get_size());
 
     if (unmarshal.action(obj) < 0) {
         PANIC("error in unserialize");
@@ -189,7 +188,7 @@ int
 BerkeleyDBStore::put(SerializableObject* obj, const int key)
 {
     // figure out the flattened size of the object
-    MarshalSize marshalsize(SerializeAction::CONTEXT_LOCAL);
+    MarshalSize marshalsize;    
     int ret = marshalsize.action(obj);
     ASSERT(ret == 0);
     size_t size = marshalsize.size();
@@ -197,8 +196,7 @@ BerkeleyDBStore::put(SerializableObject* obj, const int key)
 
     // do the flattening
     u_char* buf = (u_char*)malloc(size);
-    Marshal marshal(SerializeAction::CONTEXT_LOCAL,
-                    buf, size);
+    Marshal marshal(buf, size);
     ret = marshal.action(obj);
     ASSERT(ret == 0);
 

@@ -2,7 +2,6 @@
 
 #include "SQLRegistrationStore.h"
 #include "SQLStore.h"
-#include "SQLImplementation.h"
 
 static const char* TABLENAME = "registration";
 

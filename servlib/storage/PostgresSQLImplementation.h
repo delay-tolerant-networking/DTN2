@@ -1,9 +1,9 @@
 #ifndef _POSTGRES_SQL_IMPLEMENTATION_H_
 #define _POSTGRES_SQL_IMPLEMENTATION_H_
 
-#include "SQLImplementation.h"
 #include "libpq-fe.h"
 #include "debug/Log.h"
+#include "serialize/SQLImplementation.h"
 
 /**
  * Postgres based implementation of SQL database.
@@ -27,8 +27,6 @@ public:
     const u_char* escape_binary(const u_char* from, int from_length);
     const u_char* unescape_binary(const u_char* from);
   
-    const char* binary_datatype();
-
     ///@}
 
 private:

@@ -1,10 +1,10 @@
 #ifndef __SQL_DISABLED__
 
 #include "SQLStore.h"
-#include "SQLImplementation.h"
 #include "StorageConfig.h"
 #include "bundling/Bundle.h"
 #include "debug/Debug.h"
+#include "serialize/SQLImplementation.h"
 
 /**
  * Constructor.

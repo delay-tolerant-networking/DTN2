@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "debug/Log.h"
 #include "bundling/Bundle.h"
-#include "storage/MarshalSerialize.h"
+#include "serialize/MarshalSerialize.h"
 
 int
 main(int argc, const char** argv)

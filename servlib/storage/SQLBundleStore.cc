@@ -1,7 +1,6 @@
 #ifndef __SQL_DISABLED__
 
 #include "SQLBundleStore.h"
-#include "SQLImplementation.h"
 #include "SQLStore.h"
 #include "StorageConfig.h"
 #include "bundling/Bundle.h"

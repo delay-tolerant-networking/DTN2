@@ -5,7 +5,8 @@
 #include "MysqlSQLImplementation.h"
 
 MysqlSQLImplementation::MysqlSQLImplementation()
-    : Logger("/storage/mysql")
+    : SQLImplementation("BLOB", "BOOLEAN"),
+      Logger("/storage/mysql")
 {
     query_result_ = NULL;
 }
@@ -121,6 +122,7 @@ const char*
 MysqlSQLImplementation::escape_string(const char* from) 
 {
     int length = strlen(from);
+    // XXX/demmer fix memory leaks
     char* to = (char *) malloc(2*length+1);
     mysql_real_escape_string(db_,to,from,length);
 
@@ -131,6 +133,7 @@ const u_char*
 MysqlSQLImplementation::escape_binary(const u_char* from, int from_length) 
 {
     int length = from_length;
+    // XXX/demmer fix memory leaks
     char* to = (char *) malloc(2*length+1);
     mysql_real_escape_string(db_,to,(const char*)from,length);
     return (const u_char*) to;
@@ -140,14 +143,6 @@ const u_char*
 MysqlSQLImplementation::unescape_binary(const u_char* from) 
 {
     return from ; 
-}
-
-
-const char* 
-MysqlSQLImplementation::binary_datatype()
-{
-
-    return "BLOB" ; 
 }
 
 #endif /* __MYSQL_DISABLED__ */

@@ -6,7 +6,8 @@
 #include <string.h>
 
 PostgresSQLImplementation::PostgresSQLImplementation()
-    : Logger("/storage/postgresql")
+    : SQLImplementation("BYTEA", "BOOLEAN"),
+      Logger("/storage/postgresql")
 {
     query_result_ = NULL;
 }
@@ -156,15 +157,6 @@ PostgresSQLImplementation::unescape_binary(const u_char* from)
     size_t to_length ;
     const u_char* to = PQunescapeBytea(from1,&to_length);
     return to;
-}
-
-
-
-const char* 
-PostgresSQLImplementation::binary_datatype()
-{
-
-    return "BYTEA" ; 
 }
 
 #endif /* __POSTGRES_DISABLED__ */

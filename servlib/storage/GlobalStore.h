@@ -1,7 +1,7 @@
 #ifndef _GLOBAL_STORE_H_
 #define _GLOBAL_STORE_H_
 
-#include "Serialize.h"
+#include "serialize/Serialize.h"
 #include "debug/Debug.h"
 
 /**
