@@ -4,23 +4,24 @@
 #include "BundleList.h"
 #include "BundleMapping.h"
 #include "conv_layers/ConvergenceLayer.h"
+#include "BundleForwarder.h"
+#include "BundleEvent.h"
 
-
-Contact::Contact(contact_type_t type, const BundleTuple& tuple)
-    : BundleConsumer(&tuple_, false),
-      type_(type), tuple_(tuple), open_(false)
+/**
+ * Constructor
+ */
+Contact::Contact(Link* link)
+    : BundleConsumer(link->dest_tuple(), false), link_(link)
 {
-    logpathf("/contact/%s", tuple.c_str());
-    bundle_list_ = new BundleList(logpath_);
-    
-    log_debug("new contact *%p", this);
+    logpathf("/contact/%s", link->tuple().c_str());
 
-    clayer_ = ConvergenceLayer::find_clayer(tuple.admin());
-    if (!clayer_) {
-        PANIC("can't find convergence layer for %s", tuple.admin().c_str());
-        // XXX/demmer need better error handling
-    }
+    bundle_list_ = new BundleList(logpath_);
     contact_info_ = NULL;
+    clayer()->open_contact(this);
+    
+    // Post a contact Available event
+    BundleForwarder::post(new ContactUpEvent(this));
+    log_info("new contact *%p", this);
 }
 
 Contact::~Contact()
@@ -29,54 +30,27 @@ Contact::~Contact()
     delete bundle_list_;
 }
 
-/**
- * Open a channel to the contact for bundle transmission.
- */
-void
-Contact::open()
-{
-    log_debug("Contact::open");
-    clayer_->open_contact(this);
-    open_ = true;
-}
-    
-/**
- * Close the transmission channel. May be triggered by the
- * convergence layer in case the underlying channel is torn down.
- */
-void
-Contact::close()
-{
-    log_debug("Contact::close");
-    clayer_->close_contact(this);
-    ASSERT(contact_info_ == NULL);
-    open_ = false;
-}
-
-int
-Contact::format(char* buf, size_t sz)
-{
-    return snprintf(buf, sz, "%.*s %s (%s)",
-                    (int)tuple_.length(), tuple_.data(),
-                    contact_type_to_str(type_), open_ ? "open" : "closed");
-}
-
 void
 Contact::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
-    if (!isopen() && (type_ == ONDEMAND || type_ == OPPORTUNISTIC)) {
-        open();
-    }
-    
-    if (bundle) {
-        // XXX/demmer temp
-        if (bundle->is_reactive_fragment_)
-            bundle_list_->push_front(bundle, mapping);
-        else 
-            bundle_list_->push_back(bundle, mapping);
-    }
-    
+    // Add it to the queue (default behavior as defined by bundle consumer
+    BundleConsumer::enqueue_bundle(bundle,mapping);
     // XXX/demmer get rid of this
-    clayer_->send_bundles(this);
+    // XXX/sushant why get rid ?
+    clayer()->send_bundles(this);
 }
 
+ConvergenceLayer*
+Contact::clayer()
+{
+    return link_->clayer();
+}
+
+/**
+ * Formatting...XXX Make it better
+ */
+int
+Contact::format(char* buf, size_t sz)
+{
+    return link_->format(buf,sz);
+}

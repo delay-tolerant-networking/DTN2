@@ -12,63 +12,13 @@ class ConvergenceLayer;
 #include "BundleConsumer.h"
 #include "BundleTuple.h"
 
-/**
- * Valid types for a contact.
- */
-typedef enum
-{
-    CONTACT_INVALID = -1,
-    
-    /**
-     * The contact is expected to be either ALWAYS available, or can
-     * be made available easily. Examples include DSL (always), and
-     * dialup (easily available).
-     */
-    ONDEMAND = 1,
-    
-    /**
-     * The contact is only available at pre-determined times.
-     */
-    SCHEDULED = 2,
+//#include "debug/Debug.h"
+//#include "debug/Formatter.h"
+#include "Link.h"
 
-    /**
-     * The contact may or may not be available, based on
-     * uncontrollable factors. Examples include a wireless link whose
-     * connectivity depends on the relative locations of the two
-     * nodes.
-     */
-    OPPORTUNISTIC = 3
-}
-contact_type_t;
-
-/**
- * Contact type string conversion.
- */
-inline const char*
-contact_type_to_str(contact_type_t type)
-{
-    switch(type) {
-    case ONDEMAND: 	return "ONDEMAND";
-    case SCHEDULED: 	return "SCHEDULED";
-    case OPPORTUNISTIC: return "OPPORTUNISTIC";
-    default: 		PANIC("bogus contact_type_t");
-    }
-}
-
-inline contact_type_t
-str_to_contact_type(const char* str)
-{
-    if (strcasecmp(str, "ONDEMAND") == 0)
-        return ONDEMAND;
-    
-    if (strcasecmp(str, "SCHEDULED") == 0)
-        return SCHEDULED;
-    
-    if (strcasecmp(str, "OPPORTUNISTIC") == 0)
-        return OPPORTUNISTIC;
-    
-    return CONTACT_INVALID;
-}
+class Link;
+class ContactInfo;
+class ConvergenceLayer;
 
 /**
  * Encapsulation of a connection to a next-hop DTN contact. The object
@@ -77,38 +27,13 @@ str_to_contact_type(const char* str)
  */
 class Contact : public Formatter, public BundleConsumer {
 public:
+
     /**
      * Constructor / Destructor
      */
-    Contact(contact_type_t type, const BundleTuple& tuple);
+    Contact(Link* link);
     virtual ~Contact();
-    
-    /**
-     * Open a channel to the contact for bundle transmission.
-     */
-    void open();
-    
-    /**
-     * Close the transmission channel. May be triggered by the
-     * convergence layer in case the underlying channel is torn down.
-     */
-    void close();
-
-    /**
-     * Return the type of the contact.
-     */
-    contact_type_t type() { return type_; }
-
-    /**
-     * Return the contact tuple.
-     */
-    const BundleTuple& tuple() { return tuple_; }
-
-    /**
-     * Return the state of the contact.
-     */
-    bool isopen() { return open_; }
-
+ 
     /**
      * Queue a bundle for sending, which potentially kicks open the
      * contact if it's not already.
@@ -116,10 +41,10 @@ public:
     void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
     
     /**
-     * Accessor for the list of bundles in this contact.
+     * Accessor to this contact's convergence layer.
      */
-    BundleList* bundle_list() { return bundle_list_; }
-    
+    ConvergenceLayer* clayer();
+
     /**
      * Store the convergence layer specific part of the contact.
      */
@@ -128,28 +53,38 @@ public:
         ASSERT(contact_info_ == NULL || contact_info == NULL);
         contact_info_ = contact_info;
     }
-
+    
     /**
      * Accessor to the contact info.
      */
     ContactInfo* contact_info() { return contact_info_; }
+    
+    /**
+     * Accessor to the link
+     */
+    Link* link() { return link_; }
 
     /**
-     * Accessor to this contact's convergence layer.
+     * Accessor to tuple
      */
-    ConvergenceLayer* clayer() { return clayer_; }
-    
-    // virtual from Formatter
+    BundleTuple tuple() { return link_->tuple() ; }
+
+    /**
+     * Virtual from formatter
+     */
     int format(char* buf, size_t sz);
 
-protected:
-    contact_type_t type_;
-    BundleTuple tuple_;
-    bool open_;
+    /**
+     * Virtual from bundle consumer
+     */
+    const char* type() { return "Contact" ;}
     
-    ContactInfo* contact_info_;
-    ConvergenceLayer* clayer_;
+protected:
+    Link* link_ ; ///> Pointer to parent link on which this contact exists
+    ContactInfo* contact_info_; ///> convergence layer specific info
+
 };
+
 
 /**
  * Abstract base class for convergence layer specific portions of a
@@ -159,5 +94,6 @@ class ContactInfo {
 public:
     virtual ~ContactInfo() {}
 };
+
 
 #endif /* _CONTACT_H_ */

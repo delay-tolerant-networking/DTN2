@@ -15,6 +15,7 @@ class BundleConsumer;
 class Contact;
 class Registration;
 class RouteEntry;
+class Link;
 
 /**
  * Type codes for events.
@@ -25,8 +26,11 @@ typedef enum {
     BUNDLE_EXPIRED,		///< Bundle expired
     BUNDLE_FORWARD_TIMEOUT, 	///< A Mapping timed out
         
-    CONTACT_AVAILABLE,		///< Contact is available
-    CONTACT_BROKEN,		///< Contact abnormally terminated
+    CONTACT_UP,		///< Contact is available
+    CONTACT_DOWN,		///< Contact abnormally terminated
+
+    LINK_CREATED,		///< Link is available
+    LINK_DELETED,		///< Link is deleted from the system
         
     REGISTRATION_ADDED,		///< New registration arrived
     REGISTRATION_REMOVED,	///< Registration removed
@@ -83,7 +87,6 @@ public:
     size_t bytes_received_;
 };
 
-
 /**
  * Event class for bundle or fragment transmission.
  */
@@ -115,25 +118,43 @@ public:
 /**
  * Event class for contact events
  */
-class ContactAvailableEvent : public BundleEvent {
+class ContactUpEvent : public BundleEvent {
 public:
-    ContactAvailableEvent(Contact* contact)
-        : BundleEvent(CONTACT_AVAILABLE), contact_(contact) {}
+    ContactUpEvent(Contact* contact)
+        : BundleEvent(CONTACT_UP), contact_(contact) {}
     
     /// The contact that is up
     Contact* contact_;
 };
 
-class ContactBrokenEvent : public BundleEvent {
+class ContactDownEvent : public BundleEvent {
 public:
-    ContactBrokenEvent(Contact* contact)
-        : BundleEvent(CONTACT_BROKEN), contact_(contact) {}
+    ContactDownEvent(Contact* contact)
+        : BundleEvent(CONTACT_DOWN), contact_(contact) {}
     
     /// The contact that is up
     Contact* contact_;
 };
 
+/**
+ * Event class for link events
+ */
+class LinkCreatedEvent : public BundleEvent {
+public:
+    LinkCreatedEvent(Link* link)
+        : BundleEvent(LINK_CREATED), link_(link) {}
+    
+    Link* link_;
+};
 
+class LinkDeletedEvent : public BundleEvent {
+public:
+    LinkDeletedEvent(Link* link)
+        : BundleEvent(LINK_DELETED), link_(link) {}
+    
+    /// The link that is up
+    Link* link_;
+};
 
 /**
  * Event class for new registration arrivals.

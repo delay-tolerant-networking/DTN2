@@ -2,7 +2,11 @@
 #ifndef _BUNDLE_CONSUMER_H_
 #define _BUNDLE_CONSUMER_H_
 
+
+//#include "debug/Log.h"
+#include "BundleTuple.h"
 #include <oasys/debug/Log.h>
+//>>>>>>> 1.6
 
 class Bundle;
 class BundleList;
@@ -20,7 +24,12 @@ public:
      * allocate the bundle_list_ if the consumer does any queuing.
      */
     BundleConsumer(const BundleTuple* dest_tuple, bool is_local);
-    
+
+    /**
+     * Destructor
+     */
+    virtual ~BundleConsumer() {}
+
     /**
      * Add the bundle to the queue.
      */
@@ -45,13 +54,27 @@ public:
      */
     const BundleTuple* dest_tuple() { return dest_tuple_; }
 
+    
     /**
      * Is the consumer a local registration or a peer.
      */
     bool is_local() { return is_local_; }
+
+    /**
+     * Type of the bundle consumer. Link or Peer or Contact or Reg
+     */
+    virtual const char* type() = 0;
+
+    /**
+     * Accessor for the list of bundles in this consumer
+     * This can be null, unless it is initalized by the
+     * specific instance of the bundle consumer
+     */
+    virtual BundleList* bundle_list() { return bundle_list_; }
     
 protected:
     const BundleTuple* dest_tuple_;
+    BundleTuple dest_tuple2_ ; 
     bool is_local_;
     BundleList* bundle_list_;
 
