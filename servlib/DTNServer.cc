@@ -249,7 +249,6 @@ DTNServer::start()
 void
 DTNServer::close_datastore()
 {
-    std::string& storage_type = StorageConfig::instance()->type_;
 
     // need to make sure the GlobalStore has been updated at least once
     // XXX/demmer see if there's a better way to do this
@@ -259,9 +258,12 @@ DTNServer::close_datastore()
     BundleStore::instance()->close();
     RegistrationStore::instance()->close();
 
+#if __DB_ENABLED__
+    std::string& storage_type = StorageConfig::instance()->type_;
     if (storage_type.compare("berkeleydb") == 0) {
         BerkeleyDBManager::instance()->close();
     }
+#endif
 }
 
 void
