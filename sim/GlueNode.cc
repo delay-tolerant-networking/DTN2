@@ -12,6 +12,7 @@
 GlueNode::GlueNode(int id,const char* logpath): Node(id,logpath) 
 {
     router_ = BundleRouter::create_router(BundleRouter::type_.c_str());
+    log_info("N[%d]: creating router of type:%s",id,BundleRouter::type_.c_str());
     
 }
 
@@ -60,10 +61,10 @@ GlueNode::open_contact(SimContact* c)
 void 
 GlueNode::close_contact(SimContact* c)
 {
-    //Contact* ct = SimConvergenceLayer::simlink2ct(c);
-    //ContactBrokenEvent* e = new ContactBrokenEvent(ct);
+    Contact* ct = SimConvergenceLayer::simlink2ct(c);
+    ContactBrokenEvent* e = new ContactBrokenEvent(ct);
     log_info("CDOWN[%d]: Contact OPEN",id());
-    //forward_event(e);
+    forward_event(e);
 }
 
 
@@ -72,9 +73,9 @@ GlueNode::process(Event* e) {
     
     switch (e->type()) {
     case MESSAGE_RECEIVED:    {
-            Event_message_received* e1 = (Event_message_received*)e;
-            Message* msg = e1->msg_;
-            log_info("GOT[%d]: msg (%d) size %3f",id(),msg->id(),msg->size());
+        Event_message_received* e1 = (Event_message_received*)e;
+        Message* msg = e1->msg_;
+        log_info("GOT[%d]: msg (%d) size %3f",id(),msg->id(),msg->size());
         
         // update the size of the message that is received
         msg->set_size(e1->sizesent_);
