@@ -1,10 +1,23 @@
 Release Notes for DTN2
 ----------------------
 
-2.01 (Dec 2004):
-----------------
-- First public release of the DTN2 code
+2.01 (December 2004):
+---------------------
 
-- The design and structure is expected to remain relatively stable,
-  there are still numerous features left to be implemented.
+- First public release of the DTN2 code: stable design and overall
+  code structure, though still numerous features left to be
+  implemented.
 
+- Features include:
+
+  - conformance to the IETF draft Bundle Protocol specification version 3
+
+  - functional implementation of a TCP convergence layer and address
+    capabilities amenable to internet-connected hosts
+
+  - static bundle router implementation
+
+  - proactive and reactive fragmentation
+
+  - flexible storage framework adaptable to Berkeley DB, mysql, or
+    postgresql underlying implementations

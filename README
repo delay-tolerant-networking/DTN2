@@ -1,45 +1,52 @@
 DTN Reference Implementation
 ============================
 
-Directory Structure
--------------------
-
-applib/			dtn interface library
-apps/			example dtn applications
-doc/			documentation
-daemon/			bundle daemon sources
-ideas/			temporary code idea repository
-servlib/		dtn router internals
-servlib/cmd/		command interface
-servlib/conv_layers/	convergence layers
-servlib/routing/	bundle forwarding and routing logic
-servlib/storage/	persistent storage management
-
-oasys/debug/		debugging support code
-oasys/io/		I/O and networking support code
-oasys/thread/		thread / lock support implementation
-oasys/util/		miscellaneous utility classes
-
-Requirements
-------------
-
-gcc/g++ version 3.3+
-pthread
-tcl8.3+
-tcllib
-tclreadline
-
-(one or more of the following:)
-BerkeleyDB 4.2+
-mysql
-postgresql
-
-Compilation / Install Instructions
-----------------------------------
+Compilation / Installation Instructions
+---------------------------------------
 
 ./configure
 make
 make install
 
-Note that you may need to run ./configure inside oasys/ separately.
+Note that by default, the configure script will also run configure
+inside the oasys/ subdirectory. If this results in an error, run
+configure manually within that directory.
 
+DTN2 Directory Structure
+------------------------
+
+applib/			application interface library and ipc layer
+apps/			example dtn applications
+doc/			documentation
+daemon/			dtn router daemon sources
+ideas/			temporary code idea repository
+servlib/		dtn router internals
+servlib/bundling/	bundle management structures and logic
+servlib/cmd/		command interface
+servlib/conv_layers/	convergence layers
+servlib/routing/	bundle forwarding and routing logic
+servlib/storage/	persistent storage management
+sim/			simluation framework
+
+oasys/debug/		debugging and logging support code
+oasys/io/		I/O and networking support code
+oasys/memory/		memory management and debugging support
+oasys/serialize/	object serialization support
+oasys/thread/		thread / lock support implementation
+oasys/util/		miscellaneous utility classes
+
+External Requirements
+---------------------
+
+gcc/g++
+pthread
+tcl8.3+
+
+one or more of:
+    BerkeleyDB 4.2+ 	(required by default)
+    mysql		(enabled with configure options)
+    postgressql		(enabled with configure options)
+
+Optional External Packages
+--------------------------
+tclreadline
