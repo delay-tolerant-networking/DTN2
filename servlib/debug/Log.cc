@@ -40,7 +40,7 @@ level2str_t log_levelnames[] =
 Log* Log::instance_ = NULL;
 
 Log::Log()
-    : inited_(false),
+    : inited_(false), logfd_(-1),
       default_threshold_(LOG_DEFAULT_THRESHOLD)
 {
     rule_list_ = new RuleList();
@@ -48,19 +48,20 @@ Log::Log()
 }
 
 void
-Log::init(log_level_t defaultlvl, const char* debug_path)
+Log::init(int logfd, log_level_t defaultlvl, const char* debug_path)
 {
     Log* log = new Log();
-    log->do_init(defaultlvl, debug_path);
+    log->do_init(logfd, defaultlvl, debug_path);
 }
 
 void
-Log::do_init(log_level_t defaultlvl, const char *debug_path)
+Log::do_init(int logfd, log_level_t defaultlvl, const char *debug_path)
 {
     ASSERT(instance_ == NULL);
     ASSERT(!inited_);
 
     instance_ = this;
+    logfd_ = logfd;
 
     ASSERT(lock_);
     ScopeLock lock(lock_);
@@ -75,7 +76,7 @@ Log::do_init(log_level_t defaultlvl, const char *debug_path)
      * XXX/demmer for some reason this seems to set stdin to be
      * nonblocking as well when not running under capriccio
      */
-    if (IO::set_nonblocking(1, true) != 0) {
+    if (IO::set_nonblocking(logfd_, true) != 0) {
         fprintf(stderr, "error setting stdout to nonblocking: %s\n",
                 strerror(errno));
     }
@@ -388,7 +389,7 @@ Log::vlogf(const char *path, log_level_t level, const char *fmt, va_list ap)
     // do the write, making sure to drain the buffer. since stdout was
     // set to nonblocking, the spin lock prevents other threads from
     // jumping in here
-    int ret = IO::writeall(1, buf, buflen);
+    int ret = IO::writeall(logfd_, buf, buflen);
     ASSERT(ret == buflen);
     return buflen;
 };

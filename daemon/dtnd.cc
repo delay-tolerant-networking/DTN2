@@ -19,14 +19,39 @@
 int
 main(int argc, char** argv)
 {
+    // First and foremost, scan argv to look for a-l <file> option so
+    // we can initialize logging.
+    const char* logfile = "-";
+    for (int i = 0, j = 1; j < argc ; i++, j++) {
+        if (!strcmp(argv[i], "-o")) {
+            logfile = argv[j];
+            break;
+        }
+    }
+
+    int logfd;
+    if (!strcmp(logfile, "-")) {
+        logfd = 1; // stdout
+    } else {
+        logfd = open(logfile, O_CREAT | O_WRONLY | O_APPEND,
+                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+        if (logfd < 0) {
+            fprintf(stderr, "fatal error opening log file '%s': %s\n",
+                    logfile, strerror(errno));
+            exit(1);
+        }
+    }
+    
     // Initialize logging before anything else
-    Log::init();
+    Log::init(logfd);
     logf("/daemon", LOG_INFO, "bundle daemon initializing...");
 
     // command line parameter vars
     std::string conffile("daemon/bundleNode.conf");
     int random_seed;
     bool random_seed_set = false;
+    bool daemon = false;
+    std::string ignored; // ignore warnings for -l option
         
     // Create the test command now, so testing related options can be
     // registered
@@ -40,7 +65,10 @@ main(int argc, char** argv)
                "random number generator seed");
     new IntOpt("l", &testcmd.loopback_, "loopback",
                "test option for loopback");
-    
+    new BoolOpt("d", &daemon, "run as a daemon");
+    new StringOpt("o", &ignored, "output",
+                  "file name for logging output ([-o -] indicates stdout)");
+        
     // Set up the command interpreter, then parse argv
     CommandInterp::init(argv[0]);
     Options::getopt(argv[0], argc, argv);
