@@ -146,14 +146,20 @@ union dtn_info_response_t switch(enum dtn_info_request_t request)
 %/**
 % * A registration cookie.
 % */
-typedef uint32_t dtn_reg_cookie_t;
+typedef uint32_t dtn_reg_id_t;
+
+%
+%/**
+% * DTN timeouts are specified in seconds.
+% */
+typedef uint32_t dtn_timeval_t;
 
 %
 %/**
 % * Value for an unspecified registration cookie (i.e. indication that
-% * the daemon should allocate something unique.
+% * the daemon should allocate a new unique id).
 % */
-const DTN_REG_COOKIE_NONE = 0;
+const DTN_REGID_NONE = 0;
 
 %
 %/**
@@ -168,6 +174,18 @@ enum dtn_reg_action_t {
     DTN_REG_DEFER  = 2,
     DTN_REG_EXEC   = 3,
     DTN_REG_CANCEL = 4
+};
+
+%
+%/**
+% * Registration state.
+% */
+struct dtn_reg_info_t {
+    dtn_tuple_t 	endpoint;
+    dtn_reg_action_t 	action;
+    dtn_reg_id_t	regid;
+    dtn_timeval_t	timeout;
+    opaque		args<DTN_MAX_EXEC_LEN>;
 };
 
 %

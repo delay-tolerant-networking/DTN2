@@ -85,9 +85,8 @@ extern int dtn_get_info(dtn_handle_t handle,
  * Create or modify a dtn registration.
  */
 extern int dtn_register(dtn_handle_t handle,
-                        dtn_reg_cookie_t* cookie,
-                        dtn_reg_action_t action,
-                        dtn_tuple_t endpoint);
+                        dtn_reg_info_t *reginfo,
+                        dtn_reg_id_t* newregid);
 
 /**
  * Send a bundle either from memory or from a file.

@@ -60,6 +60,9 @@ dtn_open()
         return 0;
     }
 
+    xdr_setpos(&handle->xdr_encode, 0);
+    xdr_setpos(&handle->xdr_decode, 0);
+
     return handle;
 }
 
@@ -113,7 +116,6 @@ dtn_get_info(dtn_handle_t h,
     XDR* xdr_decode = &handle->xdr_decode;
     
     // pack the request
-    xdr_setpos(&handle->xdr_encode, 0);
     if (!xdr_dtn_info_request_t(xdr_encode, &request)) {
         handle->err = DTN_XDRERR;
         return -1;
@@ -129,7 +131,8 @@ dtn_get_info(dtn_handle_t h,
         return -1;
     }
 
-    // unpack the response
+    // unpack the response, first zeroing it out
+    memset(response, 0, sizeof(*response));
     if (!xdr_dtn_info_response_t(xdr_decode, response)) {
         handle->err = DTN_XDRERR;
         return -1;
@@ -139,6 +142,43 @@ dtn_get_info(dtn_handle_t h,
 }
 
     
+/**
+ * Create or modify a dtn registration.
+ */
+int
+dtn_register(dtn_handle_t h,
+             dtn_reg_info_t *reginfo,
+             dtn_reg_id_t* newregid)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    XDR* xdr_decode = &handle->xdr_decode;
+    
+    // pack the request
+    if (!xdr_dtn_reg_info_t(xdr_encode, reginfo)) {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send(handle, DTN_REGISTER) != 0) {
+        return -1;
+    }
+
+    // block waiting for the reply
+    if (dtnipc_recv(handle) < 0) {
+        return -1;
+    }
+
+    // unpack the response
+    if (!xdr_dtn_reg_id_t(xdr_decode, newregid)) {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+
+    return 0;
+}
+
 /**
  * Send a bundle either from memory or from a file.
  */
@@ -153,7 +193,6 @@ dtn_send(dtn_handle_t h,
     XDR* xdr_decode = &handle->xdr_decode;
 
     // pack the arguments
-    xdr_setpos(&handle->xdr_encode, 0);
     if ((!xdr_dtn_bundle_spec_t(xdr_encode, spec)) ||
         (!xdr_dtn_bundle_payload_t(xdr_encode, payload))) {
         handle->err = DTN_XDRERR;
@@ -190,7 +229,8 @@ dtn_send(dtn_handle_t h,
  * Copy the value of one tuple to another.
  *
  * Note that this will _not_ call malloc for the admin part so the
- * underlying memory will be shared.
+ * underlying memory will be shared. XXX/demmer this is bad, we need a
+ * dtn_free_tuple call...
  *
  */
 void

@@ -5,7 +5,9 @@
 #include "bundling/BundleForwarder.h"
 #include "io/UDPClient.h"
 #include "io/NetUtils.h"
+#include "reg/Registration.h"
 #include "routing/BundleRouter.h"
+#include "storage/GlobalStore.h"
 
 APIServer::APIServer()
 {
@@ -85,6 +87,26 @@ ClientAPIServer::ClientAPIServer(in_addr_t remote_host,
 }
 
 
+const char*
+ClientAPIServer::msgtoa(u_int32_t type)
+{
+#define CASE(_type) case _type : return #_type; break;
+    switch(type) {
+        CASE(DTN_OPEN);
+        CASE(DTN_CLOSE);
+        CASE(DTN_GETINFO);
+        CASE(DTN_REGISTER);
+        CASE(DTN_UNREGISTER);
+        CASE(DTN_SEND);
+        CASE(DTN_RECV);
+        CASE(DTN_POLL);
+
+    default:
+        return "(unknown type)";
+    }
+#undef CASE
+}
+
 void
 ClientAPIServer::run()
 {
@@ -106,11 +128,11 @@ ClientAPIServer::run()
             continue;
         }
         
-        log_debug("got %d byte message", cc);
-        
         u_int32_t type;
         memcpy(&type, buf_, sizeof(type));
 
+        log_debug("%s (%d bytes)", msgtoa(type), cc);
+        
 #define DISPATCH(_type, _fn)                    \
         case _type:                             \
             if (_fn() != 0) {                   \
@@ -119,8 +141,9 @@ ClientAPIServer::run()
             break;
 
         switch(type) {
-            DISPATCH(DTN_GETINFO, handle_getinfo);
-            DISPATCH(DTN_SEND,    handle_send);
+            DISPATCH(DTN_GETINFO,  handle_getinfo);
+            DISPATCH(DTN_REGISTER, handle_register);
+            DISPATCH(DTN_SEND,     handle_send);
 
         default:
             log_err("unknown message type code 0x%x", type);
@@ -176,6 +199,65 @@ ClientAPIServer::handle_getinfo()
     
     /* send the return code */
     if (!xdr_dtn_info_response_t(xdr_encode_, &response)) {
+        log_err("internal error in xdr");
+        return -1;
+    }
+    
+    int len = xdr_getpos(xdr_encode_);
+    if (sock_->send(buf_, len, 0) != len) {
+        log_err("error sending response code");
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+ClientAPIServer::handle_register()
+{
+    Registration* reg;
+    Registration::failure_action_t action;
+    BundleTuple endpoint;
+    std::string script;
+    
+    dtn_reg_info_t reginfo;
+    dtn_reg_id_t regid;
+
+    memset(&reginfo, 0, sizeof(reginfo));
+    
+    // unpack and parse the request
+    if (!xdr_dtn_reg_info_t(xdr_decode_, &reginfo))
+    {
+        log_err("error in xdr unpacking arguments");
+        return -1;
+    }
+
+    endpoint.assign(&reginfo.endpoint);
+    
+    switch (reginfo.action) {
+    case DTN_REG_ABORT: action = Registration::ABORT; break;
+    case DTN_REG_DEFER: action = Registration::DEFER; break;
+    case DTN_REG_EXEC:  action = Registration::EXEC;  break;
+    default: {
+        log_err("invalid action code 0x%x", reginfo.action);
+        return -1;
+    }
+    }
+
+    if (action == Registration::EXEC) {
+        script.assign(reginfo.args.args_val, reginfo.args.args_len);
+    }
+
+    if (reginfo.regid != DTN_REGID_NONE){
+        PANIC("lookup and modify existing registration unimplemented");
+        regid = reginfo.regid;
+        
+    } else {
+        reg = new Registration(endpoint, action);
+    }
+    
+    // return the new registration id
+    if (!xdr_dtn_reg_id_t(xdr_encode_, &regid)) {
         log_err("internal error in xdr");
         return -1;
     }

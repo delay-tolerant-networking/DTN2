@@ -18,9 +18,12 @@ main(int argc, const char** argv)
     char b;
     dtn_handle_t handle;
     dtn_tuple_t local_tuple;
+    dtn_reg_info_t reginfo;
+    dtn_reg_id_t regid;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
     char* dest_tuple_str;
+    int debug = 1;
     
     if (argc != 2) {
         usage();
@@ -43,10 +46,27 @@ main(int argc, const char** argv)
         exit(1);
     }
 
-    // construct a local tuple based on the configuration of our dtn
+    // build a local tuple based on the configuration of our dtn
     // router plus the demux string
     dtn_build_local_tuple(handle, &local_tuple, "/ping");
+    debug && printf("local_tuple [%s %.*s]\n",
+                    local_tuple.region,
+                    local_tuple.admin.admin_len, local_tuple.admin.admin_val);
 
+    // create a new dtn registration based on this tuple
+    memset(&reginfo, 0, sizeof(reginfo));
+    dtn_copy_tuple(&reginfo.endpoint, &local_tuple);
+    reginfo.action = DTN_REG_ABORT;
+    reginfo.regid = DTN_REGID_NONE;
+    reginfo.timeout = 60 * 60;
+    if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
+        fprintf(stderr, "error creating registration: %d (%s)\n",
+                ret, dtn_strerror(dtn_errno(handle)));
+        exit(1);
+    }
+    
+    debug && printf("dtn_register succeeded, regid 0x%x\n", regid);
+    
     // format the bundle header
     dtn_copy_tuple(&spec.source, &local_tuple);
     dtn_copy_tuple(&spec.replyto, &local_tuple);

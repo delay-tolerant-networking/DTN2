@@ -79,9 +79,13 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
     u_int32_t typecode = type;
 
     // pack the message code in the first four bytes of the buffer,
-    // and compute the total message length
+    // and compute the total message length. once we know the length
+    // of the message, reset the encoder so it's pointing at the start
+    // of the buffer
+    
     memcpy(handle->buf, &type, sizeof(typecode));
     len = xdr_getpos(&handle->xdr_encode) + sizeof(typecode);
+    xdr_setpos(&handle->xdr_encode, 0);
 
     // send the message
     if (send(handle->sock, handle->buf, len, 0) != len)
@@ -90,6 +94,7 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
         return -1;
     }
 
+    
     return 0;
 }
 
@@ -103,6 +108,9 @@ int
 dtnipc_recv(dtnipc_handle_t* handle)
 {
     int len;
+
+    // reset the xdr decoder before reading in any data
+    xdr_setpos(&handle->xdr_decode, 0);
     
     do {
         len = recv(handle->sock, handle->buf, DTN_MAX_API_MSG, 0);

@@ -47,7 +47,10 @@ public:
 
 protected:
     int handle_getinfo();
+    int handle_register();
     int handle_send();
+
+    static const char* msgtoa(u_int32_t type);
 };
 
 
