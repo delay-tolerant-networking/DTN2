@@ -71,7 +71,7 @@ main(int argc, char* argv[])
     }
     
     // Initialize logging before anything else
-    Log::init(logfd, level);
+    Log::init(logfd, level, "~/.dtndebug");
     logf("/daemon", LOG_DEBUG, "Bundle Daemon Initializing...");
 
     // Create the test command now, so testing related options can be
