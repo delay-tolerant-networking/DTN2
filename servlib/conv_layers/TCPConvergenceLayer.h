@@ -57,8 +57,12 @@ protected:
     /**
      * Helper class (and thread) that manages an established
      * connection with a peer daemon.
+     *
+     * Although the same class is used in either case, a particular
+     * Connection is either a receiver or a sender, as negotiated by
+     * the convergence layer specific framing protocol.
      */
-    class Connection : public ContactInfo, public TCPClient, public Thread {
+    class Connection : public ContactInfo, public Thread, public Logger {
     public:
         /**
          * Constructor for the active connection side of a connection.
@@ -73,13 +77,24 @@ protected:
         Connection(int fd,
                    in_addr_t remote_addr,
                    u_int16_t remote_port);
+
+        /**
+         * Destructor.
+         */
+        ~Connection();
         
     protected:
         virtual void run();
         void send_loop();
         void recv_loop();
+
+        bool send_bundle(Bundle* bundle, size_t* acked_len);
+        bool send_ack(u_int32_t bundle_id, size_t acked_len);
+        int handle_ack(Bundle* bundle, int timeout, size_t* acked_len);
         
         Contact* contact_;
+        TCPClient* sock_;
+        size_t ack_blocksz_;
     };
 };
 
