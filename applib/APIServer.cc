@@ -402,12 +402,52 @@ ClientAPIServer::handle_send()
                              payload.dtn_bundle_payload_t_u.buf.buf_len);
         payload_len = payload.dtn_bundle_payload_t_u.buf.buf_len;
     } else {
-        PANIC("file-based payloads not implemented");
+        char filename[512];
+        FILE * file;
+        struct stat finfo;
+        int r, left;
+        char buffer[4096];
+
+        sprintf(filename, "%.*s", 
+                payload.dtn_bundle_payload_t_u.filename.filename_len,
+                payload.dtn_bundle_payload_t_u.filename.filename_val);
+
+        if (stat(filename, &finfo) || (file = fopen(filename, "r")) == NULL)
+        {
+            char buffer[4096];
+            sprintf(buffer, "payload file %s does not exist!", filename);
+            log_err(buffer);
+
+            ret = DTN_INVAL;
+            goto done;
+        }
+        
+        payload_len = finfo.st_size;
+        b->payload_.set_length(payload_len);
+
+        b->payload_.reopen_file();
+        left = payload_len;
+        r = 0;
+        while (left > 0)
+        {
+            r = fread(buffer, 1, (left>4096)?4096:left, file);
+            
+            if (r)
+            {
+                b->payload_.append_data(buffer, r);
+                left -= r;
+            }
+            else
+            {
+                sleep(1); // pause before re-reading
+            }
+        }
+        b->payload_.close_file();
     }
     
     // deliver the bundle
+    // Note: the bundle state may change once it has been posted
     BundleForwarder::post(new BundleReceivedEvent(b, payload_len));
-    ASSERT(b->refcount() > 0);
     
     ret = DTN_SUCCESS;
 
