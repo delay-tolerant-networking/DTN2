@@ -1,0 +1,147 @@
+#
+# IMPORTANT:  READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
+# By downloading, copying, installing or using the software you agree to this 
+# license.  If you do not agree to this license, do not download, install,
+# copy or use the software.
+#
+# Copyright (c) 2003, The MITRE Corporation
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are 
+# met:
+# 
+# Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.  Redistributions 
+# in binary form must reproduce the above copyright notice, this list of 
+# conditions and the following disclaimer in the documentation and/or 
+# other materials provided with the distribution.
+# 
+# Neither the name of The MITRE Corporation nor the names of its 
+# contributors may be used to endorse or promote products derived from 
+# this software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
+# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+exec_prefix = @EXEC_PREFIX@
+BINDIR  = @BINDIR@
+SBINDIR = @SBINDIR@
+LIBDIR  = @LIBDIR@
+MANDIR  = @MANDIR@
+INCDIR  = @INCDIR@
+
+INCDIRS := -I$(SRCDIR) -I$(SRCDIR)/servlib
+
+#
+# Targets are "native" and "arm"
+# 
+TARGET = @TARGET@
+
+# native target
+ifeq ($(TARGET),native)
+INCDIRS +=
+LIBDIRS +=
+CC = gcc
+CPP = g++
+STRIP = strip
+POST =
+INSTALL = install
+RM = rm
+endif
+
+# For cross-compiling to ARM, you will probably want to install your own
+# ARM tool chain.  Here we assume it is in /usr/local/ARM
+# This line can sometimes be used if you need to build the cross-compile environment:
+#  CC=arm-linux-gcc ./configure --host=i686-linux --build=i686-linux --target=arm-linux --prefix=/usr/local/ARM
+#
+ifeq ($(TARGET),arm)
+ARMDIR=/usr/local/ARM
+INCDIRS += -I${ARMDIR}/include
+LIBDIRS += -L${ARMDIR}/lib @ALLSTATIC@
+CC = ${ARMDIR}/bin/libtool --mode=compile arm-linux-gcc @STATIC@
+LINK= ${ARMDIR}/bin/libtool --mode=link arm-linux-gcc @STATIC@
+STRIP = -arm-linux-strip
+POST = striplibs
+INSTALL = ${ARMDIR}/bin/libtool --mode=install cp
+RM = ${ARMDIR}/bin/libtool --mode=clean rm
+endif
+
+#
+# Cons up CFLAGS
+#
+DEBUG 		= @DEBUG@
+OPTIMIZE	= @OPTIMIZE@
+WARN  		= -Wall -Wuninitialized -Werror
+CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(WARN)
+LFLAGS		= $(LIBDIRS)
+
+#
+# Add a phony rule to make sure this isn't created before the default
+#
+.PHONY: catchdefault
+catchdefault:
+	@echo "Rules.make should be included after the default rule is set"
+	@exit 1
+
+#
+# And a rule to make sure that configure has been run recently enough.
+# This should be run from every default rule
+#
+.PHONY: check 
+check: $(SRCDIR)/Rules.make
+
+$(SRCDIR)/Rules.make.in:
+	@echo SRCDIR: $(SRCDIR)
+	@echo error -- Makefile did not set SRCDIR properly
+	@exit 1
+
+$(SRCDIR)/Rules.make: $(SRCDIR)/Rules.make.in $(SRCDIR)/configure
+	@echo $@ is out of date, need to rerun configure
+	@exit 1
+
+#
+# Rule for generating a .o file from the corresponding .cc file;
+# automatically creates dependencies via the -MMD flag.
+#
+%.o: %.cc
+	@rm -f $@; mkdir -p $(@D)
+	$(CPP) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -o $@
+
+%.o: %.c
+	@rm -f $@; mkdir -p $(@D)
+	$(CC) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -o $@
+
+#
+# Generate cpp output in .E files.
+#
+%.E: %.cc
+	@rm -f $@; mkdir -p $(@D)
+	$(CPP) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -E -o $@
+
+%.E: %.c
+	@rm -f $@; mkdir -p $(@D)
+	$(CPP) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -E -o $@
+
+#
+# Clean out all object files
+#
+clean: objclean depclean
+
+.PHONY: objclean
+objclean:
+	find . \( -name '*.[Eo]' \) -print0 | xargs -0 rm -f
+
+.PHONY: depclean
+depclean:
+	find . \( -name '*.d' \) -print0 | xargs -0 rm -f
+
