@@ -6,6 +6,7 @@ TestCommand::TestCommand() :
     loopback_(0)
 {
     bind_i("loopback", &loopback_);
+    bind_s("initscript", &initscript_);
 }
 
 int
