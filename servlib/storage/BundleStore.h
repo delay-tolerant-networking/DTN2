@@ -1,5 +1,5 @@
-#ifndef dtn_bundle_store_h
-#define dtn_bundle_store_h
+#ifndef _BUNDLE_STORE_H_
+#define _BUNDLE_STORE_H_
 
 #include <vector>
 
@@ -63,4 +63,4 @@ private:
     PersistentStore* store_;	/// abstract persistent storage implementation
 };
 
-#endif /* dtn_bundle_store_h */
+#endif /* _BUNDLE_STORE_H_ */

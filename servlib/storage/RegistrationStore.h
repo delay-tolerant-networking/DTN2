@@ -1,5 +1,5 @@
-#ifndef dtn_registration_store_h
-#define dtn_registration_store_h
+#ifndef _REGISTRATION_STORE_H_
+#define _REGISTRATION_STORE_H_
 
 #include <vector>
 
@@ -53,4 +53,4 @@ private:
     int next_reg_id_; // running serial number for bundles
 };
 
-#endif /* dtn_registration_store_h */
+#endif /* _REGISTRATION_STORE_H_ */

@@ -1,5 +1,5 @@
-#ifndef dtn_berkeley_db_store_h
-#define dtn_berkeley_db_store_h
+#ifndef _BERKELEY_DB_STORE_H_
+#define _BERKELEY_DB_STORE_H_
 
 #include <db.h>
 #include <list>
@@ -84,4 +84,4 @@ private:
     PersistentStore* store_;	/// abstract persistent storage implementation
 };
 
-#endif /* dtn_berkeley_db_store_h */
+#endif /* _BERKELEY_DB_STORE_H_ */

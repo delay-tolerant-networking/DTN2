@@ -13,5 +13,6 @@
 #include "Atomic-x86.h"
 #else
 #error "Need to define an Atomic.h variant for your architecture"
+#endif
 
 #endif /* _ATOMIC_H_ */
