@@ -543,12 +543,6 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
     for (iter = matches.begin(); iter != matches.end(); ++iter) {
         entry = *iter;
 
-        if (entry->next_hop_->is_queued(bundle)) {
-            log_debug("not forwarding to %s since already queued",
-                      entry->next_hop_->dest_tuple()->c_str());
-            continue;
-        }
-        
         if ((include_local == false) && entry->next_hop_->is_local())
             continue;
 

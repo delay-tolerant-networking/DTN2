@@ -112,8 +112,18 @@ BundleForwarder::process(BundleAction* action)
     case ENQUEUE_BUNDLE:
     {
         BundleEnqueueAction* enqaction = (BundleEnqueueAction*) action;
-        log_debug("forward bundle %d on consumer type %s", bundle->bundleid_,enqaction->nexthop_->type_str());
-        enqaction->nexthop_->enqueue_bundle(bundle, &enqaction->mapping_);
+        BundleConsumer* nexthop = enqaction->nexthop_;
+        
+        log_debug("forward bundle %d on consumer type %s",
+                  bundle->bundleid_, nexthop->type_str());
+        
+
+        if (nexthop->is_queued(bundle)) {
+            log_debug("not forwarding to %s since already queued",
+                      nexthop->dest_tuple()->c_str());
+        } else {
+            nexthop->enqueue_bundle(bundle, &enqaction->mapping_);
+        }
         break;
     }
     case STORE_ADD: {
