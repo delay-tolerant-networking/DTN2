@@ -97,39 +97,29 @@ public:
      */
     static void init_clayers();
     static void add_clayer(const char* proto, ConvergenceLayer* cl);
-
+    
     /**
-     * Find the appropriate convergence layer for the given admin
-     * string.
-     */
-    static ConvergenceLayer* find_clayer(const std::string& admin);
-
-     /**
      * Find the appropriate convergence layer for the given protocol
      * string.
      */
-    static ConvergenceLayer* find_clayer_proto(const char* proto);
+    static ConvergenceLayer* find_clayer(const char* proto);
 
     
 protected:
     /**
-     * Address families are used to understand how to parse names in
-     * tuples they are keyed off the "proto" field, which is assumed
-     * to contain a unique protocol name (recognizable across address
-     * families) Also, provides a link to the convergence layer thread
-     * start routine that handles the corresponding protocol
+     * Struct that maps a convergence layer protocol to its
+     * implementation.
      */
-    struct AddressFamily {
-        const char* proto_;	///< protocol name to match in the admin string
-        ConvergenceLayer* cl_;	///< the registered convergence layer.
-
-        AddressFamily* next_;	///< link to next registered address family
+    struct Protocol {
+        const char* proto_;	///< protocol name
+        ConvergenceLayer* cl_;	///< the registered convergence layer
+        Protocol* next_;	///< link to next registered protocol
     };
     
     /**
-     * The linked list of all address families.
+     * The linked list of all protocols
      */
-    static AddressFamily* af_list_;
+    static Protocol* protocol_list_;
 };
 
 #endif /* _CONVERGENCE_LAYER_H_ */

@@ -10,17 +10,17 @@ ConvergenceLayer::~ConvergenceLayer()
 {
 }
 
-ConvergenceLayer::AddressFamily* ConvergenceLayer::af_list_ = NULL;
+ConvergenceLayer::Protocol* ConvergenceLayer::protocol_list_ = NULL;
 
 void
 ConvergenceLayer::add_clayer(const char* proto, ConvergenceLayer* cl)
 {
-    AddressFamily* af = new AddressFamily();
-    af->proto_ = proto;
-    af->cl_ = cl;
+    Protocol* p = new Protocol();
+    p->proto_ = proto;
+    p->cl_ = cl;
 
-    af->next_ = af_list_;
-    af_list_ = af;
+    p->next_ = protocol_list_;
+    protocol_list_ = p;
 }
 
 void
@@ -33,30 +33,13 @@ ConvergenceLayer::init_clayers()
 }
 
 ConvergenceLayer*
-ConvergenceLayer::find_clayer(const std::string& admin)
+ConvergenceLayer::find_clayer(const char* proto)
 {
-    AddressFamily* af;
-    size_t end = admin.find(':');
-    
-    if (end != std::string::npos) {
-        for (af = af_list_; af != NULL; af = af->next_)
-        {
-            if (strncasecmp(admin.c_str(), af->proto_, end) == 0) {
-                return af->cl_;
-            }
-        }
-    }
-    return NULL;
-}
-
-ConvergenceLayer*
-ConvergenceLayer::find_clayer_proto(const char* proto)
-{
-    AddressFamily* af;
-    for (af = af_list_; af != NULL; af = af->next_)
+    Protocol* p;
+    for (p = protocol_list_; p != NULL; p = p->next_)
     {
-        if (strcasecmp(proto, af->proto_) == 0) {
-            return af->cl_;
+        if (strcasecmp(proto, p->proto_) == 0) {
+            return p->cl_;
         }
     }
     return NULL;
