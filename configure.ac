@@ -209,12 +209,13 @@ dnl -------------------------------------------------------------------------
 dnl Checks for library functions.
 dnl -------------------------------------------------------------------------
 if test "$cross_compiling" = yes; then
-    AC_MSG_NOTICE([assuming GNU libc compatible malloc for cross-compilation])
+    AC_MSG_NOTICE([assuming GNU libc compatible malloc and realloc for cross-compilation])
     ac_cv_func_malloc_0_nonnull=yes
+    ac_cv_func_realloc_0_nonnull=yes
 fi
 AC_FUNC_MALLOC
-AC_FUNC_MEMCMP
 AC_FUNC_REALLOC
+AC_FUNC_MEMCMP
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_FUNC_STRTOD
