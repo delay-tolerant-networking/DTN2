@@ -40,9 +40,14 @@ BundleRouter::create_router(const char* type)
 BundleRouter::BundleRouter()
     : Logger("/route")
 {
+    log_debug("router initializing (local_tuple %s)",
+              local_tuple_.c_str());
+    
     route_table_ = new RouteTable();
     pending_bundles_ = new BundleList("pending_bundles");
     custody_bundles_ = new BundleList("custody_bundles");
+
+    
 }
 
 /**
