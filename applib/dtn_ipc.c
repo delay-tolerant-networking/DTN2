@@ -90,7 +90,7 @@ dtnipc_open(dtnipc_handle_t* handle)
         port = strtoul(env, &end, 10);
         if (*end != '\0' || port > 0xffff)
         {
-            fprintf(stderr, "DTNAPI_HANDSHAKE_PORT environment variable (%s) "
+            fprintf(stderr, "DTNAPI_PORT environment variable (%s) "
                     "not a valid ip port\n", env);
             exit(1);
         }
