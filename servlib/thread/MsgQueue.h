@@ -47,7 +47,7 @@ public:
     /**
      * Block and pop msg from the queue.
      */
-    _elt_t pop();
+    _elt_t pop_blocking();
 
     /**
      * Try to pop a msg from the queue, but don't block. Return

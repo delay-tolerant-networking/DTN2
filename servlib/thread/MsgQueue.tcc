@@ -55,7 +55,7 @@ void MsgQueue<_elt_t>::push(_elt_t msg, bool at_back)
 }
 
 template<typename _elt_t> 
-_elt_t MsgQueue<_elt_t>::pop()
+_elt_t MsgQueue<_elt_t>::pop_blocking()
 {
     /*
      * We can't use a scoped lock since we need to release the lock
