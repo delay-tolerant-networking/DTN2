@@ -901,11 +901,9 @@ TCPConvergenceLayer::Connection::send_loop()
     sock_poll->fd = sock_->fd();
     sock_poll->events = POLLIN;
 
-    // keep track of the keepalive times
-    struct timeval keepalive_sent, keepalive_rcvd;
-    ::gettimeofday(&keepalive_sent, 0);
-    ::gettimeofday(&keepalive_rcvd, 0);
-    
+    // keep track of the time we got data
+    struct timeval now, data_rcvd, keepalive_sent;
+
     // main loop
     while (1) {
         // first see if someone wants us to stop
@@ -933,6 +931,10 @@ TCPConvergenceLayer::Connection::send_loop()
             if (acked_len != 0) {
                 Bundle* bundle2 = contact_->bundle_list()->pop_front();
                 ASSERT(bundle == bundle2);
+
+                // XXX/demmer this won't be true wrt expiration...
+                // maybe mark the bundle as in-progress or something
+                // like that?
                 
                 BundleForwarder::post(
                     new BundleTransmittedEvent(bundle, contact_, acked_len, true));
@@ -947,7 +949,10 @@ TCPConvergenceLayer::Connection::send_loop()
                 goto shutdown;
             }
 
-            // otherwise, we're all good, so loop again
+            // otherwise, we're all good, so mark that we got some
+            // data and loop again
+            ::gettimeofday(&data_rcvd, 0);
+            
             continue;
         }
 
@@ -999,7 +1004,7 @@ TCPConvergenceLayer::Connection::send_loop()
             }
 
             // mark that we got a keepalive as expected
-            ::gettimeofday(&keepalive_rcvd, 0);
+            ::gettimeofday(&data_rcvd, 0);
         }
         
         // if the bundle list was triggered, we check the list at the
@@ -1027,10 +1032,15 @@ TCPConvergenceLayer::Connection::send_loop()
 
         // check that it hasn't been too long since the other side
         // sent us a keepalive
-        int elapsed = TIMEVAL_DIFF_MSEC(keepalive_sent, keepalive_rcvd);
+        ::gettimeofday(&now, 0);
+        int elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd);
         if (elapsed > (2 * keepalive_msec_)) {
-            log_warn("send_loop: no keepalive heard for %d msecs -- "
-                     "closing contact", elapsed);
+            log_warn("send_loop: no keepalive heard for %d msecs "
+                     "(sent %u.%u, rcvd %u.%u, now %u.%u -- closing contact",
+                     elapsed,
+                     (u_int)keepalive_sent.tv_sec, (u_int)keepalive_sent.tv_usec,
+                     (u_int)data_rcvd.tv_sec, (u_int)data_rcvd.tv_usec,
+                     (u_int)now.tv_sec, (u_int)now.tv_usec);
             goto shutdown;
         }
     }
