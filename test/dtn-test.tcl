@@ -4,3 +4,5 @@
 source "test/file-injector.tcl"
 source "test/tcl-registration.tcl"
 source "test/bundle-smtpd.tcl"
+source "test/serial-forwarder-registration.tcl"
+
