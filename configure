@@ -3139,7 +3139,7 @@ fi;
     else
         ac_dbincdirs="/usr/include /usr/local/include/db4"
         for dbver in $ac_dbver ; do
-            ac_dbincdirs="$ac_dbincdirs /usr/include/db$dbver/include"
+            ac_dbincdirs="$ac_dbincdirs /usr/include/db$dbver"
             ac_dbincdirs="$ac_dbincdirs /usr/local/BerkeleyDB.$dbver/include"
         done
     fi
