@@ -13,7 +13,7 @@ set DELAY_FOR_SOURCE_NODE 2
 
 
 ## Adjust the following if links are dynamic 
-=======
+
 set linkdynamics 0
 set up 70 ## Length of uptime
 set down 40   ## Length of downtime

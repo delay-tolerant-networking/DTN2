@@ -17,7 +17,7 @@ echo "Automatic emulab topolgy generation. Output file $file"
 
 
 echo "#Automatic emulab topolgy generation" > $file
-
+echo "#Generated using command $* " > $file
 echo set exp $1 >> $file
 echo set maxnodes $2 >> $file
 echo set nfiles $3 >> $file
