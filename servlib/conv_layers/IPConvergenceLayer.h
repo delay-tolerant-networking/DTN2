@@ -50,10 +50,11 @@ public:
      * and at the start of each bundle for UDP.
      */
     struct ContactHeader {
-        u_int8_t version;		///< framing protocol version
-        u_int8_t flags;			///< connection flags (see above)
-        u_int8_t ackblock_sz;		///< size of ack blocks (power of two)
-        u_int8_t keepalive_sec;		///< seconds between keepalive packets
+        u_int8_t  version;		///< framing protocol version
+        u_int8_t  flags;		///< connection flags (see above)
+        u_int8_t  ackblock_sz;		///< size of ack blocks (power of two)
+        u_int8_t  keepalive_sec;	///< seconds between keepalive packets
+	u_int32_t magic;		///< magic word
     };
 
     /**
@@ -66,14 +67,15 @@ public:
      */
     typedef enum {
         BUNDLE_START	= 0x1,		///< first block of bundle data
-        BUNDLE_BLOCK	= 0x2,		///< later block of bundle data
+        BUNDLE_BLOCK	= 0x2,		///< subsequent block of bundle data
         BUNDLE_ACK	= 0x3,		///< bundle acknowledgement
         KEEPALIVE	= 0x4,		///< keepalive packet
     } frame_header_type_t;
     
     /**
      * Header for the start of a block of bundle data. In UDP mode,
-     * this always precedes a full bundle.
+     * this always precedes a full bundle (or a fragment at the 
+     * bundling layer).
      */
     struct BundleStartHeader {
         u_int32_t bundle_id;		///< bundle identifier at sender
