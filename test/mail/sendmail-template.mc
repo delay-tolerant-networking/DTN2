@@ -28,8 +28,10 @@ define(`confAUTH_OPTIONS', `A')dnl
 undefine(`confBIND_OPTS')dnl
 define(`confSERVICE_SWITCH_FILE', `/etc/mail/service.switch-nodns')dnl
 define(`confDONT_PROBE_INTERFACES', `True')dnl
-define(`confMCI_CACHE_SIZE',0)dnl
-define(`confDELIVERY_MODE',`q')dnl
+define(`confMCI_CACHE_SIZE',`__CACHE_SIZE__')dnl
+define(`confDELIVERY_MODE',`__DELIVERY_MODE__')dnl
+define(`confSINGLE_THREAD_DELIVERY',__SINGLE_THREAD__)dnl
+define(`confHOST_STATUS_DIRECTORY',`__HOST_STATUS_DIRECTORY__')dnl
 
 define(`confTO_IDENT', `0')dnl
 dnl FEATURE(delay_checks)dnl
