@@ -334,6 +334,7 @@ fi
 #
 #
 #postgresdir=none
+postgreslib="-lpq"
 if [ "$postgresdir" = "none" ]; then
        	echo "Warning: need to find postgres library"
 #  exit 1
@@ -356,7 +357,6 @@ else
 	  	exit 1
 	  else
 		postgreslibdir=-L$postgreslibdir
-		postgreslib="-lpq"
 	  fi
    else
 	#
@@ -395,6 +395,7 @@ fi
 # Find the mysql dlibrary
 #
 #
+mysqllib="-lmysqlclient"
 if [ "$mysqldir" = "none" ]; then
        	echo "Warning: need to find mysql library"
 #  exit 1
@@ -417,7 +418,6 @@ else
 	  	exit 1
 	  else
 		mysqllibdir=-L$mysqllibdir
-		mysqllib="-lmysqlcient"
 	  fi
    else
 	#
