@@ -1,2 +1,2 @@
-echo 'set date = `date +%s`'  
-echo 'echo $'"date :: got file'  >>& $ftplogfile"
+set date = `date +%s`  
+echo "$date :: got file"  >> $ftplogfile
