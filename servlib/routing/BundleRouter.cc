@@ -417,7 +417,8 @@ BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event,
     // Above two objectives can be achieved by posting the event
     // that contact is down for this link, which would cleanup
     // the state of queues
-    BundleForwarder::post(new ContactDownEvent(link->contact()));
+    if (link->isopen()) 
+        BundleForwarder::post(new ContactDownEvent(link->contact()));
 }
 
 /**
@@ -550,8 +551,11 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
     // bundle consumer, not just the type string.
     if (strcasecmp(bc->type_str(), "Link") == 0) {
         Link* link = (Link *)bc;
-        if (link->isavailable() && (!link->isopen())) {
-            log_info("Opening link %s because messages are queued for it", link->name());
+        if ((link->type() == Link::ONDEMAND) &&
+            link->isavailable() && (!link->isopen()))
+        {
+            log_info("Opening ONDEMAND link %s because messages are queued for it",
+                     link->name());
 
             // note that multiple such actions may be enqueued -- the
             // forwarder will just ignore duplicates
