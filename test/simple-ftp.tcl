@@ -86,9 +86,7 @@ proc send_file {host file} {
     global sock
     set fd [open $file]
 
-    puts "sending file $file size [file size $file]"
-    puts $logfd "[time] :: sending file [file tail $file]   " 
-    flush $logfd
+    puts "[time] trying to send  file $file size [file size $file]"
 
     if {! [info exists sock]} {
 	while  { [  catch {socket $host $port } sock] } {
@@ -152,6 +150,9 @@ proc send_file {host file} {
 
     if {$got_ack} {
 	puts "[time] :: file  actually sent $file"
+	puts $logfd "[time] :: file actually sent [file tail $file]   " 
+	flush $logfd
+
 	return 1
     } else {
 	puts "[time] :: file sent but not acked"
