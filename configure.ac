@@ -138,7 +138,7 @@ AC_CHECK_LIB(pthread, pthread_create)
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, gethostbyname)
 AC_CHECK_LIB(rt, sched_yield)
-AC_OASYS_TCLCONFIG
+AC_OASYS_CONFIG_TCL
 AC_DTN_DBCONFIG
 AC_DTN_PGCONFIG
 AC_DTN_MYSQLCONFIG
