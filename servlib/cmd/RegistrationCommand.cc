@@ -108,6 +108,24 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         resultf("%d", reg->regid());
         return TCL_OK;
         
+    } else if (strcmp(op, "del") ==0) {
+        RegistrationTable* regtable = RegistrationTable::instance();
+
+        const char* regid_str = argv[2];
+        int regid = atoi(regid_str);
+
+        int result = regtable->del(regid, "*");
+        if (result == 0)
+                return TCL_OK;
+
+        resultf("RegistrationTable::del(%d, *)' returned %d", regid, result);
+        return TCL_ERROR;
+
+    } else if (strcmp(op, "dump") ==0) {
+        RegistrationTable* regtable = RegistrationTable::instance();
+	regtable->dump(stdout);
+        return TCL_OK;
+
     } else if (strcmp(op, "tcl") == 0) {
         // registration tcl <regid> <endpoint> <cmd> <args...>
         if (argc < 5) {
