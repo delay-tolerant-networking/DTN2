@@ -8510,9 +8510,9 @@ echo "  Optimize: $OPTIMIZE"
 echo "  Static: $STATIC"
 echo " "
 echo "External packages:"
-echo "  tcl: $oasys_cv_path_tcl_h/tcl.h $oasys_cv_path_tcl_lib/lib -l$oasys_cv_lib_tcl"
+echo "  tcl: $oasys_cv_path_tcl_h/tcl.h -L$oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
 if test $DB_ENABLED = 1 ; then
-  echo "  db: $dtn_cv_path_db_h/db.h $dtn_cv_path_db_lib -l$dtn_cv_lib_db"
+  echo "  db: $dtn_cv_path_db_h/db.h -L$dtn_cv_path_db_lib -l$dtn_cv_lib_db"
 fi
 if test $POSTGRES_ENABLED = 1 ; then
   echo "  postgres: $dtn_cv_path_postgres_h/libpq-fe.h -L $dtn_cv_path_postgres_lib -lpq"
