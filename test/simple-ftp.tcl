@@ -68,13 +68,14 @@ proc ack_arrived {sock} {
     if [eof $sock] {
 	puts " [time] eof waiting for ack!"
 	set got_ack 0
-	fileevent $sock readable
+	fileevent $sock readable ""
+	catch {close $sock}
 	return
     }
     if {$ack != "ACK"} {
 	puts "[time] ERROR in ack_arrived: got '$ack', expected ACK"
 	set got_ack 0
-	fileevent $sock readable 
+	fileevent $sock readable ""
 	return
     }
 }
@@ -125,7 +126,7 @@ proc send_file {host file} {
     if {!$got_ack} {
 	puts "[time] timeout waiting for handshake ack"
 	close $fd
-	close $sock
+	catch {close $sock}
 	unset sock
 	return -1
     }
@@ -164,7 +165,7 @@ proc send_file {host file} {
 	return 1
     } else {
 	puts "[time] :: file sent but not acked"
-	close $sock
+	catch {close $sock}
 	unset sock
 	return -1
     }
