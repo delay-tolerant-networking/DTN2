@@ -106,8 +106,10 @@ RegistrationTable::get(u_int32_t regid, const BundleTuple& endpoint)
 bool
 RegistrationTable::add(Registration* reg)
 {
-    log_info("adding registration %d/%s",
-             reg->regid(), reg->endpoint().c_str());
+    if (reg->regid() > Registration::MAX_RESERVED_REGID) {
+        log_info("adding registration %d/%s",
+                 reg->regid(), reg->endpoint().c_str());
+    }
     
     // check if a conflicting registration already exists
     if (get(reg->regid(), reg->endpoint()) != NULL) {
