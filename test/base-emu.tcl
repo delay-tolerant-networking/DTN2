@@ -18,6 +18,9 @@ set up 70
 set down 40  
 set WARMUPTIME 10
 
+set OFFSET_VAL $up
+
+
 
 ## generates output in two lists up and down 
 proc sched {offset} {
@@ -31,6 +34,10 @@ global downlist
 set uplist {}
 set downlist {}
 set start 0 
+
+## Assumes that the link is up.
+## The first event schedules is a down link event
+
 while {$start < $MAX_SIM_TIME} {
    # puts "Outer loop $start"
     set current [expr $start + $offset]
@@ -115,8 +122,8 @@ set downlist ""
 if {$linkdynamics == 1} {
     for {set i 1} {$i <  $maxnodes} {incr i} {
     #Do stuff for the ith link
-	set offset [expr 10*$i]
-	sched {$offset}
+	set offset [expr $OFFSET_VAL*$i]
+	sched $offset
 	## Now you have uplist and downlist and use them to schedule your events
 	
 	set linkname "link-$i"
