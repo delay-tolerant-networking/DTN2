@@ -135,11 +135,11 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_OASYS_CONFIG_GCC
-AC_CHECK_LIB(pthread, pthread_create)
-AC_CHECK_LIB(socket, socket)
-AC_CHECK_LIB(nsl, gethostbyname)
-AC_CHECK_LIB(rt, sched_yield)
-AC_CHECK_FUNC(xdr_int, [], [AC_CHECK_LIB(rpc, xdr_int)])
+AC_SEARCH_LIBS(pthread_create, pthread)
+AC_CHECK_FUNC(pthread_yield, [], [AC_SEARCH_LIBS(sched_yield, rt)])
+AC_SEARCH_LIBS(socket, socket)
+AC_SEARCH_LIBS(gethostbyname, nsl)
+AC_SEARCH_LIBS(xdr_int, rpc)
 AC_OASYS_CONFIG_TCL
 AC_OASYS_CONFIG_DB
 AC_DTN_CONFIG_POSTGRES
@@ -191,6 +191,10 @@ AC_CHECK_TYPES([u_int32_t])
 dnl -------------------------------------------------------------------------
 dnl Checks for library functions.
 dnl -------------------------------------------------------------------------
+if test "$cross_compiling" = yes; then
+    AC_MSG_NOTICE([assuming GNU libc compatible malloc for cross-compilation])
+    ac_cv_func_malloc_0_nonnull=yes
+fi
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_REALLOC
