@@ -2659,7 +2659,7 @@ echo "${ECHO_T}$oasys_cv_prog_gccver" >&6
         # _GNU_SOURCE isn't defined, so do both those things here
         #
         3.1*|2.9*)
-            DEFS="$DEFS -D_GNU_SOURCE"
+            OASYS_CPPFLAGS="$OASYS_CPPFLAGS -D_GNU_SOURCE"
 	    DEPFLAGS=""
             echo "*** "
 	    echo "*** warning: using old compiler $cc version $oasys_cv_prog_gccver,"
