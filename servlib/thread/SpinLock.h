@@ -56,7 +56,7 @@ SpinLock::lock()
     {
         Thread::spin_yield();
 #ifndef NDEBUG
-        if (++nspins > 100000000) {
+        if (++nspins > 1000000) {
             PANIC("SpinLock reached spin limit");
         }
 #endif
