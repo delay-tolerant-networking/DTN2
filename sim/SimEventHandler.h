@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2005 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,17 +35,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "Topology.h"
-#include "Node.h"
 
+#ifndef _EVENTHANDLER_H_
+#define _EVENTHANDLER_H_
+
+/**
+ * @class EventHandler
+ *
+ * Interface implemented by all objects that handle simulator events
+ */
 namespace dtnsim {
 
-Topology::NodeTable Topology::nodes_;
+class Event;
 
-void
-Topology::create_node(const char* name)
-{
-    nodes_[name] = new Node(name);
-}
+class EventHandler {
+public:
+    virtual void process(Event* e) = 0;
+};
 
 } // namespace dtnsim
+
+#endif /* _EVENTHANDLER_H_ */

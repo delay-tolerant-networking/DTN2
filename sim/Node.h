@@ -38,65 +38,55 @@
 #ifndef _NODE_H_
 #define _NODE_H_
 
-/*
- * Abstract class defining structure of a node in simulator
- */
-
-#include <vector>
-
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
-#include "Processable.h"
-#include "SimContact.h"
-#include "Message.h"
+#include "EventHandler.h"
 
 namespace dtnsim {
 
-class SimContact;
-
-
-class Node : public Processable, public oasys::Logger {
-
+/**
+ * Class representing a node in the simulator (i.e. a router plus
+ * associated links, etc).
+ */
+class Node : public EventHandler, public oasys::Logger {
 public:
-
     /**
      * Constructor / Destructor
      */
-    Node(int id, const char* logpath) 
-	: Logger(logpath),id_(id) {}
+    Node(const char* name);
+    
     virtual ~Node() {}
         
-    int id() { return id_ ;}
+    const char* name() { return name_.c_str(); }
     
     /**
      * Virtual function from processable
      */
-    virtual void process(Event *e) = 0; 
+    virtual void process(Event *e);
     
-    /**
-     * Action when informed that message transmission is finished.
-     * Invoked by SimContact
-     */
-    virtual  void chewing_complete(SimContact* c, double size, Message* msg) = 0;
+//     /**
+//      * Action when informed that message transmission is finished.
+//      * Invoked by SimContact
+//      */
+//     virtual  void chewing_complete(SimContact* c, double size, Message* msg) = 0;
     
-    /**
-     * Action when a contact opens/closes
-     * Invoked by SimContact
-     */
-    virtual  void open_contact(SimContact* c) = 0;
-    virtual  void close_contact(SimContact* c) = 0;
+//     /**
+//      * Action when a contact opens/closes
+//      * Invoked by SimContact
+//      */
+//     virtual  void open_contact(SimContact* c) = 0;
+//     virtual  void close_contact(SimContact* c) = 0;
 
-    /**
-     * Action when the MESSAGE_RECEIVED event arrives
-     */
-    virtual  void message_received(Message* msg) = 0;
+//     /**
+//      * Action when the MESSAGE_RECEIVED event arrives
+//      */
+//     virtual  void message_received(Message* msg) = 0;
     
-    virtual  void create_consumer() {};
+//     virtual  void create_consumer() {};
     
 protected:
-    int id_;
-   
+    const std::string name_;
 };
 
 } // namespace dtnsim

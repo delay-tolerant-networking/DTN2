@@ -37,3 +37,19 @@
  */
 #include "Node.h"
 
+namespace dtnsim {
+
+Node::Node(const char* name)
+    : name_(name)
+{
+    logpathf("/node/%s", name);
+    log_info("node %s initializing", name);
+}
+
+void
+Node::process(Event *e)
+{
+    NOTIMPLEMENTED;
+}
+
+}

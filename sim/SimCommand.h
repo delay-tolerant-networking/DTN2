@@ -5,8 +5,8 @@
  * install, copy or use the software.
  * 
  * Intel Open Source License 
- * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ *
+ * Copyright (c) 2005 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,33 +35,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _SIMULATOR_COMMAND_H_
-#define _SIMULATOR_COMMAND_H_
+#ifndef _SIM_COMMAND_H_
+#define _SIM_COMMAND_H_
 
 #include <oasys/tclcmd/TclCommand.h>
 
 namespace dtnsim {
 
 /**
- * Class to control the simulator
+ * Class to control the sim
  */
-class SimulatorCommand : public oasys::AutoTclCommand {
+class SimCommand : public oasys::TclCommand {
 public:
-    SimulatorCommand();
-    void at_reg();
+    SimCommand();
     const char* help_string();
-    static SimulatorCommand* instance() { return &instance_; }
    
-    // simtime_t runtill_ ; 
     /**
      * Virtual from CommandModule.
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
-
-protected:
-    static SimulatorCommand instance_;
- };
+};
 
 } // namespace dtnsim
 
-#endif /* _SIMULATOR_COMMAND_H_ */
+#endif /* _SIM_COMMAND_H_ */

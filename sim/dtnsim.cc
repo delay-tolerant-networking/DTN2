@@ -46,6 +46,7 @@
 
 #include "LogSim.h"
 #include "Simulator.h"
+#include "SimCommand.h"
 //#include "SimConvergenceLayer.h"
 #include "bundling/AddressFamily.h"
 #include "bundling/ContactManager.h"
@@ -134,7 +135,7 @@ main(int argc, char** argv)
     oasys::TclCommandInterp::init(argv[0]);
     oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
     interp->reg(new ParamCommand());
-//    interp->reg(new SimCommand());
+    interp->reg(new SimCommand());
 
     // Set up components
     AddressFamilyTable::init();

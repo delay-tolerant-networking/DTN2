@@ -25,7 +25,10 @@ OLD_SIM_SRCS :=	\
 SIM_SRCS := \
 	dtnsim.cc	\
 	LogSim.cc	\
+	Node.cc		\
 	Simulator.cc	\
+	SimCommand.cc	\
+	Topology.cc	\
 
 SIM_OBJS := $(SIM_SRCS:.cc=.o)
 

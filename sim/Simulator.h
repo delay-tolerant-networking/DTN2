@@ -106,7 +106,7 @@ public:
      */
     void run();
     
-    static int runtill_; /// time to end the simulation
+    static int runtill_; 	 /// time to end the simulation
     
 protected:
     static Simulator* instance_; ///< singleton instance

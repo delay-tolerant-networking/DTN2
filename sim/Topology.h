@@ -42,6 +42,7 @@
 #include <vector>
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
+#include <oasys/util/StringUtils.h>
 
 namespace dtnsim {
 
@@ -54,29 +55,20 @@ class SimContact;
 class Topology  {
 
 public:
-    static void create_node(int id);
-    static void create_contact(int id, int src, int dst, 
-			       int bw, int delay, int isup, int up, int down);
-    static void create_consumer(int id);
-    static const int MAX_NODES_  = 100;
-    static const int MAX_CONTACTS_ = 1000;
-    
-    /**
-     * Global configuration of node type.
-     * Different node instances are created based upon node type
-     * Currently supportes node types:
-     * node_type 1 uses SimpleNode
-     * node_type 2  uses GlueNode
-     */
-    static int node_type_ ;
-    static int num_cts_ ;  ///> total number of contacts
-    static int contacts() { return num_cts_ ; }
+    static void create_node(const char* name);
 
-    static Node*  nodes_[];
-    static SimContact* contacts_[];
-   
-    static Node* node(int i) { return nodes_[i] ; }
-    static SimContact* contact(int i) { return contacts_[i] ; }
+    typedef oasys::StringHashMap<Node*> NodeTable;
+    static NodeTable nodes_;
+    
+//     static void create_link(const char* src, const char* dst
+//     static void create_contact(const char* src, const char* dst, 
+//                                int bw, int delay, int isup, int up, int down);
+    
+//     static const int MAX_NODES  = 100;
+//     static const int MAX_CONTACTS = 1000;
+    
+//     static int num_contacts_;
+//     static int contacts() { return num_contacts_ ; }
 
 };
 } // namespace dtnsim
