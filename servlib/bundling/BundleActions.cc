@@ -108,10 +108,24 @@ BundleActions::dequeue_bundle(Bundle* bundle, BundleConsumer* nexthop)
 void
 BundleActions::move_contents(BundleConsumer* source, BundleConsumer* dest)
 {
-    log_debug("moving bundles from from next hop %s (type %s) to next hop %s (type %s)",
-              source->dest_str(), source->type_str(),
+    BundleList* src_list = source->bundle_list();
+    
+    log_debug("moving %d bundles from from next hop %s (type %s) "
+              "to next hop %s (type %s)",
+              src_list->size(), source->dest_str(), source->type_str(),
               dest->dest_str(), dest->type_str());
-    source->bundle_list()->move_contents(dest->bundle_list());
+
+    // we don't use BundleList::move_contents since really we want to
+    // call enqueue_bundle for each, not the vanilla push_back
+    Bundle* b;
+    BundleMapping* m;
+    do {
+        b = src_list->pop_front(&m);
+        if (b) {
+            dest->enqueue_bundle(b, m); // copies m
+            delete m;
+        }
+    } while (b != NULL);
 }
 
 /**
