@@ -57,6 +57,8 @@ IO_SRCS :=					\
 	io/IPClient.cc				\
 	io/TCPClient.cc				\
 	io/TCPServer.cc				\
+	io/UDPClient.cc				\
+	io/UDPServer.cc				\
 
 REGISTRATION_SRCS :=				\
 	reg/Registration.cc			\
