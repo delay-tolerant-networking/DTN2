@@ -7,99 +7,85 @@
  */
 
 #include "Serialize.h"
+#include "util/StringBuffer.h"
+
+class SQLImplementation;
+
+/**
+ * SQLQuery implements common functionality used when building up a
+ * SQL query string.
+ */
+class SQLQuery : public SerializeAction {
+public:
+    /**
+     * Constructor.
+     */
+    SQLQuery(action_t type, const char* initial_query = 0);
+
+    /**
+     * Return the constructed query string.
+     */
+    const char* query();
+    
+protected:
+    StringBuffer query_;
+};
 
 /**
  * SQLInsert is a SerializeAction that builts up a SQL "INSERT INTO"
  * query statement based on the values in an object.
  */
-class SQLInsert : public SerializeAction {
+class SQLInsert : public SQLQuery {
 public:
     /**
      * Constructor.
      */
-
     SQLInsert();
   
-
     /**
-     * Return the constructed query string.
+     * Since insert doesn't modify the object, define a variant of
+     * action() that operates on a const SerializableObject.
      */
-    const char* query() { return query_.c_str(); }
-
-    /**
-     * The virtual process function to do the serialization.
-     */
-    int action(SerializableObject* object);
-    
-    //    int process(const char* name, const SerializableObject* object);
-
-    /**
-     * Since the insert operation doesn't actually modify the
-     * SerializableObject, define a variant of process() that allows a
-     * const SerializableObject* as the object parameter.
-     */
-    int process(const char* name,const SerializableObject* object)
+    int action(const SerializableObject* const_object)
     {
-        return process(name,(SerializableObject*)object);
+        return(action((SerializableObject*)const_object));
     }
-
+        
     // Virtual functions inherited from SerializeAction
     void process(const char* name, u_int32_t* i);
     void process(const char* name, u_int16_t* i);
     void process(const char* name, u_int8_t* i);
+    void process(const char* name, int32_t* i);
+    void process(const char* name, int16_t* i);
+    void process(const char* name, int8_t* i);
     void process(const char* name, bool* b);
     void process(const char* name, u_char* bp, size_t len);
     void process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy);
     void process(const char* name, std::string* s);
-
- protected:
-    std::string query_;
-    
- private:
-    int firstmember_;
-    
-    void 
-      SQLInsert::append_query(const char* s) ;
 };
 
-
-
 /**
- * SQLTableFormat is a SerializeAction that builts up a SQL "CREATE TABLE"
- * query statement based on the values in an object.
+ * SQLTableFormat is a SerializeAction that builts up a SQL "CREATE
+ * TABLE" query statement based on the values in an object.
  */
-class SQLTableFormat : public SerializeAction {
+class SQLTableFormat : public SQLQuery {
 public:
     /**
      * Constructor.
      */
-
-  SQLTableFormat();
-
+    SQLTableFormat();
 
     /**
-     * Return the constructed query string.
+     * Since table format doesn't modify the object, define a variant
+     * of action() that operates on a const SerializableObject.
      */
-    const char* query() { return query_.c_str(); }
-
-    /**
-     * The virtual process function to do the serialization.
-     */
-    int action(SerializableObject* object);
-    
-    virtual void process(const char* name,  SerializableObject* object) ;
-  
-    /**
-     * Since this operation doesn't actually modify the
-     * SerializableObject, define a variant of process() that allows a
-     * const SerializableObject* as the object parameter.
-     */
-    void process(const char* name,const SerializableObject* object)
+    int action(const SerializableObject* const_object)
     {
-        return process(name,(SerializableObject*)object);
+        return(action((SerializableObject*)const_object));
     }
-
+        
     // Virtual functions inherited from SerializeAction
+    void process(const char* name,  SerializableObject* object);
     void process(const char* name, u_int32_t* i);
     void process(const char* name, u_int16_t* i);
     void process(const char* name, u_int8_t* i);
@@ -109,19 +95,9 @@ public:
     void process(const char* name, std::string* s);
 
  protected:
-    std::string query_;
-    std::string column_prefix_ ;
-    
- private:
-    int firstmember_;
-    
-    void 
-      SQLTableFormat::append_query(const char* name, std::string s) ;
-
+    void append(const char* name, const char* type);
+    StringBuffer column_prefix_;
 };
-
-
-
 
 /**
  * SQLExtract is a SerializeAction that constructs an object's
@@ -129,17 +105,10 @@ public:
  */
 class SQLExtract : public SerializeAction {
 public:
+    SQLExtract(SQLImplementation *db);
 
-  SQLExtract();
-
-    /**
-     * The virtual process function to do the unserialization.
-     */
-    int action(SerializableObject* object);
-
-    virtual const char* next_slice() = 0;
-
-
+    // get the next field from the db
+    const char* next_field() ;
 
     // Virtual functions inherited from SerializeAction
     void process(const char* name, u_int32_t* i);
@@ -151,8 +120,10 @@ public:
     void process(const char* name, std::string* s); 
 
  protected:
-    size_t  field_;		///< counter over the no. of fields in the returned tuple
+    int field_;		///< counter over the fields in the returned tuple
+    
+ private:
+    SQLImplementation *db_;
 };
-
 
 #endif /* _SQL_SERIALIZE_H_ */

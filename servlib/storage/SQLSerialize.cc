@@ -2,12 +2,43 @@
 #include "SQLSerialize.h"
 #include "debug/Log.h"
 
+// XXX/tmp
+//#include "SQLImplementation.h"
+class SQLImplementation {
+public:
+    char* get_value(int x, int y) { return 0; }
+};
 
 #include "iostream"
 #include "util/StringUtils.h"
 
-using namespace std;
 
+/******************************************************************************
+ *
+ * SQLQuery
+ *
+ *****************************************************************************/
+
+/**
+ * Constructor.
+ */
+SQLQuery::SQLQuery(action_t type, const char* initial_query)
+    : SerializeAction(type), query_(256, initial_query)
+{
+}
+
+/**
+ * The process() functions of all subclasses append ',' after each
+ * value, so trim a trailing ',' before returning the string.
+ */
+const char*
+SQLQuery::query()
+{
+    if (query_.data()[query_.length() - 1] == ',') {
+        query_.trim(1);
+    }
+    return query_.c_str();
+}
 
 /******************************************************************************
  *
@@ -15,121 +46,79 @@ using namespace std;
  *
  *****************************************************************************/
 
-
 /**
  * Constructor.
  */
-
 SQLInsert::SQLInsert()
-    : SerializeAction(MARSHAL)
+    : SQLQuery(MARSHAL)
 {
-  firstmember_=0;
-  query_ = "";
-}
-
-
-int
-SQLInsert::action(SerializableObject* object)
-{
-  error_ = false;
-  
-  object->serialize(this);
-  
-  if (error_ == true)
-    return -1;
-
-  return 0;
-
-}
-
-void 
-SQLInsert::append_query(const char* c) {
-
-  if (firstmember_ == 0) {
-    query_ = query_ + "" +  c; 
-  }
-  else {
-    query_ = query_ + "," +  c; 
-  }
-  firstmember_ = 1;
 }
 
 // Virtual functions inherited from SerializeAction
 void 
-SQLInsert::process(const char* name, u_int32_t* i) {
-
-  char buffer [50];  
-  sprintf(buffer,"%u",*i);
-  string val(buffer) ;
-  append_query(val.c_str());
-
+SQLInsert::process(const char* name, u_int32_t* i)
+{
+    query_.appendf("%u,", *i);
 }
 
 void 
-SQLInsert::process(const char* name, string* s) 
+SQLInsert::process(const char* name, u_int16_t* i)
 {
-  string val ;
-  val =   "'" + *s + "'" ; 
-  append_query(val.c_str());
+    query_.appendf("%u,", *i);
+}
 
+void 
+SQLInsert::process(const char* name, u_int8_t* i)
+{
+    query_.appendf("%u,", *i);
+}
+
+void 
+SQLInsert::process(const char* name, int32_t* i)
+{
+    query_.appendf("%d,", *i);
+}
+
+void 
+SQLInsert::process(const char* name, int16_t* i)
+{
+    query_.appendf("%d,", *i);
+}
+
+void 
+SQLInsert::process(const char* name, int8_t* i)
+{
+    query_.appendf("%d,", *i);
 }
 
 void 
 SQLInsert::process(const char* name, bool* b) {
 
-  string val = ""  ;
-  if (*b == 0)  val = "false" ; else val = "true";
-  append_query(val.c_str());
-
+    if (*b) {
+        query_.append("TRUE,");
+    } else {
+        query_.append("FALSE,");
+    }
 }
-
 
 void 
-SQLInsert::process(const char* name, u_int16_t* i) {
-
-  char buffer [50];  
-  sprintf(buffer,"%u",*i);
-  string val(buffer) ;
-  append_query(val.c_str());
-
+SQLInsert::process(const char* name, std::string* s) 
+{
+    query_.append(*s);
+    query_.append(',');
 }
 
-void
-SQLInsert::process(const char* name, u_int8_t* i) {
-
-  string val = ""  ;
-  val.assign(1,*i);
-  val =   "'" + val + "'" ; 
-  append_query(val.c_str());
-}
- 
-//todo, check if below is correct
 void 
-SQLInsert::process(const char* name, u_char* bp, size_t len) {
-
-  char* p = new char[len+1];
-  p[len+1]=0;
-
-  string val (p);
-
-  val =   "'" + val + "'" ; 
-  append_query(val.c_str());
-  
-  if (log_) {
-    std::string s;
-    hex2str(&s, bp, len < 16 ? len : 16);
-    logf(log_, LOG_DEBUG, "=>bufc(%d: '%.*s')", len, s.length(), s.data());
-  }
-
+SQLInsert::process(const char* name, u_char* bp, size_t len)
+{
+    NOTIMPLEMENTED;
 }
-    
+
 void 
-SQLInsert::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy) {
-    cout << " variable length buffer SQL serialiazation not implemented \n " ; 
-    exit(0);
-  
+SQLInsert::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
+{
+    NOTIMPLEMENTED;
 }
-    
 
 /******************************************************************************
  *
@@ -142,114 +131,68 @@ SQLInsert::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
  */
 
 SQLTableFormat::SQLTableFormat()
-  : SerializeAction(INFO)
+    : SQLQuery(INFO)
 {
-  firstmember_=0;
-  query_ = "";
-}
-
-
-int
-SQLTableFormat::action(SerializableObject* object)
-{
-  error_ = false;
-  object->serialize(this);
-  if (error_ == true)
-    return -1;
-
-  return 0;
 }
 
 void
 SQLTableFormat::process(const char* name,  SerializableObject* object) 
 {
-  
-  std::string column_old_prefix = column_prefix_ ; 
-  if (name != "") 
-    column_prefix_ = column_prefix_ +  name + "__"  ; 
-  action(object);
-  column_prefix_ = column_old_prefix;
+    int old_len = column_prefix_.length();
+    column_prefix_.appendf("%s__", name);
+    object->serialize(this);
+    column_prefix_.trim(column_prefix_.length() - old_len);
 }
 
-// Helper function to conver a string to upper case. need to be moved.
 void 
-GetUpper(string& str)
+SQLTableFormat::append(const char* name, const char* type)
 {
-   for(u_int i = 0; i < str.length(); i++)
-   {
-      str[i] = toupper(str[i]);
-   }
-   return;
-}
-
-void 
-SQLTableFormat::append_query(const char* name, std::string data_type) {
-
-  GetUpper(data_type);
-
-  if (firstmember_ == 1) {
-    query_ = query_ + ", "  ; 
-  }
-  firstmember_ = 1;
-  
-  query_ = query_ + "" +    column_prefix_ + name + "  " +  data_type; 
+    query_.appendf("%.*s%s %s,",
+                   column_prefix_.length(), column_prefix_.data(), name, type);
 }
 
 // Virtual functions inherited from SerializeAction
 void 
-SQLTableFormat::process(const char* name, u_int32_t* i) {
-
-  std::string data_type = "bigint"  ;
-  append_query(name, data_type);
-}
-
-
-
-void 
-SQLTableFormat::process(const char* name, std::string* s) 
+SQLTableFormat::process(const char* name, u_int32_t* i)
 {
-  std::string data_type = "text"  ;
-  append_query(name, data_type);
+    append(name, "BIGINT");
 }
 
 void 
-SQLTableFormat::process(const char* name, bool* b) {
-  std::string data_type = "boolean"  ;
-  append_query(name, data_type);
-}
-
-
-void 
-SQLTableFormat::process(const char* name, u_int16_t* i) {
-
-  std::string data_type = "int"  ;
-  append_query(name, data_type);
-
+SQLTableFormat::process(const char* name, u_int16_t* i)
+{
+    append(name, "SMALLINT");
 }
 
 void
 SQLTableFormat::process(const char* name, u_int8_t* i) {
 
-  std::string data_type = "char"  ;
-  append_query(name, data_type);
-
+    append(name, "SMALLINT");
 }
  
 void 
-SQLTableFormat::process(const char* name, u_char* bp, size_t len) {
+SQLTableFormat::process(const char* name, bool* b)
+{
+    append(name, "BOOLEAN");
+}
 
-  std::string data_type = "text"  ;
-  append_query(name, data_type);
+void 
+SQLTableFormat::process(const char* name, std::string* s) 
+{
+    append(name, "TEXT");
+}
 
+void 
+SQLTableFormat::process(const char* name, u_char* bp, size_t len)
+{
+    NOTIMPLEMENTED;
 }
     
 void 
-SQLTableFormat::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy) {
-  cout << " variable length buffer SQL serialiazation not implemented \n " ; 
-  exit(0);
+SQLTableFormat::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
+{
+    NOTIMPLEMENTED;
 }
-    
-
 
 /******************************************************************************
  *
@@ -261,30 +204,23 @@ SQLTableFormat::process(const char* name, u_char** bp, size_t* lenp, bool alloc_
  * Constructor.
  */
 
-SQLExtract::SQLExtract()
-  : SerializeAction(UNMARSHAL)
+SQLExtract::SQLExtract(SQLImplementation* db)
+    : SerializeAction(UNMARSHAL)
 {
-  field_ = 0; 
+    field_ = 1;
+    db_ = db;
 }
 
-
-int
-SQLExtract::action(SerializableObject* object)
-{  
-  error_ = false;
-  object->serialize(this);
-  if (error_ == true)
-   return -1;
- 
- return 0;
-
+const char* 
+SQLExtract::next_field()
+{
+    return db_->get_value(0,field_++);
 }
-
 
 void
 SQLExtract::process(const char* name, u_int32_t* i)
 {
-    const char* buf = next_slice();
+    const char* buf = next_field();
     if (buf == NULL) return;
     
     *i = atoi(buf) ; 
@@ -295,8 +231,9 @@ SQLExtract::process(const char* name, u_int32_t* i)
 void 
 SQLExtract::process(const char* name, u_int16_t* i)
 {
-    const char* buf = next_slice();
+    const char* buf = next_field();
     if (buf == NULL) return;
+
     *i = atoi(buf) ; 
     
     if (log_) logf(log_, LOG_DEBUG, "<=int16(%d)", *i);
@@ -307,68 +244,46 @@ SQLExtract::process(const char* name, u_int16_t* i)
 void 
 SQLExtract::process(const char* name, u_int8_t* i)
 {
-    const char* buf = next_slice();
+    const char* buf = next_field();
     if (buf == NULL) return;
     
     *i = buf[0];
+    
     if (log_) logf(log_, LOG_DEBUG, "<=int8(%d)", *i);
-}
-
-
-bool
-istrue (const char *buf) {
-
-  if (buf == NULL) return 0;
- 
-  char first_char = buf[0] ; 
-  if ((first_char == 'f') || ( first_char == 'F')) return 0;
-  if ((first_char == 't') || ( first_char == 'T')) return 1;
-  
-  if (first_char == '0') return 0;
-  if (first_char == '1') return 1;
-  
-  return 0;
 }
 
 void 
 SQLExtract::process(const char* name, bool* b)
 {
-    const char* buf = next_slice();
+    const char* buf = next_field();
 
     if (buf == NULL) return;
-    
-    if (istrue(buf)) *b = 1 ; else *b = 0;
+
+    switch(buf[0]) {
+    case 'T':
+    case 't':
+    case '1':
+    case '\1':
+        *b = true;
+    case 'F':
+    case 'f':
+    case '0':
+    case '\0':
+        *b = false;
+        break;
+    default:
+        logf("/sql", LOG_ERR, "unexpected value '%s' for boolean column", buf);
+        error_ = true;
+        return;
+    }
     
     if (log_) logf(log_, LOG_DEBUG, "<=bool(%c)", *b ? 'T' : 'F');
 }
 
 void 
-SQLExtract::process(const char* name, u_char* bp, size_t len)
-{
-    const char* buf = next_slice();
-    if (buf == NULL) return;
-    
-    memcpy(bp, buf, len);
-
-    if (log_) {
-        std::string s;
-        hex2str(&s, bp, len < 16 ? len : 16);
-        logf(log_, LOG_DEBUG, "<=bufc(%d: '%.*s')", len, s.length(), s.data());
-    }
-}
-
-
-void 
-SQLExtract::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
-{
- cout << " variable length buffer SQL serialiazation not implemented \n " ; 
-  exit(-1);
-}
-
-void 
 SQLExtract::process(const char* name, std::string* s)
 {
-    const char* buf = next_slice();
+    const char* buf = next_field();
     if (buf == NULL) return;
     s->assign(buf);
     size_t len;
@@ -377,3 +292,17 @@ SQLExtract::process(const char* name, std::string* s)
     if (log_) logf(log_, LOG_DEBUG, "<=string(%d: '%.*s')",
                    len, len < 32 ? len : 32, s->data());
 }
+
+void 
+SQLExtract::process(const char* name, u_char* bp, size_t len)
+{
+    NOTIMPLEMENTED;
+}
+
+
+void 
+SQLExtract::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
+{
+    NOTIMPLEMENTED;
+}
+
