@@ -10,9 +10,6 @@
 #include "debug/Debug.h"
 #include "debug/Log.h"
 
-#include "Node.h"
-#include "SimContact.h"
-
 class Node;
 class SimContact;
 
@@ -21,7 +18,8 @@ class Topology  {
 
 public:
     static void create_node(int id);
-    static void create_contact(int id, int src, int dst,  int bw, int delay, int isup, int up, int down);
+    static void create_contact(int id, int src, int dst, 
+			       int bw, int delay, int isup, int up, int down);
 
     static const int MAX_NODES_  = 10;
     static const int MAX_CONTACTS_ = 100;
@@ -34,17 +32,14 @@ public:
      * node_type 2  uses GlueNode
      */
     static int node_type_ ;
-    static int num_cts_ ; 
+    static int num_cts_ ;  ///> total number of contacts
     static int contacts() { return num_cts_ ; }
-
-   // static std::vector<Node*> nodes_;
-    // static std::vector<Contact*> contacts_;
 
     static Node*  nodes_[];
     static SimContact* contacts_[];
    
-    static Node* node(int i) { return Topology::nodes_[i] ; }
-    static SimContact* contact(int i) { return Topology::contacts_[i] ; }
+    static Node* node(int i) { return nodes_[i] ; }
+    static SimContact* contact(int i) { return contacts_[i] ; }
 
 };
 

@@ -13,14 +13,12 @@ int
 main(int argc, char** argv)
 {
     
-    
+    // Initialize logging
     LogSim::init(LOG_INFO);
+
     // Initialize the simulator
     Simulator* s = new Simulator();
     Simulator::init(s);
-
-
-
     logf("/sim", LOG_INFO, "simulator initializing...");
 
 
@@ -48,22 +46,19 @@ main(int argc, char** argv)
     logf("/sim", LOG_INFO, "random seed is %u\n", random_seed);
     srand(random_seed);
 
+    // add simulator convergence layer (identifies by simcl) to cl list
     ConvergenceLayer::init_clayers();
     ConvergenceLayer::add_clayer("simcl", new SimConvergenceLayer());
 
-
-    // Initialize the topology
-    //  Topology::init();
-    
     // Parse / exec the config file
     if (conffile.length() != 0) {
         if (CommandInterp::instance()->exec_file(conffile.c_str()) != 0) {
-            logf("/simulator", LOG_ERR, "error in configuration file, exiting...");
+            logf("/sim", LOG_ERR, "error in configuration file, exiting...");
             exit(1);
         }
     }
 
+    // Run the event loop of simulator
     Simulator::instance()->run();
-
 
 }

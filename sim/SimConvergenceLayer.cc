@@ -2,6 +2,11 @@
 
 #include "Topology.h"
 #include "bundling/BundleList.h"
+#include "util/StringBuffer.h"
+
+#include <string.h>
+#include <iostream>
+#include <sstream>
 
 /******************************************************************************
  *
@@ -39,21 +44,17 @@ SimConvergenceLayer::match(const std::string& demux, const std::string& admin)
 void 
 SimConvergenceLayer::send_bundles(Contact* contact)
 {
-    // use contact-info in contact to find this out
+ 
     SimContact* sc = ct2simlink(contact); 
     
     Bundle* bundle;
     BundleList* blist = contact->bundle_list();
- 
+    // check, if the contact is open. If yes, send one msg from the queue
     if (sc->is_open()) {
 	bundle = blist->pop_front();
 	Message* msg = SimConvergenceLayer::bundle2msg(bundle);
 	sc->chew_message(msg);
     }
-
-    //  remove the reference on the bundle (which may delete it)
-   //    bundle->del_ref();
-
 }
 
 bool 
@@ -70,12 +71,13 @@ SimConvergenceLayer::close_contact(Contact* contact)
 
 
 /******************************************************************
- * Static functions follow
+ * Static functions follow (for maintaining mappings)
  ***************************************************************** */
 
 SimContact*
 SimConvergenceLayer::ct2simlink(Contact* contact)
 {
+   // use contact info in contact to find this out
     ASSERT(contact != NULL);
     int id = ((SimContactInfo*)contact->contact_info())->id();
     SimContact* s =     Topology::contact(id);
@@ -89,9 +91,15 @@ SimConvergenceLayer::ct2simlink(Contact* contact)
 const char * 
 SimConvergenceLayer::id2node(int i) 
 {
-    std::string retval = "bundles://sim/simcl://";
-//    retval.append(i);
-    return retval.c_str();
+
+  std::ostringstream ostr;                                   
+  ostr << i;                                           
+  std::string str = ostr.str();     
+  std::string retval =  "bundles://sim/simcl://" + str;
+  
+  //   StringBuffer retval;
+  //  retval.append("bundles://sim/simcl://%d",i);
+   return retval.c_str();
 }
 
 void
@@ -117,13 +125,11 @@ SimConvergenceLayer::simlink2ct(SimContact* simlink)
 Message*
 SimConvergenceLayer::bundle2msg(Bundle* b) 
 {
-    
     ASSERT(b != NULL);
     // no fragmentation is supported
     Message* m =  messages_[b->bundleid_];
     ASSERT(m != NULL);
     return m;
-
 }
 
 Bundle*
@@ -163,7 +169,5 @@ SimConvergenceLayer::node2id(BundleTuplePattern src)
 
 Bundle*  SimConvergenceLayer::bundles_[MAX_BUNDLES];
 Message* SimConvergenceLayer::messages_[MAX_BUNDLES];
-
-
 Contact* SimConvergenceLayer::contacts_[MAX_CONTACTS];
     

@@ -36,7 +36,7 @@ TrAgent::send(double time, int size) {
 void
 TrAgent::process(Event* e) {
     
-    if (e->sameTypeAs(TR_NEXT_SENDTIME)) {
+    if (e->type() == TR_NEXT_SENDTIME) {
 	for(int i=0;i<batchsize_;i++) {
 	    send(Simulator::time(),size_);
 	}

@@ -8,7 +8,6 @@ SIM_SRCS :=	\
 	main.cc		\
 	Event.cc	\
 	Message.cc	\
-	Node.cc		\
 	GlueNode.cc 	\
 	SimpleNode.cc 	\
 	SimulatorCommand.cc	\

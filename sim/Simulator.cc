@@ -15,7 +15,7 @@ Simulator::Simulator()
 
 void
 Simulator::add_event_(Event* e) {
- eventq_.push(e);
+    eventq_.push(e);
 }
 
 void
@@ -45,7 +45,6 @@ Simulator::run()
 		eventq_.pop();
 		/* Move the clock */
                 time_ =  e->time();
-
                 if (e->is_valid()) {
                     ASSERT(e->handler() != NULL);
                     /* Process the event */

@@ -19,7 +19,7 @@ void
 SimulatorCommand::at_reg()
 {
  bind_i("runtill", &Simulator::runtill_);
- bind_i("nodetype", &Topology::node_type_);
+ bind_i("nodetype", &Topology::node_type_); //nodetype = {1,2}
 
 }
 

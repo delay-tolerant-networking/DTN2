@@ -16,13 +16,12 @@ Topology::create_node(int id)
 {
     
     Node* nd;
-    
     if (Topology::node_type_ == 1) {
 	nd = new SimpleNode(id,"/sim/snode");
     } else if (Topology::node_type_ == 2) {
-	nd = new GlueNode(id,"/sim/gluenode");
+	nd = new GlueNode(id,"/sim/gluenode"); //DTN2-Simulator glue
     } else {
-	//logf("/sim/topology",LOG_CRIT, "unimplemented node type");
+	logf("/sim/topology",LOG_CRIT, "unimplemented node type");
     }
 
    Topology::nodes_[id] = nd;
@@ -30,18 +29,17 @@ Topology::create_node(int id)
 
 
 void
-Topology::create_contact(int id, int src, int dst, int bw, int delay, int isup,  int up, int down) 
+Topology::create_contact(int id, int src, int dst, int bw, 
+			int delay, int isup,  int up, int down) 
 {
-    // create DTN2 contact
+    // create DTN2 contact also
     if (Topology::node_type_ == 2) {
 	SimConvergenceLayer::create_ct(id);
     }
     
-    SimContact* simct = new SimContact(id,Topology::nodes_[src],Topology::nodes_[dst],bw,delay,isup, up,down);
+    SimContact* simct = new SimContact(id,Topology::nodes_[src],
+				       Topology::nodes_[dst],bw,delay,isup, up,down);
     Topology::contacts_[id] = simct;
     num_cts_++;
-
-
-    
 }
 

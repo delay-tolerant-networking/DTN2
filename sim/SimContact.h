@@ -2,80 +2,75 @@
  * Defines and implements link behavior
  */
 
-#ifndef _SIMCONTACT_H_
-#define _SIMCONTACT_H_
+#ifndef _SIM_CONTACT_H_
+#define _SIM_CONTACT_H_
 
-#include "Event.h"
-#include "Node.h"
-#include "Message.h"
+
 #include "debug/Debug.h"
 #include "debug/Log.h"
 
+
+#include "Node.h"
+#include "Processable.h"
+#include "Event.h"
+#include "Message.h"
+
+
 class Event;
-class Event_contact_chewing_finished;
-class Node;
+class Event_chew_fin;
 
 class SimContact : public Logger, public Processable {
 
 public:
     
-    static bool ALLOW_FRAGMENTATION;
-    static bool DISALLOW_FRACTIONAL_TRANSFERS;
-    static long next() {
-      return total_ ++ ;
-    }
+    static const bool ALLOW_FRAGMENTATION = true;
+    static const bool DISALLOW_FRACTIONAL_TRANSFERS = true;
     
-    SimContact (int id, Node* src, Node* dst, double bw, double latency, bool isup, int up, int down);
+    SimContact (int id, Node* src, Node* dst, double bw, 
+		double latency, bool isup, int up, int down);
     
     
     
-    bool  is_open() ;
-    void chew_message(Message* msg) ;
-    Node* src() { return src_; }
+    bool  is_open() ;                ///> returns if the contact is open
+    
+   /* A message can be sent on a contact only if it is open.
+    * The contact itself has no queue. It resembles an actual
+    * link
+    */
+    void chew_message(Message* msg) ; ///> Start transmitting the message
+
+    Node* src() { return src_; }  
     Node* dst() { return dst_; }
     int id() { return id_; }
 
 private:
-    static long total_;
+//    static long total_;
     int id_;
     Node* src_ ;
     Node* dst_ ;
     double latency_;
     double bw_;
-
-
     // Probability_Distribution* uptime_; ///< sequence of uptimes
     // Probability_Distribution* downtime_; ///< sequence of downtimes
-    
-    int up_;
+
+    int up_; ///< link up time, before the link goes down for down_ time
     int down_;
-    
-
-
-    void  chewing_complete(double size, Message* msg) ;
-    void  open_contact(bool b) ;
-    void  close_contact(bool b) ;
-
-    
-    void  process(Event* e) ;
 
     typedef enum {
-	OPEN,
-	BUSY,
-	CLOSE,
+	OPEN, // Available to send a message
+	BUSY, // Currently sending a message
+	CLOSE,/// Closed
     } state_t;
     
     state_t state_;
 
-    Event_contact_chewing_finished* chewing_event_ ;
-    Event* future_updown_event_;
+    Event_chew_fin* chewing_event_ ; ///> pointer to message currently consumed
+    Event* future_updown_event_;     ///> pointer to next up/down event
 
-    // Messages in pipe not implemented
-
-
-
-
-
+    void  open_contact(bool b) ;    ///> action to take when contact is open
+    void  close_contact(bool b) ;   ///> action to take when contact closes
+    void  process(Event* e) ;       ///> Inherited from processable
+    void  chewing_complete(double size, Message* msg) ;
 };
 
-#endif /* _SIMCONTACT_H_ */
+#endif /* _SIM_CONTACT_H_ */

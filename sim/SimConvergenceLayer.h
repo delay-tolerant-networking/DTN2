@@ -8,16 +8,20 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleTuple.h"
 
+#include "SimContactInfo.h"
 
 #include "SimContact.h"
 #include "Message.h"
 
-
-/******************************************************************************
+/**
+ * Does the actual forwarding of abundle on a contact.
+ * This is done by implementing -send_bundles- function.
  *
- * SimConvergenceLayer
- *
- *****************************************************************************/
+ * Also maintains, mapping between various components of DTN2 and 
+ * Simulator. Specifically,  maps: DTN2 contacts <-> Simulator Contacts
+ * ids from simulator <-> end point id's of DTN2
+ * also, bundles <-> messages
+ */
 
 class SimConvergenceLayer : public ConvergenceLayer {
     
@@ -46,14 +50,16 @@ public:
      * Conversion from DTN2 end node to simulator id
      */
     static int node2id(BundleTuplePattern src) ;
-
     static const char* id2node(int i) ;
+
+
     /**
      * Conversion between simulator message and DTN2 bundles
      */
     static Message*  bundle2msg(Bundle* b);
     static Bundle*  msg2bundle(Message* m);
     
+
     static void create_ct(int id) ;
 
     
@@ -65,31 +71,10 @@ public:
 
     static const int MAX_BUNDLES = 1024;
     static const int MAX_CONTACTS = 64;
-
     static Bundle* bundles_[];
     static Message* messages_[];
     static Contact* contacts_[];
     
 };
 
-
-
-/******************************************************************************
- *
- * SimContactInfo
- *
- *****************************************************************************/
-
-// may be need to move this to a new file
-
-class SimContactInfo: public ContactInfo {
-
-public:
-    SimContactInfo(int id) : ContactInfo(),simid_(id) {}
-    int id () { return simid_; }
-    
-private:
-    int simid_; // id used to identify this contact globally
-	
-};
 #endif /* _SIM_CONVERGENCE_LAYER_H_ */

@@ -21,10 +21,12 @@ GlueNode::message_received(Message* msg)
 {
 
     if (msg->dst() == id()) {
-	log_info("Rc msg at node %d, id %d, size-rcv %f",id(),msg->id(),msg->size());
+	log_info("Rc msg at node %d, id %d, size-rcv %f",
+		 id(),msg->id(),msg->size());
     }
     else {
-	log_info("Fw msg at node %d, id %d, size-rcv %f",id(),msg->id(),msg->size());
+	log_info("Fw msg at node %d, id %d, size-rcv %f",
+		 id(),msg->id(),msg->size());
 	forward(msg);
     }
 }
@@ -39,7 +41,8 @@ GlueNode::chewing_complete(SimContact* c, double size, Message* msg)
     Bundle* bundle = SimConvergenceLayer::msg2bundle(msg);
     Contact* consumer = SimConvergenceLayer::simlink2ct(c);
     int tsize = (int)size;
-    BundleTransmittedEvent* e = new BundleTransmittedEvent(bundle,consumer,tsize,acked);
+    BundleTransmittedEvent* e = 
+	new BundleTransmittedEvent(bundle,consumer,tsize,acked);
     forward_event(e);
     
 }
@@ -65,24 +68,28 @@ GlueNode::close_contact(SimContact* c)
 void
 GlueNode::process(Event* e) {
     
-    if (e->sameTypeAs(MESSAGE_RECEIVED)) {
+    switch (e->type()) {
+    case MESSAGE_RECEIVED:    {
 	
 	Event_message_received* e1 = (Event_message_received*)e;
 	Message* msg = e1->msg_;
 	log_info("received msg (%d) size %3f",msg->id(),msg->size());
-	// need to correctly update the size of the message that is received
+	
+	// update the size of the message that is received
 	msg->set_size(e1->sizesent_);
 	message_received(msg);
-    
-    } else if (e->sameTypeAs(FOR_BUNDLE_ROUTER)) {
-	BundleEvent* be = ((Event_for_bundle_router* )e)->bundle_event_;
-	forward_event(be);
-	
+	break;
     }
-    else
+	
+    case FOR_BUNDLE_ROUTER: {
+	BundleEvent* be = ((Event_for_br* )e)->bundle_event_;
+	forward_event(be);
+	break;
+    }
+    default:
 	PANIC("unimplemented action code");
+    }
 }
-
 
 
 void
@@ -111,7 +118,7 @@ GlueNode::execute_router_action(BundleAction* action)
     case FORWARD_COPY: {
         BundleForwardAction* fwdaction = (BundleForwardAction*)action;
 	
-        log_debug("forward bundle (%d) as told by routercode",bundle->bundleid_);
+	log_debug("forward bundle (%d) as told by routercode",bundle->bundleid_);
         BundleConsumer* bc = fwdaction->nexthop_ ; 
 	bc->consume_bundle(bundle);
         break;

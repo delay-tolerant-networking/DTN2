@@ -1,4 +1,3 @@
-
 #ifndef _SIMPLE_NODE_H_
 #define _SIMPLE_NODE_H_
 
@@ -11,24 +10,24 @@
 class SimpleNode : public Node {
 
 public:
-    static long next() {
-	return total_ ++ ;
-    }
 
     SimpleNode(int id, const char* logpath);
     virtual ~SimpleNode();
     
-    virtual void process(Event *e); ///< virtual function from Processable
+    /**
+     * Virtual functions from Node
+     */
 
-    
+    virtual void process(Event *e); 
     virtual  void chewing_complete(SimContact* c, double size, Message* msg);
     virtual  void open_contact(SimContact* c);
     virtual  void close_contact(SimContact* c);
     virtual  void message_received(Message* msg);
-    virtual  void forward(Message* msg);
+    
     
 private:
-    std::vector<Message*> msgq_;
+    virtual  void forward(Message* msg);
+    std::vector<Message*> msgq_; /// message to be forwarded
 
 };
 

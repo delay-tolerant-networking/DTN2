@@ -4,7 +4,9 @@
 #include "cmd/Command.h"
 
 /**
- * CommandModule for the "simroute" command.
+ * CommandModule for the "simdtn2" command.
+ * These are the commands specific to DTN2 and sim
+ * For example commands to access bundlerouterifo from simulator
  */
 class Simdtn2Command : public AutoCommandModule {
 public:
