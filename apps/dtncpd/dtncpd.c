@@ -236,7 +236,7 @@ main(int argc, const char** argv)
                         printf(" "); // space every 2 bytes
                     }
                     
-                    printf("%02x", buffer[i]);
+                    printf("%02x", buffer[i] & 0xff);
                     
                     // print character summary (a la emacs hexl-mode)
                     if (marker%BUFSIZE == BUFSIZE-1)

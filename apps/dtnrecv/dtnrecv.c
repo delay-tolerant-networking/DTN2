@@ -5,6 +5,8 @@
 #include <sys/time.h>
 #include "dtn_api.h"
 
+#define BUFSIZE 16
+
 void
 usage()
 {
@@ -15,7 +17,7 @@ usage()
 int
 main(int argc, const char** argv)
 {
-    int i, lines, j;
+    int i,  k;
     int cnt = INT_MAX;
     int ret;
     dtn_handle_t handle;
@@ -24,8 +26,10 @@ main(int argc, const char** argv)
     dtn_reg_id_t regid;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
-    char* endpoint;
+    char* endpoint, *buffer;
+    char s_buffer[BUFSIZE + 1];
     int debug = 1;
+    s_buffer[BUFSIZE] = '\0';
     
     if (argc != 2) {
         usage();
@@ -90,19 +94,33 @@ main(int argc, const char** argv)
                spec.source.admin.admin_val,
                0);
 
-        for (lines = 0; 
-             lines * 80 < payload.dtn_bundle_payload_t_u.buf.buf_len; 
-             lines++)
+        buffer = payload.dtn_bundle_payload_t_u.buf.buf_val;
+        for (k=0; k < payload.dtn_bundle_payload_t_u.buf.buf_len; k++)
         {
-            printf("%5d: ", lines);
-            for (j=0; 
-                 lines * 80 + j < payload.dtn_bundle_payload_t_u.buf.buf_len; 
-                 j++)
+            if (buffer[k] >= ' ' && buffer[k] <= '~')
+                s_buffer[k%BUFSIZE] = buffer[i];
+            else
+                s_buffer[k%BUFSIZE] = '.';
+                    
+
+            if (k%BUFSIZE == 0) // new line every 16 bytes
             {
-                printf("%02x", payload.dtn_bundle_payload_t_u.buf.buf_val[lines*80 + j]);
+                printf("%07x ", k);
             }
-            printf("\n");
+            else if (k%2 == 0)
+            {
+                printf(" "); // space every 2 bytes
+            }
+                    
+            printf("%02x", buffer[k] & 0xff);
+                    
+            // print character summary (a la emacs hexl-mode)
+            if (k%BUFSIZE == BUFSIZE-1)
+            {
+                printf(" |  %s\n", s_buffer);
+            }
         }
+
     }
     
     return 0;
