@@ -1,5 +1,7 @@
 #!/bin/csh
 
+echo $*
+echo $#
   if ($#argv != 9) then
         echo "Usage: $0 <expname> <maxnodes> <nfiles> <size(KB)> <loss> <bw> <perhop> <proto1, proto2,..> <finishtime>"
   	echo "Example: $0 try 4 10 100 0 100kb  [e2e ph] [tcp dtn mail] 711 "

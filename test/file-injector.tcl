@@ -47,7 +47,7 @@ proc file_injector_scan {dir source dest period} {
     
     set files [glob -nocomplain -- "$dir/*"]
 
-    log /file_injector DEBUG "scanning $dir... found [llength $files] files"
+#    log /file_injector DEBUG "scanning $dir... found [llength $files] files"
     foreach file $files {
 	file stat $file file_stat
 	

@@ -37,10 +37,10 @@ if (($id == 1) || ($id == $maxnodes) || ($perhop == 1)) then
     setenv HOME  /users/sushjain
 
     #-l $mylogroo
-     set cmd = "$myexeroot/bundleDaemon -t   -c $file -d -o $info.bd >>& $info "
+     set cmd = "$myexeroot/bundleDaemon -t   -c $file  -o $info.bd >>& $info "
      echo $cmd  >> $info
 
      ## Actually execute the command 
- $myexeroot/bundleDaemon -t   -c $file -d -o $info.bd >>& $info
+ $myexeroot/bundleDaemon -t  -c $file -o $info.bd >>& $info
 
 endif
