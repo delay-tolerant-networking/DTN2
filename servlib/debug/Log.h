@@ -161,19 +161,16 @@ public:
      */
     void add_debug_rule(const char* path, log_level_t threshold);
 
-
+protected:
     Log();
     virtual ~Log() {} // never called
 
-
     /**
      * Initialize logging, should be called exactly once from the
-     * static Log::init.
+     * static Log::init or LogSim::init.
      */
     void do_init(log_level_t defaultlvl, const char* debug_path);
 
-
-protected:
     /**
      * Singleton instance of the Logging system
      */
