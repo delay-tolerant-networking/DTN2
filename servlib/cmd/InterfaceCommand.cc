@@ -6,11 +6,11 @@ InterfaceCommand InterfaceCommand::instance_;
 
 InterfaceCommand::InterfaceCommand() : AutoCommandModule("interface") {}
 
-char *
+const char*
 InterfaceCommand::help_string()
 {
-    return("interface <tuple> [<args>?]\n\
-\t\tinterface remove <tuple>");
+    return("\tinterface <tuple> [<args>?]\n"
+           "\tinterface remove <tuple>");
 }
 
 int

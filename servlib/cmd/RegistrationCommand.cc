@@ -6,11 +6,11 @@ RegistrationCommand RegistrationCommand::instance_;
 
 RegistrationCommand::RegistrationCommand() : AutoCommandModule("registration") {}
 
-char *
+const char*
 RegistrationCommand::help_string()
 {
-    return("registration logger add <demux>\n\
-\t\tregistration logger del <regid> <demux>");
+    return("\tregistration logger add <demux>\n"
+           "\tregistration logger del <regid> <demux>");
 }
 
 int

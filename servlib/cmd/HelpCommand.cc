@@ -9,19 +9,19 @@ int
 HelpCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
     const CommandList *theList = NULL;
-    std::list<CommandModule*>::const_iterator j;
-
+    CommandList::const_iterator iter;
+    
     theList = CommandInterp::instance()->modules();
 
-    for ( j = theList->begin(); j!=theList->end(); j++ ) {
-        printf("\t%s - %s\n", (*j)->name(), (*j)->help_string());
+    for ( iter = theList->begin(); iter!=theList->end(); iter++ ) {
+        printf("%s:\n%s\n", (*iter)->name(), (*iter)->help_string());
     }
 
 
     return TCL_OK;
 }
 
-char *
+const char*
 HelpCommand::help_string()
 {
     return("print this message.\n");

@@ -13,7 +13,7 @@ QuitCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     return TCL_OK;
 }
 
-char *
+const char*
 QuitCommand::help_string()
 {
     return("not sure if this is needed; 'exit' seems to quit (cleanly?)");

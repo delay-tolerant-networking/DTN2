@@ -6,10 +6,10 @@ LogCommand LogCommand::instance_;
 
 LogCommand::LogCommand() : AutoCommandModule("log") {}
 
-char *
+const char*
 LogCommand::help_string()
 {
-    return("log path level string");
+    return("log <path> <level> <string>");
 }
 
 int
