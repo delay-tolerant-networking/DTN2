@@ -96,7 +96,7 @@ protected:
      * contacts, filling in the action list with forwarding decisions.
      */
     virtual void handle_bundle_received(BundleReceivedEvent* event,
-                                BundleActionList* actions);
+                                        BundleActionList* actions);
     
     /**
      * Default event handler when bundles are transmitted.
@@ -106,7 +106,7 @@ protected:
      * enqeues the new fragment on the appropriate list.
      */
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event,
-                                   BundleActionList* actions);
+                                           BundleActionList* actions);
 
     /**
      * Default event handler when a new application registration
@@ -117,19 +117,19 @@ protected:
      * registration.
      */
     virtual void handle_registration_added(RegistrationAddedEvent* event,
-                                   BundleActionList* actions);
+                                           BundleActionList* actions);
     
     /**
      * Default event handler when a new contact is available.
      */
     virtual void handle_contact_available(ContactAvailableEvent* event,
-                                  BundleActionList* actions);
+                                          BundleActionList* actions);
     
     /**
      * Default event handler when a contact is broken.
      */
     virtual void handle_contact_broken(ContactBrokenEvent* event,
-                               BundleActionList* actions);
+                                       BundleActionList* actions);
     
     /**
      * Default event handler when a new route is added by the command
@@ -139,7 +139,7 @@ protected:
      * to see if any bundles match the new route.
      */
     virtual void handle_route_add(RouteAddEvent* event,
-                          BundleActionList* actions);
+                                  BundleActionList* actions);
     
     /**
      * Get all matching entries from the routing table, and add a
