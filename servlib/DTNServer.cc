@@ -267,7 +267,9 @@ void DTNServer::tidy_dir(const char * dirname)
     if (stat(dirname, &st) == 0)
     {
         sprintf(cmd, "/bin/rm -rf %s", dirname);
-        log_warn("/dtnserver", "removing directory: '%s'", cmd);
+        log_warn("/dtnserver",
+                 "tidy option removing directory '%s'", cmd);
+        
         if (system(cmd))
         {
             log_crit("/dtnserver", "error removing directory %s", dirname);
