@@ -47,8 +47,8 @@ GlobalStore* GlobalStore::instance_;
 GlobalStore::GlobalStore(PersistentStore * store)
     : Logger("/storage/globals")
 {
-    globals.next_bundleid_ = 0;
-    globals.next_regid_ = Registration::MAX_RESERVED_REGID + 1;
+    globals.next_bundleid_ = 0xffffffff;
+    globals.next_regid_    = 0xffffffff;
     store_ = store;
 }
 
@@ -75,6 +75,7 @@ Globals::~Globals()
 u_int32_t
 GlobalStore::next_bundleid()
 {
+    ASSERT(globals.next_bundleid_ != 0xffffffff);
     log_debug("next_bundleid %d -> %d", globals.next_bundleid_, globals.next_bundleid_ + 1);
     u_int32_t ret = globals.next_bundleid_++;
     if (! update()) {
@@ -93,6 +94,7 @@ GlobalStore::next_bundleid()
 u_int32_t
 GlobalStore::next_regid()
 {
+    ASSERT(globals.next_regid_ != 0xffffffff);
     log_debug("next_regid %d -> %d", globals.next_regid_, globals.next_regid_ + 1);
     u_int32_t ret = globals.next_regid_++;
     if (! update()) {
@@ -117,10 +119,11 @@ GlobalStore::load()
         
         log_debug("loaded next bundle id %d next reg id %d",
                   globals.next_bundleid_, globals.next_regid_);
-
-    } else if (cnt == 0 && StorageConfig::instance()->init_) {
+    }
+    else if (cnt == 0 && StorageConfig::instance()->init_)
+    {
         globals.next_bundleid_ = 0;
-        globals.next_regid_ = 0;
+        globals.next_regid_    = Registration::MAX_RESERVED_REGID + 1;
         
         if (store_->add(&globals, 1) != 0) 
         {
