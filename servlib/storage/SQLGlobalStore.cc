@@ -2,7 +2,7 @@
 #include "SQLGlobalStore.h"
 #include "SQLImplementation.h"
 #include "SQLStore.h"
-#include "cmd/StorageCommand.h"
+#include "StorageConfig.h"
 
 static const char* TABLENAME = "globals";
 
@@ -31,7 +31,7 @@ SQLGlobalStore::load()
         log_debug("loaded next bundle id %d next reg id %d",
                   next_bundleid_, next_regid_);
 
-    } else if (cnt == 0 && StorageCommand::instance()->tidy_) {
+    } else if (cnt == 0 && StorageConfig::instance()->tidy_) {
         log_info("globals table does not exist... initializing it");
         
         next_bundleid_ = 0;

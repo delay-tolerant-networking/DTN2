@@ -8,12 +8,12 @@
 #include "routing/BundleRouter.h"
 #include "cmd/Command.h"
 #include "cmd/Options.h"
-#include "cmd/StorageCommand.h"
 #include "cmd/TestCommand.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "storage/BundleStore.h"
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
+#include "storage/StorageConfig.h"
 
 int
 main(int argc, char** argv)
@@ -33,7 +33,7 @@ main(int argc, char** argv)
     
     // Set up the command line options
     new StringOpt("c", &conffile, "conf", "config file");
-    new BoolOpt("t", &StorageCommand::instance()->tidy_,
+    new BoolOpt("t", &StorageConfig::instance()->tidy_,
                 "clear database on startup");
     new IntOpt("s", &random_seed, &random_seed_set, "seed",
                "random number generator seed");

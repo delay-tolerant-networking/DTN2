@@ -13,13 +13,6 @@ public:
     static StorageCommand* instance() { return &instance_; }
     
     /**
-     * Public configuration variables.
-     */
-    bool tidy_;
-    std::string dbdir_;
-    std::string sqldb_;
-
-    /**
      * Virtual from CommandModule.
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);

@@ -1,8 +1,8 @@
 
 #include "SQLStore.h"
 #include "SQLImplementation.h"
+#include "StorageConfig.h"
 #include "bundling/Bundle.h"
-#include "cmd/StorageCommand.h"
 #include "debug/Debug.h"
 
 /**
@@ -168,7 +168,7 @@ int
 SQLStore::create_table(SerializableObject* obj) 
 {
     if (has_table(table_name_)) {
-        if (StorageCommand::instance()->tidy_) {
+        if (StorageConfig::instance()->tidy_) {
             // if tidy is set, drop the table
             log_info("tidy option set, dropping table %s", table_name_);
             StringBuffer query;
