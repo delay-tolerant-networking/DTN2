@@ -1,4 +1,5 @@
 
+#include "Bundle.h"
 #include "BundleList.h"
 #include "thread/SpinLock.h"
 
@@ -12,6 +13,9 @@ BundleList::~BundleList()
     delete lock_;
 }
 
+/**
+ * Peek at the first bundle on the list.
+ */
 Bundle*
 BundleList::front()
 {
@@ -19,6 +23,9 @@ BundleList::front()
     return list_.front();
 }
 
+/**
+ * Peek at the last bundle on the list.
+ */
 Bundle*
 BundleList::back()
 {
@@ -26,24 +33,86 @@ BundleList::back()
     return list_.back();
 }
 
+/**
+ * Add a new bundle to the front of the list.
+ */
+void
+BundleList::push_front(Bundle* b)
+{
+    ScopeLock l(lock_);
+    list_.push_front(b);
+
+    b->add_ref();
+    bool added = b->add_container(this);
+    ASSERT(added);
+
+    if (waiter_ == true && size() == 1)
+    {
+        notify();
+    }
+}
+
+/**
+ * Add a new bundle to the front of the list.
+ */
+void
+BundleList::push_back(Bundle* b)
+{
+    ScopeLock l(lock_);
+    list_.push_back(b);
+
+    b->add_ref();
+    bool added = b->add_container(this);
+    ASSERT(added);
+    
+    if (waiter_ == true && size() == 1)
+    {
+        notify();
+    }
+}
+
+/**
+ * Remove (and return) the first bundle on the list.
+ */
 Bundle*
 BundleList::pop_front()
 {
     ScopeLock l(lock_);
-    Bundle* ret = list_.front();
+
+    Bundle* b = list_.front();
     list_.pop_front();
-    return ret;
+    
+    if (b) {
+        bool deleted = b->del_container(this);
+        ASSERT(deleted);
+    }
+        
+    return b;
 }
 
+/**
+ * Remove (and return) the last bundle on the list.
+ */
 Bundle*
 BundleList::pop_back()
 {
     ScopeLock l(lock_);
-    Bundle* ret = list_.back();
+
+    Bundle* b = list_.back();
     list_.pop_back();
-    return ret;
+
+    if (b) {
+        bool deleted = b->del_container(this);
+        ASSERT(deleted);
+    }
+        
+    return b;
 }
 
+/**
+ * Remove (and return) the first bundle on the list, blocking if
+ * there are none.
+ */
 Bundle*
 BundleList::pop_blocking()
 {
@@ -66,39 +135,44 @@ BundleList::pop_blocking()
     drain_pipe();
     
     ASSERT(size() > 0);
-    Bundle* ret = list_.front();
-    ASSERT(ret != NULL);
-    list_.pop_front();
+    
+    Bundle* b = pop_front();
+    ASSERT(b != NULL);
     
     lock_->unlock();
     
-    return ret;
+    return b;
 }
 
-void
-BundleList::push_front(Bundle* b)
+/**
+ * Remove the given bundle.
+ *
+ * @return true if the bundle was removed successfully, false if
+ * it was not on the list
+ */
+bool
+BundleList::remove(Bundle* bundle)
 {
     ScopeLock l(lock_);
-    list_.push_front(b);
 
-    if (waiter_ == true && size() == 1)
-    {
-        notify();
+    iterator iter = find(list_.begin(), list_.end(), bundle);
+    if (iter == list_.end()) {
+        return false;
     }
-}
 
-void
-BundleList::push_back(Bundle* b)
-{
-    ScopeLock l(lock_);
-    list_.push_back(b);
+    list_.erase(iter);
+
+    bool deleted = bundle->del_container(this);
+    ASSERT(deleted);
     
-    if (waiter_ == true && size() == 1)
-    {
-        notify();
-    }
+    bundle->del_ref(); // may delete the bundle
+
+    return true;
 }
 
+/**
+ * Return the size of the list.
+ */
 size_t
 BundleList::size()
 {
@@ -106,6 +180,11 @@ BundleList::size()
     return list_.size();
 }
 
+/**
+ * Iterator used to iterate through the list. Iterations _must_ be
+ * completed while holding the list lock, and this method will
+ * assert as such.
+ */
 BundleList::iterator
 BundleList::begin()
 {
@@ -113,6 +192,11 @@ BundleList::begin()
     return list_.begin();
 }
 
+/**
+ * Iterator used to mark the end of the list. Iterations _must_ be
+ * completed while holding the list lock, and this method will
+ * assert as such.
+ */
 BundleList::iterator
 BundleList::end()
 {

@@ -1,5 +1,6 @@
 
 #include "Bundle.h"
+#include "thread/SpinLock.h"
 
 void
 Bundle::init()
@@ -37,6 +38,11 @@ Bundle::Bundle(const std::string& source,
 
 Bundle::~Bundle()
 {
+    ASSERT(containers_.size() == 0);
+    // XXX/demmer remove the bundle from the database
+    
+    bundleid_ = 0xdeadf00d;
+    payload_.set_data("(dead bundle data");
 }
 
 int
@@ -69,3 +75,81 @@ Bundle::serialize(SerializeAction* a)
     a->process("payload", &payload_);
 }
 
+/**
+ * Bump up the reference count.
+ */
+int
+Bundle::add_ref()
+{
+    lock_.lock();
+    ASSERT(refcount_ >= 0);
+    int ret = ++refcount_;
+    log_debug("/bundle/refs", "bundle id %d: refcount %d -> %d",
+              bundleid_, refcount_ - 1, refcount_);
+    lock_.unlock();
+    return ret;
+}
+
+/**
+ * Decrement the reference count.
+ *
+ * If the reference count becomes zero, the bundle is deleted.
+ */
+int
+Bundle::del_ref()
+{
+    lock_.lock();
+    ASSERT(refcount_ > 0);
+    int ret = --refcount_;
+    log_debug("/bundle/refs", "bundle id %d: refcount %d -> %d",
+              bundleid_, refcount_ + 1, refcount_);
+    if (refcount_ != 0) {
+        lock_.unlock();
+        return ret;
+    }
+
+    delete this;
+    return 0;
+}
+
+/**
+ * Add a BundleList to the set of containers.
+ *
+ * @return true if the list pointer was added successfully, false
+ * if it was already in the set
+ */
+bool
+Bundle::add_container(BundleList *blist)
+{
+    ScopeLock l(&lock_);
+    log_debug("/bundle/container", "bundle id %d add container %p",
+              bundleid_, blist);
+    if (containers_.insert(blist).second == true) {
+        return true;
+    }
+    return false;
+}
+
+
+/**
+ * Remove a BundleList from the set of containers.
+ *
+ * @return true if the list pointer was removed successfully,
+ * false if it wasn't in the set
+ */
+bool
+Bundle::del_container(BundleList* blist)
+{
+    ScopeLock l(&lock_);
+    log_debug("/bundle/container", "bundle id %d del container %p",
+              bundleid_, blist);
+    
+    size_t n = containers_.erase(blist);
+    if (n == 1) {
+        return true;
+    } else if (n == 0) {
+        return false;
+    } else {
+        PANIC("unexpected return %d from set::erase", n);
+    }
+}

@@ -1,23 +1,37 @@
 #ifndef _BUNDLE_H_
 #define _BUNDLE_H_
 
-#include "debug/Formatter.h"
-#include "storage/Serialize.h"
 #include "BundlePayload.h"
 #include "BundleTuple.h"
-#include "thread/Atomic.h"
+#include "debug/Formatter.h"
+#include "storage/Serialize.h"
+#include "thread/SpinLock.h"
 #include <sys/time.h>
+#include <set>
 
+class BundleList;
 class SQLBundleStore;
 
 /**
- * Values for the bundle delivery options.
- */
-typedef enum {
-} bundle_delivery_opts_t;
-
-/**
  * The internal representation of a bundle.
+ *
+ * Bundles are reference counted, with references generally
+ * correlating one-to-one with each BundleList on which the Bundle
+ * resides.
+ *
+ * However, although the push() methods of the BundleList always add a
+ * reference and a backpointer to the bundle, the pop() methods do not
+ * decremente the reference count. This means that the caller must
+ * explicitly remove it when done with the bundle.
+ *
+ * Note that delref() will delete the Bundle when the reference count
+ * reaches zero, so care must be taken to never use the pointer after
+ * that point.
+ *
+ * The Bundle class maintains a set of back-pointers each BundleList
+ * it is container on, and list addition/removal methods maintain the
+ * invariant that the entiries of this set correlate exactly with the
+ * list pointers.
  */
 class Bundle : public Formatter, public SerializableObject {
 public:
@@ -39,7 +53,7 @@ public:
      * create the database table schema for SQL databases.
      */
     Bundle(SQLBundleStore* store) {}
-
+    
     /**
      * Default initialization.
      */
@@ -50,7 +64,9 @@ public:
      */
     virtual ~Bundle();
     
-    // virtual from Formatter
+    /**
+     * Virtual from formatter.
+     */
     int format(char* buf, size_t sz);
     
     /**
@@ -59,32 +75,45 @@ public:
     void serialize(SerializeAction* a);
 
     /**
-     * Return the bundle's reference count. Incremented whenever the
-     * bundle is added to a bundle list for forwarding either to
-     * another daemon or to an application.
+     * Return the bundle's reference count, corresponding to the
+     * number of entries in the containers_ set, i.e. the number of
+     * BundleLists that have a reference to this bundle, as well as
+     * any other scopes that are processing the bundle.
      */
     int refcount() { return refcount_; }
 
     /**
      * Bump up the reference count.
+     *
+     * @return the new reference count
      */
-    void addref() {
-        atomic_incr(&refcount_);
-        log_debug("/bundle/refs", "refcount bundleid %d %d -> %d",
-                  bundleid_, refcount_ - 1, refcount_);
-        ASSERT(refcount_ > 0);
-    }
+    int add_ref();
 
     /**
      * Decrement the reference count.
+     *
+     * If the reference count becomes zero, the bundle is deleted.
+     *
+     * @return the new reference count
      */
-    void delref() {
-        ASSERT(refcount_ > 0);
-        atomic_decr(&refcount_);
-        log_debug("/bundle/refs", "refcount bundleid %d %d -> %d",
-                  bundleid_, refcount_ + 1, refcount_);
-    }
+    int del_ref();
+    
+    /**
+     * Add a BundleList to the set of containers.
+     *
+     * @return true if the list pointer was added successfully, false
+     * if it was already in the set
+     */
+    bool add_container(BundleList* blist);
 
+    /**
+     * Remove a BundleList from the set of containers.
+     *
+     * @return true if the list pointer was removed successfully,
+     * false if it wasn't in the set
+     */
+    bool del_container(BundleList* blist);
+    
     /**
      * Values for the bundle priority field.
      */
@@ -98,8 +127,7 @@ public:
     /**
      * Pretty printer function for bundle_priority_t.
      */
-    static const char* prioritytoa(u_int8_t priority)
-    {
+    static const char* prioritytoa(u_int8_t priority) {
         switch (priority) {
         case COS_BULK: 		return "BULK";
         case COS_NORMAL: 	return "NORMAL";
@@ -112,9 +140,12 @@ public:
      * Use a struct timeval (for now) as the creation timestamp type.
      */
     typedef struct timeval timestamp_t;
-    
 
-    // Bundle data fields (all public to avoid the need for accessor functions)
+    /*
+     * Bundle data fields (all public to avoid the need for accessor
+     * functions).
+     */
+    
     u_int32_t bundleid_;	///< Local bundle identifier
     BundleTuple source_;	///< Source tuple
     BundleTuple dest_;		///< Destination tuple
@@ -132,12 +163,19 @@ public:
     
     u_char test_binary_[100]; 	///< Added by sushant, for testing binary things
 
-protected:
-    int refcount_;		///< reference count
+    /*
+     * Internal fields for managing the bundle.
+     */
 
-    // XXX/demmer this should have a std::set of pointers to all
-    // BundleList's that this bundle is currently linked on, so as to
-    // implement expiration and cancel properly.
+    typedef std::set<BundleList*> BundleListSet;
+    
+    BundleListSet containers_;	///< The set of BundleLists that
+                                ///  contain the Bundle.
+    int refcount_;		///< Bundle reference count
+    SpinLock lock_;		///< Lock for bundle data that can be
+                                ///  updated by multiple threads, e.g.
+                                ///  containers_ and refcount_.
+
 };
 
 #endif /* _BUNDLE_H_ */

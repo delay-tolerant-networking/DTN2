@@ -22,8 +22,17 @@ class SpinLock;
  * operation can be atomic (protected by the spin lock).
  *
  * The list is also derived from Notifier, and the various push()
- * calls will call notify() so threads can block on an empty list
- * waiting for notification.
+ * calls will call notify() if there is a thread blocked on an empty
+ * list waiting for notification.
+ *
+ * List methods also maintain the set of back pointers in the Bundle
+ * class for the lists that contain it, and follow the reference
+ * counting rules for bundles. In particular, the push*() methods
+ * increment the reference count, and remove() decrements it. However,
+ * it is important to note that the pop*() methods do not decrement
+ * the reference count (though they do update the back pointers), and
+ * it is the responsibility of the caller of one of the pop*() methods
+ * to explicitly decrement the reference count.
  */
 class BundleList : public Notifier {
 public:
@@ -41,6 +50,16 @@ public:
     Bundle* back();
 
     /**
+     * Add a new bundle to the front of the list. 
+     */
+    void push_front(Bundle* bundle);
+
+    /**
+     * Add a new bundle to the front of the list.
+     */
+    void push_back(Bundle* bundle);
+
+    /**
      * Remove (and return) the first bundle on the list.
      */
     Bundle* pop_front();
@@ -55,17 +74,15 @@ public:
      * there are none.
      */
     Bundle* pop_blocking();
+
+    /**
+     * Remove the given bundle.
+     *
+     * @return true if the bundle was removed successfully, false if
+     * it was not on the list
+     */
+    bool remove(Bundle* bundle);
     
-    /**
-     * Add a new bundle to the front of the list.
-     */
-    void push_front(Bundle* bundle);
-
-    /**
-     * Add a new bundle to the front of the list.
-     */
-    void push_back(Bundle* bundle);
-
     /**
      * Return the size of the list.
      */
