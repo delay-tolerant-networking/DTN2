@@ -4,18 +4,18 @@ DTN Reference Implementation
 Compilation / Installation Instructions
 ---------------------------------------
 
-./configure
+./configure -C
 make
 make install
 
 Note that by default, the configure script will also run configure
-inside the oasys/ subdirectory. If this results in an error, run
-configure manually within that directory.
+inside the oasys/ subdirectory. The -C argument enables the autoconf
+variable cache, which speeds up configuration. 
 
-If you need to make changes to the configure.ac script or one of
-the helper scripts in aclocal/*.ac, run build-configure.sh to
-recreate configure and then check in both your changes as well
-as the newly generated configure script.
+Note that if you need to make changes to the configure.ac script or
+one of the helper scripts in aclocal/*.ac, run build-configure.sh to
+recreate configure and then check in both your changes as well as the
+newly generated configure script.
 
 Reporting Bugs / Other Help
 ---------------------------
@@ -49,11 +49,11 @@ External Requirements
 ---------------------
 
 gcc/g++
-pthread
+pthreads
 tcl8.3+
 
 one or more of:
-    BerkeleyDB 4.2+ 	(required by default)
+    BerkeleyDB 4.2+ 	(enabled by default)
     mysql		(enabled with configure options)
     postgressql		(enabled with configure options)
 
