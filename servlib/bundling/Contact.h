@@ -5,6 +5,8 @@ class BundleList;
 class ContactInfo;
 
 #include "debug/Debug.h"
+#include "debug/Formatter.h"
+#include "bundling/BundleTuple.h"
 
 /**
  * Valid types for a contact.
@@ -34,22 +36,36 @@ typedef enum
 contact_type_t;
 
 /**
+ * Contact type string conversion.
+ */
+inline const char*
+contact_type_toa(contact_type_t type)
+{
+    switch(type) {
+    case ONDEMAND: 	return "ONDEMAND";
+    case SCHEDULED: 	return "SCHEDULED";
+    case OPPORTUNISTIC: return "OPPORTUNISTIC";
+    default: 		PANIC("bogus contact_type_t");
+    }
+}
+
+/**
  * Encapsulation of a connection to a next-hop DTN contact. The object
  * contains a list of bundles that are destined for it, as well as a
  * slot to store any convergence layer specific attributes.
  */
-class Contact : public Logger {
+class Contact : public Formatter, public Logger {
 public:
     /**
      * Constructor / Destructor
      */
-    Contact(contact_type_t type, const char* name);
-    ~Contact();
+    Contact(contact_type_t type, const BundleTuple& tuple);
+    virtual ~Contact();
     
     /**
      * Accessor for the list of bundles in this contact.
      */
-    BundleList*  bundle_list() { return bundle_list_; }
+    BundleList* bundle_list() { return bundle_list_; }
     
     /**
      * Store the convergence layer specific part of the contact.
@@ -62,7 +78,13 @@ public:
     
     ContactInfo* contact_info() { return contact_info_; }
 
+    // virtual from Formatter
+    int format(char* buf, size_t sz);
+
 protected:
+    contact_type_t type_;
+    BundleTuple tuple_;
+    
     ContactInfo* contact_info_;
     BundleList* bundle_list_;
 };
