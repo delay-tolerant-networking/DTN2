@@ -52,7 +52,7 @@ BundleList::back()
 void
 BundleList::add_bundle(Bundle* b)
 {
-    b->add_ref();
+    b->add_ref("bundle_list", name_.c_str());
     bool added = b->add_container(this);
     ASSERT(added);
     
@@ -232,7 +232,7 @@ BundleList::remove(Bundle* bundle)
     bool deleted = bundle->del_container(this);
     ASSERT(deleted);
     
-    bundle->del_ref(); // may delete the bundle
+    bundle->del_ref("bundle_list", name_.c_str()); // may delete the bundle
 
     return true;
 }
@@ -250,6 +250,7 @@ BundleList::move_contents(BundleList* other)
     while (!list_.empty()) {
         b = pop_front();
         other->push_back(b);
+        b->del_ref("BundleList move_contents from", name_.c_str());
     }
 }
 
@@ -264,7 +265,7 @@ BundleList::clear()
     
     while (!list_.empty()) {
         b = pop_front();
-        b->del_ref();
+        b->del_ref("bundle_list", name_.c_str()); // may delete the bundle
     }
 }
 

@@ -45,7 +45,8 @@ bundle_action_toa(bundle_action_t action)
 class BundleAction {
 public:
     BundleAction(bundle_action_t action, Bundle* bundle)
-        : action_(action), bundleref_(bundle) {}
+        : action_(action),
+          bundleref_(bundle, "BundleAction", bundle_action_toa(action)) {}
                  
     bundle_action_t action_;	///< action type code
     BundleRef bundleref_;	///< relevant bundle

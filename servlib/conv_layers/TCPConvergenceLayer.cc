@@ -894,14 +894,14 @@ TCPConvergenceLayer::Connection::send_loop()
             // does _not_ decrement the reference count, so we now
             // have a local reference to the bundle
             if (! send_bundle(bundle)) {
-                bundle->del_ref();
+                bundle->del_ref("tcpcl");
                 goto shutdown;
             }
 
             // remove our local reference on the bundle (which may
             // delete it) and loop again, looking for another bundle
             // to send
-            bundle->del_ref();
+            bundle->del_ref("tcpcl");
             bundle = NULL;
             continue;
         }

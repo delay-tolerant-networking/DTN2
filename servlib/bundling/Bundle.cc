@@ -21,6 +21,8 @@ Bundle::init(u_int32_t id, BundlePayload::location_t location)
     payload_.init(id, location);
 
     is_fragment_	= false;
+
+    log_debug("/bundle", "Bundle::init bundle id %d", id);
 }
 
 Bundle::Bundle()
@@ -76,13 +78,15 @@ Bundle::serialize(SerializeAction* a)
  * Bump up the reference count.
  */
 int
-Bundle::add_ref()
+Bundle::add_ref(const char* what1, const char* what2)
 {
     lock_.lock();
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
-    log_debug("/bundle/refs", "bundle id %d: refcount %d -> %d (%d containers)",
-              bundleid_, refcount_ - 1, refcount_, containers_.size());
+    log_debug("/bundle/refs",
+              "bundle id %d: refcount %d -> %d (%d containers) add %s %s",
+              bundleid_, refcount_ - 1, refcount_, containers_.size(),
+              what1, what2);
     lock_.unlock();
     return ret;
 }
@@ -93,13 +97,16 @@ Bundle::add_ref()
  * If the reference count becomes zero, the bundle is deleted.
  */
 int
-Bundle::del_ref()
+Bundle::del_ref(const char* what1, const char* what2)
 {
     lock_.lock();
     ASSERT(refcount_ > 0);
     int ret = --refcount_;
-    log_debug("/bundle/refs", "bundle id %d: refcount %d -> %d (%d containers)",
-              bundleid_, refcount_ + 1, refcount_, containers_.size());
+    log_debug("/bundle/refs",
+              "bundle id %d: refcount %d -> %d (%d containers) del %s %s",
+              bundleid_, refcount_ + 1, refcount_, containers_.size(),
+              what1, what2);
+    
     if (refcount_ != 0) {
         lock_.unlock();
         return ret;

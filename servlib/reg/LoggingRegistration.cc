@@ -70,6 +70,6 @@ LoggingRegistration::run()
         BundleForwarder::post(
             new BundleTransmittedEvent(b, this, b->payload_.length(), true));
         
-        b->del_ref();
+        b->del_ref("LoggingRegistration");
     }
 }

@@ -227,7 +227,7 @@ FileConvergenceLayer::send_bundles(Contact* contact)
         if (fd == -1) {
             log_err("error opening temp file in %s: %s", fname.c_str(), strerror(errno));
             // XXX/demmer report error here?
-            bundle->del_ref();
+            bundle->del_ref("filecl");
             continue;
         }
 
@@ -257,7 +257,7 @@ FileConvergenceLayer::send_bundles(Contact* contact)
         log_debug("bundle id %d successfully transmitted", bundle->bundleid_);
 
         // finally, remove the reference on the bundle (which may delete it)
-        bundle->del_ref();
+        bundle->del_ref("filecl");
     }
 }
 

@@ -85,7 +85,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
 
     cmdinterp->set_objresult(Tcl_NewListObj(4, objv));
 
-    b->del_ref();
+    b->del_ref("TclRegistration");
     
     BundleForwarder::post(
         new BundleTransmittedEvent(b, this, b->payload_.length(), true));

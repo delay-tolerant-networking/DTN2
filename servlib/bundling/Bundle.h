@@ -77,20 +77,20 @@ public:
     int refcount() { return refcount_; }
 
     /**
-     * Bump up the reference count.
+     * Bump up the reference count. Parameters are used for logging.
      *
      * @return the new reference count
      */
-    int add_ref();
+    int add_ref(const char* what1, const char* what2 = "");
 
     /**
-     * Decrement the reference count.
+     * Decrement the reference count. Parameters are used for logging.
      *
      * If the reference count becomes zero, the bundle is deleted.
      *
      * @return the new reference count
      */
-    int del_ref();
+    int del_ref(const char* what1, const char* what2 = "");
 
     /**
      * The number of container lists that have a reference to this

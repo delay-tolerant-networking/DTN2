@@ -69,7 +69,8 @@ class BundleReceivedEvent : public BundleEvent {
 public:
     BundleReceivedEvent(Bundle* bundle, size_t bytes_received)
         : BundleEvent(BUNDLE_RECEIVED),
-          bundleref_(bundle), bytes_received_(bytes_received) {}
+          bundleref_(bundle, "BundleReceivedEvent"),
+          bytes_received_(bytes_received) {}
 
     /// The newly arrived bundle
     BundleRef bundleref_;
@@ -87,7 +88,8 @@ public:
     BundleTransmittedEvent(Bundle* bundle, BundleConsumer* consumer,
                            size_t bytes_sent, bool acked)
         : BundleEvent(BUNDLE_TRANSMITTED),
-          bundleref_(bundle), consumer_(consumer),
+          bundleref_(bundle, "BundleTransmittedEvent"),
+          consumer_(consumer),
           bytes_sent_(bytes_sent), acked_(acked) {}
     
     /// The transmitted bundle

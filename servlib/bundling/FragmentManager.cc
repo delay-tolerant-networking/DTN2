@@ -234,7 +234,7 @@ FragmentManager::process(Bundle* fragment)
         state->bundle_ = new Bundle();
         state->bundle_->payload_.set_length(fragment->orig_length_,
                                             BundlePayload::DISK);
-        state->bundle_->add_ref();
+        state->bundle_->add_ref("reassembly_state");
         
         reassembly_table_[hash_key] = state;
     }
