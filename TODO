@@ -1,17 +1,18 @@
 DTN2 TODO LIST
 -------------
 
-- fix pthread_join thread memory leak problem
-- finish work on OPPORTUNISTIC links
+- add thread barrier
 - fix tcpcl to remove per block headers
 - fix bundle protocol class to get rid of iovec complexity
+- remove bundle action layer of indirection
+- add bundle delete command
+- add bundle expiration timers
+
+- bundle extension headers
 - redo user api to use tcp
 - implement registration disconnection stuff
-- fix bundle router new contact problem
-- add bundle delete command
-- add configuration parameters to links / convergence layers
-- remove bundle action layer of indirection
 - change bundle list to make the notifier pipe optional
+- add router state dump for listing links / peers
 - fix fragmentation/reassembly:
   - change the route next hop to have a bit indicating whether or not
     fragments can be sent to it. if not, enqueue on the reassembler
@@ -28,9 +29,7 @@ DTN2 TODO LIST
 - authentication
 - dns style region pattern matching
 - control / management interface
-- bundle expiration timers
 - bundle overwrite implementation
-- bundle extension headers
 - in tcl layer, add procs s.t. 'module var val' is interpreted as 
   'module set var val'
 - file-based backing store
