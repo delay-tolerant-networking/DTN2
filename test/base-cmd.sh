@@ -102,7 +102,7 @@ if ($id == 1) then
 endif
 
 
-set pingfile = $logroot/pinglog.$id
+set pingfile = $logrootbase/pinglog.$id
 echo "#Check ping commands ...." > $pingfile 
 set idplus  = `expr $id + 1`
 #set linkname = link-$id
