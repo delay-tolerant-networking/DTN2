@@ -2,6 +2,7 @@
 # Common simple makefile for DTN2 applications. Apps should define the SRCS
 # and APP variables
 
+
 OBJS := $(SRCS:.cc=.o)
 OBJS := $(OBJS:.c=.o)
 
@@ -14,3 +15,5 @@ $(APP): $(OBJS) $(SRCDIR)/applib/libdtnapi.a
 # Include the common rules
 #
 -include $(SRCDIR)/Rules.make
+
+INCDIRS += -I $(SRCDIR)/applib
