@@ -47,13 +47,12 @@ proc send_file {dest_addr file index} {
 
     puts "sending file $file"
     
-    set subject "$index"
-    append subject "_sendmail"
+    set subject "sendmail"
+    #append subject "sendmail"
     set foo [exec mail -s $subject $dest_addr < $file]
     
     puts $logfd "[time] :: sending file $file at [timef] " 
     flush $logfd
-
 }
 
 set dir  [lindex $argv 0]

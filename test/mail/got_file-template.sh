@@ -1,3 +1,4 @@
 #!/bin/csh
-date=`date +%s`
-echo "[$date] :: got file $file" >>& __FTPLOG_FILE__
+set date=`date +%s`
+set hostname=`hostname`
+echo "[$date] :: got file $file at $hostname" >>& /users/rabin/ftplogfile

@@ -11,7 +11,7 @@ LOCKFILE=$HOME/.lockmail
 
 :0                              # Anything from thf
 * ^Subject.*sendmail
-| /bin/csh /proj/DTN/nsdi/DTN2img/test/mail/log_file 
+| /bin/csh /proj/DTN/nsdi/DTN2img/test/mail/got_file.sh
 
 
 :0
