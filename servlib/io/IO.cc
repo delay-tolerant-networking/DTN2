@@ -171,10 +171,11 @@ int
 IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
            const char* log_func, const char* log)
 {
-    struct iovec static_iov[8];
     struct iovec* iov;
+    struct iovec  static_iov[16];
+    struct iovec* dynamic_iov = NULL;
 
-    if (iovcnt <= 8) {
+    if (iovcnt <= 16) {
         iov = static_iov;
     } else {
         // maybe this shouldn't be logged at level warning, but for
@@ -182,7 +183,8 @@ IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
         // issue and if it is, we can always demote the level later
         logf(log, LOG_WARN, "%s required to malloc since iovcnt is %d",
              log_func, iovcnt);
-        iov = (struct iovec*)malloc(sizeof(struct iovec) * iovcnt);
+        dynamic_iov = (struct iovec*)malloc(sizeof(struct iovec) * iovcnt);
+        iov = dynamic_iov;
     }
     
     memcpy(iov, const_iov, sizeof(struct iovec) * iovcnt);
@@ -234,8 +236,8 @@ IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
     }
 
  done:
-    if (iov != static_iov)
-        free(iov);
+    if (dynamic_iov != NULL)
+        free(dynamic_iov);
     
     return done;
 }
