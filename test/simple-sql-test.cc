@@ -2,14 +2,12 @@
 #include <stdio.h>
 #include "debug/Log.h"
 #include "bundling/Bundle.h"
-//#include "storage/SQLSerialize.h"
+
 #include "storage/PostgresSQLImplementation.h"
 #include "storage/MysqlSQLImplementation.h"
 
 #include "storage/SQLStore.h"
 
-//#include "libpq-fe.h"
-//#include <libpq++.h>
 #include "iostream"
 using namespace std;
 
@@ -51,9 +49,11 @@ playsql(int i) {
   //  foo o1; o1.id = 771 ; o1.f1 = 123; o1.f2 = 'a'; foo o2;
   
   Bundle o1, o2;  
+  int id1 = 121;
+  int id2 = 555;
 
-  o1.source_.set_tuple("bundles://internet/tcp://foo"); o1.bundleid_ = 121; 
-  o2.source_.set_tuple("bundles://google/tcp://foo");o2.bundleid_ =  555;
+  o1.source_.set_tuple("bundles://internet/tcp://foo"); o1.bundleid_ = id1; 
+  o2.source_.set_tuple("bundles://google/tcp://foo");o2.bundleid_ =  id2;
 
   cout << " read stuff,  \n" << i << endl;
   // cin >> o1.id  >> o1.f1 >> o1.f2 ;
@@ -71,26 +71,33 @@ playsql(int i) {
     db =  new MysqlSQLImplementation("cse544");
 
 
-  SQLStore *sqlstore = new SQLStore(table_name,&o1,db);
-  BundleStore *bstore = new SQLBundleStore(sqlstore);
+    cout << " connection established ,  \n" << endl;
 
-   int retval2 = bstore->put(&o1,1);
-   retval2 = bstore->put(&o2,2);
+  BundleStore *bstore = new SQLBundleStore(table_name,db);
+
+  cout << " bundle store created ,  \n" << endl;
+   int retval2 = bstore->put(&o1,id1);
+
+  
+   
+  
+   retval2 = bstore->put(&o2,id2);
+
 
    cout << " answer is " << retval2 << endl;
 
    
-     Bundle *g1 = bstore->get(1);
-      Bundle *g2 = bstore->get(2);
+     Bundle *g1 = bstore->get(id1);
+      Bundle *g2 = bstore->get(id2);
     
-     retval2 = bstore->put(g1,3);
+     retval2 = bstore->put(g1,id1);
 
 
    ASSERT (o1.bundleid_ == g1->bundleid_) ; 
-     ASSERT (o2.bundleid_ == g2->bundleid_) ; 
-   
+      ASSERT (o2.bundleid_ == g2->bundleid_) ; 
+    
  
-  //db = NULL;
+  //db = NULL; 
      db->close();
   // PQfinish(pgconn_db);
   exit(0);

@@ -1,8 +1,14 @@
 
 #include "Bundle.h"
+#include "iostream"
+using namespace std;
 
 Bundle::Bundle()
 {
+
+    expiration_ = 100000;
+    priority_ = 1;
+    delivery_opts_= 0;
 }
 
 Bundle::~Bundle()

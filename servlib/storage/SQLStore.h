@@ -14,44 +14,34 @@ class SQLManager;
  */
 class SQLStore : public PersistentStore {
 public:
-    SQLStore(const char* table_name, SerializableObject* obj,
+    SQLStore(const char* table_name, const char* id_field, SerializableObject* obj,
              SQLImplementation *db);
     
     /// @{ Virtual overrides from PersistentStore
 
-    const char* table_name(); 
-
     int get(SerializableObject* obj, const int key);
-    int num_elements();
-    void keys(std::vector<int> l);
-
-    // Returns a sql query that can be  used to fetch the object  from database
-    
+ 
+    // key is ignored currently, obj has a key in it inside 
     int put(SerializableObject* obj, const int key);
     int del(const int key);
+    int num_elements();
+    void keys(std::vector<int> l);
     void elements(std::vector<SerializableObject*> l);
       
 
     /// @}
 
 protected:
-    const char*  get_sqlquery(SerializableObject* obj, const int key);
-    const char* num_elements_sqlquery();
-    const char* keys_sqlquery();
 
-    // creates table in the database if it does not exist
+    const char* table_name(); 
     int create_table(SerializableObject* obj);
-
     int exec_query(const char* query);
 
-    const char* OBJECT_ID_FIELD;
-      
     friend class SQLBundleStore;
+
 private:
     const char* table_name_;
-    
-    //= "oid";
-      
+    const char*  object_id_field_;
 
     SQLImplementation* data_base_pointer_;
 };
@@ -70,8 +60,8 @@ public:
      * underlying storage technology so as to implement the basic
      * methods.
      */
-    SQLBundleStore(SQLStore* store)
-        : BundleStore(store) {}
+    SQLBundleStore(const char*, SQLImplementation* db);
+    //       : BundleStore(store) {}
 
     /**
      * Destructor.

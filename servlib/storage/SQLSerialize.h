@@ -40,8 +40,9 @@ public:
     /**
      * Constructor.
      */
-    SQLInsert();
+    SQLInsert(const char* table_name);
   
+    int action(SerializableObject* object);
     /**
      * Since insert doesn't modify the object, define a variant of
      * action() that operates on a const SerializableObject.
@@ -73,7 +74,9 @@ public:
     /**
      * Constructor.
      */
-    SQLTableFormat();
+    SQLTableFormat(const char* table_name);
+
+    int action(SerializableObject* object);
 
     /**
      * Since table format doesn't modify the object, define a variant
@@ -106,7 +109,8 @@ public:
 class SQLExtract : public SerializeAction {
 public:
     SQLExtract(SQLImplementation *db);
-
+    
+    int action(SerializableObject* object);
     // get the next field from the db
     const char* next_field() ;
 

@@ -100,7 +100,7 @@ public:
      */
     void trim(size_t cnt)
     {
-        ASSERT(cnt >= len_);
+        ASSERT(len_ >= cnt);
         len_ -= cnt;
     }
 

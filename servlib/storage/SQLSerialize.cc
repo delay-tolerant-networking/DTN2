@@ -4,7 +4,8 @@
 #include "debug/Log.h"
 #include "util/StringUtils.h"
 
-
+#include "iostream"
+using namespace std;
 /******************************************************************************
  *
  * SQLQuery
@@ -19,16 +20,22 @@ SQLQuery::SQLQuery(action_t type, const char* initial_query)
 {
 }
 
+
 /**
  * The process() functions of all subclasses append ',' after each
  * value, so trim a trailing ',' before returning the string.
+ * Also, add a closing bracket.
  */
 const char*
 SQLQuery::query()
 {
     if (query_.data()[query_.length() - 1] == ',') {
-        query_.trim(1);
+       query_.trim(1);
+	query_.append(')');
     }
+    
+    cout << " query returned is " << query_.c_str() << endl ; 
+
     return query_.c_str();
 }
 
@@ -41,9 +48,11 @@ SQLQuery::query()
 /**
  * Constructor.
  */
-SQLInsert::SQLInsert()
-    : SQLQuery(MARSHAL)
+SQLInsert::SQLInsert(const char* table_name)
+    :SQLQuery(MARSHAL)
 {
+    query_.appendf("INSERT INTO %s  VALUES(",table_name);
+   
 }
 
 // Virtual functions inherited from SerializeAction
@@ -87,16 +96,19 @@ void
 SQLInsert::process(const char* name, bool* b) {
 
     if (*b) {
-        query_.append("TRUE,");
+        query_.append("'TRUE',");
     } else {
-        query_.append("FALSE,");
+        query_.append("'FALSE',");
     }
 }
 
 void 
 SQLInsert::process(const char* name, std::string* s) 
 {
+    query_.append("'");
     query_.append(*s);
+    query_.append("'");
+
     query_.append(',');
 }
 
@@ -112,28 +124,69 @@ SQLInsert::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
     NOTIMPLEMENTED;
 }
 
+int
+SQLInsert::action(SerializableObject* object)
+{
+
+  error_ = false;
+  object->serialize(this);
+  if (error_ == true)
+    return -1;
+
+  return 0;
+}
+
+
 /******************************************************************************
  *
  * SQLTableFormat
  *
  *****************************************************************************/
 
+
+int
+SQLTableFormat::action(SerializableObject* object)
+{
+
+  error_ = false;
+  object->serialize(this);
+  if (error_ == true)
+    return -1;
+
+  return 0;
+}
+
+
 /**
  * Constructor.
  */
 
-SQLTableFormat::SQLTableFormat()
-    : SQLQuery(INFO)
+SQLTableFormat::SQLTableFormat(const char* table_name)
+    :SQLQuery(INFO)
 {
+    query_.appendf(" CREATE TABLE  %s  (",table_name);
+  
 }
 
 void
 SQLTableFormat::process(const char* name,  SerializableObject* object) 
 {
+
+    //   StringBuffer olds ;
+    // olds.append(column_prefix_.c_str());
+
     int old_len = column_prefix_.length();
+    // const char* old = column_prefix_.c_str();
     column_prefix_.appendf("%s__", name);
     object->serialize(this);
+
+    // std::cout << " string is " << query_.c_str() << " col is " << column_prefix_.c_str() << std::endl ; 
+    // cout << " old is  "  << old << " len is " << column_prefix_.length() << "( old len is )" << old_len << "\n";
+ 
     column_prefix_.trim(column_prefix_.length() - old_len);
+
+    //column_prefix_ = olds ; 
+
 }
 
 void 
@@ -162,10 +215,13 @@ SQLTableFormat::process(const char* name, u_int8_t* i) {
     append(name, "SMALLINT");
 }
  
+
+// Mysql and Postgres do not have common implementation of bool 
 void 
 SQLTableFormat::process(const char* name, bool* b)
 {
-    append(name, "BOOLEAN");
+//    append(name, "BOOLEAN");
+      append(name, "TEXT");
 }
 
 void 
@@ -192,6 +248,20 @@ SQLTableFormat::process(const char* name, u_char** bp, size_t* lenp, bool alloc_
  *
  *****************************************************************************/
 
+
+int
+SQLExtract::action(SerializableObject* object)
+{
+
+  error_ = false;
+  object->serialize(this);
+  if (error_ == true)
+    return -1;
+
+  return 0;
+}
+
+
 /**
  * Constructor.
  */
@@ -199,7 +269,7 @@ SQLTableFormat::process(const char* name, u_char** bp, size_t* lenp, bool alloc_
 SQLExtract::SQLExtract(SQLImplementation* db)
     : SerializeAction(UNMARSHAL)
 {
-    field_ = 1;
+    field_ = 0;
     db_ = db;
 }
 

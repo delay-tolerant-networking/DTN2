@@ -2,11 +2,29 @@
 #include "bundling/Bundle.h"
 #include "BundleStore.h"
 #include "PersistentStore.h"
+#include "iostream"
 
 BundleStore::BundleStore(PersistentStore* store)
-    : next_bundle_id_(0), store_(store)
+//   : next_bundle_id_(0), store_(store)
 {
     // read the next_bundle_id 
+    init(store);
+}
+
+
+BundleStore::BundleStore()
+//   : next_bundle_id_(0), store_(store)
+{
+    std::cout << "hello" ; 
+    //  next_bundle_id_ = 0;
+    // store_ = NULL;
+}
+
+
+void
+BundleStore::init(PersistentStore* store)
+{ 
+    store_ = store; 
 }
 
 BundleStore::~BundleStore()

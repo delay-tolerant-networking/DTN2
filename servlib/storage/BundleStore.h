@@ -19,7 +19,11 @@ public:
      * underlying storage technology so as to implement the basic
      * methods.
      */
-    BundleStore(PersistentStore* store);
+    BundleStore(PersistentStore *persistentstore);
+
+    // Has to call init(), if this constructor form is used 
+    BundleStore();
+
 
     /**
      * Destructor.
@@ -58,7 +62,13 @@ public:
      * (was db_bundle_retain)
      */
     virtual bool is_custodian(int bundle_id) = 0;
-    
+
+protected:
+
+    // Used for initializing. Same as constructor. Need because of c++ mysteries
+    void init(PersistentStore* store); 
+
+
 private:
     int next_bundle_id_; 	/// running serial number for bundles
     PersistentStore* store_;	/// abstract persistent storage implementation

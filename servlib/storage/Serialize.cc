@@ -1,5 +1,9 @@
 
+
 #include "Serialize.h"
+
+#include "iostream"
+using namespace std;
 
 SerializeAction::SerializeAction(action_t type)
     : type_(type), error_(false), log_(0)
@@ -20,8 +24,10 @@ SerializeAction::~SerializeAction()
 int
 SerializeAction::action(SerializableObject* object)
 {
+    exit(0);
     error_ = false;
-    
+   
+
     object->serialize(this);
     
     if (error_ == true)
