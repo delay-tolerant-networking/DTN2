@@ -39,13 +39,13 @@ proc scan_dir {host dir} {
 
 proc send_file {host file} {
     global port
-    global $logfd
+    global logfd
     set fd [open $file]
     set payload [read $fd]
     close $fd
 
     puts "sending file $file"
-    puts $logfd "[clock format [clock seconds]] :: got file $file " 
+    puts $logfd "[clock format [clock seconds]] :: sending file $file " 
     flush $logfd
     set sock [socket $host $port]
     puts $sock "[file tail $file]"
@@ -77,8 +77,11 @@ proc file_arrived {dest_dir sock addr port} {
 set mode [lindex $argv 0]
 set dir  [lindex $argv 1]
 set logfile  [lindex $argv 2]
+set logfd [open $logfile w]
 
 if {$mode == "server"} {
+    puts $logfd "[clock format [clock seconds]] :: Starting in $mode " 
+    flush $logfd
     recv_files $dir
 } elseif {$mode == "client"} {
     set host [lindex $argv 3]
@@ -86,8 +89,8 @@ if {$mode == "server"} {
 } else {
     error "unknown mode $mode"
 }
-set logfd [open $logfile w]
-puts $logfd "[clock format [clock seconds]] :: Starting in $mode " 
+
+
 
 
 vwait forever
