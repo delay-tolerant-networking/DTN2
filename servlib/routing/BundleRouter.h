@@ -113,7 +113,7 @@ public:
     /**
      * Accessor for the pending bundles list.
      */
-    const BundleList* pending_bundles() { return pending_bundles_; }
+    BundleList* pending_bundles() { return pending_bundles_; }
     
     /**
      * The monster routing decision function that is called in
