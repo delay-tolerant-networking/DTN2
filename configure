@@ -335,10 +335,10 @@ if [ ! "$tcldir" = "" ]; then
 	exit 1
   fi
 
-  if   [ -r $tcldir/libtcl.$libext ]; then
+  if   [ -r $tcldir/lib/libtcl.$libext ]; then
 	tcllibdir=-L$tcldir
 	tcllib=-ltcl
-  elif [ -r $tcldir/libtcl$tclver.$libext ]; then
+  elif [ -r $tcldir/lib/libtcl$tclver.$libext ]; then
 	tcllibdir=-L$tcldir
 	tcllib=-ltcl$tclver
   else
