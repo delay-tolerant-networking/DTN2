@@ -65,9 +65,28 @@ RouteTable::add_entry(RouteEntry* entry)
  */
 bool
 RouteTable::del_entry(const BundleTuplePattern& dest,
-                            BundleConsumer* next_hop)
+                      BundleConsumer* next_hop)
 {
-    NOTIMPLEMENTED;
+    RouteEntrySet::iterator iter;
+    RouteEntry* entry;
+
+    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+        entry = *iter;
+
+        if (entry->pattern_.equals(dest) && entry->next_hop_ == next_hop) {
+            log_debug("del_route %s -> %s",
+                      dest.c_str(),
+                      next_hop->dest_tuple()->c_str());
+
+            route_table_.erase(iter);
+            return true;
+        }
+    }    
+
+    log_debug("del_route %s -> %s: no match!",
+              dest.c_str(),
+              next_hop->dest_tuple()->c_str());
+    return false;
 }
 
 /**
@@ -78,7 +97,7 @@ RouteTable::del_entry(const BundleTuplePattern& dest,
  */
 size_t
 RouteTable::get_matching(const BundleTuple& tuple,
-                               RouteEntrySet* entry_set) const
+                         RouteEntrySet* entry_set) const
 {
     RouteEntrySet::iterator iter;
     RouteEntry* entry;
