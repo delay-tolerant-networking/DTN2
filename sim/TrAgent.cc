@@ -37,65 +37,61 @@
  */
 
 #include "TrAgent.h"
-#include "Message.h"
 #include "Simulator.h"
 #include "Node.h"
+#include "Event.h"
+#include "bundling/Bundle.h"
 
 namespace dtnsim {
 
-TrAgent::TrAgent(double t,int src, int dst, int size, int batchsize, int reps, int gap) 
-: Logger ("/sim/tragent") {
-    start_time_ = t;
-    src_ = src;
-    dst_= dst;
-    reps_ = reps;
-    batchsize_ = batchsize;
-    gap_ = gap;
-    size_ = size;
-    repsdone_ = 0;
-  
-}
-
-void 
-TrAgent::start() {
-    Event* e1 = new Event(start_time_,this,TR_NEXT_SENDTIME);
-    Simulator::add_event(e1);
+TrAgent::TrAgent(Node* node, int start_time, 
+                 const BundleTuple& src, const BundleTuple& dst,
+                 int size, int reps, int batchsize, int gap)
+    : Logger ("/sim/tr_agent"), 
+      node_(node), src_(src), dst_(dst), size_(size),
+      reps_(reps), batchsize_(batchsize), gap_(gap)
+{
+    Simulator::add_event(new Event(SIM_NEXT_SENDTIME, start_time, this));
 }
 
 void
-TrAgent::send(double time, int size) {
-
-    Message* msg = new Message(src_,dst_,size);
-    Node* src_tmp = Topology::node(src_);
-    Event_message_received *esend = new Event_message_received(time,src_tmp,size,NULL,msg);
-    Simulator::add_event(esend);
-    log_info("N[%d]: GEN id:%d N[%d]->N[%d] size:%d",src_,msg->id(),src_,dst_,size);
-}
-
-void
-TrAgent::process(Event* e) {
-    
-    if (e->type() == TR_NEXT_SENDTIME) {
-	for(int i=0;i<batchsize_;i++) {
-	    send(Simulator::time(),size_);
+TrAgent::process(Event* e)
+{
+    if (e->type() == SIM_NEXT_SENDTIME) {
+	for (int i = 0; i < batchsize_; i++) {
+	    send_bundle();
 	}
-            
-	// Increment # of reps
-	repsdone_ ++;
-	if (repsdone_ < reps_) {
-	    double tmp = Simulator::time() + gap_ ;
-	    Event* e1 = new Event(tmp,this,TR_NEXT_SENDTIME);
-	    Simulator::add_event(e1);
-	} 
+        
+	if (--reps_ > 0) {
+	    int sendtime = Simulator::time() + gap_;
+	    Simulator::add_event(new Event(SIM_NEXT_SENDTIME, sendtime, this));
+        }
 	else {
-	    log_info("All bacthes finished");
+	    log_info("All batches finished");
 	}
-    }
-    else {
-	log_debug("undefined event");
+
+    } else {
+        PANIC("unhandlable event %s", ev2str(e->type()));
     }
 }
 
+void
+TrAgent::send_bundle()
+{
+    Bundle* b = new Bundle(node_->next_bundleid(), BundlePayload::NODATA);
+
+    b->source_.assign(src_);
+    b->replyto_.assign(src_);
+    b->custodian_.assign(src_);
+    b->dest_.assign(dst_);
+    b->payload_.set_length(size_);
+
+    log_info("N[%s]: GEN id:%d %s -> %s size:%d",
+             node_->name(), b->bundleid_, src_.c_str(), dst_.c_str(), size_);
+
+    BundleReceivedEvent* e = new BundleReceivedEvent(b, EVENTSRC_APP, size_);
+    Simulator::add_event(new SimRouterEvent(Simulator::time(), node_, e));
+}
 
 
 } // namespace dtnsim

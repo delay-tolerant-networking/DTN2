@@ -38,38 +38,37 @@
 #ifndef _TR_AGENT_H
 #define _TR_AGENT_H
 
-
-#include "Event.h"
-
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
+#include "Event.h"
+#include "EventHandler.h"
+#include "bundling/BundleTuple.h"
+
 namespace dtnsim {
+class Node;
 
-
-class TrAgent : public Processable, public oasys::Logger {
-
+class TrAgent : public EventHandler, public oasys::Logger {
 public:
+    TrAgent(Node* node, int start_time,
+            const BundleTuple& src, const BundleTuple& dst,
+            int size, int reps, int batchsize, int gap);
+    virtual ~TrAgent() {}
 
-    TrAgent(double t,int src, int dst, int nobatches, int batchsize, int gap, int size) ; ///< Constructor
-
-    void process(Event *e) ;     ///< Implementation of process. 
-    void start();
+    void process(Event *e);
 
 private:
-    
-    void send(double time, int size); //   Inserts message into simulation queue.
-    
-    double start_time_; ///< time at which this agent starts
-    int src_;
-    int dst_;
-    int reps_;      ///< total number of reps/batches
-    int batchsize_ ;     ///< no of messages in each batch
-    int gap_ ;           ///< time gap between two batches
-    int size_ ;          ///< size of each message
+    void send_bundle();
 
-    int repsdone_;      ///< state about no. of reps done
+    Node* node_;	///< node where the traffic is injected
+    BundleTuple src_;	///< source tuple
+    BundleTuple dst_;	///< destination tuple
+    int size_;		///< size of each message
+    int reps_;		///< total number of reps/batches
+    int batchsize_;	///< no of messages in each batch
+    int gap_;		///< time gap between two batches
 };
+
 } // namespace dtnsim
 
 #endif /* _TR_AGENT_H */
