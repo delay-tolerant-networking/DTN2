@@ -153,10 +153,7 @@ public:
 //     virtual  void create_consumer() {};
     
 protected:
-    
     const std::string   name_;
-    BundleRouter*	router_;
-    ContactManager*	contactmgr_;
     u_int32_t		next_bundleid_;
     u_int32_t		next_regid_;
     std::queue<BundleEvent*>* eventq_;

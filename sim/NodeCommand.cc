@@ -40,11 +40,19 @@
 
 #include "Node.h"
 #include "NodeCommand.h"
+#include "SimConvergenceLayer.h"
 #include "SimRegistration.h"
+#include "Simulator.h"
 #include "Topology.h"
 #include "TrAgent.h"
+#include "bundling/Bundle.h"
+#include "bundling/BundleMapping.h"
 #include "bundling/BundleTuple.h"
+#include "bundling/ContactManager.h"
+#include "bundling/Link.h"
 #include "routing/BundleRouter.h"
+#include "routing/RouteTable.h"
+
 
 using namespace dtn;
 
@@ -70,10 +78,6 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         return TCL_ERROR;
     }
 
-    // for all commands and their side-effects, we install the
-    // referenced node as the "singleton" BundleDaemon instance
-    node_->set_active();
-
     // pull out the time and subcommand
     char* end;
     int time = strtol(argv[1], &end, 10);
@@ -81,6 +85,11 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         resultf("time value '%s' invalid", argv[1]);
         return TCL_ERROR;
     }
+
+    // for all commands and their side-effects, install the node as
+    // the "singleton" BundleDaemon instance, and store the command
+    // time in the node so any posted events happen in the future
+    node_->set_active();
 
     const char* cmd = argv[2];
     const char* subcmd;
@@ -115,8 +124,97 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
                 return TCL_ERROR;
             }
         }
+        else if (strcmp(subcmd, "add") == 0)
+        {
+            // <node> X route add <dest> <link/node>
+            if (argc != 6) {
+                wrong_num_args(argc, argv, 2, 6, 6);
+                return TCL_ERROR;
+            }
+
+            const char* dest_str = argv[4];
+            const char* name = argv[5];
+
+            log_debug("adding route to %s through %s", dest_str, name);
+            
+            BundleTuplePattern dest(dest_str);
+            if (!dest.valid()) {
+                resultf("invalid destination tuple %s", dest_str);
+                return TCL_ERROR;
+            }
+            
+            BundleConsumer* consumer = NULL;
+            consumer = node_->contactmgr()->find_link(name);
+            if (consumer == NULL) {
+                consumer = node_->contactmgr()->find_peer(name);
+            }
+            
+            if (consumer == NULL) {
+                resultf("no such link or node exists, %s", name);
+                return TCL_ERROR;
+            }
+
+            // XXX/demmer fix this FORWARD_COPY
+            RouteEntry* entry = new RouteEntry(dest, consumer, FORWARD_COPY);
+
+            PANIC("post the event at the indicated time");
+            BundleEvent* e = new RouteAddEvent(entry);
+            Simulator::add_event(new SimRouterEvent(time, node_, e));
+            
+            return TCL_OK;
+        }
         
         resultf("node route: unsupported subcommand %s", subcmd);
+        return TCL_ERROR;
+    }
+    else if (strcmp(cmd, "link") == 0)
+    {
+        if (strcmp(subcmd, "add") == 0) {
+            // <node1> X link add <node2> <type> <args>
+            if (argc < 6) {
+                wrong_num_args(argc, argv, 2, 6, INT_MAX);
+                return TCL_ERROR;
+            }
+
+            const char* nexthop_name = argv[4];
+            const char* type_str = argv[5];
+            
+            Node* nexthop = Topology::find_node(nexthop_name);
+
+            if (!nexthop) {
+                resultf("invalid next hop node %s", nexthop_name);
+                return TCL_ERROR;
+            }
+                
+            Link::link_type_t type = Link::str_to_link_type(type_str);
+            if (type == Link::LINK_INVALID) {
+                resultf("invalid link type %s", type_str);
+                return TCL_ERROR;
+            }
+
+            int id = 1;
+            char name[64];
+            snprintf(name, sizeof(name), "%s-%s",
+                     node_->name(), nexthop_name);
+            
+            while (node_->contactmgr()->find_link(name)) {
+                snprintf(name, sizeof(name), "%s-%s.%d",
+                         node_->name(), nexthop_name, id);
+                ++id;
+            }
+
+            PANIC("should just parse the options here, then post the event");
+            
+            SimConvergenceLayer* simcl = SimConvergenceLayer::instance();
+            Link* link = Link::create_link(name, type, simcl, nexthop->name(),
+                                           argc - 6, &argv[6]);
+            if (!link)
+                return TCL_ERROR;
+
+            return TCL_OK;
+        }
+
+        resultf("node link: unsupported subcommand %s", subcmd);
         return TCL_ERROR;
     }
     else if (strcmp(cmd, "registration") == 0)
@@ -191,9 +289,6 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         resultf("node: unsupported subcommand %s", cmd);
         return TCL_ERROR;
     }
-
-
-    
 }
 
 } // namespace dtnsim

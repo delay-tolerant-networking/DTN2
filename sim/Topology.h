@@ -60,6 +60,8 @@ public:
 
     typedef oasys::StringHashMap<Node*> NodeTable;
 
+    static NodeTable* node_table() { return &nodes_; }
+
 protected:
     static NodeTable nodes_;
     

@@ -39,6 +39,7 @@
 #include "Node.h"
 #include "SimBundleActions.h"
 #include "bundling/ContactManager.h"
+#include "bundling/FragmentManager.h"
 #include "routing/BundleRouter.h"
 #include "reg/Registration.h"
 
@@ -56,7 +57,10 @@ Node::Node(const char* name)
     BundleDaemon::instance_ = this;
 
     router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
-    contactmgr_ = new ContactManager();
+
+    router_->logpathf("/route/%s", name);
+    contactmgr_->logpathf("/contactmgr/%s", name);
+    fragmentmgr_->logpathf("/bundle/fragment/%s", name);
 }
 
 /**

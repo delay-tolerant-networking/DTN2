@@ -13,7 +13,6 @@ OLD_SIM_SRCS :=	\
 	SimulatorCommand.cc	\
 	Simulator.cc	\
 	SimContact.cc	\
-	SimConvergenceLayer.cc \
 	Simdtn2Command.cc \
 	Topology.cc	\
 	TrAgent.cc	\
@@ -30,6 +29,7 @@ SIM_SRCS := \
 	Simulator.cc		\
 	SimBundleActions.cc	\
 	SimCommand.cc		\
+	SimConvergenceLayer.cc	\
 	SimRegistration.cc	\
 	Topology.cc		\
 	TrAgent.cc		\

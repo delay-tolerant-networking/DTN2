@@ -36,6 +36,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "Simulator.h"
+#include "Node.h"
+#include "Topology.h"
 
 namespace dtnsim {
 
@@ -71,6 +73,18 @@ Simulator::run()
 {
     log_debug("starting event loop...");
     is_running_ = true;
+
+    // first handle all events posted from the configuration
+    Topology::NodeTable::iterator iter;
+
+    for (iter =  Topology::node_table()->begin();
+         iter != Topology::node_table()->end();
+         ++iter)
+    {
+        Node* node = iter->second;
+        node->set_active();
+        node->process_bundle_events();
+    }
 
      while(!eventq_.empty()) {
         if (is_running_) {

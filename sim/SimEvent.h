@@ -53,7 +53,8 @@ class EventHandler;
  *****************************************************************************/
 typedef enum {
     SIM_ROUTER_EVENT = 0x1,	///< Event to be delivered to the router
-    
+    SIM_ADD_LINK,		///< Link added
+    SIM_DEL_LINK,		///< Link deleted
     SIM_CONTACT_UP,		///< SimContact is available
     SIM_CONTACT_DOWN,		///< SimContact abnormally terminated
     SIM_NEXT_SENDTIME,		///< Used by traffic agent to send data
@@ -67,6 +68,8 @@ static const char*
 ev2str(sim_event_type_t event) {
     switch (event) {
     case SIM_ROUTER_EVENT:		return "SIM_ROUTER_EVENT";
+    case SIM_ADD_LINK:			return "SIM_ADD_LINK";
+    case SIM_DEL_LINK:			return "SIM_DEL_LINK";
     case SIM_CONTACT_UP:		return "SIM_CONTACT_UP";
     case SIM_CONTACT_DOWN:		return "SIM_CONTACT_DOWN";
     case SIM_NEXT_SENDTIME:		return "SIM_NEXT_SENDTIME";

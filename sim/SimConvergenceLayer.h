@@ -41,16 +41,7 @@
 
 #include "conv_layers/ConvergenceLayer.h"
 
-#include "bundling/Contact.h"
-#include "bundling/Link.h"
-
-#include "bundling/Bundle.h"
-#include "bundling/BundleTuple.h"
-
-#include "SimCLInfo.h"
-
-#include "SimContact.h"
-#include "Message.h"
+using namespace dtn;
 
 namespace dtnsim {
 
@@ -67,60 +58,38 @@ namespace dtnsim {
 class SimConvergenceLayer : public ConvergenceLayer {
     
 public:
+    /**
+     * Singleton initializer.
+     */
+    static void init()
+    {
+        instance_ = new SimConvergenceLayer();
+    }
 
     /**
-     * Virtual functions from convergence layer
+     * Singleton accessor
+     */
+    static SimConvergenceLayer* instance() { return instance_; }
+
+    /**
+     * Constructor.
      */
     SimConvergenceLayer();
-    void init();
-    void fini() ;
-    bool validate(const std::string& admin);
+
+    /**
+     * Register a new link.
+     */
+    bool add_link(Link* link, int argc, const char* argv[]);
+    
+    /**
+     * Send bundles queued on the given contact.
+     */
     void send_bundles(Contact* contact);
-    bool match(const std::string& demux, const std::string& admin);
     
-    bool open_contact(Contact* contact);
-    bool close_contact(Contact* contact);
-
-
-    /**
-     * Functions below are to maintain mapping between simulator and DTN2
-     */
-
-
-    /**
-     * Conversion from DTN2 end node to simulator id
-     */
-    static int node2id(BundleTuplePattern src);
-    static std::string id2node(int i);
-
-
-    /**
-     * Conversion between simulator message and DTN2 bundles
-     */
-    static Message*  bundle2msg(Bundle* b);
-    static Bundle*  msg2bundle(Message* m);
-    
-
-    static void create_ct(int id) ;
-
-    
-    /**
-     * Mapping between simulator link model and DTN2 contacts/links
-     */
-    static SimContact* dtnlink2simlink(Link* link);
-    static Link* simlink2dtnlink(SimContact* link);
-    static Contact* simlink2ct(SimContact* link) ;
-     
-
-    static const int MAX_BUNDLES = 1024;
-    //   static const int MAX_CONTACTS = 64;
-   static const int MAX_LINKS = 64;
-    static Bundle* bundles_[];
-    static Message* messages_[];
-//    static Contact* contacts_[];
-    static Link* links_[];
-    
+protected:
+    static SimConvergenceLayer* instance_;
 };
+
 } // namespace dtnsim
 
 #endif /* _SIM_CONVERGENCE_LAYER_H_ */

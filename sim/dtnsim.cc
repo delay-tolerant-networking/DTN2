@@ -47,11 +47,10 @@
 #include "LogSim.h"
 #include "Simulator.h"
 #include "SimCommand.h"
-//#include "SimConvergenceLayer.h"
+#include "SimConvergenceLayer.h"
 #include "bundling/AddressFamily.h"
 #include "bundling/ContactManager.h"
 #include "cmd/ParamCommand.h"
-#include "conv_layers/ConvergenceLayer.h"
 
 using namespace dtn;
 using namespace dtnsim;
@@ -137,7 +136,7 @@ main(int argc, char** argv)
     }
     log_info("/sim", "random seed is %u\n", random_seed);
     srand(random_seed);
-    
+
     // Set up the command interpreter
     oasys::TclCommandInterp::init(argv[0]);
     oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
@@ -146,11 +145,9 @@ main(int argc, char** argv)
 
     // Set up components
     AddressFamilyTable::init();
-    ContactManager::init();
-    
-    // Add the simulator convergence layer (identifies by simcl) as
-    // the only valid convervence layer to the CL
-//    ConvergenceLayer::add_clayer("simcl", new SimConvergenceLayer());
+    AddressFamilyTable::instance()->add_string_family();
+    SimConvergenceLayer::init();
+    ConvergenceLayer::add_clayer("sim", SimConvergenceLayer::instance());
     
     if (interp->exec_file(conf_file.c_str()) != 0) {
         log_err("/sim", "error in configuration file, exiting...");
