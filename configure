@@ -3686,25 +3686,6 @@ fi;
     ac_save_LDFLAGS="$LDFLAGS"
     ac_save_LIBS="$LIBS"
 
-    if test ! x"$ac_dbdir" = x"yes" ; then
-        ac_dbincdirs=$ac_dbdir/include
-    else
-        ac_dbincdirs="/usr/include /usr/local/include/db4"
-	for ac_dbver in $ac_dbvers ; do
-           ac_dbincdirs="$ac_dbincdirs /usr/include/db$ac_dbver"
-           ac_dbincdirs="$ac_dbincdirs /usr/local/BerkeleyDB.$ac_dbver/include"
-        done
-    fi
-
-    if test ! x"$ac_dbdir" = x"yes" ; then
-        ac_dblibdirs="$ac_dbdir/lib"
-    else
-        ac_dblibdirs="/usr/lib /usr/local/lib"
-	for ac_dbver in $ac_dbvers ; do
-           ac_dblibdirs="$ac_dblibdirs /usr/local/BerkeleyDB.$ac_dbver/lib"
-        done
-    fi
-
     ac_ext=cc
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -3712,11 +3693,27 @@ ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ex
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
-    for ac_dbver    in $ac_dbvers ; do
-    for ac_dbincdir in $ac_dbincdirs; do
+    for ac_dbver in $ac_dbvers ; do
 
-        ac_dbver_major=`echo $ac_dbver | cut -d . -f1`
-	ac_dbver_minor=`echo $ac_dbver | cut -d . -f2`
+    ac_dbver_major=`echo $ac_dbver | cut -d . -f1`
+    ac_dbver_minor=`echo $ac_dbver | cut -d . -f2`
+
+    if test ! x"$ac_dbdir" = x"yes" ; then
+        ac_dbincdirs=$ac_dbdir/include
+    else
+        ac_dbincdirs="/usr/include /usr/local/include/db4"
+        ac_dbincdirs="$ac_dbincdirs /usr/include/db$ac_dbver"
+        ac_dbincdirs="$ac_dbincdirs /usr/local/BerkeleyDB.$ac_dbver/include"
+    fi
+
+    if test ! x"$ac_dbdir" = x"yes" ; then
+        ac_dblibdirs="$ac_dbdir/lib"
+    else
+        ac_dblibdirs="/usr/lib /usr/local/lib"
+        ac_dblibdirs="$ac_dblibdirs /usr/local/BerkeleyDB.$ac_dbver/lib"
+    fi
+
+    for ac_dbincdir in $ac_dbincdirs; do
 	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_dbincdir"
 	LDFLAGS="$ac_save_LDFLAGS"
 	LIBS="$ac_save_LIBS"
@@ -5950,6 +5947,11 @@ _ACEOF
 fi
 
 
+if test "$cross_compiling" = yes; then
+    { echo "$as_me:$LINENO: assuming GNU libc compatible malloc for cross-compilation" >&5
+echo "$as_me: assuming GNU libc compatible malloc for cross-compilation" >&6;}
+    ac_cv_func_malloc_0_nonnull=yes
+fi
 
 for ac_header in stdlib.h
 do
