@@ -102,7 +102,7 @@ binclean:
 	@test -z "$(BINFILES)" || rm -f $(BINFILES)
 
 .PHONY: distclean
-CFGFILES := Rules.make config.h
+CFGFILES := Rules.make config.h auto.config.h config.cache
 distclean: clean
 	@echo "removing configure generated files: $(CFGFILES)..."
 	@test -z "$(CFGFILES)" || rm -f $(CFGFILES)
