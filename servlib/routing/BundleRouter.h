@@ -95,7 +95,7 @@ protected:
      * searches through the route table to find any matching next
      * contacts, filling in the action list with forwarding decisions.
      */
-    void handle_bundle_received(BundleReceivedEvent* event,
+    virtual void handle_bundle_received(BundleReceivedEvent* event,
                                 BundleActionList* actions);
     
     /**
@@ -105,7 +105,7 @@ protected:
      * the fragmentation module to create a new bundle fragment and
      * enqeues the new fragment on the appropriate list.
      */
-    void handle_bundle_transmitted(BundleTransmittedEvent* event,
+    virtual void handle_bundle_transmitted(BundleTransmittedEvent* event,
                                    BundleActionList* actions);
 
     /**
@@ -116,19 +116,19 @@ protected:
      * walks the pending list to see if any bundles match the
      * registration.
      */
-    void handle_registration_added(RegistrationAddedEvent* event,
+    virtual void handle_registration_added(RegistrationAddedEvent* event,
                                    BundleActionList* actions);
     
     /**
      * Default event handler when a new contact is available.
      */
-    void handle_contact_available(ContactAvailableEvent* event,
+    virtual void handle_contact_available(ContactAvailableEvent* event,
                                   BundleActionList* actions);
     
     /**
      * Default event handler when a contact is broken.
      */
-    void handle_contact_broken(ContactBrokenEvent* event,
+    virtual void handle_contact_broken(ContactBrokenEvent* event,
                                BundleActionList* actions);
     
     /**
@@ -138,7 +138,7 @@ protected:
      * Adds an entry to the route table, then walks the pending list
      * to see if any bundles match the new route.
      */
-    void handle_route_add(RouteAddEvent* event,
+    virtual void handle_route_add(RouteAddEvent* event,
                           BundleActionList* actions);
     
     /**
