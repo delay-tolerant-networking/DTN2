@@ -12,9 +12,9 @@ DAEMON_OBJS := $(DAEMON_SRCS:.cc=.o)
 #
 # Default target is to build the daemon
 #
-all: bundleDaemon
+all: dtnd
 
-bundleDaemon: $(DAEMON_OBJS) $(SRCDIR)/servlib/libdtnserv.a
+dtnd: $(DAEMON_OBJS) $(SRCDIR)/servlib/libdtnserv.a
 	$(CPP) $(DAEMON_OBJS) $(LINK_SERVLIB) $(STATIC_LIBS) \
 		-o $@ $(LFLAGS) $(LIBS)
 
