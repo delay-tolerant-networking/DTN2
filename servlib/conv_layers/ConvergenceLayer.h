@@ -53,6 +53,26 @@ public:
     virtual bool del_interface(Interface* iface);
 
     /**
+     * Open the connection to the given contact and prepare for
+     * bundles to be transmitted.
+     */
+    virtual bool open_contact(Contact* contact);
+    
+    /**
+     * Close the connnection to the contact.
+     */
+    virtual bool close_contact(Contact* contact);
+
+    /**
+     * Try to send the bundles queued up for the given contact. In
+     * some cases (e.g. tcp) this is a no-op because open_contact spun
+     * a thread which is blocked on the bundle list associated with
+     * the contact. In others (e.g. file) there is no thread, so this
+     * callback is used to send the bundle.
+     */
+    virtual void send_bundles(Contact* contact);
+    
+    /**
      * Boot-time initialization and registration of convergence
      * layers.
      */
