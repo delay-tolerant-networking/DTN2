@@ -90,16 +90,10 @@ SimConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     info->peer_node_ = Topology::find_node(link->nexthop());
     ASSERT(info->peer_node_);
 
-    // utility macro for declaring option parsing
-#define DECLARE_OPT(_type, _opt)                                \
-    oasys::_type param_##_opt(#_opt, &info->params_._opt##_);   \
-    p.addopt(&param_##_opt);
-
-    DECLARE_OPT(BoolOpt, deliver_partial);
-    DECLARE_OPT(BoolOpt, reliable);
-
-#undef DECLARE_OPT
-
+    p.addopt(new oasys::BoolOpt("deliver_partial",
+                                &info->params_.deliver_partial_));
+    p.addopt(new oasys::BoolOpt("reliable", &info->params_.reliable_));
+    
     const char* invalid;
     if (! p.parse(argc, argv, &invalid)) {
         log_err("error parsing link options: invalid option %s", invalid);

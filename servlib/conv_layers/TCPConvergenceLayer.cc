@@ -65,6 +65,7 @@ namespace dtn {
 
 struct TCPConvergenceLayer::Params TCPConvergenceLayer::defaults_;
 
+
 /******************************************************************************
  *
  * TCPConvergenceLayer
@@ -97,23 +98,22 @@ TCPConvergenceLayer::parse_params(Params* params,
 {
     oasys::OptParser p;
     
-#define DECLARE_OPT(_type, _opt)                            \
-    oasys::_type param_##_opt(#_opt, &params->_opt##_);     \
-    p.addopt(&param_##_opt);
-
-    DECLARE_OPT(BoolOpt, bundle_ack_enabled);
-    DECLARE_OPT(BoolOpt, reactive_frag_enabled);
-    DECLARE_OPT(BoolOpt, receiver_connect);
-    DECLARE_OPT(UIntOpt, partial_ack_len);
-    DECLARE_OPT(UIntOpt, writebuf_len);
-    DECLARE_OPT(UIntOpt, readbuf_len);
-    DECLARE_OPT(UIntOpt, keepalive_interval);
-    DECLARE_OPT(UIntOpt, idle_close_time);
-    DECLARE_OPT(UIntOpt, connect_timeout);
-    DECLARE_OPT(UIntOpt, rtt_timeout);
-    DECLARE_OPT(IntOpt,  test_fragment_size);
-
-#undef DECLARE_OPT
+    p.addopt(new oasys::BoolOpt("bundle_ack_enabled",
+                                &params->bundle_ack_enabled_));
+    p.addopt(new oasys::BoolOpt("reactive_frag_enabled",
+                                &params->reactive_frag_enabled_));
+    p.addopt(new oasys::BoolOpt("receiver_connect",
+                                &params->receiver_connect_));
+    p.addopt(new oasys::UIntOpt("partial_ack_len", &params->partial_ack_len_));
+    p.addopt(new oasys::UIntOpt("writebuf_len", &params->writebuf_len_));
+    p.addopt(new oasys::UIntOpt("readbuf_len", &params->readbuf_len_));
+    p.addopt(new oasys::UIntOpt("keepalive_interval",
+                                &params->keepalive_interval_));
+    p.addopt(new oasys::UIntOpt("idle_close_time", &params->idle_close_time_));
+    p.addopt(new oasys::UIntOpt("connect_timeout", &params->connect_timeout_));
+    p.addopt(new oasys::UIntOpt("rtt_timeout", &params->rtt_timeout_));
+    p.addopt(new oasys::IntOpt("test_fragment_size",
+                               &params->test_fragment_size_));
     
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -352,7 +352,8 @@ TCPConvergenceLayer::close_contact(Contact* contact)
     
     return true;
 }
-    
+
+
 /******************************************************************************
  *
  * TCPConvergenceLayer::Listener
@@ -378,6 +379,7 @@ TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
     conn->start();
 }
 
+
 /******************************************************************************
  *
  * TCPConvergenceLayer::Connection
