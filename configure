@@ -724,5 +724,7 @@ s%@STATIC_LIBS@%$staticlibs%g
 
 " Rules.make.in >> Rules.make
 
+chmod oag-w Rules.make
+
 echo ""
 echo "wrote Rules.make; now run make"
