@@ -52,7 +52,7 @@ main(int argc, char** argv)
         random_seed = tv.tv_usec;
     }
     logf("/daemon", LOG_INFO, "random seed is %u\n", random_seed);
-    srand(random_seed);
+    srandom(random_seed);
 
     // Set up all components
     ConvergenceLayer::init_clayers();
