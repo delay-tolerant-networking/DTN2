@@ -5,12 +5,12 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "BundlePayload.h"
+#include "storage/StorageConfig.h"
 
 /*
  * Configurable settings.
  */
 size_t BundlePayload::mem_threshold_;
-std::string BundlePayload::dir_;
 bool BundlePayload::test_no_remove_;
 
 /**
@@ -28,13 +28,14 @@ BundlePayload::BundlePayload()
 void
 BundlePayload::init(SpinLock* lock, int bundleid, location_t location)
 {
+    StorageConfig* cfg = StorageConfig::instance();
     lock_ = lock;
     location_ = location;
 
     // initialize the file handle for the backing store, but
     // immediately close it
     if (location != NODATA) {
-        StringBuffer path("%s/bundle_%d.dat", dir_.c_str(), bundleid);
+        StringBuffer path("%s/bundle_%d.dat", cfg->payloaddir_.c_str(), bundleid);
         file_ = new FileIOClient();
         file_->logpathf("/bundle/payload/%d", bundleid);
         if (file_->open(path.c_str(),

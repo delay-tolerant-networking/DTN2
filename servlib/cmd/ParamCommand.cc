@@ -7,8 +7,6 @@
 ParamCommand::ParamCommand() 
     : TclCommand("param")
 {
-    bind_s("payload_dir",
-           &BundlePayload::dir_, "/tmp/bundles");
     bind_i("payload_mem_threshold",
            (int*)&BundlePayload::mem_threshold_, 16384);
     bind_b("payload_test_no_remove",

@@ -16,6 +16,7 @@ public:
     bool init_;			///< Create new databases on init 
     int tidy_wait_;		///< seconds to wait before tidying
     std::string dbdir_;		///< Path to the database files
+    std::string payloaddir_;	///< Path to the bundle payload files
     std::string dbfile_;	///< Actual db file name
     std::string dberrlog_;	///< DB internal error log file
     std::string sqldb_;		///< Database name within sql

@@ -127,7 +127,6 @@ public:
     /*
      * Tunable parameters
      */
-    static std::string dir_;	///< directory for payload files
     static size_t mem_threshold_; ///< maximum bundle size to keep in memory
     static bool test_no_remove_;  ///< test: don't rm payload files
 

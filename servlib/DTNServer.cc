@@ -100,7 +100,7 @@ DTNServer::start()
         cfg->init_ = true; 
 
         // remove data directories
-        DTNServer::tidy_dir(BundlePayload::dir_.c_str());
+        DTNServer::tidy_dir(cfg->payloaddir_.c_str());
 #ifdef __DB_ENABLED__
         DTNServer::tidy_dir(cfg->dbdir_.c_str());
 #endif
@@ -109,14 +109,14 @@ DTNServer::start()
     if (cfg->init_)
     {
         // initialize data directories
-        DTNServer::init_dir(BundlePayload::dir_.c_str());
+        DTNServer::init_dir(cfg->payloaddir_.c_str());
 #ifdef __DB_ENABLED__
         DTNServer::init_dir(cfg->dbdir_.c_str());
 #endif
     }
 
     // validation
-    DTNServer::validate_dir(BundlePayload::dir_.c_str());
+    DTNServer::validate_dir(cfg->payloaddir_.c_str());
 #ifdef __DB_ENABLED__
     DTNServer::validate_dir(cfg->dbdir_.c_str());
 #endif
