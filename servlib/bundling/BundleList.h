@@ -15,15 +15,10 @@ class SpinLock;
  * that needs to perform more complicated functions (like scanning the
  * list) should lock the list before doing so.
  *
- * The internal data structure is just an STL list of Bundle pointers,
- * and in general, the exported functions just expose the internal STL
- * counterpart. In particular, however, the pop_* functions return the
- * bundle that was on the end (front or back) of the list so the
- * operation can be atomic (protected by the spin lock).
- *
- * The list is also derived from Notifier, and the various push()
- * calls will call notify() if there is a thread blocked on an empty
- * list waiting for notification.
+ * The internal data structure is an STL list of Bundle pointers. The
+ * list is also derived from Notifier, and the various push() calls
+ * will call notify() if there is a thread blocked on an empty list
+ * waiting for notification.
  *
  * List methods also maintain the set of back pointers in the Bundle
  * class for the lists that contain it, and follow the reference
@@ -36,16 +31,20 @@ class SpinLock;
  */
 class BundleList : public Notifier {
 public:
-    BundleList();
+    BundleList(const std::string& name);
     virtual ~BundleList();
 
     /**
      * Peek at the first bundle on the list.
+     *
+     * @return the bundle or NULL if the list is empty
      */
     Bundle* front();
 
     /**
      * Peek at the last bundle on the list.
+     *
+     * @return the bundle or NULL if the list is empty
      */
     Bundle* back();
 
@@ -61,17 +60,32 @@ public:
 
     /**
      * Remove (and return) the first bundle on the list.
+     *
+     * Note (as explained above) that this does not decrement the
+     * bundle reference count.
+     *
+     * @return the bundle or NULL if the list is empty
      */
     Bundle* pop_front();
 
     /**
      * Remove (and return) the last bundle on the list.
+     *
+     * Note (as explained above) that this does not decrement the
+     * bundle reference count.
+     *
+     * @return the bundle or NULL if the list is empty
      */
     Bundle* pop_back();
 
     /**
      * Remove (and return) the first bundle on the list, blocking if
      * there are none.
+     *
+     * Note (as explained above) that this does not decrement the
+     * bundle reference count.
+     *
+     * @return the bundle or NULL if the list is empty
      */
     Bundle* pop_blocking();
 
@@ -112,9 +126,15 @@ public:
      */
     SpinLock* lock() { return lock_; }
 
+    /**
+     * Return the identifier name of this list.
+     */
+    const std::string& name() const { return name_; }
+    
 protected:
     SpinLock* lock_;
     std::list<Bundle*> list_;
+    std::string name_;
 };
 
 #endif /* _BUNDLE_LIST_H_ */

@@ -3,8 +3,8 @@
 #include "BundleList.h"
 #include "thread/SpinLock.h"
 
-BundleList::BundleList()
-    : lock_(new SpinLock())
+BundleList::BundleList(const std::string& name)
+    : lock_(new SpinLock()), name_(name)
 {
 }
 
@@ -20,6 +20,10 @@ Bundle*
 BundleList::front()
 {
     ScopeLock l(lock_);
+
+    if (list_.empty())
+        return NULL;
+    
     return list_.front();
 }
 
@@ -30,6 +34,10 @@ Bundle*
 BundleList::back()
 {
     ScopeLock l(lock_);
+
+    if (list_.empty())
+        return NULL;
+    
     return list_.back();
 }
 
@@ -79,6 +87,9 @@ BundleList::pop_front()
 {
     ScopeLock l(lock_);
 
+    if (list_.empty())
+        return NULL;
+
     Bundle* b = list_.front();
     list_.pop_front();
     
@@ -98,6 +109,9 @@ BundleList::pop_back()
 {
     ScopeLock l(lock_);
 
+    if (list_.empty())
+        return NULL;
+    
     Bundle* b = list_.back();
     list_.pop_back();
 
@@ -118,7 +132,7 @@ BundleList::pop_blocking()
 {
     lock_->lock();
 
-    if (size() == 0) {
+    if (list_.empty()) {
         wait(lock_);
         ASSERT(lock_->is_locked_by_me());
     }
@@ -126,7 +140,7 @@ BundleList::pop_blocking()
     // always drain the pipe when done waiting
     drain_pipe();
     
-    ASSERT(size() > 0);
+    ASSERT(! list_.empty());
     
     Bundle* b = pop_front();
     ASSERT(b != NULL);
