@@ -2,7 +2,7 @@
 #include "Serialize.h"
 
 SerializeAction::SerializeAction(action_t type)
-    : type_(type), error_(false)
+    : type_(type), error_(false), log_(0)
 {
 
 }
