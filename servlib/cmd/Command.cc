@@ -50,7 +50,7 @@ CommandInterp::exec_file(const char* file)
     err = Tcl_EvalFile(interp_, (char*)file);
     
     if (err != TCL_OK) {
-        logf(LOG_ERR, "tcl error: line %d, %s",
+        logf(LOG_ERR, "error: line %d, %s",
              interp_->errorLine, Tcl_GetStringResult(interp_));
     }
     
@@ -203,7 +203,7 @@ CommandInterp::get_result()
 CommandModule::CommandModule(const char* name)
     : name_(name), do_builtins_(true)
 {
-    logpathf("/%s", name);
+    logpathf("/command/%s", name);
 
     // Don't do registration here. This makes the code overly obscure
     // b/c it is not obvious who own the module that is created.
@@ -245,7 +245,7 @@ CommandModule::wrong_num_args(int argc, const char** argv, int parsed,
     set_result("wrong number of arguments to '");
     append_result(argv[0]);
     
-    for (int i = i; i < parsed; ++i) {
+    for (int i = 1; i < parsed; ++i) {
         append_result(" ");
         append_result(argv[i]);
     }
