@@ -78,10 +78,6 @@ public:
      * (was db_bundle_retain)
      */
     virtual bool is_custodian(int bundle_id) = 0;
-    
-private:
-    int next_bundle_id_; 	/// running serial number for bundles
-    PersistentStore* store_;	/// abstract persistent storage implementation
 };
 
 #endif /* _BERKELEY_DB_STORE_H_ */
