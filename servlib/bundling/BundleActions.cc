@@ -144,7 +144,7 @@ BundleActions::open_link(Link* link)
 {
     log_debug("opening link %s", link->name());
     if (link->isopen()) {
-        log_warn("not opening link %s since already open");
+        log_warn("not opening link %s since already open", link->name());
     } else {
         link->open();
     }
@@ -158,7 +158,7 @@ BundleActions::close_link(Link* link)
 {
     log_debug("closing link %s", link->name());
     if (! link->isopen()) {
-        log_warn("not closing link %s since already closed");
+        log_warn("not closing link %s since already closed", link->name());
     } else {
         link->close();
     }
