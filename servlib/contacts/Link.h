@@ -255,7 +255,7 @@ public:
     /**
      * Return the type of the link.
      */
-    link_type_t type_link() { return type_; }
+    link_type_t type() { return type_; }
 
     /**
      * Return the string for of the link.
