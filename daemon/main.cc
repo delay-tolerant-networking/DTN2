@@ -7,28 +7,33 @@
 #include "cmd/Command.h"
 #include "cmd/Options.h"
 #include "cmd/StorageCommand.h"
+#include "cmd/TestCommand.h"
 #include "conv_layers/ConvergenceLayer.h"
-
 
 int
 main(int argc, char** argv)
 {
+    // Initialize logging before anything else
+    Log::init();
+    logf("/daemon", LOG_INFO, "bundle daemon initializing...");
+
     // command line parameter vars
     std::string conffile("daemon/bundleNode.conf");
     int random_seed;
     bool random_seed_set = false;
         
-    // Initialize logging
-    Log::init();
-    logf("/daemon", LOG_INFO, "bundle daemon initializing...");
-
+    // test command
+    TestCommand testcmd;
+    
     // Set up the command line options
     new StringOpt("c", &conffile, "conf", "config file");
     new BoolOpt("t", &StorageCommand::instance()->tidy_,
                 "clear database on startup");
     new IntOpt("s", &random_seed, &random_seed_set, "seed",
                "random number generator seed");
-
+    new IntOpt("l", &testcmd.loopback_, "loopback",
+               "test option for loopback");
+    
     // Parse argv
     Options::getopt(argv[0], argc, argv);
 
@@ -46,6 +51,8 @@ main(int argc, char** argv)
     ConvergenceLayer::init_clayers();
     BundleForwarding::init();
     RouteTable::init();
+
+    CommandInterp::instance()->reg(&testcmd);
 
     // Parse / exec the config file
     if (conffile.length() != 0) {

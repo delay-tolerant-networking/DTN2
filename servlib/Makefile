@@ -28,7 +28,9 @@ CMD_SRCS :=					\
 	cmd/BundleCommand.cc			\
 	cmd/InterfaceCommand.cc			\
 	cmd/LogCommand.cc			\
+	cmd/RouteCommand.cc			\
 	cmd/StorageCommand.cc			\
+	cmd/TestCommand.cc			\
 
 DEBUG_SRCS :=					\
 	debug/gdtoa-dmisc.c			\
