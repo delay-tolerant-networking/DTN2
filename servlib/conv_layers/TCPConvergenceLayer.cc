@@ -1184,8 +1184,8 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
         
         if (!nexthop_.valid()) {
             log_err("invalid peer tuple received: region='%.*s' admin='%.*s'",
-                    region_str.length(), region_str.data(),
-                    admin_str.length(),  admin_str.data());
+                    (int)region_str.length(), region_str.data(),
+                    (int)admin_str.length(),  admin_str.data());
             return false;
         }
     }
