@@ -85,8 +85,8 @@ STORAGE_SRCS :=					\
         storage/SQLBundleStore.cc		\
         storage/SQLGlobalStore.cc		\
         storage/SQLRegistrationStore.cc		\
-	storage/PostgresSQLImplementation.cc	\
-	storage/MysqlSQLImplementation.cc	\
+        storage/PostgresSQLImplementation.cc    \
+        storage/MysqlSQLImplementation.cc       \
 
 THREAD_SRCS :=					\
 	thread/Mutex.cc				\
@@ -139,11 +139,16 @@ libdtnserv.a: $(SERVLIB_OBJS)
 debug/gdtoa-%.o: debug/gdtoa-%.c debug/arith.h
 	$(CC) -g -DINFNAN_CHECK -c $< -o $@
 
+ifeq ($(TARGET), native)
+
 debug/arith.h: debug/gdtoa-arithchk.c
 	$(CC) $(DEBUG) $(OPTIMIZE) $< -o debug/arithchk
 	debug/arithchk > debug/arith.h
 	rm -f debug/arithchk
-
+else
+debug/arith.h: debug/arith-arm.h
+	cp $< $@
+endif
 #
 # And a special rule to build the tcl-command.c file from command.tcl
 #
