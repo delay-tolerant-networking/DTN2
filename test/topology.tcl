@@ -1,15 +1,6 @@
 #
-# set up routing...
+# Set up a linear topology.
 #
-
-proc setup_interface {cl} {
-    global hosts id
-    
-    route local_tuple bundles://internet/host://$hosts($id)
-    
-    interface add $cl host://$hosts($id):5000
-}
-
 proc setup_linear_topology {type cl {args ""}} {
     global hosts num_nodes id route_to_root
 

@@ -16,6 +16,13 @@ proc setup_intel_network {} {
 
     set hosts{0} sandbox
     set hosts{1} ica
-    set hosts{2} ica
+    # XXX/demmer fix me
+}
+
+proc setup_interface {cl {port 5000}} {
+    global hosts id
+    route local_tuple bundles://internet/host://$hosts($id)
+    interface add $cl host://$hosts($id):$port
+    api set local_addr $hosts($id)
 }
 

@@ -31,8 +31,15 @@ if {[test set fork]} {
     create_bundle_daemons $num_nodes
 }
 
-# Set up the the network and routing
-setup_${network}_network
-setup_interface tcp
-setup_${topology}_topology ONDEMAND tcp
+# Set up the the network
+if {$network != "none"} {
+    setup_${network}_network
+}
 
+# Set up the listening interface
+setup_interface tcp
+
+# Set up the the routing topology
+if {$topology != "none"} {
+    setup_${topology}_topology ONDEMAND tcp
+}
