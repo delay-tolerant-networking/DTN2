@@ -23,6 +23,7 @@ typedef enum {
     BUNDLE_RECEIVED = 0x1,	///< New bundle arrival
     BUNDLE_TRANSMITTED,		///< Bundle or fragment successfully sent
     BUNDLE_EXPIRED,		///< Bundle expired
+    BUNDLE_FORWARD_TIMEOUT, 	///< A Mapping timed out
         
     CONTACT_AVAILABLE,		///< Contact is available
     CONTACT_BROKEN,		///< Contact abnormally terminated
