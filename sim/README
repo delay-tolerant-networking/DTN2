@@ -1,0 +1,8 @@
+DTN Reference Implementation Simulator
+======================================
+
+This directory contains the source code for the DTN simulation
+environment.
+
+NOTE: the framework is still in a pre-release state. Internal APIs and
+structures will likely change in upcoming revisions.
