@@ -33,20 +33,6 @@ public:
      */
      void init(int bundleid, location_t location);
 
-     
-     
-    /**
-     * Actual initialization function that creates a disk based 
-     * bundle.
-     */
-     void init_disk(int bundleid);
-
-    /**
-     * Actual initialization function that creates a memory based 
-     * bundle.
-     */
-    void init_memory(int bundleid);
-
   
     /**
      * Set the payload length in preparation for filling in with data.
@@ -102,6 +88,20 @@ protected:
     std::string fname_;		///< payload file name
     FileIOClient* file_;	///< file handle if on disk
     off_t offset_;		///< cache of current fd position
+
+private:
+    /**
+     * Actual initialization function that creates a disk based 
+     * bundle.
+     */
+     void init_disk(int bundleid);
+
+    /**
+     * Actual initialization function that creates a memory based 
+     * bundle.
+     */
+    void init_memory(int bundleid);
+
 };
 
 #endif /* _BUNDLE_PAYLOAD_H_ */
