@@ -63,6 +63,10 @@ CommandInterp::exec_command(const char* command)
     int err;
     ScopeLock l(lock_);
 
+    // ignore empty command lines
+    if (command[0] == '\0')
+        return TCL_OK;
+
     // tcl modifies the command string while executing it, so we need
     // to make a copy
     char* buf = strdup(command);
