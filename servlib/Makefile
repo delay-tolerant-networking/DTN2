@@ -136,19 +136,18 @@ libdtnserv.a: $(SERVLIB_OBJS)
 # Need special rules for the gdtoa sources adapted from the source
 # distribution.
 #
+debug/arith-native.h: debug/gdtoa-arithchk.c
+	$(CC) $(DEBUG) $(OPTIMIZE) $< -o debug/arithchk
+	debug/arithchk > $@
+	rm -f debug/arithchk
+
+debug/arith.h:
+	$(MAKE) debug/arith-$(TARGET).h
+	cp debug/arith-$(TARGET).h $@
+
 debug/gdtoa-%.o: debug/gdtoa-%.c debug/arith.h
 	$(CC) -g -DINFNAN_CHECK -c $< -o $@
 
-ifeq ($(TARGET), native)
-
-debug/arith.h: debug/gdtoa-arithchk.c
-	$(CC) $(DEBUG) $(OPTIMIZE) $< -o debug/arithchk
-	debug/arithchk > debug/arith.h
-	rm -f debug/arithchk
-else
-debug/arith.h: debug/arith-arm.h
-	cp $< $@
-endif
 #
 # And a special rule to build the tcl-command.c file from command.tcl
 #
@@ -159,10 +158,11 @@ cmd/command-init-tcl.c: cmd/command-init.tcl
 	cat $^ | sed 's|"|\\"|g' | sed 's|^|"|g' | sed "s|$$|\\\\n\"|g" >> $@;
 	echo ";">> $@
 
-GENFILES += debug/arith.h debug/arithchk
+GENFILES += debug/arith.h debug/arith-native.h debug/arithchk
 
 #
-# Include the common rules
+# Include the common rules here to define symbols that may be needed
+# in the special rules below
 #
 SRCDIR := ..
 -include $(SRCDIR)/Rules.make
