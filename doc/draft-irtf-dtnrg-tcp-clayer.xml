@@ -437,7 +437,7 @@
 </t>
 
 <t>
-   If no bundle data other) has been received for at least
+   If no bundle data other than keepalives has been received for at least
    twice the keepalive interval, then either party MAY terminate the
    session by transmitting a one byte message type code of SHUTDOWN
    (as described in <xref target="types:codes"/>) and closing the TCP
