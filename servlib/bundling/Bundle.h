@@ -7,6 +7,8 @@
 #include "BundleTuple.h"
 #include "thread/Atomic.h"
 
+class SQLBundleStore;
+
 /**
  * Values for the bundle priority field.
  */
@@ -34,12 +36,35 @@ typedef enum {
  */
 class Bundle : public Formatter, public SerializableObject {
 public:
+    /**
+     * Default constructor to create an empty bundle, initializing all
+     * fields to defaults and allocating a new bundle id.
+     */
     Bundle();
+
+    /**
+     * Minimal constructor for a valid routable bundle.
+     */
     Bundle(const std::string& source,
            const std::string& dest,
            const std::string& payload);
-    virtual ~Bundle();
 
+    /**
+     * Special constructor for a temporary (invalid) bundle, used to
+     * create the database table schema for SQL databases.
+     */
+    Bundle(SQLBundleStore* store) {}
+
+    /**
+     * Default initialization.
+     */
+    void init();
+
+    /**
+     * Bundle destructor.
+     */
+    virtual ~Bundle();
+    
     // virtual from Formatter
     int format(char* buf, size_t sz);
     
