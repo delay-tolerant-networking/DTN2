@@ -80,6 +80,8 @@ proc file_arrived {dest_dir sock addr port} {
     set payload [read $sock]
     #close $sock
 
+    set payload_len [string  length $payload]
+    puts "file arrived from $sock $addr $port of size $payload_len name is $file "
     puts "got file $file"
     puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
     flush $logfd
