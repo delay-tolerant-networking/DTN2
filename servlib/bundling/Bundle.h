@@ -40,7 +40,11 @@ public:
      * fields to defaults and allocating a new bundle id.
      */
     Bundle();
-    Bundle(u_int32_t id); ///> give explicit id
+
+    /**
+     * Constructor that takes an explicit id.
+     */
+    Bundle(u_int32_t id);
 
     /**
      * Special constructor for a temporary (invalid) bundle, used to
@@ -49,17 +53,10 @@ public:
     Bundle(SQLBundleStore* store) {}
     
     /**
-     * Default initialization.
-     */
-    void init();
-    void init(u_int32_t id); ///> give explicit id
-    
-
-    /**
      * Bundle destructor.
      */
     virtual ~Bundle();
-    
+
     /**
      * Virtual from formatter.
      */
@@ -183,8 +180,10 @@ public:
                                 ///  containers_ and refcount_.
 
 private:
-    void helper_init();         ///> helper init function
-
+    /**
+     * Initialization helper function.
+     */
+    void init(u_int32_t id);
 };
 
 #endif /* _BUNDLE_H_ */
