@@ -25,7 +25,6 @@ CONV_LAYER_SRCS :=				\
 CMD_SRCS :=					\
 	cmd/Command.cc				\
 	cmd/Options.cc				\
-						\
 	cmd/BundleCommand.cc			\
 	cmd/InterfaceCommand.cc			\
 	cmd/LogCommand.cc			\
@@ -43,6 +42,10 @@ DEBUG_SRCS :=					\
 IO_SRCS :=					\
 	io/IO.cc				\
 	io/NetUtils.cc				\
+	io/FdIOClient.cc			\
+	io/IPSocket.cc				\
+	io/TCPClient.cc				\
+	io/TCPServer.cc				\
 
 ROUTING_SRCS :=					\
 	routing/RouteTable.cc			\
@@ -66,6 +69,7 @@ THREAD_SRCS :=					\
 
 UTIL_SRCS :=					\
 	util/StringBuffer.cc			\
+	util/URL.cc				\
 
 SERVLIB_SRCS := $(BUNDLING_SRCS) 		\
 		$(CONV_LAYER_SRCS)		\
