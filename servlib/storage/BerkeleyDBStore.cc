@@ -30,15 +30,8 @@ BerkeleyDBManager::init()
 
     const char* dbdir = cfg->dbdir_.c_str();
 
-    int initflags = 0;
-
-    log_debug("initializing berkeley db manager with dbdir %s tidy=%d init=%d", dbdir, cfg->tidy_, cfg->init_);
-
-    // Init Option: create database directory, initially must not exist
-    if (cfg->init_)
-    {
-        initflags |= DB_CREATE;
-    }
+    log_debug("initializing berkeley db manager with dbdir %s tidy=%d init=%d",
+              dbdir, cfg->tidy_, cfg->init_);
 
     // create the db environment
     dbenv_  = new DbEnv(0);
@@ -54,51 +47,78 @@ BerkeleyDBManager::init()
         dbenv_->set_errfile(errlog_);
     }
     
-    // try to open the db file
+    // open the db environment -- doesn't actually create the database
+    // but will run crash recovery (so needs DB_CREATE)
     try {
         dbenv_->open(dbdir,
-                     DB_CREATE     | // create new files
+                     DB_CREATE     | // create (required for recovery)
                      DB_INIT_MPOOL | // initialize memory pool
                      DB_INIT_LOG   | // use logging
                      DB_INIT_TXN   | // use transactions
                      DB_RECOVER    | // recover from previous crash (if any)
                      DB_PRIVATE,     // only one process can access the db
-                     0);             // no flags
-
-        dbenv_->set_flags(DB_AUTO_COMMIT, // every op is automatically in a tx
-                          1);
+                     0);
+        
+        dbenv_->set_flags(DB_AUTO_COMMIT, 1); // every op automatically in a tx
     } catch(DbException e) {
-        log_crit("DB error: %s", e.what());
-        PANIC("cannot open database!");
+        log_crit("DB error opening db environment: %s", e.what());
+        exit(1);
     }
 
+    // make sure the database file exists or create it if init_ is set
+    StringBuffer dbpath("%s/%s", dbdir, cfg->dbfile_.c_str());
 
-    if (cfg->init_)
+    struct stat st;
+    log_info("checking database file '%s'...", cfg->dbfile_.c_str());
+    int ret = stat(dbpath.c_str(), &st);
+    int flags = 0;
+
+    if (ret == -1 && errno != ENOENT)
     {
-        // Create database file if none exists. Table 0 is used for
-        // storing general global metadata.
-        StringBuffer dbpath("%s/%s", dbdir, cfg->dbfile_.c_str());
-        
-        struct stat st;
-        if (stat(dbpath.c_str(), &st) == -1) {
-            if(errno == ENOENT) {
-                Db db(dbenv_, 0);
-                log_info("creating new database file '%s'", cfg->dbfile_.c_str());
-                
-                try {
-                    db.open(NO_TX, cfg->dbfile_.c_str(), "0", DB_BTREE, DB_CREATE, 0);
-                    db.close(0);
-                } 
-                catch(DbException e) 
-                {
-                    log_crit("DB: %s", e.what());
-                    PANIC("can't create database file");
-                }
-            }
-            else {
-                PANIC("Unable to stat file: %s", strerror(errno));
-            }
+        log_crit("error trying to stat database file: %d (%s)",
+                 ret, strerror(errno));
+        exit(1);
+    }
+
+    if (cfg->init_) {
+        if ((ret == -1) && (errno == ENOENT))
+        {
+            flags = DB_CREATE; // ok 
         }
+        else if (ret == 0)
+        {
+            log_err("database file exists but -C specified -- "
+                    "remove the database file or re-run without -C");
+            exit(1);
+        }
+    } else { // !init_
+        if ((ret == 0) && S_ISREG(st.st_mode))
+        {
+            flags = 0; // ok
+        }
+        else if ((ret == 0) && !S_ISREG(st.st_mode))
+        {
+            log_err("database file is not a regular file -- "
+                    "remove and rerun with -C to create the database");
+            exit(1);
+        }
+        else if ((ret == -1) && (errno == ENOENT))
+        {
+            log_err("database file does not exist -- "
+                    "rerun with -C to create the database");
+            exit(1);
+        }
+    }
+
+    // now try to open a dummy table to make sure the database exists
+    // and is valid (or create it if init is set)
+    try {
+        Db db(dbenv_, 0);
+        db.open(NO_TX, cfg->dbfile_.c_str(), "__dtn__", DB_BTREE, flags, 0);
+        db.close(0);
+    } catch(DbException e) {
+        log_crit("error creating or opening database: %s", e.what());
+        exit(1);
     }
 }
 
@@ -197,6 +217,7 @@ BerkeleyDBStore::get(SerializableObject* obj, const int key)
 
     Unmarshal unmarshal(SerializeAction::CONTEXT_LOCAL,
                         (u_char*)d.get_data(), d.get_size());
+    StringBuffer buf("/store/%s", tablename_.c_str());
 
     if (unmarshal.action(obj) < 0) {
         PANIC("error in unserialize");
@@ -223,6 +244,7 @@ BerkeleyDBStore::add(SerializableObject* obj, const int key)
     u_char* buf = (u_char*)malloc(size);
     Marshal marshal(SerializeAction::CONTEXT_LOCAL,
                     buf, size);
+    StringBuffer logbuf("/store/%s", tablename_.c_str());
     ret = marshal.action(obj);
     ASSERT(ret == 0);
     
