@@ -122,16 +122,25 @@ public:
     /**
      * Parse and assign the given tuple string.
      */
-    void assign(u_char* region, size_t regionlen,
-                u_char* admin,  size_t adminlen)
+    void assign(char* region, size_t regionlen,
+                char* admin,  size_t adminlen)
     {
         tuple_.assign("bundles://");
-        tuple_.append((char*)region, regionlen);
+        tuple_.append(region, regionlen);
         if (tuple_[tuple_.length() - 1] != '/') {
             tuple_.push_back('/');
         }
-        tuple_.append((char*)admin, adminlen);
+        tuple_.append(admin, adminlen);
         parse_tuple();
+    }
+
+    /**
+     * Parse and assign the given tuple string.
+     */
+    void assign(u_char* region, size_t regionlen,
+                u_char* admin,  size_t adminlen)
+    {
+        assign((char*)region, regionlen, (char*)admin, adminlen);
     }
 
     /**
