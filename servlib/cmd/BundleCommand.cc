@@ -142,7 +142,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         
         return TCL_OK;
         
-    } else if (!strcmp(cmd, "dump")) {
+    } else if (!strcmp(cmd, "dump") || !strcmp(cmd, "dump_ascii")) {
         // bundle dump <id>
         if (objc != 3) {
             wrong_num_args(objc, objv, 2, 3, 3);
@@ -172,7 +172,9 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
         // XXX/demmer inefficient
         buf.append((const char*)bp, len);
-        buf.hexify();
+        if (!strcmp(cmd, "dump")) {
+            buf.hexify();
+        }
         set_result(buf.c_str());
         
         return TCL_OK;
