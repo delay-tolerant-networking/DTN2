@@ -40,7 +40,7 @@ LIBDIR  = @LIBDIR@
 MANDIR  = @MANDIR@
 INCDIR  = @INCDIR@
 
-INCDIRS := -I$(SRCDIR) -I$(SRCDIR)/oasys -I$(SRCDIR)/servlib
+INCDIRS := -I$(SRCDIR) -I$(SRCDIR)/oasys -I $(SRCDIR)/applib -I$(SRCDIR)/servlib
 
 #
 # Common settings extracted from the configure script
@@ -153,7 +153,11 @@ echodep:
 #
 # Clean out all object files
 #
-clean: objclean depclean genclean binclean
+clean: $(SUBDIRS) objclean depclean genclean binclean
+
+.PHONY: $(SUBDIRS)
+$(SUBDIRS):
+	$(MAKE) -C $@ $(MAKECMDGOALS)
 
 .PHONY: objclean
 objclean:
