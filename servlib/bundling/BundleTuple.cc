@@ -48,6 +48,9 @@ BundleTuple::assign(dtn_tuple_t* tuple)
     if (tuple_[tuple_.length() - 1] != '/') {
         tuple_.push_back('/');
     }
+
+    if (tuple->admin.admin_val[tuple->admin.admin_len - 1] == '\0')
+        tuple->admin.admin_len -= 1;
     
     tuple_.append(tuple->admin.admin_val,
                   tuple->admin.admin_len);
@@ -153,9 +156,9 @@ BundleTuplePattern::match_admin(const std::string& tuple_admin) const
         adminlen--;
     }
 
-    if (admin_.substr(0, adminlen) == tuple_admin.substr(0, adminlen))
+    if (admin_.compare(tuple_admin) == 0)
         return true;
-    
+
     // XXX/demmer dispatch to ConvergenceLayer to match admin strings
     
     return false;
