@@ -2,13 +2,10 @@
 # Makefile for DTN2/apps
 #
 
+SUBDIRS := ping
+
 SRCDIR := ..
 
-all: 
-	@echo No apps yet...
-#
-# Include the common rules
-#
+all: $(SUBDIRS)
+
 -include $(SRCDIR)/Rules.make
-
-
