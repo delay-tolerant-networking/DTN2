@@ -3,10 +3,8 @@
 
 #include <string>
 #include "debug/Log.h"
-
-class Contact;
-class ContactInfo;
-class Interface;
+#include "bundling/Contact.h"
+#include "bundling/Interface.h"
 
 /**
  * The abstract interface for a convergence layer.
@@ -47,12 +45,12 @@ public:
     /**
      * Register a new interface.
      */
-    virtual void add_interface(Interface* iface, int argc, const char* argv[]);
+    virtual bool add_interface(Interface* iface, int argc, const char* argv[]);
 
     /**
      * Remove an interface
      */
-    virtual void del_interface(Interface* iface);
+    virtual bool del_interface(Interface* iface);
 
     /**
      * Boot-time initialization and registration of convergence

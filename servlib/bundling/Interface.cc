@@ -12,32 +12,33 @@ Interface::Interface(const BundleTuple& tuple,
 
 Interface::~Interface()
 {
-    if (info_) {
-        delete info_;
-    }
 }
 
 bool
 Interface::add_interface(const char* tuplestr,
                          int argc, const char* argv[])
 {
-    logf("/interface", LOG_DEBUG, "creating interface '%s'", tuplestr);
+    log_debug("/interface", "creating interface '%s'", tuplestr);
     
     BundleTuple tuple(tuplestr);
     if (!tuple.valid()) {
-        logf("/interface", LOG_ERR, "invalid interface tuple '%s'", tuplestr);
+        log_err("/interface", "invalid interface tuple '%s'", tuplestr);
         return false;
     }
 
     ConvergenceLayer* cl = ConvergenceLayer::find_clayer(tuple.admin());
     if (!cl) {
-        logf("/interface", LOG_ERR, "can't find convergence layer for %s",
-             tuple.admin().c_str());
+        log_err("/interface", "can't find convergence layer for %s",
+                tuple.admin().c_str());
         return false;
     }
 
     Interface* iface = new Interface(tuple, cl);
-    cl->add_interface(iface, argc, argv);
+    if (! cl->add_interface(iface, argc, argv)) {
+        log_err("/interface", "convergence layer error adding interface %s",
+                tuplestr);
+        return false;
+    }
 
     iface->next_ = if_list_;
     if_list_ = iface;
@@ -48,7 +49,7 @@ Interface::add_interface(const char* tuplestr,
 bool
 Interface::del_interface(const char* tuplestr)
 {
-    logf("/interface", LOG_DEBUG, "removing interface %s", tuplestr);
+    log_debug("/interface", "removing interface %s", tuplestr);
 
     Interface** ifp = &if_list_;
     Interface* deadif;
@@ -57,8 +58,13 @@ Interface::del_interface(const char* tuplestr)
         if ((*ifp)->tuple()->tuple().compare(tuplestr) == 0) {
             deadif = *ifp;
             *ifp = (*ifp)->next_;
-
-            deadif->clayer()->del_interface(deadif);
+            
+            if (! deadif->clayer()->del_interface(deadif)) {
+                log_err("/interface",
+                        "convergence layer error removing interface %s",
+                        tuplestr);
+            }
+            
             delete deadif;
             return true;
         }
@@ -66,8 +72,7 @@ Interface::del_interface(const char* tuplestr)
         ifp = &(*ifp)->next_;
     }
 
-    logf("/interface", LOG_ERR, "del_interface: can't find tuple '%s'",
-         tuplestr);
+    log_err("/interface", "del_interface: can't find tuple '%s'", tuplestr);
     
     return false;
 }

@@ -3,6 +3,7 @@
 
 #include "BundleTuple.h"
 #include "Contact.h"
+#include "debug/Log.h"
 
 class ConvergenceLayer;
 class InterfaceInfo;
@@ -56,7 +57,7 @@ protected:
  */
 class InterfaceInfo {
 public:
-    virtual ~InterfaceInfo();
+    virtual ~InterfaceInfo() {}
 };
 
 #endif /* _INTERFACE_H_ */

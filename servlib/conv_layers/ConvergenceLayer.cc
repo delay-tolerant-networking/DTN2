@@ -48,17 +48,23 @@ ConvergenceLayer::find_clayer(const std::string& admin)
 
 /**
  * Register a new interface.
+ *
+ * The default implementation doesn't do anything but log.
  */
-void
+bool
 ConvergenceLayer::add_interface(Interface* iface,
                                 int argc, const char* argv[])
 {
+    log_debug("adding interface %s", iface->tuple()->c_str());
+    return true;
 }
 
 /**
  * Remove an interface
  */
-void
+bool
 ConvergenceLayer::del_interface(Interface* iface)
 {
+    log_debug("removing interface %s", iface->tuple()->c_str());
+    return true;
 }
