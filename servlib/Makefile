@@ -38,14 +38,21 @@ STORAGE_SRCS :=					\
 	storage/Serialize.cc			\
 	storage/StorageSystem.cc		\
 
+THREAD_SRCS :=					\
+	thread/Mutex.cc				\
+	thread/Thread.cc			\
+
 SERVLIB_SRCS := $(BUNDLING_SRCS) 		\
 		$(CMD_SRCS) 			\
 		$(DEBUG_SRCS) 			\
 		$(IO_SRCS) 			\
 		$(STORAGE_SRCS)			\
+		$(THREAD_SRCS)			\
 
 SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)
+
+ALLSRCS := $(SERVLIB_SRCS)
 
 #
 # Default target is to build the library
