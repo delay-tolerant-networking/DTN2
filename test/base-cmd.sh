@@ -92,7 +92,7 @@ echo "Logging commands executed by $proto (node id $id)" > $info
 # Set TCP timers
 #sudo "cp $tcptimerfile  /proc/sys/net/ipv4/tcp_retries2"
 sudo sh -c "echo 3 >  /proc/sys/net/ipv4/tcp_retries2"
-sudo sh -c "echo 2 >  /proc/sys/net/ipv4/tcp_syn_retries"
+sudo sh -c "echo 0 >  /proc/sys/net/ipv4/tcp_syn_retries"
 
 
 # If this is the source node generate workload

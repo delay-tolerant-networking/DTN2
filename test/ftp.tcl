@@ -126,8 +126,9 @@ proc send_file {host file} {
 
     if {! [info exists sock]} {
 	while  { [  catch {socket $host $port } sock] } {
-	    puts "[time] Trying to connect, will try again after  2 seconds "
+	    puts "[time] Trying failed, will try again after  2 seconds "
 	    after 2000
+	puts "[time] Trying again "
 	}
 	puts "[time] Successfull new connection "
 	fconfigure $sock -translation binary
@@ -186,7 +187,7 @@ proc send_file {host file} {
     while {![eof $fd]} {
 	if {[catch {
 	    set payload [read $fd $blocksz]
-	    puts "[time] $index sending [string length $payload] byte chunk"
+	    #puts "[time] $index sending [string length $payload] byte chunk"
 	    puts -nonewline $sock $payload
 	    flush $sock
             incr index

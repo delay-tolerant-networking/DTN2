@@ -8,7 +8,7 @@
 set exp sched4
 set maxnodes 5
 set nfiles 100
-set size 100
+set size 1600
 set loss 0
 set bw 100kb
 set perhops "ph"

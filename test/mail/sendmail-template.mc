@@ -35,7 +35,7 @@ define(`confHOST_STATUS_DIRECTORY',`__HOST_STATUS_DIRECTORY__')dnl
 define(`QUEUE_DIR',`/var/spool/__QUEUE_DIR__')dnl
 define(`confTO_IDENT', `0')dnl
 dnl FEATURE(delay_checks)dnl
-sefine(`confTO_HOSTSTATUS',`__HOSTSTATUS_TIMEOUT__')dnl
+define(`confTO_HOSTSTATUS',`__HOSTSTATUS_TIMEOUT__')dnl
 
 
 FEATURE(`no_default_msa',`dnl')dnl
