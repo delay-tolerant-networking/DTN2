@@ -11,7 +11,7 @@
 #include <netinet/in.h>
 
 /*
- * In tcl8.4, the argv to commands is const, but not so in tcl8.3, so
+ * In tcl8.4, the objv to commands is const, but not so in tcl8.3, so
  * we need this stupid define, and force cast everything to const in
  * the implementation of tcl_cmd.
  */
@@ -59,10 +59,10 @@ public:
      * Initialize the interpreter instance and register any auto
      * registered command modules.
      */
-    static int init(char* argv0) {
+    static int init(char* objv0) {
         ASSERT(instance_ == NULL);
         instance_ = new CommandInterp();
-        return instance_->do_init(argv0);
+        return instance_->do_init(objv0);
     }
 
     /**
@@ -91,11 +91,11 @@ public:
     /**
      * Static callback function from Tcl to execute the commands.
      *
-     * \param client_data Pointer to config module for which this
+     * @param client_data Pointer to config module for which this
      *     command was registered.
-     * \param interp Tcl interpreter
-     * \param argc Argument count.
-     * \param argv Argument values.
+     * @param interp Tcl interpreter
+     * @param objc Argument count.
+     * @param objv Argument values.
      */
     static int tcl_cmd(ClientData client_data, Tcl_Interp* interp,
                        int objc, Tcl_Obj* const* objv);
@@ -151,21 +151,21 @@ public:
      * Useful function for generating error strings indicating that
      * the wrong number of arguments were passed to the command.
      *
-     * @param argc	original argument count to the command
-     * @param argv	original argument vector to the command
+     * @param objc	original argument count to the command
+     * @param objv	original argument vector to the command
      * @param parsed	number of args to include in error string
      * @param min	minimum number of expected args
      * @param max	maximum number of expected args (or INT_MAX)
      */
-    void wrong_num_args(int argc, const char** argv, int parsed,
+    void wrong_num_args(int objc, const char** objv, int parsed,
                         int min, int max);
 
     /**
      * Useful function for generating error strings indicating that
      * the wrong number of arguments were passed to the command.
      *
-     * @param argc	original argument count to the command
-     * @param argv	original argument vector to the command
+     * @param objc	original argument count to the command
+     * @param objv	original argument vector to the command
      * @param parsed	number of args to include in error string
      * @param min	minimum number of expected args
      * @param max	maximum number of expected args (or INT_MAX)
@@ -192,7 +192,7 @@ protected:
     /**
      * Do all of the actual initialization.
      */
-    int do_init(char* argv0);
+    int do_init(char* objv0);
     
     /**
      * Destructor is never called (and issues an assertion).
@@ -238,21 +238,21 @@ public:
     /** 
      * Override this to parse the list of arguments as strings.
      *
-     * @param argc Argument count 
-     * @param argv Argument values
+     * @param objc Argument count 
+     * @param objv Argument values
      * @param interp Tcl interpreter
      *
      * @return 0 on success, -1 on error
      */
-    virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
+    virtual int exec(int objc, const char** objv, Tcl_Interp* interp);
 
     virtual const char* help_string() { return("(No help, sorry.)");};
 
     /**
      * Internal handling of the "set" command.
      *
-     * @param argc Argument count 
-     * @param argv Argument values
+     * @param objc Argument count 
+     * @param objv Argument values
      * @param interp Tcl interpreter
      *
      * @return 0 on success, -1 on error
@@ -393,25 +393,25 @@ protected:
      * Useful function for generating error strings indicating that
      * the wrong number of arguments were passed to the command.
      *
-     * @param argc	original argument count to the command
-     * @param argv	original argument vector to the command
+     * @param objc	original argument count to the command
+     * @param objv	original argument vector to the command
      * @param parsed	number of args to include in error string
      * @param min	minimum number of expected args
      * @param max	maximum number of expected args (or INT_MAX)
      */
-    void wrong_num_args(int argc, const char** argv, int parsed,
+    void wrong_num_args(int objc, const char** objv, int parsed,
                         int min, int max)
     {
         CommandInterp::instance()->
-            wrong_num_args(argc, argv, parsed, min, max);
+            wrong_num_args(objc, objv, parsed, min, max);
     }
 
     /**
      * Useful function for generating error strings indicating that
      * the wrong number of arguments were passed to the command.
      *
-     * @param argc	original argument count to the command
-     * @param argv	original argument vector to the command
+     * @param objc	original argument count to the command
+     * @param objv	original argument vector to the command
      * @param parsed	number of args to include in error string
      * @param min	minimum number of expected args
      * @param max	maximum number of expected args (or INT_MAX)
