@@ -267,7 +267,7 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     // store the payload and notify the daemon
     bp  += header_len;
     len -= header_len;
-    bundle->payload_.set_data(bp, len);
+    bundle->payload_.append_data(bp, len);
     
     log_debug("process_data: new bundle id %d arrival, payload length %d",
 	      bundle->bundleid_, bundle->payload_.length());
@@ -358,7 +358,7 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
 
     // free up the iovec data used in the header representation
     // (bundle header that is)
-    BundleProtocol::free_header_iovmem(bundle, &iov[3], iovcnt);
+    BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt);
 
     // check that we successfully wrote it all
     int total = sizeof(UDPCLHeader) + header_len + payload_len;
