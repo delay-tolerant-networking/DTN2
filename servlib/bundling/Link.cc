@@ -145,6 +145,7 @@ Link::open()
     ASSERT(!isopen());
     if (!isopen()) {
         contact_ = new Contact(this);
+        closing_ = false; //--keith
     } else {
         log_warn("Trying to open an already open link %s",name());
     }
