@@ -43,7 +43,7 @@ echo set  up 60  >> $file
 echo set down 180 >> $file
 echo set OFFSET_VAL 0 >> $file
 
-#if ($10 != "dynamics") 
+#if ($10 != "dynamics") then
 #    exit "Usage problem: arugment 10 should be dynamics or nothing "
 #endif
 

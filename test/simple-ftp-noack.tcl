@@ -140,6 +140,10 @@ proc send_file {host file} {
 
     close $fd
  
+    	puts "[time] :: file  actually sent $file"
+    	puts $logfd "[time] :: file actually sent [file tail $file]   " 
+    	flush $logfd
+
     return 1
     # wait for an ack or timeout
     # puts "[time] sent whole file, waiting for ack"
@@ -231,6 +235,7 @@ proc file_arrived {file to_fd dest_dir sock} {
 
     #[catch {gets $sock line}]
     #	    puts "Abnormal close $conns(addr,$sock)"
+
     set payload [read $sock  $length_remaining($sock)] 
     puts -nonewline $to_fd $payload
     set got [string length $payload]
@@ -250,6 +255,7 @@ proc file_arrived {file to_fd dest_dir sock} {
 	puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
 	close $to_fd
 	flush $logfd
+	
     }
     
     set length_remaining($sock) $todo
