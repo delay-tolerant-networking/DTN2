@@ -15,7 +15,16 @@ void*
 Thread::thread_run(void* t)
 {
     Thread* thr = (Thread*)t;
-    
+
+    /*
+     * There's a potential race between the starting of the new thread
+     * and the storing of the thread id in the pthread_ member
+     * variable, so we can't trust that it's been written by our
+     * spawner. So we re-write it here to make sure that it's valid
+     * for the new thread (specifically for set_interruptable's
+     * assertion.
+     */
+    thr->pthread_ = Thread::current();
     thr->set_interruptable((thr->flags_ & INTERRUPTABLE));
     thr->run();
     
