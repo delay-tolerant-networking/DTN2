@@ -33,17 +33,12 @@ Contact::~Contact()
 void
 Contact::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
-    // Add it to the queue (default behavior as defined by bundle consumer
+    // Add it to the queue (default behavior as defined by bundle
+    // consumer)
     BundleConsumer::enqueue_bundle(bundle,mapping);
-    // XXX/demmer get rid of this
-    // XXX/sushant why get rid ?
-    clayer()->send_bundles(this);
-}
 
-ConvergenceLayer*
-Contact::clayer()
-{
-    return link_->clayer();
+    // and kick the convergence layer
+    clayer()->send_bundles(this);
 }
 
 /**

@@ -150,10 +150,11 @@ Link::format(char* buf, size_t sz)
 /**
  * Overrided default queuing behavior to handle ONDEMAND links
  * For other types of links invoke default behavior
-*/
+ */
 void
 Link::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
+    // XXX/sushant move to OndemandLink
     // For ondemand link open the link if it is already not open
     if (type_ == ONDEMAND) {
         if (!isopen()) {
@@ -162,17 +163,13 @@ Link::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
     }
 
     /*
-     * For all type of links if the link is open messages are always 
-     * queued on the contact queue and not on the link queue.
-     *
+     * If the link is open, messages are always queued on the contact
+     * queue, if not, put them on the link queue.
      */
     if (isopen()) {
         contact_->enqueue_bundle(bundle,mapping);
     } else {
-        // No contact is present, queue it on the link queue
         BundleConsumer::enqueue_bundle(bundle,mapping);
     }
     
 }
-
-

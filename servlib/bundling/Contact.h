@@ -38,7 +38,7 @@ public:
     /**
      * Accessor to this contact's convergence layer.
      */
-    ConvergenceLayer* clayer();
+    ConvergenceLayer* clayer() { return link_->clayer(); }
 
     /**
      * Store the convergence layer specific part of the contact.
@@ -78,7 +78,6 @@ protected:
     Link* link_ ; 		///< Pointer to parent link on
     				///  which this contact exists
     ContactInfo* contact_info_; ///< convergence layer specific info
-
 };
 
 

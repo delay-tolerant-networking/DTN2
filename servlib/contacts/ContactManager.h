@@ -64,23 +64,23 @@ public:
     /**
      * Add a peer
      */
-    void add_peer(Peer* peer) ;
+    void add_peer(Peer* peer);
     
     /**
      * Delete a peer
      */
-    void delete_peer(Peer* peer) ;
+    void delete_peer(Peer* peer);
     
     /**
      * Check if contact manager already has this peer
      */
-    bool has_peer(Peer* peer) ;
+    bool has_peer(Peer* peer);
 
     /**
      * Finds peer corresponding to this bundletuple
      * Creates one, if no such peer exists.
      */
-    Peer* find_peer(const BundleTuple& tuple) ;
+    Peer* find_peer(const BundleTuple& tuple);
     
     /**
      * Return the list of peers 
@@ -95,22 +95,22 @@ public:
     /**
      * Add a link
      */
-    void add_link(Link* link) ;
+    void add_link(Link* link);
     
     /**
      * Delete a link
      */
-    void delete_link(Link* link) ;
+    void delete_link(Link* link);
     
     /**
      * Check if contact manager already has this link
      */
-    bool has_link(Link* link) ;
+    bool has_link(Link* link);
 
     /**
      * Finds link corresponding to this name
      */
-    Link* find_link(const char* name) ;
+    Link* find_link(const char* name);
     
     /**
      * Return the list of links 
@@ -119,8 +119,8 @@ public:
     
 protected:
     static ContactManager* instance_;  ///< singleton instance
-    PeerSet* peers_ ;                  ///< Set of all peers
-    LinkSet* links_ ;                  ///< Set of all links
+    PeerSet* peers_;                  ///< Set of all peers
+    LinkSet* links_;                  ///< Set of all links
 };
 
 

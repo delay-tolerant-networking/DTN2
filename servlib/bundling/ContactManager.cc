@@ -10,12 +10,13 @@
 /**
  * Define the singleton contact manager instance
  */
-ContactManager* ContactManager::instance_ ; 
+ContactManager* ContactManager::instance_; 
 
 /**
  * Constructor / Destructor
  */
-ContactManager::ContactManager() : Logger("/contact_manager")
+ContactManager::ContactManager()
+    : Logger("/contact_manager")
 {
     peers_ = new PeerSet();
     links_ = new LinkSet();
@@ -36,8 +37,8 @@ void
 ContactManager::delete_peer(Peer *peer)
 {
     if (!has_peer(peer)) {
-        log_err("Error in deleting peer from contact manager.\
-                 Peer %s does not exist \n",peer->name());
+        log_err("Error in deleting peer from contact manager -- "
+                "Peer %s does not exist", peer->name());
     } else {
         peers_->erase(peer);
     }
@@ -47,7 +48,8 @@ bool
 ContactManager::has_peer(Peer *peer)
 {
     PeerSet::iterator iter = peers_->find(peer);
-    if (iter == peers_->end()) return false;
+    if (iter == peers_->end())
+        return false;
     return true;
 }
 
@@ -58,21 +60,23 @@ Peer*
 ContactManager::find_peer(const BundleTuple& tuple)
 {
     if (!tuple.valid()) {
-        log_err("Trying to find an malformed peer %s\n",tuple.c_str());
-        return NULL ;
+        log_err("Trying to find an malformed peer %s", tuple.c_str());
+        return NULL;
     }
     
-    PeerSet::iterator iter ;
+    PeerSet::iterator iter;
     Peer* peer = NULL;
     assert(peers_ != NULL);
+
     for (iter = peers_->begin(); iter != peers_->end(); ++iter)
     {
         peer = *iter;
-        if (peer->tuple().equals(tuple)) { return peer; }
+        if (peer->tuple().equals(tuple)) {
+            return peer;
+        }
     }
-//    log_info("Returning %s when searching %s\n",
-//             peer ? peer->name() : "NULL", tuple.c_str());
-    return NULL ;
+
+    return NULL;
 }
 
 
@@ -102,7 +106,8 @@ bool
 ContactManager::has_link(Link *link)
 {
     LinkSet::iterator iter = links_->find(link);
-    if (iter == links_->end()) return false;
+    if (iter == links_->end())
+        return false;
     return true;
 }
 
@@ -112,14 +117,14 @@ ContactManager::has_link(Link *link)
 Link*
 ContactManager::find_link(const char* name)
 {
-    LinkSet::iterator iter ;
+    LinkSet::iterator iter;
     Link* link = NULL;
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        if (strcasecmp(link->name(),name) == 0) return link;
+        if (strcasecmp(link->name(), name) == 0) return link;
     }
-    return NULL ;
+    return NULL;
 }
 
 /**
@@ -131,12 +136,12 @@ ContactManager::dump(StringBuffer* buf) const
     buf->append("contact manager info:\n");
 
     buf->append("Links::\n");
-    LinkSet::iterator iter ;
+    LinkSet::iterator iter;
     Link* link = NULL;
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        buf->appendf("\t link (type %s): (name) %s -> (peer) %s - (status) %s\n",
+        buf->appendf("\t link (type %s): (name) %s -> (peer) %s - (status) %s",
                      link->type_str(),
                      link->name(),
 //                     link->clayer()->proto(),

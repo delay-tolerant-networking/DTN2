@@ -28,7 +28,6 @@ class PeerSet : public std::set<Peer*> {};
  */
 class Peer : public Formatter,  public BundleConsumer {
 public:
-    
     /**
      * Constructor / Destructor
      */
@@ -38,17 +37,17 @@ public:
     /**
      * Add a link
      */
-    void add_link(Link* link) ;
+    void add_link(Link* link);
     
     /**
      * Delete a link
      */
-    void delete_link(Link* link) ;
+    void delete_link(Link* link);
     
     /**
      * Check if the peer already has this link
      */
-    bool has_link(Link* link) ; 
+    bool has_link(Link* link); 
     
     /**
      * Return the list of links that lead to the peer
@@ -63,7 +62,7 @@ public:
     /**
      * Name of the peer
      */
-    const char* name() { return tuple().data() ; }
+    const char* name() { return tuple().data(); }
     
     /**
      * Virtual from formatter
@@ -73,7 +72,7 @@ public:
     /**
      * Virtual from bundle consumer
      */
-    const char* type() { return "Peer" ;}
+    const char* type() { return "Peer"; }
         
 protected:
     LinkSet*  links_;      ///< List of links that lead to this peer
