@@ -52,6 +52,7 @@ dtnipc_open(dtnipc_handle_t* handle)
     int ret;
     char *env, *end;
     in_addr_t ipc_addr;
+    u_int32_t handshake;
     u_int16_t handshake_port;
     u_int port;
     
@@ -103,7 +104,7 @@ dtnipc_open(dtnipc_handle_t* handle)
     handle->sa.sin_addr.s_addr = ipc_addr;
     handle->sa.sin_port = htons(handshake_port);
 
-    u_int32_t handshake = DTN_OPEN;
+    handshake = DTN_OPEN;
     
     ret = sendto(handle->sock, &handshake, sizeof(handshake), 0,
                  (const struct sockaddr*)&handle->sa, sizeof(handle->sa));

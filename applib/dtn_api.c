@@ -416,7 +416,7 @@ dtn_build_local_tuple(dtn_handle_t handle,
     tuple->admin.admin_val = (char*)malloc(tuple->admin.admin_len);
 
     snprintf(tuple->admin.admin_val, tuple->admin.admin_len, "%.*s%s%s",
-             local_tuple->admin.admin_len, local_tuple->admin.admin_val,
+             (int)local_tuple->admin.admin_len, local_tuple->admin.admin_val,
              appendslash ? "/" : "", endpoint);
     
     return 0;

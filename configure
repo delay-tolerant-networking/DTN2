@@ -252,10 +252,14 @@ rm -f config.$$.c
 ccver=`./a.out`
 rm -f ./a.out
 
-elif [ "$target" = "arm" ]; then
-ccver=2.95
-mysql_enabled=0
-postgres_enabled=0
+else # non-native target
+
+if [ $ccver = "auto" ]; then
+   echo "Non-native target $target:"
+   echo " must specify compiler version using --with-ccver"
+   exit 1
+fi
+
 fi
 
 #

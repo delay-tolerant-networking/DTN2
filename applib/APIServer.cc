@@ -36,6 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/stat.h>
 #include <oasys/io/NetUtils.h>
 #include <oasys/io/UDPClient.h>
 
@@ -463,7 +464,7 @@ ClientAPIServer::handle_send()
         u_char buffer[4096];
 
         sprintf(filename, "%.*s", 
-                payload.dtn_bundle_payload_t_u.filename.filename_len,
+                (int)payload.dtn_bundle_payload_t_u.filename.filename_len,
                 payload.dtn_bundle_payload_t_u.filename.filename_val);
 
         if (stat(filename, &finfo) || (file = fopen(filename, "r")) == NULL)
