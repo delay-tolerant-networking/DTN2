@@ -52,6 +52,10 @@
 
 namespace dtn {
 
+/*
+ * Default values for address / ports, overrided via the configuration
+ * interface (see servlib/cmd/APICommand.cc).
+ */
 in_addr_t APIServer::local_addr_ = htonl(INADDR_LOOPBACK);
 u_int16_t APIServer::handshake_port_ = DTN_API_HANDSHAKE_PORT;
 u_int16_t APIServer::session_port_ = DTN_API_SESSION_PORT;
