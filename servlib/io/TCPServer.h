@@ -40,46 +40,24 @@ public:
     TCPServerThread(char* logbase = "/tcpserver")
         : TCPServer(logbase)
     {
-        stopbits_.stop_ = 0;
-        stopbits_.stopped_ = 0;
     }
-
+    
     /**
-     * @brief Virtual callback hook that gets called when new
-     * connections arrive.
+     * Virtual callback hook that gets called when new connections
+     * arrive.
      */
     virtual void accepted(int fd, in_addr_t addr, u_int16_t port) = 0;
 
     /**
-     * @brief Loop forever, issuing blocking calls to
-     * TCPServer::accept(), then calling the accepted() function when
-     * new connections arrive
+     * Loop forever, issuing blocking calls to TCPServer::accept(),
+     * then calling the accepted() function when new connections
+     * arrive
      * 
      * Note that unlike in the Thread base class, this run() method is
      * public in case we don't want to actually create a new thread
      * for this guy, but instead just want to run the main loop.
      */
     void run();
-
-    /**
-     * @brief Stop the server loop.
-     *
-     * This simply sets a flag that's examined after each call to
-     * accepted(), meaning that it won't interrupt the thread if it's
-     * blocked in the kernel.
-     */
-    void stop() { stopbits_.stop_ = true; }
-
-    /**
-     * Return true if the server has stopped.
-     */
-    bool is_stopped() { return (stopbits_.stopped_ == 1); }
-    
-protected:
-    struct stopbits {
-        u_int8_t stop_    : 1;
-        u_int8_t stopped_ : 1;
-    } stopbits_;
 };
                         
 #endif /* _TCP_SERVER_H_ */

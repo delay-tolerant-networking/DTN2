@@ -54,7 +54,8 @@ TCPServer::accept(int *fd, in_addr_t *addr, u_int16_t *port)
 }
 
 int
-TCPServer::timeout_accept(int *fd, in_addr_t *addr, u_int16_t *port, int timeout_ms)
+TCPServer::timeout_accept(int *fd, in_addr_t *addr, u_int16_t *port,
+                          int timeout_ms)
 {
     int ret = poll(POLLIN, timeout_ms);
 
@@ -79,7 +80,8 @@ TCPServerThread::run()
     u_int16_t port;
 
     while (1) {
-        if (stopbits_.stop_ == 1) break;
+        if (should_stop())
+            break;
         
         if (accept(&fd, &addr, &port) != 0) {
             if (errno == EINTR)
@@ -95,6 +97,4 @@ TCPServerThread::run()
 
         accepted(fd, addr, port);
     }
-    
-    stopbits_.stopped_ = 1;
 }

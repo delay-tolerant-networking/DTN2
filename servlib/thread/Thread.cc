@@ -25,8 +25,15 @@ Thread::thread_run(void* t)
      * assertion.
      */
     thr->pthread_ = Thread::current();
+    
     thr->set_interruptable((thr->flags_ & INTERRUPTABLE));
+
+    thr->flags_ &= ~STOPPED;
+    thr->flags_ &= ~SHOULD_STOP;
+    
     thr->run();
+    
+    thr->flags_ |= STOPPED;
     
     if (thr->flags_ & DELETE_ON_EXIT) {
         delete thr;
