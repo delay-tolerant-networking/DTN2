@@ -41,7 +41,7 @@
 namespace dtn {
 
 TestCommand::TestCommand()
-    : TclCommand("test"), id_(0)
+    : TclCommand("test"), id_(0), fork_(false)
 {
 }
 
