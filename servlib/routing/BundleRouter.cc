@@ -172,14 +172,18 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
 
         log_debug("incomplete transmission: creating reactive fragment "
                   "(offset %d len %d/%d)", frag_off, frag_len, payload_len);
-
+        
         Bundle* tail = FragmentManager::instance()->
                        create_fragment(bundle, frag_off, frag_len);
         
-        // treat the new fragment as if it just arrived.
-        pending_bundles_->push_back(tail);
-        actions->push_back(new BundleAction(STORE_ADD, tail));
-        fwd_to_matching(tail, actions, false);
+        // treat the new fragment as if it just arrived (sort of). we
+        // don't want to store the fragment if no-one will consume it.
+        int count = fwd_to_matching(tail, actions, false);
+
+        if (count > 0) {
+            pending_bundles_->push_back(tail);
+            actions->push_back(new BundleAction(STORE_ADD, tail));
+        }
     }
 }
 
@@ -261,7 +265,7 @@ BundleRouter::handle_route_add(RouteAddEvent* event,
  * Loop through the routing table, adding an entry for each match
  * to the action list.
  */
-void
+int
 BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
                               bool include_local)
 {
@@ -269,10 +273,9 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
     RouteEntrySet matches;
     RouteEntrySet::iterator iter;
 
-    size_t count = route_table_->get_matching(bundle->dest_, &matches);
+    route_table_->get_matching(bundle->dest_, &matches);
     
-    log_debug("fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);
-
+    int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter) {
         entry = *iter;
         if ((include_local == false) && entry->local_)
@@ -280,7 +283,11 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
         
         actions->push_back(
             new BundleForwardAction(entry->action_, bundle, entry->next_hop_));
+        ++count;
     }
+
+    log_debug("fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);
+    return count;
 }
 
 /**

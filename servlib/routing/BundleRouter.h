@@ -147,9 +147,11 @@ protected:
      *
      * Note that if the include_local flag is set, then local routes
      * (i.e. registrations) are included in the list.
+     *
+     * Returns the number of matches found and assigned.
      */
-    void fwd_to_matching(Bundle* bundle, BundleActionList* actions,
-                         bool include_local);
+    int fwd_to_matching(Bundle* bundle, BundleActionList* actions,
+                        bool include_local);
     
     /**
      * Called whenever a new consumer (i.e. registration or contact)
