@@ -261,26 +261,26 @@ UDPConvergenceLayer::Receiver::run()
     int fd;
     in_addr_t addr;
     u_int16_t port;
-    char* pt_payload = (char*)malloc(IPSocket::max_udp_packet_size_);
-    size_t payload_len = 0;    
+    char* pt_payload = (char*)malloc(MAX_UDP_PACKET);
     int ret;
 
     while (1) {
         if (should_stop())
             break;
-        ret = recvfrom(&fd, &addr, &port, &pt_payload, &payload_len);
+        ret = recvfrom(pt_payload, MAX_UDP_PACKET, 0, &addr, &port);
 	if (ret <= 0 ) {	  
             if (errno == EINTR) {
                 continue;
             }
-            logf(LOG_ERR, "error in RcvMessage(): %d %s", errno, strerror(errno));
+            logf(LOG_ERR, "error in recvfrom(): %d %s",
+                 errno, strerror(errno));
             close();
             break;
         }
-       
+        
 	logf(LOG_DEBUG, "Received data on fd %d from %s:%d",
 	     fd, intoa(addr), port);	         
-	process_data(pt_payload, payload_len);	
+	process_data(pt_payload, ret);
     }
 }
 
