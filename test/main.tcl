@@ -25,10 +25,11 @@ route set type "static"
 
 # configure the database (and tidy up)
 config_db
-tidy_up
 
 # Create the children who will run with us
-create_bundle_daemons $num_nodes
+if {[test set fork]} {
+    create_bundle_daemons $num_nodes
+}
 
 # Set up the the network and routing
 setup_${network}_network

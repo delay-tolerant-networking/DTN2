@@ -19,7 +19,6 @@ int
 main(int argc, char* argv[])
 {
     TestCommand testcmd;
-    bool	testid_set = false;
     int         random_seed;
     bool        random_seed_set = false;
     bool	daemon = false;
@@ -29,21 +28,21 @@ main(int argc, char* argv[])
     log_level_t loglevel;
 
     // Register all command line options
-    new StringOpt("o", &logfile, "output",
-                  "file name for logging output ([-o -] indicates stdout)");
-    new StringOpt("l", &loglevelstr, "level",
+    new StringOpt ("o", &logfile, "output",
+                   "file name for logging output ([-o -] indicates stdout)");
+    new StringOpt ("l", &loglevelstr, "level",
                   "default log level [debug|warn|info|crit]");
-    new StringOpt("c", &conf_file, "conf", "config file");
-    new BoolOpt("d", &daemon, "run as a daemon");
-    new BoolOpt("t", &StorageConfig::instance()->tidy_,
-                "clear database and initialize tables on startup");
-    new BoolOpt("C", &StorageConfig::instance()->init_,
-                "initialize database on startup");
-    new IntOpt("s", &random_seed, &random_seed_set, "seed",
-               "random number generator seed");
+    new StringOpt ("c", &conf_file, "conf", "config file");
+    new BoolOpt   ("d", &daemon, "run as a daemon");
+    new BoolOpt   ("t", &StorageConfig::instance()->tidy_,
+                   "clear database and initialize tables on startup");
+    new BoolOpt   ("C", &StorageConfig::instance()->init_,
+                   "initialize database on startup");
+    new IntOpt    ("s", &random_seed, &random_seed_set, "seed",
+                   "random number generator seed");
 
-    new IntOpt("i", &testcmd.id_, &testid_set,
-               "id", "set the test id");
+    new IntOpt    ("i", &testcmd.id_, "id", "set the test id");
+    new BoolOpt   ("f", &testcmd.fork_, "test scripts fork child daemons");
 
     Options::getopt(argv[0], argc, argv);
 

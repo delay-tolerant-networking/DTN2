@@ -22,7 +22,7 @@ proc create_bundle_daemons { num_nodes } {
 	lappend argv -d
 	lappend argv < /dev/null
 
-	if {! [test set log_to_stdout]} {
+	if {[log set logfile] != "-"} {
 	    lappend argv -o $log_path
 	}
 	
