@@ -1094,7 +1094,6 @@ TCPConvergenceLayer::Connection::send_loop()
         // keepalive in time
         pollfds[0].revents = 0;
         pollfds[1].revents = 0;
-        pollfds[2].revents = 0;
         
         log_debug("send_loop: calling poll (timeout %d)", keepalive_msec_);
         int nready = poll(pollfds, 2, keepalive_msec_);
