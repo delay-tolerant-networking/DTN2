@@ -32,7 +32,8 @@ BundleStore::get(int bundle_id)
 int
 BundleStore::put(Bundle* bundle)
 {
-    return store_->put(bundle, bundle->id());
+    // XXX
+    return 0;
 }
 
 /**
