@@ -142,6 +142,8 @@ proc new_client {dest_dir sock addr port} {
     set L [gets $sock]
     foreach {filename length} $L {}
 
+
+
     puts "getting file $filename length $length"
     
     set to_fd [open "$dest_dir/$filename" w]
@@ -161,7 +163,7 @@ proc file_arrived {file to_fd dest_dir sock} {
     global length_remaining
     
     if {[eof $sock]} {
-	puts "Normal Close $conns(addr,$sock) EOF received"
+	puts "[time] Normal Close $conns(addr,$sock) EOF received"
 	close $sock
 	close $to_fd
 	puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
@@ -184,6 +186,7 @@ proc file_arrived {file to_fd dest_dir sock} {
 	if {$todo == 0} {
 	    puts $sock "ack file $file"
 	    flush $sock
+	    puts "[time] sending ack for file $file"
 	}
 	
 	set length_remaining($sock) $todo
