@@ -56,6 +56,7 @@ protected:
     {
     }
     
+public:
     /**
      * Hook to validate the admin part of a bundle tuple.
      *
