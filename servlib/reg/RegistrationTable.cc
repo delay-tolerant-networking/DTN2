@@ -223,7 +223,7 @@ RegistrationTable::dump(oasys::StringBuffer* buf) const
     {
 	Registration* reg = *i;
         
-	buf->appendf("id %u: %s (%s)",
+	buf->appendf("id %u: %s (%s)\n",
                      reg->regid(),
                      reg->endpoint().c_str(),
                      Registration::failure_action_toa((reg->failure_action())));
