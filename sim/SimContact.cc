@@ -123,7 +123,7 @@ SimContact::close_contact(bool forever)
         Simulator::add_event(e);
         future_updown_event_ = e;
     }
-
+    
     
     if (state_ == BUSY) {
         log_info("C[%d]: state busy while closing, chewing_event:%p",
