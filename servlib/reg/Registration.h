@@ -103,7 +103,6 @@ protected:
     failure_action_t failure_action_;	
     std::string script_;
     time_t expiration_;
-    BundleList* bundle_list_;
     bool active_;
 };
 
