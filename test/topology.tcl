@@ -4,12 +4,14 @@
 proc setup_linear_topology {type cl {args ""}} {
     global hosts num_nodes id route_to_root
 
+    log /test info "setting up linear topology"
+
     # tcp route to next_hop in chain. can just use the peer
     if { $id != [expr $num_nodes - 1] } {
 	set peerid [expr $id + 1]
 	set peeraddr $hosts($peerid)
 	eval link add link-$peerid host://$peeraddr:5000 \
-		$type $cl $args
+		$type $cl $args 
 
 	route add bundles://internet/host://$peeraddr/* link-$peerid
     }
