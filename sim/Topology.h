@@ -59,6 +59,14 @@ public:
 
     typedef oasys::StringHashMap<Node*> NodeTable;
     static NodeTable nodes_;
+
+    static u_int32_t next_regid()
+    {
+        return ++next_regid_;
+    }
+
+protected:
+    static u_int32_t next_regid_;
     
 //     static void create_link(const char* src, const char* dst
 //     static void create_contact(const char* src, const char* dst, 

@@ -41,6 +41,7 @@
 namespace dtnsim {
 
 Topology::NodeTable Topology::nodes_;
+u_int32_t Topology::next_regid_ = 0;
 
 Node*
 Topology::create_node(const char* name)

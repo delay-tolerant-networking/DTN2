@@ -40,7 +40,11 @@
 
 #include "Node.h"
 #include "NodeCommand.h"
+#include "SimRegistration.h"
+#include "bundling/BundleTuple.h"
 #include "routing/BundleRouter.h"
+
+using namespace dtn;
 
 namespace dtnsim {
 
@@ -59,10 +63,14 @@ NodeCommand::help_string()
 int
 NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
-    if (argc < 4) {
+    if (argc < 3) {
         wrong_num_args(argc, argv, 2, 4, INT_MAX);
         return TCL_ERROR;
     }
+
+    // for all commands and their side-effects, we install the
+    // referenced node as the "singleton" BundleDaemon instance
+    node_->set_active();
 
     // pull out the time and subcommand
     char* end;
@@ -73,9 +81,13 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
 
     const char* cmd = argv[2];
-    const char* subcmd = argv[3];
+    const char* subcmd;
+    if (argc >= 4) {
+        subcmd = argv[3];
+    }
 
-    if (strcmp(cmd, "route") == 0) {
+    if (strcmp(cmd, "route") == 0)
+    {
         if (strcmp(subcmd, "local_tuple") == 0) {
             if (time != 0) {
                 resultf("node %s %s must be run at time 0", cmd, subcmd);
@@ -100,14 +112,39 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
                 return TCL_ERROR;
             }
         }
-
-        resultf("node %s: unsupported subcommand %s", cmd, subcmd);
+        
+        resultf("node route: unsupported subcommand %s", subcmd);
         return TCL_ERROR;
     }
-    (void)time;
+    else if (strcmp(cmd, "registration") == 0)
+    {
+        if (strcmp(subcmd, "add") == 0) {
+            // <node> X registration add <demux_tuple>
+            const char* demux_str = argv[4];
+            BundleTuplePattern demux_tuple(demux_str);
 
-    resultf("node: unsupported subcommand %s", cmd);
-    return TCL_ERROR;
+            if (!demux_tuple.valid()) {
+                resultf("error in node registration add %s: "
+                        "invalid demux tuple", demux_str);
+                return TCL_ERROR;
+            }
+
+            new SimRegistration(node_, demux_tuple);
+            
+            return TCL_OK;
+        }        
+        resultf("node registration: unsupported subcommand %s", subcmd);
+        return TCL_ERROR;
+    }
+
+    else
+    {
+        resultf("node: unsupported subcommand %s", cmd);
+        return TCL_ERROR;
+    }
+
+
+    
 }
 
 } // namespace dtnsim

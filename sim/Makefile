@@ -29,6 +29,7 @@ SIM_SRCS := \
 	NodeCommand.cc		\
 	Simulator.cc		\
 	SimCommand.cc		\
+	SimRegistration.cc	\
 	Topology.cc		\
 
 SIM_OBJS := $(SIM_SRCS:.cc=.o)

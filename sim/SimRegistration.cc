@@ -35,30 +35,54 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "Node.h"
-#include "bundling/ContactManager.h"
-#include "routing/BundleRouter.h"
+
+#include <oasys/util/StringBuffer.h>
+
+#include "SimRegistration.h"
+#include "Topology.h"
+#include "bundling/Bundle.h"
 
 using namespace dtn;
 
 namespace dtnsim {
 
-Node::Node(const char* name)
-    : BundleDaemon(), name_(name)
+SimRegistration::SimRegistration(Node* node, const BundleTuple& demux_tuple)
+    : Registration(Topology::next_regid(), demux_tuple, ABORT)
 {
-    logpathf("/node/%s", name);
-    log_info("node %s initializing...", name);
+    logpathf("/reg/%s/%d", node->name(), regid_);
 
-    BundleDaemon::instance_ = this;
-
-    router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
-    contactmgr_ = new ContactManager();
+    log_debug("new sim registration");
 }
 
 void
-Node::process(Event *e)
+SimRegistration::enqueue_bundle(Bundle* bundle,
+                                const BundleMapping* mapping)
 {
-    NOTIMPLEMENTED;
+    size_t payload_len = bundle->payload_.length();
+    log_debug("got %d byte bundle", payload_len);
+}
+                   
+/**
+ * Attempt to remove the given bundle from the queue.
+ *
+ * @return true if the bundle was dequeued, false if not.
+ */
+bool
+SimRegistration::dequeue_bundle(Bundle* bundle,
+                                  BundleMapping** mappingp)
+{
+    // since there's no queue, we can't ever dequeue something
+    return false;
+}
+
+
+/**
+ * Check if the given bundle is already queued on this consumer.
+ */
+bool
+SimRegistration::is_queued(Bundle* bundle)
+{
+    return false;
 }
 
 } // namespace dtnsim

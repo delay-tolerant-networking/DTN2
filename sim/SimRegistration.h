@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2005 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,30 +35,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef _SIM_REGISTRATION_H_
+#define _SIM_REGISTRATION_H_
+
 #include "Node.h"
-#include "bundling/ContactManager.h"
-#include "routing/BundleRouter.h"
+#include "reg/Registration.h"
 
 using namespace dtn;
 
 namespace dtnsim {
 
-Node::Node(const char* name)
-    : BundleDaemon(), name_(name)
-{
-    logpathf("/node/%s", name);
-    log_info("node %s initializing...", name);
+/**
+ * Registration used for the simulator
+ */
+class SimRegistration : public Registration {
+public:
+    SimRegistration(Node* node, const BundleTuple& demux_tuple);
 
-    BundleDaemon::instance_ = this;
+    /**
+     * Consume the given bundle.
+     */
+    void enqueue_bundle(Bundle* bundle,
+                        const BundleMapping* mapping);
 
-    router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
-    contactmgr_ = new ContactManager();
-}
+    /**
+     * Attempt to remove the given bundle from the queue.
+     *
+     * @return true if the bundle was dequeued, false if not.
+     */
+    bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
 
-void
-Node::process(Event *e)
-{
-    NOTIMPLEMENTED;
-}
+    /**
+     * Check if the given bundle is already queued on this consumer.
+     */
+    bool is_queued(Bundle* bundle);
+};
 
 } // namespace dtnsim
+
+#endif /* _SIM_REGISTRATION_H_ */
