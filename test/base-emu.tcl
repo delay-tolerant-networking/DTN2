@@ -40,14 +40,15 @@ set downlist {}
 ## The first event schedules is a down link event
 set start $WARMUPTIME
 
-
-
+## Make sure $offset > 1
 while {$start < $MAX_SIM_TIME} {
 
     ## Start up state (link is down before offset)
     if {$offset != 0} {
 	lappend downlist [expr $start + 1]
 	lappend uplist [expr $start + $offset   ]
+    }  else {
+	lappend uplist [expr $start ]
     }
 
    # puts "Outer loop $start"
@@ -126,14 +127,6 @@ set ONE_CYCLE_LENGTH [expr $finish + $WARMUPTIME]
 set uplist {}
 set downlist {}
 
-# Parameters give by command line
-set up $up
-set down $down
-# Time list when to fire up event
-set uplist ""
-# Time list when to fire down event
-set downlist ""
-
 if {$linkdynamics == 1} {
     for {set i 1} {$i <  $maxnodes} {incr i} {
     #Do stuff for the ith link
@@ -154,7 +147,7 @@ if {$linkdynamics == 1} {
 ### Node programs
 
 for {set i 1} {$i <=  $maxnodes} {incr i} {
-    set starttime $WARMUPTIME
+    set starttime 0
      foreach proto $protos {
 	foreach perhop $perhops {
 	    set progVar "prog-$proto-$perhop-$i"
@@ -162,6 +155,7 @@ for {set i 1} {$i <=  $maxnodes} {incr i} {
 	    set $progVar  [new Program $ns]
 	    $progVar set node $node($i)
 	    $progVar set command [get-cmd $i $perhop $proto]
+	    set starttime [expr $starttime + $WARMUPTIME]
 	    set mytime $starttime
 	    set end [expr  $starttime + $finish]
 	    ## Source is later as it will contact server on socket
@@ -169,7 +163,7 @@ for {set i 1} {$i <=  $maxnodes} {incr i} {
 	    $ns at  $mytime "[set $progVar] start"
 	    $ns at  $end "[set $progVar] stop"
 	    
-	    set starttime [expr  $starttime + $finish + $WARMUPTIME]
+	    set starttime [expr  $starttime + $finish]
 	}
 
     }

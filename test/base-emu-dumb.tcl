@@ -13,7 +13,7 @@ set loss 0
 set bw 100kb
 set perhops "ph"
 set protos "dtn"
-set finish 2400
+set finish 1800
 # Start of Base Script to setup Emulab DTN2 experiments
 
 
@@ -31,12 +31,12 @@ set DELAY_FOR_SOURCE_NODE 2
 ## Adjust the following if links are dynamic 
 
 set linkdynamics 1
-set up 30 
+set up 60
 ## Length of uptime
 set down 180   
 ## Length of downtime
 
-set OFFSET_VAL 15
+set OFFSET_VAL 0
 
 
 
@@ -61,12 +61,20 @@ set start $WARMUPTIME
 
 
 while {$start < $MAX_SIM_TIME} {
+    
+
+    set thisloopuplist ""
+    set thisloopdownlist ""
 
     ## Start up state (link is down before offset)
     if {$offset != 0} {
-	lappend downlist [expr $start + 1]
-	lappend uplist [expr $start + $offset   ]
+
+	lappend thisloopdownlist [expr $start ]
+	lappend thisloopuplist [expr $start + $offset   ]
+    } else {
+	lappend thisloopuplist [expr $start ]
     }
+
 
    # puts "Outer loop $start"
     set current [expr $start + $offset]
@@ -74,11 +82,24 @@ while {$start < $MAX_SIM_TIME} {
     while {$current  < $limit} {
 	set current [expr $current + $up]
 	if {$current > $limit} break ; 
-	lappend downlist $current
+	lappend thisloopdownlist $current
+
 	set current [expr $current + $down]
 	if {$current > $limit} break ; 
-	lappend uplist $current
+
+	lappend thisloopuplist $current
     }
+
+    puts "START  is $start "
+    puts "DOWN LIST  $thisloopdownlist "
+    puts "UP  LIST  $thisloopuplist "
+
+    puts ""
+    puts ""
+
+    lappend uplist $thisloopuplist
+    lappend downlist $thisloopdownlist
+
     set start [expr $start + $ONE_CYCLE_LENGTH ]
 }
 
@@ -87,20 +108,15 @@ lappend uplist [expr $WARMUPTIME + $current]
 
 }
 
-set runs [expr [llength $protos]*[llength $perhops] ]
 
+set runs [expr [llength $protos]*[llength $perhops] ]
 set MAX_SIM_TIME [expr $runs*$finish + $runs*$WARMUPTIME + $WARMUPTIME]
+set MAX_SIM_TIME  6000
 set ONE_CYCLE_LENGTH [expr $finish + $WARMUPTIME]
 set uplist {}
 set downlist {}
 
-# Parameters give by command line
-set up $up
-set down $down
-# Time list when to fire up event
-set uplist ""
-# Time list when to fire down event
-set downlist ""
+
 
 
 set emustr "tevexc -e DTN/exp "
@@ -123,12 +139,12 @@ if {$linkdynamics == 1} {
 	}
 	foreach downtime $downlist {
 	 #   $ns at $downtime "$linkname down"
-	    append downtime_str "$emustr +$uptime $linkname DOWN \n"
+	    append downtime_str "$emustr + $downtime $linkname DOWN \n"
 	}
     }
 }
 
-puts $uptime_str
-puts $downtime_str
+#puts $uptime_str
+#puts $downtime_str
 
 

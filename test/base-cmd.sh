@@ -43,7 +43,7 @@ set ftplogfile =  $logroot/ftplog.$id
 set tcptimerfile = $dtn2testroot/tcp_retries2.sush
 
 ## stuff that u dont have to log in NFS
-set localtmpdir       =  /tmp/log$proto.$id
+set localtmpdir       =  /tmp/log-$proto.$id
 set txdir       = $localtmpdir/txfiles
 
 
