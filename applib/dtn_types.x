@@ -49,22 +49,18 @@
 % * XDR routines.
 % */
 %
+%#include <limits.h>
+%#ifndef ARG_MAX
+%#define ARG_MAX _POSIX_ARG_MAX
+%#endif
+%
+%  /* cygwin's rpcgen skips this include? ick! */
+%#include <rpc/rpc.h>
 %
 %/**********************************
 % * Constants.
 % * (Note that we use #defines to get the comments as well)
 % */
-%
-%/* CYGWIN does not provide an ARG_MAX */
-%#if __CYGWIN__
-%# include <limits.h>
-%# ifndef ARG_MAX
-%#  define ARG_MAX _POSIX_ARG_MAX
-%# endif
-%  /* cygwin's rpcgen skips this include? ick! */
-%# include <rpc/rpc.h>
-%#endif
-%
 %#define DTN_MAX_TUPLE 1024		/* max tuple size (bytes) */
 %#define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
 %#define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */

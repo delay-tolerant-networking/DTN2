@@ -40,10 +40,10 @@
 
 #if __DB_ENABLED__
 
+#include <errno.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/errno.h>
-#include <unistd.h>
 
 #include <oasys/serialize/MarshalSerialize.h>
 #include <oasys/util/StringBuffer.h>

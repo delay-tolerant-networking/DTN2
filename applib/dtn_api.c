@@ -38,12 +38,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "dtn_api.h"
-#include "dtn_ipc.h"
-#include <sys/errno.h>
+
+#include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "dtn_api.h"
+#include "dtn_ipc.h"
 
 /**
  * Open a new connection to the router.

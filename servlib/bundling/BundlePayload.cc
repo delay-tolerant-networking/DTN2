@@ -36,9 +36,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/errno.h>
 #include <oasys/debug/Debug.h>
 #include <oasys/thread/SpinLock.h>
 #include <oasys/util/StringBuffer.h>

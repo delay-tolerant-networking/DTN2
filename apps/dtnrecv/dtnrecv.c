@@ -38,7 +38,9 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/errno.h>
+#include <errno.h>
+#include <strings.h>
+#include <stdlib.h>
 #include <sys/time.h>
 #include "dtn_api.h"
 
