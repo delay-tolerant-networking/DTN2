@@ -281,11 +281,15 @@ TCPConvergenceLayer::Connection::run()
 bool
 TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 {
-    int iovcnt = BundleProtocol::MAX_IOVCNT;
-    struct iovec iov[iovcnt + 2];
+    int iovcnt;
+    int header_iovcnt = BundleProtocol::MAX_IOVCNT;
+    struct iovec iov[header_iovcnt + 3];
+    size_t block_len;
+    size_t payload_len = bundle->payload_.length();
     
-    // use iov slot zero for the one byte frame header type, and
-    // slot one for the frame header itself
+    // use iov slot zero for the one byte frame header type, slot one
+    // for the frame header, then N slots for the bundle header, and
+    // finally one more for the first data block
     BundleStartHeader starthdr;
     char typecode = BUNDLE_START;
     iov[0].iov_base = &typecode;
@@ -293,11 +297,10 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     iov[1].iov_base = &starthdr;
     iov[1].iov_len  = sizeof(BundleStartHeader);
         
-    // fill in the rest of the iovec with the bundle header
-    u_int16_t header_len;
-    header_len = BundleProtocol::format_headers(bundle, &iov[2], &iovcnt);
-    size_t payload_len = bundle->payload_.length();
-    
+    // fill in the bundle header into the iovec
+    u_int16_t header_len =
+        BundleProtocol::format_headers(bundle, &iov[2], &header_iovcnt);
+
     log_debug("send_bundle: bundle id %d, header_length %d payload_length %d",
               bundle->bundleid_, header_len, payload_len);
 
@@ -306,8 +309,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     starthdr.bundle_length = htonl(header_len + payload_len);
     starthdr.header_length = htons(header_len);
 
-    // check to see if it will fit in one block
-    size_t block_len;
+    // check to see if the whole bundle will fit in one block, and
+    // fill in the start header fields appropriately
     if (payload_len <= ack_blocksz_) {
         block_len = payload_len;
         starthdr.block_length = htonl(payload_len);
@@ -318,47 +321,46 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         starthdr.partial = 1;
     }
 
-    // all set to go, now write out the header (need to bump up iovcnt
-    // to account for the frame header)
-    log_debug("send_bundle: sending %d byte frame hdr, %d byte bundle hdr",
-              1 + sizeof(BundleStartHeader), header_len);
-    int cc = sock_->writevall(iov, iovcnt + 2);
-    int total = 1 + sizeof(BundleStartHeader) + header_len;
+    // don't forget that we kept two iovecs for the frame typecode and
+    // header, then fill in the last one with the payload data
+    const char* payload_data = bundle->payload_.read_data(0, block_len);
+    
+    iovcnt = 2 + header_iovcnt;
+    iov[iovcnt].iov_base = (void*)payload_data;
+    iov[iovcnt].iov_len  = block_len;
+    iovcnt++;
+
+    size_t total = 1 + sizeof(BundleStartHeader) + header_len + block_len;
+    
+    // all set to go, now write it all out 
+    log_debug("send_bundle: sending %d byte frame hdr, %d byte bundle hdr, "
+              "%d byte first block",
+              1 + sizeof(BundleStartHeader), header_len, block_len);
+    
+    int cc = sock_->writev(iov, iovcnt);
 
     // free up the iovec data used in the header representation
-    BundleProtocol::free_header_iovmem(bundle, &iov[2], iovcnt);
+    BundleProtocol::free_header_iovmem(bundle, &iov[2], header_iovcnt);
 
-    // make sure the write was successful
-    if (cc != total) {
-        log_err("send_bundle: error writing bundle header (wrote %d/%d): %s",
-                cc, total, strerror(errno));
+    if (cc != (int)total) {
+        log_crit("XXX/demmer fix this -- for now, closing the connection");
         return false;
     }
-        
-    // now write out the first (and maybe only) payload block
-    log_debug("send_bundle: sending %d byte first payload block", block_len);
-    const char* payload_data = bundle->payload_.read_data(0, block_len);
-    cc = sock_->writeall(payload_data, block_len);
 
-    if (cc != (int)block_len) {
-        log_err("send_bundle: error writing bundle block (wrote %d/%d): %s",
-                cc, block_len, strerror(errno));
-        return false;
-    }
-    
     // update payload_len and payload_offset to count the chunk we
     // just wrote
     size_t payload_offset;
     payload_offset = block_len;
     payload_len   -= block_len;
-
+    
     // now loop through the rest of the payload, sending blocks and
-    // checking for acks as they come in. we intentionally send a
-    // second data block before checking for any acks since it's
-    // likely that there's no ack to read the first time through and
-    // this way we get a second block out on the wire
+    // checking for acks as they come in.
+    //
+    // however, 
+    
     bool sentok = false;
-        
+    bool writeblocked = false;
+    
     while (payload_len > 0) {
         BundleBlockHeader blockhdr;
 
@@ -382,62 +384,127 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
         log_debug("send_bundle: sending %d byte block %p",
                   block_len, payload_data);
-        cc = sock_->writevall(iov, 3);
+        
+        cc = sock_->writev(iov, 3);
         total = 1 + sizeof(BundleBlockHeader) + block_len;
-        if (cc != total) {
-            log_warn("send_bundle: "
-                     "error writing bundle block (wrote %d/%d): %s",
-                     cc, block_len, strerror(errno));
+
+        if (cc == 0) {
+            // eof from the other side
+            log_warn("send_bundle: remote side closed connection");
             goto done;
         }
-
+        
+        else if (cc < 0) {
+            if (errno == EWOULDBLOCK) {
+                // socket buffer full. we'll loop down below waiting
+                // for it to drain
+                log_debug("send_bundle: write returned EWOULDBLOCK");
+                writeblocked = true;
+                goto blocked;
+                
+            } else {
+                // some other error, bail
+                log_warn("send_bundle: "
+                         "error writing bundle block (wrote %d/%d): %s",
+                         cc, block_len, strerror(errno));
+                goto done;
+            }
+        }
+        
+        if (cc < (int)total) {
+            //if (cc < (int)(1 + sizeof(BundleBlockHeader)))
+            
+            // very unlikely and annoying case to deal with
+            log_crit("send_bundle: XXX/demmer can't deal with cut off block");
+            goto done;
+        }
+        
         // update payload_offset and payload_len
         payload_offset += block_len;
         payload_len    -= block_len;
 
-        // XXX/demmer temp
-        cc = handle_ack(bundle, 5000, acked_len);
-        
-        if (cc == IOEOF || cc == IOTIMEOUT) {
-            log_warn("send_bundle: %s waiting for ack",
-                     (cc == IOEOF) ? "eof" : "timeout");
-            goto done;
-        }
-        else if (cc == IOERROR) {
-            log_warn("send_bundle: error waiting for ack: %s",
-                     strerror(errno));
-            goto done;
-        }
-        
-        log_debug("send_bundle: got ack for %d/%d -- looping to send more",
-                  *acked_len, payload_len);
-        ASSERT(cc == 1);
+        // call poll() to check for any pending ack replies on the
+        // socket, and if we're write blocked, an indication that the
+        // socket buffer drained. note that if we're not actually
+        // write blocked, the call should return immediately, but will
+        // still give us the indication of pending data to read.
+        //
+        // loop as long as we're write blocked
+ blocked:
+        int revents;
+        do {
+            cc = sock_->poll(POLLIN | POLLOUT, &revents, 5000);
+            if (cc < 0) {
+                log_warn("send_bundle: error waiting for ack: %s",
+                         strerror(errno));
+                goto done;
+            }
+            
+            if (cc == 0) {
+                log_warn("send_bundle: timeout waiting for ack or write-ready");
+                goto done;
+            }
+
+            ASSERT(cc == 1);
+
+            if (revents & POLLIN) {
+                cc = handle_ack(bundle, acked_len);
+                
+                if (cc == IOERROR) {
+                    goto done;
+                }
+                ASSERT(cc == 1);
+                
+                log_debug("send_bundle: got ack for %d/%d -- "
+                          "looping to send more", *acked_len, payload_len);
+            }
+
+            if (!(revents & POLLOUT)) {
+                log_debug("poll returned write not ready");
+                writeblocked = true;
+            }
+
+            else if (writeblocked && (revents & POLLOUT)) {
+                log_debug("poll returned write ready");
+                writeblocked = false;
+            }
+            
+        } while (writeblocked);
     }
 
-    // now loop and block until we get all the acks, but cap the wait
-    // at 5 seconds. XXX/demmer maybe this should be adjustable based
-    // on the keepalive timer?
+    // now we've written the whole payload, so loop and block until we
+    // get all the acks, but cap the wait at 5 seconds. XXX/demmer
+    // maybe this should be adjustable based on the keepalive timer?
     payload_len = bundle->payload_.length();
 
     while (*acked_len < payload_len) {
         log_debug("send_bundle: acked %d/%d, waiting for more",
                   *acked_len, payload_len);
-        
-        cc = handle_ack(bundle, 5000, acked_len);
-        if (cc == IOEOF || cc == IOTIMEOUT) {
-            log_warn("send_bundle: %s waiting for ack",
-                     (cc == IOEOF) ? "eof" : "timeout");
-            goto done;
-        }
-        else if (cc == IOERROR) {
+
+        cc = sock_->poll(POLLIN, NULL, 5000);
+        if (cc < 0) {
             log_warn("send_bundle: error waiting for ack: %s",
                      strerror(errno));
             goto done;
         }
         
-        ASSERT(cc == 1);
-    }
+        if (cc == 0) {
+            log_warn("send_bundle: timeout waiting for ack");
+            goto done;
+        }
 
+        ASSERT(cc == 1);
+        
+        cc = handle_ack(bundle, acked_len);
+        if (cc == IOERROR) {
+            goto done;
+        }
+        ASSERT(cc == 1);
+        
+        log_debug("send_bundle: got ack for %d/%d",
+                  *acked_len, payload_len);
+    }
+    
     sentok = true;
 
  done:
@@ -690,19 +757,18 @@ TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
  * ack.
  */
 int
-TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, int timeout,
-                                            size_t* acked_len)
+TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
 {
     char typecode;
     size_t new_acked_len;
 
-    // first try to read in the typecode and check for timeout
-    int cc = sock_->timeout_read(&typecode, 1, timeout);
-    if (cc == IOEOF || cc == IOERROR || cc == IOTIMEOUT)
-    {
-        return cc;
+    // first read in the typecode 
+    int cc = sock_->read(&typecode, 1);
+    if (cc != 1) {
+        log_err("handle_ack: error reading typecode: %s",
+                strerror(errno));
+        return IOERROR;
     }
-    ASSERT(cc == 1);
 
     // ignore KEEPALIVE messages 
     if (typecode == KEEPALIVE) {
@@ -889,6 +955,9 @@ TCPConvergenceLayer::Connection::send_loop()
 
     log_info("connection established -- (keepalive time %d milliseconds)",
              keepalive_msec_);
+
+    // from now on, all our operations will use non-blocking semantics
+    sock_->set_nonblocking(true);
     
     // build up a poll vector since we need to block below on input
     // from both the socket and the bundle list notifier
