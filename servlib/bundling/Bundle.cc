@@ -120,6 +120,38 @@ Bundle::del_ref(const char* what1, const char* what2)
 }
 
 /**
+ * Bump up the pending transmission count
+ */
+int
+Bundle::add_pending()
+{
+    lock_.lock();
+    ASSERT(pendingtxcount_ >= 0);
+    int ret = ++pendingtxcount_;
+    log_debug("/bundle/pending",
+              "bundle id %d: pendingtxcount %d -> %d",
+              bundleid_, pendingtxcount_ - 1, pendingtxcount_);
+    lock_.unlock();
+    return ret;
+}
+
+/**
+ * Bump doen the pending transmission count
+ */
+int
+Bundle::del_pending()
+{
+    lock_.lock();
+    ASSERT(pendingtxcount_ >= 0);
+    int ret = --pendingtxcount_;
+    log_debug("/bundle/pending",
+              "bundle id %d: pendingtxcount %d -> %d",
+              bundleid_, pendingtxcount_ + 1, pendingtxcount_);
+    lock_.unlock();
+    return ret;
+}
+
+/**
  * Add a BundleList to the set of containers.
  *
  * @return true if the list pointer was added successfully, false

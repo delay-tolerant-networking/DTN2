@@ -86,12 +86,12 @@ public:
     /**
      * Bump up the pending transmissions count.
      */
-    int add_pending() { return ++pendingtxcount_; }
+    int add_pending();
 
     /**
      * Decrement the pending transmissions count.
      */
-    int del_pending() { return --pendingtxcount_; }
+    int del_pending();
 
 
     /**
