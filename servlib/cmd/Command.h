@@ -189,6 +189,8 @@ public:
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
 
+    virtual char *helpString() {return("No help, sorry.");};
+
     /**
      * Internal handling of the "set" command.
      *
