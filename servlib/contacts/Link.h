@@ -98,12 +98,12 @@ class LinkSet : public std::set<Link*> {};
  * Link can be opened only if its availability bit is set to true
  *
  * Closing a link means => Deleting or getting rid of existing contact
- * on it. Free the state stored for that contact. Its an error
- * to close a link which is already closed.
- * The link  close process can be started  by the convergence layer
- * on detecting a failure. It does it by generating CONTACT_DOWN event which
- * is passed to the bundle router which than closes the link by calling
- * link->close()
+ * on it. Free the state stored for that contact. It is an error to
+ * close a link which is already closed. The link close procedure is
+ * always issued in response to a CONTACT_DOWN event being sent to the
+ * router. This may be in response to a user command or the scheduling
+ * layer, or from the convergence layer itself in response to a
+ * timeout or other such event.
  *
  * We also have that
  * if contact != null then size(link_queue) == 0.
@@ -278,6 +278,11 @@ public:
     bool isavailable() { return avail_; }
 
     /**
+     * Return whether the link is in the process of shutting down.
+     */
+    bool isclosing() { return closing_; }
+
+    /**
      * Set the state of the link to be available
      */
     void set_link_available() ;
@@ -345,9 +350,7 @@ public:
     int format(char* buf, size_t sz);
     
 protected:
-
     friend class ContactManager;
-    friend class BundleRouter;
     friend class BundleForwarder;
     
     /**
@@ -375,6 +378,9 @@ protected:
 
     /// Availability bit
     bool avail_;
+
+    /// Close-in-progress bit
+    bool closing_;
 
     /// Convergence layer specific info, if needed
     LinkInfo* link_info_;

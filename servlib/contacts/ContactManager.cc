@@ -170,6 +170,28 @@ ContactManager::find_link(const char* name)
 }
 
 /**
+ * Open the given link.
+ */
+void
+ContactManager::open_link(Link* link)
+{
+    if (!link->isopen()) {
+        link->open();
+    }
+}
+
+/**
+ * Close the given link.
+ */
+void
+ContactManager::close_link(Link* link)
+{
+    if (link->isopen()) {
+        link->close();
+    }
+}
+
+/**
  * Dump the contact manager info
  */
 void

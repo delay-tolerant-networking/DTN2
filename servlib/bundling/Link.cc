@@ -69,7 +69,8 @@ Link::create_link(std::string name,
 Link::Link(std::string name, link_type_t type, ConvergenceLayer* cl,
            const char* nexthop)
     :  BundleConsumer(nexthop, false, "Link"),
-       type_(type), nexthop_(nexthop), name_(name), avail_(false), clayer_(cl)
+       type_(type), nexthop_(nexthop), name_(name), avail_(false),
+       closing_(false), clayer_(cl)
 {
     ASSERT(clayer_);
     
@@ -141,34 +142,47 @@ Link::open()
  * Close the currently active contact on the link.
  * This is typically called in the following scenario's
  *
- * By BundleRouter:  when it receives contact_broken event
+ * By BundleRouter:  when it receives contact_down event
  *                :  when it thinks it has sent all messages for
  *                   an on demand link and it no longer needs it
  *                :  when link becomes unavailable because link is
  *                   scheduled or because link was opportunistic
  *
  * In general link close() is called as a reaction to the fact that
- * link is no more available
+ * link is no more available.
  *
  */
 void
 Link::close()
 {
+    log_debug("Link::close");
+    
     // Ensure that link is open
-    ASSERT(contact_ != NULL);
+    ASSERT(isopen());
+    ASSERT(contact_ != NULL); // same thing
 
     // Assert contact bundle list is empty
-    ASSERT(contact_->bundle_list()->size()==0);
+    ASSERT(contact_->bundle_list()->size() == 0);
+
+    // Set the closing bit on the link. This is needed to inform the
+    // convergence layer that it shouldn't post a ContactDownEvent
+    // that would reference the about-to-be-deleted contact.
+    closing_ = true;
     
-    //Close the contact
+    // Close the contact
     clayer()->close_contact(contact_);
     ASSERT(contact_->contact_info() == NULL) ; 
 
+    // Clean it up
+    delete contact_;
+    
     // Actually nullify the contact.
     // This is important because link == Open iff contact_ == NULL
     contact_ = NULL;
 
-    log_debug("Link::close");
+    // Clear out the closing bit
+
+    log_debug("Link::close complete");
 }
 
 /**

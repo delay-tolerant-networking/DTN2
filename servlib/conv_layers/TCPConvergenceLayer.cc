@@ -208,21 +208,23 @@ TCPConvergenceLayer::close_contact(Contact* contact)
     log_info("close_contact *%p", contact);
 
     if (conn) {
-        while (!conn->is_stopped()) {
-            if (!conn->should_stop()) {
-                PANIC("XXX/demmer need to stop the connection thread");
-                conn->set_should_stop();
-                conn->interrupt();
-            }
+        // first remove the connection from the contact info slot to
+        // avoid cleanup races
+        contact->set_contact_info(NULL);
+        
+        if (!conn->should_stop()) {
+            log_debug("interrupting connection thread");
+            conn->set_should_stop();
+            conn->interrupt();
+        }
             
-            log_warn("waiting for connection thread to stop...");
+        while (!conn->is_stopped()) {
+            log_debug("waiting for connection thread to stop...");
             oasys::Thread::yield();
         }
         
         log_debug("thread stopped, deleting connection...");
         delete conn;
-        
-        contact->set_contact_info(NULL);
     }
     
     return true;
@@ -901,12 +903,22 @@ TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
     while (sock_->timeout_connect(sock_->remote_addr(), sock_->remote_port(),
                                   5000) != 0)
     {
+        if (should_stop()) {
+            log_debug("connect thread interrupted, should_stop set");
+            return false;
+        }
+
         log_info("connection attempt to %s:%d failed... "
                  "will retry in %d seconds",
                  intoa(sock_->remote_addr()), sock_->remote_port(),
                  contacthdr.keepalive_sec);
         sock_->close();
         sleep(contacthdr.keepalive_sec);
+
+        if (should_stop()) {
+            log_debug("connect thread interrupted in sleep, should_stop set");
+            return false;
+        }
     }
 
     log_debug("send_loop: "
@@ -985,12 +997,12 @@ TCPConvergenceLayer::Connection::break_contact()
 
     // In all cases where break_contact is called, the Connection
     // thread is about to terminate. However, once the
-    // ContactBrokenEvent is posted, TCPCL::close_contact() will try
+    // ContactDownEvent is posted, TCPCL::close_contact() will try
     // to stop the Connection thread. So we preemptively indicate in
     // the thread flags that we're gonna stop shortly.
     set_should_stop();
 
-    if (contact_)
+    if (contact_ && !contact_->link()->isclosing())
         BundleForwarder::post(new ContactDownEvent(contact_));
 }
 
@@ -1006,6 +1018,7 @@ TCPConvergenceLayer::Connection::send_loop()
 
     // first connect to the remote side
     if (connect(sock_->remote_addr(), sock_->remote_port()) == false) {
+        log_debug("connect failed, breaking contact");
         break_contact();
         return;
     }

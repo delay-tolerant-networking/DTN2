@@ -45,6 +45,7 @@
 #include "bundling/BundleList.h"
 #include "bundling/BundleStatusReport.h"
 #include "bundling/Contact.h"
+#include "bundling/ContactManager.h"
 #include "bundling/FragmentManager.h"
 #include "reg/Registration.h"
 
@@ -361,7 +362,7 @@ BundleRouter::handle_registration_added(RegistrationAddedEvent* event,
  */
 void
 BundleRouter::handle_link_created(LinkCreatedEvent* event,
-                                       BundleActionList* actions)
+                                  BundleActionList* actions)
 {
     log_info("LINK_CREATED *%p", event->link_);
 }
@@ -371,7 +372,7 @@ BundleRouter::handle_link_created(LinkCreatedEvent* event,
  */
 void
 BundleRouter::handle_link_deleted(LinkDeletedEvent* event,
-                                    BundleActionList* actions)
+                                  BundleActionList* actions)
 {
     // Take care of all messages queued for this link
     // Take care of routing entries referring to this
@@ -383,10 +384,9 @@ BundleRouter::handle_link_deleted(LinkDeletedEvent* event,
  */
 void
 BundleRouter::handle_link_available(LinkAvailableEvent* event,
-                                       BundleActionList* actions)
+                                    BundleActionList* actions)
 {
     log_info("LINK_AVAILABLE *%p", event->link_);
-
     
     Link* link = event->link_;
     Peer* peer = link->peer();
@@ -397,7 +397,7 @@ BundleRouter::handle_link_available(LinkAvailableEvent* event,
     
     // If something is queued on the link open it
     if (link->size() > 0) {
-        link->open();
+        ContactManager::instance()->open_link(link);
     }
 }
 
@@ -406,7 +406,7 @@ BundleRouter::handle_link_available(LinkAvailableEvent* event,
  */
 void
 BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event,
-                                    BundleActionList* actions)
+                                      BundleActionList* actions)
 {
     Link* link = event->link_;
     ASSERT(!link->isavailable());
@@ -425,7 +425,7 @@ BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event,
  */
 void
 BundleRouter::handle_contact_up(ContactUpEvent* event,
-                                       BundleActionList* actions)
+                                BundleActionList* actions)
 {
     Contact* contact = event->contact_;
     Link* link = contact->link();
@@ -455,7 +455,7 @@ BundleRouter::handle_contact_up(ContactUpEvent* event,
  */
 void
 BundleRouter::handle_contact_down(ContactDownEvent* event,
-                                    BundleActionList* actions)
+                                  BundleActionList* actions)
 {
 
     Contact* contact = event->contact_;
@@ -467,13 +467,13 @@ BundleRouter::handle_contact_down(ContactDownEvent* event,
     contact->bundle_list()->move_contents(link->bundle_list());
     
     // Close the contact
-    link->close();
+    ContactManager::instance()->close_link(link);
 
     // Check is link is suppoed to be available and if yes
     // try to open the link
 
     if ((link->size() > 0) && link->isavailable()) {
-        link->open();
+        ContactManager::instance()->open_link(link);
     }
 }
 
@@ -545,20 +545,22 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
     // If nexthop->nexthop_ is a Link
     // and if it is available open it
     BundleConsumer* bc = nexthop->next_hop_;
-    if (strcasecmp(bc->type_str(),"Link")==0) {
-        Link* link = (Link *)bc;
-        if (link->isavailable()&&(!link->isopen())) {
-            log_info("Opening link %s because messages are queued for it",link->name());
 
-            // XXX/Sushant commented out because otherwise multiple such actions get posted
-            // Efficiency issue
-            //actions->push_back(new OpenLinkAction(bundle,link));
-            link->open();
+    // XXX/demmer this sucks -- replace with a type code for the
+    // bundle consumer, not just the type string.
+    if (strcasecmp(bc->type_str(), "Link") == 0) {
+        Link* link = (Link *)bc;
+        if (link->isavailable() && (!link->isopen())) {
+            log_info("Opening link %s because messages are queued for it", link->name());
+
+            // note that multiple such actions may be enqueued -- the
+            // forwarder will just ignore duplicates
+            actions->push_back(new OpenLinkAction(link));
         }
     }
 
     // Add message to the consumer queue
-    // This should be done later because  if the link is opened above,
+    // This should be done later because if the link is opened above,
     // the message should be queued on the contact.
     actions->push_back(
         new BundleEnqueueAction(bundle, nexthop->next_hop_,

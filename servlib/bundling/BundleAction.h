@@ -155,13 +155,11 @@ class BundleDequeueAction : public BundleAction {
     
 /**
  * Structure for a open link action
- * Done really need bundle, XXX/Sushant get rid of it
  */
 class OpenLinkAction : public BundleAction {
 public:
-    OpenLinkAction(Bundle* bundle, Link* link)
-        : BundleAction(OPEN_LINK,bundle),
-          link_(link)
+    OpenLinkAction(Link* link)
+        : BundleAction(OPEN_LINK, NULL), link_(link)
     {
     }
         

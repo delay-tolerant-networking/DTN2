@@ -38,6 +38,8 @@
 
 #include "LinkCommand.h"
 #include "bundling/AddressFamily.h"
+#include "bundling/BundleEvent.h"
+#include "bundling/BundleForwarder.h"
 #include "bundling/Link.h"
 #include "bundling/ContactManager.h"
 #include "conv_layers/ConvergenceLayer.h"
@@ -56,6 +58,8 @@ LinkCommand::help_string()
     return ""
         "link add <name> <nexthop> <type> <convergence_layer> <args>\n"
         "      Note: <nexthop> is a bundle admin identifier, <name> is any string \n"
+        "link open <name>\n"
+        "link close <name>\n"
         ;
 }
 
@@ -71,8 +75,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     if (strcmp(cmd, "add") == 0) {
         // link add <name> <nexthop> <type> <clayer> <args>
-        if (argc < 5) {
-            wrong_num_args(argc, argv, 2, 3, INT_MAX);
+        if (argc < 6) {
+            wrong_num_args(argc, argv, 2, 6, INT_MAX);
             return TCL_ERROR;
         }
         
@@ -88,7 +92,6 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             resultf("invalid next hop admin string '%s'", nexthop);
             return TCL_ERROR;
         }
-        
         
         Link::link_type_t type = Link::str_to_link_type(type_str);
         if (type == Link::LINK_INVALID) {
@@ -111,6 +114,49 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     
         // XXX/Sushant pass other parameters?
         link = Link::create_link(name, type, cl, nexthop);
+
+    } else if (strcmp(cmd, "open") == 0) {
+        // link open <name>
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+
+        const char* name = argv[2];
+        
+        Link* link = ContactManager::instance()->find_link(name);
+        if (link == NULL) {
+            resultf("link %s doesn't exist", name);
+            return TCL_ERROR;
+        }
+
+        if (link->isopen()) {
+            resultf("link %s already open", name);
+            return TCL_OK;
+        }
+        ContactManager::instance()->open_link(link);
+        
+    } else if (strcmp(cmd, "close") == 0) {
+        // link close <name>
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+
+        const char* name = argv[2];
+        
+        Link* link = ContactManager::instance()->find_link(name);
+        if (link == NULL) {
+            resultf("link %s doesn't exist", name);
+            return TCL_ERROR;
+        }
+
+        if (! link->isopen()) {
+            resultf("link %s already closed", name);
+            return TCL_OK;
+        }
+
+        BundleForwarder::post(new ContactDownEvent(link->contact()));
     }
     else {
         resultf("unimplemented link subcommand %s", cmd);

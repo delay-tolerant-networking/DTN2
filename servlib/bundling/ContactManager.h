@@ -148,11 +148,26 @@ public:
      * Finds link corresponding to this name
      */
     Link* find_link(const char* name);
-    
+
     /**
      * Return the list of links 
      */
     LinkSet* links() { return links_; }
+
+    /**********************************************
+     *
+     * Link state manipulation routines
+     *
+     *********************************************/
+    /**
+     * Open the given link.
+     */
+    void open_link(Link* link);
+    
+    /**
+     * Close the given link.
+     */
+    void close_link(Link* link);
     
 protected:
     static ContactManager* instance_;  ///< singleton instance
