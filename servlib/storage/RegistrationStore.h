@@ -1,16 +1,11 @@
 #ifndef _REGISTRATION_STORE_H_
 #define _REGISTRATION_STORE_H_
 
-#include <vector>
-#include "debug/Debug.h"
-
-class Bundle;
-class Registration;
-
-typedef std::vector<Registration*> RegistrationList;
+#include <string>
+#include "reg/Registration.h"
 
 /**
- * Abstract base class for registration storage.
+ * Abstract base class for the persistent registration store.
  */
 class RegistrationStore {
 public:
@@ -18,7 +13,6 @@ public:
      * Singleton instance accessor.
      */
     static RegistrationStore* instance() {
-        ASSERT(instance_ != NULL);
         return instance_;
     }
 
@@ -32,48 +26,31 @@ public:
     }
     
     /**
-     * Constructor
+     * Load in the whole database of registrations, populating the
+     * given list.
      */
-    RegistrationStore();
+    virtual void load(RegistrationList* reg_list) = 0;
+
+    /**
+     * Add a new registration to the database. Returns true if the
+     * registration is successfully added, false on error.
+     */
+    virtual bool add(Registration* reg) = 0;
     
-    /// @{ Basic storage methods
-    virtual Registration* get(int reg_id) = 0;
-    virtual int           put(Registration* reg) = 0;
-    virtual int           del(int reg_id) = 0;
-    /// @}
+    /**
+     * Remove the registration from the database, returns true if
+     * successful, false on error.
+     */
+    virtual bool del(u_int32_t regid, const std::string& endpoint) = 0;
     
     /**
-     * Get a new registration id, updating the value in the persistent
-     * store.
-     *
-     * (was db_new_regID, db_update_registration_id, db_restore_registration_id)
+     * Update the registration in the database. Returns true on
+     * success, false if there's no matching registration or on error.
      */
-    virtual int next_id() = 0;
+    virtual bool update(Registration* reg) = 0;
 
-    /**
-     * Delete any expired registrations
-     *
-     * (was sweepOldRegistrations)
-     */
-    virtual int delete_expired(const time_t now) = 0;
-
-    /**
-     * Fill in the RegistrationList with any registrations matching
-     * the given bundle
-     *
-     * (was db_get_matching_registrations)
-     */
-    virtual int get_matching(const Bundle* bundle, RegistrationList* reg_list) = 0;
-
-    /*
-     * Dump out the registration database.
-     */
-    virtual void dump(FILE* fp) = 0;
-
-private:
+protected:
     static RegistrationStore* instance_;
-    
-    int next_reg_id_; // running serial number for bundles
 };
 
 #endif /* _REGISTRATION_STORE_H_ */
