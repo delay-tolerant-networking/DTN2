@@ -19,11 +19,7 @@ SQLQuery::SQLQuery(action_t type, const char* initial_query)
 {
 }
 
-/**
- * The process() functions of all subclasses append ',' after each
- * value, so trim a trailing ',' before returning the string.
- * Also, add a closing bracket.
- */
+
 const char*
 SQLQuery::query()
 {
@@ -31,15 +27,18 @@ SQLQuery::query()
 }
 
 /**
- * Override virtual end action from SerializeAction. Use it to clean the query
+ * Clean the query  in the end.
+ * The process() functions of all subclasses append ',' after each
+ * value, so trim a trailing ',' before returning the string.
+ * Also, add a closing bracket.
  */
+ 
 
 void 
 SQLQuery::end_action() 
 {
     if (query_.data()[query_.length() - 1] == ',') {
-        query_.trim(1);
-	query_.append(')');
+	query_.data()[query_.length() - 1] = ')';
     }
 }
 
@@ -114,6 +113,8 @@ SQLInsert::process(const char* name, bool* b) {
         query_.append("'FALSE',");
     }
 }
+
+// XXX Sushant: Need to escape special chars such as ' from s
 
 void 
 SQLInsert::process(const char* name, std::string* s) 

@@ -82,6 +82,13 @@ SQLBundleStore::delete_expired(const time_t now)
 bool
 SQLBundleStore::is_custodian(int bundle_id) 
 {
-    NOTIMPLEMENTED;
-    return -1;
+    NOTIMPLEMENTED ; 
+
+    /**
+     * One possible implementation. Currently b.is_custodian() 
+     * function does not exist
+     * Bundle b = get(bundle_id);
+     * if (b == NULL) return 0;
+     * return (b.is_custodian()) ;
+     */
 }
