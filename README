@@ -17,6 +17,15 @@ one of the helper scripts in aclocal/*.ac, run build-configure.sh to
 recreate configure and then check in both your changes as well as the
 newly generated configure script.
 
+Getting Started
+---------------
+
+A good place to start for playing around with DTN is to look at the
+manual and tutorials (see doc/manual/index.html). This set of
+documentation explains some of the configuration and applications. If
+you find omissions or errors, please feel free to post updates and
+corrections to dtn-bugs@mailman.dtnrg.org.
+
 Reporting Bugs / Other Help
 ---------------------------
 As of this release, there is no bug tracking system in place. Please
@@ -43,6 +52,7 @@ oasys/io/		I/O and networking support code
 oasys/memory/		memory management and debugging support
 oasys/serialize/	object serialization support
 oasys/thread/		thread / lock support implementation
+oasys/tclcmd/		tcl command infrastructure and support
 oasys/util/		miscellaneous utility classes
 
 External Requirements
