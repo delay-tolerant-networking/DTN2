@@ -88,6 +88,13 @@ main(int argc, char** argv)
     oasys::Getopt::getopt(argv[0], argc, argv);
 
     int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
+
+    if (!conf_file_set && remainder != argc) {
+        conf_file.assign(argv[remainder]);
+        conf_file_set = true;
+        remainder++;
+    }
+
     if (remainder != argc) {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
         oasys::Getopt::usage("dtnsim");
