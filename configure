@@ -424,7 +424,7 @@ else
   #
   # look for the header files
   #
-  echo -n "checking for db.h and db_cxx.h... "
+  echo -n "checking for db.h and db_cxx.h ... "
   found=0
   foundfile=0
   for dir in $dbincdirs; do
@@ -440,6 +440,9 @@ else
               break
           fi
         done
+        if [ $found = 1 ] ; then
+            break
+        fi
       fi
   done
     
