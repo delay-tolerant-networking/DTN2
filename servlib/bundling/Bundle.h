@@ -42,11 +42,11 @@ public:
     Bundle();
 
     /**
-     * Minimal constructor for a valid routable bundle.
+     * Minimal constructor for a valid routable bundle (uses source
+     * for reply-to and custodian).
      */
     Bundle(const std::string& source,
-           const std::string& dest,
-           const std::string& payload);
+           const std::string& dest);
 
     /**
      * Special constructor for a temporary (invalid) bundle, used to
@@ -172,7 +172,11 @@ public:
     /*
      * Internal fields for managing the bundle.
      */
-
+    // XXX/demmer this should actually store a struct of the list and
+    // the iterator representing the position of the bundle in the
+    // list. this a) makes removal more efficient, and b) allows the
+    // same bundle to be on a list twice (e.g. sent_but_unacked in the
+    // udp cl)
     typedef std::set<BundleList*> BundleListSet;
     
     BundleListSet containers_;	///< The set of BundleLists that

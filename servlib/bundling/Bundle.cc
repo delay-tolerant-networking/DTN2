@@ -26,15 +26,13 @@ Bundle::Bundle()
 }
 
 Bundle::Bundle(const std::string& source,
-               const std::string& dest,
-               const std::string& payload)
+               const std::string& dest)
 {
     init();
     source_.set_tuple(source);
     replyto_.set_tuple(source);
     custodian_.set_tuple(source);
     dest_.set_tuple(dest);
-    payload_.set_data(payload);
 }
 
 Bundle::~Bundle()
