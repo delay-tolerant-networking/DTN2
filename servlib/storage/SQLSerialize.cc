@@ -1,3 +1,4 @@
+#ifndef __SQL_DISABLED__
 
 #include "SQLSerialize.h"
 #include "SQLImplementation.h"
@@ -450,3 +451,4 @@ SQLExtract::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy
     NOTIMPLEMENTED;
 }
 
+#endif /* __SQL_DISABLED__ */

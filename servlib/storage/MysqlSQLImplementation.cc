@@ -1,3 +1,4 @@
+#ifndef __MYSQL_DISABLED__
 
 #include "debug/Debug.h"
 #include "debug/Log.h"
@@ -149,3 +150,4 @@ MysqlSQLImplementation::binary_datatype()
     return "BLOB" ; 
 }
 
+#endif /* __MYSQL_DISABLED__ */

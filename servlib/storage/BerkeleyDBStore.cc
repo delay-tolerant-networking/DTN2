@@ -1,3 +1,4 @@
+#ifndef __DB_DISABLED__
 
 #include "BerkeleyDBStore.h"
 #include "MarshalSerialize.h"
@@ -256,3 +257,4 @@ BerkeleyDBStore::elements(std::vector<SerializableObject*> v)
     NOTIMPLEMENTED;
 }
 
+#endif /* __DB_DISABLED__ */

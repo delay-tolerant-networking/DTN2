@@ -67,14 +67,25 @@ StorageCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 #ifndef __SQL_DISABLED__
         else if ((strcmp(type, "mysql") == 0) ||
-            (strcmp(type, "postgres") == 0))
+                 (strcmp(type, "postgres") == 0))
         {
             StorageConfig* cfg = StorageConfig::instance();
             SQLImplementation* impl;
-            if (strcmp(type, "mysql") == 0) {
+
+            if (0) {}
+#ifndef __MYSQL_DISABLED__
+            else if (strcmp(type, "mysql") == 0) {
                 impl = new MysqlSQLImplementation();
-            } else {
+            }
+#endif
+
+#ifndef __POSTGRES_DISABLED__
+            else if (strcmp(type, "postgres") == 0) {
                 impl = new PostgresSQLImplementation();
+            }
+#endif
+            else {
+                NOTREACHED;
             }
             
             if (impl->connect(cfg->sqldb_.c_str()) == -1) {

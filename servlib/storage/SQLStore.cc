@@ -1,3 +1,4 @@
+#ifndef __SQL_DISABLED__
 
 #include "SQLStore.h"
 #include "SQLImplementation.h"
@@ -210,3 +211,5 @@ SQLStore::set_key_name(const char* name)
 {    
     key_name_ = name;
 }
+
+#endif /* __SQL_DISABLED__ */

@@ -1,3 +1,4 @@
+#ifndef __DB_DISABLED__
 
 #include "BerkeleyDBRegistrationStore.h"
 
@@ -58,4 +59,4 @@ BerkeleyDBRegistrationStore::update(Registration* reg)
     NOTIMPLEMENTED;
 }
 
-
+#endif /* __DB_DISABLED__ */

@@ -1,3 +1,4 @@
+#ifndef __DB_DISABLED__
 
 #include "BerkeleyDBStore.h"
 #include "BerkeleyDBGlobalStore.h"
@@ -25,3 +26,5 @@ BerkeleyDBGlobalStore::update()
     log_crit("%s not implemented", __FUNCTION__);
     return false;
 }
+
+#endif /* __DB_DISABLED__ */

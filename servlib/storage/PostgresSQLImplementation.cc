@@ -1,3 +1,4 @@
+#ifndef __POSTGRES_DISABLED__
 
 #include "PostgresSQLImplementation.h"
 #include "debug/Debug.h"
@@ -166,3 +167,4 @@ PostgresSQLImplementation::binary_datatype()
     return "BYTEA" ; 
 }
 
+#endif /* __POSTGRES_DISABLED__ */

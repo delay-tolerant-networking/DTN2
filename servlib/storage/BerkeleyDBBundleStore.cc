@@ -1,3 +1,4 @@
+#ifndef __DB_DISABLED__
 
 #include "BerkeleyDBStore.h"
 #include "BerkeleyDBBundleStore.h"
@@ -41,3 +42,5 @@ BerkeleyDBBundleStore::del(int bundle_id)
 {
     return store_->del(bundle_id) == 0;
 }
+
+#endif /* __DB_DISABLED__ */
