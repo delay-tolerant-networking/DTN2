@@ -41,14 +41,24 @@
 namespace dtnsim {
 
 Topology::NodeTable Topology::nodes_;
-u_int32_t Topology::next_regid_ = 0;
 
 Node*
 Topology::create_node(const char* name)
 {
     Node* node = new Node(name);
+    node->do_init();
     nodes_[name] = node;
     return node;
+}
+
+Node*
+Topology::find_node(const char* name)
+{
+    NodeTable::iterator iter = nodes_.find(name);
+    if (iter == nodes_.end())
+        return NULL;
+
+    return (*iter).second;
 }
 
 } // namespace dtnsim
