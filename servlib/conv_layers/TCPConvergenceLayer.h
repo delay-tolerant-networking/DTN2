@@ -94,8 +94,8 @@ protected:
     protected:
         virtual void run();
         
-        void connect(in_addr_t remote_addr, u_int16_t remote_port);
-        void accept();
+        bool connect(in_addr_t remote_addr, u_int16_t remote_port);
+        bool accept();
         void break_contact();
         
         void send_loop();
