@@ -851,6 +851,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --disable-debug         compile with debugging turned off
+  --enable-debug-memory   enable memory debugging
   --disable-optimize      compile with optimization turned off
   --enable-static         build and link statically (XXX broken)
 
@@ -1372,6 +1373,27 @@ if test $debug = yes ; then
    DEBUG="-g -fno-inline"
 fi
 
+
+# Check whether --enable-debug_memory or --disable-debug_memory was given.
+if test "${enable_debug_memory+set}" = set; then
+  enableval="$enable_debug_memory"
+  debug_memory=$enableval
+else
+  debug_memory=no
+fi;
+
+echo "$as_me:$LINENO: checking whether to compile with memory debugging" >&5
+echo $ECHO_N "checking whether to compile with memory debugging... $ECHO_C" >&6
+echo "$as_me:$LINENO: result: $debug_memory" >&5
+echo "${ECHO_T}$debug_memory" >&6
+
+if test $debug_memory = yes ; then
+
+cat >>confdefs.h <<_ACEOF
+#define OASYS_DEBUG_MEMORY_ENABLED 1
+_ACEOF
+
+fi
 
 optimize=yes
 # Check whether --enable-optimize or --disable-optimize was given.

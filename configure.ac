@@ -66,6 +66,23 @@ fi
 AC_SUBST(DEBUG)
 	
 dnl
+dnl Handle --enable-debug-memory[=yes|no]
+dnl 	   --disable-debug-memory
+dnl
+AC_ARG_ENABLE(debug_memory,
+	AC_HELP_STRING([--enable-debug-memory],[enable memory debugging]),
+	[debug_memory=$enableval],
+	[debug_memory=no])
+
+AC_MSG_CHECKING([whether to compile with memory debugging])
+AC_MSG_RESULT($debug_memory)
+
+if test $debug_memory = yes ; then
+AC_DEFINE_UNQUOTED(OASYS_DEBUG_MEMORY_ENABLED, 1,
+                  [whether oasys memory debugging is enabled])
+fi
+
+dnl
 dnl Handle --enable-optimize[=yes|no]
 dnl 	   --disable-optimize
 dnl

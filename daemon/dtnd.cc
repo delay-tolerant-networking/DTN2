@@ -72,7 +72,7 @@ main(int argc, char* argv[])
     bool	       print_version = false;
     int                console_port = 0;
 
-#ifndef NDEBUG_MEMORY
+#ifdef OASYS_DEBUG_MEMORY_ENABLED
     oasys::DbgMemInfo::init();
 #endif
 
