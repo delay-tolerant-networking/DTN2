@@ -1,6 +1,7 @@
 #ifndef _CONTACT_H_
 #define _CONTACT_H_
 
+class Bundle;
 class BundleList;
 class ContactInfo;
 class ConvergenceLayer;
@@ -92,10 +93,26 @@ public:
     void close();
 
     /**
+     * Return the type of the contact.
+     */
+    contact_type_t type() { return type_; }
+
+    /**
+     * Return the contact tuple.
+     */
+    const BundleTuple& tuple() { return tuple_; }
+
+    /**
      * Return the state of the contact.
      */
     bool isopen() { return open_; }
 
+    /**
+     * Queue a bundle for sending, which potentially kicks open the
+     * contact if it's not already.
+     */
+    void send_bundle(Bundle* bundle);
+    
     /**
      * Accessor for the list of bundles in this contact.
      */
@@ -139,7 +156,7 @@ protected:
  */
 class ContactInfo {
 public:
-    virtual ~ContactInfo();
+    virtual ~ContactInfo(){}
 };
 
 #endif /* _CONTACT_H_ */

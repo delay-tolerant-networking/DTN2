@@ -1,5 +1,6 @@
 
 #include "Contact.h"
+#include "Bundle.h"
 #include "BundleList.h"
 #include "conv_layers/ConvergenceLayer.h"
 
@@ -7,7 +8,7 @@ Contact::Contact(contact_type_t type, const BundleTuple& tuple)
     : Logger("/contact"), type_(type), tuple_(tuple), open_(false)
 {
     bundle_list_ = new BundleList();
-    log_debug("new *%p", this);
+    log_debug("new contact *%p", this);
 
     clayer_ = ConvergenceLayer::find_clayer(tuple.admin());
     if (!clayer_) {
@@ -25,7 +26,20 @@ Contact::~Contact()
 int
 Contact::format(char* buf, size_t sz)
 {
-    return snprintf(buf, sz, "contact %s %.*s (%s)", contact_type_to_str(type_),
-                    tuple_.length(), tuple_.data(), open_ ? "open" : "closed");
+    return snprintf(buf, sz, "%.*s %s (%s)", tuple_.length(), tuple_.data(),
+                    contact_type_to_str(type_), open_ ? "open" : "closed");
+}
+
+void
+Contact::send_bundle(Bundle* bundle)
+{
+    if (!isopen() && (type_ == ONDEMAND || type_ == OPPORTUNISTIC)) {
+        clayer_->open_contact(this);
+        open_ = true;
+    }
+    
+    bundle->addref();
+    bundle_list_->push_back(bundle);
+    clayer_->send_bundles(this);
 }
 
