@@ -52,6 +52,11 @@ public:
     size_t length() const { return length_; }
 
     /**
+     * The payload location.
+     */
+    location_t location() const { return location_; }
+    
+    /**
      * Set the payload data and length.
      */
     void set_data(const char* bp, size_t len);
@@ -62,6 +67,15 @@ public:
     void set_data(const std::string& data)
     {
         set_data(data.data(), data.length());
+    }
+
+    /**
+     * Get a raw pointer to the data buffer (in-memory payloads only).
+     */
+    char* raw_data()
+    {
+        ASSERT(location_ == MEMORY);
+        return (char*)data_.c_str();
     }
     
     /**
