@@ -64,7 +64,7 @@ RouteCommand::help_string()
     return "route add <dest> <link/peer>\n"
         "route del <dest> <link/peer>\n"
         "route local_region <region>\n"
-        "route local_tuple <tuple>\n"
+        "route local_tuple <tuple?>\n"
         "route dump"
         "         Note: Currently route dump also displays list of all links and peers\n"
         ;
@@ -137,15 +137,20 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
 
     else if (strcmp(cmd, "local_tuple") == 0) {
-        // route local_tuple <tuple>
-        if (argc != 3) {
-            wrong_num_args(argc, argv, 2, 3, 3);
-            return TCL_ERROR;
-        }
-
-        BundleRouter::local_tuple_.assign(argv[2]);
-        if (! BundleRouter::local_tuple_.valid()) {
-            resultf("invalid tuple '%s'", argv[2]);
+        if (argc == 2) {
+            // route local_tuple
+            set_result(BundleRouter::local_tuple_.c_str());
+            return TCL_OK;
+            
+        } else if (argc == 3) {
+            // route local_tuple <tuple?>
+            BundleRouter::local_tuple_.assign(argv[2]);
+            if (! BundleRouter::local_tuple_.valid()) {
+                resultf("invalid tuple '%s'", argv[2]);
+                return TCL_ERROR;
+            }
+        } else {
+            wrong_num_args(argc, argv, 2, 2, 3);
             return TCL_ERROR;
         }
     }
