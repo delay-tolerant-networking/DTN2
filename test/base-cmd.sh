@@ -47,8 +47,9 @@ set tcptimerfile = $dtn2testroot/tcp_retries2.sush
 
 ## stuff that u dont have to log in NFS
 set localtmpdir       =  /tmp/log-$proto.$id
-set txdir       = $localtmpdir/txfiles
-
+set txdir       = $localtmpdir/txfiles.$id
+set rcvdir      = $localtmpdir/rcvfiles.$id
+rm -rf $localtmpdir
 
 
 
@@ -106,7 +107,7 @@ echo "#Check ping commands ...." > $pingfile
 set idplus  = `expr $id + 1`
 #set linkname = link-$id
 set nextnode=node-$idplus 
-sudo sh $dtn2testroot/check_ping.sh $nextnode >> $pingfile &
+sh $dtn2testroot/check_ping.sh $nextnode >> $pingfile &
 
 
 switch ($proto_orig)

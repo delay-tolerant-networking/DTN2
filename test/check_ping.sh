@@ -10,10 +10,11 @@ TIMEOUT=3
 RETRY=5
 rm -f /tmp/ping.$OTHERHOST
 
+
 starttime=`date +%s`
-ps aux > /tmp/o
+ps aux > /tmp/$starttime
 #CHeck if already running, if yes then exitcat
-num=`grep check_ping /tmp/o | wc -l` 
+num=`grep check_ping /tmp/$starttime | wc -l` 
 echo $num
 if [ $num -gt 1 ]; then
     exit 0
@@ -26,9 +27,9 @@ do
     ping -q -w $TIMEOUT -i $INTERVAL -c $COUNT -s $PACKET_SIZE $OTHERHOST 2>/dev/null >/tmp/ping.$OTHERHOST 
     ret=$?
     if [ "$ret" == "0" ]; then
-        echo $incr UP "Retry after $RETRY seconds to $OTHERHOST"  
+        echo $incr UP " At:$timenow :Retry after $RETRY seconds to $OTHERHOST"  
     else
-        echo $incr DOWN "Retry after $RETRY seconds to $OTHERHOST"
+        echo $incr DOWN " At:$timenow :Retry after $RETRY seconds to $OTHERHOST"
     fi
     sleep $RETRY 
 done
