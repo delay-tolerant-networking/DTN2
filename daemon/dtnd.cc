@@ -61,6 +61,7 @@ main(int argc, char* argv[])
     bool        random_seed_set = false;
     bool	daemon = false;
     std::string conf_file;
+    bool        conf_file_set = false;
     std::string logfile("-");
     std::string loglevelstr;
     log_level_t loglevel;
@@ -75,7 +76,7 @@ main(int argc, char* argv[])
                   "default log level [debug|warn|info|crit]");
 
     new StringOpt('c', "conf",
-                  &conf_file, "<conf>",
+                  &conf_file, &conf_file_set, "<conf>",
                   "config file");
     
     new BoolOpt('d', "daemon",
@@ -143,7 +144,8 @@ main(int argc, char* argv[])
     Log::instance()->add_rotate_handler(SIGUSR1);
     DTNServer::init_components();
 
-    // Check the supplied config file and/or check for defaults
+    // Check the supplied config file and/or check for defaults, as
+    // long as the user didn't explicitly call with no conf file 
     if (conf_file.length() != 0) {
         if (! oasys::FileUtils::readable(conf_file.c_str(), log)) {
             log_err(log, "configuration file \"%s\" not readable",
@@ -151,7 +153,7 @@ main(int argc, char* argv[])
             exit(1);
         }
 
-    } else {
+    } else if (!conf_file_set) {
         if (oasys::FileUtils::readable("/etc/dtn.conf", log)) {
             conf_file.assign("/etc/dtn.conf");
             
@@ -165,7 +167,8 @@ main(int argc, char* argv[])
     }
 
     // now if one was specified, parse it
-    if (conf_file.length() != 0) {
+    if (conf_file.length() != 0)
+    {
         log_info(log, "parsing configuration file %s...", conf_file.c_str());
         
         if (interp->exec_file(conf_file.c_str()) != 0) {
@@ -174,7 +177,19 @@ main(int argc, char* argv[])
         }
     }
 
-    // Start everything up
+    // Initialize the database
+    DTNServer::init_datastore();
+
+    // If we're running as --init-db, flush the database and we're all done.
+    if (StorageConfig::instance()->init_ &&
+        ! StorageConfig::instance()->tidy_)
+    {
+        DTNServer::close_datastore();
+        log_info(log, "database initialization complete...");
+        exit(0);
+    }
+
+    // Otherwise, start up everything else
     DTNServer::start();
 
     // if the config script wants us to run a test script, do so now
