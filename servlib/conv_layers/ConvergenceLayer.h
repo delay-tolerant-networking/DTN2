@@ -100,13 +100,6 @@ public:
     virtual bool del_interface(Interface* iface);
 
     /**
-     * Accessor to protocol string/name ?
-     * XXX/ Sushant need way to identify a conv layer
-     */
-    // const char* proto() { return proto_ ; }
-
-    
-    /**
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.
      */

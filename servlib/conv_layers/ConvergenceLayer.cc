@@ -68,7 +68,6 @@ ConvergenceLayer::init_clayers()
     add_clayer("tcp", new TCPConvergenceLayer());
     add_clayer("udp", new UDPConvergenceLayer());
     add_clayer("file", new FileConvergenceLayer());
-
 }
 
 ConvergenceLayer*
