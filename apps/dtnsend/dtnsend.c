@@ -247,7 +247,10 @@ void print_usage()
     fprintf(stderr, " -p <filename|string> payload data\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h help\n");
-    fprintf(stderr, " -c copies of the bundle to send\n");
+    fprintf(stderr, " -o turn on queue overwrite option (not implemented yet)\n");
+    fprintf(stderr, " -n copies of the bundle to send\n");
+    fprintf(stderr, " -c request custody transfer\n");
+    fprintf(stderr, " -y request custody transfer receipts\n");
     fprintf(stderr, " -e request for end-to-end return receipt\n");
     fprintf(stderr, " -f request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
