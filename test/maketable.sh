@@ -36,6 +36,10 @@ do
     ftplog=$exppath/ftplog
     n=$maxnodes
     
+    restmpfile=/tmp/$exp.$proto.res
+    resfile=$exppath/times.txt
+    rm -f $resfile
+    rm -f $restmpfile
     
     start=0
     end=-1
@@ -44,7 +48,7 @@ do
     if [ -e $ftplog.$n ]; then 
         txlen=`cat $ftplog.1 | wc -l`
     fi
-    
+    sentlen=$txlen 
     
     rcvlen=0
     if [ -e $ftplog.1 ]; then 
@@ -61,9 +65,7 @@ do
     fi
     echo -n "$exppath : txlen:$txlen rcvlen:$rcvlen ::"
     
-    restmpfile=/tmp/$exp.$proto.res
-    resfile=$exppath/times.txt
-
+    
     rm -f /tmp/$exp.$proto.res
     rm -f /tmp/$exp.$proto.index
     rm -f /tmp/$exp.$proto.$n
@@ -99,6 +101,6 @@ do
     echo  "Time:$diff "
     
     
-    echo "# $send_start $send_end $rcv_start $rcv_end  $rcvlen" > $resfile
+    echo "# $send_start $send_end $rcv_start $rcv_end  $rcvlen $sentlen" > $resfile
     cat $restmpfile >> $resfile
 done

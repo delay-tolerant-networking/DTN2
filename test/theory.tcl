@@ -35,7 +35,7 @@ set up 60
 set down 180   
 ## Length of downtime
 
-set OFFSET_VAL  -1
+set OFFSET_VAL  10
 
 proc max {a b } {
 
