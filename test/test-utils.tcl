@@ -3,7 +3,7 @@
 #
   
 #
-# Creates "num_nodes" daemons (w/default configurations)
+# Forks off num_nodes total child daemons
 #
 proc create_bundle_daemons { num_nodes } {
     set id [test set id]
@@ -26,29 +26,17 @@ proc create_bundle_daemons { num_nodes } {
 	
 	puts "booting daemon: $argv"
 	eval exec $argv &
-	
-	after 5000 # safety
     }
 }
 
-
 #
-# Setup the configuration for the bundle daemon
+# Tidy implementation (should move to C)
 #
-proc configure_bundle_daemon { daemonId port localdir } {
-
+proc tidy_up {} {
     set tidy    [storage set tidy]
+    set id [test set id]
     
-    # Initialize local configurations
-    set port [expr $port + $daemonId]
-    set sqldb "dtn$daemonId"
-    set dbdir "/tmp/bundledb-$daemonId"
-    set payloaddir  "/tmp/bundles-$daemonId"
-    set localhost [info hostname]
-    set peer $localhost
-        
-    if {$daemonId != 0} {
-	
+    if {$id != 0} {
 	foreach dir [list $dbdir $payloaddir $localdir] {
 	    if {! [file exists $dir]} {
 		file mkdir $dir
@@ -77,11 +65,25 @@ proc configure_bundle_daemon { daemonId port localdir } {
 	}
 	
 	if {[glob -nocomplain $dir/*] != {}} {
-	    error "$dirtype directory $dir not empty and re-reading state not implemented \
-		(use the -t option)"
+	    error "$dirtype directory $dir not empty and re-reading " \
+		    "state not implemented (use the -t option)"
 	}
     }
+}
+
+#
+# Setup the configuration for the bundle daemon
+#
+proc configure_bundle_daemon { id port localdir } {
     
+    # Initialize local configurations
+    set port [expr $port + $id]
+    set sqldb "dtn$id"
+    set dbdir "/tmp/bundledb-$id"
+    set payloaddir  "/tmp/bundles-$id"
+    set localhost [info hostname]
+    set peer $localhost
+        
     # initialize storage
     storage set sqldb $sqldb
     storage set dbdir $dbdir
