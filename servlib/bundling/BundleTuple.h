@@ -159,9 +159,10 @@ protected:
  */
 class BundleTuplePattern : public BundleTuple {
 public:
-    BundleTuplePattern() 			: BundleTuple() {}
-    BundleTuplePattern(const char* tuple) 	: BundleTuple(tuple) {}
-    BundleTuplePattern(const std::string& tuple): BundleTuple(tuple) {}
+    BundleTuplePattern() 			 : BundleTuple() {}
+    BundleTuplePattern(const char* tuple) 	 : BundleTuple(tuple) {}
+    BundleTuplePattern(const std::string& tuple) : BundleTuple(tuple) {}
+    BundleTuplePattern(const BundleTuple& tuple) : BundleTuple(tuple) {}
 
     /**
      * Matching function, implementing wildcarding semantics.
