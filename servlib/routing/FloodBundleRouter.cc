@@ -18,6 +18,8 @@ const BundleTuplePattern& ALL_TUPLES("bundles://*/*");
 FloodBundleRouter::FloodBundleRouter()
 {
     log_info("FLOOD_ROUTER");
+
+//    router_stats_= new RouterStatistics(this);
 }
 
 /**
@@ -55,8 +57,13 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
         FragmentManager::instance()->
             convert_to_fragment(bundle, event->bytes_received_);
     }
+        
 
-    // check if the bundle is received at the destination 
+    //statistics
+    //bundle has been accepted
+    //router_stats_->add_bundle_hop(bundle);
+
+    
 
     Bundle* iter_bundle;
     BundleList::iterator iter;
@@ -91,6 +98,8 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     //**might do something different if the bundle is from
     //  the local node
     //BundleRouter::handle_bundle_received(event, actions);
+
+    fwd_to_matching(bundle,actions,true);
 }
 
 void
@@ -130,7 +139,14 @@ void
 FloodBundleRouter::handle_registration_added(RegistrationAddedEvent* event,
                                         BundleActionList* actions)
 {
-    BundleRouter::handle_registration_added(event,actions);
+    Registration* registration = event->registration_;
+    log_info("FLOOD: new registration for %s", registration->endpoint().c_str());
+
+    RouteEntry* entry = new RouteEntry(registration->endpoint(),
+                                       registration, FORWARD_REASSEMBLE);
+    route_table_->add_entry(entry);
+ 
+    //BundleRouter::handle_registration_added(event,actions);
 }
 
 /**
@@ -208,4 +224,36 @@ FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
         actions->push_back(
             new BundleForwardAction(FORWARD_COPY, bundle, next_hop));
     }
+}
+
+
+int
+FloodBundleRouter::fwd_to_matching(
+                    Bundle* bundle, BundleActionList* actions, bool include_local)
+{
+    RouteEntry* entry;
+    RouteEntrySet matches;
+    RouteEntrySet::iterator iter;
+
+    route_table_->get_matching(bundle->dest_, &matches);
+    
+    int count = 0;
+    for (iter = matches.begin(); iter != matches.end(); ++iter) {
+        entry = *iter;
+        log_info("\tentry: point:%s --> %s [%s] local:%d",
+                entry->pattern_.c_str(),
+                entry->next_hop_->dest_tuple()->c_str(),
+                bundle_action_toa(entry->action_),
+                entry->next_hop_->is_local());
+        if (!entry->next_hop_->is_local())
+            continue;
+        
+        actions->push_back(
+            new BundleForwardAction(entry->action_, bundle, entry->next_hop_));
+        ++count;
+        bundle->add_pending();
+    }
+
+    log_info("FLOOD: local_fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);
+    return count;
 }

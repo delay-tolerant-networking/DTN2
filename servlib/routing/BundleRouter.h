@@ -163,7 +163,7 @@ protected:
      *
      * Returns the number of matches found and assigned.
      */
-    int fwd_to_matching(Bundle* bundle, BundleActionList* actions,
+    virtual int fwd_to_matching(Bundle* bundle, BundleActionList* actions,
                         bool include_local);
     
     /**

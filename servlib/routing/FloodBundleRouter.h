@@ -83,7 +83,9 @@ protected:
     void new_next_hop(const BundleTuplePattern& dest,
                               BundleConsumer* next_hop,
                               BundleActionList* actions);
-    
+
+
+    int fwd_to_matching(Bundle *bundle, BundleActionList *actions,bool include_local);
 };
 
 #endif /* _FLOOD_BUNDLE_ROUTER_H_ */
