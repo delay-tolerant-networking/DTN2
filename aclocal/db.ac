@@ -94,6 +94,7 @@ AC_DEFUN(AC_DTN_FIND_DBINCLUDE, [
     else
         ac_dbincdirs="/usr/include /usr/local/include/db4"
         for dbver in $ac_dbver ; do
+            ac_dbincdirs="$ac_dbincdirs /usr/include/db$dbver/include"
             ac_dbincdirs="$ac_dbincdirs /usr/local/BerkeleyDB.$dbver/include"
         done
     fi
@@ -138,15 +139,19 @@ AC_DEFUN(AC_DTN_FIND_DBLIB, [
 	dnl
 	dnl Build the library path based on where we found db.h.
 	dnl
-        if test $dtn_cv_path_db_h = /usr ; then
+	case $dtn_cv_path_db_h in
+  	/usr/include/*)
 	    dtn_cv_path_db_lib=/usr/lib
+	    ;;
 
-	elif test $dtn_cv_path_db_h = /usr/local/include/db4 ; then
+	/usr/local/include/db4)
 	    dtn_cv_path_db_lib=/usr/local/lib
+	    ;;
 
-	else 
+	*)
             dtn_cv_path_db_lib=`echo $dtn_cv_path_db_h | sed 's,/include,,'`/lib
-        fi
+	    ;;
+	esac
 
         LDFLAGS="-L$dtn_cv_path_db_lib"
 
