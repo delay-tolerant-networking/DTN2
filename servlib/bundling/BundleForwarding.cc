@@ -3,6 +3,7 @@
 #include "BundleList.h"
 #include "BundleForwarding.h"
 #include "Contact.h"
+#include "reg/RegistrationTable.h"
 #include "routing/RouteTable.h"
 #include "storage/BundleStore.h"
 
@@ -22,11 +23,22 @@ BundleForwarding::init()
 void
 BundleForwarding::input(Bundle* bundle)
 {
+    int count;
+    RegistrationList reglist;
+    RegistrationList::iterator reg;
     Contact* next_hop;
+    
     log_debug("input *%p", bundle);
 
     BundleStore::instance()->put(bundle, bundle->bundleid_);
 
+    // check for matching registrations
+    count = RegistrationTable::instance()->get_matching(bundle->dest_, &reglist);
+    log_debug("forwarding to %d matching registrations", count);
+    for (reg = reglist.begin(); reg != reglist.end(); ++reg) {
+        (*reg)->consume_bundle(bundle);
+    }
+    
     next_hop = RouteTable::instance()->next_hop(bundle);
 
     if (next_hop) {
