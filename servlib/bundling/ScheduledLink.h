@@ -59,7 +59,7 @@ public:
     /**
      * Constructor / Destructor
      */
-    ScheduledLink(std::string name, const char* conv_layer,
+    ScheduledLink(std::string name, ConvergenceLayer* cl,
                   const char* nexthop);
     
     virtual ~ScheduledLink();

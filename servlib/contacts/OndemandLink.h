@@ -52,9 +52,10 @@ public:
     /**
      * Constructor / Destructor
      */
-    OndemandLink(std::string name, const char* conv_layer,
+    OndemandLink(std::string name,
+                 ConvergenceLayer* cl,
                  const char* nexthop)
-        : Link(name,ONDEMAND, conv_layer, nexthop) {}
+        : Link(name, ONDEMAND, cl, nexthop) {}
     
     virtual ~OndemandLink()  {}
 protected:

@@ -54,12 +54,13 @@ namespace dtn {
  */
 class OpportunisticLink : public Link {
 public:
-        /**
+    /**
      * Constructor / Destructor
      */
-    OpportunisticLink(std::string name, const char* conv_layer,
+    OpportunisticLink(std::string name,
+                      ConvergenceLayer* cl,
                       const char* nexthop)
-        : Link(name,OPPORTUNISTIC, conv_layer, nexthop)
+        : Link(name, OPPORTUNISTIC, cl, nexthop)
     {
     }
     

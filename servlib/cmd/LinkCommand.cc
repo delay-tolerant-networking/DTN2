@@ -40,6 +40,7 @@
 #include "bundling/AddressFamily.h"
 #include "bundling/Link.h"
 #include "bundling/ContactManager.h"
+#include "conv_layers/ConvergenceLayer.h"
 #include <oasys/util/StringBuffer.h>
 
 namespace dtn {
@@ -78,7 +79,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         const char* name = argv[2];
         const char* nexthop = argv[3];
         const char* type_str = argv[4];
-        const char* cl = argv[5];
+        const char* cl_str = argv[5];
 
         bool valid;
         AddressFamily* af = AddressFamilyTable::instance()->lookup(nexthop, &valid);
@@ -101,9 +102,15 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
+        // Find convergence layer
+        ConvergenceLayer* cl = ConvergenceLayer::find_clayer(cl_str);
+        if (!cl) {
+            resultf("invalid convergence layer %s", cl_str);
+            return TCL_ERROR;
+        }
+    
         // XXX/Sushant pass other parameters?
         link = Link::create_link(name, type, cl, nexthop);
-        
     }
     else {
         resultf("unimplemented link subcommand %s", cmd);

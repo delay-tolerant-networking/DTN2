@@ -52,13 +52,13 @@ namespace dtn {
 Link*
 Link::create_link(std::string name,
                   link_type_t type,
-                  const char* conv_layer,
+                  ConvergenceLayer* cl,
                   const char* nexthop)
 {
     switch(type) {
-    case ONDEMAND: 	return new OndemandLink(name, conv_layer, nexthop);
-    case SCHEDULED: 	return new ScheduledLink(name, conv_layer, nexthop);
-    case OPPORTUNISTIC: return new OpportunisticLink(name, conv_layer, nexthop);
+    case ONDEMAND: 	return new OndemandLink(name, cl, nexthop);
+    case SCHEDULED: 	return new ScheduledLink(name, cl, nexthop);
+    case OPPORTUNISTIC: return new OpportunisticLink(name, cl, nexthop);
     default: 		PANIC("bogus link_type_t");
     }
 }
@@ -66,20 +66,15 @@ Link::create_link(std::string name,
 /**
  * Constructor
  */
-Link::Link(std::string name, link_type_t type, const char* conv_layer,
+Link::Link(std::string name, link_type_t type, ConvergenceLayer* cl,
            const char* nexthop)
     :  BundleConsumer(nexthop, false, "Link"),
-       type_(type), nexthop_(nexthop), name_(name), avail_(false)
+       type_(type), nexthop_(nexthop), name_(name), avail_(false), clayer_(cl)
 {
+    ASSERT(clayer_);
+    
     logpathf("/link/%s", name_.c_str());
 
-    // Find convergence layer
-    clayer_ = ConvergenceLayer::find_clayer(conv_layer);
-    if (!clayer_) {
-        PANIC("can't find convergence layer for %s", nexthop_.c_str());
-        // XXX/demmer need better error handling
-    }
-    
     peer_ = ContactManager::instance()->find_peer(nexthop);
     if (peer_ == NULL) {
         peer_ = new Peer(nexthop);

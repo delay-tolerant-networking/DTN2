@@ -211,9 +211,9 @@ public:
     link_type_to_str(link_type_t type)
     {
         switch(type) {
-        case ONDEMAND: 	return "ONDEMAND";
-        case SCHEDULED: 	return "SCHEDULED";
-        case OPPORTUNISTIC: return "OPPORTUNISTIC";
+        case ONDEMAND:		return "ONDEMAND";
+        case SCHEDULED:		return "SCHEDULED";
+        case OPPORTUNISTIC: 	return "OPPORTUNISTIC";
         default: 		PANIC("bogus link_type_t");
         }
     }
@@ -237,12 +237,12 @@ public:
      * Static function to create appropriate link object from link type
      */
     static Link* create_link(std::string name, link_type_t type,
-                             const char* conv_layer,
+                             ConvergenceLayer* cl,
                              const char* nexthop);
     /**
      * Constructor / Destructor
      */
-    Link(std::string name, link_type_t type, const char* conv_layer,
+    Link(std::string name, link_type_t type, ConvergenceLayer* cl,
          const char* nexthop);
     virtual ~Link();
     
@@ -381,7 +381,6 @@ protected:
 
     /// Pointer to convergence layer
     ConvergenceLayer* clayer_;
-
 };
 
 
