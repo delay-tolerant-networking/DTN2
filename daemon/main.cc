@@ -2,6 +2,7 @@
 #include <string>
 #include <sys/time.h>
 #include "debug/Log.h"
+#include "bundling/BundleForwarding.h"
 #include "routing/RouteTable.h"
 #include "cmd/Command.h"
 #include "cmd/Options.h"
@@ -43,6 +44,7 @@ main(int argc, char** argv)
     // Set up all components
     CommandInterp::init();
     ConvergenceLayer::init_clayers();
+    BundleForwarding::init();
     RouteTable::init();
 
     // Parse / exec the config file
