@@ -115,6 +115,11 @@ public:
     void consume_bundle(Bundle* bundle);
     
     /**
+     * Check if the given bundle is already queued on this contact.
+     */
+    bool is_queued(Bundle* bundle);
+        
+    /**
      * Accessor for the list of bundles in this contact.
      */
     BundleList* bundle_list() { return bundle_list_; }

@@ -181,8 +181,8 @@ protected:
     
     /**
      * Called whenever a new consumer (i.e. registration or contact)
-     * arrives. This should walk the list of unassigned bundles (or
-     * maybe all bundles???) to see if the new consumer matches.
+     * arrives. This walks the list of all pending bundles, forwarding
+     * all matches to the new contact.
      */
     virtual void new_next_hop(const BundleTuplePattern& dest,
                               BundleConsumer* next_hop,

@@ -23,6 +23,11 @@ public:
     virtual void consume_bundle(Bundle* bundle) = 0;
 
     /**
+     * Check if the given bundle is already queued on this consumer.
+     */
+    virtual bool is_queued(Bundle* bundle) = 0;
+
+    /**
      * Each BundleConsumer has a tuple (either the registration
      * endpoint or the next-hop address).
      */

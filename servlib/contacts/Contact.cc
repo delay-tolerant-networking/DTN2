@@ -75,3 +75,12 @@ Contact::consume_bundle(Bundle* bundle)
     clayer_->send_bundles(this);
 }
 
+/**
+ * Check if the given bundle is already queued on this consumer.
+ */
+bool
+Contact::is_queued(Bundle* bundle)
+{
+    return bundle->has_container(bundle_list_);
+}
+

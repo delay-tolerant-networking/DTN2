@@ -95,6 +95,11 @@ public:
     virtual void consume_bundle(Bundle* bundle);
 
     /**
+     * Check if the given bundle is already queued on this consumer.
+     */
+    bool is_queued(Bundle* bundle);
+    
+    /**
      * Virtual from SerializableObject.
      */
     void serialize(SerializeAction* a);

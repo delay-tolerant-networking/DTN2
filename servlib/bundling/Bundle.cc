@@ -196,3 +196,13 @@ Bundle::del_container(BundleList* blist)
         PANIC("unexpected return %d from set::erase", n);
     }
 }
+
+/**
+ * Check if this bundle is already queued on the given bundle
+ * list.
+ */
+bool
+Bundle::has_container(BundleList* blist)
+{
+    return containers_.find(blist) != containers_.end();
+}

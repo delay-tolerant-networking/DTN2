@@ -131,6 +131,12 @@ public:
      * false if it wasn't in the set
      */
     bool del_container(BundleList* blist);
+
+    /**
+     * Check if this bundle is already queued on the given bundle
+     * list.
+     */
+    bool has_container(BundleList* blist);
     
     /**
      * Values for the bundle priority field.

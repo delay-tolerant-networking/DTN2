@@ -360,7 +360,7 @@ BundleRouter::handle_route_add(RouteAddEvent* event,
 }
 
 /**
- * Loop through the routing table, adding an entry for each match
+ * Loop through the routing table, and for all 
  * to the action list.
  */
 int
@@ -376,6 +376,13 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
     int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter) {
         entry = *iter;
+
+        if (entry->next_hop_->is_queued(bundle)) {
+            log_debug("not forwarding to %s since already queued",
+                      entry->next_hop_->dest_tuple()->c_str());
+            continue;
+        }
+        
         if ((include_local == false) && entry->next_hop_->is_local())
             continue;
         
@@ -391,15 +398,26 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
 
 /**
  * Called whenever a new consumer (i.e. registration or contact)
- * arrives. This should walk the list of unassigned bundles (or
- * maybe all bundles???) to see if the new consumer matches.
+ * arrives. This walks the list of all pending bundles, forwarding
+ * all matches to the new contact.
  */
 void
 BundleRouter::new_next_hop(const BundleTuplePattern& dest,
                            BundleConsumer* next_hop,
                            BundleActionList* actions)
 {
-    log_debug("XXX/demmer implement new_next_hop");
+    log_debug("new_next_hop %s: checking pending bundle list...",
+              next_hop->dest_tuple()->c_str());
+    BundleList::iterator iter;
+
+    ScopeLock l(pending_bundles_->lock());
+    
+    for (iter = pending_bundles_->begin();
+         iter != pending_bundles_->end();
+         ++iter)
+    {
+        fwd_to_matching(*iter, actions, true);
+    }
 }
 
 /**

@@ -77,7 +77,16 @@ Registration::consume_bundle(Bundle* bundle)
              bundle->bundleid_, regid_, endpoint_.c_str());
     bundle_list_->push_back(bundle);
 }
- 
+
+/**
+ * Check if the given bundle is already queued on this consumer.
+ */
+bool
+Registration::is_queued(Bundle* bundle)
+{
+    return bundle->has_container(bundle_list_);
+}
+
 /**
  * Virtual from SerializableObject.
  */
