@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <netinet/in.h>
 
 #include "FileConvergenceLayer.h"
 #include "bundling/Bundle.h"
@@ -190,55 +191,70 @@ FileConvergenceLayer::send_bundles(Contact* contact)
         PANIC("contact should have already been validated");
     }
 
+    FileHeader filehdr;
     Bundle* bundle;
     BundleList* blist = contact->bundle_list();
-    int iovcnt = BundleProtocol::MAX_IOVCNT;
+    int iovcnt = BundleProtocol::MAX_IOVCNT + 2;
     struct iovec iov[iovcnt];
+
+    filehdr.version = CURRENT_VERSION;
     
-    while (1) {
-        bundle = blist->pop_front();
+    StringBuffer fname("%s/bundle-XXXXXX", dir.c_str());
+    
+    while ((bundle = blist->pop_front()) != NULL) {
+        iov[0].iov_base = &filehdr;
+        iov[0].iov_len  = sizeof(FileHeader);
 
-        if (!bundle) {
-            return;
-        }
+        // fill in the bundle header portion
+        u_int16_t header_len = BundleProtocol::fill_header_iov(bundle, &iov[1], &iovcnt);
 
-        int len = BundleProtocol::fill_iov(bundle, iov, &iovcnt);
-        log_debug("bundle id %d format completed, %d byte bundle",
-                  bundle->bundleid_, len);
+        // fill in the file header
+        size_t payload_len = bundle->payload_.length();
+        filehdr.header_length = htons(header_len);
+        filehdr.bundle_length = htonl(header_len + payload_len);
 
+        // and tack on the payload (adding one to iovcnt for the
+        // FileHeader, then one for the payload)
+        iovcnt++;
+        iov[iovcnt].iov_base = (void*)bundle->payload_.data();
+        iov[iovcnt].iov_len  = payload_len;
+        iovcnt++;
 
-        StringBuffer fname("%s/bundle-%d", dir.c_str(), bundle->bundleid_);
-
-        int fd = open(fname.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+        // open the bundle file 
+        int fd = mkstemp(fname.c_str());
         if (fd == -1) {
-            log_err("error opening file %s: %s", fname.c_str(), strerror(errno));
+            log_err("error opening temp file in %s: %s", fname.c_str(), strerror(errno));
             // XXX/demmer report error here?
             bundle->del_ref();
             continue;
         }
 
-        log_debug("opened bundle file %s (fd %d)", fname.c_str(), fd);
+        log_debug("opened temp file %s for bundle id %d "
+                  "fd %d header_length %d payload_length %d",
+                  fname.c_str(), bundle->bundleid_, fd, header_len, payload_len);
 
+        // now write everything out
+        int total = sizeof(FileHeader) + header_len + payload_len;
         int cc = IO::writevall(fd, iov, iovcnt, logpath_);
-        if (cc != len) {
-            log_err("error writing out bundle (%d/%d): %s", cc, len, strerror(errno));
+        if (cc != total) {
+            log_err("error writing out bundle (wrote %d/%d): %s",
+                    cc, total, strerror(errno));
         }
 
         // free up the iovec data
-        BundleProtocol::free_iovmem(bundle, iov, iovcnt);
-
+        BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt - 2);
+        
         // close the file descriptor
         close(fd);
 
         // cons up a transmission event and pass it to the router
         bool acked = false;
-        size_t bytes_sent = bundle->payload_.length();
         BundleRouter::dispatch(
-            new BundleTransmittedEvent(bundle, contact, bytes_sent, acked));
+            new BundleTransmittedEvent(bundle, contact, payload_len, acked));
 
         log_debug("bundle id %d successfully transmitted", bundle->bundleid_);
 
-        // finally, remove the reference on the bundle (may delete it)
+        // finally, remove the reference on the bundle (which may delete it)
         bundle->del_ref();
     }
 }
@@ -260,10 +276,10 @@ FileConvergenceLayer::Scanner::Scanner(int secs_per_scan, const std::string& dir
 void
 FileConvergenceLayer::Scanner::run()
 {
+    FileHeader filehdr;
     DIR* dir = opendir(dir_.c_str());
     struct dirent* dirent;
     const char* fname;
-    struct stat st;
     char* buf;
     int fd;
     
@@ -291,42 +307,85 @@ FileConvergenceLayer::Scanner::run()
             // cons up the full path
             StringBuffer path("%s/%s", dir_.c_str(), fname);
 
-            // call stat to see how big it is
-            if (stat(path.c_str(), &st) != 0) {
-                log_err("error running stat %s: %s", path.c_str(), strerror(errno));
-                continue;
-            }
-
             // malloc a buffer for it, open a file descriptor, and
-            // read in the contents
+            // read in the header
             if ((fd = open(path.c_str(), 0)) == -1) {
                 log_err("error opening file %s: %s", path.c_str(), strerror(errno));
                 continue;
             }
 
-            buf = (char*)malloc(st.st_size);
-            if (IO::readall(fd, buf, st.st_size) != st.st_size) {
-                log_err("error reading file %s data: %s", path.c_str(), strerror(errno));
-                delete buf;
+            int cc = IO::readall(fd, (char*)&filehdr, sizeof(FileHeader));
+            if (cc != sizeof(FileHeader)) {
+                log_warn("can't read in FileHeader (read %d/%d): %s",
+                         cc, sizeof(FileHeader), strerror(errno));
                 continue;
             }
 
-            // parse and process the received data
-            if (! BundleProtocol::process_buf((u_char*)buf, st.st_size)) {
-                log_err("error parsing bundle");
+            if (filehdr.version != CURRENT_VERSION) {
+                log_warn("framing protocol version mismatch: %d != current %d",
+                         filehdr.version, CURRENT_VERSION);
+                continue;
             }
 
+            u_int16_t header_len = ntohs(filehdr.header_length);
+            size_t bundle_len = ntohl(filehdr.bundle_length);
+            
+            log_debug("found bundle file %s: header_length %d bundle_length %d",
+                      path.c_str(), header_len, bundle_len);
+
+            // read in and parse the headers
+            buf = (char*)malloc(header_len);
+            cc = IO::readall(fd, buf, header_len);
+            if (cc != header_len) {
+                log_err("error reading file %s header (read %d/%d): %s",
+                        path.c_str(), cc, header_len, strerror(errno));
+                free(buf);
+                continue;
+            }
+
+            Bundle* bundle = new Bundle();
+            if (! BundleProtocol::parse_headers(bundle, (u_char*)buf, header_len)) {
+                log_err("error parsing bundle headers in file %s", path.c_str());
+                free(buf);
+                delete bundle;
+                continue;
+            }
+            free(buf);
+
+            // Now validate the lengths
+            size_t payload_len = bundle->payload_.length();
+            if (bundle_len != header_len + payload_len) {
+                log_err("error in bundle lengths in file %s: "
+                        "bundle_length %d, header_length %d, payload_length %d",
+                        path.c_str(), bundle_len, header_len, payload_len);
+                delete bundle;
+                continue;
+            }
+
+            // Looks good, now read in and assign the data
+            buf = (char*)malloc(payload_len);
+            cc = IO::readall(fd, buf, payload_len);
+            if (cc != (int)payload_len) {
+                log_err("error reading file %s payload (read %d/%d): %s",
+                        path.c_str(), cc, payload_len, strerror(errno));
+                delete bundle;
+                continue;
+            }
+            bundle->payload_.set_data(buf, payload_len);
+            free(buf);
+            
             // close the file descriptor and remove the file
             if (close(fd) != 0) {
-                log_err("error closing file: %s", strerror(errno));
+                log_err("error closing file %s: %s", path.c_str(), strerror(errno));
             }
             
             if (unlink(path.c_str()) != 0) {
-                log_err("error removing bundle file: %s", strerror(errno));
+                log_err("error removing file %s: %s", path.c_str(), strerror(errno));
             }
-            
-            // clean up the buffer and do another
-            free(buf);
+
+            // all set, notify the router
+            BundleRouter::dispatch(new BundleReceivedEvent(bundle));
+            ASSERT(bundle->refcount() > 0);
         }
             
         //log_debug("sleeping...");

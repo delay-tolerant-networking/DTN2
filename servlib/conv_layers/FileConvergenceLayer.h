@@ -67,6 +67,21 @@ public:
 
 protected:
     /**
+     * Current version of the file cl protocol.
+     */
+    static const int CURRENT_VERSION = 0x1;
+     
+    /**
+     * Framing header at the beginning of each bundle file.
+     */
+    struct FileHeader {
+        u_int8_t version;		///< framing protocol version
+        u_int8_t pad;			///< unused
+        u_int16_t header_length;	///< length of the bundle header
+        u_int32_t bundle_length;	///< length of the bundle + headers
+    } __attribute__((packed));
+    
+    /**
      * Pull a filesystem directory out of the admin portion of a
      * tuple.
      */
