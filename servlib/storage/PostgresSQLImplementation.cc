@@ -3,23 +3,19 @@
 #include "debug/Debug.h"
 #include "util/StringBuffer.h"
 
-PostgresSQLImplementation::PostgresSQLImplementation(const char* dbName)
+PostgresSQLImplementation::PostgresSQLImplementation()
     : Logger("/storage/postgresql")
 {
-    PGconn* db = connect_db(dbName);
-    data_base_pointer_ = db;
     query_result_ = NULL;
 }
 
-PGconn*
-PostgresSQLImplementation::connect_db(const char* dbName)
+int
+PostgresSQLImplementation::connect(const char* dbName)
 {
     char *pghost;
     char *pgport;
     char *pgoptions;
     char *pgtty;
- 
-    PGconn *conn;
  
     log_debug("connecting to database %s", dbName);
 
@@ -41,25 +37,25 @@ PostgresSQLImplementation::connect_db(const char* dbName)
      *
      */
     
-    conn = PQsetdb(pghost, pgport, pgoptions, pgtty, dbName);
+    db_ = PQsetdb(pghost, pgport, pgoptions, pgtty, dbName);
         
     /**
      * check to see that the backend connection was successfully made
      */
-    if (PQstatus(conn) == CONNECTION_BAD)
+    if (PQstatus(db_) == CONNECTION_BAD)
     {
         log_err("connection to database '%s' failed: %s",
-                dbName, PQerrorMessage(conn));
-        exit(1);
+                dbName, PQerrorMessage(db_));
+        return -1;
     }
     
-    return conn;
+    return 0;
 }
 
 int
 PostgresSQLImplementation::close()
 {
-    PQfinish(data_base_pointer_);
+    PQfinish(db_);
     return 0;
 }
 
@@ -81,13 +77,13 @@ PostgresSQLImplementation::has_table(const char* tablename)
     query.appendf("select * from pg_tables where tablename = '%s'", tablename);
     int ret = exec_query(query.c_str());
     ASSERT(ret == 0);
-    if (tuples() == 1) retval  = 1;
+    if (num_tuples() == 1) retval  = 1;
 
     return retval;
 }
 
 int
-PostgresSQLImplementation::tuples()
+PostgresSQLImplementation::num_tuples()
 {
     int ret = -1;
     ASSERT(query_result_);
@@ -114,11 +110,10 @@ PostgresSQLImplementation::exec_query(const char* query)
         query_result_ = NULL;
     }
     
-    query_result_ = PQexec(data_base_pointer_,query);
+    query_result_ = PQexec(db_, query);
     ASSERT(query_result_);
     ExecStatusType t = PQresultStatus(query_result_);
     ret = status_to_int(t);
     
- 
     return ret;
 }

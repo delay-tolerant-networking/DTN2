@@ -2,33 +2,28 @@
 #include "debug/Debug.h"
 #include "MysqlSQLImplementation.h"
 
-MysqlSQLImplementation::MysqlSQLImplementation(const char *dbName)
+MysqlSQLImplementation::MysqlSQLImplementation()
     : Logger("/storage/mysql")
 {
-    MYSQL *db;
-    db = connect_db(dbName);
-    data_base_pointer_ = db;
     query_result_ = NULL;
 }
 
-MYSQL*
-MysqlSQLImplementation::connect_db(const char* dbName)
+int
+MysqlSQLImplementation::connect(const char* dbName)
 {
-    MYSQL *conn;
-
-    conn = mysql_init(NULL);
+    db_ = mysql_init(NULL);
 
     log_debug("connecting to database %s", dbName);
  
-    /* Connect to database */
-    if (!mysql_real_connect(conn, NULL,
+    /* connect to database */
+    if (!mysql_real_connect(db_, NULL,
                             NULL, NULL, dbName, 0, NULL, 0)) {
         log_err("error connecting to database %s: %s",
-                dbName, mysql_error(conn));
-        exit(1);
+                dbName, mysql_error(db_));
+        return -1;
     }
 
-    return conn;
+    return 0;
 }
 
 const char*
@@ -46,32 +41,35 @@ MysqlSQLImplementation::get_value(int tuple_no, int field_no)
 int
 MysqlSQLImplementation::close()
 {
-    mysql_close(data_base_pointer_);
+    mysql_close(db_);
+    db_ = NULL;
     return 0;
 }
 
 bool
 MysqlSQLImplementation::has_table(const char* tablename)
 {
-    bool retval = 0;
+    bool ret = false;
  
     if (query_result_ != 0) {
         mysql_free_result(query_result_);
         query_result_ = 0;
     }
 
-    query_result_ = mysql_list_tables(data_base_pointer_, tablename);
+    query_result_ = mysql_list_tables(db_, tablename);
     
-    if (mysql_num_rows(query_result_) == 1)
-        retval = 1;
+    if (mysql_num_rows(query_result_) == 1) {
+        ret = true;
+    }
+    
     mysql_free_result(query_result_);
     query_result_ = NULL;
 
-    return retval;
+    return ret;
 }
 
 int
-MysqlSQLImplementation::tuples()
+MysqlSQLImplementation::num_tuples()
 {
     int ret = -1;
     ASSERT(query_result_);
@@ -83,14 +81,20 @@ int
 MysqlSQLImplementation::exec_query(const char* query)
 {
     int ret = -1;
+    
     // free previous result state
     if (query_result_ != NULL) {
         mysql_free_result(query_result_);
         query_result_ = NULL;
     }
-    ret = mysql_query(data_base_pointer_,query);
-    if (ret == 1) return ret ; 
-    query_result_ = mysql_store_result(data_base_pointer_);
+    
+    ret = mysql_query(db_, query);
+    
+    if (ret == 1) {
+        return ret;
+    }
+    
+    query_result_ = mysql_store_result(db_);
     
     return ret;
 }
