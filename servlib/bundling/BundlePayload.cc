@@ -1,6 +1,5 @@
 
 #include <sys/errno.h>
-#include <fcntl.h>
 #include "BundlePayload.h"
 #include "debug/Debug.h"
 #include "util/StringBuffer.h"
@@ -17,19 +16,24 @@ void
 BundlePayload::init(int bundleid)
 {
     StringBuffer path("%s/bundle_%d.dat", dir_.c_str(), bundleid);
-    int fd = open(path.c_str(), O_EXCL | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-    if (fd < 0) {
+    file_ = new FileIOClient();
+    file_->logpathf("/bundle/payload/%d", bundleid);
+    if (file_->open(path.c_str(), O_EXCL | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR) < 0) {
         log_crit("/bundle/payload", "error opening payload file %s: %s",
                  path.c_str(), strerror(errno));
         return;
     }
-    file_ = new FileIOClient(fd);
-    file_->logpathf("/bundle/payload/%d", bundleid);
 }
 
 BundlePayload::~BundlePayload()
 {
-    // XXX/demmer need to delete the payload file somewhere
+    if (file_) {
+        file_->unlink();
+        file_->close();
+        delete file_;
+        file_ = NULL;
+    }
+    
 }
 
 
