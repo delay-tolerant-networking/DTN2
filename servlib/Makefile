@@ -10,6 +10,7 @@ BUNDLING_SRCS := 				\
 	bundling/Bundle.cc			\
 	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
+	bundling/BundleProtocol.cc		\
 	bundling/BundleTuple.cc			\
 	bundling/Contact.cc			\
 	bundling/Interface.cc			\
@@ -68,6 +69,7 @@ STORAGE_SRCS :=					\
 
 THREAD_SRCS :=					\
 	thread/Mutex.cc				\
+	thread/Notifier.cc			\
 	thread/Thread.cc			\
 
 UTIL_SRCS :=					\
@@ -88,6 +90,13 @@ SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)
 
 ALLSRCS := $(SERVLIB_SRCS)
+
+#
+# Other makefiles include this one so they can link with the object
+# files directly and not use the servlib, but in that case, all we
+# want are the object lists, not the rules below
+#
+ifeq ($(SERVLIB_MAKEFILE_INCLUDE),)
 
 #
 # Default target is to build the library
@@ -119,3 +128,5 @@ GENFILES += debug/arith.h debug/arithchk
 #
 SRCDIR := ..
 -include $(SRCDIR)/Rules.make
+
+endif
