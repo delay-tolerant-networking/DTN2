@@ -210,7 +210,7 @@ int
 IO::timeout_read(int fd, char* bp, size_t len, int timeout_ms,
                  const char* log)
 {
-    ASSERT(timeout_ms > 0);
+    ASSERT(timeout_ms >= 0);
     
     int ret = poll(fd, POLLIN | POLLPRI, timeout_ms);
     if (ret < 0)
@@ -241,7 +241,7 @@ int
 IO::timeout_readv(int fd, const struct iovec* iov, int iovcnt, int timeout_ms,
                   const char* log)
 {
-    ASSERT(timeout_ms > 0);
+    ASSERT(timeout_ms >= 0);
     
     int ret = poll(fd, POLLIN | POLLPRI, timeout_ms);
     if (ret < 0)
