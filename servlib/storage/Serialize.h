@@ -77,17 +77,15 @@ public:
 
     /**
      * Process function for a contained SerializableObject.
-     */
-    /** 
-     * The
-     * default implementation just calls the standard process()
-     * function, ignoring the name value. However, it is virtual, so a
-     * derived class could make use of the name (as part of a SQL
-     * table definition, for example).
+     *
+     * The default implementation just calls serialize() on the
+     * contained object, ignoring the name value. However, a derived
+     * class can of course override it to make use of the name (as is
+     * done by SQLTableFormat, for example).
      */
     virtual void process(const char* name, SerializableObject* object)
     {
-        action(object);
+        object->serialize(this);
     }
     
     /**
