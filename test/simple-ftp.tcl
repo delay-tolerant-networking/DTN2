@@ -42,6 +42,7 @@ proc scan_dir {host dir} {
 	set sent_file 0
 	while {$sent_file != 1} {
 	    set sent_file [send_file $host $file]
+	    after 2000
 	}
 
 	file delete -force $file
@@ -103,6 +104,8 @@ proc send_file {host file} {
 	puts $sock "[file tail $file] [file size $file]"
 	flush $sock
     }] {
+	close $sock
+	unset sock
 	close $fd
 	return -1
     }
