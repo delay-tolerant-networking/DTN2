@@ -7,16 +7,16 @@ set queue DropTail
 set protocol Static
 
 
+set WARMUPTIME 10 
+#Time between ending of one protocol and starting of the next
+set DELAY_FOR_SOURCE_NODE 2
 
-### time to finish one run of the experiment
-#set finish 711
+
+## Adjust the following if links are dynamic 
+=======
 set linkdynamics 0
-
-## Length of uptime
-set up 70
-## Length of downtime
-set down 40  
-set WARMUPTIME 10
+set up 70 ## Length of uptime
+set down 40   ## Length of downtime
 
 set OFFSET_VAL $up
 
@@ -30,14 +30,21 @@ global up
 global down
 global uplist
 global downlist
+global WARMUPTIME
 ## locals are only start, current, 
 set uplist {}
 set downlist {}
-set start 0 
 
-## Assumes that the link is up.
+
+## Start up state (link is down before offset)
+if {$offset != 0} {
+    lappend downlist 1
+    lappend uplist [expr $WARMUPTIME  + $offset   ]
+}
+
+## Assumes that the link is up. (rather just up)
 ## The first event schedules is a down link event
-
+set start $WARMUPTIME
 while {$start < $MAX_SIM_TIME} {
    # puts "Outer loop $start"
     set current [expr $start + $offset]
@@ -52,6 +59,10 @@ while {$start < $MAX_SIM_TIME} {
     }
     set start [expr $start + $ONE_CYCLE_LENGTH ]
 }
+
+## Finally make the link up (to allow debugging)
+lappend uplist [expr $WARMUPTIME + $current]
+
 }
 
 ## get cmd to be executed on node $id. 
@@ -106,8 +117,8 @@ $ns rtproto $protocol
 
 set runs [expr [llength $protos]*[llength $perhops] ]
 
-set MAX_SIM_TIME [expr $runs*$finish + 2*$runs*$WARMUPTIME]
-set ONE_CYCLE_LENGTH $finish + 2*$WARMUPTIME
+set MAX_SIM_TIME [expr $runs*$finish + $runs*$WARMUPTIME + $WARMUPTIME]
+set ONE_CYCLE_LENGTH $finish + $WARMUPTIME
 set uplist {}
 set downlist {}
 
@@ -150,7 +161,7 @@ for {set i 1} {$i <=  $maxnodes} {incr i} {
 	    set mytime $starttime
 	    set end [expr  $starttime + $finish]
 	    ## Source is later as it will contact server on socket
-	    if {$i == 1} { set mytime [expr $starttime + $WARMUPTIME] }
+	    if {$i == 1} { set mytime [expr $starttime + $DELAY_FOR_SOURCE_NODE] }
 	    $ns at  $mytime "[set $progVar] start"
 	    $ns at  $end "[set $progVar] stop"
 	    
