@@ -43,7 +43,19 @@ code.
 $ sh configure
 </pre></blockquote>
 
+<p>Finally, compile the software:
 
+<blockquote><pre>$ make
+</pre></blockquote>
+
+<p>If you just want to play with DTN2 to learn how it works, you can
+stop here. You can use all the programs as a regular user, with them
+in the source code directories. There's no need to do a full install
+into the public part of the filesystem. However, if you are deploying
+DTN2, you'll want to take a look at the <tt>tools/install.sh</tt>
+script. You might want to customize it, as it currently puts the files
+into <tt>/usr</tt>, and some people prefer to put files in
+<tt>/usr/local</tt>.
 
 <h2> On Windows </h2>
 
@@ -51,6 +63,48 @@ $ sh configure
 DTN2 does not yet work as a native Windows application. It does,
 however, work with the <a href="http://www.cygwin.com">Cygwin</a>
 environment.
+
+<h3> Install Cygwin </h3>
+
+<p>
+The first step is to install Cygwin on your computer. The best way to
+do this is to download <a
+href="http://cygwin.com/setup.exe">setup.exe</a> from their website.
+We suggest storing it on your computer in a new directory you make
+named <tt>c:\cygwin\download</tt>.
+
+<p>
+Start <tt>setup.exe</tt> and choose "Install from Internet". Use the
+default root directory, <tt>c:\cygwin</tt>.
+Make the "Local Package Directory" <tt>c:\cygwin\download</tt>. Cygwin
+will ask you to choose a mirror, so choose one close to you on the
+Internet. It will then ask you to "Select Packages". The defaults here
+are pretty good, but you need to make a few changes:
+
+<ul>
+<li> Open Database and ensure that <b>db4.2</b>, <b>libdb4.2</b>
+and <b>libdb4.2-devel</b> are selected for installation.
+<li> Open Editors and ensure an editor you like and know how to use is
+selected.
+<li> Open Libs, and select the <b>sunrpc</b> package for installation.
+<li> While in Libs, check that the <b>tcltk</b> package will be installed.
+</ul>
+
+<p>
+Continue with the installation. When it is done, you'll have a working
+Cygwin installation and be ready to proceed.
+
+<h3> Compile using Cygwin </h3>
+
+<p> Once you have installed Cygwin, you'll have a new item in your
+Start -&gt; All Programs menu called Cygwin, and inside that, one
+called Bash.  When you select it, you get a <tt>bash</tt> shell, which
+is like a <tt>CMD</tt> window, only cooler. You start out in your
+home directory, which in Cygwin is <tt>/home/$user</tt>, but in
+Windows, it is <tt>c:\cygwin\home\$user</tt>. Now that you have a
+Unix-like window, follow the Unix instructions above. Cygwin comes
+with CVS, so you can even use CVS to fetch the source code, as
+described above.
 
 </body>
 </html>

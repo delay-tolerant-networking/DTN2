@@ -1,0 +1,166 @@
+<html>
+<head>
+<title> DTN2 Manual: dtnd Configuration </title>
+</head>
+<body>
+<h1>dtnd Configuration
+</h1>
+
+<p>
+At startup, dtnd creates an initializes a TCL interpreter. It then
+loads and evaluates the contents of the configuration file. For
+more info on the TCL language, see the <a href="http://www.tcl.tk">
+TCL homepage</a>.
+
+<p>
+The name of the configuration file is usually set with the -c argument. If
+the -c argument is missing, dtnd will try to load
+<tt>/etc/dtn.conf</tt>. If that file is not readable, it will try to
+read <tt>daemon/dtn.conf</tt>. If that file is not readable, it
+will log a warning and continue without a configuration file.
+You may still configure dtnd by hand at the <tt>dtn%</tt> prompt.
+
+<p>
+Each of the commands that dtnd handles is described below. These are
+extensions to the normal TCL command set. You may always use TCL
+commands and other expressions in your dtn.conf configuration file. For an
+example of this, search for <tt>[info hostname]</tt> in the sample
+<tt>daemon/dtn.conf</tt> file.
+
+<h2> api </h2>
+
+Syntax: <tt>api set <i>variable</i> <i>value</i> </tt>
+<br>
+Example: <tt>api set local_addr 10.0.0.1</tt>
+
+<p>
+Use the <tt>api</tt> command to configure the interface between
+dtnd and the DTN applications (like dtnping, dtncp, etc).
+See also <a href="environment.html">environment variables</a>.
+
+<p>
+<table border>
+<tr>
+<th>Variable
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>local_addr</tt>
+<td>An IP address or a hostname.
+<td>127.0.0.1
+<td>The IP address the API Server will listen to for requests from
+API clients.
+
+<tr>
+<td><tt>handshake_port</tt>
+<td>An IP port number
+<td>5010
+<td>The IP port on which the API Server listens for requests from
+API clients.
+
+<tr>
+<td><tt>session_port</tt>
+<td>An IP port number
+<td>5011
+<td>The IP port from which packets will originate when an API Server
+is talking to an API client.
+
+</table>
+
+<h2> log </h2>
+
+Syntax: <tt>log <i>log-path</i> <i>log-level</i> <i>log-string</i> </tt>
+<br>
+Example: <tt>log /dtnd info "dtnd parsing configuration..."</tt>
+
+<p>
+You can use the <tt>log</tt> command to add a log message to the dtnd
+log file. The log-path and log-level are used to filter out messages,
+as described in the section on <a href="logging.html">Logging</a>.
+
+<h2> storage </h2>
+
+Syntax: <tt>storage set <i>variable</i> <i>value</i> </tt>
+<br>
+Example: <tt>storage set type berkeleydb</tt>
+
+<p>
+Use the <tt>storage</tt> command to configure the manner in which
+DTN2 will store persistent state like registrations. You may set the
+following variables:
+
+<p>
+<table border>
+<tr>
+<th>Variable
+<th>Possible settings
+<th>Default
+<th>Comments
+
+<tr>
+<td><tt>dbdir</tt>
+<td>any directory name
+<td>/var/dtn/db
+<td>The directory where the DB files will be stored. Only used for
+type BerkeleyDB.
+
+<tr>
+<td><tt>dberrlog</tt>
+<td>any file name
+<td>error.log
+<td>The file name of the BerkeleyDB error log, used for database error
+recovery.
+
+<tr>
+<td><tt>dbfile</tt>
+<td>any file name
+<td>DTN.db
+<td>The file name of the BerkeleyDB database.
+
+<tr>
+<td><tt>payloaddir</tt>
+<td>a directory name
+<td>/var/dtn/bundles
+<td>The directory where bundles in transit will be stored.
+
+<tr>
+<td><tt>sqldb</tt>
+<td>a database name
+<td>DTN
+<td>The name of the MySQL or Postgres database dtnd will connect to.
+
+<tr>
+<td><tt>tidy</tt>
+<td>true, false
+<td>false
+<td>When true, dtnd cleans out the database and the bundle directories
+at startup.
+
+<tr>
+<td><tt>type</tt>
+<td>berkeleydb, mysql, postgres
+<td>berkeleydb
+<td>Which database backend will be used.
+
+</table>
+
+<h4>Notes</h4>
+
+<p> Tidy is useful when there are pending bundles in the system that
+you do not want dtnd to continue to try to deliver. If you allow dtnd
+to tidy up when it has custody of a bundle, that bundle will be lost
+for all time and the sending application will not be notified.
+
+<p> For SQL backends, is not possible at this time to configure a
+hostname, username, or password via the <tt>storage</tt> command.  For
+MySQL, the defaults are hostname "localhost", Unix user name, and no
+password. For Postgres, the defaults are taken from the environment
+variables described in the <a
+href="http://www.postgresql.org/docs/8.0/interactive/libpq-envars.html">PostgreSQL
+manual</a>.
+
+</body>
+</html>
+
