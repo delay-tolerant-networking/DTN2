@@ -59,9 +59,10 @@ public:
      * Initialize the interpreter instance and register any auto
      * registered command modules.
      */
-    static void init() {
+    static int init(char* argv0) {
         ASSERT(instance_ == NULL);
         instance_ = new CommandInterp();
+        return instance_->do_init(argv0);
     }
 
     /**
@@ -76,6 +77,11 @@ public:
      * \return 0 if no error, -1 otherwise
      */
     int exec_command(const char* command);
+
+    /**
+     * Run an interpreter loop. Doesn't return.
+     */
+    void loop(const char* prompt);
 
     /**
      * Static callback function from Tcl to execute the commands.
@@ -143,10 +149,15 @@ public:
     
 protected:
     /**
-     * Do all the actual initialization.
+     * Constructor (does nothing)
      */
     CommandInterp();
 
+    /**
+     * Do all of the actual initialization.
+     */
+    int do_init(char* argv0);
+    
     /**
      * Destructor is never called (and issues an assertion).
      */

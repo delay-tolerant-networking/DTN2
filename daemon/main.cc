@@ -27,7 +27,8 @@ main(int argc, char** argv)
     int random_seed;
     bool random_seed_set = false;
         
-    // test command
+    // Create the test command now, so testing related options can be
+    // registered
     TestCommand testcmd;
     
     // Set up the command line options
@@ -40,7 +41,7 @@ main(int argc, char** argv)
                "test option for loopback");
     
     // Set up the command interpreter, then parse argv
-    CommandInterp::init();
+    CommandInterp::init(argv[0]);
     Options::getopt(argv[0], argc, argv);
 
     // Seed the random number generator
@@ -86,41 +87,13 @@ main(int argc, char** argv)
     RegistrationTable::instance()->load();
     //BundleStore::instance()->load();
     
-    // finally, if the config script wants us to run an initialization
-    // script, do so now
+    // if the config script wants us to run a test script, do so now
     if (testcmd.initscript_.length() != 0) {
         CommandInterp::instance()->exec_command(testcmd.initscript_.c_str());
     }
+
+    // finally, run the main command loop (shouldn't return)
+    CommandInterp::instance()->loop("dtn");
     
-    // Start the main console input loop
-    while (1) {
-        char buf[256];
-        fprintf(stdout, "> ");
-        fflush(stdout);
-        
-        char* line = fgets(buf, sizeof(buf), stdin);
-        if (!line) {
-            logf("/daemon", LOG_INFO, "got eof on stdin, exiting: %s",
-                 strerror(errno));
-            continue;
-        }
-
-        size_t len = strlen(line);
-        if (len == 0) {
-            continue; // short circuit blank lines
-        }
-
-        // trim trailing newline
-        line[len - 1] = '\0';
-        
-        if (CommandInterp::instance()->exec_command(buf) != TCL_OK) {
-            fprintf(stdout, "error: ");
-        }
-        
-        const char* res = CommandInterp::instance()->get_result();
-        if (res && res[0] != '\0') {
-            fprintf(stdout, "%s\r\n", res);
-            fflush(stdout);
-        }
-    }
+    logf("/daemon", LOG_ERR, "command loop exited unexpectedly");
 }

@@ -12,13 +12,31 @@
 CommandInterp* CommandInterp::instance_;
 CommandList* CommandInterp::auto_reg_ = NULL;
 
+#include "command-init-tcl.c"
+
 CommandInterp::CommandInterp()
     : Logger("/command")
+{
+}
+
+int
+CommandInterp::do_init(char* argv0)
 {
     interp_ = Tcl_CreateInterp();
     
     lock_ = new Mutex("/command/lock", Mutex::TYPE_RECURSIVE, true);
 
+    // run Tcl_Init to set up the local tcl package path
+    if (Tcl_Init(interp_) != TCL_OK) {
+        log_err("error in Tcl_Init: \"%s\"", interp_->result);
+        return TCL_ERROR;
+    }
+
+    // for some reason, this needs to be called to set up the various
+    // locale strings and get things like the "ascii" encoding defined
+    // for a file channel
+    Tcl_FindExecutable(argv0);
+    
     // do auto registration of commands (if any)
     if (auto_reg_) {
         ASSERT(auto_reg_); 
@@ -31,6 +49,17 @@ CommandInterp::CommandInterp()
         delete auto_reg_;
         auto_reg_ = NULL;
     }
+    
+    // evaluate the boot-time tcl commands (copied since tcl may
+    // overwrite the string value)
+    char* cmd = strdup(INIT_COMMAND);
+    if (Tcl_Eval(interp_, cmd) != TCL_OK) {
+        log_err("error in init commands: \"%s\"", interp_->result);
+        return TCL_ERROR;
+    }
+    free(cmd);
+
+    return TCL_OK;
 }
 
 CommandInterp::~CommandInterp()
@@ -80,9 +109,23 @@ CommandInterp::exec_command(const char* command)
     if (err != TCL_OK) {
         logf(LOG_ERR, "tcl error: line %d, \"%s\"",
              interp_->errorLine, interp_->result);
+        const char* errinfo = Tcl_GetVar(interp_, "errorInfo", 0);
+        printf("errorInfo: %s\n", errinfo);
     }
     
     return err;
+}
+
+void
+CommandInterp::loop(const char* prompt)
+{
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd), "command_loop %s", prompt);
+    
+    if (Tcl_Eval(interp_, cmd) != TCL_OK) {
+        log_err("tcl error in readline loop: \"%s\"",
+                interp_->result);
+    }
 }
 
 void
