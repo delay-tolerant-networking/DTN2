@@ -21,7 +21,7 @@ COMPONENT_LIBS := \
 
 dtnd: $(DAEMON_OBJS) $(COMPONENT_LIBS)
 	$(CPP) $(DAEMON_OBJS) $(COMPONENT_LIBS) \
-		$(STATIC_LIBS) -o $@ $(LFLAGS) $(LIBS)
+		$(STATIC_LIBS) -o $@ $(LFLAGS) $(LIBS) $(LIBRPC)
 
 #
 # Include the common rules

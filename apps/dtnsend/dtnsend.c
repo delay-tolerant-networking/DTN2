@@ -143,7 +143,8 @@ main(int argc, char** argv)
             exit(1);
         }
     
-        verbose && printf("dtn_register succeeded, regid 0x%x\n", regid);
+        verbose && printf("dtn_register succeeded, regid 0x%x\n",
+            regid);
 
         // bind the current handle to the new registration
         dtn_bind(handle, regid, &bundle_spec.replyto);
@@ -249,7 +250,6 @@ void print_usage()
     fprintf(stderr, " -f request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
     fprintf(stderr, " -i registration id for reply to\n");
-    fprintf(stderr, " -t file, message, or current date\n");
     
     exit(1);
 }
@@ -336,8 +336,10 @@ void parse_options(int argc, char**argv)
     CHECK_SET(arg_source,   "source tuple");
     CHECK_SET(arg_dest,     "destination tuple");
     CHECK_SET(arg_type,     "payload type");
-    CHECK_SET(data_source,  "payload data");
-                
+    if (arg_type != 'd') {
+        CHECK_SET(data_source,  "payload data");
+    }
+
     switch (arg_type)
     {
     case 'f': payload_type = DTN_PAYLOAD_FILE; break;

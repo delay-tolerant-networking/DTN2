@@ -50,6 +50,7 @@ GlobalStore::GlobalStore(PersistentStore * store)
     globals.next_bundleid_ = 0xffffffff;
     globals.next_regid_    = 0xffffffff;
     store_ = store;
+    loaded_ = false;
 }
 
 GlobalStore::~GlobalStore()
@@ -116,6 +117,10 @@ GlobalStore::load()
     if (cnt == 1) 
     {
         store_->get(&globals, 1);
+
+        // confirm these were added to the db correctly initialized
+        ASSERT(globals.next_bundleid_ != 0xffffffff);
+        ASSERT(globals.next_regid_ != 0xffffffff);
         
         log_debug("loaded next bundle id %d next reg id %d",
                   globals.next_bundleid_, globals.next_regid_);
@@ -137,6 +142,7 @@ GlobalStore::load()
         exit(-1);
     }
 
+    loaded_ = true;
     return true;
 }
 
@@ -144,6 +150,12 @@ bool
 GlobalStore::update()
 {
     log_debug("updating global store");
+
+    // make certain we don't attempt to write out globals before load()
+    // has had a chance to load them from the database (or init them)
+    if (!loaded_) {
+        load();
+    }
     
     if (store_->update(&globals, 1) != 0) {
         log_err("error updating global store");

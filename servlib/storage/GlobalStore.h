@@ -144,6 +144,7 @@ public:
     static GlobalStore* instance_; ///< singleton instance
     
     PersistentStore * store_;   ///< persistent storage object
+    bool loaded_;
     Globals globals;
 };
 } // namespace dtn

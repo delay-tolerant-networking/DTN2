@@ -64,9 +64,8 @@ main(int argc, const char** argv)
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
     unsigned char* endpoint, *buffer;
-    char s_buffer[BUFSIZE + 1];
+    char s_buffer[BUFSIZE];
     int debug = 1;
-    s_buffer[BUFSIZE] = '\0';
     
     if (argc != 2) {
         usage();
@@ -77,6 +76,7 @@ main(int argc, const char** argv)
     // open the ipc handle
     debug && printf("opening connection to dtn router...\n");
     handle = dtn_open();
+    debug && printf("opened connection to dtn router...\n");
     if (handle == 0) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 strerror(errno));
@@ -85,6 +85,7 @@ main(int argc, const char** argv)
 
     // build a local tuple based on the configuration of our dtn
     // router plus the demux string
+    debug && printf("calling dtn_build_local_tuple.\n");
     dtn_build_local_tuple(handle, &local_tuple, endpoint);
     debug && printf("local_tuple [%s %.*s]\n",
                     local_tuple.region,
@@ -153,8 +154,7 @@ main(int argc, const char** argv)
             // print character summary (a la emacs hexl-mode)
             if (k%BUFSIZE == BUFSIZE-1)
             {
-                printf(" |  %s\n", s_buffer);
-                memset(s_buffer, ' ', BUFSIZE);
+                printf(" |  %.*s\n", BUFSIZE, s_buffer);
             }
         }
 
@@ -167,7 +167,8 @@ main(int argc, const char** argv)
                 printf("  ");
                 k++;
             }
-            printf("   |  %s\n", s_buffer);
+            printf("   |  %.*s\n",
+              payload.dtn_bundle_payload_t_u.buf.buf_len%BUFSIZE, s_buffer);
         }
 	printf("\n");
     }
