@@ -206,11 +206,13 @@ AC_CONFIG_FILES([Rules.make])
 AC_CONFIG_FILES([config.h])
 AC_CONFIG_HEADER([auto.config.h:auto.config.h.in])
 
-if test ! -f oasys/Rules.make ; then
-    echo "Configuring oasys library..."
-    AC_CONFIG_FILES([oasys/Rules.make])
-    AC_CONFIG_FILES([oasys/config.h])
-fi
+dnl
+dnl Since the DTN2 configure.ac should be a strict superset of the checks 
+dnl in the oasys configure.ac, we always regenerate the oasys files as 
+dnl well.
+dnl
+AC_CONFIG_FILES([oasys/Rules.make])
+AC_CONFIG_FILES([oasys/config.h])
 
 AC_OUTPUT
 
@@ -227,10 +229,10 @@ echo "  Debug: $DEBUG"
 echo "  Optimize: $OPTIMIZE"
 echo "  Static: $STATIC"
 echo " "
-
-echo "Storage packages:"
+echo "External packages:"
+echo "  tcl: $oasys_cv_path_tcl_h/tcl.h $oasys_cv_path_tcl_lib/lib -l$oasys_cv_lib_tcl"
 if test $DB_ENABLED = 1 ; then
-  echo "  db: $dtn_cv_path_db_h/db.h $dtn_cv_path_db_lib/lib$dtn_cv_lib_db"
+  echo "  db: $dtn_cv_path_db_h/db.h $dtn_cv_path_db_lib -l$dtn_cv_lib_db"
 fi
 if test $POSTGRES_ENABLED = 1 ; then
   echo "  postgres: $dtn_cv_path_postgres_h/libpq-fe.h -L $dtn_cv_path_postgres_lib -lpq"
