@@ -27,6 +27,16 @@ Topology::create_node(int id)
    Topology::nodes_[id] = nd;
 }
 
+void
+Topology::create_consumer(int id)
+{
+    Node *node = Topology::nodes_[id];
+    if (!node) {
+        PANIC("Node:%d not created yet",id);
+    }
+    node->create_consumer();
+}
+
 
 void
 Topology::create_contact(int id, int src, int dst, int bw, 

@@ -20,7 +20,7 @@ public:
     static void create_node(int id);
     static void create_contact(int id, int src, int dst, 
 			       int bw, int delay, int isup, int up, int down);
-
+    static void create_consumer(int id);
     static const int MAX_NODES_  = 100;
     static const int MAX_CONTACTS_ = 1000;
     

@@ -19,6 +19,7 @@ SIM_SRCS :=	\
 	TrAgent.cc	\
 	LogSim.cc	\
 	../daemon/DTNCommands.cc \
+	FloodConsumer.cc\
 	#Statistics.cc \
 
 SIM_OBJS := $(SIM_SRCS:.cc=.o)

@@ -51,7 +51,8 @@ public:
      * Action when the MESSAGE_RECEIVED event arrives
      */
     virtual  void message_received(Message* msg) = 0;
-
+    
+    virtual  void create_consumer() {};
     
 protected:
     int id_;

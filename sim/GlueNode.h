@@ -14,6 +14,7 @@
 
 #include "Node.h"
 #include "routing/BundleRouter.h"
+#include "FloodConsumer.h"
 
 class GlueNode : public Node {
 
@@ -29,6 +30,8 @@ public:
     virtual  void open_contact(SimContact* c);
     virtual  void close_contact(SimContact* c);
     virtual  void message_received(Message* msg);
+    
+    virtual  void create_consumer();
     
 private:
 
@@ -49,6 +52,7 @@ private:
     void forward_event(BundleEvent* event) ;
     
     BundleRouter* router_;
+    FloodConsumer * consumer_;
 };
 
 

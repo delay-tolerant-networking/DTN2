@@ -14,6 +14,7 @@ GlueNode::GlueNode(int id,const char* logpath): Node(id,logpath)
     router_ = BundleRouter::create_router(BundleRouter::type_.c_str());
     log_info("N[%d]: creating router of type:%s",id,BundleRouter::type_.c_str());
     
+    consumer_ = NULL;
 }
 
 
@@ -28,8 +29,8 @@ GlueNode::message_received(Message* msg)
     else {
         log_info("FWD[%d]: src:%d id:%d, size-rcv %f",
                  id(),msg->src(),msg->id(),msg->size());
-        forward(msg);
     }
+    forward(msg);
 }
 
 void forward_event(BundleEvent* event) ;
@@ -135,7 +136,13 @@ GlueNode::execute_router_action(BundleAction* action)
         log_debug("N[%d] deletion ignored %d", id(), bundle->bundleid_);
         break;
         }
-            
+    case FORWARD_REASSEMBLE: {
+        log_info("N[%d] reached destination id:%d",id(),bundle->bundleid_);
+        BundleForwardAction* fwdaction = (BundleForwardAction*)action;
+        BundleConsumer* bc = fwdaction->nexthop_ ; 
+        bc->consume_bundle(bundle);
+        break; 
+        }
     default:
         PANIC("unimplemented action code %s",
               bundle_action_toa(action->action_));
@@ -166,3 +173,14 @@ GlueNode::forward_event(BundleEvent* event)
     
 }
 
+
+
+void    
+GlueNode::create_consumer()
+{
+    consumer_ = new FloodConsumer(id_,"bundles://sim/simcl://2");
+    consumer_->set_router(router_);
+
+    RegistrationAddedEvent *reg_add = new RegistrationAddedEvent(consumer_);
+    forward_event(reg_add);
+}

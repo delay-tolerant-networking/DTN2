@@ -59,7 +59,17 @@ SimulatorCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         Topology::create_node(id);
         log_info("create_node %d \n",id);
     }
-
+    
+    if (strcmp(cmd, "create_consumer") == 0) {
+         if (argc < 4) {
+            wrong_num_args(argc, argv, 2, 4, 4);
+            return TCL_ERROR;
+        }
+        int id = atoi(argv[3]) ;
+        Topology::create_consumer(id);       
+        log_info("create_consumer %d \n",id);
+    }
+    
     // simulator time create_contact <id> <src> <dst> <bw> <delay> <isup> <up> <down>
     if (strcmp(cmd, "create_contact") == 0) {
         if (argc < 11) {
