@@ -2,15 +2,21 @@
 #define _BUNDLE_FORWARDING_H_
 
 #include "debug/Log.h"
+#include <vector>
 
+class BundleActionList;
 class Bundle;
+class BundleConsumer;
 
 /**
  * Class that handles the flow of bundles through the system.
  */
-class BundleForwarding : public Logger {
+class BundleForwarder : public Logger {
 public:
-    static BundleForwarding* instance() {
+    /**
+     * Singleton accessor.
+     */
+    static BundleForwarder* instance() {
         ASSERT(instance_ != NULL);
         return instance_;
     }
@@ -23,15 +29,16 @@ public:
     /**
      * Constructor.
      */
-    BundleForwarding();
+    BundleForwarder();
 
     /**
-     * Common input routine for incoming bundles.
+     * Routine that actually effects the forwarding operations as
+     * returned from the BundleRouter.
      */
-    void input(Bundle* bundle);
+    void process(BundleActionList* actions);
 
 protected:
-    static BundleForwarding* instance_;
+    static BundleForwarder* instance_;
 };
 
 #endif /* _BUNDLE_FORWARDING_H_ */

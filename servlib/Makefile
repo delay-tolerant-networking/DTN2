@@ -15,7 +15,7 @@ BUNDLING_SRCS := 				\
 	bundling/Contact.cc			\
 	bundling/Interface.cc			\
 	bundling/InterfaceTable.cc		\
-	bundling/BundleForwarding.cc		\
+	bundling/BundleForwarder.cc		\
 
 CONV_LAYER_SRCS :=				\
 	conv_layers/ConvergenceLayer.cc		\
@@ -60,7 +60,7 @@ REGISTRATION_SRCS :=				\
 	reg/LoggingRegistration.cc		\
 
 ROUTING_SRCS :=					\
-	routing/RouteTable.cc			\
+	routing/BundleRouter.cc			\
 
 STORAGE_SRCS :=					\
 	storage/Serialize.cc			\

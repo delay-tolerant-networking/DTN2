@@ -2,10 +2,10 @@
 #include <string>
 #include <sys/time.h>
 #include "debug/Log.h"
-#include "bundling/BundleForwarding.h"
+#include "bundling/BundleForwarder.h"
 #include "bundling/InterfaceTable.h"
 #include "reg/RegistrationTable.h"
-#include "routing/RouteTable.h"
+#include "routing/BundleRouter.h"
 #include "cmd/Command.h"
 #include "cmd/Options.h"
 #include "cmd/StorageCommand.h"
@@ -54,9 +54,11 @@ main(int argc, char** argv)
 
     // Set up all components
     ConvergenceLayer::init_clayers();
-    BundleForwarding::init();
+    BundleForwarder::init();
     InterfaceTable::init();
-    RouteTable::init();
+    BundleRouter* router = new BundleRouter();
+    BundleRouter::register_router(router);
+    router->start();
 
     CommandInterp::instance()->reg(&testcmd);
 

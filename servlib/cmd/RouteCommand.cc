@@ -1,16 +1,22 @@
 
 #include "RouteCommand.h"
-#include "routing/RouteTable.h"
+#include "bundling/Contact.h"
+#include "routing/BundleRouter.h"
 
 RouteCommand RouteCommand::instance_;
 
 RouteCommand::RouteCommand() : AutoCommandModule("route") {}
 
+const char*
+RouteCommand::help_string()
+{
+    return "route add <dest> <nexthop> <type> <args>\n"
+        "route del <dest> <nexthop>"; 
+}
+
 int
 RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
-    RouteTable* route = RouteTable::instance();
-
     if (argc < 2) {
         resultf("need a route subcommand");
         return TCL_ERROR;
@@ -18,29 +24,23 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     const char* cmd = argv[1];
         
-    // route local_region <region>
-    if (strcmp(cmd, "local_region") == 0) {
-        if (argc != 3) {
-            wrong_num_args(argc, argv, 2, 3, 3);
-            return TCL_ERROR;
-        }
-        route->set_region(argv[2]);
-        return TCL_OK;
-    }
-
-    // route [add|del] <destregion> <nexthop> <type>
-    else if (strcmp(cmd, "add") == 0 ||
-             strcmp(cmd, "del") == 0) {
-        if (argc != 5) {
-            wrong_num_args(argc, argv, 2, 5, 5);
+    // route add <dest> <nexthop> <type> <args>
+    if (strcmp(cmd, "add") == 0) {
+        if (argc < 5) {
+            wrong_num_args(argc, argv, 2, 5, INT_MAX);
             return TCL_ERROR;
         }
 
-        const char* dst_region = argv[2];
-    
+        const char* dest_str = argv[2];
         const char* next_hop_str = argv[3];
         const char* type_str = argv[4];
-    
+
+        BundleTuplePattern dest(dest_str);
+        if (!dest.valid()) {
+            resultf("invalid destination tuple %s", dest_str);
+            return TCL_ERROR;
+        }
+        
         BundleTuple next_hop(next_hop_str);
         if (!next_hop.valid()) {
             resultf("invalid next hop tuple %s", next_hop_str);
@@ -53,26 +53,26 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        if (strcasecmp(argv[1], "add") == 0) {
-            if (! route->add_route(dst_region, next_hop, type)) {
-                resultf("error adding route %s %s %s", dst_region, next_hop_str,
-                        type_str);
+        Contact* contact = new Contact(type, next_hop);
+
+        BundleRouter* router;
+        BundleRouterList* routers = BundleRouter::routers();
+        BundleRouterList::iterator iter;
+        for (iter = routers->begin(); iter != routers->end(); ++iter) {
+            router = *iter;
+
+            // XXX/demmer spec for the action_t??
+            if (! router->add_route(dest, contact, FORWARD_COPY,
+                                    argc - 5, &argv[5]))
+            {
+                resultf("error adding route %s %s %s",
+                        dest_str, next_hop_str, type_str);
                 return TCL_ERROR;
             }
-        } else if (strcasecmp(argv[1], "del") == 0) {
-            if (! route->del_route(dst_region, next_hop, type)) {
-                resultf("error removing route %s %s %s", dst_region, next_hop_str,
-                        type_str);
-                return TCL_ERROR;
-            }
-        }
-        else {
-            PANIC("impossible");
         }
     }
-    
     else {
-        resultf("unknown route subcommand %s", cmd);
+        resultf("unimplemented route subcommand %s", cmd);
         return TCL_ERROR;
     }
     

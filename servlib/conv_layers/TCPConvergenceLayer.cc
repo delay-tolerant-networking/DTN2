@@ -1,10 +1,11 @@
 
 #include "TCPConvergenceLayer.h"
 #include "bundling/Bundle.h"
-#include "bundling/BundleForwarding.h"
-#include "bundling/BundleProtocol.h"
+#include "bundling/BundleEvent.h"
 #include "bundling/BundleList.h"
+#include "bundling/BundleProtocol.h"
 #include "io/NetUtils.h"
+#include "routing/BundleRouter.h"
 #include "util/URL.h"
 #include <sys/signal.h>
 
@@ -287,8 +288,7 @@ TCPConvergenceLayer::Connection::recv_loop()
             free(buf);
         }
 
-
-        // now create a new bundle and parse it
+        // now create a new bundle in memory and parse the received data
         Bundle* bundle = new Bundle();
         if (! BundleProtocol::parse_buf(bundle, (u_char*)buf, total)) {
             log_err("error parsing bundle, bailing");
@@ -297,8 +297,9 @@ TCPConvergenceLayer::Connection::recv_loop()
             return;
         }
 
-        // finally, deliver the bundle for forwarding
-        BundleForwarding::instance()->input(bundle);
+        // finally, cons up a bundle received event and pass it to the
+        // routing layer
+        BundleRouter::dispatch(new BundleReceivedEvent(bundle));
 
         // clean up the buffer and do another
         free(buf);

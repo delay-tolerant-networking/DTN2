@@ -1,16 +1,17 @@
 
 #include "BundleCommand.h"
 #include "bundling/Bundle.h"
-#include "bundling/BundleForwarding.h"
+#include "bundling/BundleEvent.h"
+#include "routing/BundleRouter.h"
 
 BundleCommand BundleCommand::instance_;
 
 BundleCommand::BundleCommand() : AutoCommandModule("bundle") {}
 
-char *
+const char*
 BundleCommand::help_string()
 {
-    return("inject <source> <dest> <payload>");
+    return("bundle inject <source> <dest> <payload>");
 }
 
 int
@@ -32,7 +33,7 @@ BundleCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         Bundle* b = new Bundle(argv[2], argv[3], argv[4]);
-        BundleForwarding::instance()->input(b);
+        BundleRouter::dispatch(new BundleReceivedEvent(b));
         return TCL_OK;
     } else {
         resultf("unknown bundle subcommand %s", cmd);
