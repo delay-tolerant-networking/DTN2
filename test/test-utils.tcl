@@ -3,20 +3,14 @@
 #
   
 #
-# pull in other helper utilities
-#
-source "test/dtn-test.tcl"
-
-#
 # Cleans up the log files in directory logs/
 #
 proc clean_logs { num_nodes } { 
-
     set logdir "logs"
     set idfile "test/ids"
     set numnodefile "test/nn"
     #clean up
-    puts "Cleaning the logging directory"
+    log /test INFO "cleaning the logging directory"
     file delete -force $logdir
     file mkdir $logdir
     set fd [open $idfile {WRONLY CREAT TRUNC}]
@@ -31,11 +25,25 @@ proc clean_logs { num_nodes } {
 # Creates "num_nodes" daemons (w/default configurations)
 #
 proc create_bundle_daemons { num_nodes } {
-
-    set config "test/conf.tcl"    
+    set id [test set id]
+    
+    if {$id != 0} {
+	return
+    }
+    
     for {set childid 1} {$childid < $num_nodes} {incr childid} {
-	set log_path "logs/daemon.$childid"	
-	exec [info nameofexecutable] -c $config -i $childid -o $log_path -d &
+	set log_path "logs/daemon.$childid"
+
+	set argv [test set argv]
+	lappend argv -i $childid
+	lappend argv -d
+	lappend argv < /dev/null
+	lappend argv -o $log_path
+	
+	puts "booting daemon: $argv"
+	eval exec $argv &
+	
+	after 5000 # safety
     }
 }
 
@@ -64,9 +72,9 @@ proc configure_bundle_daemon { daemonId port localdir } {
 	}
     }
     
-    # clean up (only first daemon does the cleaning up)
+    # clean up 
     if {$tidy} {
-	puts "tidy option set, cleaning payload and local file dirs"
+	log /tidy INFO "tidy option set, cleaning payload and local file dirs"
 	foreach dir [list $dbdir $payloaddir $localdir ] {
 	    file delete -force $dir
 	    file mkdir $dir
