@@ -2,7 +2,7 @@
 # Makefile for DTN2/apps
 #
 
-SUBDIRS := ping
+SUBDIRS := dtn_recv ping
 
 SRCDIR := ..
 
