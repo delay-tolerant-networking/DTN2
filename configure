@@ -2636,6 +2636,7 @@ else
 fi
 
 
+
     echo "$as_me:$LINENO: checking for the version of the gcc compiler" >&5
 echo $ECHO_N "checking for the version of the gcc compiler... $ECHO_C" >&6
 if test "${oasys_cv_prog_gccver+set}" = set; then
@@ -2682,6 +2683,64 @@ echo "${ECHO_T}$oasys_cv_prog_gccver" >&6
 	    ;;
     esac
 
+    echo "$as_me:$LINENO: checking whether gcc accepts -Wno-long-double (Apple OSX only)" >&5
+echo $ECHO_N "checking whether gcc accepts -Wno-long-double (Apple OSX only)... $ECHO_C" >&6
+if test "${oasys_cv_prog_gcc_w_no_long_double+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+        CPPFLAGS_save=$CPPFLAGS
+        CPPFLAGS="$CPPFLAGS -Wno-long-double"
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int
+main ()
+{
+/* nothing */
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              oasys_cv_prog_gcc_w_no_long_double=yes
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              oasys_cv_prog_gcc_w_no_long_double=no
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+        CPPFLAGS=$CPPFLAGS_save
+
+fi
+echo "$as_me:$LINENO: result: $oasys_cv_prog_gcc_w_no_long_double" >&5
+echo "${ECHO_T}$oasys_cv_prog_gcc_w_no_long_double" >&6
+
+    if test $oasys_cv_prog_gcc_w_no_long_double = yes ; then
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -Wno-long-double"
+    fi
 
 
 
