@@ -13,39 +13,18 @@ it and start using it, you need to compile it.
 <h2> On Unix </h2>
 
 <p>
-First, unpack the release:
+First, unpack the release.
 
-<blockquote><pre>$ gunzip -c DTN2-2.0.2.tgz | tar xvf -
+<blockquote><pre>$ gunzip -c DTN2-X.Y.Z.tgz | tar xvf -
 </pre></blockquote>
 
-<p>
-If you want to get the latest bug fixes before they get into a
-release, you'll want to get the source code from the anonymous
-CVS repository instead. Please understand that you're using PRE-ALPHA
-software if you use the copy from CVS. We try to keep what's in
-CVS working, but it is under active development, and you might see
-bugs. Before reporting them, please always use "cvs up" to get the
-newest copy, then recompile and reproduce the bug.
+<p>Next, configure and compile DTN2: (the -C argument to configure
+enables the cache which speeds up the process)
 
-<blockquote><pre>$ cvs -d :pserver:anonymous@code.dtnrg.org:/orig login
-(password is "bundles")
-$ cvs -d :pserver:anonymous@code.dtnrg.org:/orig checkout DTN2
-</pre></blockquote>
-
-<p>
-For the time being, DTN2 releases are not happening very often, so
-you'll probably be best served by using CVS to get DTN2's source
-code.
-
-<p>Next, configure DTN2:
-
-<blockquote><pre>$ cd DTN2
-$ sh configure
-</pre></blockquote>
-
-<p>Finally, compile the software:
-
-<blockquote><pre>$ make
+<blockquote><pre>
+$ cd DTN2
+$ sh configure -C
+$ make
 </pre></blockquote>
 
 <p>If you just want to play with DTN2 to learn how it works, you can
@@ -56,6 +35,20 @@ DTN2, you'll want to take a look at the <tt>tools/install.sh</tt>
 script. You might want to customize it, as it currently puts the files
 into <tt>/usr</tt>, and some people prefer to put files in
 <tt>/usr/local</tt>.
+
+<p>
+We will try our best to propagate bug fixes to the current release of
+the software. In some cases, however, you may want to get the source
+code from the anonymous CVS repository instead. Please understand that
+you're using PRE-ALPHA software if you use the copy from CVS. We try
+to keep what's in CVS working, but it is under active development, and
+you might see bugs. Before reporting them, please always use "cvs up"
+to get the newest copy, then recompile and reproduce the bug.
+
+<blockquote><pre>$ cvs -d :pserver:anonymous@code.dtnrg.org:/orig login
+(password is "bundles")
+$ cvs -d :pserver:anonymous@code.dtnrg.org:/orig checkout DTN2
+</pre></blockquote>
 
 <h2> On Windows </h2>
 
