@@ -54,7 +54,7 @@ RegistrationCommand::help_string()
     return("registration add <logger|tcl> <endpoint> <args...>\n"
            "registration tcl <regid> <endpoint> <cmd> <args...>\n"
            "registration del <regid> <endpoint>\n"
-	   "registration list");
+       "registration list");
 }
 
 int
@@ -69,9 +69,9 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     if (strcmp(op, "list") == 0 || strcmp(op, "dump") == 0) {
         oasys::StringBuffer buf;
-	RegistrationTable::instance()->dump(&buf);
+    RegistrationTable::instance()->dump(&buf);
         set_result(buf.c_str());
-	return TCL_OK;
+    return TCL_OK;
         
     } else if (strcmp(op, "add") == 0) {
         // registration add <logger|tcl> <demux> <args...>
@@ -123,7 +123,7 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     } else if (strcmp(op, "dump") ==0) {
         RegistrationTable* regtable = RegistrationTable::instance();
-	regtable->dump(stdout);
+    regtable->dump(stdout);
         return TCL_OK;
 
     } else if (strcmp(op, "tcl") == 0) {
