@@ -258,15 +258,23 @@ Log::add_debug_rule(const char* path, log_level_t threshold)
     sort_rules();
 }
 
-class ScopedAtomicIncr {
+class ScopedIncr {
 public:
-    ScopedAtomicIncr(int* v) : val_(v)
+    ScopedIncr(int* v) : val_(v)
     {
+#ifdef __NO_ATOMIC__
+        (*val_)++;
+#else
         atomic_incr(val_);
+#endif
     }
-    ~ScopedAtomicIncr()
+    ~ScopedIncr()
     {
+#ifdef __NO_ATOMIC__
+        (*val_)--;
+#else
         atomic_decr(val_);
+#endif
     }
 protected:
     int* val_;
@@ -307,7 +315,7 @@ Log::vlogf(const char *path, log_level_t level, const char *fmt, va_list ap)
     // try to catch recursive calls that can result from an
     // assert/panic from somewhere within the logging code
     static int threads_in_vlogf = 0;
-    ScopedAtomicIncr incr(&threads_in_vlogf);
+    ScopedIncr incr(&threads_in_vlogf);
     
     if (threads_in_vlogf > 10) {
         fprintf(stderr, "error: vlogf called recursively on log call:\n");
