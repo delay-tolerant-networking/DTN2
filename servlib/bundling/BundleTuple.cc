@@ -119,7 +119,13 @@ BundleTuplePattern::match_admin(const std::string& tuple_admin) const
     if (proto_.compare("*") == 0)
         return true; // special case wildcard protocol
 
-    if (admin_.compare(tuple_admin) == 0)
+    size_t adminlen = admin_.length() - 1;
+
+    if (adminlen >= 1 && admin_[adminlen] == '*') {
+        adminlen--;
+    }
+
+    if (admin_.substr(0, adminlen) == tuple_admin.substr(0, adminlen))
         return true;
     
     // XXX/demmer dispatch to ConvergenceLayer to match admin strings
