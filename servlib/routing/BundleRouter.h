@@ -164,7 +164,19 @@ protected:
     virtual void handle_link_deleted(LinkDeletedEvent* event,
                                        BundleActionList* actions);
 
+
+    /**
+     * Default event handler when link becomes available
+     */
+    virtual void handle_link_available(LinkAvailableEvent* event,
+                                          BundleActionList* actions);
     
+    /**
+     * Default event handler when a link is unavailable
+     */
+    virtual void handle_link_unavailable(LinkUnavailableEvent* event,
+                                       BundleActionList* actions);
+
     /**
      * Default event handler when reassembly is completed. For each
      * bundle on the list, check the pending count to see if the

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "BundleRouter.h"
+#include "bundling/BundleForwarder.h"
 #include "RouteTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
@@ -17,6 +18,20 @@ std::string BundleRouter::type_;
 size_t BundleRouter::proactive_frag_threshold_;
 StringVector BundleRouter::local_regions_;
 BundleTuple BundleRouter::local_tuple_;
+
+/*
+ * Note by sushant:
+ * Reasons to open a link (which is closed) in the default router implementation:
+ * (note, link can be opened only if link is available)
+ * 1. Link available event and Link queue has > 0 messages
+ * 2. Contact_down event and link is available and queue has > 0 messages
+ * 3. New message on link queue and link is available
+ *
+ * TODO: Peer routing semantics
+ * When Link Available event arrives transfer message from peer queue
+ * to Link queue
+ * Also, if new message on peer queue and atleast one link is available
+ */
 
 /**
  * Factory method to create the correct subclass of BundleRouter
@@ -76,6 +91,7 @@ void
 BundleRouter::handle_event(BundleEvent* e,
                            BundleActionList* actions)
 {
+    log_debug("Router executing event %s",e->type_str());
     switch(e->type_) {
 
     case BUNDLE_RECEIVED:
@@ -108,6 +124,14 @@ BundleRouter::handle_event(BundleEvent* e,
 
     case LINK_DELETED:
         handle_link_deleted((LinkDeletedEvent*)e, actions);
+        break;
+
+    case LINK_AVAILABLE:
+        handle_link_available((LinkAvailableEvent*)e, actions);
+        break;
+
+    case LINK_UNAVAILABLE:
+        handle_link_unavailable((LinkUnavailableEvent*)e, actions);
         break;
 
     case REASSEMBLY_COMPLETED:
@@ -287,7 +311,7 @@ BundleRouter::handle_registration_added(RegistrationAddedEvent* event,
 }
 
 /**
- * Default event handler when a new link is available.
+ * Default event handler when a new link is created
  */
 void
 BundleRouter::handle_link_created(LinkCreatedEvent* event,
@@ -297,13 +321,57 @@ BundleRouter::handle_link_created(LinkCreatedEvent* event,
 }
 
 /**
- * Default event handler when a link is broken
+ * Default event handler when a link is deleted
  */
 void
 BundleRouter::handle_link_deleted(LinkDeletedEvent* event,
                                     BundleActionList* actions)
 {
+    // Take care of all messages queued for this link
+    // Take care of routing entries referring to this
     NOTIMPLEMENTED ; 
+}
+
+/**
+ * Default event handler when a new link is available.
+ */
+void
+BundleRouter::handle_link_available(LinkAvailableEvent* event,
+                                       BundleActionList* actions)
+{
+    log_info("LINK_AVAILABLE *%p", event->link_);
+
+    
+    Link* link = event->link_;
+    Peer* peer = link->peer();
+    ASSERT(link->isavailable());
+
+    // Move from peer queue to link queue
+    peer->bundle_list()->move_contents(link->bundle_list());
+    
+    // If something is queued on the link open it
+    if (link->size() > 0) {
+        link->open();
+    }
+}
+
+/**
+ * Default event handler when a link is unavailable
+ */
+void
+BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event,
+                                    BundleActionList* actions)
+{
+    Link* link = event->link_;
+    ASSERT(!link->isavailable());
+    log_info("LINK UNAVAILABLE *%p", link);
+    
+    // Close the contact on the link if link is open
+    // i.e Transfer messages queued on the contact to the link
+    // Above two objectives can be achieved by posting the event
+    // that contact is down for this link, which would cleanup
+    // the state of queues
+    BundleForwarder::post(new ContactDownEvent(link->contact()));
 }
 
 /**
@@ -313,39 +381,53 @@ void
 BundleRouter::handle_contact_up(ContactUpEvent* event,
                                        BundleActionList* actions)
 {
-    log_info("CONTACT_UP *%p", event->contact_);
+    Contact* contact = event->contact_;
+    Link* link = contact->link();
+    log_info("CONTACT_UP *%p", contact);
+
+    // ASSERT(contact->bundle_list()->size() == 0);
+    // Above assertion may not hold because there may be bundles
+    // which are inserted between contact is open and contact_up event
+    // is  seen by the router. Such bundles will go to contact queue
+    // because the contact is theoretically open although router has not
+    // seen contact_up event so far
+    
+    // Move any messages from link queue to contact queue
+    link->bundle_list()->move_contents(contact->bundle_list());
+
+    // How about moving messages from Peer Queue to Link Queue
+    /// XXX/Sushant is this the right place to do ? or fwd_next_hop
 }
 
 /**
  * Default event handler when a contact is down
+ * This event is posted  by convergence layer
+ * on detecting a failure or by bundle router on detecting
+ * that link is unavailable.
+ * This function moves messages from contact queue to link
+ * queue
  */
 void
 BundleRouter::handle_contact_down(ContactDownEvent* event,
                                     BundleActionList* actions)
 {
+
     Contact* contact = event->contact_;
+    Link* link = contact->link();
     log_info("CONTACT_DOWN *%p: re-routing %d queued bundles",
              contact, contact->bundle_list()->size());
     
-    Bundle* bundle;
-    BundleList::iterator iter;
-
-    BundleList temp("temp");
-    contact->bundle_list()->move_contents(&temp);
-
-    // Close the contact
-    contact->link()->close();
-    ScopeLock lock(temp.lock());
+    ASSERT(link->bundle_list()->size() == 0);
+    contact->bundle_list()->move_contents(link->bundle_list());
     
-    for (iter = temp.begin(); iter != temp.end(); ++iter) {
-        bundle = *iter;
-        fwd_to_matching(bundle, actions, false);
+    // Close the contact
+    link->close();
 
-        // bump down the pending count to account for the fact that it
-        // was pending on the broken contact, but won't be any more
-        if (bundle->del_pending() == 0) {
-            PANIC("XXX/demmer shouldn't be the last pending");
-        }
+    // Check is link is suppoed to be available and if yes
+    // try to open the link
+
+    if ((link->size() > 0) && link->isavailable()) {
+        link->open();
     }
 }
 
@@ -413,7 +495,25 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
             return;
     }
     bundle->add_pending();
-    
+  
+    // If nexthop->nexthop_ is a Link
+    // and if it is available open it
+    BundleConsumer* bc = nexthop->next_hop_;
+    if (strcasecmp(bc->type_str(),"Link")==0) {
+        Link* link = (Link *)bc;
+        if (link->isavailable()&&(!link->isopen())) {
+            log_info("Opening link %s because messages are queued for it",link->name());
+
+            // XXX/Sushant commented out because otherwise multiple such actions get posted
+            // Efficiency issue
+            //actions->push_back(new OpenLinkAction(bundle,link));
+            link->open();
+        }
+    }
+
+    // Add message to the consumer queue
+    // This should be done later because  if the link is opened above,
+    // the message should be queued on the contact.
     actions->push_back(
         new BundleEnqueueAction(bundle, nexthop->next_hop_,
                                 nexthop->action_, nexthop->mapping_grp_));
