@@ -1,7 +1,6 @@
 #
 # Makefile for DTN2/daemon
 #
-
 SRCDIR := ..
 
 DAEMON_SRCS :=	\
@@ -15,11 +14,10 @@ DAEMON_OBJS := $(DAEMON_SRCS:.cc=.o)
 all: bundleDaemon
 
 bundleDaemon: $(DAEMON_OBJS) $(SRCDIR)/servlib/libdtnserv.a
-	$(CPP) $^ -o $@ $(LFLAGS) $(LIBS)
+	$(CPP) $(DAEMON_OBJS) $(LINK_SERVLIB) -o $@ $(LFLAGS) $(LIBS)
 
 #
 # Include the common rules
 #
 -include $(SRCDIR)/Rules.make
-
 

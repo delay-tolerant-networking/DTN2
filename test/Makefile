@@ -18,7 +18,7 @@ test: check $(BINFILES)
 # Default pattern rule to build the tests
 #
 %-test: %-test.cc $(SRCDIR)/servlib/libdtnserv.a
-	$(CPP) $(CFLAGS) $^ -o $@ $(LFLAGS) $(LIBS) 
+	$(CPP) $(CFLAGS) $< $(LINK_SERVLIB) -o $@ $(LFLAGS) $(LIBS) 
 
 #
 # Include the common rules
