@@ -63,11 +63,18 @@ in your extensions:
   (interactive)
   (c-add-style "dtn-c-style" dtn-c-style t)	; dtn style above
   (setq indent-tabs-mode nil)	           	; use spaces for tabs
-  )
+)
 
 (add-hook 'c-mode-hook 'dtn-c-setup)
 (add-hook 'c++-mode-hook 'dtn-c-setup)
   
+- For vim users, use the following settings for tabs:
+
+set tabstop=8        " \t are 8 spaces
+set shiftwidth=4     " but tab key inserts 4
+set softtabstop=4    " and indentation advances in increments of 4
+set noexpandtab      " don't turn tabs into spaces
+
 Testing
 -------
 
