@@ -1,11 +1,43 @@
 # Start of Base Script to setup Emulab DTN2 experiments
 
-
-set delay 10ms
+# Use: cat base-emu.tcl | sed 's/711/finishtime' 
+set finish 711
+set delay 5ms
 set queue DropTail
 set protocol Static
 
+## Length of uptime
+set up 70
+## Length of downtime
+set down 40  
 
+## generates output in two lists up and down 
+proc sched {offset} {
+global MAX_SIM_TIME
+global ONE_CYCLE_LENGTH
+global up
+global down
+global uplist
+global downlist
+## locals are only start, current, 
+set uplist {}
+set downlist {}
+set start 0 
+while {$start < $MAX_SIM_TIME} {
+   # puts "Outer loop $start"
+    set current [expr $start + $offset]
+    set limit [expr $start + $ONE_CYCLE_LENGTH ]
+    while {$current  < $limit} {
+	set current [expr $current + $up]
+	if {$current > $limit} break ; 
+	lappend downlist $current
+	set current [expr $current + $down]
+	if {$current > $limit} break ; 
+	lappend uplist $current
+    }
+    set start [expr $start + $ONE_CYCLE_LENGTH ]
+}
+}
 
 ## get cmd to be executed on node $id. 
 proc get-cmd {id perhopl protol} {
@@ -22,13 +54,8 @@ proc get-cmd {id perhopl protol} {
     
     set args "$id $exp $maxnodes $nfiles $size $valperhopl $protol"
     
-   set prefix /proj/DTN/nsdi/
-#    set name "$prefix/logs/$exp.$protol.$perhopl.progobj"
-#    set fd [open $name w]
-#    puts $fd $args
-#    close fd
-#   return "$prefix/DTN2img/test/super-base-cmd.sh $name "
-    return "$prefix/DTN2img/test/base-cmd.sh $args "
+   set prefix /proj/DTN/nsdi/DTN2
+    return "$prefix/test/base-cmd.sh $args "
  
 }
 
@@ -59,44 +86,46 @@ $ns rtproto $protocol
 #	$ns at 110.0 "$link0 up"
 
 
-#tclsh foo.tcl -nodes 4 -proto "dtn mail tcp" -net "e2e hop"
-#foreach {var val} $argv {
-#    switch -- $var {
-#	-nodes { set nodes $val  }
-#	-proto { set protos $val }
-#}
-#if {[lindex $argv 3] == "-proto"} {
-#    set protos [lindex $argv 4]
+## find length of  protos and nexthops
+
+
+set runs [expre [llength $protos]*[llength $perhops] ]
+
+set MAX_SIM_TIME [expr runs*$finish + 2*$runs*$WARMUPTIME]
+set ONE_CYCLE_LENGTH $finish + 2*$WARMUPTIME
+set uplist {}
+set downlist {}
+
+# Parameters give by command line
+set up $up
+set down $down
+# Time list when to fire up event
+set uplist ""
+# Time list when to fire down event
+set downlist ""
+
+for {set i 1} {$i <  $maxnodes} {incr i} {
+    #Do stuff for the ith link
+    set offset [expr 10*$i]
+    sched {offset}
+    ## Now you have uplist and downlist and use them to schedule your events
     
+    set linkname "link-$i"
+    foreach uptime $uplist {
+	$ns at $uptime "$linkname up"
+    }
+    foreach downtime $downlist {
+	$ns at $downtime "$linkname down"
+    }
 
-
-#set protos {}
-#if {$dtn == 1}  { lappend protos "dtn" }
-#if {$mail == 1} { lappend protos "mail" }
-#if {$tcp == 1}  { lappend proto
-#if {$proto == ""} { puts "Unidentified protocol" ; exit ; }
-
-#Create program objects
-# Depending upon perhop for each protocol 1 or 2 objects may be created
-
-#if {$perhop > 2} {
-#    puts "Value of perhop is $perhop . It should be 0,1 or 2" ; 
-#    exit;
-#}
-
-
-set finish 700
+}
 
 
 
-
-###############################################################
-## Please ensure that startime, stoptime, and proto are set correctly
-###############################################################
-
-
+### Node programs
+set WARMUPTIME 10
 for {set i 1} {$i <=  $maxnodes} {incr i} {
-    set starttime 10
+    set starttime $WARMUPTIME
      foreach proto $protos {
 	foreach perhop $perhops {
 	    set progVar "prog-$proto-$perhop-$i"
@@ -107,11 +136,11 @@ for {set i 1} {$i <=  $maxnodes} {incr i} {
 	    set mytime $starttime
 	    set end [expr  $starttime + $finish]
 	    ## Source is later as it will contact server on socket
-	    if {$i == 1} { set mytime [expr $starttime + 10] }
+	    if {$i == 1} { set mytime [expr $starttime + $WARMUPTIME] }
 	    $ns at  $mytime "[set $progVar] start"
 	    $ns at  $end "[set $progVar] stop"
 	    
-	    set starttime [expr  $starttime + $finish + 10]
+	    set starttime [expr  $starttime + $finish + $WARMUPTIME]
 	}
 
     }

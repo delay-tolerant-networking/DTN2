@@ -29,8 +29,8 @@ set proto  = $proto_orig$perhop
 
 ## place to find DTN2. This will link to exe files
 set dtnroot = /proj/DTN/nsdi
-set dtn2root = /proj/DTN/nsdi/DTN2img
-set dtn2testroot = /proj/DTN/nsdi/DTN2img/test
+set dtn2root = /proj/DTN/nsdi/DTN2
+set dtn2testroot = /proj/DTN/nsdi/DTN2/test
 
 # Root location to store log files
 

@@ -1,8 +1,8 @@
 #!/bin/csh
 
   if ($#argv != 8) then
-        echo "Usage: $0 <expname> <maxnodes> <nfiles> <size(KB)> <loss> <bw>   <perhop> <proto1, proto2,..> "
-       	echo "Example: $0 try 4 10 10 0.01 1Mb  \"e2e ph \" \"tcp dtn mail\" "
+        echo "Usage: $0 <expname> <maxnodes> <nfiles> <size(KB)> <loss> <bw> <perhop> <proto1, proto2,..> "
+  	echo "Example: $0 try 4 10 10 0.01 1Mb  [e2e ph] [tcp dtn mail] "
 	echo "Perhop can be 0,1,2: 0 e2e, 1 is perhop, 2 is both"
 	echo " This will generate <expname.emu> and will run tcp, dtn"
 	echo

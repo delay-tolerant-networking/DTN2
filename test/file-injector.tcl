@@ -73,7 +73,7 @@ proc file_injector_scan {dir source dest period} {
 
 	log /file_injector DEBUG "gotnow $len byte payload"
 	
-	log /file_injector INFO " sending bundle $len byte payload"
+	log /file_injector INFO " sending bundle [file tail $file] $len byte payload"
 
 	puts $fd_ftplog "[time] :: sending bundle [file tail $file]  $len byte  "
 	flush $fd_ftplog

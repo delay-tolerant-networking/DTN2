@@ -11,7 +11,7 @@ if ($id == 1) then
 	set dst =  node-2-link-1
     endif
     
-    echo "executing ftp client with para: $txdir  $logroot/ftplog.$id $dst  " >> $info
+    echo "executing ftp: client $txdir  $logroot/ftplog.$id $dst  " >> $info
     tclsh $dtn2root/test/simple-ftp.tcl client $txdir  $logroot/ftplog.$id $dst  >>& $info
 
     exit
@@ -19,7 +19,7 @@ if ($id == 1) then
 endif
 
 if ($id == $maxnodes) then 
-    echo "executing ftp server with parameters $rcvdir " >> $info
+    echo "executing ftp: server $rcvdir  $logroot/ftplog.$id  " >> $info
     tclsh $dtn2root/test/simple-ftp.tcl server $rcvdir  $logroot/ftplog.$id >>& $info
     exit
 endif     
