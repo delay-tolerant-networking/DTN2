@@ -2,8 +2,9 @@
 #define _TCL_REGISTRATION_H_
 
 #include "Registration.h"
-#include "debug/Log.h"
 #include "bundling/BundleTuple.h"
+#include "cmd/Command.h"
+#include "debug/Log.h"
 #include "thread/Thread.h"
 
 /**
@@ -16,10 +17,27 @@
  * to arrive on the registration's bundle list, then tcl the
  * bundles and looping again.
  */
-class TclRegistration : public Registration, public Thread {
+class TclRegistration : public Registration {
 public:
-    TclRegistration(u_int32_t regid, const BundleTuplePattern& endpoint);
-    virtual void run();
+    TclRegistration(u_int32_t regid, const BundleTuplePattern& endpoint,
+                    Tcl_Interp* interp);
+    int exec(int argc, const char** argv, Tcl_Interp* interp);
+
+    /**
+     * Return in the tcl result a Tcl_Channel to wrap the BundleList's
+     * notifier pipe.
+     */
+    int get_list_channel(Tcl_Interp* interp);
+
+    /**
+     * Assuming the list channel has been notified, pops a bundle off
+     * the list and then returns in the tcl result a list of the
+     * relevant metadata and the payload data.
+     */
+    int get_bundle_data(Tcl_Interp* interp);
+
+protected:
+    Tcl_Channel notifier_channel_;
 };
 
 #endif /* _TCL_REGISTRATION_H_ */
