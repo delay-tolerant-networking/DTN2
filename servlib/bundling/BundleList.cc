@@ -2,6 +2,7 @@
 #include "Bundle.h"
 #include "BundleList.h"
 #include "thread/SpinLock.h"
+#include <algorithm>
 
 BundleList::BundleList(const std::string& name)
     : lock_(new SpinLock()), name_(name)
