@@ -16,10 +16,10 @@ BundleProtocol::fill_iov(const Bundle* bundle, struct iovec* iov, int* iovcnt)
     // 4) payload data
     //
     // optional ones including:
-    // 4) fragmentation header
-    // 4) authentication header
-    ASSERT(*iovcnt >= 4);
-
+    // 5) fragmentation header
+    // 6) authentication header
+    ASSERT(*iovcnt >= 6);
+    
     // first of all, the primary header
     PrimaryHeader* primary      = (PrimaryHeader*)malloc(sizeof (PrimaryHeader));
     primary->version 		= CURRENT_VERSION;
