@@ -61,7 +61,7 @@ int custody             = 0;    // request custody transfer
 int custody_receipts    = 0;    // request per custodian receipts
 int receive_receipts    = 0;    // request per hop arrival receipt
 int overwrite           = 0;    // queue overwrite option
-int wait                = 0;    // wait for bundle status reports
+int wait_for_report     = 0;    // wait for bundle status reports
 
 char * data_source      = NULL; // filename or message, depending on type
 
@@ -133,7 +133,7 @@ main(int argc, char** argv)
         print_tuple("dest_tuple", &bundle_spec.dest);
     }
 
-    if (wait)
+    if (wait_for_report)
     {
         // create a new dtn registration to receive bundle status reports
         memset(&reginfo, 0, sizeof(reginfo));
@@ -207,7 +207,7 @@ main(int argc, char** argv)
             exit(1);
         }
 
-        if (wait)
+        if (wait_for_report)
         {
             memset(&reply_spec, 0, sizeof(reply_spec));
             memset(&reply_payload, 0, sizeof(reply_payload));
@@ -299,7 +299,7 @@ void parse_options(int argc, char**argv)
             return_receipts = 1;
             break;
         case 'w':
-            wait = 1;
+            wait_for_report = 1;
             break;
         case 'o':
             overwrite = 1;
