@@ -73,6 +73,16 @@ public:
     bool del_interface(Interface* iface);
 
     /**
+     * Register a new link.
+     */
+    bool add_link(Link* link, int argc, const char* argv[]);
+    
+    /**
+     * Remove a link.
+     */
+    bool del_link(Link* link);
+
+    /**
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.
      */
@@ -84,14 +94,24 @@ public:
     bool close_contact(Contact* contact);
 
     /**
-     * Tunable parameters
+     * Tunable parameters, defaults configurably for all connections
+     * via the 'param set' command'. Per-connection values are also
+     * configurable via arguments to the 'link add' command.
      */
-    static struct _defaults {
-        int ack_blocksz_;
-        int keepalive_interval_;
-        u_int32_t idle_close_time_;
-        int test_fragment_size_;
-    } Defaults;
+    struct Params {
+        bool bundle_ack_enabled_;	///< Are per-bundle acks enabled
+        u_int ack_blocksz_;		///< Bytes to send before ack
+        u_int keepalive_interval_;	///< Seconds between keepalive pacekts
+        u_int idle_close_time_;		///< Seconds to keep idle connections
+        u_int connect_timeout_;		///< Msecs for connection timeout
+        u_int rtt_timeout_;		///< Msecs to wait for data
+        int test_fragment_size_;	///< Test hook to force reactive frag.
+    };
+
+    /**
+     * Default parameters.
+     */
+    static struct Params Defaults;
 
 protected:
     /**
@@ -112,13 +132,14 @@ protected:
      * Connection is either a receiver or a sender, as negotiated by
      * the convergence layer specific framing protocol.
      */
-    class Connection : public ContactInfo, public oasys::Thread, public oasys::Logger {
+    class Connection : public LinkInfo,
+                       public oasys::Thread,
+                       public oasys::Logger {
     public:
         /**
          * Constructor for the active connection side of a connection.
          */
-        Connection(Contact* contact,
-                   in_addr_t remote_addr,
+        Connection(in_addr_t remote_addr,
                    u_int16_t remote_port);
         
         /**
@@ -132,40 +153,36 @@ protected:
          * Destructor.
          */
         ~Connection();
-        
-    protected:
-        virtual void run();
-        
-        bool connect(in_addr_t remote_addr, u_int16_t remote_port);
-        bool accept();
 
         /**
-         * This is used to inform the rest of the system
-         * that contact is broken
+         * Per-connection parameters.
          */
-        void break_contact();
+        TCPConvergenceLayer::Params params_;
         
+        /**
+         * Attach to the given contact. Used on the sender side when
+         * the link is activated.
+         */
+        void set_contact(Contact* contact) { contact_ = contact; }
+
+    protected:
+        virtual void run();
         void send_loop();
         void recv_loop();
-
+        void break_contact();
+        bool connect(in_addr_t remote_addr, u_int16_t remote_port);
+        bool accept();
         bool send_bundle(Bundle* bundle, size_t* acked_len);
-        int handle_ack(Bundle* bundle, size_t* acked_len);
-        void note_data_rcvd();
-
         bool recv_bundle();
+        int  handle_ack(Bundle* bundle, size_t* acked_len);
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
+        void note_data_rcvd();
+        
         Contact* contact_;
         oasys::TCPClient* sock_;
-        size_t ack_blocksz_;
-        int keepalive_msec_;
-        int idle_close_time_;
         struct timeval data_rcvd_;
     };
 };
-
-#ifndef MIN
-# define MIN(x, y) ((x)<(y) ? (x) : (y))
-#endif
 
 } // namespace dtn
 

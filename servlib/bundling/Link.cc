@@ -50,30 +50,36 @@ namespace dtn {
  * Static constructor to create different type of links
  */
 Link*
-Link::create_link(std::string name,
-                  link_type_t type,
-                  ConvergenceLayer* cl,
-                  const char* nexthop)
+Link::create_link(std::string name, link_type_t type,
+                  ConvergenceLayer* cl, const char* nexthop,
+                  int argc, const char* argv[])
 {
+    Link* link;
     switch(type) {
-    case ONDEMAND: 	return new OndemandLink(name, cl, nexthop);
-    case SCHEDULED: 	return new ScheduledLink(name, cl, nexthop);
-    case OPPORTUNISTIC: return new OpportunisticLink(name, cl, nexthop);
+    case ONDEMAND: 	link = new OndemandLink(name, cl, nexthop); break;
+    case SCHEDULED: 	link = new ScheduledLink(name, cl, nexthop); break;
+    case OPPORTUNISTIC: link = new OpportunisticLink(name, cl, nexthop); break;
     default: 		PANIC("bogus link_type_t");
     }
+
+    if (! link->init(argc, argv)) {
+        delete link;
+        return NULL;
+    }
+
+    return link;
 }
 
 /**
  * Constructor
  */
-Link::Link(std::string name, link_type_t type, ConvergenceLayer* cl,
-           const char* nexthop)
+Link::Link(std::string name, link_type_t type,
+           ConvergenceLayer* cl, const char* nexthop)
     :  BundleConsumer(nexthop, false, "Link"),
        type_(type), nexthop_(nexthop), name_(name), avail_(false),
        closing_(false), clayer_(cl)
 {
     ASSERT(clayer_);
-    
     logpathf("/link/%s", name_.c_str());
 
     peer_ = ContactManager::instance()->find_peer(nexthop);
@@ -83,23 +89,27 @@ Link::Link(std::string name, link_type_t type, ConvergenceLayer* cl,
     }
     peer_->add_link(this);
      
-    // By default link does not have an associated contact
+    // By default link does not have an associated contact or any link
+    // info, but all links get a bundle list
     contact_ = NULL ;
-
-    /*
-     * Note that bundle list is not initialized, for ondemand links it
-     * must be null
-     * XXX, Sushant check this
-     */
-    bundle_list_ = NULL;
     link_info_ = NULL;
+    bundle_list_ = new BundleList(logpath_);
     
     log_info("new link *%p", this);
+}
+
+bool
+Link::init(int argc, const char* argv[])
+{
+    ASSERT(clayer_);
+    
+    // Notify the convergence layer, parsing options
+    if (!clayer_->add_link(this, argc, argv)) {
+        return false;
+    }
 
     // Add the link to contact manager
     ContactManager::instance()->add_link(this);
-
-    bundle_list_ = new BundleList(logpath_);
 
     // Post a link created event
     BundleForwarder::post(new LinkCreatedEvent(this));
@@ -107,6 +117,8 @@ Link::Link(std::string name, link_type_t type, ConvergenceLayer* cl,
     // If link is ONDEMAND set it to be available
     if (type_ == ONDEMAND)
         set_link_available();
+
+    return true;
 }
     
 

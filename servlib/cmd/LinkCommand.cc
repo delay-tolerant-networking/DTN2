@@ -113,7 +113,9 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
     
         // XXX/Sushant pass other parameters?
-        link = Link::create_link(name, type, cl, nexthop);
+        link = Link::create_link(name, type, cl, nexthop, argc - 6, &argv[6]);
+        if (!link)
+            return TCL_ERROR;
 
     } else if (strcmp(cmd, "open") == 0) {
         // link open <name>

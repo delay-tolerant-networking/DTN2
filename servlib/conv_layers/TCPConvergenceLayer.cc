@@ -36,13 +36,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef MIN
+# define MIN(x, y) ((x)<(y) ? (x) : (y))
+#endif
+
 #include <sys/poll.h>
 #include <stdlib.h>
 
 #include <oasys/io/NetUtils.h>
 #include <oasys/thread/Timer.h>
-#include <oasys/util/URL.h>
+#include <oasys/util/Options.h>
+#include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/util/URL.h>
 
 #include "TCPConvergenceLayer.h"
 #include "bundling/Bundle.h"
@@ -55,7 +61,7 @@
 
 namespace dtn {
 
-struct TCPConvergenceLayer::_defaults TCPConvergenceLayer::Defaults;
+struct TCPConvergenceLayer::Params TCPConvergenceLayer::Defaults;
 
 /******************************************************************************
  *
@@ -66,10 +72,13 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     : IPConvergenceLayer("/cl/tcp")
 {
     // set defaults here, then let ../cmd/ParamCommand.cc handle changing them
-    TCPConvergenceLayer::Defaults.ack_blocksz_ = 1024;
-    TCPConvergenceLayer::Defaults.keepalive_interval_ = 2;
-    TCPConvergenceLayer::Defaults.idle_close_time_ = 30;
-    TCPConvergenceLayer::Defaults.test_fragment_size_ = -1;
+    Defaults.bundle_ack_enabled_ = true;
+    Defaults.ack_blocksz_ 	 = 1024;
+    Defaults.keepalive_interval_ = 2;
+    Defaults.idle_close_time_ 	 = 30;
+    Defaults.connect_timeout_ 	 = 10000; // msecs
+    Defaults.rtt_timeout_ 	 = 5000;  // msecs
+    Defaults.test_fragment_size_ = -1;
 }
 
 void
@@ -168,35 +177,88 @@ TCPConvergenceLayer::del_interface(Interface* iface)
 }
 
 /**
+ * Register a new link. This creates a new Connection object and
+ * stores it in the LinkInfo slot after parsing any options.
+ */
+bool
+TCPConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
+{
+    in_addr_t addr;
+    u_int16_t port = 0;
+    
+    log_debug("adding link %s", link->nexthop());
+    
+    // parse out the address / port from the contact tuple
+    if (! InternetAddressFamily::parse(link->nexthop(), &addr, &port)) {
+        log_err("next hop address '%s' not a valid internet url",
+                link->nexthop());
+        return false;
+    }
+
+    // make sure the port was specified
+    if (port == 0) {
+        log_err("port not specified in next hop address '%s'",
+                link->nexthop());
+        return false;
+    }
+
+    // create the connection but don't start it until later in open_contact
+    Connection* conn = new Connection(addr, port);
+
+    // parse options
+    oasys::OptParser p;
+    
+#define DECLARE_OPT(_type, _opt)                                \
+    oasys::_type param_##_opt(#_opt, &conn->params_._opt##_);   \
+    p.addopt(&param_##_opt);
+
+    DECLARE_OPT(BoolOpt, bundle_ack_enabled);
+    DECLARE_OPT(UIntOpt, ack_blocksz);
+    DECLARE_OPT(UIntOpt, keepalive_interval);
+    DECLARE_OPT(UIntOpt, idle_close_time);
+    DECLARE_OPT(UIntOpt, connect_timeout);
+    DECLARE_OPT(UIntOpt, rtt_timeout);
+    DECLARE_OPT(IntOpt,  test_fragment_size);
+
+    const char* invalid;
+    if (! p.parse(argc, argv, &invalid)) {
+        log_err("error parsing link options: invalid option '%s'", invalid);
+        delete conn;
+        return false;
+    }
+
+    link->set_link_info(conn);
+    return true;
+}
+
+/**
+ * Remove a link.
+ */
+bool
+TCPConvergenceLayer::del_link(Link* link)
+{
+    log_debug("removing link %s", link->nexthop());
+
+    Connection* conn = (Connection*)link->link_info();
+    ASSERT(conn);
+    ASSERT(conn->is_stopped());
+    delete conn;
+    
+    return true;
+}
+
+/**
  * Open the connection to the given contact and prepare for
  * bundles to be transmitted.
  */
 bool
 TCPConvergenceLayer::open_contact(Contact* contact)
 {
-    in_addr_t addr;
-    u_int16_t port;
-    
     log_debug("opening contact *%p", contact);
 
-    // parse out the address / port from the contact tuple
-    if (! InternetAddressFamily::parse(contact->nexthop(), &addr, &port)) {
-        log_err("next hop address '%s' not a valid internet url",
-                contact->nexthop());
-        return false;
-    }
-    
-    // make sure the port was specified
-    if (port == 0) {
-        log_err("port not specified in next hop address '%s'",
-                contact->nexthop());
-        return false;
-    }
-    
-    // create a new connection for the contact
-    // XXX/demmer bind?
-    Connection* conn = new Connection(contact, addr, port);
-    contact->set_contact_info(conn);
+    // start the connection that is cached in the link
+    Connection* conn = (Connection*)contact->link()->link_info();
+    conn->set_contact(contact);
     conn->start();
 
     return true;
@@ -208,15 +270,11 @@ TCPConvergenceLayer::open_contact(Contact* contact)
 bool
 TCPConvergenceLayer::close_contact(Contact* contact)
 {
-    Connection* conn = (Connection*)contact->contact_info();
+    Connection* conn = (Connection*)contact->link()->link_info();
 
     log_info("close_contact *%p", contact);
 
     if (conn) {
-        // first remove the connection from the contact info slot to
-        // avoid cleanup races
-        contact->set_contact_info(NULL);
-        
         if (!conn->should_stop()) {
             log_debug("interrupting connection thread");
             conn->set_should_stop();
@@ -228,8 +286,7 @@ TCPConvergenceLayer::close_contact(Contact* contact)
             oasys::Thread::yield();
         }
         
-        log_debug("thread stopped, deleting connection...");
-        delete conn;
+        log_debug("connection thread stopped...");
     }
     
     return true;
@@ -264,15 +321,15 @@ TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
  * TCPConvergenceLayer::Connection
  *
  *****************************************************************************/
-TCPConvergenceLayer::Connection::Connection(Contact* contact,
-                                            in_addr_t remote_addr,
+TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
                                             u_int16_t remote_port)
-    : contact_(contact)
+
+    : params_(TCPConvergenceLayer::Defaults), // copy defaults
+      contact_(NULL)
 {
     Thread::flags_ |= INTERRUPTABLE;
 
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
-    ack_blocksz_ = TCPConvergenceLayer::Defaults.ack_blocksz_;
 
     // cache the remote addr and port in the fields in the socket
     // since we want to actually connect to the peer side from the
@@ -294,10 +351,11 @@ TCPConvergenceLayer::Connection::Connection(Contact* contact,
 TCPConvergenceLayer::Connection::Connection(int fd,
                                             in_addr_t remote_addr,
                                             u_int16_t remote_port)
-    : contact_(NULL)
+
+    : params_(TCPConvergenceLayer::Defaults), // copy defaults
+      contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
-    ack_blocksz_ = TCPConvergenceLayer::Defaults.ack_blocksz_;
 
     sock_ = new oasys::TCPClient(fd, remote_addr, remote_port, logpath_);
     sock_->set_logfd(false);
@@ -313,7 +371,7 @@ TCPConvergenceLayer::Connection::~Connection()
  * state, it calls one of send_loop or recv_loop.
  *
  * XXX/demmer for now, this is keyed on whether or not there is a
- * contact_ cached from the constructor -- figure something better to
+ * link_ cached from the constructor -- figure something better to
  * support sending bundles from the passive acceptor
  */
 void
@@ -340,7 +398,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     size_t block_len;
     size_t payload_len = bundle->payload_.length();
     const u_char* payload_data;
-    oasys::StringBuffer payload_buf(ack_blocksz_);
+    oasys::StringBuffer payload_buf(params_.ack_blocksz_);
         
     // use iov slot zero for the one byte frame header type, slot one
     // for the frame header, then N slots for the bundle header, and
@@ -366,13 +424,13 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
     // check to see if the whole bundle will fit in one block, and
     // fill in the start header fields appropriately
-    if (payload_len <= ack_blocksz_) {
+    if (payload_len <= params_.ack_blocksz_) {
         block_len = payload_len;
         starthdr.block_length = htonl(payload_len);
         starthdr.partial = 0;
     } else {
-        block_len = ack_blocksz_;
-        starthdr.block_length = htonl(ack_blocksz_);
+        block_len = params_.ack_blocksz_;
+        starthdr.block_length = htonl(params_.ack_blocksz_);
         starthdr.partial = 1;
     }
 
@@ -422,10 +480,10 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     while (payload_len > 0) {
         BundleBlockHeader blockhdr;
 
-        if (payload_len <= ack_blocksz_) {
+        if (payload_len <= params_.ack_blocksz_) {
             block_len = payload_len;
         } else {
-            block_len = ack_blocksz_;
+            block_len = params_.ack_blocksz_;
         }
 
         // grab the next payload chunk
@@ -680,17 +738,17 @@ TCPConvergenceLayer::Connection::recv_bundle()
                   rcvd_len, payload_len);
 
         // test hook for reactive fragmentation.
-        if (Defaults.test_fragment_size_ != -1) {
-            if ((int)rcvd_len > Defaults.test_fragment_size_) {
+        if (params_.test_fragment_size_ != -1) {
+            if ((int)rcvd_len > params_.test_fragment_size_) {
                 log_info("send_bundle: "
                          "XXX forcing fragmentation size %d, rcvd %d",
-                         Defaults.test_fragment_size_, rcvd_len);
+                         params_.test_fragment_size_, rcvd_len);
                 usleep(100000);
                 goto done;
             }
         }
 
-        cc = sock_->timeout_read(&typecode, 1, 5000);
+        cc = sock_->timeout_read(&typecode, 1, params_.rtt_timeout_);
         if (cc == oasys::IOTIMEOUT) {
             log_warn("recv_bundle: timeout waiting for next typecode");
             goto done;
@@ -709,7 +767,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
         }
             
         cc = sock_->timeout_readall((char*)&blockhdr, sizeof(blockhdr),
-                                    5000);
+                                    params_.rtt_timeout_);
         if (cc == oasys::IOTIMEOUT) {
             log_warn("recv_bundle: timeout reading block header");
             goto done;
@@ -910,39 +968,49 @@ TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
     ContactHeader contacthdr;
     contacthdr.magic = htonl(MAGIC);
     contacthdr.version = CURRENT_VERSION;
-    contacthdr.flags = BUNDLE_ACK_ENABLED | BLOCK_ACK_ENABLED |
-                       KEEPALIVE_ENABLED;
-    contacthdr.ackblock_sz = ack_blocksz_;
-    contacthdr.keepalive_sec = TCPConvergenceLayer::Defaults.keepalive_interval_;
-    contacthdr.idle_close_time = htonl(TCPConvergenceLayer::Defaults.idle_close_time_);
-
-    keepalive_msec_ = contacthdr.keepalive_sec * 1000;
-    idle_close_time_ = TCPConvergenceLayer::Defaults.idle_close_time_;
+    contacthdr.flags = 0;
+    if (params_.bundle_ack_enabled_)
+        contacthdr.flags |= BUNDLE_ACK_ENABLED;
+    
+    contacthdr.ackblock_sz = params_.ack_blocksz_;
+    contacthdr.keepalive_interval = params_.keepalive_interval_;
+    contacthdr.idle_close_time = htons(params_.idle_close_time_);
     
     // first of all, connect to the receiver side
     ASSERT(sock_->state() != oasys::IPSocket::ESTABLISHED);
     log_debug("send_loop: connecting to %s:%d...",
               intoa(sock_->remote_addr()), sock_->remote_port());
 
-    while (sock_->timeout_connect(sock_->remote_addr(), sock_->remote_port(),
-                                  5000) != 0)
-    {
+    while (1) {
+        int ret = sock_->timeout_connect(sock_->remote_addr(), sock_->remote_port(),
+                                         params_.connect_timeout_);
+
         if (should_stop()) {
             log_debug("connect thread interrupted, should_stop set");
             return false;
         }
 
-        log_info("connection attempt to %s:%d failed... "
-                 "will retry in %d seconds",
-                 intoa(sock_->remote_addr()), sock_->remote_port(),
-                 contacthdr.keepalive_sec);
-        sock_->close();
-        sleep(contacthdr.keepalive_sec);
-
-        if (should_stop()) {
-            log_debug("connect thread interrupted in sleep, should_stop set");
-            return false;
+        if (ret == 0) { 
+            break; // success
         }
+        else if (ret == oasys::IOERROR) {
+            log_info("connection attempt to %s:%d failed... "
+                     "waiting %d seconds and retrying connect",
+                     intoa(sock_->remote_addr()), sock_->remote_port(),
+                     params_.connect_timeout_ / 1000);
+            sleep(params_.connect_timeout_ / 1000);
+
+            if (should_stop()) {
+                log_debug("connect thread interrupted in sleep, should_stop set");
+                return false;
+            }
+        }
+        else if (ret == oasys::IOTIMEOUT) {
+            log_info("connection attempt to %s:%d timed out... retrying",
+                     intoa(sock_->remote_addr()), sock_->remote_port());
+        }
+        
+        sock_->close();
     }
 
     log_debug("send_loop: "
@@ -957,7 +1025,7 @@ TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
 
     // wait for the reply
     cc = sock_->timeout_readall((char*)&contacthdr, sizeof(ContactHeader),
-                                keepalive_msec_);
+                                params_.rtt_timeout_);
 
     if (cc == oasys::IOTIMEOUT) {
         log_warn("timeout reading contact header");
@@ -1031,19 +1099,18 @@ TCPConvergenceLayer::Connection::accept()
         return false;
     }
 
-    // XXX/demmer do some "negotiation" here
-    
-    keepalive_msec_ = contacthdr.keepalive_sec * 1000;
+    // XXX/demmer do keepalive negotiation here
+    params_.keepalive_interval_ = contacthdr.keepalive_interval;
 
     // Take the min of the idle time proposed by the far side
     // and the one specified in our configs.
-    idle_close_time_ = MIN(contacthdr.idle_close_time,
-                TCPConvergenceLayer::Defaults.idle_close_time_);
+    params_.idle_close_time_ = MIN(contacthdr.idle_close_time,
+                                   (u_int32_t)params_.idle_close_time_);
 
     // fix up the contacthdr to send back out
     contacthdr.magic = htonl(IPConvergenceLayer::MAGIC);
     contacthdr.version = IPConvergenceLayer::CURRENT_VERSION;
-    contacthdr.idle_close_time = htonl(idle_close_time_);
+    contacthdr.idle_close_time = htons(params_.idle_close_time_);
     
     log_debug("recv_bundle: got contact header, sending reply...");
     cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
@@ -1115,14 +1182,18 @@ TCPConvergenceLayer::Connection::send_loop()
 
     // first connect to the remote side
     if (connect(sock_->remote_addr(), sock_->remote_port()) == false) {
-        log_debug("connect failed, breaking contact");
-        break_contact();
+        log_debug("connection failed");
+        sock_->close();
         return;
     }
     note_data_rcvd();
 
-    log_info("connection established -- (keepalive time %d milliseconds)",
-             keepalive_msec_);
+    // inform the router that the contact is available
+    ASSERT(contact_);
+    BundleForwarder::post(new ContactUpEvent(contact_));
+    
+    log_info("connection established -- (keepalive time %d seconds)",
+             params_.keepalive_interval_);
 
     // from now on, all our operations will use non-blocking semantics
     sock_->set_nonblocking(true);
@@ -1208,8 +1279,9 @@ TCPConvergenceLayer::Connection::send_loop()
         pollfds[0].revents = 0;
         pollfds[1].revents = 0;
         
-        log_debug("send_loop: calling poll (timeout %d)", keepalive_msec_);
-        int nready = poll(pollfds, 2, keepalive_msec_);
+        log_debug("send_loop: calling poll (timeout %d)",
+                  params_.keepalive_interval_ * 1000);
+        int nready = poll(pollfds, 2, params_.keepalive_interval_ * 1000);
         if (nready < 0) {
             if (errno == EINTR) continue;
             log_err("error return %d from poll: %s", nready, strerror(errno));
@@ -1281,8 +1353,8 @@ TCPConvergenceLayer::Connection::send_loop()
         // check that it hasn't been too long since the other side
         // sent us a keepalive
         ::gettimeofday(&now, 0);
-        int elapsed = TIMEVAL_DIFF_MSEC(now, keepalive_rcvd);
-        if (elapsed > (2 * keepalive_msec_)) {
+        u_int elapsed = TIMEVAL_DIFF_MSEC(now, keepalive_rcvd);
+        if (elapsed > (2 * params_.keepalive_interval_ * 1000)) {
             log_warn("send_loop: no keepalive heard for %d msecs "
                      "(sent %u.%u, rcvd %u.%u, now %u.%u) -- closing contact",
                      elapsed,
@@ -1293,18 +1365,17 @@ TCPConvergenceLayer::Connection::send_loop()
                      (u_int)now.tv_sec, (u_int)now.tv_usec);
             goto shutdown;
         }
-
         // see if it is time to close the connection due to it going idle
         elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
-        if (elapsed > (idle_close_time_ * 1000)) {
-            float sec = elapsed / 1000;
-            log_info("connection idle for %.2f seconds, closing.", sec);
+        if (elapsed > (params_.idle_close_time_ * 1000)) {
+            log_info("connection idle for %d msecs, closing.", elapsed);
             goto shutdown;
         } else {
-            log_debug("connection not idle: %d <= %d", elapsed, idle_close_time_ * 1000);
+            log_debug("connection not idle: %d <= %d",
+                      elapsed, params_.idle_close_time_ * 1000);
         }
     }
-    
+        
  shutdown:
     break_contact();
 }
@@ -1314,7 +1385,7 @@ TCPConvergenceLayer::Connection::recv_loop()
 {
     char typecode;
     struct timeval now;
-    int elapsed;
+    u_int elapsed;
 
     // first accept the connection and do negotiation
     if (accept() == false) {
@@ -1326,17 +1397,18 @@ TCPConvergenceLayer::Connection::recv_loop()
         // see if it is time to close the connection due to it being idle
         ::gettimeofday(&now, 0);
         elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
-        if (elapsed > idle_close_time_ * 1000) {
+        if (elapsed > params_.idle_close_time_ * 1000) {
             float sec = elapsed / 1000;
             log_info("connection idle for %.2f seconds, closing.", sec);
             break_contact();
             return;
         } else {
-            log_debug("connection not idle: %d <= %d", elapsed, idle_close_time_ * 1000);
+            log_debug("connection not idle: %d <= %d",
+                      elapsed, params_.idle_close_time_ * 1000);
         }
 
         // block on the one byte typecode
-        int timeout = 2 * keepalive_msec_;
+        int timeout = 2 * params_.keepalive_interval_ * 1000;
         log_debug("recv_loop: blocking on frame typecode... (timeout %d)",
                   timeout);
         int ret = sock_->timeout_read(&typecode, 1, timeout);
@@ -1348,7 +1420,7 @@ TCPConvergenceLayer::Connection::recv_loop()
             
         } else if (ret == oasys::IOTIMEOUT) {
             log_warn("recv_loop: no message heard for > %d msecs -- "
-                     "breaking contact", 2 * keepalive_msec_);
+                     "breaking contact", timeout);
             goto shutdown;
         }
         

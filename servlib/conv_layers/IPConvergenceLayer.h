@@ -98,9 +98,10 @@ public:
         u_int8_t  version;		///< framing protocol version
         u_int8_t  flags;		///< connection flags (see above)
         u_int8_t  ackblock_sz;		///< size of ack blocks (power of two)
-        u_int8_t  keepalive_sec;	///< seconds between keepalive packets
-        u_int32_t idle_close_time;	///< seconds of idle time before closing
+        u_int8_t  keepalive_interval;	///< seconds between keepalive packets
+        u_int16_t idle_close_time;	///< seconds of idle time before close
         				///  (keepalive packets do not count)
+        u_int16_t __unused__;
     } __attribute__((packed));
 
     /**

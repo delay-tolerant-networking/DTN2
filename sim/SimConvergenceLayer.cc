@@ -165,10 +165,9 @@ SimConvergenceLayer::create_ct(int id)
     fflush(stdout);
 
     // XXX/demmer fix this to use just the admin as well
-    Link*  link = Link::create_link(tuple.c_str(),
-                                    Link::ONDEMAND,
+    Link*  link = Link::create_link(tuple.c_str(), Link::ONDEMAND,
                                     ConvergenceLayer::find_clayer("simcl"),
-                                    tuple.c_str());
+                                    tuple.c_str(), 0, NULL);
     
     link->set_link_info(new SimLinkInfo(id));
     links_[id] = link;

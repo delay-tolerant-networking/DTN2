@@ -237,15 +237,20 @@ public:
      * Static function to create appropriate link object from link type
      */
     static Link* create_link(std::string name, link_type_t type,
-                             ConvergenceLayer* cl,
-                             const char* nexthop);
+                             ConvergenceLayer* cl, const char* nexthop,
+                             int argc, const char* argv[]);
     /**
      * Constructor / Destructor
      */
-    Link(std::string name, link_type_t type, ConvergenceLayer* cl,
-         const char* nexthop);
+    Link(std::string name, link_type_t type,
+         ConvergenceLayer* cl, const char* nexthop);
     virtual ~Link();
-    
+
+    /**
+     * Actual initialization function, needed for errors in argument
+     * parsing.
+     */
+    bool init(int argc, const char* argv[]);
 
     /**
      * Return the type of the link.

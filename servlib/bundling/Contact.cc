@@ -56,10 +56,10 @@ Contact::Contact(Link* link)
 
     bundle_list_ = new BundleList(logpath_);
     contact_info_ = NULL;
-    clayer()->open_contact(this);
     
-    // Post a contact Available event
-    BundleForwarder::post(new ContactUpEvent(this));
+    // kick the convergence layer into opening the contact
+    clayer()->open_contact(this);
+
     log_info("new contact *%p", this);
 }
 

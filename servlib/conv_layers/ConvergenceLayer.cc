@@ -108,6 +108,28 @@ ConvergenceLayer::del_interface(Interface* iface)
 }
 
 /**
+ * Register a new link.
+ *
+ * The default implementation doesn't do anything but log.
+ */
+bool
+ConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
+{
+    log_debug("adding link %s", link->nexthop());
+    return true;
+}
+
+/**
+ * Remove a link.
+ */
+bool
+ConvergenceLayer::del_link(Link* link)
+{
+    log_debug("removing link %s", link->nexthop());
+    return true;
+}
+
+/**
  * Open the connection to the given contact and prepare for
  * bundles to be transmitted.
  */
