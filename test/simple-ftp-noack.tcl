@@ -109,6 +109,7 @@ proc send_file {host file} {
 	puts $sock "[file tail $file] [file size $file]"
 	flush $sock
     }] {
+	puts $sock "[time] failure in sending header "
 	close $sock
 	unset sock
 	close $fd
