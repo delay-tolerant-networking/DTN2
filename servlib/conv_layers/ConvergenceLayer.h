@@ -44,7 +44,7 @@ public:
     /**
      * Register a new interface.
      */
-    virtual void add_interface(Interface* iface, const char* args[]);
+    virtual void add_interface(Interface* iface, int argc, const char* argv[]);
 
     /**
      * Remove an interface

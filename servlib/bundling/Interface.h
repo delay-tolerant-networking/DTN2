@@ -17,7 +17,8 @@ public:
     /**
      * Add a new interface.
      */
-    static bool add_interface(const char* tuple, int argc, const char* args[]);
+    static bool add_interface(const char* tuplestr,
+                              int argc, const char* argv[]);
     
     /**
      * Remove the specified interface.
@@ -25,8 +26,8 @@ public:
     static bool del_interface(const char* tuple);
     
     // Accessors
-    const std::string& region() const { return tuple_->region(); }
-    const BundleTuple* tuple()  const { return tuple_; }
+    const std::string& region() const { return tuple_.region(); }
+    const BundleTuple* tuple()  const { return &tuple_; }
     ConvergenceLayer*  clayer() const { return clayer_; }
     InterfaceInfo*     info()   const { return info_; }
 
@@ -45,7 +46,7 @@ protected:
     
     BundleTuple tuple_;			///< Local tuple of the interface
     ConvergenceLayer* clayer_;		///< Convergence layer to use
-    InterfaceInfo info_;		///< Convergence layer specific state
+    InterfaceInfo* info_;		///< Convergence layer specific state
 };
 
 /**

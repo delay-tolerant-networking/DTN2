@@ -50,9 +50,9 @@ ConvergenceLayer::find_clayer(const std::string& admin)
  * Register a new interface.
  */
 void
-ConvergenceLayer::add_interface(Interface* iface, const char* args[])
+ConvergenceLayer::add_interface(Interface* iface,
+                                int argc, const char* argv[])
 {
-    NOTIMPLEMENTED;
 }
 
 /**
