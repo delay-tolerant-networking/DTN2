@@ -5,6 +5,8 @@
 #include <list>
 #include <oasys/debug/Debug.h>
 
+class BundleTuple;
+class ConvergenceLayer;
 class Interface;
 
 /**
@@ -53,12 +55,13 @@ public:
      * is successfully added, false if the interface specification is
      * invalid.
      */
-    bool add(const char* tuplestr, int argc, const char* argv[]);
+    bool add(BundleTuple& tuple, ConvergenceLayer* cl, const char* proto,
+             int argc, const char* argv[]);
     
     /**
      * Remove the specified interface.
      */
-    bool del(const char* tuplestr);
+    bool del(BundleTuple& tuple, ConvergenceLayer* cl, const char* proto);
 
 protected:
     static InterfaceTable* instance_;
@@ -73,7 +76,8 @@ protected:
     /**
      * Internal method to find the location of the given interface
      */
-    bool find(const char* tuplestr, InterfaceList::iterator* iter);
+    bool find(BundleTuple& tuple, ConvergenceLayer* cl, 
+              InterfaceList::iterator* iter);
 };
 
 #endif /* _INTERFACE_TABLE_H_ */

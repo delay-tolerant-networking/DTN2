@@ -35,7 +35,7 @@ Link::Link(std::string name, link_type_t type, const char* conv_layer,
     logpathf("/link/%s",name_.c_str());
 
     // Find convergence layer
-    clayer_ = ConvergenceLayer::find_clayer_proto(conv_layer);
+    clayer_ = ConvergenceLayer::find_clayer(conv_layer);
     if (!clayer_) {
         PANIC("can't find convergence layer for %s", tuple.admin().c_str());
         // XXX/demmer need better error handling
