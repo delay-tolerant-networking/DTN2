@@ -5,25 +5,28 @@
 
 set num_nodes 2
 set network loopback
+set topology linear
 route set type "static"
 
 # source the main test script harness
 source "test/main.tcl"
 
-# set up a listening interface (
-setup_interface tcp
-
-# For node 0 (the receiver), configure the special interface to enable
-# bundles to be received.
 if {$id == 0} {
-    setup_interface tcp receiver_connect
-}
+    # For node 0 (the receiver), configure the special interface to
+    # enable bundles to be received after making the connection
+    interface add tcp host://$hosts(1):$ports(tcp,1) receiver_connect
+    
+} elseif {$id == 1} {
+    # For node 1 (the sender), we just set up a normal interface
+    # as well as an opportunistic link and a route
+    # to point to the peer (who hasn't come knocking yet)
+    setup_interface tcp
+    
+    link add link-0 host://host-0 OPPORTUNISTIC tcp
+    route add bundles://internet/host://host-0/* link-0
 
-# For node 1 (the sender), configure an opportunistic link and a route
-# to point to the peer (who hasn't come knocking yet)
-if {$id == 1} {
-    link add link-0 host://$hosts(0) OPPORTUNISTIC tcp
-    route add bundles://internet/host://$hosts(0)/* host://$hosts(0)
+} else {
+    error "test can only be run for two nodes"
 }
 
 test set initscript {

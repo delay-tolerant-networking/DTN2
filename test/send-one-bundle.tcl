@@ -7,9 +7,6 @@ set topology linear
 # source the main test script harness
 source "test/main.tcl"
 
-# set the local routing state
-setup_local
-
 # Set up the listening interface and the forwarding topology
 setup_interface tcp
 setup_${topology}_topology ONDEMAND tcp

@@ -38,22 +38,19 @@ if {$network != "none"} {
     setup_${network}_network
 }
 
-#
-# Proc to set up the local api server and routing state.
-#
-proc setup_local {} {
-    global hosts ports id
-
+# set up the api server
+if {! [info exists no_api] } {
     if {! [info exists ports(api,$id)]} {
 	error "no api ports entry for id $id"
     }
 
-    set api_port $ports(api,$id)
-    
-    route local_tuple bundles://internet/host://$hosts($id)
-
     api set local_addr $hosts($id)
-    api set handshake_port $api_port
+    api set handshake_port $ports(api,$id)
+}
+
+# set up the local route tupl
+if {! [info exists no_local_route]} {
+    route local_tuple bundles://internet/host://host-$id
 }
 
 #
