@@ -32,6 +32,17 @@ public:
      */
     bool del_interface(Interface* iface);
 
+    /**
+     * Open the connection to the given contact and prepare for
+     * bundles to be transmitted.
+     */
+    bool open_contact(Contact* contact);
+    
+    /**
+     * Close the connnection to the contact.
+     */
+    bool close_contact(Contact* contact);
+
 protected:
     /**
      * Helper class (and thread) that listens on a registered
@@ -46,15 +57,29 @@ protected:
     /**
      * Helper class (and thread) that manages an established
      * connection with a peer daemon.
-     *
-     * This is stored in the 
      */
-    class Connection : public ContactInfo, TCPClient, public Thread {
+    class Connection : public ContactInfo, public TCPClient, public Thread {
     public:
-        Connection(int fd, in_addr_t local_addr, u_int16_t local_port);
-
-    protected:
+        /**
+         * Constructor for the active connection side of a connection.
+         */
+        Connection(Contact* contact,
+                   in_addr_t remote_addr,
+                   u_int16_t remote_port);
         
+        /**
+         * Constructor for the passive listener side of a connection.
+         */
+        Connection(int fd,
+                   in_addr_t remote_addr,
+                   u_int16_t remote_port);
+        
+    protected:
+        virtual void run();
+        void send_loop();
+        void recv_loop();
+        
+        Contact* contact_;
     };
 };
 
