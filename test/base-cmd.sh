@@ -83,7 +83,7 @@ switch ($proto_orig)
                               source $dtn2testroot/dtn-cmd-half.sh
                               breaksw
 	       case mail:
-                              source $dtn2testroot/mail-cmd-half.sh
+                              source $dtn2testroot/mail/mail-cmd-half.sh
                               breaksw
 
                default:
