@@ -67,6 +67,8 @@ Contact::~Contact()
 {
     ASSERT(bundle_list_->size() == 0);
     delete bundle_list_;
+
+    ASSERT(contact_info_ == NULL);
 }
 
 void
