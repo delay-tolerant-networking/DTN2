@@ -21,7 +21,7 @@ BufferedSerializeAction::BufferedSerializeAction(action_t action,
  * error_ to true.
  */
 int
-BufferedSerializeAction::process_object(SerializableObject* object)
+BufferedSerializeAction::action(SerializableObject* object)
 {
     error_ = false;
     
@@ -316,7 +316,7 @@ MarshalSize::process(const char* name, std::string* s)
 
 
 int
-MarshalSize::process_object(SerializableObject* object)
+MarshalSize::action(SerializableObject* object)
 {
     object->serialize(this);
     return 0;

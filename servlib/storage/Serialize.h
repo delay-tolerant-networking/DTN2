@@ -37,11 +37,11 @@ public:
 class SerializeAction {
 public:
     /**
-     * Perform the serializing process.
+     * Perform the serialization or deserialization action on the object.
      *
      * @return 0 if success, -1 on error
      */
-    virtual int process_object(SerializableObject* object) = 0;
+    virtual int action(SerializableObject* object) = 0;
 
     /**
      * Action type codes, one for each action type of SerializeAction.
@@ -62,7 +62,10 @@ public:
      */
 
     /**
-     * Process function for a contained SerializableObject. The
+     * Process function for a contained SerializableObject.
+     */
+    /** 
+     * The
      * default implementation just calls the standard process()
      * function, ignoring the name value. However, it is virtual, so a
      * derived class could make use of the name (as part of a SQL
@@ -70,7 +73,7 @@ public:
      */
     virtual void process(const char* name, SerializableObject* object)
     {
-        process_object(object);
+        action(object);
     }
     
     /**

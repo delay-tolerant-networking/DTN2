@@ -20,7 +20,7 @@ main(int argc, const char** argv)
     ASSERT(b.source_.admin().compare("tcp://foo") == 0);
 
     MarshalSize s;
-    if (s.process_object(&b) != 0) {
+    if (s.action(&b) != 0) {
         logf("/test", LOG_ERR, "error in marshal sizing");
         exit(1);
     }
@@ -31,13 +31,13 @@ main(int argc, const char** argv)
     u_char* buf = (u_char*)malloc(sz);
 
     Marshal m(buf, sz);
-    if (m.process_object(&b) != 0) {
+    if (m.action(&b) != 0) {
         logf("/test", LOG_ERR, "error in marshalling");
         exit(1);
     }
 
     Unmarshal u(buf, sz);
-    if (u.process_object(&b2) != 0) {
+    if (u.action(&b2) != 0) {
         logf("/test", LOG_ERR, "error in unmarshalling");
         exit(1);
     }

@@ -10,11 +10,21 @@
 class BufferedSerializeAction : public SerializeAction {
 public:
     /**
-     * The basic process function is the same for marshalling and
+     * The basic action function is the same for marshalling and
      * unmarshalling.
      */
-    int process_object(SerializableObject* object);
+    int action(SerializableObject* object);
 
+    /** 
+     * Since BufferedSerializeAction ignores the name field, calling
+     * process() on a contained object is the same as just calling the
+     * contained object's serialize() method.
+     */
+    virtual void process(const char* name, SerializableObject* object)
+    {
+        object->serialize(this);
+    }
+    
 protected:
     /**
      * Constructor
@@ -57,10 +67,10 @@ public:
      * SerializableObject, define a variant of process() that allows a
      * const SerializableObject* as the object parameter.
      */
-    int process_object(const SerializableObject* const_object)
+    int action(const SerializableObject* const_object)
     {
         SerializableObject* object = (SerializableObject*)const_object;
-        return BufferedSerializeAction::process_object(object);
+        return BufferedSerializeAction::action(object);
     }
 
     // Virtual functions inherited from SerializeAction
@@ -104,17 +114,17 @@ public:
     }
 
     /**
-     * The virtual process function. Always succeeds.
+     * The virtual action function. Always succeeds.
      */
-    int process_object(SerializableObject* object);
+    int action(SerializableObject* object);
     
     /**
      * Again, we can tolerate a const object as well.
      */
-    int process_object(const SerializableObject* const_object)
+    int action(const SerializableObject* const_object)
     {
         SerializableObject* object = (SerializableObject*)const_object;
-        return process_object(object);
+        return action(object);
     }
     
     /** @return Measured size */

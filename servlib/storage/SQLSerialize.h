@@ -31,7 +31,7 @@ public:
     /**
      * The virtual process function to do the serialization.
      */
-    int process(SerializableObject* object);
+    int action(SerializableObject* object);
     
     /**
      * Since the insert operation doesn't actually modify the
