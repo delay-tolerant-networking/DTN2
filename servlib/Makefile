@@ -8,14 +8,15 @@
 
 BUNDLING_SRCS := 				\
 	bundling/Bundle.cc			\
+	bundling/BundleForwarder.cc		\
 	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
 	bundling/BundleTuple.cc			\
 	bundling/Contact.cc			\
+	bundling/FragmentManager.cc		\
 	bundling/Interface.cc			\
 	bundling/InterfaceTable.cc		\
-	bundling/BundleForwarder.cc		\
 
 CONV_LAYER_SRCS :=				\
 	conv_layers/ConvergenceLayer.cc		\
@@ -60,6 +61,7 @@ IO_SRCS :=					\
 REGISTRATION_SRCS :=				\
 	reg/Registration.cc			\
 	reg/RegistrationTable.cc		\
+	reg/RateEstimatorRegistration.cc	\
 	reg/LoggingRegistration.cc		\
 	reg/TclRegistration.cc			\
 
@@ -95,6 +97,7 @@ THREAD_SRCS :=					\
 	thread/Timer.cc				\
 
 UTIL_SRCS :=					\
+	util/RateEstimator.cc			\
 	util/StringBuffer.cc			\
 	util/URL.cc				\
 
@@ -144,6 +147,8 @@ debug/arith-native.h: debug/gdtoa-arithchk.c
 debug/arith.h:
 	$(MAKE) debug/arith-$(TARGET).h
 	cp debug/arith-$(TARGET).h $@
+
+debug/Formatter.cc: debug/arith.h
 
 debug/gdtoa-%.o: debug/gdtoa-%.c debug/arith.h
 	$(CC) -g -DINFNAN_CHECK -c $< -o $@
