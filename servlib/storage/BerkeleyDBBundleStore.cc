@@ -24,20 +24,20 @@ BerkeleyDBBundleStore::get(int bundle_id)
     return bundle;
 }
 
-int
+bool
 BerkeleyDBBundleStore::insert(Bundle* bundle)
 {
-    return store_->put(bundle, bundle->bundleid_);
+    return store_->put(bundle, bundle->bundleid_) == 0;
 }
 
-int
+bool
 BerkeleyDBBundleStore::update(Bundle* bundle)
 {
-    return store_->put(bundle, bundle->bundleid_);
+    return store_->put(bundle, bundle->bundleid_) == 0;
 }
 
-int
+bool
 BerkeleyDBBundleStore::del(int bundle_id)
 {
-    return store_->del(bundle_id);
+    return store_->del(bundle_id) == 0;
 }

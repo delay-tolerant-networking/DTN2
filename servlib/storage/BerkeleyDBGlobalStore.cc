@@ -4,7 +4,7 @@
 
 BerkeleyDBGlobalStore::BerkeleyDBGlobalStore()
 {
-    store_ = new BerkeleyDBStore("bundles");
+    store_ = new BerkeleyDBStore("globals");
 }
 
 BerkeleyDBGlobalStore::~BerkeleyDBGlobalStore()

@@ -25,9 +25,9 @@ public:
     virtual ~BerkeleyDBBundleStore();
 
     Bundle* get(int bundle_id);
-    int     insert(Bundle* bundle);
-    int     update(Bundle* bundle);
-    int     del(int bundle_id);
+    bool     insert(Bundle* bundle);
+    bool     update(Bundle* bundle);
+    bool     del(int bundle_id);
 
 protected:
     BerkeleyDBStore* store_;

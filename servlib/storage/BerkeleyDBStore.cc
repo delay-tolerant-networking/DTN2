@@ -1,5 +1,6 @@
 
 #include "BerkeleyDBStore.h"
+#include "MarshalSerialize.h"
 #include "StorageConfig.h"
 #include "util/StringBuffer.h"
 #include <sys/types.h>
@@ -148,19 +149,92 @@ BerkeleyDBStore::~BerkeleyDBStore()
 int
 BerkeleyDBStore::get(SerializableObject* obj, const int key)
 {
-    NOTIMPLEMENTED;
+    char keybuf[32];
+    int keylen = snprintf(keybuf, sizeof(keybuf), "%u", (unsigned int)key);
+    
+    Dbt k((void*)keybuf, keylen);
+    Dbt d;
+    int err;
+
+    try {
+        err = db_->get(NO_TX, &k, &d, 0);
+    } catch(DbException e) {
+        PANIC("error in DB get: %s", e.what());
+    }
+    
+    if (err == DB_NOTFOUND) {
+        log_warn("get key %d failed", key);
+        return -1;
+    }
+
+    Unmarshal unmarshal((u_char*)d.get_data(), d.get_size());
+
+    if (unmarshal.action(obj) < 0) {
+        PANIC("error in unserialize");
+    }
+
+    log_debug("get key %d success, initialized %p", key, obj);
+    
+    return 0;
 }
 
 int
 BerkeleyDBStore::put(SerializableObject* obj, const int key)
 {
-    NOTIMPLEMENTED;
+    // figure out the flattened size of the object
+    MarshalSize marshalsize;    
+    int ret = marshalsize.action(obj);
+    ASSERT(ret == 0);
+    size_t size = marshalsize.size();
+    ASSERT(size > 0);
+
+    // do the flattening
+    u_char* buf = (u_char*)malloc(size);
+    Marshal marshal(buf, size);
+    ret = marshal.action(obj);
+    ASSERT(ret == 0);
+
+    // now cons up a db key/value pair
+    char keybuf[32];
+    int keylen = snprintf(keybuf, sizeof(keybuf), "%u", (unsigned int)key);
+    
+    Dbt k(keybuf, keylen);
+    Dbt d(buf, size);
+
+    // safety check
+    if (size > 1024) {
+        log_warn("unusual large db put length %d (table %s key %d)",
+                 size, tablename_.c_str(), key);
+    }
+
+    log_debug("put key %d, obj %p success", key, obj);
+    
+    int err;
+    try {
+        err = db_->put(NO_TX, &k, &d, 0);
+    } catch(DbException e) {
+        PANIC("DB: %s", e.what());
+    }
+
+    return 0;
 }
 
 int
 BerkeleyDBStore::del(const int key)
 {
-    NOTIMPLEMENTED;
+    char keybuf[32];
+    int keylen = snprintf(keybuf, sizeof(keybuf), "%u", (unsigned int)key);
+    Dbt k(keybuf, keylen);
+    
+    try {
+        if (db_->del(NO_TX, &k, 0) == DB_NOTFOUND) {
+            return -1;
+        }
+    } catch(DbException e) {
+        PANIC("DB: %s", e.what());
+    }
+    
+    return 0;
 }
 
 int
