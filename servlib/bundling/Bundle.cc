@@ -1,11 +1,11 @@
 
 #include "Bundle.h"
-#include "storage/BundleStore.h"
 
 void
 Bundle::init()
 {
     refcount_		= 0;
+    bundleid_		= 0;
     priority_		= COS_NORMAL;
     expiration_		= 0;
     custreq_		= false;
@@ -15,7 +15,6 @@ Bundle::init()
     return_rcpt_	= false;
     expiration_		= 0; // XXX/demmer
     
-    bundleid_		= BundleStore::instance()->next_id();
     gettimeofday(&creation_ts_, 0);
 }
 
