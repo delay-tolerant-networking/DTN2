@@ -50,12 +50,7 @@ tags TAGS:
 checkconfigure: configure Rules.make
 
 Rules.make: Rules.make.in configure
-	@[ ! -z `echo "$(MAKECMDGOALS)" | grep clean` ] || \
-	(echo "$@ is out of date, need to rerun configure" && \
-	exit 1)
-
-config.h: config.h.in configure
-	@[ ! -z `echo "$(MAKECMDGOALS)" | grep clean` ] || \
+	@[ ! x`echo "$(MAKECMDGOALS)" | grep clean` = x ] || \
 	(echo "$@ is out of date, need to rerun configure" && \
 	exit 1)
 
