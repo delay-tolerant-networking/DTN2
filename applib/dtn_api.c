@@ -405,7 +405,9 @@ dtn_build_local_tuple(dtn_handle_t handle,
     tuple->admin.admin_len = local_tuple->admin.admin_len +
                              strlen(endpoint) + 1;
 
-    if (local_tuple->admin.admin_val[local_tuple->admin.admin_len-1] != '/') {
+    if (local_tuple->admin.admin_val[local_tuple->admin.admin_len-1] != '/' &&
+        endpoint[0] != '/')
+    {
         appendslash = 1;
         tuple->admin.admin_len++;
     }
