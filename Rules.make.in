@@ -52,7 +52,6 @@ STATIC_LIBS = @STATIC_LIBS@
 CC          = @CC@
 CPP         = @CPP@
 DEPFLAGS    = @DEPFLAGS@
-DEFS        = @DEFS@
 
 #
 # Targets are "native" and "arm"
@@ -93,7 +92,7 @@ endif
 DEBUG 		= @DEBUG@
 OPTIMIZE	= @OPTIMIZE@
 WARN  		= -Wall -Werror @OPTIMIZE_WARN@
-CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(DEPFLAGS) $(WARN) $(DEFS)
+CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(DEPFLAGS) $(WARN)
 LFLAGS		= $(LIBDIRS) @STATIC@
 
 #

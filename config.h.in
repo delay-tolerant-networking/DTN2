@@ -1,0 +1,7 @@
+/*
+ * Build-time options indicating which storage types are defined.
+ */
+#define __DB_ENABLED__        @db_enabled@
+#define __SQL_ENABLED__       @sql_enabled@
+#define __MYSQL_ENABLED__     @mysql_enabled@
+#define __POSTGRES_ENABLED__  @postgres_enabled@
