@@ -108,6 +108,11 @@ RouteTable::get_matching(const BundleTuple& tuple,
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         entry = *iter;
 
+        log_debug("check entry %s -> %s (%s)",
+                  entry->pattern_.c_str(),
+                  entry->next_hop_->dest_tuple()->c_str(),
+                  bundle_fwd_action_toa(entry->action_));
+            
         if (entry->pattern_.match(tuple)) {
             ++count;
             
