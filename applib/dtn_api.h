@@ -156,7 +156,7 @@ extern int dtn_set_tuple(dtn_tuple_t* tuple,
  *
  * Returns: 0 on success, XXX/demmer fill in others
  */
-extern int dtn_build_local_tuple(dtn_handle_t* handle,
+extern int dtn_build_local_tuple(dtn_handle_t handle,
                                  dtn_tuple_t* tuple, char* endpoint);
 
 /*

@@ -385,7 +385,7 @@ dtn_parse_tuple_string(dtn_tuple_t* tuple, char* str)
  * Returns: 0 on success, XXX/demmer fill in others
  */
 int
-dtn_build_local_tuple(dtn_handle_t* handle,
+dtn_build_local_tuple(dtn_handle_t handle,
                       dtn_tuple_t* tuple, char* endpoint)
 {
     dtn_tuple_t* local_tuple;
