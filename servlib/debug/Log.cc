@@ -322,7 +322,7 @@ Log::vlogf(const char *path, log_level_t level, const char *fmt, va_list ap)
     ScopedIncr incr(&threads_in_vlogf);
     
     if (threads_in_vlogf > 10) {
-        fprintf(stderr, "error: vlogf called recursively on log call:\n");
+        fprintf(stderr, "fatal error: vlogf called recursively:\n");
         vfprintf(stderr, fmt, ap);
         fprintf(stderr, "\n"); // since logf doesn't include newlines
         abort();
@@ -358,28 +358,31 @@ Log::vlogf(const char *path, log_level_t level, const char *fmt, va_list ap)
     // Generate string.
     len = vsnprintf(ptr, buflen, fmt, ap);
 
-    if (memcmp(&buf[LOG_MAX_LINELEN], guard, sizeof(guard)) != 0) {
-        PANIC("logf buffer overflow");
-    }
-
     if (len >= buflen) {
-        // handle truncated lines
+        // handle truncated lines -- note that the last char in the
+        // buffer is free since we reserved it for the newline
         const char* trunc = "... (truncated)\n";
-        len = strlen(trunc) + 1;
-        memcpy(&buf[LOG_MAX_LINELEN - len], trunc, len);
-        buflen = LOG_MAX_LINELEN;
+        len = strlen(trunc);
+        strncpy(&buf[LOG_MAX_LINELEN - len - 1], trunc, len + 1);
+        buflen = LOG_MAX_LINELEN - 1;
+        buf[LOG_MAX_LINELEN - 1] = '\0';
+
     } else {
+        // make sure there's a trailing newline
         buflen -= len;
         ptr += len;
         ASSERT(ptr <= (buf + LOG_MAX_LINELEN - 2));
         
-        // make sure there's a trailing newline
         if (ptr[-1] != '\n') {
             *ptr++ = '\n';
             *ptr = 0;
         }
         
         buflen = ptr - buf;
+    }
+
+    if (memcmp(&buf[LOG_MAX_LINELEN], guard, sizeof(guard)) != 0) {
+        PANIC("logf buffer overflow");
     }
 
     // do the write, making sure to drain the buffer. since stdout was
