@@ -8,13 +8,21 @@
 #
 #
 
+
+# after 1000
+# set y [clock clicks -milliseconds]
+# set f [expr $y - $x]
+
+
+
 set port 17600
 set period 1000
 
 set blocksz 8192
 
 proc time {} {
-    return [clock seconds]
+    global starttime
+    return " [clock seconds] ::  [expr [clock clicks -milliseconds] - $starttime] :: "
 }
 
 proc timef {} {
@@ -277,6 +285,7 @@ set dir  [lindex $argv 1]
 set logfile  [lindex $argv 2]
 set logfd [open $logfile w]
 
+set starttime [clock clicks -milliseconds]
 puts "Starting in $mode, dir is $dir at [timef]" 
 
 

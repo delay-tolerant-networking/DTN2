@@ -13,9 +13,16 @@ set period 1000
 
 set blocksz 8192
 
+
+
 proc time {} {
-    return [clock seconds]
+    global starttime
+    return " [clock seconds] ::  [expr [clock clicks -milliseconds] - $starttime] :: "
 }
+
+#proc time {} {
+#    return [clock seconds]
+#}
 
 proc timef {} {
     return [clock format [clock seconds]]
@@ -197,12 +204,12 @@ proc header_arrived {dest_dir sock} {
     global length_remaining
     global conns
 
-    #puts "[time] header arrived"
+    puts "[time] header arrived"
     
     set L [gets $sock]
     
     if {$L == {} || [eof $sock]} {
-	puts "[time] Close $conns(addr,$sock) EOF received"
+	puts "[time] Close $conns(addr,$sock) EOF received header..$L "
 	close $sock	
 	unset conns(addr,$sock)
 	return 
@@ -229,7 +236,7 @@ proc file_arrived {file to_fd dest_dir sock} {
     global length_remaining
     
     if {[eof $sock]} {
-	puts "[time] Close $conns(addr,$sock) EOF received"
+	puts "[time] Close $conns(addr,$sock) EOF received file"
 	close $sock	
 	unset conns(addr,$sock)
 	return

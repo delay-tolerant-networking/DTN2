@@ -42,6 +42,7 @@ echo set  linkdynamics 0 >> $file
 echo set  up 60  >> $file
 echo set down 180 >> $file
 echo set OFFSET_VAL 0 >> $file
+echo set ftp_impl "simple-ftp.tcl" >> $file
 
 #if ($10 != "dynamics") then
 #    exit "Usage problem: arugment 10 should be dynamics or nothing "
@@ -52,6 +53,7 @@ echo set OFFSET_VAL 0 >> $file
 
 echo >> $file
 echo "# Overriding link dynamic values "  >> $file
+echo set ftp_impl "simple-ftp.tcl" >> $file
 echo set  linkdynamics $11 >> $file
 echo set  up  $12  >> $file
 echo set down $13 >> $file
