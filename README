@@ -1,7 +1,8 @@
 DTN Reference Implementation
-----------------------------
+============================
 
-Directory Structure:
+Directory Structure
+-------------------
 
 applib/			dtn interface library
 apps/			example dtn applications
@@ -16,3 +17,18 @@ servlib/io/		I/O and networking support code
 servlib/routing/	bundle forwarding and routing logic
 servlib/storage/	persistent storage management
 servlib/thread/		thread / lock support implementation
+servlib/util/		miscellaneous utility classes
+
+Requirements
+------------
+
+gcc/g++ version 3.3+
+pthread
+tcl8.3+
+tcllib
+tclreadline
+
+(one or more of the following:)
+BerkeleyDB
+mysql
+postgresql
