@@ -14,12 +14,13 @@ BundleStore::BundleStore(PersistentStore * store)
     store_ = store;
 }
 
-bool BundleStore::load()
+bool
+BundleStore::load()
 {
     log_debug("Loading existing bundles from database.");
 
     // load existing stored bundles
-    Bundle * bundle;
+    Bundle* bundle;
     std::vector<int> ids;
     std::vector<int>::iterator iter;
 
@@ -30,10 +31,9 @@ bool BundleStore::load()
          ++iter)
     {
         bundle = get(*iter);
-        if (bundle)
-        {
-            BundleForwarder::post(new BundleReceivedEvent(bundle, bundle->payload_.length()));
-        }
+        ASSERT(bundle);
+        BundleForwarder::post(
+            new BundleReceivedEvent(bundle, bundle->payload_.length()));
     }
 
     return true;
@@ -46,6 +46,7 @@ BundleStore::~BundleStore()
 Bundle*
 BundleStore::get(int bundle_id)
 {
+    // XXX/mho fix
     Bundle* bundle = new Bundle(); // note: this unecessarily increments bundle id
     if (store_->get(bundle, bundle_id) != 0) {
         delete bundle;
