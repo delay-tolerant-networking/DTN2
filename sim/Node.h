@@ -86,7 +86,7 @@ public:
     virtual void post_event(BundleEvent* event);
     
     /**
-     * Virtual function from processable
+     * Virtual function from SimEventHandler
      */
     virtual void process(SimEvent *e);
 
