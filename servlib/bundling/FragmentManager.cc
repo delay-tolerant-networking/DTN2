@@ -125,8 +125,8 @@ FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
 {
     char buf[128];
     snprintf(buf, 128, "%lu.%lu",
-             bundle->creation_ts_.tv_sec,
-             bundle->creation_ts_.tv_usec);
+             (unsigned long)bundle->creation_ts_.tv_sec,
+             (unsigned long)bundle->creation_ts_.tv_usec);
     
     key->append(buf);
     key->append(bundle->source_.tuple());
