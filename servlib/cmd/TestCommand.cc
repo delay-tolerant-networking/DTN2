@@ -2,10 +2,16 @@
 #include "TestCommand.h"
 
 TestCommand::TestCommand()
-    : TclCommand("test")
+    : TclCommand("test"), id_(0)
 {
-    bind_i("id", &id_, 0);
+}
+
+void
+TestCommand::bind_vars()
+{
+    bind_i("id", &id_);
     bind_s("initscript", &initscript_);
+    bind_s("argv", &argv_);
 }
 
 int
