@@ -6,11 +6,10 @@
  * functions here.
  */
 
-// XXX/demmer some compile time hook should be here
-#define INTEL_X86
-
-#ifdef INTEL_X86
+#if defined(__i386__)
 #include "Atomic-x86.h"
+#elif defined(__arm__)
+#define __NO_ATOMIC__
 #else
 #error "Need to define an Atomic.h variant for your architecture"
 #endif
