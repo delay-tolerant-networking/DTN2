@@ -1,7 +1,7 @@
 
 #include "Thread.h"
-#include "Debug.h"
-#include "Log.h"
+#include "debug/Debug.h"
+#include "debug/Log.h"
 
 void*
 Thread::thread_run(void* t)

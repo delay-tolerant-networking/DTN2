@@ -1,8 +1,8 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "lib/Debug.h"
-#include "lib/Log.h"
+#include "debug/Debug.h"
+#include "debug/Log.h"
 #include "Mutex.h"
 
 
