@@ -238,6 +238,26 @@ CommandModule::append_resultf(const char* fmt, ...)
     va_end(ap);
 }
 
+void
+CommandModule::wrong_num_args(int argc, const char** argv, int parsed,
+                              int min, int max)
+{
+    set_result("wrong number of arguments to '");
+    append_result(argv[0]);
+    
+    for (int i = i; i < parsed; ++i) {
+        append_result(" ");
+        append_result(argv[i]);
+    }
+    append_result("'");
+    
+    if (max != -1) {
+        append_resultf(" expected %d - %d, got %d", min, max, argc);
+    } else {
+        append_resultf(" expected %d, got %d", min, argc);
+    }
+}
+
 int
 CommandModule::cmd_set(int argc, const char** args, Tcl_Interp* interp)
 {

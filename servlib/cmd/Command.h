@@ -308,6 +308,20 @@ protected:
      */
     void append_resultf(const char* fmt, ...) PRINTFLIKE(2, 3);
 
+
+    /**
+     * Useful function for generating error strings indicating that
+     * the wrong number of arguments were passed to the command.
+     *
+     * @param argc	original argument count to the command
+     * @param argv	original argument vector to the command
+     * @param parsed	number of args to include in error string
+     * @param min	minimum number of expected args
+     * @param max	maximum number of expected args (or -1)
+     */
+    void wrong_num_args(int argc, const char** argv, int parsed,
+                        int min, int max = -1);
+
     /**
      * Callback that's issued just after the command is registered.
      * This allows commands (particularly AutoCommandModule instances)
