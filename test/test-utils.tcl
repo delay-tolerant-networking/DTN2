@@ -7,6 +7,8 @@
 #
 proc create_bundle_daemons { num_nodes } {
     set id [test set id]
+
+    log prefix "$id: "
     
     if {$id != 0} {
 	return
@@ -30,14 +32,30 @@ proc create_bundle_daemons { num_nodes } {
 }
 
 #
+# DB configuration
+#
+proc config_db {{type berkeleydb}} {
+    global env
+    
+    set id [test set id]
+
+    storage set type	  $type
+    storage set sqldb	  "dtn$id"
+    storage set dbdir	  "/tmp/bundledb-$env(USER)-$id"
+    param set payload_dir "/tmp/bundles-$env(USER)-$id"
+}
+
+#
 # Tidy implementation (should move to C)
 #
 proc tidy_up {} {
-    set tidy    [storage set tidy]
-    set id [test set id]
+    set tidy    	[storage set tidy]
+    set dbdir		[storage set dbdir]
+    set payloaddir	[param set payload_dir]
+    set id 		[test set id]
     
     if {$id != 0} {
-	foreach dir [list $dbdir $payloaddir $localdir] {
+	foreach dir [list $dbdir $payloaddir] {
 	    if {! [file exists $dir]} {
 		file mkdir $dir
 	    }
@@ -47,14 +65,14 @@ proc tidy_up {} {
     # clean up 
     if {$tidy} {
 	log /tidy INFO "tidy option set, cleaning payload and local file dirs"
-	foreach dir [list $dbdir $payloaddir $localdir ] {
+	foreach dir [list $dbdir $payloaddir] {
 	    file delete -force $dir
 	    file mkdir $dir
 	}
     }
     
     # validate the directories (XXX/demmer move this into C eventually)
-    foreach dirtype [list dbdir payloaddir localdir] {
+    foreach dirtype [list dbdir payloaddir] {
 	set dir [set $dirtype]
 	if {! [file exists $dir]} {
 	    error "$dirtype directory $dir doesn't exist"
@@ -72,51 +90,36 @@ proc tidy_up {} {
 }
 
 #
-# Setup the configuration for the bundle daemon
+# test proc for sending a bundle
 #
-proc configure_bundle_daemon { id port localdir } {
+proc sendbundle {{peerid -1} {demux "test"}} {
+    global hosts id
+
+    #
+    # Special case hook for id 0 and 1 pairing
+    #
+    if {$peerid == -1} {
+	if {$id == 0} {
+	    set peerid 1
+	} elseif {$id == 1} {
+	    set peerid 0
+	} else {
+	    error "must specify peer id"
+	}
+    } 
     
-    # Initialize local configurations
-    set port [expr $port + $id]
-    set sqldb "dtn$id"
-    set dbdir "/tmp/bundledb-$id"
-    set payloaddir  "/tmp/bundles-$id"
-    set localhost [info hostname]
-    set peer $localhost
-        
-    # initialize storage
-    storage set sqldb $sqldb
-    storage set dbdir $dbdir
+    set length  5000
+    set payload "test bundle payload data\n"
+
+    while {$length - [string length $payload] > 32} {
+	append payload [format "%4d: 0123456789abcdef\n" [string length $payload]]
+    }
+    while {$length > [string length $payload]} {
+	append payload "."
+    }
     
-    # make this "storage type"
-    storage init berkeleydb
-    
-    # set the payload directory and other params
-    param set payload_dir $payloaddir
-    param set tcpcl_ack_blocksz 4096
-    
-    # param set payload_test_no_remove true
-    # param set udpcl_test_fragment_size 500
-    #param set payload_mem_threshold 0
-    param set proactive_frag_threshold 495
-    
-    # set a local tcp interface
-    set tcp_local_tuple bundles://internet/tcp://$localhost:$port/
-    interface $tcp_local_tuple
-    
-    # set a local udp interface
-    set udp_local_tuple bundles://internet/udp://$localhost:$port/
-    interface $udp_local_tuple
-    
-    # and a file one
-    set file_local_tuple file://unix/file://$localdir/
-    interface $file_local_tuple
-    
+    bundle inject bundles://internet/host://$hosts($id)/		\
+	    	  bundles://internet/host://$hosts($peerid)/test	\
+		  $payload $length
 }
 
-proc static {args} {
-    set procName [lindex [info level [expr [info level]-1]] 0]
-    foreach varName $args {
-	uplevel 1 "upvar #0 {$procName:$varName} $varName"
-    }
-}

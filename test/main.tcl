@@ -23,6 +23,8 @@ if {! [info exists topology]} {
 
 route set type "static"
 
+# configure the database (and tidy up)
+config_db
 tidy_up
 
 # Create the children who will run with us
@@ -30,5 +32,6 @@ create_bundle_daemons $num_nodes
 
 # Set up the the network and routing
 setup_${network}_network
+setup_interface tcp
 setup_${topology}_topology ONDEMAND tcp
 
