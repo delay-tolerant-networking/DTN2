@@ -43,7 +43,7 @@
 /**
  * The basic handle for communication with the dtn router.
  */
-typedef void* dtn_handle_t;
+typedef char* dtn_handle_t;
 
 __BEGIN_DECLS
 
