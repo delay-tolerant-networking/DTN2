@@ -197,18 +197,18 @@ ContactManager::close_link(Link* link)
  */
 Link*
 ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
-                                        const BundleTuple& nexthop)
+                                        const char* nexthop)
 {
     LinkSet::iterator iter;
     Link* link = NULL;
 
     // first look through the list of links for an idle opportunistic
     // link to this next hop
-    log_debug("looking for OPPORTUNISTIC link to %s", nexthop.c_str());
+    log_debug("looking for OPPORTUNISTIC link to %s", nexthop);
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        if ( (strcmp(link->nexthop(), nexthop.c_str()) == 0) &&
+        if ( (strcmp(link->nexthop(), nexthop) == 0) &&
              (link->type() == Link::OPPORTUNISTIC)   &&
              (link->clayer() == cl) &&
              (! link->isopen()) )
@@ -218,7 +218,7 @@ ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
         }
     }
 
-    log_debug("no match, creating new link to %s", nexthop.c_str());
+    log_debug("no match, creating new link to %s", nexthop);
 
     // find a unique link name
     char name[64];
@@ -229,7 +229,7 @@ ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
         link = find_link(name);
     } while (link != NULL);
         
-    link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop.c_str(),
+    link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop,
                              0, NULL);
     
     if (!link) {
@@ -248,7 +248,7 @@ ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
 Contact*
 ContactManager::new_opportunistic_contact(ConvergenceLayer* cl,
                                           CLInfo* clinfo,
-                                          const BundleTuple& nexthop)
+                                          const char* nexthop)
 {
     Link* link = find_opportunistic_link(cl, nexthop);
     if (!link)

@@ -184,14 +184,14 @@ public:
      */
     Contact* new_opportunistic_contact(ConvergenceLayer* cl,
                                        CLInfo* clinfo,
-                                       const BundleTuple& nexthop);
+                                       const char* nexthop);
 
 protected:
     /**
      * Helper routine to find or create an opportunistic link.
      */
     Link* find_opportunistic_link(ConvergenceLayer* cl,
-                                  const BundleTuple& nexthop);
+                                  const char* nexthop);
     
     
     static ContactManager* instance_;	///< Singleton instance
