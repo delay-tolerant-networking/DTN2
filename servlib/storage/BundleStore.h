@@ -17,9 +17,6 @@ public:
      * Singleton instance accessor.
      */
     static BundleStore* instance() {
-        if (instance_ == NULL) {
-            PANIC("BundleStore::init not called yet");
-        }
         return instance_;
     }
 
@@ -53,13 +50,6 @@ public:
     /// @}
     
     /**
-     * Get a new bundle id, updating the value in the store
-     *
-     * (was db_update_bundle_id, db_restore_bundle_id)
-     */
-    virtual int next_id();
-    
-    /**
      * Delete expired bundles
      *
      * (was sweepOldBundles)
@@ -76,8 +66,6 @@ public:
 
 protected:
     static BundleStore* instance_; ///< singleton instance
-    int next_bundle_id_; 	/// running serial number for bundles
-
 };
 
 #endif /* _BUNDLE_STORE_H_ */
