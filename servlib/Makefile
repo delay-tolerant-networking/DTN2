@@ -14,6 +14,7 @@ BUNDLING_SRCS := 				\
 	bundling/BundleTuple.cc			\
 	bundling/Contact.cc			\
 	bundling/Interface.cc			\
+	bundling/InterfaceTable.cc		\
 	bundling/BundleForwarding.cc		\
 
 CONV_LAYER_SRCS :=				\
@@ -50,20 +51,27 @@ IO_SRCS :=					\
 	io/TCPClient.cc				\
 	io/TCPServer.cc				\
 
+REGISTRATION_SRCS :=				\
+	reg/Registration.cc			\
+	reg/RegistrationTable.cc		\
+
 ROUTING_SRCS :=					\
 	routing/RouteTable.cc			\
 
 STORAGE_SRCS :=					\
 	storage/Serialize.cc			\
 	storage/BundleStore.cc			\
+	storage/GlobalStore.cc			\
 	storage/PersistentStore.cc		\
 	storage/RegistrationStore.cc		\
 	storage/MarshalSerialize.cc		\
 	storage/BerkeleyDBStore.cc		\
 	storage/SQLSerialize.cc			\
 	storage/SQLStore.cc			\
-        storage/SQLBundleStore.cc		\
 	storage/SQLImplementation.cc		\
+        storage/SQLBundleStore.cc		\
+        storage/SQLGlobalStore.cc		\
+        storage/SQLRegistrationStore.cc		\
 	storage/PostgresSQLImplementation.cc	\
 	storage/MysqlSQLImplementation.cc	\
 
@@ -81,6 +89,7 @@ SERVLIB_SRCS := $(BUNDLING_SRCS) 		\
 		$(CMD_SRCS) 			\
 		$(DEBUG_SRCS) 			\
 		$(IO_SRCS) 			\
+		$(REGISTRATION_SRCS)		\
 		$(ROUTING_SRCS)			\
 		$(STORAGE_SRCS)			\
 		$(THREAD_SRCS)			\
