@@ -127,10 +127,12 @@ proc send_file {host file} {
     while {![eof $fd]} {
 	if {[catch {
 	    set payload [read $fd $blocksz]
-	    puts "sending [string length $payload] byte chunk"
+	    puts "[time] sending [string length $payload] byte chunk"
 	    puts -nonewline $sock $payload
 	    flush $sock
 	} ]} {
+	    
+	    puts "[time] failure at sender "
 	    close $sock
 	    unset sock
 	    close $fd
