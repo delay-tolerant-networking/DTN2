@@ -43,13 +43,8 @@ INCDIR  = @INCDIR@
 INCDIRS := -I$(SRCDIR) -I$(SRCDIR)/servlib
 
 #
-# Targets are "native" and "arm"
-# 
-TARGET = @TARGET@
-
-# native target
-ifeq ($(TARGET),native)
-
+# Common settings extracted from the configure script
+#
 INCDIRS    += @INCDIRS@
 LIBDIRS     = @LIBDIRS@
 LIBS	    = @LIBS@
@@ -58,6 +53,15 @@ CC          = @CC@
 CPP         = @CPP@
 DEPFLAGS    = @DEPFLAGS@
 DEFS        = @DEFS@
+
+#
+# Targets are "native" and "arm"
+# 
+TARGET = @TARGET@
+
+# native target
+ifeq ($(TARGET),native)
+
 STRIP       = strip
 INSTALL     = install
 RM          = rm
@@ -75,14 +79,8 @@ endif
 #
 ifeq ($(TARGET),arm)
 ARMDIR		= /opt/Embedix/tools/arm-linux
-INCDIRS 	+= -I$(ARMDIR)/include @INCDIRS@ 
-LIBDIRS 	= -L$(ARMDIR)/lib @LIBDIRS@
-LIBS		= @LIBS@
-CC 		= @CC@
-CPP		= @CPP@
-DEPFLAGS        = @DEPFLAGS@
-DEFS            = @DEFS@
-LINK		= @CC@
+INCDIRS 	+= -I$(ARMDIR)/include
+LIBDIRS 	+= -L$(ARMDIR)/lib
 STRIP 		= -arm-linux-strip
 RPCGEN		= rpcgen
 INSTALL 	= cp

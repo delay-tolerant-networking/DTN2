@@ -97,23 +97,27 @@ libdirs=
 libs=
 staticlibs=''
 
-tclver='8.3'
 tcldir=''
 tclincdir=''
 tcllibdir=''
 tcllib=''
 
+db_enabled='true'
 dbver='4.2'
 dbdir=''
 dbincdir=''
 dblibdir=''
 dblib=''
 
+sql_enabled='true'
+
+postgres_enabled='true'
 postgresdir=''
 postgresincdir=''
 postgreslibdir=''
 postgreslib=''
 
+mysql_enabled='true'
 mysqldir=''
 mysqlincdir=''
 mysqllibdir=''
@@ -270,22 +274,20 @@ main(int argc, const char** argv) {
 }
 EOF
 $cc config.$$.c > /dev/null 2> /dev/null
-if [ $? != 0 -o ! -f a.out ]; then
+if [ $? != 0 -o ! -f ./a.out ]; then
     echo "error: non-functional or non-gnu compiler $cc"
     exit 1
 fi
 
 rm -f config.$$.c
 
-ccver=`a.out`
-rm -f a.out
+ccver=`./a.out`
+rm -f ./a.out
 
 elif [ "$target" = "arm" ]; then
 ccver=2.95
-sql_disabled=-D__SQL_DISABLED__
-mysql_disabled=-D__MYSQL_DISABLED__
-postgres_disabled=-D__POSTGRES_DISABLED__
-defs="$db_disabled $sql_disabled $mysql_disabled $postgres_disabled"
+mysqllib='none'
+postgreslib='none'
 fi
 
 #
@@ -387,8 +389,7 @@ fi
 # check if the user doesn't want berkeley db at all
 #
 if [ "$dbdir" = "none" ]; then
-  # XXX/demmer do something
-  exit 1
+    db_enabled='false'
 #
 # check the supplied directory if the user gave us one
 #
@@ -459,6 +460,7 @@ else
 fi
 
 if [ $target == "arm" -o $target == "cerfcube" -o $target == "arm+apps" ]; then
+    # XXX/demmer is this really needed???
 	exec_prefix=`pwd`/Stage
 	bindir='${exec_prefix}/bin'
 	sbindir='${exec_prefix}/sbin'
@@ -474,10 +476,8 @@ fi
 # Find the postgres dlibrary
 #
 #
-#postgresdir=none
 if [ "$postgresdir" = "none" ]; then
-       	echo "Warning: need to find postgres library"
-#  exit 1
+  postgres_enabled='false'
 else
   postgreslib="-lpq"
   if [ ! "$postgresdir" = "" ]; then
@@ -535,7 +535,7 @@ fi
 #
 #
 if [ "$mysqldir" = "none" ]; then
-       	echo "Warning: need to find mysql library"
+  mysql_enabled='false'
 else
   mysqllib="-lmysqlclient"
   if [ ! "$mysqldir" = "" ]; then
@@ -609,7 +609,41 @@ if [ "$capriccio" = "y" ]; then
 fi
 
 #
-# Cons together the various directories etc
+# Set up the defines properly for the potentially disabled libraries
+#
+if [ $db_enabled = 'false' ]; then
+   defs="$defs -D__DB_DISABLED__"
+fi
+
+if [ postgres_enabled='false' ]; then
+   defs="$defs -D__POSTGRES_DISABLED__"
+fi
+
+if [ $mysql_enabled = 'false' ]; then
+   defs="$defs -D__MYSQL_DISABLED__"
+fi
+
+if [ $postgres_enabled = 'false' -a $mysql_enabled = 'false' ]; then
+   defs="$defs -D__SQL_DISABLED__"
+fi
+
+#
+# But make sure there's at least one valid storage option
+#
+if [ $db_enabled = 'false' -a \
+     $mysql_enabled = 'false' -a \
+     $postgres_enabled = 'false' ] ;
+then
+    echo "Must enable at least one storage option"
+    exit 1
+fi
+
+#
+# Cons together the various directories. 
+#
+# i.e: incdir="$tclincdir $dbincdir $postgresincdir..."
+#      libdir="$tcllibdir $dblibdir $postgreslibdir..."
+#
 #
 for what in incdir libdir lib staticlib ;  do
   cmd="$what"s=\"
@@ -624,7 +658,8 @@ done
 # Tack on the dependency libs if we're building statically
 #
 if [ "$make_static" = "y" ]; then
-	libs="$libs -ldl -lssl -lcrypto -lkrb5 -lcrypt -lresolv -lnsl -lz -lk5crypto -lcom_err"
+	libs="$libs -ldl -lssl -lcrypto -lkrb5 -lcrypt -lresolv"\
+	    "-lnsl -lz -lk5crypto -lcom_err"
 fi
 
 echo "Target/Tools:"
