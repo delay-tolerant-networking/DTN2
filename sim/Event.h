@@ -38,6 +38,10 @@
 #ifndef _EVENT_H_
 #define _EVENT_H_
 
+#include "bundling/BundleEvent.h"
+
+using namespace dtn;
+
 namespace dtnsim {
 
 class EventHandler;
@@ -48,30 +52,27 @@ class EventHandler;
  *
  *****************************************************************************/
 typedef enum {
-    MESSAGE_RECEIVED = 0x1,	///< New message arrival
+    SIM_ROUTER_EVENT = 0x1,	///< Event to be delivered to the router
+    
     SIM_CONTACT_UP,		///< SimContact is available
     SIM_CONTACT_DOWN,		///< SimContact abnormally terminated
-    CONTACT_CHEWING_FINISHED,	///< Message transmission finished
-    TR_NEXT_SENDTIME,		///< Used by traffic agent to send data periodically
-    FOR_BUNDLE_ROUTER,		///< A bundle event to be forwared to bundle router
-    SIM_PRINT_STATS,		///< Simulator print stats
+    SIM_NEXT_SENDTIME,		///< Used by traffic agent to send data
+    
 } sim_event_type_t;
 
 /**
  * Pretty printer function simulation events.
  */
 static const char* 
-ev2str(sim_event_type_t eventtype) {
-    switch (eventtype) {
-    case MESSAGE_RECEIVED:		return "MESSAGE_RECEIVED";
+ev2str(sim_event_type_t event) {
+    switch (event) {
+    case SIM_ROUTER_EVENT:		return "SIM_ROUTER_EVENT";
     case SIM_CONTACT_UP:		return "SIM_CONTACT_UP";
     case SIM_CONTACT_DOWN:		return "SIM_CONTACT_DOWN";
-    case CONTACT_CHEWING_FINISHED:	return "CONTACT_CHEWING_FINISHED";
-    case TR_NEXT_SENDTIME:		return "TR_NEXT_SENDTIME";
-    case FOR_BUNDLE_ROUTER:		return "FOR_BUNDLE_ROUTER";
-    case SIM_PRINT_STATS:		return "SIM_PRINT_STATS";
-    default:				return "_UNKNOWN_EVENT_";
+    case SIM_NEXT_SENDTIME:		return "SIM_NEXT_SENDTIME";
     }
+
+    NOTREACHED;
 }
 
 /******************************************************************************
@@ -84,11 +85,11 @@ public:
     /**
      * Constructor 
      */
-    Event(double time, EventHandler *handler, sim_event_type_t type)
-        : time_(time), handler_(handler), type_(type), valid_(true) {}
+    Event(sim_event_type_t type, int time, EventHandler *handler)
+        : type_(type), time_(time), handler_(handler), valid_(true) {}
 
     EventHandler* handler()  { return handler_; }
-    double time()            { return time_ ; }
+    int time()               { return time_ ; }
     bool is_valid()          { return valid_; }
     sim_event_type_t type()  { return type_ ; }
     const char* type_str()   { return ev2str(type_); }
@@ -96,9 +97,9 @@ public:
     void cancel()            { valid_ = false; }
 
 private:
-    double time_;       	///< Time when the event will fire
-    EventHandler* handler_;	///< The entity that will process the event
     sim_event_type_t type_;	///< Type of the event
+    int time_; 		      	///< Time when the event will fire
+    EventHandler* handler_;	///< Handler that will process the event
     bool valid_;		///< Indicator if the event was cancelled
 };
 
@@ -110,107 +111,29 @@ private:
  *****************************************************************************/
 class EventCompare {
 public:
-    inline bool operator ()(Event* a, Event* b);
+    /**
+     * The comparator function used in the priority queue.
+     */
+    bool operator () (Event* a, Event* b)
+    {
+        return a->time() > b->time();
+    }
 };
 
-/**
- * The comparator function used in the priority queue.
- */
-bool
-EventCompare::operator()(Event* a, Event* b)
-{
-    return a->time() >  b->time() ;
-}
-
-/******************************************************************************
+/*******************************************************************
  *
- * Specific Event Types
+ * Events for Node
  *
- *****************************************************************************/
+ ******************************************************************/
 
-// /*******************************************************************
-//  *
-//  * Events for SimContact
-//  *
-//  ******************************************************************/
-
-// class Event_contact_up : public Event {
+class SimRouterEvent : public Event {
+public:
+    SimRouterEvent(int time, EventHandler* handler, BundleEvent* event)
+        
+	: Event(SIM_ROUTER_EVENT, time, handler), event_(event) {}
     
-// public:
-    
-//     Event_contact_up(double t, Processable* h) 
-// 	: Event(t,h,SIM_CONTACT_UP),forever_(false) {}
-    
-//     bool forever_;
-// };
-
-
-
-// class Event_contact_down : public Event {
-// public:
-    
-//     Event_contact_down(double t, Processable* h) 
-// 	: Event(t,h,SIM_CONTACT_DOWN),forever_(false) {}
-//     bool forever_;
-// };
-
-
-// class Event_chew_fin: public Event {
-// public:
-//     Event_chew_fin(double t, Processable* h,Message* msg, double chewt) 
-// 	: Event (t,h,CONTACT_CHEWING_FINISHED),msg_(msg),chew_starttime_(chewt) {}
-    
-//     Message* msg_;                        ///> message under consideration 
-//     double chew_starttime_;               ///> the time at which chewing started
-    
-// };
-
-
-// /*******************************************************************
-//  *
-//  * Events for Node
-//  *
-//  ******************************************************************/
-
-// class Event_message_received : public Event {
-// public:
-    
-//     Event_message_received(double t, Processable* h, 
-// 			   double sizesent, SimContact* ct, Message* msg)
-// 	: Event(t,h,MESSAGE_RECEIVED),sizesent_(sizesent),frm_(ct),msg_(msg) {}
-    
-//     double  sizesent_;              ///> the amount of message that was sent 
-//     SimContact* frm_;               ///> who sent it, NULL for app
-//     Message* msg_;                  ///> the received messsage
-// };
-
-
-
-// /**
-//  * Event for Glue Node. The event is actually forwarded
-//  * to BundleRouter
-//  */
-
-// class Event_for_br: public Event {
-// public:
-//     Event_for_br(double t, Processable* h,BundleEvent* e) 
-// 	: Event (t,h,FOR_BUNDLE_ROUTER),bundle_event_(e) {}
-    
-//     BundleEvent* bundle_event_;           ///> event to beforwarded further
-// };
-
-
-
-// /**
-//  * Print Stats - goes to the Simulator
-//  */
-
-// class Event_print_stats: public Event {
-// public:
-//     Event_print_stats(double t, Processable* h) 
-// 	: Event (t,h,SIM_PRINT_STATS) {}
-    
-// };
+    BundleEvent* event_;
+};
 
 } // namespace dtnsim
 
