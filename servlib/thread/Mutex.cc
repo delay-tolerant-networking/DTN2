@@ -119,5 +119,3 @@ Mutex::logf(log_level_t level, const char *fmt, ...)
     va_end(ap);
     return ret;
 }
-
-
