@@ -108,7 +108,7 @@ proc send_file {host file} {
     if [catch {
 	puts -nonewline $sock "[file tail $file] "
 	flush $sock
-	after 500
+#	after 500
 	puts $sock "[file size $file]"
 	flush $sock
     }] {
