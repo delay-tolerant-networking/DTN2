@@ -138,7 +138,7 @@ proc send_file {host file} {
 	    puts $sock "SYN"
 	    flush $sock
 	}] {
-	    close $sock
+	    catch { close $sock } 
 	    unset sock
 	    close $fd
 	    return -1
@@ -158,7 +158,7 @@ proc send_file {host file} {
 	if {!$got_ack} {
 	    puts "[time] timeout waiting for handshake ack"
 	    close $fd
-	    close $sock
+	    catch { close $sock } 
 	    unset sock
 	    return -1
 	}	else {
@@ -175,7 +175,7 @@ proc send_file {host file} {
 	puts $sock "[file tail $file] [file size $file]"
 	flush $sock
     }] {
-	close $sock
+	catch { close $sock } 
 	unset sock
 	close $fd
 	return -1
@@ -191,7 +191,7 @@ proc send_file {host file} {
 	    flush $sock
             incr index
 	} ]} {
-	    close $sock
+	    catch { close $sock } 
 	    unset sock
 	    close $fd
 	    return -1
@@ -216,7 +216,7 @@ proc send_file {host file} {
 	return 1
     } else {
 	puts "[time] :: file sent but not acked"
-	close $sock
+	catch { close $sock } 
 	unset sock
 	return -1
     }
@@ -253,7 +253,7 @@ proc syn_arrived {dest_dir sock} {
 
     if {[eof $sock]} {
 	puts "[time] Close $conns(addr,$sock) EOF SYN received"
-	close $sock	
+	catch { close $sock } 	
 	unset conns(addr,$sock)
 	return 
     }
@@ -261,7 +261,7 @@ proc syn_arrived {dest_dir sock} {
     if {[catch {
 	set L [gets $sock]
     }]} {
-	close $sock	
+	catch { close $sock } 	
 	unset conns(addr,$sock)
 	return 
     }
@@ -272,7 +272,7 @@ proc syn_arrived {dest_dir sock} {
 	if {[catch {
 	    set L [gets $sock]
 	}]} {
-	    close $sock	
+	    catch { close $sock } 	
 	    unset conns(addr,$sock)
 	    return 
 	}
@@ -297,14 +297,14 @@ proc header_arrived {dest_dir sock} {
     if {[catch {
 	set L [gets $sock]
     }]} {
-	close $sock	
+	catch { close $sock } 	
 	unset conns(addr,$sock)
 	return 
     }
     
     if {[eof $sock]} {
 	puts "[time] Close $conns(addr,$sock) EOF received"
-	close $sock	
+	catch { close $sock } 	
 	unset conns(addr,$sock)
 	return 
     }
@@ -316,7 +316,7 @@ proc header_arrived {dest_dir sock} {
 	 if {[catch {
 	     set L [gets $sock]
 	 }]} {
-	     close $sock	
+	     catch { close $sock } 	
 	     unset conns(addr,$sock)
 	     return 
 	 }
@@ -342,7 +342,7 @@ proc file_arrived {file to_fd dest_dir sock} {
     
     if {[eof $sock]} {
 	puts "[time] Close $conns(addr,$sock) EOF received"
-	close $sock	
+	catch { close $sock } 	
 	unset conns(addr,$sock)
 	return
     } 
@@ -350,7 +350,7 @@ proc file_arrived {file to_fd dest_dir sock} {
     if {[catch {
 	set payload [read $sock $length_remaining($sock)]
     }]} {
-	close $sock	
+	catch { close $sock } 	
 	unset conns(addr,$sock)
 	return 
     }
