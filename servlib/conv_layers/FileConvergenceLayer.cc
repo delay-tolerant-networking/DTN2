@@ -1,6 +1,11 @@
 
 #include "FileConvergenceLayer.h"
 
+FileConvergenceLayer::FileConvergenceLayer()
+    : ConvergenceLayer("/cl/file")
+{
+}
+
 void
 FileConvergenceLayer::init()
 {

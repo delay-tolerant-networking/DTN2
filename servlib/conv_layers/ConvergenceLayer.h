@@ -17,7 +17,10 @@ public:
      * Constructor. In general, most initialization is deferred to the
      * init() function.
      */
-    ConvergenceLayer() {}
+    ConvergenceLayer(const char* logpath)
+        : Logger(logpath)
+    {
+    }
 
     /**
      * Need a virtual destructor to define the vtable.

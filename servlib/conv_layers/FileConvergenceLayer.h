@@ -6,6 +6,11 @@
 class FileConvergenceLayer : public ConvergenceLayer {
 public:
     /**
+     * Constructor.
+     */
+    FileConvergenceLayer();
+    
+    /**
      * The meat of the initialization happens here.
      */
     virtual void init();

@@ -6,6 +6,14 @@
 class IPConvergenceLayer : public ConvergenceLayer {
 public:
     /**
+     * Constructor.
+     */
+    IPConvergenceLayer(const char* logpath)
+        : ConvergenceLayer(logpath)
+    {
+    }
+    
+    /**
      * Hook to validate the admin part of a bundle tuple.
      *
      * @return true if the admin string is valid

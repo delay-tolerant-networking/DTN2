@@ -6,6 +6,11 @@
 class UDPConvergenceLayer : public IPConvergenceLayer {
 public:
     /**
+     * Constructor.
+     */
+    UDPConvergenceLayer();
+        
+    /**
      * The meat of the initialization happens here.
      */
     virtual void init();

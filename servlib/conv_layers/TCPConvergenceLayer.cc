@@ -1,6 +1,11 @@
 
 #include "TCPConvergenceLayer.h"
 
+TCPConvergenceLayer::TCPConvergenceLayer()
+    : IPConvergenceLayer("/cl/tcp")
+{
+}
+
 void
 TCPConvergenceLayer::init()
 {
@@ -18,7 +23,6 @@ void
 TCPConvergenceLayer::add_interface(Interface* iface,
                                    int argc, const char* argv[])
 {
-    
 }
 
 /**

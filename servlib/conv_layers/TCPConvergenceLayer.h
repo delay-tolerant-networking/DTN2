@@ -6,6 +6,11 @@
 class TCPConvergenceLayer : public IPConvergenceLayer {
 public:
     /**
+     * Constructor.
+     */
+    TCPConvergenceLayer();
+    
+    /**
      * The meat of the initialization happens here.
      */
     virtual void init();
