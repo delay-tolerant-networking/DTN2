@@ -49,6 +49,7 @@ public:
     static struct _defaults {
         int ack_blocksz_;
         int keepalive_timer_;
+        int test_fragment_size_;
     } Defaults;
 
 protected:

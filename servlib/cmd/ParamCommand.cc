@@ -22,6 +22,8 @@ ParamCommand::at_reg()
            &TCPConvergenceLayer::Defaults.ack_blocksz_, 1024);
     bind_i("tcpcl_keepalive_timer",
            &TCPConvergenceLayer::Defaults.keepalive_timer_, 10);
+    bind_i("tcpcl_test_fragment_size",
+           &TCPConvergenceLayer::Defaults.test_fragment_size_, -1);
 }
 
 const char*

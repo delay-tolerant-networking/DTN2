@@ -211,8 +211,16 @@ TCPConvergenceLayer::Connection::Connection(Contact* contact,
     // cache the remote addr and port in the fields in the socket
     // since we want to actually connect to the peer side from the
     // Connection thread, not from the caller thread
-    sock_ = new TCPClient(logpath_);
+    sock_ = new TCPClient();
+
+    // XXX/demmer the basic socket logging emits errros and the like
+    // when connections break. that may not be great since we kinda
+    // expect them to happen... so either we should add some flag as
+    // to the severity of error messages that can be passed into the
+    // IO routines, or just suppress the IO output altogether
+    sock_->logpathf("%s/sock", logpath_);
     sock_->set_logfd(false);
+    
     sock_->set_remote_addr(remote_addr);
     sock_->set_remote_port(remote_port);
 }    
@@ -402,12 +410,14 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
                   acked_len, payload_len);
         
         cc = handle_ack(bundle, 5000, &acked_len);
-        if (cc == IOEOF || cc == IOERROR) {
-            log_warn("send_bundle: error waiting for ack: %d", cc);
+        if (cc == IOEOF || cc == IOTIMEOUT) {
+            log_warn("send_bundle: %s waiting for ack",
+                     (cc == IOEOF) ? "eof" : "timeout");
             goto done;
         }
-        else if (cc == IOTIMEOUT) {
-            log_warn("send_bundle: timeout waiting for ack: %d", cc);
+        else if (cc == IOERROR) {
+            log_warn("send_bundle: error waiting for ack: %s",
+                     strerror(errno));
             goto done;
         }
         
@@ -531,6 +541,17 @@ TCPConvergenceLayer::Connection::recv_bundle()
         log_debug("recv_bundle: acked %d/%d, reading next typecode...",
                   rcvd_len, payload_len);
 
+        // test hook for reactive fragmentation.
+        if (Defaults.test_fragment_size_ != -1) {
+            if ((int)rcvd_len > Defaults.test_fragment_size_) {
+                log_info("send_bundle: "
+                         "XXX forcing fragmentation size %d, rcvd %d",
+                         Defaults.test_fragment_size_, rcvd_len);
+                usleep(100000);
+                goto done;
+            }
+        }
+
         cc = sock_->timeout_read(&typecode, 1, 5000);
         if (cc == IOTIMEOUT) {
             log_warn("recv_bundle: timeout waiting for next typecode");
@@ -549,7 +570,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
             goto done;
         }
             
-        cc = sock_->timeout_readall((char*)&blockhdr, sizeof(BundleBlockHeader),
+        cc = sock_->timeout_readall((char*)&blockhdr, sizeof(blockhdr),
                                     5000);
         if (cc == IOTIMEOUT) {
             log_warn("recv_bundle: timeout reading block header");
