@@ -27,6 +27,7 @@ public:
     
     // Accessors
     const std::string& region() const { return tuple_.region(); }
+    const std::string& admin()  const { return tuple_.admin(); }
     const BundleTuple* tuple()  const { return &tuple_; }
     ConvergenceLayer*  clayer() const { return clayer_; }
     InterfaceInfo*     info()   const { return info_; }
