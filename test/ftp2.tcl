@@ -28,7 +28,7 @@ proc logdebug {name} {
 }
 
 proc time {} {
-    global starttime
+     global starttime
     return " [clock seconds] ::  [expr [clock clicks -milliseconds] - $starttime] :: "
 }
 
@@ -75,21 +75,33 @@ proc ack_arrived {sock} {
   
     after cancel $ack_timer
     set got_ack 1
-
-    set ack [gets $sock]
+    
+    
+    if {[catch {
+	set ack [gets $sock]
+    }]} {
+	puts " [time] ack arrived but cant read on socket!"
+	set got_ack 0
+	fileevent $sock readable ""
+	catch {close $sock}
+	return 
+    }
+    
     if [eof $sock] {
-	puts " [time] eof waiting for ack!"
+	puts " [time] EOF arrived instead of ack!"
 	set got_ack 0
 	fileevent $sock readable ""
 	catch {close $sock}
 	return
     }
+    
     if {$ack != "ACK"} {
 	puts "[time] ERROR in ack_arrived: got '$ack', expected ACK"
 	set got_ack 0
 	fileevent $sock readable ""
 	return
     }
+
 }
 
 proc ack_timeout {} {
@@ -245,12 +257,25 @@ proc syn_arrived {dest_dir sock} {
 	unset conns(addr,$sock)
 	return 
     }
+ 
+    if {[catch {
+	set L [gets $sock]
+    }]} {
+	close $sock	
+	unset conns(addr,$sock)
+	return 
+    }
     
-    set L [gets $sock]
     while {$L == ""} {
 	puts "[time] partial syn received... waiting for more"
 	after 20
-	set L [gets $sock]
+	if {[catch {
+	    set L [gets $sock]
+	}]} {
+	    close $sock	
+	    unset conns(addr,$sock)
+	    return 
+	}
     }
     
     # Check if this is really a SYN
@@ -268,20 +293,34 @@ proc header_arrived {dest_dir sock} {
     global conns
     
     puts "[time] header arrived"
-
-    set L [gets $sock]
+    
+    if {[catch {
+	set L [gets $sock]
+    }]} {
+	close $sock	
+	unset conns(addr,$sock)
+	return 
+    }
+    
     if {[eof $sock]} {
 	puts "[time] Close $conns(addr,$sock) EOF received"
 	close $sock	
 	unset conns(addr,$sock)
 	return 
     }
-
+    
     while {$L == ""} {
 	if {[eof $sock]} { puts "Unexpected EOF reached, check check"  }
 	puts "[time] partial header line received... waiting for more "
 	after 20
-	set L [gets $sock]
+	 if {[catch {
+	     set L [gets $sock]
+	 }]} {
+	     close $sock	
+	     unset conns(addr,$sock)
+	     return 
+	 }
+    
     }
     
     foreach {filename length} $L {}
@@ -299,6 +338,7 @@ proc file_arrived {file to_fd dest_dir sock} {
     global logfd
     global conns
     global length_remaining
+
     
     if {[eof $sock]} {
 	puts "[time] Close $conns(addr,$sock) EOF received"
@@ -307,7 +347,14 @@ proc file_arrived {file to_fd dest_dir sock} {
 	return
     } 
     
-    set payload [read $sock $length_remaining($sock)]
+    if {[catch {
+	set payload [read $sock $length_remaining($sock)]
+    }]} {
+	close $sock	
+	unset conns(addr,$sock)
+	return 
+    }
+
     puts -nonewline $to_fd $payload
     set got [string length $payload]
     set todo [expr $length_remaining($sock) - $got]
