@@ -29,7 +29,7 @@ First, take a look at the options <tt>dtnsend</tt> takes:
 
 <blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend -h</font>
 usage: dtnsend [opts] -s &lt;source_tuple&gt; -d &lt;dest_tuple&gt; -t
-&lt;type&gt; -p &lt;payload&gt;
+  &lt;type&gt; -p &lt;payload&gt;
 options:
  -s &lt;tuple|demux_string&gt; source tuple)
  -d &lt;tuple|demux_string&gt; destination tuple)
@@ -205,6 +205,119 @@ which in this case was the <tt>dtnrecv</tt> process that I started
 a few seconds after I ran <tt>dtnsend</tt>. If I'd had my
 <tt>dtnrecv</tt> up and running before I ran <tt>dtnsend</tt> the
 receipt would have arrived in just a few milliseconds.
+
+<h2>dtncp and dtncpd</h2>
+
+<p>
+What if you wanted to move a file to another node on the DTN?
+You've have to have someone logged into that machine ready to run
+<tt>dtnrecv</tt> on it. And of course, you can't log in to it,
+because the other bundle router is on the other side of Mars.
+And of course, you can't put your buddy there to run the command,
+because, well, it's on the other side of Mars. What to do? If
+there was a daemon there listening for bundles arriving on
+a certain endpoint, and you had a program that could package up
+local files and send them to the endpoint the far side was
+waiting on, you could move files!
+
+<p>
+That's exactly how <tt>dtncp</tt> and <tt>dtncpd</tt> work.
+<tt>dtncp</tt> is used to pick up a file from the local
+filesystem send it as a bundle.
+<tt>dtncpd</tt> is the daemon, which would stay running
+all the time. It registers with the local bundle router
+requesting a notification when a bundle comes in that was sent
+by <tt>dtncp</tt>. It copies the bundle into an "incoming files"
+directory. Voila, you've copied a file.
+
+<p>
+You need to run a <tt>dtncpd</tt> on every node in the
+network where you want to be able to copy files. If a node
+is only sending out files, it need not have a <tt>dtncpd</tt>
+running.
+
+<p>
+Note that <tt>dtncpd</tt> is not a general purpose file copy
+system like <tt>scp</tt>. It can only deposit files into a
+specific directory. It was written this way because it is an
+example application, and implementing the security-critical
+parts of a general file transfer utility were beyond the scope
+of the example. Likewise, there's no facility to run remote
+commands on the remote node. It would be possible to add
+some kind of flag to the bundle contents specifying whether
+or not to run the received file (and with which arguments).
+These are all possibilities for bundle applications you might
+choose to make in the future.
+
+<h3> An example </h3>
+
+<p>
+In one window, we get a directory ready for <tt>dtncpd</tt>
+to put files into, then start it. <tt>dtncpd</tt> registers
+on the endpoint <i>/dtncp/recv:*</i>, then waits for incoming
+files.
+
+<blockquote><pre>$ <font color=blue>mkdir /home/fred/dtn/incoming</font>
+$ <font color=blue>DTN2/apps/dtncpd/dtncpd /home/fred/dtn/incoming</font>
+opening connection to dtn router...
+local_tuple [internet host://dtn-a/dtncp/recv:*]
+dtn_register succeeded, regid 0xa
+dtn_recv [internet host://dtn-a/dtncp/recv:*]...
+</pre></blockquote>
+
+<p>
+In another window, we copy a file:
+
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtncp/dtncp
+/etc/motd bundles://internet/host://dtn-a</font></pre></blockquote>
+
+<p>
+And in the first window, <tt>dtncpd</tt> says:
+
+<blockquote><pre>======================================
+ File Received at Sun Mar  6 01:03:24 2005
+
+   region : internet
+   host   : dtn-a
+   path   :
+   file   : motd
+   size   : 960 bytes
+   loc    : /home/fred/dtn/incoming/dtn-a//passwd</pre></blockquote>
+
+<p>
+You may also give <tt>dtncp</tt> a third argument, which will
+be the filename on the far side. The default, if you neglect
+to provide this argument, is to make the far side file have the
+same name as the local file.
+
+<h3> Wildcard endpoints </h3>
+
+<p>
+The DTN2 implementation treats <b>*</b> (asterisk) as a
+special character in endpoints. The asterisk denotes
+that any endpoint that matches the prefix before the asterix
+will match that endpoint. <tt>dtncpd</tt> uses a wildcard
+endpoint to be able to match the endpoints that <tt>dtncp</tt>
+makes by adding the desired remote filename onto the end of
+the first part of the endpoint string, <i>/dtncp/recv:</i>.
+
+<p>
+Another place you'll find wildcard endpoints used
+is in the <i>link</i> command. Read <a href="tutorial-3.html">
+Building a bigger DTN</a> for examples of using the
+<i>link</i> command.
+
+<h3> A note on the Cygwin port </h3>
+
+<p>
+Please note that due to a <a
+href="http://cygwin.com/ml/cygwin/2005-03/msg00112.html">bug in
+Cygwin</a>, <tt>dtncpd</tt> will not exit when you hit Ctrl-C.
+To make it exit, you'll need to use <tt>kill</tt> from another
+window, or simply close the window you started it in. If you
+replace your <tt>/usr/bin/cygwin1.dll</tt> file with one
+from <a href="http://cygwin.com/snapshots/">the Cygwin snapshot
+page</a> you'll get the bug fix, which was committed March 3, 2005.
 
 </body>
 </html>
