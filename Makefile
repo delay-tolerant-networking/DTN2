@@ -46,17 +46,27 @@ tags TAGS:
 #
 # And a rule to make sure that configure has been run recently enough.
 #
-.PHONY: checkconfigure 
-checkconfigure: Rules.make
+.PHONY: checkconfigure
+checkconfigure: configure config.h Rules.make
 
-Rules.make.in:
-	@echo SRCDIR: $(SRCDIR)
-	@echo error -- Makefile did not set SRCDIR properly
-	@exit 1
+configure: configure.ac
+	@[ ! -z `echo "$(MAKECMDGOALS)" | grep clean` ] || \
+	(echo "$@ is out of date, need to rerun preconfig.sh" && \
+	exit 1)
 
 Rules.make: Rules.make.in configure
 	@[ ! -z `echo "$(MAKECMDGOALS)" | grep clean` ] || \
 	(echo "$@ is out of date, need to rerun configure" && \
 	exit 1)
+
+config.h: config.h.in configure
+	@[ ! -z `echo "$(MAKECMDGOALS)" | grep clean` ] || \
+	(echo "$@ is out of date, need to rerun configure" && \
+	exit 1)
+
+Rules.make.in:
+	@echo SRCDIR: $(SRCDIR)
+	@echo error -- Makefile did not set SRCDIR properly
+	@exit 1
 
 -include Rules.make

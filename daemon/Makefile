@@ -20,8 +20,7 @@ COMPONENT_LIBS := \
 	$(SRCDIR)/oasys/liboasys.a 	\
 
 dtnd: $(DAEMON_OBJS) $(COMPONENT_LIBS)
-	$(CPP) $(DAEMON_OBJS) $(COMPONENT_LIBS) \
-		$(STATIC_LIBS) -o $@ $(LFLAGS) $(LIBS) $(LIBRPC)
+	$(CXX) $(DAEMON_OBJS) $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(LIBS)
 
 #
 # Include the common rules

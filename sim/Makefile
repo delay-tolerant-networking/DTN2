@@ -31,8 +31,7 @@ all: dtnsim
 
 COMPONENT_LIBS := $(SRCDIR)/servlib/libdtnserv.a $(SRCDIR)/oasys/liboasys.a 
 dtnsim: $(SIM_OBJS) $(COMPONENT_LIBS)
-	$(CPP) $(SIM_OBJS) $(COMPONENT_LIBS) $(STATIC_LIBS) \
-		-o $@ $(LFLAGS) $(LIBS)
+	$(CXX) $(SIM_OBJS) $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(LIBS)
 
 #
 # Include the common rules

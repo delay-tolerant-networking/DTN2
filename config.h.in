@@ -1,7 +1,18 @@
+#ifndef _DTN_CONFIG_H_
+#define _DTN_CONFIG_H_
+	
 /*
  * Build-time options indicating which storage types are defined.
  */
-#define __DB_ENABLED__        @db_enabled@
-#define __SQL_ENABLED__       @sql_enabled@
-#define __MYSQL_ENABLED__     @mysql_enabled@
-#define __POSTGRES_ENABLED__  @postgres_enabled@
+#define __DB_ENABLED__        @DB_ENABLED@
+#define __SQL_ENABLED__       @SQL_ENABLED@
+#define __MYSQL_ENABLED__     @MYSQL_ENABLED@
+#define __POSTGRES_ENABLED__  @POSTGRES_ENABLED@
+
+/*
+ * Pull in the various HAVE_XYZ macros generated from autoheader
+ */
+
+#include "auto.config.h"
+
+#endif /* _DTN_CONFIG_H_ */

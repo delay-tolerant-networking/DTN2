@@ -64,11 +64,11 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 .SUFFIXES: .x
 .x.h:
 	-$(RM) -f $@
-	$(RPCGEN) -h $< -o $@
+	rpcgen -h $< -o $@
 
 %_xdr.c: %.x
 	-$(RM) -f $@
-	$(RPCGEN) -c $< -o $@
+	rpcgen -c $< -o $@
 
 #
 # rpcgen emits code that has unused variables, so we can't use our
@@ -76,7 +76,7 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 #
 %_xdr.o: %_xdr.c
 	@rm -f $@; mkdir -p $(@D)
-	$(CC) $(DEBUG) $(OPTIMIZE)-c $< -o $@
+	$(CC) $(DEBUG) $(OPTIMIZE) -c $< -o $@
 
 # All sources depend on the xdr headers
 $(CLIENTLIB_SRCS) $(SERVERLIB_SRCS): $(XDRHDRS)

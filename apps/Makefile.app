@@ -9,11 +9,11 @@ OBJS := $(OBJS:.c=.o)
 all: $(APP)
 
 $(APP): $(OBJS) $(SRCDIR)/applib/libdtnapi.a
-	$(CPP) $(OBJS) -L $(SRCDIR)/applib -ldtnapi $(LIBRPC) -o $@
+	$(CXX) $(OBJS) -L $(SRCDIR)/applib -ldtnapi -o $@
 
 #
 # Include the common rules
 #
 -include $(SRCDIR)/Rules.make
 
-INCDIRS += -I $(SRCDIR)/applib
+CPPFLAGS += -I $(SRCDIR)/applib

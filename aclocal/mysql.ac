@@ -1,0 +1,104 @@
+dnl
+dnl Autoconf support for finding mysql
+dnl
+
+dnl
+dnl Main macro for finding a usable mysql installation 
+dnl
+AC_DEFUN(AC_DTN_MYSQLCONFIG, [
+    ac_mysqldir='none'
+
+    AC_ARG_WITH(mysql,
+        AC_HELP_STRING([--with-mysql=DIR],
+    		   [location of a mysql installation (default system)]),
+        ac_mysqldir=$withval) 
+
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test x$ac_mysqldir = xnone ; then
+    MYSQL_ENABLED=0
+    else
+    MYSQL_ENABLED=1
+
+    dnl
+    dnl Mysql include file
+    dnl
+    if test x$dtn_cv_path_mysql_h = x ; then
+        echo "checking for mysql header file..."
+        AC_DTN_FIND_MYSQLINCLUDE
+    else
+        echo "checking for mysql header... (cached) $dtn_cv_path_mysql_h"
+    fi
+
+    if test ! $dtn_cv_path_mysql_h = /usr/include ; then
+        CPPFLAGS="$CPPFLAGS -I$dtn_cv_path_mysql_h"
+    fi
+
+    dnl
+    dnl Mysql library file
+    dnl
+    if test x$dtn_cv_path_mysql_lib = x ; then
+        echo "checking for mysql library..."
+        AC_DTN_FIND_MYSQLLIB
+    else
+        echo "checking for mysql library... (cached) $dtn_cv_path_mysql_lib"
+    fi
+        
+    if test ! x$dtn_cv_path_mysql_lib = x/usr/lib ; then
+        LDFLAGS="$LDFLAGS -L$dtn_cv_path_mysql_lib"
+    fi
+    LIBS="$LIBS -lpq"
+
+    fi # MYSQL_ENABLED
+
+    AC_SUBST(MYSQL_ENABLED)
+])
+
+dnl
+dnl Find mysql.h
+dnl
+AC_DEFUN(AC_DTN_FIND_MYSQLINCLUDE, [
+  AC_CACHE_VAL([dtn_cv_path_mysql_h], [
+    dtn_cv_path_mysql_h=
+
+    if test ! x"$ac_mysqldir" = x"system" ; then
+        ac_mysqlincdirs=$ac_mysqldir/include/
+    else
+        ac_mysqlincdirs="/usr/include /usr/include/mysql /usr/local/mysql/include"
+    fi
+
+    for ac_mysqlincdir in $ac_mysqlincdirs; do
+        AC_CHECK_FILE($ac_mysqlincdir/mysql.h,
+	              [dtn_cv_path_mysql_h=$ac_mysqlincdir
+		       break])
+    done
+  ])
+
+  if test x$dtn_cv_path_mysql_h = x ; then
+        AC_MSG_ERROR([can't find usable mysql.h])
+  fi
+])
+
+
+dnl
+dnl Find libmysql
+dnl
+AC_DEFUN(AC_DTN_FIND_MYSQLLIB, [
+    AC_CACHE_VAL(dtn_cv_path_mysql_lib,[
+        if test ! x"$ac_mysqldir" = x"system" ; then
+            ac_mysqllibdirs=$ac_mysqldir/lib/
+        else
+            ac_mysqllibdirs="/usr/lib /usr/lib/mysql /usr/local/mysql/lib"
+        fi
+
+        for dtn_cv_path_mysql_lib in $ac_mysqllibdirs; do
+            AC_CHECK_LIB_FLAGS(mysqlclient, mysql_init, [-L$dtn_cv_path_mysql_lib],
+	                       [break], [dtn_cv_path_mysql_lib=])
+        done
+    ])
+
+    if test x$dtn_cv_path_mysql_lib = x ; then
+        AC_MSG_ERROR([can't find usable mysql library])
+    fi
+])

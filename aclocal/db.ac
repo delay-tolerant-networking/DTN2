@@ -1,0 +1,152 @@
+dnl
+dnl Autoconf support for finding Berkeley DB
+dnl
+
+AC_DEFUN(AC_DB_HELP, [
+cat <<EOF
+
+Configure error with Berkeley DB...
+
+If your installed version is not one of [$dbversions], you may
+have to specify it with --with-dbver.
+
+If your installation is in a non-standard path, you can specify
+it with --with-db=DIR.
+
+To download the latest version, go to http://www.sleepycat.com
+To build and install to /usr/local/BerkeleyDB-<version>:
+
+# cd <db_download_dir>/build_unix
+# ../dist/configure --enable-cxx
+# make
+# make install
+
+EOF
+
+])
+
+dnl
+dnl Main macro for finding a usable db installation 
+dnl
+AC_DEFUN(AC_DTN_DBCONFIG, [
+    ac_dbver='4.3 4.2'
+    ac_dbdir='system'
+
+    AC_ARG_WITH(db,
+        AC_HELP_STRING([--with-db=DIR],
+    		   [location of a Berkeley DB installation (default system)]),
+        ac_dbdir=$withval) 
+
+    AC_ARG_WITH(dbver,
+        AC_HELP_STRING([--with-dbver=VERSION],
+    		   [Berkeley DB versions to try (default $ac_dbver)]),
+        ac_dbver=$withval)
+
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test x$ac_dbdir = xnone ; then
+    DB_ENABLED=0
+    else
+    DB_ENABLED=1
+
+    dnl
+    dnl The DB include file search sets the path variable to the 
+    dnl installation location (or /usr)
+    dnl
+    if test x$dtn_cv_path_libdb = x ; then
+        echo "checking for Berkeley DB header file..."
+        AC_DTN_FIND_DBINCLUDE
+    else
+        echo "checking for Berkeley DB header file... (cached) $dtn_cv_path_libdb/include/db.h"
+    fi
+        
+    if test ! $dtn_cv_path_libdb = /usr ; then
+        CPPFLAGS="$CPPFLAGS -I$dtn_cv_path_libdb/include"
+    fi
+
+    dnl
+    dnl Now find the DB library file name (i.e. db-4.2)
+    dnl
+    if test x$dtn_cv_lib_db = x ; then
+        echo "checking for Berkeley DB library..."
+        AC_DTN_FIND_DBLIB
+    else
+        echo "checking for Berkeley DB library... (cached) -l$dtn_cv_lib_db"
+    fi
+
+    if test ! $dtn_cv_path_libdb = /usr ; then
+        LDFLAGS="-L$dtn_cv_path_libdb/lib"
+    fi
+    LIBS="$LIBS -l$dtn_cv_lib_db"
+
+    fi # if DB_ENABLED
+
+    AC_SUBST(DB_ENABLED)
+])
+
+dnl
+dnl Find db.h
+dnl
+AC_DEFUN(AC_DTN_FIND_DBINCLUDE, [
+    if test ! x"$ac_dbdir" = x"system" ; then
+        ac_dbincdirs=$ac_dbdir/include
+    else
+        ac_dbincdirs=/usr/include
+        for dbver in $ac_dbver ; do
+            ac_dbincdirs="$ac_dbincdirs /usr/local/BerkeleyDB.$dbver/include"
+        done
+    fi
+  
+    AC_CACHE_VAL([dtn_cv_path_libdb], [
+      dtn_cv_path_libdb=
+      for ac_dbincdir in $ac_dbincdirs; do
+          AC_CHECK_FILE($ac_dbincdir/db.h, [
+              for dbver in $ac_dbver ; do
+  	      AC_MSG_CHECKING([whether $ac_dbincdir/db.h is version $dbver])
+                grep -e "DB_VERSION_STRING.*$dbver" $ac_dbincdir/db.h \
+  		    >/dev/null 2>/dev/null
+                if test $? = 0 ; then	
+  	          AC_MSG_RESULT([yes])
+  	          AC_CHECK_FILE($ac_dbincdir/db_cxx.h, [
+   	              dtn_cv_path_libdb=`echo $ac_dbincdir | sed 's,/include,,'`
+    	              break 2
+  	          ])
+                else
+                  AC_MSG_RESULT([no])
+                fi
+              done
+  	  ])
+      done
+    ])
+  
+    if test x$dtn_cv_path_libdb = x ; then
+        AC_DB_HELP
+        AC_MSG_ERROR([can't find usable db.h])
+    fi
+])
+
+
+
+dnl
+dnl Find libdb using the location where we found db.h.
+dnl
+AC_DEFUN(AC_DTN_FIND_DBLIB, [
+    AC_CACHE_VAL(dtn_cv_lib_db, [
+        ac_save_LDFLAGS=$LDFLAGS
+        if test ! $dtn_cv_path_libdb = /usr ; then
+            LDFLAGS="$LDFLAGS -L$dtn_cv_path_libdb/lib"
+        fi
+
+        for dbver in $ac_dbver; do
+           dtn_cv_lib_db=db_cxx-$dbver
+           AC_CHECK_LIB($dtn_cv_lib_db, db_create, [break], [dtn_cv_lib_db=])
+        done
+        LDFLAGS=$ac_save_LDFLAGS_
+    ])
+
+    if test x$dtn_cv_lib_db = x ; then
+        AC_DB_HELP
+        AC_MSG_ERROR([can't find usable db library])
+    fi
+])

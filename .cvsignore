@@ -1,4 +1,11 @@
 .glimpse_*
 Rules.make
 config.h
+auto.config.h
 *.d
+autoscan.log
+config.cache
+config.log
+config.status
+configure.scan
+autom4te.cache

@@ -2,75 +2,24 @@
 # Rules.make: common makefile rules for the dtn project.
 #
 
-PLATFORM = @PLATFORM@
-exec_prefix = @EXEC_PREFIX@
-BINDIR  = @BINDIR@
-SBINDIR = @SBINDIR@
-LIBDIR  = @LIBDIR@
-MANDIR  = @MANDIR@
-INCDIR  = @INCDIR@
-LIBRPC  = @LIBRPC@
-
-INCDIRS := -I$(SRCDIR) -I$(SRCDIR)/servlib
+#
+# Targets are "native" and "arm"
+# 
+TARGET 		= @TARGET@
 
 #
 # Common settings extracted from the configure script
 #
-INCDIRS    += @INCDIRS@
-LIBDIRS     = @LIBDIRS@
-LIBS	    = @LIBS@
-STATIC_LIBS = @STATIC_LIBS@
-CC          = @CC@
-CPP         = @CPP@
-DEPFLAGS    = @DEPFLAGS@
-
-#
-# Targets are "native" and "arm"
-# 
-TARGET = @TARGET@
-
-# native target
-ifeq ($(TARGET),native)
-
-STRIP       = strip
-INSTALL     = install
-RM          = rm
-RPCGEN      = rpcgen
-WHOLE_AR    := -Wl,-whole-archive
-NO_WHOLE_AR := -Wl,-no-whole-archive
-
-endif
-
-
-# For cross-compiling to ARM, you will probably want to install your own
-# ARM tool chain.  Here we assume it is in /usr/local/ARM
-# This line can sometimes be used if you need to build the cross-compile environment:
-#  CC=arm-linux-gcc ./configure --host=i686-linux --build=i686-linux --target=arm-linux --prefix=/usr/local/ARM
-#
-ifeq ($(TARGET),arm)
-ARMDIR		= /opt/Embedix/tools/arm-linux
-INCDIRS 	+= -I$(ARMDIR)/include
-LIBDIRS 	+= -L$(ARMDIR)/lib
-STRIP 		= -arm-linux-strip
-RPCGEN		= rpcgen
-INSTALL 	= cp
-RM 		= rm
-endif
-
-#
-# Cons up CFLAGS
-#
+CC		= @CC@
+CXX		= @CXX@
+DEPFLAGS	= @DEPFLAGS@
 DEBUG 		= @DEBUG@
 OPTIMIZE	= @OPTIMIZE@
-WARN  		= -Wall -Werror @OPTIMIZE_WARN@ @NOWARN@
-CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(DEPFLAGS) $(WARN)
-LFLAGS		= $(LIBDIRS) @STATIC@
-
-#
-# To link with the servlib, use the following to make sure that all
-# symbols are included (including static constructors in particular)
-#
-LINK_SERVLIB := $(WHOLE_AR) $(SRCDIR)/servlib/libdtnserv.a $(NO_WHOLE_AR)
+CPPFLAGS	= -I$(SRCDIR) -I$(SRCDIR)/servlib @CPPFLAGS@
+WARN  		= -Wall -Werror @OPTIMIZE_WARN@
+CFLAGS		= $(CPPFLAGS) $(DEBUG) $(OPTIMIZE) $(DEPFLAGS) $(WARN)
+LDFLAGS		= @LDFLAGS@
+LIBS		= @LIBS@
 
 #
 # Add a phony rule to make sure this isn't created before the default
@@ -86,7 +35,7 @@ catchdefault:
 #
 %.o: %.cc
 	@rm -f $@; mkdir -p $(@D)
-	$(CPP) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CFLAGS) -c $< -o $@
 
 %.o: %.c
 	@rm -f $@; mkdir -p $(@D)
@@ -97,11 +46,11 @@ catchdefault:
 #
 %.E: %.cc
 	@rm -f $@; mkdir -p $(@D)
-	$(CPP) $(CFLAGS) -c $< -E -o $@
+	$(CXX) $(CFLAGS) -c $< -E -o $@
 
 %.E: %.c
 	@rm -f $@; mkdir -p $(@D)
-	$(CPP) $(CFLAGS) -c $< -E -o $@
+	$(CXX) $(CFLAGS) -c $< -E -o $@
 
 #
 # Always include all the .d files that we can find, based on all the
@@ -115,6 +64,9 @@ DEPFILES := $(DEPFILES:%.c=%.d)
 ifneq ($(DEPFILES),)
 -include $(DEPFILES)
 endif
+
+echosrcdir:
+	@echo "srcdir: $(SRCDIR)"
 
 echodep:
 	@echo "allsrcs: $(ALLSRCS)"

@@ -35,11 +35,11 @@ COMPONENT_LIBS := \
 # Default pattern rule to build the tests
 #
 unit_tests/%-test.o: unit_tests/%-test.cc
-	$(CPP) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CFLAGS) -c $< -o $@
 
 unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
-	$(CPP) $(CFLAGS) $< $(COMPONENT_LIBS) \
-		-o $@ $(LFLAGS) $(LIBS) 
+	$(CXX) $(CFLAGS) $< $(COMPONENT_LIBS) \
+		-o $@ $(LDFLAGS) $(LIBS) 
 
 #
 # Include the common rules
