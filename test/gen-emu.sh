@@ -2,7 +2,7 @@
 
   if ($#argv != 8) then
         echo "Usage: $0 <expname> <maxnodes> <nfiles> <size(KB)> <loss> <bw> <perhop> <proto1, proto2,..> "
-  	echo "Example: $0 try 4 10 10 0.01 1Mb  [e2e ph] [tcp dtn mail] "
+  	echo "Example: $0 try 4 10 100 0 100kb  [e2e ph] [tcp dtn mail] "
 	echo "Perhop can be 0,1,2: 0 e2e, 1 is perhop, 2 is both"
 	echo " This will generate <expname.emu> and will run tcp, dtn"
 	echo
@@ -26,12 +26,12 @@ echo set loss $5 >> $file
 echo set bw $6 >> $file 
 echo set perhops \"$7\" >> $file 
 echo set protos \"$8\" >> $file
-
+cat base-emu.tcl >> $file ;
 
 echo 
 
 echo "Now run: (make sure the directory tmp exists) "
-echo " cat base-emu.tcl >> $file ;  startexp -i -p DTN -e $exp $file"
+echo "   startexp -i -p DTN -e $exp $file"
 echo 
 echo "To terminate "
 echo "endexp -e DTN,$exp "
