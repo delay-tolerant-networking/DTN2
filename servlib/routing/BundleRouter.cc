@@ -218,7 +218,9 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     }
 
     pending_bundles_->push_back(bundle, NULL);
-    actions->push_back(new BundleAction(STORE_ADD, bundle));
+    if (event->source_ != EVENTSRC_STORE) {
+        actions->push_back(new BundleAction(STORE_ADD, bundle));
+    }
     fwd_to_matching(bundle, actions, true);
 }
 

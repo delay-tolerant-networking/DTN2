@@ -248,7 +248,8 @@ shutdown:
     // all set, notify the router of the new arrival
     log_debug("process_data: new bundle id %d arrival, payload length %d",
 	      bundle->bundleid_, bundle->payload_.length());
-    BundleForwarder::post(new BundleReceivedEvent(bundle, block_len));
+    BundleForwarder::post(
+        new BundleReceivedEvent(bundle, EVENTSRC_PEER, block_len));
 }
 
 void

@@ -40,7 +40,7 @@ FloodBundleRouter::~FloodBundleRouter()
  */
 void
 FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
-                                     BundleActionList* actions)
+                                          BundleActionList* actions)
 {
     Bundle* bundle = event->bundleref_.bundle();
     log_info("FLOOD: bundle_rcv bundle id %d", bundle->bundleid_);
@@ -91,7 +91,8 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     }
     
     pending_bundles_->push_back(bundle, NULL);
-    actions->push_back(new BundleAction(STORE_ADD, bundle));
+    if (event->source_ != EVENTSRC_PEER)
+        actions->push_back(new BundleAction(STORE_ADD, bundle));
     
     //here we do not need to handle the new bundle immediately
     //just put it in the pending_bundles_ queue, and it

@@ -69,7 +69,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         log_debug("inject %d byte bundle %s->%s", total,
                   b->source_.c_str(), b->dest_.c_str());
 
-        BundleForwarder::post(new BundleReceivedEvent(b, total));
+        BundleForwarder::post(new BundleReceivedEvent(b, EVENTSRC_APP, total));
         return TCL_OK;
     } else if (!strcmp(cmd, "stats")) {
         StringBuffer buf("Bundle Statistics: ");

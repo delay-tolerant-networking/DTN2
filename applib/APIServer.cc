@@ -459,7 +459,7 @@ ClientAPIServer::handle_send()
     
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
-    BundleForwarder::post(new BundleReceivedEvent(b, payload_len));
+    BundleForwarder::post(new BundleReceivedEvent(b, EVENTSRC_APP));
     
     ret = DTN_SUCCESS;
 

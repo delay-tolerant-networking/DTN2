@@ -733,7 +733,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
     
     // we've got a valid bundle, but check if we didn't get the whole
     // bundle and therefore that this should be marked as a fragment
-    BundleForwarder::post(new BundleReceivedEvent(bundle, rcvd_len));
+    BundleForwarder::post(
+        new BundleReceivedEvent(bundle, EVENTSRC_PEER, rcvd_len));
     ASSERT(bundle->refcount() > 0);
     
     return recvok;

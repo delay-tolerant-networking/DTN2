@@ -54,30 +54,39 @@ event_to_str(event_type_t event)
 {
     switch(event) {
 
-    case BUNDLE_RECEIVED:        return "BUNDLE_RECEIVED";            
-    case BUNDLE_TRANSMITTED:     return "BUNDLE_TRANSMITTED";		
-    case BUNDLE_EXPIRED:         return "BUNDLE_EXPIRED";
+    case BUNDLE_RECEIVED:	return "BUNDLE_RECEIVED";	      
+    case BUNDLE_TRANSMITTED:	return "BUNDLE_TRANSMITTED";		
+    case BUNDLE_EXPIRED:	return "BUNDLE_EXPIRED";
     case BUNDLE_FORWARD_TIMEOUT: return "BUNDLE_FORWARD_TIMEOUT";	
 
-    case  CONTACT_UP:            return "CONTACT_UP";		        
-    case  CONTACT_DOWN:          return "CONTACT_DOWN";		
-        
-    case LINK_CREATED:           return "LINK_CREATED";		
-    case LINK_DELETED:           return "LINK_DELETED";		
-    case LINK_AVAILABLE:         return "LINK_AVAILABLE";		 
-    case LINK_UNAVAILABLE:       return "LINK_UNAVAILABLE";		
+    case CONTACT_UP:		return "CONTACT_UP";			
+    case CONTACT_DOWN:		return "CONTACT_DOWN";		
+	
+    case LINK_CREATED:		return "LINK_CREATED";		
+    case LINK_DELETED:		return "LINK_DELETED";		
+    case LINK_AVAILABLE:	return "LINK_AVAILABLE";		 
+    case LINK_UNAVAILABLE:	return "LINK_UNAVAILABLE";		
  
-    case REGISTRATION_ADDED:     return "REGISTRATION_ADDED";		
-    case REGISTRATION_REMOVED:   return "REGISTRATION_REMOVED";	
-    case REGISTRATION_EXPIRED:   return "REGISTRATION_EXPIRED";	
-    case REASSEMBLY_COMPLETED:   return "REASSEMBLY_COMPLETED";	
+    case REGISTRATION_ADDED:	return "REGISTRATION_ADDED";		
+    case REGISTRATION_REMOVED:	return "REGISTRATION_REMOVED";	
+    case REGISTRATION_EXPIRED:	return "REGISTRATION_EXPIRED";	
+    case REASSEMBLY_COMPLETED:	return "REASSEMBLY_COMPLETED";	
 
-    case ROUTE_ADD:              return "ROUTE_ADD";	
-    case ROUTE_DEL:              return "ROUTE_DEL";			
-        
+    case ROUTE_ADD:		return "ROUTE_ADD";	
+    case ROUTE_DEL:		return "ROUTE_DEL";			
+	
     default:			return "(invalid event type)";
     }
 }
+
+/**
+ * Possible sources for events.
+ */
+typedef enum {
+    EVENTSRC_PEER  = 1,	///< a peer router
+    EVENTSRC_APP   = 2,	///< a local application
+    EVENTSRC_STORE = 3	///< the data store
+} event_source_t;
 
 /**
  * Event base class.
@@ -116,14 +125,30 @@ protected:
  */
 class BundleReceivedEvent : public BundleEvent {
 public:
-    BundleReceivedEvent(Bundle* bundle, size_t bytes_received)
+    /*
+     * Constructor -- if the bytes_received is unspecified it is
+     * assumed to be the length of the bundle.
+     */
+    BundleReceivedEvent(Bundle* bundle,
+                        event_source_t source,
+                        size_t bytes_received = 0)
+        
         : BundleEvent(BUNDLE_RECEIVED),
           bundleref_(bundle, "BundleReceivedEvent"),
-          bytes_received_(bytes_received) {}
+          source_(source)
+    {
+        if (bytes_received != 0)
+            bytes_received_ = bytes_received;
+        else
+            bytes_received_ = bundle->payload_.length();
+    }
 
     /// The newly arrived bundle
     BundleRef bundleref_;
 
+    /// The source of the bundle
+    event_source_t source_;
+    
     /// The total bytes actually received
     size_t bytes_received_;
 };

@@ -26,14 +26,11 @@ BundleStore::load()
 
     store_->keys(&ids);
 
-    for (iter = ids.begin();
-         iter != ids.end();
-         ++iter)
+    for (iter = ids.begin(); iter != ids.end(); ++iter)
     {
         bundle = get(*iter);
         ASSERT(bundle);
-        BundleForwarder::post(
-            new BundleReceivedEvent(bundle, bundle->payload_.length()));
+        BundleForwarder::post(new BundleReceivedEvent(bundle, EVENTSRC_STORE));
     }
 
     return true;
