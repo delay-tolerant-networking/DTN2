@@ -40,7 +40,7 @@ proc scan_dir {host dir} {
 
 	send_file $host $file
 
-	file delete $file
+	file delete -force $file
     }
 
     after $period scan_dir $host $dir
