@@ -45,6 +45,18 @@
 
 namespace dtn {
 
+const char*
+Registration::failure_action_toa(failure_action_t action)
+{
+    switch(action) {
+    case DEFER:	return "DEFER";
+    case ABORT: return "ABORT";
+    case EXEC:  return "EXEC";
+    }
+
+    return "__INVALID__";
+}
+
 void
 Registration::init(u_int32_t regid,
                    const BundleTuplePattern& endpoint,

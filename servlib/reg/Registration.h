@@ -84,6 +84,11 @@ public:
     } failure_action_t;
 
     /**
+     * Get a string representation of a failure action.
+     */
+    static const char* failure_action_toa(failure_action_t action);
+
+    /**
      * Default constructor for serialization
      */
     Registration(u_int32_t regid);
