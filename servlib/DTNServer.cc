@@ -208,14 +208,17 @@ DTNServer::init_datastore()
     }        
 
     else {
- unimpl:
-        log_err("/dtnserver", "storage type %s not implemented, exiting...",
-                storage_type.c_str());
-        exit(1);
+        goto unimpl;
     }
+
     GlobalStore::init(global_store);
     BundleStore::init(bundle_store);
     RegistrationStore::init(reg_store);
+
+unimpl:
+    log_err("/dtnserver", "storage type %s not implemented, exiting...",
+            storage_type.c_str());
+    exit(1);
 }
     
 void
