@@ -34,6 +34,8 @@ CMD_SRCS :=					\
 	cmd/RouteCommand.cc			\
 	cmd/StorageCommand.cc			\
 	cmd/TestCommand.cc			\
+	cmd/QuitCommand.cc \
+	cmd/HelpCommand.cc \
 
 DEBUG_SRCS :=					\
 	debug/gdtoa-dmisc.c			\
