@@ -5,7 +5,18 @@
 #
 # Source and object rules
 #
-SERVLIB_OBJS :=
+STORAGE_SRCS :=					\
+	storage/BerkeleyDBStore.cc		\
+	storage/BundleStore.cc			\
+	storage/PersistentStore.cc		\
+	storage/RegistrationStore.cc		\
+	storage/Serialize.cc			\
+	storage/SQLStore.cc			\
+	storage/StorageSystem.cc		\
+
+STORAGE_OBJS := $(STORAGE_SRCS:.cc=.o)
+
+SERVLIB_OBJS := $(STORAGE_OBJS)
 
 #
 # Default target is to build the library
