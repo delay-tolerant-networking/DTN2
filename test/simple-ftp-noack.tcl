@@ -106,7 +106,10 @@ proc send_file {host file} {
     }
 	
     if [catch {
-	puts $sock "[file tail $file] [file size $file]"
+	puts -nonewline $sock "[file tail $file] "
+	flush $sock
+	after 500
+	puts $sock "[file size $file]"
 	flush $sock
     }] {
 	puts $sock "[time] failure in sending header "
@@ -204,16 +207,29 @@ proc new_client {dest_dir sock addr port} {
 proc header_arrived {dest_dir sock} {
     global length_remaining
     global conns
+    global partial
 
     puts "[time] header arrived"
-    
-    set L [gets $sock]
-    
-    if {$L == {} || [eof $sock]} {
-	puts "[time] Close $conns(addr,$sock) EOF received header..$L "
+
+    if {[eof $sock]} {
+	puts "[time] Close $conns(addr,$sock) EOF received header.. "
 	close $sock	
 	unset conns(addr,$sock)
 	return 
+    }
+
+    # try to read a line
+    set L [gets $sock]
+    while {$L == ""} {
+	puts "[time] partial header line received... waiting for more"
+	after 100
+	set L [gets $sock]
+    }
+    
+    if {[info exists partial($sock)]} {
+	puts "[time] merging partial line '$partial($sock)' with '$L'"
+	set L "$partial($sock)$L"
+	unset partial($sock)
     }
     
     foreach {filename length} $L {}
@@ -246,7 +262,7 @@ proc file_arrived {file to_fd dest_dir sock} {
     #[catch {gets $sock line}]
     #	    puts "Abnormal close $conns(addr,$sock)"
 
-    set payload [read $sock  $length_remaining($sock)] 
+    set payload [read $sock $length_remaining($sock)] 
     puts -nonewline $to_fd $payload
     set got [string length $payload]
     set todo [expr $length_remaining($sock) - $got]
