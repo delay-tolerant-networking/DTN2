@@ -37,6 +37,18 @@
 # $Id$
 #
 
+#
+# Before anything else, check for configure --verbose
+#
+for ac_option do
+   case "$ac_option" in
+   -verbose | --verbose | -v)
+      set -x
+      break
+      ;;
+   esac
+done
+
 ##############
 #
 # CFLAGS
@@ -70,8 +82,10 @@ allstatic=''
 #
 make_static='n'
 debug='-g'
-optimize='-O'
-optimizewarn='-Wuninitialized' # depends on -O
+# optimize='-O'
+# optimizewarn='-Wuninitialized' # depends on -O
+optimize=''
+optimizewarn=''
 
 #
 # Libraries
@@ -90,10 +104,10 @@ dblibdir=''
 dblib=''
 
 
-pgdir=''
-pgincdir=''
-pglibdir=''
-pglib=''
+postgresdir=''
+postgresincdir=''
+postgreslibdir=''
+postgreslib=''
 
 
 
@@ -115,7 +129,8 @@ do
   esac
 
   case "$ac_option" in
-
+  -verbose | --verbose | -v)
+     ;;
   -target | --target | -t)
     ac_prev=target ;;
   -target=* | --target=* | -t=*)
@@ -142,7 +157,9 @@ do
     debug='' ;;
 
   -enable-optimize | --enable-optimize)
-    ;; # no-op (is default)
+    optimize='-O'
+    optimizewarn='-Wuninitialized'
+    ;;
   -disable-optimize | --disable-optimize)
     optimize='' 
     optimizewarn=''
@@ -158,12 +175,10 @@ do
   -with-db=* | --with-db=*)
     dbdir="$ac_optarg" ;;
 
-
-  -with-pg | --with-pg)
-    ac_prev=with-pg ;;
-  -with-pg=* | --with-pg=*)
-    pgdir="$ac_optarg" ;;
-
+  -with-postgres | --with-postgres)
+    ac_prev=with-postgres ;;
+  -with-postgres=* | --with-postgres=*)
+    postgresdir="$ac_optarg" ;;
 
   -help | --help | -h)
     cat <<EOF
@@ -184,7 +199,7 @@ Features
   --enable-FEATURE[=ARG]
 Packages
   --with-db=DIR			  Location of a Berkeley DB installation (or none)
-  --with-pg=DIR			  Location of a Postgres  installation (or none)
+  --with-postgres=DIR			  Location of a Postgres  installation (or none)
   --with-tcl=DIR		  Location of a tcl installation (default system)
 EOF
   exit 0
@@ -218,17 +233,17 @@ if [ ! "$tcldir" = "" ]; then
   #
   # Make sure the directory the user specified is ok
   #
-  if [ -f $tcldir/include/tcl.h ]; then
+  if [ -r $tcldir/include/tcl.h ]; then
 	tclincdir=-I$tcldir
   else
 	echo "can't find tcl.h in $tcldir"
 	exit 1
   fi
 
-  if   [ -f $tcldir/libtcl.$libext ]; then
+  if   [ -r $tcldir/libtcl.$libext ]; then
 	tcllibdir=-L$tcldir
 	tcllib=-ltcl
-  elif [ -f $tcldir/libtcl8.3.$libext ]; then
+  elif [ -r $tcldir/libtcl8.3.$libext ]; then
 	tcllibdir=-L$tcldir
 	tcllib=-ltcl8.3
   else
@@ -240,18 +255,18 @@ else
   #
   # Try to find a system installation
   #
-  if [ -f /usr/include/tcl.h ]; then
+  if [ -r /usr/include/tcl.h ]; then
 	tclincdir=
-  elif [ -f /usr/include/tcl8.3/tcl.h ]; then
+  elif [ -r /usr/include/tcl8.3/tcl.h ]; then
 	tclincdir=-I/usr/include/tcl8.3
   else
 	echo "can't find usable tcl.h"
 	exit 1
   fi
 
-  if   [ -f /usr/lib/libtcl.$libext ]; then
+  if   [ -r /usr/lib/libtcl.$libext ]; then
 	tcllib=-ltcl
-  elif [ -f /usr/lib/libtcl8.3.$libext ]; then
+  elif [ -r /usr/lib/libtcl8.3.$libext ]; then
 	tcllib=-ltcl8.3
   else
 	echo "can't find usable libtcl.$libext"
@@ -273,20 +288,20 @@ else
 	dbdir=/usr
   fi
 
-  if   [ ! -f $dbdir/include/db.h ] ; then
-	echo "can't find db.h in $dbdir"
+  if   [ ! -r $dbdir/include/db.h ] ; then
+	echo "can't find db.h in $dbdir/include"
   	exit 1
-  elif   [ ! -f $dbdir/include/db_cxx.h ] ; then
-	echo "can't find db_cxx.h in $dbdir"
+  elif   [ ! -r $dbdir/include/db_cxx.h ] ; then
+	echo "can't find db_cxx.h in $dbdir/include"
   	exit 1
   else
 	dbincdir=-I$dbdir/include
   fi
 
-  if   [ ! -f $dbdir/lib/libdb.$libext ] ; then
+  if   [ ! -r $dbdir/lib/libdb.$libext ] ; then
 	echo "can't find libdb.$libext in $dbdir"
   	exit 1
-  elif [ ! -f $dbdir/lib/libdb_cxx.$libext ] ; then
+  elif [ ! -r $dbdir/lib/libdb_cxx.$libext ] ; then
 	echo "can't find libdb_cxx.$libext in $dbdir"
   	exit 1
   else
@@ -310,37 +325,59 @@ fi
 #
 # Find the postgres dlibrary
 #
-if [ "$pgdir" = "none" ]; then
-  # XXX/demmer do something
-  exit 1
+#
+# XXX/demmer fix me later
+postgresdir=none
+if [ "$postgresdir" = "none" ]; then
+       	echo "Warning: need to find postgres library"
+#  exit 1
 else
-  #
-  # check the supplied (or system) directory
-  #
-  if [ "$pgdir" = "" ]; then
-	pgdir=/usr/local/pgsql
-  fi
+  if [ ! "$postgresdir" = "" ]; then
+	  #
+	  # check the supplied directory
+	  #
+	  postgresincdir=$postgresdir/include/server
+	  if   [ ! -r $postgresincdir/libpq++.h ] ; then
+		echo "can't find libpq++.h in $postgresincdir"
+	  	exit 1
+	  else
+	      postgresincdir=-I$postgresincdir
+	  fi
 
-  pgincdir=$pgdir/include/server
-  if   [ ! -f $pgincdir/libpq++.h ] ; then
-	echo "can't find libpq++.h in $pgincdir"
-  	exit 1
-  else
-      pgincdir=-I$pgincdir
-  fi
+	  postgreslibdir=$postgresdir/lib
+	  if   [ ! -r $postgreslibdir/libpq++.$libext ] ; then
+		echo "can't find libpq++.$libext in $postgreslibdir"
+	  	exit 1
+	  else
+		postgreslibdir=-L$postgreslibdir
+		postgreslib="-lpq++"
+	  fi
+   else
+	#
+	# try to find a system installation
+	#
+	if   [ -r /usr/include/postgresql/libpq++.h ]; then
+		postgresincdir=-I/usr/include/postgresql
 
+	elif [ -r /usr/local/pgsql/include/libpq++.h ]; then
+		postgresincdir=-I/usr/local/pgsql/include
 
-  pglibdir=$pgdir/lib
-  if   [ ! -f $pglibdir/libpq++.$libext ] ; then
-	echo "can't find libpq++.$libext in $pglibdir"
-  	exit 1
-  else
-	pglibdir=-L$pglibdir
-	pglib="-lpq++"
-  fi
+	else
+		echo "can't find libpq++.h"
+		exit 1
+	fi
+
+ 	if   [ -r /usr/lib/libpq++.$libext ]; then
+ 		postgreslibdir=
+ 	elif [ -r /usr/local/pgsql/lib/libpq++.$libext ]; then
+ 		postgreslibdir=-L/usr/local/pgsql/lib
+ 	else
+ 		echo "can't find libpq++.$libext"
+ 		exit 1
+ 	fi
+   fi
 fi
-
-
+		
 echo "Options:"
 echo "  TARGET is: $target"
 echo "  Debug: $debug"
@@ -358,7 +395,7 @@ echo " "
 echo "Packages"
 echo "  tcl: $tclincdir $tcllibdir $tcllib"
 echo "  db: $dbincdir $dblibdir $dblib"
-echo "  pg: $pgincdir $pglibdir $pglib"
+echo "  postgres: $postgresincdir $postgreslibdir $postgreslib"
 
 echo "#" > Rules.make
 echo "# This file was automatically generated by configure; do not edit directly" > Rules.make
@@ -382,9 +419,9 @@ s%@TCL_LIB@%$tcllib%g
 s%@DB_INCDIR@%$dbincdir%g
 s%@DB_LIBDIR@%$dblibdir%g
 s%@DB_LIB@%$dblib%g
-s%@PG_INCDIR@%$pgincdir%g
-s%@PG_LIBDIR@%$pglibdir%g
-s%@PG_LIB@%$pglib%g
+s%@POSTGRES_INCDIR@%$postgresincdir%g
+s%@POSTGRES_LIBDIR@%$postgreslibdir%g
+s%@POSTGRES_LIB@%$postgreslib%g
 s%@LIBS@%$libs%g
 s%@STATIC_LIBS@%$static_libs%g
 
