@@ -28,7 +28,8 @@ define(`confAUTH_OPTIONS', `A')dnl
 undefine(`confBIND_OPTS')dnl
 define(`confSERVICE_SWITCH_FILE', `/etc/mail/service.switch-nodns')dnl
 define(`confDONT_PROBE_INTERFACES', `True')dnl
-
+define(`confMCI_CACHE_SIZE',0)dnl
+define(`confDELIVERY_MODE',`q')dnl
 
 define(`confTO_IDENT', `0')dnl
 dnl FEATURE(delay_checks)dnl

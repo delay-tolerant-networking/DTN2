@@ -54,7 +54,7 @@ if($id == $maxnodes) then
     
 	echo ":0" >> $mailrc
 	echo "* ^Subject.*\/sendmail.*" >> $mailrc
-	echo "| cat >> $matchmailfile;"' x=`date +%s`; echo $''x'' $'"MATCH >> $ftplogfile" >> $mailrc
+	echo "| cat >> $matchmailfile;"' set x=`date +%s`; echo $''x'' $'"MATCH >> $ftplogfile" >> $mailrc
 	
 	echo >> $mailrc
 	echo ":0" >> $mailrc
@@ -76,7 +76,7 @@ endif
 echo "Changing the queue check time for sendmail ... " >>& $info
 set sysconf=$logroot/sendmail
 echo "DAEMON=yes" > $sysconf
-echo "QUEUE=10s" >> $sysconf
+echo "QUEUE=1s" >> $sysconf
 sudo cp -f $sysconf /etc/sysconfig/sendmail
 
 echo "Restarting sendmail ... " >>& $info
