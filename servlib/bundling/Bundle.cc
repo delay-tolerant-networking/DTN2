@@ -67,6 +67,9 @@ Bundle::serialize(SerializeAction* a)
     a->process("creation_ts_usec", (u_int32_t*)&creation_ts_.tv_usec);
     a->process("expiration", &expiration_);
     a->process("payload", &payload_);
+    a->process("fragment", &fragment_);
+    a->process("orig_length", &orig_length_);
+    a->process("frag_offset", &frag_offset_);
 }
 
 /**

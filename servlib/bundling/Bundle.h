@@ -160,6 +160,10 @@ public:
     timestamp_t creation_ts_;	///< Creation timestamp
     u_int32_t expiration_;	///< Bundle expiration time
     BundlePayload payload_;	///< Reference to the payload
+
+    bool fragment_;             ///< Fragmentary Bundle
+    u_int32_t orig_length_;     ///< Length of original bundle
+    u_int32_t frag_offset_;     ///< Offset of fragment in the original bundle
     
     u_char test_binary_[100]; 	///< Added by sushant, for testing binary things
 
