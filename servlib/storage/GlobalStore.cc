@@ -7,6 +7,8 @@ GlobalStore* GlobalStore::instance_;
 GlobalStore::GlobalStore()
     : Logger("/storage/globals")
 {
+    next_bundleid_ = 0;
+    next_regid_ = 0;
 }
 
 GlobalStore::~GlobalStore()
