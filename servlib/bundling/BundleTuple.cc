@@ -126,7 +126,8 @@ BundleTuple::parse_tuple()
     
     // check for a special wildcard admin string that matches all
     // address families
-    if (admin_.compare("*:*") == 0)
+    if (admin_.compare("*") == 0 ||
+        admin_.compare("*:*") == 0)
     {
         family_ = AddressFamilyTable::instance()->wildcard_family();
         valid_ = true;
