@@ -29,6 +29,8 @@ global down
 global uplist
 global downlist
 global WARMUPTIME
+
+global offset_up
 ## locals are only start, current, 
 set uplist {}
 set downlist {}
