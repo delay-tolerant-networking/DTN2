@@ -97,11 +97,13 @@ libdirs=
 libs=
 staticlibs=''
 
+tclver='8.3'
 tcldir=''
 tclincdir=''
 tcllibdir=''
 tcllib=''
 
+dbver='4.2'
 dbdir=''
 dbincdir=''
 dblibdir=''
@@ -186,10 +188,20 @@ do
   -with-tcl=* | --with-tcl=*)
     tcldir="$ac_optarg" ;;
 
+  -with-tclver | --with-tclver)
+    ac_prev=with-tclver ;;
+  -with-tclver=* | --with-tclver=*)
+    tclver="$ac_optarg" ;;
+
   -with-db | --with-db)
     ac_prev=with-db ;;
   -with-db=* | --with-db=*)
     dbdir="$ac_optarg" ;;
+
+  -with-dbver | --with-dbver)
+    ac_prev=with-dbver ;;
+  -with-dbver=* | --with-dbver=*)
+    dbver="$ac_optarg" ;;
 
   -with-postgres | --with-postgres)
     ac_prev=with-postgres ;;
@@ -326,11 +338,11 @@ if [ ! "$tcldir" = "" ]; then
   if   [ -r $tcldir/libtcl.$libext ]; then
 	tcllibdir=-L$tcldir
 	tcllib=-ltcl
-  elif [ -r $tcldir/libtcl8.3.$libext ]; then
+  elif [ -r $tcldir/libtcl$tclver.$libext ]; then
 	tcllibdir=-L$tcldir
-	tcllib=-ltcl8.3
+	tcllib=-ltcl$tclver
   else
-	echo "can't find libtcl.$libext or libtcl8.3.$libext in $tcldir"
+	echo "can't find libtcl.$libext or libtcl$tclver.$libext in $tcldir"
 	exit 1
   fi
 
@@ -340,8 +352,8 @@ else
   #
   if [ -r /usr/include/tcl.h ]; then
 	tclincdir=
-  elif [ -r /usr/include/tcl8.3/tcl.h ]; then
-	tclincdir=-I/usr/include/tcl8.3
+  elif [ -r /usr/include/tcl$tclver/tcl.h ]; then
+	tclincdir=-I/usr/include/tcl$tclver
   else
 	echo "can't find usable tcl.h"
 	exit 1
@@ -349,8 +361,8 @@ else
 
   if   [ -r /usr/lib/libtcl.$libext ]; then
 	tcllib=-ltcl
-  elif [ -r /usr/lib/libtcl8.3.$libext ]; then
-	tcllib=-ltcl8.3
+  elif [ -r /usr/lib/libtcl$tclver.$libext ]; then
+	tcllib=-ltcl$tclver
   else
 	echo "can't find usable libtcl.$libext"
 	exit 1
@@ -360,7 +372,6 @@ fi
 #
 # Find the berkeley db library (version 4.2)
 #
-dbver=4.2
 
 #
 # check if the user doesn't want berkeley db at all
