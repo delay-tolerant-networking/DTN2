@@ -28,20 +28,26 @@ endif
 
 
 set exp_type = 1 
+set mailqueuedir = /var/spool/mqueue/
 
 if($exp_type == 1) then
     set delivery_mode = b
     set queueruntime  = 10s
     set singlethread  = true
-    set host_stat_dir = .hoststat-$exp-$perhop
+    set host_stat_dir = $mailqueuedir/.hoststat-$exp-$perhop
     set cache_size    = 1
 else
     set delivery_mode = q
     set queueruntime  = 1s
     set singlethread  = false 
-    set host_stat_dir = .hoststat-$exp-$perhop
+    set host_stat_dir = $mailqueuedir/.hoststat-$exp-$perhop
     set cache_size    = 1
 endif
+
+
+#clean up all mail there in the system
+sudo rm -rf $mailqueuedir/*
+mkdir $host_stat_dir
 
 #create the sendmail.mc file
 echo "Copying the sendmail template ... and copying to $logroot/sendmail-$id.mc .." >>& $info
