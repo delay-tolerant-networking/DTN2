@@ -34,15 +34,15 @@ sudo /etc/init.d/sendmail restart  >>& $info
 
 #install the .procmailrc file
 echo "Install the new procmailrc file ..." >>& $info
-cp $dtn2testroot/mail/procmailrc $HOME/.procmailrc  >>& $info
+cp $dtn2testroot/mail/procmailrc /users/rabin/.procmailrc  >>& $info
 
 
 #install the got_file file
 echo "Install the new got_file :$ftplogfile" >>& $info
-cp -f $dtn2testroot/mail/got_file-template.sh  $dtn2testroot/mail/got_file.sh
-#echo "#\!/bin/csh" >  $dtn2testroot/mail/got_file.sh
-#echo 'set date = `date +%s`'  >> $dtn2testroot/mail/got_file.sh
-#echo "echo \"\$date :: got file\"  >>& $ftplogfile" >> $dtn2testroot/mail/got_file.sh
+echo "#\!/bin/csh" >  $dtn2testroot/mail/got_file.sh
+echo "set ftplogfile=$ftplogfile" >> $dtn2testroot/mail/got_file.sh
+cat  $dtn2testroot/mail/got_file-template.sh >> $dtn2testroot/mail/got_file.sh
+chmod +x $dtn2testroot/mail/got_file.sh
 
 #send all the mail now
 if ($id == 1) then
