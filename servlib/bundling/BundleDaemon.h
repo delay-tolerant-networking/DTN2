@@ -115,7 +115,11 @@ public:
     /**
      * Returns the current bundle router.
      */
-    BundleRouter* router() { return router_; }
+    BundleRouter* router()
+    {
+        ASSERT(router_ != NULL);
+        return router_;
+    }
 
     /**
      * Sets the active router.

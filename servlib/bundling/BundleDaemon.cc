@@ -62,6 +62,8 @@ BundleDaemon::BundleDaemon()
 
     contactmgr_ = new ContactManager();
     fragmentmgr_ = new FragmentManager();
+
+    router_ = 0;
 }
 
 /**
