@@ -1,6 +1,6 @@
 
 #include "InterfaceCommand.h"
-#include "bundling/Interface.h"
+#include "bundling/InterfaceTable.h"
 
 InterfaceCommand InterfaceCommand::instance_;
 
@@ -25,13 +25,13 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        if (! Interface::del_interface(argv[2])) {
+        if (! InterfaceTable::instance()->del(argv[2])) {
             resultf("error removing interface %s", argv[2]);
             return TCL_ERROR;
         }
     } else {
         // interface <tuple> [args?]
-        if (! Interface::add_interface(argv[1], argc - 2, argv + 2)) {
+        if (! InterfaceTable::instance()->add(argv[1], argc - 2, argv + 2)) {
             resultf("error adding interface %s", argv[1]);
             return TCL_ERROR;
         }

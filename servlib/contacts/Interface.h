@@ -15,17 +15,6 @@ class InterfaceInfo;
  */
 class Interface {
 public:
-    /**
-     * Add a new interface.
-     */
-    static bool add_interface(const char* tuplestr,
-                              int argc, const char* argv[]);
-    
-    /**
-     * Remove the specified interface.
-     */
-    static bool del_interface(const char* tuple);
-    
     // Accessors
     const std::string& region() const { return tuple_.region(); }
     const std::string& admin()  const { return tuple_.admin(); }
@@ -39,6 +28,8 @@ public:
     void set_info(InterfaceInfo* info) { info_ = info; }
 
 protected:
+    friend class InterfaceTable;
+    
     Interface(const BundleTuple& tuple,
               ConvergenceLayer* clayer);
     ~Interface();
