@@ -12,7 +12,7 @@
 proc file_injector_start {dir source dest args} {
     global file_injector_handles
     
-    set period 2000
+    set period 1000
     
     if {$args != {}} {
 	error "XXX/demmer implement optional args"
@@ -43,6 +43,7 @@ proc file_injector_stop {dir} {
 #
 proc file_injector_scan {dir source dest period} {
     global file_injector_handles
+    global fd_ftplog
     
     set files [glob -nocomplain -- "$dir/*"]
 
@@ -64,14 +65,19 @@ proc file_injector_scan {dir source dest period} {
 	    continue
 	}
 
-	log /file_injector debug "reading payload from bundle file $file";
+	log /file_injector DEBUG "reading payload from bundle file $file";
 	set fd [open $file]
 	fconfigure $fd -translation binary
 	set payload [read $fd]
 	close $fd
 
-	log /file_injector debug "gotnow $len byte payload"
+	log /file_injector DEBUG "gotnow $len byte payload"
+	
+	log /file_injector INFO " sending bundle $len byte payload"
 
+	puts $fd_ftplog "[time] :: sending bundle [file tail $file]  $len byte  "
+	flush $fd_ftplog
+	
 	bundle inject $source $dest $payload $len
 
 	file delete $file

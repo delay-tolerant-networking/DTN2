@@ -11,6 +11,7 @@ set mylogroot  =    $logroot/node-$id
 set myexeroot  =    $dtn2root/daemon
 set baseconfig = $dtn2testroot/base-dtn.conf
 
+
 if (! -e $mylogroot) then
       mkdir  $mylogroot
 endif
@@ -20,6 +21,7 @@ endif
 if (($id == 1) || ($id == $maxnodes) || ($perhop == 1)) then
 
     set file =  $mylogroot/node-$id.conf
+
     
     echo  set id $id > $file
     echo  set maxnodes $maxnodes >>  $file
@@ -27,8 +29,13 @@ if (($id == 1) || ($id == $maxnodes) || ($perhop == 1)) then
     echo  set logdir $mylogroot >> $file
     echo set dtn2testroot $dtn2testroot >> $file
     echo set localdir $txdir >> $file
+    echo set ftplogfile $ftplogfile >> $file
     cat $baseconfig >> $file
-    
+
+
+    setenv LD_LIBRARY_PATH /usr/local/BerkeleyDB.4.2/lib
+
+
     #-l $mylogroo
      set cmd = "$myexeroot/bundleDaemon -t   -c $file >>& $info "
      echo $cmd  >> $info

@@ -39,7 +39,7 @@ set logrootbase = /proj/DTN/nsdi/logs/$exp
 set logroot     = $logrootbase/$proto
 set txdir       = "$logroot/txfiles"
 set rcvdir      = "$logroot/rcvfiles"
-
+set ftplogfile =  $logroot/ftplog.$id
 
 
 

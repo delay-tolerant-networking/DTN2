@@ -54,7 +54,7 @@ proc send_file {host file} {
     close $fd
 
     puts "sending file $file"
-    puts $logfd "[time] :: sending file $file at [timef] " 
+    puts $logfd "[time] :: sending file [file tail $file]   " 
     flush $logfd
     set sock [socket $host $port]
     puts $sock "[file tail $file]"
@@ -76,7 +76,7 @@ proc file_arrived {dest_dir sock addr port} {
     close $sock
 
     puts "got file $file"
-    puts $logfd "[time] :: got file $file  at [timef]" 
+    puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
     flush $logfd
     set fd [open "$dest_dir/$file" w]
     puts -nonewline $fd $payload
