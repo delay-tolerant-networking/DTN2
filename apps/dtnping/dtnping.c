@@ -51,6 +51,9 @@ main(int argc, const char** argv)
     dtn_copy_tuple(&spec.source, &local_tuple);
     dtn_copy_tuple(&spec.replyto, &local_tuple);
 
+    spec.dopts |= DOPTS_RETURN_RCPT;
+
+    // and a payload of just the admin type code of 0x3
     b = 0x3;
     memset(&payload, 0, sizeof(payload));
     dtn_set_payload(&payload, DTN_PAYLOAD_MEM, &b, 1);
