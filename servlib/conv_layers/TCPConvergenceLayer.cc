@@ -65,7 +65,8 @@ TCPConvergenceLayer::add_interface(Interface* iface,
 
     // create a new server socket for the requested interface
     Listener* listener = new Listener();
-    listener->logpathf("%s/iface/%s:%d", logpath_, url.host_.c_str(), url.port_);
+    listener->logpathf("%s/iface/%s:%d",
+                       logpath_, url.host_.c_str(), url.port_);
 
     if (listener->bind(addr, url.port_) != 0) {
         listener->logf(LOG_ERR, "error binding to requested socket: %s",
@@ -254,7 +255,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     iov[1].iov_len  = sizeof(BundleStartHeader);
         
     // fill in the rest of the iovec with the bundle header
-    u_int16_t header_len = BundleProtocol::fill_header_iov(bundle, &iov[2], &iovcnt);
+    u_int16_t header_len;
+    header_len = BundleProtocol::fill_header_iov(bundle, &iov[2], &iovcnt);
     size_t payload_len = bundle->payload_.length();
     
     log_debug("send_bundle: bundle id %d, header_length %d payload_length %d",
@@ -345,7 +347,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         iov[2].iov_base = (void*)payload_data;
         iov[2].iov_len  = block_len;
 
-        log_debug("send_bundle: sending %d byte block %p", block_len, payload_data);
+        log_debug("send_bundle: sending %d byte block %p",
+                  block_len, payload_data);
         cc = sock_->writevall(iov, 3);
         total = 1 + sizeof(BundleBlockHeader) + block_len;
         if (cc != total) {
@@ -406,7 +409,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
  * Send an ack message.
  */
 bool
-TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id, size_t acked_len)
+TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
+                                          size_t acked_len)
 {
     char typecode = BUNDLE_ACK;
     
@@ -518,13 +522,15 @@ TCPConvergenceLayer::Connection::send_loop()
     // send the contact header
     ContactHeader contacthdr;
     contacthdr.version = CURRENT_VERSION;
-    contacthdr.flags = BUNDLE_ACK_ENABLED | BLOCK_ACK_ENABLED | KEEPALIVE_ENABLED;
+    contacthdr.flags = BUNDLE_ACK_ENABLED | BLOCK_ACK_ENABLED |
+                       KEEPALIVE_ENABLED;
     contacthdr.ackblock_sz = ack_blocksz_;
     contacthdr.keepalive_sec = 2;
 
     int keepalive_msec = contacthdr.keepalive_sec * 1000;
     
-    log_debug("send_loop: connection established, sending contact header handshake.,.");
+    log_debug("send_loop: "
+              "connection established, sending contact header handshake.,.");
     int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
     if (cc != sizeof(ContactHeader)) {
         log_err("error writing contact header (wrote %d/%d): %s",
@@ -597,7 +603,8 @@ TCPConvergenceLayer::Connection::send_loop()
                 if ((sock_poll->revents & POLLHUP) ||
                     (sock_poll->revents & POLLERR))
                 {
-                    log_warn("send_loop: remote connection unexpectedly closed");
+                    log_warn("send_loop: "
+                             "remote connection unexpectedly closed");
                     goto shutdown;
                 }
                 else if ((sock_poll->revents & POLLIN) ||
@@ -613,7 +620,8 @@ TCPConvergenceLayer::Connection::send_loop()
 
             // XXX/demmer check keepalive timer
         
-            // if the bundle list wasn't triggered, loop again waiting for input
+            // if the bundle list wasn't triggered, loop again waiting
+            // for input
             if (bundle_poll->revents == 0) {
                 continue;
             }
@@ -697,13 +705,16 @@ TCPConvergenceLayer::Connection::recv_loop()
         log_debug("recv_loop: blocking on frame typecode...");
         cc = sock_->read(&typecode, 1);
         if (cc != 1) {
-            log_err("recv_loop: error reading frame type code: %s", strerror(errno));
+            log_err("recv_loop: error reading frame type code: %s",
+                    strerror(errno));
             goto shutdown;
         }
 
         log_debug("recv_loop: got frame packet type 0x%x...", typecode);
         if (typecode != BUNDLE_START) {
-            log_err("recv_loop: unexpected typecode 0x%x waiting for BUNDLE_START", typecode);
+            log_err("recv_loop: "
+                    "unexpected typecode 0x%x waiting for BUNDLE_START",
+                    typecode);
             goto shutdown;
         }
 
@@ -731,7 +742,8 @@ TCPConvergenceLayer::Connection::recv_loop()
 
         cc = sock_->readall(buf, buflen);
         if (cc != (int)buflen) {
-            log_err("recv_loop: error reading header / data block (read %d/%d): %s",
+            log_err("recv_loop: "
+                    "error reading header / data block (read %d/%d): %s",
                     cc, buflen, strerror(errno));
             goto shutdown;
         }
@@ -759,7 +771,8 @@ TCPConvergenceLayer::Connection::recv_loop()
         bundle->payload_.append_data(buf + header_len, block_len);
 
         // ack the first block
-        log_debug("recv_loop: parsed headers and %d byte block, sending first ack",
+        log_debug("recv_loop: "
+                  "parsed headers and %d byte block, sending first ack",
                   block_len);
         acked_len = block_len;
         if (!send_ack(starthdr.bundle_id, acked_len)) {
@@ -780,26 +793,30 @@ TCPConvergenceLayer::Connection::recv_loop()
             }
 
             if (typecode != BUNDLE_BLOCK) {
-                log_err("recv_loop: unexpected typecode 0x%x, expected BUNDLE_BLOCK",
+                log_err("recv_loop: "
+                        "unexpected typecode 0x%x, expected BUNDLE_BLOCK",
                         typecode);
                 goto shutdown;
             }
             
             cc = sock_->readall((char*)&blockhdr, sizeof(BundleBlockHeader));
             if (cc != sizeof(BundleBlockHeader)) {
-                log_err("recv_loop: error reading block header (read %d/%d): %s",
+                log_err("recv_loop: "
+                        "error reading block header (read %d/%d): %s",
                         cc, sizeof(BundleBlockHeader), strerror(errno));
                 goto shutdown;
             }
 
             block_len = ntohl(blockhdr.block_length);
-            log_debug("recv_loop: got block header, reading next block, length %d",
+            log_debug("recv_loop: "
+                      "got block header, reading next block, length %d",
                       block_len);
 
             // the buffer allocated above should be sufficient since
             // it covers both the original start header and the block
             if (buflen < block_len) {
-                log_warn("recv_loop: unexpected large block length %d > buflen %d",
+                log_warn("recv_loop: "
+                         "unexpected large block length %d > buflen %d",
                          block_len, buflen);
                 free(buf);
                 buflen = block_len;
