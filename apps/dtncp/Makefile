@@ -3,7 +3,7 @@
 #
 
 SRCS   := dtn_send.c
-APP    := dtnsendfile
+APP    := dtncp
 SRCDIR := ../..
 
 -include ../Makefile.app

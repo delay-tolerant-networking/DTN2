@@ -10,6 +10,7 @@
 #include "dtn_api.h"
 
 #define BUFSIZE 16
+#define BUNDLE_DIR_DEFAULT "/dtn/received_bundles"
 
 void
 usage()
@@ -32,12 +33,15 @@ main(int argc, const char** argv)
     char* endpoint;
     int debug = 1;
 
+    char * bundle_dir;
+
     char * region;
-    int admin_len;
-    char * admin;
+    int source_admin_len, dest_admin_len;
+    char *source_admin, *dest_admin;
     char * host;
-    char * path;
+    char * dirpath;
     char * filename;
+    char * filepath;
     time_t current;
 
 /*     char buffer[BUFSIZE]; */
@@ -48,11 +52,29 @@ main(int argc, const char** argv)
     int bufsize, marker, maxwrite;
     FILE * target;
     
-    if (argc > 1) {
+    if (argc > 2) {
         usage();
     }
+    else if (argc == 2)
+    {
+        bundle_dir = (char *) argv[1];
+    }
+    else
+    {
+        bundle_dir = BUNDLE_DIR_DEFAULT;
+    }
 
-    endpoint = "/recv_file";
+    buffer = malloc(sizeof(char) * (strlen(bundle_dir) + 10));
+    sprintf(buffer, "mkdir -p %s", bundle_dir);
+    if (system(buffer) == -1)
+    {
+        fprintf(stderr, "Error opening bundle directory: %s\n", bundle_dir);
+        exit(1);
+    }
+    free(buffer);
+
+    // designated endpoint
+    endpoint = "/recv_file:/*";
 
     // open the ipc handle
     debug && printf("opening connection to dtn router...\n");
@@ -111,35 +133,55 @@ main(int argc, const char** argv)
         // parse admin string to select file target location
         
         // copy out admin value into null-terminated string
-        admin_len = spec.source.admin.admin_len;
-        admin = malloc(sizeof(char) * (admin_len+1));
-        memcpy(admin, spec.source.admin.admin_val, admin_len);
-        admin[admin_len] = '\0';
+        source_admin_len = spec.source.admin.admin_len;
+        source_admin = malloc(sizeof(char) * (source_admin_len+1));
+        memcpy(source_admin, spec.source.admin.admin_val, source_admin_len);
+        source_admin[source_admin_len] = '\0';
 
         // region is the same
         region = spec.source.region;
         
         // extract hostname (ignore protocol)
-        host = strstr(admin, "://");
+        host = strstr(source_admin, "://");
         host += 3; // skip ://
 
+        // calculate where host ends (temporarily using dirpath)
+        dirpath = strstr(host, "/send_file");
+        dirpath[0] = '\0'; // null-terminate host
+       
+        // copy out dest admin value into null-terminated string
+        dest_admin_len = spec.dest.admin.admin_len;
+        dest_admin = malloc(sizeof(char) * (dest_admin_len+1));
+        memcpy(dest_admin, spec.dest.admin.admin_val, dest_admin_len);
+        dest_admin[dest_admin_len] = '\0';
+
         // extract directory path (everything following std demux)
-        path = strstr(host, "/send_file:");
-        path[0] = '\0'; // null-terminate host
-        path += 11; // skip /send_file:
+        dirpath = strstr(dest_admin, "/recv_file:");
+        dirpath[0] = '\0'; // null-terminate host
+        dirpath += 11; // skip /send_file:
+        if (dirpath[0] == '/') dirpath++; // skip leading slash
 
         // filename is everything following last /
-        filename = strrchr(path, '/');
+        filename = strrchr(dirpath, '/');
         if (filename == 0)
         {
-            filename = path;
-            path = NULL;
+            filename = dirpath;
+            dirpath = "";
         }
         else
         {
             filename[0] = '\0'; // null terminate path
             filename++; // next char;
         }
+
+        // recursively create full directory path
+        filepath = malloc(sizeof(char) * (source_admin_len + dest_admin_len + 10));
+        sprintf(filepath, "mkdir -p %s/%s/%s", bundle_dir, host, dirpath);
+        system(filepath);
+
+        // create file name
+        sprintf(filepath, "%s/%s/%s/%s", bundle_dir, host, dirpath, filename);
+
 
         // bundle name is the name of the bundle payload file
         buffer = payload.dtn_bundle_payload_t_u.buf.buf_val;
@@ -149,14 +191,20 @@ main(int argc, const char** argv)
         printf (" File Received at %s\n", ctime(&current));
         printf ("   region : %s\n", region);
         printf ("   host   : %s\n", host);
-        printf ("   path   : %s\n", path);
+        printf ("   path   : %s\n", dirpath);
         printf ("   file   : %s\n", filename);
         printf ("   size   : %d bytes\n", bufsize);
-
+        printf ("   loc    : %s\n", filepath);
         
         debug && printf ("--------------------------------------\n");
 
-        target = fopen(filename, "w+");
+        target = fopen(filepath, "w");
+
+        if (target == NULL)
+        {
+            fprintf(stderr, "Error opening file for writing %s\n", filepath);
+            continue;
+        }
         
         marker = 0;
         while (marker < bufsize)
@@ -231,7 +279,9 @@ main(int argc, const char** argv)
 
         printf ("======================================\n");
         
-        free(admin);
+        free(filepath);
+        free(source_admin);
+        free(dest_admin);
     }
     
     return 0;

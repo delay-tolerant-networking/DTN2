@@ -3,7 +3,7 @@
 #
 
 SRCS   := dtn_recv.c
-APP    := dtnrecvfile
+APP    := dtncpd
 SRCDIR := ../..
 
 -include ../Makefile.app

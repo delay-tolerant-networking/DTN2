@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -11,10 +12,11 @@
 
 int verbose             = 1;
 
-char * data_source      = NULL; // filename or message, depending on type
+char data_source[1024]; // filename or message, depending on type
 
 // specified options
 char * arg_dest         = NULL;
+char * arg_target       = NULL;
 
 void parse_options(int, char**);
 dtn_tuple_t * parse_tuple(dtn_handle_t handle, dtn_tuple_t * tuple, 
@@ -36,10 +38,10 @@ main(int argc, char** argv)
     char demux[4096];
     struct timeval start, end;
 
-    FILE * file;
-    //struct stat finfo;
-    char buffer[4096]; // max filesize to send is 4096 (temp)
-    int bufsize = 0;
+/*     FILE * file; */
+/*     //struct stat finfo; */
+/*     char buffer[4096]; // max filesize to send is 4096 (temp) */
+/*     int bufsize = 0; */
     
     parse_options(argc, argv);
 
@@ -63,7 +65,7 @@ main(int argc, char** argv)
     memset(&bundle_spec, 0, sizeof(bundle_spec));
 
     // destination host is specified at run time, demux is hardcoded
-    sprintf(demux, "%s/recv_file", arg_dest);
+    sprintf(demux, "%s/recv_file:/%s", arg_dest, arg_target);
     parse_tuple(handle, &bundle_spec.dest, demux);
 
     // source is local tuple with file path as demux string
@@ -88,22 +90,22 @@ main(int argc, char** argv)
     // fill in a payload
     memset(&send_payload, 0, sizeof(send_payload));
 
-    file = fopen(data_source, "r");
+/*     file = fopen(data_source, "r"); */
 
-    if (file == NULL)
-    {
-        fprintf(stderr, "error opening file %s (%d)\n", data_source, errno);
-        exit(1);
-    }
+/*     if (file == NULL) */
+/*     { */
+/*         fprintf(stderr, "error opening file %s (%d)\n", data_source, errno); */
+/*         exit(1); */
+/*     } */
     
-    while (!feof(file) && bufsize < 4096)
-    {
-        bufsize += fread(buffer + bufsize, 1, 
-                         bufsize > 3840? 4096 - bufsize: 256, file);
-    }
+/*     while (!feof(file) && bufsize < 4096) */
+/*     { */
+/*         bufsize += fread(buffer + bufsize, 1,  */
+/*                          bufsize > 3840? 4096 - bufsize: 256, file); */
+/*     } */
 
-    dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufsize);
-    //    dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, data_source, strlen(data_source));
+/*     dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufsize); */
+    dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, data_source, strlen(data_source));
      
     // send file and wait for reply
     // create a new dtn registration to receive bundle status reports
@@ -170,8 +172,19 @@ void parse_options(int argc, char**argv)
         exit(1);
     }
 
-    data_source = argv[1];
+    if (argv[1][0] == '/') sprintf(data_source, "%s", argv[1]);
+    else sprintf(data_source, "%s/%s", getenv("PWD"), argv[1]);
+
     arg_dest = argv[2];
+    if (argc > 3)
+    {
+        arg_target = argv[3];
+    }
+    else 
+    {
+        arg_target = strrchr(data_source, '/');
+        if (arg_target == 0) arg_target = data_source;
+    }
 }
 
 dtn_tuple_t * parse_tuple(dtn_handle_t handle, 
