@@ -1,9 +1,8 @@
 
 #include "SQLBundleStore.h"
+#include "SQLImplementation.h"
+#include "SQLStore.h"
 #include "bundling/Bundle.h"
-
-
-
 
 /******************************************************************************
  *
@@ -20,13 +19,10 @@ SQLBundleStore::SQLBundleStore(const char* table_name, SQLImplementation* db)
 {
     Bundle tmpobj(this);
 
-    store_ = new SQLStore(table_name,db);
+    store_ = new SQLStore(table_name, db);
     store_->create_table(&tmpobj);
     store_->set_key_name("bundleid");
-    next_bundle_id_ = 0;
 }
-
-
 
 /**
  * Create a new bundle instance, then make a generic call into the

@@ -3,9 +3,9 @@
 
 #include <sys/time.h>
 #include "BundleStore.h"
-#include "SQLStore.h"
 
-#include "SQLImplementation.h"
+class SQLImplementation;
+class SQLStore;
 
 /**
  * Implementation of a BundleStore that uses an underlying SQL
