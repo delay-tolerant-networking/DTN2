@@ -49,11 +49,13 @@ main(int argc, char** argv)
     dtn_bundle_spec_t reply_spec;
     dtn_bundle_payload_t send_payload;
     dtn_bundle_payload_t reply_payload;
-    clock_t start, end;
+    struct timeval start, end;
     
     parse_options(argc, argv);
 
     // open the ipc handle
+    verbose && fprintf(stdout, "Opening connection to local DTN daemon\n");
+
     handle = dtn_open();
     if (handle == 0) 
     {
@@ -66,12 +68,21 @@ main(int argc, char** argv)
     memset(&bundle_spec, 0, sizeof(bundle_spec));
 
     // initialize/parse bundle src/dest/replyto tuples
+    verbose && fprintf(stdout, "Destination: %s\n", arg_dest);
     parse_tuple(&handle, &bundle_spec.dest, arg_dest);
+
+    verbose && fprintf(stdout, "Source: %s\n", arg_source);
     parse_tuple(&handle, &bundle_spec.source, arg_source);
     if (arg_replyto == NULL) 
+    {
+        verbose && fprintf(stdout, "Reply To: same as source\n");
         dtn_copy_tuple(&bundle_spec.replyto, &bundle_spec.source);
-     else
+    }
+    else
+    {
+        verbose && fprintf(stdout, "Reply To: %s\n", arg_replyto);
         parse_tuple(&handle, &bundle_spec.replyto, arg_replyto);
+    }
 
     if (verbose)
     {
@@ -145,7 +156,7 @@ main(int argc, char** argv)
      
     // loop, sending sends and getting replies.
     for (i = 0; i < copies; ++i) {
-        start = clock();
+        gettimeofday(&start, NULL);
 
         if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
             fprintf(stderr, "error sending bundle: %d (%s)\n",
@@ -166,14 +177,16 @@ main(int argc, char** argv)
                         ret, dtn_strerror(dtn_errno(handle)));
                 exit(1);
             }
-            end = clock();
+            gettimeofday(&end, NULL);
+
 
             printf("%d bytes from [%s %.*s]: time=%.1f ms\n",
                    reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
                    reply_spec.source.region,
                    reply_spec.source.admin.admin_len,
                    reply_spec.source.admin.admin_val,
-                   ((double)end - (double)start) * 1000/CLOCKS_PER_SEC);
+                   ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
+                    (double)(end.tv_usec - start.tv_usec)/1000.0));
             
             sleep(1);
         }
@@ -204,7 +217,12 @@ void print_usage()
 
 void parse_options(int argc, char**argv)
 {
-    int c, done = 0;
+    char c, done = 0;
+
+    for (c=0; c<argc;c++)
+    {
+        printf("%s\n", argv[(int)c]);
+    }
 
     while (!done)
     {
@@ -285,8 +303,10 @@ void parse_options(int argc, char**argv)
             break;
         case -1:
             done = 1;
+            break;
         default:
             fprintf(stderr, "%c is an invalid option\n", c);
+            fprintf(stderr, "%d is an invalid option\n", c);
             print_usage();
             exit(1);
         }
@@ -308,14 +328,16 @@ dtn_tuple_t * parse_tuple(dtn_handle_t * handle,
 {
     
     // try the string as an actual dtn tuple
-    if (dtn_parse_tuple_string(tuple, str)) 
+    if (!dtn_parse_tuple_string(tuple, str)) 
     {
+        verbose && fprintf(stdout, "%s (literal)\n", str);
         return tuple;
     }
     // build a local tuple based on the configuration of our dtn
     // router plus the str as demux string
-    else if (dtn_build_local_tuple(handle, tuple, str))
+    else if (!dtn_build_local_tuple(handle, tuple, str))
     {
+        verbose && fprintf(stdout, "%s (local)\n", str);
         return tuple;
     }
     else
