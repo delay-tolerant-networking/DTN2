@@ -15,6 +15,8 @@ ParamCommand::at_reg()
            &BundlePayload::dir_, "/tmp/bundles");
     bind_i("payload_mem_threshold",
            (int*)&BundlePayload::mem_threshold_, 16384);
+    bind_b("payload_test_no_remove",
+           &BundlePayload::test_no_remove_, false);
 
     bind_i("tcpcl_ack_blocksz",
            &TCPConvergenceLayer::Defaults.ack_blocksz_, 1024);

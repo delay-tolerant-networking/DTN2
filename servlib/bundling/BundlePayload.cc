@@ -6,6 +6,7 @@
 
 size_t BundlePayload::mem_threshold_;
 std::string BundlePayload::dir_;
+bool BundlePayload::test_no_remove_;
 
 BundlePayload::BundlePayload()
     : location_(DISK), length_(0), file_(NULL), offset_(0)
@@ -49,7 +50,8 @@ BundlePayload::init_disk(int bundleid)
 BundlePayload::~BundlePayload()
 {
     if (file_) {
-        file_->unlink();
+        if (!test_no_remove_)
+            file_->unlink();
         file_->close();
         delete file_;
         file_ = NULL;
