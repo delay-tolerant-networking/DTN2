@@ -430,7 +430,6 @@ FileConvergenceLayer::Scanner::run()
             // all set, notify the router
             BundleForwarder::post(
                 new BundleReceivedEvent(bundle, EVENTSRC_PEER));
-            ASSERT(bundle->refcount() > 0);
         }
             
         //log_debug("sleeping...");
