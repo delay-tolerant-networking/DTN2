@@ -1,6 +1,7 @@
 
 #include "BerkeleyDBStore.h"
 #include "StorageConfig.h"
+#include "util/StringBuffer.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -41,10 +42,12 @@ BerkeleyDBManager::init()
     dbenv_  = new DbEnv(0);
 
     // set up db internal error log file
-    std::string errlog = cfg->dbdir_ + "/" + cfg->dberrlog_;
+    StringBuffer errlog("%s/%s", dbdir, cfg->dberrlog_.c_str());
+    
     errlog_ = ::fopen(errlog.c_str(), "w");
     if (!errlog_) {
-        log_err("error creating db error log file: %s", strerror(errno));
+        log_err("error creating db error log file %s: %s",
+                errlog.c_str(), strerror(errno));
     } else {
         dbenv_->set_errfile(errlog_);
     }
@@ -82,9 +85,7 @@ BerkeleyDBManager::init()
 
     // Create database file if none exists. Table 0 is used for
     // storing general global metadata.
-    std::string dbpath = dbdir;
-    dbpath += "/";
-    dbpath += cfg->dbfile_;
+    StringBuffer dbpath("%s/%s", dbdir, cfg->dbfile_.c_str());
     
     if (stat(dbpath.c_str(), &st) == -1) {
         if(errno == ENOENT) {
