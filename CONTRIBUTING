@@ -42,6 +42,8 @@ in your extensions:
 - Above all, please be consistent. When modifying code, follow the
   conventions of the code around you.
 
+- Try to keep code lines under 80 columns in width.
+
 - For emacs users, adding the following lisp code to your .emacs will
   follow these conventions:
 
