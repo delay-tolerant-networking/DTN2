@@ -16,5 +16,5 @@ void
 LogSim::init(log_level_t level, const char* path) 
 {
     LogSim* log = new LogSim();
-    log->do_init(1, level, NULL, path); 
+    log->do_init("-", level, NULL, path); 
 }

@@ -47,23 +47,6 @@ main(int argc, char* argv[])
 
     Options::getopt(argv[0], argc, argv);
 
-    // Open the output file descriptor
-    int logfd;
-    if (logfile.compare("-") == 0) {
-        testcmd.log_to_stdout_ = true;
-        logfd = 1; // stdout
-    } else {
-        testcmd.log_to_stdout_ = false;
-        logfd = open(logfile.c_str(), O_CREAT | O_WRONLY | O_APPEND,
-                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-        if (logfd < 0) {
-            fprintf(stderr, "fatal error opening log file '%s': %s\n",
-                    logfile.c_str(), strerror(errno));
-            exit(1);
-        }
-    }
-
     // Parse the debugging level argument
     if (loglevelstr.length() == 0) {
         loglevel = LOG_DEFAULT_THRESHOLD;
@@ -77,8 +60,8 @@ main(int argc, char* argv[])
         }
     }
     
-    Log::init(logfd, loglevel, "", "~/.dtndebug");
-    logf("/daemon", LOG_INFO, "Bundle Daemon Initializing...");
+    Log::init(logfile.c_str(), loglevel, "", "~/.dtndebug");
+    logf("/dtnd", LOG_INFO, "Bundle Daemon Initializing...");
 
     // bind a copy of argv to be accessible to test scripts
     for (int i = 0; i < argc; ++i) {
@@ -92,7 +75,7 @@ main(int argc, char* argv[])
       gettimeofday(&tv, NULL);
       random_seed = tv.tv_usec;
     }
-    logf("/tierd", LOG_INFO, "random seed is %u\n", random_seed);
+    logf("/dtnd", LOG_INFO, "random seed is %u\n", random_seed);
     srand(random_seed);
     
     // Set up the command interpreter
@@ -110,7 +93,7 @@ main(int argc, char* argv[])
     // Parse / exec the config file
     if (conf_file.length() != 0) {
         if (interp->exec_file(conf_file.c_str()) != 0) {
-            logf("/daemon", LOG_ERR,
+            logf("/dtnd", LOG_ERR,
                  "error in configuration file, exiting...");
             exit(1);
         }
@@ -126,7 +109,7 @@ main(int argc, char* argv[])
 
     // boot the application server
     APIServer::start_master();
-    
+
     // finally, run the main command or event loop (shouldn't return)
     if (daemon) {
         interp->event_loop();
@@ -134,5 +117,5 @@ main(int argc, char* argv[])
         interp->command_loop("dtn");
     }
     
-    logf("/daemon", LOG_ERR, "command loop exited unexpectedly");
+    logf("/dtnd", LOG_ERR, "command loop exited unexpectedly");
 }
