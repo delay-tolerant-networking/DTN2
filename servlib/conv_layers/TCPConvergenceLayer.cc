@@ -71,7 +71,21 @@ TCPConvergenceLayer::add_interface(Interface* iface,
     listener->logpathf("%s/iface/%s:%d",
                        logpath_, url.host_.c_str(), url.port_);
 
-    if (listener->bind(addr, url.port_) != 0) {
+
+    int ret = listener->bind(addr, url.port_);
+
+    // XXX/demmer temporary hack
+    if (ret != 0 && errno == EADDRINUSE) {
+        listener->logf(LOG_WARN,
+                       "WARNING: error binding to requested socket: %s",
+                       strerror(errno));
+        listener->logf(LOG_WARN, "waiting for 10 seconds then trying again");
+        sleep(10);
+
+        ret = listener->bind(addr, url.port_);
+    }
+
+    if (ret != 0) {
         listener->logf(LOG_ERR, "error binding to requested socket: %s",
                        strerror(errno));
         return false;
