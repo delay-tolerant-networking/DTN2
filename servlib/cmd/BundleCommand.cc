@@ -109,13 +109,13 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         BundleForwarder::post(new BundleReceivedEvent(b, EVENTSRC_APP, total));
         return TCL_OK;
     } else if (!strcmp(cmd, "stats")) {
-        StringBuffer buf("Bundle Statistics: ");
+        oasys::StringBuffer buf("Bundle Statistics: ");
         BundleForwarder::instance()->get_statistics(&buf);
         set_result(buf.c_str());
         return TCL_OK;
         
     } else if (!strcmp(cmd, "list")) {
-        StringBuffer buf;
+        oasys::StringBuffer buf;
         BundleForwarder::instance()->get_pending(&buf);
         set_result(buf.c_str());
         return TCL_OK;

@@ -108,7 +108,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     // read in all the payload data (XXX/demmer this will not be nice
     // for big bundles)
     size_t payload_len = b->payload_.length();
-    StringBuffer payload_buf(payload_len);
+    oasys::StringBuffer payload_buf(payload_len);
     const u_char* payload_data =
         b->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
     log_debug("got %d bytes of bundle data", payload_len);

@@ -44,13 +44,16 @@
 #include <oasys/thread/Thread.h>
 #include <oasys/thread/MsgQueue.h>
 
+namespace oasys {
+class StringBuffer;
+}
+
 class Bundle;
 class BundleAction;
 class BundleActionList;
 class BundleConsumer;
 class BundleEvent;
 class BundleRouter;
-class StringBuffer;
 
 class BundleForwarder;
 namespace dtn {
@@ -104,13 +107,13 @@ public:
     /**
      * Format the given StringBuffer with the current statistics value.
      */
-    void get_statistics(StringBuffer* buf);
+    void get_statistics(oasys::StringBuffer* buf);
 
     /**
      * Format the given StringBuffer with summary information of each
      * bundle on the current pending list.
      */
-    void get_pending(StringBuffer* buf);
+    void get_pending(oasys::StringBuffer* buf);
 
 protected:
     /**

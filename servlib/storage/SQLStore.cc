@@ -64,7 +64,7 @@ SQLStore::get(SerializableObject* obj, const int key)
 {
     ASSERT(key_name_); //key_name_ must be initialized 
     
-    StringBuffer query;
+    oasys::StringBuffer query;
     query.appendf("SELECT * FROM %s where %s = %d",
                   table_name_, key_name_, key);
 
@@ -115,7 +115,7 @@ int
 SQLStore::del(const int key)
 {
     ASSERT(key_name_); //key_name_ must be initialized 
-    StringBuffer query ;
+    oasys::StringBuffer query ;
     query.appendf("DELETE FROM %s where %s = %d", table_name_, key_name_, key);
     int retval = exec_query(query.c_str());
     return retval;
@@ -124,7 +124,7 @@ SQLStore::del(const int key)
 int 
 SQLStore::exists(const int key)
 {
-    StringBuffer query;
+    oasys::StringBuffer query;
     query.appendf(" SELECT * FROM %s WHERE %s = %d",
                   table_name_, key_name_, key);
     
@@ -134,7 +134,7 @@ SQLStore::exists(const int key)
 int 
 SQLStore::num_elements()
 {
-    StringBuffer query;
+    oasys::StringBuffer query;
 
     query.appendf(" SELECT count(*) FROM  %s ",table_name_);
     int status = exec_query(query.c_str());
@@ -151,7 +151,7 @@ int
 SQLStore::keys(std::vector<int> * l) 
 {
     ASSERT(key_name_); //key_name_ must be initialized 
-    StringBuffer query;
+    oasys::StringBuffer query;
     query.appendf("SELECT %s FROM %s ", key_name_, table_name_);
     int status = exec_query(query.c_str());
     if ( status != 0) return status;
@@ -172,7 +172,7 @@ SQLStore::keys(std::vector<int> * l)
 int 
 SQLStore::elements(SerializableObjectVector* elements) 
 {
-    StringBuffer query;
+    oasys::StringBuffer query;
     query.appendf("SELECT * from %s", table_name_);
 
     int status = exec_query(query.c_str());
@@ -229,7 +229,7 @@ SQLStore::create_table(SerializableObject* obj)
         if (StorageConfig::instance()->tidy_) {
             // if tidy is set, drop the table
             log_info("tidy option set, dropping table %s", table_name_);
-            StringBuffer query;
+            oasys::StringBuffer query;
             query.appendf("DROP TABLE %s", table_name_);
             int status = exec_query(query.c_str());
             ASSERT(status == 0);

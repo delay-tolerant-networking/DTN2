@@ -116,7 +116,7 @@ int
 SQLBundleStore::delete_expired(const time_t now) 
 {
     const char* field = "expiration";
-    StringBuffer query ;
+    oasys::StringBuffer query ;
     query.appendf("DELETE FROM %s WHERE %s > %lu", store_->table_name(), field, now);
     
     int retval = store_->exec_query(query.c_str());

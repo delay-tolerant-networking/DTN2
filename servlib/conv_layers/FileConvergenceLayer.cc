@@ -237,7 +237,7 @@ FileConvergenceLayer::send_bundles(Contact* contact)
 
     filehdr.version = CURRENT_VERSION;
     
-    StringBuffer fname("%s/bundle-XXXXXX", dir.c_str());
+    oasys::StringBuffer fname("%s/bundle-XXXXXX", dir.c_str());
     
     while ((bundle = blist->pop_front()) != NULL) {
         iov[0].iov_base = &filehdr;
@@ -345,7 +345,7 @@ FileConvergenceLayer::Scanner::run()
             log_debug("scan found file %s", fname);
 
             // cons up the full path
-            StringBuffer path("%s/%s", dir_.c_str(), fname);
+            oasys::StringBuffer path("%s/%s", dir_.c_str(), fname);
 
             // malloc a buffer for it, open a file descriptor, and
             // read in the header

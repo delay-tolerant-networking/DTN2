@@ -46,7 +46,10 @@ class Link;
 class LinkSet;
 class Peer;
 class PeerSet;
+
+namespace oasys {
 class StringBuffer;
+}
 
 /**
  * A contact manager singleton class.
@@ -89,7 +92,7 @@ public:
     /**
      * Dump a string representation of the info inside contact manager.
      */
-    void dump(StringBuffer* buf) const;
+    void dump(oasys::StringBuffer* buf) const;
     
     /**********************************************
      *

@@ -74,7 +74,7 @@ BerkeleyDBManager::init()
     dbenv_  = new DbEnv(0);
 
     // set up db internal error log file
-    StringBuffer errlog("%s/%s", dbdir, cfg->dberrlog_.c_str());
+    oasys::StringBuffer errlog("%s/%s", dbdir, cfg->dberrlog_.c_str());
     
     errlog_ = ::fopen(errlog.c_str(), "w");
     if (!errlog_) {
@@ -103,7 +103,7 @@ BerkeleyDBManager::init()
     }
 
     // make sure the database file exists or create it if init_ is set
-    StringBuffer dbpath("%s/%s", dbdir, cfg->dbfile_.c_str());
+    oasys::StringBuffer dbpath("%s/%s", dbdir, cfg->dbfile_.c_str());
 
     struct stat st;
     log_debug("checking database file '%s'...", cfg->dbfile_.c_str());
@@ -261,7 +261,7 @@ BerkeleyDBStore::get(SerializableObject* obj, const int key)
 
     Unmarshal unmarshal(SerializeAction::CONTEXT_LOCAL,
                         (u_char*)d.get_data(), d.get_size());
-    StringBuffer buf("/store/%s", tablename_.c_str());
+    oasys::StringBuffer buf("/store/%s", tablename_.c_str());
 
     if (unmarshal.action(obj) < 0) {
         PANIC("error in unserialize");
@@ -288,7 +288,7 @@ BerkeleyDBStore::add(SerializableObject* obj, const int key)
     u_char* buf = (u_char*)malloc(size);
     Marshal marshal(SerializeAction::CONTEXT_LOCAL,
                     buf, size);
-    StringBuffer logbuf("/store/%s", tablename_.c_str());
+    oasys::StringBuffer logbuf("/store/%s", tablename_.c_str());
     ret = marshal.action(obj);
     ASSERT(ret == 0);
     

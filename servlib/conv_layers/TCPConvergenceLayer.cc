@@ -330,7 +330,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     size_t block_len;
     size_t payload_len = bundle->payload_.length();
     const u_char* payload_data;
-    StringBuffer payload_buf(ack_blocksz_);
+    oasys::StringBuffer payload_buf(ack_blocksz_);
         
     // use iov slot zero for the one byte frame header type, slot one
     // for the frame header, then N slots for the bundle header, and

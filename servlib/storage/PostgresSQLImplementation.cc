@@ -126,7 +126,7 @@ bool
 PostgresSQLImplementation::has_table(const char* tablename)
 {
     bool retval = 0;
-    StringBuffer query;
+    oasys::StringBuffer query;
     
     query.appendf("select * from pg_tables where tablename = '%s'", tablename);
     int ret = exec_query(query.c_str());

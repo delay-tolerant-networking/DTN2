@@ -170,7 +170,7 @@ RouteTable::get_matching(const BundleTuple& tuple,
  * Dump the routing table.
  */
 void
-RouteTable::dump(StringBuffer* buf) const
+RouteTable::dump(oasys::StringBuffer* buf) const
 {
     buf->append("route table:\n");
 

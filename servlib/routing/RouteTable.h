@@ -46,7 +46,10 @@
 
 class BundleConsumer;
 class RouteEntryInfo;
+
+namespace oasys {
 class StringBuffer;
+}
 
 /**
  * A route table entry. Each entry contains a tuple pattern that is
@@ -129,7 +132,7 @@ public:
     /**
      * Dump a string representation of the routing table.
      */
-    void dump(StringBuffer* buf) const;
+    void dump(oasys::StringBuffer* buf) const;
 
 protected:
     /// The routing table itself

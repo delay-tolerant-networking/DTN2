@@ -56,7 +56,7 @@ AdminRegistration::enqueue_bundle(Bundle* bundle,
     u_char typecode;
     
     size_t payload_len = bundle->payload_.length();
-    StringBuffer payload_buf(payload_len);
+    oasys::StringBuffer payload_buf(payload_len);
     log_debug("got %d byte bundle", payload_len);
 
     if (payload_len == 0) {

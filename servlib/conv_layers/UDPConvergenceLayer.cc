@@ -424,7 +424,7 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
               1 + sizeof(ContactHeader) + sizeof(BundleStartHeader),
               header_len, payload_len);
 
-    StringBuffer payload_buf(payload_len);
+    oasys::StringBuffer payload_buf(payload_len);
     const u_char* payload_data =
         bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
     iov[iovcnt + 3].iov_base = (void*)payload_data;

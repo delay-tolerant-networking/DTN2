@@ -72,7 +72,8 @@ BundlePayload::init(SpinLock* lock, int bundleid, location_t location)
     // initialize the file handle for the backing store, but
     // immediately close it
     if (location != NODATA) {
-        StringBuffer path("%s/bundle_%d.dat", cfg->payloaddir_.c_str(), bundleid);
+        oasys::StringBuffer path("%s/bundle_%d.dat",
+                                 cfg->payloaddir_.c_str(), bundleid);
         file_ = new FileIOClient();
         file_->logpathf("/bundle/payload/%d", bundleid);
         if (file_->open(path.c_str(),

@@ -168,7 +168,7 @@ ContactManager::find_link(const char* name)
  * Dump the contact manager info
  */
 void
-ContactManager::dump(StringBuffer* buf) const
+ContactManager::dump(oasys::StringBuffer* buf) const
 {
     buf->append("contact manager info:\n");
 

@@ -120,7 +120,7 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
 
     else if (strcmp(cmd, "dump") == 0) {
-        StringBuffer buf;
+        oasys::StringBuffer buf;
         BundleRouter* router = BundleForwarder::instance()->active_router();
         buf.appendf("local tuple:\n\t%s\n", router->local_tuple_.c_str());
         router->route_table()->dump(&buf);

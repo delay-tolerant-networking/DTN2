@@ -96,7 +96,7 @@ BundleForwarder::post(BundleEvent* event)
  * Format the given StringBuffer with the current statistics value.
  */
 void
-BundleForwarder::get_statistics(StringBuffer* buf)
+BundleForwarder::get_statistics(oasys::StringBuffer* buf)
 {
     buf->appendf("%d pending -- %d received -- %d sent_local -- %d sent_remote "
                  "-- %d expired",
@@ -112,7 +112,7 @@ BundleForwarder::get_statistics(StringBuffer* buf)
  * bundle on the current pending list.
  */
 void
-BundleForwarder::get_pending(StringBuffer* buf)
+BundleForwarder::get_pending(oasys::StringBuffer* buf)
 {
     const Bundle* b;
     BundleList::const_iterator iter;

@@ -146,7 +146,7 @@ SimConvergenceLayer::dtnlink2simlink(Link* link)
 std::string
 SimConvergenceLayer::id2node(int i) 
 {
-    StringBuffer buf;
+    oasys::StringBuffer buf;
     buf.appendf("bundles://sim/simcl://%d", i);
     std::string ret(buf.c_str());
     return ret;
