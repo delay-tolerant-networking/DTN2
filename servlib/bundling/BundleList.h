@@ -111,6 +111,11 @@ public:
     bool remove(Bundle* bundle);
 
     /**
+     * Move all bundles from this list to another.
+     */
+    void move_contents(BundleList* other);
+
+    /**
      * Clear out the list.
      */
     void clear();

@@ -14,6 +14,7 @@ BundleList::BundleList(const std::string& name)
 
 BundleList::~BundleList()
 {
+    clear();
     delete lock_;
 }
 
@@ -237,6 +238,22 @@ BundleList::remove(Bundle* bundle)
 }
 
 /**
+ * Move all bundles from this list to another.
+ */
+void
+BundleList::move_contents(BundleList* other)
+{
+    ScopeLock l1(lock_);
+    ScopeLock l2(other->lock_);
+
+    Bundle* b;
+    while (!list_.empty()) {
+        b = pop_front();
+        other->push_back(b);
+    }
+}
+
+/**
  * Clear out the list.
  */
 void
@@ -270,7 +287,9 @@ BundleList::size()
 BundleList::iterator
 BundleList::begin()
 {
-    ASSERT(lock_->is_locked_by_me());
+    if (!lock_->is_locked_by_me())
+        PANIC("Must lock BundleList before using iterator");
+    
     return list_.begin();
 }
 
@@ -282,6 +301,8 @@ BundleList::begin()
 BundleList::iterator
 BundleList::end()
 {
-    ASSERT(lock_->is_locked_by_me());
+    if (!lock_->is_locked_by_me())
+        PANIC("Must lock BundleList before using iterator");
+    
     return list_.end();
 }
