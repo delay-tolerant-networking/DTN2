@@ -18,12 +18,14 @@ Bundle::init(u_int32_t id, BundlePayload::location_t location)
     return_rcpt_	= false;
     expiration_		= 0; // XXX/demmer
     gettimeofday(&creation_ts_, 0);
-    payload_.init(id,location);
+    payload_.init(id, location);
+
+    is_fragment_	= false;
 }
 
 Bundle::Bundle()
 {
-    init(GlobalStore::instance()->next_bundleid(),BundlePayload::DISK );
+    init(GlobalStore::instance()->next_bundleid(), BundlePayload::DISK);
 }
 
 Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
@@ -50,8 +52,6 @@ Bundle::format(char* buf, size_t sz)
 void
 Bundle::serialize(SerializeAction* a)
 {
-    a->process("test_binary",test_binary_,10);
-
     a->process("bundleid", &bundleid_);
     a->process("source", &source_);
     a->process("dest", &dest_);
@@ -67,7 +67,7 @@ Bundle::serialize(SerializeAction* a)
     a->process("creation_ts_usec", (u_int32_t*)&creation_ts_.tv_usec);
     a->process("expiration", &expiration_);
     a->process("payload", &payload_);
-    a->process("fragment", &fragment_);
+    a->process("is_fragment", &is_fragment_);
     a->process("orig_length", &orig_length_);
     a->process("frag_offset", &frag_offset_);
 }
