@@ -41,7 +41,7 @@ set txdir       = "$logroot/txfiles"
 set rcvdir      = "$logroot/rcvfiles"
 set ftplogfile =  $logroot/ftplog.$id
 
-
+set tcptimerfile = $dtn2testroot/tcp_retries2.sush
 
 
 # Make the log directories
@@ -66,6 +66,11 @@ endif
 set info = $logroot/log.$id
 echo "Logging commands executed by $proto (node id $id)" > $info
 
+
+# Set TCP timers
+sudo "cp $tcptimerfile  /proc/sys/net/ipv4/tcp_retries2"
+
+
 # If this is the source node generate workload
 if ($id == 1) then  
    echo "Executing workload:  tclsh $dtn2root/test/workload.tcl $nfiles $size $txdir  " >> $info
@@ -78,7 +83,7 @@ echo "#Check ping commands ...." > $pingfile
 set idplus  = `expr $id + 1`
 #set linkname = link-$id
 set nextnode=node-$idplus 
-#sudo sh $dtn2testroot/check_ping.sh $nextnode >> $pingfile &
+sudo sh $dtn2testroot/check_ping.sh $nextnode >> $pingfile &
 
 
 switch ($proto_orig)

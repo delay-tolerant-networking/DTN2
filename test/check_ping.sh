@@ -6,8 +6,8 @@ OTHERHOST=$1
 COUNT=4; 
 PACKET_SIZE=50;
 INTERVAL=0.1
-TIMEOUT=6
-RETRY=3
+TIMEOUT=3
+RETRY=5
 rm -f /tmp/ping.$OTHERHOST
 
 starttime=`date +%s`
