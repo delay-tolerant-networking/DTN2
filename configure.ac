@@ -139,6 +139,7 @@ AC_CHECK_LIB(pthread, pthread_create)
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(nsl, gethostbyname)
 AC_CHECK_LIB(rt, sched_yield)
+AC_CHECK_FUNC(xdr_int, [], [AC_CHECK_LIB(rpc, xdr_int)])
 AC_OASYS_CONFIG_TCL
 AC_OASYS_CONFIG_DB
 AC_DTN_CONFIG_POSTGRES
@@ -198,7 +199,7 @@ AC_FUNC_STAT
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_OASYS_FUNC_FPCLASSIFY
-AC_CHECK_FUNCS([bzero getaddrinfo gethostbyname gethostbyname_r getopt_long gettimeofday inet_pton isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir setenv socket strcasecmp strchr strcspn strdup strerror strrchr strspn strstr strtol strtoul])
+AC_CHECK_FUNCS([bzero getaddrinfo gethostbyname gethostbyname_r getopt_long gettimeofday inet_aton inet_pton isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir setenv socket strcasecmp strchr strcspn strdup strerror strrchr strspn strstr strtol strtoul])
 
 dnl -------------------------------------------------------------------------
 dnl Output

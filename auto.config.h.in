@@ -40,6 +40,9 @@
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
+/* Define to 1 if you have the `inet_aton' function. */
+#undef HAVE_INET_ATON
+
 /* Define to 1 if you have the `inet_pton' function. */
 #undef HAVE_INET_PTON
 
@@ -54,6 +57,9 @@
 
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
+
+/* Define to 1 if you have the `rpc' library (-lrpc). */
+#undef HAVE_LIBRPC
 
 /* Define to 1 if you have the `rt' library (-lrt). */
 #undef HAVE_LIBRT
