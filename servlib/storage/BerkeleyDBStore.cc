@@ -55,6 +55,8 @@ BerkeleyDBManager::init()
         dbenv_->set_errfile(errlog_);
     }
 
+    // Commented  by XXX Sushant
+    /*
     // handle the tidy option
     if (cfg->tidy_) {
         char cmd[256];
@@ -67,6 +69,8 @@ BerkeleyDBManager::init()
             //exit(-1);
         }
     }
+    */
+
 
     // try to open the db file
     try {
