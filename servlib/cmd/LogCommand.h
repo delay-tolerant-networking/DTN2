@@ -15,8 +15,6 @@ public:
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
 
-    static void foo() {}
-        
 protected:
     static LogCommand instance_;
 };
