@@ -42,7 +42,7 @@ proc scan_dir {host dir} {
 	set sent_file 0
 	while {$sent_file != 1} {
 	    set sent_file [send_file $host $file]
-	    after 2000
+	    if {$sent_file != 1} { after 2000 }
 	}
 
 	file delete -force $file
@@ -122,7 +122,7 @@ proc send_file {host file} {
 	return -1
     }
 
-    puts "[time] got handshake ack -- sending file"
+    puts "[time] got handshake ack"
 
     while {![eof $fd]} {
 	if {[catch {
@@ -233,7 +233,7 @@ proc file_arrived {file to_fd dest_dir sock} {
     puts -nonewline $to_fd $payload
     set got [string length $payload]
     set todo [expr $length_remaining($sock) - $got]
-    puts "got $got byte chunk ($todo to go)"
+#    puts "got $got byte chunk ($todo to go)"
 
     if {$todo < 0} {
 	error "negative todo"
