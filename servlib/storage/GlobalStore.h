@@ -20,6 +20,9 @@ public:
      * Singleton instance accessor.
      */
     static GlobalStore* instance() {
+        if (instance_ == NULL) {
+            PANIC("GlobalStore::init not called yet");
+        }
         return instance_;
     }
 
@@ -33,6 +36,11 @@ public:
         }
         instance_ = instance;
     }
+    
+    /**
+     * Return true if initialization has completed.
+     */
+    static bool initialized() { return (instance_ != NULL); }
     
     /**
      * Constructor.

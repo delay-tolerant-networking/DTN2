@@ -17,6 +17,9 @@ public:
      * Singleton instance accessor.
      */
     static BundleStore* instance() {
+        if (instance_ == NULL) {
+            PANIC("BundleStore::init not called yet");
+        }
         return instance_;
     }
 
@@ -28,6 +31,11 @@ public:
         ASSERT(instance_ == NULL);
         instance_ = instance;
     }
+    
+    /**
+     * Return true if initialization has completed.
+     */
+    static bool initialized() { return (instance_ != NULL); }
     
     /**
      * Constructor.

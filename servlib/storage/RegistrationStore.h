@@ -13,6 +13,9 @@ public:
      * Singleton instance accessor.
      */
     static RegistrationStore* instance() {
+        if (instance_ == NULL) {
+            PANIC("RegistrationStore::init not called yet");
+        }
         return instance_;
     }
 
@@ -21,9 +24,16 @@ public:
      * instance to use.
      */
     static void init(RegistrationStore* instance) {
-        ASSERT(instance_ == NULL);
+        if (instance_ != NULL) {
+            PANIC("RegistrationStore::init called multiple times");
+        }
         instance_ = instance;
     }
+
+    /**
+     * Return true if initialization has completed.
+     */
+    static bool initialized() { return (instance_ != NULL); }
     
     /**
      * Load in the whole database of registrations, populating the
@@ -41,7 +51,7 @@ public:
      * Remove the registration from the database, returns true if
      * successful, false on error.
      */
-    virtual bool del(u_int32_t regid, const std::string& endpoint) = 0;
+    virtual bool del(Registration* reg) = 0;
     
     /**
      * Update the registration in the database. Returns true on
