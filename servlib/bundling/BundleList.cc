@@ -298,6 +298,26 @@ BundleList::erase(iterator& pos, BundleMapping** mappingp)
 }
 
 /**
+ * Search the list for a bundle with the given id.
+ *
+ * @return the bundle or NULL if not found.
+ */
+const Bundle*
+BundleList::find(u_int32_t bundleid) const
+{
+    oasys::ScopeLock l(lock_);
+    const_iterator iter;
+
+    for (iter = begin(); iter != end(); ++iter) {
+        if ((*iter)->bundleid_ == bundleid) {
+            return *iter;
+        }
+    }
+
+    return NULL;
+}
+
+/**
  * Move all bundles from this list to another.
  */
 void

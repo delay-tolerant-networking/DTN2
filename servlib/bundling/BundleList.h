@@ -192,6 +192,13 @@ public:
     void erase(iterator& pos, BundleMapping** mappingp = NULL);
 
     /**
+     * Search the list for a bundle with the given id.
+     *
+     * @return the bundle or NULL if not found.
+     */
+    const Bundle* find(u_int32_t bundleid) const;
+
+    /**
      * Move all bundles from this list to another.
      */
     void move_contents(BundleList* other);
