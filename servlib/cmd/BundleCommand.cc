@@ -72,6 +72,12 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         set_result(buf.c_str());
         return TCL_OK;
         
+    } else if (!strcmp(cmd, "list")) {
+        StringBuffer buf;
+        BundleForwarder::instance()->get_pending(&buf);
+        set_result(buf.c_str());
+        return TCL_OK;
+        
     } else {
         resultf("unknown bundle subcommand %s", cmd);
         return TCL_ERROR;

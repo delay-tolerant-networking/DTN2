@@ -63,6 +63,12 @@ public:
      */
     void get_statistics(StringBuffer* buf);
 
+    /**
+     * Format the given StringBuffer with summary information of each
+     * bundle on the current pending list.
+     */
+    void get_pending(StringBuffer* buf);
+
 protected:
     /**
      * Routine that implements a particular action, as returned from

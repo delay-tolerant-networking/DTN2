@@ -69,6 +69,31 @@ BundleForwarder::get_statistics(StringBuffer* buf)
                  bundles_expired_);
 }
 
+/**
+ * Format the given StringBuffer with summary information of each
+ * bundle on the current pending list.
+ */
+void
+BundleForwarder::get_pending(StringBuffer* buf)
+{
+    const Bundle* b;
+    BundleList::const_iterator iter;
+    const BundleList* pending = active_router()->pending_bundles();
+    
+    ScopeLock l(pending->lock());
+
+    buf->appendf("Currently Pending Bundles (%d): \n", pending->size());
+    
+    for (iter = pending->begin(); iter != pending->end(); ++iter) {
+        b = *iter;
+        buf->appendf("\t%-3d: %s -> %s length %d\n",
+                     b->bundleid_,
+                     b->source_.c_str(),
+                     b->dest_.c_str(),
+                     b->payload_.length());
+    }
+}
+
 
 /**
  * Routine that actually effects the forwarding operations as
