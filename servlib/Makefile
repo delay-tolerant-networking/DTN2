@@ -72,7 +72,11 @@ STORAGE_SRCS :=					\
 	storage/PersistentStore.cc		\
 	storage/RegistrationStore.cc		\
 	storage/MarshalSerialize.cc		\
+	storage/StorageConfig.cc		\
 	storage/BerkeleyDBStore.cc		\
+	storage/BerkeleyDBBundleStore.cc	\
+	storage/BerkeleyDBGlobalStore.cc	\
+	storage/BerkeleyDBRegistrationStore.cc	\
 	storage/SQLSerialize.cc			\
 	storage/SQLStore.cc			\
 	storage/SQLImplementation.cc		\
