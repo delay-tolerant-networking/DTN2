@@ -78,6 +78,7 @@ main(int argc, const char** argv)
     dtn_bundle_payload_t ping_payload;
     dtn_bundle_payload_t reply_payload;
     int debug = 1;
+    char demux[64];
 
     struct timeval start, end;
     
@@ -109,7 +110,6 @@ main(int argc, const char** argv)
     // if the user specified a source tuple, register on it.
     // otherwise, build a local tuple based on the configuration of
     // our dtn router plus the demux string
-    char demux[64];
     snprintf(demux, sizeof(demux), "/ping.%d", 0);
     if (source_tuple_str[0] != '\0') {
         if (dtn_parse_tuple_string(&source_tuple, source_tuple_str)) {
