@@ -101,6 +101,7 @@ main(int argc, char* argv[])
 
     // Set up components
     TimerSystem::init();
+    Log::instance()->add_rotate_handler(SIGUSR1);
     DTNServer::init_components();
 
     // Parse / exec the config file
