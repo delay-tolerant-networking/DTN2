@@ -3585,7 +3585,7 @@ fi
 rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
 
       for ac_tcllibdir in $ac_tcllibdirs; do
-      for ac_tcllib in tcl tcl$ac_tclver tcl$ac_tclvermajor$ac_tclverminor; do
+      for ac_tcllib in tcl tcl$ac_tclver tcl$ac_tclver_major$ac_tclver_minor; do
 
         echo "$as_me:$LINENO: checking for tcl library in $ac_tcllibdir, -l$ac_tcllib" >&5
 echo $ECHO_N "checking for tcl library in $ac_tcllibdir, -l$ac_tcllib... $ECHO_C" >&6
