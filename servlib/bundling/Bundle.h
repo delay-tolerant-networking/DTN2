@@ -43,12 +43,13 @@
 
 #include <oasys/debug/Formatter.h>
 #include <oasys/debug/Debug.h>
-
 #include <oasys/serialize/Serialize.h>
 #include <oasys/thread/SpinLock.h>
+#include <oasys/util/StringBuffer.h>
 
 #include "BundlePayload.h"
 #include "BundleTuple.h"
+
 
 namespace dtn {
 
@@ -114,6 +115,11 @@ public:
      * Virtual from formatter.
      */
     int format(char* buf, size_t sz);
+    
+    /**
+     * Virtual from formatter.
+     */
+    void format_verbose(oasys::StringBuffer* buf);
     
     /**
      * Virtual from SerializableObject
