@@ -80,19 +80,11 @@ public:
     }
 
     /**
-     * Matching function, implementing wildcarding semantics.
-     */
-    bool match(const BundleTuple& tuple) const;
-
-    /**
      * Virtual from SerializableObject
      */
     virtual void serialize(SerializeAction* a);
 
 protected:
-    bool match_region(const std::string& tuple_region) const;
-    bool match_admin(const std::string& tuple_admin) const;
-    
     void parse_tuple();
     
     bool valid_;
@@ -100,6 +92,28 @@ protected:
     std::string region_;
     std::string proto_;
     std::string admin_;
+};
+
+/**
+ * A class that implements pattern matching of bundle tuples. The
+ * pattern class has the same general form as the basic BundleTuple,
+ * and implements a hierarchical wildcard matching on the region and
+ * dispatches to the convergence layer to match the admin portion.
+ */
+class BundleTuplePattern : public BundleTuple {
+public:
+    BundleTuplePattern() 			: BundleTuple() {}
+    BundleTuplePattern(const char* tuple) 	: BundleTuple(tuple) {}
+    BundleTuplePattern(const std::string& tuple): BundleTuple(tuple) {}
+
+    /**
+     * Matching function, implementing wildcarding semantics.
+     */
+    bool match(const BundleTuple& tuple) const;
+
+protected:
+    bool match_region(const std::string& tuple_region) const;
+    bool match_admin(const std::string& tuple_admin) const;
 };
 
 #endif /* _BUNDLE_TUPLE_H_ */

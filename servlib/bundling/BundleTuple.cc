@@ -90,8 +90,17 @@ BundleTuple::parse_tuple()
     valid_ = true;
 }
 
+void
+BundleTuple::serialize(SerializeAction* a)
+{
+    a->process("tuple", &tuple_);
+    if (a->type() == SerializeAction::UNMARSHAL) {
+        parse_tuple();
+    }
+}
+
 bool
-BundleTuple::match_region(const std::string& tuple_region) const
+BundleTuplePattern::match_region(const std::string& tuple_region) const
 {
     // XXX/demmer todo: implement dns style matching
     
@@ -105,7 +114,7 @@ BundleTuple::match_region(const std::string& tuple_region) const
 }
 
 bool
-BundleTuple::match_admin(const std::string& tuple_admin) const
+BundleTuplePattern::match_admin(const std::string& tuple_admin) const
 {
     if (proto_.compare("*") == 0)
         return true; // special case wildcard protocol
@@ -119,7 +128,7 @@ BundleTuple::match_admin(const std::string& tuple_admin) const
 }
 
 bool
-BundleTuple::match(const BundleTuple& tuple) const
+BundleTuplePattern::match(const BundleTuple& tuple) const
 {
     ASSERT(valid() && tuple.valid());
 
@@ -130,13 +139,4 @@ BundleTuple::match(const BundleTuple& tuple) const
     }
 
     return false;
-}
-
-void
-BundleTuple::serialize(SerializeAction* a)
-{
-    a->process("tuple", &tuple_);
-    if (a->type() == SerializeAction::UNMARSHAL) {
-        parse_tuple();
-    }
 }
