@@ -8,26 +8,11 @@
 
 BUNDLING_SRCS := 				\
 	bundling/Bundle.cc			\
-	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
 	bundling/BundleTuple.cc			\
-	bundling/Contact.cc			\
-	bundling/Interface.cc			\
-	bundling/RouteTable.cc			\
-
-CONV_LAYER_SRCS :=				\
-	conv_layers/ConvergenceLayer.cc		\
-	conv_layers/FileConvergenceLayer.cc	\
-	conv_layers/IPConvergenceLayer.cc	\
-	conv_layers/TCPConvergenceLayer.cc	\
-	conv_layers/UDPConvergenceLayer.cc	\
 
 CMD_SRCS :=					\
 	cmd/Command.cc				\
-	cmd/InterfaceCommand.cc			\
-	cmd/LogCommand.cc			\
-	cmd/StorageCommand.cc			\
-	cmd/Options.cc				\
 
 DEBUG_SRCS :=					\
 	debug/gdtoa-dmisc.c			\
@@ -53,13 +38,13 @@ STORAGE_SRCS :=					\
 	storage/Serialize.cc			\
 	storage/StorageSystem.cc		\
 	storage/PostgresSQLExtract.cc		\
+	storage/PostgresSQLStore.cc		\
 
 THREAD_SRCS :=					\
 	thread/Mutex.cc				\
 	thread/Thread.cc			\
 
 SERVLIB_SRCS := $(BUNDLING_SRCS) 		\
-		$(CONV_LAYER_SRCS)		\
 		$(CMD_SRCS) 			\
 		$(DEBUG_SRCS) 			\
 		$(IO_SRCS) 			\
@@ -95,6 +80,7 @@ debug/arith.h: debug/gdtoa-arithchk.c
 	rm -f debug/arithchk
 
 GENFILES += debug/arith.h debug/arithchk
+
 
 #
 # Include the common rules
