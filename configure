@@ -105,7 +105,7 @@ tcllib=''
 
 db_enabled=1
 dbver='4.2'
-dbdir=''
+dbdir='system'
 dbincdir=''
 dblibdir=''
 dblib=''
@@ -241,11 +241,15 @@ Features
   --enable-FEATURE[=ARG]
 Packages
   --with-cc=GCC			  Version of the C/C++ compiler to use
-  --with-db=DIR			  Location of a Berkeley DB installation (or none)
-  --with-postgres=DIR		  Location of a Postgres  installation (or none)
-  --with-mysql=DIR		  Location of a Mysql installation (or none)
   --with-tcl=DIR		  Location of a tcl installation (default system)
-  --with-capriccio-pthread=DIR	  Location of capriccio pthreads installation
+
+Storage Options:  
+  --with-db=DIR			  Location of a Berkeley DB installation (default system)
+  --with-postgres=DIR		  Location of a Postgres installation (default none)
+  --with-mysql=DIR		  Location of a Mysql installation (default none)
+
+  (set DIR=none   to disable the option)
+  (set DIR=system to search default locations)
 EOF
   exit 0
   ;;
@@ -394,14 +398,14 @@ fi
 # check if the user doesn't want berkeley db at all
 #
 if [ "$dbdir" = "none" ]; then
-    db_enabled=0
+  db_enabled=0
 else
   db_enabled=1
 
   #
   # check the supplied directory if the user gave us one
   #
-  if [ "$dbdir" != "" ]; then
+  if [ "$dbdir" != "system" ]; then
     if [ -r $dbdir/include/db.h -a -r $dbdir/include/db_cxx.h ] ; then
         dbincdir=-I$dbdir/include
     else
@@ -491,7 +495,7 @@ if [ "$postgresdir" = "none" ]; then
 else
   postgres_enabled=1
   postgreslib="-lpq"
-  if [ ! "$postgresdir" = "" ]; then
+  if [ ! "$postgresdir" = "system" ]; then
 	  #
 	  # check the supplied directory
 	  #
@@ -550,7 +554,7 @@ if [ "$mysqldir" = "none" ]; then
 else
   mysql_enabled=1
   mysqllib="-lmysqlclient"
-  if [ ! "$mysqldir" = "" ]; then
+  if [ ! "$mysqldir" = "system" ]; then
 	  #
 	  # check the supplied directory
 	  #
