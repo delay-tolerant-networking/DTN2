@@ -26,16 +26,17 @@ typedef enum {
     BUNDLE_EXPIRED,		///< Bundle expired
     BUNDLE_FORWARD_TIMEOUT, 	///< A Mapping timed out
         
-    CONTACT_UP,		///< Contact is available
+    CONTACT_UP,		        ///< Contact is up
     CONTACT_DOWN,		///< Contact abnormally terminated
 
-    LINK_CREATED,		///< Link is available
+    LINK_CREATED,		///< Link is created into the system
     LINK_DELETED,		///< Link is deleted from the system
-        
+    LINK_AVAILABLE,		///< Link is available 
+    LINK_UNAVAILABLE,		///< Link is unavailable
+ 
     REGISTRATION_ADDED,		///< New registration arrived
     REGISTRATION_REMOVED,	///< Registration removed
     REGISTRATION_EXPIRED,	///< Registration expired
-
     REASSEMBLY_COMPLETED,	///< Reassembly completed
 
     // These events are injected from the management interface and/or
@@ -46,6 +47,39 @@ typedef enum {
 } event_type_t;
 
 /**
+ * Conversion function from an event to a string.
+ */
+inline const char*
+event_to_str(event_type_t event)
+{
+    switch(event) {
+
+    case BUNDLE_RECEIVED:        return "BUNDLE_RECEIVED";            
+    case BUNDLE_TRANSMITTED:     return "BUNDLE_TRANSMITTED";		
+    case BUNDLE_EXPIRED:         return "BUNDLE_EXPIRED";
+    case BUNDLE_FORWARD_TIMEOUT: return "BUNDLE_FORWARD_TIMEOUT";	
+
+    case  CONTACT_UP:            return "CONTACT_UP";		        
+    case  CONTACT_DOWN:          return "CONTACT_DOWN";		
+        
+    case LINK_CREATED:           return "LINK_CREATED";		
+    case LINK_DELETED:           return "LINK_DELETED";		
+    case LINK_AVAILABLE:         return "LINK_AVAILABLE";		 
+    case LINK_UNAVAILABLE:       return "LINK_UNAVAILABLE";		
+ 
+    case REGISTRATION_ADDED:     return "REGISTRATION_ADDED";		
+    case REGISTRATION_REMOVED:   return "REGISTRATION_REMOVED";	
+    case REGISTRATION_EXPIRED:   return "REGISTRATION_EXPIRED";	
+    case REASSEMBLY_COMPLETED:   return "REASSEMBLY_COMPLETED";	
+
+    case ROUTE_ADD:              return "ROUTE_ADD";	
+    case ROUTE_DEL:              return "ROUTE_DEL";			
+        
+    default:			return "(invalid event type)";
+    }
+}
+
+/**
  * Event base class.
  */
 class BundleEvent {
@@ -54,7 +88,14 @@ public:
      * The event type code;
      */
     const event_type_t type_;
-
+     
+    /**
+     * Used for printing
+     */
+    const char* type_str() { 
+        return event_to_str(type_);
+    }
+    
     /**
      * Need a virtual destructor to make sure all the right bits are
      * cleaned up.
@@ -151,6 +192,23 @@ class LinkDeletedEvent : public BundleEvent {
 public:
     LinkDeletedEvent(Link* link)
         : BundleEvent(LINK_DELETED), link_(link) {}
+    
+    /// The link that is up
+    Link* link_;
+};
+
+class LinkAvailableEvent : public BundleEvent {
+public:
+    LinkAvailableEvent(Link* link)
+        : BundleEvent(LINK_AVAILABLE), link_(link) {}
+    
+    Link* link_;
+};
+
+class LinkUnavailableEvent : public BundleEvent {
+public:
+    LinkUnavailableEvent(Link* link)
+        : BundleEvent(LINK_UNAVAILABLE), link_(link) {}
     
     /// The link that is up
     Link* link_;

@@ -22,7 +22,6 @@ public:
                       const BundleTuple& tuple)
         :Link(name,OPPORTUNISTIC, conv_layer,tuple)
     {
-        bundle_list_ = new BundleList(logpath_);
     }
     virtual ~OpportunisticLink()  {}
     

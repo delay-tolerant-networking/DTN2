@@ -29,7 +29,7 @@ Link::create_link(std::string name, link_type_t type,
 Link::Link(std::string name, link_type_t type, const char* conv_layer,
            const BundleTuple& tuple)
     :  BundleConsumer(&tuple_, false, "Link"),
-    type_(type),   tuple_(tuple),  name_(name)
+       type_(type),   tuple_(tuple),  name_(name), avail_(false)
 {
 
     logpathf("/link/%s",name_.c_str());
@@ -58,6 +58,7 @@ Link::Link(std::string name, link_type_t type, const char* conv_layer,
     /*
      * Note that bundle list is not initialized, for ondemand links it
      * must be null
+     * XXX, Sushant check this
      */
     bundle_list_ = NULL;
     link_info_ = NULL;
@@ -66,9 +67,15 @@ Link::Link(std::string name, link_type_t type, const char* conv_layer,
 
     // Add the link to contact manager
     ContactManager::instance()->add_link(this);
-    
+
+    bundle_list_ = new BundleList(logpath_);
+
     // Post a link created event
     BundleForwarder::post(new LinkCreatedEvent(this));
+
+    // If link is ONDEMAND set it to be available
+    if (type_ == ONDEMAND)
+        set_link_available();
 }
     
 
@@ -78,7 +85,7 @@ Link::~Link()
         ASSERT(bundle_list_->size() == 0);
         delete bundle_list_;
     }
-// XXX Sushant, should one  post a link delete event
+// Ensure that link delete event is posted somewhere
 }
 
 /**
@@ -90,7 +97,9 @@ Link::~Link()
 void
 Link::open()
 {
+    ASSERT(isavailable());
     log_debug("Link::open");
+    ASSERT(!isopen());
     if (!isopen()) {
         contact_ = new Contact(this);
     } else {
@@ -105,23 +114,16 @@ Link::open()
  * By BundleRouter:  when it receives contact_broken event
  *                :  when it thinks it has sent all messages for
  *                   an on demand link and it no longer needs it
- * By ContactManager: when a scheduled link uptime finishes
- *                  : when an opportunistic link has gone away
+ *                :  when link becomes unavailable because link is
+ *                   scheduled or because link was opportunistic
  *
- * In generaly any relevant entity in the system can try to close
- * an active contact based upon whatever logic is desired.
- * Currently we force that only BundleRuter/ContactManager can make
- * these calls
- *
- * An important requirement is to ensure that the bundle_list_
- * on the contact does not have any pending messages
+ * In general link close() is called as a reaction to the fact that
+ * link is no more available
  *
  */
 void
 Link::close()
 {
-    log_debug("Link::close");
-
     // Ensure that link is open
     ASSERT(contact_ != NULL);
 
@@ -135,6 +137,8 @@ Link::close()
     // Actually nullify the contact.
     // This is important because link == Open iff contact_ == NULL
     contact_ = NULL;
+
+    log_debug("Link::close");
 }
 
 /**
@@ -153,22 +157,70 @@ Link::format(char* buf, size_t sz)
 void
 Link::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
-    // XXX/sushant move to OndemandLink
-    // For ondemand link open the link if it is already not open
-    if (type_ == ONDEMAND) {
-        if (!isopen()) {
-            open();
-        }
-    }
-
-    /*
+   /*
      * If the link is open, messages are always queued on the contact
      * queue, if not, put them on the link queue.
      */
     if (isopen()) {
+        log_debug("Link %s is open, so queueing it on contact queue",name());
         contact_->enqueue_bundle(bundle,mapping);
     } else {
+        log_debug("Link %s is closed, so queueing it on link queue",name());
         BundleConsumer::enqueue_bundle(bundle,mapping);
     }
-    
+}
+
+/**
+ * Set the state of the link to be available
+ */
+void
+Link::set_link_available()
+{
+    ASSERT(!isavailable());
+    avail_ = true ;
+    // Post a link available event
+    BundleForwarder::post(new LinkAvailableEvent(this));
+}
+
+/**
+ * Set the state of the link to be unavailable
+ */
+void
+Link::set_link_unavailable()
+{
+    ASSERT(isavailable());
+    avail_ = false;
+    // Post a link unavailable event
+    BundleForwarder::post(new LinkUnavailableEvent(this));
+}
+
+/**
+ * Finds, how many messages are queued to go through
+ * this link (potentially)
+ */
+size_t
+Link::size()
+{
+    size_t retval =0;
+    retval += bundle_list_->size();
+    if (isopen()) {
+        /*
+         * If link is open, there should not be queued messages
+         * on link queue. 
+         * There may be some race conditions and ASSERT may be
+         * too strong a requirement.
+         */
+        ASSERT(retval == 0);
+        retval += contact_->bundle_list()->size();
+    }
+
+    /*
+     * Peer queue may have some messages too
+     * Assume, router will move from peer queue to link queue when
+     * it receives a link available message
+    */
+    // retval += peer()->bundle_list()->size();
+
+    // TODO, for scheduled links check on queues of future contacts
+    return retval;
 }

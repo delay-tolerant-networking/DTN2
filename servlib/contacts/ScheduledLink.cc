@@ -8,7 +8,6 @@ ScheduledLink::ScheduledLink(std::string name, const char* conv_layer,
     : Link(name,SCHEDULED, conv_layer,tuple)
 {
     fcts_ = new FutureContactSet();
-    //  bundle_list_ = new BundleList(logpath_);
 }
 
 ScheduledLink::~ScheduledLink()

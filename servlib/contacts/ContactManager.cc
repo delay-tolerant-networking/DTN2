@@ -141,11 +141,12 @@ ContactManager::dump(StringBuffer* buf) const
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        buf->appendf("\t link (type %s): (name) %s -> (peer) %s - (status) %s",
+        buf->appendf("\t link (type %s): (name) %s -> (peer) %s - (status) %s, %s",
                      link->type_str(),
                      link->name(),
 //                     link->clayer()->proto(),
                      link->dest_tuple()->c_str(),
+                     link->isavailable() ? "avail" : "not-avail",
                      link->isopen() ? "open" : "closed");
     }
 }

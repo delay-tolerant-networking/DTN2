@@ -30,8 +30,7 @@ public:
     virtual ~Contact();
  
     /**
-     * Queue a bundle for sending, which potentially kicks open the
-     * contact if it's not already.
+     * Queue a bundle for sending
      */
     void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
     

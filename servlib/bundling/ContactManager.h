@@ -13,9 +13,8 @@ class StringBuffer;
 
 /**
  * A contact manager singleton class.
- * Maintains  topological information regarding available
- * links,peers,contacts.
- *
+ * Maintains topological information regarding available
+ * links, peers, contacts.
  */
 class ContactManager : public Logger {
 public:

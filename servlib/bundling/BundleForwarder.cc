@@ -2,6 +2,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "Bundle.h"
+#include "BundleEvent.h"
 #include "BundleAction.h"
 #include "BundleList.h"
 #include "BundleForwarder.h"
@@ -26,7 +27,7 @@ BundleForwarder::BundleForwarder()
 void
 BundleForwarder::post(BundleEvent* event)
 {
-    __log_debug("/bundle/fwd", "queuing event with type %d", event->type_);
+    __log_debug("/bundle/fwd", "posting event with type %s", event->type_str());
 
     switch(event->type_) {
 
@@ -104,12 +105,14 @@ BundleForwarder::process(BundleAction* action)
 {
     Bundle* bundle;
     bundle = action->bundleref_.bundle();
+
+    log_debug("executing action %s",action->type_str());
     
     switch (action->action_) {
     case ENQUEUE_BUNDLE:
     {
         BundleEnqueueAction* enqaction = (BundleEnqueueAction*) action;
-        log_debug("forward bundle %d", bundle->bundleid_);
+        log_debug("forward bundle %d on consumer type %s", bundle->bundleid_,enqaction->nexthop_->type_str());
         enqaction->nexthop_->enqueue_bundle(bundle, &enqaction->mapping_);
         break;
     }
@@ -122,7 +125,14 @@ BundleForwarder::process(BundleAction* action)
         bool removed = BundleStore::instance()->del(bundle->bundleid_);
         ASSERT(removed);
         break;
-    }        
+    }
+    case OPEN_LINK: {
+        OpenLinkAction* open_link_action = (OpenLinkAction*) action;
+        Link* link = open_link_action->link_;
+        if (!link->isopen())
+            link->open();
+        break;
+    }
     default:
         PANIC("unimplemented action code %s",
               bundle_action_toa(action->action_));

@@ -24,7 +24,7 @@ class PeerSet : public std::set<Peer*> {};
  * that are destined to it.
  * Used by the routing logic to store bundles going towards
  * a common destination but yet to be assigned to a particular
- * link or contact.
+ * link.
  */
 class Peer : public Formatter,  public BundleConsumer {
 public:

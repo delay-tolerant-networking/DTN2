@@ -5,6 +5,7 @@
 #include "Bundle.h"
 #include "BundleMapping.h"
 #include "BundleRef.h"
+#include "Link.h"
 
 class BundleConsumer;
 
@@ -17,6 +18,8 @@ typedef enum {
 
     STORE_ADD,		///< Store the bundle in the database
     STORE_DEL,		///< Remove the bundle from the database
+
+    OPEN_LINK,          ///< Open link
 } bundle_action_t;
 
 
@@ -33,6 +36,8 @@ bundle_action_toa(bundle_action_t action)
         
     case STORE_ADD:		return "STORE_ADD";
     case STORE_DEL:		return "STORE_DEL";
+
+    case OPEN_LINK:             return "OPEN_LINK";
         
     default:			return "(invalid action type)";
     }
@@ -48,7 +53,8 @@ public:
           bundleref_(bundle, "BundleAction", bundle_action_toa(action))
     {
     }
-                 
+
+    const char* type_str() { return bundle_action_toa(action_); }
     bundle_action_t action_;	///< action type code
     BundleRef bundleref_;	///< relevant bundle
 
@@ -108,5 +114,20 @@ class BundleDequeueAction : public BundleAction {
 };
 
     
+/**
+ * Structure for a open link action
+ * Done really need bundle, XXX/Sushant get rid of it
+ */
+class OpenLinkAction : public BundleAction {
+public:
+    OpenLinkAction(Bundle* bundle, Link* link)
+        : BundleAction(OPEN_LINK,bundle),
+          link_(link)
+    {
+    }
+        
+    Link* link_;		///< link
+};
+
 
 #endif /* _BUNDLE_ACTION_H_ */
