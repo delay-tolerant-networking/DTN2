@@ -17,7 +17,7 @@ CommandInterp::CommandInterp()
 {
     interp_ = Tcl_CreateInterp();
     
-    lock_ = new Mutex("/command/lock");
+    lock_ = new Mutex("/command/lock", Mutex::TYPE_RECURSIVE, true);
 
     // do auto registration of commands (if any)
     if (auto_reg_) {
@@ -86,7 +86,7 @@ CommandInterp::reg(CommandModule *module)
 {
     ScopeLock l(lock_);
     
-    module->logf(LOG_DEBUG, "command registering");
+    module->logf(LOG_DEBUG, "%s command registering", module->name());
     
     Tcl_CreateCommand(interp_, 
                       (char*)module->name(),
