@@ -4,6 +4,7 @@
 #include <db.h>
 #include "BundleStore.h"
 #include "PersistentStore.h"
+#include "SQLSerialize.h"
 
 class SQLManager;
 
@@ -12,18 +13,43 @@ class SQLManager;
  * database.
  */
 class SQLStore : public PersistentStore {
+
+
 public:
-    SQLStore();
+    SQLStore(const char* name, SerializableObject* obj);
     
     /// @{ Virtual overrides from PersistentStore
-    int get(SerializableObject* obj, const int key);
-    int put(SerializableObject* obj, const int key);
-    int del(const int key);
-    int num_elements();
-    void keys(std::vector<int> l);
-    void elements(std::vector<SerializableObject*> l);
-    /// @}
+    //     int get(SerializableObject* obj, const int key);
+    // int num_elements();
+    //  void keys(std::vector<int> l);
+
+      // Returns a sql query that can be  used to fetch the object from database
+    
+      int put(SerializableObject* obj, const int key);
+      int del(const int key);
+      void elements(std::vector<SerializableObject*> l);
+      
+
+      /// @}
+
+ protected:
+      const char*  get_sqlquery(SerializableObject* obj, const int key);
+      const char* num_elements_sqlquery();
+      const char* keys_sqlquery();
+
+      // creates table in the database if it does not exist
+      int create_table(SerializableObject* obj) ;
+
+      
+      virtual int  exec_query(const char* query) =0;
+      
+
+ private:
+      const char* table_name_ ;
+      const char* OBJECT_ID_FIELD ;
+      //= "oid";
 };
+
 
 
 /**
