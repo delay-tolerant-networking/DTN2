@@ -204,6 +204,8 @@ main(int argc, const char** argv)
             }
         }
 
+        fclose(target);
+
         // round off last line
         if (debug && marker % BUFSIZE != 0)
         {
