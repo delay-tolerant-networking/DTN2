@@ -160,7 +160,7 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
 
     file_->writeall((char*)bp, len);
 
-    cur_offset_      += len;
+    cur_offset_  += len;
     rcvd_length_ += len;
 }
 
@@ -193,7 +193,7 @@ BundlePayload::append_data(const u_char* bp, size_t len)
     ASSERT(length_ > 0);
     ASSERT(file_->is_open());
     
-    internal_write(bp, base_offset_, len);
+    internal_write(bp, base_offset_ + cur_offset_, len);
 }
 
 /**
@@ -208,7 +208,7 @@ BundlePayload::write_data(const u_char* bp, size_t offset, size_t len)
     ASSERT(length_ >= (len + offset));
     ASSERT(file_->is_open());
     
-    internal_write(bp, offset, len);
+    internal_write(bp, base_offset_ + offset, len);
 }
 
 /**
