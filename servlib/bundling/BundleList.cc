@@ -55,11 +55,6 @@ BundleList::add_bundle(Bundle* b)
     b->add_ref("bundle_list", name_.c_str());
     bool added = b->add_container(this);
     ASSERT(added);
-    
-    if (size() == 1)
-    {
-        notify();
-    }
 }
 
 
@@ -69,9 +64,14 @@ BundleList::add_bundle(Bundle* b)
 void
 BundleList::push_front(Bundle* b)
 {
-    ScopeLock l(lock_);
+    lock_->lock();
     list_.push_front(b);
     add_bundle(b);
+    lock_->unlock();
+    
+    if (size() == 1) {
+        notify();
+    }
 }
 
 /**
@@ -80,9 +80,14 @@ BundleList::push_front(Bundle* b)
 void
 BundleList::push_back(Bundle* b)
 {
-    ScopeLock l(lock_);
+    lock_->lock();
     list_.push_back(b);
     add_bundle(b);
+    lock_->unlock();
+    
+    if (size() == 1) {
+        notify();
+    }
 }
         
 /**
@@ -91,8 +96,9 @@ BundleList::push_back(Bundle* b)
 void
 BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
 {
-    ScopeLock l(lock_);
     ListType::iterator iter;
+
+    lock_->lock();
 
     // scan through the list until the iterator either a) reaches the
     // end of the list or b) reaches the bundle that should follow the
@@ -119,8 +125,12 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
     }
 
     list_.insert(iter, b);
-
     add_bundle(b);
+    lock_->unlock();
+    
+    if (size() == 1) {
+        notify();
+    }
 }
 
 /**
