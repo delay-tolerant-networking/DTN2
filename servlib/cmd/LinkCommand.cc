@@ -14,7 +14,7 @@ const char*
 LinkCommand::help_string()
 {
     return ""
-        "link add <peer> <name>  <type> <convergence_layer> <args>\n"
+        "link add <name> <peer> <type> <convergence_layer> <args>\n"
         "      Note: <peer> is a bundle tuple pattern, <name> is any string \n"
         ;
 }
@@ -30,20 +30,21 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     const char* cmd = argv[1];
 
     if (strcmp(cmd, "add") == 0) {
-        // link add  <nexthop> <name> <type> <clayer> <args>
+        // link add <name> <peer> <type> <clayer> <args>
         if (argc < 5) {
             wrong_num_args(argc, argv, 2, 3, INT_MAX);
             return TCL_ERROR;
         }
         
-        const char* nexthop_str = argv[2];
+        const char* name_str = argv[2];
+        
+        const char* nexthop_str = argv[3];
         BundleTuplePattern nexthop(nexthop_str);
         if (!nexthop.valid()) {
             resultf("invalid next hop tuple %s", nexthop_str);
             return TCL_ERROR;
         }
        
-        const char* name_str = argv[3];
         const char* type_str = argv[4];
         const char* cl = argv[5];
         
