@@ -69,7 +69,7 @@ public:
         instance_ = instance;
     }
 
-    static double time() { return instance_->time_; }
+    static int time() { return instance_->time_; }
 
     /**
      * Constructor.
@@ -85,13 +85,7 @@ public:
      * Add an event to the main event queue.
      */
     static void add_event(Event *e);
-
     
-    /**
-     * Remove an event from the main event queue.
-     */
-    static void remove_event(Event* e);
-
     /**
      * Stops simulation and exits the loop
      */
@@ -102,7 +96,7 @@ public:
      */
     void run();
     
-    static int runtill_; 	 /// time to end the simulation
+    static int runtill_; 	 ///< time to end the simulation
     
 protected:
     static Simulator* instance_; ///< singleton instance
@@ -110,10 +104,10 @@ protected:
 
 private:
     
-    double time_;     /// current time
+    int time_; ///< current time
 
-    bool is_running_; /// maintains the state if the simulator is
-                      /// running or paused
+    bool is_running_; ///< maintains the state if the simulator is
+                      ///< running or paused
     
     std::priority_queue<Event*, std::vector<Event*>, EventCompare> eventq_;
 };

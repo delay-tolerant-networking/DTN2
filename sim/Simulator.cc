@@ -58,12 +58,6 @@ Simulator::add_event(Event* e)
 }
 
 void
-Simulator::remove_event(Event* e)
-{
-    e->cancel();
-}
-
-void
 Simulator::exit() 
 {
     ::exit(0);
@@ -87,34 +81,26 @@ Simulator::run()
             if (e->is_valid()) {
                 ASSERT(e->handler() != NULL);
                 /* Process the event */
-                log_debug("Event:%p type %s at time %f",
-                           e,e->type_str(),time_);
+                log_debug("Event:%p type %s at time %d",
+                           e, e->type_str(), time_);
                 e->handler()->process(e);
             }
             if ((time_ > Simulator::runtill_)) {
-                log_info(
-                     "Exiting simulation. Current time (%f) > Max time (%d)",
-                     time_,Simulator::runtill_);
+                log_info("Exiting simulation. "
+                         "Current time (%d) > Max time (%d)",
+                         time_, Simulator::runtill_);
                 exit();
             }
         } // if is_running_
     }
-    log_info("eventq is empty, time is %f ",time_);
+    log_info("eventq is empty, time is %d", time_);
 }
 
 
 void
 Simulator::process(Event *e)
 {
-    switch (e->type()) {
-    case    SIM_PRINT_STATS: {
-        log_info("SIM: print_stats");
-        break;
-        }
-    default:
-        PANIC("undefined event \n");
-    }
-
+    NOTIMPLEMENTED;
 }
 
 } // namespace dtnsim
