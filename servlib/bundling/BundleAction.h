@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "Bundle.h"
+#include "BundleRef.h"
 
 class BundleConsumer;
 
@@ -37,10 +38,9 @@ class BundleAction {
 public:
     BundleAction(bundle_action_t action, Bundle* bundle,
                  BundleConsumer* nexthop);
-    ~BundleAction();
                  
     bundle_action_t action_;	///< action type code
-    Bundle* bundle_;		///< relevant bundle
+    BundleRef bundleref_;	///< relevant bundle
     BundleConsumer* nexthop_;	///< destination
     size_t start_;		///< start of data range
     size_t end_;		///< end of data range
@@ -67,21 +67,8 @@ class BundleActionList : public std::vector<BundleAction*> {
 inline
 BundleAction::BundleAction(bundle_action_t action, Bundle* bundle,
                            BundleConsumer* nexthop)
-    : action_(action), bundle_(bundle), nexthop_(nexthop)
+    : action_(action), bundleref_(bundle), nexthop_(nexthop)
 {
-    if (bundle_)
-        bundle_->add_ref();
-}
-
-/**
- * BundleAction destructor. Decrements the reference count on the
- * bundle.
- */
-inline
-BundleAction::~BundleAction()
-{
-    if (bundle_)
-        bundle_->del_ref();
 }
 
 #endif /* _BUNDLE_ACTION_H_ */
