@@ -51,7 +51,7 @@ public:
     
     /// Wrapper around poll() for a single fd
     /// @return -1 for error, 0 or 1 to indicate readiness
-    static int poll(int fd, int events, int timeout_ms,
+    static int poll(int fd, int events, int* revents, int timeout_ms,
                     const char* log = NULL);
     
     //@{

@@ -79,3 +79,9 @@ FdIOClient::timeout_readvall(const struct iovec* iov, int iovcnt,
 {
     return IO::timeout_readvall(fd_, iov, iovcnt, timeout_ms, logpath_);
 }
+
+int
+FdIOClient::set_nonblocking(bool nonblocking)
+{
+    return IO::set_nonblocking(fd_, nonblocking);
+}

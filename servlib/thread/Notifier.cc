@@ -83,7 +83,7 @@ Notifier::wait(SpinLock* lock, int timeout)
         lock->unlock();
 
     while (1) {
-        ret = IO::poll(read_fd(), POLLIN, timeout, logpath_);
+        ret = IO::poll(read_fd(), POLLIN, NULL, timeout, logpath_);
         if (ret < 0) {
             if (ret == -1 && errno == EINTR) {
                 continue;

@@ -179,7 +179,7 @@ TimerSystem::run()
 
         // unlock the lock before calling poll
         system_lock_->unlock();
-        int cc = IO::poll(signal_.read_fd(), POLLIN, timeout, logpath_);
+        int cc = IO::poll(signal_.read_fd(), POLLIN, NULL, timeout, logpath_);
 
         // and re-take the lock on return
         system_lock_->lock();

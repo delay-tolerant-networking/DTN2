@@ -47,6 +47,8 @@ public:
                                  int timeout_ms) = 0;
     //@}
 
+    /// Set the file descriptor's nonblocking status
+    virtual int set_nonblocking(bool nonblocking) = 0;
 };
 
 #endif // __IOCLIENT_H__

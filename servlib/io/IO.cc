@@ -109,7 +109,7 @@ IO::unlink(const char* path, const char* log)
 }
 
 int
-IO::poll(int fd, int events, int timeout_ms, const char* log)
+IO::poll(int fd, int events, int* revents, int timeout_ms, const char* log)
 {
     int ret;
     struct pollfd pollfd;
@@ -119,11 +119,21 @@ IO::poll(int fd, int events, int timeout_ms, const char* log)
     pollfd.revents = 0;
 
     ret = ::poll(&pollfd, 1, timeout_ms);
+
+    if (log)
+        logf(log, LOG_DEBUG,
+             "poll: events 0x%x timeout %d revents 0x%x ret %d",
+             events, timeout_ms, pollfd.revents, ret);
+                  
     if (ret < 0) {
         if (log && errno != EINTR)
             logf(log, LOG_ERR, "error in poll: %s", strerror(errno));
         return -1;
     }
+
+    
+    if (revents)
+        *revents = pollfd.revents;
     
     return ret; // 0 or 1
 }
@@ -201,7 +211,6 @@ IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
     {
         cc = (*rw)(fd, iov, iovcnt);
         if (cc < 0) {
-            if (errno == EAGAIN) continue;
             done = cc;
             goto done;
         }
@@ -268,7 +277,7 @@ IO::timeout_read(int fd, char* bp, size_t len, int timeout_ms,
 {
     ASSERT(timeout_ms >= 0);
     
-    int ret = poll(fd, POLLIN | POLLPRI, timeout_ms, log);
+    int ret = poll(fd, POLLIN | POLLPRI, NULL, timeout_ms, log);
     if (ret < 0)
         return IOERROR;
 
@@ -299,7 +308,7 @@ IO::timeout_readv(int fd, const struct iovec* iov, int iovcnt, int timeout_ms,
 {
     ASSERT(timeout_ms >= 0);
     
-    int ret = poll(fd, POLLIN | POLLPRI, timeout_ms, log);
+    int ret = poll(fd, POLLIN | POLLPRI, NULL, timeout_ms, log);
     if (ret < 0)
         return IOERROR;
 

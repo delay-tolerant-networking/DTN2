@@ -37,7 +37,7 @@ class IPSocket : public Logger {
     //@}
 
     /// Wrapper around poll() for this socket's fd
-    virtual inline int poll(int events, int timeout_ms);
+    virtual inline int poll(int events, int* revents, int timeout_ms);
 
     /// Socket State values
     enum state_t {
@@ -244,9 +244,9 @@ IPSocket::logf(log_level_t level, const char *fmt, ...)
 }
 
 int
-IPSocket::poll(int events, int timeout_ms)
+IPSocket::poll(int events, int* revents, int timeout_ms)
 {
-    return IO::poll(fd_, events, timeout_ms, logpath_);
+    return IO::poll(fd_, events, revents, timeout_ms, logpath_);
 }
  
 #endif /* _IP_SOCKET_H_ */

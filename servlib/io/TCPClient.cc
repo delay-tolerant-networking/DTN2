@@ -91,7 +91,7 @@ TCPClient::timeout_connect(in_addr_t remote_addr, u_int16_t remote_port,
     {
         ASSERT(errno == EINPROGRESS);
         log_debug("EINPROGRESS from connect(), calling poll()");
-        ret = IO::poll(fd_, POLLOUT, timeout_ms, logpath_);
+        ret = IO::poll(fd_, POLLOUT, NULL, timeout_ms, logpath_);
         
         if (ret < 0) {
             log_err("error in poll(): %s", strerror(errno));

@@ -53,6 +53,12 @@ IPClient::writev(const struct iovec* iov, int iovcnt)
 }
 
 int
+IPClient::poll(int events, int* revents, int timeout_ms)
+{
+    return IO::poll(fd_, events, revents, timeout_ms, logpath_);
+}
+
+int
 IPClient::readall(char* bp, size_t len)
 {
     return IO::readall(fd_, bp, len, logpath_);
@@ -98,4 +104,10 @@ int
 IPClient::timeout_readvall(const struct iovec* iov, int iovcnt, int timeout_ms)
 {
     return IO::timeout_readvall(fd_, iov, iovcnt, timeout_ms, logpath_);
+}
+
+int
+IPClient::set_nonblocking(bool nonblocking)
+{
+    return IO::set_nonblocking(fd_, nonblocking);
 }

@@ -32,6 +32,8 @@ public:
     virtual int timeout_readall(char* bp, size_t len, int timeout_ms);
     virtual int timeout_readvall(const struct iovec* iov, int iovcnt,
                                  int timeout_ms);
+
+    virtual int set_nonblocking(bool nonblocking);
 protected:
     int fd_;
 };
