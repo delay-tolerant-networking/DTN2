@@ -3,8 +3,7 @@
 
 #include "IPConvergenceLayer.h"
 #include "io/UDPClient.h"
-#include "io/UDPServer.h"
-
+#include "thread/Thread.h"
 
 class UDPConvergenceLayer : public IPConvergenceLayer {
 public:
@@ -44,22 +43,32 @@ public:
      */
     bool close_contact(Contact* contact);
 
-	/*
-	 * Tunable Parameters 
-	 */
-	static struct _defaults {
+    /*
+     * Tunable Parameters 
+     */
+    static struct _defaults {
         int ack_blocksz_; /* Not used (version 1.0) */
     } Defaults;    
     
     /**
      * Helper class (and thread) that listens on a registered
-     * interface for data 
+     * interface for incoming data 
      */
-     class DataListener : public InterfaceInfo, public UDPServerThread {
-	public:
-	  DataListener();
-	  void ProcessData(char* payload, size_t payload_len);
-	};
+    class Receiver : public InterfaceInfo, public IPSocket, public Thread {
+public:
+        Receiver();
+        void process_data(char* payload, size_t payload_len);
+        /**
+         * Loop forever, issuing blocking calls to IPSocket::recvfrom(),
+         * then calling the process_data function when new data does
+         * arrive
+         * 
+         * Note that unlike in the Thread base class, this run() method is
+         * public in case we don't want to actually create a new thread
+         * for this guy, but instead just want to run the main loop.
+         */
+        void run();
+    };
 
     /**
      * Helper class (and thread) that manages an "established"
@@ -70,23 +79,23 @@ public:
      * a connection. The receiver will just receive data. Therefore,
      * we don't need a passive side of a connection
      */
-    class Connection : public ContactInfo, public Thread, public Logger {
-    public:
+    class Sender : public ContactInfo, public Thread, public Logger {
+public:
         /**
          * Constructor for the active connection side of a connection.
          */
-        Connection(Contact* contact,
-                   in_addr_t remote_addr,
-                   u_int16_t remote_port);
+        Sender(Contact* contact,
+               in_addr_t remote_addr,
+               u_int16_t remote_port);
 
 	
         
         /**
          * Destructor.
          */
-        ~Connection();
+        ~Sender();
         
-       protected:
+protected:
         virtual void run();
         void send_loop();
         bool send_bundle(Bundle* bundle);
