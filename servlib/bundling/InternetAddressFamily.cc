@@ -36,8 +36,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/util/URL.h>
 #include <oasys/io/NetUtils.h>
+#include <oasys/util/URL.h>
 
 #include "InternetAddressFamily.h"
 
@@ -85,8 +85,9 @@ InternetAddressFamily::parse(const std::string& admin,
 bool
 InternetAddressFamily::validate(const std::string& admin)
 {
-    // XXX/demmer fix this
-    return true;
+    // make sure it's a valid url
+    oasys::URL url(admin);
+    return url.valid();
 }
 
 /**
@@ -97,24 +98,69 @@ bool
 InternetAddressFamily::match(const std::string& pattern,
                              const std::string& admin)
 {
-    size_t patternlen = pattern.length();
+    // parse the two strings into URLs for easier manipulation
+    oasys::URL pattern_url(pattern);
+    oasys::URL admin_url(admin);
 
-    // first of all, try exact matching
-    if (pattern.compare(admin) == 0)
-        return true;
-    
-    // otherwise, try supporting * as a trailing character
-    if (patternlen >= 1 && pattern[patternlen-1] == '*') {
-        patternlen --;
-        
-        if (pattern.substr(0, patternlen) == admin.substr(0, patternlen))
-            return true;
+    if (!pattern_url.valid()) {
+        log_warn("/af/internet", "match error: pattern '%s' not a valid url",
+                 pattern.c_str());
+        return false;
     }
 
-    // XXX/demmer also support CIDR style matching
+    if (!admin_url.valid()) {
+        log_warn("/af/internet", "match error: admin '%s' not a valid url",
+                 pattern.c_str());
+        return false;
+    }
+    
+    // check for a wildcard host specifier
+    // e.g bundles://internet/host://*
+    if (pattern_url.host_ == "*" && pattern_url.path_ == "")
+    {
+        return true;
+    }
+
+    // match the host part of the urls (allowing for a pattern of *)
+    if ((pattern_url.host_ != "*") &&
+        (pattern_url.host_ != admin_url.host_))
+    {
+        log_debug("/af/internet",
+                  "match failed: url hosts not equal ('%s' != '%s')",
+                  pattern_url.host_.c_str(), admin_url.host_.c_str());
+        return false;
+    }
+
+    // make sure the ports are equal (or unspecified)
+    if (pattern_url.port_ != admin_url.port_)
+    {
+        log_debug("/af/internet",
+                  "match failed: url ports not equal (%d != %d)",
+                  pattern_url.port_, admin_url.port_);
+        return false;
+    }
+
+    // check for a wildcard path or an exact match of the path strings
+    if ((pattern_url.path_ == "*") ||
+        (pattern_url.path_ == admin_url.path_))
+    {
+        return true;
+    }
+
+    // finally, try supporting a trailing * to truncate the path match
+    size_t patternlen = pattern_url.path_.length();
+    if (patternlen >= 1 && pattern_url.path_[patternlen-1] == '*') {
+        patternlen--;
+        
+        if (pattern_url.path_.substr(0, patternlen) ==
+            admin_url.path_.substr(0, patternlen)) {
+            return true;
+        }
+    }
+
+    // XXX/demmer TODO: support CIDR style matching for ip:// addresses
     
     return false;
-
 }
 
 } // namespace dtn

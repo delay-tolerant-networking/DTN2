@@ -47,6 +47,9 @@
 #define MATCH   true
 #define NOMATCH false
 
+using namespace dtn;
+
+
 void
 test_parse(bool expect_ok, const char* str )
 {
@@ -54,15 +57,15 @@ test_parse(bool expect_ok, const char* str )
 
     if (expect_ok) {
         if (t.valid()) {
-            log_info("/test", "ok  -- '%s' valid", str);
+            log_info("/test", " ok -- '%s' valid", str);
         } else {
-            log_err("/test",  " ERR -- '%s' INVALID expected valid", str);
+            log_err("/test",  "ERROR -- '%s' INVALID expected valid", str);
         }
     } else {
         if (!t.valid()) {
-            log_info("/test", "ok  -- '%s' invalid", str);
+            log_info("/test", " ok -- '%s' invalid", str);
         } else {
-            log_err("/test",  " ERR -- '%s' VALID expected invalid", str);
+            log_err("/test",  "ERROR -- '%s' VALID expected invalid", str);
         }
     }
 }
@@ -79,16 +82,16 @@ test_match(bool expect_match, const char* pattern, const char* tuple)
     
     if (expect_match) {
         if (match) {
-            log_info("/test", "ok  -- '%s' match '%s'", pattern, tuple);
+            log_info("/test", " ok -- '%s' match '%s'", pattern, tuple);
         } else {
-            log_err("/test",  " ERR -- '%s' NOMATCH '%s' expected match",
+            log_err("/test",  "ERROR -- '%s' NOMATCH '%s' expected match",
                     pattern, tuple);
         }
     } else {
         if (!match) {
-            log_info("/test", "ok  -- '%s' nomatch '%s'", pattern, tuple);
+            log_info("/test", " ok -- '%s' nomatch '%s'", pattern, tuple);
         } else {
-            log_err("/test",  " ERR -- '%s' MATCH '%s' expected nomatch",
+            log_err("/test",  "ERROR -- '%s' MATCH '%s' expected nomatch",
                     pattern, tuple);
         }
     }
@@ -97,7 +100,7 @@ test_match(bool expect_match, const char* pattern, const char* tuple)
 int
 main(int argc, const char** argv)
 {
-    Log::init(1, LOG_INFO);
+    oasys::Log::init();
     AddressFamilyTable::init();
 
     log_info("/test", "address family test starting...");
@@ -110,21 +113,25 @@ main(int argc, const char** argv)
     test_parse(INVALID, "bundles://");
     test_parse(INVALID, "bundles://region");
     test_parse(INVALID, "bundles://region/");
-    test_parse(INVALID, "bundles:///admin");
-    test_parse(INVALID, "bundles://region/admin");
-    test_parse(INVALID, "bundles://region/admin:");
-    test_parse(INVALID, "bundles://region/admin:/");
-    test_parse(INVALID, "bundles://region/admin://");
+    test_parse(INVALID, "bundles:///host");
+    test_parse(INVALID, "bundles://region/host");
+    test_parse(INVALID, "bundles://region/host:");
+    test_parse(INVALID, "bundles://region/host:/");
+    test_parse(INVALID, "bundles://region/host://");
+    test_parse(INVALID, "bundles://region/unknownschema://address");
     
     // test internet style parsing
     test_parse(VALID,   "bundles://internet/host://tier.cs.berkeley.edu/demux");
     test_parse(VALID,   "bundles://internet/host://host/demux");
-    test_parse(VALID,   "bundles://internet/host://host:port/demux");
+    test_parse(VALID,   "bundles://internet/host://host:1000/demux");
 
     // test fixed style
-    test_parse(VALID,   "bundles://fixed/1");
-    test_parse(VALID,   "bundles://fixed/12");
-    test_parse(INVALID, "bundles://fixed/123");
+    test_parse(VALID,   "bundles://fixed/0x01");
+    test_parse(VALID,   "bundles://fixed/0xff");
+    test_parse(VALID,   "bundles://fixed/0x0102");
+    test_parse(VALID,   "bundles://fixed/0xabcd");
+    test_parse(INVALID, "bundles://fixed/0x123");
+    test_parse(INVALID, "bundles://fixed/0x12345");
     
     // test internet style matching
     test_match(MATCH,
@@ -132,59 +139,93 @@ main(int argc, const char** argv)
                "bundles://internet/host://tier.cs.berkeley.edu/demux");
 
     test_match(MATCH,
-               "bundles://internet/ip://128.32.0.0/16",
-               "bundles://internet/ip://128.32.100.56:5000/demux");
-    
+               "bundles://internet/host://tier.cs.berkeley.edu/*",
+               "bundles://internet/host://tier.cs.berkeley.edu/demux");
+
     test_match(MATCH,
-               "bundles://internet/ip://128.32.0.0/255.255.0.0",
-               "bundles://internet/ip://128.32.100.56:5000/demux");
+               "bundles://internet/host://tier.cs.berkeley.edu/*",
+               "bundles://internet/host://tier.cs.berkeley.edu");
+
+    test_match(MATCH,
+               "bundles://internet/host://tier.cs.berkeley.edu/*",
+               "bundles://internet/host://tier.cs.berkeley.edu/");
+
+    test_match(MATCH,
+               "bundles://internet/host://tier.cs.berkeley.edu/demux/*",
+               "bundles://internet/host://tier.cs.berkeley.edu/demux/");
+
+    test_match(MATCH,
+               "bundles://internet/host://tier.cs.berkeley.edu/demux/*",
+               "bundles://internet/host://tier.cs.berkeley.edu/demux/something");
+
+    test_match(MATCH,
+               "bundles://internet/host://*/demux/*",
+               "bundles://internet/host://tier.cs.berkeley.edu/demux/something");
+
+    test_match(NOMATCH,
+               "bundles://internet/host://host1/demux",
+               "bundles://internet/host://host2/demux");
+
+    test_match(NOMATCH,
+               "bundles://internet/host://host1/demux",
+               "bundles://internet/host://host1:9999/demux");
+
+    test_match(NOMATCH,
+               "bundles://internet/host://host1/demux",
+               "bundles://internet/host://host1/demux2");
+
+    test_match(NOMATCH,
+               "bundles://internet/host://host1/demux",
+               "bundles://internet/host://host1/demux/something");
+
+// XXX/demmer todo
+//     test_match(MATCH,
+//                "bundles://internet/ip://128.32.0.0/16",
+//                "bundles://internet/ip://128.32.100.56:5000/demux");
+    
+//     test_match(MATCH,
+//                "bundles://internet/ip://128.32.0.0/255.255.0.0",
+//                "bundles://internet/ip://128.32.100.56:5000/demux");
 
     // test fixed matching
     test_match(MATCH,
-               "bundles://fixed/1",
-               "bundles://fixed/1");
+               "bundles://fixed/0x01",
+               "bundles://fixed/0x01");
 
     test_match(MATCH,
-               "bundles://fixed/12",
-               "bundles://fixed/12");
+               "bundles://fixed/0xab",
+               "bundles://fixed/0xab");
 
     test_match(NOMATCH,
-               "bundles://fixed/1",
-               "bundles://fixed/11");
+               "bundles://fixed/0x01",
+               "bundles://fixed/0x11");
 
-    test_match(MATCH,
-               "bundles://fixed/\a",
-               "bundles://fixed/\a");
-
-    test_match(MATCH,
-               "bundles://fixed/\n",
-               "bundles://fixed/\n");
+    test_match(NOMATCH,
+               "bundles://fixed/0x01",
+               "bundles://fixed/0x0101");
 
     // test wildcard matching
     test_match(MATCH,
-               "bundles://*/*:*",
-               "bundles://internet/host://tier.cs.berkeley.edu/demux");
-
-    test_match(MATCH,
-               "bundles://internet/*:*",
-               "bundles://internet/host://tier.cs.berkeley.edu/demux");
-
-    test_match(NOMATCH,
                "bundles://*/*",
                "bundles://internet/host://tier.cs.berkeley.edu/demux");
 
     test_match(MATCH,
                "bundles://*/*:*",
-               "bundles://fixed/1");
+               "bundles://internet/host://tier.cs.berkeley.edu/demux");
+
+    test_match(MATCH,
+               "bundles://internet/*",
+               "bundles://internet/host://tier.cs.berkeley.edu/demux");
+
+    test_match(MATCH,
+               "bundles://*/host://tier.cs.berkeley.edu/demux",
+               "bundles://internet/host://tier.cs.berkeley.edu/demux");
+
+    test_match(MATCH,
+               "bundles://*/*:*",
+               "bundles://fixed/0x01");
 
     test_match(MATCH,
                "bundles://fixed/*:*",
-               "bundles://fixed/1");
-
-    char buf[128];
-    sprintf(buf, "bundles://fixed/%c", 42);
-    test_match(MATCH, "bundles://*/*", buf);
-
-    //test_parse(INVALID,   "bundles://internet/host://:port/demux");
-
+               "bundles://fixed/0x01");
 }
