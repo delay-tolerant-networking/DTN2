@@ -13,10 +13,9 @@ FragmentManager::FragmentManager()
 }
 
 Bundle* 
-FragmentManager::fragment(Bundle* bundle, int offset, size_t length)
+FragmentManager::create_fragment(Bundle* bundle, int offset, size_t length)
 {
     Bundle* fragment = new Bundle();
-    int payload_offset = 0;
     
     fragment->source_ = bundle->source_;
     fragment->replyto_ = bundle->replyto_;
@@ -31,50 +30,54 @@ FragmentManager::fragment(Bundle* bundle, int offset, size_t length)
     fragment->creation_ts_ = bundle->creation_ts_;
     fragment->expiration_ = bundle->expiration_;
 
-    // always creating a fragmentment
+    // always creating a fragment
     fragment->is_fragment_ = true;
-
-    // offset is given
-    fragment->frag_offset_ = offset;
 
     // initialize the fragment's orig_length and figure out the offset
     // into the payload
     if (! bundle->is_fragment_) {
         fragment->orig_length_ = bundle->payload_.length();
-        payload_offset = offset;
-
+        fragment->frag_offset_ = offset;
     } else {
         fragment->orig_length_ = bundle->orig_length_;
-        payload_offset = offset - bundle->frag_offset_;
-
-        if (payload_offset <= 0) {
-            log_err("fragment range doesn't overlap: "
-                    "orig_length %d frag_offset %d requested offset %d",
-                    bundle->orig_length_, bundle->frag_offset_,
-                    offset);
-            delete fragment;
-            return NULL;
-        }
+        fragment->frag_offset_ = bundle->frag_offset_ + offset;
     }
 
     // check for overallocated length
     if ((offset + length) > fragment->orig_length_) {
-        log_err("fragment length overrun: "
-                "orig_length %d frag_offset %d requested offset %d length %d",
-                fragment->orig_length_, fragment->frag_offset_,
-                offset, length);
-        delete fragment;
-        return NULL;
+        PANIC("fragment length overrun: "
+              "orig_length %d frag_offset %d requested offset %d length %d",
+              fragment->orig_length_, fragment->frag_offset_,
+              offset, length);
     }
 
 
     // initialize payload
     // XXX/mho: todo - we can modify BundlePayload to use an offset/length in
     // the existing file rather than making a copy
-    fragment->payload_.set_data(bundle->payload_.read_data(payload_offset, length),
-                                length);
+    fragment->payload_.set_data(
+        bundle->payload_.read_data(offset, length), length);
 
     return fragment;
+}
+
+void
+FragmentManager::convert_to_fragment(Bundle* bundle, size_t length)
+{
+    size_t payload_len = bundle->payload_.length();
+    ASSERT(payload_len > length);
+
+    if (! bundle->is_fragment_) {
+        bundle->is_fragment_ = true;
+        bundle->orig_length_ = payload_len;
+        bundle->frag_offset_ = 0;
+    } else {
+        // if it was already a fragment, the fragment headers are
+        // already correct
+    }
+
+    // truncate the payload
+    bundle->payload_.truncate(length);
 }
 
 void
@@ -124,14 +127,9 @@ FragmentManager::check_completed(ReassemblyState* state)
         f_len = fragment->payload_.length();
         f_offset = fragment->frag_offset_;
         f_origlen = fragment->orig_length_;
-            
-        ASSERT(fragment->is_fragment_);
-
         
-        log_debug("check_completed: fragment %d/%d: offset %d len %d total %d done_up_to %d",
-                  fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
-
-
+        ASSERT(fragment->is_fragment_);
+        
         if (f_origlen != total_len) {
             PANIC("check_completed: error fragment orig len %d != total %d",
                   f_origlen, total_len);
@@ -144,6 +142,10 @@ FragmentManager::check_completed(ReassemblyState* state)
              * bbbbbbbbbb
              *           fff
              */
+            log_debug("check_completed fragment %d/%d: "
+                      "offset %d len %d total %d done_up_to %d: "
+                      "(perfect fit)",
+                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
             done_up_to += f_len;
         }
 
@@ -152,8 +154,10 @@ FragmentManager::check_completed(ReassemblyState* state)
              * there's a gap
              * bbbbbbb ffff
              */
-            log_debug("check_completed: found a hole (offset %d done_up_to %d)",
-                      fragment->frag_offset_, done_up_to);
+            log_debug("check_completed fragment %d/%d: "
+                      "offset %d len %d total %d done_up_to %d: "
+                      "(found a hole)",
+                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
             return false;
 
         }
@@ -163,7 +167,10 @@ FragmentManager::check_completed(ReassemblyState* state)
              * bbbbbbbbbb
              *      fffff
              */
-            log_debug("check_completed: redundant fragment");
+            log_debug("check_completed fragment %d/%d: "
+                      "offset %d len %d total %d done_up_to %d: "
+                      "(redundant fragment)",
+                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
             continue;
         }
         
@@ -173,16 +180,28 @@ FragmentManager::check_completed(ReassemblyState* state)
              * bbbbbbbbbb
              *      fffffff
              */
+            log_debug("check_completed fragment %d/%d: "
+                      "offset %d len %d total %d done_up_to %d: "
+                      "(overlapping fragment, reducing len to %d)",
+                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to,
+                      done_up_to - f_offset);
+            
             f_len -= (done_up_to - f_offset);
             done_up_to += f_len;
+        }
+
+        else {
+            // all cases should be covered above
+            NOTREACHED;
         }
     }
 
     if (done_up_to == total_len) {
-        log_debug("check_completed: reassembly complete!");
+        log_debug("check_completed reassembly complete!");
         return true;
     } else {
-        log_debug("check_completed: reassembly got %d/%d", done_up_to, total_len);
+        log_debug("check_completed reassembly not done (got %d/%d)",
+                  done_up_to, total_len);
         return false;
     }
 }
@@ -208,12 +227,13 @@ FragmentManager::process(Bundle* fragment)
                   hash_key.c_str(), state->fragments_.size());
         
     } else {
-        log_debug("can't find reassembly state for key %s",
+        log_debug("no reassembly state for key %s -- creating new state",
                   hash_key.c_str());
         state = new ReassemblyState();
 
         state->bundle_ = new Bundle();
-        state->bundle_->payload_.set_length(fragment->orig_length_, BundlePayload::DISK);
+        state->bundle_->payload_.set_length(fragment->orig_length_,
+                                            BundlePayload::DISK);
         state->bundle_->add_ref();
         
         reassembly_table_[hash_key] = state;

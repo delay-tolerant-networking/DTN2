@@ -9,6 +9,11 @@ class Bundle;
 class BundleList;
 class SpinLock;
 
+// XXX/demmer should change the overall flow of the reassembly so all
+// arriving bundle fragments are enqueued onto the appropriate
+// reassembly state list immediately, not based on the
+// FORWARD_REASSEMBLE action
+
 /**
  * The Fragment Manager maintains state for all of the fragmentary
  * bundles, reconstructing whole bundles from partial bundles.
@@ -33,17 +38,31 @@ public:
     /**
      * Create a bundle fragment from another bundle.
      *
-     * @param bundle the source bundle from which we create the
-     * fragment. Note: the bundle may itself be a fragment
+     * @param bundle
+     *   the source bundle from which we create the
+     *   fragment. Note: the bundle may itself be a fragment
      *
-     * @param offset the offset in the *original* bundle for the for
-     * the new fragment
+     * @param offset
+     *   the offset relative to this bundle (not the
+     *   original) for the for the new fragment. note that if this
+     *   bundle is already a fragment, the offset into the original
+     *   bundle will be this bundle's frag_offset + offset
      *
-     * @param length the length of the fragment we want
+     * @param length
+     *   the length of the fragment we want
      * 
-     * @return pointer to the newly created bundle
+     * @return
+     *   pointer to the newly created bundle
      */
-    Bundle* fragment(Bundle* bundle, int offset, size_t length);
+    Bundle* create_fragment(Bundle* bundle, int offset, size_t length);
+
+    /**
+     * Turn a bundle into a fragment. Note this is used just for
+     * reactive fragmentation on a newly received partial bundle and
+     * therefore the offset is implicitly zero (unless the bundle was
+     * already a fragment).
+     */
+    void convert_to_fragment(Bundle* bundle, size_t length);
 
     /**
      * Given a newly arrived bundle fragment, append it to the table
