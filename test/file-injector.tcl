@@ -58,19 +58,21 @@ proc file_injector_scan {dir source dest period} {
 	    continue
 	}
 
-	if {$file_stat(size) == 0} {
+	set len $file_stat(size)
+	if {$len == 0} {
 	    log /file_injector DEBUG "ignoring empty file $file"
 	    continue
 	}
 
-	log /file_injector DEBUG "reading payload from bundle file $file"
+	log /file_injector debug "reading payload from bundle file $file";
 	set fd [open $file]
+	fconfigure $fd -translation binary
 	set payload [read $fd]
 	close $fd
 
-	log /file_injector DEBUG "got [string length $payload] length payload"
+	log /file_injector debug "got $len byte payload"
 
-	bundle inject $source $dest $payload
+	bundle inject $source $dest $payload $len
 
 	file delete $file
     }

@@ -6,10 +6,10 @@
 proc serial_forwarder_registration {endpoint port} {
 
     # create the registration
-    set regid [tcl_registration $endpoint ]
+    set regid [tcl_registration $endpoint sfreg_bundle_arrived]
 
     # start the listener socket
-    socket -server sfreg_conn_arrived $port
+    socket -server "sfreg_conn_arrived $regid" $port
 }
 
 proc sfreg_bundle_arrived {regid bundle_data} {
@@ -17,26 +17,31 @@ proc sfreg_bundle_arrived {regid bundle_data} {
     foreach {source dest payload} $bundle_data {}
     set len [string length $payload]
     
-    log /sf DEBUG "got bundle of length $len for registration $regid"
+    log /sf debug "got bundle of length $len for registration $regid"
     
     set chanVar sfreg_chan_$regid
     global $chanVar
 
     if {![info exists $chanVar]} {
-	log /sf ERROR "bundle arrived with no chanection"
+	log /sf ERROR "bundle arrived with no connection"
 	return
     }
 
     set chan [set $chanVar]
-    puts -nonewline $chan [binary format ba* $len $payload]
+    puts -nonewline $chan [binary format ca* $len $payload]
+    flush $chan
+
 }
 
 proc sfreg_conn_arrived {regid chan addr port} {
     set chanVar sfreg_chan_$regid
     global $chanVar
 
+    log /sf debug "got new serial forwarder connection for registration $regid"
+
     fconfigure $chan -buffering none
     puts -nonewline $chan "T "
+    flush $chan
 
     set check [read $chan 2]
     if {$check != "T "} {
@@ -46,4 +51,6 @@ proc sfreg_conn_arrived {regid chan addr port} {
     }
     
     set $chanVar $chan
+
+    log /sf debug "handshake complete"
 }
