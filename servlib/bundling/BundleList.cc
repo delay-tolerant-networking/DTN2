@@ -302,11 +302,11 @@ BundleList::erase(iterator& pos, BundleMapping** mappingp)
  *
  * @return the bundle or NULL if not found.
  */
-const Bundle*
-BundleList::find(u_int32_t bundleid) const
+Bundle*
+BundleList::find(u_int32_t bundleid)
 {
     oasys::ScopeLock l(lock_);
-    const_iterator iter;
+    iterator iter;
 
     for (iter = begin(); iter != end(); ++iter) {
         if ((*iter)->bundleid_ == bundleid) {

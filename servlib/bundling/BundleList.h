@@ -196,7 +196,7 @@ public:
      *
      * @return the bundle or NULL if not found.
      */
-    const Bundle* find(u_int32_t bundleid) const;
+    Bundle* find(u_int32_t bundleid);
 
     /**
      * Move all bundles from this list to another.
