@@ -32,13 +32,6 @@ BundleTuple::~BundleTuple()
 }
 
 void
-BundleTuple::set_tuple(const std::string& tuple)
-{
-    tuple_.assign(tuple);
-    parse_tuple();
-}
-    
-void
 BundleTuple::parse_tuple()
 {
     size_t beg, end;

@@ -25,7 +25,20 @@ public:
     /**
      * Parse and assign the given tuple string.
      */
-    void set_tuple(const std::string& tuple);
+    void set_tuple(const std::string& tuple)
+    {
+        tuple_.assign(tuple);
+        parse_tuple();
+    }
+    
+    /**
+     * Parse and assign the given tuple string.
+     */
+    void set_tuple(u_char* str, size_t len)
+    {
+        tuple_.assign((char*)str, len);
+        parse_tuple();
+    }
     
     // Accessors
     const std::string& tuple()  const { return tuple_; }
@@ -40,6 +53,14 @@ public:
      * @return Whether or not the tuple is valid.
      */
     bool valid() const { return valid_; }
+
+    /**
+     * @return if the two tuples are equal
+     */
+    bool equals(const BundleTuple& other) const
+    {
+        return (tuple_.compare(other.tuple_) == 0);
+    }
 
     /**
      * Virtual from SerializableObject
