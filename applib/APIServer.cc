@@ -235,7 +235,7 @@ ClientAPIServer::handle_send()
         goto done;
     }
     
-    // and the priority code
+    // the priority code
     switch (spec.priority) {
 #define COS(_cos) case _cos: b->priority_ = _cos; break;
         COS(COS_BULK);
@@ -249,7 +249,24 @@ ClientAPIServer::handle_send()
         goto done;
     };
 
-    // XXX/demmer delivery opts?
+    // delivery options
+    if (spec.dopts & DOPTS_CUSTODY)
+        b->custreq_ = true;
+    
+    if (spec.dopts & DOPTS_RETURN_RCPT)
+        b->return_rcpt_ = true;
+
+    if (spec.dopts & DOPTS_RECV_RCPT)
+        b->recv_rcpt_ = true;
+
+    if (spec.dopts & DOPTS_FWD_RCPT)
+        b->fwd_rcpt_ = true;
+
+    if (spec.dopts & DOPTS_CUST_RCPT)
+        b->custody_rcpt_ = true;
+
+    if (spec.dopts & DOPTS_OVERWRITE)
+        NOTIMPLEMENTED;
 
     // finally, the payload
     size_t payload_len;
