@@ -69,6 +69,7 @@ main(int argc, char* argv[])
     std::string        loglevelstr;
     oasys::log_level_t loglevel;
     bool	       print_version = false;
+    int                console_port = 0;
 
     // Register all command line options
     new oasys::BoolOpt('v', "version", &print_version,
@@ -102,6 +103,9 @@ main(int argc, char* argv[])
                       &random_seed, &random_seed_set, "<seed>",
                       "random number generator seed");
 
+    new oasys::IntOpt(0, "console-port",  &console_port, "<port>",
+                      "set the port for a console server (default off)");
+    
     new oasys::IntOpt('i', 0, &testcmd.id_, "<id>",
                       "set the test id");
     new oasys::BoolOpt('f', 0, &testcmd.fork_,
@@ -214,6 +218,12 @@ main(int argc, char* argv[])
 
     // boot the application server
     APIServer::start_master();
+
+    // launch the console server
+    if (console_port != 0) {
+        log_info(log, "starting console on localhost:%d", console_port);
+        interp->command_server("dtn", htonl(INADDR_LOOPBACK), console_port);
+    }
 
     // finally, run the main command or event loop (shouldn't return)
     if (daemon) {
