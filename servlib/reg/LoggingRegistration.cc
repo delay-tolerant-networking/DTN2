@@ -49,21 +49,24 @@ LoggingRegistration::run()
                  b->expiration_);
 
         size_t len = 128;
-        if (b->payload_.length() < len) {
-            len = b->payload_.length();
+        size_t payload_len = b->payload_.length();
+        if (payload_len < len) {
+            len = payload_len;
         }
 
         const u_char* data = (const u_char*)b->payload_.data();
 
 	if (str_isascii(data, len)) {
-            log_info("        payload (ascii): '%.*s'", len, data);
+            log_info("        payload (ascii): length %d '%.*s'",
+                     payload_len, len, data);
         } else {
             std::string hex;
             hex2str(&hex, data, len);
             len *= 2;
             if (len > 128)
                 len = 128;
-            log_info("        payload (binary): %.*s", len, hex.data());
+            log_info("        payload (binary): length %d %.*s",
+                     payload_len, len, hex.data());
         }
 
         BundleRouter::dispatch(new BundleTransmittedEvent(b, registration_,
