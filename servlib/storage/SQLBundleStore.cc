@@ -14,7 +14,7 @@
  * Constructor.
  */
 
-SQLBundleStore::SQLBundleStore(const char* table_name, SQLImplementation* db)
+SQLBundleStore::SQLBundleStore(SQLImplementation* db, const char* table_name)
     : BundleStore()
 {
     Bundle tmpobj(this);

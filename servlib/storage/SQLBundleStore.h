@@ -20,7 +20,7 @@ public:
      * methods. The table_name identifies the table in which all bundles
      * will be stored
      */
-    SQLBundleStore(const char* table_name, SQLImplementation* db);
+    SQLBundleStore(SQLImplementation* db, const char* table_name = "bundles");
     
     /**
      * Virtual methods inheritied from BundleStore
