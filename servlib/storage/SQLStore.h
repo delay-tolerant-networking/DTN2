@@ -11,7 +11,7 @@
  * Implementation of a StorageManager with an underlying SQL
  * database.
  */
-class SQLStore: public Logger  {
+class SQLStore: public PersistentStore, public Logger  {
 public:
     
     /**
@@ -29,6 +29,11 @@ public:
      */
     int get(SerializableObject* obj, const int key);
  
+    /**
+     * Store the object with the given key.
+     */
+    int put(SerializableObject* obj, const int key);
+
     /**
      *  Put an obj in the sql store. 
      *  @return 0 if success, -1 on error

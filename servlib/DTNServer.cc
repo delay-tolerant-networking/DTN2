@@ -23,18 +23,20 @@
 #include "routing/BundleRouter.h"
 
 #include "storage/StorageConfig.h"
+#include "storage/BundleStore.h"
+#include "storage/GlobalStore.h"
+#include "storage/RegistrationStore.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #if __DB_ENABLED__
 #include "storage/BerkeleyDBStore.h"
-#include "storage/BerkeleyDBBundleStore.h"
-#include "storage/BerkeleyDBGlobalStore.h"
-#include "storage/BerkeleyDBRegistrationStore.h"
 #endif
 
 #if __SQL_ENABLED__
-#include "storage/SQLBundleStore.h"
-#include "storage/SQLGlobalStore.h"
-#include "storage/SQLRegistrationStore.h"
+#include "storage/SQLStore.h"
 #endif
 
 #if __MYSQL_ENABLED__
@@ -89,7 +91,38 @@ DTNServer::start()
     forwarder->set_active_router(router);
     forwarder->start();
 
-    // initialize the data store
+    // Initialize Storage
+    StorageConfig* cfg = StorageConfig::instance();
+
+    if (cfg->tidy_) 
+    {
+        // init is implicit with tidy
+        cfg->init_ = true; 
+
+        // remove data directories
+        DTNServer::tidy_dir(BundlePayload::dir_.c_str());
+#ifdef __DB_ENABLED__
+        DTNServer::tidy_dir(cfg->dbdir_.c_str());
+#endif
+    }
+
+    if (cfg->init_)
+    {
+        // initialize data directories
+        DTNServer::init_dir(BundlePayload::dir_.c_str());
+#ifdef __DB_ENABLED__
+        DTNServer::init_dir(cfg->dbdir_.c_str());
+#endif
+    }
+
+    // validation
+    DTNServer::validate_dir(BundlePayload::dir_.c_str());
+#ifdef __DB_ENABLED__
+    DTNServer::validate_dir(cfg->dbdir_.c_str());
+#endif
+
+
+    // initialize the data storage objects
     std::string& storage_type = StorageConfig::instance()->type_;
     GlobalStore* global_store;
     BundleStore* bundle_store;
@@ -98,9 +131,9 @@ DTNServer::start()
     if (storage_type.compare("berkeleydb") == 0) {
 #if __DB_ENABLED__
         BerkeleyDBManager::instance()->init();
-        global_store = new BerkeleyDBGlobalStore();
-        bundle_store = new BerkeleyDBBundleStore();
-        reg_store    = new BerkeleyDBRegistrationStore();
+        global_store = new GlobalStore(new BerkeleyDBStore("globals"));
+        bundle_store = new BundleStore(new BerkeleyDBStore("bundles"));
+        reg_store    = new RegistrationStore(new BerkeleyDBStore("registration"));
 #else
         goto unimpl;
 #endif
@@ -109,7 +142,6 @@ DTNServer::start()
                (storage_type.compare("postgres") == 0))
     {
 #if __SQL_ENABLED__
-        StorageConfig* cfg = StorageConfig::instance();
         SQLImplementation* impl = NULL;
         
         if (storage_type.compare("mysql") == 0)
@@ -137,9 +169,9 @@ DTNServer::start()
             exit(1);
         }
         
-        global_store = new SQLGlobalStore(impl);
-        bundle_store = new SQLBundleStore(impl);
-        reg_store    = new SQLRegistrationStore(impl);
+        global_store = new GlobalStore(new SQLStore("globals", impl));
+        bundle_store = new BundleStore(new SQLStore("bundles", impl));
+        reg_store    = new RegistrationStore(new SQLStore("registration", impl));
 
 #else  /* __SQL_ENABLED__ */
         goto unimpl;
@@ -160,11 +192,74 @@ DTNServer::start()
      // create (and auto-register) the default administrative registration
     RegistrationTable::init(RegistrationStore::instance());
     new AdminRegistration();
-     
+
     // load in the various storage tables
-    //GlobalStore::instance()->load();
-    //RegistrationTable::instance()->load();
-    //BundleStore::instance()->load();
+    GlobalStore::instance()->load();
+    RegistrationTable::instance()->load();
+    BundleStore::instance()->load();
 
     log_debug("/dtnserver", "started dtn server");
+}
+
+void DTNServer::init_dir(const char * dirname)
+{
+    struct stat st;
+    int statret;
+    
+    statret = stat(dirname, &st);
+    if (statret == -1 && errno == ENOENT)
+    {
+        if (mkdir(dirname, 0700) != 0) {
+            log_crit("/dtnserver", "can't create directory %s: %s",
+                     dirname, strerror(errno));
+            exit(-1);
+        }
+    }
+    else if (statret == -1)
+    {
+        log_crit("/dtnserver", "invalid path %s: %s", dirname, strerror(errno));;
+        exit(-1);
+    }
+}
+
+void DTNServer::tidy_dir(const char * dirname)
+{
+    char cmd[256];
+    struct stat st;
+    
+    if (stat(dirname, &st) == 0)
+    {
+        sprintf(cmd, "/bin/rm -rf %s", dirname);
+        log_warn("/dtnserver", "removing directory: '%s'", cmd);
+        if (system(cmd))
+        {
+            log_crit("/dtnserver", "error removing directory %s", dirname);
+            exit(-1);
+        }
+        
+    }
+    else if (errno == ENOENT)
+    {
+        log_debug("/dtnserver", "directory already removed %s", dirname);
+    }
+    else
+    {
+        log_crit("/dtnserver", "invalid directory name %s: %s", dirname, strerror(errno));
+        exit(-1);
+    }
+}
+
+void DTNServer::validate_dir(const char * dirname)
+{
+    struct stat st;
+    
+    if (stat(dirname, &st) == 0 && S_ISDIR(st.st_mode))
+    {
+        log_warn("/dtnserver", "directory validated: %s", dirname);
+    }
+    else
+    {
+        log_crit("/dtnserver", "invalid directory name %s: %s", dirname, strerror(errno));
+        exit(-1);
+    }
 }

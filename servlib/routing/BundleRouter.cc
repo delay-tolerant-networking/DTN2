@@ -160,6 +160,10 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     log_info("BUNDLE_RECEIVED id:%d (%d of %d bytes)",
              bundle->bundleid_, event->bytes_received_,
              bundle->payload_.length());
+    log_debug("bundle %d source    %s", bundle->bundleid_, bundle->source_.c_str());
+    log_debug("bundle %d dest      %s", bundle->bundleid_, bundle->dest_.c_str());
+    log_debug("bundle %d replyto   %s", bundle->bundleid_, bundle->replyto_.c_str());
+    log_debug("bundle %d custodian %s", bundle->bundleid_, bundle->custodian_.c_str());
 
     /*
      * Check if the bundle isn't complete. If so, do reactive
@@ -266,6 +270,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
         
         // treat the new fragment as if it just arrived (sort of). we
         // don't want to store the fragment if no-one will consume it.
+
         int count = fwd_to_matching(tail, actions, false);
 
         if (count > 0) {

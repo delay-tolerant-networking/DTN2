@@ -13,6 +13,7 @@ public:
     
     std::string type_;		///< storage type [berkeleydb/mysql/postgres]
     bool tidy_;			///< Prune out the database on init
+    bool init_;			///< Create new databases on init 
     int tidy_wait_;		///< seconds to wait before tidying
     std::string dbdir_;		///< Path to the database files
     std::string dbfile_;	///< Actual db file name

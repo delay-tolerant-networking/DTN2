@@ -4,10 +4,12 @@
 #include <string>
 #include "reg/Registration.h"
 
+class PersistentStore;
+
 /**
  * Abstract base class for the persistent registration store.
  */
-class RegistrationStore {
+class RegistrationStore : public Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -36,31 +38,48 @@ public:
     static bool initialized() { return (instance_ != NULL); }
     
     /**
+     * Constructor
+     */
+    RegistrationStore(PersistentStore * store);
+    
+    /**
+     * Destructor
+     */
+    ~RegistrationStore();
+
+    /**
+     * Load stored registrations from database into system
+     */
+    bool load();
+
+    /**
      * Load in the whole database of registrations, populating the
      * given list.
      */
-    virtual void load(RegistrationList* reg_list) = 0;
+    void load(RegistrationList* reg_list);
 
     /**
      * Add a new registration to the database. Returns true if the
      * registration is successfully added, false on error.
      */
-    virtual bool add(Registration* reg) = 0;
+    bool add(Registration* reg);
     
     /**
      * Remove the registration from the database, returns true if
      * successful, false on error.
      */
-    virtual bool del(Registration* reg) = 0;
+    bool del(Registration* reg);
     
     /**
      * Update the registration in the database. Returns true on
      * success, false if there's no matching registration or on error.
      */
-    virtual bool update(Registration* reg) = 0;
+    bool update(Registration* reg);
 
 protected:
     static RegistrationStore* instance_;
+
+    PersistentStore * store_;
 };
 
 #endif /* _REGISTRATION_STORE_H_ */

@@ -6,12 +6,13 @@
 
 class Bundle;
 class BundleList;
+class PersistentStore;
 //class StorageImpl;
 
 /**
  * Abstract base class for bundle storage.
  */
-class BundleStore {
+class BundleStore : public Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -40,21 +41,26 @@ public:
     /**
      * Constructor.
      */
-    BundleStore();
+    BundleStore(PersistentStore * store);
 
     /**
      * Destructor.
      */
-    virtual ~BundleStore();
+    ~BundleStore();
+
+    /**
+     * Load in the stored bundles
+     */
+    bool load();
 
     /// @{
     /**
      * Basic storage methods.
      */
-    virtual Bundle* get(int bundle_id) = 0;
-    virtual bool     insert(Bundle* bundle) = 0;
-    virtual bool     update(Bundle* bundle) = 0;
-    virtual bool     del(int bundle_id) = 0;
+    Bundle*  get(int bundle_id);
+    bool     add(Bundle* bundle);
+    bool     update(Bundle* bundle);
+    bool     del(int bundle_id);
     /// @}
     
 //     /**
@@ -74,6 +80,8 @@ public:
 
 protected:
     static BundleStore* instance_; ///< singleton instance
+
+    PersistentStore * store_;
 };
 
 #endif /* _BUNDLE_STORE_H_ */

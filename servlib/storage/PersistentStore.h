@@ -1,3 +1,6 @@
+#ifndef _PERSISTENT_STORE_H_
+#define _PERSISTENT_STORE_H_
+
 
 #include <vector>
 #include <oasys/serialize/Serialize.h>
@@ -22,7 +25,12 @@ public:
     /**
      * Store the object with the given key.
      */
-    virtual int put(SerializableObject* obj, const int key) = 0;
+    virtual int add(SerializableObject* obj, const int key) = 0;
+
+    /**
+     * Update the object with the given key.
+     */
+    virtual int update(SerializableObject* obj, const int key) = 0;
 
     /**
      * Delete the object at the given key.
@@ -38,11 +46,8 @@ public:
      * Fill in the given vector with the keys currently stored in the
      * table.
      */
-    virtual void keys(std::vector<int> v) = 0;
+    virtual void keys(std::vector<int> * v) = 0;
 
-    /**
-     * Fill in the given vector with all the unserialized objects
-     * stored in the table.
-     */
-    virtual void elements(std::vector<SerializableObject*> v) = 0;
 };
+
+#endif /* _PERSISTENT_STORE_H_ */

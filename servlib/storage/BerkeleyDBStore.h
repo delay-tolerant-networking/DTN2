@@ -36,11 +36,13 @@ public:
     virtual ~BerkeleyDBStore();
 
     /// @{ Virtual overrides from PersistentStore
+    int exists(const int key);
     int get(SerializableObject* obj, const int key);
-    int put(SerializableObject* obj, const int key);
+    int add(SerializableObject* obj, const int key);
+    int update(SerializableObject* obj, const int key);
     int del(const int key);
     int num_elements();
-    void keys(std::vector<int> v);
+    void keys(std::vector<int> * v);
     void elements(std::vector<SerializableObject*> v);
     /// @}
 

@@ -224,7 +224,10 @@ FragmentManager::process(Bundle* fragment)
     std::string hash_key;
     get_hash_key(fragment, &hash_key);
     iter = reassembly_table_.find(hash_key);
-    
+
+    log_debug("processing bundle fragment id=%d hash=%s %d",
+              fragment->bundleid_, hash_key.c_str(), fragment->is_fragment_);
+
     if (iter == reassembly_table_.end()) {
         log_debug("no reassembly state for key %s -- creating new state",
                   hash_key.c_str());
@@ -252,6 +255,12 @@ FragmentManager::process(Bundle* fragment)
     
     // store the fragment data in the partially reassembled bundle file
     size_t fraglen = fragment->payload_.length();
+
+    log_debug(
+              "write_data: length_=%d src_offset=%d dst_offset=%d len %d",
+              state->bundle_->payload_.length(), 
+              0, fragment->frag_offset_, fraglen);
+
     state->bundle_->payload_.write_data(&fragment->payload_, 0, fraglen,
                                         fragment->frag_offset_);
     state->bundle_->payload_.close_file();

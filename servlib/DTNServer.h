@@ -21,6 +21,11 @@ public:
      * Post configuration, start up all components.
      */
     static void start();
+
+ protected:
+    static void init_dir(const char * dirname);
+    static void tidy_dir(const char * dirname);
+    static void validate_dir(const char * dirname);
 };
 
 #endif /* _DTNSERVER_H_ */

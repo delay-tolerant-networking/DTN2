@@ -33,6 +33,14 @@ Registration::init(u_int32_t regid,
     }
 }
 
+/**
+ * Constructor.
+ */
+Registration::Registration(u_int32_t regid)
+    : BundleConsumer(&endpoint_, true, "Reg")
+{
+    regid_ = regid;
+}
 
 /**
  * Constructor.

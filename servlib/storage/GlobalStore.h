@@ -4,8 +4,29 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/serialize/Serialize.h>
 
+#include "PersistentStore.h"
+
+class Globals : public SerializableObject
+{
+public:
+    u_int32_t next_bundleid_;	///< running serial number for bundles
+    u_int32_t next_regid_;	///< running serial number for registrations
+
+    /**
+     * Virtual from SerializableObject.
+     */
+    virtual void serialize(SerializeAction* a);
+
+    /**
+     * Destructor.
+     */
+    virtual ~Globals();
+};
+
+
+
 /**
- * Abstract base class for those elements of the router that need to
+ * Class for those elements of the router that need to
  * be persistently stored but are singleton global values. Examples
  * include the running sequence number for bundles and registrations,
  * as well as any persistent configuration settings.
@@ -14,7 +35,7 @@
  * serializable object, since it contains all the fields that need to
  * be stored.
  */
-class GlobalStore : public SerializableObject, public Logger {
+class GlobalStore : public Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -45,7 +66,7 @@ public:
     /**
      * Constructor.
      */
-    GlobalStore();
+    GlobalStore(PersistentStore * store);
 
     /**
      * Destructor.
@@ -69,25 +90,19 @@ public:
     u_int32_t next_regid();
 
     /**
-     * Virtual from SerializableObject.
-     */
-    void serialize(SerializeAction* a);
-
-    /**
      * Load in the globals.
      */
-    virtual bool load() = 0;
+    bool load();
 
     /**
      * Update the globals in the store.
      */
-    virtual bool update() = 0;
+    bool update();
     
-protected:
     static GlobalStore* instance_; ///< singleton instance
     
-    u_int32_t next_bundleid_;	///< running serial number for bundles
-    u_int32_t next_regid_;	///< running serial number for registrations
+    PersistentStore * store_;   ///< persistent storage object
+    Globals globals;
 };
 
 #endif /* _GLOBAL_STORE_H_ */

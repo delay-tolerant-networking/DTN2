@@ -68,13 +68,7 @@ STORAGE_SRCS :=					\
 	storage/RegistrationStore.cc		\
 	storage/StorageConfig.cc		\
 	storage/BerkeleyDBStore.cc		\
-	storage/BerkeleyDBBundleStore.cc	\
-	storage/BerkeleyDBGlobalStore.cc	\
-	storage/BerkeleyDBRegistrationStore.cc	\
 	storage/SQLStore.cc			\
-        storage/SQLBundleStore.cc		\
-        storage/SQLGlobalStore.cc		\
-        storage/SQLRegistrationStore.cc		\
         storage/PostgresSQLImplementation.cc    \
         storage/MysqlSQLImplementation.cc       \
 

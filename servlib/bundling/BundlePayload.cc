@@ -222,6 +222,10 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
 {
     ScopeLock l(lock_);
 
+    log_debug("/bundle/payload",
+              "write_data: file=%s length_=%d src_offset=%d dst_offset=%d len %d", file_->path(),
+              length_, src_offset, dst_offset, len);
+
     ASSERT(length_       >= dst_offset + len);
     ASSERT(src->length() >= src_offset + len);
     ASSERT(file_->is_open());

@@ -127,7 +127,7 @@ BundleForwarder::process(BundleAction* action)
         break;
     }
     case STORE_ADD: {
-        bool added = BundleStore::instance()->insert(bundle);
+        bool added = BundleStore::instance()->add(bundle);
         ASSERT(added);
         break;
     }

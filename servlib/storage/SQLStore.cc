@@ -41,6 +41,12 @@ SQLStore::get(SerializableObject* obj, const int key)
     return 0;
 }
 
+int
+SQLStore::put(SerializableObject* obj, const int key)
+{
+    update(obj, key);
+}
+
      
 int 
 SQLStore::insert(SerializableObject* obj)
@@ -79,6 +85,16 @@ SQLStore::del(const int key)
 }
 
 int 
+SQLStore::exists(const int key)
+{
+    StringBuffer query;
+    query.appendf(" SELECT * FROM %s WHERE %s = %d",
+                  table_name_, key_name_, key);
+    
+    return exec_query(query.c_str());
+}
+
+int 
 SQLStore::num_elements()
 {
     StringBuffer query;
@@ -95,7 +111,7 @@ SQLStore::num_elements()
 
 
 int
-SQLStore::keys(std::vector<int> l) 
+SQLStore::keys(std::vector<int> * l) 
 {
     ASSERT(key_name_); //key_name_ must be initialized 
     StringBuffer query;
@@ -111,7 +127,7 @@ SQLStore::keys(std::vector<int> l)
         // ith element is set to 
         const char* answer = sql_impl_->get_value(i,0);
         int answer_int =  atoi(answer);
-        l[i]=answer_int;
+        l->push_back(answer_int);
     }
     return 0;
 }

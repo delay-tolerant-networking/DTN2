@@ -49,6 +49,11 @@ public:
     } failure_action_t;
 
     /**
+     * Default constructor for serialization
+     */
+    Registration(u_int32_t regid);
+
+    /**
      * Constructor that allocates a new registration id.
      */
     Registration(const BundleTuplePattern& endpoint,
