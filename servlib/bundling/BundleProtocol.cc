@@ -2,12 +2,9 @@
 #include "Bundle.h"
 #include "BundleProtocol.h"
 #include "debug/Debug.h"
+#include "util/StringUtils.h"
 #include <netinet/in.h>
 #include <algorithm>
-#include <string>
-#include <vector>
-
-typedef std::vector<std::string> stringvector_t;
 
 /**
  * For the region and admin parts of the given tuple, fill in the
@@ -15,10 +12,10 @@ typedef std::vector<std::string> stringvector_t;
  */
 static inline void
 add_to_dict(u_int8_t* id, const BundleTuple& tuple,
-            stringvector_t* tuples, size_t* dictlen)
+            StringVector* tuples, size_t* dictlen)
 {
     u_int8_t region_id, admin_id;
-    stringvector_t::iterator iter;
+    StringVector::iterator iter;
 
     // first the region string
     iter = std::find(tuples->begin(), tuples->end(), tuple.region());
@@ -72,7 +69,7 @@ BundleProtocol::fill_header_iov(const Bundle* bundle, struct iovec* iov, int* io
     // unique ones in a temp vector and assigning the corresponding
     // string ids in the primary header. keep track of the total
     // length of the dictionary header in the process
-    stringvector_t tuples;
+    StringVector tuples;
     size_t dictlen = sizeof(DictionaryHeader);
     add_to_dict(&primary->source_id,    bundle->source_,    &tuples, &dictlen);
     add_to_dict(&primary->dest_id,      bundle->dest_,      &tuples, &dictlen);
