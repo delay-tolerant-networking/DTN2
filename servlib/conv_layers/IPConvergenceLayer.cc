@@ -4,5 +4,12 @@
 bool
 IPConvergenceLayer::validate(const std::string& admin)
 {
-    return false;
+    NOTIMPLEMENTED;
 }
+
+bool
+IPConvergenceLayer::match(const std::string& demux, const std::string& admin)
+{
+    NOTIMPLEMENTED;
+}
+

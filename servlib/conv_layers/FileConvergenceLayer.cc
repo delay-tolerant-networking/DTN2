@@ -19,5 +19,11 @@ FileConvergenceLayer::fini()
 bool
 FileConvergenceLayer::validate(const std::string& admin)
 {
-    return false;
+    NOTIMPLEMENTED;
+}
+
+bool
+FileConvergenceLayer::match(const std::string& demux, const std::string& admin)
+{
+    NOTIMPLEMENTED;
 }

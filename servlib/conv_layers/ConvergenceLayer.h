@@ -43,6 +43,13 @@ public:
     virtual bool validate(const std::string& admin) = 0;
 
     /**
+     * Hook to match the admin part of a bundle tuple.
+     *
+     * @return true if the demux matches the tuple.
+     */
+    virtual bool match(const std::string& demux, const std::string& admin) = 0;
+
+    /**
      * Register a new interface.
      */
     virtual bool add_interface(Interface* iface, int argc, const char* argv[]);

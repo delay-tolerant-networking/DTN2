@@ -26,6 +26,13 @@ public:
      * @return true if the admin string is valid
      */
     virtual bool validate(const std::string& admin);
+
+    /**
+     * Hook to match the admin part of a bundle tuple.
+     *
+     * @return true if the demux matches the tuple.
+     */
+    virtual bool match(const std::string& demux, const std::string& admin);
 };
 
 #endif /* _FILE_CONVERGENCE_LAYER_H_ */
