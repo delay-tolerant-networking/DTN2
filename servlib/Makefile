@@ -34,7 +34,6 @@ CONV_LAYER_SRCS :=				\
 
 CMD_SRCS :=					\
 	cmd/Command.cc				\
-	cmd/Options.cc				\
 	cmd/APICommand.cc			\
 	cmd/BundleCommand.cc			\
 	cmd/HelpCommand.cc 			\

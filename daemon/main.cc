@@ -9,7 +9,6 @@
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
 #include "cmd/Command.h"
-#include "cmd/Options.h"
 #include "cmd/TestCommand.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "reg/AdminRegistration.h"
@@ -18,6 +17,7 @@
 #include "storage/RegistrationStore.h"
 #include "storage/StorageConfig.h"
 #include "thread/Timer.h"
+#include "util/Options.h"
 
 int
 main(int argc, char** argv)

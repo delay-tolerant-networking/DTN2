@@ -3,12 +3,12 @@
 #include <sys/time.h>
 #include "debug/Log.h"
 #include "cmd/Command.h"
-#include "cmd/Options.h"
 #include "Simulator.h"
 #include "LogSim.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "SimConvergenceLayer.h"
 #include "bundling/AddressFamily.h"
+#include "util/Options.h"
 
 int
 main(int argc, char** argv)
