@@ -130,12 +130,12 @@ APIServer::APIServer()
     // override the defaults via environment variables, if given
     char *env;
     if ((env = getenv("DTNAPI_ADDR")) != NULL) {
-        if (inet_aton(env, (struct in_addr*)&local_addr_) == 0)
+        if (inet_pton(AF_INET, env, (struct in_addr*)&local_addr_) == 0)
         {
             log_err("/apisrv", "DTNAPI_ADDR environment variable (%s) "
                     "not a valid ip address, using default of localhost",
                     env);
-            // in case inet_aton touched it
+            // in case inet_pton touched it
             local_addr_ = htonl(INADDR_LOOPBACK);
         } else {
             log_debug("/apisrv", "local address set to %s by DTNAPI_ADDR "
