@@ -1,25 +1,18 @@
 
+#include <fcntl.h>
 #include <errno.h>
 #include <string>
 #include <sys/time.h>
-#include "debug/Log.h"
+
+#include <debug/Log.h>
+#include <tclcmd/TclCommand.h>
+#include <thread/Timer.h>
+#include <util/Options.h>
+
 #include "applib/APIServer.h"
-#include "bundling/AddressFamily.h"
-#include "bundling/BundleForwarder.h"
-#include "bundling/InterfaceTable.h"
-#include "reg/RegistrationTable.h"
-#include "routing/BundleRouter.h"
 #include "cmd/TestCommand.h"
-#include "cmd/DTNCommands.h"
-#include "conv_layers/ConvergenceLayer.h"
-#include "reg/AdminRegistration.h"
-#include "storage/BundleStore.h"
-#include "storage/GlobalStore.h"
-#include "storage/RegistrationStore.h"
+#include "servlib/DTNServer.h"
 #include "storage/StorageConfig.h"
-#include "tclcmd/TclCommand.h"
-#include "thread/Timer.h"
-#include "util/Options.h"
 
 int
 main(int argc, char* argv[])
@@ -107,20 +100,11 @@ main(int argc, char* argv[])
     TclCommandInterp::init(argv[0]);
     TclCommandInterp* interp = TclCommandInterp::instance();
     interp->reg(&testcmd);
-    DTNCommands::init();
+    DTNServer::init_commands();
 
-    // Set up all components
+    // Set up components
     TimerSystem::init();
-    AddressFamilyTable::init();
-    ConvergenceLayer::init_clayers();
-    InterfaceTable::init();
-
-    // Create the forwarder but don't start it running yet. This lets
-    // the conf file post events but they won't get dispatched until
-    // after the router has been created
-    BundleForwarder* forwarder = new BundleForwarder();
-    BundleForwarder::init(forwarder);
-    
+    DTNServer::init_components();
 
     // Parse / exec the config file
     if (conf_file.length() != 0) {
@@ -131,33 +115,9 @@ main(int argc, char* argv[])
         }
     }
 
-    // The conf file had a chance to set the types used for routing
-    // and storage, so initialize those components now.
-    BundleRouter* router;
-    router = BundleRouter::create_router(BundleRouter::type_.c_str());
-    forwarder->set_active_router(router);
-    forwarder->start();
+    // Start everything up
+    DTNServer::start();
 
-    // XXX/demmer change this to do the storage init
-    if (!BundleStore::initialized() ||
-        !GlobalStore::initialized() ||
-        !RegistrationStore::initialized() )
-    {
-        logf("/daemon", LOG_ERR,
-             "configuration did not initialize storage, exiting...");
-        exit(1);
-    }
-
-    // 
-    
-    // load in the various storage tables
-    GlobalStore::instance()->load();
-    RegistrationTable::init(RegistrationStore::instance());
-    new AdminRegistration();
-
-    RegistrationTable::instance()->load();
-    //BundleStore::instance()->load();
-    
     // if the config script wants us to run a test script, do so now
     if (testcmd.initscript_.length() != 0) {
         interp->exec_command(testcmd.initscript_.c_str());
@@ -166,7 +126,7 @@ main(int argc, char* argv[])
     // now boot up the application interface
     MasterAPIServer* apiserv = new MasterAPIServer();
     apiserv->start();
-
+    
     // finally, run the main command or event loop (shouldn't return)
     if (daemon) {
         interp->event_loop();

@@ -41,7 +41,6 @@ CMD_SRCS :=					\
 	cmd/RouteCommand.cc			\
 	cmd/StorageCommand.cc			\
 	cmd/TestCommand.cc			\
-	cmd/DTNCommands.cc			\
 
 REGISTRATION_SRCS :=				\
 	reg/AdminRegistration.cc		\
@@ -72,12 +71,14 @@ STORAGE_SRCS :=					\
         storage/PostgresSQLImplementation.cc    \
         storage/MysqlSQLImplementation.cc       \
 
-SERVLIB_SRCS := $(BUNDLING_SRCS) 		\
-		$(CONV_LAYER_SRCS)		\
-		$(CMD_SRCS) 			\
-		$(REGISTRATION_SRCS)		\
-		$(ROUTING_SRCS)			\
-		$(STORAGE_SRCS)			\
+SERVLIB_SRCS := 				\
+	DTNServer.cc				\
+	$(BUNDLING_SRCS) 			\
+	$(CONV_LAYER_SRCS)			\
+	$(CMD_SRCS) 				\
+	$(REGISTRATION_SRCS)			\
+	$(ROUTING_SRCS)				\
+	$(STORAGE_SRCS)				\
 
 SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)
