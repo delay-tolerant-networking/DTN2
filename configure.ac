@@ -229,7 +229,7 @@ echo " "
 
 echo "Storage packages:"
 if test $DB_ENABLED = 1 ; then
-  echo "  db: $dtn_cv_path_libdb -l$dtn_cv_lib_db"
+  echo "  db: $dtn_cv_path_db_h/db.h $dtn_cv_path_db_lib/lib$dtn_cv_lib_db"
 fi
 if test $POSTGRES_ENABLED = 1 ; then
   echo "  postgres: $dtn_cv_path_postgres_h/libpq-fe.h -L $dtn_cv_path_postgres_lib -lpq"

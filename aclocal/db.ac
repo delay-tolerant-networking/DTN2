@@ -54,15 +54,15 @@ AC_DEFUN(AC_DTN_DBCONFIG, [
     dnl The DB include file search sets the path variable to the 
     dnl installation location (or /usr)
     dnl
-    if test x$dtn_cv_path_libdb = x ; then
+    if test x$dtn_cv_path_db_h = x ; then
         echo "checking for Berkeley DB header file..."
         AC_DTN_FIND_DBINCLUDE
     else
-        echo "checking for Berkeley DB header file... (cached) $dtn_cv_path_libdb/include/db.h"
+        echo "checking for Berkeley DB header file... (cached) $dtn_cv_path_db_h/db.h"
     fi
         
-    if test ! $dtn_cv_path_libdb = /usr ; then
-        CPPFLAGS="$CPPFLAGS -I$dtn_cv_path_libdb/include"
+    if test ! x$dtn_cv_path_db_h = /usr/include ; then
+        CPPFLAGS="$CPPFLAGS -I$dtn_cv_path_db_h"
     fi
 
     dnl
@@ -75,8 +75,8 @@ AC_DEFUN(AC_DTN_DBCONFIG, [
         echo "checking for Berkeley DB library... (cached) -l$dtn_cv_lib_db"
     fi
 
-    if test ! $dtn_cv_path_libdb = /usr ; then
-        LDFLAGS="-L$dtn_cv_path_libdb/lib"
+    if test ! $dtn_cv_path_db_lib = /usr/lib ; then
+        LDFLAGS="$LDFLAGS -L$dtn_cv_path_db_lib"
     fi
     LIBS="$LIBS -l$dtn_cv_lib_db"
 
@@ -92,24 +92,24 @@ AC_DEFUN(AC_DTN_FIND_DBINCLUDE, [
     if test ! x"$ac_dbdir" = x"system" ; then
         ac_dbincdirs=$ac_dbdir/include
     else
-        ac_dbincdirs=/usr/include
+        ac_dbincdirs="/usr/include /usr/local/include/db4"
         for dbver in $ac_dbver ; do
             ac_dbincdirs="$ac_dbincdirs /usr/local/BerkeleyDB.$dbver/include"
         done
     fi
   
-    AC_CACHE_VAL([dtn_cv_path_libdb], [
-      dtn_cv_path_libdb=
+    AC_CACHE_VAL([dtn_cv_path_db_h], [
+      dtn_cv_path_db_h=
       for ac_dbincdir in $ac_dbincdirs; do
           AC_CHECK_FILE($ac_dbincdir/db.h, [
               for dbver in $ac_dbver ; do
   	      AC_MSG_CHECKING([whether $ac_dbincdir/db.h is version $dbver])
-                grep -e "DB_VERSION_STRING.*$dbver" $ac_dbincdir/db.h \
+                egrep "DB_VERSION_STRING.*$dbver" $ac_dbincdir/db.h \
   		    >/dev/null 2>/dev/null
                 if test $? = 0 ; then	
   	          AC_MSG_RESULT([yes])
   	          AC_CHECK_FILE($ac_dbincdir/db_cxx.h, [
-   	              dtn_cv_path_libdb=`echo $ac_dbincdir | sed 's,/include,,'`
+   	              dtn_cv_path_db_h=$ac_dbincdir
     	              break 2
   	          ])
                 else
@@ -120,7 +120,7 @@ AC_DEFUN(AC_DTN_FIND_DBINCLUDE, [
       done
     ])
   
-    if test x$dtn_cv_path_libdb = x ; then
+    if test x$dtn_cv_path_db_h = x ; then
         AC_DB_HELP
         AC_MSG_ERROR([can't find usable db.h])
     fi
@@ -129,20 +129,33 @@ AC_DEFUN(AC_DTN_FIND_DBINCLUDE, [
 
 
 dnl
-dnl Find libdb using the location where we found db.h.
+dnl Find libdb.
 dnl
 AC_DEFUN(AC_DTN_FIND_DBLIB, [
     AC_CACHE_VAL(dtn_cv_lib_db, [
         ac_save_LDFLAGS=$LDFLAGS
-        if test ! $dtn_cv_path_libdb = /usr ; then
-            LDFLAGS="$LDFLAGS -L$dtn_cv_path_libdb/lib"
+
+	dnl
+	dnl Build the library path based on where we found db.h.
+	dnl
+        if test $dtn_cv_path_db_h = /usr ; then
+	    dtn_cv_path_db_lib=/usr/lib
+
+	elif test $dtn_cv_path_db_h = /usr/local/include/db4 ; then
+	    dtn_cv_path_db_lib=/usr/local/lib
+
+	else 
+            dtn_cv_path_db_lib=`echo $dtn_cv_path_db_h | sed 's,/include,,'`/lib
         fi
+
+        LDFLAGS="-L$dtn_cv_path_db_lib"
 
         for dbver in $ac_dbver; do
            dtn_cv_lib_db=db_cxx-$dbver
            AC_CHECK_LIB($dtn_cv_lib_db, db_create, [break], [dtn_cv_lib_db=])
         done
-        LDFLAGS=$ac_save_LDFLAGS_
+
+        LDFLAGS=$ac_save_LDFLAGS
     ])
 
     if test x$dtn_cv_lib_db = x ; then
