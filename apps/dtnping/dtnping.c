@@ -109,7 +109,9 @@ main(int argc, const char** argv)
 
     // build a local tuple based on the configuration of our dtn
     // router plus the demux string
-    dtn_build_local_tuple(handle, &local_tuple, "/ping");
+    char demux[64];
+    snprintf(demux, sizeof(demux), "/ping.%d", getpid());
+    dtn_build_local_tuple(handle, &local_tuple, demux);
     if (debug) printf("local_tuple [%s %.*s]\n",
                     local_tuple.region,
                     (int) local_tuple.admin.admin_len, 
