@@ -12,6 +12,11 @@ class Bundle;
 class BundleProtocol {
 public:
     /**
+     * The maximum number of iovecs needed to format a bundle.
+     */
+    static const int MAX_IOVCNT = 6;
+    
+    /**
      * Fill in an iovec suitable for a call to writev to send the
      * bundle on the "wire".
      *
