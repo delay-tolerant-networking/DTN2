@@ -41,6 +41,7 @@
 
 
 /**
+ * @class Processable
  * Interface implemented by all objects that handle simulator events
  */
 

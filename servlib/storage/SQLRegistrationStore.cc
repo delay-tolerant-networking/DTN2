@@ -45,14 +45,13 @@
 
 namespace dtn {
 
-static const char* TABLENAME = "registration";
-
 /**
  * Constructor
  */
-SQLRegistrationStore::SQLRegistrationStore(oasys::SQLImplementation* impl)
+SQLRegistrationStore::SQLRegistrationStore(oasys::SQLImplementation* impl,
+                                           const char* table_name)
 {
-    store_ = new SQLStore(TABLENAME, impl);
+    store_ = new SQLStore(table_name, impl);
 }
 
 /**

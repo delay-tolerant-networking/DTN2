@@ -39,10 +39,6 @@
 #define _TOPOLOGY_H_
 
 
-/**
- * The class that maintains the topology of the network
- */
-
 #include <vector>
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
@@ -52,7 +48,9 @@ namespace dtn {
 class Node;
 class SimContact;
 
-
+/**
+ * The class that maintains the topology of the network
+ */
 class Topology  {
 
 public:

@@ -35,10 +35,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/**
- * Defines and implements link behavior
- */
-
 #ifndef _SIM_CONTACT_H_
 #define _SIM_CONTACT_H_
 
@@ -58,6 +54,9 @@ namespace dtn {
 class Event;
 class Event_chew_fin;
 
+/**
+ * A simulated contact.
+ */
 class SimContact : public oasys::Logger, public Processable {
 
 public:

@@ -35,10 +35,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/**
- * The main simulator class. This defines the main event loop
- */
-
 #include <queue>
 #include "Event.h"
 
@@ -50,9 +46,11 @@ namespace dtn {
 
 class Event;
 class EventCompare;
-
 class Event_print_stats;
 
+/**
+ * The main simulator class. This defines the main event loop
+ */
 class Simulator : public oasys::Logger, public Processable {
 public:
     /**

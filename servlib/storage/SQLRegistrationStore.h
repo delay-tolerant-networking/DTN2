@@ -56,7 +56,8 @@ public:
     /**
      * Constructor
      */
-    SQLRegistrationStore(oasys::SQLImplementation* impl);
+    SQLRegistrationStore(oasys::SQLImplementation* impl,
+                         const char* table_name = "registration");
 
     /**
      * Destructor

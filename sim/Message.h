@@ -39,6 +39,7 @@
 #define _MESSAGE_H_
 
 /**
+ * @class Message
  * Defines a message. A message is the basic entity that is routed
  * by the simulator. Every message has a unique id.
  * If the message is fragmented, the fragments have the same id
