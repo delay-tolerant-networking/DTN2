@@ -98,7 +98,7 @@ BundlePayload::init(oasys::SpinLock* lock, int bundleid, BundleStore* store)
 {
     StorageConfig* cfg = StorageConfig::instance();
     lock_ = lock;
-    location_ = UNDETERMINED;
+    location_ = DISK;
 
     oasys::StringBuffer path("%s/bundle_%d.dat",
                              cfg->payloaddir_.c_str(), bundleid);
@@ -134,6 +134,7 @@ BundlePayload::serialize(oasys::SerializeAction* a)
 {
     a->process("filename",    &fname_);
     a->process("length",      (u_int32_t*)&length_);
+    a->process("rcvd_length", (u_int32_t*)&rcvd_length_);
     a->process("base_offset", (u_int32_t*)&base_offset_);
 }
 
