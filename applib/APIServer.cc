@@ -89,7 +89,6 @@ APIServer::APIServer()
     xdrmem_create(xdr_encode_, buf_, DTN_MAX_API_MSG, XDR_ENCODE);
     xdrmem_create(xdr_decode_, buf_ + sizeof(u_int32_t),
                   DTN_MAX_API_MSG, XDR_DECODE);
-
     
     // override the defaults via environment variables, if given
     char *env;
@@ -138,6 +137,11 @@ MasterAPIServer::run()
     in_addr_t addr;
     u_int16_t port;
     u_int32_t handshake;
+
+    if ( DTN_MAX_API_MSG<DTN_MAX_BUNDLE_MEM ) {
+        log_warn("DTN_MAX_API_MSG(%d) < DTN_MAX_BUNDLE_MEM(%d)",
+            DTN_MAX_API_MSG, DTN_MAX_BUNDLE_MEM);
+    }
 
     while (1) {
         int cc = sock_->recvfrom(buf_, buflen_, 0, &addr, &port);
@@ -298,7 +302,7 @@ ClientAPIServer::handle_getinfo()
     
     /* send the return code */
     if (!xdr_dtn_info_response_t(xdr_encode_, &response)) {
-        log_err("internal error in xdr");
+        log_err("internal error in xdr: xdr_dtn_info_response_t");
         return -1;
     }
     
@@ -359,7 +363,7 @@ ClientAPIServer::handle_register()
     
     // return the new registration id
     if (!xdr_dtn_reg_id_t(xdr_encode_, &regid)) {
-        log_err("internal error in xdr");
+        log_err("internal error in xdr: xdr_dtn_reg_id_t");
         return -1;
     }
     
@@ -489,11 +493,13 @@ ClientAPIServer::handle_send()
 
     // finally, the payload
     size_t payload_len;
-    if (payload.location == DTN_PAYLOAD_MEM) {
+    switch ( payload.location ) {
+    case DTN_PAYLOAD_MEM:
         b->payload_.set_data((u_char*)payload.dtn_bundle_payload_t_u.buf.buf_val,
                              payload.dtn_bundle_payload_t_u.buf.buf_len);
         payload_len = payload.dtn_bundle_payload_t_u.buf.buf_len;
-    } else {
+        break;
+    case DTN_PAYLOAD_FILE:
         char filename[PATH_MAX];
         FILE * file;
         struct stat finfo;
@@ -532,6 +538,11 @@ ClientAPIServer::handle_send()
             }
         }
         b->payload_.close_file();
+    break;
+    default:
+        log_err("payload.location of %d unknown\n", payload.location);
+        return(-1);
+        break;
     }
     
     // deliver the bundle
@@ -543,7 +554,7 @@ ClientAPIServer::handle_send()
     /* send the return code */
  done:
     if (!xdr_putlong(xdr_encode_, &ret)) {
-        log_err("internal error in xdr");
+        log_err("internal error in xdr: xdr_putlong");
         return -1;
     }
 
@@ -555,6 +566,10 @@ ClientAPIServer::handle_send()
 
     return 0;
 }
+
+// Size for temporary memory buffer used when delivering bundles
+// via files.
+#define DTN_FILE_DELIVERY_BUF_SIZE 1000
 
 int
 ClientAPIServer::handle_recv()
@@ -599,7 +614,12 @@ ClientAPIServer::handle_recv()
     // XXX/demmer verify bundle size constraints
     payload.location = location;
     
-    if (location == DTN_PAYLOAD_MEM) {
+    // XXX/kscott mysterious seg fault when coding file-based 
+    // delivery caused me to think that maybe 
+    // oasys::buf not having anything allocated to it was bad
+    buf.reserve(10);
+
+    if ( location==DTN_PAYLOAD_MEM ) {
         // the app wants the payload in memory
         // XXX/demmer verify bounds
         char** dst = &payload.dtn_bundle_payload_t_u.buf.buf_val;
@@ -609,27 +629,63 @@ ClientAPIServer::handle_recv()
         
         if (b->payload_.location() == BundlePayload::MEMORY) {
             *dst = (char*)b->payload_.memory_data();
-            
         } else {
             buf.reserve(b->payload_.length());
             b->payload_.read_data(0, b->payload_.length(), (u_char*)buf.data());
             *dst = buf.data();
         }
-    } else {
+    } else if ( location==DTN_PAYLOAD_FILE ) {
         // the app wants the payload in a file
-        PANIC("file-based payloads not implemented");
+        //        PANIC("file-based payloads not implemented");
+        char payloadFile[DTN_MAX_PATH_LEN];
+        int payloadFd;
+
+        // Get a temporary file name
+        sprintf(payloadFile, "/tmp/bundlePayload_XXXXXX");
+        payloadFd = mkstemp(payloadFile);
+        if ( payloadFd==-1 ) {
+            log_err("can't open temporary file to deliver bundle");
+            return -1;
+        }
+        if (b->payload_.location() == BundlePayload::MEMORY) {
+            write(payloadFd, b->payload_.memory_data(), b->payload_.length());
+        } else {
+            u_char *tmpBuf[DTN_FILE_DELIVERY_BUF_SIZE];
+            int numToDo = b->payload_.length();
+            int numThisTime;
+            // tmpBuf = (u_char *) malloc(DTN_FILE_DELIVERY_BUF_SIZE);
+            while ( numToDo>0 ) {
+                numThisTime = MIN(numToDo, DTN_FILE_DELIVERY_BUF_SIZE);
+                b->payload_.read_data(b->payload_.length()-numToDo, numThisTime, (u_char *) tmpBuf);
+                write(payloadFd, tmpBuf, numThisTime);
+                numToDo -= numThisTime;
+            }
+            close(payloadFd);
+            payload.dtn_bundle_payload_t_u.filename.filename_val = (char *) malloc(20);
+            memcpy((char *) payload.dtn_bundle_payload_t_u.filename.filename_val, payloadFile, strlen(payloadFile));
+            payload.dtn_bundle_payload_t_u.filename.filename_len = strlen(payloadFile);
+        }
+    } else {
+        log_err("payload location %d not understood", location);
+        return -1;
     }
  
-    if (!xdr_dtn_bundle_spec_t(xdr_encode_, &spec) ||
-        !xdr_dtn_bundle_payload_t(xdr_encode_, &payload))
+    if ( !xdr_dtn_bundle_spec_t(xdr_encode_, &spec) )
     {
-       log_err("internal error in xdr");
+       log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
+       return -1;
+    }
+
+    if (!xdr_dtn_bundle_payload_t(xdr_encode_, &payload))
+    {
+       log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
        return -1;
     }
     
     int len = xdr_getpos(xdr_encode_);
     if (sock_->send(buf_, len, 0) != len) {
         log_err("error sending bundle reply");
+    perror("error sending bundle reply: ");
         return -1;
     }
 
