@@ -31,7 +31,7 @@ BundleForwarding::input(Bundle* bundle)
 
     if (next_hop) {
         log_debug("next hop *%p", next_hop);
-        next_hop->send_bundle(bundle);
+        next_hop->consume_bundle(bundle);
     } else {
         log_debug("no next hop, storing bundle");
     }

@@ -111,7 +111,7 @@ public:
      * Queue a bundle for sending, which potentially kicks open the
      * contact if it's not already.
      */
-    void send_bundle(Bundle* bundle);
+    void consume_bundle(Bundle* bundle);
     
     /**
      * Accessor for the list of bundles in this contact.

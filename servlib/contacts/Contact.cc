@@ -31,7 +31,7 @@ Contact::format(char* buf, size_t sz)
 }
 
 void
-Contact::send_bundle(Bundle* bundle)
+Contact::consume_bundle(Bundle* bundle)
 {
     if (!isopen() && (type_ == ONDEMAND || type_ == OPPORTUNISTIC)) {
         clayer_->open_contact(this);
