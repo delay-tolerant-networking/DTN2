@@ -33,7 +33,7 @@ protected:
 
 private:
     /**
-     * Private default constructor is not used.
+     * Default constructor should not be used.
      */
     BundleConsumer();
 };
