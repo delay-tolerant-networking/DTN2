@@ -198,7 +198,7 @@ protected:
     oasys::FileIOClient* file_;	///< file handle if on disk
     size_t cur_offset_;		///< cache of current fd position
     size_t base_offset_;	///< for fragments, offset into the file (todo)
-    oasys::SpinLock* lock_;		///< the lock for the given bundle
+    oasys::SpinLock* lock_;	///< the lock for the given bundle
 };
 
 } // namespace dtn
