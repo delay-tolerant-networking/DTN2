@@ -3,7 +3,7 @@
 #
 
 SRCS   := ping.c
-APP    := ping
+APP    := dtnping
 SRCDIR := ../..
 
 -include ../Makefile.app
