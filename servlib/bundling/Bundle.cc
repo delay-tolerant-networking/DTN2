@@ -30,7 +30,7 @@ Bundle::Bundle()
 
 Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
 {
-    init(id,location);
+    init(id, location);
 }
 
 Bundle::~Bundle()
@@ -126,6 +126,9 @@ Bundle::add_container(BundleList *blist)
     if (containers_.insert(blist).second == true) {
         return true;
     }
+    log_err("/bundle/container", "ERROR in add container: "
+            "bundle id %d already on container [%s]",
+            bundleid_, blist->name().c_str());
     return false;
 }
 
