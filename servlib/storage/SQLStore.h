@@ -92,8 +92,7 @@ public:
     bool is_custodian(int bundle_id);
 
 private:
-    int next_bundle_id_; 	/// running serial number for bundles
-    SQLStore* store_;	/// abstract persistent storage implementation
+    SQLStore* store_;
 };
 
 #endif /* _SQL_STORE_H_ */
