@@ -86,6 +86,9 @@ protected:
 
 
     int fwd_to_matching(Bundle *bundle, BundleActionList *actions,bool include_local);
+
+protected:
+    BundleTuplePattern all_tuples_;
 };
 
 #endif /* _FLOOD_BUNDLE_ROUTER_H_ */

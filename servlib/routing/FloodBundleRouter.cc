@@ -10,12 +10,12 @@
 
 #include "FloodBundleRouter.h"
 
-const BundleTuplePattern& ALL_TUPLES("bundles://*/*");
 
 /**
  * Constructor.
  */
 FloodBundleRouter::FloodBundleRouter()
+    : all_tuples_("bundles://*/*:*")
 {
     log_info("FLOOD_ROUTER");
 
@@ -159,7 +159,7 @@ FloodBundleRouter::handle_contact_available(ContactAvailableEvent* event,
     Contact * contact = event->contact_;
     log_info("FLOOD: CONTACT_AVAILABLE *%p", event->contact_);
 
-    RouteEntry* entry = new RouteEntry(ALL_TUPLES, contact, FORWARD_COPY);
+    RouteEntry* entry = new RouteEntry(all_tuples_, contact, FORWARD_COPY);
     route_table_->add_entry(entry);
 
     //first clear the list with the contact
@@ -168,7 +168,7 @@ FloodBundleRouter::handle_contact_available(ContactAvailableEvent* event,
     //copy the pending_bundles_ list into a new exchange list
     //exchange_list_ = pending_bundles_->copy();
     //
-    new_next_hop(ALL_TUPLES, contact, actions);
+    new_next_hop(all_tuples_, contact, actions);
 }
 
 /**
@@ -182,7 +182,7 @@ FloodBundleRouter::handle_contact_broken(ContactBrokenEvent* event,
     log_info("FLOOD: CONTACT_BROKEN *%p: removing queued bundles", contact);
     
     //XXX not implemented yet - neeed to do
-    route_table_->del_entry(ALL_TUPLES, contact);
+    route_table_->del_entry(all_tuples_, contact);
     // empty contact list
     // for flood, no need to maintain bundle list
     contact->bundle_list()->clear();
