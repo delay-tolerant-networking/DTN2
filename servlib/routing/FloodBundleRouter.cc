@@ -60,12 +60,17 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
         iter_bundle = *iter;
         log_debug("\tpending_bundle:%d size:%d",
                   iter_bundle->bundleid_,iter_bundle->payload_.length());
-        if(1) {
+        if(iter_bundle->bundleid_ == bundle->bundleid_) {
             //delete the bundle
             return;
         }
     }
     
+    //here we do not need to handle the new bundle immediately
+    //just put it in the pending_bundles_ queue, and it
+    //needs to be used only when a new contact comes up
+    //**might do something different if the bundle is from
+    //  the local node
     BundleRouter::handle_bundle_received(event, actions);
 }
 
@@ -108,6 +113,13 @@ FloodBundleRouter::handle_contact_available(ContactAvailableEvent* event,
                                        FORWARD_COPY);
     entry->local_ = true;
     route_table_->add_entry(entry);
+
+    //first clear the list with the contact
+    contact->bundle_list()->clear();
+
+    //copy the pending_bundles_ list into a new exchange list
+    //exchange_list_ = pending_bundles_->copy();
+    //
     new_next_hop(ALL_TUPLES, contact, actions);
 }
 
@@ -122,12 +134,14 @@ FloodBundleRouter::handle_contact_broken(ContactBrokenEvent* event,
     log_info("FLOOD: CONTACT_BROKEN *%p: removing queued bundles", contact);
     
     //XXX not implemented yet - neeed to do
-    //route_table_.del_entry(ALL_TUPLES, contact);
+    route_table_->del_entry(ALL_TUPLES, contact);
     // empty contact list
     // for flood, no need to maintain bundle list
-    //contact->bundle_list()->clear();
+    contact->bundle_list()->clear();
 
     
+    //dont close the contact -- we have long running ones
+    //this will PANIC
     //contact->close();
 }
 
