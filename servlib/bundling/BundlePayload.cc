@@ -223,7 +223,9 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
     ASSERT(location_ != NODATA && location_ != UNDETERMINED);
 
     if (location_ == MEMORY) {
-        ASSERT(data_.capacity() >= offset + len);
+        ASSERTF(data_.capacity() >= offset + len,
+                "capacity %d offset %d len %d",
+                data_.capacity(), offset, len);
         data_.replace(offset, len, (const char*)bp, len);
     }
     
