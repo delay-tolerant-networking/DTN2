@@ -335,6 +335,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
         log_debug("generating return receipt status report");
         report = new BundleStatusReport(bundle, local_tuple_);
         report->set_status_time(BundleProtocol::STATUS_DELIVERED);
+        report->set_payload();
 
         pending_bundles_->push_back(report, NULL);
         actions->store_add(report);

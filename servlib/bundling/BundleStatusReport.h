@@ -45,17 +45,48 @@ namespace dtn {
 
 /**
  * A special bundle class whose payload is a status report. Used at
- * the source to generate the report that is then sent to the 
+ * the source to generate the report.
  */
 class BundleStatusReport : public Bundle, private BundleProtocol {
 public:
+    /**
+     * Constructor.
+     */
     BundleStatusReport(Bundle* orig_bundle, BundleTuple& source);
+
+    /**
+     * Destructor.
+     */
+    virtual ~BundleStatusReport();
 
     /**
      * Sets the appropriate status report flag and timestamp to the
      * current time.
      */
     void set_status_time(status_report_flag_t flag);
+
+    /**
+     * Stores the completed report into the bundle payload. Must be
+     * called before transmitting the bundle.
+     */
+    void set_payload();
+
+protected:
+    /**
+     * The report structure. Note that we malloc extra space for the
+     * source's tuple to follow the fixed-length fields.
+     */
+    StatusReport* report_;
+
+    /**
+     * The total length of the report.
+     */
+    size_t report_len_;
+
+    /**
+     * The original bundle's source tuple.
+     */
+    BundleTuple orig_source_;
 };
 
 } // namespace dtn

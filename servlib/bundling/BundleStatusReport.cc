@@ -37,7 +37,6 @@
  */
 
 #include "BundleStatusReport.h"
-#include "BundleProtocol.h"
 #include <netinet/in.h>
 
 namespace dtn {
@@ -48,34 +47,26 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle, BundleTuple& source)
     source_.assign(source);
     replyto_.assign(source);
     custodian_.assign(source);
-
     dest_.assign(orig_bundle->replyto_);
 
-    // the payload's length is variable based on the original bundle
+    // the report's length is variable based on the original bundle
     // source's region and admin length
-    size_t region_len = orig_bundle->source_.region().length();
-    size_t admin_len =  orig_bundle->source_.admin().length();
-    
-    size_t len = sizeof(StatusReport) + 2 + region_len + admin_len;
+    orig_source_.assign(orig_bundle->source_);
+    size_t region_len = orig_source_.region().length();
+    size_t admin_len =  orig_source_.admin().length();
+    report_len_ = sizeof(*report_) + 2 + region_len + admin_len;
 
-    payload_.set_length(len, BundlePayload::MEMORY);
-    ASSERT(payload_.location() == BundlePayload::MEMORY);
+    report_ = (StatusReport*)malloc(report_len_);
+    memset(report_, 0, report_len_);
     
-    StatusReport* report = (StatusReport*)payload_.memory_data();
-    memset(report, 0, sizeof(StatusReport));
+    report_->admin_type = ADMIN_STATUS_REPORT;
+    report_->orig_ts = ((u_int64_t)htonl(orig_bundle->creation_ts_.tv_sec)) << 32;
+    report_->orig_ts |= (u_int64_t)htonl(orig_bundle->creation_ts_.tv_usec);
+}
 
-    report->admin_type = ADMIN_STATUS_REPORT;
-    report->orig_ts = ((u_int64_t)htonl(orig_bundle->creation_ts_.tv_sec)) << 32;
-    report->orig_ts |= (u_int64_t)htonl(orig_bundle->creation_ts_.tv_usec);
-    
-    char* bp = &report->tuple_data[0];
-    *bp = region_len;
-    memcpy(&bp[1], orig_bundle->source_.region().data(), region_len);
-    bp += 1 + region_len;
- 
-    *bp = admin_len;
-    memcpy(&bp[1], orig_bundle->source_.admin().data(), admin_len);
-    bp += 1 + admin_len;
+BundleStatusReport::~BundleStatusReport()
+{
+    free(report_);
 }
 
 /**
@@ -85,28 +76,27 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle, BundleTuple& source)
 void
 BundleStatusReport::set_status_time(status_report_flag_t flag)
 {
-    StatusReport* report = (StatusReport*)payload_.memory_data();
     u_int64_t* ts = 0;
     
     switch(flag) {
     case STATUS_RECEIVED:
-        ts = &report->receipt_ts;
+        ts = &report_->receipt_ts;
         break;
             
     case STATUS_CUSTODY_ACCEPTED:
-        ts = &report->receipt_ts;
+        ts = &report_->receipt_ts;
         break;
                 
     case STATUS_FORWARDED:
-        ts = &report->forward_ts;
+        ts = &report_->forward_ts;
         break;
                     
     case STATUS_DELIVERED:
-        ts = &report->delivery_ts;
+        ts = &report_->delivery_ts;
         break;
         
     case STATUS_TTL_EXPIRED:
-        ts = &report->delete_ts;
+        ts = &report_->delete_ts;
         break;
                             
     case STATUS_UNAUTHENTIC:
@@ -118,9 +108,35 @@ BundleStatusReport::set_status_time(status_report_flag_t flag)
     struct timeval now;
     gettimeofday(&now, 0);
 
-    report->status_flags |= flag;
+    report_->status_flags |= flag;
     *ts = ((u_int64_t)htonl(now.tv_sec)) << 32;
     *ts	|= (u_int64_t)htonl(now.tv_usec);
+}
+
+/**
+ * Stores the completed report into the bundle payload. Must be
+ * called before transmitting the bundle.
+ */
+void
+BundleStatusReport::set_payload()
+{
+    /*
+     * copy the region and admin bits into the variable length part of
+     * the report
+     */
+    size_t region_len = orig_source_.region().length();
+    size_t admin_len =  orig_source_.admin().length();
+    
+    char* bp = &report_->tuple_data[0];
+    *bp = region_len;
+    memcpy(&bp[1], orig_source_.region().data(), region_len);
+    bp += 1 + region_len;
+ 
+    *bp = admin_len;
+    memcpy(&bp[1], orig_source_.admin().data(), admin_len);
+    bp += 1 + admin_len;
+
+    payload_.set_data((const u_char*)report_, report_len_);
 }
 
 } // namespace dtn
