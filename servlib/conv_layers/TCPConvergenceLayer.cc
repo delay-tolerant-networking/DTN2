@@ -191,9 +191,9 @@ TCPConvergenceLayer::Connection::Connection(Contact* contact,
 }
 
 TCPConvergenceLayer::Connection::Connection(int fd,
-                                            in_addr_t local_addr,
-                                            u_int16_t local_port)
-    : TCPClient(fd, local_addr, local_port, "/cl/tcp/connection"),
+                                            in_addr_t remote_addr,
+                                            u_int16_t remote_port)
+    : TCPClient(fd, remote_addr, remote_port, "/cl/tcp/connection"),
       contact_(NULL)
 {
 }
@@ -218,7 +218,6 @@ TCPConvergenceLayer::Connection::run()
 
 /**
  * The loop for the sender side of a convergence layer connection.
- * 
  */
 void
 TCPConvergenceLayer::Connection::send_loop()
@@ -232,7 +231,8 @@ TCPConvergenceLayer::Connection::send_loop()
         log_debug("connection send loop waiting for bundle");
 
         // grab a bundle. note that pop_blocking does _not_ decrement
-        // the reference count, so we now have a local reference to it
+        // the reference count, so we now have a local reference to
+        // the bundle
         bundle = contact_->bundle_list()->pop_blocking();
         
         // we've got something to do, now try to connect to our peer

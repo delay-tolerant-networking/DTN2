@@ -53,17 +53,17 @@ IPSocket::init_socket()
     configure();
 }
 
-IPSocket::IPSocket(int sock, in_addr_t local_addr, u_int16_t local_port,
+IPSocket::IPSocket(int sock, in_addr_t remote_addr, u_int16_t remote_port,
                    const char* logbase)
 {
     fd_ = sock;
     logpathf("%s/%d", logbase, sock);
     
     state_ = ESTABLISHED;
-    local_addr_ = local_addr;
-    local_port_ = local_port;
-    remote_addr_ = INADDR_NONE;
-    remote_port_ = 0;
+    local_addr_ = INADDR_NONE;
+    local_port_ = 0;
+    remote_addr_ = remote_addr;
+    remote_port_ = remote_port;
     
     configure();
 }

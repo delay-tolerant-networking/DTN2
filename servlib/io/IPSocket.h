@@ -22,7 +22,7 @@ class IPSocket : public Logger {
   public:
     // Constructor / destructor
     IPSocket(const char* logbase, int socktype);
-    IPSocket(int fd, in_addr_t local_addr, u_int16_t local_port,
+    IPSocket(int fd, in_addr_t remote_addr, u_int16_t remote_port,
              const char* logbase);
     virtual ~IPSocket();
 

@@ -12,9 +12,9 @@ TCPClient::TCPClient(const char* logbase)
 {
 }
 
-TCPClient::TCPClient(int fd, in_addr_t local_addr, u_int16_t local_port,
+TCPClient::TCPClient(int fd, in_addr_t remote_addr, u_int16_t remote_port,
                      const char* logbase)
-    : IPSocket(fd, local_addr, local_port, logbase)
+    : IPSocket(fd, remote_addr, remote_port, logbase)
 {
 }
 

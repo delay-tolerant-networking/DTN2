@@ -10,7 +10,7 @@
 class TCPClient : public IPSocket, public IOClient {
 public:
     TCPClient(const char* logbase = "/tcpclient");
-    TCPClient(int fd, in_addr_t local_addr, u_int16_t local_port,
+    TCPClient(int fd, in_addr_t remote_addr, u_int16_t remote_port,
               const char* logbase = "/tcpclient");
 
     //@{
