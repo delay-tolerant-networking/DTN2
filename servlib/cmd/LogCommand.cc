@@ -6,6 +6,12 @@ LogCommand LogCommand::instance_;
 
 LogCommand::LogCommand() : AutoCommandModule("log") {}
 
+char *
+LogCommand::helpString()
+{
+    return("log path level string");
+}
+
 int
 LogCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {

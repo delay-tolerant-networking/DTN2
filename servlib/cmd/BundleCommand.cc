@@ -7,6 +7,12 @@ BundleCommand BundleCommand::instance_;
 
 BundleCommand::BundleCommand() : AutoCommandModule("bundle") {}
 
+char *
+BundleCommand::helpString()
+{
+    return("inject <source> <dest> <payload>");
+}
+
 int
 BundleCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {

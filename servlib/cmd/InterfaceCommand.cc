@@ -6,6 +6,13 @@ InterfaceCommand InterfaceCommand::instance_;
 
 InterfaceCommand::InterfaceCommand() : AutoCommandModule("interface") {}
 
+char *
+InterfaceCommand::helpString()
+{
+    return("interface <tuple> [<args>?]\n\
+\t\tinterface remove <tuple>");
+}
+
 int
 InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {

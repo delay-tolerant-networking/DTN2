@@ -6,6 +6,13 @@ RegistrationCommand RegistrationCommand::instance_;
 
 RegistrationCommand::RegistrationCommand() : AutoCommandModule("registration") {}
 
+char *
+RegistrationCommand::helpString()
+{
+    return("registration logger add <demux>\n\
+\t\tregistration logger del <regid> <demux>");
+}
+
 int
 RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {

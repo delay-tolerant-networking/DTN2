@@ -14,6 +14,7 @@ public:
      * Virtual from CommandModule.
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
+    virtual char *helpString();
 
 protected:
     static InterfaceCommand instance_;
