@@ -61,7 +61,7 @@
    only one direction, from sender to receiver. However, other
    messages are transmitted from receiver to sender, as described
    below. In addition, as will be described in <xref
-   target="tcpcl:receiver_connect"/>, the party that initiates the TCP
+   target="receiver_connect"/>, the party that initiates the TCP
    connection is not necessarily the sender.
 </t>
 
@@ -71,7 +71,7 @@
 
 </section>
 
-<section title="Contact Header" anchor="tcpcl:contact">
+<section title="Contact Header" anchor="sec:contact">
 
 <t>
    When a connection is established between a sender and receiver,
@@ -79,7 +79,7 @@
    connection.
 </t>
    
-<figure anchor="fig:tcpcl:contact_header"
+<figure anchor="fig:contact_header"
    title="Contact Header Format">
    <preamble>
       The format for the Contact Header is as follows:
@@ -121,7 +121,7 @@
 </list>
 </t>
 
-<texttable anchor="tcpcl:contact:flags"
+<texttable anchor="contact:flags"
            title="Contact Header Flags">
    <ttcol align="center">Value</ttcol>
    <ttcol align="center">Meaning</ttcol>
@@ -142,26 +142,26 @@
 
    <t hangText="partial_ack_len:"> A two byte field containing the
       length in bytes for which partial reception acknowledgements are
-      requested (see <xref target="tcpcl:partial"/>).
+      requested (see <xref target="partial"/>).
    </t>
    <t></t>
    
    <t hangText="idle_close_time:"> A two byte field containing the
       number of seconds that a connection should be maintained when no
       data (bundles or acknowledgements) are being exchanged (see
-      <xref target="tcpcl:idle"/>).
+      <xref target="idle"/>).
    </t>
    <t></t>
 
    <t hangText="keepalive_interval:"> A two byte field containing the
       number of seconds between exchanges of keepalive messages on the
-      connection (see <xref target="tcpcl:keepalive"/>).
+      connection (see <xref target="keepalive"/>).
    </t>
 </list>
 </t>
 </section>
 
-<section title="Contact header validation and negotiation">
+<section title="Magic number and version validation">
 <t>
    Upon receipt of the contact header from the other side, both the
    sender and receiver follow the following semantics for validating the 
@@ -170,31 +170,26 @@
 
 <t>
    If either side does not send the correct magic string, the
-   connection SHOULD be terminated. The intent of the magic string is
-   to provide some more apparent protection against an inadvertent
+   connection MUST be terminated. The intent of the magic string is to
+   provide some more apparent protection against an inadvertent
    connection to a TCP convergence layer. To prevent a flood of
-   repeated connections, either side may choose to hold an invalid
+   repeated connections, either side MAY choose to hold an invalid
    connection open for some time before closing it.
 </t>
 
 <t>
    If one party receives a version number that is greater than that
-   node's current version of the protocol, the receiver SHOULD
-   interpret all fields as described in this document. This behavior
-   rests on the assumption that future revisions of this protocol will
-   continue to be backwards-compatible. However, if either side
-   receives version number 21 (i.e. the ascii code '!'), then the
-   other side is assumed to be an implementation of version 1 of the
-   protocol, and the connection SHOULD therefore be terminated.
-</t>
-
-<t>
-   XXX fill in the rest of the negotiation parameters
+   node's current version of the protocol, the receiving party SHOULD
+   interpret all received fields as if the sending party was
+   conforming to the node's current version. For the party that
+   receives a version number that is smaller than the node's current
+   version, the node MAY conform to the older version of the protocol
+   or the node MAY terminate the connection.
 </t>
 
 </section>
 
-<section title="Message Type Codes" anchor="tcpcl:types">
+<section title="Message Type Codes" anchor="sec:types">
 
 <t>
    After the initial exchange of a contact header, all messages
@@ -202,18 +197,14 @@
    type code.
 </t>
 
-<texttable anchor="tcpcl:types:codes"
+<texttable anchor="types:codes"
            title="TCPCL Header Types">
 
    <preamble>
       The types and values for the message type code are as follows.
    </preamble>
    
-   <ttcol align="center" width="18%">Header</ttcol>
-   <ttcol align="center" width="8%">Type</ttcol>
-   <ttcol align="left" width="74%">Comment</ttcol>
-
-   <c>BUNDLE_DATA</c>
+      <c>BUNDLE_DATA</c>
    <c>0x01</c>
    <c>Precedes the transmission of a Bundle Data Header, which itself
       precedes the transmission of a Bundle.
@@ -225,7 +216,7 @@
 
    <c>KEEPALIVE</c>
    <c>0x03</c>
-   <c>Described in <xref target="tcpcl:keepalive"/>.</c>
+   <c>Described in <xref target="keepalive"/>.</c>
    
    <c>SHUTDOWN</c>
    <c>0x04</c>
@@ -235,7 +226,7 @@
 </texttable>
 </section>
 
-<section title="Bundle Data" anchor="tcpcl:data">
+<section title="Bundle Data" anchor="sec:data">
    
 <t>
    The sender side transmits a bundle to the receiver side by first
@@ -243,7 +234,7 @@
    Bundle Data Header.
 </t>
 
-<figure anchor="fig:tcpcl:data_header"
+<figure anchor="fig:data_header"
         title="Bundle Data Header Format">
 
    <preamble>
@@ -301,7 +292,7 @@
 
 </section>
 
-<section title="Bundle Acknowledgements" anchor="tcpcl:acks">
+<section title="Bundle Acknowledgements" anchor="sec:acks">
    
 <t>
    When sending acknowledgements of receipt of data, the receiver side
@@ -309,7 +300,7 @@
    and then transmits a Bundle Acknowledgement Header.
 </t>
 
-<figure anchor="fig:tcpcl:ack_header"
+<figure anchor="fig:ack_header"
         title="Bundle Acknowledgement Header Format">
 
    <preamble>
@@ -343,48 +334,115 @@
    <t></t>
 
    <t hangText="acked_length:"> A four byte field the contains the
-      total length in bytes of the amount of data that has been
+      total length (in bytes) of the amount of data that has been
       successfully received and is being acknowledged.
    </t>
 </list>
 </t>
 
 <t>
-   If, during the exchange of contact headers, both the sender and
-   receiver set the BUNDLE_ACK_ENABLED flag (see <xref
-   target="tcpcl:contact"/>), then when it successfully receives a bundle,
-   the receiver MUST transmit a bundle acknowledgement header.
+   If, during the exchange of contact headers, BOTH the sender and
+   receiver set the bundle_ack_enabled flag (see <xref
+   target="contact"/>), then the receiver MUST transmit a bundle
+   acknowledgement header when it successfully receives the entire
+   bundle.
 </t>
 
 </section>
 
-<section title="Partial Bundle Acknowledgements" anchor="tcpcl:partial">
+<section title="Partial Bundle Acknowledgements" anchor="sec:partial">
 <t>
    The protocol also includes a provision for bundle acknowledgements
-   to be transmitted before the entire bundle is received. The
+   to be transmitted during the course of receiving a bundle. The
    motivation behind this feature is to enable the bundle daemon to
-   implement "reactive fragmentation", splitting a bundle into two
-   fragments if a connection is interrupted before the entire
-   transmission is completed.
+   communicate state knowledge to enable "reactive fragmentation", as
+   described in <xref target="reactive_fragmentation"/>.
 </t>
 
 <t>
-   As described in <xref target="tcpcl:contact"/>, one of the
-   parameters in the Contact Header is the partial_ack_len. The sender
-   populates this field with a length in bytes, which the
-   sender requests to receive acknowledgements of
-   
-   meaning of this field is a byte length which the sender requests to
+   As described in <xref target="sec:contact"/>, one of the parameters
+   in the contact header is the partial_ack_len. The sender populates
+   this field with a requested length (in bytes), and the receiver
+   populates the field with an offered length (in bytes). The two
+   parties agree that the negotiated value is the MAXIMUM of the two
+   lengths. However, if either side sets the length to be zero, then
+   the feature is disabled and no partial acknowledgements are
+   transmitted.
+</t>
+
+<t>
+   If the two parties agree to a non-zero value of the partial_ack_len
+   parameter, then the receiver SHOULD transmit a bundle
+   acknowledgement (see <xref target="sec:acks"/>) whenever it
+   receives at least partial_ack_len additional bytes of the bundle
+   payload since the last acknowledgement transmission (or the start
+   of the bundle if no acknowledgements have been sent).
 </t>
 </section>
 
-<section title="Keepalive Messages" anchor="tcpcl:keepalive">
+<section title="Keepalive Messages" anchor="sec:keepalive">
+<t>
+   The protocol includes a provision for transmission of keepalive
+   messages over the TCP connection to determine if the connection has
+   been disrupted.
+</t>
+
+<t>
+   As described in <xref target="sec:contact"/>, one of the parameters
+   in the contact header is the keepalive_interval. Both sides
+   populate this field with their requested intervals (in seconds)
+   between keepalive messages. The two parties SHOULD set the
+   negotiated interval to the MAXIMUM value of the two requests. If
+   either side sets the interval to zero, then this feature is
+   disabled and no keepalive messages should be sent.
+</t>
+
+<t>
+   The format of a keepalive message is a one byte message type code
+   of KEEPALIVE (as described in <xref target="types:codes"/>, with no
+   additional data. Both sides SHOULD send a keepalive message
+   whenever the negotiated interval has elapsed without transmission
+   of any message (keepalive or other).
+</t>
+
+<t>
+   If no message (keepalive or other) has been received for at least
+   twice the keepalive interval, then either party MAY terminate the
+   session by transmitting a one byte message type code of SHUTDOWN
+   (as described in <xref target="types:codes"/>) and closing the TCP
+   connection.
+</t>
 </section>
 
-<section title="Idle Connection Shutdown" anchor="tcpcl:idle">
+<section title="Idle Connection Shutdown" anchor="sec:idle">
+<t>
+   The protocol includes a provision for clean shutdown of idle TCP
+   connections.
+</t>
+
+<t>
+   As described in <xref target="sec:contact"/>, one of the parameters
+   in the contact header is the idle_close_time. Both sides populate
+   this field with the requested duration (in seconds) to maintain an
+   open connection after the last non-keepalive message is transmitted
+   over the connection. The two parties SHOULD set the negotiated
+   interval to the MAXIMUM value of the two requests. If either side
+   sets the interval to zero, then that side SHOULD not close idle
+   connections. The other party MAY adopt this same behavior or MAY
+   choose to close idle connections at its own behest.
+</t>
+
+<t>
+   If no bundle data other) has been received for at least
+   twice the keepalive interval, then either party MAY terminate the
+   session by transmitting a one byte message type code of SHUTDOWN
+   (as described in <xref target="types:codes"/>) and closing the TCP
+   connection.
+</t>
+
 </section>
 
-<section title="Receiver Initated Connection" anchor="tcpcl:receiver_connect">
+<section title="Receiver Initated Connection" anchor="sec:receiver_connect">
 </section>
 
 
