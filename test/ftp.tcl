@@ -133,7 +133,7 @@ proc send_file {host file} {
 	# fconfigure $sock -blocking 0
 	set got_ack -1
 	fileevent $sock readable "ack_arrived $sock"
-	set ack_timer [after 10000 ack_timeout]
+	set ack_timer [after 20000 ack_timeout]
 	vwait got_ack
 	
 	if {!$got_ack} {
@@ -183,7 +183,7 @@ proc send_file {host file} {
     fconfigure $sock -blocking 0
     set got_ack -1
     fileevent $sock readable "ack_arrived $sock"
-    set ack_timer [after 25000 ack_timeout]
+    set ack_timer [after 55000 ack_timeout]
     vwait got_ack
 
     if {$got_ack} {
