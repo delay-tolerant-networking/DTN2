@@ -1,6 +1,6 @@
 
 #include "StorageCommand.h"
-#include "storage/PostgresSQLStore.h"
+#include "storage/SQLStore.h"
 #include "storage/PostgresSQLImplementation.h"
 
 StorageCommand StorageCommand::instance_;
