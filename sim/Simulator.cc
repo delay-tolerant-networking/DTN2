@@ -99,7 +99,8 @@ Simulator::run()
                            e, e->type_str(), time_);
                 e->handler()->process(e);
             }
-            if ((time_ > Simulator::runtill_)) {
+            if ((Simulator::runtill_ != -1) &&
+                (time_ > Simulator::runtill_)) {
                 log_info("Exiting simulation. "
                          "Current time (%d) > Max time (%d)",
                          time_, Simulator::runtill_);
