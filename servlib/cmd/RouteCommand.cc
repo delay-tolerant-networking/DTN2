@@ -23,7 +23,7 @@ RouteCommand::help_string()
 {
     // return "route add <dest> <nexthop> <type> <args>\n"
     return "route add <dest> <link/peer>\n"
-         "route del <dest> <link/peer>\n"
+        "route del <dest> <link/peer>\n"
         "route local_region <region>\n"
         "route local_tuple <tuple>\n"
         "route dump"
