@@ -159,9 +159,18 @@ TCPConvergenceLayer::close_contact(Contact* contact)
 {
     Connection* conn = (Connection*)contact->contact_info();
 
+    log_info("close_contact *%p", contact);
+
     if (conn) {
-        if (!conn->is_stopped()) {
-            PANIC("XXX/demmer need to stop the connection thread");
+        while (!conn->is_stopped()) {
+            if (!conn->should_stop()) {
+                PANIC("XXX/demmer need to stop the connection thread");
+                conn->set_should_stop();
+                conn->interrupt();
+            }
+            
+            log_warn("waiting for connection thread to stop...");
+            Thread::yield();
         }
         
         delete conn;
@@ -841,6 +850,13 @@ TCPConvergenceLayer::Connection::break_contact()
 {
     ASSERT(sock_);
     sock_->close();
+
+    // In all cases where break_contact is called, the Connection
+    // thread is about to terminate. However, once the
+    // ContactBrokenEvent is posted, TCPCL::close_contact() will try
+    // to stop the Connection thread. So we preemptively indicate in
+    // the thread flags that we're gonna stop shortly.
+    set_should_stop();
 
     if (contact_)
         BundleForwarder::post(new ContactBrokenEvent(contact_));
