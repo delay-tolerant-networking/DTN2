@@ -265,7 +265,12 @@ public:
      * mappingp is non-null, return the old mapping as well.
      */
     // virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
-    
+
+    /**
+     * Check if the given bundle is already queued on this consumer.
+     */
+    virtual bool is_queued(Bundle* bundle);
+
     /**
      * Store the implementation specific part of the link.
      */

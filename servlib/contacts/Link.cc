@@ -171,6 +171,20 @@ Link::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
 }
 
 /**
+ * Check if the given bundle is already queued on this consumer.
+ */
+bool
+Link::is_queued(Bundle* bundle)
+{
+    if (isopen()) {
+        return contact_->is_queued(bundle);
+    } else {
+        return BundleConsumer::is_queued(bundle);
+    }
+}
+
+
+/**
  * Set the state of the link to be available
  */
 void
