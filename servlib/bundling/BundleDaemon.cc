@@ -41,6 +41,8 @@
 #include "BundleConsumer.h"
 #include "BundleEvent.h"
 #include "BundleDaemon.h"
+#include "ContactManager.h"
+#include "FragmentManager.h"
 #include "routing/BundleRouter.h"
 
 namespace dtn {
@@ -57,6 +59,9 @@ BundleDaemon::BundleDaemon()
 
     pending_bundles_ = new BundleList("pending_bundles");
     custody_bundles_ = new BundleList("custody_bundles");
+
+    contactmgr_ = new ContactManager();
+    fragmentmgr_ = new FragmentManager();
 }
 
 /**

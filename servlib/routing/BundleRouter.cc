@@ -218,7 +218,7 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     if (event->bytes_received_ != bundle->payload_.length()) {
         log_debug("partial bundle, making fragment of %d bytes",
                   event->bytes_received_);
-        FragmentManager::instance()->
+        BundleDaemon::instance()->fragmentmgr()->
             convert_to_fragment(bundle, event->bytes_received_);
     }
 
@@ -246,7 +246,7 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
                 fraglen = bundle->payload_.length() - offset;
             }
 
-            fragment = FragmentManager::instance()->
+            fragment = BundleDaemon::instance()->fragmentmgr()->
                        create_fragment(bundle, offset, fraglen);
             ASSERT(fragment);
 
@@ -308,7 +308,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
         log_debug("incomplete transmission: creating reactive fragment "
                   "(offset %d len %d/%d)", frag_off, frag_len, payload_len);
         
-        Bundle* tail = FragmentManager::instance()->
+        Bundle* tail = BundleDaemon::instance()->fragmentmgr()->
                        create_fragment(bundle, frag_off, frag_len);
 
         bundle->payload_.close_file();
@@ -542,7 +542,7 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
         // pass the bundle to the fragment manager for reassembly. if
         // this was the last fragment, then we'll get back the
         // reassembled bundle
-        bundle = FragmentManager::instance()->process(bundle);
+        bundle = BundleDaemon::instance()->fragmentmgr()->process(bundle);
         
         if (!bundle)
             return;

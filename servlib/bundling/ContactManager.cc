@@ -48,11 +48,6 @@
 namespace dtn {
 
 /**
- * Define the singleton contact manager instance
- */
-ContactManager* ContactManager::instance_; 
-
-/**
  * Constructor / Destructor
  */
 ContactManager::ContactManager()
@@ -70,12 +65,14 @@ ContactManager::ContactManager()
 void
 ContactManager::add_peer(Peer *peer)
 {
+    log_debug("adding peer %s", peer->address());
     peers_->insert(peer);
 }
 
 void
 ContactManager::delete_peer(Peer *peer)
 {
+    log_debug("deleting peer %s", peer->address());
     if (!has_peer(peer)) {
         log_err("Error in deleting peer from contact manager -- "
                 "Peer %s does not exist", peer->address());
@@ -130,12 +127,14 @@ ContactManager::find_peer(const char* address)
 void
 ContactManager::add_link(Link *link)
 {
+    log_debug("adding link %s", link->name());
     links_->insert(link);
 }
 
 void
 ContactManager::delete_link(Link *link)
 {
+    log_debug("deleting link %s", link->name());
     if (!has_link(link)) {
         log_err("Error in deleting link from contact manager.\
                  Link %s does not exist \n",link->name());

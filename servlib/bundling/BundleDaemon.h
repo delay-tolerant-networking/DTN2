@@ -54,6 +54,8 @@ class BundleConsumer;
 class BundleEvent;
 class BundleList;
 class BundleRouter;
+class ContactManager;
+class FragmentManager;
 
 /**
  * Class that handles the basic event / action mechanism. All events
@@ -125,6 +127,16 @@ public:
     BundleActions* actions() { return actions_; }
 
     /**
+     * Accessor for the contact manager.
+     */
+    ContactManager* contactmgr() { return contactmgr_; }
+
+    /**
+     * Accessor for the fragmentation manager.
+     */
+    FragmentManager* fragmentmgr() { return fragmentmgr_; }
+
+    /**
      * Format the given StringBuffer with the current statistics value.
      */
     void get_statistics(oasys::StringBuffer* buf);
@@ -155,6 +167,12 @@ protected:
 
     /// The active bundle actions handler
     BundleActions* actions_;
+
+    /// The contact manager
+    ContactManager* contactmgr_;
+
+    /// The fragmentation / reassembly manager
+    FragmentManager* fragmentmgr_;
 
     /// The list of all bundles still pending delivery
     BundleList* pending_bundles_;

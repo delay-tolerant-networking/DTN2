@@ -97,9 +97,9 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         const char* name = argv[3];
         BundleConsumer* consumer = NULL;
         
-        consumer = ContactManager::instance()->find_link(name);
+        consumer = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (consumer == NULL) {
-            consumer = ContactManager::instance()->find_peer(name);
+            consumer = BundleDaemon::instance()->contactmgr()->find_peer(name);
         }
         
         if (consumer == NULL) {
@@ -121,7 +121,7 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         BundleRouter* router = BundleDaemon::instance()->router();
         buf.appendf("local tuple:\n\t%s\n", router->local_tuple().c_str());
         router->route_table()->dump(&buf);
-        ContactManager::instance()->dump(&buf);
+        BundleDaemon::instance()->contactmgr()->dump(&buf);
         set_result(buf.c_str());
         return TCL_OK;
     }

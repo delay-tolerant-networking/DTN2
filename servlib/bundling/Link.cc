@@ -82,10 +82,10 @@ Link::Link(std::string name, link_type_t type,
     ASSERT(clayer_);
     logpathf("/link/%s", name_.c_str());
 
-    peer_ = ContactManager::instance()->find_peer(nexthop);
+    peer_ = BundleDaemon::instance()->contactmgr()->find_peer(nexthop);
     if (peer_ == NULL) {
         peer_ = new Peer(nexthop);
-        ContactManager::instance()->add_peer(peer_);
+        BundleDaemon::instance()->contactmgr()->add_peer(peer_);
     }
     peer_->add_link(this);
      
@@ -109,7 +109,7 @@ Link::init(int argc, const char* argv[])
     }
 
     // Add the link to contact manager
-    ContactManager::instance()->add_link(this);
+    BundleDaemon::instance()->contactmgr()->add_link(this);
 
     // Post a link created event
     BundleDaemon::post(new LinkCreatedEvent(this));

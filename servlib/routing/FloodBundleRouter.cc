@@ -40,6 +40,7 @@
 #include "RouteTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleActions.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/Contact.h"
 #include "bundling/FragmentManager.h"
@@ -47,7 +48,6 @@
 #include <stdlib.h>
 
 #include "FloodBundleRouter.h"
-//#include "debug/Debug.h"
 #include <stdlib.h>
 
 namespace dtn {
@@ -95,7 +95,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     if (event->bytes_received_ != bundle->payload_.length()) {
         log_info("XXX: PARTIAL bundle:%d, making fragment of %d bytes",
                   bundle->bundleid_,event->bytes_received_);
-        FragmentManager::instance()->
+        BundleDaemon::instance()->fragmentmgr()->
             convert_to_fragment(bundle, event->bytes_received_);
     }
         

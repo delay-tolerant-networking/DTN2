@@ -71,13 +71,6 @@ public:
     FragmentManager();
     
     /**
-     * Singleton accessor.
-     */
-    static FragmentManager* instance() {
-        return &instance_;
-    }
-    
-    /**
      * Create a bundle fragment from another bundle.
      *
      * @param bundle
@@ -126,9 +119,6 @@ public:
      */
     bool check_completed(ReassemblyState* state);
 
-    /// Singleton instance
-    static FragmentManager instance_;
-    
     /// Table of partial bundles
     typedef oasys::StringHashMap<ReassemblyState*> ReassemblyTable;
     ReassemblyTable reassembly_table_;

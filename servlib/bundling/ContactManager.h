@@ -60,31 +60,6 @@ class PeerSet;
 class ContactManager : public oasys::Logger {
 public:
     /**
-     * Singleton instance accessor.
-     */
-    static ContactManager* instance() {
-        if (instance_ == NULL) {
-            PANIC("ContactManager::init not called yet");
-        }
-        return instance_;
-    }
-
-    /**
-     * Creates a new contact manager
-     */
-    static void init() {
-        if (instance_ != NULL) {
-            PANIC("ContactManager::init called multiple times");
-        }
-        instance_ = new ContactManager();
-    }
-
-    /**
-     * Return true if initialization has completed.
-     */
-    static bool initialized() { return (instance_ != NULL); }
-    
-    /**
      * Constructor / Destructor
      */
     ContactManager();
@@ -194,7 +169,6 @@ protected:
                                   const char* nexthop);
     
     
-    static ContactManager* instance_;	///< Singleton instance
     PeerSet* peers_;			///< Set of all peers
     LinkSet* links_;			///< Set of all links
     int opportunistic_cnt_;		///< Counter for opportunistic links

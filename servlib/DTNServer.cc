@@ -109,7 +109,6 @@ void
 DTNServer::init_components()
 {
     AddressFamilyTable::init();
-    ContactManager::init();
     ConvergenceLayer::init_clayers();
     InterfaceTable::init();
     BundleDaemon::init(new BundleDaemon());

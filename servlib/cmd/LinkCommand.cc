@@ -99,7 +99,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        Link* link = ContactManager::instance()->find_link(name);
+        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link != NULL) {
             resultf("link name %s already exists, use different name", name);
             return TCL_ERROR;
@@ -126,7 +126,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         const char* name = argv[2];
         
-        Link* link = ContactManager::instance()->find_link(name);
+        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link == NULL) {
             resultf("link %s doesn't exist", name);
             return TCL_ERROR;
@@ -136,7 +136,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             resultf("link %s already open", name);
             return TCL_OK;
         }
-        ContactManager::instance()->open_link(link);
+        BundleDaemon::instance()->contactmgr()->open_link(link);
         
     } else if (strcmp(cmd, "close") == 0) {
         // link close <name>
@@ -147,7 +147,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         const char* name = argv[2];
         
-        Link* link = ContactManager::instance()->find_link(name);
+        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link == NULL) {
             resultf("link %s doesn't exist", name);
             return TCL_ERROR;
