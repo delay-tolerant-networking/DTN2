@@ -1,7 +1,9 @@
 
 #include "Bundle.h"
-#include "BundleRef.h"
+#include "BundleEvent.h"
+#include "BundleForwarder.h"
 #include "BundleList.h"
+#include "BundleRef.h"
 #include "FragmentManager.h"
 
 FragmentManager FragmentManager::instance_;
@@ -93,6 +95,9 @@ FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
     key->append(bundle->dest_.tuple());
 }
 
+/**
+ * Reassembly state structure.
+ */
 struct FragmentManager::ReassemblyState {
     ReassemblyState()
         : fragments_("reassembly_state")
@@ -250,16 +255,22 @@ FragmentManager::process(Bundle* fragment)
     state->bundle_->payload_.write_data(bp, fragment->frag_offset_, fraglen);
     
     // check see if we're done
-    if (check_completed(state)) {
-        Bundle* ret = state->bundle_;
-        state->fragments_.clear();
-        reassembly_table_.erase(hash_key);
-        fraglock.unlock();
-        delete state;
-        return ret;
+    if (!check_completed(state)) {
+        return NULL;
     }
 
-    return NULL;
+    Bundle* ret = state->bundle_;
+    
+    BundleForwarder::post
+        (new ReassemblyCompletedEvent(ret, &state->fragments_));
+    
+    state->bundle_->del_ref("reassembly_state");
+    state->fragments_.clear();
+    reassembly_table_.erase(hash_key);
+    fraglock.unlock();
+    delete state;
+    
+    return ret;
 }
 
 
