@@ -40,6 +40,7 @@
 #include "FixedAddressFamily.h"
 #include "InternetAddressFamily.h"
 #include "SmtpAddressFamily.h"
+#include "StringAddressFamily.h"
 #include "WildcardAddressFamily.h"
 
 namespace dtn {
@@ -100,10 +101,21 @@ AddressFamilyTable::AddressFamilyTable()
 {
     fixed_family_ 	= new FixedAddressFamily();
     wildcard_family_	= new WildcardAddressFamily();
+    string_family_	= NULL;
     
     table_["host"] 	= new InternetAddressFamily("host");
     table_["ip"] 	= new InternetAddressFamily("ip");
     table_["smtp"]	= new SmtpAddressFamily();
+}
+
+
+/**
+ * Initializer call to enable string-based addressing.
+ */
+void
+AddressFamilyTable::add_string_family()
+{
+    string_family_ 	= new StringAddressFamily();
 }
 
 /**
@@ -135,15 +147,23 @@ AddressFamilyTable::lookup(const std::string& admin, bool* validp)
         return fixed_family_;
     }
 
-    // otherwise, the admin should be a URI, so extract the schema
-    size_t end;
-    if ((end = admin.find(':')) == std::string::npos) {
-        log_debug("/bundle/tuple",
-                  "no colon for schema in '%s'", admin.c_str());
-        return NULL;
+    // otherwise, check if the admin string is a URI by trying to
+    // extract the schema. 
+    size_t end = admin.find(':');
+    if (end == std::string::npos) {
+        // not a URI
+        if (string_family_) {
+            if (validp)
+                *validp = true;
+            return string_family_;
+        } else {
+            log_debug("/bundle/tuple",
+                      "no colon for schema in '%s'", admin.c_str());
+            return NULL;
+        }
     }
     
-    // try to find the address family
+    // string is a valid uri, so try to find the address family
     std::string schema(admin, 0, end);
     AFTable::iterator iter;
 

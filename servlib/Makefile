@@ -30,6 +30,7 @@ BUNDLING_SRCS := 				\
 	bundling/Peer.cc			\
 	bundling/ScheduledLink.cc		\
 	bundling/SmtpAddressFamily.cc		\
+	bundling/StringAddressFamily.cc		\
 	bundling/WildcardAddressFamily.cc	\
 
 CONV_LAYER_SRCS :=				\

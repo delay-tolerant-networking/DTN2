@@ -132,6 +132,16 @@ public:
      */
     AddressFamily* wildcard_family() { return wildcard_family_; }
     
+    /**
+     * The special string address family.
+     */
+    AddressFamily* string_family() { return string_family_; }
+
+    /**
+     * Initializer call to enable string-based addressing.
+     */
+    void add_string_family();
+    
 protected:
     static AddressFamilyTable* instance_;
     
@@ -140,6 +150,7 @@ protected:
 
     AddressFamily* fixed_family_;
     AddressFamily* wildcard_family_;
+    AddressFamily* string_family_;
 };
 
 } // namespace dtn
