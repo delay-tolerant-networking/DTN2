@@ -39,27 +39,6 @@ CMD_SRCS :=					\
 	cmd/StorageCommand.cc			\
 	cmd/TestCommand.cc			\
 
-DEBUG_SRCS :=					\
-	debug/gdtoa-dmisc.c			\
-	debug/gdtoa-dtoa.c			\
-	debug/gdtoa-gdtoa.c			\
-	debug/gdtoa-gmisc.c			\
-	debug/gdtoa-misc.c			\
-	debug/Formatter.cc			\
-	debug/Log.cc				\
-
-IO_SRCS :=					\
-	io/IO.cc				\
-	io/NetUtils.cc				\
-	io/FdIOClient.cc			\
-	io/FileIOClient.cc			\
-	io/IPSocket.cc				\
-	io/IPClient.cc				\
-	io/TCPClient.cc				\
-	io/TCPServer.cc				\
-	io/UDPClient.cc				\
-	io/UDPServer.cc				\
-
 REGISTRATION_SRCS :=				\
 	reg/Registration.cc			\
 	reg/RegistrationTable.cc		\
@@ -93,27 +72,12 @@ STORAGE_SRCS :=					\
         storage/PostgresSQLImplementation.cc    \
         storage/MysqlSQLImplementation.cc       \
 
-THREAD_SRCS :=					\
-	thread/Mutex.cc				\
-	thread/Notifier.cc			\
-	thread/Thread.cc			\
-	thread/Timer.cc				\
-
-UTIL_SRCS :=					\
-	util/RateEstimator.cc			\
-	util/StringBuffer.cc			\
-	util/URL.cc				\
-
 SERVLIB_SRCS := $(BUNDLING_SRCS) 		\
 		$(CONV_LAYER_SRCS)		\
 		$(CMD_SRCS) 			\
-		$(DEBUG_SRCS) 			\
-		$(IO_SRCS) 			\
 		$(REGISTRATION_SRCS)		\
 		$(ROUTING_SRCS)			\
 		$(STORAGE_SRCS)			\
-		$(THREAD_SRCS)			\
-		$(UTIL_SRCS)			\
 
 SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)
