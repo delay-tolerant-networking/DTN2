@@ -1,7 +1,6 @@
 #
 # Makefile for DTN2/test
 #
-
 SRCDIR := ..
 
 #
@@ -9,16 +8,19 @@ SRCDIR := ..
 #
 all: test
 
-test: simple-marshal-test
+BINFILES :=			\
+	command-test		\
+	simple-marshal-test	\
+
+test: check $(BINFILES)
 
 #
-# Default rule to build a test
-simple-marshal-test: simple-marshal-test.o $(SRCDIR)/servlib/libdtnserv.a
-	$(CPP) $^ -o $@ $(LFLAGS) $(LIBS)
+# Default pattern rule to build the tests
+#
+%-test: %-test.cc $(SRCDIR)/servlib/libdtnserv.a
+	$(CPP) $(CFLAGS) $^ -o $@ $(LFLAGS) $(LIBS) 
 
 #
 # Include the common rules
 #
 -include $(SRCDIR)/Rules.make
-
-
