@@ -180,6 +180,7 @@ public:
     BundlePayload payload_;	///< Reference to the payload
 
     bool is_fragment_;		///< Fragmentary Bundle
+    bool is_reactive_fragment_; ///< Reactive fragmentary bundle
     u_int32_t orig_length_;	///< Length of original bundle
     u_int32_t frag_offset_;	///< Offset of fragment in the original bundle
 

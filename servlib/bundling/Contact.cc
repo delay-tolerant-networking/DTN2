@@ -64,8 +64,14 @@ Contact::consume_bundle(Bundle* bundle)
         open();
     }
     
-    if(bundle)
-        bundle_list_->push_back(bundle);
+    if (bundle) {
+        // XXX/demmer temp
+        if (bundle->is_reactive_fragment_)
+            bundle_list_->push_front(bundle);
+        else 
+            bundle_list_->push_back(bundle);
+    }
+    
     clayer_->send_bundles(this);
 }
 

@@ -177,6 +177,9 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
         
         Bundle* tail = FragmentManager::instance()->
                        create_fragment(bundle, frag_off, frag_len);
+
+        // XXX/demmer temp to put it on the head of the contact list
+        tail->is_reactive_fragment_ = true;
         
         // treat the new fragment as if it just arrived (sort of). we
         // don't want to store the fragment if no-one will consume it.

@@ -22,6 +22,7 @@ Bundle::init(u_int32_t id, BundlePayload::location_t location)
     payload_.init(id, location);
 
     is_fragment_	= false;
+    is_reactive_fragment_ = false;
 
     log_debug("/bundle", "Bundle::init bundle id %d", id);
 }
