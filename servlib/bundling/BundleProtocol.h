@@ -52,19 +52,19 @@ public:
      * functionality.
      */
     typedef enum {
-        NONE 			= 0x00,
-        PRIMARY 		= 0x01,
-        DICTIONARY		= 0x02,
-        RESERVED 		= 0x03,
-        RESERVED2		= 0x04,
-        PAYLOAD 		= 0x05,
-        RESERVED3		= 0x06,
-        AUTHENTICATION 		= 0x07,
-        PAYLOAD_SECURITY	= 0x08,
-        FRAGMENT 		= 0x09,
-        EXT1			= 0x10,
-        EXT2			= 0x11,
-        EXT4			= 0x12,
+        HEADER_NONE 		= 0x00,
+        HEADER_PRIMARY 		= 0x01,
+        HEADER_DICTIONARY	= 0x02,
+        HEADER_RESERVED 	= 0x03,
+        HEADER_RESERVED2	= 0x04,
+        HEADER_PAYLOAD 		= 0x05,
+        HEADER_RESERVED3	= 0x06,
+        HEADER_AUTHENTICATION 	= 0x07,
+        HEADER_PAYLOAD_SECURITY	= 0x08,
+        HEADER_FRAGMENT 	= 0x09,
+        HEADER_EXT1		= 0x10,
+        HEADER_EXT2		= 0x11,
+        HEADER_EXT4		= 0x12,
     } bundle_header_type_t;
 
     /**
@@ -118,10 +118,24 @@ public:
      * Valid type codes for administrative payloads.
      */
     typedef enum {
-        STATUS_REPORT		= 0x01,
-        CUSTODY_SIGNAL 		= 0x02,
-        PING			= 0x03,
+        ADMIN_STATUS_REPORT	= 0x01,
+        ADMIN_CUSTODY_SIGNAL 	= 0x02,
+        ADMIN_PING		= 0x03,
     } admin_payload_type_t;
+
+    /**
+     * Valid status flags.
+     */
+    typedef enum {
+        STATUS_RECEIVED		= 0x01,
+        STATUS_CUSTODY_ACCEPTED	= 0x02,
+        STATUS_FORWARDED	= 0x04,
+        STATUS_DELIVERED	= 0x08,
+        STATUS_TTL_EXPIRED	= 0x10,
+        STATUS_UNAUTHENTIC	= 0x20,
+        STATUS_UNUSED		= 0x40,
+        STATUS_FRAGMENT		= 0x80,
+    } status_report_type_t;
 
 protected:
     static u_int8_t format_cos(const Bundle* bundle);

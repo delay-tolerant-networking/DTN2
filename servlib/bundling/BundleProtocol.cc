@@ -108,7 +108,7 @@ BundleProtocol::format_headers(const Bundle* bundle,
         records += tuples[i].length();
     }
 
-    *next_header_type = DICTIONARY;
+    *next_header_type = HEADER_DICTIONARY;
     next_header_type = &dictionary->next_header_type;
     iov[*iovcnt].iov_base = dictionary;
     iov[*iovcnt].iov_len  = dictlen;
@@ -124,7 +124,7 @@ BundleProtocol::format_headers(const Bundle* bundle,
         memcpy(&fragment->orig_length, &orig_length, sizeof(orig_length));
         memcpy(&fragment->frag_offset, &frag_offset, sizeof(frag_offset));
 
-        *next_header_type = FRAGMENT;
+        *next_header_type = HEADER_FRAGMENT;
         next_header_type = &fragment->next_header_type;
         iov[*iovcnt].iov_base = fragment;
         iov[*iovcnt].iov_len  = sizeof(FragmentHeader);
@@ -138,8 +138,8 @@ BundleProtocol::format_headers(const Bundle* bundle,
     u_int32_t payloadlen = htonl(bundle->payload_.length());
     memcpy(&payload->length, &payloadlen, 4);
     
-    *next_header_type = PAYLOAD;
-    payload->next_header_type = NONE;
+    *next_header_type = HEADER_PAYLOAD;
+    payload->next_header_type = HEADER_NONE;
     iov[*iovcnt].iov_base = payload;
     iov[*iovcnt].iov_len  = sizeof(PayloadHeader);
     (*iovcnt)++;
@@ -198,7 +198,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     // dictionary header (must follow primary)
     //
     DictionaryHeader* dictionary;
-    if (primary->next_header_type != DICTIONARY) {
+    if (primary->next_header_type != HEADER_DICTIONARY) {
         logf(log, LOG_ERR, "dictionary header doesn't follow primary");
         return -1;
     }
@@ -258,17 +258,17 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     EXTRACT_DICTIONARY_TUPLE(replyto_);
 
     // start a loop until we've consumed all the other headers
-    while (next_header_type != NONE) {
+    while (next_header_type != HEADER_NONE) {
         switch (next_header_type) {
-        case PRIMARY:
+        case HEADER_PRIMARY:
             logf(log, LOG_ERR, "found a second primary header");
             return -1;
 
-        case DICTIONARY:
+        case HEADER_DICTIONARY:
             logf(log, LOG_ERR, "found a second dictionary header");
             return -1;
 
-        case FRAGMENT: {
+        case HEADER_FRAGMENT: {
             u_int32_t orig_length, frag_offset;
             
             if (len < sizeof(FragmentHeader)) {
@@ -288,7 +288,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
             break;
         }
 
-        case PAYLOAD: {
+        case HEADER_PAYLOAD: {
             u_int32_t payload_len;
             
             if (len < sizeof(PayloadHeader)) {
@@ -299,7 +299,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
             buf += sizeof(PayloadHeader);
             len -= sizeof(PayloadHeader);
 
-            if (payload->next_header_type != NONE) {
+            if (payload->next_header_type != HEADER_NONE) {
                 logf(log, LOG_ERR, "payload header must be last (next type %d)",
                      payload->next_header_type);
                 return -1;

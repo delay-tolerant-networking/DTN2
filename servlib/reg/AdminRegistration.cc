@@ -45,15 +45,15 @@ AdminRegistration::consume_bundle(Bundle* bundle)
     typecode = *buf;
 
     switch(typecode) {
-    case BundleProtocol::STATUS_REPORT:
+    case BundleProtocol::ADMIN_STATUS_REPORT:
         PANIC("status report not implemented yet");
         break;
 
-    case BundleProtocol::CUSTODY_SIGNAL:
+    case BundleProtocol::ADMIN_CUSTODY_SIGNAL:
         PANIC("custody signal not implemented yet");
         break;
 
-    case BundleProtocol::PING:
+    case BundleProtocol::ADMIN_PING:
         log_info("ping from %s", bundle->replyto_.c_str());
         break;
         
