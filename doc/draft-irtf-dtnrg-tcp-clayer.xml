@@ -89,9 +89,9 @@
                      1                   2                   3  
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +---------------+---------------+---------------+---------------+
-|                     magic='dtn'               |    version    |
+|                          magic='dtn!'                         |
 +---------------+---------------+---------------+---------------+
-|     flags     |  __unused__   |        partial_ack_len        |
+|     version   |     flags     |        partial_ack_len        |
 +---------------+---------------+---------------+---------------+
 |        idle_close_time        |       keepalive_interval      |
 +---------------+---------------+---------------+---------------+
@@ -104,8 +104,8 @@
 
 <t>
 <list style="hanging" hangIndent="5">
-   <t hangText="magic:"> A three byte field that always contains the
-      bytes (in order) 0x64 0x76 0x6e, i.e. the ASCII string "dtn".
+   <t hangText="magic:"> A four byte field that always contains the
+      byte sequence 0x64 0x76 0x6e 0x21, i.e. the ASCII string "dtn!".
    </t>
    <t></t>
    
@@ -130,18 +130,15 @@
    <c>Request acknowledgement of bundle reception.</c>
 
    <c>010</c>
-   <c>Connection initiator is the receiver.</c>
+   <c>Request reactive fragmentation.</c>
 
    <c>100</c>
-   <c>Request reactive fragmentation.</c>
+   <c>Connection initiator is the receiver.</c>
+
 </texttable>
 
 <t>
 <list style="hanging" hangIndent="5">
-
-   <t hangText="__unused__:"> A one byte field that is ignored.
-   </t>
-   <t></t>
 
    <t hangText="partial_ack_len:"> A two byte field containing the
       length in bytes for which partial reception acknowledgements are

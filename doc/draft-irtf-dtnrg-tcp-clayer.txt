@@ -1,9 +1,8 @@
 
 
-
 Network Working Group                                          M. Demmer
 Internet-Draft                              UC Berkeley / Intel Research
-Expires: September 4, 2005                                 March 3, 2005
+Expires: September 2, 2005                                 March 4, 2005
 
 
             Protocol for the TCP Bundling Convergence Layer
@@ -12,7 +11,7 @@ Expires: September 4, 2005                                 March 3, 2005
 Status of this Memo
 
    This document is an Internet-Draft and is subject to all provisions
-   of Section 3 of RFC 3667.  By submitting this Internet-Draft, each
+   of section 3 of RFC 3667.  By submitting this Internet-Draft, each
    author represents that any applicable patent or other IPR claims of
    which he or she is aware have been or will be disclosed, and any of
    which he or she become aware will be disclosed, in accordance with
@@ -34,7 +33,7 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on September 4, 2005.
+   This Internet-Draft will expire on September 2, 2005.
 
 Copyright Notice
 
@@ -52,7 +51,8 @@ Abstract
 
 
 
-Demmer                  Expires September 4, 2005               [Page 1]
+
+Demmer                 Expires September 2, 2005                [Page 1]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -108,7 +108,7 @@ Table of Contents
 
 
 
-Demmer                  Expires September 4, 2005               [Page 2]
+Demmer                 Expires September 2, 2005                [Page 2]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -164,7 +164,7 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
 
 
-Demmer                  Expires September 4, 2005               [Page 3]
+Demmer                 Expires September 2, 2005                [Page 3]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -220,7 +220,7 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
 
 
-Demmer                  Expires September 4, 2005               [Page 4]
+Demmer                 Expires September 2, 2005                [Page 4]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -276,7 +276,7 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
 
 
-Demmer                  Expires September 4, 2005               [Page 5]
+Demmer                 Expires September 2, 2005                [Page 5]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -332,7 +332,7 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
 
 
-Demmer                  Expires September 4, 2005               [Page 6]
+Demmer                 Expires September 2, 2005                [Page 6]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -388,7 +388,7 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
 
 
-Demmer                  Expires September 4, 2005               [Page 7]
+Demmer                 Expires September 2, 2005                [Page 7]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -424,7 +424,7 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
    None.
 
-13.  References
+13  References
 
    [1]  YZ, X., "XXX".
 
@@ -444,7 +444,7 @@ Author's Address
 
 
 
-Demmer                  Expires September 4, 2005               [Page 8]
+Demmer                 Expires September 2, 2005                [Page 8]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -500,5 +500,5 @@ Acknowledgment
 
 
 
-Demmer                  Expires September 4, 2005               [Page 9]
+Demmer                 Expires September 2, 2005                [Page 9]
 
