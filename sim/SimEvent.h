@@ -67,7 +67,7 @@ typedef enum {
  * Pretty printer function simulation events.
  */
 static const char* 
-ev2str(sim_event_type_t event) {
+sim_ev2str(sim_event_type_t event) {
     switch (event) {
     case SIM_ROUTER_EVENT:		return "SIM_ROUTER_EVENT";
     case SIM_ADD_LINK:			return "SIM_ADD_LINK";
@@ -99,7 +99,7 @@ public:
     int time()               { return time_ ; }
     bool is_valid()          { return valid_; }
     sim_event_type_t type()  { return type_ ; }
-    const char* type_str()   { return ev2str(type_); }
+    const char* type_str()   { return sim_ev2str(type_); }
 
     void cancel()            { valid_ = false; }
 

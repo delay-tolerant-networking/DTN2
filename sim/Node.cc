@@ -106,7 +106,7 @@ Node::process_bundle_events()
 void
 Node::process(SimEvent* simevent)
 {
-    log_debug("handling event %s", ev2str(simevent->type()));
+    log_debug("handling event %s", simevent->type_str());
 
     set_active();
     
@@ -145,7 +145,7 @@ Node::process(SimEvent* simevent)
     }
             
     default:
-        PANIC("no Node handler for event %s", ev2str(simevent->type()));
+        PANIC("no Node handler for event %s", simevent->type_str());
     }
     
     process_bundle_events();

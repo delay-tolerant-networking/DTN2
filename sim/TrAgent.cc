@@ -109,7 +109,7 @@ TrAgent::process(SimEvent* e)
 	}
 
     } else {
-        PANIC("unhandlable event %s", ev2str(e->type()));
+        PANIC("unhandlable event %s", e->type_str());
     }
 }
 
