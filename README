@@ -29,6 +29,11 @@ tcllib
 tclreadline
 
 (one or more of the following:)
-BerkeleyDB
+BerkeleyDB 4.2+
 mysql
 postgresql
+
+Postgres
+--------
+Need to create a database 'dtn'
+
