@@ -66,13 +66,17 @@ endif
 set info = $logroot/log.$id
 echo "Logging commands executed by $proto (node id $id)" > $info
 
-
 # If this is the source node generate workload
 if ($id == 1) then  
    echo "Executing workload:  tclsh $dtn2root/test/workload.tcl $nfiles $size $txdir  " >> $info
    tclsh $dtn2root/test/workload.tcl $nfiles $size $txdir 
 endif
 
+
+set pingfile = $logroot/pinglog.$id
+echo "#Check ping commands ...." > $pingfile 
+set nextnode=node-`expr $id+1` 
+sh $dtn2testroot/check_ping.sh $nextnode >> $pingfile &
 
 
 switch ($proto_orig)
