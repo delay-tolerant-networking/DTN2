@@ -58,7 +58,7 @@ SQLGlobalStore::update()
 {
     log_debug("updating global store");
     
-    if (store_->update(this, -1) != 1) {
+    if (store_->update(this, -1) == -1) {
         log_err("error updating global store");
         return false;
     }
