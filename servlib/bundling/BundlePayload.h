@@ -15,6 +15,11 @@ class BundlePayload : public SerializableObject {
 public:
     BundlePayload();
     virtual ~BundlePayload();
+
+    /**
+     * Set the payload data.
+     */
+    void set_data(const std::string& data);
     
     /**
      * The payload length;
