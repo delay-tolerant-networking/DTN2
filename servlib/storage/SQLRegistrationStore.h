@@ -37,7 +37,7 @@ public:
      * Remove the registration from the database, returns true if
      * successful, false on error.
      */
-    virtual bool del(u_int32_t regid, const std::string& endpoint);
+    virtual bool del(Registration* reg);
     
     /**
      * Update the registration in the database. Returns true on

@@ -38,7 +38,8 @@ SQLRegistrationStore::load(RegistrationList* reg_list)
 bool
 SQLRegistrationStore::add(Registration* reg)
 {
-    NOTIMPLEMENTED;
+    //NOTIMPLEMENTED;
+    return true;
 }
 
 /**
@@ -46,7 +47,7 @@ SQLRegistrationStore::add(Registration* reg)
  * successful, false on error.
  */
 bool
-SQLRegistrationStore::del(u_int32_t regid, const std::string& endpoint)
+SQLRegistrationStore::del(Registration* reg)
 {
     NOTIMPLEMENTED;
 }
