@@ -290,7 +290,7 @@ proc file_arrived {file to_fd dest_dir sock} {
     puts -nonewline $to_fd $payload
     set got [string length $payload]
     set todo [expr $length_remaining($sock) - $got]
-    puts "got $got byte chunk ($todo to go)"
+    # puts "got $got byte chunk ($todo to go)"
     
     if {$todo < 0} {
 	error "negative todo"
