@@ -2,7 +2,7 @@
 #include <string>
 #include <sys/time.h>
 #include "debug/Log.h"
-#include "bundling/RouteTable.h"
+#include "routing/RouteTable.h"
 #include "cmd/Command.h"
 #include "cmd/Options.h"
 #include "cmd/StorageCommand.h"

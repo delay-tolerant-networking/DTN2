@@ -2,8 +2,8 @@
 #define _BUNDLE_ROUTE_H_
 
 #include <string>
-#include "BundleTuple.h"
-#include "Contact.h"
+#include "bundling/BundleTuple.h"
+#include "bundling/Contact.h"
 #include "debug/Debug.h"
 #include "storage/Serialize.h"
 
