@@ -60,6 +60,7 @@ STRIP       = strip
 POST        =
 INSTALL     = install
 RM          = rm
+RPCGEN      = rpcgen
 WHOLE_AR    := -Wl,-whole-archive
 NO_WHOLE_AR := -Wl,-no-whole-archive
 
