@@ -125,11 +125,6 @@ IO::poll(int fd, int events, int timeout_ms, const char* log)
         return -1;
     }
     
-    if ((pollfd.revents & POLLERR) || (pollfd.revents & POLLNVAL)) {
-        if (log) logf(log, LOG_ERR, "poll returned error event");
-        return -1;
-    }
-    
     return ret; // 0 or 1
 }
 
