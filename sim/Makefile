@@ -23,6 +23,8 @@ OLD_SIM_SRCS :=	\
 
 SIM_SRCS := \
 	dtnsim.cc		\
+	Connectivity.cc		\
+	ConnCommand.cc		\
 	LogSim.cc		\
 	Node.cc			\
 	NodeCommand.cc		\

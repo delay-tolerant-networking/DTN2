@@ -44,6 +44,7 @@
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/util/Getopt.h>
 
+#include "ConnCommand.h"
 #include "LogSim.h"
 #include "Simulator.h"
 #include "SimCommand.h"
@@ -145,6 +146,7 @@ main(int argc, char** argv)
     // Set up the command interpreter
     oasys::TclCommandInterp::init(argv[0]);
     oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
+    interp->reg(new ConnCommand());
     interp->reg(new ParamCommand());
     interp->reg(new SimCommand());
 

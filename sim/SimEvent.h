@@ -44,6 +44,7 @@ using namespace dtn;
 
 namespace dtnsim {
 
+class ConnState;
 class SimEventHandler;
 
 /******************************************************************************
@@ -59,6 +60,7 @@ typedef enum {
     SIM_DEL_ROUTE,		///< Route deleted
     SIM_CONTACT_UP,		///< SimContact is available
     SIM_CONTACT_DOWN,		///< SimContact abnormally terminated
+    SIM_CONNECTIVITY,		///< Event for the connectivity module
     SIM_NEXT_SENDTIME,		///< Used by traffic agent to send data
     
 } sim_event_type_t;
@@ -76,6 +78,7 @@ sim_ev2str(sim_event_type_t event) {
     case SIM_DEL_ROUTE:			return "SIM_DEL_ROUTE";
     case SIM_CONTACT_UP:		return "SIM_CONTACT_UP";
     case SIM_CONTACT_DOWN:		return "SIM_CONTACT_DOWN";
+    case SIM_CONNECTIVITY:		return "SIM_CONNECTIVITY";
     case SIM_NEXT_SENDTIME:		return "SIM_NEXT_SENDTIME";
     }
 
@@ -181,6 +184,22 @@ public:
     
     BundleTuplePattern dest_;
     std::string nexthop_;
+};
+
+/*******************************************************************
+ *
+ * SimConnectivityEvent
+ *
+ ******************************************************************/
+class SimConnectivityEvent : public SimEvent {
+public:
+    SimConnectivityEvent(int time, SimEventHandler* handler,
+                         const char* n1, const char* n2, ConnState* state)
+    : SimEvent(SIM_CONNECTIVITY, time, handler),
+      n1_(n1), n2_(n2), state_(state) {}
+
+    std::string n1_, n2_;
+    ConnState* state_;
 };
 
 } // namespace dtnsim
