@@ -1,0 +1,75 @@
+June 25
+
+Grad student: Nabeel
+
+Notes:
+	assign person for NDR (Ting)
+		DCE 'XDR-like' layer
+	Mike will create + begin populating 'ideas' directory
+	Kevin contact somebody at UCLA regarding the /dev used
+		in EmStar
+		- check in timer stuff from NS2
+	Mike: still don't like exceptions, but not so
+		sure about the reason given last time
+		- likes Capriccio? [Rob von Beren, jrvb@cs]
+		http://capriccio.cs.berkeley.edu
+		- Jury still out - still some 'funky' things
+			(some bugs)
+			valgrind / electric fense may be problem
+			purify - uknown?
+	Mike will e-mail out Capriccio
+
+	Storage discussion:
+
+		Mike + Melissa: storage manager class defn
+
+		so we get a structure like--
+		1. serialization procedure for each storable class
+		2. set of lower-level storage managers [archivers]
+			[store basic types interface]
+
+		noted structure that we can use dbase functions
+		for (e.g. search) functions
+
+		StorageManager class has to implement all
+			the 'high-level' functions in its
+			class
+
+		Scott: a big value of SQL db is adhoc queries
+
+	Discussion of data movement:
+
+		-- scheme for the overally CL<->forwarder data flow
+			Melissa, Sushant, Mike
+
+		what the object is delivered from a convergence layer
+		seems like a desire to have a handle to a thing
+			you can post a read on [e.g. file descriptor]
+		the architectural difference here is
+			'do you have it all already'?
+		'push' vs 'pull' model
+			current one CL pushes, then is pulled,
+			then is pushed into another CL
+
+		suggests a sort of generic send/rcv interface across
+			conv layer things, storage things, and
+			maybe the fragmenter thing
+
+		so with cut-through, handling the reactive fragmentation
+			re-packaging can be accomplished by the
+			last guy who actually stores it
+
+		Mike: do we Tee stuff to disk/net, then what?
+		Melissa: well, yes, if you are doing CX
+
+	Convergence layer framing issue:
+
+		- Keith: figure out this, give a talk
+
+		may need to make this a bit more sophisticated so
+		there is distinction between a bundle and a chunk
+		of another bundle being successfully moved via
+		cut-through
+
+		there might conceivably be utility in the TCP
+		urgent data option here
