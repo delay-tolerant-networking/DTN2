@@ -43,10 +43,11 @@
 namespace dtn {
 
 /**
- * Base class for the TCP and UDP convergence layers.
+ * Base class for the TCP and UDP convergence layers. The class has no
+ * public interface since one of the subclasses is always used.
  */
 class IPConvergenceLayer : public ConvergenceLayer {
-public:
+protected:
     /**
      * Constructor.
      */
@@ -83,10 +84,8 @@ public:
      * Values for ContactHeader flags.
      */
     typedef enum {
-        BUNDLE_ACK_ENABLED = 0x1,	///< enable bundle acking
-        BLOCK_ACK_ENABLED = 0x2,	///< enable block acking (tcp only)
-        KEEPALIVE_ENABLED = 0x3,	///< enable keepalive handshake
-        CONN_IS_RECEIVER = 0x4,     ///< connection initiator is rcvr
+        BUNDLE_ACK_ENABLED = 0x1,	///< bundle acks requested
+        RECEIVER_CONNECT = 0x2,		///< connector is receiver (for NAT)
     } contact_header_flags_t;
 
     /**
@@ -101,7 +100,8 @@ public:
         u_int8_t  keepalive_interval;	///< seconds between keepalive packets
         u_int16_t idle_close_time;	///< seconds of idle time before close
         				///  (keepalive packets do not count)
-        u_int16_t __unused__;
+        u_int16_t local_tuple_len;	///< length of peer tuple
+        u_int16_t __unused__;		///< padding
     } __attribute__((packed));
 
     /**

@@ -56,8 +56,10 @@
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
+#include "bundling/ContactManager.h"
 #include "bundling/FragmentManager.h"
 #include "bundling/InternetAddressFamily.h"
+#include "routing/BundleRouter.h"
 
 namespace dtn {
 
@@ -73,6 +75,7 @@ TCPConvergenceLayer::TCPConvergenceLayer()
 {
     // set defaults here, then let ../cmd/ParamCommand.cc handle changing them
     Defaults.bundle_ack_enabled_ = true;
+    Defaults.receiver_connect_	 = false;
     Defaults.ack_blocksz_ 	 = 1024;
     Defaults.keepalive_interval_ = 2;
     Defaults.idle_close_time_ 	 = 30;
@@ -89,6 +92,38 @@ TCPConvergenceLayer::init()
 void
 TCPConvergenceLayer::fini()
 {
+}
+
+/**
+ * Parse variable args into a parameter structure.
+ */
+bool
+TCPConvergenceLayer::parse_params(Params* params,
+                                  int argc, const char** argv,
+                                  const char** invalidp)
+{
+    oasys::OptParser p;
+    
+#define DECLARE_OPT(_type, _opt)                            \
+    oasys::_type param_##_opt(#_opt, &params->_opt##_);     \
+    p.addopt(&param_##_opt);
+
+    DECLARE_OPT(BoolOpt, bundle_ack_enabled);
+    DECLARE_OPT(BoolOpt, receiver_connect);
+    DECLARE_OPT(UIntOpt, ack_blocksz);
+    DECLARE_OPT(UIntOpt, keepalive_interval);
+    DECLARE_OPT(UIntOpt, idle_close_time);
+    DECLARE_OPT(UIntOpt, connect_timeout);
+    DECLARE_OPT(UIntOpt, rtt_timeout);
+    DECLARE_OPT(IntOpt,  test_fragment_size);
+
+#undef DECLARE_OPT
+    
+    if (! p.parse(argc, argv, invalidp)) {
+        return false;
+    }
+
+    return true;
 }
 
 /**
@@ -117,8 +152,36 @@ TCPConvergenceLayer::add_interface(Interface* iface,
         return false;
     }
 
+    // parse options
+    Params params = TCPConvergenceLayer::Defaults;
+    const char* invalid;
+    if (!parse_params(&params, argc, argv, &invalid)) {
+        log_err("error parsing interface options: invalid option '%s'",
+                invalid);
+        return false;
+    }
+
+    // now, special case the receiver_connect option which means we
+    // create a Connection, not a Listener
+    if (params.receiver_connect_) {
+        log_debug("new receiver_connect interface -- starting connection thread");
+        Connection* conn = new Connection(addr, port, false);
+        conn->params_ = params;
+
+        // store the connection object in the cl specific part of the
+        // interface XXX/demmer I don't like this casting
+        iface->set_info((InterfaceInfo*)conn);
+
+        // XXX/demmer again, there should be some structure to manage
+        // the receiver side of connections
+        conn->set_flag(oasys::Thread::DELETE_ON_EXIT);
+        conn->start();
+
+        return true;
+    }
+
     // create a new server socket for the requested interface
-    Listener* listener = new Listener();
+    Listener* listener = new Listener(&params);
     listener->logpathf("%s/iface/%s:%d",
                        logpath_, intoa(addr), port);
     
@@ -178,7 +241,9 @@ TCPConvergenceLayer::del_interface(Interface* iface)
 
 /**
  * Register a new link. This creates a new Connection object and
- * stores it in the LinkInfo slot after parsing any options.
+ * stores it in the LinkInfo slot after parsing any options. We
+ * special case OPPORTUNISTIC links which are created as a result of
+ * another node coming knocking with the receiver_connect option.
  */
 bool
 TCPConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
@@ -186,7 +251,13 @@ TCPConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
     in_addr_t addr;
     u_int16_t port = 0;
     
-    log_debug("adding link %s", link->nexthop());
+    log_debug("adding %s link %s", link->type_str(), link->nexthop());
+
+    // if the link is OPPORTUNISTIC, we don't do anything here since
+    // the connection should already be established
+    if (link->type() == Link::OPPORTUNISTIC) {
+        return true;
+    }
     
     // parse out the address / port from the contact tuple
     if (! InternetAddressFamily::parse(link->nexthop(), &addr, &port)) {
@@ -203,25 +274,10 @@ TCPConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
     }
 
     // create the connection but don't start it until later in open_contact
-    Connection* conn = new Connection(addr, port);
-
-    // parse options
-    oasys::OptParser p;
-    
-#define DECLARE_OPT(_type, _opt)                                \
-    oasys::_type param_##_opt(#_opt, &conn->params_._opt##_);   \
-    p.addopt(&param_##_opt);
-
-    DECLARE_OPT(BoolOpt, bundle_ack_enabled);
-    DECLARE_OPT(UIntOpt, ack_blocksz);
-    DECLARE_OPT(UIntOpt, keepalive_interval);
-    DECLARE_OPT(UIntOpt, idle_close_time);
-    DECLARE_OPT(UIntOpt, connect_timeout);
-    DECLARE_OPT(UIntOpt, rtt_timeout);
-    DECLARE_OPT(IntOpt,  test_fragment_size);
+    Connection* conn = new Connection(addr, port, true);
 
     const char* invalid;
-    if (! p.parse(argc, argv, &invalid)) {
+    if (! parse_params(&conn->params_, argc, argv, &invalid)) {
         log_err("error parsing link options: invalid option '%s'", invalid);
         delete conn;
         return false;
@@ -287,6 +343,7 @@ TCPConvergenceLayer::close_contact(Contact* contact)
         }
         
         log_debug("connection thread stopped...");
+        contact->link()->set_link_info(NULL);
     }
     
     return true;
@@ -297,19 +354,20 @@ TCPConvergenceLayer::close_contact(Contact* contact)
  * TCPConvergenceLayer::Listener
  *
  *****************************************************************************/
-TCPConvergenceLayer::Listener::Listener()
+TCPConvergenceLayer::Listener::Listener(Params* params)
     : TCPServerThread("/cl/tcp/listener")
 {
     logfd_ = false;
     Thread::flags_ |= INTERRUPTABLE;
+    params_ = *params;
 }
 
 void
 TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
 {
     log_debug("new connection from %s:%d", intoa(addr), port);
-    Connection* conn = new Connection(fd, addr, port);
-
+    Connection* conn = new Connection(fd, addr, port, &params_);
+    
     // XXX/demmer this should really make a Contact equivalent or
     // something like that and then not DELETE_ON_EXIT
     conn->set_flag(Thread::DELETE_ON_EXIT);
@@ -322,10 +380,11 @@ TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
  *
  *****************************************************************************/
 TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
-                                            u_int16_t remote_port)
+                                            u_int16_t remote_port,
+                                            bool is_sender)
 
     : params_(TCPConvergenceLayer::Defaults), // copy defaults
-      contact_(NULL)
+      is_sender_(is_sender), contact_(NULL)
 {
     Thread::flags_ |= INTERRUPTABLE;
 
@@ -350,10 +409,10 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
 
 TCPConvergenceLayer::Connection::Connection(int fd,
                                             in_addr_t remote_addr,
-                                            u_int16_t remote_port)
+                                            u_int16_t remote_port,
+                                            Params* params)
 
-    : params_(TCPConvergenceLayer::Defaults), // copy defaults
-      contact_(NULL)
+    : params_(*params), is_sender_(false), contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 
@@ -368,20 +427,65 @@ TCPConvergenceLayer::Connection::~Connection()
 
 /**
  * The main loop for a connection. Based on the initial construction
- * state, it calls one of send_loop or recv_loop.
- *
- * XXX/demmer for now, this is keyed on whether or not there is a
- * link_ cached from the constructor -- figure something better to
- * support sending bundles from the passive acceptor
+ * state, it may initiate a connection to the other side, then calls
+ * one of send_loop or recv_loop.
  */
 void
 TCPConvergenceLayer::Connection::run()
 {
-    if (contact_) {
+    if (is_sender_ || params_.receiver_connect_)
+    {
+        if (! connect()) {
+            /*
+             * If the connection fails, then the router hasn't gotten
+             * a CONTACT_UP event so we can't shut down using the
+             * normal mechanism. XXX/demmer deal with this somehow!
+             */
+            log_debug("connection failed");
+            set_should_stop();
+            sock_->close();
+            return;
+        }
+    } else {
+        if (! accept()) {
+            log_debug("accept failed");
+            break_contact();
+            return;
+        }
+
+        /*
+         * Now if the receiver_connect option is set, then we're going
+         * to be the sender, so we notify the contact manager and
+         * enter the send loop.
+         */
+        if (params_.receiver_connect_) {
+            ContactManager* cm = ContactManager::instance();
+
+            ConvergenceLayer* clayer = ConvergenceLayer::find_clayer("tcp");
+            ASSERT(clayer);
+            
+            contact_ = cm->new_opportunistic_contact(clayer, this, nexthop_);
+            
+            if (!contact_) {
+                log_err("receiver_connect: error finding opportunistic link");
+                break_contact();
+                return;
+            }
+
+            // XXX/demmer fix all this memory management stuff
+            Thread::clear_flag(DELETE_ON_EXIT);
+
+            is_sender_ = true;
+        }
+    }
+    
+    if (is_sender_) {
         send_loop();
     } else {
         recv_loop();
     }
+
+    log_debug("connection thread main loop complete -- thread exiting");
 }
 
 /**
@@ -955,33 +1059,158 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
 }
 
 /**
+ * Helper function to format and send a contact header and our local
+ * identifier.
+ */
+bool
+TCPConvergenceLayer::Connection::send_contact_header()
+{
+    ContactHeader contacthdr;
+    contacthdr.magic = htonl(MAGIC);
+    contacthdr.version = CURRENT_VERSION;
+
+    contacthdr.flags = 0;
+    if (params_.bundle_ack_enabled_)
+        contacthdr.flags |= BUNDLE_ACK_ENABLED;
+
+    if (params_.receiver_connect_)
+        contacthdr.flags |= RECEIVER_CONNECT;
+    
+    contacthdr.ackblock_sz = params_.ack_blocksz_;
+    contacthdr.keepalive_interval = params_.keepalive_interval_;
+    contacthdr.idle_close_time = htons(params_.idle_close_time_);
+
+    u_int16_t local_tuple_len = BundleRouter::local_tuple_.length();
+    contacthdr.local_tuple_len = htons(local_tuple_len);
+    
+    int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
+    
+    if (cc != sizeof(ContactHeader)) {
+        log_err("error writing contact header (wrote %d/%d): %s",
+                cc, sizeof(ContactHeader), strerror(errno));
+        return false;
+    }
+    
+    // send the tuple string
+    cc = sock_->writeall(BundleRouter::local_tuple_.data(), local_tuple_len);
+    if (cc != local_tuple_len) {
+        log_err("error writing contact source tuple (wrote %d/%d): %s",
+                cc, local_tuple_len, strerror(errno));
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Helper function to receive a contact header and our local
+ * identifier, verifying the version and magic bits and doing
+ * parameter negotiation.
+ */
+bool
+TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
+{
+    ContactHeader contacthdr;
+    
+    int cc;
+    if (timeout != 0) {
+        cc = sock_->timeout_readall((char*)&contacthdr, sizeof(ContactHeader),
+                                    timeout);
+        
+        if (cc == oasys::IOTIMEOUT) {
+            log_warn("timeout reading contact header");
+            return false;
+        }
+    } else {
+        cc = sock_->readall((char*)&contacthdr, sizeof(ContactHeader));
+    }
+    
+    if (cc != sizeof(ContactHeader)) {
+        log_err("error reading contact header (read %d/%d): %s", 
+                cc, sizeof(ContactHeader), strerror(errno));
+        return false;
+    }
+
+    /*
+     * Check for valid magic number and version.
+     */
+    if (ntohl(contacthdr.magic) != IPConvergenceLayer::MAGIC) {
+        log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
+                 "-- disconnecting.", contacthdr.magic,
+                 IPConvergenceLayer::MAGIC);
+        return false;
+    }
+
+    if (contacthdr.version != IPConvergenceLayer::CURRENT_VERSION) {
+        log_warn("remote sent version %d, expected version %d "
+                 "-- disconnecting.", contacthdr.version,
+                 IPConvergenceLayer::CURRENT_VERSION);
+        return false;
+    }
+
+    /*
+     * Now read in the peer's tuple
+     */
+    u_int16_t nexthop_len = htons(contacthdr.local_tuple_len);
+    oasys::StringBuffer buf(nexthop_len);
+
+    cc = sock_->timeout_readall(buf.data(), nexthop_len,
+                                params_.rtt_timeout_);
+
+    if (cc == oasys::IOTIMEOUT) {
+        log_warn("timeout reading contact's local tuple");
+        return false;
+    }
+
+    if (cc != nexthop_len) {
+        log_err("error reading contact's local tuple reply (read %d/%d): %s", 
+                cc, nexthop_len, strerror(errno));
+        return false;
+    }
+
+    nexthop_.assign(buf.data(), nexthop_len);
+    if (!nexthop_.valid()) {
+        log_err("invalid peer tuple received: %.*s",
+                nexthop_len, buf.data());
+        return false;
+    }
+
+    log_debug("got contact header from peer %s", nexthop_.c_str());
+
+    /*
+     * Now do parameter negotiation.
+     */
+    params_.keepalive_interval_ = MIN(params_.keepalive_interval_,
+                                      contacthdr.keepalive_interval);
+    
+    params_.idle_close_time_    = MIN(params_.idle_close_time_,
+                                      ntohl(contacthdr.idle_close_time));
+
+    params_.receiver_connect_   = contacthdr.flags & RECEIVER_CONNECT;
+
+    // XXX/demmer more??
+    
+    note_data_rcvd();
+    return true;
+}
+
+
+/**
  * Sender side of the initial handshake. First connect to the peer
  * side, then exchange ContactHeaders and negotiate session
  * parameters.
  */
 bool
-TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
-                                         u_int16_t remote_port)
+TCPConvergenceLayer::Connection::connect()
 {
-    // send the contact header
-    ContactHeader contacthdr;
-    contacthdr.magic = htonl(MAGIC);
-    contacthdr.version = CURRENT_VERSION;
-    contacthdr.flags = 0;
-    if (params_.bundle_ack_enabled_)
-        contacthdr.flags |= BUNDLE_ACK_ENABLED;
-    
-    contacthdr.ackblock_sz = params_.ack_blocksz_;
-    contacthdr.keepalive_interval = params_.keepalive_interval_;
-    contacthdr.idle_close_time = htons(params_.idle_close_time_);
-    
     // first of all, connect to the receiver side
     ASSERT(sock_->state() != oasys::IPSocket::ESTABLISHED);
-    log_debug("send_loop: connecting to %s:%d...",
+    log_debug("connect: connecting to %s:%d...",
               intoa(sock_->remote_addr()), sock_->remote_port());
 
     while (1) {
-        int ret = sock_->timeout_connect(sock_->remote_addr(), sock_->remote_port(),
+        int ret = sock_->timeout_connect(sock_->remote_addr(),
+                                         sock_->remote_port(),
                                          params_.connect_timeout_);
 
         if (should_stop()) {
@@ -1012,55 +1241,16 @@ TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
         sock_->close();
     }
 
-    log_debug("send_loop: "
-              "connection established, sending contact header handshake.,.");
-    int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
-    
-    if (cc != sizeof(ContactHeader)) {
-        log_err("error writing contact header (wrote %d/%d): %s",
-                cc, sizeof(ContactHeader), strerror(errno));
+    log_debug("connect: connection established, sending contact header...");
+    if (!send_contact_header())
         return false;
-    }
 
-    // wait for the reply
-    cc = sock_->timeout_readall((char*)&contacthdr, sizeof(ContactHeader),
-                                params_.rtt_timeout_);
-
-    if (cc == oasys::IOTIMEOUT) {
-        log_warn("timeout reading contact header");
+    log_debug("connect: waiting for contact header reply...");
+    if (!recv_contact_header(params_.rtt_timeout_))
         return false;
-    }
-    
-    if (cc != sizeof(ContactHeader)) {
-        log_err("error reading contact header reply (read %d/%d): %s", 
-                cc, sizeof(ContactHeader), strerror(errno));
-        return false;
-    }
-
-    /*
-     * Check the ContactHeader we received for valid
-     * magic number and verison.
-     */
-    contacthdr.magic = ntohl(contacthdr.magic);
-    contacthdr.idle_close_time = ntohl(contacthdr.idle_close_time);
-
-    if (contacthdr.magic != IPConvergenceLayer::MAGIC) {
-        log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
-                 "-- disconnecting.", contacthdr.magic,
-                 IPConvergenceLayer::MAGIC);
-        return false;
-    }
-
-    if (contacthdr.version != IPConvergenceLayer::CURRENT_VERSION) {
-        log_warn("remote sent version %d, expected version %d "
-                 "-- disconnecting.", contacthdr.version,
-                 IPConvergenceLayer::CURRENT_VERSION);
-        return false;
-    }
 
     return true;
 }
-
 
 /**
  * Receiver side of the initial handshake.
@@ -1070,55 +1260,14 @@ TCPConvergenceLayer::Connection::accept()
 {
     ASSERT(contact_ == NULL);
 
-    // read and write back the contact header
-    ContactHeader contacthdr;
-    log_debug("recv_bundle: waiting for contact header...");
-    int cc = sock_->readall((char*)&contacthdr, sizeof(ContactHeader));
-    if (cc != sizeof(ContactHeader)) {
-        log_err("error reading contact header (read %d/%d): %s",
-                cc, sizeof(ContactHeader), strerror(errno));
+    log_debug("accept: waiting for contact header...");
+    if (!recv_contact_header(0))
         return false;
-    }
-    note_data_rcvd();
-
-    contacthdr.magic = ntohl(contacthdr.magic);
-    contacthdr.idle_close_time = ntohl(contacthdr.idle_close_time);
-
-    if (contacthdr.magic != IPConvergenceLayer::MAGIC) {
-        log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
-                 "-- disconnecting.", contacthdr.magic,
-                 IPConvergenceLayer::MAGIC);
-        return false;
-    }
-
-    if (contacthdr.version != IPConvergenceLayer::CURRENT_VERSION) {
-        log_warn("remote sent version %d, expected version %d "
-                 "-- disconnecting.", contacthdr.version,
-                 IPConvergenceLayer::CURRENT_VERSION);
-        return false;
-    }
-
-    // XXX/demmer do keepalive negotiation here
-    params_.keepalive_interval_ = contacthdr.keepalive_interval;
-
-    // Take the min of the idle time proposed by the far side
-    // and the one specified in our configs.
-    params_.idle_close_time_ = MIN(contacthdr.idle_close_time,
-                                   (u_int32_t)params_.idle_close_time_);
-
-    // fix up the contacthdr to send back out
-    contacthdr.magic = htonl(IPConvergenceLayer::MAGIC);
-    contacthdr.version = IPConvergenceLayer::CURRENT_VERSION;
-    contacthdr.idle_close_time = htons(params_.idle_close_time_);
     
-    log_debug("recv_bundle: got contact header, sending reply...");
-    cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
-    if (cc != sizeof(ContactHeader)) {
-        log_err("error reading contact header reply (read %d/%d): %s", 
-                cc, sizeof(ContactHeader), strerror(errno));
+    log_debug("accept: sending contact header reply...");
+    if (!send_contact_header())
         return false;
-    }
-
+    
     return true;
 }
 
@@ -1179,14 +1328,10 @@ TCPConvergenceLayer::Connection::send_loop()
     char typecode;
     int ret;
 
-    // first connect to the remote side
-    if (connect(sock_->remote_addr(), sock_->remote_port()) == false) {
-        log_debug("connection failed");
-        sock_->close();
-        return;
-    }
-    note_data_rcvd();
-
+    // someone should already have either connected or accepted the
+    // connection
+    ASSERT(sock_->state() == oasys::IPSocket::ESTABLISHED);
+    
     // inform the router that the contact is available
     ASSERT(contact_);
     BundleForwarder::post(new ContactUpEvent(contact_));
@@ -1386,19 +1531,12 @@ TCPConvergenceLayer::Connection::recv_loop()
     struct timeval now;
     u_int elapsed;
 
-    // first accept the connection and do negotiation
-    if (accept() == false) {
-        break_contact();
-        return;
-    }
-    
     while (1) {
         // see if it is time to close the connection due to it being idle
         ::gettimeofday(&now, 0);
         elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
         if (elapsed > params_.idle_close_time_ * 1000) {
-            float sec = elapsed / 1000;
-            log_info("connection idle for %.2f seconds, closing.", sec);
+            log_info("connection idle for %d milliseconds, closing.", elapsed);
             break_contact();
             return;
         } else {

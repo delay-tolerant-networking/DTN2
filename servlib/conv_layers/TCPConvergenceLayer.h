@@ -100,6 +100,7 @@ public:
      */
     struct Params {
         bool bundle_ack_enabled_;	///< Are per-bundle acks enabled
+        bool receiver_connect_;		///< rcvr-initiated connect (for NAT)
         u_int ack_blocksz_;		///< Bytes to send before ack
         u_int keepalive_interval_;	///< Seconds between keepalive pacekts
         u_int idle_close_time_;		///< Seconds to keep idle connections
@@ -114,23 +115,32 @@ public:
     static struct Params Defaults;
 
 protected:
+    bool parse_params(Params* params, int argc, const char** argv,
+                      const char** invalidp);
+
     /**
      * Helper class (and thread) that listens on a registered
      * interface for new connections.
      */
     class Listener : public InterfaceInfo, public oasys::TCPServerThread {
     public:
-        Listener();
+        Listener(Params* params);
         void accepted(int fd, in_addr_t addr, u_int16_t port);
+
+        /**
+         * Per-connection parameters for accepted connections.
+         */
+        TCPConvergenceLayer::Params params_;
     };
 
     /**
      * Helper class (and thread) that manages an established
      * connection with a peer daemon.
      *
-     * Although the same class is used in either case, a particular
-     * Connection is either a receiver or a sender, as negotiated by
-     * the convergence layer specific framing protocol.
+     * Although the same class is used in both cases, a particular
+     * Connection is either a receiver or a sender. Note that to deal
+     * with NAT, the side which does the active connect is not
+     * necessarily the sender.
      */
     class Connection : public LinkInfo,
                        public oasys::Thread,
@@ -138,16 +148,21 @@ protected:
     public:
         /**
          * Constructor for the active connection side of a connection.
+         * Note that this may be used both for the actual data sender
+         * or for the receiver side when used with the
+         * receiver_connect option.
          */
         Connection(in_addr_t remote_addr,
-                   u_int16_t remote_port);
+                   u_int16_t remote_port,
+                   bool is_sender);
         
         /**
-         * Constructor for the passive listener side of a connection.
+         * Constructor for the passive accept side of a connection.
          */
         Connection(int fd,
                    in_addr_t remote_addr,
-                   u_int16_t remote_port);
+                   u_int16_t remote_port,
+                   Params* params);
 
         /**
          * Destructor.
@@ -170,17 +185,21 @@ protected:
         void send_loop();
         void recv_loop();
         void break_contact();
-        bool connect(in_addr_t remote_addr, u_int16_t remote_port);
+        bool connect();
         bool accept();
+        bool send_contact_header();
+        bool recv_contact_header(int timeout);
         bool send_bundle(Bundle* bundle, size_t* acked_len);
         bool recv_bundle();
         int  handle_ack(Bundle* bundle, size_t* acked_len);
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
         void note_data_rcvd();
-        
-        Contact* contact_;
-        oasys::TCPClient* sock_;
-        struct timeval data_rcvd_;
+
+        BundleTuple nexthop_;		///< The next hop we're connected to
+        bool is_sender_;		///< Are we the sender side
+        Contact* contact_;		///< Contact for sender-side
+        oasys::TCPClient* sock_;	///< The socket
+        struct timeval data_rcvd_;	///< Timestamp for idle timer
     };
 };
 
