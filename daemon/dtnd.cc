@@ -1,16 +1,58 @@
-
 #include <errno.h>
+#include <string>
+#include <sys/time.h>
 #include "debug/Log.h"
+#include "bundling/RouteTable.h"
 #include "cmd/Command.h"
+#include "cmd/Options.h"
+#include "cmd/StorageCommand.h"
+#include "conv_layers/ConvergenceLayer.h"
+
 
 int
-main(int argc, const char** argv)
+main(int argc, char** argv)
 {
-    // Initialize logging and the command interpreter
+    // command line parameter vars
+    std::string conffile("daemon/bundleNode.conf");
+    int random_seed;
+    bool random_seed_set = false;
+        
+    // Initialize logging
     Log::init();
-    CommandInterp::init();
     logf("/daemon", LOG_INFO, "bundle daemon initializing...");
 
+    // Set up the command line options
+    new StringOpt("c", &conffile, "conf", "config file");
+    new BoolOpt("t", &StorageCommand::instance()->tidy_,
+                "clear database on startup");
+    new IntOpt("s", &random_seed, &random_seed_set, "seed",
+               "random number generator seed");
+
+    // Parse argv
+    Options::getopt(argv[0], argc, argv);
+
+    // Seed the random number generator
+    if (!random_seed_set) {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        random_seed = tv.tv_usec;
+    }
+    logf("/daemon", LOG_INFO, "random seed is %u\n", random_seed);
+    srand(random_seed);
+
+    // Set up all components
+    CommandInterp::init();
+    ConvergenceLayer::init_clayers();
+    RouteTable::init();
+
+    // Parse / exec the config file
+    if (conffile.length() != 0) {
+        if (CommandInterp::instance()->exec_file(conffile.c_str()) != 0) {
+            logf("/daemon", LOG_ERR, "error in configuration file, exiting...");
+            exit(1);
+        }
+    }
+    
     // Start the main console input loop
     while (1) {
         char buf[256];
