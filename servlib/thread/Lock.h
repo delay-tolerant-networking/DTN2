@@ -109,10 +109,17 @@ public:
         lock_->scope_lock_count_++;
     }
     
-    ~ScopeLock()
-    {
+    void unlock() {
         lock_->scope_lock_count_--;
         lock_->unlock();
+        lock_ = NULL;
+    }
+    
+    ~ScopeLock()
+    {
+        if (lock_) {
+            unlock();
+        }
     }
     
 protected:
