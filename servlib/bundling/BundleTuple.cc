@@ -164,7 +164,9 @@ BundleTuplePattern::match_admin(const std::string& tuple_admin) const
     size_t adminlen = admin_.length() - 1;
 
     if (adminlen >= 1 && admin_[adminlen] == '*') {
-        adminlen--;
+        adminlen --;
+        if (admin_.substr(0, adminlen) == tuple_admin.substr(0, adminlen))
+            return true;
     }
 
     if (admin_.compare(tuple_admin) == 0)
