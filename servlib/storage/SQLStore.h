@@ -48,35 +48,30 @@ public:
      */
     int num_elements();
 
-    
     /**
      *  Return list of keys for all elements in the store.
      *  @return 0 if success, -1 on error
      */
     int keys(std::vector<int> l);
     
-
     /**
-     *  Return list of all elements in the store.
-     *  @return 0 if success, -1 on error
+     *  Extract all elements from the store, potentially matching the
+     *  "where" clause. For each matching element, initialize the
+     *  corresponding object in the vector with the values from the
+     *  database.
+     *
+     *  @return count of extracted elements, or -1 on error
      */
-    int elements(std::vector<SerializableObject*> l);
-
-
-      
-
-    /// @}
-
-protected:
+    int elements(SerializableObjectVector* elements);
 
     /**
      * Returns the table name associated with this store
      */
-    const char* table_name(); 
+    const char* table_name();
 
     /**
      * Checks if the table already exists.
-     * @return 1 if table exits, 0 otherwise
+     * @return true if table exits, false otherwise
      */
     bool has_table(const char *name);
 
@@ -100,8 +95,6 @@ protected:
      * operation.
      */
     void set_key_name(const char* name);
-
-    friend class SQLBundleStore;
 
 private:
 

@@ -80,11 +80,11 @@ SQLStore::keys(std::vector<int> l)
 {
     ASSERT(key_name_); //key_name_ must be initialized 
     StringBuffer query ;
-    query.appendf("SELECT %s FROM %s ",key_name_,table_name_);
+    query.appendf("SELECT %s FROM %s ", key_name_, table_name_);
     int status = exec_query(query.c_str());
     if ( status != 0) return status;
     
-    int n = data_base_pointer_->tuples();
+    int n = data_base_pointer_->num_tuples();
     if (n < 0) return -1;
 
     for(int i=0;i<n;i++) {
@@ -97,18 +97,35 @@ SQLStore::keys(std::vector<int> l)
 }
 
 int 
-SQLStore::elements(std::vector<SerializableObject*> l) 
+SQLStore::elements(SerializableObjectVector* elements) 
 {
-    int n = num_elements();
-    if (n < 0) return -1;
-    int ret = 0;
-    std::vector<int> vec_ids(n) ;
-    keys(vec_ids);
-    for(int i =0;i<n;i++) {
-        int tmp_ret = get(l[i],vec_ids[i]);
-	if (tmp_ret == -1) ret = -1;
+    StringBuffer query;
+    query.appendf("SELECT * from %s", table_name_);
+
+    int status = exec_query(query.c_str());
+    if (status != 0) {
+        return status;
     }
-    return ret;
+
+    size_t n = data_base_pointer_->num_tuples();
+    if (n < 0) {
+        log_err("internal database error in elements()");
+        return -1;
+    }
+
+    if (n > elements->size()) {
+        log_err("element count %d greater than vector %d", n, elements->size());
+        return -1;
+    }
+
+    SQLExtract extract(data_base_pointer_);
+    SerializableObjectVector::iterator iter = elements->begin();
+    for (size_t i = 0; i < n; i++) {
+        extract.action(*iter);
+        ++iter;
+    }
+
+    return n;
 }
 
 /******************************************************************************
