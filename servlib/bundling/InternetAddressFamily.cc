@@ -145,6 +145,9 @@ InternetAddressFamily::match(const std::string& pattern,
     if ((pattern_url.path_ == "*") ||
         (pattern_url.path_ == admin_url.path_))
     {
+        log_debug("/af/internet",
+                  "match succeeded: pattern '%s' admin '%s'",
+                  pattern_url.host_.c_str(), admin_url.host_.c_str());
         return true;
     }
 
@@ -154,7 +157,11 @@ InternetAddressFamily::match(const std::string& pattern,
         patternlen--;
         
         if (pattern_url.path_.substr(0, patternlen) ==
-            admin_url.path_.substr(0, patternlen)) {
+            admin_url.path_.substr(0, patternlen))
+        {
+            log_debug("/af/internet",
+                      "match substring succeeded: pattern '%s' admin '%s'",
+                      pattern_url.host_.c_str(), admin_url.host_.c_str());
             return true;
         }
     }
