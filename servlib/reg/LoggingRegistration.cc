@@ -4,8 +4,8 @@
 #include "RegistrationTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
+#include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
-#include "routing/BundleRouter.h"
 #include "storage/GlobalStore.h"
 #include "util/StringUtils.h"
 
@@ -69,10 +69,10 @@ LoggingRegistration::run()
                      payload_len, len, hex.data());
         }
 
-        BundleRouter::dispatch(new BundleTransmittedEvent(b, registration_,
-                                                          b->payload_.length(),
-                                                          true));
-
+        BundleForwarder::post(new BundleTransmittedEvent(b, registration_,
+                                                         b->payload_.length(),
+                                                         true));
+        
         b->del_ref();
     }
 }

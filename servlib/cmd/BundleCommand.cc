@@ -2,7 +2,7 @@
 #include "BundleCommand.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
-#include "routing/BundleRouter.h"
+#include "bundling/BundleForwarder.h"
 
 BundleCommand BundleCommand::instance_;
 
@@ -49,7 +49,7 @@ BundleCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         log_debug("inject %d byte bundle %s->%s", total, argv[2], argv[3]);
-        BundleRouter::dispatch(new BundleReceivedEvent(b));
+        BundleForwarder::post(new BundleReceivedEvent(b));
         return TCL_OK;
     } else {
         resultf("unknown bundle subcommand %s", cmd);

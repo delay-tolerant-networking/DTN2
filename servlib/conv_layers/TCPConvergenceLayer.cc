@@ -2,9 +2,9 @@
 #include "TCPConvergenceLayer.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
+#include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
-#include "routing/BundleRouter.h"
 #include "io/NetUtils.h"
 #include "util/URL.h"
 
@@ -635,7 +635,7 @@ TCPConvergenceLayer::Connection::send_loop()
         ASSERT(acked_len > 0);
 
         // cons up a transmission event and pass it to the router
-        BundleRouter::dispatch(
+        BundleForwarder::post(
             new BundleTransmittedEvent(bundle, contact_, acked_len, true));
         
         // finally, remove our local reference on the bundle, which
@@ -825,7 +825,7 @@ TCPConvergenceLayer::Connection::recv_loop()
         // all set, notify the router of the new arrival
         log_debug("recv_loop: new bundle id %d arrival, payload length %d",
                   bundle->bundleid_, bundle->payload_.length());
-        BundleRouter::dispatch(new BundleReceivedEvent(bundle));
+        BundleForwarder::post(new BundleReceivedEvent(bundle));
         ASSERT(bundle->refcount() > 0);
         
         bundle = NULL;

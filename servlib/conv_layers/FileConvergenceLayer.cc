@@ -12,7 +12,7 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
-#include "routing/BundleRouter.h"
+#include "bundling/BundleForwarder.h"
 #include "io/IO.h"
 #include "util/StringBuffer.h"
 #include "util/URL.h"
@@ -250,9 +250,9 @@ FileConvergenceLayer::send_bundles(Contact* contact)
 
         // cons up a transmission event and pass it to the router
         bool acked = false;
-        BundleRouter::dispatch(
+        BundleForwarder::post(
             new BundleTransmittedEvent(bundle, contact, payload_len, acked));
-
+        
         log_debug("bundle id %d successfully transmitted", bundle->bundleid_);
 
         // finally, remove the reference on the bundle (which may delete it)
@@ -385,7 +385,7 @@ FileConvergenceLayer::Scanner::run()
             }
 
             // all set, notify the router
-            BundleRouter::dispatch(new BundleReceivedEvent(bundle));
+            BundleForwarder::post(new BundleReceivedEvent(bundle));
             ASSERT(bundle->refcount() > 0);
         }
             

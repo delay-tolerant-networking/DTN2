@@ -2,17 +2,15 @@
 #define _BUNDLE_ROUTER_H_
 
 #include "bundling/BundleAction.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleEvent.h"
 #include "bundling/BundleTuple.h"
 #include "debug/Logger.h"
 #include "thread/Thread.h"
-#include "thread/MsgQueue.h"
-#include <set>
 #include <vector>
 
 class BundleConsumer;
-class BundleEvent;
 class BundleRouter;
+class RouteTable;
 class StringBuffer;
 
 /**
@@ -24,138 +22,127 @@ typedef std::vector<BundleRouter*> BundleRouterList;
  * The BundleRouter is the main decision maker for all routing
  * decisions related to bundles.
  *
- * It runs in its own thread that receives events from other parts of
- * the system. These events include all actions and operations that
- * may affect bundle delivery, including new bundle arrival, contact
- * establishment, etc.
+ * It runs receives events from the BundleForwarder having been
+ * enqueued by other components. These events include all actions and
+ * operations that may affect bundle delivery, including new bundle
+ * arrival, contact arrival, etc.
  *
- * In response to these events, the router generates a list of
- * forwarding actions that can be fed to BundleForwarder::action().
+ * In response to each event the router generates a list of forwarding
+ * actions that are then effected by the BundleForwarder.
  *
  * To support the prototyping of different routing protocols and
- * frameworks, the base class contains a list of registered
- * BundleRouter implementations. While the first entry of the list is
- * the only one whose action lists are sent to the forwarding agent,
- * all implementations will be forwarded a copy of each event. This
- * enables new prototypes to be compared side-by-side.
+ * frameworks, the base class has a list of prospective BundleRouter
+ * implementations, and at boot time, one of these is selected as the
+ * active routing algorithm, while others can be selected as "shadow
+ * routers", i.e. they get a copy of every event, and can generate
+ * their own actions, but the forwarder doesn't actually perform any
+ * actions. XXX/demmer spec this out more.
  *
- * The static dispatch_event function copies the event data to each
- * registered router.
+ * As new algorithms are added to the system, new cases should be
+ * added to the "create_router" function.
  */
-class BundleRouter : public Thread, public Logger {
+class BundleRouter : public Logger {
 public:
     /**
-     * Add a new router algorithm to the list.
+     * Factory method to create the correct subclass of BundleRouter
+     * for the registered algorithm type.
      */
-    static void register_router(BundleRouter* router);
+    static BundleRouter* create_router(const char* type);
+
+    /**
+     * Config variable for the active router type.
+     */
+    static std::string type_;
     
-    /**
-     * Return the vector of all registered routers.
-     */
-    static BundleRouterList *routers()
-    {
-        return &routers_;
-    }
-
-    /**
-     * Dispatch the event to each registered router.
-     */
-    static void dispatch(BundleEvent* event);
-
     /**
      * Constructor
      */
     BundleRouter();
-    
-    /**
-     * Add a route entry.
-     */
-    virtual bool add_route(const BundleTuplePattern& dest,
-                           BundleConsumer* next_hop,
-                           bundle_action_t action,
-                           int argc = 0, const char** argv = 0);
-    
-    /**
-     * Remove a route entry.
-     */
-    virtual bool del_route(const BundleTuplePattern& dest,
-                           BundleConsumer* next_hop);
 
     /**
-     * Dump a string representation of the routing table.
+     * Destructor
      */
-    virtual void dump(StringBuffer* buf);
-    
-protected:
+    virtual ~BundleRouter();
+
     /**
-     * Structure for a route entry.
+     * Accessor for the route table.
      */
-    struct RouteEntry {
-        RouteEntry(const BundleTuplePattern& pattern,
-                   BundleConsumer* next_hop,
-                   bundle_action_t action)
-            : pattern_(pattern), action_(action), next_hop_(next_hop) {}
+    const RouteTable* route_table() { return route_table_; }
 
-        /// The pattern to match in the route entry
-        BundleTuplePattern pattern_;
-
-        /// Forwarding action code 
-        bundle_action_t action_;
-        
-        /// Next hop (registration or contact).
-        BundleConsumer* next_hop_;
-    };
-    
     /**
      * The monster routing decision function that is called in
-     * response to all received events. To cause bundles to be
-     * forwarded, this function populates the given action list with
-     * the forwarding decisions. The run() method takes the decisions
-     * from the active router and passes them to the BundleForwarder
-     * module.
+     * response to all received events.
      *
-     * Note that the function is virtual so more complex derived
-     * classes can override or augment the default behavior.
+     * To actually effect actions, this function should populate the
+     * given action list with all forwarding decisions. The
+     * BundleForwarder then takes these instructions and causes them
+     * to happen.
+     *
+     * The base class implementation does a dispatch on the event type
+     * and calls the appropriate default handler function.
      */
     virtual void handle_event(BundleEvent* event,
                               BundleActionList* actions);
 
+protected:
     /**
-     * Loop through the routing table, adding an entry for each match
-     * to the action list.
+     * Default event handler for new bundle arrivals.
+     *
+     * Queue the bundle on the pending delivery list, and then
+     * searches through the route table to find any matching next
+     * contacts, filling in the action list with forwarding decisions.
      */
-    void get_matching(Bundle* bundle, BundleActionList* actions);
-     
+    void handle_bundle_received(BundleReceivedEvent* event,
+                                BundleActionList* actions);
+    
+    /**
+     * Default event handler when bundles are transmitted.
+     *
+     * If the bundle was only partially transmitted, this calls into
+     * the fragmentation module to create a new bundle fragment and
+     * enqeues the new fragment on the appropriate list.
+     */
+    void handle_bundle_transmitted(BundleTransmittedEvent* event,
+                                   BundleActionList* actions);
 
+    /**
+     * Default event handler when a new application registration
+     * arrives.
+     *
+     * Adds an entry to the route table for the new registration, then
+     * walks the pending list to see if any bundles match the
+     * registration.
+     */
+    void handle_registration_added(RegistrationAddedEvent* event,
+                                   BundleActionList* actions);
+    
+    /**
+     * Default event handler when a new route is added by the command
+     * or management interface.
+     *
+     * Adds an entry to the route table, then walks the pending list
+     * to see if any bundles match the new route.
+     */
+    void handle_route_add(RouteAddEvent* event,
+                          BundleActionList* actions);
+    
+    /**
+     * Get all matching entries from the routing table, and add a
+     * corresponding forwarding action to the action list.
+     */
+    void fwd_to_matching(Bundle* bundle, BundleActionList* actions);
+    
     /**
      * Called whenever a new consumer (i.e. registration or contact)
      * arrives. This should walk the list of unassigned bundles (or
      * maybe all bundles???) to see if the new consumer matches.
      */
-    virtual void handle_next_hop(const BundleTuplePattern& dest,
-                                 BundleConsumer* next_hop,
-                                 BundleActionList* actions);
-    
-    /**
-     * The main run loop.
-     */
-    void run();
-
-    /**
-     * Return true if this router is the active one.
-     */
-    bool active() { return routers_[0] == this; }
-
-protected:
-    /// The list of registered routers
-    static BundleRouterList routers_;
-
-    /// The main event queue
-    MsgQueue<BundleEvent*> eventq_;
+    virtual void new_next_hop(const BundleTuplePattern& dest,
+                              BundleConsumer* next_hop,
+                              BundleActionList* actions);
 
     /// The routing table
-    typedef std::set<RouteEntry*> RouteTable;
-    RouteTable route_table_;
+    RouteTable* route_table_;
 
     /// The list of all bundles still pending delivery
     BundleList* pending_bundles_;

@@ -1,37 +1,26 @@
 
 #include "BundleRouter.h"
+#include "RouteTable.h"
 #include "bundling/Bundle.h"
-#include "bundling/BundleEvent.h"
 #include "bundling/BundleList.h"
 #include "reg/Registration.h"
-#include "storage/BundleStore.h"
-#include "util/StringBuffer.h"
 
-BundleRouterList BundleRouter::routers_;
+#include "StaticBundleRouter.h"
 
-/**
- * Add a new router algorithm to the list.
- */
-void
-BundleRouter::register_router(BundleRouter* router)
-{
-    __log_debug("/route", "registering router %p", router);
-    routers_.push_back(router);
-}
+std::string BundleRouter::type_;
 
 /**
- * Dispatch the event to each registered router.
+ * Factory method to create the correct subclass of BundleRouter
+ * for the registered algorithm type.
  */
-void
-BundleRouter::dispatch(BundleEvent* event)
+BundleRouter*
+BundleRouter::create_router(const char* type)
 {
-    // XXX/demmer need to copy the event and push it on all queues
-    if (routers_.size() != 1) {
-        PANIC("multiple router algorithms not yet implemented");
+    if (!strcmp(type, "static")) {
+        return new StaticBundleRouter();
+    } else {
+        PANIC("unknown type %s for router", type);
     }
-
-    __log_debug("/route", "queuing event with type %d", event->type_);
-    routers_[0]->eventq_.push(event);
 }
 
 /**
@@ -40,53 +29,17 @@ BundleRouter::dispatch(BundleEvent* event)
 BundleRouter::BundleRouter()
     : Logger("/route")
 {
+    route_table_ = new RouteTable();
     pending_bundles_ = new BundleList("pending_bundles");
     custody_bundles_ = new BundleList("custody_bundles");
 }
 
 /**
- * Add a route entry.
+ * Destructor
  */
-bool
-BundleRouter::add_route(const BundleTuplePattern& dest,
-                        BundleConsumer* next_hop,
-                        bundle_action_t action,
-                        int argc, const char** argv)
-{
-    // XXX/demmer check for duplicates?
-    RouteEntry* entry = new RouteEntry(dest, next_hop, action);
-    log_debug("add_route %s -> %s (%s)", dest.c_str(),
-              next_hop->dest_tuple()->c_str(), bundle_action_toa(action));
-    route_table_.insert(entry);
-    return true;
-}
-
-/**
- * Remove a route entry.
- */
-bool
-BundleRouter::del_route(const BundleTuplePattern& dest,
-                        BundleConsumer* next_hop)
+BundleRouter::~BundleRouter()
 {
     NOTIMPLEMENTED;
-}
-
-/**
- * Dump the routing table.
- */
-void
-BundleRouter::dump(StringBuffer* buf)
-{
-    buf->append("BundleRouter route table:\n");
-
-    RouteTable::iterator iter;
-    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
-        RouteEntry* entry = *iter;
-        buf->appendf("\t%s -> %s (%s)\n",
-                     entry->pattern_.c_str(),
-                     entry->next_hop_->dest_tuple()->c_str(),
-                     bundle_action_toa(entry->action_));
-    }
 }
 
 /**
@@ -105,81 +58,21 @@ BundleRouter::handle_event(BundleEvent* e,
 {
     switch(e->type_) {
 
-    case BUNDLE_RECEIVED: {
-        /*
-         * A bundle has arrived. Queue the bundle on the pending
-         * delivery list, and then search through the route table to
-         * find any matching next contacts, filling in the action
-         * list.
-         */
-        BundleReceivedEvent* event = (BundleReceivedEvent*)e;
-        Bundle* bundle = event->bundleref_.bundle();
-
-        log_debug("BUNDLE_RECEIVED bundle id %d", bundle->bundleid_);
-
-        pending_bundles_->push_back(bundle);
-
-        bool added = BundleStore::instance()->insert(bundle);
-        ASSERT(added);
-        
-        get_matching(bundle, actions);
-
+    case BUNDLE_RECEIVED:
+        handle_bundle_received((BundleReceivedEvent*)e, actions);
         break;
-    }
 
-    case BUNDLE_TRANSMITTED: {
-        /**
-         * The bundle was delivered to either a next-hop contact or a
-         * registration.
-         */
-        BundleTransmittedEvent* event = (BundleTransmittedEvent*)e;
-        Bundle* bundle = event->bundleref_.bundle();
-
-        log_debug("BUNDLE_TRANSMITTED bundle id %d (%d bytes) %s -> %s",
-                  bundle->bundleid_, event->bytes_sent_,
-                  event->acked_ ? "ACKED" : "UNACKED",
-                  event->consumer_->dest_tuple()->c_str());
-        
-        /*
-         * Check for reactive fragmentation, potentially splitting off
-         * the unsent portion, if necessary.
-         */
-        if (event->bytes_sent_ != bundle->payload_.length()) {
-            PANIC("reactive fragmentation not implemented");
-        }
-
-        /*
-         * If the whole bundle was sent and this is the last
-         * destination that needs a copy of the bundle, we can safely
-         * remove it from the pending list.
-         *
-         * Note that removing the bundle from the pending list may
-         * remove the last reference on the bundle, which may delete
-         * the bundle.
-         */
-        if (bundle->num_containers() == 1) {
-            log_debug("last consumer, removing bundle from pending list");
-            bool removed = pending_bundles_->remove(bundle);
-            ASSERT(removed);
-            removed = BundleStore::instance()->del(bundle->bundleid_);
-            ASSERT(removed);
-        }
-        
+    case BUNDLE_TRANSMITTED:
+        handle_bundle_transmitted((BundleTransmittedEvent*)e, actions);
         break;
-    };
-
-    case REGISTRATION_ADDED: {
-        /*
-         * Add an entry to the routing table and see if any queued
-         * bundles should be forwarded to it.
-         */
-        RegistrationAddedEvent* event = (RegistrationAddedEvent*)e;
-        Registration* registration = event->registration_;
-        log_debug("new registration for %s", registration->endpoint().c_str());
-        add_route(registration->endpoint(), registration, FORWARD_COPY);
-        handle_next_hop(registration->endpoint(), registration, actions);
+        
+    case REGISTRATION_ADDED:
+        handle_registration_added((RegistrationAddedEvent*)e, actions);
         break;
-    }
+
+    case ROUTE_ADD:
+        handle_route_add((RouteAddEvent*)e, actions);
+        break;
 
     default:
         PANIC("unimplemented event type %d", e->type_);
@@ -189,29 +82,124 @@ BundleRouter::handle_event(BundleEvent* e,
 }
 
 /**
+ * Default event handler for new bundle arrivals.
+ *
+ * Queue the bundle on the pending delivery list, and then
+ * searches through the route table to find any matching next
+ * contacts, filling in the action list with forwarding decisions.
+ */
+void
+BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
+                                     BundleActionList* actions)
+{
+    Bundle* bundle = event->bundleref_.bundle();
+    
+    log_debug("BUNDLE_RECEIVED bundle id %d", bundle->bundleid_);
+    
+    pending_bundles_->push_back(bundle);
+    
+    actions->push_back(new BundleAction(STORE_ADD, bundle));
+    fwd_to_matching(bundle, actions);
+}
+
+void
+BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
+                                        BundleActionList* actions)
+{
+    /**
+     * The bundle was delivered to either a next-hop contact or a
+     * registration.
+     */
+    Bundle* bundle = event->bundleref_.bundle();
+
+    log_debug("BUNDLE_TRANSMITTED bundle id %d (%d bytes) %s -> %s",
+              bundle->bundleid_, event->bytes_sent_,
+              event->acked_ ? "ACKED" : "UNACKED",
+              event->consumer_->dest_tuple()->c_str());
+        
+    /*
+     * Check for reactive fragmentation, potentially splitting off
+     * the unsent portion, if necessary.
+     */
+    if (event->bytes_sent_ != bundle->payload_.length()) {
+        PANIC("reactive fragmentation not implemented");
+    }
+
+    /*
+     * If the whole bundle was sent and this is the last destination
+     * that needs a copy of the bundle, we can safely remove it from
+     * the pending list.
+     */
+    if (bundle->num_containers() == 1) {
+        log_debug("last consumer, removing bundle from pending list");
+
+        // XXX/demmer this should go through the bundle's backpointer
+        // iterator rather than traversing the whole pending bundles
+        // list
+        bool removed = pending_bundles_->remove(bundle);
+        ASSERT(removed);
+        
+        actions->push_back(new BundleAction(STORE_DEL, bundle));
+    }
+}
+
+/**
+ * Default event handler when a new application registration
+ * arrives.
+ *
+ * Adds an entry to the route table for the new registration, then
+ * walks the pending list to see if any bundles match the
+ * registration.
+ */
+void
+BundleRouter::handle_registration_added(RegistrationAddedEvent* event,
+                                        BundleActionList* actions)
+{
+    Registration* registration = event->registration_;
+    log_debug("new registration for %s", registration->endpoint().c_str());
+
+    RouteEntry* entry = new RouteEntry(registration->endpoint(),
+                                       registration, FORWARD_COPY);
+    route_table_->add_entry(entry);
+    new_next_hop(registration->endpoint(), registration, actions);
+}
+
+/**
+ * Default event handler when a new route is added by the command
+ * or management interface.
+ *
+ * Adds an entry to the route table, then walks the pending list
+ * to see if any bundles match the new route.
+ */
+void
+BundleRouter::handle_route_add(RouteAddEvent* event,
+                               BundleActionList* actions)
+{
+    RouteEntry* entry = event->entry_;
+    route_table_->add_entry(entry);
+    new_next_hop(entry->pattern_, entry->next_hop_, actions);
+}
+
+/**
  * Loop through the routing table, adding an entry for each match
  * to the action list.
  */
 void
-BundleRouter::get_matching(Bundle* bundle, BundleActionList* actions)
+BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions)
 {
-    RouteTable::iterator iter;
     RouteEntry* entry;
-    int count = 0;
+    RouteEntrySet matches;
+    RouteEntrySet::iterator iter;
 
-    log_debug("get_matching %s", bundle->dest_.c_str());
-    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+    size_t count = route_table_->get_matching(bundle->dest_, &matches);
+    
+    log_debug("fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);
+
+    for (iter = matches.begin(); iter != matches.end(); ++iter) {
         entry = *iter;
-        if (entry->pattern_.match(bundle->dest_)) {
-            ++count;
-            log_debug("match entry %s -> %s (%s)",
-                      entry->pattern_.c_str(),
-                      entry->next_hop_->dest_tuple()->c_str(),
-                      bundle_action_toa(entry->action_));
-            actions->push_back(new BundleAction(entry->action_, bundle, entry->next_hop_));
-        }
+        actions->push_back(
+            new BundleForwardAction(entry->action_, bundle, entry->next_hop_));
     }
-    log_debug("get_matching done, %d match(es)", count);
 }
 
 /**
@@ -220,37 +208,9 @@ BundleRouter::get_matching(Bundle* bundle, BundleActionList* actions)
  * maybe all bundles???) to see if the new consumer matches.
  */
 void
-BundleRouter::handle_next_hop(const BundleTuplePattern& dest,
-                              BundleConsumer* next_hop,
-                              BundleActionList* actions)
+BundleRouter::new_next_hop(const BundleTuplePattern& dest,
+                           BundleConsumer* next_hop,
+                           BundleActionList* actions)
 {
-    log_debug("XXX/demmer implement handle_next_hop");
-}
-
-
-/**
- * The main run loop.
- */
-void
-BundleRouter::run()
-{
-    BundleEvent* event;
-    BundleForwarder* forwarder = BundleForwarder::instance();
-    BundleActionList actions;
-    
-    while (1) {
-        // grab an event off the queue, blocking until we get one
-        event = eventq_.pop();
-        ASSERT(event);
-
-        // dispatch to fill in the actions list
-        actions.clear();
-        handle_event(event, &actions);
-
-        // if we're the active routing algorithm, then send our
-        // actions to the forwarder to "make it so"
-        if (active() && actions.size() != 0) {
-            forwarder->process(&actions);
-        }
-    }
+    log_debug("XXX/demmer implement new_next_hop");
 }

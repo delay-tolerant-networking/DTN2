@@ -13,6 +13,7 @@ class Bundle;
 class BundleConsumer;
 class Contact;
 class Registration;
+class RouteEntry;
 
 /**
  * Type codes for events.
@@ -28,6 +29,11 @@ typedef enum {
     REGISTRATION_ADDED,		///< New registration arrived
     REGISTRATION_REMOVED,	///< Registration removed
     REGISTRATION_EXPIRED,	///< Registration expired
+
+    // These events are injected from the management interface and/or
+    // the console
+    ROUTE_ADD,			///< Add a new entry to the route table
+    ROUTE_DEL,			///< Remove an entry from the route table
         
 } event_type_t;
 
@@ -105,5 +111,16 @@ public:
     Registration* registration_;
 };
 
+/**
+ * Event class for route add events
+ */
+class RouteAddEvent : public BundleEvent {
+public:
+    RouteAddEvent(RouteEntry* entry)
+        : BundleEvent(ROUTE_ADD), entry_(entry) {}
+    
+    /// The route table entry to be added
+    RouteEntry* entry_;
+};
 
 #endif /* _BUNDLE_EVENT_H_ */

@@ -63,6 +63,7 @@ REGISTRATION_SRCS :=				\
 	reg/LoggingRegistration.cc		\
 
 ROUTING_SRCS :=					\
+	routing/RouteTable.cc			\
 	routing/BundleRouter.cc			\
 
 STORAGE_SRCS :=					\

@@ -1,12 +1,21 @@
 
 #include "RouteCommand.h"
 #include "bundling/Contact.h"
+#include "bundling/BundleEvent.h"
+#include "bundling/BundleForwarder.h"
 #include "routing/BundleRouter.h"
+#include "routing/RouteTable.h"
 #include "util/StringBuffer.h"
 
 RouteCommand RouteCommand::instance_;
 
 RouteCommand::RouteCommand() : AutoCommandModule("route") {}
+
+void
+RouteCommand::at_reg()
+{
+    bind_s("type", &BundleRouter::type_, "static");
+}
 
 const char*
 RouteCommand::help_string()
@@ -25,9 +34,9 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
 
     const char* cmd = argv[1];
-        
-    // route add <dest> <nexthop> <type> <args>
+
     if (strcmp(cmd, "add") == 0) {
+        // route add <dest> <nexthop> <type> <args>
         if (argc < 5) {
             wrong_num_args(argc, argv, 2, 5, INT_MAX);
             return TCL_ERROR;
@@ -55,23 +64,16 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
+        // XXX/demmer this should do a lookup in the ContactManager
+        // and only create the new contact if it doesn't already exist
         Contact* contact = new Contact(type, next_hop);
 
-        BundleRouter* router;
-        BundleRouterList* routers = BundleRouter::routers();
-        BundleRouterList::iterator iter;
-        for (iter = routers->begin(); iter != routers->end(); ++iter) {
-            router = *iter;
+        RouteEntry* entry = new RouteEntry(dest, contact, FORWARD_COPY);
+        
+        // XXX/demmer other parameters?
 
-            // XXX/demmer spec for the action_t??
-            if (! router->add_route(dest, contact, FORWARD_COPY,
-                                    argc - 5, &argv[5]))
-            {
-                resultf("error adding route %s %s %s",
-                        dest_str, next_hop_str, type_str);
-                return TCL_ERROR;
-            }
-        }
+        // post the event
+        BundleForwarder::post(new RouteAddEvent(entry));
     }
 
     else if (strcmp(cmd, "del") == 0) {
@@ -81,15 +83,8 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     else if (strcmp(cmd, "dump") == 0) {
         StringBuffer buf;
-
-        BundleRouter* router;
-        BundleRouterList* routers = BundleRouter::routers();
-        BundleRouterList::iterator iter;
-        for (iter = routers->begin(); iter != routers->end(); ++iter) {
-            router = *iter;
-            router->dump(&buf);
-        }
-
+        BundleRouter* router = BundleForwarder::instance()->active_router();
+        router->route_table()->dump(&buf);
         set_result(buf.c_str());
         return TCL_OK;
     }

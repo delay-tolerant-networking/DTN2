@@ -2,16 +2,21 @@
 #define _BUNDLE_FORWARDING_H_
 
 #include "debug/Log.h"
+#include "thread/Thread.h"
+#include "thread/MsgQueue.h"
 #include <vector>
 
-class BundleActionList;
 class Bundle;
+class BundleAction;
+class BundleActionList;
 class BundleConsumer;
+class BundleEvent;
+class BundleRouter;
 
 /**
- * Class that handles the flow of bundles through the system.
+ * Class that handles the flow of bundle events through the system.
  */
-class BundleForwarder : public Logger {
+class BundleForwarder : public Logger, public Thread {
 public:
     /**
      * Singleton accessor.
@@ -22,22 +27,54 @@ public:
     }
 
     /**
-     * Boot time initializer.
-     */
-    static void init();
-
-    /**
      * Constructor.
      */
     BundleForwarder();
 
     /**
-     * Routine that actually effects the forwarding operations as
-     * returned from the BundleRouter.
+     * Boot time initializer.
      */
-    void process(BundleActionList* actions);
+    static void init(BundleForwarder* instance)
+    {
+        if (instance_ != NULL) {
+            PANIC("BundleForwarder already initialized");
+        }
+        instance_ = instance;
+    }
+    
+    /**
+     * Queues the given event on the pending list of events.
+     */
+    static void post(BundleEvent* event);
+
+    /**
+     * Returns the currently active bundle router.
+     */
+    BundleRouter* active_router() { return router_; }
+
+    /**
+     * Sets the active router.
+     */
+    void set_active_router(BundleRouter* router) { router_ = router; }
 
 protected:
+    /**
+     * Routine that implements a particular action, as returned from
+     * the BundleRouter.
+     */
+    void process(BundleAction* action);
+
+    /**
+     * Main thread function that dispatches events.
+     */
+    void run();
+    
+    /// The active bundle router
+    BundleRouter* router_;
+
+    /// The event queue
+    MsgQueue<BundleEvent*> eventq_;
+    
     static BundleForwarder* instance_;
 };
 

@@ -55,12 +55,14 @@ main(int argc, char** argv)
 
     // Set up all components
     ConvergenceLayer::init_clayers();
-    BundleForwarder::init();
     InterfaceTable::init();
-    BundleRouter* router = new BundleRouter();
-    BundleRouter::register_router(router);
-    router->start();
 
+    // Create the forwarder but don't start it running yet. This lets
+    // the conf file post events but they won't get dispatched until
+    // after the router has been created
+    BundleForwarder* forwarder = new BundleForwarder();
+    BundleForwarder::init(forwarder);
+    
     CommandInterp::instance()->reg(&testcmd);
 
     // Parse / exec the config file
@@ -71,6 +73,15 @@ main(int argc, char** argv)
         }
     }
 
+    // The conf file had a chance to set the types used for routing
+    // and storage, so initialize those components now.
+    BundleRouter* router = BundleRouter::create_router(BundleRouter::type_.c_str());
+    forwarder->set_active_router(router);
+    forwarder->start();
+
+    // XXX/demmer change this so the conf file just sets the type and
+    // the initialization happens here.
+    
     // Check that the storage system was all initialized properly
     if (!BundleStore::initialized() ||
         !GlobalStore::initialized() ||
