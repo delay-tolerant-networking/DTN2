@@ -2,6 +2,7 @@
 #include "BundleRouter.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
+#include "bundling/BundleList.h"
 #include "reg/Registration.h"
 
 BundleRouterList BundleRouter::routers_;
@@ -37,6 +38,8 @@ BundleRouter::dispatch(BundleEvent* event)
 BundleRouter::BundleRouter()
     : Logger("/route")
 {
+    pending_bundles_ = new BundleList();
+    custody_bundles_ = new BundleList();
 }
 
 /**
@@ -84,14 +87,58 @@ BundleRouter::handle_event(BundleEvent* e,
 
     case BUNDLE_RECEIVED: {
         /*
-         * Pull the bundle out of the message and fill in the actions
-         * list with all matching entries in the table.
+         * Queue the bundle on the pending delivery list, and search
+         * through the route table to find any matching next contacts,
+         * filling in the action list.
          */
         BundleReceivedEvent* event = (BundleReceivedEvent*)e;
-        Bundle* bundle = event->bundle_;
+        Bundle* bundle = event->bundleref_.bundle();
+
+        log_debug("BUNDLE_RECEIVED bundle id %d", bundle->bundleid_);
+
+        pending_bundles_->push_back(bundle);
         get_matching(bundle, actions);
+        
         break;
     }
+
+    case BUNDLE_TRANSMITTED: {
+        /**
+         * The bundle was sent to either a next-hop contact or a
+         * registration.
+         */
+        BundleTransmittedEvent* event = (BundleTransmittedEvent*)e;
+        Bundle* bundle = event->bundleref_.bundle();
+
+        log_debug("BUNDLE_TRANSMITTED bundle id %d (%d bytes) %s",
+                  bundle->bundleid_, event->bytes_sent_,
+                  event->acked_ ? "ACKED" : "UNACKED");
+        
+        /*
+         * Check for reactive fragmentation, potentially splitting off
+         * the unsent portion, if necessary.
+         */
+        if (event->bytes_sent_ != bundle->payload_.length()) {
+            PANIC("reactive fragmentation not implemented");
+        }
+
+        /*
+         * If the whole bundle was sent and this is the last
+         * destination that needs a copy of the bundle, we can safely
+         * remove it from the pending list.
+         *
+         * Note that removing the bundle from the pending list may
+         * remove the last reference on the bundle, which may delete
+         * the bundle.
+         */
+        if (bundle->num_containers() == 1) {
+            log_debug("last consumer, removing bundle from pending list");
+            bool removed = pending_bundles_->remove(bundle);
+            ASSERT(removed);
+        }
+        
+        break;
+    };
 
     case REGISTRATION_ADDED: {
         /*
@@ -109,6 +156,9 @@ BundleRouter::handle_event(BundleEvent* e,
     default:
         PANIC("unimplemented event type %d", e->type_);
     }
+
+    log_debug("dispatch complete, cleaning up event");
+    delete e;
 }
 
 /**

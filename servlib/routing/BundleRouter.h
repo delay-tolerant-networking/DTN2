@@ -149,6 +149,12 @@ protected:
     /// The routing table
     typedef std::set<RouteEntry*> RouteTable;
     RouteTable route_table_;
+
+    /// The list of all bundles still pending delivery
+    BundleList* pending_bundles_;
+
+    /// The list of all bundles that I have custody of
+    BundleList* custody_bundles_;
 };
  
 #endif /* _BUNDLE_ROUTER_H_ */
