@@ -77,6 +77,7 @@ ifeq ($(TARGET),arm)
 ARMDIR		= /opt/Embedix/tools/arm-linux
 INCDIRS 	+= -I$(ARMDIR)/include @INCDIRS@ 
 LIBDIRS 	= -L$(ARMDIR)/lib @LIBDIRS@
+LIBS		= @LIBS@
 CC 		= @CC@
 CPP		= @CPP@
 DEPFLAGS        = @DEPFLAGS@
