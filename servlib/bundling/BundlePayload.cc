@@ -67,10 +67,15 @@ BundlePayload::serialize(SerializeAction* a)
 }
 
 void
-BundlePayload::set_length(size_t length)
+BundlePayload::set_length(size_t length, location_t location)
 {
     length_ = length;
-    location_ = (length_ < mem_threshold_) ? MEMORY : DISK;
+    if (location == UNDETERMINED) {
+        location_ = (length_ < mem_threshold_) ? MEMORY : DISK;
+    } else {
+        location_ = location;
+    }
+    
     data_.reserve(length);
 }
 
@@ -116,4 +121,25 @@ BundlePayload::read_data(off_t offset, size_t len)
         offset_ = offset + len;
         return data_.data();
     }
+}
+
+void
+BundlePayload::write_data(const char* bp, off_t offset, size_t len)
+{
+    ASSERT(length_ >= (len + offset));
+
+    if (location_ == MEMORY) {
+        memcpy((char*)data_.data() + offset, bp, len);
+    } else {
+        // check if we need to seek
+        if (offset != offset_) {
+            file_->lseek(offset, SEEK_SET);
+        }
+
+        file_->writeall(bp, len);
+
+        // store the offset
+        offset_ = offset + len;
+    }
+    
 }

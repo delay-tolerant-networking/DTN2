@@ -23,7 +23,8 @@ public:
      */
     typedef enum {
         MEMORY = 1,
-        DISK = 2
+        DISK = 2,
+        UNDETERMINED = 3
     } location_t;
     
     /**
@@ -32,14 +33,13 @@ public:
      * location
      */
      void init(int bundleid, location_t location);
-
   
     /**
      * Set the payload length in preparation for filling in with data.
-     * Based on the configured threshold, this will also set the
-     * location flag.
+     * Optionally also force-sets the location, or leaves it based on
+     * configured parameters.
      */
-    void set_length(size_t len);
+    void set_length(size_t len, location_t location = UNDETERMINED);
     
     /**
      * The payload length.
@@ -69,6 +69,11 @@ public:
      * Return a pointer to a chunk of payload data.
      */
     const char* read_data(off_t offset, size_t len);
+
+    /**
+     * Write a chunk of payload data at the specified offset.
+     */
+    void write_data(const char* bp, off_t offset, size_t len);
 
     /**
      * Virtual from SerializableObject
