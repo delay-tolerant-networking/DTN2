@@ -12,7 +12,7 @@ public:
     /**
      * Default Lock constructor.
      */
-    Lock() : lock_holder_(0) {}
+    Lock() : lock_holder_(0), scope_lock_count_(0) {}
 
     /**
      * Lock destructor. Asserts that the lock is not locked by another
@@ -20,7 +20,8 @@ public:
      */
     virtual ~Lock()
     {
-        ASSERT(is_locked_by_me() || !is_locked());
+        ASSERT(!is_locked() ||
+               (is_locked_by_me() && scope_lock_count_ == 0));
     }
     
     /**
@@ -66,6 +67,8 @@ public:
     }
 
 protected:
+    friend class ScopeLock;
+    
     /**
      * Stores the thread id of the current lock holder. It is the
      * responsibility of the derived class to set this in lock() and
@@ -73,6 +76,15 @@ protected:
      * is_locked_by_me() depend on it.
      */
     pthread_t lock_holder_;
+
+    /**
+     * Stores a count of the number of ScopeLocks holding the lock.
+     * This is checked in the Lock destructor to avoid strange crashes
+     * if you delete the lock object and then the ScopeLock destructor
+     * tries to unlock it.
+     */
+    int scope_lock_count_;
+     
 };
 
 /**
@@ -94,10 +106,12 @@ public:
     {
         int ret = lock_->lock();
         ASSERT(ret == 0);
+        lock_->scope_lock_count_++;
     }
     
     ~ScopeLock()
     {
+        lock_->scope_lock_count_--;
         lock_->unlock();
     }
     
