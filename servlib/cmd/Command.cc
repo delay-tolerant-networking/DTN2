@@ -79,8 +79,9 @@ CommandInterp::exec_file(const char* file)
     err = Tcl_EvalFile(interp_, (char*)file);
     
     if (err != TCL_OK) {
-        logf(LOG_ERR, "error: line %d, %s",
-             interp_->errorLine, Tcl_GetStringResult(interp_));
+        logf(LOG_ERR, "error: line %d: '%s':\n%s",
+             interp_->errorLine, Tcl_GetStringResult(interp_),
+             Tcl_GetVar(interp_, "errorInfo", TCL_GLOBAL_ONLY));
     }
     
     return err;    
@@ -107,10 +108,9 @@ CommandInterp::exec_command(const char* command)
     free(buf);
     
     if (err != TCL_OK) {
-        logf(LOG_ERR, "tcl error: line %d, \"%s\"",
-             interp_->errorLine, interp_->result);
-        const char* errinfo = Tcl_GetVar(interp_, "errorInfo", 0);
-        printf("errorInfo: %s\n", errinfo);
+        logf(LOG_ERR, "error: line %d: '%s':\n%s",
+             interp_->errorLine, Tcl_GetStringResult(interp_),
+             Tcl_GetVar(interp_, "errorInfo", TCL_GLOBAL_ONLY));
     }
     
     return err;
