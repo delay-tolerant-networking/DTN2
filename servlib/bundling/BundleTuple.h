@@ -29,6 +29,10 @@ public:
     
     // Accessors
     const std::string& tuple()  const { return tuple_; }
+    size_t	       length() const { return tuple_.length(); }
+    const char*        data()   const { return tuple_.data(); }
+    const char*        c_str()  const { return tuple_.c_str(); }
+    
     const std::string& region() const { return region_; }
     const std::string& admin()  const { return admin_; }
     
