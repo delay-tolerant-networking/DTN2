@@ -5,11 +5,10 @@
 #include "BundleMapping.h"
 
 BundleConsumer::BundleConsumer(const BundleTuple* dest_tuple, bool is_local)
-    : dest_tuple_(dest_tuple),
+    : Logger("/bundle/consumer"), dest_tuple_(dest_tuple),
       is_local_(is_local),
       bundle_list_(NULL)
 {
-    logpathf("/bundle/consumer/%s", dest_tuple->tuple().c_str());
 }
 
 void
