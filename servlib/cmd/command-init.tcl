@@ -4,6 +4,20 @@
 # time.
 #
 
+# For the vwait to work, we need to make sure there's at least one
+# event outstanding at all times, otherwise the 'vwait forever' trick
+# below doesn't work
+proc event_sched {} {
+    after 1000000 event_sched
+}
+
+# Run the event loop and no interpreter
+proc event_loop {} {
+    event_sched
+    global forever
+    vwait forever
+}
+    
 # Run the command loop with the given prompt
 proc command_loop {prompt} {
     if [catch {
@@ -21,9 +35,8 @@ proc command_loop {prompt} {
     } err] {
 	log /tcl WARNING "can't load tclreadline: $err"
 	log /tcl WARNING "no command loop available"
-	
-	global forever
-	vwait forever
+
+	event_loop
     }
 }
 

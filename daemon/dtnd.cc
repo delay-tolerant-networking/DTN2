@@ -44,7 +44,7 @@ main(int argc, char** argv)
     
     // Initialize logging before anything else
     Log::init(logfd);
-    logf("/daemon", LOG_INFO, "bundle daemon initializing...");
+    logf("/daemon", LOG_DEBUG, "main()");
 
     // command line parameter vars
     std::string conffile("daemon/bundleNode.conf");
@@ -73,6 +73,8 @@ main(int argc, char** argv)
     CommandInterp::init(argv[0]);
     Options::getopt(argv[0], argc, argv);
 
+    logf("/daemon", LOG_DEBUG, "Bundle Daemon Initializing...");
+    
     // Seed the random number generator
     if (!random_seed_set) {
         struct timeval tv;
@@ -135,8 +137,12 @@ main(int argc, char** argv)
         CommandInterp::instance()->exec_command(testcmd.initscript_.c_str());
     }
 
-    // finally, run the main command loop (shouldn't return)
-    CommandInterp::instance()->loop("dtn");
+    // finally, run the main command or event loop (shouldn't return)
+    if (daemon) {
+        CommandInterp::instance()->event_loop();
+    } else {
+        CommandInterp::instance()->command_loop("dtn");
+    }
     
     logf("/daemon", LOG_ERR, "command loop exited unexpectedly");
 }

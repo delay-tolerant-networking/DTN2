@@ -117,13 +117,22 @@ CommandInterp::exec_command(const char* command)
 }
 
 void
-CommandInterp::loop(const char* prompt)
+CommandInterp::command_loop(const char* prompt)
 {
     char cmd[256];
     snprintf(cmd, sizeof(cmd), "command_loop %s", prompt);
     
     if (Tcl_Eval(interp_, cmd) != TCL_OK) {
         log_err("tcl error in readline loop: \"%s\"",
+                interp_->result);
+    }
+}
+
+void
+CommandInterp::event_loop()
+{
+    if (Tcl_Eval(interp_, "event_loop") != TCL_OK) {
+        log_err("tcl error in event_loop: \"%s\"",
                 interp_->result);
     }
 }
@@ -436,7 +445,20 @@ CommandModule::cmd_set(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 }
 
 // boilerplate code
-#define BIND_FUNCTION(_fn, _type, _typecode)                            \
+#define BIND_FUNCTIONS(_fn, _type, _typecode)                           \
+void                                                                    \
+_fn(const char* name, _type* val)                                       \
+{                                                                       \
+    if (bindings_.find(name) != bindings_.end())                        \
+    {                                                                   \
+        log_warn("warning, binding for %s already exists", name);       \
+    }                                                                   \
+                                                                        \
+    log_debug("creating %s binding for %s -> %p", #_type, name, val);   \
+                                                                        \
+    bindings_[name] = new Binding(_typecode, val);                      \
+}                                                                       \
+                                                                        \
 void                                                                    \
 _fn(const char* name, _type* val, _type initval)                        \
 {                                                                       \
@@ -451,9 +473,9 @@ _fn(const char* name, _type* val, _type initval)                        \
     bindings_[name] = new Binding(_typecode, val);                      \
 }
 
-BIND_FUNCTION(CommandModule::bind_i, int, BINDING_INT);
-BIND_FUNCTION(CommandModule::bind_b, bool, BINDING_BOOL);
-BIND_FUNCTION(CommandModule::bind_addr, in_addr_t, BINDING_ADDR);
+BIND_FUNCTIONS(CommandModule::bind_i, int, BINDING_INT);
+BIND_FUNCTIONS(CommandModule::bind_b, bool, BINDING_BOOL);
+BIND_FUNCTIONS(CommandModule::bind_addr, in_addr_t, BINDING_ADDR);
 
 void
 CommandModule::bind_s(const char* name, std::string* val,

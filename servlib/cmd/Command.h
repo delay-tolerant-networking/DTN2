@@ -79,9 +79,14 @@ public:
     int exec_command(const char* command);
 
     /**
-     * Run an interpreter loop. Doesn't return.
+     * Run a command interpreter loop. Doesn't return.
      */
-    void loop(const char* prompt);
+    void command_loop(const char* prompt);
+
+    /**
+     * Just run the event loop. Also doesn't return.
+     */
+    void event_loop();
 
     /**
      * Static callback function from Tcl to execute the commands.
@@ -316,12 +321,14 @@ protected:
     /**
      * Bind an integer to the set command
      */
-    void bind_i(const char* name, int* val, int initval = 0);
+    void bind_i(const char* name, int* val);
+    void bind_i(const char* name, int* val, int initval);
     
     /**
      * Bind a boolean to the set command
      */
-    void bind_b(const char* name, bool* val, bool initval = false);
+    void bind_b(const char* name, bool* val);
+    void bind_b(const char* name, bool* val, bool initval);
     
     /**
      * Bind a string to the set command
@@ -333,6 +340,7 @@ protected:
      * Bind an ip addr for the set command, allowing the user to pass
      * a hostname and/or a dotted quad style address
      */
+    void bind_addr(const char* name, in_addr_t* addrp);
     void bind_addr(const char* name, in_addr_t* addrp,
                    in_addr_t initval = INADDR_ANY);
 
