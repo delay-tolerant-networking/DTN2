@@ -47,8 +47,11 @@ BundleTuple::parse_tuple()
 
     // skip to the end of 'bundles://'
     if ((end = tuple_.find('/')) == std::string::npos) {
-        logf("/bundle/tuple", LOG_DEBUG, "no leading slash in tuple '%s'",
-             tuple_.c_str());
+        // an empty string is common enough that it's kinda annoying
+        // to keep emitting these
+        if (tuple_.length() > 0)
+            logf("/bundle/tuple", LOG_DEBUG, "no leading slash in tuple '%s'",
+                 tuple_.c_str());
         return;
     }
     if (tuple_[++end] != '/') {
