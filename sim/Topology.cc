@@ -42,10 +42,12 @@ namespace dtnsim {
 
 Topology::NodeTable Topology::nodes_;
 
-void
+Node*
 Topology::create_node(const char* name)
 {
-    nodes_[name] = new Node(name);
+    Node* node = new Node(name);
+    nodes_[name] = node;
+    return node;
 }
 
 } // namespace dtnsim

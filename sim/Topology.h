@@ -55,7 +55,7 @@ class SimContact;
 class Topology  {
 
 public:
-    static void create_node(const char* name);
+    static Node* create_node(const char* name);
 
     typedef oasys::StringHashMap<Node*> NodeTable;
     static NodeTable nodes_;
