@@ -16,46 +16,52 @@ fi
 
 exp=$2
 maxnodes=$1
-    
-#echo "Make table: exp:$exp  nodes:$maxnodes base=$basepath"
+   
+
+if [ ! -d $basepath/$exp ]; then
+    echo "$basepath/$exp: does not exit"
+    exit 5
+fi
+
+#echo "Make table: exp: $basepath/$exp  nodes:$maxnodes base=$basepath"
 
 for proto in tcp0 tcp1 dtn0 dtn1 mail0 mail1 ; 
 do
-    exppath=$exp/$proto
+    exppath=$basepath/$exp/$proto
     
     if [ ! -d $exppath ]; then
         continue
     fi
 
-    ftplog=$basepath/$exppath/ftplog
+    ftplog=$exppath/ftplog
     n=$maxnodes
     
 
-    resfile=$basepath/$exppath/times.txt
+    resfile=$exppath/times.txt
     
     start=0
     end=-1
-
+    
     txlen=0
     if [ -e $ftplog.$n ]; then 
-        txlen=`cat $ftplog.$n | wc -l`
+        txlen=`cat $ftplog.1 | wc -l`
     fi
-
+    
+    
     rcvlen=0
     if [ -e $ftplog.1 ]; then 
-        rcvlen=`cat $ftplog.1 | wc -l`
+        rcvlen=`cat $ftplog.$maxnodes | wc -l`
     fi
 
     if [ "$rcvlen" -gt "$txlen" ]; then
         rcvlen=$txlen
     fi
 
-
     if [ $rcvlen -eq 0 ]; then
         echo "Nothing to paste for $exp/$proto ftplog:$ftplog"
         continue
     fi
-    echo -n "$exppath : Txlen:$txlen Rcvlen:$rcvlen ::"
+    echo -n "$exppath : txlen:$txlen rcvlen:$rcvlen ::"
     
 
     rm -f /tmp/$exp.$proto.index
@@ -68,8 +74,8 @@ do
         echo "$lineno " >> /tmp/$exp.$proto.index
         let lineno=$lineno+1
     done
-    cat $ftplog.1 | awk '{print $1}'  > /tmp/$exp.$proto.1
-    cat $ftplog.$n | awk '{print $1}'  > /tmp/$exp.$proto.$n
+    head -n $rcvlen $ftplog.1 | awk '{print $1}'  > /tmp/$exp.$proto.1
+    head -n $rcvlen $ftplog.$n | awk '{print $1}'  > /tmp/$exp.$proto.$n
     
     paste /tmp/$exp.$proto.index /tmp/$exp.$proto.1 /tmp/$exp.$proto.$n > $resfile
 
@@ -85,5 +91,5 @@ do
     if [ "$rcvlen" -le "0" ]; then
 	    diff=-1  
     fi
-    echo  " Time:$diff "
+    echo  "Time:$diff "
 done
