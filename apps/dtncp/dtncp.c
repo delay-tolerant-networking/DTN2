@@ -130,24 +130,11 @@ main(int argc, char** argv)
     // fill in a payload
     memset(&send_payload, 0, sizeof(send_payload));
 
-/*     file = fopen(data_source, "r"); */
-
-/*     if (file == NULL) */
-/*     { */
-/*         fprintf(stderr, "error opening file %s (%d)\n", data_source, errno); */
-/*         exit(1); */
-/*     } */
-    
-/*     while (!feof(file) && bufsize < 4096) */
-/*     { */
-/*         bufsize += fread(buffer + bufsize, 1,  */
-/*                          bufsize > 3840? 4096 - bufsize: 256, file); */
-/*     } */
-
-/*     dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufsize); */
-    dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, data_source, strlen(data_source));
+    dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE,
+        data_source, strlen(data_source));
      
     // send file and wait for reply
+
     // create a new dtn registration to receive bundle status reports
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_tuple(&reginfo.endpoint, &bundle_spec.replyto);
@@ -199,8 +186,10 @@ main(int argc, char** argv)
 
 void print_usage()
 {
-    fprintf(stderr, "usage: %s filename bundles://region/host://admin/path\n",
-                progname);
+    fprintf(stderr, "usage: %s filename bundles://region/host://admin "
+                    "[remote-name]\n", progname);
+    fprintf(stderr, "    Remote filename is optional; defaults to the "
+                    "local filename.\n");
     
     exit(1);
 }
