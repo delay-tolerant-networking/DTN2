@@ -42,6 +42,7 @@
 
 #include <errno.h>
 #include <unistd.h>
+#include <strings.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 

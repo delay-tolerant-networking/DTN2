@@ -36,6 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/io/IPSocket.h>
 #include <oasys/io/NetUtils.h>
 #include <oasys/util/URL.h>
 
