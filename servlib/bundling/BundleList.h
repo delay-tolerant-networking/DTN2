@@ -112,16 +112,9 @@ public:
      */
     SpinLock* lock() { return lock_; }
 
-    /**
-     * Return an indication if there are any threads blocked waiting
-     * for bundles.
-     */
-    bool waiter() { return waiter_; }
-    
 protected:
     SpinLock* lock_;
     std::list<Bundle*> list_;
-    bool waiter_;
 };
 
 #endif /* _BUNDLE_LIST_H_ */

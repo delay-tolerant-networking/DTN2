@@ -20,14 +20,21 @@ class SpinLock;
  */
 class Notifier : public Logger {
 public:
-    Notifier();
+    Notifier(const char* logpath = NULL);
     ~Notifier();
 
     /**
-     * Block the calling thread, pending a call to notify().
+     * Block the calling thread, pending a call to notify(). If a lock
+     * is passed in, wait() will unlock the lock before the thread
+     * blocks and re-take it when the thread unblocks.
      */
-    void wait();
+    void wait(SpinLock* lock = NULL);
 
+    /**
+     * Return indication if there are any blocked threads.
+     */
+    bool has_waiter() { return waiter_; }
+    
     /**
      * Notify a waiter.
      */
@@ -51,6 +58,7 @@ public:
     
 protected:
     int pipe_[2];
+    bool waiter_;
 };
 
 #endif /* _NOTIFIER_H_ */

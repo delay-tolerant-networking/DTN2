@@ -5,14 +5,20 @@
 #include "SpinLock.h"
 #include "io/IO.h"
 
-Notifier::Notifier()
+Notifier::Notifier(const char* logpath)
 {
-    logpathf("/notifier/%p", this);
+    if (logpath) {
+        set_logpath(logpath);
+    } else {
+        logpathf("/notifier/%p", this);
+    }
     
     if (pipe(pipe_) != 0) {
         log_crit("can't create pipe for notifier");
         exit(1);
     }
+
+    waiter_ = false;
 
     log_debug("created pipe, fds: %d %d", pipe_[0], pipe_[1]);
     
@@ -64,15 +70,38 @@ Notifier::drain_pipe()
 }
 
 void
-Notifier::wait()
+Notifier::wait(SpinLock* lock)
 {
-    int ret = IO::poll(read_fd(), POLLIN, -1, logpath_);
-    if (ret <= 0) {
-        log_crit("unexpected error return from poll: %s", strerror(errno));
-        exit(1);
+    int ret = 0;
+    
+    if (waiter_) {
+        PANIC("Notifier doesn't support multiple waiting threads");
     }
+    waiter_ = true;
 
+    if (lock) 
+        lock->unlock();
+
+    while (1) {
+        ret = IO::poll(read_fd(), POLLIN, -1, logpath_);
+        if (ret <= 0) {
+            if (ret == -1 && errno == EINTR) {
+                log_debug("poll returned EINTR");
+                continue;
+            }
+            log_crit("unexpected error return from poll: %s", strerror(errno));
+            exit(1);
+        } else {
+            break;
+        }
+    }
+    
     ASSERT(ret == 1);
+
+    if (lock)
+        lock->lock();
+    
+    waiter_ = false;
 }
 
 void

@@ -4,7 +4,7 @@
 #include "thread/SpinLock.h"
 
 BundleList::BundleList()
-    : lock_(new SpinLock()), waiter_(false)
+    : lock_(new SpinLock())
 {
 }
 
@@ -46,7 +46,7 @@ BundleList::push_front(Bundle* b)
     bool added = b->add_container(this);
     ASSERT(added);
 
-    if (waiter_ == true && size() == 1)
+    if (has_waiter() && size() == 1)
     {
         notify();
     }
@@ -65,7 +65,7 @@ BundleList::push_back(Bundle* b)
     bool added = b->add_container(this);
     ASSERT(added);
     
-    if (waiter_ == true && size() == 1)
+    if (has_waiter() && size() == 1)
     {
         notify();
     }
@@ -119,16 +119,8 @@ BundleList::pop_blocking()
     lock_->lock();
 
     if (size() == 0) {
-        if (waiter_) {
-            PANIC("BundleList doesn't support multiple waiting threads");
-        }
-        waiter_ = true;
-        
-        lock_->unlock();
-        wait();
-        lock_->lock();
-        
-        waiter_ = false;
+        wait(lock_);
+        ASSERT(lock_->is_locked_by_me());
     }
 
     // always drain the pipe when done waiting
