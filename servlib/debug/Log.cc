@@ -316,13 +316,9 @@ Log::vlogf(const char *path, log_level_t level, const char *fmt, va_list ap)
 	path = pathbuf;
     }
 
-    // find the log threshold for the path
-    log_level_t threshold = log_level(path);
-    
     // bail if we're not going to output the line.
-    if (level < threshold) {
-	return 0;
-    }
+    if (! __log_enabled(level, path))
+        return 0;
     
     // format the log string
     char *ptr = buf;
