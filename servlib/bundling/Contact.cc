@@ -55,7 +55,7 @@ Contact::Contact(Link* link)
     logpathf("/contact/%s", link->nexthop());
 
     bundle_list_ = new BundleList(logpath_);
-    contact_info_ = NULL;
+    cl_info_ = NULL;
     
     log_info("new contact *%p", this);
 }
@@ -65,7 +65,7 @@ Contact::~Contact()
     ASSERT(bundle_list_->size() == 0);
     delete bundle_list_;
 
-    ASSERT(contact_info_ == NULL);
+    ASSERT(cl_info_ == NULL);
 }
 
 void

@@ -48,9 +48,9 @@
 namespace dtn {
 
 class ConvergenceLayer;
+class CLInfo;
 class Contact;
 class Link;
-class LinkInfo;
 class Peer;
 
 /**
@@ -321,18 +321,20 @@ public:
     virtual bool is_queued(Bundle* bundle);
 
     /**
-     * Store the implementation specific part of the link.
+     * Store convergence layer state associated with the link.
      */
-    void set_link_info(LinkInfo* link_info)
+    void set_cl_info(CLInfo* cl_info)
     {
-        ASSERT(link_info_ == NULL || link_info == NULL);
-        link_info_ = link_info;
+        ASSERT((cl_info_ == NULL && cl_info != NULL) ||
+               (cl_info_ != NULL && cl_info == NULL));
+        
+        cl_info_ = cl_info;
     }
 
     /**
-     * Accessor to the link info.
+     * Accessor to the convergence layer state.
      */
-    LinkInfo* link_info() { return link_info_; }
+    CLInfo* cl_info() { return cl_info_; }
     
     /**
      * Accessor to this contact's convergence layer.
@@ -387,21 +389,11 @@ protected:
     /// Close-in-progress bit
     bool closing_;
 
-    /// Convergence layer specific info, if needed
-    LinkInfo* link_info_;
-
     /// Pointer to convergence layer
     ConvergenceLayer* clayer_;
-};
 
-
-/**
- * Abstract base class for convergence layer specific portions of a
- * link.
- */
-class LinkInfo {
-public:
-    virtual ~LinkInfo() {}
+    /// Convergence layer specific info, if needed
+    CLInfo* cl_info_;
 };
 
 } // namespace dtn

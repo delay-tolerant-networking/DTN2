@@ -35,24 +35,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _SIM_LINK_INFO
-#define _SIM_LINK_INFO
+#ifndef _SIM_CL_INFO_
+#define _SIM_CL_INFO_
 
-#include "bundling/Link.h"
+#include "conv_layers/ConvergenceLayer.h"
 
 namespace dtn {
 
-class SimLinkInfo: public LinkInfo {
+class SimCLInfo : public CLInfo {
 
 public:
-    SimLinkInfo(int id) : LinkInfo(),simid_(id) {}
+    SimCLInfo(int id) : CLInfo(),simid_(id) {}
     int id () { return simid_; }
     
 private:
-    int simid_; // id used to identify this contact globally
+    int simid_; // id used to identify this cl globally
 	
 };
-
 } // namespace dtn
 
-#endif /* _SIM_LINK_INFO */
+#endif /* _SIM_CL_INFO_ */

@@ -42,7 +42,7 @@ namespace dtn {
 
 Interface::Interface(const std::string& admin,
                      ConvergenceLayer* clayer)
-    : admin_(admin), clayer_(clayer), info_(NULL)
+    : admin_(admin), clayer_(clayer), cl_info_(NULL)
 {
 }
 

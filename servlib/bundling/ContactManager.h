@@ -46,8 +46,8 @@ namespace dtn {
 class BundleTuple;
 class Contact;
 class ConvergenceLayer;
+class CLInfo;
 class Link;
-class LinkInfo;
 class LinkSet;
 class Peer;
 class PeerSet;
@@ -183,7 +183,7 @@ public:
      * the new contact, notifying the router as necessary.
      */
     Contact* new_opportunistic_contact(ConvergenceLayer* cl,
-                                       LinkInfo* linkinfo,
+                                       CLInfo* clinfo,
                                        const BundleTuple& nexthop);
 
 protected:

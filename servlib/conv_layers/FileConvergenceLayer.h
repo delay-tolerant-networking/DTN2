@@ -135,7 +135,7 @@ protected:
      * Helper class (and thread) that periodically scans a directory
      * for new bundle files.
      */
-    class Scanner : public InterfaceInfo, public oasys::Logger, public oasys::Thread {
+    class Scanner : public CLInfo, public oasys::Logger, public oasys::Thread {
     public:
         /**
          * Constructor.

@@ -94,7 +94,7 @@ public:
      * Helper class (and thread) that listens on a registered
      * interface for incoming data 
      */
-    class Receiver : public InterfaceInfo,
+    class Receiver : public CLInfo,
                      public oasys::IPSocket,
                      public oasys::Thread {
 public:
@@ -121,7 +121,7 @@ public:
      * a connection. The receiver will just receive data. Therefore,
      * we don't need a passive side of a connection
      */
-    class Sender : public ContactInfo, public oasys::Thread, public oasys::Logger {
+    class Sender : public CLInfo, public oasys::Thread, public oasys::Logger {
 public:
         /**
          * Constructor for the active connection side of a connection.

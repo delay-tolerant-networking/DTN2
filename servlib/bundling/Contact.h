@@ -49,8 +49,8 @@ namespace dtn {
 
 class Bundle;
 class BundleList;
-class ContactInfo;
 class ConvergenceLayer;
+class CLInfo;
 
 /**
  * Encapsulation of a connection to a next-hop DTN contact. The object
@@ -76,18 +76,20 @@ public:
     ConvergenceLayer* clayer() { return link_->clayer(); }
 
     /**
-     * Store the convergence layer specific part of the contact.
+     * Store the convergence layer state associated with the contact.
      */
-    void set_contact_info(ContactInfo* contact_info)
+    void set_cl_info(CLInfo* cl_info)
     {
-        ASSERT(contact_info_ == NULL || contact_info == NULL);
-        contact_info_ = contact_info;
+        ASSERT((cl_info_ == NULL && cl_info != NULL) ||
+               (cl_info_ != NULL && cl_info == NULL));
+        
+        cl_info_ = cl_info;
     }
     
     /**
-     * Accessor to the contact info.
+     * Accessor to the convergence layer info.
      */
-    ContactInfo* contact_info() { return contact_info_; }
+    CLInfo* cl_info() { return cl_info_; }
     
     /**
      * Accessor to the link
@@ -105,18 +107,9 @@ public:
     int format(char* buf, size_t sz);
     
 protected:
-    Link* link_ ; 		///< Pointer to parent link on
-    				///  which this contact exists
-    ContactInfo* contact_info_; ///< convergence layer specific info
-};
-
-/**
- * Abstract base class for convergence layer specific portions of a
- * contact.
- */
-class ContactInfo {
-public:
-    virtual ~ContactInfo() {}
+    Link* link_ ; 	///< Pointer to parent link on which this
+    			///  contact exists
+    CLInfo* cl_info_;	///< convergence layer specific info
 };
 
 } // namespace dtn

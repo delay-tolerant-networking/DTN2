@@ -136,7 +136,7 @@ SimConvergenceLayer::dtnlink2simlink(Link* link)
 {
    // use contact info in contact to find this out
     ASSERT(link != NULL);
-    int id = ((SimLinkInfo*)link->link_info())->id();
+    int id = ((SimCLInfo*)link->cl_info())->id();
     SimContact* s =     Topology::contact(id);
     if (s == NULL) {
         PANIC("undefined contact mapping with stored id %d",id);
@@ -169,7 +169,7 @@ SimConvergenceLayer::create_ct(int id)
                                     ConvergenceLayer::find_clayer("simcl"),
                                     tuple.c_str(), 0, NULL);
     
-    link->set_link_info(new SimLinkInfo(id));
+    link->set_cl_info(new SimCLInfo(id));
     links_[id] = link;
 }
 

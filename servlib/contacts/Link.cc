@@ -89,10 +89,10 @@ Link::Link(std::string name, link_type_t type,
     }
     peer_->add_link(this);
      
-    // By default link does not have an associated contact or any link
+    // By default link does not have an associated contact or any cl
     // info, but all links get a bundle list
     contact_ = NULL ;
-    link_info_ = NULL;
+    cl_info_ = NULL;
     bundle_list_ = new BundleList(logpath_);
     
     log_info("new link *%p", this);
@@ -191,7 +191,7 @@ Link::close()
     clayer()->close_contact(contact_);
 
     // Make sure the convergence layer cleaned up its state
-    ASSERT(contact_->contact_info() == NULL);
+    ASSERT(contact_->cl_info() == NULL);
 
     // Clean it up
     delete contact_;

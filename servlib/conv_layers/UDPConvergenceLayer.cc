@@ -116,7 +116,7 @@ UDPConvergenceLayer::add_interface(Interface* iface,
 
     // store the new listener object in the cl specific portion of the
     // interface
-    iface->set_info(receiver);
+    iface->set_cl_info(receiver);
     
     return true;
 }
@@ -127,7 +127,7 @@ bool UDPConvergenceLayer::del_interface(Interface* iface) {
     // then close the socket out from under it, which should cause the
     // thread to break out of the blocking call to accept() and
     // terminate itself
-    Receiver* receiver = (Receiver*)iface->info();
+    Receiver* receiver = (Receiver*)iface->cl_info();
     receiver->set_should_stop();
     receiver->interrupt();
     
@@ -171,7 +171,7 @@ UDPConvergenceLayer::open_contact(Contact* contact)
 
 bool UDPConvergenceLayer::close_contact(Contact* contact) {
 
-    Sender* snd = (Sender*)contact->contact_info();
+    Sender* snd = (Sender*)contact->cl_info();
 
     log_info("close_contact *%p", contact);
 
@@ -189,7 +189,7 @@ bool UDPConvergenceLayer::close_contact(Contact* contact) {
         
         delete snd;
         
-        contact->set_contact_info(NULL);
+        contact->set_cl_info(NULL);
     }
     
     return true;

@@ -169,8 +169,8 @@ TCPConvergenceLayer::add_interface(Interface* iface,
         conn->params_ = params;
 
         // store the connection object in the cl specific part of the
-        // interface XXX/demmer I don't like this casting
-        iface->set_info((InterfaceInfo*)conn);
+        // interface
+        iface->set_cl_info(conn);
 
         // XXX/demmer again, there should be some structure to manage
         // the receiver side of connections
@@ -212,7 +212,7 @@ TCPConvergenceLayer::add_interface(Interface* iface,
 
     // store the new listener object in the cl specific portion of the
     // interface
-    iface->set_info(listener);
+    iface->set_cl_info(listener);
     
     return true;
 }
@@ -227,7 +227,7 @@ TCPConvergenceLayer::del_interface(Interface* iface)
     // then close the socket out from under it, which should cause the
     // thread to break out of the blocking call to accept() and
     // terminate itself
-    Listener* listener = (Listener*)iface->info();
+    Listener* listener = (Listener*)iface->cl_info();
     listener->set_should_stop();
     listener->interrupt();
     
@@ -283,7 +283,7 @@ TCPConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
-    link->set_link_info(conn);
+    link->set_cl_info(conn);
     return true;
 }
 
@@ -295,12 +295,12 @@ TCPConvergenceLayer::del_link(Link* link)
 {
     log_debug("removing link %s", link->nexthop());
 
-    Connection* conn = (Connection*)link->link_info();
+    Connection* conn = (Connection*)link->cl_info();
     ASSERT(conn);
     ASSERT(conn->is_stopped());
     delete conn;
 
-    link->set_link_info(NULL);
+    link->set_cl_info(NULL);
     
     return true;
 }
@@ -315,7 +315,7 @@ TCPConvergenceLayer::open_contact(Contact* contact)
     log_debug("opening contact *%p", contact);
 
     // start the connection that is cached in the link
-    Connection* conn = (Connection*)contact->link()->link_info();
+    Connection* conn = (Connection*)contact->link()->cl_info();
     conn->set_contact(contact);
     conn->start();
 
@@ -328,7 +328,7 @@ TCPConvergenceLayer::open_contact(Contact* contact)
 bool
 TCPConvergenceLayer::close_contact(Contact* contact)
 {
-    Connection* conn = (Connection*)contact->link()->link_info();
+    Connection* conn = (Connection*)contact->link()->cl_info();
 
     log_info("close_contact *%p", contact);
 

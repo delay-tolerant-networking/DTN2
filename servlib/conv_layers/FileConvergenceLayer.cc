@@ -172,7 +172,7 @@ FileConvergenceLayer::add_interface(Interface* iface, int argc, const char* argv
     scanner->start();
 
     // store the new scanner in the cl specific part of the interface
-    iface->set_info(scanner);
+    iface->set_cl_info(scanner);
 
     return true;
 }

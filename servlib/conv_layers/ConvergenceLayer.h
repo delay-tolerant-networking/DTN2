@@ -165,6 +165,15 @@ protected:
     static Protocol* protocol_list_;
 };
 
+/**
+ * Abstract base class for convergence layer specific state stored in
+ * an interface / contact / link.
+ */
+class CLInfo {
+public:
+    virtual ~CLInfo() {}
+};
+
 } // namespace dtn
 
 #endif /* _CONVERGENCE_LAYER_H_ */

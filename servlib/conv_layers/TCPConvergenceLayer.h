@@ -122,7 +122,7 @@ protected:
      * Helper class (and thread) that listens on a registered
      * interface for new connections.
      */
-    class Listener : public InterfaceInfo, public oasys::TCPServerThread {
+    class Listener : public CLInfo, public oasys::TCPServerThread {
     public:
         Listener(Params* params);
         void accepted(int fd, in_addr_t addr, u_int16_t port);
@@ -142,7 +142,7 @@ protected:
      * with NAT, the side which does the active connect is not
      * necessarily the sender.
      */
-    class Connection : public LinkInfo,
+    class Connection : public CLInfo,
                        public oasys::Thread,
                        public oasys::Logger {
     public:

@@ -247,7 +247,7 @@ ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
  */
 Contact*
 ContactManager::new_opportunistic_contact(ConvergenceLayer* cl,
-                                          LinkInfo* linkinfo,
+                                          CLInfo* clinfo,
                                           const BundleTuple& nexthop)
 {
     Link* link = find_opportunistic_link(cl, nexthop);
@@ -257,16 +257,15 @@ ContactManager::new_opportunistic_contact(ConvergenceLayer* cl,
     // notify the router that the link is ready
     link->set_link_available();
 
-    // give the link it's link info
-    link->set_link_info(linkinfo);
-
     // now open the link
     link->open();
 
-    Contact* ret = link->contact();
-    ASSERT(ret);
+    // store the given cl info in the contact
+    Contact* contact = link->contact();
+    ASSERT(contact);
+    contact->set_cl_info(clinfo);
 
-    return ret;
+    return contact;
 }
     
 /**
@@ -286,7 +285,6 @@ ContactManager::dump(oasys::StringBuffer* buf) const
         buf->appendf("\t link (type %s): (name) %s -> (peer) %s - (status) %s, %s\n",
                      link->type_str(),
                      link->name(),
-//                     link->clayer()->proto(),
                      link->dest_str(),
                      link->isavailable() ? "avail" : "not-avail",
                      link->isopen() ? "open" : "closed");

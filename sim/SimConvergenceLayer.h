@@ -47,7 +47,7 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleTuple.h"
 
-#include "SimLinkInfo.h"
+#include "SimCLInfo.h"
 
 #include "SimContact.h"
 #include "Message.h"

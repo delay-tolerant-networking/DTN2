@@ -45,7 +45,7 @@
 namespace dtn {
 
 class ConvergenceLayer;
-class InterfaceInfo;
+class CLInfo;
 
 /**
  * Abstraction of a local dtn interface.
@@ -55,14 +55,20 @@ class InterfaceInfo;
 class Interface {
 public:
     // Accessors
-    const std::string& admin()  const { return admin_; }
-    ConvergenceLayer*  clayer() const { return clayer_; }
-    InterfaceInfo*     info()   const { return info_; }
+    const std::string& admin()   const { return admin_; }
+    ConvergenceLayer*  clayer()  const { return clayer_; }
+    CLInfo*	       cl_info() const { return cl_info_; }
 
     /**
      * Store the ConvergenceLayer specific state.
      */
-    void set_info(InterfaceInfo* info) { info_ = info; }
+    void set_cl_info(CLInfo* cl_info)
+    {
+        ASSERT((cl_info_ == NULL && cl_info != NULL) ||
+               (cl_info_ != NULL && cl_info == NULL));
+        
+        cl_info_ = cl_info;
+    }
 
 protected:
     friend class InterfaceTable;
@@ -72,16 +78,7 @@ protected:
     
     std::string admin_;			///< Local address of the interface
     ConvergenceLayer* clayer_;		///< Convergence layer to use
-    InterfaceInfo* info_;		///< Convergence layer specific state
-};
-
-/**
- * Abstract base class for convergence layer specific portions of an
- * interface.
- */
-class InterfaceInfo {
-public:
-    virtual ~InterfaceInfo() {}
+    CLInfo* cl_info_;			///< Convergence layer specific state
 };
 
 } // namespace dtn
