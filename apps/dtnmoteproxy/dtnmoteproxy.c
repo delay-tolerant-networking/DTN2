@@ -43,7 +43,8 @@
 /* Modified to recognize Mote-PC protocol -- Mark Thomas (23/06/04) 
  * Now uses serialsource.c to communicate with serial port 
  * Files: crc16.c, misc.c, mote_io.c and mote_io.h are not used anymore */
- 
+
+
 #include <sys/types.h>
 #include <signal.h>
 #include <stdio.h>
@@ -59,6 +60,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
+
+#include <oasys/compat/inttypes.h>
 
 #include "dtn_api.h"
  
@@ -84,22 +87,22 @@ static char *msgs[] = {
 typedef struct data_packet
 {
     // MultiHop Header 
-    uint16_t source_mote_id;
-    uint16_t origin_mote_id;
-    uint16_t seq_no;
-    uint8_t hop_cnt;
+    u_int16_t source_mote_id;
+    u_int16_t origin_mote_id;
+    u_int16_t seq_no;
+    u_int8_t hop_cnt;
 
     // Surge Sensor Header 
-    uint8_t surge_pkt_type;
-    uint16_t surge_reading;
-    uint16_t surge_parent_addr;
-    uint32_t surge_seq_no;
-    uint8_t light;
-    uint8_t temp;
-    uint8_t magx;
-    uint8_t magy;
-    uint8_t accelx;
-    uint8_t accely;
+    u_int8_t surge_pkt_type;
+    u_int16_t surge_reading;
+    u_int16_t surge_parent_addr;
+    u_int32_t surge_seq_no;
+    u_int8_t light;
+    u_int8_t temp;
+    u_int8_t magx;
+    u_int8_t magy;
+    u_int8_t accelx;
+    u_int8_t accely;
 
 }DATAPACKET;
 
@@ -123,10 +126,10 @@ void read_packet_file(char* filename);
 char arg_dest[128];
 char arg_target[128];
 
-char devname[128] = "/dev/ttyS0";
+char devicename[128] = "/dev/ttyS0";
 char baud[128] = "57600";
 char directory[128]="send";
-uint32_t debug = 0;             // higher values cause more info to print
+u_int32_t debug = 0;             // higher values cause more info to print
 serial_source src;
 
 int g_argc;
@@ -328,7 +331,7 @@ readCommandLineArgs(int argc, char **argv)
             strcpy(baud, optarg);
             break;
         case 't':
-            strcpy(devname, optarg);
+            strcpy(devicename, optarg);
             break;
 	case 'D':
 	    strcpy(arg_dest,optarg);
@@ -346,7 +349,7 @@ usage(char *str1, char *str2)
 {
     fprintf(stderr, "usage: %s\n", str1);
     fprintf(stderr, "  [-b baudrate]     - baud rate\n");
-    fprintf(stderr, "  [-t devname]      - name of mote network dev tty\n");
+    fprintf(stderr, "  [-t devicename]      - name of mote network dev tty\n");
     fprintf(stderr, "  [-d debugValue]\n");
     fprintf(stderr, "  [-D directory]\n");
     fprintf(stderr, "  [-h]              - print this message.\n");
@@ -358,7 +361,7 @@ usage(char *str1, char *str2)
 void
 init_motes()
 {
-    src = open_serial_source(devname, atoi(baud), 0, stderr_msg);
+    src = open_serial_source(devicename, atoi(baud), 0, stderr_msg);
 
     if(reader_thread(NULL) == 1) {
         fprintf(stderr, "couldn't start reader on mote network\n");
