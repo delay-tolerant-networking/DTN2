@@ -115,7 +115,7 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
 {
     Bundle* bundle = event->bundleref_.bundle();
     
-    log_info("BUNDLE_RECEIVED bundle id %d (%d of %d bytes)",
+    log_info("BUNDLE_RECEIVED id:%d (%d of %d bytes)",
              bundle->bundleid_, event->bytes_received_,
              bundle->payload_.length());
 
@@ -148,7 +148,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
      */
     Bundle* bundle = event->bundleref_.bundle();
 
-    log_info("BUNDLE_TRANSMITTED bundle id %d (%d bytes) %s -> %s",
+    log_info("BUNDLE_TRANSMITTED id:%d (%d bytes) %s -> %s",
              bundle->bundleid_, event->bytes_sent_,
              event->acked_ ? "ACKED" : "UNACKED",
              event->consumer_->dest_tuple()->c_str());

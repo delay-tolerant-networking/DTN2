@@ -18,8 +18,10 @@ class FloodBundleRouter : public BundleRouter {
 public:
     FloodBundleRouter();
     ~FloodBundleRouter();
-
+    
+    const int id() { return id_;}
 protected:
+    int id_;
     /**
      * Default event handler for new bundle arrivals.
      *

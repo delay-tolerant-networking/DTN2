@@ -40,7 +40,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
                                      BundleActionList* actions)
 {
     Bundle* bundle = event->bundleref_.bundle();
-    log_debug("FLOOD: BUNDLE_RCV bundle id %d", bundle->bundleid_);
+    log_debug("FLOOD: bundle_rcv bundle id %d", bundle->bundleid_);
     
     /*
      * Check if the bundle isn't complete. If so, do reactive
@@ -95,11 +95,20 @@ void
 FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
                                         BundleActionList* actions)
 {
-    BundleRouter::handle_bundle_transmitted(event,actions);         
-    Contact * contact = (Contact *)event->consumer_;
+    Bundle* bundle = event->bundleref_.bundle();
+    
+    bundle->add_pending();
+    
+    //only call the fragmentation routine if we send nonzero bytes
+    if(event->bytes_sent_ > 0) {
+        BundleRouter::handle_bundle_transmitted(event,actions);         
+    } else {
+        log_info("FLOOD: transmitted ZERO bytes:%d",bundle->bundleid_);
+    }
     
     //now we want to ask the contact to send the other queued
     //bundles it has
+    Contact * contact = (Contact *)event->consumer_;
     contact->consume_bundle(NULL);
     
 }
