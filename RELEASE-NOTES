@@ -1,0 +1,14 @@
+Release Notes for DTN2
+----------------------
+
+0.1 (Dec 2004):
+---------------
+- first public "release" -- while the design and structure is expected
+  to remain relatively stable, there are still numerous features left
+  to be implemented
+
+- note about namespaces -- we will eventually put all of the oasys and
+  dtn code into namespaces. this process is partially complete at
+  present. the code is annotated with XXX/namespace comments to
+  reflect this
+
