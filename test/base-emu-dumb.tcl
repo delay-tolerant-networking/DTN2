@@ -36,7 +36,7 @@ set up 60
 set down 180   
 ## Length of downtime
 
-set OFFSET_VAL 0
+set OFFSET_VAL 10
 
 
 
@@ -69,10 +69,10 @@ while {$start < $MAX_SIM_TIME} {
     ## Start up state (link is down before offset)
     if {$offset != 0} {
 
-	lappend thisloopdownlist [expr $start ]
+	lappend thisloopdownlist [expr $start + 1]
 	lappend thisloopuplist [expr $start + $offset   ]
     } else {
-	lappend thisloopuplist [expr $start ]
+	lappend thisloopuplist [expr $start + 1]
     }
 
 

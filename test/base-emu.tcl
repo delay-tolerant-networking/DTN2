@@ -48,7 +48,7 @@ while {$start < $MAX_SIM_TIME} {
 	lappend downlist [expr $start + 1]
 	lappend uplist [expr $start + $offset   ]
     }  else {
-	lappend uplist [expr $start ]
+	lappend uplist [expr $start + 1 ]
     }
 
    # puts "Outer loop $start"
