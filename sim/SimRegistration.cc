@@ -38,20 +38,25 @@
 
 #include <oasys/util/StringBuffer.h>
 
+#include "Simulator.h"
 #include "SimRegistration.h"
 #include "Topology.h"
 #include "bundling/Bundle.h"
+#include "bundling/BundleEvent.h"
 
 using namespace dtn;
 
 namespace dtnsim {
 
 SimRegistration::SimRegistration(Node* node, const BundleTuple& demux_tuple)
-    : Registration(Topology::next_regid(), demux_tuple, ABORT)
+    : Registration(node->next_regid(), demux_tuple, ABORT), node_(node)
 {
     logpathf("/reg/%s/%d", node->name(), regid_);
 
     log_debug("new sim registration");
+
+    RegistrationAddedEvent* e = new RegistrationAddedEvent(this);
+    Simulator::add_event(new SimRouterEvent(Simulator::time(), node, e));
 }
 
 void
@@ -59,7 +64,10 @@ SimRegistration::enqueue_bundle(Bundle* bundle,
                                 const BundleMapping* mapping)
 {
     size_t payload_len = bundle->payload_.length();
-    log_debug("got %d byte bundle", payload_len);
+
+    log_info("N[%s]: RCV id:%d %s -> %s size:%d",
+             node_->name(), bundle->bundleid_,
+             bundle->source_.c_str(), bundle->dest_.c_str(), payload_len);
 }
                    
 /**

@@ -69,6 +69,9 @@ public:
      * Check if the given bundle is already queued on this consumer.
      */
     bool is_queued(Bundle* bundle);
+
+protected:
+    Node* node_;
 };
 
 } // namespace dtnsim
