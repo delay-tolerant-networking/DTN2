@@ -28,14 +28,15 @@ CMD_SRCS :=					\
 	cmd/Command.cc				\
 	cmd/Options.cc				\
 	cmd/BundleCommand.cc			\
+	cmd/HelpCommand.cc 			\
 	cmd/InterfaceCommand.cc			\
 	cmd/LogCommand.cc			\
+	cmd/ParamCommand.cc			\
+	cmd/QuitCommand.cc 			\
 	cmd/RegistrationCommand.cc		\
 	cmd/RouteCommand.cc			\
 	cmd/StorageCommand.cc			\
 	cmd/TestCommand.cc			\
-	cmd/QuitCommand.cc \
-	cmd/HelpCommand.cc \
 
 DEBUG_SRCS :=					\
 	debug/gdtoa-dmisc.c			\
