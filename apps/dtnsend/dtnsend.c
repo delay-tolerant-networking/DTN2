@@ -70,7 +70,8 @@ dtn_reg_id_t regid      = DTN_REGID_NONE;
 
 
 void parse_options(int, char**);
-dtn_tuple_t * parse_tuple(dtn_handle_t * handle, dtn_tuple_t * tuple, 
+dtn_tuple_t * parse_tuple(dtn_handle_t handle,
+                          dtn_tuple_t * tuple, 
                           char * str);
 void print_usage();
 void print_tuple(char * label, dtn_tuple_t * tuple);
@@ -106,10 +107,10 @@ main(int argc, char** argv)
 
     // initialize/parse bundle src/dest/replyto tuples
     verbose && fprintf(stdout, "Destination: %s\n", arg_dest);
-    parse_tuple(&handle, &bundle_spec.dest, arg_dest);
+    parse_tuple(handle, &bundle_spec.dest, arg_dest);
 
     verbose && fprintf(stdout, "Source: %s\n", arg_source);
-    parse_tuple(&handle, &bundle_spec.source, arg_source);
+    parse_tuple(handle, &bundle_spec.source, arg_source);
     if (arg_replyto == NULL) 
     {
         verbose && fprintf(stdout, "Reply To: same as source\n");
@@ -118,7 +119,7 @@ main(int argc, char** argv)
     else
     {
         verbose && fprintf(stdout, "Reply To: %s\n", arg_replyto);
-        parse_tuple(&handle, &bundle_spec.replyto, arg_replyto);
+        parse_tuple(handle, &bundle_spec.replyto, arg_replyto);
     }
 
     if (verbose)
@@ -234,12 +235,14 @@ main(int argc, char** argv)
 
 void print_usage()
 {
-    fprintf(stderr, "usage: dtn_send [-vhew] [-c <copies>] \n");
-    fprintf(stderr, "                -s <source_tuple | local_demux_string>\n");
-    fprintf(stderr, "                -d <dest_tuple | local_demux_string>\n");
-    fprintf(stderr, "                [-r <replyto_tuple | local_demux_string>]\n");
-    fprintf(stderr, "                [-i replyto_reg_id]\n");
-    fprintf(stderr, "                -type <file|message|date> -a <file_to_send|message>\n");
+    fprintf(stderr, "usage: dtnsend [opts] "
+            "-s <source_tuple> -d <dest_tuple> -t <type> -p <payload>\n");
+    fprintf(stderr, "options:\n");
+    fprintf(stderr, " -s <tuple|demux_string> source tuple)\n");
+    fprintf(stderr, " -d <tuple|demux_string> destination tuple)\n");
+    fprintf(stderr, " -r <tuple|demux_string> reply to tuple)\n");
+    fprintf(stderr, " -t <f|m|d> payload type: file, message, or date\n");
+    fprintf(stderr, " -p <filename|string> payload data\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h help\n");
     fprintf(stderr, " -c copies of the bundle to send\n");
@@ -256,14 +259,11 @@ void parse_options(int argc, char**argv)
 {
     char c, done = 0;
 
-    for (c=0; c<argc;c++)
-    {
-        printf("%s\n", argv[(int)c]);
-    }
+    char arg_type = 0;
 
     while (!done)
     {
-        c = getopt(argc, argv, "hH?vn:oacpfyewt:p:r:d:s:i:");
+        c = getopt(argc, argv, "hHvn:oacfyewt:p:r:d:s:i:");
         switch (c)
         {
         case 'v':
@@ -271,7 +271,6 @@ void parse_options(int argc, char**argv)
             break;
         case 'h':
         case 'H':
-        case '?':
             print_usage();
             exit(0);
             return;
@@ -309,31 +308,10 @@ void parse_options(int argc, char**argv)
             custody_receipts = 1;
             break;
         case 't':
-            switch (optarg[0])
-            {
-            case 'f': payload_type = DTN_PAYLOAD_FILE; break;
-            case 'm': payload_type = DTN_PAYLOAD_MEM; break;
-            case 'd': 
-                payload_type = DTN_PAYLOAD_MEM; 
-                time_t current = time(NULL);
-                data_source = ctime(&current);
-                break;
-            default:
-                fprintf(stderr, "bundle type must be one of file, message, or date\n");
-                exit(1);
-            }
+            arg_type = optarg[0];
             break;
         case 'p':
-            switch (payload_type)
-            {
-            case DTN_PAYLOAD_MEM:
-            case DTN_PAYLOAD_FILE:
-                data_source = optarg;
-                break;
-            default:
-                fprintf(stderr, "-p argument must appear after -t <file|message|date>\n");
-                exit(1);
-            }
+            data_source = strdup(optarg);
             break;
         case 'i':
             regid = atoi(optarg);
@@ -342,26 +320,43 @@ void parse_options(int argc, char**argv)
             done = 1;
             break;
         default:
-            fprintf(stderr, "%c is an invalid option\n", c);
-            fprintf(stderr, "%d is an invalid option\n", c);
+            // getopt already prints an error message for unknown
+            // option characters
             print_usage();
             exit(1);
         }
     }
 
-    if ((arg_source == NULL) ||
-        (arg_dest == NULL) ||
-        (payload_type == 0) ||
-        (data_source == NULL))
+#define CHECK_SET(_arg, _what)                                          \
+    if (_arg == 0) {                                                    \
+        fprintf(stderr, "dtnsend: %s must be specified\n", _what);      \
+        print_usage();                                                  \
+        exit(1);                                                        \
+    }
+    
+    CHECK_SET(arg_source,   "source tuple");
+    CHECK_SET(arg_dest,     "destination tuple");
+    CHECK_SET(arg_type,     "payload type");
+    CHECK_SET(data_source,  "payload data");
+                
+    switch (arg_type)
     {
-        fprintf(stderr, "missing required arguments\n");
+    case 'f': payload_type = DTN_PAYLOAD_FILE; break;
+    case 'm': payload_type = DTN_PAYLOAD_MEM; break;
+    case 'd': 
+        payload_type = DTN_PAYLOAD_MEM; 
+        time_t current = time(NULL);
+        data_source = ctime(&current);
+        break;
+    default:
+        fprintf(stderr, "dtnsend: type argument '%d' invalid\n", arg_type);
         print_usage();
         exit(1);
     }
 }
 
-dtn_tuple_t * parse_tuple(dtn_handle_t * handle, 
-                          dtn_tuple_t * tuple, char * str)
+dtn_tuple_t * parse_tuple(dtn_handle_t handle, 
+                          dtn_tuple_t* tuple, char * str)
 {
     
     // try the string as an actual dtn tuple
