@@ -620,6 +620,8 @@ int
 ClientAPIServer::handle_recv()
 {
     Bundle* b;
+    Registration* reg;
+    long ret;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
     dtn_bundle_payload_location_t location;
@@ -631,20 +633,30 @@ ClientAPIServer::handle_recv()
         (!xdr_dtn_timeval_t(xdr_decode_, &timeout)))
     {
         log_err("error in xdr unpacking arguments");
-        return -1;
+        ret = DTN_XDRERR;
+        goto done;
     }
 
     // XXX/demmer implement this for multiple registrations by
     // building up a poll vector in bind / unbind. for now we assert
     // in bind that there's only one binding.
-    // also implement the recv timeout
-    Registration* reg = bindings_->front();
+    reg = bindings_->front();
     if (!reg) {
         log_err("no bound registration");
-        return -1;
+        ret = DTN_INVAL;
+        goto done;
     }
 
-    b = reg->bundle_list()->pop_blocking();
+    log_debug("handle_recv: popping bundle for registration %d (timeout %d)",
+              reg->regid(), timeout);
+    b = reg->bundle_list()->pop_blocking(NULL, timeout);
+
+    if (!b) {
+        log_debug("handle_recv: timeout waiting for bundle");
+        ret = DTN_TIMEOUT;
+        goto done;
+    }
+    
     ASSERT(b);
 
     memset(&spec, 0, sizeof(spec));
@@ -659,19 +671,15 @@ ClientAPIServer::handle_recv()
     // XXX/demmer verify bundle size constraints
     payload.location = location;
     
-    // XXX/kscott mysterious seg fault when coding file-based 
-    // delivery caused me to think that maybe 
-    // oasys::buf not having anything allocated to it was bad
-    buf.reserve(10);
-
     if (location == DTN_PAYLOAD_MEM) {
         // the app wants the payload in memory
         // XXX/demmer verify bounds
 
-        buf.reserve(b->payload_.length());
-        payload.dtn_bundle_payload_t_u.buf.buf_len = b->payload_.length();
+        size_t payload_len = b->payload_.length();
+        buf.reserve(payload_len);
+        payload.dtn_bundle_payload_t_u.buf.buf_len = payload_len;
         payload.dtn_bundle_payload_t_u.buf.buf_val =
-            (char*)b->payload_.read_data(0, b->payload_.length(), (u_char*)buf.data());
+            (char*)b->payload_.read_data(0, payload_len, (u_char*)buf.data());
         
     } else if (location == DTN_PAYLOAD_FILE) {
         // the app wants the payload in a file
@@ -682,9 +690,10 @@ ClientAPIServer::handle_recv()
         // Get a temporary file name
         sprintf(payloadFile, "/tmp/bundlePayload_XXXXXX");
         payloadFd = mkstemp(payloadFile);
-        if ( payloadFd==-1 ) {
+        if (payloadFd == -1) {
             log_err("can't open temporary file to deliver bundle");
-            return -1;
+            ret = DTN_SERVERR;
+            goto done;
         }
         if (b->payload_.location() == BundlePayload::MEMORY) {
             write(payloadFd, b->payload_.memory_data(), b->payload_.length());
@@ -692,10 +701,11 @@ ClientAPIServer::handle_recv()
             u_char *tmpBuf[DTN_FILE_DELIVERY_BUF_SIZE];
             int numToDo = b->payload_.length();
             int numThisTime;
-            // tmpBuf = (u_char *) malloc(DTN_FILE_DELIVERY_BUF_SIZE);
-            while ( numToDo>0 ) {
+
+            while (numToDo > 0) {
                 numThisTime = MIN(numToDo, DTN_FILE_DELIVERY_BUF_SIZE);
-                b->payload_.read_data(b->payload_.length()-numToDo, numThisTime, (u_char *) tmpBuf);
+                b->payload_.read_data(b->payload_.length()-numToDo, numThisTime,
+                                      (u_char *) tmpBuf);
                 write(payloadFd, tmpBuf, numThisTime);
                 numToDo -= numThisTime;
             }
@@ -706,30 +716,42 @@ ClientAPIServer::handle_recv()
         payload.dtn_bundle_payload_t_u.filename.filename_len = strlen(payloadFile);
     } else {
         log_err("payload location %d not understood", location);
-        return -1;
-    }
- 
-    if ( !xdr_dtn_bundle_spec_t(xdr_encode_, &spec) )
-    {
-       log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
-       return -1;
+        ret = DTN_INVAL;
+        goto done;
     }
 
-    if (!xdr_dtn_bundle_payload_t(xdr_encode_, &payload))
-    {
-       log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
-       return -1;
+    ret = DTN_SUCCESS;
+
+ done:
+    if (!xdr_putlong(xdr_encode_, &ret)) {
+        log_err("internal error in xdr: xdr_putlong");
+        return -1;
+    }
+
+    if (ret == DTN_SUCCESS) {
+        if ( !xdr_dtn_bundle_spec_t(xdr_encode_, &spec) )
+        {
+            log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
+            return -1;
+        }
+        
+        if (!xdr_dtn_bundle_payload_t(xdr_encode_, &payload))
+        {
+            log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
+            return -1;
+        }
     }
     
     int len = xdr_getpos(xdr_encode_);
     if (sock_->send(buf_, len, 0) != len) {
         log_err("error sending bundle reply");
-    perror("error sending bundle reply: ");
         return -1;
     }
 
-    BundleDaemon::post(
-        new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
+    if (ret == DTN_SUCCESS) {
+        BundleDaemon::post(
+            new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
+    }
     
     return 0;
 }

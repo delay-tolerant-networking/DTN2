@@ -88,6 +88,7 @@ typedef	int DTN_STATUS;
 %#define DTN_COMMERR	(DTN_BASE+3)	/* error in ipc communication */
 %#define DTN_SERVERR	(DTN_BASE+4)	/* server error (eg failed syscall) */
 %#define DTN_TOOBIG	(DTN_BASE+5)	/* payload too large */
+%#define DTN_TIMEOUT	(DTN_BASE+5)	/* operation timed out */
                                           
 
 #if OLD

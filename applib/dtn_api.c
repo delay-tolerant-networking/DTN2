@@ -261,6 +261,7 @@ dtn_recv(dtn_handle_t h,
          dtn_timeval_t timeout)
 {
     int ret;
+    long result;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     XDR* xdr_decode = &handle->xdr_decode;
@@ -288,6 +289,17 @@ dtn_recv(dtn_handle_t h,
     }
 
     // unpack the result
+    if (!xdr_getlong(xdr_decode, &result)) {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+
+    // if the result isn't success, there's nothing else on the wire
+    if (result != DTN_SUCCESS) {
+        handle->err = result;
+        return -1;
+    }
+        
     if (!xdr_dtn_bundle_spec_t(xdr_decode, spec) ||
         !xdr_dtn_bundle_payload_t(xdr_decode, payload))
     {
