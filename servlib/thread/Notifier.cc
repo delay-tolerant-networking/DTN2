@@ -47,7 +47,7 @@ Notifier::drain_pipe()
         ret = IO::read(read_fd(), buf, sizeof(buf));
         if (ret <= 0) {
             if ((ret == -1) && (errno == EAGAIN)) { // all done
-                log_debug("drain_pipe: read from pipe would have blocked");
+                //log_debug("drain_pipe: read from pipe would have blocked");
                 return;
             } else {
                 log_crit("drain_pipe: unexpected error return from read: %s",
