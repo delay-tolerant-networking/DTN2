@@ -52,12 +52,14 @@ Simulator::Simulator()
 
 
 void
-Simulator::add_event_(Event* e) {
-    eventq_.push(e);
+Simulator::add_event(Event* e)
+{
+    instance_->eventq_.push(e);
 }
 
 void
-Simulator::remove_event_(Event* e) {
+Simulator::remove_event(Event* e)
+{
     e->cancel();
 }
 

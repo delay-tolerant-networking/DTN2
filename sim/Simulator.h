@@ -71,10 +71,6 @@ public:
 
     static double time() { return instance_->time_; }
 
-    static void add_event(Event* e) { instance_->add_event_(e) ; }
-    static void remove_event(Event* e) { instance_->remove_event_(e) ; }
-
-
     /**
      * Constructor.
      */
@@ -88,13 +84,13 @@ public:
     /**
      * Add an event to the main event queue.
      */
-    void add_event_(Event *e);
+    static void add_event(Event *e);
 
     
     /**
      * Remove an event from the main event queue.
      */
-    void remove_event_(Event* e);
+    static void remove_event(Event* e);
 
     /**
      * Stops simulation and exits the loop
