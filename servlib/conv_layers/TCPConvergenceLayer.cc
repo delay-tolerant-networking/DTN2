@@ -1564,9 +1564,9 @@ TCPConvergenceLayer::Connection::recv_loop()
             continue;
         }
         
-        if (typecode != BUNDLE_START) {
+        if (typecode != BUNDLE_DATA) {
             log_err("recv_loop: "
-                    "unexpected typecode 0x%x waiting for BUNDLE_START",
+                    "unexpected typecode 0x%x waiting for BUNDLE_DATA",
                     typecode);
             goto shutdown;
         }
