@@ -14,10 +14,9 @@ DAEMON_OBJS := $(DAEMON_SRCS:.cc=.o)
 all: bundleDaemon
 
 bundleDaemon: $(DAEMON_OBJS) $(SRCDIR)/servlib/libdtnserv.a
-	$(CPP) $(DAEMON_OBJS) $(LINK_SERVLIB) -o $@ $(LFLAGS) $(LIBS)
+	$(CPP) $(DAEMON_OBJS) $(LINK_SERVLIB) $(STATIC_LIBS) -o $@ $(LFLAGS) $(LIBS)
 
 #
 # Include the common rules
 #
 -include $(SRCDIR)/Rules.make
-

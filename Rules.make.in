@@ -50,9 +50,9 @@ TARGET = @TARGET@
 # native target
 ifeq ($(TARGET),native)
 
-INCDIRS    += @TCL_INCDIR@ @DB_INCDIR@ @POSTGRES_INCDIR@ @MYSQL_INCDIR@
-LIBDIRS     = @TCL_LIBDIR@ @DB_LIBDIR@ @POSTGRES_LIBDIR@ @MYSQL_LIBDIR@
-LIBS	    = @LIBS@ @TCL_LIB@ @DB_LIB@ @POSTGRES_LIB@   @MYSQL_LIB@
+INCDIRS    += @INCDIRS@
+LIBDIRS     = @LIBDIRS@
+LIBS	    = @LIBS@
 STATIC_LIBS = @STATIC_LIBS@
 CC          = gcc
 CPP         = g++
@@ -62,7 +62,6 @@ INSTALL     = install
 RM          = rm
 WHOLE_AR    := -Wl,-whole-archive
 NO_WHOLE_AR := -Wl,-no-whole-archive
-
 
 endif
 
@@ -91,8 +90,7 @@ DEBUG 		= @DEBUG@
 OPTIMIZE	= @OPTIMIZE@
 WARN  		= -Wall -Werror @OPTIMIZE_WARN@
 CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(WARN) 
-LFLAGS		= $(LIBDIRS)
-
+LFLAGS		= $(LIBDIRS) @STATIC@
 
 #
 # To link with the servlib, use the following to make sure that all
