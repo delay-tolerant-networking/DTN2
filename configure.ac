@@ -106,7 +106,7 @@ AC_SUBST(STATIC)
 dnl
 dnl Handle --with-cc=CC
 dnl
-ac_with_cc=
+ac_with_cc=$CC
 AC_ARG_WITH(cc,
     AC_HELP_STRING([--with-cc=CC],
 		   [name (or path) of the C compiler to use]),
@@ -116,6 +116,7 @@ if test x$ac_with_cc = x ; then
     ac_try_cc="gcc gcc-3.3 gcc-3.2 gcc-2.96 gcc296 gcc-2.95 gcc295"
     ac_try_cxx="g++ g++-3.3 g++-3.2 g++-2.96 g++296 g++-2.95 g++295"
 else
+    CC=$ac_with_cc
     ac_try_cc=$ac_with_cc
     ac_try_cxx=`echo $ac_with_cc | sed 's/cc/++/'`
 fi
