@@ -87,3 +87,15 @@ IPClient::timeout_readv(const struct iovec* iov, int iovcnt, int timeout_ms)
 {
     return IO::timeout_readv(fd_, iov, iovcnt, timeout_ms, logpath_);
 }
+
+int
+IPClient::timeout_readall(char* bp, size_t len, int timeout_ms)
+{
+    return IO::timeout_readall(fd_, bp, len, timeout_ms, logpath_);
+}
+
+int
+IPClient::timeout_readvall(const struct iovec* iov, int iovcnt, int timeout_ms)
+{
+    return IO::timeout_readvall(fd_, iov, iovcnt, timeout_ms, logpath_);
+}

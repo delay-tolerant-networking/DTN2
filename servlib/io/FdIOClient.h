@@ -29,6 +29,9 @@ public:
     virtual int timeout_read(char* bp, size_t len, int timeout_ms);
     virtual int timeout_readv(const struct iovec* iov, int iovcnt,
                               int timeout_ms);
+    virtual int timeout_readall(char* bp, size_t len, int timeout_ms);
+    virtual int timeout_readvall(const struct iovec* iov, int iovcnt,
+                                 int timeout_ms);
 protected:
     int fd_;
 };

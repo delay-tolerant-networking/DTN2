@@ -87,6 +87,10 @@ public:
     
     static int timeout_readv(int fd, const struct iovec* iov, int iovcnt,
                              int timeout_ms, const char* log = NULL);
+    static int timeout_readall(int fd, char* bp, size_t len,
+                               int timeout_ms, const char* log = NULL);
+    static int timeout_readvall(int fd, const struct iovec* iov, int iovcnt,
+                                int timeout_ms, const char* log = NULL);
     //@}
     
     /// Set the file descriptor's nonblocking status

@@ -185,7 +185,8 @@ IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
         // maybe this shouldn't be logged at level warning, but for
         // now, keep it as such since it probably won't ever be an
         // issue and if it is, we can always demote the level later
-        logf(log, LOG_WARN, "%s required to malloc since iovcnt is %d", log_func, iovcnt);
+        logf(log, LOG_WARN, "%s required to malloc since iovcnt is %d",
+             log_func, iovcnt);
         iov = (struct iovec*)malloc(sizeof(struct iovec) * iovcnt);
     }
     
@@ -196,7 +197,8 @@ IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
         total += iov[i].iov_len;
     }
 
-    if (log) logf(log, LOG_DEBUG, "%s cnt %d, total %d", log_func, iovcnt, total);
+    if (log) logf(log, LOG_DEBUG, "%s cnt %d, total %d",
+                  log_func, iovcnt, total);
     
     while (1)
     {
@@ -245,7 +247,7 @@ IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
 
 int
 IO::readvall(int fd, const struct iovec* iov, int iovcnt,
-              const char* log)
+             const char* log)
 {
     return rwvall(::readv, fd, iov, iovcnt, "readvall", log);
 
@@ -324,6 +326,40 @@ IO::timeout_readv(int fd, const struct iovec* iov, int iovcnt, int timeout_ms,
     }
 
     return ret;
+}
+
+int
+IO::timeout_readall(int fd, char* bp, size_t len, int timeout_ms,
+                    const char* log)
+{
+    ASSERT(timeout_ms >= 0);
+    int ret;
+    int total = 0;
+    while (len > 0) {
+        ret = timeout_read(fd, bp, len, timeout_ms, log);
+        if (ret <= 0)
+            return ret;
+
+        total += ret;
+
+        if (ret == (int)len) {
+            return total;
+            
+        } else {
+            bp  += ret;
+            len -= ret;
+        }
+    }
+
+    NOTREACHED;
+}
+
+int
+IO::timeout_readvall(int fd, const struct iovec* iov, int iovcnt,
+                     int timeout_ms, const char* log)
+{
+    // XXX/demmer 
+    NOTIMPLEMENTED;
 }
 
 int
