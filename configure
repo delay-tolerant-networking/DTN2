@@ -334,11 +334,11 @@ fi
 #
 #
 #postgresdir=none
-postgreslib="-lpq"
 if [ "$postgresdir" = "none" ]; then
        	echo "Warning: need to find postgres library"
 #  exit 1
 else
+  postgreslib="-lpq"
   if [ ! "$postgresdir" = "" ]; then
 	  #
 	  # check the supplied directory
@@ -365,7 +365,7 @@ else
         if   [ -r /usr/include/libpq-fe.h ]; then
 		postgresincdir=
 
-	elif   [ -r /usr/include/pgsql/libpq-fe.h ]; then
+	elif   [ -r /usr/include/postgresql/libpq-fe.h ]; then
 		postgresincdir=-I/usr/include/postgresql
 
 	elif [ -r /usr/local/pgsql/include/libpq-fe.h ]; then
@@ -389,17 +389,14 @@ else
    fi
 fi
 
-
-
 #
 # Find the mysql dlibrary
 #
 #
-mysqllib="-lmysqlclient"
 if [ "$mysqldir" = "none" ]; then
        	echo "Warning: need to find mysql library"
-#  exit 1
 else
+  mysqllib="-lmysqlclient"
   if [ ! "$mysqldir" = "" ]; then
 	  #
 	  # check the supplied directory
