@@ -57,7 +57,7 @@ echo set  up  $12  >> $file
 echo set down $13 >> $file
 echo set OFFSET_VAL $14 >> $file
 
-
+echo setenv HOME $HOME >> $file
 
 endif
 

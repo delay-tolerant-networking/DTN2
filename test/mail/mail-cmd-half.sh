@@ -31,6 +31,9 @@ sudo m4 $logroot/sendmail-$id.mc > $logroot/sendmail-$id.cf
 sudo cp -f $logroot/sendmail-$id.cf /etc/mail/sendmail.cf
 sudo /etc/init.d/sendmail restart  >>& $info
 
+#remove the default mailbox
+set defaultmailbox=$logroot/default.$id
+rm -f /users/rabin/Mail/default
 
 
 
@@ -44,6 +47,7 @@ if($id == $maxnodes) then
     rm -f $ftplogfile >>& $info
     echo "#\!/bin/csh" >  $dtn2testroot/mail/got_file.sh
     echo "set ftplogfile=$ftplogfile" >> $dtn2testroot/mail/got_file.sh
+    echo "set defaultmailbox=$defaultmailbox" >> $dtn2testroot/mail/got_file.sh
     cat  $dtn2testroot/mail/got_file-template.sh >> $dtn2testroot/mail/got_file.sh
     chmod +x $dtn2testroot/mail/got_file.sh
 endif
