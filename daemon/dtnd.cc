@@ -221,7 +221,7 @@ main(int argc, char* argv[])
         ! StorageConfig::instance()->tidy_)
     {
         DTNServer::close_datastore();
-        log_info(log, "database initialization complete...");
+        log_info(log, "database initialization complete.");
         exit(0);
     }
 
