@@ -234,10 +234,11 @@ DTNServer::start()
     daemon->set_router(router);
     daemon->start();
 
-    // create (and auto-register) the default administrative registration
+    // create the registration table and the default administrative
+    // registration (which registers itself)
     RegistrationTable::init(RegistrationStore::instance());
     new AdminRegistration();
-
+    
     // load in the various storage tables
     GlobalStore::instance()->load();
     RegistrationTable::instance()->load();
