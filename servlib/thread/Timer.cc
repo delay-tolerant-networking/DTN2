@@ -179,9 +179,6 @@ TimerSystem::run()
 
         // unlock the lock before calling poll
         system_lock_->unlock();
-        
-        log_debug("calling poll with timeout %d", timeout);
-
         int cc = IO::poll(signal_.read_fd(), POLLIN, timeout, logpath_);
 
         // and re-take the lock on return
@@ -203,7 +200,8 @@ TimerSystem::run()
             // drain any others
             while (signal_.try_pop(&c)) {}
         } else {
-            log_err("unexpected return of %d from poll", cc);
+            if (errno == EINTR) continue;
+            log_err("unexpected return of %d from poll errno %d", cc, errno);
             continue; // XXX/demmer ??
         }
         
