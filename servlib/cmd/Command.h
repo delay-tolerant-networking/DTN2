@@ -317,11 +317,11 @@ protected:
      * @param argv	original argument vector to the command
      * @param parsed	number of args to include in error string
      * @param min	minimum number of expected args
-     * @param max	maximum number of expected args (or -1)
+     * @param max	maximum number of expected args (or INT_MAX)
      */
     void wrong_num_args(int argc, const char** argv, int parsed,
-                        int min, int max = -1);
-
+                        int min, int max);
+    
     /**
      * Callback that's issued just after the command is registered.
      * This allows commands (particularly AutoCommandModule instances)

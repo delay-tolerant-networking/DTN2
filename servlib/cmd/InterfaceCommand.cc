@@ -10,7 +10,7 @@ int
 InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
     // variants:
-    // interface <tuple> [args?]
+    // interface <tuple> [<args>?]
     // interface remove <tuple>
     
     if (argc < 2) {
@@ -19,8 +19,9 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
     
     if (strcasecmp(argv[1], "remove") == 0) {
+        // interface remove <tuple>
         if (argc != 3) {
-            wrong_num_args(argc, argv, 2, 3);
+            wrong_num_args(argc, argv, 2, 3, 3);
             return TCL_ERROR;
         }
 
@@ -29,6 +30,7 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
     } else {
+        // interface <tuple> [args?]
         if (! Interface::add_interface(argv[1], argc - 2, argv + 2)) {
             resultf("error adding interface %s", argv[1]);
             return TCL_ERROR;

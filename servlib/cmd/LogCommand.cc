@@ -11,7 +11,7 @@ LogCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
     // log path level string
     if (argc != 4) {
-        wrong_num_args(argc, argv, 1, 4);
+        wrong_num_args(argc, argv, 1, 4, 4);
         return TCL_ERROR;
     }
 

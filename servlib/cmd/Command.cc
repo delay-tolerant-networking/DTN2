@@ -250,11 +250,13 @@ CommandModule::wrong_num_args(int argc, const char** argv, int parsed,
         append_result(argv[i]);
     }
     append_result("'");
-    
-    if (max != -1) {
-        append_resultf(" expected %d - %d, got %d", min, max, argc);
-    } else {
+
+    if (max == min) {
         append_resultf(" expected %d, got %d", min, argc);
+    } else if (max == INT_MAX) {
+        append_resultf(" expected >%d, got %d", min, argc);
+    } else {
+        append_resultf(" expected %d - %d, got %d", min, max, argc);
     }
 }
 
