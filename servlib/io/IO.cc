@@ -52,6 +52,23 @@ IO::writev(int fd, const struct iovec* iov, int iovcnt, const char* log)
 }
 
 int
+IO::lseek(int fd, off_t offset, int whence, const char* log)
+{
+    int cc = ::lseek(fd, offset, whence);
+    if (log) {
+        logf(log, LOG_DEBUG, "lseek %u %s -> %d",
+             (size_t)offset,
+             (whence == SEEK_SET) ? "SEEK_SET" :
+             (whence == SEEK_CUR) ? "SEEK_CUR" :
+             (whence == SEEK_END) ? "SEEK_END" :
+             "SEEK_INVALID",
+             cc);
+    }
+    return cc;
+}
+
+
+int
 IO::poll(int fd, int events, int timeout_ms, const char* log)
 {
     int ret;

@@ -19,7 +19,7 @@ enum IOTimeoutReturn_t {
 class IO {
 public:
     //@{
-    /// System call wrapper (for logging)
+    /// System call wrappers (for logging)
     static int read(int fd, char* bp, size_t len,
                     const char* log = NULL);
     
@@ -30,6 +30,9 @@ public:
                      const char* log = NULL);
     
     static int writev(int fd, const struct iovec* iov, int iovcnt,
+                      const char* log = NULL);
+
+    static int lseek(int fd, off_t offset, int whence,
                       const char* log = NULL);
     //@}
     
