@@ -15,7 +15,7 @@ usage()
 int
 main(int argc, const char** argv)
 {
-    int i;
+    int i, lines, j;
     int cnt = INT_MAX;
     int ret;
     dtn_handle_t handle;
@@ -89,6 +89,20 @@ main(int argc, const char** argv)
                spec.source.admin.admin_len,
                spec.source.admin.admin_val,
                0);
+
+        for (lines = 0; 
+             lines * 80 < payload.dtn_bundle_payload_t_u.buf.buf_len; 
+             lines++)
+        {
+            printf("%5d: ", lines);
+            for (j=0; 
+                 lines * 80 + j < payload.dtn_bundle_payload_t_u.buf.buf_len; 
+                 j++)
+            {
+                printf("%02x", payload.dtn_bundle_payload_t_u.buf.buf_val[lines*80 + j]);
+            }
+            printf("\n");
+        }
     }
     
     return 0;
