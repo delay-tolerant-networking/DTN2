@@ -3516,14 +3516,14 @@ echo "$as_me: error: can't find usable Berkeley DB installation" >&2;}
     fi
 
     if test ! $dtn_cv_path_db_h = /usr/include ; then
-        DTN_CPPFLAGS="$DTN_CPPFLAGS -I$dtn_cv_path_db_h"
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$dtn_cv_path_db_h"
     fi
 
     if test ! $dtn_cv_path_db_lib = /usr/lib ; then
-        DTN_LDFLAGS="$DTN_LDFLAGS -L$dtn_cv_path_db_lib"
+        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$dtn_cv_path_db_lib"
     fi
 
-    DTN_LIBS="$DTN_LIBS -l$dtn_cv_lib_db"
+    OASYS_LIBS="$OASYS_LIBS -l$dtn_cv_lib_db"
 
     fi # DB_ENABLED
 
