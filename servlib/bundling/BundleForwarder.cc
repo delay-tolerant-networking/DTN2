@@ -87,10 +87,20 @@ BundleForwarder::process(BundleAction* action)
         BundleForwardAction* fwdaction = (BundleForwardAction*)action;
         log_debug("forward bundle %d", bundle->bundleid_);
 
-        if (action->action_ == FORWARD_REASSEMBLE && bundle->is_fragment_) {
+        if (action->action_ == FORWARD_REASSEMBLE && bundle->is_fragment_)
+        {
+            // bump down the pending count on the bundle since we're
+            // not going to deliver it, then pass it to the fragment
+            // manager
+            bundle->del_pending();
             bundle = FragmentManager::instance()->process(bundle);
+
             if (!bundle)
-                return;
+                break;
+
+            // and on the flip side, if there is a reassembled bundle,
+            // bump up it's pending count. XXX/demmer fix this
+            bundle->add_pending();
         }
         
         fwdaction->nexthop_->consume_bundle(bundle);
