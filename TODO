@@ -6,32 +6,38 @@ Done:
 - tcpcl configuration hooks 
   - ackblocksz, ack disabling, keepalive timer
 - big payloads carried in files
-- tcl smtpd client integration (temporary)
 - berkeley db backing store implementation
 
 Before NSDI (October 15):
-
 - client api specification
+- contact manager class
 - aravind / mssrf traces?
 - honor bundle priority bits in forwarding
   - built into bundlelist to sort by priority?
 - dns style region pattern matching
-- tcpcl keepalives
 - reactive fragmentation [melissa]
 - testing platform: planetlab? emulab? [sushant]
 - simulator engine [sushant]
+- tcp disconnection handling
+- contact open / close events
+- spec out a control / management interface
+
 
 Maybe before NSDI:
+- client api implementation
 - proactive fragmentation
 - file-based backing store as well
 - bundle expiration timers
+- bundle storage management for pruning
 - simple epidemic routing (zebranet?)
 - bundle overwrite feature implementation
-- scheduled contacts?
+- scheduled contacts
+- tcl smtpd client integration (temporary)
 - smtp client integration (temporary)
 - bundle overwrite feature specification
+- tcpcl keepalives
 
-After NSDI:
+After NSDI, before November release
 - client api implementation
   - exposed through tcl api
 - full epidemic routing implementation
@@ -42,3 +48,8 @@ After NSDI:
 - udp convergence layer
 - registration management
   - present / not present flag
+- clean up db initialization path
+  - cmdline option for one time database initialization
+- in tcl layer, add procs s.t. 'module var val' is interpreted as 
+  'module set var val'
+- 
