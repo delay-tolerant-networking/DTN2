@@ -2,11 +2,12 @@
 #define _FD_IOCLIENT_H_
 
 #include "IOClient.h"
+#include "debug/Logger.h"
 
 /*!
  * IOClient which uses pure file descriptors.
  */
-class FdIOClient : public IOClient {    
+class FdIOClient : public IOClient, public Logger {
 public:
     FdIOClient(int fd);
 
