@@ -87,5 +87,8 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
 
     b->del_ref();
     
+    BundleForwarder::post(
+        new BundleTransmittedEvent(b, this, b->payload_.length(), true));
+        
     return TCL_OK;
 }
