@@ -43,6 +43,7 @@
 
 #include <oasys/debug/Log.h>
 #include <oasys/io/FileUtils.h>
+#include <oasys/memory/Memory.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Options.h>
@@ -70,6 +71,10 @@ main(int argc, char* argv[])
     oasys::log_level_t loglevel;
     bool	       print_version = false;
     int                console_port = 0;
+
+#ifndef NDEBUG_MEMORY
+    oasys::DbgMemInfo::init();
+#endif
 
     // Register all command line options
     new oasys::BoolOpt('v', "version", &print_version,
