@@ -40,6 +40,7 @@
 
 #include <string>
 #include <oasys/debug/Debug.h>
+#include <oasys/util/StringBuffer.h>
 
 #include "Registration.h"
 
@@ -132,13 +133,8 @@ public:
     /**
      * Dump out the registration database.
      */
-    void dump(FILE* fp);
+    void dump(oasys::StringBuffer* buf) const;
 
-    /**
-     * Dump out the registration database to the debug output
-     */
-    void dump_to_debug();
-    
 protected:
     static RegistrationTable* instance_;
     

@@ -215,17 +215,17 @@ RegistrationTable::get_matching(const BundleTuple& demux,
 
 
 void
-RegistrationTable::dump_to_debug()
+RegistrationTable::dump(oasys::StringBuffer* buf) const
 {
-    for(RegistrationList::const_iterator i = reglist_.begin();
-	i != reglist_.end(); ++i)
+    RegistrationList::const_iterator i;
+    for (i = reglist_.begin(); i != reglist_.end(); ++i)
     {
 	Registration* reg = *i;
-
-	log_debug("id = %u endpt = %s fa = %d",
-		  reg->regid(),
-		  reg->endpoint().c_str(),
-		  reg->failure_action());
+        
+	buf->appendf("id %u: %s (%s)",
+                     reg->regid(),
+                     reg->endpoint().c_str(),
+                     Registration::failure_action_toa((reg->failure_action())));
     }
 }
 

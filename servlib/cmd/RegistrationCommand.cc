@@ -36,6 +36,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/util/StringBuffer.h>
+
 #include "RegistrationCommand.h"
 #include "reg/LoggingRegistration.h"
 #include "reg/RegistrationTable.h"
@@ -65,10 +67,12 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
     const char* op = argv[1];
 
-    if (strcmp(op, "list") == 0) {
-	RegistrationTable::instance()->dump_to_debug();
-
+    if (strcmp(op, "list") == 0 || strcmp(op, "dump") == 0) {
+        oasys::StringBuffer buf;
+	RegistrationTable::instance()->dump(&buf);
+        set_result(buf.c_str());
 	return TCL_OK;
+        
     } else if (strcmp(op, "add") == 0) {
         // registration add <logger|tcl> <demux> <args...>
         if (argc < 4) {
