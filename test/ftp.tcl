@@ -18,6 +18,14 @@ set port 17600
 set period 1000
 
 set blocksz 8192
+set debugging 1
+
+
+proc logdebug {name} {
+    if {$debugging} {
+	puts $name
+    }
+}
 
 proc time {} {
     global starttime
