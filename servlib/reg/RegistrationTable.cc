@@ -100,6 +100,22 @@ RegistrationTable::get(u_int32_t regid, const BundleTuple& endpoint)
     return NULL;
 }
 
+void
+RegistrationTable::dump(FILE *fp)
+{
+    Registration* reg;
+    RegistrationList::iterator iter;
+    BundleTuplePattern foo;
+
+    for (iter = reglist_.begin(); iter != reglist_.end(); ++(iter)) {
+        reg = *(iter);
+    fprintf(fp, "regid(%d) active(%d)", reg->regid(), reg->active());
+        foo = reg->endpoint();
+    fprintf(fp, " tuple(%s)\n", foo.c_str());
+    }
+
+}
+
 /**
  * Add a new registration to the database. Returns true if the
  * registration is successfully added, false if there's another
