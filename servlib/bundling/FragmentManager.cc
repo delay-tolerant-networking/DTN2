@@ -1,72 +1,83 @@
+
 #include "Bundle.h"
 #include "BundleList.h"
 #include "FragmentManager.h"
 
-FragmentManager FragmentManager::instance_;    
+FragmentManager FragmentManager::instance_;
 
-Bundle * 
-FragmentManager::fragment(Bundle * bundle, int offset, size_t length)
+FragmentManager::FragmentManager()
+    : Logger("/bundle/fragment")
 {
-    Bundle * ret = new Bundle();
+}
+
+Bundle* 
+FragmentManager::fragment(Bundle* bundle, int offset, size_t length)
+{
+    Bundle* fragment = new Bundle();
     int payload_offset = 0;
     
-    ret->source_ = bundle->source_;
-    ret->replyto_ = bundle->replyto_;
-    ret->custodian_ = bundle->custodian_;
-    ret->dest_ = bundle->dest_;
-    ret->priority_ = bundle->priority_;
-    ret->custreq_ = bundle->custreq;
-    ret->custody_rcpt_ = bundle->custody_rcpt_;
-    ret->recv_rcpt_ = bundle->recv_rcpt_;
-    ret->fwd_rcpt_ = bundle->fwd_rcpt_;
-    ret->return_rcpt_ = bundle->return_rcpt_;
-    ret->timestamp_t = bundle->timestamp_t;
-    ret->expiration_ = bundle->expiration_;
+    fragment->source_ = bundle->source_;
+    fragment->replyto_ = bundle->replyto_;
+    fragment->custodian_ = bundle->custodian_;
+    fragment->dest_ = bundle->dest_;
+    fragment->priority_ = bundle->priority_;
+    fragment->custreq_ = bundle->custreq_;
+    fragment->custody_rcpt_ = bundle->custody_rcpt_;
+    fragment->recv_rcpt_ = bundle->recv_rcpt_;
+    fragment->fwd_rcpt_ = bundle->fwd_rcpt_;
+    fragment->return_rcpt_ = bundle->return_rcpt_;
+    fragment->creation_ts_ = bundle->creation_ts_;
+    fragment->expiration_ = bundle->expiration_;
 
-    // always creating a fragment
-    ret->fragment_ = true;
+    // always creating a fragmentment
+    fragment->is_fragment_ = true;
 
     // offset is given
-    ret->frag_offset_ = offset;
+    fragment->frag_offset_ = offset;
 
-    // initialize fragment parameters
-    if (bundle->fragment_)
-    {
-        ret->orig_length_ = bundle->orig_length_;
-        payload_offset = offset - bundle>frag_offset_;
+    // initialize the fragment's orig_length and figure out the offset
+    // into the payload
+    if (! bundle->is_fragment_) {
+        fragment->orig_length_ = bundle->payload_.length();
+        payload_offset = offset;
 
-        if (payload_offset <= 0)
-        {
-            log_crit("/bundle/fragment", 
-                     "tried to create fragment from non-overlapping fragment",
-                     path.c_str());
+    } else {
+        fragment->orig_length_ = bundle->orig_length_;
+        payload_offset = offset - bundle->frag_offset_;
+
+        if (payload_offset <= 0) {
+            log_err("fragment range doesn't overlap: "
+                    "orig_length %d frag_offset %d requested offset %d",
+                    bundle->orig_length_, bundle->frag_offset_,
+                    offset);
+            delete fragment;
             return NULL;
         }
     }
-    else 
-    {
-        ret->orig_length = bundle->payload_.length();
-        payload_offset = offset;
+
+    // check for overallocated length
+    if ((offset + length) > fragment->orig_length_) {
+        log_err("fragment length overrun: "
+                "orig_length %d frag_offset %d requested offset %d length %d",
+                fragment->orig_length_, fragment->frag_offset_,
+                offset, length);
+        delete fragment;
+        return NULL;
     }
 
-    // for over-allocated lengths, truncate
-    if (offset + length < ret->orig_length)
-    {
-        length = ret->orig_length - offset;
-    }
 
     // initialize payload
-    // XXX: todo - we can modify BundlePayload to use an offset/length in
+    // XXX/mho: todo - we can modify BundlePayload to use an offset/length in
     // the existing file rather than making a copy
-    ret->payload_.set_data(bundle->payload_.read_data(payload_offset, length),
-                           length);
+    fragment->payload_.set_data(bundle->payload_.read_data(payload_offset, length),
+                                length);
 
-    return ret;
+    return fragment;
 }
 
 
 Bundle * 
 FragmentManager::process(Bundle * fragment)
 {
-
+    NOTIMPLEMENTED;
 }
