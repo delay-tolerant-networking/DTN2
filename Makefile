@@ -17,6 +17,15 @@ alltest:
 	$(MAKE) -C test
 
 #
+# Install/uninstall rules
+#
+install:
+	@tools/install.sh
+
+uninstall:
+	@tools/uninstall.sh
+
+#
 # Generate the doxygen documentation
 #
 doxygen:
