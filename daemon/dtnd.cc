@@ -19,13 +19,18 @@
 int
 main(int argc, char** argv)
 {
-    // First and foremost, scan argv to look for a-l <file> option so
-    // we can initialize logging.
+    // First and foremost, scan argv to look for -o <file> and/or -l
+    // <level> so we can initialize logging.
     const char* logfile = "-";
+    const char* levelstr = 0;
+    
     for (int i = 0, j = 1; j < argc ; i++, j++) {
         if (!strcmp(argv[i], "-o")) {
             logfile = argv[j];
-            break;
+        }
+
+        if (!strcmp(argv[i], "-l")) {
+            levelstr = argv[j];
         }
     }
 
@@ -41,9 +46,21 @@ main(int argc, char** argv)
             exit(1);
         }
     }
+
+    log_level_t level = LOG_DEFAULT_THRESHOLD;
+
+    if (levelstr != 0) {
+        level = str2level(levelstr);
+        if (level == LOG_INVALID) {
+            fprintf(stderr, "invalid level value '%s' for -l option, "
+                    "expected debug | info | warning | error | crit\n",
+                    levelstr);
+            exit(1);
+        }
+    }
     
     // Initialize logging before anything else
-    Log::init(logfd);
+    Log::init(logfd, level);
     logf("/daemon", LOG_DEBUG, "main()");
 
     // command line parameter vars
@@ -63,11 +80,12 @@ main(int argc, char** argv)
                 "clear database on startup");
     new IntOpt("s", &random_seed, &random_seed_set, "seed",
                "random number generator seed");
-    new IntOpt("l", &testcmd.loopback_, "loopback",
-               "test option for loopback");
+    new IntOpt("i", &testcmd.id_, "id", "set the test id");
     new BoolOpt("d", &daemon, "run as a daemon");
     new StringOpt("o", &ignored, "output",
                   "file name for logging output ([-o -] indicates stdout)");
+    new StringOpt("l", &ignored, "level",
+                  "default log level [debug|warn|info|crit]");
         
     // Set up the command interpreter, then parse argv
     CommandInterp::init(argv[0]);

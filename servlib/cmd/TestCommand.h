@@ -15,7 +15,7 @@ public:
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
     
-    int loopback_;		///< sets the loopback node id
+    int id_;			///< sets the test node id
     std::string initscript_;	///< tcl script to run at init
 };
 
