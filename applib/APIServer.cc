@@ -664,22 +664,16 @@ ClientAPIServer::handle_recv()
     // oasys::buf not having anything allocated to it was bad
     buf.reserve(10);
 
-    if ( location==DTN_PAYLOAD_MEM ) {
+    if (location == DTN_PAYLOAD_MEM) {
         // the app wants the payload in memory
         // XXX/demmer verify bounds
-        char** dst = &payload.dtn_bundle_payload_t_u.buf.buf_val;
-        u_int* len = &payload.dtn_bundle_payload_t_u.buf.buf_len;
 
-        *len = b->payload_.length();
+        buf.reserve(b->payload_.length());
+        payload.dtn_bundle_payload_t_u.buf.buf_len = b->payload_.length();
+        payload.dtn_bundle_payload_t_u.buf.buf_val =
+            (char*)b->payload_.read_data(0, b->payload_.length(), (u_char*)buf.data());
         
-        if (b->payload_.location() == BundlePayload::MEMORY) {
-            *dst = (char*)b->payload_.memory_data();
-        } else {
-            buf.reserve(b->payload_.length());
-            b->payload_.read_data(0, b->payload_.length(), (u_char*)buf.data());
-            *dst = buf.data();
-        }
-    } else if ( location==DTN_PAYLOAD_FILE ) {
+    } else if (location == DTN_PAYLOAD_FILE) {
         // the app wants the payload in a file
         //        PANIC("file-based payloads not implemented");
         char payloadFile[DTN_MAX_PATH_LEN];
