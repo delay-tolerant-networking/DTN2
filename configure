@@ -2661,8 +2661,10 @@ echo "${ECHO_T}$oasys_cv_prog_gccver" >&6
         3.1*|2.9*)
             DEFS="$DEFS -D_GNU_SOURCE"
 	    DEPFLAGS=""
-            echo "*** warning: using old compiler $cc version $oasys_cv_prog_gccver,"
-	    echo "             automatic dependency generation will not work"
+            echo "*** "
+	    echo "*** warning: using old compiler $cc version $oasys_cv_prog_gccver,"
+	    echo "***          automatic dependency generation will not work"
+            echo "*** "
 	    ;;
 	#
 	# For 3.2 and beyond, use auto-dependency flags.
