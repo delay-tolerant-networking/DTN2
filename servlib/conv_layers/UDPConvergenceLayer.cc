@@ -238,7 +238,7 @@ shutdown:
 
     if (payload_len != block_len) {
         log_err("process_data: error in payload length: "
-                "payload_length %d, block_len &d", 
+                "payload_length %d, block_len %d", 
                 payload_len, block_len); 
         goto shutdown;
     }
