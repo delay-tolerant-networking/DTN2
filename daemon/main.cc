@@ -57,7 +57,7 @@ main(int argc, char** argv)
     // Set up all components
     ConvergenceLayer::init_clayers();
     InterfaceTable::init();
-//    TimerSystem::init();
+    TimerSystem::init();
 
     // Create the forwarder but don't start it running yet. This lets
     // the conf file post events but they won't get dispatched until
@@ -70,14 +70,16 @@ main(int argc, char** argv)
     // Parse / exec the config file
     if (conffile.length() != 0) {
         if (CommandInterp::instance()->exec_file(conffile.c_str()) != 0) {
-            logf("/daemon", LOG_ERR, "error in configuration file, exiting...");
+            logf("/daemon", LOG_ERR,
+                 "error in configuration file, exiting...");
             exit(1);
         }
     }
 
     // The conf file had a chance to set the types used for routing
     // and storage, so initialize those components now.
-    BundleRouter* router = BundleRouter::create_router(BundleRouter::type_.c_str());
+    BundleRouter* router;
+    router = BundleRouter::create_router(BundleRouter::type_.c_str());
     forwarder->set_active_router(router);
     forwarder->start();
 
