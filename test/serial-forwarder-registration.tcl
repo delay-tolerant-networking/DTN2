@@ -39,6 +39,7 @@ proc sfreg_conn_arrived {regid chan addr port} {
     log /sf debug "got new serial forwarder connection for registration $regid"
 
     fconfigure $chan -buffering none
+    fconfigure $chan -translation binary
     puts -nonewline $chan "T "
     flush $chan
 
