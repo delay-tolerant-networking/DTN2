@@ -17,76 +17,69 @@
 int
 main(int argc, char* argv[])
 {
+    TestCommand testcmd;
     int         random_seed;
     bool        random_seed_set = false;
     bool	daemon = false;
     std::string conf_file("daemon/bundleNode.conf");
-    std::string ignored; // ignore warnings for -l option
+    std::string logfile("-");
+    std::string loglevelstr;
+    log_level_t loglevel;
 
-    // First and foremost, scan argv to look for -o <file> and/or -l
-    // <level> so we can initialize logging.
-    const char* logfile = "-";
-    const char* levelstr = 0;
-    
-    for (int i = 0, j = 1; j < argc ; i++, j++) {
-        if (!strcmp(argv[i], "-o")) {
-            logfile = argv[j];
-        }
-
-        if (!strcmp(argv[i], "-l")) {
-            levelstr = argv[j];
-        }
-    }
-
-    int logfd;
-    if (!strcmp(logfile, "-")) {
-        logfd = 1; // stdout
-    } else {
-        logfd = open(logfile, O_CREAT | O_WRONLY | O_APPEND,
-                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-        if (logfd < 0) {
-            fprintf(stderr, "fatal error opening log file '%s': %s\n",
-                    logfile, strerror(errno));
-            exit(1);
-        }
-    }
-
-    log_level_t level = LOG_DEFAULT_THRESHOLD;
-
-    if (levelstr != 0) {
-        level = str2level(levelstr);
-        if (level == LOG_INVALID) {
-            fprintf(stderr, "invalid level value '%s' for -l option, "
-                    "expected debug | info | warning | error | crit\n",
-                    levelstr);
-            exit(1);
-        }
-    }
-    
-    // Initialize logging before anything else
-    Log::init(logfd, level, "~/.dtndebug");
-    logf("/daemon", LOG_DEBUG, "Bundle Daemon Initializing...");
-
-    // Create the test command now, so testing related options can be
-    // registered
-    TestCommand testcmd;
-    
-    // Set up the command line options
-    new StringOpt("o", &ignored, "output",
+    // Register all command line options
+    new StringOpt("o", &logfile, "output",
                   "file name for logging output ([-o -] indicates stdout)");
-    new StringOpt("l", &ignored, "level",
+    new StringOpt("l", &loglevelstr, "level",
                   "default log level [debug|warn|info|crit]");
     new StringOpt("c", &conf_file, "conf", "config file");
-    new IntOpt("s", &random_seed, &random_seed_set, "seed",
-               "random number generator seed");
     new BoolOpt("d", &daemon, "run as a daemon");
     new BoolOpt("t", &StorageConfig::instance()->tidy_,
                 "clear database on startup");
+    new IntOpt("s", &random_seed, &random_seed_set, "seed",
+               "random number generator seed");
+
     new IntOpt("i", &testcmd.id_, "id", "set the test id");
-        
-    // parse command line options
+
     Options::getopt(argv[0], argc, argv);
 
+    // Open the output file descriptor
+    int logfd;
+    if (logfile.compare("-") == 0) {
+        logfd = 1; // stdout
+    } else {
+        logfd = open(logfile.c_str(), O_CREAT | O_WRONLY | O_APPEND,
+                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+        if (logfd < 0) {
+            fprintf(stderr, "fatal error opening log file '%s': %s\n",
+                    logfile.c_str(), strerror(errno));
+            exit(1);
+        }
+    }
+
+    // Parse the debugging level argument
+    if (loglevelstr.length() == 0) {
+        loglevel = LOG_DEFAULT_THRESHOLD;
+    } else {
+        loglevel = str2level(loglevelstr.c_str());
+        if (loglevel == LOG_INVALID) {
+            fprintf(stderr, "invalid level value '%s' for -l option, "
+                    "expected debug | info | warning | error | crit\n",
+                    loglevelstr.c_str());
+            exit(1);
+        }
+    }
+    
+    // Now initialize logging
+    Log::init(logfd, loglevel, "~/.dtndebug");
+    logf("/daemon", LOG_DEBUG, "Bundle Daemon Initializing...");
+
+    // bind a copy of argv to be accessible to test scripts
+    for (int i = 0; i < argc; ++i) {
+        testcmd.argv_.append(argv[i]);
+        testcmd.argv_.append(" ");
+    }
+    
     // seed the random number generator
     if (!random_seed_set) {
       struct timeval tv;
@@ -99,6 +92,7 @@ main(int argc, char* argv[])
     // Set up the command interpreter
     TclCommandInterp::init(argv[0]);
     TclCommandInterp* interp = TclCommandInterp::instance();
+    testcmd.bind_vars();
     interp->reg(&testcmd);
     DTNServer::init_commands();
     APIServer::init_commands();
