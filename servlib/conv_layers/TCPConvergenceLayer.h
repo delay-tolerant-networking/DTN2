@@ -14,6 +14,18 @@ public:
      * Hook for shutdown.
      */
     virtual void fini();
+
+    /**
+     * Register a new interface.
+     */
+    void add_interface(Interface* iface,
+                       int argc, const char* argv[]);
+
+    /**
+     * Remove an interface
+     */
+    void del_interface(Interface* iface);
+
 };
 
 #endif /* _TCP_CONVERGENCE_LAYER_H_ */
