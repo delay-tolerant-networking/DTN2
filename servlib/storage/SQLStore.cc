@@ -2,6 +2,7 @@
 #include "SQLStore.h"
 #include "SQLImplementation.h"
 #include "bundling/Bundle.h"
+#include "debug/Debug.h"
 
 /**
  * Constructor.
@@ -11,7 +12,7 @@ SQLStore::SQLStore(const char* table_name, SQLImplementation* db)
      : Logger("/storage/sqlstore")
 {
 
-    data_base_pointer_ = db;
+    sql_impl_ = db;
     table_name_ = table_name;
 }
 
@@ -28,7 +29,7 @@ SQLStore::get(SerializableObject* obj, const int key)
     int status = exec_query(query.c_str());
     if ( status != 0)  return status ; 
     
-    SQLExtract xt (data_base_pointer_) ;     
+    SQLExtract xt (sql_impl_) ;     
     xt.action(obj); // use SQLExtract to fill the object
     return 0;
 }
@@ -37,7 +38,7 @@ SQLStore::get(SerializableObject* obj, const int key)
 int 
 SQLStore::put(SerializableObject* obj){
     
-    SQLInsert s(table_name_); ;
+    SQLInsert s(table_name_,sql_impl_); ;
     s.action(obj);
     const char* insert_str = s.query();
     int retval = exec_query(insert_str);
@@ -68,7 +69,7 @@ SQLStore::num_elements()
     int status = exec_query(query.c_str());
     if ( status != 0) return -1;
 
-    const char* answer = data_base_pointer_->get_value(0,0);
+    const char* answer = sql_impl_->get_value(0,0);
     if (answer == NULL) return 0;
     ASSERT(answer >= 0);
     return atoi(answer);
@@ -84,12 +85,13 @@ SQLStore::keys(std::vector<int> l)
     int status = exec_query(query.c_str());
     if ( status != 0) return status;
     
-    int n = data_base_pointer_->num_tuples();
+
+    int n = sql_impl_->num_tuples();
     if (n < 0) return -1;
 
     for(int i=0;i<n;i++) {
         // ith element is set to 
-        const char* answer = data_base_pointer_->get_value(i,0);
+        const char* answer = sql_impl_->get_value(i,0);
         int answer_int =  atoi(answer);
         l[i]=answer_int;
     }
@@ -107,7 +109,7 @@ SQLStore::elements(SerializableObjectVector* elements)
         return status;
     }
 
-    size_t n = data_base_pointer_->num_tuples();
+    size_t n = sql_impl_->num_tuples();
     if (n < 0) {
         log_err("internal database error in elements()");
         return -1;
@@ -118,7 +120,7 @@ SQLStore::elements(SerializableObjectVector* elements)
         return -1;
     }
 
-    SQLExtract extract(data_base_pointer_);
+    SQLExtract extract(sql_impl_);
     SerializableObjectVector::iterator iter = elements->begin();
     for (size_t i = 0; i < n; i++) {
         extract.action(*iter);
@@ -140,7 +142,7 @@ bool
 SQLStore::has_table(const char* name) {
     
     log_debug("checking for existence of table '%s'", name);
-    bool retval =  data_base_pointer_->has_table(name);
+    bool retval =  sql_impl_->has_table(name);
     
     if (retval) 
 	log_debug("table with name '%s' exists", name);
@@ -155,7 +157,7 @@ SQLStore::create_table(SerializableObject* obj)
     if (has_table(table_name_)) {
 	return 0;
     }
-    SQLTableFormat t(table_name_);
+    SQLTableFormat t(table_name_,sql_impl_);
     t.action(obj);
     int retval = exec_query(t.query());
     return retval;
@@ -171,9 +173,12 @@ int
 SQLStore::exec_query(const char* query) 
 {   
     log_debug("executing query '%s'", query);
-    int ret = data_base_pointer_->exec_query(query);
+    int ret = sql_impl_->exec_query(query);
     log_debug("query result status %d", ret);
-
+    
+    if (ret != 0) {
+	PANIC("sql query execution error \n");
+    }
     return ret;
 }
 

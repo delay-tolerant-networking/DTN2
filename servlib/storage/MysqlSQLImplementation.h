@@ -20,7 +20,15 @@ public:
     int exec_query(const char* query);
     int num_tuples();
     const char* get_value(int tuple_no, int field_no);
+    //   size_t get_value_length(int tuple_no, int field_no);
+    
+    const char* binary_datatype();
+    const char* escape_string(const char* from);
+    const u_char* escape_binary(const u_char* from, int from_length);
+    const u_char* unescape_binary(const u_char* from);
+  
     ///@}
+
 
 private:
     MYSQL* db_;  		///< the db connection

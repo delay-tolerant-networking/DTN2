@@ -8,6 +8,7 @@
 
 #include "Serialize.h"
 #include "util/StringBuffer.h"
+#include "SQLImplementation.h"
 
 class SQLImplementation;
 
@@ -33,6 +34,7 @@ public:
 protected:
     StringBuffer query_;
     const char* table_name_;
+    SQLImplementation* sql_impl_ ;
 };
 
 /**
@@ -44,7 +46,7 @@ public:
     /**
      * Constructor.
      */
-    SQLInsert(const char* table_name);
+    SQLInsert(const char* table_name, SQLImplementation *db);
   
     virtual void begin_action();
     /**
@@ -78,7 +80,7 @@ public:
     /**
      * Constructor.
      */
-    SQLTableFormat(const char* table_name);
+    SQLTableFormat(const char* table_name, SQLImplementation *db);
     
     virtual void begin_action();
 
@@ -130,7 +132,7 @@ public:
     int field_;		///< counter over the fields in the returned tuple
     
  private:
-    SQLImplementation *db_;
+    SQLImplementation *sql_impl_;
 };
 
 #endif /* _SQL_SERIALIZE_H_ */

@@ -1,5 +1,6 @@
 
 #include "debug/Debug.h"
+#include "debug/Log.h"
 #include "MysqlSQLImplementation.h"
 
 MysqlSQLImplementation::MysqlSQLImplementation()
@@ -30,13 +31,29 @@ const char*
 MysqlSQLImplementation::get_value(int tuple_no, int field_no)
 {
     const char* ret;
-
+  
     ASSERT(query_result_);
     mysql_data_seek(query_result_, tuple_no);
+
     MYSQL_ROW r = mysql_fetch_row(query_result_);
     ret = r[field_no];
     return ret;
 }
+
+/*
+size_t
+MysqlSQLImplementation::get_value_length(int tuple_no, int field_no)
+{
+    unsigned long *lengths;
+  
+    ASSERT(query_result_);
+    mysql_data_seek(query_result_, tuple_no);
+
+    mysql_fetch_row(query_result_);
+    lengths = mysql_fetch_lengths(query_result_);
+    return (size_t)lengths[field_no];
+}
+*/
 
 int
 MysqlSQLImplementation::close()
@@ -98,3 +115,37 @@ MysqlSQLImplementation::exec_query(const char* query)
     
     return ret;
 }
+
+const char* 
+MysqlSQLImplementation::escape_string(const char* from) 
+{
+    int length = strlen(from);
+    char* to = (char *) malloc(2*length+1);
+    mysql_real_escape_string(db_,to,from,length);
+
+    return to;
+}
+
+const u_char* 
+MysqlSQLImplementation::escape_binary(const u_char* from, int from_length) 
+{
+    int length = from_length;
+    char* to = (char *) malloc(2*length+1);
+    mysql_real_escape_string(db_,to,(const char*)from,length);
+    return (const u_char*) to;
+}
+
+const u_char* 
+MysqlSQLImplementation::unescape_binary(const u_char* from) 
+{
+    return from ; 
+}
+
+
+const char* 
+MysqlSQLImplementation::binary_datatype()
+{
+
+    return "BLOB" ; 
+}
+

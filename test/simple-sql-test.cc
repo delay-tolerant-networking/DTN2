@@ -52,11 +52,14 @@ playsql(int i) {
     
     SQLImplementation *db ;
     
-    if (i ==1)
-       db  =  new PostgresSQLImplementation(database);
+    if (i ==1) 
+       db  =  new PostgresSQLImplementation();
+    
     else
-	db =  new MysqlSQLImplementation(database);
+	db =  new MysqlSQLImplementation();
 
+    db->connect(database);
+	   
     db->exec_query("drop table try;");
     
     BundleStore *bstore = new SQLBundleStore(db, "try");
@@ -67,10 +70,15 @@ playsql(int i) {
     int id1 = 121;
     int id2 = 555;
    
-    o1.source_.set_tuple("bundles://internet/tcp://foo");
+    o1.source_.set_tuple("bundles://internet/tcp://foo. Hello I'Am Sushant");
     o1.bundleid_ = id1;
     o1.custreq_ = 1;
     o1.fwd_rcpt_ = 1;
+    bzero(o1.test_binary_,20);
+    o1.test_binary_[0] = 2;
+    o1.test_binary_[1] = 5;
+    o1.test_binary_[2] = 38;
+    o1.test_binary_[3] = o1.test_binary_[1] +     o1.test_binary_[2] ;
     
     o2.source_.set_tuple("bundles://google/tcp://foo");
     o2.bundleid_ =  id2;
@@ -90,6 +98,9 @@ playsql(int i) {
     ASSERT(o1.recv_rcpt_ == g1->recv_rcpt_);
     ASSERT(o1.fwd_rcpt_ == g1->fwd_rcpt_);
     ASSERT(o1.return_rcpt_ == g1->return_rcpt_);
+    ASSERT(o1.test_binary_[2] == g1->test_binary_[2]);
+   
+    
     ASSERT (o2.bundleid_ == g2->bundleid_);
     
     

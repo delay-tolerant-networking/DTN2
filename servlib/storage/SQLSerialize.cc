@@ -52,10 +52,11 @@ SQLQuery::end_action()
 /**
  * Constructor.
  */
-SQLInsert::SQLInsert(const char* table_name)
+SQLInsert::SQLInsert(const char* table_name, SQLImplementation* sql_impl)
     :SQLQuery(MARSHAL)
 {
     table_name_ = table_name;
+    sql_impl_ = sql_impl ; 
 }
 
 
@@ -114,13 +115,15 @@ SQLInsert::process(const char* name, bool* b) {
     }
 }
 
-// XXX Sushant: Need to escape special chars such as ' from s
 
 void 
 SQLInsert::process(const char* name, std::string* s) 
 {
+    const char *from = s->c_str();
+    const char* to = sql_impl_->escape_string(from);
+    
     query_.append("'");
-    query_.append(*s);
+    query_.append(to);
     query_.append("'");
 
     query_.append(',');
@@ -129,7 +132,14 @@ SQLInsert::process(const char* name, std::string* s)
 void 
 SQLInsert::process(const char* name, u_char* bp, size_t len)
 {
-    NOTIMPLEMENTED;
+
+    const char* to = (char *)sql_impl_->escape_binary(bp,len);
+    
+    query_.append("'");
+    query_.append(to);
+    query_.append("'");
+
+    query_.append(',');
 }
 
 void 
@@ -148,10 +158,11 @@ SQLInsert::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
  * Constructor.
  */
 
-SQLTableFormat::SQLTableFormat(const char* table_name)
+SQLTableFormat::SQLTableFormat(const char* table_name, SQLImplementation* sql_impl)
     :SQLQuery(INFO)
 {
     table_name_ = table_name;
+    sql_impl_ = sql_impl ; 
 }
 
 
@@ -219,13 +230,13 @@ SQLTableFormat::process(const char* name, std::string* s)
 void 
 SQLTableFormat::process(const char* name, u_char* bp, size_t len)
 {
-    NOTIMPLEMENTED;
+    append(name,sql_impl_->binary_datatype());
 }
     
 void 
 SQLTableFormat::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
 {
-    NOTIMPLEMENTED;
+    append(name,sql_impl_->binary_datatype());
 }
 
 /******************************************************************************
@@ -242,13 +253,13 @@ SQLExtract::SQLExtract(SQLImplementation* db)
     : SerializeAction(UNMARSHAL)
 {
     field_ = 0;
-    db_ = db;
+    sql_impl_ = db;
 }
 
 const char* 
 SQLExtract::next_field()
 {
-    return db_->get_value(0,field_++);
+    return sql_impl_->get_value(0,field_++);
 }
 
 void
@@ -274,7 +285,7 @@ SQLExtract::process(const char* name, u_int16_t* i)
 }
 
 
-// todo, check character portability, should be ok if *i is a normal char
+
 void 
 SQLExtract::process(const char* name, u_int8_t* i)
 {
@@ -331,7 +342,19 @@ SQLExtract::process(const char* name, std::string* s)
 void 
 SQLExtract::process(const char* name, u_char* bp, size_t len)
 {
-    NOTIMPLEMENTED;
+
+    const char* buf = next_field();
+    if (buf == NULL) return;
+ 
+    const u_char* v = sql_impl_->unescape_binary((const u_char*)buf);
+
+    memcpy(bp, v, len);
+    if (log_) {
+        std::string s;
+        hex2str(&s, bp, len < 16 ? len : 16);
+        logf(log_, LOG_DEBUG, "<=bufc(%d: '%.*s')", len, s.length(), s.data());
+    }
+
 }
 
 

@@ -52,7 +52,8 @@ LoggingRegistration::run()
         }
 
         const u_char* data = (const u_char*)b->payload_.data();
-        if (str_isascii(data, len)) {
+
+	if (str_isascii(data, len)) {
             log_info("        payload (ascii): '%.*s'", len, data);
         } else {
             std::string hex;

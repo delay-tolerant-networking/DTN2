@@ -2,6 +2,7 @@
 #include "PostgresSQLImplementation.h"
 #include "debug/Debug.h"
 #include "util/StringBuffer.h"
+#include <string.h>
 
 PostgresSQLImplementation::PostgresSQLImplementation()
     : Logger("/storage/postgresql")
@@ -58,6 +59,17 @@ PostgresSQLImplementation::close()
     PQfinish(db_);
     return 0;
 }
+
+/*
+size_t
+PostgresSQLImplementation::get_value_length(int tuple_no, int field_no)
+{
+    size_t retval;
+    const char* val = get_value(tuple_no,field_no);
+    unescape_binary((const u_char*)val,&retval);
+    return retval;
+}
+*/
 
 const char*
 PostgresSQLImplementation::get_value(int tuple_no, int field_no)
@@ -117,3 +129,40 @@ PostgresSQLImplementation::exec_query(const char* query)
     
     return ret;
 }
+
+const char* 
+PostgresSQLImplementation::escape_string(const char* from) 
+{
+    int length = strlen(from);
+    char* to = (char *) malloc(2*length+1);
+    PQescapeString (to,from,length);
+    return to;
+}
+
+const u_char* 
+PostgresSQLImplementation::escape_binary(const u_char* from, int from_length) 
+{
+    size_t to_length;
+    u_char* from1 = (u_char *) from ; 
+    u_char* to =  PQescapeBytea(from1,from_length,&to_length);
+    return to;
+}
+
+const u_char* 
+PostgresSQLImplementation::unescape_binary(const u_char* from) 
+{
+    u_char* from1 = (u_char *) from ; 
+    size_t to_length ;
+    const u_char* to = PQunescapeBytea(from1,&to_length);
+    return to;
+}
+
+
+
+const char* 
+PostgresSQLImplementation::binary_datatype()
+{
+
+    return "BYTEA" ; 
+}
+

@@ -108,7 +108,7 @@ private:
      */
     const char*  key_name_; 
 
-    SQLImplementation* data_base_pointer_;
+    SQLImplementation*  sql_impl_;
 
 };
 

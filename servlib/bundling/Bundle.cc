@@ -50,6 +50,8 @@ Bundle::format(char* buf, size_t sz)
 void
 Bundle::serialize(SerializeAction* a)
 {
+    a->process("test_binary",test_binary_,10);
+
     a->process("bundleid", &bundleid_);
     a->process("source", &source_);
     a->process("dest", &dest_);

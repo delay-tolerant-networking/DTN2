@@ -5,6 +5,7 @@
  * Utilities and stl typedefs for basic_string.
  */
 
+#include <ctype.h>
 #include <string>
 #include <vector>
 #include <ext/hash_set>

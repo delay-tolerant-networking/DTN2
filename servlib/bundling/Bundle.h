@@ -130,6 +130,8 @@ public:
     u_int32_t expiration_;	///< Bundle expiration time
     BundlePayload payload_;	///< Reference to the payload
     
+    u_char test_binary_[100]; 	///< Added by sushant, for testing binary things
+
 protected:
     int refcount_;		///< reference count
 
