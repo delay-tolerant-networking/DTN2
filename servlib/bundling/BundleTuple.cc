@@ -164,7 +164,7 @@ void
 BundleTuple::serialize(SerializeAction* a)
 {
     a->process("tuple", &tuple_);
-    if (a->type() == SerializeAction::UNMARSHAL) {
+    if (a->action() == Serialize::UNMARSHAL) {
         parse_tuple();
     }
 }
