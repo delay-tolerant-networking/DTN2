@@ -80,6 +80,8 @@ allstatic=''
 #
 # Defaults
 #
+cc='gcc'
+depflags=''
 make_static='n'
 debug='-g'
 # optimize='-O'
@@ -174,6 +176,11 @@ do
     optimizewarn=''
     ;;
 
+  -with-gcc | --with-gcc | -with-cc | --with-cc)
+    ac_prev=with-cc ;;
+  -with-gcc=* | --with-gcc=* | -with-cc=* | --with-cc=*)
+    cc="$ac_optarg" ;;
+
   -with-tcl | --with-tcl)
     ac_prev=with-tcl ;;
   -with-tcl=* | --with-tcl=*)
@@ -218,6 +225,7 @@ Features
   --disable-FEATURE
   --enable-FEATURE[=ARG]
 Packages
+  --with-cc=GCC			  Version of the C/C++ compiler to use
   --with-db=DIR			  Location of a Berkeley DB installation (or none)
   --with-postgres=DIR		  Location of a Postgres  installation (or none)
   --with-mysql=DIR		  Location of a Mysql installation (or none)
@@ -235,6 +243,59 @@ EOF
   ;;
   esac
 done
+
+#
+# Make sure the compiler a) works b) is some gcc variant and c) is an
+# acceptable version.
+#
+cat > config.$$.c <<EOF
+#include <stdio.h>
+int 
+main(int argc, const char** argv) {
+    printf("%d.%d", __GNUC__, __GNUC_MINOR__);
+}
+EOF
+$cc config.$$.c > /dev/null 2> /dev/null
+if [ $? != 0 -o ! -f a.out ]; then
+    echo "error: non-functional or non-gnu compiler $cc"
+    exit 1
+fi
+
+rm -f config.$$.c
+
+#
+# Now set some options based on the compiler version
+#
+ccver=`a.out`
+rm -f a.out
+case "$ccver" in
+    #
+    # for gcc 2.9.X and 3.1, the auto-dependency features don't work, and 
+    # _GNU_SOURCE isn't defined, so do both those things here
+    #
+    3.1|2.9*)
+        defs='-D_GNU_SOURCE'
+	depflags=''
+	echo "*** warning: using old compiler $cc version $ccver,"
+	echo "             automatic dependency generation will not work"
+	;;
+    #
+    # For later 3.X, use auto-dependency flags
+    #
+    3.*)
+	defs=''
+	depflags='-MMD -MP -MT "$*.o $*.E $*.po"'
+	;;
+    *)
+	echo "error: unsupported compiler version $ccver"
+	exit 1
+	;;
+esac
+
+#
+# assume that if we're using gcc-xxx, we also want g++-xxx
+#
+cpp=`echo $cc | sed 's/cc/++/'`
 
 case "$make_static" in
     yes | y | true | t)
@@ -545,6 +606,11 @@ if [ "$make_static" = "y" ]; then
 	libs="$libs -ldl -lssl -lcrypto -lkrb5 -lcrypt -lresolv -lnsl -lz -lk5crypto -lcom_err"
 fi
 
+echo "Target/Tools:"
+echo "  TARGET is: $target"
+echo "  CC is: $cc"
+echo "  CPP is: $cpp"
+echo " "
 echo "Options:"
 echo "  TARGET is: $target"
 echo "  Debug: $debug"
@@ -581,6 +647,10 @@ s%@INCDIR@%$incdir%g
 s%@TARGET@%$target%g
 s%@STATIC@%$static%g
 s%@ALLSTATIC@%$allstatic%g
+s%@CC@%$cc%g
+s%@CPP@%$cpp%g
+s%@DEFS@%$defs%g
+s%@DEPFLAGS@%$depflags%g
 s%@DEBUG@%$debug%g
 s%@OPTIMIZE@%$optimize%g
 s%@OPTIMIZE_WARN@%$optimizewarn%g

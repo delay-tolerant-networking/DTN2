@@ -54,8 +54,10 @@ INCDIRS    += @INCDIRS@
 LIBDIRS     = @LIBDIRS@
 LIBS	    = @LIBS@
 STATIC_LIBS = @STATIC_LIBS@
-CC          = gcc
-CPP         = g++
+CC          = @CC@
+CPP         = @CPP@
+DEPFLAGS    = @DEPFLAGS@
+DEFS        = @DEFS@
 STRIP       = strip
 POST        =
 INSTALL     = install
@@ -90,7 +92,7 @@ endif
 DEBUG 		= @DEBUG@
 OPTIMIZE	= @OPTIMIZE@
 WARN  		= -Wall -Werror @OPTIMIZE_WARN@
-CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(WARN) 
+CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(DEPFLAGS) $(WARN) $(DEFS)
 LFLAGS		= $(LIBDIRS) @STATIC@
 
 #
@@ -129,22 +131,22 @@ $(SRCDIR)/Rules.make: $(SRCDIR)/Rules.make.in $(SRCDIR)/configure
 #
 %.o: %.cc
 	@rm -f $@; mkdir -p $(@D)
-	$(CPP) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -o $@
+	$(CPP) $(CFLAGS) -c $< -o $@
 
 %.o: %.c
 	@rm -f $@; mkdir -p $(@D)
-	$(CC) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 #
 # Generate cpp output in .E files.
 #
 %.E: %.cc
 	@rm -f $@; mkdir -p $(@D)
-	$(CPP) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -E -o $@
+	$(CPP) $(CFLAGS) -c $< -E -o $@
 
 %.E: %.c
 	@rm -f $@; mkdir -p $(@D)
-	$(CPP) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -E -o $@
+	$(CPP) $(CFLAGS) -c $< -E -o $@
 
 #
 # Always include all the .d files that we can find, based on all the
