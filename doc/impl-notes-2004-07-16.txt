@@ -1,0 +1,67 @@
+July 16 DTN Reference Implementation Discussion 
+10.00a - 12.30p
+
+Status:
+      - Mike and Sushant did first cut at storage layer
+	- marshalled / unmarshalled implemented
+      - Mike sketched out some initial versions of internal structures
+
+Discussion (long) on client app api
+      - new pending version of spec to accomodate this
+      - allows multiple apps to register on the same endpoint id
+      - so each {endpoint, registration_id} has its own delivery rules
+	- store, drop, run script, etc
+      - registration token is basically just the socket file
+        descriptor
+      - send token is essentially the local bundle id, can look up
+        and/or cancel
+      - discussed the blurry line between registration and listening
+        - new service spec
+	- register: application interest in endpoint id and rules
+		    for handling when not there
+          - register token is a pointer to a structure that stores the 
+	    rules for the app, and has a slot for the socket id when
+            starting a period of "passive bundle reception"
+        - unregister: wipes out the cookie with the rules, removes the
+		      queue for that id 
+	- start_delivery: dtn_socket, then dtn_listen(regid, socket)
+			  starts the period of passive bundle reception
+	- stop_delivery: 
+        - poll: does need a registration token, but only works if
+	        delivery rules is queue
+	- script implies queue in the service spec
+	- difference between poll and recv is that recv can only be
+	  done after calling dtn listen
+	  - but mechanically, both work the same way in that the app
+	    sends a message to the daemon asking for a bundle, then
+	    the daemon will write the bundle
+     - need to tolerate app not responding in time, will have a thread
+       per dtn socket
+     - dtn_recv: has a non-blocking and a blocking variant just like
+     - concepts of dtn socket and registration should be kept separate
+       when exposed to the application
+     - if dtn_listen => start_passive_reception, then need
+       dtn_unlisten
+     - one change: dtn_register takes both an endpoint id and an
+       registration id, both specified by the app
+         - reg id is globally unique, not tied to the endpoint id
+	 - will be a string
+	 - but you can ask for a new unique one by passing empty
+	   string or some such
+     - cancel only affects the local daemon
+       - but the "squashing feature" lets the app have some control
+         over behavior downstream
+
+Bundle Memory Management:
+      - Bundles will be reference counted
+        - one ref per "next-hop" desintation (either another daemon or
+	  an app registration)
+      - All Bundle MD in memory at all times
+      - For now, keep payload data as well -- easily extended to flush
+        out payload data from memory
+
+Bundle Payload size restrictions:
+      - brought the question up but never resolved it
+
+ARs:
+      - Mike, Sushant, Ting: keep hacking
