@@ -42,14 +42,13 @@ public:
      */
     SQLInsert(const char* table_name);
   
-    int action(SerializableObject* object);
     /**
      * Since insert doesn't modify the object, define a variant of
      * action() that operates on a const SerializableObject.
      */
     int action(const SerializableObject* const_object)
     {
-        return(action((SerializableObject*)const_object));
+        return(SerializeAction::action((SerializableObject*)const_object));
     }
         
     // Virtual functions inherited from SerializeAction
@@ -76,15 +75,13 @@ public:
      */
     SQLTableFormat(const char* table_name);
 
-    int action(SerializableObject* object);
-
     /**
      * Since table format doesn't modify the object, define a variant
      * of action() that operates on a const SerializableObject.
      */
     int action(const SerializableObject* const_object)
     {
-        return(action((SerializableObject*)const_object));
+        return(SerializeAction::action((SerializableObject*)const_object));
     }
         
     // Virtual functions inherited from SerializeAction
@@ -110,7 +107,6 @@ class SQLExtract : public SerializeAction {
 public:
     SQLExtract(SQLImplementation *db);
     
-    int action(SerializableObject* object);
     // get the next field from the db
     const char* next_field() ;
 

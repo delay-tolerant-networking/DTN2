@@ -30,7 +30,7 @@ const char*
 SQLQuery::query()
 {
     if (query_.data()[query_.length() - 1] == ',') {
-       query_.trim(1);
+        query_.trim(1);
 	query_.append(')');
     }
     
@@ -124,38 +124,11 @@ SQLInsert::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
     NOTIMPLEMENTED;
 }
 
-int
-SQLInsert::action(SerializableObject* object)
-{
-
-  error_ = false;
-  object->serialize(this);
-  if (error_ == true)
-    return -1;
-
-  return 0;
-}
-
-
 /******************************************************************************
  *
  * SQLTableFormat
  *
  *****************************************************************************/
-
-
-int
-SQLTableFormat::action(SerializableObject* object)
-{
-
-  error_ = false;
-  object->serialize(this);
-  if (error_ == true)
-    return -1;
-
-  return 0;
-}
-
 
 /**
  * Constructor.
@@ -247,20 +220,6 @@ SQLTableFormat::process(const char* name, u_char** bp, size_t* lenp, bool alloc_
  * SQLExtract
  *
  *****************************************************************************/
-
-
-int
-SQLExtract::action(SerializableObject* object)
-{
-
-  error_ = false;
-  object->serialize(this);
-  if (error_ == true)
-    return -1;
-
-  return 0;
-}
-
 
 /**
  * Constructor.
