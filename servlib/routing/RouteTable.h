@@ -5,6 +5,7 @@
 #include "bundling/BundleTuple.h"
 #include "bundling/Contact.h"
 #include "debug/Debug.h"
+#include "debug/Log.h"
 #include "storage/Serialize.h"
 
 class Bundle;
@@ -21,7 +22,7 @@ struct RouteEntry {
 /**
  * The global bundle routing table.
  */
-class RouteTable : public SerializableObject {
+class RouteTable : public SerializableObject, public Logger {
 public:
     /**
      * Singleton instance accessor.
@@ -35,6 +36,11 @@ public:
      * Boot time initializer.
      */
     static void init();
+
+    /**
+     * Constructor.
+     */
+    RouteTable();
 
     /**
      * Set the local region string.

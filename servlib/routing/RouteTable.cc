@@ -14,8 +14,14 @@ RouteTable::serialize(SerializeAction* a)
 {
 }
 
+RouteTable::RouteTable()
+    : Logger("/route")
+{
+}
+
 Contact*
 RouteTable::next_hop(Bundle* b)
 {
-    NOTIMPLEMENTED;
+    logf(LOG_WARN, "next hop not implemented");
+    return NULL;
 }
