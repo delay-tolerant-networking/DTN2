@@ -174,7 +174,7 @@ SimContact::process(Event* e)
         }
         state_ = OPEN;
         chewing_complete( e1->msg_->size(),e1->msg_);
-        chewing_event_ = NULL;
+	//       chewing_event_ = NULL;
         //src_->open_contact(this);
         break;
     } 

@@ -57,9 +57,9 @@ private:
     int down_;
 
     typedef enum {
-	OPEN, // Available to send a message
-	BUSY, // Currently sending a message
-	CLOSE,/// Closed
+	OPEN = 1, // Available to send a message
+	BUSY = 2, // Currently sending a message
+	CLOSE = 3 /// Closed
     } state_t;
     
     state_t state_;
