@@ -142,6 +142,7 @@ TCPConvergenceLayer::open_contact(Contact* contact)
     // create a new connection for the contact
     // XXX/demmer bind?
     Connection* conn = new Connection(contact, addr, url.port_);
+    contact->set_contact_info(conn);
     conn->start();
 
     return true;
@@ -153,8 +154,16 @@ TCPConvergenceLayer::open_contact(Contact* contact)
 bool
 TCPConvergenceLayer::close_contact(Contact* contact)
 {
-    NOTIMPLEMENTED;
-    return false;
+    Connection* conn = (Connection*)contact->contact_info();
+
+    if (!conn->is_stopped()) {
+        PANIC("XXX/demmer need to stop the connection thread");
+    }
+
+    delete conn;
+    contact->set_contact_info(NULL);
+    
+    return true;
 }
     
 /******************************************************************************
@@ -537,6 +546,7 @@ TCPConvergenceLayer::Connection::send_loop()
                 cc, sizeof(ContactHeader), strerror(errno));
  shutdown:
         sock_->close();
+        Thread::set_flag(STOPPED);
         contact_->close();
         return;
     }
@@ -610,7 +620,17 @@ TCPConvergenceLayer::Connection::send_loop()
                 else if ((sock_poll->revents & POLLIN) ||
                          (sock_poll->revents & POLLPRI))
                 {
+                    char typecode;
+                    int ret = sock_->read(&typecode, 1);
+                    if (ret == -1 || ret == 0)
+                    {
+                        log_warn("send_loop: "
+                                 "remote connection unexpectedly closed");
+                        goto shutdown;
+                    }
+
                     log_err("XXX/demmer todo handle keepalive");
+                    goto shutdown;
                 }
                 else
                 {
@@ -704,6 +724,11 @@ TCPConvergenceLayer::Connection::recv_loop()
         // block on the one byte typecode
         log_debug("recv_loop: blocking on frame typecode...");
         cc = sock_->read(&typecode, 1);
+        if (cc == 0) {
+            log_warn("recv_loop: remote connection unexpectedly closed");
+            goto shutdown;
+            
+        }
         if (cc != 1) {
             log_err("recv_loop: error reading frame type code: %s",
                     strerror(errno));

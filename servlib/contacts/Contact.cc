@@ -31,7 +31,9 @@ Contact::~Contact()
 void
 Contact::open()
 {
-    log_err("XXX/demmer Contact::open not implemented");
+    log_debug("Contact::open");
+    clayer_->open_contact(this);
+    open_ = true;
 }
     
 /**
@@ -41,7 +43,10 @@ Contact::open()
 void
 Contact::close()
 {
-    log_err("XXX/demmer Contact::close not implemented");
+    log_debug("Contact::close");
+    clayer_->close_contact(this);
+    ASSERT(contact_info_ == NULL);
+    open_ = false;
 }
 
 int
@@ -56,8 +61,7 @@ void
 Contact::consume_bundle(Bundle* bundle)
 {
     if (!isopen() && (type_ == ONDEMAND || type_ == OPPORTUNISTIC)) {
-        clayer_->open_contact(this);
-        open_ = true;
+        open();
     }
     
     bundle_list_->push_back(bundle);

@@ -124,7 +124,7 @@ public:
      */
     void set_contact_info(ContactInfo* contact_info)
     {
-        ASSERT(contact_info_ == NULL);
+        ASSERT(contact_info_ == NULL || contact_info == NULL);
         contact_info_ = contact_info;
     }
 
