@@ -75,11 +75,6 @@ public:
     virtual bool is_custodian(int bundle_id) = 0;
 
 protected:
-
-    // Used for initializing. Same as constructor. Need because of c++ mysteries
-    void init(PersistentStore* store); 
-
-private:
     static BundleStore* instance_; ///< singleton instance
 
     int next_bundle_id_; 	/// running serial number for bundles
