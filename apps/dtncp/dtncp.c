@@ -49,6 +49,7 @@
 
 #include "dtn_api.h"
 
+char *progname;
 int verbose             = 1;
 
 char data_source[1024]; // filename or message, depending on type
@@ -198,13 +199,16 @@ main(int argc, char** argv)
 
 void print_usage()
 {
-    fprintf(stderr, "usage: dcp file bundles://region/host://admin/path\n");
+    fprintf(stderr, "usage: %s filename bundles://region/host://admin/path\n",
+                progname);
     
     exit(1);
 }
 
 void parse_options(int argc, char**argv)
 {
+    progname = argv[0];
+
     if (argc < 3)
     {
         print_usage();

@@ -46,10 +46,12 @@
 
 #define BUFSIZE 16
 
+const char *progname;
+
 void
 usage()
 {
-    fprintf(stderr, "usage: dtn_recv [endpoint]\n");
+    fprintf(stderr, "usage: %s [endpoint]\n", progname);
     exit(1);
 }
 
@@ -68,7 +70,8 @@ main(int argc, const char** argv)
     unsigned char* endpoint, *buffer;
     char s_buffer[BUFSIZE];
     int debug = 1;
-    
+
+    progname = argv[0];    
     if (argc != 2) {
         usage();
     }

@@ -45,10 +45,13 @@
 
 #include "dtn_api.h"
 
+const char *progname;
+
 void
 usage()
 {
-    fprintf(stderr, "usage: ping [-c count] [-i interval] tuple\n");
+    fprintf(stderr, "usage: %s [-c count] [-i interval] tuple\n",
+        progname);
     exit(1);
 }
 
@@ -187,7 +190,10 @@ void
 doOptions(int argc, const char **argv)
 {
     int c;
-    while ( (c=getopt(argc, (char **) argv, "c:i:d:")) !=EOF ) {
+
+    progname = argv[0];
+
+    while ( (c=getopt(argc, (char **) argv, "hc:i:d:")) !=EOF ) {
         switch (c) {
         case 'c':
             count = atoi(optarg);
@@ -198,7 +204,10 @@ doOptions(int argc, const char **argv)
         case 'd':
             strcpy(dest_tuple_str, optarg);
             break;
-        case '?':
+        case 'h':
+            usage();
+            break;
+        default:
             break;
         }
     }

@@ -46,6 +46,8 @@
 
 #include "dtn_api.h"
 
+char *progname;
+
 // global options
 dtn_bundle_payload_location_t 
         payload_type    = 0;    // the type of data source for the bundle
@@ -237,8 +239,9 @@ main(int argc, char** argv)
 
 void print_usage()
 {
-    fprintf(stderr, "usage: dtnsend [opts] "
-            "-s <source_tuple> -d <dest_tuple> -t <type> -p <payload>\n");
+    fprintf(stderr, "usage: %s [opts] "
+            "-s <source_tuple> -d <dest_tuple> -t <type> -p <payload>\n",
+            progname);
     fprintf(stderr, "options:\n");
     fprintf(stderr, " -s <tuple|demux_string> source tuple)\n");
     fprintf(stderr, " -d <tuple|demux_string> destination tuple)\n");
@@ -262,10 +265,10 @@ void print_usage()
 void parse_options(int argc, char**argv)
 {
     char c, done = 0;
-
     char arg_type = 0;
-
     time_t current;
+
+    progname = argv[0];
 
     while (!done)
     {

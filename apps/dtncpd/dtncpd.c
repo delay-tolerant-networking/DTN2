@@ -51,10 +51,15 @@
 #define BUFSIZE 16
 #define BUNDLE_DIR_DEFAULT "/dtn/received_bundles"
 
+static const char *progname;
+
 void
 usage()
 {
-    fprintf(stderr, "usage: dtn_recv\n");
+    fprintf(stderr, "usage: %s [ directory ]\n", progname);
+    fprintf(stderr, "    optional directory parameter is where incoming "
+                    "files will get put\n");
+    fprintf(stderr, "    (defaults to: %s)\n", BUNDLE_DIR_DEFAULT);
     exit(1);
 }
 
@@ -83,7 +88,6 @@ main(int argc, const char** argv)
     char * filepath;
     time_t current;
 
-/*     char buffer[BUFSIZE]; */
     char * buffer;
     char s_buffer[BUFSIZE + 1];
 
@@ -92,13 +96,17 @@ main(int argc, const char** argv)
     FILE * target;
 
     s_buffer[BUFSIZE] = '\0';
-    
+
+    progname = argv[0];
     
     if (argc > 2) {
         usage();
     }
     else if (argc == 2)
     {
+        if (argv[1][0] == '-' && argv[1][1] == 'h') {
+            usage();
+        }
         bundle_dir = (char *) argv[1];
     }
     else
@@ -108,6 +116,7 @@ main(int argc, const char** argv)
 
     buffer = malloc(sizeof(char) * (strlen(bundle_dir) + 10));
     sprintf(buffer, "mkdir -p %s", bundle_dir);
+
     if (system(buffer) == -1)
     {
         fprintf(stderr, "Error opening bundle directory: %s\n", bundle_dir);
