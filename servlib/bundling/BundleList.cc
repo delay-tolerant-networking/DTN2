@@ -1,6 +1,7 @@
 
 #include "Bundle.h"
 #include "BundleList.h"
+#include "BundleMapping.h"
 #include "thread/SpinLock.h"
 #include <algorithm>
 
@@ -50,14 +51,24 @@ BundleList::back()
 }
 
 /**
- * Helper routine to do bookkeeping when a bundle is added.
+ * Helper routine to insert a bundle immediately before the indicated
+ * position.
  */
 void
-BundleList::add_bundle(Bundle* b)
+BundleList::add_bundle(Bundle* b, iterator pos,
+                       const BundleMapping* mapping_info)
 {
+    ASSERT(lock_->is_locked_by_me());
+
+    list_.insert(pos, b);
+    
     b->add_ref("bundle_list", name_.c_str());
-    bool added = b->add_container(this);
-    ASSERT(added);
+
+    BundleMapping* mapping = b->add_mapping(this, mapping_info);
+    ASSERT(mapping);
+
+    mapping->position_ = --pos;
+    ASSERT(*(mapping->position_) == b);
 }
 
 
@@ -65,11 +76,10 @@ BundleList::add_bundle(Bundle* b)
  * Add a new bundle to the front of the list.
  */
 void
-BundleList::push_front(Bundle* b)
+BundleList::push_front(Bundle* b, const BundleMapping* mapping_info)
 {
     lock_->lock();
-    list_.push_front(b);
-    add_bundle(b);
+    add_bundle(b, list_.begin(), mapping_info);
     lock_->unlock();
     
     if (size() == 1) {
@@ -81,11 +91,10 @@ BundleList::push_front(Bundle* b)
  * Add a new bundle to the front of the list.
  */
 void
-BundleList::push_back(Bundle* b)
+BundleList::push_back(Bundle* b, const BundleMapping* mapping_info)
 {
     lock_->lock();
-    list_.push_back(b);
-    add_bundle(b);
+    add_bundle(b, list_.end(), mapping_info);
     lock_->unlock();
     
     if (size() == 1) {
@@ -97,7 +106,8 @@ BundleList::push_back(Bundle* b)
  * Insert the given bundle sorted by the given sort method.
  */
 void
-BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
+BundleList::insert_sorted(Bundle* b, const BundleMapping* mapping_info,
+                          sort_order_t sort_order)
 {
     ListType::iterator iter;
 
@@ -126,9 +136,8 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
             PANIC("invalid value for sort order %d", sort_order);
         }
     }
-
-    list_.insert(iter, b);
-    add_bundle(b);
+    
+    add_bundle(b, iter, mapping_info);
     lock_->unlock();
     
     if (size() == 1) {
@@ -137,20 +146,38 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
 }
 
 /**
- * Helper routine to do bookkeeping when a bundle is removed.
+ * Helper routine to remove a bundle from the indicated position.
  */
-void
-BundleList::del_bundle(Bundle* b)
+Bundle*
+BundleList::del_bundle(iterator pos, BundleMapping** mappingp)
 {
-    bool deleted = b->del_container(this);
-    ASSERT(deleted);
+    Bundle* b = *pos;
+    ASSERT(lock_->is_locked_by_me());
+    
+    BundleMapping* mapping = b->del_mapping(this);
+    ASSERT(mapping->position_ == pos);
+    ASSERT(mapping != NULL);
+    
+    list_.erase(pos);
+
+    // note that we explicitly do _not_ decrement the reference count
+    // since the reference is passed to the calling function
+    
+    // if the caller wants the mapping, return it, otherwise delete it
+    if (mappingp) {
+        *mappingp = mapping;
+    } else {
+        delete mapping;
+    }
+
+    return b;
 }
 
 /**
  * Remove (and return) the first bundle on the list.
  */
 Bundle*
-BundleList::pop_front()
+BundleList::pop_front(BundleMapping** mappingp)
 {
     ScopeLock l(lock_);
 
@@ -161,35 +188,25 @@ BundleList::pop_front()
     if (list_.empty())
         return NULL;
 
-    Bundle* b = list_.front();
-    list_.pop_front();
-
-    del_bundle(b);
-    
-    return b;
+    return del_bundle(list_.begin(), mappingp);
 }
 
 /**
  * Remove (and return) the last bundle on the list.
  */
 Bundle*
-BundleList::pop_back()
+BundleList::pop_back(BundleMapping** mappingp)
 {
     ScopeLock l(lock_);
 
     // always drain the pipe to maintain the invariant that if the
     // list is empty, then the pipe must be empty as well
     drain_pipe();
-    
+
     if (list_.empty())
         return NULL;
-    
-    Bundle* b = list_.back();
-    list_.pop_back();
 
-    del_bundle(b);
-        
-    return b;
+    return del_bundle(--list_.end(), mappingp);
 }
 
 /**
@@ -197,7 +214,7 @@ BundleList::pop_back()
  * there are none.
  */
 Bundle*
-BundleList::pop_blocking(int timeout)
+BundleList::pop_blocking(BundleMapping** mappingp, int timeout)
 {
     lock_->lock();
 
@@ -217,7 +234,7 @@ BundleList::pop_blocking(int timeout)
 
     ASSERT(!list_.empty());
     
-    Bundle* b = pop_front();
+    Bundle* b = pop_front(mappingp);
     
     lock_->unlock();
     
@@ -225,29 +242,19 @@ BundleList::pop_blocking(int timeout)
 }
 
 /**
- * Remove the given bundle.
+ * Remove the bundle at the given list position. Always succeeds
+ * since the iterator must be valid.
  *
- * @return true if the bundle was removed successfully, false if
- * it was not on the list
+ * Unlike the pop() functions, this does remove the list's
+ * reference on the bundle.
  */
-bool
-BundleList::remove(Bundle* bundle)
+void
+BundleList::erase(iterator& pos, BundleMapping** mappingp)
 {
     ScopeLock l(lock_);
-
-    iterator iter = std::find(list_.begin(), list_.end(), bundle);
-    if (iter == list_.end()) {
-        return false;
-    }
-
-    list_.erase(iter);
-
-    bool deleted = bundle->del_container(this);
-    ASSERT(deleted);
     
-    bundle->del_ref("bundle_list", name_.c_str()); // may delete the bundle
-
-    return true;
+    Bundle* b = del_bundle(pos, mappingp);
+    b->del_ref("bundle_list", name_.c_str());
 }
 
 /**
@@ -260,9 +267,12 @@ BundleList::move_contents(BundleList* other)
     ScopeLock l2(other->lock_);
 
     Bundle* b;
+    BundleMapping* m;
     while (!list_.empty()) {
-        b = pop_front();
-        other->push_back(b);
+        b = pop_front(&m);
+        other->push_back(b, m); // copies m
+        delete m;
+        
         b->del_ref("BundleList move_contents from", name_.c_str());
     }
 }

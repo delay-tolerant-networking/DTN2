@@ -3,6 +3,7 @@
 #include "RegistrationTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
+#include "bundling/BundleMapping.h"
 #include "storage/GlobalStore.h"
 
 void
@@ -20,6 +21,7 @@ Registration::init(u_int32_t regid,
     active_ = false;
 
     logpathf("/registration/%d", regid);
+    
     bundle_list_ = new BundleList(logpath_);
     
     if (expiration == 0) {
@@ -67,26 +69,6 @@ Registration::~Registration()
     delete bundle_list_;
 }
     
-/**
- * Consume a bundle for the registered endpoint.
- */
-void
-Registration::consume_bundle(Bundle* bundle)
-{
-    log_info("queue bundle id %d for delivery to registration %d (%s)",
-             bundle->bundleid_, regid_, endpoint_.c_str());
-    bundle_list_->push_back(bundle);
-}
-
-/**
- * Check if the given bundle is already queued on this consumer.
- */
-bool
-Registration::is_queued(Bundle* bundle)
-{
-    return bundle->has_container(bundle_list_);
-}
-
 /**
  * Virtual from SerializableObject.
  */

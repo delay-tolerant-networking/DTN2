@@ -89,7 +89,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
         }
     }
     
-    pending_bundles_->push_back(bundle);
+    pending_bundles_->push_back(bundle, NULL);
     actions->push_back(new BundleAction(STORE_ADD, bundle));
     
     //here we do not need to handle the new bundle immediately
@@ -119,8 +119,10 @@ FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
     
     //now we want to ask the contact to send the other queued
     //bundles it has
-    Contact * contact = (Contact *)event->consumer_;
-    contact->consume_bundle(NULL);
+
+    PANIC("XXX/demmer need to kick the contact to tell it to send bundleS");
+    //Contact * contact = (Contact *)event->consumer_;
+    //contact->enqueue_bundle(NULL, FORWARD_UNIQUE);
     
 }
 
@@ -222,7 +224,7 @@ FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
          iter != pending_bundles_->end(); ++iter) {
         bundle = *iter;
         actions->push_back(
-            new BundleForwardAction(FORWARD_COPY, bundle, next_hop));
+            new BundleEnqueueAction(bundle, next_hop, FORWARD_COPY));
     }
 }
 
@@ -243,13 +245,13 @@ FloodBundleRouter::fwd_to_matching(
         log_info("\tentry: point:%s --> %s [%s] local:%d",
                 entry->pattern_.c_str(),
                 entry->next_hop_->dest_tuple()->c_str(),
-                bundle_action_toa(entry->action_),
+                bundle_fwd_action_toa(entry->action_),
                 entry->next_hop_->is_local());
         if (!entry->next_hop_->is_local())
             continue;
         
         actions->push_back(
-            new BundleForwardAction(entry->action_, bundle, entry->next_hop_));
+            new BundleEnqueueAction(bundle, entry->next_hop_, entry->action_));
         ++count;
         bundle->add_pending();
     }

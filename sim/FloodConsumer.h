@@ -10,7 +10,7 @@ public:
     FloodConsumer(u_int32_t regid, const BundleTuplePattern& endpoint);
     
     void    set_router(BundleRouter *router);
-    void    consume_bundle(Bundle *bundle);
+    void    enqueue_bundle(Bundle *bundle);
 protected:
     BundleRouter *router_;
 };

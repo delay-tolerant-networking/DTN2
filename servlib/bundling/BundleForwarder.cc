@@ -4,7 +4,6 @@
 #include "BundleList.h"
 #include "BundleForwarder.h"
 #include "Contact.h"
-#include "FragmentManager.h"
 #include "routing/BundleRouter.h"
 #include "storage/BundleStore.h"
 #include "util/StringBuffer.h"
@@ -106,29 +105,11 @@ BundleForwarder::process(BundleAction* action)
     bundle = action->bundleref_.bundle();
     
     switch (action->action_) {
-    case FORWARD_UNIQUE:
-    case FORWARD_COPY:
-    case FORWARD_REASSEMBLE: {
-        BundleForwardAction* fwdaction = (BundleForwardAction*)action;
+    case ENQUEUE_BUNDLE:
+    {
+        BundleEnqueueAction* enqaction = (BundleEnqueueAction*) action;
         log_debug("forward bundle %d", bundle->bundleid_);
-
-        if (action->action_ == FORWARD_REASSEMBLE && bundle->is_fragment_)
-        {
-            // bump down the pending count on the bundle since we're
-            // not going to deliver it, then pass it to the fragment
-            // manager
-            bundle->del_pending();
-            bundle = FragmentManager::instance()->process(bundle);
-
-            if (!bundle)
-                break;
-
-            // and on the flip side, if there is a reassembled bundle,
-            // bump up it's pending count. XXX/demmer fix this
-            bundle->add_pending();
-        }
-        
-        fwdaction->nexthop_->consume_bundle(bundle);
+        enqaction->nexthop_->enqueue_bundle(bundle, &enqaction->mapping_);
         break;
     }
     case STORE_ADD: {

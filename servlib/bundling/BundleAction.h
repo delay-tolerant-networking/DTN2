@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "Bundle.h"
+#include "BundleMapping.h"
 #include "BundleRef.h"
 
 class BundleConsumer;
@@ -11,14 +12,13 @@ class BundleConsumer;
  * Type code for bundling actions.
  */
 typedef enum {
-    FORWARD_UNIQUE,	///< Forward the bundle
-    FORWARD_COPY,	///< Forward a copy of the bundle
-    FORWARD_CANCEL,	///< Cancel a requested transmissision
-    FORWARD_REASSEMBLE,	///< First reassemble fragments (if any) then forward
+    ENQUEUE_BUNDLE,	///< Queue a bundle on a consumer
+    DEQUEUE_BUNDLE,	///< Remove a bundle from a consumer
 
     STORE_ADD,		///< Store the bundle in the database
     STORE_DEL,		///< Remove the bundle from the database
 } bundle_action_t;
+
 
 /**
  * Conversion function from an action to a string.
@@ -27,11 +27,10 @@ inline const char*
 bundle_action_toa(bundle_action_t action)
 {
     switch(action) {
-    case FORWARD_UNIQUE:	return "FORWARD_UNIQUE";
-    case FORWARD_COPY:		return "FORWARD_COPY";
-    case FORWARD_CANCEL:	return "FORWARD_CANCEL";
-    case FORWARD_REASSEMBLE:	return "FORWARD_REASSEMBLE";
 
+    case ENQUEUE_BUNDLE:	return "ENQUEUE_BUNDLE";
+    case DEQUEUE_BUNDLE:	return "DEQUEUE_BUNDLE";
+        
     case STORE_ADD:		return "STORE_ADD";
     case STORE_DEL:		return "STORE_DEL";
         
@@ -46,7 +45,9 @@ class BundleAction {
 public:
     BundleAction(bundle_action_t action, Bundle* bundle)
         : action_(action),
-          bundleref_(bundle, "BundleAction", bundle_action_toa(action)) {}
+          bundleref_(bundle, "BundleAction", bundle_action_toa(action))
+    {
+    }
                  
     bundle_action_t action_;	///< action type code
     BundleRef bundleref_;	///< relevant bundle
@@ -60,23 +61,52 @@ private:
 };
     
 /**
- * Structure encapsulating a forwarding action.
- */
-class BundleForwardAction : public BundleAction {
-public:
-    BundleForwardAction(bundle_action_t action, Bundle* bundle,
-                        BundleConsumer* nexthop)
-        : BundleAction(action, bundle), nexthop_(nexthop) {}
-    
-    BundleConsumer* nexthop_;	///< destination
-};
-    
-/**
  * The vector of actions that is constructed by the BundleRouter.
  * Define a (empty) class, not a typedef, so we can use forward
  * declarations.
  */
 class BundleActionList : public std::vector<BundleAction*> {
 };
+
+/**
+ * Structure encapsulating an enqueue action.
+ */
+class BundleEnqueueAction : public BundleAction {
+public:
+    BundleEnqueueAction(Bundle* bundle,
+                        BundleConsumer* nexthop,
+                        bundle_fwd_action_t fwdaction,
+                        int mapping_grp = 0,
+                        u_int32_t expiration = 0,
+                        RouterInfo* router_info = 0)
+        
+        : BundleAction(ENQUEUE_BUNDLE, bundle),
+          nexthop_(nexthop)
+    {
+        mapping_.action_ 	= fwdaction;
+        mapping_.mapping_grp_ 	= mapping_grp;
+        mapping_.timeout_ 	= expiration;
+        mapping_.router_info_ 	= router_info;
+    }
+
+    BundleConsumer* nexthop_;		///< destination
+    BundleMapping mapping_;		///< mapping structure
+};
+
+/**
+ * Structure for a dequeue action.
+ */
+class BundleDequeueAction : public BundleAction {
+    BundleDequeueAction(Bundle* bundle,
+                        BundleConsumer* nexthop)
+        : BundleAction(DEQUEUE_BUNDLE, bundle),
+          nexthop_(nexthop)
+    {
+    }
+        
+    BundleConsumer* nexthop_;		///< destination
+};
+
+    
 
 #endif /* _BUNDLE_ACTION_H_ */

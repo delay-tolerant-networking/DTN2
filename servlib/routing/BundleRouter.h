@@ -166,10 +166,19 @@ protected:
      */
     virtual void handle_route_add(RouteAddEvent* event,
                                   BundleActionList* actions);
+
+    /**
+     * Add an action to forward a bundle to a next hop route, making
+     * sure to do reassembly if the forwarding action specifies as
+     * such.
+     */
+    virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
+                                BundleActionList* actions);
+     
     
     /**
-     * Get all matching entries from the routing table, and add a
-     * corresponding forwarding action to the action list.
+     * Call fwd_to_nexthop for all matching entries in the routing
+     * table.
      *
      * Note that if the include_local flag is set, then local routes
      * (i.e. registrations) are included in the list.
@@ -177,7 +186,7 @@ protected:
      * Returns the number of matches found and assigned.
      */
     virtual int fwd_to_matching(Bundle* bundle, BundleActionList* actions,
-                        bool include_local);
+                                bool include_local);
     
     /**
      * Called whenever a new consumer (i.e. registration or contact)

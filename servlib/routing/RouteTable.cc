@@ -8,7 +8,7 @@
  */
 RouteEntry::RouteEntry(const BundleTuplePattern& pattern,
                        BundleConsumer* next_hop,
-                       bundle_action_t action)
+                       bundle_fwd_action_t action)
     : pattern_(pattern),
       action_(action),
       next_hop_(next_hop),
@@ -52,7 +52,7 @@ RouteTable::add_entry(RouteEntry* entry)
     log_debug("add_route %s -> %s (%s)",
               entry->pattern_.c_str(),
               entry->next_hop_->dest_tuple()->c_str(),
-              bundle_action_toa(entry->action_));
+              bundle_fwd_action_toa(entry->action_));
     
     route_table_.insert(entry);
     
@@ -113,7 +113,7 @@ RouteTable::get_matching(const BundleTuple& tuple,
             log_debug("match entry %s -> %s (%s)",
                       entry->pattern_.c_str(),
                       entry->next_hop_->dest_tuple()->c_str(),
-                      bundle_action_toa(entry->action_));
+                      bundle_fwd_action_toa(entry->action_));
 
             entry_set->insert(entry);
         }
@@ -137,6 +137,6 @@ RouteTable::dump(StringBuffer* buf) const
         buf->appendf("\t%s -> %s (%s)\n",
                      entry->pattern_.c_str(),
                      entry->next_hop_->dest_tuple()->c_str(),
-                     bundle_action_toa(entry->action_));
+                     bundle_fwd_action_toa(entry->action_));
     }
 }

@@ -243,12 +243,12 @@ FragmentManager::process(Bundle* fragment)
 
         state->bundle_->payload_.reopen_file();
     }
-        
 
     // grab a lock on the fragment list and tack on the new fragment
     // to the fragment list
     ScopeLock fraglock(state->fragments_.lock());
-    state->fragments_.insert_sorted(fragment, BundleList::SORT_FRAG_OFFSET);
+    state->fragments_.insert_sorted(fragment, NULL,
+                                    BundleList::SORT_FRAG_OFFSET);
     
     // store the fragment data in the partially reassembled bundle file
     size_t fraglen = fragment->payload_.length();

@@ -13,7 +13,7 @@ FloodConsumer::FloodConsumer(u_int32_t regid,
 }
 
 void
-FloodConsumer::consume_bundle(Bundle *bundle)
+FloodConsumer::enqueue_bundle(Bundle *bundle)
 {
     log_info("FLOOD_CONSUMER : consuming bundle id:%d",bundle->bundleid_);
 

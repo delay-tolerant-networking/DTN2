@@ -7,9 +7,10 @@
 #include "storage/Serialize.h"
 #include "thread/SpinLock.h"
 #include <sys/time.h>
-#include <set>
+#include <map>
 
 class BundleList;
+class BundleMapping;
 class SQLBundleStore;
 
 /**
@@ -93,7 +94,6 @@ public:
      */
     int del_pending();
 
-
     /**
      * Bump up the reference count. Parameters are used for logging.
      *
@@ -110,33 +110,50 @@ public:
      */
     int del_ref(const char* what1, const char* what2 = "");
 
-    /**
-     * The number of container lists that have a reference to this
-     * bundle.
+    /*
+     * Types used for the mapping table.
      */
-    int num_containers() { return containers_.size(); }
+    typedef std::map<BundleList*, BundleMapping*> BundleMappings;
+    typedef BundleMappings::const_iterator MappingsIterator;
     
     /**
-     * Add a BundleList to the set of containers.
-     *
-     * @return true if the list pointer was added successfully, false
-     * if it was already in the set
+     * The number of mappings for this bundle.
      */
-    bool add_container(BundleList* blist);
+    int num_mappings() { return mappings_.size(); }
+    
+    /**
+     * Add a BundleList to the set of mappings, copying the mapping
+     * information.
+     *
+     * @return the new mapping if it was added successfully, NULL if
+     * the list was already in the set
+     */
+    BundleMapping* add_mapping(BundleList* blist,
+                               const BundleMapping* mapping_info);
 
     /**
-     * Remove a BundleList from the set of containers.
+     * Remove a mapping.
      *
-     * @return true if the list pointer was removed successfully,
-     * false if it wasn't in the set
+     * @return the mapping if it was removed successfully, NULL if
+     * wasn't in the set.
      */
-    bool del_container(BundleList* blist);
+    BundleMapping* del_mapping(BundleList* blist);
 
     /**
-     * Check if this bundle is already queued on the given bundle
-     * list.
+     * Get the mapping state for the given list. Returns NULL if the
+     * bundle is not currently queued on the list.
      */
-    bool has_container(BundleList* blist);
+    BundleMapping* get_mapping(BundleList* blist);
+
+    /**
+     * Return an iterator to scan through the mappings.
+     */
+    MappingsIterator mappings_begin();
+    
+    /**
+     * Return an iterator to mark the end of the mappings set.
+     */
+    MappingsIterator mappings_end();
     
     /**
      * Values for the bundle priority field.
@@ -193,17 +210,13 @@ public:
     /*
      * Internal fields for managing the bundle.
      */
-    // XXX/demmer this should actually store a struct of the list and
-    // the iterator representing the position of the bundle in the
-    // list. this a) makes removal more efficient, and b) allows the
-    // same bundle to be on a list twice (e.g. sent_but_unacked in the
-    // udp cl)
-    typedef std::set<BundleList*> BundleListSet;
+    
     SpinLock lock_;		///< Lock for bundle data that can be
                                 ///  updated by multiple threads, e.g.
                                 ///  containers_ and refcount_.
-    BundleListSet containers_;	///< The set of BundleLists that
+    BundleMappings mappings_;	///< The set of BundleLists that
                                 ///  contain the Bundle.
+    
     int refcount_;		///< Bundle reference count
     int pendingtxcount_;        ///< Number of pending transmissions left
 
@@ -213,5 +226,6 @@ private:
      */
     void init(u_int32_t id, BundlePayload::location_t location);
 };
+
 
 #endif /* _BUNDLE_H_ */

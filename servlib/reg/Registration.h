@@ -10,6 +10,7 @@
 
 class Bundle;
 class BundleList;
+class BundleMapping;
 
 /**
  * Class used to represent an "application" registration, loosly
@@ -21,8 +22,7 @@ class BundleList;
  *
  * Registration state is stored persistently in the database.
  */
-class Registration : public BundleConsumer, public SerializableObject,
-                     public Logger {
+class Registration : public BundleConsumer, public SerializableObject {
 public:
     /**
      * Reserved registration identifiers.
@@ -55,7 +55,7 @@ public:
                  failure_action_t action,
                  time_t expiration = 0,
                  const std::string& script = "");
-    
+
     /**
      * Destructor.
      */
@@ -85,20 +85,7 @@ public:
      * registration. 
      */
     BundleList* bundle_list() { return bundle_list_; }
-
-    /**
-     * Consume a bundle for delivery to the application. The default
-     * implementation just queues the bundle on this registration's
-     * bundle list, but derived classes (e.g. AdminRegistration)
-     * always immediately process bundles.
-     */
-    virtual void consume_bundle(Bundle* bundle);
-
-    /**
-     * Check if the given bundle is already queued on this consumer.
-     */
-    bool is_queued(Bundle* bundle);
-    
+ 
     /**
      * Virtual from SerializableObject.
      */

@@ -1,8 +1,10 @@
 
 #include "Bundle.h"
 #include "BundleList.h"
+#include "BundleMapping.h"
 #include "thread/SpinLock.h"
 #include "storage/GlobalStore.h"
+#include "debug/Debug.h"
 
 void
 Bundle::init(u_int32_t id, BundlePayload::location_t location)
@@ -39,7 +41,7 @@ Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
 
 Bundle::~Bundle()
 {
-    ASSERT(containers_.size() == 0);
+    ASSERT(mappings_.size() == 0);
     // XXX/demmer remove the bundle from the database
     
     bundleid_ = 0xdeadf00d;
@@ -86,8 +88,8 @@ Bundle::add_ref(const char* what1, const char* what2)
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
     log_debug("/bundle/refs",
-              "bundle id %d: refcount %d -> %d (%d containers) add %s %s",
-              bundleid_, refcount_ - 1, refcount_, containers_.size(),
+              "bundle id %d: refcount %d -> %d (%d mappings) add %s %s",
+              bundleid_, refcount_ - 1, refcount_, mappings_.size(),
               what1, what2);
     lock_.unlock();
     return ret;
@@ -105,8 +107,8 @@ Bundle::del_ref(const char* what1, const char* what2)
     ASSERT(refcount_ > 0);
     int ret = --refcount_;
     log_debug("/bundle/refs",
-              "bundle id %d: refcount %d -> %d (%d containers) del %s %s",
-              bundleid_, refcount_ + 1, refcount_, containers_.size(),
+              "bundle id %d: refcount %d -> %d (%d mappings) del %s %s",
+              bundleid_, refcount_ + 1, refcount_, mappings_.size(),
               what1, what2);
     
     if (refcount_ != 0) {
@@ -153,56 +155,104 @@ Bundle::del_pending()
 }
 
 /**
- * Add a BundleList to the set of containers.
+ * Add a BundleList to the set of mappings.
  *
- * @return true if the list pointer was added successfully, false
- * if it was already in the set
+ * @return true if the mapping was added successfully, false if it
+ * was already in the set
  */
-bool
-Bundle::add_container(BundleList *blist)
+BundleMapping*
+Bundle::add_mapping(BundleList* blist, const BundleMapping* mapping_info)
 {
     ScopeLock l(&lock_);
-    log_debug("/bundle/container", "bundle id %d add container [%s]",
-              bundleid_, blist->name().c_str());
-    if (containers_.insert(blist).second == true) {
-        return true;
-    }
-    log_err("/bundle/container", "ERROR in add container: "
-            "bundle id %d already on container [%s]",
-            bundleid_, blist->name().c_str());
-    return false;
-}
-
-
-/**
- * Remove a BundleList from the set of containers.
- *
- * @return true if the list pointer was removed successfully,
- * false if it wasn't in the set
- */
-bool
-Bundle::del_container(BundleList* blist)
-{
-    ScopeLock l(&lock_);
-    log_debug("/bundle/container", "bundle id %d del container [%s]",
-              bundleid_, blist->name().c_str());
     
-    size_t n = containers_.erase(blist);
-    if (n == 1) {
-        return true;
-    } else if (n == 0) {
-        return false;
-    } else {
-        PANIC("unexpected return %d from set::erase", n);
+    log_debug("/bundle/mapping", "bundle id %d add mapping [%s]",
+              bundleid_, blist->name().c_str());
+
+    BundleMapping* mapping = mapping_info ?
+                             new BundleMapping(*mapping_info) :
+                             new BundleMapping();
+    
+    BundleMappings::value_type val(blist, mapping);
+                                   
+    if (mappings_.insert(val).second == true) {
+        return mapping;
     }
+    
+    log_err("/bundle/mapping", "ERROR in add mapping: "
+            "bundle id %d already on list [%s]",
+            bundleid_, blist->name().c_str());
+
+    delete mapping;
+    return NULL;
 }
 
 /**
- * Check if this bundle is already queued on the given bundle
- * list.
+ * Remove a mapping.
+ *
+ * @return the mapping if it was removed successfully, NULL if
+ * wasn't in the set.
  */
-bool
-Bundle::has_container(BundleList* blist)
+BundleMapping* 
+Bundle::del_mapping(BundleList* blist)
 {
-    return containers_.find(blist) != containers_.end();
+    ScopeLock l(&lock_);
+
+    log_debug("/bundle/mapping", "bundle id %d del mapping [%s]",
+              bundleid_, blist->name().c_str());
+
+    BundleMappings::iterator iter = mappings_.find(blist);
+
+    if (iter == mappings_.end()) {
+        log_err("/bundle/mapping", "ERROR in del mapping: "
+                "bundle id %d not on list [%s]",
+                bundleid_, blist->name().c_str());
+        return NULL;
+    }
+
+    BundleMappings::value_type val = *iter;
+    mappings_.erase(iter);
+    
+    return val.second;
+}    
+    
+/**
+ * Get the mapping state for the given list. Returns NULL if the
+ * bundle is not currently queued on the list.
+ */
+BundleMapping*
+Bundle::get_mapping(BundleList* blist)
+{
+    ScopeLock l(&lock_);
+
+    BundleMappings::iterator iter = mappings_.find(blist);
+    if (iter == mappings_.end()) {
+        return NULL;
+    }
+
+    return iter->second;
+}
+
+
+/**
+ * Return an iterator to scan through the mappings.
+ */
+Bundle::MappingsIterator
+Bundle::mappings_begin()
+{
+    if (!lock_.is_locked_by_me())
+        PANIC("Must lock Bundle before using mappings iterator");
+    
+    return mappings_.begin();
+}
+    
+/**
+ * Return an iterator to mark the end of the mappings set.
+ */
+Bundle::MappingsIterator
+Bundle::mappings_end()
+{
+    if (!lock_.is_locked_by_me())
+        PANIC("Must lock Bundle before using mappings iterator");
+    
+    return mappings_.end();
 }

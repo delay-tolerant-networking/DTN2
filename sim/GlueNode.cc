@@ -117,32 +117,31 @@ GlueNode::execute_router_action(BundleAction* action)
     bundle = action->bundleref_.bundle();
     
     switch (action->action_) {
-    case FORWARD_UNIQUE:
-    case FORWARD_COPY: {
-        BundleForwardAction* fwdaction = (BundleForwardAction*)action;
-        
-        log_info("N[%d] forward id:%d as told by routercode",
-                id(),bundle->bundleid_);
-        BundleConsumer* bc = fwdaction->nexthop_ ; 
-        bc->consume_bundle(bundle);
-        break;
+    case ENQUEUE_BUNDLE: {
+        BundleEnqueueAction* enqaction = (BundleEnqueueAction*)action;
+
+        BundleConsumer* bc = enqaction->nexthop_;
+
+        if (bc->is_local()) {
+            log_info("N[%d] reached destination id:%d",
+                     id(), bundle->bundleid_);
+        } else {
+            log_info("N[%d] enqueue id:%d as told by routercode",
+                     id(), bundle->bundleid_);
         }
-    case STORE_ADD:{ 
+        
+        bc->enqueue_bundle(bundle, &enqaction->mapping_);
+        break;
+    }
+    case STORE_ADD: { 
         log_debug("N[%d] storing ignored %d", id(), bundle->bundleid_);
         break;
-        }
+    }
     
     case STORE_DEL: {
         log_debug("N[%d] deletion ignored %d", id(), bundle->bundleid_);
         break;
-        }
-    case FORWARD_REASSEMBLE: {
-        log_info("N[%d] reached destination id:%d",id(),bundle->bundleid_);
-        BundleForwardAction* fwdaction = (BundleForwardAction*)action;
-        BundleConsumer* bc = fwdaction->nexthop_ ; 
-        bc->consume_bundle(bundle);
-        break; 
-        }
+    }
     default:
         PANIC("unimplemented action code %s",
               bundle_action_toa(action->action_));

@@ -9,6 +9,7 @@
 BUNDLING_SRCS := 				\
 	bundling/AddressFamily.cc		\
 	bundling/Bundle.cc			\
+	bundling/BundleConsumer.cc		\
 	bundling/BundleForwarder.cc		\
 	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
@@ -50,7 +51,6 @@ REGISTRATION_SRCS :=				\
 	reg/AdminRegistration.cc		\
 	reg/Registration.cc			\
 	reg/RegistrationTable.cc		\
-	reg/RateEstimatorRegistration.cc	\
 	reg/LoggingRegistration.cc		\
 	reg/TclRegistration.cc			\
 

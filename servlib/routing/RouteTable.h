@@ -1,10 +1,12 @@
 #ifndef _BUNDLE_ROUTETABLE_H_
 #define _BUNDLE_ROUTETABLE_H_
 
-#include "bundling/BundleAction.h"
+#include "bundling/BundleMapping.h"
 #include "bundling/BundleTuple.h"
 #include "debug/Log.h"
+#include <set>
 
+class BundleConsumer;
 class RouteEntryInfo;
 class StringBuffer;
 
@@ -17,15 +19,19 @@ class RouteEntry {
 public:
     RouteEntry(const BundleTuplePattern& pattern,
                BundleConsumer* next_hop,
-               bundle_action_t action);
+               bundle_fwd_action_t action);
 
     ~RouteEntry();
 
     /// The destination pattern that matches bundles
     BundleTuplePattern pattern_;
 
+    // XXX/demmer this should be a bitmask of flags
     /// Forwarding action code 
-    bundle_action_t action_;
+    bundle_fwd_action_t action_;
+
+    /// Mapping group
+    int mapping_grp_;
         
     /// Next hop (registration or contact).
     BundleConsumer* next_hop_;

@@ -2,13 +2,17 @@
 #include "Contact.h"
 #include "Bundle.h"
 #include "BundleList.h"
+#include "BundleMapping.h"
 #include "conv_layers/ConvergenceLayer.h"
 
+
 Contact::Contact(contact_type_t type, const BundleTuple& tuple)
-    : Logger("/contact"), BundleConsumer(&tuple_, false),
+    : BundleConsumer(&tuple_, false),
       type_(type), tuple_(tuple), open_(false)
 {
-    bundle_list_ = new BundleList("/contact/" + tuple.tuple());
+    logpathf("/contact/%s", tuple.c_str());
+    bundle_list_ = new BundleList(logpath_);
+    
     log_debug("new contact *%p", this);
 
     clayer_ = ConvergenceLayer::find_clayer(tuple.admin());
@@ -58,7 +62,7 @@ Contact::format(char* buf, size_t sz)
 }
 
 void
-Contact::consume_bundle(Bundle* bundle)
+Contact::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
     if (!isopen() && (type_ == ONDEMAND || type_ == OPPORTUNISTIC)) {
         open();
@@ -67,20 +71,12 @@ Contact::consume_bundle(Bundle* bundle)
     if (bundle) {
         // XXX/demmer temp
         if (bundle->is_reactive_fragment_)
-            bundle_list_->push_front(bundle);
+            bundle_list_->push_front(bundle, mapping);
         else 
-            bundle_list_->push_back(bundle);
+            bundle_list_->push_back(bundle, mapping);
     }
     
+    // XXX/demmer get rid of this
     clayer_->send_bundles(this);
-}
-
-/**
- * Check if the given bundle is already queued on this consumer.
- */
-bool
-Contact::is_queued(Bundle* bundle)
-{
-    return bundle->has_container(bundle_list_);
 }
 

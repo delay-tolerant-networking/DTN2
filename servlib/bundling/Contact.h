@@ -74,7 +74,7 @@ str_to_contact_type(const char* str)
  * contains a list of bundles that are destined for it, as well as a
  * slot to store any convergence layer specific attributes.
  */
-class Contact : public Formatter, public Logger, public BundleConsumer {
+class Contact : public Formatter, public BundleConsumer {
 public:
     /**
      * Constructor / Destructor
@@ -112,13 +112,8 @@ public:
      * Queue a bundle for sending, which potentially kicks open the
      * contact if it's not already.
      */
-    void consume_bundle(Bundle* bundle);
+    void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
     
-    /**
-     * Check if the given bundle is already queued on this contact.
-     */
-    bool is_queued(Bundle* bundle);
-        
     /**
      * Accessor for the list of bundles in this contact.
      */
@@ -152,7 +147,6 @@ protected:
     bool open_;
     
     ContactInfo* contact_info_;
-    BundleList* bundle_list_;
     ConvergenceLayer* clayer_;
 };
 

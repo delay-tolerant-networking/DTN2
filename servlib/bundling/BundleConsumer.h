@@ -1,31 +1,42 @@
 #ifndef _BUNDLE_CONSUMER_H_
 #define _BUNDLE_CONSUMER_H_
 
+#include "debug/Log.h"
+
 class Bundle;
+class BundleList;
+class BundleMapping;
 class BundleTuple;
 
 /**
- * Abstract interface used to implement a "next hop" to the bundle
- * forwarder, i.e either a local registration or a real next hop
- * contact.
+ * Base class used for "next hops" in the bundle forwarding logic, i.e
+ * either a local registration or a Contact/Link/Peer.
  */
-class BundleConsumer {
+class BundleConsumer : public Logger {
 public:
     /**
-     * Constructor.
+     * Constructor. It is the responsibility of the subclass to
+     * allocate the bundle_list_ if the consumer does any queuing.
      */
-    BundleConsumer(const BundleTuple* dest_tuple, bool is_local)
-        : dest_tuple_(dest_tuple), is_local_(is_local) {}
+    BundleConsumer(const BundleTuple* dest_tuple, bool is_local);
     
     /**
-     * Consume the given bundle, queueing it if required.
+     * Add the bundle to the queue.
      */
-    virtual void consume_bundle(Bundle* bundle) = 0;
+    virtual void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
+
+    /**
+     * Attempt to remove the given bundle from the queue.
+     *
+     * @return true if the bundle was dequeued, false if not. If
+     * mappingp is non-null, return the old mapping as well.
+     */
+    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
 
     /**
      * Check if the given bundle is already queued on this consumer.
      */
-    virtual bool is_queued(Bundle* bundle) = 0;
+    virtual bool is_queued(Bundle* bundle);
 
     /**
      * Each BundleConsumer has a tuple (either the registration
@@ -41,6 +52,7 @@ public:
 protected:
     const BundleTuple* dest_tuple_;
     bool is_local_;
+    BundleList* bundle_list_;
 
 private:
     /**

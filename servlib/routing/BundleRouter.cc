@@ -167,7 +167,7 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
                        create_fragment(bundle, offset, fraglen);
             ASSERT(fragment);
 
-            pending_bundles_->push_back(fragment);
+            pending_bundles_->push_back(fragment, NULL);
             actions->push_back(new BundleAction(STORE_ADD, fragment));
             fwd_to_matching(fragment, actions, false);
             
@@ -179,7 +179,7 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
         return;
     }
 
-    pending_bundles_->push_back(bundle);
+    pending_bundles_->push_back(bundle, NULL);
     actions->push_back(new BundleAction(STORE_ADD, bundle));
     fwd_to_matching(bundle, actions, true);
 }
@@ -235,7 +235,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
         int count = fwd_to_matching(tail, actions, false);
 
         if (count > 0) {
-            pending_bundles_->push_back(tail);
+            pending_bundles_->push_back(tail, NULL);
             actions->push_back(new BundleAction(STORE_ADD, tail));
         }
     }
@@ -249,7 +249,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
         report = new BundleStatusReport(bundle, local_tuple_);
         report->set_status_time(BundleProtocol::STATUS_DELIVERED);
 
-        pending_bundles_->push_back(report);
+        pending_bundles_->push_back(report, NULL);
         actions->push_back(new BundleAction(STORE_ADD, report));
         fwd_to_matching(report, actions, true);
     }
@@ -343,7 +343,7 @@ BundleRouter::handle_reassembly_completed(ReassemblyCompletedEvent* event,
     // add the newly reassembled bundle to the pending list and the
     // data store
     bundle = event->bundle_.bundle();
-    pending_bundles_->push_back(bundle);
+    pending_bundles_->push_back(bundle, NULL);
     actions->push_back(new BundleAction(STORE_ADD, bundle));
 }
 
@@ -364,8 +364,42 @@ BundleRouter::handle_route_add(RouteAddEvent* event,
 }
 
 /**
- * Loop through the routing table, and for all 
- * to the action list.
+ * Add an action to forward a bundle to a next hop route, making
+ * sure to do reassembly if the forwarding action specifies as
+ * such.
+ */
+void
+BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
+                             BundleActionList* actions)
+{
+    // handle reassembly for certain routes
+    if (nexthop->action_ == FORWARD_REASSEMBLE && bundle->is_fragment_) {
+        // pass the bundle to the fragment manager for reassembly. if
+        // this was the last fragment, then we'll get back the
+        // reassembled bundle
+        bundle = FragmentManager::instance()->process(bundle);
+        
+        if (!bundle)
+            return;
+    }
+
+    
+    bundle->add_pending();
+    
+    actions->push_back(
+        new BundleEnqueueAction(bundle, nexthop->next_hop_,
+                                nexthop->action_, nexthop->mapping_grp_));
+}
+
+
+/**
+ * Get all matching entries from the routing table, and add a
+ * corresponding forwarding action to the action list.
+ *
+ * Note that if the include_local flag is set, then local routes
+ * (i.e. registrations) are included in the list.
+ *
+ * Returns the number of matches found and assigned.
  */
 int
 BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
@@ -389,11 +423,10 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
         
         if ((include_local == false) && entry->next_hop_->is_local())
             continue;
+
+        fwd_to_nexthop(bundle, entry, actions);
         
-        actions->push_back(
-            new BundleForwardAction(entry->action_, bundle, entry->next_hop_));
         ++count;
-        bundle->add_pending();
     }
 
     log_debug("fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);
@@ -429,28 +462,27 @@ BundleRouter::new_next_hop(const BundleTuplePattern& dest,
 
 /**
  * Delete the given bundle from the pending list (assumes the
- * pending count is zero).<
+ * pending count is zero).
  */
 void
 BundleRouter::delete_from_pending(Bundle* bundle, BundleActionList* actions)
 {
+    // XXX/demmer should this submit a BUNDLE_DEQUEUE action, not
+    // directly manipulate the list? if so then we need a "consumer"
+    // for the pending bundles list
+    
     ASSERT(bundle->pendingtx() == 0);
     
     log_debug("bundle %d: no more pending transmissions -- "
               "removing from pending list", bundle->bundleid_);
-    
-    // XXX/demmer this should go through the bundle's backpointer
-    // iterator rather than traversing the whole pending bundles
-    // list
-    bool removed = pending_bundles_->remove(bundle);
 
-    if (!removed) {
-        // XXX/demmer deal with this bug
-        log_crit("XXX/demmer ALERT -- pending count violation on bundle %d!!!",
-                 bundle->bundleid_);
-        return;
-    }
-    
-    ASSERT(removed);
+    // make sure to put the store delete action on the list before
+    // removing the from the pending list since the latter may remove
+    // the last reference on the bundle.
     actions->push_back(new BundleAction(STORE_DEL, bundle));
+    
+    BundleMapping* mapping = bundle->get_mapping(pending_bundles_);
+    ASSERT(mapping);
+    
+    pending_bundles_->erase(mapping->position_, NULL);
 }

@@ -5,6 +5,7 @@
 #include "thread/Notifier.h"
 
 class Bundle;
+class BundleMapping;
 class SpinLock;
 
 /**
@@ -20,18 +21,44 @@ class SpinLock;
  * will call notify() if there is a thread blocked on an empty list
  * waiting for notification.
  *
- * List methods also maintain the set of back pointers in the Bundle
- * class for the lists that contain it, and follow the reference
- * counting rules for bundles. In particular, the push*() methods
- * increment the reference count, and remove() decrements it. However,
- * it is important to note that the pop*() methods do not decrement
- * the reference count (though they do update the back pointers), and
- * it is the responsibility of the caller of one of the pop*() methods
- * to explicitly decrement the reference count.
+ * List methods also maintain the set of mappings in the Bundle class
+ * for the lists that contain it. In all cases, the mapping structure
+ * is copied when the bundle is added to the list.
+ *
+ * Furthermore, lists follow the reference counting rules for bundles.
+ * In particular, the push*() methods increment the reference count,
+ * and remove() decrements it. However, it is important to note that
+ * the pop*() methods do not decrement the reference count (though
+ * they do update the back pointers), and it is the responsibility of
+ * the caller of one of the pop*() methods to explicitly decrement the
+ * reference count.
+ * 
  */
 class BundleList : public Notifier {
 public:
+    /**
+     * Type for the list itself.
+     */
+    typedef std::list<Bundle*> ListType;
+
+    /**
+     * Type for an iterator.
+     */
+    typedef ListType::iterator iterator;
+    
+    /**
+     * Type for a const iterator.
+     */
+    typedef ListType::const_iterator const_iterator;
+
+    /**
+     * Constructor
+     */
     BundleList(const std::string& name);
+
+    /**
+     * Destructor -- clears the list.
+     */
     virtual ~BundleList();
 
     /**
@@ -49,14 +76,14 @@ public:
     Bundle* back();
 
     /**
-     * Add a new bundle to the front of the list. 
+     * Add a new bundle to the front of the list.
      */
-    void push_front(Bundle* bundle);
+    void push_front(Bundle* bundle, const BundleMapping* mapping_info);
 
     /**
      * Add a new bundle to the front of the list.
      */
-    void push_back(Bundle* bundle);
+    void push_back(Bundle* bundle, const BundleMapping* mapping_info);
 
     /**
      * Type codes for sorted insertion
@@ -69,7 +96,8 @@ public:
     /**
      * Insert the given bundle sorted by the given sort method.
      */
-    void insert_sorted(Bundle* bundle, sort_order_t sort_order);
+    void insert_sorted(Bundle* bundle, const BundleMapping* mapping_info,
+                       sort_order_t sort_order);
     
     /**
      * Remove (and return) the first bundle on the list.
@@ -77,9 +105,11 @@ public:
      * Note (as explained above) that this does not decrement the
      * bundle reference count.
      *
-     * @return the bundle or NULL if the list is empty
+     * @return the bundle or NULL if the list is empty. If the
+     * mappingp pointer is non-null, the old mapping is returned as
+     * well, otherwise it is deleted.
      */
-    Bundle* pop_front();
+    Bundle* pop_front(BundleMapping** mappingp = NULL);
 
     /**
      * Remove (and return) the last bundle on the list.
@@ -87,9 +117,11 @@ public:
      * Note (as explained above) that this does not decrement the
      * bundle reference count.
      *
-     * @return the bundle or NULL if the list is empty
+     * @return the bundle or NULL if the list is empty. If the
+     * mappingp pointer is non-null, the old mapping is returned as
+     * well, otherwise it is deleted.
      */
-    Bundle* pop_back();
+    Bundle* pop_back(BundleMapping** mappingp = NULL);
 
     /**
      * Remove (and return) the first bundle on the list, blocking
@@ -98,17 +130,23 @@ public:
      * Note (as explained above) that this does not decrement the
      * bundle reference count.
      *
-     * @return the bundle or NULL if the timeout occurred
+     * @return the bundle or NULL if the timeout occurred. If the
+     * mappingp pointer is non-null, the old mapping is returned as
+     * well, otherwise it is deleted.
      */
-    Bundle* pop_blocking(int timeout = -1);
-
+    Bundle* pop_blocking(BundleMapping** mappingp = NULL,
+                         int timeout = -1);
     /**
-     * Remove the given bundle.
+     * Remove the bundle at the given list position. Always succeeds
+     * since the iterator must be valid.
      *
-     * @return true if the bundle was removed successfully, false if
-     * it was not on the list
+     * Unlike the pop() functions, this does remove the list's
+     * reference on the bundle.
+
+     * If the mappingp pointer is non-null, the old mapping is
+     * returned as well, otherwise it is deleted.
      */
-    bool remove(Bundle* bundle);
+    void erase(iterator& pos, BundleMapping** mappingp = NULL);
 
     /**
      * Move all bundles from this list to another.
@@ -124,21 +162,6 @@ public:
      * Return the size of the list.
      */
     size_t size() const;
-
-    /**
-     * Type for the list itself.
-     */
-    typedef std::list<Bundle*> ListType;
-
-    /**
-     * Type for an iterator.
-     */
-    typedef ListType::iterator iterator;
-    
-    /**
-     * Type for a const iterator.
-     */
-    typedef ListType::const_iterator const_iterator;
 
     /**
      * Iterator used to iterate through the list. Iterations _must_ be
@@ -180,14 +203,17 @@ public:
     
 protected:
     /**
-     * Helper routine to do bookkeeping when a bundle is added.
+     * Helper routine to add a bundle at the indicated position.
      */
-    void add_bundle(Bundle* bundle);
+    void add_bundle(Bundle* bundle, iterator pos,
+                    const BundleMapping* mapping_info);
 
     /**
-     * Helper routine to do bookkeeping when a bundle is removed.
+     * Helper routine to remove a bundle from the indicated position.
+     *
+     * @returns the bundle that, before this call, was at the position
      */
-    void del_bundle(Bundle* bundle);
+    Bundle* del_bundle(iterator pos, BundleMapping** mappingp);
     
     SpinLock* lock_;
     ListType list_;
