@@ -36,22 +36,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <queue>
-#include "Event.h"
-
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
+#include "Event.h"
+#include "EventHandler.h"
+
 namespace dtnsim {
-
-
-class Event;
-class EventCompare;
-class Event_print_stats;
 
 /**
  * The main simulator class. This defines the main event loop
  */
-class Simulator : public oasys::Logger, public Processable {
+class Simulator : public oasys::Logger, public EventHandler {
 public:
     /**
      * Singleton instance accessor.
@@ -73,17 +69,9 @@ public:
         instance_ = instance;
     }
 
-    /**
-     * Return true if initialization has completed.
-     */
-    static bool initialized() { return (instance_ != NULL); }
-    
     static double time() { return instance_->time_; }
-    
-    //  static void run() { return instance_->run() ; }
-    
-    static void add_event(Event* e) { instance_->add_event_(e) ; }
 
+    static void add_event(Event* e) { instance_->add_event_(e) ; }
     static void remove_event(Event* e) { instance_->remove_event_(e) ; }
 
 
@@ -97,7 +85,6 @@ public:
      */
     virtual ~Simulator() {}
 
-
     /**
      * Add an event to the main event queue.
      */
@@ -109,31 +96,29 @@ public:
      */
     void remove_event_(Event* e);
 
-
-    /**
-     * Update time till simulation has to be run
-     */
-//    void set_runtill(double t) { runtill_ = t ; }
-
     /**
      * Stops simulation and exits the loop
      */
+    void exit();
 
-    void exit_simulation() ; 
-
-    void run() ;
-
-    static int runtill_ ; /// time when to end the simulation. int bcos of tcl limitation
-
+    /**
+     * Main run loop.
+     */
+    void run();
+    
+    static int runtill_; /// time to end the simulation
+    
 protected:
     static Simulator* instance_; ///< singleton instance
-    void  process(Event* e) ;       ///> Inherited from processable
+    void process(Event* e);      ///< virtual from processable
 
 private:
     
-    double time_; /// current time
+    double time_;     /// current time
 
-    bool is_running_; /// maintains the state if the simulator is running or paused
+    bool is_running_; /// maintains the state if the simulator is
+                      /// running or paused
+    
     std::priority_queue<Event*, std::vector<Event*>, EventCompare> eventq_;
 };
 

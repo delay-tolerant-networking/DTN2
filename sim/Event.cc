@@ -48,10 +48,4 @@ Event::Event(double time, Processable *handler, sim_event_type_t eventcode)
 }
 
 
-void
-Event::cancel()
-{
-    valid_ = false;
-}
-
 } // namespace dtnsim

@@ -4,7 +4,7 @@
 SRCDIR := ..
 
 
-SIM_SRCS :=	\
+OLD_SIM_SRCS :=	\
 	dtnsim.cc	\
 	Event.cc	\
 	Message.cc	\
@@ -21,6 +21,11 @@ SIM_SRCS :=	\
 	FloodConsumer.cc\
 
 #	Statistics.cc \
+
+SIM_SRCS := \
+	dtnsim.cc	\
+	LogSim.cc	\
+	Simulator.cc	\
 
 SIM_OBJS := $(SIM_SRCS:.cc=.o)
 

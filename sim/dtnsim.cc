@@ -44,72 +44,109 @@
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/util/Getopt.h>
 
-#include "Simulator.h"
 #include "LogSim.h"
-#include "conv_layers/ConvergenceLayer.h"
-#include "cmd/ParamCommand.h"
-#include "cmd/RouteCommand.h"
-#include "SimConvergenceLayer.h"
+#include "Simulator.h"
+//#include "SimConvergenceLayer.h"
 #include "bundling/AddressFamily.h"
-
 #include "bundling/ContactManager.h"
+#include "cmd/ParamCommand.h"
+#include "conv_layers/ConvergenceLayer.h"
 
+using namespace dtn;
 using namespace dtnsim;
 
 int
 main(int argc, char** argv)
 {
-    // Initialize logging
-    LogSim::init(oasys::LOG_INFO);
-
-    // Initialize the simulator
-    Simulator* s = new Simulator();
-    Simulator::init(s);
-    log_info("/sim", "simulator initializing...");
-
     // command line parameter vars
-    std::string conffile("sim/top.conf");
-    int random_seed;
-    bool random_seed_set = false;
+    int                random_seed;
+    bool               random_seed_set = false;
+    std::string        conf_file;
+    bool               conf_file_set = false;
+    std::string        logfile("-");
+    std::string        loglevelstr;
+    oasys::log_level_t loglevel;
     
     oasys::Getopt::addopt(
-        new oasys::StringOpt('c', "conf", &conffile, "<conf>", "config file"));
-
+        new oasys::StringOpt('c', "conf", &conf_file, "<conf>",
+                             "set the configuration file", &conf_file_set));
+    
     oasys::Getopt::addopt(
         new oasys::IntOpt('s', "seed", &random_seed, "seed",
                           "random number generator seed", &random_seed_set));
 
-    // Set up the command interpreter, then parse argv
-    oasys::TclCommandInterp::init(argv[0]);
-    oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
-    
-    interp->reg(new ParamCommand());
-    interp->reg(new RouteCommand());
+    oasys::Getopt::addopt(
+        new oasys::StringOpt('o', "output", &logfile, "<output>",
+                             "file name for logging output "
+                             "(default - indicates stdout)"));
+
+    oasys::Getopt::addopt(
+        new oasys::StringOpt('l', NULL, &loglevelstr, "<level>",
+                             "default log level [debug|warn|info|crit]"));
 
     oasys::Getopt::getopt(argv[0], argc, argv);
 
-    // Seed the random number generator
+    int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
+    if (remainder != argc) {
+        fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
+        oasys::Getopt::usage("dtnsim");
+        exit(1);
+    }
+
+    if (!conf_file_set) {
+        fprintf(stderr, "must set the simulator conf file\n");
+        oasys::Getopt::usage("dtnsim");
+        exit(1);
+    }
+
+    // Parse the debugging level argument
+    if (loglevelstr.length() == 0) {
+        loglevel = LOG_DEFAULT_THRESHOLD;
+    } else {
+        loglevel = oasys::str2level(loglevelstr.c_str());
+        if (loglevel == oasys::LOG_INVALID) {
+            fprintf(stderr, "invalid level value '%s' for -l option, "
+                    "expected debug | info | warning | error | crit\n",
+                    loglevelstr.c_str());
+            exit(1);
+        }
+    }
+
+    // Initialize the simulator first and foremost since it's needed
+    // for LogSim::gettimeofday
+    Simulator* s = new Simulator();
+    Simulator::init(s);
+
+    // Initialize logging
+    LogSim::init(loglevel);
+    log_info("/sim", "dtn simulator initializing...");
+
+    // seed the random number generator
     if (!random_seed_set) {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        random_seed = tv.tv_usec;
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      random_seed = tv.tv_usec;
     }
     log_info("/sim", "random seed is %u\n", random_seed);
     srand(random_seed);
+    
+    // Set up the command interpreter
+    oasys::TclCommandInterp::init(argv[0]);
+    oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
+    interp->reg(new ParamCommand());
+//    interp->reg(new SimCommand());
 
+    // Set up components
     AddressFamilyTable::init();
     ContactManager::init();
     
-    // add simulator convergence layer (identifies by simcl) to cl list
-    ConvergenceLayer::init_clayers();
-    ConvergenceLayer::add_clayer("simcl", new SimConvergenceLayer());
-
-    // Parse / exec the config file
-    if (conffile.length() != 0) {
-        if (interp->exec_file(conffile.c_str()) != 0) {
-            log_err("/sim", "error in configuration file, exiting...");
-            exit(1);
-        }
+    // Add the simulator convergence layer (identifies by simcl) as
+    // the only valid convervence layer to the CL
+//    ConvergenceLayer::add_clayer("simcl", new SimConvergenceLayer());
+    
+    if (interp->exec_file(conf_file.c_str()) != 0) {
+        log_err("/sim", "error in configuration file, exiting...");
+        exit(1);
     }
 
     // Run the event loop of simulator

@@ -62,9 +62,9 @@ Simulator::remove_event_(Event* e) {
 }
 
 void
-Simulator::exit_simulation() 
+Simulator::exit() 
 {
-    exit(0);
+    ::exit(0);
 }
 
 /**
@@ -93,7 +93,7 @@ Simulator::run()
                 log_info(
                      "Exiting simulation. Current time (%f) > Max time (%d)",
                      time_,Simulator::runtill_);
-                exit_simulation();
+                exit();
             }
         } // if is_running_
     }
