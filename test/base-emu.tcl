@@ -18,7 +18,7 @@ set linkdynamics 0
 set up 30 ## Length of uptime
 set down 180   ## Length of downtime
 
-set OFFSET_VAL 0
+set OFFSET_VAL 15
 
 
 
