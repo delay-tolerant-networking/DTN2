@@ -64,12 +64,10 @@ main(int argc, char** argv)
 
     // destination host is specified at run time, demux is hardcoded
     sprintf(demux, "%s/recv_file", arg_dest);
-    verbose && fprintf(stdout, "Destination: %s\n", demux);
     parse_tuple(handle, &bundle_spec.dest, demux);
 
     // source is local tuple with file path as demux string
     sprintf(demux, "/send_file:%s", data_source);
-    verbose && fprintf(stdout, "Source: %s\n", demux);
     parse_tuple(handle, &bundle_spec.source, demux);
 
     // reply to is the same as the source
@@ -83,6 +81,31 @@ main(int argc, char** argv)
         print_tuple("dest_tuple", &bundle_spec.dest);
     }
 
+    
+    // set the return receipt option
+    bundle_spec.dopts |= DOPTS_RETURN_RCPT;
+
+    // fill in a payload
+    memset(&send_payload, 0, sizeof(send_payload));
+
+    file = fopen(data_source, "r");
+
+    if (file == NULL)
+    {
+        fprintf(stderr, "error opening file %s (%d)\n", data_source, errno);
+        exit(1);
+    }
+    
+    while (!feof(file) && bufsize < 4096)
+    {
+        bufsize += fread(buffer + bufsize, 1, 
+                         bufsize > 3840? 4096 - bufsize: 256, file);
+    }
+
+    dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufsize);
+    //    dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, data_source, strlen(data_source));
+     
+    // send file and wait for reply
     // create a new dtn registration to receive bundle status reports
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_tuple(&reginfo.endpoint, &bundle_spec.replyto);
@@ -99,25 +122,7 @@ main(int argc, char** argv)
 
     // bind the current handle to the new registration
     dtn_bind(handle, regid, &bundle_spec.replyto);
-    
-    // set the return receipt option
-    bundle_spec.dopts |= DOPTS_RETURN_RCPT;
 
-    // fill in a payload
-    memset(&send_payload, 0, sizeof(send_payload));
-
-    file = fopen(data_source, "r");
-    
-    while (!feof(file) && bufsize < 4096)
-    {
-        bufsize += fread(buffer + bufsize, 1, 
-                         bufsize > 3840? 4096 - bufsize: 256, file);
-    }
-
-    dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM, buffer, bufsize);
-    //    dtn_set_payload(&send_payload, DTN_PAYLOAD_FILE, data_source, strlen(data_source));
-     
-    // send file and wait for reply
     gettimeofday(&start, NULL); // timer
 
     if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
@@ -176,14 +181,12 @@ dtn_tuple_t * parse_tuple(dtn_handle_t handle,
     // try the string as an actual dtn tuple
     if (!dtn_parse_tuple_string(tuple, str)) 
     {
-        verbose && fprintf(stdout, "%s (literal)\n", str);
         return tuple;
     }
     // build a local tuple based on the configuration of our dtn
     // router plus the str as demux string
     else if (!dtn_build_local_tuple(handle, tuple, str))
     {
-        verbose && fprintf(stdout, "%s (local)\n", str);
         return tuple;
     }
     else
