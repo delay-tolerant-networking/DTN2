@@ -24,7 +24,7 @@
  *
  * FormatterTest f;
  * char buf[256];
- * snprintf(buf, sizeof(buf), "pointer %p, format *%p\n");
+ * snprintf(buf, sizeof(buf), "pointer %p, format *%p\n", &f, &f);
  * // buf contains "pointer 0xabcd1234, format FormatterTest\n"
  * @endcode
  */
