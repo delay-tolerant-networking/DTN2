@@ -1,11 +1,10 @@
-#ifndef _LOGGING_REGISTRATION_H_
-#define _LOGGING_REGISTRATION_H_
+#ifndef _TCL_REGISTRATION_H_
+#define _TCL_REGISTRATION_H_
 
 #include "Registration.h"
 #include "debug/Log.h"
 #include "bundling/BundleTuple.h"
 #include "thread/Thread.h"
-
 
 /**
  * A simple utility class used mostly for testing registrations.
@@ -14,13 +13,13 @@
  * and for any bundles that arrive, outputs logs of the bundle header
  * fields as well as the payload data (if ascii). The implementation
  * is structured as a thread that blocks (forever) waiting for bundles
- * to arrive on the registration's bundle list, then logging the
+ * to arrive on the registration's bundle list, then tcl the
  * bundles and looping again.
  */
-class LoggingRegistration : public Registration, public Thread {
+class TclRegistration : public Registration, public Thread {
 public:
-    LoggingRegistration(u_int32_t regid, const BundleTuplePattern& endpoint);
+    TclRegistration(u_int32_t regid, const BundleTuplePattern& endpoint);
     virtual void run();
 };
 
-#endif /* _LOGGING_REGISTRATION_H_ */
+#endif /* _TCL_REGISTRATION_H_ */

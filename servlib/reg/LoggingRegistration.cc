@@ -6,17 +6,16 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
-#include "storage/GlobalStore.h"
 #include "util/StringUtils.h"
 
-LoggingRegistration::LoggingRegistration(const BundleTuplePattern& endpoint)
+LoggingRegistration::LoggingRegistration(u_int32_t regid,
+                                         const BundleTuplePattern& endpoint)
+    : Registration(regid, endpoint, Registration::ABORT)
 {
-    u_int32_t regid = GlobalStore::instance()->next_regid();
     logpathf("/registration/logging/%d", regid);
-    registration_ = new Registration(regid, endpoint, Registration::ABORT);
-    registration_->set_active(true);
+    set_active(true);
     
-    if (! RegistrationTable::instance()->add(registration_)) {
+    if (! RegistrationTable::instance()->add(this)) {
         log_err("unexpected error adding registration to table");
     }
 
@@ -27,9 +26,8 @@ void
 LoggingRegistration::run()
 {
     Bundle* b;
-    BundleList* blist = registration_->bundle_list();
     while (1) {
-        b = blist->pop_blocking();
+        b = bundle_list_->pop_blocking();
 
         log_info("BUNDLE: id %d priority %s dopts: [%s %s %s %s %s]",
                  b->bundleid_, Bundle::prioritytoa(b->priority_),
@@ -69,9 +67,8 @@ LoggingRegistration::run()
                      payload_len, len, hex.data());
         }
 
-        BundleForwarder::post(new BundleTransmittedEvent(b, registration_,
-                                                         b->payload_.length(),
-                                                         true));
+        BundleForwarder::post(
+            new BundleTransmittedEvent(b, this, b->payload_.length(), true));
         
         b->del_ref();
     }

@@ -61,6 +61,7 @@ REGISTRATION_SRCS :=				\
 	reg/Registration.cc			\
 	reg/RegistrationTable.cc		\
 	reg/LoggingRegistration.cc		\
+	reg/TclRegistration.cc			\
 
 ROUTING_SRCS :=					\
 	routing/RouteTable.cc			\
