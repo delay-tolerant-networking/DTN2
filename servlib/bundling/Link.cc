@@ -147,8 +147,11 @@ Link::open()
     if (!isopen()) {
         contact_ = new Contact(this);
 
-        if (type_ == ONDEMAND)
+        if (type_ == ONDEMAND) {
             clayer()->open_contact(contact_);
+        } else {
+            PANIC("Link::open not implemented for links other than ondemand");
+        }
         
     } else {
         log_warn("Trying to open an already open link %s",name());
