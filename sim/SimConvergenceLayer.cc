@@ -40,7 +40,11 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "SimConvergenceLayer.h"
+#include "Node.h"
+#include "Simulator.h"
 #include "Topology.h"
+#include "bundling/Bundle.h"
+#include "bundling/BundleEvent.h"
 #include "bundling/BundleList.h"
 
 namespace dtnsim {
@@ -49,15 +53,25 @@ class SimCLInfo : public CLInfo {
 public:
     SimCLInfo()
     {
-        deliver_partial_ = true;
+        params_.deliver_partial_ = true;
+        params_.reliable_ = true;
     }
 
     ~SimCLInfo() {};
-    
-    /// if contact closes in the middle of a transmission, deliver the
-    /// partially received bytes to the router.
-    bool deliver_partial_;
-    
+
+    struct Params {
+        /// if contact closes in the middle of a transmission, deliver
+        /// the partially received bytes to the router.
+        bool deliver_partial_;
+
+        /// for bundles sent over the link, signal to the router
+        /// whether or not they were delivered reliably by the
+        /// convergence layer
+        bool reliable_;
+        
+    } params_;
+
+    Node* peer_node_;	///< The receiving node
 };
 
 SimConvergenceLayer* SimConvergenceLayer::instance_;
@@ -73,12 +87,16 @@ SimConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     oasys::OptParser p;
 
     SimCLInfo* info = new SimCLInfo();
-    
-#define DECLARE_OPT(_type, _opt)                            \
-    oasys::_type param_##_opt(#_opt, &info->_opt##_);       \
+    info->peer_node_ = Topology::find_node(link->nexthop());
+    ASSERT(info->peer_node_);
+
+    // utility macro for declaring option parsing
+#define DECLARE_OPT(_type, _opt)                                \
+    oasys::_type param_##_opt(#_opt, &info->params_._opt##_);   \
     p.addopt(&param_##_opt);
 
     DECLARE_OPT(BoolOpt, deliver_partial);
+    DECLARE_OPT(BoolOpt, reliable);
 
 #undef DECLARE_OPT
 
@@ -88,6 +106,8 @@ SimConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
+    link->set_cl_info(info);
+
     return true;
 }
 
@@ -96,34 +116,42 @@ SimConvergenceLayer::send_bundles(Contact* contact)
 {
     log_debug("send_bundles on contact %s", contact->nexthop());
 
-    
-        
-//     SimContact* sc = dtnlink2simlink(contact->link()); 
-    
-//     Bundle* bundle;
-//     BundleList* blist = contact->bundle_list();
-    
-//     Bundle* iter_bundle;
-//     BundleList::iterator iter;
-//     oasys::ScopeLock lock(blist->lock());
-    
-//     log_info("N[%d] CL: current bundle list:",sc->src()->id());
-        
-//     for (iter = blist->begin(); 
-//          iter != blist->end(); ++iter) {
-//         iter_bundle = *iter;
-//         log_info("\tbundle:%d pending:%d",
-//                  iter_bundle->bundleid_,iter_bundle->pendingtx());
-//     }
-//     // check, if the contact is open. If yes, send one msg from the queue
-//     if (sc->is_open()) {
-//         bundle = blist->pop_front();
-//         if(bundle) {
-//             log_info("\tsending bundle:%d",bundle->bundleid_);
-//             Message* msg = SimConvergenceLayer::bundle2msg(bundle);
-//             sc->chew_message(msg);
-//         }
-//     }
+    SimCLInfo* info = (SimCLInfo*)contact->link()->cl_info();
+    ASSERT(info);
+
+    // XXX/demmer add Connectivity check to see if it's open and add
+    // bw/latency restrictions. then move the following events to
+    // there
+
+    Node* src_node = Node::active_node();
+    Node* dst_node = info->peer_node_;
+
+    ASSERT(src_node != dst_node);
+
+    Bundle* b;
+    size_t len;
+    bool reliable = info->params_.reliable_;
+
+    while (1) {
+        b = contact->bundle_list()->pop_front();
+        if (!b) {
+            break;
+        }
+
+        len = b->payload_.length();
+       
+        BundleTransmittedEvent* tx_event =
+            new BundleTransmittedEvent(b, contact, len, reliable);
+
+        Simulator::post(new SimRouterEvent(Simulator::time(),
+                                           src_node, tx_event));
+
+        BundleReceivedEvent* rcv_event =
+            new BundleReceivedEvent(b, EVENTSRC_PEER, len);
+
+        Simulator::post(new SimRouterEvent(Simulator::time(),
+                                           dst_node, rcv_event));
+    }
 }
 
 } // namespace dtnsim
