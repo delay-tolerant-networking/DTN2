@@ -49,11 +49,24 @@ SimConvergenceLayer::send_bundles(Contact* contact)
     
     Bundle* bundle;
     BundleList* blist = contact->bundle_list();
+    
+    Bundle* iter_bundle;
+    BundleList::iterator iter;
+    ScopeLock lock(blist->lock());
+    
+    log_info("current bundle list:");
+        
+    for (iter = blist->begin(); 
+         iter != blist->end(); ++iter) {
+        iter_bundle = *iter;
+        log_info("\tbundle:%d",iter_bundle->bundleid_);
+    }
     // check, if the contact is open. If yes, send one msg from the queue
     if (sc->is_open()) {
-	bundle = blist->pop_front();
-	Message* msg = SimConvergenceLayer::bundle2msg(bundle);
-	sc->chew_message(msg);
+        bundle = blist->pop_front();
+        log_info("\tsending bundle:%d",bundle->bundleid_);
+        Message* msg = SimConvergenceLayer::bundle2msg(bundle);
+        sc->chew_message(msg);
     }
 }
 

@@ -120,19 +120,22 @@ GlueNode::execute_router_action(BundleAction* action)
     case FORWARD_COPY: {
         BundleForwardAction* fwdaction = (BundleForwardAction*)action;
         
-        log_debug("forward bundle (%d) as told by routercode",bundle->bundleid_);
+        log_info("N[%d] forward bundle (%d) as told by routercode",
+                id(),bundle->bundleid_);
         BundleConsumer* bc = fwdaction->nexthop_ ; 
         bc->consume_bundle(bundle);
+        }
         break;
-    }
-    case STORE_ADD: {
-        log_info("storing ignored %d", bundle->bundleid_);
+    case STORE_ADD:{ 
+        log_info("N[%d] storing ignored %d", id(), bundle->bundleid_);
+        }
         break;
-    }
+    
     case STORE_DEL: {
-        log_debug("deletion ignored %d", bundle->bundleid_);
+        log_debug("N[%d] deletion ignored %d", id(), bundle->bundleid_);
+        }
         break;
-    }        
+            
     default:
         PANIC("unimplemented action code %s",
               bundle_action_toa(action->action_));
