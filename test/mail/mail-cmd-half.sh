@@ -25,11 +25,34 @@ else
     set next_relay = node-$idplus
 endif
 
+
+
+set exp_type = 1 
+
+if($exp_type == 1) then
+    set delivery_mode = b
+    set queueruntime  = 10s
+    set singlethread  = true
+    set host_stat_dir = .hoststat-$exp-$prehop
+    set cache_size    = 1
+else
+    set delivery_mode = q
+    set queueruntime  = 1s
+    set singlethread  = true
+    set host_stat_dir = .hoststat-$exp-$prehop
+    set cache_size    = 1
+endif
+
 #create the sendmail.mc file
 echo "Copying the sendmail template ... and copying to $logroot/sendmail-$id.mc .." >>& $info
 sudo cp -f $dtn2testroot/mail/sendmail-template.mc $logroot/sendmail-$id.mc >>& $info
 sed -i "s/__SMART_HOST__/$next_relay/g" $logroot/sendmail-$id.mc  >>& $info
 sed -i "s/__LOCAL_DOMAIN__/$local_mail_domain/g" $logroot/sendmail-$id.mc  >>& $info
+sed -i "s/__DELIVERY_MODE__/$delivery_mode/g" $logroot/sendmail-$id.mc  >>& $info
+sed -i "s/__SINGLE_THREAD__/$singlethread/g" $logroot/sendmail-$id.mc  >>& $info
+sed -i "s/__HOST_STATUS_DIRECTORY__/$host_stat_dir/g" $logroot/sendmail-$id.mc  >>& $info
+sed -i "s/__CACHE_SIZE__/$cache_size/g" $logroot/sendmail-$id.mc  >>& $info
+
 
 #install the new mc file
 echo "Install the new sendmail file ..." >>& $info
@@ -82,14 +105,15 @@ endif
 echo "Changing the queue check time for sendmail ... " >>& $info
 set sysconf=$logroot/sendmail
 echo "DAEMON=yes" > $sysconf
-echo "QUEUE=1s" >> $sysconf
+echo "QUEUE=$queueruntime" >> $sysconf
 sudo cp -f $sysconf /etc/sysconfig/sendmail
 
 
 echo "Stopping sendmail ... " >>& $info
 sudo /etc/init.d/sendmail stop  >>& $info
 
-if($id == 1 || $id == $maxnodes) then
+
+if($perhop == 1 || $id == 1 || $id == $maxnodes) then
     echo "Starting sendmail ... " >>& $info
     sudo /etc/init.d/sendmail start  >>& $info
 endif
