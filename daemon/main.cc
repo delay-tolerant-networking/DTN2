@@ -3,12 +3,17 @@
 #include <sys/time.h>
 #include "debug/Log.h"
 #include "bundling/BundleForwarding.h"
+#include "bundling/InterfaceTable.h"
+#include "reg/RegistrationTable.h"
 #include "routing/RouteTable.h"
 #include "cmd/Command.h"
 #include "cmd/Options.h"
 #include "cmd/StorageCommand.h"
 #include "cmd/TestCommand.h"
 #include "conv_layers/ConvergenceLayer.h"
+#include "storage/BundleStore.h"
+#include "storage/GlobalStore.h"
+#include "storage/RegistrationStore.h"
 
 int
 main(int argc, char** argv)
@@ -50,6 +55,7 @@ main(int argc, char** argv)
     CommandInterp::init();
     ConvergenceLayer::init_clayers();
     BundleForwarding::init();
+    InterfaceTable::init();
     RouteTable::init();
 
     CommandInterp::instance()->reg(&testcmd);
@@ -61,6 +67,31 @@ main(int argc, char** argv)
             exit(1);
         }
     }
+
+    // Check that the storage system was all initialized properly
+    if (BundleStore::instance() == NULL) {
+        logf("/daemon", LOG_ERR,
+             "configuration did not initialize bundle store, exiting...");
+        exit(1);
+    }
+    
+    if (GlobalStore::instance() == NULL) {
+        logf("/daemon", LOG_ERR,
+             "configuration did not initialize global store, exiting...");
+        exit(1);
+    }
+
+    if (RegistrationStore::instance() == NULL) {
+        logf("/daemon", LOG_ERR,
+             "configuration did not initialize registration store, exiting...");
+        exit(1);
+    }
+
+    // now load in the various storage tables
+    GlobalStore::instance()->load();
+    
+    RegistrationTable::init(RegistrationStore::instance());
+    RegistrationTable::instance()->load();
     
     // Start the main console input loop
     while (1) {

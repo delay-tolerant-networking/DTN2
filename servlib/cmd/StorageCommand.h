@@ -17,6 +17,7 @@ public:
      */
     bool tidy_;
     std::string dbdir_;
+    std::string sqldb_;
 
     /**
      * Virtual from CommandModule.
@@ -25,6 +26,7 @@ public:
 
 protected:
     static StorageCommand instance_;
+    bool inited_;
 };
 
 
