@@ -141,8 +141,12 @@ $(SRCDIR)/Rules.make: $(SRCDIR)/Rules.make.in $(SRCDIR)/configure
 #
 # Always include all the .d files that we can find
 #
-DEPFILES := $(shell find $(SRCDIR) -name *.d)
+ALLSRCS := $(shell find $(SRCDIR) -name *.cc -o -name *.c)
+DEPFILES := $(patsubst %.cc,%.d,$(patsubst %.c,%.d,$(ALLSRCS)))
 -include $(DEPFILES)
+
+echodep:
+	echo "depfiles: $(DEPFILES)"
 
 #
 # Clean out all object files
