@@ -8,7 +8,8 @@
 # by default.
 #
 
-SUBDIRS := oasys applib servlib daemon apps sim
+# XXX/demmer removed sim by default for now
+SUBDIRS := oasys applib servlib daemon apps
 
 all: checkconfigure $(SUBDIRS)
 
