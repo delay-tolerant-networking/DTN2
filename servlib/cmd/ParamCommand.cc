@@ -58,13 +58,13 @@ ParamCommand::ParamCommand()
     // constructor (because there is not a flavor of bind_i that
     // handles default values for type u_int32_t)
     bind_i("tcpcl_ack_blocksz",
-           &TCPConvergenceLayer::Defaults.ack_blocksz_);
+           &TCPConvergenceLayer::defaults_.ack_blocksz_);
     bind_i("tcpcl_keepalive_interval",
-           &TCPConvergenceLayer::Defaults.keepalive_interval_);
+           &TCPConvergenceLayer::defaults_.keepalive_interval_);
     bind_i("tcpcl_idle_close_time",
-           &TCPConvergenceLayer::Defaults.idle_close_time_);
+           &TCPConvergenceLayer::defaults_.idle_close_time_);
     bind_i("tcpcl_test_fragment_size",
-           &TCPConvergenceLayer::Defaults.test_fragment_size_);
+           &TCPConvergenceLayer::defaults_.test_fragment_size_);
 }
 
 const char*

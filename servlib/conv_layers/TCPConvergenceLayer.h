@@ -45,6 +45,36 @@
 
 namespace dtn {
 
+/**
+ * The TCP Convergence Layer.
+ *
+ * The implementation is fairly straightforward (hopefully). It makes
+ * use of three helper classes, Listener, Connection, and Params. The
+ * Listener is attached to an interface and, as expected, opens a
+ * listening socket on the specified port and waits for new
+ * connections. A pointer to the Listener is stored in the CLInfo slot
+ * in the interface.
+ *
+ * The link's CLInfo slot holds a pointer to a Params struct, to keep
+ * track of the configured parameters for that link. Each time a new
+ * Contact is created (when the link is opened), a Connection object
+ * with an associated thread is also created and stored in the CLInfo
+ * slot of the Contact.
+ *
+ * A slightly more complicated situation arises with the
+ * reciever_connect option. To implement this feature, intended to
+ * allow a TCPCL connection to traverse a firewall or NAT box, the
+ * user would configure a special interface with the receiver_connect
+ * parameter set. In this case, rather than creating a Listener, the
+ * interface would create a new Connection object and initiate contact
+ * with the specified peer.
+ *
+ * To the connection receiver (who will be the data sender), a new
+ * OPPORTUNISTIC link appears when the contact is completed. In this
+ * case, the Connection object already exists (having been created to
+ * accept the connection), so it is handed to the ContactManager to be
+ * installed in the new Contact structure.
+ */
 class TCPConvergenceLayer : public IPConvergenceLayer {
 public:
     /**
@@ -98,7 +128,8 @@ public:
      * via the 'param set' command'. Per-connection values are also
      * configurable via arguments to the 'link add' command.
      */
-    struct Params {
+    class Params : public CLInfo {
+    public:
         bool bundle_ack_enabled_;	///< Are per-bundle acks enabled
         bool receiver_connect_;		///< rcvr-initiated connect (for NAT)
         u_int ack_blocksz_;		///< Bytes to send before ack
@@ -112,7 +143,7 @@ public:
     /**
      * Default parameters.
      */
-    static struct Params Defaults;
+    static Params defaults_;
 
 protected:
     bool parse_params(Params* params, int argc, const char** argv,
@@ -149,12 +180,13 @@ protected:
         /**
          * Constructor for the active connection side of a connection.
          * Note that this may be used both for the actual data sender
-         * or for the receiver side when used with the
+         * or for the data receiver side when used with the
          * receiver_connect option.
          */
         Connection(in_addr_t remote_addr,
                    u_int16_t remote_port,
-                   bool is_sender);
+                   bool is_sender,
+                   Params* params);
         
         /**
          * Constructor for the passive accept side of a connection.
