@@ -68,7 +68,7 @@
 #endif
 
 #define LOG_DEFAULT_THRESHOLD   LOG_INFO
-#define LOG_DEFAULT_DBGFILE "~/.debug"
+#define LOG_DEFAULT_DBGFILE "~/.dtndebug"
 
 #define LOG_MAX_PATHLEN (64)
 #define LOG_MAX_LINELEN (256)
