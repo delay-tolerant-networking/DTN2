@@ -127,19 +127,12 @@ public:
         return instance_; 
     }
 
-    
-    /**
-     * Made public to support specific implementations of log time printing
-     */
-    static Log* instance_;	///< Singleton instance of the Logging system
-
     /**
      * Initialize the logging system. Must be called exactly once.
      */
     static void init(log_level_t defaultlvl = LOG_DEFAULT_THRESHOLD,
                      const char *debug_path = LOG_DEFAULT_DBGFILE);
 
-  
     /**
      *  Sets the time to print for the logging 
      */
@@ -177,6 +170,11 @@ protected:
      * static Log::init.
      */
     void do_init(log_level_t defaultlvl, const char* debug_path);
+
+    /**
+     * Singleton instance of the Logging system
+     */
+    static Log* instance_;
 
 private:
     /**

@@ -47,20 +47,20 @@ Log::Log()
     lock_ = new SpinLock();
 }
 
-
-
 void
 Log::init(log_level_t defaultlvl, const char* debug_path)
 {
-    ASSERT(instance_ == NULL);
-    instance_ = new Log();
-    instance_->do_init(defaultlvl, debug_path);
+    Log* log = new Log();
+    log->do_init(defaultlvl, debug_path);
 }
 
 void
 Log::do_init(log_level_t defaultlvl, const char *debug_path)
 {
+    ASSERT(instance_ == NULL);
     ASSERT(!inited_);
+
+    instance_ = this;
 
     ASSERT(lock_);
     ScopeLock lock(lock_);

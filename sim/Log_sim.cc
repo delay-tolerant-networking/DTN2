@@ -3,9 +3,8 @@
 
 void
 Log_sim::init(log_level_t level, const char* path) {
-    ASSERT(instance_ == NULL);
-    instance_ =  new Log_sim();
-    instance_->do_init(level,path);
+    Log_sim* log = new Log_sim();
+    log->do_init(level, path);
 }
 
 void
