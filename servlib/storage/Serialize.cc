@@ -24,9 +24,7 @@ SerializeAction::~SerializeAction()
 int
 SerializeAction::action(SerializableObject* object)
 {
-    exit(0);
     error_ = false;
-   
 
     object->serialize(this);
     
