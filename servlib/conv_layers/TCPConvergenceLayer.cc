@@ -6,6 +6,7 @@
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
 #include "io/NetUtils.h"
+#include "thread/Timer.h"
 #include "util/URL.h"
 
 #include <sys/poll.h>
@@ -779,6 +780,8 @@ TCPConvergenceLayer::Connection::recv_loop()
             log_err("recv_loop: error sending ack");
             goto shutdown;
         }
+
+        TimerSystem::instance();
         
         // now loop until we're done with the rest
         while (acked_len < payload_len) {
