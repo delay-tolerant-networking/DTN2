@@ -14,9 +14,8 @@ configure manually within that directory.
 
 Reporting Bugs / Other Help
 ---------------------------
-As of this release, there is no bug tracking system in place. We plan
-to set up a bug database in the future, and will make an announcement
-on the dtn-interest mailing list.
+As of this release, there is no bug tracking system in place. Please
+direct questions and/or bug reports to dtn-dev@mailman.dtnrg.org.
 
 DTN2 Directory Structure
 ------------------------
