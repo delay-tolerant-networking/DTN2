@@ -8,6 +8,7 @@
  */
 class StorageConfig {
 public:
+    StorageConfig();
     static StorageConfig* instance() { return &instance_; }
     
     bool tidy_;			///< Prune out the database on init
