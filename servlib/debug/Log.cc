@@ -65,12 +65,19 @@ Log::do_init(log_level_t defaultlvl, const char *debug_path)
 
     default_threshold_ = defaultlvl;
 
-    // make sure stdout is nonblocking so we don't ever block in
-    // ::write while holding the spin lock.
+#ifdef _POSIX_THREAD_IS_CAPRICCIO
+    /*
+     * Make sure stdout is nonblocking so we don't ever block in
+     * ::write while holding the spin lock.
+     *
+     * XXX/demmer for some reason this seems to set stdin to be
+     * nonblocking as well when not running under capriccio
+     */
     if (IO::set_nonblocking(1, true) != 0) {
         fprintf(stderr, "error setting stdout to nonblocking: %s\n",
                 strerror(errno));
     }
+#endif
 
     // short-circuit the case where there's no path at all
     if (debug_path == 0 || debug_path[0] == '\0') {
