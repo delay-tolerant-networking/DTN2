@@ -24,6 +24,25 @@ Contact::~Contact()
     delete bundle_list_;
 }
 
+/**
+ * Open a channel to the contact for bundle transmission.
+ */
+void
+Contact::open()
+{
+    log_err("XXX/demmer Contact::open not implemented");
+}
+    
+/**
+ * Close the transmission channel. May be triggered by the
+ * convergence layer in case the underlying channel is torn down.
+ */
+void
+Contact::close()
+{
+    log_err("XXX/demmer Contact::close not implemented");
+}
+
 int
 Contact::format(char* buf, size_t sz)
 {
