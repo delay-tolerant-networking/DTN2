@@ -133,6 +133,42 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
             convert_to_fragment(bundle, event->bytes_received_);
     }
 
+    /*
+     * Check for proactive fragmentation
+     */
+    size_t payload_len = bundle->payload_.length();
+    if ((proactive_frag_threshold_ > 0) &&
+        (payload_len > proactive_frag_threshold_))
+    {
+        log_info("proactively fragmenting "
+                 "%d byte bundle into %d %d byte fragments",
+                 payload_len, payload_len / proactive_frag_threshold_,
+                 proactive_frag_threshold_);
+        
+        Bundle* fragment;
+        
+        int todo = payload_len;
+        int offset = 0;
+        int fraglen = proactive_frag_threshold_;
+        while (todo > 0) {
+            if ((fraglen + offset) > (int)bundle->payload_.length()) {
+                fraglen = bundle->payload_.length() - offset;
+            }
+
+            fragment = FragmentManager::instance()->
+                       create_fragment(bundle, offset, fraglen);
+            ASSERT(fragment);
+
+            pending_bundles_->push_back(fragment);
+            actions->push_back(new BundleAction(STORE_ADD, fragment));
+            fwd_to_matching(fragment, actions, false);
+            
+            offset += fraglen;
+            todo -= fraglen;
+        }
+        return;
+    }
+
     pending_bundles_->push_back(bundle);
     actions->push_back(new BundleAction(STORE_ADD, bundle));
     fwd_to_matching(bundle, actions, true);

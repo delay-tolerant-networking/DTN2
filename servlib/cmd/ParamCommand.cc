@@ -2,6 +2,7 @@
 #include "ParamCommand.h"
 #include "bundling/BundlePayload.h"
 #include "conv_layers/TCPConvergenceLayer.h"
+#include "routing/BundleRouter.h"
 
 ParamCommand::ParamCommand() :
     AutoCommandModule("param")
@@ -17,6 +18,9 @@ ParamCommand::at_reg()
            (int*)&BundlePayload::mem_threshold_, 16384);
     bind_b("payload_test_no_remove",
            &BundlePayload::test_no_remove_, false);
+
+    bind_i("proactive_frag_threshold",
+           (int*)&BundleRouter::proactive_frag_threshold_, -1);
 
     bind_i("tcpcl_ack_blocksz",
            &TCPConvergenceLayer::Defaults.ack_blocksz_, 1024);
