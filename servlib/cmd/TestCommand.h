@@ -1,12 +1,12 @@
 #ifndef _TEST_COMMAND_H_
 #define _TEST_COMMAND_H_
 
-#include "Command.h"
+#include "tclcmd/TclCommand.h"
 
 /**
  * CommandModule for the "test" command.
  */
-class TestCommand : public CommandModule {
+class TestCommand : public TclCommand {
 public:
     TestCommand();
 

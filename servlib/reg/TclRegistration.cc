@@ -23,7 +23,7 @@ TclRegistration::TclRegistration(const BundleTuplePattern& endpoint,
 int
 TclRegistration::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
-    CommandInterp* cmdinterp = CommandInterp::instance();
+    TclCommandInterp* cmdinterp = TclCommandInterp::instance();
     if (argc < 1) {
         cmdinterp->wrong_num_args(argc, argv, 0, 1, INT_MAX);
         return TCL_ERROR;
@@ -48,7 +48,7 @@ TclRegistration::exec(int argc, const char** argv, Tcl_Interp* interp)
 int
 TclRegistration::get_list_channel(Tcl_Interp* interp)
 {
-    CommandInterp* cmdinterp = CommandInterp::instance();
+    TclCommandInterp* cmdinterp = TclCommandInterp::instance();
     cmdinterp->set_result(Tcl_GetChannelName(notifier_channel_));
     return TCL_OK;
 }
@@ -57,7 +57,7 @@ TclRegistration::get_list_channel(Tcl_Interp* interp)
 int
 TclRegistration::get_bundle_data(Tcl_Interp* interp)
 {
-    CommandInterp* cmdinterp = CommandInterp::instance();
+    TclCommandInterp* cmdinterp = TclCommandInterp::instance();
     Bundle* b = bundle_list_->pop_front();
     if (!b) {
         cmdinterp->set_objresult(Tcl_NewListObj(0, 0));

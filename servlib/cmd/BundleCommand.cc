@@ -5,7 +5,8 @@
 #include "bundling/BundleForwarder.h"
 #include "util/StringBuffer.h"
 
-BundleCommand::BundleCommand() : AutoCommandModule("bundle") {}
+BundleCommand::BundleCommand()
+    : TclCommand("bundle") {}
 
 const char*
 BundleCommand::help_string()

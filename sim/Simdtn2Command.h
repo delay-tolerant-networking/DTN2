@@ -1,14 +1,14 @@
 #ifndef _SIM_DTN2_COMMAND_H_
 #define _SIM_DTN2_COMMAND_H_
 
-#include "cmd/Command.h"
+#include "tclcmd/TclCommand.h"
 
 /**
  * CommandModule for the "simdtn2" command.
  * These are the commands specific to DTN2 and sim
  * For example commands to access bundlerouterifo from simulator
  */
-class Simdtn2Command : public AutoCommandModule {
+class Simdtn2Command : public AutoTclCommand {
 public:
     Simdtn2Command();
     

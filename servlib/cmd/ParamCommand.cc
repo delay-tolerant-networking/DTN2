@@ -4,13 +4,8 @@
 #include "conv_layers/TCPConvergenceLayer.h"
 #include "routing/BundleRouter.h"
 
-ParamCommand::ParamCommand() :
-    AutoCommandModule("param")
-{
-}
-
-void
-ParamCommand::at_reg()
+ParamCommand::ParamCommand() 
+    : TclCommand("param")
 {
     bind_s("payload_dir",
            &BundlePayload::dir_, "/tmp/bundles");

@@ -1,23 +1,19 @@
 #ifndef _PARAM_COMMAND_H_
 #define _PARAM_COMMAND_H_
 
-#include "Command.h"
+#include "tclcmd/TclCommand.h"
 
 /**
  * Parameter setting command
  */
-class ParamCommand : public AutoCommandModule {
+class ParamCommand : public TclCommand {
 public:
     ParamCommand();
     
     /**
      * Virtual from CommandModule.
      */
-    void at_reg();
     const char* help_string();
-
-protected:
-    static ParamCommand instance_;
 };
 
 

@@ -4,7 +4,6 @@
 SRCDIR := ..
 
 DAEMON_SRCS :=	\
-	DTNCommands.cc \
 	main.cc	\
 
 DAEMON_OBJS := $(DAEMON_SRCS:.cc=.o)

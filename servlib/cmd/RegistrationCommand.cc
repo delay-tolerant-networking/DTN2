@@ -4,14 +4,15 @@
 #include "reg/RegistrationTable.h"
 #include "reg/TclRegistration.h"
 
-RegistrationCommand::RegistrationCommand() : AutoCommandModule("registration") {}
+RegistrationCommand::RegistrationCommand()
+    : TclCommand("registration") {}
 
 const char*
 RegistrationCommand::help_string()
 {
-    return("\tregistration add <logger|tcl> <endpoint> <args...>\n"
-           "\tregistration tcl <regid> <endpoint> <cmd> <args...>\n"
-           "\tregistration del <regid> <endpoint>");
+    return("registration add <logger|tcl> <endpoint> <args...>\n"
+           "registration tcl <regid> <endpoint> <cmd> <args...>\n"
+           "registration del <regid> <endpoint>");
 }
 
 int

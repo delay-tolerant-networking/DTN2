@@ -2,13 +2,14 @@
 #include "InterfaceCommand.h"
 #include "bundling/InterfaceTable.h"
 
-InterfaceCommand::InterfaceCommand() : AutoCommandModule("interface") {}
+InterfaceCommand::InterfaceCommand()
+    : TclCommand("interface") {}
 
 const char*
 InterfaceCommand::help_string()
 {
-    return("\tinterface <tuple> [<args>?]\n"
-           "\tinterface remove <tuple>");
+    return("interface <tuple> [<args>?]\n"
+           "interface remove <tuple>");
 }
 
 int

@@ -20,15 +20,12 @@
 #include "storage/PostgresSQLImplementation.h"
 #endif
 
-StorageCommand::StorageCommand() : AutoCommandModule("storage")
+StorageCommand::StorageCommand()
+    : TclCommand("storage")
 {
     inited_ = false;
-}
 
-void
-StorageCommand::at_reg()
-{
-    StorageConfig* cfg = StorageConfig::instance();
+     StorageConfig* cfg = StorageConfig::instance();
     bind_b("tidy",  &cfg->tidy_);
     bind_s("dbdir", &cfg->dbdir_);
     bind_s("sqldb", &cfg->sqldb_);

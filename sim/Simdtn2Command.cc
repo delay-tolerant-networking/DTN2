@@ -12,7 +12,9 @@
 
 Simdtn2Command Simdtn2Command::instance_;
 
-Simdtn2Command::Simdtn2Command() : AutoCommandModule("simdtn2") {}
+Simdtn2Command::Simdtn2Command()
+    : AutoTclCommand("simdtn2")
+{}
 
 void
 Simdtn2Command::at_reg()

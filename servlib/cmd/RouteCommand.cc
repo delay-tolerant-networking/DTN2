@@ -7,10 +7,8 @@
 #include "routing/RouteTable.h"
 #include "util/StringBuffer.h"
 
-RouteCommand::RouteCommand() : AutoCommandModule("route") {}
-
-void
-RouteCommand::at_reg()
+RouteCommand::RouteCommand()
+    : TclCommand("route")
 {
     bind_s("type", &BundleRouter::type_, "static");
 }

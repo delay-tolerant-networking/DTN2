@@ -3,8 +3,8 @@
 
 #include "Registration.h"
 #include "bundling/BundleTuple.h"
-#include "cmd/Command.h"
 #include "debug/Log.h"
+#include "tclcmd/TclCommand.h"
 #include "thread/Thread.h"
 
 /**

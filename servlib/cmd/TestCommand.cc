@@ -1,11 +1,10 @@
 
 #include "TestCommand.h"
 
-TestCommand::TestCommand() :
-    CommandModule("test"),
-    id_(0)
+TestCommand::TestCommand()
+    : TclCommand("test")
 {
-    bind_i("id", &id_);
+    bind_i("id", &id_, 0);
     bind_s("initscript", &initscript_);
 }
 

@@ -8,14 +8,15 @@
 #include "bundling/InterfaceTable.h"
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
-#include "cmd/Command.h"
 #include "cmd/TestCommand.h"
+#include "cmd/DTNCommands.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "reg/AdminRegistration.h"
 #include "storage/BundleStore.h"
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
 #include "storage/StorageConfig.h"
+#include "tclcmd/TclCommand.h"
 #include "thread/Timer.h"
 #include "util/Options.h"
 
@@ -64,7 +65,7 @@ main(int argc, char** argv)
     
     // Initialize logging before anything else
     Log::init(logfd, level);
-    logf("/daemon", LOG_DEBUG, "main()");
+    logf("/daemon", LOG_DEBUG, "Bundle Daemon Initializing...");
 
     // command line parameter vars
     std::string conffile("daemon/bundleNode.conf");
@@ -90,12 +91,16 @@ main(int argc, char** argv)
     new StringOpt("l", &ignored, "level",
                   "default log level [debug|warn|info|crit]");
         
-    // Set up the command interpreter, then parse argv
-    CommandInterp::init(argv[0]);
+    // Set up the command interpreter and instantiate all the dtn
+    // commands
+    TclCommandInterp::init(argv[0]);
+    TclCommandInterp* interp = TclCommandInterp::instance();
+    interp->reg(&testcmd);
+    DTNCommands::init();
+
+    // parse argv
     Options::getopt(argv[0], argc, argv);
 
-    logf("/daemon", LOG_DEBUG, "Bundle Daemon Initializing...");
-    
     // Seed the random number generator
     if (!random_seed_set) {
         struct timeval tv;
@@ -117,11 +122,10 @@ main(int argc, char** argv)
     BundleForwarder* forwarder = new BundleForwarder();
     BundleForwarder::init(forwarder);
     
-    CommandInterp::instance()->reg(&testcmd);
 
     // Parse / exec the config file
     if (conffile.length() != 0) {
-        if (CommandInterp::instance()->exec_file(conffile.c_str()) != 0) {
+        if (interp->exec_file(conffile.c_str()) != 0) {
             logf("/daemon", LOG_ERR,
                  "error in configuration file, exiting...");
             exit(1);
@@ -157,7 +161,7 @@ main(int argc, char** argv)
     
     // if the config script wants us to run a test script, do so now
     if (testcmd.initscript_.length() != 0) {
-        CommandInterp::instance()->exec_command(testcmd.initscript_.c_str());
+        interp->exec_command(testcmd.initscript_.c_str());
     }
 
     // now boot up the application interface
@@ -166,9 +170,9 @@ main(int argc, char** argv)
 
     // finally, run the main command or event loop (shouldn't return)
     if (daemon) {
-        CommandInterp::instance()->event_loop();
+        interp->event_loop();
     } else {
-        CommandInterp::instance()->command_loop("dtn");
+        interp->command_loop("dtn");
     }
     
     logf("/daemon", LOG_ERR, "command loop exited unexpectedly");

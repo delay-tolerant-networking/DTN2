@@ -1,13 +1,15 @@
 #include <errno.h>
 #include <string>
 #include <sys/time.h>
-#include "debug/Log.h"
-#include "cmd/Command.h"
 #include "Simulator.h"
 #include "LogSim.h"
 #include "conv_layers/ConvergenceLayer.h"
+#include "cmd/ParamCommand.h"
+#include "cmd/RouteCommand.h"
+#include "debug/Log.h"
 #include "SimConvergenceLayer.h"
 #include "bundling/AddressFamily.h"
+#include "tclcmd/TclCommand.h"
 #include "util/Options.h"
 
 int
@@ -27,13 +29,17 @@ main(int argc, char** argv)
     int random_seed;
     bool random_seed_set = false;
     
-    
     new StringOpt("c", &conffile, "conf", "config file");
     new IntOpt("s", &random_seed, &random_seed_set, "seed",
                "random number generator seed");
 
     // Set up the command interpreter, then parse argv
-    CommandInterp::init(argv[0]);
+    TclCommandInterp::init(argv[0]);
+    TclCommandInterp* interp = TclCommandInterp::instance();
+    
+    interp->reg(new ParamCommand());
+    interp->reg(new RouteCommand());
+
     Options::getopt(argv[0], argc, argv);
 
     // Seed the random number generator
@@ -53,7 +59,7 @@ main(int argc, char** argv)
 
     // Parse / exec the config file
     if (conffile.length() != 0) {
-        if (CommandInterp::instance()->exec_file(conffile.c_str()) != 0) {
+        if (interp->exec_file(conffile.c_str()) != 0) {
             logf("/sim", LOG_ERR, "error in configuration file, exiting...");
             exit(1);
         }

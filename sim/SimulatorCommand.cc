@@ -9,9 +9,8 @@
 
 SimulatorCommand SimulatorCommand::instance_;
 
-SimulatorCommand::SimulatorCommand() : AutoCommandModule("sim")
+SimulatorCommand::SimulatorCommand() : AutoTclCommand("sim")
 {
-
 }
 
 

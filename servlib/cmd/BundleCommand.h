@@ -1,12 +1,12 @@
 #ifndef _BUNDLE_COMMAND_H_
 #define _BUNDLE_COMMAND_H_
 
-#include "Command.h"
+#include "tclcmd/TclCommand.h"
 
 /**
  * Debug command for hand manipulation of bundles.
  */
-class BundleCommand : public AutoCommandModule {
+class BundleCommand : public TclCommand {
 public:
     BundleCommand();
     
@@ -15,9 +15,6 @@ public:
      */
     virtual int exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp);
     virtual const char* help_string();
-
-protected:
-    static BundleCommand instance_;
 };
 
 #endif /* _BUNDLE_COMMAND_H_ */

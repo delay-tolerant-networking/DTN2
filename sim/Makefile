@@ -19,7 +19,6 @@ SIM_SRCS :=	\
 	TrAgent.cc	\
 	LogSim.cc	\
 	FloodConsumer.cc\
-	SimCommands.cc  \
 
 #	Statistics.cc \
 

@@ -1,12 +1,12 @@
 #ifndef _ROUTE_COMMAND_H_
 #define _ROUTE_COMMAND_H_
 
-#include "Command.h"
+#include "tclcmd/TclCommand.h"
 
 /**
- * CommandModule for the "route" command.
+ * The "route" command.
  */
-class RouteCommand : public AutoCommandModule {
+class RouteCommand : public TclCommand {
 public:
     RouteCommand();
     
@@ -14,11 +14,7 @@ public:
      * Virtual from CommandModule.
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
-    void at_reg();
     virtual const char* help_string();
-
-protected:
-    static RouteCommand instance_;
 };
 
 #endif /* _ROUTE_COMMAND_H_ */

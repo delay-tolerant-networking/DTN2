@@ -2,13 +2,8 @@
 #include "APICommand.h"
 #include "applib/APIServer.h"
 
-APICommand::APICommand() :
-    AutoCommandModule("api")
-{
-}
-
-void
-APICommand::at_reg()
+APICommand::APICommand()
+    : TclCommand("api")
 {
     bind_addr("local_addr",  &APIServer::local_addr_);
     bind_i("handshake_port", &APIServer::handshake_port_);

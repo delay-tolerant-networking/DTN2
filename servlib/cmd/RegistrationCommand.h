@@ -1,12 +1,12 @@
 #ifndef _REGISTRATION_COMMAND_H_
 #define _REGISTRATION_COMMAND_H_
 
-#include "Command.h"
+#include "tclcmd/TclCommand.h"
 
 /**
- * CommandModule for the "registration" command.
+ * The "registration" command.
  */
-class RegistrationCommand : public AutoCommandModule {
+class RegistrationCommand : public TclCommand {
 public:
     RegistrationCommand();
     
@@ -15,9 +15,6 @@ public:
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
     virtual const char* help_string();
-
-protected:
-    static RegistrationCommand instance_;
 };
 
 #endif /* _REGISTRATION_COMMAND_H_ */

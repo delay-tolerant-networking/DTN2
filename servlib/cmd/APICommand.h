@@ -1,23 +1,19 @@
 #ifndef _API_COMMAND_H_
 #define _API_COMMAND_H_
 
-#include "Command.h"
+#include "tclcmd/TclCommand.h"
 
 /**
- * Apieter setting command
+ * API options command
  */
-class APICommand : public AutoCommandModule {
+class APICommand : public TclCommand {
 public:
     APICommand();
     
     /**
      * Virtual from CommandModule.
      */
-    void at_reg();
     const char* help_string();
-
-protected:
-    static APICommand instance_;
 };
 
 

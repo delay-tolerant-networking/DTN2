@@ -1,14 +1,14 @@
 #ifndef _SIMULATOR_COMMAND_H_
 #define _SIMULATOR_COMMAND_H_
 
-#include "cmd/Command.h"
+#include "tclcmd/TclCommand.h"
 
 /**
  * Class to control the simulator
  */
-class SimulatorCommand : public AutoCommandModule {
+class SimulatorCommand : public AutoTclCommand {
 public:
-    SimulatorCommand()  ;
+    SimulatorCommand();
     void at_reg();
     const char* help_string();
     static SimulatorCommand* instance() { return &instance_; }
