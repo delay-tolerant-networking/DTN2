@@ -42,6 +42,7 @@
 #include <sys/time.h>
 
 #include <oasys/debug/Log.h>
+#include <oasys/io/FileUtils.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Options.h>
@@ -59,7 +60,7 @@ main(int argc, char* argv[])
     int         random_seed;
     bool        random_seed_set = false;
     bool	daemon = false;
-    std::string conf_file("daemon/bundleNode.conf");
+    std::string conf_file;
     std::string logfile("-");
     std::string loglevelstr;
     log_level_t loglevel;
@@ -84,7 +85,7 @@ main(int argc, char* argv[])
                 &StorageConfig::instance()->tidy_,
                 "clear database and initialize tables on startup");
     
-    new BoolOpt(0, "create-db",
+    new BoolOpt(0, "init-db",
                 &StorageConfig::instance()->init_,
                 "initialize database on startup");
 
@@ -109,9 +110,10 @@ main(int argc, char* argv[])
             exit(1);
         }
     }
-    
+
+    const char* log = "/dtnd";
     Log::init(logfile.c_str(), loglevel, "", "~/.dtndebug");
-    logf("/dtnd", LOG_INFO, "Bundle Daemon Initializing...");
+    log_info(log, "Bundle Daemon Initializing...");
 
     // bind a copy of argv to be accessible to test scripts
     for (int i = 0; i < argc; ++i) {
@@ -125,7 +127,7 @@ main(int argc, char* argv[])
       gettimeofday(&tv, NULL);
       random_seed = tv.tv_usec;
     }
-    logf("/dtnd", LOG_INFO, "random seed is %u\n", random_seed);
+    log_info(log, "random seed is %u\n", random_seed);
     srand(random_seed);
     
     // Set up the command interpreter
@@ -141,11 +143,33 @@ main(int argc, char* argv[])
     Log::instance()->add_rotate_handler(SIGUSR1);
     DTNServer::init_components();
 
-    // Parse / exec the config file
+    // Check the supplied config file and/or check for defaults
     if (conf_file.length() != 0) {
+        if (! oasys::FileUtils::readable(conf_file.c_str(), log)) {
+            log_err(log, "configuration file \"%s\" not readable",
+                    conf_file.c_str());
+            exit(1);
+        }
+
+    } else {
+        if (oasys::FileUtils::readable("/etc/dtn.conf", log)) {
+            conf_file.assign("/etc/dtn.conf");
+            
+        } else if (oasys::FileUtils::readable("daemon/dtn.conf", log)) {
+            conf_file.assign("daemon/dtn.conf");
+
+        } else {
+            log_warn(log, "can't read default config file "
+                     "(tried /etc/dtn.conf and daemon/dtn.conf)...");
+        }
+    }
+
+    // now if one was specified, parse it
+    if (conf_file.length() != 0) {
+        log_info(log, "parsing configuration file %s...", conf_file.c_str());
+        
         if (interp->exec_file(conf_file.c_str()) != 0) {
-            logf("/dtnd", LOG_ERR,
-                 "error in configuration file, exiting...");
+            log_err(log, "error in configuration file, exiting...");
             exit(1);
         }
     }
@@ -168,5 +192,5 @@ main(int argc, char* argv[])
         interp->command_loop("dtn");
     }
     
-    logf("/dtnd", LOG_ERR, "command loop exited unexpectedly");
+    logf(log, LOG_ERR, "command loop exited unexpectedly");
 }
