@@ -63,7 +63,8 @@ IO::poll(int fd, int events, int timeout_ms, const char* log)
 
     ret = ::poll(&pollfd, 1, timeout_ms);
     if (ret < 0) {
-        if (log) logf(log, LOG_ERR, "error in poll: %s", strerror(errno));
+        if (log && errno != EINTR)
+            logf(log, LOG_ERR, "error in poll: %s", strerror(errno));
         return -1;
     }
     

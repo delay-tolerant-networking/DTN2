@@ -86,7 +86,6 @@ Notifier::wait(SpinLock* lock)
         ret = IO::poll(read_fd(), POLLIN, -1, logpath_);
         if (ret <= 0) {
             if (ret == -1 && errno == EINTR) {
-                log_debug("poll returned EINTR");
                 continue;
             }
             log_crit("unexpected error return from poll: %s", strerror(errno));
