@@ -245,7 +245,7 @@ protected:
      
     
     /**
-     * Call fwd_to_nexthop for all matching entries in the routing
+     * Call fwd_to_matching for all matching entries in the routing
      * table.
      *
      * Note that if the include_local flag is set, then local routes
