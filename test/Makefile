@@ -11,6 +11,8 @@ all: test
 BINFILES :=			\
 	command-test		\
 	simple-marshal-test	\
+	simple-sql-test		\
+
 
 test: check $(BINFILES)
 

@@ -327,7 +327,7 @@ fi
 #
 #
 # XXX/demmer fix me later
-postgresdir=none
+#postgresdir=none
 if [ "$postgresdir" = "none" ]; then
        	echo "Warning: need to find postgres library"
 #  exit 1

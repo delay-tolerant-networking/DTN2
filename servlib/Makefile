@@ -52,6 +52,7 @@ STORAGE_SRCS :=					\
 	storage/SQLStore.cc			\
 	storage/Serialize.cc			\
 	storage/StorageSystem.cc		\
+	storage/PostgresSQLExtract.cc		\
 
 THREAD_SRCS :=					\
 	thread/Mutex.cc				\
