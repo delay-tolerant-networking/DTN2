@@ -3,20 +3,50 @@
 
 #include "storage/Serialize.h"
 
+/**
+ * Class to wrap a bundle tuple of the general form:
+ *
+ * bundles://<region>/<admin>
+ *
+ * The region must not contain any '/' characters, and may determine a
+ * particular AddressFamily entry to use when parsing the admin
+ * portion.
+ */
 class BundleTuple : public SerializableObject {
 public:
     BundleTuple();
+    BundleTuple(const std::string& tuple);
     virtual ~BundleTuple();
-        
+
     /**
-     * Return whether or not this tuple is valid.
+     * Parse and assign the given tuple string.
+     */
+    void set_tuple(const std::string& tuple);
+    
+    /// Accessors
+    // @{
+    const std::string& tuple()  { return tuple_; }
+    const std::string& region() { return region_; }
+    const std::string& admin()  { return admin_; }
+    // @}
+    
+    /**
+     * @return Whether or not the tuple is valid.
      */
     bool valid() { return valid_; }
 
+    /**
+     * Virtual from SerializableObject
+     */
     virtual void serialize(SerializeAction* a);
 
 protected:
+    void parse_tuple();
+    
     bool valid_;
+    std::string tuple_;
+    std::string region_;
+    std::string admin_;
 };
 
 #endif /* _BUNDLE_TUPLE_H_ */
