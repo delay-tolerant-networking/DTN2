@@ -130,7 +130,7 @@ proc send_file {host file} {
 	puts "[time] sending handshake ack"
 
 	# read the handshake ack
-	# fconfigure $sock -blocking 0
+	fconfigure $sock -blocking 0
 	set got_ack -1
 	fileevent $sock readable "ack_arrived $sock"
 	set ack_timer [after 20000 ack_timeout]
@@ -148,6 +148,10 @@ proc send_file {host file} {
     }
 	
    
+    fconfigure $sock -blocking 1
+
+    puts $logfd "[time] :: file actually sent [file tail $file]   " 
+    flush $logfd
     ## Send the filename and size
     if [catch {
 	puts $sock "[file tail $file] [file size $file]"
@@ -188,8 +192,7 @@ proc send_file {host file} {
 
     if {$got_ack} {
 	puts "[time] :: file  actually sent $file"
-	puts $logfd "[time] :: file actually sent [file tail $file]   " 
-	flush $logfd
+	
 
 	return 1
     } else {
