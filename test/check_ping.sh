@@ -12,7 +12,7 @@ rm -f /tmp/ping.$OTHERHOST
 
 
 starttime=`date +%s`
-ps aux > /tmp/$starttime
+ps -eo cmd > /tmp/$starttime
 #CHeck if already running, if yes then exitcat
 num=`grep check_ping /tmp/$starttime | wc -l` 
 echo $num
@@ -24,7 +24,7 @@ while [ 1 ]
 do
     timenow=`date +%s`
     let incr=$timenow-$starttime
-    ping -q -w $TIMEOUT -i $INTERVAL -c $COUNT -s $PACKET_SIZE $OTHERHOST 2>/dev/null >/tmp/ping.$OTHERHOST 
+    ping -q -w $TIMEOUT -i $INTERVAL -c $COUNT -s $PACKET_SIZE $OTHERHOST 2>/dev/null >/dev/null 
     ret=$?
     if [ "$ret" == "0" ]; then
         echo $incr UP " At:$timenow :Retry after $RETRY seconds to $OTHERHOST"  

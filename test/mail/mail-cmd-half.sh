@@ -111,7 +111,7 @@ endif
 
 
 echo "Changing the queue check time for sendmail ... " >>& $info
-set sysconf=$logroot/sendmail
+set sysconf=$logroot/sendmail.$id
 echo "DAEMON=yes" > $sysconf
 echo "QUEUE=$queueruntime" >> $sysconf
 sudo cp -f $sysconf /etc/sysconfig/sendmail

@@ -158,14 +158,16 @@ proc send_file {host file} {
 	close $fd
 	return -1
     }
-    
+   	
+    set index 0 
     ## Send the payload
     while {![eof $fd]} {
 	if {[catch {
 	    set payload [read $fd $blocksz]
-	    #	    puts "sending [string length $payload] byte chunk"
+	    puts "[time] $index sending [string length $payload] byte chunk"
 	    puts -nonewline $sock $payload
 	    flush $sock
+            incr index
 	} ]} {
 	    close $sock
 	    unset sock
@@ -181,7 +183,7 @@ proc send_file {host file} {
     fconfigure $sock -blocking 0
     set got_ack -1
     fileevent $sock readable "ack_arrived $sock"
-    set ack_timer [after 5000 ack_timeout]
+    set ack_timer [after 25000 ack_timeout]
     vwait got_ack
 
     if {$got_ack} {
