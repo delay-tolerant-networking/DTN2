@@ -48,6 +48,31 @@ namespace dtn {
 class UDPConvergenceLayer : public IPConvergenceLayer {
 public:
     /**
+     * Current version of the protocol.
+     */
+    static const u_int8_t UDPCL_VERSION = 0x02;
+
+    /**
+     * The basic UDP header structure.
+     */
+    struct UDPCLHeader {
+        u_int32_t magic;		///< magic word (MAGIC: "dtn!")
+        u_int8_t  version;		///< udpcl protocol version
+        u_int8_t  flags;		///< connection flags and operation
+        u_int16_t source_id;		///< socket identifier at sender
+        u_int32_t bundle_id;		///< bundle identifier at sender
+    };
+
+    /**
+     * Values for flags / op
+     */
+    typedef enum {
+        RELIABLITY_REQUESTED  = 0x10,	///< request sliding-window reliability
+                                        ///< (not implemented)
+        BUNDLE_DATA  	      = 0x01,	///< bundle data transmission
+    } header_flags_t;
+
+    /**
      * Constructor.
      */
     UDPConvergenceLayer();
@@ -73,23 +98,22 @@ public:
      */
     bool close_contact(Contact* contact);
 
-    /*
-     * Tunable Parameters 
-     */
-    static struct _defaults {
-        int ack_blocksz_; /* Not used (version 1.0) */
-    } Defaults;    
-    
     /**
      * Helper class (and thread) that listens on a registered
-     * interface for incoming data 
+     * interface for incoming data.
      */
-    class Receiver : public CLInfo,
-                     public oasys::IPSocket,
-                     public oasys::Thread {
-public:
+    class Receiver : public CLInfo, public oasys::UDPClient, public oasys::Thread {
+    public:
+        /**
+         * Constructor.
+         */
         Receiver();
-        void process_data(char* payload, size_t payload_len);
+
+        /**
+         * Destructor.
+         */
+        virtual ~Receiver() {}
+        
         /**
          * Loop forever, issuing blocking calls to IPSocket::recvfrom(),
          * then calling the process_data function when new data does
@@ -100,6 +124,12 @@ public:
          * for this guy, but instead just want to run the main loop.
          */
         void run();
+        
+    protected:
+        /**
+         * Handler to process an arrived packet.
+         */
+        void process_data(u_char* bp, size_t len);
     };
 
     /**
@@ -111,35 +141,35 @@ public:
      * a connection. The receiver will just receive data. Therefore,
      * we don't need a passive side of a connection
      */
-    class Sender : public CLInfo, public oasys::Thread, public oasys::Logger {
-public:
+    class Sender : public CLInfo, public oasys::Thread, public oasys::UDPClient {
+    public:
         /**
          * Constructor for the active connection side of a connection.
          */
-        Sender(Contact* contact,
-               in_addr_t remote_addr,
-               u_int16_t remote_port);
+        Sender(Contact* contact);
 
-	
-        
         /**
          * Destructor.
          */
-        ~Sender();
+        virtual ~Sender() {}
         
-protected:
+    protected:
+        /**
+         * Main sender loop.
+         */
         virtual void run();
-        void send_loop();
+
+        /**
+         * Send one bundle.
+         */
         bool send_bundle(Bundle* bundle);
 
-        // Added by sushant
         /**
          * This is used to inform the rest of the system
          * that contact is broken
          */
         void break_contact();
         Contact* contact_;
-        oasys::UDPClient* sock_; 
     };   
 };
 

@@ -78,6 +78,79 @@ namespace dtn {
 class TCPConvergenceLayer : public IPConvergenceLayer {
 public:
     /**
+     * Current version of the protocol.
+     */
+    static const u_int8_t TCPCL_VERSION = 0x01;
+
+    /**
+     * Values for ContactHeader flags.
+     */
+    typedef enum {
+        BUNDLE_ACK_ENABLED    = 0x1,	///< bundle acks requested
+        REACTIVE_FRAG_ENABLED = 0x2,	///< reactive fragmentation enabled
+        RECEIVER_CONNECT      = 0x4,	///< connector is receiver
+    } contact_header_flags_t;
+
+    /**
+     * Contact parameter header. Sent once in each direction for TCP,
+     * and at the start of each bundle for UDP.
+     */
+    struct ContactHeader {
+        u_int32_t magic;		///< magic word (MAGIC: "dtn!")
+        u_int8_t  version;		///< tcpcl protocol version
+        u_int8_t  flags;		///< connection flags (see above)
+        u_int16_t partial_ack_len;	///< requested size for partial acks
+        u_int16_t keepalive_interval;	///< seconds between keepalive packets
+        u_int16_t idle_close_time;	///< seconds of idle time before close
+        				///  (keepalive packets do not count)
+    } __attribute__((packed));
+
+    /**
+     * Identity header. Sent immediately following the contact header
+     * in the case of the receiver connect option.
+     */
+    struct IdentityHeader {
+        u_int16_t region_len;		///< length of the region string
+        u_int16_t admin_len;		///< length of the admin string
+        u_char    data[0];		///< region and admin string data
+    } __attribute__((packed));
+
+    /**
+     * Valid type codes for the protocol headers.
+     *
+     * For TCP, the one byte code is always sent first, followed by
+     * the per-type header. For UDP, the one byte type code is sent
+     * with three bytes of padding to preserve the word alignment of
+     * the subsequent protocol header.
+     */
+    typedef enum {
+        BUNDLE_DATA	= 0x1,		///< bundle data
+        BUNDLE_ACK	= 0x2,		///< bundle acknowledgement
+        KEEPALIVE	= 0x3,		///< keepalive packet
+        SHUTDOWN	= 0x4,		///< sending side will shutdown now
+    } tcpcl_header_type_t;
+    
+    /**
+     * Header for the start of a block of bundle data. In UDP mode,
+     * this always precedes a full bundle (or a fragment at the 
+     * bundling layer).
+     */
+    struct BundleDataHeader {
+        u_int32_t bundle_id;		///< bundle identifier at sender
+        u_int32_t bundle_length;	///< length of the bundle + headers
+        u_int16_t header_length;	///< length of the bundle header
+        u_int16_t pad;			///< unused
+    } __attribute__((packed));
+
+    /**
+     * Header for a bundle acknowledgement.
+     */
+    struct BundleAckHeader {
+        u_int32_t bundle_id;		///< identical to BundleStartHeader
+        u_int32_t acked_length;		///< total length received
+    } __attribute__((packed));
+    
+    /**
      * Constructor.
      */
     TCPConvergenceLayer();
@@ -121,8 +194,11 @@ public:
     class Params : public CLInfo {
     public:
         bool bundle_ack_enabled_;	///< Are per-bundle acks enabled
+        bool reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         bool receiver_connect_;		///< rcvr-initiated connect (for NAT)
-        u_int ack_blocksz_;		///< Bytes to send before ack
+        u_int partial_ack_len_;		///< Bytes to send before ack
+        u_int writebuf_len_;		///< Buffer size per write() call
+        u_int readbuf_len_;		///< Buffer size per read() call
         u_int keepalive_interval_;	///< Seconds between keepalive pacekts
         u_int idle_close_time_;		///< Seconds to keep idle connections
         u_int connect_timeout_;		///< Msecs for connection timeout

@@ -58,12 +58,7 @@ protected:
     
 public:
     /**
-     * Current version of the TCP / UDP framing protocol.
-     */
-    static const u_int8_t CURRENT_VERSION = 0x01;
-
-    /**
-     * Magic Number for ContactHeader (0x64746e21 = 'dtn!')
+     * Magic number used in the TCP and UDP protocols.
      */
     static const u_int32_t MAGIC = 0x64746e21;
     
@@ -81,7 +76,7 @@ public:
      */
     struct ContactHeader {
         u_int32_t magic;		///< magic word (MAGIC: "dtn!")
-        u_int8_t  version;		///< framing protocol version
+        u_int8_t  version;		///< tcpcl protocol version
         u_int8_t  flags;		///< connection flags (see above)
         u_int8_t  ackblock_sz;		///< size of ack blocks (power of two)
         u_int8_t  keepalive_interval;	///< seconds between keepalive packets
