@@ -103,7 +103,7 @@ echo "#Check ping commands ...." > $pingfile
 set idplus  = `expr $id + 1`
 #set linkname = link-$id
 set nextnode=node-$idplus 
-#sudo sh $dtn2testroot/check_ping.sh $nextnode >> $pingfile &
+sudo sh $dtn2testroot/check_ping.sh $nextnode >> $pingfile &
 
 
 switch ($proto_orig)
