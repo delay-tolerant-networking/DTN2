@@ -1,9 +1,11 @@
 
 #include "dtn_ipc.h"
 #include "dtn_types.h"
+#include <stdlib.h>
 #include <sys/errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 /*
  * Initialize the handle structure.
@@ -12,6 +14,10 @@ int
 dtnipc_open(dtnipc_handle_t* handle)
 {
     int ret;
+    char *env, *end;
+    in_addr_t ipc_addr;
+    u_int16_t handshake_port;
+    u_int port;
     
     // note that we leave four bytes free in the sender side buffer to
     // be used for the message type code
@@ -29,12 +35,37 @@ dtnipc_open(dtnipc_handle_t* handle)
         return -1;
     }
 
+    // check for DTNAPI environment variables overriding the address /
+    // port defaults
+    ipc_addr = htonl(INADDR_LOOPBACK);
+    handshake_port = DTN_API_HANDSHAKE_PORT;
+    
+    if ((env = getenv("DTNAPI_ADDR")) != NULL) {
+        if (inet_aton(env, (struct in_addr*)&ipc_addr) == 0)
+        {
+            fprintf(stderr, "DTNAPI_ADDR environment variable (%s) "
+                    "not a valid ip address\n", env);
+            exit(1);
+        }
+    }
+
+    if ((env = getenv("DTNAPI_PORT")) != NULL) {
+        port = strtoul(env, &end, 10);
+        if (*end != '\0' || port > 0xffff)
+        {
+            fprintf(stderr, "DTNAPI_HANDSHAKE_PORT environment variable (%s) "
+                    "not a valid ip port\n", env);
+            exit(1);
+        }
+        handshake_port = (u_int16_t)port;
+    }
+
     // first send the session initiation to the server on the
     // handshake port
     memset(&handle->sa, 0, sizeof(handle->sa));
     handle->sa.sin_family = AF_INET;
-    handle->sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    handle->sa.sin_port = htons(DTN_API_HANDSHAKE_PORT);
+    handle->sa.sin_addr.s_addr = ipc_addr;
+    handle->sa.sin_port = htons(handshake_port);
 
     u_int32_t handshake = DTN_OPEN;
     
