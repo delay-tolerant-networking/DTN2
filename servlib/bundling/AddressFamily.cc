@@ -104,11 +104,6 @@ AddressFamilyTable::AddressFamilyTable()
     table_["host"] 	= new InternetAddressFamily("host");
     table_["ip"] 	= new InternetAddressFamily("ip");
     table_["smtp"]	= new SmtpAddressFamily();
-
-    // XXX/demmer temp
-    table_["tcp"] 	= new InternetAddressFamily("tcp");
-    table_["udp"] 	= new InternetAddressFamily("udp");
-    table_["simcl"] 	= new InternetAddressFamily("simcl");
 }
 
 /**
