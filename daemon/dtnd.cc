@@ -22,8 +22,14 @@
 #include "util/Options.h"
 
 int
-main(int argc, char** argv)
+main(int argc, char* argv[])
 {
+    int         random_seed;
+    bool        random_seed_set = false;
+    bool	daemon = false;
+    std::string conf_file("daemon/bundleNode.conf");
+    std::string ignored; // ignore warnings for -l option
+
     // First and foremost, scan argv to look for -o <file> and/or -l
     // <level> so we can initialize logging.
     const char* logfile = "-";
@@ -68,54 +74,46 @@ main(int argc, char** argv)
     Log::init(logfd, level);
     logf("/daemon", LOG_DEBUG, "Bundle Daemon Initializing...");
 
-    // command line parameter vars
-    std::string conffile("daemon/bundleNode.conf");
-    int random_seed;
-    bool random_seed_set = false;
-    bool daemon = false;
-    std::string ignored; // ignore warnings for -l option
-        
     // Create the test command now, so testing related options can be
     // registered
     TestCommand testcmd;
     
     // Set up the command line options
-    new StringOpt("c", &conffile, "conf", "config file");
-    new BoolOpt("t", &StorageConfig::instance()->tidy_,
-                "clear database on startup");
-    new IntOpt("s", &random_seed, &random_seed_set, "seed",
-               "random number generator seed");
-    new IntOpt("i", &testcmd.id_, "id", "set the test id");
-    new BoolOpt("d", &daemon, "run as a daemon");
     new StringOpt("o", &ignored, "output",
                   "file name for logging output ([-o -] indicates stdout)");
     new StringOpt("l", &ignored, "level",
                   "default log level [debug|warn|info|crit]");
+    new StringOpt("c", &conf_file, "conf", "config file");
+    new IntOpt("s", &random_seed, &random_seed_set, "seed",
+               "random number generator seed");
+    new BoolOpt("d", &daemon, "run as a daemon");
+    new BoolOpt("t", &StorageConfig::instance()->tidy_,
+                "clear database on startup");
+    new IntOpt("i", &testcmd.id_, "id", "set the test id");
         
-    // Set up the command interpreter and instantiate all the dtn
-    // commands
+    // parse command line options
+    Options::getopt(argv[0], argc, argv);
+
+    // seed the random number generator
+    if (!random_seed_set) {
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      random_seed = tv.tv_usec;
+    }
+    logf("/tierd", LOG_INFO, "random seed is %u\n", random_seed);
+    srand(random_seed);
+    
+    // Set up the command interpreter
     TclCommandInterp::init(argv[0]);
     TclCommandInterp* interp = TclCommandInterp::instance();
     interp->reg(&testcmd);
     DTNCommands::init();
 
-    // parse argv
-    Options::getopt(argv[0], argc, argv);
-
-    // Seed the random number generator
-    if (!random_seed_set) {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        random_seed = tv.tv_usec;
-    }
-    logf("/daemon", LOG_INFO, "random seed is %u\n", random_seed);
-    srandom(random_seed);
-
     // Set up all components
+    TimerSystem::init();
     AddressFamilyTable::init();
     ConvergenceLayer::init_clayers();
     InterfaceTable::init();
-    TimerSystem::init();
 
     // Create the forwarder but don't start it running yet. This lets
     // the conf file post events but they won't get dispatched until
@@ -125,8 +123,8 @@ main(int argc, char** argv)
     
 
     // Parse / exec the config file
-    if (conffile.length() != 0) {
-        if (interp->exec_file(conffile.c_str()) != 0) {
+    if (conf_file.length() != 0) {
+        if (interp->exec_file(conf_file.c_str()) != 0) {
             logf("/daemon", LOG_ERR,
                  "error in configuration file, exiting...");
             exit(1);
