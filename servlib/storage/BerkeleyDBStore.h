@@ -40,8 +40,8 @@ public:
      * underlying storage technology so as to implement the basic
      * methods.
      */
-    BerkeleyDBBundleStore(BerkeleyDBStore* store)
-        : BundleStore(store) {}
+//     BerkeleyDBBundleStore(BerkeleyDBStore* store)
+//         : BundleStore(store) {}
 
     /**
      * Destructor.

@@ -48,7 +48,6 @@ ROUTING_SRCS :=					\
 
 STORAGE_SRCS :=					\
 	storage/Serialize.cc			\
-	storage/StorageSystem.cc		\
 	storage/BundleStore.cc			\
 	storage/PersistentStore.cc		\
 	storage/RegistrationStore.cc		\

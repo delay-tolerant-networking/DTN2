@@ -2,12 +2,12 @@
 #define _BUNDLE_STORE_H_
 
 #include <vector>
+#include "debug/Debug.h"
 
 class Bundle;
+class BundleList;
 class PersistentStore;
 class StorageImpl;
-
-typedef std::vector<Bundle*> BundleList;
 
 /**
  * Abstract base class for bundle storage.
@@ -15,15 +15,26 @@ typedef std::vector<Bundle*> BundleList;
 class BundleStore {
 public:
     /**
-     * Constructor -- takes as a parameter an abstract pointer to the
-     * underlying storage technology so as to implement the basic
-     * methods.
+     * Singleton instance accessor.
      */
-    BundleStore(PersistentStore *persistentstore);
+    static BundleStore* instance() {
+        ASSERT(instance_ != NULL);
+        return instance_;
+    }
 
-    // Has to call init(), if this constructor form is used 
+    /**
+     * Boot time initializer that takes as a parameter the actual
+     * instance to use.
+     */
+    static void init(BundleStore* instance) {
+        ASSERT(instance_ == NULL);
+        instance_ = instance;
+    }
+    
+    /**
+     * Constructor.
+     */
     BundleStore();
-
 
     /**
      * Destructor.
@@ -68,8 +79,9 @@ protected:
     // Used for initializing. Same as constructor. Need because of c++ mysteries
     void init(PersistentStore* store); 
 
-
 private:
+    static BundleStore* instance_; ///< singleton instance
+
     int next_bundle_id_; 	/// running serial number for bundles
     PersistentStore* store_;	/// abstract persistent storage implementation
 };

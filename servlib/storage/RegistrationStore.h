@@ -2,6 +2,7 @@
 #define _REGISTRATION_STORE_H_
 
 #include <vector>
+#include "debug/Debug.h"
 
 class Bundle;
 class Registration;
@@ -13,6 +14,26 @@ typedef std::vector<Registration*> RegistrationList;
  */
 class RegistrationStore {
 public:
+    /**
+     * Singleton instance accessor.
+     */
+    static RegistrationStore* instance() {
+        ASSERT(instance_ != NULL);
+        return instance_;
+    }
+
+    /**
+     * Boot time initializer that takes as a parameter the actual
+     * instance to use.
+     */
+    static void init(RegistrationStore* instance) {
+        ASSERT(instance_ == NULL);
+        instance_ = instance;
+    }
+    
+    /**
+     * Constructor
+     */
     RegistrationStore();
     
     /// @{ Basic storage methods
@@ -50,6 +71,8 @@ public:
     virtual void dump(FILE* fp) = 0;
 
 private:
+    static RegistrationStore* instance_;
+    
     int next_reg_id_; // running serial number for bundles
 };
 

@@ -175,8 +175,9 @@ SQLBundleStore::SQLBundleStore(const char* table_name, SQLImplementation* db)
     
      
     store = new SQLStore(table_name,"bundleid",&tmpobj,db);
-    //  cout << "hello u "; 
-    this->BundleStore::init(store);
+    //  cout << "hello u ";
+    // XXX fixme
+//    this->BundleStore::init(store);
 }
 int 
 SQLBundleStore::delete_expired(const time_t now) 
