@@ -169,22 +169,20 @@ SQLStore::exec_query(const char* query)
 SQLBundleStore::SQLBundleStore(const char* table_name, SQLImplementation* db)
     : BundleStore()
 {
-    PersistentStore *store ;
-//    cout << "hello u "; 
-    Bundle tmpobj;
-    
-     
-    store = new SQLStore(table_name,"bundleid",&tmpobj,db);
-    //  cout << "hello u ";
-    // XXX fixme
-//    this->BundleStore::init(store);
+    Bundle tmpobj(this);
+
+    // XXX this should all be cleaned up when PersistentStore is gone
+    store_ = new SQLStore(table_name, "bundleid", &tmpobj, db);
+    BundleStore::store_ = store_;
+    next_bundle_id_ = 0;
 }
+
 int 
 SQLBundleStore::delete_expired(const time_t now) 
 {
     const char* field = "expiration";
     StringBuffer query ;
-    query.appendf("DELETE FROM %s  WHERE  %s > %lu",store_->table_name(),field,now);
+    query.appendf("DELETE FROM %s WHERE %s > %lu", store_->table_name(), field, now);
     
     int retval = store_->exec_query(query.c_str());
     return retval;
