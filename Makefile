@@ -12,15 +12,9 @@ SUBDIRS := oasys applib servlib daemon apps sim
 
 all: checkconfigure $(SUBDIRS)
 
-clean objclean depclean genclean binclean: $(SUBDIRS)
-
 alltest:
 	$(MAKE) all
-	$(MAKE) test
-
-.PHONY: $(SUBDIRS)
-$(SUBDIRS) test:
-	$(MAKE) -C $@ $(MAKECMDGOALS)
+	$(MAKE) -C test $(MAKECMDGOALS)
 
 #
 # Generate the doxygen documentation
@@ -54,3 +48,5 @@ Rules.make.in:
 Rules.make: Rules.make.in configure
 	@echo $@ is out of date, need to rerun configure
 	@exit 1
+
+-include Rules.make
