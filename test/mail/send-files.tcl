@@ -2,7 +2,7 @@
 # Simple client/server code that scans a directory for new data and sends
 # that data to a remote dest_addr.
 #
-# send-files.tcl <dir> <log> <dest_addr>
+# send-files.tcl <dir> <log> <dest_addr> <expid>
 set period 1000
 
 
@@ -44,10 +44,11 @@ proc scan_dir {dest_addr dir} {
 
 proc send_file {dest_addr file index} {
     global logfd
+	global expid
 
-    puts "sending file $file"
+    puts "sending file $file for $expid"
     
-    set subject "sendmail_$index"
+    set subject "sendmail_$index\_$expid"
     #append subject "sendmail"
     set foo [exec mail -s $subject $dest_addr < $file]
     
@@ -59,6 +60,7 @@ set dir  [lindex $argv 0]
 set ftplogfile  [lindex $argv 1]
 set logfile [lindex $argv 2]
 set dest_addr [lindex $argv 3]
+set expid [lindex $argv 4]
 
 set logfd [open $ftplogfile w]
 

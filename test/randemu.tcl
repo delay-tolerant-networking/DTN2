@@ -6,9 +6,6 @@ set delay 5ms
 set queue DropTail
 set protocol Static
 
-# set ftp_impl "simple-ftp.tcl"
-# set ftp_impl "simple-ftp-noack.tcl"
-
 set WARMUPTIME 10 
 #Time between ending of one protocol and starting of the next
 set DELAY_FOR_SOURCE_NODE 2

@@ -32,7 +32,7 @@ define(`confMCI_CACHE_SIZE',`__CACHE_SIZE__')dnl
 define(`confDELIVERY_MODE',`__DELIVERY_MODE__')dnl
 define(`confSINGLE_THREAD_DELIVERY',__SINGLE_THREAD__)dnl
 define(`confHOST_STATUS_DIRECTORY',`__HOST_STATUS_DIRECTORY__')dnl
-
+define(`QUEUE_DIR',`/var/spool/__QUEUE_DIR__')dnl
 define(`confTO_IDENT', `0')dnl
 dnl FEATURE(delay_checks)dnl
 

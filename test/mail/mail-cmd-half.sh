@@ -26,13 +26,13 @@ else
 endif
 
 
-
+set queuename = q_$proto
 set exp_type = 1 
-set mailqueuedir = /var/spool/mqueue/
+set mailqueuedir = /var/spool/$queuename/
 
 if($exp_type == 1) then
     set delivery_mode = b
-    set queueruntime  = 10s
+    set queueruntime  = 1s
     set singlethread  = true
     set host_stat_dir = .hoststat-$exp-$perhop
     set cache_size    = 1
@@ -46,7 +46,8 @@ endif
 
 
 #clean up all mail there in the system
-sudo rm -rf $mailqueuedir/* >>& $info
+sudo rm -rf $mailqueuedir >>& $info
+sudo mkdir -p $mailqueuedir >>& $info
 sudo mkdir -p $mailqueuedir/$host_stat_dir >>& $info
 
 #create the sendmail.mc file
@@ -58,6 +59,7 @@ sed -i "s/__DELIVERY_MODE__/$delivery_mode/g" $logroot/sendmail-$id.mc  >>& $inf
 sed -i "s/__SINGLE_THREAD__/$singlethread/g" $logroot/sendmail-$id.mc  >>& $info
 sed -i "s/__HOST_STATUS_DIRECTORY__/$host_stat_dir/g" $logroot/sendmail-$id.mc  >>& $info
 sed -i "s/__CACHE_SIZE__/$cache_size/g" $logroot/sendmail-$id.mc  >>& $info
+sed -i "s/__QUEUE_DIR__/$queuename/g" $logroot/sendmail-$id.mc  >>& $info
 
 
 #install the new mc file
@@ -128,7 +130,7 @@ endif
 #send all the mail now
 if ($id == 1) then
     echo "Sending the mail now ...."  >>& $info
-    tclsh $dtn2testroot/mail/send-files.tcl $txdir $ftplogfile $info $dest_addr 
+    tclsh $dtn2testroot/mail/send-files.tcl $txdir $ftplogfile $info $dest_addr $proto 
 endif
 
     
