@@ -86,10 +86,13 @@ main(int argc, const char** argv)
 /*     char buffer[BUFSIZE]; */
     char * buffer;
     char s_buffer[BUFSIZE + 1];
+
+    int bufsize, marker, maxwrite;
+
+    FILE * target;
+
     s_buffer[BUFSIZE] = '\0';
     
-    int bufsize, marker, maxwrite;
-    FILE * target;
     
     if (argc > 2) {
         usage();
@@ -116,7 +119,7 @@ main(int argc, const char** argv)
     endpoint = "/dtncp/recv:*";
 
     // open the ipc handle
-    debug && printf("opening connection to dtn router...\n");
+    if (debug) printf("opening connection to dtn router...\n");
     handle = dtn_open();
     if (handle == 0) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
@@ -127,9 +130,10 @@ main(int argc, const char** argv)
     // build a local tuple based on the configuration of our dtn
     // router plus the demux string
     dtn_build_local_tuple(handle, &local_tuple, endpoint);
-    debug && printf("local_tuple [%s %.*s]\n",
-                    local_tuple.region,
-                    local_tuple.admin.admin_len, local_tuple.admin.admin_val);
+    if (debug) printf("local_tuple [%s %.*s]\n",
+                      local_tuple.region,
+                      (int) local_tuple.admin.admin_len, 
+                      local_tuple.admin.admin_val);
 
     // create a new registration based on this tuple
     memset(&reginfo, 0, sizeof(reginfo));
@@ -143,14 +147,14 @@ main(int argc, const char** argv)
         exit(1);
     }
     
-    debug && printf("dtn_register succeeded, regid 0x%x\n", regid);
+    if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
     dtn_bind(handle, regid, &local_tuple);
     
     printf("dtn_recv [%s %.*s]...\n",
            local_tuple.region,
-           local_tuple.admin.admin_len, local_tuple.admin.admin_val);
+           (int) local_tuple.admin.admin_len, local_tuple.admin.admin_val);
     
     // loop waiting for bundles
     while(1)
@@ -234,7 +238,7 @@ main(int argc, const char** argv)
         printf ("   size   : %d bytes\n", bufsize);
         printf ("   loc    : %s\n", filepath);
         
-        debug && printf ("--------------------------------------\n");
+        if (debug) printf ("--------------------------------------\n");
 
         target = fopen(filepath, "w");
 

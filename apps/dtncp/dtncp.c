@@ -85,7 +85,7 @@ main(int argc, char** argv)
     parse_options(argc, argv);
 
     // open the ipc handle
-    verbose && fprintf(stdout, "Opening connection to local DTN daemon\n");
+    if (verbose) fprintf(stdout, "Opening connection to local DTN daemon\n");
 
     handle = dtn_open();
     if (handle == 0) 
@@ -159,7 +159,7 @@ main(int argc, char** argv)
         exit(1);
     }
     
-    verbose && printf("dtn_register succeeded, regid 0x%x\n", regid);
+    if (verbose) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
     dtn_bind(handle, regid, &bundle_spec.replyto);
@@ -188,7 +188,7 @@ main(int argc, char** argv)
 
     printf("file sent successfully to [%s %.*s]: time=%.1f ms\n",
                    reply_spec.source.region,
-                   reply_spec.source.admin.admin_len,
+                   (int) reply_spec.source.admin.admin_len,
                    reply_spec.source.admin.admin_val,
                    ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                     (double)(end.tv_usec - start.tv_usec)/1000.0));
@@ -251,7 +251,7 @@ dtn_tuple_t * parse_tuple(dtn_handle_t handle,
 void print_tuple(char *  label, dtn_tuple_t * tuple)
 {
     printf("%s [%s %.*s]\n", label, tuple->region, 
-           tuple->admin.admin_len, tuple->admin.admin_val);
+           (int) tuple->admin.admin_len, tuple->admin.admin_val);
 }
     
 

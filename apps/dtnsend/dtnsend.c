@@ -94,7 +94,7 @@ main(int argc, char** argv)
     parse_options(argc, argv);
 
     // open the ipc handle
-    verbose && fprintf(stdout, "Opening connection to local DTN daemon\n");
+    if (verbose) fprintf(stdout, "Opening connection to local DTN daemon\n");
 
     handle = dtn_open();
     if (handle == 0) 
@@ -108,19 +108,19 @@ main(int argc, char** argv)
     memset(&bundle_spec, 0, sizeof(bundle_spec));
 
     // initialize/parse bundle src/dest/replyto tuples
-    verbose && fprintf(stdout, "Destination: %s\n", arg_dest);
+    if (verbose) fprintf(stdout, "Destination: %s\n", arg_dest);
     parse_tuple(handle, &bundle_spec.dest, arg_dest);
 
-    verbose && fprintf(stdout, "Source: %s\n", arg_source);
+    if (verbose) fprintf(stdout, "Source: %s\n", arg_source);
     parse_tuple(handle, &bundle_spec.source, arg_source);
     if (arg_replyto == NULL) 
     {
-        verbose && fprintf(stdout, "Reply To: same as source\n");
+        if (verbose) fprintf(stdout, "Reply To: same as source\n");
         dtn_copy_tuple(&bundle_spec.replyto, &bundle_spec.source);
     }
     else
     {
-        verbose && fprintf(stdout, "Reply To: %s\n", arg_replyto);
+        if (verbose) fprintf(stdout, "Reply To: %s\n", arg_replyto);
         parse_tuple(handle, &bundle_spec.replyto, arg_replyto);
     }
 
@@ -145,7 +145,7 @@ main(int argc, char** argv)
             exit(1);
         }
     
-        verbose && printf("dtn_register succeeded, regid 0x%x\n",
+        if (verbose) printf("dtn_register succeeded, regid 0x%x\n",
             regid);
 
         // bind the current handle to the new registration
@@ -223,7 +223,7 @@ main(int argc, char** argv)
             printf("got %d byte report from [%s %.*s]: time=%.1f ms\n",
                    reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
                    reply_spec.source.region,
-                   reply_spec.source.admin.admin_len,
+                   (int) reply_spec.source.admin.admin_len,
                    reply_spec.source.admin.admin_val,
                    ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                     (double)(end.tv_usec - start.tv_usec)/1000.0));
@@ -264,6 +264,8 @@ void parse_options(int argc, char**argv)
     char c, done = 0;
 
     char arg_type = 0;
+
+    time_t current;
 
     while (!done)
     {
@@ -351,7 +353,7 @@ void parse_options(int argc, char**argv)
     case 'm': payload_type = DTN_PAYLOAD_MEM; break;
     case 'd': 
         payload_type = DTN_PAYLOAD_MEM; 
-        time_t current = time(NULL);
+        current = time(NULL);
         data_source = ctime(&current);
         break;
     default:
@@ -368,14 +370,14 @@ dtn_tuple_t * parse_tuple(dtn_handle_t handle,
     // try the string as an actual dtn tuple
     if (!dtn_parse_tuple_string(tuple, str)) 
     {
-        verbose && fprintf(stdout, "%s (literal)\n", str);
+        if (verbose) fprintf(stdout, "%s (literal)\n", str);
         return tuple;
     }
     // build a local tuple based on the configuration of our dtn
     // router plus the str as demux string
     else if (!dtn_build_local_tuple(handle, tuple, str))
     {
-        verbose && fprintf(stdout, "%s (local)\n", str);
+        if (verbose) fprintf(stdout, "%s (local)\n", str);
         return tuple;
     }
     else
@@ -388,5 +390,5 @@ dtn_tuple_t * parse_tuple(dtn_handle_t handle,
 void print_tuple(char *  label, dtn_tuple_t * tuple)
 {
     printf("%s [%s %.*s]\n", label, tuple->region, 
-           tuple->admin.admin_len, tuple->admin.admin_val);
+           (int) tuple->admin.admin_len, tuple->admin.admin_val);
 }

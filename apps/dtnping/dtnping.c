@@ -107,9 +107,10 @@ main(int argc, const char** argv)
     // build a local tuple based on the configuration of our dtn
     // router plus the demux string
     dtn_build_local_tuple(handle, &local_tuple, "/ping");
-    debug && printf("local_tuple [%s %.*s]\n",
+    if (debug) printf("local_tuple [%s %.*s]\n",
                     local_tuple.region,
-                    local_tuple.admin.admin_len, local_tuple.admin.admin_val);
+                    (int) local_tuple.admin.admin_len, 
+                    local_tuple.admin.admin_val);
 
     // create a new dtn registration based on this tuple
     memset(&reginfo, 0, sizeof(reginfo));
@@ -123,7 +124,7 @@ main(int argc, const char** argv)
         exit(1);
     }
     
-    debug && printf("dtn_register succeeded, regid 0x%x\n", regid);
+    if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
     dtn_bind(handle, regid, &local_tuple);
@@ -142,7 +143,8 @@ main(int argc, const char** argv)
     
     printf("PING [%s %.*s]...\n",
            ping_spec.dest.region,
-           ping_spec.dest.admin.admin_len, ping_spec.dest.admin.admin_val);
+           (int) ping_spec.dest.admin.admin_len, 
+           ping_spec.dest.admin.admin_val);
     
     // loop, sending pings and getting replies.
     for (i = 0; count==0 || i < count; ++i) {
@@ -170,7 +172,7 @@ main(int argc, const char** argv)
         printf("%d bytes from [%s %.*s]: time=%0.2f ms\n",
                reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
                reply_spec.source.region,
-               reply_spec.source.admin.admin_len,
+               (int) reply_spec.source.admin.admin_len,
                reply_spec.source.admin.admin_val,
                ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                 (double)(end.tv_usec - start.tv_usec)/1000.0));

@@ -76,9 +76,9 @@ main(int argc, const char** argv)
     endpoint = (char*)argv[1];
 
     // open the ipc handle
-    debug && printf("opening connection to dtn router...\n");
+    if (debug) printf("opening connection to dtn router...\n");
     handle = dtn_open();
-    debug && printf("opened connection to dtn router...\n");
+    if (debug) printf("opened connection to dtn router...\n");
     if (handle == 0) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 strerror(errno));
@@ -87,11 +87,12 @@ main(int argc, const char** argv)
 
     // build a local tuple based on the configuration of our dtn
     // router plus the demux string
-    debug && printf("calling dtn_build_local_tuple.\n");
+    if (debug) printf("calling dtn_build_local_tuple.\n");
     dtn_build_local_tuple(handle, &local_tuple, endpoint);
-    debug && printf("local_tuple [%s %.*s]\n",
+    if (debug) printf("local_tuple [%s %.*s]\n",
                     local_tuple.region,
-                    local_tuple.admin.admin_len, local_tuple.admin.admin_val);
+                    (int)local_tuple.admin.admin_len, 
+                    local_tuple.admin.admin_val);
 
     // create a new registration based on this tuple
     memset(&reginfo, 0, sizeof(reginfo));
@@ -105,14 +106,14 @@ main(int argc, const char** argv)
         exit(1);
     }
     
-    debug && printf("dtn_register succeeded, regid 0x%x\n", regid);
+    if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
     dtn_bind(handle, regid, &local_tuple);
     
     printf("dtn_recv [%s %.*s]...\n",
            local_tuple.region,
-           local_tuple.admin.admin_len, local_tuple.admin.admin_val);
+           (int)local_tuple.admin.admin_len, local_tuple.admin.admin_val);
     
     // loop waiting for bundles
     for (i = 0; i < cnt; ++i) {
@@ -130,7 +131,7 @@ main(int argc, const char** argv)
         printf("%d bytes from [%s %.*s]: transit time=%d ms\n",
                payload.dtn_bundle_payload_t_u.buf.buf_len,
                spec.source.region,
-               spec.source.admin.admin_len,
+               (int) spec.source.admin.admin_len,
                spec.source.admin.admin_val,
                0);
 
@@ -170,7 +171,8 @@ main(int argc, const char** argv)
                 k++;
             }
             printf("   |  %.*s\n",
-              payload.dtn_bundle_payload_t_u.buf.buf_len%BUFSIZE, s_buffer);
+              (int)payload.dtn_bundle_payload_t_u.buf.buf_len%BUFSIZE, 
+                   s_buffer);
         }
 	printf("\n");
     }
