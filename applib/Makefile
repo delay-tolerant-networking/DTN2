@@ -59,7 +59,7 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 #
 %_xdr.o: %_xdr.c
 	@rm -f $@; mkdir -p $(@D)
-	$(CC) $(DEBUG) $(OPTIMIZE) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(DEBUG) $(OPTIMIZE) -c $< -o $@
 
 #
 # Include the common rules
