@@ -14,6 +14,7 @@ SQLStore::SQLStore(const char* table_name, SQLImplementation* db)
 {
     sql_impl_ = db;
     table_name_ = table_name;
+    key_name_ = NULL;
 }
 
 int 
