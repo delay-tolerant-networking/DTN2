@@ -22,6 +22,13 @@ public:
     StringBuffer(size_t initsz = 256, const char* initstr = 0);
 
     /**
+     * Constructor
+     *
+     * @param fmt the initial buffer contents
+     */
+    StringBuffer(const char* fmt, ...);
+
+    /**
      * Destructor. Frees the buffer.
      */
     ~StringBuffer();
@@ -29,7 +36,7 @@ public:
     /**
      * Reserve buffer space.
      *
-     * @param sz 	the minimum required buffer space 
+     * @param sz 	the minimum required free buffer space
      * @param grow 	size to alloc if needed (default is 2x buflen)
      */
     void reserve(size_t sz, size_t grow = 0);

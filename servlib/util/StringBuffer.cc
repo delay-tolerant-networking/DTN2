@@ -4,11 +4,31 @@
 
 StringBuffer::StringBuffer(size_t initsz, const char* initstr)
 {
-    buf_ = (char*)malloc(initsz);
     buflen_ = initsz;
+    buf_ = (char*)malloc(buflen_);
     len_ = 0;
-    
     if (initstr) append(initstr);
+}
+
+StringBuffer::StringBuffer(const char* fmt, ...)
+{
+    buflen_ = 256;
+    buf_ = (char*)malloc(buflen_);
+    len_ = 0;
+
+    if (fmt != 0) {
+        va_list ap;
+        va_start(ap, fmt);
+        size_t ret = vsnprintf(&buf_[0], buflen_, fmt, ap);
+
+        if (ret >= buflen_) {
+            reserve(ret);
+            ret = vsnprintf(&buf_[0], buflen_, fmt, ap);
+        }
+        
+        len_ += ret;
+        va_end(ap);
+    }
 }
 
 StringBuffer::~StringBuffer()
@@ -22,12 +42,18 @@ StringBuffer::~StringBuffer()
 void
 StringBuffer::reserve(size_t sz, size_t grow)
 {
-    if (sz > buflen_) {
+    if ((len_ + sz) > buflen_) {
         if (grow == 0) {
             grow = buflen_ * 2;
         }
         
         buflen_ = grow;
+
+        // make sure it's enough
+        while ((len_ + sz) > buflen_) {
+            buflen_ *= 2;
+        }
+        
         buf_ = (char*)realloc(buf_, buflen_);
     }
 }
@@ -39,7 +65,7 @@ StringBuffer::append(const char* str, size_t len)
         len = strlen(str);
     }
     
-    reserve(len_ + len);
+    reserve(len);
     
     memcpy(&buf_[len_], str, len);
     len_ += len;
@@ -49,7 +75,7 @@ StringBuffer::append(const char* str, size_t len)
 size_t
 StringBuffer::append(char c)
 {
-    reserve(len_ + 1);
+    reserve(1);
     buf_[len_++] = c;
     return 1;
 }
@@ -63,7 +89,7 @@ StringBuffer::appendf(const char* fmt, ...)
     int ret = vsnprintf(&buf_[len_], nfree, fmt, ap);
 
     if (ret >= nfree) {
-        reserve(buflen_ * 2);
+        reserve(ret);
         ret = vsnprintf(&buf_[len_], buflen_ - len_, fmt, ap);
     }
 
