@@ -292,7 +292,7 @@ reader_thread(void *p)
 	    printf("Hop Count = %u\n",dataPacket->hop_cnt);
 	    printf("Packet Type = %u\n",dataPacket->surge_pkt_type);
 	    printf("Parent Address = %u\n",dataPacket->surge_parent_addr);
-	    printf("Sequence Number = %u\n",dataPacket->surge_seq_no);
+	    printf("Sequence Number = %u\n", (u_int)dataPacket->surge_seq_no);
 	    printf("Light = %u\n",dataPacket->light);
 	    printf("Temperature = %u\n\n",dataPacket->temp);	    
 
