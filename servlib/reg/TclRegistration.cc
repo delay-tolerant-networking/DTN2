@@ -41,7 +41,7 @@
 #include "TclRegistration.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 
 namespace dtn {
@@ -125,7 +125,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
 
     b->del_ref("TclRegistration");
     
-    BundleForwarder::post(
+    BundleDaemon::post(
         new BundleTransmittedEvent(b, this, payload_len, true));
         
     return TCL_OK;

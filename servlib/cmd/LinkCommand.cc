@@ -39,7 +39,7 @@
 #include "LinkCommand.h"
 #include "bundling/AddressFamily.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/Link.h"
 #include "bundling/ContactManager.h"
 #include "conv_layers/ConvergenceLayer.h"
@@ -158,7 +158,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_OK;
         }
 
-        BundleForwarder::post(new ContactDownEvent(link->contact()));
+        BundleDaemon::post(new ContactDownEvent(link->contact()));
     }
     else {
         resultf("unimplemented link subcommand %s", cmd);

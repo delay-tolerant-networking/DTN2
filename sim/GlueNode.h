@@ -42,7 +42,7 @@
  * Node which interfaces to DTN2  and Simulator.
  * This node is responsible for forwarding/converting events
  * from Simulator to DTN2 and vice-versa.
- * It acts as  BundleForwarder. On receiving bundles/contact dynamics
+ * It acts as  BundleDaemon. On receiving bundles/contact dynamics
  * etc... it informs the BundleRouter and  executes the returned
  * list of action. The actual forwarding of a Bundle using the
  * Simulator is done at the SimulatorConvergence layer.

@@ -96,6 +96,16 @@ struct BundleMapping {
           router_info_(other.router_info_)
     {}
 
+    BundleMapping(bundle_fwd_action_t action,
+                  int mapping_grp,
+                  u_int32_t timeout,
+                  RouterInfo* router_info)        
+        : action_(action),
+          mapping_grp_(mapping_grp),
+          timeout_(timeout),
+          router_info_(router_info)
+    {}
+
     BundleList::iterator position_;	///< Position of the bundle in the list
     bundle_fwd_action_t action_;	///< The forwarding action code
     int mapping_grp_;			///< Mapping group identifier

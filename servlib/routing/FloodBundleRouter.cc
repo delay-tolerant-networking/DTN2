@@ -39,6 +39,7 @@
 #include "BundleRouter.h"
 #include "RouteTable.h"
 #include "bundling/Bundle.h"
+#include "bundling/BundleActions.h"
 #include "bundling/BundleList.h"
 #include "bundling/Contact.h"
 #include "bundling/FragmentManager.h"
@@ -79,7 +80,7 @@ FloodBundleRouter::~FloodBundleRouter()
  */
 void
 FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
-                                          BundleActionList* actions)
+                                          BundleActions* actions)
 {
     Bundle* bundle = event->bundleref_.bundle();
     log_info("FLOOD: bundle_rcv bundle id %d", bundle->bundleid_);
@@ -131,7 +132,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     
     pending_bundles_->push_back(bundle, NULL);
     if (event->source_ != EVENTSRC_PEER)
-        actions->push_back(new BundleAction(STORE_ADD, bundle));
+        actions->store_add(bundle);
     
     //here we do not need to handle the new bundle immediately
     //just put it in the pending_bundles_ queue, and it
@@ -145,7 +146,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
 
 void
 FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
-                                        BundleActionList* actions)
+                                        BundleActions* actions)
 {
     Bundle* bundle = event->bundleref_.bundle();
     
@@ -178,7 +179,7 @@ FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
  */
 void
 FloodBundleRouter::handle_registration_added(RegistrationAddedEvent* event,
-                                        BundleActionList* actions)
+                                        BundleActions* actions)
 {
     Registration* registration = event->registration_;
     log_info("FLOOD: new registration for %s", registration->endpoint().c_str());
@@ -195,7 +196,7 @@ FloodBundleRouter::handle_registration_added(RegistrationAddedEvent* event,
  */
 void
 FloodBundleRouter::handle_link_created(LinkCreatedEvent* event,
-                                       BundleActionList* actions)
+                                       BundleActions* actions)
 {
     
     Link* link = event->link_;
@@ -219,7 +220,7 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event,
  */
 void
 FloodBundleRouter::handle_contact_down(ContactDownEvent* event,
-                                    BundleActionList* actions)
+                                    BundleActions* actions)
 {
     Contact* contact = event->contact_;
     log_info("FLOOD: CONTACT_DOWN *%p: removing queued bundles", contact);
@@ -238,7 +239,7 @@ FloodBundleRouter::handle_contact_down(ContactDownEvent* event,
 
 void
 FloodBundleRouter::handle_route_add(RouteAddEvent* event,
-                               BundleActionList* actions)
+                               BundleActions* actions)
 {
     BundleRouter::handle_route_add(event, actions);     
 }
@@ -251,7 +252,7 @@ FloodBundleRouter::handle_route_add(RouteAddEvent* event,
 void
 FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
                            BundleConsumer* next_hop,
-                           BundleActionList* actions)
+                           BundleActions* actions)
 {
     log_debug("FLOOD:  new_next_hop");
 
@@ -264,15 +265,14 @@ FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
     for (iter = pending_bundles_->begin(); 
          iter != pending_bundles_->end(); ++iter) {
         bundle = *iter;
-        actions->push_back(
-            new BundleEnqueueAction(bundle, next_hop, FORWARD_COPY));
+        actions->enqueue_bundle(bundle, next_hop, FORWARD_COPY);
     }
 }
 
 
 int
 FloodBundleRouter::fwd_to_matching(
-                    Bundle* bundle, BundleActionList* actions, bool include_local)
+                    Bundle* bundle, BundleActions* actions, bool include_local)
 {
     RouteEntry* entry;
     RouteEntrySet matches;
@@ -291,8 +291,7 @@ FloodBundleRouter::fwd_to_matching(
         if (!entry->next_hop_->is_local())
             continue;
         
-        actions->push_back(
-            new BundleEnqueueAction(bundle, entry->next_hop_, entry->action_));
+        actions->enqueue_bundle(bundle, entry->next_hop_, entry->action_);
         ++count;
         bundle->add_pending();
     }

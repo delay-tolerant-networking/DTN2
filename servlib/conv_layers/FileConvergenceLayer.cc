@@ -53,7 +53,7 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 
 namespace dtn {
 
@@ -288,7 +288,7 @@ FileConvergenceLayer::send_bundles(Contact* contact)
 
         // cons up a transmission event and pass it to the router
         bool acked = false;
-        BundleForwarder::post(
+        BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact, payload_len, acked));
         
         log_debug("bundle id %d successfully transmitted", bundle->bundleid_);
@@ -425,7 +425,7 @@ FileConvergenceLayer::Scanner::run()
             }
 
             // all set, notify the router
-            BundleForwarder::post(
+            BundleDaemon::post(
                 new BundleReceivedEvent(bundle, EVENTSRC_PEER));
         }
             

@@ -69,7 +69,7 @@ protected:
      * contacts, filling in the action list with forwarding decisions.
      */
     void handle_bundle_received(BundleReceivedEvent* event,
-                                BundleActionList* actions);
+                                BundleActions* actions);
     
     /**
      * Default event handler when bundles are transmitted.
@@ -79,7 +79,7 @@ protected:
      * enqeues the new fragment on the appropriate list.
      */
     void handle_bundle_transmitted(BundleTransmittedEvent* event,
-                                   BundleActionList* actions);
+                                   BundleActions* actions);
 
     /**
      * Default event handler when a new application registration
@@ -90,19 +90,19 @@ protected:
      * registration.
      */
     void handle_registration_added(RegistrationAddedEvent* event,
-                                   BundleActionList* actions);
+                                   BundleActions* actions);
     
     /**
      * Default event handler when a  link is created.
      */
     void handle_link_created(LinkCreatedEvent* event,
-                                  BundleActionList* actions);
+                                  BundleActions* actions);
     
     /**
      * Default event handler when a contact is down
      */
     void handle_contact_down(ContactDownEvent* event,
-                               BundleActionList* actions);
+                               BundleActions* actions);
     
     /**
      * Default event handler when a new route is added by the command
@@ -112,7 +112,7 @@ protected:
      * to see if any bundles match the new route.
      */
     void handle_route_add(RouteAddEvent* event,
-                          BundleActionList* actions);
+                          BundleActions* actions);
     
     /**
      * Called whenever a new consumer (i.e. registration or contact)
@@ -121,10 +121,10 @@ protected:
      */
     void new_next_hop(const BundleTuplePattern& dest,
                               BundleConsumer* next_hop,
-                              BundleActionList* actions);
+                              BundleActions* actions);
 
 
-    int fwd_to_matching(Bundle *bundle, BundleActionList *actions,bool include_local);
+    int fwd_to_matching(Bundle *bundle, BundleActions *actions,bool include_local);
 
 protected:
     BundleTuplePattern all_tuples_;

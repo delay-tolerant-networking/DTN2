@@ -39,7 +39,7 @@
 #include "bundling/Bundle.h"
 #include "BundleStore.h"
 #include "PersistentStore.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
 
 namespace dtn {
@@ -68,7 +68,7 @@ BundleStore::load()
     {
         bundle = get(*iter);
         ASSERT(bundle);
-        BundleForwarder::post(new BundleReceivedEvent(bundle, EVENTSRC_STORE));
+        BundleDaemon::post(new BundleReceivedEvent(bundle, EVENTSRC_STORE));
     }
 
     return true;

@@ -41,7 +41,7 @@
 #include "OndemandLink.h"
 #include "ScheduledLink.h"
 #include "OpportunisticLink.h"
-#include "BundleForwarder.h"
+#include "BundleDaemon.h"
 #include "BundleEvent.h"
 
 namespace dtn {
@@ -112,7 +112,7 @@ Link::init(int argc, const char* argv[])
     ContactManager::instance()->add_link(this);
 
     // Post a link created event
-    BundleForwarder::post(new LinkCreatedEvent(this));
+    BundleDaemon::post(new LinkCreatedEvent(this));
 
     // If link is ONDEMAND set it to be available
     if (type_ == ONDEMAND)
@@ -263,7 +263,7 @@ Link::set_link_available()
     ASSERT(!isavailable());
     avail_ = true ;
     // Post a link available event
-    BundleForwarder::post(new LinkAvailableEvent(this));
+    BundleDaemon::post(new LinkAvailableEvent(this));
 }
 
 /**
@@ -275,7 +275,7 @@ Link::set_link_unavailable()
     ASSERT(isavailable());
     avail_ = false;
     // Post a link unavailable event
-    BundleForwarder::post(new LinkUnavailableEvent(this));
+    BundleDaemon::post(new LinkUnavailableEvent(this));
 }
 
 /**

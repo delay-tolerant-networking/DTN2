@@ -42,7 +42,7 @@
 #include "BundleCommand.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 
 namespace dtn {
 
@@ -110,12 +110,12 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         log_debug("inject %d byte bundle %s->%s", total,
                   b->source_.c_str(), b->dest_.c_str());
 
-        BundleForwarder::post(new BundleReceivedEvent(b, EVENTSRC_APP, total));
+        BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP, total));
         return TCL_OK;
         
     } else if (!strcmp(cmd, "stats")) {
         oasys::StringBuffer buf("Bundle Statistics: ");
-        BundleForwarder::instance()->get_statistics(&buf);
+        BundleDaemon::instance()->get_statistics(&buf);
         set_result(buf.c_str());
         return TCL_OK;
         
@@ -124,7 +124,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         BundleList::const_iterator iter;
         oasys::StringBuffer buf;
         BundleList* pending =
-            BundleForwarder::instance()->pending_bundles();
+            BundleDaemon::instance()->pending_bundles();
         
         oasys::ScopeLock l(pending->lock());
         buf.appendf("Currently Pending Bundles (%d): \n", pending->size());
@@ -157,7 +157,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         }
 
         BundleList* pending =
-            BundleForwarder::instance()->pending_bundles();
+            BundleDaemon::instance()->pending_bundles();
         
         Bundle* bundle = pending->find(bundleid);
 

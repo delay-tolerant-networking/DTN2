@@ -38,7 +38,7 @@
 
 #include "RegistrationTable.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "storage/RegistrationStore.h"
 
 namespace dtn {
@@ -129,7 +129,7 @@ RegistrationTable::add(Registration* reg)
     }
 
     // finally, notify the routing layer
-    BundleForwarder::post(new RegistrationAddedEvent(reg));
+    BundleDaemon::post(new RegistrationAddedEvent(reg));
 
     return true;
 }

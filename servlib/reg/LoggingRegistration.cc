@@ -42,7 +42,7 @@
 #include "Registration.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 
 namespace dtn {
@@ -102,7 +102,7 @@ LoggingRegistration::run()
                      payload_len, (int)len, hex.data());
         }
 
-        BundleForwarder::post(
+        BundleDaemon::post(
             new BundleTransmittedEvent(b, this, b->payload_.length(), true));
         
         b->del_ref("LoggingRegistration");

@@ -361,8 +361,8 @@ public:
     int format(char* buf, size_t sz);
     
 protected:
+    friend class BundleActions;
     friend class ContactManager;
-    friend class BundleForwarder;
     
     /**
      * Open/Close link

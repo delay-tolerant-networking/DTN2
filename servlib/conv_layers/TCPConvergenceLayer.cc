@@ -53,7 +53,7 @@
 #include "TCPConvergenceLayer.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
 #include "bundling/ContactManager.h"
@@ -969,7 +969,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     
     // we've got a valid bundle, but check if we didn't get the whole
     // bundle and therefore that this should be marked as a fragment
-    BundleForwarder::post(
+    BundleDaemon::post(
         new BundleReceivedEvent(bundle, EVENTSRC_PEER, rcvd_len));
     
     return recvok;
@@ -1342,7 +1342,7 @@ TCPConvergenceLayer::Connection::break_contact()
     set_should_stop();
 
     if (contact_ && !contact_->link()->isclosing())
-        BundleForwarder::post(new ContactDownEvent(contact_));
+        BundleDaemon::post(new ContactDownEvent(contact_));
 }
 
 /**
@@ -1361,7 +1361,7 @@ TCPConvergenceLayer::Connection::send_loop()
     
     // inform the router that the contact is available
     ASSERT(contact_);
-    BundleForwarder::post(new ContactUpEvent(contact_));
+    BundleDaemon::post(new ContactUpEvent(contact_));
     
     log_info("connection established -- (keepalive time %d seconds)",
              params_.keepalive_interval_);
@@ -1423,7 +1423,7 @@ TCPConvergenceLayer::Connection::send_loop()
                 // maybe mark the bundle as in-progress or something
                 // like that?
                 
-                BundleForwarder::post(
+                BundleDaemon::post(
                     new BundleTransmittedEvent(bundle, contact_, acked_len, true));
                 
                 bundle->del_ref("tcpcl");

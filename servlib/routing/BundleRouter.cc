@@ -39,13 +39,13 @@
 #include <stdlib.h>
 
 #include "BundleRouter.h"
-#include "bundling/BundleForwarder.h"
 #include "RouteTable.h"
 #include "bundling/Bundle.h"
+#include "bundling/BundleActions.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleStatusReport.h"
 #include "bundling/Contact.h"
-#include "bundling/ContactManager.h"
 #include "bundling/FragmentManager.h"
 #include "reg/Registration.h"
 
@@ -105,8 +105,10 @@ BundleRouter::BundleRouter()
               local_tuple_.c_str());
     
     route_table_ = new RouteTable();
-    pending_bundles_ = new BundleList("pending_bundles");
-    custody_bundles_ = new BundleList("custody_bundles");
+
+    // XXX/demmer maybe change this?
+    pending_bundles_ = BundleDaemon::instance()->pending_bundles();
+    custody_bundles_ = BundleDaemon::instance()->custody_bundles();
 }
 
 /**
@@ -122,14 +124,14 @@ BundleRouter::~BundleRouter()
  * response to all received events. To cause bundles to be
  * forwarded, this function populates the given action list with
  * the forwarding decisions. The run() method takes the decisions
- * from the active router and passes them to the BundleForwarder.
+ * from the active router and passes them to the BundleDaemon.
  *
  * Note that the function is virtual so more complex derived
  * classes can override or augment the default behavior.
  */
 void
 BundleRouter::handle_event(BundleEvent* e,
-                           BundleActionList* actions)
+                           BundleActions* actions)
 {
     log_debug("Router executing event %s",e->type_str());
     switch(e->type_) {
@@ -193,7 +195,7 @@ BundleRouter::handle_event(BundleEvent* e,
  */
 void
 BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
-                                     BundleActionList* actions)
+                                     BundleActions* actions)
 {
     Bundle* bundle = event->bundleref_.bundle();
     
@@ -230,7 +232,9 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
                  "%d byte bundle into %d %d byte fragments",
                  payload_len, payload_len / proactive_frag_threshold_,
                  proactive_frag_threshold_);
-        
+
+        // XXX/demmer move this into the FragmentManager to return a
+        // bundlelist, not to do all the nitty-gritty here
         Bundle* fragment;
         
         int todo = payload_len;
@@ -246,7 +250,7 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
             ASSERT(fragment);
 
             pending_bundles_->push_back(fragment, NULL);
-            actions->push_back(new BundleAction(STORE_ADD, fragment));
+            actions->store_add(fragment);
             fwd_to_matching(fragment, actions, false);
             
             offset += fraglen;
@@ -259,14 +263,15 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
 
     pending_bundles_->push_back(bundle, NULL);
     if (event->source_ != EVENTSRC_STORE) {
-        actions->push_back(new BundleAction(STORE_ADD, bundle));
+        // don't add the bundle to the store if it just came from there
+        actions->store_add(bundle);
     }
     fwd_to_matching(bundle, actions, true);
 }
 
 void
 BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
-                                        BundleActionList* actions)
+                                        BundleActions* actions)
 {
     /**
      * The bundle was delivered to either a next-hop contact or a
@@ -317,7 +322,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
 
         if (count > 0) {
             pending_bundles_->push_back(tail, NULL);
-            actions->push_back(new BundleAction(STORE_ADD, tail));
+            actions->store_add(tail);
         }
     }
 
@@ -331,7 +336,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
         report->set_status_time(BundleProtocol::STATUS_DELIVERED);
 
         pending_bundles_->push_back(report, NULL);
-        actions->push_back(new BundleAction(STORE_ADD, report));
+        actions->store_add(report);
         fwd_to_matching(report, actions, true);
     }
 }
@@ -346,7 +351,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
  */
 void
 BundleRouter::handle_registration_added(RegistrationAddedEvent* event,
-                                        BundleActionList* actions)
+                                        BundleActions* actions)
 {
     Registration* registration = event->registration_;
     log_debug("new registration for %s", registration->endpoint().c_str());
@@ -362,7 +367,7 @@ BundleRouter::handle_registration_added(RegistrationAddedEvent* event,
  */
 void
 BundleRouter::handle_link_created(LinkCreatedEvent* event,
-                                  BundleActionList* actions)
+                                  BundleActions* actions)
 {
     log_info("LINK_CREATED *%p", event->link_);
 }
@@ -372,7 +377,7 @@ BundleRouter::handle_link_created(LinkCreatedEvent* event,
  */
 void
 BundleRouter::handle_link_deleted(LinkDeletedEvent* event,
-                                  BundleActionList* actions)
+                                  BundleActions* actions)
 {
     // Take care of all messages queued for this link
     // Take care of routing entries referring to this
@@ -384,7 +389,7 @@ BundleRouter::handle_link_deleted(LinkDeletedEvent* event,
  */
 void
 BundleRouter::handle_link_available(LinkAvailableEvent* event,
-                                    BundleActionList* actions)
+                                    BundleActions* actions)
 {
     log_info("LINK_AVAILABLE *%p", event->link_);
     
@@ -392,12 +397,12 @@ BundleRouter::handle_link_available(LinkAvailableEvent* event,
     Peer* peer = link->peer();
     ASSERT(link->isavailable());
 
-    // Move from peer queue to link queue
-    peer->bundle_list()->move_contents(link->bundle_list());
+    // Move all bundles from peer queue to link queue
+    actions->move_contents(peer, link);
     
     // If something is queued on the link open it
     if (link->size() > 0) {
-        ContactManager::instance()->open_link(link);
+        actions->open_link(link);
     }
 }
 
@@ -406,7 +411,7 @@ BundleRouter::handle_link_available(LinkAvailableEvent* event,
  */
 void
 BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event,
-                                      BundleActionList* actions)
+                                      BundleActions* actions)
 {
     Link* link = event->link_;
     ASSERT(!link->isavailable());
@@ -418,7 +423,7 @@ BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event,
     // that contact is down for this link, which would cleanup
     // the state of queues
     if (link->isopen()) 
-        BundleForwarder::post(new ContactDownEvent(link->contact()));
+        BundleDaemon::post(new ContactDownEvent(link->contact()));
 }
 
 /**
@@ -426,7 +431,7 @@ BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event,
  */
 void
 BundleRouter::handle_contact_up(ContactUpEvent* event,
-                                BundleActionList* actions)
+                                BundleActions* actions)
 {
     Contact* contact = event->contact_;
     Link* link = contact->link();
@@ -440,7 +445,7 @@ BundleRouter::handle_contact_up(ContactUpEvent* event,
     // seen contact_up event so far
     
     // Move any messages from link queue to contact queue
-    link->bundle_list()->move_contents(contact->bundle_list());
+    actions->move_contents(link, contact);
 
     // How about moving messages from Peer Queue to Link Queue
     /// XXX/Sushant is this the right place to do ? or fwd_next_hop
@@ -456,7 +461,7 @@ BundleRouter::handle_contact_up(ContactUpEvent* event,
  */
 void
 BundleRouter::handle_contact_down(ContactDownEvent* event,
-                                  BundleActionList* actions)
+                                  BundleActions* actions)
 {
 
     Contact* contact = event->contact_;
@@ -465,16 +470,16 @@ BundleRouter::handle_contact_down(ContactDownEvent* event,
              contact, contact->bundle_list()->size());
     
     ASSERT(link->bundle_list()->size() == 0);
-    contact->bundle_list()->move_contents(link->bundle_list());
+    actions->move_contents(contact, link);
     
     // Close the contact
-    ContactManager::instance()->close_link(link);
+    actions->close_link(link);
 
     // Check is link is suppoed to be available and if yes
     // try to open the link
 
     if ((link->size() > 0) && link->isavailable()) {
-        ContactManager::instance()->open_link(link);
+        actions->open_link(link);
     }
 }
 
@@ -485,7 +490,7 @@ BundleRouter::handle_contact_down(ContactDownEvent* event,
  */
 void
 BundleRouter::handle_reassembly_completed(ReassemblyCompletedEvent* event,
-                                          BundleActionList* actions)
+                                          BundleActions* actions)
 {
     log_info("REASSEMBLY_COMPLETED bundle id %d",
              event->bundle_.bundle()->bundleid_);
@@ -503,7 +508,7 @@ BundleRouter::handle_reassembly_completed(ReassemblyCompletedEvent* event,
     // data store
     bundle = event->bundle_.bundle();
     pending_bundles_->push_back(bundle, NULL);
-    actions->push_back(new BundleAction(STORE_ADD, bundle));
+    actions->store_add(bundle);
 }
 
 /**
@@ -515,7 +520,7 @@ BundleRouter::handle_reassembly_completed(ReassemblyCompletedEvent* event,
  */
 void
 BundleRouter::handle_route_add(RouteAddEvent* event,
-                               BundleActionList* actions)
+                               BundleActions* actions)
 {
     RouteEntry* entry = event->entry_;
     route_table_->add_entry(entry);
@@ -529,7 +534,7 @@ BundleRouter::handle_route_add(RouteAddEvent* event,
  */
 void
 BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
-                             BundleActionList* actions)
+                             BundleActions* actions)
 {
     // handle reassembly for certain routes
     if (nexthop->action_ == FORWARD_REASSEMBLE && bundle->is_fragment_) {
@@ -557,18 +562,13 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
             log_info("Opening ONDEMAND link %s because messages are queued for it",
                      link->name());
 
-            // note that multiple such actions may be enqueued -- the
-            // forwarder will just ignore duplicates
-            actions->push_back(new OpenLinkAction(link));
+            actions->open_link(link);
         }
     }
 
-    // Add message to the consumer queue
-    // This should be done later because if the link is opened above,
-    // the message should be queued on the contact.
-    actions->push_back(
-        new BundleEnqueueAction(bundle, nexthop->next_hop_,
-                                nexthop->action_, nexthop->mapping_grp_));
+    // Add message to the next hop queue
+    actions->enqueue_bundle(bundle, nexthop->next_hop_,
+                            nexthop->action_, nexthop->mapping_grp_);
 }
 
 
@@ -582,7 +582,7 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
  * Returns the number of matches found and assigned.
  */
 int
-BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
+BundleRouter::fwd_to_matching(Bundle* bundle, BundleActions* actions,
                               bool include_local)
 {
     RouteEntry* entry;
@@ -615,7 +615,7 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
 void
 BundleRouter::new_next_hop(const BundleTuplePattern& dest,
                            BundleConsumer* next_hop,
-                           BundleActionList* actions)
+                           BundleActions* actions)
 {
     // XXX/demmer WRONG WRONG WRONG -- should really only check the
     // NEW contact, not all the contacts.
@@ -639,7 +639,7 @@ BundleRouter::new_next_hop(const BundleTuplePattern& dest,
  * pending count is zero).
  */
 void
-BundleRouter::delete_from_pending(Bundle* bundle, BundleActionList* actions)
+BundleRouter::delete_from_pending(Bundle* bundle, BundleActions* actions)
 {
     // XXX/demmer should this submit a BUNDLE_DEQUEUE action, not
     // directly manipulate the list? if so then we need a "consumer"
@@ -650,14 +650,10 @@ BundleRouter::delete_from_pending(Bundle* bundle, BundleActionList* actions)
     log_debug("bundle %d: no more pending transmissions -- "
               "removing from pending list", bundle->bundleid_);
 
-    // make sure to put the store delete action on the list before
-    // removing the from the pending list since the latter may remove
-    // the last reference on the bundle.
-    actions->push_back(new BundleAction(STORE_DEL, bundle));
-    
+    actions->store_del(bundle);
+
     BundleMapping* mapping = bundle->get_mapping(pending_bundles_);
     ASSERT(mapping);
-    
     pending_bundles_->erase(mapping->position_, NULL);
 }
 

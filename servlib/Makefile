@@ -9,8 +9,9 @@
 BUNDLING_SRCS := 				\
 	bundling/AddressFamily.cc		\
 	bundling/Bundle.cc			\
+	bundling/BundleActions.cc		\
 	bundling/BundleConsumer.cc		\
-	bundling/BundleForwarder.cc		\
+	bundling/BundleDaemon.cc		\
 	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\

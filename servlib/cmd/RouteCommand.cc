@@ -43,7 +43,7 @@
 #include "bundling/ContactManager.h"
 
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleConsumer.h"
 
 #include "routing/BundleRouter.h"
@@ -108,7 +108,7 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
         RouteEntry* entry = new RouteEntry(dest, consumer, FORWARD_COPY);
         // post the event
-        BundleForwarder::post(new RouteAddEvent(entry));
+        BundleDaemon::post(new RouteAddEvent(entry));
     }
 
     else if (strcmp(cmd, "del") == 0) {
@@ -118,7 +118,7 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     else if (strcmp(cmd, "dump") == 0) {
         oasys::StringBuffer buf;
-        BundleRouter* router = BundleForwarder::instance()->active_router();
+        BundleRouter* router = BundleDaemon::instance()->router();
         buf.appendf("local tuple:\n\t%s\n", router->local_tuple_.c_str());
         router->route_table()->dump(&buf);
         ContactManager::instance()->dump(&buf);

@@ -35,8 +35,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _BUNDLE_FORWARDING_H_
-#define _BUNDLE_FORWARDING_H_
+#ifndef _BUNDLE_DAEMON_H_
+#define _BUNDLE_DAEMON_H_
 
 #include <vector>
 
@@ -49,21 +49,23 @@ namespace dtn {
 
 class Bundle;
 class BundleAction;
-class BundleActionList;
+class BundleActions;
 class BundleConsumer;
 class BundleEvent;
 class BundleList;
 class BundleRouter;
 
 /**
- * Class that handles the flow of bundle events through the system.
+ * Class that handles the basic event / action mechanism. All events
+ * are queued and then forwarded to the active router module. The
+ * router then responds by calling one of the various 
  */
-class BundleForwarder : public oasys::Logger, public oasys::Thread {
+class BundleDaemon : public oasys::Logger, public oasys::Thread {
 public:
     /**
      * Singleton accessor.
      */
-    static BundleForwarder* instance() {
+    static BundleDaemon* instance() {
         ASSERT(instance_ != NULL);
         return instance_;
     }
@@ -71,15 +73,15 @@ public:
     /**
      * Constructor.
      */
-    BundleForwarder();
+    BundleDaemon();
 
     /**
      * Boot time initializer.
      */
-    static void init(BundleForwarder* instance)
+    static void init(BundleDaemon* instance)
     {
         if (instance_ != NULL) {
-            PANIC("BundleForwarder already initialized");
+            PANIC("BundleDaemon already initialized");
         }
         instance_ = instance;
     }
@@ -90,14 +92,19 @@ public:
     static void post(BundleEvent* event);
 
     /**
-     * Returns the currently active bundle router.
+     * Returns the current bundle router.
      */
-    BundleRouter* active_router() { return router_; }
+    BundleRouter* router() { return router_; }
 
     /**
      * Sets the active router.
      */
-    void set_active_router(BundleRouter* router) { router_ = router; }
+    void set_router(BundleRouter* router) { router_ = router; }
+
+    /**
+     * Return the current actions handler.
+     */
+    BundleActions* actions() { return actions_; }
 
     /**
      * Format the given StringBuffer with the current statistics value.
@@ -105,25 +112,38 @@ public:
     void get_statistics(oasys::StringBuffer* buf);
 
     /**
-     * Return a pointer to the pending bundle list.
+     * Accessor for the pending bundles list.
      */
-    BundleList* pending_bundles();
-
-protected:
+    BundleList* pending_bundles() { return pending_bundles_; }
+    
     /**
-     * Routine that implements a particular action, as returned from
-     * the BundleRouter.
+     * Accessor for the custody bundles list.
      */
-    void process(BundleAction* action);
-
+    BundleList* custody_bundles() { return custody_bundles_; }
+    
+protected:
     /**
      * Main thread function that dispatches events.
      */
     void run();
+
+    /**
+     * Update statistics based on the event arrival.
+     */
+    void update_statistics(BundleEvent* event);
     
     /// The active bundle router
     BundleRouter* router_;
 
+    /// The active bundle actions handler
+    BundleActions* actions_;
+
+    /// The list of all bundles still pending delivery
+    BundleList* pending_bundles_;
+
+    /// The list of all bundles that we have custody of
+    BundleList* custody_bundles_;
+    
     /// The event queue
     oasys::MsgQueue<BundleEvent*> eventq_;
 
@@ -133,9 +153,9 @@ protected:
     u_int32_t bundles_sent_remote_;
     u_int32_t bundles_expired_;
     
-    static BundleForwarder* instance_;
+    static BundleDaemon* instance_;
 };
 
 } // namespace dtn
 
-#endif /* _BUNDLE_FORWARDING_H_ */
+#endif /* _BUNDLE_DAEMON_H_ */

@@ -39,7 +39,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "AdminRegistration.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleProtocol.h"
 #include "routing/BundleRouter.h"
 
@@ -104,7 +104,7 @@ AdminRegistration::enqueue_bundle(Bundle* bundle,
     }    
 
  done:
-    BundleForwarder::post(
+    BundleDaemon::post(
         new BundleTransmittedEvent(bundle, this, payload_len, true));
 }
 

@@ -43,12 +43,12 @@
 #include <oasys/thread/Thread.h>
 #include <oasys/util/StringUtils.h>
 
-#include "bundling/BundleAction.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleTuple.h"
 
 namespace dtn {
-    
+
+class BundleActions;
 class BundleConsumer;
 class BundleRouter;
 class RouteTable;
@@ -63,24 +63,21 @@ typedef std::vector<BundleRouter*> BundleRouterList;
  * The BundleRouter is the main decision maker for all routing
  * decisions related to bundles.
  *
- * It runs receives events from the BundleForwarder having been
- * enqueued by other components. These events include all actions and
- * operations that may affect bundle delivery, including new bundle
- * arrival, contact arrival, etc.
+ * It receives events from the BundleDaemon having been posted by
+ * other components. These events include all operations and
+ * occurrences that may affect bundle delivery, including new bundle
+ * arrival, contact arrival, timeouts, etc.
  *
- * In response to each event the router generates a list of forwarding
- * actions that are then effected by the BundleForwarder.
+ * In response to each event the router may call one of the action
+ * functions implemented by the BundleDaemon. Note that to support the
+ * simulator environment, all interactions with the rest of the system
+ * should go through the singleton BundleAction classs.
  *
- * To support the prototyping of different routing protocols and
+ * To support prototyping of different routing protocols and
  * frameworks, the base class has a list of prospective BundleRouter
  * implementations, and at boot time, one of these is selected as the
- * active routing algorithm, while others can be selected as "shadow
- * routers", i.e. they get a copy of every event, and can generate
- * their own actions, but the forwarder doesn't actually perform any
- * actions. XXX/demmer spec this out more.
- *
- * As new algorithms are added to the system, new cases should be
- * added to the "create_router" function.
+ * active routing algorithm. As new algorithms are added to the
+ * system, new cases should be added to the "create_router" function.
  */
 class BundleRouter : public oasys::Logger {
 public:
@@ -111,26 +108,21 @@ public:
     const RouteTable* route_table() { return route_table_; }
 
     /**
-     * Accessor for the pending bundles list.
-     */
-    BundleList* pending_bundles() { return pending_bundles_; }
-    
-    /**
      * The monster routing decision function that is called in
      * response to all received events.
      *
      * To actually effect actions, this function should populate the
      * given action list with all forwarding decisions. The
-     * BundleForwarder then takes these instructions and causes them
+     * BundleDaemon then takes these instructions and causes them
      * to happen.
      *
      * The base class implementation does a dispatch on the event type
      * and calls the appropriate default handler function.
      */
     virtual void handle_event(BundleEvent* event,
-                              BundleActionList* actions);
+                              BundleActions* actions);
 
-    // XXX/demmer temp for testing fragmentation
+    /// XXX/demmer temp for testing fragmentation
     static size_t proactive_frag_threshold_;
 
     /**
@@ -154,7 +146,7 @@ protected:
      * contacts, filling in the action list with forwarding decisions.
      */
     virtual void handle_bundle_received(BundleReceivedEvent* event,
-                                        BundleActionList* actions);
+                                        BundleActions* actions);
     
     /**
      * Default event handler when bundles are transmitted.
@@ -164,7 +156,7 @@ protected:
      * enqeues the new fragment on the appropriate list.
      */
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event,
-                                           BundleActionList* actions);
+                                           BundleActions* actions);
 
     /**
      * Default event handler when a new application registration
@@ -175,46 +167,43 @@ protected:
      * registration.
      */
     virtual void handle_registration_added(RegistrationAddedEvent* event,
-                                           BundleActionList* actions);
+                                           BundleActions* actions);
     
     /**
      * Default event handler when a new contact is up.
      */
     virtual void handle_contact_up(ContactUpEvent* event,
-                                          BundleActionList* actions);
+                                   BundleActions* actions);
     
     /**
      * Default event handler when a contact is down.
      */
     virtual void handle_contact_down(ContactDownEvent* event,
-                                       BundleActionList* actions);
+                                     BundleActions* actions);
 
-
-       
     /**
      * Default event handler when a new link is created.
      */
     virtual void handle_link_created(LinkCreatedEvent* event,
-                                          BundleActionList* actions);
+                                     BundleActions* actions);
     
     /**
      * Default event handler when a link is deleted.
      */
     virtual void handle_link_deleted(LinkDeletedEvent* event,
-                                       BundleActionList* actions);
-
+                                     BundleActions* actions);
 
     /**
      * Default event handler when link becomes available
      */
     virtual void handle_link_available(LinkAvailableEvent* event,
-                                          BundleActionList* actions);
+                                       BundleActions* actions);
     
     /**
      * Default event handler when a link is unavailable
      */
     virtual void handle_link_unavailable(LinkUnavailableEvent* event,
-                                       BundleActionList* actions);
+                                         BundleActions* actions);
 
     /**
      * Default event handler when reassembly is completed. For each
@@ -222,7 +211,7 @@ protected:
      * fragment can be deleted.
      */
     virtual void handle_reassembly_completed(ReassemblyCompletedEvent* event,
-                                             BundleActionList* actions);
+                                             BundleActions* actions);
     
     /**
      * Default event handler when a new route is added by the command
@@ -232,7 +221,7 @@ protected:
      * to see if any bundles match the new route.
      */
     virtual void handle_route_add(RouteAddEvent* event,
-                                  BundleActionList* actions);
+                                  BundleActions* actions);
 
     /**
      * Add an action to forward a bundle to a next hop route, making
@@ -240,7 +229,7 @@ protected:
      * such.
      */
     virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
-                                BundleActionList* actions);
+                                BundleActions* actions);
      
     
     /**
@@ -252,7 +241,7 @@ protected:
      *
      * Returns the number of matches found and assigned.
      */
-    virtual int fwd_to_matching(Bundle* bundle, BundleActionList* actions,
+    virtual int fwd_to_matching(Bundle* bundle, BundleActions* actions,
                                 bool include_local);
 
     /**
@@ -262,14 +251,14 @@ protected:
      */
     virtual void new_next_hop(const BundleTuplePattern& dest,
                               BundleConsumer* next_hop,
-                              BundleActionList* actions);
+                              BundleActions* actions);
 
     /**
      * Delete the given bundle from the pending list (assumes the
      * pending count is zero).
      */
     void delete_from_pending(Bundle* bundle,
-                             BundleActionList* actions);
+                             BundleActions* actions);
 
     /// The routing table
     RouteTable* route_table_;

@@ -41,7 +41,7 @@
 #include "BundleList.h"
 #include "BundleMapping.h"
 #include "conv_layers/ConvergenceLayer.h"
-#include "BundleForwarder.h"
+#include "BundleDaemon.h"
 #include "BundleEvent.h"
 
 namespace dtn {

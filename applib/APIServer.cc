@@ -43,7 +43,7 @@
 #include "APIServer.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "cmd/APICommand.h"
 #include "reg/Registration.h"
 #include "reg/RegistrationTable.h"
@@ -583,7 +583,7 @@ ClientAPIServer::handle_send()
     
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
-    BundleForwarder::post(new BundleReceivedEvent(b, EVENTSRC_APP));
+    BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP));
     
     ret = DTN_SUCCESS;
 
@@ -725,7 +725,7 @@ ClientAPIServer::handle_recv()
         return -1;
     }
 
-    BundleForwarder::post(
+    BundleDaemon::post(
         new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
     
     return 0;

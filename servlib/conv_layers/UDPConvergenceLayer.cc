@@ -45,7 +45,7 @@
 #include "UDPConvergenceLayer.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
 #include "bundling/InternetAddressFamily.h"
@@ -285,7 +285,7 @@ shutdown:
     // all set, notify the router of the new arrival
     log_debug("process_data: new bundle id %d arrival, payload length %d",
 	      bundle->bundleid_, bundle->payload_.length());
-    BundleForwarder::post(
+    BundleDaemon::post(
         new BundleReceivedEvent(bundle, EVENTSRC_PEER, block_len));
 }
 
@@ -564,9 +564,9 @@ void UDPConvergenceLayer::Sender::send_loop() {
 
         // cons up a transmission event and pass it to the router
         // No acks received, so acked_len = 0, and ack = false 
-        // YYY/Nabeel: Tell BundleForwarder we have artificially received acks
+        // YYY/Nabeel: Tell BundleDaemon we have artificially received acks
         // for all the payload length 
-        BundleForwarder::post(
+        BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact_, bundle->payload_.length(), false));
         
         // finally, remove our local reference on the bundle, which
@@ -598,7 +598,7 @@ UDPConvergenceLayer::Sender::break_contact()
     sock_->close();
     //  Thread::set_flag(STOPPED);
     if (contact_)
-        BundleForwarder::post(new ContactDownEvent(contact_));
+        BundleDaemon::post(new ContactDownEvent(contact_));
 }
 
 } // namespace dtn

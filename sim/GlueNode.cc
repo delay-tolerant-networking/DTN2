@@ -38,7 +38,7 @@
 #include "GlueNode.h"
 
 #include "bundling/Bundle.h"
-#include "bundling/BundleAction.h"
+#include "bundling/BundleActions.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleConsumer.h"
 #include "bundling/Contact.h"
@@ -196,8 +196,8 @@ void
 GlueNode::forward_event(BundleEvent* event) 
 {
 
-    BundleActionList actions;
-    BundleActionList::iterator iter;
+    BundleActions actions;
+    BundleActions::iterator iter;
     
     ASSERT(event);
     

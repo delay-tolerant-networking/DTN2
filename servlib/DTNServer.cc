@@ -40,7 +40,7 @@
 #include "DTNServer.h"
 
 #include "bundling/AddressFamily.h"
-#include "bundling/BundleForwarder.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/InterfaceTable.h"
 #include "bundling/ContactManager.h"
 
@@ -112,7 +112,7 @@ DTNServer::init_components()
     ContactManager::init();
     ConvergenceLayer::init_clayers();
     InterfaceTable::init();
-    BundleForwarder::init(new BundleForwarder());
+    BundleDaemon::init(new BundleDaemon());
     
     log_debug("/dtnserver", "intialized dtn components");
 }
@@ -230,9 +230,9 @@ DTNServer::start()
     BundleRouter* router;
     router = BundleRouter::create_router(BundleRouter::type_.c_str());
 
-    BundleForwarder* forwarder = BundleForwarder::instance();
-    forwarder->set_active_router(router);
-    forwarder->start();
+    BundleDaemon* daemon = BundleDaemon::instance();
+    daemon->set_router(router);
+    daemon->start();
 
     // create (and auto-register) the default administrative registration
     RegistrationTable::init(RegistrationStore::instance());

@@ -38,7 +38,7 @@
 
 #include "Bundle.h"
 #include "BundleEvent.h"
-#include "BundleForwarder.h"
+#include "BundleDaemon.h"
 #include "BundleList.h"
 #include "BundleRef.h"
 #include "FragmentManager.h"
@@ -311,7 +311,7 @@ FragmentManager::process(Bundle* fragment)
 
     Bundle* ret = state->bundle_;
     
-    BundleForwarder::post
+    BundleDaemon::post
         (new ReassemblyCompletedEvent(ret, &state->fragments_));
     
     state->bundle_->del_ref("reassembly_state");
