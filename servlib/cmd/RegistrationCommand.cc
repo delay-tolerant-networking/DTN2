@@ -39,6 +39,8 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "RegistrationCommand.h"
+#include "bundling/BundleDaemon.h"
+#include "bundling/BundleEvent.h"
 #include "reg/LoggingRegistration.h"
 #include "reg/RegistrationTable.h"
 #include "reg/TclRegistration.h"
@@ -105,6 +107,14 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         ASSERT(reg);
+
+        if (! RegistrationTable::instance()->add(reg)) {
+            resultf("unexpected error adding registration to table");
+            return TCL_ERROR;
+        }
+
+        BundleDaemon::post(new RegistrationAddedEvent(reg));
+        
         resultf("%d", reg->regid());
         return TCL_OK;
         

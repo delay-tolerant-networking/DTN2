@@ -39,6 +39,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "AdminRegistration.h"
+#include "RegistrationTable.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleProtocol.h"
 #include "routing/BundleRouter.h"
@@ -51,6 +52,12 @@ AdminRegistration::AdminRegistration()
                    ABORT)
 {
     logpathf("/reg/admin");
+
+    if (! RegistrationTable::instance()->add(this)) {
+        PANIC("unexpected error adding admin registration to table");
+    }
+
+    BundleDaemon::post(new RegistrationAddedEvent(this));
 }
 
 void

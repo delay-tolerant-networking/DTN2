@@ -78,10 +78,6 @@ Registration::init(u_int32_t regid,
     if (expiration == 0) {
         // XXX/demmer default expiration
     }
-
-    if (! RegistrationTable::instance()->add(this)) {
-        log_err("unexpected error adding registration to table");
-    }
 }
 
 /**

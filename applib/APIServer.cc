@@ -396,6 +396,12 @@ ClientAPIServer::handle_register()
         
     } else {
         reg = new Registration(endpoint, action);
+        if (! RegistrationTable::instance()->add(reg)) {
+            log_err("unexpected error adding registration");
+            return -1;
+        }
+        
+        BundleDaemon::post(new RegistrationAddedEvent(reg));
     }
 
     regid = reg->regid();

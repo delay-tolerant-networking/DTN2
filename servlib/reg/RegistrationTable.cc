@@ -108,29 +108,30 @@ RegistrationTable::get(u_int32_t regid, const BundleTuple& endpoint)
 bool
 RegistrationTable::add(Registration* reg)
 {
-    if (reg->regid() > Registration::MAX_RESERVED_REGID) {
-        log_info("adding registration %d/%s",
-                 reg->regid(), reg->endpoint().c_str());
-    }
-    
     // check if a conflicting registration already exists
     if (get(reg->regid(), reg->endpoint()) != NULL) {
         log_err("error adding registration %d/%s: duplicate registration",
                 reg->regid(), reg->endpoint().c_str());
         return false; 
     }
-    
+
+    // put it in the list
     reglist_.push_back(reg);
+
+    // don't store (or log) default registrations 
+    if (reg->regid() <= Registration::MAX_RESERVED_REGID) {
+        return true;
+    }
+
+    log_info("adding registration %d/%s", reg->regid(),
+             reg->endpoint().c_str());
     
     if (! RegistrationStore::instance()->add(reg)) {
         log_err("error adding registration %d/%s: error in persistent store",
                 reg->regid(), reg->endpoint().c_str());
         return false;
     }
-
-    // finally, notify the routing layer
-    BundleDaemon::post(new RegistrationAddedEvent(reg));
-
+    
     return true;
 }
 
