@@ -9,7 +9,7 @@ std::string BundlePayload::dir_;
 bool BundlePayload::test_no_remove_;
 
 BundlePayload::BundlePayload()
-    : location_(DISK), length_(0), file_(NULL), offset_(0)
+    : location_(DISK), length_(0), rcvd_length_(0), file_(NULL), offset_(0)
 {
 }
 
@@ -75,8 +75,18 @@ BundlePayload::set_length(size_t length, location_t location)
     } else {
         location_ = location;
     }
-    
-    data_.reserve(length);
+
+    if (location_ == MEMORY) {
+        data_.reserve(length);
+    }
+}
+
+void
+BundlePayload::truncate(size_t length)
+{
+    ASSERT(length <= length_);
+    ASSERT(length <= rcvd_length_);
+    length_ = length;
 }
 
 void
@@ -84,6 +94,7 @@ BundlePayload::set_data(const char* bp, size_t len)
 {
     ASSERT(length_ == 0); // can only use this once
     set_length(len);
+    rcvd_length_ = len;
     append_data(bp, len);
 }
 
@@ -97,6 +108,8 @@ BundlePayload::append_data(const char* bp, size_t len)
     }
 
     file_->writeall(bp, len);
+
+    rcvd_length_ += len;
 }
 
 const char*

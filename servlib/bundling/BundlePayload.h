@@ -40,6 +40,11 @@ public:
      * configured parameters.
      */
     void set_length(size_t len, location_t location = UNDETERMINED);
+
+    /**
+     * Truncate the payload. Used for reactive fragmentation.
+     */
+    void truncate(size_t len);
     
     /**
      * The payload length.
@@ -91,6 +96,7 @@ protected:
     location_t location_;	///< location of the data (disk or memory)
     std::string data_;		///< the actual payload data if in memory
     size_t length_;     	///< the payload length
+    size_t rcvd_length_;     	///< the payload length we actually have
     std::string fname_;		///< payload file name
     FileIOClient* file_;	///< file handle if on disk
     off_t offset_;		///< cache of current fd position
