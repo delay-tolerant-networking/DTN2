@@ -35,13 +35,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "dtn_ipc.h"
-#include "dtn_types.h"
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <oasys/compat/inttypes.h>
+
+#include "dtn_ipc.h"
+#include "dtn_types.h"
+
 
 /*
  * Initialize the handle structure.
