@@ -179,7 +179,7 @@ SQLTableFormat::process(const char* name, u_int32_t* i)
 void 
 SQLTableFormat::process(const char* name, u_int16_t* i)
 {
-    append(name, "SMALLINT");
+    append(name, "INTEGER");
 }
 
 void
