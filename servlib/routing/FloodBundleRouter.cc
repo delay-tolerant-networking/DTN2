@@ -9,7 +9,8 @@
 #include <stdlib.h>
 
 #include "FloodBundleRouter.h"
-
+//#include "debug/Debug.h"
+#include <stdlib.h>
 
 /**
  * Constructor.
@@ -127,8 +128,6 @@ FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
 }
 
 
-
-
 /**
  * Default event handler when a new application registration
  * arrives.
@@ -152,36 +151,38 @@ FloodBundleRouter::handle_registration_added(RegistrationAddedEvent* event,
 }
 
 /**
- * Default event handler when a new contact is available.
+ * Default event handler when a new link is created.
  */
 void
-FloodBundleRouter::handle_contact_available(ContactAvailableEvent* event,
+FloodBundleRouter::handle_link_created(LinkCreatedEvent* event,
                                        BundleActionList* actions)
 {
-    Contact * contact = event->contact_;
-    log_info("FLOOD: CONTACT_AVAILABLE *%p", event->contact_);
+    
+    Link* link = event->link_;
+    ASSERT(link != NULL);
+    log_info("FLOOD: LINK_CREATED *%p", event->link_);
 
-    RouteEntry* entry = new RouteEntry(all_tuples_, contact, FORWARD_COPY);
+    RouteEntry* entry = new RouteEntry(all_tuples_, link, FORWARD_COPY);
     route_table_->add_entry(entry);
 
     //first clear the list with the contact
-    contact->bundle_list()->clear();
+//    contact->bundle_list()->clear();
 
     //copy the pending_bundles_ list into a new exchange list
     //exchange_list_ = pending_bundles_->copy();
     //
-    new_next_hop(all_tuples_, contact, actions);
+    new_next_hop(all_tuples_, link, actions);
 }
 
 /**
- * Default event handler when a contact is broken
+ * Default event handler when a contact is down
  */
 void
-FloodBundleRouter::handle_contact_broken(ContactBrokenEvent* event,
+FloodBundleRouter::handle_contact_down(ContactDownEvent* event,
                                     BundleActionList* actions)
 {
     Contact* contact = event->contact_;
-    log_info("FLOOD: CONTACT_BROKEN *%p: removing queued bundles", contact);
+    log_info("FLOOD: CONTACT_DOWN *%p: removing queued bundles", contact);
     
     //XXX not implemented yet - neeed to do
     route_table_->del_entry(all_tuples_, contact);

@@ -54,15 +54,15 @@ protected:
                                    BundleActionList* actions);
     
     /**
-     * Default event handler when a new contact is available.
+     * Default event handler when a  link is created.
      */
-    void handle_contact_available(ContactAvailableEvent* event,
+    void handle_link_created(LinkCreatedEvent* event,
                                   BundleActionList* actions);
     
     /**
-     * Default event handler when a contact is broken.
+     * Default event handler when a contact is down
      */
-    void handle_contact_broken(ContactBrokenEvent* event,
+    void handle_contact_down(ContactDownEvent* event,
                                BundleActionList* actions);
     
     /**

@@ -94,12 +94,20 @@ BundleRouter::handle_event(BundleEvent* e,
         handle_route_add((RouteAddEvent*)e, actions);
         break;
 
-    case CONTACT_AVAILABLE:
-        handle_contact_available((ContactAvailableEvent*)e, actions);
+    case CONTACT_UP:
+        handle_contact_up((ContactUpEvent*)e, actions);
         break;
 
-    case CONTACT_BROKEN:
-        handle_contact_broken((ContactBrokenEvent*)e, actions);
+    case CONTACT_DOWN:
+        handle_contact_down((ContactDownEvent*)e, actions);
+        break;
+
+    case LINK_CREATED:
+        handle_link_created((LinkCreatedEvent*)e, actions);
+        break;
+
+    case LINK_DELETED:
+        handle_link_deleted((LinkDeletedEvent*)e, actions);
         break;
 
     case REASSEMBLY_COMPLETED:
@@ -115,7 +123,6 @@ BundleRouter::handle_event(BundleEvent* e,
 
 /**
  * Default event handler for new bundle arrivals.
- *
  * Queue the bundle on the pending delivery list, and then
  * searches through the route table to find any matching next
  * contacts, filling in the action list with forwarding decisions.
@@ -280,24 +287,44 @@ BundleRouter::handle_registration_added(RegistrationAddedEvent* event,
 }
 
 /**
- * Default event handler when a new contact is available.
+ * Default event handler when a new link is available.
  */
 void
-BundleRouter::handle_contact_available(ContactAvailableEvent* event,
+BundleRouter::handle_link_created(LinkCreatedEvent* event,
                                        BundleActionList* actions)
 {
-    log_info("CONTACT_AVAILABLE *%p", event->contact_);
+    log_info("LINK_CREATED *%p", event->link_);
 }
 
 /**
- * Default event handler when a contact is broken
+ * Default event handler when a link is broken
  */
 void
-BundleRouter::handle_contact_broken(ContactBrokenEvent* event,
+BundleRouter::handle_link_deleted(LinkDeletedEvent* event,
+                                    BundleActionList* actions)
+{
+    NOTIMPLEMENTED ; 
+}
+
+/**
+ * Default event handler when a new contact is available.
+ */
+void
+BundleRouter::handle_contact_up(ContactUpEvent* event,
+                                       BundleActionList* actions)
+{
+    log_info("CONTACT_UP *%p", event->contact_);
+}
+
+/**
+ * Default event handler when a contact is down
+ */
+void
+BundleRouter::handle_contact_down(ContactDownEvent* event,
                                     BundleActionList* actions)
 {
     Contact* contact = event->contact_;
-    log_info("CONTACT_BROKEN *%p: re-routing %d queued bundles",
+    log_info("CONTACT_DOWN *%p: re-routing %d queued bundles",
              contact, contact->bundle_list()->size());
     
     Bundle* bundle;
@@ -305,7 +332,9 @@ BundleRouter::handle_contact_broken(ContactBrokenEvent* event,
 
     BundleList temp("temp");
     contact->bundle_list()->move_contents(&temp);
-    
+
+    // Close the contact
+    contact->link()->close();
     ScopeLock lock(temp.lock());
     
     for (iter = temp.begin(); iter != temp.end(); ++iter) {
@@ -318,8 +347,6 @@ BundleRouter::handle_contact_broken(ContactBrokenEvent* event,
             PANIC("XXX/demmer shouldn't be the last pending");
         }
     }
-
-    contact->close();
 }
 
 /**
@@ -385,8 +412,6 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
         if (!bundle)
             return;
     }
-
-    
     bundle->add_pending();
     
     actions->push_back(

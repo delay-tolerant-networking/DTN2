@@ -135,9 +135,10 @@ RouteTable::dump(StringBuffer* buf) const
     RouteEntrySet::iterator iter;
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         RouteEntry* entry = *iter;
-        buf->appendf("\t%s -> %s (%s)\n",
+        buf->appendf("\t%s -> %s (%s) (%s)\n",
                      entry->pattern_.c_str(),
                      entry->next_hop_->dest_tuple()->c_str(),
+                     entry->next_hop_->type(),
                      bundle_fwd_action_toa(entry->action_));
     }
 }

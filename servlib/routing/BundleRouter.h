@@ -139,16 +139,31 @@ protected:
                                            BundleActionList* actions);
     
     /**
-     * Default event handler when a new contact is available.
+     * Default event handler when a new contact is up.
      */
-    virtual void handle_contact_available(ContactAvailableEvent* event,
+    virtual void handle_contact_up(ContactUpEvent* event,
                                           BundleActionList* actions);
     
     /**
-     * Default event handler when a contact is broken.
+     * Default event handler when a contact is down.
      */
-    virtual void handle_contact_broken(ContactBrokenEvent* event,
+    virtual void handle_contact_down(ContactDownEvent* event,
                                        BundleActionList* actions);
+
+
+       
+    /**
+     * Default event handler when a new link is created.
+     */
+    virtual void handle_link_created(LinkCreatedEvent* event,
+                                          BundleActionList* actions);
+    
+    /**
+     * Default event handler when a link is deleted.
+     */
+    virtual void handle_link_deleted(LinkDeletedEvent* event,
+                                       BundleActionList* actions);
+
     
     /**
      * Default event handler when reassembly is completed. For each
