@@ -294,8 +294,6 @@ cpp=`echo $cc | sed 's/cc/++/'`
 #
 case "$make_static" in
     yes | y | true | t)
-    echo "static linking not supported in this release"a
-    exit 1
     static="-static"
     allstatic="-all-static"
     ;;
@@ -642,6 +640,7 @@ echo > Rules.make <<EOF
 EOF
 
 sed -e "
+s%@TARGET@%$target%g
 s%@SRCDIR@%$srcdir%g
 s%@CFLAGS@%$cflags%g
 s%@STATIC@%$static%g
