@@ -89,6 +89,39 @@ APIServer::APIServer()
     xdrmem_create(xdr_encode_, buf_, DTN_MAX_API_MSG, XDR_ENCODE);
     xdrmem_create(xdr_decode_, buf_ + sizeof(u_int32_t),
                   DTN_MAX_API_MSG, XDR_DECODE);
+
+    
+    // override the defaults via environment variables, if given
+    char *env;
+    if ((env = getenv("DTNAPI_ADDR")) != NULL) {
+        if (inet_aton(env, (struct in_addr*)&local_addr_) == 0)
+        {
+            log_err("/apisrv", "DTNAPI_ADDR environment variable (%s) "
+                    "not a valid ip address, using default of localhost",
+                    env);
+            // in case inet_aton touched it
+            local_addr_ = htonl(INADDR_LOOPBACK);
+        } else {
+            log_debug("/apisrv", "local address set to %s by DTNAPI_ADDR "
+                      "environment variable", env);
+        }
+    }
+
+    if ((env = getenv("DTNAPI_PORT")) != NULL) {
+        char *end;
+        u_int port = strtoul(env, &end, 10);
+        if (*end != '\0' || port > 0xffff)
+        {
+            log_err("/apisrv", "DTNAPI_PORT environment variable (%s) "
+                    "not a valid ip port, using default of %d",
+                    env, DTN_API_HANDSHAKE_PORT);
+            port = DTN_API_HANDSHAKE_PORT;
+        } else {
+            log_debug("/apisrv", "handshake port set to %s by DTNAPI_PORT "
+                      "environment variable", env);
+        }
+        handshake_port_ = (u_int16_t)port;
+    }
 }
 
 MasterAPIServer::MasterAPIServer()
