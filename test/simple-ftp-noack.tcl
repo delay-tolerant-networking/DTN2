@@ -222,7 +222,7 @@ proc header_arrived {dest_dir sock} {
     set L [gets $sock]
     while {$L == ""} {
 	puts "[time] partial header line received... waiting for more"
-	after 100
+	after 20
 	set L [gets $sock]
     }
     
