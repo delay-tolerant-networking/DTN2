@@ -299,6 +299,7 @@ SQLExtract::process(const char* name, bool* b)
     case '1':
     case '\1':
         *b = true;
+        break;
     case 'F':
     case 'f':
     case '0':
