@@ -52,6 +52,7 @@ class BundleAction;
 class BundleActionList;
 class BundleConsumer;
 class BundleEvent;
+class BundleList;
 class BundleRouter;
 
 /**
@@ -104,10 +105,9 @@ public:
     void get_statistics(oasys::StringBuffer* buf);
 
     /**
-     * Format the given StringBuffer with summary information of each
-     * bundle on the current pending list.
+     * Return a pointer to the pending bundle list.
      */
-    void get_pending(oasys::StringBuffer* buf);
+    BundleList* pending_bundles();
 
 protected:
     /**

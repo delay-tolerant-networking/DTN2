@@ -36,6 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/util/HexDumpBuffer.h>
 #include <oasys/util/StringBuffer.h>
 
 #include "BundleCommand.h"
@@ -92,7 +93,8 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             int ok = Tcl_GetIntFromObj(interp, objv[5], &total);
                             
             if (ok != TCL_OK) {
-                resultf("invalid length parameter %s", Tcl_GetStringFromObj(objv[5], 0));
+                resultf("invalid length parameter %s",
+                        Tcl_GetStringFromObj(objv[5], 0));
                 return TCL_ERROR;
             }
             
@@ -110,6 +112,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
         BundleForwarder::post(new BundleReceivedEvent(b, EVENTSRC_APP, total));
         return TCL_OK;
+        
     } else if (!strcmp(cmd, "stats")) {
         oasys::StringBuffer buf("Bundle Statistics: ");
         BundleForwarder::instance()->get_statistics(&buf);
@@ -117,11 +120,63 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         return TCL_OK;
         
     } else if (!strcmp(cmd, "list")) {
+        Bundle* b;
+        BundleList::const_iterator iter;
         oasys::StringBuffer buf;
-        BundleForwarder::instance()->get_pending(&buf);
+        BundleList* pending =
+            BundleForwarder::instance()->pending_bundles();
+        
+        oasys::ScopeLock l(pending->lock());
+        buf.appendf("Currently Pending Bundles (%d): \n", pending->size());
+    
+        for (iter = pending->begin(); iter != pending->end(); ++iter) {
+            b = *iter;
+            buf.appendf("\t%-3d: %s -> %s length %d\n",
+                        b->bundleid_,
+                        b->source_.c_str(),
+                        b->dest_.c_str(),
+                        b->payload_.length());
+        }
+        
         set_result(buf.c_str());
+        
         return TCL_OK;
         
+    } else if (!strcmp(cmd, "dump")) {
+        // bundle dump <id>
+        if (objc != 3) {
+            wrong_num_args(objc, objv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+
+        int bundleid;
+        if (Tcl_GetIntFromObj(interp, objv[2], &bundleid) != TCL_OK) {
+            resultf("invalid bundle id %s",
+                    Tcl_GetStringFromObj(objv[2], 0));
+            return TCL_ERROR;
+        }
+
+        BundleList* pending =
+            BundleForwarder::instance()->pending_bundles();
+        
+        Bundle* bundle = pending->find(bundleid);
+
+        if (!bundle) {
+            resultf("no bundle with id %d", bundleid);
+            return TCL_ERROR;
+        }
+
+        size_t len = bundle->payload_.length();
+        oasys::HexDumpBuffer buf(len);
+        const u_char* bp = bundle->payload_.read_data(0, len, (u_char*)buf.data());
+
+        // XXX/demmer inefficient
+        buf.append((const char*)bp, len);
+        buf.hexify();
+        set_result(buf.c_str());
+        
+        return TCL_OK;
+
     } else {
         resultf("unknown bundle subcommand %s", cmd);
         return TCL_ERROR;
