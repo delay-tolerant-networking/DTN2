@@ -20,6 +20,10 @@
        if ((t3).tv_usec < 0) { (t3).tv_sec--; (t3).tv_usec += 1000000; } \
     } while (0)
 
+#define TIMEVAL_DIFF_DOUBLE(t1, t2) \
+    ((double)(((t1).tv_sec  - (t2).tv_sec)) + \
+     (double)((((t1).tv_usec - (t2).tv_usec)) * 1000000.0))
+
 #define TIMEVAL_DIFF_MSEC(t1, t2) \
     ((((t1).tv_sec  - (t2).tv_sec)  * 1000) + \
      (((t1).tv_usec - (t2).tv_usec) / 1000))
