@@ -10,10 +10,10 @@
         abort();                                                              \
     } } while(0)
 
-#define PANIC(x, ...)                                                         \
+#define PANIC(x, args...)                                                     \
     do {                                                                      \
        ::logf("/panic", LOG_CRIT, "PANIC at %s:%d: " x,                       \
-             __FILE__, __LINE__, ## __VA_ARGS__);                             \
+             __FILE__, __LINE__ , ## args);                                   \
         abort();                                                              \
     } while(0)
 

@@ -1,6 +1,6 @@
 
 #include "Formatter.h"
-
+#include <stdarg.h>
 
 /**
  * @file
@@ -750,6 +750,12 @@ vsnprintf(char *str, size_t strsz, const char *fmt0, va_list ap)
 	fmt = (char *)fmt0;
 	argtable = NULL;
 	nextarg = 1;
+
+// old gcc doesn't export va_copy by default
+#if (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+#define va_copy __va_copy
+#endif
+
 	va_copy(orgap, ap);
 // 	uio.uio_iov = iovp = iov;
 // 	uio.uio_resid = 0;

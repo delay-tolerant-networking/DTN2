@@ -65,7 +65,7 @@ public:
      */
     void clear()
     {
-        url_.clear();
+        url_.erase();
         err_ = URLPARSE_UNPARSED;
     }
 

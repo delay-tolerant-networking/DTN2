@@ -274,7 +274,8 @@ void
 SQLTableFormat::append(const char* name, const char* type)
 {
     query_.appendf("%.*s%s %s,",
-                   column_prefix_.length(), column_prefix_.data(), name, type);
+                   (int)column_prefix_.length(), column_prefix_.data(),
+                   name, type);
 }
 
 // Virtual functions inherited from SerializeAction
@@ -421,7 +422,7 @@ SQLExtract::process(const char* name, std::string* s)
     size_t len = s->length();
     
     if (log_) logf(log_, LOG_DEBUG, "<=string(%d: '%.*s')",
-                   len, len < 32 ? len : 32, s->data());
+                   len, (int)(len < 32 ? len : 32), s->data());
 }
 
 void 
@@ -436,7 +437,8 @@ SQLExtract::process(const char* name, u_char* bp, size_t len)
     if (log_) {
         std::string s;
         hex2str(&s, bp, len < 16 ? len : 16);
-        logf(log_, LOG_DEBUG, "<=bufc(%d: '%.*s')", len, s.length(), s.data());
+        logf(log_, LOG_DEBUG, "<=bufc(%d: '%.*s')",
+             len, (int)s.length(), s.data());
     }
 
 }

@@ -238,9 +238,13 @@ Log::find_rule(const char *path)
         if (rule->path_.length() > pathlen) {
             continue; // can't be a match
         }
+
+        const char* rule_path = rule->path_.data();
+        size_t rulelen = rule->path_.length();
         
-	if (rule->path_.compare(0, rule->path_.length(),
-                                path, rule->path_.length()) == 0) {
+        size_t minlen = (pathlen < rulelen) ? pathlen : rulelen;
+        
+        if (strncmp(rule_path, path, minlen) == 0) {
             return rule; // match!
 	}
     }

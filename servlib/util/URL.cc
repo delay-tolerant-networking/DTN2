@@ -9,10 +9,10 @@ URL::parse_internal()
     size_t beg, end;
 
     // reset all fields
-    proto_.clear();
-    host_.clear();
+    proto_.erase();
+    host_.erase();
     port_ = 0;
-    path_.clear();
+    path_.erase();
 
     // extract protocol
     if ((end = url_.find(':')) == std::string::npos)

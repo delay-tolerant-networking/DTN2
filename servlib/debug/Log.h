@@ -318,46 +318,46 @@ logf(const char *path, log_level_t level, const char *fmt, ...)
 #define log_debug(...)
 #define __log_debug(...)
 #else
-#define log_debug(p, ...)                         \
+#define log_debug(p, args...)                     \
     ((__log_enabled(LOG_DEBUG, (p))) ?            \
-     __logf(LOG_DEBUG, (p), ## __VA_ARGS__) : 0)
+     __logf(LOG_DEBUG, (p)  , ## args) : 0)
 
-#define __log_debug(p, ...)                       \
+#define __log_debug(p, args...)                   \
     ((::__log_enabled(LOG_DEBUG, (p))) ?          \
-     ::__logf(LOG_DEBUG, (p), ## __VA_ARGS__) : 0)
+     ::__logf(LOG_DEBUG, (p) , ## args) : 0)
 #endif // NDEBUG
 
-#define log_info(p, ...)                          \
+#define log_info(p, args...)                      \
     ((__log_enabled(LOG_INFO, (p))) ?             \
-     __logf(LOG_INFO, (p), ## __VA_ARGS__) : 0)
+     __logf(LOG_INFO, (p) , ## args) : 0)
 
-#define __log_info(p, ...)                        \
+#define __log_info(p, args...)                    \
     ((::__log_enabled(LOG_INFO, (p))) ?           \
-     ::__logf(LOG_INFO, (p), ## __VA_ARGS__) : 0)
+     ::__logf(LOG_INFO, (p) , ## args) : 0)
 
-#define log_warn(p, ...)                          \
+#define log_warn(p, args...)                      \
     ((__log_enabled(LOG_WARN, (p))) ?             \
-     __logf(LOG_WARN, (p), ## __VA_ARGS__) : 0)
+     __logf(LOG_WARN, (p) , ## args) : 0)
 
-#define __log_warn(p, ...)                        \
+#define __log_warn(p, args...)                    \
     ((::__log_enabled(LOG_WARN, (p))) ?           \
-     ::__logf(LOG_WARN, (p), ## __VA_ARGS__) : 0)
+     ::__logf(LOG_WARN, (p) , ## args) : 0)
 
-#define log_err(p, ...)                           \
+#define log_err(p, args...)                       \
     ((__log_enabled(LOG_ERR, (p))) ?              \
-     __logf(LOG_ERR, (p), ## __VA_ARGS__) : 0)
+     __logf(LOG_ERR, (p) , ## args) : 0)
 
-#define __log_err(p, ...)                         \
+#define __log_err(p, args...)                     \
     ((::__log_enabled(LOG_ERR, (p))) ?            \
-     ::__logf(LOG_ERR, (p), ## __VA_ARGS__) : 0)
+     ::__logf(LOG_ERR, (p) , ## args) : 0)
 
-#define log_crit(p, ...)                          \
+#define log_crit(p, args...)                      \
     ((__log_enabled(LOG_CRIT, (p))) ?             \
-     __logf(LOG_CRIT, (p), ## __VA_ARGS__) : 0)
+     __logf(LOG_CRIT, (p) , ## args) : 0)
 
-#define __log_crit(p, ...)                        \
+#define __log_crit(p, args...)                    \
     ((::__log_enabled(LOG_CRIT, (p))) ?           \
-     ::__logf(LOG_CRIT, (p), ## __VA_ARGS__) : 0)
+     ::__logf(LOG_CRIT, (p) , ## args) : 0)
 
 /**
  * As noted in the big comment above, the log_debug style macros call

@@ -46,7 +46,8 @@ Contact::close()
 int
 Contact::format(char* buf, size_t sz)
 {
-    return snprintf(buf, sz, "%.*s %s (%s)", tuple_.length(), tuple_.data(),
+    return snprintf(buf, sz, "%.*s %s (%s)",
+                    (int)tuple_.length(), tuple_.data(),
                     contact_type_to_str(type_), open_ ? "open" : "closed");
 }
 

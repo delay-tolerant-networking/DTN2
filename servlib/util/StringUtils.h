@@ -8,7 +8,16 @@
 #include <ctype.h>
 #include <string>
 #include <vector>
+
+// Though hash_set was part of std:: in the 2.9x gcc series, it's been
+// moved to ext/__gnu_cxx:: in 3.x
+#if (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+#include <hash_set>
+#define _std std
+#else
 #include <ext/hash_set>
+#define _std __gnu_cxx
+#endif
 
 /**
  * Hashing function class for std::strings.
@@ -16,7 +25,7 @@
 struct StringHash {
     size_t operator()(const std::string& str) const
     {
-        return __gnu_cxx::__stl_hash_string(str.data());
+        return _std::__stl_hash_string(str.data());
     }
 };
 
@@ -33,7 +42,7 @@ struct StringEquals {
 /**
  * A stringset_t is a hash set with std::string members.
  */
-typedef __gnu_cxx::hash_set<std::string, StringHash, StringEquals> stringset_t;
+typedef _std::hash_set<std::string, StringHash, StringEquals> stringset_t;
 
 class StringSet : public stringset_t {
 public:
@@ -52,7 +61,7 @@ inline void
 hex2str(std::string* str, const u_char* bp, size_t len)
 {
     static const char hex[] = "0123456789abcdef";
-    str->clear();
+    str->erase();
     for (size_t i = 0; i < len; ++i) {
         str->push_back(hex[(bp[i] >> 4) & 0xf]);
         str->push_back(hex[bp[i] & 0xf]);

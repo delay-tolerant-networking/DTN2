@@ -56,7 +56,7 @@ LoggingRegistration::run()
 
 	if (str_isascii(data, len)) {
             log_info("        payload (ascii): length %d '%.*s'",
-                     payload_len, len, data);
+                     payload_len, (int)len, data);
         } else {
             std::string hex;
             hex2str(&hex, data, len);
@@ -64,7 +64,7 @@ LoggingRegistration::run()
             if (len > 128)
                 len = 128;
             log_info("        payload (binary): length %d %.*s",
-                     payload_len, len, hex.data());
+                     payload_len, (int)len, hex.data());
         }
 
         BundleForwarder::post(

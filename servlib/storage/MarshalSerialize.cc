@@ -104,7 +104,8 @@ Marshal::process(const char* name, u_char* bp, size_t len)
     if (log_) {
         std::string s;
         hex2str(&s, bp, len < 16 ? len : 16);
-        logf(log_, LOG_DEBUG, "=>bufc(%d: '%.*s')", len, s.length(), s.data());
+        logf(log_, LOG_DEBUG, "=>bufc(%d: '%.*s')",
+             len, (int)s.length(), s.data());
     }
 }
     
@@ -125,7 +126,8 @@ Marshal::process(const char* name, u_char** bp,
     if (log_) {
         std::string s;
         hex2str(&s, *bp, *lenp < 16 ? *lenp : 16);
-        logf(log_, LOG_DEBUG, "=>bufc(%d: '%.*s')", *lenp, s.length(), s.data());
+        logf(log_, LOG_DEBUG, "=>bufc(%d: '%.*s')",
+             *lenp, (int)s.length(), s.data());
     }
 }
 
@@ -141,7 +143,7 @@ Marshal::process(const char* name, std::string* s)
     memcpy(buf, s->data(), len);
     
     if (log_) logf(log_, LOG_DEBUG, "=>string(%d: '%.*s')",
-                   len, len < 32 ? len : 32, s->data());
+                   len, (int)(len < 32 ? len : 32), s->data());
 }
 /******************************************************************************
  *
@@ -204,7 +206,8 @@ Unmarshal::process(const char* name, u_char* bp, size_t len)
     if (log_) {
         std::string s;
         hex2str(&s, bp, len < 16 ? len : 16);
-        logf(log_, LOG_DEBUG, "<=bufc(%d: '%.*s')", len, s.length(), s.data());
+        logf(log_, LOG_DEBUG, "<=bufc(%d: '%.*s')",
+             len, (int)s.length(), s.data());
     }
 }
 
@@ -229,7 +232,7 @@ Unmarshal::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
         std::string s;
         hex2str(&s, *bp, *lenp < 16 ? *lenp : 16);
         logf(log_, LOG_DEBUG, "<=bufc(%d: '%.*s')", *lenp,
-             s.length(), s.data());
+             (int)s.length(), s.data());
     }
 }
 
@@ -244,7 +247,7 @@ Unmarshal::process(const char* name, std::string* s)
     
     s->assign((char*)buf, len);
     if (log_) logf(log_, LOG_DEBUG, "<=string(%d: '%.*s')",
-                   len, len < 32 ? len : 32, s->data());
+                   len, (int)(len < 32 ? len : 32), s->data());
 }
 
 /******************************************************************************

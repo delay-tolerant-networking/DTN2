@@ -5,6 +5,7 @@
 #include "util/StringBuffer.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/errno.h>
 #include <unistd.h>
 
 #define NO_TX  0 // for easily going back and changing TX id's later
