@@ -8,7 +8,9 @@ using namespace std;
 class TestModule : public CommandModule {
 public:
     TestModule() : CommandModule("test") {
-        bind_i("val", &val_);
+        bind_b("bool", &bool_);
+        bind_addr("addr", &addr_);
+        bind_i("int", &int_);
         bind_s("str", &str_);
     }
 
@@ -25,8 +27,10 @@ public:
         }
         return TCL_OK;
     }
-    
-    int  val_;
+
+    bool bool_;
+    in_addr_t addr_;
+    int  int_;
     std::string str_;
 };
 
@@ -35,7 +39,7 @@ main(int argc, char* argv[])
 {
     Log::init(LOG_INFO);
     
-    CommandInterp::init();
+    CommandInterp::init("test");
     
     CommandModule* mod = new CommandModule("mod1");
     TestModule*   test = new TestModule();
@@ -43,30 +47,6 @@ main(int argc, char* argv[])
     CommandInterp::instance()->reg(mod);
     CommandInterp::instance()->reg(test);
 
-
-    while (1) {
-        char buf[256];
-        fprintf(stdout, "> ");
-        fflush(stdout);
-        
-        char* line = fgets(buf, sizeof(buf), stdin);
-        if (!line) {
-            logf("/test", LOG_INFO, "got eof on stdin, exiting: %s", strerror(errno));
-            continue;
-        }
-        
-        line[strlen(line) - 1] = '\0';
-        logf("/test", LOG_DEBUG, "got line '%s'", line);
-        
-        if (CommandInterp::instance()->exec_command(buf) != TCL_OK) {
-            fprintf(stdout, "error: ");
-        }
-        
-        const char* res = CommandInterp::instance()->get_result();
-        if (res && res[0] != '\0') {
-            fprintf(stdout, "%s\r\n", res);
-            fflush(stdout);
-        }
-    }
+    CommandInterp::instance()->loop("test");
 }
 

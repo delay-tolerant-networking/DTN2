@@ -358,8 +358,6 @@ CommandModule::cmd_set(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         return TCL_ERROR;
     }
 
-    int ok;
-        
     // set value (if any)
     Binding* b = (*itr).second;
 
@@ -368,42 +366,33 @@ CommandModule::cmd_set(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         switch(b->type_) 
         {
         case BINDING_INT:
-            ok = Tcl_GetIntFromObj(interp, objv[3], b->val_.intval_);
-            if (ok != TCL_OK) {
-                resultf("set: %s not an integer value",
+            if (Tcl_GetIntFromObj(interp, val, b->val_.intval_) != TCL_OK) {
+                resultf("%s set: %s not an integer value",
+                        Tcl_GetStringFromObj(objv[0], 0),
                         Tcl_GetStringFromObj(val, 0));
                 return TCL_ERROR;
             }
             break;
             
         case BINDING_BOOL:
-//             if (strcasecmp(val, "t")    == 0 ||
-//                 strcasecmp(val, "true") == 0 ||
-//                 strcasecmp(val, "1")    == 0)
-//             {
-//                 *(b->val_.boolval_) = true;
-//             }
-//             else if (strcasecmp(val, "f")     == 0 ||
-//                      strcasecmp(val, "false") == 0 ||
-//                      strcasecmp(val, "0")     == 0)
-//             {
-//                 *(b->val_.boolval_) = false;
-//             }
-//             else
-//             {
-//                 resultf("set: invalid value '%s' for boolean", val);
-//                 return TCL_ERROR;
-//             }
-            NOTIMPLEMENTED;
+            int boolval;
+            if (Tcl_GetBooleanFromObj(interp, val, &boolval) != TCL_OK) {
+                resultf("%s set: %s not an integer value",
+                        Tcl_GetStringFromObj(objv[0], 0),
+                        Tcl_GetStringFromObj(val, 0));
+                return TCL_ERROR;
+            }
+            *(b->val_.boolval_) = boolval;
             break;
             
         case BINDING_ADDR:
         {
-            NOTIMPLEMENTED;
-//             if (gethostbyname(val, b->val_.addrval_) != 0) {
-//                 resultf("set: invalid value '%s' for addr", val);
-//                 return TCL_ERROR;
-//             }
+            char* addr = Tcl_GetStringFromObj(val, 0);
+            if (gethostbyname(addr, b->val_.addrval_) != 0) {
+                resultf("%s set: invalid value '%s' for addr", 
+                        Tcl_GetStringFromObj(objv[0], 0), addr);
+                return TCL_ERROR;
+            }
             break;
 
         }    
