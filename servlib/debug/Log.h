@@ -102,7 +102,7 @@ inline const char *level2str(log_level_t level) {
 inline log_level_t str2level(const char *level)
 {
     for (int i = 0; log_levelnames[i].str && i < 20; i++) {
-        if (strcmp(log_levelnames[i].str, level) == 0) {
+        if (strcasecmp(log_levelnames[i].str, level) == 0) {
             return log_levelnames[i].level;
         }
     }
