@@ -12,6 +12,7 @@ BINFILES :=			\
 	command-test		\
 	simple-marshal-test	\
 	simple-sql-test		\
+	timer-test		\
 
 
 test: check $(BINFILES)
