@@ -54,7 +54,7 @@ SimConvergenceLayer::send_bundles(Contact* contact)
     BundleList::iterator iter;
     ScopeLock lock(blist->lock());
     
-    log_info("current bundle list:");
+    log_info("N[%d] CL: current bundle list:",sc->src()->id());
         
     for (iter = blist->begin(); 
          iter != blist->end(); ++iter) {

@@ -48,7 +48,7 @@ Simulator::run()
             if (e->is_valid()) {
                 ASSERT(e->handler() != NULL);
                 /* Process the event */
-                log_info("Event:%p type %s at time %f",
+                log_debug("Event:%p type %s at time %f",
                            e,e->type_str(),time_);
                 e->handler()->process(e);
             }
@@ -71,8 +71,8 @@ Simulator::process(Event *e)
     case    SIM_PRINT_STATS: {
         log_info("SIM: print_stats");
         break;
-    }
-        default:
+        }
+    default:
         PANIC("undefined event \n");
     }
 

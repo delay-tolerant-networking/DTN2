@@ -8,6 +8,8 @@
  * but different offsets.
  */
 
+#include <vector>
+
 class Message  {
     
 public:
@@ -27,7 +29,15 @@ public:
     int dst() { return dst_ ; }
 
     Message* clone() ;
+    
 
+    std::vector<int>    hop_idx_;
+    std::vector<double> hop_time_;
+
+    void add_hop(int nodeid,double time) 
+    { 
+        //hop_idx_->push_back(nodeid); hop_time_->push_back(time);
+    }
 protected:
 
     int id_; ///> id of the message
