@@ -608,8 +608,7 @@ done
 # Tack on the dependency libs if we're building statically
 #
 if [ "$make_static" = "y" ]; then
-	libs="$libs -ldl -lssl -lcrypto -lkrb5 -lcrypt -lresolv" \
-	    "-lnsl -lz -lk5crypto -lcom_err"
+	libs="$libs -ldl" 
 fi
 
 echo "DTN2 configure state:"
