@@ -2,7 +2,7 @@
 
 Network Working Group                                          M. Demmer
 Internet-Draft                              UC Berkeley / Intel Research
-Expires: September 2, 2005                                 March 4, 2005
+Expires: September 6, 2005                                 March 8, 2005
 
 
             Protocol for the TCP Bundling Convergence Layer
@@ -33,7 +33,7 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on September 2, 2005.
+   This Internet-Draft will expire on September 6, 2005.
 
 Copyright Notice
 
@@ -52,7 +52,7 @@ Abstract
 
 
 
-Demmer                 Expires September 2, 2005                [Page 1]
+Demmer                 Expires September 6, 2005                [Page 1]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -61,19 +61,20 @@ Table of Contents
 
    1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
    2.  Contact Header . . . . . . . . . . . . . . . . . . . . . . . .  3
-   3.  Contact header validation and negotiation  . . . . . . . . . .  5
+   3.  Magic number and version validation  . . . . . . . . . . . . .  5
    4.  Message Type Codes . . . . . . . . . . . . . . . . . . . . . .  5
    5.  Bundle Data  . . . . . . . . . . . . . . . . . . . . . . . . .  6
-   6.  Bundle Acknowledgements  . . . . . . . . . . . . . . . . . . .  7
-   7.  Partial Bundle Acknowledgements  . . . . . . . . . . . . . . .  8
+   6.  Bundle Acknowledgements  . . . . . . . . . . . . . . . . . . .  6
+   7.  Partial Bundle Acknowledgements  . . . . . . . . . . . . . . .  7
    8.  Keepalive Messages . . . . . . . . . . . . . . . . . . . . . .  8
    9.  Idle Connection Shutdown . . . . . . . . . . . . . . . . . . .  8
-   10.   Receiver Initated Connection . . . . . . . . . . . . . . . .  8
-   11.   Requirements notation  . . . . . . . . . . . . . . . . . . .  8
-   12.   Security Considerations  . . . . . . . . . . . . . . . . . .  8
-   13.   References . . . . . . . . . . . . . . . . . . . . . . . . .  8
-       Author's Address . . . . . . . . . . . . . . . . . . . . . . .  8
-       Intellectual Property and Copyright Statements . . . . . . . .  9
+   10.   Receiver Initated Connection . . . . . . . . . . . . . . . .  9
+   11.   Reactive Fragmentation . . . . . . . . . . . . . . . . . . .  9
+   12.   Requirements notation  . . . . . . . . . . . . . . . . . . .  9
+   13.   Security Considerations  . . . . . . . . . . . . . . . . . .  9
+   14.   References . . . . . . . . . . . . . . . . . . . . . . . . .  9
+       Author's Address . . . . . . . . . . . . . . . . . . . . . . .  9
+       Intellectual Property and Copyright Statements . . . . . . . . 10
 
 
 
@@ -107,8 +108,7 @@ Table of Contents
 
 
 
-
-Demmer                 Expires September 2, 2005                [Page 2]
+Demmer                 Expires September 6, 2005                [Page 2]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -164,7 +164,7 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
 
 
-Demmer                 Expires September 2, 2005                [Page 3]
+Demmer                 Expires September 6, 2005                [Page 3]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -174,9 +174,9 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
                         1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +---------------+---------------+---------------+---------------+
-   |                     magic='dtn'               |    version    |
+   |                          magic='dtn!'                         |
    +---------------+---------------+---------------+---------------+
-   |     flags     |  __unused__   |        partial_ack_len        |
+   |     version   |     flags     |        partial_ack_len        |
    +---------------+---------------+---------------+---------------+
    |        idle_close_time        |       keepalive_interval      |
    +---------------+---------------+---------------+---------------+
@@ -185,8 +185,8 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
    The fields of the contact header are:
 
-   magic: A three byte field that always contains the bytes (in order)
-        0x64 0x76 0x6e, i.e.  the ASCII string "dtn".
+   magic: A four byte field that always contains the byte sequence 0x64
+        0x76 0x6e 0x21, i.e.  the ASCII string "dtn!".
 
    version: A one byte field value containing the current version of the
         protocol.
@@ -199,13 +199,11 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
         | Value |                    Meaning                   |
         +-------+----------------------------------------------+
         |  001  | Request acknowledgement of bundle reception. |
-        |  010  |     Connection initiator is the receiver.    |
-        |  100  |        Request reactive fragmentation.       |
+        |  010  |        Request reactive fragmentation.       |
+        |  100  |     Connection initiator is the receiver.    |
         +-------+----------------------------------------------+
 
                      Table 1: Contact Header Flags
-
-   __unused__: A one byte field that is ignored.
 
    partial_ack_len: A two byte field containing the length in bytes for
         which partial reception acknowledgements are requested (see
@@ -215,44 +213,38 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
         that a connection should be maintained when no data (bundles or
         acknowledgements) are being exchanged (see Section 9).
 
-
-
-
-
-
-Demmer                 Expires September 2, 2005                [Page 4]
-
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
-
-
-
    keepalive_interval: A two byte field containing the number of seconds
         between exchanges of keepalive messages on the connection (see
         Section 8).
 
-3.  Contact header validation and negotiation
+
+
+
+Demmer                 Expires September 6, 2005                [Page 4]
+
+Internet-Draft       TCP Bundling Convergence Layer           March 2005
+
+
+3.  Magic number and version validation
 
    Upon receipt of the contact header from the other side, both the
    sender and receiver follow the following semantics for validating the
    the value of each connection flag and parameter.
 
    If either side does not send the correct magic string, the connection
-   SHOULD be terminated.  The intent of the magic string is to provide
+   MUST be terminated.  The intent of the magic string is to provide
    some more apparent protection against an inadvertent connection to a
    TCP convergence layer.  To prevent a flood of repeated connections,
-   either side may choose to hold an invalid connection open for some
+   either side MAY choose to hold an invalid connection open for some
    time before closing it.
 
    If one party receives a version number that is greater than that
-   node's current version of the protocol, the receiver SHOULD interpret
-   all fields as described in this document.  This behavior rests on the
-   assumption that future revisions of this protocol will continue to be
-   backwards-compatible.  However, if either side receives version
-   number 21 (i.e.  the ascii code '!'), then the other side is assumed
-   to be an implementation of version 1 of the protocol, and the
-   connection SHOULD therefore be terminated.
-
-   XXX fill in the rest of the negotiation parameters
+   node's current version of the protocol, the receiving party SHOULD
+   interpret all received fields as if the sending party was conforming
+   to the node's current version.  For the party that receives a version
+   number that is smaller than the node's current version, the node MAY
+   conform to the older version of the protocol or the node MAY
+   terminate the connection.
 
 4.  Message Type Codes
 
@@ -260,44 +252,33 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
    transmitted over the connection are preceded by a one byte message
    type code.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Demmer                 Expires September 2, 2005                [Page 5]
-
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
-
-
    The types and values for the message type code are as follows.
 
-   +-------------+-------+---------------------------------------------+
-   |    Header   |  Type | Comment                                     |
-   +-------------+-------+---------------------------------------------+
-   | BUNDLE_DATA |  0x01 | Precedes the transmission of a Bundle Data  |
-   |             |       | Header, which itself precedes the           |
-   |             |       | transmission of a Bundle.                   |
-   |  BUNDLE_ACK |  0x02 | Precedes the transmission of a Bundle       |
-   |             |       | Acknowledgement Header.                     |
-   |  KEEPALIVE  |  0x03 | Described in Section 8.                     |
-   |   SHUTDOWN  |  0x04 | Indicates that the transmitting side of the |
-   |             |       | connection wishes to cleanly terminate the  |
-   |             |       | connection.                                 |
-   +-------------+-------+---------------------------------------------+
+   +-------------+------+----------------------------------------------+
+   |    Header   | Type | Comment                                      |
+   +-------------+------+----------------------------------------------+
+   | BUNDLE_DATA | 0x01 | Precedes the transmission of a Bundle Data   |
+   |             |      | Header, which itself precedes the            |
+   |             |      | transmission of a Bundle.                    |
+   |  BUNDLE_ACK | 0x02 | Precedes the transmission of a Bundle        |
+   |             |      | Acknowledgement Header.                      |
+   |  KEEPALIVE  | 0x03 | Described in Section 8.                      |
+   |   SHUTDOWN  | 0x04 | Indicates that the transmitting side of the  |
+   |             |      | connection wishes to cleanly terminate the   |
+   |             |      | connection.                                  |
+   +-------------+------+----------------------------------------------+
 
                       Table 2: TCPCL Header Types
+
+
+
+
+
+
+
+Demmer                 Expires September 6, 2005                [Page 5]
+
+Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
 
 5.  Bundle Data
@@ -329,15 +310,6 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
         bundle at the sender.  The format and specification for this
         field is implementation specific.
 
-
-
-
-Demmer                 Expires September 2, 2005                [Page 6]
-
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
-
-
-
    bundle_length: A four byte field the contains the total length of the
         bundle transmission that immediately follows.
 
@@ -354,6 +326,16 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
    When sending acknowledgements of receipt of data, the receiver side
    of the connection first transmits a BUNDLE_ACK message type code and
    then transmits a Bundle Acknowledgement Header.
+
+
+
+
+
+
+Demmer                 Expires September 6, 2005                [Page 6]
+
+Internet-Draft       TCP Bundling Convergence Layer           March 2005
+
 
    The format for the Bundle Acknowledgement Header and the preceding
    type code is as follows.
@@ -376,55 +358,114 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
         bundle at the sender that was transmitted in the bundle data
         header.
 
-   acked_length: A four byte field the contains the total length in
-        bytes of the amount of data that has been successfully received
+   acked_length: A four byte field the contains the total length (in
+        bytes) of the amount of data that has been successfully received
         and is being acknowledged.
 
-   If, during the exchange of contact headers, both the sender and
-   receiver set the BUNDLE_ACK_ENABLED flag (see Section 2), then when
-   it successfully receives a bundle, the receiver MUST transmit a
-   bundle acknowledgement header.
-
-
-
-
-Demmer                 Expires September 2, 2005                [Page 7]
-
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
-
+   If, during the exchange of contact headers, BOTH the sender and
+   receiver set the bundle_ack_enabled flag (see Section 2), then the
+   receiver MUST transmit a bundle acknowledgement header when it
+   successfully receives the entire bundle.
 
 7.  Partial Bundle Acknowledgements
 
    The protocol also includes a provision for bundle acknowledgements to
-   be transmitted before the entire bundle is received.  The motivation
-   behind this feature is to enable the bundle daemon to implement
-   "reactive fragmentation", splitting a bundle into two fragments if a
-   connection is interrupted before the entire transmission is
-   completed.
+   be transmitted during the course of receiving a bundle.  The
+   motivation behind this feature is to enable the bundle daemon to
+   communicate state knowledge to enable "reactive fragmentation", as
+   described in Section 11.
 
-   As described in Section 2, one of the parameters in the Contact
-   Header is the partial_ack_len.  The sender populates this field with
-   a length in bytes, which the sender requests to receive
-   acknowledgements of meaning of this field is a byte length which the
-   sender requests to
+   As described in Section 2, one of the parameters in the contact
+   header is the partial_ack_len.  The sender populates this field with
+   a requested length (in bytes), and the receiver populates the field
+   with an offered length (in bytes).  The two parties agree that the
+   negotiated value is the MAXIMUM of the two lengths.  However, if
+   either side sets the length to be zero, then the feature is disabled
+   and no partial acknowledgements are transmitted.
+
+   If the two parties agree to a non-zero value of the partial_ack_len
+   parameter, then the receiver SHOULD transmit a bundle acknowledgement
+
+
+
+Demmer                 Expires September 6, 2005                [Page 7]
+
+Internet-Draft       TCP Bundling Convergence Layer           March 2005
+
+
+   (see Section 6) whenever it receives at least partial_ack_len
+   additional bytes of the bundle payload since the last acknowledgement
+   transmission (or the start of the bundle if no acknowledgements have
+   been sent).
 
 8.  Keepalive Messages
 
+   The protocol includes a provision for transmission of keepalive
+   messages over the TCP connection to determine if the connection has
+   been disrupted.
+
+   As described in Section 2, one of the parameters in the contact
+   header is the keepalive_interval.  Both sides populate this field
+   with their requested intervals (in seconds) between keepalive
+   messages.  The two parties SHOULD set the negotiated interval to the
+   MAXIMUM value of the two requests.  If either side sets the interval
+   to zero, then this feature is disabled and no keepalive messages
+   should be sent.
+
+   The format of a keepalive message is a one byte message type code of
+   KEEPALIVE (as described in Table 2, with no additional data.  Both
+   sides SHOULD send a keepalive message whenever the negotiated
+   interval has elapsed without transmission of any message (keepalive
+   or other).
+
+   If no message (keepalive or other) has been received for at least
+   twice the keepalive interval, then either party MAY terminate the
+   session by transmitting a one byte message type code of SHUTDOWN (as
+   described in Table 2) and closing the TCP connection.
+
 9.  Idle Connection Shutdown
+
+   The protocol includes a provision for clean shutdown of idle TCP
+   connections.
+
+   As described in Section 2, one of the parameters in the contact
+   header is the idle_close_time.  Both sides populate this field with
+   the requested duration (in seconds) to maintain an open connection
+   after the last non-keepalive message is transmitted over the
+   connection.  The two parties SHOULD set the negotiated interval to
+   the MAXIMUM value of the two requests.  If either side sets the
+   interval to zero, then that side SHOULD not close idle connections.
+   The other party MAY adopt this same behavior or MAY choose to close
+   idle connections at its own behest.
+
+   If no bundle data other) has been received for at least twice the
+   keepalive interval, then either party MAY terminate the session by
+   transmitting a one byte message type code of SHUTDOWN (as described
+
+
+
+Demmer                 Expires September 6, 2005                [Page 8]
+
+Internet-Draft       TCP Bundling Convergence Layer           March 2005
+
+
+   in Table 2) and closing the TCP connection.
 
 10.  Receiver Initated Connection
 
-11.  Requirements notation
+11.  Reactive Fragmentation
+
+12.  Requirements notation
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
    "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
    document are to be interpreted as described in [1].
 
-12.  Security Considerations
+13.  Security Considerations
 
    None.
 
-13  References
+14  References
 
    [1]  YZ, X., "XXX".
 
@@ -444,7 +485,22 @@ Author's Address
 
 
 
-Demmer                 Expires September 2, 2005                [Page 8]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Demmer                 Expires September 6, 2005                [Page 9]
 
 Internet-Draft       TCP Bundling Convergence Layer           March 2005
 
@@ -500,5 +556,5 @@ Acknowledgment
 
 
 
-Demmer                 Expires September 2, 2005                [Page 9]
+Demmer                 Expires September 6, 2005               [Page 10]
 

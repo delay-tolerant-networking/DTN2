@@ -61,7 +61,7 @@
    only one direction, from sender to receiver. However, other
    messages are transmitted from receiver to sender, as described
    below. In addition, as will be described in <xref
-   target="receiver_connect"/>, the party that initiates the TCP
+   target="sec:receiver_connect"/>, the party that initiates the TCP
    connection is not necessarily the sender.
 </t>
 
@@ -142,20 +142,20 @@
 
    <t hangText="partial_ack_len:"> A two byte field containing the
       length in bytes for which partial reception acknowledgements are
-      requested (see <xref target="partial"/>).
+      requested (see <xref target="sec:partial"/>).
    </t>
    <t></t>
    
    <t hangText="idle_close_time:"> A two byte field containing the
       number of seconds that a connection should be maintained when no
       data (bundles or acknowledgements) are being exchanged (see
-      <xref target="idle"/>).
+      <xref target="sec:idle"/>).
    </t>
    <t></t>
 
    <t hangText="keepalive_interval:"> A two byte field containing the
       number of seconds between exchanges of keepalive messages on the
-      connection (see <xref target="keepalive"/>).
+      connection (see <xref target="sec:keepalive"/>).
    </t>
 </list>
 </t>
@@ -203,11 +203,15 @@
    <preamble>
       The types and values for the message type code are as follows.
    </preamble>
+   <ttcol align="center" width="18%">Header</ttcol>
+   <ttcol align="center" width="6%">Type</ttcol>
+   <ttcol align="left" width="76%">Comment</ttcol>
    
-      <c>BUNDLE_DATA</c>
+   <c>BUNDLE_DATA</c>
    <c>0x01</c>
    <c>Precedes the transmission of a Bundle Data Header, which itself
       precedes the transmission of a Bundle.
+      <t></t>
    </c>
 
    <c>BUNDLE_ACK</c>
@@ -216,7 +220,7 @@
 
    <c>KEEPALIVE</c>
    <c>0x03</c>
-   <c>Described in <xref target="keepalive"/>.</c>
+   <c>Described in <xref target="sec:keepalive"/>.</c>
    
    <c>SHUTDOWN</c>
    <c>0x04</c>
@@ -343,7 +347,7 @@
 <t>
    If, during the exchange of contact headers, BOTH the sender and
    receiver set the bundle_ack_enabled flag (see <xref
-   target="contact"/>), then the receiver MUST transmit a bundle
+   target="sec:contact"/>), then the receiver MUST transmit a bundle
    acknowledgement header when it successfully receives the entire
    bundle.
 </t>
@@ -356,7 +360,7 @@
    to be transmitted during the course of receiving a bundle. The
    motivation behind this feature is to enable the bundle daemon to
    communicate state knowledge to enable "reactive fragmentation", as
-   described in <xref target="reactive_fragmentation"/>.
+   described in <xref target="sec:reactive_fragmentation"/>.
 </t>
 
 <t>
@@ -443,6 +447,9 @@
 </section>
 
 <section title="Receiver Initated Connection" anchor="sec:receiver_connect">
+</section>
+
+<section title="Reactive Fragmentation" anchor="sec:reactive_fragmentation">
 </section>
 
 
