@@ -54,15 +54,16 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 	-$(RM) -f $@
 	$(RPCGEN) -h -N -C $< -o $@
 
-# This little bit of sed hackery avoids a compiler warning due to the
-# possibly unused variables.
 %_xdr.c: %.x
-	$(RPCGEN) -c -N $< -o $@.tmp
-	cat $@.tmp | \
-	sed 's/register int32_t \*buf;/& (void)buf;/' | \
-	sed 's/int i;/& (void)i;/' | \
-	cat > $@
-	$(RM) -f $@.tmp
+	$(RPCGEN) -c -N $< -o $@
+
+#
+# rpcgen emits code that has unused variables, so we can't use our
+# normally stringent warnings
+#
+%_xdr.o: %_xdr.c
+	@rm -f $@; mkdir -p $(@D)
+	$(CC) $(DEBUG) $(OPTIMIZE)-c $< -o $@
 
 # All sources depend on the xdr headers
 $(CLIENTLIB_SRCS) $(SERVERLIB_SRCS): $(XDRHDRS)
