@@ -124,8 +124,8 @@ BerkeleyDBManager::init()
         }
         else if (ret == 0)
         {
-            log_err("database file exists but -C specified -- "
-                    "remove the database file or re-run without -C");
+            log_err("database file exists but --init-db specified -- "
+                    "remove the database file or re-run without --init-db");
             exit(1);
         }
     } else { // !init_
@@ -136,13 +136,13 @@ BerkeleyDBManager::init()
         else if ((ret == 0) && !S_ISREG(st.st_mode))
         {
             log_err("database file is not a regular file -- "
-                    "remove and rerun with -C to create the database");
+                    "remove and rerun with --init-db to create the database");
             exit(1);
         }
         else if ((ret == -1) && (errno == ENOENT))
         {
             log_err("database file does not exist -- "
-                    "rerun with -C to create the database");
+                    "rerun with --init-db to create the database");
             exit(1);
         }
     }
