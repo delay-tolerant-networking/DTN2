@@ -30,6 +30,7 @@ CMD_SRCS :=					\
 	cmd/BundleCommand.cc			\
 	cmd/InterfaceCommand.cc			\
 	cmd/LogCommand.cc			\
+	cmd/RegistrationCommand.cc		\
 	cmd/RouteCommand.cc			\
 	cmd/StorageCommand.cc			\
 	cmd/TestCommand.cc			\
@@ -54,6 +55,7 @@ IO_SRCS :=					\
 REGISTRATION_SRCS :=				\
 	reg/Registration.cc			\
 	reg/RegistrationTable.cc		\
+	reg/LoggingRegistration.cc		\
 
 ROUTING_SRCS :=					\
 	routing/RouteTable.cc			\
