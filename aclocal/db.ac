@@ -30,7 +30,7 @@ dnl Main macro for finding a usable db installation
 dnl
 AC_DEFUN(AC_DTN_CONFIG_DB, [
     ac_dbvers='4.3 4.2'
-    ac_dbdir='system'
+    ac_dbdir='yes'
 
     AC_ARG_WITH(db,
         AC_HELP_STRING([--with-db=DIR],
@@ -39,19 +39,19 @@ AC_DEFUN(AC_DTN_CONFIG_DB, [
 
     AC_ARG_WITH(dbver,
         AC_HELP_STRING([--with-dbver=VERSION],
-    		   [Berkeley DB versions to try (default $ac_dbver)]),
+    		   Berkeley DB versions to try (default 4.3 or 4.2)),
         ac_dbvers=$withval)
 
     dnl
     dnl First make sure we even want it
     dnl
-    if test x$ac_dbdir = xnone ; then
+    if test x$ac_dbdir = xno ; then
     DB_ENABLED=0
     else
     DB_ENABLED=1
 
     dnl
-    dnl Now check if we have a cached value
+    dnl Now check if we have a cached value, and if not, find it.
     dnl
     if test ! x$dtn_cv_path_db_h = x ; then
         echo "checking for Berkeley DB installation... (cached) $dtn_cv_path_db_h/db.h, $dtn_cv_path_db_lib -l$dtn_cv_lib_db"
@@ -60,16 +60,16 @@ AC_DEFUN(AC_DTN_CONFIG_DB, [
     fi
 
     if test ! $dtn_cv_path_db_h = /usr/include ; then
-        CPPFLAGS="$CPPFLAGS -I$dtn_cv_path_db_h"
+        DTN_CPPFLAGS="$DTN_CPPFLAGS -I$dtn_cv_path_db_h"
     fi
 
     if test ! $dtn_cv_path_db_lib = /usr/lib ; then
-        LDFLAGS="$LDFLAGS -L$dtn_cv_path_db_lib"
+        DTN_LDFLAGS="$DTN_LDFLAGS -L$dtn_cv_path_db_lib"
     fi
 
-    LIBS="$LIBS -l$dtn_cv_lib_db"
+    DTN_LIBS="$DTN_LIBS -l$dtn_cv_lib_db"
 
-    fi # if DB_ENABLED
+    fi # DB_ENABLED
 
     AC_SUBST(DB_ENABLED)
 ])
@@ -79,12 +79,14 @@ dnl Find db
 dnl
 AC_DEFUN(AC_DTN_FIND_DB, [
     dtn_cv_path_db_h=
+    dtn_cv_path_db_lib=
+    dtn_cv_lib_db=
 
     ac_save_CPPFLAGS="$CPPFLAGS"
     ac_save_LDFLAGS="$LDFLAGS"
     ac_save_LIBS="$LIBS"
 
-    if test ! x"$ac_dbdir" = x"system" ; then
+    if test ! x"$ac_dbdir" = x"yes" ; then
         ac_dbincdirs=$ac_dbdir/include
     else
         ac_dbincdirs="/usr/include /usr/local/include/db4"
@@ -94,7 +96,7 @@ AC_DEFUN(AC_DTN_FIND_DB, [
         done
     fi
 
-    if test ! x"$ac_dbdir" = x"system" ; then
+    if test ! x"$ac_dbdir" = x"yes" ; then
         ac_dblibdirs="$ac_dbdir/lib"
     else
         ac_dblibdirs="/usr/lib /usr/local/lib"
