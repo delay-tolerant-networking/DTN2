@@ -2,7 +2,7 @@
 # Makefile for DTN2/apps
 #
 
-SUBDIRS := dtnsend dtnrecv dtnping dtncp dtncpd
+SUBDIRS := dtnsend dtnrecv dtnping dtncp dtncpd dtnmoteproxy
 
 SRCDIR := ..
 
