@@ -5,7 +5,7 @@
 proc setup_interface {cl} {
     global hosts id
     
-    route set local_tuple bundles://internet/://$hosts($id)
+    route local_tuple bundles://internet/host://$hosts($id)
     
     interface add $cl bundles://internet/host://$hosts($id):5000
 }
@@ -17,7 +17,7 @@ proc setup_linear_topology {type cl {args ""}} {
     if { $id != [expr $num_nodes - 1] } {
 	set peerid [expr $id + 1]
 	set peeraddr $hosts($peerid)
-	eval link add link-$peerid bundles://internet/host://$peeraddr \
+	eval link add link-$peerid bundles://internet/host://$peeraddr:5000 \
 		$type $cl $args
 	route add bundles://internet/host://$peeraddr/* link-$peerid
     }
@@ -26,7 +26,7 @@ proc setup_linear_topology {type cl {args ""}} {
     if { $id != 0 } {
 	set peerid [expr $id - 1]
 	set peeraddr $hosts($peerid)
-	eval link add link-$peerid bundles://internet/host://$peeraddr \
+	eval link add link-$peerid bundles://internet/host://$peeraddr:5000 \
 		$type $cl $args
 
 	route add bundles://internet/host://$peeraddr/* link-$peerid
