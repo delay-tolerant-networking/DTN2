@@ -46,8 +46,8 @@ StorageConfig::StorageConfig()
     tidy_	= false;
     init_       = false;
     tidy_wait_	= 3;
-    dbdir_	= "/usr/local/dtn/db";
-    payloaddir_ = "/usr/local/dtn/bundles";
+    dbdir_	= "/var/dtn/db";
+    payloaddir_ = "/var/dtn/bundles";
     dbfile_ 	= "DTN.db";
     dberrlog_	= "error.log";
     sqldb_ 	= "DTN";
