@@ -41,6 +41,8 @@
 #include "Node.h"
 #include "NodeCommand.h"
 #include "SimRegistration.h"
+#include "Topology.h"
+#include "TrAgent.h"
 #include "bundling/BundleTuple.h"
 #include "routing/BundleRouter.h"
 
@@ -57,7 +59,7 @@ NodeCommand::NodeCommand(Node* node)
 const char*
 NodeCommand::help_string()
 {
-    NOTIMPLEMENTED;
+    return "(see documentation)";
 }
 
 int
@@ -98,6 +100,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
                 // <node> 0 route local_tuple
                 set_result(node_->router()->local_tuple().c_str());
                 return TCL_OK;
+                
             } else if (argc == 5) {
                 // <node> 0 route local_tuple <tuple>
                 node_->router()->set_local_tuple(argv[4]);
@@ -135,6 +138,52 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }        
         resultf("node registration: unsupported subcommand %s", subcmd);
         return TCL_ERROR;
+    }
+
+    else if (strcmp(cmd, "tragent") == 0)
+    {
+        if (argc != 9) {
+            wrong_num_args(argc, argv, 3, 9, 9);
+            return TCL_ERROR;
+        }
+        
+        const char* src = argv[3];
+        const char* dst = argv[4];
+        int size	= atoi(argv[5]);
+        int reps 	= atoi(argv[6]);
+        int batchsize	= atoi(argv[7]);
+        int gap		= atoi(argv[8]);
+
+        // see if src/dest are node names, in which case we use its
+        // local tuple as the source address
+        BundleTuple src_tuple;
+        Node* src_node = Topology::find_node(src);
+        if (src_node) {
+            src_tuple.assign(src_node->router()->local_tuple());
+        } else {
+            src_tuple.assign(src);
+            if (!src_tuple.valid()) {
+                resultf("node tragent: invalid src tuple %s", src);
+                return TCL_ERROR;
+            }
+        }
+        
+        BundleTuple dst_tuple;
+        Node* dst_node = Topology::find_node(dst);
+        if (dst_node) {
+            dst_tuple.assign(dst_node->router()->local_tuple());
+        } else {
+            dst_tuple.assign(dst);
+            if (!dst_tuple.valid()) {
+                resultf("node tragent: invalid dst tuple %s", dst);
+                return TCL_ERROR;
+            }
+        }
+        
+        
+        new TrAgent(node_, time, src_tuple, dst_tuple, size,
+                    reps, batchsize, gap);
+        return TCL_OK;
     }
 
     else
