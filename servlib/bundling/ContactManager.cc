@@ -154,7 +154,7 @@ ContactManager::has_link(Link *link)
 }
 
 /**
- * Finds link with a given bundletuple.
+ * Finds link with a given name
  */
 Link*
 ContactManager::find_link(const char* name)
@@ -164,7 +164,25 @@ ContactManager::find_link(const char* name)
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        if (strcasecmp(link->name(), name) == 0) return link;
+        if (strcasecmp(link->name(), name) == 0)
+            return link;
+    }
+    return NULL;
+}
+
+/**
+ * Finds link with a given name
+ */
+Link*
+ContactManager::find_link_nexthop(const char* nexthop)
+{
+    LinkSet::iterator iter;
+    Link* link = NULL;
+    for (iter = links_->begin(); iter != links_->end(); ++iter)
+    {
+        link = *iter;
+        if (strcmp(link->nexthop(), nexthop) == 0)
+            return link;
     }
     return NULL;
 }

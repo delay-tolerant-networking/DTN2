@@ -150,6 +150,11 @@ public:
     Link* find_link(const char* name);
 
     /**
+     * Finds link to this next hop
+     */
+    Link* find_link_nexthop(const char* nexthop);
+    
+    /**
      * Return the list of links 
      */
     LinkSet* links() { return links_; }
