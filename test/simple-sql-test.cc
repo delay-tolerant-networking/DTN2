@@ -57,6 +57,8 @@ playsql(int i) {
        db  =  new PostgresSQLImplementation(database);
     else
 	db =  new MysqlSQLImplementation(database);
+
+    db->exec_query("drop table try;");
     
     BundleStore *bstore = new SQLBundleStore(table_name,db);
     BundleStore::init(bstore);
