@@ -75,6 +75,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     // read in all the payload data (XXX/demmer this will not be nice
     // for big bundles)
     u_char* payload_data = (u_char*)b->payload_.read_data(0, b->payload_.length());
+    log_debug("got %d bytes of bundle data", b->payload_.length());
     
     Tcl_Obj* objv[4];
     objv[0] = Tcl_NewStringObj(b->source_.data(), b->source_.length());
