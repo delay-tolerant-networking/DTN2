@@ -660,11 +660,11 @@ ClientAPIServer::handle_recv()
                 write(payloadFd, tmpBuf, numThisTime);
                 numToDo -= numThisTime;
             }
-            close(payloadFd);
-            payload.dtn_bundle_payload_t_u.filename.filename_val = (char *) malloc(20);
-            memcpy((char *) payload.dtn_bundle_payload_t_u.filename.filename_val, payloadFile, strlen(payloadFile));
-            payload.dtn_bundle_payload_t_u.filename.filename_len = strlen(payloadFile);
         }
+        close(payloadFd);
+        payload.dtn_bundle_payload_t_u.filename.filename_val = (char *) malloc(20);
+        memcpy((char *) payload.dtn_bundle_payload_t_u.filename.filename_val, payloadFile, strlen(payloadFile));
+        payload.dtn_bundle_payload_t_u.filename.filename_len = strlen(payloadFile);
     } else {
         log_err("payload location %d not understood", location);
         return -1;
