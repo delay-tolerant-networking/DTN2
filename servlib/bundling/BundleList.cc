@@ -170,7 +170,7 @@ BundleList::remove(Bundle* bundle)
 {
     ScopeLock l(lock_);
 
-    iterator iter = find(list_.begin(), list_.end(), bundle);
+    iterator iter = std::find(list_.begin(), list_.end(), bundle);
     if (iter == list_.end()) {
         return false;
     }
