@@ -3006,7 +3006,7 @@ echo $ECHO_N "checking for tcl (version $ac_tclver) in $ac_tclincdir, $ac_tcllib
         ac_tclver_major=`echo $ac_tclver | cut -d . -f1`
 	ac_tclver_minor=`echo $ac_tclver | cut -d . -f2`
 	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_tclincdir"
-	LDFLAGS="$ac_save_LDFLAGS -I$ac_tcllibdir"
+	LDFLAGS="$ac_save_LDFLAGS -L$ac_tcllibdir"
 	LIBS="$ac_save_LIBS -l$ac_tcllib"
 
 	cat >conftest.$ac_ext <<_ACEOF
