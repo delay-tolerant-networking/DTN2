@@ -9,7 +9,7 @@ OBJS := $(OBJS:.c=.o)
 all: $(APP)
 
 $(APP): $(OBJS) $(SRCDIR)/applib/libdtnapi.a
-	$(CXX) $(OBJS) -L $(SRCDIR)/applib -ldtnapi -o $@
+	$(CXX) $(OBJS) -L $(SRCDIR)/applib $(LDFLAGS) -ldtnapi $(LIBS) -o $@
 
 #
 # Include the common rules
