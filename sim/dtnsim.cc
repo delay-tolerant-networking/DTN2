@@ -35,8 +35,8 @@ main(int argc, char** argv)
     int random_seed;
     bool random_seed_set = false;
     
-    new StringOpt("c", &conffile, "conf", "config file");
-    new IntOpt("s", &random_seed, &random_seed_set, "seed",
+    new StringOpt('c', "conf", &conffile, "conf", "config file");
+    new IntOpt('s', "seed", &random_seed, &random_seed_set, "seed",
                "random number generator seed");
 
     // Set up the command interpreter, then parse argv
