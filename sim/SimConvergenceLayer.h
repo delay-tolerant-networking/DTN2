@@ -5,10 +5,12 @@
 #include "conv_layers/ConvergenceLayer.h"
 
 #include "bundling/Contact.h"
+#include "bundling/Link.h"
+
 #include "bundling/Bundle.h"
 #include "bundling/BundleTuple.h"
 
-#include "SimContactInfo.h"
+#include "SimLinkInfo.h"
 
 #include "SimContact.h"
 #include "Message.h"
@@ -64,16 +66,20 @@ public:
 
     
     /**
-     * Mapping between simulator link model and DTN2 contacts
+     * Mapping between simulator link model and DTN2 contacts/links
      */
-    static SimContact* ct2simlink(Contact* contact);
-    static Contact* simlink2ct(SimContact* link);
+    static SimContact* dtnlink2simlink(Link* link);
+    static Link* simlink2dtnlink(SimContact* link);
+    static Contact* simlink2ct(SimContact* link) ;
+     
 
     static const int MAX_BUNDLES = 1024;
-    static const int MAX_CONTACTS = 64;
+    //   static const int MAX_CONTACTS = 64;
+   static const int MAX_LINKS = 64;
     static Bundle* bundles_[];
     static Message* messages_[];
-    static Contact* contacts_[];
+//    static Contact* contacts_[];
+    static Link* links_[];
     
 };
 

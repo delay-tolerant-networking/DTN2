@@ -92,6 +92,11 @@ public:
      * Virtual from SerializableObject.
      */
     void serialize(SerializeAction* a);
+    
+    /**
+     * Virtual from bundle consumer
+     */
+    const char* type() { return "Reg" ;}
 
 protected:
     void init(u_int32_t regid,

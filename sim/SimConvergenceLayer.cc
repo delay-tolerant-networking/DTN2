@@ -42,7 +42,7 @@ void
 SimConvergenceLayer::send_bundles(Contact* contact)
 {
  
-    SimContact* sc = ct2simlink(contact); 
+    SimContact* sc = dtnlink2simlink(contact->link()); 
     
     Bundle* bundle;
     BundleList* blist = contact->bundle_list();
@@ -73,7 +73,9 @@ SimConvergenceLayer::send_bundles(Contact* contact)
 bool 
 SimConvergenceLayer::open_contact(Contact* contact) 
 {
-    PANIC("can not explicitly open contact using simulator convergence layer");
+//    PANIC("can not explicitly open contact using simulator convergence layer");
+//  Do nothing, as by default all simulator contacts are already open
+    return true;
 }
     
 bool 
@@ -91,11 +93,11 @@ SimConvergenceLayer::close_contact(Contact* contact)
  ***************************************************************** */
 
 SimContact*
-SimConvergenceLayer::ct2simlink(Contact* contact)
+SimConvergenceLayer::dtnlink2simlink(Link* link)
 {
    // use contact info in contact to find this out
-    ASSERT(contact != NULL);
-    int id = ((SimContactInfo*)contact->contact_info())->id();
+    ASSERT(link != NULL);
+    int id = ((SimLinkInfo*)link->link_info())->id();
     SimContact* s =     Topology::contact(id);
     if (s == NULL) {
         PANIC("undefined contact mapping with stored id %d",id);
@@ -116,22 +118,39 @@ SimConvergenceLayer::id2node(int i)
 void
 SimConvergenceLayer::create_ct(int id) 
 {
-    ASSERT(id >=0 && id < MAX_CONTACTS);
+    ASSERT(id >=0 && id < MAX_LINKS);
 
     BundleTuple tuple(id2node(id));
-    Contact* ct = new Contact(SCHEDULED,tuple);
-    ct->set_contact_info(new SimContactInfo(id));
-    contacts_[id] = ct;
+
+    printf("link creating %s \n",tuple.c_str());
+    fflush(stdout);
+    // Oldstuff 
+    //Contact* ct = new Contact(SCHEDULED,tuple);
+    //ct->set_contact_info(new SimContactInfo(id));
+    //contacts_[id] = ct;
+
+    //Link*  link = Link::create_link(tuple.c_str(),ONDEMAND,"simcl",tuple);
+    Link*  link = Link::create_link("WHERE",ONDEMAND,"simcl",tuple);
+    
+    link->set_link_info(new SimLinkInfo(id));
+    links_[id] = link;
+
+}
+
+Link*
+SimConvergenceLayer::simlink2dtnlink(SimContact* simlink)
+{
+    ASSERT(simlink != NULL);
+    Link* link =  links_[simlink->id()] ; 
+    ASSERT(link != NULL);
+    return link;
+
 }
 
 Contact*
 SimConvergenceLayer::simlink2ct(SimContact* simlink)
 {
-    ASSERT(simlink != NULL);
-    Contact* ct =  contacts_[simlink->id()] ; 
-    ASSERT(ct != NULL);
-    return ct;
-
+    return simlink2dtnlink(simlink)->contact();
 }
 
 Message*
@@ -185,5 +204,6 @@ SimConvergenceLayer::node2id(BundleTuplePattern src)
 
 Bundle*  SimConvergenceLayer::bundles_[MAX_BUNDLES];
 Message* SimConvergenceLayer::messages_[MAX_BUNDLES];
-Contact* SimConvergenceLayer::contacts_[MAX_CONTACTS];
+//Contact* SimConvergenceLayer::contacts_[MAX_CONTACTS];
+Link* SimConvergenceLayer::links_[MAX_LINKS];
     

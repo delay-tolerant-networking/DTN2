@@ -15,6 +15,9 @@
 #include "SimConvergenceLayer.h"
 #include "bundling/AddressFamily.h"
 
+#include "bundling/ContactManager.h"
+
+
 int
 main(int argc, char** argv)
 {
@@ -55,6 +58,7 @@ main(int argc, char** argv)
     srand(random_seed);
 
     AddressFamilyTable::init();
+    ContactManager::init();
     
     // add simulator convergence layer (identifies by simcl) to cl list
     ConvergenceLayer::init_clayers();

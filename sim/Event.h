@@ -25,9 +25,9 @@ class Processable;
 typedef enum {
     MESSAGE_RECEIVED = 0x1,     ///< New message arrival
 
-    CONTACT_UP,                 ///< SimContact is available
+    SIM_CONTACT_UP,                 ///< SimContact is available
 
-    CONTACT_DOWN,               ///< SimContact abnormally terminated
+    SIM_CONTACT_DOWN,               ///< SimContact abnormally terminated
 
     CONTACT_CHEWING_FINISHED,   ///< Message transmission finished
 
@@ -46,8 +46,8 @@ static const char*
 ev2str(sim_event_type_t eventtype) {
     switch (eventtype) {
     case MESSAGE_RECEIVED:  return "MESSAGE_RECEIVED";
-    case CONTACT_UP:        return "CONTACT_UP";
-    case CONTACT_DOWN:      return "CONTACT_DOWN";
+    case SIM_CONTACT_UP:        return "SIM_CONTACT_UP";
+    case SIM_CONTACT_DOWN:      return "SIM_CONTACT_DOWN";
     case CONTACT_CHEWING_FINISHED: return "CONTACT_CHEWING_FINISHED";
     case TR_NEXT_SENDTIME:  return "TR_NEXT_SENDTIME";
     case FOR_BUNDLE_ROUTER: return "FOR_BUNDLE_ROUTER";
@@ -141,7 +141,7 @@ class Event_contact_up : public Event {
 public:
     
     Event_contact_up(double t, Processable* h) 
-	: Event(t,h,CONTACT_UP),forever_(false) {}
+	: Event(t,h,SIM_CONTACT_UP),forever_(false) {}
     
     bool forever_;
 };
@@ -152,7 +152,7 @@ class Event_contact_down : public Event {
     public:
     
     Event_contact_down(double t, Processable* h) 
-	: Event(t,h,CONTACT_DOWN),forever_(false) {}
+	: Event(t,h,SIM_CONTACT_DOWN),forever_(false) {}
     bool forever_;
 };
 
@@ -189,7 +189,7 @@ public:
 
 
 /**
- * Event for Glue Node. The event is actuall forwarded
+ * Event for Glue Node. The event is actually forwarded
  * to BundleRouter
  */
 

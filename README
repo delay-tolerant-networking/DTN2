@@ -12,12 +12,13 @@ ideas/			temporary code idea repository
 servlib/		dtn router internals
 servlib/cmd/		command interface
 servlib/conv_layers/	convergence layers
-servlib/debug/		debugging support code
-servlib/io/		I/O and networking support code
 servlib/routing/	bundle forwarding and routing logic
 servlib/storage/	persistent storage management
-servlib/thread/		thread / lock support implementation
-servlib/util/		miscellaneous utility classes
+
+oasys/debug/		debugging support code
+oasys/io/		I/O and networking support code
+oasys/thread/		thread / lock support implementation
+oasys/util/		miscellaneous utility classes
 
 Requirements
 ------------
@@ -36,4 +37,14 @@ postgresql
 Postgres
 --------
 Need to create a database 'dtn'
+
+
+Compilation instructions
+--------
+
+./configure
+make
+
+If connfigure isssues you might need to run
+./configure inside oasys/ seprately.
 

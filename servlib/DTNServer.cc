@@ -5,9 +5,11 @@
 #include "bundling/AddressFamily.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/InterfaceTable.h"
+#include "bundling/ContactManager.h"
 
 #include "cmd/BundleCommand.h"
 #include "cmd/InterfaceCommand.h"
+#include "cmd/LinkCommand.h"
 #include "cmd/ParamCommand.h"
 #include "cmd/RegistrationCommand.h"
 #include "cmd/RouteCommand.h"
@@ -50,6 +52,7 @@ DTNServer::init_commands()
     
     interp->reg(new BundleCommand());
     interp->reg(new InterfaceCommand());
+    interp->reg(new LinkCommand());
     interp->reg(new ParamCommand());
     interp->reg(new RegistrationCommand());
     interp->reg(new RouteCommand());
@@ -65,6 +68,7 @@ void
 DTNServer::init_components()
 {
     AddressFamilyTable::init();
+    ContactManager::init();
     ConvergenceLayer::init_clayers();
     InterfaceTable::init();
     BundleForwarder::init(new BundleForwarder());
@@ -149,15 +153,14 @@ DTNServer::start()
                 storage_type.c_str());
         exit(1);
     }
-    
     GlobalStore::init(global_store);
     BundleStore::init(bundle_store);
     RegistrationStore::init(reg_store);
     
-    // create (and auto-register) the default administrative registration
+     // create (and auto-register) the default administrative registration
     RegistrationTable::init(RegistrationStore::instance());
     new AdminRegistration();
-    
+     
     // load in the various storage tables
     //GlobalStore::instance()->load();
     //RegistrationTable::instance()->load();

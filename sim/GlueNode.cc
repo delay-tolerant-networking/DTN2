@@ -35,6 +35,7 @@ GlueNode::message_received(Message* msg)
 
 void forward_event(BundleEvent* event) ;
 
+
 void 
 GlueNode::chewing_complete(SimContact* c, double size, Message* msg) 
 {
@@ -52,8 +53,8 @@ GlueNode::chewing_complete(SimContact* c, double size, Message* msg)
 void 
 GlueNode::open_contact(SimContact* c) 
 {
-    Contact* ct = SimConvergenceLayer::simlink2ct(c);
-    ContactAvailableEvent* e = new ContactAvailableEvent(ct);
+    Link* link = SimConvergenceLayer::simlink2dtnlink(c);
+    LinkCreatedEvent* e = new LinkCreatedEvent(link);
     log_debug("N[%d]: C:%d [%d->%d]:UP",id(),c->id(),id(),c->dst()->id());
     forward_event(e);
 }
@@ -63,9 +64,13 @@ void
 GlueNode::close_contact(SimContact* c)
 {
     Contact* ct = SimConvergenceLayer::simlink2ct(c);
-    ContactBrokenEvent* e = new ContactBrokenEvent(ct);
-    log_debug("N[%d]: C:%d [%d->%d]:DOWN",id(),c->id(),id(),c->dst()->id());
-    forward_event(e);
+    
+    // ct may be null when the contact was never created
+    if (ct != NULL) {
+        ContactDownEvent* e = new ContactDownEvent(ct);
+        log_debug("N[%d]: C:%d [%d->%d]:DOWN",id(),c->id(),id(),c->dst()->id());
+        forward_event(e);
+    }
 }
 
 

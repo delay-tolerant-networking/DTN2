@@ -17,11 +17,17 @@ BUNDLING_SRCS := 				\
 	bundling/BundleTuple.cc			\
 	bundling/BundleStatusReport.cc		\
 	bundling/Contact.cc			\
+	bundling/ContactManager.cc		\
 	bundling/FixedAddressFamily.cc		\
 	bundling/FragmentManager.cc		\
 	bundling/Interface.cc			\
 	bundling/InterfaceTable.cc		\
 	bundling/InternetAddressFamily.cc	\
+	bundling/Link.cc			\
+	bundling/OndemandLink.cc		\
+	bundling/OpportunisticLink.cc		\
+	bundling/Peer.cc			\
+	bundling/ScheduledLink.cc		\
 	bundling/SmtpAddressFamily.cc		\
 	bundling/WildcardAddressFamily.cc	\
 
@@ -36,6 +42,7 @@ CMD_SRCS :=					\
 	cmd/APICommand.cc			\
 	cmd/BundleCommand.cc			\
 	cmd/InterfaceCommand.cc			\
+	cmd/LinkCommand.cc          		\
 	cmd/ParamCommand.cc			\
 	cmd/RegistrationCommand.cc		\
 	cmd/RouteCommand.cc			\
