@@ -89,7 +89,7 @@ $ns rtproto $protocol
 ## find length of  protos and nexthops
 
 
-set runs [expre [llength $protos]*[llength $perhops] ]
+set runs [expr [llength $protos]*[llength $perhops] ]
 
 set MAX_SIM_TIME [expr runs*$finish + 2*$runs*$WARMUPTIME]
 set ONE_CYCLE_LENGTH $finish + 2*$WARMUPTIME
