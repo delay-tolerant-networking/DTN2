@@ -7,10 +7,24 @@ BundleTuple::BundleTuple()
 {
 }
 
+BundleTuple::BundleTuple(const char* tuple)
+    : valid_(false), tuple_(tuple)
+{
+    parse_tuple();
+}
+
 BundleTuple::BundleTuple(const std::string& tuple)
     : valid_(false), tuple_(tuple)
 {
     parse_tuple();
+}
+
+BundleTuple::BundleTuple(const BundleTuple& other)
+    : valid_(other.valid_),
+      tuple_(other.tuple_),
+      region_(other.region_),
+      admin_(other.admin_)
+{
 }
 
 BundleTuple::~BundleTuple()

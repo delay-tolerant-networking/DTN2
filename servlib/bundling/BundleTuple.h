@@ -17,7 +17,9 @@
 class BundleTuple : public SerializableObject {
 public:
     BundleTuple();
+    BundleTuple(const char* tuple);
     BundleTuple(const std::string& tuple);
+    BundleTuple(const BundleTuple& other);
     virtual ~BundleTuple();
 
     /**
@@ -25,17 +27,15 @@ public:
      */
     void set_tuple(const std::string& tuple);
     
-    /// Accessors
-    // @{
-    const std::string& tuple()  { return tuple_; }
-    const std::string& region() { return region_; }
-    const std::string& admin()  { return admin_; }
-    // @}
+    // Accessors
+    const std::string& tuple()  const { return tuple_; }
+    const std::string& region() const { return region_; }
+    const std::string& admin()  const { return admin_; }
     
     /**
      * @return Whether or not the tuple is valid.
      */
-    bool valid() { return valid_; }
+    bool valid() const { return valid_; }
 
     /**
      * Virtual from SerializableObject
