@@ -7,7 +7,6 @@
 #include "routing/BundleRouter.h"
 #include "io/NetUtils.h"
 #include "util/URL.h"
-#include <sys/signal.h>
 
 /******************************************************************************
  *
@@ -36,13 +35,13 @@ bool
 TCPConvergenceLayer::add_interface(Interface* iface,
                                    int argc, const char* argv[])
 {
-    log_debug("adding interface %s", iface->tuple()->c_str());
+    log_debug("adding interface %s", iface->tuple().c_str());
     
     // parse out the hostname / port from the interface
     URL url(iface->admin());
     if (! url.valid()) {
         log_err("admin part '%s' of tuple '%s' not a valid url",
-                iface->admin().c_str(), iface->tuple()->c_str());
+                iface->admin().c_str(), iface->tuple().c_str());
         return false;
     }
 
@@ -226,33 +225,35 @@ TCPConvergenceLayer::Connection::send_loop()
 {
     while (1) {
         Bundle* bundle;
-        int iovcnt = 8;
+        int iovcnt = BundleProtocol::MAX_IOVCNT;
         int total;
         struct iovec iov[iovcnt + 1];
         
         log_debug("connection send loop waiting for bundle");
 
-        // grab a bundle, which keeps a local reference to it
+        // grab a bundle. note that pop_blocking does _not_ decrement
+        // the reference count, so we now have a local reference to it
         bundle = contact_->bundle_list()->pop_blocking();
-        log_debug("got bundle %p, starting to format", bundle);
         
-        // fill in the iovec, leaving space for the framing header
-        total = BundleProtocol::fill_iov(bundle, &iov[1], &iovcnt);
-        log_debug("format completed, %d byte bundle", total);
-        
-        // stuff in the framing header (just the total length for now)
-        iov[0].iov_base = &total;
-        iov[0].iov_len = 4;
-        
-        // we've got something to do, now loop, trying to connect
+        // we've got something to do, now try to connect to our peer
         if (state_ != ESTABLISHED) {
             while (connect(remote_addr_, remote_port_) != 0) {
-                log_info("connection attempt to %s:%d failed... will retry in 10 seconds",
+                log_info("connection attempt to %s:%d failed... "
+                         "will retry in 10 seconds",
                          intoa(remote_addr_), remote_port_);
                 sleep(10);
             }
         }
 
+        // fill in the iovec, leaving space for the framing header
+        total = BundleProtocol::fill_iov(bundle, &iov[1], &iovcnt);
+        log_debug("bundle id %d format completed, %d byte bundle",
+                  bundle->bundleid_, total);
+        
+        // stuff in the framing header (just the total length for now)
+        iov[0].iov_base = &total;
+        iov[0].iov_len = 4;
+        
         // ok, all set to go, now write it out
         total = writevall(iov, iovcnt + 1);
         if (total <= 0) {
@@ -262,16 +263,16 @@ TCPConvergenceLayer::Connection::send_loop()
             return;
         }
 
-        // XXX/demmer deal with acks, partial sending
-        bool acked = true;
-        size_t bytes_sent = bundle->payload_.length();
-
         // free up the data used by the flattened representation
         BundleProtocol::free_iovmem(bundle, &iov[1], iovcnt);
 
+        // XXX/demmer deal with acks, partial sending
+        bool acked = true;
+        size_t bytes_sent = bundle->payload_.length();
+        
         // cons up a transmission event and pass it to the router
-        BundleEvent* e = new BundleTransmittedEvent(bundle, bytes_sent, acked);
-        BundleRouter::dispatch(e);
+        BundleRouter::dispatch(
+            new BundleTransmittedEvent(bundle, contact_, bytes_sent, acked));
         
         // remove the reference on the bundle (may delete it)
         bundle->del_ref();
