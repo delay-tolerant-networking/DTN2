@@ -117,6 +117,14 @@ public:
     }
 
     /**
+     * Return the current active node.
+     */
+    static Node* active_node()
+    {
+        return (Node*)instance_;
+    }
+
+    /**
      * Return the next available bundle id.
      */
     u_int32_t next_bundleid()
