@@ -1,0 +1,134 @@
+# Start of Base Script to setup Emulab DTN2 experiments
+
+# Use it to generate dummy link schedules 
+
+# tclsh base-emu-dumb.tcl | sort -n -k 4.4
+
+
+set exp sched4
+set maxnodes 4
+set nfiles 100
+set size 100
+set loss 0
+set bw 100kb
+set perhops "ph"
+set protos "dtn"
+set finish 2400
+# Start of Base Script to setup Emulab DTN2 experiments
+
+
+
+set delay 5ms
+set queue DropTail
+set protocol Static
+
+
+set WARMUPTIME 10 
+#Time between ending of one protocol and starting of the next
+set DELAY_FOR_SOURCE_NODE 2
+
+
+## Adjust the following if links are dynamic 
+
+set linkdynamics 1
+set up 30 
+## Length of uptime
+set down 180   
+## Length of downtime
+
+set OFFSET_VAL 15
+
+
+
+## generates output in two lists up and down 
+proc sched {offset} {
+global MAX_SIM_TIME
+global ONE_CYCLE_LENGTH
+global up
+global down
+global uplist
+global downlist
+global WARMUPTIME
+## locals are only start, current, 
+set uplist {}
+set downlist {}
+
+
+## Assumes that the link is up. (rather just up)
+## The first event schedules is a down link event
+set start $WARMUPTIME
+
+
+
+while {$start < $MAX_SIM_TIME} {
+
+    ## Start up state (link is down before offset)
+    if {$offset != 0} {
+	lappend downlist [expr $start + 1]
+	lappend uplist [expr $start + $offset   ]
+    }
+
+   # puts "Outer loop $start"
+    set current [expr $start + $offset]
+    set limit [expr $start + $ONE_CYCLE_LENGTH ]
+    while {$current  < $limit} {
+	set current [expr $current + $up]
+	if {$current > $limit} break ; 
+	lappend downlist $current
+	set current [expr $current + $down]
+	if {$current > $limit} break ; 
+	lappend uplist $current
+    }
+    set start [expr $start + $ONE_CYCLE_LENGTH ]
+}
+
+## Finally make the link up (to allow debugging)
+lappend uplist [expr $WARMUPTIME + $current]
+
+}
+
+set runs [expr [llength $protos]*[llength $perhops] ]
+
+set MAX_SIM_TIME [expr $runs*$finish + $runs*$WARMUPTIME + $WARMUPTIME]
+set ONE_CYCLE_LENGTH [expr $finish + $WARMUPTIME]
+set uplist {}
+set downlist {}
+
+# Parameters give by command line
+set up $up
+set down $down
+# Time list when to fire up event
+set uplist ""
+# Time list when to fire down event
+set downlist ""
+
+
+set emustr "tevexc -e DTN/exp "
+set uptime_str  ""
+set downtime_str ""
+
+
+
+if {$linkdynamics == 1} {
+    for {set i 1} {$i <  $maxnodes} {incr i} {
+    #Do stuff for the ith link
+	set offset [expr $OFFSET_VAL*[expr $i - 1]]
+	sched $offset
+	## Now you have uplist and downlist and use them to schedule your events
+	
+	set linkname "link-$i"
+	foreach uptime $uplist {
+	#    $ns at $uptime "$linkname up"
+	    append uptime_str "$emustr +$uptime $linkname UP \n"
+	}
+	foreach downtime $downlist {
+	 #   $ns at $downtime "$linkname down"
+	    append downtime_str "$emustr +$uptime $linkname DOWN \n"
+	}
+    }
+}
+
+puts $uptime_str
+puts $downtime_str
+
+
