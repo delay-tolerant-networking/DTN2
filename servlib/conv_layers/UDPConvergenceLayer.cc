@@ -10,6 +10,9 @@
 
 #include <sys/poll.h>
 
+
+
+
 /******************************************************************************
  *
  * UDPConvergenceLayer
@@ -38,7 +41,6 @@ UDPConvergenceLayer::fini()
 bool UDPConvergenceLayer::add_interface(Interface* iface, int argc, const char* argv[]) {
 
     log_debug("adding interface %s", iface->tuple().c_str());
-
     
     // parse out the hostname / port from the interface
     URL url(iface->admin());
@@ -63,21 +65,21 @@ bool UDPConvergenceLayer::add_interface(Interface* iface, int argc, const char* 
     }
 
     // create a new server socket for the requested interface
-    DataListener* listener = new DataListener();
-    listener->logpathf("%s/iface/%s:%d", logpath_, url.host_.c_str(), url.port_);
+    Receiver* receiver = new Receiver();
+    receiver->logpathf("%s/iface/%s:%d", logpath_, url.host_.c_str(), url.port_);
 
-    if (listener->bind(addr, url.port_) != 0) {
-      listener->logf(LOG_ERR, "error binding to requested socket: %s",
-		     strerror(errno));
-      return false;
+    if (receiver->bind(addr, url.port_) != 0) {
+        receiver->logf(LOG_ERR, "error binding to requested socket: %s",
+                       strerror(errno));
+        return false;
     }
 
     // start the thread which automatically listens for data
-    listener->start();
+    receiver->start();
 
     // store the new listener object in the cl specific portion of the
     // interface
-    iface->set_info(listener);
+    iface->set_info(receiver);
     
     return true;
 }
@@ -88,20 +90,20 @@ bool UDPConvergenceLayer::del_interface(Interface* iface) {
     // then close the socket out from under it, which should cause the
     // thread to break out of the blocking call to accept() and
     // terminate itself
-    DataListener* listener = (DataListener*)iface->info();
-    listener->set_should_stop();
-    listener->interrupt();
+    Receiver* receiver = (Receiver*)iface->info();
+    receiver->set_should_stop();
+    receiver->interrupt();
     
-    while (! listener->is_stopped()) {
+    while (! receiver->is_stopped()) {
         Thread::yield();
     }
 
-    delete listener;
+    delete receiver;
     return true;
 }
 
 bool UDPConvergenceLayer::open_contact(Contact* contact) {
-   log_debug("opening contact *%p", contact);
+    log_debug("opening contact *%p", contact);
     
     // parse out the hostname / port from the contact tuple
     URL url(contact->tuple().admin());
@@ -128,31 +130,31 @@ bool UDPConvergenceLayer::open_contact(Contact* contact) {
     
     // create a new connection for the contact
     //YYY/Nabeel: binding is not needed with connect()
-    Connection* conn = new Connection(contact, addr, url.port_);
-    conn->start();
+    Sender* snd = new Sender(contact, addr, url.port_);
+    snd->start();
 
     return true;
 }
 
 bool UDPConvergenceLayer::close_contact(Contact* contact) {
 
-    Connection* conn = (Connection*)contact->contact_info();
+    Sender* snd = (Sender*)contact->contact_info();
 
     log_info("close_contact *%p", contact);
 
-    if (conn) {
-        while (!conn->is_stopped()) {
-            if (!conn->should_stop()) {
+    if (snd) {
+        while (!snd->is_stopped()) {
+            if (!snd->should_stop()) {
                 PANIC("YYY/Nabeel need to stop the connection thread");
-                conn->set_should_stop();
-                conn->interrupt();
+                snd->set_should_stop();
+                snd->interrupt();
             }
             
             log_warn("waiting for connection thread to stop...");
             Thread::yield();
         }
         
-        delete conn;
+        delete snd;
         
         contact->set_contact_info(NULL);
     }
@@ -162,17 +164,18 @@ bool UDPConvergenceLayer::close_contact(Contact* contact) {
 
 /******************************************************************************
  *
- * UDPConvergenceLayer::Listener
+ * UDPConvergenceLayer::Receiver
  *
  *****************************************************************************/
-UDPConvergenceLayer::DataListener::DataListener()
-    : UDPServerThread("/cl/udp/datalistener")
+UDPConvergenceLayer::Receiver::Receiver()
+    : IPSocket("/cl/udp/receiver", SOCK_DGRAM)
 {
     logfd_ = false;
+    params_.reuseaddr_ = 1;
     Thread::flags_ |= INTERRUPTABLE;
 }
 
-void UDPConvergenceLayer::DataListener::ProcessData(char* payload, size_t payload_ln) {
+void UDPConvergenceLayer::Receiver::process_data(char* payload, size_t payload_ln) {
 
     // declare dynamic storage elements that may need to be cleaned up
     // on error
@@ -185,26 +188,25 @@ void UDPConvergenceLayer::DataListener::ProcessData(char* payload, size_t payloa
     size_t bundle_len;
     size_t block_len;
     
-    log_debug("ProcessData: starting buffer parsing...");
+    log_debug("process_data: starting buffer parsing...");
     //Peek to see the packet typecode, verify packet contains data    
     char* peek;
     peek = (char*)(payload);
     if ( (*peek) != BUNDLE_START ) {
-      log_err("ProcessData: unknown frame type code received\n");
-      return;
+        log_err("process_data: unknown frame type code received\n");
+        return;
     }
 
     /** Read from the start of the BundleStartHeader **/
     memcpy((char*)&starthdr, (char*)(buf + sizeof(ContactHeader) + 1), sizeof(BundleStartHeader));
-    log_debug("ProcessData: reading start header...");
-    //XXX/Nabeel:Need to add some error checking for memcpy operation
+    log_debug("process_data: reading start header...");
     
     // extract the lengths from the start header
     header_len = ntohs(starthdr.header_length);
     bundle_len = ntohl(starthdr.bundle_length);
     block_len = ntohl(starthdr.block_length);
     
-    log_debug("ProcessData: got start header -- bundle id %d, "
+    log_debug("process_data: got start header -- bundle id %d, "
 	      "header_length %d bundle_length %d block_length %d",
 	      starthdr.bundle_id, header_len, bundle_len, block_len);
     
@@ -217,24 +219,28 @@ void UDPConvergenceLayer::DataListener::ProcessData(char* payload, size_t payloa
     bundle = new Bundle();
     cc = BundleProtocol::parse_headers(bundle, (u_char*)(bundle_position), header_len);
     if (cc != (int)header_len) {
-      log_err("ProcessData: error parsing bundle headers (parsed %d/%d)",
-	      cc, header_len);
-    shutdown:
-      if (buf)
-	free(buf);
-      
-      if (bundle)
-	delete bundle;        
-      return;
+        log_err("process_data: error parsing bundle headers (parsed %d/%d)",
+                cc, header_len);
+shutdown:
+        if (bundle)
+            delete bundle;        
+        return;
     }
     
     // do some length validation checks
     size_t payload_len = bundle->payload_.length();
     if (bundle_len != header_len + payload_len) {
-      log_err("ProcessData: error in bundle lengths: "
-	      "bundle_length %d, header_length %d, payload_length %d",
-	      bundle_len, header_len, payload_len);
-      goto shutdown;
+        log_err("process_data: error in bundle lengths: "
+                "bundle_length %d, header_length %d, payload_length %d",
+                bundle_len, header_len, payload_len);
+        goto shutdown;
+    }
+
+    if (payload_len != block_len) {
+        log_err("process_data: error in payload length: "
+                "payload_length %d, block_len &d", 
+                payload_len, block_len); 
+        goto shutdown;
     }
     
     /** Now read and store the payload into a local bundle **/
@@ -243,29 +249,54 @@ void UDPConvergenceLayer::DataListener::ProcessData(char* payload, size_t payloa
     bundle->payload_.append_data((char*)(bundle_position + header_len), block_len);
     
     // all set, notify the router of the new arrival
-    log_debug("recv_loop: new bundle id %d arrival, payload length %d",
+    log_debug("process_data: new bundle id %d arrival, payload length %d",
 	      bundle->bundleid_, bundle->payload_.length());
     BundleForwarder::post(new BundleReceivedEvent(bundle, block_len));
-    ASSERT(bundle->refcount() > 0);
-    
-    bundle = NULL;
-    free(buf);
-    buf = NULL;
+
+}
+
+void
+UDPConvergenceLayer::Receiver::run()
+{
+    int fd;
+    in_addr_t addr;
+    u_int16_t port;
+    char* pt_payload = (char*)malloc(IPSocket::max_udp_packet_size_);
+    size_t payload_len = 0;    
+    int ret;
+
+    while (1) {
+        if (should_stop())
+            break;
+        ret = recvfrom(&fd, &addr, &port, &pt_payload, &payload_len);
+	if (ret <= 0 ) {	  
+            if (errno == EINTR) {
+                continue;
+            }
+            logf(LOG_ERR, "error in RcvMessage(): %d %s", errno, strerror(errno));
+            close();
+            break;
+        }
+       
+	logf(LOG_DEBUG, "Received data on fd %d from %s:%d",
+	     fd, intoa(addr), port);	         
+	process_data(pt_payload, payload_len);	
+    }
 }
 
 /******************************************************************************
  *
- * UDPConvergenceLayer::Connection
+ * UDPConvergenceLayer::Sender
  *
  *****************************************************************************/
 
 /**
  * Constructor for the active connection side of a connection.
  */
-UDPConvergenceLayer::Connection::Connection(Contact* contact, 
-					    in_addr_t remote_addr,
-					    u_int16_t remote_port) 
-		 : contact_(contact)
+UDPConvergenceLayer::Sender::Sender(Contact* contact, 
+                                    in_addr_t remote_addr,
+                                    u_int16_t remote_port) 
+    : contact_(contact)
 {
     Thread::flags_ |= INTERRUPTABLE;
 
@@ -277,7 +308,7 @@ UDPConvergenceLayer::Connection::Connection(Contact* contact,
     sock_->set_remote_port(remote_port);
 }
         
-UDPConvergenceLayer::Connection::~Connection()
+UDPConvergenceLayer::Sender::~Sender()
 {
     delete sock_;
 }
@@ -291,13 +322,13 @@ UDPConvergenceLayer::Connection::~Connection()
  * support sending bundles from the passive acceptor
  */
 void
-UDPConvergenceLayer::Connection::run()
+UDPConvergenceLayer::Sender::run()
 {
     if (contact_) {
         send_loop();
     } else {
-      //We only process data from our receiver thread
-      log_debug("error: UDP sender trying to send on unknown contact\n"); 
+        //We only process data from our receiver thread
+        log_debug("error: UDP sender trying to send on unknown contact\n"); 
     }
 }				   
 
@@ -306,7 +337,7 @@ UDPConvergenceLayer::Connection::run()
  */
 
 bool 
-UDPConvergenceLayer::Connection::send_bundle(Bundle* bundle) {
+UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
 
     int iovcnt = BundleProtocol::MAX_IOVCNT; 
     struct iovec iov[iovcnt + 4];
@@ -316,8 +347,7 @@ UDPConvergenceLayer::Connection::send_bundle(Bundle* bundle) {
 
     /** Create the contact header first..... **/
     contacthdr.version = CURRENT_VERSION;
-    contacthdr.flags =  KEEPALIVE_ENABLED; //No bundle or block acks, Keepalives are there
-    contacthdr.keepalive_sec = 2;
+    contacthdr.flags =  0; //No bundle/block acks or keepalives
     
     /** Tack on the contact header now..... **/
     
@@ -383,19 +413,19 @@ UDPConvergenceLayer::Connection::send_bundle(Bundle* bundle) {
     return true;
 }
 
-void UDPConvergenceLayer::Connection::send_loop() {
+void UDPConvergenceLayer::Sender::send_loop() {
 
-  // first of all, connect to the receiver side
+    // first of all, connect to the receiver side
     ASSERT(sock_->state() != IPSocket::ESTABLISHED);   
 
     log_debug("send_loop: connecting to %s:%d...", 
 	      intoa(sock_->remote_addr()), sock_->remote_port());
     while (sock_->connect(sock_->remote_addr(), sock_->remote_port()) != 0)
     {
-      log_info("connection attempt to %s:%d failed... "
+        log_info("connection attempt to %s:%d failed... "
                  "will retry in 10 seconds",
                  intoa(sock_->remote_addr()), sock_->remote_port());
-      sleep(10);
+        sleep(10);
     }
 
     log_info("connection established -- (no keepalives exchanged)");
@@ -433,9 +463,9 @@ void UDPConvergenceLayer::Connection::send_loop() {
         
 	    int nready = poll(pollfds, 2, -1);
 	    if (nready < 0) {
-	      if (errno == EINTR) continue;
-	      log_err("error return %d from poll: %s", nready, strerror(errno));
-	      goto shutdown;
+                if (errno == EINTR) continue;
+                log_err("error return %d from poll: %s", nready, strerror(errno));
+                goto shutdown;
 	    }
         
             log_debug("send_loop: poll returned %d", nready);
@@ -459,6 +489,9 @@ void UDPConvergenceLayer::Connection::send_loop() {
                         log_warn("send_loop: "
                                  "remote connection unexpectedly closed");
                         goto shutdown;
+                    }
+                    else {
+                        PANIC("unknown traffic arrived at sender-side");
                     }
 
 		}
@@ -502,11 +535,11 @@ void UDPConvergenceLayer::Connection::send_loop() {
         bundle = NULL;	
     }
 
-    shutdown:
-         sock_->close();
-         Thread::set_flag(STOPPED);
-	     contact_->close();
-	     return;               
+shutdown:
+    sock_->close();
+    Thread::set_flag(STOPPED);
+    contact_->close();
+    return;               
 
 }
 
