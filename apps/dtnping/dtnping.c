@@ -30,6 +30,8 @@ main(int argc, const char** argv)
     dtn_bundle_payload_t reply_payload;
     char* dest_tuple_str;
     int debug = 1;
+
+    struct timeval start, end;
     
     if (argc != 2) {
         usage();
@@ -94,6 +96,8 @@ main(int argc, const char** argv)
     
     // loop, sending pings and getting replies.
     for (i = 0; i < cnt; ++i) {
+        gettimeofday(&start, NULL);
+        
         if ((ret = dtn_send(handle, &ping_spec, &ping_payload)) != 0) {
             fprintf(stderr, "error sending bundle: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));
@@ -111,13 +115,15 @@ main(int argc, const char** argv)
                     ret, dtn_strerror(dtn_errno(handle)));
             exit(1);
         }
+        gettimeofday(&end, NULL);
 
-        printf("%d bytes from [%s %.*s]: time=%d ms\n",
+        printf("%d bytes from [%s %.*s]: time=%0.2f ms\n",
                reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
                reply_spec.source.region,
                reply_spec.source.admin.admin_len,
                reply_spec.source.admin.admin_val,
-               0);
+               ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
+                (double)(end.tv_usec - start.tv_usec)/1000.0));
         
         sleep(1);
     }
