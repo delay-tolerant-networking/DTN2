@@ -133,8 +133,8 @@ void
 BundlePayload::serialize(oasys::SerializeAction* a)
 {
     a->process("filename",    &fname_);
-    a->process("length",      &length_);
-    a->process("base_offset", &base_offset_);
+    a->process("length",      (u_int32_t*)&length_);
+    a->process("base_offset", (u_int32_t*)&base_offset_);
 }
 
 /**

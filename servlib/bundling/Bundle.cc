@@ -102,7 +102,7 @@ Bundle::format(char* buf, size_t sz)
 {
     return snprintf(buf, sz, "bundle id %d %s -> %s (%d bytes payload)",
                     bundleid_, source_.c_str(), dest_.c_str(),
-                    payload_.length());
+                    (u_int32_t)payload_.length());
 }
 
 void
