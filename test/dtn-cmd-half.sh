@@ -34,7 +34,7 @@ if (($id == 1) || ($id == $maxnodes) || ($perhop == 1)) then
 
 
     setenv LD_LIBRARY_PATH /usr/local/BerkeleyDB.4.2/lib
-
+    setenv HOME  /users/sushjain
 
     #-l $mylogroo
      set cmd = "$myexeroot/bundleDaemon -t   -c $file >>& $info "
