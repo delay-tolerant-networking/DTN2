@@ -86,9 +86,23 @@ proc send_file {host file} {
     
     if [catch {
 	puts $sock "[file tail $file] [file size $file]"
+	flush $sock
     }] {
 	return -1
     }
+
+    # read the handshake ack
+    set got_ack -1
+    fileevent $sock readable "ack_arrived $sock"
+    set ack_timer [after 10000 ack_timeout]
+    vwait got_ack
+    
+    if {!$got_ack} {
+	puts "timeout waiting for handshake ack"
+	return -1
+    }
+
+    puts "got handshake ack -- sending file"
 
     while {![eof $fd]} {
 	if {[catch {
@@ -145,6 +159,9 @@ proc new_client {dest_dir sock addr port} {
 
 
     puts "getting file $filename length $length"
+
+    puts $sock "ACK"
+    flush $sock
     
     set to_fd [open "$dest_dir/$filename" w]
     set length_remaining($sock) $length
