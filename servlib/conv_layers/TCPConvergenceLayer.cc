@@ -1162,17 +1162,17 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
     /*
      * Check for valid magic number and version.
      */
-    if (ntohl(contacthdr.magic) != IPConvergenceLayer::MAGIC) {
+    if (ntohl(contacthdr.magic) != MAGIC) {
         log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
                  "-- disconnecting.", contacthdr.magic,
-                 IPConvergenceLayer::MAGIC);
+                 MAGIC);
         return false;
     }
 
-    if (contacthdr.version != IPConvergenceLayer::CURRENT_VERSION) {
+    if (contacthdr.version != CURRENT_VERSION) {
         log_warn("remote sent version %d, expected version %d "
                  "-- disconnecting.", contacthdr.version,
-                 IPConvergenceLayer::CURRENT_VERSION);
+                 CURRENT_VERSION);
         return false;
     }
 
