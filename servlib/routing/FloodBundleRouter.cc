@@ -40,7 +40,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
                                      BundleActionList* actions)
 {
     Bundle* bundle = event->bundleref_.bundle();
-    log_debug("FLOOD: bundle_rcv bundle id %d", bundle->bundleid_);
+    log_info("FLOOD: bundle_rcv bundle id %d", bundle->bundleid_);
     
     /*
      * Check if the bundle isn't complete. If so, do reactive
@@ -50,11 +50,13 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
      * fragmentation in the forwarder?
      */
     if (event->bytes_received_ != bundle->payload_.length()) {
-        log_debug("partial bundle, making fragment of %d bytes",
-                  event->bytes_received_);
+        log_info("XXX: PARTIAL bundle:%d, making fragment of %d bytes",
+                  bundle->bundleid_,event->bytes_received_);
         FragmentManager::instance()->
             convert_to_fragment(bundle, event->bytes_received_);
     }
+
+    // check if the bundle is received at the destination 
 
     Bundle* iter_bundle;
     BundleList::iterator iter;
@@ -71,7 +73,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     for (iter = pending_bundles_->begin(); 
          iter != pending_bundles_->end(); ++iter) {
         iter_bundle = *iter;
-        log_debug("\tpending_bundle:%d size:%d pending:%d",
+        log_info("\tpending_bundle:%d size:%d pending:%d",
                   iter_bundle->bundleid_,iter_bundle->payload_.length(),
                   iter_bundle->pendingtx());
         if(iter_bundle->bundleid_ == bundle->bundleid_) {
