@@ -160,6 +160,7 @@ main(int argc, char* argv[])
 
     // Set up components
     oasys::TimerSystem::init();
+    oasys::Log::instance()->add_reparse_handler(SIGHUP);
     oasys::Log::instance()->add_rotate_handler(SIGUSR1);
     DTNServer::init_components();
 
