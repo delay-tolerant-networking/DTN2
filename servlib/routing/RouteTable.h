@@ -2,6 +2,7 @@
 #define _BUNDLE_ROUTE_H_
 
 #include <string>
+#include <map>
 #include "bundling/BundleTuple.h"
 #include "bundling/Contact.h"
 #include "debug/Debug.h"
@@ -10,14 +11,6 @@
 
 class Bundle;
 class Interface;
-
-/**
- * An entry in the routing table.
- */
-struct RouteEntry {
-    BundleTuple next_hop_;	///< Address of the next hop contact.
-    Contact* contact_;		///< The contact object
-};
 
 /**
  * The global bundle routing table.
@@ -43,39 +36,59 @@ public:
     RouteTable();
 
     /**
+     * Destructor.
+     */
+    virtual ~RouteTable();
+
+    /**
      * Set the local region string.
      */
-    void set_region(const std::string& local_region);
-
+    void set_region(const std::string& local_region)
+    {
+        local_region_.assign(local_region);
+    }
+    
     /**
      * Add an route entry.
      */
-    void add_route(const std::string& dst_region,
-                   const std::string& next_hop_region,
-                   const std::string& next_hop_admin,
+    bool add_route(const std::string& dst_region,
+                   const BundleTuple& next_hop,
                    contact_type_t type);
 
     /**
      * Remove a route entry.
      */
-    void del_route(const std::string& dst_region,
-                   const std::string& next_hop_region,
-                   const std::string& next_hop_admin,
+    bool del_route(const std::string& dst_region,
+                   const BundleTuple& next_hop,
                    contact_type_t type);
     
     /**
      * Try to find an active next-hop contact for the given bundle.
      * Returns NULL if there is no matching valid.
+     *
+     * XXX/demmer this should be a list of contacts
      */
-    Contact* next_hop(Bundle* bundle);
+    Contact* next_hop(const Bundle* bundle);
     
     /**
      * Virtual from SerializableObject.
      */
     virtual void serialize(SerializeAction* a);
 
+    /**
+     * Debugging aid.
+     */
+    void dump();
+
 protected:
     static RouteTable* instance_;
+    std::string local_region_;
+
+    typedef std::map<std::string, Contact*> EntryMap;
+    typedef std::pair<EntryMap::iterator, bool> EntryMapInsertRet;
+
+    EntryMap local_region_table_; // indexed by admin
+    EntryMap inter_region_table_; // indexed by region
 };
 
 #endif /* _BUNDLE_ROUTE_H_ */
