@@ -13,6 +13,7 @@ BUNDLING_SRCS := 				\
 	bundling/BundleTuple.cc			\
 	bundling/Contact.cc			\
 	bundling/Interface.cc			\
+	bundling/BundleForwarding.cc		\
 
 CONV_LAYER_SRCS :=				\
 	conv_layers/ConvergenceLayer.cc		\
