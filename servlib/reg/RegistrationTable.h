@@ -129,11 +129,16 @@ public:
      */
     int delete_expired(const time_t now);
 
-    /*
+    /**
      * Dump out the registration database.
      */
     void dump(FILE* fp);
 
+    /**
+     * Dump out the registration database to the debug output
+     */
+    void dump_to_debug();
+    
 protected:
     static RegistrationTable* instance_;
     

@@ -213,4 +213,20 @@ RegistrationTable::get_matching(const BundleTuple& demux,
     return count;
 }
 
+
+void
+RegistrationTable::dump_to_debug()
+{
+    for(RegistrationList::const_iterator i = reglist_.begin();
+	i != reglist_.end(); ++i)
+    {
+	Registration* reg = *i;
+
+	log_debug("id = %u endpt = %s fa = %d",
+		  reg->regid(),
+		  reg->endpoint().c_str(),
+		  reg->failure_action());
+    }
+}
+
 } // namespace dtn
