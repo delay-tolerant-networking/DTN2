@@ -11,6 +11,7 @@
 set port 17600
 set period 1000
 
+set blocksz 8192
 
 proc time {} {
     return [clock seconds]
@@ -49,29 +50,76 @@ proc scan_dir {host dir} {
     after $period scan_dir $host $dir
 }
 
+proc ack_arrived {sock} {
+    global got_ack ack_timer
+    after cancel $ack_timer
+    set got_ack 1
+
+    set ack [gets $sock]
+    puts "ack_arrived: $ack"
+}
+
+proc ack_timeout {} {
+    global got_ack
+    set got_ack 0
+    puts "ack_timeout"
+}
+
 proc send_file {host file} {
     global port
     global logfd
+    global blocksz
+    global got_ack
+    global ack_timer
     set fd [open $file]
-    set payload [read $fd]
-    close $fd
 
-    puts "sending file $file"
+    puts "sending file $file size [file size $file]"
     puts $logfd "[time] :: sending file [file tail $file]   " 
     flush $logfd
     while  { [  catch {socket $host $port } sock] } {
 	puts "Trying to connect, will try again after  2 seconds "
 	after 2000
     }
+    
+    fconfigure $sock -translation binary
+    fconfigure $sock -encoding binary
+    
+    if [catch {
+	puts $sock "[file tail $file] [file size $file]"
+    }] {
+	return -1
+    }
 
-    if  {[ catch {puts $sock "[file tail $file]" } ]} { return -1 ; }
-    flush $sock
-    if  {[ catch {puts -nonewline $sock $payload } ]} { return -1 ; }
-    flush $sock
+    while {![eof $fd]} {
+	if {[catch {
+	    set payload [read $fd $blocksz]
+#	    puts "sending [string length $payload] byte chunk"
+	    puts -nonewline $sock $payload
+	    flush $sock
+	} ]} {
+	    return -1
+	}
+    }	
+
+    close $fd
+    
+    # wait for an ack or timeout
+    puts "sent whole file, waiting for ack"
+    fconfigure $sock -blocking 0
+    set got_ack -1
+    fileevent $sock readable "ack_arrived $sock"
+    set ack_timer [after 5000 ack_timeout]
+    vwait got_ack
 
     close $sock
-    puts " file  actually sent $file"
-    return 1;
+
+    if {$got_ack} {
+	puts " file  actually sent $file"
+	return 1
+    } else {
+	puts "file sent but not acked"
+	return -1
+    }
 }
 
 proc recv_files {dest_dir} {
@@ -83,20 +131,26 @@ proc recv_files {dest_dir} {
 
 
 proc new_client {dest_dir sock addr port} {
-    
     global conns
+    global length_remaining
 
     puts " Accept $sock from $addr port $port"
     
     # Used for debugging
     set conns(addr,$sock) [list $addr $port]
-    set filename [gets $sock]
-    set to_fd [open "$dest_dir/$filename" w]
 
-    fileevent $sock readable [list file_arrived $filename $to_fd $dest_dir $sock]
-    fconfigure $sock -buffering line
-    fconfigure $sock -blocking 0 
+    set L [gets $sock]
+    foreach {filename length} $L {}
+
+    puts "getting file $filename length $length"
     
+    set to_fd [open "$dest_dir/$filename" w]
+    set length_remaining($sock) $length
+    
+    fileevent $sock readable [list file_arrived $filename $to_fd $dest_dir $sock]
+    fconfigure $sock -blocking 0 
+    fconfigure $sock -translation binary
+    fconfigure $sock -encoding binary
 }
 
 
@@ -104,6 +158,8 @@ proc file_arrived {file to_fd dest_dir sock} {
     
     global logfd
     global conns
+    global length_remaining
+    
     if {[eof $sock]} {
 	puts "Normal Close $conns(addr,$sock) EOF received"
 	close $sock
@@ -117,9 +173,41 @@ proc file_arrived {file to_fd dest_dir sock} {
 	#	    puts "Abnormal close $conns(addr,$sock)"
 	set payload [read $sock]
 	puts -nonewline $to_fd $payload
+	set got [string length $payload]
+	set todo [expr $length_remaining($sock) - $got]
+#	puts "got $got byte chunk ($todo to go)"
+
+	if {$todo < 0} {
+	    error "negative todo"
+	}
+	
+	if {$todo == 0} {
+	    puts $sock "ack file $file"
+	    flush $sock
+	}
+	
+	set length_remaining($sock) $todo
     }
 }
 
+
+# Define a bgerror proc to print the error stack when errors occur in
+# event handlers
+proc bgerror {err} {
+    global errorInfo
+    puts "tcl error: $err\n$errorInfo"
+}
+
+proc usage {} {
+    puts "usage: simple_ftp server <dir> <logfile>"
+    puts "usage: simple_ftp client <dir> <logfile> <host>"
+    exit -1
+}
+
+set argc [llength $argv]
+if {$argc < 3} {
+    usage
+}
 
 set mode [lindex $argv 0]
 set dir  [lindex $argv 1]
