@@ -181,7 +181,7 @@ xdr_dtn_reg_id_t (XDR *xdrs, dtn_reg_id_t *objp)
 {
 	register int32_t *buf;
 
-	 if (!xdr_uint32_t (xdrs, objp))
+	 if (!xdr_u_int (xdrs, objp))
 		 return FALSE;
 	return TRUE;
 }
@@ -195,7 +195,7 @@ xdr_dtn_timeval_t (XDR *xdrs, dtn_timeval_t *objp)
 {
 	register int32_t *buf;
 
-	 if (!xdr_uint32_t (xdrs, objp))
+	 if (!xdr_u_int (xdrs, objp))
 		 return FALSE;
 	return TRUE;
 }
@@ -303,9 +303,9 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 		 return FALSE;
 	 if (!xdr_dtn_bundle_priority_t (xdrs, &objp->priority))
 		 return FALSE;
-	 if (!xdr_int32_t (xdrs, &objp->dopts))
+	 if (!xdr_int (xdrs, &objp->dopts))
 		 return FALSE;
-	 if (!xdr_int32_t (xdrs, &objp->expiration))
+	 if (!xdr_int (xdrs, &objp->expiration))
 		 return FALSE;
 	return TRUE;
 }

@@ -153,13 +153,13 @@ union dtn_info_response_t switch(enum dtn_info_request_t request)
 %/**
 % * A registration cookie.
 % */
-typedef uint32_t dtn_reg_id_t;
+typedef u_int dtn_reg_id_t;
 
 %
 %/**
 % * DTN timeouts are specified in seconds.
 % */
-typedef uint32_t dtn_timeval_t;
+typedef u_int dtn_timeval_t;
 
 %
 %/**
@@ -242,8 +242,8 @@ struct dtn_bundle_spec_t {
     dtn_tuple_t			dest;
     dtn_tuple_t			replyto;
     dtn_bundle_priority_t	priority;
-    int32_t			dopts;
-    int32_t			expiration;
+    int				dopts;
+    int				expiration;
 };
 
 %
