@@ -19,6 +19,12 @@ else
 endif
 set dest_addr = "$username@$final_ip"
     
+if($perhop == 0) then
+    set next_relay = node-$maxnodes
+else
+    set next_relay = node-$idplus
+endif
+
 #create the sendmail.mc file
 echo "Copying the sendmail template ... and copying to $logroot/sendmail-$id.mc .." >>& $info
 sudo cp -f $dtn2testroot/mail/sendmail-template.mc $logroot/sendmail-$id.mc >>& $info
@@ -79,8 +85,15 @@ echo "DAEMON=yes" > $sysconf
 echo "QUEUE=1s" >> $sysconf
 sudo cp -f $sysconf /etc/sysconfig/sendmail
 
-echo "Restarting sendmail ... " >>& $info
-sudo /etc/init.d/sendmail restart  >>& $info
+
+echo "Stopping sendmail ... " >>& $info
+sudo /etc/init.d/sendmail stop  >>& $info
+
+if($id == 1 || $id == $maxnodes) then
+    echo "Starting sendmail ... " >>& $info
+    sudo /etc/init.d/sendmail start  >>& $info
+endif
+
 
 #send all the mail now
 if ($id == 1) then
