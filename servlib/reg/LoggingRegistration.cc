@@ -66,8 +66,9 @@ LoggingRegistration::run()
             log_info("        payload (binary): %.*s", len, hex.data());
         }
 
-        BundleRouter::dispatch(
-            new BundleTransmittedEvent(b, b->payload_.length(), true));
+        BundleRouter::dispatch(new BundleTransmittedEvent(b, registration_,
+                                                          b->payload_.length(),
+                                                          true));
 
         b->del_ref();
     }

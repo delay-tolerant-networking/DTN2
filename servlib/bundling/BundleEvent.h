@@ -10,6 +10,7 @@
  */
 
 class Bundle;
+class BundleConsumer;
 class Contact;
 class Registration;
 
@@ -73,12 +74,17 @@ public:
  */
 class BundleTransmittedEvent : public BundleEvent {
 public:
-    BundleTransmittedEvent(Bundle* bundle, size_t bytes_sent, bool acked)
+    BundleTransmittedEvent(Bundle* bundle, BundleConsumer* consumer,
+                           size_t bytes_sent, bool acked)
         : BundleEvent(BUNDLE_TRANSMITTED),
-          bundleref_(bundle), bytes_sent_(bytes_sent), acked_(acked) {}
+          bundleref_(bundle), consumer_(consumer),
+          bytes_sent_(bytes_sent), acked_(acked) {}
     
     /// The transmitted bundle
     BundleRef bundleref_;
+
+    /// The contact or registration where the bundle was sent
+    BundleConsumer* consumer_;
 
     /// Total number of bytes sent
     size_t bytes_sent_;
