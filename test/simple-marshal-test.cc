@@ -41,6 +41,9 @@
 #include <oasys/serialize/MarshalSerialize.h>
 #include "bundling/Bundle.h"
 
+using namespace dtn;
+using namespace oasys;
+
 int
 main(int argc, const char** argv)
 {

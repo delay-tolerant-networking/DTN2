@@ -40,6 +40,8 @@
 #include "bundling/BundleList.h"
 #include "bundling/BundleMapping.h"
 
+using namespace dtn;
+
 #define COUNT 10
 
 // some hackery to check for mapping memory leaks
@@ -47,7 +49,7 @@
 int _Live_Mapping_Count = 0;
 
 void*
-operator new(size_t sz)
+operator new(size_t sz) throw (std::bad_alloc)
 {
     if (sz == sizeof(BundleMapping)) {
         _Live_Mapping_Count++;
@@ -60,7 +62,7 @@ operator new(size_t sz)
 }
 
 void
-operator delete(void* p)
+operator delete(void* p) throw()
 {
     p = ((size_t*)p) - 1;
     
@@ -73,7 +75,7 @@ operator delete(void* p)
 int
 main(int argc, const char** argv)
 {
-    Log::init(1, LOG_INFO);
+    oasys::Log::init(oasys::LOG_INFO);
 
     Bundle* b;
     BundleList* l;
