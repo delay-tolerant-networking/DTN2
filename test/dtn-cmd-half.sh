@@ -44,6 +44,6 @@ if (($id == 1) || ($id == $maxnodes) || ($perhop == 1)) then
      echo $cmd  >> $info
 
      ## Actually execute the command 
- 	$myexeroot/bundleDaemon  -d -t  -c $file -o $info.bd -l info >>& $info
+ 	$myexeroot/bundleDaemon  -d -t  -c $file -o $info.bd  >>& $info
 
 endif
