@@ -51,6 +51,7 @@ IO_SRCS :=					\
 	io/NetUtils.cc				\
 	io/FdIOClient.cc			\
 	io/IPSocket.cc				\
+	io/IPClient.cc				\
 	io/TCPClient.cc				\
 	io/TCPServer.cc				\
 
@@ -83,6 +84,7 @@ THREAD_SRCS :=					\
 	thread/Mutex.cc				\
 	thread/Notifier.cc			\
 	thread/Thread.cc			\
+	thread/Timer.cc				\
 
 UTIL_SRCS :=					\
 	util/StringBuffer.cc			\

@@ -8,13 +8,13 @@
 #include "debug/Log.h"
 
 TCPClient::TCPClient(const char* logbase)
-    : IPSocket(logbase, SOCK_STREAM)
+    : IPClient(logbase, SOCK_STREAM)
 {
 }
 
 TCPClient::TCPClient(int fd, in_addr_t remote_addr, u_int16_t remote_port,
                      const char* logbase)
-    : IPSocket(fd, remote_addr, remote_port, logbase)
+    : IPClient(fd, remote_addr, remote_port, logbase)
 {
 }
 
@@ -128,73 +128,4 @@ TCPClient::timeout_connect(in_addr_t remote_addr, u_int16_t remote_port,
     }
 
     return ret;
-}
-
-int
-TCPClient::read(char* bp, size_t len)
-{
-// debugging hack to make sure that callers can handle short reads
-// #define TEST_SHORT_READ
-#ifdef TEST_SHORT_READ
-    if (len > 64) {
-        int rnd = rand() % len;
-        ::logf("/test/shortread", LOG_DEBUG, "read(%d) -> read(%d)", len, rnd);
-        len = rnd;
-    }
-#endif
-    return IO::read(fd_, bp, len, logpath_);
-}
-
-int
-TCPClient::readv(const struct iovec* iov, int iovcnt)
-{
-    return IO::readv(fd_, iov, iovcnt, logpath_);
-}
-
-int
-TCPClient::write(const char* bp, size_t len)
-{
-    return IO::write(fd_, bp, len, logpath_);
-}
-
-int
-TCPClient::writev(const struct iovec* iov, int iovcnt)
-{
-    return IO::writev(fd_, iov, iovcnt, logpath_);
-}
-
-int
-TCPClient::readall(char* bp, size_t len)
-{
-    return IO::readall(fd_, bp, len, logpath_);
-}
-
-int
-TCPClient::writeall(const char* bp, size_t len)
-{
-    return IO::writeall(fd_, bp, len, logpath_);
-}
-
-int
-TCPClient::readvall(const struct iovec* iov, int iovcnt)
-{
-    return IO::readvall(fd_, iov, iovcnt, logpath_);
-}
-
-int
-TCPClient::writevall(const struct iovec* iov, int iovcnt)
-{
-    return IO::writevall(fd_, iov, iovcnt, logpath_);
-}
-
-int
-TCPClient::timeout_read(char* bp, size_t len, int timeout_ms)
-{
-    return IO::timeout_read(fd_, bp, len, timeout_ms, logpath_);
-}
-
-int
-TCPClient::timeout_readv(const struct iovec* iov, int iovcnt, int timeout_ms)
-{
-    return IO::timeout_readv(fd_, iov, iovcnt, timeout_ms, logpath_);
 }
