@@ -84,8 +84,8 @@ Bundle::add_ref()
     lock_.lock();
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
-    log_debug("/bundle/refs", "bundle id %d: refcount %d -> %d",
-              bundleid_, refcount_ - 1, refcount_);
+    log_debug("/bundle/refs", "bundle id %d: refcount %d -> %d (%d containers)",
+              bundleid_, refcount_ - 1, refcount_, containers_.size());
     lock_.unlock();
     return ret;
 }
@@ -101,8 +101,8 @@ Bundle::del_ref()
     lock_.lock();
     ASSERT(refcount_ > 0);
     int ret = --refcount_;
-    log_debug("/bundle/refs", "bundle id %d: refcount %d -> %d",
-              bundleid_, refcount_ + 1, refcount_);
+    log_debug("/bundle/refs", "bundle id %d: refcount %d -> %d (%d containers)",
+              bundleid_, refcount_ + 1, refcount_, containers_.size());
     if (refcount_ != 0) {
         lock_.unlock();
         return ret;
