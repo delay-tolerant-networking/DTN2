@@ -1,7 +1,9 @@
 
-#include "BundleProtocol.h"
 #include "Bundle.h"
+#include "BundleEvent.h"
+#include "BundleProtocol.h"
 #include "debug/Debug.h"
+#include "routing/BundleRouter.h"
 #include <netinet/in.h>
 
 int
@@ -121,14 +123,18 @@ BundleProtocol::free_iovmem(const Bundle* bundle, struct iovec* iov, int iovcnt)
 }
 
 bool
-BundleProtocol::parse_buf(Bundle* bundle, u_char* buf, size_t len)
+BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
 {
     static const char* log = "/bundle/protocol";
+
+    Bundle* bundle = new Bundle();
     
     // start off with the primary header
     if (len < sizeof(PrimaryHeader)) {
  tooshort:
         logf(log, LOG_ERR, "bundle too short (length %d)", len);
+ bail:
+        delete bundle;
         return false;
     }
     PrimaryHeader* primary = (PrimaryHeader*)buf;
@@ -138,7 +144,7 @@ BundleProtocol::parse_buf(Bundle* bundle, u_char* buf, size_t len)
     if (primary->version != CURRENT_VERSION) {
         logf(log, LOG_WARN, "protocol version mismatch %d != %d",
              primary->version, CURRENT_VERSION);
-        return false;
+        goto bail;
     }
 
     // now pull out the fields from the primary header
@@ -150,9 +156,8 @@ BundleProtocol::parse_buf(Bundle* bundle, u_char* buf, size_t len)
 
     // the dictionary header should follow
     if (primary->next_header_type != DICTIONARY) {
-        logf(log, LOG_ERR,
-             "dictionary header doesn't follow primary");
-        return false;
+        logf(log, LOG_ERR, "dictionary header doesn't follow primary");
+        goto bail;
     }
 
     if (len < sizeof(DictionaryHeader)) {
@@ -177,45 +182,42 @@ BundleProtocol::parse_buf(Bundle* bundle, u_char* buf, size_t len)
         len -= tuplelen[i] + 1;
     }
 
-    // intialize the tuple fields
+    // parse the source tuple
     bundle->source_.set_tuple(tupledata[primary->source_id],
                               tuplelen[primary->source_id]);
     if (!bundle->source_.valid()) {
-        logf(log, LOG_ERR, "invalid tuple '%s'",
-             bundle->source_.c_str());
-        return false;
+        logf(log, LOG_ERR, "invalid tuple '%s'", bundle->source_.c_str());
+        goto bail;
     }
     logf(log, LOG_DEBUG, "parsed source tuple (id %d) %s",
          primary->source_id, bundle->source_.c_str());
     
+    // parse the dest tuple
     bundle->dest_.set_tuple(tupledata[primary->dest_id],
                             tuplelen[primary->dest_id]);
     if (!bundle->dest_.valid()) {
-        logf(log, LOG_ERR, "invalid tuple '%s'",
-             bundle->dest_.c_str());
-        return false;
+        logf(log, LOG_ERR, "invalid tuple '%s'", bundle->dest_.c_str());
+        goto bail;
     }
     logf(log, LOG_DEBUG, "parsed dest tuple (id %d) %s",
          primary->dest_id, bundle->dest_.c_str());
     
-    
+    // parse the replyto tuple
     bundle->replyto_.set_tuple(tupledata[primary->replyto_id],
                                tuplelen[primary->replyto_id]);
     if (!bundle->replyto_.valid()) {
-        logf(log, LOG_ERR, "invalid tuple '%s'",
-             bundle->replyto_.c_str());
-        return false;
+        logf(log, LOG_ERR, "invalid tuple '%s'", bundle->replyto_.c_str());
+        goto bail;
     }
     logf(log, LOG_DEBUG, "parsed replyto tuple (id %d) %s",
          primary->replyto_id, bundle->replyto_.c_str());
     
-    
+    // parse the custodian tuple
     bundle->custodian_.set_tuple(tupledata[primary->custodian_id],
                                  tuplelen[primary->custodian_id]);
     if (!bundle->custodian_.valid()) {
-        logf(log, LOG_ERR, "invalid tuple '%s'",
-             bundle->custodian_.c_str());
-        return false;
+        logf(log, LOG_ERR, "invalid tuple '%s'", bundle->custodian_.c_str());
+        goto bail;
     }
     logf(log, LOG_DEBUG, "parsed custodian tuple (id %d) %s",
          primary->custodian_id, bundle->custodian_.c_str());
@@ -239,8 +241,16 @@ BundleProtocol::parse_buf(Bundle* bundle, u_char* buf, size_t len)
     len -= payloadlen;
     if (len != 0) {
         logf(log, LOG_ERR, "got %d extra bytes in bundle", len);
-        return false;
+        goto bail;
     }
+
+    // Bundle looks good. Notify the router of the new arrival
+    BundleRouter::dispatch(new BundleReceivedEvent(bundle));
+    ASSERT(bundle->refcount() > 0);
+
+    // If the caller requests it, return a pointer to the new bundle.
+    if (bundlep)
+        *bundlep = bundle;
     
     return true;
 }

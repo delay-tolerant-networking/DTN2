@@ -12,8 +12,8 @@ class Bundle;
 class BundleProtocol {
 public:
     /**
-     * Fill in an iovec suitable for writev for sending the bundle
-     * payload data on the network.
+     * Fill in an iovec suitable for a call to writev to send the
+     * bundle on the "wire".
      *
      * @return false if iovcnt isn't big enough
      */
@@ -27,10 +27,10 @@ public:
                             struct iovec* iov, int iovcnt);
 
     /**
-     * Parse the flattened buffer and fill in the fields of the
-     * bundle.
+     * Parse the buffer into a new bundle and pass it to the routing
+     * layer for consumption.
      */
-    static bool parse_buf(Bundle* bundle, u_char* buf, size_t len);
+    static bool process_buf(u_char* buf, size_t len, Bundle** bundlep = 0);
 
 protected:
     /**
