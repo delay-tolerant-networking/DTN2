@@ -188,7 +188,7 @@ proc recv_files {dest_dir} {
 proc new_client {dest_dir sock addr port} {
     global conns
 
-    puts " Accept $sock from $addr port $port"
+    puts "[time] Accept $sock from $addr port $port"
     
     # Used for debugging
     set conns(addr,$sock) [list $addr $port]
