@@ -55,7 +55,7 @@ TrAgent::TrAgent(Node* node, const BundleTuple& src, const BundleTuple& dst)
 }
 
 TrAgent*
-TrAgent::init(Node* node, int start_time, 
+TrAgent::init(Node* node, double start_time, 
               const BundleTuple& src, const BundleTuple& dst,
               int argc, const char** argv)
 {
@@ -65,7 +65,7 @@ TrAgent::init(Node* node, int start_time,
     p.addopt(new oasys::IntOpt("size", &a->size_));
     p.addopt(new oasys::IntOpt("reps", &a->reps_));
     p.addopt(new oasys::IntOpt("batch", &a->batch_));
-    p.addopt(new oasys::IntOpt("interval", &a->interval_));
+    p.addopt(new oasys::DoubleOpt("interval", &a->interval_));
 
     const char* invalid;
     if (! p.parse(argc, argv, &invalid)) {
@@ -101,7 +101,7 @@ TrAgent::process(SimEvent* e)
 	}
         
 	if (--reps_ > 0) {
-	    int sendtime = Simulator::time() + interval_;
+	    double sendtime = Simulator::time() + interval_;
 	    Simulator::post(new SimEvent(SIM_NEXT_SENDTIME, sendtime, this));
         }
 	else {

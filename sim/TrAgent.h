@@ -50,7 +50,7 @@ class Node;
 
 class TrAgent : public SimEventHandler, public oasys::Logger {
 public:
-    static TrAgent* init(Node* node, int start_time,
+    static TrAgent* init(Node* node, double start_time,
                          const BundleTuple& src, const BundleTuple& dst,
                          int argc, const char** argv);
 
@@ -69,7 +69,7 @@ private:
     int size_;		///< size of each message
     int reps_;		///< total number of reps/batches
     int batch_;		///< no of messages in each batch
-    int interval_;	///< time gap between two batches
+    double interval_;	///< time gap between two batches
 };
 
 } // namespace dtnsim

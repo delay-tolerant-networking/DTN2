@@ -69,7 +69,7 @@ public:
         instance_ = instance;
     }
 
-    static int time() { return instance_->time_; }
+    static double time() { return instance_->time_; }
 
     /**
      * Constructor.
@@ -96,7 +96,7 @@ public:
      */
     void run();
     
-    static int runtill_;		///< time to end the simulation
+    static double runtill_;		///< time to end the simulation
     
 protected:
     static Simulator* instance_;	///< singleton instance
@@ -104,7 +104,7 @@ protected:
 
 private:
     
-    int time_;		///< current time
+    double time_;	///< current time
 
     bool is_running_;	///< maintains the state if the simulator is
     			///< running or paused

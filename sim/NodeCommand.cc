@@ -80,7 +80,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     // pull out the time and subcommand
     char* end;
-    int time = strtol(argv[1], &end, 10);
+    double time = strtod(argv[1], &end);
     if (*end != '\0') {
         resultf("time value '%s' invalid", argv[1]);
         return TCL_ERROR;

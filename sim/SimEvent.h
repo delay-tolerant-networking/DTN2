@@ -95,11 +95,11 @@ public:
     /**
      * Constructor 
      */
-    SimEvent(sim_event_type_t type, int time, SimEventHandler *handler)
+    SimEvent(sim_event_type_t type, double time, SimEventHandler *handler)
         : type_(type), time_(time), handler_(handler), valid_(true) {}
 
     SimEventHandler* handler()  { return handler_; }
-    int time()               { return time_ ; }
+    double time()               { return time_ ; }
     bool is_valid()          { return valid_; }
     sim_event_type_t type()  { return type_ ; }
     const char* type_str()   { return sim_ev2str(type_); }
@@ -108,7 +108,7 @@ public:
 
 private:
     sim_event_type_t type_;	///< Type of the event
-    int time_; 		      	///< Time when the event will fire
+    double time_;	      	///< Time when the event will fire
     SimEventHandler* handler_;	///< Handler that will process the event
     bool valid_;		///< Indicator if the event was cancelled
 };
@@ -138,7 +138,7 @@ public:
  ******************************************************************/
 class SimRouterEvent : public SimEvent {
 public:
-    SimRouterEvent(int time, SimEventHandler* handler, BundleEvent* event)
+    SimRouterEvent(double time, SimEventHandler* handler, BundleEvent* event)
 	: SimEvent(SIM_ROUTER_EVENT, time, handler), event_(event) {}
     
     BundleEvent* event_;
@@ -151,7 +151,7 @@ public:
  ******************************************************************/
 class SimAddLinkEvent : public SimEvent {
 public:
-    SimAddLinkEvent(int time, SimEventHandler* handler, Link* link)
+    SimAddLinkEvent(double time, SimEventHandler* handler, Link* link)
 	: SimEvent(SIM_ADD_LINK, time, handler), link_(link) {}
     
     Link* link_;
@@ -164,7 +164,7 @@ public:
  ******************************************************************/
 class SimDelLinkEvent : public SimEvent {
 public:
-    SimDelLinkEvent(int time, SimEventHandler* handler, Link* link)
+    SimDelLinkEvent(double time, SimEventHandler* handler, Link* link)
 	: SimEvent(SIM_DEL_LINK, time, handler), link_(link) {}
     
     Link* link_;
@@ -177,7 +177,7 @@ public:
  ******************************************************************/
 class SimAddRouteEvent : public SimEvent {
 public:
-    SimAddRouteEvent(int time, SimEventHandler* handler,
+    SimAddRouteEvent(double time, SimEventHandler* handler,
                      const BundleTuplePattern& dest, const char* nexthop)
 	: SimEvent(SIM_ADD_ROUTE, time, handler),
           dest_(dest), nexthop_(nexthop) {}
@@ -193,7 +193,7 @@ public:
  ******************************************************************/
 class SimConnectivityEvent : public SimEvent {
 public:
-    SimConnectivityEvent(int time, SimEventHandler* handler,
+    SimConnectivityEvent(double time, SimEventHandler* handler,
                          const char* n1, const char* n2, ConnState* state)
     : SimEvent(SIM_CONNECTIVITY, time, handler),
       n1_(n1), n2_(n2), state_(state) {}

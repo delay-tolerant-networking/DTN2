@@ -43,7 +43,7 @@ namespace dtnsim {
 
 Simulator* Simulator::instance_; ///< singleton instance
 
-int Simulator::runtill_ = -1;
+double Simulator::runtill_ = -1;
 
 Simulator::Simulator() 
     : Logger ("/sim/main"),
@@ -95,20 +95,20 @@ Simulator::run()
             if (e->is_valid()) {
                 ASSERT(e->handler() != NULL);
                 /* Process the event */
-                log_debug("Event:%p type %s at time %d",
+                log_debug("Event:%p type %s at time %f",
                            e, e->type_str(), time_);
                 e->handler()->process(e);
             }
             if ((Simulator::runtill_ != -1) &&
                 (time_ > Simulator::runtill_)) {
                 log_info("Exiting simulation. "
-                         "Current time (%d) > Max time (%d)",
+                         "Current time (%f) > Max time (%f)",
                          time_, Simulator::runtill_);
                 exit();
             }
         } // if is_running_
     }
-    log_info("eventq is empty, time is %d", time_);
+    log_info("eventq is empty, time is %f", time_);
 }
 
 

@@ -47,8 +47,9 @@ LogSim::LogSim() : Log()
 void
 LogSim::getlogtime(struct timeval* t) 
 {
-    t->tv_sec = (long int) Simulator::time();
-    t->tv_usec = 0;
+    double now = Simulator::time();
+    t->tv_sec = (long int) now;
+    t->tv_usec = (int) ((now - t->tv_sec) * 100000.0);
 }
 
 void
