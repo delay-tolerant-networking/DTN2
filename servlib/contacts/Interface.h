@@ -33,9 +33,6 @@ protected:
     Interface(const BundleTuple& tuple,
               ConvergenceLayer* clayer);
     ~Interface();
-
-    static Interface* if_list_;		///< list of all interfaces
-    Interface* next_;			///< linkage for all interfaces
     
     BundleTuple tuple_;			///< Local tuple of the interface
     ConvergenceLayer* clayer_;		///< Convergence layer to use
