@@ -2,7 +2,7 @@
 #define _FILE_CONVERGENCE_LAYER_H_
 
 #include "ConvergenceLayer.h"
-#include "thread/Thread.h"
+#include <oasys/thread/Thread.h>
 
 class FileConvergenceLayer : public ConvergenceLayer {
 public:

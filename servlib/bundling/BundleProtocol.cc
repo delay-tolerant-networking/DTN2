@@ -1,10 +1,12 @@
 
-#include "Bundle.h"
-#include "BundleProtocol.h"
-#include "debug/Debug.h"
-#include "util/StringUtils.h"
 #include <netinet/in.h>
 #include <algorithm>
+
+#include <oasys/debug/Debug.h>
+#include <oasys/util/StringUtils.h>
+
+#include "Bundle.h"
+#include "BundleProtocol.h"
 
 /**
  * For the region and admin parts of the given tuple, fill in the

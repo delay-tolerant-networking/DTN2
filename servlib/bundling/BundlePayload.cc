@@ -1,9 +1,10 @@
 
 #include <sys/errno.h>
+#include <oasys/debug/Debug.h>
+#include <oasys/thread/SpinLock.h>
+#include <oasys/util/StringBuffer.h>
+
 #include "BundlePayload.h"
-#include "debug/Debug.h"
-#include "thread/SpinLock.h"
-#include "util/StringBuffer.h"
 
 /*
  * Configurable settings.

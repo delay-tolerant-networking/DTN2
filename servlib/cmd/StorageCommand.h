@@ -1,7 +1,7 @@
 #ifndef _STORAGE_COMMAND_H_
 #define _STORAGE_COMMAND_H_
 
-#include "tclcmd/TclCommand.h"
+#include <oasys/tclcmd/TclCommand.h>
 
 /**
  * Class to control the storage system.

@@ -3,8 +3,9 @@
 
 #if __MYSQL_ENABLED__
 
-#include "debug/Debug.h"
-#include "debug/Log.h"
+#include <oasys/debug/Debug.h>
+#include <oasys/debug/Log.h>
+
 #include "MysqlSQLImplementation.h"
 
 MysqlSQLImplementation::MysqlSQLImplementation()

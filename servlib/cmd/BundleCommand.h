@@ -1,7 +1,7 @@
 #ifndef _BUNDLE_COMMAND_H_
 #define _BUNDLE_COMMAND_H_
 
-#include "tclcmd/TclCommand.h"
+#include <oasys/tclcmd/TclCommand.h>
 
 /**
  * Debug command for hand manipulation of bundles.

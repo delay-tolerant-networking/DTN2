@@ -1,9 +1,10 @@
 #ifndef _UDP_CONVERGENCE_LAYER_H_
 #define _UDP_CONVERGENCE_LAYER_H_
 
+#include <oasys/io/UDPClient.h>
+#include <oasys/thread/Thread.h>
+
 #include "IPConvergenceLayer.h"
-#include "io/UDPClient.h"
-#include "thread/Thread.h"
 
 class UDPConvergenceLayer : public IPConvergenceLayer {
 public:

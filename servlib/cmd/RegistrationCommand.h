@@ -1,7 +1,7 @@
 #ifndef _REGISTRATION_COMMAND_H_
 #define _REGISTRATION_COMMAND_H_
 
-#include "tclcmd/TclCommand.h"
+#include <oasys/tclcmd/TclCommand.h>
 
 /**
  * The "registration" command.

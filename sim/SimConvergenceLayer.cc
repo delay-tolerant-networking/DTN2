@@ -1,12 +1,9 @@
-#include "SimConvergenceLayer.h"
 
+#include <oasys/util/StringBuffer.h>
+
+#include "SimConvergenceLayer.h"
 #include "Topology.h"
 #include "bundling/BundleList.h"
-#include "util/StringBuffer.h"
-
-#include <string.h>
-#include <iostream>
-#include <sstream>
 
 /******************************************************************************
  *

@@ -1,4 +1,6 @@
 
+#include <stdlib.h>
+
 #include "BundleRouter.h"
 #include "RouteTable.h"
 #include "bundling/Bundle.h"
@@ -7,7 +9,6 @@
 #include "bundling/Contact.h"
 #include "bundling/FragmentManager.h"
 #include "reg/Registration.h"
-#include <stdlib.h>
 
 #include "StaticBundleRouter.h"
 #include "FloodBundleRouter.h"

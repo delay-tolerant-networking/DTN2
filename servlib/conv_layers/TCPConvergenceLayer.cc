@@ -1,4 +1,12 @@
 
+#include <sys/poll.h>
+#include <stdlib.h>
+
+#include <oasys/io/NetUtils.h>
+#include <oasys/thread/Timer.h>
+#include <oasys/util/URL.h>
+#include <oasys/util/StringBuffer.h>
+
 #include "TCPConvergenceLayer.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
@@ -6,13 +14,6 @@
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
 #include "bundling/FragmentManager.h"
-#include "io/NetUtils.h"
-#include "thread/Timer.h"
-#include "util/URL.h"
-#include "util/StringBuffer.h"
-
-#include <sys/poll.h>
-#include <stdlib.h>
 
 struct TCPConvergenceLayer::_defaults TCPConvergenceLayer::Defaults;
 

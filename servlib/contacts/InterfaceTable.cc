@@ -2,7 +2,6 @@
 #include "InterfaceTable.h"
 #include "BundleTuple.h"
 #include "conv_layers/ConvergenceLayer.h"
-#include "debug/Debug.h"
 
 InterfaceTable* InterfaceTable::instance_ = NULL;
 

@@ -3,14 +3,16 @@
 
 #if __DB_ENABLED__
 
-#include "BerkeleyDBStore.h"
-#include "StorageConfig.h"
-#include "serialize/MarshalSerialize.h"
-#include "util/StringBuffer.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/errno.h>
 #include <unistd.h>
+
+#include <oasys/serialize/MarshalSerialize.h>
+#include <oasys/util/StringBuffer.h>
+
+#include "BerkeleyDBStore.h"
+#include "StorageConfig.h"
 
 #define NO_TX  0 // for easily going back and changing TX id's later
 

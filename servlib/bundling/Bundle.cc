@@ -1,10 +1,11 @@
 
+#include <oasys/debug/Debug.h>
+#include <oasys/thread/SpinLock.h>
+
 #include "Bundle.h"
 #include "BundleList.h"
 #include "BundleMapping.h"
-#include "thread/SpinLock.h"
 #include "storage/GlobalStore.h"
-#include "debug/Debug.h"
 
 void
 Bundle::init(u_int32_t id, BundlePayload::location_t location)

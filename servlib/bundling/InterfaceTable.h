@@ -3,7 +3,7 @@
 
 #include <string>
 #include <list>
-#include "debug/Debug.h"
+#include <oasys/debug/Debug.h>
 
 class Interface;
 

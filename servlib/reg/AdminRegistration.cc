@@ -1,9 +1,10 @@
 
+#include <oasys/util/StringBuffer.h>
+
 #include "AdminRegistration.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleProtocol.h"
 #include "routing/BundleRouter.h"
-#include "util/StringBuffer.h"
 
 AdminRegistration::AdminRegistration()
     : Registration(BundleRouter::local_tuple_, ABORT)

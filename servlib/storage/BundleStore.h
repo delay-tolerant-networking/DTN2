@@ -2,7 +2,7 @@
 #define _BUNDLE_STORE_H_
 
 #include <vector>
-#include "debug/Debug.h"
+#include <oasys/debug/Debug.h>
 
 class Bundle;
 class BundleList;

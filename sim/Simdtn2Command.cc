@@ -1,9 +1,10 @@
 
+#include <oasys/util/StringBuffer.h>
+
 #include "bundling/Contact.h"
 #include "bundling/BundleEvent.h"
 
 #include "routing/RouteTable.h"
-#include "util/StringBuffer.h"
 #include "routing/BundleRouter.h"
 #include "Event.h"
 #include "Simulator.h"

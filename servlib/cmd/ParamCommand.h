@@ -1,7 +1,7 @@
 #ifndef _PARAM_COMMAND_H_
 #define _PARAM_COMMAND_H_
 
-#include "tclcmd/TclCommand.h"
+#include <oasys/tclcmd/TclCommand.h>
 
 /**
  * Parameter setting command

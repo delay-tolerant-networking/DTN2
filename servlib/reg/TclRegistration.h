@@ -1,11 +1,12 @@
 #ifndef _TCL_REGISTRATION_H_
 #define _TCL_REGISTRATION_H_
 
+#include <oasys/debug/Log.h>
+#include <oasys/tclcmd/TclCommand.h>
+#include <oasys/thread/Thread.h>
+
 #include "Registration.h"
 #include "bundling/BundleTuple.h"
-#include "debug/Log.h"
-#include "tclcmd/TclCommand.h"
-#include "thread/Thread.h"
 
 /**
  * A simple utility class used mostly for testing registrations.

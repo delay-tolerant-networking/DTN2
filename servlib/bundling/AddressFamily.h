@@ -1,8 +1,8 @@
 #ifndef _ADDRESS_FAMILY_H_
 #define _ADDRESS_FAMILY_H_
 
-#include "debug/Debug.h"
-#include "util/StringUtils.h"
+#include <oasys/debug/Debug.h>
+#include <oasys/util/StringUtils.h>
 
 /**
  * To support different types of addressing within different regions,

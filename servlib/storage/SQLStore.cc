@@ -3,11 +3,12 @@
 
 #if __SQL_ENABLED__
 
+#include <oasys/debug/Debug.h>
+#include <oasys/serialize/SQLImplementation.h>
+
 #include "SQLStore.h"
 #include "StorageConfig.h"
 #include "bundling/Bundle.h"
-#include "debug/Debug.h"
-#include "serialize/SQLImplementation.h"
 
 /**
  * Constructor.

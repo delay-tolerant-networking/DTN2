@@ -1,8 +1,9 @@
 
+#include <oasys/debug/Debug.h>
+
 #include "BundleTuple.h"
 #include "AddressFamily.h"
 #include "applib/dtn_types.h"
-#include "debug/Debug.h"
 
 BundleTuple::BundleTuple()
     : valid_(false)

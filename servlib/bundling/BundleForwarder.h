@@ -1,10 +1,11 @@
 #ifndef _BUNDLE_FORWARDING_H_
 #define _BUNDLE_FORWARDING_H_
 
-#include "debug/Log.h"
-#include "thread/Thread.h"
-#include "thread/MsgQueue.h"
 #include <vector>
+
+#include <oasys/debug/Log.h>
+#include <oasys/thread/Thread.h>
+#include <oasys/thread/MsgQueue.h>
 
 class Bundle;
 class BundleAction;

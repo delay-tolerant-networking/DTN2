@@ -1,9 +1,9 @@
 #ifndef __FRAGMENT_MANAGER_H__
 #define __FRAGMENT_MANAGER_H__
 
-#include "debug/Log.h"
 #include <string>
-#include "util/StringUtils.h"
+#include <oasys/debug/Log.h>
+#include <oasys/util/StringUtils.h>
 
 class Bundle;
 class BundleList;

@@ -6,8 +6,8 @@
 #define _SIM_CONTACT_H_
 
 
-#include "debug/Debug.h"
-#include "debug/Log.h"
+#include <oasys/debug/Debug.h>
+#include <oasys/debug/Log.h>
 
 
 #include "Node.h"

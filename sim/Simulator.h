@@ -5,8 +5,8 @@
 #include <queue>
 #include "Event.h"
 
-#include "debug/Debug.h"
-#include "debug/Log.h"
+#include <oasys/debug/Debug.h>
+#include <oasys/debug/Log.h>
 
 
 class Event;

@@ -1,9 +1,9 @@
 #ifndef _POSTGRES_SQL_IMPLEMENTATION_H_
 #define _POSTGRES_SQL_IMPLEMENTATION_H_
 
-#include "libpq-fe.h"
-#include "debug/Log.h"
-#include "serialize/SQLImplementation.h"
+#include <libpq-fe.h>
+#include <oasys/debug/Log.h>
+#include <oasys/serialize/SQLImplementation.h>
 
 /**
  * Postgres based implementation of SQL database.

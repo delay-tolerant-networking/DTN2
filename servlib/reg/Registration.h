@@ -3,10 +3,12 @@
 
 #include <list>
 #include <string>
+
+#include <oasys/debug/Log.h>
+#include <oasys/serialize/Serialize.h>
+
 #include "bundling/BundleConsumer.h"
 #include "bundling/BundleTuple.h"
-#include "debug/Log.h"
-#include "serialize/Serialize.h"
 
 class Bundle;
 class BundleList;

@@ -1,6 +1,7 @@
 
 #include <stdio.h>
-#include "debug/Log.h"
+#include <oasys/debug/Log.h>
+
 #include "bundling/Bundle.h"
 
 #include "storage/PostgresSQLImplementation.h"

@@ -1,7 +1,7 @@
 #ifndef _API_COMMAND_H_
 #define _API_COMMAND_H_
 
-#include "tclcmd/TclCommand.h"
+#include <oasys/tclcmd/TclCommand.h>
 
 /**
  * API options command

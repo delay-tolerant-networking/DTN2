@@ -1,7 +1,7 @@
 #ifndef _BUNDLE_MAPPING_H_
 #define _BUNDLE_MAPPING_H_
 
-#include "debug/Debug.h"
+#include <oasys/debug/Debug.h>
 #include "BundleList.h"
 
 /**

@@ -1,7 +1,7 @@
 #ifndef _SIMULATOR_COMMAND_H_
 #define _SIMULATOR_COMMAND_H_
 
-#include "tclcmd/TclCommand.h"
+#include <oasys/tclcmd/TclCommand.h>
 
 /**
  * Class to control the simulator

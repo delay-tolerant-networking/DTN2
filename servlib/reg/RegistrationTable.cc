@@ -2,7 +2,6 @@
 #include "RegistrationTable.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
-#include "debug/Debug.h"
 #include "storage/RegistrationStore.h"
 
 RegistrationTable* RegistrationTable::instance_ = NULL;

@@ -1,4 +1,6 @@
 
+#include <oasys/util/StringBuffer.h>
+
 #include "Bundle.h"
 #include "BundleAction.h"
 #include "BundleList.h"
@@ -6,7 +8,6 @@
 #include "Contact.h"
 #include "routing/BundleRouter.h"
 #include "storage/BundleStore.h"
-#include "util/StringBuffer.h"
 
 BundleForwarder* BundleForwarder::instance_ = NULL;
 

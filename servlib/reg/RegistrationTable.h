@@ -2,8 +2,9 @@
 #define _REGISTRATION_TABLE_H_
 
 #include <string>
+#include <oasys/debug/Debug.h>
+
 #include "Registration.h"
-#include "debug/Debug.h"
 
 class RegistrationStore;
 

@@ -2,9 +2,9 @@
 #define _BUNDLE_PAYLOAD_H_
 
 #include <string>
-#include "serialize/Serialize.h"
-#include "debug/Debug.h"
-#include "io/FileIOClient.h"
+#include <oasys/serialize/Serialize.h>
+#include <oasys/debug/Debug.h>
+#include <oasys/io/FileIOClient.h>
 
 /**
  * The representation of a bundle payload.

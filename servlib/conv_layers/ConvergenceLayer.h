@@ -2,7 +2,7 @@
 #define _CONVERGENCE_LAYER_H_
 
 #include <string>
-#include "debug/Log.h"
+#include <oasys/debug/Log.h>
 #include "bundling/Contact.h"
 #include "bundling/Interface.h"
 

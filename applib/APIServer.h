@@ -1,11 +1,12 @@
 #ifndef _APISERVER_H_
 #define _APISERVER_H_
 
+#include <oasys/debug/Log.h>
+#include <oasys/thread/Thread.h>
+
 #include "dtn_api.h"
 #include "dtn_ipc.h"
 #include "dtn_types.h"
-#include "debug/Log.h"
-#include "thread/Thread.h"
 
 class UDPClient;
 class RegistrationList;

@@ -1,6 +1,6 @@
 
-#include "serialize/Serialize.h"
 #include <vector>
+#include <oasys/serialize/Serialize.h>
 
 /**
  * The abstract base class implementing a persistent storage system.

@@ -3,10 +3,10 @@
 
 #if __POSTGRES_ENABLED__
 
-#include "PostgresSQLImplementation.h"
-#include "debug/Debug.h"
-#include "util/StringBuffer.h"
 #include <string.h>
+#include <oasys/debug/Debug.h>
+#include <oasys/util/StringBuffer.h>
+#include "PostgresSQLImplementation.h"
 
 PostgresSQLImplementation::PostgresSQLImplementation()
     : SQLImplementation("BYTEA", "BOOLEAN"),

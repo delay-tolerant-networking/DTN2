@@ -1,8 +1,8 @@
 #ifndef _GLOBAL_STORE_H_
 #define _GLOBAL_STORE_H_
 
-#include "serialize/Serialize.h"
-#include "debug/Debug.h"
+#include <oasys/debug/Debug.h>
+#include <oasys/serialize/Serialize.h>
 
 /**
  * Abstract base class for those elements of the router that need to

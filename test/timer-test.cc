@@ -1,8 +1,8 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include "thread/Timer.h"
-#include "debug/Log.h"
+#include <oasys/thread/Timer.h>
+#include <oasys/debug/Log.h>
 
 class PeriodicTimer : public Timer {
   public:

@@ -2,7 +2,7 @@
 #define _BUNDLE_LIST_H_
 
 #include <list>
-#include "thread/Notifier.h"
+#include <oasys/thread/Notifier.h>
 
 class Bundle;
 class BundleMapping;

@@ -3,7 +3,7 @@
 
 #include "BundleTuple.h"
 #include "Contact.h"
-#include "debug/Log.h"
+#include <oasys/debug/Log.h>
 
 class ConvergenceLayer;
 class InterfaceInfo;

@@ -3,7 +3,7 @@
 
 #include <db_cxx.h>
 #include "PersistentStore.h"
-#include "debug/Log.h"
+#include <oasys/debug/Log.h>
 
 class BerkeleyDBManager;
 class SerializableObject;

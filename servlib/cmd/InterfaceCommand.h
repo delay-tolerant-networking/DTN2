@@ -1,7 +1,7 @@
 #ifndef _INTERFACE_COMMAND_H_
 #define _INTERFACE_COMMAND_H_
 
-#include "tclcmd/TclCommand.h"
+#include <oasys/tclcmd/TclCommand.h>
 
 /**
  * CommandModule for the "interface" command.

@@ -1,7 +1,7 @@
 #ifndef _ROUTE_COMMAND_H_
 #define _ROUTE_COMMAND_H_
 
-#include "tclcmd/TclCommand.h"
+#include <oasys/tclcmd/TclCommand.h>
 
 /**
  * The "route" command.

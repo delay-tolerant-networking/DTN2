@@ -6,10 +6,11 @@ class BundleList;
 class ContactInfo;
 class ConvergenceLayer;
 
+#include <oasys/debug/Debug.h>
+#include <oasys/debug/Formatter.h>
+
 #include "BundleConsumer.h"
 #include "BundleTuple.h"
-#include "debug/Debug.h"
-#include "debug/Formatter.h"
 
 /**
  * Valid types for a contact.

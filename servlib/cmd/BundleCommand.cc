@@ -1,9 +1,10 @@
 
+#include <oasys/util/StringBuffer.h>
+
 #include "BundleCommand.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
-#include "util/StringBuffer.h"
 
 BundleCommand::BundleCommand()
     : TclCommand("bundle") {}

@@ -4,10 +4,10 @@
 #include <string>
 #include <sys/time.h>
 
-#include <debug/Log.h>
-#include <tclcmd/TclCommand.h>
-#include <thread/Timer.h>
-#include <util/Options.h>
+#include <oasys/debug/Log.h>
+#include <oasys/tclcmd/TclCommand.h>
+#include <oasys/thread/Timer.h>
+#include <oasys/util/Options.h>
 
 #include "applib/APIServer.h"
 #include "cmd/TestCommand.h"

@@ -1,11 +1,12 @@
 
+#include <oasys/util/StringUtils.h>
+
 #include "LoggingRegistration.h"
 #include "Registration.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
-#include "util/StringUtils.h"
 
 LoggingRegistration::LoggingRegistration(const BundleTuplePattern& endpoint)
     : Registration(endpoint, Registration::ABORT)

@@ -7,8 +7,8 @@
  */
 
 #include <vector>
-#include "debug/Debug.h"
-#include "debug/Log.h"
+#include <oasys/debug/Debug.h>
+#include <oasys/debug/Log.h>
 
 class Node;
 class SimContact;

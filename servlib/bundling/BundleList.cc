@@ -1,9 +1,10 @@
 
+#include <algorithm>
+#include <oasys/thread/SpinLock.h>
+
 #include "Bundle.h"
 #include "BundleList.h"
 #include "BundleMapping.h"
-#include "thread/SpinLock.h"
-#include <algorithm>
 
 // XXX/demmer want some sort of expiration handler registration per
 // list so things know when their bundles have been expired

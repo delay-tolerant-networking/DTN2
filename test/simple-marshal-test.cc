@@ -1,8 +1,8 @@
 
 #include <stdio.h>
-#include "debug/Log.h"
+#include <oasys/debug/Log.h>
+#include <oasys/serialize/MarshalSerialize.h>
 #include "bundling/Bundle.h"
-#include "serialize/MarshalSerialize.h"
 
 int
 main(int argc, const char** argv)

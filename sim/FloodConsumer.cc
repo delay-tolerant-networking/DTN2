@@ -1,6 +1,8 @@
+
+#include <oasys/util/StringUtils.h>
+
 #include "FloodConsumer.h"
 #include "reg/Registration.h"
-#include "util/StringUtils.h"
 
 FloodConsumer::FloodConsumer(u_int32_t regid,
                              const BundleTuplePattern& endpoint)

@@ -1,7 +1,7 @@
 #ifndef _LOG_SIM_H
 #define _LOG_SIM_H
 
-#include "debug/Log.h"
+#include <oasys/debug/Log.h>
 
 
 class LogSim : public Log {

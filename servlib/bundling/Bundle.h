@@ -1,13 +1,15 @@
 #ifndef _BUNDLE_H_
 #define _BUNDLE_H_
 
+#include <map>
+#include <sys/time.h>
+
+#include <oasys/debug/Formatter.h>
+#include <oasys/serialize/Serialize.h>
+#include <oasys/thread/SpinLock.h>
+
 #include "BundlePayload.h"
 #include "BundleTuple.h"
-#include "debug/Formatter.h"
-#include "serialize/Serialize.h"
-#include "thread/SpinLock.h"
-#include <sys/time.h>
-#include <map>
 
 class BundleList;
 class BundleMapping;

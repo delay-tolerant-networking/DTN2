@@ -1,9 +1,10 @@
 #ifndef _TCP_CONVERGENCE_LAYER_H_
 #define _TCP_CONVERGENCE_LAYER_H_
 
+#include <oasys/io/TCPClient.h>
+#include <oasys/io/TCPServer.h>
+
 #include "IPConvergenceLayer.h"
-#include "io/TCPClient.h"
-#include "io/TCPServer.h"
 
 class TCPConvergenceLayer : public IPConvergenceLayer {
 public:

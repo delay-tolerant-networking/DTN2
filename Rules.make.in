@@ -40,7 +40,7 @@ LIBDIR  = @LIBDIR@
 MANDIR  = @MANDIR@
 INCDIR  = @INCDIR@
 
-INCDIRS := -I$(SRCDIR) -I$(SRCDIR)/oasys -I$(SRCDIR)/servlib
+INCDIRS := -I$(SRCDIR) -I$(SRCDIR)/servlib
 
 #
 # Common settings extracted from the configure script
