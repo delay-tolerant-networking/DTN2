@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 #include "Lock.h"
-#include "Logger.h"
+#include "debug/Logger.h"
 
 /// Mutex wrapper class for pthread_mutex_t.
 class Mutex : public Lock, public Logger {
