@@ -1,13 +1,8 @@
 #!/bin/csh
 
-# Usage: ./gentop.sh <expname> <maxnodes> <nfiles> <size> <proto> <perhop> <loss> <bw>
-# perhop is 0 or 1, 0 if e2e , 1 if perhop
-
-# Example: ./gentop.sh try 3 10 10000 tcp 0 0.1 1Mb
-
   if ($#argv != 8) then
         echo "Usage: $0 <expname> <maxnodes> <nfiles> <size> <proto> <perhop> <loss> <bw>"
-       	echo "Example: $0 try 3 10 10000 tcp 0"
+       	echo "Example: $0 try 3 10 10000 tcp 0 0.1 1Mb"
 	echo " This will generate a file name <expname.emu> "
     exit
     endif

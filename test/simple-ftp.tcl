@@ -56,7 +56,7 @@ proc send_file {host file} {
 
 proc recv_files {dest_dir} {
     global port
-    puts "waiting for files: dest $dest_dir"
+    puts "waiting for files:  $dest_dir"
     socket -server "file_arrived $dest_dir" $port
 }
 
@@ -79,9 +79,10 @@ set dir  [lindex $argv 1]
 set logfile  [lindex $argv 2]
 set logfd [open $logfile w]
 
+puts $logfd "[clock format [clock seconds]] :: Starting in $mode, dir is $dir " 
+flush $logfd
+
 if {$mode == "server"} {
-    puts $logfd "[clock format [clock seconds]] :: Starting in $mode " 
-    flush $logfd
     recv_files $dir
 } elseif {$mode == "client"} {
     set host [lindex $argv 3]
