@@ -149,6 +149,11 @@ public:
     void close_file();
 
     /**
+     * Return the file state.
+     */
+    bool is_file_open() { return file_->is_open(); }
+
+    /**
      * Copy (or link) the payload to the given path.
      */
     void copy_file(const std::string& copy_path);
