@@ -18,8 +18,6 @@ Notifier::Notifier(const char* logpath)
         exit(1);
     }
 
-    waiter_ = false;
-
     log_debug("created pipe, fds: %d %d", pipe_[0], pipe_[1]);
     
     for (int n = 0; n < 2; ++n) {
@@ -29,6 +27,8 @@ Notifier::Notifier(const char* logpath)
             exit(1);
         }
     }
+
+    waiter_ = false;
 }
 
 Notifier::~Notifier()
@@ -44,19 +44,19 @@ Notifier::drain_pipe()
     char buf[256];
 
     while (1) {
-        ret = IO::read(read_fd(), buf, sizeof(buf), logpath_);
+        ret = IO::read(read_fd(), buf, sizeof(buf));
         if (ret <= 0) {
             if ((ret == -1) && (errno == EAGAIN)) { // all done
-                log_debug("read from pipe would have blocked");
+                log_debug("drain_pipe: read from pipe would have blocked");
                 return;
             } else {
-                log_crit("unexpected error return from read: %s",
+                log_crit("drain_pipe: unexpected error return from read: %s",
                          strerror(errno));
                 exit(1);
             }
         }
         
-        log_debug("drained %d byte(s) from pipe", ret);
+        log_debug("drain_pipe: drained %d byte(s) from pipe", ret);
         
         /*
          * In the (likely) case that we didn't get a full buf's worth
@@ -69,8 +69,8 @@ Notifier::drain_pipe()
     }
 }
 
-void
-Notifier::wait(SpinLock* lock)
+bool
+Notifier::wait(SpinLock* lock, int timeout)
 {
     int ret = 0;
     
@@ -83,8 +83,8 @@ Notifier::wait(SpinLock* lock)
         lock->unlock();
 
     while (1) {
-        ret = IO::poll(read_fd(), POLLIN, -1, logpath_);
-        if (ret <= 0) {
+        ret = IO::poll(read_fd(), POLLIN, timeout, logpath_);
+        if (ret < 0) {
             if (ret == -1 && errno == EINTR) {
                 continue;
             }
@@ -95,12 +95,18 @@ Notifier::wait(SpinLock* lock)
         }
     }
     
-    ASSERT(ret == 1);
+    ASSERT((ret == 0) || (ret == 1));
 
     if (lock)
         lock->lock();
     
     waiter_ = false;
+
+    if (ret == 0)
+        return false; // timeout
+
+    drain_pipe();
+    return true;
 }
 
 void

@@ -26,15 +26,14 @@ public:
     /**
      * Block the calling thread, pending a call to notify(). If a lock
      * is passed in, wait() will unlock the lock before the thread
-     * blocks and re-take it when the thread unblocks.
+     * blocks and re-take it when the thread unblocks. If a timeout is
+     * specified, only wait for that amount of time.
+     *
+     * Returns true if the thread was notified, false if a timeout
+     * occurred.
      */
-    void wait(SpinLock* lock = NULL);
+    bool wait(SpinLock* lock = NULL, int timeout = -1);
 
-    /**
-     * Return indication if there are any blocked threads.
-     */
-    bool has_waiter() { return waiter_; }
-    
     /**
      * Notify a waiter.
      */
@@ -57,8 +56,8 @@ public:
     int write_fd() { return pipe_[1]; }
     
 protected:
+    bool waiter_; // for debugging only
     int pipe_[2];
-    bool waiter_;
 };
 
 #endif /* _NOTIFIER_H_ */

@@ -54,7 +54,7 @@ BundleList::push_front(Bundle* b)
     bool added = b->add_container(this);
     ASSERT(added);
 
-    if (has_waiter() && size() == 1)
+    if (size() == 1)
     {
         notify();
     }
@@ -73,7 +73,7 @@ BundleList::push_back(Bundle* b)
     bool added = b->add_container(this);
     ASSERT(added);
     
-    if (has_waiter() && size() == 1)
+    if (size() == 1)
     {
         notify();
     }
@@ -87,16 +87,18 @@ BundleList::pop_front()
 {
     ScopeLock l(lock_);
 
+    // always drain the pipe to make sure that if the list is empty,
+    // then the pipe must be empty as well
+    drain_pipe();
+    
     if (list_.empty())
         return NULL;
 
     Bundle* b = list_.front();
     list_.pop_front();
-    
-    if (b) {
-        bool deleted = b->del_container(this);
-        ASSERT(deleted);
-    }
+
+    bool deleted = b->del_container(this);
+    ASSERT(deleted);
         
     return b;
 }
@@ -109,16 +111,18 @@ BundleList::pop_back()
 {
     ScopeLock l(lock_);
 
+    // always drain the pipe to maintain the invariant that if the
+    // list is empty, then the pipe must be empty as well
+    drain_pipe();
+    
     if (list_.empty())
         return NULL;
     
     Bundle* b = list_.back();
     list_.pop_back();
 
-    if (b) {
-        bool deleted = b->del_container(this);
-        ASSERT(deleted);
-    }
+    bool deleted = b->del_container(this);
+    ASSERT(deleted);
         
     return b;
 }
@@ -128,22 +132,27 @@ BundleList::pop_back()
  * there are none.
  */
 Bundle*
-BundleList::pop_blocking()
+BundleList::pop_blocking(int timeout)
 {
     lock_->lock();
 
     if (list_.empty()) {
-        wait(lock_);
+        bool notified = wait(lock_, timeout);
         ASSERT(lock_->is_locked_by_me());
+
+        // if the timeout occurred, wait returns false, so there's
+        // still nothing on the list
+        if (!notified) {
+            lock_->unlock();
+            return NULL;
+        }
+
+        // the pipe is drained in pop_front()
     }
 
-    // always drain the pipe when done waiting
-    drain_pipe();
-    
-    ASSERT(! list_.empty());
+    ASSERT(!list_.empty());
     
     Bundle* b = pop_front();
-    ASSERT(b != NULL);
     
     lock_->unlock();
     

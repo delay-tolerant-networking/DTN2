@@ -79,15 +79,15 @@ public:
     Bundle* pop_back();
 
     /**
-     * Remove (and return) the first bundle on the list, blocking if
-     * there are none.
+     * Remove (and return) the first bundle on the list, blocking
+     * (potentially limited by the given timeout) if there are none.
      *
      * Note (as explained above) that this does not decrement the
      * bundle reference count.
      *
-     * @return the bundle or NULL if the list is empty
+     * @return the bundle or NULL if the timeout occurred
      */
-    Bundle* pop_blocking();
+    Bundle* pop_blocking(int timeout = -1);
 
     /**
      * Remove the given bundle.
