@@ -105,8 +105,6 @@ AC_DEFUN(AC_DTN_FIND_DB, [
 
     for ac_dbver    in $ac_dbvers ; do
     for ac_dbincdir in $ac_dbincdirs; do
-    for ac_dblibdir in $ac_dblibdirs; do
-    for ac_dblib    in db_cxx-$ac_dbver; do
 
         ac_dbver_major=`echo $ac_dbver | cut -d . -f1`
 	ac_dbver_minor=`echo $ac_dbver | cut -d . -f2`
@@ -138,8 +136,11 @@ AC_DEFUN(AC_DTN_FIND_DB, [
           ],
           [
               AC_MSG_RESULT([no])
-	      break 2
+	      continue
           ])
+
+      for ac_dblibdir in $ac_dblibdirs; do
+      for ac_dblib    in db_cxx-$ac_dbver; do
 
 	LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
 	LIBS="$ac_save_LIBS -l$ac_dblib"
