@@ -84,12 +84,12 @@ $(SUBDIRS):
 .PHONY: objclean
 objclean:
 	@echo "removing object files..."
-	find . \( -name '*.[Eo]' \) -print0 | xargs -0 rm -f
+	find . \( -name '*.[Eo]' \) -print | xargs rm -f
 
 .PHONY: depclean
 depclean:
 	@echo "removing dependency files..."
-	find . \( -name '*.d' \) -print0 | xargs -0 rm -f
+	find . \( -name '*.d' \) -print | xargs rm -f
 
 .PHONY: genclean
 genclean:
