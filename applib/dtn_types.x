@@ -263,8 +263,6 @@ enum dtn_bundle_payload_location_t {
     DTN_PAYLOAD_FILE,
     DTN_PAYLOAD_MEM
 };
-%// XXX/jra: not used (?) and Cygwin chokes on it
-%//typedef enum dtn_bundle_payload_location_t dtn_bundle_payload_location_t;
 
 union dtn_bundle_payload_t switch(dtn_bundle_payload_location_t location)
 {
