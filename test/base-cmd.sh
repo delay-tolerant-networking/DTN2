@@ -37,14 +37,26 @@ set dtn2testroot = $dtn2root/test
 #set logroot = /proj/DTN/exp/$exp/logs/$proto
 set logrootbase = $dtnroot/logs/$exp
 set logroot     = $logrootbase/$proto
-set txdir       = "$logroot/txfiles"
-set rcvdir      = "$logroot/rcvfiles"
+set rcvdir      = "$logroot/rcvfiles.$id"
 set ftplogfile =  $logroot/ftplog.$id
 
 set tcptimerfile = $dtn2testroot/tcp_retries2.sush
 
+## stuff that u dont have to log in NFS
+set localtmpdir       =  /tmp/log$proto.$id
+set txdir       = $localtmpdir/txfiles
+
 
 # Make the log directories
+
+if (! -e $localtmpdir) then
+    mkdir  $localtmpdir
+endif
+
+
+if (! -e $logrootbase) then
+    mkdir  $logrootbase
+endif
 
 
 if (! -e $logrootbase) then

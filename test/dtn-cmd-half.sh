@@ -26,7 +26,10 @@ if (($id == 1) || ($id == $maxnodes) || ($perhop == 1)) then
     echo  set id $id > $file
     echo  set maxnodes $maxnodes >>  $file
     echo  set perhop $perhop >> $file
-    echo  set logdir $mylogroot >> $file
+
+  
+    echo  set tmp_logdir  $localtmpdir >> $file
+
     echo set dtn2testroot $dtn2testroot >> $file
     echo set localdir $txdir >> $file
     echo set ftplogfile $ftplogfile >> $file
