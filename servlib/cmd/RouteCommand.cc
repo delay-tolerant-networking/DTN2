@@ -2,9 +2,13 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "RouteCommand.h"
-#include "bundling/Contact.h"
+#include "bundling/Link.h"
+#include "bundling/ContactManager.h"
+
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
+#include "bundling/BundleConsumer.h"
+
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
 
@@ -17,9 +21,14 @@ RouteCommand::RouteCommand()
 const char*
 RouteCommand::help_string()
 {
-    return "route add <dest> <nexthop> <type> <args>\n"
-        "route del <dest> <nexthop>\n"
-        "route dump";
+    // return "route add <dest> <nexthop> <type> <args>\n"
+    return "route add <dest> <link/peer>\n"
+         "route del <dest> <link/peer>\n"
+        "route local_region <region>\n"
+        "route local_tuple <tuple>\n"
+        "route dump"
+        "         Note: Currently route dump also displays list of all links and peers\n"
+        ;
 }
 
 int
@@ -31,44 +40,39 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
 
     const char* cmd = argv[1];
-
+    
     if (strcmp(cmd, "add") == 0) {
-        // route add <dest> <nexthop> <type> <args>
-        if (argc < 5) {
-            wrong_num_args(argc, argv, 2, 5, INT_MAX);
+        // route add <dest> <link/peer>
+        if (argc < 3) {
+            wrong_num_args(argc, argv, 2, 3, INT_MAX);
             return TCL_ERROR;
         }
 
         const char* dest_str = argv[2];
-        const char* next_hop_str = argv[3];
-        const char* type_str = argv[4];
 
         BundleTuplePattern dest(dest_str);
         if (!dest.valid()) {
             resultf("invalid destination tuple %s", dest_str);
             return TCL_ERROR;
         }
+        const char* name = argv[3];
+        BundleConsumer* consumer = NULL;
         
-        BundleTuple next_hop(next_hop_str);
-        if (!next_hop.valid()) {
-            resultf("invalid next hop tuple %s", next_hop_str);
+        consumer = ContactManager::instance()->find_link(name);
+        if (consumer == NULL) {
+            BundleTuplePattern peer(name);
+            if (!peer.valid()) {
+                resultf("invalid peer tuple %s", name);
+                return TCL_ERROR;
+            }
+            consumer = ContactManager::instance()->find_peer(peer);
+        }
+        
+        if (consumer == NULL) {
+            resultf("no such link or peer exists, %s", name);
             return TCL_ERROR;
         }
-
-        contact_type_t type = str_to_contact_type(type_str);
-        if (type == CONTACT_INVALID) {
-            resultf("invalid contact type %s", type_str);
-            return TCL_ERROR;
-        }
-
-        // XXX/demmer this should do a lookup in the ContactManager
-        // and only create the new contact if it doesn't already exist
-        Contact* contact = new Contact(type, next_hop);
-
-        RouteEntry* entry = new RouteEntry(dest, contact, FORWARD_COPY);
-        
-        // XXX/demmer other parameters?
-
+        RouteEntry* entry = new RouteEntry(dest, consumer, FORWARD_COPY);
         // post the event
         BundleForwarder::post(new RouteAddEvent(entry));
     }
@@ -83,6 +87,7 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         BundleRouter* router = BundleForwarder::instance()->active_router();
         buf.appendf("local tuple:\n\t%s\n", router->local_tuple_.c_str());
         router->route_table()->dump(&buf);
+        ContactManager::instance()->dump(&buf);
         set_result(buf.c_str());
         return TCL_OK;
     }

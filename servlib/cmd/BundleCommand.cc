@@ -12,7 +12,10 @@ BundleCommand::BundleCommand()
 const char*
 BundleCommand::help_string()
 {
-    return("bundle inject <source> <dest> <payload> <length?>");
+    return "bundle inject <source> <dest> <payload> <length?> \n"
+        "bundle stats \n"
+        "bundle list \n"
+        ;
 }
 
 int
