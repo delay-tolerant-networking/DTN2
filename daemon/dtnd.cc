@@ -37,12 +37,12 @@ main(int argc, char* argv[])
     new BoolOpt("d", &daemon, "run as a daemon");
     new BoolOpt("t", &StorageConfig::instance()->tidy_,
                 "clear database and initialize tables on startup");
-    new BoolOpt("i", &StorageConfig::instance()->init_,
-                "initialize tables on startup");
+    new BoolOpt("C", &StorageConfig::instance()->init_,
+                "initialize database on startup");
     new IntOpt("s", &random_seed, &random_seed_set, "seed",
                "random number generator seed");
 
-    new IntOpt("I", &testcmd.id_, &testid_set,
+    new IntOpt("i", &testcmd.id_, &testid_set,
                "id", "set the test id");
 
     Options::getopt(argv[0], argc, argv);
