@@ -39,6 +39,13 @@
 #define _STORAGE_CONFIG_H_
 
 #include <string>
+
+// XXX/namespace
+class StorageConfig;
+namespace dtn {
+typedef ::StorageConfig StorageConfig;
+}
+
 /**
  * Simple singleton class that just contains the storage-specific
  * configuration variables.
