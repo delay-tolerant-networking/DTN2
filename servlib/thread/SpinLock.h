@@ -7,6 +7,15 @@
 #include "Thread.h"
 
 /**
+ * If we know there are no atomic instructions for the architecture,
+ * just use a Mutex.
+ */
+#ifdef __NO_ATOMIC__
+#include "Mutex.h"
+typedef SpinLock Mutex;
+#else
+
+/**
  * A SpinLock is a Lock that busy waits to get a lock. The
  * implementation supports recursive locking.
  */
@@ -82,5 +91,7 @@ SpinLock::try_lock()
         return 1; // already locked
     }
 };
+
+#endif /* __NO_ATOMIC__ */
 
 #endif /* _SPINLOCK_H_ */
