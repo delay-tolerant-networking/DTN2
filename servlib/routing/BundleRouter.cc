@@ -54,10 +54,9 @@
 
 namespace dtn {
 
-std::string BundleRouter::type_;
+BundleRouter::config_t BundleRouter::Config;
 size_t BundleRouter::proactive_frag_threshold_;
-oasys::StringVector BundleRouter::local_regions_;
-BundleTuple BundleRouter::local_tuple_;
+
 
 /*
  * Note by sushant:
@@ -95,7 +94,9 @@ BundleRouter::create_router(const char* type)
  * Constructor.
  */
 BundleRouter::BundleRouter()
-    : Logger("/route")
+    : Logger("/route"),
+      local_regions_(Config.local_regions_),
+      local_tuple_(Config.local_tuple_)
 {
     if (local_tuple_.length() == 0) {
         local_tuple_.assign("bundles://internet/host://localhost");

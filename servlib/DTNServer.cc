@@ -228,7 +228,7 @@ void
 DTNServer::start()
 {
     BundleRouter* router;
-    router = BundleRouter::create_router(BundleRouter::type_.c_str());
+    router = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
 
     BundleDaemon* daemon = BundleDaemon::instance();
     daemon->set_router(router);

@@ -1107,7 +1107,8 @@ TCPConvergenceLayer::Connection::send_contact_header()
     contacthdr.keepalive_interval = params_.keepalive_interval_;
     contacthdr.idle_close_time = htons(params_.idle_close_time_);
 
-    u_int16_t local_tuple_len = BundleRouter::local_tuple_.length();
+    BundleRouter* router = BundleDaemon::instance()->router();
+    u_int16_t local_tuple_len = router->local_tuple().length();
     contacthdr.local_tuple_len = htons(local_tuple_len);
     
     int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
@@ -1119,7 +1120,7 @@ TCPConvergenceLayer::Connection::send_contact_header()
     }
     
     // send the tuple string
-    cc = sock_->writeall(BundleRouter::local_tuple_.data(), local_tuple_len);
+    cc = sock_->writeall(router->local_tuple().data(), local_tuple_len);
     if (cc != local_tuple_len) {
         log_err("error writing contact source tuple (wrote %d/%d): %s",
                 cc, local_tuple_len, strerror(errno));

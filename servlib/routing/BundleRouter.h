@@ -88,9 +88,16 @@ public:
     static BundleRouter* create_router(const char* type);
 
     /**
-     * Config variable for the active router type.
+     * Config variables. These must be static since they're set by the
+     * config parser before the router object is created. At
+     * initialization time, the local_tuple and local_regions
+     * variables are propagated into the actual router instance.
      */
-    static std::string type_;
+    static struct config_t {
+        std::string         type_;
+        oasys::StringVector local_regions_;
+        BundleTuple         local_tuple_;
+    } Config;
     
     /**
      * Constructor
@@ -126,16 +133,21 @@ public:
     static size_t proactive_frag_threshold_;
 
     /**
-     * The set of local regions that this router is configured as "in".
+     * Accessor for the vector of local regions.
      */
-    static oasys::StringVector local_regions_;
+    oasys::StringVector* local_regions() { return &local_regions_; }
 
     /**
-     * The default tuple for reaching this router, used for bundle
-     * status reports, etc. Note that the region must be one of the
-     * locally configured regions.
+     * Accessor for the local tuple.
      */
-    static BundleTuple local_tuple_;
+    const BundleTuple& local_tuple() { return local_tuple_; }
+
+    /**
+     * Assignment function for the local tuple string.
+     */
+    void set_local_tuple(const char* tuple_str) {
+        local_tuple_.assign(tuple_str);
+    }
     
 protected:
     /**
@@ -260,6 +272,17 @@ protected:
     void delete_from_pending(Bundle* bundle,
                              BundleActions* actions);
 
+
+    /// The set of local regions that this router is configured as "in".
+    oasys::StringVector local_regions_;
+
+    /**
+     * The default tuple for reaching this router, used for bundle
+     * status reports, etc. Note that the region must be one of the
+     * locally configured regions.
+     */
+    BundleTuple local_tuple_;
+    
     /// The routing table
     RouteTable* route_table_;
 
@@ -269,6 +292,7 @@ protected:
     /// The list of all bundles that I have custody of
     BundleList* custody_bundles_;
 };
+
 } // namespace dtn
 
 #endif /* _BUNDLE_ROUTER_H_ */

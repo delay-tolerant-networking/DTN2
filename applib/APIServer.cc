@@ -313,18 +313,20 @@ ClientAPIServer::handle_getinfo()
 
     switch(request) {
     case DTN_INFOREQ_INTERFACES: {
+        BundleRouter* router = BundleDaemon::instance()->router();
+        
         dtn_tuple_t* local_tuple =
             &response.dtn_info_response_t_u.interfaces.local_tuple;
 
         strncpy(local_tuple->region,
-                BundleRouter::local_tuple_.region().c_str(),
+                router->local_tuple().region().c_str(),
                 DTN_MAX_REGION_LEN);
         
         local_tuple->admin.admin_val =
-            (char*)BundleRouter::local_tuple_.admin().c_str();
+            (char*)router->local_tuple().admin().c_str();
         
         local_tuple->admin.admin_len =
-            BundleRouter::local_tuple_.admin().length();
+            router->local_tuple().admin().length();
 
         break;
     }
@@ -492,7 +494,7 @@ ClientAPIServer::handle_send()
         goto done;
     }
 
-    b->custodian_.assign(BundleRouter::local_tuple_);
+    b->custodian_.assign(BundleDaemon::instance()->router()->local_tuple());
     
     // the priority code
     switch (spec.priority) {

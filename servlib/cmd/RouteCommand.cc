@@ -54,7 +54,7 @@ namespace dtn {
 RouteCommand::RouteCommand()
     : TclCommand("route")
 {
-    bind_s("type", &BundleRouter::type_, "static");
+    bind_s("type", &BundleRouter::Config.type_, "static");
 }
 
 const char*
@@ -119,7 +119,7 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     else if (strcmp(cmd, "dump") == 0) {
         oasys::StringBuffer buf;
         BundleRouter* router = BundleDaemon::instance()->router();
-        buf.appendf("local tuple:\n\t%s\n", router->local_tuple_.c_str());
+        buf.appendf("local tuple:\n\t%s\n", router->local_tuple().c_str());
         router->route_table()->dump(&buf);
         ContactManager::instance()->dump(&buf);
         set_result(buf.c_str());
@@ -133,19 +133,19 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
         
-        BundleRouter::local_regions_.push_back(argv[2]);
+        BundleRouter::Config.local_regions_.push_back(argv[2]);
     }
 
     else if (strcmp(cmd, "local_tuple") == 0) {
         if (argc == 2) {
             // route local_tuple
-            set_result(BundleRouter::local_tuple_.c_str());
+            set_result(BundleRouter::Config.local_tuple_.c_str());
             return TCL_OK;
             
         } else if (argc == 3) {
             // route local_tuple <tuple?>
-            BundleRouter::local_tuple_.assign(argv[2]);
-            if (! BundleRouter::local_tuple_.valid()) {
+            BundleRouter::Config.local_tuple_.assign(argv[2]);
+            if (! BundleRouter::Config.local_tuple_.valid()) {
                 resultf("invalid tuple '%s'", argv[2]);
                 return TCL_ERROR;
             }
