@@ -6,7 +6,7 @@
 #include "storage/PostgresSQLImplementation.h"
 #include "storage/MysqlSQLImplementation.h"
 
-#include "storage/SQLStore.h"
+#include "storage/SQLBundleStore.h"
 
 #include "iostream"
 using namespace std;
@@ -46,6 +46,8 @@ foo::serialize(SerializeAction* a)
 void 
 playsql(int i) {
 
+    const char* database = "dtn";
+
   //  foo o1; o1.id = 771 ; o1.f1 = 123; o1.f2 = 'a'; foo o2;
   
    const char* table_name = "try";
@@ -55,9 +57,9 @@ playsql(int i) {
     SQLImplementation *db ;
 
     if (i ==1)
-   db  =  new PostgresSQLImplementation("cse544");
+   db  =  new PostgresSQLImplementation(database);
     else
-    db =  new MysqlSQLImplementation("cse544");
+    db =  new MysqlSQLImplementation(database);
 
 
     cout << " connection established ,  \n" << endl;

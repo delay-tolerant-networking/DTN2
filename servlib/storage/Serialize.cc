@@ -26,7 +26,9 @@ SerializeAction::action(SerializableObject* object)
 {
     error_ = false;
 
+    begin_action();
     object->serialize(this);
+    end_action();
     
     if (error_ == true)
         return -1;
@@ -34,3 +36,19 @@ SerializeAction::action(SerializableObject* object)
     return 0;
 }
 
+
+/**
+ * By default, do nothing.
+ */
+void
+SerializeAction::begin_action()
+{
+}
+
+/**
+ * By default, do nothing.
+ */
+void
+SerializeAction::end_action()
+{
+}

@@ -12,31 +12,18 @@ using namespace std;
  * Constructor.
  */
 
-SQLStore::SQLStore(const char* name, const char* id_field, SerializableObject* obj, SQLImplementation* db)
-    : PersistentStore()
+SQLStore::SQLStore(const char* table_name, SQLImplementation* db)
 {
     cout << " trying to initialize sql store ... " ; 
     data_base_pointer_ = db;
-    table_name_ = name;
-    object_id_field_ =  id_field;
-
-    // Create table (if its already there then nothing happens
-    
-    cout << " trying to create table .." ; 
-    if (db->has_table(table_name_) == 0) {
-        create_table(obj);
-        cout << " created table  ..\n" ; 
-    }
-    else {
-        cout << " Table with name  " << table_name_ << " exists " << endl ; 
-    }
+    table_name_ = table_name;
 }
 
 int 
 SQLStore::get(SerializableObject* obj, const int key) 
 {
     StringBuffer query ;
-    query.appendf("SELECT * FROM %s where %s = %d",table_name_,object_id_field_,key);
+    query.appendf("SELECT * FROM %s where %s = %d",table_name_,key_name_,key);
 
     cout << "  query is " << query.c_str() << endl ; 
     int status = exec_query(query.c_str());
@@ -55,7 +42,7 @@ SQLStore::get(SerializableObject* obj, const int key)
 
      
 int 
-SQLStore::put(SerializableObject* obj, const int key){
+SQLStore::put(SerializableObject* obj){
 
     
     SQLInsert s(table_name_); ;
@@ -71,7 +58,7 @@ int
 SQLStore::del(const int key)
 {
     StringBuffer query ;
-    query.appendf("DELETE FROM %s where %s = %d",table_name_,object_id_field_,key);
+    query.appendf("DELETE FROM %s where %s = %d",table_name_,key_name_,key);
     int retval = exec_query(query.c_str());
     return retval;
 }
@@ -101,7 +88,7 @@ void
 SQLStore::keys(std::vector<int> l) 
 {
     StringBuffer query ;
-    query.appendf("SELECT %s FROM %s ",object_id_field_,table_name_);
+    query.appendf("SELECT %s FROM %s ",key_name_,table_name_);
     int status = exec_query(query.c_str());
     if ( status == 0) {
         cout <<  "query done properly \n";
@@ -136,7 +123,12 @@ SQLStore::elements(std::vector<SerializableObject*> l)
 int
 SQLStore::create_table(SerializableObject* obj) 
 {
-    
+
+    if (data_base_pointer_->has_table(table_name_)) {
+	cout << " Table with name  " << table_name_ << " exists " << endl ; 
+	return 0;
+    }
+    cout << " trying to create table .." ; 
     // create sql string that corresponds to table creation
     SQLTableFormat t(table_name_);
 
@@ -159,41 +151,8 @@ SQLStore::exec_query(const char* query)
     return ret;
 }
 
-/******************************************************************************
- *
- * SQLBundleStore
- *
- *****************************************************************************/
-
-
-SQLBundleStore::SQLBundleStore(const char* table_name, SQLImplementation* db)
-    : BundleStore()
-{
-    Bundle tmpobj(this);
-
-    // XXX this should all be cleaned up when PersistentStore is gone
-    store_ = new SQLStore(table_name, "bundleid", &tmpobj, db);
-    BundleStore::store_ = store_;
-    next_bundle_id_ = 0;
-}
-
-int 
-SQLBundleStore::delete_expired(const time_t now) 
-{
-    const char* field = "expiration";
-    StringBuffer query ;
-    query.appendf("DELETE FROM %s WHERE %s > %lu", store_->table_name(), field, now);
-    
-    int retval = store_->exec_query(query.c_str());
-    return retval;
-}
-     
-
-
-bool
-SQLBundleStore::is_custodian(int bundle_id) 
-{
-    exit(-1);
-    return 0;
-
+void
+SQLStore::set_key_name(const char* name) 
+{    
+    key_name_ = name;
 }

@@ -22,6 +22,9 @@ public:
      */
     SQLQuery(action_t type, const char* initial_query = 0);
 
+
+    virtual void end_action();
+
     /**
      * Return the constructed query string.
      */
@@ -29,6 +32,7 @@ public:
     
 protected:
     StringBuffer query_;
+    const char* table_name_;
 };
 
 /**
@@ -42,6 +46,7 @@ public:
      */
     SQLInsert(const char* table_name);
   
+    virtual void begin_action();
     /**
      * Since insert doesn't modify the object, define a variant of
      * action() that operates on a const SerializableObject.
@@ -74,6 +79,8 @@ public:
      * Constructor.
      */
     SQLTableFormat(const char* table_name);
+    
+    virtual void begin_action();
 
     /**
      * Since table format doesn't modify the object, define a variant

@@ -44,6 +44,20 @@ public:
     virtual int action(SerializableObject* object);
 
     /**
+     * Control the initialization done before executing an action.
+     * 
+     */
+    virtual void begin_action();
+
+    /**
+     * Control the cleanup after executing an action.
+     * 
+     */
+    virtual void end_action();
+
+
+
+    /**
      * Action type codes, one for each action type of SerializeAction.
      */
     typedef enum {

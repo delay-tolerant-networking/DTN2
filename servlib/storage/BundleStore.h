@@ -6,8 +6,7 @@
 
 class Bundle;
 class BundleList;
-class PersistentStore;
-class StorageImpl;
+//class StorageImpl;
 
 /**
  * Abstract base class for bundle storage.
@@ -48,10 +47,10 @@ public:
      * Basic storage methods. These just dispatch to use the generic
      * PersistentStore interface.
      */
-    Bundle* get(int bundle_id);
-    int     put(Bundle* bundle);
-    int     put(Bundle* bundle, int bundle_id);
-    int     del(int bundle_id);
+    virtual Bundle* get(int bundle_id) = 0;
+    virtual int     put(Bundle* bundle) = 0;
+    virtual int     put(Bundle* bundle, u_int32_t id) { return put (bundle) ; }
+    virtual int     del(int bundle_id) = 0;
     /// @}
     
     /**
@@ -80,7 +79,7 @@ protected:
     static BundleStore* instance_; ///< singleton instance
 
     int next_bundle_id_; 	/// running serial number for bundles
-    PersistentStore* store_;	/// abstract persistent storage implementation
+//    PersistentStore* store_;	/// abstract persistent storage implementation
 };
 
 #endif /* _BUNDLE_STORE_H_ */

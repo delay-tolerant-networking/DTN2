@@ -20,7 +20,6 @@ SQLQuery::SQLQuery(action_t type, const char* initial_query)
 {
 }
 
-
 /**
  * The process() functions of all subclasses append ',' after each
  * value, so trim a trailing ',' before returning the string.
@@ -29,15 +28,23 @@ SQLQuery::SQLQuery(action_t type, const char* initial_query)
 const char*
 SQLQuery::query()
 {
+      return query_.c_str();
+}
+
+/**
+ * Override virtual end action from SerializeAction. Use it to clean the query
+ */
+
+void 
+SQLQuery::end_action() 
+{
     if (query_.data()[query_.length() - 1] == ',') {
         query_.trim(1);
 	query_.append(')');
     }
-    
     cout << " query returned is " << query_.c_str() << endl ; 
-
-    return query_.c_str();
 }
+
 
 /******************************************************************************
  *
@@ -51,11 +58,19 @@ SQLQuery::query()
 SQLInsert::SQLInsert(const char* table_name)
     :SQLQuery(MARSHAL)
 {
-    query_.appendf("INSERT INTO %s  VALUES(",table_name);
-   
+    table_name_ = table_name;
 }
 
+
 // Virtual functions inherited from SerializeAction
+
+void 
+SQLInsert::begin_action() 
+{
+ query_.appendf("INSERT INTO %s  VALUES(",table_name_);
+}
+
+
 void 
 SQLInsert::process(const char* name, u_int32_t* i)
 {
@@ -137,9 +152,19 @@ SQLInsert::process(const char* name, u_char** bp, size_t* lenp, bool alloc_copy)
 SQLTableFormat::SQLTableFormat(const char* table_name)
     :SQLQuery(INFO)
 {
-    query_.appendf(" CREATE TABLE  %s  (",table_name);
-  
+    table_name_ = table_name;
 }
+
+
+// Virtual functions inherited from SerializeAction
+
+void 
+SQLTableFormat::begin_action() 
+{
+    query_.appendf(" CREATE TABLE  %s  (",table_name_);
+}
+
+
 
 void
 SQLTableFormat::process(const char* name,  SerializableObject* object) 

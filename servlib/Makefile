@@ -59,6 +59,7 @@ STORAGE_SRCS :=					\
 	storage/BerkeleyDBStore.cc		\
 	storage/SQLSerialize.cc			\
 	storage/SQLStore.cc			\
+        storage/SQLBundleStore.cc		\
 	storage/SQLImplementation.cc		\
 	storage/PostgresSQLImplementation.cc	\
 	storage/MysqlSQLImplementation.cc	\
