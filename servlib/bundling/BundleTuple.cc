@@ -150,8 +150,8 @@ BundleTuple::parse_tuple()
     family_ = AddressFamilyTable::instance()->lookup(schema);
 
     if (! family_) {
-        log_debug("/bundle/tuple", "unknown schema '%s' in tuple '%s'",
-                  schema.c_str(), tuple_.c_str());
+        log_err("/bundle/tuple", "unknown schema '%s' in tuple '%s'",
+                schema.c_str(), tuple_.c_str());
         return;
     }
 

@@ -107,18 +107,13 @@ SimConvergenceLayer::ct2simlink(Contact* contact)
 }
 
 
-const char * 
+std::string
 SimConvergenceLayer::id2node(int i) 
 {
-
-  std::ostringstream ostr;                                   
-  ostr << i;                                           
-  std::string str = ostr.str();     
-  std::string retval =  "bundles://sim/simcl://" + str;
-  
-  //   StringBuffer retval;
-  //  retval.append("bundles://sim/simcl://%d",i);
-   return retval.c_str();
+    StringBuffer buf;
+    buf.appendf("bundles://sim/simcl://%d", i);
+    std::string ret(buf.c_str());
+    return ret;
 }
 
 void
@@ -167,8 +162,8 @@ SimConvergenceLayer::msg2bundle(Message* m)
         b  = new Bundle(m->id(), BundlePayload::NODATA);
         //b->bundleid_ = m->id();
     
-        const char* src = id2node(m->src());
-        const char* dst = id2node(m->dst());
+        const std::string src = id2node(m->src());
+        const std::string dst = id2node(m->dst());
 
         b->source_.assign(src);
         b->dest_.assign(dst);

@@ -49,8 +49,8 @@ public:
     /**
      * Conversion from DTN2 end node to simulator id
      */
-    static int node2id(BundleTuplePattern src) ;
-    static const char* id2node(int i) ;
+    static int node2id(BundleTuplePattern src);
+    static std::string id2node(int i);
 
 
     /**

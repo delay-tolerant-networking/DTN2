@@ -48,12 +48,13 @@ Simdtn2Command::exec(int argc, const char** argv, Tcl_Interp* interp)
         Contact* contact = SimConvergenceLayer::simlink2ct(link);
         ASSERT(contact != NULL);
         
-        const char* dest_str_full = 
+        std::string dest_str_full = 
             SimConvergenceLayer::id2node(atoi(dest_str));
         BundleTuplePattern dest(dest_str_full);
         RouteEntry* entry = new RouteEntry(dest, contact, FORWARD_COPY);
         
-        log_info("addroute to dest %s using contact id %d",dest_str_full,cid);
+        log_info("addroute to dest %s using contact id %d",
+                 dest_str_full.c_str(), cid);
         // post the event, through the simulator 
         int src = atoi(src_str);
         Event_for_br* e = 

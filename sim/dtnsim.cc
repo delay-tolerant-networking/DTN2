@@ -8,6 +8,7 @@
 #include "LogSim.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "SimConvergenceLayer.h"
+#include "bundling/AddressFamily.h"
 
 int
 main(int argc, char** argv)
@@ -44,6 +45,8 @@ main(int argc, char** argv)
     logf("/sim", LOG_INFO, "random seed is %u\n", random_seed);
     srand(random_seed);
 
+    AddressFamilyTable::init();
+    
     // add simulator convergence layer (identifies by simcl) to cl list
     ConvergenceLayer::init_clayers();
     ConvergenceLayer::add_clayer("simcl", new SimConvergenceLayer());

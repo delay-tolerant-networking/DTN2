@@ -69,6 +69,7 @@ AddressFamilyTable::AddressFamilyTable()
     // XXX/demmer temp
     table_["tcp"] 	= new InternetAddressFamily("tcp");
     table_["udp"] 	= new InternetAddressFamily("udp");
+    table_["simcl"] 	= new InternetAddressFamily("simcl");
 }
 
 /**
