@@ -19,13 +19,13 @@ public:
     /**
      * Fill in the given iovec with the formatted bundle header.
      *
-     * @return the total length of the header
+     * @return the total length of the header or -1 on error
      */
-    static size_t fill_header_iov(const Bundle* bundle,
-                                  struct iovec* iov, int* iovcnt);
+    static size_t format_headers(const Bundle* bundle,
+                                 struct iovec* iov, int* iovcnt);
     
     /**
-     * Free dynamic memory allocated in fill_header_iov.
+     * Free dynamic memory allocated in format_headers.
      */
     static void free_header_iovmem(const Bundle* bundle,
                                    struct iovec* iov, int iovcnt);
@@ -96,6 +96,15 @@ protected:
     } __attribute__((packed));
 
     /**
+     * The fragment header.
+     */
+    struct FragmentHeader {
+        u_int8_t  next_header_type;
+        u_int32_t orig_length;
+        u_int32_t frag_offset;
+    } __attribute__((packed));
+
+    /**
      * The bundle payload header.
      *
      * Note that the data field is variable length application data.
@@ -105,6 +114,7 @@ protected:
         u_int32_t length;
         u_char    data[0];
     } __attribute__((packed));
+
 
     static u_int8_t format_cos(const Bundle* bundle);
     static void parse_cos(Bundle* bundle, u_int8_t cos);

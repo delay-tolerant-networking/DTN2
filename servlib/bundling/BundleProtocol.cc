@@ -42,21 +42,34 @@ add_to_dict(u_int8_t* id, const BundleTuple& tuple,
     *id = ((region_id << 4) | admin_id);
 }
 
+/**
+ * Fill in the given iovec with the formatted bundle header.
+ *
+ * @return the total length of the header or -1 on error
+ */
 size_t
-BundleProtocol::fill_header_iov(const Bundle* bundle, struct iovec* iov, int* iovcnt)
+BundleProtocol::format_headers(const Bundle* bundle,
+                               struct iovec* iov, int* iovcnt)
 {
     // make sure that iovcnt is big enough for:
     // 1) primary header
     // 2) dictionary header and string data
     // 3) payload header
-    // 4) payload data
     //
     // optional ones including:
-    // 5) fragmentation header
-    // 6) authentication header
+    // 4) fragmentation header
+    // 5) authentication header
+    // 6) extension headers (someday)
     ASSERT(*iovcnt >= 6);
-    
-    // first of all, the primary header
+
+    // by definition, all headers have next_header_type as their first
+    // byte, so this can be used to set the type field as we progress
+    // through building the vector.
+    u_int8_t* next_header_type;
+
+    //
+    // primary header
+    //
     PrimaryHeader* primary      = (PrimaryHeader*)malloc(sizeof (PrimaryHeader));
     primary->version 		= CURRENT_VERSION;
     primary->class_of_service 	= format_cos(bundle);
@@ -64,6 +77,11 @@ BundleProtocol::fill_header_iov(const Bundle* bundle, struct iovec* iov, int* io
     primary->creation_ts 	= ((u_int64_t)htonl(bundle->creation_ts_.tv_sec)) << 32;
     primary->creation_ts	|= (u_int64_t)htonl(bundle->creation_ts_.tv_usec);
     primary->expiration 	= htonl(bundle->expiration_);
+
+    next_header_type = &primary->next_header_type;
+    iov[0].iov_base = primary;
+    iov[0].iov_len  = sizeof(PrimaryHeader);
+    *iovcnt = 1;
 
     // now figure out how many unique tuples there are, storing the
     // unique ones in a temp vector and assigning the corresponding
@@ -76,7 +94,9 @@ BundleProtocol::fill_header_iov(const Bundle* bundle, struct iovec* iov, int* io
     add_to_dict(&primary->custodian_id, bundle->custodian_, &tuples, &dictlen);
     add_to_dict(&primary->replyto_id,   bundle->replyto_,   &tuples, &dictlen);
                       
-    // now allocate and fill in the dictionary
+    //
+    // dictionary header (must follow the primary)
+    //
     DictionaryHeader* dictionary = (DictionaryHeader*)malloc(dictlen);
     int ntuples = tuples.size();
     dictionary->string_count = ntuples;
@@ -87,37 +107,57 @@ BundleProtocol::fill_header_iov(const Bundle* bundle, struct iovec* iov, int* io
         memcpy(records, tuples[i].data(), tuples[i].length());
         records += tuples[i].length();
     }
-    
-    // and last, the payload header. the actual data will immediately
-    // follow the payload header in the iovec construction below
+
+    *next_header_type = DICTIONARY;
+    next_header_type = &dictionary->next_header_type;
+    iov[*iovcnt].iov_base = dictionary;
+    iov[*iovcnt].iov_len  = dictlen;
+    (*iovcnt)++;
+
+    //
+    // fragment header (if it's a fragment)
+    //
+    if (bundle->is_fragment_) {
+        FragmentHeader* fragment = (FragmentHeader*)malloc(sizeof(FragmentHeader));
+        u_int32_t orig_length = htonl(bundle->orig_length_);
+        u_int32_t frag_offset = htonl(bundle->frag_offset_);
+        memcpy(&fragment->orig_length, &orig_length, sizeof(orig_length));
+        memcpy(&fragment->frag_offset, &frag_offset, sizeof(frag_offset));
+
+        *next_header_type = FRAGMENT;
+        next_header_type = &fragment->next_header_type;
+        iov[*iovcnt].iov_base = fragment;
+        iov[*iovcnt].iov_len  = sizeof(FragmentHeader);
+        (*iovcnt)++;
+    }
+
+    //
+    // payload header (must be last)
+    //
     PayloadHeader* payload = (PayloadHeader*)malloc(sizeof(PayloadHeader));
     u_int32_t payloadlen = htonl(bundle->payload_.length());
     memcpy(&payload->length, &payloadlen, 4);
     
-    // all done... set up the header type chaining
-    primary->next_header_type 	 = DICTIONARY;
-    dictionary->next_header_type = PAYLOAD;
-    payload->next_header_type    = NONE;
-    
-    // fill in the iovec
-    iov[0].iov_base = primary;
-    iov[0].iov_len  = sizeof(PrimaryHeader);
-    iov[1].iov_base = dictionary;
-    iov[1].iov_len  = dictlen;
-    iov[2].iov_base = payload;
-    iov[2].iov_len  = sizeof(PayloadHeader);
+    *next_header_type = PAYLOAD;
+    payload->next_header_type = NONE;
+    iov[*iovcnt].iov_base = payload;
+    iov[*iovcnt].iov_len  = sizeof(PayloadHeader);
+    (*iovcnt)++;
 
-    // store the count and return the total length
-    *iovcnt = 3;
-    return iov[0].iov_len + iov[1].iov_len + iov[2].iov_len;
+    // calculate the total length and then we're done
+    int total_len = 0;
+    for (int i = 0; i < *iovcnt; i++) {
+        total_len += iov[i].iov_len;
+    }
+    return total_len;
 }
 
 void
 BundleProtocol::free_header_iovmem(const Bundle* bundle, struct iovec* iov, int iovcnt)
 {
-    free(iov[0].iov_base); // primary header
-    free(iov[1].iov_base); // dictionary header
-    free(iov[2].iov_base); // payload header
+    for (int i = 0; i < iovcnt; ++i) {
+        free(iov[i].iov_base);
+    }
 }
 
 int
@@ -125,14 +165,19 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
 {
     static const char* log = "/bundle/protocol";
     size_t origlen = len;
+    u_int8_t next_header_type;
 
-    // always starts with the primary header
+    //
+    // primary header
+    //
+    PrimaryHeader* primary;
     if (len < sizeof(PrimaryHeader)) {
  tooshort:
         logf(log, LOG_ERR, "bundle too short (length %d)", len);
         return -1;
     }
-    PrimaryHeader* primary = (PrimaryHeader*)buf;
+    
+    primary = (PrimaryHeader*)buf;
     buf += sizeof(PrimaryHeader);
     len -= sizeof(PrimaryHeader);
 
@@ -149,7 +194,10 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     bundle->creation_ts_.tv_usec = ntohl((u_int32_t)primary->creation_ts);
     bundle->expiration_  = ntohl(primary->expiration);
 
-    // the dictionary header should follow
+    //
+    // dictionary header (must follow primary)
+    //
+    DictionaryHeader* dictionary;
     if (primary->next_header_type != DICTIONARY) {
         logf(log, LOG_ERR, "dictionary header doesn't follow primary");
         return -1;
@@ -160,7 +208,8 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     }
 
     // grab the header and advance the pointers
-    DictionaryHeader* dictionary = (DictionaryHeader*)buf;
+    dictionary = (DictionaryHeader*)buf;
+    next_header_type = dictionary->next_header_type;
     buf += sizeof(DictionaryHeader);
     len -= sizeof(DictionaryHeader);
 
@@ -207,26 +256,70 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     EXTRACT_DICTIONARY_TUPLE(dest_);
     EXTRACT_DICTIONARY_TUPLE(custodian_);
     EXTRACT_DICTIONARY_TUPLE(replyto_);
-    
-    // next should be the payload header
-    if (dictionary->next_header_type != PAYLOAD) {
-        logf(log, LOG_ERR, "payload header doesn't follow dictionary");
-        return -1;
+
+    // start a loop until we've consumed all the other headers
+    while (next_header_type != NONE) {
+        switch (next_header_type) {
+        case PRIMARY:
+            logf(log, LOG_ERR, "found a second primary header");
+            return -1;
+
+        case DICTIONARY:
+            logf(log, LOG_ERR, "found a second dictionary header");
+            return -1;
+
+        case FRAGMENT: {
+            u_int32_t orig_length, frag_offset;
+            
+            if (len < sizeof(FragmentHeader)) {
+                goto tooshort;
+            }
+            
+            FragmentHeader* fragment = (FragmentHeader*)buf;
+            buf += sizeof(FragmentHeader);
+            len -= sizeof(FragmentHeader);
+            next_header_type = fragment->next_header_type;
+            
+            bundle->is_fragment_ = true;
+            memcpy(&orig_length, &fragment->orig_length, sizeof(orig_length));
+            memcpy(&frag_offset, &fragment->frag_offset, sizeof(frag_offset));
+            bundle->orig_length_ = htonl(orig_length);
+            bundle->frag_offset_ = htonl(frag_offset);
+            break;
+        }
+
+        case PAYLOAD: {
+            u_int32_t payload_len;
+            
+            if (len < sizeof(PayloadHeader)) {
+                goto tooshort;
+            }
+
+            PayloadHeader* payload = (PayloadHeader*)buf;
+            buf += sizeof(PayloadHeader);
+            len -= sizeof(PayloadHeader);
+
+            if (payload->next_header_type != NONE) {
+                logf(log, LOG_ERR, "payload header must be last (next type %d)",
+                     payload->next_header_type);
+                return -1;
+            }
+
+            next_header_type = payload->next_header_type;
+            
+            memcpy(&payload_len, &payload->length, 4);
+            bundle->payload_.set_length(ntohl(payload_len));
+
+            logf(log, LOG_DEBUG, "parsed payload length %d",
+                 bundle->payload_.length());
+            break;
+        }
+
+        default:
+            logf(log, LOG_ERR, "unknown header type %d", next_header_type);
+            return -1;
+        }
     }
-    
-    if (len < sizeof(PayloadHeader)) {
-        goto tooshort;
-    }
-
-    PayloadHeader* payload = (PayloadHeader*)buf;
-    buf += sizeof(PayloadHeader);
-    len -= sizeof(PayloadHeader);
-
-    u_int32_t payloadlen;
-    memcpy(&payloadlen, &payload->length, 4);
-    bundle->payload_.set_length(ntohl(payloadlen));
-
-    logf(log, LOG_DEBUG, "parsed payload length %d", bundle->payload_.length());
     
     // that's all we parse, return the amount we consumed
     return origlen - len;
