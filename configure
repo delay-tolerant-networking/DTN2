@@ -63,12 +63,19 @@ libdir='${exec_prefix}/lib'
 idir='${exec_prefix}/include'
 mandir='/usr/local/man/manl'
 
-
 #
 # Defaults
 #
 debug='-g'
 optimize='-O'
+optimizewarn='-Wuninitialized' # depends on -O
+
+#
+# Libraries
+#
+staticlibs=''
+libs='-lpthread'
+
 
 # End of user configurable options
 
@@ -109,9 +116,11 @@ do
     debug='' ;;
 
   -enable-optimize | --enable-optimize)
-    optimize='-O' ;;
+    ;; # no-op (is default)
   -disable-optimize | --disable-optimize)
-    optimize='' ;;
+    optimize='' 
+    optimizewarn=''
+    ;;
 
   -help | --help | -h)
     cat <<EOF
@@ -178,6 +187,10 @@ s%@TARGET@%$target%g
 s%@INCDIR@%$idir%g
 s%@DEBUG@%$debug%g
 s%@OPTIMIZE@%$optimize%g
+s%@OPTIMIZE_WARN@%$optimizewarn%g
+s%@LIBS@%$libs%g
+s%@STATIC_LIBS@%$static_libs%g
+
 " Rules.make.in >> Rules.make
 
 echo ""

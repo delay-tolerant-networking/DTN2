@@ -81,9 +81,15 @@ endif
 #
 DEBUG 		= @DEBUG@
 OPTIMIZE	= @OPTIMIZE@
-WARN  		= -Wall -Wuninitialized -Werror
+WARN  		= -Wall -Werror @OPTIMIZE_WARN@
 CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(WARN)
+
+#
+# Settings for linking
+#
 LFLAGS		= $(LIBDIRS)
+STATIC_LIBS	= @STATIC_LIBS@
+LIBS		= @LIBS@
 
 #
 # Add a phony rule to make sure this isn't created before the default
@@ -133,9 +139,15 @@ $(SRCDIR)/Rules.make: $(SRCDIR)/Rules.make.in $(SRCDIR)/configure
 	$(CPP) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -E -o $@
 
 #
+# Always include all the .d files that we can find
+#
+DEPFILES := $(shell find $(SRCDIR) -name *.d)
+-include $(DEPFILES)
+
+#
 # Clean out all object files
 #
-clean: objclean depclean
+clean: objclean depclean genclean
 
 .PHONY: objclean
 objclean:
@@ -145,3 +157,6 @@ objclean:
 depclean:
 	find . \( -name '*.d' \) -print0 | xargs -0 rm -f
 
+.PHONY: genclean
+genclean:
+	test -z "$(GENFILES)" || rm -f $(GENFILES)
