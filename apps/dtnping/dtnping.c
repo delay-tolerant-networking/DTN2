@@ -78,14 +78,7 @@ main(int argc, const char** argv)
     
     doOptions(argc, argv);
 
-    // first off, make sure it's a valid destination tuple
     memset(&ping_spec, 0, sizeof(ping_spec));
-    //dest_tuple_str = (char*)argv[1];
-    if (dtn_parse_tuple_string(&ping_spec.dest, dest_tuple_str)) {
-        fprintf(stderr, "invalid destination tuple string '%s'\n",
-                dest_tuple_str);
-        exit(1);
-    }
 
     // open the ipc handle
     handle = dtn_open();
@@ -94,6 +87,22 @@ main(int argc, const char** argv)
                 strerror(errno));
         exit(1);
     }
+
+    // make sure they supplied a valid destination tuple or
+    // "localhost", in which case we just use the local daemon
+    if (strcmp(dest_tuple_str, "localhost") == 0) {
+        dtn_build_local_tuple(handle, &ping_spec.dest, "");
+
+    } else {
+        if (dtn_parse_tuple_string(&ping_spec.dest, dest_tuple_str)) {
+            fprintf(stderr, "invalid destination tuple string '%s'\n",
+                    dest_tuple_str);
+            exit(1);
+        }
+    }
+
+    // if the user specified a dest of "localhost", copy the local
+    // tuple into the destination
 
     // build a local tuple based on the configuration of our dtn
     // router plus the demux string
@@ -187,10 +196,23 @@ doOptions(int argc, const char **argv)
         case 'd':
             strcpy(dest_tuple_str, optarg);
             break;
+        case '?':
+            break;
         }
     }
-    if ( strlen(dest_tuple_str)==0 ) {
-            strcpy(dest_tuple_str, argv[argc-1]);
+
+    if ((optind < argc) && (strlen(dest_tuple_str) == 0)) {
+        strcpy(dest_tuple_str, argv[optind++]);
+    }
+
+    if (optind < argc) {
+        fprintf(stderr, "unsupported argument '%s'\n", argv[optind]);
+        exit(1);
+    }
+
+    if (dest_tuple_str[0] == '\0') {
+        fprintf(stderr, "must supply a destination tuple (or 'localhost')\n");
+        exit(1);
     }
 }
 
