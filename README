@@ -34,17 +34,12 @@ BerkeleyDB 4.2+
 mysql
 postgresql
 
-Postgres
---------
-Need to create a database 'dtn'
-
-
-Compilation instructions
---------
+Compilation / Install Instructions
+----------------------------------
 
 ./configure
 make
+make install
 
-If connfigure isssues you might need to run
-./configure inside oasys/ seprately.
+Note that you may need to run ./configure inside oasys/ separately.
 
