@@ -29,7 +29,7 @@ BundleForwarder::process(BundleActionList* actions)
 
     for (iter = actions->begin(); iter != actions->end(); ++iter) {
         action = *iter;
-        bundle = action->bundle_;
+        bundle = action->bundleref_.bundle();
         switch (action->action_) {
         case FORWARD_UNIQUE:
         case FORWARD_COPY:
