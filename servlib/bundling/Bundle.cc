@@ -1,18 +1,35 @@
 
 #include "Bundle.h"
-#include "iostream"
-using namespace std;
+#include "storage/BundleStore.h"
 
 Bundle::Bundle()
 {
+    bundleid_      = BundleStore::instance()->next_id();
+    expiration_    = 0;
+    priority_      = COS_NORMAL;
+    delivery_opts_ = COS_NONE;
+}
 
-    expiration_ = 100000;
-    priority_ = 1;
-    delivery_opts_= 0;
+Bundle::Bundle(const std::string& source,
+               const std::string& dest,
+               const std::string& payload)
+{
+    Bundle::Bundle();
+    source_.set_tuple(source);
+    dest_.set_tuple(dest);
+    payload_.set_data(payload);
 }
 
 Bundle::~Bundle()
 {
+}
+
+int
+Bundle::format(char* buf, size_t sz)
+{
+    return snprintf(buf, sz, "bundle id %d %s -> %s (%d bytes payload)",
+                    bundleid_, source_.c_str(), dest_.c_str(),
+                    payload_.length());
 }
 
 void

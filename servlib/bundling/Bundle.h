@@ -1,9 +1,11 @@
 #ifndef _BUNDLE_H_
 #define _BUNDLE_H_
 
+#include "debug/Formatter.h"
 #include "storage/Serialize.h"
 #include "BundlePayload.h"
 #include "BundleTuple.h"
+#include "thread/Atomic.h"
 
 /**
  * Values for the bundle priority field.
@@ -30,10 +32,16 @@ typedef enum {
 /**
  * The internal representation of a bundle.
  */
-class Bundle : public SerializableObject {
+class Bundle : public Formatter, public SerializableObject {
 public:
     Bundle();
+    Bundle(const std::string& source,
+           const std::string& dest,
+           const std::string& payload);
     virtual ~Bundle();
+
+    // virtual from Formatter
+    int format(char* buf, size_t sz);
     
     // basic bundle information
     u_int32_t bundleid_;	///< Local bundle identifier
@@ -54,6 +62,36 @@ public:
      * Virtual from SerializableObject
      */
     void serialize(SerializeAction* a);
+
+    /**
+     * Return the bundle's reference count. Incremented whenever the
+     * bundle is added to a bundle list for forwarding either to
+     * another daemon or to an application.
+     */
+    int refcount() { return refcount_; }
+
+    /**
+     * Bump up the reference count.
+     */
+    void addref() {
+        atomic_incr(&refcount_);
+        log_debug("/bundle/refs", "refcount %d %d -> %d",
+                  bundleid_, refcount_ - 1, refcount_);
+        ASSERT(refcount_ > 0);
+    }
+
+    /**
+     * Decrement the reference count.
+     */
+    void delref() {
+        ASSERT(refcount_ > 0);
+        atomic_decr(&refcount_);
+        log_debug("/bundle/refs", "refcount %d %d -> %d",
+                  bundleid_, refcount_ + 1, refcount_);
+    }
+
+protected:
+    int refcount_;		///< reference count
 };
 
 #endif /* _BUNDLE_H_ */
