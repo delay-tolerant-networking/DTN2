@@ -58,13 +58,13 @@ proc ack_arrived {sock} {
 
     set ack [gets $sock]
     if [eof $sock] {
-	puts "eof waiting for ack!"
+	puts " [time] eof waiting for ack!"
 	set got_ack 0
 	fileevent $sock readable
 	return
     }
     if {$ack != "ACK"} {
-	puts "ERROR in ack_arrived: got '$ack', expected ACK"
+	puts "[time] ERROR in ack_arrived: got '$ack', expected ACK"
 	set got_ack 0
 	fileevent $sock readable 
 	return
@@ -74,7 +74,7 @@ proc ack_arrived {sock} {
 proc ack_timeout {} {
     global got_ack
     set got_ack 0
-    puts "ack_timeout"
+    puts " [time] ack_timeout"
 }
 
 proc send_file {host file} {
@@ -90,7 +90,7 @@ proc send_file {host file} {
 
     if {! [info exists sock]} {
 	while  { [  catch {socket $host $port } sock] } {
-	    puts "Trying to connect, will try again after  2 seconds "
+	    puts "[time] Trying to connect, will try again after  2 seconds "
 	    after 2000
 	}
     
@@ -115,14 +115,14 @@ proc send_file {host file} {
     vwait got_ack
     
     if {!$got_ack} {
-	puts "timeout waiting for handshake ack"
+	puts "[time] timeout waiting for handshake ack"
 	close $fd
 	close $sock
 	unset sock
 	return -1
     }
 
-    puts "got handshake ack -- sending file"
+    puts "[time] got handshake ack -- sending file"
 
     while {![eof $fd]} {
 	if {[catch {
@@ -141,7 +141,7 @@ proc send_file {host file} {
     close $fd
     
     # wait for an ack or timeout
-    puts "sent whole file, waiting for ack"
+    puts "[time] sent whole file, waiting for ack"
     fconfigure $sock -blocking 0
     set got_ack -1
     fileevent $sock readable "ack_arrived $sock"
