@@ -11,7 +11,7 @@
  * Constructor
  */
 Contact::Contact(Link* link)
-    : BundleConsumer(link->dest_tuple(), false), link_(link)
+    : BundleConsumer(link->dest_tuple(), false, "Contact"), link_(link)
 {
     logpathf("/contact/%s", link->tuple().c_str());
 

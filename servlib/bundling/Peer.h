@@ -68,11 +68,6 @@ public:
      * Virtual from formatter
      */
     int format(char* buf, size_t sz);
-    
-    /**
-     * Virtual from bundle consumer
-     */
-    const char* type() { return "Peer"; }
         
 protected:
     LinkSet*  links_;      ///< List of links that lead to this peer

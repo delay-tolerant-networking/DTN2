@@ -20,64 +20,6 @@ class Peer;
 class LinkSet : public std::set<Link*> {};
 
 /**
- * Valid types for a link.
- */
-typedef enum
-{
-    LINK_INVALID = -1,
-    
-    /**
-     * The link is expected to be either ALWAYS available, or can
-     * be made available easily. Examples include DSL (always), and
-     * dialup (easily available).
-     */
-    ONDEMAND = 1,
-    
-    /**
-     * The link is only available at pre-determined times.
-     */
-    SCHEDULED = 2,
-
-    /**
-     * The link may or may not be available, based on
-     * uncontrollable factors. Examples include a wireless link whose
-     * connectivity depends on the relative locations of the two
-     * nodes.
-     */
-    OPPORTUNISTIC = 3
-}
-link_type_t;
-
-/**
- * Link type string conversion.
- */
-inline const char*
-link_type_to_str(link_type_t type)
-{
-    switch(type) {
-    case ONDEMAND: 	return "ONDEMAND";
-    case SCHEDULED: 	return "SCHEDULED";
-    case OPPORTUNISTIC: return "OPPORTUNISTIC";
-    default: 		PANIC("bogus link_type_t");
-    }
-}
-
-inline link_type_t
-str_to_link_type(const char* str)
-{
-    if (strcasecmp(str, "ONDEMAND") == 0)
-        return ONDEMAND;
-    
-    if (strcasecmp(str, "SCHEDULED") == 0)
-        return SCHEDULED;
-    
-    if (strcasecmp(str, "OPPORTUNISTIC") == 0)
-        return OPPORTUNISTIC;
-    
-    return LINK_INVALID;
-}
-
-/**
  * Abstraction for a DTN link. A DTN link has a destination peer
  * associated with it. The peer represents the DTN node to which the
  * link leads to. A link can be in two states: open or closed.
@@ -171,6 +113,64 @@ str_to_link_type(const char* str)
 */
 class Link : public Formatter, public BundleConsumer {
 public:
+/**
+ * Valid types for a link.
+ */
+    typedef enum
+    {
+        LINK_INVALID = -1,
+        
+        /**
+         * The link is expected to be either ALWAYS available, or can
+         * be made available easily. Examples include DSL (always), and
+         * dialup (easily available).
+         */
+        ONDEMAND = 1,
+        
+        /**
+         * The link is only available at pre-determined times.
+         */
+        SCHEDULED = 2,
+        
+        /**
+         * The link may or may not be available, based on
+         * uncontrollable factors. Examples include a wireless link whose
+         * connectivity depends on the relative locations of the two
+         * nodes.
+         */
+        OPPORTUNISTIC = 3
+    }
+    link_type_t;
+
+     /**
+      * Link type string conversion.
+      */
+    static inline const char*
+    link_type_to_str(link_type_t type)
+    {
+        switch(type) {
+        case ONDEMAND: 	return "ONDEMAND";
+        case SCHEDULED: 	return "SCHEDULED";
+        case OPPORTUNISTIC: return "OPPORTUNISTIC";
+        default: 		PANIC("bogus link_type_t");
+        }
+    }
+
+    static inline link_type_t
+    str_to_link_type(const char* str)
+    {
+        if (strcasecmp(str, "ONDEMAND") == 0)
+            return ONDEMAND;
+        
+        if (strcasecmp(str, "SCHEDULED") == 0)
+            return SCHEDULED;
+        
+        if (strcasecmp(str, "OPPORTUNISTIC") == 0)
+            return OPPORTUNISTIC;
+        
+        return LINK_INVALID;
+    }
+    
     /**
      * Static function to create appropriate link object from link type
      */
@@ -257,11 +257,6 @@ public:
      * Virtual from formatter
      */
     int format(char* buf, size_t sz);
-
-    /**
-     * Virtual from bundle consumer
-     */
-    const char* type() { return "Link" ;}
     
 protected:
 

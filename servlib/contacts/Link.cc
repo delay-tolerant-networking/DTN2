@@ -28,7 +28,7 @@ Link::create_link(std::string name, link_type_t type,
  */
 Link::Link(std::string name, link_type_t type, const char* conv_layer,
            const BundleTuple& tuple)
-    :  BundleConsumer(&tuple_, false),
+    :  BundleConsumer(&tuple_, false, "Link"),
     type_(type),   tuple_(tuple),  name_(name)
 {
 
@@ -44,7 +44,6 @@ Link::Link(std::string name, link_type_t type, const char* conv_layer,
     // Contact manager will create a peer if peer does not exist
     if (!tuple.valid()) {
         PANIC("malformed peer %s",tuple.c_str());
-        // XXX/demmer need better error handling
     }
     peer_ = ContactManager::instance()->find_peer(tuple);
     if (peer_ == NULL) {

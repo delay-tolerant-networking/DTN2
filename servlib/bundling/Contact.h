@@ -68,11 +68,6 @@ public:
      * Virtual from formatter
      */
     int format(char* buf, size_t sz);
-
-    /**
-     * Virtual from bundle consumer
-     */
-    const char* type() { return "Contact" ;}
     
 protected:
     Link* link_ ; 		///< Pointer to parent link on

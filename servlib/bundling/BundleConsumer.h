@@ -19,7 +19,7 @@ public:
      * Constructor. It is the responsibility of the subclass to
      * allocate the bundle_list_ if the consumer does any queuing.
      */
-    BundleConsumer(const BundleTuple* dest_tuple, bool is_local);
+    BundleConsumer(const BundleTuple* dest_tuple, bool is_local, const char* type_str);
 
     /**
      * Destructor
@@ -58,7 +58,7 @@ public:
     /**
      * Type of the bundle consumer. Link or Peer or Contact or Reg
      */
-    virtual const char* type() = 0;
+    const char* type_str() { return type_str_; }
 
     /**
      * Accessor for the list of bundles in this consumer
@@ -70,6 +70,7 @@ public:
 protected:
     const BundleTuple* dest_tuple_;
     bool is_local_;
+    const char* type_str_;
     BundleList* bundle_list_;
 
 private:

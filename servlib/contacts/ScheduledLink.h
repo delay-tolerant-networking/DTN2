@@ -57,7 +57,7 @@ public:
      * Constructor / Destructor
      */
     FutureContact(const BundleTuple& tuple) :
-        BundleConsumer(&tuple,false), start_(0), duration_(0) {
+        BundleConsumer(&tuple,false,"FutureContact"), start_(0), duration_(0) {
          logpathf("/fc_contact/%s", tuple.c_str());
          bundle_list_ = new BundleList(logpath_);
          log_debug("new future contact *%p", this);
@@ -66,11 +66,7 @@ public:
         ASSERT(bundle_list_->size() == 0);
         delete bundle_list_;
     }
-    /**
-     * Virtual from bundle consumer
-     */
-    const char* type() { return "FC" ;}
-  
+
 protected:
     // Time at which contact starts, 0 value means not defined
     time_t start_;

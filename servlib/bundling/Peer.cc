@@ -7,7 +7,7 @@
  * Constructor / Destructor
  */
 Peer::Peer(const BundleTuple& tuple)
-    : BundleConsumer(&tuple_, false), tuple_(tuple)
+    : BundleConsumer(&tuple_, false, "Peer"), tuple_(tuple)
 {
     ASSERT(tuple.valid());
     logpathf("/peer/%s",tuple.c_str());
