@@ -1,0 +1,94 @@
+July 16 DTN Reference Implementation Discussion 
+10.00a - 12.30p
+
+Mike Hacking this week
+        implemented v3 bundle protocol and simple tcp convergence layer
+        test command fabricates bundle and spits it out
+        implemented registration thing (limited wildcard '*')
+ 
+        Sushant has binary data working in SQL databases (Postgres/mySQL)
+        BerkeleyDB and File databases not working yet.
+        Much of storage is SQL-agnostic (some differences between
+implementations, shim supports different implementations)
+        Used to store (bundle, key).  SQL doesn't need this, so there's a
+bit of extra redundancy in the database.
+        
+        Sanity checks on startup to make sure database matches code.
+        If the version of the database storage doesn't match the code, maybe
+drop the bundles and reset the database.
+        
+ 
+==============================
+ 
+Discussion about wildards, routing tables
+ 
+Address families and CL-stuff
+Two hash-table style data tables (inter- intra-regional routes)
+Do you get interface routes a la Unix (in the routing table)?
+        
+Interface specification independent of region.  Really used as configuration
+to a convergence layer to set up a bundle input point (e.g. TCP, look for
+files in a directory, ...) independent of region.  Separate configuration
+bit lists the regions in which you're participating.  Forwarding of outgoing
+bundles all happens through the routing table (specifies two full DTN
+tuples, FIRST and next hop).  First part may have some wildcard matching.
+Registration doesn't have anything to do with interfaces (can register for
+bundles that have nothing to do with regions you're participating in).
+ 
+following thre region string there's always a protocol string (Mike wants
+this to uniquely associate this with a convergence layer).  Maybe make that
+somewhat malleable, 1-1 mapping OK for now.
+ 
+what if local and remote routing decisions are different.  For example, what
+if I make a call if queue is larger than X otherwise not.  Need to be able
+to have source routed bundles override local decisions.
+ 
+first check registration table for matching registrations, give copies
+routing table check destination region (of bundle).
+ 
+Bundle forwarding returns vector of (bundle range, next hop, OPTIONS)
+OPTIONS are like send multiple copies or to first of (A,B).  Maybe instead
+of having OPTIONS, the 'big routing thing' is just called whenever a bundle
+is sent and it's the 'big routing thing's job to remove other copies or
+whatever.
+ 
+Have the routing table contain the registrations as well?
+ 
+Special case of handling bundles that nobody's waiting for (but I'm the
+destination for).
+ 
+Should bundles be on a global 'unassigned' list most of the time, or should
+there be separate contact lists for different contacts?
+ 
+Have bundle backpointers onto multiple delivery lists?
+    CL that goes to the trouble of making a call if there's enough stuff
+queued, e.g.
+    Do the right thing with respect to multiple copy forwarding.
+ 
+ 
+===========================
+ 
+ 
+Playground was comprimised
+    Use sandbox (Keith will get backup script moved)
+ 
+Keep using Bugzilla?  People sort of like it, but the new reference
+implementation isn't really ready for it yet.
+ 
+Mike is around next week but then gone for two.
+ 
+ 
+===========
+ 
+Recap of the 'monster router' discussion.
+ 
+The idea is for the 'router' piece to be pluggable so that you can slide
+different monster routers in/out of the bundle daemon.  The thing would be
+highly 'event-aware' and would receive events about bundles that need to be
+routed, contacts starting/stopping, ...  It would occasionally output lists
+of things to do (put this bundle on this list, put copies of these bundles
+on these lists, ...).  Scott advocates for just letting the monster _do_
+stuff (which has the attraction that we don't have to answer the question of
+'to whom does the monster hand one of these lists if nobody called it).  The
+notion of having the monster return lists of stuff is attractive if you
+really want to know what the darn thing is doing.
