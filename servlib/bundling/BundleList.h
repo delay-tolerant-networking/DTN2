@@ -123,7 +123,7 @@ public:
     /**
      * Return the size of the list.
      */
-    size_t size();
+    size_t size() const;
 
     /**
      * Type for the list itself.

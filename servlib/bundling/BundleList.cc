@@ -7,6 +7,9 @@
 // XXX/demmer want some sort of expiration handler registration per
 // list so things know when their bundles have been expired
 
+// XXX/demmer don't always create the notifier to save on open file
+// descriptors... we only really need it for the contact
+
 BundleList::BundleList(const std::string& name)
     : lock_(new SpinLock()), name_(name)
 {
@@ -284,7 +287,7 @@ BundleList::clear()
  * Return the size of the list.
  */
 size_t
-BundleList::size()
+BundleList::size() const
 {
     ScopeLock l(lock_);
     return list_.size();
