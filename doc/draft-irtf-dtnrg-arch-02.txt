@@ -1,0 +1,1320 @@
+DTNRG Chair
+DTN Research Group                                              V. Cerf 
+INTERNET-DRAFT                            MCI/Jet Propulsion Laboratory 
+<draft-irtf-dtnrg-arch-02.txt>                              S. Burleigh 
+July 2004                                                      A. Hooke 
+Expires January 2005                                       L. Torgerson 
+                                         NASA/Jet Propulsion Laboratory 
+                                                               R. Durst 
+                                                               K. Scott 
+                                                  The MITRE Corporation 
+                                                                K. Fall 
+                                                      Intel Corporation 
+                                                               H. Weiss 
+                                                           SPARTA, Inc. 
+Delay-Tolerant Network Architecture 
+ 
+Status of this Memo 
+    
+   By submitting this Internet-Draft, we certify that any applicable 
+   patent or other IPR claims of which we am aware have been disclosed, 
+   and any of which we become aware will be disclosed, in accordance 
+   with RFC 3668. 
+    
+   This document is an Internet-Draft and is in full conformance with 
+   Sections 5 and 6 of RFC3667 and Section 5 of RFC3668. 
+    
+   Internet-Drafts are working documents of the Internet Engineering 
+   Task Force (IETF), its areas, and its working groups.  Note that 
+   other groups may also distribute working documents as Internet-
+   Drafts.   
+    
+   Internet-Drafts are draft documents valid for a maximum of six months 
+   and may be updated, replaced, or obsoleted by other documents at any 
+   time. It is inappropriate to use Internet-Drafts as reference 
+   material or to cite them other than as "work in progress." 
+    
+   The list of current Internet-Drafts can be accessed at  
+   http://www.ietf.org/ietf/1id-abstracts.txt. 
+    
+   The list of Internet-Draft Shadow Directories can be accessed at  
+   http://www.ietf.org/shadow.html. 
+    
+   This document was produced within the IRTF's Delay Tolerant 
+   Networking Research Group (DTNRG).  See http://www.dtnrg.org for more 
+   information. 
+    
+Abstract 
+    
+   This document describes an architecture for delay-tolerant networks, 
+   and is a generalization of the architecture originally designed for 
+   the Interplanetary Internet: a communication system to provide 
+   Internet-like services across interplanetary distances in support of 
+   deep space exploration.  This document describes a generalization of 
+   this architecture that addresses a variety of internetworks with 
+   operational and performance characteristics that make conventional 
+   (Internet-like) networking approaches either unworkable or 
+   impractical.  We define a message-oriented overlay that exists above 
+   the transport layer of the networks on which it is hosted.  The 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   document presents an architectural overview followed by discussions 
+   of services, topology, routing, security, reliability and state 
+   management. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+Cerf, et al.             Expires January 2005                 [Page 2] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+Table of Contents 
+   Status of this Memo................................................1 
+   Abstract...........................................................1 
+   Table of Contents..................................................3 
+   1     Introduction.................................................5 
+   2     Why an Architecture for Delay-Tolerant Networking?...........5 
+   3     DTN Architectural Description................................6 
+         3.1  The DTN Architecture is Based on Virtual Message Switching
+               ........................................................6 
+         3.2  DTN Classes of Service Mimic Postal Operation...........7 
+         3.3  DTN Postal-Style Delivery Options.......................8 
+         3.4  Nodes and Applications..................................9 
+         3.5  Regions................................................10 
+         3.6  Endpoint Identifiers (Endpoint IDs)....................11 
+         3.7  Late Binding...........................................11 
+         3.8  Routing and Forwarding.................................11 
+         3.9  Fragmentation and Reassembly...........................13 
+         3.10 Reliability and Custody Transfer.......................13 
+         3.11 Time Stamps and Time Synchronization...................13 
+         3.12 Congestion and Flow Control at the Bundle Layer........14 
+         3.13 Security...............................................15 
+   4     State Management Considerations.............................16 
+         4.1  Registration State.....................................16 
+         4.2  Custody Transfer State.................................17 
+         4.3  Bundle Routing and Forwarding State....................17 
+         4.4  Security-Related State.................................17 
+   5     Application Structuring Issues..............................18 
+   6     Convergence Layer Considerations for Use of Underlying 
+         Protocols...................................................19 
+   7     Summary.....................................................19 
+   8     Security Considerations.....................................20 
+   9     IANA Considerations.........................................20 
+   10    Normative References........................................20 
+   11    Informative References......................................20 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+Cerf, et al.             Expires January 2005                 [Page 3] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+Acknowledgments 
+    
+   John Wroclawski, David Mills, Greg Miller, James P. G. Sterbenz, Joe 
+   Touch, Steven Low, Lloyd Wood, Robert Braden, Deborah Estrin, Stephen 
+   Farrell, Melissa Ho, Ting Liu, and Craig Partridge all contributed 
+   useful thoughts and criticisms to previous versions of this document.  
+   We are grateful for their time and participation. 
+    
+   This work was performed in part under DOD Contract DAA-B07-00-CC201, 
+   DARPA AO H912; JPL Task Plan No. 80-5045, DARPA AO H870; and NASA 
+   Contract NAS7-1407. 
+    
+Release Notes 
+    
+draft-irtf-ipnrg-arch-00.txt, May 2001:  
+    
+   Original Issue. 
+    
+draft-irtf-ipnrg-arch-01.txt, August 2002:  
+    
+   -Restructured document to generalize architecture for delay-tolerant 
+     networking. 
+   -Refined DTN classes of service and delivery options.  Added a 
+     "reply-to" address to have response information such as error 
+     messages or end-to-end acks directed to a source-specified third 
+     party. 
+   -Further defined the topological elements of delay tolerant networks. 
+   -Elaborated routing and reliability considerations. 
+   -Initial model for securing the delay tolerant network 
+     infrastructure. 
+   -Expanded discussion of flow and congestion control. 
+   -Added section discussing state information at the bundle layer. 
+   -Updated bundle header information and end-to-end data transfer. 
+    
+draft-irtf-dtnrg-arch-00.txt, March 2003:   
+    
+   -Revised model for delay tolerant network infrastructure security. 
+   -Introduced fragmentation and reassembly to the architecture. 
+   -Removed significant amounts of rationale and redundant text.  Moved 
+     bundle transfer example(s) to separate draft(s). 
+    
+draft-irtf-dtnrg-arch-02.txt, July 2004: 
+   -Revised assumptions about reachability within DTN regions. 
+   -Added management endpoint identifiers for nodes. 
+   -Removed list of bundle header information as it will be contained in 
+     the protocol specification document. 
+
+
+
+
+
+
+
+
+ 
+Cerf, et al.             Expires January 2005                 [Page 4] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+1  Introduction 
+    
+   This document describes an architecture for Delay and Disconnection-
+   Tolerant interoperable networking.  The architecture embraces the 
+   concepts of occasionally-connected networks that may suffer from 
+   frequent partitions and that may be comprised of more than one 
+   divergent set of protocol families.  The basis for this architecture 
+   lies with that of the Interplanetary Internet, which focused 
+   primarily on the issue of deep space communication in high-delay 
+   environments.  We expect the current DTN architecture described here 
+   to be utilized in various high-delay and unusual environments; the 
+   case of deep space is one of these, and is still being pursued as a 
+   specialization of this architecture (See http://www.ipnsig.org and 
+   [SB03] for more details).  Other networks to which we believe this 
+   architecture applies include sensor-based networks using scheduled 
+   intermittent connectivity, classes of terrestrial wireless networks 
+   that cannot ordinarily maintain end-to-end connectivity, and more 
+   "conventional" internets with long delays.  A DTN tutorial [FW03], 
+   aimed at introducing DTN and the types of networks for which it is 
+   designed, is available to introduce new readers to the fundamental 
+   concepts and motivation.  More technical descriptions may be found in 
+   [KF03] and [JFP04].  
+    
+   We define an end-to-end message-oriented overlay called the "bundle 
+   layer" that exists at a layer above the transport layers of the 
+   networks on which it is hosted and below applications. This overlay 
+   employs persistent storage at intermediate nodes (DTN routers), 
+   includes a hop-by-hop transfer of reliable delivery responsibility 
+   and optional end-to-end acknowledgement.  For interoperability, it 
+   includes a flexible naming scheme (based on URIs) capable of 
+   encapsulating different naming schemes in the same overall naming 
+   format.  It also has a basic security model aimed at protecting 
+   infrastructure from unauthorized use.  In a sense, it represents a 
+   networking architecture among application-layer gateways or proxies 
+   that employ store-and-forward message routing to overcome 
+   communication disruptions. 
+    
+   Nodes unable to support the full capabilities required by this 
+   architecture may be supported by application layer proxies, acting as 
+   DTN applications.  In particular, the DTN naming scheme is able to 
+   carry endpoint identifiers in an opaque fashion, thereby supporting 
+   references to non-DTN capable endpoints where required. 
+    
+2  Why an Architecture for Delay-Tolerant Networking? 
+    
+   The reason for pursuing an architecture for delay tolerant networking 
+   stems from several factors.  These factors are summarized below; much 
+   more detail on their rationale can be explored in [SB03,KF03,DFS02]. 
+    
+   The existing Internet Protocols do not work well for some 
+   environments, due to some fundamental assumptions built into the 
+   Internet architecture: 
+
+
+ 
+Cerf, et al.             Expires January 2005                 [Page 5] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   - that an end-to-end path between source and destination exists for 
+      the duration of the communication session  
+   - (for reliable communication) that the maximum round-trip time over 
+      that path is not excessive and not highly variable from packet to 
+      packet 
+   - that the end-to-end loss is relatively small 
+   - that all routers and end stations support the TCP/IP protocols 
+   - that applications need not worry about communication performance 
+   - that endpoint-based security mechanisms are sufficient for meeting 
+      most security concerns 
+    
+   In light of these issues, the DTN architecture is conceived based on 
+   a number of design principles that are summarized here (and further 
+   discussed in [KF03], as mentioned above): 
+    
+   - provide a coarse-grained class of service and delivery options 
+      based on services provided by the US (and other) postal systems 
+   - use variable-length (possibly long) messages (not streams or 
+      limited-sized packets) as the communication abstraction to help 
+      enhance the ability of the network to make good scheduling/path 
+      selection decisions 
+   - encourage applications to minimize round-trip exchanges 
+   - guide application design to cope with application restart after 
+      failure while network transactions remain pending 
+   - use storage within the network to support store-and-forward 
+      operation over potentially long timescales (i.e. to support 
+      operation in environments where no end-to-end path may ever exist) 
+   - provide security mechanisms that protect the infrastructure from 
+      unauthorized use 
+    
+3  DTN Architectural Description  
+    
+   The previous section summarized the design principles that guide the 
+   definition of the DTN architecture.  This section presents a 
+   description of the design decisions that result from those design 
+   principles. 
+    
+3.1 The DTN Architecture is Based on Virtual Message Switching 
+    
+   A DTN-enabled application transmits application-layer messages of 
+   arbitrary length (subject to any implementation limitations). Their 
+   relative order may not be preserved.  Messages are transformed into 
+   protocol "bundles" that may contain whatever the requesting 
+   application wishes to send. Messages are sent by and delivered to 
+   applications in an atomic fashion, although bundles may be split up 
+   during transmission.  Message senders and recipients are identified 
+   by (variable-length) endpoint identifiers (described below).  Bundles 
+   may also contain an optional "report-to" endpoint identifier used 
+   when special operations are requested to direct diagnostic output to 
+   an entity other than the sender.   
+    
+   A message-oriented abstraction provides the bundle layer with a-
+   priori knowledge of the size and performance requirements of 
+ 
+Cerf, et al.             Expires January 2005                 [Page 6] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   requested data transfers.  When there is a significant amount of 
+   queuing that can occur prior to transmission over an outbound route 
+   (as is the case in the DTN version of store-and-forward) the 
+   advantage provided by knowing this information may be significant for 
+   making scheduling decisions [JFP04].  An alternative abstraction 
+   (i.e. of stream-based delivery) would make such scheduling very 
+   difficult.  Although packets provide some of the same benefits as 
+   messages, larger aggregates provide a way for the network to apply 
+   scheduling and buffer management to entire units of data that are 
+   useful to applications.  
+    
+3.2 DTN Classes of Service Mimic Postal Operation 
+    
+   The (U.S. or similar) Postal Service provides a strong metaphor for 
+   the services offered by a delay-tolerant network.  Traffic is 
+   generally not interactive and may be one-way.  There are generally no 
+   strong guarantees of timely delivery, yet there are some forms of 
+   class of service and security.   
+    
+   The DTN architecture, like most postal services, offers *relative* 
+   measures of priority (low, medium, high) for carrying traffic.  It 
+   may also offer basic notifications, for example: "the intended 
+   recipient has accepted delivery of the message," "the route taken by 
+   this message is as follows..." and "the message has been 
+   transmitted." 
+    
+   An essential element of the postal service style of operation for 
+   networking is that messages have a place to wait in a queue until an 
+   outbound communication opportunity ("contact") is available.  This 
+   highlights the following assumptions: 
+    
+    1. that storage is available and well-distributed throughout the 
+      network  
+    2. that storage is sufficiently persistent and robust to store 
+      messages until forwarding can occur, and 
+    3. (implicitly) that this 'store-and-forward' model is a better 
+      choice than attempting to effect continuous connectivity or other 
+      alternatives 
+    
+   For a network to effectively support the DTN architecture, these 
+   assumptions must be considered and must be found to hold. 
+ 
+   We have currently defined three relative classes of service in the 
+   DTN architecture.  The class of service for a bundle implies some 
+   relative scheduling prioritization among bundles headed for the same 
+   next hop at a router: 
+    
+   - Bulk - Bulk bundles are shipped on a "best effort" basis.  No 
+      bundles of this class will be shipped until all bundles of other 
+      classes bound for the same next hop destination have been shipped.   
+   - Normal - Normal class bundles are shipped prior to any bulk class 
+      bundles. 
+
+
+ 
+Cerf, et al.             Expires January 2005                 [Page 7] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   - Expedited - Expedited bundles, in general, are shipped prior to 
+      bundles of other classes.  However, the bundle layer *may* 
+      implement a queue service discipline that prevents starvation of 
+      the normal class, which may result in some normal bundles being 
+      shipped (in full or in part) before expedited bundles bound. 
+    
+   Applications specify their requested class of service.  This request, 
+   coupled with policy applied at DTN routers, affects the overall 
+   likelihood and timeliness of message delivery. 
+    
+3.3 DTN Postal-Style Delivery Options  
+    
+   Applications may request any of the following five delivery options: 
+    
+   - Custodial Delivery - a bundle will be transmitted by the bundle 
+      layer using reliable transport protocols (if available), and the 
+      point of reliable delivery responsibility (i.e. retransmission 
+      buffer) will advance through the network from one custodian to 
+      another until the bundle reaches its destination.  The bundle 
+      layer depends on the underlying transport protocols of the 
+      networks that it operates over to provide the primary means of 
+      reliable transfer from one bundle layer to the next.  However, 
+      when custodial delivery is requested, the bundle layer provides an 
+      additional coarse-grained timeout and retransmission mechanism and 
+      an accompanying (bundle-layer) hop-by-hop acknowledgment 
+      mechanism.  When a bundle application does *not* request custodial 
+      delivery, this bundle layer timeout and retransmission mechanism 
+      is not employed, and successful bundle layer delivery depends 
+      solely on the reliability mechanisms of the underlying transport 
+      layers 
+   - Return Receipt - a return-receipt bundle is issued by the 
+      receiving DTN implementation when the (arriving) subject bundle is 
+      consumed *by the destination application* (not simply the 
+      destination bundle layer).  The receipt is issued to the entity 
+      specified in the source endpoint ID of the subject bundle or the 
+      designated alternate (report-to field) if present.  This provides 
+      the ability to collect diagnostic information at locations other 
+      than the sender.  The return receipt uses the same custodial 
+      delivery option setting used in the subject bundle.  (Return 
+      receipts are never issued with the return receipt delivery option 
+      requested, to avoid "return receipt storms.")  
+   - Forwarding Indication - sent by a DTN router when the last 
+      fragment (in terms of time) of a bundle has been forwarded.  The 
+      indication is sent to the report-to destination if specified, and 
+      to the source endpoint ID of the subject bundle otherwise 
+   - Custody Transfer Indication - same as forwarding indication, but 
+      sent when a custodial transfer has successfully completed 
+   - Secured Delivery - indicates the application has provided 
+      authentication material along with its message send request. To 
+      operate under general circumstances, applications should be 
+      prepared to supply authentication credentials and request secured 
+      delivery.  Local policy determines whether any bundles may be sent 
+      lacking the security option, and portions of the network beyond 
+ 
+Cerf, et al.             Expires January 2005                 [Page 8] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+      the originating portion may require security even if the 
+      originating portion does not. 
+ 
+- Applications always specify the following information when sending a 
+  message: 
+ 
+  - Expiration Time ¡ indicates the time at which the message is no 
+     longer useful.  If a bundle is stored in the network when its 
+     expiration time is reached, it may be discarded.  Expiration times 
+     are expressed as an offset relative to the current time of day, 
+     which is assumed to be known by all DTN nodes (also see time 
+     synchronization, below) 
+ 
+  - Source Endpoint ID ¡ an identifying name of the (original) sender 
+ 
+  - Destination Endpoint ID ¡ an identifying name of the final intended 
+     recipient 
+ 
+  - Report-To Endpoint ID ¡ an identifying name of where reports 
+     (return-receipt, route-tracing functions) should be sent.  If not 
+     present, reports are sent to the Source Endpoint ID. 
+    
+3.4 Nodes and Applications 
+    
+   A DTN node (or simply "node" in this document) is an engine for 
+   sending and receiving bundles.  Applications utilize DTN nodes to 
+   send or receive messages carried in bundles (or act as report-to 
+   destinations for diagnostic information carried in bundles).  
+   Applications utilize DTN nodes to bind to Endpoint IDs.    Each 
+   Endpoint ID contains a region naming portion (see below) and an 
+   administrative naming portion, denoted in aggregate as {R, A}.  In 
+   addition, each node is uniquely identified by at least one Management 
+   Endpoint ID (MEI).  A DTN node is said to be "in" a region R1 if at 
+   least one of its MEIs contains a region naming portion R such that 
+   R=R1.  MEIs are necessary for generating custody acknowledgments to 
+   the bundle layer itself and for other administrative purposes. 
+    
+   An application may attempt to use a node to bind to arbitrary 
+   Endpoint IDs, but attempts may fail.  For example, if an application 
+   attempts to bind to an Endpoint ID containing a region that the node 
+   is not in, the attempt will likely fail. 
+     
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+Cerf, et al.             Expires January 2005                 [Page 9] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+    
+3.5 Regions 
+    
+   The DTN architecture defines a "network of internets" comprised of 
+   "DTN regions."  Placing a DTN node in a particular region is an 
+   administrative decision, and may be influenced by differences in 
+   protocol families, connection dynamics, or administrative policies.  
+   Regions may also be delimited based upon other criteria, such as 
+   trust boundaries [NEWARCH] or global/local address partitions [IPNL, 
+   TRIAD].  Each DTN region has a unique name (the R of the {R, A} 
+   above). 
+    
+   DTN routers are somewhat similar to the gateways described in the 
+   original ARPANET/Internet designs [CK74].  They differ from ARPANET 
+   gateways because they operate above the transport layer and are 
+   focused on virtual message forwarding rather than packet switching.  
+   However, both DTN routers and ARPANET gateways generally provide 
+   interoperability between underlying protocols specific to one 
+   environment and the protocols specific to another, and both provide a 
+   store-and-forward forwarding service (with DTN routers employing 
+   persistent storage for their store and forward function). 
+    
+   Regions are a key concept in the DTN architecture.  They provide a 
+   separation of name spaces, and may be useful for partitioning routing 
+   information or applying specific policies. 
+ 
+   The following list identifies the requirements for DTN regions and 
+   nodes within them: 
+    
+  1. Each DTN region shall have an identifier space (the A portion of 
+     the {R, A} Entity ID above) that is allocated among all DTN nodes 
+     within the region. 
+  2. Each node in a region R1 is free to interpret the administrative 
+     portion A for Endpoint IDs of the form {R1, A} in making routing 
+     and/or policy decisions. Furthermore, any node not in R1 must treat 
+     A as "opaque" (i.e. it cannot interpret A). 
+  3. Every node in a region R1 shall have the ability to eventually 
+     deliver messages to every other node in R1 (possibly through the 
+     use of intermediate forwarding nodes)  
+    
+   Using these rules, significant flexibility is attained in the 
+   structuring of administrative identifiers.  They might, for example, 
+   be built on DNS names, or URIs, or might look like "expressions of 
+   interest" or forms of database-like queries as in a directed 
+   diffusion-routed network [IGE00] or in intentional naming [WSBL99]. 
+     
+
+
+
+
+
+
+
+
+ 
+Cerf, et al.             Expires January 2005                [Page 10] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+ 
+3.6 Endpoint Identifiers (Endpoint IDs) 
+    
+   An Endpoint Identifier comprises two portions: a region identifier 
+   and administrative naming portion, denoted {R, A}.  Regions are named 
+   by applications using syntax identical to that used in the domain 
+   name system (DNS). (That is, hierarchical tree structure, dot-
+   separated text node names, left to right progress from leaf to root, 
+   sibling nodes must have different names.)   
+    
+3.7 Late Binding 
+    
+   The term binding here means interpreting the administrative 
+   identifier A in {R, A} for the purpose of forwarding the associated 
+   message to {R, A}.  Late binding means that this interpretation is 
+   not performed until the message reaches a node in region R, per rule 
+   2 of section 3.5. 
+    
+   In a disconnected network, late binding may be advantageous because 
+   the transit time of a message may exceed the validity time of a 
+   binding.  In addition, it may help to reduce loading in the network 
+   by limiting the scope of binding meta-data propagation (e.g., DNS 
+   zone transfers). 
+    
+3.8 Routing and Forwarding 
+ 
+   The DTN architecture provides a framework for routing and forwarding 
+   among DTN nodes.  Interconnections among DTN nodes can be described 
+   with a *directed, time-varying* graph, as communication capabilities 
+   cannot be assumed to be symmetric with respect to performance or 
+   time.  An edge in this graph represents a communication relationship 
+   between two DTN nodes, typically based on a shared interconnection 
+   technology.  The performance characteristics of an edge may vary over 
+   time.  Estimates of these characteristics are represented by 
+   "contacts" that indicate the anticipated performance (e.g. latency, 
+   and forwarding capacity of that edge) over time.  A route is a 
+   sequence of edge choices used for transferring messages through the 
+   topology graph. 
+ 
+3.8.1  Types of Contacts 
+    
+   DTNs may be required to function in the presence of any or all of the 
+   following types of contacts: 
+    
+   Persistent Contacts 
+    
+   Persistent contacts are always available (i.e., no DTN action is 
+   required to initiate a persistent contact).  DTN protocols operating 
+   over a Digital Subscriber Line (DSL) or other "always-on" connection 
+   would be an example. 
+    
+   On-Demand Contacts 
+    
+ 
+Cerf, et al.             Expires January 2005                [Page 11] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   On-Demand contacts require some DTN action in order to instantiate, 
+   but then function as persistent contacts until terminated. A dial-up 
+   connection is an example of an On-Demand contact (at least, from the 
+   viewpoint of the dialer; it may be viewed as an Opportunistic Contact 
+   ¡ below ¡ from the viewpoint of the dial-up service provider). 
+    
+   Intermittent - Scheduled Contacts 
+    
+   A scheduled contact is an agreement to establish a link between two 
+   points at a particular time, for a particular duration.  An example 
+   of an edge with scheduled contacts is a link that uses a low-earth 
+   orbiting relay satellite.  The edge's list of contacts can be 
+   constructed from the satellite's schedule of view times, capacities 
+   and latencies. 
+    
+   Intermittent - Opportunistic Contacts 
+    
+   Opportunistic contacts are not scheduled, but rather present 
+   themselves unexpectedly.  For example, an aircraft flying overhead 
+   and beaconing, advertising its availability for communication would 
+   present an opportunistic contact eligible to carry bundles. Another 
+   type of opportunistic contact might be via an infrared or BlueTooth 
+   communication link between a personal digital assistant (PDA) and a 
+   kiosk in an airport concourse. The opportunistic contact begins as 
+   the PDA is brought near the kiosk, lasting an indefinite amount of 
+   time (i.e., until the link is lost or terminated).  
+    
+   Intermittent - Predicted Contacts 
+    
+   Predicted contacts are based on no fixed schedule, but rather are 
+   predictions of likely contact times and durations based on a history 
+   of previously observed contacts.  Given a great enough confidence in 
+   a predicted contact, routes may be chosen based on this information. 
+    
+   An Example 
+    
+   A PDA receiving GSM/GPRS data service in an airport concourse comes 
+   into contact with a kiosk via BlueTooth communication, forming an 
+   opportunistic contact. During this contact, knowledge of the 
+   geography of the concourse and the mobility pattern of the PDA is 
+   used to compute probable future contacts with other kiosks (perhaps 
+   based on the PDA owner's walking speed and the kiosks' coverage 
+   areas).  The PDA is then free to use both the GPRS data service (a 
+   persistent contact) and the predicted set of kiosk contacts to 
+   deliver its waiting bundles according to the user's personal 
+   optimization criteria.  The user's criteria might be sensitive to 
+   bandwidth, latency, cost, or other factors. 
+    
+3.8.2  Store-and-forward operation 
+    
+   While IP networks are based on "store-and-forward" operation, there 
+   is an assumption that the "storing" will not persist for more than a 
+   modest amount of queuing and transmission delay.  In contrast, the 
+ 
+Cerf, et al.             Expires January 2005                [Page 12] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   DTN architecture does not expect that outbound links are always 
+   available, and instead expects to store received messages for some 
+   time.  We anticipate that most DTN nodes will use some form of 
+   persistent storage for this -- disk, flash memory, etc., and that 
+   stored messages will survive system restarts. 
+    
+   The availability of persistent storage allows the next-hop forwarding 
+   decision to potentially be modified prior to transmission.  In 
+   particular, if a future contact is chosen for routing and some other 
+   superior contact becomes known, the routing decision could be 
+   changed. 
+    
+3.9 Fragmentation and Reassembly 
+    
+    DTN fragmentation and reassembly is designed to improve the 
+    efficiency of message transfers by ensuring that contacts are fully 
+    utilized and by avoiding re-transmission of partially-forwarded 
+    messages.  There are two forms of DTN fragmentation/reassembly:     
+    
+     Any DTN node may ¡proactively- divide a block of application data 
+     into multiple smaller blocks and transmit each such block as an 
+     independent message.  In this case the *final destination(s)* are 
+     responsible for extracting the smaller blocks from incoming 
+     messages and reassembling them into the original large block. 
+      
+     DTN nodes sharing an edge may -reactively- fragment a message 
+     cooperatively when a message is only partially transferred.  In 
+     this case, the receiving node modifies the incoming message to 
+     indicate it is a fragment, and forwards it normally.  The previous-
+     hop sender may learn that only a portion of the message was 
+     delivered to the next hop, and send the remaining portion when 
+     subsequent contacts become available. 
+ 
+3.10 Reliability and Custody Transfer 
+    
+   The bundle layer provides unacknowledged, best-effort message 
+   delivery.  It also provides two options for enhancing delivery 
+   reliability:  end-to-end acknowledgment and custodial transmission 
+   (with DTN retransmission if required). Applications wishing to 
+   implement their own end-to-end message retransmission mechanisms are 
+   free to utilize the acknowledgment. 
+    
+   Custody transfer allows the source to delegate retransmission 
+   responsibility and recover its retransmission-related resources 
+   relatively soon after sending the bundle (on the order of a round-
+   trip time to the first bundle hop).  Not all nodes in a DTN are 
+   required by the DTN architecture to accept custody transfers.  In 
+   particular, some nodes may have sufficient storage resources to 
+   sometimes act as custodians, but may elect to not offer such services 
+   when congested. 
+    
+3.11 Time Stamps and Time Synchronization 
+    
+ 
+Cerf, et al.             Expires January 2005                [Page 13] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   The DTN architecture depends on time synchronization (supported by 
+   external, region-local protocols) for three primary purposes: bundle 
+   identification, routing with scheduled or predicted contacts, and 
+   bundle expiration time computations.  These are supported by placing 
+   a time stamp and an explicit expiration field (expressed in seconds 
+   after the source time stamp) in each bundle header.  The source 
+   timestamp on an arriving bundle is made available to consuming 
+   applications by an API (specified elsewhere).   
+    
+   Each bundle is required to contain a time stamp unique to the bundle 
+   sender's endpoint ID.  The concatenation of the Source Endpoint ID 
+   and the time stamp serves as a unique identifier for a particular 
+   bundle, and is used for a number of purposes, including custody 
+   transfer and reassembly of bundle fragments. 
+    
+3.12 Congestion and Flow Control at the Bundle Layer 
+    
+   The subject of congestion control and flow control at the bundle 
+   layer is one on which the authors of this document have not yet 
+   reached complete consensus.  We have unresolved concerns about the 
+   efficiency and efficacy of congestion and flow control schemes 
+   implemented across long and/or highly variable delay environments, 
+   especially with the custody transfer mechanism that may require nodes 
+   to retain messages for long periods of time.  
+ 
+   One view of congestion control is as follows:  "Congestion control is 
+   concerned with allocating the resources in a network such that the 
+   network can operate at an acceptable performance level when the 
+   demand exceeds or is near the capacity of the network resources. 
+   These resources include bandwidths of links, buffer space (memory), 
+   and processing capacity at intermediate nodes.  Congestion occurs 
+   when the demand is greater than the available resources." [RJ90]  
+    
+   For the purposes of this document, we define "flow control" as a 
+   means of assuring that the rate at which a sending node transmits 
+   data to a receiving node does not exceed the maximum rate at which 
+   the receiving node is prepared to receive data from that sender. 
+   (Note that this is a generalized notion of flow control, rather than 
+   one that applies only to end-to-end communication.)  We define 
+   "congestion control" as a means of assuring that the aggregate rate 
+   at which all traffic sources inject data into a network does not 
+   exceed the maximum aggregate rate at which the network can deliver 
+   data to destination nodes.  If flow control is propagated backward 
+   from destination nodes to routers and eventually back to traffic 
+   sources, then flow control can be at least a partial solution to the 
+   problem of congestion as well. 
+    
+   DTN flow control decisions must be made within the bundling layer 
+   itself based on information about resources (in this case, primarily 
+   persistent storage) available within the bundle node.  However, the 
+   bundle layer *might* be able to delegate the implementation of those 
+   decisions to the underlying transport protocols. 
+    
+ 
+Cerf, et al.             Expires January 2005                [Page 14] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   The problem of flow control between nodes separated by very large 
+   signal propagation times remains to be solved: TCP's flow control and 
+   congestion control facilities could be leveraged within regions 
+   characterized by small round-trip times, but at this time no 
+   comparable protocol exists for very long delay paths.  It remains as 
+   an exercise to demonstrate that a (DTN) hop-by-hop flow control 
+   scheme in long and/or highly variable delay environments can effect 
+   end-to-end congestion control in a fair and efficient manner. 
+ 
+3.13 Security 
+    
+   Resource scarcity in delay-tolerant networks dictates that some form 
+   of access control to the network itself is required in many 
+   circumstances.  It is not acceptable for an unauthorized user to 
+   flood the network with traffic easily, possibly denying service to 
+   authorized users.  Implicit in this statement is a requirement for 
+   some form of admission control and/or in-network authentication 
+   sensitive to the requested class of service. 
+    
+   Many existing authorization and access control protocols designed for 
+   operation in low-delay, connected environments may not perform well 
+   in DTNs.  In particular, the following common operations are 
+   potentially much more difficult: updating remote access control lists 
+   and revoking ("blacklisting") credentials.  The consequences of these 
+   difficulties include delays in the onset of communication, delays in 
+   detecting and recovering from system compromise, and delays in 
+   completing transactions due to inappropriate access control or 
+   authentication settings.   
+    
+   To help satisfy these security requirements, each bundle includes an 
+   immutable signature containing a verifiable identity of the sender 
+   and other conventional cryptographic material to verify accuracy of 
+   the message content. DTN nodes discard traffic as early as possible 
+   if authentication or access control checks fail.  This approach has 
+   the associated benefit of making denial-of-service attacks 
+   considerably harder to mount as compared with conventional Internet 
+   routers.  However, the obvious cost is potentially larger computation 
+   and storage overhead required at DTN nodes. 
+    
+   Our basis for authorization and authentication uses asymmetric 
+   cryptography as a starting point for keying, and requires one or more 
+   trusted credential-issuing authorities.  Each node is issued initial 
+   configuration information usable to assess the validity of 
+   credentials it will be presented with in the future (e.g. a 
+   certificate authority's public key). 
+    
+   An application presents verifiable public information (e.g. a signed 
+   public key) along with a message to be carried and class of service 
+   requested, signed with corresponding private information (e.g. 
+   matching private key).  If required by local policy, one or more DTN 
+   nodes verify the sender's identity, and perform access control checks 
+   against the requested class of service.  Valid messages accepted for 
+   the specified class of service are then forwarded. 
+ 
+Cerf, et al.             Expires January 2005                [Page 15] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+    
+   In [DSEC], only first-hop routers need to cache per-user information, 
+   and then only for adjacent users.  Non-edge "core" routers can rely 
+   on the authentication of upstream routers to verify the authenticity 
+   of messages.  This approach may help to improve the scalability of 
+   key management for these networks, as it will limit the number of 
+   cached public credentials to a function of the number of adjacent 
+   routers rather than the number of end users. This should provide both 
+   the obvious advantage of space savings, but also an improvement to 
+   system management as router keys are expected to be changed less 
+   frequently than end user keys.  As DTN routers are likely to be 
+   deployed in remote areas, re-keying operations may be comparatively 
+   burdensome system management tasks, so limiting the number and 
+   frequency of certificate updates should provide additional savings. 
+    
+   This approach is partially susceptible to compromised routers. If an 
+   otherwise-legitimate router is compromised, it would be able to 
+   utilize network resources at an arbitrary class of service setting 
+   and send traffic purportedly originating from any user whose identity 
+   is known to the router.  However, if the message signature is carried 
+   end-to-end (an option for DTN security), a legitimate user could 
+   repudiate the origin of any traffic generated in this manner. 
+   Thus, we believe a reasonable trade-off is to admit the possibility 
+   that a compromised router could launch a denial-of-service attack in 
+   order to gain the scalability benefits of not checking end-user 
+   credentials at every hop. 
+    
+   Note that the end-to-end signatures suggested above may be checked at 
+   selected nodes in a DTN that wish to favor stricter security over 
+   scalability.  In any case, local policy dictates the credentials a 
+   DTN router is required to check. 
+ 
+4  State Management Considerations 
+    
+   An important aspect of any networking architecture is its management 
+   of state information.  This section describes the state information 
+   managed at the bundle layer and discusses how it is established and 
+   removed. 
+    
+4.1 Registration State 
+    
+   In long/variable delay environments, an asynchronous application 
+   interface seems most appropriate. Such interfaces typically include 
+   methods for applications to register callback actions when certain 
+   triggering events occur (e.g. messages arrive).  These registrations 
+   create state information called registration state. 
+    
+   Registration state is typically created by explicit request of the 
+   application, and is removed by a separate explicit request, and is 
+   thus "hard" state. In most cases, there must be a provision for 
+   retaining this state across application and operating system 
+   termination/restart conditions because a client/server message round-
+   trip time may exceed the requesting application's execution time (or 
+ 
+Cerf, et al.             Expires January 2005                [Page 16] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   hosting system's uptime).  In cases where applications are not 
+   automatically restarted but registration state remains persistent, a 
+   method must be provided to indicate to the system what action to 
+   perform when the triggering event occurs (e.g. restarting some 
+   application, ignoring the event, etc.).  
+    
+   As part of registration state, an endpoint ID for which an 
+   application wishes to receive messages must be specified.  This 
+   operation is somewhat analogous to the bind() operation in the common 
+   sockets API. 
+    
+4.2 Custody Transfer State 
+    
+   Custody transfer state includes information required to keep account 
+   of bundles for which a node has taken custody, as well as the 
+   protocol state related to transferring custody for one or more of 
+   them.  The accounting-related state is created when a bundle is 
+   received.  Custody transfer retransmission state is created when a 
+   transfer of custody is initiated by forwarding a bundle requiring 
+   enhanced reliability.  Retransmission state and accounting state are 
+   released upon receipt of one or more acknowledgements, indicating 
+   custody has been moved.  In addition, the bundle's expiration time 
+   (possibly mitigated by local policy) provides an upper bound on the 
+   time when this state is purged from the system in the event that it 
+   is not purged explicitly due to acknowledgment. 
+ 
+4.3 Bundle Routing and Forwarding State 
+    
+   As with the Internet architecture, we distinguish between routing and 
+   forwarding.  Routing refers to the execution of a (possibly 
+   distributed) algorithm for computing routing paths according to some 
+   objective function (see [JFP04], for example).  Forwarding refers to 
+   the act of moving a message from one DTN node to another.  Routing 
+   makes use of routing state (the RIB, or routing information base), 
+   while forwarding makes use of state derived from routing, and is 
+   maintained as forwarding state (the FIB, or forwarding information 
+   base).  The structure of the FIB and the rules for maintaining it are 
+   implementation choices. 
+    
+   The maintenance of state in the RIB is dependent on the type of 
+   routing algorithm being used.  A routing algorithm may consider 
+   requested class of service and the location of potential custodians 
+   (for custody transfer, see section 3.10), and this information will 
+   tend to increase the size of the RIB.  The separation between FIB and 
+   RIB is not required by this document, as these are implementation 
+   details to be decided by system implementers. The choice of routing 
+   algorithms is still under study. 
+    
+4.4 Security-Related State 
+ 
+   The infrastructure protection model described in this architecture 
+   requires maintenance of state in all DTN nodes.  All nodes are 
+   required to store their own private information (including their own 
+ 
+Cerf, et al.             Expires January 2005                [Page 17] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   policy and authentication material) and a block of information used 
+   to verify credentials. Further, in most cases, DTN nodes will cache 
+   the public information (and possibly the credentials) of their next-
+   hop (bundle) neighbors.  All cached information will have expiration 
+   times, and nodes are responsible for acquiring and distributing 
+   updates of public information and credentials prior to the expiration 
+   of the old set (in order to avoid a disruption in network service).  
+    
+   In addition to basic authentication of applications and routers, 
+   access control may be used in a DTN by one or more mechanisms such as 
+   capabilities or access control lists (ACLs).  ACLs would represent 
+   another block of state present in any node that wishes to enforce 
+   security policy.  ACLs are typically initialized at node 
+   configuration time and may be updated dynamically by DTN bundles or 
+   by some out of band technique. 
+    
+   Some DTNs may implement security boundaries enforced by selected 
+   nodes in the network, where application credentials may be checked in 
+   addition to checking router credentials.  Public information used to 
+   verify application authentication will typically be cached at these 
+   points. 
+    
+   As with routing, the security approach is under development, so the 
+   exact enumeration of the required state will depend on the particular 
+   algorithms eventually selected for implementation. 
+    
+    
+5  Application Structuring Issues 
+    
+   DTN bundle delivery is intended to operate in a delay-tolerant 
+   fashion over a broad range of network types.  This does not mean 
+   there *must* be delays in the network; it means there *may* be very 
+   significant delays (including extended periods of disconnection 
+   between sender and intended recipient).  The DTN protocols are delay 
+   tolerant, so applications using them must also be delay-tolerant in 
+   order to operate effectively in environments subject to significant 
+   delay or disruption. 
+    
+   The services provided by the DTN architecture are based on 
+   asynchronous, message-oriented communication which differs from 
+   conversational communication.  In general, applications should 
+   attempt to include enough information in a message so that it may be 
+   treated as an independent unit of work by the receiving entity.  
+   (This represents a form of "application data unit" [CT90] or 
+   "transaction", although transactions carry connotations of multi-
+   phase commitment that we do not intend here.)  The goal is to 
+   minimize synchronous interchange between applications that are 
+   separated by a network presenting long and possibly highly variable 
+   delays.  A single file transfer request message, for example, might 
+   include authentication information, file location information, and 
+   requested file operation (thus "bundling" this information together). 
+   Comparing this style of operation to a classic FTP transfer, one sees 
+   that the bundled model can complete in one round trip, whereas an FTP 
+ 
+Cerf, et al.             Expires January 2005                [Page 18] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   file "put" operation can take as many as eight round trips to get to 
+   a point where file data can flow [DFS02].   
+    
+   Delay-tolerant applications must consider additional factors beyond 
+   the conversational implications of long delay paths.  For example, an 
+   application may terminate (voluntarily or not) between the time it 
+   sends a message and the time it expects a response.  If this 
+   possibility has been anticipated, the application can be "re-
+   instantiated" with state information saved in persistent storage.  
+   This is an implementation issue, but also an application design 
+   consideration.   
+    
+   Some consideration of delay-tolerant application design can result in 
+   applications that work reasonably well in low-delay environments, and 
+   that do not suffer extraordinarily in high or highly-variable delay 
+   environments. 
+    
+6  Convergence Layer Considerations for Use of Underlying Protocols 
+ 
+   Implementation experience with the DTN architecture has revealed an 
+   important architectural construct and interface for DTN routers.  Not 
+   all transport protocols in different protocol families provide the 
+   same exact functionality, so some additional adaptation or 
+   augmentation on a per-stack basis may be required.  This adaptation 
+   is accomplished by a set of convergence layers placed between the 
+   bundle layer and underlying transport protocols. The convergence 
+   layers manage the protocol-specific details of interfacing with a 
+   particular transport service and present a consistent interface to 
+   the bundle layer. 
+    
+   The complexity of a convergence layer may vary substantially 
+   depending on the type of protocol stack it adapts.  For example, a 
+   TCP/IP convergence layer for use in the Internet might only have to 
+   add message boundaries to TCP streams, whereas a convergence layer 
+   for some network where no reliable transport protocol exists would be 
+   considerably more complex (e.g. it might have to implement 
+   reliability, fragmentation, flow-control, etc.). 
+ 
+7  Summary  
+ 
+   The DTN architecture addresses many of the problems of heterogeneous 
+   networks that must operate in environments subject to long delays and 
+   discontinuous end-to-end connectivity.  It is based on asynchronous 
+   messaging and uses postal mail as a model of service classes and 
+   delivery semantics.  It accommodates many different forms of 
+   connectivity, including scheduled, predicted, and opportunistically 
+   connected links.  It introduces a novel approach to end-to-end 
+   reliability across frequently partitioned and unreliable networks.  
+   It also proposes a model for securing the network infrastructure 
+   against unauthorized access.   
+    
+   It is our belief that this architecture is applicable to many 
+   different types of challenged environments. 
+ 
+Cerf, et al.             Expires January 2005                [Page 19] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+    
+8  Security Considerations 
+    
+   Security is an integral concern of the Delay Tolerant Network 
+   Architecture.  Section 3.13 of this document presents an approach for 
+   securing the DTN architecture.  These capabilities may also be useful 
+   in providing facilities to DTN applications to construct their own 
+   end-to-end security protocols. 
+ 
+9  IANA Considerations 
+    
+   This document specifies the architecture for Delay Tolerant 
+   Networking and does not itself require any actions from IANA. 
+    
+    
+10 Normative References 
+    
+   [RFC3667]   Bradner, S., "IETF Rights in Contributions", BCP 78, RFC 
+   3667, February 2004. 
+    
+   [RFC3668]   Bradner, S., "Intellectual Property Rights in IETF 
+   Technology", BCP 79, RFC 3668, February 2004. 
+ 
+    
+11 Informative References 
+    
+   [SB03] S. Burleigh et al, "Delay-Tolerant Networking ¡ An Approach to 
+   Interplanetary Internet," IEEE Communications Magazine, July 2003. 
+    
+   [FW03] F. Warthman, "Delay-Tolerant Networks (DTNs): A Tutorial 
+   v1.1," Wartham Associates, 2003.  Available from 
+   http://www.dtnrg.org. 
+    
+   [KF03] K. Fall, "A Delay-Tolerant Network Architecture for Challenged 
+   Internets," Proceedings SIGCOMM, Aug 2003.   
+    
+   [JFP04] S. Jain, K. Fall, R. Patra, "Routing in a Delay Tolerant 
+   Network," Proceedings SIGCOMM, Aug/Sep 2004. 
+ 
+   [DFS02] R. Durst, P. Feighery, K. Scott, "Why not use the Standard 
+   Internet Suite for the Interplanetary Internet?", MITRE White Paper, 
+   2002. Available from http://www.ipnsig.org/reports/TCP_IP.pdf  
+    
+   [NEWARCH]  NewArch Project: Future-Generation Internet Architecture. 
+   http://www.isi.edu/newarch  
+    
+   [IPNL] P. Francis, R. Gummadi, "IPNL: A NAT-Extended Internet 
+   Architecture," Proceedings SIGCOMM, 2001. 
+    
+   [TRIAD] D. Cheriton, M. Gritter, "TRIAD: A new next generation 
+   internet architecture," 2001. Available from 
+   http://www-dsg.stanford.edu/triad/triad.ps.gz 
+    
+ 
+Cerf, et al.             Expires January 2005                [Page 20] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+   [CK74]  V. Cerf, R. Kahn, "A  Protocol  for  Packet  Network 
+   Intercommunication," IEEE  Trans. on  Comm., COM-22(5), May  1974. 
+    
+   [IGE00]  C. Intanagonwiwat, R. Govindan, D. Estrin, "Directed 
+   Diffusion: A scalable and robust communication paradigm for sensor 
+   networks," Proceedings MobiCOM, Aug 2000. 
+    
+   [WSBL99] W. Adjie-Winoto, E. Schwartz, H. Balakrishnan, J. Lilley, 
+   "The design and implementation of an intentional naming system", 
+   Proc. 17th ACM SOSP, Kiawah Island, SC, Dec. 1999. 
+     
+   [RJ90] R. Jain, "Congestion Control in Computer Networks:  Issues and 
+   Trends," IEEE Network Magazine, May 1990. 
+ 
+   [DSEC] R. Durst, "Infrastructure Security Model for Delay Tolerant 
+   Networks," White paper in progress, July 2002.  Available from 
+   http://www.dtnrg.org/papers/dtn-sec-wp-v5.pdf 
+    
+   [CT90] D. Clark, D. Tennenhouse, "Architectural Considerations for a 
+   new generation of protocols," Proceedings SIGCOMM, 1990. 
+ 
+ 
+Authors' Addresses 
+    
+   Dr. Vinton G. Cerf 
+   MCI Corporation 
+   22001 Loudoun County Parkway 
+   Building F2, Room 4115, ATTN: Vint Cerf 
+   Ashburn, VA 20147 
+   Telephone +1 (703) 886-1690 
+   FAX  +1 (703) 886-0047 
+   Email vcerf@mci.net 
+    
+   Scott C. Burleigh 
+   Jet Propulsion Laboratory 
+   4800 Oak Grove Drive 
+   M/S: 179-206 
+   Pasadena, CA 91109-8099 
+   Telephone +1 (818) 393-3353 
+   FAX  +1 (818) 354-1075 
+   Email Scott.Burleigh@jpl.nasa.gov 
+    
+   Robert C. Durst 
+   The MITRE Corporation 
+   7515 Colshire Blvd. 
+   M/S H300 
+   McLean, VA 22102 
+   Telephone +1 (703) 883-7535 
+   FAX +1 (703) 883-7142 
+   Email durst@mitre.org 
+    
+    
+    
+ 
+Cerf, et al.             Expires January 2005                [Page 21] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+    
+   Dr. Kevin Fall 
+   Intel Research, Berkeley 
+   2150 Shattuck Ave., #1300 
+   Berkeley, CA 94704 
+   Telephone +1 (510) 495-3014 
+   FAX +1 (510) 495-3049 
+   Email kfall@intel.com 
+    
+   Adrian J.  Hooke 
+   Jet Propulsion Laboratory 
+   4800 Oak Grove Drive 
+   M/S: 303-400 
+   Pasadena, CA 91109-8099 
+   Telephone +1 (818) 354-3063 
+   FAX  +1 (818) 393-3575 
+   Email Adrian.Hooke@jpl.nasa.gov 
+    
+   Dr. Keith L. Scott 
+   The MITRE Corporation 
+   7515 Colshire Blvd. 
+   M/S H300 
+   McLean, VA 22102 
+   Telephone +1 (703) 883-6547 
+   FAX +1 (703) 883-7142 
+   Email kscott@mitre.org 
+    
+   Leigh Torgerson 
+   Jet Propulsion Laboratory 
+   4800 Oak Grove Drive 
+   M/S: T1710- 
+   Pasadena, CA 91109-8099 
+   Telephone +1 (818) 393-0695 
+   FAX  +1 (818) 354-9068 
+   Email Leigh.Torgerson@jpl.nasa.gov 
+    
+   Howard S. Weiss 
+   SPARTA, Inc. 
+   9861 Broken Land Parkway 
+   Columbia, MD 21046 
+   Telephone +1 (410) 381-9400 x201 
+   FAX  +1 (410) 381-5559 
+   Email hsw@sparta.com 
+    
+   Please refer comments to dtn-interest@mailman.dtnrg.org.  The Delay 
+   Tolerant Networking Research Group (DTNRG) web site is located at 
+   http://www.dtnrg.org. 
+    
+    
+ 
+ 
+ 
+ 
+ 
+Cerf, et al.             Expires January 2005                [Page 22] 
+Internet Draft       draft-irtf-dtnrg-arch-02.txt            July 2004 
+ 
+ 
+Copyright Notice 
+    
+   Copyright (C) The Internet Society (2004).  This document is subject 
+   to the rights, licenses and restrictions contained in BCP 78, and 
+   except as set forth therein, the authors retain all their rights. 
+    
+    
+Disclaimer 
+    
+   This document and the information contained herein are provided on an 
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS 
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET 
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, 
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE 
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED 
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. 
+    
+    
+Intellectual Property 
+    
+   The IETF takes no position regarding the validity or scope of any 
+   Intellectual Property Rights or other rights that might be claimed to 
+   pertain to the implementation or use of the technology described in 
+   this document or the extent to which any license under such rights 
+   might or might not be available; nor does it represent that it has 
+   made any independent effort to identify any such rights.  Information 
+   on the procedures with respect to rights in RFC documents can be 
+   found in BCP 78 and BCP 79. 
+    
+   Copies of IPR disclosures made to the IETF Secretariat and any 
+   assurances of licenses to be made available, or the result of an 
+   attempt made to obtain a general license or permission for the use of 
+   such proprietary rights by implementers or users of this 
+   specification can be obtained from the IETF on-line IPR repository at 
+   http://www.ietf.org/ipr. 
+    
+   The IETF invites any interested party to bring to its attention any 
+   copyrights, patents or patent applications, or other proprietary 
+   rights that may cover technology that may be required to implement 
+   this standard.  Please address the information to the IETF at ietf-
+   ipr@ietf.org. 
+    
+    
+Release Statement 
+    
+   By submitting this Internet-Draft, the authors accept the provisions 
+   of Section 4 of RFC 3667. 
+    
+    
+
+
+
+
+ 
+Cerf, et al.             Expires January 2005                [Page 23] 

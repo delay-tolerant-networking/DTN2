@@ -1,0 +1,2324 @@
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+ Delay Tolerant Networking Research Group                      K. Scott 
+ Internet Draft                                   The MITRE Corporation 
+ <draft-irtf-dtnrg-bundle-spec-02.txt>                                
+ September 2004                                             S. Burleigh 
+ Expires: March 2005                          Jet Propulsion Laboratory 
+
+    
+    
+                       Bundle Protocol Specification 
+ 
+    
+Status of this Memo 
+    
+   By submitting this Internet-Draft, we certify that any applicable 
+   patent or other IPR claims of which we am aware have been disclosed, 
+   and any of which we become aware will be disclosed, in accordance 
+   with RFC 3668.  
+        
+   This document is an Internet-Draft and is in full conformance with 
+   Sections 5 and 6 of RFC3667 and Section 5 of RFC3668.  
+        
+   Internet-Drafts are working documents of the Internet Engineering 
+   Task Force (IETF), its areas, and its working groups.  Note that 
+   other groups may also distribute working documents as Internet-
+   Drafts.    
+        
+   Internet-Drafts are draft documents valid for a maximum of six months 
+   and may be updated, replaced, or obsoleted by other documents at any 
+   time. It is inappropriate to use Internet-Drafts as reference 
+   material or to cite them other than as "work in progress."  
+        
+   The list of current Internet-Drafts can be accessed at 
+   http://www.ietf.org/ietf/1id-abstracts.txt.  
+        
+   The list of Internet-Draft Shadow Directories can be accessed at 
+   http://www.ietf.org/shadow.html.  
+        
+   This document was produced within the IRTF's Delay Tolerant 
+   Networking Research Group (DTNRG).  See http://www.dtnrg.org for more 
+   information.  
+ 
+Abstract 
+    
+   This document describes the end-to-end protocol, header formats, and 
+   abstract service description for the exchange of messages (bundles) 
+   in Delay Tolerant Networking (DTN).   
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005         [Page 1] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+ 
+Conventions used in this document 
+    
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", 
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this 
+   document are to be interpreted as described in RFC-2119 [1]. 
+ 
+Table of Contents 
+    
+   1.          Introduction..........................................3 
+   2.          Service Description...................................4 
+      2.1      Definitions...........................................4 
+      2.2      Services at the User Interface........................5 
+      2.3      Summary of Primitives.................................5 
+        2.3.1  Requests..............................................5 
+        2.3.2  Indications...........................................6 
+      2.4      Summary of Parameters.................................6 
+        2.4.1  Destination Communications endpoint ID................6 
+        2.4.2  Source Communications endpoint ID.....................6 
+        2.4.3  Report Communications endpoint ID.....................6 
+        2.4.4  Class of Service......................................6 
+        2.4.5  Delivery Options......................................7 
+        2.4.6  Lifespan..............................................7 
+        2.4.7  Application Data Unit.................................7 
+        2.4.8  Delivery Failure Action...............................7 
+      2.5      Bundling Service Primitives...........................8 
+        2.5.1  SEND.REQUEST..........................................8 
+        2.5.2  CANCELBUNDLE.REQUEST..................................8 
+        2.5.3  REGISTER.REQUEST......................................9 
+        2.5.4  START-DELIVERY.REQUEST................................9 
+        2.5.5  STOP-DELIVERY.REQUEST................................10 
+        2.5.6  CHANGE-REGISTRATION.REQUEST..........................10 
+        2.5.7  DEREGISTER.REQUEST...................................10 
+        2.5.8  POLL.REQUEST.........................................11 
+        2.5.9  DATA.INDICATION......................................11 
+        2.5.10 SENDERROR.INDICATION.................................12 
+        2.5.11 SENDTOKEN.INDICATION.................................12 
+        2.5.12 REGISTRATIONTOKEN.INDICATION.........................13 
+   3.          Bundle Message Format................................13 
+      3.1      General Bundle Header Format.........................16 
+      3.2      Tuples...............................................16 
+      3.3      Primary Bundle Header................................17 
+      3.4      Bundle Payload Header................................20 
+      3.5      Bundle Authentication Header.........................20 
+      3.6      Payload Security Header..............................20 
+      3.7      Bundle Fragment Header...............................21 
+      3.8      Dictionary Header....................................21 
+      3.9      Rules Governing the Appearance and Order of Headers..22 
+   4.          Bundle Processing....................................22 
+      4.1      Bundle transmission requests.........................22 
+      4.2      Bundles received from other bundle agents............22 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005         [Page 2] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+      4.3      Local bundle delivery................................25 
+      4.4      Bundle forwarding....................................25 
+      4.5      Bundle Fragmentation and Reassembly..................26 
+        4.5.1  Bundle Fragmentation.................................26 
+        4.5.2  Bundle Reassembly....................................28 
+      4.6      Custodial Retransmission and Release.................28 
+   5.          Administrative Payloads..............................29 
+      5.1      Bundle Status Reports................................29 
+      5.2      Custodial Signals....................................32 
+   6.          Services Required of the Convergence Layer...........35 
+      6.1      The Convergence Layer................................35 
+      6.2      Summary of Convergence Layer Services................36 
+      6.3      Summary of Primitives................................36 
+        6.3.1  Requests.............................................36 
+        6.3.2  Indications..........................................36 
+      6.4      Summary of Parameters................................36 
+        6.4.1  Receiving Bundle Agent Endpoint ID...................36 
+        6.4.2  Sending Bundle Agent Endpoint ID.....................36 
+        6.4.3  Bundle...............................................36 
+        6.4.4  Bundle length........................................37 
+        6.4.5  Bundle authenticity..................................37 
+        6.4.6  Transmit length......................................37 
+      6.5      Convergence Layer Service Primitives.................37 
+        6.5.1  TRANSMIT.REQUEST.....................................37 
+        6.5.2  TRANSMIT-REPORT.INDICATION...........................38 
+        6.5.3  BUNDLE.INDICATION....................................38 
+
+1. Introduction 
+    
+   This document describes version 3 of the Delay Tolerant 
+   Networking (DTN) "bundling" protocols.  Delay Tolerant Networking is 
+   an end-to-end architecture providing communications in and/or through 
+   highly stressed environments.  Stressed networking environments 
+   include those with intermittent connectivity, large and/or variable 
+   delays, and high bit error rates.  To provide its services, the DTN 
+   protocols sit at the application layer of the constituent internets, 
+   forming a store-and-forward overlay network.  Key capabilities of the 
+   bundling protocols include: 
+    
+     o  Custody-based reliability 
+     o  Ability to cope with intermittent connectivity 
+     o  Ability to take advantage of scheduled and opportunistic 
+        connectivity (in addition to 'always-up' connectivity) 
+     o  Late binding of names to addresses 
+    
+   For descriptions of these capabilities and rationale for the DTN 
+   architecture, see [2].  [3] contains a tutorial-level overview of DTN 
+   concepts. 
+    
+   The bundle protocols sit at the application layer of the constituent 
+   internets as shown in Figure 1.  Bundling uses the 'native' internet 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005         [Page 3] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   protocols for communications within a given internet.  Note that 
+   'internet'  in the preceding is used in a general sense and does not 
+   necessarily refer to TCP/IP.  The interface between the common bundle 
+   protocol and a specific internetwork protocol suite is known as a 
+   convergence layer adapter.  Figure 1 shows three distinct transport 
+   and network protocols (denoted T1/N1, T2,N2, and T3/N3). 
+    
+   +-----------+                                         +-----------+  
+   | BundleApp |                                         | BundleApp |  
+   +---------v-|   +->>>>>>>>>>v-+     +->>>>>>>>>>v-+   +-^---------+  
+   |  Bundle v |   | ^  Bundle v |     | ^  Bundle v |   | ^ Bundle  |  
+   +---------v-+   +-^---------v-+     +-^---------v-+   +-^---------+  
+   | Trans1  v |   + ^  T1/T2  v |     + ^  T2/T3  v |   | ^  Trans3 |  
+   +---------v-+   +-^---------v-+     +-^---------v +   +-^---------+  
+   | Net1    v |   | ^  N1/N2  v |     | ^  N2/N3  v |   | ^  Net3   |  
+   +---------v-+   +-^---------v +     +-^---------v-+   +-^---------+  
+   |         >>>>>>>>^         >>>>>>>>>>^         >>>>>>>>^         |  
+   +-----------+   +------------+      +-------------+   +-----------+  
+    
+   |                     |                    |                      |  
+   |<--  An Internet --->|                    |<--- An Internet  --->|  
+   |                     |                    |                      | 
+    
+   Figure 1: The bundling protocol sits at the application layer of the 
+             Internet model. 
+    
+   This document describes the format of the messages (called bundles) 
+   passed between entities participating in bundle communications.  The 
+   entities are referred to as bundle nodes or bundle agents.  This 
+   document does not address: 
+    
+     o  The mechanisms bundle agents use to transport data through a 
+        specific Internet, called convergence layer adapters, although 
+        it does discuss the services that must be provided by the 
+        convergence layer. 
+    
+     o  The bundle routing algorithm or mechanisms for populating the 
+        routing or forwarding information bases of bundle nodes. 
+    
+2. Service Description 
+    
+2.1 Definitions 
+    
+   Communications Endpoint ID - A Communications Endpoint ID identifies 
+   an application endpoint of DTN communications; the term corresponds 
+   to the term 'tuple' in [2].  A communications endpoint is identified 
+   by a DTN region identifier and an administrative part that is opaque 
+   to the bundle system outside the indicated region. One can think of a 
+   DTN communications endpoint as an application task, but in general 
+   the definition is meant to be broader.  For example, elements of a 
+   sensor network might register with a local bundle agent to receive 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005         [Page 4] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   information about certain topics of interest.  A communications 
+   endpoint ID could thus refer to a process running on a general-
+   purpose processor, a special-purpose hardware device, an object in an 
+   object-oriented operating system, etc. 
+    
+   Agent administration endpoint ID - Every bundle agent, in addition to 
+   being a sender, forwarder, and/or receiver of bundles, may also be 
+   the source and/or destination of bundle payloads (e.g., custody 
+   signals); that is, it may additionally function as a bundle 
+   application.  Each agent therefore has its own "agent administration" 
+   endpoint ID(s), so that bundles can be addressed and routed to it 
+   from anywhere in the network. 
+    
+   Passive bundle reception - A bundle application is said to be in a 
+   period of passive bundle reception if it expects the bundle agent to 
+   asynchronously notify it of new bundles.  This assumes that the 
+   application has registered a Communications Endpoint ID and a 
+   callback mechanism with a bundle agent. 
+    
+   Send token binding, registration token binding - A handle passed from 
+   a bundle application to the bundle agent when sending a bundle / 
+   registering to receive bundles.  This handle is used to associate an 
+   opaque token returned by the bundle agent with a specific bundle / 
+   registration. 
+    
+   The terms "bundle content" and "bundle payload" (or simply "payload") 
+   are used interchangeably in this document.  The payload of an 
+   "original" bundle - i.e., one that is not a fragment of some larger 
+   bundle - is an application data unit. 
+    
+2.2 Services at the User Interface 
+    
+   The bundling protocol SHALL provide the following services to 
+   bundling applications: 
+    
+      a) sending an application data unit to an identified 
+        communications endpoint; 
+      b) canceling a previously submitted request to send an application 
+        data unit; 
+      c) beginning a period of passive application data unit reception; 
+      d) ending a period of passive application data unit reception; 
+      e) actively requesting delivery of an application data unit. 
+    
+2.3 Summary of Primitives 
+    
+2.3.1 Requests 
+    
+   The bundling services SHALL consume the following request primitives 
+   from bundling applications: 
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005         [Page 5] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+    
+      a) Send.request; 
+      b) Cancel.request 
+      c) Register.request; 
+      d) Start_delivery.request; 
+      e) Stop_delivery.request; 
+      f) Change_registration.request; 
+      g) Deregister.request; 
+      h) Poll.request; 
+    
+2.3.2 Indications 
+    
+   The Bundling services SHALL deliver the following indication 
+   primitives to bundling applications: 
+    
+      a) Data.indication; 
+      b) SendError.indication 
+      c) SendToken.indication 
+      d) RegistrationToken.indication 
+    
+2.4 Summary of Parameters 
+    
+   NOTE  -  The availability and use of parameters for each primitive 
+   are indicated in section 2.5, where optional parameters are 
+   identified with square brackets [thus].  The following definitions 
+   apply. 
+    
+2.4.1 Destination Communications endpoint ID 
+    
+   The destination communications endpoint ID parameter shall identify 
+   the communications endpoint to which the application data unit is to 
+   be sent.   
+    
+2.4.2 Source Communications endpoint ID 
+    
+   The source communications endpoint ID parameter shall uniquely 
+   identify the communications endpoint from which the application data 
+   unit was sent. 
+    
+2.4.3 Report Communications endpoint ID 
+    
+   The report communications endpoint ID parameter shall identify the 
+   communications endpoint to which any bundle status reports pertaining 
+   to the application data unit, including end-to-end acknowledgments, 
+   should be sent. 
+    
+2.4.4 Class of Service 
+    
+   The class of service parameter shall indicate which class of standard 
+   procedures shall be followed when transmitting and delivering the 
+   application data unit.  Its value shall be one of the following: 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005         [Page 6] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+      o Bulk 
+      o Normal 
+      o Expedited 
+    
+2.4.5 Delivery Options 
+    
+   The delivery options parameter shall indicate what optional 
+   procedures shall additionally be followed when transmitting and 
+   delivering the application data unit.  Its value shall be a 
+   combination of zero or more of the following: 
+      o Custody transfer 
+      o Return receipt 
+      o Report when bundle received 
+      o Report when bundle forwarded 
+      o Report when bundle custody taken 
+      o Payload security requirements 
+         - Confidentiality 
+         - Integrity 
+         - Authentication 
+    
+2.4.6 Lifespan 
+    
+   The lifespan parameter shall indicate the length of time, following 
+   initial transmission of a bundle, after which bundling agents shall 
+   no longer store or forward the bundle.  The sum of the bundle's 
+   transmission time and lifespan is its delivery deadline, the moment 
+   at which it will be deleted from the DTN network if it has not 
+   already been delivered to its destination communications endpoint. 
+    
+2.4.7 Application Data Unit 
+    
+   The application data unit parameter shall indicate the location (in 
+   memory or non-volatile storage, a local implementation matter) of the 
+   application data conveyed by the bundle. 
+    
+2.4.8 Delivery Failure Action 
+    
+   The delivery failure action parameter shall indicate what action is 
+   to be taken when a bundle arrives for delivery at a moment when its 
+   destination communications endpoint is not currently in a period of 
+   passive application data unit reception.  Its value shall be one of 
+   the following: 
+      o Defer delivery until the entity either actively requests 
+        delivery of the application data unit or else begins a period 
+        of passive application data unit reception. 
+      o Abort delivery of the application data unit. 
+      o Defer delivery and also execute a specified procedure, where 
+        the expression of the procedure to be executed is a matter of 
+        local implementation. 
+    
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005         [Page 7] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+2.5 Bundling Service Primitives 
+    
+2.5.1 SEND.REQUEST 
+    
+   The Send.request primitive shall be used by the application to 
+   request transmission of an application data unit from the source 
+   communications endpoint to a destination communications endpoint. 
+    
+   Semantics: Send.request shall provide parameters as follows: 
+      Send.request(  source communications endpoint ID, 
+                     destination communications endpoint ID, 
+                     report communications endpoint ID, 
+                     class of service, 
+                     delivery options, 
+                     lifespan, 
+                     send token binding, 
+                     application data unit) 
+    
+   When Generated: Send.request MAY be generated by the source Bundling 
+   application at any time. 
+    
+   Effect on Receipt: Receipt of Send.request shall cause the Bundling 
+   agent to initiate bundle transmission procedures as described in 
+   section 4.1.  The agent will deliver either a SendError.indication or 
+   a SendToken.indication to the application.  The SendToken.indication 
+   contains the send token binding and a token that the application can 
+   later use to refer to this transmission. 
+    
+   Additional Comments: None. 
+    
+2.5.2 CANCELBUNDLE.REQUEST 
+    
+   The CancelBundle.request primitive shall be used by the application 
+   to request that a bundle transmission previously initiated in 
+   response to a Send.request be cancelled. 
+    
+   Semantics: CancelBundle.request shall provide parameters as follows: 
+      Cancel.request (  send token) 
+    
+   When Generated: CancelBundle.request MAY be generated by the 
+   application after sending application data via the Send.request and 
+   after receiving a reference token for the transmission via a 
+   SendToken.indication.  A CancelBundle.request should be sent if the 
+   application no longer wishes to effect the transmission referenced by 
+   the send token. 
+    
+   Effect on Receipt: Receipt of CancelBundle.request shall cause the 
+   Bundling agent to cease attempts to effect the indicated 
+   transmission.  If the bundle agent is the current custodian, then 
+   retransmission resources, including any retransmission timers, 
+   associated with the bundle will be released. 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005         [Page 8] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+    
+   Additional Comments: None. 
+    
+2.5.3 REGISTER.REQUEST 
+    
+   The Register.request primitive shall be used to notify the Bundling 
+   agent of the application's interest in bundles destined for a 
+   specified communications endpoint and of the action to take on the 
+   application's behalf with regard to those bundles. 
+    
+   Semantics: Register.request shall provide parameters as follows: 
+      Register.request( delivery failure action, 
+                        registration token binding, 
+                        destination communications endpoint ID) 
+    
+   When Generated: Register.request is generated by any Bundling 
+   application at any time when not currently registered. 
+    
+   Effect on Receipt: Receipt of Register.request shall cause the agent 
+   to deliver a RegisterToken.indication to the application.  The 
+   RegisterToken.indication contains the registration token binding and 
+   a token that the application can use to refer to this registration.  
+   Receipt of Register.request shall additionally cause the indicated 
+   delivery failure action to be applied to all arriving bundles 
+   destined for the indicated endpoint ID at any time when the 
+   application is not in a period of passive application data unit 
+   reception associated with this registration. 
+    
+   Additional Comments: Multiple applications may register interest in 
+   bundles destined for the same communications endpoint, in which case 
+   the Bundling agent MUST honor individually the delivery failure 
+   actions specified for each such registration as applicable.  
+   Implementations MAY require that an expiration time be specified when 
+   Register.request is submitted, to enable the Bundling agent to 
+   conserve resources by autonomously issuing Deregister.requests as 
+   registrations expire. 
+ 
+2.5.4 START-DELIVERY.REQUEST 
+    
+   The Start-delivery.request primitive shall be used to notify the 
+   Bundling agent of the start of a period of passive application data 
+   unit reception. 
+    
+   Semantics: Start-delivery.request shall provide parameters as 
+   follows: 
+      Start-delivery.request( registration token) 
+    
+   When Generated: Start_delivery.request is generated by any Bundling 
+   application at any time when it is registered but not currently in a 
+   period of passive application data unit reception. 
+    
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005         [Page 9] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   Effect on Receipt: Receipt of Start-delivery.request shall cause the 
+   Bundling agent to deliver to the Bundling application the contents of 
+   any bundles destined for the registration's endpoint ID that (a) 
+   arrived in the past and were deferred or (b) arrive during the new 
+   period of passive application data unit reception. 
+    
+2.5.5 STOP-DELIVERY.REQUEST 
+    
+   The Stop-delivery.request primitive shall be used to notify the 
+   Bundling agent of the end of a period of passive application data 
+   unit reception. 
+ 
+   Semantics: Stop-delivery.request shall provide parameters as follows: 
+      Stop-delivery.request( registration token) 
+    
+   When Generated: Stop-delivery.request MAY be generated by any 
+   Bundling application at any time when the application is currently in 
+   a period of passive application data unit reception. 
+    
+   Effect on Receipt: Receipt of Stop-delivery.request shall cause the 
+   Bundling agent to dispatch any subsequently arriving bundles destined 
+   for the registration's endpoint in accord with the registration's 
+   delivery failure action. 
+    
+2.5.6 CHANGE-REGISTRATION.REQUEST 
+    
+   The Change-registration.request primitive shall be used to amend the 
+   action to take on the application's behalf with regard to bundles 
+   destined for the registration's endpoint. 
+    
+   Semantics: Change-registration.request shall provide parameters as 
+   follows: 
+      Change-registration.request(  registration token, 
+                                    delivery failure action) 
+    
+   When Generated: Change-registration.request MAY be generated by any 
+   Bundling application at any time when registered. 
+    
+   Effect on Receipt: Receipt of Change-registration.request shall cause 
+   the indicated delivery failure action to be applied to all arriving 
+   bundles destined for the registration's ID at any time when the 
+   application is not in a period of passive application data unit 
+   reception associated with this registration. 
+    
+2.5.7 DEREGISTER.REQUEST 
+    
+   The Deregister.request primitive shall be used to notify the Bundling 
+   agent of the end of the application's interest in bundles destined 
+   for an endpoint. 
+ 
+   Semantics: Deregister.request shall provide parameters as follows: 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 10] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+      Deregister.request(registration token) 
+    
+   When Generated: Deregister.request MAY be generated by any Bundling 
+   application at any time when registered. 
+    
+   Effect on Receipt: Receipt of Deregister.request shall cause the 
+   Bundling agent to terminate the indicated registration.  Any bundles 
+   retained for deferred delivery per this registration shall be 
+   discarded and the delivery failure action policy associated with this 
+   registration shall be rescinded. 
+    
+   Additional Comments: None. 
+    
+2.5.8 POLL.REQUEST 
+    
+   The Poll.request primitive shall be used to request immediate 
+   delivery of a bundle's content. 
+    
+   Semantics: Poll.request shall provide parameters as follows: 
+      Poll.request(registration token) 
+    
+   When Generated: Poll.request MAY be generated by any Bundling 
+   application at any time when it is registered but not currently in a 
+   period of passive application data unit reception. 
+    
+   Effect on Receipt: Receipt of Poll.request shall cause the Bundling 
+   Agent to deliver to the Bundling application the content of the least 
+   recently received bundle, destined for the registration's 
+   communications endpoint ID, for which delivery was deferred. 
+    
+2.5.9 DATA.INDICATION 
+    
+   The Data.indication primitive shall be used to deliver the content of 
+   a bundle to the bundle's destination communications endpoint. 
+    
+   Semantics: Data.indication shall provide parameters as follows: 
+      Data.indication(  source communications endpoint ID, 
+                           destination communications endpoint ID, 
+                           report communications endpoint ID, 
+                           class of service, 
+                           delivery options, 
+                           lifespan, 
+                           application data unit) 
+    
+   When Generated: Data.indication shall be generated on receipt of a 
+   Poll.request primitive from a Bundling application or on arrival of a 
+   bundle destined for the application at a time when the application is 
+   in a period of passive bundle reception. 
+    
+   Effect on Receipt: The effect on receipt of Data.indication by a 
+   Bundling application is undefined. 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 11] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+    
+   Additional Comments: None. 
+    
+2.5.10 
+       SENDERROR.INDICATION 
+    
+   The SendError.indication primitive shall be used to deliver 
+   information about bundle transmission requests that the agent cannot 
+   accept from the application. 
+    
+   Semantics: SendError.indication shall provide parameters as follows: 
+      SendError.indication (  source communications endpoint ID, 
+                              destination communications endpoint ID, 
+                              report communications endpoint ID, 
+                              class of service, 
+                              delivery options, 
+                              lifespan, 
+                              application data unit) 
+    
+   When Generated: SendError.indication shall be generated when a 
+   Send.request primitive cannot be accepted by the agent. 
+    
+   Effect on Receipt: The effect on receipt of SendError.indication by a 
+   Bundling application is undefined. 
+    
+   Additional Comments: None. 
+    
+2.5.11 
+       SENDTOKEN.INDICATION 
+    
+   The SendToken.indication primitive shall be used to deliver a token 
+   to the application that it can use to refer to a particular bundle 
+   transmission effected in response to a Send.request primitive. 
+    
+   Semantics: SendToken.indication shall provide parameters as follows: 
+      SendToken.indication (  send token binding, 
+                              send token) 
+    
+   When Generated: SendToken.indication shall be generated when an 
+   application data unit is accepted by the agent for transmission.  The 
+   send token binding parameter is the same as that supplied with the 
+   Send.request, and the send token can be supplied to refer to that 
+   bundle. 
+    
+   Effect on Receipt: The effect on receipt of SendToken.indication by a 
+   Bundling application is undefined. 
+    
+   Additional Comments: None. 
+    
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 12] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+2.5.12 
+       REGISTRATIONTOKEN.INDICATION 
+    
+   The RegistrationToken.indication primitive shall be used to deliver a 
+   token to the application that it can use to refer to a particular 
+   registration established via the Register.request primitive. 
+    
+   Semantics: RegistrationToken.indication shall provide parameters as 
+   follows: 
+      RegistrationToken.indication  (  registration token binding, 
+                                       registration token) 
+    
+   When Generated: RegistrationToken.indication shall be generated when 
+   a registration.request primitive is serviced by the agent.  The 
+   registration token binding parameter is the same as that supplied 
+   with the Register.request, and the registration token can be supplied 
+   to refer to that registration. 
+    
+   Effect on Receipt: The effect on receipt of 
+   RegistrationToken.indication by a Bundling application is undefined. 
+    
+   Additional Comments: None. 
+    
+3. Bundle Message Format 
+    
+   The DTN protocols use a chained header format reminiscent of IPv6 
+   headers.  Each bundle consists of at least a primary bundle header 
+   and a dictionary header.  Other header types can be chained after the 
+   dictionary header to support additional functionality such as 
+   authentication, bundle fragmentation, etc. 
+    
+   This section describes the format of the different bundle headers.  
+   Rules for processing bundle headers appear in section 4 of this 
+   document. 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 13] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   The currently defined headers are: 
+    
+                     Table 1: Bundle Header Types 
++--------------------+------+---------------------------------------+ 
+|       Header       | Type |              Comment                  | 
++====================+======+=======================================+ 
+|                    | 0x00 |  When used as a next header type,     | 
+|  No more headers   |      |  indicates that no other headers      | 
+|                    |      |  follow the current one.              | 
++--------------------+------+---------------------------------------+ 
+|  Primary bundle    | 0x01 |  Must appear before any other bundle  | 
+|  header            |      |  header.                              | 
++--------------------+------+---------------------------------------+ 
+|  Dictionary        | 0x02 |  Contains string text corresponding   | 
+|  header            |      |  to the string numbers used in the    | 
+|                    |      |  primary header.                      | 
++--------------------+------+---------------------------------------+ 
+|  Reserved          | 0x03 |  Reserved for future use.             | 
++--------------------+------+---------------------------------------+ 
+|  Reserved          | 0x04 |  Reserved for future use.             | 
++--------------------+------+---------------------------------------+ 
+|  Bundle Payload    | 0x05 |  Identifies actual bundle content.    | 
++--------------------+------+---------------------------------------+ 
+|  Reserved          | 0x06 |  Reserved for future use.             | 
++--------------------+------+---------------------------------------+ 
+|  Bundle            | 0x07 |  Used to assure the authenticity      | 
+|  authentication    |      |  of the bundle.                       | 
++--------------------+------+---------------------------------------+ 
+|  Payload security  | 0x08 |  Used to assure the integrity and     | 
+|                    |      |  (optionally) authenticity of the     | 
+|                    |      |  payload.                             | 
++--------------------+------+---------------------------------------+ 
+|  Bundle Fragment   | 0x09 |  This bundle is a fragment of a       | 
+|                    |      |  larger one.                          | 
++--------------------+------+---------------------------------------+ 
+|               All other values reserved for future use.           | 
++--------------------+------+---------------------------------------+ 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 14] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   The format of the various headers is shown in Figure 2 below. 
+    
+Primary Bundle Header 
++----------------+----------------+----------------+----------------+ 
+|    Version     |  Next Header   |   COS Flags    | Pyld security  | 
++----------------+----------------+----------------+----------------+ 
+|  Destination   |    Source      |   Report-to    |   Custodian    | 
++----------------+----------------+----------------+----------------+ 
+|                                                                   | 
++             Creation Timestamp (8 bytes)                          + 
+|                                                                   | 
++---------------------------------+---------------------------------+ 
+|                         Expiration Time                           | 
++----------------+----------------+---------------------------------+ 
+    
+    
+Dictionary Header 
++----------------+----------------+----------------+----------------+ 
+|  Next Header   |  String count  |  String records (variable)      + 
++-------------------------------------------------------------------+ 
+    
+    
+Bundle Fragment Header 
++----------------+----------------+----------------+----------------+ 
+|  Next Header   |  Length of original bundle payload (4 bytes) 
++----------------+----------------+----------------+----------------+ 
+                 |  Offset of this bundle fragment (4 bytes)          
++----------------+--------------------------------------------------+ 
+                 | 
+-----------------+ 
+    
+    
+Bundle Authentication Header 
++----------------+----------------+----------------+----------------+ 
+|  Next Header   |   Length       | Auth. information (variable)      
++----------------+----------------+----------------+----------------+ 
+    
+    
+Payload Security Header 
++----------------+----------------+----------------+----------------+ 
+|  Next Header   |   Length       | Security information (variable)   
++----------------+----------------+----------------+----------------+ 
+    
+    
+
+
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 15] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+Bundle Payload Header 
++----------------+----------------+----------------+----------------+ 
+| Payload class  |  Length of bundle payload (4 bytes)                
++----------------+----------------+----------------+----------------+ 
+                 |                                                  | 
++----------------+                                                  | 
+|                           Bundle Payload (variable)               | 
+|                                                                   | 
+/                                                                   / 
+/                                                                   / 
+|                                                                   | 
++-------------------------------------------------------------------+ 
+    
+                 Figure 2:   Bundle header formats. 
+    
+3.1 General Bundle Header Format 
+    
+   In most cases a bundle header begins with a one-octet next header 
+   type field.  This field identifies the type of the header following 
+   the one the field is part of.  The exceptions to this rule are the 
+   primary bundle header, which must appear before any other bundle sub-
+   headers, and the payload header, which if present must be the last 
+   sub-header in the bundle.  The primary bundle header begins with a 1-
+   byte version field that identifies the version of the bundling 
+   protocols used to create the current bundle, followed by a 1-byte 
+   next header type field.  The payload header begins with a 1-byte 
+   payload class that indicates whether the payload consists of 
+   administrative records (see section 5) or non-administrative 
+   application data. 
+    
+   All multi-byte fields are transmitted in network byte order. 
+    
+3.2 Tuples 
+    
+   Communicating entities in the DTN are referred to via name tuples, 
+   also known as communication endpoint IDs (see section 2.1).  A name 
+   tuple is an ordered pair of variable-length octet arrays. 
+    
+   The first octet array of a name tuple is termed the "routing part" or 
+   "region ID".  It is a sequence of US ASCII characters encoded using 
+   the punycode transfer encoding syntax documented in RFC 3492, with 
+   reference to RFCs 3490 and 3491.  Simply put, a region ID is a dotted 
+   string where the sequence of characters between any pair of dots - or 
+   preceding the first dot, or in the entire string if the string 
+   contains no dots - must not contain any character that is illegal in 
+   a domain name as defined by RFC 1035, but may specifically begin with 
+   the reserved internationalization prefix "ùxn" indicating the scheme 
+   by which the remaining ASCII characters in the sequence may be 
+   translated to Unicode. 
+    
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 16] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   The second octet array of a name tuple is termed the "administrative 
+   part" of the endpoint ID.  It may be encoded in any of three possible 
+   ways: 
+    
+      o  A single 8-bit integer, which is to be interpreted in a 
+          region-specific manner. 
+    
+      o  A single 16-bit integer, which is to be interpreted in a 
+          region-specific manner. 
+    
+      o  An absolute URI, as defined in RFC 2396. 
+    
+   If the first character of a region ID is a dot, then the ensuing 
+   sequence of characters preceding the next dot identifies the "name 
+   invariance family" (NIF) to which the named region belongs; any DTN 
+   endpoint that is identified by administrative-part "X" within any 
+   region that is a member of NIF "Q" is guaranteed to be identified by 
+   X within every other region that is a member of Q. 
+    
+   The routing part of a DTN name tuple must be globally parsable 
+   throughout the DTN.  The administrative part is opaque outside of the 
+   indicated region, but must be parsable anywhere in that region. 
+    
+   For economy in bundle transmission, redundancy in the representation 
+   of tuples is minimized by the use of "string numbers" in the primary 
+   bundle header.  The distinct octet arrays that serve as the routing 
+   and administrative parts of the tuples identifying a bundle's 
+   destination, source, report-to endpoint, and current custodian are 
+   enumerated in the string records of the dictionary header; the tuples 
+   themselves are represented in the primary bundle header by ordered 
+   pairs of 4-bit "string numbers" that reference those string records. 
+    
+   A string number is an ordinal reference to a string record, i.e., 
+   string number zero is a reference to the first string record in the 
+   dictionary header, string number 1 is a reference to the second 
+   string record, etc.  Each tuple representation in the primary bundle 
+   header is a single byte comprising two string numbers: the 4 high-
+   order bits identify the string record whose text is the routing part 
+   (region identifier) of the tuple, while the 4 low-order bits identify 
+   the string record whose text is the administrative part of the tuple. 
+    
+3.3  
+    Primary Bundle Header 
+    
+   The primary bundle header contains the basic information needed to 
+   route bundles to their destinations.  The fields of the primary 
+   bundle header are: 
+    
+   Version.  A 1-byte field indicating the version of the bundling 
+          protocol that generated this header.  This document describes 
+          version 0x03 of the bundling protocol. 
+    
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 17] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   Next Header Type.  The Next Header Type field is a 1-byte field that 
+          indicates the type of the header that immediately follows this 
+          one.  Header types are listed in Table 1 above. 
+    
+   Class of Service Flags.  The COS Flags byte consists of a 1-bit 
+          custody switch followed by three (3) bits of priority and four 
+          (4) bits of delivery record request flags.  If the custody bit 
+          is 1 then the sender requests custodial transfer of the 
+          bundle.  The three-bit priority field indicates the bundle's 
+          priority, with higher values being of higher priority.  The 
+          interpretation of the delivery record request flags is as 
+          follows. 
+    
+         Table 2: Delivery Record Request Flag Meanings 
+    
+         +---------+--------------------------------------------+ 
+         |  Value  |                  Meaning                   | 
+         +=========+============================================+ 
+         |  0000   |  No delivery records requested.            | 
+         +---------+--------------------------------------------+ 
+         |  0001   |  Request custody transfer reporting.       | 
+         +---------+--------------------------------------------+ 
+         |  0010   |  Request reporting of bundle reception.    | 
+         +---------+--------------------------------------------+ 
+         |  0100   |  Request reporting of bundle forwarding.   | 
+         +---------+--------------------------------------------+ 
+         |  1000   |  Request end-to-end return receipt.        | 
+         +---------+--------------------------------------------+ 
+    
+    
+   Payload Security.  The Payload Security byte consists of one bit 
+          indicating whether or not the payload is encrypted, two bits 
+          of payload integrity flags, and five bits reserved for future 
+          use.  The encryption bit is a Boolean value; it is set to 1 if 
+          and only if the payload is encrypted in a key system in which 
+          both the source and destination application endpoints' bundle 
+          agents are participants.  The payload integrity flags indicate 
+          whether or not a Payload Security header is present in the 
+          bundle and, if so, whether that header serves to assure bundle 
+          authenticity or only bundle integrity; the nature of the 
+          information in the Payload Security header (e.g., the hash 
+          algorithm used) is encoded within the header.  The 
+          interpretation of the payload integrity flags is as follows. 
+    
+
+
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 18] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+         Table 3: Payload Integrity Flag Meanings 
+    
+         +---------+--------------------------------------------+ 
+         |  Value  |                  Meaning                   | 
+         +=========+============================================+ 
+         |   00    |  No bundle integrity or authentication.    | 
+         +---------+--------------------------------------------+ 
+         |   01    |  Bundle integrity is supported.            | 
+         +---------+--------------------------------------------+ 
+         |   10    |  Bundle authentication is supported.       | 
+         +---------+--------------------------------------------+ 
+    
+   Destination.   This 1-byte field contains the two 4-bit string 
+          numbers for the Region ID (routing part) and administrative 
+          part of the tuple identifying the destination endpoint. 
+    
+   Source.     A 1-byte field containing the two 4-bit string numbers 
+          for the Region ID (routing part) and administrative part of 
+          the tuple identifying the source endpoint. 
+    
+   Report-To.  A 1-byte field containing the two 4-bit string numbers 
+          for the Region ID (routing part) and administrative part of 
+          the tuple identifying the report-to endpoint. 
+    
+   Current custodian.   A 1-byte field containing the two 4-bit string 
+          numbers for the Region ID (routing part) and administrative 
+          part of the tuple identifying the current custodian endpoint.  
+          Custody transfer provides a means of reliable bundle transfer.  
+          The rationale behind custody transfers is discussed in detail 
+          in [2].  The rules for processing custodial bundles are 
+          described in section 4.5 below.  The value of this field MUST 
+          be set to zero on send and ignored on receipt if the custody 
+          switch in the class of service (above) is zero. 
+    
+   Creation Timestamp.  The creation timestamp is an 8-byte field 
+          containing the time the bundle payload was accepted for 
+          transmission by the source bundle agent, formatted as an NTP 
+          timestamp[4]. 
+    
+   Expiration Time.  The four-byte expiration time field indicates the 
+          time at which the bundle's data will no longer be useful, 
+          encoded as the number of seconds past the creation timestamp.  
+          When the current time is greater than the creation timestamp 
+          plus the expiration time, bundles may be discarded. 
+    
+   The reason that the creation timestamp has higher granularity than 
+   the expiration time is because the creation timestamp together with 
+   the source tuple make up the bundle identifier, which must be unique 
+   to every original (non-fragmentary) bundle in the system.  Note that 
+   this implies that a bundle agent MUST NOT accept for transmission two 
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 19] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   or more payloads during a time interval bounded by two successive NTP 
+   timestamps.  
+          
+3.4  
+    Bundle Payload Header 
+    
+   The fields of the bundle payload header are: 
+    
+   Payload Class.  The Payload Class field is a 1-byte field that 
+          indicates the nature of the payload.  The field contains 0x01 
+          if the payload consists of one or more Bundling administrative 
+          records (see section 5) and 0x00 otherwise. 
+    
+   Length.  A 4-byte field indicating the total length, in bytes, of the 
+          payload.  Note that this may be less than the bundle's 
+          original payload length if fragmentation has occurred.  This 
+          length does NOT include the lengths of the header elements of 
+          this bundle payload header. 
+    
+   Payload.  The application data carried by this bundle. 
+    
+3.5 Bundle Authentication Header 
+    
+   The fields of the bundle authentication header are: 
+    
+   Next Header Type. The Next Header Type field is a 1-byte field that 
+          indicates the type of the header that immediately follows this 
+          one.  Header types are listed in Table 1 above. 
+    
+   Length.  A 1-byte field indicating the total length, in bytes, of the 
+          authentication information. 
+    
+   Authentication information.   The authentication information is the 
+          result of generating a hash over the entire bundle (excluding 
+          the bundle authentication header itself), then running the 
+          hash through a signature algorithm - e.g., sign using sender's 
+          private key.  Bundle authentication information is generated 
+          and checked on a hop-by-hop basis, between neighboring bundle 
+          agents along the end-to-end route of the bundle, to contain 
+          unauthorized use of delay tolerant network assets. 
+    
+3.6 Payload Security Header 
+    
+   The fields of the payload security header are: 
+    
+   Next Header Type. The Next Header Type field is a 1-byte field that 
+          indicates the type of the header that immediately follows this 
+          one.  Header types are listed in Table 1 above. 
+    
+   Length.  A 1-byte field indicating the total length, in bytes, of the 
+          security information. 
+    
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 20] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   Security information.   The security information is the result of 
+          generating a hash over the entire payload, then optionally 
+          running the hash through a signature algorithm - e.g., sign 
+          using source's private key.  Payload security information is 
+          generated and checked on an end-to-end basis, between the 
+          source and destination communication endpoints' bundle agents, 
+          to assure the integrity and (optionally) authenticity of the 
+          delivered payload. 
+    
+3.7 Bundle Fragment Header 
+    
+   A "bundle fragment" is a bundle whose payload is some part of the 
+   payload of a larger "original" bundle; the payload of a bundle 
+   fragment is identified by its offset from the beginning of the 
+   original bundle's payload.  Bundle fragment headers are present in 
+   all bundle fragments. 
+    
+   The fields of the Bundle Fragment Header are: 
+    
+   Next Header Type. The Next Header Type field is a 1-byte field that 
+          indicates the type of the header that immediately follows this 
+          one.  Header types are listed in Table 1 above. 
+    
+   Length of Original Bundle Payload.  This is the total length of the 
+          original bundle's payload before any fragmentation. 
+    
+   Fragment Offset.  The byte offset of the beginning of this fragment's 
+          payload within the original bundle's payload. 
+    
+   Note: As described in section 6, the "convergence layer" transport 
+   mechanisms underlying bundling are required to provide to bundle 
+   nodes the length of each bundle received.  The length of a received 
+   bundle payload may be computed by subtracting the sum of the lengths 
+   of the bundle's headers from this reported bundle length.  Reactive 
+   fragmentation is required when, and only when, this computed payload 
+   length is less than the payload length declared in the bundle's 
+   payload header. 
+    
+3.8 Dictionary Header 
+    
+   The fields of the dictionary header are: 
+    
+   Next Header Type.  The Next Header Type field is a 1-byte field that 
+          indicates the type of the header that immediately follows this 
+          one.  Header types are listed in Table 1 above. 
+    
+   String Count.  A 1-byte field indicating the number of string records 
+          in this header. 
+    
+   String Records.  This is a variable-length field comprising some 
+          number (indicated in the String Count) of concatenated string 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 21] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+          record structures.  Each string record structure has this 
+          format: 
+    
++----------------+----------------+----------------+----------------+ 
+|     Length     |  String text (variable)                          + 
++-------------------------------------------------------------------+ 
+    
+   The fields of the string record structure are: 
+    
+   Length.  A 1-byte field indicating the total length, in bytes, of the 
+          string text. 
+    
+   String text.  The text of the octet array to which the sending bundle 
+          agent refers when citing this string record's ordinal position 
+          within the string records field of the dictionary header. 
+    
+3.9 Rules Governing the Appearance and Order of Headers 
+    
+   The following rules apply to the order and presence of DTN headers: 
+      o The primary bundle header must appear first. 
+      o The dictionary record must immediately follow the primary 
+        header. 
+      o There can be at most one header of each other type per bundle. 
+      o  If a payload header is present, it must be the last header in 
+        the bundle. 
+      o Rules regarding the order of appearance of other header types 
+        have not yet been established. 
+    
+4. Bundle Processing 
+    
+   There are currently no provisions for multipoint delivery of bundle 
+   payloads. 
+    
+4.1 Bundle transmission requests 
+    
+   The steps in processing a Send.request primitive are: 
+    
+   Step 1: Permissions checking.  Bundle agents MAY enforce policy that 
+      restricts the permissions of applications.  Such policy could, for 
+      example, limit the rate at which particular applications are 
+      allowed to inject traffic, or limit the CoS options that 
+      particular applications are allowed to use.  Requests that meet 
+      the policy criteria shall result in the return of 
+      SendToken.indications; those that do not shall result in the 
+      return of SendError.indications. 
+    
+   Step 2: If the request is accepted, then an outbound bundle is 
+      created and processing proceeds from Step 5 of section 4.2. 
+    
+4.2 Bundles received from other bundle agents 
+    
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 22] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   Note that whenever an administrative record (bundle status report or 
+   custodial signal) is generated in response to receipt of a bundle 
+   that is a fragment of some original bundle, the administrative record 
+   MUST contain the Fragment flag and the fragment offset and fragment 
+   length fields.  All administrative records are sent as the payloads 
+   of bundles.  Bundles containing custodial signals MUST be sent with 
+   the CoS flag requesting custodial delivery set, except when the 
+   payload of the referenced bundle is itself a custodial signal. 
+    
+   The steps in processing a bundle received from another bundle agent 
+   are: 
+    
+   Step 1: Bundle Authentication:  The bundle must first be 
+      authenticated as described in section 3.13 of [2], in one of two 
+      ways: either (a) the authenticity of the bundle must have been 
+      asserted by the convergence layer or (b) the bundle must contain a 
+      Bundle Authentication header whose signature is valid according to 
+      the certificate of the sending bundle agent.  The purpose of this 
+      authentication is to protect the bundle transmission 
+      infrastructure, not to provide security services to bundle 
+      applications.  If the authentication fails then the bundle MUST be 
+      discarded and processed no further; in this case a bundle status 
+      report indicating the authentication failure MAY be generated, 
+      destined for the receiving bundle agent's own administration 
+      endpoint. 
+    
+   Step 2: Generate a bundle reception status report, if requested.  If 
+      the bundle's class of service requests that a bundle reception 
+      status report be generated when the bundle is received, a bundle 
+      reception status report MUST be generated, destined for the 
+      bundle's report-to endpoint ID. 
+    
+   Step 3: Bundle custody transfer.  If the bundle's class of service 
+      requests custodial transfer, the bundle agent has to decide 
+      whether or not to take custody of the bundle.  The decision as to 
+      whether or not to take custody of a bundle may involve both 
+      resource and policy considerations. 
+    
+      If the agent elects to NOT take custody of the bundle, then it 
+      MUST take the following actions: 
+    
+         o  If for any reason the agent elects to discard the bundle 
+            altogether, the agent MUST generate a "Failed" custodial 
+            signal for the bundle, destined for the agent 
+            administration endpoint of the bundle's current custodian 
+            (the bundle agent that most recently took custody of the 
+            bundle); the custodial signal MUST contain a reason code 
+            explaining the failure of custody transfer.  The bundle 
+            MUST then be discarded and processed no further. 
+    
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 23] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+         o  If the bundle is not discarded and its destination tuple 
+            matches one of the bundle agent's interfaces, the agent 
+            MUST generate a "Succeeded" custodial signal for the 
+            bundle, destined for the agent administration endpoint of 
+            the bundle's current custodian; the reason code in the 
+            signal MUST be "Delivery to application by non-custodian". 
+    
+         o  If the bundle is not discarded and its destination tuple 
+            does not match any of the bundle agent's interfaces, then 
+            when forwarding the bundle the agent MUST NOT assert a new 
+            current custodian for the bundle, i.e., it MUST NOT change 
+            the agent administration endpoint ID that is encoded as the 
+            bundle's current custodian. 
+    
+      If the agent elects to take custody of the bundle, then it takes 
+      the following actions: 
+    
+         o  If the bundle's class of service indicates that custody 
+            transfer reporting is requested, a bundle status report 
+            indicating that the current agent is taking custody of the 
+            bundle MUST be generated, destined for the report-to 
+            endpoint ID of the bundle.  If a bundle reception status 
+            report was generated above, this additional status report 
+            SHOULD be appended to the payload of the bundle in which 
+            that status report is sent. 
+    
+         o  The agent MUST generate a "Succeeded" custodial signal for 
+            the bundle, destined for the agent administration endpoint 
+            of the bundle's current custodian; the reason code in the 
+            signal MUST be "Acceptance of custody". 
+             
+         o  The bundle agent MUST modify the current custodian ID, 
+            changing that identifier to the agent's own administration 
+            endpoint ID.  This may entail the insertion of new string 
+            records into the bundle's dictionary header and, possibly, 
+            the removal of string records to which there is no longer 
+            any reference in the bundle's primary header. 
+ 
+         o  The bundle agent MAY set a custody transfer timer as an 
+            alternate means of initiating the procedures described in 
+            4.6 below.  The value of the retransmission timer interval 
+            is up to the bundle agent. 
+    
+         o  The bundle agent MUST keep a copy of the bundle until it 
+            can be discarded in accord with the procedures described in 
+            Step 4 below or section 4.6 below, and this copy SHOULD be 
+            in persistent storage if at all possible. 
+    
+   Step 4: Test for bundle expiration.  A bundle has expired if the 
+      current time is greater than the bundle's creation time plus its 
+      lifetime as specified in the primary bundle header.  If the bundle 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 24] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+      has expired then it MUST be discarded and processed no further; if 
+      the bundle's class of service requests custodial transfer and the 
+      local bundle agent is now the bundle's current custodian, then a 
+      bundle status report indicating TTL expiration MUST be generated, 
+      destined for the bundle's report-to endpoint ID. 
+    
+   Step 5: Dispatch the bundle.  If the bundle's destination tuple 
+      matches one of the bundle agent's interfaces, processing proceeds 
+      from Step 1 of section 4.3; otherwise, processing proceeds from 
+      Step 1 of section 4.4. 
+    
+4.3 Local bundle delivery 
+      
+   The steps described here are carried out ONLY if the bundle's 
+   destination tuple matches one of the bundle agent's interfaces. 
+    
+   Step 1: Reassembly.  If the received bundle is a fragment of a larger 
+      bundle, its payload MUST be combined with the payloads of the rest 
+      of the fragments that make up the entire original bundle before 
+      the bundle content can be further processed.  Identification and 
+      processing of bundle fragments is discussed in section 4.5 below. 
+    
+   Step 2: If one or more applications have registered with the bundle 
+      agent with the bundle's destination communication endpoint ID, the 
+      original bundle content (payload) SHALL be delivered to each such 
+      application in a Data.indication when either (a) the corresponding 
+      registration is in - or enters - a period of passive bundle 
+      reception or (b) the application uses a Poll.request to initiate 
+      active bundle reception. 
+    
+      If the bundle's destination endpoint ID is the bundle agent's own 
+      administration endpoint ID, then the administrative record 
+      contained in the bundle's payload is processed as described in 
+      section 4.6 below. 
+    
+   Step 3: If the bundle's class of service requests that an end-to-end 
+      return receipt be sent, such a receipt MUST be generated, destined 
+      for the bundle's report-to endpoint ID, as soon as the bundle 
+      content has been delivered to at least one application.  Note that 
+      this return receipt only states that the bundle payload has been 
+      delivered to an application, not that any application has 
+      processed the content. 
+    
+4.4 Bundle forwarding 
+      
+   The steps described here are carried out ONLY if the bundle's 
+   destination tuple does not match any of the bundle agent's 
+   interfaces. 
+    
+   Step 1: Determine next hop for bundle.   
+     
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 25] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+      o If the bundle agent does NOT have an interface in the bundle's 
+        destination region, then it MUST determine the bundle's next 
+        hop using ONLY the bundle's destination region identifier.  The 
+        information in the administrative part of the bundle's 
+        destination endpoint identifier is NOT used at this time.  The 
+        agent determines the next hop bundle agent to which the bundle 
+        will be transmitted and schedules the bundle for transmission. 
+    
+      o If the bundle agent contains an interface in the bundle's 
+        destination region, then the bundle's next hop is a local 
+        policy matter.  Bundle routers may forward bundles directly to 
+        their destinations once in the destination region, or they may 
+        forward bundles to bundle agents serving as intermediate 
+        point(s) in the region. 
+          
+   Step 2: Forward the bundle.  At this point the bundle agent can 
+      schedule the bundle for transmission via an appropriate 
+      convergence layer adapter. 
+    
+   Step 3: Generate a bundle forwarding status report if requested.  If 
+      the bundle's class of service requests that a bundle forwarding 
+      status report be generated when the bundle is forwarded, a bundle 
+      forwarding status report MUST be generated, destined for the 
+      bundle's report-to endpoint ID, when the convergence layer 
+      announces that the bundle has been transmitted. 
+ 
+4.5 Bundle Fragmentation and Reassembly 
+    
+   It may be necessary for bundle agents to break bundles into smaller 
+   units in order to forward them.  This might be the case, for example, 
+   if the next hop destination is available only via intermittent 
+   contacts, and no upcoming contact is long enough to support sending 
+   the entire bundle.  The process of breaking bundles into smaller 
+   units is called fragmentation.  Reassembly of bundle fragments occurs 
+   at the ultimate destination bundle agent.  Bundles MAY also be 
+   reassembled from fragments by other bundle agents on the route to the 
+   final destination, relieving the ultimate destination bundle agent of 
+   this responsibility.  
+    
+4.5.1 Bundle Fragmentation 
+    
+   Bundle fragments are themselves bundles and are individually 
+   routable.  When breaking a bundle into fragments, the following SHALL 
+   be true: 
+    
+     o  All fragments MUST contain the same headers as the original 
+        bundle, other than the payload header.  In particular, the 
+        creation timestamps in the primary headers of all bundle 
+        fragments MUST be the same as that of the original bundle.  
+        Recall that the pair (source tuple, creation timestamp) is 
+        unique for each original bundle.  This allows the destination 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 26] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+        to associate the bundle fragments with a single original 
+        bundle.  
+      
+     o  In addition to the original headers, each bundle fragment MUST 
+        contain a fragment header identifying the fragmentary payload's 
+        position within the original payload and the length of the 
+        original (unfragmented) bundle's payload.  Note that there is 
+        only one 'level' of fragmentation (as in IP fragmentation). 
+      
+     o  When original bundle transmission is terminated before the 
+        entire payload has been transmitted, the truncated bundle 
+        arriving at the receiving bundle agent is not well-formed and 
+        cannot be forwarded until it has been transformed into a bundle 
+        fragment.  Upon forwarding this truncated bundle the receiving 
+        bundle agent MUST insert a fragment header, with offset zero, 
+        indicating the length of the original bundle's payload and MUST 
+        change the payload length in the payload header to the actual 
+        length of the payload being forwarded. 
+      
+     o  When transmission of a fragment is terminated before the 
+        fragment's entire payload has been transmitted, the truncated 
+        bundle arriving at the receiving bundle agent is again not 
+        well-formed.  Upon forwarding this truncated bundle the 
+        receiving bundle agent MUST retain its fragment header, with 
+        offset and original payload length unchanged, and MUST change 
+        the payload length in the payload header to the actual length 
+        of the payload being forwarded. 
+ 
+     o  Whenever transmission of any bundle is terminated before the 
+        bundle's entire payload has been transmitted, the sending 
+        bundle agent MUST divide the bundle into two fragmentary 
+        bundles: 
+      
+            The transmitted fragment, whose payload's length is the 
+            number of octets of payload data that the receiving bundle 
+            agent is *known* to have received at the moment 
+            transmission was terminated. 
+             
+            The retained fragment, whose payload's length is equal to 
+            the transmitted bundle's payload length less the length of 
+            the transmitted fragment's payload. 
+         
+        The headers of both fragmentary bundles MUST be identical to 
+        the headers of the transmitted bundle except that: 
+         
+            If the transmitted bundle was itself a fragment, then the 
+            offset in the fragment header of the new retained fragment 
+            bundle must be the sum of the payload offset of the 
+            transmitted bundle and the length of the transmitted 
+            fragment's payload. 
+             
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 27] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+            Otherwise, new fragment headers must be inserted into both 
+            the transmitted and retained fragment bundles.  Original 
+            payload length in each fragment header must be the length 
+            of the payload of the transmitted bundle; offset in the 
+            fragment header of the transmitted fragment must be zero; 
+            offset in the fragment header of the retained fragment must 
+            be the length of the transmitted fragment's payload. 
+         
+   After fragmentation, the fragments are individually forwarded as 
+   distinct bundles: the receiving bundle agent MUST forward the 
+   fragment that it received and the sending bundle agent MUST forward 
+   its retained fragment. 
+    
+   A bundle agent MAY fragment a bundle prior to transmission.  In this 
+   case, the first fragment MUST contain a fragment header with offset 
+   zero. 
+    
+4.5.2 Bundle Reassembly 
+    
+   Each bundle fragment contains a fragment header.  The fragment header 
+   contains the original bundle's payload length as well as the 
+   fragment's payload's offset within the original payload.  The 
+   fragment's bundle payload header contains the length of the current 
+   fragmentary payload.  This information is enough for the receiving 
+   bundle agent to reconstruct the original payload from the fragments. 
+    
+4.6 Custodial Retransmission and Release 
+    
+   Upon receipt of a custodial signal, the bundle agent may need to 
+   fragment the referenced bundle retroactively (in concept if not in 
+   fact).  This is because some forwarding agent one or more hops 
+   downstream from the custodian may have fragmented the bundle, in 
+   which case the fragment offset and/or length noted in the signal 
+   issued by some further downstream forwarding agent may differ from 
+   the fragment offset and/or length (if any) in the bundle that is in 
+   the agent's custody.  As a result, the bundle agent may temporarily 
+   find itself the custodian of two or even three distinct fragmentary 
+   bundles in place of the single bundle for which it originally had 
+   taken custody; processing of the signal may thereupon terminate the 
+   agent's custody of one of these fragmentary bundles.  The manner in 
+   which this conceptual retroactive fragmentation is accomplished is an 
+   implementation matter. 
+    
+   Upon receipt of a "Succeeded" custodial signal, the bundle agent MAY 
+   release resources allocated to the referenced bundle. 
+    
+   Upon receipt of a "Failed" custodial signal, the action taken by the 
+   bundle agent is implementation-dependent and may depend on the reason 
+   code in the signal.  For example, receipt of a "Failed" signal with 
+   the "Depleted storage" reason code might cause the bundle to be re-
+   forwarded, possibly on a different route; receipt of a "Failed" 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 28] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   signal with the "Redundant transmission" reason code might cause the 
+   bundle agent to release resources allocated to the referenced bundle 
+   and to revise its algorithm for computing custody transfer timer 
+   intervals. 
+    
+   Upon expiration of a custody transfer timer: 
+    
+      If the bundle itself has expired then it MUST be discarded and 
+      processed no further; a bundle status report indicating TTL 
+      expiration MUST be generated, destined for the bundle's report-to 
+      endpoint ID. 
+       
+      Otherwise, the action taken by the bundle agent is implementation-
+      dependent as in the case of receipt of a "Failed" custodial 
+      signal.  Note, though, that the action taken in this event is not 
+      informed by a reason code. 
+    
+5. Administrative Payloads 
+    
+   Administrative payloads are application data units that help to 
+   implement some features of bundling, although they are not part of 
+   the Bundling protocol itself.  Some are sent to the agent 
+   administration endpoints of bundle agents, rather than to Bundling 
+   application endpoints. 
+    
+   An administrative bundle payload comprises one or more administrative 
+   records.  Two types of administrative records have been defined to 
+   date: bundle status reports and custodial signals. 
+    
+   Every administrative record consists of an eight-bit record type 
+   code, followed by record content in type-specific format.  Record 
+   type codes are defined as follows: 
+    
+         Table 4: Administrative Record Type Codes 
+    
+         +---------+--------------------------------------------+ 
+         |  Value  |                  Meaning                   | 
+         +=========+============================================+ 
+         |  0x01   |  Bundle status report.                     | 
+         +---------+--------------------------------------------+ 
+         |  0x02   |  Custodial signal.                         | 
+         +---------+--------------------------------------------+ 
+         | (other) |  Reserved for future use.                  | 
+         +---------+--------------------------------------------+ 
+    
+   The contents of the various types of administrative records are 
+   described below. 
+    
+5.1  
+    Bundle Status Reports 
+    
+   One of the delivery options that senders can request is 'bundle 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 29] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   status reports.'  These reports are intended to provide information 
+   about how bundles are progressing through the system, including 
+   notices of receipt, TTL expiration, forwarding, custody transfer, and 
+   final delivery.  Status reports have the following format. 
+    
+Bundle Status Report for bundle 'X': 
+    
++----------------+----------------+----------------+----------------+ 
+|  Status Flags  |  Fragment offset (4 bytes, if present)             
++----------------+----------------+----------------+----------------+ 
+                 |  Fragment length (4 bytes, if present)             
++--------------------------------------------------+----------------+ 
+                 |  Copy of bundle X's Send Timestamp (8 bytes)       
++----------------+                                                  + 
+                                                                      
++                +----------------+----------------+----------------+ 
+                 |  Time of Receipt of bundle 'X' (8 bytes, if        
++----------------+                                                  + 
+    present)                                                          
+                 +----------------+----------------+----------------+ 
+                 |  Time of Forwarding of bundle 'X' (8 bytes, if     
++----------------+                                                    
+    present)                                                        + 
+                 +----------------+----------------+----------------+ 
+                 |  Time of Delivery of bundle 'X' (8 bytes, if       
++----------------+                                                  + 
+    present)                                                          
+                 +----------------+----------------+----------------+ 
+                 |  Time of Deletion of bundle 'X' (8 bytes, if       
++----------------+                                                  + 
+    present)                                                          
++                +----------------+----------------+----------------+ 
+                 |  Region length |       Region ID of                
++----------------+----------------+                                 + 
+            X's source endpoint (variable)                          / 
++                +----------------+---------------------------------+ 
+/                |  Admin. Length |   Administrative part of          
++----------------+----------------+                                 + 
+            X's source endpoint (variable)                          / 
++                +----------------+---------------------------------| 
+/                | 
++----------------+ 
+
+
+
+
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 30] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   The fields in a bundle status report are: 
+    
+   Status Flags.  A 1-byte field containing the following flags: 
+    
+         Table 5: Status Flags for Bundle Status Reports 
+    
+         +---------+--------------------------------------------+ 
+         |  Value  |                  Meaning                   | 
+         +=========+============================================+ 
+         |  0x01   |  Reporting node correctly received bundle. | 
+         +---------+--------------------------------------------+ 
+         |  0x02   |  Reporting node took custody of bundle.    | 
+         +---------+--------------------------------------------+ 
+         |  0x04   |  Reporting node has forwarded the bundle.  | 
+         +---------+--------------------------------------------+ 
+         |  0x08   |  Reporting node has delivered the bundle.  | 
+         +---------+--------------------------------------------+ 
+         |  0x10   |  Bundle's TTL expired at reporting node.   | 
+         +---------+--------------------------------------------+ 
+         |  0x20   |  Bundle was found to be inauthentic.       | 
+         +---------+--------------------------------------------+ 
+         |  0x40   |  Unused.                                   | 
+         +---------+--------------------------------------------+ 
+         |  0x80   |  Report is for a bundle fragment; fragment | 
+         |         |  offset and length fields are present.     | 
+         +---------+--------------------------------------------+ 
+    
+   Fragment offset.  If the bundle fragment bit is set in the status 
+          flags, then the offset of the payload of the bundle that 
+          caused the status report to be generated (within the original 
+          payload) is included here.  This offset, together with the 
+          bundle ID of the original bundle, uniquely identifies this 
+          bundle fragment. 
+    
+   Fragment length.  If the bundle fragment bit is set in the status 
+          flags, then the length of the payload of the subject bundle is 
+          included here. 
+    
+   Send Timestamp For Reported Bundle.  A copy of the send timestamp of 
+          the bundle that caused the status report to be generated. 
+    
+   Time of Receipt (if present).  If the bundle-received bit is set in 
+          the status flags, then a timestamp indicating the time at 
+          which the bundle was received by the reporting node is 
+          included here.  The timestamp is 8 bytes long, formatted as an 
+          NTP timestamp. 
+    
+   Time of Forward (if present).  If the bundle-forwarded bit is set in 
+          the status flags, then a timestamp indicating the time at 
+          which the bundle was first forwarded by the reporting node is 
+          included here.  The timestamp is 8 bytes long, formatted as an 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 31] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+          NTP timestamp. 
+    
+    
+   Time of Delivery (if present).  If the bundle-delivered bit is set in 
+          the status flags, then a timestamp indicating the time at 
+          which the bundle was delivered to the application by the 
+          reporting node is included here.  The timestamp is 8 bytes 
+          long, formatted as an NTP timestamp. 
+    
+   Time of Deletion (if present).  If the TTL-expired bit or the 
+          authentication-failed bit is set in the status flags, then a 
+          timestamp indicating the time at which the bundle was 
+          discarded by the reporting node is included here.  The 
+          timestamp is 8 bytes long, formatted as an NTP timestamp. 
+    
+   Region length.  The length in bytes of the region ID (routing part) 
+          of the tuple identifying the application endpoint which was 
+          the source of the bundle that caused the status report to be 
+          generated. 
+    
+          The combination of the reported bundle's send timestamp and 
+          source tuple constitutes the bundle identifier.  This, 
+          together with the fragment offset if present, uniquely 
+          identifies the subject bundle to the reportee. 
+   
+  Region ID text.  The text of the region ID (routing part) of the 
+          tuple identifying the subject bundle's source endpoint. 
+   
+   Administrative part length.  The length in bytes of the 
+          administrative part of the tuple identifying the subject 
+          bundle's source endpoint. 
+    
+  Administrative part text.  The text of the administrative part of the 
+          tuple identifying the subject bundle's source endpoint. 
+    
+   The action that the report-to addressee takes on receipt of a bundle 
+   status report is application-specific. 
+    
+5.2  
+    Custodial Signals 
+    
+   Custodial signals are administrative records that effect custodial 
+   operations.  They are sent to the administration endpoints 
+   corresponding to bundle agents that are the custodians of bundles. 
+    
+   Custodial signals have the following format. 
+    
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 32] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   Custodial Signal regarding bundle 'X': 
+    
++----------------+----------------+----------------+----------------+ 
+|  Status Flags  |  Reason code   |  Fragment offset (4 bytes, if     
++----------------+----------------+----------------+----------------+ 
+   present)                       |  Fragment length (4 bytes, if     
+----------------+---------------------------------+-----------------+ 
+   present)                       |  Copy of bundle X's Send          
++----------------+----------------+                                 + 
+   Timestamp (8 bytes)                                                
++                                 +----------------+----------------+ 
+                                  |  Time of signal (8 bytes)         
++----------------+----------------+                                 + 
+                                                                      
++                                 +----------------+----------------+ 
+                                  |  Region length |  Region ID of    
++----------------+----------------+----------------+                + 
+            X's source endpoint (variable)                          / 
++                                 +---------------------------------+ 
+/                                 |  Admin. Length | Administrative   
++----------------+----------------+----------------+                + 
+            part of X's source endpoint (variable)                  / 
++                                 +----------------+----------------+ 
+/                                 |                                   
++----------------+----------------+                                   
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 33] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   The fields in a custodial signal are: 
+    
+   Status Flags.  A 1-byte field containing the following flags: 
+    
+         Table 6: Status Flags for Custodial Signals 
+    
+         +---------+--------------------------------------------+ 
+         |  Value  |                  Meaning                   | 
+         +=========+============================================+ 
+         |  0x01   |  Custody transfer succeeded.               | 
+         +---------+--------------------------------------------+ 
+         |  0x02   |  Unused.                                   | 
+         +---------+--------------------------------------------+ 
+         |  0x04   |  Unused.                                   | 
+         +---------+--------------------------------------------+ 
+         |  0x08   |  Unused.                                   | 
+         +---------+--------------------------------------------+ 
+         |  0x10   |  Unused.                                   | 
+         +---------+--------------------------------------------+ 
+         |  0x20   |  Unused.                                   | 
+         +---------+--------------------------------------------+ 
+         |  0x40   |  Unused.                                   | 
+         +---------+--------------------------------------------+ 
+         |  0x80   |  Report is for a bundle fragment; fragment | 
+         |         |  offset and length fields are present.     | 
+         +---------+--------------------------------------------+ 
+    
+   Reason code.  A 1-byte field explaining the value of the "Custody 
+   transfer succeeded" flag in the status flags byte.  Reason codes are 
+   defined as follows: 
+    
+         Table 7: Custodial Signal Reason Codes 
+    
+         +---------+--------------------------------------------+ 
+         |  Value  |                  Meaning                   | 
+         +=========+============================================+ 
+         |  0x01   |  Acceptance of custody.                    | 
+         +---------+--------------------------------------------+ 
+         |  0x02   |  Delivery to application by non-custodian. | 
+         +---------+--------------------------------------------+ 
+         |  0x03   |  Redundant transmission (reception by the  | 
+         |         |  agent that is already current custodian). | 
+         +---------+--------------------------------------------+ 
+         |  0x04   |  Depleted storage.                         | 
+         +---------+--------------------------------------------+ 
+         |  0x05   |  No known route to destination from here.  | 
+         +---------+--------------------------------------------+ 
+         |  0x06   |  No timely contact with next node on route.| 
+         +---------+--------------------------------------------+ 
+         | (other) |  Reserved for future use.                  | 
+         +---------+--------------------------------------------+ 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 34] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+    
+   Fragment offset.  If the bundle fragment bit is set in the status 
+          flags, then the offset of the payload of the bundle that 
+          caused the custodial signal to be generated (within the 
+          original payload) is included here.  This offset, together 
+          with the bundle ID of the original bundle, uniquely identifies 
+          this bundle fragment. 
+    
+   Fragment length.  If the bundle fragment bit is set in the status 
+          flags, then the length of the payload of the subject bundle is 
+          included here.  This length, together with the fragment 
+          offset, is used to track aggregated transfer of custody of the 
+          original bundle. 
+    
+   Send Timestamp For Reported Bundle.  A copy of the send timestamp of 
+          the bundle to which the signal applies. 
+    
+   Time of Signal.  A timestamp indicating the time at which the signal 
+          was issued.  The timestamp is 8 bytes long, formatted as an 
+          NTP timestamp. 
+    
+   Region length.  The length in bytes of the region ID (routing part) 
+          of the tuple identifying the application endpoint which was 
+          the source of the bundle to which the signal applies. 
+    
+          The combination of the reported bundle's send timestamp and 
+          source tuple constitutes the bundle identifier.  This, 
+          together with the fragment offset if present, uniquely 
+          identifies the subject bundle to the receiving custodian. 
+   
+  Region ID text.  The text of the region ID (routing part) of the 
+          tuple identifying the subject bundle's source endpoint. 
+   
+   Administrative part length.  The length in bytes of the 
+          administrative part of the tuple identifying the subject 
+          bundle's source endpoint. 
+    
+  Administrative part text.  The text of the administrative part of the 
+          tuple identifying the subject bundle's source endpoint. 
+    
+6. Services Required of the Convergence Layer 
+    
+6.1 The Convergence Layer 
+    
+   The successful operation of the end-to-end Bundling protocol depends 
+   on the operation of underlying protocols at what is termed the 
+   "convergence layer"; these protocols accomplish point-to-point 
+   communication between bundle agents.  A wide variety of protocols may 
+   serve this purpose, so long as they provide a defined minimal set of 
+   services to Bundling.  This convergence layer service specification 
+   enumerates those services.     
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 35] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+    
+6.2 Summary of Convergence Layer Services 
+    
+   Each protocol at the convergence layer SHALL provide the following 
+   services to Bundling: 
+    
+      a) transmitting a bundle to a remote bundle agent identified by 
+        administration endpoint ID; 
+      b) delivering a bundle that was transmitted by an identified 
+        remote bundle agent. 
+    
+6.3 Summary of Primitives 
+    
+6.3.1 Requests 
+    
+   The convergence layer service SHALL consume the following request 
+   primitives: 
+    
+      a) Transmit.request 
+    
+6.3.2 Indications 
+    
+   The convergence layer service SHALL deliver the following indication 
+   primitives: 
+    
+      a) Transmit-Report.indication 
+      b) Bundle.indication 
+    
+6.4 Summary of Parameters 
+    
+   NOTE  -  The availability and use of parameters for each primitive 
+   are indicated in section 6.5, where optional parameters are 
+   identified with square brackets [thus].  The following definitions 
+   apply. 
+    
+6.4.1 Receiving Bundle Agent Endpoint ID 
+    
+   The receiving bundle agent administration endpoint ID parameter shall 
+   uniquely identify the administration endpoint of the bundle agent to 
+   which a bundle is to be sent. 
+    
+6.4.2 Sending Bundle Agent Endpoint ID 
+    
+   The sending bundle agent administration endpoint ID parameter shall 
+   uniquely identify the administration endpoint of the bundle agent 
+   from which a bundle was sent. 
+    
+6.4.3 Bundle 
+    
+   The bundle parameter shall indicate the location of a bundle, in the 
+   format described in section 3, that has been conveyed or is to be 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 36] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   conveyed by the convergence layer protocol. 
+    
+6.4.4 Bundle length 
+    
+   The bundle length parameter shall indicate the length of a bundle 
+   that is to be conveyed by the convergence layer protocol. 
+    
+6.4.5 Bundle authenticity 
+    
+   The bundle authenticity parameter shall indicate the convergence 
+   protocol's assessment of the authenticity of a received bundle, i.e., 
+   whether or not the bundle was indeed sent by the known bundle agent 
+   who claimed to have sent it and (if it was) whether or not it was 
+   altered after transmission.  The value of this parameter shall be one 
+   of the following: 
+      o Bundle authenticity is asserted. 
+      o Bundle authenticity is denied. 
+      o Bundle authenticity is unknown. 
+    
+6.4.6 Transmit length 
+    
+   The transmit length parameter shall indicate the number of bytes of 
+   payload data that are *known* to have received by the designated 
+   receiving bundle agent in the course of the data transmission 
+   procedures undertaken by the convergence layer protocol in response 
+   to a Transmit.request primitive. 
+    
+6.5 Convergence Layer Service Primitives 
+    
+6.5.1 TRANSMIT.REQUEST 
+    
+   The Transmit.request primitive shall be used by Bundling to request 
+   transmission of a bundle to a neighboring bundle agent. 
+    
+   Semantics: Transmit.request shall provide parameters as follows: 
+      Transmit.request  (  receiving bundle agent endpoint ID, 
+                     bundle length, 
+                     bundle) 
+    
+   When Generated: Transmit.request MAY be generated by Bundling at any 
+   time. 
+    
+   Effect on Receipt: Receipt of Transmit.request shall cause the 
+   convergence layer protocol to initiate data transmission procedures.  
+   In addition, the convergence layer protocol shall deliver a Transmit-
+   Report.indication to Bundling when it has concluded its transmission 
+   of the bundle. 
+    
+   Additional Comments:  The convergence layer adapter is responsible 
+   for translating the receiving bundle agent endpoint ID into an 
+   appropriate convergence-layer protocol address for transmission. 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 37] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+    
+6.5.2 TRANSMIT-REPORT.INDICATION 
+    
+   The Transmit-Report.indication primitive shall be used by the 
+   convergence layer protocol to report to Bundling on the results of 
+   processing a Transmit.request primitive. 
+    
+   Semantics: Transmit-Report.indication shall provide parameters as 
+   follows: 
+      Transmit-Report.indication (  receiving bundle agent endpoint ID, 
+                     bundle length, 
+                     bundle, 
+                     transmit length) 
+    
+   When Generated: Transmit-Report.indication SHALL be generated upon 
+   the conclusion of data transmission initiated in response to a 
+   Transmit.request primitive.  The transmit length reported in the 
+   indication will be less than the bundle length in (and only in) the 
+   event that transmission of the bundle was truncated for some reason 
+   peculiar to the convergence layer protocol. 
+    
+   Effect on Receipt: Receipt of Transmit-Report.indication SHALL cause 
+   the subject bundle to be reactively fragmented as described in 
+   section 4.5.1 if and only if transmit length is less than bundle 
+   payload length.  Otherwise the effect on receipt of Transmit-
+   Report.indication by Bundling is undefined. 
+    
+   Additional Comments: None. 
+    
+6.5.3 BUNDLE.INDICATION 
+    
+   The Bundle.indication primitive shall be used by the convergence 
+   layer protocol to deliver a received bundle to Bundling for 
+   processing. 
+    
+   Semantics: Bundle.indication shall provide parameters as follows: 
+      Bundle.indication (  sending bundle agent endpoint ID, 
+                     bundle authenticity, 
+                     bundle, 
+                     transmit length) 
+    
+   When Generated: Bundle.indication SHALL be generated on arrival of a 
+   bundle sent from a remote bundle agent. 
+    
+   Effect on Receipt: Receipt of Bundle.indication shall cause Bundling 
+   to process the received bundle as described in section 4.2 and (as 
+   applicable) section 4.5.1. 
+    
+   Additional Comments: The convergence layer adapter is responsible for 
+   translating the convergence-layer protocol address of the sender into 
+   the sender's bundle agent endpoint ID.  Sending bundle agent endpoint 
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 38] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+   ID is required for bundle authentication purposes, e.g., consulting 
+   the bundle agent's pre-distributed security certificate to verify the 
+   signature on Bundle Authentication header information. 
+    
+Security Considerations 
+    
+   Section 3.13 of [2] describes the general methods for protecting the 
+   DTN infrastructure.  In summary, bundle applications must present 
+   credentials to bundle agents before the agents will accept bundles 
+   from the applications.  Agents sign all bundles they transmit, and 
+   receiving bundle agents discard any bundles whose signatures are not 
+   valid. 
+    
+Informative References 
+    
+   [1] Bradner, S., "Key words for use in RFCs to Indicate Requirement 
+       Levels", BCP 14, RFC 2119, March 1997 
+    
+   [2] V. Cerf, et. al., "Delay-Tolerant Network Architecture," work in 
+       progress, draft-irtf-dtnrg-arch-02.txt, July 2004 
+    
+   [3] F. Warthman, "Delay-Tolerant Networks (DTNs): A Tutorial", 
+       Warthman Associates, available from http://www.dtnrg.org 
+    
+   [4] Mills, D., "Network Time Protocol (Version 3) Specification, 
+       Implementation and Analysis", RFC 1305, March 1992 
+    
+Acknowledgements 
+ 
+   The authors gratefully acknowledge the contributions of Dr. Vint Cerf 
+   of MCI, Dr. Kevin Fall of Intel Corporation, Adrian Hooke and Leigh 
+   Torgerson of the Jet Propulsion Laboratory, Howard Weiss of SPARTA, 
+   Inc., and Robert Durst of The MITRE Corporation. 
+    
+Author's Addresses 
+    
+Dr. Keith L. Scott              Scott C. Burleigh 
+The MITRE Corporation           Jet Propulsion Laboratory 
+7515 Colshire Drive             4800 Oak Grove Drive 
+McLean, VA 22102                M/S: 179-206 
+Telephone +1 (703) 883-6547     Pasadena, CA 91109-8099 
+FAX +1 (703) 883-7142           Telephone +1 (818) 393-3353 
+Email kscott@mitre.org          FAX +1 (818) 354-1075 
+                                Email Scott.Burleigh@jpl.nasa.gov  
+    
+   Please refer comments to dtn-interest@mailman.dtnrg.org.  The Delay 
+   Tolerant Networking Research Group (DTNRG) web site is located at 
+   http://www.dtnrg.org.  
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 39] 
+
+Internet Draft      Bundle Protocol Specification     September 2004 
+ 
+ 
+ 
+Copyright Notice  
+ 
+   Copyright (C) The Internet Society (2004).  This document is subject 
+   to the rights, licenses and restrictions contained in BCP 78, and 
+   except as set forth therein, the authors retain all their rights.  
+        
+        
+Disclaimer  
+ 
+   This document and the information contained herein are provided on an 
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS 
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET 
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, 
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE 
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED 
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+        
+        
+Intellectual Property  
+        
+   The IETF takes no position regarding the validity or scope of any 
+   Intellectual Property Rights or other rights that might be claimed to 
+   pertain to the implementation or use of the technology described in 
+   this document or the extent to which any license under such rights 
+   might or might not be available; nor does it represent that it has 
+   made any independent effort to identify any such rights.  Information 
+   on the procedures with respect to rights in RFC documents can be 
+   found in BCP 78 and BCP 79. 
+    
+   Copies of IPR disclosures made to the IETF Secretariat and any 
+   assurances of licenses to be made available, or the result of an 
+   attempt made to obtain a general license or permission for the use of 
+   such proprietary rights by implementers or users of this 
+   specification can be obtained from the IETF on-line IPR repository at 
+   http://www.ietf.org/ipr.  
+    
+   The IETF invites any interested party to bring to its attention any 
+   copyrights, patents or patent applications, or other proprietary 
+   rights that may cover technology that may be required to implement  
+   this standard.  Please address the information to the IETF at ietf- 
+   ipr@ietf.org.  
+        
+        
+Release Statement  
+        
+By submitting this Internet-Draft, the authors accept the provisions of 
+Section 4 of RFC 3667. 
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - March 2005        [Page 40] 
+
