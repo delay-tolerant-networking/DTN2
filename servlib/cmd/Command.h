@@ -118,6 +118,11 @@ public:
     void set_result(const char* result);
 
     /**
+     * Set an object for the TclResult.
+     */
+    void set_objresult(Tcl_Obj* obj);
+
+    /**
      * Append the string to the TclResult
      */
     void append_result(const char* result);
@@ -136,7 +141,20 @@ public:
      * Format and set the TclResult string.
      */
     void vresultf(const char* fmt, va_list ap, bool append);
-    
+
+    /**
+     * Useful function for generating error strings indicating that
+     * the wrong number of arguments were passed to the command.
+     *
+     * @param argc	original argument count to the command
+     * @param argv	original argument vector to the command
+     * @param parsed	number of args to include in error string
+     * @param min	minimum number of expected args
+     * @param max	maximum number of expected args (or INT_MAX)
+     */
+    void wrong_num_args(int argc, const char** argv, int parsed,
+                        int min, int max);
+
     /**
      * Get the TclResult string.
      */
@@ -162,7 +180,6 @@ protected:
      * Destructor is never called (and issues an assertion).
      */
     ~CommandInterp();
-
 
     Mutex* lock_;			///< Lock for command execution
     Tcl_Interp* interp_;		///< Tcl interpreter
@@ -304,6 +321,14 @@ protected:
     }
 
     /**
+     * Set a Tcl_Obj as the result.
+     */
+    void set_objresult(Tcl_Obj* obj)
+    {
+        CommandInterp::instance()->set_objresult(obj);
+    }
+
+    /**
      * Append the TclResult string.
      */
     void append_result(const char* result)
@@ -321,7 +346,6 @@ protected:
      */
     void append_resultf(const char* fmt, ...) PRINTFLIKE(2, 3);
 
-
     /**
      * Useful function for generating error strings indicating that
      * the wrong number of arguments were passed to the command.
@@ -333,7 +357,10 @@ protected:
      * @param max	maximum number of expected args (or INT_MAX)
      */
     void wrong_num_args(int argc, const char** argv, int parsed,
-                        int min, int max);
+                        int min, int max)
+    {
+        CommandInterp::instance()->wrong_num_args(argc, argv, parsed, min, max);
+    }
     
     /**
      * Callback that's issued just after the command is registered.

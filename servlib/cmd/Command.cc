@@ -194,6 +194,12 @@ CommandInterp::set_result(const char* result)
 }
 
 void
+CommandInterp::set_objresult(Tcl_Obj* obj)
+{
+    Tcl_SetObjResult(interp_, obj);
+}
+
+void
 CommandInterp::append_result(const char* result)
 {
     Tcl_AppendResult(interp_, (char*)result, NULL);
@@ -234,6 +240,28 @@ CommandInterp::append_resultf(const char* fmt, ...)
     va_start(ap, fmt);
     vresultf(fmt, ap, true);
     va_end(ap);
+}
+
+void
+CommandInterp::wrong_num_args(int argc, const char** argv, int parsed,
+                              int min, int max)
+{
+    set_result("wrong number of arguments to '");
+    append_result(argv[0]);
+    
+    for (int i = 1; i < parsed; ++i) {
+        append_result(" ");
+        append_result(argv[i]);
+    }
+    append_result("'");
+
+    if (max == min) {
+        append_resultf(" expected %d, got %d", min, argc);
+    } else if (max == INT_MAX) {
+        append_resultf(" expected >%d, got %d", min, argc);
+    } else {
+        append_resultf(" expected %d - %d, got %d", min, max, argc);
+    }
 }
 
 const char*
@@ -283,28 +311,6 @@ CommandModule::append_resultf(const char* fmt, ...)
     va_start(ap, fmt);
     CommandInterp::instance()->vresultf(fmt, ap, true);
     va_end(ap);
-}
-
-void
-CommandModule::wrong_num_args(int argc, const char** argv, int parsed,
-                              int min, int max)
-{
-    set_result("wrong number of arguments to '");
-    append_result(argv[0]);
-    
-    for (int i = 1; i < parsed; ++i) {
-        append_result(" ");
-        append_result(argv[i]);
-    }
-    append_result("'");
-
-    if (max == min) {
-        append_resultf(" expected %d, got %d", min, argc);
-    } else if (max == INT_MAX) {
-        append_resultf(" expected >%d, got %d", min, argc);
-    } else {
-        append_resultf(" expected %d - %d, got %d", min, max, argc);
-    }
 }
 
 int
