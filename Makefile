@@ -49,11 +49,6 @@ tags TAGS:
 .PHONY: checkconfigure
 checkconfigure: configure config.h Rules.make
 
-configure: configure.ac
-	@[ ! -z `echo "$(MAKECMDGOALS)" | grep clean` ] || \
-	(echo "$@ is out of date, need to rerun build-configure.sh" && \
-	exit 1)
-
 Rules.make: Rules.make.in configure
 	@[ ! -z `echo "$(MAKECMDGOALS)" | grep clean` ] || \
 	(echo "$@ is out of date, need to rerun configure" && \
