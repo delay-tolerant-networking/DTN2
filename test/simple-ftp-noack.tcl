@@ -289,11 +289,13 @@ if {$argc < 3} {
     usage
 }
 
+
 set mode [lindex $argv 0]
 set dir  [lindex $argv 1]
 set logfile  [lindex $argv 2]
 set logfd [open $logfile w]
 
+set starttime [clock clicks -milliseconds]
 puts "Starting in $mode, dir is $dir at [timef]" 
 
 
