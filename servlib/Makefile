@@ -7,6 +7,7 @@
 #
 
 BUNDLING_SRCS := 				\
+	bundling/AddressFamily.cc		\
 	bundling/Bundle.cc			\
 	bundling/BundleForwarder.cc		\
 	bundling/BundleList.cc			\
@@ -15,9 +16,13 @@ BUNDLING_SRCS := 				\
 	bundling/BundleTuple.cc			\
 	bundling/BundleStatusReport.cc		\
 	bundling/Contact.cc			\
+	bundling/FixedAddressFamily.cc		\
 	bundling/FragmentManager.cc		\
 	bundling/Interface.cc			\
 	bundling/InterfaceTable.cc		\
+	bundling/InternetAddressFamily.cc	\
+	bundling/SmtpAddressFamily.cc		\
+	bundling/WildcardAddressFamily.cc	\
 
 CONV_LAYER_SRCS :=				\
 	conv_layers/ConvergenceLayer.cc		\

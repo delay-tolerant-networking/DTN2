@@ -4,6 +4,7 @@
 #include "storage/Serialize.h"
 
 struct dtn_tuple_t;
+class AddressFamily;
 
 /**
  * Class to wrap a bundle tuple of the general form:
@@ -108,7 +109,6 @@ public:
     const char*        c_str()  const { return tuple_.c_str(); }
     
     const std::string& region() const { return region_; }
-    const std::string& proto()  const { return proto_; }
     const std::string& admin()  const { return admin_; }
     
     /**
@@ -117,27 +117,19 @@ public:
     bool valid() const { return valid_; }
 
     /**
-     * @return if the two tuples are equal
-     */
-    bool equals(const BundleTuple& other) const
-    {
-        return (tuple_.compare(other.tuple_) == 0);
-    }
-
-    /**
      * Comparison function
      */
     int compare(const BundleTuple& other) const
     {
         return tuple_.compare(other.tuple_);
     }
-
+    
     /**
-     * Comparison function
+     * Return true if the two tuples are equal.
      */
-    int compare(const std::string& tuple) const
+    bool equals(const BundleTuple& other) const
     {
-        return tuple_.compare(tuple);
+        return (compare(other) == 0);
     }
 
     /**
@@ -150,9 +142,9 @@ protected:
     void parse_tuple();
     
     bool valid_;
+    AddressFamily* family_;
     std::string tuple_;
     std::string region_;
-    std::string proto_;
     std::string admin_;
 };
 
@@ -176,7 +168,6 @@ public:
 
 protected:
     bool match_region(const std::string& tuple_region) const;
-    bool match_admin(const std::string& tuple_admin) const;
 };
 
 #endif /* _BUNDLE_TUPLE_H_ */

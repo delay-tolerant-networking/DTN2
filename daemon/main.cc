@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include "debug/Log.h"
 #include "applib/APIServer.h"
+#include "bundling/AddressFamily.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/InterfaceTable.h"
 #include "reg/RegistrationTable.h"
@@ -105,6 +106,7 @@ main(int argc, char** argv)
     srandom(random_seed);
 
     // Set up all components
+    AddressFamilyTable::init();
     ConvergenceLayer::init_clayers();
     InterfaceTable::init();
     TimerSystem::init();
