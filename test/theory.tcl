@@ -4,8 +4,7 @@
 
 # tclsh base-emu-dumb.tcl | sort -n -k 4.4
 
-
-set exp sched4
+#set exp sched4
 set maxnodes 5
 set nfiles 100
 set size 1600
@@ -36,7 +35,7 @@ set up 60
 set down 180   
 ## Length of downtime
 
-set OFFSET_VAL  10
+set OFFSET_VAL  -1
 
 proc max {a b } {
 
@@ -131,7 +130,7 @@ lappend uplist [expr $WARMUPTIME + $current]
 
 set runs [expr [llength $protos]*[llength $perhops] ]
 set MAX_SIM_TIME [expr $runs*$finish + $runs*$WARMUPTIME + $WARMUPTIME]
-set MAX_SIM_TIME  6000
+
 set ONE_CYCLE_LENGTH [expr $finish + $WARMUPTIME]
 set uplist {}
 set downlist {}
@@ -177,13 +176,19 @@ proc min {a b}  {
 }
 
 set MAX_SIM_TIME  1400
-set OFFSET_VAL  0
-set maxnodes 4
+#set OFFSET_VAL  0
+#set maxnodes 4
 
 ## link(j,i) is link j up at time i
 for {set j 1} {$j <  $maxnodes} {incr j} {
-    
-    set  starttime [expr ($OFFSET_VAL*[expr $j - 1]) %  ($up + $down)  ]
+     
+    if {$OFFSET_VAL == -1} {
+	set  starttime [expr int(rand()*($down))]	
+	
+    } else {
+	
+	set  starttime [expr ($OFFSET_VAL*[expr $j - 1]) %  ($up + $down)  ]
+    }
     
     for {set jj 1} {$jj <=  $starttime} {incr jj} {
 	set linkup($j,$jj) 0
@@ -193,10 +198,18 @@ for {set j 1} {$j <  $maxnodes} {incr j} {
 	for {set k 1} {$k <=  $up} {incr k} { 
 	    set linkup($j,[expr $k + $starttime]) 1
 	}
-	for {set k 1} {$k <=  $down} {incr k} { 
+	
+	## change to support random schedule
+	if {$OFFSET_VAL == -1} {
+	    set  downhere [expr int(rand()*($down))]
+	} else {
+	    set downhere $down
+	}
+	
+	for {set k 1} {$k <=  $downhere} {incr k} { 
 	    set linkup($j,[expr $k + $up +  $starttime]) 0
 	}
-	set starttime [expr $starttime + $up + $down ]
+	set starttime [expr $starttime + $up + $downhere ]
     } 
     ## while loop
 }
