@@ -3,6 +3,7 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
+#include "util/StringBuffer.h"
 
 BundleCommand::BundleCommand() : AutoCommandModule("bundle") {}
 
@@ -65,6 +66,12 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
         BundleForwarder::post(new BundleReceivedEvent(b, total));
         return TCL_OK;
+    } else if (!strcmp(cmd, "stats")) {
+        StringBuffer buf("Bundle Statistics: ");
+        BundleForwarder::instance()->get_statistics(&buf);
+        set_result(buf.c_str());
+        return TCL_OK;
+        
     } else {
         resultf("unknown bundle subcommand %s", cmd);
         return TCL_ERROR;

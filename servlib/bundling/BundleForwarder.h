@@ -12,6 +12,7 @@ class BundleActionList;
 class BundleConsumer;
 class BundleEvent;
 class BundleRouter;
+class StringBuffer;
 
 /**
  * Class that handles the flow of bundle events through the system.
@@ -57,6 +58,11 @@ public:
      */
     void set_active_router(BundleRouter* router) { router_ = router; }
 
+    /**
+     * Format the given StringBuffer with the current statistics value.
+     */
+    void get_statistics(StringBuffer* buf);
+
 protected:
     /**
      * Routine that implements a particular action, as returned from
@@ -74,6 +80,12 @@ protected:
 
     /// The event queue
     MsgQueue<BundleEvent*> eventq_;
+
+    /// Statistics
+    u_int32_t bundles_received_;
+    u_int32_t bundles_sent_local_;
+    u_int32_t bundles_sent_remote_;
+    u_int32_t bundles_expired_;
     
     static BundleForwarder* instance_;
 };

@@ -7,12 +7,17 @@
 #include "FragmentManager.h"
 #include "routing/BundleRouter.h"
 #include "storage/BundleStore.h"
+#include "util/StringBuffer.h"
 
 BundleForwarder* BundleForwarder::instance_ = NULL;
 
 BundleForwarder::BundleForwarder()
     : Logger("/bundle/fwd")
 {
+    bundles_received_ = 0;
+    bundles_sent_local_ = 0;
+    bundles_sent_remote_ = 0;
+    bundles_expired_ = 0;
 }
 
 /**
@@ -22,8 +27,48 @@ void
 BundleForwarder::post(BundleEvent* event)
 {
     __log_debug("/bundle/fwd", "queuing event with type %d", event->type_);
+
+    switch(event->type_) {
+
+    case BUNDLE_RECEIVED:
+        instance_->bundles_received_++;
+        break;
+
+    case BUNDLE_TRANSMITTED:
+        if (((BundleTransmittedEvent*)event)->consumer_->is_local()) {
+            instance_->bundles_sent_local_++;
+        } else {
+            instance_->bundles_sent_remote_++;
+        }
+        break;
+
+    case BUNDLE_EXPIRED:
+        instance_->bundles_expired_++;
+        break;
+        
+    default:
+        break;
+    }
+    
     instance_->eventq_.push(event);
 }
+
+
+/**
+ * Format the given StringBuffer with the current statistics value.
+ */
+void
+BundleForwarder::get_statistics(StringBuffer* buf)
+{
+    buf->appendf("%d pending -- %d received -- %d sent_local -- %d sent_remote "
+                 "-- %d expired",
+                 active_router()->pending_bundles()->size(),
+                 bundles_received_,
+                 bundles_sent_local_,
+                 bundles_sent_remote_,
+                 bundles_expired_);
+}
+
 
 /**
  * Routine that actually effects the forwarding operations as
