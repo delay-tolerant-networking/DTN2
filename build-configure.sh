@@ -40,3 +40,7 @@ rm -rf autom4te.cache
 rm -f config.cache
 
 echo "build-configure: done."
+
+echo "build-configure: rebuilding in oasys as well"
+cd oasys
+sh build-configure.sh
