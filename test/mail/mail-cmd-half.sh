@@ -41,6 +41,7 @@ if($id == $maxnodes) then
     cp $dtn2testroot/mail/procmailrc /users/rabin/.procmailrc  >>& $info
     
     echo "Install the new got_file :$ftplogfile" >>& $info
+    rm -f $ftplogfile >>& $info
     echo "#\!/bin/csh" >  $dtn2testroot/mail/got_file.sh
     echo "set ftplogfile=$ftplogfile" >> $dtn2testroot/mail/got_file.sh
     cat  $dtn2testroot/mail/got_file-template.sh >> $dtn2testroot/mail/got_file.sh
