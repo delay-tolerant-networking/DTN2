@@ -39,15 +39,13 @@
 #ifndef _EVENTHANDLER_H_
 #define _EVENTHANDLER_H_
 
-/**
- * @class EventHandler
- *
- * Interface implemented by all objects that handle simulator events
- */
 namespace dtnsim {
 
 class Event;
 
+/**
+ * Interface implemented by all objects that handle simulator events
+ */
 class EventHandler {
 public:
     virtual void process(Event* e) = 0;

@@ -382,7 +382,9 @@ RECURSIVE              = YES
 # excluded from the INPUT source files. This way you can easily exclude a 
 # subdirectory from a directory tree whose root is specified with the INPUT tag.
 
-EXCLUDE                = ideas/ test/ oasys/test/
+EXCLUDE                = doc/ ideas/ test/ oasys/compat/ oasys/test/ \
+		         oasys/thread/Atomic-x86.h \
+			 oasys/debug/Formatter.cc
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or directories 
 # that are symbolic links (a Unix filesystem feature) are excluded from the input.

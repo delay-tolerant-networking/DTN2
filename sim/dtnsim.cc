@@ -52,6 +52,11 @@
 #include "bundling/ContactManager.h"
 #include "cmd/ParamCommand.h"
 
+/**
+ * Namespace for the dtn simulator
+ */
+namespace dtnsim {}
+
 using namespace dtn;
 using namespace dtnsim;
 

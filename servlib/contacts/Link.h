@@ -84,7 +84,9 @@ class LinkSet : public std::set<Link*> {};
  *
  * Creating new links:
  * Links are created explicitly in the configuration. Syntax is:
+ * @code
  * link add <name> <nexthop> <type> <conv_layer> <args>
+ * @endcode
  * See servlib/cmd/LinkCommand.cc for implementation of this TCL cmd.
  *
  *  ----------------------------------------------------------

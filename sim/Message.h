@@ -38,17 +38,16 @@
 #ifndef _MESSAGE_H_
 #define _MESSAGE_H_
 
+#include <vector>
+
+namespace dtnsim {
+
 /**
- * @class Message
  * Defines a message. A message is the basic entity that is routed
  * by the simulator. Every message has a unique id.
  * If the message is fragmented, the fragments have the same id
  * but different offsets.
  */
-
-#include <vector>
-
-namespace dtnsim {
 
 class Message  {
     

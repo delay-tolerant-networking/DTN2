@@ -55,6 +55,11 @@
 #include "servlib/DTNServer.h"
 #include "storage/StorageConfig.h"
 
+/**
+ * Namespace for the dtn daemon source code.
+ */
+namespace dtn {}
+
 using namespace dtn;
 
 int
