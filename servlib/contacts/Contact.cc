@@ -5,7 +5,8 @@
 #include "conv_layers/ConvergenceLayer.h"
 
 Contact::Contact(contact_type_t type, const BundleTuple& tuple)
-    : Logger("/contact"), type_(type), tuple_(tuple), open_(false)
+    : Logger("/contact"), BundleConsumer(&tuple_),
+      type_(type), tuple_(tuple), open_(false)
 {
     bundle_list_ = new BundleList();
     log_debug("new contact *%p", this);

@@ -6,9 +6,10 @@ class BundleList;
 class ContactInfo;
 class ConvergenceLayer;
 
+#include "BundleConsumer.h"
+#include "BundleTuple.h"
 #include "debug/Debug.h"
 #include "debug/Formatter.h"
-#include "bundling/BundleTuple.h"
 
 /**
  * Valid types for a contact.
@@ -73,7 +74,7 @@ str_to_contact_type(const char* str)
  * contains a list of bundles that are destined for it, as well as a
  * slot to store any convergence layer specific attributes.
  */
-class Contact : public Formatter, public Logger {
+class Contact : public Formatter, public Logger, public BundleConsumer {
 public:
     /**
      * Constructor / Destructor

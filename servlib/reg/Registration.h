@@ -3,6 +3,7 @@
 
 #include <list>
 #include <string>
+#include "bundling/BundleConsumer.h"
 #include "bundling/BundleTuple.h"
 #include "debug/Log.h"
 #include "storage/Serialize.h"
@@ -16,7 +17,8 @@ class BundleList;
  *
  * Registration state is stored persistently in the database.
  */
-class Registration : public SerializableObject, public Logger {
+class Registration : public BundleConsumer, public SerializableObject,
+                     public Logger {
 public:
     /**
      * Type enumerating the option requested by the registration for
@@ -31,7 +33,7 @@ public:
     /**
      * Constructor.
      */
-    Registration(u_int32_t regid, const BundleTuple& endpoint,
+    Registration(u_int32_t regid, const BundleTuplePattern& endpoint,
                  failure_action_t action, const std::string& script = "",
                  time_t expiration = 0);
     
@@ -42,9 +44,9 @@ public:
     
     //@{
     /// Accessors
-    u_int32_t		regid()		{ return regid_; }
-    const BundleTuple&	endpoint() 	{ return endpoint_; } 
-    failure_action_t	failure_action(){ return failure_action_; }
+    u_int32_t			regid()		{ return regid_; }
+    const BundleTuplePattern&	endpoint() 	{ return endpoint_; } 
+    failure_action_t		failure_action(){ return failure_action_; }
     //@}
 
     /**
@@ -77,7 +79,7 @@ public:
 
 protected:
     u_int32_t regid_;
-    BundleTuple endpoint_;
+    BundleTuplePattern endpoint_;
     failure_action_t failure_action_;	
     std::string script_;
     time_t expiration_;

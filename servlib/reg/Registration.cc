@@ -7,11 +7,12 @@
  * Constructor.
  */
 Registration::Registration(u_int32_t regid,
-                           const BundleTuple& endpoint,
+                           const BundleTuplePattern& endpoint,
                            failure_action_t action,
                            const std::string& script,
                            time_t expiration)
-    : regid_(regid),
+    : BundleConsumer(&endpoint_),
+      regid_(regid),
       endpoint_(endpoint),
       failure_action_(action),
       script_(script),
