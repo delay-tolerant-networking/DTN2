@@ -79,7 +79,7 @@ clean: $(SUBDIRS) objclean depclean genclean binclean
 
 .PHONY: $(SUBDIRS)
 $(SUBDIRS):
-	$(MAKE) -C $@ $(MAKECMDGOALS)
+	$(MAKE) -w -C $@ $(MAKECMDGOALS)
 
 .PHONY: objclean
 objclean:
