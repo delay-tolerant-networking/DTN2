@@ -19,16 +19,18 @@ CommandInterp::CommandInterp()
     
     lock_ = new Mutex("/command/lock");
 
-    // do auto registration of commands
-    ASSERT(auto_reg_); 
-    while (!auto_reg_->empty()) {
-        CommandModule* m = auto_reg_->front();
-        auto_reg_->pop_front();
-        reg(m);
-    }
+    // do auto registration of commands (if any)
+    if (auto_reg_) {
+        ASSERT(auto_reg_); 
+        while (!auto_reg_->empty()) {
+            CommandModule* m = auto_reg_->front();
+            auto_reg_->pop_front();
+            reg(m);
+        }
     
-    delete auto_reg_;
-    auto_reg_ = NULL;
+        delete auto_reg_;
+        auto_reg_ = NULL;
+    }
 }
 
 CommandInterp::~CommandInterp()
@@ -256,6 +258,7 @@ CommandModule::cmd_set(int argc, const char** args, Tcl_Interp* interp)
     
     if (itr == bindings_.end()) {
         resultf("set: binding for %s does not exist", var);
+        return TCL_ERROR;
     }
     
     // set value (if any)
@@ -361,7 +364,8 @@ void
 CommandModule::bind_s(const char* name, std::string* val,
                       const char* initval)
 {
-    val->assign(initval);
+    if (initval)
+        val->assign(initval);
     
     if (bindings_.find(name) != bindings_.end()) {
         log_warn("warning, binding for %s already exists", name);
