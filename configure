@@ -263,7 +263,7 @@ else
 	echo "can't find db_cxx.h in $dbdir"
   	exit 1
   else
-	dbincdir=$dbdir/include
+	dbincdir=-I$dbdir/include
   fi
 
   if   [ ! -f $dbdir/lib/libdb.$libext ] ; then
@@ -273,7 +273,7 @@ else
 	echo "can't find libdb_cxx.$libext in $dbdir"
   	exit 1
   else
-	dblibdir=$dbdir/lib
+	dblibdir=-L$dbdir/lib
 	dblib="-ldb -ldb_cxx"
   fi
 fi

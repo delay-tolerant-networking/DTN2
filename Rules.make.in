@@ -49,8 +49,8 @@ TARGET = @TARGET@
 
 # native target
 ifeq ($(TARGET),native)
-INCDIRS    += @TCL_INCDIR@
-LIBDIRS     = @TCL_LIBDIR@
+INCDIRS    += @TCL_INCDIR@ @DB_INCDIR@
+LIBDIRS     = @TCL_LIBDIR@ @DB_LIBDIR@
 LIBS	    = @LIBS@ @TCL_LIB@ @DB_LIB@
 STATIC_LIBS = @STATIC_LIBS@
 CC          = gcc
