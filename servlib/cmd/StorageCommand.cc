@@ -3,6 +3,8 @@
 #include "storage/StorageConfig.h"
 #include "storage/BerkeleyDBStore.h"
 #include "storage/BerkeleyDBBundleStore.h"
+#include "storage/BerkeleyDBGlobalStore.h"
+#include "storage/BerkeleyDBRegistrationStore.h"
 #include "storage/SQLBundleStore.h"
 #include "storage/SQLGlobalStore.h"
 #include "storage/SQLRegistrationStore.h"
@@ -20,9 +22,9 @@ void
 StorageCommand::at_reg()
 {
     StorageConfig* cfg = StorageConfig::instance();
-    bind_b("tidy", &cfg->tidy_);
+    bind_b("tidy",  &cfg->tidy_);
     bind_s("dbdir", &cfg->dbdir_);
-    bind_s("sqldb", &cfg->sqldb_, "dtn");
+    bind_s("sqldb", &cfg->sqldb_);
 }
 
 int
@@ -77,9 +79,9 @@ StorageCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         } else if (strcmp(type, "berkeleydb") == 0) {
             BerkeleyDBManager::instance()->init();
-//            global_store = new BerkeleyDBGlobalStore()
+            global_store = new BerkeleyDBGlobalStore();
             bundle_store = new BerkeleyDBBundleStore();
-//            reg_store    = new BerkeleyDBRegistrationStore();
+            reg_store    = new BerkeleyDBRegistrationStore();
             
         } else {
             resultf("storage type %s not implemented", type);
