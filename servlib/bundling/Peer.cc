@@ -85,15 +85,16 @@ Peer::add_link(Link *link)
 }
 
 void
-Peer::delete_link(Link *link)
+Peer::del_link(Link *link)
 {
     if (!has_link(link)) {
         log_err("Error in deleting link from peer -- "
                 "link %s does not exist on peer %s",
                 link->name(), address());
-    } else {
-        links_->erase(link);
+        return;
     }
+
+    links_->erase(link);
 }
 
 void

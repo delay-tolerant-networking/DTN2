@@ -240,7 +240,7 @@ public:
     }
     
     /**
-     * Static function to create appropriate link object from link type
+     * Static function to create appropriate link object from link type.
      */
     static Link* create_link(std::string name, link_type_t type,
                              ConvergenceLayer* cl, const char* nexthop,
@@ -251,12 +251,6 @@ public:
     Link(std::string name, link_type_t type,
          ConvergenceLayer* cl, const char* nexthop);
     virtual ~Link();
-
-    /**
-     * Actual initialization function, needed for errors in argument
-     * parsing.
-     */
-    bool init(int argc, const char* argv[]);
 
     /**
      * Return the type of the link.
@@ -296,12 +290,12 @@ public:
     /**
      * Set the state of the link to be available
      */
-    void set_link_available() ;
+    void set_link_available();
 
     /**
      * Set the state of the link to be unavailable
      */
-    void set_link_unavailable() ;
+    void set_link_unavailable();
 
     /**
      * Find how many messages are queued to go through this link

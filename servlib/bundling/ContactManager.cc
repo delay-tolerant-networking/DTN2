@@ -40,6 +40,8 @@
 
 #include "AddressFamily.h"
 #include "ContactManager.h"
+#include "BundleDaemon.h"
+#include "BundleEvent.h"
 #include "BundleTuple.h"
 #include "Contact.h"
 #include "Link.h"
@@ -129,18 +131,21 @@ ContactManager::add_link(Link *link)
 {
     log_debug("adding link %s", link->name());
     links_->insert(link);
+    BundleDaemon::post(new LinkCreatedEvent(link));
 }
 
 void
-ContactManager::delete_link(Link *link)
+ContactManager::del_link(Link *link)
 {
     log_debug("deleting link %s", link->name());
     if (!has_link(link)) {
-        log_err("Error in deleting link from contact manager.\
-                 Link %s does not exist \n",link->name());
-    } else {
-        links_->erase(link);
+        log_err("Error in del_link: link %s does not exist \n",
+                link->name());
+        return;
     }
+
+    links_->erase(link);
+    BundleDaemon::post(new LinkDeletedEvent(link));
 }
 
 bool
@@ -228,8 +233,7 @@ ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
         link = find_link(name);
     } while (link != NULL);
         
-    link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop,
-                             0, NULL);
+    link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop, 0, NULL);
     
     if (!link) {
         log_crit("unexpected error creating opportunistic link!!");

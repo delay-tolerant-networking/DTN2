@@ -117,6 +117,10 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         if (!link)
             return TCL_ERROR;
 
+        // Add the link to contact manager, which posts a
+        // LinkCreatedEvent to the daemon
+        BundleDaemon::instance()->contactmgr()->add_link(link);
+
     } else if (strcmp(cmd, "open") == 0) {
         // link open <name>
         if (argc != 3) {

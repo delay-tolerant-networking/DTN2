@@ -114,7 +114,7 @@ public:
     /**
      * Delete a link
      */
-    void delete_link(Link* link);
+    void del_link(Link* link);
     
     /**
      * Check if contact manager already has this link

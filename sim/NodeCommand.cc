@@ -156,8 +156,6 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
             // XXX/demmer fix this FORWARD_COPY
             RouteEntry* entry = new RouteEntry(dest, consumer, FORWARD_COPY);
-
-            PANIC("post the event at the indicated time");
             BundleEvent* e = new RouteAddEvent(entry);
             Simulator::add_event(new SimRouterEvent(time, node_, e));
             
@@ -203,13 +201,13 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
                 ++id;
             }
 
-            PANIC("should just parse the options here, then post the event");
-            
             SimConvergenceLayer* simcl = SimConvergenceLayer::instance();
             Link* link = Link::create_link(name, type, simcl, nexthop->name(),
                                            argc - 6, &argv[6]);
             if (!link)
                 return TCL_ERROR;
+            
+            //Simulator::post(new SimLinkCreatedEvent(time, node, link));
 
             return TCL_OK;
         }
@@ -230,7 +228,9 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
                 return TCL_ERROR;
             }
 
-            new SimRegistration(node_, demux_tuple);
+            Registration* r = new SimRegistration(node_, demux_tuple);
+            RegistrationAddedEvent* e = new RegistrationAddedEvent(r);
+            Simulator::add_event(new SimRouterEvent(time, node_, e));
             
             return TCL_OK;
         }        

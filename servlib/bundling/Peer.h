@@ -81,7 +81,7 @@ public:
     /**
      * Delete a link
      */
-    void delete_link(Link* link);
+    void del_link(Link* link);
     
     /**
      * Check if the peer already has this link

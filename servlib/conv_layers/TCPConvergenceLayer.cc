@@ -235,13 +235,15 @@ TCPConvergenceLayer::del_interface(Interface* iface)
 }
 
 /**
- * Register a new link. This creates a new Connection object and
- * stores it in the LinkInfo slot after parsing any options. We
- * special case OPPORTUNISTIC links which are created as a result of
- * another node coming knocking with the receiver_connect option.
+ * Create any CL-specific components of the Link.
+ *
+ * This creates a new Connection object and stores it in the LinkInfo
+ * slot after parsing the options. We special case OPPORTUNISTIC links
+ * which are created as a result of another node coming knocking with
+ * the receiver_connect option.
  */
 bool
-TCPConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
+TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 {
     in_addr_t addr;
     u_int16_t port = 0;
@@ -286,25 +288,6 @@ TCPConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
 }
 
 /**
- * Remove a link.
- */
-bool
-TCPConvergenceLayer::del_link(Link* link)
-{
-    log_debug("removing link %s", link->nexthop());
-
-    ASSERT(! link->isopen());
-
-    Params* params = (Params*)link->cl_info();
-    ASSERT(params);
-    delete params;
-
-    link->set_cl_info(NULL);
-    
-    return true;
-}
-
-/**
  * Open the connection to the given contact and prepare for
  * bundles to be transmitted.
  */
@@ -319,9 +302,10 @@ TCPConvergenceLayer::open_contact(Contact* contact)
     Link* link = contact->link();
 
     // Parse out the address / port from the contact tuple (again).
-    // The next hop should have already been validated in add_link
+    // The next hop should have already been validated in init_link
     if (! InternetAddressFamily::parse(link->nexthop(), &addr, &port)) {
-        PANIC("nexthop %s should have already been validated", link->nexthop());
+        PANIC("nexthop %s should have already been validated",
+              link->nexthop());
     }
 
     // start the connection that is cached in the link, passing in the

@@ -75,15 +75,10 @@ public:
     virtual bool del_interface(Interface* iface);
 
     /**
-     * Register a new link.
+     * Create any CL-specific components of the Link.
      */
-    virtual bool add_link(Link* link, int argc, const char* argv[]);
+    virtual bool init_link(Link* link, int argc, const char* argv[]);
     
-    /**
-     * Remove a link.
-     */
-    virtual bool del_link(Link* link);
-
     /**
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.

@@ -62,7 +62,10 @@ Link::create_link(std::string name, link_type_t type,
     default: 		PANIC("bogus link_type_t");
     }
 
-    if (! link->init(argc, argv)) {
+    // Notify the convergence layer, which parses options
+    // XXX/demmer how to deal with options for scheduled links?
+    ASSERT(link->clayer_);
+    if (!link->clayer_->init_link(link, argc, argv)) {
         delete link;
         return NULL;
     }
@@ -94,41 +97,28 @@ Link::Link(std::string name, link_type_t type,
     contact_ = NULL ;
     cl_info_ = NULL;
     bundle_list_ = new BundleList(logpath_);
-    
+
+    // ONDEMAND links are assumed to be available
+    if (type == ONDEMAND) {
+        set_link_available();
+    }
+
     log_info("new link *%p", this);
 }
 
-bool
-Link::init(int argc, const char* argv[])
-{
-    ASSERT(clayer_);
-    
-    // Notify the convergence layer, parsing options
-    if (!clayer_->add_link(this, argc, argv)) {
-        return false;
-    }
-
-    // Add the link to contact manager
-    BundleDaemon::instance()->contactmgr()->add_link(this);
-
-    // Post a link created event
-    BundleDaemon::post(new LinkCreatedEvent(this));
-
-    // If link is ONDEMAND set it to be available
-    if (type_ == ONDEMAND)
-        set_link_available();
-
-    return true;
-}
-    
-
 Link::~Link()
 {
+    ASSERT(!isopen());
+    
     if (bundle_list_ != NULL) {
         ASSERT(bundle_list_->size() == 0);
         delete bundle_list_;
     }
-// Ensure that link delete event is posted somewhere
+
+    if (cl_info_ != NULL) {
+        delete cl_info_;
+        cl_info_ = NULL;
+    }
 }
 
 /**

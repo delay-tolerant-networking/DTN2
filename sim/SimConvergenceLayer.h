@@ -77,9 +77,9 @@ public:
     SimConvergenceLayer();
 
     /**
-     * Register a new link.
+     * Create any CL-specific components of the Link.
      */
-    bool add_link(Link* link, int argc, const char* argv[]);
+    bool init_link(Link* link, int argc, const char* argv[]);
     
     /**
      * Send bundles queued on the given contact.
