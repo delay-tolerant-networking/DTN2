@@ -135,28 +135,43 @@ $(SRCDIR)/Rules.make: $(SRCDIR)/Rules.make.in $(SRCDIR)/configure
 	$(CPP) -MMD -MP -MT "$*.o $*.E $*.po" $(CFLAGS) -c $< -E -o $@
 
 #
-# Always include all the .d files that we can find
+# Always include all the .d files that we can find, based on all the
+# source files we can find.
 #
-ALLSRCS := $(shell find $(SRCDIR) -name *.cc -o -name *.c)
-DEPFILES := $(patsubst %.cc,%.d,$(patsubst %.c,%.d,$(ALLSRCS)))
+ifeq ($(ALLSRCS),)
+ALLSRCS := $(shell find . -name \*.cc -o -name \*.c)
+endif
+DEPFILES := $(ALLSRCS:%.cc=%.d)
+DEPFILES := $(DEPFILES:%.c=%.d)
+ifneq ($(DEPFILES),)
 -include $(DEPFILES)
+endif
 
 echodep:
-	echo "depfiles: $(DEPFILES)"
+	@echo "allsrcs: $(ALLSRCS)"
+	@echo "depfiles: $(DEPFILES)"
 
 #
 # Clean out all object files
 #
-clean: objclean depclean genclean
+clean: objclean depclean genclean binclean
 
 .PHONY: objclean
 objclean:
+	@echo "removing object files..."
 	find . \( -name '*.[Eo]' \) -print0 | xargs -0 rm -f
 
 .PHONY: depclean
 depclean:
+	@echo "removing dependency files..."
 	find . \( -name '*.d' \) -print0 | xargs -0 rm -f
 
 .PHONY: genclean
 genclean:
-	test -z "$(GENFILES)" || rm -f $(GENFILES)
+	@echo "removing generated files: $(GENFILES)..."
+	@test -z "$(GENFILES)" || rm -f $(GENFILES)
+
+.PHONY: binclean
+binclean:
+	@echo "removing binary files: $(BINFILES)..."
+	@test -z "$(BINFILES)" || rm -f $(BINFILES)
