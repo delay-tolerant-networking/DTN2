@@ -47,7 +47,7 @@
 namespace dtn {
 
 void
-Bundle::init(u_int32_t id, BundlePayload::location_t location)
+Bundle::init(u_int32_t id)
 {
     bundleid_		= id;
     refcount_		= 0;
@@ -61,7 +61,6 @@ Bundle::init(u_int32_t id, BundlePayload::location_t location)
     return_rcpt_	= false;
     expiration_		= 0; // XXX/demmer
     gettimeofday(&creation_ts_, 0);
-    payload_.init(&lock_, id, location);
 
     is_fragment_	= false;
     is_reactive_fragment_ = false;
@@ -73,12 +72,21 @@ Bundle::init(u_int32_t id, BundlePayload::location_t location)
 
 Bundle::Bundle()
 {
-    init(GlobalStore::instance()->next_bundleid(), BundlePayload::UNDETERMINED);
+    u_int32_t id = GlobalStore::instance()->next_bundleid();
+    init(id);
+    payload_.init(&lock_, id);
+}
+
+Bundle::Bundle(u_int32_t id, BundleStore* store)
+{
+    init(id);
+    payload_.init(&lock_, id, store);
 }
 
 Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
 {
-    init(id, location);
+    init(id);
+    payload_.init(&lock_, id, location);
 }
 
 Bundle::~Bundle()

@@ -89,6 +89,29 @@ BundlePayload::init(oasys::SpinLock* lock, int bundleid, location_t location)
 }
 
 /**
+ * Initialization when re-reading the database.
+ */
+void
+BundlePayload::init(oasys::SpinLock* lock, int bundleid, BundleStore* store)
+{
+    StorageConfig* cfg = StorageConfig::instance();
+    lock_ = lock;
+    location_ = UNDETERMINED;
+
+    oasys::StringBuffer path("%s/bundle_%d.dat",
+                             cfg->payloaddir_.c_str(), bundleid);
+    file_ = new oasys::FileIOClient();
+    file_->logpathf("/bundle/payload/%d", bundleid);
+    if (file_->open(path.c_str(),
+                    O_RDWR, S_IRUSR | S_IWUSR) < 0)
+    {
+        log_crit("/bundle/payload", "error opening payload file %s: %s",
+                 path.c_str(), strerror(errno));
+        return;
+    }
+}
+
+/**
  * Destructor
  */
 BundlePayload::~BundlePayload()
@@ -178,6 +201,15 @@ BundlePayload::close_file()
     file_->close();
 }
 
+/**
+ * Copy (or link) the payload to the given path.
+ */
+void
+BundlePayload::copy_file(const std::string& copy_path)
+{
+    
+}
+    
 /**
  * Internal write helper function.
  */

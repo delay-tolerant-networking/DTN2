@@ -81,8 +81,7 @@ BundleStore::~BundleStore()
 Bundle*
 BundleStore::get(int bundle_id)
 {
-    // XXX/mho fix
-    Bundle* bundle = new Bundle(); // note: this unecessarily increments bundle id
+    Bundle* bundle = new Bundle(bundle_id, this);
     if (store_->get(bundle, bundle_id) != 0) {
         delete bundle;
         return NULL;

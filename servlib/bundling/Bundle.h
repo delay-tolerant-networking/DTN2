@@ -54,6 +54,7 @@ namespace dtn {
 
 class BundleList;
 class BundleMapping;
+class BundleStore;
 class SQLBundleStore;
 
 /**
@@ -84,6 +85,13 @@ public:
      * fields to defaults and allocating a new bundle id.
      */
     Bundle();
+
+    /**
+     * Constructor when re-reading the database that takes an explicit
+     * id and a pointer to the store.
+     * 
+     */
+    Bundle(u_int32_t id, BundleStore* store);
 
     /**
      * Constructor that takes an explicit id and location of bundle payload
@@ -267,7 +275,7 @@ private:
     /**
      * Initialization helper function.
      */
-    void init(u_int32_t id, BundlePayload::location_t location);
+    void init(u_int32_t id);
 };
 
 

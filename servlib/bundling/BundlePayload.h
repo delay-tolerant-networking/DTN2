@@ -45,6 +45,8 @@
 
 namespace dtn {
 
+class BundleStore;
+
 /**
  * The representation of a bundle payload.
  *
@@ -71,7 +73,13 @@ public:
     /**
      * Actual payload initialization function.
      */
-    void init(oasys::SpinLock* lock, int bundleid, location_t location);
+    void init(oasys::SpinLock* lock, int bundleid,
+              location_t location = UNDETERMINED);
+  
+    /**
+     * Initialization when re-reading the database
+     */
+    void init(oasys::SpinLock* lock, int bundleid, BundleStore* store);
   
     /**
      * Set the payload length in preparation for filling in with data.
@@ -140,6 +148,11 @@ public:
      */
     void close_file();
 
+    /**
+     * Copy (or link) the payload to the given path.
+     */
+    void copy_file(const std::string& copy_path);
+    
     /**
      * Get a pointer to the in-memory data buffer.
      */
