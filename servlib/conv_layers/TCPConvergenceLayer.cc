@@ -828,7 +828,8 @@ TCPConvergenceLayer::Connection::recv_loop()
         BundleRouter::dispatch(new BundleReceivedEvent(bundle));
         ASSERT(bundle->refcount() > 0);
         
-        free(buf);
         bundle = NULL;
+        free(buf);
+        buf = NULL;
      }
 }
