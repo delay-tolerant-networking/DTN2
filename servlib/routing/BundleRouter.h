@@ -137,6 +137,14 @@ protected:
                                        BundleActionList* actions);
     
     /**
+     * Default event handler when reassembly is completed. For each
+     * bundle on the list, check the pending count to see if the
+     * fragment can be deleted.
+     */
+    virtual void handle_reassembly_completed(ReassemblyCompletedEvent* event,
+                                             BundleActionList* actions);
+    
+    /**
      * Default event handler when a new route is added by the command
      * or management interface.
      *
@@ -166,6 +174,13 @@ protected:
     virtual void new_next_hop(const BundleTuplePattern& dest,
                               BundleConsumer* next_hop,
                               BundleActionList* actions);
+
+    /**
+     * Delete the given bundle from the pending list (assumes the
+     * pending count is zero).
+     */
+    void delete_from_pending(Bundle* bundle,
+                             BundleActionList* actions);
 
     /// The routing table
     RouteTable* route_table_;

@@ -91,6 +91,10 @@ BundleRouter::handle_event(BundleEvent* e,
         handle_contact_broken((ContactBrokenEvent*)e, actions);
         break;
 
+    case REASSEMBLY_COMPLETED:
+        handle_reassembly_completed((ReassemblyCompletedEvent*)e, actions);
+        break;
+
     default:
         PANIC("unimplemented event type %d", e->type_);
     }
@@ -153,17 +157,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
      * the pending list.
      */
     if (bundle->del_pending() == 0) {
-        log_debug("no more pending transmissions, removing from list");
-        //log_debug("last consumer, removing bundle from pending list");
-        //log_debug("XXX/demmer this is bogus");
-
-        // XXX/demmer this should go through the bundle's backpointer
-        // iterator rather than traversing the whole pending bundles
-        // list
-        bool removed = pending_bundles_->remove(bundle);
-        ASSERT(removed);
-        
-        actions->push_back(new BundleAction(STORE_DEL, bundle));
+        delete_from_pending(bundle, actions);
     }
 
     /*
@@ -232,7 +226,8 @@ BundleRouter::handle_contact_broken(ContactBrokenEvent* event,
                                     BundleActionList* actions)
 {
     Contact* contact = event->contact_;
-    log_info("CONTACT_BROKEN *%p: re-routing queued bundles", contact);
+    log_info("CONTACT_BROKEN *%p: re-routing %d queued bundles",
+             contact, contact->bundle_list()->size());
     
     Bundle* bundle;
     BundleList::iterator iter;
@@ -245,9 +240,43 @@ BundleRouter::handle_contact_broken(ContactBrokenEvent* event,
     for (iter = temp.begin(); iter != temp.end(); ++iter) {
         bundle = *iter;
         fwd_to_matching(bundle, actions, false);
+
+        // bump down the pending count to account for the fact that it
+        // was pending on the broken contact, but won't be any more
+        if (bundle->del_pending() == 0) {
+            PANIC("XXX/demmer shouldn't be the last pending");
+        }
     }
 
     contact->close();
+}
+
+/**
+ * Default event handler when reassembly is completed. For each
+ * bundle on the list, check the pending count to see if the
+ * fragment can be deleted.
+ */
+void
+BundleRouter::handle_reassembly_completed(ReassemblyCompletedEvent* event,
+                                          BundleActionList* actions)
+{
+    log_info("REASSEMBLY_COMPLETED bundle id %d",
+             event->bundle_.bundle()->bundleid_);
+
+    Bundle* bundle;
+    while ((bundle = event->fragments_.pop_front()) != NULL) {
+        if (bundle->pendingtx() == 0) {
+            delete_from_pending(bundle, actions);
+        }
+
+        bundle->del_ref("bundle_list", event->fragments_.name().c_str());
+    }
+
+    // add the newly reassembled bundle to the pending list and the
+    // data store
+    bundle = event->bundle_.bundle();
+    pending_bundles_->push_back(bundle);
+    actions->push_back(new BundleAction(STORE_ADD, bundle));
 }
 
 /**
@@ -307,4 +336,24 @@ BundleRouter::new_next_hop(const BundleTuplePattern& dest,
                            BundleActionList* actions)
 {
     log_debug("XXX/demmer implement new_next_hop");
+}
+
+/**
+ * Delete the given bundle from the pending list (assumes the
+ * pending count is zero).<
+ */
+void
+BundleRouter::delete_from_pending(Bundle* bundle, BundleActionList* actions)
+{
+    ASSERT(bundle->pendingtx() == 0);
+    
+    log_debug("bundle %d: no more pending transmissions -- "
+              "removing from pending list", bundle->bundleid_);
+    
+    // XXX/demmer this should go through the bundle's backpointer
+    // iterator rather than traversing the whole pending bundles
+    // list
+    bool removed = pending_bundles_->remove(bundle);
+    ASSERT(removed);
+    actions->push_back(new BundleAction(STORE_DEL, bundle));
 }
