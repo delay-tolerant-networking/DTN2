@@ -8,11 +8,13 @@
 
 BUNDLING_SRCS := 				\
 	bundling/Bundle.cc			\
+	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
 	bundling/BundleTuple.cc			\
 
 CMD_SRCS :=					\
 	cmd/Command.cc				\
+	cmd/LogCommand.cc			\
 
 DEBUG_SRCS :=					\
 	debug/gdtoa-dmisc.c			\
