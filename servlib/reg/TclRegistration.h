@@ -19,7 +19,7 @@
  */
 class TclRegistration : public Registration {
 public:
-    TclRegistration(u_int32_t regid, const BundleTuplePattern& endpoint,
+    TclRegistration(const BundleTuplePattern& endpoint,
                     Tcl_Interp* interp);
     int exec(int argc, const char** argv, Tcl_Interp* interp);
 

@@ -11,8 +11,7 @@
  */
 class RateEstimatorRegistration : public Registration, public RateEstimator {
 public:
-    RateEstimatorRegistration(u_int32_t regid,
-                              const BundleTuplePattern& endpoint,
+    RateEstimatorRegistration(const BundleTuplePattern& endpoint,
                               int interval);
     virtual ~RateEstimatorRegistration();
 

@@ -1,20 +1,13 @@
 
 #include "AdminRegistration.h"
-#include "RegistrationTable.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleProtocol.h"
 #include "routing/BundleRouter.h"
 
 AdminRegistration::AdminRegistration()
-    : Registration(ADMIN_REGID,
-                   BundleRouter::local_tuple_,
-                   DEFER)
+    : Registration(BundleRouter::local_tuple_, ABORT)
 {
     logpathf("/reg/admin");
-
-    if (! RegistrationTable::instance()->add(this)) {
-        log_err("unexpected error adding registration to table");
-    }
 }
 
 void

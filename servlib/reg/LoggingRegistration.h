@@ -19,7 +19,7 @@
  */
 class LoggingRegistration : public Registration, public Thread {
 public:
-    LoggingRegistration(u_int32_t regid, const BundleTuplePattern& endpoint);
+    LoggingRegistration(const BundleTuplePattern& endpoint);
     virtual void run();
 };
 

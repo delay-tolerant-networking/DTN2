@@ -4,10 +4,9 @@
 #include "util/RateEstimator.h"
 
 RateEstimatorRegistration::
-RateEstimatorRegistration(u_int32_t regid,
-                          const BundleTuplePattern& endpoint,
+RateEstimatorRegistration(const BundleTuplePattern& endpoint,
                           int interval)
-    : Registration(regid, endpoint, Registration::ABORT),
+    : Registration(endpoint, Registration::ABORT),
       RateEstimator(&total_bytes_, interval),
       total_bytes_(0)
 {

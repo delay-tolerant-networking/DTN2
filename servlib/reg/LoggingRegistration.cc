@@ -1,24 +1,18 @@
 
 #include "LoggingRegistration.h"
 #include "Registration.h"
-#include "RegistrationTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
 #include "util/StringUtils.h"
 
-LoggingRegistration::LoggingRegistration(u_int32_t regid,
-                                         const BundleTuplePattern& endpoint)
-    : Registration(regid, endpoint, Registration::ABORT)
+LoggingRegistration::LoggingRegistration(const BundleTuplePattern& endpoint)
+    : Registration(endpoint, Registration::ABORT)
 {
-    logpathf("/registration/logging/%d", regid);
+    logpathf("/registration/logging/%d", regid_);
     set_active(true);
     
-    if (! RegistrationTable::instance()->add(this)) {
-        log_err("unexpected error adding registration to table");
-    }
-
     log_info("new logging registration on endpoint %s", endpoint.c_str());
 }
 

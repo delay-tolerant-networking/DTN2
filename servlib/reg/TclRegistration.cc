@@ -1,23 +1,17 @@
 
 #include "TclRegistration.h"
-#include "RegistrationTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
 
-TclRegistration::TclRegistration(u_int32_t regid,
-                                 const BundleTuplePattern& endpoint,
+TclRegistration::TclRegistration(const BundleTuplePattern& endpoint,
                                  Tcl_Interp* interp)
     
-    : Registration(regid, endpoint, Registration::ABORT)
+    : Registration(endpoint, Registration::ABORT)
 {
-    logpathf("/registration/logging/%d", regid);
+    logpathf("/registration/logging/%d", regid_);
     set_active(true);
-
-    if (! RegistrationTable::instance()->add(this)) {
-        log_err("unexpected error adding registration to table");
-    }
 
     log_info("new tcl registration on endpoint %s", endpoint.c_str());
     notifier_channel_ = Tcl_MakeFileChannel((void*)bundle_list_->read_fd(),

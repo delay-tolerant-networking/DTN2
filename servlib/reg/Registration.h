@@ -40,11 +40,21 @@ public:
     } failure_action_t;
 
     /**
-     * Constructor.
+     * Constructor that allocates a new registration id.
      */
-    Registration(u_int32_t regid, const BundleTuplePattern& endpoint,
-                 failure_action_t action, const std::string& script = "",
-                 time_t expiration = 0);
+    Registration(const BundleTuplePattern& endpoint,
+                 failure_action_t action,
+                 time_t expiration = 0,
+                 const std::string& script = "");
+    
+    /**
+     * Constructor with a preassigned registration id.
+     */
+    Registration(u_int32_t regid,
+                 const BundleTuplePattern& endpoint,
+                 failure_action_t action,
+                 time_t expiration = 0,
+                 const std::string& script = "");
     
     /**
      * Destructor.
@@ -90,6 +100,12 @@ public:
     void serialize(SerializeAction* a);
 
 protected:
+    void init(u_int32_t regid,
+              const BundleTuplePattern& endpoint,
+              failure_action_t action,
+              time_t expiration,
+              const std::string& script);
+
     u_int32_t regid_;
     BundleTuplePattern endpoint_;
     failure_action_t failure_action_;	

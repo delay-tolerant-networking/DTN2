@@ -1,31 +1,60 @@
 
 #include "Registration.h"
+#include "RegistrationTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
+#include "storage/GlobalStore.h"
 
-/**
- * Constructor.
- */
-Registration::Registration(u_int32_t regid,
-                           const BundleTuplePattern& endpoint,
-                           failure_action_t action,
-                           const std::string& script,
-                           time_t expiration)
-    : BundleConsumer(&endpoint_, true),
-      regid_(regid),
-      endpoint_(endpoint),
-      failure_action_(action),
-      script_(script),
-      expiration_(expiration),
-      active_(false)
+void
+Registration::init(u_int32_t regid,
+                   const BundleTuplePattern& endpoint,
+                   failure_action_t action,
+                   time_t expiration,
+                   const std::string& script)
 {
+    regid_ = regid;
+    endpoint_.assign(endpoint);
+    failure_action_ = action;
+    script_.assign(script);
+    expiration_ = expiration;
+    active_ = false;
+
     logpathf("/registration/%d", regid);
     bundle_list_ = new BundleList(logpath_);
     
     if (expiration == 0) {
         // XXX/demmer default expiration
     }
+
+    if (! RegistrationTable::instance()->add(this)) {
+        log_err("unexpected error adding registration to table");
+    }
+}
+
+
+/**
+ * Constructor.
+ */
+Registration::Registration(const BundleTuplePattern& endpoint,
+                           failure_action_t action,
+                           time_t expiration,
+                           const std::string& script)
     
+    : BundleConsumer(&endpoint_, true)
+{
+    init(GlobalStore::instance()->next_regid(),
+         endpoint, action, expiration, script);
+}
+
+Registration::Registration(u_int32_t regid,
+                           const BundleTuplePattern& endpoint,
+                           failure_action_t action,
+                           time_t expiration,
+                           const std::string& script)
+    
+    : BundleConsumer(&endpoint_, true)
+{
+    init(regid, endpoint, action, expiration, script);
 }
 
 /**

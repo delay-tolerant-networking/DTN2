@@ -2,9 +2,8 @@
 #include "RegistrationCommand.h"
 #include "reg/LoggingRegistration.h"
 #include "reg/RateEstimatorRegistration.h"
-#include "reg/TclRegistration.h"
 #include "reg/RegistrationTable.h"
-#include "storage/GlobalStore.h"
+#include "reg/TclRegistration.h"
 
 RegistrationCommand::RegistrationCommand() : AutoCommandModule("registration") {}
 
@@ -43,14 +42,14 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        u_int32_t regid = GlobalStore::instance()->next_regid();
+        Registration* reg = NULL;
         if (strcmp(type, "logger") == 0) {
-            LoggingRegistration* reg;
-            reg = new LoggingRegistration(regid, demux_tuple);
-            reg->start();
+            reg = new LoggingRegistration(demux_tuple);
+            ((LoggingRegistration*)reg)->start();
+            
         } else if (strcmp(type, "tcl") == 0) {
-            TclRegistration* reg;
-            reg = new TclRegistration(regid, demux_tuple, interp);
+            reg = new TclRegistration(demux_tuple, interp);
+            
         } else if (strcmp(type, "rate") == 0) {
             if (argc != 5) {
                 wrong_num_args(argc, argv, 4, 5, 5);
@@ -58,14 +57,18 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             }
             int interval = atoi(argv[4]);
             RateEstimatorRegistration* reg;
-            reg = new RateEstimatorRegistration(regid, demux_tuple, interval);
+            reg = new RateEstimatorRegistration(demux_tuple, interval);
+            
         } else {
             resultf("error in registration add %s %s: invalid type",
                     type, demux_str);
             return TCL_ERROR;
         }
-        resultf("%d", regid);
+
+        ASSERT(reg);
+        resultf("%d", reg->regid());
         return TCL_OK;
+        
     } else if (strcmp(op, "tcl") == 0) {
         // registration tcl <regid> <endpoint> <cmd> <args...>
         if (argc < 5) {
