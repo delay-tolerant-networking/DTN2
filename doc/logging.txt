@@ -1,0 +1,50 @@
+About logging in DTN2
+---------------------
+
+The DTN2 implementation uses the logging facility from
+oasys. It supports multiple log paths and different log
+levels for each log path.
+
+If the file ~/.dtndebug exists, it can be used to customize
+which log messages are emitted and which ignored. It is read
+one line at a time. Lines may start with "#" to indicate a
+comment. Blank lines are ignored. Any other line should have
+a logpath in the left column, and a log level in the right
+column.  For instance, this .dtndebug file makes the default
+level info, but causes debug info to be printed for all link
+operations other than for tcp0.
+
+	/		info
+	/link/tcp0	info
+	/link		debug
+
+In dtnd, the log messages go out to stdout, by default. You can
+change that using the "-o filename" option. 
+
+Here is an incomplete list of log paths used by the DTN2
+implementation:
+
+/dtnd			dtnd server startup/operation
+/dtnserver		dtnd internals
+/interface		interface management
+/link/$linkname		link management
+/storage/$dbtype	database operations
+/route			routing related messages
+/tcl			Errors from TCL (the underlying interpreter)
+/assert			Failing assertions
+/apisrv			API Server
+/apisrv/sock		API Server (socket-specific messages)
+/cl/tcp			TCP Convergence Layer
+/cl/tcp/conn/$ip:$port	connection specific messages
+/cl/udp			UDP Convergence Layer
+/contact/bundles
+/registration
+
+Here is the list of logging levels:
+
+	debug
+	info
+	warn, warning
+	err, error
+	crit, critical
+	always
