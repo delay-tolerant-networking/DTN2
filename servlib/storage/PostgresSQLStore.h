@@ -1,5 +1,11 @@
+#ifndef _POSTGRES_SQL_STORE_H_
+#define _POSTGRES_SQL_STORE_H_
+
 #include "SQLStore.h"
+
+#define HAVE_NAMESPACE_STD
 #include "libpq++.h"
+#
 
 class PostgresSQLStore : public SQLStore {
 
@@ -19,3 +25,6 @@ public:
   PgDatabase*  data_base_pointer_ ; 
 
 };
+
+
+#endif /* _POSTGRES_SQL_STORE_H_ */
