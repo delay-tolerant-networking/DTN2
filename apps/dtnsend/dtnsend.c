@@ -217,8 +217,7 @@ main(int argc, char** argv)
             }
             gettimeofday(&end, NULL);
 
-
-            printf("%d bytes from [%s %.*s]: time=%.1f ms\n",
+            printf("got %d byte report from [%s %.*s]: time=%.1f ms\n",
                    reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
                    reply_spec.source.region,
                    reply_spec.source.admin.admin_len,
@@ -384,7 +383,3 @@ void print_tuple(char *  label, dtn_tuple_t * tuple)
     printf("%s [%s %.*s]\n", label, tuple->region, 
            tuple->admin.admin_len, tuple->admin.admin_val);
 }
-    
-
-
-
