@@ -97,6 +97,12 @@ public:
      * @return the new reference count
      */
     int del_ref();
+
+    /**
+     * The number of container lists that have a reference to this
+     * bundle.
+     */
+    int num_containers() { return containers_.size(); }
     
     /**
      * Add a BundleList to the set of containers.
