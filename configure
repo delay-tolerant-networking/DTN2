@@ -74,7 +74,7 @@ tcllibdir=''
 tcllib=''
 
 db_enabled=1
-dbver='4.2'
+dbversions='4.3 4.2'
 dbdir='system'
 dbincdir=''
 dblibdir=''
@@ -169,7 +169,7 @@ do
   -with-dbver | --with-dbver)
     ac_prev=with-dbver ;;
   -with-dbver=* | --with-dbver=*)
-    dbver="$ac_optarg" ;;
+    dbversions="$ac_optarg" ;;
 
   -with-postgres | --with-postgres)
     ac_prev=with-postgres ;;
@@ -203,7 +203,7 @@ Packages
 
 Storage Options:  
   --with-db=DIR			  Location of a Berkeley DB installation [$dbdir]
-  --with-dbver=VERSION		  Berkeley DB version to link with [$dbver]
+  --with-dbver=VERSION		  Berkeley DB versions to try [$dbversions]
   --with-postgres=DIR		  Location of a Postgres installation [$postgresdir]
   --with-mysql=DIR		  Location of a Mysql installation [$mysqldir]
 
@@ -374,6 +374,28 @@ fi
 # Find the berkeley db library (version 4.2)
 #
 
+function db_help() {
+cat <<EOF
+Configure error with berkeleydb...
+
+If your installed version is not one of [$dbversions], you may
+have to specify it with --with-dbver.
+
+If your installation is in a non-standard path, you can specify
+it with --with-db=DIR.
+
+To download the latest version, go to http://www.sleepycat.com
+To build and install to /usr/local/BerkeleyDB-<version>:
+
+# cd <db_download_dir>/build_unix
+# ../dist/configure --enable-cxx
+# make
+# make install
+
+EOF
+
+}
+
 #
 # check if the user doesn't want berkeley db at all
 #
@@ -383,73 +405,83 @@ else
   db_enabled=1
 
   #
-  # check the supplied directory if the user gave us one
+  # check if the user have us a particlar installation directory,
+  # otherwise try the standard locations
   #
   if [ "$dbdir" != "system" ]; then
-    if [ -r $dbdir/include/db.h -a -r $dbdir/include/db_cxx.h ] ; then
-        dbincdir=-I$dbdir/include
-    else
-	echo "can't find db.h and/or db_cxx.h in $dbdir/include"
-	exit 1
-    fi
-
-    if [ -r $dbdir/lib/libdb-$dbver.$libext -a \
-         -r $dbdir/lib/libdb_cxx-$dbver.$libext ] ; 
-    then
-	dblibdir=-L$dbdir/lib
-	dblib="-ldb-$dbver -ldb_cxx-$dbver"
-    else
-	echo "can't find libdb-$dbver.$libext and/or libdb_cxx-$dbver.$libext"\
-	     "in $dbdir/lib"
-	exit 1
-    fi
-
-  #
-  # otherwise, check for a system installation
-  #
+      dbincdirs=$dbdir/include
+      dblibdirs=$dbdir/lib
   else
-    dbincdirs="/usr/include /usr/local/BerkeleyDB.$dbver/include"
-    dblibdirs="/usr/lib /usr/local/BerkeleyDB.$dbver/lib"
+      dbincdirs=/usr/include
+      dblibdirs=/usr/lib
 
-    found=0
-    for dir in $dbincdirs; do
-    	if [ -r $dir/db.h -a -r $dir/db_cxx.h ]
-    	then
-	    grep DB_VERSION_STRING $dir/db.h | grep $dbver >/dev/null
-	    if [ $? = 0 ]; then
-		if [ $dir != "/usr/include" ]; then
-		    dbincdir=-I$dir
-		fi
-		found=1
-        	break
- 	    fi
-	fi
-    done
+      for dbver in $dbversions ; do
+         dbincdirs="$dbincdirs /usr/local/BerkeleyDB.$dbver/include"
+         dblibdirs="$dblibdirs /usr/local/BerkeleyDB.$dbver/lib"
+      done
+  fi
 
-    if [ "$found" = "0" ]; then
-       echo "can't find db.h and/or db_cxx.h for Berkeley DB version $dbver"\
-            "in include directories (tried $dbincdirs)"
-       exit 1
-    fi
+  #
+  # look for the header files
+  #
+  echo -n "checking for db.h and db_cxx.h... "
+  found=0
+  foundfile=0
+  for dir in $dbincdirs; do
+    if [ -r $dir/db.h -a -r $dir/db_cxx.h ] ; then
+        foundfile=1
+        for dbver in $dbversions ; do
+          grep DB_VERSION_STRING $dir/db.h | grep $dbver >/dev/null 2>/dev/null
+          if [ $? = 0 ]; then
+              if [ $dir != "/usr/include" ]; then
+                  dbincdir=-I$dir
+              fi
+              found=1
+              break
+          fi
+        done
+      fi
+  done
+    
+  if [ $found = 1 ]; then
+     echo "found in $dir"
+  else
+     if [ $foundfile = 1 ] ; then 
+       echo "error: found db.h and/or db_cxx.h with incorrect version"
+     else
+       echo "error: can't find db.h and/or db_cxx.h in $dbincdirs"
+     fi
 
-    found=0
+     db_help
+     exit 1
+  fi
+
+  #
+  # and the library files
+  #    
+  echo -n "checking for libdb-$dbver.$libext and libdb_cxx-$dbver.$libext... "
+  found=0
+  for dbver in $dbversions ; do
     for dir in $dblibdirs; do
-	if [ -r $dir/libdb-$dbver.$libext -a  \
-	     -r $dir/libdb_cxx-$dbver.$libext ]
-	then
-	    if [ $dir != "/usr/lib" ]; then
-	    	dblibdir=-L$dir
-            fi
- 	    dblib="-ldb-$dbver -ldb_cxx-$dbver"
-	    found=1
-	    break
-        fi
+      if [ -r $dir/libdb-$dbver.$libext -a  \
+           -r $dir/libdb_cxx-$dbver.$libext ]
+      then
+          if [ $dir != "/usr/lib" ]; then
+                  dblibdir=-L$dir
+          fi
+          dblib="-ldb-$dbver -ldb_cxx-$dbver"
+          found=1
+          break
+      fi
     done
-    if [ "$found" = "0" ]; then
- 	echo "can't find libdb-$dbver.$libext and/or libdb_cxx-$dbver.$libext"\
-	     "in lib directories (tried $dblibdirs)"
- 	exit 1
-    fi
+  done
+
+  if [ $found = 1 ]; then
+    echo "found in $dir"
+  else
+    echo "error: can't find libdb-$dbver.$libext and/or libdb_cxx-$dbver.$libext"\
+         "in lib directories (tried $dblibdirs)"
+    exit 1
   fi
 fi
 
