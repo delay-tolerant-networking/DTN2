@@ -441,8 +441,8 @@ else
     done
 
     if [ "$found" = "0" ]; then
-       echo "can't find db.h and/or db_cxx.h in include directories"\
-	    "(tried $dbincdirs)"
+       echo "can't find db.h and/or db_cxx.h for Berkeley DB version $dbver"\
+            "in include directories (tried $dbincdirs)"
        exit 1
     fi
 
