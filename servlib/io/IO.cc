@@ -8,6 +8,26 @@
 #include "debug/Log.h"
 
 int
+IO::open(const char* path, int flags, const char* log)
+{
+    int fd = ::open(path, flags);
+    if (log) {
+        logf(log, LOG_DEBUG, "open %s (flags 0x%x): fd %d", path, flags, fd);
+    }
+    return fd;
+}
+
+int
+IO::close(int fd, const char* log)
+{
+    int ret = ::close(fd);
+    if (log) {
+        logf(log, LOG_DEBUG, "close %d: %d", fd, ret);
+    }
+    return ret;
+}
+
+int
 IO::read(int fd, char* bp, size_t len, const char* log)
 {
     int cc = ::read(fd, (void*)bp, len);
@@ -67,6 +87,26 @@ IO::lseek(int fd, off_t offset, int whence, const char* log)
     return cc;
 }
 
+int
+IO::open(const char* path, int flags, mode_t mode, const char* log)
+{
+    int fd = ::open(path, flags);
+    if (log) {
+        logf(log, LOG_DEBUG, "open %s (flags 0x%x mode 0x%x): fd %d",
+             path, flags, mode, fd);
+    }
+    return fd;
+}
+    
+int
+IO::unlink(const char* path, const char* log)
+{
+    int ret = ::unlink(path);
+    if (log) {
+        logf(log, LOG_DEBUG, "unlink %s: %d", path, ret);
+    }
+    return ret;
+}
 
 int
 IO::poll(int fd, int events, int timeout_ms, const char* log)

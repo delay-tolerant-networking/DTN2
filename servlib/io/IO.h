@@ -1,6 +1,7 @@
 #ifndef _IO_H_
 #define _IO_H_
 
+#include <fcntl.h>
 #include <stdlib.h>
 #include <sys/uio.h>
 
@@ -20,6 +21,15 @@ class IO {
 public:
     //@{
     /// System call wrappers (for logging)
+    static int open(const char* path, int flags,
+                    const char* log = NULL);
+
+    static int open(const char* path, int flags, mode_t mode,
+                    const char* log = NULL);
+
+    static int close(int fd,
+                     const char* log = NULL);
+    
     static int read(int fd, char* bp, size_t len,
                     const char* log = NULL);
     
@@ -32,6 +42,9 @@ public:
     static int writev(int fd, const struct iovec* iov, int iovcnt,
                       const char* log = NULL);
 
+    static int unlink(const char* path, 
+                      const char* log = NULL);
+    
     static int lseek(int fd, off_t offset, int whence,
                       const char* log = NULL);
     //@}
