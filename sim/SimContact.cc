@@ -127,8 +127,8 @@ SimContact::close_contact(bool forever)
     
     
     if (state_ == BUSY) {
-        log_info("C[%d]: state busy while closing, chewing_event:%p",
-                 id(),chewing_event_);
+        log_info("C[%d]: state busy while closing",
+                 id());
         // fragmentation has to occur
         ASSERT(chewing_event_ != NULL);
         // schedule partial chewing complete

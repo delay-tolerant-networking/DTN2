@@ -48,12 +48,14 @@ Simulator::run()
             if (e->is_valid()) {
                 ASSERT(e->handler() != NULL);
                 /* Process the event */
-                log_debug("Event:%p type %s at time %f",e,e->type_str(),time_);
+                log_info("Event:%p type %s at time %f",
+                           e,e->type_str(),time_);
                 e->handler()->process(e);
             }
             if ((time_ > Simulator::runtill_)) {
-                log_info("Exitting simulation. Current time (%f) > Max time (%d)",
-                         time_,Simulator::runtill_);
+                log_info(
+                     "Exiting simulation. Current time (%f) > Max time (%d)",
+                     time_,Simulator::runtill_);
                 exit_simulation();
             }
         } // if is_running_
@@ -61,3 +63,17 @@ Simulator::run()
     log_info("eventq is empty, time is %f ",time_);
 }
 
+
+void
+Simulator::process(Event *e)
+{
+    switch (e->type()) {
+    case    SIM_PRINT_STATS: {
+        log_info("SIM: print_stats");
+        break;
+    }
+        default:
+        PANIC("undefined event \n");
+    }
+
+}

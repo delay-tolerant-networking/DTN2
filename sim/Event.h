@@ -33,7 +33,8 @@ typedef enum {
 
     TR_NEXT_SENDTIME  ,         ///< Used by traffic agent to send data periodically
     
-    FOR_BUNDLE_ROUTER           ///< A bundle event to be forwared to bundle router
+    FOR_BUNDLE_ROUTER ,         ///< A bundle event to be forwared to bundle router
+    SIM_PRINT_STATS  ,          ///< Simulator print stats
 } sim_event_type_t;
 
 
@@ -44,12 +45,13 @@ typedef enum {
 static const char* 
 ev2str(sim_event_type_t eventtype) {
     switch (eventtype) {
-    case MESSAGE_RECEIVED:          return "MESSAGE_RECEIVED";
-    case CONTACT_UP:     return "CONTACT_UP";
-    case CONTACT_DOWN:     return "CONTACT_DOWN";
+    case MESSAGE_RECEIVED:  return "MESSAGE_RECEIVED";
+    case CONTACT_UP:        return "CONTACT_UP";
+    case CONTACT_DOWN:      return "CONTACT_DOWN";
     case CONTACT_CHEWING_FINISHED: return "CONTACT_CHEWING_FINISHED";
-    case TR_NEXT_SENDTIME: return "TR_NEXT_SENDTIME";
+    case TR_NEXT_SENDTIME:  return "TR_NEXT_SENDTIME";
     case FOR_BUNDLE_ROUTER: return "FOR_BUNDLE_ROUTER";
+    case SIM_PRINT_STATS:   return "SIM_PRINT_STATS";
     default:                return "_UNKNOWN_EVENT_";
     }
 }
@@ -198,5 +200,19 @@ public:
     
     BundleEvent* bundle_event_;           ///> event to beforwarded further
 };
+
+
+
+/**
+ * Print Stats - goes to the Simulator
+ */
+
+class Event_print_stats: public Event {
+public:
+    Event_print_stats(double t, Processable* h) 
+	: Event (t,h,SIM_PRINT_STATS) {}
+    
+};
+
 
 #endif /* _EVENT_H_ */

@@ -21,8 +21,6 @@ main(int argc, char** argv)
     Simulator::init(s);
     logf("/sim", LOG_INFO, "simulator initializing...");
 
-
-    
     // command line parameter vars
     std::string conffile("sim/top.conf");
     int random_seed;

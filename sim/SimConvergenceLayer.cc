@@ -124,7 +124,8 @@ SimConvergenceLayer::id2node(int i)
 void
 SimConvergenceLayer::create_ct(int id) 
 {
-    
+    ASSERT(id >=0 && id < MAX_CONTACTS);
+
     BundleTuple tuple(id2node(id));
     Contact* ct = new Contact(SCHEDULED,tuple);
     ct->set_contact_info(new SimContactInfo(id));
@@ -156,6 +157,9 @@ SimConvergenceLayer::msg2bundle(Message* m)
 {
     ASSERT(m != NULL);
     // no fragmentation is supported, messages/bundles uniquely identified by id's
+    
+    ASSERT(m->id() >= 0 && m->id() < MAX_BUNDLES);
+
     Bundle* b = bundles_[m->id()];
     messages_[m->id()] = m;
     
