@@ -45,9 +45,11 @@ StorageCommand::StorageCommand()
     inited_ = false;
 
     StorageConfig* cfg = StorageConfig::instance();
-    bind_s("type",  &cfg->type_);
-    bind_b("tidy",  &cfg->tidy_);
-    bind_s("dbdir", &cfg->dbdir_);
-    bind_s("sqldb", &cfg->sqldb_);
-    bind_s("payloaddir", &cfg->payloaddir_);
+    bind_s("type",	&cfg->type_);
+    bind_b("tidy",	&cfg->tidy_);
+    bind_s("dbdir",	&cfg->dbdir_);
+    bind_s("dbfile",	&cfg->dbfile_);
+    bind_s("dberrlog",	&cfg->dberrlog_);
+    bind_s("sqldb",	&cfg->sqldb_);
+    bind_s("payloaddir",&cfg->payloaddir_);
 }
