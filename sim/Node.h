@@ -44,8 +44,12 @@
 #include "EventHandler.h"
 #include "bundling/BundleDaemon.h"
 
+using namespace dtn;
+
 namespace dtn {
+
 class ContactManager;
+
 }
 
 namespace dtnsim {
@@ -58,7 +62,7 @@ namespace dtnsim {
  * processed that relates to a node, that node is installed as the
  * BundleDaemon::instance().
  */
-class Node : public EventHandler, public dtn::BundleDaemon {
+class Node : public EventHandler, public BundleDaemon {
 public:
     /**
      * Constructor / Destructor
@@ -77,7 +81,19 @@ public:
     /**
      * Accessor for router.
      */
-    dtn::BundleRouter* router() { return router_; }
+    BundleRouter* router() { return router_; }
+
+    /**
+     * Set the node as the "active" node in the simulation. This
+     * swings the static BundleDaemon::instance_ pointer to point to
+     * the node so all singleton accesses throughout the code will
+     * reference the correct node.
+     */
+    void set_active()
+    {
+        instance_ = this;
+    }
+    
     
 //     /**
 //      * Action when informed that message transmission is finished.
@@ -100,9 +116,9 @@ public:
 //     virtual  void create_consumer() {};
     
 protected:
-    const std::string    name_;
-    dtn::BundleRouter*   router_;
-    dtn::ContactManager* contactmgr_;
+    const std::string   name_;
+    BundleRouter*	router_;
+    ContactManager*	contactmgr_;
 };
 
 } // namespace dtnsim
