@@ -7,9 +7,17 @@
 # constituent subdirectories. Note that the test directory isn't built
 # by default.
 #
+
 all:   servlib daemon apps
-clean: servlib daemon apps test
+alltest:
+	$(MAKE) all
+	$(MAKE) test
 check: servlib daemon apps test
+clean: servlib daemon apps test
+objclean: servlib daemon apps test
+depclean: servlib daemon apps test
+genclean: servlib daemon apps test
+binclean: servlib daemon apps test
 
 .PHONY: servlib daemon apps test
 servlib daemon apps test:
