@@ -38,7 +38,10 @@ proc scan_dir {host dir} {
 	    continue
 	}
 
-	send_file $host $file
+	set sent_file 0
+	while {$sent_file != 1} {
+	    set sent_file [send_file $host $file]
+	}
 
 	file delete -force $file
     }
@@ -60,13 +63,15 @@ proc send_file {host file} {
 	puts "Trying to connect, will try again after  2 seconds "
 	after 2000
     }
-    
-    puts $sock "[file tail $file]"
-    flush $sock
-    puts -nonewline $sock $payload
-    flush $sock
-    close $sock
 
+    if  {[ catch {puts $sock "[file tail $file]" } ]} { return -1 ; }
+    flush $sock
+    if  {[ catch {puts -nonewline $sock $payload } ]} { return -1 ; }
+    flush $sock
+
+    close $sock
+    puts " file  actually sent $file"
+    return 1;
 }
 
 proc recv_files {dest_dir} {
@@ -85,50 +90,36 @@ proc new_client {dest_dir sock addr port} {
     
     # Used for debugging
     set conns(addr,$sock) [list $addr $port]
-  
-    fileevent $sock readable [list file_arrived $dest_dir $sock]
-#    fconfigure $sock -buffering line
-#    fconfigure $sock -blocking 0 
+    set filename [gets $sock]
+    set to_fd [open "$dest_dir/$filename" w]
+
+    fileevent $sock readable [list file_arrived $filename $to_fd $dest_dir $sock]
+    fconfigure $sock -buffering line
+    fconfigure $sock -blocking 0 
     
 }
 
-proc file_arrived {dest_dir sock} {
+
+proc file_arrived {file to_fd dest_dir sock} {
     
     global logfd
     global conns
-
-    if {[eof $sock] || [catch {gets $sock line}]} {
-	# end of file or abnormal connection drop
-
-	if { [eof $sock] } {
-	    puts "Normal Close $conns(addr,$sock)"
-
-	} else {
-	       puts "Abnormal close $conns(addr,$sock)"
-	}
-
+    if {[eof $sock]} {
+	puts "Normal Close $conns(addr,$sock) EOF received"
 	close $sock
+	close $to_fd
+	puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
+	flush $logfd
 	unset conns(addr,$sock)
 	
     } else {
-	set file $line
-	if {[eof $sock] || [catch { set payload [read $sock]}]} {
-	    close $sock
-	    puts "Unexpected Close while reading data $conns(addr,$sock)"
-	} else  {
-	    
-	    ### Write the read data in a file
-	    set payload_len [string  length $payload]
-	    #	puts "file arrived from $sock $addr $port of size $payload_len name is $file "
-	    puts "got file $file"
-	    puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
-	    flush $logfd
-	    set fd [open "$dest_dir/$file" w]
-	    puts -nonewline $fd $payload
-	    close $fd
-	}
+	#[catch {gets $sock line}]
+	#	    puts "Abnormal close $conns(addr,$sock)"
+	set payload [read $sock]
+	puts -nonewline $to_fd $payload
     }
 }
+
 
 set mode [lindex $argv 0]
 set dir  [lindex $argv 1]
