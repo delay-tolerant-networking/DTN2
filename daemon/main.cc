@@ -69,29 +69,26 @@ main(int argc, char** argv)
     }
 
     // Check that the storage system was all initialized properly
-    if (BundleStore::instance() == NULL) {
+    if (!BundleStore::initialized() ||
+        !GlobalStore::initialized() ||
+        !RegistrationStore::initialized() )
+    {
         logf("/daemon", LOG_ERR,
-             "configuration did not initialize bundle store, exiting...");
+             "configuration did not initialize storage, exiting...");
         exit(1);
     }
     
-    if (GlobalStore::instance() == NULL) {
-        logf("/daemon", LOG_ERR,
-             "configuration did not initialize global store, exiting...");
-        exit(1);
-    }
-
-    if (RegistrationStore::instance() == NULL) {
-        logf("/daemon", LOG_ERR,
-             "configuration did not initialize registration store, exiting...");
-        exit(1);
-    }
-
-    // now load in the various storage tables
+    // now initialize and load in the various storage tables
     GlobalStore::instance()->load();
-    
     RegistrationTable::init(RegistrationStore::instance());
     RegistrationTable::instance()->load();
+    //BundleStore::instance()->load();
+    
+    // finally, if the config script wants us to run an initialization
+    // script, do so now
+    if (testcmd.initscript_.length() != 0) {
+        CommandInterp::instance()->exec_command(testcmd.initscript_.c_str());
+    }
     
     // Start the main console input loop
     while (1) {
