@@ -42,7 +42,7 @@ Registration::Registration(const BundleTuplePattern& endpoint,
                            time_t expiration,
                            const std::string& script)
     
-    : BundleConsumer(&endpoint_, true)
+    : BundleConsumer(&endpoint_, true, "Reg")
 {
     init(GlobalStore::instance()->next_regid(),
          endpoint, action, expiration, script);
@@ -54,7 +54,7 @@ Registration::Registration(u_int32_t regid,
                            time_t expiration,
                            const std::string& script)
     
-    : BundleConsumer(&endpoint_, true)
+    : BundleConsumer(&endpoint_, true, "Reg")
 {
     init(regid, endpoint, action, expiration, script);
 }

@@ -124,14 +124,8 @@ SimConvergenceLayer::create_ct(int id)
 
     printf("link creating %s \n",tuple.c_str());
     fflush(stdout);
-    // Oldstuff 
-    //Contact* ct = new Contact(SCHEDULED,tuple);
-    //ct->set_contact_info(new SimContactInfo(id));
-    //contacts_[id] = ct;
 
-    //Link*  link = Link::create_link(tuple.c_str(),ONDEMAND,"simcl",tuple);
-    Link*  link = Link::create_link("WHERE",ONDEMAND,"simcl",tuple);
-    
+    Link*  link = Link::create_link(tuple.c_str(),Link::ONDEMAND,"simcl",tuple);
     link->set_link_info(new SimLinkInfo(id));
     links_[id] = link;
 

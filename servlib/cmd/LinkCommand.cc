@@ -47,8 +47,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         const char* type_str = argv[4];
         const char* cl = argv[5];
         
-        link_type_t type = str_to_link_type(type_str);
-        if (type == LINK_INVALID) {
+        Link::link_type_t type = Link::str_to_link_type(type_str);
+        if (type == Link::LINK_INVALID) {
             resultf("invalid link type %s", type_str);
             return TCL_ERROR;
         }

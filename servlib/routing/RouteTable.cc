@@ -138,7 +138,7 @@ RouteTable::dump(StringBuffer* buf) const
         buf->appendf("\t%s -> %s (%s) (%s)\n",
                      entry->pattern_.c_str(),
                      entry->next_hop_->dest_tuple()->c_str(),
-                     entry->next_hop_->type(),
+                     entry->next_hop_->type_str(),
                      bundle_fwd_action_toa(entry->action_));
     }
 }
