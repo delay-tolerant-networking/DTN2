@@ -94,6 +94,7 @@ InterfaceTable::add(const std::string& admin, ConvergenceLayer* cl,
     Interface* iface = new Interface(admin, cl);
     if (! cl->add_interface(iface, argc, argv)) {
         log_err("convergence layer error adding interface %s", admin.c_str());
+        delete iface;
         return false;
     }
 
