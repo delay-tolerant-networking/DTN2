@@ -8,9 +8,19 @@ my $logscaley = 0;
 my $expname='';
 my $base='';
 
+
+my $nodes=4;
+my $loss=0;
+my $bandwidth=100;
+my $size=10;
+my $num=100;
+
+
 GetOptions( 
           "exp=s" => \$expname,
-          "base=s" => \$base
+          "base=s" => \$base,
+          "nodes=i" => \$nodes,
+          "num=i" => \$num,
           );
 
 if($base eq '')
@@ -43,17 +53,19 @@ mkdir($plotbase);
 mkdir($logbase);
 mkdir($psbase);
 
+if($expname =~ /rabin/g)
+{
+    print "Getting info about experiment ..\n";
+    $expname =~ /([\w]+)-N([1-9])-L([0-9\.]+)-M([0-9]+)-S([0-9]+)-B([0-9]+).*/g;
+    $nodes=$2;
+    $loss=$3;
+    $num=$4;
+    $size=$5;
+    $bandwidth=$6;
+}
+print "Name: Nodes:$nodes Loss:$loss Num:$num Size:$size Bandwidth:$bandwidth\n";
 
-print "Getting info about experiment ..\n";
-$expname =~ /([\w]+)-N([1-9])-L([0-9\.]+)-M([0-9]+)-S([0-9]+)-B([0-9]+).*/g;
-print "Name:$1 Nodes:$2 Loss:$3 Num:$4 Size:$5 Bandwidth:$6\n";
-$nodes=$2;
-$loss=$3;
-$num=$4;
-$size=$5;
-$bandwidth=$6;
-
-$command="maketable.sh $2 $expname $base";
+$command="maketable.sh $nodes $expname $base";
 print "First generating the time table ... : $command\n";
 system($command);
 
@@ -72,11 +84,11 @@ open (VACFILE, ">$vacfile") || die ("cannot open:$vacfile\n");
 set linestyle 1 lt 7 lw 2.5 pt 7 ps 2 ;
 set linestyle 2 lt 12 lw 2.5 pt 2 ps 2 ;
 set linestyle 3 lt 3 lw 2.5 pt 3 ps 2 ;
-set linestyle 4 lt 15 lw 2.5 pt 4 ps 2 ;
+set linestyle 4 lt 5  lw 2.5 pt 4 ps 2 ;
 set linestyle 5 lt 1 lw 2.5 pt 1 ps 2 ;
-set linestyle 6 lt 5 lw 2.5 pt 5 ps 2 ;
+set linestyle 6 lt 8 lw 2.5 pt 5 ps 2 ;
 set linestyle 7 lt 15 lw 2.5 pt 17 ps 2 ;
-set linestyle 8 lt 12 lw 2.5 pt 15 ps 2 ; 
+set linestyle 8 lt 3 lw 2.5 pt 15 ps 2 ; 
 ");
 
 
@@ -134,7 +146,8 @@ foreach $proto (@protos) {
     
     my $title ="$proto";
 
-    &p1( "replot  ",&qs($timesfile), "  using 1:(\$3-$startime) title ",&qs($title), " with lines ls $lsid");
+    #&p1( "replot  ",&qs($timesfile), "  using 1:(\$3-$startime) title ",&qs($title), " with lines ls $lsid");
+    &p1( "replot  ",&qs($timesfile), "  using (\$3-$startime):1 title ",&qs($title), " with lines ls $lsid");
     $lsid++;
 } 
     
@@ -142,8 +155,8 @@ $xrange=$num*1.2;
 $yrange=$yrange*1.2;
 
 
-&p1("set xrange [$gx_init:$xrange]");
-&p1("set yrange [$gy_init:$yrange]");
+&p1("set xrange [$gx_init:$yrange]");
+&p1("set yrange [$gy_init:$xrange]");
 
 &p1("replot");
 &p1("set term postscript noenhanced  20 ; "," set output ",&qs("$psbase/plot.ps"), " ; replot ; set term x11 ; ");
