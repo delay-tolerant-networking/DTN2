@@ -60,6 +60,8 @@ void doOptions(int argc, const char **argv);
 int sleepVal = 1;
 int count = 0;
 char dest_tuple_str[DTN_MAX_TUPLE] = "";
+char source_tuple_str[DTN_MAX_TUPLE] = "";
+char replyto_tuple_str[DTN_MAX_TUPLE] = "";
 
 int
 main(int argc, const char** argv)
@@ -68,7 +70,7 @@ main(int argc, const char** argv)
     int ret;
     char b;
     dtn_handle_t handle;
-    dtn_tuple_t local_tuple;
+    dtn_tuple_t source_tuple;
     dtn_reg_info_t reginfo;
     dtn_reg_id_t regid;
     dtn_bundle_spec_t ping_spec;
@@ -103,23 +105,50 @@ main(int argc, const char** argv)
             exit(1);
         }
     }
-
-    // if the user specified a dest of "localhost", copy the local
-    // tuple into the destination
-
-    // build a local tuple based on the configuration of our dtn
-    // router plus the demux string
+    
+    // if the user specified a source tuple, register on it.
+    // otherwise, build a local tuple based on the configuration of
+    // our dtn router plus the demux string
     char demux[64];
-    snprintf(demux, sizeof(demux), "/ping.%d", getpid());
-    dtn_build_local_tuple(handle, &local_tuple, demux);
-    if (debug) printf("local_tuple [%s %.*s]\n",
-                    local_tuple.region,
-                    (int) local_tuple.admin.admin_len, 
-                    local_tuple.admin.admin_val);
+    snprintf(demux, sizeof(demux), "/ping.%d", 0);
+    if (source_tuple_str[0] != '\0') {
+        if (dtn_parse_tuple_string(&source_tuple, source_tuple_str)) {
+            fprintf(stderr, "invalid source tuple string '%s'\n",
+                    source_tuple_str);
+            exit(1);
+        }
+    } else {
+        dtn_build_local_tuple(handle, &source_tuple, demux);
+    }
 
-    // create a new dtn registration based on this tuple
+    // set the source tuple in the bundle spec
+    if (debug) printf("source_tuple [%s %.*s]\n",
+                      source_tuple.region,
+                      (int) source_tuple.admin.admin_len, 
+                      source_tuple.admin.admin_val);
+    dtn_copy_tuple(&ping_spec.source, &source_tuple);
+    
+    // now parse the replyto tuple, if specified. otherwise just use
+    // the source tuple
+    if (replyto_tuple_str[0] != '\0') {
+        if (dtn_parse_tuple_string(&ping_spec.replyto, replyto_tuple_str)) {
+            fprintf(stderr, "invalid replyto tuple string '%s'\n",
+                    replyto_tuple_str);
+            exit(1);
+        }
+        
+    } else {
+        dtn_copy_tuple(&ping_spec.replyto, &source_tuple);
+    }
+
+    if (debug) printf("replyto_tuple [%s %.*s]\n",
+                      ping_spec.replyto.region,
+                      (int) ping_spec.replyto.admin.admin_len, 
+                      ping_spec.replyto.admin.admin_val);
+    
+    // now create a new registration based on the source
     memset(&reginfo, 0, sizeof(reginfo));
-    dtn_copy_tuple(&reginfo.endpoint, &local_tuple);
+    dtn_copy_tuple(&reginfo.endpoint, &source_tuple);
     reginfo.action = DTN_REG_ABORT;
     reginfo.regid = DTN_REGID_NONE;
     reginfo.timeout = 60 * 60;
@@ -127,17 +156,32 @@ main(int argc, const char** argv)
         fprintf(stderr, "error creating registration: %d (%s)\n",
                 ret, dtn_strerror(dtn_errno(handle)));
         exit(1);
-    }
-    
+    }    
     if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
-    dtn_bind(handle, regid, &local_tuple);
-    
-    // format the bundle header
-    dtn_copy_tuple(&ping_spec.source, &local_tuple);
-    dtn_copy_tuple(&ping_spec.replyto, &local_tuple);
+    dtn_bind(handle, regid, &source_tuple);
 
+    // check for any bundles queued for the registration
+    if (debug) printf("checking for bundles already queued...\n");
+    do {
+        memset(&reply_spec, 0, sizeof(reply_spec));
+        memset(&reply_payload, 0, sizeof(reply_payload));
+        
+        ret = dtn_recv(handle, &reply_spec,
+                       DTN_PAYLOAD_MEM, &reply_payload, 0);
+
+        if (ret == 0) {
+            fprintf(stderr, "error: unexpected ping already queued... "
+                    "discarding\n");
+        } else if (dtn_errno(handle) != DTN_TIMEOUT) {
+            fprintf(stderr, "error: "
+                    "unexpected error checking for queued bundles: %s\n",
+                    dtn_strerror(dtn_errno(handle)));
+            exit(1);
+        }
+    } while (ret == 0);
+    
     // set the return receipt option
     ping_spec.dopts |= DOPTS_RETURN_RCPT;
 
@@ -152,7 +196,7 @@ main(int argc, const char** argv)
            ping_spec.dest.admin.admin_val);
     
     // loop, sending pings and getting replies.
-    for (i = 0; count==0 || i < count; ++i) {
+    for (i = 0; count == 0 || i < count; ++i) {
         gettimeofday(&start, NULL);
         
         if ((ret = dtn_send(handle, &ping_spec, &ping_payload)) != 0) {
@@ -195,7 +239,7 @@ doOptions(int argc, const char **argv)
 
     progname = argv[0];
 
-    while ( (c=getopt(argc, (char **) argv, "hc:i:d:")) !=EOF ) {
+    while ( (c=getopt(argc, (char **) argv, "hc:i:d:s:r:")) !=EOF ) {
         switch (c) {
         case 'c':
             count = atoi(optarg);
@@ -205,6 +249,12 @@ doOptions(int argc, const char **argv)
             break;
         case 'd':
             strcpy(dest_tuple_str, optarg);
+            break;
+        case 's':
+            strcpy(source_tuple_str, optarg);
+            break;
+        case 'r':
+            strcpy(replyto_tuple_str, optarg);
             break;
         case 'h':
             usage();
