@@ -170,6 +170,11 @@ main(int argc, char* argv[])
     }
     log_info(log, "random seed is %u\n", random_seed);
     srand(random_seed);
+
+    // Enable the global thread creation barrier so we make sure all
+    // initialization completes before any threads are actually
+    // started
+    oasys::Thread::activate_start_barrier();
     
     // Set up the command interpreter
     oasys::TclCommandInterp::init(argv[0]);
@@ -246,6 +251,10 @@ main(int argc, char* argv[])
         log_info(log, "starting console on localhost:%d", console_port);
         interp->command_server("dtn", htonl(INADDR_LOOPBACK), console_port);
     }
+
+    // Now that initialization is complete, disable the global thread
+    // creation barrier and create any stalled threads
+    oasys::Thread::release_start_barrier();
 
     // finally, run the main command or event loop (shouldn't return)
     if (daemon) {
