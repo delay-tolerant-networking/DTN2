@@ -268,15 +268,22 @@ proc header_arrived {dest_dir sock} {
     global conns
     
     puts "[time] header arrived"
-
-    set L [gets $sock]
+    
+    if {[catch {
+	set L [gets $sock]
+    }]} {
+	close $sock	
+	unset conns(addr,$sock)
+	return 
+    }
+    
     if {[eof $sock]} {
 	puts "[time] Close $conns(addr,$sock) EOF received"
 	close $sock	
 	unset conns(addr,$sock)
 	return 
     }
-
+    
     while {$L == ""} {
 	if {[eof $sock]} { puts "Unexpected EOF reached, check check"  }
 	puts "[time] partial header line received... waiting for more "
@@ -299,6 +306,7 @@ proc file_arrived {file to_fd dest_dir sock} {
     global logfd
     global conns
     global length_remaining
+
     
     if {[eof $sock]} {
 	puts "[time] Close $conns(addr,$sock) EOF received"
@@ -307,7 +315,14 @@ proc file_arrived {file to_fd dest_dir sock} {
 	return
     } 
     
-    set payload [read $sock $length_remaining($sock)]
+    if {[catch {
+	set payload [read $sock $length_remaining($sock)]
+    }]} {
+	close $sock	
+	unset conns(addr,$sock)
+	return 
+    }
+
     puts -nonewline $to_fd $payload
     set got [string length $payload]
     set todo [expr $length_remaining($sock) - $got]
