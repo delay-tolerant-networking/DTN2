@@ -80,8 +80,9 @@ public:
     const char* type() { return "Contact" ;}
     
 protected:
-    Link* link_ ; ///> Pointer to parent link on which this contact exists
-    ContactInfo* contact_info_; ///> convergence layer specific info
+    Link* link_ ; 		///< Pointer to parent link on
+    				///  which this contact exists
+    ContactInfo* contact_info_; ///< convergence layer specific info
 
 };
 

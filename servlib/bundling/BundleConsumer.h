@@ -1,12 +1,8 @@
-
 #ifndef _BUNDLE_CONSUMER_H_
 #define _BUNDLE_CONSUMER_H_
 
-
-//#include "debug/Log.h"
 #include "BundleTuple.h"
 #include <oasys/debug/Log.h>
-//>>>>>>> 1.6
 
 class Bundle;
 class BundleList;
@@ -54,7 +50,6 @@ public:
      */
     const BundleTuple* dest_tuple() { return dest_tuple_; }
 
-    
     /**
      * Is the consumer a local registration or a peer.
      */
@@ -70,11 +65,10 @@ public:
      * This can be null, unless it is initalized by the
      * specific instance of the bundle consumer
      */
-    virtual BundleList* bundle_list() { return bundle_list_; }
+    BundleList* bundle_list() { return bundle_list_; }
     
 protected:
     const BundleTuple* dest_tuple_;
-    BundleTuple dest_tuple2_ ; 
     bool is_local_;
     BundleList* bundle_list_;
 

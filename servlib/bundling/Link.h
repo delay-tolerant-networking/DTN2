@@ -1,17 +1,23 @@
 #ifndef _LINK_H_
 #define _LINK_H_
 
-class LinkInfo;
-class ConvergenceLayer;
-class Contact;
-class Peer;
+#include <set>
 
-#include "Peer.h"
 #include "BundleConsumer.h"
 #include "BundleTuple.h"
 #include "BundleList.h"
+#include "Peer.h"
 
-#include <set>
+class ConvergenceLayer;
+class Contact;
+class Link;
+class LinkInfo;
+class Peer;
+
+/**
+ * Set of links
+ */
+class LinkSet : public std::set<Link*> {};
 
 /**
  * Valid types for a link.
@@ -165,9 +171,6 @@ str_to_link_type(const char* str)
 */
 class Link : public Formatter, public BundleConsumer {
 public:
-
-    typedef std::set<Link*> LinkSet;    
-
     /**
      * Static function to create appropriate link object from link type
      */

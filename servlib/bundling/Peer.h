@@ -9,18 +9,14 @@
 #include "BundleTuple.h"
 #include "Link.h"
 
-
 class Link;
+class LinkSet;
 class Peer;
-/**
- * Set of links
- */
-typedef std::set<Link*> LinkSet;
 
 /**
  * Set of peers
  */
-typedef std::set<Peer*> PeerSet;
+class PeerSet : public std::set<Peer*> {};
 
 /**
  * Encapsulation of a next-hop DTN node. The object
@@ -80,9 +76,8 @@ public:
     const char* type() { return "Peer" ;}
         
 protected:
-
-    LinkSet*  links_;      ///>  List of links that lead to this peer
-    BundleTuple tuple_;    ///> Identity of peer
+    LinkSet*  links_;      ///< List of links that lead to this peer
+    BundleTuple tuple_;    ///< Identity of peer
 
 };
 

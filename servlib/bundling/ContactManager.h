@@ -20,9 +20,6 @@ class Peer;
  */
 class ContactManager : public Logger {
 public:
-
-    //  typedef std::set<Link*> LinkSet;
-    //  typedef std::set<Peer*> PeerSet;
     /**
      * Singleton instance accessor.
      */
