@@ -4,7 +4,8 @@
 # the configure script. 
 #
 # This should not need to be run often, only when things like library
-# dependencies change. In particular, all output files are cross-platform
+# dependencies change or when some changes are made to the configure.ac
+# script. In particular, all generated files are cross-platform
 # and are therefore checked into CVS.
 
 trap 'rm -f aclocal.m4 ; exit 0' 0 1 2 3 13 15

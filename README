@@ -12,6 +12,11 @@ Note that by default, the configure script will also run configure
 inside the oasys/ subdirectory. If this results in an error, run
 configure manually within that directory.
 
+If you need to make changes to the configure.ac script or one of
+the helper scripts in aclocal/*.ac, run build-configure.sh to
+recreate configure and then check in both your changes as well
+as the newly generated configure script.
+
 Reporting Bugs / Other Help
 ---------------------------
 As of this release, there is no bug tracking system in place. Please
