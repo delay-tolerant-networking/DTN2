@@ -44,6 +44,7 @@ SimContact::chew_message(Message* msg)
     Event_chew_fin* e2 =
         new Event_chew_fin(tmp,this,msg,Simulator::time());
     chewing_event_ = e2;
+    log_info("ChSt-ChEvent[%d]: event:%p",id(), e2);
     Simulator::add_event(e2);
 }
 
@@ -68,10 +69,10 @@ SimContact::chewing_complete(double size, Message* msg)
     }
     
     if (state_ == CLOSE)
-        return;
+        log_err("C[%d]: closed when chewing complete",id());
     
     if (size != 0) {
-          Event_message_received* e = 
+        Event_message_received* e = 
             new Event_message_received(Simulator::time()+latency_,dst_,size,this,msg);
         Simulator::add_event(e);
     }
@@ -125,9 +126,9 @@ SimContact::close_contact(bool forever)
 
     
     if (state_ == BUSY) {
-        
+        log_info("C[%d]: state busy while closing, chewing_event:%p",
+                 id(),chewing_event_);
         // fragmentation has to occur
-
         ASSERT(chewing_event_ != NULL);
         // schedule partial chewing complete
         double transmit_time = Simulator::time() - chewing_event_->chew_starttime_;
@@ -154,22 +155,26 @@ SimContact::process(Event* e)
 {
     switch (e->type()) {
     case CONTACT_UP : {
-	    log_info("CUP[%d]: UP NOW",id());
+        log_info("CUP[%d]: UP NOW",id());
         open_contact(((Event_contact_up* )e)->forever_);
         break;
     }
     case CONTACT_DOWN : {
-	    log_info("CDOWN[%d]: DOWN NOW",id());
+        log_info("CDOWN[%d]: DOWN NOW",id());
         close_contact(((Event_contact_down* )e)->forever_);
         break;
     }
     case CONTACT_CHEWING_FINISHED : {
-        
-        if (state_ == CLOSE)  return;
-        state_ = OPEN;
         Event_chew_fin* e1 = (Event_chew_fin* )e;
+        log_info("CChFin[%d] event:%p bundleid:%d chewing_event:%p",
+            id(),e,e1->msg_->id(),chewing_event_);
+        if (state_ == CLOSE)  {
+            ASSERT(false);
+            return;
+        }
+        state_ = OPEN;
         chewing_complete( e1->msg_->size(),e1->msg_);
-        chewing_event_ = NULL;
+        //chewing_event_ = NULL;
         //src_->open_contact(this);
         break;
     } 

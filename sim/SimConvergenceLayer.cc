@@ -59,14 +59,17 @@ SimConvergenceLayer::send_bundles(Contact* contact)
     for (iter = blist->begin(); 
          iter != blist->end(); ++iter) {
         iter_bundle = *iter;
-        log_info("\tbundle:%d",iter_bundle->bundleid_);
+        log_info("\tbundle:%d pending:%d",
+                 iter_bundle->bundleid_,iter_bundle->pendingtx());
     }
     // check, if the contact is open. If yes, send one msg from the queue
     if (sc->is_open()) {
         bundle = blist->pop_front();
-        log_info("\tsending bundle:%d",bundle->bundleid_);
-        Message* msg = SimConvergenceLayer::bundle2msg(bundle);
-        sc->chew_message(msg);
+        if(bundle) {
+            log_info("\tsending bundle:%d",bundle->bundleid_);
+            Message* msg = SimConvergenceLayer::bundle2msg(bundle);
+            sc->chew_message(msg);
+        }
     }
 }
 
@@ -98,7 +101,7 @@ SimConvergenceLayer::ct2simlink(Contact* contact)
     int id = ((SimContactInfo*)contact->contact_info())->id();
     SimContact* s =     Topology::contact(id);
     if (s == NULL) {
-	PANIC("undefined contact mapping with stored id %d",id);
+        PANIC("undefined contact mapping with stored id %d",id);
     }
     return s;
 }
@@ -157,15 +160,15 @@ SimConvergenceLayer::msg2bundle(Message* m)
     messages_[m->id()] = m;
     
     if (b == NULL) {
-	b  = new Bundle(m->id(),BundlePayload::MEMORY);
-//	b->bundleid_ = m->id();
-	
-	const char* src = id2node(m->src());
-	const char* dst = id2node(m->dst());
+        b  = new Bundle(m->id(),BundlePayload::MEMORY);
+        //b->bundleid_ = m->id();
+    
+        const char* src = id2node(m->src());
+        const char* dst = id2node(m->dst());
 
-	b->source_.assign(src);
-	b->dest_.assign(dst);
-	b->payload_.set_length((int)m->size());
+        b->source_.assign(src);
+        b->dest_.assign(dst);
+        b->payload_.set_length((int)m->size());
     }
     return  b;
 

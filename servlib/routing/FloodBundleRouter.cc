@@ -42,7 +42,20 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     Bundle* bundle = event->bundleref_.bundle();
     log_debug("FLOOD: BUNDLE_RCV bundle id %d", bundle->bundleid_);
     
-    //Bundle* bundle = event->bundleref_.bundle();
+    /*
+     * Check if the bundle isn't complete. If so, do reactive
+     * fragmentation.
+     *
+     * XXX/demmer this should maybe be changed to do the reactive
+     * fragmentation in the forwarder?
+     */
+    if (event->bytes_received_ != bundle->payload_.length()) {
+        log_debug("partial bundle, making fragment of %d bytes",
+                  event->bytes_received_);
+        FragmentManager::instance()->
+            convert_to_fragment(bundle, event->bytes_received_);
+    }
+
     Bundle* iter_bundle;
     BundleList::iterator iter;
 
@@ -58,20 +71,24 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     for (iter = pending_bundles_->begin(); 
          iter != pending_bundles_->end(); ++iter) {
         iter_bundle = *iter;
-        log_debug("\tpending_bundle:%d size:%d",
-                  iter_bundle->bundleid_,iter_bundle->payload_.length());
+        log_debug("\tpending_bundle:%d size:%d pending:%d",
+                  iter_bundle->bundleid_,iter_bundle->payload_.length(),
+                  iter_bundle->pendingtx());
         if(iter_bundle->bundleid_ == bundle->bundleid_) {
             //delete the bundle
             return;
         }
     }
     
+    pending_bundles_->push_back(bundle);
+    actions->push_back(new BundleAction(STORE_ADD, bundle));
+    
     //here we do not need to handle the new bundle immediately
     //just put it in the pending_bundles_ queue, and it
     //needs to be used only when a new contact comes up
     //**might do something different if the bundle is from
     //  the local node
-    BundleRouter::handle_bundle_received(event, actions);
+    //BundleRouter::handle_bundle_received(event, actions);
 }
 
 void
@@ -79,6 +96,12 @@ FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
                                         BundleActionList* actions)
 {
     BundleRouter::handle_bundle_transmitted(event,actions);         
+    Contact * contact = (Contact *)event->consumer_;
+    
+    //now we want to ask the contact to send the other queued
+    //bundles it has
+    contact->consume_bundle(NULL);
+    
 }
 
 

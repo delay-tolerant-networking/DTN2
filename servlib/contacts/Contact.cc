@@ -64,7 +64,8 @@ Contact::consume_bundle(Bundle* bundle)
         open();
     }
     
-    bundle_list_->push_back(bundle);
+    if(bundle)
+        bundle_list_->push_back(bundle);
     clayer_->send_bundles(this);
 }
 
