@@ -254,15 +254,24 @@ TCPConvergenceLayer::Connection::send_loop()
         }
 
         // ok, all set to go, now write it out
-        if (writevall(iov, iovcnt + 1) <= 0) {
+        total = writevall(iov, iovcnt + 1);
+        if (total <= 0) {
             log_err("error writing out bundle");
             // XXX error could be the other side shutting down, so
             // need to deal with the contact going away
             return;
         }
 
+        // XXX/demmer deal with acks, partial sending
+        bool acked = true;
+        size_t bytes_sent = bundle->payload_.length();
+
         // free up the data used by the flattened representation
         BundleProtocol::free_iovmem(bundle, &iov[1], iovcnt);
+
+        // cons up a transmission event and pass it to the router
+        BundleEvent* e = new BundleTransmittedEvent(bundle, bytes_sent, acked);
+        BundleRouter::dispatch(e);
         
         // remove the reference on the bundle (may delete it)
         bundle->del_ref();
