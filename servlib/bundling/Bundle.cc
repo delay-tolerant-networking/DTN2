@@ -1,5 +1,6 @@
 
 #include "Bundle.h"
+#include "BundleList.h"
 #include "thread/SpinLock.h"
 
 void
@@ -108,6 +109,8 @@ Bundle::del_ref()
         return ret;
     }
 
+    log_debug("/bundle", "bundle id %d: no more references, deleting bundle",
+              bundleid_);
     delete this;
     return 0;
 }
@@ -122,8 +125,8 @@ bool
 Bundle::add_container(BundleList *blist)
 {
     ScopeLock l(&lock_);
-    log_debug("/bundle/container", "bundle id %d add container %p",
-              bundleid_, blist);
+    log_debug("/bundle/container", "bundle id %d add container [%s]",
+              bundleid_, blist->name().c_str());
     if (containers_.insert(blist).second == true) {
         return true;
     }
@@ -141,8 +144,8 @@ bool
 Bundle::del_container(BundleList* blist)
 {
     ScopeLock l(&lock_);
-    log_debug("/bundle/container", "bundle id %d del container %p",
-              bundleid_, blist);
+    log_debug("/bundle/container", "bundle id %d del container [%s]",
+              bundleid_, blist->name().c_str());
     
     size_t n = containers_.erase(blist);
     if (n == 1) {
