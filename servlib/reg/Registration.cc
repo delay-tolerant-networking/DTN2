@@ -84,7 +84,7 @@ Registration::init(u_int32_t regid,
  * Constructor.
  */
 Registration::Registration(u_int32_t regid)
-    : BundleConsumer("", true, "Reg")
+    : BundleConsumer("", true, REGISTRATION)
 {
     // XXX/demmer unserialization needs to correctly set up the bundle
     // comsumer's dest_str after the object is unserialized
@@ -99,7 +99,7 @@ Registration::Registration(const BundleTuplePattern& endpoint,
                            time_t expiration,
                            const std::string& script)
     
-    : BundleConsumer(endpoint.c_str(), true, "Reg")
+    : BundleConsumer(endpoint.c_str(), true, REGISTRATION)
 {
     init(GlobalStore::instance()->next_regid(),
          endpoint, action, expiration, script);
@@ -111,7 +111,7 @@ Registration::Registration(u_int32_t regid,
                            time_t expiration,
                            const std::string& script)
     
-    : BundleConsumer(endpoint.c_str(), true, "Reg")
+    : BundleConsumer(endpoint.c_str(), true, REGISTRATION)
 {
     init(regid, endpoint, action, expiration, script);
 }

@@ -43,12 +43,15 @@
 
 namespace dtn {
 
-BundleConsumer::BundleConsumer(const char* dest_str, bool is_local, const char* type_str)
+BundleConsumer::BundleConsumer(const char* dest_str,
+                               bool is_local, type_t type)
     : Logger("/bundle/consumer"), dest_str_(dest_str),
       is_local_(is_local),
-      type_str_(type_str),
+      type_(type),
       bundle_list_(NULL)
 {
+    // allow subclass to overwrite with something nicer
+    type_str_ = type2str(type);
 }
 
 void

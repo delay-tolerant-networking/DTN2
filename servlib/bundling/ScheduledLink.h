@@ -95,7 +95,8 @@ public:
      * Constructor / Destructor
      */
     FutureContact(const char* nexthop)
-        : BundleConsumer(nexthop, false, "FutureContact"), start_(0), duration_(0)
+        : BundleConsumer(nexthop, false, FUTURE_CONTACT),
+          start_(0), duration_(0)
     {
         logpathf("/fc_contact/%s", nexthop);
         bundle_list_ = new BundleList(logpath_);

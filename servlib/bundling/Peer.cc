@@ -47,7 +47,7 @@ namespace dtn {
  * Constructor / Destructor
  */
 Peer::Peer(const char* address)
-    : BundleConsumer(address, false, "Peer"),
+    : BundleConsumer(address, false, PEER),
       address_(address)
 {
     logpathf("/peer/%s", address);

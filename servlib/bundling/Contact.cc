@@ -50,7 +50,7 @@ namespace dtn {
  * Constructor
  */
 Contact::Contact(Link* link)
-    : BundleConsumer(link->nexthop(), false, "Contact"), link_(link)
+    : BundleConsumer(link->nexthop(), false, CONTACT), link_(link)
 {
     logpathf("/contact/%s", link->nexthop());
 

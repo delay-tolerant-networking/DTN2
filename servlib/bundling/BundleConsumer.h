@@ -54,11 +54,32 @@ class BundleTuple;
  */
 class BundleConsumer : public oasys::Logger {
 public:
+    typedef enum {
+        INVALID = 0,
+        LINK = 1,
+        PEER,
+        CONTACT,
+        FUTURE_CONTACT,
+        REGISTRATION
+    } type_t;
+
+    static const char* type2str(type_t type)
+    {
+        switch(type) {
+        case LINK: 		return "Link";
+        case PEER:		return "Peer";
+        case CONTACT:		return "Contact";
+        case FUTURE_CONTACT:	return "Future Contact";
+        case REGISTRATION:	return "Reg";
+        default:		return "__INVALID__";
+        }
+    }
+    
     /**
      * Constructor. It is the responsibility of the subclass to
      * allocate the bundle_list_ if the consumer does any queuing.
      */
-    BundleConsumer(const char* dest_str, bool is_local, const char* type_str);
+    BundleConsumer(const char* dest_str, bool is_local, type_t type);
 
     /**
      * Destructor
@@ -95,7 +116,12 @@ public:
     bool is_local() { return is_local_; }
 
     /**
-     * Type of the bundle consumer. Link or Peer or Contact or Reg
+     * The type of the consumer (link, peer, contact, registration).
+     */
+    type_t type() { return type_; }
+
+    /**
+     * Stringified type.
      */
     const char* type_str() { return type_str_; }
 
@@ -109,6 +135,7 @@ public:
 protected:
     std::string dest_str_;
     bool is_local_;
+    type_t type_;
     const char* type_str_;
     BundleList* bundle_list_;
 

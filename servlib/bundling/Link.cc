@@ -78,7 +78,7 @@ Link::create_link(std::string name, link_type_t type,
  */
 Link::Link(std::string name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
-    :  BundleConsumer(nexthop, false, "Link"),
+    :  BundleConsumer(nexthop, false, LINK),
        type_(type), nexthop_(nexthop), name_(name), avail_(false),
        closing_(false), clayer_(cl)
 {

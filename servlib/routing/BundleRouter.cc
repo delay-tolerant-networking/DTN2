@@ -557,9 +557,8 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
     // and if it is available open it
     BundleConsumer* bc = nexthop->next_hop_;
 
-    // XXX/demmer this sucks -- replace with a type code for the
-    // bundle consumer, not just the type string.
-    if (strcasecmp(bc->type_str(), "Link") == 0) {
+    if (bc->type() == BundleConsumer::LINK)
+    {
         Link* link = (Link *)bc;
         if ((link->type() == Link::ONDEMAND) &&
             link->isavailable() && (!link->isopen()))
