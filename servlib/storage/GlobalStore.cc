@@ -118,8 +118,6 @@ GlobalStore::load()
                   globals.next_bundleid_, globals.next_regid_);
 
     } else if (cnt == 0 && StorageConfig::instance()->init_) {
-        log_info("globals table does not exist... initializing it");
-        
         globals.next_bundleid_ = 0;
         globals.next_regid_ = 0;
         
@@ -138,7 +136,8 @@ GlobalStore::load()
     return true;
 }
 
-bool GlobalStore::update()
+bool
+GlobalStore::update()
 {
     log_debug("updating global store");
     

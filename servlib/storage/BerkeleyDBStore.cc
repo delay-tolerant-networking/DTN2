@@ -173,6 +173,7 @@ BerkeleyDBManager::open_table(const char* tablename)
 
     u_int flags = 0;
     if (cfg->tidy_ || cfg->init_) {
+        log_info("initializing %s database table...", tablename);
         flags = DB_CREATE;
     }
 
