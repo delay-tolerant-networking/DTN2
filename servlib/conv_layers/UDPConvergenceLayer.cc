@@ -11,6 +11,7 @@
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
+#include "bundling/InternetAddressFamily.h"
 
 /******************************************************************************
  *
@@ -37,37 +38,36 @@ UDPConvergenceLayer::fini()
 /*
  * Register a new Interface 
  */
-bool UDPConvergenceLayer::add_interface(Interface* iface, int argc, const char* argv[]) {
-
+bool
+UDPConvergenceLayer::add_interface(Interface* iface,
+                                   int argc, const char* argv[])
+{
+    in_addr_t addr;
+    u_int16_t port;
+    
     log_debug("adding interface %s", iface->tuple().c_str());
     
-    // parse out the hostname / port from the interface
-    URL url(iface->admin());
-    if (! url.valid()) {
-        log_err("admin part '%s' of tuple '%s' not a valid url",
-                iface->admin().c_str(), iface->tuple().c_str());
+    // parse out the address / port from the contact tuple
+    if (! InternetAddressFamily::parse(iface->tuple(), &addr, &port)) {
+        log_err("admin part '%s' of tuple '%s' not a valid internet url",
+                iface->tuple().admin().c_str(),
+                iface->tuple().tuple().c_str());
         return false;
     }
-
-    // look up the hostname in the url
-    in_addr_t addr;
-    if (gethostbyname(url.host_.c_str(), &addr) != 0) {
-        log_err("admin host '%s' not a valid hostname", url.host_.c_str());
-        return false;
-    }
-
+    
     // make sure the port was specified
-    if (url.port_ == 0) {
-        log_err("port not specified in interface admin url '%s'",
-                iface->admin().c_str());
+    if (port == 0) {
+        log_err("port not specified in contact admin url '%s'",
+                iface->tuple().admin().c_str());
         return false;
     }
+
 
     // create a new server socket for the requested interface
     Receiver* receiver = new Receiver();
-    receiver->logpathf("%s/iface/%s:%d", logpath_, url.host_.c_str(), url.port_);
+    receiver->logpathf("%s/iface/%s:%d", logpath_, intoa(addr), port);
 
-    if (receiver->bind(addr, url.port_) != 0) {
+    if (receiver->bind(addr, port) != 0) {
         receiver->logf(LOG_ERR, "error binding to requested socket: %s",
                        strerror(errno));
         return false;
@@ -101,35 +101,32 @@ bool UDPConvergenceLayer::del_interface(Interface* iface) {
     return true;
 }
 
-bool UDPConvergenceLayer::open_contact(Contact* contact) {
-    log_debug("opening contact *%p", contact);
+bool
+UDPConvergenceLayer::open_contact(Contact* contact)
+{
+    in_addr_t addr;
+    u_int16_t port;
     
-    // parse out the hostname / port from the contact tuple
-    URL url(contact->tuple().admin());
-    if (! url.valid()) {
-        log_err("admin part '%s' of tuple '%s' not a valid url",
+    log_debug("opening contact *%p", contact);
+
+    // parse out the address / port from the contact tuple
+    if (! InternetAddressFamily::parse(contact->tuple(), &addr, &port)) {
+        log_err("admin part '%s' of tuple '%s' not a valid internet url",
                 contact->tuple().admin().c_str(),
                 contact->tuple().tuple().c_str());
         return false;
     }
-
-    // look up the hostname in the url
-    in_addr_t addr;
-    if (gethostbyname(url.host_.c_str(), &addr) != 0) {
-        log_err("admin host '%s' not a valid hostname", url.host_.c_str());
-        return false;
-    }
-        
+    
     // make sure the port was specified
-    if (url.port_ == 0) {
+    if (port == 0) {
         log_err("port not specified in contact admin url '%s'",
                 contact->tuple().admin().c_str());
         return false;
     }
-    
+
     // create a new connection for the contact
-    //YYY/Nabeel: binding is not needed with connect()
-    Sender* snd = new Sender(contact, addr, url.port_);
+    // XXX/demmer: bind?
+    Sender* snd = new Sender(contact, addr, port);
     snd->start();
 
     return true;
