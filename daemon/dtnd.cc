@@ -8,6 +8,7 @@
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Options.h>
+#include <oasys/util/StringBuffer.h>
 
 #include "applib/APIServer.h"
 #include "cmd/TestCommand.h"
@@ -18,6 +19,7 @@ int
 main(int argc, char* argv[])
 {
     TestCommand testcmd;
+    bool	testid_set = false;
     int         random_seed;
     bool        random_seed_set = false;
     bool	daemon = false;
@@ -38,7 +40,8 @@ main(int argc, char* argv[])
     new IntOpt("s", &random_seed, &random_seed_set, "seed",
                "random number generator seed");
 
-    new IntOpt("i", &testcmd.id_, "id", "set the test id");
+    new IntOpt("i", &testcmd.id_, &testid_set,
+               "id", "set the test id");
 
     Options::getopt(argv[0], argc, argv);
 
@@ -71,7 +74,12 @@ main(int argc, char* argv[])
     }
     
     // Now initialize logging
-    Log::init(logfd, loglevel, "~/.dtndebug");
+    StringBuffer prefix;
+    if (testid_set) {
+        prefix.appendf("%d: ", testcmd.id_);
+    }
+        
+    Log::init(logfd, loglevel, prefix.c_str(), "~/.dtndebug");
     logf("/daemon", LOG_DEBUG, "Bundle Daemon Initializing...");
 
     // bind a copy of argv to be accessible to test scripts
