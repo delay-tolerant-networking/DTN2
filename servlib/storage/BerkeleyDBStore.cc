@@ -51,6 +51,10 @@
 #include "BerkeleyDBStore.h"
 #include "StorageConfig.h"
 
+#if DB_VERSION_MAJOR != 4
+#error Berkeley DB major version must be 4
+#endif
+
 namespace dtn {
 
 #define NO_TX  0 // for easily going back and changing TX id's later
@@ -374,8 +378,19 @@ BerkeleyDBStore::num_elements()
 {
     DB_BTREE_STAT * sp;
 
+// XXX/demmer annoying berkeley db 4.3 / 4.2 incompatibility...
+#if     DB_VERSION_MINOR < 2
+#error  Berkeley DB minor version must be at least 2
+#endif
+    
+#if	DB_VERSION_MINOR == 2
+#define DB_STAT_TXN /* NOTHING */
+#else
+#define DB_STAT_TXN NO_TX,
+#endif
+    
     try {
-        if (db_->stat(&sp, 0) != 0)
+        if (db_->stat(DB_STAT_TXN &sp, 0) != 0)
         {
             PANIC("DB: error counting elements in database!");
         }
