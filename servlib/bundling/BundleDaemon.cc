@@ -57,20 +57,38 @@ BundleDaemon::BundleDaemon()
 
     pending_bundles_ = new BundleList("pending_bundles");
     custody_bundles_ = new BundleList("custody_bundles");
-
-    actions_ = new BundleActions();
 }
 
 /**
- * Queues the given event on the pending list of events.
+ * Virtual initialization function. Overridden in the simulator by
+ * the Node class. 
+ */
+void
+BundleDaemon::do_init()
+{
+    actions_ = new BundleActions();
+    eventq_ = new oasys::MsgQueue<BundleEvent*>;
+}
+
+/**
+ * Dispatches to the virtual post_event implementation.
  */
 void
 BundleDaemon::post(BundleEvent* event)
 {
-    __log_debug("/bundle/daemon", "posting event with type %s", event->type_str());
-    instance_->eventq_.push(event);
+    instance_->post_event(event);
 }
 
+/**
+ * Virtual post function, overridden in the simulator to use the
+ * modified event queue.
+ */
+void
+BundleDaemon::post_event(BundleEvent* event)
+{
+    log_debug("posting event with type %s", event->type_str());
+    eventq_->push(event);
+}
 
 /**
  * Format the given StringBuffer with the current statistics value.
@@ -127,7 +145,7 @@ BundleDaemon::run()
     
     while (1) {
         // grab an event off the queue, blocking until we get one
-        event = eventq_.pop_blocking();
+        event = eventq_->pop_blocking();
         ASSERT(event);
 
         // update any stats

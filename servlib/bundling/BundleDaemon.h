@@ -58,7 +58,9 @@ class BundleRouter;
 /**
  * Class that handles the basic event / action mechanism. All events
  * are queued and then forwarded to the active router module. The
- * router then responds by calling one of the various 
+ * router then responds by calling various functions on the
+ * BundleActions class that it is given, which in turn effect all the
+ * operations.
  */
 class BundleDaemon : public oasys::Logger, public oasys::Thread {
 public:
@@ -76,6 +78,13 @@ public:
      * Constructor.
      */
     BundleDaemon();
+
+    /**
+     * Virtual initialization function, overridden in the simulator to
+     * install the modified event queue (with no notifier) and the
+     * SimBundleActions class.
+     */
+    virtual void do_init();
     
     /**
      * Boot time initializer.
@@ -86,12 +95,19 @@ public:
             PANIC("BundleDaemon already initialized");
         }
         instance_ = instance;
+        instance_->do_init();
     }
 
     /**
-     * Queues the given event on the pending list of events.
+     * Dispatches to the virtual post_event implementation.
      */
     static void post(BundleEvent* event);
+
+    /**
+     * Virtual post function, overridden in the simulator to use the
+     * modified event queue.
+     */
+    virtual void post_event(BundleEvent* event);
 
     /**
      * Returns the current bundle router.
@@ -147,7 +163,7 @@ protected:
     BundleList* custody_bundles_;
     
     /// The event queue
-    oasys::MsgQueue<BundleEvent*> eventq_;
+    oasys::MsgQueue<BundleEvent*>* eventq_;
 
     /// Statistics
     u_int32_t bundles_received_;
