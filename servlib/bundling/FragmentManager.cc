@@ -184,7 +184,7 @@ FragmentManager::check_completed(ReassemblyState* state)
                       "offset %d len %d total %d done_up_to %d: "
                       "(overlapping fragment, reducing len to %d)",
                       fragi, fragn, f_offset, f_len, f_origlen, done_up_to,
-                      done_up_to - f_offset);
+                      f_len - (done_up_to - f_offset));
             
             f_len -= (done_up_to - f_offset);
             done_up_to += f_len;
