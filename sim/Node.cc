@@ -35,16 +35,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "Event.h"
 #include "Node.h"
+#include "SimBundleActions.h"
 #include "bundling/ContactManager.h"
 #include "routing/BundleRouter.h"
+#include "reg/Registration.h"
 
 using namespace dtn;
 
 namespace dtnsim {
 
 Node::Node(const char* name)
-    : BundleDaemon(), name_(name)
+    : BundleDaemon(), name_(name),
+      next_bundleid_(0), next_regid_(Registration::MAX_RESERVED_REGID)
 {
     logpathf("/node/%s", name);
     log_info("node %s initializing...", name);
@@ -55,10 +59,60 @@ Node::Node(const char* name)
     contactmgr_ = new ContactManager();
 }
 
+/**
+ * Virtual initialization function.
+ */
+void
+Node::do_init()
+{
+    actions_ = new SimBundleActions();
+    eventq_ = new std::queue<BundleEvent*>();
+}
+
+/**
+ * Virtual post function, overridden in the simulator to use the
+ * modified event queue.
+ */
+void
+Node::post_event(BundleEvent* event)
+{
+    eventq_->push(event);
+}
+
+/**
+ * Process all pending bundle events until the queue is empty.
+ */
+void
+Node::process_bundle_events()
+{
+    log_debug("processing all bundle events");
+    BundleEvent* event;
+    while (!eventq_->empty()) {
+        event = eventq_->front();
+        eventq_->pop();
+        update_statistics(event);
+        router_->handle_event(event, actions_);
+    }
+}
+
+
 void
 Node::process(Event *e)
 {
-    NOTIMPLEMENTED;
+    log_debug("handling event %s", ev2str(e->type()));
+    
+    switch(e->type()) {
+    case SIM_ROUTER_EVENT:
+        post_event(((SimRouterEvent*)e)->event_);
+        break;
+        
+    default:
+        PANIC("no Node handler for event %s", ev2str(e->type()));
+    }
+    
+    process_bundle_events();
+
+    delete e;
 }
 
 } // namespace dtnsim

@@ -65,19 +65,41 @@ namespace dtnsim {
 class Node : public EventHandler, public BundleDaemon {
 public:
     /**
-     * Constructor / Destructor
+     * Constructor
      */
     Node(const char* name);
-    
+
+    /**
+     * Virtual initialization function.
+     */
+    void do_init();
+
+    /**
+     * Destructor
+     */
     virtual ~Node() {}
         
-    const char* name() { return name_.c_str(); }
+    /**
+     * Virtual post function, overridden in the simulator to use the
+     * modified event queue.
+     */
+    virtual void post_event(BundleEvent* event);
     
     /**
      * Virtual function from processable
      */
     virtual void process(Event *e);
 
+    /**
+     * Process all pending bundle events until the queue is empty.
+     */
+    void process_bundle_events();
+    
+    /**
+     * Accessor for name.
+     */
+    const char* name() { return name_.c_str(); }
+    
     /**
      * Accessor for router.
      */
@@ -93,7 +115,22 @@ public:
     {
         instance_ = this;
     }
-    
+
+    /**
+     * Return the next available bundle id.
+     */
+    u_int32_t next_bundleid()
+    {
+        return next_bundleid_++;
+    }
+
+    /**
+     * Return the next available registration id.
+     */
+    u_int32_t next_regid()
+    {
+        return next_regid_++;
+    }
     
 //     /**
 //      * Action when informed that message transmission is finished.
@@ -116,9 +153,13 @@ public:
 //     virtual  void create_consumer() {};
     
 protected:
+    
     const std::string   name_;
     BundleRouter*	router_;
     ContactManager*	contactmgr_;
+    u_int32_t		next_bundleid_;
+    u_int32_t		next_regid_;
+    std::queue<BundleEvent*>* eventq_;
 };
 
 } // namespace dtnsim
