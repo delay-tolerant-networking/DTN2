@@ -132,6 +132,12 @@ ContactManager::add_link(Link *link)
     log_debug("adding link %s", link->name());
     links_->insert(link);
     BundleDaemon::post(new LinkCreatedEvent(link));
+
+    // ONDEMAND links are assumed to be available
+    if (link->type() == Link::ONDEMAND) {
+        link->set_link_available();
+    }
+
 }
 
 void

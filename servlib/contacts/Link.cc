@@ -106,11 +106,6 @@ Link::Link(std::string name, link_type_t type,
     cl_info_ = NULL;
     bundle_list_ = new BundleList(logpath_);
 
-    // ONDEMAND links are assumed to be available
-    if (type == ONDEMAND) {
-        set_link_available();
-    }
-
     log_info("new link *%p", this);
 }
 
