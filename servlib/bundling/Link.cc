@@ -85,6 +85,14 @@ Link::Link(std::string name, link_type_t type,
     ASSERT(clayer_);
     logpathf("/link/%s", name_.c_str());
 
+    // pretty up the BundleConsumer type str
+    switch(type) {
+    case ONDEMAND: 	type_str_ = "Ondemand Link"; break;
+    case SCHEDULED: 	type_str_ = "Scheduled Link"; break;
+    case OPPORTUNISTIC: type_str_ = "Opportunistic Link"; break;
+    default: 		PANIC("bogus link_type_t");
+    }
+
     peer_ = BundleDaemon::instance()->contactmgr()->find_peer(nexthop);
     if (peer_ == NULL) {
         peer_ = new Peer(nexthop);
@@ -139,8 +147,13 @@ Link::open()
 
         if (type_ == ONDEMAND) {
             clayer()->open_contact(contact_);
+
+        } else if (type_ == OPPORTUNISTIC) {
+            // the CL will take care of adding the contact
+            
         } else {
-            PANIC("Link::open not implemented for links other than ondemand");
+            PANIC("Link::open not implemented for %s links",
+                  link_type_to_str(type_));
         }
         
     } else {
@@ -226,10 +239,11 @@ Link::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
      */
     if (isopen()) {
         log_debug("Link %s is open, so queueing it on contact queue",name());
-        contact_->enqueue_bundle(bundle,mapping);
+        contact_->enqueue_bundle(bundle, mapping);
+        
     } else {
         log_debug("Link %s is closed, so queueing it on link queue",name());
-        BundleConsumer::enqueue_bundle(bundle,mapping);
+        BundleConsumer::enqueue_bundle(bundle, mapping);
     }
 }
 
