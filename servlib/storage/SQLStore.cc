@@ -128,14 +128,13 @@ SQLStore::has_table(const char* name) {
     if (retval) 
 	log_debug("table with name '%s' exists", name);
     else
-    	log_debug("table with name '%s' does not exists", name);
+    	log_debug("table with name '%s' does not exist", name);
     return retval; 
 }
 
 int
 SQLStore::create_table(SerializableObject* obj) 
 {
-    
     if (has_table(table_name_)) {
 	return 0;
     }
