@@ -6,7 +6,33 @@
 <h1>Environment Variables
 </h1>
 
-Body.
+<p>
+Using environment variables, you can configure some aspects of
+DTN2. The following table summarizes these variables.
+
+<p>
+<table border>
+<tr>
+<th> Variable
+<th> Component
+<th> Syntax
+<th> Description
+
+<tr>
+<td>DTNAPI_ADDR
+<td>dtnd and all DTN API clients (dtncp, dtnping, etc)
+<td>An IP address (<b>not</b> a hostname)
+<td>This is the address that dtnd listens on for requests from DTN
+API clients, and the address that DTN API clients send requests to.
+
+<tr>
+<td>DTNAPI_PORT
+<td>dtnd and all DTN API clients (dtncp, dtnping, etc)
+<td>An IP port number
+<td>This is the port that dtnd listens on for requests from DTN
+API clients, and the port that DTN API clients send requests to.
+
+</table>
 
 </body>
 </html>

@@ -1,0 +1,83 @@
+<html>
+<head>
+<title> DTN2 Manual: Logging </title>
+</head>
+<body>
+<h1>About the Logging System
+</h1>
+
+<p>
+The DTN2 implementation uses the logging facility from
+<tt>oasys</tt>. It supports multiple log paths and different log
+levels for each log path.
+
+<p>
+If the file <tt>~/.dtndebug</tt> exists, it can be used to customize
+which log messages are emitted and which are ignored. It is read
+one line at a time. Lines may start with "#" to indicate a
+comment. Blank lines are ignored. Any other line should have
+a logpath in the left column, and a log level in the right
+column.  For instance, this .dtndebug file makes the default
+level info, but causes debug info to be printed for all link
+operations other than for tcp0.
+
+<blockquote><pre># example .dtndebug file
+
+/		info
+/link/tcp0	info
+/link		debug</pre></blockquote>
+
+<p>In dtnd, the log messages go out to standard out, by default. You can
+change that using the "-o filename" option to dtnd.
+
+<p>Here is an incomplete list of log paths used by the DTN2
+implementation:
+
+<p>
+<table border>
+<tr><td>/dtnd			<td>dtnd server startup/operation
+<tr><td>/dtnserver		<td>dtnd internals
+<tr><td>/interface		<td>interface management
+<tr><td>/link/$linkname		<td>link management
+<tr><td>/storage/$dbtype	<td>database operations
+<tr><td>/route			<td>routing related messages
+<tr><td>/tcl			<td>Errors from TCL (the underlying interpreter)
+<tr><td>/assert			<td>Failing assertions
+<tr><td>/apisrv			<td>API Server
+<tr><td>/apisrv/sock		<td>API Server (socket-specific messages)
+<tr><td>/cl/tcp			<td>TCP Convergence Layer
+<tr><td>/cl/tcp/conn/$ip:$port	<td>connection specific messages
+<tr><td>/cl/udp			<td>UDP Convergence Layer
+<tr><td>/contact/bundles	<td>
+<tr><td>/registration		<td>
+</table>
+
+<p>Here is the list of the logging levels:
+
+<ul>
+<li>debug
+<li>info
+<li>warn, warning
+<li>err, error
+<li>crit, critical
+<li>always
+</ul>
+
+<h2>Rereading the .dtndebug file </h2>
+
+<p>You can force the daemon to reread the <tt>.dtndebug</tt> file
+while it is running by sending it a HUP signal.
+
+<h2>Rotating the log file </h2>
+
+<p>You can send the daemon the USR1 signal to make it reopen the
+log file. You could use a shell script like this to roll the log
+file and start a new one:
+
+<blockquote><pre>mv log.txt log-`date +%Y-%m-%d`.txt
+pkill -USR1 dtnd
+</pre></blockquote>
+
+</body>
+</html>
+

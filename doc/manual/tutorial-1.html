@@ -1,0 +1,167 @@
+<html>
+<head>
+<title> DTN2 Manual: Tutorial 1 </title>
+</head>
+<body>
+<h1>Tutorial 1
+</h1>
+
+<p>
+In this turorial, you'll learn how to configure and start an instance
+of dtnd, then make it answer a ping.
+
+<h2> Configuration </h2>
+
+<p>
+In this section, we'll prepare an appropriate <tt>dtn.conf</tt>
+file for our instance of dtnd.
+
+<h3> Directories </h3>
+
+<p>
+First, you need to choose a directory that will hold the files dtnd
+needs. For the purposes of this tutorial, we'll assume your username
+is <tt>fred</tt> and that you want dtnd to write into
+<tt>/home/fred/dtn</tt>.
+
+<p> Make the <tt>/home/fred/dtn</tt> directory, then copy the example
+<tt>dtn.conf</tt> file from <tt>DTN2/daemon/dtn.conf</tt> to
+<tt>/home/fred/dtn/dtn.conf</tt>. Edit the <tt>dtn.conf</tt> file. For
+this tutorial, we'll use the simplest database to configure,
+BerkeleyDB. Leave the <i>storage set type berkeleydb</i> line alone.
+In other tutorials, you'll see how to use a SQL database. Set the
+<i>payloaddir</i> to <tt>/home/fred/dtn/bundles</tt> and set the
+<i>dbdir</i> to <tt>/home/fred/dtn/db</tt>.
+
+<h3>The Local Tuple</h3>
+
+<p> You don't need to make any changes in the <i>local_tuple</i>, but
+scroll down and take a look at it anyway. In the defualt
+configuration, it looks like this: <i>route local_tuple
+"bundles://internet/host://[info hostname]"</i>. Note the square
+brackets. To understand what's happening here, you need to know that
+this configuration file is not simply a file of settings for dtnd, but
+an actual <a href="www.tcl.tk">TCL</a> script. It is interpreted by
+the TCL interpreter that is built in to dtnd. In TCL, square brackets
+mean "interpret this first, and replace the brackets with the result".
+So before dtnd sees a <i>route local_tuple ...</i> command, TCL
+processes the <i>info hostname</i> command. As you might be able to
+guess by now, the entire line results in the <i>local_tuple</i> being
+set to a custom string based on your hostname.
+
+<p> This is the only place in this particular configuration file where
+we will use TCL features like the square brackets. However, you should
+remember that all the power of TCL is available to you as you write
+your own configuration files, should you desire it.
+
+<p> So the local tuple is set, but what is it? From the
+<a href="arch.html">Architecture</a> section, you should recall
+that nodes in the DTN are identified by tuples. The local tuple
+is simply the way our DTN node will refer to itself. Without this
+setting, it would not recognize bundles intended for it, and might
+just pass them on ad infinitum! People who have configured Internet
+email systems like Postfix or Sendmail might recognize this setting,
+as mail routers need to know their own name for the same reason.
+
+<p>
+DTN nodes within the administrative region named "internet" are
+expected to use hostnames in the local part of the tuple that
+resolve to an IP address they have configured. However, that still
+leaves you considerable latitude in how to choose your local tuple.
+For instance, if you had a machine named something cumbersome like
+<tt>az10001.prod.sfo.company.com</tt>, but there was a nice simple
+CNAME of <tt>dtn.company.com</tt> pointing to it, you could set the
+hostname in the local tuple to the simpler <tt>dtn.company.com</tt>.
+That might be a very good idea, in fact. Afterall, the computer might
+get renamed, but if it is still playing the same part in the DTN
+there's no reason to force other members of the DTN to use a new name.
+Also, consider the case where you need to move the DTN node to another
+machine due to hardware failure, but there are already bundles in
+flight with a destination tuple using the original name. Using a CNAME
+can help avoid losing those bundles.
+
+<p>
+At this time, one dtnd can have only one local tuple name. This
+limitation might disappear in future versions if it proves to be a
+problem.
+
+<h3> Interfaces </h3>
+
+<p>
+Take a look at the <i>interface add</i> command a few lines
+down. You will not likely need to change this, but you can see
+that this is where you control which IP address and port dtnd will
+be listening on. Usually DTN nodes that are communicating via
+TCP listen on port 5000, but that is not an IETF port assignment
+and nothing about the protocol requires operation on that port.
+If you have another application on the same server listening on
+port 5000, you'll need to choose a different port for your dtnd
+to use.
+
+<p> In some security contexts, and with some virtual interface
+configurations, it is desireable to have dtnd listen only on a certain
+interface, for instance "listen to internal connections only".
+You can do this by changing the 0.0.0.0 address (meaning "listen on
+all interfaces") to an address that is on only one of the host's
+interface. For this tutorial, we will allow dtnd to listen on all
+interfaces, so leave the address as 0.0.0.0.
+
+<p> Note that we are adding an interface of type TCP. There are other
+ways that DTN nodes can communicate, including across a filesystem
+(where some manual process, like a messenger with a USB keychain
+drive, is responsible for moving the files).  When you start using
+alternative <b>convergence layers</b> you'll have other <i>interface
+add</i> lines in your configuration file.
+
+<p> The <i>interface add</i> command can take convergence layer
+specific arguments to customize the default behavior of links
+that operate across that interface. For the purposes of this tutorial,
+we will be using the defaults. For more information on these arguments
+see the reference pages on the <a href="configuration.html#link">link
+command</a>.
+
+<h3> Links and Routes </h3>
+
+<p>
+Because in this tutorial, we are setting up a standalone dtnd,
+we will not need any <tt>link</tt> or <tt>route</tt> statements.
+
+<h2> Initializing the Database </h2>
+
+<p>
+Before dtnd can use the databases to keep track of runtime state,
+it needs to initialize them. This is a simple matter of starting
+the daemon once with the <tt>--init-db</tt> argument. You'll
+also want to give it the location of the configuration file, so
+that dtnd can find the correct database directory. Put that together
+and you have:
+
+<blockquote><pre>$ <font color=blue>daemon/dtnd.conf -c /home/fred/dtn/dtn.conf --init-db </font>
+[1108493233.189564 /dtnd info] Bundle Daemon Initializing...
+[1108493233.209564 /dtnd info] random seed is 209564
+[1108493233.224564 /dtnd info] parsing configuration file /home/fred/dtn/dtn.conf ...
+[1108493233.231564 /dtnd info] dtnd parsing configuration...
+[1108493233.234564 /interface info] adding interface tcp host://0.0.0.0:5000/
+[1108493233.276564 /dtnd info] dtnd configuration parsing complete
+[1108493233.609564 /storage/berkeleydb info] database file '/home/fred/dtn/db/DTN.db' validated
+[1108493233.615564 /storage/berkeleydb info] initializing globals database table ...
+[1108493233.662564 /storage/berkeleydb info] initializing bundles database table ...
+[1108493233.733564 /storage/berkeleydb info] initializing registration database table...
+[1108493233.948564 /storage/berkeleydb info] closing database file...
+[1108493234.037564 /dtnd info] database initialization complete.
+</pre>
+</blockquote>
+
+<h2> Starting the Daemon </h2>
+
+<p>
+For now, you start dtnd from the commandline, like any other
+Unix command. By default, the TCL interpreter takes input from
+standard in, so you should leave it running in the foreground. While
+you are learning the ins and outs of dtnd, it is best to run it
+this way, so that you can interact with it. Use the <tt>-c</tt>
+argument to tell it where to find the configuration file.
+
+</body>
+</html>
+
