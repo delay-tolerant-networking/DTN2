@@ -51,7 +51,8 @@ RegistrationCommand::help_string()
 {
     return("registration add <logger|tcl> <endpoint> <args...>\n"
            "registration tcl <regid> <endpoint> <cmd> <args...>\n"
-           "registration del <regid> <endpoint>");
+           "registration del <regid> <endpoint>\n"
+	   "registration list");
 }
 
 int
@@ -64,7 +65,11 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
     const char* op = argv[1];
 
-    if (strcmp(op, "add") == 0) {
+    if (strcmp(op, "list") == 0) {
+	RegistrationTable::instance()->dump_to_debug();
+
+	return TCL_OK;
+    } else if (strcmp(op, "add") == 0) {
         // registration add <logger|tcl> <demux> <args...>
         if (argc < 4) {
             wrong_num_args(argc, argv, 2, 4, INT_MAX);
