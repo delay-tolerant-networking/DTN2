@@ -42,8 +42,13 @@ if ( !(-d $expbase))
     exit;
 }
 
-@protos=("tcp0","tcp1","dtn0","dtn1","mail0","mail1");
-
+%protos=("tcp0" => "TCP (E2E)",
+         "tcp1" => "TCP (HOP)",
+         "dtn0" => "DTN (E2E)",
+         "dtn1" => "DTN (HOP)",
+         "mail0" => "MAIL (E2E)",
+         "mail1" => "MAIL (HOP)"
+         );
 
 $plotbase="$expbase/gnuplot";
 $logbase="$plotbase/log";
@@ -92,8 +97,8 @@ set linestyle 8 lt 3 lw 2.5 pt 15 ps 2 ;
 ");
 
 
-&p1("set xlabel ", &qs("Message index"));
-&p1("set ylabel ", &qs("Delivery time(s)"));
+&p1("set ylabel ", &qs("Message index"));
+&p1("set xlabel ", &qs("Delivery time(s)"));
 
 
 $gx_init = $logscalex;
@@ -117,7 +122,7 @@ $lsid = 1;
 
 $xrange=100;
 $yrange=100;
-foreach $proto (@protos) {
+foreach $proto (keys %protos) {
     my $timesfile="$expbase/$proto/times.txt";
 
     if ( !(-e $timesfile)) 

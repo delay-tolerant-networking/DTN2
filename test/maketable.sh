@@ -36,8 +36,6 @@ do
     ftplog=$exppath/ftplog
     n=$maxnodes
     
-
-    resfile=$exppath/times.txt
     
     start=0
     end=-1
@@ -63,7 +61,10 @@ do
     fi
     echo -n "$exppath : txlen:$txlen rcvlen:$rcvlen ::"
     
+    restmpfile=/tmp/$exp.$proto.res
+    resfile=$exppath/times.txt
 
+    rm -f /tmp/$exp.$proto.res
     rm -f /tmp/$exp.$proto.index
     rm -f /tmp/$exp.$proto.$n
     rm -f /tmp/$exp.$proto.1
@@ -77,19 +78,27 @@ do
     head -n $rcvlen $ftplog.1 | awk '{print $1}'  > /tmp/$exp.$proto.1
     head -n $rcvlen $ftplog.$n | awk '{print $1}'  > /tmp/$exp.$proto.$n
     
-    paste /tmp/$exp.$proto.index /tmp/$exp.$proto.1 /tmp/$exp.$proto.$n > $resfile
+    paste /tmp/$exp.$proto.index /tmp/$exp.$proto.1 /tmp/$exp.$proto.$n > $restmpfile
+    
+    
 
 
     #echo "ftp duration is: start of sending first file to receiving last file"
     #echo
     
     
-    start=`cat $resfile | head -n 1| awk '{print $2}'`
-    end=`cat $resfile | tail -n 1| awk '{print $3}'`
+    send_start=`cat $restmpfile | head -n 1| awk '{print $2}'`
+    send_end=`cat $restmpfile | tail -n 1| awk '{print $2}'`
+    rcv_start=`cat $restmpfile | head -n 1| awk '{print $3}'`
+    rcv_end=`cat $restmpfile | tail -n 1| awk '{print $3}'`
     
-    let diff=$end-$start
+    let diff=$rcv_end-$send_start
     if [ "$rcvlen" -le "0" ]; then
 	    diff=-1  
     fi
     echo  "Time:$diff "
+    
+    
+    echo "# $send_start $send_end $rcv_start $rcv_end  $rcvlen" > $resfile
+    cat $restmpfile >> $resfile
 done
