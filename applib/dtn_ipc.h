@@ -83,10 +83,9 @@ typedef enum {
     DTN_CLOSE,
     DTN_GETINFO,
     DTN_REGISTER,
-    DTN_UNREGISTER,
+    DTN_BIND,
     DTN_SEND,
-    DTN_RECV,
-    DTN_POLL
+    DTN_RECV
 } dtnapi_message_type_t;
 
 /*

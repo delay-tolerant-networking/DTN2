@@ -6,6 +6,7 @@
 #include "io/UDPClient.h"
 #include "io/NetUtils.h"
 #include "reg/Registration.h"
+#include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
 #include "storage/GlobalStore.h"
 
@@ -84,6 +85,8 @@ ClientAPIServer::ClientAPIServer(in_addr_t remote_host,
 
     sock_->bind(htonl(INADDR_LOOPBACK), DTN_API_SESSION_PORT);
     sock_->connect(remote_host, remote_port);
+
+    bindings_ = new RegistrationList();
 }
 
 
@@ -96,10 +99,9 @@ ClientAPIServer::msgtoa(u_int32_t type)
         CASE(DTN_CLOSE);
         CASE(DTN_GETINFO);
         CASE(DTN_REGISTER);
-        CASE(DTN_UNREGISTER);
+        CASE(DTN_BIND);
         CASE(DTN_SEND);
         CASE(DTN_RECV);
-        CASE(DTN_POLL);
 
     default:
         return "(unknown type)";
@@ -144,6 +146,8 @@ ClientAPIServer::run()
             DISPATCH(DTN_GETINFO,  handle_getinfo);
             DISPATCH(DTN_REGISTER, handle_register);
             DISPATCH(DTN_SEND,     handle_send);
+            DISPATCH(DTN_BIND,     handle_bind);
+            DISPATCH(DTN_RECV,     handle_recv);
 
         default:
             log_err("unknown message type code 0x%x", type);
@@ -255,6 +259,8 @@ ClientAPIServer::handle_register()
     } else {
         reg = new Registration(endpoint, action);
     }
+
+    regid = reg->regid();
     
     // return the new registration id
     if (!xdr_dtn_reg_id_t(xdr_encode_, &regid)) {
@@ -271,6 +277,40 @@ ClientAPIServer::handle_register()
     return 0;
 }
 
+int
+ClientAPIServer::handle_bind()
+{
+    dtn_reg_id_t regid;
+    dtn_tuple_t endpoint;
+
+    memset(&endpoint, 0, sizeof(endpoint));
+    
+    // unpack the request
+    if (!xdr_dtn_reg_id_t(xdr_decode_, &regid) ||
+        !xdr_dtn_tuple_t(xdr_decode_, &endpoint))
+    {
+        log_err("error in xdr unpacking arguments");
+        return -1;
+    }
+
+    BundleTuple tuple;
+    tuple.assign(&endpoint);
+
+    // look up the registration
+    RegistrationTable* regtable = RegistrationTable::instance();
+    Registration* reg = regtable->get(regid, tuple);
+
+    if (!reg) {
+        log_err("can't find registration %d tuple %s",
+                regid, tuple.c_str());
+        return -1;
+    }
+
+    bindings_->push_back(reg);
+
+    return 0;
+}
+    
 int
 ClientAPIServer::handle_send()
 {
@@ -376,6 +416,74 @@ ClientAPIServer::handle_send()
     int len = xdr_getpos(xdr_encode_);
     if (sock_->send(buf_, len, 0) != len) {
         log_err("error sending response code");
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+ClientAPIServer::handle_recv()
+{
+    Bundle* b;
+    dtn_bundle_spec_t spec;
+    dtn_bundle_payload_t payload;
+    dtn_bundle_payload_location_t location;
+    dtn_timeval_t timeout;
+
+    // unpack the arguments
+    if ((!xdr_dtn_bundle_payload_location_t(xdr_decode_, &location)) ||
+        (!xdr_dtn_timeval_t(xdr_decode_, &timeout)))
+    {
+        log_err("error in xdr unpacking arguments");
+        return -1;
+    }
+
+    // XXX/demmer implement this for multiple registrations by
+    // building up a poll vector in bind / unbind. for now we assert
+    // in bind that there's only one binding.
+    // also implement the recv timeout
+    Registration* reg = bindings_->front();
+    if (!reg) {
+        log_err("no bound registration");
+        return -1;
+    }
+
+    b = reg->bundle_list()->pop_blocking();
+    ASSERT(b);
+
+    memset(&spec, 0, sizeof(spec));
+    memset(&payload, 0, sizeof(payload));
+    
+    b->source_.copyto(&spec.source);
+    b->dest_.copyto(&spec.dest);
+    b->replyto_.copyto(&spec.replyto);
+
+    // XXX/demmer copy delivery options and class of service fields
+
+    // XXX/demmer verify bundle size constraints
+    payload.location = location;
+    
+    if (location == DTN_PAYLOAD_MEM) {
+        char** dst = &payload.dtn_bundle_payload_t_u.buf.buf_val;
+        u_int* len = &payload.dtn_bundle_payload_t_u.buf.buf_len;
+
+        *len = b->payload_.length();
+        *dst = b->payload_.raw_data();
+    } else {
+        PANIC("file-based payloads not implemented");
+    }
+ 
+    if (!xdr_dtn_bundle_spec_t(xdr_encode_, &spec) ||
+        !xdr_dtn_bundle_payload_t(xdr_encode_, &payload))
+    {
+       log_err("internal error in xdr");
+       return -1;
+    }
+    
+    int len = xdr_getpos(xdr_encode_);
+    if (sock_->send(buf_, len, 0) != len) {
+        log_err("error sending bundle reply");
         return -1;
     }
 

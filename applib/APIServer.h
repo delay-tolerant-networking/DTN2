@@ -8,6 +8,7 @@
 #include "thread/Thread.h"
 
 class UDPClient;
+class RegistrationList;
 
 /**
  * Class that implements the main server side handling of the DTN
@@ -48,9 +49,13 @@ public:
 protected:
     int handle_getinfo();
     int handle_register();
+    int handle_bind();
     int handle_send();
+    int handle_recv();
 
     static const char* msgtoa(u_int32_t type);
+
+    RegistrationList* bindings_;
 };
 
 

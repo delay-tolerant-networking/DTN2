@@ -118,6 +118,6 @@ protected:
 /**
  * Typedef for a list of Registrations.
  */
-typedef std::list<Registration*> RegistrationList;
+class RegistrationList : public std::list<Registration*> {};
 
 #endif /* _REGISTRATION_H_ */

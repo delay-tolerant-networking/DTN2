@@ -120,7 +120,8 @@ public:
     typedef enum {
         ADMIN_STATUS_REPORT	= 0x01,
         ADMIN_CUSTODY_SIGNAL 	= 0x02,
-        ADMIN_PING		= 0x03,
+        ADMIN_ECHO		= 0x03,
+        ADMIN_NULL		= 0x04,
     } admin_payload_type_t;
 
     /**

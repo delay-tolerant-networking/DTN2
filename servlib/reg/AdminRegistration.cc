@@ -31,7 +31,8 @@ AdminRegistration::consume_bundle(Bundle* bundle)
      *
      * 0x1     - bundle status report
      * 0x2     - custodial signal
-     * 0x3     - ping request (tbd)
+     * 0x3     - echo request
+     * 0x4     - null request
      * (other) - reserved
      */
     buf = bundle->payload_.read_data(0, 1);
@@ -46,8 +47,14 @@ AdminRegistration::consume_bundle(Bundle* bundle)
         PANIC("custody signal not implemented yet");
         break;
 
-    case BundleProtocol::ADMIN_PING:
-        log_info("ping from %s", bundle->replyto_.c_str());
+    case BundleProtocol::ADMIN_ECHO:
+        log_info("ADMIN_ECHO from %s", bundle->source_.c_str());
+
+        // XXX/demmer implement the echo
+        break;
+        
+    case BundleProtocol::ADMIN_NULL:
+        log_info("ADMIN_NULL from %s", bundle->source_.c_str());
         break;
         
     default:

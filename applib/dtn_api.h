@@ -89,11 +89,36 @@ extern int dtn_register(dtn_handle_t handle,
                         dtn_reg_id_t* newregid);
 
 /**
+ * Associate a registration id and endpoint string with the current
+ * ipc channel. This must be called before calling dtn_recv to inform
+ * the daemon of which registrations the application is interested in.
+ */
+extern int dtn_bind(dtn_handle_t handle,
+                    dtn_reg_id_t regid,
+                    dtn_tuple_t* endpoint);
+
+/**
+ * Explicitly remove an association from the current ipc handle. Note
+ * that this is also implicitly done when the handle is closed.
+ */
+extern int dtn_unbind(dtn_handle_t handle,
+                      dtn_reg_id_t regid);
+
+/**
  * Send a bundle either from memory or from a file.
  */
 extern int dtn_send(dtn_handle_t handle,
                     dtn_bundle_spec_t* spec,
                     dtn_bundle_payload_t* payload);
+
+/**
+ * Blocking receive for a bundle
+ */
+extern int dtn_recv(dtn_handle_t handle,
+                    dtn_bundle_spec_t* spec,
+                    dtn_bundle_payload_location_t location,
+                    dtn_bundle_payload_t* payload,
+                    dtn_timeval_t timeout);
 
 /*************************************************************
  *

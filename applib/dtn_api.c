@@ -180,6 +180,29 @@ dtn_register(dtn_handle_t h,
 }
 
 /**
+ * Associate a registration id with the current ipc channel. This must
+ * be called before calling dtn_recv to inform the daemon of which
+ * registrations the application is interested in.
+ */
+int
+dtn_bind(dtn_handle_t h, dtn_reg_id_t regid, dtn_tuple_t* endpoint)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    
+    // pack the request
+    if (!xdr_dtn_reg_id_t(xdr_encode, &regid) ||
+        !xdr_dtn_tuple_t(xdr_encode, endpoint))
+    {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+
+    // send the message
+    return dtnipc_send(handle, DTN_BIND);
+}
+
+/**
  * Send a bundle either from memory or from a file.
  */
 int
@@ -218,6 +241,53 @@ dtn_send(dtn_handle_t h,
     return result;
 }
 
+/**
+ * Blocking receive for a bundle
+ */
+int
+dtn_recv(dtn_handle_t h,
+         dtn_bundle_spec_t* spec,
+         dtn_bundle_payload_location_t location,
+         dtn_bundle_payload_t* payload,
+         dtn_timeval_t timeout)
+{
+    int ret;
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    XDR* xdr_decode = &handle->xdr_decode;
+
+    // zero out the spec and payload structures
+    memset(spec, 0, sizeof(spec));
+    memset(payload, 0, sizeof(payload));
+
+    // pack the arguments
+    if ((!xdr_dtn_bundle_payload_location_t(xdr_encode, &location)) ||
+        (!xdr_dtn_timeval_t(xdr_encode, &timeout)))
+    {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send(handle, DTN_RECV) < 0) {
+        return -1;
+    }
+
+    // wait for a response
+    if ((ret = dtnipc_recv(handle)) < 0) {
+        return -1;
+    }
+
+    // unpack the result
+    if (!xdr_dtn_bundle_spec_t(xdr_decode, spec) ||
+        !xdr_dtn_bundle_payload_t(xdr_decode, payload))
+    {
+        handle->err = DTN_XDRERR;
+        return -1;
+    }
+    
+    return 0;
+}
 
 /*************************************************************
  *

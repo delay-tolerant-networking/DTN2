@@ -58,6 +58,17 @@ BundleTuple::assign(dtn_tuple_t* tuple)
     parse_tuple();
 }
 
+void
+BundleTuple::copyto(dtn_tuple_t* tuple)
+{
+    memcpy(tuple->region, region_.data(), region_.length());
+    tuple->region[region_.length()] = '\0';
+
+    // XXX/demmer tuple memory management
+    tuple->admin.admin_val = strdup(admin_.c_str());
+    tuple->admin.admin_len = strlen(tuple->admin.admin_val);
+}
+
 
 BundleTuple::~BundleTuple()
 {

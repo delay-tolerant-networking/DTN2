@@ -92,9 +92,14 @@ public:
     }
 
     /**
-     * Assign the tuple from the api exposed structure.
+     * Assign the BundleTuple from the dtn_tuple_t.
      */
     void assign(dtn_tuple_t* tuple);
+
+    /**
+     * Copy the BundleTuple to the api exposed structure.
+     */
+    void copyto(dtn_tuple_t* tuple);
     
     // Accessors
     const std::string& tuple()  const { return tuple_; }
