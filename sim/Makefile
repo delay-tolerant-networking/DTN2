@@ -5,7 +5,7 @@ SRCDIR := ..
 
 
 SIM_SRCS :=	\
-	main.cc		\
+	dtnsim.cc	\
 	Event.cc	\
 	Message.cc	\
 	GlueNode.cc 	\
@@ -27,10 +27,10 @@ SIM_OBJS := $(SIM_SRCS:.cc=.o)
 #
 # Default target is to build the simulator
 #
-all: sim
+all: dtnsim
 
 COMPONENT_LIBS := $(SRCDIR)/servlib/libdtnserv.a $(SRCDIR)/oasys/liboasys.a 
-sim: $(SIM_OBJS) $(COMPONENT_LIBS)
+dtnsim: $(SIM_OBJS) $(COMPONENT_LIBS)
 	$(CPP) $(SIM_OBJS) $(COMPONENT_LIBS) $(STATIC_LIBS) \
 		-o $@ $(LFLAGS) $(LIBS)
 

@@ -4,7 +4,7 @@
 SRCDIR := ..
 
 DAEMON_SRCS :=	\
-	main.cc	\
+	dtnd.cc	\
 
 DAEMON_OBJS := $(DAEMON_SRCS:.cc=.o)
 
