@@ -49,18 +49,21 @@ TARGET = @TARGET@
 
 # native target
 ifeq ($(TARGET),native)
-INCDIRS     += @TCL_INCDIR@ @DB_INCDIR@
-LIBDIRS     := @TCL_LIBDIR@ @DB_LIBDIR@
-LIBS	    := @LIBS@ @TCL_LIB@ @DB_LIB@
-STATIC_LIBS := @STATIC_LIBS@
-CC          := gcc
-CPP         := g++
-STRIP       := strip
-POST        :=
-INSTALL     := install
-RM          := rm
+
+INCDIRS    += @TCL_INCDIR@ @DB_INCDIR@ @PG_INCDIR@
+LIBDIRS     = @TCL_LIBDIR@ @DB_LIBDIR@ @PG_LIBDIR@
+LIBS	    = @LIBS@ @TCL_LIB@ @DB_LIB@ @PG_LIB@
+STATIC_LIBS = @STATIC_LIBS@
+CC          = gcc
+CPP         = g++
+STRIP       = strip
+POST        =
+INSTALL     = install
+RM          = rm
 WHOLE_AR    := -Wl,-whole-archive
 NO_WHOLE_AR := -Wl,-no-whole-archive
+
+
 endif
 
 
@@ -84,11 +87,13 @@ endif
 #
 # Cons up CFLAGS
 #
+PGFLAGS     	= -DHAVE_NAMESPACE_STD -DDLLIMPORT=""
 DEBUG 		= @DEBUG@
 OPTIMIZE	= @OPTIMIZE@
 WARN  		= -Wall -Werror @OPTIMIZE_WARN@
-CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(WARN)
+CFLAGS		= $(INCDIRS) $(DEBUG) $(OPTIMIZE) $(WARN) $(PGFLAGS)
 LFLAGS		= $(LIBDIRS)
+
 
 #
 # To link with the servlib, use the following to make sure that all
