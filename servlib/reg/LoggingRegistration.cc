@@ -7,7 +7,7 @@
 #include "storage/GlobalStore.h"
 #include "util/StringUtils.h"
 
-LoggingRegistration::LoggingRegistration(const BundleTuple& endpoint)
+LoggingRegistration::LoggingRegistration(const BundleTuplePattern& endpoint)
 {
     u_int32_t regid = GlobalStore::instance()->next_regid();
     logpathf("/registration/logging/%d", regid);

@@ -19,7 +19,7 @@ class Registration;
  */
 class LoggingRegistration : public Thread, public Logger {
 public:
-    LoggingRegistration(const BundleTuple& endpoint);
+    LoggingRegistration(const BundleTuplePattern& endpoint);
     virtual void run();
     
 protected:
