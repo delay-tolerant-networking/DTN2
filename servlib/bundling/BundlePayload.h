@@ -161,10 +161,10 @@ public:
     /**
      * Get a pointer to the in-memory data buffer.
      */
-    u_char* memory_data()
+    const u_char* memory_data()
     {
         ASSERT(location_ == MEMORY);
-        return (u_char*)data_.c_str();
+        return (const u_char*)data_.c_str();
     }
     
     /**
