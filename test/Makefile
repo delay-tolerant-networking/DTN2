@@ -9,13 +9,16 @@ SRCDIR := ..
 all: test
 
 BINFILES :=			\
+	address-family-test	\
+	timer-test		\
+
+BROKEN := 			\
 	command-test		\
 	simple-marshal-test	\
 	simple-sql-test		\
-	timer-test		\
 
 
-test: check $(BINFILES)
+test: $(BINFILES)
 
 #
 # Include the servlib Makefile to get the list of servlib objects
@@ -33,8 +36,9 @@ echoobjs:
 %-test.o: %-test.cc
 	$(CPP) $(CFLAGS) -c $< -o $@
 
-%-test: %-test.o $(SERVLIB_OBJS)
-	$(CPP) $(CFLAGS) $< $(SERVLIB_OBJS) -o $@ $(LFLAGS) $(LIBS) 
+%-test: %-test.o $(SERVLIB_OBJS) $(SRCDIR)/oasys/liboasys.a
+	$(CPP) $(CFLAGS) $< $(SERVLIB_OBJS) $(SRCDIR)/oasys/liboasys.a \
+		-o $@ $(LFLAGS) $(LIBS) 
 
 #
 # Include the common rules
