@@ -1,16 +1,15 @@
 #ifndef _CONTACT_MANAGER_H_
 #define _CONTACT_MANAGER_H_
 
-class Link;
+#include <oasys/debug/Log.h>
+
+class BundleTuple;
 class Contact;
+class Link;
+class LinkSet;
 class Peer;
-
-
-#include "Bundle.h"
-#include "Link.h"
-#include "Contact.h"
-#include "Peer.h"
-
+class PeerSet;
+class StringBuffer;
 
 /**
  * A contact manager singleton class.

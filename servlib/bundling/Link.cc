@@ -55,7 +55,8 @@ Link::Link(std::string name, link_type_t type, const char* conv_layer,
      
     // By default link does not have an associated contact
     contact_ = NULL ;
-    /**
+
+    /*
      * Note that bundle list is not initialized, for ondemand links it
      * must be null
      */

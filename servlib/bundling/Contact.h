@@ -11,12 +11,8 @@ class ConvergenceLayer;
 
 #include "BundleConsumer.h"
 #include "BundleTuple.h"
-
-//#include "debug/Debug.h"
-//#include "debug/Formatter.h"
 #include "Link.h"
 
-class Link;
 class ContactInfo;
 class ConvergenceLayer;
 
@@ -27,7 +23,6 @@ class ConvergenceLayer;
  */
 class Contact : public Formatter, public BundleConsumer {
 public:
-
     /**
      * Constructor / Destructor
      */

@@ -1,4 +1,11 @@
+
+#include <oasys/util/StringBuffer.h>
+
 #include "ContactManager.h"
+#include "BundleTuple.h"
+#include "Contact.h"
+#include "Link.h"
+#include "Peer.h"
 
 /**
  * Define the singleton contact manager instance
@@ -12,7 +19,6 @@ ContactManager::ContactManager() : Logger("/contact_manager")
 {
     peers_ = new PeerSet();
     links_ = new LinkSet();
-    
 }
 
 /**********************************************
