@@ -4,14 +4,12 @@
 # time.
 #
 
-if [catch {
-    package require tclreadline
-
-    # Run the command loop with the given prompt
-    proc command_loop {prompt} {
+# Run the command loop with the given prompt
+proc command_loop {prompt} {
+    if [catch {
+	package require tclreadline
 	global command_prompt
 	set command_prompt $prompt
-
 	namespace eval tclreadline {
 	    proc prompt1 {} {
 		global command_prompt
@@ -20,14 +18,10 @@ if [catch {
 	}
 
 	tclreadline::Loop
-    }
-} err] {
-    log /tcl WARNING "can't load tclreadline: $err"
-    log /tcl WARNING "no command loop available"
-
-    # Set up a dummy proc to run a "command loop" that just waits
-    # forever in the tcl event loop
-    proc command_loop {prompt} {
+    } err] {
+	log /tcl WARNING "can't load tclreadline: $err"
+	log /tcl WARNING "no command loop available"
+	
 	global forever
 	vwait forever
     }
