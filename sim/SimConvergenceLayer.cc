@@ -66,7 +66,10 @@ SimConvergenceLayer::open_contact(Contact* contact)
 bool 
 SimConvergenceLayer::close_contact(Contact* contact) 
 {
-    PANIC("can not explicitly close contact using simulator convergence layer");
+    //PANIC("can not explicitly close contact using simulator convergence layer");
+    //this is a callback from the Contact - some state cleanup might
+    //be necessary
+    return true;
 }
 
 

@@ -31,8 +31,8 @@ int
 Simdtn2Command::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
     if (argc < 6) {
-	wrong_num_args(argc, argv, 2, 6, INT_MAX);
-	return TCL_ERROR;
+        wrong_num_args(argc, argv, 2, 6, INT_MAX);
+        return TCL_ERROR;
     }
     
     long time = atoi(argv[1]) ;
@@ -43,26 +43,26 @@ Simdtn2Command::exec(int argc, const char** argv, Tcl_Interp* interp)
     
     if (strcmp(cmd, "addroute") == 0) {
 //      simdtn2 <time> addroute <src> <dest> <contact_id> 
-	int cid  = atoi(next_hop_str);
+        int cid  = atoi(next_hop_str);
         SimContact* link = Topology::contact(cid);
-	Contact* contact = SimConvergenceLayer::simlink2ct(link);
-	ASSERT(contact != NULL);
-	
-	const char* dest_str_full = 
-	    SimConvergenceLayer::id2node(atoi(dest_str));
-	BundleTuplePattern dest(dest_str_full);
+        Contact* contact = SimConvergenceLayer::simlink2ct(link);
+        ASSERT(contact != NULL);
+        
+        const char* dest_str_full = 
+            SimConvergenceLayer::id2node(atoi(dest_str));
+        BundleTuplePattern dest(dest_str_full);
         RouteEntry* entry = new RouteEntry(dest, contact, FORWARD_COPY);
         
-	log_info("addroute to dest %s using contact id %d",dest_str_full,cid);
+        log_info("addroute to dest %s using contact id %d",dest_str_full,cid);
         // post the event, through the simulator 
-	int src = atoi(src_str);
-	Event_for_br* e = 
-	    new Event_for_br(time,Topology::node(src),new RouteAddEvent(entry));
-	Simulator::add_event(e);
+        int src = atoi(src_str);
+        Event_for_br* e = 
+            new Event_for_br(time,Topology::node(src),new RouteAddEvent(entry));
+        Simulator::add_event(e);
 
     }
     else {
-	PANIC("unimplemented command");
+        PANIC("unimplemented command");
     }
     
     return TCL_OK;

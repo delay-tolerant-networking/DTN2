@@ -40,23 +40,24 @@ Simulator::run()
     is_running_ = true;
 
      while(!eventq_.empty()) {
-            if (is_running_) {
-		Event* e = eventq_.top();
-		eventq_.pop();
-		/* Move the clock */
-                time_ =  e->time();
-                if (e->is_valid()) {
-                    ASSERT(e->handler() != NULL);
-                    /* Process the event */
-		    log_debug("Event type %s at time %f",e->type_str(),time_);
-                    e->handler()->process(e);
-                 }
-		if ((time_ > Simulator::runtill_)) {
-		    log_info("Exitting simulation. Current time (%f) > Max time (%d)",time_,Simulator::runtill_);
-                    exit_simulation();
-                }
-            } // if is_running_
-     }
-     log_info("eventq is empty, time is %f ",time_);
+        if (is_running_) {
+            Event* e = eventq_.top();
+            eventq_.pop();
+            /* Move the clock */
+            time_ =  e->time();
+            if (e->is_valid()) {
+                ASSERT(e->handler() != NULL);
+                /* Process the event */
+                log_debug("Event type %s at time %f",e->type_str(),time_);
+                e->handler()->process(e);
+            }
+            if ((time_ > Simulator::runtill_)) {
+                log_info("Exitting simulation. Current time (%f) > Max time (%d)",
+                         time_,Simulator::runtill_);
+                exit_simulation();
+            }
+        } // if is_running_
+    }
+    log_info("eventq is empty, time is %f ",time_);
 }
 

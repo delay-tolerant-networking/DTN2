@@ -21,13 +21,13 @@ GlueNode::message_received(Message* msg)
 {
 
     if (msg->dst() == id()) {
-	log_info("Rc msg at node %d, id %d, size-rcv %f",
-		 id(),msg->id(),msg->size());
+        log_info("RCV[%d]: msg id %d, size-rcv %f",
+                 id(),msg->id(),msg->size());
     }
     else {
-	log_info("Fw msg at node %d, id %d, size-rcv %f",
-		 id(),msg->id(),msg->size());
-	forward(msg);
+        log_info("FWD[%d]: msg id %d, size-rcv %f",
+                 id(),msg->id(),msg->size());
+        forward(msg);
     }
 }
 
@@ -42,7 +42,7 @@ GlueNode::chewing_complete(SimContact* c, double size, Message* msg)
     Contact* consumer = SimConvergenceLayer::simlink2ct(c);
     int tsize = (int)size;
     BundleTransmittedEvent* e = 
-	new BundleTransmittedEvent(bundle,consumer,tsize,acked);
+        new BundleTransmittedEvent(bundle,consumer,tsize,acked);
     forward_event(e);
     
 }
@@ -52,6 +52,7 @@ GlueNode::open_contact(SimContact* c)
 {
     Contact* ct = SimConvergenceLayer::simlink2ct(c);
     ContactAvailableEvent* e = new ContactAvailableEvent(ct);
+    log_info("CUP[%d]: Contact OPEN",id());
     forward_event(e);
 }
 
@@ -59,9 +60,10 @@ GlueNode::open_contact(SimContact* c)
 void 
 GlueNode::close_contact(SimContact* c)
 {
-    Contact* ct = SimConvergenceLayer::simlink2ct(c);
-    ContactBrokenEvent* e = new ContactBrokenEvent(ct);
-    forward_event(e);
+    //Contact* ct = SimConvergenceLayer::simlink2ct(c);
+    //ContactBrokenEvent* e = new ContactBrokenEvent(ct);
+    log_info("CDOWN[%d]: Contact OPEN",id());
+    //forward_event(e);
 }
 
 
@@ -70,24 +72,23 @@ GlueNode::process(Event* e) {
     
     switch (e->type()) {
     case MESSAGE_RECEIVED:    {
-	
-	Event_message_received* e1 = (Event_message_received*)e;
-	Message* msg = e1->msg_;
-	log_info("received msg (%d) size %3f",msg->id(),msg->size());
-	
-	// update the size of the message that is received
-	msg->set_size(e1->sizesent_);
-	message_received(msg);
-	break;
+            Event_message_received* e1 = (Event_message_received*)e;
+            Message* msg = e1->msg_;
+            log_info("GOT[%d]: msg (%d) size %3f",id(),msg->id(),msg->size());
+        
+        // update the size of the message that is received
+        msg->set_size(e1->sizesent_);
+        message_received(msg);
+        break;
     }
-	
+        
     case FOR_BUNDLE_ROUTER: {
-	BundleEvent* be = ((Event_for_br* )e)->bundle_event_;
-	forward_event(be);
-	break;
+        BundleEvent* be = ((Event_for_br* )e)->bundle_event_;
+        forward_event(be);
+        break;
     }
     default:
-	PANIC("unimplemented action code");
+        PANIC("unimplemented action code");
     }
 }
 
@@ -117,18 +118,18 @@ GlueNode::execute_router_action(BundleAction* action)
     case FORWARD_UNIQUE:
     case FORWARD_COPY: {
         BundleForwardAction* fwdaction = (BundleForwardAction*)action;
-	
-	log_debug("forward bundle (%d) as told by routercode",bundle->bundleid_);
+        
+        log_debug("forward bundle (%d) as told by routercode",bundle->bundleid_);
         BundleConsumer* bc = fwdaction->nexthop_ ; 
-	bc->consume_bundle(bundle);
+        bc->consume_bundle(bundle);
         break;
     }
     case STORE_ADD: {
-	log_info("storing ignored %d", bundle->bundleid_);
+        log_info("storing ignored %d", bundle->bundleid_);
         break;
     }
     case STORE_DEL: {
-	log_debug("deletion ignored %d", bundle->bundleid_);
+        log_debug("deletion ignored %d", bundle->bundleid_);
         break;
     }        
     default:
@@ -156,7 +157,7 @@ GlueNode::forward_event(BundleEvent* event)
     
     // process the actions
     for (iter = actions.begin(); iter != actions.end(); ++iter) {
-	execute_router_action(*iter);
+        execute_router_action(*iter);
     }
     
 }

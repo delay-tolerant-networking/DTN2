@@ -18,6 +18,7 @@ SIM_SRCS :=	\
 	Topology.cc	\
 	TrAgent.cc	\
 	LogSim.cc	\
+	../daemon/DTNCommands.cc \
 
 SIM_OBJS := $(SIM_SRCS:.cc=.o)
 

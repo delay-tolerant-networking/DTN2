@@ -30,7 +30,7 @@ TrAgent::send(double time, int size) {
     Node* src_tmp = Topology::node(src_);
     Event_message_received *esend = new Event_message_received(time,src_tmp,size,NULL,msg);
     Simulator::add_event(esend);
-    log_info("G msg id %d size %d",msg->id(),size);
+    log_info("GEN[%d]: src:%d dst:%d size %d",msg->id(),src_,dst_,size);
 }
 
 void
