@@ -310,7 +310,8 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR TARGET DEBUG OPTIMIZE OPTIMIZE_WARN STATIC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB DEPFLAGS DB_ENABLED POSTGRES_ENABLED MYSQL_ENABLED SQL_ENABLED CPP EGREP LIBOBJS POW_LIB LTLIBOBJS'
+ac_subdirs_all="$ac_subdirs_all oasys"
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR TARGET DEBUG OPTIMIZE OPTIMIZE_WARN STATIC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB DEPFLAGS DB_ENABLED POSTGRES_ENABLED MYSQL_ENABLED SQL_ENABLED CPP EGREP LIBOBJS POW_LIB subdirs LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -4518,7 +4519,8 @@ done
 
 
 
-for ac_header in arpa/inet.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/ioctl.h sys/socket.h sys/time.h unistd.h wchar.h
+
+for ac_header in arpa/inet.h err.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/ioctl.h sys/socket.h sys/time.h unistd.h wchar.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
@@ -6484,6 +6486,71 @@ done
 
 
 
+    # This is most likely not the best "autoconfy" way of doing this...
+    echo "$as_me:$LINENO: checking whether math.h defines fpclassify" >&5
+echo $ECHO_N "checking whether math.h defines fpclassify... $ECHO_C" >&6
+
+    if test "${oasys_cv_func_fpclassify+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+      oasys_cv_func_fpclassify=0
+      cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+        #define _GNU_SOURCE 1
+        #include <math.h>
+        #ifndef fpclassify
+        #error no fpclassify
+        #endif
+
+int
+main ()
+{
+int main() {}
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  oasys_cv_func_fpclassify=1
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+fi
+
+
+    if test $oasys_cv_func_fpclassify = 1 ; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_FPCLASSIFY
+_ACEOF
+
+      echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+    else
+      echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+    fi
 
 
 
@@ -6507,7 +6574,12 @@ done
 
 
 
-for ac_func in bzero getaddrinfo gethostbyname gettimeofday isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir setenv socket strcasecmp strchr strcspn strdup strerror strrchr strspn strstr strtol strtoul
+
+
+
+
+
+for ac_func in bzero getaddrinfo gethostbyname gethostbyname_r getopt_long gettimeofday inet_pton isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir setenv socket strcasecmp strchr strcspn strdup strerror strrchr strspn strstr strtol strtoul
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
 echo "$as_me:$LINENO: checking for $ac_func" >&5
@@ -6591,16 +6663,14 @@ fi
 done
 
 
-          ac_config_files="$ac_config_files Rules.make"
-
-          ac_config_files="$ac_config_files config.h"
+                    ac_config_files="$ac_config_files Rules.make config.h"
 
           ac_config_headers="$ac_config_headers auto.config.h:auto.config.h.in"
 
 
-          ac_config_files="$ac_config_files oasys/Rules.make"
 
-          ac_config_files="$ac_config_files oasys/config.h"
+
+subdirs="$subdirs oasys"
 
 
 cat >confcache <<\_ACEOF
@@ -7129,8 +7199,6 @@ do
   # Handling of arguments.
   "Rules.make" ) CONFIG_FILES="$CONFIG_FILES Rules.make" ;;
   "config.h" ) CONFIG_FILES="$CONFIG_FILES config.h" ;;
-  "oasys/Rules.make" ) CONFIG_FILES="$CONFIG_FILES oasys/Rules.make" ;;
-  "oasys/config.h" ) CONFIG_FILES="$CONFIG_FILES oasys/config.h" ;;
   "auto.config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS auto.config.h:auto.config.h.in" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
@@ -7248,6 +7316,7 @@ s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@POW_LIB@,$POW_LIB,;t t
+s,@subdirs@,$subdirs,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF
 
@@ -7706,8 +7775,152 @@ if test "$no_create" != yes; then
   $ac_cs_success || { (exit 1); exit 1; }
 fi
 
+#
+# CONFIG_SUBDIRS section.
+#
+if test "$no_recursion" != yes; then
 
-chmod oug-w Rules.make config.h auto.config.h
+  # Remove --cache-file and --srcdir arguments so they do not pile up.
+  ac_sub_configure_args=
+  ac_prev=
+  for ac_arg in $ac_configure_args; do
+    if test -n "$ac_prev"; then
+      ac_prev=
+      continue
+    fi
+    case $ac_arg in
+    -cache-file | --cache-file | --cache-fil | --cache-fi \
+    | --cache-f | --cache- | --cache | --cach | --cac | --ca | --c)
+      ac_prev=cache_file ;;
+    -cache-file=* | --cache-file=* | --cache-fil=* | --cache-fi=* \
+    | --cache-f=* | --cache-=* | --cache=* | --cach=* | --cac=* | --ca=* \
+    | --c=*)
+      ;;
+    --config-cache | -C)
+      ;;
+    -srcdir | --srcdir | --srcdi | --srcd | --src | --sr)
+      ac_prev=srcdir ;;
+    -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=*)
+      ;;
+    -prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
+      ac_prev=prefix ;;
+    -prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
+      ;;
+    *) ac_sub_configure_args="$ac_sub_configure_args $ac_arg" ;;
+    esac
+  done
+
+  # Always prepend --prefix to ensure using the same prefix
+  # in subdir configurations.
+  ac_sub_configure_args="--prefix=$prefix $ac_sub_configure_args"
+
+  ac_popdir=`pwd`
+  for ac_dir in : $subdirs; do test "x$ac_dir" = x: && continue
+
+    # Do not complain, so a configure script can configure whichever
+    # parts of a large source tree are present.
+    test -d $srcdir/$ac_dir || continue
+
+    { echo "$as_me:$LINENO: configuring in $ac_dir" >&5
+echo "$as_me: configuring in $ac_dir" >&6;}
+    { if $as_mkdir_p; then
+    mkdir -p "$ac_dir"
+  else
+    as_dir="$ac_dir"
+    as_dirs=
+    while test ! -d "$as_dir"; do
+      as_dirs="$as_dir $as_dirs"
+      as_dir=`(dirname "$as_dir") 2>/dev/null ||
+$as_expr X"$as_dir" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
+         X"$as_dir" : 'X\(//\)[^/]' \| \
+         X"$as_dir" : 'X\(//\)$' \| \
+         X"$as_dir" : 'X\(/\)' \| \
+         .     : '\(.\)' 2>/dev/null ||
+echo X"$as_dir" |
+    sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{ s//\1/; q; }
+  	  /^X\(\/\/\)[^/].*/{ s//\1/; q; }
+  	  /^X\(\/\/\)$/{ s//\1/; q; }
+  	  /^X\(\/\).*/{ s//\1/; q; }
+  	  s/.*/./; q'`
+    done
+    test ! -n "$as_dirs" || mkdir $as_dirs
+  fi || { { echo "$as_me:$LINENO: error: cannot create directory \"$ac_dir\"" >&5
+echo "$as_me: error: cannot create directory \"$ac_dir\"" >&2;}
+   { (exit 1); exit 1; }; }; }
+
+    ac_builddir=.
+
+if test "$ac_dir" != .; then
+  ac_dir_suffix=/`echo "$ac_dir" | sed 's,^\.[\\/],,'`
+  # A "../" for each directory in $ac_dir_suffix.
+  ac_top_builddir=`echo "$ac_dir_suffix" | sed 's,/[^\\/]*,../,g'`
+else
+  ac_dir_suffix= ac_top_builddir=
+fi
+
+case $srcdir in
+  .)  # No --srcdir option.  We are building in place.
+    ac_srcdir=.
+    if test -z "$ac_top_builddir"; then
+       ac_top_srcdir=.
+    else
+       ac_top_srcdir=`echo $ac_top_builddir | sed 's,/$,,'`
+    fi ;;
+  [\\/]* | ?:[\\/]* )  # Absolute path.
+    ac_srcdir=$srcdir$ac_dir_suffix;
+    ac_top_srcdir=$srcdir ;;
+  *) # Relative path.
+    ac_srcdir=$ac_top_builddir$srcdir$ac_dir_suffix
+    ac_top_srcdir=$ac_top_builddir$srcdir ;;
+esac
+# Don't blindly perform a `cd "$ac_dir"/$ac_foo && pwd` since $ac_foo can be
+# absolute.
+ac_abs_builddir=`cd "$ac_dir" && cd $ac_builddir && pwd`
+ac_abs_top_builddir=`cd "$ac_dir" && cd ${ac_top_builddir}. && pwd`
+ac_abs_srcdir=`cd "$ac_dir" && cd $ac_srcdir && pwd`
+ac_abs_top_srcdir=`cd "$ac_dir" && cd $ac_top_srcdir && pwd`
+
+
+    cd $ac_dir
+
+    # Check for guested configure; otherwise get Cygnus style configure.
+    if test -f $ac_srcdir/configure.gnu; then
+      ac_sub_configure="$SHELL '$ac_srcdir/configure.gnu'"
+    elif test -f $ac_srcdir/configure; then
+      ac_sub_configure="$SHELL '$ac_srcdir/configure'"
+    elif test -f $ac_srcdir/configure.in; then
+      ac_sub_configure=$ac_configure
+    else
+      { echo "$as_me:$LINENO: WARNING: no configuration information is in $ac_dir" >&5
+echo "$as_me: WARNING: no configuration information is in $ac_dir" >&2;}
+      ac_sub_configure=
+    fi
+
+    # The recursion is here.
+    if test -n "$ac_sub_configure"; then
+      # Make the cache file name correct relative to the subdirectory.
+      case $cache_file in
+      [\\/]* | ?:[\\/]* ) ac_sub_cache_file=$cache_file ;;
+      *) # Relative path.
+        ac_sub_cache_file=$ac_top_builddir$cache_file ;;
+      esac
+
+      { echo "$as_me:$LINENO: running $ac_sub_configure $ac_sub_configure_args --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir" >&5
+echo "$as_me: running $ac_sub_configure $ac_sub_configure_args --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir" >&6;}
+      # The eval makes quoting arguments work.
+      eval $ac_sub_configure $ac_sub_configure_args \
+           --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir ||
+        { { echo "$as_me:$LINENO: error: $ac_sub_configure failed for $ac_dir" >&5
+echo "$as_me: error: $ac_sub_configure failed for $ac_dir" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    cd $ac_popdir
+  done
+fi
+
+
+chmod oug-w Rules.make config.h auto.config.h oasys/Rules.make oasys/config.h
 
 echo "DTN2 configure state:"
 echo "Target/Tools:"

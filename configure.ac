@@ -170,7 +170,7 @@ dnl Checks for header files.
 dnl -------------------------------------------------------------------------
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/ioctl.h sys/socket.h sys/time.h unistd.h wchar.h])
+AC_CHECK_HEADERS([arpa/inet.h err.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/ioctl.h sys/socket.h sys/time.h unistd.h wchar.h])
 
 dnl -------------------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -197,26 +197,23 @@ AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([bzero getaddrinfo gethostbyname gettimeofday isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir setenv socket strcasecmp strchr strcspn strdup strerror strrchr strspn strstr strtol strtoul])
+AC_OASYS_FUNC_FPCLASSIFY
+AC_CHECK_FUNCS([bzero getaddrinfo gethostbyname gethostbyname_r getopt_long gettimeofday inet_pton isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir setenv socket strcasecmp strchr strcspn strdup strerror strrchr strspn strstr strtol strtoul])
 
 dnl -------------------------------------------------------------------------
 dnl Output
 dnl -------------------------------------------------------------------------
-AC_CONFIG_FILES([Rules.make])
-AC_CONFIG_FILES([config.h])
+AC_CONFIG_FILES(Rules.make config.h)
 AC_CONFIG_HEADER([auto.config.h:auto.config.h.in])
 
 dnl
-dnl Since the DTN2 configure.ac should be a strict superset of the checks 
-dnl in the oasys configure.ac, we always regenerate the oasys files as 
-dnl well.
+dnl Always reconfigure oasys as well
 dnl
-AC_CONFIG_FILES([oasys/Rules.make])
-AC_CONFIG_FILES([oasys/config.h])
+AC_CONFIG_SUBDIRS(oasys)
 
 AC_OUTPUT
 
-chmod oug-w Rules.make config.h auto.config.h
+chmod oug-w Rules.make config.h auto.config.h oasys/Rules.make oasys/config.h
 
 echo "DTN2 configure state:"
 echo "Target/Tools:"
