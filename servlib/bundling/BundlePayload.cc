@@ -36,12 +36,11 @@ BundlePayload::~BundlePayload()
     
 }
 
-
 void
 BundlePayload::serialize(SerializeAction* a)
 {
-    a->process("data", &data_);
-    a->process("fname", &data_);
+    a->process("filename", &fname_);
+    a->process("length",   &length_);
 }
 
 void
