@@ -6,7 +6,6 @@
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
 #include "io/NetUtils.h"
-#include "thread/Timer.h"
 #include "util/URL.h"
 
 #include <sys/poll.h>
@@ -781,8 +780,6 @@ TCPConvergenceLayer::Connection::recv_loop()
             goto shutdown;
         }
 
-        TimerSystem::instance();
-        
         // now loop until we're done with the rest
         while (acked_len < payload_len) {
             log_debug("recv_loop: acked %d/%d, reading next typecode...",

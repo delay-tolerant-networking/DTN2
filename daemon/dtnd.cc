@@ -14,6 +14,7 @@
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
 #include "storage/StorageConfig.h"
+#include "thread/Timer.h"
 
 int
 main(int argc, char** argv)
@@ -56,6 +57,7 @@ main(int argc, char** argv)
     // Set up all components
     ConvergenceLayer::init_clayers();
     InterfaceTable::init();
+//    TimerSystem::init();
 
     // Create the forwarder but don't start it running yet. This lets
     // the conf file post events but they won't get dispatched until
