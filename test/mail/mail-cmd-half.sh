@@ -38,7 +38,7 @@ if($exp_type == 1) then
 else
     set delivery_mode = q
     set queueruntime  = 1s
-    set singlethread  = true
+    set singlethread  = false 
     set host_stat_dir = .hoststat-$exp-$prehop
     set cache_size    = 1
 endif
