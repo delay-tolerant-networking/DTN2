@@ -9,6 +9,10 @@ BundleStore::BundleStore(PersistentStore* store)
     // read the next_bundle_id 
 }
 
+BundleStore::~BundleStore()
+{
+}
+
 /**
  * Create a new bundle instance, then make a generic call into the
  * persistent store to look up the bundle and fill in it's members if
