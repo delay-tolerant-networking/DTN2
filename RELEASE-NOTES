@@ -1,7 +1,7 @@
 Release Notes for DTN2
 ----------------------
 
-2.1.1 (March 2005)
+2.1.0 (March 2005)
 ------------------
 - Major restructuring of the configuration and build process to use
   autoconf to generate configure specifications
