@@ -2,10 +2,6 @@
 # test script that runs an smtp daemon within the bundle daemon
 #
 
-package require smtp
-package require smtpd
-package require mime
-
 proc smtpd_deliver_mime {token} {
     set sender [lindex [mime::getheader $token From] 0]
     set recipients [lindex [mime::getheader $token To] 0]
@@ -17,6 +13,10 @@ proc smtpd_deliver_mime {token} {
 }
 
 proc smtpd_start {port {deliver_mime smtpd_deliver_mime}} {
+    package require smtp
+    package require smtpd
+    package require mime
+    
     smtpd::configure -deliverMIME $deliver_mime
     smtpd::start 0 $port
 }
