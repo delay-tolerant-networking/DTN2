@@ -65,28 +65,27 @@ class LinkSet : public std::set<Link*> {};
  *
  * The state of a link (regarding its availability) is described by two bits:
  * First: Every link has a 'bool' availability bit.
- * This indicates whether the link is a potential candidate to be used for actual
- * transmission of packets. If this bit is set the link can be used to
+ * This indicates whether the link is a potential candidate to be used for
+ * actual transmission of packets. If this bit is set the link can be used to
  * send packets, and if not then it can not be used to send packets.
  * This bit is also the key difference between different types of links.
- * How is the bit set/unset is discussed later.(see below)
+ * How is the bit set/unset is discussed later. (see below)
  *
  * Second: A link can have a contact associated with it.
  * A contact represents an actual connection. A contact is created
  * only if link's availability is set. 
- * If a contact exists on link we say that the link is open (i.e contact_ != NULL)
- * otherwise we say that the link is closed
+ * If a contact exists on link we say that the link is open
+ * (i.e contact_ != NULL), otherwise we say that the link is closed.
  *
  * A link also has a queue for storing bundles if no contact
  * is currently active on it. Every link has a unique name asssociated
  * with it which is used to identify it. The name is configured 
- * explicitly when link is created
+ * explicitly when the link is created
  *
  * Creating new links:
- * Links are created explicitly as configuration. Syntax is:
- * route link_create <name> <nexthop> <type> <conv_layer> <params>
- * See RouteCommand.h
- * XXX/Sushant Fix order of arguments ??
+ * Links are created explicitly in the configuration. Syntax is:
+ * link add <name> <nexthop> <type> <conv_layer> <args>
+ * See servlib/cmd/LinkCommand.cc for implementation of this TCL cmd.
  *
  *  ----------------------------------------------------------
  *
@@ -121,12 +120,15 @@ class LinkSet : public std::set<Link*> {};
  *
  * Only ONDEMAND links the availability bit is set when the link is
  * constructed. i.e an ONDEMAND link is always available as one would
- * expect. Though by default it is not open until the router explicitly opens it.
+ * expect. Though by default it is not open until the router explicitly
+ * opens it.
+ *
  * An ONDEMAND link can be closed either because of convergence
  * layer failure or because the link has been idle for too long.
  * If link gets closed because the convergence layer detects failure
  * and there are messages which are queued on the link, the router
  * will automatically open the link again.
+ *
  * For ONDEMAND links mostly in the default router implemetation
  * there are no messages queued on the link queue.
  * This is because since link is always available as soon as something is to be
@@ -139,11 +141,14 @@ class LinkSet : public std::set<Link*> {};
  * For OPPORTUNISTIC links the availability bit is set by the code which
  * detects when the link is available to be used.
  * The OPPORTUNISTIC link has a queue containing bundles which are waiting 
- * for link to become available. When  link becomes available the router is informed.
- * It is upto router to open  a new contact on the link and transfer 
- * messages from one queue to another. Similarly when a contact is broken  router performs
- * the transferring of messages from contact'a queue to link's queue.
- * The key is that an external entity controls when to set/unset link availability bit.
+ * for link to become available. When the link becomes available the
+ * router is informed.
+ * It is up to the router to open a new contact on the link and transfer 
+ * messages from one queue to another. Similarly when a contact is broken
+ * the router performs the transferring of messages from contact's
+ * queue to link's queue.
+ * The key is that an external entity controls when to set/unset link
+ * availability bit.
  * ONDEMAND links may also store history or any other aggregrate
  * statistics in link info if they need.
  *
@@ -166,13 +171,12 @@ class LinkSet : public std::set<Link*> {};
  * the link queue to the contact queue.
  * (similar to what happens in OPPORTUNISTIC links)
  *
- * An interesting question is to defined the order in which the messages
+ * An interesting question is to define the order in which the messages
  * from the link queue and the contact queue are merged. This is because
  * router may already have scheduled some messages on the queue of
  * current contact when it was a future contact.
  *
- *
-*/
+ */
 class Link : public oasys::Formatter, public BundleConsumer {
 public:
 /**
