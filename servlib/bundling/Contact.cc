@@ -8,7 +8,7 @@ Contact::Contact(contact_type_t type, const BundleTuple& tuple)
     : Logger("/contact"), BundleConsumer(&tuple_),
       type_(type), tuple_(tuple), open_(false)
 {
-    bundle_list_ = new BundleList();
+    bundle_list_ = new BundleList("/contact/" + tuple.tuple());
     log_debug("new contact *%p", this);
 
     clayer_ = ConvergenceLayer::find_clayer(tuple.admin());

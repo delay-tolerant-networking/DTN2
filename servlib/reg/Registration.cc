@@ -20,12 +20,12 @@ Registration::Registration(u_int32_t regid,
       active_(false)
 {
     logpathf("/registration/%d", regid);
+    bundle_list_ = new BundleList(logpath_);
     
     if (expiration == 0) {
         // XXX/demmer default expiration
     }
     
-    bundle_list_ = new BundleList();
 }
 
 /**
