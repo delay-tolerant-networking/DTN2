@@ -56,7 +56,7 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle, BundleTuple& source)
     size_t region_len = orig_bundle->source_.region().length();
     size_t admin_len =  orig_bundle->source_.admin().length();
     
-    size_t len = sizeof(BundleStatusReport) + 2 + region_len + admin_len;
+    size_t len = sizeof(StatusReport) + 2 + region_len + admin_len;
 
     payload_.set_length(len, BundlePayload::MEMORY);
     ASSERT(payload_.location() == BundlePayload::MEMORY);

@@ -89,6 +89,7 @@ public:
     static struct _defaults {
         int ack_blocksz_;
         int keepalive_interval_;
+        u_int32_t idle_close_time_;
         int test_fragment_size_;
     } Defaults;
 
@@ -149,6 +150,7 @@ protected:
 
         bool send_bundle(Bundle* bundle, size_t* acked_len);
         int handle_ack(Bundle* bundle, size_t* acked_len);
+        void note_data_rcvd();
 
         bool recv_bundle();
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
@@ -156,8 +158,14 @@ protected:
         oasys::TCPClient* sock_;
         size_t ack_blocksz_;
         int keepalive_msec_;
+        int idle_close_time_;
+        struct timeval data_rcvd_;
     };
 };
+
+#ifndef MIN
+# define MIN(x, y) ((x)<(y) ? (x) : (y))
+#endif
 
 } // namespace dtn
 

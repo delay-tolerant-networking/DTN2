@@ -54,7 +54,7 @@ usage()
 int
 main(int argc, const char** argv)
 {
-    int i,  k;
+    int i, k;
     int cnt = INT_MAX;
     int ret;
     dtn_handle_t handle;
@@ -63,7 +63,7 @@ main(int argc, const char** argv)
     dtn_reg_id_t regid;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
-    char* endpoint, *buffer;
+    unsigned char* endpoint, *buffer;
     char s_buffer[BUFSIZE + 1];
     int debug = 1;
     s_buffer[BUFSIZE] = '\0';
@@ -135,10 +135,9 @@ main(int argc, const char** argv)
         for (k=0; k < payload.dtn_bundle_payload_t_u.buf.buf_len; k++)
         {
             if (buffer[k] >= ' ' && buffer[k] <= '~')
-                s_buffer[k%BUFSIZE] = buffer[i];
+                s_buffer[k%BUFSIZE] = buffer[k];
             else
                 s_buffer[k%BUFSIZE] = '.';
-                    
 
             if (k%BUFSIZE == 0) // new line every 16 bytes
             {
@@ -155,9 +154,22 @@ main(int argc, const char** argv)
             if (k%BUFSIZE == BUFSIZE-1)
             {
                 printf(" |  %s\n", s_buffer);
+                memset(s_buffer, ' ', BUFSIZE);
             }
         }
 
+        // print spaces to fill out the rest of the line
+	if (k%BUFSIZE != BUFSIZE-1) {
+            while (k%BUFSIZE != BUFSIZE-1) {
+                if (k%2 == 0) {
+                    printf(" ");
+                }
+                printf("  ");
+                k++;
+            }
+            printf("   |  %s\n", s_buffer);
+        }
+	printf("\n");
     }
     
     return 0;

@@ -65,6 +65,11 @@ struct TCPConvergenceLayer::_defaults TCPConvergenceLayer::Defaults;
 TCPConvergenceLayer::TCPConvergenceLayer()
     : IPConvergenceLayer("/cl/tcp")
 {
+    // set defaults here, then let ../cmd/ParamCommand.cc handle changing them
+    TCPConvergenceLayer::Defaults.ack_blocksz_ = 1024;
+    TCPConvergenceLayer::Defaults.keepalive_interval_ = 2;
+    TCPConvergenceLayer::Defaults.idle_close_time_ = 30;
+    TCPConvergenceLayer::Defaults.test_fragment_size_ = -1;
 }
 
 void
@@ -604,7 +609,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
                 cc, sizeof(BundleStartHeader), strerror(errno));
         return false;
     }
-    
+    note_data_rcvd();
+ 
     // extract the lengths from the start header
     header_len = ntohs(starthdr.header_length);
     bundle_len = ntohl(starthdr.bundle_length);
@@ -624,6 +630,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
                 cc, buflen, strerror(errno));
         goto done;
     }
+    note_data_rcvd();
 
     // parse the headers into the new bundle.
     //
@@ -811,6 +818,16 @@ TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
 }
 
 /**
+ * Note that we observed some data inbound on this connection.
+ */
+void
+TCPConvergenceLayer::Connection::note_data_rcvd()
+{
+    log_debug("noting receipt of data");
+    ::gettimeofday(&data_rcvd_, 0);
+}
+
+/**
  * Handle an incoming ack, updating the acked length count. Timeout
  * specifies the amount of time the sender is willing to wait for the
  * ack.
@@ -828,9 +845,11 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
                 strerror(errno));
         return oasys::IOERROR;
     }
+    note_data_rcvd();
 
-    // ignore KEEPALIVE messages 
-    if (typecode == KEEPALIVE) {
+    // ignore KEEPALIVE messages, we are looking for acks
+    // ignore SHUTDOWN, because the caller will figure it out anyway
+    if (typecode == KEEPALIVE || typecode == SHUTDOWN) {
         return 1;
     }
 
@@ -851,6 +870,7 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
                 cc, sizeof(BundleAckHeader), strerror(errno));
         return oasys::IOERROR;
     }
+    note_data_rcvd();
 
     new_acked_len = ntohl(ackhdr.acked_length);
     size_t payload_len = bundle->payload_.length();
@@ -888,12 +908,16 @@ TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
 {
     // send the contact header
     ContactHeader contacthdr;
+    contacthdr.magic = htonl(MAGIC);
     contacthdr.version = CURRENT_VERSION;
     contacthdr.flags = BUNDLE_ACK_ENABLED | BLOCK_ACK_ENABLED |
                        KEEPALIVE_ENABLED;
     contacthdr.ackblock_sz = ack_blocksz_;
     contacthdr.keepalive_sec = TCPConvergenceLayer::Defaults.keepalive_interval_;
+    contacthdr.idle_close_time = htonl(TCPConvergenceLayer::Defaults.idle_close_time_);
+
     keepalive_msec_ = contacthdr.keepalive_sec * 1000;
+    idle_close_time_ = TCPConvergenceLayer::Defaults.idle_close_time_;
     
     // first of all, connect to the receiver side
     ASSERT(sock_->state() != oasys::IPSocket::ESTABLISHED);
@@ -946,8 +970,30 @@ TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
         return false;
     }
 
+    /*
+     * Check the ContactHeader we received for valid
+     * magic number and verison.
+     */
+    contacthdr.magic = ntohl(contacthdr.magic);
+    contacthdr.idle_close_time = ntohl(contacthdr.idle_close_time);
+
+    if (contacthdr.magic != IPConvergenceLayer::MAGIC) {
+        log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
+                 "-- disconnecting.", contacthdr.magic,
+                 IPConvergenceLayer::MAGIC);
+        return false;
+    }
+
+    if (contacthdr.version != IPConvergenceLayer::CURRENT_VERSION) {
+        log_warn("remote sent version %d, expected version %d "
+                 "-- disconnecting.", contacthdr.version,
+                 IPConvergenceLayer::CURRENT_VERSION);
+        return false;
+    }
+
     return true;
 }
+
 
 /**
  * Receiver side of the initial handshake.
@@ -966,10 +1012,38 @@ TCPConvergenceLayer::Connection::accept()
                 cc, sizeof(ContactHeader), strerror(errno));
         return false;
     }
+    note_data_rcvd();
+
+    contacthdr.magic = ntohl(contacthdr.magic);
+    contacthdr.idle_close_time = ntohl(contacthdr.idle_close_time);
+
+    if (contacthdr.magic != IPConvergenceLayer::MAGIC) {
+        log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
+                 "-- disconnecting.", contacthdr.magic,
+                 IPConvergenceLayer::MAGIC);
+        return false;
+    }
+
+    if (contacthdr.version != IPConvergenceLayer::CURRENT_VERSION) {
+        log_warn("remote sent version %d, expected version %d "
+                 "-- disconnecting.", contacthdr.version,
+                 IPConvergenceLayer::CURRENT_VERSION);
+        return false;
+    }
 
     // XXX/demmer do some "negotiation" here
     
     keepalive_msec_ = contacthdr.keepalive_sec * 1000;
+
+    // Take the min of the idle time proposed by the far side
+    // and the one specified in our configs.
+    idle_close_time_ = MIN(contacthdr.idle_close_time,
+                TCPConvergenceLayer::Defaults.idle_close_time_);
+
+    // fix up the contacthdr to send back out
+    contacthdr.magic = htonl(IPConvergenceLayer::MAGIC);
+    contacthdr.version = IPConvergenceLayer::CURRENT_VERSION;
+    contacthdr.idle_close_time = htonl(idle_close_time_);
     
     log_debug("recv_bundle: got contact header, sending reply...");
     cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
@@ -992,7 +1066,21 @@ TCPConvergenceLayer::Connection::accept()
 void
 TCPConvergenceLayer::Connection::break_contact()
 {
+    char typecode;
+    int revents, cc;
     ASSERT(sock_);
+
+    typecode = SHUTDOWN;
+    cc = sock_->poll(POLLOUT, &revents, 1000);
+    if (cc == 1) {
+        (void) sock_->write(&typecode, 1);
+        // do not log an error when we fail to write, since the
+        // SHUTDOWN is basically advisory.
+    } else {
+        log_warn("No space to send SHUTDOWN message. "
+                 "Closing connection anyway.");
+    }
+
     sock_->close();
 
     // In all cases where break_contact is called, the Connection
@@ -1022,6 +1110,7 @@ TCPConvergenceLayer::Connection::send_loop()
         break_contact();
         return;
     }
+    note_data_rcvd();
 
     log_info("connection established -- (keepalive time %d milliseconds)",
              keepalive_msec_);
@@ -1041,12 +1130,12 @@ TCPConvergenceLayer::Connection::send_loop()
     sock_poll->fd = sock_->fd();
     sock_poll->events = POLLIN;
 
-    // keep track of the time we got data
-    struct timeval now, data_rcvd, keepalive_sent;
+    // keep track of the time we got data and keepalives
+    struct timeval now, keepalive_rcvd, keepalive_sent;
 
-    // let's give the remote end credit for data, even though all they
+    // let's give the remote end credit for a keepalive, even though all they
     // have done so far is open the connection.
-    ::gettimeofday(&data_rcvd, 0);
+    ::gettimeofday(&keepalive_rcvd, 0);
 
     // main loop
     while (1) {
@@ -1066,13 +1155,16 @@ TCPConvergenceLayer::Connection::send_loop()
             
             // we got a bundle, so send it off. 
             bool sentok = send_bundle(bundle, &acked_len);
-            
+
             // if any data was acked, pop the bundle off the contact
             // list (making sure it's still the right bundle) and
             // inform the router. note that pop_front does _not_
             // decrement the reference count, so we now have a local
             // reference to the bundle
             if (acked_len != 0) {
+                // give them credit for sending data
+                ::gettimeofday(&keepalive_rcvd, 0);
+
                 Bundle* bundle2 = contact_->bundle_list()->pop_front();
                 ASSERT(bundle == bundle2);
 
@@ -1093,10 +1185,6 @@ TCPConvergenceLayer::Connection::send_loop()
                 goto shutdown;
             }
 
-            // otherwise, we're all good, so mark that we got some
-            // data and loop again
-            ::gettimeofday(&data_rcvd, 0);
-            
             continue;
         }
 
@@ -1140,14 +1228,22 @@ TCPConvergenceLayer::Connection::send_loop()
                 goto shutdown;
             }
 
-            if (typecode != KEEPALIVE) {
+            // do not note_data_rcvd() after this read, because it
+            // is the one where we expect KEEPALIVEs to arrive,
+            // and they don't count to keep the connection from
+            // being declared idle.
+
+            if (typecode == KEEPALIVE) {
+                // mark that we got a keepalive as expected
+                ::gettimeofday(&keepalive_rcvd, 0);
+            } else if (typecode == SHUTDOWN) {
+                goto shutdown;
+            } else {
                 log_warn("send_loop: "
                          "got unexpected frame code %d", typecode);
                 goto shutdown;
             }
 
-            // mark that we got a keepalive as expected
-            ::gettimeofday(&data_rcvd, 0);
         }
         
         // if the bundle list was triggered, we check the list at the
@@ -1176,15 +1272,27 @@ TCPConvergenceLayer::Connection::send_loop()
         // check that it hasn't been too long since the other side
         // sent us a keepalive
         ::gettimeofday(&now, 0);
-        int elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd);
+        int elapsed = TIMEVAL_DIFF_MSEC(now, keepalive_rcvd);
         if (elapsed > (2 * keepalive_msec_)) {
             log_warn("send_loop: no keepalive heard for %d msecs "
-                     "(sent %u.%u, rcvd %u.%u, now %u.%u -- closing contact",
+                     "(sent %u.%u, rcvd %u.%u, now %u.%u) -- closing contact",
                      elapsed,
-                     (u_int)keepalive_sent.tv_sec, (u_int)keepalive_sent.tv_usec,
-                     (u_int)data_rcvd.tv_sec, (u_int)data_rcvd.tv_usec,
+                     (u_int)keepalive_sent.tv_sec,
+                     (u_int)keepalive_sent.tv_usec,
+                     (u_int)keepalive_rcvd.tv_sec,
+                     (u_int)keepalive_rcvd.tv_usec,
                      (u_int)now.tv_sec, (u_int)now.tv_usec);
             goto shutdown;
+        }
+
+        // see if it is time to close the connection due to it going idle
+        elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
+        if (elapsed > (idle_close_time_ * 1000)) {
+            float sec = elapsed / 1000;
+            log_info("connection idle for %.2f seconds, closing.", sec);
+            goto shutdown;
+        } else {
+            log_debug("connection not idle: %d <= %d", elapsed, idle_close_time_ * 1000);
         }
     }
     
@@ -1196,6 +1304,8 @@ void
 TCPConvergenceLayer::Connection::recv_loop()
 {
     char typecode;
+    struct timeval now;
+    int elapsed;
 
     // first accept the connection and do negotiation
     if (accept() == false) {
@@ -1204,6 +1314,18 @@ TCPConvergenceLayer::Connection::recv_loop()
     }
     
     while (1) {
+        // see if it is time to close the connection due to it being idle
+        ::gettimeofday(&now, 0);
+        elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
+        if (elapsed > idle_close_time_ * 1000) {
+            float sec = elapsed / 1000;
+            log_info("connection idle for %.2f seconds, closing.", sec);
+            break_contact();
+            return;
+        } else {
+            log_debug("connection not idle: %d <= %d", elapsed, idle_close_time_ * 1000);
+        }
+
         // block on the one byte typecode
         int timeout = 2 * keepalive_msec_;
         log_debug("recv_loop: blocking on frame typecode... (timeout %d)",
@@ -1224,6 +1346,10 @@ TCPConvergenceLayer::Connection::recv_loop()
         ASSERT(ret == 1);
 
         log_debug("recv_loop: got frame packet type 0x%x...", typecode);
+
+        if (typecode == SHUTDOWN) {
+            goto shutdown;
+        }
 
         if (typecode == KEEPALIVE) {
             log_debug("recv_loop: "

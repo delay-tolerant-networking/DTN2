@@ -54,12 +54,17 @@ ParamCommand::ParamCommand()
     bind_i("proactive_frag_threshold",
            (int*)&BundleRouter::proactive_frag_threshold_, -1);
 
+    // defaults for these are set all together in TCPConvergenceLayer
+    // constructor (because there is not a flavor of bind_i that
+    // handles default values for type u_int32_t)
     bind_i("tcpcl_ack_blocksz",
-           &TCPConvergenceLayer::Defaults.ack_blocksz_, 1024);
+           &TCPConvergenceLayer::Defaults.ack_blocksz_);
     bind_i("tcpcl_keepalive_interval",
-           &TCPConvergenceLayer::Defaults.keepalive_interval_, 2);
+           &TCPConvergenceLayer::Defaults.keepalive_interval_);
+    bind_i("tcpcl_idle_close_time",
+           &TCPConvergenceLayer::Defaults.idle_close_time_);
     bind_i("tcpcl_test_fragment_size",
-           &TCPConvergenceLayer::Defaults.test_fragment_size_, -1);
+           &TCPConvergenceLayer::Defaults.test_fragment_size_);
 }
 
 const char*

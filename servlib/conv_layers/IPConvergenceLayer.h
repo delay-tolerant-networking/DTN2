@@ -72,7 +72,12 @@ public:
     /**
      * Current version of the TCP / UDP framing protocol.
      */
-    static const int CURRENT_VERSION = 0x01;
+    static const u_int8_t CURRENT_VERSION = 0x01;
+
+    /**
+     * Magic Number for ContactHeader (0x64746e21 = 'dtn!')
+     */
+    static const u_int32_t MAGIC = 0x64746e21;
     
     /**
      * Values for ContactHeader flags.
@@ -81,20 +86,22 @@ public:
         BUNDLE_ACK_ENABLED = 0x1,	///< enable bundle acking
         BLOCK_ACK_ENABLED = 0x2,	///< enable block acking (tcp only)
         KEEPALIVE_ENABLED = 0x3,	///< enable keepalive handshake
-        CONN_IS_RECEIVER = 0x4,		///< connection initiator is rcvr
+        CONN_IS_RECEIVER = 0x4,     ///< connection initiator is rcvr
     } contact_header_flags_t;
-   
+
     /**
      * Contact parameter header. Sent once in each direction for TCP,
      * and at the start of each bundle for UDP.
      */
     struct ContactHeader {
+        u_int32_t magic;		///< magic word (MAGIC: "dtn!")
         u_int8_t  version;		///< framing protocol version
         u_int8_t  flags;		///< connection flags (see above)
         u_int8_t  ackblock_sz;		///< size of ack blocks (power of two)
         u_int8_t  keepalive_sec;	///< seconds between keepalive packets
-	u_int32_t magic;		///< magic word
-    };
+        u_int32_t idle_close_time;	///< seconds of idle time before closing
+        				///  (keepalive packets do not count)
+    } __attribute__((packed));
 
     /**
      * Valid type codes for the framing headers.
@@ -109,6 +116,7 @@ public:
         BUNDLE_BLOCK	= 0x2,		///< subsequent block of bundle data
         BUNDLE_ACK	= 0x3,		///< bundle acknowledgement
         KEEPALIVE	= 0x4,		///< keepalive packet
+        SHUTDOWN	= 0x5,		///< sending side will shutdown now
     } frame_header_type_t;
     
     /**

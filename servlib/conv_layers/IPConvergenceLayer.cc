@@ -52,5 +52,4 @@ IPConvergenceLayer::match(const std::string& demux, const std::string& admin)
     NOTIMPLEMENTED;
 }
 
-
 } // namespace dtn
