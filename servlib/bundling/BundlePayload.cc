@@ -141,7 +141,7 @@ BundlePayload::close_file()
  * Internal write helper function.
  */
 void
-BundlePayload::internal_write(const char* bp, size_t offset, size_t len)
+BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
 {
     ASSERT(lock_->is_locked_by_me());
     ASSERT(file_->is_open());
@@ -149,7 +149,7 @@ BundlePayload::internal_write(const char* bp, size_t offset, size_t len)
 
     if (location_ == MEMORY) {
         ASSERT(data_.capacity() >= offset + len);
-        data_.replace(offset, len, bp, len);
+        data_.replace(offset, len, (const char*)bp, len);
     }
     
     // check if we need to seek
@@ -158,7 +158,7 @@ BundlePayload::internal_write(const char* bp, size_t offset, size_t len)
         cur_offset_ = offset;
     }
 
-    file_->writeall(bp, len);
+    file_->writeall((char*)bp, len);
 
     cur_offset_      += len;
     rcvd_length_ += len;
@@ -169,7 +169,7 @@ BundlePayload::internal_write(const char* bp, size_t offset, size_t len)
  * it's been written to.
  */
 void
-BundlePayload::set_data(const char* bp, size_t len)
+BundlePayload::set_data(const u_char* bp, size_t len)
 {
     ScopeLock l(lock_);
     
@@ -186,7 +186,7 @@ BundlePayload::set_data(const char* bp, size_t len)
  * previously set. Keeps the payload file open.
  */
 void
-BundlePayload::append_data(const char* bp, size_t len)
+BundlePayload::append_data(const u_char* bp, size_t len)
 {
     ScopeLock l(lock_);
     
@@ -201,7 +201,7 @@ BundlePayload::append_data(const char* bp, size_t len)
  * the payload file open.
  */
 void
-BundlePayload::write_data(const char* bp, size_t offset, size_t len)
+BundlePayload::write_data(const u_char* bp, size_t offset, size_t len)
 {
     ScopeLock l(lock_);
     
@@ -229,8 +229,8 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
     // XXX/mho: todo - for cases where we're creating a fragment from
     // an existing bundle, make a hard link for the new fragment and
     // store the offset in base_offset_
-    char buf[len];
-    const char* bp = src->read_data(src_offset, len, buf, true);
+    u_char buf[len];
+    const u_char* bp = src->read_data(src_offset, len, buf, true);
     internal_write(bp, dst_offset, len);
 }
 
@@ -240,8 +240,8 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
  * Otherwise, it will call read() into the supplied buffer (which
  * must be >= len).
  */
-const char*
-BundlePayload::read_data(size_t offset, size_t len, char* buf,
+const u_char*
+BundlePayload::read_data(size_t offset, size_t len, u_char* buf,
                          bool keep_file_open)
 {
     ScopeLock l(lock_);
@@ -249,7 +249,7 @@ BundlePayload::read_data(size_t offset, size_t len, char* buf,
     ASSERT(length_ >= (len + offset));
     
     if (location_ == MEMORY) {
-        return data_.data() + offset;
+        return (u_char*)data_.data() + offset;
         
     } else {
         reopen_file();
@@ -259,7 +259,7 @@ BundlePayload::read_data(size_t offset, size_t len, char* buf,
             file_->lseek(offset, SEEK_SET);
         }
         
-        file_->readall(buf, len);
+        file_->readall((char*)buf, len);
         cur_offset_ = offset + len;
 
         if (!keep_file_open)

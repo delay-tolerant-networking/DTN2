@@ -413,7 +413,7 @@ ClientAPIServer::handle_send()
     // finally, the payload
     size_t payload_len;
     if (payload.location == DTN_PAYLOAD_MEM) {
-        b->payload_.set_data(payload.dtn_bundle_payload_t_u.buf.buf_val,
+        b->payload_.set_data((u_char*)payload.dtn_bundle_payload_t_u.buf.buf_val,
                              payload.dtn_bundle_payload_t_u.buf.buf_len);
         payload_len = payload.dtn_bundle_payload_t_u.buf.buf_len;
     } else {
@@ -421,7 +421,7 @@ ClientAPIServer::handle_send()
         FILE * file;
         struct stat finfo;
         int r, left;
-        char buffer[4096];
+        u_char buffer[4096];
 
         sprintf(filename, "%.*s", 
                 payload.dtn_bundle_payload_t_u.filename.filename_len,
@@ -533,7 +533,7 @@ ClientAPIServer::handle_recv()
             return -1;
         }
         
-        *dst = b->payload_.memory_data();
+        *dst = (char*)b->payload_.memory_data();
         
     } else {
         PANIC("file-based payloads not implemented");

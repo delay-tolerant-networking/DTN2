@@ -48,7 +48,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
         if (objc == 5) {
             // no explicit length, use the object length
-            b->payload_.set_data((const char*)payload_data, payload_len);
+            b->payload_.set_data(payload_data, payload_len);
         } else {
             int ok = Tcl_GetIntFromObj(interp, objv[5], &total);
                             
@@ -63,7 +63,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             }
             
             b->payload_.set_length(total);
-            b->payload_.append_data((const char*)payload_data, payload_len);
+            b->payload_.append_data(payload_data, payload_len);
         }
         
         log_debug("inject %d byte bundle %s->%s", total,

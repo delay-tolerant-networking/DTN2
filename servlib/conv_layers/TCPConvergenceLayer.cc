@@ -293,7 +293,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     struct iovec iov[header_iovcnt + 3];
     size_t block_len;
     size_t payload_len = bundle->payload_.length();
-    const char* payload_data;
+    const u_char* payload_data;
     StringBuffer payload_buf(ack_blocksz_);
         
     // use iov slot zero for the one byte frame header type, slot one
@@ -333,7 +333,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     // don't forget that we kept two iovecs for the frame typecode and
     // header, then fill in the last one with the payload data
     payload_data =
-        bundle->payload_.read_data(0, block_len, payload_buf.data(), true);
+        bundle->payload_.read_data(0, block_len, (u_char*)payload_buf.data(),
+                                   true);
     
     iovcnt = 2 + header_iovcnt;
     iov[iovcnt].iov_base = (void*)payload_data;
@@ -384,7 +385,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         // grab the next payload chunk
         payload_data =
             bundle->payload_.read_data(payload_offset, block_len,
-                                       payload_buf.data(), true);
+                                       (u_char*)payload_buf.data(), true);
         
         blockhdr.block_length = htonl(block_len);
 
@@ -538,7 +539,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 bool
 TCPConvergenceLayer::Connection::recv_bundle()
 {
-    char* buf = NULL;
+    u_char* buf = NULL;
     Bundle* bundle = NULL;
 
     char typecode;
@@ -574,8 +575,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
         
     // allocate and fill a buffer for the first block
     size_t buflen = header_len + block_len;
-    buf = (char*)malloc(buflen);
-    cc = sock_->readall(buf, buflen);
+    buf = (u_char*)malloc(buflen);
+    cc = sock_->readall((char*)buf, buflen);
     if (cc != (int)buflen) {
         log_err("recv_bundle: "
                 "error reading header / data block (read %d/%d): %s",
@@ -588,7 +589,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     // note that this extracts payload_len from the headers and
     // assigns it in the bundle payload
     bundle = new Bundle();
-    cc = BundleProtocol::parse_headers(bundle, (u_char*)buf, header_len);
+    cc = BundleProtocol::parse_headers(bundle, buf, header_len);
     if (cc != (int)header_len) {
         log_err("recv_bundle: error parsing bundle headers (parsed %d/%d)",
                 cc, header_len);
@@ -686,10 +687,10 @@ TCPConvergenceLayer::Connection::recv_bundle()
                      block_len, buflen);
             free(buf);
             buflen = block_len;
-            buf = (char*)malloc(block_len);
+            buf = (u_char*)malloc(block_len);
         }
 
-        cc = sock_->timeout_readall(buf, block_len, 5000);
+        cc = sock_->timeout_readall((char*)buf, block_len, 5000);
         if (cc == IOTIMEOUT) {
             log_warn("recv_bundle: timeout reading block data");
             goto done;

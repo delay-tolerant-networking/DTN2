@@ -175,7 +175,7 @@ void UDPConvergenceLayer::Receiver::process_data(char* payload, size_t payload_l
 
     // declare dynamic storage elements that may need to be cleaned up
     // on error
-    char* buf = payload;
+    u_char* buf = (u_char*)payload;
     Bundle* bundle = NULL;       
     BundleStartHeader starthdr;
     int cc;
@@ -185,16 +185,16 @@ void UDPConvergenceLayer::Receiver::process_data(char* payload, size_t payload_l
     size_t block_len;
     
     log_debug("process_data: starting buffer parsing...");
-    //Peek to see the packet typecode, verify packet contains data    
-    char* peek;
-    peek = (char*)(payload);
-    if ( (*peek) != BUNDLE_START ) {
+
+    // Peek to see the packet typecode, verify packet contains data    
+    if ( (*payload) != BUNDLE_START ) {
         log_err("process_data: unknown frame type code received\n");
         return;
     }
 
     /** Read from the start of the BundleStartHeader **/
-    memcpy((char*)&starthdr, (char*)(buf + sizeof(ContactHeader) + 1), sizeof(BundleStartHeader));
+    memcpy(&starthdr, (buf + sizeof(ContactHeader) + 1),
+           sizeof(BundleStartHeader));
     log_debug("process_data: reading start header...");
     
     // extract the lengths from the start header
@@ -206,14 +206,15 @@ void UDPConvergenceLayer::Receiver::process_data(char* payload, size_t payload_l
 	      "header_length %d bundle_length %d block_length %d",
 	      starthdr.bundle_id, header_len, bundle_len, block_len);
     
-    char* bundle_position = (char*)(buf + 1 + sizeof(ContactHeader) + sizeof(BundleStartHeader));
+    u_char* bundle_pos =
+        buf + 1 + sizeof(ContactHeader) + sizeof(BundleStartHeader);
     
     /** Now read the bundle header next..... **/
     
     // parse the headers into a new bundle. this sets the
     // payload_len appropriately
     bundle = new Bundle();
-    cc = BundleProtocol::parse_headers(bundle, (u_char*)(bundle_position), header_len);
+    cc = BundleProtocol::parse_headers(bundle, bundle_pos, header_len);
     if (cc != (int)header_len) {
         log_err("process_data: error parsing bundle headers (parsed %d/%d)",
                 cc, header_len);
@@ -242,13 +243,12 @@ shutdown:
     /** Now read and store the payload into a local bundle **/
     
     // so far so good, now tack the block onto the payload
-    bundle->payload_.append_data((char*)(bundle_position + header_len), block_len);
+    bundle->payload_.append_data((bundle_pos + header_len), block_len);
     
     // all set, notify the router of the new arrival
     log_debug("process_data: new bundle id %d arrival, payload length %d",
 	      bundle->bundleid_, bundle->payload_.length());
     BundleForwarder::post(new BundleReceivedEvent(bundle, block_len));
-
 }
 
 void
@@ -389,8 +389,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
               header_len, payload_len);
 
     StringBuffer payload_buf(payload_len);
-    const char* payload_data =
-        bundle->payload_.read_data(0, payload_len, payload_buf.data());
+    const u_char* payload_data =
+        bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
     iov[iovcnt + 3].iov_base = (void*)payload_data;
     iov[iovcnt + 3].iov_len = payload_len;
 

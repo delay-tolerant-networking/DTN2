@@ -283,7 +283,7 @@ FileConvergenceLayer::Scanner::run()
     DIR* dir = opendir(dir_.c_str());
     struct dirent* dirent;
     const char* fname;
-    char* buf;
+    u_char* buf;
     int fd;
     
     if (!dir) {
@@ -337,8 +337,8 @@ FileConvergenceLayer::Scanner::run()
                       path.c_str(), header_len, bundle_len);
 
             // read in and parse the headers
-            buf = (char*)malloc(header_len);
-            cc = IO::readall(fd, buf, header_len);
+            buf = (u_char*)malloc(header_len);
+            cc = IO::readall(fd, (char*)buf, header_len);
             if (cc != header_len) {
                 log_err("error reading file %s header (read %d/%d): %s",
                         path.c_str(), cc, header_len, strerror(errno));
@@ -347,7 +347,7 @@ FileConvergenceLayer::Scanner::run()
             }
 
             Bundle* bundle = new Bundle();
-            if (! BundleProtocol::parse_headers(bundle, (u_char*)buf, header_len)) {
+            if (! BundleProtocol::parse_headers(bundle, buf, header_len)) {
                 log_err("error parsing bundle headers in file %s", path.c_str());
                 free(buf);
                 delete bundle;
@@ -366,8 +366,8 @@ FileConvergenceLayer::Scanner::run()
             }
 
             // Looks good, now read in and assign the data
-            buf = (char*)malloc(payload_len);
-            cc = IO::readall(fd, buf, payload_len);
+            buf = (u_char*)malloc(payload_len);
+            cc = IO::readall(fd, (char*)buf, payload_len);
             if (cc != (int)payload_len) {
                 log_err("error reading file %s payload (read %d/%d): %s",
                         path.c_str(), cc, payload_len, strerror(errno));
@@ -379,11 +379,13 @@ FileConvergenceLayer::Scanner::run()
             
             // close the file descriptor and remove the file
             if (close(fd) != 0) {
-                log_err("error closing file %s: %s", path.c_str(), strerror(errno));
+                log_err("error closing file %s: %s",
+                        path.c_str(), strerror(errno));
             }
             
             if (unlink(path.c_str()) != 0) {
-                log_err("error removing file %s: %s", path.c_str(), strerror(errno));
+                log_err("error removing file %s: %s",
+                        path.c_str(), strerror(errno));
             }
 
             // all set, notify the router

@@ -60,7 +60,7 @@ public:
      * Set the payload data and length, closing the payload file after
      * it's been written to.
      */
-    void set_data(const char* bp, size_t len);
+    void set_data(const u_char* bp, size_t len);
 
     /**
      * Set the payload data, closing the payload file after it's been
@@ -68,20 +68,20 @@ public:
      */
     void set_data(const std::string& data)
     {
-        set_data(data.data(), data.length());
+        set_data((u_char*)data.data(), data.length());
     }
 
     /**
      * Append a chunk of payload data. Assumes that the length was
      * previously set. Keeps the payload file open.
      */
-    void append_data(const char* bp, size_t len);
+    void append_data(const u_char* bp, size_t len);
 
     /**
      * Write a chunk of payload data at the specified offset. Keeps
      * the payload file open.
      */
-    void write_data(const char* bp, size_t offset, size_t len);
+    void write_data(const u_char* bp, size_t offset, size_t len);
 
     /**
      * Writes len bytes of payload data from from another payload at
@@ -104,10 +104,10 @@ public:
     /**
      * Get a pointer to the in-memory data buffer.
      */
-    char* memory_data()
+    u_char* memory_data()
     {
         ASSERT(location_ == MEMORY);
-        return (char*)data_.c_str();
+        return (u_char*)data_.c_str();
     }
     
     /**
@@ -116,8 +116,8 @@ public:
      * Otherwise, it will call read() into the supplied buffer (which
      * must be >= len).
      */
-    const char* read_data(size_t offset, size_t len, char* buf,
-                          bool keep_file_open = false);
+    const u_char* read_data(size_t offset, size_t len, u_char* buf,
+                            bool keep_file_open = false);
 
     /**
      * Virtual from SerializableObject
@@ -132,7 +132,7 @@ public:
     static bool test_no_remove_;  ///< test: don't rm payload files
 
 protected:
-    void internal_write(const char* bp, size_t offset, size_t len);
+    void internal_write(const u_char* bp, size_t offset, size_t len);
 
     location_t location_;	///< location of the data (disk or memory)
     std::string data_;		///< the actual payload data if in memory

@@ -16,7 +16,7 @@ void
 AdminRegistration::enqueue_bundle(Bundle* bundle,
                                   const BundleMapping* mapping)
 {
-    char typecode;
+    u_char typecode;
     
     size_t payload_len = bundle->payload_.length();
     StringBuffer payload_buf(payload_len);
@@ -38,7 +38,7 @@ AdminRegistration::enqueue_bundle(Bundle* bundle,
      * 0x4     - null request
      * (other) - reserved
      */
-    typecode = *(bundle->payload_.read_data(0, 1, payload_buf.data()));
+    typecode = *(bundle->payload_.read_data(0, 1, (u_char*)payload_buf.data()));
 
     switch(typecode) {
     case BundleProtocol::ADMIN_STATUS_REPORT:
