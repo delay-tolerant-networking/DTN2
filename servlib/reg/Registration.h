@@ -7,8 +7,8 @@
 #include <oasys/debug/Log.h>
 #include <oasys/serialize/Serialize.h>
 
-#include "bundling/BundleConsumer.h"
-#include "bundling/BundleTuple.h"
+#include "../bundling/BundleConsumer.h"
+#include "../bundling/BundleTuple.h"
 
 class Bundle;
 class BundleList;
@@ -30,6 +30,7 @@ public:
      * Reserved registration identifiers.
      */
     static const u_int32_t ADMIN_REGID = 0;
+    static const u_int32_t RESERVED_REGID = 1;
     
     /**
      * Type enumerating the option requested by the registration for
@@ -82,12 +83,6 @@ public:
      */
     void set_active(bool active) { active_ = active; }
     
-    /**
-     * Accessor for the list of bundles to be delivered to this
-     * registration. 
-     */
-    BundleList* bundle_list() { return bundle_list_; }
- 
     /**
      * Virtual from SerializableObject.
      */
