@@ -89,7 +89,7 @@ public:
     /**
      * Wrapper around vlogf that uses the logpath_ instance.
      */
-    inline int vlogf(log_level_t level, const char *fmt, va_list args)
+    inline int vlogf(log_level_t level, const char *fmt, va_list args) const
     {
         return ::vlogf(logpath_, level, fmt, args);
     }
@@ -97,7 +97,7 @@ public:
     /**
      * Wrapper around logf that uses the logpath_ instance.
      */
-    inline int logf(log_level_t level, const char *fmt, ...)
+    inline int logf(log_level_t level, const char *fmt, ...) const
         PRINTFLIKE(3, 4);
 
     /**
@@ -105,7 +105,8 @@ public:
      * through, ignoring the logpath_ instance altogether. This means
      * a derived class doesn't need to explicitly qualify ::logf.
      */
-    inline int logf(const char* logpath, log_level_t level, const char* fmt, ...)
+    inline int logf(const char* logpath, log_level_t level,
+                    const char* fmt, ...) const
         PRINTFLIKE(4, 5);
 
     /**
@@ -113,7 +114,7 @@ public:
      *
      * (See Log.h for a full explanation of the need for __logf)
      */
-    inline int __logf(log_level_t level, const char *fmt, ...)
+    inline int __logf(log_level_t level, const char *fmt, ...) const
         PRINTFLIKE(3, 4);
 
     /**
@@ -123,7 +124,7 @@ public:
      * actually the format string, so we actually call log_enabled on
      * the logpath_ instance.
      */
-    inline bool __log_enabled(log_level_t level, const char* path)
+    inline bool __log_enabled(log_level_t level, const char* path) const
     {
         return ::__log_enabled(level, logpath_);
     }
@@ -152,7 +153,7 @@ Logger::logpath_appendf(const char* fmt, ...)
 }
 
 int
-Logger::logf(log_level_t level, const char *fmt, ...)
+Logger::logf(log_level_t level, const char *fmt, ...) const
 {
     va_list ap;
     va_start(ap, fmt);
@@ -162,7 +163,7 @@ Logger::logf(log_level_t level, const char *fmt, ...)
 }
 
 int
-Logger::__logf(log_level_t level, const char *fmt, ...)
+Logger::__logf(log_level_t level, const char *fmt, ...) const
 {
     va_list ap;
     va_start(ap, fmt);
@@ -172,7 +173,8 @@ Logger::__logf(log_level_t level, const char *fmt, ...)
 }
 
 int
-Logger::logf(const char* logpath, log_level_t level, const char *fmt, ...)
+Logger::logf(const char* logpath, log_level_t level,
+             const char *fmt, ...) const
 {
     va_list ap;
     va_start(ap, fmt);
