@@ -97,7 +97,7 @@ libdirs=
 libs=
 staticlibs=''
 
-tclver='8.4'
+tclver='8.3'
 tcldir=''
 tclincdir=''
 tcllibdir=''
