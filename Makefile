@@ -4,14 +4,15 @@
 
 #
 # Define a set of dispatch rules that simply call make on the
-# constituent subdirectories
+# constituent subdirectories. Note that the test directory isn't built
+# by default.
 #
 all:   servlib daemon apps
-clean: servlib daemon apps
-check: servlib daemon apps
+clean: servlib daemon apps test
+check: servlib daemon apps test
 
-.PHONY: servlib daemon apps
-servlib daemon apps:  
+.PHONY: servlib daemon apps test
+servlib daemon apps test:
 	$(MAKE) -C $@ $(MAKECMDGOALS)
 
 #
