@@ -75,13 +75,7 @@ main(int argc, char* argv[])
         }
     }
     
-    // Now initialize logging
-    StringBuffer prefix;
-    if (testid_set) {
-        prefix.appendf("%d: ", testcmd.id_);
-    }
-        
-    Log::init(logfd, loglevel, prefix.c_str(), "~/.dtndebug");
+    Log::init(logfd, loglevel, "", "~/.dtndebug");
     logf("/daemon", LOG_INFO, "Bundle Daemon Initializing...");
 
     // bind a copy of argv to be accessible to test scripts
