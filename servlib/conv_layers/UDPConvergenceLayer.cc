@@ -541,11 +541,27 @@ void UDPConvergenceLayer::Sender::send_loop() {
     }
 
 shutdown:
-    sock_->close();
-    Thread::set_flag(STOPPED);
-    contact_->close();
+    /// XXX Sushant added to clean address contact broken events
+    break_contact();
+//    contact_->close();
     return;               
 
 }
 
 
+/**
+ * Send an event to the system indicating that this contact is broken
+ * and close the side of the connection.
+ *
+ * This results in the Connection thread stopping and the system
+ * calling the contact->close() call which cleans up the connection.
+ */
+void
+UDPConvergenceLayer::Sender::break_contact()
+{
+    ASSERT(sock_);
+    sock_->close();
+    //  Thread::set_flag(STOPPED);
+    if (contact_)
+        BundleForwarder::post(new ContactDownEvent(contact_));
+}

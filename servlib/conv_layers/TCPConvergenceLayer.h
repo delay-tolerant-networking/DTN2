@@ -98,6 +98,11 @@ protected:
         
         bool connect(in_addr_t remote_addr, u_int16_t remote_port);
         bool accept();
+
+        /**
+         * This is used to inform the rest of the system
+         * that contact is broken
+         */
         void break_contact();
         
         void send_loop();
@@ -108,7 +113,6 @@ protected:
 
         bool recv_bundle();
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
-
         Contact* contact_;
         TCPClient* sock_;
         size_t ack_blocksz_;

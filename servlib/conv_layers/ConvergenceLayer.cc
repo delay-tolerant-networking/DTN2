@@ -46,9 +46,22 @@ ConvergenceLayer::find_clayer(const std::string& admin)
             }
         }
     }
-    
     return NULL;
 }
+
+ConvergenceLayer*
+ConvergenceLayer::find_clayer_proto(const char* proto)
+{
+    AddressFamily* af;
+    for (af = af_list_; af != NULL; af = af->next_)
+    {
+        if (strcasecmp(proto, af->proto_) == 0) {
+            return af->cl_;
+        }
+    }
+    return NULL;
+}
+
 
 /**
  * Register a new interface.

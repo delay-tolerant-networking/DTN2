@@ -942,9 +942,9 @@ TCPConvergenceLayer::Connection::accept()
 /**
  * Send an event to the system indicating that this contact is broken
  * and close the side of the connection.
- *
+ * 
  * This results in the Connection thread stopping and the system
- * calling the contact->close() call which cleans up the connection.
+ * calling the link->close() call which cleans up the connection.
  */
 void
 TCPConvergenceLayer::Connection::break_contact()
@@ -960,7 +960,7 @@ TCPConvergenceLayer::Connection::break_contact()
     set_should_stop();
 
     if (contact_)
-        BundleForwarder::post(new ContactBrokenEvent(contact_));
+        BundleForwarder::post(new ContactDownEvent(contact_));
 }
 
 /**

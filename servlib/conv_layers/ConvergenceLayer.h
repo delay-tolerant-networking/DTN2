@@ -60,6 +60,13 @@ public:
     virtual bool del_interface(Interface* iface);
 
     /**
+     * Accessor to protocol string/name ?
+     * XXX/ Sushant need way to identify a conv layer
+     */
+    // const char* proto() { return proto_ ; }
+
+    
+    /**
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.
      */
@@ -67,6 +74,11 @@ public:
     
     /**
      * Close the connnection to the contact.
+     * Mainly, used to clean the state that is associated
+     * with this contact. This is called by the link->close()
+     * function.
+     * After calling this function, the contact can be deleted
+     * from the system.
      */
     virtual bool close_contact(Contact* contact);
 
@@ -92,6 +104,13 @@ public:
      */
     static ConvergenceLayer* find_clayer(const std::string& admin);
 
+     /**
+     * Find the appropriate convergence layer for the given protocol
+     * string.
+     */
+    static ConvergenceLayer* find_clayer_proto(const char* proto);
+
+    
 protected:
     /**
      * Address families are used to understand how to parse names in

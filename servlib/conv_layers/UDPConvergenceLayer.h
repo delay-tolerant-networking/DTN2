@@ -100,7 +100,13 @@ protected:
         virtual void run();
         void send_loop();
         bool send_bundle(Bundle* bundle);
-        
+
+        // Added by sushant
+        /**
+         * This is used to inform the rest of the system
+         * that contact is broken
+         */
+        void break_contact();
         Contact* contact_;
         UDPClient* sock_; 
     };   
