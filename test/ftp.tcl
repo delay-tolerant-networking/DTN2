@@ -198,7 +198,7 @@ proc send_file {host file} {
 
     if {$got_ack} {
 	puts "[time] :: file  actually sent $file"
-	puts $logfd "$start_send_time $begintime :: file actually sent [file tail $file]   " 
+	puts $logfd "$start_send_time $begin_time :: file actually sent [file tail $file]   " 
 	flush $logfd
 
 	return 1
