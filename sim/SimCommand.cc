@@ -76,7 +76,7 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
     
     // pull out the time and subcommand
     char* end;
-    double time = strtod(argv[1], &end);
+    int time = strtol(argv[1], &end, 10);
     if (*end != '\0') {
         resultf("time value '%s' invalid", argv[1]);
         return TCL_ERROR;
