@@ -33,10 +33,10 @@ if ($perhop == 1) then
     set myip = node-$id-link-$idminus
     set dstip = node-$idplus-link-$id
     set rconf = "$logroot/$id.rinetd-conf"
-    set rinetd-logfile = "$logroot/$id.rinetd-log"
+    set rinetdlogfile = "$logroot/$id.rinetd-log"
 
     echo $myip 17600 $dstip 17600 > $rconf 
-    echo "logfile $rinetd-logfile" >> $rconf 
+    echo "logfile $rinetdlogfile" >> $rconf 
 
     echo " executing rinetd at router ($myip, $dstip) " >> $info 
     echo " rule is:  " >> $info
