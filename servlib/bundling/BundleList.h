@@ -39,6 +39,7 @@
 #define _BUNDLE_LIST_H_
 
 #include <list>
+#include <oasys/compat/inttypes.h>
 #include <oasys/thread/Notifier.h>
 
 namespace oasys {

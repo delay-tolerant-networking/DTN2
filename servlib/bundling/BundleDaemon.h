@@ -40,6 +40,7 @@
 
 #include <vector>
 
+#include <oasys/compat/inttypes.h>
 #include <oasys/debug/Log.h>
 #include <oasys/thread/Thread.h>
 #include <oasys/thread/MsgQueue.h>

@@ -41,6 +41,7 @@
 #include "AddressFamily.h"
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <oasys/compat/inttypes.h>
 
 namespace dtn {
 
