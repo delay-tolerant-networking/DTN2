@@ -5,6 +5,47 @@
 #include "debug/Debug.h"
 #include "routing/BundleRouter.h"
 #include <netinet/in.h>
+#include <algorithm>
+#include <string>
+#include <vector>
+
+typedef std::vector<std::string> stringvector_t;
+
+/**
+ * For the region and admin parts of the given tuple, fill in the
+ * corresponding index into the string vector.
+ */
+static inline void
+add_to_dict(u_int8_t* id, const BundleTuple& tuple,
+            stringvector_t* tuples, size_t* dictlen)
+{
+    u_int8_t region_id, admin_id;
+    stringvector_t::iterator iter;
+
+    // first the region string
+    iter = std::find(tuples->begin(), tuples->end(), tuple.region());
+    if (iter == tuples->end()) {
+        tuples->push_back(tuple.region());
+        region_id = tuples->size() - 1;
+        *dictlen += (tuple.region().length() + 1);
+    } else {
+        region_id = iter - tuples->begin();
+    }
+
+    // then the admin string
+    iter = std::find(tuples->begin(), tuples->end(), tuple.admin());
+    if (iter == tuples->end()) {
+        tuples->push_back(tuple.admin());
+        admin_id = tuples->size() - 1;
+        *dictlen += (tuple.admin().length() + 1);
+    } else {
+        admin_id = iter - tuples->begin();
+    }
+
+    // cons up the id field, making sure each id fits in 4 bits
+    ASSERT((region_id <= 0xf) && (admin_id <= 0xf));
+    *id = ((region_id << 4) | admin_id);
+}
 
 int
 BundleProtocol::fill_iov(const Bundle* bundle, struct iovec* iov, int* iovcnt)
@@ -29,77 +70,40 @@ BundleProtocol::fill_iov(const Bundle* bundle, struct iovec* iov, int* iovcnt)
     primary->creation_ts	|= (u_int64_t)htonl(bundle->creation_ts_.tv_usec);
     primary->expiration 	= htonl(bundle->expiration_);
 
-    // now figure out how many unique tuples there are, caching
-    // pointers to the unique ones in a temp array and assign the
-    // string ids in the primary header
-    const BundleTuple* tuples[4];
-    int ntuples = 1;
-    tuples[0] = &bundle->source_;
-    primary->source_id = 0;
-    
-    if (bundle->dest_.equals(bundle->source_)) {
-        primary->dest_id = primary->source_id;
-    } else {
-        tuples[ntuples] = &bundle->dest_;
-        primary->dest_id = ntuples;
-        ntuples++;
-    }
-
-    if (bundle->custodian_.equals(bundle->source_)) {
-        primary->custodian_id = primary->source_id;
-
-    } else if (bundle->custodian_.equals(bundle->source_)) {
-        primary->custodian_id = primary->source_id;
-
-    } else {
-        tuples[ntuples] = &bundle->custodian_;
-        primary->custodian_id = ntuples;
-        ntuples++;
-    }
-
-    if (bundle->replyto_.equals(bundle->source_)) {
-        primary->replyto_id = primary->source_id;
-
-    } else if (bundle->replyto_.equals(bundle->source_)) {
-        primary->replyto_id = primary->source_id;
-
-    } else if (bundle->replyto_.equals(bundle->custodian_)) {
-        primary->replyto_id = primary->custodian_id;
-
-    } else {
-        tuples[ntuples] = &bundle->replyto_;
-        primary->replyto_id = ntuples;
-        ntuples++;
-    }
-
-    // now figure out the size of the dictionary
+    // now figure out how many unique tuples there are, storing the
+    // unique ones in a temp vector and assigning the corresponding
+    // string ids in the primary header. keep track of the total
+    // length of the dictionary header in the process
+    stringvector_t tuples;
     size_t dictlen = sizeof(DictionaryHeader);
-    for (int i = 0; i < ntuples; ++i) {
-        dictlen += 1;
-        dictlen += tuples[i]->length();
-    }
-
-    // and fill in the dictionary
+    add_to_dict(&primary->source_id,    bundle->source_,    &tuples, &dictlen);
+    add_to_dict(&primary->dest_id,      bundle->dest_,      &tuples, &dictlen);
+    add_to_dict(&primary->custodian_id, bundle->custodian_, &tuples, &dictlen);
+    add_to_dict(&primary->replyto_id,   bundle->replyto_,   &tuples, &dictlen);
+                      
+    // now allocate and fill in the dictionary
     DictionaryHeader* dictionary = (DictionaryHeader*)malloc(dictlen);
+    int ntuples = tuples.size();
     dictionary->string_count = ntuples;
-
+    
     u_char* records = &dictionary->records[0];
     for (int i = 0; i < ntuples; ++i) {
-        *records++ = tuples[i]->length();
-        memcpy(records, tuples[i]->data(), tuples[i]->length());
-        records += tuples[i]->length();
+        *records++ = tuples[i].length();
+        memcpy(records, tuples[i].data(), tuples[i].length());
+        records += tuples[i].length();
     }
     
-    // and the payload header
+    // and last, the payload header. the actual data will immediately
+    // follow the payload header in the iovec construction below
     PayloadHeader* payload = (PayloadHeader*)malloc(sizeof(PayloadHeader));
     payload->length = htonl(bundle->payload_.length());
-
-    // set up the header type chain
+    
+    // all done... set up the header type chaining
     primary->next_header_type 	 = DICTIONARY;
     dictionary->next_header_type = PAYLOAD;
     payload->next_header_type    = NONE;
-
-    // assign the iovec
+    
+    // fill in the iovec
     iov[0].iov_base = primary;
     iov[0].iov_len  = sizeof(PrimaryHeader);
     iov[1].iov_base = dictionary;
@@ -109,8 +113,8 @@ BundleProtocol::fill_iov(const Bundle* bundle, struct iovec* iov, int* iovcnt)
     iov[3].iov_base = (void*)bundle->payload_.data();
     iov[3].iov_len  = bundle->payload_.length();
 
+    // store the count and return the total length
     *iovcnt = 4;
-
     return iov[0].iov_len + iov[1].iov_len + iov[2].iov_len + iov[3].iov_len;
 }
 
@@ -127,9 +131,10 @@ BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
 {
     static const char* log = "/bundle/protocol";
 
+    // allocate a new bundle
     Bundle* bundle = new Bundle();
     
-    // start off with the primary header
+    // always starts with the primary header
     if (len < sizeof(PrimaryHeader)) {
  tooshort:
         logf(log, LOG_ERR, "bundle too short (length %d)", len);
@@ -164,66 +169,61 @@ BundleProtocol::process_buf(u_char* buf, size_t len, Bundle** bundlep)
         goto tooshort;
     }
 
-    // skip past the header itself
+    // grab the header and advance the pointers
     DictionaryHeader* dictionary = (DictionaryHeader*)buf;
     buf += sizeof(DictionaryHeader);
     len -= sizeof(DictionaryHeader);
 
-    // pull out the tuple data into local temp arrays
-    u_char* tupledata[4];
-    size_t  tuplelen[4];
+    // pull out the tuple data into a local temporary array (there can
+    // be at most 8 entries)
+    u_char* tupledata[8];
+    size_t  tuplelen[8];
+    
     for (int i = 0; i < dictionary->string_count; ++i) {
-        tuplelen[i] = *buf;
+        if (len < 1)
+            goto tooshort;
+        
+        tuplelen[i] = *buf++;
+        len--;
+        
         if (len < tuplelen[i])
             goto tooshort;
-
-        tupledata[i] = &buf[1];
-        buf += tuplelen[i] + 1;
-        len -= tuplelen[i] + 1;
+        
+        tupledata[i] = buf;
+        buf += tuplelen[i];
+        len -= tuplelen[i];
     }
 
-    // parse the source tuple
-    bundle->source_.set_tuple(tupledata[primary->source_id],
-                              tuplelen[primary->source_id]);
-    if (!bundle->source_.valid()) {
-        logf(log, LOG_ERR, "invalid tuple '%s'", bundle->source_.c_str());
-        goto bail;
-    }
-    logf(log, LOG_DEBUG, "parsed source tuple (id %d) %s",
-         primary->source_id, bundle->source_.c_str());
+    // now, pull out the tuples
+    u_int8_t region_id, admin_id;
     
-    // parse the dest tuple
-    bundle->dest_.set_tuple(tupledata[primary->dest_id],
-                            tuplelen[primary->dest_id]);
-    if (!bundle->dest_.valid()) {
-        logf(log, LOG_ERR, "invalid tuple '%s'", bundle->dest_.c_str());
-        goto bail;
-    }
-    logf(log, LOG_DEBUG, "parsed dest tuple (id %d) %s",
-         primary->dest_id, bundle->dest_.c_str());
-    
-    // parse the replyto tuple
-    bundle->replyto_.set_tuple(tupledata[primary->replyto_id],
-                               tuplelen[primary->replyto_id]);
-    if (!bundle->replyto_.valid()) {
-        logf(log, LOG_ERR, "invalid tuple '%s'", bundle->replyto_.c_str());
-        goto bail;
-    }
-    logf(log, LOG_DEBUG, "parsed replyto tuple (id %d) %s",
-         primary->replyto_id, bundle->replyto_.c_str());
-    
-    // parse the custodian tuple
-    bundle->custodian_.set_tuple(tupledata[primary->custodian_id],
-                                 tuplelen[primary->custodian_id]);
-    if (!bundle->custodian_.valid()) {
-        logf(log, LOG_ERR, "invalid tuple '%s'", bundle->custodian_.c_str());
-        goto bail;
-    }
-    logf(log, LOG_DEBUG, "parsed custodian tuple (id %d) %s",
-         primary->custodian_id, bundle->custodian_.c_str());
-    
+#define EXTRACT_DICTIONARY_TUPLE(what_)                                 \
+    region_id = primary->what_##id >> 4;                                \
+    admin_id  = primary->what_##id & 0xf;                               \
+    ASSERT((region_id <= 0xf) && (admin_id <= 0xf));                    \
+                                                                        \
+    bundle->what_.set_tuple(tupledata[region_id], tuplelen[region_id],  \
+                            tupledata[admin_id],  tuplelen[admin_id]);  \
+                                                                        \
+    if (! bundle->what_.valid()) {                                      \
+        logf(log, LOG_ERR, "invalid %s tuple '%s'", #what_,             \
+             bundle->what_.c_str());                                    \
+        goto bail;                                                      \
+    }                                                                   \
+    logf(log, LOG_DEBUG, "parsed %s tuple (ids %d, %d) %s", #what_,     \
+         region_id, admin_id, bundle->what_.c_str());                   \
 
-    // time for the payload header
+    EXTRACT_DICTIONARY_TUPLE(source_);
+    EXTRACT_DICTIONARY_TUPLE(dest_);
+    EXTRACT_DICTIONARY_TUPLE(custodian_);
+    EXTRACT_DICTIONARY_TUPLE(replyto_);
+    
+    // next should be the payload header
+    if (dictionary->next_header_type != PAYLOAD) {
+        logf(log, LOG_ERR, "payload header doesn't follow dictionary");
+        goto bail;
+    }
+    
     if (len < sizeof(PayloadHeader)) {
         goto tooshort;
     }
