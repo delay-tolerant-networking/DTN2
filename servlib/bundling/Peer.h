@@ -45,7 +45,6 @@
 #include <oasys/util/StringBuffer.h>
 #include "BundleConsumer.h"
 #include "BundleTuple.h"
-#include "Link.h"
 
 namespace dtn {
 
@@ -104,8 +103,18 @@ public:
      */
     int format(char* buf, size_t sz);
         
+    /**
+     * Add the bundle to the peer. Searches through the list of links
+     * for an open one, and if it finds one, then the bundle is queued
+     * on the link instead. Otherwise, it remains on the peer's queue
+     * awaiting some link to open up.
+     *
+     * XXX/demmer think this through a little better?
+     */
+    void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
+
 protected:
-    LinkSet*    links_;		///< List of links that lead to this peer
+    LinkSet* links_;		///< List of links that lead to this peer
     std::string address_;	///< Identity of peer
 };
 

@@ -39,6 +39,7 @@
 #include "Peer.h"
 #include "Bundle.h"
 #include "BundleList.h"
+#include "Link.h"
 
 namespace dtn {
 
@@ -59,6 +60,7 @@ Peer::~Peer()
 {
     ASSERT(bundle_list_->size() == 0);
     delete bundle_list_;
+    delete links_;
 }
 
 int
@@ -92,6 +94,28 @@ Peer::delete_link(Link *link)
     } else {
         links_->erase(link);
     }
+}
+
+void
+Peer::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
+{
+    LinkSet::iterator iter;
+    for (iter = links_->begin(); iter != links_->end(); ++iter)
+    {
+        Link* link = *iter;
+        if (link->isopen()) {
+            log_debug("enqueue bundle id %d on Peer %s: "
+                      "forwarding to open link %s",
+                      bundle->bundleid_, address_.c_str(), link->name());
+            link->enqueue_bundle(bundle, mapping);
+            return;
+        }
+    }
+
+    log_debug("enqueue bundle id %d for delivery on Peer %s: "
+              "no open links, queueing on Peer",
+              bundle->bundleid_, address_.c_str());
+    bundle_list_->push_back(bundle, mapping);
 }
 
 } // namespace dtn
