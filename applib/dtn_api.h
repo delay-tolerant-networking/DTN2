@@ -40,19 +40,14 @@
 
 #include "dtn_types.h"
 
-#ifdef __CYGWIN__
-# include <sys/cdefs.h>
-# include <stdlib.h>
-# include <string.h>
-# include <stdio.h>
-#endif
-
 /**
  * The basic handle for communication with the dtn router.
  */
 typedef char* dtn_handle_t;
 
-__BEGIN_DECLS
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 /*************************************************************
  *
@@ -187,6 +182,8 @@ extern int dtn_set_payload(dtn_bundle_payload_t* payload,
                            dtn_bundle_payload_location_t location,
                            char* val, int len);
 
-__END_DECLS
+#ifdef  __cplusplus
+}
+#endif
 
 #endif /* DTN_API_H */
