@@ -22,25 +22,52 @@ if {! [info exists topology]} {
     set topology linear
 }
 
+# default to static routing
 route set type "static"
 
 # configure the database (and tidy up)
 config_db
 
-# Create the children who will run with us
+# create the children who will run with us
 if {[test set fork]} {
     create_bundle_daemons $num_nodes
 }
 
-# Set up the the network
+# set up the the network
 if {$network != "none"} {
     setup_${network}_network
 }
 
-# Set up the listening interface
-setup_interface tcp
+#
+# Proc to set up the local api server and routing state.
+#
+proc setup_local {} {
+    global hosts ports id
 
-# Set up the the routing topology
-if {$topology != "none"} {
-    setup_${topology}_topology ONDEMAND tcp
+    if {! [info exists ports(api,$id)]} {
+	error "no api ports entry for id $id"
+    }
+
+    set api_port $ports(api,$id)
+    
+    route local_tuple bundles://internet/host://$hosts($id)
+
+    api set local_addr $hosts($id)
+    api set handshake_port $api_port
 }
+
+#
+# Proc to create a new interface for the given convergence layer
+#
+proc setup_interface {cl {args ""}} {
+    global hosts ports id
+
+    if {! [info exists ports($cl,$id)]} {
+	error "no ports entry for cl $cl id $id"
+    }
+
+    set port $ports($cl,$id)
+    
+    eval interface add $cl host://$hosts($id):$port $args
+}
+

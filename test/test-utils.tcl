@@ -92,7 +92,7 @@ proc tidy_up {} {
 # test proc for sending a bundle
 #
 proc sendbundle {{peerid -1} {demux "test"}} {
-    global hosts id
+    global id
 
     #
     # Special case hook for id 0 and 1 pairing
@@ -117,8 +117,8 @@ proc sendbundle {{peerid -1} {demux "test"}} {
 	append payload "."
     }
     
-    bundle inject bundles://internet/host://$hosts($id)/		\
-	    	  bundles://internet/host://$hosts($peerid)/test	\
+    bundle inject bundles://internet/host://host-$id/		\
+	    	  bundles://internet/host://host-$peerid/test	\
 		  $payload $length
 }
 

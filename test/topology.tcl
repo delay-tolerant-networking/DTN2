@@ -2,7 +2,7 @@
 # Set up a linear topology.
 #
 proc setup_linear_topology {type cl {args ""}} {
-    global hosts num_nodes id route_to_root
+    global hosts ports num_nodes id route_to_root
 
     log /test info "setting up linear topology"
 
@@ -10,20 +10,24 @@ proc setup_linear_topology {type cl {args ""}} {
     if { $id != [expr $num_nodes - 1] } {
 	set peerid [expr $id + 1]
 	set peeraddr $hosts($peerid)
-	eval link add link-$peerid host://$peeraddr:5000 \
+	set peerport $ports($cl,$peerid)
+
+	eval link add link-$peerid host://$peeraddr:$peerport \
 		$type $cl $args 
 
-	route add bundles://internet/host://$peeraddr/* link-$peerid
+	route add bundles://internet/host://host-$peerid/* link-$peerid
     }
 
     # and previous a hop in chain as well
     if { $id != 0 } {
 	set peerid [expr $id - 1]
 	set peeraddr $hosts($peerid)
-	eval link add link-$peerid host://$peeraddr:5000 \
+	set peerport $ports($cl,$peerid)
+	
+	eval link add link-$peerid host://$peeraddr:$peerport \
 		$type $cl $args
 
-	route add bundles://internet/host://$peeraddr/* link-$peerid
+	route add bundles://internet/host://host-$peerid/* link-$peerid
 
 	set route_to_root bundles://internet/host://$peeraddr
     }
@@ -44,16 +48,17 @@ proc setup_linear_topology {type cl {args ""}} {
 # 210 211     218 219
 #
 proc setup_tree_topology {type cl {args ""}} {
-    global hosts num_nodes id route_to_root
+    global hosts ports num_nodes id route_to_root
 
     # the root has routes to all 9 first-hop descendents
     if { $id == 0 } {
 	for {set child 1} {$child <= 9} {incr child} {
 	    set childaddr $hosts($child)
-	    eval link add link-$child host://$childaddr:5000 \
+	    set childport $ports($cl,$child)
+	    eval link add link-$child host://$childaddr:$childport \
 		    $type $cl $args
 	    
-	    route add bundles://internet/host://$childaddr/* link-$child
+	    route add bundles://internet/host://host-$child/* link-$child
 	}
     }
 
@@ -61,18 +66,24 @@ proc setup_tree_topology {type cl {args ""}} {
     # 9 second tier descendents
     if { $id >= 1 && $id <= 9 } {
 	set parent 0
-	eval link add link-$parent host://$hosts($parent):5000 \
+	set parentaddr $hosts($parent)
+	set parentport $ports($cl,$parent)
+	eval link add link-$parent host://$parentaddr:$parentport \
 		$type $cl $args
 	
-	route add bundles://internet/host://$hosts($parent)/* link-$parent
-	set route_to_root bundles://internet/host://$hosts($parent)
+	route add bundles://internet/host://host-$parent/* link-$parent
+	set route_to_root bundles://internet/host://$parentaddr
 	
-	for {set child [expr $id * 10]} {$child <= [expr ($id * 10) + 9]} {incr child} {
+	for {set child [expr $id * 10]} \
+		{$child <= [expr ($id * 10) + 9]} \
+		{incr child}
+	{
 	    set childaddr $hosts($child)
-	    eval link add link-$child host://$childaddr:5000 \
+	    set childport $ports($cl,$child)
+	    eval link add link-$child host://$childaddr:$childport \
 		    $type $cl $args
 	    
-	    route add bundles://internet/host://$childaddr/* link-$child
+	    route add bundles://internet/host://host-$child/* link-$child
 	}
     }
 
@@ -80,29 +91,34 @@ proc setup_tree_topology {type cl {args ""}} {
     # 100-154, can also set a fourth-tier route to 200-254
     if { $id >= 100 && $id <= 199 } {
 	set parent [expr $id / 10]
-	eval link add link-$parent host://$hosts($parent):5000 \
+	set parentaddr $hosts($parent)
+	set parentport $ports($cl,$parent)
+	eval link add link-$parent host://$parentaddr:$parentport \
 		$type $cl $args
 	
-	route add bundles://internet/host://$hosts($parent)/* link-$parent
-	set route_to_root bundles://internet/host://$hosts($parent)
+	route add bundles://internet/host://host-$parent/* link-$parent
+	set route_to_root bundles://internet/host://$parentaddr
 
 	if {$id <= 154} {
 	    set child [expr $id + 100]
 	    set childaddr $hosts($child)
-	    eval link add link-$child host://$childaddr:5000 \
+	    set childport $ports($cl,$child)
+	    eval link add link-$child host://$childaddr:$childport \
 		    $type $cl $args
 	    
-	    route add bundles://internet/host://$childaddr/* link-$child
+	    route add bundles://internet/host://host-$child/* link-$child
 	}
     }
 
     # finally, the fourth tier nodes 200-254 just set a route to their parent
     if { $id >= 200 && $id <= 255 } {
 	set parent [expr $id - 100]
-	eval link add link-$parent host://$hosts($parent):5000 \
+	set parentaddr $hosts($parent)
+	set parentport $ports($cl,$parent)
+	eval link add link-$parent host://$parentaddr:$parentport \
 		$type $cl $args
 	
-	route add bundles://internet/host://$hosts($parent)/* link-$parent
-	set route_to_root bundles://internet/host://$hosts($parent)
+	route add bundles://internet/host://host-$parent/* link-$parent
+	set route_to_root bundles://internet/host://$parentaddr
     }
 }

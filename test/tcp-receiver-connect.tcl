@@ -6,14 +6,17 @@
 set num_nodes 2
 set network loopback
 route set type "static"
-set topology none;  # Disable the automatic route config
+
+# source the main test script harness
 source "test/main.tcl"
 
+# set up a listening interface (
+setup_interface tcp
 
 # For node 0 (the receiver), configure the special interface to enable
 # bundles to be received.
 if {$id == 0} {
-    interface add tcp host://$hosts(1):5000 receiver_connect
+    setup_interface tcp receiver_connect
 }
 
 # For node 1 (the sender), configure an opportunistic link and a route
