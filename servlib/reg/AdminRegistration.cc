@@ -7,7 +7,7 @@
 #include "routing/BundleRouter.h"
 
 AdminRegistration::AdminRegistration()
-    : Registration(BundleRouter::local_tuple_, ABORT)
+    : Registration(ADMIN_REGID, BundleRouter::local_tuple_, ABORT)
 {
     logpathf("/reg/admin");
 }
