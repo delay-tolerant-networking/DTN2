@@ -59,6 +59,19 @@ public:
     void push_back(Bundle* bundle);
 
     /**
+     * Type codes for sorted insertion
+     */
+    typedef enum {
+        SORT_PRIORITY = 0x1,	///< Sort by bundle priority
+        SORT_FRAG_OFFSET	///< Sort by fragment offset
+    } sort_order_t;
+        
+    /**
+     * Insert the given bundle sorted by the given sort method.
+     */
+    void insert_sorted(Bundle* bundle, sort_order_t sort_order);
+    
+    /**
      * Remove (and return) the first bundle on the list.
      *
      * Note (as explained above) that this does not decrement the
@@ -96,16 +109,26 @@ public:
      * it was not on the list
      */
     bool remove(Bundle* bundle);
-    
+
+    /**
+     * Clear out the list.
+     */
+    void clear();
+
     /**
      * Return the size of the list.
      */
     size_t size();
 
     /**
+     * Type for the list itself.
+     */
+    typedef std::list<Bundle*> ListType;
+
+    /**
      * Type for an iterator.
      */
-    typedef std::list<Bundle*>::iterator iterator;
+    typedef ListType::iterator iterator;
 
     /**
      * Iterator used to iterate through the list. Iterations _must_ be
@@ -132,8 +155,18 @@ public:
     const std::string& name() const { return name_; }
     
 protected:
+    /**
+     * Helper routine to do bookkeeping when a bundle is added.
+     */
+    void add_bundle(Bundle* bundle);
+
+    /**
+     * Helper routine to do bookkeeping when a bundle is removed.
+     */
+    void del_bundle(Bundle* bundle);
+    
     SpinLock* lock_;
-    std::list<Bundle*> list_;
+    ListType list_;
     std::string name_;
 };
 

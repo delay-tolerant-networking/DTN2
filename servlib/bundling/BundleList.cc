@@ -4,6 +4,9 @@
 #include "thread/SpinLock.h"
 #include <algorithm>
 
+// XXX/demmer want some sort of expiration handler registration per
+// list so things know when their bundles have been expired
+
 BundleList::BundleList(const std::string& name)
     : lock_(new SpinLock()), name_(name)
 {
@@ -43,6 +46,23 @@ BundleList::back()
 }
 
 /**
+ * Helper routine to do bookkeeping when a bundle is added.
+ */
+void
+BundleList::add_bundle(Bundle* b)
+{
+    b->add_ref();
+    bool added = b->add_container(this);
+    ASSERT(added);
+    
+    if (size() == 1)
+    {
+        notify();
+    }
+}
+
+
+/**
  * Add a new bundle to the front of the list.
  */
 void
@@ -50,15 +70,7 @@ BundleList::push_front(Bundle* b)
 {
     ScopeLock l(lock_);
     list_.push_front(b);
-
-    b->add_ref();
-    bool added = b->add_container(this);
-    ASSERT(added);
-
-    if (size() == 1)
-    {
-        notify();
-    }
+    add_bundle(b);
 }
 
 /**
@@ -69,15 +81,55 @@ BundleList::push_back(Bundle* b)
 {
     ScopeLock l(lock_);
     list_.push_back(b);
+    add_bundle(b);
+}
+        
+/**
+ * Insert the given bundle sorted by the given sort method.
+ */
+void
+BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
+{
+    ScopeLock l(lock_);
+    ListType::iterator iter;
 
-    b->add_ref();
-    bool added = b->add_container(this);
-    ASSERT(added);
+    // scan through the list until the iterator either a) reaches the
+    // end of the list or b) reaches the bundle that should follow the
+    // new insertion in the list. once the loop is done therefore, the
+    // insert() call will then always put the bundle in the right
+    // place
+    //
+    // XXX/demmer there's probably a more stl-ish way to do this but i
+    // don't know what it is 
     
-    if (size() == 1)
+    for (iter = list_.begin(); iter != list_.end(); ++iter)
     {
-        notify();
+        if (sort_order == SORT_FRAG_OFFSET) {
+            if ((*iter)->frag_offset_ > b->frag_offset_) {
+                break;
+            }
+
+        } else if (sort_order == SORT_PRIORITY) {
+            NOTIMPLEMENTED;
+            
+        } else {
+            PANIC("invalid value for sort order %d", sort_order);
+        }
     }
+
+    list_.insert(iter, b);
+
+    add_bundle(b);
+}
+
+/**
+ * Helper routine to do bookkeeping when a bundle is removed.
+ */
+void
+BundleList::del_bundle(Bundle* b)
+{
+    bool deleted = b->del_container(this);
+    ASSERT(deleted);
 }
 
 /**
@@ -98,9 +150,8 @@ BundleList::pop_front()
     Bundle* b = list_.front();
     list_.pop_front();
 
-    bool deleted = b->del_container(this);
-    ASSERT(deleted);
-        
+    del_bundle(b);
+    
     return b;
 }
 
@@ -122,8 +173,7 @@ BundleList::pop_back()
     Bundle* b = list_.back();
     list_.pop_back();
 
-    bool deleted = b->del_container(this);
-    ASSERT(deleted);
+    del_bundle(b);
         
     return b;
 }
@@ -185,6 +235,22 @@ BundleList::remove(Bundle* bundle)
 
     return true;
 }
+
+/**
+ * Clear out the list.
+ */
+void
+BundleList::clear()
+{
+    Bundle* b;
+    ScopeLock l(lock_);
+    
+    while (!list_.empty()) {
+        b = pop_front();
+        b->del_ref();
+    }
+}
+
 
 /**
  * Return the size of the list.
