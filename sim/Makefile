@@ -6,15 +6,19 @@ SRCDIR := ..
 
 SIM_SRCS :=	\
 	main.cc		\
-	Contact.cc	\
 	Event.cc	\
 	Message.cc	\
 	Node.cc		\
+	GlueNode.cc 	\
+	SimpleNode.cc 	\
 	SimulatorCommand.cc	\
 	Simulator.cc	\
+	SimContact.cc	\
+	SimConvergenceLayer.cc \
+	Simdtn2Command.cc \
 	Topology.cc	\
 	TrAgent.cc	\
-	Log_sim.cc	\
+	LogSim.cc	\
 
 SIM_OBJS := $(SIM_SRCS:.cc=.o)
 

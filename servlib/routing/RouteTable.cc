@@ -48,6 +48,7 @@ RouteTable::add_entry(RouteEntry* entry)
 {
     // XXC/demmer check for duplicates?
     
+    
     log_debug("add_route %s -> %s (%s)",
               entry->pattern_.c_str(),
               entry->next_hop_->dest_tuple()->c_str(),

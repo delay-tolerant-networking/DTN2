@@ -16,6 +16,7 @@ Contact::Contact(contact_type_t type, const BundleTuple& tuple)
         PANIC("can't find convergence layer for %s", tuple.admin().c_str());
         // XXX/demmer need better error handling
     }
+    contact_info_ = NULL;
 }
 
 Contact::~Contact()

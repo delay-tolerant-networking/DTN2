@@ -3,7 +3,7 @@
 #define _NODE_H_
 
 /*
- * Interface to DTN Nodes
+ * Abstract class defining structure of a node in simulator
  */
 
 #include <vector>
@@ -12,10 +12,10 @@
 #include "debug/Debug.h"
 #include "debug/Log.h"
 #include "Processable.h"
-#include "Contact.h"
+#include "SimContact.h"
 #include "Message.h"
 
-class Contact;
+class SimContact;
 class Node : public Processable, public Logger {
 
 public:
@@ -23,25 +23,23 @@ public:
 	return total_ ++ ;
     }
 
-    
-    Node(int id);
+    Node(int id, const char* logpath);
     virtual ~Node();
 
-    virtual void process(Event *e); ///< virtual function from Processable
     int id() { return id_ ;}
-
+    virtual void process(Event *e) = 0; ///< virtual function from Processable
     
-   virtual  void chewing_complete(Contact* c, double size, Message* msg);
-   virtual  void open_contact(Contact* c);
-   virtual  void close_contact(Contact* c);
-   virtual  void forward(Message* msg);
+    virtual  void chewing_complete(SimContact* c, double size, Message* msg) = 0;
+    virtual  void open_contact(SimContact* c) = 0;
+    virtual  void close_contact(SimContact* c) = 0;
+    virtual  void message_received(Message* msg) = 0;
+    virtual  void forward(Message* msg) = 0;
     
-private:
+protected:
     static long total_;
     int id_;
-    std::vector<Message*> msgq_;
-    //   BundleTuple name_;
+   
 };
 
-   
+
 #endif /* _NODE_H_ */

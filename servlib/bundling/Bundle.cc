@@ -5,10 +5,9 @@
 #include "storage/GlobalStore.h"
 
 void
-Bundle::init()
+Bundle::helper_init() 
 {
     refcount_		= 0;
-    bundleid_		= GlobalStore::instance()->next_bundleid();
     priority_		= COS_NORMAL;
     expiration_		= 0;
     custreq_		= false;
@@ -17,14 +16,35 @@ Bundle::init()
     fwd_rcpt_		= false;
     return_rcpt_	= false;
     expiration_		= 0; // XXX/demmer
-    payload_.init(bundleid_);
-    
     gettimeofday(&creation_ts_, 0);
 }
+
+void
+Bundle::init()
+{
+    bundleid_		= GlobalStore::instance()->next_bundleid();
+    helper_init();  
+    payload_.init(bundleid_);
+}
+
+// The following init is used by simulator
+void
+Bundle::init(u_int32_t id) 
+{
+    bundleid_		= id;
+    helper_init();
+}
+
+
 
 Bundle::Bundle()
 {
     init();
+}
+
+Bundle::Bundle(u_int32_t id)
+{
+    init(id);
 }
 
 Bundle::~Bundle()

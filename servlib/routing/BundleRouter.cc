@@ -74,6 +74,14 @@ BundleRouter::handle_event(BundleEvent* e,
         handle_route_add((RouteAddEvent*)e, actions);
         break;
 
+    case CONTACT_AVAILABLE:
+	log_info("Ignoring contact available event...no action taken");
+        break;
+
+    case CONTACT_BROKEN:
+	log_info("Ignoring contact broken event...no action taken");
+        break;
+
     default:
         PANIC("unimplemented event type %d", e->type_);
     }

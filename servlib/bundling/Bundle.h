@@ -40,6 +40,7 @@ public:
      * fields to defaults and allocating a new bundle id.
      */
     Bundle();
+    Bundle(u_int32_t id); ///> give explicit id
 
     /**
      * Special constructor for a temporary (invalid) bundle, used to
@@ -51,6 +52,8 @@ public:
      * Default initialization.
      */
     void init();
+    void init(u_int32_t id); ///> give explicit id
+    
 
     /**
      * Bundle destructor.
@@ -178,6 +181,9 @@ public:
     SpinLock lock_;		///< Lock for bundle data that can be
                                 ///  updated by multiple threads, e.g.
                                 ///  containers_ and refcount_.
+
+private:
+    void helper_init();         ///> helper init function
 
 };
 

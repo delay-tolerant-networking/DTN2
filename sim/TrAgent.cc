@@ -28,11 +28,9 @@ TrAgent::send(double time, int size) {
 
     Message* msg = new Message(src_,dst_,size);
     Node* src_tmp = Topology::node(src_);
-    Event_app_message_arrival *esend = new Event_app_message_arrival(time,src_tmp);
-    esend->msg_ = msg;
-    esend->origsize_ = size;
+    Event_message_received *esend = new Event_message_received(time,src_tmp,size,NULL,msg);
     Simulator::add_event(esend);
-
+    log_info("G msg id %d size %d",msg->id(),size);
 }
 
 void

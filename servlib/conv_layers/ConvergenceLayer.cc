@@ -2,6 +2,9 @@
 #include "TCPConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
 #include "FileConvergenceLayer.h"
+#include "../sim/SimConvergenceLayer.h"
+
+class SimConvergenceLayer;
 
 ConvergenceLayer::~ConvergenceLayer()
 {
@@ -26,6 +29,7 @@ ConvergenceLayer::init_clayers()
     add_clayer("tcp", new TCPConvergenceLayer());
     add_clayer("udp", new UDPConvergenceLayer());
     add_clayer("file", new FileConvergenceLayer());
+
 }
 
 ConvergenceLayer*

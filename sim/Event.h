@@ -3,13 +3,14 @@
 
 
 #include "Processable.h"
-#include "Contact.h"
+#include "SimContact.h"
 #include "Topology.h"
 #include "Node.h"
 #include "Message.h"
 
+#include "bundling/BundleEvent.h"
 
-class Contact;
+class SimContact;
 class Message;
 class Processable;
 
@@ -23,17 +24,19 @@ class Processable;
 
 
 typedef enum {
-    BUNDLE_RECEIVED = 0x1,      ///< New bundle arrival
-    BUNDLE_TRANSMITTED,         ///< Bundle or fragment successfully sent
+    MESSAGE_RECEIVED = 0x1,      ///< New bundle arrival
+    //  BUNDLE_TRANSMITTED,         ///< Bundle or fragment successfully sent
 
-    CONTACT_UP,                 ///< Contact is available
-    CONTACT_DOWN,               ///< Contact abnormally terminated
+    CONTACT_UP,                 ///< SimContact is available
+    CONTACT_DOWN,               ///< SimContact abnormally terminated
 
     CONTACT_CHEWING_FINISHED,   ///< Message transmission finished
-    CONTACT_MESSAGE_ARRIVAL,    ///< Message received via contact
+//    CONTACT_MESSAGE_ARRIVAL,    ///< Message received via contact
 
-    APP_MESSAGE_ARRIVAL,        ///< Message has arrived from app
-    TR_NEXT_SENDTIME            ///< Used by the traffic agent to schedule event for itself
+//    APP_MESSAGE_ARRIVAL,        ///< Message has arrived from app
+    TR_NEXT_SENDTIME  ,          ///< Used by the traffic agent to schedule event for itself
+    
+    FOR_BUNDLE_ROUTER             ///< A bundle event to be forwared to bundle router
 
 } sim_event_type_t;
 
@@ -45,17 +48,19 @@ typedef enum {
 static const char* 
 ev2str(sim_event_type_t eventtype) {
     switch (eventtype) {
-    case BUNDLE_RECEIVED:          return "BUNDLE_RECEIVED";
-    case BUNDLE_TRANSMITTED:        return "BUNDLE_TRANSMITTED";
+    case MESSAGE_RECEIVED:          return "MESSAGE_RECEIVED";
+//    case BUNDLE_TRANSMITTED:        return "BUNDLE_TRANSMITTED";
 
     case CONTACT_UP:     return "CONTACT_UP";
     case CONTACT_DOWN:     return "CONTACT_DOWN";
 
     case CONTACT_CHEWING_FINISHED: return "CONTACT_CHEWING_FINISHED";
-    case CONTACT_MESSAGE_ARRIVAL: return "CONTACT_MESSAGE_ARRIVAL";
+//    case CONTACT_MESSAGE_ARRIVAL: return "CONTACT_MESSAGE_ARRIVAL";
 	
-    case APP_MESSAGE_ARRIVAL: return "APP_MESSAGE_ARRIVAL";
+//    case APP_MESSAGE_ARRIVAL: return "APP_MESSAGE_ARRIVAL";
     case TR_NEXT_SENDTIME: return "TR_NEXT_SENDTIME";
+
+    case FOR_BUNDLE_ROUTER: return "FOR_BUNDLE_ROUTER";
 
     default:                return "_UNKNOWN_EVENT_";
     }
@@ -134,7 +139,7 @@ EventCompare::operator()(Event* a, Event* b)
  *****************************************************************************/
 
 
-
+/*
 class Event_app_message_arrival : public Event {
     
 public:
@@ -144,7 +149,7 @@ public:
     double  origsize_;
     Message* msg_;
 };
-
+*/
 
 class Event_contact_up : public Event {
     
@@ -162,33 +167,42 @@ class Event_contact_down : public Event {
 public:
     
     Event_contact_down(double t, Processable* h) : Event(t,h,CONTACT_DOWN),forever_(false) {}
-    
     bool forever_;
 };
 
 
 
-class Event_contact_message_arrival : public Event {
+class Event_message_received : public Event {
     
 public:
     
-    Event_contact_message_arrival(double t, Processable* h) : Event(t,h,CONTACT_MESSAGE_ARRIVAL) {}
+    Event_message_received(double t, Processable* h, double sizesent, SimContact* ct, Message* msg)
+ : Event(t,h,MESSAGE_RECEIVED),sizesent_(sizesent),frm_(ct),msg_(msg) {}
     
-    double  sizesent_;
-    Contact* source_contact_;
-    Message* msg_;
+    double  sizesent_;              ///> the amount of message that was sent 
+    SimContact* frm_;    ///> the contact on which the message was received, if its an app then this is NULL
+    Message* msg_;                  ///> the received messsage
 };
 
 
 class Event_contact_chewing_finished : public Event {
     
 public:
-    Event_contact_chewing_finished(double t, Processable* h) : Event (t,h,CONTACT_CHEWING_FINISHED) {}
+    Event_contact_chewing_finished(double t, Processable* h,Message* msg, double chewt) : Event (t,h,CONTACT_CHEWING_FINISHED),msg_(msg),chew_starttime_(chewt) {}
     
-    Message* msg_;
-    double chew_starttime_;
+    Message* msg_; ///> message under consideration 
+    double chew_starttime_; ///> the time at which chewing started
     
 };
 
+
+class Event_for_bundle_router: public Event {
+    
+public:
+    Event_for_bundle_router(double t, Processable* h,BundleEvent* e) : Event (t,h,FOR_BUNDLE_ROUTER),bundle_event_(e) {}
+    
+    BundleEvent* bundle_event_; ///> the actual event that has to be forwarded further
+    
+};
 
 #endif /* _EVENT_H_ */

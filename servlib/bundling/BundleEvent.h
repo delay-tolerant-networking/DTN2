@@ -99,6 +99,30 @@ public:
     bool acked_;
 };
 
+
+/**
+ * Event class for contact events
+ */
+class ContactAvailableEvent : public BundleEvent {
+public:
+    ContactAvailableEvent(Contact* contact)
+        : BundleEvent(CONTACT_AVAILABLE), contact_(contact) {}
+    
+    /// The contact that is up
+    Contact* contact_;
+};
+
+class ContactBrokenEvent : public BundleEvent {
+public:
+    ContactBrokenEvent(Contact* contact)
+        : BundleEvent(CONTACT_BROKEN), contact_(contact) {}
+    
+    /// The contact that is up
+    Contact* contact_;
+};
+
+
+
 /**
  * Event class for new registration arrivals.
  */

@@ -1,42 +1,156 @@
 #include "GlueNode.h"
 
-GlueNode::GlueNode(int id): Node(id) 
-{
+#include "bundling/Bundle.h"
+#include "bundling/BundleAction.h"
+#include "bundling/BundleEvent.h"
+#include "bundling/BundleConsumer.h"
+#include "bundling/Contact.h"
 
-    BundleRouter* daemon = new BundleRouter();
+#include "SimConvergenceLayer.h"
+
+
+GlueNode::GlueNode(int id,const char* logpath): Node(id,logpath) 
+{
+    router_ = BundleRouter::create_router(BundleRouter::type_.c_str());
     
 }
 
 
 void 
-process(Event *e) {
+GlueNode::message_received(Message* msg) 
+{
 
-    if (e->type() == APP_MESSAGE_ARRIVAL) {
-	
-	Event_app_message_arrival* e1 = ((Event_app_message_arrival*) e);
-	msg = ((Event_app_message_arrival* )e1)->msg_;
-	log_info("message from own tragent msg (%d) size %3f",msg->id(),msg->size());
-
-	// Bundle *b = new Bundle(src,dst,size)
-	// Do address translations for src, dst
-	// may be set ports etc.
-	Bundle *b = new Bundle() // temporary
-	    daemon->exec_event(BUNDLE_ARRIVED
+    if (msg->dst() == id()) {
+	log_info("Rc msg at node %d, id %d, size-rcv %f",id(),msg->id(),msg->size());
     }
+    else {
+	log_info("Fw msg at node %d, id %d, size-rcv %f",id(),msg->id(),msg->size());
+	forward(msg);
+    }
+}
 
+void forward_event(BundleEvent* event) ;
+
+void 
+GlueNode::chewing_complete(SimContact* c, double size, Message* msg) 
+{
+
+    bool acked = true;
+    Bundle* bundle = SimConvergenceLayer::msg2bundle(msg);
+    Contact* consumer = SimConvergenceLayer::simlink2ct(c);
+    int tsize = (int)size;
+    BundleTransmittedEvent* e = new BundleTransmittedEvent(bundle,consumer,tsize,acked);
+    forward_event(e);
+    
+}
+
+void 
+GlueNode::open_contact(SimContact* c) 
+{
+    Contact* ct = SimConvergenceLayer::simlink2ct(c);
+    ContactAvailableEvent* e = new ContactAvailableEvent(ct);
+    forward_event(e);
 }
 
 
 void 
-chewing_complete(Contact* c, double size, Message* msg);
+GlueNode::close_contact(SimContact* c)
+{
+    Contact* ct = SimConvergenceLayer::simlink2ct(c);
+    ContactBrokenEvent* e = new ContactBrokenEvent(ct);
+    forward_event(e);
+}
+
+
+void
+GlueNode::process(Event* e) {
+    
+    if (e->sameTypeAs(MESSAGE_RECEIVED)) {
+	
+	Event_message_received* e1 = (Event_message_received*)e;
+	Message* msg = e1->msg_;
+	log_info("received msg (%d) size %3f",msg->id(),msg->size());
+	// need to correctly update the size of the message that is received
+	msg->set_size(e1->sizesent_);
+	message_received(msg);
+    
+    } else if (e->sameTypeAs(FOR_BUNDLE_ROUTER)) {
+	BundleEvent* be = ((Event_for_bundle_router* )e)->bundle_event_;
+	forward_event(be);
+	
+    }
+    else
+	PANIC("unimplemented action code");
+}
+
+
+
+void
+GlueNode::forward(Message* msg) 
+{
+    // first see if there exists a  bundle in the global hashtable
+    Bundle *b = SimConvergenceLayer::msg2bundle(msg); 
+    BundleReceivedEvent* bundle_rcv = new BundleReceivedEvent(b) ;
+    forward_event(bundle_rcv);
+}
+
+
+
+/**
+ * Routine that actually effects the forwarding operations as
+ * returned from the BundleRouter.
+ */
+void
+GlueNode::execute_router_action(BundleAction* action)
+{
+    Bundle* bundle;
+    bundle = action->bundleref_.bundle();
+    
+    switch (action->action_) {
+    case FORWARD_UNIQUE:
+    case FORWARD_COPY: {
+        BundleForwardAction* fwdaction = (BundleForwardAction*)action;
+	
+        log_debug("forward bundle (%d) as told by routercode",bundle->bundleid_);
+        BundleConsumer* bc = fwdaction->nexthop_ ; 
+	bc->consume_bundle(bundle);
+        break;
+    }
+    case STORE_ADD: {
+	log_info("storing ignored %d", bundle->bundleid_);
+        break;
+    }
+    case STORE_DEL: {
+	log_debug("deletion ignored %d", bundle->bundleid_);
+        break;
+    }        
+    default:
+        PANIC("unimplemented action code %s",
+              bundle_action_toa(action->action_));
+    }
+    delete action;
+}
+
 
 void 
-open_contact(Contact* c);
+GlueNode::forward_event(BundleEvent* event) 
+{
 
+    BundleActionList actions;
+    BundleActionList::iterator iter;
+    
+    ASSERT(event);
+    
+    // always clear the action list
+    actions.clear();
+    
+    // dispatch to the router to fill in the actions list
+    router_->handle_event(event, &actions);
+    
+    // process the actions
+    for (iter = actions.begin(); iter != actions.end(); ++iter) {
+	execute_router_action(*iter);
+    }
+    
+}
 
-void 
-close_contact(Contact* c);
-
-
-void 
-forward(Message* msg);

@@ -5,21 +5,23 @@
 #include "cmd/Command.h"
 #include "cmd/Options.h"
 #include "Simulator.h"
-#include "Log_sim.h"
+#include "LogSim.h"
+#include "conv_layers/ConvergenceLayer.h"
+#include "SimConvergenceLayer.h"
 
 int
 main(int argc, char** argv)
 {
     
     
-    Log_sim::init(LOG_DEBUG);
+    LogSim::init(LOG_INFO);
     // Initialize the simulator
     Simulator* s = new Simulator();
     Simulator::init(s);
 
 
 
-    logf("/sim", LOG_DEBUG, "simulator initializing...");
+    logf("/sim", LOG_INFO, "simulator initializing...");
 
 
     
@@ -45,6 +47,9 @@ main(int argc, char** argv)
     }
     logf("/sim", LOG_INFO, "random seed is %u\n", random_seed);
     srand(random_seed);
+
+    ConvergenceLayer::init_clayers();
+    ConvergenceLayer::add_clayer("simcl", new SimConvergenceLayer());
 
 
     // Initialize the topology

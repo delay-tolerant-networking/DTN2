@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include "TrAgent.h"
 
-
+#include "SimConvergenceLayer.h"
 
 SimulatorCommand SimulatorCommand::instance_;
 
@@ -19,6 +19,7 @@ void
 SimulatorCommand::at_reg()
 {
  bind_i("runtill", &Simulator::runtill_);
+ bind_i("nodetype", &Topology::node_type_);
 
 }
 
@@ -27,7 +28,7 @@ const char*
 SimulatorCommand::help_string()
 {
     return "simulator <time> create_node <id> \n"
-        "simulator <time> create_contact <id> <bw> <delay> <uptime> <downtime> \n"
+        "simulator <time> create_contact <id> <bw> <delay> <uptime> <downtime> <type?> \n"
         "simulator <time> stop"
 	"simulator <time> start";
 }
@@ -74,8 +75,13 @@ SimulatorCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 	int isup =  atoi(argv[8]) ;
 	int up = atoi(argv[9]) ;
 	int down = atoi(argv[10]) ;
+	
 	Topology::create_contact(id,src,dst,bw,delay,isup,up,down);
 	log_info("new contact: (%d->%d), param:[%d,%d] \n",src,dst,bw,delay);
+
+
+
+	
 	
     }
     
