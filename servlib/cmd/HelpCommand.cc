@@ -1,8 +1,6 @@
 
 #include "HelpCommand.h"
 
-HelpCommand HelpCommand::instance_;
-
 HelpCommand::HelpCommand() : AutoCommandModule("help") {}
 
 int

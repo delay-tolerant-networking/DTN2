@@ -2,8 +2,6 @@
 #include "LogCommand.h"
 #include "debug/Log.h"
 
-LogCommand LogCommand::instance_;
-
 LogCommand::LogCommand() : AutoCommandModule("log") {}
 
 const char*

@@ -3,8 +3,6 @@
 #include "bundling/BundlePayload.h"
 #include "conv_layers/TCPConvergenceLayer.h"
 
-ParamCommand ParamCommand::instance_;
-
 ParamCommand::ParamCommand() :
     AutoCommandModule("param")
 {

@@ -2,8 +2,6 @@
 #include "InterfaceCommand.h"
 #include "bundling/InterfaceTable.h"
 
-InterfaceCommand InterfaceCommand::instance_;
-
 InterfaceCommand::InterfaceCommand() : AutoCommandModule("interface") {}
 
 const char*

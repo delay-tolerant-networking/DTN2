@@ -5,8 +5,6 @@
 #include "reg/RegistrationTable.h"
 #include "storage/GlobalStore.h"
 
-RegistrationCommand RegistrationCommand::instance_;
-
 RegistrationCommand::RegistrationCommand() : AutoCommandModule("registration") {}
 
 const char*

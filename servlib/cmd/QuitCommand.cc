@@ -1,8 +1,6 @@
 
 #include "QuitCommand.h"
 
-QuitCommand QuitCommand::instance_;
-
 QuitCommand::QuitCommand() : AutoCommandModule("quit") {}
 
 int

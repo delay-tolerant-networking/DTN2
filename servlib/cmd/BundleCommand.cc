@@ -4,8 +4,6 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
 
-BundleCommand BundleCommand::instance_;
-
 BundleCommand::BundleCommand() : AutoCommandModule("bundle") {}
 
 const char*

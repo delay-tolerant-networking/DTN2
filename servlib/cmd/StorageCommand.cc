@@ -20,8 +20,6 @@
 #include "storage/PostgresSQLImplementation.h"
 #endif
 
-StorageCommand StorageCommand::instance_;
-
 StorageCommand::StorageCommand() : AutoCommandModule("storage")
 {
     inited_ = false;

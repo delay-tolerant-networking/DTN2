@@ -7,8 +7,6 @@
 #include "routing/RouteTable.h"
 #include "util/StringBuffer.h"
 
-RouteCommand RouteCommand::instance_;
-
 RouteCommand::RouteCommand() : AutoCommandModule("route") {}
 
 void
