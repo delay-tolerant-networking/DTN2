@@ -3,7 +3,7 @@
 #include "thread/SpinLock.h"
 
 BundleList::BundleList()
-    : lock_(new SpinLock())
+    : lock_(new SpinLock()), waiter_(false)
 {
 }
 
@@ -44,11 +44,47 @@ BundleList::pop_back()
     return ret;
 }
 
+Bundle*
+BundleList::pop_blocking()
+{
+    lock_->lock();
+
+    if (size() == 0) {
+        if (waiter_) {
+            PANIC("BundleList doesn't support multiple waiting threads");
+        }
+        waiter_ = true;
+        
+        lock_->unlock();
+        wait();
+        lock_->lock();
+        
+        waiter_ = false;
+    }
+
+    // always drain the pipe when done waiting
+    drain_pipe();
+    
+    ASSERT(size() > 0);
+    Bundle* ret = list_.front();
+    ASSERT(ret != NULL);
+    list_.pop_front();
+    
+    lock_->unlock();
+    
+    return ret;
+}
+
 void
 BundleList::push_front(Bundle* b)
 {
     ScopeLock l(lock_);
     list_.push_front(b);
+
+    if (waiter_ == true && size() == 1)
+    {
+        notify();
+    }
 }
 
 void
@@ -56,6 +92,11 @@ BundleList::push_back(Bundle* b)
 {
     ScopeLock l(lock_);
     list_.push_back(b);
+    
+    if (waiter_ == true && size() == 1)
+    {
+        notify();
+    }
 }
 
 size_t

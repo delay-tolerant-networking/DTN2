@@ -2,6 +2,7 @@
 #define _BUNDLE_LIST_H_
 
 #include <list>
+#include "thread/Notifier.h"
 
 class Bundle;
 class SpinLock;
@@ -19,8 +20,12 @@ class SpinLock;
  * counterpart. In particular, however, the pop_* functions return the
  * bundle that was on the end (front or back) of the list so the
  * operation can be atomic (protected by the spin lock).
+ *
+ * The list is also derived from Notifier, and the various push()
+ * calls will call notify() so threads can block on an empty list
+ * waiting for notification.
  */
-class BundleList {
+class BundleList : public Notifier {
 public:
     BundleList();
     virtual ~BundleList();
@@ -44,6 +49,12 @@ public:
      * Remove (and return) the last bundle on the list.
      */
     Bundle* pop_back();
+
+    /**
+     * Remove (and return) the first bundle on the list, blocking if
+     * there are none.
+     */
+    Bundle* pop_blocking();
     
     /**
      * Add a new bundle to the front of the list.
@@ -83,10 +94,17 @@ public:
      * Return the internal lock on this list.
      */
     SpinLock* lock() { return lock_; }
+
+    /**
+     * Return an indication if there are any threads blocked waiting
+     * for bundles.
+     */
+    bool waiter() { return waiter_; }
     
 protected:
     SpinLock* lock_;
     std::list<Bundle*> list_;
+    bool waiter_;
 };
 
 #endif /* _BUNDLE_LIST_H_ */
