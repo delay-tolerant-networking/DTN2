@@ -46,7 +46,7 @@
 #include <oasys/memory/Memory.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
-#include <oasys/util/Options.h>
+#include <oasys/util/Getopt.h>
 #include <oasys/util/StringBuffer.h>
 
 #include "version.h"
@@ -77,49 +77,55 @@ main(int argc, char* argv[])
 #endif
 
     // Register all command line options
-    new oasys::BoolOpt('v', "version", &print_version,
-                       "print version information and exit");
+    oasys::Getopt::addopt(
+        new oasys::BoolOpt('v', "version", &print_version,
+                           "print version information and exit"));
     
-    new oasys::StringOpt('o', "output",
-                         &logfile, "<output>",
-                         "file name for logging output "
-                         "(default - indicates stdout)");
+    oasys::Getopt::addopt(
+        new oasys::StringOpt('o', "output", &logfile, "<output>",
+                             "file name for logging output "
+                             "(default - indicates stdout)"));
 
-    new oasys::StringOpt('l', NULL,
-                         &loglevelstr, "<level>",
-                         "default log level [debug|warn|info|crit]");
+    oasys::Getopt::addopt(
+        new oasys::StringOpt('l', NULL, &loglevelstr, "<level>",
+                             "default log level [debug|warn|info|crit]"));
 
-    new oasys::StringOpt('c', "conf",
-                         &conf_file, &conf_file_set, "<conf>",
-                         "config file");
+    oasys::Getopt::addopt(
+        new oasys::StringOpt('c', "conf", &conf_file, "<conf>",
+                             "set the configuration file", &conf_file_set));
     
-    new oasys::BoolOpt('d', "daemon",
-                       &daemon, "run as a daemon");
+    oasys::Getopt::addopt(
+        new oasys::BoolOpt('d', "daemon", &daemon,
+                           "run as a daemon"));
     
-    new oasys::BoolOpt('t', "tidy",
-                       &StorageConfig::instance()->tidy_,
-                       "clear database and initialize tables on startup");
+    oasys::Getopt::addopt(
+        new oasys::BoolOpt('t', "tidy", &StorageConfig::instance()->tidy_,
+                           "clear database and initialize tables on startup"));
     
-    new oasys::BoolOpt(0, "init-db",
-                       &StorageConfig::instance()->init_,
-                       "initialize database on startup");
+    oasys::Getopt::addopt(
+        new oasys::BoolOpt(0, "init-db", &StorageConfig::instance()->init_,
+                           "initialize database on startup"));
 
-    new oasys::IntOpt('s', "seed",
-                      &random_seed, &random_seed_set, "<seed>",
-                      "random number generator seed");
+    oasys::Getopt::addopt(
+        new oasys::IntOpt('s', "seed", &random_seed, "<seed>",
+                          "random number generator seed", &random_seed_set));
 
-    new oasys::IntOpt(0, "console-port",  &console_port, "<port>",
-                      "set the port for a console server (default off)");
+    oasys::Getopt::addopt(
+        new oasys::IntOpt(0, "console-port", &console_port, "<port>",
+                          "set the port for a console server (default off)"));
     
-    new oasys::IntOpt('i', 0, &testcmd.id_, "<id>",
-                      "set the test id");
-    new oasys::BoolOpt('f', 0, &testcmd.fork_,
-                       "test scripts fork child daemons");
+    oasys::Getopt::addopt(
+        new oasys::IntOpt('i', 0, &testcmd.id_, "<id>",
+                          "set the test id"));
+    
+    oasys::Getopt::addopt(
+        new oasys::BoolOpt('f', 0, &testcmd.fork_,
+                           "test scripts should fork child daemons"));
 
-    int remainder = oasys::Options::getopt(argv[0], argc, argv);
+    int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
     if (remainder != argc) {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
-        oasys::Options::usage("dtnd");
+        oasys::Getopt::usage("dtnd");
         exit(1);
     }
 

@@ -42,7 +42,7 @@
 
 #include <oasys/debug/Log.h>
 #include <oasys/tclcmd/TclCommand.h>
-#include <oasys/util/Options.h>
+#include <oasys/util/Getopt.h>
 
 #include "Simulator.h"
 #include "LogSim.h"
@@ -72,9 +72,12 @@ main(int argc, char** argv)
     int random_seed;
     bool random_seed_set = false;
     
-    new oasys::StringOpt('c', "conf", &conffile, "conf", "config file");
-    new oasys::IntOpt('s', "seed", &random_seed, &random_seed_set, "seed",
-                      "random number generator seed");
+    oasys::Getopt::addopt(
+        new oasys::StringOpt('c', "conf", &conffile, "<conf>", "config file"));
+
+    oasys::Getopt::addopt(
+        new oasys::IntOpt('s', "seed", &random_seed, "seed",
+                          "random number generator seed", &random_seed_set));
 
     // Set up the command interpreter, then parse argv
     oasys::TclCommandInterp::init(argv[0]);
@@ -83,7 +86,7 @@ main(int argc, char** argv)
     interp->reg(new ParamCommand());
     interp->reg(new RouteCommand());
 
-    oasys::Options::getopt(argv[0], argc, argv);
+    oasys::Getopt::getopt(argv[0], argc, argv);
 
     // Seed the random number generator
     if (!random_seed_set) {
