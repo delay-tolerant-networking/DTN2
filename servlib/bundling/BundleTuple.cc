@@ -50,7 +50,8 @@ BundleTuple::assign(dtn_tuple_t* tuple)
         tuple_.push_back('/');
     }
 
-    if (tuple->admin.admin_val[tuple->admin.admin_len - 1] == '\0')
+    if (tuple->admin.admin_len > 0 &&
+        tuple->admin.admin_val[tuple->admin.admin_len - 1] == '\0')
         tuple->admin.admin_len -= 1;
     
     tuple_.append(tuple->admin.admin_val,
