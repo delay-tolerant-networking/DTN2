@@ -93,7 +93,20 @@ public:
         COS_NORMAL    = 1, 		///< regular priority
         COS_EXPEDITED = 2, 		///< important
         COS_RESERVED  = 3  		///< TBD
-    } bundle_cos_t;
+    } bundle_priority_t;
+
+    /**
+     * Pretty printer function for bundle_priority_t.
+     */
+    static const char* prioritytoa(u_int8_t priority)
+    {
+        switch (priority) {
+        case COS_BULK: 		return "BULK";
+        case COS_NORMAL: 	return "NORMAL";
+        case COS_EXPEDITED: 	return "EXPEDITED";
+        default:		return "_UNKNOWN_PRIORITY_";
+        }
+    }
 
     /**
      * Use a struct timeval (for now) as the creation timestamp type.
@@ -119,6 +132,10 @@ public:
     
 protected:
     int refcount_;		///< reference count
+
+    // XXX/demmer this should have a std::set of pointers to all
+    // BundleList's that this bundle is currently linked on, so as to
+    // implement expiration and cancel properly.
 };
 
 #endif /* _BUNDLE_H_ */
