@@ -33,6 +33,7 @@ public:
      */
     Bundle* get(int bundle_id);
     int     put(Bundle* bundle);
+    int     put(Bundle* bundle, int bundle_id);
     int     del(int bundle_id);
     /// @}
     
@@ -41,7 +42,7 @@ public:
      *
      * (was db_update_bundle_id, db_restore_bundle_id)
      */
-    virtual int next_id() = 0;
+    virtual int next_id();
     
     /**
      * Delete expired bundles

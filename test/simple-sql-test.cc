@@ -2,10 +2,14 @@
 #include <stdio.h>
 #include "debug/Log.h"
 #include "bundling/Bundle.h"
-#include "storage/SQLSerialize.h"
-#include "storage/PostgresSQLExtract.h"
+//#include "storage/SQLSerialize.h"
+#include "storage/PostgresSQLImplementation.h"
+#include "storage/MysqlSQLImplementation.h"
 
-#include <libpq++.h>
+#include "storage/SQLStore.h"
+
+//#include "libpq-fe.h"
+//#include <libpq++.h>
 #include "iostream"
 using namespace std;
 
@@ -42,98 +46,53 @@ foo::serialize(SerializeAction* a)
 
 
 void 
-playsql() {
+playsql(int i) {
 
   //  foo o1; o1.id = 771 ; o1.f1 = 123; o1.f2 = 'a'; foo o2;
   
-  Bundle o1, o2;  o1.bundleid_ = 11;
-  o1.source_.set_tuple("bundles://internet/tcp://foo");
+  Bundle o1, o2;  
 
-  //  cout << " read stuff \n";
+  o1.source_.set_tuple("bundles://internet/tcp://foo"); o1.bundleid_ = 121; 
+  o2.source_.set_tuple("bundles://google/tcp://foo");o2.bundleid_ =  555;
+
+  cout << " read stuff,  \n" << i << endl;
   // cin >> o1.id  >> o1.f1 >> o1.f2 ;
   // cout << "  read end  \n\n" ; 
 
-  const char* table_name = "try";
-
-  SQLInsert s ;
-  s.action(&o1);
-  string insert = s.query();
-  string dummy = "";
-  insert =  dummy + " INSERT INTO "  + table_name  + " VALUES (" + insert + ");" ;
-
-  SQLTableFormat t;
-
-  t.action(&o1);
-  string table_create = t.query();
-  table_create = dummy + " CREATE TABLE " + table_name + " (" + table_create + ");" ;
-
-  string query = dummy + " select * from " + table_name + " ; " ; 
-
-  cout << " notice below \n\n" ; 
-  cout << insert << endl;
-  cout << table_create << endl ; 
-  cout << query << endl ; 
-  cout << " notice above \n\n" ; 
+   const char* table_name = "try";
   
-  PgDatabase data("dbname=cse544");
-  if ( data.ConnectionBad() )
-    {
-      cout << "Connection was unsuccessful..." << endl \
-	   << "Error message returned: " << data.ErrorMessage() << endl;
-      exit (0);
-    }
-  else
-    cout << "Connection successful...  will try  queries below:" << endl;
-  
-  //  int PgConnection::ExecCommandOk(const char *query)
-
-  int status ;
-
-
-  if ( (status = data.ExecCommandOk( table_create.c_str() )) == 1) {
-    cout <<  "table creation done properly \n";
-  }
-  else {
-    cout <<  "table creation  error  \n";
-
-  }
-
-
-  if ( (status = data.ExecCommandOk( insert.c_str() )) == 1) {
-    cout <<  "insertion done properly \n";
-  }
-  else {
-    cout <<  "insertion  error  \n";
-
-  }
-
-
-  if ( (status = data.ExecTuplesOk( query.c_str() )) == 1) {
-    cout <<  "query done properly \n";
-  }
-  else {
-    cout <<  "query  error  \n";
-
-  }
-  // exectute query and return results into o2
-  PostgresSQLExtract xt (&data) ;
-  xt.action(&o2);
-    
+   
  
-  cout << " printing both objects \n";
-  
+    SQLImplementation *db ;
 
-    SQLInsert s2  ;
-  s2.action(&o1);
-  string insert2 = s2.query();
+    if (i ==1)
+   db  =  new PostgresSQLImplementation("cse544");
+    else
+    db =  new MysqlSQLImplementation("cse544");
 
-  SQLInsert s3;
 
-  s3.action(&o2);
-  string insert3 = s3.query();
+  SQLStore *sqlstore = new SQLStore(table_name,&o1,db);
+  BundleStore *bstore = new SQLBundleStore(sqlstore);
 
-  cout << " finally the two objects are \n " << insert2 << endl << insert3 << endl ; 
+   int retval2 = bstore->put(&o1,1);
+   retval2 = bstore->put(&o2,2);
 
+   cout << " answer is " << retval2 << endl;
+
+   
+     Bundle *g1 = bstore->get(1);
+      Bundle *g2 = bstore->get(2);
+    
+     retval2 = bstore->put(g1,3);
+
+
+   ASSERT (o1.bundleid_ == g1->bundleid_) ; 
+     ASSERT (o2.bundleid_ == g2->bundleid_) ; 
+   
+ 
+  //db = NULL;
+     db->close();
+  // PQfinish(pgconn_db);
   exit(0);
 
 }  
@@ -144,7 +103,7 @@ main(int argc, const char** argv)
 
 
     Log::init();
-    playsql();
+    playsql(atoi(argv[1]));
     Bundle b, b2;
     b.bundleid_ = 100;
     ASSERT(!b.source_.valid());
@@ -155,30 +114,4 @@ main(int argc, const char** argv)
     ASSERT(b.source_.region().compare("internet") == 0);
     ASSERT(b.source_.admin().compare("tcp://foo") == 0);
 
-
-    SQLInsert s ;
-
-    logf("/test", LOG_INFO, "trying stuff   sqlinsert");
-    if (s.action(&b) != 0) {
-        logf("/test", LOG_ERR, "error in sql insert");
-        exit(1);
-    }
-    const char* x ;
-    x = s.query();
-
-    //
-    
-    SQLTableFormat tf;
-
-    logf("/test", LOG_INFO, "trying stuff  table format  ");
-    if (tf.action(&b) != 0) {
-        logf("/test", LOG_ERR, "error in table format  ");
-        exit(1);
-    }
-    const char* tfx ;
-    tfx = tf.query();
-
-    //
-
-   
 }

@@ -1,7 +1,7 @@
 #ifndef _SQL_STORE_H_
 #define _SQL_STORE_H_
 
-#include <db.h>
+#include <sys/time.h>
 #include "BundleStore.h"
 #include "PersistentStore.h"
 #include "SQLSerialize.h"
@@ -13,41 +13,47 @@ class SQLManager;
  * database.
  */
 class SQLStore : public PersistentStore {
-
-
 public:
-    SQLStore(const char* name, SerializableObject* obj);
+    SQLStore(const char* table_name, SerializableObject* obj,
+             SQLImplementation *db);
     
     /// @{ Virtual overrides from PersistentStore
-    //     int get(SerializableObject* obj, const int key);
-    // int num_elements();
-    //  void keys(std::vector<int> l);
 
-      // Returns a sql query that can be  used to fetch the object from database
+    const char* table_name(); 
+
+    int get(SerializableObject* obj, const int key);
+    int num_elements();
+    void keys(std::vector<int> l);
+
+    // Returns a sql query that can be  used to fetch the object  from database
     
-      int put(SerializableObject* obj, const int key);
-      int del(const int key);
-      void elements(std::vector<SerializableObject*> l);
+    int put(SerializableObject* obj, const int key);
+    int del(const int key);
+    void elements(std::vector<SerializableObject*> l);
       
 
-      /// @}
+    /// @}
 
- protected:
-      const char*  get_sqlquery(SerializableObject* obj, const int key);
-      const char* num_elements_sqlquery();
-      const char* keys_sqlquery();
+protected:
+    const char*  get_sqlquery(SerializableObject* obj, const int key);
+    const char* num_elements_sqlquery();
+    const char* keys_sqlquery();
 
-      // creates table in the database if it does not exist
-      int create_table(SerializableObject* obj) ;
+    // creates table in the database if it does not exist
+    int create_table(SerializableObject* obj);
 
+    int exec_query(const char* query);
+
+    const char* OBJECT_ID_FIELD;
       
-      virtual int  exec_query(const char* query) =0;
+    friend class SQLBundleStore;
+private:
+    const char* table_name_;
+    
+    //= "oid";
       
 
- private:
-      const char* table_name_ ;
-      const char* OBJECT_ID_FIELD ;
-      //= "oid";
+    SQLImplementation* data_base_pointer_;
 };
 
 
@@ -70,25 +76,22 @@ public:
     /**
      * Destructor.
      */
-    virtual ~SQLBundleStore();
+    //    virtual ~SQLBundleStore();
 
     /**
      * Get a new bundle id, updating the value in the store
      *
      * (was db_update_bundle_id, db_restore_bundle_id)
      */
-    int next_id();
+    // int next_id();
     
     /**
      * Delete expired bundles
      *
      * (was sweepOldBundles)
      */
-    int delete_expired(const time_t now)
-    {
-        // REMOVE FROM bundles where bundles.expiration > now
-        return 0;
-    }
+    // REMOVE FROM bundles where bundles.expiration > now
+    int delete_expired(const time_t now);
 
     /**
      * Return true if we're the custodian of the given bundle.
@@ -96,11 +99,11 @@ public:
      *
      * (was db_bundle_retain)
      */
-    virtual bool is_custodian(int bundle_id) = 0;
-    
+    bool is_custodian(int bundle_id);
+
 private:
     int next_bundle_id_; 	/// running serial number for bundles
-    PersistentStore* store_;	/// abstract persistent storage implementation
+    SQLStore* store_;	/// abstract persistent storage implementation
 };
 
 #endif /* _SQL_STORE_H_ */

@@ -47,17 +47,17 @@ ROUTING_SRCS :=					\
 	routing/RouteTable.cc			\
 
 STORAGE_SRCS :=					\
-	storage/BerkeleyDBStore.cc		\
-	storage/BundleStore.cc			\
-	storage/MarshalSerialize.cc		\
-	storage/PersistentStore.cc		\
-	storage/RegistrationStore.cc		\
-	storage/SQLSerialize.cc			\
-	storage/SQLStore.cc			\
 	storage/Serialize.cc			\
 	storage/StorageSystem.cc		\
-#	storage/PostgresSQLExtract.cc		\
-#	storage/PostgresSQLStore.cc		\
+	storage/BundleStore.cc			\
+	storage/PersistentStore.cc		\
+	storage/RegistrationStore.cc		\
+	storage/MarshalSerialize.cc		\
+	storage/BerkeleyDBStore.cc		\
+	storage/SQLSerialize.cc			\
+	storage/SQLStore.cc			\
+	storage/PostgresSQLImplementation.cc	\
+	storage/MysqlSQLImplementation.cc	\
 
 THREAD_SRCS :=					\
 	thread/Mutex.cc				\

@@ -1,15 +1,7 @@
 
 #include "SQLSerialize.h"
+#include "SQLImplementation.h"
 #include "debug/Log.h"
-
-// XXX/tmp
-//#include "SQLImplementation.h"
-class SQLImplementation {
-public:
-    char* get_value(int x, int y) { return 0; }
-};
-
-#include "iostream"
 #include "util/StringUtils.h"
 
 

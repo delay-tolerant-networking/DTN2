@@ -36,8 +36,16 @@ BundleStore::get(int bundle_id)
 int
 BundleStore::put(Bundle* bundle)
 {
-    // XXX
-    return 0;
+    return store_->put(bundle, next_id());
+}
+
+/**
+ * Store the given bundle in the persistent store when id is given
+ */
+int
+BundleStore::put(Bundle* bundle, int bundle_id)
+{
+    return store_->put(bundle, bundle_id);
 }
 
 /**
@@ -47,4 +55,14 @@ int
 BundleStore::del(int bundle_id)
 {
     return store_->del(bundle_id);
+}
+
+/**
+ * Get a new bundle id, updating the value in the store
+ *
+ */
+int
+BundleStore::next_id()
+{
+    return next_bundle_id_++;
 }
