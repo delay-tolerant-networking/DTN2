@@ -615,7 +615,7 @@ if [ $db_enabled = 'false' ]; then
    defs="$defs -D__DB_DISABLED__"
 fi
 
-if [ postgres_enabled='false' ]; then
+if [ $postgres_enabled = 'false' ]; then
    defs="$defs -D__POSTGRES_DISABLED__"
 fi
 
