@@ -4,6 +4,7 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleList.h"
 #include "reg/Registration.h"
+#include "util/StringBuffer.h"
 
 BundleRouterList BundleRouter::routers_;
 
@@ -38,8 +39,8 @@ BundleRouter::dispatch(BundleEvent* event)
 BundleRouter::BundleRouter()
     : Logger("/route")
 {
-    pending_bundles_ = new BundleList();
-    custody_bundles_ = new BundleList();
+    pending_bundles_ = new BundleList("pending_bundles");
+    custody_bundles_ = new BundleList("custody_bundles");
 }
 
 /**
@@ -70,6 +71,24 @@ BundleRouter::del_route(const BundleTuplePattern& dest,
 }
 
 /**
+ * Dump the routing table.
+ */
+void
+BundleRouter::dump(StringBuffer* buf)
+{
+    buf->append("BundleRouter route table:\n");
+
+    RouteTable::iterator iter;
+    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+        RouteEntry* entry = *iter;
+        buf->appendf("\t%s -> %s (%s)\n",
+                     entry->pattern_.c_str(),
+                     entry->next_hop_->dest_tuple()->c_str(),
+                     bundle_action_toa(entry->action_));
+    }
+}
+
+/**
  * The monster routing decision function that is called in
  * response to all received events. To cause bundles to be
  * forwarded, this function populates the given action list with
@@ -87,9 +106,10 @@ BundleRouter::handle_event(BundleEvent* e,
 
     case BUNDLE_RECEIVED: {
         /*
-         * Queue the bundle on the pending delivery list, and search
-         * through the route table to find any matching next contacts,
-         * filling in the action list.
+         * A bundle has arrived. Queue the bundle on the pending
+         * delivery list, and then search through the route table to
+         * find any matching next contacts, filling in the action
+         * list.
          */
         BundleReceivedEvent* event = (BundleReceivedEvent*)e;
         Bundle* bundle = event->bundleref_.bundle();
@@ -104,15 +124,16 @@ BundleRouter::handle_event(BundleEvent* e,
 
     case BUNDLE_TRANSMITTED: {
         /**
-         * The bundle was sent to either a next-hop contact or a
+         * The bundle was delivered to either a next-hop contact or a
          * registration.
          */
         BundleTransmittedEvent* event = (BundleTransmittedEvent*)e;
         Bundle* bundle = event->bundleref_.bundle();
 
-        log_debug("BUNDLE_TRANSMITTED bundle id %d (%d bytes) %s",
+        log_debug("BUNDLE_TRANSMITTED bundle id %d (%d bytes) %s -> %s",
                   bundle->bundleid_, event->bytes_sent_,
-                  event->acked_ ? "ACKED" : "UNACKED");
+                  event->acked_ ? "ACKED" : "UNACKED",
+                  event->consumer_->dest_tuple()->c_str());
         
         /*
          * Check for reactive fragmentation, potentially splitting off
@@ -157,7 +178,6 @@ BundleRouter::handle_event(BundleEvent* e,
         PANIC("unimplemented event type %d", e->type_);
     }
 
-    log_debug("dispatch complete, cleaning up event");
     delete e;
 }
 
@@ -170,7 +190,7 @@ BundleRouter::get_matching(Bundle* bundle, BundleActionList* actions)
 {
     RouteTable::iterator iter;
     RouteEntry* entry;
-    int count;
+    int count = 0;
 
     log_debug("get_matching %s", bundle->dest_.c_str());
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
@@ -184,7 +204,7 @@ BundleRouter::get_matching(Bundle* bundle, BundleActionList* actions)
             actions->push_back(new BundleAction(entry->action_, bundle, entry->next_hop_));
         }
     }
-    log_debug("get_matching done, %d matches", count);
+    log_debug("get_matching done, %d match(es)", count);
 }
 
 /**
@@ -197,7 +217,7 @@ BundleRouter::handle_next_hop(const BundleTuplePattern& dest,
                               BundleConsumer* next_hop,
                               BundleActionList* actions)
 {
-    log_debug("XXX/demmer implement me");
+    log_debug("XXX/demmer implement handle_next_hop");
 }
 
 

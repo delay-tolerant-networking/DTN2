@@ -13,6 +13,7 @@
 class BundleConsumer;
 class BundleEvent;
 class BundleRouter;
+class StringBuffer;
 
 /**
  * Typedef for a list of bundle routers.
@@ -79,6 +80,12 @@ public:
      */
     virtual bool del_route(const BundleTuplePattern& dest,
                            BundleConsumer* next_hop);
+
+    /**
+     * Dump a string representation of the routing table.
+     */
+    virtual void dump(StringBuffer* buf);
+    
 protected:
     /**
      * Structure for a route entry.
