@@ -55,6 +55,9 @@ BundleCommand::help_string()
     return "bundle inject <source> <dest> <payload> <length?> \n"
         "bundle stats \n"
         "bundle list \n"
+        "bundle info <id>"
+        "bundle dump <id>"
+        "bundle dump_ascii <id>"
         ;
 }
 
@@ -142,8 +145,11 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         
         return TCL_OK;
         
-    } else if (!strcmp(cmd, "dump") || !strcmp(cmd, "dump_ascii")) {
-        // bundle dump <id>
+    } else if (!strcmp(cmd, "info") ||
+               !strcmp(cmd, "dump") ||
+               !strcmp(cmd, "dump_ascii"))
+    {
+        // bundle [info|dump|dump_ascii] <id>
         if (objc != 3) {
             wrong_num_args(objc, objv, 2, 3, 3);
             return TCL_ERROR;
@@ -166,16 +172,23 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        size_t len = bundle->payload_.length();
-        oasys::HexDumpBuffer buf(len);
-        const u_char* bp = bundle->payload_.read_data(0, len, (u_char*)buf.data());
-
-        // XXX/demmer inefficient
-        buf.append((const char*)bp, len);
-        if (!strcmp(cmd, "dump")) {
-            buf.hexify();
+        if (!strcmp(cmd, "info")) {
+            oasys::StringBuffer buf;
+            bundle->format_verbose(&buf);
+            set_result(buf.c_str());
+        } else {
+            size_t len = bundle->payload_.length();
+            oasys::HexDumpBuffer buf(len);
+            const u_char* bp =
+                bundle->payload_.read_data(0, len, (u_char*)buf.data());
+            
+            // XXX/demmer inefficient
+            buf.append((const char*)bp, len);
+            if (!strcmp(cmd, "dump")) {
+                buf.hexify();
+            }
+            set_result(buf.c_str());
         }
-        set_result(buf.c_str());
         
         return TCL_OK;
 
