@@ -192,18 +192,20 @@ enum dtn_bundle_priority_t {
 % *     
 % *     DOPTS_NONE           - no custody, etc
 % *     DOPTS_CUSTODY        - custody xfer
-% *     DOPTS_RET_RCPT       - return receipt
-% *     DOPTS_DELIV_REC_FORW - request forwarder info
-% *     DOPTS_DELIV_REC_CUST - request custody xfer info
+% *     DOPTS_RETURN_RCPT    - end to end return receipt
+% *     DOPTS_RECV_RCPT      - per hop arrival receipt
+% *     DOPTS_FWD_RCPT       - per hop departure receipt
+% *     DOPTS_CUST_RCPT      - per custodian receipt
 % *     DOPTS_OVERWRITE      - request queue overwrite option
 % */
 enum dtn_bundle_delivery_opts_t {
     DOPTS_NONE = 0,
     DOPTS_CUSTODY = 1,
-    DOPTS_RET_RCPT = 2,
-    DOPTS_DELIV_REC_FORW = 4,
-    DOPTS_DELIV_REC_CUST = 8,
-    DOPTS_OVERWRITE = 16
+    DOPTS_RETURN_RCPT = 2,
+    DOPTS_RECV_RCPT = 4,
+    DOPTS_FWD_RCPT  = 8,
+    DOPTS_CUST_RCPT  = 16,
+    DOPTS_OVERWRITE = 32
 };
 
 %
