@@ -135,7 +135,24 @@ public:
         STATUS_UNAUTHENTIC	= 0x20,
         STATUS_UNUSED		= 0x40,
         STATUS_FRAGMENT		= 0x80,
-    } status_report_type_t;
+    } status_report_flag_t;
+
+    /**
+     * Structure for a status report payload. Note that the tuple data
+     * portion is variable length.
+     *
+     * See BundleStatusReport.cc for the formatting of status reports.
+     */
+    struct StatusReport {
+        u_int8_t  admin_type;
+        u_int8_t  status_flags;
+        u_int64_t orig_ts;
+        u_int64_t receipt_ts;
+        u_int64_t forward_ts;
+        u_int64_t delivery_ts;
+        u_int64_t delete_ts;
+        char tuple_data[0];
+    } __attribute__((packed));
 
 protected:
     static u_int8_t format_cos(const Bundle* bundle);

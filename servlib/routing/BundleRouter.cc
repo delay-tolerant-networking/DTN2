@@ -3,6 +3,7 @@
 #include "RouteTable.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
+#include "bundling/BundleStatusReport.h"
 #include "bundling/Contact.h"
 #include "bundling/FragmentManager.h"
 #include "reg/Registration.h"
@@ -190,6 +191,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
      * registration.
      */
     Bundle* bundle = event->bundleref_.bundle();
+    BundleConsumer* consumer = event->consumer_;
 
     log_info("BUNDLE_TRANSMITTED id:%d (%d bytes) %s -> %s",
              bundle->bundleid_, event->bytes_sent_,
@@ -232,6 +234,20 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
             pending_bundles_->push_back(tail);
             actions->push_back(new BundleAction(STORE_ADD, tail));
         }
+    }
+
+    /*
+     * Check for delivery status notification requests.
+     */
+    BundleStatusReport* report;
+    if (bundle->return_rcpt_ && consumer->is_local()) {
+        log_debug("generating return receipt status report");
+        report = new BundleStatusReport(bundle, local_tuple_);
+        report->set_status_time(BundleProtocol::STATUS_DELIVERED);
+
+        pending_bundles_->push_back(report);
+        actions->push_back(new BundleAction(STORE_ADD, report));
+        fwd_to_matching(report, actions, true);
     }
 }
 

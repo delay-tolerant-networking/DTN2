@@ -13,6 +13,7 @@ BUNDLING_SRCS := 				\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
 	bundling/BundleTuple.cc			\
+	bundling/BundleStatusReport.cc		\
 	bundling/Contact.cc			\
 	bundling/FragmentManager.cc		\
 	bundling/Interface.cc			\
