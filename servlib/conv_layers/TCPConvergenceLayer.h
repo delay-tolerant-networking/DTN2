@@ -102,7 +102,7 @@ protected:
         void send_loop();
         void recv_loop();
 
-        bool send_bundle(Bundle* bundle);
+        bool send_bundle(Bundle* bundle, size_t* acked_len);
         int handle_ack(Bundle* bundle, int timeout, size_t* acked_len);
 
         bool recv_bundle();

@@ -173,6 +173,7 @@ TCPConvergenceLayer::close_contact(Contact* contact)
             Thread::yield();
         }
         
+        log_debug("thread stopped, deleting connection...");
         delete conn;
         
         contact->set_contact_info(NULL);
@@ -278,7 +279,7 @@ TCPConvergenceLayer::Connection::run()
  * Return true if the bundle was sent successfully, false if not.
  */
 bool
-TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
+TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 {
     int iovcnt = BundleProtocol::MAX_IOVCNT;
     struct iovec iov[iovcnt + 2];
@@ -356,7 +357,6 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
     // second data block before checking for any acks since it's
     // likely that there's no ack to read the first time through and
     // this way we get a second block out on the wire
-    size_t acked_len = 0;
     bool sentok = false;
         
     while (payload_len > 0) {
@@ -395,33 +395,35 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
         payload_offset += block_len;
         payload_len    -= block_len;
 
-        // check for acks. we use timeout_read() with a 0ms timeout so
-        // we don't block
-        cc = handle_ack(bundle, 0, &acked_len);
-        if (cc == IOEOF || cc == IOERROR)
-        {
-            log_warn("send_bundle: error checking for ack: %d", cc);
+        // XXX/demmer temp
+        cc = handle_ack(bundle, 5000, acked_len);
+        
+        if (cc == IOEOF || cc == IOTIMEOUT) {
+            log_warn("send_bundle: %s waiting for ack",
+                     (cc == IOEOF) ? "eof" : "timeout");
             goto done;
         }
-        else if (cc == IOTIMEOUT) {
-            // no ack there yet, but that's ok...
+        else if (cc == IOERROR) {
+            log_warn("send_bundle: error waiting for ack: %s",
+                     strerror(errno));
+            goto done;
         }
-        else {
-            log_debug("send_bundle: got ack for %d/%d -- looping to send more",
-                      acked_len, payload_len);
-            ASSERT(cc == 1);
-        }
+        
+        log_debug("send_bundle: got ack for %d/%d -- looping to send more",
+                  *acked_len, payload_len);
+        ASSERT(cc == 1);
     }
 
     // now loop and block until we get all the acks, but cap the wait
     // at 5 seconds. XXX/demmer maybe this should be adjustable based
     // on the keepalive timer?
     payload_len = bundle->payload_.length();
-    while (acked_len < payload_len) {
+
+    while (*acked_len < payload_len) {
         log_debug("send_bundle: acked %d/%d, waiting for more",
-                  acked_len, payload_len);
+                  *acked_len, payload_len);
         
-        cc = handle_ack(bundle, 5000, &acked_len);
+        cc = handle_ack(bundle, 5000, acked_len);
         if (cc == IOEOF || cc == IOTIMEOUT) {
             log_warn("send_bundle: %s waiting for ack",
                      (cc == IOEOF) ? "eof" : "timeout");
@@ -439,15 +441,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
     sentok = true;
 
  done:
-    if (acked_len > 0) {
-        ASSERT(!sentok || (acked_len == payload_len));
-    
-        // cons up a transmission event and pass it to the router.
-        // note that the router will note that the sent length isn't
-        // the whole payload length and will therefore do reactive
-        // fragmentation
-        BundleForwarder::post(
-            new BundleTransmittedEvent(bundle, contact_, acked_len, true));
+    if (*acked_len > 0) {
+        ASSERT(!sentok || (*acked_len == payload_len));
     }
     
     // all done!
@@ -921,23 +916,38 @@ TCPConvergenceLayer::Connection::send_loop()
         }
         
         // first check the contact's bundle list to see if there's a
-        // bundle already there. 
-        bundle = contact_->bundle_list()->pop_front();
+        // bundle already there, but don't pop it off the list yet
+        bundle = contact_->bundle_list()->front();
 
         if (bundle) {
-            // we got a bundle, so send it off. note that pop_front
-            // does _not_ decrement the reference count, so we now
-            // have a local reference to the bundle
-            if (! send_bundle(bundle)) {
+            size_t acked_len = 0;
+            
+            // we got a bundle, so send it off. 
+            bool sentok = send_bundle(bundle, &acked_len);
+            
+            // if any data was acked, pop the bundle off the contact
+            // list (making sure it's still the right bundle) and
+            // inform the router. note that pop_front does _not_
+            // decrement the reference count, so we now have a local
+            // reference to the bundle
+            if (acked_len != 0) {
+                Bundle* bundle2 = contact_->bundle_list()->pop_front();
+                ASSERT(bundle == bundle2);
+                
+                BundleForwarder::post(
+                    new BundleTransmittedEvent(bundle, contact_, acked_len, true));
+                
                 bundle->del_ref("tcpcl");
+                bundle = NULL;
+            }
+
+            // if the last transmission wasn't completely successful,
+            // it's time to break the contact
+            if (!sentok) {
                 goto shutdown;
             }
 
-            // remove our local reference on the bundle (which may
-            // delete it) and loop again, looking for another bundle
-            // to send
-            bundle->del_ref("tcpcl");
-            bundle = NULL;
+            // otherwise, we're all good, so loop again
             continue;
         }
 
