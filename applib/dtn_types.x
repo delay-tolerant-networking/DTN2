@@ -1,6 +1,6 @@
 /*
  * NOTE: To make comments appear in the generated files, they must be
- * preceded by a % sign.
+ * preceded by a % sign (unlike this one).
  */
 
 %/*
@@ -54,8 +54,8 @@
 %#define ARG_MAX _POSIX_ARG_MAX
 %#endif
 %
-%  /* cygwin's rpcgen skips this include? ick! */
 %#include <rpc/rpc.h>
+%
 %
 %/**********************************
 % * Constants.
