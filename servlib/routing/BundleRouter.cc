@@ -134,7 +134,7 @@ void
 BundleRouter::handle_event(BundleEvent* e,
                            BundleActions* actions)
 {
-    log_debug("Router executing event %s",e->type_str());
+    log_debug("router executing event %s",e->type_str());
     switch(e->type_) {
 
     case BUNDLE_RECEIVED:
