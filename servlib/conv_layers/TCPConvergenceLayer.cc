@@ -10,6 +10,8 @@
 
 #include <sys/poll.h>
 
+struct TCPConvergenceLayer::_defaults TCPConvergenceLayer::Defaults;
+
 /******************************************************************************
  *
  * TCPConvergenceLayer
@@ -193,7 +195,7 @@ TCPConvergenceLayer::Connection::Connection(Contact* contact,
     
     sock_->set_remote_addr(remote_addr);
     sock_->set_remote_port(remote_port);
-    ack_blocksz_ = 1024;
+    ack_blocksz_ = TCPConvergenceLayer::Defaults.ack_blocksz_;
 }
 
 TCPConvergenceLayer::Connection::Connection(int fd,
@@ -205,7 +207,7 @@ TCPConvergenceLayer::Connection::Connection(int fd,
     sock_ = new TCPClient(fd, remote_addr, remote_port, logpath_);
     sock_->set_logfd(false);
     
-    ack_blocksz_ = 1024;
+    ack_blocksz_ = TCPConvergenceLayer::Defaults.ack_blocksz_;
 }
 
 TCPConvergenceLayer::Connection::~Connection()
@@ -277,7 +279,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
     // all set to go, now write out the header (need to bump up iovcnt
     // to account for the frame header)
-    log_debug("send_bundle: sending %d byte frame header %d byte bundle header",
+    log_debug("send_bundle: sending %d byte frame hdr, %d byte bundle hdr",
               1 + sizeof(BundleStartHeader), header_len);
     int cc = sock_->writevall(iov, iovcnt + 2);
     int total = 1 + sizeof(BundleStartHeader) + header_len;
@@ -295,8 +297,10 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         
     // now write out the first (and maybe only) payload block
     log_debug("send_bundle: sending %d byte first payload block", block_len);
-    const char* payload_data = bundle->payload_.data();
+    const char* payload_data = bundle->payload_.read_data(0, block_len);
+    log_debug("send_bundle: block %s", payload_data);
     cc = sock_->writeall(payload_data, block_len);
+
     if (cc != (int)block_len) {
         log_err("send_bundle: error writing bundle block (wrote %d/%d): %s",
                 cc, block_len, strerror(errno));
@@ -306,10 +310,12 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         return false;
     }
 
-    // update payload_data and payload_len to count the chunk we
+    // update payload_len and payload_offset to count the chunk we
     // just wrote
-    payload_data += block_len;
-    payload_len  -= block_len;
+    size_t payload_offset;
+    payload_offset = block_len;
+    payload_len   -= block_len;
+    
 
     // loop through the rest of the payload, sending blocks and
     // checking for acks as they come in. we intentionally send a
@@ -326,6 +332,9 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         } else {
             block_len = ack_blocksz_;
         }
+
+        // grab the next payload chunk
+        payload_data = bundle->payload_.read_data(payload_offset, block_len);
             
         blockhdr.block_length = htonl(block_len);
 
@@ -333,10 +342,10 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         typecode = BUNDLE_BLOCK;
         iov[1].iov_base = &blockhdr;
         iov[1].iov_len  = sizeof(BundleBlockHeader);
-        iov[2].iov_base = &payload_data;
+        iov[2].iov_base = (void*)payload_data;
         iov[2].iov_len  = block_len;
 
-        log_debug("send_bundle: sending %d byte block", block_len);
+        log_debug("send_bundle: sending %d byte block %p", block_len, payload_data);
         cc = sock_->writevall(iov, 3);
         total = 1 + sizeof(BundleBlockHeader) + block_len;
         if (cc != total) {
@@ -348,9 +357,9 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
             return false;
         }
 
-        // update payload_data and payload_len
-        payload_data += block_len;
-        payload_len  -= block_len;
+        // update payload_offset and payload_len
+        payload_offset += block_len;
+        payload_len    -= block_len;
 
         // check for acks. we use timeout_read() with a 0ms timeout so
         // we don't block
@@ -717,14 +726,13 @@ TCPConvergenceLayer::Connection::recv_loop()
                   starthdr.bundle_id, header_len, bundle_len, block_len);
         
         // allocate and fill a buffer for the first block
-        size_t total = header_len + block_len;
-        size_t buflen = total;
+        size_t buflen = header_len + block_len;
         buf = (char*)malloc(buflen);
 
-        cc = sock_->readall(buf, total);
-        if (cc != (int)total) {
+        cc = sock_->readall(buf, buflen);
+        if (cc != (int)buflen) {
             log_err("recv_loop: error reading header / data block (read %d/%d): %s",
-                    cc, total, strerror(errno));
+                    cc, buflen, strerror(errno));
             goto shutdown;
         }
         
@@ -821,5 +829,6 @@ TCPConvergenceLayer::Connection::recv_loop()
         ASSERT(bundle->refcount() > 0);
         
         free(buf);
+        bundle = NULL;
      }
 }

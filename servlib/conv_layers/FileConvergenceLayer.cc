@@ -216,7 +216,8 @@ FileConvergenceLayer::send_bundles(Contact* contact)
         // and tack on the payload (adding one to iovcnt for the
         // FileHeader, then one for the payload)
         iovcnt++;
-        iov[iovcnt].iov_base = (void*)bundle->payload_.data();
+        PANIC("XXX/demmer fix me");
+//        iov[iovcnt].iov_base = (void*)bundle->payload_.data();
         iov[iovcnt].iov_len  = payload_len;
         iovcnt++;
 

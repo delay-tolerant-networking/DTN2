@@ -11,7 +11,7 @@ BundleCommand::BundleCommand() : AutoCommandModule("bundle") {}
 const char*
 BundleCommand::help_string()
 {
-    return("bundle inject <source> <dest> <payload>");
+    return("bundle inject <source> <dest> <payload> <length?>");
 }
 
 int
@@ -39,19 +39,16 @@ BundleCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         b->dest_.set_tuple(argv[3]);
         
         int len = strlen(argv[4]);
+        int total = len;
         if (argc == 5) {
             b->payload_.set_data(argv[4], len);
         } else {
-            int total = atoi(argv[5]);
+            total = atoi(argv[5]);
             b->payload_.set_length(total);
             b->payload_.append_data(argv[4], len);
-
-            total -= len;
-            for (; total > 0; --total) {
-                b->payload_.mutable_data().push_back('.');
-            }
         }
-        
+
+        log_debug("inject %d byte bundle %s->%s", total, argv[2], argv[3]);
         BundleRouter::dispatch(new BundleReceivedEvent(b));
         return TCL_OK;
     } else {

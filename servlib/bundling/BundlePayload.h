@@ -4,7 +4,7 @@
 #include <string>
 #include "storage/Serialize.h"
 #include "debug/Debug.h"
-#include "io/FdIOClient.h"
+#include "io/FileIOClient.h"
 
 /**
  * The representation of a bundle payload.
@@ -64,15 +64,10 @@ public:
     void append_data(const char* bp, size_t len);
 
     /**
-     * The actual payload data.
+     * Return a pointer to a chunk of payload data.
      */
-    const char* data() const { return data_.data(); }
+    const char* read_data(off_t offset, size_t len);
 
-    /**
-     * Accessor to the underlying data string itself.
-     */
-    std::string& mutable_data() { return data_; }
-     
     /**
      * Virtual from SerializableObject
      */
@@ -89,7 +84,8 @@ protected:
     std::string data_;		///< the actual payload data if in memory
     size_t length_;     	///< the payload length
     std::string fname_;		///< payload file name
-    FdIOClient* file_;		///< file handle if on disk
+    FileIOClient* file_;	///< file handle if on disk
+    off_t offset_;		///< cache of current fd position
 };
 
 #endif /* _BUNDLE_PAYLOAD_H_ */

@@ -43,6 +43,14 @@ public:
      */
     bool close_contact(Contact* contact);
 
+    /**
+     * Tunable parameters
+     */
+    static struct _defaults {
+        int ack_blocksz_;
+        int keepalive_timer_;
+    } Defaults;
+
 protected:
     /**
      * Helper class (and thread) that listens on a registered

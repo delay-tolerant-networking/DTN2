@@ -54,7 +54,7 @@ LoggingRegistration::run()
             len = payload_len;
         }
 
-        const u_char* data = (const u_char*)b->payload_.data();
+        const u_char* data = (const u_char*)b->payload_.read_data(0, 128);
 
 	if (str_isascii(data, len)) {
             log_info("        payload (ascii): length %d '%.*s'",

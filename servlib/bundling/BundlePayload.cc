@@ -5,11 +5,11 @@
 #include "debug/Debug.h"
 #include "util/StringBuffer.h"
 
-size_t BundlePayload::mem_threshold_ = 16384;
-std::string BundlePayload::dir_ = "/tmp/bundles";
+size_t BundlePayload::mem_threshold_;
+std::string BundlePayload::dir_;
 
 BundlePayload::BundlePayload()
-    : location_(DISK), length_(0), file_(NULL)
+    : location_(DISK), length_(0), file_(NULL), offset_(0)
 {
 }
 
@@ -23,7 +23,8 @@ BundlePayload::init(int bundleid)
                  path.c_str(), strerror(errno));
         return;
     }
-    file_ = new FdIOClient(fd);
+    file_ = new FileIOClient(fd);
+    file_->logpathf("/bundle/payload/%d", bundleid);
 }
 
 BundlePayload::~BundlePayload()
@@ -44,13 +45,14 @@ BundlePayload::set_length(size_t length)
 {
     length_ = length;
     location_ = (length_ < mem_threshold_) ? MEMORY : DISK;
+    data_.reserve(length);
 }
 
 void
 BundlePayload::set_data(const char* bp, size_t len)
 {
     ASSERT(length_ == 0); // can only use this once
-    length_ = len;
+    set_length(len);
     append_data(bp, len);
 }
 
@@ -64,4 +66,28 @@ BundlePayload::append_data(const char* bp, size_t len)
     }
 
     file_->writeall(bp, len);
+}
+
+const char*
+BundlePayload::read_data(off_t offset, size_t len)
+{
+    ASSERT(length_ >= (len + offset));
+    
+    if (location_ == MEMORY) {
+        return data_.data() + offset;
+
+    } else {
+        // check if we need to seek first
+        if (offset != offset_) {
+            file_->lseek(offset, SEEK_SET);
+        }
+
+        // now read a chunk into data
+        data_.reserve(len);
+        file_->readall((char*)data_.data(), len);
+
+        // store offset and return bp
+        offset_ = offset + len;
+        return data_.data();
+    }
 }
