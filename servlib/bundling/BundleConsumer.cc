@@ -43,8 +43,8 @@
 
 namespace dtn {
 
-BundleConsumer::BundleConsumer(const BundleTuple* dest_tuple, bool is_local, const char* type_str)
-    : Logger("/bundle/consumer"), dest_tuple_(dest_tuple),
+BundleConsumer::BundleConsumer(const char* dest_str, bool is_local, const char* type_str)
+    : Logger("/bundle/consumer"), dest_str_(dest_str),
       is_local_(is_local),
       type_str_(type_str),
       bundle_list_(NULL)
@@ -55,7 +55,7 @@ void
 BundleConsumer::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
     log_info("enqueue bundle id %d for delivery to %s",
-             bundle->bundleid_, dest_tuple_->c_str());
+             bundle->bundleid_, dest_str_.c_str());
     bundle_list_->push_back(bundle, mapping);
 }
 
@@ -64,7 +64,7 @@ bool
 BundleConsumer::dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
 {
     log_info("dequeue bundle id %d from %s",
-             bundle->bundleid_, dest_tuple_->c_str());
+             bundle->bundleid_, dest_str_.c_str());
     
     BundleMapping* mapping = bundle->get_mapping(bundle_list_);
 

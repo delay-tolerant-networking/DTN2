@@ -71,7 +71,7 @@ public:
     /**
      * Constructor / Destructor
      */
-    Peer(const BundleTuple& tuple);
+    Peer(const char* address);
     virtual ~Peer();
 
     /**
@@ -95,14 +95,9 @@ public:
     LinkSet* links() { return links_; }
     
     /**
-     * Accessor to tuple
+     * Accessor to address
      */
-    BundleTuple tuple() { return tuple_; }
-    
-    /**
-     * Name of the peer
-     */
-    const char* name() { return tuple().data(); }
+    const char* address() { return address_.c_str(); }
     
     /**
      * Virtual from formatter
@@ -110,9 +105,8 @@ public:
     int format(char* buf, size_t sz);
         
 protected:
-    LinkSet*  links_;      ///< List of links that lead to this peer
-    BundleTuple tuple_;    ///< Identity of peer
-
+    LinkSet*    links_;		///< List of links that lead to this peer
+    std::string address_;	///< Identity of peer
 };
 
 } // namespace dtn

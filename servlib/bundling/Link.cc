@@ -50,14 +50,15 @@ namespace dtn {
  * Static constructor to create different type of links
  */
 Link*
-Link::create_link(std::string name, link_type_t type,
-                             const char* conv_layer,
-                        const BundleTuple& tuple)
+Link::create_link(std::string name,
+                  link_type_t type,
+                  const char* conv_layer,
+                  const char* nexthop)
 {
     switch(type) {
-    case ONDEMAND: 	return new OndemandLink(name,conv_layer,tuple);
-    case SCHEDULED: 	return new ScheduledLink(name,conv_layer,tuple);
-    case OPPORTUNISTIC: return new OpportunisticLink(name,conv_layer,tuple);
+    case ONDEMAND: 	return new OndemandLink(name, conv_layer, nexthop);
+    case SCHEDULED: 	return new ScheduledLink(name, conv_layer, nexthop);
+    case OPPORTUNISTIC: return new OpportunisticLink(name, conv_layer, nexthop);
     default: 		PANIC("bogus link_type_t");
     }
 }
@@ -66,27 +67,22 @@ Link::create_link(std::string name, link_type_t type,
  * Constructor
  */
 Link::Link(std::string name, link_type_t type, const char* conv_layer,
-           const BundleTuple& tuple)
-    :  BundleConsumer(&tuple_, false, "Link"),
-       type_(type),   tuple_(tuple),  name_(name), avail_(false)
+           const char* nexthop)
+    :  BundleConsumer(nexthop, false, "Link"),
+       type_(type), nexthop_(nexthop), name_(name), avail_(false)
 {
-
-    logpathf("/link/%s",name_.c_str());
+    logpathf("/link/%s", name_.c_str());
 
     // Find convergence layer
     clayer_ = ConvergenceLayer::find_clayer(conv_layer);
     if (!clayer_) {
-        PANIC("can't find convergence layer for %s", tuple.admin().c_str());
+        PANIC("can't find convergence layer for %s", nexthop_.c_str());
         // XXX/demmer need better error handling
     }
     
-    // Contact manager will create a peer if peer does not exist
-    if (!tuple.valid()) {
-        PANIC("malformed peer %s",tuple.c_str());
-    }
-    peer_ = ContactManager::instance()->find_peer(tuple);
+    peer_ = ContactManager::instance()->find_peer(nexthop);
     if (peer_ == NULL) {
-        peer_ = new Peer(tuple);
+        peer_ = new Peer(nexthop);
         ContactManager::instance()->add_peer(peer_);
     }
     peer_->add_link(this);

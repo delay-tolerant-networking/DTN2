@@ -140,7 +140,7 @@ BundleForwarder::process(BundleAction* action)
 
         if (nexthop->is_queued(bundle)) {
             log_debug("not forwarding to %s since already queued",
-                      nexthop->dest_tuple()->c_str());
+                      nexthop->dest_str());
         } else {
             nexthop->enqueue_bundle(bundle, &enqaction->mapping_);
         }

@@ -45,11 +45,11 @@ namespace dtn {
 /**
  * Constructor / Destructor
  */
-Peer::Peer(const BundleTuple& tuple)
-    : BundleConsumer(&tuple_, false, "Peer"), tuple_(tuple)
+Peer::Peer(const char* address)
+    : BundleConsumer(address, false, "Peer"),
+      address_(address)
 {
-    ASSERT(tuple.valid());
-    logpathf("/peer/%s",tuple.c_str());
+    logpathf("/peer/%s", address);
     bundle_list_ = new BundleList(logpath_);
     log_debug("new peer *%p", this);
     links_ = new LinkSet();
@@ -64,8 +64,7 @@ Peer::~Peer()
 int
 Peer::format(char* buf, size_t sz)
 {
-    return snprintf(buf, sz, "Peer %.*s",
-                    (int)tuple().length(), tuple().data());
+    return snprintf(buf, sz, "Peer %s", address_.c_str());
 }
 
 bool
@@ -89,7 +88,7 @@ Peer::delete_link(Link *link)
     if (!has_link(link)) {
         log_err("Error in deleting link from peer -- "
                 "link %s does not exist on peer %s",
-                link->name(), name());
+                link->name(), address());
     } else {
         links_->erase(link);
     }

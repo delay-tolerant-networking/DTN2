@@ -84,7 +84,7 @@ class LinkSet : public std::set<Link*> {};
  *
  * Creating new links:
  * Links are created explicitly as configuration. Syntax is:
- * route link_create <name> <dest_tuple> <type> <conv_layer> <params>
+ * route link_create <name> <nexthop> <type> <conv_layer> <params>
  * See RouteCommand.h
  * XXX/Sushant Fix order of arguments ??
  *
@@ -238,12 +238,12 @@ public:
      */
     static Link* create_link(std::string name, link_type_t type,
                              const char* conv_layer,
-                             const BundleTuple& tuple);
+                             const char* nexthop);
     /**
      * Constructor / Destructor
      */
     Link(std::string name, link_type_t type, const char* conv_layer,
-         const BundleTuple& tuple);
+         const char* nexthop);
     virtual ~Link();
     
 
@@ -335,9 +335,9 @@ public:
     const char* name() { return name_.c_str(); }
 
     /**
-     * Accessor to tuple
+     * Accessor to next hop string
      */
-    BundleTuple tuple() { return tuple_; }
+    const char* nexthop() { return nexthop_.c_str(); }
 
     /**
      * Virtual from formatter
@@ -361,8 +361,8 @@ protected:
     /// Type of the link
     link_type_t type_;
 
-    /// Associated destination bundle-tuple
-    BundleTuple tuple_;
+    /// Associated next hop admin identifier
+    std::string nexthop_;
     
     /// Name of the link to identify across daemon
     std::string name_;

@@ -277,7 +277,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
     log_info("BUNDLE_TRANSMITTED id:%d (%d bytes) %s -> %s",
              bundle->bundleid_, event->bytes_sent_,
              event->acked_ ? "ACKED" : "UNACKED",
-             event->consumer_->dest_tuple()->c_str());
+             event->consumer_->dest_str());
 
     /*
      * If the whole bundle was sent and this is the last destination
@@ -615,7 +615,7 @@ BundleRouter::new_next_hop(const BundleTuplePattern& dest,
     // NEW contact, not all the contacts.
     
     log_debug("new_next_hop %s: checking pending bundle list...",
-              next_hop->dest_tuple()->c_str());
+              next_hop->dest_str());
     BundleList::iterator iter;
 
     oasys::ScopeLock l(pending_bundles_->lock());

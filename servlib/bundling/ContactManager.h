@@ -115,10 +115,9 @@ public:
     bool has_peer(Peer* peer);
 
     /**
-     * Finds peer corresponding to this bundletuple
-     * Creates one, if no such peer exists.
+     * Finds peer corresponding to this next hop address
      */
-    Peer* find_peer(const BundleTuple& tuple);
+    Peer* find_peer(const char* address);
     
     /**
      * Return the list of peers 

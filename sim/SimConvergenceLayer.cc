@@ -164,7 +164,8 @@ SimConvergenceLayer::create_ct(int id)
     printf("link creating %s \n",tuple.c_str());
     fflush(stdout);
 
-    Link*  link = Link::create_link(tuple.c_str(),Link::ONDEMAND,"simcl",tuple);
+    // XXX/demmer fix this to use just the admin as well
+    Link*  link = Link::create_link(tuple.c_str(),Link::ONDEMAND,"simcl",tuple.c_str());
     link->set_link_info(new SimLinkInfo(id));
     links_[id] = link;
 

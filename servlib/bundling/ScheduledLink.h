@@ -54,15 +54,14 @@ class FutureContact;
 
 class ScheduledLink : public Link {
 public:
-
     typedef std::set<FutureContact*> FutureContactSet;
 
     /**
      * Constructor / Destructor
      */
     ScheduledLink(std::string name, const char* conv_layer,
-         const BundleTuple& tuple);
- 
+                  const char* nexthop);
+    
     virtual ~ScheduledLink();
     
     /**
@@ -95,21 +94,25 @@ public:
     /**
      * Constructor / Destructor
      */
-    FutureContact(const BundleTuple& tuple) :
-        BundleConsumer(&tuple,false,"FutureContact"), start_(0), duration_(0) {
-         logpathf("/fc_contact/%s", tuple.c_str());
-         bundle_list_ = new BundleList(logpath_);
-         log_debug("new future contact *%p", this);
+    FutureContact(const char* nexthop)
+        : BundleConsumer(nexthop, false, "FutureContact"), start_(0), duration_(0)
+    {
+        logpathf("/fc_contact/%s", nexthop);
+        bundle_list_ = new BundleList(logpath_);
+        log_debug("new future contact *%p", this);
     }
-    virtual ~FutureContact()  {
+    
+    virtual ~FutureContact()
+    {
         ASSERT(bundle_list_->size() == 0);
         delete bundle_list_;
     }
 
 protected:
-    // Time at which contact starts, 0 value means not defined
+    /// Time at which contact starts, 0 value means not defined
     time_t start_;
-    // Duration for this future contact, 0 value means not defined
+    
+    /// Duration for this future contact, 0 value means not defined
     time_t duration_;
 };
 

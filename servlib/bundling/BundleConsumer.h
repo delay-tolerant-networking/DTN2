@@ -58,7 +58,7 @@ public:
      * Constructor. It is the responsibility of the subclass to
      * allocate the bundle_list_ if the consumer does any queuing.
      */
-    BundleConsumer(const BundleTuple* dest_tuple, bool is_local, const char* type_str);
+    BundleConsumer(const char* dest_str, bool is_local, const char* type_str);
 
     /**
      * Destructor
@@ -84,10 +84,10 @@ public:
     virtual bool is_queued(Bundle* bundle);
 
     /**
-     * Each BundleConsumer has a tuple (either the registration
-     * endpoint or the next-hop address).
+     * Each BundleConsumer has a next hop destination address (either
+     * the registration endpoint or the next-hop link address).
      */
-    const BundleTuple* dest_tuple() { return dest_tuple_; }
+    const char* dest_str() { return dest_str_.c_str(); }
 
     /**
      * Is the consumer a local registration or a peer.
@@ -107,7 +107,7 @@ public:
     BundleList* bundle_list() { return bundle_list_; }
     
 protected:
-    const BundleTuple* dest_tuple_;
+    std::string dest_str_;
     bool is_local_;
     const char* type_str_;
     BundleList* bundle_list_;

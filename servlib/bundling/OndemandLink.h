@@ -53,8 +53,8 @@ public:
      * Constructor / Destructor
      */
     OndemandLink(std::string name, const char* conv_layer,
-                 const BundleTuple& tuple)
-        :Link(name,ONDEMAND, conv_layer,tuple) {}
+                 const char* nexthop)
+        : Link(name,ONDEMAND, conv_layer, nexthop) {}
     
     virtual ~OndemandLink()  {}
 protected:

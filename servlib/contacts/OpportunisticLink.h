@@ -58,10 +58,11 @@ public:
      * Constructor / Destructor
      */
     OpportunisticLink(std::string name, const char* conv_layer,
-                      const BundleTuple& tuple)
-        :Link(name,OPPORTUNISTIC, conv_layer,tuple)
+                      const char* nexthop)
+        : Link(name,OPPORTUNISTIC, conv_layer, nexthop)
     {
     }
+    
     virtual ~OpportunisticLink()  {}
     
 protected:

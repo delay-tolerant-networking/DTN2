@@ -175,17 +175,16 @@ TCPConvergenceLayer::open_contact(Contact* contact)
     log_debug("opening contact *%p", contact);
 
     // parse out the address / port from the contact tuple
-    if (! InternetAddressFamily::parse(contact->tuple().admin(), &addr, &port)) {
-        log_err("admin part '%s' of tuple '%s' not a valid internet url",
-                contact->tuple().admin().c_str(),
-                contact->tuple().tuple().c_str());
+    if (! InternetAddressFamily::parse(contact->nexthop(), &addr, &port)) {
+        log_err("next hop address '%s' not a valid internet url",
+                contact->nexthop());
         return false;
     }
     
     // make sure the port was specified
     if (port == 0) {
-        log_err("port not specified in contact admin url '%s'",
-                contact->tuple().admin().c_str());
+        log_err("port not specified in next hop address '%s'",
+                contact->nexthop());
         return false;
     }
     

@@ -95,9 +95,9 @@ public:
     Link* link() { return link_; }
 
     /**
-     * Accessor to tuple
+     * Accessor to next hop admin string.
      */
-    BundleTuple tuple() { return link_->tuple() ; }
+    const char* nexthop() { return link_->nexthop() ; }
 
     /**
      * Virtual from formatter

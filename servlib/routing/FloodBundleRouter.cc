@@ -285,7 +285,7 @@ FloodBundleRouter::fwd_to_matching(
         entry = *iter;
         log_info("\tentry: point:%s --> %s [%s] local:%d",
                 entry->pattern_.c_str(),
-                entry->next_hop_->dest_tuple()->c_str(),
+                entry->next_hop_->dest_str(),
                 bundle_fwd_action_toa(entry->action_),
                 entry->next_hop_->is_local());
         if (!entry->next_hop_->is_local())

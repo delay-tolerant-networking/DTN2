@@ -121,10 +121,9 @@ protected:
     } __attribute__((packed));
     
     /**
-     * Pull a filesystem directory out of the admin portion of a
-     * tuple.
+     * Pull a filesystem directory out of the next hop admin address.
      */
-    bool extract_dir(const BundleTuple& tuple, std::string* dirp);
+    bool extract_dir(const char* nexthop, std::string* dirp);
     
     /**
      * Validate that a given directory exists and that the permissions

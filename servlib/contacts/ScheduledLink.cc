@@ -43,8 +43,8 @@ namespace dtn {
  * Constructor / Destructor
  */
 ScheduledLink::ScheduledLink(std::string name, const char* conv_layer,
-              const BundleTuple& tuple)
-    : Link(name,SCHEDULED, conv_layer,tuple)
+                             const char* nexthop)
+    : Link(name, SCHEDULED, conv_layer, nexthop)
 {
     fcts_ = new FutureContactSet();
 }

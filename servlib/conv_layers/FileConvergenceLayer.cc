@@ -90,17 +90,15 @@ FileConvergenceLayer::match(const std::string& demux, const std::string& admin)
 }
 
 /**
- * Pull a filesystem directory out of the admin portion of a
- * tuple.
+ * Pull a filesystem directory out of the next hop admin address.
  */
 bool
-FileConvergenceLayer::extract_dir(const BundleTuple& tuple, std::string* dirp)
+FileConvergenceLayer::extract_dir(const char* nexthop, std::string* dirp)
 {
-    oasys::URL url(tuple.admin());
+    oasys::URL url(nexthop);
     
     if (! url.valid()) {
-        log_err("extract_dir: admin '%s' of tuple '%s' not a valid url",
-                tuple.admin().c_str(), tuple.c_str());
+        log_err("extract_dir: next hop admin '%s' not a valid url", nexthop);
         return false;
     }
 
@@ -111,14 +109,13 @@ FileConvergenceLayer::extract_dir(const BundleTuple& tuple, std::string* dirp)
     // the filesystem path is absolute
     if (url.host_.length() != 0) {
         log_err("interface tuple '%s' specifies a non-absolute path",
-                tuple.admin().c_str());
+                nexthop);
         return false;
     }
 
     // and make sure there wasn't a port that was parsed out
     if (url.port_ != 0) {
-        log_err("interface tuple '%s' specifies a port",
-                tuple.admin().c_str());
+        log_err("interface tuple '%s' specifies a port", nexthop);
         return false;
     }
 
@@ -158,7 +155,7 @@ FileConvergenceLayer::add_interface(Interface* iface, int argc, const char* argv
 {
     // parse out the directory from the interface
     std::string dir;
-    if (!extract_dir(iface->admin(), &dir)) {
+    if (!extract_dir(iface->admin().c_str(), &dir)) {
         return false;
     }
     
@@ -198,7 +195,7 @@ FileConvergenceLayer::open_contact(Contact* contact)
 {
     // parse out the directory from the contact
     std::string dir;
-    if (!extract_dir(contact->tuple(), &dir)) {
+    if (!extract_dir(contact->nexthop(), &dir)) {
         return false;
     }
     
@@ -227,7 +224,7 @@ void
 FileConvergenceLayer::send_bundles(Contact* contact)
 {
     std::string dir;
-    if (!extract_dir(contact->tuple(), &dir)) {
+    if (!extract_dir(contact->nexthop(), &dir)) {
         PANIC("contact should have already been validated");
     }
 

@@ -17,7 +17,7 @@ proc setup_linear_topology {type cl {args ""}} {
     if { $id != [expr $num_nodes - 1] } {
 	set peerid [expr $id + 1]
 	set peeraddr $hosts($peerid)
-	eval link add link-$peerid bundles://internet/host://$peeraddr:5000 \
+	eval link add link-$peerid host://$peeraddr:5000 \
 		$type $cl $args
 
 	route add bundles://internet/host://$peeraddr/* link-$peerid
@@ -27,7 +27,7 @@ proc setup_linear_topology {type cl {args ""}} {
     if { $id != 0 } {
 	set peerid [expr $id - 1]
 	set peeraddr $hosts($peerid)
-	eval link add link-$peerid bundles://internet/host://$peeraddr:5000 \
+	eval link add link-$peerid host://$peeraddr:5000 \
 		$type $cl $args
 
 	route add bundles://internet/host://$peeraddr/* link-$peerid
@@ -57,7 +57,7 @@ proc setup_tree_topology {type cl {args ""}} {
     if { $id == 0 } {
 	for {set child 1} {$child <= 9} {incr child} {
 	    set childaddr $hosts($child)
-	    eval link add link-$child bundles://internet/host://$childaddr:5000 \
+	    eval link add link-$child host://$childaddr:5000 \
 		    $type $cl $args
 	    
 	    route add bundles://internet/host://$childaddr/* link-$child
@@ -68,7 +68,7 @@ proc setup_tree_topology {type cl {args ""}} {
     # 9 second tier descendents
     if { $id >= 1 && $id <= 9 } {
 	set parent 0
-	eval link add link-$parent bundles://internet/host://$hosts($parent):5000 \
+	eval link add link-$parent host://$hosts($parent):5000 \
 		$type $cl $args
 	
 	route add bundles://internet/host://$hosts($parent)/* link-$parent
@@ -76,7 +76,7 @@ proc setup_tree_topology {type cl {args ""}} {
 	
 	for {set child [expr $id * 10]} {$child <= [expr ($id * 10) + 9]} {incr child} {
 	    set childaddr $hosts($child)
-	    eval link add link-$child bundles://internet/host://$childaddr:5000 \
+	    eval link add link-$child host://$childaddr:5000 \
 		    $type $cl $args
 	    
 	    route add bundles://internet/host://$childaddr/* link-$child
@@ -87,7 +87,7 @@ proc setup_tree_topology {type cl {args ""}} {
     # 100-154, can also set a fourth-tier route to 200-254
     if { $id >= 100 && $id <= 199 } {
 	set parent [expr $id / 10]
-	eval link add link-$parent bundles://internet/host://$hosts($parent):5000 \
+	eval link add link-$parent host://$hosts($parent):5000 \
 		$type $cl $args
 	
 	route add bundles://internet/host://$hosts($parent)/* link-$parent
@@ -96,7 +96,7 @@ proc setup_tree_topology {type cl {args ""}} {
 	if {$id <= 154} {
 	    set child [expr $id + 100]
 	    set childaddr $hosts($child)
-	    eval link add link-$child bundles://internet/host://$childaddr:5000 \
+	    eval link add link-$child host://$childaddr:5000 \
 		    $type $cl $args
 	    
 	    route add bundles://internet/host://$childaddr/* link-$child
@@ -106,7 +106,7 @@ proc setup_tree_topology {type cl {args ""}} {
     # finally, the fourth tier nodes 200-254 just set a route to their parent
     if { $id >= 200 && $id <= 255 } {
 	set parent [expr $id - 100]
-	eval link add link-$parent bundles://internet/host://$hosts($parent):5000 \
+	eval link add link-$parent host://$hosts($parent):5000 \
 		$type $cl $args
 	
 	route add bundles://internet/host://$hosts($parent)/* link-$parent

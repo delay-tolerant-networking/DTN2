@@ -99,12 +99,7 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         
         consumer = ContactManager::instance()->find_link(name);
         if (consumer == NULL) {
-            BundleTuplePattern peer(name);
-            if (!peer.valid()) {
-                resultf("invalid peer tuple %s", name);
-                return TCL_ERROR;
-            }
-            consumer = ContactManager::instance()->find_peer(peer);
+            consumer = ContactManager::instance()->find_peer(name);
         }
         
         if (consumer == NULL) {

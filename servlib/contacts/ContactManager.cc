@@ -38,6 +38,7 @@
 
 #include <oasys/util/StringBuffer.h>
 
+#include "AddressFamily.h"
 #include "ContactManager.h"
 #include "BundleTuple.h"
 #include "Contact.h"
@@ -77,7 +78,7 @@ ContactManager::delete_peer(Peer *peer)
 {
     if (!has_peer(peer)) {
         log_err("Error in deleting peer from contact manager -- "
-                "Peer %s does not exist", peer->name());
+                "Peer %s does not exist", peer->address());
     } else {
         peers_->erase(peer);
     }
@@ -93,13 +94,15 @@ ContactManager::has_peer(Peer *peer)
 }
 
 /**
- * Finds peer with a given bundletuple pattern
+ * Finds peer with a given next hop admin address
  */
 Peer*
-ContactManager::find_peer(const BundleTuple& tuple)
+ContactManager::find_peer(const char* address)
 {
-    if (!tuple.valid()) {
-        log_err("Trying to find an malformed peer %s", tuple.c_str());
+    bool valid;
+    AddressFamily* af = AddressFamilyTable::instance()->lookup(address, &valid);
+    if (!af || !valid) {
+        log_err("trying to find an invalid peer admin address '%s'", address);
         return NULL;
     }
     
@@ -110,7 +113,7 @@ ContactManager::find_peer(const BundleTuple& tuple)
     for (iter = peers_->begin(); iter != peers_->end(); ++iter)
     {
         peer = *iter;
-        if (peer->tuple().equals(tuple)) {
+        if (!strcmp(peer->address(), address)) {
             return peer;
         }
     }
@@ -184,7 +187,7 @@ ContactManager::dump(oasys::StringBuffer* buf) const
                      link->type_str(),
                      link->name(),
 //                     link->clayer()->proto(),
-                     link->dest_tuple()->c_str(),
+                     link->dest_str(),
                      link->isavailable() ? "avail" : "not-avail",
                      link->isopen() ? "open" : "closed");
     }

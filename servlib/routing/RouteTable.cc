@@ -91,7 +91,7 @@ RouteTable::add_entry(RouteEntry* entry)
     
     log_debug("add_route %s -> %s (%s)",
               entry->pattern_.c_str(),
-              entry->next_hop_->dest_tuple()->c_str(),
+              entry->next_hop_->dest_str(),
               bundle_fwd_action_toa(entry->action_));
     
     route_table_.insert(entry);
@@ -114,8 +114,7 @@ RouteTable::del_entry(const BundleTuplePattern& dest,
 
         if (entry->pattern_.equals(dest) && entry->next_hop_ == next_hop) {
             log_debug("del_route %s -> %s",
-                      dest.c_str(),
-                      next_hop->dest_tuple()->c_str());
+                      dest.c_str(), next_hop->dest_str());
 
             route_table_.erase(iter);
             return true;
@@ -123,8 +122,7 @@ RouteTable::del_entry(const BundleTuplePattern& dest,
     }    
 
     log_debug("del_route %s -> %s: no match!",
-              dest.c_str(),
-              next_hop->dest_tuple()->c_str());
+              dest.c_str(), next_hop->dest_str());
     return false;
 }
 
@@ -149,7 +147,7 @@ RouteTable::get_matching(const BundleTuple& tuple,
 
         log_debug("check entry %s -> %s (%s)",
                   entry->pattern_.c_str(),
-                  entry->next_hop_->dest_tuple()->c_str(),
+                  entry->next_hop_->dest_str(),
                   bundle_fwd_action_toa(entry->action_));
             
         if (entry->pattern_.match(tuple)) {
@@ -157,7 +155,7 @@ RouteTable::get_matching(const BundleTuple& tuple,
             
             log_debug("match entry %s -> %s (%s)",
                       entry->pattern_.c_str(),
-                      entry->next_hop_->dest_tuple()->c_str(),
+                      entry->next_hop_->dest_str(),
                       bundle_fwd_action_toa(entry->action_));
 
             entry_set->insert(entry);
@@ -181,7 +179,7 @@ RouteTable::dump(oasys::StringBuffer* buf) const
         RouteEntry* entry = *iter;
         buf->appendf("\t%s -> %s (%s) (%s)\n",
                      entry->pattern_.c_str(),
-                     entry->next_hop_->dest_tuple()->c_str(),
+                     entry->next_hop_->dest_str(),
                      entry->next_hop_->type_str(),
                      bundle_fwd_action_toa(entry->action_));
     }
