@@ -25,7 +25,14 @@ main(int argc, const char** argv)
         usage();
     }
 
+    // first off, make sure it's a valid destination tuple
+    memset(&spec, 0, sizeof(spec));
     dest_tuple_str = (char*)argv[1];
+    if (dtn_parse_tuple_string(&spec.dest, dest_tuple_str)) {
+        fprintf(stderr, "invalid destination tuple string '%s'\n",
+                dest_tuple_str);
+        exit(1);
+    }
 
     // open the ipc handle
     handle = dtn_open();
@@ -35,27 +42,21 @@ main(int argc, const char** argv)
         exit(1);
     }
 
-    // get a local tuple
+    // construct a local tuple based on the configuration of our dtn
+    // router plus the demux string
     dtn_build_local_tuple(handle, &local_tuple, "/ping");
 
-    printf("local_tuple: [%s %s]\n",
-           local_tuple.region, local_tuple.admin.admin_val);
-    
-    exit(1);
-
-    // dtn_register(local_tuple);
-
-    memset(&spec, 0, sizeof(spec));
-    dtn_set_tuple_string(&spec.source, "dtn://test/source/ping");
-    dtn_set_tuple_string(&spec.replyto, "dtn://test/source/ping");
-    dtn_set_tuple_string(&spec.dest, "dtn://test/dest/ping");
+    // format the bundle header
+    dtn_copy_tuple(&spec.source, &local_tuple);
+    dtn_copy_tuple(&spec.replyto, &local_tuple);
 
     memset(&payload, 0, sizeof(payload));
     dtn_set_payload(&payload, DTN_PAYLOAD_MEM, "ping", 4);
 
     if ((ret = dtn_send(handle, &spec, &payload)) != 0) {
         fprintf(stderr, "error sending bundle: %d (%s)\n",
-                ret, strerror(dtn_errno(handle)));
+                ret, dtn_strerror(dtn_errno(handle)));
+        exit(1);
     }
 
     printf("successfully sent bundle\n");

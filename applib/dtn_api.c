@@ -82,6 +82,25 @@ dtn_errno(dtn_handle_t handle)
 }
 
 /**
+ * Get a string value associated with the dtn error code.
+ */
+char*
+dtn_strerror(int err)
+{
+    switch(err) {
+    case DTN_SUCCESS: return "success";
+    case DTN_INVAL: return "invalid argument";
+    case DTN_XDRERR: return "error in xdr routines";
+    case DTN_COMMERR: return "error in ipc communication";
+    case DTN_SERVERR: return "server error";
+    case DTN_TOOBIG: return "payload too large";
+    }
+
+    // otherwise, try a system errno value
+    return strerror(err);
+}
+
+/**
  * Information request function.
  */
 int
@@ -136,19 +155,18 @@ dtn_send(dtn_handle_t h,
     // pack the arguments
     xdr_setpos(&handle->xdr_encode, 0);
     if ((!xdr_dtn_bundle_spec_t(xdr_encode, spec)) ||
-        (!xdr_dtn_bundle_payload_t(xdr_encode, payload)))
-    {
+        (!xdr_dtn_bundle_payload_t(xdr_encode, payload))) {
         handle->err = DTN_XDRERR;
         return -1;
     }
 
     // send the message
-    if (dtnipc_send(handle, DTN_SEND) != 0) {
+    if (dtnipc_send(handle, DTN_SEND) < 0) {
         return -1;
     }
 
     // wait for a response
-    if (dtnipc_recv(handle) != 0) {
+    if (dtnipc_recv(handle) < 0) {
         return -1;
     }
 
@@ -168,6 +186,20 @@ dtn_send(dtn_handle_t h,
  *
  *************************************************************/
 
+/*
+ * Copy the value of one tuple to another.
+ *
+ * Note that this will _not_ call malloc for the admin part so the
+ * underlying memory will be shared.
+ *
+ */
+void
+dtn_copy_tuple(dtn_tuple_t* dst, dtn_tuple_t* src)
+{
+    memcpy(dst->region, src->region, DTN_MAX_REGION_LEN);
+    dst->admin.admin_val = src->admin.admin_val;
+    dst->admin.admin_len = src->admin.admin_len;
+}
 /*
  * Sets the value of the tuple to the given region, admin, and demux
  * strings.
@@ -194,7 +226,7 @@ int dtn_set_tuple(dtn_tuple_t* tuple,
  * tuple.
  */
 int
-dtn_set_tuple_string(dtn_tuple_t* tuple, char* str)
+dtn_parse_tuple_string(dtn_tuple_t* tuple, char* str)
 {
     char *s, *end;
     size_t len;

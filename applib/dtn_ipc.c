@@ -86,7 +86,7 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
     // send the message
     if (send(handle->sock, handle->buf, len, 0) != len)
     {
-        handle->err = errno;
+        handle->err = DTN_COMMERR;
         return -1;
     }
 
@@ -109,7 +109,7 @@ dtnipc_recv(dtnipc_handle_t* handle)
     } while (len < 0 && errno == EINTR);
 
     if (len < 0) {
-        handle->err = errno;
+        handle->err = DTN_COMMERR;
         return -1;
     }
 

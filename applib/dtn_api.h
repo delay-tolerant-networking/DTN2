@@ -70,6 +70,11 @@ extern int dtn_close(dtn_handle_t handle);
 extern int dtn_errno(dtn_handle_t handle);
 
 /**
+ * Get a string value associated with the dtn error code.
+ */
+char* dtn_strerror(int err);
+
+/**
  * Information request function.
  */
 extern int dtn_get_info(dtn_handle_t handle,
@@ -96,6 +101,15 @@ extern int dtn_send(dtn_handle_t handle,
  *                     Utility Functions
  *
  *************************************************************/
+
+/*
+ * Copy the value of one tuple to another.
+ *
+ * Note that this will _not_ call malloc for the admin part so the
+ * underlying memory will be shared.
+ *
+ */
+extern void dtn_copy_tuple(dtn_tuple_t* dst, dtn_tuple_t* src);
 
 /*
  * Sets the value of the tuple to the given region, admin, and
@@ -128,7 +142,7 @@ extern int dtn_build_local_tuple(dtn_handle_t* handle,
  * Returns: 0 on success, DTN_INVAL if the given string is not a valid
  * tuple.
  */
-extern int dtn_set_tuple_string(dtn_tuple_t* tuple, char* str);
+extern int dtn_parse_tuple_string(dtn_tuple_t* tuple, char* str);
 
 /*
  * Sets the value of the given payload structure to either a memory

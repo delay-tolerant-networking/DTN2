@@ -1,6 +1,7 @@
 
 #include "debug/Debug.h"
 #include "BundleTuple.h"
+#include "applib/dtn_types.h"
 
 BundleTuple::BundleTuple()
     : valid_(false)
@@ -37,6 +38,23 @@ BundleTuple::assign(const BundleTuple& other)
     proto_.assign(other.proto_);
     admin_.assign(other.admin_);
 }
+
+void
+BundleTuple::assign(dtn_tuple_t* tuple)
+{
+    tuple_.assign("bundles://");
+    tuple_.append(tuple->region);
+    
+    if (tuple_[tuple_.length() - 1] != '/') {
+        tuple_.push_back('/');
+    }
+    
+    tuple_.append(tuple->admin.admin_val,
+                  tuple->admin.admin_len);
+    
+    parse_tuple();
+}
+
 
 BundleTuple::~BundleTuple()
 {

@@ -1,6 +1,8 @@
 
 #include "APIServer.h"
 #include "bundling/Bundle.h"
+#include "bundling/BundleEvent.h"
+#include "bundling/BundleForwarder.h"
 #include "io/UDPClient.h"
 #include "io/NetUtils.h"
 #include "routing/BundleRouter.h"
@@ -95,6 +97,9 @@ ClientAPIServer::run()
     }
     
     while (1) {
+        xdr_setpos(xdr_encode_, 0);
+        xdr_setpos(xdr_decode_, 0);
+
         int cc = sock_->recv(buf_, buflen_, 0);
         if (cc <= 0) {
             log_err("error in recvfrom: %s", strerror(errno));
@@ -102,8 +107,6 @@ ClientAPIServer::run()
         }
         
         log_debug("got %d byte message", cc);
-        
-        xdr_setpos(xdr_decode_, 0);
         
         u_int32_t type;
         memcpy(&type, buf_, sizeof(type));
@@ -172,7 +175,6 @@ ClientAPIServer::handle_getinfo()
     }
     
     /* send the return code */
-    xdr_setpos(xdr_encode_, 0);
     if (!xdr_dtn_info_response_t(xdr_encode_, &response)) {
         log_err("internal error in xdr");
         return -1;
@@ -194,6 +196,9 @@ ClientAPIServer::handle_send()
     long ret;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
+
+    memset(&spec, 0, sizeof(spec));
+    memset(&payload, 0, sizeof(payload));
     
     /* Unpack the arguments */
     if (!xdr_dtn_bundle_spec_t(xdr_decode_, &spec) ||
@@ -204,15 +209,35 @@ ClientAPIServer::handle_send()
     }
 
     b = new Bundle();
-    
-//     b->source_.assign(spec.source.tuple.tuple_val, spec.source.tuple.tuple_len);
-//     b->dest_.assign(spec.dest.tuple.tuple_val, spec.dest.tuple.tuple_len);
-//     b->replyto_.assign(spec.replyto.tuple.tuple_val, spec.replyto.tuple.tuple_len);
 
-    b->custodian_.assign(b->source_); // XXX/demmer use my address?
+    // assign the addressing fields
+    b->source_.assign(&spec.source);
+    if (!b->source_.valid()) {
+        log_err("invalid source tuple [%s %s]",
+                spec.source.region, spec.source.admin.admin_val);
+        ret = DTN_INVAL;
+        goto done;
+    }
     
+    b->dest_.assign(&spec.dest);
+    if (!b->dest_.valid()) {
+        log_err("invalid dest tuple [%s %s]",
+                spec.dest.region, spec.dest.admin.admin_val);
+        ret = DTN_INVAL;
+        goto done;
+    }
+    
+    b->replyto_.assign(&spec.replyto);
+    if (!b->replyto_.valid()) {
+        log_err("invalid replyto tuple [%s %s]",
+                spec.replyto.region, spec.replyto.admin.admin_val);
+        ret = DTN_INVAL;
+        goto done;
+    }
+    
+    // and the priority code
     switch (spec.priority) {
-#define COS(cos) case cos: b->priority_ = cos;
+#define COS(_cos) case _cos: b->priority_ = _cos; break;
         COS(COS_BULK);
         COS(COS_NORMAL);
         COS(COS_EXPEDITED);
@@ -224,12 +249,26 @@ ClientAPIServer::handle_send()
         goto done;
     };
 
+    // XXX/demmer delivery opts?
 
+    // finally, the payload
+    size_t payload_len;
+    if (payload.location == DTN_PAYLOAD_MEM) {
+        b->payload_.set_data(payload.dtn_bundle_payload_t_u.buf.buf_val,
+                             payload.dtn_bundle_payload_t_u.buf.buf_len);
+        payload_len = payload.dtn_bundle_payload_t_u.buf.buf_len;
+    } else {
+        PANIC("file-based payloads not implemented");
+    }
+    
+    // deliver the bundle
+    BundleForwarder::post(new BundleReceivedEvent(b, payload_len));
+    ASSERT(b->refcount() > 0);
+    
     ret = DTN_SUCCESS;
 
     /* send the return code */
  done:
-    xdr_setpos(xdr_encode_, 0);
     if (!xdr_putlong(xdr_encode_, &ret)) {
         log_err("internal error in xdr");
         return -1;

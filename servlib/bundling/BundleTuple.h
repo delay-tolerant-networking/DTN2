@@ -3,6 +3,8 @@
 
 #include "storage/Serialize.h"
 
+struct dtn_tuple_t;
+
 /**
  * Class to wrap a bundle tuple of the general form:
  *
@@ -88,6 +90,11 @@ public:
         tuple_.append((char*)admin, adminlen);
         parse_tuple();
     }
+
+    /**
+     * Assign the tuple from the api exposed structure.
+     */
+    void assign(dtn_tuple_t* tuple);
     
     // Accessors
     const std::string& tuple()  const { return tuple_; }
