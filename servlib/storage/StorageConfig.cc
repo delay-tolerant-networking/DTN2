@@ -45,8 +45,8 @@ StorageConfig StorageConfig::instance_;
 StorageConfig::StorageConfig()
 {
     type_	= "berkeleydb";
-    tidy_	= false;
     init_       = false;
+    tidy_	= false;
     tidy_wait_	= 3;
     dbdir_	= "/var/dtn/db";
     payloaddir_ = "/var/dtn/bundles";
