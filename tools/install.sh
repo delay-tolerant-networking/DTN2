@@ -31,7 +31,6 @@ echo -n "install daemon setuid? [y]: "
 read setuid
 [ "$setuid" = "" ] && setuid=y
 
-echo ""
 echo "creating dtn directories..."
 for dir in /var/dtn /var/dtn/bundles /var/dtn/db ; do
     if [ -d $dir ]; then
@@ -50,12 +49,19 @@ done
 
 echo "installing dtnd executable..."
 install -o $acct daemon/dtnd /usr/bin/
-echo ""
 
 if [ $setuid = y ]; then
    echo "setting setuid bit on dtnd..."
    chmod 4755 /usr/bin/dtnd
 fi
+
+apps="dtnsend dtnrecv dtnping dtncp dtncpd"
+echo -n "installing dtn applications: "
+for app in $apps ; do
+   echo -n "$app... "
+   install -o $acct apps/$app/$app /usr/bin/
+done
+echo ""
 
 echo "copying default configuration file to /etc/dtn.conf"
 install -o $acct -m 644 daemon/dtn.conf /etc/dtn.conf

@@ -19,16 +19,19 @@ if [ ! "$y" = "y" -o "$y" = "yes" ]; then
    exit 0
 fi
 
-echo ""
-echo "removing dtn files..."
-for f in /usr/bin/dtnd /etc/dtn.conf ; do
-   echo "$f..."
-   rm -f $f
+echo -n "removing dtn executables: "
+apps="dtnsend dtnrecv dtnping dtncp dtncpd"
+for f in dtnd $apps ; do
+   echo -n "$f... "
+   rm -f /usr/bin/$f
 done
+echo ""
 
+echo -n "removing dtn directories: "
 for d in /var/dtn/db /var/dtn/bundles /var/dtn ; do
-   echo "$d..."
+   echo -n "$d... "
    rm -rf $d
 done
+echo ""
 
 echo "uninstallation complete."
