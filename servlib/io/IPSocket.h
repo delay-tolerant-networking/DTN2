@@ -74,6 +74,9 @@ class IPSocket : public Logger {
         int recv_bufsize_;		// default: system setting
         int send_bufsize_;		// default: system setting
     } params_;
+
+    /// The socket file descriptor
+    inline int fd();
     
     /// The local address that the socket is bound to
     inline in_addr_t local_addr();
@@ -86,7 +89,19 @@ class IPSocket : public Logger {
 
     /// The remote port that the socket is connected to
     inline u_int16_t remote_port();
+
+    /// Set the local address that the socket is bound to
+    inline void set_local_addr(in_addr_t addr);
+
+    /// Set the local port that the socket is bound to
+    inline void set_local_port(u_int16_t port);
     
+    /// Set the remote address that the socket is connected to
+    inline void set_remote_addr(in_addr_t addr);
+
+    /// Set the remote port that the socket is connected to
+    inline void set_remote_port(u_int16_t port);
+
     /**
      * Hook to abort a test if any unexpected errors occur within the
      * socket. Implemented by trapping all the logf calls and aborting
@@ -98,6 +113,10 @@ class IPSocket : public Logger {
 
     /// Wrapper around the logging function needed for abort_on_error
     inline int logf(log_level_t level, const char *fmt, ...) PRINTFLIKE(3, 4);
+
+    /// logfd can be set to false to disable the appending of the
+    /// socket file descriptor
+    void set_logfd(bool logfd) { logfd_ = logfd; }
 
   protected:
     void init_socket();
@@ -121,6 +140,12 @@ class IPSocket : public Logger {
     inline void get_remote();
     
 };
+
+int
+IPSocket::fd()
+{
+    return fd_;
+}
 
 in_addr_t
 IPSocket::local_addr()
@@ -148,6 +173,30 @@ IPSocket::remote_port()
 {
     if (remote_port_ == 0) get_remote();
     return remote_port_;
+}
+
+void
+IPSocket::set_local_addr(in_addr_t addr)
+{
+    local_addr_ = addr;
+}
+
+void
+IPSocket::set_local_port(u_int16_t port)
+{
+    local_port_ = port;
+}
+
+void
+IPSocket::set_remote_addr(in_addr_t addr)
+{
+    remote_addr_ = addr;
+}
+
+void
+IPSocket::set_remote_port(u_int16_t port)
+{
+    remote_port_ = port;
 }
 
 void
