@@ -1066,21 +1066,30 @@ TCPConvergenceLayer::Connection::accept()
 void
 TCPConvergenceLayer::Connection::break_contact()
 {
-    char typecode;
-    int revents, cc;
+    char typecode = SHUTDOWN;
     ASSERT(sock_);
 
-    typecode = SHUTDOWN;
-    cc = sock_->poll(POLLOUT, &revents, 1000);
-    if (cc == 1) {
+#if 0
+    // debugging code to confirm the state of the socket
+    if (sock_->get_nonblocking(&is_nonblocking)) {
+        log_warn("failure getting non-blocking status of sock");
+    } else {
+        log_debug("sock %s non-blocking", (is_nonblocking) ? "is" : "is not");
+    }
+#endif
+
+    /// XXX/jra: debug code above confirms that receiver sockets
+    /// not currently in nonblocking mode. demmer thinks they should
+    /// be, but until we think that change through, we set nonblocking
+    /// here before we write to the socket, to be safe.
+
+    if (sock_->set_nonblocking(true) == 0) {
         (void) sock_->write(&typecode, 1);
         // do not log an error when we fail to write, since the
-        // SHUTDOWN is basically advisory.
-    } else {
-        log_warn("No space to send SHUTDOWN message. "
-                 "Closing connection anyway.");
+        // SHUTDOWN is basically advisory. Expected errors here
+        // include a short write due to socket already closed,
+        // or maybe EAGAIN due to socket not ready for write.
     }
-
     sock_->close();
 
     // In all cases where break_contact is called, the Connection
