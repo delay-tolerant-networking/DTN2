@@ -102,11 +102,11 @@ main(int argc, char** argv)
     memset(&bundle_spec, 0, sizeof(bundle_spec));
 
     // destination host is specified at run time, demux is hardcoded
-    sprintf(demux, "%s/recv_file:/%s", arg_dest, arg_target);
+    sprintf(demux, "%s/dtncp/recv:/%s", arg_dest, arg_target);
     parse_tuple(handle, &bundle_spec.dest, demux);
 
     // source is local tuple with file path as demux string
-    sprintf(demux, "/send_file:%s", data_source);
+    sprintf(demux, "/dtncp/send:%s", data_source);
     parse_tuple(handle, &bundle_spec.source, demux);
 
     // reply to is the same as the source

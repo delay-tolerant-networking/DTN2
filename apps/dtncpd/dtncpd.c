@@ -111,7 +111,7 @@ main(int argc, const char** argv)
     free(buffer);
 
     // designated endpoint
-    endpoint = "/recv_file:/*";
+    endpoint = "/dtncp/recv:*";
 
     // open the ipc handle
     debug && printf("opening connection to dtn router...\n");
@@ -183,7 +183,7 @@ main(int argc, const char** argv)
         host += 3; // skip ://
 
         // calculate where host ends (temporarily using dirpath)
-        dirpath = strstr(host, "/send_file");
+        dirpath = strstr(host, "/dtncp/send");
         dirpath[0] = '\0'; // null-terminate host
        
         // copy out dest admin value into null-terminated string
@@ -193,9 +193,8 @@ main(int argc, const char** argv)
         dest_admin[dest_admin_len] = '\0';
 
         // extract directory path (everything following std demux)
-        dirpath = strstr(dest_admin, "/recv_file:");
-        dirpath[0] = '\0'; // null-terminate host
-        dirpath += 11; // skip /send_file:
+        dirpath = strstr(dest_admin, "/dtncp/recv:");
+        dirpath += 12; // skip /dtncp/recv:
         if (dirpath[0] == '/') dirpath++; // skip leading slash
 
         // filename is everything following last /
