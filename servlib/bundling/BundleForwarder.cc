@@ -4,6 +4,7 @@
 #include "BundleList.h"
 #include "BundleForwarder.h"
 #include "Contact.h"
+#include "FragmentManager.h"
 #include "routing/BundleRouter.h"
 #include "storage/BundleStore.h"
 
@@ -36,9 +37,17 @@ BundleForwarder::process(BundleAction* action)
     
     switch (action->action_) {
     case FORWARD_UNIQUE:
-    case FORWARD_COPY: {
+    case FORWARD_COPY:
+    case FORWARD_REASSEMBLE: {
         BundleForwardAction* fwdaction = (BundleForwardAction*)action;
         log_debug("forward bundle %d", bundle->bundleid_);
+
+        if (action->action_ == FORWARD_REASSEMBLE && bundle->is_fragment_) {
+            bundle = FragmentManager::instance()->process(bundle);
+            if (!bundle)
+                return;
+        }
+        
         fwdaction->nexthop_->consume_bundle(bundle);
         break;
     }

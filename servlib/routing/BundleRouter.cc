@@ -196,7 +196,7 @@ BundleRouter::handle_registration_added(RegistrationAddedEvent* event,
     log_debug("new registration for %s", registration->endpoint().c_str());
 
     RouteEntry* entry = new RouteEntry(registration->endpoint(),
-                                       registration, FORWARD_COPY);
+                                       registration, FORWARD_REASSEMBLE);
     route_table_->add_entry(entry);
     new_next_hop(registration->endpoint(), registration, actions);
 }

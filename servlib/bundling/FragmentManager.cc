@@ -1,5 +1,6 @@
 
 #include "Bundle.h"
+#include "BundleRef.h"
 #include "BundleList.h"
 #include "FragmentManager.h"
 
@@ -8,6 +9,7 @@ FragmentManager FragmentManager::instance_;
 FragmentManager::FragmentManager()
     : Logger("/bundle/fragment")
 {
+    lock_ = new SpinLock();
 }
 
 Bundle* 
@@ -75,9 +77,169 @@ FragmentManager::fragment(Bundle* bundle, int offset, size_t length)
     return fragment;
 }
 
-
-Bundle * 
-FragmentManager::process(Bundle * fragment)
+void
+FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
 {
-    NOTIMPLEMENTED;
+    char buf[128];
+    snprintf(buf, 128, "%lu.%lu",
+             bundle->creation_ts_.tv_sec,
+             bundle->creation_ts_.tv_usec);
+    
+    key->append(buf);
+    key->append(bundle->source_.tuple());
+    key->append(bundle->dest_.tuple());
 }
+
+struct FragmentManager::ReassemblyState {
+    ReassemblyState()
+        : fragments_("reassembly_state")
+    {}
+    
+    Bundle* bundle_;		///< The reassembled bundle
+    BundleList fragments_;	///< List of partial fragments
+};
+
+bool
+FragmentManager::check_completed(ReassemblyState* state)
+{
+    Bundle* fragment;
+    BundleList::iterator iter;
+
+    size_t done_up_to = 0;  // running total of completed reassembly
+    size_t f_len;
+    size_t f_offset;
+    size_t f_origlen;
+
+    size_t total_len = state->bundle_->payload_.length();
+    
+    int fragi = 0;
+    int fragn = state->fragments_.size();
+
+    for (iter = state->fragments_.begin();
+         iter != state->fragments_.end();
+         ++iter, ++fragi)
+    {
+        fragment = *iter;
+
+        f_len = fragment->payload_.length();
+        f_offset = fragment->frag_offset_;
+        f_origlen = fragment->orig_length_;
+            
+        ASSERT(fragment->is_fragment_);
+
+        
+        log_debug("check_completed: fragment %d/%d: offset %d len %d total %d done_up_to %d",
+                  fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
+
+
+        if (f_origlen != total_len) {
+            PANIC("check_completed: error fragment orig len %d != total %d",
+                  f_origlen, total_len);
+            // XXX/demmer deal with this
+        }
+
+        if (done_up_to == f_offset) {
+            /*
+             * fragment is adjacent to the bytes so far
+             * bbbbbbbbbb
+             *           fff
+             */
+            done_up_to += f_len;
+        }
+
+        else if (done_up_to < f_offset) {
+            /*
+             * there's a gap
+             * bbbbbbb ffff
+             */
+            log_debug("check_completed: found a hole (offset %d done_up_to %d)",
+                      fragment->frag_offset_, done_up_to);
+            return false;
+
+        }
+
+        else if (done_up_to > (f_offset + f_len)) {
+            /* fragment is completely redundant, skip
+             * bbbbbbbbbb
+             *      fffff
+             */
+            log_debug("check_completed: redundant fragment");
+            continue;
+        }
+        
+        else if (done_up_to > f_offset) {
+            /*
+             * there's some overlap, so reduce f_len accordingly
+             * bbbbbbbbbb
+             *      fffffff
+             */
+            f_len -= (done_up_to - f_offset);
+            done_up_to += f_len;
+        }
+    }
+
+    if (done_up_to == total_len) {
+        log_debug("check_completed: reassembly complete!");
+        return true;
+    } else {
+        log_debug("check_completed: reassembly got %d/%d", done_up_to, total_len);
+        return false;
+    }
+}
+
+Bundle* 
+FragmentManager::process(Bundle* fragment)
+{
+    ScopeLock l(lock_);
+
+    ReassemblyState* state;
+    ReassemblyTable::iterator iter;
+
+    ASSERT(fragment->is_fragment_);
+
+    // cons up the key to do the table lookup and look for reassembly state
+    std::string hash_key;
+    get_hash_key(fragment, &hash_key);
+    iter = reassembly_table_.find(hash_key);
+    
+    if (iter != reassembly_table_.end()) {
+        state = iter->second;
+        log_debug("found reassembly state for key %s (%d fragments)",
+                  hash_key.c_str(), state->fragments_.size());
+        
+    } else {
+        log_debug("can't find reassembly state for key %s",
+                  hash_key.c_str());
+        state = new ReassemblyState();
+
+        state->bundle_ = new Bundle();
+        state->bundle_->payload_.set_length(fragment->orig_length_, BundlePayload::DISK);
+        state->bundle_->add_ref();
+        
+        reassembly_table_[hash_key] = state;
+    }
+
+    // grab a lock on the fragment list and tack on the new fragment
+    // to the fragment list
+    ScopeLock fraglock(state->fragments_.lock());
+    state->fragments_.insert_sorted(fragment, BundleList::SORT_FRAG_OFFSET);
+    
+    // store the fragment data in the partially reassembled bundle file
+    size_t fraglen = fragment->payload_.length();
+    const char* bp = fragment->payload_.read_data(0, fraglen);
+    state->bundle_->payload_.write_data(bp, fragment->frag_offset_, fraglen);
+    
+    // check see if we're done
+    if (check_completed(state)) {
+        Bundle* ret = state->bundle_;
+        state->fragments_.clear();
+        reassembly_table_.erase(hash_key);
+        fraglock.unlock();
+        delete state;
+        return ret;
+    }
+
+    return NULL;
+}
+
+

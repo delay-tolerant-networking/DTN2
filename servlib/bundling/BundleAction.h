@@ -14,6 +14,7 @@ typedef enum {
     FORWARD_UNIQUE,	///< Forward the bundle
     FORWARD_COPY,	///< Forward a copy of the bundle
     FORWARD_CANCEL,	///< Cancel a requested transmissision
+    FORWARD_REASSEMBLE,	///< First reassemble fragments (if any) then forward
 
     STORE_ADD,		///< Store the bundle in the database
     STORE_DEL,		///< Remove the bundle from the database
@@ -29,6 +30,7 @@ bundle_action_toa(bundle_action_t action)
     case FORWARD_UNIQUE:	return "FORWARD_UNIQUE";
     case FORWARD_COPY:		return "FORWARD_COPY";
     case FORWARD_CANCEL:	return "FORWARD_CANCEL";
+    case FORWARD_REASSEMBLE:	return "FORWARD_REASSEMBLE";
 
     case STORE_ADD:		return "STORE_ADD";
     case STORE_DEL:		return "STORE_DEL";

@@ -3,21 +3,11 @@
 
 #include "debug/Log.h"
 #include <string>
-
-// Though hash_map was part of std:: in the 2.9x gcc series, it's been
-// moved to ext/__gnu_cxx:: in 3.x
-// XXX/demmer move this all into a compat.h or some such header file 
-#if (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-#include <hash_map>
-#define _std std
-#else
-#include <ext/hash_map>
-#define _std __gnu_cxx
-#endif
-
+#include "util/StringUtils.h"
 
 class Bundle;
 class BundleList;
+class SpinLock;
 
 /**
  * The Fragment Manager maintains state for all of the fragmentary
@@ -62,11 +52,28 @@ public:
     Bundle* process(Bundle* fragment);
 
  protected:
+    /// Reassembly state structure
+    struct ReassemblyState;
+    
+    /**
+     * Calculate a hash table key from a bundle
+     */
+    void get_hash_key(const Bundle*, std::string* key);
+
+    /**
+     * Check if the bundle has been completely reassembled.
+     */
+    bool check_completed(ReassemblyState* state);
+
     /// Singleton instance
     static FragmentManager instance_;
-
+    
     /// Table of partial bundles
-    _std::hash_map<std::string, BundleList*> partial_;
+    typedef StringHashMap<ReassemblyState*> ReassemblyTable;
+    ReassemblyTable reassembly_table_;
+
+    /// Lock
+    SpinLock* lock_;
 };
 
 #endif /* __FRAGMENT_MANAGER_H__ */
