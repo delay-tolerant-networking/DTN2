@@ -62,9 +62,9 @@ public:
      * Action type codes, one for each action type of SerializeAction.
      */
     typedef enum {
-        MARSHAL = 1,	// in-memory  -> serialized representation
-        UNMARSHAL,	// serialized -> in-memory  representation
-        INFO		// informative scan (e.g. size, table schema)
+        MARSHAL = 1,	/// in-memory  -> serialized representation
+        UNMARSHAL,	/// serialized -> in-memory  representation
+        INFO		/// informative scan (e.g. size, table schema)
     } action_t;
     
     /**
