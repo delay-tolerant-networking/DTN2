@@ -67,13 +67,17 @@ protected:
  */
 class BundleReceivedEvent : public BundleEvent {
 public:
-    BundleReceivedEvent(Bundle* bundle)
+    BundleReceivedEvent(Bundle* bundle, size_t bytes_received)
         : BundleEvent(BUNDLE_RECEIVED),
-          bundleref_(bundle) {}
+          bundleref_(bundle), bytes_received_(bytes_received) {}
 
     /// The newly arrived bundle
     BundleRef bundleref_;
+
+    /// The total bytes actually received
+    size_t bytes_received_;
 };
+
 
 /**
  * Event class for bundle or fragment transmission.
