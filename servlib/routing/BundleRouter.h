@@ -6,6 +6,7 @@
 #include "bundling/BundleTuple.h"
 #include "debug/Logger.h"
 #include "thread/Thread.h"
+#include "util/StringUtils.h"
 #include <vector>
 
 class BundleConsumer;
@@ -91,6 +92,18 @@ public:
 
     // XXX/demmer temp for testing fragmentation
     static size_t proactive_frag_threshold_;
+
+    /**
+     * The set of local regions that this router is configured as "in".
+     */
+    static StringVector local_regions_;
+
+    /**
+     * The default tuple for reaching this router, used for bundle
+     * status reports, etc. Note that the region must be one of the
+     * locally configured regions.
+     */
+    static BundleTuple local_tuple_;
     
 protected:
     /**

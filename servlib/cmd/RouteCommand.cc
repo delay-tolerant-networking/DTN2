@@ -86,6 +86,31 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         set_result(buf.c_str());
         return TCL_OK;
     }
+    
+    else if (strcmp(cmd, "local_region") == 0) {
+        // route local_region <region>
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+        
+        BundleRouter::local_regions_.push_back(argv[2]);
+    }
+
+    else if (strcmp(cmd, "local_tuple") == 0) {
+        // route local_tuple <tuple>
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+
+        BundleRouter::local_tuple_.assign(argv[2]);
+        if (! BundleRouter::local_tuple_.valid()) {
+            resultf("invalid tuple '%s'", argv[2]);
+            return TCL_ERROR;
+        }
+    }
+
     else {
         resultf("unimplemented route subcommand %s", cmd);
         return TCL_ERROR;

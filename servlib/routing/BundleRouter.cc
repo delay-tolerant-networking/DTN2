@@ -13,6 +13,8 @@
 
 std::string BundleRouter::type_;
 size_t BundleRouter::proactive_frag_threshold_;
+StringVector BundleRouter::local_regions_;
+BundleTuple BundleRouter::local_tuple_;
 
 /**
  * Factory method to create the correct subclass of BundleRouter
