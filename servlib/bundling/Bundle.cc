@@ -19,7 +19,7 @@ Bundle::init(u_int32_t id, BundlePayload::location_t location)
     return_rcpt_	= false;
     expiration_		= 0; // XXX/demmer
     gettimeofday(&creation_ts_, 0);
-    payload_.init(id, location);
+    payload_.init(&lock_, id, location);
 
     is_fragment_	= false;
     is_reactive_fragment_ = false;
@@ -29,7 +29,7 @@ Bundle::init(u_int32_t id, BundlePayload::location_t location)
 
 Bundle::Bundle()
 {
-    init(GlobalStore::instance()->next_bundleid(), BundlePayload::DISK);
+    init(GlobalStore::instance()->next_bundleid(), BundlePayload::UNDETERMINED);
 }
 
 Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)

@@ -469,7 +469,15 @@ ClientAPIServer::handle_recv()
         u_int* len = &payload.dtn_bundle_payload_t_u.buf.buf_len;
 
         *len = b->payload_.length();
-        *dst = b->payload_.raw_data();
+
+        if (b->payload_.location() != BundlePayload::MEMORY)
+        {
+            log_err("file-based payload cannot be received in memory");
+            return -1;
+        }
+        
+        *dst = b->payload_.memory_data();
+        
     } else {
         PANIC("file-based payloads not implemented");
     }

@@ -7,6 +7,7 @@
 #include "io/NetUtils.h"
 #include "thread/Timer.h"
 #include "util/URL.h"
+#include "util/StringBuffer.h"
 
 #include <sys/poll.h>
 
@@ -352,8 +353,9 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
     /** Tack on the contact header now..... **/
     
     // use iov slot zero for the one byte frame header type, and
-    // slot one for the frame header itself    
-    char typecode = BUNDLE_START; // This is irrelvant for UDP (for semantic purposes)
+    // slot one for the frame header itself
+    // This is irrelvant for UDP (for semantic purposes)
+    char typecode = BUNDLE_START; 
     iov[0].iov_base = &typecode;
     iov[0].iov_len  = 1;
     iov[1].iov_base = &contacthdr;
@@ -368,7 +370,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
     /** Tack on the Bundle Header now **/
         
     // fill in the rest of the iovec with the bundle header
-    u_int16_t header_len = BundleProtocol::format_headers(bundle, &iov[3], &iovcnt);
+    u_int16_t header_len =
+        BundleProtocol::format_headers(bundle, &iov[3], &iovcnt);
     size_t payload_len = bundle->payload_.length();
     
     log_debug("send_bundle: bundle id %d, header_length %d payload_length %d",
@@ -380,33 +383,37 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
     starthdr.header_length = htons(header_len);
 
     // We will squash all our payload into a single block....
-    size_t block_len;
     starthdr.block_length = htonl(payload_len);
     starthdr.partial = 0; // we have the complete payload
-    block_len = payload_len;
 
     /** Now add *all* the payload data **/
     
-    log_debug("send_bundle: sending %d byte frame hdr, %d byte bundle hdr, and %d bytes of payload data",
-              1 + sizeof(ContactHeader) + sizeof(BundleStartHeader), header_len, block_len);
-    const char* payload_data = bundle->payload_.read_data(0, block_len);
+    log_debug("send_bundle: sending %d byte frame hdr, %d byte bundle hdr, "
+              "and %d bytes of payload data",
+              1 + sizeof(ContactHeader) + sizeof(BundleStartHeader),
+              header_len, payload_len);
+
+    StringBuffer payload_buf(payload_len);
+    const char* payload_data =
+        bundle->payload_.read_data(0, payload_len, payload_buf.data());
     iov[iovcnt + 3].iov_base = (void*)payload_data;
-    iov[iovcnt + 3].iov_len = block_len;
+    iov[iovcnt + 3].iov_len = payload_len;
 
     /** Send the header and the payload together...... **/
 
     int cc = sock_->writev(iov, iovcnt + 4);
-    int total = 1 + sizeof(ContactHeader) + sizeof(BundleStartHeader) + header_len + block_len;
+    int total = 1 + sizeof(ContactHeader) + sizeof(BundleStartHeader) +
+                header_len + payload_len;
     if (cc != total) {
-        log_err("send_bundle: error writing bundle (complete w/headers) (wrote %d/%d): %s",
+        log_err("send_bundle: error writing bundle (complete w/headers) "
+                "(wrote %d/%d): %s",
                 cc, total, strerror(errno));
-        // XXX error could be the other side going away, so need
-        // to deal with the contact going away
         return false;
     }
 
-    // free up the iovec data used in the header representation (bundle header that is)
-    // this is a compatible call for format_headers()
+    // free up the iovec data used in the header representation
+    // (bundle header that is) this is a compatible call for
+    // format_headers()
     BundleProtocol::free_header_iovmem(bundle, &iov[3], iovcnt);
         
     /** we are done! **/

@@ -3,6 +3,7 @@
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleProtocol.h"
 #include "routing/BundleRouter.h"
+#include "util/StringBuffer.h"
 
 AdminRegistration::AdminRegistration()
     : Registration(BundleRouter::local_tuple_, ABORT)
@@ -13,10 +14,10 @@ AdminRegistration::AdminRegistration()
 void
 AdminRegistration::consume_bundle(Bundle* bundle)
 {
-    const char* buf;
     char typecode;
     
     size_t payload_len = bundle->payload_.length();
+    StringBuffer payload_buf(payload_len);
     log_debug("got %d byte bundle", payload_len);
 
     if (payload_len == 0) {
@@ -35,8 +36,7 @@ AdminRegistration::consume_bundle(Bundle* bundle)
      * 0x4     - null request
      * (other) - reserved
      */
-    buf = bundle->payload_.read_data(0, 1);
-    typecode = *buf;
+    typecode = *(bundle->payload_.read_data(0, 1, payload_buf.data()));
 
     switch(typecode) {
     case BundleProtocol::ADMIN_STATUS_REPORT:

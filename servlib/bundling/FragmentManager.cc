@@ -55,10 +55,9 @@ FragmentManager::create_fragment(Bundle* bundle, int offset, size_t length)
 
 
     // initialize payload
-    // XXX/mho: todo - we can modify BundlePayload to use an offset/length in
-    // the existing file rather than making a copy
-    fragment->payload_.set_data(
-        bundle->payload_.read_data(offset, length), length);
+    fragment->payload_.set_length(length);
+    fragment->payload_.write_data(&bundle->payload_, offset, length, 0);
+    fragment->payload_.close_file();
 
     return fragment;
 }
@@ -226,12 +225,7 @@ FragmentManager::process(Bundle* fragment)
     get_hash_key(fragment, &hash_key);
     iter = reassembly_table_.find(hash_key);
     
-    if (iter != reassembly_table_.end()) {
-        state = iter->second;
-        log_debug("found reassembly state for key %s (%d fragments)",
-                  hash_key.c_str(), state->fragments_.size());
-        
-    } else {
+    if (iter == reassembly_table_.end()) {
         log_debug("no reassembly state for key %s -- creating new state",
                   hash_key.c_str());
         state = new ReassemblyState();
@@ -242,7 +236,14 @@ FragmentManager::process(Bundle* fragment)
         state->bundle_->add_ref("reassembly_state");
         
         reassembly_table_[hash_key] = state;
+    } else {
+        state = iter->second;
+        log_debug("found reassembly state for key %s (%d fragments)",
+                  hash_key.c_str(), state->fragments_.size());
+
+        state->bundle_->payload_.reopen_file();
     }
+        
 
     // grab a lock on the fragment list and tack on the new fragment
     // to the fragment list
@@ -251,8 +252,9 @@ FragmentManager::process(Bundle* fragment)
     
     // store the fragment data in the partially reassembled bundle file
     size_t fraglen = fragment->payload_.length();
-    const char* bp = fragment->payload_.read_data(0, fraglen);
-    state->bundle_->payload_.write_data(bp, fragment->frag_offset_, fraglen);
+    state->bundle_->payload_.write_data(&fragment->payload_, 0, fraglen,
+                                        fragment->frag_offset_);
+    state->bundle_->payload_.close_file();
     
     // check see if we're done
     if (!check_completed(state)) {

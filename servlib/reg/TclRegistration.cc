@@ -4,6 +4,7 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleForwarder.h"
 #include "bundling/BundleList.h"
+#include "util/StringBuffer.h"
 
 TclRegistration::TclRegistration(const BundleTuplePattern& endpoint,
                                  Tcl_Interp* interp)
@@ -68,21 +69,24 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
 
     // read in all the payload data (XXX/demmer this will not be nice
     // for big bundles)
-    u_char* payload_data = (u_char*)b->payload_.read_data(0, b->payload_.length());
-    log_debug("got %d bytes of bundle data", b->payload_.length());
+    size_t payload_len = b->payload_.length();
+    StringBuffer payload_buf(payload_len);
+    u_char* payload_data =
+        (u_char*)b->payload_.read_data(0, payload_len, payload_buf.data());
+    log_debug("got %d bytes of bundle data", payload_len);
     
     Tcl_Obj* objv[4];
     objv[0] = Tcl_NewStringObj(b->source_.data(), b->source_.length());
     objv[1] = Tcl_NewStringObj(b->dest_.data(), b->dest_.length());
-    objv[2] = Tcl_NewByteArrayObj(payload_data, b->payload_.length());
-    objv[3] = Tcl_NewIntObj(b->payload_.length());
+    objv[2] = Tcl_NewByteArrayObj(payload_data, payload_len);
+    objv[3] = Tcl_NewIntObj(payload_len);
 
     cmdinterp->set_objresult(Tcl_NewListObj(4, objv));
 
     b->del_ref("TclRegistration");
     
     BundleForwarder::post(
-        new BundleTransmittedEvent(b, this, b->payload_.length(), true));
+        new BundleTransmittedEvent(b, this, payload_len, true));
         
     return TCL_OK;
 }

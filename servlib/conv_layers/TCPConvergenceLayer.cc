@@ -9,6 +9,7 @@
 #include "io/NetUtils.h"
 #include "thread/Timer.h"
 #include "util/URL.h"
+#include "util/StringBuffer.h"
 
 #include <sys/poll.h>
 #include <stdlib.h>
@@ -300,7 +301,9 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     struct iovec iov[header_iovcnt + 3];
     size_t block_len;
     size_t payload_len = bundle->payload_.length();
-    
+    const char* payload_data;
+    StringBuffer payload_buf(ack_blocksz_);
+        
     // use iov slot zero for the one byte frame header type, slot one
     // for the frame header, then N slots for the bundle header, and
     // finally one more for the first data block
@@ -337,7 +340,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
     // don't forget that we kept two iovecs for the frame typecode and
     // header, then fill in the last one with the payload data
-    const char* payload_data = bundle->payload_.read_data(0, block_len);
+    payload_data =
+        bundle->payload_.read_data(0, block_len, payload_buf.data(), true);
     
     iovcnt = 2 + header_iovcnt;
     iov[iovcnt].iov_base = (void*)payload_data;
@@ -358,6 +362,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
     if (cc != (int)total) {
         log_crit("XXX/demmer fix this -- for now, closing the connection");
+        bundle->payload_.close_file();
         return false;
     }
 
@@ -385,8 +390,10 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         }
 
         // grab the next payload chunk
-        payload_data = bundle->payload_.read_data(payload_offset, block_len);
-            
+        payload_data =
+            bundle->payload_.read_data(payload_offset, block_len,
+                                       payload_buf.data(), true);
+        
         blockhdr.block_length = htonl(block_len);
 
         // iov[0] already points to the typecode
@@ -522,6 +529,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     sentok = true;
 
  done:
+    bundle->payload_.close_file();
+        
     if (*acked_len > 0) {
         ASSERT(!sentok || (*acked_len == payload_len));
     }
@@ -710,6 +719,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
     }
 
     recvok = true;
+
+    bundle->payload_.close_file();
 
  done:
     free(buf);

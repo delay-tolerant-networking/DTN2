@@ -199,13 +199,12 @@ public:
     // same bundle to be on a list twice (e.g. sent_but_unacked in the
     // udp cl)
     typedef std::set<BundleList*> BundleListSet;
-    
-    BundleListSet containers_;	///< The set of BundleLists that
-                                ///  contain the Bundle.
-    int refcount_;		///< Bundle reference count
     SpinLock lock_;		///< Lock for bundle data that can be
                                 ///  updated by multiple threads, e.g.
                                 ///  containers_ and refcount_.
+    BundleListSet containers_;	///< The set of BundleLists that
+                                ///  contain the Bundle.
+    int refcount_;		///< Bundle reference count
     int pendingtxcount_;        ///< Number of pending transmissions left
 
 private:

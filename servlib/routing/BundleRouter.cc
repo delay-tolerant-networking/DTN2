@@ -174,6 +174,8 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
             offset += fraglen;
             todo -= fraglen;
         }
+
+        bundle->payload_.close_file();
         return;
     }
 
@@ -223,6 +225,8 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
         Bundle* tail = FragmentManager::instance()->
                        create_fragment(bundle, frag_off, frag_len);
 
+        bundle->payload_.close_file();
+        
         // XXX/demmer temp to put it on the head of the contact list
         tail->is_reactive_fragment_ = true;
         
@@ -406,6 +410,9 @@ BundleRouter::new_next_hop(const BundleTuplePattern& dest,
                            BundleConsumer* next_hop,
                            BundleActionList* actions)
 {
+    // XXX/demmer WRONG WRONG WRONG -- should really only check the
+    // NEW contact, not all the contacts.
+    
     log_debug("new_next_hop %s: checking pending bundle list...",
               next_hop->dest_tuple()->c_str());
     BundleList::iterator iter;

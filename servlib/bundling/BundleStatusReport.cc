@@ -22,7 +22,7 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle, BundleTuple& source)
     payload_.set_length(len, BundlePayload::MEMORY);
     ASSERT(payload_.location() == BundlePayload::MEMORY);
     
-    StatusReport* report = (StatusReport*)payload_.raw_data();
+    StatusReport* report = (StatusReport*)payload_.memory_data();
     memset(report, 0, sizeof(StatusReport));
 
     report->admin_type = ADMIN_STATUS_REPORT;
@@ -46,7 +46,7 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle, BundleTuple& source)
 void
 BundleStatusReport::set_status_time(status_report_flag_t flag)
 {
-    StatusReport* report = (StatusReport*)payload_.raw_data();
+    StatusReport* report = (StatusReport*)payload_.memory_data();
 
     u_int64_t* ts;
     

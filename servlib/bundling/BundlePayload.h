@@ -12,6 +12,7 @@
  * This is abstracted into a separate class to allow the daemon to
  * separately manage the serialization of header information from the
  * payload.
+ *
  */
 class BundlePayload : public SerializableObject {
 public:
@@ -22,17 +23,16 @@ public:
      * Options for payload location state.
      */
     typedef enum {
-        MEMORY = 1,
-        DISK = 2,
-        UNDETERMINED = 3
+        MEMORY = 1,		/// copy of the payload kept in memory
+        DISK = 2,		/// payload only kept on disk
+        UNDETERMINED = 3,	/// determine MEMORY or DISK based on threshold
+        NODATA = 4,		/// no data storage at all (used for simulator)
     } location_t;
     
     /**
      * Actual payload initialization function.
-     * init_disk() or init_memory() is called depending upon
-     * location
      */
-     void init(int bundleid, location_t location);
+    void init(SpinLock* lock, int bundleid, location_t location);
   
     /**
      * Set the payload length in preparation for filling in with data.
@@ -57,12 +57,14 @@ public:
     location_t location() const { return location_; }
     
     /**
-     * Set the payload data and length.
+     * Set the payload data and length, closing the payload file after
+     * it's been written to.
      */
     void set_data(const char* bp, size_t len);
 
     /**
-     * Set the payload data.
+     * Set the payload data, closing the payload file after it's been
+     * written to.
      */
     void set_data(const std::string& data)
     {
@@ -70,29 +72,52 @@ public:
     }
 
     /**
-     * Get a raw pointer to the data buffer (in-memory payloads only).
+     * Append a chunk of payload data. Assumes that the length was
+     * previously set. Keeps the payload file open.
      */
-    char* raw_data()
+    void append_data(const char* bp, size_t len);
+
+    /**
+     * Write a chunk of payload data at the specified offset. Keeps
+     * the payload file open.
+     */
+    void write_data(const char* bp, size_t offset, size_t len);
+
+    /**
+     * Writes len bytes of payload data from from another payload at
+     * the given src_offset to the given dst_offset. Keeps the payload
+     * file open.
+     */
+    void write_data(BundlePayload* src, size_t src_offset,
+                    size_t len, size_t dst_offset);
+
+    /**
+     * Reopen the payload file.
+     */
+    void reopen_file();
+    
+    /**
+     * Close the payload file.
+     */
+    void close_file();
+
+    /**
+     * Get a pointer to the in-memory data buffer.
+     */
+    char* memory_data()
     {
         ASSERT(location_ == MEMORY);
         return (char*)data_.c_str();
     }
     
     /**
-     * Append a chunk of payload data. Assumes that the length was
-     * previously set.
+     * Return a pointer to a chunk of payload data. For in-memory
+     * bundles, this will just be a pointer to the data buffer.
+     * Otherwise, it will call read() into the supplied buffer (which
+     * must be >= len).
      */
-    void append_data(const char* bp, size_t len);
-
-    /**
-     * Return a pointer to a chunk of payload data.
-     */
-    const char* read_data(off_t offset, size_t len);
-
-    /**
-     * Write a chunk of payload data at the specified offset.
-     */
-    void write_data(const char* bp, off_t offset, size_t len);
+    const char* read_data(size_t offset, size_t len, char* buf,
+                          bool keep_file_open = false);
 
     /**
      * Virtual from SerializableObject
@@ -107,27 +132,17 @@ public:
     static bool test_no_remove_;  ///< test: don't rm payload files
 
 protected:
+    void internal_write(const char* bp, size_t offset, size_t len);
+
     location_t location_;	///< location of the data (disk or memory)
     std::string data_;		///< the actual payload data if in memory
     size_t length_;     	///< the payload length
     size_t rcvd_length_;     	///< the payload length we actually have
     std::string fname_;		///< payload file name
     FileIOClient* file_;	///< file handle if on disk
-    off_t offset_;		///< cache of current fd position
-
-private:
-    /**
-     * Actual initialization function that creates a disk based 
-     * bundle.
-     */
-     void init_disk(int bundleid);
-
-    /**
-     * Actual initialization function that creates a memory based 
-     * bundle.
-     */
-    void init_memory(int bundleid);
-
+    size_t cur_offset_;		///< cache of current fd position
+    size_t base_offset_;	///< for fragments, offset into the file (todo)
+    SpinLock* lock_;		///< the lock for the given bundle
 };
 
 #endif /* _BUNDLE_PAYLOAD_H_ */
