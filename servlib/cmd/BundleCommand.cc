@@ -13,40 +13,41 @@ BundleCommand::help_string()
 }
 
 int
-BundleCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
+BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 {
     // need a subcommand
-    if (argc < 2) {
-        wrong_num_args(argc, argv, 1, 2, INT_MAX);
+    if (objc < 2) {
+        wrong_num_args(objc, objv, 1, 2, INT_MAX);
         return TCL_ERROR;
     }
 
-    const char* cmd = argv[1];
+    const char* cmd = Tcl_GetStringFromObj(objv[1], 0);
 
     if (strcmp(cmd, "inject") == 0) {
         // bundle inject <source> <dest> <payload> <length?>
-        if (argc < 5 || argc > 6) {
-            wrong_num_args(argc, argv, 2, 5, 6);
+        if (objc < 5 || objc > 6) {
+            wrong_num_args(objc, objv, 2, 5, 6);
             return TCL_ERROR;
         }
         
         Bundle* b = new Bundle();
-        b->source_.set_tuple(argv[2]);
-        b->replyto_.set_tuple(argv[2]);
-        b->custodian_.set_tuple(argv[2]);
-        b->dest_.set_tuple(argv[3]);
-        
-        size_t len = strlen(argv[4]);
-        size_t total = len;
+        b->source_.set_tuple(Tcl_GetStringFromObj(objv[2], 0));
+        b->replyto_.set_tuple(Tcl_GetStringFromObj(objv[2], 0));
+        b->custodian_.set_tuple(Tcl_GetStringFromObj(objv[2], 0));
+        b->dest_.set_tuple(Tcl_GetStringFromObj(objv[3], 0));
 
-        if (argc == 5) {
-            b->payload_.set_data(argv[4], len);
+        int payload_len;
+        u_char* payload_data = Tcl_GetByteArrayFromObj(objv[4], &payload_len);
+        int total = payload_len;
+
+        if (objc == 5) {
+            // no explicit length, use the object length
+            b->payload_.set_data((const char*)payload_data, payload_len);
         } else {
-            char* end;
-            total = strtoul(argv[5], &end, 10);
-
-            if (*end != 0) {
-                resultf("invalid length parameter %s", argv[5]);
+            int ok = Tcl_GetIntFromObj(interp, objv[5], &total);
+                            
+            if (ok != TCL_OK) {
+                resultf("invalid length parameter %s", Tcl_GetStringFromObj(objv[5], 0));
                 return TCL_ERROR;
             }
             
@@ -56,10 +57,12 @@ BundleCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             }
             
             b->payload_.set_length(total);
-            b->payload_.append_data(argv[4], len);
+            b->payload_.append_data((const char*)payload_data, payload_len);
         }
+        
+        log_debug("inject %d byte bundle %s->%s", total,
+                  b->source_.c_str(), b->dest_.c_str());
 
-        log_debug("inject %d byte bundle %s->%s", total, argv[2], argv[3]);
         BundleForwarder::post(new BundleReceivedEvent(b));
         return TCL_OK;
     } else {
