@@ -45,7 +45,9 @@ namespace dtn {
 
 class BundleTuple;
 class Contact;
+class ConvergenceLayer;
 class Link;
+class LinkInfo;
 class LinkSet;
 class Peer;
 class PeerSet;
@@ -150,11 +152,6 @@ public:
     Link* find_link(const char* name);
 
     /**
-     * Finds link to this next hop
-     */
-    Link* find_link_nexthop(const char* nexthop);
-    
-    /**
      * Return the list of links 
      */
     LinkSet* links() { return links_; }
@@ -173,11 +170,34 @@ public:
      * Close the given link.
      */
     void close_link(Link* link);
-    
+
+    /**********************************************
+     *
+     * Opportunistic contact routines
+     *
+     *********************************************/
+
+    /**
+     * Notification from the convergence layer that a new contact has
+     * come knocking. Find the appropriate Link / Contact and return
+     * the new contact, notifying the router as necessary.
+     */
+    Contact* new_opportunistic_contact(ConvergenceLayer* cl,
+                                       LinkInfo* linkinfo,
+                                       const BundleTuple& nexthop);
+
 protected:
-    static ContactManager* instance_;  ///< singleton instance
-    PeerSet* peers_;                  ///< Set of all peers
-    LinkSet* links_;                  ///< Set of all links
+    /**
+     * Helper routine to find or create an opportunistic link.
+     */
+    Link* find_opportunistic_link(ConvergenceLayer* cl,
+                                  const BundleTuple& nexthop);
+    
+    
+    static ContactManager* instance_;	///< Singleton instance
+    PeerSet* peers_;			///< Set of all peers
+    LinkSet* links_;			///< Set of all links
+    int opportunistic_cnt_;		///< Counter for opportunistic links
 };
 
 

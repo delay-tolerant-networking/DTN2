@@ -56,7 +56,7 @@ ContactManager* ContactManager::instance_;
  * Constructor / Destructor
  */
 ContactManager::ContactManager()
-    : Logger("/contact_manager")
+    : Logger("/contact_manager"), opportunistic_cnt_(0)
 {
     peers_ = new PeerSet();
     links_ = new LinkSet();
@@ -171,23 +171,6 @@ ContactManager::find_link(const char* name)
 }
 
 /**
- * Finds link with a given name
- */
-Link*
-ContactManager::find_link_nexthop(const char* nexthop)
-{
-    LinkSet::iterator iter;
-    Link* link = NULL;
-    for (iter = links_->begin(); iter != links_->end(); ++iter)
-    {
-        link = *iter;
-        if (strcmp(link->nexthop(), nexthop) == 0)
-            return link;
-    }
-    return NULL;
-}
-
-/**
  * Open the given link.
  */
 void
@@ -209,6 +192,83 @@ ContactManager::close_link(Link* link)
     }
 }
 
+/**
+ * Helper routine to find or create an idle opportunistic link.
+ */
+Link*
+ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
+                                        const BundleTuple& nexthop)
+{
+    LinkSet::iterator iter;
+    Link* link = NULL;
+
+    // first look through the list of links for an idle opportunistic
+    // link to this next hop
+    log_debug("looking for OPPORTUNISTIC link to %s", nexthop.c_str());
+    for (iter = links_->begin(); iter != links_->end(); ++iter)
+    {
+        link = *iter;
+        if ( (strcmp(link->nexthop(), nexthop.c_str()) == 0) &&
+             (link->type() == Link::OPPORTUNISTIC)   &&
+             (link->clayer() == cl) &&
+             (! link->isopen()) )
+        {
+            log_debug("found match: link %s", link->name());
+            return link;
+        }
+    }
+
+    log_debug("no match, creating new link to %s", nexthop.c_str());
+
+    // find a unique link name
+    char name[64];
+    do {
+        snprintf(name, sizeof(name), "opportunistic-%d",
+                 opportunistic_cnt_);
+        opportunistic_cnt_++;
+        link = find_link(name);
+    } while (link != NULL);
+        
+    link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop.c_str(),
+                             0, NULL);
+    
+    if (!link) {
+        log_crit("unexpected error creating opportunistic link!!");
+        return NULL;
+    }
+
+    return link;
+}
+
+/**
+ * Notification from the convergence layer that a new contact has
+ * come knocking. Find the appropriate Link / Contact and return
+ * the new contact, notifying the router as necessary.
+ */
+Contact*
+ContactManager::new_opportunistic_contact(ConvergenceLayer* cl,
+                                          LinkInfo* linkinfo,
+                                          const BundleTuple& nexthop)
+{
+    Link* link = find_opportunistic_link(cl, nexthop);
+    if (!link)
+        return NULL;
+
+    // notify the router that the link is ready
+    link->set_link_available();
+
+    // give the link it's link info
+    link->set_link_info(linkinfo);
+
+    // now open the link
+    link->open();
+
+    Contact* ret = link->contact();
+    ASSERT(ret);
+
+    return ret;
+}
+    
 /**
  * Dump the contact manager info
  */
