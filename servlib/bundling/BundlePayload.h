@@ -19,17 +19,28 @@ public:
     /**
      * Set the payload data.
      */
-    void set_data(const std::string& data);
+    void set_data(const std::string& data)
+    {
+        data_.assign(data);
+    }
     
     /**
-     * The payload length;
+     * Set the payload data.
      */
-    size_t length() { return data_.length(); }
+    void set_data(u_char* bp, size_t len)
+    {
+        data_.assign((char*)bp, len);
+    }
+    
+    /**
+     * The payload length.
+     */
+    size_t length() const { return data_.length(); }
 
     /**
      * The actual payload data.
      */
-    const char* data() { return data_.data(); }
+    const char* data() const { return data_.data(); }
     
     /**
      * Virtual from SerializableObject

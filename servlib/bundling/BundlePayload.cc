@@ -11,12 +11,6 @@ BundlePayload::~BundlePayload()
 }
 
 void
-BundlePayload::set_data(const std::string& data)
-{
-    data_.assign(data);
-}
-
-void
 BundlePayload::serialize(SerializeAction* a)
 {
     a->process("data", &data_);
