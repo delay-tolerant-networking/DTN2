@@ -80,9 +80,12 @@ TCPServerThread::run()
     u_int16_t port;
 
     while (1) {
+        // check if someone has told us to quit by setting the
+        // should_stop flag. if so, we're all done.
         if (should_stop())
             break;
         
+        // block in accept waiting for new connections
         if (accept(&fd, &addr, &port) != 0) {
             if (errno == EINTR)
                 continue;
