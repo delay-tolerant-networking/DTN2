@@ -6,29 +6,14 @@
 #include "BundlePayload.h"
 #include "BundleTuple.h"
 #include "thread/Atomic.h"
+#include <sys/time.h>
 
 class SQLBundleStore;
-
-/**
- * Values for the bundle priority field.
- */
-typedef enum {
-    COS_BULK      = 0, 		///< lowest priority
-    COS_NORMAL    = 1, 		///< regular priority
-    COS_EXPEDITED = 2, 		///< important
-    COS_RESERVED  = 3  		///< TBD
-} bundle_cos_t;
 
 /**
  * Values for the bundle delivery options.
  */
 typedef enum {
-    COS_NONE 	       = 0,	///< no custody, etc
-    COS_CUSTODY        = 1,	///< custody xfer
-    COS_RET_RCPT       = 2,	///< return receipt
-    COS_DELIV_REC_FORW = 4,	///< request forwarder info
-    COS_DELIV_REC_CUST = 8,	///< request custody xfer info
-    COS_OVERWRITE      = 16	///< request queue overwrite option
 } bundle_delivery_opts_t;
 
 /**
@@ -68,21 +53,6 @@ public:
     // virtual from Formatter
     int format(char* buf, size_t sz);
     
-    // basic bundle information
-    u_int32_t bundleid_;	///< Local bundle identifier
-    u_int32_t expiration_;	///< Expiration time of the bundle
-    BundlePayload payload_;	///< Reference to the payload
-    BundleTuple source_;	///< Source tuple
-    BundleTuple dest_;		///< Destination tuple
-    BundleTuple custodian_;	///< Current custodian tuple (may not be present)
-    BundleTuple replyto_;	///< Reply-To tuple (may not be present)
-
-    // cos and delivery options
-    bool custreq_;		///< True means custody requested
-    bool return_rept_;		///< True means return-receipt requested
-    u_int16_t priority_;	///< Bundle priority
-    u_int16_t delivery_opts_;	///< Bundle delivery options
-
     /**
      * Virtual from SerializableObject
      */
@@ -100,7 +70,7 @@ public:
      */
     void addref() {
         atomic_incr(&refcount_);
-        log_debug("/bundle/refs", "refcount %d %d -> %d",
+        log_debug("/bundle/refs", "refcount bundleid %d %d -> %d",
                   bundleid_, refcount_ - 1, refcount_);
         ASSERT(refcount_ > 0);
     }
@@ -111,10 +81,42 @@ public:
     void delref() {
         ASSERT(refcount_ > 0);
         atomic_decr(&refcount_);
-        log_debug("/bundle/refs", "refcount %d %d -> %d",
+        log_debug("/bundle/refs", "refcount bundleid %d %d -> %d",
                   bundleid_, refcount_ + 1, refcount_);
     }
 
+    /**
+     * Values for the bundle priority field.
+     */
+    typedef enum {
+        COS_BULK      = 0, 		///< lowest priority
+        COS_NORMAL    = 1, 		///< regular priority
+        COS_EXPEDITED = 2, 		///< important
+        COS_RESERVED  = 3  		///< TBD
+    } bundle_cos_t;
+
+    /**
+     * Use a struct timeval (for now) as the creation timestamp type.
+     */
+    typedef struct timeval timestamp_t;
+    
+
+    // Bundle data fields (all public to avoid the need for accessor functions)
+    u_int32_t bundleid_;	///< Local bundle identifier
+    BundleTuple source_;	///< Source tuple
+    BundleTuple dest_;		///< Destination tuple
+    BundleTuple custodian_;	///< Current custodian tuple
+    BundleTuple replyto_;	///< Reply-To tuple
+    u_int8_t priority_;		///< Bundle priority
+    bool custreq_;		///< Custody requested
+    bool custody_rcpt_;		///< Custody xfer reporting
+    bool recv_rcpt_;		///< Hop by hop reception receipt
+    bool fwd_rcpt_;		///< Hop by hop forwarding receipt
+    bool return_rcpt_;		///< End-to-end return receipt
+    timestamp_t creation_ts_;	///< Creation timestamp
+    u_int32_t expiration_;	///< Bundle expiration time
+    BundlePayload payload_;	///< Reference to the payload
+    
 protected:
     int refcount_;		///< reference count
 };
