@@ -25,6 +25,9 @@
 /* Whether math.h defines fpclassify */
 #undef HAVE_FPCLASSIFY
 
+/* Define to 1 if you have the `ftruncate' function. */
+#undef HAVE_FTRUNCATE
+
 /* Define to 1 if you have the `getaddrinfo' function. */
 #undef HAVE_GETADDRINFO
 
@@ -144,6 +147,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strncasecmp' function. */
+#undef HAVE_STRNCASECMP
 
 /* Define to 1 if you have the `strrchr' function. */
 #undef HAVE_STRRCHR
