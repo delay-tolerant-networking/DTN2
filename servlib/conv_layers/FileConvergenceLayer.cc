@@ -156,7 +156,7 @@ FileConvergenceLayer::add_interface(Interface* iface, int argc, const char* argv
 {
     // parse out the directory from the interface
     std::string dir;
-    if (!extract_dir(iface->tuple(), &dir)) {
+    if (!extract_dir(iface->admin(), &dir)) {
         return false;
     }
     

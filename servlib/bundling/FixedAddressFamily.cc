@@ -44,10 +44,25 @@
  * Any one or two byte value is acceptable.
  */
 bool
-FixedAddressFamily::valid(const std::string& admin)
+FixedAddressFamily::validate(const std::string& admin)
 {
-    ASSERT(admin.length() == 1 || admin.length() == 2);
-    return true;
+    size_t admin_len = admin.length();
+    
+    if (admin_len == 4 &&
+        isxdigit(admin[2]) && isxdigit(admin[3]))
+    {
+        return true;
+    }
+    else if (admin_len == 6 &&
+             isxdigit(admin[2]) && isxdigit(admin[3]) &&
+             isxdigit(admin[4]) && isxdigit(admin[5]))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
     
 /**

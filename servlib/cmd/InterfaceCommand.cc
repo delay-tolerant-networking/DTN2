@@ -37,6 +37,7 @@
  */
 
 #include "InterfaceCommand.h"
+#include "bundling/AddressFamily.h"
 #include "bundling/InterfaceTable.h"
 #include "conv_layers/ConvergenceLayer.h"
 
@@ -58,11 +59,11 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         return TCL_ERROR;
     }
     
-    // interface add <conv_layer> <tuple>
-    // interface del <conv_layer> <tuple>
+    // interface add <conv_layer> <admin>
+    // interface del <conv_layer> <admin>
 
     const char* proto = argv[2];
-    const char* tuplestr = argv[3];
+    const char* admin = argv[3];
 
     ConvergenceLayer* cl = ConvergenceLayer::find_clayer(proto);
     if (!cl) {
@@ -70,16 +71,18 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         return TCL_ERROR;
     }
 
-    BundleTuple tuple(tuplestr);
-    if (!tuple.valid()) {
-        resultf("invalid interface tuple '%s'", tuplestr);
+    bool valid;
+    AddressFamily* af = AddressFamilyTable::instance()->lookup(admin, &valid);
+
+    if (!af || !valid) {
+        resultf("invalid interface admin string '%s'", admin);
         return TCL_ERROR;
     }
 
     if (strcasecmp(argv[1], "add") == 0) {
-        if (! InterfaceTable::instance()->add(tuple, cl, proto,
+        if (! InterfaceTable::instance()->add(admin, cl, proto,
                                               argc - 3, argv + 3)) {
-            resultf("error adding interface %s", argv[1]);
+            resultf("error adding interface %s %s", proto, admin);
             return TCL_ERROR;
         }
     } else if (strcasecmp(argv[1], "del") == 0) {
@@ -88,8 +91,8 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        if (! InterfaceTable::instance()->del(tuple, cl, proto)) {
-            resultf("error removing interface %s", argv[2]);
+        if (! InterfaceTable::instance()->del(admin, cl, proto)) {
+            resultf("error removing interface %s %s", proto, admin);
             return TCL_ERROR;
         }
 

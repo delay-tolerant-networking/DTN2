@@ -155,6 +155,7 @@ public:
     
     const std::string& region() const { return region_; }
     const std::string& admin()  const { return admin_; }
+    AddressFamily*     family() const { return family_; }
     
     /**
      * @return Whether or not the tuple is valid.

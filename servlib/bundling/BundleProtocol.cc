@@ -42,6 +42,7 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/util/StringUtils.h>
 
+#include "AddressFamily.h"
 #include "Bundle.h"
 #include "BundleProtocol.h"
 
@@ -274,22 +275,30 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
 
     // now, pull out the tuples
     u_int8_t region_id, admin_id;
+
+    AddressFamily* fixed_family =
+        AddressFamilyTable::instance()->fixed_family();
     
-#define EXTRACT_DICTIONARY_TUPLE(what_)                                 \
-    region_id = primary->what_##id >> 4;                                \
-    admin_id  = primary->what_##id & 0xf;                               \
+#define EXTRACT_DICTIONARY_TUPLE(_what)                                 \
+    region_id = primary->_what##id >> 4;                                \
+    admin_id  = primary->_what##id & 0xf;                               \
     ASSERT((region_id <= 0xf) && (admin_id <= 0xf));                    \
                                                                         \
-    bundle->what_.assign(tupledata[region_id], tuplelen[region_id],     \
+    if (bundle->_what.family() == fixed_family)                         \
+    {                                                                   \
+        PANIC("fixed family transmission not implemented");             \
+    }                                                                   \
+                                                                        \
+    bundle->_what.assign(tupledata[region_id], tuplelen[region_id],     \
                          tupledata[admin_id],  tuplelen[admin_id]);     \
                                                                         \
-    if (! bundle->what_.valid()) {                                      \
-        logf(log, LOG_ERR, "invalid %s tuple '%s'", #what_,             \
-             bundle->what_.c_str());                                    \
+    if (! bundle->_what.valid()) {                                      \
+        logf(log, LOG_ERR, "invalid %s tuple '%s'", #_what,             \
+             bundle->_what.c_str());                                    \
         return -1;                                                      \
     }                                                                   \
-    logf(log, LOG_DEBUG, "parsed %s tuple (ids %d, %d) %s", #what_,     \
-         region_id, admin_id, bundle->what_.c_str());                   \
+    logf(log, LOG_DEBUG, "parsed %s tuple (ids %d, %d) %s", #_what,     \
+         region_id, admin_id, bundle->_what.c_str());
 
     EXTRACT_DICTIONARY_TUPLE(source_);
     EXTRACT_DICTIONARY_TUPLE(dest_);

@@ -92,7 +92,7 @@ bool
 ConvergenceLayer::add_interface(Interface* iface,
                                 int argc, const char* argv[])
 {
-    log_debug("adding interface %s", iface->tuple().c_str());
+    log_debug("adding interface %s", iface->admin().c_str());
     return true;
 }
 
@@ -102,7 +102,7 @@ ConvergenceLayer::add_interface(Interface* iface,
 bool
 ConvergenceLayer::del_interface(Interface* iface)
 {
-    log_debug("removing interface %s", iface->tuple().c_str());
+    log_debug("removing interface %s", iface->admin().c_str());
     return true;
 }
 

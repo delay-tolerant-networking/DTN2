@@ -37,7 +37,6 @@
  */
 
 #include "InterfaceTable.h"
-#include "BundleTuple.h"
 #include "conv_layers/ConvergenceLayer.h"
 
 InterfaceTable* InterfaceTable::instance_ = NULL;
@@ -56,14 +55,14 @@ InterfaceTable::~InterfaceTable()
  * Internal method to find the location of the given interface
  */
 bool
-InterfaceTable::find(BundleTuple& tuple, ConvergenceLayer* cl,
+InterfaceTable::find(const std::string& admin, ConvergenceLayer* cl,
                      InterfaceList::iterator* iter)
 {
     Interface* iface;
     for (*iter = iflist_.begin(); *iter != iflist_.end(); ++(*iter)) {
         iface = **iter;
         
-        if (iface->tuple().equals(tuple) && iface->clayer() == cl) {
+        if ((iface->admin().compare(admin) == 0) && iface->clayer() == cl) {
             return true;
         }
     }        
@@ -77,22 +76,22 @@ InterfaceTable::find(BundleTuple& tuple, ConvergenceLayer* cl,
  * specification is invalid.
  */
 bool
-InterfaceTable::add(BundleTuple& tuple, ConvergenceLayer* cl,
+InterfaceTable::add(const std::string& admin, ConvergenceLayer* cl,
                     const char* proto,
                     int argc, const char* argv[])
 {
     InterfaceList::iterator iter;
     
-    if (find(tuple, cl, &iter)) {
-        log_err("interface %s already exists", tuple.c_str());
+    if (find(admin, cl, &iter)) {
+        log_err("interface %s already exists", admin.c_str());
         return false;
     }
     
-    log_info("adding interface %s %s", proto, tuple.c_str());
+    log_info("adding interface %s %s", proto, admin.c_str());
 
-    Interface* iface = new Interface(tuple, cl);
+    Interface* iface = new Interface(admin, cl);
     if (! cl->add_interface(iface, argc, argv)) {
-        log_err("convergence layer error adding interface %s", tuple.c_str());
+        log_err("convergence layer error adding interface %s", admin.c_str());
         return false;
     }
 
@@ -105,17 +104,17 @@ InterfaceTable::add(BundleTuple& tuple, ConvergenceLayer* cl,
  * Remove the specified interface.
  */
 bool
-InterfaceTable::del(BundleTuple& tuple, ConvergenceLayer* cl,
+InterfaceTable::del(const std::string& admin, ConvergenceLayer* cl,
                     const char* proto)
 {
     Interface* iface;
     InterfaceList::iterator iter;
     
-    log_info("removing interface %s %s", proto, tuple.c_str());
+    log_info("removing interface %s %s", proto, admin.c_str());
 
-    if (! find(tuple, cl, &iter)) {
+    if (! find(admin, cl, &iter)) {
         log_err("error removing interface %s: no such interface",
-                tuple.c_str());
+                admin.c_str());
         return false;
     }
 

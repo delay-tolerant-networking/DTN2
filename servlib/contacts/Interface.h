@@ -53,9 +53,7 @@ class InterfaceInfo;
 class Interface {
 public:
     // Accessors
-    const std::string& region() const { return tuple_.region(); }
-    const std::string& admin()  const { return tuple_.admin(); }
-    const BundleTuple& tuple()  const { return tuple_; }
+    const std::string& admin()  const { return admin_; }
     ConvergenceLayer*  clayer() const { return clayer_; }
     InterfaceInfo*     info()   const { return info_; }
 
@@ -67,11 +65,10 @@ public:
 protected:
     friend class InterfaceTable;
     
-    Interface(const BundleTuple& tuple,
-              ConvergenceLayer* clayer);
+    Interface(const std::string& admin, ConvergenceLayer* clayer);
     ~Interface();
     
-    BundleTuple tuple_;			///< Local tuple of the interface
+    std::string admin_;			///< Local address of the interface
     ConvergenceLayer* clayer_;		///< Convergence layer to use
     InterfaceInfo* info_;		///< Convergence layer specific state
 };

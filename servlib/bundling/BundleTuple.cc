@@ -160,42 +160,20 @@ BundleTuple::parse_tuple()
     // grab the admin part
     admin_.assign(tuple_, beg, std::string::npos);
     ASSERT(admin_len == admin_.length()); // sanity
-    
-    // check for a special wildcard admin string that matches all
-    // address families
-    if (admin_.compare("*") == 0 ||
-        admin_.compare("*:*") == 0)
-    {
-        family_ = AddressFamilyTable::instance()->wildcard_family();
-        valid_ = true;
-        return;
-    }
-    
-    // check if the admin part is a fixed-length integer
-    if (admin_len == 1 || admin_len == 2) {
-        family_ = AddressFamilyTable::instance()->fixed_family();
-        valid_ = true;
-        return;
+
+    // lookup the correct address family for this admin string
+    // and make sure it's valid
+    family_ = AddressFamilyTable::instance()->lookup(admin_, &valid_);
+
+    if (!family_) {
+        log_err("/bundle/tuple", "no address family for admin in '%s'",
+                tuple_.c_str());
     }
 
-    // otherwise, the admin should be a URI, so extract the schema
-    if ((end = tuple_.find(':', beg)) == std::string::npos) {
-        log_debug("/bundle/tuple",
-                  "no colon for schemacol in '%s'", tuple_.c_str());
-        return;
+    if (!valid_) {
+        log_err("/bundle/tuple", "invalid admin tuple in '%s'",
+                tuple_.c_str());
     }
-
-    // try to find the address family
-    std::string schema(tuple_, beg, end - beg);
-    family_ = AddressFamilyTable::instance()->lookup(schema);
-
-    if (! family_) {
-        log_err("/bundle/tuple", "unknown schema '%s' in tuple '%s'",
-                schema.c_str(), tuple_.c_str());
-        return;
-    }
-
-    valid_ = family_->valid(admin_);
 }
 
 void

@@ -42,8 +42,6 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
-class BundleTuple;
-
 // XXX/namespace
 class InternetAddressFamily;
 namespace dtn {
@@ -66,7 +64,7 @@ public:
     /**
      * Determine if the administrative string is valid.
      */
-    bool valid(const std::string& admin);
+    bool validate(const std::string& admin);
     
     /**
      * Compare two admin strings, implementing any wildcarding or
@@ -76,15 +74,15 @@ public:
                const std::string& admin);
 
     /**
-     * Given a tuple, parse out the ip address and port. Potentially
-     * does a hostname lookup if the admin string doesn't contain a
-     * specified IP address. If the url did not contain a port, 0 is
-     * returned.
+     * Given an admin string , parse out the ip address and port.
+     * Potentially does a hostname lookup if the admin string doesn't
+     * contain a specified IP address. If the url did not contain a
+     * port, 0 is returned.
      *
      * @return true if the extraction was a success, false if the url
      * is malformed or is not in the internet address family.
      */
-    static bool parse(const BundleTuple& tuple,
+    static bool parse(const std::string& admin,
                       in_addr_t* addr, u_int16_t* port);
      
 };

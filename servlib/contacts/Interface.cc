@@ -38,9 +38,9 @@
 
 #include "Interface.h"
 
-Interface::Interface(const BundleTuple& tuple,
+Interface::Interface(const std::string& admin,
                      ConvergenceLayer* clayer)
-    : tuple_(tuple), clayer_(clayer), info_(NULL)
+    : admin_(admin), clayer_(clayer), info_(NULL)
 {
 }
 

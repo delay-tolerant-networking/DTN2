@@ -40,30 +40,27 @@
 #include <oasys/io/NetUtils.h>
 
 #include "InternetAddressFamily.h"
-#include "bundling/BundleTuple.h"
 
 /**
- * Given a tuple, parse out the ip address and port. Potentially
- * does a hostname lookup if the admin string doesn't contain a
- * specified IP address. If the url did not contain a port, 0 is
- * returned.
+ * Given an admin string , parse out the ip address and port.
+ * Potentially does a hostname lookup if the admin string doesn't
+ * contain a specified IP address. If the url did not contain a
+ * port, 0 is returned.
  *
  * @return true if the extraction was a success, false if the url
  * is malformed or is not in the internet address family.
  */
 bool
-InternetAddressFamily::parse(const BundleTuple& tuple,
+InternetAddressFamily::parse(const std::string& admin,
                              in_addr_t* addr, u_int16_t* port)
 {
     // XXX/demmer validate that the AF in the tuple is in fact of type
     // InternetAddressFamily
 
-    URL url(tuple.admin());
+    URL url(admin);
     if (! url.valid()) {
         logf("/af/internet", LOG_DEBUG,
-             "admin part '%s' of tuple '%s' not a valid url",
-             tuple.admin().c_str(),
-             tuple.tuple().c_str());
+             "admin string '%s' not a valid url", admin.c_str());
         return false;
     }
 
@@ -84,7 +81,7 @@ InternetAddressFamily::parse(const BundleTuple& tuple,
  * Determine if the administrative string is valid.
  */
 bool
-InternetAddressFamily::valid(const std::string& admin)
+InternetAddressFamily::validate(const std::string& admin)
 {
     // XXX/demmer fix this
     return true;

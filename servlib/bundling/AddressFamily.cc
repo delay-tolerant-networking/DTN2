@@ -73,7 +73,7 @@ AddressFamily::~AddressFamily()
  * this returns true.
  */
 bool
-AddressFamily::valid(const std::string& admin)
+AddressFamily::validate(const std::string& admin)
 {
     return true;
 }
@@ -116,14 +116,51 @@ AddressFamilyTable::AddressFamilyTable()
  * @return the address family or NULL if there's no match.
  */
 AddressFamily*
-AddressFamilyTable::lookup(const std::string& schema)
+AddressFamilyTable::lookup(const std::string& admin, bool* validp)
 {
+    AddressFamily* family;
+
+    // check for wildcard admin strings that matches all
+    // address families
+    if (admin.compare("*") == 0 || admin.compare("*:*") == 0)
+    {
+        if (validp)
+            *validp = true;
+        return wildcard_family_;
+    }
+    
+    // check if the admin part is a fixed-length specification
+    // (e.g. 0xab or 0xabcd)
+    if (admin[0] == '0' && admin[1] == 'x')
+    {
+        if (validp)
+            *validp = fixed_family_->validate(admin);
+        return fixed_family_;
+    }
+
+    // otherwise, the admin should be a URI, so extract the schema
+    size_t end;
+    if ((end = admin.find(':')) == std::string::npos) {
+        log_debug("/bundle/tuple",
+                  "no colon for schema in '%s'", admin.c_str());
+        return NULL;
+    }
+    
+    // try to find the address family
+    std::string schema(admin, 0, end);
     AFTable::iterator iter;
 
     iter = table_.find(schema);
-    if (iter != table_.end()) {
-        return (*iter).second;
+    if (iter == table_.end()) {
+        log_err("/bundle/tuple", "unknown schema '%s' in admin '%s'",
+                schema.c_str(), admin.c_str());
+        return NULL;
     }
+    
+    family = (*iter).second;
 
-    return NULL;
+    if (validp)
+        *validp = family->validate(admin);
+    
+    return family;
 }

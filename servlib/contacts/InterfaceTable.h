@@ -42,7 +42,6 @@
 #include <list>
 #include <oasys/debug/Debug.h>
 
-class BundleTuple;
 class ConvergenceLayer;
 class Interface;
 
@@ -92,13 +91,13 @@ public:
      * is successfully added, false if the interface specification is
      * invalid.
      */
-    bool add(BundleTuple& tuple, ConvergenceLayer* cl, const char* proto,
+    bool add(const std::string& admin, ConvergenceLayer* cl, const char* proto,
              int argc, const char* argv[]);
     
     /**
      * Remove the specified interface.
      */
-    bool del(BundleTuple& tuple, ConvergenceLayer* cl, const char* proto);
+    bool del(const std::string& admin, ConvergenceLayer* cl, const char* proto);
 
 protected:
     static InterfaceTable* instance_;
@@ -113,7 +112,7 @@ protected:
     /**
      * Internal method to find the location of the given interface
      */
-    bool find(BundleTuple& tuple, ConvergenceLayer* cl, 
+    bool find(const std::string& admin, ConvergenceLayer* cl, 
               InterfaceList::iterator* iter);
 };
 

@@ -82,23 +82,21 @@ UDPConvergenceLayer::add_interface(Interface* iface,
     in_addr_t addr;
     u_int16_t port;
     
-    log_debug("adding interface %s", iface->tuple().c_str());
+    log_debug("adding interface %s", iface->admin().c_str());
     
     // parse out the address / port from the contact tuple
-    if (! InternetAddressFamily::parse(iface->tuple(), &addr, &port)) {
-        log_err("admin part '%s' of tuple '%s' not a valid internet url",
-                iface->tuple().admin().c_str(),
-                iface->tuple().tuple().c_str());
+    if (! InternetAddressFamily::parse(iface->admin(), &addr, &port)) {
+        log_err("interface address '%s'not a valid internet url",
+                iface->admin().c_str());
         return false;
     }
     
     // make sure the port was specified
     if (port == 0) {
-        log_err("port not specified in contact admin url '%s'",
-                iface->tuple().admin().c_str());
+        log_err("port not specified in admin url '%s'",
+                iface->admin().c_str());
         return false;
     }
-
 
     // create a new server socket for the requested interface
     Receiver* receiver = new Receiver();
@@ -147,7 +145,7 @@ UDPConvergenceLayer::open_contact(Contact* contact)
     log_debug("opening contact *%p", contact);
 
     // parse out the address / port from the contact tuple
-    if (! InternetAddressFamily::parse(contact->tuple(), &addr, &port)) {
+    if (! InternetAddressFamily::parse(contact->tuple().admin(), &addr, &port)) {
         log_err("admin part '%s' of tuple '%s' not a valid internet url",
                 contact->tuple().admin().c_str(),
                 contact->tuple().tuple().c_str());

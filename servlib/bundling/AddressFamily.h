@@ -63,7 +63,7 @@ public:
      * Determine if the administrative string is valid. By default
      * this returns true.
      */
-    virtual bool valid(const std::string& admin);
+    virtual bool validate(const std::string& admin);
     
     /**
      * Compare two admin strings, implementing any wildcarding or
@@ -112,11 +112,12 @@ public:
 
     /**
      * Find the appropriate AddressFamily instance based on the URI
-     * schema of the admin string.
+     * schema of the admin string. Then call its appropriate validate
+     * function if the caller requests it.
      *
-     * @return the address family or NULL if there's no match.
-     */
-    AddressFamily* lookup(const std::string& schema);
+     * @return NULL if there's no match
+     */ 
+    AddressFamily* lookup(const std::string& admin, bool* validp = NULL);
 
     /**
      * For integer value admin strings, we use the fixed length

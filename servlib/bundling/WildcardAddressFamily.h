@@ -47,7 +47,7 @@ public:
     /**
      * Determine if the administrative string is valid.
      */
-    bool valid(const std::string& admin);
+    bool validate(const std::string& admin);
     
     /**
      * Compare two admin strings, implementing any wildcarding or

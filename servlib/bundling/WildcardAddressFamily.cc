@@ -41,7 +41,7 @@
  * Determine if the administrative string is valid.
  */
 bool
-WildcardAddressFamily::valid(const std::string& admin)
+WildcardAddressFamily::validate(const std::string& admin)
 {
     //assert that it's *:* or *.*
     return true;
