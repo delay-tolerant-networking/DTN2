@@ -49,4 +49,5 @@ StorageCommand::StorageCommand()
     bind_b("tidy",  &cfg->tidy_);
     bind_s("dbdir", &cfg->dbdir_);
     bind_s("sqldb", &cfg->sqldb_);
+    bind_s("payloaddir", &cfg->payloaddir_);
 }
