@@ -166,15 +166,19 @@ SimContact::process(Event* e)
     }
     case CONTACT_CHEWING_FINISHED : {
         Event_chew_fin* e1 = (Event_chew_fin* )e;
-        log_info("CChFin[%d] event:%p bundleid:%d chewing_event:%p",
-            id(),e,e1->msg_->id(),chewing_event_);
+        log_info("CChFin[%d] event:%p bundleid:%d chewing_event:%p start at:%f",
+            id(),e,e1->msg_->id(),chewing_event_,e1->chew_starttime_);
         if (state_ == CLOSE)  {
             ASSERT(false);
             return;
         }
         state_ = OPEN;
+        log_info("chewing_event NULL:%p",chewing_event_);
+	    
+        //we have to make sure that this event is set to NULL
+        //before we call chewing_complete
+        chewing_event_ = NULL;
         chewing_complete( e1->msg_->size(),e1->msg_);
-	//       chewing_event_ = NULL;
         //src_->open_contact(this);
         break;
     } 

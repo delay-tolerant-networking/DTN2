@@ -124,17 +124,17 @@ GlueNode::execute_router_action(BundleAction* action)
                 id(),bundle->bundleid_);
         BundleConsumer* bc = fwdaction->nexthop_ ; 
         bc->consume_bundle(bundle);
-        }
         break;
+        }
     case STORE_ADD:{ 
         log_info("N[%d] storing ignored %d", id(), bundle->bundleid_);
-        }
         break;
+        }
     
     case STORE_DEL: {
         log_debug("N[%d] deletion ignored %d", id(), bundle->bundleid_);
-        }
         break;
+        }
             
     default:
         PANIC("unimplemented action code %s",

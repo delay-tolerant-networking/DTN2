@@ -48,7 +48,7 @@ Simulator::run()
             if (e->is_valid()) {
                 ASSERT(e->handler() != NULL);
                 /* Process the event */
-                log_debug("Event type %s at time %f",e->type_str(),time_);
+                log_debug("Event:%p type %s at time %f",e,e->type_str(),time_);
                 e->handler()->process(e);
             }
             if ((time_ > Simulator::runtill_)) {

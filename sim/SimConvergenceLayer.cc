@@ -169,6 +169,7 @@ SimConvergenceLayer::msg2bundle(Message* m)
         b->source_.assign(src);
         b->dest_.assign(dst);
         b->payload_.set_length((int)m->size());
+        bundles_[m->id()] = b;
     }
     return  b;
 
