@@ -30,7 +30,7 @@ RegistrationTable::load()
  * Internal method to find the location of the given registration.
  */
 bool
-RegistrationTable::find(u_int32_t regid, const std::string& endpoint,
+RegistrationTable::find(u_int32_t regid, const BundleTuple& endpoint,
                         RegistrationList::iterator* iter)
 {
     Registration* reg;
@@ -50,7 +50,7 @@ RegistrationTable::find(u_int32_t regid, const std::string& endpoint,
  * Look up a matching registration.
  */
 Registration*
-RegistrationTable::get(u_int32_t regid, const std::string& endpoint)
+RegistrationTable::get(u_int32_t regid, const BundleTuple& endpoint)
 {
     RegistrationList::iterator iter;
 
@@ -94,7 +94,7 @@ RegistrationTable::add(Registration* reg)
  * successful, false if the registration didn't exist.
  */
 bool
-RegistrationTable::del(u_int32_t regid, const std::string& endpoint)
+RegistrationTable::del(u_int32_t regid, const BundleTuple& endpoint)
 {
     RegistrationList::iterator iter;
 
@@ -106,14 +106,14 @@ RegistrationTable::del(u_int32_t regid, const std::string& endpoint)
         return false;
     }
 
-    reglist_.erase(iter);
-
-    if (! RegistrationStore::instance()->del(regid, endpoint)) {
+    if (! RegistrationStore::instance()->del(*iter)) {
         log_err("error removing registration %d/%s: error in persistent store",
                 regid, endpoint.c_str());
         return false;
         
     }
+
+    reglist_.erase(iter);
 
     return true;
 }
@@ -144,11 +144,10 @@ RegistrationTable::update(Registration* reg)
  * Returns the count of matching registrations.
  */
 int
-RegistrationTable::get_matching(const std::string& demux,
+RegistrationTable::get_matching(const BundleTuple& demux,
                                 RegistrationList* reg_list)
 {
     int count = 0;
-    size_t demuxlen = demux.length();
     
     RegistrationList::iterator iter;
     Registration* reg;
@@ -158,7 +157,7 @@ RegistrationTable::get_matching(const std::string& demux,
     for (iter = reglist_.begin(); iter != reglist_.end(); ++iter) {
         reg = *iter;
 
-        if (demux.compare(reg->endpoint().substr(0, demuxlen)) == 0) {
+        if (reg->endpoint().match(demux)) {
             log_debug("matched registration %d %s",
                       reg->regid(), reg->endpoint().c_str());
             count++;

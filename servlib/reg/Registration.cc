@@ -7,7 +7,7 @@
  * Constructor.
  */
 Registration::Registration(u_int32_t regid,
-                           const std::string& endpoint,
+                           const BundleTuple& endpoint,
                            failure_action_t action,
                            const std::string& script,
                            time_t expiration)

@@ -18,6 +18,9 @@ public:
      * Singleton instance accessor.
      */
     static RegistrationTable* instance() {
+        if (instance_ == NULL) {
+            PANIC("RegistrationTable::init not called yet");
+        }
         return instance_;
     }
 
@@ -57,13 +60,13 @@ public:
     /**
      * Look up a matching registration.
      */
-    Registration* get(u_int32_t regid, const std::string& endpoint);
+    Registration* get(u_int32_t regid, const BundleTuple& endpoint);
 
     /**
      * Remove the registration from the database, returns true if
      * successful, false if the registration didn't exist.
      */
-    bool del(u_int32_t regid, const std::string& endpoint);
+    bool del(u_int32_t regid, const BundleTuple& endpoint);
     
     /**
      * Update the registration in the database. Returns true on
@@ -73,12 +76,11 @@ public:
     
     /**
      * Populate the given reglist with all registrations with an
-     * endpoint id that matches the prefix of that in the bundle demux
-     * string.
+     * endpoint id that matches the bundle demux string.
      *
      * Returns the count of matching registrations.
      */
-    int get_matching(const std::string& demux, RegistrationList* reg_list);
+    int get_matching(const BundleTuple& tuple, RegistrationList* reg_list);
     
     /**
      * Delete any expired registrations
@@ -99,7 +101,7 @@ protected:
      * Internal method to find the location of the given registration.
      */
     bool find(u_int32_t regid,
-              const std::string& endpoint,
+              const BundleTuple& endpoint,
               RegistrationList::iterator* iter);
     
     /**

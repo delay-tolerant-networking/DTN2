@@ -3,6 +3,7 @@
 
 #include <list>
 #include <string>
+#include "bundling/BundleTuple.h"
 #include "debug/Log.h"
 #include "storage/Serialize.h"
 
@@ -11,7 +12,7 @@ class BundleList;
 
 /**
  * Class used to represent an application registration. Stored in the
- * RegistrationTable, indexed by key of {demux,registration_id}.
+ * RegistrationTable, indexed by key of {registration_id,endpoint}.
  *
  * Registration state is stored persistently in the database.
  */
@@ -30,7 +31,7 @@ public:
     /**
      * Constructor.
      */
-    Registration(u_int32_t regid, const std::string& endpoint,
+    Registration(u_int32_t regid, const BundleTuple& endpoint,
                  failure_action_t action, const std::string& script = "",
                  time_t expiration = 0);
     
@@ -42,14 +43,14 @@ public:
     //@{
     /// Accessors
     u_int32_t		regid()		{ return regid_; }
-    const std::string&	endpoint() 	{ return endpoint_; } 
+    const BundleTuple&	endpoint() 	{ return endpoint_; } 
     failure_action_t	failure_action(){ return failure_action_; }
     //@}
 
     /**
      * Accessor indicating whether or not the registration is
-     * currently "active", i.e. whether to execute the failure action
-     * or not.
+     * currently expecting bundles, as defined as a period of "passive
+     * bundle activity" in the bundle spec.
      */
     bool active() { return active_; }
 
@@ -76,7 +77,7 @@ public:
 
 protected:
     u_int32_t regid_;
-    std::string endpoint_;
+    BundleTuple endpoint_;
     failure_action_t failure_action_;	
     std::string script_;
     time_t expiration_;
