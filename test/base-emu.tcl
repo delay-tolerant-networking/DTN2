@@ -122,7 +122,7 @@ $ns rtproto $protocol
 set runs [expr [llength $protos]*[llength $perhops] ]
 
 set MAX_SIM_TIME [expr $runs*$finish + $runs*$WARMUPTIME + $WARMUPTIME]
-set ONE_CYCLE_LENGTH $finish + $WARMUPTIME
+set ONE_CYCLE_LENGTH [expr $finish + $WARMUPTIME]
 set uplist {}
 set downlist {}
 
