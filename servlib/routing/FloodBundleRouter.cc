@@ -17,6 +17,7 @@ const BundleTuplePattern& ALL_TUPLES("bundles://*/*");
  */
 FloodBundleRouter::FloodBundleRouter()
 {
+    log_info("FLOOD_ROUTER");
 }
 
 /**
@@ -39,12 +40,58 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
                                      BundleActionList* actions)
 {
     Bundle* bundle = event->bundleref_.bundle();
+    log_debug("FLOOD: BUNDLE_RCV bundle id %d", bundle->bundleid_);
+    
+    //Bundle* bundle = event->bundleref_.bundle();
+    Bundle* iter_bundle;
+    BundleList::iterator iter;
 
+    ScopeLock lock(pending_bundles_->lock());
+    
     // bundle is always pending until expired or acked
     // note: ack is not implemented
     bundle->add_pending();
-
+    
+    //check if we already have the bundle with us ... 
+    //then dont enqueue it
+    // upon arrival of new contact, send all pending bundles over contact
+    for (iter = pending_bundles_->begin(); 
+         iter != pending_bundles_->end(); ++iter) {
+        iter_bundle = *iter;
+        log_debug("\tpending_bundle:%d size:%d",
+                  iter_bundle->bundleid_,iter_bundle->payload_.length());
+        if(1) {
+            //delete the bundle
+            return;
+        }
+    }
+    
     BundleRouter::handle_bundle_received(event, actions);
+}
+
+void
+FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
+                                        BundleActionList* actions)
+{
+    BundleRouter::handle_bundle_transmitted(event,actions);         
+}
+
+
+
+
+/**
+ * Default event handler when a new application registration
+ * arrives.
+ *
+ * Adds an entry to the route table for the new registration, then
+ * walks the pending list to see if any bundles match the
+ * registration.
+ */
+void
+FloodBundleRouter::handle_registration_added(RegistrationAddedEvent* event,
+                                        BundleActionList* actions)
+{
+    BundleRouter::handle_registration_added(event,actions);
 }
 
 /**
@@ -55,7 +102,7 @@ FloodBundleRouter::handle_contact_available(ContactAvailableEvent* event,
                                        BundleActionList* actions)
 {
     Contact * contact = event->contact_;
-    log_info("CONTACT_AVAILABLE *%p", event->contact_);
+    log_info("FLOOD: CONTACT_AVAILABLE *%p", event->contact_);
 
     RouteEntry* entry = new RouteEntry(ALL_TUPLES, contact,
                                        FORWARD_COPY);
@@ -72,16 +119,23 @@ FloodBundleRouter::handle_contact_broken(ContactBrokenEvent* event,
                                     BundleActionList* actions)
 {
     Contact* contact = event->contact_;
-    log_info("CONTACT_BROKEN *%p: removing queued bundles", contact);
+    log_info("FLOOD: CONTACT_BROKEN *%p: removing queued bundles", contact);
     
     //XXX not implemented yet - neeed to do
     //route_table_.del_entry(ALL_TUPLES, contact);
     // empty contact list
     // for flood, no need to maintain bundle list
-    contact->bundle_list()->clear();
+    //contact->bundle_list()->clear();
 
     
-    contact->close();
+    //contact->close();
+}
+
+void
+FloodBundleRouter::handle_route_add(RouteAddEvent* event,
+                               BundleActionList* actions)
+{
+    BundleRouter::handle_route_add(event, actions);     
 }
 
 /**
@@ -94,7 +148,7 @@ FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
                            BundleConsumer* next_hop,
                            BundleActionList* actions)
 {
-    log_debug("XXX/demmer implement new_next_hop");
+    log_debug("FLOOD:  new_next_hop");
 
     Bundle* bundle;
     BundleList::iterator iter;
