@@ -8,8 +8,6 @@
 proc create_bundle_daemons { num_nodes } {
     set id [test set id]
 
-    log prefix "$id: "
-    
     if {$id != 0} {
 	return
     }
