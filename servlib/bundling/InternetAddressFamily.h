@@ -13,6 +13,12 @@ namespace dtn {
 typedef ::InternetAddressFamily InternetAddressFamily;
 }
 
+/**
+ * Address family to represent internet-style addresses.
+ *
+ * e.g:  bundles://internet/host://sandbox.dtnrg.org/demux
+ * e.g:  bundles://internet/ip://127.0.0.1/demux
+ */
 class InternetAddressFamily : public AddressFamily {
 public:
     InternetAddressFamily(const char* schema)
