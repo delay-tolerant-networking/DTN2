@@ -48,7 +48,7 @@ UDPServer::RcvMessage(int *fd, in_addr_t *addr, u_int16_t *port, char** pt_paylo
       logf(LOG_ERR, "error in RcvMessage(): peer host has shutdown normally\n");
       return ret;
     }   
-    else if ( ret > buflen ) { //We have thrown away some bits
+    else if ( ret > (int)buflen ) { //We have thrown away some bits
       logf(LOG_ERR, "error in RcvMessage(): message too large to fit in buffer\n");
       return -1;
     }
