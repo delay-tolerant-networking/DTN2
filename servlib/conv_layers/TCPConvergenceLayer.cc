@@ -884,10 +884,8 @@ TCPConvergenceLayer::Connection::send_loop()
         return;
     }
 
-    // extract the agreed-upon keepalive timer, and set up the timer
-    // event queue and the timer object itself 
-    log_debug("send_loop: got contact header: keepalive %d milliseconds",
-              keepalive_msec_);
+    log_info("connection established -- (keepalive time %d milliseconds)",
+             keepalive_msec_);
     
     // build up a poll vector since we need to block below on input
     // from both the socket and the bundle list notifier

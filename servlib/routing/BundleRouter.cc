@@ -115,7 +115,9 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event,
 {
     Bundle* bundle = event->bundleref_.bundle();
     
-    log_debug("BUNDLE_RECEIVED bundle id %d", bundle->bundleid_);
+    log_info("BUNDLE_RECEIVED bundle id %d (%d of %d bytes)",
+             bundle->bundleid_, event->bytes_received_,
+             bundle->payload_.length());
 
     /*
      * Check if the bundle isn't complete. If so, do reactive
@@ -146,10 +148,10 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
      */
     Bundle* bundle = event->bundleref_.bundle();
 
-    log_debug("BUNDLE_TRANSMITTED bundle id %d (%d bytes) %s -> %s",
-              bundle->bundleid_, event->bytes_sent_,
-              event->acked_ ? "ACKED" : "UNACKED",
-              event->consumer_->dest_tuple()->c_str());
+    log_info("BUNDLE_TRANSMITTED bundle id %d (%d bytes) %s -> %s",
+             bundle->bundleid_, event->bytes_sent_,
+             event->acked_ ? "ACKED" : "UNACKED",
+             event->consumer_->dest_tuple()->c_str());
 
     /*
      * If the whole bundle was sent and this is the last destination
