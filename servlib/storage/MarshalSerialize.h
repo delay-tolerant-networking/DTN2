@@ -64,7 +64,7 @@ public:
     int action(const SerializableObject* const_object)
     {
         SerializableObject* object = (SerializableObject*)const_object;
-        return BufferedSerializeAction::action(object);
+        return SerializeAction::action(object);
     }
 
     // Virtual functions inherited from SerializeAction
