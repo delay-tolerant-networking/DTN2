@@ -26,7 +26,7 @@ BundleCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         Bundle* b = new Bundle(argv[2], argv[3], argv[4]);
-	BundleForwarding::instance()->input(b);
+        BundleForwarding::instance()->input(b);
         return TCL_OK;
     } else {
         resultf("unknown bundle subcommand %s", cmd);
