@@ -61,7 +61,8 @@ proc send_file {host file} {
 	after 2000
     }
     
-puts $sock "[file tail $file]"
+    puts $sock "[file tail $file]"
+    flush $sock
     puts -nonewline $sock $payload
     flush $sock
     close $sock
@@ -70,24 +71,63 @@ puts $sock "[file tail $file]"
 
 proc recv_files {dest_dir} {
     global port
+    global conns
     puts "waiting for files:  $dest_dir"
-    socket -server "file_arrived $dest_dir" $port
+    set conns(main) [socket -server "new_client $dest_dir" $port]
 }
 
-proc file_arrived {dest_dir sock addr port} {
-    global logfd
-    set file [gets $sock]
-    set payload [read $sock]
-    #close $sock
 
-    set payload_len [string  length $payload]
-    puts "file arrived from $sock $addr $port of size $payload_len name is $file "
-    puts "got file $file"
-    puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
-    flush $logfd
-    set fd [open "$dest_dir/$file" w]
-    puts -nonewline $fd $payload
-    close $fd
+proc new_client {dest_dir sock addr port} {
+    
+    global conns
+
+    puts " Accept $sock from $addr port $port"
+    
+    # Used for debugging
+    set conns(addr,$sock) [list $addr $port]
+  
+    fileevent $sock readable [list file_arrived $dest_dir $sock]
+#    fconfigure $sock -buffering line
+#    fconfigure $sock -blocking 0 
+    
+}
+
+proc file_arrived {dest_dir sock} {
+    
+    global logfd
+    global conns
+
+    if {[eof $sock] || [catch {gets $sock line}]} {
+	# end of file or abnormal connection drop
+
+	if { [eof $sock] } {
+	    puts "Normal Close $conns(addr,$sock)"
+
+	} else {
+	       puts "Abnormal close $conns(addr,$sock)"
+	}
+
+	close $sock
+	unset conns(addr,$sock)
+	
+    } else {
+	set file $line
+	if {[eof $sock] || [catch { set payload [read $sock]}]} {
+	    close $sock
+	    puts "Unexpected Close while reading data $conns(addr,$sock)"
+	} else  {
+	    
+	    ### Write the read data in a file
+	    set payload_len [string  length $payload]
+	    #	puts "file arrived from $sock $addr $port of size $payload_len name is $file "
+	    puts "got file $file"
+	    puts $logfd "[time] :: got file [file tail $file]  at [timef]" 
+	    flush $logfd
+	    set fd [open "$dest_dir/$file" w]
+	    puts -nonewline $fd $payload
+	    close $fd
+	}
+    }
 }
 
 set mode [lindex $argv 0]
