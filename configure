@@ -477,6 +477,9 @@ else
           break
       fi
     done
+    if [ $found = 1 ] ; then
+        break
+    fi
   done
 
   if [ $found = 1 ]; then
