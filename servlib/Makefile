@@ -11,20 +11,21 @@ BUNDLING_SRCS := 				\
 	bundling/BundlePayload.cc		\
 	bundling/BundleTuple.cc			\
 
-GDTOA_SRCS :=					\
+CMD_SRCS :=					\
+	cmd/Command.cc				\
+
+DEBUG_SRCS :=					\
 	debug/gdtoa-dmisc.c			\
 	debug/gdtoa-dtoa.c			\
 	debug/gdtoa-gdtoa.c			\
 	debug/gdtoa-gmisc.c			\
 	debug/gdtoa-misc.c			\
-
-DEBUG_SRCS :=					\
-	$(GDTOA_SRCS)				\
 	debug/Formatter.cc			\
 	debug/Log.cc				\
 
 IO_SRCS :=					\
 	io/IO.cc				\
+	io/NetUtils.cc				\
 
 STORAGE_SRCS :=					\
 	storage/BerkeleyDBStore.cc		\
@@ -37,7 +38,12 @@ STORAGE_SRCS :=					\
 	storage/Serialize.cc			\
 	storage/StorageSystem.cc		\
 
-SERVLIB_SRCS := $(BUNDLING_SRCS) $(DEBUG_SRCS) $(IO_SRCS) $(STORAGE_SRCS)
+SERVLIB_SRCS := $(BUNDLING_SRCS) 		\
+		$(CMD_SRCS) 			\
+		$(DEBUG_SRCS) 			\
+		$(IO_SRCS) 			\
+		$(STORAGE_SRCS)			\
+
 SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)
 
