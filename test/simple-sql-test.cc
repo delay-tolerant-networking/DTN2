@@ -62,26 +62,34 @@ playsql(int i) {
     BundleStore::init(bstore);
     
     
-    Bundle o1, o2;  
+    Bundle o1, o2;
     int id1 = 121;
     int id2 = 555;
    
-    o1.source_.set_tuple("bundles://internet/tcp://foo"); o1.bundleid_ = id1; 
-    o2.source_.set_tuple("bundles://google/tcp://foo");o2.bundleid_ =  id2;
+    o1.source_.set_tuple("bundles://internet/tcp://foo");
+    o1.bundleid_ = id1;
+    o1.custreq_ = 1;
+    o1.fwd_rcpt_ = 1;
+    
+    o2.source_.set_tuple("bundles://google/tcp://foo");
+    o2.bundleid_ =  id2;
+    o2.return_rcpt_ = 1;
     
     int retval2 = bstore->put(&o1,id1);
-   
     retval2 = bstore->put(&o2,id2);
-   
     
     Bundle *g1 = bstore->get(id1);
     Bundle *g2 = bstore->get(id2);
     
     retval2 = bstore->put(g1,id1);
     
-    
-    ASSERT (o1.bundleid_ == g1->bundleid_) ; 
-    ASSERT (o2.bundleid_ == g2->bundleid_) ; 
+    ASSERT(o1.bundleid_ == g1->bundleid_);
+    ASSERT(o1.custreq_ == g1->custreq_);
+    ASSERT(o1.custody_rcpt_ == g1->custody_rcpt_);
+    ASSERT(o1.recv_rcpt_ == g1->recv_rcpt_);
+    ASSERT(o1.fwd_rcpt_ == g1->fwd_rcpt_);
+    ASSERT(o1.return_rcpt_ == g1->return_rcpt_);
+    ASSERT (o2.bundleid_ == g2->bundleid_);
     
     
     
