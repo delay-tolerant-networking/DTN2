@@ -15,10 +15,10 @@ set DELAY_FOR_SOURCE_NODE 2
 ## Adjust the following if links are dynamic 
 
 set linkdynamics 0
-set up 70 ## Length of uptime
-set down 40   ## Length of downtime
+set up 30 ## Length of uptime
+set down 180   ## Length of downtime
 
-set OFFSET_VAL $up
+set OFFSET_VAL 0
 
 
 
@@ -133,7 +133,7 @@ set downlist ""
 if {$linkdynamics == 1} {
     for {set i 1} {$i <  $maxnodes} {incr i} {
     #Do stuff for the ith link
-	set offset [expr $OFFSET_VAL*$i]
+	set offset [expr $OFFSET_VAL*[expr $i - 1]]
 	sched $offset
 	## Now you have uplist and downlist and use them to schedule your events
 	
