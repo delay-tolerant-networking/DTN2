@@ -10,7 +10,7 @@ all: $(APP)
 
 $(APP): $(OBJS) $(SRCDIR)/applib/libdtnapi.a
 	$(CXX) $(OBJS) -L$(SRCDIR)/applib -L$(SRCDIR)/oasys $(LDFLAGS) \
-		-loasyscompat -ldtnapi $(LIBS) -o $@
+		-ldtnapi -loasyscompat $(LIBS) -o $@
 
 #
 # Include the common rules
