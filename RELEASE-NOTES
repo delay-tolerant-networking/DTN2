@@ -1,7 +1,52 @@
 Release Notes for DTN2
 ----------------------
 
-2.01 (December 2004):
+2.1.1 (March 2005)
+------------------
+- Major restructuring of the configuration and build process to use
+  autoconf to generate configure specifications
+
+- Additional ports to solaris, cygwin, MacOS X, and FreeBSD, as well
+  as linux on ARM (sharp zaurus) both cross-compiled and native.
+
+- Major change to the BundleRouter interface to remove the "delayed
+  effect" problems of the action list interface. Now all operations
+  are immediately enacted by a BundleActions class.
+
+- Simplify the syntax for the link and interface commands to no longer
+  require a full bundle tuple, but instead just the admin portion.
+  This avoids the confusion in that the region portion was always
+  ignored.
+
+- Reorganization of the test directories in both oasys and DTN2,
+  including the introduction of a unit testing framework in oasys and
+  the conversion of some tests to the new framework.
+
+- Added framework for link-specific option parsing for the convergence
+  layers.
+
+- New version of the TCP convergence layer protocol, to be formally
+  specified further in an internet draft. Addition of an idle time
+  negotiation to close idle connections. Initial work on a feature for
+  receiver-initiated connection to be used to traverse NAT routers.
+
+- New version of the UDP convergence layer protocol that tightens up
+  the protocoll and makes more sense divergent from the tcp one.
+
+- Change the bundling protocol implementation to use NTP timestamps as
+  mandated by the bundling protocol internet draft.
+
+- Initial work on integrating the dtnsim simulation environment with
+  the core of the daemon.
+
+- Many other miscellaneous small changes and bug fixes.
+
+
+2.0.2 (December 2004)
+---------------------
+- (very minor) change to enable Berkeley DB 4.3 usage
+
+2.0.1 (December 2004):
 ---------------------
 
 - First public release of the DTN2 code: stable design and overall
