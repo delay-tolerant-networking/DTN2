@@ -2,11 +2,16 @@
 # set up routing...
 #
 
+proc setup_interface {cl} {
+    global hosts id
+    
+    route set local_tuple bundles://internet/://$hosts($id)
+    
+    interface add $cl bundles://internet/host://$hosts($id):5000
+}
+
 proc setup_linear_topology {type cl {args ""}} {
     global hosts num_nodes id
-
-    # first set up our interface
-    interface tcp bundles://internet/
 
     # tcp route to next_hop in chain. can just use the peer
     if { $id != [expr $num_nodes - 1] } {
@@ -28,6 +33,5 @@ proc setup_linear_topology {type cl {args ""}} {
 
 	route add bundles://*/* link-$peerid
     }
-	
 }
 
