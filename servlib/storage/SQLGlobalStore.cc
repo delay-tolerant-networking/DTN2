@@ -1,4 +1,7 @@
-#ifndef __SQL_DISABLED__
+
+#include "config.h"
+
+#if __SQL_ENABLED__
 
 #include "SQLGlobalStore.h"
 #include "SQLStore.h"
@@ -63,4 +66,4 @@ SQLGlobalStore::update()
     return true;
 }
 
-#endif /* __SQL_DISABLED__ */
+#endif /* __SQL_ENABLED__ */

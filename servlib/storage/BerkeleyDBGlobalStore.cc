@@ -1,4 +1,7 @@
-#ifndef __DB_DISABLED__
+
+#include "config.h"
+
+#if __DB_ENABLED__
 
 #include "BerkeleyDBStore.h"
 #include "BerkeleyDBGlobalStore.h"
@@ -27,4 +30,4 @@ BerkeleyDBGlobalStore::update()
     return false;
 }
 
-#endif /* __DB_DISABLED__ */
+#endif /* __DB_ENABLED__ */

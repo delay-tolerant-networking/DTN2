@@ -10,11 +10,6 @@ class StorageCommand : public TclCommand {
 public:    
     StorageCommand();
     
-    /**
-     * Virtual from CommandModule.
-     */
-    virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
-    
 protected:
     bool inited_;
 };

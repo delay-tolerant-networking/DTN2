@@ -1,4 +1,7 @@
-#ifndef __MYSQL_DISABLED__
+
+#include "config.h"
+
+#if __MYSQL_ENABLED__
 
 #include "debug/Debug.h"
 #include "debug/Log.h"
@@ -145,4 +148,4 @@ MysqlSQLImplementation::unescape_binary(const u_char* from)
     return from ; 
 }
 
-#endif /* __MYSQL_DISABLED__ */
+#endif /* __MYSQL_ENABLED__ */

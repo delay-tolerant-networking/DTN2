@@ -1,4 +1,7 @@
-#ifndef __SQL_DISABLED__
+
+#include "config.h"
+
+#if __SQL_ENABLED__
 
 #include "SQLRegistrationStore.h"
 #include "SQLStore.h"
@@ -62,4 +65,4 @@ SQLRegistrationStore::update(Registration* reg)
     NOTIMPLEMENTED;
 }
 
-#endif /* __SQL_DISABLED__ */
+#endif /* __SQL_ENABLED__ */

@@ -1,4 +1,7 @@
-#ifndef __SQL_DISABLED__
+
+#include "config.h"
+
+#if __SQL_ENABLED__
 
 #include "SQLBundleStore.h"
 #include "SQLStore.h"
@@ -99,4 +102,4 @@ SQLBundleStore::is_custodian(int bundle_id)
      */
 }
 
-#endif /* __SQL_DISABLED__ */
+#endif /* __SQL_ENABLED__ */

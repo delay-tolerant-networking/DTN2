@@ -1,4 +1,7 @@
-#ifndef __SQL_DISABLED__
+
+#include "config.h"
+
+#if __SQL_ENABLED__
 
 #include "SQLStore.h"
 #include "StorageConfig.h"
@@ -212,4 +215,4 @@ SQLStore::set_key_name(const char* name)
     key_name_ = name;
 }
 
-#endif /* __SQL_DISABLED__ */
+#endif /* __SQL_ENABLED__ */

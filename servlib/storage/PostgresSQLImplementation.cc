@@ -1,4 +1,7 @@
-#ifndef __POSTGRES_DISABLED__
+
+#include "config.h"
+
+#if __POSTGRES_ENABLED__
 
 #include "PostgresSQLImplementation.h"
 #include "debug/Debug.h"
@@ -159,4 +162,4 @@ PostgresSQLImplementation::unescape_binary(const u_char* from)
     return to;
 }
 
-#endif /* __POSTGRES_DISABLED__ */
+#endif /* __POSTGRES_ENABLED__ */
