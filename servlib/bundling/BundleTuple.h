@@ -40,6 +40,36 @@ public:
         parse_tuple();
     }
     
+    /**
+     * Parse and assign the given tuple string from it's component
+     * parts
+     */
+    void set_tuple(const std::string& region, const std::string& admin)
+    {
+        tuple_.assign("bundles://");
+        tuple_.append(region);
+        if (tuple_[tuple_.length() - 1] != '/') {
+            tuple_.push_back('/');
+        }
+        tuple_.append(admin);
+        parse_tuple();
+    }
+    
+    /**
+     * Parse and assign the given tuple string.
+     */
+    void set_tuple(u_char* region, size_t regionlen,
+                   u_char* admin,  size_t adminlen)
+    {
+        tuple_.assign("bundles://");
+        tuple_.append((char*)region, regionlen);
+        if (tuple_[tuple_.length() - 1] != '/') {
+            tuple_.push_back('/');
+        }
+        tuple_.append((char*)admin, adminlen);
+        parse_tuple();
+    }
+    
     // Accessors
     const std::string& tuple()  const { return tuple_; }
     size_t	       length() const { return tuple_.length(); }
