@@ -66,7 +66,7 @@ ContactManager::find_peer(const BundleTuple& tuple)
     
     PeerSet::iterator iter;
     Peer* peer = NULL;
-    assert(peers_ != NULL);
+    ASSERT(peers_ != NULL);
 
     for (iter = peers_->begin(); iter != peers_->end(); ++iter)
     {
