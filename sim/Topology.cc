@@ -40,7 +40,7 @@
 #include "SimpleNode.h"
 #include "SimConvergenceLayer.h"
 
-namespace dtn {
+namespace dtnsim {
 
 Node* Topology::nodes_[MAX_NODES_];
 SimContact* Topology::contacts_[MAX_CONTACTS_];
@@ -92,4 +92,4 @@ Topology::create_contact(int id, int src, int dst, int bw,
 }
 
 
-} // namespace dtn
+} // namespace dtnsim

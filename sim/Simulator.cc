@@ -37,7 +37,7 @@
  */
 #include "Simulator.h"
 
-namespace dtn {
+namespace dtnsim {
 
 Simulator* Simulator::instance_; ///< singleton instance
 
@@ -73,8 +73,7 @@ Simulator::exit_simulation()
 void
 Simulator::run()
 {
-
-    log_debug("Starting event loop \n");
+    log_debug("starting event loop...");
     is_running_ = true;
 
      while(!eventq_.empty()) {
@@ -116,4 +115,4 @@ Simulator::process(Event *e)
 
 }
 
-} // namespace dtn
+} // namespace dtnsim

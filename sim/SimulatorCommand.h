@@ -40,7 +40,7 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
-namespace dtn {
+namespace dtnsim {
 
 /**
  * Class to control the simulator
@@ -62,6 +62,6 @@ protected:
     static SimulatorCommand instance_;
  };
 
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _SIMULATOR_COMMAND_H_ */

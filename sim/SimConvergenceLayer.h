@@ -52,7 +52,7 @@
 #include "SimContact.h"
 #include "Message.h"
 
-namespace dtn {
+namespace dtnsim {
 
 /**
  * Does the actual forwarding of abundle on a contact.
@@ -121,6 +121,6 @@ public:
     static Link* links_[];
     
 };
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _SIM_CONVERGENCE_LAYER_H_ */

@@ -37,7 +37,7 @@
  */
 #include "SimpleNode.h"
 
-namespace dtn {
+namespace dtnsim {
 
 SimpleNode::SimpleNode( int id, const char* logpath) 
     : Node(id,logpath),msgq_(0)
@@ -170,4 +170,4 @@ SimpleNode::process(Event* e)
 	PANIC("unimplemented action code");
 }
 
-} // namespace dtn
+} // namespace dtnsim

@@ -45,7 +45,7 @@
 
 #include "SimConvergenceLayer.h"
 
-namespace dtn {
+namespace dtnsim {
 
 GlueNode::GlueNode(int id,const char* logpath): Node(id,logpath) 
 {
@@ -226,4 +226,4 @@ GlueNode::create_consumer()
     forward_event(reg_add);
 }
 
-} // namespace dtn
+} // namespace dtnsim

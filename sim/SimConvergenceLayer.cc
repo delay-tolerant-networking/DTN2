@@ -42,7 +42,7 @@
 #include "Topology.h"
 #include "bundling/BundleList.h"
 
-namespace dtn {
+namespace dtnsim {
 
 /******************************************************************************
  *
@@ -244,4 +244,4 @@ Message* SimConvergenceLayer::messages_[MAX_BUNDLES];
 Link* SimConvergenceLayer::links_[MAX_LINKS];
     
 
-} // namespace dtn
+} // namespace dtnsim

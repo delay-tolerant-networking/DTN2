@@ -43,7 +43,7 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
-namespace dtn {
+namespace dtnsim {
 
 class Node;
 class SimContact;
@@ -79,6 +79,6 @@ public:
     static SimContact* contact(int i) { return contacts_[i] ; }
 
 };
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _TOPOLOGY_H_ */

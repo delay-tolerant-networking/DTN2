@@ -38,7 +38,7 @@
 #include "LogSim.h"
 #include "Simulator.h"
 
-namespace dtn {
+namespace dtnsim {
 
 LogSim::LogSim() : Log()
 {
@@ -58,4 +58,4 @@ LogSim::init(oasys::log_level_t level, const char* path)
     log->do_init("-", level, NULL, path); 
 }
 
-} // namespace dtn
+} // namespace dtnsim

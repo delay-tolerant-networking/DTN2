@@ -44,7 +44,7 @@
 
 #include "SimConvergenceLayer.h"
 
-namespace dtn {
+namespace dtnsim {
 
 SimulatorCommand SimulatorCommand::instance_;
 
@@ -188,4 +188,4 @@ SimulatorCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 }
 
 
-} // namespace dtn
+} // namespace dtnsim

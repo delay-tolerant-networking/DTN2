@@ -46,7 +46,7 @@
 
 #include "bundling/BundleEvent.h"
 
-namespace dtn {
+namespace dtnsim {
 
 class SimContact;
 class Node;
@@ -253,6 +253,6 @@ public:
     
 };
 
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _EVENT_H_ */

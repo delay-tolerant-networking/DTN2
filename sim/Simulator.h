@@ -41,7 +41,7 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
-namespace dtn {
+namespace dtnsim {
 
 
 class Event;
@@ -137,5 +137,5 @@ private:
     std::priority_queue<Event*, std::vector<Event*>, EventCompare> eventq_;
 };
 
-} // namespace dtn
+} // namespace dtnsim
     

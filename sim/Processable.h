@@ -47,7 +47,7 @@
 
 #include "Event.h"
 
-namespace dtn {
+namespace dtnsim {
 
 class Event;
 
@@ -58,6 +58,6 @@ public:
 
 };
 
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _PROCESSABLE_H_ */

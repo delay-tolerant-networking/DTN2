@@ -41,7 +41,7 @@
 #include "Simulator.h"
 #include "Node.h"
 
-namespace dtn {
+namespace dtnsim {
 
 TrAgent::TrAgent(double t,int src, int dst, int size, int batchsize, int reps, int gap) 
 : Logger ("/sim/tragent") {
@@ -98,4 +98,4 @@ TrAgent::process(Event* e) {
 
 
 
-} // namespace dtn
+} // namespace dtnsim

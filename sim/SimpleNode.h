@@ -40,7 +40,7 @@
 
 #include "Node.h"
 
-namespace dtn {
+namespace dtnsim {
 
 /*
  * A simple node definition that performs random routing
@@ -70,6 +70,6 @@ private:
 
 };
 
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _SIMPLE_NODE_H_ */

@@ -37,7 +37,7 @@
  */
 #include "Event.h"
 
-namespace dtn {
+namespace dtnsim {
 
 Event::Event(double time, Processable *handler, sim_event_type_t eventcode)
 {
@@ -54,4 +54,4 @@ Event::cancel()
     valid_ = false;
 }
 
-} // namespace dtn
+} // namespace dtnsim

@@ -48,7 +48,7 @@
 #include "Simdtn2Command.h"
 #include "SimConvergenceLayer.h"
 
-namespace dtn {
+namespace dtnsim {
 
 Simdtn2Command Simdtn2Command::instance_;
 
@@ -111,4 +111,4 @@ Simdtn2Command::exec(int argc, const char** argv, Tcl_Interp* interp)
     return TCL_OK;
 }
 
-} // namespace dtn
+} // namespace dtnsim

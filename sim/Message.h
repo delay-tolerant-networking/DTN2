@@ -48,7 +48,7 @@
 
 #include <vector>
 
-namespace dtn {
+namespace dtnsim {
 
 class Message  {
     
@@ -90,7 +90,7 @@ protected:
 
 };
 
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _MESSAGE_H_ */
 

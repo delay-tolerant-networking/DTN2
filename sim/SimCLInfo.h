@@ -40,7 +40,7 @@
 
 #include "conv_layers/ConvergenceLayer.h"
 
-namespace dtn {
+namespace dtnsim {
 
 class SimCLInfo : public CLInfo {
 
@@ -52,6 +52,6 @@ private:
     int simid_; // id used to identify this cl globally
 	
 };
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _SIM_CL_INFO_ */

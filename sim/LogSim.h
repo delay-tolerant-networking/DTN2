@@ -40,7 +40,7 @@
 
 #include <oasys/debug/Log.h>
 
-namespace dtn {
+namespace dtnsim {
 
 class LogSim : public oasys::Log {
 
@@ -52,6 +52,6 @@ public:
     
 };
 
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _LOG_SIM_H */

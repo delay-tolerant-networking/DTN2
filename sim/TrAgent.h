@@ -44,7 +44,7 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
 
-namespace dtn {
+namespace dtnsim {
 
 
 class TrAgent : public Processable, public oasys::Logger {
@@ -70,6 +70,6 @@ private:
 
     int repsdone_;      ///< state about no. of reps done
 };
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _TR_AGENT_H */

@@ -42,7 +42,7 @@
 #include "bundling/BundleTuple.h"
 #include "routing/BundleRouter.h"
 
-namespace dtn {
+namespace dtnsim {
 
 class FloodConsumer: public Registration {
 public:
@@ -53,6 +53,6 @@ public:
 protected:
     BundleRouter *router_;
 };
-} // namespace dtn
+} // namespace dtnsim
 
 #endif

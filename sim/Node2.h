@@ -46,7 +46,7 @@
 
 #include "Node.h"
 
-namespace dtn {
+namespace dtnsim {
 
 
 
@@ -77,6 +77,6 @@ private:
     //   BundleTuple name_;
 };
 
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _NODE2_H_ */

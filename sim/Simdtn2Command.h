@@ -40,7 +40,7 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
-namespace dtn {
+namespace dtnsim {
 
 /**
  * CommandModule for the "simdtn2" command.
@@ -61,6 +61,6 @@ public:
 protected:
     static Simdtn2Command instance_;
 };
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _SIM_DTN2_COMMAND_H_ */

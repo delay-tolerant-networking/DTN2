@@ -48,7 +48,7 @@
 #include "Event.h"
 #include "Message.h"
 
-namespace dtn {
+namespace dtnsim {
 
 
 class Event;
@@ -110,6 +110,6 @@ private:
     void  process(Event* e) ;       ///> Inherited from processable
     void  chewing_complete(double size, Message* msg) ;
 };
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _SIM_CONTACT_H_ */

@@ -53,7 +53,7 @@
 #include "routing/BundleRouter.h"
 #include "FloodConsumer.h"
 
-namespace dtn {
+namespace dtnsim {
 
 class GlueNode : public Node {
 
@@ -94,6 +94,6 @@ private:
     FloodConsumer * consumer_;
 };
 
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _GLUE_NODE_H_ */

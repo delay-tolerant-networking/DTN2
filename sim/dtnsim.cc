@@ -54,7 +54,7 @@
 
 #include "bundling/ContactManager.h"
 
-using namespace dtn;
+using namespace dtnsim;
 
 int
 main(int argc, char** argv)

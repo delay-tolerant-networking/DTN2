@@ -51,7 +51,7 @@
 #include "SimContact.h"
 #include "Message.h"
 
-namespace dtn {
+namespace dtnsim {
 
 class SimContact;
 
@@ -99,6 +99,6 @@ protected:
    
 };
 
-} // namespace dtn
+} // namespace dtnsim
 
 #endif /* _NODE_H_ */
