@@ -42,12 +42,12 @@ SQLGlobalStore::load()
         
         if (store_->insert(this) != 0) {
             log_err("error initializing globals table");
-            exit(-1);
+            exit(1);
         }
 
     } else {
         log_err("error loading globals table");
-        exit(-1);
+        exit(1);
     }
 
     return true;

@@ -212,13 +212,13 @@ void DTNServer::init_dir(const char * dirname)
         if (mkdir(dirname, 0700) != 0) {
             log_crit("/dtnserver", "can't create directory %s: %s",
                      dirname, strerror(errno));
-            exit(-1);
+            exit(1);
         }
     }
     else if (statret == -1)
     {
         log_crit("/dtnserver", "invalid path %s: %s", dirname, strerror(errno));;
-        exit(-1);
+        exit(1);
     }
 }
 
@@ -234,7 +234,7 @@ void DTNServer::tidy_dir(const char * dirname)
         if (system(cmd))
         {
             log_crit("/dtnserver", "error removing directory %s", dirname);
-            exit(-1);
+            exit(1);
         }
         
     }
@@ -245,7 +245,7 @@ void DTNServer::tidy_dir(const char * dirname)
     else
     {
         log_crit("/dtnserver", "invalid directory name %s: %s", dirname, strerror(errno));
-        exit(-1);
+        exit(1);
     }
 }
 
@@ -260,6 +260,6 @@ void DTNServer::validate_dir(const char * dirname)
     else
     {
         log_crit("/dtnserver", "invalid directory name %s: %s", dirname, strerror(errno));
-        exit(-1);
+        exit(1);
     }
 }
