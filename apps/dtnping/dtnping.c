@@ -15,6 +15,7 @@ int
 main(int argc, const char** argv)
 {
     int ret;
+    char b;
     dtn_handle_t handle;
     dtn_tuple_t local_tuple;
     dtn_bundle_spec_t spec;
@@ -50,8 +51,9 @@ main(int argc, const char** argv)
     dtn_copy_tuple(&spec.source, &local_tuple);
     dtn_copy_tuple(&spec.replyto, &local_tuple);
 
+    b = 0x3;
     memset(&payload, 0, sizeof(payload));
-    dtn_set_payload(&payload, DTN_PAYLOAD_MEM, "ping", 4);
+    dtn_set_payload(&payload, DTN_PAYLOAD_MEM, &b, 1);
 
     if ((ret = dtn_send(handle, &spec, &payload)) != 0) {
         fprintf(stderr, "error sending bundle: %d (%s)\n",

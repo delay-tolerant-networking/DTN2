@@ -6,8 +6,8 @@
 class Bundle;
 
 /**
- * Class used to convert a Bundle to / from the "on-the-wire"
- * representation.
+ * Class used to convert a Bundle to / from the bundle protocol
+ * specification for the "on-the-wire" representation.
  */
 class BundleProtocol {
 public:
@@ -37,14 +37,13 @@ public:
      */
     static int parse_headers(Bundle* bundle, u_char* buf, size_t len);
 
-protected:
     /**
      * The current version of the bundling protocol.
      */
     static const int CURRENT_VERSION = 0x04;
 
     /**
-     * Enum to enumerate the valid type codes for headers.
+     * Valid type codes for bundle headers.
      * 
      * DTN protocols use a chained header format reminiscent of IPv6
      * headers. Each bundle consists of at least a primary bundle
@@ -115,7 +114,16 @@ protected:
         u_char    data[0];
     } __attribute__((packed));
 
+    /**
+     * Valid type codes for administrative payloads.
+     */
+    typedef enum {
+        STATUS_REPORT		= 0x01,
+        CUSTODY_SIGNAL 		= 0x02,
+        PING			= 0x03,
+    } admin_payload_type_t;
 
+protected:
     static u_int8_t format_cos(const Bundle* bundle);
     static void parse_cos(Bundle* bundle, u_int8_t cos);
 

@@ -11,6 +11,7 @@
 #include "cmd/Options.h"
 #include "cmd/TestCommand.h"
 #include "conv_layers/ConvergenceLayer.h"
+#include "reg/AdminRegistration.h"
 #include "storage/BundleStore.h"
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
@@ -132,7 +133,7 @@ main(int argc, char** argv)
     forwarder->set_active_router(router);
     forwarder->start();
 
-    // Check that the storage system was all initialized properly
+    // XXX/demmer change this to do the storage init
     if (!BundleStore::initialized() ||
         !GlobalStore::initialized() ||
         !RegistrationStore::initialized() )
@@ -141,10 +142,14 @@ main(int argc, char** argv)
              "configuration did not initialize storage, exiting...");
         exit(1);
     }
+
+    // 
     
-    // now initialize and load in the various storage tables
+    // load in the various storage tables
     GlobalStore::instance()->load();
     RegistrationTable::init(RegistrationStore::instance());
+    new AdminRegistration();
+
     RegistrationTable::instance()->load();
     //BundleStore::instance()->load();
     

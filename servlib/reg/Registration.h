@@ -12,14 +12,23 @@ class Bundle;
 class BundleList;
 
 /**
- * Class used to represent an application registration. Stored in the
- * RegistrationTable, indexed by key of {registration_id,endpoint}.
+ * Class used to represent an "application" registration, loosly
+ * defined to also include internal router mechanisms that consume
+ * bundles.
+ *
+ * Stored in the RegistrationTable, indexed by key of
+ * {registration_id,endpoint}.
  *
  * Registration state is stored persistently in the database.
  */
 class Registration : public BundleConsumer, public SerializableObject,
                      public Logger {
 public:
+    /**
+     * Reserved registration identifiers.
+     */
+    static const u_int32_t ADMIN_REGID = 0;
+    
     /**
      * Type enumerating the option requested by the registration for
      * how to handle bundles when not connected.
@@ -68,9 +77,12 @@ public:
     BundleList* bundle_list() { return bundle_list_; }
 
     /**
-     * Queue a bundle for delivery to the application.
+     * Consume a bundle for delivery to the application. The default
+     * implementation just queues the bundle on this registration's
+     * bundle list, but derived classes (e.g. AdminRegistration)
+     * always immediately process bundles.
      */
-    void consume_bundle(Bundle* bundle);
+    virtual void consume_bundle(Bundle* bundle);
 
     /**
      * Virtual from SerializableObject.

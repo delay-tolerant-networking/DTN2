@@ -63,7 +63,8 @@ public:
      * Get a new unique registration id, updating the running value in
      * the persistent table.
      *
-     * (was db_new_regID, db_update_registration_id, db_retable_registration_id)
+     * (was db_new_regID, db_update_registration_id,
+     * db_retable_registration_id)
      */
     u_int32_t next_regid();
 

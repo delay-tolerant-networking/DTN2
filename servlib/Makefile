@@ -40,6 +40,7 @@ CMD_SRCS :=					\
 	cmd/TestCommand.cc			\
 
 REGISTRATION_SRCS :=				\
+	reg/AdminRegistration.cc		\
 	reg/Registration.cc			\
 	reg/RegistrationTable.cc		\
 	reg/RateEstimatorRegistration.cc	\

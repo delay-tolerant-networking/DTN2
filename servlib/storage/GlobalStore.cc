@@ -8,7 +8,7 @@ GlobalStore::GlobalStore()
     : Logger("/storage/globals")
 {
     next_bundleid_ = 0;
-    next_regid_ = 0;
+    next_regid_ = 10; // reg ids 0-9 are reserved
 }
 
 GlobalStore::~GlobalStore()
