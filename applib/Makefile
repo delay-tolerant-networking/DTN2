@@ -30,10 +30,13 @@ GENFILES := $(XDRHDRS) $(XDRSRCS)
 	sed 's/register int32_t \*buf;/& (void)buf;/' < $@.tmp > $@
 	$(RM) -f $@.tmp
 
+# All sources depend on the xdr headers
+$(APPLIB_SRCS): $(XDRHDRS)
+
 #
 # Default target is to build the library
 #
-all: $(XDRHDRS) applib
+all: applib
 
 applib: libdtnapi.a
 libdtnapi.a: $(APPLIB_OBJS)
