@@ -11,7 +11,7 @@ Registration::Registration(u_int32_t regid,
                            failure_action_t action,
                            const std::string& script,
                            time_t expiration)
-    : BundleConsumer(&endpoint_),
+    : BundleConsumer(&endpoint_, true),
       regid_(regid),
       endpoint_(endpoint),
       failure_action_(action),

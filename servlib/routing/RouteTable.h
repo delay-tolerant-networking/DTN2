@@ -30,11 +30,6 @@ public:
     /// Next hop (registration or contact).
     BundleConsumer* next_hop_;
 
-    /// XXX/demmer temporary flag needed to distinguish routes to
-    /// local registrations and actual forwarding routes. used for
-    /// handling of reactive fragmentation
-    bool local_;
-        
     /// Abstract pointer to any algorithm-specific state that needs to
     /// be stored in the route entry
     RouteEntryInfo* info_;

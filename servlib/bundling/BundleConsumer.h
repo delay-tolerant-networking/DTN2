@@ -14,8 +14,8 @@ public:
     /**
      * Constructor.
      */
-    BundleConsumer(const BundleTuple* dest_tuple)
-        : dest_tuple_(dest_tuple) {}
+    BundleConsumer(const BundleTuple* dest_tuple, bool is_local)
+        : dest_tuple_(dest_tuple), is_local_(is_local) {}
     
     /**
      * Consume the given bundle, queueing it if required.
@@ -27,9 +27,15 @@ public:
      * endpoint or the next-hop address).
      */
     const BundleTuple* dest_tuple() { return dest_tuple_; }
+
+    /**
+     * Is the consumer a local registration or a peer.
+     */
+    bool is_local() { return is_local_; }
     
 protected:
     const BundleTuple* dest_tuple_;
+    bool is_local_;
 
 private:
     /**

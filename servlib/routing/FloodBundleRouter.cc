@@ -109,9 +109,7 @@ FloodBundleRouter::handle_contact_available(ContactAvailableEvent* event,
     Contact * contact = event->contact_;
     log_info("FLOOD: CONTACT_AVAILABLE *%p", event->contact_);
 
-    RouteEntry* entry = new RouteEntry(ALL_TUPLES, contact,
-                                       FORWARD_COPY);
-    entry->local_ = true;
+    RouteEntry* entry = new RouteEntry(ALL_TUPLES, contact, FORWARD_COPY);
     route_table_->add_entry(entry);
 
     //first clear the list with the contact

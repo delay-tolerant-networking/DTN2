@@ -210,7 +210,6 @@ BundleRouter::handle_registration_added(RegistrationAddedEvent* event,
 
     RouteEntry* entry = new RouteEntry(registration->endpoint(),
                                        registration, FORWARD_REASSEMBLE);
-    entry->local_ = true;
     route_table_->add_entry(entry);
     new_next_hop(registration->endpoint(), registration, actions);
 }
@@ -284,7 +283,7 @@ BundleRouter::fwd_to_matching(Bundle* bundle, BundleActionList* actions,
     int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter) {
         entry = *iter;
-        if ((include_local == false) && entry->local_)
+        if ((include_local == false) && entry->next_hop_->is_local())
             continue;
         
         actions->push_back(
