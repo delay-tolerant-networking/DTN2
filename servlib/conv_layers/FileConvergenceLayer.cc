@@ -206,7 +206,8 @@ FileConvergenceLayer::send_bundles(Contact* contact)
         iov[0].iov_len  = sizeof(FileHeader);
 
         // fill in the bundle header portion
-        u_int16_t header_len = BundleProtocol::fill_header_iov(bundle, &iov[1], &iovcnt);
+        u_int16_t header_len =
+            BundleProtocol::format_headers(bundle, &iov[1], &iovcnt);
 
         // fill in the file header
         size_t payload_len = bundle->payload_.length();
@@ -385,7 +386,7 @@ FileConvergenceLayer::Scanner::run()
             }
 
             // all set, notify the router
-            BundleForwarder::post(new BundleReceivedEvent(bundle));
+            BundleForwarder::post(new BundleReceivedEvent(bundle, payload_len));
             ASSERT(bundle->refcount() > 0);
         }
             

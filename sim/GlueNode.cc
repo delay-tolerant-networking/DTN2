@@ -97,7 +97,7 @@ GlueNode::forward(Message* msg)
 {
     // first see if there exists a  bundle in the global hashtable
     Bundle *b = SimConvergenceLayer::msg2bundle(msg); 
-    BundleReceivedEvent* bundle_rcv = new BundleReceivedEvent(b) ;
+    BundleReceivedEvent* bundle_rcv = new BundleReceivedEvent(b, b->payload_.length()) ;
     forward_event(bundle_rcv);
 }
 

@@ -63,7 +63,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         log_debug("inject %d byte bundle %s->%s", total,
                   b->source_.c_str(), b->dest_.c_str());
 
-        BundleForwarder::post(new BundleReceivedEvent(b));
+        BundleForwarder::post(new BundleReceivedEvent(b, total));
         return TCL_OK;
     } else {
         resultf("unknown bundle subcommand %s", cmd);
