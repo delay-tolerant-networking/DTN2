@@ -6,17 +6,20 @@
 
 proc mkfile {sz name} {
     global FACTOR
-
+        
+    set payload ""
+    set j 0    
+    while {$j < [expr $FACTOR / 10]} {
+        append  payload [format "%09d\n" [ expr $j*10 ] ]
+	    incr j
+    }
     set fd [open $name w]
     set todo [expr $FACTOR * $sz ] 
-    set payload ""
     set i 0
-    while {$todo > 0} {
-	#set  payload [format "%4d: 0123456789abcdef\n" [string length $payload]]
-	set  payload [format "%09d\n" [ expr $i*10 ] ]
-	incr i
-	puts -nonewline $fd $payload
-	set todo [expr $todo - [string length $payload]]
+    while {$i < $sz} {
+	    #set  payload [format "%4d: 0123456789abcdef\n" [string length $payload]]
+        puts -nonewline $fd $payload
+        incr i
     }
     close $fd
 }
