@@ -6,8 +6,8 @@ set delay 5ms
 set queue DropTail
 set protocol Static
 
-set ftp_proto "simple-ftp.tcl"
-# set ftp_proto "simple-ftp-noack.tcl"
+# set ftp_proto "simple-ftp.tcl"
+ set ftp_proto "simple-ftp-noack.tcl"
 
 
 

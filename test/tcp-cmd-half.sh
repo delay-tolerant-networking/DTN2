@@ -12,7 +12,7 @@ if ($id == 1) then
     endif
     
     echo "executing ftp: client $txdir  $logroot/ftplog.$id $dst  " >> $info
-    tclsh $dtn2root/test/simple-ftp.tcl client $txdir  $logroot/ftplog.$id $dst  >>& $info
+    tclsh $dtn2root/test/$proto_ftp client $txdir  $logroot/ftplog.$id $dst  >>& $info
 
     exit
 
@@ -20,7 +20,7 @@ endif
 
 if ($id == $maxnodes) then 
     echo "executing ftp: server $rcvdir  $logroot/ftplog.$id  " >> $info
-    tclsh $dtn2root/test/simple-ftp.tcl server $rcvdir  $logroot/ftplog.$id >>& $info
+    tclsh $dtn2root/test/$proto_ftp server $rcvdir  $logroot/ftplog.$id >>& $info
     exit
 endif     
 

@@ -1,9 +1,9 @@
 #!/bin/csh
 
-set usage =  "./base-cmd <nodeid> <exp-name> <maxnodes> <nfiles> <size> <perhop> <proto>"
-set example = "Example: ./base-cmd.sh   1 try   4        10      10   1      tcp"
+set usage =  "./base-cmd <nodeid> <exp-name> <maxnodes> <nfiles> <size> <perhop> <proto> <ftpproto>"
+set example = "Example: ./base-cmd.sh   1 try   4        10      10   1      tcp simple-ftp"
 
-if ($#argv != 7) then
+if ($#argv != 8) then
 	echo "Runs a particular protocol at a certain node id "
 	echo 
         echo "Usage: $usage"
@@ -21,6 +21,9 @@ set nfiles     = $4
 set size      = $5   
 set  perhop  = $6    
 set  proto_orig  = $7
+
+
+set  proto_ftp  = $8
 
 set proto  = $proto_orig$perhop
 

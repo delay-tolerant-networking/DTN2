@@ -6,6 +6,9 @@ set delay 5ms
 set queue DropTail
 set protocol Static
 
+set ftp_proto "simple-ftp.tcl"
+# set ftp_proto "simple-ftp-noack.tcl"
+
 set WARMUPTIME 10 
 #Time between ending of one protocol and starting of the next
 set DELAY_FOR_SOURCE_NODE 2
@@ -78,7 +81,8 @@ proc get-cmd {id perhopl protol} {
     global nfiles
     global size
     global exp
-
+    global ftp_proto
+    
     set valperhopl 1
     if {$perhopl == "ph"}  { set valperhopl  1};
     if {$perhopl == "e2e"} { set valperhopl  0};
@@ -86,7 +90,7 @@ proc get-cmd {id perhopl protol} {
     set args "$id $exp $maxnodes $nfiles $size $valperhopl $protol"
     
    set prefix /proj/DTN/nsdi/DTN2
-    return "$prefix/test/base-cmd.sh $args "
+    return "$prefix/test/base-cmd.sh $args $ftp_proto"
  
 }
 
