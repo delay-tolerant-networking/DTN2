@@ -6,21 +6,18 @@ set delay 5ms
 set queue DropTail
 set protocol Static
 
-
 set WARMUPTIME 10 
 #Time between ending of one protocol and starting of the next
 set DELAY_FOR_SOURCE_NODE 2
 
 
-## Adjust the following if links are dynamic 
+## find length of  protos and nexthops
+set runs [expr [llength $protos]*[llength $perhops] ]
 
-set linkdynamics 0
-set OFFSET_VAL 10
-set up 60 ## Length of uptime
-set down 180   ## Length of downtime
-
-
-
+set MAX_SIM_TIME [expr $runs*$finish + $runs*$WARMUPTIME + $WARMUPTIME]
+set ONE_CYCLE_LENGTH [expr $finish + $WARMUPTIME]
+set uplist {}
+set downlist {}
 
 
 ## generates output in two lists up and down 
@@ -113,20 +110,7 @@ for {set i 1} {$i <  $maxnodes} {incr i} {
 
 }
 $ns rtproto $protocol
-#Create a set of events that will bring the links up/down
-#	$ns at 100.0 "$link0 down"
-#	$ns at 110.0 "$link0 up"
 
-
-## find length of  protos and nexthops
-
-
-set runs [expr [llength $protos]*[llength $perhops] ]
-
-set MAX_SIM_TIME [expr $runs*$finish + $runs*$WARMUPTIME + $WARMUPTIME]
-set ONE_CYCLE_LENGTH [expr $finish + $WARMUPTIME]
-set uplist {}
-set downlist {}
 
 if {$linkdynamics == 1} {
     for {set i 1} {$i <  $maxnodes} {incr i} {

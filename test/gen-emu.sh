@@ -1,15 +1,19 @@
 #!/bin/csh
 
-echo $*
-echo $#
-  if ($#argv != 9) then
+echo "ur command was # $*"
+echo "no of args $#"
+
+if ( ($#argv != 9) && ($#argv != 14) )then
+	echo "Improper usage "
         echo "Usage: $0 <expname> <maxnodes> <nfiles> <size(KB)> <loss> <bw> <perhop> <proto1, proto2,..> <finishtime>"
+	echo "Optional arguments after above: dynanics <linkdynamics> <uptime> <downtime> <offset> "
   	echo "Example: $0 try 4 10 100 0 100kb  [e2e ph] [tcp dtn mail] 711 "
-	echo "Perhop can be 0,1,2: 0 e2e, 1 is perhop, 2 is both"
 	echo " This will generate <expname.emu> and will run tcp, dtn"
 	echo
     exit
     endif
+
+
 
 
 set exp = $1
@@ -30,6 +34,34 @@ echo set bw $6 >> $file
 echo set perhops \"$7\" >> $file 
 echo set protos \"$8\" >> $file
 echo set finish $9 >> $file
+
+echo >> $file
+echo "# default link dynamic values "  >> $file
+
+echo set  linkdynamics 0 >> $file
+echo set  up 60  >> $file
+echo set down 180 >> $file
+echo set OFFSET_VAL 0 >> $file
+
+#if ($10 != "dynamics") 
+#    exit "Usage problem: arugment 10 should be dynamics or nothing "
+#endif
+
+## ignore next argument  ($10) 
+ if ($#argv > 10) then
+
+echo >> $file
+echo "# Overriding link dynamic values "  >> $file
+echo set  linkdynamics $11 >> $file
+echo set  up  $12  >> $file
+echo set down $13 >> $file
+echo set OFFSET_VAL $14 >> $file
+
+
+
+endif
+
+
 cat base-emu.tcl >> $file ;
 
 echo 
