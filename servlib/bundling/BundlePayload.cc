@@ -13,15 +13,36 @@ BundlePayload::BundlePayload()
 }
 
 void
-BundlePayload::init(int bundleid)
+BundlePayload::init(int bundleid, location_t location)
+{
+    location_ = location;
+    
+    if (location_ == DISK) 
+	init_disk(bundleid);
+    else if (location == MEMORY) 
+	init_memory(bundleid);
+    else
+	PANIC("unsupported bundle-payload location type %d",location_);
+}
+
+
+void
+BundlePayload::init_memory(int bundleid)
+{
+    location_ = MEMORY;
+    
+}
+
+void
+BundlePayload::init_disk(int bundleid)
 {
     StringBuffer path("%s/bundle_%d.dat", dir_.c_str(), bundleid);
     file_ = new FileIOClient();
     file_->logpathf("/bundle/payload/%d", bundleid);
     if (file_->open(path.c_str(), O_EXCL | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR) < 0) {
-        log_crit("/bundle/payload", "error opening payload file %s: %s",
-                 path.c_str(), strerror(errno));
-        return;
+	log_crit("/bundle/payload", "error opening payload file %s: %s",
+		 path.c_str(), strerror(errno));
+	return;
     }
 }
 

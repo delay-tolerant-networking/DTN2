@@ -42,9 +42,10 @@ public:
     Bundle();
 
     /**
-     * Constructor that takes an explicit id.
+     * Constructor that takes an explicit id and location of bundle payload
+     * 
      */
-    Bundle(u_int32_t id);
+    Bundle(u_int32_t id, BundlePayload::location_t location);
 
     /**
      * Special constructor for a temporary (invalid) bundle, used to
@@ -183,7 +184,7 @@ private:
     /**
      * Initialization helper function.
      */
-    void init(u_int32_t id);
+    void init(u_int32_t id, BundlePayload::location_t location);
 };
 
 #endif /* _BUNDLE_H_ */

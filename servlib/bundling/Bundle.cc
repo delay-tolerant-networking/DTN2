@@ -5,7 +5,7 @@
 #include "storage/GlobalStore.h"
 
 void
-Bundle::init(u_int32_t id)
+Bundle::init(u_int32_t id, BundlePayload::location_t location)
 {
     bundleid_		= id;
     refcount_		= 0;
@@ -18,17 +18,17 @@ Bundle::init(u_int32_t id)
     return_rcpt_	= false;
     expiration_		= 0; // XXX/demmer
     gettimeofday(&creation_ts_, 0);
-    payload_.init(bundleid_);
+    payload_.init(id,location);
 }
 
 Bundle::Bundle()
 {
-    init(GlobalStore::instance()->next_bundleid());
+    init(GlobalStore::instance()->next_bundleid(),BundlePayload::DISK );
 }
 
-Bundle::Bundle(u_int32_t id)
+Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
 {
-    init(id);
+    init(id,location);
 }
 
 Bundle::~Bundle()

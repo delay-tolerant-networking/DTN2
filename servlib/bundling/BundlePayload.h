@@ -17,13 +17,7 @@ class BundlePayload : public SerializableObject {
 public:
     BundlePayload();
     virtual ~BundlePayload();
-
-    /**
-     * Actual initialization function that creates and opens the
-     * payload file.
-     */
-    void init(int bundleid);
-
+    
     /**
      * Options for payload location state.
      */
@@ -31,7 +25,29 @@ public:
         MEMORY = 1,
         DISK = 2
     } location_t;
+    
+    /**
+     * Actual payload initialization function.
+     * init_disk() or init_memory() is called depending upon
+     * location
+     */
+     void init(int bundleid, location_t location);
 
+     
+     
+    /**
+     * Actual initialization function that creates a disk based 
+     * bundle.
+     */
+     void init_disk(int bundleid);
+
+    /**
+     * Actual initialization function that creates a memory based 
+     * bundle.
+     */
+    void init_memory(int bundleid);
+
+  
     /**
      * Set the payload length in preparation for filling in with data.
      * Based on the configured threshold, this will also set the

@@ -141,7 +141,7 @@ SimConvergenceLayer::msg2bundle(Message* m)
     messages_[m->id()] = m;
     
     if (b == NULL) {
-	b  = new Bundle(m->id());
+	b  = new Bundle(m->id(),BundlePayload::MEMORY);
 //	b->bundleid_ = m->id();
 	
 	const char* src = id2node(m->src());
