@@ -12,6 +12,7 @@ BINFILES :=				\
 	unit_tests/address-family-test	\
 	unit_tests/bundle-list-test	\
 	unit_tests/bundle-payload-test	\
+	unit_tests/bundle-timestamp-test\
 	unit_tests/simple-marshal-test	\
 
 unit_tests: $(BINFILES)
