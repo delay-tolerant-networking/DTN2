@@ -465,6 +465,9 @@ TCPConvergenceLayer::Connection::run()
          * enter the send loop.
          */
         if (params_.receiver_connect_) {
+            log_debug("accept negotiated receiver_connect... "
+                      "adding new opportunistic contact");
+                
             ContactManager* cm = BundleDaemon::instance()->contactmgr();
 
             ConvergenceLayer* clayer = ConvergenceLayer::find_clayer("tcp");
@@ -1022,23 +1025,26 @@ TCPConvergenceLayer::Connection::send_contact_header()
     // follow the contact header with an identity header and the local
     // tuple information
     if (!is_sender_ && params_.receiver_connect_) {
-        
         BundleRouter* router = BundleDaemon::instance()->router();
         const BundleTuple& local_tuple = router->local_tuple();
         size_t region_len = local_tuple.region().length();
         size_t admin_len  = local_tuple.admin().length();
         
+        log_debug("sending identity header... (region_len %d admin_len %d)",
+                  region_len, admin_len);
+        
         size_t len = sizeof(IdentityHeader) + region_len + admin_len;
 
+        // XXX/demmer use scratch buffer instead of malloc
         IdentityHeader* identityhdr = (IdentityHeader*)malloc(len);
         identityhdr->region_len = htons(region_len);
         identityhdr->admin_len  = htons(admin_len);
 
-        char* data = (char*)& identityhdr[1];
+        char* data = (char*)&identityhdr[1];
         memcpy(data, local_tuple.region().data(), region_len);
         memcpy(data + region_len, local_tuple.admin().data(), admin_len);
         
-        cc = sock_->writeall((char*)&identityhdr, len);
+        cc = sock_->writeall((char*)identityhdr, len);
         if (cc != (int)len) {
             log_err("error writing identity header / tuple (wrote %d/%d): %s",
                     cc, len, strerror(errno));
@@ -1124,6 +1130,7 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
     // contact header, so read it in and parse the next hop tuple
     // identifier
     if (contacthdr.flags & RECEIVER_CONNECT) {
+        log_debug("got receiver_connect option: reading identity header");
         IdentityHeader identityhdr;
 
         cc = sock_->timeout_readall((char*)&identityhdr,
@@ -1140,36 +1147,37 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
             return false;
         }
 
-        identityhdr.region_len = ntohs(identityhdr.region_len);
-        identityhdr.admin_len  = ntohs(identityhdr.admin_len);
+        size_t region_len = ntohs(identityhdr.region_len);
+        size_t admin_len  = ntohs(identityhdr.admin_len);
 
-        oasys::StringBuffer region_str(identityhdr.region_len);
-        oasys::StringBuffer  admin_str(identityhdr.admin_len);
+        oasys::StringBuffer region_buf(region_len);
+        oasys::StringBuffer  admin_buf(admin_len);
 
-
-        cc = sock_->timeout_readall(region_str.data(), identityhdr.region_len,
+        log_debug("reading region data (length %d)", region_len);
+        cc = sock_->timeout_readall(region_buf.data(), region_len,
                                     params_.rtt_timeout_);
-        if (cc != identityhdr.region_len) {
+        if (cc != (int)region_len) {
             log_err("error reading region string (read %d/%d): %s",
-                cc, identityhdr.region_len, strerror(errno));
-            return false;
-        }
-        
-        cc = sock_->timeout_readall(admin_str.data(), identityhdr.admin_len,
-                                    params_.rtt_timeout_);
-        if (cc != identityhdr.admin_len) {
-            log_err("error reading admin string (read %d/%d): %s",
-                cc, identityhdr.admin_len, strerror(errno));
+                cc, region_len, strerror(errno));
             return false;
         }
 
-        nexthop_.assign(region_str.data(), region_str.length(),
-                        admin_str.data(),  admin_str.length());
+        log_debug("reading admin data (length %d)", admin_len);
+        cc = sock_->timeout_readall(admin_buf.data(), admin_len,
+                                    params_.rtt_timeout_);
+        if (cc != (int)admin_len) {
+            log_err("error reading admin string (read %d/%d): %s",
+                cc, admin_len, strerror(errno));
+            return false;
+        }
+
+        nexthop_.assign(region_buf.data(), region_len,
+                        admin_buf.data(),  admin_len);
         
         if (!nexthop_.valid()) {
             log_err("invalid peer tuple received: region='%.*s' admin='%.*s'",
-                    (int)region_str.length(), region_str.data(),
-                    (int)admin_str.length(),  admin_str.data());
+                    (int)region_buf.length(), region_buf.data(),
+                    (int)admin_buf.length(),  admin_buf.data());
             return false;
         }
     }
@@ -1244,11 +1252,11 @@ TCPConvergenceLayer::Connection::accept()
 {
     ASSERT(contact_ == NULL);
 
-    log_debug("accept: sending contact header reply...");
+    log_debug("accept: sending contact header...");
     if (!send_contact_header())
         return false;
 
-    log_debug("accept: waiting for contact header...");
+    log_debug("accept: waiting for peer contact header...");
     if (!recv_contact_header(0))
         return false;
     
