@@ -80,7 +80,7 @@ public:
      *  Put an obj in the sql store. 
      *  @return 0 if success, -1 on error
      */
-    int insert(SerializableObject* obj);
+    int add(SerializableObject* obj, const int key);
     
     /**
      *  Update the object's state in the sql store.
@@ -104,7 +104,12 @@ public:
      *  Return list of keys for all elements in the store.
      *  @return 0 if success, -1 on error
      */
-    int keys(std::vector<int> l);
+    void keys(std::vector<int> * l);
+
+    /**
+     * 
+     */
+    int exists(const int id);
     
     /**
      *  Extract all elements from the store, potentially matching the

@@ -46,6 +46,7 @@
 #include "SQLStore.h"
 #include "StorageConfig.h"
 #include "bundling/Bundle.h"
+#include <oasys/util/StringBuffer.h>
 
 /**
  * Constructor.
@@ -96,7 +97,7 @@ SQLStore::put(SerializableObject* obj, const int key)
 
      
 int 
-SQLStore::insert(SerializableObject* obj)
+SQLStore::add(SerializableObject* obj, const int key)
 {
     SQLInsert s(table_name_, sql_impl_);
     s.action(obj);
@@ -157,18 +158,18 @@ SQLStore::num_elements()
 }
 
 
-int
+void
 SQLStore::keys(std::vector<int> * l) 
 {
     ASSERT(key_name_); //key_name_ must be initialized 
     oasys::StringBuffer query;
     query.appendf("SELECT %s FROM %s ", key_name_, table_name_);
     int status = exec_query(query.c_str());
-    if ( status != 0) return status;
+    assert( status != 0);
     
 
     int n = sql_impl_->num_tuples();
-    if (n < 0) return -1;
+    assert(n < 0);
 
     for(int i=0;i<n;i++) {
         // ith element is set to 
@@ -176,7 +177,6 @@ SQLStore::keys(std::vector<int> * l)
         int answer_int =  atoi(answer);
         l->push_back(answer_int);
     }
-    return 0;
 }
 
 int 
