@@ -13,9 +13,11 @@
 // moved to ext/__gnu_cxx:: in 3.x
 #if (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
 #include <hash_set>
+#include <hash_map>
 #define _std std
 #else
 #include <ext/hash_set>
+#include <ext/hash_map>
 #define _std __gnu_cxx
 #endif
 
@@ -40,19 +42,25 @@ struct StringEquals {
 };
 
 /**
- * A stringset_t is a hash set with std::string members.
+ * A StringHashSet is a hash set with std::string members.
  */
-typedef _std::hash_set<std::string, StringHash, StringEquals> stringset_t;
-
-class StringSet : public stringset_t {
+class StringHashSet : public _std::hash_set<std::string, StringHash, StringEquals> {
 public:
     void dump(const char* log) const;
 };
 
 /**
- * A stringvector_t is a std::vector of std::strings.
+ * A StringHashMap is a hash map with std::string keys.
  */
-typedef std::vector<std::string> stringvector_t;
+template <class _Type> class StringHashMap :
+    public _std::hash_map<std::string, _Type, StringHash, StringEquals> {
+};
+
+/**
+ * A StringVector is a std::vector of std::strings.
+ */
+class StringVector : public std::vector<std::string> {
+};
 
 /**
  * Generate a hex string from a binary buffer.
