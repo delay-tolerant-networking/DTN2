@@ -75,11 +75,11 @@
 
 typedef enum {
     LOG_INVALID = -1,
-    LOG_DEBUG = 1,
-    LOG_INFO,
-    LOG_WARN,
-    LOG_ERR,
-    LOG_CRIT
+    LOG_DEBUG   =  1,
+    LOG_INFO    =  2,
+    LOG_WARN    =  3,
+    LOG_ERR     =  4,
+    LOG_CRIT    =  5
 } log_level_t;
 
 struct level2str_t {
@@ -373,7 +373,7 @@ __logf(log_level_t level, const char *path, const char *fmt, ...)
  */
 inline bool
 __log_enabled(log_level_t level, const char* path) {
-    return (Log::instance()->log_level(path) >= level);
+    return (Log::instance()->log_level(path) <= level);
 }
 
 
