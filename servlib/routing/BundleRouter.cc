@@ -267,7 +267,7 @@ BundleRouter::handle_reassembly_completed(ReassemblyCompletedEvent* event,
 {
     log_info("REASSEMBLY_COMPLETED bundle id %d",
              event->bundle_.bundle()->bundleid_);
-
+    
     Bundle* bundle;
     while ((bundle = event->fragments_.pop_front()) != NULL) {
         if (bundle->pendingtx() == 0) {
@@ -359,6 +359,14 @@ BundleRouter::delete_from_pending(Bundle* bundle, BundleActionList* actions)
     // iterator rather than traversing the whole pending bundles
     // list
     bool removed = pending_bundles_->remove(bundle);
+
+    if (!removed) {
+        // XXX/demmer deal with this bug
+        log_crit("XXX/demmer ALERT -- pending count violation on bundle %d!!!",
+                 bundle->bundleid_);
+        return;
+    }
+    
     ASSERT(removed);
     actions->push_back(new BundleAction(STORE_DEL, bundle));
 }
