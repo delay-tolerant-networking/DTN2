@@ -113,9 +113,6 @@ main(int argc, char** argv)
     forwarder->set_active_router(router);
     forwarder->start();
 
-    // XXX/demmer change this so the conf file just sets the type and
-    // the initialization happens here.
-    
     // Check that the storage system was all initialized properly
     if (!BundleStore::initialized() ||
         !GlobalStore::initialized() ||
