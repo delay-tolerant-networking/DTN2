@@ -6,7 +6,7 @@
 /**
  * When we're not on a SMP platform, there's no need to lock the bus.
  */
-#ifdef SMP
+#ifndef NO_SMP
 #define LOCK "lock ; "
 #else
 #define LOCK ""

@@ -151,14 +151,13 @@ Thread::yield()
 void
 Thread::spin_yield()
 {
-#ifdef SMP // don't do anything
-#else
+#ifdef NO_SMP
 #ifdef _POSIX_THREAD_IS_CAPRICCIO
     PANIC("SpinLock should never be contended under capriccio");
 #else
     Thread::yield();
 #endif // _POSIX_THREAD_IS_CAPRICCIO
-#endif // SMP
+#endif // NO_SMP
 }
 
 #endif /* _THREAD_H_ */
