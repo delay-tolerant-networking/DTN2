@@ -10,6 +10,10 @@
 #include "routing/BundleRouter.h"
 #include "storage/GlobalStore.h"
 
+in_addr_t APIServer::local_addr_ = htonl(INADDR_LOOPBACK);
+u_int16_t APIServer::handshake_port_ = DTN_API_HANDSHAKE_PORT;
+u_int16_t APIServer::session_port_ = DTN_API_SESSION_PORT;
+
 APIServer::APIServer()
 {
     sock_ = new UDPClient();
@@ -32,8 +36,8 @@ MasterAPIServer::MasterAPIServer()
     : APIServer(),
       Thread(), Logger("/apisrv/master")
 {
-    log_debug("MasterAPIServer::init (port %d)", DTN_API_HANDSHAKE_PORT);
-    sock_->bind(htonl(INADDR_LOOPBACK), DTN_API_HANDSHAKE_PORT);
+    log_debug("MasterAPIServer::init (port %d)", handshake_port_);
+    sock_->bind(local_addr_, handshake_port_);
 }
 
 void
@@ -81,14 +85,13 @@ ClientAPIServer::ClientAPIServer(in_addr_t remote_host,
       Thread(DELETE_ON_EXIT), Logger("/apisrv")
 {
     log_debug("APIServer::init on port %d (remote %s:%d)",
-              DTN_API_SESSION_PORT, intoa(remote_host), remote_port);
+              session_port_, intoa(remote_host), remote_port);
 
-    sock_->bind(htonl(INADDR_LOOPBACK), DTN_API_SESSION_PORT);
+    sock_->bind(local_addr_, session_port_);
     sock_->connect(remote_host, remote_port);
 
     bindings_ = new RegistrationList();
 }
-
 
 const char*
 ClientAPIServer::msgtoa(u_int32_t type)

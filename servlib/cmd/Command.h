@@ -323,6 +323,17 @@ protected:
      */
     void bind_i(const char* name, int* val);
     void bind_i(const char* name, int* val, int initval);
+
+    ///@{
+    /**
+     * Aliases for other integer types.
+     */
+    void bind_i(const char* name, int16_t* val)   { bind_i(name, (int*)val); }
+    void bind_i(const char* name, int8_t* val)    { bind_i(name, (int*)val); }
+    void bind_i(const char* name, u_int32_t* val) { bind_i(name, (int*)val); }
+    void bind_i(const char* name, u_int16_t* val) { bind_i(name, (int*)val); }
+    void bind_i(const char* name, u_int8_t* val)  { bind_i(name, (int*)val); }
+    ///@}
     
     /**
      * Bind a boolean to the set command
@@ -342,7 +353,7 @@ protected:
      */
     void bind_addr(const char* name, in_addr_t* addrp);
     void bind_addr(const char* name, in_addr_t* addrp,
-                   in_addr_t initval = INADDR_ANY);
+                   in_addr_t initval);
 
     /**
      * Set the TclResult string.

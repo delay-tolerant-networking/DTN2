@@ -17,6 +17,10 @@ class RegistrationList;
 class APIServer {
 public:
     APIServer();
+
+    static in_addr_t local_addr_;	///< loopback address to use
+    static u_int16_t handshake_port_;	///< handshaking udp port
+    static u_int16_t session_port_;	///< api session port
     
 protected:
     dtnipc_handle_t handle;

@@ -1,6 +1,7 @@
 
 #include "debug/Log.h"
 #include "DTNCommands.h"
+#include "cmd/APICommand.h"
 #include "cmd/BundleCommand.h"
 #include "cmd/HelpCommand.h"
 #include "cmd/InterfaceCommand.h"
@@ -11,6 +12,7 @@
 #include "cmd/RouteCommand.h"
 #include "cmd/StorageCommand.h"
 
+APICommand APICommand::instance_;
 BundleCommand BundleCommand::instance_;
 HelpCommand HelpCommand::instance_;
 InterfaceCommand InterfaceCommand::instance_;

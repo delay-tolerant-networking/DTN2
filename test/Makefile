@@ -30,14 +30,19 @@ SERVLIB_OBJS := $(patsubst %,$(SRCDIR)/servlib/%,$(SERVLIB_OBJS))
 echoobjs:
 	@echo $(SERVLIB_OBJS)
 
+COMPONENT_LIBS := \
+	$(SRCDIR)/applib/libdtnapisrv.a \
+	$(SRCDIR)/servlib/libdtnserv.a 	\
+	$(SRCDIR)/oasys/liboasys.a 	\
+
 #
 # Default pattern rule to build the tests
 #
 %-test.o: %-test.cc
 	$(CPP) $(CFLAGS) -c $< -o $@
 
-%-test: %-test.o $(SERVLIB_OBJS) $(SRCDIR)/oasys/liboasys.a
-	$(CPP) $(CFLAGS) $< $(SERVLIB_OBJS) $(SRCDIR)/oasys/liboasys.a \
+%-test: %-test.o $(COMPONENT_LIBS)
+	$(CPP) $(CFLAGS) $< $(COMPONENT_LIBS) \
 		-o $@ $(LFLAGS) $(LIBS) 
 
 #
