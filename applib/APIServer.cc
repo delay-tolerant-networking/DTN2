@@ -526,6 +526,7 @@ ClientAPIServer::handle_recv()
     dtn_bundle_payload_t payload;
     dtn_bundle_payload_location_t location;
     dtn_timeval_t timeout;
+    oasys::StringBuffer buf;
 
     // unpack the arguments
     if ((!xdr_dtn_bundle_payload_location_t(xdr_decode_, &location)) ||
@@ -561,20 +562,23 @@ ClientAPIServer::handle_recv()
     payload.location = location;
     
     if (location == DTN_PAYLOAD_MEM) {
+        // the app wants the payload in memory
+        // XXX/demmer verify bounds
         char** dst = &payload.dtn_bundle_payload_t_u.buf.buf_val;
         u_int* len = &payload.dtn_bundle_payload_t_u.buf.buf_len;
 
         *len = b->payload_.length();
-
-        if (b->payload_.location() != BundlePayload::MEMORY)
-        {
-            log_err("file-based payload cannot be received in memory");
-            return -1;
+        
+        if (b->payload_.location() == BundlePayload::MEMORY) {
+            *dst = (char*)b->payload_.memory_data();
+            
+        } else {
+            buf.reserve(b->payload_.length());
+            b->payload_.read_data(0, b->payload_.length(), (u_char*)buf.data());
+            *dst = buf.data();
         }
-        
-        *dst = (char*)b->payload_.memory_data();
-        
     } else {
+        // the app wants the payload in a file
         PANIC("file-based payloads not implemented");
     }
  
