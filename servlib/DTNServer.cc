@@ -292,11 +292,13 @@ void DTNServer::validate_dir(const char * dirname)
     
     if (stat(dirname, &st) == 0 && S_ISDIR(st.st_mode))
     {
-        log_warn("/dtnserver", "directory validated: %s", dirname);
+        log_debug("/dtnserver", "directory validated: %s", dirname);
     }
     else
     {
-        log_crit("/dtnserver", "invalid directory name %s: %s", dirname, strerror(errno));
+        log_crit("/dtnserver",
+                 "invalid directory name %s: %s",
+                 dirname, strerror(errno));
         exit(1);
     }
 }

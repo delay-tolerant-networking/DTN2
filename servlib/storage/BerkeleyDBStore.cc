@@ -106,14 +106,14 @@ BerkeleyDBManager::init()
     StringBuffer dbpath("%s/%s", dbdir, cfg->dbfile_.c_str());
 
     struct stat st;
-    log_info("checking database file '%s'...", cfg->dbfile_.c_str());
+    log_debug("checking database file '%s'...", cfg->dbfile_.c_str());
     int ret = stat(dbpath.c_str(), &st);
     int flags = 0;
 
     if (ret == -1 && errno != ENOENT)
     {
-        log_crit("error trying to stat database file: %d (%s)",
-                 ret, strerror(errno));
+        log_crit("error trying to stat database file '%s': %d (%s)",
+                 dbpath.c_str(), ret, strerror(errno));
         exit(1);
     }
 
@@ -124,8 +124,9 @@ BerkeleyDBManager::init()
         }
         else if (ret == 0)
         {
-            log_err("database file exists but --init-db specified -- "
-                    "remove the database file or re-run without --init-db");
+            log_err("database file '%s' exists but --init-db specified -- "
+                    "remove the database file or re-run without --init-db",
+                    dbpath.c_str());
             exit(1);
         }
     } else { // !init_
@@ -135,14 +136,16 @@ BerkeleyDBManager::init()
         }
         else if ((ret == 0) && !S_ISREG(st.st_mode))
         {
-            log_err("database file is not a regular file -- "
-                    "remove and rerun with --init-db to create the database");
+            log_err("database file '%s' is not a regular file -- "
+                    "remove and rerun with --init-db to create the database",
+                    dbpath.c_str());
             exit(1);
         }
         else if ((ret == -1) && (errno == ENOENT))
         {
-            log_err("database file does not exist -- "
-                    "rerun with --init-db to create the database");
+            log_err("database file '%s' does not exist -- "
+                    "rerun with --init-db to create the database",
+                    dbpath.c_str());
             exit(1);
         }
     }
@@ -154,9 +157,12 @@ BerkeleyDBManager::init()
         db.open(NO_TX, cfg->dbfile_.c_str(), "__dtn__", DB_BTREE, flags, 0);
         db.close(0);
     } catch(DbException e) {
-        log_crit("error creating or opening database: %s", e.what());
+        log_crit("error creating or opening database file '%s': %s",
+                 dbpath.c_str(), e.what());
         exit(1);
     }
+    
+    log_info("database file '%s' validated", dbpath.c_str());
 }
 
 Db*
