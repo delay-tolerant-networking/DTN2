@@ -23,6 +23,7 @@ BundleTuple::BundleTuple(const BundleTuple& other)
     : valid_(other.valid_),
       tuple_(other.tuple_),
       region_(other.region_),
+      proto_(other.proto_),
       admin_(other.admin_)
 {
 }
@@ -62,10 +63,73 @@ BundleTuple::parse_tuple()
     }
     region_.assign(tuple_, beg, end - beg);
 
+    if (beg == tuple_.length()) {
+        logf("/bundle/tuple", LOG_DEBUG, "no admin part of tuple");
+        return;
+    }
+
+    // extract the proto from the admin string
     beg = end + 1;
+    if ((end = tuple_.find(':', beg)) == std::string::npos) {
+
+        // but add a special case for a * wildcard (safe to
+        // dereference because of the length check above)
+        if (tuple_[beg] == '*') {
+            end = beg + 1; // fall through
+        } else {
+            logf("/bundle/tuple", LOG_DEBUG, "no colon for protocol in '%s'",
+                 tuple_.c_str());
+            return;
+        }
+    }
+    proto_.assign(tuple_, beg, end - beg);
+
+    // but still assign the whole admin string (including proto) into admin
     admin_.assign(tuple_, beg, std::string::npos);
 
     valid_ = true;
+}
+
+bool
+BundleTuple::match_region(const std::string& tuple_region) const
+{
+    // XXX/demmer todo: implement dns style matching
+    
+    if (region_.compare("*") == 0)
+        return true;
+
+    if (region_.compare(tuple_region) == 0)
+        return true;
+
+    return false;
+}
+
+bool
+BundleTuple::match_admin(const std::string& tuple_admin) const
+{
+    if (proto_.compare("*") == 0)
+        return true; // special case wildcard protocol
+
+    if (admin_.compare(tuple_admin) == 0)
+        return true;
+    
+    // XXX/demmer dispatch to ConvergenceLayer to match admin strings
+    
+    return false;
+}
+
+bool
+BundleTuple::match(const BundleTuple& tuple) const
+{
+    ASSERT(valid() && tuple.valid());
+
+    if (match_region(tuple.region()) &&
+        match_admin(tuple.admin()))
+    {
+        return true;
+    }
+
+    return false;
 }
 
 void

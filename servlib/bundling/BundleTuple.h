@@ -47,6 +47,7 @@ public:
     const char*        c_str()  const { return tuple_.c_str(); }
     
     const std::string& region() const { return region_; }
+    const std::string& proto()  const { return proto_; }
     const std::string& admin()  const { return admin_; }
     
     /**
@@ -63,16 +64,41 @@ public:
     }
 
     /**
+     * Comparison function
+     */
+    int compare(const BundleTuple& other) const
+    {
+        return tuple_.compare(other.tuple_);
+    }
+
+    /**
+     * Comparison function
+     */
+    int compare(const std::string& tuple) const
+    {
+        return tuple_.compare(tuple);
+    }
+
+    /**
+     * Matching function, implementing wildcarding semantics.
+     */
+    bool match(const BundleTuple& tuple) const;
+
+    /**
      * Virtual from SerializableObject
      */
     virtual void serialize(SerializeAction* a);
 
 protected:
+    bool match_region(const std::string& tuple_region) const;
+    bool match_admin(const std::string& tuple_admin) const;
+    
     void parse_tuple();
     
     bool valid_;
     std::string tuple_;
     std::string region_;
+    std::string proto_;
     std::string admin_;
 };
 
