@@ -38,12 +38,17 @@
 
 #include <stdlib.h>
 
+#include "NodeCommand.h"
 #include "SimCommand.h"
 #include "Simulator.h"
 #include "Topology.h"
 
+#include "routing/BundleRouter.h"
+
 // #include "SimConvergenceLayer.h"
 // #include "TrAgent.h"
+
+using namespace dtn;
 
 namespace dtnsim {
 
@@ -51,6 +56,7 @@ SimCommand::SimCommand()
     : TclCommand("sim")
 {
     bind_i("runtill", &Simulator::runtill_);
+    bind_s("route_type", &BundleRouter::Config.type_, "static");
 }
 
 
@@ -61,7 +67,7 @@ SimCommand::help_string()
 }
 
 int
-SimCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
+SimCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
 {
     if (argc < 3) {
         wrong_num_args(argc, argv, 2, 3, 11);
@@ -69,7 +75,12 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
     
     // pull out the time and subcommand
-    double time = atof(argv[1]);
+    char* end;
+    double time = strtod(argv[1], &end);
+    if (*end != '\0') {
+        resultf("time value '%s' invalid", argv[1]);
+        return TCL_ERROR;
+    }
     const char* cmd = argv[2];
     
     if (strcmp(cmd, "create_node") == 0) {
@@ -84,7 +95,22 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        Topology::create_node(argv[3]);
+        const char* name = argv[3];
+
+        // make sure no tcl command already exists with the given name
+        oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
+        if (interp->lookup(name)) {
+            resultf("error creating node %s: tcl command already exists",
+                    name);
+            return TCL_ERROR;
+        }
+        
+        Node* node = Topology::create_node(name);
+
+        NodeCommand* cmd = new NodeCommand(node);
+        interp->reg(cmd);
+        
+        return TCL_OK;
     }
     
 //     if (strcmp(cmd, "create_consumer") == 0) {
@@ -173,7 +199,8 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 //         Simulator::add_event(e);
 //     }
 
-    return TCL_OK;
+    resultf("sim: unsupported subcommand %s", cmd);
+    return TCL_ERROR;
 }
 
 

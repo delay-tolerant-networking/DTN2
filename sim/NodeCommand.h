@@ -5,8 +5,8 @@
  * install, copy or use the software.
  * 
  * Intel Open Source License 
- * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ *
+ * Copyright (c) 2005 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,76 +35,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _NODE_H_
-#define _NODE_H_
+#ifndef _NODE_COMMAND_H_
+#define _NODE_COMMAND_H_
 
-#include <oasys/debug/Debug.h>
-#include <oasys/debug/Log.h>
-
-#include "EventHandler.h"
-#include "bundling/BundleDaemon.h"
-
-namespace dtn {
-class ContactManager;
-}
+#include <oasys/tclcmd/TclCommand.h>
 
 namespace dtnsim {
 
+class Node;
+
 /**
- * Class representing a node in the simulator (i.e. a router plus
- * associated links, etc).
- *
- * Derives from the core dtn BundleDaemon and whenever an event is
- * processed that relates to a node, that node is installed as the
- * BundleDaemon::instance().
+ * Class to control the node
  */
-class Node : public EventHandler, public dtn::BundleDaemon {
+class NodeCommand : public oasys::TclCommand {
 public:
+    NodeCommand(Node* node);
+    const char* help_string();
+   
     /**
-     * Constructor / Destructor
+     * Virtual from CommandModule.
      */
-    Node(const char* name);
-    
-    virtual ~Node() {}
-        
-    const char* name() { return name_.c_str(); }
-    
-    /**
-     * Virtual function from processable
-     */
-    virtual void process(Event *e);
+    virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
 
-    /**
-     * Accessor for router.
-     */
-    dtn::BundleRouter* router() { return router_; }
-    
-//     /**
-//      * Action when informed that message transmission is finished.
-//      * Invoked by SimContact
-//      */
-//     virtual  void chewing_complete(SimContact* c, double size, Message* msg) = 0;
-    
-//     /**
-//      * Action when a contact opens/closes
-//      * Invoked by SimContact
-//      */
-//     virtual  void open_contact(SimContact* c) = 0;
-//     virtual  void close_contact(SimContact* c) = 0;
-
-//     /**
-//      * Action when the MESSAGE_RECEIVED event arrives
-//      */
-//     virtual  void message_received(Message* msg) = 0;
-    
-//     virtual  void create_consumer() {};
-    
 protected:
-    const std::string    name_;
-    dtn::BundleRouter*   router_;
-    dtn::ContactManager* contactmgr_;
+    Node* node_;
 };
 
 } // namespace dtnsim
 
-#endif /* _NODE_H_ */
+#endif /* _NODE_COMMAND_H_ */
