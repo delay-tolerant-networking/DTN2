@@ -139,12 +139,12 @@ public:
     static void init(log_level_t defaultlvl = LOG_DEFAULT_THRESHOLD,
                      const char *debug_path = LOG_DEFAULT_DBGFILE);
 
-
   
     /**
      *  Sets the time to print for the logging 
      */
-    virtual timeval gettimeofday_();
+    virtual void getlogtime(struct timeval* tv);
+    
     /**
      * Core logging function that is the guts of the implementation of
      * all other variants. Returns the number of bytes written, i.e.
@@ -168,8 +168,7 @@ public:
      */
     void add_debug_rule(const char* path, log_level_t threshold);
 
-    
-
+protected:
     Log();
     virtual ~Log() {} // never called
 
@@ -178,11 +177,8 @@ public:
      * static Log::init.
      */
     void do_init(log_level_t defaultlvl, const char* debug_path);
-    
-private:
-   
-  
 
+private:
     /**
      * Structure used to store a log rule as parsed from the debug
      * file.

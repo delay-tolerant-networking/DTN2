@@ -284,12 +284,11 @@ Log::log_level(const char *path)
     }
 }
 
-timeval 
-Log::gettimeofday_() {
-// tack on a timestamp
-    timeval tv;
-    gettimeofday(&tv, 0);
-    return tv;
+void
+Log::getlogtime(struct timeval* tv)
+{
+    // by default, we just use the current time of day
+    ::gettimeofday(tv, 0);
 }
 
 int
@@ -335,13 +334,11 @@ Log::vlogf(const char *path, log_level_t level, const char *fmt, va_list ap)
     int buflen = LOG_MAX_LINELEN - 1; /* Save a character for newline. */
     int len;
 
-    
-    
     // tack on a timestamp
-    timeval tv = gettimeofday_();
+    struct timeval tv;
+    getlogtime(&tv);
     len = snprintf(ptr, buflen, "[%ld.%06ld %s %s] ",
                    tv.tv_sec, tv.tv_usec, path, level2str(level));
-       
 
     buflen -= len;
     ptr += len;
