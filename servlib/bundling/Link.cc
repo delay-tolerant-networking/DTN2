@@ -138,13 +138,14 @@ Link::~Link()
 void
 Link::open()
 {
-    ASSERT(isavailable());
     log_debug("Link::open");
+    
+    ASSERT(isavailable());
     ASSERT(!isopen());
+    ASSERT(!closing_);
     
     if (!isopen()) {
         contact_ = new Contact(this);
-        closing_ = false; //--keith
 
         if (type_ == ONDEMAND)
             clayer()->open_contact(contact_);
@@ -183,13 +184,13 @@ Link::close()
     // Set the closing bit on the link. This is needed to inform the
     // convergence layer that it shouldn't post a ContactDownEvent
     // that would reference the about-to-be-deleted contact.
+    ASSERT(!closing_);
     closing_ = true;
     
     // Close the contact
     clayer()->close_contact(contact_);
 
     // Make sure the convergence layer cleaned up its state
-    ASSERT(link_info_ == NULL); 
     ASSERT(contact_->contact_info() == NULL);
 
     // Clean it up
@@ -200,6 +201,7 @@ Link::close()
     contact_ = NULL;
 
     // Clear out the closing bit
+    closing_ = false;
 
     // Unless this is an ondemand link, once it's closed, it's no
     // longer available.

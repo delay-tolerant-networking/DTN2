@@ -299,6 +299,8 @@ TCPConvergenceLayer::del_link(Link* link)
     ASSERT(conn);
     ASSERT(conn->is_stopped());
     delete conn;
+
+    link->set_link_info(NULL);
     
     return true;
 }
@@ -343,7 +345,6 @@ TCPConvergenceLayer::close_contact(Contact* contact)
         }
         
         log_debug("connection thread stopped...");
-        contact->link()->set_link_info(NULL);
     }
     
     return true;
