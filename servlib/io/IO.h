@@ -87,7 +87,7 @@ private:
     
     static int rwvall(rw_vfunc_t rw, int fd,
                       const struct iovec* iov, int iovcnt,
-                      const char* log);
+                      const char* log_func, const char* log);
 };
 
 #endif /* _IO_H_ */

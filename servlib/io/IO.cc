@@ -101,18 +101,22 @@ IO::rwall(rw_func_t rw, int fd, char* bp, size_t len, const char* log)
 int
 IO::readall(int fd, char* bp, size_t len, const char* log)
 {
-    return rwall(::read, fd, bp, len, log);
+    int cc = rwall(::read, fd, bp, len, log);
+    if (log) logf(log, LOG_DEBUG, "readall %d/%d", cc, len);
+    return cc;
 }
 
 int
 IO::writeall(int fd, const char* bp, size_t len, const char* log)
 {
-    return rwall((rw_func_t)::write, fd, (char*)bp, len, log);
+    int cc = rwall((rw_func_t)::write, fd, (char*)bp, len, log);
+    if (log) logf(log, LOG_DEBUG, "writeall %d/%d", cc, len);
+    return cc;
 }
 
 int
 IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
-           const char* log)
+           const char* log_func, const char* log)
 {
     struct iovec static_iov[8];
     struct iovec* iov;
@@ -123,7 +127,7 @@ IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
         // maybe this shouldn't be logged at level warning, but for
         // now, keep it as such since it probably won't ever be an
         // issue and if it is, we can always demote the level later
-        logf(log, LOG_WARN, "rwvall required to malloc since iovcnt is %d", iovcnt);
+        logf(log, LOG_WARN, "%s required to malloc since iovcnt is %d", log_func, iovcnt);
         iov = (struct iovec*)malloc(sizeof(struct iovec) * iovcnt);
     }
     
@@ -134,7 +138,7 @@ IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
         total += iov[i].iov_len;
     }
 
-    if (log) logf(log, LOG_DEBUG, "readvall/writevall cnt %d, total %d", iovcnt, total);
+    if (log) logf(log, LOG_DEBUG, "%s cnt %d, total %d", log_func, iovcnt, total);
     
     while (1)
     {
@@ -160,15 +164,15 @@ IO::rwvall(rw_vfunc_t rw, int fd, const struct iovec* const_iov, int iovcnt,
          */
         while (cc >= (int)iov[0].iov_len)
         {
-            if (log) logf(log, LOG_DEBUG, "readvall/writevall skipping all %d of %p",
-                 iov[0].iov_len, iov[0].iov_base);
+            if (log) logf(log, LOG_DEBUG, "%s skipping all %d of %p", log_func,
+                          iov[0].iov_len, iov[0].iov_base);
             cc -= iov[0].iov_len;
             iov++;
             iovcnt--;
         }
             
-        if (log) logf(log, LOG_DEBUG, "readvall/writevall skipping %d of %p -> %p",
-             cc, iov[0].iov_base, (((char*)iov[0].iov_base) + cc));
+        if (log) logf(log, LOG_DEBUG, "%s skipping %d of %p -> %p", log_func,
+                      cc, iov[0].iov_base, (((char*)iov[0].iov_base) + cc));
         
         iov[0].iov_base = (((char*)iov[0].iov_base) + cc);
         iov[0].iov_len  -= cc;
@@ -185,14 +189,15 @@ int
 IO::readvall(int fd, const struct iovec* iov, int iovcnt,
               const char* log)
 {
-    return rwvall(::readv, fd, iov, iovcnt, log);
+    return rwvall(::readv, fd, iov, iovcnt, "readvall", log);
+
 }
 
 int
 IO::writevall(int fd, const struct iovec* iov, int iovcnt,
               const char* log)
 {
-    return rwvall(::writev, fd, iov, iovcnt, log);
+    return rwvall(::writev, fd, iov, iovcnt, "writevall", log);
 }
 
 /**
