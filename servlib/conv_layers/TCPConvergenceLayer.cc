@@ -774,12 +774,15 @@ TCPConvergenceLayer::Connection::connect(in_addr_t remote_addr,
     ASSERT(sock_->state() != IPSocket::ESTABLISHED);
     log_debug("send_loop: connecting to %s:%d...",
               intoa(sock_->remote_addr()), sock_->remote_port());
-    while (sock_->connect(sock_->remote_addr(), sock_->remote_port()) != 0)
+
+    while (sock_->timeout_connect(sock_->remote_addr(), sock_->remote_port(),
+                                  5000) != 0)
     {
         log_info("connection attempt to %s:%d failed... "
                  "will retry in %d seconds",
                  intoa(sock_->remote_addr()), sock_->remote_port(),
                  contacthdr.keepalive_sec);
+        sock_->close();
         sleep(contacthdr.keepalive_sec);
     }
 
