@@ -12,12 +12,13 @@ all:   applib servlib daemon apps sim
 alltest:
 	$(MAKE) all
 	$(MAKE) test
-check:    applib servlib daemon apps test
-clean:    applib servlib daemon apps test
-objclean: applib servlib daemon apps test
-depclean: applib servlib daemon apps test
-genclean: applib servlib daemon apps test 
-binclean: applib servlib daemon apps test  
+
+check:    applib servlib daemon apps test sim
+clean:    applib servlib daemon apps test sim
+objclean: applib servlib daemon apps test sim
+depclean: applib servlib daemon apps test sim
+genclean: applib servlib daemon apps test sim
+binclean: applib servlib daemon apps test sim
 
 .PHONY: applib servlib daemon apps test sim
 applib servlib daemon apps test sim:
