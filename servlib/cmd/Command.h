@@ -93,7 +93,7 @@ public:
      * \param argv Argument values.
      */
     static int tcl_cmd(ClientData client_data, Tcl_Interp* interp,
-                       int argc, CONSTTCL84 char **argv);
+                       int objc, Tcl_Obj* const* objv);
 
     /** 
      * Register the command module.
@@ -156,6 +156,19 @@ public:
                         int min, int max);
 
     /**
+     * Useful function for generating error strings indicating that
+     * the wrong number of arguments were passed to the command.
+     *
+     * @param argc	original argument count to the command
+     * @param argv	original argument vector to the command
+     * @param parsed	number of args to include in error string
+     * @param min	minimum number of expected args
+     * @param max	maximum number of expected args (or INT_MAX)
+     */
+    void wrong_num_args(int objc, Tcl_Obj** objv, int parsed,
+                        int min, int max);
+
+    /**
      * Get the TclResult string.
      */
     const char* get_result();
@@ -207,7 +220,18 @@ public:
     virtual ~CommandModule();
     
     /** 
-     * Override this to parse the list of arguments.
+     * Override this to get the arguments as raw tcl objects.
+     *
+     * @param objc Argument count 
+     * @param objv Argument values
+     * @param interp Tcl interpreter
+     *
+     * @return 0 on success, -1 on error
+     */
+    virtual int exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp);
+
+    /** 
+     * Override this to parse the list of arguments as strings.
      *
      * @param argc Argument count 
      * @param argv Argument values
@@ -228,8 +252,8 @@ public:
      *
      * @return 0 on success, -1 on error
      */
-    virtual int cmd_set(int argc, const char** argv, Tcl_Interp* interp);
-
+    virtual int cmd_set(int objc, Tcl_Obj** objv, Tcl_Interp* interp);
+    
     /** 
      * Get the name of the module.
      */
@@ -359,7 +383,25 @@ protected:
     void wrong_num_args(int argc, const char** argv, int parsed,
                         int min, int max)
     {
-        CommandInterp::instance()->wrong_num_args(argc, argv, parsed, min, max);
+        CommandInterp::instance()->
+            wrong_num_args(argc, argv, parsed, min, max);
+    }
+
+    /**
+     * Useful function for generating error strings indicating that
+     * the wrong number of arguments were passed to the command.
+     *
+     * @param argc	original argument count to the command
+     * @param argv	original argument vector to the command
+     * @param parsed	number of args to include in error string
+     * @param min	minimum number of expected args
+     * @param max	maximum number of expected args (or INT_MAX)
+     */
+    void wrong_num_args(int objc, Tcl_Obj** objv, int parsed,
+                        int min, int max)
+    {
+        CommandInterp::instance()->
+            wrong_num_args(objc, objv, parsed, min, max);
     }
     
     /**

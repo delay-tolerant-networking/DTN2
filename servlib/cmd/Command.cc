@@ -135,11 +135,11 @@ CommandInterp::reg(CommandModule *module)
     
     module->logf(LOG_DEBUG, "%s command registering", module->name());
     
-    Tcl_CreateCommand(interp_, 
-                      (char*)module->name(),
-                      CommandInterp::tcl_cmd,
-                      (ClientData)module,
-                      NULL);
+    Tcl_CreateObjCommand(interp_, 
+                         (char*)module->name(),
+                         CommandInterp::tcl_cmd,
+                         (ClientData)module,
+                         NULL);
     
     modules_.push_front(module);
 
@@ -170,21 +170,19 @@ CommandInterp::reg_atexit(void(*fn)(void*), void* data)
     
 int 
 CommandInterp::tcl_cmd(ClientData client_data, Tcl_Interp* interp,
-                       int argc, CONSTTCL84 char** argv)
+                       int objc, Tcl_Obj* const* objv)
 {
     CommandModule* module = (CommandModule*)client_data;
 
-    const char** const_argv = (const char**)argv;
-
     // first check for builtin commands
-    if (module->do_builtins_ && argc > 2) {
-        const char* cmd = argv[1];
+    if (module->do_builtins_ && objc > 2) {
+        const char* cmd = Tcl_GetStringFromObj(objv[1], NULL);
         if (strcmp(cmd, "set") == 0) {
-            return module->cmd_set(argc, const_argv, interp);
+            return module->cmd_set(objc, (Tcl_Obj**)objv, interp);
         }
     }
 
-    return module->exec(argc, (const char**)argv, interp);
+    return module->exec(objc, (Tcl_Obj**)objv, interp);
 }
 
 void
@@ -264,6 +262,17 @@ CommandInterp::wrong_num_args(int argc, const char** argv, int parsed,
     }
 }
 
+void
+CommandInterp::wrong_num_args(int objc, Tcl_Obj** objv, int parsed,
+                              int min, int max)
+{
+    char* argv[objc];
+    for (int i = 0; i < objc; ++i) {
+        argv[i] = Tcl_GetStringFromObj(objv[i], NULL);
+    }
+    wrong_num_args(objc, (const char**)argv, parsed, min, max);
+}
+
 const char*
 CommandInterp::get_result()
 {
@@ -286,6 +295,20 @@ CommandModule::CommandModule(const char* name)
 
 CommandModule::~CommandModule()
 {
+}
+
+int
+CommandModule::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
+{
+    // If the default implementation is called, then convert all
+    // arguments to strings and then call the other exec variant.
+    char* argv[objc];
+
+    for (int i = 0; i < objc; ++i) {
+        argv[i] = Tcl_GetStringFromObj(objv[i], NULL);
+    }
+
+    return exec(objc, (const char**) argv, interp);
 }
 
 int
@@ -314,20 +337,19 @@ CommandModule::append_resultf(const char* fmt, ...)
 }
 
 int
-CommandModule::cmd_set(int argc, const char** args, Tcl_Interp* interp)
+CommandModule::cmd_set(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 {
-    ASSERT(argc >= 2);
-    ASSERT(strcmp(args[1], "set") == 0);
+    ASSERT(objc >= 2);
     
     // handle "set binding [value]" command
-    if (argc < 3 || argc > 4) {
-        resultf("wrong number of args: expected 3-4, got %d", argc);
+    if (objc < 3 || objc > 4) {
+        resultf("wrong number of args: expected 3-4, got %d", objc);
         return TCL_ERROR;
     }
 
-    const char* var = args[2];
-    const char* val = (argc == 4) ? args[3] : 0;
-  
+    const char* var = Tcl_GetStringFromObj(objv[2], NULL);
+    Tcl_Obj* val = objv[3];
+    
     std::map<std::string, Binding*>::iterator itr;
     itr = bindings_.find(var);
     
@@ -335,49 +357,58 @@ CommandModule::cmd_set(int argc, const char** args, Tcl_Interp* interp)
         resultf("set: binding for %s does not exist", var);
         return TCL_ERROR;
     }
-    
+
+    int ok;
+        
     // set value (if any)
     Binding* b = (*itr).second;
 
-    if (argc == 4) 
+    if (objc == 4) 
     {
         switch(b->type_) 
         {
         case BINDING_INT:
-            *(b->val_.intval_) = atoi(val);
+            ok = Tcl_GetIntFromObj(interp, objv[3], b->val_.intval_);
+            if (ok != TCL_OK) {
+                resultf("set: %s not an integer value",
+                        Tcl_GetStringFromObj(val, 0));
+                return TCL_ERROR;
+            }
             break;
             
         case BINDING_BOOL:
-            if (strcasecmp(val, "t")    == 0 ||
-                strcasecmp(val, "true") == 0 ||
-                strcasecmp(val, "1")    == 0)
-            {
-                *(b->val_.boolval_) = true;
-            }
-            else if (strcasecmp(val, "f")     == 0 ||
-                     strcasecmp(val, "false") == 0 ||
-                     strcasecmp(val, "0")     == 0)
-            {
-                *(b->val_.boolval_) = false;
-            }
-            else
-            {
-                resultf("set: invalid value '%s' for boolean", val);
-                return TCL_ERROR;
-            }
+//             if (strcasecmp(val, "t")    == 0 ||
+//                 strcasecmp(val, "true") == 0 ||
+//                 strcasecmp(val, "1")    == 0)
+//             {
+//                 *(b->val_.boolval_) = true;
+//             }
+//             else if (strcasecmp(val, "f")     == 0 ||
+//                      strcasecmp(val, "false") == 0 ||
+//                      strcasecmp(val, "0")     == 0)
+//             {
+//                 *(b->val_.boolval_) = false;
+//             }
+//             else
+//             {
+//                 resultf("set: invalid value '%s' for boolean", val);
+//                 return TCL_ERROR;
+//             }
+            NOTIMPLEMENTED;
             break;
             
         case BINDING_ADDR:
         {
-            if (gethostbyname(val, b->val_.addrval_) != 0) {
-                resultf("set: invalid value '%s' for addr", val);
-                return TCL_ERROR;
-            }
+            NOTIMPLEMENTED;
+//             if (gethostbyname(val, b->val_.addrval_) != 0) {
+//                 resultf("set: invalid value '%s' for addr", val);
+//                 return TCL_ERROR;
+//             }
             break;
 
         }    
         case BINDING_STRING:
-            b->val_.stringval_->assign(val);
+            b->val_.stringval_->assign(Tcl_GetStringFromObj(val, 0));
             break;
             
         default:
