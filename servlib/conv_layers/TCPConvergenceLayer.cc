@@ -63,7 +63,7 @@
 
 namespace dtn {
 
-struct TCPConvergenceLayer::Params TCPConvergenceLayer::Defaults;
+struct TCPConvergenceLayer::Params TCPConvergenceLayer::defaults_;
 
 /******************************************************************************
  *
@@ -74,14 +74,14 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     : IPConvergenceLayer("/cl/tcp")
 {
     // set defaults here, then let ../cmd/ParamCommand.cc handle changing them
-    Defaults.bundle_ack_enabled_ = true;
-    Defaults.receiver_connect_	 = false;
-    Defaults.ack_blocksz_ 	 = 1024;
-    Defaults.keepalive_interval_ = 2;
-    Defaults.idle_close_time_ 	 = 30;
-    Defaults.connect_timeout_ 	 = 10000; // msecs
-    Defaults.rtt_timeout_ 	 = 5000;  // msecs
-    Defaults.test_fragment_size_ = -1;
+    defaults_.bundle_ack_enabled_ = true;
+    defaults_.receiver_connect_	 = false;
+    defaults_.ack_blocksz_ 	 = 1024;
+    defaults_.keepalive_interval_ = 2;
+    defaults_.idle_close_time_ 	 = 30;
+    defaults_.connect_timeout_ 	 = 10000; // msecs
+    defaults_.rtt_timeout_ 	 = 5000;  // msecs
+    defaults_.test_fragment_size_ = -1;
 }
 
 void
@@ -153,7 +153,7 @@ TCPConvergenceLayer::add_interface(Interface* iface,
     }
 
     // parse options
-    Params params = TCPConvergenceLayer::Defaults;
+    Params params = TCPConvergenceLayer::defaults_;
     const char* invalid;
     if (!parse_params(&params, argc, argv, &invalid)) {
         log_err("error parsing interface options: invalid option '%s'",
@@ -165,8 +165,7 @@ TCPConvergenceLayer::add_interface(Interface* iface,
     // create a Connection, not a Listener
     if (params.receiver_connect_) {
         log_debug("new receiver_connect interface -- starting connection thread");
-        Connection* conn = new Connection(addr, port, false);
-        conn->params_ = params;
+        Connection* conn = new Connection(addr, port, false, &params);
 
         // store the connection object in the cl specific part of the
         // interface
@@ -254,7 +253,8 @@ TCPConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
     log_debug("adding %s link %s", link->type_str(), link->nexthop());
 
     // if the link is OPPORTUNISTIC, we don't do anything here since
-    // the connection should already be established
+    // the connection will be established by someone else coming
+    // knocking on our door.
     if (link->type() == Link::OPPORTUNISTIC) {
         return true;
     }
@@ -273,17 +273,19 @@ TCPConvergenceLayer::add_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
-    // create the connection but don't start it until later in open_contact
-    Connection* conn = new Connection(addr, port, true);
+    // Create the parameters structure, parse the options, and store
+    // them in the link's cl info slot
+    Params* params = new Params();
+    *params = defaults_;
 
     const char* invalid;
-    if (! parse_params(&conn->params_, argc, argv, &invalid)) {
+    if (! parse_params(params, argc, argv, &invalid)) {
         log_err("error parsing link options: invalid option '%s'", invalid);
-        delete conn;
+        delete params;
         return false;
     }
-
-    link->set_cl_info(conn);
+    
+    link->set_cl_info(params);
     return true;
 }
 
@@ -295,10 +297,11 @@ TCPConvergenceLayer::del_link(Link* link)
 {
     log_debug("removing link %s", link->nexthop());
 
-    Connection* conn = (Connection*)link->cl_info();
-    ASSERT(conn);
-    ASSERT(conn->is_stopped());
-    delete conn;
+    ASSERT(! link->isopen());
+
+    Params* params = (Params*)link->cl_info();
+    ASSERT(params);
+    delete params;
 
     link->set_cl_info(NULL);
     
@@ -312,11 +315,28 @@ TCPConvergenceLayer::del_link(Link* link)
 bool
 TCPConvergenceLayer::open_contact(Contact* contact)
 {
+    in_addr_t addr;
+    u_int16_t port = 0;
+    
     log_debug("opening contact *%p", contact);
 
-    // start the connection that is cached in the link
-    Connection* conn = (Connection*)contact->link()->cl_info();
+    Link* link = contact->link();
+
+    // Parse out the address / port from the contact tuple (again).
+    // The next hop should have already been validated in add_link
+    if (! InternetAddressFamily::parse(link->nexthop(), &addr, &port)) {
+        PANIC("nexthop %s should have already been validated", link->nexthop());
+    }
+
+    // start the connection that is cached in the link, passing in the
+    // parameters
+    Params* params = (Params*)link->cl_info();
+    ASSERT(params);
+    
+    Connection* conn = new Connection(addr, port, true, params);
     conn->set_contact(contact);
+    contact->set_cl_info(conn);
+    
     conn->start();
 
     return true;
@@ -328,12 +348,12 @@ TCPConvergenceLayer::open_contact(Contact* contact)
 bool
 TCPConvergenceLayer::close_contact(Contact* contact)
 {
-    Connection* conn = (Connection*)contact->link()->cl_info();
+    Connection* conn = (Connection*)contact->cl_info();
 
     log_info("close_contact *%p", contact);
 
     if (conn) {
-        if (!conn->should_stop()) {
+        if (!conn->is_stopped() && !conn->should_stop()) {
             log_debug("interrupting connection thread");
             conn->set_should_stop();
             conn->interrupt();
@@ -345,6 +365,9 @@ TCPConvergenceLayer::close_contact(Contact* contact)
         }
         
         log_debug("connection thread stopped...");
+
+        delete conn;
+        contact->set_cl_info(NULL);
     }
     
     return true;
@@ -382,10 +405,10 @@ TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
  *****************************************************************************/
 TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
                                             u_int16_t remote_port,
-                                            bool is_sender)
+                                            bool is_sender,
+                                            Params* params)
 
-    : params_(TCPConvergenceLayer::Defaults), // copy defaults
-      is_sender_(is_sender), contact_(NULL)
+    : params_(*params), is_sender_(is_sender), contact_(NULL)
 {
     Thread::flags_ |= INTERRUPTABLE;
 
@@ -464,8 +487,11 @@ TCPConvergenceLayer::Connection::run()
 
             ConvergenceLayer* clayer = ConvergenceLayer::find_clayer("tcp");
             ASSERT(clayer);
-            
-            contact_ = cm->new_opportunistic_contact(clayer, this, nexthop_);
+
+            // XXX/demmer work this out better -- should it just use
+            // the admin or should it use the full tuple?
+            contact_ = cm->new_opportunistic_contact(clayer, this,
+                                                     nexthop_.admin().c_str());
             
             if (!contact_) {
                 log_err("receiver_connect: error finding opportunistic link");
