@@ -391,13 +391,13 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
     char typecode = BUNDLE_START; 
     iov[0].iov_base = &typecode;
     iov[0].iov_len  = 1;
-    iov[1].iov_base = &contacthdr;
+    iov[1].iov_base = (char*)&contacthdr;
     iov[1].iov_len  = sizeof(ContactHeader);
     
     /** Tack on the BundleStartHeader now **/    
     
     // char typecode = BUNDLE_START;
-    iov[2].iov_base = &starthdr;
+    iov[2].iov_base = (char*)&starthdr;
     iov[2].iov_len  = sizeof(BundleStartHeader);
     
     /** Tack on the Bundle Header now **/
@@ -429,7 +429,7 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
     oasys::StringBuffer payload_buf(payload_len);
     const u_char* payload_data =
         bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
-    iov[iovcnt + 3].iov_base = (void*)payload_data;
+    iov[iovcnt + 3].iov_base = (char*)payload_data;
     iov[iovcnt + 3].iov_len = payload_len;
 
     /** Send the header and the payload together...... **/

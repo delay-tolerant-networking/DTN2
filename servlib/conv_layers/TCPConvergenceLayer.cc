@@ -538,7 +538,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     char typecode = BUNDLE_START;
     iov[0].iov_base = &typecode;
     iov[0].iov_len  = 1;
-    iov[1].iov_base = &starthdr;
+    iov[1].iov_base = (char*)&starthdr;
     iov[1].iov_len  = sizeof(BundleStartHeader);
         
     // fill in the bundle header into the iovec
@@ -572,7 +572,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
                                    true);
     
     iovcnt = 2 + header_iovcnt;
-    iov[iovcnt].iov_base = (void*)payload_data;
+    iov[iovcnt].iov_base = (char*)payload_data;
     iov[iovcnt].iov_len  = block_len;
     iovcnt++;
 
@@ -626,9 +626,9 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
         // iov[0] already points to the typecode
         typecode = BUNDLE_BLOCK;
-        iov[1].iov_base = &blockhdr;
+        iov[1].iov_base = (char*)&blockhdr;
         iov[1].iov_len  = sizeof(BundleBlockHeader);
-        iov[2].iov_base = (void*)payload_data;
+        iov[2].iov_base = (char*)payload_data;
         iov[2].iov_len  = block_len;
 
         log_debug("send_bundle: sending %d byte block %p",
@@ -991,7 +991,7 @@ TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
     struct iovec iov[2];
     iov[0].iov_base = &typecode;
     iov[0].iov_len  = 1;
-    iov[1].iov_base = &ackhdr;
+    iov[1].iov_base = (char*)&ackhdr;
     iov[1].iov_len  = sizeof(BundleAckHeader);
     
     int total = 1 + sizeof(BundleAckHeader);

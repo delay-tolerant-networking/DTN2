@@ -239,7 +239,7 @@ FileConvergenceLayer::send_bundles(Contact* contact)
     oasys::StringBuffer fname("%s/bundle-XXXXXX", dir.c_str());
     
     while ((bundle = blist->pop_front()) != NULL) {
-        iov[0].iov_base = &filehdr;
+        iov[0].iov_base = (char*)&filehdr;
         iov[0].iov_len  = sizeof(FileHeader);
 
         // fill in the bundle header portion

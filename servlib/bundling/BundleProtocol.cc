@@ -36,6 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <algorithm>
 
@@ -121,7 +122,7 @@ BundleProtocol::format_headers(const Bundle* bundle,
     primary->expiration 	= htonl(bundle->expiration_);
 
     next_header_type = &primary->next_header_type;
-    iov[0].iov_base = primary;
+    iov[0].iov_base = (char*)primary;
     iov[0].iov_len  = sizeof(PrimaryHeader);
     *iovcnt = 1;
 
@@ -152,7 +153,7 @@ BundleProtocol::format_headers(const Bundle* bundle,
 
     *next_header_type = HEADER_DICTIONARY;
     next_header_type = &dictionary->next_header_type;
-    iov[*iovcnt].iov_base = dictionary;
+    iov[*iovcnt].iov_base = (char*)dictionary;
     iov[*iovcnt].iov_len  = dictlen;
     (*iovcnt)++;
 
@@ -168,7 +169,7 @@ BundleProtocol::format_headers(const Bundle* bundle,
 
         *next_header_type = HEADER_FRAGMENT;
         next_header_type = &fragment->next_header_type;
-        iov[*iovcnt].iov_base = fragment;
+        iov[*iovcnt].iov_base = (char*)fragment;
         iov[*iovcnt].iov_len  = sizeof(FragmentHeader);
         (*iovcnt)++;
     }
@@ -182,7 +183,7 @@ BundleProtocol::format_headers(const Bundle* bundle,
     
     *next_header_type = HEADER_PAYLOAD;
     payload->next_header_type = HEADER_NONE;
-    iov[*iovcnt].iov_base = payload;
+    iov[*iovcnt].iov_base = (char*)payload;
     iov[*iovcnt].iov_len  = sizeof(PayloadHeader);
     (*iovcnt)++;
 
