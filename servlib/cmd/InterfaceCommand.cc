@@ -83,7 +83,7 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     if (strcasecmp(argv[1], "add") == 0) {
         if (! InterfaceTable::instance()->add(admin, cl, proto,
-                                              argc - 3, argv + 3)) {
+                                              argc - 4, argv + 4)) {
             resultf("error adding interface %s %s", proto, admin);
             return TCL_ERROR;
         }
