@@ -23,7 +23,7 @@ class SimContact : public Logger, public Processable {
 
 public:
     
-    static const bool ALLOW_FRAGMENTATION = true;
+    static const bool ALLOW_FRAGMENTATION = false;
     static const bool DISALLOW_FRACTIONAL_TRANSFERS = true;
     
     SimContact (int id, Node* src, Node* dst, double bw, 

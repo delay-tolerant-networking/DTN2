@@ -22,12 +22,12 @@ GlueNode::message_received(Message* msg)
 {
 
     if (msg->dst() == id()) {
-        log_info("RCV[%d]: msg id %d, size-rcv %f",
-                 id(),msg->id(),msg->size());
+        log_info("RCV[%d]: src:%d id:%d, size-rcv %f",
+                 id(),msg->src(),msg->id(),msg->size());
     }
     else {
-        log_info("FWD[%d]: msg id %d, size-rcv %f",
-                 id(),msg->id(),msg->size());
+        log_info("FWD[%d]: src:%d id:%d, size-rcv %f",
+                 id(),msg->src(),msg->id(),msg->size());
         forward(msg);
     }
 }
@@ -53,7 +53,7 @@ GlueNode::open_contact(SimContact* c)
 {
     Contact* ct = SimConvergenceLayer::simlink2ct(c);
     ContactAvailableEvent* e = new ContactAvailableEvent(ct);
-    log_info("CUP[%d]: Contact OPEN",id());
+    log_debug("N[%d]: C:%d [%d->%d]:UP",id(),c->id(),id(),c->dst()->id());
     forward_event(e);
 }
 
@@ -63,7 +63,7 @@ GlueNode::close_contact(SimContact* c)
 {
     Contact* ct = SimConvergenceLayer::simlink2ct(c);
     ContactBrokenEvent* e = new ContactBrokenEvent(ct);
-    log_info("CDOWN[%d]: Contact OPEN",id());
+    log_debug("N[%d]: C:%d [%d->%d]:DOWN",id(),c->id(),id(),c->dst()->id());
     forward_event(e);
 }
 
@@ -75,7 +75,7 @@ GlueNode::process(Event* e) {
     case MESSAGE_RECEIVED:    {
         Event_message_received* e1 = (Event_message_received*)e;
         Message* msg = e1->msg_;
-        log_info("GOT[%d]: msg (%d) size %3f",id(),msg->id(),msg->size());
+        log_info("GOT[%d]: id:%d size:%3f",id(),msg->id(),msg->size());
         
         // update the size of the message that is received
         msg->set_size(e1->sizesent_);
@@ -120,14 +120,14 @@ GlueNode::execute_router_action(BundleAction* action)
     case FORWARD_COPY: {
         BundleForwardAction* fwdaction = (BundleForwardAction*)action;
         
-        log_info("N[%d] forward bundle (%d) as told by routercode",
+        log_info("N[%d] forward id:%d as told by routercode",
                 id(),bundle->bundleid_);
         BundleConsumer* bc = fwdaction->nexthop_ ; 
         bc->consume_bundle(bundle);
         break;
         }
     case STORE_ADD:{ 
-        log_info("N[%d] storing ignored %d", id(), bundle->bundleid_);
+        log_debug("N[%d] storing ignored %d", id(), bundle->bundleid_);
         break;
         }
     

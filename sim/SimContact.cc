@@ -16,7 +16,7 @@ double bw, double latency, bool isup, int pup, int pdown)
     down_ = pdown; // length of down period
     ASSERT(bw > 0 && latency >= 0) ;
     
-    log_info("Contact created with id %d between nodes (%d,%d)...\n",
+    log_info("C[%d]: CONTACT CREATED: N[%d]->N[%d]\n",
              id_,src_->id(),dst_->id());
     
     chewing_event_ = NULL;
@@ -34,7 +34,8 @@ double bw, double latency, bool isup, int pup, int pdown)
 void 
 SimContact::chew_message(Message* msg) 
 {
-    log_info("ChSt[%d]: for message %d, size:%f",id(), msg->id(),msg->size());
+    log_info("C[%d]: CH_ST id:%d src:%d size:%f",
+        id(), msg->id(), msg->src(),msg->size());
     
     ASSERT(state_ == OPEN);
     state_ = BUSY;
@@ -44,7 +45,7 @@ SimContact::chew_message(Message* msg)
     Event_chew_fin* e2 =
         new Event_chew_fin(tmp,this,msg,Simulator::time());
     chewing_event_ = e2;
-    log_info("ChSt-ChEvent[%d]: event:%p",id(), e2);
+    log_debug("ChSt-ChEvent[%d]: event:%p",id(), e2);
     Simulator::add_event(e2);
 }
 
@@ -60,8 +61,8 @@ SimContact::is_open()
 void 
 SimContact::chewing_complete(double size, Message* msg) 
 {
-    log_info("ChC[%d]: for msg %d, orig size %2f, transmitted %2f", 
-             id(),msg->id(),msg->size(),size);
+    log_info("C[%d]: CH_CMP id:%d src:%d size:%2f trans:%2f", 
+             id(),msg->id(),msg->src(),msg->size(),size);
     if (size > msg->size()) {
         log_debug(" transmit size exceeding message (%d) size (%2f > %2f) "
                   ,msg->id(),size,msg->size());
@@ -155,25 +156,26 @@ SimContact::process(Event* e)
 {
     switch (e->type()) {
     case CONTACT_UP : {
-        log_info("CUP[%d]: UP NOW",id());
+        log_info("C[%d]: N[%d]->N[%d] UP NOW",id(),src_->id(),dst_->id());
         open_contact(((Event_contact_up* )e)->forever_);
         break;
     }
     case CONTACT_DOWN : {
-        log_info("CDOWN[%d]: DOWN NOW",id());
+        log_info("C[%d]: N[%d]->N[%d] DOWN NOW",id(),src_->id(),dst_->id());
         close_contact(((Event_contact_down* )e)->forever_);
         break;
     }
     case CONTACT_CHEWING_FINISHED : {
         Event_chew_fin* e1 = (Event_chew_fin* )e;
-        log_info("CChFin[%d] event:%p bundleid:%d chewing_event:%p start at:%f",
+        log_debug(
+            "CChFin[%d] event:%p bundleid:%d chewing_event:%p start at:%f",
             id(),e,e1->msg_->id(),chewing_event_,e1->chew_starttime_);
         if (state_ == CLOSE)  {
             ASSERT(false);
             return;
         }
         state_ = OPEN;
-        log_info("chewing_event NULL:%p",chewing_event_);
+        log_debug("chewing_event NULL:%p",chewing_event_);
 	    
         //we have to make sure that this event is set to NULL
         //before we call chewing_complete
