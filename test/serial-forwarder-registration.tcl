@@ -14,8 +14,7 @@ proc serial_forwarder_registration {endpoint port} {
 
 proc sfreg_bundle_arrived {regid bundle_data} {
     
-    foreach {source dest payload} $bundle_data {}
-    set len [string length $payload]
+    foreach {source dest payload len} $bundle_data {}
     
     log /sf debug "got bundle of length $len for registration $regid"
     
