@@ -109,8 +109,7 @@ BundleStatusReport::set_status_time(status_report_flag_t flag)
     gettimeofday(&now, 0);
 
     report_->status_flags |= flag;
-    *ts = ((u_int64_t)htonl(now.tv_sec)) << 32;
-    *ts	|= (u_int64_t)htonl(now.tv_usec);
+    set_timestamp(ts, &now);
 }
 
 /**

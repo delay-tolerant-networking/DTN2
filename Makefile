@@ -16,6 +16,9 @@ alltest:
 	$(MAKE) all
 	$(MAKE) -C test
 
+tests:
+	$(MAKE) -C test
+
 #
 # Install/uninstall rules
 #

@@ -77,6 +77,24 @@ public:
     static int parse_headers(Bundle* bundle, u_char* buf, size_t len);
 
     /**
+     * Store a struct timeval into a 64-bit NTP timestamp, suitable
+     * for transmission over the network. This does not require that
+     * the u_int64_t* be word-aligned.
+     *
+     * Implementation adapted from the NTP source distribution.
+     */
+    static void set_timestamp(u_int64_t* ts, const struct timeval* tv);
+    
+    /**
+     * Retrieve a struct timeval from a 64-bit NTP timestamp that was
+     * transmitted over the network. This does not require that the
+     * u_int64_t* be word-aligned.
+     *
+     * Implementation adapted from the NTP source distribution.
+     */
+    static void get_timestamp(struct timeval* tv, const u_int64_t* ts);
+
+    /**
      * The current version of the bundling protocol.
      */
     static const int CURRENT_VERSION = 0x04;
@@ -179,7 +197,8 @@ public:
 
     /**
      * Structure for a status report payload. Note that the tuple data
-     * portion is variable length.
+     * portion is variable length. Note also that the 64 bit fields
+     * are _not_ 64-bit aligned so be careful when accessing them.
      *
      * See BundleStatusReport.cc for the formatting of status reports.
      */

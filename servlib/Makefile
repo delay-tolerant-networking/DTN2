@@ -32,6 +32,8 @@ BUNDLING_SRCS := 				\
 	bundling/SmtpAddressFamily.cc		\
 	bundling/StringAddressFamily.cc		\
 	bundling/WildcardAddressFamily.cc	\
+	bundling/tstotv.c			\
+	bundling/tvtots.c			\
 
 CONV_LAYER_SRCS :=				\
 	conv_layers/ConvergenceLayer.cc		\

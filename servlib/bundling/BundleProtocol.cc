@@ -36,6 +36,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * NTP timestamp conversion routines included from the ntp source
+ * distribution and is therefore subject to the following copyright.
+ * 
+ ***********************************************************************
+ *                                                                     *
+ * Copyright (c) David L. Mills 1992-2003                              *
+ *                                                                     *
+ * Permission to use, copy, modify, and distribute this software and   *
+ * its documentation for any purpose and without fee is hereby         *
+ * granted, provided that the above copyright notice appears in all    *
+ * copies and that both the copyright notice and this permission       *
+ * notice appear in supporting documentation, and that the name        *
+ * University of Delaware not be used in advertising or publicity      *
+ * pertaining to distribution of the software without specific,        *
+ * written prior permission. The University of Delaware makes no       *
+ * representations about the suitability this software for any         *
+ * purpose. It is provided "as is" without express or implied          *
+ * warranty.                                                           *
+ *                                                                     *
+ ***********************************************************************
+ */
+
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <algorithm>
@@ -117,9 +140,8 @@ BundleProtocol::format_headers(const Bundle* bundle,
     primary->version 		= CURRENT_VERSION;
     primary->class_of_service 	= format_cos(bundle);
     primary->payload_security 	= format_payload_security(bundle);
-    primary->creation_ts 	= ((u_int64_t)htonl(bundle->creation_ts_.tv_sec)) << 32;
-    primary->creation_ts	|= (u_int64_t)htonl(bundle->creation_ts_.tv_usec);
     primary->expiration 	= htonl(bundle->expiration_);
+    set_timestamp(&primary->creation_ts, &bundle->creation_ts_);
 
     next_header_type = &primary->next_header_type;
     iov[0].iov_base = (char*)primary;
@@ -233,9 +255,8 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     // now pull out the fields from the primary header
     parse_cos(bundle, primary->class_of_service);
     parse_payload_security(bundle, primary->payload_security);
-    bundle->creation_ts_.tv_sec = ntohl(primary->creation_ts >> 32);
-    bundle->creation_ts_.tv_usec = ntohl((u_int32_t)primary->creation_ts);
     bundle->expiration_  = ntohl(primary->expiration);
+    get_timestamp(&bundle->creation_ts_, &primary->creation_ts);
 
     //
     // dictionary header (must follow primary)
@@ -376,6 +397,65 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     return origlen - len;
 }
 
+/*
+ * Conversion arrays.
+ */
+extern "C" u_long ustotslo[];
+extern "C" u_long ustotsmid[];
+extern "C" u_long ustotshi[];
+extern "C" long tstouslo[];
+extern "C" long tstousmid[];
+extern "C" long tstoushi[];
+
+/**
+ * Store a struct timeval into a 64-bit NTP timestamp, suitable
+ * for transmission over the network. This does not require that
+ * the u_int64_t* be word-aligned.
+ *
+ * Implementation adapted from the NTP source distribution.
+ */
+    
+void
+BundleProtocol::set_timestamp(u_int64_t* ts, const struct timeval* tv)
+{
+    u_int32_t tsf = ustotslo[tv->tv_usec & 0xff] \
+                    + ustotsmid[(tv->tv_usec >> 8) & 0xff] \
+                    + ustotshi[(tv->tv_usec >> 16) & 0xf];
+    
+    u_int64_t ts_tmp = (((u_int64_t)ntohl(tv->tv_sec)) << 32) | ntohl(tsf);
+    memcpy(ts, &ts_tmp, sizeof(*ts));
+}
+
+/**
+ * Retrieve a struct timeval from a 64-bit NTP timestamp that was
+ * transmitted over the network. This does not require that the
+ * u_int64_t* be word-aligned.
+ *
+ * Implementation adapted from the NTP source distribution.
+ */
+void
+BundleProtocol::get_timestamp(struct timeval* tv, const u_int64_t* ts)
+{
+#define TV_SHIFT        3
+#define TV_ROUNDBIT     0x4
+    
+    u_int64_t ts_tmp;
+    memcpy(&ts_tmp, ts, sizeof(ts_tmp));
+
+    tv->tv_sec = ntohl(ts_tmp >> 32);
+
+    u_int32_t tsf = ntohl((u_int32_t)ts_tmp);
+    tv->tv_usec = (tstoushi[((tsf) >> 24) & 0xff] \
+                   + tstousmid[((tsf) >> 16) & 0xff] \
+                   + tstouslo[((tsf) >> 9) & 0x7f] \
+                   + TV_ROUNDBIT) >> TV_SHIFT;
+
+    if ((tv)->tv_usec == 1000000) {
+        (tv)->tv_sec++;
+        (tv)->tv_usec = 0;
+    }
+}
+
 u_int8_t
 BundleProtocol::format_cos(const Bundle* b)
 {
@@ -434,5 +514,6 @@ BundleProtocol::parse_payload_security(Bundle* bundle,
                                        u_int8_t payload_security)
 {
 }
+
 
 } // namespace dtn
