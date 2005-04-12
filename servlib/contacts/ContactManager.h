@@ -165,7 +165,7 @@ protected:
     /**
      * Helper routine to find or create an opportunistic link.
      */
-    Link* find_opportunistic_link(ConvergenceLayer* cl,
+    Link* get_opportunistic_link(ConvergenceLayer* cl,
                                   const char* nexthop);
     
     

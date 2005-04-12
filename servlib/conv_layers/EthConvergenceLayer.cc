@@ -56,6 +56,7 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
+#include "bundling/ContactManager.h"
 #include "bundling/Link.h"
 
 using namespace oasys;
@@ -93,9 +94,11 @@ EthConvergenceLayer::add_interface(Interface* iface,
     log_info("EthConvergenceLayer::add_interface(%s).",if_name);
     
     Receiver* receiver = new Receiver(if_name);
+    receiver->logpathf("/cl/eth");
     receiver->start();
 
     Beacon* beacon = new Beacon(if_name);
+    beacon->logpathf("/cl/eth");
     beacon->start();
     
     return true;
@@ -209,57 +212,59 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     }
 
     if(ethclhdr.type == ETHCL_BEACON) {
-      char buf[20];
-//      const char* name = "the link";
-      sprintf(buf,"eth://%2X:%2X:%2X:%2X:%2X:%2X", 
-	      ethhdr->ether_shost[5], ethhdr->ether_shost[4],
-	      ethhdr->ether_shost[3],ethhdr->ether_shost[2],
-	      ethhdr->ether_shost[1],ethhdr->ether_shost[0]);
+        char buf[23];
+        
+        ContactManager* cm = BundleDaemon::instance()->contactmgr();
+        EthernetAddressFamily::to_string((struct ether_addr*)ethhdr->ether_shost,buf);
 
-      BundleDaemon::post(new LinkCreatedEvent(Link::create_link(buf,
-								Link::OPPORTUNISTIC,
-								ConvergenceLayer::find_clayer("eth"),
-								(const char*)buf,0,0)));            
+        // XXX/jakob this is a bit of a hack. 
+        if(!cm->find_peer(buf)) 
+        {
+            // XXX/jakob no CLInfo for Eth links so far, using "this" as a placeholder for now
+            cm->new_opportunistic_contact(ConvergenceLayer::find_clayer("eth"),
+                                          this,                                  
+                                          buf);
+        }
     }
     else if(ethclhdr.type == ETHCL_BUNDLE) {
-
-    
-      // infer the bundle length based on the packet length minus the
-      // eth cl header
-      bundle_len = len - sizeof(EthCLHeader);
-      
-      log_debug("process_data: got ethcl header -- bundle id %d, length %d",
-		ethclhdr.bundle_id, bundle_len);
-      
-      // skip past the cl header
-      bp  += sizeof(EthCLHeader);
-      len -= sizeof(EthCLHeader);
-      
-      // parse the headers into a new bundle. this sets the payload_len
-      // appropriately in the new bundle and returns the number of bytes
-      // consumed for the bundle headers
-      bundle = new Bundle();
-      header_len = BundleProtocol::parse_headers(bundle, (u_char*)bp, len);
-      
-      size_t payload_len = bundle->payload_.length();
-      if (bundle_len != header_len + payload_len) {
-        log_err("process_data: error in bundle lengths: "
-                "bundle_length %d, header_length %d, payload_length %d",
-                bundle_len, header_len, payload_len);
-        delete bundle;
-        return;
-      }
-      
-      // store the payload and notify the daemon
-      bp  += header_len;
-      len -= header_len;
-      bundle->payload_.append_data(bp, len);
-      
-      log_debug("process_data: new bundle id %d arrival, payload length %d",
-		bundle->bundleid_, bundle->payload_.length());
-      
-      BundleDaemon::post(
-			 new BundleReceivedEvent(bundle, EVENTSRC_PEER, len));
+        
+        
+        // infer the bundle length based on the packet length minus the
+        // eth cl header
+        bundle_len = len - sizeof(EthCLHeader);
+        
+        log_debug("process_data: got ethcl header -- bundle id %d, length %d",
+                  ethclhdr.bundle_id, bundle_len);
+        
+        // skip past the cl header
+        bp  += sizeof(EthCLHeader);
+        len -= sizeof(EthCLHeader);
+        
+        // parse the headers into a new bundle. this sets the payload_len
+        // appropriately in the new bundle and returns the number of bytes
+        // consumed for the bundle headers
+        bundle = new Bundle();
+        header_len = BundleProtocol::parse_headers(bundle, (u_char*)bp, len);
+        
+        size_t payload_len = bundle->payload_.length();
+        if (bundle_len != header_len + payload_len) {
+            log_err("process_data: error in bundle lengths: "
+                    "bundle_length %d, header_length %d, payload_length %d",
+                    bundle_len, header_len, payload_len);
+            delete bundle;
+            return;
+        }
+        
+        // store the payload and notify the daemon
+        bp  += header_len;
+        len -= header_len;
+        bundle->payload_.append_data(bp, len);
+        
+        log_debug("process_data: new bundle id %d arrival, payload length %d",
+                  bundle->bundleid_, bundle->payload_.length());
+        
+        BundleDaemon::post(
+            new BundleReceivedEvent(bundle, EVENTSRC_PEER, len));
     }
 }
 
@@ -285,7 +290,7 @@ EthConvergenceLayer::Receiver::run()
 
 
     iface.sll_family=AF_PACKET;
-    iface.sll_protocol=htons(ETH_P_ALL);
+    iface.sll_protocol=htons(ETHERTYPE_DTN);
     iface.sll_ifindex=req.ifr_ifindex;
    
     if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
@@ -376,7 +381,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
   iov[iovcnt + 2].iov_base = (char*)payload_data;
   iov[iovcnt + 2].iov_len = payload_len;
   
-  if((sock = socket(AF_PACKET,SOCK_RAW, htons(ETH_P_ALL))) < 0) { 
+  if((sock = socket(AF_PACKET,SOCK_RAW, htons(ETHERTYPE_DTN))) < 0) { 
     perror("socket");
     exit(1);
   }

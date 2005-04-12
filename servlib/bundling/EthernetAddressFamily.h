@@ -46,9 +46,9 @@
 
 namespace dtn {
 
-  //#define ETH_ADDR_LEN 6
-
-
+    //#define ETH_ADDR_LEN 6
+    
+    
     typedef struct ether_addr {
         u_char octet[ETHER_ADDR_LEN];
     } eth_addr_t;    
@@ -59,10 +59,9 @@ namespace dtn {
  * e.g:  eth://00:01:02:03:04:05
  */
 class EthernetAddressFamily : public AddressFamily {
-public:
+ public:
     EthernetAddressFamily(const char* schema)
-        : AddressFamily(schema)
-    {
+        : AddressFamily(schema) {
     }
     
     /**
@@ -76,7 +75,7 @@ public:
      */
     bool match(const std::string& pattern,
                const std::string& admin);
-
+    
     /**
      * Given an admin string , parse out the Ethernet address
      *
@@ -86,9 +85,17 @@ public:
      */
     static bool parse(const std::string& admin,
                       eth_addr_t* addr);
-     
+    
+    
+    /**
+     * Given an ethernet address, write out a string representation.
+     * outstring needs to point to a buffer of length at least 23 chars. 
+     * eth://00:00:00:00:00:00
+     * Returns outstring. 
+     */
+    static char* to_string(eth_addr_t* addr, char* outstring);
 };
-
+    
 } // namespace dtn
 
 #endif /* _ETHERNET_ADDRESS_FAMILY_H_ */

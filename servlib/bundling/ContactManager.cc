@@ -215,7 +215,7 @@ ContactManager::close_link(Link* link)
  * Helper routine to find or create an idle opportunistic link.
  */
 Link*
-ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
+ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
                                         const char* nexthop)
 {
     LinkSet::iterator iter;
@@ -229,11 +229,15 @@ ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
         link = *iter;
         if ( (strcmp(link->nexthop(), nexthop) == 0) &&
              (link->type() == Link::OPPORTUNISTIC)   &&
-             (link->clayer() == cl) &&
-             (! link->isopen()) )
-        {
-            log_debug("found match: link %s", link->name());
-            return link;
+             (link->clayer() == cl) ) {
+            if(! link->isopen()) {
+                log_debug("found match: link %s", link->name());
+                return link;
+            }
+            else {
+                log_debug("found match: link %s, but it's already open! Returning it anyway.", link->name());
+                return link;
+            }
         }
     }
 
@@ -249,11 +253,14 @@ ContactManager::find_opportunistic_link(ConvergenceLayer* cl,
     } while (link != NULL);
         
     link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop, 0, NULL);
-    
+        
     if (!link) {
         log_crit("unexpected error creating opportunistic link!!");
         return NULL;
     }
+
+    // this posts a LinkCreatedEvent, adds peers and does all kinds of nice stuff
+    add_link(link);
 
     return link;
 }
@@ -268,22 +275,27 @@ ContactManager::new_opportunistic_contact(ConvergenceLayer* cl,
                                           CLInfo* clinfo,
                                           const char* nexthop)
 {
-    Link* link = find_opportunistic_link(cl, nexthop);
-    if (!link)
+    Link* link = get_opportunistic_link(cl, nexthop);
+    if (!link) // no link means it couldn't be created
         return NULL;
 
-    // notify the router that the link is ready
-    link->set_link_available();
-
-    // now open the link
-    link->open();
-
-    // store the given cl info in the contact
-    Contact* contact = link->contact();
-    ASSERT(contact);
-    contact->set_cl_info(clinfo);
-
-    return contact;
+    if(!link->isopen()) {
+        // notify the router that the link is ready
+        link->set_link_available();
+        
+        // now open the link
+        link->open();
+        
+        // store the given cl info in the contact
+        Contact* contact = link->contact();
+        ASSERT(contact);
+        contact->set_cl_info(clinfo);
+        return contact;
+    }
+    else {
+        log_debug("Contact to %s already established, ignoring...",nexthop);
+        return link->contact();
+    }
 }
     
 /**

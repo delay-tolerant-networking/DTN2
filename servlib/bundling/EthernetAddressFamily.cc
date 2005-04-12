@@ -91,7 +91,19 @@ EthernetAddressFamily::match(const std::string& pattern,
                              const std::string& admin)
 {
     // XXX/jakob - not implemented
+    log_debug("EthernetAddressFamily","match not implemented.");
     return false;
+}
+
+char* 
+EthernetAddressFamily::to_string(eth_addr_t* addr, char* outstring)
+{
+    sprintf(outstring,"eth://%2X:%2X:%2X:%2X:%2X:%2X", 
+            addr->octet[5], addr->octet[4],
+            addr->octet[3],addr->octet[2],
+            addr->octet[1],addr->octet[0]);
+    
+    return outstring;
 }
 
 } // namespace dtn

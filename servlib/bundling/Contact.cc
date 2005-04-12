@@ -54,6 +54,8 @@ Contact::Contact(Link* link)
 {
     logpathf("/contact/%s", link->nexthop());
 
+    // XXX/jakob - can we change this to use the same bundlelist as the link?
+
     bundle_list_ = new BundleList(logpath_);
     cl_info_ = NULL;
     

@@ -45,7 +45,7 @@
 
 namespace dtn {
 
-class EthConvergenceLayer : public ConvergenceLayer {
+class EthConvergenceLayer : public ConvergenceLayer, public CLInfo {
 public:
     /**
      * Current version of the protocol.
