@@ -39,6 +39,7 @@
 #include "AddressFamily.h"
 #include "FixedAddressFamily.h"
 #include "InternetAddressFamily.h"
+#include "EthernetAddressFamily.h"
 #include "SmtpAddressFamily.h"
 #include "StringAddressFamily.h"
 #include "WildcardAddressFamily.h"
@@ -103,9 +104,11 @@ AddressFamilyTable::AddressFamilyTable()
     wildcard_family_	= new WildcardAddressFamily();
     string_family_	= NULL;
     
+    table_["eth"]       = new EthernetAddressFamily("eth");
     table_["host"] 	= new InternetAddressFamily("host");
     table_["ip"] 	= new InternetAddressFamily("ip");
     table_["smtp"]	= new SmtpAddressFamily();
+    table_["string"]	= new StringAddressFamily();
 }
 
 

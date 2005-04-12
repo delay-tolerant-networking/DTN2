@@ -35,25 +35,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _INTERNET_ADDRESS_FAMILY_H_
-#define _INTERNET_ADDRESS_FAMILY_H_
+#ifndef _ETHERNET_ADDRESS_FAMILY_H_
+#define _ETHERNET_ADDRESS_FAMILY_H_
 
 #include "AddressFamily.h"
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <net/ethernet.h>
 #include <oasys/compat/inttypes.h>
 
 namespace dtn {
 
+  //#define ETH_ADDR_LEN 6
+
+
+    typedef struct ether_addr {
+        u_char octet[ETHER_ADDR_LEN];
+    } eth_addr_t;    
+
 /**
- * Address family to represent internet-style addresses.
+ * Address family to represent ethernet-style addresses.
  *
- * e.g:  host://sandbox.dtnrg.org/demux
- * e.g:  ip://127.0.0.1/demux
+ * e.g:  eth://00:01:02:03:04:05
  */
-class InternetAddressFamily : public AddressFamily {
+class EthernetAddressFamily : public AddressFamily {
 public:
-    InternetAddressFamily(const char* schema)
+    EthernetAddressFamily(const char* schema)
         : AddressFamily(schema)
     {
     }
@@ -71,19 +78,17 @@ public:
                const std::string& admin);
 
     /**
-     * Given an admin string , parse out the ip address and port.
-     * Potentially does a hostname lookup if the admin string doesn't
-     * contain a specified IP address. If the url did not contain a
-     * port, 0 is returned.
+     * Given an admin string , parse out the Ethernet address
+     *
      *
      * @return true if the extraction was a success, false if the url
      * is malformed or is not in the internet address family.
      */
     static bool parse(const std::string& admin,
-                      in_addr_t* addr, u_int16_t* port);
+                      eth_addr_t* addr);
      
 };
 
 } // namespace dtn
 
-#endif /* _INTERNET_ADDRESS_FAMILY_H_ */
+#endif /* _ETHERNET_ADDRESS_FAMILY_H_ */

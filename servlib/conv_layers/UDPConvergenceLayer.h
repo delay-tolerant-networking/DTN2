@@ -61,7 +61,7 @@ public:
         u_int8_t  flags;		///< connection flags and operation
         u_int16_t source_id;		///< socket identifier at sender
         u_int32_t bundle_id;		///< bundle identifier at sender
-    };
+    } __attribute__((packed));
 
     /**
      * Values for flags / op

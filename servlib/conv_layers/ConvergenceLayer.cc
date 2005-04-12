@@ -39,6 +39,7 @@
 #include "TCPConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
 #include "FileConvergenceLayer.h"
+#include "EthConvergenceLayer.h"
 
 namespace dtn {
 
@@ -64,6 +65,7 @@ ConvergenceLayer::init_clayers()
 {
     add_clayer("tcp", new TCPConvergenceLayer());
     add_clayer("udp", new UDPConvergenceLayer());
+    add_clayer("eth", new EthConvergenceLayer());
     add_clayer("file", new FileConvergenceLayer());
 }
 

@@ -87,7 +87,7 @@ bool
 RouteTable::add_entry(RouteEntry* entry)
 {
     // XXC/demmer check for duplicates?
-    
+    // XXX/jakob - shouldn't be necessary since route table is a set?
     
     log_debug("add_route %s -> %s (%s)",
               entry->pattern_.c_str(),
@@ -98,7 +98,7 @@ RouteTable::add_entry(RouteEntry* entry)
     
     return true;
 }
-    
+
 /**
  * Remove a route entry.
  */
@@ -184,5 +184,4 @@ RouteTable::dump(oasys::StringBuffer* buf) const
                      bundle_fwd_action_toa(entry->action_));
     }
 }
-
 } // namespace dtn

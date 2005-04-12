@@ -217,6 +217,7 @@ public:
      * Matching function, implementing wildcarding semantics.
      */
     bool match(const BundleTuple& tuple) const;
+    
 
 protected:
     bool match_region(const std::string& tuple_region) const;

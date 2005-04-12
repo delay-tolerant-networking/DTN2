@@ -117,6 +117,10 @@ public:
      */
     static ConvergenceLayer* find_clayer(const char* proto);
 
+    /**
+     * Magic number used for DTN convergence layers     
+     */
+    static const u_int32_t MAGIC = 0x64746e21; //'DTN!'
     
 protected:
     /**

@@ -24,6 +24,7 @@ BUNDLING_SRCS := 				\
 	bundling/Interface.cc			\
 	bundling/InterfaceTable.cc		\
 	bundling/InternetAddressFamily.cc	\
+	bundling/EthernetAddressFamily.cc	\
 	bundling/Link.cc			\
 	bundling/OndemandLink.cc		\
 	bundling/OpportunisticLink.cc		\
@@ -39,6 +40,7 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/ConvergenceLayer.cc		\
 	conv_layers/FileConvergenceLayer.cc	\
 	conv_layers/IPConvergenceLayer.cc	\
+	conv_layers/EthConvergenceLayer.cc	\
 	conv_layers/TCPConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
 

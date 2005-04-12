@@ -372,6 +372,15 @@ BundleRouter::handle_link_created(LinkCreatedEvent* event,
                                   BundleActions* actions)
 {
     log_info("LINK_CREATED *%p", event->link_);
+
+    /*
+     *  Create a route entry for the new link.
+     */
+    RouteEntry* entry = new RouteEntry(BundleTuplePattern(event->link_->name()), 
+                                      event->link_, 
+                                      FORWARD_REASSEMBLE);
+    route_table_->add_entry(entry);
+    printf("Route table size now %d.\n",route_table_->size());
 }
 
 /**

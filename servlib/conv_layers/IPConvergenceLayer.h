@@ -57,10 +57,6 @@ protected:
     }
     
 public:
-    /**
-     * Magic number used in the TCP and UDP protocols.
-     */
-    static const u_int32_t MAGIC = 0x64746e21;
 };
 
 } // namespace dtn

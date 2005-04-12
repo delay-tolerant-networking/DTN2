@@ -351,6 +351,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
     oasys::StringBuffer payload_buf(payload_len);
     const u_char* payload_data =
         bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
+
+    // XXX/jakob - does this really work? seems there aren't enough slots in the iov array?
     iov[iovcnt + 1].iov_base = (char*)payload_data;
     iov[iovcnt + 1].iov_len = payload_len;
 
