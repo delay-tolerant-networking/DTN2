@@ -373,14 +373,18 @@ BundleRouter::handle_link_created(LinkCreatedEvent* event,
 {
     log_info("LINK_CREATED *%p", event->link_);
 
-    /*
-     *  Create a route entry for the new link.
-     */
-    RouteEntry* entry = new RouteEntry(BundleTuplePattern(event->link_->name()), 
-                                      event->link_, 
-                                      FORWARD_REASSEMBLE);
-    route_table_->add_entry(entry);
-    printf("Route table size now %d.\n",route_table_->size());
+    // XXX/demmer removed the following that jacob added since it's
+    // not necessarily valid since the link name isn't guaranteed to
+    // be a valid tuple pattern
+    
+//     /*
+//      *  Create a route entry for the new link.
+//      */
+//     RouteEntry* entry = new RouteEntry(BundleTuplePattern(event->link_->name()), 
+//                                       event->link_, 
+//                                       FORWARD_REASSEMBLE);
+//     route_table_->add_entry(entry);
+//     printf("Route table size now %d.\n",route_table_->size());
 }
 
 /**
