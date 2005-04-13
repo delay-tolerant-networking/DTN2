@@ -76,10 +76,12 @@ EthConvergenceLayer::EthConvergenceLayer()
 /* 
  *   Start listening to, and sending beacons on, the provided interface.
  *
- *   For now, we only support interface strings on the form
- *   string://<int> where the int is the internal interface number. 
- * 
- *   XXX/jakob - how do we map /dev/eth0-style interface names to these internal numbers?
+ *   For now, we support interface strings on the form
+ *   string://eth0
+ *   
+ *   this should change further down the line to simply be
+ *    eth0
+ *  
  */
 
 bool
@@ -194,7 +196,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     size_t header_len, bundle_len;
     struct ether_header* ethhdr=(struct ether_header*)bp;
     
-    log_debug("process_data: reading eth cl header...");    
+    log_debug("Received DTN packet on interface %s.",if_name_);    
 
     // copy in the ethcl header.
     if (len < sizeof(EthCLHeader)) {
@@ -212,18 +214,20 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     }
 
     if(ethclhdr.type == ETHCL_BEACON) {
-        char buf[23];
-        
         ContactManager* cm = BundleDaemon::instance()->contactmgr();
-        EthernetAddressFamily::to_string((struct ether_addr*)ethhdr->ether_shost,buf);
+
+        char next_hop_string[24];  // 23 chars + string terminator: eth://00:00:00:00:00:00       
+        EthernetAddressFamily::to_string((struct ether_addr*)ethhdr->ether_shost, next_hop_string);
 
         // XXX/jakob this is a bit of a hack. 
-        if(!cm->find_peer(buf)) 
+        // It could be that we have the peer, but no link at the moment...
+
+        if(!cm->find_peer(next_hop_string)) 
         {
-            // XXX/jakob no CLInfo for Eth links so far, using "this" as a placeholder for now
+            log_info("Discovered next_hop %s on interface %s.", next_hop_string, if_name_);
             cm->new_opportunistic_contact(ConvergenceLayer::find_clayer("eth"),
-                                          this,                                  
-                                          buf);
+                                          new EthCLInfo(if_name_,ethhdr->ether_shost),    
+                                          next_hop_string);
         }
     }
     else if(ethclhdr.type == ETHCL_BUNDLE) {
@@ -342,94 +346,113 @@ EthConvergenceLayer::Sender::Sender(Contact* contact)
 bool 
 EthConvergenceLayer::Sender::send_bundle(Bundle* bundle) 
 {
-  // XXX/jakob - these are all bogus
-  char src[6]={0x00,0x07,0xe9,0x01,0x00,0xf3};
-  char dest[6]={0x00,0x0d,0x93,0xb4,0xf4,0xee};
+    int cc;
+    int iovcnt = BundleProtocol::MAX_IOVCNT; 
+    struct iovec iov[iovcnt + 3];
+        
+    EthCLHeader ethclhdr;
+    struct ether_header hdr;
+    
+    // iovec slot 0 holds the ethernet header
 
-  int sock,cc;
-  int iovcnt = BundleProtocol::MAX_IOVCNT; 
-  struct iovec iov[iovcnt + 3];
+    iov[0].iov_base = (char*)&hdr;
+    iov[0].iov_len = sizeof(struct ether_header);
 
-  EthCLHeader ethclhdr;
-  struct ether_header hdr;
-  
-  struct sockaddr_ll iface;
-  
-  ethclhdr.version	= ETHCL_VERSION;
-  ethclhdr.type         = ETHCL_BUNDLE;
-  ethclhdr.bundle_id	= ntohl(bundle->bundleid_);
-  
-  // iovec slot 0 holds the ethernet header
-  iov[0].iov_base = (char*)&hdr;
-  iov[0].iov_len = sizeof(struct ether_header);
+    // write the ethernet header
 
-  // use iovec slot 1 for the eth cl header
-  iov[1].iov_base = (char*)&ethclhdr;
-  iov[1].iov_len  = sizeof(EthCLHeader);
-  
-  // fill in the rest of the iovec with the bundle header
-  u_int16_t header_len = BundleProtocol::format_headers(bundle, &iov[2], &iovcnt);
-  size_t payload_len = bundle->payload_.length();
-  
-  log_debug("send_bundle: bundle id %d, header_length %d payload_length %d",
-	    bundle->bundleid_, header_len, payload_len);
-  
-  oasys::StringBuffer payload_buf(payload_len);
-  const u_char* payload_data =
-    bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
+    memcpy(hdr.ether_dhost,((EthCLInfo*)contact_->cl_info())->hw_addr_,6);
+    memcpy(hdr.ether_shost,hw_addr_,6); // Sender::hw_addr
+    hdr.ether_type=ETHERTYPE_DTN;
+    
+    // iovec slot 1 for the eth cl header
 
-  iov[iovcnt + 2].iov_base = (char*)payload_data;
-  iov[iovcnt + 2].iov_len = payload_len;
-  
-  if((sock = socket(AF_PACKET,SOCK_RAW, htons(ETHERTYPE_DTN))) < 0) { 
-    perror("socket");
-    exit(1);
-  }
+    iov[1].iov_base = (char*)&ethclhdr;
+    iov[1].iov_len  = sizeof(EthCLHeader);
+    
+    // write the ethcl header
 
-  // XXX/jakob - how does the sender know which interface?
-  //             probably this layer needs to remember who's where
+    ethclhdr.version	= ETHCL_VERSION;
+    ethclhdr.type       = ETHCL_BUNDLE;
+    ethclhdr.bundle_id	= ntohl(bundle->bundleid_);    
 
-  iface.sll_family=AF_PACKET;
-  iface.sll_protocol=htons(ETH_P_ALL);
-  iface.sll_ifindex=2;  // XXX/jakob - this is totally arbitrary! Will not work!
+    // fill in the rest of the iovec with the bundle header
 
-  
-  if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
-    perror("bind");
-    exit(1);
-  }
-  
-  memcpy(hdr.ether_dhost,dest,6);
-  memcpy(hdr.ether_shost,src,6);
-  
-  hdr.ether_type=ETHERTYPE_DTN;
-  
-  cc=IO::writevall(sock, iov, iovcnt+3);
-  if(cc<0) {
-    perror("send");
-    printf("Send failed!\n");
-  }
-  
-  // free up the iovec data used in the header representation
-  // (bundle header that is)
-  BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt);
-  
-  // check that we successfully wrote it all
-  int total = sizeof(EthCLHeader) + header_len + payload_len;
-  if (cc != total) {
-    log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
-	    cc, total, strerror(errno));
-    return false;
-  }
-  
-  // all set
-  return true;
+    u_int16_t header_len = BundleProtocol::format_headers(bundle, &iov[2], &iovcnt);
+    size_t payload_len = bundle->payload_.length();
+    
+    log_debug("send_bundle: bundle id %d, header_length %d payload_length %d",
+              bundle->bundleid_, header_len, payload_len);
+    
+    oasys::StringBuffer payload_buf(payload_len);
+    const u_char* payload_data =
+        bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
+    
+    iov[iovcnt + 2].iov_base = (char*)payload_data;
+    iov[iovcnt + 2].iov_len = payload_len;
+    
+
+    // We're done assembling the packet. Now write the whole thing to the socket!
+
+    cc=IO::writevall(sock, iov, iovcnt+3);
+    if(cc<0) {
+        perror("send");
+        printf("Send failed!\n");
+    }    
+    
+    // free up the iovec data used in the header representation
+    // (bundle header that is)
+    BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt);
+    
+    // check that we successfully wrote it all
+    int total = sizeof(EthCLHeader) + header_len + payload_len;
+    if (cc != total) {
+        log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
+                cc, total, strerror(errno));
+        return false;
+    }
+    
+    // all set
+    return true;
 }
 
 void
 EthConvergenceLayer::Sender::run()
 {
     Bundle* bundle;
+    struct ifreq req;
+    struct sockaddr_ll iface;
+
+    // Get and bind a RAW socket for this contact
+    // XXX/jakob - seems like it'd be enough with one socket per interface, not one per contact. 
+    //             figure this out some time.
+    if((sock = socket(AF_PACKET,SOCK_RAW, htons(ETHERTYPE_DTN))) < 0) { 
+        perror("socket");
+        exit(1);
+    }
+
+    // get the interface name from the contact info
+    strcpy(req.ifr_name, ((EthCLInfo*)contact_->cl_info())->if_name_);
+
+    // ifreq the interface index for binding the socket    
+    ioctl(sock, SIOCGIFINDEX, &req);
+    
+    iface.sll_family=AF_PACKET;
+    iface.sll_protocol=htons(ETHERTYPE_DTN);
+    iface.sll_ifindex=req.ifr_ifindex;
+        
+    if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
+        perror("bind");
+        exit(1);
+    }
+
+    // store away the ethernet address of the device in question
+    if(ioctl(sock, SIOCGIFHWADDR, &req))
+    {
+        perror("ioctl");
+        exit(1);
+    } 
+
+    memcpy(hw_addr_,req.ifr_hwaddr.sa_data,6);    
 
     while (1) {
 
@@ -489,6 +512,7 @@ EthConvergenceLayer::Beacon::Beacon(const char* if_name)
 
 void EthConvergenceLayer::Beacon::run()
 {
+    // ethernet broadcast address
     char dest[6]={0xff,0xff,0xff,0xff,0xff,0xff};
     
     struct ether_header hdr;
@@ -514,9 +538,8 @@ void EthConvergenceLayer::Beacon::run()
 
     /* 
        Get ourselves a raw socket, and configure it.
-       XXX/jakob - should start only looking at DTN packets soon
     */
-    if((sock = socket(AF_PACKET,SOCK_RAW, htons(ETH_P_ALL))) < 0) { 
+    if((sock = socket(AF_PACKET,SOCK_RAW, htons(ETHERTYPE_DTN))) < 0) { 
         perror("socket");
         exit(1);
     }
@@ -542,8 +565,7 @@ void EthConvergenceLayer::Beacon::run()
     log_info("Interface %s has interface number %d.",if_name_,req.ifr_ifindex);
     
     iface.sll_family=AF_PACKET;
-    iface.sll_protocol=htons(ETH_P_ALL);
-
+    iface.sll_protocol=htons(ETHERTYPE_DTN);
     
     if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
         perror("bind");

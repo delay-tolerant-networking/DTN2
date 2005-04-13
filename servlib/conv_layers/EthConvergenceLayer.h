@@ -43,9 +43,20 @@
 #include <servlib/bundling/EthernetAddressFamily.h>
 #include "linux/if.h"
 
+
+/** 
+ *   The EthConvergenceLayer provides access to any ethernet interfaces that
+ *  support RAW sockets. It periodically sends beacons out on each interface
+ *  to support neighbor discovery. (this may change later). 
+ *
+ *   To add an ethernet interface in your config file, use:
+ *
+ *   interface add eth string://eth0
+ *
+ */
 namespace dtn {
 
-class EthConvergenceLayer : public ConvergenceLayer, public CLInfo {
+class EthConvergenceLayer : public ConvergenceLayer {
 public:
     /**
      * Current version of the protocol.
@@ -60,12 +71,25 @@ public:
      * The basic Eth header structure.
      */
     struct EthCLHeader {
-//        u_int32_t magic;		///< magic word (MAGIC: "dtn!")
         u_int8_t  version;		///< ethcl protocol version
         u_int8_t  type;                 ///< 
         u_int16_t _padding2;            ///< 
         u_int32_t bundle_id;		///< bundle identifier at sender
     } __attribute__((packed));
+
+    class EthCLInfo : public CLInfo {
+      public:
+        EthCLInfo(char* if_name, u_int8_t* hw_addr) {            
+            strcpy(if_name_,if_name);
+            memcpy(hw_addr_, hw_addr, ETH_ALEN);
+        }
+        
+        // MAC address of Peer
+        u_int8_t hw_addr_[ETH_ALEN]; 
+        
+        // Name of the device 
+        char if_name_[IFNAMSIZ]; 
+    };
 
     /**
      * Constructor.
@@ -169,11 +193,17 @@ public:
          */
         void break_contact();
         Contact* contact_;
+        
+        // Socket identifier
+        int sock;  
+
+        // MAC address of the interface used for this contact
+        u_int8_t* hw_addr_[6];
     };   
 
     /** 
-	helper class (and thread) that periodically sends beacon messages
-	over all available ethernet interfaces.
+     *  helper class (and thread) that periodically sends beacon messages
+     *  over the specified ethernet interface.
     */
     class Beacon : public oasys::Logger, public oasys::Thread {
     public:
