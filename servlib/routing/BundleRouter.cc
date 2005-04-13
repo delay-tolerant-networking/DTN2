@@ -51,6 +51,7 @@
 
 #include "StaticBundleRouter.h"
 #include "FloodBundleRouter.h"
+#include "DynamicBundleRouter.h"
 
 namespace dtn {
 
@@ -79,10 +80,13 @@ size_t BundleRouter::proactive_frag_threshold_;
 BundleRouter*
 BundleRouter::create_router(const char* type)
 {
-    if (!strcmp(type, "static")) {
+    if (strcmp(type, "static") == 0) {
         return new StaticBundleRouter();
     }
-    else if (!strcmp(type, "flood")) {
+    else if (strcmp(type, "dynamic") == 0) {
+        return new DynamicBundleRouter();
+    }
+    else if (strcmp(type, "flood") == 0) {
         return new FloodBundleRouter();
     }
     else {
@@ -372,19 +376,6 @@ BundleRouter::handle_link_created(LinkCreatedEvent* event,
                                   BundleActions* actions)
 {
     log_info("LINK_CREATED *%p", event->link_);
-
-    // XXX/demmer removed the following that jacob added since it's
-    // not necessarily valid since the link name isn't guaranteed to
-    // be a valid tuple pattern
-    
-//     /*
-//      *  Create a route entry for the new link.
-//      */
-//     RouteEntry* entry = new RouteEntry(BundleTuplePattern(event->link_->name()), 
-//                                       event->link_, 
-//                                       FORWARD_REASSEMBLE);
-//     route_table_->add_entry(entry);
-//     printf("Route table size now %d.\n",route_table_->size());
 }
 
 /**
