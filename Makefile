@@ -12,6 +12,14 @@ SUBDIRS := oasys applib servlib daemon apps sim
 
 all: checkconfigure $(SUBDIRS)
 
+#
+# Dependency rules between subdirectories needed for make -j
+#
+applib servlib: oasys
+daemon: applib servlib
+apps: applib
+sim: servlib
+
 alltest:
 	$(MAKE) all
 	$(MAKE) -C test
