@@ -61,9 +61,9 @@ EthernetAddressFamily::parse(const std::string& admin,
     // eth://00:01:02:03:04:05
     
     // this is a nasty hack. grab the ethernet address out of there, assuming everything is correct
-    int r=sscanf(admin.c_str(),"eth://%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx$",
+    int r=sscanf(admin.c_str(),"eth://%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx",
                 &addr->octet[0],&addr->octet[1],&addr->octet[2],&addr->octet[3],&addr->octet[4],&addr->octet[5]);
-    if(r!=6 || ( admin.length() != 23)) {
+    if(r!=6) {
         log_err("af/ethernet","string %s is not a valid ethernet URL",admin.c_str());
         return false;
     }
@@ -91,7 +91,7 @@ EthernetAddressFamily::match(const std::string& pattern,
                              const std::string& admin)
 {
     log_debug("Matching %s against %s.",pattern.c_str(), admin.c_str());
-    return pattern == admin;
+    return (admin == pattern) || (admin.find(pattern,0)==0 && pattern[pattern.size()-1]=='*'); 
 }
 
 char* 
