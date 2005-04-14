@@ -62,7 +62,7 @@ EthernetAddressFamily::parse(const std::string& admin,
     
     // this is a nasty hack. grab the ethernet address out of there, assuming everything is correct
     int r=sscanf(admin.c_str(),"eth://%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx$",
-                &addr->octet[5],&addr->octet[4],&addr->octet[3],&addr->octet[2],&addr->octet[1],&addr->octet[0]);
+                &addr->octet[0],&addr->octet[1],&addr->octet[2],&addr->octet[3],&addr->octet[4],&addr->octet[5]);
     if(r!=6 || ( admin.length() != 23)) {
         log_err("af/ethernet","string %s is not a valid ethernet URL",admin.c_str());
         return false;
@@ -90,20 +90,20 @@ bool
 EthernetAddressFamily::match(const std::string& pattern,
                              const std::string& admin)
 {
-    // XXX/jakob - not implemented
-    log_debug("EthernetAddressFamily","match not implemented.");
-    return false;
+    log_debug("Matching %s against %s.",pattern.c_str(), admin.c_str());
+    return pattern == admin;
 }
 
 char* 
 EthernetAddressFamily::to_string(eth_addr_t* addr, char* outstring)
 {
-    sprintf(outstring,"eth://%2X:%2X:%2X:%2X:%2X:%2X", 
-            addr->octet[5], addr->octet[4],
-            addr->octet[3],addr->octet[2],
-            addr->octet[1],addr->octet[0]);
+    sprintf(outstring,"eth://%02X:%02X:%02X:%02X:%02X:%02X", 
+            addr->octet[0], addr->octet[1],
+            addr->octet[2],addr->octet[3],
+            addr->octet[4],addr->octet[5]);
     
     return outstring;
 }
+
 
 } // namespace dtn

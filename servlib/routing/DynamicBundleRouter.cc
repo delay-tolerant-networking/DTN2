@@ -52,6 +52,13 @@
 
 namespace dtn {
 
+DynamicBundleRouter::DynamicBundleRouter()
+{
+    Logger::set_logpath("/route/dynamic");
+    log_info("Initializing DynamicBundleRouter");
+}
+
+
 /**
  * Default event handler when a new link is created
  */
@@ -59,12 +66,17 @@ void
 DynamicBundleRouter::handle_link_created(LinkCreatedEvent* event,
                                          BundleActions* actions)
 {
-    log_info("LINK_CREATED *%p", event->link_);
-    
+    log_info("LINK_CREATED *%p adding route", event->link_);
+
+    // XXX/jakob - this is pretty nasty really. I believe the bundles://<region> syntax needs to go very soon.
+   
+    char tuplestring[100];
+    sprintf(tuplestring, "bundles://internet/%s",event->link_->nexthop());
+
     // By default, we add a route for all the next hops we have around. 
-    RouteEntry* entry = new RouteEntry(BundleTuplePattern(event->link_->nexthop()), 
+    RouteEntry* entry = new RouteEntry(BundleTuplePattern(tuplestring), 
                                        event->link_, 
-                                       FORWARD_REASSEMBLE);
+                                       FORWARD_REASSEMBLE);    
     route_table_->add_entry(entry);
 }
 

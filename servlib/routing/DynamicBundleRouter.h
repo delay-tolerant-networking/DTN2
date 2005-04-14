@@ -44,7 +44,7 @@ namespace dtn {
 
 class DynamicBundleRouter : public BundleRouter {
 public:
-    DynamicBundleRouter() {}
+    DynamicBundleRouter();
 
     void handle_link_created(LinkCreatedEvent* event,
                              BundleActions* actions);

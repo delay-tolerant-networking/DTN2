@@ -225,9 +225,14 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         if(!cm->find_peer(next_hop_string)) 
         {
             log_info("Discovered next_hop %s on interface %s.", next_hop_string, if_name_);
-            cm->new_opportunistic_contact(ConvergenceLayer::find_clayer("eth"),
+
+            // registers a new contact with the routing layer
+            Contact* c=cm->new_opportunistic_contact(ConvergenceLayer::find_clayer("eth"),
                                           new EthCLInfo(if_name_,ethhdr->ether_shost),    
-                                          next_hop_string);
+                                          next_hop_string);                        
+
+            // prepares the new contact for sending.
+            ConvergenceLayer::find_clayer("eth")->open_contact(c);
         }
     }
     else if(ethclhdr.type == ETHCL_BUNDLE) {
@@ -235,14 +240,14 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         
         // infer the bundle length based on the packet length minus the
         // eth cl header
-        bundle_len = len - sizeof(EthCLHeader);
+        bundle_len = len - sizeof(EthCLHeader) - sizeof(struct ether_header);
         
         log_debug("process_data: got ethcl header -- bundle id %d, length %d",
-                  ethclhdr.bundle_id, bundle_len);
+                  ntohl(ethclhdr.bundle_id), bundle_len);
         
         // skip past the cl header
-        bp  += sizeof(EthCLHeader);
-        len -= sizeof(EthCLHeader);
+        bp  += (sizeof(EthCLHeader) + sizeof(struct ether_header));
+        len -= (sizeof(EthCLHeader) + sizeof(struct ether_header));
         
         // parse the headers into a new bundle. this sets the payload_len
         // appropriately in the new bundle and returns the number of bytes
@@ -362,7 +367,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 
     memcpy(hdr.ether_dhost,((EthCLInfo*)contact_->cl_info())->hw_addr_,6);
     memcpy(hdr.ether_shost,hw_addr_,6); // Sender::hw_addr
-    hdr.ether_type=ETHERTYPE_DTN;
+    hdr.ether_type=htons(ETHERTYPE_DTN);
     
     // iovec slot 1 for the eth cl header
 
@@ -373,14 +378,14 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 
     ethclhdr.version	= ETHCL_VERSION;
     ethclhdr.type       = ETHCL_BUNDLE;
-    ethclhdr.bundle_id	= ntohl(bundle->bundleid_);    
+    ethclhdr.bundle_id	= htonl(bundle->bundleid_);    
 
     // fill in the rest of the iovec with the bundle header
 
     u_int16_t header_len = BundleProtocol::format_headers(bundle, &iov[2], &iovcnt);
     size_t payload_len = bundle->payload_.length();
     
-    log_debug("send_bundle: bundle id %d, header_length %d payload_length %d",
+    log_info("send_bundle: bundle id %d, header_length %d payload_length %d",
               bundle->bundleid_, header_len, payload_len);
     
     oasys::StringBuffer payload_buf(payload_len);
@@ -392,6 +397,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     
 
     // We're done assembling the packet. Now write the whole thing to the socket!
+    log_info("Sending bundle out interface %s",((EthCLInfo*)contact_->cl_info())->if_name_);
 
     cc=IO::writevall(sock, iov, iovcnt+3);
     if(cc<0) {
@@ -401,10 +407,10 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     
     // free up the iovec data used in the header representation
     // (bundle header that is)
-    BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt);
+    BundleProtocol::free_header_iovmem(bundle, &iov[2], iovcnt);
     
     // check that we successfully wrote it all
-    int total = sizeof(EthCLHeader) + header_len + payload_len;
+    int total = sizeof(EthCLHeader) + sizeof(struct ether_header) + header_len + payload_len;
     if (cc != total) {
         log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
                 cc, total, strerror(errno));
@@ -440,19 +446,18 @@ EthConvergenceLayer::Sender::run()
     iface.sll_protocol=htons(ETHERTYPE_DTN);
     iface.sll_ifindex=req.ifr_ifindex;
         
-    if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
-        perror("bind");
-        exit(1);
-    }
-
     // store away the ethernet address of the device in question
     if(ioctl(sock, SIOCGIFHWADDR, &req))
     {
         perror("ioctl");
         exit(1);
     } 
-
     memcpy(hw_addr_,req.ifr_hwaddr.sa_data,6);    
+
+    if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
+        perror("bind");
+        exit(1);
+    }
 
     while (1) {
 
@@ -577,7 +582,7 @@ void EthConvergenceLayer::Beacon::run()
      */
     while(1) {
         sleep(1);
-        log_info("Sent beacon out interface %s.\n",if_name_ );
+        log_debug("Sent beacon out interface %s.\n",if_name_ );
         
         cc=IO::writevall(sock, iov, 2);
         if(cc<0) {
