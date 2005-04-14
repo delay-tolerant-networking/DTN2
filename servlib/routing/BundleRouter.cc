@@ -51,7 +51,7 @@
 
 #include "StaticBundleRouter.h"
 #include "FloodBundleRouter.h"
-#include "DynamicBundleRouter.h"
+#include "NeighborhoodRouter.h"
 
 namespace dtn {
 
@@ -83,8 +83,8 @@ BundleRouter::create_router(const char* type)
     if (strcmp(type, "static") == 0) {
         return new StaticBundleRouter();
     }
-    else if (strcmp(type, "dynamic") == 0) {
-        return new DynamicBundleRouter();
+    else if (strcmp(type, "neighborhood") == 0) {
+        return new NeighborhoodRouter();
     }
     else if (strcmp(type, "flood") == 0) {
         return new FloodBundleRouter();

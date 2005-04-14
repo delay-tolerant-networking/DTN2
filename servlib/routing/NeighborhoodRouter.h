@@ -35,49 +35,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef _NEIGHBORHOOD_ROUTER_H_
+#define _NEIGHBORHOOD_ROUTER_H_
 
 #include "BundleRouter.h"
-#include "RouteTable.h"
-#include "bundling/Bundle.h"
-#include "bundling/BundleActions.h"
-#include "bundling/BundleDaemon.h"
-#include "bundling/BundleList.h"
-#include "bundling/Contact.h"
-#include "bundling/FragmentManager.h"
-#include "reg/Registration.h"
-#include <stdlib.h>
-
-#include "DynamicBundleRouter.h"
-#include <stdlib.h>
 
 namespace dtn {
 
-DynamicBundleRouter::DynamicBundleRouter()
-{
-    Logger::set_logpath("/route/dynamic");
-    log_info("Initializing DynamicBundleRouter");
-}
+class NeighborhoodRouter : public BundleRouter {
+public:
+    NeighborhoodRouter();
 
-
-/**
- * Default event handler when a new link is created
- */
-void
-DynamicBundleRouter::handle_link_created(LinkCreatedEvent* event,
-                                         BundleActions* actions)
-{
-    log_info("LINK_CREATED *%p adding route", event->link_);
-
-    // XXX/jakob - this is pretty nasty really. I believe the bundles://<region> syntax needs to go very soon.
-   
-    char tuplestring[100];
-    sprintf(tuplestring, "bundles://internet/%s",event->link_->nexthop());
-
-    // By default, we add a route for all the next hops we have around. 
-    RouteEntry* entry = new RouteEntry(BundleTuplePattern(tuplestring), 
-                                       event->link_, 
-                                       FORWARD_REASSEMBLE);    
-    route_table_->add_entry(entry);
-}
+    void handle_link_created(LinkCreatedEvent* event,
+                             BundleActions* actions);
+};
 
 } // namespace dtn
+
+#endif /* _NEIGHBORHOOD_ROUTER_H_ */

@@ -66,7 +66,7 @@ ROUTING_SRCS :=					\
 	routing/RouteTable.cc			\
 	routing/BundleRouter.cc			\
 	routing/FloodBundleRouter.cc		\
-	routing/DynamicBundleRouter.cc		\
+	routing/NeighborhoodRouter.cc		\
 
 STORAGE_SRCS :=					\
 	storage/BundleStore.cc			\
