@@ -47,36 +47,30 @@
 #include "reg/Registration.h"
 #include <stdlib.h>
 
-#include "NeighborhoodRouter.h"
+#include "LinkStateGraph.h"
+
 
 namespace dtn {
 
-NeighborhoodRouter::NeighborhoodRouter()
-{
-    Logger::set_logpath("/route/dynamic");
-    log_info("Initializing NeighborhoodRouter");
+LinkStateGraph::LinkStateGraph() {
+    
 }
 
+LinkStateGraph::Vertice* 
+LinkStateGraph::findNextHopTo(Vertice &to) {
+    
+    return 0;
+}
 
-/**
- * Default event handler when a new link is created
- */
-void
-NeighborhoodRouter::handle_link_created(LinkCreatedEvent* event)
-{
-    log_info("LINK_CREATED *%p adding route", event->link_);
-
-    // XXX/jakob - this is pretty nasty really. I believe the bundles://<region> syntax needs to go very soon.
-   
-    char tuplestring[100];
-    sprintf(tuplestring, "bundles://internet/%s",event->link_->nexthop());
-
-    // By default, we add a route for all the next hops we have around. 
-    RouteEntry* entry = new RouteEntry(BundleTuplePattern(tuplestring), 
-                                       event->link_, 
-                                       FORWARD_REASSEMBLE);    
-    add_route(entry);
+void 
+LinkStateGraph::addEdge(Vertice &from, Vertice &to) {
 
 }
+
+LinkStateGraph::Vertice *
+LinkStateGraph::findVertice(char* eid) {
+    return 0;
+}
+
 
 } // namespace dtn

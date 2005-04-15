@@ -48,7 +48,6 @@
 #include <stdlib.h>
 
 #include "FloodBundleRouter.h"
-#include <stdlib.h>
 
 namespace dtn {
 
