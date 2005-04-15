@@ -520,6 +520,13 @@ BundleRouter::handle_reassembly_completed(ReassemblyCompletedEvent* event,
     actions->store_add(bundle);
 }
 
+void
+BundleRouter::add_route(RouteEntry *entry, BundleActions* actions)
+{
+    route_table_->add_entry(entry);
+    new_next_hop(entry->pattern_, entry->next_hop_, actions);        
+}
+
 /**
  * Default event handler when a new route is added by the command
  * or management interface.
@@ -532,8 +539,7 @@ BundleRouter::handle_route_add(RouteAddEvent* event,
                                BundleActions* actions)
 {
     RouteEntry* entry = event->entry_;
-    route_table_->add_entry(entry);
-    new_next_hop(entry->pattern_, entry->next_hop_, actions);
+    add_route(entry, actions);
 }
 
 /**

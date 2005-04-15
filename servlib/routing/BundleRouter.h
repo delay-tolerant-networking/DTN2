@@ -273,6 +273,11 @@ protected:
                              BundleActions* actions);
 
 
+    /**
+     * Add a route entry to the routing table. 
+     */
+    void add_route(RouteEntry *entry, BundleActions* actions);
+
     /// The set of local regions that this router is configured as "in".
     oasys::StringVector local_regions_;
 

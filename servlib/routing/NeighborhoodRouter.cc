@@ -77,7 +77,8 @@ NeighborhoodRouter::handle_link_created(LinkCreatedEvent* event,
     RouteEntry* entry = new RouteEntry(BundleTuplePattern(tuplestring), 
                                        event->link_, 
                                        FORWARD_REASSEMBLE);    
-    route_table_->add_entry(entry);
+    add_route(entry, actions);
+
 }
 
 } // namespace dtn
