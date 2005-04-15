@@ -159,7 +159,7 @@ BundleDaemon::run()
         update_statistics(event);
 
         // dispatch to the router, passing along any actions
-        router_->handle_event(event, actions_);
+        router_->handle_event(event);
     }
 }
 

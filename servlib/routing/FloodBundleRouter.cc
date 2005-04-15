@@ -79,8 +79,7 @@ FloodBundleRouter::~FloodBundleRouter()
  * contacts, filling in the action list with forwarding decisions.
  */
 void
-FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
-                                          BundleActions* actions)
+FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
     Bundle* bundle = event->bundleref_.bundle();
     log_info("FLOOD: bundle_rcv bundle id %d", bundle->bundleid_);
@@ -132,21 +131,20 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event,
     
     pending_bundles_->push_back(bundle, NULL);
     if (event->source_ != EVENTSRC_PEER)
-        actions->store_add(bundle);
+        actions_->store_add(bundle);
     
     //here we do not need to handle the new bundle immediately
     //just put it in the pending_bundles_ queue, and it
     //needs to be used only when a new contact comes up
     //**might do something different if the bundle is from
     //  the local node
-    //BundleRouter::handle_bundle_received(event, actions);
+    //BundleRouter::handle_bundle_received(event, actions_);
 
-    fwd_to_matching(bundle,actions,true);
+    fwd_to_matching(bundle, true);
 }
 
 void
-FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
-                                        BundleActions* actions)
+FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
     Bundle* bundle = event->bundleref_.bundle();
     
@@ -154,7 +152,7 @@ FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
     
     //only call the fragmentation routine if we send nonzero bytes
     if(event->bytes_sent_ > 0) {
-        BundleRouter::handle_bundle_transmitted(event,actions);         
+        BundleRouter::handle_bundle_transmitted(event);         
     } else {
         log_info("FLOOD: transmitted ZERO bytes:%d",bundle->bundleid_);
     }
@@ -178,8 +176,7 @@ FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event,
  * registration.
  */
 void
-FloodBundleRouter::handle_registration_added(RegistrationAddedEvent* event,
-                                        BundleActions* actions)
+FloodBundleRouter::handle_registration_added(RegistrationAddedEvent* event)
 {
     Registration* registration = event->registration_;
     log_info("FLOOD: new registration for %s", registration->endpoint().c_str());
@@ -188,15 +185,14 @@ FloodBundleRouter::handle_registration_added(RegistrationAddedEvent* event,
                                        registration, FORWARD_REASSEMBLE);
     route_table_->add_entry(entry);
  
-    //BundleRouter::handle_registration_added(event,actions);
+    //BundleRouter::handle_registration_added(event,actions_);
 }
 
 /**
  * Default event handler when a new link is created.
  */
 void
-FloodBundleRouter::handle_link_created(LinkCreatedEvent* event,
-                                       BundleActions* actions)
+FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
 {
     
     Link* link = event->link_;
@@ -204,7 +200,10 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event,
     log_info("FLOOD: LINK_CREATED *%p", event->link_);
 
     RouteEntry* entry = new RouteEntry(all_tuples_, link, FORWARD_COPY);
-    route_table_->add_entry(entry);
+
+    add_route(entry);
+
+//    route_table_->add_entry(entry);
 
     //first clear the list with the contact
 //    contact->bundle_list()->clear();
@@ -212,15 +211,14 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event,
     //copy the pending_bundles_ list into a new exchange list
     //exchange_list_ = pending_bundles_->copy();
     //
-    new_next_hop(all_tuples_, link, actions);
+//    new_next_hop(all_tuples_, link, actions_);
 }
 
 /**
  * Default event handler when a contact is down
  */
 void
-FloodBundleRouter::handle_contact_down(ContactDownEvent* event,
-                                    BundleActions* actions)
+FloodBundleRouter::handle_contact_down(ContactDownEvent* event)
 {
     Contact* contact = event->contact_;
     log_info("FLOOD: CONTACT_DOWN *%p: removing queued bundles", contact);
@@ -238,10 +236,9 @@ FloodBundleRouter::handle_contact_down(ContactDownEvent* event,
 }
 
 void
-FloodBundleRouter::handle_route_add(RouteAddEvent* event,
-                               BundleActions* actions)
+FloodBundleRouter::handle_route_add(RouteAddEvent* event)
 {
-    BundleRouter::handle_route_add(event, actions);     
+    BundleRouter::handle_route_add(event);     
 }
 
 /**
@@ -251,8 +248,7 @@ FloodBundleRouter::handle_route_add(RouteAddEvent* event,
  */
 void
 FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
-                           BundleConsumer* next_hop,
-                           BundleActions* actions)
+                                BundleConsumer* next_hop)
 {
     log_debug("FLOOD:  new_next_hop");
 
@@ -265,14 +261,14 @@ FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
     for (iter = pending_bundles_->begin(); 
          iter != pending_bundles_->end(); ++iter) {
         bundle = *iter;
-        actions->enqueue_bundle(bundle, next_hop, FORWARD_COPY);
+        actions_->enqueue_bundle(bundle, next_hop, FORWARD_COPY);
     }
 }
 
 
 int
 FloodBundleRouter::fwd_to_matching(
-                    Bundle* bundle, BundleActions* actions, bool include_local)
+                    Bundle* bundle, bool include_local)
 {
     RouteEntry* entry;
     RouteEntrySet matches;
@@ -291,7 +287,7 @@ FloodBundleRouter::fwd_to_matching(
         if (!entry->next_hop_->is_local())
             continue;
         
-        actions->enqueue_bundle(bundle, entry->next_hop_, entry->action_);
+        actions_->enqueue_bundle(bundle, entry->next_hop_, entry->action_);
         ++count;
         bundle->add_pending();
     }

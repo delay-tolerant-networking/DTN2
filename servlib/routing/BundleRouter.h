@@ -126,8 +126,7 @@ public:
      * The base class implementation does a dispatch on the event type
      * and calls the appropriate default handler function.
      */
-    virtual void handle_event(BundleEvent* event,
-                              BundleActions* actions);
+    virtual void handle_event(BundleEvent* event);
 
     /// XXX/demmer temp for testing fragmentation
     static size_t proactive_frag_threshold_;
@@ -157,8 +156,7 @@ protected:
      * searches through the route table to find any matching next
      * contacts, filling in the action list with forwarding decisions.
      */
-    virtual void handle_bundle_received(BundleReceivedEvent* event,
-                                        BundleActions* actions);
+    virtual void handle_bundle_received(BundleReceivedEvent* event);
     
     /**
      * Default event handler when bundles are transmitted.
@@ -167,8 +165,7 @@ protected:
      * the fragmentation module to create a new bundle fragment and
      * enqeues the new fragment on the appropriate list.
      */
-    virtual void handle_bundle_transmitted(BundleTransmittedEvent* event,
-                                           BundleActions* actions);
+    virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
 
     /**
      * Default event handler when a new application registration
@@ -178,52 +175,44 @@ protected:
      * walks the pending list to see if any bundles match the
      * registration.
      */
-    virtual void handle_registration_added(RegistrationAddedEvent* event,
-                                           BundleActions* actions);
+    virtual void handle_registration_added(RegistrationAddedEvent* event);
     
     /**
      * Default event handler when a new contact is up.
      */
-    virtual void handle_contact_up(ContactUpEvent* event,
-                                   BundleActions* actions);
+    virtual void handle_contact_up(ContactUpEvent* event);
     
     /**
      * Default event handler when a contact is down.
      */
-    virtual void handle_contact_down(ContactDownEvent* event,
-                                     BundleActions* actions);
+    virtual void handle_contact_down(ContactDownEvent* event);
 
     /**
      * Default event handler when a new link is created.
      */
-    virtual void handle_link_created(LinkCreatedEvent* event,
-                                     BundleActions* actions);
+    virtual void handle_link_created(LinkCreatedEvent* event);
     
     /**
      * Default event handler when a link is deleted.
      */
-    virtual void handle_link_deleted(LinkDeletedEvent* event,
-                                     BundleActions* actions);
+    virtual void handle_link_deleted(LinkDeletedEvent* event);
 
     /**
      * Default event handler when link becomes available
      */
-    virtual void handle_link_available(LinkAvailableEvent* event,
-                                       BundleActions* actions);
-    
+    virtual void handle_link_available(LinkAvailableEvent* event);    
+
     /**
      * Default event handler when a link is unavailable
      */
-    virtual void handle_link_unavailable(LinkUnavailableEvent* event,
-                                         BundleActions* actions);
+    virtual void handle_link_unavailable(LinkUnavailableEvent* event);
 
     /**
      * Default event handler when reassembly is completed. For each
      * bundle on the list, check the pending count to see if the
      * fragment can be deleted.
      */
-    virtual void handle_reassembly_completed(ReassemblyCompletedEvent* event,
-                                             BundleActions* actions);
+    virtual void handle_reassembly_completed(ReassemblyCompletedEvent* event);
     
     /**
      * Default event handler when a new route is added by the command
@@ -232,16 +221,14 @@ protected:
      * Adds an entry to the route table, then walks the pending list
      * to see if any bundles match the new route.
      */
-    virtual void handle_route_add(RouteAddEvent* event,
-                                  BundleActions* actions);
+    virtual void handle_route_add(RouteAddEvent* event);
 
     /**
      * Add an action to forward a bundle to a next hop route, making
      * sure to do reassembly if the forwarding action specifies as
      * such.
      */
-    virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop,
-                                BundleActions* actions);
+    virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop);
      
     
     /**
@@ -253,7 +240,7 @@ protected:
      *
      * Returns the number of matches found and assigned.
      */
-    virtual int fwd_to_matching(Bundle* bundle, BundleActions* actions,
+    virtual int fwd_to_matching(Bundle* bundle, 
                                 bool include_local);
 
     /**
@@ -262,21 +249,19 @@ protected:
      * all matches to the new contact.
      */
     virtual void new_next_hop(const BundleTuplePattern& dest,
-                              BundleConsumer* next_hop,
-                              BundleActions* actions);
+                              BundleConsumer* next_hop);
 
     /**
      * Delete the given bundle from the pending list (assumes the
      * pending count is zero).
      */
-    void delete_from_pending(Bundle* bundle,
-                             BundleActions* actions);
+    void delete_from_pending(Bundle* bundle);
 
 
     /**
      * Add a route entry to the routing table. 
      */
-    void add_route(RouteEntry *entry, BundleActions* actions);
+    void add_route(RouteEntry *entry);
 
     /// The set of local regions that this router is configured as "in".
     oasys::StringVector local_regions_;
@@ -296,6 +281,9 @@ protected:
 
     /// The list of all bundles that I have custody of
     BundleList* custody_bundles_;
+
+    BundleActions* actions_;
+
 };
 
 } // namespace dtn

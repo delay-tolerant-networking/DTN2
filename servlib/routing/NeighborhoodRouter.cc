@@ -63,8 +63,7 @@ NeighborhoodRouter::NeighborhoodRouter()
  * Default event handler when a new link is created
  */
 void
-NeighborhoodRouter::handle_link_created(LinkCreatedEvent* event,
-                                         BundleActions* actions)
+NeighborhoodRouter::handle_link_created(LinkCreatedEvent* event)
 {
     log_info("LINK_CREATED *%p adding route", event->link_);
 
@@ -77,7 +76,7 @@ NeighborhoodRouter::handle_link_created(LinkCreatedEvent* event,
     RouteEntry* entry = new RouteEntry(BundleTuplePattern(tuplestring), 
                                        event->link_, 
                                        FORWARD_REASSEMBLE);    
-    add_route(entry, actions);
+    add_route(entry);
 
 }
 

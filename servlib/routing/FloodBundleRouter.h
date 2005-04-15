@@ -68,8 +68,7 @@ protected:
      * searches through the route table to find any matching next
      * contacts, filling in the action list with forwarding decisions.
      */
-    void handle_bundle_received(BundleReceivedEvent* event,
-                                BundleActions* actions);
+    void handle_bundle_received(BundleReceivedEvent* event);
     
     /**
      * Default event handler when bundles are transmitted.
@@ -78,8 +77,7 @@ protected:
      * the fragmentation module to create a new bundle fragment and
      * enqeues the new fragment on the appropriate list.
      */
-    void handle_bundle_transmitted(BundleTransmittedEvent* event,
-                                   BundleActions* actions);
+    void handle_bundle_transmitted(BundleTransmittedEvent* event);
 
     /**
      * Default event handler when a new application registration
@@ -89,20 +87,17 @@ protected:
      * walks the pending list to see if any bundles match the
      * registration.
      */
-    void handle_registration_added(RegistrationAddedEvent* event,
-                                   BundleActions* actions);
+    void handle_registration_added(RegistrationAddedEvent* event);
     
     /**
      * Default event handler when a  link is created.
      */
-    void handle_link_created(LinkCreatedEvent* event,
-                                  BundleActions* actions);
+    void handle_link_created(LinkCreatedEvent* event);
     
     /**
      * Default event handler when a contact is down
      */
-    void handle_contact_down(ContactDownEvent* event,
-                               BundleActions* actions);
+    void handle_contact_down(ContactDownEvent* event);
     
     /**
      * Default event handler when a new route is added by the command
@@ -111,8 +106,7 @@ protected:
      * Adds an entry to the route table, then walks the pending list
      * to see if any bundles match the new route.
      */
-    void handle_route_add(RouteAddEvent* event,
-                          BundleActions* actions);
+    void handle_route_add(RouteAddEvent* event);
     
     /**
      * Called whenever a new consumer (i.e. registration or contact)
@@ -120,11 +114,10 @@ protected:
      * maybe all bundles???) to see if the new consumer matches.
      */
     void new_next_hop(const BundleTuplePattern& dest,
-                              BundleConsumer* next_hop,
-                              BundleActions* actions);
+                      BundleConsumer* next_hop);
 
 
-    int fwd_to_matching(Bundle *bundle, BundleActions *actions,bool include_local);
+    int fwd_to_matching(Bundle *bundle, bool include_local);
 
 protected:
     BundleTuplePattern all_tuples_;
