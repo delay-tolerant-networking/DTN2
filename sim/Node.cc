@@ -98,7 +98,7 @@ Node::process_bundle_events()
         event = eventq_->front();
         eventq_->pop();
         update_statistics(event);
-        router_->handle_event(event, actions_);
+        router_->handle_event(event);
     }
 }
 
