@@ -113,7 +113,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     oasys::StringBuffer payload_buf(payload_len);
     const u_char* payload_data =
         b->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
-    log_debug("got %d bytes of bundle data", payload_len);
+    log_debug("got %u bytes of bundle data", (u_int)payload_len);
     
     Tcl_Obj* objv[4];
     objv[0] = Tcl_NewStringObj(b->source_.data(), b->source_.length());

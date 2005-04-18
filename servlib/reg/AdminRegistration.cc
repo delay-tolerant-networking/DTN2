@@ -68,7 +68,7 @@ AdminRegistration::enqueue_bundle(Bundle* bundle,
     
     size_t payload_len = bundle->payload_.length();
     oasys::StringBuffer payload_buf(payload_len);
-    log_debug("got %d byte bundle", payload_len);
+    log_debug("got %u byte bundle", (u_int)payload_len);
 
     if (payload_len == 0) {
         log_err("admin registration got 0 byte bundle *%p", bundle);

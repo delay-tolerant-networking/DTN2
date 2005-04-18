@@ -162,7 +162,7 @@ RouteTable::get_matching(const BundleTuple& tuple,
         }
     }
 
-    log_debug("get_matching %s done, %d match(es)", tuple.c_str(), count);
+    log_debug("get_matching %s done, %u match(es)", tuple.c_str(), (u_int)count);
     return count;
 }
 

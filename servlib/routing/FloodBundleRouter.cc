@@ -92,7 +92,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
      */
     if (event->bytes_received_ != bundle->payload_.length()) {
         log_info("XXX: PARTIAL bundle:%d, making fragment of %d bytes",
-                  bundle->bundleid_,event->bytes_received_);
+                  bundle->bundleid_, (u_int)event->bytes_received_);
         BundleDaemon::instance()->fragmentmgr()->
             convert_to_fragment(bundle, event->bytes_received_);
     }
@@ -120,8 +120,8 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
          iter != pending_bundles_->end(); ++iter) {
         iter_bundle = *iter;
         log_info("\tpending_bundle:%d size:%d pending:%d",
-                  iter_bundle->bundleid_,iter_bundle->payload_.length(),
-                  iter_bundle->pendingtx());
+                 iter_bundle->bundleid_, (u_int)iter_bundle->payload_.length(),
+                 iter_bundle->pendingtx());
         if(iter_bundle->bundleid_ == bundle->bundleid_) {
             //delete the bundle
             return;

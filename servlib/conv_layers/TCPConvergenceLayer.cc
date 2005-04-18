@@ -534,8 +534,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     u_int16_t header_len =
         BundleProtocol::format_headers(bundle, &iov[2], &header_iovcnt);
 
-    log_debug("send_bundle: bundle id %d, header_length %d payload_length %d",
-              bundle->bundleid_, header_len, payload_len);
+    log_debug("send_bundle: bundle id %d, header_length %u payload_length %u",
+              bundle->bundleid_, (u_int)header_len, (u_int)payload_len);
 
     // fill in the frame header
     datahdr.bundle_id     = bundle->bundleid_;
@@ -546,8 +546,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     iovcnt = 2 + header_iovcnt;
     size_t total = 1 + sizeof(BundleDataHeader) + header_len;
     
-    log_debug("send_bundle: sending %d byte tcpcl hdr, %d byte bundle hdr",
-              1 + sizeof(BundleDataHeader), header_len);
+    log_debug("send_bundle: sending %u byte tcpcl hdr, %u byte bundle hdr",
+              (u_int)(1 + sizeof(BundleDataHeader)), (u_int)header_len);
     
     int cc = sock_->writev(iov, iovcnt);
 
@@ -578,8 +578,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
             bundle->payload_.read_data(payload_offset, block_len,
                                        (u_char*)payload_buf.data(), true);
         
-        log_debug("send_bundle: sending %d byte block %p",
-                  block_len, payload_data);
+        log_debug("send_bundle: sending %u byte block %p",
+                  (u_int)block_len, payload_data);
         
         cc = sock_->write((char*)payload_data, block_len);
         
@@ -600,8 +600,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
             } else {
                 // some other error, bail
                 log_warn("send_bundle: "
-                         "error writing bundle block (wrote %d/%d): %s",
-                         cc, block_len, strerror(errno));
+                         "error writing bundle block (wrote %d/%u): %s",
+                         cc, (u_int)block_len, strerror(errno));
                 goto done;
             }
         }
@@ -610,8 +610,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
             // unexpected short write -- just adjust block_len to
             // reflect the amount actually written and fall through
             log_warn("send_bundle: "
-                     "short write sending bundle block (wrote %d/%d): %s",
-                     cc, block_len, strerror(errno));
+                     "short write sending bundle block (wrote %d/%u): %s",
+                     cc, (u_int)block_len, strerror(errno));
 
             block_len = cc;
         }
@@ -651,9 +651,9 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
                 }
                 ASSERT(cc == 1);
                 
-                log_debug("send_bundle: got ack for %d/%d -- "
-                          "looping to send more", *acked_len,
-                          bundle->payload_.length());
+                log_debug("send_bundle: got ack for %d/%u -- "
+                          "looping to send more", (u_int)*acked_len,
+                          (u_int)bundle->payload_.length());
             }
             
             if (!(revents & POLLOUT)) {
@@ -675,7 +675,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
     while (*acked_len < payload_len) {
         log_debug("send_bundle: acked %d/%d, waiting for more",
-                  *acked_len, payload_len);
+                  (u_int)*acked_len, (u_int)payload_len);
 
         cc = sock_->poll(POLLIN, NULL, params_.rtt_timeout_);
         if (cc < 0) {
@@ -698,7 +698,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         ASSERT(cc == 1);
         
         log_debug("send_bundle: got ack for %d/%d",
-                  *acked_len, payload_len);
+                  (u_int)*acked_len, (u_int)payload_len);
     }
     
     sentok = true;
@@ -742,7 +742,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     if (cc != sizeof(BundleDataHeader)) {
         log_err("recv_bundle: "
                 "error reading bundle data header (read %d/%d): %s",
-                cc, sizeof(BundleDataHeader), strerror(errno));
+                cc, (u_int)sizeof(BundleDataHeader), strerror(errno));
         return false;
     }
     note_data_rcvd();
@@ -753,7 +753,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
 
     log_debug("recv_bundle: got bundle data header -- bundle id %d, "
               "header_length %d bundle_length %d",
-              datahdr.bundle_id, header_len, bundle_len);
+              datahdr.bundle_id, (u_int)header_len, (u_int)bundle_len);
 
     // now read in the whole bundle header
     cc = sock_->timeout_readall(payload_buf.data(), header_len,
@@ -784,8 +784,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
     payload_len = bundle->payload_.length();
     if (bundle_len != header_len + payload_len) {
         log_err("recv_bundle: error in bundle lengths: "
-                "bundle_length %d, header_length %d, payload_length %d",
-                bundle_len, header_len, payload_len);
+                "bundle_length %u, header_length %u, payload_length %u",
+                (u_int)bundle_len, (u_int)header_len, (u_int)payload_len);
         goto done;
     }
 
@@ -797,8 +797,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
         if (params_.test_fragment_size_ != -1) {
             if ((int)rcvd_len > params_.test_fragment_size_) {
                 log_info("send_bundle: "
-                         "XXX forcing fragmentation size %d, rcvd %d",
-                         params_.test_fragment_size_, rcvd_len);
+                         "XXX forcing fragmentation size %d, rcvd %u",
+                         params_.test_fragment_size_, (u_int)rcvd_len);
                 usleep(100000);
                 goto done;
             }
@@ -819,7 +819,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
             goto done;
         } 
 
-        log_debug("recv_bundle: got %d byte chunk, rcvd_len %d", cc, rcvd_len);
+        log_debug("recv_bundle: got %d byte chunk, rcvd_len %u", cc, (u_int)rcvd_len);
         
         // append the chunk of data and update the amount received
         bundle->payload_.append_data((u_char*)payload_buf.data(), cc);
@@ -832,8 +832,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
 
         // check if we've read enough to send an ack
         if (rcvd_len - acked_len > params_.partial_ack_len_) {
-            log_debug("recv_bundle: got %d bytes acked %d, sending partial ack",
-                      rcvd_len, acked_len);
+            log_debug("recv_bundle: got %u bytes acked %u, sending partial ack",
+                      (u_int)rcvd_len, (u_int)acked_len);
             
             if (! send_ack(datahdr.bundle_id, rcvd_len)) {
                 log_err("recv_bundle: error sending ack");
@@ -868,8 +868,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
     }
 
     log_debug("recv_bundle: "
-              "new bundle id %d arrival, payload length %d (rcvd %d)",
-              bundle->bundleid_, payload_len, rcvd_len);
+              "new bundle id %d arrival, payload length %u (rcvd %u)",
+              bundle->bundleid_, (u_int)payload_len, (u_int)rcvd_len);
     
     // inform the daemon that we got a valid bundle, though it may not
     // be complete (as indicated by passing the rcvd_len)
@@ -960,8 +960,8 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
     cc = sock_->read((char*)&ackhdr, sizeof(BundleAckHeader));
     if (cc != sizeof(BundleAckHeader))
     {
-        log_err("handle_ack: error reading ack header (got %d/%d): %s",
-                cc, sizeof(BundleAckHeader), strerror(errno));
+        log_err("handle_ack: error reading ack header (got %d/%u): %s",
+                cc, (u_int)sizeof(BundleAckHeader), strerror(errno));
         return oasys::IOERROR;
     }
     note_data_rcvd();
@@ -970,7 +970,7 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
     size_t payload_len = bundle->payload_.length();
     
     log_debug("handle_ack: got ack length %d for bundle id %d length %d",
-              new_acked_len, ackhdr.bundle_id, payload_len);
+              (u_int)new_acked_len, ackhdr.bundle_id, (u_int)payload_len);
 
     if (ackhdr.bundle_id != bundle->bundleid_)
     {
@@ -982,11 +982,11 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
     if (new_acked_len < *acked_len ||
         new_acked_len > payload_len)
     {
-        log_err("handle_ack: invalid acked length %d (acked %d, bundle %d)",
-                new_acked_len, *acked_len, payload_len);
+        log_err("handle_ack: invalid acked length %u (acked %u, bundle %u)",
+                (u_int)new_acked_len, (u_int)*acked_len, (u_int)payload_len);
         return oasys::IOERROR;
     }
-
+    
     *acked_len = new_acked_len;
     return 1;
 }
@@ -1018,8 +1018,8 @@ TCPConvergenceLayer::Connection::send_contact_header()
 
     int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
     if (cc != sizeof(ContactHeader)) {
-        log_err("error writing contact header (wrote %d/%d): %s",
-                cc, sizeof(ContactHeader), strerror(errno));
+        log_err("error writing contact header (wrote %d/%u): %s",
+                cc, (u_int)sizeof(ContactHeader), strerror(errno));
         return false;
     }
 
@@ -1032,8 +1032,8 @@ TCPConvergenceLayer::Connection::send_contact_header()
         size_t region_len = local_tuple.region().length();
         size_t admin_len  = local_tuple.admin().length();
         
-        log_debug("sending identity header... (region_len %d admin_len %d)",
-                  region_len, admin_len);
+        log_debug("sending identity header... (region_len %u admin_len %u)",
+                  (u_int)region_len, (u_int)admin_len);
         
         size_t len = sizeof(IdentityHeader) + region_len + admin_len;
 
@@ -1048,8 +1048,8 @@ TCPConvergenceLayer::Connection::send_contact_header()
         
         cc = sock_->writeall((char*)identityhdr, len);
         if (cc != (int)len) {
-            log_err("error writing identity header / tuple (wrote %d/%d): %s",
-                    cc, len, strerror(errno));
+            log_err("error writing identity header / tuple (wrote %d/%u): %s",
+                    cc, (u_int)len, strerror(errno));
             return false;
         }
 
@@ -1084,8 +1084,8 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
     }
     
     if (cc != sizeof(ContactHeader)) {
-        log_err("error reading contact header (read %d/%d): %s", 
-                cc, sizeof(ContactHeader), strerror(errno));
+        log_err("error reading contact header (read %d/%u): %s", 
+                cc, (u_int)sizeof(ContactHeader), strerror(errno));
         return false;
     }
 
@@ -1144,8 +1144,8 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
         }
 
         if (cc != sizeof(IdentityHeader)) {
-            log_err("error reading receiver_connect identity (read %d/%d): %s",
-                cc, sizeof(IdentityHeader), strerror(errno));
+            log_err("error reading receiver_connect identity (read %d/%u): %s",
+                cc, (u_int)sizeof(IdentityHeader), strerror(errno));
             return false;
         }
 
@@ -1155,21 +1155,21 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
         oasys::StringBuffer region_buf(region_len);
         oasys::StringBuffer  admin_buf(admin_len);
 
-        log_debug("reading region data (length %d)", region_len);
+        log_debug("reading region data (length %u)", (u_int)region_len);
         cc = sock_->timeout_readall(region_buf.data(), region_len,
                                     params_.rtt_timeout_);
         if (cc != (int)region_len) {
-            log_err("error reading region string (read %d/%d): %s",
-                cc, region_len, strerror(errno));
+            log_err("error reading region string (read %d/%u): %s",
+                cc, (u_int)region_len, strerror(errno));
             return false;
         }
 
-        log_debug("reading admin data (length %d)", admin_len);
+        log_debug("reading admin data (length %d)", (u_int)admin_len);
         cc = sock_->timeout_readall(admin_buf.data(), admin_len,
                                     params_.rtt_timeout_);
         if (cc != (int)admin_len) {
-            log_err("error reading admin string (read %d/%d): %s",
-                cc, admin_len, strerror(errno));
+            log_err("error reading admin string (read %d/%u): %s",
+                cc, (u_int)admin_len, strerror(errno));
             return false;
         }
 

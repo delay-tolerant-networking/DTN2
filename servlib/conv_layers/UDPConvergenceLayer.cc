@@ -220,7 +220,7 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     // copy in the udpcl header.
     if (len < sizeof(UDPCLHeader)) {
         log_err("process_data: "
-                "incoming packet too small (len = %d)", len);
+                "incoming packet too small (len = %d)", (u_int)len);
         return;
     }
     memcpy(&udpclhdr, bp, sizeof(UDPCLHeader));
@@ -242,8 +242,8 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     // udp cl header
     bundle_len = len - sizeof(UDPCLHeader);
 
-    log_debug("process_data: got udpcl header -- bundle id %d, length %d",
-	      udpclhdr.bundle_id, bundle_len);
+    log_debug("process_data: got udpcl header -- bundle id %d, length %u",
+	      udpclhdr.bundle_id, (u_int)bundle_len);
 
     // skip past the cl header
     bp  += sizeof(UDPCLHeader);
@@ -258,8 +258,8 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     size_t payload_len = bundle->payload_.length();
     if (bundle_len != header_len + payload_len) {
         log_err("process_data: error in bundle lengths: "
-                "bundle_length %d, header_length %d, payload_length %d",
-                bundle_len, header_len, payload_len);
+                "bundle_length %u, header_length %u, payload_length %u",
+                (u_int)bundle_len, (u_int)header_len, (u_int)payload_len);
         delete bundle;
         return;
     }
@@ -269,8 +269,8 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     len -= header_len;
     bundle->payload_.append_data(bp, len);
     
-    log_debug("process_data: new bundle id %d arrival, payload length %d",
-	      bundle->bundleid_, bundle->payload_.length());
+    log_debug("process_data: new bundle id %d arrival, payload length %u",
+	      bundle->bundleid_, (u_int)bundle->payload_.length());
     
     BundleDaemon::post(
         new BundleReceivedEvent(bundle, EVENTSRC_PEER, len));
@@ -345,8 +345,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
         BundleProtocol::format_headers(bundle, &iov[1], &iovcnt);
     size_t payload_len = bundle->payload_.length();
     
-    log_debug("send_bundle: bundle id %d, header_length %d payload_length %d",
-              bundle->bundleid_, header_len, payload_len);
+    log_debug("send_bundle: bundle id %d, header_length %u payload_length %u",
+              bundle->bundleid_, (u_int)header_len, (u_int)payload_len);
 
     oasys::StringBuffer payload_buf(payload_len);
     const u_char* payload_data =

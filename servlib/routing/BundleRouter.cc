@@ -202,9 +202,9 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
     Bundle* bundle = event->bundleref_.bundle();
     
-    log_info("BUNDLE_RECEIVED id:%d (%d of %d bytes)",
-             bundle->bundleid_, event->bytes_received_,
-             bundle->payload_.length());
+    log_info("BUNDLE_RECEIVED id:%d (%u of %u bytes)",
+             bundle->bundleid_, (u_int)event->bytes_received_,
+             (u_int)bundle->payload_.length());
     log_debug("bundle %d source    %s", bundle->bundleid_, bundle->source_.c_str());
     log_debug("bundle %d dest      %s", bundle->bundleid_, bundle->dest_.c_str());
     log_debug("bundle %d replyto   %s", bundle->bundleid_, bundle->replyto_.c_str());
@@ -218,8 +218,8 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event)
      * fragmentation in the forwarder?
      */
     if (event->bytes_received_ != bundle->payload_.length()) {
-        log_debug("partial bundle, making fragment of %d bytes",
-                  event->bytes_received_);
+        log_debug("partial bundle, making fragment of %u bytes",
+                  (u_int)event->bytes_received_);
         BundleDaemon::instance()->fragmentmgr()->
             convert_to_fragment(bundle, event->bytes_received_);
     }
@@ -232,9 +232,9 @@ BundleRouter::handle_bundle_received(BundleReceivedEvent* event)
         (payload_len > proactive_frag_threshold_))
     {
         log_info("proactively fragmenting "
-                 "%d byte bundle into %d %d byte fragments",
-                 payload_len, payload_len / proactive_frag_threshold_,
-                 proactive_frag_threshold_);
+                 "%u byte bundle into %u %u byte fragments",
+                 (u_int)payload_len, (u_int)(payload_len / proactive_frag_threshold_),
+                 (u_int)proactive_frag_threshold_);
 
         // XXX/demmer move this into the FragmentManager to return a
         // bundlelist, not to do all the nitty-gritty here
@@ -282,8 +282,8 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
     Bundle* bundle = event->bundleref_.bundle();
     BundleConsumer* consumer = event->consumer_;
 
-    log_info("BUNDLE_TRANSMITTED id:%d (%d bytes) %s -> %s",
-             bundle->bundleid_, event->bytes_sent_,
+    log_info("BUNDLE_TRANSMITTED id:%d (%u bytes) %s -> %s",
+             bundle->bundleid_, (u_int)event->bytes_sent_,
              event->acked_ ? "ACKED" : "UNACKED",
              event->consumer_->dest_str());
 
@@ -307,7 +307,8 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
         size_t frag_len = payload_len - event->bytes_sent_;
 
         log_debug("incomplete transmission: creating reactive fragment "
-                  "(offset %d len %d/%d)", frag_off, frag_len, payload_len);
+                  "(offset %u len %u/%u)",
+                  (u_int)frag_off, (u_int)frag_len, (u_int)payload_len);
         
         Bundle* tail = BundleDaemon::instance()->fragmentmgr()->
                        create_fragment(bundle, frag_off, frag_len);
@@ -463,7 +464,7 @@ BundleRouter::handle_contact_down(ContactDownEvent* event)
     Contact* contact = event->contact_;
     Link* link = contact->link();
     log_info("CONTACT_DOWN *%p: re-routing %d queued bundles",
-             contact, contact->bundle_list()->size());
+             contact, (u_int)contact->bundle_list()->size());
 
     // note that there is a chance we didn't get a contact_up (perhaps
     // the initial connection attept failed), so don't make assertions

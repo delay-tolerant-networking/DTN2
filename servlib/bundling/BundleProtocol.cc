@@ -238,7 +238,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     PrimaryHeader* primary;
     if (len < sizeof(PrimaryHeader)) {
  tooshort:
-        log_err(log, "bundle too short (length %d)", len);
+        log_err(log, "bundle too short (length %d)", (u_int)len);
         return -1;
     }
     
@@ -382,8 +382,8 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
             memcpy(&payload_len, &payload->length, 4);
             bundle->payload_.set_length(ntohl(payload_len));
 
-            log_debug(log, "parsed payload length %d",
-                      bundle->payload_.length());
+            log_debug(log, "parsed payload length %u",
+                      (u_int)bundle->payload_.length());
             break;
         }
 

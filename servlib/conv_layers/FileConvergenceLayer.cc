@@ -247,8 +247,9 @@ FileConvergenceLayer::send_bundles(Contact* contact)
         }
 
         log_debug("opened temp file %s for bundle id %d "
-                  "fd %d header_length %d payload_length %d",
-                  fname.c_str(), bundle->bundleid_, fd, header_len, payload_len);
+                  "fd %d header_length %u payload_length %u",
+                  fname.c_str(), bundle->bundleid_, fd,
+                  (u_int)header_len, (u_int)payload_len);
 
         // now write everything out
         int total = sizeof(FileHeader) + header_len + payload_len;
@@ -334,7 +335,7 @@ FileConvergenceLayer::Scanner::run()
             int cc = oasys::IO::readall(fd, (char*)&filehdr, sizeof(FileHeader));
             if (cc != sizeof(FileHeader)) {
                 log_warn("can't read in FileHeader (read %d/%d): %s",
-                         cc, sizeof(FileHeader), strerror(errno));
+                         cc, (u_int)sizeof(FileHeader), strerror(errno));
                 continue;
             }
 
@@ -347,8 +348,8 @@ FileConvergenceLayer::Scanner::run()
             u_int16_t header_len = ntohs(filehdr.header_length);
             size_t bundle_len = ntohl(filehdr.bundle_length);
             
-            log_debug("found bundle file %s: header_length %d bundle_length %d",
-                      path.c_str(), header_len, bundle_len);
+            log_debug("found bundle file %s: header_length %u bundle_length %u",
+                      path.c_str(), (u_int)header_len, (u_int)bundle_len);
 
             // read in and parse the headers
             buf = (u_char*)malloc(header_len);
@@ -373,8 +374,8 @@ FileConvergenceLayer::Scanner::run()
             size_t payload_len = bundle->payload_.length();
             if (bundle_len != header_len + payload_len) {
                 log_err("error in bundle lengths in file %s: "
-                        "bundle_length %d, header_length %d, payload_length %d",
-                        path.c_str(), bundle_len, header_len, payload_len);
+                        "bundle_length %u, header_length %u, payload_length %u",
+                        path.c_str(), (u_int)bundle_len, (u_int)header_len, (u_int)payload_len);
                 delete bundle;
                 continue;
             }
@@ -383,8 +384,8 @@ FileConvergenceLayer::Scanner::run()
             buf = (u_char*)malloc(payload_len);
             cc = oasys::IO::readall(fd, (char*)buf, payload_len);
             if (cc != (int)payload_len) {
-                log_err("error reading file %s payload (read %d/%d): %s",
-                        path.c_str(), cc, payload_len, strerror(errno));
+                log_err("error reading file %s payload (read %d/%u): %s",
+                        path.c_str(), cc, (u_int)payload_len, strerror(errno));
                 delete bundle;
                 continue;
             }

@@ -85,9 +85,9 @@ FragmentManager::create_fragment(Bundle* bundle, int offset, size_t length)
     // check for overallocated length
     if ((offset + length) > fragment->orig_length_) {
         PANIC("fragment length overrun: "
-              "orig_length %d frag_offset %d requested offset %d length %d",
-              fragment->orig_length_, fragment->frag_offset_,
-              offset, length);
+              "orig_length %u frag_offset %u requested offset %u length %u",
+              (u_int)fragment->orig_length_, (u_int)fragment->frag_offset_,
+              (u_int)offset, (u_int)length);
     }
 
 
@@ -172,8 +172,8 @@ FragmentManager::check_completed(ReassemblyState* state)
         ASSERT(fragment->is_fragment_);
         
         if (f_origlen != total_len) {
-            PANIC("check_completed: error fragment orig len %d != total %d",
-                  f_origlen, total_len);
+            PANIC("check_completed: error fragment orig len %u != total %u",
+                  (u_int)f_origlen, (u_int)total_len);
             // XXX/demmer deal with this
         }
 
@@ -184,9 +184,10 @@ FragmentManager::check_completed(ReassemblyState* state)
              *           fff
              */
             log_debug("check_completed fragment %d/%d: "
-                      "offset %d len %d total %d done_up_to %d: "
+                      "offset %u len %u total %u done_up_to %u: "
                       "(perfect fit)",
-                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
+                      fragi, fragn, (u_int)f_offset, (u_int)f_len,
+                      (u_int)f_origlen, (u_int)done_up_to);
             done_up_to += f_len;
         }
 
@@ -196,9 +197,10 @@ FragmentManager::check_completed(ReassemblyState* state)
              * bbbbbbb ffff
              */
             log_debug("check_completed fragment %d/%d: "
-                      "offset %d len %d total %d done_up_to %d: "
+                      "offset %u len %u total %u done_up_to %u: "
                       "(found a hole)",
-                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
+                      fragi, fragn, (u_int)f_offset, (u_int)f_len,
+                      (u_int)f_origlen, (u_int)done_up_to);
             return false;
 
         }
@@ -209,9 +211,10 @@ FragmentManager::check_completed(ReassemblyState* state)
              *      fffff
              */
             log_debug("check_completed fragment %d/%d: "
-                      "offset %d len %d total %d done_up_to %d: "
+                      "offset %u len %u total %u done_up_to %u: "
                       "(redundant fragment)",
-                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to);
+                      fragi, fragn, (u_int)f_offset, (u_int)f_len,
+                      (u_int)f_origlen, (u_int)done_up_to);
             continue;
         }
         
@@ -222,10 +225,11 @@ FragmentManager::check_completed(ReassemblyState* state)
              *      fffffff
              */
             log_debug("check_completed fragment %d/%d: "
-                      "offset %d len %d total %d done_up_to %d: "
-                      "(overlapping fragment, reducing len to %d)",
-                      fragi, fragn, f_offset, f_len, f_origlen, done_up_to,
-                      f_len - (done_up_to - f_offset));
+                      "offset %u len %u total %u done_up_to %u: "
+                      "(overlapping fragment, reducing len to %u)",
+                      fragi, fragn, (u_int)f_offset, (u_int)f_len,
+                      (u_int)f_origlen, (u_int)done_up_to,
+                      (u_int)(f_len - (done_up_to - f_offset)));
             
             f_len -= (done_up_to - f_offset);
             done_up_to += f_len;
@@ -241,8 +245,8 @@ FragmentManager::check_completed(ReassemblyState* state)
         log_debug("check_completed reassembly complete!");
         return true;
     } else {
-        log_debug("check_completed reassembly not done (got %d/%d)",
-                  done_up_to, total_len);
+        log_debug("check_completed reassembly not done (got %u/%u)",
+                  (u_int)done_up_to, (u_int)total_len);
         return false;
     }
 }
@@ -262,7 +266,7 @@ FragmentManager::process(Bundle* fragment)
     get_hash_key(fragment, &hash_key);
     iter = reassembly_table_.find(hash_key);
 
-    log_debug("processing bundle fragment id=%d hash=%s %d",
+    log_debug("processing bundle fragment id=%u hash=%s %d",
               fragment->bundleid_, hash_key.c_str(), fragment->is_fragment_);
 
     if (iter == reassembly_table_.end()) {
@@ -278,8 +282,8 @@ FragmentManager::process(Bundle* fragment)
         reassembly_table_[hash_key] = state;
     } else {
         state = iter->second;
-        log_debug("found reassembly state for key %s (%d fragments)",
-                  hash_key.c_str(), state->fragments_.size());
+        log_debug("found reassembly state for key %s (%u fragments)",
+                  hash_key.c_str(), (u_int)state->fragments_.size());
 
         state->bundle_->payload_.reopen_file();
     }
@@ -294,9 +298,9 @@ FragmentManager::process(Bundle* fragment)
     size_t fraglen = fragment->payload_.length();
 
     log_debug(
-              "write_data: length_=%d src_offset=%d dst_offset=%d len %d",
-              state->bundle_->payload_.length(), 
-              0, fragment->frag_offset_, fraglen);
+              "write_data: length_=%u src_offset=%u dst_offset=%u len %u",
+              (u_int)state->bundle_->payload_.length(), 
+              0, fragment->frag_offset_, (u_int)fraglen);
 
     state->bundle_->payload_.write_data(&fragment->payload_, 0, fraglen,
                                         fragment->frag_offset_);

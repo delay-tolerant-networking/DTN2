@@ -192,8 +192,8 @@ MasterAPIServer::run()
 
         if (cc != sizeof(handshake)) {
             log_err("unexpected %d message from %s:%d "
-                    "(expected %d byte handshake)",
-                    cc, intoa(addr), port, sizeof(handshake));
+                    "(expected %u byte handshake)",
+                    cc, intoa(addr), port, (u_int)sizeof(handshake));
             continue;
         }
         

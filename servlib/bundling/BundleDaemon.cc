@@ -103,9 +103,9 @@ BundleDaemon::post_event(BundleEvent* event)
 void
 BundleDaemon::get_statistics(oasys::StringBuffer* buf)
 {
-    buf->appendf("%d pending -- %d received -- %d sent_local -- %d sent_remote "
-                 "-- %d expired",
-                 pending_bundles()->size(),
+    buf->appendf("%u pending -- %u received -- %u sent_local -- %u sent_remote "
+                 "-- %u expired",
+                 (u_int)pending_bundles()->size(),
                  bundles_received_,
                  bundles_sent_local_,
                  bundles_sent_remote_,

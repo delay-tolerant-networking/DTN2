@@ -335,7 +335,7 @@ BerkeleyDBStore::add(oasys::SerializableObject* obj, const int key)
     // safety check
     if (size > 1024) {
         log_warn("unusual large db put length %d (table %s key %d)",
-                 size, tablename_.c_str(), key);
+                 (u_int)size, tablename_.c_str(), key);
     }
 
     int err;

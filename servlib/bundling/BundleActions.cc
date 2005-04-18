@@ -110,9 +110,9 @@ BundleActions::move_contents(BundleConsumer* source, BundleConsumer* dest)
 {
     BundleList* src_list = source->bundle_list();
     
-    log_debug("moving %d bundles from from next hop %s (type %s) "
+    log_debug("moving %u bundles from from next hop %s (type %s) "
               "to next hop %s (type %s)",
-              src_list->size(), source->dest_str(), source->type_str(),
+              (u_int)src_list->size(), source->dest_str(), source->type_str(),
               dest->dest_str(), dest->type_str());
 
     // we don't use BundleList::move_contents since really we want to

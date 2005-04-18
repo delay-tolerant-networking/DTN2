@@ -64,7 +64,7 @@ SimRegistration::enqueue_bundle(Bundle* bundle,
 
     log_info("N[%s]: RCV id:%d %s -> %s size:%d",
              node_->name(), bundle->bundleid_,
-             bundle->source_.c_str(), bundle->dest_.c_str(), payload_len);
+             bundle->source_.c_str(), bundle->dest_.c_str(), (u_int)payload_len);
 }
                    
 /**

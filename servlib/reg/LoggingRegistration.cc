@@ -90,16 +90,16 @@ LoggingRegistration::run()
         const u_char* data = b->payload_.read_data(0, len, payload_buf);
 
 	if (oasys::str_isascii(data, len)) {
-            log_info("        payload (ascii): length %d '%.*s'",
-                     payload_len, (int)len, data);
+            log_info("        payload (ascii): length %u '%.*s'",
+                     (u_int)payload_len, (int)len, data);
         } else {
             std::string hex;
             oasys::hex2str(&hex, data, len);
             len *= 2;
             if (len > 128)
                 len = 128;
-            log_info("        payload (binary): length %d %.*s",
-                     payload_len, (int)len, hex.data());
+            log_info("        payload (binary): length %u %.*s",
+                     (u_int)payload_len, (int)len, hex.data());
         }
 
         BundleDaemon::post(
