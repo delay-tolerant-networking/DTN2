@@ -65,7 +65,9 @@ ConvergenceLayer::init_clayers()
 {
     add_clayer("tcp", new TCPConvergenceLayer());
     add_clayer("udp", new UDPConvergenceLayer());
+#ifdef __linux
     add_clayer("eth", new EthConvergenceLayer());
+#endif
     add_clayer("file", new FileConvergenceLayer());
 }
 

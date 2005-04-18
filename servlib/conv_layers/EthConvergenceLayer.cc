@@ -35,6 +35,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+// Only works on Linux (for now)
+#ifdef __linux
+
 #include <sys/poll.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -594,3 +598,5 @@ void EthConvergenceLayer::Beacon::run()
 
 
 } // namespace dtn
+
+#endif // __linux

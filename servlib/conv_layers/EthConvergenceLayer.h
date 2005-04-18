@@ -38,11 +38,13 @@
 #ifndef _ETH_CONVERGENCE_LAYER_H_
 #define _ETH_CONVERGENCE_LAYER_H_
 
+// Only works on Linux (for now)
+#ifdef __linux
+
 #include <oasys/thread/Thread.h>
 #include "ConvergenceLayer.h"
 #include <servlib/bundling/EthernetAddressFamily.h>
 #include "linux/if.h"
-
 
 /** 
  *   The EthConvergenceLayer provides access to any ethernet interfaces that
@@ -219,5 +221,7 @@ public:
 
 
 } // namespace dtn
+
+#endif // __linux
 
 #endif /* _ETH_CONVERGENCE_LAYER_H_ */
