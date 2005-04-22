@@ -111,6 +111,8 @@ BundleRouter::BundleRouter()
     
     route_table_ = new RouteTable();
 
+    actions_ = BundleDaemon::instance()->actions();
+
     // XXX/demmer maybe change this?
     pending_bundles_ = BundleDaemon::instance()->pending_bundles();
     custody_bundles_ = BundleDaemon::instance()->custody_bundles();
@@ -198,7 +200,7 @@ BundleRouter::handle_event(BundleEvent* e)
  * contacts, filling in the action list with forwarding decisions.
  */
 void
-BundleRouter::handle_bundle_received(BundleReceivedEvent* event)                                    
+BundleRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
     Bundle* bundle = event->bundleref_.bundle();
     
@@ -354,7 +356,7 @@ BundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
  * registration.
  */
 void
-BundleRouter::handle_registration_added(RegistrationAddedEvent* event)                                        
+BundleRouter::handle_registration_added(RegistrationAddedEvent* event)
 {
     Registration* registration = event->registration_;
     log_debug("new registration for %s", registration->endpoint().c_str());
@@ -369,7 +371,7 @@ BundleRouter::handle_registration_added(RegistrationAddedEvent* event)
  * Default event handler when a new link is created
  */
 void
-BundleRouter::handle_link_created(LinkCreatedEvent* event)                                  
+BundleRouter::handle_link_created(LinkCreatedEvent* event)
 {
     log_info("LINK_CREATED *%p", event->link_);
 }
@@ -389,7 +391,7 @@ BundleRouter::handle_link_deleted(LinkDeletedEvent* event)
  * Default event handler when a new link is available.
  */
 void
-BundleRouter::handle_link_available(LinkAvailableEvent* event)                                   
+BundleRouter::handle_link_available(LinkAvailableEvent* event)
 {
     log_info("LINK_AVAILABLE *%p", event->link_);
     
@@ -410,7 +412,7 @@ BundleRouter::handle_link_available(LinkAvailableEvent* event)
  * Default event handler when a link is unavailable
  */
 void
-BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event)                                      
+BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event)
 {
     Link* link = event->link_;
     ASSERT(!link->isavailable());
@@ -429,7 +431,7 @@ BundleRouter::handle_link_unavailable(LinkUnavailableEvent* event)
  * Default event handler when a new contact is available.
  */
 void
-BundleRouter::handle_contact_up(ContactUpEvent* event)                                
+BundleRouter::handle_contact_up(ContactUpEvent* event)
 {
     Contact* contact = event->contact_;
     Link* link = contact->link();
@@ -458,7 +460,7 @@ BundleRouter::handle_contact_up(ContactUpEvent* event)
  * queue
  */
 void
-BundleRouter::handle_contact_down(ContactDownEvent* event)                                  
+BundleRouter::handle_contact_down(ContactDownEvent* event)
 {
 
     Contact* contact = event->contact_;
@@ -489,7 +491,7 @@ BundleRouter::handle_contact_down(ContactDownEvent* event)
  * fragment can be deleted.
  */
 void
-BundleRouter::handle_reassembly_completed(ReassemblyCompletedEvent* event)                                          
+BundleRouter::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 {
     log_info("REASSEMBLY_COMPLETED bundle id %d",
              event->bundle_.bundle()->bundleid_);
@@ -525,7 +527,7 @@ BundleRouter::add_route(RouteEntry *entry)
  * to see if any bundles match the new route.
  */
 void
-BundleRouter::handle_route_add(RouteAddEvent* event)                               
+BundleRouter::handle_route_add(RouteAddEvent* event)
 {
     RouteEntry* entry = event->entry_;
     add_route(entry);
@@ -537,7 +539,7 @@ BundleRouter::handle_route_add(RouteAddEvent* event)
  * such.
  */
 void
-BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)                             
+BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
 {
     // handle reassembly for certain routes
     if (nexthop->action_ == FORWARD_REASSEMBLE && bundle->is_fragment_) {
@@ -570,7 +572,7 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
 
     // Add message to the next hop queue
     actions_->enqueue_bundle(bundle, nexthop->next_hop_,
-                            nexthop->action_, nexthop->mapping_grp_);
+                             nexthop->action_, nexthop->mapping_grp_);
 }
 
 
@@ -584,8 +586,7 @@ BundleRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
  * Returns the number of matches found and assigned.
  */
 int
-BundleRouter::fwd_to_matching(Bundle* bundle,
-                              bool include_local)
+BundleRouter::fwd_to_matching(Bundle* bundle, bool include_local)
 {
     RouteEntry* entry;
     RouteEntrySet matches;
@@ -617,7 +618,6 @@ BundleRouter::fwd_to_matching(Bundle* bundle,
 void
 BundleRouter::new_next_hop(const BundleTuplePattern& dest,
                            BundleConsumer* next_hop)
-                           
 {
     // XXX/demmer WRONG WRONG WRONG -- should really only check the
     // NEW contact, not all the contacts.

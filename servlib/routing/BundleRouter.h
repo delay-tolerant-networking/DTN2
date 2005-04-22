@@ -282,8 +282,9 @@ protected:
     /// The list of all bundles that I have custody of
     BundleList* custody_bundles_;
 
+    /// The actions interface, set by the BundleDaemon when the router
+    /// is initialized.
     BundleActions* actions_;
-
 };
 
 } // namespace dtn
