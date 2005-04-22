@@ -308,11 +308,6 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     admin_id  = primary->_what##id & 0xf;                               \
     ASSERT((region_id <= 0xf) && (admin_id <= 0xf));                    \
                                                                         \
-    if (bundle->_what.family() == fixed_family)                         \
-    {                                                                   \
-        PANIC("fixed family transmission not implemented");             \
-    }                                                                   \
-                                                                        \
     bundle->_what.assign(tupledata[region_id], tuplelen[region_id],     \
                          tupledata[admin_id],  tuplelen[admin_id]);     \
                                                                         \
@@ -321,6 +316,12 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
                 bundle->_what.c_str());                                 \
         return -1;                                                      \
     }                                                                   \
+                                                                        \
+    if (bundle->_what.family() == fixed_family)                         \
+    {                                                                   \
+        PANIC("fixed family transmission not implemented");             \
+    }                                                                   \
+                                                                        \
     log_debug(log, "parsed %s tuple (ids %d, %d) %s", #_what,           \
               region_id, admin_id, bundle->_what.c_str());
 
