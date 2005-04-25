@@ -53,30 +53,33 @@ namespace dtn {
 
 NeighborhoodRouter::NeighborhoodRouter()
 {
-    Logger::set_logpath("/route/dynamic");
+    Logger::set_logpath("/route/neighborhood");
     log_info("Initializing NeighborhoodRouter");
 }
 
-
-/**
- * Default event handler when a new link is created
- */
 void
-NeighborhoodRouter::handle_link_created(LinkCreatedEvent* event)
+NeighborhoodRouter::handle_contact_up(ContactUpEvent* event)
 {
-    log_info("LINK_CREATED *%p adding route", event->link_);
+    BundleRouter::handle_contact_up(event);
+    log_info("Contact Up: *%p adding route", event->contact_);
 
     // XXX/jakob - this is pretty nasty really. I believe the bundles://<region> syntax needs to go very soon.
    
     char tuplestring[255];
-    sprintf(tuplestring, "bundles://internet/%s",event->link_->nexthop());
+    sprintf(tuplestring, "bundles://internet/%s",event->contact_->nexthop());
 
     // By default, we add a route for all the next hops we have around. 
     RouteEntry* entry = new RouteEntry(BundleTuplePattern(tuplestring), 
-                                       event->link_, 
+                                       event->contact_, 
                                        FORWARD_REASSEMBLE);    
     add_route(entry);
+    
+}
 
+void
+NeighborhoodRouter::handle_contact_down(ContactDownEvent* event)
+{
+    route_table_->del_entries_for_nexthop(event->contact_);
 }
 
 } // namespace dtn

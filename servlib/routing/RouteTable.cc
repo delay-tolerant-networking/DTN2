@@ -99,6 +99,8 @@ RouteTable::add_entry(RouteEntry* entry)
     return true;
 }
 
+
+
 /**
  * Remove a route entry.
  */
@@ -123,6 +125,32 @@ RouteTable::del_entry(const BundleTuplePattern& dest,
 
     log_debug("del_route %s -> %s: no match!",
               dest.c_str(), next_hop->dest_str());
+    return false;
+}
+
+/**
+ * Remove a route entry.
+ */
+bool
+RouteTable::del_entries_for_nexthop(BundleConsumer* next_hop)
+{
+    RouteEntrySet::iterator iter;
+    RouteEntry* entry;
+
+    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+        entry = *iter;
+
+        if (entry->next_hop_ == next_hop) {
+	  log_debug("del_route %s -> %s",
+		    entry->pattern_.c_str(), next_hop->dest_str());
+	  
+	  route_table_.erase(iter);
+	  return true;
+        }
+    }    
+
+    log_debug("del_route_for_nexthop %s :no match!",
+             next_hop->dest_str());
     return false;
 }
 

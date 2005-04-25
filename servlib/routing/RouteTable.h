@@ -127,6 +127,10 @@ public:
     bool del_entry(const BundleTuplePattern& dest,
                    BundleConsumer* next_hop);
 
+    /**
+     * Remove all entries that rely on the given next_hop
+     **/
+    bool del_entries_for_nexthop(BundleConsumer* next_hop);
 
     /**
      * Fill in the entry_set with the list of all entries whose

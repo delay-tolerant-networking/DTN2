@@ -145,11 +145,7 @@ EthConvergenceLayer::open_contact(Contact* contact)
 
 bool
 EthConvergenceLayer::close_contact(Contact* contact)
-{
-  
-    // XXX/jakob stop/destroy the sender for this contact
-    // not implemented
-/*
+{  
     Sender* sender = (Sender*)contact->cl_info();
     
     log_info("close_contact *%p", contact);
@@ -168,7 +164,7 @@ EthConvergenceLayer::close_contact(Contact* contact)
         delete sender;
         contact->set_cl_info(NULL);
     }
-*/    
+    
     return true;
 }
 
@@ -636,8 +632,23 @@ EthConvergenceLayer::BeaconTimer::~BeaconTimer()
 void
 EthConvergenceLayer::BeaconTimer::timeout(struct timeval* now)
 {
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    Link * l = cm->find_link_to(next_hop_);
+
     log_info("Neighbor %s timer expired.",next_hop_);
-    
+
+    if(l != 0) {
+      Contact * c = cm->find_link_to(next_hop_)->contact();
+      if(c != 0) {    	
+	BundleDaemon::post(new ContactDownEvent(c));	
+      }
+      else
+	log_warn("No contact for next_hop %s.",next_hop_);
+    }
+    else
+      log_warn("No link for next_hop %s.",next_hop_);
+
+    delete this;
 }
 
 Timer *

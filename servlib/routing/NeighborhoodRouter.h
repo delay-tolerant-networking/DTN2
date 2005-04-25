@@ -46,7 +46,8 @@ class NeighborhoodRouter : public BundleRouter {
 public:
     NeighborhoodRouter();
 
-    void handle_link_created(LinkCreatedEvent* event);
+    void handle_contact_down(ContactDownEvent* event);
+    void handle_contact_up(ContactUpEvent* event);
 };
 
 } // namespace dtn
