@@ -190,6 +190,23 @@ ContactManager::find_link(const char* name)
 }
 
 /**
+ * Finds link to a given next_hop
+ */
+Link*
+ContactManager::find_link_to(const char* next_hop)
+{
+    LinkSet::iterator iter;
+    Link* link = NULL;
+    for (iter = links_->begin(); iter != links_->end(); ++iter)
+    {
+        link = *iter;
+        if (strcasecmp(link->nexthop(), next_hop) == 0)
+            return link;
+    }
+    return NULL;
+}
+
+/**
  * Open the given link.
  */
 void
@@ -227,7 +244,8 @@ ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        if ( (strcmp(link->nexthop(), nexthop) == 0) &&
+        // find_link is case independent, better make this one the same, no?
+        if ( (strcasecmp(link->nexthop(), nexthop) == 0) &&   
              (link->type() == Link::OPPORTUNISTIC)   &&
              (link->clayer() == cl) ) {
             if(! link->isopen()) {

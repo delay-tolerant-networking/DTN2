@@ -43,6 +43,7 @@
 
 #include <oasys/thread/Thread.h>
 #include "ConvergenceLayer.h"
+#include <oasys/thread/Timer.h>
 #include <servlib/bundling/EthernetAddressFamily.h>
 #include "linux/if.h"
 
@@ -69,6 +70,9 @@ public:
 
     static const u_int8_t ETHCL_BEACON = 0x01;
     static const u_int8_t ETHCL_BUNDLE = 0x02;
+
+    static const u_int32_t ETHCL_BEACON_TIMEOUT_INTERVAL = 2500; // 2.5 seconds
+
     /**
      * The basic Eth header structure.
      */
@@ -82,6 +86,7 @@ public:
     class EthCLInfo : public CLInfo {
       public:
         EthCLInfo(char* if_name, u_int8_t* hw_addr) {            
+	    memset(if_name_,0,IFNAMSIZ);
             strcpy(if_name_,if_name);
             memcpy(hw_addr_, hw_addr, ETH_ALEN);
         }
@@ -217,6 +222,19 @@ public:
       virtual void run();
       char if_name_[IFNAMSIZ];
     };
+
+    class BeaconTimer : public oasys::Logger, public oasys::Timer, public CLInfo {
+    public:
+        char * next_hop_;
+
+        BeaconTimer(char * next_hop);
+        ~BeaconTimer();
+
+        void timeout(struct timeval* now);
+
+        Timer* copy();
+    };    
+
 };
 
 

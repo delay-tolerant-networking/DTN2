@@ -127,6 +127,11 @@ public:
     Link* find_link(const char* name);
 
     /**
+     * Finds link to given next hop
+     */
+    Link* find_link_to(const char* next_hop);
+
+    /**
      * Return the list of links 
      */
     LinkSet* links() { return links_; }

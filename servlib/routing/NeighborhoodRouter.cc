@@ -68,7 +68,7 @@ NeighborhoodRouter::handle_link_created(LinkCreatedEvent* event)
 
     // XXX/jakob - this is pretty nasty really. I believe the bundles://<region> syntax needs to go very soon.
    
-    char tuplestring[100];
+    char tuplestring[255];
     sprintf(tuplestring, "bundles://internet/%s",event->link_->nexthop());
 
     // By default, we add a route for all the next hops we have around. 

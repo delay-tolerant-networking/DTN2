@@ -325,8 +325,10 @@ public:
      */
     void set_cl_info(CLInfo* cl_info)
     {
-        ASSERT((cl_info_ == NULL && cl_info != NULL) ||
-               (cl_info_ != NULL && cl_info == NULL));
+        //XXX/jakob - need to be able to overwrite cl_info in EthConvergenceLayer.cc::process_data()
+        
+//        ASSERT((cl_info_ == NULL && cl_info != NULL) ||
+//               (cl_info_ != NULL && cl_info == NULL));
         
         cl_info_ = cl_info;
     }

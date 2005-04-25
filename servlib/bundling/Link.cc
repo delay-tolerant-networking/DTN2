@@ -97,6 +97,7 @@ Link::Link(std::string name, link_type_t type,
     // info, but all links get a bundle list
     contact_ = NULL ;
     cl_info_ = NULL;
+    peer_ = NULL;
     bundle_list_ = new BundleList(logpath_);
 
     log_info("new link *%p", this);

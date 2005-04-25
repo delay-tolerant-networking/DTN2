@@ -67,6 +67,7 @@ ROUTING_SRCS :=					\
 	routing/BundleRouter.cc			\
 	routing/FloodBundleRouter.cc		\
 	routing/NeighborhoodRouter.cc		\
+	routing/LinkStateGraph.cc		\
 
 STORAGE_SRCS :=					\
 	storage/BundleStore.cc			\

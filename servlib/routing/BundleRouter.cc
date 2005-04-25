@@ -110,6 +110,7 @@ BundleRouter::BundleRouter()
               local_tuple_.c_str());
     
     route_table_ = new RouteTable();
+    actions_ = BundleDaemon::instance()->actions();
 
     actions_ = BundleDaemon::instance()->actions();
 
