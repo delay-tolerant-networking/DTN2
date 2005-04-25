@@ -267,8 +267,8 @@ dtn_recv(dtn_handle_t h,
     XDR* xdr_decode = &handle->xdr_decode;
 
     // zero out the spec and payload structures
-    memset(spec, 0, sizeof(spec));
-    memset(payload, 0, sizeof(payload));
+    memset(spec, 0, sizeof(*spec));
+    memset(payload, 0, sizeof(*payload));
 
     // pack the arguments
     if ((!xdr_dtn_bundle_payload_location_t(xdr_encode, &location)) ||
