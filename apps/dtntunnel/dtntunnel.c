@@ -114,7 +114,7 @@ main(int argc, char** argv)
         local_addr.sin_addr.s_addr = htons(INADDR_ANY);
         local_addr.sin_port = htons(arg_source_port);
 
-        if(bind(sock, &local_addr, sizeof(local_addr)) < 0) {
+        if(bind(sock, (struct sockaddr*)&local_addr, sizeof(local_addr)) < 0) {
             fprintf(stderr, "Error binding socket \n");
             exit(1);
         }
@@ -180,7 +180,7 @@ main(int argc, char** argv)
         local_addr.sin_addr.s_addr = htons(INADDR_ANY);
         local_addr.sin_port = htons(arg_source_port);
 
-        if(bind(sock, &local_addr, sizeof(local_addr)) < 0) {
+        if(bind(sock, (struct sockaddr*)&local_addr, sizeof(local_addr)) < 0) {
             fprintf(stderr, "Error binding socket \n");
             exit(1);
         }
@@ -207,7 +207,7 @@ main(int argc, char** argv)
                       send_payload.dtn_bundle_payload_t_u.buf.buf_val,
                       send_payload.dtn_bundle_payload_t_u.buf.buf_len,
                       0,
-                      &remote_addr, 
+                      (struct sockaddr*)&remote_addr, 
                       sizeof(remote_addr))<0)
             {
                 fprintf(stderr,"error sending UDP datagram\n");
