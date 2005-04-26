@@ -138,8 +138,8 @@ Link::open()
             clayer()->open_contact(contact_);
 
         } else if (type_ == OPPORTUNISTIC) {
-            // the CL will take care of adding the contact
-            
+	  // XXX/jakob - need to call open contact from here, this is where the contact is created
+	    clayer()->open_contact(contact_);	  
         } else {
             PANIC("Link::open not implemented for %s links",
                   link_type_to_str(type_));

@@ -140,6 +140,7 @@ RouteTable::del_entries_for_nexthop(BundleConsumer* next_hop)
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         entry = *iter;
 
+	printf("Comparing %x to %x\n",(int)entry->next_hop_,(int)next_hop);
         if (entry->next_hop_ == next_hop) {
 	  log_debug("del_route %s -> %s",
 		    entry->pattern_.c_str(), next_hop->dest_str());

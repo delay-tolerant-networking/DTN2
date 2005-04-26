@@ -140,6 +140,8 @@ EthConvergenceLayer::open_contact(Contact* contact)
     sender->logpathf("/cl/eth");
     sender->start();
     
+    BundleDaemon::post(new ContactUpEvent(contact));
+
     return true;
 }
 
@@ -214,31 +216,30 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         EthernetAddressFamily::to_string((struct ether_addr*)ethhdr->ether_shost, next_hop_string);
 
 
-        Link* link=cm->find_link_to(next_hop_string);
-        if(!link) 
+        Link* link=cm->find_link_to(next_hop_string);	
+        if(!link || !link->isopen()) 
         {
             log_info("Discovered next_hop %s on interface %s.", next_hop_string, if_name_);
 
             // registers a new contact with the routing layer
-            Contact* c=cm->new_opportunistic_contact(ConvergenceLayer::find_clayer("eth"),
+            Contact *c=cm->new_opportunistic_contact(ConvergenceLayer::find_clayer("eth"),
                                           new EthCLInfo(if_name_,ethhdr->ether_shost),    
                                           next_hop_string);                        
 
             link=c->link();
 
-            // prepares the new contact for sending.
-            // XXX/jakob - why isn't this done in the ContactManager?
-
-            ConvergenceLayer::find_clayer("eth")->open_contact(c);
+            // set up sender thread for this contact
+	    //if(!link->isopen())
+	    //  ConvergenceLayer::find_clayer("eth")->open_contact(c);
         }
 
-        /* refresh or create the timer for this link */
+        /* refresh or create the timer for this link 
+	*/
         BeaconTimer *timer;
         if((timer=(BeaconTimer*)link->cl_info())) {
             timer=(BeaconTimer*)timer->reschedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
             link->set_cl_info(timer);
         }
-
         else {
             printf("Starting timer to next hop %s.\n",next_hop_string);
             timer = new BeaconTimer(next_hop_string); 
@@ -648,6 +649,7 @@ EthConvergenceLayer::BeaconTimer::timeout(struct timeval* now)
     else
       log_warn("No link for next_hop %s.",next_hop_);
 
+    l->set_cl_info(NULL);
     delete this;
 }
 
