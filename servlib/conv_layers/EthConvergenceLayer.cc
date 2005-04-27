@@ -136,12 +136,14 @@ EthConvergenceLayer::open_contact(Contact* contact)
     
     // create a new connection for the contact
     
-    Sender* sender = new Sender(contact);
+    Sender* sender = new Sender(((EthCLInfo*)contact->link()->cl_info())->if_name_, // interface name
+				contact);
+    contact->set_cl_info(sender);
+
     sender->logpathf("/cl/eth");
     sender->start();
-    
-    BundleDaemon::post(new ContactUpEvent(contact));
 
+    BundleDaemon::post(new ContactUpEvent(contact));
     return true;
 }
 
@@ -152,18 +154,19 @@ EthConvergenceLayer::close_contact(Contact* contact)
     
     log_info("close_contact *%p", contact);
 
-    if (sender) {
+    
+    if (sender) {            
         while (!sender->is_stopped()) {
             if (!sender->should_stop()) {
-                sender->set_should_stop();
-                sender->interrupt();
+	      sender->set_should_stop();
+	      //sender->interrupt();
+	      sender->notify();
             }
             
             log_warn("waiting for connection thread to stop...");
             oasys::Thread::yield();
         }
-        
-        delete sender;
+
         contact->set_cl_info(NULL);
     }
     
@@ -211,10 +214,9 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     if(ethclhdr.type == ETHCL_BEACON) {
         ContactManager* cm = BundleDaemon::instance()->contactmgr();
 
-        char next_hop_string[256];  
-	memset(next_hop_string,0,256);
+        char next_hop_string[50];  
+	memset(next_hop_string,0,50);
         EthernetAddressFamily::to_string((struct ether_addr*)ethhdr->ether_shost, next_hop_string);
-
 
         Link* link=cm->find_link_to(next_hop_string);	
         if(!link || !link->isopen()) 
@@ -223,29 +225,30 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 
             // registers a new contact with the routing layer
             Contact *c=cm->new_opportunistic_contact(ConvergenceLayer::find_clayer("eth"),
-                                          new EthCLInfo(if_name_,ethhdr->ether_shost),    
-                                          next_hop_string);                        
-
+						     new EthCLInfo(if_name_),  // saved in Link::cl_info. 
+						     next_hop_string);                        
+	    
             link=c->link();
-
-            // set up sender thread for this contact
-	    //if(!link->isopen())
-	    //  ConvergenceLayer::find_clayer("eth")->open_contact(c);
         }
 
-        /* refresh or create the timer for this link 
+        /**
+	 * If there already is a timer for this link, reschedule it.
+	 * Otherwise, create a new timer. 
+	 *
+	 * In the current implementation, rescheduling actually copies the timer, 
+	 * cancels the old one and returns the copy. That's why we have to use
+	 * the return value.
 	*/
-        BeaconTimer *timer;
-        if((timer=(BeaconTimer*)link->cl_info())) {
+        BeaconTimer *timer=((EthCLInfo*)link->cl_info())->timer;
+        if(timer)
             timer=(BeaconTimer*)timer->reschedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
-            link->set_cl_info(timer);
-        }
         else {
-            printf("Starting timer to next hop %s.\n",next_hop_string);
             timer = new BeaconTimer(next_hop_string); 
             timer->schedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
-            link->set_cl_info(timer);
         }       
+	
+	((EthCLInfo*)link->cl_info())->timer=timer;
+
     }
     else if(ethclhdr.type == ETHCL_BUNDLE) {
         
@@ -352,10 +355,13 @@ EthConvergenceLayer::Receiver::run()
 /**
  * Constructor for the active connection side of a connection.
  */
-EthConvergenceLayer::Sender::Sender(Contact* contact)
+EthConvergenceLayer::Sender::Sender(char* if_name, Contact* contact)
     : contact_(contact)
 {
-    memset(hw_addr_, 0, 6);
+    memset(src_hw_addr_.octet, 0, 6); // determined in Sender::run()
+    EthernetAddressFamily::parse(contact->nexthop(), &dst_hw_addr_);
+
+    strcpy(if_name_, if_name);
     sock = 0;
     Thread::flags_ |= INTERRUPTABLE;
 }
@@ -382,8 +388,8 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 
     // write the ethernet header
 
-    memcpy(hdr.ether_dhost,((EthCLInfo*)contact_->cl_info())->hw_addr_,6);
-    memcpy(hdr.ether_shost,hw_addr_,6); // Sender::hw_addr
+    memcpy(hdr.ether_dhost,dst_hw_addr_.octet,6);
+    memcpy(hdr.ether_shost,src_hw_addr_.octet,6); // Sender::hw_addr
     hdr.ether_type=htons(ETHERTYPE_DTN);
     
     // iovec slot 1 for the eth cl header
@@ -414,12 +420,12 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     
 
     // We're done assembling the packet. Now write the whole thing to the socket!
-    log_info("Sending bundle out interface %s",((EthCLInfo*)contact_->cl_info())->if_name_);
+    log_info("Sending bundle out interface %s",if_name_);
 
     cc=IO::writevall(sock, iov, iovcnt+3);
     if(cc<0) {
         perror("send");
-        printf("Send failed!\n");
+        log_err("Send failed!\n");
     }    
     
     // free up the iovec data used in the header representation
@@ -436,6 +442,12 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     
     // all set
     return true;
+}
+
+void
+EthConvergenceLayer::Sender::notify()
+{
+    contact_->bundle_list()->notify();
 }
 
 void
@@ -457,7 +469,7 @@ EthConvergenceLayer::Sender::run()
     }
 
     // get the interface name from the contact info
-    strcpy(req.ifr_name, ((EthCLInfo*)contact_->cl_info())->if_name_);
+    strcpy(req.ifr_name, if_name_);
 
     // ifreq the interface index for binding the socket    
     ioctl(sock, SIOCGIFINDEX, &req);
@@ -472,21 +484,27 @@ EthConvergenceLayer::Sender::run()
         perror("ioctl");
         exit(1);
     } 
-    memcpy(hw_addr_,req.ifr_hwaddr.sa_data,6);    
+    memcpy(src_hw_addr_.octet,req.ifr_hwaddr.sa_data,6);    
 
     if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
         perror("bind");
         exit(1);
     }
 
-    while (1) {
+    while (!should_stop()) {
 
         // block waiting for a bundle to be placed on the contact
         bundle = contact_->bundle_list()->pop_blocking();
+	
+	if(!bundle || should_stop()) 
+	{
+  	    log_debug("pop_blocking returned NULL, or should_stop() set. exiting thread.");
+	    break;
+	}
 
         // we got a legit bundle, send it off
         if (! send_bundle(bundle)) {
-            goto shutdown;
+	    goto shutdown;
         }	
         
         // cons up a transmission event and pass it to the router
@@ -525,8 +543,6 @@ EthConvergenceLayer::Sender::break_contact()
 //    close();
     
     //  Thread::set_flag(STOPPED);
-    if (contact_)
-        BundleDaemon::post(new ContactDownEvent(contact_));
 }
 
 EthConvergenceLayer::Beacon::Beacon(const char* if_name)
@@ -613,7 +629,7 @@ void EthConvergenceLayer::Beacon::run()
         cc=IO::writevall(sock, iov, 2);
         if(cc<0) {
             perror("send beacon");
-            printf("Send beacon failed!\n");
+            log_err("Send beacon failed!\n");
         }
     }
 }
@@ -648,9 +664,6 @@ EthConvergenceLayer::BeaconTimer::timeout(struct timeval* now)
     }
     else
       log_warn("No link for next_hop %s.",next_hop_);
-
-    l->set_cl_info(NULL);
-    delete this;
 }
 
 Timer *

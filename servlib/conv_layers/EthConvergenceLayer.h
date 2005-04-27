@@ -60,7 +60,9 @@
 namespace dtn {
 
 class EthConvergenceLayer : public ConvergenceLayer {
+
 public:
+    class BeaconTimer;
     /**
      * Current version of the protocol.
      */
@@ -85,17 +87,21 @@ public:
 
     class EthCLInfo : public CLInfo {
       public:
-        EthCLInfo(char* if_name, u_int8_t* hw_addr) {            
+        EthCLInfo(char* if_name) {            
 	    memset(if_name_,0,IFNAMSIZ);
             strcpy(if_name_,if_name);
-            memcpy(hw_addr_, hw_addr, ETH_ALEN);
+	    timer=NULL;
         }
-        
-        // MAC address of Peer
-        u_int8_t hw_addr_[ETH_ALEN]; 
+
+	~EthCLInfo() {
+	  if(timer)
+	    delete timer;
+	}
         
         // Name of the device 
         char if_name_[IFNAMSIZ]; 
+
+	BeaconTimer* timer;
     };
 
     /**
@@ -155,7 +161,6 @@ public:
         /**
          * Handler to process an arrived packet.
          */
-
         void process_data(u_char* bp, size_t len);
         char if_name_[IFNAMSIZ];
     };
@@ -176,12 +181,14 @@ public:
         /**
          * Constructor for the active connection side of a connection.
          */
-        Sender(Contact* contact);
+        Sender(char* if_name, Contact* contact);
 
         /**
          * Destructor.
          */
         virtual ~Sender() {}
+
+	void notify();
         
     protected:
         /**
@@ -205,7 +212,13 @@ public:
         int sock;  
 
         // MAC address of the interface used for this contact
-        u_int8_t* hw_addr_[6];
+        eth_addr_t src_hw_addr_;
+        eth_addr_t dst_hw_addr_; 
+
+	// The name of the interface the next_hop is behind
+        char if_name_[IFNAMSIZ]; 
+
+	char canary[7];
     };   
 
     /** 
