@@ -80,6 +80,7 @@ void
 NeighborhoodRouter::handle_contact_down(ContactDownEvent* event)
 {
     route_table_->del_entries_for_nexthop(event->contact_);
+    BundleRouter::handle_contact_down(event);
 }
 
 } // namespace dtn
