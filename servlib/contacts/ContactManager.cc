@@ -233,7 +233,8 @@ ContactManager::close_link(Link* link)
  */
 Link*
 ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
-                                        const char* nexthop)
+				       CLInfo* clinfo,
+				       const char* nexthop)
 {
     LinkSet::iterator iter;
     Link* link = NULL;
@@ -271,6 +272,7 @@ ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
     } while (link != NULL);
         
     link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop, 0, NULL);
+    link->set_cl_info(clinfo);
         
     if (!link) {
         log_crit("unexpected error creating opportunistic link!!");
@@ -293,7 +295,7 @@ ContactManager::new_opportunistic_contact(ConvergenceLayer* cl,
                                           CLInfo* clinfo,
                                           const char* nexthop)
 {
-    Link* link = get_opportunistic_link(cl, nexthop);
+    Link* link = get_opportunistic_link(cl, clinfo, nexthop);
     if (!link) // no link means it couldn't be created
         return NULL;
 
@@ -307,7 +309,9 @@ ContactManager::new_opportunistic_contact(ConvergenceLayer* cl,
         // store the given cl info in the contact
         Contact* contact = link->contact();
         ASSERT(contact);
-        contact->set_cl_info(clinfo);
+	// XXX/jakob - changed so the clinfo goes to the link, not the contact
+	//             link needs it to be able to open the contact
+	//        contact->set_cl_info(clinfo);
         return contact;
     }
     else {

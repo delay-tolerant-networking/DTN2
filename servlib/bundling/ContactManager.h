@@ -171,7 +171,8 @@ protected:
      * Helper routine to find or create an opportunistic link.
      */
     Link* get_opportunistic_link(ConvergenceLayer* cl,
-                                  const char* nexthop);
+				 CLInfo* clinfo,
+				 const char* nexthop);
     
     
     PeerSet* peers_;			///< Set of all peers

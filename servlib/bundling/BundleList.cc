@@ -251,7 +251,10 @@ BundleList::pop_back(BundleMapping** mappingp)
 
 /**
  * Remove (and return) the first bundle on the list, blocking if
- * there are none.
+ * there are none. 
+ *
+ * Blocking read can be interrupted by calling BundleList::notify(). 
+ * If this is done, the return value will be NULL.
  */
 Bundle*
 BundleList::pop_blocking(BundleMapping** mappingp, int timeout)
@@ -272,10 +275,11 @@ BundleList::pop_blocking(BundleMapping** mappingp, int timeout)
         // the pipe is drained in pop_front()
     }
 
-    ASSERT(!list_.empty());
-    
-    Bundle* b = pop_front(mappingp);
-    
+    //    ASSERT(!list_.empty());
+    Bundle *b = NULL;
+    if(!list_.empty()) 
+        b = pop_front(mappingp);
+
     lock_->unlock();
     
     return b;
