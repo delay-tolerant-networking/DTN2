@@ -91,7 +91,23 @@ EthernetAddressFamily::match(const std::string& pattern,
                              const std::string& admin)
 {
     log_debug("Matching %s against %s.",pattern.c_str(), admin.c_str());
-    return (admin == pattern) || (admin.find(pattern,0)==0 && pattern[pattern.size()-1]=='*'); 
+
+    size_t patternlen = pattern.length();
+    
+    if(pattern == admin) 
+        return true;
+    
+    if (patternlen >= 1 && pattern[patternlen-1] == '*') {
+        patternlen--;
+        
+        if (pattern.substr(0, patternlen) ==
+            admin.substr(0, patternlen))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 char* 
