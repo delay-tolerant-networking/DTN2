@@ -56,6 +56,11 @@
  *
  *   interface add eth string://eth0
  *
+ *   Theoretically, any router type should work, but so far, the only one I've
+ *   been using is the NeighborhoodRouter. To use this router, add this to dtn.conf
+ *  
+ *   route set type neighborhood
+ *
  */
 namespace dtn {
 
