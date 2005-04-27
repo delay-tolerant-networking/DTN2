@@ -97,31 +97,29 @@ main(int argc, char** argv)
     }
     if (verbose) fprintf(stdout, "Got connection to local DTN daemon\n");
 
+
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if(sock < 0) {
+        fprintf(stderr, "Error opening socket \n");
+        exit(1);
+    }
+
     if(sender) {
         char buf[2500];
         int rc;
 
         printf("Sender mode.\n");
 
-        /* get a UDP receiver socket */
-        sock = socket(AF_INET, SOCK_DGRAM, 0);
-        if(sock < 0) {
-            fprintf(stderr, "Error opening socket \n");
-            exit(1);
-        }
         
         local_addr.sin_family = AF_INET;
         local_addr.sin_addr.s_addr = htons(INADDR_ANY);
         local_addr.sin_port = htons(arg_source_port);
 
         if(bind(sock, (struct sockaddr*)&local_addr, sizeof(local_addr)) < 0) {
-            fprintf(stderr, "Error binding socket \n");
+            perror("dtntunnel");
+            fprintf(stderr, "Error binding socket to port %d \n",arg_source_port);
             exit(1);
         }
-
-//        remote_addr.sin_family = AF_INET;
-//        remote_addr.sin_addr = htons(gethostbyname(arg_dest_host));       
-//        remote_addr.sin_port = htons(arg_dest_port);
 
         while((rc=recv(sock, buf, 2500, 0))) {
             
@@ -176,15 +174,16 @@ main(int argc, char** argv)
         dtn_bind(handle, regid, &local_tuple);
 
 
-        local_addr.sin_family = AF_INET;
-        local_addr.sin_addr.s_addr = htons(INADDR_ANY);
-        local_addr.sin_port = htons(arg_source_port);
+/*        local_addr.sin_family = AF_INET;
+        local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        local_addr.sin_port = htons(36293);
 
         if(bind(sock, (struct sockaddr*)&local_addr, sizeof(local_addr)) < 0) {
-            fprintf(stderr, "Error binding socket \n");
+            perror("binding sender UDP socket");
+            fprintf(stderr, "Error binding sender UDP socket port %d \n",arg__port);
             exit(1);
         }
-
+*/
         remote_addr.sin_family = AF_INET;
 
         he=gethostbyname(arg_dest_host);
@@ -193,16 +192,10 @@ main(int argc, char** argv)
 
         remote_addr.sin_port = htons(arg_dest_port);
 
-        // XXX/jakob - here's a mystery...  the code crashes
-        //             without these two lines. but dtn_recv
-        //             also does the memset!
-        
-//        memset(&bundle_spec, 0, sizeof(bundle_spec));
-//        memset(&send_payload, 0, sizeof(send_payload));
-
         while ((ret = dtn_recv(handle, &bundle_spec,
-                            DTN_PAYLOAD_MEM, &send_payload, -1)) < 0)
+                            DTN_PAYLOAD_MEM, &send_payload, -1)) >= 0)
         {
+            printf("got packet from DTN, forwarding to UDP destination\n");
             if(sendto(sock, 
                       send_payload.dtn_bundle_payload_t_u.buf.buf_val,
                       send_payload.dtn_bundle_payload_t_u.buf.buf_len,
@@ -210,6 +203,7 @@ main(int argc, char** argv)
                       (struct sockaddr*)&remote_addr, 
                       sizeof(remote_addr))<0)
             {
+                perror("sending datagram");
                 fprintf(stderr,"error sending UDP datagram\n");
                 exit(1);
             }
@@ -231,16 +225,17 @@ main(int argc, char** argv)
 void print_usage()
 {
     fprintf(stderr, "usage: %s "
-            "-s <source port> -d <dest host:port> -p <dtn peer>\n",
+            "-r <s/r> -s <source port> -d <dest host:port> -p <dtn peer>\n\n",
             progname);
     fprintf(stderr, "dtntunnel is used to create DTN tunnels for TCP/UDP traffic.\n");
     fprintf(stderr, " dtntunnel forwards data received from a specified source (DTN peer or source port)\n");
     fprintf(stderr, " to the specified destination (destination host:port or DTN peer)\n");
     fprintf(stderr, "options:\n");
+    fprintf(stderr, " -r <r/s> Receiver or Sender role.");
     fprintf(stderr, " -p <EID> DTN tunnel peer\n");
-    fprintf(stderr, " -d <host:port> TCP/UDP destination\n");
-    fprintf(stderr, " -s <port> TCP/UDP source \n");
-    fprintf(stderr, " -t <upd/tcp> IP protocol to use. TCP not implemented!\n");
+    fprintf(stderr, " -d <host:port> TCP/UDP destination (if receiver role)\n");
+    fprintf(stderr, " -s <port> TCP/UDP source (if sender role)\n");
+//    fprintf(stderr, " -t <upd/tcp> IP protocol to use. TCP not implemented!\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h help\n");
     
