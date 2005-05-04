@@ -92,7 +92,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     node_->set_active();
 
     const char* cmd = argv[2];
-    const char* subcmd;
+    const char* subcmd = NULL;
     if (argc >= 4) {
         subcmd = argv[3];
     }

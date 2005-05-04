@@ -619,8 +619,8 @@ ClientAPIServer::handle_send()
 int
 ClientAPIServer::handle_recv()
 {
-    Bundle* b;
-    Registration* reg;
+    Bundle* b = NULL;
+    Registration* reg = NULL;
     long ret;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
