@@ -72,7 +72,7 @@ LinkStateGraph::findNextHop(Vertex* from, Vertex *to)
     from->dijkstra_distance_=0;
 
     /* now compute the dijkstra distances for each node */
-    while(current = queue.top())
+    while((current = queue.top()))
     {
         queue.pop();
         for(map<Vertex*, Edge*>::iterator e=from->outgoing_edges_.begin(); e!=from->outgoing_edges_.end(); e++)
