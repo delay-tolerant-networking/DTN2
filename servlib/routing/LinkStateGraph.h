@@ -146,6 +146,11 @@ public:
 
         std::map<Vertex*,Edge*> incoming_edges_;
         std::map<Vertex*,Edge*> outgoing_edges_;
+
+        int operator<(Vertex* a) {
+            ASSERT(a);
+            return strcmp(eid_,a->eid_);
+        }
     };    
 };
 

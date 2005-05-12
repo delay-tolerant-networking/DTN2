@@ -80,11 +80,11 @@ LinkStateRouter::handle_contact_up(ContactUpEvent* event)
 
     log_info("Contact Up. Adding edges %s <-> %s", local_tuple_.c_str(), tuplestring);
 
-    local=graph->getVertex(local_tuple_.c_str());
-    peer=graph->getVertex(tuplestring);   
+    local=graph.getVertex(local_tuple_.c_str());
+    peer=graph.getVertex(tuplestring);   
 
-    graph->addEdge(peer, local, 1);     
-    graph->addEdge(local, peer, 1);
+    graph.addEdge(peer, local, 1);     
+    graph.addEdge(local, peer, 1);
 }
 
 void
@@ -97,11 +97,11 @@ LinkStateRouter::handle_contact_down(ContactDownEvent* event)
 
     log_info("Contact Down. Removing edges %s <-> %s", local_tuple_.c_str(), tuplestring);
     
-    peer=graph->getVertex(tuplestring);   
-    local=graph->getVertex(local_tuple_.c_str());
+    peer=graph.getVertex(tuplestring);   
+    local=graph.getVertex(local_tuple_.c_str());
 
-    graph->removeEdge(peer, local);     
-    graph->removeEdge(local, peer);
+    graph.removeEdge(peer, local);     
+    graph.removeEdge(local, peer);
     
     BundleRouter::handle_contact_down(event);
 }
@@ -112,8 +112,8 @@ LinkStateRouter::fwd_to_matching(Bundle* bundle, bool include_local)
     //XXX/jakob - this only works if there's one local tuple per node
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
 
-    LinkStateGraph::Vertex* nextHop=graph->findNextHop(graph->getVertex(local_tuple_.c_str()),
-                                       graph->getVertex(bundle->dest_.c_str()));
+    LinkStateGraph::Vertex* nextHop=graph.findNextHop(graph.getVertex(local_tuple_.c_str()),
+                                       graph.getVertex(bundle->dest_.c_str()));
 
     if(!nextHop) return 0;
 

@@ -59,7 +59,7 @@ public:
     void initialize();
 
 protected:
-    LinkStateGraph* graph;
+    LinkStateGraph graph;
 
     void send_announcement(LinkStateGraph::Edge* edge);
     int fwd_to_matching(Bundle* bundle, bool include_local);
