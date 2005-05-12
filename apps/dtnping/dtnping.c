@@ -174,7 +174,7 @@ main(int argc, const char** argv)
         if (ret == 0) {
             fprintf(stderr, "error: unexpected ping already queued... "
                     "discarding\n");
-        } else if (dtn_errno(handle) != DTN_TIMEOUT) {
+        } else if (dtn_errno(handle) != DTNERR_TIMEOUT) {
             fprintf(stderr, "error: "
                     "unexpected error checking for queued bundles: %s\n",
                     dtn_strerror(dtn_errno(handle)));

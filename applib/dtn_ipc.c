@@ -75,7 +75,7 @@ dtnipc_open(dtnipc_handle_t* handle)
 
     if (handle->sock < 0)
     {
-        handle->err = DTN_COMMERR;
+        handle->err = DTNERR_COMM;
         return -1;
     }
 
@@ -116,7 +116,7 @@ dtnipc_open(dtnipc_handle_t* handle)
     ret = sendto(handle->sock, &handshake, sizeof(handshake), 0,
                  (const struct sockaddr*)&handle->sa, sizeof(handle->sa));
     if (ret != sizeof(handshake)) {
-        handle->err = DTN_COMMERR;
+        handle->err = DTNERR_COMM;
         return -1;
     }
 
@@ -126,7 +126,7 @@ dtnipc_open(dtnipc_handle_t* handle)
     ret = recvfrom(handle->sock, &handshake, sizeof(handshake), 0,
                    (struct sockaddr*)&handle->sa, &handle->sa_len);
     if (ret != sizeof(handshake)) {
-        handle->err = DTN_COMMERR;
+        handle->err = DTNERR_COMM;
         return -1;
     }
 
@@ -135,7 +135,7 @@ dtnipc_open(dtnipc_handle_t* handle)
     if (connect(handle->sock, (struct sockaddr*)&handle->sa,
                 handle->sa_len) < 0)
     {
-        handle->err = DTN_COMMERR;
+        handle->err = DTNERR_COMM;
         return -1;
     }
     
@@ -165,7 +165,7 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
     // send the message
     if (send(handle->sock, handle->buf, len, 0) != len)
     {
-        handle->err = DTN_COMMERR;
+        handle->err = DTNERR_COMM;
         return -1;
     }
     
@@ -191,7 +191,7 @@ dtnipc_recv(dtnipc_handle_t* handle)
     } while (len < 0 && errno == EINTR);
 
     if (len < 0) {
-        handle->err = DTN_COMMERR;
+        handle->err = DTNERR_COMM;
         return -1;
     }
 

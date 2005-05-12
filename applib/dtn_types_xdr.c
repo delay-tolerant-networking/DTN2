@@ -91,12 +91,12 @@ xdr_DTN_STATUS (XDR *xdrs, DTN_STATUS *objp)
 
 #define DTN_SUCCESS (0) /* ok */
 #define DTN_BASE 128
-#define DTN_INVAL (DTN_BASE+1) /* invalid argument */
-#define DTN_XDRERR (DTN_BASE+2) /* error in xdr routines */
-#define DTN_COMMERR (DTN_BASE+3) /* error in ipc communication */
+#define DTNERR_INVAL (DTN_BASE+1) /* invalid argument */
+#define DTNERR_XDR (DTN_BASE+2) /* error in xdr routines */
+#define DTNERR_COMM (DTN_BASE+3) /* error in ipc communication */
 #define DTN_SERVERR (DTN_BASE+4) /* server error (eg failed syscall) */
-#define DTN_TOOBIG (DTN_BASE+5) /* payload too large */
-#define DTN_TIMEOUT (DTN_BASE+5) /* operation timed out */
+#define DTNERR_SIZE (DTN_BASE+5) /* payload too large */
+#define DTNERR_TIMEOUT (DTN_BASE+5) /* operation timed out */
 
 /**
  * Specification of a dtn tuple as parsed into a region string and

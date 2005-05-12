@@ -481,7 +481,7 @@ ClientAPIServer::handle_send()
     if (!b->source_.valid()) {
         log_err("invalid source tuple [%s %s]",
                 spec.source.region, spec.source.admin.admin_val);
-        ret = DTN_INVAL;
+        ret = DTNERR_INVAL;
         goto done;
     }
     
@@ -489,7 +489,7 @@ ClientAPIServer::handle_send()
     if (!b->dest_.valid()) {
         log_err("invalid dest tuple [%s %s]",
                 spec.dest.region, spec.dest.admin.admin_val);
-        ret = DTN_INVAL;
+        ret = DTNERR_INVAL;
         goto done;
     }
     
@@ -497,7 +497,7 @@ ClientAPIServer::handle_send()
     if (!b->replyto_.valid()) {
         log_err("invalid replyto tuple [%s %s]",
                 spec.replyto.region, spec.replyto.admin.admin_val);
-        ret = DTN_INVAL;
+        ret = DTNERR_INVAL;
         goto done;
     }
 
@@ -513,7 +513,7 @@ ClientAPIServer::handle_send()
 #undef COS
     default:
         log_err("invalid priority level %d", (int)spec.priority);
-        ret = DTN_INVAL;
+        ret = DTNERR_INVAL;
         goto done;
     };
 
@@ -558,7 +558,7 @@ ClientAPIServer::handle_send()
         if (stat(filename, &finfo) || (file = fopen(filename, "r")) == NULL)
         {
             log_err("payload file %s does not exist!", filename);
-            ret = DTN_INVAL;
+            ret = DTNERR_INVAL;
             goto done;
         }
         
@@ -633,7 +633,7 @@ ClientAPIServer::handle_recv()
         (!xdr_dtn_timeval_t(xdr_decode_, &timeout)))
     {
         log_err("error in xdr unpacking arguments");
-        ret = DTN_XDRERR;
+        ret = DTNERR_XDR;
         goto done;
     }
 
@@ -643,7 +643,7 @@ ClientAPIServer::handle_recv()
     reg = bindings_->front();
     if (!reg) {
         log_err("no bound registration");
-        ret = DTN_INVAL;
+        ret = DTNERR_INVAL;
         goto done;
     }
 
@@ -653,7 +653,7 @@ ClientAPIServer::handle_recv()
 
     if (!b) {
         log_debug("handle_recv: timeout waiting for bundle");
-        ret = DTN_TIMEOUT;
+        ret = DTNERR_TIMEOUT;
         goto done;
     }
     
@@ -716,7 +716,7 @@ ClientAPIServer::handle_recv()
         payload.dtn_bundle_payload_t_u.filename.filename_len = strlen(payloadFile);
     } else {
         log_err("payload location %d not understood", location);
-        ret = DTN_INVAL;
+        ret = DTNERR_INVAL;
         goto done;
     }
 
