@@ -41,18 +41,20 @@
 #include "BundleRouter.h"
 #include <set>
 
+#define MAX_EID 255
+
 namespace dtn {
 
 /**
  *  Encapsulates link state graphs and the operations upon them.
  *  
- *  A link state graph consists of Vertices and Edges. A Vertice represents
+ *  A link state graph consists of Vertices and Edges. A Vertex represents
  *  a single endpoint identifier (EID). Every pair of Vertices may have at
  *  most one Edge between them, and are associated with an edge cost. Edges 
  *  represent a connection between two EIDs, usually a physical link, 
  *  but this is by no means guaranteed.
  *
- *  The use of the names Edge and Vertice is intentional to avoid any 
+ *  The use of the names Edge and Vertex is intentional to avoid any 
  *  confusion between physical nodes, and the Vertices in the graph, as 
  *  well as physical links and edges in the graph (which may not represent
  *  actual links, but rather "virtual" links within the machine).
@@ -80,14 +82,16 @@ class LinkStateGraph {
 public:
     LinkStateGraph();
 
-    class Vertice;
+    class Vertex;
     class Edge;
 
+    typedef int cost_t;
+    
     /**
      *  Every eid is represented by its own vertice. This means a single machine
      *  could potentially be represented by a large number of vertices in the graph.
      */
-    std::set<Vertice> vertices;    
+    std::set<Vertex*> vertices;    
 
     /**
      *  There is at most one edge between any pair of vertices.
@@ -95,41 +99,53 @@ public:
      *  Note: machines may have more than one edge between them,
      *        but that's because they have several interfaces.         
      */
-    std::set<Edge> edges;
+    std::set<Edge*> edges;
 
     /**
-     *  Adds a edge to the link state graph. You want to do this every
-     *  time you get a edge state announcement from someone. 
+     *  Adds an edge to the link state graph. 
      */
-    void addEdge(Vertice &from, Vertice &to);
-    Vertice* findVertice(char* eid);
-    Vertice* findNextHopTo(Vertice &to);
+    void addEdge(Vertex *from, Vertex *to, cost_t cost);
 
+    /**
+     * Removes an edge from the link state graph.
+     */
+    void removeEdge(Vertex *from, Vertex *to);
+    
+    /**
+     *  Finds the Vertex with the given eid, or creates a new one if none is found.
+     *  New Vertices are automatically added to the lsg.
+     */
+    Vertex* getVertex(const char* eid);
+    Vertex* findNextHop(Vertex* from, Vertex *to);
+
+    int fwd_to_matching(Bundle* bundle, bool include_local);
 
     /* A time-varying connection between two vertices in the graph */
     class Edge {
      public:
-        Edge(Vertice &from, Vertice &to);
+        Edge(Vertex *from, Vertex *to, cost_t cost);
 
-        Vertice* from;
-        Vertice* to;
+        Vertex* from_;
+        Vertex* to_;
+
+        cost_t cost_;
+        // should have a schedule too
     };
 
-    typedef int cost_t;
 
     /* 
-       A vertice in the graph is an EID 
+       A vertex in the graph is an EID 
        XXX/jakob - is it?
      */
-    class Vertice {
+    class Vertex {
       public:
-        Vertice();
+        Vertex(const char * eid);
 
-        char * eid;        
-        cost_t cost_;
+        char eid_[MAX_EID];        
+        int dijkstra_distance_;
 
-        std::set<Edge> incoming_edges;
-        std::set<Edge> outgoing_edges;
+        std::map<Vertex*,Edge*> incoming_edges_;
+        std::map<Vertex*,Edge*> outgoing_edges_;
     };    
 };
 

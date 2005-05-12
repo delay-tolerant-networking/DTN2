@@ -52,6 +52,7 @@
 #include "StaticBundleRouter.h"
 #include "FloodBundleRouter.h"
 #include "NeighborhoodRouter.h"
+#include "LinkStateRouter.h"
 
 namespace dtn {
 
@@ -89,6 +90,9 @@ BundleRouter::create_router(const char* type)
     else if (strcmp(type, "flood") == 0) {
         return new FloodBundleRouter();
     }
+    else if (strcmp(type, "linkstate") == 0) {
+        return new LinkStateRouter();
+    }    
     else {
         PANIC("unknown type %s for router", type);
     }
@@ -118,6 +122,17 @@ BundleRouter::BundleRouter()
     pending_bundles_ = BundleDaemon::instance()->pending_bundles();
     custody_bundles_ = BundleDaemon::instance()->custody_bundles();
 }
+
+void BundleRouter::initialize()
+{
+    /* 
+     *  default implementation does nothing
+     *
+     *  This gets called after registration table and stuff is already set up
+     *
+    */
+}
+
 
 /**
  * Destructor

@@ -51,26 +51,111 @@
 
 
 namespace dtn {
+using namespace std;
 
 LinkStateGraph::LinkStateGraph() {
     
 }
 
-LinkStateGraph::Vertice* 
-LinkStateGraph::findNextHopTo(Vertice &to) {
+LinkStateGraph::Vertex* 
+LinkStateGraph::findNextHop(Vertex* from, Vertex *to) 
+{
+    priority_queue< Vertex*, vector<Vertex*>, less<Vertex*> > queue;
+    Vertex* current;
+
+    queue.push(from);
+
+    /* first reset all the costs in the link state graph */
+    for(set<Vertex*>::iterator i=vertices.begin(); i!=vertices.end(); i++)
+        (*i)->dijkstra_distance_=100000;  //maxint?
     
-    return 0;
+    from->dijkstra_distance_=0;
+
+    /* now compute the dijkstra distances for each node */
+    while(current = queue.top())
+    {
+        queue.pop();
+        for(map<Vertex*, Edge*>::iterator e=from->outgoing_edges_.begin(); e!=from->outgoing_edges_.end(); e++)
+        {
+            Vertex* peer=(*e).first;
+            Edge* edge=(*e).second;
+
+            if(peer->dijkstra_distance_ >= current->dijkstra_distance_ + edge->cost_)
+            {
+                peer->dijkstra_distance_ = current->dijkstra_distance_ + edge->cost_;
+                queue.push(peer);
+            }            
+        }
+    }
+
+    /* to get the next hop (or the entire path), walk backwards from the destination */
+    current = to;
+    while(true)
+    {
+        Vertex* best=(*current->incoming_edges_.begin()).first;
+        for(map<Vertex*, Edge*>::iterator e=current->incoming_edges_.begin(); e != current->incoming_edges_.end(); e++)
+        {
+            if(best->dijkstra_distance_ >= current->dijkstra_distance_)
+                best=(*e).first;
+        }
+       
+        if(best == from) 
+            return current;
+        else
+            current = best;
+    }
+
 }
 
 void 
-LinkStateGraph::addEdge(Vertice &from, Vertice &to) {
+LinkStateGraph::addEdge(Vertex *from, Vertex *to, cost_t cost) {
+    if(!from->outgoing_edges_[to]) {
+        Edge* e=new Edge(from, to, cost);
 
+        from->outgoing_edges_[to]=e;
+        to->incoming_edges_[from]=e;
+    }        
 }
 
-LinkStateGraph::Vertice *
-LinkStateGraph::findVertice(char* eid) {
-    return 0;
+void 
+LinkStateGraph::removeEdge(Vertex *from, Vertex *to) {
+    if(from->outgoing_edges_[to]) {
+        Edge* e=from->outgoing_edges_[to];
+
+        from->outgoing_edges_[to]=0;
+        to->incoming_edges_[from]=0;
+        delete e;
+    }        
 }
 
+LinkStateGraph::Vertex *
+LinkStateGraph::getVertex(const char* eid) {
+    Vertex * v;
+    for(set<Vertex*>::iterator i=vertices.begin();i!=vertices.end();i++)
+    {
+        if(strcmp(eid,(*i)->eid_)==0) {
+            log_debug("Found matching vertex for %s.",eid);
+            return *i;
+        }
+    }
+    
+    v=new Vertex(eid);
+    vertices.insert(v);
+    return v;
+}
+
+
+LinkStateGraph::Vertex::Vertex(const char * eid) {
+    memset(eid_,0,MAX_EID);
+    strcpy(eid_,eid);    
+    dijkstra_distance_=0;
+}
+
+LinkStateGraph::Edge::Edge(Vertex* from, Vertex* to, cost_t cost)
+{
+    from_=from;
+    to_=to;
+    cost_=cost;
+}
 
 } // namespace dtn

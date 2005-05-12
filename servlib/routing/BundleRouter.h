@@ -109,6 +109,11 @@ public:
      */
     virtual ~BundleRouter();
 
+    /*
+     *  called after all the global data structures are set up
+     */
+    virtual void initialize();
+
     /**
      * Accessor for the route table.
      */
