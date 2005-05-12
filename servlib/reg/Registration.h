@@ -54,7 +54,7 @@ class BundleList;
 class BundleMapping;
 
 /**
- * Class used to represent an "application" registration, loosly
+ * Class used to represent an "application" registration, loosely
  * defined to also include internal router mechanisms that consume
  * bundles.
  *

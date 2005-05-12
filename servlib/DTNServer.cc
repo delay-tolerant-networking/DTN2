@@ -243,6 +243,7 @@ DTNServer::start()
     RegistrationTable::instance()->load();
     BundleStore::instance()->load();
 
+    router->initialize();
     log_debug("/dtnserver", "started dtn server");
 }
 
