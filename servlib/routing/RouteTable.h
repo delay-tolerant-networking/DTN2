@@ -83,22 +83,13 @@ public:
     // XXX/demmer confidence? latency? capacity?
     // XXX/demmer bit to distinguish
     // XXX/demmer make this serializable?
-
- public:
-    class Compare {
-    public:
-        bool operator()(RouteEntry* a, RouteEntry* b) {
-            return a->pattern_.compare(b->pattern_); 
-        }
-    };
- 
 };
 
 /**
  * Typedef for a set of route entries. Used for the route table itself
  * and for what is returned in get_matching().
  */
-typedef std::set<RouteEntry*,RouteEntry::Compare> RouteEntrySet;
+typedef std::vector<RouteEntry*> RouteEntrySet;
 
 /**
  * Class that implements the routing table, currently implemented

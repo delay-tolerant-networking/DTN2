@@ -94,7 +94,7 @@ RouteTable::add_entry(RouteEntry* entry)
               entry->next_hop_->dest_str(),
               bundle_fwd_action_toa(entry->action_));
     
-    route_table_.insert(entry);
+    route_table_.push_back(entry);
     
     return true;
 }
@@ -165,7 +165,7 @@ size_t
 RouteTable::get_matching(const BundleTuple& tuple,
                          RouteEntrySet* entry_set) const
 {
-    RouteEntrySet::iterator iter;
+    RouteEntrySet::const_iterator iter;
     RouteEntry* entry;
     size_t count = 0;
 
@@ -187,7 +187,7 @@ RouteTable::get_matching(const BundleTuple& tuple,
                       entry->next_hop_->dest_str(),
                       bundle_fwd_action_toa(entry->action_));
 
-            entry_set->insert(entry);
+            entry_set->push_back(entry);
         }
     }
 
@@ -203,7 +203,7 @@ RouteTable::dump(oasys::StringBuffer* buf) const
 {
     buf->append("route table:\n");
 
-    RouteEntrySet::iterator iter;
+    RouteEntrySet::const_iterator iter;
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         RouteEntry* entry = *iter;
         buf->appendf("\t%s -> %s (%s) (%s)\n",
