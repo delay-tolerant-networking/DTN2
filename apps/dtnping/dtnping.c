@@ -110,7 +110,7 @@ main(int argc, const char** argv)
     // if the user specified a source tuple, register on it.
     // otherwise, build a local tuple based on the configuration of
     // our dtn router plus the demux string
-    snprintf(demux, sizeof(demux), "/ping.%d", 0);
+    snprintf(demux, sizeof(demux), "/ping.%d", getpid());
     if (source_tuple_str[0] != '\0') {
         if (dtn_parse_tuple_string(&source_tuple, source_tuple_str)) {
             fprintf(stderr, "invalid source tuple string '%s'\n",
@@ -174,7 +174,7 @@ main(int argc, const char** argv)
         if (ret == 0) {
             fprintf(stderr, "error: unexpected ping already queued... "
                     "discarding\n");
-        } else if (dtn_errno(handle) != DTNERR_TIMEOUT) {
+        } else if (dtn_errno(handle) != DTN_ETIMEOUT) {
             fprintf(stderr, "error: "
                     "unexpected error checking for queued bundles: %s\n",
                     dtn_strerror(dtn_errno(handle)));
