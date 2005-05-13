@@ -146,7 +146,7 @@ extern void dtn_copy_tuple(dtn_tuple_t* dst, dtn_tuple_t* src);
  * assumed to be C strings and strlen() is used to determine their
  * length.
  *
- * Returns: 0 on success, DTNERR_INVAL if the arguments are malformed.
+ * Returns: 0 on success, DTN_EINVAL if the arguments are malformed.
  */
 extern int dtn_set_tuple(dtn_tuple_t* tuple,
                          char* region, size_t region_len,
@@ -166,7 +166,7 @@ extern int dtn_build_local_tuple(dtn_handle_t handle,
  * Parses the given string according to the generic schema
  * dtn://<region>/<admin> and assigns it to the given tuple.
  *
- * Returns: 0 on success, DTNERR_INVAL if the given string is not a
+ * Returns: 0 on success, DTN_EINVAL if the given string is not a
  * valid tuple.
  */
 extern int dtn_parse_tuple_string(dtn_tuple_t* tuple, char* str);
@@ -175,7 +175,7 @@ extern int dtn_parse_tuple_string(dtn_tuple_t* tuple, char* str);
  * Sets the value of the given payload structure to either a memory
  * buffer or a file location.
  *
- * Returns: 0 on success, DTNERR_SIZE if the memory location is
+ * Returns: 0 on success, DTN_ESIZE if the memory location is
  * selected and the payload is too big.
  */
 extern int dtn_set_payload(dtn_bundle_payload_t* payload,

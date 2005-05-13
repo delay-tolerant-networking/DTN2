@@ -45,7 +45,7 @@ if {! [info exists no_api] } {
     }
 
     api set local_addr $hosts($id)
-    api set handshake_port $ports(api,$id)
+    api set local_port $ports(api,$id)
 }
 
 # set up the local route tupl

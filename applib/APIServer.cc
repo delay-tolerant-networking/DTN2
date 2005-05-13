@@ -38,8 +38,8 @@
 
 #include <sys/stat.h>
 #include <oasys/compat/inet_aton.h>
+#include <oasys/io/FileIOClient.h>
 #include <oasys/io/NetUtils.h>
-#include <oasys/io/UDPClient.h>
 
 #include "APIServer.h"
 #include "bundling/Bundle.h"
@@ -62,8 +62,8 @@
 // of gcc.
 
 extern "C" {
-    extern void   xdrmem_create(XDR *__xdrs, __const caddr_t __addr,
-                                u_int __size, enum xdr_op __xop);
+    extern void xdrmem_create(XDR *__xdrs, __const caddr_t __addr,
+                              u_int __size, enum xdr_op __xop);
 }
 
 // these defines add a cast to change the function pointer for a function
@@ -87,8 +87,7 @@ typedef int (*xdr_putlong_t)(XDR *, long *);
 namespace dtn {
 
 in_addr_t APIServer::local_addr_;
-u_int16_t APIServer::handshake_port_;
-u_int16_t APIServer::session_port_;
+u_int16_t APIServer::local_port_;
 
 void
 APIServer::init_commands()
@@ -98,48 +97,25 @@ APIServer::init_commands()
      * configuration interface (see servlib/cmd/APICommand.cc).
      */
     APIServer::local_addr_ = htonl(INADDR_LOOPBACK);
-    APIServer::handshake_port_ = DTN_API_HANDSHAKE_PORT;
-    APIServer::session_port_ = DTN_API_SESSION_PORT;
-
+    APIServer::local_port_ = DTN_IPC_PORT;
     oasys::TclCommandInterp::instance()->reg(new APICommand());
 }
 
-void
-APIServer::start_master()
-{
-    MasterAPIServer* apiserv = new MasterAPIServer();
-    apiserv->start();
-}
-
 APIServer::APIServer()
+    : TCPServerThread("/apiserver", DELETE_ON_EXIT)
 {
-    sock_ = new oasys::UDPClient();
-    sock_->set_logfd(false);
-    sock_->logpathf("/apisrv/sock");
-    
-    buflen_ = DTN_MAX_API_MSG;
-    buf_ = (char*)malloc(buflen_);
-
-    // note that we skip four bytes for the ipc typecode when setting
-    // up the xdr decoder
-    xdr_encode_ = new XDR;
-    xdr_decode_ = new XDR;
-    xdrmem_create(xdr_encode_, buf_, DTN_MAX_API_MSG, XDR_ENCODE);
-    xdrmem_create(xdr_decode_, buf_ + sizeof(u_int32_t),
-                  DTN_MAX_API_MSG, XDR_DECODE);
-    
     // override the defaults via environment variables, if given
     char *env;
     if ((env = getenv("DTNAPI_ADDR")) != NULL) {
         if (inet_aton(env, (struct in_addr*)&local_addr_) == 0)
         {
-            log_err("/apisrv", "DTNAPI_ADDR environment variable (%s) "
+            log_err("DTNAPI_ADDR environment variable (%s) "
                     "not a valid ip address, using default of localhost",
                     env);
             // in case inet_aton touched it
             local_addr_ = htonl(INADDR_LOOPBACK);
         } else {
-            log_debug("/apisrv", "local address set to %s by DTNAPI_ADDR "
+            log_debug("local address set to %s by DTNAPI_ADDR "
                       "environment variable", env);
         }
     }
@@ -149,171 +125,184 @@ APIServer::APIServer()
         u_int port = strtoul(env, &end, 10);
         if (*end != '\0' || port > 0xffff)
         {
-            log_err("/apisrv", "DTNAPI_PORT environment variable (%s) "
+            log_err("DTNAPI_PORT environment variable (%s) "
                     "not a valid ip port, using default of %d",
-                    env, DTN_API_HANDSHAKE_PORT);
-            port = DTN_API_HANDSHAKE_PORT;
+                    env, DTN_IPC_PORT);
+            port = DTN_IPC_PORT;
         } else {
-            log_debug("/apisrv", "handshake port set to %s by DTNAPI_PORT "
+            log_debug("api port set to %s by DTNAPI_PORT "
                       "environment variable", env);
         }
-        handshake_port_ = (u_int16_t)port;
+        local_port_ = (u_int16_t)port;
     }
-}
 
-MasterAPIServer::MasterAPIServer()
-    : APIServer(),
-      Thread(), Logger("/apisrv/master")
-{
-    log_debug("MasterAPIServer::init (port %d)", handshake_port_);
-    sock_->bind(local_addr_, handshake_port_);
+    log_debug("APIServer init (addr %s port %d)",
+              intoa(local_addr_), local_port_);
 }
 
 void
-MasterAPIServer::run()
+APIServer::accepted(int fd, in_addr_t addr, u_int16_t port)
 {
-    in_addr_t addr;
-    u_int16_t port;
-    u_int32_t handshake;
-
-    if ( DTN_MAX_API_MSG<DTN_MAX_BUNDLE_MEM ) {
-        log_warn("DTN_MAX_API_MSG(%d) < DTN_MAX_BUNDLE_MEM(%d)",
-            DTN_MAX_API_MSG, DTN_MAX_BUNDLE_MEM);
-    }
-
-    while (1) {
-        int cc = sock_->recvfrom(buf_, buflen_, 0, &addr, &port);
-        if (cc <= 0) {
-            log_err("error in recvfrom: %s", strerror(errno));
-            continue;
-        }
-        
-        log_debug("got %d byte message from %s:%d", cc, intoa(addr), port);
-
-        if (cc != sizeof(handshake)) {
-            log_err("unexpected %d message from %s:%d "
-                    "(expected %u byte handshake)",
-                    cc, intoa(addr), port, (u_int)sizeof(handshake));
-            continue;
-        }
-        
-        memcpy(&handshake, buf_, sizeof(handshake));
-        
-        if (handshake != DTN_OPEN) {
-            log_warn("unexpected handshake type code 0x%x on master thread",
-                     handshake);
-            continue;
-        }
-
-        // otherwise create the client api server thread
-        ClientAPIServer* server = new ClientAPIServer(addr, port);
-        server->start();
-
-        // XXX/demmer store these in a table so they can be queried
-    }
+    APIClient* c = new APIClient(fd, addr, port);
+    c->start();
 }
 
-ClientAPIServer::ClientAPIServer(in_addr_t remote_host,
-                                 u_int16_t remote_port)
-    : APIServer(),
-      Thread(DELETE_ON_EXIT), Logger("/apisrv")
+APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
+    : TCPClient(fd, addr, port, "/apiclient")
 {
-    log_debug("APIServer::init on port %d (remote %s:%d)",
-              session_port_, intoa(remote_host), remote_port);
-
-    sock_->bind(local_addr_, session_port_);
-    sock_->connect(remote_host, remote_port);
+    // note that we skip space for the message length and code/status
+    xdrmem_create(&xdr_encode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_ENCODE);
+    xdrmem_create(&xdr_decode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_DECODE);
 
     bindings_ = new RegistrationList();
 }
 
-const char*
-ClientAPIServer::msgtoa(u_int32_t type)
+void
+APIClient::close_session()
 {
-#define CASE(_type) case _type : return #_type; break;
-    switch(type) {
-        CASE(DTN_OPEN);
-        CASE(DTN_CLOSE);
-        CASE(DTN_GETINFO);
-        CASE(DTN_REGISTER);
-        CASE(DTN_BIND);
-        CASE(DTN_SEND);
-        CASE(DTN_RECV);
+    // XXX/demmer go through registrations and disassociate them
 
-    default:
-        return "(unknown type)";
-    }
-#undef CASE
+    TCPClient::close();
 }
 
 void
-ClientAPIServer::run()
+APIClient::run()
 {
-    // first and foremost, send the handshake response
-    u_int32_t handshake = DTN_OPEN;
-    if (sock_->send((char*)&handshake, sizeof(handshake), 0) < 0)
-    {
-        log_err("error sending handshake: %s", strerror(errno));
+    int ret;
+    u_int32_t handshake, type, len, msglen;
+    
+    log_debug("new session %s:%d -> %s:%d",
+              intoa(local_addr()), local_port(),
+              intoa(remote_addr()), remote_port());
+
+    // handle the handshake
+    ret = read((char*)&handshake, sizeof(handshake));
+    if (ret != sizeof(handshake)) {
+        log_err("error reading handshake: %s", strerror(errno));
+        close_session();
+        return;
+    }
+
+    if (ntohl(handshake) != DTN_OPEN) {
+        log_err("handshake %d != DTN_OPEN", handshake);
+        close_session();
         return;
     }
     
-    while (1) {
-        xdr_setpos(xdr_encode_, 0);
-        xdr_setpos(xdr_decode_, 0);
+    ret = write((char*)&handshake, sizeof(handshake));
+    if (ret != sizeof(handshake)) {
+        log_err("error writing handshake: %s", strerror(errno));
+        close_session();
+        return;
+    }
 
-        int cc = sock_->recv(buf_, buflen_, 0);
-        if (cc <= 0) {
-            log_err("error in recvfrom: %s", strerror(errno));
-            continue;
+    while (1) {
+        xdr_setpos(&xdr_encode_, 0);
+        xdr_setpos(&xdr_decode_, 0);
+
+        ret = read(buf_, DTN_MAX_API_MSG);
+        if (ret <= 0) {
+            if (errno == EINTR)
+                continue;
+
+            log_warn("client error or disconnection");
+            close_session();
+            return;
+        }
+
+        if (ret < 8) {
+            log_err("ack!! can't handle really short read...");
+            close_session();
+            return;
         }
         
-        u_int32_t type;
-        memcpy(&type, buf_, sizeof(type));
+        memcpy(&type, buf_,     sizeof(type));
+        memcpy(&len,  &buf_[4], sizeof(len));
 
-        log_debug("%s (%d bytes)", msgtoa(type), cc);
+        type = ntohl(type);
+        len  = ntohl(len);
+
+        log_debug("got %s (%d/%d bytes)", dtnipc_msgtoa(type), ret - 8, len);
         
+        // if we didn't get the whole message, loop to get the rest
+        if ((ret - 8) < (int)len) {
+            int toget = len - (ret - 8);
+            if (readall(&buf_[ret], toget) != toget) {
+                log_err("error reading message remainder: %s", strerror(errno));
+                close_session();
+                return;
+            }
+        }
+
+        // dispatch to the handler routine
+        switch(type) {
 #define DISPATCH(_type, _fn)                    \
         case _type:                             \
-            if (_fn() != 0) {                   \
-                return;                         \
-            }                                   \
+            ret = _fn();                        \
             break;
-
-        switch(type) {
+            
             DISPATCH(DTN_GETINFO,  handle_getinfo);
             DISPATCH(DTN_REGISTER, handle_register);
             DISPATCH(DTN_SEND,     handle_send);
             DISPATCH(DTN_BIND,     handle_bind);
             DISPATCH(DTN_RECV,     handle_recv);
+#undef DISPATCH
 
         default:
             log_err("unknown message type code 0x%x", type);
+            ret = DTN_ECOMM;
+            break;
+        }
+
+        // make sure the dispatched function returned a valid error
+        // code
+        ASSERT(ret == DTN_SUCCESS ||
+               (DTN_ERRBASE <= ret && ret <= DTN_ERRMAX));
+        
+        // fill in the reply message with the status code and the
+        // length of the reply. note that if there is no reply, then
+        // the xdr position should still be zero
+        len = xdr_getpos(&xdr_encode_);
+        log_debug("building reply: status %s, length %d",
+                  dtnipc_msgtoa(ret), len);
+
+        msglen = len + 8;
+        ret = ntohl(ret);
+        len = htonl(len);
+
+        memcpy(buf_,     &ret, sizeof(ret));
+        memcpy(&buf_[4], &len, sizeof(len));
+
+        log_debug("sending %d byte reply message", msglen);
+        if (writeall(buf_, msglen) != (int)msglen) {
+            log_err("error sending reply: %s", strerror(errno));
+            close_session();
+            return;
         }
         
-#undef DISPATCH
-    }
+    } // while(1)
 }
 
 int
-ClientAPIServer::handle_getinfo()
+APIClient::handle_getinfo()
 {
     dtn_info_request_t request;
     dtn_info_response_t response;
     
     // unpack the request
-    if (!xdr_dtn_info_request_t(xdr_decode_, &request))
+    if (!xdr_dtn_info_request_t(&xdr_decode_, &request))
     {
         log_err("error in xdr unpacking arguments");
-        return -1;
+        return DTN_EXDR;
     }
 
-    // blank the response
+    // initialize the response
     memset(&response, 0, sizeof(response));
-
     response.request = request;
 
     switch(request) {
     case DTN_INFOREQ_INTERFACES: {
+        log_debug("getinfo DTN_INFOREQ_INTERFACES");
         BundleRouter* router = BundleDaemon::instance()->router();
         
         dtn_tuple_t* local_tuple =
@@ -335,28 +324,25 @@ ClientAPIServer::handle_getinfo()
     case DTN_INFOREQ_CONTACTS:
         NOTIMPLEMENTED;
         break;
+        
     case DTN_INFOREQ_ROUTES:
         NOTIMPLEMENTED;
         break;
     }
     
-    /* send the return code */
-    if (!xdr_dtn_info_response_t(xdr_encode_, &response)) {
+    // fill in the info response code
+    if (!xdr_dtn_info_response_t(&xdr_encode_, &response)) {
         log_err("internal error in xdr: xdr_dtn_info_response_t");
-        return -1;
-    }
-    
-    int len = xdr_getpos(xdr_encode_);
-    if (sock_->send(buf_, len, 0) != len) {
-        log_err("error sending response code");
-        return -1;
+        return DTN_EXDR;
     }
 
-    return 0;
+    log_debug("getinfo encoded %d byte response", xdr_getpos(&xdr_encode_));
+    
+    return DTN_SUCCESS;
 }
 
 int
-ClientAPIServer::handle_register()
+APIClient::handle_register()
 {
     Registration* reg;
     Registration::failure_action_t action;
@@ -369,10 +355,10 @@ ClientAPIServer::handle_register()
     memset(&reginfo, 0, sizeof(reginfo));
     
     // unpack and parse the request
-    if (!xdr_dtn_reg_info_t(xdr_decode_, &reginfo))
+    if (!xdr_dtn_reg_info_t(&xdr_decode_, &reginfo))
     {
         log_err("error in xdr unpacking arguments");
-        return -1;
+        return DTN_EXDR;
     }
 
     endpoint.assign(&reginfo.endpoint);
@@ -383,7 +369,7 @@ ClientAPIServer::handle_register()
     case DTN_REG_EXEC:  action = Registration::EXEC;  break;
     default: {
         log_err("invalid action code 0x%x", reginfo.action);
-        return -1;
+        return DTN_EINVAL;
     }
     }
 
@@ -399,7 +385,7 @@ ClientAPIServer::handle_register()
         reg = new Registration(endpoint, action);
         if (! RegistrationTable::instance()->add(reg)) {
             log_err("unexpected error adding registration");
-            return -1;
+            return DTN_EINTERNAL;
         }
         
         BundleDaemon::post(new RegistrationAddedEvent(reg));
@@ -407,23 +393,17 @@ ClientAPIServer::handle_register()
 
     regid = reg->regid();
     
-    // return the new registration id
-    if (!xdr_dtn_reg_id_t(xdr_encode_, &regid)) {
+    // fill the response with the new registration id
+    if (!xdr_dtn_reg_id_t(&xdr_encode_, &regid)) {
         log_err("internal error in xdr: xdr_dtn_reg_id_t");
-        return -1;
+        return DTN_EXDR;
     }
     
-    int len = xdr_getpos(xdr_encode_);
-    if (sock_->send(buf_, len, 0) != len) {
-        log_err("error sending response code");
-        return -1;
-    }
-
-    return 0;
+    return DTN_SUCCESS;
 }
 
 int
-ClientAPIServer::handle_bind()
+APIClient::handle_bind()
 {
     dtn_reg_id_t regid;
     dtn_tuple_t endpoint;
@@ -431,11 +411,11 @@ ClientAPIServer::handle_bind()
     memset(&endpoint, 0, sizeof(endpoint));
     
     // unpack the request
-    if (!xdr_dtn_reg_id_t(xdr_decode_, &regid) ||
-        !xdr_dtn_tuple_t(xdr_decode_, &endpoint))
+    if (!xdr_dtn_reg_id_t(&xdr_decode_, &regid) ||
+        !xdr_dtn_tuple_t(&xdr_decode_, &endpoint))
     {
         log_err("error in xdr unpacking arguments");
-        return -1;
+        return DTN_EXDR;
     }
 
     BundleTuple tuple;
@@ -447,19 +427,19 @@ ClientAPIServer::handle_bind()
 
     if (!reg) {
         log_err("can't find registration %d tuple %s", regid, tuple.c_str());
-        return -1;
+        return DTN_ENOTFOUND;
     }
 
+    // store the registration in the list for this session
     bindings_->push_back(reg);
 
-    return 0;
+    return DTN_SUCCESS;
 }
     
 int
-ClientAPIServer::handle_send()
+APIClient::handle_send()
 {
     Bundle* b;
-    long ret;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
 
@@ -467,11 +447,11 @@ ClientAPIServer::handle_send()
     memset(&payload, 0, sizeof(payload));
     
     /* Unpack the arguments */
-    if (!xdr_dtn_bundle_spec_t(xdr_decode_, &spec) ||
-        !xdr_dtn_bundle_payload_t(xdr_decode_, &payload))
+    if (!xdr_dtn_bundle_spec_t(&xdr_decode_, &spec) ||
+        !xdr_dtn_bundle_payload_t(&xdr_decode_, &payload))
     {
         log_err("error in xdr unpacking arguments");
-        return -1;
+        return DTN_EXDR;
     }
 
     b = new Bundle();
@@ -481,24 +461,21 @@ ClientAPIServer::handle_send()
     if (!b->source_.valid()) {
         log_err("invalid source tuple [%s %s]",
                 spec.source.region, spec.source.admin.admin_val);
-        ret = DTNERR_INVAL;
-        goto done;
+        return DTN_EINVAL;
     }
     
     b->dest_.assign(&spec.dest);
     if (!b->dest_.valid()) {
         log_err("invalid dest tuple [%s %s]",
                 spec.dest.region, spec.dest.admin.admin_val);
-        ret = DTNERR_INVAL;
-        goto done;
+        return DTN_EINVAL;
     }
     
     b->replyto_.assign(&spec.replyto);
     if (!b->replyto_.valid()) {
         log_err("invalid replyto tuple [%s %s]",
                 spec.replyto.region, spec.replyto.admin.admin_val);
-        ret = DTNERR_INVAL;
-        goto done;
+        return DTN_EINVAL;
     }
 
     b->custodian_.assign(BundleDaemon::instance()->router()->local_tuple());
@@ -513,8 +490,7 @@ ClientAPIServer::handle_send()
 #undef COS
     default:
         log_err("invalid priority level %d", (int)spec.priority);
-        ret = DTNERR_INVAL;
-        goto done;
+        return DTN_EINVAL;
     };
 
     // delivery options
@@ -544,6 +520,7 @@ ClientAPIServer::handle_send()
                              payload.dtn_bundle_payload_t_u.buf.buf_len);
         payload_len = payload.dtn_bundle_payload_t_u.buf.buf_len;
         break;
+        
     case DTN_PAYLOAD_FILE:
         char filename[PATH_MAX];
         FILE * file;
@@ -558,8 +535,7 @@ ClientAPIServer::handle_send()
         if (stat(filename, &finfo) || (file = fopen(filename, "r")) == NULL)
         {
             log_err("payload file %s does not exist!", filename);
-            ret = DTNERR_INVAL;
-            goto done;
+            return DTN_EINVAL;
         }
         
         payload_len = finfo.st_size;
@@ -583,33 +559,18 @@ ClientAPIServer::handle_send()
             }
         }
         b->payload_.close_file();
-    break;
-    default:
-        log_err("payload.location of %d unknown\n", payload.location);
-        return(-1);
         break;
+        
+    default:
+        log_err("payload.location of %d unknown", payload.location);
+        return DTN_EINVAL;
     }
     
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
     BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP));
     
-    ret = DTN_SUCCESS;
-
-    /* send the return code */
- done:
-    if (!xdr_putlong(xdr_encode_, &ret)) {
-        log_err("internal error in xdr: xdr_putlong");
-        return -1;
-    }
-
-    int len = xdr_getpos(xdr_encode_);
-    if (sock_->send(buf_, len, 0) != len) {
-        log_err("error sending response code");
-        return -1;
-    }
-
-    return 0;
+    return DTN_SUCCESS;
 }
 
 // Size for temporary memory buffer used when delivering bundles
@@ -617,11 +578,10 @@ ClientAPIServer::handle_send()
 #define DTN_FILE_DELIVERY_BUF_SIZE 1000
 
 int
-ClientAPIServer::handle_recv()
+APIClient::handle_recv()
 {
     Bundle* b = NULL;
     Registration* reg = NULL;
-    long ret;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
     dtn_bundle_payload_location_t location;
@@ -629,12 +589,11 @@ ClientAPIServer::handle_recv()
     oasys::StringBuffer buf;
 
     // unpack the arguments
-    if ((!xdr_dtn_bundle_payload_location_t(xdr_decode_, &location)) ||
-        (!xdr_dtn_timeval_t(xdr_decode_, &timeout)))
+    if ((!xdr_dtn_bundle_payload_location_t(&xdr_decode_, &location)) ||
+        (!xdr_dtn_timeval_t(&xdr_decode_, &timeout)))
     {
         log_err("error in xdr unpacking arguments");
-        ret = DTNERR_XDR;
-        goto done;
+        return DTN_EXDR;
     }
 
     // XXX/demmer implement this for multiple registrations by
@@ -643,20 +602,21 @@ ClientAPIServer::handle_recv()
     reg = bindings_->front();
     if (!reg) {
         log_err("no bound registration");
-        ret = DTNERR_INVAL;
-        goto done;
+        return DTN_EINVAL;
     }
 
-    log_debug("handle_recv: popping bundle for registration %d (timeout %d)",
+    log_debug("handle_recv: blocking to get bundle for registration %d (timeout %d)",
               reg->regid(), timeout);
     b = reg->bundle_list()->pop_blocking(NULL, timeout);
-
+    
     if (!b) {
         log_debug("handle_recv: timeout waiting for bundle");
-        ret = DTNERR_TIMEOUT;
-        goto done;
+        return DTN_ETIMEOUT;
     }
     
+    log_debug("handle_recv: popped bundle for registration %d (timeout %d)",
+              reg->regid(), timeout);
+
     ASSERT(b);
 
     memset(&spec, 0, sizeof(spec));
@@ -682,78 +642,46 @@ ClientAPIServer::handle_recv()
             (char*)b->payload_.read_data(0, payload_len, (u_char*)buf.data());
         
     } else if (location == DTN_PAYLOAD_FILE) {
-        // the app wants the payload in a file
-        //        PANIC("file-based payloads not implemented");
-        char payloadFile[DTN_MAX_PATH_LEN];
-        int payloadFd;
+        oasys::FileIOClient tmpfile;
 
-        // Get a temporary file name
-        sprintf(payloadFile, "/tmp/bundlePayload_XXXXXX");
-        payloadFd = mkstemp(payloadFile);
-        if (payloadFd == -1) {
+        if (tmpfile.mkstemp("/tmp/bundlePayload_XXXXXX") == -1) {
             log_err("can't open temporary file to deliver bundle");
-            ret = DTN_SERVERR;
-            goto done;
-        }
-        if (b->payload_.location() == BundlePayload::MEMORY) {
-            write(payloadFd, b->payload_.memory_data(), b->payload_.length());
-        } else {
-            u_char *tmpBuf[DTN_FILE_DELIVERY_BUF_SIZE];
-            int numToDo = b->payload_.length();
-            int numThisTime;
-
-            while (numToDo > 0) {
-                numThisTime = MIN(numToDo, DTN_FILE_DELIVERY_BUF_SIZE);
-                b->payload_.read_data(b->payload_.length()-numToDo, numThisTime,
-                                      (u_char *) tmpBuf);
-                write(payloadFd, tmpBuf, numThisTime);
-                numToDo -= numThisTime;
-            }
-        }
-        close(payloadFd);
-        payload.dtn_bundle_payload_t_u.filename.filename_val = (char *) malloc(20);
-        memcpy((char *) payload.dtn_bundle_payload_t_u.filename.filename_val, payloadFile, strlen(payloadFile));
-        payload.dtn_bundle_payload_t_u.filename.filename_len = strlen(payloadFile);
-    } else {
-        log_err("payload location %d not understood", location);
-        ret = DTNERR_INVAL;
-        goto done;
-    }
-
-    ret = DTN_SUCCESS;
-
- done:
-    if (!xdr_putlong(xdr_encode_, &ret)) {
-        log_err("internal error in xdr: xdr_putlong");
-        return -1;
-    }
-
-    if (ret == DTN_SUCCESS) {
-        if ( !xdr_dtn_bundle_spec_t(xdr_encode_, &spec) )
-        {
-            log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
-            return -1;
+            return DTN_EINTERNAL;
         }
         
-        if (!xdr_dtn_bundle_payload_t(xdr_encode_, &payload))
-        {
-            log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
-            return -1;
+        if (b->payload_.location() == BundlePayload::MEMORY) {
+            tmpfile.writeall((char*)b->payload_.memory_data(),
+                             b->payload_.length());
+            
+        } else {
+            b->payload_.copy_file(&tmpfile);
         }
-    }
-    
-    int len = xdr_getpos(xdr_encode_);
-    if (sock_->send(buf_, len, 0) != len) {
-        log_err("error sending bundle reply");
-        return -1;
+
+        payload.dtn_bundle_payload_t_u.filename.filename_val = (char*)tmpfile.path();
+        payload.dtn_bundle_payload_t_u.filename.filename_len = tmpfile.path_len();
+        tmpfile.close();
+        
+    } else {
+        log_err("payload location %d not understood", location);
+        return DTN_EINVAL;
     }
 
-    if (ret == DTN_SUCCESS) {
-        BundleDaemon::post(
-            new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
+    if (!xdr_dtn_bundle_spec_t(&xdr_encode_, &spec))
+    {
+        log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
+        return DTN_EXDR;
     }
     
-    return 0;
+    if (!xdr_dtn_bundle_payload_t(&xdr_encode_, &payload))
+    {
+        log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
+        return DTN_EXDR;
+    }
+
+    BundleDaemon::post(
+        new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
+    
+    return DTN_SUCCESS;
 }
 
 } // namespace dtn

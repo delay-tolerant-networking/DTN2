@@ -244,7 +244,8 @@ main(int argc, char* argv[])
     }
 
     // boot the application server
-    APIServer::start_master();
+    APIServer* apisrv = new APIServer();
+    apisrv->bind_listen_start(apisrv->local_addr_, apisrv->local_port_);
 
     // launch the console server
     if (console_port != 0) {

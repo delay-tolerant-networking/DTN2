@@ -40,14 +40,12 @@
 
 #include <oasys/debug/Log.h>
 #include <oasys/thread/Thread.h>
+#include <oasys/io/TCPClient.h>
+#include <oasys/io/TCPServer.h>
 
 #include "dtn_api.h"
 #include "dtn_ipc.h"
 #include "dtn_types.h"
-
-namespace oasys {
-class UDPClient;
-}
 
 namespace dtn {
 
@@ -57,65 +55,47 @@ class RegistrationList;
  * Class that implements the main server side handling of the DTN
  * application IPC.
  */
-class APIServer {
+class APIServer : public oasys::TCPServerThread {
 public:
+    /**
+     * The constructor checks for environment variable overrides of
+     * the address / port. It is expected that someone else will call
+     * bind_listen_start() on the APIServer instance.
+     */
     APIServer();
 
     /**
      * Initialize and register all the api server related dtn commands.
      */
     static void init_commands();
-
-    /**
-     * Post configuration, start up all components.
-     */
-    static void start_master();
-
-    static in_addr_t local_addr_;	///< loopback address to use
-    static u_int16_t handshake_port_;	///< handshaking udp port
-    static u_int16_t session_port_;	///< api session port
     
-protected:
-    dtnipc_handle_t handle;
-
-    char* buf_;
-    size_t buflen_;
-    oasys::UDPClient* sock_;
-    XDR* xdr_encode_;
-    XDR* xdr_decode_;
+    // Virtual from TCPServerThread
+    virtual void accepted(int fd, in_addr_t addr, u_int16_t port);
+    
+    static in_addr_t local_addr_;	///< local address to bind to
+    static u_int16_t local_port_;	///< local port to use for api
 };
 
 /**
- * Class for the generic listening server that just accepts open
- * messages and creates client servers.
+ * Class that implements the API session.
  */
-class MasterAPIServer : public APIServer,
-                        public oasys::Thread,
-                        public oasys::Logger {
+class APIClient : public oasys::Thread, public oasys::TCPClient {
 public:
-    MasterAPIServer();
-    virtual void run();
-};
-
-/**
- * Class for the per-client connection server.
- */
-class ClientAPIServer : public APIServer,
-                        public oasys::Thread,
-                        public oasys::Logger {
-public:
-    ClientAPIServer(in_addr_t remote_host, u_int16_t remote_port);
+    APIClient(int fd, in_addr_t remote_host, u_int16_t remote_port);
     virtual void run();
 
+    void close_session();
+    
 protected:
     int handle_getinfo();
     int handle_register();
     int handle_bind();
     int handle_send();
     int handle_recv();
-
-    static const char* msgtoa(u_int32_t type);
-
+    
+    char buf_[DTN_MAX_API_MSG];
+    XDR xdr_encode_;
+    XDR xdr_decode_;
     RegistrationList* bindings_;
 };
 

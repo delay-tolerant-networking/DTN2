@@ -72,7 +72,7 @@ dtn_open()
     xdr_setpos(&handle->xdr_encode, 0);
     xdr_setpos(&handle->xdr_decode, 0);
 
-    return (char*)handle;
+    return (dtn_handle_t)handle;
 }
 
 /**
@@ -81,6 +81,8 @@ dtn_open()
 int
 dtn_close(dtn_handle_t handle)
 {
+    dtnipc_close((dtnipc_handle_t *)handle);
+    free(handle);
     return -1;
 }
 
@@ -100,16 +102,18 @@ char*
 dtn_strerror(int err)
 {
     switch(err) {
-    case DTN_SUCCESS: return "success";
-    case DTNERR_INVAL: return "invalid argument";
-    case DTNERR_XDR: return "error in xdr routines";
-    case DTNERR_COMM: return "error in ipc communication";
-    case DTN_SERVERR: return "server error";
-    case DTNERR_SIZE: return "payload too large";
+    case DTN_SUCCESS: 	return "success";
+    case DTN_EINVAL: 	return "invalid argument";
+    case DTN_EXDR: 	return "error in xdr routines";
+    case DTN_ECOMM: 	return "error in ipc communication";
+    case DTN_ECONNECT: 	return "error connecting to server";
+    case DTN_ETIMEOUT: 	return "operation timed out";
+    case DTN_ESIZE: 	return "payload too large";
+    case DTN_ENOTFOUND: return "not found";
+    case DTN_EINTERNAL: return "internal error";
     }
 
-    // otherwise, try a system errno value
-    return strerror(err);
+    return "(unknown error)";
 }
 
 /**
@@ -120,13 +124,14 @@ dtn_get_info(dtn_handle_t h,
              dtn_info_request_t request,
              dtn_info_response_t* response)
 {
+    int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     XDR* xdr_decode = &handle->xdr_decode;
     
     // pack the request
     if (!xdr_dtn_info_request_t(xdr_encode, &request)) {
-        handle->err = DTNERR_XDR;
+        handle->err = DTN_EXDR;
         return -1;
     }
 
@@ -135,15 +140,21 @@ dtn_get_info(dtn_handle_t h,
         return -1;
     }
 
-    // block waiting for the reply
-    if (dtnipc_recv(handle) < 0) {
+    // get the reply
+    if (dtnipc_recv(handle, &status) < 0) {
         return -1;
     }
 
-    // unpack the response, first zeroing it out
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
+        return -1;
+    }
+
+    // unpack the response
     memset(response, 0, sizeof(*response));
     if (!xdr_dtn_info_response_t(xdr_decode, response)) {
-        handle->err = DTNERR_XDR;
+        handle->err = DTN_EXDR;
         return -1;
     }
 
@@ -159,13 +170,14 @@ dtn_register(dtn_handle_t h,
              dtn_reg_info_t *reginfo,
              dtn_reg_id_t* newregid)
 {
+    int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     XDR* xdr_decode = &handle->xdr_decode;
     
     // pack the request
     if (!xdr_dtn_reg_info_t(xdr_encode, reginfo)) {
-        handle->err = DTNERR_XDR;
+        handle->err = DTN_EXDR;
         return -1;
     }
 
@@ -174,14 +186,20 @@ dtn_register(dtn_handle_t h,
         return -1;
     }
 
-    // block waiting for the reply
-    if (dtnipc_recv(handle) < 0) {
+    // get the reply
+    if (dtnipc_recv(handle, &status) < 0) {
+        return -1;
+    }
+
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
         return -1;
     }
 
     // unpack the response
     if (!xdr_dtn_reg_id_t(xdr_decode, newregid)) {
-        handle->err = DTNERR_XDR;
+        handle->err = DTN_EXDR;
         return -1;
     }
 
@@ -196,6 +214,7 @@ dtn_register(dtn_handle_t h,
 int
 dtn_bind(dtn_handle_t h, dtn_reg_id_t regid, dtn_tuple_t* endpoint)
 {
+    int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     
@@ -203,12 +222,27 @@ dtn_bind(dtn_handle_t h, dtn_reg_id_t regid, dtn_tuple_t* endpoint)
     if (!xdr_dtn_reg_id_t(xdr_encode, &regid) ||
         !xdr_dtn_tuple_t(xdr_encode, endpoint))
     {
-        handle->err = DTNERR_XDR;
+        handle->err = DTN_EXDR;
         return -1;
     }
 
     // send the message
-    return dtnipc_send(handle, DTN_BIND);
+    if (dtnipc_send(handle, DTN_BIND) < 0) {
+        return -1;
+    }
+
+    // get the reply
+    if (dtnipc_recv(handle, &status) < 0) {
+        return -1;
+    }
+
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
+        return -1;
+    }
+
+    return 0;
 }
 
 /**
@@ -219,15 +253,14 @@ dtn_send(dtn_handle_t h,
          dtn_bundle_spec_t* spec,
          dtn_bundle_payload_t* payload)
 {
-    long result;
+    int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
-    XDR* xdr_decode = &handle->xdr_decode;
 
     // pack the arguments
     if ((!xdr_dtn_bundle_spec_t(xdr_encode, spec)) ||
         (!xdr_dtn_bundle_payload_t(xdr_encode, payload))) {
-        handle->err = DTNERR_XDR;
+        handle->err = DTN_EXDR;
         return -1;
     }
 
@@ -237,17 +270,17 @@ dtn_send(dtn_handle_t h,
     }
 
     // wait for a response
-    if (dtnipc_recv(handle) < 0) {
+    if (dtnipc_recv(handle, &status) < 0) {
         return -1;
     }
 
-    /* unpack the response and return */
-    if (!xdr_getlong(xdr_decode, &result)) {
-        handle->err = DTNERR_XDR;
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
         return -1;
     }
-    
-    return result;
+
+    return 0;
 }
 
 /**
@@ -261,7 +294,7 @@ dtn_recv(dtn_handle_t h,
          dtn_timeval_t timeout)
 {
     int ret;
-    long result;
+    int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     XDR* xdr_decode = &handle->xdr_decode;
@@ -274,7 +307,7 @@ dtn_recv(dtn_handle_t h,
     if ((!xdr_dtn_bundle_payload_location_t(xdr_encode, &location)) ||
         (!xdr_dtn_timeval_t(xdr_encode, &timeout)))
     {
-        handle->err = DTNERR_XDR;
+        handle->err = DTN_EXDR;
         return -1;
     }
 
@@ -284,26 +317,21 @@ dtn_recv(dtn_handle_t h,
     }
 
     // wait for a response
-    if ((ret = dtnipc_recv(handle)) < 0) {
+    if ((ret = dtnipc_recv(handle, &status)) < 0) {
         return -1;
     }
 
-    // unpack the result
-    if (!xdr_getlong(xdr_decode, &result)) {
-        handle->err = DTNERR_XDR;
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
         return -1;
     }
 
-    // if the result isn't success, there's nothing else on the wire
-    if (result != DTN_SUCCESS) {
-        handle->err = result;
-        return -1;
-    }
-        
+    // unpack the bundle
     if (!xdr_dtn_bundle_spec_t(xdr_decode, spec) ||
         !xdr_dtn_bundle_payload_t(xdr_decode, payload))
     {
-        handle->err = DTNERR_XDR;
+        handle->err = DTN_EXDR;
         return -1;
     }
     
@@ -339,7 +367,7 @@ dtn_copy_tuple(dtn_tuple_t* dst, dtn_tuple_t* src)
  * values of DTN_REGION_LOCAL and DTN_ADMIN_LOCAL in which case the
  * corresponding length arguments are ignored.
  *
- * Returns: 0 on success, DTNERR_INVAL if the arguments are invalid.
+ * Returns: 0 on success, DTN_EINVAL if the arguments are invalid.
  */
 int dtn_set_tuple(dtn_tuple_t* tuple,
                   char* region, size_t region_len,
@@ -353,7 +381,7 @@ int dtn_set_tuple(dtn_tuple_t* tuple,
  * Parses the given string according to the generic schema
  * bundles://<region>/<admin> and assigns it to the given tuple.
  *
- * Returns: 0 on success, DTNERR_INVAL if the given string is not a
+ * Returns: 0 on success, DTN_EINVAL if the given string is not a
  * valid tuple.
  */
 int
@@ -364,12 +392,12 @@ dtn_parse_tuple_string(dtn_tuple_t* tuple, char* str)
 
     s = strchr(str, ':');
     if (!s) {
-        return DTNERR_INVAL;
+        return DTN_EINVAL;
     }
     
     s++;
     if ((s[0] != '/') || s[1] != '/') {
-        return DTNERR_INVAL;
+        return DTN_EINVAL;
     }
     s += 2;
 
@@ -377,7 +405,7 @@ dtn_parse_tuple_string(dtn_tuple_t* tuple, char* str)
     // the next '/' character
     end = strchr(s, '/');
     if (!end) {
-        return DTNERR_INVAL;
+        return DTN_EINVAL;
     }
 
     // copy the region string
@@ -445,7 +473,7 @@ dtn_build_local_tuple(dtn_handle_t handle,
  * Sets the value of the given payload structure to either a memory
  * buffer or a file location.
  *
- * Returns: 0 on success, DTNERR_SIZE if the memory location is
+ * Returns: 0 on success, DTN_ESIZE if the memory location is
  * selected and the payload is too big.
  */
 int
@@ -456,7 +484,7 @@ dtn_set_payload(dtn_bundle_payload_t* payload,
     payload->location = location;
 
     if (location == DTN_PAYLOAD_MEM && len > DTN_MAX_BUNDLE_MEM) {
-        return DTNERR_SIZE;
+        return DTN_ESIZE;
     }
     
     switch (location) {
