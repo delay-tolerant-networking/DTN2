@@ -154,9 +154,9 @@ public:
     bool is_file_open() { return file_->is_open(); }
 
     /**
-     * Copy (or link) the payload to the given path.
+     * Copy (or link) the payload to the given file client object
      */
-    void copy_file(const std::string& copy_path);
+    void copy_file(oasys::FileIOClient* dst);
     
     /**
      * Get a pointer to the in-memory data buffer.

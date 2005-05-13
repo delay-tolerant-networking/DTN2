@@ -215,9 +215,17 @@ BundlePayload::close_file()
  * Copy (or link) the payload to the given path.
  */
 void
-BundlePayload::copy_file(const std::string& copy_path)
+BundlePayload::copy_file(oasys::FileIOClient* dst)
 {
+    if (! is_file_open()) {
+        reopen_file();
+    } else {
+        file_->lseek(0, SEEK_SET);
+    }
     
+    file_->copy_contents(length(), dst);
+
+    close_file();
 }
     
 /**
