@@ -232,20 +232,16 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         }
 
         /**
-	 * If there already is a timer for this link, reschedule it.
-	 * Otherwise, create a new timer. 
+	 * If there already is a timer for this link, cancel it which
+	 * will delete it . Then create a new timer.
 	 *
-	 * In the current implementation, rescheduling actually copies the timer, 
-	 * cancels the old one and returns the copy. That's why we have to use
-	 * the return value.
-	*/
-        BeaconTimer *timer=((EthCLInfo*)link->cl_info())->timer;
-        if(timer)
-            timer=(BeaconTimer*)timer->reschedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
-        else {
-            timer = new BeaconTimer(next_hop_string); 
-            timer->schedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
-        }       
+         */
+        BeaconTimer *timer = ((EthCLInfo*)link->cl_info())->timer;
+        if (timer)
+            timer->cancel(Timer::DELETE_ON_CANCEL);
+        
+        timer = new BeaconTimer(next_hop_string); 
+        timer->schedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
 	
 	((EthCLInfo*)link->cl_info())->timer=timer;
 
