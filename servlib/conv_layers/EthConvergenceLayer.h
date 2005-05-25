@@ -72,7 +72,7 @@ public:
      * Current version of the protocol.
      */
     static const u_int8_t ETHCL_VERSION = 0x01;
-    static const u_int8_t MAX_ETHER_PACKET = 1518;
+    static const u_int16_t MAX_ETHER_PACKET = 1518;
     static const u_int16_t ETHERTYPE_DTN = 0xd710;
 
     static const u_int8_t ETHCL_BEACON = 0x01;
