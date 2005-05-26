@@ -184,8 +184,9 @@ public:
     /*
      * Tunable parameters
      */
-    static size_t mem_threshold_; ///< maximum bundle size to keep in memory
-    static bool test_no_remove_;  ///< test: don't rm payload files
+    static std::string payloaddir_; ///< directory to store payload files
+    static size_t mem_threshold_;   ///< maximum bundle size to keep in memory
+    static bool test_no_remove_;    ///< test: don't rm payload files
 
 protected:
     void internal_write(const u_char* bp, size_t offset, size_t len);

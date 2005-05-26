@@ -44,6 +44,7 @@
 #include <oasys/debug/Log.h>
 #include <oasys/io/FileUtils.h>
 #include <oasys/memory/Memory.h>
+#include <oasys/storage/StorageConfig.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Getopt.h>
@@ -53,7 +54,6 @@
 #include "applib/APIServer.h"
 #include "cmd/TestCommand.h"
 #include "servlib/DTNServer.h"
-#include "storage/StorageConfig.h"
 
 /**
  * Namespace for the dtn daemon source code.
@@ -81,6 +81,17 @@ main(int argc, char* argv[])
     oasys::DbgMemInfo::init();
 #endif
 
+    // Initialize the oasys storage configuration with default values
+    oasys::StorageConfig::init(
+        "berkeleydb",
+        false,
+        false,
+        3,
+        "DTN",
+        "/var/dtn/db",
+        "dberror.log",
+        0);
+    
     // Register all command line options
     oasys::Getopt::addopt(
         new oasys::BoolOpt('v', "version", &print_version,
@@ -104,11 +115,11 @@ main(int argc, char* argv[])
                            "run as a daemon"));
     
     oasys::Getopt::addopt(
-        new oasys::BoolOpt('t', "tidy", &StorageConfig::instance()->tidy_,
+        new oasys::BoolOpt('t', "tidy", &oasys::StorageConfig::instance()->tidy_,
                            "clear database and initialize tables on startup"));
     
     oasys::Getopt::addopt(
-        new oasys::BoolOpt(0, "init-db", &StorageConfig::instance()->init_,
+        new oasys::BoolOpt(0, "init-db", &oasys::StorageConfig::instance()->init_,
                            "initialize database on startup"));
 
     oasys::Getopt::addopt(
@@ -227,8 +238,8 @@ main(int argc, char* argv[])
     DTNServer::init_datastore();
 
     // If we're running as --init-db, flush the database and we're all done.
-    if (StorageConfig::instance()->init_ &&
-        ! StorageConfig::instance()->tidy_)
+    if (oasys::StorageConfig::instance()->init_ &&
+        ! oasys::StorageConfig::instance()->tidy_)
     {
         DTNServer::close_datastore();
         log_info(log, "database initialization complete.");

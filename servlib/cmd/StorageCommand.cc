@@ -36,8 +36,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/storage/StorageConfig.h>
+
 #include "StorageCommand.h"
-#include "storage/StorageConfig.h"
+#include "bundling/BundlePayload.h"
 
 namespace dtn {
 
@@ -46,14 +48,14 @@ StorageCommand::StorageCommand()
 {
     inited_ = false;
 
-    StorageConfig* cfg = StorageConfig::instance();
+    oasys::StorageConfig* cfg = oasys::StorageConfig::instance();
+    
     bind_s("type",	&cfg->type_);
     bind_b("tidy",	&cfg->tidy_);
+    bind_s("dbname",	&cfg->dbname_);
     bind_s("dbdir",	&cfg->dbdir_);
-    bind_s("dbfile",	&cfg->dbfile_);
     bind_s("dberrlog",	&cfg->dberrlog_);
-    bind_s("sqldb",	&cfg->sqldb_);
-    bind_s("payloaddir",&cfg->payloaddir_);
+    bind_s("payloaddir",&BundlePayload::payloaddir_);
 }
 
 const char*

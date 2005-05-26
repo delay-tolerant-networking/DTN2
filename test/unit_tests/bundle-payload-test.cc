@@ -41,7 +41,6 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleMapping.h"
-#include "storage/StorageConfig.h"
 #include <oasys/thread/SpinLock.h>
 
 using namespace dtn;
@@ -54,6 +53,7 @@ payload_test(BundlePayload::location_t initial_location,
     u_char buf[64];
     const u_char* data;
     BundlePayload p;
+    bzero(buf, sizeof(buf));
 
     log_debug("/test", "checking initialization");
     p.init(new SpinLock(), 1, initial_location);
@@ -151,7 +151,7 @@ main(int argc, const char** argv)
 {
     system("rm -rf .bundle-payload-test");
     system("mkdir  .bundle-payload-test");
-    StorageConfig::instance()->payloaddir_.assign(".bundle-payload-test");
+    BundlePayload::payloaddir_.assign(".bundle-payload-test");
     
     BundlePayloadTester t("bundle payload test");
     t.run_tests(argc, argv);

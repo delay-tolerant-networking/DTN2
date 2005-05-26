@@ -41,39 +41,25 @@
 #include <oasys/debug/Debug.h>
 #include <oasys/serialize/Serialize.h>
 
-#include "PersistentStore.h"
+// forward decl
+namespace oasys {
+template<typename _Type> class SingleTypeDurableTable;
+}
 
 namespace dtn {
 
-class Globals : public oasys::SerializableObject
-{
-public:
-    u_int32_t next_bundleid_;	///< running serial number for bundles
-    u_int32_t next_regid_;	///< running serial number for registrations
-
-    /**
-     * Virtual from SerializableObject.
-     */
-    virtual void serialize(oasys::SerializeAction* a);
-
-    /**
-     * Destructor.
-     */
-    virtual ~Globals();
-};
+class Globals;
 
 /**
- * Class for those elements of the router that need to
- * be persistently stored but are singleton global values. Examples
- * include the running sequence number for bundles and registrations,
- * as well as any persistent configuration settings.
- *
- * Unlike the other *Store instances, this class is itself a
- * serializable object, since it contains all the fields that need to
- * be stored.
+ * Class for those elements of the router that need to be persistently
+ * stored but are singleton global values. Examples include the
+ * running sequence number for bundles and registrations, as well as
+ * any other persistent configuration settings.
  */
 class GlobalStore : public oasys::Logger {
 public:
+    static const int CURRENT_VERSION = 1;
+    
     /**
      * Singleton instance accessor.
      */
@@ -85,15 +71,27 @@ public:
     }
 
     /**
-     * Boot time initializer that takes as a parameter the actual
-     * instance to use.
+     * Boot time initializer
+     *
      */
-    static void init(GlobalStore* instance) {
+    static int init() {
         if (instance_ != NULL) {
             PANIC("GlobalStore::init called multiple times");
         }
-        instance_ = instance;
+        instance_ = new GlobalStore();
+
+        return instance_->do_init();
     }
+
+    /**
+     * Constructor.
+     */
+    GlobalStore();
+
+    /**
+     * Real initialization method.
+     */
+    int do_init();
     
     /**
      * Return true if initialization has completed.
@@ -101,14 +99,9 @@ public:
     static bool initialized() { return (instance_ != NULL); }
     
     /**
-     * Constructor.
-     */
-    GlobalStore(PersistentStore* store);
-
-    /**
      * Destructor.
      */
-    virtual ~GlobalStore();
+    ~GlobalStore();
 
     /**
      * Get a new bundle id, updating the value in the store
@@ -140,12 +133,12 @@ public:
      * Close (and flush) the data store.
      */
     void close();
-    
-    static GlobalStore* instance_; ///< singleton instance
-    
-    PersistentStore * store_;   ///< persistent storage object
+
+protected:
     bool loaded_;
-    Globals globals;
+    Globals* globals_;
+    oasys::SingleTypeDurableTable<Globals>* store_;
+    static GlobalStore* instance_; ///< singleton instance
 };
 } // namespace dtn
 

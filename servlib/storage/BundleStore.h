@@ -38,14 +38,17 @@
 #ifndef _BUNDLE_STORE_H_
 #define _BUNDLE_STORE_H_
 
-#include <vector>
 #include <oasys/debug/Debug.h>
+
+// forward decl
+namespace oasys {
+template<typename _Type> class SingleTypeDurableTable;
+}
 
 namespace dtn {
 
 class Bundle;
 class BundleList;
-class PersistentStore;
 
 /**
  * Abstract base class for bundle storage.
@@ -66,21 +69,30 @@ public:
      * Boot time initializer that takes as a parameter the actual
      * instance to use.
      */
-    static void init(BundleStore* instance) {
-        ASSERT(instance_ == NULL);
-        instance_ = instance;
+    static int init() {
+        if (instance_ != NULL) {
+            PANIC("BundleStore::init called multiple times");
+        }
+        instance_ = new BundleStore();
+        
+        return instance_->do_init();
     }
     
+    /**
+     * Constructor.
+     */
+    BundleStore();
+
+    /**
+     * Real initialization method.
+     */
+    int do_init();
+
     /**
      * Return true if initialization has completed.
      */
     static bool initialized() { return (instance_ != NULL); }
     
-    /**
-     * Constructor.
-     */
-    BundleStore(PersistentStore * store);
-
     /**
      * Destructor.
      */
@@ -96,20 +108,24 @@ public:
      */
     void close();
     
-    /// @{
     /**
-     * Basic storage methods.
+     * Add a new bundle to the data store.
      */
-    Bundle*  get(int bundle_id);
-    bool     add(Bundle* bundle);
-    bool     update(Bundle* bundle);
-    bool     del(int bundle_id);
-    /// @}
+    bool add(Bundle* bundle);
+
+    /**
+     * Update a bundle's contents in the data store..
+     */
+    bool update(Bundle* bundle);
+
+    /**
+     * Remove the bundle (by id) from the data store.
+     */
+    bool del(int bundle_id);
     
 protected:
+    oasys::SingleTypeDurableTable<Bundle>* store_;
     static BundleStore* instance_; ///< singleton instance
-
-    PersistentStore * store_;
 };
 
 } // namespace dtn

@@ -38,12 +38,17 @@
 #ifndef _REGISTRATION_STORE_H_
 #define _REGISTRATION_STORE_H_
 
-#include <string>
-#include "reg/Registration.h"
+#include <oasys/debug/Log.h>
+
+// forward decl
+namespace oasys {
+template<typename _Type> class SingleTypeDurableTable;
+}
 
 namespace dtn {
 
-class PersistentStore;
+class Registration;
+class RegistrationList;
 
 /**
  * Abstract base class for the persistent registration store.
@@ -64,12 +69,24 @@ public:
      * Boot time initializer that takes as a parameter the actual
      * instance to use.
      */
-    static void init(RegistrationStore* instance) {
+    static int init() {
         if (instance_ != NULL) {
             PANIC("RegistrationStore::init called multiple times");
         }
-        instance_ = instance;
+        instance_ = new RegistrationStore();
+        
+        return instance_->do_init();
     }
+
+    /**
+     * Constructor.
+     */
+    RegistrationStore();
+
+    /**
+     * Real initialization method.
+     */
+    int do_init();
 
     /**
      * Return true if initialization has completed.
@@ -77,30 +94,20 @@ public:
     static bool initialized() { return (instance_ != NULL); }
     
     /**
-     * Constructor
-     */
-    RegistrationStore(PersistentStore * store);
-    
-    /**
      * Destructor
      */
     ~RegistrationStore();
-
-    /**
-     * Load stored registrations from database into system
-     */
-    bool load();
-
-    /**
-     * Close (and flush) the data store.
-     */
-    void close();
 
     /**
      * Load in the whole database of registrations, populating the
      * given list.
      */
     void load(RegistrationList* reg_list);
+
+    /**
+     * Close (and flush) the data store.
+     */
+    void close();
 
     /**
      * Add a new registration to the database. Returns true if the
@@ -122,8 +129,7 @@ public:
 
 protected:
     static RegistrationStore* instance_;
-
-    PersistentStore * store_;
+    oasys::SingleTypeDurableTable<Registration>* store_;
 };
 } // namespace dtn
 

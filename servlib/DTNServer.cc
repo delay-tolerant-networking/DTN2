@@ -59,7 +59,6 @@
 
 #include "routing/BundleRouter.h"
 
-#include "storage/StorageConfig.h"
 #include "storage/BundleStore.h"
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
@@ -68,21 +67,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#if __DB_ENABLED__
-#include "storage/BerkeleyDBStore.h"
-#endif
-
-#if __SQL_ENABLED__
-#include "storage/SQLStore.h"
-#endif
-
-#if __MYSQL_ENABLED__
-#include "storage/MysqlSQLImplementation.h"
-#endif
-
-#if __POSTGRES_ENABLED__
-#include "storage/PostgresSQLImplementation.h"
-#endif
+#include <oasys/storage/StorageConfig.h>
+#include <oasys/storage/BerkeleyDBStore.h>
+//#include <oasys/storage/MySQLStore.h>
+//#include <oasys/storage/PostgresqlStore.h>
 
 namespace dtn {
 
@@ -122,105 +110,65 @@ DTNServer::init_components()
 void
 DTNServer::init_datastore()
 {
-    StorageConfig* cfg = StorageConfig::instance();
-
+    oasys::StorageConfig* cfg = oasys::StorageConfig::instance();
+    
     if (cfg->tidy_) 
     {
         // init is implicit with tidy
         cfg->init_ = true; 
 
-        // remove data directories
-        DTNServer::tidy_dir(cfg->payloaddir_.c_str());
-#ifdef __DB_ENABLED__
-        DTNServer::tidy_dir(cfg->dbdir_.c_str());
-#endif
+        // remove bundle data directory (the db contents are cleaned
+        // up by the implementation)
+        DTNServer::tidy_dir(BundlePayload::payloaddir_.c_str());
     }
 
     if (cfg->init_)
     {
         // initialize data directories
-        DTNServer::init_dir(cfg->payloaddir_.c_str());
-#ifdef __DB_ENABLED__
+        DTNServer::init_dir(BundlePayload::payloaddir_.c_str());
         DTNServer::init_dir(cfg->dbdir_.c_str());
-#endif
     }
 
     // validation
-    DTNServer::validate_dir(cfg->payloaddir_.c_str());
-#ifdef __DB_ENABLED__
+    DTNServer::validate_dir(BundlePayload::payloaddir_.c_str());
     DTNServer::validate_dir(cfg->dbdir_.c_str());
-#endif
 
-    // initialize the data storage objects
-    std::string& storage_type = StorageConfig::instance()->type_;
-    GlobalStore* global_store;
-    BundleStore* bundle_store;
-    RegistrationStore* reg_store;
+
+    // initialize the oasys durable storage system based on the type
+
+    if (0) {} // symmetry
     
-    if (storage_type.compare("berkeleydb") == 0) {
 #if __DB_ENABLED__
-        BerkeleyDBManager::instance()->init();
-        global_store = new GlobalStore(new BerkeleyDBStore("globals"));
-        bundle_store = new BundleStore(new BerkeleyDBStore("bundles"));
-        reg_store    = new RegistrationStore(new BerkeleyDBStore("registration"));
-#else
-        goto unimpl;
+    else if (cfg->type_.compare("berkeleydb") == 0)
+    {
+        oasys::BerkeleyDBStore::init();
+    }
 #endif
 
-    } else if ((storage_type.compare("mysql") == 0) ||
-               (storage_type.compare("postgres") == 0))
-    {
-#if __SQL_ENABLED__
-        oasys::SQLImplementation* impl = NULL;
-        
-        if (storage_type.compare("mysql") == 0)
-        {
 #if __MYSQL_ENABLED__
-            impl = new MysqlSQLImplementation();
-#else
-            goto unimpl;
-#endif /* __MYSQL_ENABLED__ */
-        }            
+    else if (cfg->type_.compare("mysql") == 0)
+    {
+        oasys::MySQLStore::init();
+    }
+#endif
 
-        else if (storage_type.compare("postgres") == 0) {
 #if __POSTGRES_ENABLED__
-            impl = new PostgresSQLImplementation();
-#else
-            goto unimpl;
-#endif /* __POSTGRES_ENABLED__ */
-        }
+    else if (cfg->type_.compare("postgres") == 0)
+    {
+        oasys::PostgresqlStore::init();
+    }
+#endif
 
-        ASSERT(impl);
-        
-        if (impl->connect(cfg->sqldb_.c_str()) == -1) {
-            log_err("/dtnserver", "error connecting to %s database %s",
-                    storage_type.c_str(), cfg->sqldb_.c_str());
-            exit(1);
-        }
-        
-        global_store = new GlobalStore(new SQLStore("globals", impl));
-        bundle_store = new BundleStore(new SQLStore("bundles", impl));
-        reg_store    = new RegistrationStore(new SQLStore("registration", impl));
-
-#else  /* __SQL_ENABLED__ */
-        goto unimpl;
-        
-#endif /* __SQL_ENABLED__ */
-    }        
-
-    else {
-        goto unimpl;
+    else
+    {
+        log_err("/dtnserver", "storage type %s not implemented, exiting...",
+                cfg->type_.c_str());
+        exit(1);
     }
 
-    GlobalStore::init(global_store);
-    BundleStore::init(bundle_store);
-    RegistrationStore::init(reg_store);
-    return;
-    
-unimpl:
-    log_err("/dtnserver", "storage type %s not implemented, exiting...",
-            storage_type.c_str());
-    exit(1);
+    GlobalStore::init();
+    BundleStore::init();
+    RegistrationStore::init();
 }
     
 void
@@ -250,21 +198,11 @@ DTNServer::start()
 void
 DTNServer::close_datastore()
 {
-
-    // need to make sure the GlobalStore has been updated at least once
-    // XXX/demmer see if there's a better way to do this
-    GlobalStore::instance()->update();
-    
     GlobalStore::instance()->close();
     BundleStore::instance()->close();
     RegistrationStore::instance()->close();
 
-#if __DB_ENABLED__
-    std::string& storage_type = StorageConfig::instance()->type_;
-    if (storage_type.compare("berkeleydb") == 0) {
-        BerkeleyDBManager::instance()->close();
-    }
-#endif
+    oasys::DurableStore::shutdown();
 }
 
 void

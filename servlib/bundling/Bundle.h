@@ -88,24 +88,16 @@ public:
     Bundle();
 
     /**
-     * Constructor when re-reading the database that takes an explicit
-     * id and a pointer to the store.
-     * 
+     * Constructor when re-reading the database.
      */
-    Bundle(u_int32_t id, BundleStore* store);
+    Bundle(const oasys::Builder&);
 
     /**
-     * Constructor that takes an explicit id and location of bundle payload
-     * 
+     * Constructor that takes an explicit id and location of the
+     * payload.
      */
     Bundle(u_int32_t id, BundlePayload::location_t location);
 
-    /**
-     * Special constructor for a temporary (invalid) bundle, used to
-     * create the database table schema for SQL databases.
-     */
-    Bundle(SQLBundleStore* store) {}
-    
     /**
      * Bundle destructor.
      */

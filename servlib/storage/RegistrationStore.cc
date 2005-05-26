@@ -47,39 +47,18 @@ RegistrationStore* RegistrationStore::instance_;
 /**
  * Constructor
  */
-RegistrationStore::RegistrationStore(PersistentStore * store)
+RegistrationStore::RegistrationStore()
     : Logger("/storage/reg")
 {
-    store_ = store;
 }
 
-bool RegistrationStore::load()
+int
+RegistrationStore::do_init()
 {
 #ifdef __REG_STORE_ENABLED__
-    log_debug("Loading existing registrations from database.");
-    // load existing stored registrations
-    std::vector<int> ids;
-    std::vector<int>::iterator iter;
-
-    store_->keys(&ids);
-
-    for (iter = ids.begin();
-         iter != ids.end();
-         ++iter)
-    {
-        int id = *iter;
-        Registration * reg = new Registration(id);
-        
-        if (store_->get(reg, id))
-        {
-            if (!RegistrationTable::instance()->add(reg))
-            {
-                log_crit("unexpected error loading registrations");
-            }
-        }
-    }
-#endif /* __REG_STORE_ENABLED__ */
-    return true;
+    NOTREACHED; // XXX/demmer implement me
+#endif
+    return 0;
 }
 
 /**
@@ -170,10 +149,13 @@ RegistrationStore::update(Registration* reg)
 void
 RegistrationStore::close()
 {
+#ifdef __REG_STORE_ENABLED__
     log_debug("closing registration store");
+    delete store_
     if (store_->close() != 0) {
         log_err("error closing registration store");
     }
+#endif
 }
 
 } // namespace dtn

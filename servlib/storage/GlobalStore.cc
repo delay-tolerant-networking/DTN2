@@ -36,36 +36,104 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/storage/DurableStore.h>
+#include <oasys/storage/StorageConfig.h>
+#include <oasys/serialize/TypeShims.h>
+
 #include "GlobalStore.h"
-#include "StorageConfig.h"
 #include "reg/Registration.h"
 
 namespace dtn {
 
-GlobalStore* GlobalStore::instance_;
+static const char* GLOBAL_TABLE = "globals";
+static const char* GLOBAL_KEY   = "global_key";
 
-GlobalStore::GlobalStore(PersistentStore * store)
-    : Logger("/storage/globals")
+class Globals : public oasys::SerializableObject
 {
-    globals.next_bundleid_ = 0xffffffff;
-    globals.next_regid_    = 0xffffffff;
-    store_ = store;
-    loaded_ = false;
-}
+public:
+    Globals() {}
+    Globals(const oasys::Builder&) {}
 
-GlobalStore::~GlobalStore()
-{
-}
+    u_int32_t version_;         ///< on-disk copy of CURRENT_VERSION
+    u_int32_t next_bundleid_;	///< running serial number for bundles
+    u_int32_t next_regid_;	///< running serial number for registrations
+
+    /**
+     * Virtual from SerializableObject.
+     */
+    virtual void serialize(oasys::SerializeAction* a);
+
+};
 
 void
 Globals::serialize(oasys::SerializeAction* a)
 {
+    a->process("version",       &version_);
     a->process("next_bundleid", &next_bundleid_);
     a->process("next_regid",    &next_regid_);
 }
 
-Globals::~Globals()
+GlobalStore* GlobalStore::instance_;
+
+GlobalStore::GlobalStore()
+    : Logger("/storage/globals"), globals_(NULL), store_(NULL)
 {
+}
+
+int
+GlobalStore::do_init()
+{
+    oasys::StorageConfig* cfg = oasys::StorageConfig::instance();
+    
+    int flags = 0;
+
+    if (cfg->init_)
+        flags |= oasys::DS_CREATE;
+
+    oasys::DurableStore* store = oasys::DurableStore::instance();
+    int err = store->get_table(&store_, GLOBAL_TABLE, flags, NULL);
+
+    if (err != 0) {
+        log_err("error initializing global store");
+        return err;
+    }
+
+    // if we're initializing the database for the first time, then we
+    // prime the values accordingly and sync the database version
+    if (cfg->init_) {
+        log_info("initializing global table");
+
+        globals_ = new Globals();
+
+        globals_->version_       = CURRENT_VERSION;
+        globals_->next_bundleid_ = 0;
+        globals_->next_regid_    = Registration::MAX_RESERVED_REGID + 1;
+
+        // store the new value
+        err = store_->put(oasys::StringShim(GLOBAL_KEY), globals_,
+                          oasys::DS_CREATE | oasys::DS_EXCL);
+        
+        if (err == oasys::DS_EXISTS) {
+            log_err("error initializing global store: already exists");
+            return err;
+
+        } else if (err != 0) {
+            log_err("unknownerror initializing global store");
+            return err;
+        }
+        
+        loaded_ = true;
+        
+    } else {
+        loaded_ = false;
+    }
+
+    return 0;
+}
+
+GlobalStore::~GlobalStore()
+{
+    delete store_;
 }
 
 /**
@@ -76,9 +144,12 @@ Globals::~Globals()
 u_int32_t
 GlobalStore::next_bundleid()
 {
-    ASSERT(globals.next_bundleid_ != 0xffffffff);
-    log_debug("next_bundleid %d -> %d", globals.next_bundleid_, globals.next_bundleid_ + 1);
-    u_int32_t ret = globals.next_bundleid_++;
+    ASSERT(globals_->next_bundleid_ != 0xffffffff);
+    log_debug("next_bundleid %d -> %d",
+              globals_->next_bundleid_,
+              globals_->next_bundleid_ + 1);
+    
+    u_int32_t ret = globals_->next_bundleid_++;
     if (! update()) {
         log_err("error updating globals table");
     }
@@ -95,9 +166,12 @@ GlobalStore::next_bundleid()
 u_int32_t
 GlobalStore::next_regid()
 {
-    ASSERT(globals.next_regid_ != 0xffffffff);
-    log_debug("next_regid %d -> %d", globals.next_regid_, globals.next_regid_ + 1);
-    u_int32_t ret = globals.next_regid_++;
+    ASSERT(globals_->next_regid_ != 0xffffffff);
+    log_debug("next_regid %d -> %d",
+              globals_->next_regid_,
+              globals_->next_regid_ + 1);
+
+    u_int32_t ret = globals_->next_regid_++;
     if (! update()) {
         log_err("error updating globals table");
     }
@@ -105,42 +179,21 @@ GlobalStore::next_regid()
     return ret;
 }
 
-
+/**
+ * Load in the globals.
+ */
 bool
 GlobalStore::load()
 {
     log_debug("loading global store");
 
-    int cnt = store_->num_elements();
-    
-    log_debug("count is %d ",cnt);
-    if (cnt == 1) 
-    {
-        store_->get(&globals, 1);
+    oasys::StringShim key(GLOBAL_KEY);
 
-        // confirm these were added to the db correctly initialized
-        ASSERT(globals.next_bundleid_ != 0xffffffff);
-        ASSERT(globals.next_regid_ != 0xffffffff);
-        
-        log_debug("loaded next bundle id %d next reg id %d",
-                  globals.next_bundleid_, globals.next_regid_);
+    if (store_->get(key, &globals_) != 0) {
+        log_err("error loading global data");
+        return false;
     }
-    else if (cnt == 0 && StorageConfig::instance()->init_)
-    {
-        globals.next_bundleid_ = 0;
-        globals.next_regid_    = Registration::MAX_RESERVED_REGID + 1;
-        
-        if (store_->add(&globals, 1) != 0) 
-        {
-            log_err("error initializing globals table");
-            exit(-1);
-        }
-
-    } else {
-        log_err("error loading globals table (%d)", cnt);
-
-        exit(-1);
-    }
+    ASSERT(globals_ != NULL);
 
     loaded_ = true;
     return true;
@@ -151,13 +204,13 @@ GlobalStore::update()
 {
     log_debug("updating global store");
 
-    // make certain we don't attempt to write out globals before load()
-    // has had a chance to load them from the database (or init them)
-    if (!loaded_) {
-        load();
-    }
+    // make certain we don't attempt to write out globals before
+    // load() has had a chance to load them from the database
+    ASSERT(loaded_);
     
-    if (store_->update(&globals, 1) != 0) {
+    int err = store_->put(oasys::StringShim(GLOBAL_KEY), globals_, 0);
+
+    if (err != 0) {
         log_err("error updating global store");
         return false;
     }
@@ -168,10 +221,8 @@ GlobalStore::update()
 void
 GlobalStore::close()
 {
-    log_debug("closing global store");
-    if (store_->close() != 0) {
-        log_err("error closing global store");
-    }
+    delete store_;
+    store_ = NULL;
 }
 
 } // namespace dtn

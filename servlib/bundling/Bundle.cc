@@ -77,10 +77,12 @@ Bundle::Bundle()
     payload_.init(&lock_, id);
 }
 
-Bundle::Bundle(u_int32_t id, BundleStore* store)
+Bundle::Bundle(const oasys::Builder&)
 {
-    init(id);
-    payload_.init(&lock_, id, store);
+    // don't do anything here except set the id to a bogus default
+    // value, since the fields should all be set when loaded from the
+    // database
+    bundleid_ = 0xffffffff;
 }
 
 Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)

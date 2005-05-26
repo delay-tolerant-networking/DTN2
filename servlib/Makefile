@@ -70,16 +70,19 @@ ROUTING_SRCS :=					\
 	routing/LinkStateGraph.cc		\
 	routing/LinkStateRouter.cc		\
 
-STORAGE_SRCS :=					\
-	storage/BundleStore.cc			\
+OLD_STORAGE_SRCS :=				\
 	storage/GlobalStore.cc			\
 	storage/PersistentStore.cc		\
-	storage/RegistrationStore.cc		\
 	storage/StorageConfig.cc		\
 	storage/BerkeleyDBStore.cc		\
 	storage/SQLStore.cc			\
         storage/PostgresSQLImplementation.cc    \
         storage/MysqlSQLImplementation.cc       \
+
+STORAGE_SRCS :=					\
+	storage/BundleStore.cc			\
+	storage/GlobalStore.cc			\
+	storage/RegistrationStore.cc		\
 
 SERVLIB_SRCS := 				\
 	../version.c				\

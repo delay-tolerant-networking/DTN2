@@ -36,9 +36,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "bundling/Bundle.h"
+#include <oasys/storage/DurableStore.h>
+#include <oasys/storage/StorageConfig.h>
+#include <oasys/serialize/TypeShims.h>
+
 #include "BundleStore.h"
-#include "PersistentStore.h"
+#include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
 
@@ -46,31 +49,86 @@ namespace dtn {
 
 BundleStore* BundleStore::instance_;
 
-BundleStore::BundleStore(PersistentStore * store)
-    : Logger("/storage/bundles")
+static const char* BUNDLE_TABLE = "bundles";
+
+BundleStore::BundleStore()
+    : Logger("/storage/bundles"), store_(0)
 {
-    store_ = store;
+}
+
+int
+BundleStore::do_init()
+{
+    oasys::StorageConfig* cfg = oasys::StorageConfig::instance();
+    
+    int flags = 0;
+
+    if (cfg->init_)
+        flags |= oasys::DS_CREATE;
+    
+    oasys::DurableStore* store = oasys::DurableStore::instance();
+    int err = store->get_table(&store_, BUNDLE_TABLE, flags, NULL);
+
+    if (err != 0) {
+        log_err("error initializing bundle store");
+        return err;
+    }
+
+    return 0;
 }
 
 bool
 BundleStore::load()
 {
+    Bundle* bundle;
+    int err;
+    
     log_debug("Loading existing bundles from database.");
 
     // load existing stored bundles
-    Bundle* bundle;
-    std::vector<int> ids;
-    std::vector<int>::iterator iter;
+    oasys::DurableIterator* iter = store_->iter();
 
-    store_->keys(&ids);
+    while (1) {
+        oasys::IntShim key(-1);
+        
+        err = iter->next();
+        if (err == oasys::DS_NOTFOUND)
+        {
+            break; // all done
+        }
+        else if (err != 0)
+        {
+            log_err("BundleStore::load: error in iterator next");
+            return false;
+        }
+        
+        
+        err = iter->get(&key);
+        if (err != 0)
+        {
+            log_err("BundleStore::load: error in iterator get");
+            return false;
+        }
+        
+        if (key.value() == -1)
+        {
+            log_err("BundleStore::load: error extracting key value");
+            return false;
+        }
 
-    for (iter = ids.begin(); iter != ids.end(); ++iter)
-    {
-        bundle = get(*iter);
+        err = store_->get(key, &bundle);
+        if (err != 0)
+        {
+            log_err("BundleStore::load: error retrieving bundle");
+            return false;
+        }
+
         ASSERT(bundle);
+        bundle->payload_.init(&bundle->lock_, bundle->bundleid_);
+
         BundleDaemon::post(new BundleReceivedEvent(bundle, EVENTSRC_STORE));
     }
-
+    
     return true;
 }
 
@@ -78,34 +136,47 @@ BundleStore::~BundleStore()
 {
 }
 
-Bundle*
-BundleStore::get(int bundle_id)
-{
-    Bundle* bundle = new Bundle(bundle_id, this);
-    if (store_->get(bundle, bundle_id) != 0) {
-        delete bundle;
-        return NULL;
-    }
-
-    return bundle;
-}
-
 bool
 BundleStore::add(Bundle* bundle)
 {
-    return store_->add(bundle, bundle->bundleid_) == 0;
+    int err = store_->put(oasys::IntShim(bundle->bundleid_), bundle,
+                          oasys::DS_CREATE | oasys::DS_EXCL);
+    if (err != 0) {
+        log_err("add bundle *%p: %s", bundle,
+                (err == oasys::DS_EXISTS) ?
+                "bundle already exists" : "unknown error");
+        return false;
+    }
+
+    return true;
 }
 
 bool
 BundleStore::update(Bundle* bundle)
 {
-    return store_->update(bundle, bundle->bundleid_) == 0;
+    int err = store_->put(oasys::IntShim(bundle->bundleid_), bundle, 0);
+    if (err != 0) {
+        log_err("update bundle *%p: %s", bundle,
+                (err == oasys::DS_NOTFOUND) ?
+                "bundle doesn't exist" : "unknown error");
+        return false;
+    }
+
+    return true;
 }
 
 bool
 BundleStore::del(int bundle_id)
 {
-    return store_->del(bundle_id) == 0;
+    int err = store_->del(oasys::IntShim(bundle_id));
+    if (err != 0) {
+        log_err("del bundle %d: %s", bundle_id,
+                (err == oasys::DS_NOTFOUND) ?
+                "bundle doesn't exist" : "unknown error");
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -114,9 +185,8 @@ BundleStore::close()
 {
     log_debug("closing bundle store");
 
-    if (store_->close() != 0) {
-        log_err("error closing bundle store");
-    }
+    delete store_;
+    store_ = NULL;
 }
 
 } // namespace dtn
