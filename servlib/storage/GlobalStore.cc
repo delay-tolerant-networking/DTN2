@@ -45,6 +45,7 @@
 
 namespace dtn {
 
+const u_int32_t GlobalStore::CURRENT_VERSION = 1;
 static const char* GLOBAL_TABLE = "globals";
 static const char* GLOBAL_KEY   = "global_key";
 
@@ -194,6 +195,13 @@ GlobalStore::load()
         return false;
     }
     ASSERT(globals_ != NULL);
+
+    if (globals_->version_ != CURRENT_VERSION) {
+        log_crit("datastore version mismatch: "
+                 "expected version %d, database version %d",
+                 CURRENT_VERSION, globals_->version_);
+        exit(1);
+    }
 
     loaded_ = true;
     return true;

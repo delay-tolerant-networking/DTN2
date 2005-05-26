@@ -58,7 +58,7 @@ class Globals;
  */
 class GlobalStore : public oasys::Logger {
 public:
-    static const int CURRENT_VERSION = 1;
+    static const u_int32_t CURRENT_VERSION;
     
     /**
      * Singleton instance accessor.
