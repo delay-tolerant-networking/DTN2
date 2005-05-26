@@ -4000,7 +4000,7 @@ fi;
     DB_ENABLED=1
 
                 if test ! x$dtn_cv_path_db_h = x ; then
-        echo "checking for Berkeley DB installation... (cached) $dtn_cv_path_db_h/db_cxx.h, $dtn_cv_path_db_lib -l$dtn_cv_lib_db"
+        echo "checking for Berkeley DB installation... (cached) $dtn_cv_path_db_h/db.h, $dtn_cv_path_db_lib -l$dtn_cv_lib_db"
     else
 
     dtn_cv_path_db_h=
@@ -4053,7 +4053,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-                #include <db_cxx.h>
+                #include <db.h>
 
                 #if (DB_VERSION_MAJOR != ${ac_dbver_major}) || \
                     (DB_VERSION_MINOR != ${ac_dbver_minor})
@@ -4098,7 +4098,7 @@ fi
 rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
 
       for ac_dblibdir in $ac_dblibdirs; do
-      for ac_dblib    in db_cxx-$ac_dbver; do
+      for ac_dblib    in db-$ac_dbver; do
 
 	LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
 	LIBS="$ac_save_LIBS -l$ac_dblib"
@@ -4113,7 +4113,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-                #include <db_cxx.h>
+                #include <db.h>
 
 int
 main ()
