@@ -3796,7 +3796,7 @@ echo "$as_me: error: cannot configure without tcl" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
-                if test ! x$oasys_cv_path_tcl_h = x ; then
+                        if test $ac_tcldir = system -a ! x$oasys_cv_path_tcl_h = x ; then
         echo "checking for tcl installation... (cached) $oasys_cv_path_tcl_h/tcl.h, $oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
     else
 
@@ -3806,20 +3806,16 @@ echo "$as_me: error: cannot configure without tcl" >&2;}
     ac_save_LDFLAGS="$LDFLAGS"
     ac_save_LIBS="$LIBS"
 
-
-    if test ! x"$ac_tcldir" = x"system" ; then
-        ac_tclincdirs=$ac_tcldir/include/
-    else
+    if test $ac_tcldir = system -o $ac_tcldir = yes -o $ac_tcldir = "" ; then
+        ac_tcldir=system
         ac_tclincdirs="/usr/include /usr/local/include"
 	for ac_tclver in $ac_tclvers ; do
            ac_tclincdirs="$ac_tclincdirs /usr/include/tcl$ac_tclver"
            ac_tclincdirs="$ac_tclincdirs /usr/local/include/tcl$ac_tclver"
         done
-    fi
-
-    if test x"$ac_tcldir" = x"system" ; then
         ac_tcllibdirs="/usr/lib /usr/local/lib"
     else
+        ac_tclincdirs=$ac_tcldir/include/
         ac_tcllibdirs="$ac_tcldir/lib"
     fi
 
