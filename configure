@@ -853,7 +853,7 @@ Optional Features:
   --disable-debug         compile with debugging turned off
   --enable-debug-memory   enable memory debugging
   --disable-optimize      compile with optimization turned off
-  --enable-static         build and link statically (XXX broken)
+  --enable-static         use static libraries for tcl and berkeley db
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1421,13 +1421,13 @@ fi
 # Check whether --enable-static or --disable-static was given.
 if test "${enable_static+set}" = set; then
   enableval="$enable_static"
-  $static=$enableval
+  static=$enableval
 else
-  static=yes
+  static=no
 fi;
 
-echo "$as_me:$LINENO: checking whether to build and link statically" >&5
-echo $ECHO_N "checking whether to build and link statically... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking whether to build and link using static tcl and db libraries" >&5
+echo $ECHO_N "checking whether to build and link using static tcl and db libraries... $ECHO_C" >&6
 echo "$as_me:$LINENO: result: $static" >&5
 echo "${ECHO_T}$static" >&6
 
@@ -3806,6 +3806,7 @@ echo "$as_me: error: cannot configure without tcl" >&2;}
     ac_save_LDFLAGS="$LDFLAGS"
     ac_save_LIBS="$LIBS"
 
+
     if test ! x"$ac_tcldir" = x"system" ; then
         ac_tclincdirs=$ac_tcldir/include/
     else
@@ -3887,12 +3888,23 @@ fi
 rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
 
       for ac_tcllibdir in $ac_tcllibdirs; do
-      for ac_tcllib in tcl tcl$ac_tclver tcl$ac_tclver_major$ac_tclver_minor; do
+      for ac_tcllib in tcl$ac_tclver tcl$ac_tclver_major$ac_tclver_minor tcl; do
 
-        echo "$as_me:$LINENO: checking for tcl library in $ac_tcllibdir, -l$ac_tcllib" >&5
-echo $ECHO_N "checking for tcl library in $ac_tcllibdir, -l$ac_tcllib... $ECHO_C" >&6
+        #AC_MSG_CHECKING([for tcl library in $ac_tcllibdir, -l$ac_tcllib])
 	LDFLAGS="$ac_save_LDFLAGS -L$ac_tcllibdir"
-	LIBS="$ac_save_LIBS -l$ac_tcllib"
+    	if test x"$STATIC" = x"yes" ; then
+		# gcc -static doesn't do exactly what we want
+		#LIBS="$ac_save_LIBS -static -l$ac_tcllib -ldl -lm"
+
+		my_tcl_static=${ac_tcllibdir}/lib${ac_tcllib}.a
+		#AC_MSG_NOTICE([Attempting to link with static tcl library $my_tcl_static])
+		LIBS="$ac_save_LIBS $my_tcl_static -ldl -lm"
+	else
+		LIBS="$ac_save_LIBS -l$ac_tcllib"
+	fi
+
+        echo "$as_me:$LINENO: checking for tcl library in $ac_tcllibdir: $LIBS" >&5
+echo $ECHO_N "checking for tcl library in $ac_tcllibdir: $LIBS... $ECHO_C" >&6
 
 	cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
@@ -3937,6 +3949,13 @@ echo "${ECHO_T}yes" >&6
               oasys_cv_path_tcl_h=$ac_tclincdir
               oasys_cv_path_tcl_lib=$ac_tcllibdir
               oasys_cv_lib_tcl=$ac_tcllib
+
+              #Buggy
+              #if test ! x"$STATIC" = x"yes" ; then
+                  #oasys_cv_path_tcl_lib="${ac_tcllibdir} -Wl,-rpath,${ac_tcllibdir}"
+                  #oasys_cv_lib_tcl="${ac_tcllib} -Wl,-rpath,${ac_tcllibdir}"
+              #fi
+
               break 4
 
 else
@@ -3970,11 +3989,17 @@ echo "$as_me: error: can't find usable tcl.h" >&2;}
         OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_tcl_h"
     fi
 
-    if test ! $oasys_cv_path_tcl_lib = /usr/lib ; then
+    if test ! x"$oasys_cv_path_tcl_lib" = x"/usr/lib" ; then
         OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_tcl_lib"
     fi
 
-    OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_tcl"
+    if test x"$STATIC" = x"yes" ; then
+	#tcl library usually needs dynamic loading lib and math lib.
+	#(building without dl is an option in tcl)
+        OASYS_LIBS="$OASYS_LIBS ${oasys_cv_path_tcl_lib}/lib${oasys_cv_lib_tcl}.a -ldl -lm"
+    else
+        OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_tcl"
+    fi
 
 
     ac_dbvers='4.3 4.2'
@@ -4101,7 +4126,14 @@ rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
       for ac_dblib    in db-$ac_dbver; do
 
 	LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
-	LIBS="$ac_save_LIBS -l$ac_dblib"
+	if test x"$STATIC" = x"yes" ; then
+		my_db_static=${ac_dblibdir}/lib${ac_dblib}.a
+		{ echo "$as_me:$LINENO: Attempting to link with static db library $my_db_static" >&5
+echo "$as_me: Attempting to link with static db library $my_db_static" >&6;}
+		LIBS="$ac_save_LIBS $my_db_static"
+	else
+		LIBS="$ac_save_LIBS -l$ac_dblib"
+	fi
 
         echo "$as_me:$LINENO: checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib" >&5
 echo $ECHO_N "checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib... $ECHO_C" >&6
@@ -4210,7 +4242,11 @@ echo "$as_me: error: can't find usable Berkeley DB installation" >&2;}
         OASYS_LDFLAGS="$OASYS_LDFLAGS -L$dtn_cv_path_db_lib"
     fi
 
-    OASYS_LIBS="$OASYS_LIBS -l$dtn_cv_lib_db"
+	if test x"$STATIC" = x"yes" ; then
+    		OASYS_LIBS="$OASYS_LIBS ${dtn_cv_path_db_lib}/lib${dtn_cv_lib_db}.a"
+	else
+    		OASYS_LIBS="$OASYS_LIBS -l$dtn_cv_lib_db"
+	fi
 
     fi # DB_ENABLED
 

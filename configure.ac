@@ -109,11 +109,11 @@ dnl Handle --enable-static[=yes|no]
 dnl 	   --disable-static
 dnl
 AC_ARG_ENABLE(static,
-	AC_HELP_STRING([--enable-static],[build and link statically (XXX broken)]),
-	[$static=$enableval],
-	[static=yes])
+	AC_HELP_STRING([--enable-static],[use static libraries for tcl and berkeley db]),
+	[static=$enableval],
+	[static=no])
 
-AC_MSG_CHECKING([whether to build and link statically])
+AC_MSG_CHECKING([whether to build and link using static tcl and db libraries])
 AC_MSG_RESULT($static)
 
 STATIC=
