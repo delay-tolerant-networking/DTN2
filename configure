@@ -3889,12 +3889,7 @@ rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
         #AC_MSG_CHECKING([for tcl library in $ac_tcllibdir, -l$ac_tcllib])
 	LDFLAGS="$ac_save_LDFLAGS -L$ac_tcllibdir"
     	if test x"$STATIC" = x"yes" ; then
-		# gcc -static doesn't do exactly what we want
-		#LIBS="$ac_save_LIBS -static -l$ac_tcllib -ldl -lm"
-
-		my_tcl_static=${ac_tcllibdir}/lib${ac_tcllib}.a
-		#AC_MSG_NOTICE([Attempting to link with static tcl library $my_tcl_static])
-		LIBS="$ac_save_LIBS $my_tcl_static -ldl -lm"
+		LIBS="$ac_save_LIBS -Wl,-Bstatic -l$ac_tcllib -Wl,-Bdynamic -ldl -lm"
 	else
 		LIBS="$ac_save_LIBS -l$ac_tcllib"
 	fi
@@ -3990,9 +3985,7 @@ echo "$as_me: error: can't find usable tcl.h" >&2;}
     fi
 
     if test x"$STATIC" = x"yes" ; then
-	#tcl library usually needs dynamic loading lib and math lib.
-	#(building without dl is an option in tcl)
-        OASYS_LIBS="$OASYS_LIBS ${oasys_cv_path_tcl_lib}/lib${oasys_cv_lib_tcl}.a -ldl -lm"
+        OASYS_LIBS="$OASYS_LIBS -Wl,-Bstatic -l$oasys_cv_lib_tcl -Wl,-Bdynamic -ldl -lm"
     else
         OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_tcl"
     fi
@@ -4123,10 +4116,7 @@ rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
 
 	LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
 	if test x"$STATIC" = x"yes" ; then
-		my_db_static=${ac_dblibdir}/lib${ac_dblib}.a
-		{ echo "$as_me:$LINENO: Attempting to link with static db library $my_db_static" >&5
-echo "$as_me: Attempting to link with static db library $my_db_static" >&6;}
-		LIBS="$ac_save_LIBS $my_db_static"
+		LIBS="$ac_save_LIBS -Wl,-Bstatic -l$ac_dblib -Wl,-Bdynamic"
 	else
 		LIBS="$ac_save_LIBS -l$ac_dblib"
 	fi
@@ -4239,7 +4229,7 @@ echo "$as_me: error: can't find usable Berkeley DB installation" >&2;}
     fi
 
 	if test x"$STATIC" = x"yes" ; then
-    		OASYS_LIBS="$OASYS_LIBS ${dtn_cv_path_db_lib}/lib${dtn_cv_lib_db}.a"
+    		OASYS_LIBS="$OASYS_LIBS -Wl,-Bstatic -l$dtn_cv_lib_db -Wl,-Bdynamic"
 	else
     		OASYS_LIBS="$OASYS_LIBS -l$dtn_cv_lib_db"
 	fi
