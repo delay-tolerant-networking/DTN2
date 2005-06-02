@@ -3262,6 +3262,10 @@ echo "${ECHO_T}$ac_cv_search_pthread_create" >&6
 if test "$ac_cv_search_pthread_create" != no; then
   test "$ac_cv_search_pthread_create" = "none required" || LIBS="$ac_cv_search_pthread_create $LIBS"
 
+else
+  { { echo "$as_me:$LINENO: error: can't find required library function (pthread_create)" >&5
+echo "$as_me: error: can't find required library function (pthread_create)" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 echo "$as_me:$LINENO: checking for pthread_yield" >&5
@@ -3443,6 +3447,10 @@ echo "${ECHO_T}$ac_cv_search_sched_yield" >&6
 if test "$ac_cv_search_sched_yield" != no; then
   test "$ac_cv_search_sched_yield" = "none required" || LIBS="$ac_cv_search_sched_yield $LIBS"
 
+else
+  { { echo "$as_me:$LINENO: error: can't find required library function (pthread_yield or sched_yield)" >&5
+echo "$as_me: error: can't find required library function (pthread_yield or sched_yield)" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 fi
@@ -3551,6 +3559,10 @@ echo "${ECHO_T}$ac_cv_search_socket" >&6
 if test "$ac_cv_search_socket" != no; then
   test "$ac_cv_search_socket" = "none required" || LIBS="$ac_cv_search_socket $LIBS"
 
+else
+  { { echo "$as_me:$LINENO: error: can't find required library function (socket)" >&5
+echo "$as_me: error: can't find required library function (socket)" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 echo "$as_me:$LINENO: checking for library containing gethostbyname" >&5
@@ -3657,6 +3669,10 @@ echo "${ECHO_T}$ac_cv_search_gethostbyname" >&6
 if test "$ac_cv_search_gethostbyname" != no; then
   test "$ac_cv_search_gethostbyname" = "none required" || LIBS="$ac_cv_search_gethostbyname $LIBS"
 
+else
+  { { echo "$as_me:$LINENO: error: can't find required library function (gethostbyname)" >&5
+echo "$as_me: error: can't find required library function (gethostbyname)" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 echo "$as_me:$LINENO: checking for library containing xdr_int" >&5
@@ -3763,6 +3779,10 @@ echo "${ECHO_T}$ac_cv_search_xdr_int" >&6
 if test "$ac_cv_search_xdr_int" != no; then
   test "$ac_cv_search_xdr_int" = "none required" || LIBS="$ac_cv_search_xdr_int $LIBS"
 
+else
+  { { echo "$as_me:$LINENO: error: can't find required library function (xdr_int)" >&5
+echo "$as_me: error: can't find required library function (xdr_int)" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 

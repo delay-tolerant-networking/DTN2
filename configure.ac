@@ -153,11 +153,16 @@ AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_OASYS_CONFIG_GCC
 AC_PROG_GCC_TRADITIONAL
-AC_SEARCH_LIBS(pthread_create, pthread)
-AC_CHECK_FUNC(pthread_yield, [], [AC_SEARCH_LIBS(sched_yield, rt)])
-AC_SEARCH_LIBS(socket, socket)
-AC_SEARCH_LIBS(gethostbyname, nsl)
-AC_SEARCH_LIBS(xdr_int, rpc)
+AC_SEARCH_LIBS(pthread_create, pthread, [], 
+  AC_MSG_ERROR([can't find required library function (pthread_create)]))
+AC_CHECK_FUNC(pthread_yield, [], [AC_SEARCH_LIBS(sched_yield, rt, [],
+  AC_MSG_ERROR([can't find required library function (pthread_yield or sched_yield)]))])
+AC_SEARCH_LIBS(socket, socket, [],
+  AC_MSG_ERROR([can't find required library function (socket)]))
+AC_SEARCH_LIBS(gethostbyname, nsl, [],
+  AC_MSG_ERROR([can't find required library function (gethostbyname)]))
+AC_SEARCH_LIBS(xdr_int, rpc, [],
+  AC_MSG_ERROR([can't find required library function (xdr_int)]))
 AC_OASYS_CONFIG_TCL
 AC_OASYS_CONFIG_DB
 AC_DTN_CONFIG_POSTGRES
