@@ -52,6 +52,7 @@ StorageCommand::StorageCommand()
     
     bind_s("type",	&cfg->type_);
     bind_b("tidy",	&cfg->tidy_);
+    bind_i("tidy_wait",	&cfg->tidy_wait_);
     bind_s("dbname",	&cfg->dbname_);
     bind_s("dbdir",	&cfg->dbdir_);
     bind_s("dberrlog",	&cfg->dberrlog_);
