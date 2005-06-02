@@ -38,7 +38,7 @@
 
 #include "config.h"
 
-#if __SQL_ENABLED__
+#if SQL_ENABLED
 
 #include "SQLBundleStore.h"
 #include "SQLStore.h"
@@ -143,4 +143,4 @@ SQLBundleStore::is_custodian(int bundle_id)
 
 } // namespace dtn
 
-#endif /* __SQL_ENABLED__ */
+#endif /* SQL_ENABLED */

@@ -38,7 +38,7 @@
 
 #include "config.h"
 
-#if __SQL_ENABLED__
+#if SQL_ENABLED
 
 #include <oasys/debug/Debug.h>
 #include <oasys/serialize/SQLImplementation.h>
@@ -283,4 +283,4 @@ SQLStore::set_key_name(const char* name)
 
 } // namespace dtn
 
-#endif /* __SQL_ENABLED__ */
+#endif /* SQL_ENABLED */

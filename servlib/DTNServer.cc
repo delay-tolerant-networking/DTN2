@@ -138,25 +138,27 @@ DTNServer::init_datastore()
 
     if (0) {} // symmetry
     
-#if __DB_ENABLED__
+#if LIBDB_ENABLED
     else if (cfg->type_.compare("berkeleydb") == 0)
     {
         oasys::BerkeleyDBStore::init();
     }
 #endif
 
-#if __MYSQL_ENABLED__
-    else if (cfg->type_.compare("mysql") == 0)
-    {
-        oasys::MySQLStore::init();
-    }
+#if MYSQL_ENABLED
+#error Mysql support not yet added to oasys
+//     else if (cfg->type_.compare("mysql") == 0)
+//     {
+//         oasys::MySQLStore::init();
+//     }
 #endif
 
-#if __POSTGRES_ENABLED__
-    else if (cfg->type_.compare("postgres") == 0)
-    {
-        oasys::PostgresqlStore::init();
-    }
+#if POSTGRES_ENABLED
+#error Postgres support not yet added to oasys
+//     else if (cfg->type_.compare("postgres") == 0)
+//     {
+//         oasys::PostgresqlStore::init();
+//     }
 #endif
 
     else

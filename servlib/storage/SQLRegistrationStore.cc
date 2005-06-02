@@ -38,7 +38,7 @@
 
 #include "config.h"
 
-#if __SQL_ENABLED__
+#if SQL_ENABLED
 
 #include "SQLRegistrationStore.h"
 #include "SQLStore.h"
@@ -105,4 +105,4 @@ SQLRegistrationStore::update(Registration* reg)
 
 } // namespace dtn
 
-#endif /* __SQL_ENABLED__ */
+#endif /* SQL_ENABLED */

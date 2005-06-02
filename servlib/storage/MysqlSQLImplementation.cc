@@ -38,7 +38,7 @@
 
 #include "config.h"
 
-#if __MYSQL_ENABLED__
+#if MYSQL_ENABLED
 
 #include <oasys/debug/Debug.h>
 #include <oasys/debug/Log.h>
@@ -190,4 +190,4 @@ MysqlSQLImplementation::unescape_binary(const u_char* from)
 
 } // namespace dtn
 
-#endif /* __MYSQL_ENABLED__ */
+#endif /* MYSQL_ENABLED */

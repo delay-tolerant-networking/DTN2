@@ -38,7 +38,7 @@
 
 #include "config.h"
 
-#if __POSTGRES_ENABLED__
+#if POSTGRES_ENABLED
 
 #include <string.h>
 #include <oasys/debug/Debug.h>
@@ -203,4 +203,4 @@ PostgresSQLImplementation::unescape_binary(const u_char* from)
 
 } // namespace dtn
 
-#endif /* __POSTGRES_ENABLED__ */
+#endif /* POSTGRES_ENABLED */

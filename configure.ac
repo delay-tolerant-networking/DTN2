@@ -7,7 +7,7 @@
 AC_PREREQ(2.57)
 AC_INIT(DTN2)
 AC_CONFIG_SRCDIR([version.h])
-# AC_CONFIG_HEADER([auto.config.h])
+AC_CONFIG_HEADER([config.h])
 AC_CONFIG_AUX_DIR(tools)
 
 # Stick a comment in the generated file so people know what to do.
@@ -163,31 +163,9 @@ AC_SEARCH_LIBS(gethostbyname, nsl, [],
   AC_MSG_ERROR([can't find required library function (gethostbyname)]))
 AC_SEARCH_LIBS(xdr_int, rpc, [],
   AC_MSG_ERROR([can't find required library function (xdr_int)]))
+
 AC_OASYS_CONFIG_TCL
-AC_OASYS_CONFIG_DB
-AC_DTN_CONFIG_POSTGRES
-AC_DTN_CONFIG_MYSQL
-
-#
-# Make sure there's at least one valid storage option
-#
-if test ! $DB_ENABLED = 1 -a \
-        ! $MYSQL_ENABLED = 1 -a \
-        ! $POSTGRES_ENABLED = 1  ;
-then
-    AC_MSG_ERROR([Must enable at least one storage option (db, postgres, mysql)])
-fi
-
-#
-# Figure out if at least one sql option is enabled.
-#
-if test $MYSQL_ENABLED = 1 -o $POSTGRES_ENABLED = 1 ; then
-    SQL_ENABLED=1
-else
-    SQL_ENABLED=0
-fi
-
-AC_SUBST(SQL_ENABLED)
+AC_OASYS_CONFIG_STORAGE(required)
 
 dnl -------------------------------------------------------------------------
 dnl Checks for header files.
@@ -242,8 +220,7 @@ CPPFLAGS="$CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
 LIBS="$LIBS $OASYS_LIBS $DTN_LIBS"
 
-AC_CONFIG_FILES(Rules.make config.h)
-AC_CONFIG_HEADER([auto.config.h:auto.config.h.in])
+AC_CONFIG_FILES(Rules.make)
 
 dnl
 dnl Always reconfigure oasys as well
@@ -252,7 +229,7 @@ AC_CONFIG_SUBDIRS(oasys)
 
 AC_OUTPUT
 
-chmod oug-w Rules.make config.h auto.config.h oasys/Rules.make oasys/config.h
+chmod oug-w Rules.make config.h config.h oasys/Rules.make oasys/config.h
 
 echo "DTN2 configure state:"
 echo "Target/Tools:"
@@ -267,13 +244,18 @@ echo "  Static: $STATIC"
 echo " "
 echo "External packages:"
 echo "  tcl: $oasys_cv_path_tcl_h/tcl.h -L$oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
-if test $DB_ENABLED = 1 ; then
+if test $LIBDB_ENABLED = 1 ; then
   echo "  db: $dtn_cv_path_db_h/db.h -L$dtn_cv_path_db_lib -l$dtn_cv_lib_db"
 fi
+
 if test $POSTGRES_ENABLED = 1 ; then
   echo "  postgres: $dtn_cv_path_postgres_h/libpq-fe.h -L $dtn_cv_path_postgres_lib -lpq"
 fi
 
 if test $MYSQL_ENABLED = 1 ; then 
-  echo "  mysql: $dtn_cv_path_mysql_h/libpq-fe.h -L $dtn_cv_path_mysql_lib -lmysqlclient"
+  if test "$ac_mysqldaemon" = "no" ; then
+     echo "  mysql: $dtn_cv_path_mysql_h/mysql.h -L $dtn_cv_path_mysql_lib -lmysqlclient"
+  else
+     echo "  mysql: $dtn_cv_path_mysql_h/mysql.h -L $dtn_cv_path_mysql_lib -lmysqld"
+  fi
 fi

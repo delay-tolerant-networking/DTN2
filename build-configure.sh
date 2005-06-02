@@ -26,9 +26,9 @@ echo "build-configure: running autoscan to find missing checks..."
 autoscan
 
 echo "build-configure: running autoheader to build config.h.in..."
-rm -f auto.config.h auto.config.h.in
+rm -f config.h config.h.in
 autoheader
-chmod 444 auto.config.h.in
+chmod 444 config.h.in
 
 echo "build-configure: running autoconf to build configure..."
 rm -f configure

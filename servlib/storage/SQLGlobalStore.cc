@@ -38,7 +38,7 @@
 
 #include "config.h"
 
-#if __SQL_ENABLED__
+#if SQL_ENABLED
 
 #include "SQLGlobalStore.h"
 #include "SQLStore.h"
@@ -107,4 +107,4 @@ SQLGlobalStore::update()
 
 } // namespace dtn
 
-#endif /* __SQL_ENABLED__ */
+#endif /* SQL_ENABLED */
