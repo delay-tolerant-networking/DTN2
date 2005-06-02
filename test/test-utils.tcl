@@ -38,8 +38,8 @@ proc config_db {{type berkeleydb}} {
     set id [test set id]
 
     storage set tidy      true
+    storage set tidy_wait  0
     storage set type	  $type
-    storage set sqldb	  "dtn$id"
     storage set dbdir	  "/tmp/bundledb-$env(USER)-$id"
     storage set payloaddir "/tmp/bundles-$env(USER)-$id"
 }
