@@ -163,9 +163,8 @@ DTNServer::init_datastore()
 
     else
     {
-        log_err("/dtnserver", "storage type %s not implemented, exiting...",
-                cfg->type_.c_str());
-        exit(1);
+        PANIC("storage type %s not implemented, exiting...",
+              cfg->type_.c_str());
     }
 
     GlobalStore::init();
@@ -217,15 +216,13 @@ DTNServer::init_dir(const char * dirname)
     if (statret == -1 && errno == ENOENT)
     {
         if (mkdir(dirname, 0700) != 0) {
-            log_crit("/dtnserver", "can't create directory %s: %s",
-                     dirname, strerror(errno));
-            exit(1);
+            PANIC("can't create directory %s: %s",
+                  dirname, strerror(errno));
         }
     }
     else if (statret == -1)
     {
-        log_crit("/dtnserver", "invalid path %s: %s", dirname, strerror(errno));;
-        exit(1);
+        PANIC("invalid path %s: %s", dirname, strerror(errno));
     }
 }
 
@@ -243,8 +240,7 @@ DTNServer::tidy_dir(const char * dirname)
         
         if (system(cmd))
         {
-            log_crit("/dtnserver", "error removing directory %s", dirname);
-            exit(1);
+            PANIC("error removing directory %s", dirname);
         }
         
     }
@@ -254,8 +250,8 @@ DTNServer::tidy_dir(const char * dirname)
     }
     else
     {
-        log_crit("/dtnserver", "invalid directory name %s: %s", dirname, strerror(errno));
-        exit(1);
+        PANIC("invalid directory name %s: %s", 
+              dirname, strerror(errno));
     }
 }
 
@@ -270,10 +266,8 @@ DTNServer::validate_dir(const char * dirname)
     }
     else
     {
-        log_crit("/dtnserver",
-                 "invalid directory name %s: %s",
-                 dirname, strerror(errno));
-        exit(1);
+        PANIC("invalid directory name %s: %s",
+              dirname, strerror(errno));
     }
 }
 
