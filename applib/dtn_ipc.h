@@ -65,7 +65,8 @@ extern "C" {
 #define DTN_IPC_PORT 5010
 
 /**
- * max IPC message size (bytes)
+ * The maximum IPC message size (in bytes). Used primarily for
+ * efficiency in buffer allocation since the transport uses TCP.
  */
 #define DTN_MAX_API_MSG 65536
 
