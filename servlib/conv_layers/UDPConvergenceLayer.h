@@ -99,6 +99,13 @@ public:
     bool close_contact(Contact* contact);
 
     /**
+     * Send bundles queued for the contact. We only expect there to be
+     * one bundle queued at any time since this is called immediately
+     * when the bundle is queued on the contact.
+     */
+    void send_bundles(Contact* contact);
+
+    /**
      * Helper class (and thread) that listens on a registered
      * interface for incoming data.
      */
@@ -132,43 +139,32 @@ public:
         void process_data(u_char* bp, size_t len);
     };
 
-    /**
-     * Helper class (and thread) that manages an "established"
-     * connection with a peer daemon (virtual connection in the
-     * case of UDP).
-     *
-     * Only the sender side of the connection needs to initiate
-     * a connection. The receiver will just receive data. Therefore,
-     * we don't need a passive side of a connection
+    /*
+     * Helper class that wraps the sender-side per-contact state.
      */
-    class Sender : public CLInfo, public oasys::Thread, public oasys::UDPClient {
+    class Sender : public CLInfo, public oasys::UDPClient {
     public:
-        /**
-         * Constructor for the active connection side of a connection.
-         */
-        Sender(Contact* contact);
-
         /**
          * Destructor.
          */
         virtual ~Sender() {}
         
-    protected:
+    private:
+        friend class UDPConvergenceLayer;
+        
         /**
-         * Main sender loop.
+         * Constructor.
          */
-        virtual void run();
-
+        Sender(Contact* contact);
+        
         /**
          * Send one bundle.
          */
         bool send_bundle(Bundle* bundle);
 
         /**
-         * This is used to inform the rest of the system
-         * that contact is broken
+         * The contact that we're representing.
          */
-        void break_contact();
         Contact* contact_;
     };   
 };

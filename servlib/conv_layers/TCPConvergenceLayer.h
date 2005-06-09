@@ -182,6 +182,13 @@ public:
     bool close_contact(Contact* contact);
 
     /**
+     * Send bundles queued up for the contact. This is a no-op since
+     * we spin a per-connection thread that just blocks on the
+     * contact's bundle queue.
+     */
+    void send_bundles(Contact* contact) {}
+    
+    /**
      * Tunable parameters, defaults configurably for all connections
      * via the 'param set' command'. Per-connection values are also
      * configurable via arguments to the 'link add' command.

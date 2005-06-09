@@ -136,6 +136,11 @@ public:
     bool close_contact(Contact* contact);
 
     /**
+     * Send bundles queued up for the contact.
+     */
+    void send_bundles(Contact* contact);
+    
+    /**
      * Helper class (and thread) that listens on a registered
      * interface for incoming data.
      */
@@ -181,7 +186,7 @@ public:
      * a connection. The receiver will just receive data. Therefore,
      * we don't need a passive side of a connection
      */
-    class Sender : public CLInfo, public oasys::Logger, public oasys::Thread {
+    class Sender : public CLInfo, public oasys::Logger {
     public:
         /**
          * Constructor for the active connection side of a connection.
@@ -192,38 +197,29 @@ public:
          * Destructor.
          */
         virtual ~Sender() {}
-
-	void notify();
         
     protected:
-        /**
-         * Main sender loop.
-         */
-        virtual void run();
-
+        friend class EthConvergenceLayer;
+        
         /**
          * Send one bundle.
          */
         bool send_bundle(Bundle* bundle);
 
-        /**
-         * This is used to inform the rest of the system
-         * that contact is broken
-         */
-        void break_contact();
+        /// The contact that we're representing
         Contact* contact_;
         
-        // Socket identifier
-        int sock;  
+        /// Socket identifier
+        int sock_;
 
-        // MAC address of the interface used for this contact
+        /// MAC address of the interface used for this contact
         eth_addr_t src_hw_addr_;
         eth_addr_t dst_hw_addr_; 
 
-	// The name of the interface the next_hop is behind
+	/// The name of the interface the next_hop is behind
         char if_name_[IFNAMSIZ]; 
-
-	char canary[7];
+        
+	char canary_[7];
     };   
 
     /** 

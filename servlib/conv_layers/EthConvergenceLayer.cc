@@ -141,7 +141,6 @@ EthConvergenceLayer::open_contact(Contact* contact)
     contact->set_cl_info(sender);
 
     sender->logpathf("/cl/eth");
-    sender->start();
 
     BundleDaemon::post(new ContactUpEvent(contact));
     return true;
@@ -154,24 +153,50 @@ EthConvergenceLayer::close_contact(Contact* contact)
     
     log_info("close_contact *%p", contact);
 
-    
     if (sender) {            
-        while (!sender->is_stopped()) {
-            if (!sender->should_stop()) {
-	      sender->set_should_stop();
-	      //sender->interrupt();
-	      sender->notify();
-            }
-            
-            log_warn("waiting for connection thread to stop...");
-            oasys::Thread::yield();
-        }
-
         contact->set_cl_info(NULL);
+        delete sender;
     }
     
     return true;
 }
+
+/**
+ * Send bundles queued up for the contact.
+ */
+void
+EthConvergenceLayer::send_bundles(Contact* contact)
+{
+    Sender* sender = (Sender*)contact->cl_info();
+    if (!sender) {
+        log_crit("send_bundles called on contact *%p with no Sender!!",
+                 contact);
+        return;
+    }
+    ASSERT(contact == sender->contact_);
+    
+    Bundle* bundle = contact->bundle_list()->pop_front();
+    if (!bundle) {
+        log_crit("send_bundles called on contact *%p with no bundle!!",
+                 contact);
+        return;
+    }
+
+    sender->send_bundle(bundle); // consumes bundle reference
+    bundle = NULL;
+    
+    bundle = contact->bundle_list()->pop_front();
+    if (bundle) {
+        log_warn("send_bundles called on contact *%p with more than one bundle",
+                 contact);
+        
+        do {
+            sender->send_bundle(bundle);
+            bundle = contact->bundle_list()->pop_front();
+        } while (bundle);
+    }
+}
+
 
 /******************************************************************************
  *
@@ -354,12 +379,48 @@ EthConvergenceLayer::Receiver::run()
 EthConvergenceLayer::Sender::Sender(char* if_name, Contact* contact)
     : contact_(contact)
 {
+    struct ifreq req;
+    struct sockaddr_ll iface;
+    
     memset(src_hw_addr_.octet, 0, 6); // determined in Sender::run()
     EthernetAddressFamily::parse(contact->nexthop(), &dst_hw_addr_);
 
     strcpy(if_name_, if_name);
-    sock = 0;
-    Thread::flags_ |= INTERRUPTABLE;
+    sock_ = 0;
+
+    memset(&req, 0, sizeof(req));
+    memset(&iface, 0, sizeof(iface));
+
+    // Get and bind a RAW socket for this contact. XXX/jakob - seems
+    // like it'd be enough with one socket per interface, not one per
+    // contact. figure this out some time.
+    if((sock_ = socket(AF_PACKET,SOCK_RAW, htons(ETHERTYPE_DTN))) < 0) { 
+        perror("socket");
+        exit(1);
+    }
+
+    // get the interface name from the contact info
+    strcpy(req.ifr_name, if_name_);
+
+    // ifreq the interface index for binding the socket    
+    ioctl(sock_, SIOCGIFINDEX, &req);
+    
+    iface.sll_family=AF_PACKET;
+    iface.sll_protocol=htons(ETHERTYPE_DTN);
+    iface.sll_ifindex=req.ifr_ifindex;
+        
+    // store away the ethernet address of the device in question
+    if(ioctl(sock_, SIOCGIFHWADDR, &req))
+    {
+        perror("ioctl");
+        exit(1);
+    } 
+    memcpy(src_hw_addr_.octet,req.ifr_hwaddr.sa_data,6);    
+
+    if (bind(sock_, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
+        perror("bind");
+        exit(1);
+    }
 }
         
 /* 
@@ -418,7 +479,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     // We're done assembling the packet. Now write the whole thing to the socket!
     log_info("Sending bundle out interface %s",if_name_);
 
-    cc=IO::writevall(sock, iov, iovcnt+3);
+    cc=IO::writevall(sock_, iov, iovcnt+3);
     if(cc<0) {
         perror("send");
         log_err("Send failed!\n");
@@ -429,116 +490,28 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     BundleProtocol::free_header_iovmem(bundle, &iov[2], iovcnt);
     
     // check that we successfully wrote it all
+    bool ok;
+    
     int total = sizeof(EthCLHeader) + sizeof(struct ether_header) + header_len + payload_len;
     if (cc != total) {
         log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
                 cc, total, strerror(errno));
-        return false;
-    }
-    
-    // all set
-    return true;
-}
-
-void
-EthConvergenceLayer::Sender::notify()
-{
-    contact_->bundle_list()->notify();
-}
-
-void
-EthConvergenceLayer::Sender::run()
-{
-    Bundle* bundle;
-    struct ifreq req;
-    struct sockaddr_ll iface;
-
-    memset(&req, 0, sizeof(req));
-    memset(&iface, 0, sizeof(iface));
-
-    // Get and bind a RAW socket for this contact
-    // XXX/jakob - seems like it'd be enough with one socket per interface, not one per contact. 
-    //             figure this out some time.
-    if((sock = socket(AF_PACKET,SOCK_RAW, htons(ETHERTYPE_DTN))) < 0) { 
-        perror("socket");
-        exit(1);
-    }
-
-    // get the interface name from the contact info
-    strcpy(req.ifr_name, if_name_);
-
-    // ifreq the interface index for binding the socket    
-    ioctl(sock, SIOCGIFINDEX, &req);
-    
-    iface.sll_family=AF_PACKET;
-    iface.sll_protocol=htons(ETHERTYPE_DTN);
-    iface.sll_ifindex=req.ifr_ifindex;
-        
-    // store away the ethernet address of the device in question
-    if(ioctl(sock, SIOCGIFHWADDR, &req))
-    {
-        perror("ioctl");
-        exit(1);
-    } 
-    memcpy(src_hw_addr_.octet,req.ifr_hwaddr.sa_data,6);    
-
-    if (bind(sock, (struct sockaddr *) &iface, sizeof(iface)) == -1) {
-        perror("bind");
-        exit(1);
-    }
-
-    while (!should_stop()) {
-
-        // block waiting for a bundle to be placed on the contact
-        bundle = contact_->bundle_list()->pop_blocking();
-	
-	if(!bundle || should_stop()) 
-	{
-  	    log_debug("pop_blocking returned NULL, or should_stop() set. exiting thread.");
-	    break;
-	}
-
-        // we got a legit bundle, send it off
-        if (! send_bundle(bundle)) {
-	    goto shutdown;
-        }	
-        
+        ok = false;
+    } else {
         // cons up a transmission event and pass it to the router
         // since this is an unreliable protocol, acked_len = 0, and
         // ack = false
         BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact_,
                                        bundle->payload_.length(), false));
-        
-        // finally, remove our local reference on the bundle, which
-        // may delete it
-        bundle->del_ref("ethcl");
-        bundle = NULL;	
+        ok = true;
     }
-    
-shutdown:
-    /// XXX Sushant added to clean address contact broken events
-    break_contact();
 
-    return;               
+    // finally, remove our local reference on the bundle, which
+    // may delete it
+    bundle->del_ref("udpcl");
 
-}
-
-
-/**
- * Send an event to the system indicating that this contact is broken
- * and close the side of the connection.
- *
- * This results in the Connection thread stopping and the system
- * calling the contact->close() call which cleans up the connection.
- */
-void
-EthConvergenceLayer::Sender::break_contact()
-{
-//    XXX/jakob - close it!
-//    close();
-    
-    //  Thread::set_flag(STOPPED);
+    return ok;
 }
 
 EthConvergenceLayer::Beacon::Beacon(const char* if_name)

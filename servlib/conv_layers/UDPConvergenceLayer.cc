@@ -164,9 +164,11 @@ UDPConvergenceLayer::open_contact(Contact* contact)
         delete sender;
         return false;
     }
+    
+    contact->set_cl_info(sender);
 
-    sender->start();
-
+    BundleDaemon::post(new ContactUpEvent(contact));
+    
     return true;
 }
 
@@ -178,21 +180,51 @@ UDPConvergenceLayer::close_contact(Contact* contact)
     log_info("close_contact *%p", contact);
 
     if (sender) {
-        while (!sender->is_stopped()) {
-            if (!sender->should_stop()) {
-                sender->set_should_stop();
-                sender->interrupt();
-            }
-            
-            log_warn("waiting for connection thread to stop...");
-            oasys::Thread::yield();
-        }
-        
         delete sender;
         contact->set_cl_info(NULL);
     }
+
+    BundleDaemon::post(new ContactDownEvent(contact));
     
     return true;
+}
+
+/**
+ * Send bundles queued for the contact. We only expect there to be
+ * one bundle queued at any time since this is called immediately
+ * when the bundle is queued on the contact.
+ */
+void
+UDPConvergenceLayer::send_bundles(Contact* contact)
+{
+    Sender* sender = (Sender*)contact->cl_info();
+    if (!sender) {
+        log_crit("send_bundles called on contact *%p with no Sender!!",
+                 contact);
+        return;
+    }
+    ASSERT(contact == sender->contact_);
+    
+    Bundle* bundle = contact->bundle_list()->pop_front();
+    if (!bundle) {
+        log_crit("send_bundles called on contact *%p with no bundle!!",
+                 contact);
+        return;
+    }
+
+    sender->send_bundle(bundle); // consumes bundle reference
+    bundle = NULL;
+    
+    bundle = contact->bundle_list()->pop_front();
+    if (bundle) {
+        log_warn("send_bundles called on contact *%p with more than one bundle",
+                 contact);
+        
+        do {
+            sender->send_bundle(bundle);
+            bundle = contact->bundle_list()->pop_front();
+        } while (bundle);
+    }
 }
 
 /******************************************************************************
@@ -317,15 +349,14 @@ UDPConvergenceLayer::Receiver::run()
 UDPConvergenceLayer::Sender::Sender(Contact* contact)
     : contact_(contact)
 {
-    Thread::flags_ |= INTERRUPTABLE;
 }
         
 /* 
  * Send one bundle.
  */
 bool 
-UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
-
+UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
+{
     int iovcnt = BundleProtocol::MAX_IOVCNT; 
     struct iovec iov[iovcnt + 1];
     UDPCLHeader udpclhdr;
@@ -364,68 +395,26 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle) {
 
     // check that we successfully wrote it all
     int total = sizeof(UDPCLHeader) + header_len + payload_len;
-    if (cc != total) {
-        log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
-                cc, total, strerror(errno));
-        return false;
-    }
-
-    // all set
-    return true;
-}
-
-void
-UDPConvergenceLayer::Sender::run()
-{
-    Bundle* bundle;
-
-    while (1) {
-
-        // block waiting for a bundle to be placed on the contact
-        bundle = contact_->bundle_list()->pop_blocking();
-
-        // we got a legit bundle, send it off
-        if (! send_bundle(bundle)) {
-            goto shutdown;
-        }	
-        
-        // cons up a transmission event and pass it to the router
-        // since this is an unreliable protocol, acked_len = 0, and
-        // ack = false
+    bool ok;
+    if (cc == total) {
+        // cons up a transmission event and pass it to the router,
+        // indicating since acked=false that the protocol is unreliable
         BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact_,
-                                       bundle->payload_.length(), false));
-        
-        // finally, remove our local reference on the bundle, which
-        // may delete it
-        bundle->del_ref("udpcl");
-        bundle = NULL;	
+                                       bundle->payload_.length(),
+                                       false));
+        ok = true;
+    } else {
+        log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
+                cc, total, strerror(errno));
+        ok = false;
     }
     
-shutdown:
-    /// XXX Sushant added to clean address contact broken events
-    break_contact();
+    // finally, remove our local reference on the bundle, which
+    // may delete it
+    bundle->del_ref("udpcl");
 
-    return;               
-
-}
-
-
-/**
- * Send an event to the system indicating that this contact is broken
- * and close the side of the connection.
- *
- * This results in the Connection thread stopping and the system
- * calling the contact->close() call which cleans up the connection.
- */
-void
-UDPConvergenceLayer::Sender::break_contact()
-{
-    close();
-    
-    //  Thread::set_flag(STOPPED);
-    if (contact_)
-        BundleDaemon::post(new ContactDownEvent(contact_));
+    return ok;
 }
 
 } // namespace dtn

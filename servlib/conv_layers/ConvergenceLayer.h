@@ -97,12 +97,12 @@ public:
 
     /**
      * Try to send the bundles queued up for the given contact. In
-     * some cases (e.g. tcp) this is a no-op because open_contact spun
+     * some cases (e.g. TCP) this is a no-op because open_contact spun
      * a thread which is blocked on the bundle list associated with
-     * the contact. In others (e.g. file) there is no thread, so this
-     * callback is used to send the bundle.
+     * the contact. In others (e.g. UDP) there is no per-contact
+     * thread, so this callback is used to send the bundle.
      */
-    virtual void send_bundles(Contact* contact);
+    virtual void send_bundles(Contact* contact) = 0;
     
     /**
      * Boot-time initialization and registration of convergence
