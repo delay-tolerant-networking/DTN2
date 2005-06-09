@@ -46,7 +46,7 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
 #include "cmd/APICommand.h"
-#include "reg/Registration.h"
+#include "reg/APIRegistration.h"
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
 #include "storage/GlobalStore.h"
@@ -154,7 +154,7 @@ APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
     xdrmem_create(&xdr_encode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_ENCODE);
     xdrmem_create(&xdr_decode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_DECODE);
 
-    bindings_ = new RegistrationList();
+    bindings_ = new APIRegistrationList();
 }
 
 void
@@ -382,7 +382,8 @@ APIClient::handle_register()
         regid = reginfo.regid;
         
     } else {
-        reg = new Registration(endpoint, action);
+        u_int32_t regid = GlobalStore::instance()->next_regid();
+        reg = new APIRegistration(regid, endpoint, action);
         if (! RegistrationTable::instance()->add(reg)) {
             log_err("unexpected error adding registration");
             return DTN_EINTERNAL;
@@ -430,8 +431,15 @@ APIClient::handle_bind()
         return DTN_ENOTFOUND;
     }
 
+    APIRegistration* api_reg = dynamic_cast<APIRegistration*>(reg);
+    if (api_reg == NULL) {
+        log_crit("registration %d tuple %s is not an API registration!!",
+                 regid, tuple.c_str());
+        return DTN_ENOTFOUND;
+    }
+    
     // store the registration in the list for this session
-    bindings_->push_back(reg);
+    bindings_->push_back(api_reg);
 
     return DTN_SUCCESS;
 }
@@ -581,7 +589,7 @@ int
 APIClient::handle_recv()
 {
     Bundle* b = NULL;
-    Registration* reg = NULL;
+    APIRegistration* reg = NULL;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
     dtn_bundle_payload_location_t location;

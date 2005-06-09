@@ -183,8 +183,8 @@ LinkStateRouter::LSRegistration::LSRegistration()
 }
 
 void
-LinkStateRouter::LSRegistration::enqueue_bundle(Bundle* bundle,
-                                  const BundleMapping* mapping)
+LinkStateRouter::LSRegistration::consume_bundle(Bundle* bundle,
+                                                const BundleMapping* mapping)
 {
     u_char typecode;      
 
@@ -220,30 +220,5 @@ LinkStateRouter::LSRegistration::enqueue_bundle(Bundle* bundle,
     BundleDaemon::post(
         new BundleTransmittedEvent(bundle, this, payload_len, true));
 }
-
-                   
-/**
- * Attempt to remove the given bundle from the queue.
- *
- * @return true if the bundle was dequeued, false if not.
- */
-bool
-LinkStateRouter::LSRegistration::dequeue_bundle(Bundle* bundle,
-                                  BundleMapping** mappingp)
-{
-    // since there's no queue, we can't ever dequeue something
-    return false;
-}
-
-
-/**
- * Check if the given bundle is already queued on this consumer.
- */
-bool
-LinkStateRouter::LSRegistration::is_queued(Bundle* bundle)
-{
-    return false;
-}
-
 
 } // namespace dtn

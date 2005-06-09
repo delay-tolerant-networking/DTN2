@@ -57,7 +57,7 @@ class CLInfo;
  * contains a list of bundles that are destined for it, as well as a
  * slot to store any convergence layer specific attributes.
  */
-class Contact : public oasys::Formatter, public BundleConsumer {
+class Contact : public oasys::Formatter, public QueueConsumer {
 public:
     /**
      * Constructor / Destructor
@@ -66,9 +66,9 @@ public:
     virtual ~Contact();
  
     /**
-     * Queue a bundle for sending
+     * Consume the bundle and send it out.
      */
-    void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
+    void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
     
     /**
      * Accessor to this contact's convergence layer.

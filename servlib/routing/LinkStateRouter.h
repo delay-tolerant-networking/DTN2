@@ -66,26 +66,13 @@ protected:
 
 
  class LSRegistration : public Registration {
-  public:
+ public:
     LSRegistration();
 
     /**
      * Consume the given bundle, queueing it if required.
      */
-    void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
-
-    /**
-     * Attempt to remove the given bundle from the queue.
-     *
-     * @return true if the bundle was dequeued, false if not.
-     */
-    bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
-
-    /**
-     * Check if the given bundle is already queued on this consumer.
-     */
-    bool is_queued(Bundle* bundle);
-
+     void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
  };
 
    LSRegistration* reg;

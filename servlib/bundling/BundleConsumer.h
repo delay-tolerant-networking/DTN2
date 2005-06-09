@@ -76,20 +76,15 @@ public:
     }
     
     /**
-     * Constructor. It is the responsibility of the subclass to
-     * allocate the bundle_list_ if the consumer does any queuing.
-     */
-    BundleConsumer(const char* dest_str, bool is_local, type_t type);
-
-    /**
      * Destructor
      */
-    virtual ~BundleConsumer() {}
+    virtual ~BundleConsumer();
 
     /**
-     * Add the bundle to the queue.
+     * Consume the given bundle.
      */
-    virtual void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
+    virtual void consume_bundle(Bundle* bundle,
+                                const BundleMapping* mapping) = 0;
 
     /**
      * Attempt to remove the given bundle from the queue.
@@ -97,12 +92,18 @@ public:
      * @return true if the bundle was dequeued, false if not. If
      * mappingp is non-null, return the old mapping as well.
      */
-    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
+    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
+    {
+        return false;
+    }
 
     /**
      * Check if the given bundle is already queued on this consumer.
      */
-    virtual bool is_queued(Bundle* bundle);
+    virtual bool is_queued(Bundle* bundle)
+    {
+        return false;
+    }
 
     /**
      * Each BundleConsumer has a next hop destination address (either
@@ -126,24 +127,65 @@ public:
     const char* type_str() { return type_str_; }
 
     /**
+     * XXX/demmer temporary hack needed for
+     * BundleActions::move_contents (which should be gotten rid of
+     * shortly)
+     */
+    virtual BundleList* bundle_list() { return NULL; }
+
+protected:
+    /**
+     * Constructor.
+     */
+    BundleConsumer(const char* dest_str, bool is_local, type_t type);
+
+    std::string dest_str_;	///< The next hop destination
+    bool is_local_;		///< Bit indicating if this is a registration
+    type_t type_;		///< Type of the consumer
+    const char* type_str_;	///< Type string (overridable by subclasses)
+    
+private:
+    /**
+     * Default constructor and copy constructor should not be used.
+     */
+    BundleConsumer();
+    BundleConsumer(const BundleConsumer&);
+};
+
+/**
+ * Derivative of BundleConsumer that has a BundleList builtin and by
+ * default, the consume_bundle function enqueues bundles on the queue.
+ */
+class QueueConsumer : public BundleConsumer {
+public:
+    /// @{
+    /// Virtual from BundleConsumer
+    virtual void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
+    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
+    virtual bool is_queued(Bundle* bundle);
+    /// @}
+    
+    /**
      * Accessor for the list of bundles in this consumer
      * This can be null, unless it is initalized by the
      * specific instance of the bundle consumer
      */
     BundleList* bundle_list() { return bundle_list_; }
-    
+
 protected:
-    std::string dest_str_;
-    bool is_local_;
-    type_t type_;
-    const char* type_str_;
-    BundleList* bundle_list_;
+    /**
+     * Constructor.
+     */
+    QueueConsumer(const char* dest_str, bool is_local, type_t type);
+    
+    BundleList* bundle_list_;	///< The queue of bundles on this consumer
 
 private:
     /**
-     * Default constructor should not be used.
+     * Default constructor and copy constructor should not be used.
      */
-    BundleConsumer();
+    QueueConsumer();
+    QueueConsumer(const BundleConsumer&);
 };
 
 } // namespace dtn

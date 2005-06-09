@@ -95,7 +95,6 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         Registration* reg = NULL;
         if (strcmp(type, "logger") == 0) {
             reg = new LoggingRegistration(demux_tuple);
-            ((LoggingRegistration*)reg)->start();
             
         } else if (strcmp(type, "tcl") == 0) {
             reg = new TclRegistration(demux_tuple, interp);

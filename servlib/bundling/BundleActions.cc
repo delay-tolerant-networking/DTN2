@@ -74,7 +74,7 @@ BundleActions::enqueue_bundle(Bundle* bundle, BundleConsumer* nexthop,
         log_warn("bundle %d already queued on next hop %s, ignoring duplicate",
                  bundle->bundleid_, nexthop->dest_str());
     } else {
-        nexthop->enqueue_bundle(bundle, &mapping);
+        nexthop->consume_bundle(bundle, &mapping);
     }
 }
 
@@ -108,6 +108,7 @@ BundleActions::dequeue_bundle(Bundle* bundle, BundleConsumer* nexthop)
 void
 BundleActions::move_contents(BundleConsumer* source, BundleConsumer* dest)
 {
+    // XXX/demmer get rid of this whole fn
     BundleList* src_list = source->bundle_list();
     
     log_debug("moving %u bundles from from next hop %s (type %s) "
@@ -116,13 +117,13 @@ BundleActions::move_contents(BundleConsumer* source, BundleConsumer* dest)
               dest->dest_str(), dest->type_str());
 
     // we don't use BundleList::move_contents since really we want to
-    // call enqueue_bundle for each, not the vanilla push_back
+    // call consume_bundle for each, not the vanilla push_back
     Bundle* b;
     BundleMapping* m;
     do {
         b = src_list->pop_front(&m);
         if (b) {
-            dest->enqueue_bundle(b, m); // copies m
+            dest->consume_bundle(b, m); // copies m
             delete m;
         }
     } while (b != NULL);

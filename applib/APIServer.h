@@ -49,7 +49,7 @@
 
 namespace dtn {
 
-class RegistrationList;
+class APIRegistrationList;
 
 /**
  * Class that implements the main server side handling of the DTN
@@ -96,7 +96,7 @@ protected:
     char buf_[DTN_MAX_API_MSG];
     XDR xdr_encode_;
     XDR xdr_decode_;
-    RegistrationList* bindings_;
+    APIRegistrationList* bindings_;
 };
 
 } // namespace dtn

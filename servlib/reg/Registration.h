@@ -89,20 +89,12 @@ public:
     static const char* failure_action_toa(failure_action_t action);
 
     /**
-     * Default constructor for serialization
+     * Constructor for deserialization
      */
-    Registration(u_int32_t regid);
+    Registration(const oasys::Builder&);
 
     /**
-     * Constructor that allocates a new registration id.
-     */
-    Registration(const BundleTuplePattern& endpoint,
-                 failure_action_t action,
-                 time_t expiration = 0,
-                 const std::string& script = "");
-    
-    /**
-     * Constructor with a preassigned registration id.
+     * Constructor.
      */
     Registration(u_int32_t regid,
                  const BundleTuplePattern& endpoint,
@@ -138,7 +130,7 @@ public:
      * Virtual from SerializableObject.
      */
     void serialize(oasys::SerializeAction* a);
- 
+
 protected:
     void init(u_int32_t regid,
               const BundleTuplePattern& endpoint,

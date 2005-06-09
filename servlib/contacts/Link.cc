@@ -78,7 +78,7 @@ Link::create_link(std::string name, link_type_t type,
  */
 Link::Link(std::string name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
-    :  BundleConsumer(nexthop, false, LINK),
+    :  QueueConsumer(nexthop, false, LINK),
        type_(type), nexthop_(nexthop), name_(name), avail_(false),
        closing_(false), clayer_(cl)
 {
@@ -220,22 +220,38 @@ Link::format(char* buf, size_t sz)
  * For other types of links invoke default behavior
  */
 void
-Link::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
+Link::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
-   /*
+    /*
      * If the link is open, messages are always queued on the contact
      * queue, if not, put them on the link queue.
      */
     if (isopen()) {
         log_debug("Link %s is open, so queueing it on contact queue",name());
-        contact_->enqueue_bundle(bundle, mapping);
+        contact_->consume_bundle(bundle, mapping);
         
     } else {
         log_debug("Link %s is closed, so queueing it on link queue",name());
-        BundleConsumer::enqueue_bundle(bundle, mapping);
+        QueueConsumer::consume_bundle(bundle, mapping);
     }
 }
 
+/**
+ * Attempt to remove the given bundle from the queue.
+ *
+ * @return true if the bundle was dequeued, false if not. If
+ * mappingp is non-null, return the old mapping as well.
+ */
+bool
+Link::dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
+{
+    if (isopen()) {
+        return contact_->dequeue_bundle(bundle, mappingp);
+    } else {
+        return QueueConsumer::dequeue_bundle(bundle, mappingp);
+    }
+}
+    
 /**
  * Check if the given bundle is already queued on this consumer.
  */
@@ -245,10 +261,9 @@ Link::is_queued(Bundle* bundle)
     if (isopen()) {
         return contact_->is_queued(bundle);
     } else {
-        return BundleConsumer::is_queued(bundle);
+        return QueueConsumer::is_queued(bundle);
     }
 }
-
 
 /**
  * Set the state of the link to be available

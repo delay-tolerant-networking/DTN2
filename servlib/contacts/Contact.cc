@@ -50,7 +50,7 @@ namespace dtn {
  * Constructor
  */
 Contact::Contact(Link* link)
-    : BundleConsumer(link->nexthop(), false, CONTACT), link_(link)
+    : QueueConsumer(link->nexthop(), false, CONTACT), link_(link)
 {
     logpathf("/contact/%s", link->nexthop());
 
@@ -71,11 +71,11 @@ Contact::~Contact()
 }
 
 void
-Contact::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
+Contact::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
-    // Add it to the queue (default behavior as defined by bundle
+    // Add it to the queue (default behavior as defined by queue
     // consumer)
-    BundleConsumer::enqueue_bundle(bundle,mapping);
+    QueueConsumer::consume_bundle(bundle,mapping);
 
     // and kick the convergence layer
     clayer()->send_bundles(this);

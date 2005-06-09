@@ -86,7 +86,7 @@ RegistrationStore::load(RegistrationList* reg_list)
          ++iter)
     {
         int id = *iter;
-        Registration * reg = new Registration(id);
+        Registration * reg = new APIRegistration(id);
         if (store_->get(reg, id) == 0)
         {
             reg_list->push_back(reg);

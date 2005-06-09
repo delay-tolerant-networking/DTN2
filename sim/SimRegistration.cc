@@ -57,37 +57,15 @@ SimRegistration::SimRegistration(Node* node, const BundleTuple& demux_tuple)
 }
 
 void
-SimRegistration::enqueue_bundle(Bundle* bundle,
+SimRegistration::consume_bundle(Bundle* bundle,
                                 const BundleMapping* mapping)
 {
     size_t payload_len = bundle->payload_.length();
 
     log_info("N[%s]: RCV id:%d %s -> %s size:%d",
              node_->name(), bundle->bundleid_,
-             bundle->source_.c_str(), bundle->dest_.c_str(), (u_int)payload_len);
-}
-                   
-/**
- * Attempt to remove the given bundle from the queue.
- *
- * @return true if the bundle was dequeued, false if not.
- */
-bool
-SimRegistration::dequeue_bundle(Bundle* bundle,
-                                  BundleMapping** mappingp)
-{
-    // since there's no queue, we can't ever dequeue something
-    return false;
-}
-
-
-/**
- * Check if the given bundle is already queued on this consumer.
- */
-bool
-SimRegistration::is_queued(Bundle* bundle)
-{
-    return false;
+             bundle->source_.c_str(), bundle->dest_.c_str(),
+             (u_int)payload_len);
 }
 
 } // namespace dtnsim

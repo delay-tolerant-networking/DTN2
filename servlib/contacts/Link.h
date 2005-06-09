@@ -179,7 +179,7 @@ class LinkSet : public std::set<Link*> {};
  * current contact when it was a future contact.
  *
  */
-class Link : public oasys::Formatter, public BundleConsumer {
+class Link : public oasys::Formatter, public QueueConsumer {
 public:
 /**
  * Valid types for a link.
@@ -302,33 +302,20 @@ public:
      */
     size_t size();
     
-    /**
-     * Add the bundle to the queue.
-     */
-    virtual void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
-    
-    /**
-     * Attempt to remove the given bundle from the queue.
-     *
-     * @return true if the bundle was dequeued, false if not. If
-     * mappingp is non-null, return the old mapping as well.
-     */
-    // virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
-
-    /**
-     * Check if the given bundle is already queued on this consumer.
-     */
+    /// @{
+    /// Virtual from BundleConsumer / QueueConsumer
+    virtual void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
+    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
     virtual bool is_queued(Bundle* bundle);
-
+    /// @}
+    
     /**
      * Store convergence layer state associated with the link.
      */
     void set_cl_info(CLInfo* cl_info)
     {
-        //XXX/jakob - need to be able to overwrite cl_info in EthConvergenceLayer.cc::process_data()
-        
-//        ASSERT((cl_info_ == NULL && cl_info != NULL) ||
-//               (cl_info_ != NULL && cl_info == NULL));
+        ASSERT((cl_info_ == NULL && cl_info != NULL) ||
+               (cl_info_ != NULL && cl_info == NULL));
         
         cl_info_ = cl_info;
     }

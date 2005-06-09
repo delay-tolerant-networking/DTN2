@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2005 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,34 +35,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _LOGGING_REGISTRATION_H_
-#define _LOGGING_REGISTRATION_H_
+#ifndef _API_REGISTRATION_H_
+#define _API_REGISTRATION_H_
 
-#include <oasys/debug/Log.h>
-#include <oasys/thread/Thread.h>
-
+#include <list>
 #include "Registration.h"
-#include "bundling/BundleTuple.h"
 
 namespace dtn {
 
+/**
+ * Registration class to represent an actual attached application over
+ * the client api.
+ */
+class APIRegistration : public Registration {
+public:
+    /**
+     * Constructor for deserialization
+     */
+    APIRegistration(const oasys::Builder& builder);
+
+    /**
+     * Constructor.
+     */
+    APIRegistration(u_int32_t regid,
+                    const BundleTuplePattern& endpoint,
+                    failure_action_t action,
+                    time_t expiration = 0,
+                    const std::string& script = "");
+
+    ~APIRegistration();
+    
+    /// @{
+    /// Virtual from BundleConsumer
+    virtual void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
+    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
+    virtual bool is_queued(Bundle* bundle);
+    /// @}
+    
+    /**
+     * Accessor for the queue of bundles for the registration.
+     */
+    BundleList* bundle_list() { return bundle_list_; }
+    
+protected:
+    BundleList* bundle_list_;	///< Queue of bundles for the registration
+};
 
 /**
- * A simple utility class used mostly for testing registrations.
- *
- * When created, this sets up a new registration within the daemon,
- * and for any bundles that arrive, outputs logs of the bundle header
- * fields as well as the payload data (if ascii). The implementation
- * is structured as a thread that blocks (forever) waiting for bundles
- * to arrive on the registration's bundle list, then logging the
- * bundles and looping again.
+ * Typedef for a list of APIRegistrations.
  */
-class LoggingRegistration : public Registration {
-public:
-    LoggingRegistration(const BundleTuplePattern& endpoint);
-    void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
-};
+class APIRegistrationList : public std::list<APIRegistration*> {};
 
 } // namespace dtn
 
-#endif /* _LOGGING_REGISTRATION_H_ */
+#endif /* _API_REGISTRATION_H_ */

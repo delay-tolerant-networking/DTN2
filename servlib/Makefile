@@ -57,6 +57,7 @@ CMD_SRCS :=					\
 
 REGISTRATION_SRCS :=				\
 	reg/AdminRegistration.cc		\
+	reg/APIRegistration.cc			\
 	reg/Registration.cc			\
 	reg/RegistrationTable.cc		\
 	reg/LoggingRegistration.cc		\

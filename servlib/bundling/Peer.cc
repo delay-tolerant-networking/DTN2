@@ -47,7 +47,7 @@ namespace dtn {
  * Constructor / Destructor
  */
 Peer::Peer(const char* address)
-    : BundleConsumer(address, false, PEER),
+    : QueueConsumer(address, false, PEER),
       address_(address)
 {
     logpathf("/peer/%s", address);
@@ -98,7 +98,7 @@ Peer::del_link(Link *link)
 }
 
 void
-Peer::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
+Peer::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
     LinkSet::iterator iter;
     for (iter = links_->begin(); iter != links_->end(); ++iter)
@@ -108,7 +108,7 @@ Peer::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
             log_debug("enqueue bundle id %d on Peer %s: "
                       "forwarding to open link %s",
                       bundle->bundleid_, address_.c_str(), link->name());
-            link->enqueue_bundle(bundle, mapping);
+            link->consume_bundle(bundle, mapping);
             return;
         }
     }

@@ -43,13 +43,15 @@
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
+#include "storage/GlobalStore.h"
 
 namespace dtn {
 
 TclRegistration::TclRegistration(const BundleTuplePattern& endpoint,
                                  Tcl_Interp* interp)
     
-    : Registration(endpoint, Registration::ABORT)
+    : APIRegistration(GlobalStore::instance()->next_regid(),
+                      endpoint, Registration::ABORT)
 {
     logpathf("/registration/logging/%d", regid_);
     set_active(true);

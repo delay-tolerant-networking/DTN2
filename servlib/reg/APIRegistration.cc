@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2005 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,34 +35,65 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _LOGGING_REGISTRATION_H_
-#define _LOGGING_REGISTRATION_H_
 
-#include <oasys/debug/Log.h>
-#include <oasys/thread/Thread.h>
-
-#include "Registration.h"
-#include "bundling/BundleTuple.h"
+#include "APIRegistration.h"
+#include "bundling/Bundle.h"
+#include "bundling/BundleList.h"
+#include "bundling/BundleMapping.h"
 
 namespace dtn {
 
+APIRegistration::APIRegistration(const oasys::Builder& builder)
+    : Registration(builder)
+{
+    bundle_list_ = new BundleList(logpath_);
+}
+    
+APIRegistration::APIRegistration(u_int32_t regid,
+                                 const BundleTuplePattern& endpoint,
+                                 failure_action_t action,
+                                 time_t expiration,
+                                 const std::string& script)
+    : Registration(regid, endpoint, action, expiration, script)
+{
+    bundle_list_ = new BundleList(logpath_);
+}
 
-/**
- * A simple utility class used mostly for testing registrations.
- *
- * When created, this sets up a new registration within the daemon,
- * and for any bundles that arrive, outputs logs of the bundle header
- * fields as well as the payload data (if ascii). The implementation
- * is structured as a thread that blocks (forever) waiting for bundles
- * to arrive on the registration's bundle list, then logging the
- * bundles and looping again.
- */
-class LoggingRegistration : public Registration {
-public:
-    LoggingRegistration(const BundleTuplePattern& endpoint);
-    void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
-};
+APIRegistration::~APIRegistration()
+{
+    delete bundle_list_;
+}
+
+void
+APIRegistration::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
+{
+    log_info("enqueue bundle id %d for delivery to %s",
+             bundle->bundleid_, dest_str_.c_str());
+    bundle_list_->push_back(bundle, mapping);
+
+    // XXX/demmer this should handle the connected / disconnnected
+    // action stuff
+}
+
+bool
+APIRegistration::dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
+{
+    log_info("dequeue bundle id %d from %s",
+             bundle->bundleid_, dest_str_.c_str());
+    
+    BundleMapping* mapping = bundle->get_mapping(bundle_list_);
+
+    if (!mapping)
+        return false;
+    
+    bundle_list_->erase(mapping->position_, mappingp);
+    return true;
+}
+
+bool
+APIRegistration::is_queued(Bundle* bundle)
+{
+    return (bundle->get_mapping(bundle_list_) != NULL);
+}
 
 } // namespace dtn
-
-#endif /* _LOGGING_REGISTRATION_H_ */

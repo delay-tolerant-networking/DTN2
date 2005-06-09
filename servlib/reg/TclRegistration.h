@@ -42,7 +42,7 @@
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Thread.h>
 
-#include "Registration.h"
+#include "APIRegistration.h"
 #include "bundling/BundleTuple.h"
 
 namespace dtn {
@@ -57,7 +57,7 @@ namespace dtn {
  * to arrive on the registration's bundle list, then tcl the
  * bundles and looping again.
  */
-class TclRegistration : public Registration {
+class TclRegistration : public APIRegistration {
 public:
     TclRegistration(const BundleTuplePattern& endpoint,
                     Tcl_Interp* interp);

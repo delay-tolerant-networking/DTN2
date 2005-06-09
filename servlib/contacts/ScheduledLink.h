@@ -89,13 +89,13 @@ protected:
  * Abstract base class for FutureContact
  * Relevant only for scheduled links.
  */
-class FutureContact : public BundleConsumer {
+class FutureContact : public QueueConsumer {
 public:
     /**
      * Constructor / Destructor
      */
     FutureContact(const char* nexthop)
-        : BundleConsumer(nexthop, false, FUTURE_CONTACT),
+        : QueueConsumer(nexthop, false, FUTURE_CONTACT),
           start_(0), duration_(0)
     {
         logpathf("/fc_contact/%s", nexthop);

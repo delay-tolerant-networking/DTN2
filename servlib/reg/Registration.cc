@@ -57,63 +57,35 @@ Registration::failure_action_toa(failure_action_t action)
     return "__INVALID__";
 }
 
-void
-Registration::init(u_int32_t regid,
-                   const BundleTuplePattern& endpoint,
-                   failure_action_t action,
-                   time_t expiration,
-                   const std::string& script)
-{
-    regid_ = regid;
-    endpoint_.assign(endpoint);
-    failure_action_ = action;
-    script_.assign(script);
-    expiration_ = expiration;
-    active_ = false;
-
-    logpathf("/registration/%d", regid);
-    
-    bundle_list_ = new BundleList(logpath_);
-    
-    if (expiration == 0) {
-        // XXX/demmer default expiration
-    }
-}
-
-/**
- * Constructor.
- */
-Registration::Registration(u_int32_t regid)
-    : BundleConsumer("", true, REGISTRATION)
-{
-    // XXX/demmer unserialization needs to correctly set up the bundle
-    // comsumer's dest_str after the object is unserialized
-    regid_ = regid;
-}
-
-/**
- * Constructor.
- */
-Registration::Registration(const BundleTuplePattern& endpoint,
-                           failure_action_t action,
-                           time_t expiration,
-                           const std::string& script)
-    
-    : BundleConsumer(endpoint.c_str(), true, REGISTRATION)
-{
-    init(GlobalStore::instance()->next_regid(),
-         endpoint, action, expiration, script);
-}
-
 Registration::Registration(u_int32_t regid,
                            const BundleTuplePattern& endpoint,
                            failure_action_t action,
                            time_t expiration,
                            const std::string& script)
     
-    : BundleConsumer(endpoint.c_str(), true, REGISTRATION)
+    : BundleConsumer(endpoint.c_str(), true, REGISTRATION),
+      regid_(regid),
+      endpoint_(endpoint),
+      failure_action_(action),
+      script_(script),
+      expiration_(expiration),
+      active_(false)
 {
-    init(regid, endpoint, action, expiration, script);
+    logpathf("/registration/%d", regid);
+
+    if (expiration == 0) {
+        // XXX/demmer default expiration
+    }
+}
+
+/**
+ * Constructor for deserialization
+ */
+Registration::Registration(const oasys::Builder&)
+    : BundleConsumer("", true, REGISTRATION)
+{
+    // XXX/demmer unserialization needs to correctly set up the bundle
+    // comsumer's dest_str after the object is unserialized
 }
 
 /**
@@ -123,7 +95,6 @@ Registration::~Registration()
 {
     // XXX/demmer loop through bundle list and remove refcounts
     NOTIMPLEMENTED;
-    delete bundle_list_;
 }
     
 /**

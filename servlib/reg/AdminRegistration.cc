@@ -61,8 +61,7 @@ AdminRegistration::AdminRegistration()
 }
 
 void
-AdminRegistration::enqueue_bundle(Bundle* bundle,
-                                  const BundleMapping* mapping)
+AdminRegistration::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
     u_char typecode;
     
@@ -117,28 +116,5 @@ AdminRegistration::enqueue_bundle(Bundle* bundle,
         new BundleTransmittedEvent(bundle, this, payload_len, true));
 }
 
-                   
-/**
- * Attempt to remove the given bundle from the queue.
- *
- * @return true if the bundle was dequeued, false if not.
- */
-bool
-AdminRegistration::dequeue_bundle(Bundle* bundle,
-                                  BundleMapping** mappingp)
-{
-    // since there's no queue, we can't ever dequeue something
-    return false;
-}
-
-
-/**
- * Check if the given bundle is already queued on this consumer.
- */
-bool
-AdminRegistration::is_queued(Bundle* bundle)
-{
-    return false;
-}
 
 } // namespace dtn

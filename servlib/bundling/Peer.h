@@ -65,7 +65,7 @@ class PeerSet : public ::std::set<Peer*> {};
  * a common destination but yet to be assigned to a particular
  * link.
  */
-class Peer : public oasys::Formatter,  public BundleConsumer {
+class Peer : public oasys::Formatter,  public QueueConsumer {
 public:
     /**
      * Constructor / Destructor
@@ -111,7 +111,7 @@ public:
      *
      * XXX/demmer think this through a little better?
      */
-    void enqueue_bundle(Bundle* bundle, const BundleMapping* mapping);
+    void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
 
 protected:
     LinkSet* links_;		///< List of links that lead to this peer

@@ -43,28 +43,48 @@
 
 namespace dtn {
 
+/*************************************************
+ *
+ * BundleConsumer
+ *
+ *************************************************/
+
 BundleConsumer::BundleConsumer(const char* dest_str,
                                bool is_local, type_t type)
-    : Logger("/bundle/consumer"), dest_str_(dest_str),
+    : Logger("/bundle/consumer"),
+      dest_str_(dest_str),
       is_local_(is_local),
-      type_(type),
-      bundle_list_(NULL)
+      type_(type)
 {
-    // allow subclass to overwrite with something nicer
     type_str_ = type2str(type);
 }
 
+BundleConsumer::~BundleConsumer()
+{
+}
+
+/*************************************************
+ *
+ * QueueConsumer
+ *
+ *************************************************/
+
+QueueConsumer::QueueConsumer(const char* dest_str, bool is_local, type_t type)
+    : BundleConsumer(dest_str, is_local, type),
+      bundle_list_(NULL)
+{
+}
+
 void
-BundleConsumer::enqueue_bundle(Bundle* bundle, const BundleMapping* mapping)
+QueueConsumer::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
 {
     log_info("enqueue bundle id %d for delivery to %s",
              bundle->bundleid_, dest_str_.c_str());
     bundle_list_->push_back(bundle, mapping);
 }
 
-
 bool
-BundleConsumer::dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
+QueueConsumer::dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
 {
     log_info("dequeue bundle id %d from %s",
              bundle->bundleid_, dest_str_.c_str());
@@ -78,14 +98,10 @@ BundleConsumer::dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
     return true;
 }
 
-/**
- * Check if the given bundle is already queued on this consumer.
- */
 bool
-BundleConsumer::is_queued(Bundle* bundle)
+QueueConsumer::is_queued(Bundle* bundle)
 {
     return (bundle->get_mapping(bundle_list_) != NULL);
 }
-
 
 } // namespace dtn
