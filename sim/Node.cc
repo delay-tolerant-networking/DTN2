@@ -42,6 +42,7 @@
 #include "bundling/FragmentManager.h"
 #include "bundling/Link.h"
 #include "bundling/Peer.h"
+#include "bundling/BundleDaemon.h"
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
 #include "reg/Registration.h"
@@ -56,14 +57,6 @@ Node::Node(const char* name)
 {
     logpathf("/node/%s", name);
     log_info("node %s initializing...", name);
-
-    BundleDaemon::instance_ = this;
-
-    router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
-
-    router_->logpathf("/route/%s", name);
-    contactmgr_->logpathf("/contactmgr/%s", name);
-    fragmentmgr_->logpathf("/bundle/fragment/%s", name);
 }
 
 /**
@@ -74,6 +67,13 @@ Node::do_init()
 {
     actions_ = new SimBundleActions();
     eventq_ = new std::queue<BundleEvent*>();
+
+    BundleDaemon::instance_ = this;
+    router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
+
+    router_->logpathf("/route/%s", name_.c_str());
+    contactmgr_->logpathf("/contactmgr/%s", name_.c_str());
+    fragmentmgr_->logpathf("/bundle/fragment/%s", name_.c_str());
 }
 
 /**
