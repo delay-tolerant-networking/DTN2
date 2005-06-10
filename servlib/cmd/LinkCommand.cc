@@ -161,8 +161,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             resultf("link %s already closed", name);
             return TCL_OK;
         }
-
-        BundleDaemon::post(new ContactDownEvent(link->contact()));
+        BundleDaemon::instance()->contactmgr()->close_link(link);
     }
     else {
         resultf("unimplemented link subcommand %s", cmd);
