@@ -43,6 +43,8 @@
 // forward decl
 namespace oasys {
 template<typename _Type> class SingleTypeDurableTable;
+class StorageConfig;
+class DurableStore;
 }
 
 namespace dtn {
@@ -69,13 +71,14 @@ public:
      * Boot time initializer that takes as a parameter the actual
      * instance to use.
      */
-    static int init() {
+    static int init(const oasys::StorageConfig& cfg,
+                    oasys::DurableStore*        store) 
+    {
         if (instance_ != NULL) {
             PANIC("BundleStore::init called multiple times");
         }
         instance_ = new BundleStore();
-        
-        return instance_->do_init();
+        return instance_->do_init(cfg, store);
     }
     
     /**
@@ -86,7 +89,8 @@ public:
     /**
      * Real initialization method.
      */
-    int do_init();
+    int do_init(const oasys::StorageConfig& cfg,
+                oasys::DurableStore*        store);
 
     /**
      * Return true if initialization has completed.

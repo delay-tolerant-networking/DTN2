@@ -53,7 +53,8 @@ RegistrationStore::RegistrationStore()
 }
 
 int
-RegistrationStore::do_init()
+RegistrationStore::do_init(const oasys::StorageConfig& cfg,
+                           oasys::DurableStore*        store)
 {
 #ifdef __REG_STORE_ENABLED__
     NOTREACHED; // XXX/demmer implement me

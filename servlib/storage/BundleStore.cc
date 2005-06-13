@@ -57,16 +57,13 @@ BundleStore::BundleStore()
 }
 
 int
-BundleStore::do_init()
+BundleStore::do_init(const oasys::StorageConfig& cfg,
+                     oasys::DurableStore*        store)
 {
-    oasys::StorageConfig* cfg = oasys::StorageConfig::instance();
-    
     int flags = 0;
 
-    if (cfg->init_)
+    if (cfg.init_)
         flags |= oasys::DS_CREATE;
-    
-    oasys::DurableStore* store = oasys::DurableStore::instance();
     int err = store->get_table(&store_, BUNDLE_TABLE, flags, NULL);
 
     if (err != 0) {

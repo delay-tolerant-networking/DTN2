@@ -82,16 +82,28 @@ GlobalStore::GlobalStore()
 }
 
 int
-GlobalStore::do_init()
+GlobalStore::init(const oasys::StorageConfig& cfg, 
+                  oasys::DurableStore*        store)
 {
-    oasys::StorageConfig* cfg = oasys::StorageConfig::instance();
+    if (instance_ != NULL) 
+    {
+            PANIC("GlobalStore::init called multiple times");
+    }
     
+    instance_ = new GlobalStore();
+    return instance_->do_init(cfg, store);
+}
+
+int
+GlobalStore::do_init(const oasys::StorageConfig& cfg, 
+                     oasys::DurableStore*        store)
+{
     int flags = 0;
 
-    if (cfg->init_)
+    if (cfg.init_) {
         flags |= oasys::DS_CREATE;
+    }
 
-    oasys::DurableStore* store = oasys::DurableStore::instance();
     int err = store->get_table(&store_, GLOBAL_TABLE, flags, NULL);
 
     if (err != 0) {
@@ -101,7 +113,8 @@ GlobalStore::do_init()
 
     // if we're initializing the database for the first time, then we
     // prime the values accordingly and sync the database version
-    if (cfg->init_) {
+    if (cfg.init_) 
+    {
         log_info("initializing global table");
 
         globals_ = new Globals();
@@ -114,12 +127,13 @@ GlobalStore::do_init()
         err = store_->put(oasys::StringShim(GLOBAL_KEY), globals_,
                           oasys::DS_CREATE | oasys::DS_EXCL);
         
-        if (err == oasys::DS_EXISTS) {
-            log_err("error initializing global store: already exists");
-            return err;
-
+        if (err == oasys::DS_EXISTS) 
+        {
+            // YUCK
+            __log_err("/dtnd", "Initializing datastore which already exists.");
+            exit(1);
         } else if (err != 0) {
-            log_err("unknownerror initializing global store");
+            log_err("unknown error initializing global store");
             return err;
         }
         
@@ -162,7 +176,7 @@ GlobalStore::next_bundleid()
  * Get a new unique registration id, updating the running value in
  * the persistent table.
  *
- * (was db_new_regID, db_update_registration_id, db_retable_registration_id)
+ * (was db_new_regID, db_update_registration_id, db_restore_registration_id)
  */
 u_int32_t
 GlobalStore::next_regid()
