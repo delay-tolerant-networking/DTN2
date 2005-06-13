@@ -210,7 +210,7 @@ main(int argc, char* argv[])
     }
 
     init_log(loglevelstr);
-    if (oasys::TclCommandInterp::init() != 0)
+    if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
         log_crit("/dtnd", "Can't init TCL");
         exit(1);
