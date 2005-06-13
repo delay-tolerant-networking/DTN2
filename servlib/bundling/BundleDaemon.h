@@ -92,12 +92,14 @@ public:
     /**
      * Boot time initializer.
      */
-    static void init(BundleDaemon* instance)
-    {
-        if (instance_ != NULL) {
+    static void init()
+    {       
+        if (instance_ != NULL) 
+        {
             PANIC("BundleDaemon already initialized");
         }
-        instance_ = instance;
+
+        instance_ = new BundleDaemon();     
         instance_->do_init();
     }
 
