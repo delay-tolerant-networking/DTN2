@@ -38,43 +38,73 @@
 #ifndef _DTNSERVER_H_
 #define _DTNSERVER_H_
 
+#include <oasys/debug/Logger.h>
+#include <oasys/storage/StorageConfig.h>
+
+namespace oasys { class DurableStore; }
+
 namespace dtn {
 
-/**
-  * Encapsulation class for the "guts" of the server library. All
-  * functions and member variables are static.
+class APIServer;
+
+/*!
+ * Encapsulation class for the "guts" of the server library. All
+ * functions and member variables are static.
  */
-class DTNServer {
+class DTNServer : public oasys::Logger {
 public:
+    DTNServer(oasys::StorageConfig* storage_config);
+    ~DTNServer();
+    
+    oasys::StorageConfig* storage_config() { return storage_config_; }
+
+    /*! Initialize storage, components
+     *
+     * NOTE: This needs to be called with thread barrier and timer
+     * system off because of initialization ordering constraints.
+     */
+    void init();
+
+    //! Start DTN daemon
+    void start();
+
+    //! Start just the datastore (used to create an empty database)
+    void start_datastore();
+
+    //! Parse the conf file
+    void parse_conf_file(std::string& conf_file,
+                         bool         conf_file_set);
+
+private:
+    bool init_;
+
+    oasys::StorageConfig* storage_config_;
+    oasys::DurableStore*  store_;
+    APIServer*            api_server_;
+
+    void init_dir(const char* dirname);
+    void tidy_dir(const char* dirname);
+    void validate_dir(const char* dirname);    
+
     /**
      * Initialize and register all the server related dtn commands.
      */
-    static void init_commands();
+    void init_commands();
     
     /**
      * Initialize all components before modifying any configuration.
      */
-    static void init_components();
+    void init_components();
 
     /**
      * Post configuration, initialize the datastore.
      */
-    static void init_datastore();
-
-    /**
-     * Post configuration, start up all components.
-     */
-    static void start();
+    void init_datastore();
 
     /**
      * Close and sync the data store.
      */
-    static void close_datastore();
-
- protected:
-    static void init_dir(const char * dirname);
-    static void tidy_dir(const char * dirname);
-    static void validate_dir(const char * dirname);
+    void close_datastore();
 };
 
 } // namespace dtn

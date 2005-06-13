@@ -35,9 +35,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <oasys/storage/StorageConfig.h>
+#include <oasys/storage/BerkeleyDBStore.h>
+#include <oasys/io/FileUtils.h>
 
 #include "config.h"
 #include "DTNServer.h"
+
+#include "applib/APIServer.h"
 
 #include "bundling/AddressFamily.h"
 #include "bundling/BundleDaemon.h"
@@ -63,118 +72,38 @@
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <oasys/storage/StorageConfig.h>
-#include <oasys/storage/BerkeleyDBStore.h>
 //#include <oasys/storage/MySQLStore.h>
 //#include <oasys/storage/PostgresqlStore.h>
 
 namespace dtn {
 
-void
-DTNServer::init_commands()
-{
-    oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
-    
-    interp->reg(new BundleCommand());
-    interp->reg(new InterfaceCommand());
-    interp->reg(new LinkCommand());
-    interp->reg(new ParamCommand());
-    interp->reg(new RegistrationCommand());
-    interp->reg(new RouteCommand());
-    interp->reg(new StorageCommand());
+DTNServer::DTNServer(oasys::StorageConfig* storage_config)
+    : Logger("/dtnd"),
+      init_(false),
+      storage_config_(storage_config),
+      store_(0)
+{}
 
-    log_debug("/dtnserver", "registered dtn commands");
+DTNServer::~DTNServer()
+{
+    close_datastore();
+    log_info("Daemon exiting...");
 }
 
-/**
- * Initialize all components before modifying any configuration.
- */
 void
-DTNServer::init_components()
+DTNServer::init()
 {
-    AddressFamilyTable::init();
-    ConvergenceLayer::init_clayers();
-    InterfaceTable::init();
-    BundleDaemon::init(new BundleDaemon());
+    ASSERT(oasys::Thread::start_barrier_enabled());
     
-    log_debug("/dtnserver", "intialized dtn components");
+    init_commands();
+    init_components();
 }
 
-/**
- * Post configuration, start up all components.
- */
-void
-DTNServer::init_datastore()
-{
-    oasys::StorageConfig* cfg = oasys::StorageConfig::instance();
-    
-    if (cfg->tidy_) 
-    {
-        // init is implicit with tidy
-        cfg->init_ = true; 
-
-        // remove bundle data directory (the db contents are cleaned
-        // up by the implementation)
-        DTNServer::tidy_dir(BundlePayload::payloaddir_.c_str());
-    }
-
-    if (cfg->init_)
-    {
-        // initialize data directories
-        DTNServer::init_dir(BundlePayload::payloaddir_.c_str());
-        DTNServer::init_dir(cfg->dbdir_.c_str());
-    }
-
-    // validation
-    DTNServer::validate_dir(BundlePayload::payloaddir_.c_str());
-    DTNServer::validate_dir(cfg->dbdir_.c_str());
-
-
-    // initialize the oasys durable storage system based on the type
-
-    if (0) {} // symmetry
-    
-#if LIBDB_ENABLED
-    else if (cfg->type_.compare("berkeleydb") == 0)
-    {
-        oasys::BerkeleyDBStore::init();
-    }
-#endif
-
-#if MYSQL_ENABLED
-#error Mysql support not yet added to oasys
-//     else if (cfg->type_.compare("mysql") == 0)
-//     {
-//         oasys::MySQLStore::init();
-//     }
-#endif
-
-#if POSTGRES_ENABLED
-#error Postgres support not yet added to oasys
-//     else if (cfg->type_.compare("postgres") == 0)
-//     {
-//         oasys::PostgresqlStore::init();
-//     }
-#endif
-
-    else
-    {
-        PANIC("storage type %s not implemented, exiting...",
-              cfg->type_.c_str());
-    }
-
-    GlobalStore::init();
-    BundleStore::init();
-    RegistrationStore::init();
-}
-    
 void
 DTNServer::start()
 {
+    start_datastore();
+
     BundleRouter* router;
     router = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
 
@@ -187,27 +116,157 @@ DTNServer::start()
     RegistrationTable::init(RegistrationStore::instance());
     new AdminRegistration();
     
-    // load in the various storage tables
-    GlobalStore::instance()->load();
+    // This has to be first because it checks for datastore version
+    GlobalStore::instance()->load(); 
+
     RegistrationTable::instance()->load();
     BundleStore::instance()->load();
 
     router->initialize();
-    log_debug("/dtnserver", "started dtn server");
+    log_debug("started dtn server");
 }
 
+void
+DTNServer::start_datastore()
+{
+    if (storage_config_->tidy_) 
+    {
+        storage_config_->init_ = true; // init is implicit with tidy
+
+        // remove bundle data directory (the db contents are cleaned
+        // up by the implementation)
+        tidy_dir(BundlePayload::payloaddir_.c_str());
+    }
+
+    if (storage_config_->init_)
+    {
+        init_dir(BundlePayload::payloaddir_.c_str());
+    }
+    validate_dir(BundlePayload::payloaddir_.c_str());
+
+    if (0) {} // symmetry
+
+#if LIBDB_ENABLED
+    else if (storage_config_->type_.compare("berkeleydb") == 0)
+    {
+        oasys::BerkeleyDBStore* bdb = new oasys::BerkeleyDBStore();
+        int err = bdb->init(storage_config_);
+        if (err != 0)
+        {
+            PANIC("Can't initialize berkeleydb %d", err);
+        }
+        store_ = new oasys::DurableStore(bdb);
+    }
+#endif
+
+#if MYSQL_ENABLED
+#error Mysql support not yet added to oasys
+#endif // MYSQL_ENABLED
+
+#if POSTGRES_ENABLED
+#error Postgres support not yet added to oasys
+#endif // POSTGRES_ENABLED
+
+    else
+    {
+        log_crit("storage type %s not implemented, exiting...",
+                 storage_config_->type_.c_str());
+        exit(1);
+    }
+
+    GlobalStore::init(*storage_config_, store_);
+    BundleStore::init(*storage_config_, store_);
+    RegistrationStore::init(*storage_config_, store_);
+}
+ 
+void
+DTNServer::parse_conf_file(std::string& conf_file,
+                           bool         conf_file_set)
+{
+    // Check the supplied config file and/or check for defaults, as
+    // long as the user didn't explicitly call with no conf file 
+    if (conf_file.size() != 0) 
+    {
+        if (!oasys::FileUtils::readable(conf_file.c_str(), logpath()))
+        {
+            log_err("configuration file \"%s\" not readable",
+                    conf_file.c_str());
+            exit(1);
+        }
+    }
+    else if (!conf_file_set) 
+    {
+        const char* default_conf[] = { "/etc/dtn.conf", 
+                                       "daemon/dtn.conf", 
+                                       0 };
+        conf_file.clear();
+        for (int i=0; default_conf[i] != 0; ++i) 
+        {
+            if (oasys::FileUtils::readable(default_conf[i], logpath())) 
+            {
+                conf_file.assign(default_conf[i]);
+                break;
+            }
+        }
+        if (conf_file.size() == 0)
+        {
+            log_warn("can't read default config file "
+                     "(tried /etc/dtn.conf and daemon/dtn.conf)...");
+        }
+    }
+
+    if (conf_file.size() == 0) {
+        log_info("No config file specified.");
+        return;
+    }
+
+    log_info("parsing configuration file %s...", conf_file.c_str());
+    if (oasys::TclCommandInterp::instance()->exec_file(conf_file.c_str()) != 0)
+    {
+        log_err("error in configuration file, exiting...");
+        exit(1);
+    }
+}
+
+void
+DTNServer::init_commands()
+{
+    oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
+    
+    interp->reg(new BundleCommand());
+    interp->reg(new InterfaceCommand());
+    interp->reg(new LinkCommand());
+    interp->reg(new ParamCommand());
+    interp->reg(new RegistrationCommand());
+    interp->reg(new RouteCommand());
+    interp->reg(new StorageCommand(storage_config_));
+
+    log_debug("registered dtn commands");
+}
+
+void
+DTNServer::init_components()
+{
+    AddressFamilyTable::init();
+    ConvergenceLayer::init_clayers();
+    InterfaceTable::init();
+    BundleDaemon::init();
+    
+    log_debug("intialized dtn components");
+}
+   
 void
 DTNServer::close_datastore()
 {
-    GlobalStore::instance()->close();
-    BundleStore::instance()->close();
     RegistrationStore::instance()->close();
+    BundleStore::instance()->close();
+    GlobalStore::instance()->close();
 
-    oasys::DurableStore::shutdown();
+    delete_z(store_);
 }
 
 void
-DTNServer::init_dir(const char * dirname)
+DTNServer::init_dir(const char* dirname)
 {
     struct stat st;
     int statret;
@@ -227,7 +286,7 @@ DTNServer::init_dir(const char * dirname)
 }
 
 void
-DTNServer::tidy_dir(const char * dirname)
+DTNServer::tidy_dir(const char* dirname)
 {
     char cmd[256];
     struct stat st;
@@ -235,8 +294,7 @@ DTNServer::tidy_dir(const char * dirname)
     if (stat(dirname, &st) == 0)
     {
         snprintf(cmd, sizeof(cmd), "/bin/rm -rf %s", dirname);
-        log_warn("/dtnserver",
-                 "tidy option removing directory '%s'", cmd);
+        log_warn("tidy option removing directory '%s'", cmd);
         
         if (system(cmd))
         {
@@ -246,7 +304,7 @@ DTNServer::tidy_dir(const char * dirname)
     }
     else if (errno == ENOENT)
     {
-        log_debug("/dtnserver", "directory already removed %s", dirname);
+        log_debug("directory already removed %s", dirname);
     }
     else
     {
@@ -256,13 +314,13 @@ DTNServer::tidy_dir(const char * dirname)
 }
 
 void
-DTNServer::validate_dir(const char * dirname)
+DTNServer::validate_dir(const char* dirname)
 {
     struct stat st;
     
     if (stat(dirname, &st) == 0 && S_ISDIR(st.st_mode))
     {
-        log_debug("/dtnserver", "directory validated: %s", dirname);
+        log_debug("directory validated: %s", dirname);
     }
     else
     {
