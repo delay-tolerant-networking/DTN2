@@ -47,7 +47,7 @@ namespace dtn {
  */
 class StorageCommand : public oasys::TclCommand {
 public:    
-    StorageCommand();
+    StorageCommand(oasys::StorageConfig* config);
     
     const char* help_string();
 protected:

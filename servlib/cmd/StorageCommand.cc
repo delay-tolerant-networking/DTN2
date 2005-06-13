@@ -43,12 +43,10 @@
 
 namespace dtn {
 
-StorageCommand::StorageCommand()
+StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
     : TclCommand("storage")
 {
     inited_ = false;
-
-    oasys::StorageConfig* cfg = oasys::StorageConfig::instance();
     
     bind_s("type",	&cfg->type_);
     bind_b("tidy",	&cfg->tidy_);
