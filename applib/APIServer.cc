@@ -90,7 +90,7 @@ in_addr_t APIServer::local_addr_;
 u_int16_t APIServer::local_port_;
 
 void
-APIServer::init_commands()
+APIServer::init()
 {
     /*
      * Default values for address / ports, overrided via the

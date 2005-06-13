@@ -67,10 +67,10 @@ public:
     /**
      * Initialize and register all the api server related dtn commands.
      */
-    static void init_commands();
+    void init();
     
     // Virtual from TCPServerThread
-    virtual void accepted(int fd, in_addr_t addr, u_int16_t port);
+    void accepted(int fd, in_addr_t addr, u_int16_t port);
     
     static in_addr_t local_addr_;	///< local address to bind to
     static u_int16_t local_port_;	///< local port to use for api
