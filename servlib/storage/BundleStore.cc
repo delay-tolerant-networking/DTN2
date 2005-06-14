@@ -125,6 +125,8 @@ BundleStore::load()
 
         BundleDaemon::post(new BundleReceivedEvent(bundle, EVENTSRC_STORE));
     }
+
+    delete iter;
     
     return true;
 }
