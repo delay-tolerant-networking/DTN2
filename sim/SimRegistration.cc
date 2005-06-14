@@ -42,6 +42,7 @@
 #include "SimRegistration.h"
 #include "Topology.h"
 #include "bundling/Bundle.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
 
 using namespace dtn;
@@ -66,6 +67,10 @@ SimRegistration::consume_bundle(Bundle* bundle,
              node_->name(), bundle->bundleid_,
              bundle->source_.c_str(), bundle->dest_.c_str(),
              (u_int)payload_len);
+
+    BundleDaemon::post(
+        new BundleTransmittedEvent(bundle, this, payload_len, true));
+    
 }
 
 } // namespace dtnsim
