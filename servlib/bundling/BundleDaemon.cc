@@ -281,12 +281,8 @@ void
 BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
 {
     Registration* registration = event->registration_;
-    log_debug("new registration for %s", registration->endpoint().c_str());
+    log_info("REGISTRATION_ADDED %s", registration->endpoint().c_str());
 
-    if (! reg_table_->add(registration)) {
-        log_err("unexpected error adding registration to table");
-    }
-    
     oasys::ScopeLock l(pending_bundles_->lock());
 
     BundleList::iterator iter;

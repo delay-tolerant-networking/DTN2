@@ -385,6 +385,7 @@ APIClient::handle_register()
     } else {
         u_int32_t regid = GlobalStore::instance()->next_regid();
         reg = new APIRegistration(regid, endpoint, action);
+        BundleDaemon::instance()->reg_table()->add(reg);
         BundleDaemon::post(new RegistrationAddedEvent(reg));
     }
 

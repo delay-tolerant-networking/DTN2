@@ -108,6 +108,7 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         ASSERT(reg);
 
         BundleDaemon::post(new RegistrationAddedEvent(reg));
+        BundleDaemon::instance()->reg_table()->add(reg);
         
         resultf("%d", reg->regid());
         return TCL_OK;
