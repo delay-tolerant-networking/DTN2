@@ -45,7 +45,6 @@
 #include <oasys/util/Getopt.h>
 
 #include "ConnCommand.h"
-#include "LogSim.h"
 #include "Simulator.h"
 #include "SimCommand.h"
 #include "SimConvergenceLayer.h"
@@ -131,7 +130,7 @@ main(int argc, char** argv)
     Simulator::init(s);
 
     // Initialize logging
-    LogSim::init(loglevel);
+    oasys::Log::init(loglevel);
     log_info("/sim", "dtn simulator initializing...");
 
     // seed the random number generator
@@ -155,7 +154,7 @@ main(int argc, char** argv)
     AddressFamilyTable::instance()->add_string_family();
     SimConvergenceLayer::init();
     ConvergenceLayer::add_clayer("sim", SimConvergenceLayer::instance());
-    
+
     if (interp->exec_file(conf_file.c_str()) != 0) {
         log_err("/sim", "error in configuration file, exiting...");
         exit(1);

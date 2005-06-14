@@ -69,7 +69,7 @@ public:
         instance_ = instance;
     }
 
-    static double time() { return instance_->time_; }
+    static double time() { return time_; }
 
     /**
      * Constructor.
@@ -104,7 +104,7 @@ protected:
 
 private:
     
-    double time_;	///< current time
+    static double time_;	///< current time (static to avoid object)
 
     bool is_running_;	///< maintains the state if the simulator is
     			///< running or paused

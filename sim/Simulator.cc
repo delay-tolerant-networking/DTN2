@@ -43,14 +43,14 @@ namespace dtnsim {
 
 Simulator* Simulator::instance_; ///< singleton instance
 
+double Simulator::time_ = 0;
 double Simulator::runtill_ = -1;
 
 Simulator::Simulator() 
     : Logger ("/sim/main"),
       eventq_()
- {
-    time_ = 0;
- }
+{
+}
 
 
 void
@@ -111,6 +111,16 @@ Simulator::run()
     log_info("eventq is empty, time is %f", time_);
 }
 
+extern "C" {
+int
+gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+    double now = Simulator::time();
+    tv->tv_sec = (long int) now;
+    tv->tv_usec = (int) ((now - tv->tv_sec) * 100000.0);
+    return 0;
+}
+}
 
 void
 Simulator::process(SimEvent *e)
