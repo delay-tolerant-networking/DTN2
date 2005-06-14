@@ -130,7 +130,7 @@ main(int argc, char** argv)
     Simulator::init(s);
 
     // Initialize logging
-    oasys::Log::init(loglevel);
+    oasys::Log::init("-", loglevel, "--");
     log_info("/sim", "dtn simulator initializing...");
 
     // seed the random number generator

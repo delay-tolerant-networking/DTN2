@@ -71,6 +71,9 @@ Simulator::exit()
 void
 Simulator::run()
 {
+    oasys::Log* log = oasys::Log::instance();
+    log->set_prefix("--");
+    
     log_debug("starting event loop...");
     is_running_ = true;
 
@@ -87,28 +90,29 @@ Simulator::run()
     }
 
      while(!eventq_.empty()) {
-        if (is_running_) {
-            SimEvent* e = eventq_.top();
-            eventq_.pop();
-            /* Move the clock */
-            time_ =  e->time();
-            if (e->is_valid()) {
-                ASSERT(e->handler() != NULL);
-                /* Process the event */
-                log_debug("Event:%p type %s at time %f",
+         log->set_prefix("--");
+         if (is_running_) {
+             SimEvent* e = eventq_.top();
+             eventq_.pop();
+             /* Move the clock */
+             time_ = e->time();
+             if (e->is_valid()) {
+                 ASSERT(e->handler() != NULL);
+                 /* Process the event */
+                 log_debug("Event:%p type %s at time %f",
                            e, e->type_str(), time_);
-                e->handler()->process(e);
-            }
-            if ((Simulator::runtill_ != -1) &&
-                (time_ > Simulator::runtill_)) {
-                log_info("Exiting simulation. "
-                         "Current time (%f) > Max time (%f)",
-                         time_, Simulator::runtill_);
-                exit();
-            }
-        } // if is_running_
-    }
-    log_info("eventq is empty, time is %f", time_);
+                 e->handler()->process(e);
+             }
+             if ((Simulator::runtill_ != -1) &&
+                 (time_ > Simulator::runtill_)) {
+                 log_info("Exiting simulation. "
+                          "Current time (%f) > Max time (%f)",
+                          time_, Simulator::runtill_);
+                 exit();
+             }
+         } // if is_running_
+     }
+     log_info("eventq is empty, time is %f", time_);
 }
 
 extern "C" {

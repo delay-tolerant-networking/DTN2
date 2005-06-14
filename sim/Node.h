@@ -110,10 +110,13 @@ public:
      * swings the static BundleDaemon::instance_ pointer to point to
      * the node so all singleton accesses throughout the code will
      * reference the correct node.
+     *
+     * It also sets the node name as the logging prefix in oasys.
      */
     void set_active()
     {
         instance_ = this;
+        oasys::Log::instance()->set_prefix(name_.c_str());
     }
 
     /**

@@ -70,10 +70,6 @@ Node::do_init()
 
     BundleDaemon::instance_ = this;
     router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
-
-    router_->logpathf("/route/%s", name_.c_str());
-    contactmgr_->logpathf("/contactmgr/%s", name_.c_str());
-    fragmentmgr_->logpathf("/bundle/fragment/%s", name_.c_str());
 }
 
 /**
@@ -107,10 +103,10 @@ Node::process_bundle_events()
 void
 Node::process(SimEvent* simevent)
 {
-    log_debug("handling event %s", simevent->type_str());
-
     set_active();
     
+    log_debug("handling event %s", simevent->type_str());
+
     switch(simevent->type()) {
     case SIM_ROUTER_EVENT:
         post_event(((SimRouterEvent*)simevent)->event_);
