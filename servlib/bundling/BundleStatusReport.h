@@ -52,7 +52,7 @@ public:
     /**
      * Constructor.
      */
-    BundleStatusReport(Bundle* orig_bundle, BundleTuple& source);
+    BundleStatusReport(Bundle* orig_bundle, const BundleTuple& source);
 
     /**
      * Destructor.
@@ -60,16 +60,16 @@ public:
     virtual ~BundleStatusReport();
 
     /**
-     * Sets the appropriate status report flag and timestamp to the
-     * current time.
+     * Sets the given status report flag and corresponding timestamp
+     * to the current time.
      */
-    void set_status_time(status_report_flag_t flag);
+    void set_status(status_report_flag_t flag);
 
     /**
      * Stores the completed report into the bundle payload. Must be
      * called before transmitting the bundle.
      */
-    void set_payload();
+    void generate_payload();
 
 protected:
     /**

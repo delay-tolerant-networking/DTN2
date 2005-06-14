@@ -41,7 +41,8 @@
 
 namespace dtn {
 
-BundleStatusReport::BundleStatusReport(Bundle* orig_bundle, BundleTuple& source)
+BundleStatusReport::BundleStatusReport(Bundle* orig_bundle,
+                                       const BundleTuple& source)
     : Bundle()
 {
     source_.assign(source);
@@ -74,7 +75,7 @@ BundleStatusReport::~BundleStatusReport()
  * current time.
  */
 void
-BundleStatusReport::set_status_time(status_report_flag_t flag)
+BundleStatusReport::set_status(status_report_flag_t flag)
 {
     u_int64_t* ts = 0;
     
@@ -117,7 +118,7 @@ BundleStatusReport::set_status_time(status_report_flag_t flag)
  * called before transmitting the bundle.
  */
 void
-BundleStatusReport::set_payload()
+BundleStatusReport::generate_payload()
 {
     /*
      * copy the region and admin bits into the variable length part of
