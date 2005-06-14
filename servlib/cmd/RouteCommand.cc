@@ -63,7 +63,6 @@ RouteCommand::help_string()
     // return "route add <dest> <nexthop> <type> <args>\n"
     return "route add <dest> <link/peer>\n"
         "route del <dest> <link/peer>\n"
-        "route local_region <region>\n"
         "route local_tuple <tuple?>\n"
         "route dump"
         "         Note: Currently route dump also displays list of all links and peers\n"
@@ -118,22 +117,9 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     else if (strcmp(cmd, "dump") == 0) {
         oasys::StringBuffer buf;
-        BundleRouter* router = BundleDaemon::instance()->router();
-        buf.appendf("local tuple:\n\t%s\n", router->local_tuple().c_str());
-        router->route_table()->dump(&buf);
-        BundleDaemon::instance()->contactmgr()->dump(&buf);
+        BundleDaemon::instance()->get_routing_state(&buf);
         set_result(buf.c_str());
         return TCL_OK;
-    }
-    
-    else if (strcmp(cmd, "local_region") == 0) {
-        // route local_region <region>
-        if (argc != 3) {
-            wrong_num_args(argc, argv, 2, 3, 3);
-            return TCL_ERROR;
-        }
-        
-        BundleRouter::Config.local_regions_.push_back(argv[2]);
     }
 
     else if (strcmp(cmd, "local_tuple") == 0) {
