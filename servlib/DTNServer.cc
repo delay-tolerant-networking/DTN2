@@ -174,9 +174,13 @@ DTNServer::start_datastore()
         exit(1);
     }
 
-    GlobalStore::init(*storage_config_, store_);
-    BundleStore::init(*storage_config_, store_);
-    RegistrationStore::init(*storage_config_, store_);
+    if ((GlobalStore::init(*storage_config_, store_)       != 0) || 
+        (BundleStore::init(*storage_config_, store_)       != 0) ||
+        (RegistrationStore::init(*storage_config_, store_) != 0))
+    {
+        log_crit("error initializing data store");
+        exit(1);
+    }
 }
  
 void
