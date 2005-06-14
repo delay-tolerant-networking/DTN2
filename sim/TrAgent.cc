@@ -105,7 +105,7 @@ TrAgent::process(SimEvent* e)
 	    Simulator::post(new SimEvent(SIM_NEXT_SENDTIME, sendtime, this));
         }
 	else {
-	    log_info("All batches finished");
+	    log_debug("all batches finished");
 	}
 
     } else {
