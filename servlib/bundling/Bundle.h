@@ -195,7 +195,7 @@ public:
         COS_NORMAL    = 1, 		///< regular priority
         COS_EXPEDITED = 2, 		///< important
         COS_RESERVED  = 3  		///< TBD
-    } bundle_priority_t;
+    } priority_values_t;
 
     /**
      * Pretty printer function for bundle_priority_t.
@@ -215,11 +215,11 @@ public:
     typedef struct timeval timestamp_t;
 
     /*
-     * Bundle data fields (all public to avoid the need for accessor
-     * functions).
+     * Bundle data fields that correspond to data transferred between
+     * nodes according to the bundle protocol (all public to avoid the
+     * need for accessor functions).
      */
     
-    u_int32_t bundleid_;	///< Local bundle identifier
     BundleTuple source_;	///< Source tuple
     BundleTuple dest_;		///< Destination tuple
     BundleTuple custodian_;	///< Current custodian tuple
@@ -232,24 +232,23 @@ public:
     bool return_rcpt_;		///< End-to-end return receipt
     timestamp_t creation_ts_;	///< Creation timestamp
     u_int32_t expiration_;	///< Bundle expiration time
-    BundlePayload payload_;	///< Reference to the payload
-
     bool is_fragment_;		///< Fragmentary Bundle
-    bool is_reactive_fragment_; ///< Reactive fragmentary bundle
     u_int32_t orig_length_;	///< Length of original bundle
     u_int32_t frag_offset_;	///< Offset of fragment in the original bundle
-
+    BundlePayload payload_;	///< Reference to the payload
+    
     /*
      * Internal fields for managing the bundle.
      */
     
-    oasys::SpinLock lock_;		///< Lock for bundle data that can be
+    u_int32_t bundleid_;	///< Local bundle identifier
+    oasys::SpinLock lock_;	///< Lock for bundle data that can be
                                 ///  updated by multiple threads, e.g.
                                 ///  containers_ and refcount_.
     BundleMappings mappings_;	///< The set of BundleLists that
                                 ///  contain the Bundle.
-    
     int refcount_;		///< Bundle reference count
+    bool is_reactive_fragment_; ///< Reactive fragmentary bundle
 
 private:
     /**
