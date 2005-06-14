@@ -37,9 +37,9 @@
  */
 
 #include "ParamCommand.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundlePayload.h"
 #include "conv_layers/TCPConvergenceLayer.h"
-#include "routing/BundleRouter.h"
 
 namespace dtn {
 
@@ -52,7 +52,7 @@ ParamCommand::ParamCommand()
            &BundlePayload::test_no_remove_, false);
 
     bind_i("proactive_frag_threshold",
-           (int*)&BundleRouter::proactive_frag_threshold_, -1);
+           (int*)&BundleDaemon::proactive_frag_threshold_, -1);
 
     // defaults for these are set all together in TCPConvergenceLayer
     // constructor (because there is not a flavor of bind_i that
