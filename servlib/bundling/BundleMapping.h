@@ -110,7 +110,7 @@ struct BundleMapping {
     bundle_fwd_action_t action_;	///< The forwarding action code
     int mapping_grp_;			///< Mapping group identifier
     u_int32_t timeout_;			///< Timeout for the mapping
-    RouterInfo* router_info_;		///< Slot_ for router private state
+    RouterInfo* router_info_;		///< Slot for router private state
 };
 
 } // namespace dtn
