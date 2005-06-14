@@ -246,6 +246,13 @@ main(int argc, char* argv[])
                                  APIServer::local_port_);
     oasys::Thread::release_start_barrier(); // run blocked threads
 
+    // if the test script specified something to run for the test,
+    // then execute it now
+    if (g_testcmd.initscript_.length() != 0) {
+        oasys::TclCommandInterp::instance()->
+            exec_command(g_testcmd.initscript_.c_str());
+    }
+
     // launch the console server
     if (g_console_port != 0) {
         log_info("/dtnd", "starting console on localhost:%d", g_console_port);
