@@ -97,7 +97,6 @@ Link::Link(std::string name, link_type_t type,
     // info, but all links get a bundle list
     contact_ = NULL ;
     cl_info_ = NULL;
-    peer_ = NULL;
     bundle_list_ = new BundleList(logpath_);
 
     log_info("new link *%p", this);
@@ -309,13 +308,6 @@ Link::size()
         ASSERT(retval == 0);
         retval += contact_->bundle_list()->size();
     }
-
-    /*
-     * Peer queue may have some messages too
-     * Assume, router will move from peer queue to link queue when
-     * it receives a link available message
-    */
-    // retval += peer()->bundle_list()->size();
 
     // TODO, for scheduled links check on queues of future contacts
     return retval;

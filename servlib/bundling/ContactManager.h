@@ -49,13 +49,10 @@ class ConvergenceLayer;
 class CLInfo;
 class Link;
 class LinkSet;
-class Peer;
-class PeerSet;
 
 /**
- * A contact manager singleton class.
- * Maintains topological information regarding available
- * links, peers, contacts.
+ * A contact manager class. Maintains topological information
+ * regarding available links and contacts.
  */
 class ContactManager : public oasys::Logger {
 public:
@@ -69,37 +66,6 @@ public:
      * Dump a string representation of the info inside contact manager.
      */
     void dump(oasys::StringBuffer* buf) const;
-    
-    /**********************************************
-     *
-     * Peer set accessor functions
-     *
-     *********************************************/
-    
-    /**
-     * Add a peer
-     */
-    void add_peer(Peer* peer);
-    
-    /**
-     * Delete a peer
-     */
-    void delete_peer(Peer* peer);
-    
-    /**
-     * Check if contact manager already has this peer
-     */
-    bool has_peer(Peer* peer);
-
-    /**
-     * Finds peer corresponding to this next hop address
-     */
-    Peer* find_peer(const char* address);
-    
-    /**
-     * Return the list of peers 
-     */
-    PeerSet* peers() { return peers_; }
     
     /**********************************************
      *
@@ -175,7 +141,6 @@ protected:
 				 const char* nexthop);
     
     
-    PeerSet* peers_;			///< Set of all peers
     LinkSet* links_;			///< Set of all links
     int opportunistic_cnt_;		///< Counter for opportunistic links
 };

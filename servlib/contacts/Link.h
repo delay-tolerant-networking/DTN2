@@ -39,11 +39,11 @@
 #define _LINK_H_
 
 #include <set>
+#include <oasys/debug/Formatter.h>
 
 #include "BundleConsumer.h"
 #include "BundleTuple.h"
 #include "BundleList.h"
-#include "Peer.h"
 
 namespace dtn {
 
@@ -51,7 +51,6 @@ class ConvergenceLayer;
 class CLInfo;
 class Contact;
 class Link;
-class Peer;
 
 /**
  * Set of links
@@ -59,28 +58,27 @@ class Peer;
 class LinkSet : public std::set<Link*> {};
 
 /**
- * Abstraction for a DTN link. A DTN link has a destination peer
- * associated with it. The peer represents the DTN node to which the
- * link leads to.
+ * Abstraction for a DTN link. A DTN link has a destination next hop
+ * associated with it.
+ 
+ * The state of a link (regarding its availability) is described by
+ * two bits: First: Every link has a 'bool' availability bit. This
+ * indicates whether the link is a potential candidate to be used for
+ * actual transmission of packets. If this bit is set the link can be
+ * used to send packets, and if not then it can not be used to send
+ * packets. This bit is also the key difference between different
+ * types of links. How is the bit set/unset is discussed later. (see
+ * below)
  *
- * The state of a link (regarding its availability) is described by two bits:
- * First: Every link has a 'bool' availability bit.
- * This indicates whether the link is a potential candidate to be used for
- * actual transmission of packets. If this bit is set the link can be used to
- * send packets, and if not then it can not be used to send packets.
- * This bit is also the key difference between different types of links.
- * How is the bit set/unset is discussed later. (see below)
+ * Second: A link can have a contact associated with it. A contact
+ * represents an actual connection. A contact is created only if
+ * link's availability is set. If a contact exists on link we say that
+ * the link is open (i.e contact_ != NULL), otherwise we say that the
+ * link is closed.
  *
- * Second: A link can have a contact associated with it.
- * A contact represents an actual connection. A contact is created
- * only if link's availability is set. 
- * If a contact exists on link we say that the link is open
- * (i.e contact_ != NULL), otherwise we say that the link is closed.
- *
- * A link also has a queue for storing bundles if no contact
- * is currently active on it. Every link has a unique name asssociated
- * with it which is used to identify it. The name is configured 
- * explicitly when the link is created
+ * Every link has a unique name asssociated with it which is used to
+ * identify it. The name is configured explicitly when the link is
+ * created.
  *
  * Creating new links:
  * Links are created explicitly in the configuration. Syntax is:
@@ -91,12 +89,12 @@ class LinkSet : public std::set<Link*> {};
  *
  *  ----------------------------------------------------------
  *
- * Invariants for better understanding:
- * Opening a link means => Creating a new contact on it.
- * It is an error to open a link which is already open.
- * One can check status, if the link is already open or not.
- * Links are typically opened by router when it sees the need 
- * Link can be opened only if its availability bit is set to true
+ * Invariants for better understanding: Opening a link means =>
+ * Creating a new contact on it. It is an error to open a link which
+ * is already open. One can check status, if the link is already open
+ * or not. Links are typically opened by the bundle actions layer
+ * router when . A Link can be opened only if its
+ * availability bit is set to true
  *
  * Closing a link means => Deleting or getting rid of existing contact
  * on it. Free the state stored for that contact. It is an error to
@@ -106,38 +104,34 @@ class LinkSet : public std::set<Link*> {};
  * layer, or from the convergence layer itself in response to a
  * timeout or other such event.
  *
- * We also have that
- * if contact != null then size(link_queue) == 0.
- * i.e link queue can not have any messages on it if an active
- * contact exists. To be precise there may be very small period between
- * the link is opened and router is informed that the link is open that this
- * may not hold true.
+ * XXX/demmer update above
  *
  * ----------------------------------------------------------
  *
  * Links are of three types as discussed in the DTN architecture
  * ONDEMAND, SCHEDULED, OPPORTUNISTIC.
+ *
  * The key differences from an implementation perspectives are
- * "who" and "when"  sets/unsets the link availability bit
+ * "who" and "when"  sets/unsets the link availability bit.
  *
- * Only ONDEMAND links the availability bit is set when the link is
- * constructed. i.e an ONDEMAND link is always available as one would
- * expect. Though by default it is not open until the router explicitly
- * opens it.
+ * Only for ONDEMAND links is the availability bit is set when the
+ * link is constructed. i.e an ONDEMAND link is always available as
+ * one would expect. Though by default it is not open until the router
+ * explicitly opens it.
  *
- * An ONDEMAND link can be closed either because of convergence
- * layer failure or because the link has been idle for too long.
- * If link gets closed because the convergence layer detects failure
- * and there are messages which are queued on the link, the router
- * will automatically open the link again.
+ * An ONDEMAND link can be closed either because of convergence layer
+ * failure or because the link has been idle for too long. If link
+ * gets closed because the convergence layer detects failure and there
+ * are messages which are queued on the link, the router will
+ * automatically open the link again.
  *
- * For ONDEMAND links mostly in the default router implemetation
- * there are no messages queued on the link queue.
- * This is because since link is always available as soon as something is to be
- * queued on the link router tries to open it. And once the link is open 
- * all messages are queued on the contact queue. If the convergence layer
- * closes the link because of failure, there may be messages queued on the
- * link temporarily before the link is opened again.
+ * For ONDEMAND links mostly in the default router implemetation there
+ * are no messages queued on the link queue. This is because since
+ * link is always available as soon as something is to be queued on
+ * the link router tries to open it. And once the link is open all
+ * messages are queued on the contact queue. If the convergence layer
+ * closes the link because of failure, there may be messages queued on
+ * the link temporarily before the link is opened again.
  *
  *
  * For OPPORTUNISTIC links the availability bit is set by the code which
@@ -181,17 +175,17 @@ class LinkSet : public std::set<Link*> {};
  */
 class Link : public oasys::Formatter, public QueueConsumer {
 public:
-/**
- * Valid types for a link.
- */
+    /**
+     * Valid types for a link.
+     */
     typedef enum
     {
         LINK_INVALID = -1,
         
         /**
          * The link is expected to be either ALWAYS available, or can
-         * be made available easily. Examples include DSL (always), and
-         * dialup (easily available).
+         * be made available easily. Examples include DSL (always),
+         * and dialup (easily available).
          */
         ONDEMAND = 1,
         
@@ -202,17 +196,17 @@ public:
         
         /**
          * The link may or may not be available, based on
-         * uncontrollable factors. Examples include a wireless link whose
-         * connectivity depends on the relative locations of the two
-         * nodes.
+         * uncontrollable factors. Examples include a wireless link
+         * whose connectivity depends on the relative locations of the
+         * two nodes.
          */
         OPPORTUNISTIC = 3
     }
     link_type_t;
 
-     /**
-      * Link type string conversion.
-      */
+    /**
+     * Link type string conversion.
+     */
     static inline const char*
     link_type_to_str(link_type_t type)
     {
@@ -261,11 +255,6 @@ public:
      * Return the string for of the link.
      */
     const char* type_str() { return link_type_to_str(type_); }
-
-    /**
-     * Accessor to peer.
-     */
-    Peer* peer() { return peer_; }
 
     /**
      * Return the link's current contact
@@ -365,9 +354,6 @@ protected:
     
     /// Name of the link to identify across daemon
     std::string name_;
-
-    /// Peer is initialized in constructor using bundleTuple 
-    Peer* peer_;
 
     /// Current contact. contact_ != null iff link is open
     Contact* contact_;

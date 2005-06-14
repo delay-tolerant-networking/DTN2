@@ -46,13 +46,12 @@
 namespace dtn {
 
 /**
- * Queue a bundle for delivery on the given next hop (i.e. a
- * contact, peer, registration, etc). In queueing the bundle for
- * delivery, this creates a new BundleMapping to store any router
- * state about this decision.
+ * Queue a bundle for delivery on the given next hop link. In queueing
+ * the bundle for delivery, this creates a new BundleMapping to store
+ * any router state about this decision.
  *
  * @param bundle	the bundle
- * @param nextho	the next hop consumer
+ * @param nexthop	the next hop consumer
  * @param fwdaction	action type code to be returned in the
  *                      BUNDLE_TRANSMITTED event
  * @param mapping_grp	group identifier for the set of mappings

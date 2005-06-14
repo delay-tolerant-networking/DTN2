@@ -41,7 +41,6 @@
 #include "bundling/ContactManager.h"
 #include "bundling/FragmentManager.h"
 #include "bundling/Link.h"
-#include "bundling/Peer.h"
 #include "bundling/BundleDaemon.h"
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
@@ -127,10 +126,9 @@ Node::process(SimEvent* simevent)
         
         BundleConsumer* nexthop = NULL;
         nexthop = contactmgr()->find_link(e->nexthop_.c_str());
-        if (nexthop == NULL) {
-            nexthop = contactmgr()->find_peer(e->nexthop_.c_str());
-        }
-            
+
+        // XXX/demmer handle search by endpoint
+
         if (nexthop == NULL) {
             PANIC("no such link or node exists %s", e->nexthop_.c_str());
         }

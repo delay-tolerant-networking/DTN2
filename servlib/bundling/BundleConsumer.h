@@ -50,7 +50,7 @@ class BundleTuple;
 
 /**
  * Base class used for "next hops" in the bundle forwarding logic, i.e
- * either a local registration or a Contact/Link/Peer.
+ * either a local registration or a next-hop link.
  */
 class BundleConsumer : public oasys::Logger {
 public:
@@ -67,7 +67,6 @@ public:
     {
         switch(type) {
         case LINK: 		return "Link";
-        case PEER:		return "Peer";
         case CONTACT:		return "Contact";
         case FUTURE_CONTACT:	return "Future Contact";
         case REGISTRATION:	return "Reg";
@@ -117,7 +116,7 @@ public:
     bool is_local() { return is_local_; }
 
     /**
-     * The type of the consumer (link, peer, contact, registration).
+     * The type of the consumer (link / registration).
      */
     type_t type() { return type_; }
 

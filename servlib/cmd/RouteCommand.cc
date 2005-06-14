@@ -60,12 +60,11 @@ RouteCommand::RouteCommand()
 const char*
 RouteCommand::help_string()
 {
-    // return "route add <dest> <nexthop> <type> <args>\n"
-    return "route add <dest> <link/peer>\n"
-        "route del <dest> <link/peer>\n"
+    return
+        "route add <dest> <link/endpoint>\n"
+        "route del <dest> <link/endpoint>\n"
         "route local_tuple <tuple?>\n"
         "route dump"
-        "         Note: Currently route dump also displays list of all links and peers\n"
         ;
 }
 
@@ -80,7 +79,7 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     const char* cmd = argv[1];
     
     if (strcmp(cmd, "add") == 0) {
-        // route add <dest> <link/peer>
+        // route add <dest> <link/endpoint>
         if (argc < 3) {
             wrong_num_args(argc, argv, 2, 3, INT_MAX);
             return TCL_ERROR;
@@ -97,16 +96,16 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         BundleConsumer* consumer = NULL;
         
         consumer = BundleDaemon::instance()->contactmgr()->find_link(name);
-        if (consumer == NULL) {
-            consumer = BundleDaemon::instance()->contactmgr()->find_peer(name);
-        }
+
+        // XXX/demmer add search by endpoint
         
         if (consumer == NULL) {
-            resultf("no such link or peer exists, %s", name);
+            resultf("no such link or next hop %s", name);
             return TCL_ERROR;
         }
-        RouteEntry* entry = new RouteEntry(dest, consumer, FORWARD_COPY);
+        
         // post the event
+        RouteEntry* entry = new RouteEntry(dest, consumer, FORWARD_COPY);
         BundleDaemon::post(new RouteAddEvent(entry));
     }
 

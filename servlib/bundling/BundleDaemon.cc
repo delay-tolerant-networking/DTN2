@@ -312,12 +312,8 @@ BundleDaemon::handle_link_available(LinkAvailableEvent* event)
     log_info("LINK_AVAILABLE *%p", event->link_);
     
     Link* link = event->link_;
-    Peer* peer = link->peer();
     ASSERT(link->isavailable());
 
-    // Move all bundles from peer queue to link queue
-    actions_->move_contents(peer, link);
-    
     // If something is queued on the link open it
     if (link->size() > 0) {
         actions_->open_link(link);
@@ -362,9 +358,6 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     
     // Move any messages from link queue to contact queue
     actions_->move_contents(link, contact);
-
-    // How about moving messages from Peer Queue to Link Queue
-    /// XXX/Sushant is this the right place to do ? or fwd_next_hop
 }
 
 /**

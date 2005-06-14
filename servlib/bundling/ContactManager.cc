@@ -45,7 +45,6 @@
 #include "BundleTuple.h"
 #include "Contact.h"
 #include "Link.h"
-#include "Peer.h"
 
 namespace dtn {
 
@@ -55,71 +54,8 @@ namespace dtn {
 ContactManager::ContactManager()
     : Logger("/contact_manager"), opportunistic_cnt_(0)
 {
-    peers_ = new PeerSet();
     links_ = new LinkSet();
 }
-
-/**********************************************
- *
- * Peer set accessor functions
- *
- *********************************************/
-void
-ContactManager::add_peer(Peer *peer)
-{
-    log_debug("adding peer %s", peer->address());
-    peers_->insert(peer);
-}
-
-void
-ContactManager::delete_peer(Peer *peer)
-{
-    log_debug("deleting peer %s", peer->address());
-    if (!has_peer(peer)) {
-        log_err("Error in deleting peer from contact manager -- "
-                "Peer %s does not exist", peer->address());
-    } else {
-        peers_->erase(peer);
-    }
-}
-
-bool
-ContactManager::has_peer(Peer *peer)
-{
-    PeerSet::iterator iter = peers_->find(peer);
-    if (iter == peers_->end())
-        return false;
-    return true;
-}
-
-/**
- * Finds peer with a given next hop admin address
- */
-Peer*
-ContactManager::find_peer(const char* address)
-{
-    bool valid;
-    AddressFamily* af = AddressFamilyTable::instance()->lookup(address, &valid);
-    if (!af || !valid) {
-        log_err("trying to find an invalid peer admin address '%s'", address);
-        return NULL;
-    }
-    
-    PeerSet::iterator iter;
-    Peer* peer = NULL;
-    ASSERT(peers_ != NULL);
-
-    for (iter = peers_->begin(); iter != peers_->end(); ++iter)
-    {
-        peer = *iter;
-        if (!strcmp(peer->address(), address)) {
-            return peer;
-        }
-    }
-
-    return NULL;
-}
-
 
 /**********************************************
  *
@@ -131,14 +67,6 @@ ContactManager::add_link(Link* link)
 {
     log_debug("adding link %s", link->name());
     links_->insert(link);
-    
-    Peer* peer = find_peer(link->nexthop());
-    if (peer == NULL) {
-        peer = new Peer(link->nexthop());
-        add_peer(peer);
-    }
-    link->peer_ = peer;
-    peer->add_link(link);
     
     BundleDaemon::post(new LinkCreatedEvent(link));
 
@@ -279,7 +207,6 @@ ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
         return NULL;
     }
 
-    // this posts a LinkCreatedEvent, adds peers and does all kinds of nice stuff
     add_link(link);
 
     return link;

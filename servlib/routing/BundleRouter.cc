@@ -50,22 +50,6 @@ namespace dtn {
 
 BundleRouter::config_t BundleRouter::Config;
 
-
-
-/*
- * Note by sushant:
- * Reasons to open a link (which is closed) in the default router implementation:
- * (note, link can be opened only if link is available)
- * 1. Link available event and Link queue has > 0 messages
- * 2. Contact_down event and link is available and queue has > 0 messages
- * 3. New message on link queue and link is available
- *
- * TODO: Peer routing semantics
- * When Link Available event arrives transfer message from peer queue
- * to Link queue
- * Also, if new message on peer queue and atleast one link is available
- */
-
 /**
  * Factory method to create the correct subclass of BundleRouter
  * for the registered algorithm type.

@@ -62,10 +62,9 @@ public:
     virtual ~BundleActions() {}
     
     /**
-     * Queue a bundle for delivery on the given next hop (i.e. a
-     * contact, peer, registration, etc). In queueing the bundle for
-     * delivery, this creates a new BundleMapping to store any router
-     * state about this decision.
+     * Queue a bundle for delivery on the given next hop. In queueing
+     * the bundle for delivery, this creates a new BundleMapping to
+     * store any router state about this decision.
      *
      * @param bundle		the bundle
      * @param nexthop		the next hop consumer
