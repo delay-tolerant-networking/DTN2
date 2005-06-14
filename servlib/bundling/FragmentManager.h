@@ -100,10 +100,29 @@ public:
     void convert_to_fragment(Bundle* bundle, size_t length);
 
     /**
+     * Given the given fragmentation threshold, determine whether the
+     * given bundle should be split into several smaller bundles. If
+     * so, this returns true and generates a bunch of bundle received
+     * events for the individual fragments.
+     *
+     * Return the number of fragments created or zero if none were
+     * created.
+     */
+    int proactively_fragment(Bundle* bundle, size_t max_length);
+
+    /**
+     * If only part of the given bundle was sent successfully, create
+     * a new fragment for the unsent portion.
+     *
+     * Return 1 if a fragment was created, 0 otherwise.
+     */
+    int reactively_fragment(Bundle* bundle, size_t bytes_sent);
+
+    /**
      * Given a newly arrived bundle fragment, append it to the table
      * of fragments and see if it allows us to reassemble the bundle.
      */
-    Bundle* process(Bundle* fragment);
+    Bundle* process_for_reassembly(Bundle* fragment);
 
  protected:
     /// Reassembly state structure

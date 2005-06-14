@@ -127,23 +127,6 @@ public:
     int refcount() { return refcount_; }
 
     /**
-     * Return the number of transmissions pending for this bundle.
-     * When this goes to zero, the bundle can be removed from the
-     * router's pending bundles list.
-     */
-    int pendingtx() { return pendingtxcount_; }
-
-    /**
-     * Bump up the pending transmissions count.
-     */
-    int add_pending();
-
-    /**
-     * Decrement the pending transmissions count.
-     */
-    int del_pending();
-
-    /**
      * Bump up the reference count. Parameters are used for logging.
      *
      * @return the new reference count
@@ -267,7 +250,6 @@ public:
                                 ///  contain the Bundle.
     
     int refcount_;		///< Bundle reference count
-    int pendingtxcount_;        ///< Number of pending transmissions left
 
 private:
     /**

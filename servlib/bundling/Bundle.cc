@@ -51,7 +51,6 @@ Bundle::init(u_int32_t id)
 {
     bundleid_		= id;
     refcount_		= 0;
-    pendingtxcount_     = 0;
     priority_		= COS_NORMAL;
     expiration_		= 0;
     custreq_		= false;
@@ -196,38 +195,6 @@ Bundle::del_ref(const char* what1, const char* what2)
               bundleid_);
     delete this;
     return 0;
-}
-
-/**
- * Bump up the pending transmission count
- */
-int
-Bundle::add_pending()
-{
-    lock_.lock();
-    ASSERT(pendingtxcount_ >= 0);
-    int ret = ++pendingtxcount_;
-    log_debug("/bundle/pending",
-              "bundle id %d: add pendingtxcount %d -> %d",
-              bundleid_, pendingtxcount_ - 1, pendingtxcount_);
-    lock_.unlock();
-    return ret;
-}
-
-/**
- * Bump down the pending transmission count
- */
-int
-Bundle::del_pending()
-{
-    lock_.lock();
-    ASSERT(pendingtxcount_ > 0);
-    int ret = --pendingtxcount_;
-    log_debug("/bundle/pending",
-              "bundle id %d: del pendingtxcount %d -> %d",
-              bundleid_, pendingtxcount_ + 1, pendingtxcount_);
-    lock_.unlock();
-    return ret;
 }
 
 /**

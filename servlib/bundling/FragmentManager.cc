@@ -251,8 +251,88 @@ FragmentManager::check_completed(ReassemblyState* state)
     }
 }
 
+int
+FragmentManager::proactively_fragment(Bundle* bundle, size_t max_length)
+{
+    size_t payload_len = bundle->payload_.length();
+    
+    if (max_length == 0 || max_length > payload_len) {
+        return 0;
+    }
+
+    log_info("proactively fragmenting "
+         "%u byte bundle into %u %u byte fragments",
+         (u_int)payload_len, (u_int)(payload_len / max_length),
+         (u_int)max_length);
+
+    Bundle* fragment;
+    size_t todo = payload_len;
+    size_t offset = 0;
+    size_t fraglen = max_length;
+    size_t count = 0;
+    
+    do {
+        if ((offset + fraglen) > payload_len) {
+            fraglen = payload_len - offset; // tail
+        }
+        ASSERT(todo >= fraglen);
+        
+        fragment = create_fragment(bundle, offset, fraglen);
+        ASSERT(fragment);
+        
+        BundleDaemon::post(
+            new BundleReceivedEvent(fragment,
+                                    EVENTSRC_FRAGMENTATION,
+                                    fraglen));
+        offset += fraglen;
+        todo -= fraglen;
+        ++count;
+        
+    } while (todo > 0);
+
+    bundle->payload_.close_file();
+    return count;
+}
+
+
+/**
+ * If only part of the given bundle was sent successfully, create
+ * a new fragment for the unsent portion.
+ *
+ * Return 1 if a fragment was created, 0 otherwise.
+ */
+int
+FragmentManager::reactively_fragment(Bundle* bundle, size_t bytes_sent)
+{
+    size_t payload_len = bundle->payload_.length();
+    
+    if (bytes_sent == payload_len)
+    {
+        return 0; // nothing to do
+    }
+    
+    size_t frag_off = bytes_sent;
+    size_t frag_len = payload_len - bytes_sent;
+
+    log_debug("creating reactive fragment (offset %u len %u/%u)",
+              (u_int)frag_off, (u_int)frag_len, (u_int)payload_len);
+    
+    Bundle* tail = create_fragment(bundle, frag_off, frag_len);
+    bundle->payload_.close_file();
+
+    // XXX/demmer temp to put it on the head of the contact list
+    tail->is_reactive_fragment_ = true;
+
+    // treat the new fragment as if it just arrived
+    BundleDaemon::post(
+        new BundleReceivedEvent(tail, EVENTSRC_FRAGMENTATION, frag_len));
+
+    return 1;
+}
+
+
 Bundle* 
-FragmentManager::process(Bundle* fragment)
+FragmentManager::process_for_reassembly(Bundle* fragment)
 {
     oasys::ScopeLock l(lock_);
 
