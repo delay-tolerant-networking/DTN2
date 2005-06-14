@@ -88,7 +88,6 @@ RouteTable::add_entry(RouteEntry* entry)
 {
     // XXC/demmer check for duplicates?
     // XXX/jakob - shouldn't be necessary since route table is a set?
-    
     log_debug("add_route %s -> %s (%s)",
               entry->pattern_.c_str(),
               entry->next_hop_->dest_str(),
@@ -201,8 +200,6 @@ RouteTable::get_matching(const BundleTuple& tuple,
 void
 RouteTable::dump(oasys::StringBuffer* buf) const
 {
-    buf->append("route table:\n");
-
     RouteEntrySet::const_iterator iter;
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         RouteEntry* entry = *iter;

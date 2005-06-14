@@ -326,8 +326,6 @@ ContactManager::new_opportunistic_contact(ConvergenceLayer* cl,
 void
 ContactManager::dump(oasys::StringBuffer* buf) const
 {
-    buf->append("contact manager info:\n");
-
     buf->append("Links:\n");
     LinkSet::iterator iter;
     Link* link = NULL;
