@@ -4,7 +4,7 @@
 source "test/dtn-test.tcl"
 
 set id [test set id]
-log prefix "$id: "
+log prefix "$id:"
 
 # Make sure the test script set the requisite variables
 if {! [info exists num_nodes]} {
