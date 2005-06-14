@@ -148,7 +148,8 @@ APIServer::accepted(int fd, in_addr_t addr, u_int16_t port)
 }
 
 APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
-    : TCPClient(fd, addr, port, "/apiclient")
+    : Thread(DELETE_ON_EXIT),
+      TCPClient(fd, addr, port, "/apiclient")
 {
     // note that we skip space for the message length and code/status
     xdrmem_create(&xdr_encode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_ENCODE);
@@ -588,6 +589,7 @@ APIClient::handle_send()
 int
 APIClient::handle_recv()
 {
+    int err;
     Bundle* b = NULL;
     APIRegistration* reg = NULL;
     dtn_bundle_spec_t spec;
@@ -613,7 +615,8 @@ APIClient::handle_recv()
         return DTN_EINVAL;
     }
 
-    log_debug("handle_recv: blocking to get bundle for registration %d (timeout %d)",
+    log_debug("handle_recv: "
+              "blocking to get bundle for registration %d (timeout %d)",
               reg->regid(), timeout);
     b = reg->bundle_list()->pop_blocking(NULL, timeout);
     
@@ -629,7 +632,9 @@ APIClient::handle_recv()
 
     memset(&spec, 0, sizeof(spec));
     memset(&payload, 0, sizeof(payload));
-    
+
+    // copyto will malloc string buffer space that needs to be freed
+    // at the end of the fn
     b->source_.copyto(&spec.source);
     b->dest_.copyto(&spec.dest);
     b->replyto_.copyto(&spec.replyto);
@@ -671,25 +676,39 @@ APIClient::handle_recv()
         
     } else {
         log_err("payload location %d not understood", location);
-        return DTN_EINVAL;
+        err = DTN_EINVAL;
+        goto done;
     }
 
     if (!xdr_dtn_bundle_spec_t(&xdr_encode_, &spec))
     {
         log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
-        return DTN_EXDR;
+        err = DTN_EXDR;
+        goto done;
     }
     
     if (!xdr_dtn_bundle_payload_t(&xdr_encode_, &payload))
     {
         log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
-        return DTN_EXDR;
+        err = DTN_EXDR;
+        goto done;
     }
 
     BundleDaemon::post(
         new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
+
+    err = DTN_SUCCESS;
     
-    return DTN_SUCCESS;
+ done:
+    // nuke our local reference on the bundle (which may delete it)
+    b->del_ref("api_client", reg->logpath());
+
+    // clean up tuple memory
+    free(spec.source.admin.admin_val);
+    free(spec.dest.admin.admin_val);
+    free(spec.replyto.admin.admin_val);
+    
+    return err;
 }
 
 } // namespace dtn
