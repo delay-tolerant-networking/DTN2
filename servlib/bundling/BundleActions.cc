@@ -68,6 +68,9 @@ BundleActions::enqueue_bundle(Bundle* bundle, BundleConsumer* nexthop,
     log_debug("enqueue bundle %d on next hop %s (type %s)",
               bundle->bundleid_, nexthop->dest_str(), nexthop->type_str());
 
+    // XXX/demmer handle reassembly
+    ASSERT(fwdaction != FORWARD_REASSEMBLE);
+
     BundleMapping mapping(fwdaction, mapping_grp, expiration, router_info);
 
     if (nexthop->is_queued(bundle)) {
