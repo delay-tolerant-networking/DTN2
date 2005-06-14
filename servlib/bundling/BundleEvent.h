@@ -122,9 +122,11 @@ event_to_str(event_type_t event)
  * Possible sources for events.
  */
 typedef enum {
-    EVENTSRC_PEER  = 1,	///< a peer router
-    EVENTSRC_APP   = 2,	///< a local application
-    EVENTSRC_STORE = 3	///< the data store
+    EVENTSRC_PEER  = 1,		///< a peer router
+    EVENTSRC_APP   = 2,		///< a local application
+    EVENTSRC_STORE = 3,		///< the data store
+    EVENTSRC_ADMIN = 4,		///< the admin logic
+    EVENTSRC_FRAGMENTATION = 5	///< the fragmentation engine
 } event_source_t;
 
 /**
