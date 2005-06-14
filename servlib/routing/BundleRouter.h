@@ -90,8 +90,8 @@ public:
     /**
      * Config variables. These must be static since they're set by the
      * config parser before the router object is created. At
-     * initialization time, the local_tuple and local_regions
-     * variables are propagated into the actual router instance.
+     * initialization time, the local_tuple variables are propagated
+     * into the actual router instance.
      */
     static struct config_t {
         std::string         type_;
