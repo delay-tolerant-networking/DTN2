@@ -40,6 +40,7 @@
 
 #include "BundleRouter.h"
 #include "LinkStateGraph.h"
+#include "reg/Registration.h"
 
 namespace dtn {
 
@@ -53,10 +54,16 @@ public:
 
     LinkStateRouter();
 
+    void handle_event(BundleEvent* event)
+    {
+        dispatch_event(event);
+    }
+
     void handle_contact_down(ContactDownEvent* event);
     void handle_contact_up(ContactUpEvent* event);
 
     void initialize();
+    void get_routing_state(oasys::StringBuffer* buf);
 
 protected:
     LinkStateGraph graph;

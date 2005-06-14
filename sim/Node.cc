@@ -97,8 +97,9 @@ Node::process_bundle_events()
     while (!eventq_->empty()) {
         event = eventq_->front();
         eventq_->pop();
-        update_statistics(event);
+        handle_event(event);
         router_->handle_event(event);
+        delete event;
     }
 }
 
@@ -120,7 +121,7 @@ Node::process(SimEvent* simevent)
 
         // Add the link to contact manager, which posts a
         // LinkCreatedEvent to the daemon
-        BundleDaemon::instance()->contactmgr()->add_link(e->link_);
+        contactmgr_->add_link(e->link_);
         
         break;
     }
@@ -140,7 +141,7 @@ Node::process(SimEvent* simevent)
 
         // XXX/demmer fix this FORWARD_COPY
         RouteEntry* entry = new RouteEntry(e->dest_, nexthop, FORWARD_COPY);
-        BundleDaemon::post(new RouteAddEvent(entry));
+        post_event(new RouteAddEvent(entry));
         break;
     }
             

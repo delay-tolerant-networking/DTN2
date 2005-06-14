@@ -55,12 +55,16 @@ namespace dtn {
  * Constructor.
  */
 FloodBundleRouter::FloodBundleRouter()
-    : all_tuples_("bundles://*/*:*")
+    : TableBasedRouter("flood"),
+      all_tuples_("bundles://*/*:*")
 {
-    log_info("FLOOD_ROUTER");
+    log_info("FloodBundleRouter initialized");
 
 //    router_stats_= new RouterStatistics(this);
 }
+
+// XXX/demmer implement me
+
 
 /**
  * Destructor
@@ -109,20 +113,16 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
 
     oasys::ScopeLock lock(pending_bundles_->lock());
     
-    // bundle is always pending until expired or acked
-    // note: ack is not implemented
-    bundle->add_pending();
-    
     //check if we already have the bundle with us ... 
     //then dont enqueue it
     // upon arrival of new contact, send all pending bundles over contact
     for (iter = pending_bundles_->begin(); 
          iter != pending_bundles_->end(); ++iter) {
         iter_bundle = *iter;
-        log_info("\tpending_bundle:%d size:%d pending:%d",
-                 iter_bundle->bundleid_, (u_int)iter_bundle->payload_.length(),
-                 iter_bundle->pendingtx());
-        if(iter_bundle->bundleid_ == bundle->bundleid_) {
+        log_info("pending_bundle:%d size:%d",
+                 iter_bundle->bundleid_, (u_int)iter_bundle->payload_.length());
+
+        if (iter_bundle->bundleid_ == bundle->bundleid_) {
             //delete the bundle
             return;
         }
@@ -147,8 +147,6 @@ FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
     Bundle* bundle = event->bundleref_.bundle();
     
-    bundle->add_pending();
-    
     //only call the fragmentation routine if we send nonzero bytes
     if(event->bytes_sent_ > 0) {
         BundleRouter::handle_bundle_transmitted(event);         
@@ -163,28 +161,6 @@ FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
     //Contact * contact = (Contact *)event->consumer_;
     //contact->enqueue_bundle(NULL, FORWARD_UNIQUE);
     
-}
-
-
-/**
- * Default event handler when a new application registration
- * arrives.
- *
- * Adds an entry to the route table for the new registration, then
- * walks the pending list to see if any bundles match the
- * registration.
- */
-void
-FloodBundleRouter::handle_registration_added(RegistrationAddedEvent* event)
-{
-    Registration* registration = event->registration_;
-    log_info("FLOOD: new registration for %s", registration->endpoint().c_str());
-
-    RouteEntry* entry = new RouteEntry(registration->endpoint(),
-                                       registration, FORWARD_REASSEMBLE);
-    route_table_->add_entry(entry);
- 
-    //BundleRouter::handle_registration_added(event,actions_);
 }
 
 /**
@@ -234,12 +210,6 @@ FloodBundleRouter::handle_contact_down(ContactDownEvent* event)
     //contact->close();
 }
 
-void
-FloodBundleRouter::handle_route_add(RouteAddEvent* event)
-{
-    BundleRouter::handle_route_add(event);     
-}
-
 /**
  * Called whenever a new consumer (i.e. registration or contact)
  * arrives. This should walk the list of unassigned bundles (or
@@ -266,8 +236,7 @@ FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
 
 
 int
-FloodBundleRouter::fwd_to_matching(
-                    Bundle* bundle, bool include_local)
+FloodBundleRouter::fwd_to_matching(Bundle* bundle, bool include_local)
 {
     RouteEntry* entry;
     RouteEntrySet matches;
@@ -288,7 +257,6 @@ FloodBundleRouter::fwd_to_matching(
         
         actions_->enqueue_bundle(bundle, entry->next_hop_, entry->action_);
         ++count;
-        bundle->add_pending();
     }
 
     log_info("FLOOD: local_fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);

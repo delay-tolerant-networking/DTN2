@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2005 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,75 +35,99 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _FLOOD_BUNDLE_ROUTER_H_
-#define _FLOOD_BUNDLE_ROUTER_H_
+#ifndef _TABLE_BASED_ROUTER_H_
+#define _TABLE_BASED_ROUTER_H_
 
-#include "TableBasedRouter.h"
+#include "BundleRouter.h"
 
 namespace dtn {
 
+class RouteTable;
+
 /**
  * This is the implementation of the basic bundle routing algorithm
- * that only does flood routing. Routes can be parsed from a
+ * that only does static routing. Routes can be parsed from a
  * configuration file or injected via the command line and/or
  * management interfaces.
  *
  * As a result, the class simply uses the default base class handlers
  * for all bundle events that flow through it, and the only code here
- * is that which parses the flood route configuration file.
+ * is that which parses the static route configuration file.
  */
  
-class FloodBundleRouter : public TableBasedRouter {
-public:
-    FloodBundleRouter();
-    ~FloodBundleRouter();
-    
-    const int id() { return id_;}
+class TableBasedRouter : public BundleRouter {
 protected:
-    int id_;
     /**
-     * Default event handler for new bundle arrivals.
-     *
-     * Queue the bundle on the pending delivery list, and then
-     * searches through the route table to find any matching next
-     * contacts, filling in the action list with forwarding decisions.
+     * Constructor -- protected since this class is never instantiated
+     * by itself.
+     */
+    TableBasedRouter(const std::string& name);
+
+    /**
+     * Event handler overridden from BundleRouter / BundleEventHandler
+     * that dispatches to the type specific handlers where
+     * appropriate.
+     */
+    void handle_event(BundleEvent* event);
+
+    /**
+     * Handler for new bundle arrivals simply forwards the newly arrived
+     * bundle to all matching entries in the table.
      */
     void handle_bundle_received(BundleReceivedEvent* event);
     
     /**
-     * Default event handler when bundles are transmitted.
+     * Default event handler when a new route is added by the command
+     * or management interface.
      *
-     * If the bundle was only partially transmitted, this calls into
-     * the fragmentation module to create a new bundle fragment and
-     * enqeues the new fragment on the appropriate list.
+     * Adds an entry to the route table, then walks the pending list
+     * to see if any bundles match the new route.
      */
-    void handle_bundle_transmitted(BundleTransmittedEvent* event);
+    void handle_route_add(RouteAddEvent* event);
 
     /**
-     * Default event handler when a link is created.
+     * Dump the routing state.
      */
-    void handle_link_created(LinkCreatedEvent* event);
+    void get_routing_state(oasys::StringBuffer* buf);
+    ///@}
     
     /**
-     * Default event handler when a contact is down
+     * Add a route entry to the routing table. 
      */
-    void handle_contact_down(ContactDownEvent* event);
+    void add_route(RouteEntry *entry);
+
+    /**
+     * Add an action to forward a bundle to a next hop route, making
+     * sure to do reassembly if the forwarding action specifies as
+     * such.
+     */
+    virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop);
+     
     
+    /**
+     * Call fwd_to_matching for all matching entries in the routing
+     * table.
+     *
+     * Note that if the include_local flag is set, then local routes
+     * (i.e. registrations) are included in the list.
+     *
+     * Returns the number of matches found and assigned.
+     */
+    virtual int fwd_to_matching(Bundle* bundle, 
+                                bool include_local);
+
     /**
      * Called whenever a new consumer (i.e. registration or contact)
-     * arrives. This should walk the list of unassigned bundles (or
-     * maybe all bundles???) to see if the new consumer matches.
+     * arrives. This walks the list of all pending bundles, forwarding
+     * all matches to the new contact.
      */
-    void new_next_hop(const BundleTuplePattern& dest,
-                      BundleConsumer* next_hop);
+    virtual void new_next_hop(const BundleTuplePattern& dest,
+                              BundleConsumer* next_hop);
 
-
-    int fwd_to_matching(Bundle *bundle, bool include_local);
-
-protected:
-    BundleTuplePattern all_tuples_;
+    /// The static routing table
+    RouteTable* route_table_;
 };
 
 } // namespace dtn
 
-#endif /* _FLOOD_BUNDLE_ROUTER_H_ */
+#endif /* _TABLE_BASED_ROUTER_H_ */

@@ -12,6 +12,7 @@ BUNDLING_SRCS := 				\
 	bundling/BundleActions.cc		\
 	bundling/BundleConsumer.cc		\
 	bundling/BundleDaemon.cc		\
+	bundling/BundleEventHandler.cc		\
 	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
@@ -64,12 +65,13 @@ REGISTRATION_SRCS :=				\
 	reg/TclRegistration.cc			\
 
 ROUTING_SRCS :=					\
-	routing/RouteTable.cc			\
 	routing/BundleRouter.cc			\
 	routing/FloodBundleRouter.cc		\
 	routing/NeighborhoodRouter.cc		\
 	routing/LinkStateGraph.cc		\
 	routing/LinkStateRouter.cc		\
+	routing/RouteTable.cc			\
+	routing/TableBasedRouter.cc		\
 
 OLD_STORAGE_SRCS :=				\
 	storage/GlobalStore.cc			\

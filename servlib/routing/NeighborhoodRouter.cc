@@ -52,9 +52,12 @@
 namespace dtn {
 
 NeighborhoodRouter::NeighborhoodRouter()
+    : TableBasedRouter("neighborhood")
 {
     Logger::set_logpath("/route/neighborhood");
     log_info("Initializing NeighborhoodRouter");
+
+    route_table_ = new RouteTable();
 }
 
 void
@@ -71,7 +74,7 @@ NeighborhoodRouter::handle_contact_up(ContactUpEvent* event)
     // By default, we add a route for all the next hops we have around. 
     RouteEntry* entry = new RouteEntry(BundleTuplePattern(tuplestring), 
                                        event->contact_, 
-                                       FORWARD_REASSEMBLE);    
+                                       FORWARD_UNIQUE);
     add_route(entry);
     
 }

@@ -38,11 +38,11 @@
 #ifndef _NEIGHBORHOOD_ROUTER_H_
 #define _NEIGHBORHOOD_ROUTER_H_
 
-#include "BundleRouter.h"
+#include "TableBasedRouter.h"
 
 namespace dtn {
 
-class NeighborhoodRouter : public BundleRouter {
+class NeighborhoodRouter : public TableBasedRouter {
 public:
     NeighborhoodRouter();
 

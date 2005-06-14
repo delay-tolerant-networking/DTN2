@@ -44,6 +44,7 @@
 #include <oasys/util/StringUtils.h>
 
 #include "bundling/BundleEvent.h"
+#include "bundling/BundleEventHandler.h"
 #include "bundling/BundleTuple.h"
 
 namespace dtn {
@@ -51,7 +52,6 @@ namespace dtn {
 class BundleActions;
 class BundleConsumer;
 class BundleRouter;
-class RouteTable;
 class StringBuffer;
 
 /**
@@ -79,7 +79,7 @@ typedef std::vector<BundleRouter*> BundleRouterList;
  * active routing algorithm. As new algorithms are added to the
  * system, new cases should be added to the "create_router" function.
  */
-class BundleRouter : public oasys::Logger {
+class BundleRouter : public BundleEventHandler {
 public:
     /**
      * Factory method to create the correct subclass of BundleRouter
@@ -95,15 +95,9 @@ public:
      */
     static struct config_t {
         std::string         type_;
-        oasys::StringVector local_regions_;
         BundleTuple         local_tuple_;
     } Config;
     
-    /**
-     * Constructor
-     */
-    BundleRouter();
-
     /**
      * Destructor
      */
@@ -115,32 +109,16 @@ public:
     virtual void initialize();
 
     /**
-     * Accessor for the route table.
+     * Pure virtual event handler function (copied from
+     * BundleEventHandler for clarity).
      */
-    const RouteTable* route_table() { return route_table_; }
-
+    virtual void handle_event(BundleEvent* event) = 0;
+    
     /**
-     * The monster routing decision function that is called in
-     * response to all received events.
-     *
-     * To actually effect actions, this function should populate the
-     * given action list with all forwarding decisions. The
-     * BundleDaemon then takes these instructions and causes them
-     * to happen.
-     *
-     * The base class implementation does a dispatch on the event type
-     * and calls the appropriate default handler function.
+     * Format the given StringBuffer with current routing info.
      */
-    virtual void handle_event(BundleEvent* event);
-
-    /// XXX/demmer temp for testing fragmentation
-    static size_t proactive_frag_threshold_;
-
-    /**
-     * Accessor for the vector of local regions.
-     */
-    oasys::StringVector* local_regions() { return &local_regions_; }
-
+    virtual void get_routing_state(oasys::StringBuffer* buf) = 0;
+    
     /**
      * Accessor for the local tuple.
      */
@@ -152,125 +130,16 @@ public:
     void set_local_tuple(const char* tuple_str) {
         local_tuple_.assign(tuple_str);
     }
-    
+
 protected:
     /**
-     * Default event handler for new bundle arrivals.
-     *
-     * Queue the bundle on the pending delivery list, and then
-     * searches through the route table to find any matching next
-     * contacts, filling in the action list with forwarding decisions.
+     * Constructor
      */
-    virtual void handle_bundle_received(BundleReceivedEvent* event);
+    BundleRouter(const std::string& name);
+
+    /// Name of this particular router
+    std::string name_;
     
-    /**
-     * Default event handler when bundles are transmitted.
-     *
-     * If the bundle was only partially transmitted, this calls into
-     * the fragmentation module to create a new bundle fragment and
-     * enqeues the new fragment on the appropriate list.
-     */
-    virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
-
-    /**
-     * Default event handler when a new application registration
-     * arrives.
-     *
-     * Adds an entry to the route table for the new registration, then
-     * walks the pending list to see if any bundles match the
-     * registration.
-     */
-    virtual void handle_registration_added(RegistrationAddedEvent* event);
-    
-    /**
-     * Default event handler when a new contact is up.
-     */
-    virtual void handle_contact_up(ContactUpEvent* event);
-    
-    /**
-     * Default event handler when a contact is down.
-     */
-    virtual void handle_contact_down(ContactDownEvent* event);
-
-    /**
-     * Default event handler when a new link is created.
-     */
-    virtual void handle_link_created(LinkCreatedEvent* event);
-    
-    /**
-     * Default event handler when a link is deleted.
-     */
-    virtual void handle_link_deleted(LinkDeletedEvent* event);
-
-    /**
-     * Default event handler when link becomes available
-     */
-    virtual void handle_link_available(LinkAvailableEvent* event);    
-
-    /**
-     * Default event handler when a link is unavailable
-     */
-    virtual void handle_link_unavailable(LinkUnavailableEvent* event);
-
-    /**
-     * Default event handler when reassembly is completed. For each
-     * bundle on the list, check the pending count to see if the
-     * fragment can be deleted.
-     */
-    virtual void handle_reassembly_completed(ReassemblyCompletedEvent* event);
-    
-    /**
-     * Default event handler when a new route is added by the command
-     * or management interface.
-     *
-     * Adds an entry to the route table, then walks the pending list
-     * to see if any bundles match the new route.
-     */
-    virtual void handle_route_add(RouteAddEvent* event);
-
-    /**
-     * Add an action to forward a bundle to a next hop route, making
-     * sure to do reassembly if the forwarding action specifies as
-     * such.
-     */
-    virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop);
-     
-    
-    /**
-     * Call fwd_to_matching for all matching entries in the routing
-     * table.
-     *
-     * Note that if the include_local flag is set, then local routes
-     * (i.e. registrations) are included in the list.
-     *
-     * Returns the number of matches found and assigned.
-     */
-    virtual int fwd_to_matching(Bundle* bundle, 
-                                bool include_local);
-
-    /**
-     * Called whenever a new consumer (i.e. registration or contact)
-     * arrives. This walks the list of all pending bundles, forwarding
-     * all matches to the new contact.
-     */
-    virtual void new_next_hop(const BundleTuplePattern& dest,
-                              BundleConsumer* next_hop);
-
-    /**
-     * Delete the given bundle from the pending list (assumes the
-     * pending count is zero).
-     */
-    void delete_from_pending(Bundle* bundle);
-
-
-    /**
-     * Add a route entry to the routing table. 
-     */
-    void add_route(RouteEntry *entry);
-
-    /// The set of local regions that this router is configured as "in".
-    oasys::StringVector local_regions_;
-
     /**
      * The default tuple for reaching this router, used for bundle
      * status reports, etc. Note that the region must be one of the
@@ -278,9 +147,6 @@ protected:
      */
     BundleTuple local_tuple_;
     
-    /// The routing table
-    RouteTable* route_table_;
-
     /// The list of all bundles still pending delivery
     BundleList* pending_bundles_;
 
@@ -290,6 +156,7 @@ protected:
     /// The actions interface, set by the BundleDaemon when the router
     /// is initialized.
     BundleActions* actions_;
+    
 };
 
 } // namespace dtn

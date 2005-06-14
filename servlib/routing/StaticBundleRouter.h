@@ -38,9 +38,11 @@
 #ifndef _STATIC_BUNDLE_ROUTER_H_
 #define _STATIC_BUNDLE_ROUTER_H_
 
-#include "BundleRouter.h"
+#include "TableBasedRouter.h"
 
 namespace dtn {
+
+class RouteTable;
 
 /**
  * This is the implementation of the basic bundle routing algorithm
@@ -48,14 +50,13 @@ namespace dtn {
  * configuration file or injected via the command line and/or
  * management interfaces.
  *
- * As a result, the class simply uses the default base class handlers
- * for all bundle events that flow through it, and the only code here
- * is that which parses the static route configuration file.
+ * As a result, the class simply uses the default event handlers from
+ * the table based router implementation.
  */
  
-class StaticBundleRouter : public BundleRouter {
+class StaticBundleRouter : public TableBasedRouter {
 public:
-    StaticBundleRouter() {}
+    StaticBundleRouter() : TableBasedRouter("static") {}
 };
 
 } // namespace dtn

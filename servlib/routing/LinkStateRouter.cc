@@ -57,10 +57,9 @@ namespace dtn {
 #define ROUTER_EID "flood://BS/string://linkstate.router"
 
 LinkStateRouter::LinkStateRouter()
+    : BundleRouter("linkstate")
 {
-    Logger::set_logpath("/route/linkstate");
-    log_info("Initializing LinkStateRouter");
-
+    log_info("initializing LinkStateRouter");
 }
 
 void 
@@ -131,11 +130,19 @@ LinkStateRouter::fwd_to_matching(Bundle* bundle, bool include_local)
 
     actions_->enqueue_bundle(bundle, 
                              l,
-                             FORWARD_REASSEMBLE,  //XXX/jakob - just making stuff up here...
+                             FORWARD_UNIQUE,  //XXX/jakob - just making stuff up here...
                              0); //XXX/jakob - again, I have no clue what I'm doing            
     
     return 1;
 }
+
+void
+LinkStateRouter::get_routing_state(oasys::StringBuffer* buf)
+{
+    buf->appendf("Link state router:");
+    buf->appendf("XXX/jacob TODO");
+}
+
 
 void
 LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge)

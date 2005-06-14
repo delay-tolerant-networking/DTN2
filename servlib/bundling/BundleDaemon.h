@@ -46,13 +46,16 @@
 #include <oasys/thread/MsgQueue.h>
 #include <oasys/util/StringBuffer.h>
 
+#include "BundleEvent.h"
+#include "BundleEventHandler.h"
+#include "BundleProtocol.h"
+
 namespace dtn {
 
 class Bundle;
 class BundleAction;
 class BundleActions;
 class BundleConsumer;
-class BundleEvent;
 class BundleList;
 class BundleRouter;
 class ContactManager;
@@ -65,7 +68,7 @@ class FragmentManager;
  * BundleActions class that it is given, which in turn effect all the
  * operations.
  */
-class BundleDaemon : public oasys::Logger, public oasys::Thread {
+class BundleDaemon : public BundleEventHandler, public oasys::Thread {
 public:
     /**
      * Singleton accessor.
@@ -109,8 +112,8 @@ public:
     static void post(BundleEvent* event);
 
     /**
-     * Virtual post function, overridden in the simulator to use the
-     * modified event queue.
+     * Virtual post_event function, overridden by the Node class in
+     * the simulator to use a modified event queue.
      */
     virtual void post_event(BundleEvent* event);
 
@@ -144,11 +147,6 @@ public:
     FragmentManager* fragmentmgr() { return fragmentmgr_; }
 
     /**
-     * Format the given StringBuffer with the current statistics value.
-     */
-    void get_statistics(oasys::StringBuffer* buf);
-
-    /**
      * Accessor for the pending bundles list.
      */
     BundleList* pending_bundles() { return pending_bundles_; }
@@ -158,12 +156,68 @@ public:
      */
     BundleList* custody_bundles() { return custody_bundles_; }
     
+    /**
+     * Format the given StringBuffer with current routing info.
+     */
+    void get_routing_state(oasys::StringBuffer* buf);
+
+    /**
+     * Format the given StringBuffer with the current statistics value.
+     */
+    void get_statistics(oasys::StringBuffer* buf);
+
+    
+    /// XXX/demmer temp for testing fragmentation
+    static size_t proactive_frag_threshold_;
+    
 protected:
     /**
      * Main thread function that dispatches events.
      */
     void run();
 
+    /**
+     * Main event handling function.
+     */
+    void handle_event(BundleEvent* event);
+
+    /// @{
+    /**
+     * Event type specific handlers.
+     */
+    void handle_bundle_received(BundleReceivedEvent* event);
+    void handle_bundle_transmitted(BundleTransmittedEvent* event);
+    void handle_registration_added(RegistrationAddedEvent* event);
+    void handle_contact_up(ContactUpEvent* event);
+    void handle_contact_down(ContactDownEvent* event);
+    void handle_link_available(LinkAvailableEvent* event);    
+    void handle_link_unavailable(LinkUnavailableEvent* event);
+    void handle_reassembly_completed(ReassemblyCompletedEvent* event);
+    ///@}
+
+    typedef BundleProtocol::status_report_flag_t status_report_flag_t;
+    
+    /**
+     * Locally generate a status report for the given bundle.
+     */
+    void generate_status_report(Bundle* bundle, status_report_flag_t flag);
+    
+    /**
+     * Remove the bundle from the pending list.
+     */
+    void delete_from_pending(Bundle* bundle);
+        
+    /**
+     * Deliver the bundle to the given registration
+     */
+    void deliver_to_registration(Bundle* bundle, Registration* registration);
+    
+    /**
+     * Check the registration table and deliver the bundle to any that
+     * match.
+     */
+    void check_registrations(Bundle* bundle);
+    
     /**
      * Update statistics based on the event arrival.
      */
@@ -192,10 +246,10 @@ protected:
 
     /// Statistics
     u_int32_t bundles_received_;
-    u_int32_t bundles_sent_local_;
-    u_int32_t bundles_sent_remote_;
+    u_int32_t bundles_delivered_;
+    u_int32_t bundles_transmitted_;
     u_int32_t bundles_expired_;
-    
+
     static BundleDaemon* instance_;
 };
 
