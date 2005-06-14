@@ -385,11 +385,6 @@ APIClient::handle_register()
     } else {
         u_int32_t regid = GlobalStore::instance()->next_regid();
         reg = new APIRegistration(regid, endpoint, action);
-        if (! RegistrationTable::instance()->add(reg)) {
-            log_err("unexpected error adding registration");
-            return DTN_EINTERNAL;
-        }
-        
         BundleDaemon::post(new RegistrationAddedEvent(reg));
     }
 
@@ -424,7 +419,7 @@ APIClient::handle_bind()
     tuple.assign(&endpoint);
 
     // look up the registration
-    RegistrationTable* regtable = RegistrationTable::instance();
+    RegistrationTable* regtable = BundleDaemon::instance()->reg_table();
     Registration* reg = regtable->get(regid, tuple);
 
     if (!reg) {

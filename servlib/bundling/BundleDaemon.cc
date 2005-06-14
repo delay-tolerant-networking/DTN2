@@ -67,6 +67,7 @@ BundleDaemon::BundleDaemon()
 
     contactmgr_ = new ContactManager();
     fragmentmgr_ = new FragmentManager();
+    reg_table_ = new RegistrationTable();
 
     router_ = 0;    
 }
@@ -172,14 +173,11 @@ BundleDaemon::check_registrations(Bundle* bundle)
 {
     log_debug("checking for matching registrations for bundle *%p", bundle);
 
-    // XXX/demmer for the simulator to work, this needs to no longer
-    // be a singleton
-
-    RegistrationTable* registrations = RegistrationTable::instance();
     RegistrationList matches;
-    registrations->get_matching(bundle->dest_, &matches);
-
     RegistrationList::iterator iter;
+
+    reg_table_->get_matching(bundle->dest_, &matches);
+    
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
         Registration* registration = *iter;
@@ -275,9 +273,9 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 }
 
 /**
- * When a new application registration arrives, walk the pending list
- * to see if there are any bundles that need delivery to the given
- * registration.
+ * When a new application registration arrives, add it to the
+ * registration table and then walk the pending list to see if there
+ * are any bundles that need delivery to the given registration.
  */
 void
 BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
@@ -285,6 +283,10 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
     Registration* registration = event->registration_;
     log_debug("new registration for %s", registration->endpoint().c_str());
 
+    if (! reg_table_->add(registration)) {
+        log_err("unexpected error adding registration to table");
+    }
+    
     oasys::ScopeLock l(pending_bundles_->lock());
 
     BundleList::iterator iter;

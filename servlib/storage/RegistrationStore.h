@@ -103,10 +103,9 @@ public:
     ~RegistrationStore();
 
     /**
-     * Load in the whole database of registrations, populating the
-     * given list.
+     * Load in the database of registrations.
      */
-    void load(RegistrationList* reg_list);
+    void load();
 
     /**
      * Close (and flush) the data store.

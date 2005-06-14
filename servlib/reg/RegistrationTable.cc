@@ -43,9 +43,7 @@
 
 namespace dtn {
 
-RegistrationTable* RegistrationTable::instance_ = NULL;
-
-RegistrationTable::RegistrationTable(RegistrationStore* store)
+RegistrationTable::RegistrationTable()
     : Logger("/registration")
 {
 }
@@ -54,17 +52,6 @@ RegistrationTable::~RegistrationTable()
 {
     NOTREACHED;
 }
-
-/**
- * Load in the registration table.
- */
-bool
-RegistrationTable::load()
-{
-    RegistrationStore::instance()->load(&reglist_);
-    return true;
-}
-
 
 /**
  * Internal method to find the location of the given registration.
@@ -78,7 +65,9 @@ RegistrationTable::find(u_int32_t regid, const BundleTuple& endpoint,
     for (*iter = reglist_.begin(); *iter != reglist_.end(); ++(*iter)) {
         reg = *(*iter);
         
-        if ((reg->regid() == regid) && (reg->endpoint().compare(endpoint) == 0)) {
+        if ((reg->regid() == regid) &&
+            (reg->endpoint().compare(endpoint) == 0))
+        {
             return true;
         }
     }
@@ -199,7 +188,7 @@ RegistrationTable::get_matching(const BundleTuple& demux,
     Registration* reg;
 
     log_debug("get_matching %s", demux.c_str());
-    
+
     for (iter = reglist_.begin(); iter != reglist_.end(); ++iter) {
         reg = *iter;
 
@@ -211,6 +200,7 @@ RegistrationTable::get_matching(const BundleTuple& demux,
         }
     }
 
+    log_debug("get_matching %s: returned %d matches", demux.c_str(), count);
     return count;
 }
 

@@ -60,6 +60,7 @@ class BundleList;
 class BundleRouter;
 class ContactManager;
 class FragmentManager;
+class RegistrationTable;
 
 /**
  * Class that handles the basic event / action mechanism. All events
@@ -145,6 +146,11 @@ public:
      * Accessor for the fragmentation manager.
      */
     FragmentManager* fragmentmgr() { return fragmentmgr_; }
+
+    /**
+     * Accessor for the registration table.
+     */
+    RegistrationTable* reg_table() { return reg_table_; }
 
     /**
      * Accessor for the pending bundles list.
@@ -234,6 +240,9 @@ protected:
 
     /// The fragmentation / reassembly manager
     FragmentManager* fragmentmgr_;
+
+    /// The table of active registrations
+    RegistrationTable* reg_table_;
 
     /// The list of all bundles still pending delivery
     BundleList* pending_bundles_;

@@ -181,11 +181,6 @@ LinkStateRouter::LSRegistration::LSRegistration()
                    ABORT)
 {
     logpathf("/reg/admin");
-
-    if (! RegistrationTable::instance()->add(this)) {
-        PANIC("unexpected error adding linkstate registration to table");
-    }
-
     BundleDaemon::post(new RegistrationAddedEvent(this));
 }
 

@@ -46,50 +46,21 @@
 
 namespace dtn {
 
-class RegistrationStore;
-
 /**
  * Class for the in-memory registration table. All changes to the
- * table are made persistent via the abstract RegistrationStore
- * interface.
+ * table are made persistent via the RegistrationStore.
  */
 class RegistrationTable : public oasys::Logger {
 public:
     /**
-     * Singleton instance accessor.
-     */
-    static RegistrationTable* instance() {
-        if (instance_ == NULL) {
-            PANIC("RegistrationTable::init not called yet");
-        }
-        return instance_;
-    }
-
-    /**
-     * Boot time initializer that takes as a parameter the actual
-     * storage instance to use.
-     */
-    static void init(RegistrationStore* store) {
-        if (instance_ != NULL) {
-            PANIC("RegistrationTable::init called multiple times");
-        }
-        instance_ = new RegistrationTable(store);
-    }
-
-    /**
      * Constructor
      */
-    RegistrationTable(RegistrationStore* store);
+    RegistrationTable();
 
     /**
      * Destructor
      */
     virtual ~RegistrationTable();
-
-    /**
-     * Load in the registration table.
-     */
-    bool load();
 
     /**
      * Add a new registration to the database. Returns true if the
@@ -136,15 +107,13 @@ public:
     void dump(oasys::StringBuffer* buf) const;
 
 protected:
-    static RegistrationTable* instance_;
-    
     /**
      * Internal method to find the location of the given registration.
      */
     bool find(u_int32_t regid,
               const BundleTuple& endpoint,
               RegistrationList::iterator* iter);
-    
+
     /**
      * All registrations are tabled in-memory in a flat list. It's
      * non-obvious what else would be better since we need to do a

@@ -71,9 +71,9 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     if (strcmp(op, "list") == 0 || strcmp(op, "dump") == 0) {
         oasys::StringBuffer buf;
-        RegistrationTable::instance()->dump(&buf);
+        BundleDaemon::instance()->reg_table()->dump(&buf);
         set_result(buf.c_str());
-    return TCL_OK;
+        return TCL_OK;
         
     } else if (strcmp(op, "add") == 0) {
         // registration add <logger|tcl> <demux> <args...>
@@ -107,18 +107,13 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         ASSERT(reg);
 
-        if (! RegistrationTable::instance()->add(reg)) {
-            resultf("unexpected error adding registration to table");
-            return TCL_ERROR;
-        }
-
         BundleDaemon::post(new RegistrationAddedEvent(reg));
         
         resultf("%d", reg->regid());
         return TCL_OK;
         
-    } else if (strcmp(op, "del") ==0) {
-        RegistrationTable* regtable = RegistrationTable::instance();
+    } else if (strcmp(op, "del") == 0) {
+        RegistrationTable* regtable = BundleDaemon::instance()->reg_table();
 
         const char* regid_str = argv[2];
         int regid = atoi(regid_str);
@@ -142,7 +137,7 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         int regid = atoi(regid_str);
         const char* endpoint = argv[3];
 
-        RegistrationTable* regtable = RegistrationTable::instance();
+        RegistrationTable* regtable = BundleDaemon::instance()->reg_table();
         TclRegistration* reg;
         reg = (TclRegistration*)regtable->get(regid, endpoint);
 

@@ -71,11 +71,10 @@ RegistrationStore::~RegistrationStore()
 }
 
 /**
- * Load in the whole database of registrations, populating the
- * given list.
+ * Load in the database of registrations.
  */
 void
-RegistrationStore::load(RegistrationList* reg_list)
+RegistrationStore::load()
 {
 #ifdef __REG_STORE_ENABLED__ 
     std::vector<int> ids;

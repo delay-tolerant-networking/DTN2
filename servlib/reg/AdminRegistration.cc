@@ -53,10 +53,6 @@ AdminRegistration::AdminRegistration()
 {
     logpathf("/reg/admin");
 
-    if (! RegistrationTable::instance()->add(this)) {
-        PANIC("unexpected error adding admin registration to table");
-    }
-
     BundleDaemon::post(new RegistrationAddedEvent(this));
 }
 

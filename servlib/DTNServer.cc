@@ -109,20 +109,18 @@ DTNServer::start()
 
     BundleDaemon* daemon = BundleDaemon::instance();
     daemon->set_router(router);
-    daemon->start();
 
-    // create the registration table and the default administrative
-    // registration (which registers itself)
-    RegistrationTable::init(RegistrationStore::instance());
-    new AdminRegistration();
-    
     // This has to be first because it checks for datastore version
     GlobalStore::instance()->load(); 
-
-    RegistrationTable::instance()->load();
     BundleStore::instance()->load();
+    RegistrationStore::instance()->load();
+    
+    // create the administrative registration
+    new AdminRegistration();
 
     router->initialize();
+    
+    daemon->start();
     log_debug("started dtn server");
 }
 
