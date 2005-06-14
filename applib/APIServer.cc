@@ -487,7 +487,7 @@ APIClient::handle_send()
     
     // the priority code
     switch (spec.priority) {
-#define COS(_cos) case _cos: b->priority_ = _cos; break;
+#define COS(_cos) case _cos: b->priority_ = Bundle::_cos; break;
         COS(COS_BULK);
         COS(COS_NORMAL);
         COS(COS_EXPEDITED);
