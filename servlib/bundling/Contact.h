@@ -68,7 +68,7 @@ public:
     /**
      * Consume the bundle and send it out.
      */
-    void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
+    void consume_bundle(Bundle* bundle);
     
     /**
      * Accessor to this contact's convergence layer.
@@ -105,6 +105,16 @@ public:
      * Virtual from formatter
      */
     int format(char* buf, size_t sz);
+
+    /**
+     * Return the bundle list (a blocking one in fact).
+     * XXX/demmer get rid of me
+     */
+    BlockingBundleList* xxx_bundle_list()
+    {
+        return (BlockingBundleList*)bundle_list_;
+    }
+    
     
 protected:
     Link* link_ ; 	///< Pointer to parent link on which this

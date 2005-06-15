@@ -1335,13 +1335,16 @@ TCPConvergenceLayer::Connection::send_loop()
 
     // from now on, all our operations will use non-blocking semantics
     sock_->set_nonblocking(true);
+
+    // grab the blocking bundle list
+    BlockingBundleList* contact_list = contact_->xxx_bundle_list();
     
     // build up a poll vector since we need to block below on input
     // from both the socket and the bundle list notifier
     struct pollfd pollfds[2];
-    
+
     struct pollfd* bundle_poll = &pollfds[0];
-    bundle_poll->fd = contact_->bundle_list()->read_fd();
+    bundle_poll->fd = contact_list->notifier()->read_fd();
     bundle_poll->events = POLLIN;
     
     struct pollfd* sock_poll = &pollfds[1];
@@ -1470,7 +1473,7 @@ TCPConvergenceLayer::Connection::send_loop()
         if (bundle_poll->revents != 0) {
             ASSERT(bundle_poll->revents == POLLIN);
             ASSERT(contact_->bundle_list()->front() != NULL);
-            contact_->bundle_list()->drain_pipe();
+            contact_list->notifier()->drain_pipe();
         }
 
         // if nready is zero then the command timed out, implying that

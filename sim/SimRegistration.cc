@@ -58,8 +58,7 @@ SimRegistration::SimRegistration(Node* node, const BundleTuple& demux_tuple)
 }
 
 void
-SimRegistration::consume_bundle(Bundle* bundle,
-                                const BundleMapping* mapping)
+SimRegistration::consume_bundle(Bundle* bundle)
 {
     size_t payload_len = bundle->payload_.length();
 

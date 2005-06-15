@@ -186,8 +186,7 @@ LinkStateRouter::LSRegistration::LSRegistration()
 }
 
 void
-LinkStateRouter::LSRegistration::consume_bundle(Bundle* bundle,
-                                                const BundleMapping* mapping)
+LinkStateRouter::LSRegistration::consume_bundle(Bundle* bundle)
 {
     u_char typecode;      
 

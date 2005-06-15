@@ -40,7 +40,6 @@
 
 #include <vector>
 #include <oasys/debug/Log.h>
-#include "BundleMapping.h"
 
 namespace dtn {
 
@@ -49,6 +48,31 @@ class BundleList;
 class BundleConsumer;
 class Link;
 class RouterInfo;
+
+/**
+ * Various forwarding actions
+ */
+typedef enum {
+    FORWARD_INVALID = 0,///< Invalid action
+    
+    FORWARD_UNIQUE,	///< Forward the bundle only to one next hop
+    FORWARD_COPY,	///< Forward a copy of the bundle
+    FORWARD_FIRST,	///< Forward to the first of a set
+    FORWARD_REASSEMBLE	///< First reassemble fragments (if any) then forward
+} bundle_fwd_action_t;
+
+inline const char*
+bundle_fwd_action_toa(bundle_fwd_action_t action)
+{
+    switch(action) {
+    case FORWARD_UNIQUE:	return "FORWARD_UNIQUE";
+    case FORWARD_COPY:		return "FORWARD_COPY";
+    case FORWARD_FIRST:		return "FORWARD_FIRST";
+    case FORWARD_REASSEMBLE:	return "FORWARD_REASSEMBLE";
+    default:
+        NOTREACHED;
+    }
+}
 
 /**
  * Intermediary class that provides the interface from the router to
@@ -62,9 +86,9 @@ public:
     virtual ~BundleActions() {}
     
     /**
-     * Queue a bundle for delivery on the given next hop. In queueing
-     * the bundle for delivery, this creates a new BundleMapping to
-     * store any router state about this decision.
+     * Queue a bundle for delivery on the given next hop.
+     *
+     * XXX/demmer change arguments
      *
      * @param bundle		the bundle
      * @param nexthop		the next hop consumer

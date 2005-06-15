@@ -59,7 +59,7 @@ LoggingRegistration::LoggingRegistration(const BundleTuplePattern& endpoint)
 }
 
 void
-LoggingRegistration::consume_bundle(Bundle* b, const BundleMapping* m)
+LoggingRegistration::consume_bundle(Bundle* b)
 {
     log_info("BUNDLE: id %d priority %s dopts: [%s %s %s %s %s]",
              b->bundleid_, Bundle::prioritytoa(b->priority_),

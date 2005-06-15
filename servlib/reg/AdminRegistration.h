@@ -52,9 +52,9 @@ public:
     AdminRegistration();
 
     /**
-     * Consume the given bundle, queueing it if required.
+     * Consume the given bundle.
      */
-    void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
+    void consume_bundle(Bundle* bundle);
 };
 
 } // namespace dtn

@@ -128,7 +128,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
         }
     }
     
-    pending_bundles_->push_back(bundle, NULL);
+    pending_bundles_->push_back(bundle);
     if (event->source_ != EVENTSRC_PEER)
         actions_->store_add(bundle);
     

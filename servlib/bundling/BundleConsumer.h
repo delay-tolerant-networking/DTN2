@@ -45,7 +45,6 @@ namespace dtn {
 
 class Bundle;
 class BundleList;
-class BundleMapping;
 class BundleTuple;
 
 /**
@@ -82,16 +81,14 @@ public:
     /**
      * Consume the given bundle.
      */
-    virtual void consume_bundle(Bundle* bundle,
-                                const BundleMapping* mapping) = 0;
+    virtual void consume_bundle(Bundle* bundle) = 0;
 
     /**
      * Attempt to remove the given bundle from the queue.
      *
-     * @return true if the bundle was dequeued, false if not. If
-     * mappingp is non-null, return the old mapping as well.
+     * @return true if the bundle was dequeued, false if not.
      */
-    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
+    virtual bool dequeue_bundle(Bundle* bundle)
     {
         return false;
     }
@@ -129,6 +126,7 @@ public:
      * XXX/demmer temporary hack needed for
      * BundleActions::move_contents (which should be gotten rid of
      * shortly)
+     * Fix APIRegistration.h as well...
      */
     virtual BundleList* bundle_list() { return NULL; }
 
@@ -159,8 +157,8 @@ class QueueConsumer : public BundleConsumer {
 public:
     /// @{
     /// Virtual from BundleConsumer
-    virtual void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
-    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
+    virtual void consume_bundle(Bundle* bundle);
+    virtual bool dequeue_bundle(Bundle* bundle);
     virtual bool is_queued(Bundle* bundle);
     /// @}
     

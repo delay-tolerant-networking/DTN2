@@ -57,8 +57,9 @@ TclRegistration::TclRegistration(const BundleTuplePattern& endpoint,
     set_active(true);
 
     log_info("new tcl registration on endpoint %s", endpoint.c_str());
-    notifier_channel_ = Tcl_MakeFileChannel((void*)bundle_list_->read_fd(),
-                                            TCL_READABLE);
+    notifier_channel_ =
+        Tcl_MakeFileChannel((void*)bundle_list_->notifier()->read_fd(),
+                            TCL_READABLE);
     Tcl_RegisterChannel(interp, notifier_channel_);
 }
 
@@ -107,7 +108,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     }
 
     // always drain the notification pipe
-    bundle_list_->drain_pipe();
+    bundle_list_->notifier()->drain_pipe();
 
     // read in all the payload data (XXX/demmer this will not be nice
     // for big bundles)

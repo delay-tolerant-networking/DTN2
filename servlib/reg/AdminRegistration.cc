@@ -57,7 +57,7 @@ AdminRegistration::AdminRegistration()
 }
 
 void
-AdminRegistration::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
+AdminRegistration::consume_bundle(Bundle* bundle)
 {
     u_char typecode;
     

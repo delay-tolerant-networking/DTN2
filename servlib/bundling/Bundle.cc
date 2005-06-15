@@ -41,7 +41,7 @@
 
 #include "Bundle.h"
 #include "BundleList.h"
-#include "BundleMapping.h"
+
 #include "storage/GlobalStore.h"
 
 namespace dtn {
@@ -196,85 +196,6 @@ Bundle::del_ref(const char* what1, const char* what2)
     delete this;
     return 0;
 }
-
-/**
- * Add a BundleList to the set of mappings.
- *
- * @return true if the mapping was added successfully, false if it
- * was already in the set
- */
-BundleMapping*
-Bundle::add_mapping(BundleList* blist, const BundleMapping* mapping_info)
-{
-    oasys::ScopeLock l(&lock_);
-    
-    log_debug("/bundle/mapping", "bundle id %d add mapping [%s]",
-              bundleid_, blist->name().c_str());
-
-    BundleMapping* mapping = mapping_info ?
-                             new BundleMapping(*mapping_info) :
-                             new BundleMapping();
-    
-    BundleMappings::value_type val(blist, mapping);
-                                   
-    if (mappings_.insert(val).second == true) {
-        return mapping;
-    }
-    
-    log_err("/bundle/mapping", "ERROR in add mapping: "
-            "bundle id %d already on list [%s]",
-            bundleid_, blist->name().c_str());
-
-    delete mapping;
-    return NULL;
-}
-
-/**
- * Remove a mapping.
- *
- * @return the mapping if it was removed successfully, NULL if
- * wasn't in the set.
- */
-BundleMapping* 
-Bundle::del_mapping(BundleList* blist)
-{
-    oasys::ScopeLock l(&lock_);
-
-    log_debug("/bundle/mapping", "bundle id %d del mapping [%s]",
-              bundleid_, blist->name().c_str());
-
-    BundleMappings::iterator iter = mappings_.find(blist);
-
-    if (iter == mappings_.end()) {
-        log_err("/bundle/mapping", "ERROR in del mapping: "
-                "bundle id %d not on list [%s]",
-                bundleid_, blist->name().c_str());
-        return NULL;
-    }
-
-    BundleMappings::value_type val = *iter;
-    mappings_.erase(iter);
-    
-    return val.second;
-}    
-    
-/**
- * Get the mapping state for the given list. Returns NULL if the
- * bundle is not currently queued on the list.
- */
-BundleMapping*
-Bundle::get_mapping(BundleList* blist)
-{
-    oasys::ScopeLock l(&lock_);
-
-    BundleMappings::iterator iter = mappings_.find(blist);
-    if (iter == mappings_.end()) {
-        return NULL;
-    }
-
-    return iter->second;
-}
-
 
 /**
  * Return an iterator to scan through the mappings.

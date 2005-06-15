@@ -614,7 +614,7 @@ APIClient::handle_recv()
     log_debug("handle_recv: "
               "blocking to get bundle for registration %d (timeout %d)",
               reg->regid(), timeout);
-    b = reg->bundle_list()->pop_blocking(NULL, timeout);
+    b = reg->xxx_bundle_list()->pop_blocking(timeout);
     
     if (!b) {
         log_debug("handle_recv: timeout waiting for bundle");

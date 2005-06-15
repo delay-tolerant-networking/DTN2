@@ -104,6 +104,13 @@ Link::Link(std::string name, link_type_t type,
 
 Link::~Link()
 {
+    /*
+     * I think it's a better design if links are never actually
+     * deleted. To enforce this constraint, we have this PANIC here,
+     * but also the destructor of the class is protected.
+     */
+    PANIC("Links should never be destroyed");
+    
     ASSERT(!isopen());
     
     if (bundle_list_ != NULL) {
@@ -219,7 +226,7 @@ Link::format(char* buf, size_t sz)
  * For other types of links invoke default behavior
  */
 void
-Link::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
+Link::consume_bundle(Bundle* bundle)
 {
     /*
      * If the link is open, messages are always queued on the contact
@@ -227,27 +234,26 @@ Link::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
      */
     if (isopen()) {
         log_debug("Link %s is open, so queueing it on contact queue",name());
-        contact_->consume_bundle(bundle, mapping);
+        contact_->consume_bundle(bundle);
         
     } else {
         log_debug("Link %s is closed, so queueing it on link queue",name());
-        QueueConsumer::consume_bundle(bundle, mapping);
+        QueueConsumer::consume_bundle(bundle);
     }
 }
 
 /**
  * Attempt to remove the given bundle from the queue.
  *
- * @return true if the bundle was dequeued, false if not. If
- * mappingp is non-null, return the old mapping as well.
+ * @return true if the bundle was dequeued, false if not.
  */
 bool
-Link::dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
+Link::dequeue_bundle(Bundle* bundle)
 {
     if (isopen()) {
-        return contact_->dequeue_bundle(bundle, mappingp);
+        return contact_->dequeue_bundle(bundle);
     } else {
-        return QueueConsumer::dequeue_bundle(bundle, mappingp);
+        return QueueConsumer::dequeue_bundle(bundle);
     }
 }
     

@@ -156,7 +156,7 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
     log_debug("delivering bundle *%p to registration %s",
               bundle, registration->endpoint().c_str());
     
-    registration->consume_bundle(bundle, NULL);
+    registration->consume_bundle(bundle);
     ++bundles_delivered_;
     
     // deliver the return receipt status report if requested
@@ -227,7 +227,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
 
     // add the bundle to the master pending queue
-    pending_bundles_->push_back(bundle, NULL);
+    pending_bundles_->push_back(bundle);
 
     // add the bundle to the store (unless we're reloading it in which
     // case the bundle just came from there)
@@ -411,7 +411,7 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
     // add the newly reassembled bundle to the pending list and the
     // data store
     bundle = event->bundle_.bundle();
-    pending_bundles_->push_back(bundle, NULL);
+    pending_bundles_->push_back(bundle);
     actions_->store_add(bundle);
 
     // XXX/demmer need a new bundle arrival event
@@ -419,8 +419,7 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 
 
 /**
- * Delete the given bundle from the pending list (assumes the
- * pending count is zero).
+ * Delete the given bundle from the pending list.
  */
 void
 BundleDaemon::delete_from_pending(Bundle* bundle)
@@ -429,9 +428,9 @@ BundleDaemon::delete_from_pending(Bundle* bundle)
     
     actions_->store_del(bundle);
 
-    BundleMapping* mapping = bundle->get_mapping(pending_bundles_);
-    ASSERT(mapping);
-    pending_bundles_->erase(mapping->position_, NULL);
+    if (! pending_bundles_->erase(bundle)) {
+        log_err("unexpected error removing bundle from pending list");
+    }
 }
 
 /**

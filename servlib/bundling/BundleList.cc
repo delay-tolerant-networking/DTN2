@@ -41,7 +41,6 @@
 
 #include "Bundle.h"
 #include "BundleList.h"
-#include "BundleMapping.h"
 
 namespace dtn {
 
@@ -52,7 +51,7 @@ namespace dtn {
 // descriptors... we only really need it for the contact
 
 BundleList::BundleList(const std::string& name)
-    : lock_(new oasys::SpinLock()), name_(name)
+    : name_(name), lock_(new oasys::SpinLock()), notifier_(NULL)
 {
 }
 
@@ -95,20 +94,23 @@ BundleList::back()
  * position.
  */
 void
-BundleList::add_bundle(Bundle* b, iterator pos,
-                       const BundleMapping* mapping_info)
+BundleList::add_bundle(Bundle* b, const iterator& pos)
 {
     ASSERT(lock_->is_locked_by_me());
+    ASSERT(b->lock_.is_locked_by_me());
 
     list_.insert(pos, b);
     
     b->add_ref("bundle_list", name_.c_str());
 
-    BundleMapping* mapping = b->add_mapping(this, mapping_info);
-    ASSERT(mapping);
-
-    mapping->position_ = --pos;
-    ASSERT(*(mapping->position_) == b);
+    log_debug("/bundle/mapping", "bundle id %d add mapping [%s]",
+              b->bundleid_, name_.c_str());
+    
+    if (b->mappings_.insert(this).second == false) {
+        log_err("/bundle/mapping", "ERROR in add mapping: "
+                "bundle id %d already on list [%s]",
+                b->bundleid_, name_.c_str());
+    }
 }
 
 
@@ -116,14 +118,18 @@ BundleList::add_bundle(Bundle* b, iterator pos,
  * Add a new bundle to the front of the list.
  */
 void
-BundleList::push_front(Bundle* b, const BundleMapping* mapping_info)
+BundleList::push_front(Bundle* b)
 {
     lock_->lock();
-    add_bundle(b, list_.begin(), mapping_info);
+    b->lock_.lock();
+    
+    add_bundle(b, list_.begin());
+
+    b->lock_.unlock();
     lock_->unlock();
     
-    if (size() == 1) {
-        notify();
+    if (notifier_ != NULL && size() == 1) {
+        notifier_->notify();
     }
 }
 
@@ -131,14 +137,18 @@ BundleList::push_front(Bundle* b, const BundleMapping* mapping_info)
  * Add a new bundle to the front of the list.
  */
 void
-BundleList::push_back(Bundle* b, const BundleMapping* mapping_info)
+BundleList::push_back(Bundle* b)
 {
     lock_->lock();
-    add_bundle(b, list_.end(), mapping_info);
+    b->lock_.lock();
+    
+    add_bundle(b, list_.end());
+
+    b->lock_.unlock();
     lock_->unlock();
     
-    if (size() == 1) {
-        notify();
+    if (notifier_ != NULL && size() == 1) {
+        notifier_->notify();
     }
 }
         
@@ -146,10 +156,9 @@ BundleList::push_back(Bundle* b, const BundleMapping* mapping_info)
  * Insert the given bundle sorted by the given sort method.
  */
 void
-BundleList::insert_sorted(Bundle* b, const BundleMapping* mapping_info,
-                          sort_order_t sort_order)
+BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
 {
-    ListType::iterator iter;
+    iterator iter;
 
     lock_->lock();
 
@@ -177,11 +186,11 @@ BundleList::insert_sorted(Bundle* b, const BundleMapping* mapping_info,
         }
     }
     
-    add_bundle(b, iter, mapping_info);
+    add_bundle(b, iter);
     lock_->unlock();
     
-    if (size() == 1) {
-        notify();
+    if (notifier_ != NULL && size() == 1) {
+        notifier_->notify();
     }
 }
 
@@ -189,27 +198,34 @@ BundleList::insert_sorted(Bundle* b, const BundleMapping* mapping_info,
  * Helper routine to remove a bundle from the indicated position.
  */
 Bundle*
-BundleList::del_bundle(iterator pos, BundleMapping** mappingp)
+BundleList::del_bundle(const iterator& pos)
 {
     Bundle* b = *pos;
     ASSERT(lock_->is_locked_by_me());
+
+    // lock the bundle
+    oasys::ScopeLock l(& b->lock_);
+
+    // remove the mapping
+    log_debug("/bundle/mapping",
+              "bundle id %d del_bundle: deleting mapping [%s]",
+              b->bundleid_, name_.c_str());
     
-    BundleMapping* mapping = b->del_mapping(this);
-    ASSERT(mapping->position_ == pos);
-    ASSERT(mapping != NULL);
-    
+    Bundle::BundleMappings::iterator mapping_pos = b->mappings_.find(this);
+    if (mapping_pos == b->mappings_.end()) {
+        log_err("/bundle/mapping", "ERROR in del mapping: "
+                "bundle id %d not on list [%s]",
+                b->bundleid_, name_.c_str());
+    } else {
+        b->mappings_.erase(mapping_pos);
+    }
+
+    // remove the bundle from the list
     list_.erase(pos);
 
     // note that we explicitly do _not_ decrement the reference count
     // since the reference is passed to the calling function
     
-    // if the caller wants the mapping, return it, otherwise delete it
-    if (mappingp) {
-        *mappingp = mapping;
-    } else {
-        delete mapping;
-    }
-
     return b;
 }
 
@@ -217,88 +233,73 @@ BundleList::del_bundle(iterator pos, BundleMapping** mappingp)
  * Remove (and return) the first bundle on the list.
  */
 Bundle*
-BundleList::pop_front(BundleMapping** mappingp)
+BundleList::pop_front()
 {
     oasys::ScopeLock l(lock_);
 
     // always drain the pipe to make sure that if the list is empty,
     // then the pipe must be empty as well
-    drain_pipe();
+    if (notifier_)
+        notifier_->drain_pipe();
     
     if (list_.empty())
         return NULL;
 
-    return del_bundle(list_.begin(), mappingp);
+    return del_bundle(list_.begin());
 }
 
 /**
  * Remove (and return) the last bundle on the list.
  */
 Bundle*
-BundleList::pop_back(BundleMapping** mappingp)
+BundleList::pop_back()
 {
     oasys::ScopeLock l(lock_);
 
     // always drain the pipe to maintain the invariant that if the
     // list is empty, then the pipe must be empty as well
-    drain_pipe();
+    if (notifier_)
+        notifier_->drain_pipe();
 
     if (list_.empty())
         return NULL;
 
-    return del_bundle(--list_.end(), mappingp);
+    return del_bundle(--list_.end());
 }
 
 /**
- * Remove (and return) the first bundle on the list, blocking if
- * there are none. 
- *
- * Blocking read can be interrupted by calling BundleList::notify(). 
- * If this is done, the return value will be NULL.
- */
-Bundle*
-BundleList::pop_blocking(BundleMapping** mappingp, int timeout)
-{
-    lock_->lock();
-
-    if (list_.empty()) {
-        bool notified = wait(lock_, timeout);
-        ASSERT(lock_->is_locked_by_me());
-
-        // if the timeout occurred, wait returns false, so there's
-        // still nothing on the list
-        if (!notified) {
-            lock_->unlock();
-            return NULL;
-        }
-
-        // the pipe is drained in pop_front()
-    }
-
-    //    ASSERT(!list_.empty());
-    Bundle *b = NULL;
-    if(!list_.empty()) 
-        b = pop_front(mappingp);
-
-    lock_->unlock();
-    
-    return b;
-}
-
-/**
- * Remove the bundle at the given list position. Always succeeds
- * since the iterator must be valid.
+ * Remove the given bundle from the list. Returns true if the
+ * bundle was successfully removed, false otherwise.
  *
  * Unlike the pop() functions, this does remove the list's
  * reference on the bundle.
  */
-void
-BundleList::erase(iterator& pos, BundleMapping** mappingp)
+bool
+BundleList::erase(Bundle* bundle)
 {
     oasys::ScopeLock l(lock_);
+
+    iterator pos = std::find(begin(), end(), bundle);
+    if (pos == end()) {
+        return false;
+    }
+
+    del_bundle(pos);
     
-    Bundle* b = del_bundle(pos, mappingp);
-    b->del_ref("bundle_list", name_.c_str());
+    bundle->del_ref("bundle_list", name_.c_str());
+    return true;
+}
+
+/**
+ * Search the list for the given bundle.
+ *
+ * @return true if found, false if not
+ */
+bool
+BundleList::contains(Bundle* bundle)
+{
+    oasys::ScopeLock l(lock_);
+    return (std::find(begin(), end(), bundle) != end());
 }
 
 /**
@@ -307,13 +308,11 @@ BundleList::erase(iterator& pos, BundleMapping** mappingp)
  * @return the bundle or NULL if not found.
  */
 Bundle*
-BundleList::find(u_int32_t bundleid)
+BundleList::find(u_int32_t bundle_id)
 {
     oasys::ScopeLock l(lock_);
-    iterator iter;
-
-    for (iter = begin(); iter != end(); ++iter) {
-        if ((*iter)->bundleid_ == bundleid) {
+    for (iterator iter = begin(); iter != end(); ++iter) {
+        if ((*iter)->bundleid_ == bundle_id) {
             return *iter;
         }
     }
@@ -331,12 +330,9 @@ BundleList::move_contents(BundleList* other)
     oasys::ScopeLock l2(other->lock_);
 
     Bundle* b;
-    BundleMapping* m;
     while (!list_.empty()) {
-        b = pop_front(&m);
-        other->push_back(b, m); // copies m
-        delete m;
-        
+        b = pop_front();
+        other->push_back(b);
         b->del_ref("BundleList move_contents from", name_.c_str());
     }
 }
@@ -423,5 +419,49 @@ BundleList::end() const
     
     return list_.end();
 }
+
+BlockingBundleList::BlockingBundleList(const std::string& name)
+    : BundleList(name)
+{
+    notifier_ = new oasys::Notifier();
+}
+
+/**
+ * Remove (and return) the first bundle on the list, blocking if
+ * there are none. 
+ *
+ * Blocking read can be interrupted by calling BundleList::notify(). 
+ * If this is done, the return value will be NULL.
+ */
+Bundle*
+BlockingBundleList::pop_blocking(int timeout)
+{
+    ASSERT(notifier_);
+    
+    lock_->lock();
+
+    if (list_.empty()) {
+        bool notified = notifier_->wait(lock_, timeout);
+        ASSERT(lock_->is_locked_by_me());
+
+        // if the timeout occurred, wait returns false, so there's
+        // still nothing on the list
+        if (!notified) {
+            lock_->unlock();
+            return NULL;
+        }
+
+        // the pipe is drained in pop_front()
+    }
+
+    Bundle *b = NULL;
+    if(! list_.empty()) 
+        b = pop_front();
+
+    lock_->unlock();
+    
+    return b;
+}
+
 
 } // namespace dtn

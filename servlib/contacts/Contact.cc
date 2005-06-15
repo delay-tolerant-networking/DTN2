@@ -39,7 +39,6 @@
 #include "Contact.h"
 #include "Bundle.h"
 #include "BundleList.h"
-#include "BundleMapping.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "BundleDaemon.h"
 #include "BundleEvent.h"
@@ -56,7 +55,7 @@ Contact::Contact(Link* link)
 
     // XXX/jakob - can we change this to use the same bundlelist as the link?
 
-    bundle_list_ = new BundleList(logpath_);
+    bundle_list_ = new BlockingBundleList(logpath_);
     cl_info_ = NULL;
     
     log_info("new contact *%p", this);
@@ -71,11 +70,11 @@ Contact::~Contact()
 }
 
 void
-Contact::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
+Contact::consume_bundle(Bundle* bundle)
 {
     // Add it to the queue (default behavior as defined by queue
     // consumer)
-    QueueConsumer::consume_bundle(bundle,mapping);
+    QueueConsumer::consume_bundle(bundle);
 
     // and kick the convergence layer
     clayer()->send_bundles(this);

@@ -39,14 +39,13 @@
 #include "APIRegistration.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
-#include "bundling/BundleMapping.h"
 
 namespace dtn {
 
 APIRegistration::APIRegistration(const oasys::Builder& builder)
     : Registration(builder)
 {
-    bundle_list_ = new BundleList(logpath_);
+    bundle_list_ = new BlockingBundleList(logpath_);
 }
     
 APIRegistration::APIRegistration(u_int32_t regid,
@@ -56,7 +55,7 @@ APIRegistration::APIRegistration(u_int32_t regid,
                                  const std::string& script)
     : Registration(regid, endpoint, action, expiration, script)
 {
-    bundle_list_ = new BundleList(logpath_);
+    bundle_list_ = new BlockingBundleList(logpath_);
 }
 
 APIRegistration::~APIRegistration()
@@ -65,35 +64,29 @@ APIRegistration::~APIRegistration()
 }
 
 void
-APIRegistration::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
+APIRegistration::consume_bundle(Bundle* bundle)
 {
     log_info("enqueue bundle id %d for delivery to %s",
              bundle->bundleid_, dest_str_.c_str());
-    bundle_list_->push_back(bundle, mapping);
+    bundle_list_->push_back(bundle);
 
     // XXX/demmer this should handle the connected / disconnnected
     // action stuff
 }
 
 bool
-APIRegistration::dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
+APIRegistration::dequeue_bundle(Bundle* bundle)
 {
     log_info("dequeue bundle id %d from %s",
              bundle->bundleid_, dest_str_.c_str());
-    
-    BundleMapping* mapping = bundle->get_mapping(bundle_list_);
 
-    if (!mapping)
-        return false;
-    
-    bundle_list_->erase(mapping->position_, mappingp);
-    return true;
+    return bundle_list_->erase(bundle);
 }
 
 bool
 APIRegistration::is_queued(Bundle* bundle)
 {
-    return (bundle->get_mapping(bundle_list_) != NULL);
+    return bundle_list_->contains(bundle);
 }
 
 } // namespace dtn

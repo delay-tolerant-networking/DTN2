@@ -39,7 +39,6 @@
 #include "BundleConsumer.h"
 #include "Bundle.h"
 #include "BundleList.h"
-#include "BundleMapping.h"
 
 namespace dtn {
 
@@ -76,32 +75,26 @@ QueueConsumer::QueueConsumer(const char* dest_str, bool is_local, type_t type)
 }
 
 void
-QueueConsumer::consume_bundle(Bundle* bundle, const BundleMapping* mapping)
+QueueConsumer::consume_bundle(Bundle* bundle)
 {
     log_info("enqueue bundle id %d for delivery to %s",
              bundle->bundleid_, dest_str_.c_str());
-    bundle_list_->push_back(bundle, mapping);
+    bundle_list_->push_back(bundle);
 }
 
 bool
-QueueConsumer::dequeue_bundle(Bundle* bundle, BundleMapping** mappingp)
+QueueConsumer::dequeue_bundle(Bundle* bundle)
 {
     log_info("dequeue bundle id %d from %s",
              bundle->bundleid_, dest_str_.c_str());
     
-    BundleMapping* mapping = bundle->get_mapping(bundle_list_);
-
-    if (!mapping)
-        return false;
-    
-    bundle_list_->erase(mapping->position_, mappingp);
-    return true;
+    return bundle_list_->erase(bundle);
 }
 
 bool
 QueueConsumer::is_queued(Bundle* bundle)
 {
-    return (bundle->get_mapping(bundle_list_) != NULL);
+    return bundle_list_->contains(bundle);
 }
 
 } // namespace dtn

@@ -38,7 +38,7 @@
 #ifndef _BUNDLE_H_
 #define _BUNDLE_H_
 
-#include <map>
+#include <set>
 #include <sys/time.h>
 
 #include <oasys/debug/Formatter.h>
@@ -54,7 +54,6 @@
 namespace dtn {
 
 class BundleList;
-class BundleMapping;
 class BundleStore;
 class SQLBundleStore;
 
@@ -145,37 +144,13 @@ public:
     /*
      * Types used for the mapping table.
      */
-    typedef std::map<BundleList*, BundleMapping*> BundleMappings;
+    typedef std::set<BundleList*> BundleMappings;
     typedef BundleMappings::const_iterator MappingsIterator;
     
     /**
      * The number of mappings for this bundle.
      */
     int num_mappings() { return mappings_.size(); }
-    
-    /**
-     * Add a BundleList to the set of mappings, copying the mapping
-     * information.
-     *
-     * @return the new mapping if it was added successfully, NULL if
-     * the list was already in the set
-     */
-    BundleMapping* add_mapping(BundleList* blist,
-                               const BundleMapping* mapping_info);
-
-    /**
-     * Remove a mapping.
-     *
-     * @return the mapping if it was removed successfully, NULL if
-     * wasn't in the set.
-     */
-    BundleMapping* del_mapping(BundleList* blist);
-
-    /**
-     * Get the mapping state for the given list. Returns NULL if the
-     * bundle is not currently queued on the list.
-     */
-    BundleMapping* get_mapping(BundleList* blist);
 
     /**
      * Return an iterator to scan through the mappings.
@@ -219,7 +194,6 @@ public:
      * nodes according to the bundle protocol (all public to avoid the
      * need for accessor functions).
      */
-    
     BundleTuple source_;	///< Source tuple
     BundleTuple dest_;		///< Destination tuple
     BundleTuple custodian_;	///< Current custodian tuple
@@ -238,17 +212,23 @@ public:
     BundlePayload payload_;	///< Reference to the payload
     
     /*
-     * Internal fields for managing the bundle.
+     * Public internal fields for managing the bundle.
      */
-    
     u_int32_t bundleid_;	///< Local bundle identifier
     oasys::SpinLock lock_;	///< Lock for bundle data that can be
                                 ///  updated by multiple threads, e.g.
                                 ///  containers_ and refcount_.
+    bool is_reactive_fragment_; ///< Reactive fragmentary bundle
+
+protected:
+    /*
+     * Protected internal fields.
+     */
+    friend class BundleList;
+    
     BundleMappings mappings_;	///< The set of BundleLists that
                                 ///  contain the Bundle.
     int refcount_;		///< Bundle reference count
-    bool is_reactive_fragment_; ///< Reactive fragmentary bundle
 
 private:
     /**

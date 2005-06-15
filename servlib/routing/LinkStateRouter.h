@@ -79,7 +79,7 @@ protected:
     /**
      * Consume the given bundle, queueing it if required.
      */
-     void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
+     void consume_bundle(Bundle* bundle);
  };
 
    LSRegistration* reg;

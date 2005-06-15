@@ -55,7 +55,7 @@ public:
     /**
      * Consume the given bundle.
      */
-    void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
+    void consume_bundle(Bundle* bundle);
     
 protected:
     Node* node_;

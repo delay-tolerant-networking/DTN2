@@ -43,6 +43,8 @@
 
 namespace dtn {
 
+class BlockingBundleList;
+
 /**
  * Registration class to represent an actual attached application over
  * the client api.
@@ -67,18 +69,20 @@ public:
     
     /// @{
     /// Virtual from BundleConsumer
-    virtual void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
-    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
+    virtual void consume_bundle(Bundle* bundle);
+    virtual bool dequeue_bundle(Bundle* bundle);
     virtual bool is_queued(Bundle* bundle);
     /// @}
     
     /**
      * Accessor for the queue of bundles for the registration.
+     * XXX/demmer fixme 
      */
-    BundleList* bundle_list() { return bundle_list_; }
+    BlockingBundleList* xxx_bundle_list() { return bundle_list_; }
     
 protected:
-    BundleList* bundle_list_;	///< Queue of bundles for the registration
+    /// Queue of bundles for the registration
+    BlockingBundleList* bundle_list_;	
 };
 
 /**

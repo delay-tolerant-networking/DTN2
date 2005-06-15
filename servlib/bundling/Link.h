@@ -244,7 +244,6 @@ public:
      */
     Link(std::string name, link_type_t type,
          ConvergenceLayer* cl, const char* nexthop);
-    virtual ~Link();
 
     /**
      * Return the type of the link.
@@ -293,8 +292,8 @@ public:
     
     /// @{
     /// Virtual from BundleConsumer / QueueConsumer
-    virtual void consume_bundle(Bundle* bundle, const BundleMapping* mapping);
-    virtual bool dequeue_bundle(Bundle* bundle, BundleMapping** mappingp);
+    virtual void consume_bundle(Bundle* bundle);
+    virtual bool dequeue_bundle(Bundle* bundle);
     virtual bool is_queued(Bundle* bundle);
     /// @}
     
@@ -369,6 +368,9 @@ protected:
 
     /// Convergence layer specific info, if needed
     CLInfo* cl_info_;
+
+    /// Destructor -- protected since links shouldn't be deleted
+    virtual ~Link();
 };
 
 } // namespace dtn

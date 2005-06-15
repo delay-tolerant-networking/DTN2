@@ -46,9 +46,7 @@
 namespace dtn {
 
 /**
- * Queue a bundle for delivery on the given next hop link. In queueing
- * the bundle for delivery, this creates a new BundleMapping to store
- * any router state about this decision.
+ * Queue a bundle for delivery on the given next hop link.
  *
  * @param bundle	the bundle
  * @param nexthop	the next hop consumer
@@ -70,13 +68,13 @@ BundleActions::enqueue_bundle(Bundle* bundle, BundleConsumer* nexthop,
     // XXX/demmer handle reassembly
     ASSERT(fwdaction != FORWARD_REASSEMBLE);
 
-    BundleMapping mapping(fwdaction, mapping_grp, expiration, router_info);
-
+    // XXX/demmer get rid of all the options
+    
     if (nexthop->is_queued(bundle)) {
         log_warn("bundle %d already queued on next hop %s, ignoring duplicate",
                  bundle->bundleid_, nexthop->dest_str());
     } else {
-        nexthop->consume_bundle(bundle, &mapping);
+        nexthop->consume_bundle(bundle);
     }
 }
 
@@ -99,7 +97,7 @@ BundleActions::dequeue_bundle(Bundle* bundle, BundleConsumer* nexthop)
         return false;
     } else {
         // XXX/demmer what about ref count?
-        nexthop->dequeue_bundle(bundle, NULL);
+        nexthop->dequeue_bundle(bundle);
         return true;
     }
 }
@@ -121,12 +119,10 @@ BundleActions::move_contents(BundleConsumer* source, BundleConsumer* dest)
     // we don't use BundleList::move_contents since really we want to
     // call consume_bundle for each, not the vanilla push_back
     Bundle* b;
-    BundleMapping* m;
     do {
-        b = src_list->pop_front(&m);
+        b = src_list->pop_front();
         if (b) {
-            dest->consume_bundle(b, m); // copies m
-            delete m;
+            dest->consume_bundle(b);
         }
     } while (b != NULL);
 }

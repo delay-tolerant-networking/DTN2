@@ -49,7 +49,6 @@ class SpinLock;
 namespace dtn {
 
 class Bundle;
-class BundleMapping;
 
 /**
  * List structure for handling bundles.
@@ -57,43 +56,45 @@ class BundleMapping;
  * All list operations are protected with a spin lock so they are
  * thread safe. In addition, the lock itself is exposed so a routine
  * that needs to perform more complicated functions (like scanning the
- * list) should lock the list before doing so.
+ * list) must lock the list before doing so.
  *
  * The internal data structure is an STL list of Bundle pointers. The
  * list is also derived from Notifier, and the various push() calls
  * will call notify() if there is a thread blocked on an empty list
  * waiting for notification.
  *
- * List methods also maintain the set of mappings in the Bundle class
- * for the lists that contain it. In all cases, the mapping structure
- * is copied when the bundle is added to the list.
+ * List methods also maintain mappings (i.e. "back pointers") in each
+ * Bundle instance to the set of lists that contain the bundle.
  *
- * Furthermore, lists follow the reference counting rules for bundles.
- * In particular, the push*() methods increment the reference count,
- * and remove() decrements it. However, it is important to note that
- * the pop*() methods do not decrement the reference count (though
- * they do update the back pointers), and it is the responsibility of
- * the caller of one of the pop*() methods to explicitly decrement the
+ * Lists follow the reference counting rules for bundles. In
+ * particular, the push*() methods increment the reference count, and
+ * erase() decrements it. However, it is important to note that the
+ * pop*() methods _do not_ decrement the reference count, as the
+ * reference is passed to the caller. It is therefore the
+ * responsibility of the caller of pop*() to explicitly decrement the
  * reference count.
- * 
+ *
+ * A simple derivative BlockingBundleList hooks in an oasys Notifier,
+ * which thereby allows inter-thread signalling via a pop_blocking()
+ * method. This allows one thread to block until another has added a
+ * bundle to the list.
  */
-
-class BundleList : public oasys::Notifier {
+class BundleList {
 public:
     /**
      * Type for the list itself.
      */
-    typedef std::list<Bundle*> ListType;
+    typedef std::list<Bundle*> List;
 
     /**
      * Type for an iterator.
      */
-    typedef ListType::iterator iterator;
+    typedef List::iterator iterator;
     
     /**
      * Type for a const iterator.
      */
-    typedef ListType::const_iterator const_iterator;
+    typedef List::const_iterator const_iterator;
 
     /**
      * Constructor
@@ -122,12 +123,12 @@ public:
     /**
      * Add a new bundle to the front of the list.
      */
-    void push_front(Bundle* bundle, const BundleMapping* mapping_info);
+    void push_front(Bundle* bundle);
 
     /**
      * Add a new bundle to the front of the list.
      */
-    void push_back(Bundle* bundle, const BundleMapping* mapping_info);
+    void push_back(Bundle* bundle);
 
     /**
      * Type codes for sorted insertion
@@ -140,8 +141,7 @@ public:
     /**
      * Insert the given bundle sorted by the given sort method.
      */
-    void insert_sorted(Bundle* bundle, const BundleMapping* mapping_info,
-                       sort_order_t sort_order);
+    void insert_sorted(Bundle* bundle, sort_order_t sort_order);
     
     /**
      * Remove (and return) the first bundle on the list.
@@ -149,11 +149,9 @@ public:
      * Note (as explained above) that this does not decrement the
      * bundle reference count.
      *
-     * @return the bundle or NULL if the list is empty. If the
-     * mappingp pointer is non-null, the old mapping is returned as
-     * well, otherwise it is deleted.
+     * @return the bundle or NULL if the list is empty.
      */
-    Bundle* pop_front(BundleMapping** mappingp = NULL);
+    Bundle* pop_front();
 
     /**
      * Remove (and return) the last bundle on the list.
@@ -161,36 +159,25 @@ public:
      * Note (as explained above) that this does not decrement the
      * bundle reference count.
      *
-     * @return the bundle or NULL if the list is empty. If the
-     * mappingp pointer is non-null, the old mapping is returned as
-     * well, otherwise it is deleted.
+     * @return the bundle or NULL if the list is empty.
      */
-    Bundle* pop_back(BundleMapping** mappingp = NULL);
+    Bundle* pop_back();
 
     /**
-     * Remove (and return) the first bundle on the list, blocking
-     * (potentially limited by the given timeout) if there are none.
-     *
-     * Note (as explained above) that this does not decrement the
-     * bundle reference count.
-     *
-     * @return the bundle or NULL if the timeout occurred. If the
-     * mappingp pointer is non-null, the old mapping is returned as
-     * well, otherwise it is deleted.
-     */
-    Bundle* pop_blocking(BundleMapping** mappingp = NULL,
-                         int timeout = -1);
-    /**
-     * Remove the bundle at the given list position. Always succeeds
-     * since the iterator must be valid.
+     * Remove the given bundle from the list. Returns true if the
+     * bundle was successfully removed, false otherwise.
      *
      * Unlike the pop() functions, this does remove the list's
      * reference on the bundle.
-
-     * If the mappingp pointer is non-null, the old mapping is
-     * returned as well, otherwise it is deleted.
      */
-    void erase(iterator& pos, BundleMapping** mappingp = NULL);
+    bool erase(Bundle* bundle);
+
+    /**
+     * Search the list for the given bundle.
+     *
+     * @return true if found, false if not
+     */
+    bool contains(Bundle* bundle);
 
     /**
      * Search the list for a bundle with the given id.
@@ -256,19 +243,40 @@ protected:
     /**
      * Helper routine to add a bundle at the indicated position.
      */
-    void add_bundle(Bundle* bundle, iterator pos,
-                    const BundleMapping* mapping_info);
-
+    void add_bundle(Bundle* bundle, const iterator& pos);
+    
     /**
      * Helper routine to remove a bundle from the indicated position.
      *
      * @returns the bundle that, before this call, was at the position
      */
-    Bundle* del_bundle(iterator pos, BundleMapping** mappingp);
+    Bundle* del_bundle(const iterator& pos);
     
-    oasys::SpinLock* lock_;
-    ListType list_;
     std::string name_;
+    oasys::SpinLock* lock_;
+    oasys::Notifier* notifier_;
+    List list_;
+};
+
+class BlockingBundleList : public BundleList {
+public:
+    BlockingBundleList(const std::string& name);
+    
+    /**
+     * Remove (and return) the first bundle on the list, blocking
+     * (potentially limited by the given timeout) if there are none.
+     *
+     * Note (as explained above) that this does not decrement the
+     * bundle reference count.
+     *
+     * @return the bundle or NULL if the timeout occurred.
+     */
+    Bundle* pop_blocking(int timeout = -1);
+
+    /**
+     * Accessor for the internal notifier.
+     */
+    oasys::Notifier* notifier() { return notifier_; }
 };
 
 } // namespace dtn

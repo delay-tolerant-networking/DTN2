@@ -172,7 +172,7 @@ GlueNode::execute_router_action(BundleAction* action)
                      id(), bundle->bundleid_);
         }
         
-        bc->enqueue_bundle(bundle, &enqaction->mapping_);
+        bc->enqueue_bundle(bundle);
         break;
     }
     case STORE_ADD: { 
