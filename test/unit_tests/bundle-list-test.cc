@@ -36,238 +36,240 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/util/UnitTest.h>
+
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
-#include "bundling/BundleMapping.h"
 
+using namespace oasys;
 using namespace dtn;
 
 #define COUNT 10
 
-// some hackery to check for mapping memory leaks
+Bundle* bundles[COUNT];
+BundleList::iterator iter;
+Bundle::MappingsIterator map_iter;
 
-int _Live_Mapping_Count = 0;
+BundleList *l1, *l2, *l3;
 
-void*
-operator new(size_t sz) throw (std::bad_alloc)
-{
-    if (sz == sizeof(BundleMapping)) {
-        _Live_Mapping_Count++;
-    }
-
-    void* ret = malloc(sz + sizeof(size_t));
-    
-    *((size_t*)ret) = sz;
-    return ((size_t*)ret) + 1;
-}
-
-void
-operator delete(void* p) throw()
-{
-    p = ((size_t*)p) - 1;
-    
-    if (*((size_t*)p) == sizeof(BundleMapping)) {
-        _Live_Mapping_Count--;
-    }
-    free(p);
-}
-
-int
-main(int argc, const char** argv)
-{
-    oasys::Log::init(oasys::LOG_INFO);
-
-    Bundle* b;
-    BundleList* l;
-    BundleMapping *m;
-    
-    Bundle* bundles[COUNT];
-    BundleList::iterator iter;
-    Bundle::MappingsIterator map_iter;
-
+DECLARE_TEST(Init) {
     for (int i = 0; i < COUNT; ++i) {
         bundles[i] = new Bundle(i, BundlePayload::NODATA);
         bundles[i]->add_ref("test");
     }
 
-    BundleList l1("list1");
-    BundleList l2("list2");
-    BundleList l3("list3");
+    l1 = new BundleList("list1");
+    l2 = new BundleList("list2");
+    l3 = new BundleList("list3");
 
-    ASSERT(_Live_Mapping_Count == 0);
-
-    log_info("/test", " ");
-    log_info("/test", "*** TEST BASIC PUSH/POP ***");
-    log_info("/test", " ");
-        
-    for (int i = 0; i < COUNT; ++i) {
-        l1.push_back(bundles[i], NULL);
-        ASSERT(bundles[i]->refcount() == 2);
-    }
-
-    ASSERT(_Live_Mapping_Count == 10);
+    CHECK_EQUAL(l1->size(), 0);
+    CHECK_EQUAL(l2->size(), 0);
+    CHECK_EQUAL(l3->size(), 0);
 
     for (int i = 0; i < COUNT; ++i) {
-        b = l1.pop_front();
-        ASSERT(b == bundles[i]);
-        b->del_ref("test");
+        CHECK_EQUAL(bundles[i]->num_mappings(), 0);
     }
 
-    ASSERT(l1.size() == 0);
-    ASSERT(_Live_Mapping_Count == 0);
+    return UNIT_TEST_PASSED;
+}
+
+DECLARE_TEST(BasicPushPop) {
+    Bundle* b;
     
     for (int i = 0; i < COUNT; ++i) {
-        l1.push_front(bundles[i], NULL);
-        ASSERT(bundles[i]->refcount() == 2);
-    }
-
-    ASSERT(_Live_Mapping_Count == 10);
-    
-    for (int i = 0; i < COUNT; ++i) {
-        b = l1.pop_back();
-        ASSERT(b == bundles[i]);
-        b->del_ref("test");
-    }
-    
-    ASSERT(l1.size() == 0);
-    ASSERT(_Live_Mapping_Count == 0);
-
-    log_info("/test", " ");
-    log_info("/test", "*** TEST MAPPINGS FOR REMOVAL ***");
-    log_info("/test", " ");
-        
-    for (int i = 0; i < COUNT; ++i) {
-        l1.push_back(bundles[i], NULL);
+        l1->push_back(bundles[i]);
+        CHECK_EQUAL(bundles[i]->refcount(), 2);
     }
 
     for (int i = 0; i < COUNT; ++i) {
-        m = bundles[i]->get_mapping(&l1);
-        ASSERT(m);
-        l1.erase(m->position_);
-
-        m = bundles[i]->get_mapping(&l1);
-        ASSERT(!m);
+        b = l1->pop_front();
+        CHECK_EQUAL(b, bundles[i]);
+        b->del_ref("test pop");
+        CHECK_EQUAL(b->refcount(), 1);
     }
 
-    ASSERT(_Live_Mapping_Count == 0);
-    
+    for (int i = 0; i < COUNT; ++i) {
+        l1->push_front(bundles[i]);
+        CHECK_EQUAL(bundles[i]->refcount(), 2);
+    }
 
-    log_info("/test", " ");
-    log_info("/test", "*** TEST MULTIPLE LISTS ***");
-    log_info("/test", " ");
-        
-    BundleMapping mapping;
-    mapping.action_ = FORWARD_COPY;
-    mapping.mapping_grp_ = 0xabcd;
-    mapping.timeout_ = 0x1234;
-    mapping.router_info_ = (RouterInfo*)0xbaddf00d;
+    CHECK_EQUAL(l1->size(), COUNT);
     
     for (int i = 0; i < COUNT; ++i) {
-        l1.push_back(bundles[i], &mapping);
+        b = l1->pop_back();
+        CHECK_EQUAL(b, bundles[i]);
+        b->del_ref("test pop");
+        CHECK_EQUAL(b->refcount(), 1);
+    }
+
+    CHECK_EQUAL(l1->size(), 0);
+
+    return UNIT_TEST_PASSED;
+}
+
+
+DECLARE_TEST(ContainsAndErase) {
+    for (int i = 0; i < COUNT; ++i) {
+        l1->push_back(bundles[i]);
+        CHECK(l1->contains(bundles[i]));
+    }
+    CHECK_EQUAL(l1->size(), COUNT);
+
+    CHECK(l1->erase(bundles[0]));
+    CHECK(! l1->contains(bundles[0]));
+    CHECK_EQUAL(bundles[0]->refcount(), 1);
+    CHECK_EQUAL(bundles[0]->num_mappings(), 0);
+    CHECK_EQUAL(l1->size(), COUNT - 1);
+    
+    CHECK(! l1->erase(bundles[0]));
+    CHECK(! l1->contains(bundles[0]));
+    CHECK_EQUAL(bundles[0]->refcount(), 1);
+    CHECK_EQUAL(bundles[0]->num_mappings(), 0);
+    CHECK_EQUAL(l1->size(), 9);
+
+    CHECK(l1->erase(bundles[5]));
+    CHECK(! l1->contains(bundles[5]));
+    CHECK_EQUAL(bundles[5]->refcount(), 1);
+    CHECK_EQUAL(bundles[5]->num_mappings(), 0);
+    CHECK_EQUAL(l1->size(), COUNT - 2);
+
+    CHECK(! l1->contains(NULL));
+    CHECK(! l1->erase(NULL));
+    CHECK_EQUAL(l1->size(), COUNT - 2);
+
+    l1->clear();
+    CHECK_EQUAL(l1->size(), 0);
+    for (int i = 0; i < COUNT; ++i) {
+        CHECK(! l1->contains(bundles[i]));
+        CHECK(! l1->erase(bundles[i]));
+        CHECK_EQUAL(bundles[i]->refcount(), 1);
+        CHECK_EQUAL(bundles[i]->num_mappings(), 0);
+    }
+
+    return UNIT_TEST_PASSED;
+}
+
+DECLARE_TEST(MultipleLists) {
+    Bundle* b;
+    BundleList* l;
+    
+    for (int i = 0; i < COUNT; ++i) {
+        l1->push_back(bundles[i]);
 
         if ((i % 2) == 0) {
-            l2.push_back(bundles[i], &mapping);
+            l2->push_back(bundles[i]);
         } else {
-            l2.push_front(bundles[i], &mapping);
+            l2->push_front(bundles[i]);
         }
 
         if ((i % 3) == 0) {
-            l3.push_back(bundles[i], &mapping);
+            l3->push_back(bundles[i]);
         } else if ((i % 3) == 1) {
-            l3.push_front(bundles[i], &mapping);
+            l3->push_front(bundles[i]);
         }
     }
 
     b = bundles[0];
-    ASSERT(b->num_mappings() == 3);
+    CHECK_EQUAL(b->num_mappings(), 3);
     b->lock_.lock();
     for (map_iter = b->mappings_begin();
          map_iter != b->mappings_end();
          ++map_iter)
     {
-        l = map_iter->first;
-        m = map_iter->second;
-
-        l->erase(m->position_, &m);
-
-        ASSERT(m->action_      == mapping.action_);
-        ASSERT(m->mapping_grp_ == mapping.mapping_grp_);
-        ASSERT(m->timeout_     == mapping.timeout_);
-        ASSERT(m->router_info_ == mapping.router_info_);
-
-        delete m;
+        l = *map_iter;
+        CHECK(l->contains(b));
     }
-    b->lock_.unlock();
-    ASSERT(b->num_mappings() == 0);
+    
+    for (map_iter = b->mappings_begin();
+         map_iter != b->mappings_end();
+         ++map_iter)
+    {
+        l = *map_iter;
+        CHECK(l->erase(b));
+        CHECK(! l->contains(b));
+    }
 
-    log_info("/test", " ");
-    log_info("/test", "*** TEST MULTIPLE LIST ITERATED REMOVAL ***");
-    log_info("/test", " ");
-        
-    l3.lock()->lock();
-    for (iter = l3.begin(); iter != l3.end();)
+    b->lock_.unlock();
+    CHECK_EQUAL(b->num_mappings(), 0);
+
+    // list contents fall through to next test
+    return UNIT_TEST_PASSED;
+}
+
+DECLARE_TEST(MultipleListRemoval) {
+    Bundle* b;
+    BundleList* l;
+
+    l3->lock()->lock();
+    for (iter = l3->begin(); iter != l3->end(); )
     {
         b = *iter;
         ++iter; // increment before removal
 
         b->lock_.lock();
-        ASSERT(b->num_mappings() == 3);
+        CHECK_EQUAL(b->num_mappings(), 3);
         
         for (map_iter = b->mappings_begin();
              map_iter != b->mappings_end();
              ++map_iter)
         {
-            l = map_iter->first;
-            m = map_iter->second;
-
-            if (l == &l3) {
-                BundleList::iterator tmp = iter;
-                tmp--;
-                ASSERT(m->position_ == tmp);
-            }
-
-            l->erase(m->position_);
+            l = *map_iter;
+            
+            CHECK(l->contains(b));
+            CHECK(l->erase(b));
+            CHECK(! l->contains(b));
         }
+        
         b->lock_.unlock();
     }
-    l3.lock()->unlock();
+    l3->lock()->unlock();
 
-    ASSERT(l3.size() == 0);
+    ASSERT(l3->size() == 0);
 
     for (int i = 0; i < COUNT; ++i) {
-        if (i == 0) continue;
+        if (i == 0)
+            continue;
+        
         if ((i % 3) == 2) {
-            ASSERT(bundles[i]->num_mappings() == 2);
+            CHECK_EQUAL(bundles[i]->num_mappings(), 2);
         } else {
-            ASSERT(bundles[i]->num_mappings() == 0);
+            CHECK_EQUAL(bundles[i]->num_mappings(), 0);
         }
     }
 
-    l1.clear();
-    l2.clear();
+    l1->clear();
+    l2->clear();
     
     for (int i = 0; i < COUNT; ++i) {
-        if (i == 0) continue;
-        ASSERT(bundles[i]->num_mappings() == 0);
+        CHECK_EQUAL(bundles[i]->num_mappings(), 0);
     }
 
-    ASSERT(_Live_Mapping_Count == 0);
-
-    log_info("/test", " ");
-    log_info("/test", "*** TEST MOVE CONTENTS ***");
-    log_info("/test", " ");
-        
-    for (int i = 0; i < COUNT; ++i) {
-        l1.push_back(bundles[i], NULL);
-    }
-    ASSERT(_Live_Mapping_Count == 10);
-    
-    l1.move_contents(&l2);
-    ASSERT(l1.size() == 0);
-    ASSERT(l2.size() == COUNT);
-
-    l2.clear();
-    ASSERT(l1.size() == 0);
-    
-    ASSERT(_Live_Mapping_Count == 0);
+    return UNIT_TEST_PASSED;
 }
+
+DECLARE_TEST(MoveContents) {
+    for (int i = 0; i < COUNT; ++i) {
+        l1->push_back(bundles[i]);
+    }
+    
+    l1->move_contents(l2);
+    CHECK_EQUAL(l1->size(), 0);
+    CHECK_EQUAL(l2->size(), COUNT);
+
+    l2->clear();
+    CHECK_EQUAL(l1->size(), 0);
+    CHECK_EQUAL(l2->size(), 0);
+
+    return UNIT_TEST_PASSED;
+}
+
+DECLARE_TESTER(BundleListTest) {
+    ADD_TEST(Init);
+    ADD_TEST(BasicPushPop);
+    ADD_TEST(ContainsAndErase);
+    ADD_TEST(MultipleLists);
+    ADD_TEST(MultipleListRemoval);
+    ADD_TEST(MoveContents);
+}
+
+DECLARE_TEST_FILE(BundleListTest, "bundle list test");
