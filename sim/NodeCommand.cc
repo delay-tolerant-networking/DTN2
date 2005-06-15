@@ -46,13 +46,12 @@
 #include "Topology.h"
 #include "TrAgent.h"
 #include "bundling/Bundle.h"
-#include "bundling/BundleMapping.h"
 #include "bundling/BundleTuple.h"
 #include "bundling/ContactManager.h"
 #include "bundling/Link.h"
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
-
+#include "reg/RegistrationTable.h"
 
 using namespace dtn;
 
@@ -205,6 +204,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             }
 
             Registration* r = new SimRegistration(node_, demux_tuple);
+            node_->reg_table()->add(r);
             RegistrationAddedEvent* e = new RegistrationAddedEvent(r);
             Simulator::post(new SimRouterEvent(time, node_, e));
             
