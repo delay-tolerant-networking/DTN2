@@ -39,7 +39,6 @@
 #include "Registration.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
-#include "bundling/BundleMapping.h"
 #include "storage/GlobalStore.h"
 
 namespace dtn {

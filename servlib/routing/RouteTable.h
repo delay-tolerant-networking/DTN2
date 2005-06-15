@@ -42,7 +42,7 @@
 #include <oasys/debug/Log.h>
 #include <oasys/util/StringBuffer.h>
 
-#include "bundling/BundleMapping.h"
+#include "bundling/BundleActions.h"
 #include "bundling/BundleTuple.h"
 
 namespace dtn {
