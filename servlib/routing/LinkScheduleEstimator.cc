@@ -4,6 +4,12 @@
  *    
  *    The schedule computed can then be used to predict future link-up events, and to inform far-away
  *    nodes about the future predicted availability of the link in question.
+ *
+ *    Usage:
+ *      Log* find_schedule(Log* log);
+ *
+ *    Returns the best schedule for the given log. If there's no discernible periodicity in the log, 
+ *    the return value will be NULL.
  */
 
 
