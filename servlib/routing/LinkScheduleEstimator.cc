@@ -93,11 +93,11 @@ int log_dist(Log &a, int a_offset,
      * Initialize a cost matrix for the DP algorithm
      */
     dist=(int**)malloc(a.size()*sizeof(int));
-    for(int i=0;i<a.size();i++)
+    for(unsigned int i=0;i<a.size();i++)
     {
         dist[i]=(int*)malloc(b.size()*sizeof(int));
 
-        for(int j=0;j<b.size();j++)
+        for(unsigned int j=0;j<b.size();j++)
             dist[i][j]=MAX_DIST;
     }
     
@@ -108,7 +108,7 @@ int log_dist(Log &a, int a_offset,
      * Goes from 0,0 to n,n along the diagonal.
      */
     int d;
-    for(int i=0;i<min(a.size(),b.size());i++)
+    for(unsigned int i=0;i<min(a.size(),b.size());i++)
         d=log_dist_r(a,i,a_offset,b,i,b_offset,warping_window);
 
     // compute the actual distance with a final call
@@ -118,20 +118,20 @@ int log_dist(Log &a, int a_offset,
 
     if(print_table)
     {
-        for(int i=0;i<a.size();i++) 
+        for(unsigned int i=0;i<a.size();i++) 
         {        
             printf("%d\t| ",a[a.size()-i-1].start-a_offset);
-            for(int j=0;j<b.size();j++)
+            for(unsigned int j=0;j<b.size();j++)
             {
                 printf("%d\t",dist[a.size()-i-1][j]);
             }
             printf("\n");
         }
         printf("------------------------------------------------------------------------\n\t ");
-        for(int i=0;i<b.size();i++) 
+        for(unsigned int i=0;i<b.size();i++) 
             printf("%d\t| ",b[i].start-b_offset);
         printf("\n\t ");
-        for(int i=0;i<b.size();i++) 
+        for(unsigned int i=0;i<b.size();i++) 
             printf("%d\t| ",b[i].duration);
         printf("\n\n");
     }
@@ -149,7 +149,7 @@ int log_dist(Log &a, int a_offset,
 int autocorrelation(Log &log, int phase, int print_table)
 {
     Log clone(log.size());
-    for(int i=phase;i<log.size();i++) {
+    for(unsigned int i=phase;i<log.size();i++) {
         clone[i-phase].start=log[i].start-log[phase].start;
         clone[i-phase].duration=log[i].duration;
     }
@@ -174,7 +174,7 @@ void print_log(Log &log, int relative_dates)
     if(relative_dates)
         offset=log[0].start;
 
-    for(int i=0;i<log.size();i++) {
+    for(unsigned int i=0;i<log.size();i++) {
         printf("(%d, %d)",log[i].start-offset,log[i].duration);        
         if(i<log.size()-1)
             printf(", ");
@@ -194,8 +194,8 @@ Log* generate_samples(Log &schedule,
                       double duration_jitter)
 {
     Log *output = new Log(log_size);
-    int schedule_index = 0;
-    int start_time_offset = 0;
+    unsigned int schedule_index = 0;
+    unsigned int start_time_offset = 0;
     for(int i=0;i<log_size;i++)
     {        
         /*
@@ -234,18 +234,18 @@ Log* generate_samples(Log &schedule,
 int estimate_period(Log &log)
 {
     int* autoc=(int*)malloc(log.size()*sizeof(int));    
-    for(int i=1;i<log.size();i++) {
+    for(unsigned int i=1;i<log.size();i++) {
         autoc[i]=autocorrelation(log,i,0);
     }
 
     // first find the best autocorrelation period
-    int candidate=1;
-    for(int i=1;i<log.size();i++)
+    unsigned int candidate=1;
+    for(unsigned int i=1;i<log.size();i++)
         if(autoc[i]<autoc[candidate])
             candidate=i;
 
-    int candidate2=1;
-    for(int i=1;i<log.size();i++)
+    unsigned int candidate2=1;
+    for(unsigned int i=1;i<log.size();i++)
         if(i!=candidate && autoc[i]<autoc[candidate2])
             candidate2=i;
 
@@ -263,7 +263,7 @@ int estimate_period(Log &log)
  */
 int seek_to_before_date(Log &log, int date)
 {    
-    for( int i=0; i<log.size() ; i++ )
+    for( unsigned int i=0; i<log.size() ; i++ )
         if( log[i].start > date )
             return max(0,i-1);
     return 0;
