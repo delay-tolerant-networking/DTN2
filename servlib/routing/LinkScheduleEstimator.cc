@@ -1,3 +1,12 @@
+/**
+ *    Given a log on the form (start1, duration1), (start2, duration2), ... ,(startN, durationN), 
+ *    the LinkScheduleEstimator algorithm figures out a periodic schedule that this log conforms to.
+ *    
+ *    The schedule computed can then be used to predict future link-up events, and to inform far-away
+ *    nodes about the future predicted availability of the link in question.
+ */
+
+
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
@@ -417,6 +426,24 @@ int refine_period(Log &log, int period_estimate)
     
     return sum/count2;
 }
+
+/** 
+ *  This is the function to be called from the outside.
+ **/
+Log* find_schedule(Log &log)
+{
+    // find a first estimate of the period. If there is a period, this will return a non-zero value.
+    int period = estimate_period(log);
+
+    if(period) {
+        // now try to fit this period to the full log as closely as possible
+        period = refine_period(log, period);
+        // and then compute the best schedule for the given log and period
+        return extract_schedule(log, period);
+    }
+    else return 0;    
+}
+
 
 /*
 int main(int argc, char** argv) 

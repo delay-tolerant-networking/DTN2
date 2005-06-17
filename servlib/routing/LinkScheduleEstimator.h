@@ -16,3 +16,4 @@ typedef struct {
 
 typedef std::vector<Contact> Log;
 
+Log* find_schedule(Log* log);
