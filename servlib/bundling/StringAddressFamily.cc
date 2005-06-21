@@ -55,7 +55,7 @@ bool
 StringAddressFamily::match(const std::string& pattern,
                            const std::string& admin)
 {
-    return pattern.compare(admin);
+    return (pattern.compare(admin) == 0);
 }
 
 } // namespace dtn
