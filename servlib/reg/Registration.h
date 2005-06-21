@@ -68,8 +68,7 @@ public:
      * Reserved registration identifiers. XXX/demmer fix me
      */
     static const u_int32_t ADMIN_REGID = 0;
-    static const u_int32_t RESERVED_REGID_1 = 1;
-    static const u_int32_t RESERVED_REGID_2 = 2;
+    static const u_int32_t LINKSTATEROUTER_REGID = 1;
     static const u_int32_t MAX_RESERVED_REGID = 9;
     
     /**

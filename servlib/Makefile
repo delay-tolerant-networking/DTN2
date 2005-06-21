@@ -69,6 +69,7 @@ ROUTING_SRCS :=					\
 	routing/NeighborhoodRouter.cc		\
 	routing/LinkStateGraph.cc		\
 	routing/LinkStateRouter.cc		\
+	routing/LinkScheduleEstimator.cc	\
 	routing/RouteTable.cc			\
 	routing/TableBasedRouter.cc		\
 

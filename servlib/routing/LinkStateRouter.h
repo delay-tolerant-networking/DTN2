@@ -38,18 +38,31 @@
 #ifndef _LINKSTATE_ROUTER_H_
 #define _LINKSTATE_ROUTER_H_
 
+#include "bundling/BundleEventHandler.h"
 #include "BundleRouter.h"
 #include "LinkStateGraph.h"
 #include "reg/Registration.h"
+#include <set>
 
 namespace dtn {
 
 class LinkStateRouter : public BundleRouter {
 public:
+    typedef enum {
+        LS_ANNOUNCEMENT  // Link state announcement
+    } ls_type;
+
+    /* 
+     * These link state announcements aren't exactly elegant. However, it makes for 
+     * simple code. Optimization will be needed at some point. 
+     */
     struct LinkStateAnnouncement {
-        char from[MAX_EID]; // XXX/jakob this is daft and lazy, quick and dirty
-        char to[MAX_EID];  
-        u_int8_t cost;
+        static const u_int8_t LINK_DOWN = 255;
+
+        ls_type type;
+        char from[MAX_EID]; 
+        char to[MAX_EID];          
+        u_int8_t cost;      
     } __attribute__((packed));
 
     LinkStateRouter();
@@ -61,28 +74,49 @@ public:
 
     void handle_contact_down(ContactDownEvent* event);
     void handle_contact_up(ContactUpEvent* event);
+    LinkStateGraph* graph() { return &graph_; }
 
     void initialize();
     void get_routing_state(oasys::StringBuffer* buf);
 
 protected:
-    LinkStateGraph graph;
+    LinkStateGraph graph_;
 
-    void send_announcement(LinkStateGraph::Edge* edge);
-    int fwd_to_matching(Bundle* bundle, bool include_local);
+    /*
+     * Send link-state announcement to all neighbors. 
+     *
+     * exists - true if this announcement is about an existing link\
+     * edge - the edge we're announcing
+     */
+    void flood_announcement(LinkStateGraph::Edge* edge, bool exists);
+
+    /*
+     * Send link-state announcement to one neighbor. Used for transferring
+     * the entire routing database.
+     *
+     * exists - the current state of the edge
+     * outgoing_link - the link through which to send the announcement
+     * edge - the edge that the announcement is all about
+     */
+    void send_announcement(LinkStateGraph::Edge* edge, Link* outgoing_link, bool exists);
+
+    void handle_bundle_received(BundleReceivedEvent* event);
 
 
  class LSRegistration : public Registration {
- public:
-    LSRegistration();
+  public:
+    LSRegistration(LinkStateRouter* router);
 
     /**
      * Consume the given bundle, queueing it if required.
      */
-     void consume_bundle(Bundle* bundle);
+    LinkStateRouter* router_;
+    
+    void consume_bundle(Bundle* bundle);
+
  };
 
-   LSRegistration* reg;
+   LSRegistration* reg_;
 
 };
 

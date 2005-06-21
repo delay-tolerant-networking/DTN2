@@ -40,6 +40,7 @@
 
 #include "BundleRouter.h"
 #include <set>
+#include "LinkScheduleEstimator.h"
 
 #define MAX_EID 255
 
@@ -91,7 +92,7 @@ public:
      *  Every eid is represented by its own vertice. This means a single machine
      *  could potentially be represented by a large number of vertices in the graph.
      */
-    std::set<Vertex*> vertices;    
+    std::set<Vertex*> vertices_;    
 
     /**
      *  There is at most one edge between any pair of vertices.
@@ -99,26 +100,34 @@ public:
      *  Note: machines may have more than one edge between them,
      *        but that's because they have several interfaces.         
      */
-    std::set<Edge*> edges;
+    std::set<Edge*> edges_;
 
     /**
      *  Adds an edge to the link state graph. 
      */
-    void addEdge(Vertex *from, Vertex *to, cost_t cost);
+    Edge* addEdge(Vertex *from, Vertex *to, cost_t cost);
+
+    /*
+     *  Returns the edge between from and to, if such an edge exists.
+     */
+    Edge* getEdge(Vertex *from, Vertex *to);
 
     /**
      * Removes an edge from the link state graph.
      */
-    void removeEdge(Vertex *from, Vertex *to);
+    void removeEdge(Edge *to);
     
     /**
      *  Finds the Vertex with the given eid, or creates a new one if none is found.
      *  New Vertices are automatically added to the lsg.
      */
     Vertex* getVertex(const char* eid);
-    Vertex* findNextHop(Vertex* from, Vertex *to);
+    Vertex* getMatchingVertex(const char* eid);
 
-    int fwd_to_matching(Bundle* bundle, bool include_local);
+    Vertex* findNextHop(Vertex* from, Vertex *to);
+    void dumpGraph(oasys::StringBuffer* buf);
+
+    std::set<Edge*> edges();
 
     /* A time-varying connection between two vertices in the graph */
     class Edge {
@@ -129,7 +138,11 @@ public:
         Vertex* to_;
 
         cost_t cost_;
-        // should have a schedule too
+
+        // log of all the up/down events this edge has seen
+        LinkScheduleEstimator::Log log_;
+
+        LinkScheduleEstimator::LogEntry contact_;
     };
 
 
