@@ -128,7 +128,8 @@ EthConvergenceLayer::open_contact(Contact* contact)
     log_debug("opening contact *%p", contact);
 
     // parse out the address from the contact nexthop
-    if (! EthernetAddressFamily::parse(contact->nexthop(), &addr)) {
+    BundleTuple bt(contact->nexthop());
+    if (! EthernetAddressFamily::parse(bt.admin().c_str(), &addr)) {
         log_err("next hop address '%s' not a valid eth uri",
                 contact->nexthop());
         return false;
@@ -219,7 +220,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     size_t header_len, bundle_len;
     struct ether_header* ethhdr=(struct ether_header*)bp;
     
-    log_debug("Received DTN packet on interface %s.",if_name_);    
+    log_debug("Received DTN packet on interface %s, %d.",if_name_, len);    
 
     // copy in the ethcl header.
     if (len < sizeof(EthCLHeader)) {
@@ -242,16 +243,20 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         char next_hop_string[50];  
 	memset(next_hop_string,0,50);
         EthernetAddressFamily::to_string((struct ether_addr*)ethhdr->ether_shost, next_hop_string);
+        
+        char bundles_string[60];
+        memset(bundles_string,0,60);
+        sprintf(bundles_string,"bundles://soontobegone/%s",next_hop_string);
 
-        Link* link=cm->find_link_to(next_hop_string);	
+        Link* link=cm->find_link_to(bundles_string);	
         if(!link || !link->isopen()) 
         {
-            log_info("Discovered next_hop %s on interface %s.", next_hop_string, if_name_);
+            log_info("Discovered next_hop %s on interface %s.", bundles_string, if_name_);
 
             // registers a new contact with the routing layer
             Contact *c=cm->new_opportunistic_contact(ConvergenceLayer::find_clayer("eth"),
 						     new EthCLInfo(if_name_),  // saved in Link::cl_info. 
-						     next_hop_string);                        
+                                                     bundles_string);                        
 	    
             link=c->link();
         }
@@ -265,7 +270,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         if (timer)
             timer->cancel(Timer::DELETE_ON_CANCEL);
         
-        timer = new BeaconTimer(next_hop_string); 
+        timer = new BeaconTimer(bundles_string); 
         timer->schedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
 	
 	((EthCLInfo*)link->cl_info())->timer=timer;
@@ -484,6 +489,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         perror("send");
         log_err("Send failed!\n");
     }    
+    log_info("Sent packet, size: %d",cc );
     
     // free up the iovec data used in the header representation
     // (bundle header that is)
