@@ -177,7 +177,11 @@ BundleDaemon::check_registrations(Bundle* bundle)
     RegistrationList::iterator iter;
 
     reg_table_->get_matching(bundle->dest_, &matches);
-    
+
+    // tells routers that this Bundle has been taken care of by the daemon already
+    if(matches.size() > 0) 
+        bundle->owner_ = "daemon";
+
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
         Registration* registration = *iter;
@@ -466,6 +470,10 @@ BundleDaemon::handle_event(BundleEvent* event)
 {
     update_statistics(event);
     dispatch_event(event);
+
+    // XXX/jakob - MIKE: feel free to get rid of this when you get a conflict
+    // dispatch the event to the router(s)
+    router_->handle_event(event);
 }
 
 /**
@@ -484,8 +492,7 @@ BundleDaemon::run()
         // handle the event
         handle_event(event);
         
-        // dispatch the event to the router(s)
-        router_->handle_event(event);
+        // XXX/jakob - MIKE: I moved a line from here. Feel free to ignore me.
 
         // clean up the event
         delete event;

@@ -65,6 +65,7 @@ Bundle::init(u_int32_t id)
     is_reactive_fragment_ = false;
     orig_length_	= 0;
     frag_offset_	= 0;
+    owner_              = "";
 
     log_debug("/bundle", "Bundle::init bundle id %d", id);
 }
@@ -151,6 +152,7 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("is_fragment", &is_fragment_);
     a->process("orig_length", &orig_length_);
     a->process("frag_offset", &frag_offset_);
+    a->process("owner", &owner_);
 }
 
 /**
