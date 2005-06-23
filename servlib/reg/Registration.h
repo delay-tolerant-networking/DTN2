@@ -50,7 +50,6 @@
 namespace dtn {
 
 class Bundle;
-class BundleList;
 
 /**
  * Class used to represent an "application" registration, loosely
