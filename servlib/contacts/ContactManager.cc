@@ -69,12 +69,6 @@ ContactManager::add_link(Link* link)
     links_->insert(link);
     
     BundleDaemon::post(new LinkCreatedEvent(link));
-
-    // ONDEMAND links are assumed to be available
-    if (link->type() == Link::ONDEMAND) {
-        link->set_link_available();
-    }
-
 }
 
 void
@@ -135,28 +129,6 @@ ContactManager::find_link_to(const char* next_hop)
 }
 
 /**
- * Open the given link.
- */
-void
-ContactManager::open_link(Link* link)
-{
-    if (!link->isopen()) {
-        link->open();
-    }
-}
-
-/**
- * Close the given link.
- */
-void
-ContactManager::close_link(Link* link)
-{
-    if (link->isopen()) {
-        link->close();
-    }
-}
-
-/**
  * Helper routine to find or create an idle opportunistic link.
  */
 Link*
@@ -207,44 +179,37 @@ ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
         return NULL;
     }
 
+    // add the link to the set and post a link created event
     add_link(link);
 
     return link;
 }
 
 /**
- * Notification from the convergence layer that a new contact has
- * come knocking. Find the appropriate Link / Contact and return
- * the new contact, notifying the router as necessary.
+ * Notification from a convergence layer that a new contact has come
+ * knocking.
+ *
+ * Find the appropriate Link, store the given convergence layer state
+ * in the link and post a new LinkAvailableEvent along which will kick
+ * the daemon.
  */
-Contact*
-ContactManager::new_opportunistic_contact(ConvergenceLayer* cl,
-                                          CLInfo* clinfo,
-                                          const char* nexthop)
+Link*
+ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
+                                       CLInfo* clinfo,
+                                       const char* nexthop)
 {
     Link* link = get_opportunistic_link(cl, clinfo, nexthop);
     if (!link) // no link means it couldn't be created
         return NULL;
 
-    if(!link->isopen()) {
-        // notify the router that the link is ready
-        link->set_link_available();
-        
-        // now open the link
-        link->open();
-        
-        // store the given cl info in the contact
-        Contact* contact = link->contact();
-        ASSERT(contact);
-	// XXX/jakob - changed so the clinfo goes to the link, not the contact
-	//             link needs it to be able to open the contact
-	//        contact->set_cl_info(clinfo);
-        return contact;
-    }
-    else {
+    if (link->isopen()) {
         log_debug("Contact to %s already established, ignoring...",nexthop);
-        return link->contact();
+        return link;
     }
+
+    // notify the daemon that the link is available
+    BundleDaemon::post(new LinkAvailableEvent(link));
+    return link;
 }
     
 /**
@@ -259,15 +224,8 @@ ContactManager::dump(oasys::StringBuffer* buf) const
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        buf->appendf("\t link (type %s): (name) %s -> (peer) %s - (status) %s, %s\n",
-                     link->type_str(),
-                     link->name(),
-                     link->dest_str(),
-                     link->isavailable() ? "avail" : "not-avail",
-                     link->isopen() ? "open" : "closed");
+        buf->appendf("*%p\n", link);
     }
 }
-
-
 
 } // namespace dtn

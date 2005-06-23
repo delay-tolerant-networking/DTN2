@@ -93,7 +93,6 @@ Node::process_bundle_events()
         event = eventq_->front();
         eventq_->pop();
         handle_event(event);
-        router_->handle_event(event);
         delete event;
     }
 }
@@ -124,17 +123,16 @@ Node::process(SimEvent* simevent)
     case SIM_ADD_ROUTE: {
         SimAddRouteEvent* e = (SimAddRouteEvent*)simevent;
         
-        BundleConsumer* nexthop = NULL;
-        nexthop = contactmgr()->find_link(e->nexthop_.c_str());
+        Link* link = contactmgr()->find_link(e->nexthop_.c_str());
 
         // XXX/demmer handle search by endpoint
 
-        if (nexthop == NULL) {
+        if (link == NULL) {
             PANIC("no such link or node exists %s", e->nexthop_.c_str());
         }
 
         // XXX/demmer fix this FORWARD_COPY
-        RouteEntry* entry = new RouteEntry(e->dest_, nexthop, FORWARD_COPY);
+        RouteEntry* entry = new RouteEntry(e->dest_, link, NULL, FORWARD_COPY);
         post_event(new RouteAddEvent(entry));
         break;
     }

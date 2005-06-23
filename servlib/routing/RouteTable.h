@@ -51,14 +51,28 @@ class BundleConsumer;
 class RouteEntryInfo;
 
 /**
- * A route table entry. Each entry contains a tuple pattern that is
- * matched against the destination address of bundles to determine if
- * the bundle should be forwarded to the next hop. XXX/demmer more
+ * Class to represent route table entry.
+ *
+ * Each entry contains an endpoint id pattern that is matched against
+ * the destination address in the various bundles to determine if the
+ * route entry should be used for the bundle.
+ *
+ * An entry also has a forwarding action type code which indicates if
+ * the bundle should be copied to the next hop or sent only once,
+ * along with an integer priority for ranking the route entry matches.
+ *
+ * There is also a pointer to either an interface or a link for each
+ * entry. In case the entry contains a link, then that link will be
+ * used to send the bundle. If there is no link, there must be an
+ * interface. In that case, bundles which match the entry will cause
+ * the router to create a new link to the given endpoint whenever a
+ * bundle arrives that matches the route entry. This new link is then
+ * typically added to the route table.
  */
 class RouteEntry {
 public:
     RouteEntry(const BundleTuplePattern& pattern,
-               BundleConsumer* next_hop,
+               Link* link, Interface* interface,
                bundle_fwd_action_t action);
 
     ~RouteEntry();
@@ -66,15 +80,17 @@ public:
     /// The destination pattern that matches bundles
     BundleTuplePattern pattern_;
 
-    // XXX/demmer this should be a bitmask of flags
+    /// Route priority
+    int priority_;
+        
+    /// Next hop link
+    Link* next_hop_;
+        
+    /// Interface to use if a new link is to be created
+    Interface* interface_;
+
     /// Forwarding action code 
     bundle_fwd_action_t action_;
-
-    /// Mapping group
-    int mapping_grp_;
-        
-    /// Next hop (registration or contact).
-    BundleConsumer* next_hop_;
 
     /// Abstract pointer to any algorithm-specific state that needs to
     /// be stored in the route entry
@@ -100,7 +116,7 @@ public:
     /**
      * Constructor
      */
-    RouteTable();
+    RouteTable(const std::string& router_name);
 
     /**
      * Destructor

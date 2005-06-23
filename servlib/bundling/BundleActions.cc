@@ -39,6 +39,7 @@
 #include "BundleActions.h"
 #include "Bundle.h"
 #include "BundleConsumer.h"
+#include "BundleDaemon.h"
 #include "BundleList.h"
 #include "storage/BundleStore.h"
 #include "Link.h"
@@ -46,36 +47,76 @@
 namespace dtn {
 
 /**
- * Queue a bundle for delivery on the given next hop link.
+ * Open a link for bundle transmission. The link should be in
+ * state AVAILABLE for this to be called.
  *
- * @param bundle	the bundle
- * @param nexthop	the next hop consumer
- * @param fwdaction	action type code to be returned in the
- *                      BUNDLE_TRANSMITTED event
- * @param mapping_grp	group identifier for the set of mappings
- * @param expiration	expiration time for this mapping
- * @param router_info	opaque slot for associated routing info
+ * This may either immediately open the link in which case the
+ * link's state will be OPEN, or post a request for the
+ * convergence layer to complete the session initiation in which
+ * case the link state is OPENING.
+ *
+ * Note that there is no exposed analog for closing a link since
+ * the assumption is that each convergence layer will do the idle
+ * connection management.
  */
 void
-BundleActions::enqueue_bundle(Bundle* bundle, BundleConsumer* nexthop,
-                              bundle_fwd_action_t fwdaction,
-                              int mapping_grp, u_int32_t expiration,
-                              RouterInfo* router_info)
+BundleActions::open_link(Link* link)
 {
-    log_debug("enqueue bundle %d on next hop %s (type %s)",
-              bundle->bundleid_, nexthop->dest_str(), nexthop->type_str());
+    log_debug("opening link %s", link->name());
 
-    // XXX/demmer handle reassembly
-    ASSERT(fwdaction != FORWARD_REASSEMBLE);
-
-    // XXX/demmer get rid of all the options
-    
-    if (nexthop->is_queued(bundle)) {
-        log_warn("bundle %d already queued on next hop %s, ignoring duplicate",
-                 bundle->bundleid_, nexthop->dest_str());
-    } else {
-        nexthop->consume_bundle(bundle);
+    if (link->isopen()) {
+        log_err("not opening link %s since already open", link->name());
+        return;
     }
+
+    if (! link->isavailable()) {
+        log_err("not opening link %s since not available", link->name());
+        return;
+    }
+    
+    link->open();
+}
+
+/**
+ * Open a link for bundle transmission. The link should be in
+ * an open state for this call.
+ */
+void
+BundleActions::close_link(Link* link)
+{
+    log_debug("closing link %s", link->name());
+
+    if (! link->isopen()) {
+        log_err("not closing link %s since already closed", link->name());
+        return;
+    }
+
+    link->close();
+}
+
+/**
+ * Create and open a new link for bundle transmissions to the
+ * given next hop destination, using the given interface.
+ */
+void
+BundleActions::create_link(std::string& endpoint, Interface* interface)
+{
+    NOTIMPLEMENTED;
+}
+
+/**
+ * Initiate transmission of a bundle out the given link.
+ *
+ * @param bundle		the bundle
+ * @param link		the link to send it on
+ */
+void
+BundleActions::send_bundle(Bundle* bundle, Link* link)
+{
+    log_debug("send bundle *%p to %s link %s (%s)",
+              bundle, link->type_str(), link->name(), link->nexthop());
+
+    link->consume_bundle(bundle);
 }
 
 /**
@@ -86,45 +127,29 @@ BundleActions::enqueue_bundle(Bundle* bundle, BundleConsumer* nexthop,
  * @return              true if successful
  */
 bool
-BundleActions::dequeue_bundle(Bundle* bundle, BundleConsumer* nexthop)
+BundleActions::cancel_bundle(Bundle* bundle, Link* link)
 {
-    log_debug("dequeue bundle %d from next hop %s (type %s)",
-              bundle->bundleid_, nexthop->dest_str(), nexthop->type_str());
+    log_debug("cancel bundle *%p on %s link %s (%s)",
+              bundle, link->type_str(), link->name(), link->nexthop());
 
-    if (!nexthop->is_queued(bundle)) {
-        log_warn("bundle %d not queued on next hop %s",
-                 bundle->bundleid_, nexthop->dest_str());
-        return false;
-    } else {
-        // XXX/demmer what about ref count?
-        nexthop->dequeue_bundle(bundle);
-        return true;
-    }
+    return link->cancel_bundle(bundle);
 }
 
 /**
- * Move the all queued bundles from one consumer to another.
+ * Inject a new bundle into the core system, which places it in
+ * the pending bundles list as well as in the persistent store.
+ * This is typically used by routing algorithms that need to
+ * generate their own bundles for distribuing route announcements.
+ * It does not, therefore, generate a BundleReceivedEvent.
+ *
+ * @param bundle		the new bundle
  */
 void
-BundleActions::move_contents(BundleConsumer* source, BundleConsumer* dest)
+BundleActions::inject_bundle(Bundle* bundle)
 {
-    // XXX/demmer get rid of this whole fn
-    BundleList* src_list = source->bundle_list();
-    
-    log_debug("moving %u bundles from from next hop %s (type %s) "
-              "to next hop %s (type %s)",
-              (u_int)src_list->size(), source->dest_str(), source->type_str(),
-              dest->dest_str(), dest->type_str());
-
-    // we don't use BundleList::move_contents since really we want to
-    // call consume_bundle for each, not the vanilla push_back
-    Bundle* b;
-    do {
-        b = src_list->pop_front();
-        if (b) {
-            dest->consume_bundle(b);
-        }
-    } while (b != NULL);
+    log_debug("inject bundle *%p", bundle);
+    BundleDaemon::instance()->pending_bundles()->push_back(bundle);
+    store_add(bundle);
 }
 
 /**
@@ -147,34 +172,6 @@ BundleActions::store_del(Bundle* bundle)
     log_debug("removing bundle %d from data store", bundle->bundleid_);
     bool removed = BundleStore::instance()->del(bundle->bundleid_);
     ASSERT(removed);
-}
-
-/**
- * Open a link for bundle transmission.
- */
-void
-BundleActions::open_link(Link* link)
-{
-    log_debug("opening link %s", link->name());
-    if (link->isopen()) {
-        log_warn("not opening link %s since already open", link->name());
-    } else {
-        link->open();
-    }
-}
-
-/**
- * Close the given link.
- */
-void
-BundleActions::close_link(Link* link)
-{
-    log_debug("closing link %s", link->name());
-    if (! link->isopen()) {
-        log_warn("not closing link %s since already closed", link->name());
-    } else {
-        link->close();
-    }
 }
 
 } // namespace dtn

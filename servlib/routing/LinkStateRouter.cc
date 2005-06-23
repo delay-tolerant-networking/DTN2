@@ -195,13 +195,8 @@ LinkStateRouter::handle_bundle_received(BundleReceivedEvent* event)
 
     ASSERT(link!=0); // if the link is in the graph, it better exist too
 
-    // Enqueue the bundle on the appropriate link. If the link is up, it gets
-    // put on the contact automatically. 
-    actions_->enqueue_bundle(bundle, 
-                             link,
-                             FORWARD_UNIQUE,  
-                             0); 
-    
+    // Send the bundle on the appropriate link.
+    actions_->send_bundle(bundle, link); 
 }
 
 void
@@ -250,15 +245,11 @@ LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge, Link* outgoing_li
     b->replyto_.assign(local_tuple_);
     b->custodian_.assign(local_tuple_);
     b->dest_.assign(ROUTER_BCAST_EID); 
-
     b->payload_.set_data((const u_char*)&lsa,sizeof(lsa));
-    
-    actions_->store_add(b);
-    pending_bundles_->push_back(b);
 
-    actions_->enqueue_bundle(b, outgoing_link,
-                             FORWARD_UNIQUE, 0);
-
+    // propagate it to the outgoing link
+    actions_->inject_bundle(b);
+    actions_->send_bundle(b, outgoing_link);
 }
 
 LinkStateRouter::LSRegistration::LSRegistration(LinkStateRouter* router)

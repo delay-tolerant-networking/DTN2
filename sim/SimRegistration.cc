@@ -69,7 +69,10 @@ SimRegistration::consume_bundle(Bundle* bundle)
 
     BundleDaemon::post(
         new BundleTransmittedEvent(bundle, this, payload_len, true));
-    
+
+    // hold a reference on the bundle to put it in the arrivals table
+    double now = Simulator::time();
+    arrivals_[now] = bundle; 
 }
 
 } // namespace dtnsim

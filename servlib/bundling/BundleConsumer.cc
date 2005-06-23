@@ -77,15 +77,15 @@ QueueConsumer::QueueConsumer(const char* dest_str, bool is_local, type_t type)
 void
 QueueConsumer::consume_bundle(Bundle* bundle)
 {
-    log_info("enqueue bundle id %d for delivery to %s",
+    log_info("consume bundle id %d for delivery to %s",
              bundle->bundleid_, dest_str_.c_str());
     bundle_list_->push_back(bundle);
 }
 
 bool
-QueueConsumer::dequeue_bundle(Bundle* bundle)
+QueueConsumer::cancel_bundle(Bundle* bundle)
 {
-    log_info("dequeue bundle id %d from %s",
+    log_info("cancel bundle id %d from %s",
              bundle->bundleid_, dest_str_.c_str());
     
     return bundle_list_->erase(bundle);

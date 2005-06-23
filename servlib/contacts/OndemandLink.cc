@@ -37,3 +37,21 @@
  */
 
 #include "OndemandLink.h"
+#include "BundleDaemon.h"
+
+namespace dtn {
+
+/**
+ * Constructor.
+ * Sets the state to AVAILABLE immediately.
+ */
+OndemandLink::OndemandLink(std::string name,
+                           ConvergenceLayer* cl,
+                           const char* nexthop)
+    : Link(name, ONDEMAND, cl, nexthop)
+{
+    set_state(AVAILABLE);
+    BundleDaemon::post(new LinkAvailableEvent(this));
+}
+
+} // namespace dtn

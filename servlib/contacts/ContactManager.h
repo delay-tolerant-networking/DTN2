@@ -122,15 +122,15 @@ public:
      * Opportunistic contact routines
      *
      *********************************************/
-
     /**
-     * Notification from the convergence layer that a new contact has
-     * come knocking. Find the appropriate Link / Contact and return
-     * the new contact, notifying the router as necessary.
+     * Notification from a convergence layer that a new opportunistic
+     * link has come knocking.
+     *
+     * @return A link to represent the new link.
      */
-    Contact* new_opportunistic_contact(ConvergenceLayer* cl,
-                                       CLInfo* clinfo,
-                                       const char* nexthop);
+    Link* new_opportunistic_link(ConvergenceLayer* cl,
+                                 CLInfo* clinfo,
+                                 const char* nexthop);
 
 protected:
     /**

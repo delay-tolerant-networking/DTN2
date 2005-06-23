@@ -46,6 +46,7 @@ namespace dtn {
 class Bundle;
 class BundleList;
 class BundleConsumer;
+class Interface;
 class Link;
 class RouterInfo;
 
@@ -75,10 +76,10 @@ bundle_fwd_action_toa(bundle_fwd_action_t action)
 }
 
 /**
- * Intermediary class that provides the interface from the router to
- * the rest of the system. All functions are virtual since the
- * simulator overrides them to provide equivalent functionality (in
- * the simulated environment).
+ * Intermediary class that provides the interface that is exposed to
+ * routers for the rest of the system. All functions are virtual since
+ * the simulator overrides them to provide equivalent functionality
+ * (in the simulated environment).
  */
 class BundleActions : public oasys::Logger {
 public:
@@ -86,37 +87,62 @@ public:
     virtual ~BundleActions() {}
     
     /**
-     * Queue a bundle for delivery on the given next hop.
+     * Open a link for bundle transmission. The link should be in
+     * state AVAILABLE for this to be called.
      *
-     * XXX/demmer change arguments
-     *
-     * @param bundle		the bundle
-     * @param nexthop		the next hop consumer
-     * @param fwdaction		action type code to be returned in the
-     *                          BUNDLE_TRANSMITTED event
-     * @param mapping_grp	group identifier for the set of mappings
-     * @param expiration	expiration time for this mapping
-     * @param router_info	opaque slot for associated routing info
+     * This may either immediately open the link in which case the
+     * link's state will be OPEN, or post a request for the
+     * convergence layer to complete the session initiation in which
+     * case the link state is OPENING.
      */
-    virtual void enqueue_bundle(Bundle* bundle, BundleConsumer* nexthop,
-                                bundle_fwd_action_t fwdaction,
-                                int mapping_grp = 0, u_int32_t expiration = 0,
-                                RouterInfo* router_info = 0);
+    virtual void open_link(Link* link);
 
     /**
-     * Remove a previously queued bundle.
+     * Open a link for bundle transmission. The link should be in
+     * an open state for this call.
+     */
+    virtual void close_link(Link* link);
+    
+    /**
+     * Create and open a new link for bundle transmissions to the
+     * given next hop destination, using the given interface.
+     */
+    virtual void create_link(std::string& endpoint, Interface* interface);
+    
+    /**
+     * Initiate transmission of a bundle out the given link.
      *
      * @param bundle		the bundle
-     * @param nexthop		the next hop consumer
-     * @return                  true if successful
+     * @param link		the link on which to send the bundle
      */
-    virtual bool dequeue_bundle(Bundle* bundle, BundleConsumer* nexthop);
+    virtual void send_bundle(Bundle* bundle, Link* link);
+    
+    /**
+     * Cancel transmission of a bundle on the given link.
+     *
+     * @param bundle		the bundle
+     * @param link		the link on which the bundle was queued
+     *
+     * @return			true if successful
+     */
+    virtual bool cancel_bundle(Bundle* bundle, Link* link);
 
     /**
-     * Move the all queued bundles from one consumer to another.
+     * Inject a new bundle into the core system, which places it in
+     * the pending bundles list as well as in the persistent store.
+     * This is typically used by routing algorithms that need to
+     * generate their own bundles for distribuing route announcements.
+     * It does not, therefore, generate a BundleReceivedEvent.
+     *
+     * @param bundle		the new bundle
      */
-    virtual void move_contents(BundleConsumer* source, BundleConsumer* dest);
+    virtual void inject_bundle(Bundle* bundle);
 
+protected:
+    // The protected functions (exposed only to the BundleDaemon) and
+    // serve solely for the simulator abstraction
+    friend class BundleDaemon;
+    
     /**
      * Add the given bundle to the data store.
      */
@@ -126,16 +152,6 @@ public:
      * Remove the given bundle from the data store.
      */
     virtual void store_del(Bundle* bundle);
-
-    /**
-     * Open a link for bundle transmission.
-     */
-    virtual void open_link(Link* link);
-
-    /**
-     * Close the given link.
-     */
-    virtual void close_link(Link* link);
 };
 
 } // namespace dtn

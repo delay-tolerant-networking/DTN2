@@ -86,10 +86,26 @@ protected:
     void handle_route_add(RouteAddEvent* event);
 
     /**
+     * When a contact comes up, check to see if there are any matching
+     * bundles for it.
+     */
+    void handle_contact_up(ContactUpEvent* event);
+
+    /**
+     * Ditto if a link becomes available.
+     */
+    void handle_link_available(LinkAvailableEvent* event);
+
+    /**
+     * And again if we've sent a bundle on the link (since it may have
+     * been busy.
+     */
+    void handle_bundle_transmitted(BundleTransmittedEvent* event);
+        
+    /**
      * Dump the routing state.
      */
     void get_routing_state(oasys::StringBuffer* buf);
-    ///@}
     
     /**
      * Add a route entry to the routing table. 
@@ -105,24 +121,27 @@ protected:
      
     
     /**
-     * Call fwd_to_matching for all matching entries in the routing
-     * table.
+     * Check the route table entries that match the given bundle and
+     * have not already been found in the bundle history. If a match
+     * is found, call fwd_to_nexthop on it.
      *
-     * Note that if the include_local flag is set, then local routes
-     * (i.e. registrations) are included in the list.
+     * @param bundle	the bundle to forward
+     * @param next_hop	if specified, restricts forwarding to the given
+     * 			next hop link
      *
      * Returns the number of matches found and assigned.
      */
-    virtual int fwd_to_matching(Bundle* bundle, 
-                                bool include_local);
+    virtual int fwd_to_matching(Bundle* bundle, Link* next_hop = NULL);
 
     /**
-     * Called whenever a new consumer (i.e. registration or contact)
-     * arrives. This walks the list of all pending bundles, forwarding
-     * all matches to the new contact.
+     * Called when the next hop link is available for transmission
+     * (i.e. either when it first arrives and the contact is brought
+     * up or when a bundle is completed and it's no longer busy).
+     *
+     * Loops through the bundle list and calls fwd_to_matching on all
+     * bundles.
      */
-    virtual void new_next_hop(const BundleTuplePattern& dest,
-                              BundleConsumer* next_hop);
+    virtual void check_next_hop(Link* next_hop);
 
     /// The static routing table
     RouteTable* route_table_;

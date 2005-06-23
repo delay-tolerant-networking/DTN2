@@ -93,20 +93,22 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
         const char* name = argv[3];
-        BundleConsumer* consumer = NULL;
+        Link* link = NULL;
         
-        consumer = BundleDaemon::instance()->contactmgr()->find_link(name);
+        link = BundleDaemon::instance()->contactmgr()->find_link(name);
 
-        // XXX/demmer add search by endpoint
+        // XXX/demmer search for interface
         
-        if (consumer == NULL) {
-            resultf("no such link or next hop %s", name);
+        if (link == NULL) {
+            resultf("no such link %s", name);
             return TCL_ERROR;
         }
         
         // post the event
-        RouteEntry* entry = new RouteEntry(dest, consumer, FORWARD_COPY);
+        RouteEntry* entry = new RouteEntry(dest, link, NULL, FORWARD_COPY);
         BundleDaemon::post(new RouteAddEvent(entry));
+
+        return TCL_OK;
     }
 
     else if (strcmp(cmd, "del") == 0) {

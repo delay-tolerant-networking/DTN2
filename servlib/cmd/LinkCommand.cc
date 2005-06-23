@@ -120,7 +120,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         // Add the link to contact manager, which posts a
         // LinkCreatedEvent to the daemon
         BundleDaemon::instance()->contactmgr()->add_link(link);
-
+        return TCL_OK;
+        
     } else if (strcmp(cmd, "open") == 0) {
         // link open <name>
         if (argc != 3) {
@@ -140,7 +141,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             resultf("link %s already open", name);
             return TCL_OK;
         }
-        BundleDaemon::instance()->contactmgr()->open_link(link);
+
+        BundleDaemon::post(new LinkStateChangeRequest(link, Link::OPEN));
         
     } else if (strcmp(cmd, "close") == 0) {
         // link close <name>
@@ -157,13 +159,78 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        if (! link->isopen()) {
+        if (! link->isopen() && ! link->isopening()) {
             resultf("link %s already closed", name);
             return TCL_OK;
         }
-        BundleDaemon::instance()->contactmgr()->close_link(link);
+
+        BundleDaemon::instance()->post(
+            new LinkStateChangeRequest(link, Link::CLOSING, ContactDownEvent::BROKEN));
+
+        return TCL_OK;
+
+    } else if (strcmp(cmd, "set_available") == 0) {
+        // link set_available <name> <true|false>
+        if (argc != 4) {
+            wrong_num_args(argc, argv, 2, 4, 4);
+            return TCL_ERROR;
+        }
+
+        const char* name = argv[2];
+
+        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        if (link == NULL) {
+            resultf("link %s doesn't exist", name);
+            return TCL_ERROR;
+        }
+
+        int len = strlen(argv[3]);
+        bool set_available;
+
+        if (strncmp(argv[3], "1", len) == 0) {
+            set_available = true;
+        } else if (strncmp(argv[3], "0", len) == 0) {
+            set_available = false;
+        } else if (strncasecmp(argv[3], "true", len) == 0) {
+            set_available = true;
+        } else if (strncasecmp(argv[3], "false", len) == 0) {
+            set_available = false;
+        } else if (strncasecmp(argv[3], "on", len) == 0) {
+            set_available = true;
+        } else if (strncasecmp(argv[3], "off", len) == 0) {
+            set_available = false;
+        } else {
+            resultf("error converting argument %s to boolean value", argv[3]);
+            return TCL_ERROR;
+        }
+
+        if (set_available) {
+            if (link->state() != Link::UNAVAILABLE) {
+                resultf("link %s already in state %s",
+                        name, Link::state_to_str(link->state()));
+                return TCL_OK;
+            }
+
+            BundleDaemon::post(
+                new LinkStateChangeRequest(link, Link::AVAILABLE));
+            
+            return TCL_OK;
+
+        } else { // ! set_available
+            if (link->state() != Link::AVAILABLE) {
+                resultf("link %s can't be set unavailable in state %s",
+                        name, Link::state_to_str(link->state()));
+                return TCL_OK;
+            }
+            
+            BundleDaemon::post(
+                new LinkStateChangeRequest(link, Link::UNAVAILABLE));
+
+            return TCL_OK;
+        }
+        
     }
-    else {
+   else {
         resultf("unimplemented link subcommand %s", cmd);
         return TCL_ERROR;
     }

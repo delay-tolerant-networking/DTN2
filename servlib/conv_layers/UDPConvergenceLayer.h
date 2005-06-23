@@ -99,17 +99,18 @@ public:
     bool close_contact(Contact* contact);
 
     /**
-     * Send bundles queued for the contact. We only expect there to be
-     * one bundle queued at any time since this is called immediately
-     * when the bundle is queued on the contact.
+     * Send the bundle out the link.
      */
-    void send_bundles(Contact* contact);
+    void send_bundle(Contact* contact, Bundle* bundle);
 
     /**
      * Helper class (and thread) that listens on a registered
      * interface for incoming data.
      */
-    class Receiver : public CLInfo, public oasys::UDPClient, public oasys::Thread {
+    class Receiver : public CLInfo,
+                     public oasys::UDPClient,
+                     public oasys::Thread
+    {
     public:
         /**
          * Constructor.

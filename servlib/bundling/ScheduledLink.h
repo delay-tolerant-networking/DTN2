@@ -89,27 +89,16 @@ protected:
  * Abstract base class for FutureContact
  * Relevant only for scheduled links.
  */
-class FutureContact : public QueueConsumer {
+class FutureContact : public oasys::Logger {
 public:
     /**
      * Constructor / Destructor
      */
-    FutureContact(const char* nexthop)
-        : QueueConsumer(nexthop, false, FUTURE_CONTACT),
-          start_(0), duration_(0)
+    FutureContact()
+        : start_(0), duration_(0)
     {
-        logpathf("/fc_contact/%s", nexthop);
-        bundle_list_ = new BundleList(logpath_);
-        log_debug("new future contact *%p", this);
     }
     
-    virtual ~FutureContact()
-    {
-        ASSERT(bundle_list_->size() == 0);
-        delete bundle_list_;
-    }
-
-protected:
     /// Time at which contact starts, 0 value means not defined
     time_t start_;
     

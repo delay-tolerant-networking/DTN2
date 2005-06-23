@@ -56,9 +56,6 @@ public:
     typedef enum {
         INVALID = 0,
         LINK = 1,
-        PEER,
-        CONTACT,
-        FUTURE_CONTACT,
         REGISTRATION
     } type_t;
 
@@ -66,9 +63,7 @@ public:
     {
         switch(type) {
         case LINK: 		return "Link";
-        case CONTACT:		return "Contact";
-        case FUTURE_CONTACT:	return "Future Contact";
-        case REGISTRATION:	return "Reg";
+        case REGISTRATION:	return "Registration";
         default:		return "__INVALID__";
         }
     }
@@ -84,11 +79,11 @@ public:
     virtual void consume_bundle(Bundle* bundle) = 0;
 
     /**
-     * Attempt to remove the given bundle from the queue.
+     * Attempt to cancel transmission of the bundle.
      *
-     * @return true if the bundle was dequeued, false if not.
+     * @return true if the bundle was cancelled.
      */
-    virtual bool dequeue_bundle(Bundle* bundle)
+    virtual bool cancel_bundle(Bundle* bundle)
     {
         return false;
     }
@@ -122,14 +117,6 @@ public:
      */
     const char* type_str() { return type_str_; }
 
-    /**
-     * XXX/demmer temporary hack needed for
-     * BundleActions::move_contents (which should be gotten rid of
-     * shortly)
-     * Fix APIRegistration.h as well...
-     */
-    virtual BundleList* bundle_list() { return NULL; }
-
 protected:
     /**
      * Constructor.
@@ -158,7 +145,7 @@ public:
     /// @{
     /// Virtual from BundleConsumer
     virtual void consume_bundle(Bundle* bundle);
-    virtual bool dequeue_bundle(Bundle* bundle);
+    virtual bool cancel_bundle(Bundle* bundle);
     virtual bool is_queued(Bundle* bundle);
     /// @}
     

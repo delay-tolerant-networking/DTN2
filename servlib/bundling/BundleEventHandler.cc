@@ -54,6 +54,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_link_unavailable((LinkUnavailableEvent*)e);
         break;
 
+    case LINK_STATE_CHANGE_REQUEST:
+        handle_link_state_change_request((LinkStateChangeRequest*)e);
+        break;
+        
     case REASSEMBLY_COMPLETED:
         handle_reassembly_completed((ReassemblyCompletedEvent*)e);
         break;
@@ -133,6 +137,14 @@ BundleEventHandler::handle_link_available(LinkAvailableEvent* event)
  */
 void
 BundleEventHandler::handle_link_unavailable(LinkUnavailableEvent* event)
+{
+}
+
+/**
+ * Default event handler for link state change requests.
+ */
+void
+BundleEventHandler::handle_link_state_change_request(LinkStateChangeRequest* r)
 {
 }
 

@@ -41,6 +41,7 @@
 #include "bundling/BundleActions.h"
 #include "bundling/BundleConsumer.h"
 #include "bundling/BundleDaemon.h"
+#include "bundling/Contact.h"
 #include "bundling/FragmentManager.h"
 #include "bundling/Link.h"
 
@@ -48,15 +49,15 @@ namespace dtn {
 
 TableBasedRouter::TableBasedRouter(const std::string& name)
     : BundleRouter(name)
-{    
-    route_table_ = new RouteTable();
+{
+    route_table_ = new RouteTable(name);
 }
 
 void
 TableBasedRouter::add_route(RouteEntry *entry)
 {
     route_table_->add_entry(entry);
-    new_next_hop(entry->pattern_, entry->next_hop_);        
+    check_next_hop(entry->next_hop_);        
 }
 
 /**
@@ -79,7 +80,7 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
     Bundle* bundle = event->bundleref_.bundle();
     log_debug("handle bundle received: *%p", bundle);
-    fwd_to_matching(bundle, true);
+    fwd_to_matching(bundle);
 }
 
 /**
@@ -93,6 +94,37 @@ void
 TableBasedRouter::handle_route_add(RouteAddEvent* event)
 {
     add_route(event->entry_);
+}
+
+/**
+ * When a contact comes up, check to see if there are any matching
+ * bundles for it.
+ */
+void
+TableBasedRouter::handle_contact_up(ContactUpEvent* event)
+{
+    check_next_hop(event->contact_->link());
+}
+
+/**
+ * Ditto if a link becomes available.
+ */
+void
+TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
+{
+    check_next_hop(event->link_);
+}
+
+/**
+ * And again if we've sent a bundle on the link (since it may have
+ * been busy.
+ */
+void
+TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
+{
+    if (event->consumer_->type() == BundleConsumer::LINK) {
+        check_next_hop((Link*)event->consumer_);
+    }
 }
 
 /**
@@ -113,56 +145,69 @@ TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
 void
 TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
 {
-    // If nexthop->nexthop_ is a Link
-    // and if it is available open it
-    BundleConsumer* bc = nexthop->next_hop_;
+    Link* link = nexthop->next_hop_;
 
-    if (bc->type() == BundleConsumer::LINK)
-    {
-        Link* link = (Link *)bc;
-        if ((link->type() == Link::ONDEMAND) &&
-            link->isavailable() && (!link->isopen()))
-        {
-            log_info("Opening ONDEMAND link %s because messages are queued for it",
-                     link->name());
-
-            actions_->open_link(link);
-        }
+    // if the link is open and idle, send the bundle to it
+    if (link->isopen() && !link->isbusy()) {
+        log_debug("sending *%p to *%p", bundle, link);
+        actions_->send_bundle(bundle, link);
     }
 
-    // Add message to the next hop queue
-    actions_->enqueue_bundle(bundle, nexthop->next_hop_,
-                             nexthop->action_, nexthop->mapping_grp_);
+    // if the link is available and not open, open it
+    else if (link->isavailable() && (!link->isopen()) && (!link->isopening())) {
+        log_debug("opening *%p because a message is intended for it", link);
+        actions_->open_link(link);
+    }
+
+    // otherwise, we can't do anything, so just log a bundle of
+    // reasons why
+    else {
+        if (!link->isavailable()) {
+            log_debug("can't forward *%p to *%p because link not available",
+                      bundle, link);
+        } else if (! link->isopen()) {
+            log_debug("can't forward *%p to *%p because link not open",
+                      bundle, link);
+        } else if (link->isbusy()) {
+            log_debug("can't forward *%p to *%p because link is busy",
+                      bundle, link);
+        } else {
+            log_debug("can't forward *%p to *%p", bundle, link);
+        }
+    }
 }
 
 /**
- * Get all matching entries from the routing table, and add a
- * corresponding forwarding action to the action list.
+ * Check the route table entries that match the given bundle and
+ * have not already been found in the bundle history. If a match
+ * is found, call fwd_to_nexthop on it.
  *
- * Note that if the include_local flag is set, then local routes
- * (i.e. registrations) are included in the list.
+ * @param bundle	the bundle to forward
+ * @param next_hop	if specified, restricts forwarding to the given
+ * 			next hop link
  *
  * Returns the number of matches found and assigned.
  */
 int
-TableBasedRouter::fwd_to_matching(Bundle* bundle, bool include_local)
+TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
 {
-    RouteEntry* entry;
     RouteEntrySet matches;
     RouteEntrySet::iterator iter;
 
     route_table_->get_matching(bundle->dest_, &matches);
     
     int count = 0;
-    for (iter = matches.begin(); iter != matches.end(); ++iter) {
-        entry = *iter;
-
-        if ((include_local == false) && entry->next_hop_->is_local())
-            continue;
-
-        fwd_to_nexthop(bundle, entry);
-        
-        ++count;
+    for (iter = matches.begin(); iter != matches.end(); ++iter)
+    {
+        if (next_hop == NULL || (next_hop == (*iter)->next_hop_)) {
+            fwd_to_nexthop(bundle, *iter);
+            ++count;
+        } else {
+            log_debug("fwd_to_matching %s: "
+                      "ignoring match %s since next_hop link %s set",
+                      bundle->dest_.c_str(), (*iter)->next_hop_->name(),
+                      next_hop->name());
+        }
     }
 
     log_debug("fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);
@@ -175,20 +220,18 @@ TableBasedRouter::fwd_to_matching(Bundle* bundle, bool include_local)
  * all matches to the new contact.
  */
 void
-TableBasedRouter::new_next_hop(const BundleTuplePattern& dest,
-                               BundleConsumer* next_hop)
+TableBasedRouter::check_next_hop(Link* next_hop)
 {
-    log_debug("new_next_hop %s: checking pending bundle list...",
+    log_debug("check_next_hop %s: checking pending bundle list...",
               next_hop->dest_str());
-    BundleList::iterator iter;
 
     oasys::ScopeLock l(pending_bundles_->lock());
-    
+    BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();
          ++iter)
     {
-        fwd_to_matching(*iter, true);
+        fwd_to_matching(*iter, next_hop);
     }
 }
 

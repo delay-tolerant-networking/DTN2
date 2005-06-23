@@ -49,44 +49,31 @@ namespace dtn {
  * Constructor
  */
 Contact::Contact(Link* link)
-    : QueueConsumer(link->nexthop(), false, CONTACT), link_(link)
+    : link_(link), cl_info_(NULL)
 {
-    logpathf("/contact/%s", link->nexthop());
-
-    // XXX/jakob - can we change this to use the same bundlelist as the link?
-
-    bundle_list_ = new BlockingBundleList(logpath_);
-    cl_info_ = NULL;
+    ::gettimeofday(&start_time_, 0);
+    duration_ms_ = 0;
+    bps_         = 0;
+    latency_ms_  = 0;
     
+    logpathf("/contact/%s", link->nexthop());
     log_info("new contact *%p", this);
 }
 
 Contact::~Contact()
 {
-    ASSERT(bundle_list_->size() == 0);
-    delete bundle_list_;
-
     ASSERT(cl_info_ == NULL);
 }
 
-void
-Contact::consume_bundle(Bundle* bundle)
-{
-    // Add it to the queue (default behavior as defined by queue
-    // consumer)
-    QueueConsumer::consume_bundle(bundle);
-
-    // and kick the convergence layer
-    clayer()->send_bundles(this);
-}
-
 /**
- * Formatting...XXX Make it better
+ * Formatting...
  */
 int
 Contact::format(char* buf, size_t sz)
 {
-    return link_->format(buf,sz);
+    return snprintf(buf, sz, "contact %s (started %u.%u)", nexthop(),
+                    (u_int32_t)start_time_.tv_sec,
+                    (u_int32_t)start_time_.tv_usec);
 }
 
 } // namespace dtn

@@ -39,7 +39,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "RouteTable.h"
-#include "bundling/BundleConsumer.h"
+#include "bundling/Link.h"
 
 namespace dtn {
 
@@ -47,11 +47,12 @@ namespace dtn {
  * RouteEntry constructor.
  */
 RouteEntry::RouteEntry(const BundleTuplePattern& pattern,
-                       BundleConsumer* next_hop,
+                       Link* link, Interface* interface,
                        bundle_fwd_action_t action)
     : pattern_(pattern),
+      next_hop_(link),
+      interface_(interface),
       action_(action),
-      next_hop_(next_hop),
       info_(NULL)
 {
 }
@@ -68,9 +69,9 @@ RouteEntry::~RouteEntry()
 /**
  * Constructor
  */
-RouteTable::RouteTable()
-    : Logger("/route/table")
+RouteTable::RouteTable(const std::string& router_name)
 {
+    logpathf("/route/%s/table", router_name.c_str());
 }
 
 /**

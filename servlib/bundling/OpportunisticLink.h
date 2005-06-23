@@ -63,10 +63,6 @@ public:
         : Link(name, OPPORTUNISTIC, cl, nexthop)
     {
     }
-    
-    virtual ~OpportunisticLink()  {}
-    
-protected:
 };
 
 } // namespace dtn

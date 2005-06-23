@@ -53,11 +53,14 @@ class ConvergenceLayer;
 class CLInfo;
 
 /**
- * Encapsulation of a connection to a next-hop DTN contact. The object
- * contains a list of bundles that are destined for it, as well as a
- * slot to store any convergence layer specific attributes.
+ * Encapsulation of an active connection to a next-hop DTN contact.
+ * This is basically a repository for any abstract state about the
+ * contact opportunity including start time and estimations for
+ * bandwidth / latency. It also contains the CLInfo slot for the
+ * convergence layer to put any state associated with the active
+ * connection.
  */
-class Contact : public oasys::Formatter, public QueueConsumer {
+class Contact : public oasys::Formatter, public oasys::Logger {
 public:
     /**
      * Constructor / Destructor
@@ -65,11 +68,6 @@ public:
     Contact(Link* link);
     virtual ~Contact();
  
-    /**
-     * Consume the bundle and send it out.
-     */
-    void consume_bundle(Bundle* bundle);
-    
     /**
      * Accessor to this contact's convergence layer.
      */
@@ -106,19 +104,22 @@ public:
      */
     int format(char* buf, size_t sz);
 
-    /**
-     * Return the bundle list (a blocking one in fact).
-     * XXX/demmer get rid of me
-     */
-    BlockingBundleList* xxx_bundle_list()
-    {
-        return (BlockingBundleList*)bundle_list_;
-    }
+    /// Time when the contact begin
+    struct timeval start_time_;
+
+    /// Contact duration (0 if unknown)
+    u_int32_t duration_ms_;
+
+    /// Approximate bandwidth
+    u_int32_t bps_;
     
-    
+    /// Approximate latency
+    u_int32_t latency_ms_;
+
 protected:
     Link* link_ ; 	///< Pointer to parent link on which this
     			///  contact exists
+    
     CLInfo* cl_info_;	///< convergence layer specific info
 };
 

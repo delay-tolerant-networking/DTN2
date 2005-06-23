@@ -136,9 +136,9 @@ public:
     bool close_contact(Contact* contact);
 
     /**
-     * Send bundles queued up for the contact.
+     * Send the bundle to the contact
      */
-    void send_bundles(Contact* contact);
+    void send_bundle(Contact* contact, Bundle* bundle);
     
     /**
      * Helper class (and thread) that listens on a registered

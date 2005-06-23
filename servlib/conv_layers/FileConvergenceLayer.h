@@ -72,13 +72,9 @@ public:
     virtual bool close_contact(Contact* contact);
     
     /**
-     * Try to send the bundles queued up for the given contact. In
-     * some cases (e.g. tcp) this is a no-op because open_contact spun
-     * a thread which is blocked on the bundle list associated with
-     * the contact. In others (e.g. file) there is no thread, so this
-     * callback is used to send the bundle.
+     * Send the given bundle on the contact.
      */
-    virtual void send_bundles(Contact* contact);
+    virtual void send_bundle(Contact* contact, Bundle* bundle);
 
 protected:
     /**

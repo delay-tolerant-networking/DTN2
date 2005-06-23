@@ -195,14 +195,17 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     Bundle* bundle = event->bundleref_.bundle();
     size_t payload_len = bundle->payload_.length();
     
-    log_info("BUNDLE_RECEIVED id:%d (%u of %u bytes)",
-             bundle->bundleid_, (u_int)event->bytes_received_,
-             (u_int)payload_len);
-
-    log_debug("bundle %d source    %s", bundle->bundleid_, bundle->source_.c_str());
-    log_debug("bundle %d dest      %s", bundle->bundleid_, bundle->dest_.c_str());
-    log_debug("bundle %d replyto   %s", bundle->bundleid_, bundle->replyto_.c_str());
-    log_debug("bundle %d custodian %s", bundle->bundleid_, bundle->custodian_.c_str());
+    // if debug logging is enabled, dump out a verbose printing of the
+    // bundle, including all options, otherwise, a more terse log
+    if (log_enabled(oasys::LOG_DEBUG)) {
+        oasys::StringBuffer buf;
+        bundle->format_verbose(&buf);
+        log_debug("BUNDLE_RECEIVED: (%u bytes recvd)\n%s",
+                  (u_int)event->bytes_received_, buf.c_str());
+    } else {
+        log_info("BUNDLE_RECEIVED *%p (%u bytes recvd)",
+                 bundle, (u_int)event->bytes_received_);
+    }
 
     // XXX/demmer generate the bundle received status report
 
@@ -213,14 +216,17 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     if (event->bytes_received_ != bundle->payload_.length()) {
         log_debug("partial bundle, making reactive fragment of %u bytes",
                   (u_int)event->bytes_received_);
-        BundleDaemon::instance()->fragmentmgr()->
-            convert_to_fragment(bundle, event->bytes_received_);
+
+        fragmentmgr_->convert_to_fragment(bundle, event->bytes_received_);
     }
 
     /*
-     * Check for proactive fragmentation. If it returns true, then the
-     * one big bundle has been replaced with a bundle of small ones,
-     * each of which generates individual bundle events.
+     * Check for inbound proactive fragmentation. If it returns true,
+     * then the one big bundle has been replaced with a bundle of
+     * small ones, each of which has an individual bundle arrival
+     * event, so we ignore this one.
+     *
+     * XXX/demmer rethink this
      */
     int nfrags =
         fragmentmgr_->proactively_fragment(bundle, proactive_frag_threshold_);
@@ -309,15 +315,10 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
 void
 BundleDaemon::handle_link_available(LinkAvailableEvent* event)
 {
-    log_info("LINK_AVAILABLE *%p", event->link_);
-    
     Link* link = event->link_;
     ASSERT(link->isavailable());
 
-    // If something is queued on the link open it
-    if (link->size() > 0) {
-        actions_->open_link(link);
-    }
+    log_info("LINK_AVAILABLE *%p", link);
 }
 
 /**
@@ -328,70 +329,119 @@ BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
 {
     Link* link = event->link_;
     ASSERT(!link->isavailable());
-    log_info("LINK UNAVAILABLE *%p", link);
     
-    // Close the contact on the link if link is open
-    // i.e Transfer messages queued on the contact to the link
-    // Above two objectives can be achieved by posting the event
-    // that contact is down for this link, which would cleanup
-    // the state of queues
-    if (link->isopen()) 
-        BundleDaemon::post(new ContactDownEvent(link->contact()));
+    log_info("LINK UNAVAILABLE *%p", link);
 }
 
-/**
- * Default event handler when a new contact is available.
- */
+void
+BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
+{
+    Link* link = request->link_;
+    Link::state_t new_state = request->state_;
+    ContactDownEvent::reason_t reason = request->reason_;
+    
+    log_info("LINK_STATE_CHANGE_REQUEST *%p [%s -> %s] (%s)", link,
+             Link::state_to_str(link->state()),
+             Link::state_to_str(new_state),
+             ContactDownEvent::reason_to_str(reason));
+
+    switch(new_state) {
+    case Link::UNAVAILABLE:
+        if (link->state() != Link::AVAILABLE) {
+            log_err("LINK_STATE_CHANGE_REQUEST *%p: "
+                    "tried to set state UNAVAILABLE in state %s",
+                    link, Link::state_to_str(link->state()));
+            return;
+        }
+        link->set_state(new_state);
+        post(new LinkUnavailableEvent(link));
+        break;
+
+    case Link::AVAILABLE:
+        if (link->state() != Link::UNAVAILABLE) {
+            log_err("LINK_STATE_CHANGE_REQUEST *%p: "
+                    "tried to set state AVAILABLE in state %s",
+                    link, Link::state_to_str(link->state()));
+            return;
+        }
+        link->set_state(new_state);
+        post(new LinkAvailableEvent(link));
+        break;
+        
+    case Link::BUSY:
+        log_err("LINK_STATE_CHANGE_REQUEST can't be used for state %s",
+                Link::state_to_str(new_state));
+        break;
+        
+    case Link::OPENING:
+    case Link::OPEN:
+        actions_->open_link(link);
+        break;
+
+
+    case Link::CLOSING:
+        if (link->isopen()) {
+            Contact* contact = link->contact();
+            ASSERT(contact);
+
+            // note that the link is being closed
+            link->set_state(Link::CLOSING);
+        
+            // immediately handle (don't post) a new ContactDownEvent to
+            // inform the routers that this link is going away
+            ContactDownEvent e(link->contact(), reason);
+            handle_event(&e);
+
+        } else {
+            // The only case where we should get this event when the link
+            // is not actually open is if it's in the process of being
+            // opened but the CL can't actually open it. Check this and
+            // fall through to close the link and deliver a
+            // LinkUnavailableEvent
+            if (! link->isopening()) {
+                log_err("LINK_CLOSE_REQUEST *%p (%s) in unexpected state %s",
+                        link, ContactDownEvent::reason_to_str(reason),
+                        link->state_to_str(link->state()));
+            }
+
+            // note that the link is being closed
+            link->set_state(Link::CLOSING);
+        }
+    
+        // now actually close the link
+        link->close();
+
+        // now, based on the reason code, update the link availability and
+        // set state accordingly
+        if (reason == ContactDownEvent::IDLE) {
+            link->set_state(Link::AVAILABLE);
+        } else {
+            link->set_state(Link::UNAVAILABLE);
+            post(new LinkUnavailableEvent(link));
+        }
+
+        break;
+
+    default:
+        PANIC("unhandled state %s", Link::state_to_str(new_state));
+    }
+}
+  
 void
 BundleDaemon::handle_contact_up(ContactUpEvent* event)
 {
     Contact* contact = event->contact_;
-    Link* link = contact->link();
     log_info("CONTACT_UP *%p", contact);
-
-    // ASSERT(contact->bundle_list()->size() == 0);
-    // Above assertion may not hold because there may be bundles
-    // which are inserted between contact is open and contact_up event
-    // is  seen by the router. Such bundles will go to contact queue
-    // because the contact is theoretically open although router has not
-    // seen contact_up event so far
     
-    // Move any messages from link queue to contact queue
-    actions_->move_contents(link, contact);
+    Link* link = event->contact_->link();
+    link->set_state(Link::OPEN);
 }
 
-/**
- * Default event handler when a contact is down
- * This event is posted  by convergence layer
- * on detecting a failure or by bundle router on detecting
- * that link is unavailable.
- * This function moves messages from contact queue to link
- * queue
- */
 void
 BundleDaemon::handle_contact_down(ContactDownEvent* event)
 {
-
     Contact* contact = event->contact_;
-    Link* link = contact->link();
-    log_info("CONTACT_DOWN *%p: re-routing %d queued bundles",
-             contact, (u_int)contact->bundle_list()->size());
-
-    // note that there is a chance we didn't get a contact_up (perhaps
-    // the initial connection attept failed), so don't make assertions
-    // about the state of the link's bundle list
-    // XXX/demmer revisit this
-    actions_->move_contents(contact, link);
-    
-    // Close the contact
-    actions_->close_link(link);
-
-    // Check is link is suppoed to be available and if yes
-    // try to reopen the link
-
-    if ((link->size() > 0) && link->isavailable()) {
-        actions_->open_link(link);
-    }
+    log_info("CONTACT_DOWN *%p", contact);
 }
 
 /**
@@ -407,18 +457,15 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
     
     Bundle* bundle;
     while ((bundle = event->fragments_.pop_front()) != NULL) {
-        // XXX/demmer fixme
+        // remove the fragment from the pending list
+        // XXX/demmer fix me re deleting bundles
         delete_from_pending(bundle);
         bundle->del_ref("bundle_list", event->fragments_.name().c_str());
     }
 
-    // add the newly reassembled bundle to the pending list and the
-    // data store
-    bundle = event->bundle_.bundle();
-    pending_bundles_->push_back(bundle);
-    actions_->store_add(bundle);
-
-    // XXX/demmer need a new bundle arrival event
+    // post a new event for the newly reassembled event
+    post(new BundleReceivedEvent(bundle, EVENTSRC_FRAGMENTATION,
+                                 bundle->payload_.length()));
 }
 
 
@@ -465,15 +512,24 @@ BundleDaemon::update_statistics(BundleEvent* event)
     }
 }
 
+/**
+ * Event handler override for the daemon. First dispatches to the
+ * local event handlers, then to the list of attached routers.
+ */
 void
 BundleDaemon::handle_event(BundleEvent* event)
 {
-    update_statistics(event);
+    update_statistics(event); // XXX/demmer remove the fn and move
+                              // into individual handlers
+     
     dispatch_event(event);
-
-    // XXX/jakob - MIKE: feel free to get rid of this when you get a conflict
-    // dispatch the event to the router(s)
-    router_->handle_event(event);
+    
+    if (! event->daemon_only_) {
+        // dispatch the event to the router(s)
+        router_->handle_event(event);
+        
+        // XXX/demmer dispatch to contact mgr?
+    }
 }
 
 /**
@@ -492,8 +548,6 @@ BundleDaemon::run()
         // handle the event
         handle_event(event);
         
-        // XXX/jakob - MIKE: I moved a line from here. Feel free to ignore me.
-
         // clean up the event
         delete event;
     }

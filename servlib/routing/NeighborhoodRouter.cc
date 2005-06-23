@@ -54,36 +54,36 @@ namespace dtn {
 NeighborhoodRouter::NeighborhoodRouter()
     : TableBasedRouter("neighborhood")
 {
-    Logger::set_logpath("/route/neighborhood");
     log_info("Initializing NeighborhoodRouter");
-
-    route_table_ = new RouteTable();
 }
 
 void
 NeighborhoodRouter::handle_contact_up(ContactUpEvent* event)
 {
-    BundleRouter::handle_contact_up(event);
+    TableBasedRouter::handle_contact_up(event);
+    
     log_info("Contact Up: *%p adding route", event->contact_);
 
-    // XXX/jakob - this is pretty nasty really. I believe the bundles://<region> syntax needs to go very soon.
+    // XXX/jakob - this is pretty nasty really. I believe the
+    // bundles://<region> syntax needs to go very soon.
    
     char tuplestring[255];
     sprintf(tuplestring, "bundles://internet/%s*",event->contact_->nexthop());
 
     // By default, we add a route for all the next hops we have around. 
     RouteEntry* entry = new RouteEntry(BundleTuplePattern(tuplestring), 
-                                       event->contact_, 
+                                       event->contact_->link(),
+                                       NULL,
                                        FORWARD_UNIQUE);
     add_route(entry);
-    
 }
 
 void
 NeighborhoodRouter::handle_contact_down(ContactDownEvent* event)
 {
-    route_table_->del_entries_for_nexthop(event->contact_);
-    BundleRouter::handle_contact_down(event);
+    route_table_->del_entries_for_nexthop(event->contact_->link());
+
+    TableBasedRouter::handle_contact_down(event);
 }
 
 } // namespace dtn

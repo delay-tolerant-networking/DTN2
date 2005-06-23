@@ -78,9 +78,10 @@ Link::create_link(std::string name, link_type_t type,
  */
 Link::Link(std::string name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
-    :  QueueConsumer(nexthop, false, LINK),
-       type_(type), nexthop_(nexthop), name_(name), avail_(false),
-       closing_(false), clayer_(cl)
+    :  BundleConsumer(nexthop, false, LINK),
+       type_(type), state_(UNAVAILABLE),
+       nexthop_(nexthop), name_(name), contact_(NULL),
+       clayer_(cl), cl_info_(NULL)
 {
     ASSERT(clayer_);
     logpathf("/link/%s", name_.c_str());
@@ -92,12 +93,6 @@ Link::Link(std::string name, link_type_t type,
     case OPPORTUNISTIC: type_str_ = "Opportunistic Link"; break;
     default: 		PANIC("bogus link_type_t");
     }
-
-    // By default link does not have an associated contact or any cl
-    // info, but all links get a bundle list
-    contact_ = NULL ;
-    cl_info_ = NULL;
-    bundle_list_ = new BundleList(logpath_);
 
     log_info("new link *%p", this);
 }
@@ -113,11 +108,6 @@ Link::~Link()
     
     ASSERT(!isopen());
     
-    if (bundle_list_ != NULL) {
-        ASSERT(bundle_list_->size() == 0);
-        delete bundle_list_;
-    }
-
     if (cl_info_ != NULL) {
         delete cl_info_;
         cl_info_ = NULL;
@@ -125,89 +115,95 @@ Link::~Link()
 }
 
 /**
- * Open a channel to the link for bundle transmission.
- * Relevant if Link is ONDEMAND or OPPORTUNISTIC
+ * Sets the state of the link. Performs various assertions to
+ * ensure the state transitions are legal.
+ */
+void
+Link::set_state(state_t new_state)
+{
+    log_debug("set_state %s -> %s",
+              state_to_str(state_), state_to_str(new_state));
+
+    switch(new_state) {
+    case UNAVAILABLE:
+        break; // any old state is valid
+
+    case AVAILABLE:
+        ASSERT(state_ == UNAVAILABLE);
+        break;
+
+    case OPENING:
+        ASSERT(state_ == AVAILABLE);
+        break;
+        
+    case OPEN:
+        ASSERT(state_ == OPENING || state_ == BUSY);
+        break;
+
+    case BUSY:
+        ASSERT(state_ == OPEN);
+        break;
+    
+    case CLOSING:
+        ASSERT(state_ == OPENING || state_ == OPEN || state_ == BUSY);
+        break;
+
+    default:
+        NOTREACHED;
+    }
+
+    state_ = new_state;
+}
+
+/**
+ * Open the link.
  */
 void
 Link::open()
 {
     log_debug("Link::open");
-    
-    ASSERT(isavailable());
-    ASSERT(!isopen());
-    ASSERT(!closing_);
-    
-    if (!isopen()) {
-        contact_ = new Contact(this);
 
-        if (type_ == ONDEMAND) {
-            clayer()->open_contact(contact_);
-
-        } else if (type_ == OPPORTUNISTIC) {
-	  // XXX/jakob - need to call open contact from here, this is where the contact is created
-	    clayer()->open_contact(contact_);	  
-        } else {
-            PANIC("Link::open not implemented for %s links",
-                  link_type_to_str(type_));
-        }
-        
-    } else {
-        log_warn("Trying to open an already open link %s",name());
+    if (state_ != AVAILABLE) {
+        log_crit("Link::open in state %s: expected state AVAILABLE",
+                 state_to_str(state_));
+        return;
     }
+
+    set_state(OPENING);
+
+    // create a new contact and kick the convergence layer. once it
+    // has established a session however it needs to, it will set the
+    // Link state to OPEN and post a ContactUpEvent
+    ASSERT(contact_ == NULL);
+    contact_ = new Contact(this);
+    clayer()->open_contact(contact_); 
 }
     
 /**
- * Close the currently active contact on the link.
- * This is typically called in the following scenario's
- *
- * By BundleRouter:  when it receives contact_down event
- *                :  when it thinks it has sent all messages for
- *                   an on demand link and it no longer needs it
- *                :  when link becomes unavailable because link is
- *                   scheduled or because link was opportunistic
- *
- * In general link close() is called as a reaction to the fact that
- * link is no more available.
- *
+ * Close the link.
  */
 void
 Link::close()
 {
     log_debug("Link::close");
-    
-    // Ensure that link is open
-    ASSERT(isopen());
-    ASSERT(contact_ != NULL); // same thing
 
-    // Assert contact bundle list is empty
-    ASSERT(contact_->bundle_list()->size() == 0);
+    // This should only be called when the state has been set to
+    // CLOSING by the daemon's handler for the link state change
+    // request
+    if (state_ != CLOSING) {
+        log_err("Link::close in state %s: expected state CLOSING",
+                state_to_str(state_));
+        return;
+    }
 
-    // Set the closing bit on the link. This is needed to inform the
-    // convergence layer that it shouldn't post a ContactDownEvent
-    // that would reference the about-to-be-deleted contact.
-    ASSERT(!closing_);
-    closing_ = true;
-    
-    // Close the contact
+    // Kick the convergence layer to close the contact and make sure
+    // it cleaned up its state
     clayer()->close_contact(contact_);
-
-    // Make sure the convergence layer cleaned up its state
     ASSERT(contact_->cl_info() == NULL);
-
+    
     // Clean it up
     delete contact_;
-    
-    // Actually nullify the contact.
-    // This is important because link == Open iff contact_ == NULL
     contact_ = NULL;
-
-    // Clear out the closing bit
-    closing_ = false;
-
-    // Unless this is an ondemand link, once it's closed, it's no
-    // longer available.
-    if (type_ != ONDEMAND)
-        set_link_unavailable();
 
     log_debug("Link::close complete");
 }
@@ -218,28 +214,22 @@ Link::close()
 int
 Link::format(char* buf, size_t sz)
 {
-    return snprintf(buf, sz, "%s: %s",name(),link_type_to_str(type_));
+    return snprintf(buf, sz, "%s %s -> %s (%s)",
+                    type_str_, name(), nexthop(),
+                    state_to_str(state_));
 }
 
-/**
- * Overrided default queuing behavior to handle ONDEMAND links
- * For other types of links invoke default behavior
- */
+
 void
 Link::consume_bundle(Bundle* bundle)
 {
-    /*
-     * If the link is open, messages are always queued on the contact
-     * queue, if not, put them on the link queue.
-     */
-    if (isopen()) {
-        log_debug("Link %s is open, so queueing it on contact queue",name());
-        contact_->consume_bundle(bundle);
-        
-    } else {
-        log_debug("Link %s is closed, so queueing it on link queue",name());
-        QueueConsumer::consume_bundle(bundle);
+    // BundleActions should make sure that we're only called on to
+    // send a bundle if we can
+    if (state_ != OPEN) {
+        PANIC("Link::consume_bundle in state %s", state_to_str(state_));
     }
+
+    clayer()->send_bundle(contact_, bundle);
 }
 
 /**
@@ -248,13 +238,9 @@ Link::consume_bundle(Bundle* bundle)
  * @return true if the bundle was dequeued, false if not.
  */
 bool
-Link::dequeue_bundle(Bundle* bundle)
+Link::cancel_bundle(Bundle* bundle)
 {
-    if (isopen()) {
-        return contact_->dequeue_bundle(bundle);
-    } else {
-        return QueueConsumer::dequeue_bundle(bundle);
-    }
+    return clayer()->cancel_bundle(contact_, bundle);
 }
     
 /**
@@ -263,60 +249,7 @@ Link::dequeue_bundle(Bundle* bundle)
 bool
 Link::is_queued(Bundle* bundle)
 {
-    if (isopen()) {
-        return contact_->is_queued(bundle);
-    } else {
-        return QueueConsumer::is_queued(bundle);
-    }
-}
-
-/**
- * Set the state of the link to be available
- */
-void
-Link::set_link_available()
-{
-    ASSERT(!isavailable());
-    avail_ = true ;
-    // Post a link available event
-    BundleDaemon::post(new LinkAvailableEvent(this));
-}
-
-/**
- * Set the state of the link to be unavailable
- */
-void
-Link::set_link_unavailable()
-{
-    ASSERT(isavailable());
-    avail_ = false;
-    // Post a link unavailable event
-    BundleDaemon::post(new LinkUnavailableEvent(this));
-}
-
-/**
- * Finds, how many messages are queued to go through
- * this link (potentially)
- */
-size_t
-Link::size()
-{
-    size_t retval =0;
-    retval += bundle_list_->size();
-
-    if ((type_ == ONDEMAND) && isopen()) {
-        /*
-         * If link is open, there should not be queued messages
-         * on link queue. 
-         * There may be some race conditions and ASSERT may be
-         * too strong a requirement.
-         */
-        ASSERT(retval == 0);
-        retval += contact_->bundle_list()->size();
-    }
-
-    // TODO, for scheduled links check on queues of future contacts
-    return retval;
+    return clayer()->is_queued(contact_, bundle);
 }
 
 } // namespace dtn

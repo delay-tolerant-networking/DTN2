@@ -90,12 +90,11 @@ protected:
     void handle_contact_down(ContactDownEvent* event);
     
     /**
-     * Called whenever a new consumer (i.e. registration or contact)
-     * arrives. This should walk the list of unassigned bundles (or
-     * maybe all bundles???) to see if the new consumer matches.
+     * Called whenever a new next hop link arrives. This walks the
+     * list of all pending bundles, forwarding all matches to the new
+     * link.
      */
-    void new_next_hop(const BundleTuplePattern& dest,
-                      BundleConsumer* next_hop);
+    void new_next_hop(const BundleTuplePattern& dest, Link* next_hop);
 
 
     int fwd_to_matching(Bundle *bundle, bool include_local);

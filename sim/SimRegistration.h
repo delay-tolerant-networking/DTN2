@@ -38,6 +38,8 @@
 #ifndef _SIM_REGISTRATION_H_
 #define _SIM_REGISTRATION_H_
 
+#include <map>
+
 #include "Node.h"
 #include "reg/Registration.h"
 
@@ -56,6 +58,12 @@ public:
      * Consume the given bundle.
      */
     void consume_bundle(Bundle* bundle);
+
+    /**
+     * Log each bundle's arrival time (and the bundle itself) in a big
+     * arrivals table.
+     */
+    std::map<double, Bundle*> arrivals_;
     
 protected:
     Node* node_;

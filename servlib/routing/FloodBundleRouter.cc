@@ -63,8 +63,6 @@ FloodBundleRouter::FloodBundleRouter()
 //    router_stats_= new RouterStatistics(this);
 }
 
-// XXX/demmer implement me
-
 
 /**
  * Destructor
@@ -73,6 +71,9 @@ FloodBundleRouter::~FloodBundleRouter()
 {
     NOTIMPLEMENTED;
 }
+
+// XXX/demmer implement me
+
 
 /**
  * Default event handler for new bundle arrivals.
@@ -84,62 +85,65 @@ FloodBundleRouter::~FloodBundleRouter()
 void
 FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
-    Bundle* bundle = event->bundleref_.bundle();
-    log_info("FLOOD: bundle_rcv bundle id %d", bundle->bundleid_);
+    // XXX/demmer fixme
+    NOTIMPLEMENTED;
     
-    /*
-     * Check if the bundle isn't complete. If so, do reactive
-     * fragmentation.
-     *
-     * XXX/demmer this should maybe be changed to do the reactive
-     * fragmentation in the forwarder?
-     */
-    if (event->bytes_received_ != bundle->payload_.length()) {
-        log_info("XXX: PARTIAL bundle:%d, making fragment of %d bytes",
-                  bundle->bundleid_, (u_int)event->bytes_received_);
-        BundleDaemon::instance()->fragmentmgr()->
-            convert_to_fragment(bundle, event->bytes_received_);
-    }
+//     Bundle* bundle = event->bundleref_.bundle();
+//     log_info("FLOOD: bundle_rcv bundle id %d", bundle->bundleid_);
+    
+//     /*
+//      * Check if the bundle isn't complete. If so, do reactive
+//      * fragmentation.
+//      *
+//      * XXX/demmer this should maybe be changed to do the reactive
+//      * fragmentation in the forwarder?
+//      */
+//     if (event->bytes_received_ != bundle->payload_.length()) {
+//         log_info("XXX: PARTIAL bundle:%d, making fragment of %d bytes",
+//                   bundle->bundleid_, (u_int)event->bytes_received_);
+//         BundleDaemon::instance()->fragmentmgr()->
+//             convert_to_fragment(bundle, event->bytes_received_);
+//     }
         
 
-    //statistics
-    //bundle has been accepted
-    //router_stats_->add_bundle_hop(bundle);
+//     //statistics
+//     //bundle has been accepted
+//     //router_stats_->add_bundle_hop(bundle);
 
     
 
-    Bundle* iter_bundle;
-    BundleList::iterator iter;
+//     Bundle* iter_bundle;
+//     BundleList::iterator iter;
 
-    oasys::ScopeLock lock(pending_bundles_->lock());
+//     oasys::ScopeLock lock(pending_bundles_->lock());
     
-    //check if we already have the bundle with us ... 
-    //then dont enqueue it
-    // upon arrival of new contact, send all pending bundles over contact
-    for (iter = pending_bundles_->begin(); 
-         iter != pending_bundles_->end(); ++iter) {
-        iter_bundle = *iter;
-        log_info("pending_bundle:%d size:%d",
-                 iter_bundle->bundleid_, (u_int)iter_bundle->payload_.length());
+//     //check if we already have the bundle with us ... 
+//     //then dont enqueue it
+//     // upon arrival of new contact, send all pending bundles over contact
+//     for (iter = pending_bundles_->begin(); 
+//          iter != pending_bundles_->end(); ++iter) {
+//         iter_bundle = *iter;
+//         log_info("pending_bundle:%d size:%d",
+//                  iter_bundle->bundleid_, (u_int)iter_bundle->payload_.length());
 
-        if (iter_bundle->bundleid_ == bundle->bundleid_) {
-            //delete the bundle
-            return;
-        }
-    }
+//         if (iter_bundle->bundleid_ == bundle->bundleid_) {
+//             //delete the bundle
+//             return;
+//         }
+//     }
     
-    pending_bundles_->push_back(bundle);
-    if (event->source_ != EVENTSRC_PEER)
-        actions_->store_add(bundle);
+//     pending_bundles_->push_back(bundle);
+//     if (event->source_ != EVENTSRC_PEER)
+//         actions_->store_add(bundle);
     
-    //here we do not need to handle the new bundle immediately
-    //just put it in the pending_bundles_ queue, and it
-    //needs to be used only when a new contact comes up
-    //**might do something different if the bundle is from
-    //  the local node
-    //BundleRouter::handle_bundle_received(event, actions_);
+//     //here we do not need to handle the new bundle immediately
+//     //just put it in the pending_bundles_ queue, and it
+//     //needs to be used only when a new contact comes up
+//     //**might do something different if the bundle is from
+//     //  the local node
+//     //BundleRouter::handle_bundle_received(event, actions_);
 
-    fwd_to_matching(bundle, true);
+//     fwd_to_matching(bundle, true);
 }
 
 void
@@ -174,7 +178,7 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
     ASSERT(link != NULL);
     log_info("FLOOD: LINK_CREATED *%p", event->link_);
 
-    RouteEntry* entry = new RouteEntry(all_tuples_, link, FORWARD_COPY);
+    RouteEntry* entry = new RouteEntry(all_tuples_, link, NULL, FORWARD_COPY);
 
     add_route(entry);
 
@@ -199,15 +203,7 @@ FloodBundleRouter::handle_contact_down(ContactDownEvent* event)
     log_info("FLOOD: CONTACT_DOWN *%p: removing queued bundles", contact);
     
     //XXX not implemented yet - neeed to do
-    route_table_->del_entry(all_tuples_, contact);
-    // empty contact list
-    // for flood, no need to maintain bundle list
-    contact->bundle_list()->clear();
-
-    
-    //dont close the contact -- we have long running ones
-    //this will PANIC
-    //contact->close();
+    route_table_->del_entry(all_tuples_, contact->link());
 }
 
 /**
@@ -216,8 +212,7 @@ FloodBundleRouter::handle_contact_down(ContactDownEvent* event)
  * maybe all bundles???) to see if the new consumer matches.
  */
 void
-FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
-                                BundleConsumer* next_hop)
+FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest, Link* next_hop)
 {
     log_debug("FLOOD:  new_next_hop");
 
@@ -230,7 +225,7 @@ FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest,
     for (iter = pending_bundles_->begin(); 
          iter != pending_bundles_->end(); ++iter) {
         bundle = *iter;
-        actions_->enqueue_bundle(bundle, next_hop, FORWARD_COPY);
+        actions_->send_bundle(bundle, next_hop);
     }
 }
 
@@ -255,7 +250,7 @@ FloodBundleRouter::fwd_to_matching(Bundle* bundle, bool include_local)
         if (!entry->next_hop_->is_local())
             continue;
         
-        actions_->enqueue_bundle(bundle, entry->next_hop_, entry->action_);
+        actions_->send_bundle(bundle, entry->next_hop_);
         ++count;
     }
 

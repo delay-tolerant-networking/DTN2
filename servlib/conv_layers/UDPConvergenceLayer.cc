@@ -183,8 +183,6 @@ UDPConvergenceLayer::close_contact(Contact* contact)
         delete sender;
         contact->set_cl_info(NULL);
     }
-
-    BundleDaemon::post(new ContactDownEvent(contact));
     
     return true;
 }
@@ -195,7 +193,7 @@ UDPConvergenceLayer::close_contact(Contact* contact)
  * when the bundle is queued on the contact.
  */
 void
-UDPConvergenceLayer::send_bundles(Contact* contact)
+UDPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
 {
     Sender* sender = (Sender*)contact->cl_info();
     if (!sender) {
@@ -204,27 +202,8 @@ UDPConvergenceLayer::send_bundles(Contact* contact)
         return;
     }
     ASSERT(contact == sender->contact_);
-    
-    Bundle* bundle = contact->bundle_list()->pop_front();
-    if (!bundle) {
-        log_crit("send_bundles called on contact *%p with no bundle!!",
-                 contact);
-        return;
-    }
 
     sender->send_bundle(bundle); // consumes bundle reference
-    bundle = NULL;
-    
-    bundle = contact->bundle_list()->pop_front();
-    if (bundle) {
-        log_warn("send_bundles called on contact *%p with more than one bundle",
-                 contact);
-        
-        do {
-            sender->send_bundle(bundle);
-            bundle = contact->bundle_list()->pop_front();
-        } while (bundle);
-    }
 }
 
 /******************************************************************************
@@ -400,7 +379,7 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         // cons up a transmission event and pass it to the router,
         // indicating since acked=false that the protocol is unreliable
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_,
+            new BundleTransmittedEvent(bundle, contact_->link(),
                                        bundle->payload_.length(),
                                        false));
         ok = true;
@@ -410,10 +389,6 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         ok = false;
     }
     
-    // finally, remove our local reference on the bundle, which
-    // may delete it
-    bundle->del_ref("udpcl");
-
     return ok;
 }
 

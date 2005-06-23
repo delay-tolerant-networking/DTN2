@@ -43,25 +43,20 @@
 namespace dtn {
 
 /**
- * Abstraction for a ONDEMAND link. It has to be opened everytime
- * one wants to use it. It has by definition only -one contact-
- * that is associated and no future contacts/history.
+ * Abstraction for a ONDEMAND link.
+ *
+ * It has to be opened everytime one wants to use it. It has by
+ * definition only -one contact- that is associated and no future
+ * contacts/history.
  */
 class OndemandLink : public Link {
 public:
     /**
-     * Constructor / Destructor
+     * Constructor.
+     * Sets the state to AVAILABLE immediately.
      */
-    OndemandLink(std::string name,
-                 ConvergenceLayer* cl,
-                 const char* nexthop)
-        : Link(name, ONDEMAND, cl, nexthop) {}
-    
-    virtual ~OndemandLink()  {}
-protected:
-  
+    OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
 };
-
 
 } // namespace dtn
 

@@ -106,7 +106,7 @@ SimConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 }
 
 void 
-SimConvergenceLayer::send_bundles(Contact* contact)
+SimConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
 {
     log_debug("send_bundles on contact %s", contact->nexthop());
 
@@ -122,32 +122,25 @@ SimConvergenceLayer::send_bundles(Contact* contact)
 
     ASSERT(src_node != dst_node);
 
-    Bundle* b;
     size_t len;
     bool reliable = info->params_.reliable_;
 
-    while (1) {
-        b = contact->bundle_list()->pop_front();
-        if (!b) {
-            break;
-        }
-
-        len = b->payload_.length();
+    len = bundle->payload_.length();
        
-        BundleTransmittedEvent* tx_event =
-            new BundleTransmittedEvent(b, contact, len, reliable);
+    BundleTransmittedEvent* tx_event =
+        new BundleTransmittedEvent(bundle, contact->link(), len, reliable);
 
-        Simulator::post(new SimRouterEvent(Simulator::time(),
-                                           src_node, tx_event));
+    Simulator::post(new SimRouterEvent(Simulator::time(),
+                                       src_node, tx_event));
 
-        BundleReceivedEvent* rcv_event =
-            new BundleReceivedEvent(b, EVENTSRC_PEER, len);
+    BundleReceivedEvent* rcv_event =
+        new BundleReceivedEvent(bundle, EVENTSRC_PEER, len);
+    
+    Simulator::post(new SimRouterEvent(Simulator::time(),
+                                       dst_node, rcv_event));
 
-        Simulator::post(new SimRouterEvent(Simulator::time(),
-                                           dst_node, rcv_event));
-
-        b->del_ref("SimConvergenceLayer");
-    }
+    bundle->del_ref("SimConvergenceLayer");
 }
+
 
 } // namespace dtnsim

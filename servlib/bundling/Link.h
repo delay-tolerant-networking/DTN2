@@ -173,7 +173,7 @@ class LinkSet : public std::set<Link*> {};
  * current contact when it was a future contact.
  *
  */
-class Link : public oasys::Formatter, public QueueConsumer {
+class Link : public oasys::Formatter, public BundleConsumer {
 public:
     /**
      * Valid types for a link.
@@ -232,6 +232,59 @@ public:
         
         return LINK_INVALID;
     }
+
+    /**
+     * The possible states for a link.
+     */
+    typedef enum {
+        UNAVAILABLE,	///< The link is closed and not able to be
+                        ///  opened currently.
+
+        AVAILABLE,	///< The link is closed but is able to be
+                        ///  opened, either because it is an on demand
+                        ///  link, or because an opportunistic peer
+                        ///  node is in close proximity but no
+                        ///  convergence layer session has yet been
+                        ///  opened.
+        
+        OPENING,	///< A convergence layer session is in the
+                        ///  process of being established.
+        
+        OPEN,		///< A convergence layer session has been
+                        ///  established, and the link has capacity
+                        ///  for a bundle to be sent on it. This may
+                        ///  be because no bundle is currently being
+                        ///  sent, or because the convergence layer
+                        ///  can handle multiple simultaneous bundle
+                        ///  transmissions.
+        
+        BUSY,		///< The link is busy, i.e. a bundle is
+                        ///  currently being sent on it by the
+                        ///  convergence layer and no more bundles may
+                        ///  be delivered to the link.
+
+        CLOSING		///< The link is in the process of being
+                        ///  closed.
+        
+    } state_t;
+
+    /**
+     * Convert a link state into a string.
+     */
+    static inline const char*
+    state_to_str(state_t state)
+    {
+        switch(state) {
+        case UNAVAILABLE: 	return "UNAVAILABLE";
+        case AVAILABLE: 	return "AVAILABLE";
+        case OPENING: 		return "OPENING";
+        case OPEN: 		return "OPEN";
+        case BUSY: 		return "BUSY";
+        case CLOSING: 		return "CLOSING";
+        }
+
+        NOTREACHED;
+    }
     
     /**
      * Static function to create appropriate link object from link type.
@@ -256,47 +309,55 @@ public:
     const char* type_str() { return link_type_to_str(type_); }
 
     /**
-     * Return the link's current contact
+     * Return whether or not the link is open.
      */
-    Contact* contact() { return contact_; }
-    
-    /**
-     * Return the state of the link.
-     */
-    bool isopen() { return contact_ != NULL; }
+    bool isopen() { return ( (state_ == OPEN) ||
+                             (state_ == BUSY) ||
+                             (state_ == CLOSING) ); }
 
     /**
-     * Return the state of the link.
+     * Return the availability state of the link.
      */
-    bool isavailable() { return avail_; }
+    bool isavailable() { return (state_ != UNAVAILABLE); }
+
+    /**
+     * Return the busy state of the link.
+     */
+    bool isbusy() { return (state_ == BUSY); }
 
     /**
      * Return whether the link is in the process of shutting down.
      */
-    bool isclosing() { return closing_; }
-
-    /**
-     * Set the state of the link to be available
-     */
-    void set_link_available();
-
-    /**
-     * Set the state of the link to be unavailable
-     */
-    void set_link_unavailable();
-
-    /**
-     * Find how many messages are queued to go through this link
-     */
-    size_t size();
+    bool isopening() { return (state_ == OPENING); }
     
+    /**
+     * Return whether the link is in the process of shutting down.
+     */
+    bool isclosing() { return (state_ == CLOSING); }
+
+    /**
+     * Return the actual state.
+     */
+    state_t state() { return state_; }
+
+    /**
+     * Sets the state of the link. Performs various assertions to
+     * ensure the state transitions are legal.
+     */
+    void set_state(state_t state);
+
     /// @{
     /// Virtual from BundleConsumer / QueueConsumer
     virtual void consume_bundle(Bundle* bundle);
-    virtual bool dequeue_bundle(Bundle* bundle);
+    virtual bool cancel_bundle(Bundle* bundle);
     virtual bool is_queued(Bundle* bundle);
     /// @}
     
+    /**
+     * Return the current contact information (if any).
+     */
+    Contact* contact() { return contact_; }
+
     /**
      * Store convergence layer state associated with the link.
      */
@@ -335,33 +396,37 @@ public:
     
 protected:
     friend class BundleActions;
-    friend class ContactManager;
+    friend class BundleDaemon;
     
     /**
-     * Open/Close link
-     * It is protected to not prevent random system
-     * components call open/close
+     * Open the link. Protected to make sure only the friend
+     * components can call it and virtual to allow subclasses to
+     * override it.
      */
     virtual void open();
+    
+    /**
+     * Close the link. Protected to make sure only the friend
+     * components can call it and virtual to allow subclasses to
+     * override it.
+     */
     virtual void close();
 
     /// Type of the link
     link_type_t type_;
 
-    /// Associated next hop admin identifier
+    /// State of the link
+    state_t state_;
+
+    /// Associated next hop endpoint
+    // XXX/demmer change me to be an endpoint id class
     std::string nexthop_;
     
-    /// Name of the link to identify across daemon
+    /// Internal name ame of the link 
     std::string name_;
 
     /// Current contact. contact_ != null iff link is open
     Contact* contact_;
-
-    /// Availability bit
-    bool avail_;
-
-    /// Close-in-progress bit
-    bool closing_;
 
     /// Pointer to convergence layer
     ConvergenceLayer* clayer_;

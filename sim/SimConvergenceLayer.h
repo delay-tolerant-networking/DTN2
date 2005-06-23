@@ -75,9 +75,9 @@ public:
     bool init_link(Link* link, int argc, const char* argv[]);
     
     /**
-     * Send any bundles queued on the given contact.
+     * Send the bundle out the contact.
      */
-    void send_bundles(Contact* contact);
+    void send_bundle(Contact* contact, Bundle* bundle);
     
 protected:
     static SimConvergenceLayer* instance_;

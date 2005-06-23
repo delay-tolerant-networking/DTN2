@@ -166,7 +166,7 @@ EthConvergenceLayer::close_contact(Contact* contact)
  * Send bundles queued up for the contact.
  */
 void
-EthConvergenceLayer::send_bundles(Contact* contact)
+EthConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
 {
     Sender* sender = (Sender*)contact->cl_info();
     if (!sender) {
@@ -176,26 +176,8 @@ EthConvergenceLayer::send_bundles(Contact* contact)
     }
     ASSERT(contact == sender->contact_);
     
-    Bundle* bundle = contact->bundle_list()->pop_front();
-    if (!bundle) {
-        log_crit("send_bundles called on contact *%p with no bundle!!",
-                 contact);
-        return;
-    }
-
     sender->send_bundle(bundle); // consumes bundle reference
     bundle = NULL;
-    
-    bundle = contact->bundle_list()->pop_front();
-    if (bundle) {
-        log_warn("send_bundles called on contact *%p with more than one bundle",
-                 contact);
-        
-        do {
-            sender->send_bundle(bundle);
-            bundle = contact->bundle_list()->pop_front();
-        } while (bundle);
-    }
 }
 
 
@@ -254,11 +236,10 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
             log_info("Discovered next_hop %s on interface %s.", bundles_string, if_name_);
 
             // registers a new contact with the routing layer
-            Contact *c=cm->new_opportunistic_contact(ConvergenceLayer::find_clayer("eth"),
-						     new EthCLInfo(if_name_),  // saved in Link::cl_info. 
-                                                     bundles_string);                        
-	    
-            link=c->link();
+            link=cm->new_opportunistic_link(
+                ConvergenceLayer::find_clayer("eth"),
+                new EthCLInfo(if_name_),  // saved in Link::cl_info. 
+                bundles_string); 
         }
 
         /**
@@ -508,14 +489,10 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         // since this is an unreliable protocol, acked_len = 0, and
         // ack = false
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_,
+            new BundleTransmittedEvent(bundle, contact_->link(),
                                        bundle->payload_.length(), false));
         ok = true;
     }
-
-    // finally, remove our local reference on the bundle, which
-    // may delete it
-    bundle->del_ref("udpcl");
 
     return ok;
 }
@@ -629,16 +606,16 @@ EthConvergenceLayer::BeaconTimer::timeout(struct timeval* now)
 
     log_info("Neighbor %s timer expired.",next_hop_);
 
-    if(l != 0) {
-      Contact * c = cm->find_link_to(next_hop_)->contact();
-      if(c != 0) {    	
-	BundleDaemon::post(new ContactDownEvent(c));	
-      }
-      else
-	log_warn("No contact for next_hop %s.",next_hop_);
-    }
-    else
+    if(l == 0) {
       log_warn("No link for next_hop %s.",next_hop_);
+    }
+    else if(l->isopen()) {
+	BundleDaemon::post(
+            new LinkStateChangeRequest(l, Link::CLOSING, ContactDownEvent::BROKEN));
+    }
+    else {
+	log_warn("next_hop %s unexpectedly not open",next_hop_);
+    }
 }
 
 Timer *

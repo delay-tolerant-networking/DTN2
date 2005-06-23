@@ -42,6 +42,7 @@
 #include <oasys/io/TCPServer.h>
 
 #include "IPConvergenceLayer.h"
+#include "bundling/BundleEvent.h"
 
 namespace dtn {
 
@@ -182,11 +183,10 @@ public:
     bool close_contact(Contact* contact);
 
     /**
-     * Send bundles queued up for the contact. This is a no-op since
-     * we spin a per-connection thread that just blocks on the
-     * contact's bundle queue.
+     * Send a bundle to the contact. Mark the link as busy and queue
+     * the bundle on the Connection's bundle queue.
      */
-    void send_bundles(Contact* contact) {}
+    void send_bundle(Contact* contact, Bundle* bundle);
     
     /**
      * Tunable parameters, defaults configurably for all connections
@@ -281,10 +281,12 @@ protected:
         void set_contact(Contact* contact) { contact_ = contact; }
 
     protected:
+        friend class TCPConvergenceLayer;
+        
         virtual void run();
         void send_loop();
         void recv_loop();
-        void break_contact();
+        void break_contact(ContactDownEvent::reason_t reason);
         bool connect();
         bool accept();
         bool send_contact_header();
@@ -299,6 +301,7 @@ protected:
         bool is_sender_;		///< Are we the sender side
         Contact* contact_;		///< Contact for sender-side
         oasys::TCPClient* sock_;	///< The socket
+        BlockingBundleList* queue_;	///< Queue of bundles for the connection
         struct timeval data_rcvd_;	///< Timestamp for idle timer
     };
 };

@@ -198,6 +198,7 @@ protected:
     void handle_contact_down(ContactDownEvent* event);
     void handle_link_available(LinkAvailableEvent* event);    
     void handle_link_unavailable(LinkUnavailableEvent* event);
+    void handle_link_state_change_request(LinkStateChangeRequest* request);
     void handle_reassembly_completed(ReassemblyCompletedEvent* event);
     ///@}
 

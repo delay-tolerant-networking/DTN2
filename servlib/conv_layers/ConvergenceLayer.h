@@ -96,13 +96,31 @@ public:
     virtual bool close_contact(Contact* contact);
 
     /**
-     * Try to send the bundles queued up for the given contact. In
-     * some cases (e.g. TCP) this is a no-op because open_contact spun
-     * a thread which is blocked on the bundle list associated with
-     * the contact. In others (e.g. UDP) there is no per-contact
-     * thread, so this callback is used to send the bundle.
+     * Try to send the bundles given bundle on the current link.
+     *
+     * In some cases (e.g. TCP) this just sticks bundles on a queue
+     * for another thread to consume (after setting the link state to
+     * BUSY). In others (e.g. UDP) there is no per-contact thread, so
+     * this callback is used to send the bundle.
      */
-    virtual void send_bundles(Contact* contact) = 0;
+    virtual void send_bundle(Contact* contact, Bundle* bundle) = 0;
+    
+    /**
+     * Try to cancel transmission of a given bundle on the contact.
+     */
+    virtual bool cancel_bundle(Contact* contact, Bundle* bundle)
+    {
+        return false;
+    }
+    
+    /**
+     * Hook to see if the given bundle is queued for transmission on
+     * the given contact.
+     */
+    virtual bool is_queued(Contact* contact, Bundle* bundle)
+    {
+        return false;
+    }
     
     /**
      * Boot-time initialization and registration of convergence

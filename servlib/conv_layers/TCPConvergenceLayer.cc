@@ -353,6 +353,21 @@ TCPConvergenceLayer::close_contact(Contact* contact)
     return true;
 }
 
+/**
+ * Send a bundle to the contact. Mark the link as busy and queue
+ * the bundle on the Connection's bundle queue.
+ */
+void
+TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
+{
+    log_debug("send_bundle *%p to *%p", bundle, contact);
+    contact->link()->set_state(Link::BUSY);
+
+    Connection* conn = (Connection*)contact->cl_info();
+    ASSERT(conn);
+    conn->queue_->push_back(bundle);
+}
+
 
 /******************************************************************************
  *
@@ -385,6 +400,13 @@ TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
  * TCPConvergenceLayer::Connection
  *
  *****************************************************************************/
+
+/**
+ * Constructor for the active connection side of a connection.
+ * Note that this may be used both for the actual data sender
+ * or for the data receiver side when used with the
+ * receiver_connect option.
+ */
 TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
                                             u_int16_t remote_port,
                                             bool is_sender,
@@ -395,6 +417,10 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
     Thread::flags_ |= INTERRUPTABLE;
 
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
+
+    // create the blocking queue for bundles to be sent on the
+    // connection
+    queue_ = new BlockingBundleList(logpath_);
 
     // cache the remote addr and port in the fields in the socket
     // since we want to actually connect to the peer side from the
@@ -413,6 +439,10 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
     sock_->set_remote_port(remote_port);
 }    
 
+
+/**
+ * Constructor for the passive accept side of a connection.
+ */
 TCPConvergenceLayer::Connection::Connection(int fd,
                                             in_addr_t remote_addr,
                                             u_int16_t remote_port,
@@ -422,12 +452,18 @@ TCPConvergenceLayer::Connection::Connection(int fd,
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 
+    // no queue necessary for the receiver side
+    queue_ = NULL;
+
     sock_ = new oasys::TCPClient(fd, remote_addr, remote_port, logpath_);
     sock_->set_logfd(false);
 }
 
 TCPConvergenceLayer::Connection::~Connection()
 {
+    if (queue_)
+        delete queue_;
+    
     delete sock_;
 }
 
@@ -444,52 +480,63 @@ TCPConvergenceLayer::Connection::run()
     {
         if (! connect()) {
             /*
-             * If the connection fails, even though the router hasn't
-             * gotten a CONTACT_UP event, we still send a CONTACT_DOWN
-             * event. XXX/demmer revisit this.
+             * If the connection fails, assuming the link is not
+             * already in the process of being we tell the daemon to
+             * close the link with a BROKEN reason code. If it
+             * succeeds, then the first thing that send_loop() does is
+             * post the ContactUpEvent.
              */
             log_debug("connection failed");
-            break_contact();
-//             set_should_stop();
-//             sock_->close();
-            return;
+
+            if (!contact_->link()->isclosing()) {
+                BundleDaemon::post(
+                    new LinkStateChangeRequest(contact_->link(), Link::CLOSING,
+                                               ContactDownEvent::BROKEN));
+            }
+            return; // trigger a deletion
         }
     } else {
+        /*
+         * If accepting a connection failed, we just return which
+         * triggers the thread to be deleted and therefore to clean up
+         * our state.
+         */
         if (! accept()) {
             log_debug("accept failed");
-            break_contact();
-            return;
+            return; // trigger a deletion
         }
 
         /*
          * Now if the receiver_connect option is set, then we're going
-         * to be the sender, so we notify the contact manager and
-         * enter the send loop.
+         * to be the sender, so notify the contact manager and enter
+         * the send loop.
          */
         if (params_.receiver_connect_) {
             log_debug("accept negotiated receiver_connect... "
                       "adding new opportunistic contact");
-                
-            ContactManager* cm = BundleDaemon::instance()->contactmgr();
 
-            ConvergenceLayer* clayer = ConvergenceLayer::find_clayer("tcp");
-            ASSERT(clayer);
-
-            // XXX/demmer work this out better -- should it just use
-            // the admin or should it use the full tuple?
-            contact_ = cm->new_opportunistic_contact(clayer, this,
-                                                     nexthop_.admin().c_str());
+            PANIC("XXX/demmer fix receiver connect");
             
-            if (!contact_) {
-                log_err("receiver_connect: error finding opportunistic link");
-                break_contact();
-                return;
-            }
+//             ContactManager* cm = BundleDaemon::instance()->contactmgr();
 
-            // XXX/demmer fix all this memory management stuff
-            Thread::clear_flag(DELETE_ON_EXIT);
+//             ConvergenceLayer* clayer = ConvergenceLayer::find_clayer("tcp");
+//             ASSERT(clayer);
 
-            is_sender_ = true;
+//             // XXX/demmer work this out better -- should it just use
+//             // the admin or should it use the full tuple?
+//             contact_ = cm->new_opportunistic_contact(clayer, this,
+//                                                      nexthop_.admin().c_str());
+            
+//             if (!contact_) {
+//                 log_err("receiver_connect: error finding opportunistic link");
+//                 return;
+//             }
+
+//             // XXX/demmer fix all this memory management stuff
+//             Thread::clear_flag(DELETE_ON_EXIT);
+            
+//             is_sender_ = true;
+//             queue_ = new BlockingBundleList();
         }
     }
     
@@ -637,7 +684,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
             }
             
             if (cc == 0) {
-                log_warn("send_bundle: timeout waiting for ack or write-ready");
+                log_warn("send_bundle: "
+                         "timeout waiting for ack or write-ready");
                 goto done;
             }
 
@@ -772,7 +820,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
     // note that this extracts payload_len from the bundle's header
     // and assigns it in the bundle payload
     bundle = new Bundle();
-    cc = BundleProtocol::parse_headers(bundle, (u_char*)payload_buf.data(), header_len);
+    cc = BundleProtocol::parse_headers(bundle, (u_char*)payload_buf.data(),
+                                       header_len);
     if (cc != (int)header_len) {
         log_err("recv_bundle: error parsing bundle headers (parsed %d/%d)",
                 cc, header_len);
@@ -819,7 +868,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
             goto done;
         } 
 
-        log_debug("recv_bundle: got %d byte chunk, rcvd_len %u", cc, (u_int)rcvd_len);
+        log_debug("recv_bundle: got %d byte chunk, rcvd_len %u",
+                  cc, (u_int)rcvd_len);
         
         // append the chunk of data and update the amount received
         bundle->payload_.append_data((u_char*)payload_buf.data(), cc);
@@ -832,7 +882,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
 
         // check if we've read enough to send an ack
         if (rcvd_len - acked_len > params_.partial_ack_len_) {
-            log_debug("recv_bundle: got %u bytes acked %u, sending partial ack",
+            log_debug("recv_bundle: "
+                      "got %u bytes acked %u, sending partial ack",
                       (u_int)rcvd_len, (u_int)acked_len);
             
             if (! send_ack(datahdr.bundle_id, rcvd_len)) {
@@ -1271,29 +1322,19 @@ TCPConvergenceLayer::Connection::accept()
  * 
  * This results in the Connection thread stopping and the system
  * calling the link->close() call which cleans up the connection.
+ *
+ * If this is the sender-side, we keep a pointer to the contact and
+ * assuming the contact isn't in the process of being closed, we post
+ * a request that it be closed.
  */
 void
-TCPConvergenceLayer::Connection::break_contact()
+TCPConvergenceLayer::Connection::break_contact(ContactDownEvent::reason_t reason)
 {
     char typecode = SHUTDOWN;
     ASSERT(sock_);
 
-#if 0
-    // debugging code to confirm the state of the socket
-    if (sock_->get_nonblocking(&is_nonblocking)) {
-        log_warn("failure getting non-blocking status of sock");
-    } else {
-        log_debug("sock %s non-blocking", (is_nonblocking) ? "is" : "is not");
-    }
-#endif
-
-    /// XXX/jra: debug code above confirms that receiver sockets
-    /// not currently in nonblocking mode. demmer thinks they should
-    /// be, but until we think that change through, we set nonblocking
-    /// here before we write to the socket, to be safe.
-
     if (sock_->set_nonblocking(true) == 0) {
-        (void) sock_->write(&typecode, 1);
+        sock_->write(&typecode, 1);
         // do not log an error when we fail to write, since the
         // SHUTDOWN is basically advisory. Expected errors here
         // include a short write due to socket already closed,
@@ -1308,8 +1349,10 @@ TCPConvergenceLayer::Connection::break_contact()
     // the thread flags that we're gonna stop shortly.
     set_should_stop();
 
-    if (contact_ && !contact_->link()->isclosing())
-        BundleDaemon::post(new ContactDownEvent(contact_));
+    if (contact_ && !contact_->link()->isclosing()) {
+        BundleDaemon::post(
+            new LinkStateChangeRequest(contact_->link(), Link::CLOSING, reason));
+    }
 }
 
 /**
@@ -1322,11 +1365,10 @@ TCPConvergenceLayer::Connection::send_loop()
     char typecode;
     int ret;
 
-    // someone should already have either connected or accepted the
-    // connection
+    // someone should already have established the session
     ASSERT(sock_->state() == oasys::IPSocket::ESTABLISHED);
     
-    // inform the router that the contact is available
+    // inform the daemon that the contact is available
     ASSERT(contact_);
     BundleDaemon::post(new ContactUpEvent(contact_));
     
@@ -1336,15 +1378,12 @@ TCPConvergenceLayer::Connection::send_loop()
     // from now on, all our operations will use non-blocking semantics
     sock_->set_nonblocking(true);
 
-    // grab the blocking bundle list
-    BlockingBundleList* contact_list = contact_->xxx_bundle_list();
-    
     // build up a poll vector since we need to block below on input
     // from both the socket and the bundle list notifier
     struct pollfd pollfds[2];
 
     struct pollfd* bundle_poll = &pollfds[0];
-    bundle_poll->fd = contact_list->notifier()->read_fd();
+    bundle_poll->fd = queue_->notifier()->read_fd();
     bundle_poll->events = POLLIN;
     
     struct pollfd* sock_poll = &pollfds[1];
@@ -1363,13 +1402,12 @@ TCPConvergenceLayer::Connection::send_loop()
         // first see if someone wants us to stop
         // XXX/demmer debug this and make it a clean close_contact
         if (should_stop()) {
-            break_contact();
             return;
         }
         
-        // first check the contact's bundle list to see if there's a
-        // bundle already there, but don't pop it off the list yet
-        bundle = contact_->bundle_list()->front();
+        // pop the bundle (if any) off the queue, which gives us a
+        // local reference on it
+        bundle = queue_->pop_front();
 
         if (bundle) {
             size_t acked_len = 0;
@@ -1377,35 +1415,30 @@ TCPConvergenceLayer::Connection::send_loop()
             // we got a bundle, so send it off. 
             bool sentok = send_bundle(bundle, &acked_len);
 
-            // if any data was acked, pop the bundle off the contact
-            // list (making sure it's still the right bundle) and
-            // inform the router. note that pop_front does _not_
-            // decrement the reference count, so we now have a local
-            // reference to the bundle
-            if (acked_len != 0) {
-                // give them credit for sending data
-                ::gettimeofday(&keepalive_rcvd, 0);
+            // reset the keepalive timer
+            ::gettimeofday(&keepalive_rcvd, 0);
 
-                Bundle* bundle2 = contact_->bundle_list()->pop_front();
-                ASSERT(bundle == bundle2);
-
-                // XXX/demmer this won't be true wrt expiration...
-                // maybe mark the bundle as in-progress or something
-                // like that?
-                
+            // if we sent some part of the bundle successfully, mark
+            // the link as not busy any more and notify the daemon
+            // that the transmission succeeded.
+            if (sentok || (acked_len > 0)) {
+                contact_->link()->set_state(Link::OPEN);
                 BundleDaemon::post(
-                    new BundleTransmittedEvent(bundle, contact_, acked_len, true));
-                
-                bundle->del_ref("tcpcl");
-                bundle = NULL;
+                    new BundleTransmittedEvent(bundle, contact_->link(),
+                                               acked_len, true));
             }
+                
+            bundle->del_ref("tcpcl");
+            bundle = NULL;
 
             // if the last transmission wasn't completely successful,
             // it's time to break the contact
             if (!sentok) {
-                goto shutdown;
+                goto broken;
             }
 
+            // otherwise, we loop back to the beginning and check for
+            // more bundles on the queue
             continue;
         }
 
@@ -1419,14 +1452,17 @@ TCPConvergenceLayer::Connection::send_loop()
         // keepalive in time
         pollfds[0].revents = 0;
         pollfds[1].revents = 0;
-        
-        log_debug("send_loop: calling poll (timeout %d)",
-                  params_.keepalive_interval_ * 1000);
-        int nready = poll(pollfds, 2, params_.keepalive_interval_ * 1000);
+
+        int timeout = params_.keepalive_interval_ * 1000;
+        log_debug("send_loop: calling poll (timeout %d)", timeout);
+                  
+        int nready = poll(pollfds, 2, timeout);
         if (nready < 0) {
-            if (errno == EINTR) continue;
+            if (errno == EINTR)
+                continue;
+            
             log_err("error return %d from poll: %s", nready, strerror(errno));
-            goto shutdown;
+            goto broken;
         }
 
         // check for a message (or shutdown) from the other side
@@ -1435,7 +1471,7 @@ TCPConvergenceLayer::Connection::send_loop()
                 (sock_poll->revents & POLLERR))
             {
                 log_warn("send_loop: remote connection error");
-                goto shutdown;
+                goto broken;
             }
 
             if (! (sock_poll->revents & POLLIN)) {
@@ -1447,7 +1483,7 @@ TCPConvergenceLayer::Connection::send_loop()
             if (ret != 1) {
                 log_warn("send_loop: "
                          "remote connection unexpectedly closed");
-                goto shutdown;
+                goto broken;
             }
 
             // do not note_data_rcvd() after this read, because it
@@ -1459,11 +1495,11 @@ TCPConvergenceLayer::Connection::send_loop()
                 // mark that we got a keepalive as expected
                 ::gettimeofday(&keepalive_rcvd, 0);
             } else if (typecode == SHUTDOWN) {
-                goto shutdown;
+                goto idle;
             } else {
                 log_warn("send_loop: "
                          "got unexpected frame code %d", typecode);
-                goto shutdown;
+                goto broken;
             }
 
         }
@@ -1472,8 +1508,8 @@ TCPConvergenceLayer::Connection::send_loop()
         // beginning of the loop, but make sure to drain the pipe here
         if (bundle_poll->revents != 0) {
             ASSERT(bundle_poll->revents == POLLIN);
-            ASSERT(contact_->bundle_list()->front() != NULL);
-            contact_list->notifier()->drain_pipe();
+            ASSERT(queue_->front() != NULL);
+            queue_->notifier()->drain_pipe();
         }
 
         // if nready is zero then the command timed out, implying that
@@ -1485,7 +1521,7 @@ TCPConvergenceLayer::Connection::send_loop()
             if (ret != 1) {
                 log_warn("send_loop: "
                          "remote connection unexpectedly closed");
-                goto shutdown;
+                goto broken;
             }
 
             ::gettimeofday(&keepalive_sent, 0);
@@ -1504,21 +1540,26 @@ TCPConvergenceLayer::Connection::send_loop()
                      (u_int)keepalive_rcvd.tv_sec,
                      (u_int)keepalive_rcvd.tv_usec,
                      (u_int)now.tv_sec, (u_int)now.tv_usec);
-            goto shutdown;
+            goto broken;
         }
         // see if it is time to close the connection due to it going idle
         elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
         if (elapsed > (params_.idle_close_time_ * 1000)) {
             log_info("connection idle for %d msecs, closing.", elapsed);
-            goto shutdown;
+            goto idle;
         } else {
             log_debug("connection not idle: %d <= %d",
                       elapsed, params_.idle_close_time_ * 1000);
         }
     }
         
- shutdown:
-    break_contact();
+ broken:
+    break_contact(ContactDownEvent::BROKEN);
+    return;
+
+ idle:
+    break_contact(ContactDownEvent::IDLE);
+    return;
 }
 
 void
@@ -1534,7 +1575,7 @@ TCPConvergenceLayer::Connection::recv_loop()
         elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
         if (elapsed > params_.idle_close_time_ * 1000) {
             log_info("connection idle for %d milliseconds, closing.", elapsed);
-            break_contact();
+            break_contact(ContactDownEvent::IDLE);
             return;
         } else {
             log_debug("connection not idle: %d <= %d",
@@ -1549,7 +1590,7 @@ TCPConvergenceLayer::Connection::recv_loop()
         if (ret == oasys::IOEOF || ret == oasys::IOERROR) {
             log_warn("recv_loop: remote connection unexpectedly closed");
  shutdown:
-            break_contact();
+            break_contact(ContactDownEvent::BROKEN);
             return;
             
         } else if (ret == oasys::IOTIMEOUT) {

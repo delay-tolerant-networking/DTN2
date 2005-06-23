@@ -199,7 +199,7 @@ FileConvergenceLayer::close_contact(Contact* contact)
  * Try to send the bundles queued up for the given contact.
  */
 void
-FileConvergenceLayer::send_bundles(Contact* contact)
+FileConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
 {
     std::string dir;
     if (!extract_dir(contact->nexthop(), &dir)) {
@@ -207,8 +207,6 @@ FileConvergenceLayer::send_bundles(Contact* contact)
     }
 
     FileHeader filehdr;
-    Bundle* bundle;
-    BundleList* blist = contact->bundle_list();
     int iovcnt = BundleProtocol::MAX_IOVCNT + 2;
     struct iovec iov[iovcnt];
 
@@ -216,65 +214,61 @@ FileConvergenceLayer::send_bundles(Contact* contact)
     
     oasys::StringBuffer fname("%s/bundle-XXXXXX", dir.c_str());
     
-    while ((bundle = blist->pop_front()) != NULL) {
-        iov[0].iov_base = (char*)&filehdr;
-        iov[0].iov_len  = sizeof(FileHeader);
+    iov[0].iov_base = (char*)&filehdr;
+    iov[0].iov_len  = sizeof(FileHeader);
 
-        // fill in the bundle header portion
-        u_int16_t header_len =
-            BundleProtocol::format_headers(bundle, &iov[1], &iovcnt);
+    // fill in the bundle header portion
+    u_int16_t header_len =
+        BundleProtocol::format_headers(bundle, &iov[1], &iovcnt);
 
-        // fill in the file header
-        size_t payload_len = bundle->payload_.length();
-        filehdr.header_length = htons(header_len);
-        filehdr.bundle_length = htonl(header_len + payload_len);
+    // fill in the file header
+    size_t payload_len = bundle->payload_.length();
+    filehdr.header_length = htons(header_len);
+    filehdr.bundle_length = htonl(header_len + payload_len);
 
-        // and tack on the payload (adding one to iovcnt for the
-        // FileHeader, then one for the payload)
-        iovcnt++;
-        PANIC("XXX/demmer fix me");
-//        iov[iovcnt].iov_base = (void*)bundle->payload_.data();
-        iov[iovcnt].iov_len  = payload_len;
-        iovcnt++;
+    // and tack on the payload (adding one to iovcnt for the
+    // FileHeader, then one for the payload)
+    iovcnt++;
+    PANIC("XXX/demmer fix me");
+    //iov[iovcnt].iov_base = (void*)bundle->payload_.data();
+    iov[iovcnt].iov_len  = payload_len;
+    iovcnt++;
 
-        // open the bundle file 
-        int fd = mkstemp(fname.c_str());
-        if (fd == -1) {
-            log_err("error opening temp file in %s: %s", fname.c_str(), strerror(errno));
-            // XXX/demmer report error here?
-            bundle->del_ref("filecl");
-            continue;
-        }
-
-        log_debug("opened temp file %s for bundle id %d "
-                  "fd %d header_length %u payload_length %u",
-                  fname.c_str(), bundle->bundleid_, fd,
-                  (u_int)header_len, (u_int)payload_len);
-
-        // now write everything out
-        int total = sizeof(FileHeader) + header_len + payload_len;
-        int cc = oasys::IO::writevall(fd, iov, iovcnt, logpath_);
-        if (cc != total) {
-            log_err("error writing out bundle (wrote %d/%d): %s",
-                    cc, total, strerror(errno));
-        }
-
-        // free up the iovec data
-        BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt - 2);
-        
-        // close the file descriptor
-        close(fd);
-
-        // cons up a transmission event and pass it to the router
-        bool acked = false;
-        BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact, payload_len, acked));
-        
-        log_debug("bundle id %d successfully transmitted", bundle->bundleid_);
-
-        // finally, remove the reference on the bundle (which may delete it)
-        bundle->del_ref("filecl");
+    // open the bundle file 
+    int fd = mkstemp(fname.c_str());
+    if (fd == -1) {
+        log_err("error opening temp file in %s: %s",
+                fname.c_str(), strerror(errno));
+        // XXX/demmer report error here?
+        return;
     }
+
+    log_debug("opened temp file %s for bundle id %d "
+              "fd %d header_length %u payload_length %u",
+              fname.c_str(), bundle->bundleid_, fd,
+              (u_int)header_len, (u_int)payload_len);
+
+    // now write everything out
+    int total = sizeof(FileHeader) + header_len + payload_len;
+    int cc = oasys::IO::writevall(fd, iov, iovcnt, logpath_);
+    if (cc != total) {
+        log_err("error writing out bundle (wrote %d/%d): %s",
+                cc, total, strerror(errno));
+    }
+
+    // free up the iovec data
+    BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt - 2);
+        
+    // close the file descriptor
+    close(fd);
+
+    // cons up a transmission event and pass it to the router
+    bool acked = false;
+    BundleDaemon::post(
+        new BundleTransmittedEvent(bundle, contact->link(),
+                                   payload_len, acked));
+        
+    log_debug("bundle id %d successfully transmitted", bundle->bundleid_);
 }
 
 /******************************************************************************

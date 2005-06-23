@@ -118,6 +118,11 @@ protected:
     virtual void handle_link_unavailable(LinkUnavailableEvent* event);
 
     /**
+     * Default event handler for link state change requests.
+     */
+    virtual void handle_link_state_change_request(LinkStateChangeRequest* req);
+
+    /**
      * Default event handler when reassembly is completed.
      */
     virtual void handle_reassembly_completed(ReassemblyCompletedEvent* event);
