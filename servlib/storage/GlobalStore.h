@@ -38,7 +38,7 @@
 #ifndef _GLOBAL_STORE_H_
 #define _GLOBAL_STORE_H_
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/serialize/Serialize.h>
 
 // forward decl

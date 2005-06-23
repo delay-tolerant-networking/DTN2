@@ -38,7 +38,7 @@
 #ifndef _NODE_H_
 #define _NODE_H_
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
 
 #include "SimEventHandler.h"

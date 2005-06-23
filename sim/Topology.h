@@ -40,7 +40,7 @@
 
 
 #include <vector>
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
 #include <oasys/util/StringUtils.h>
 

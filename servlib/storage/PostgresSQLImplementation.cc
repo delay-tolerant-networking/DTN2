@@ -41,7 +41,7 @@
 #if POSTGRES_ENABLED
 
 #include <string.h>
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/util/StringBuffer.h>
 #include "PostgresSQLImplementation.h"
 

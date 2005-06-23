@@ -39,7 +39,7 @@
 #define _SIM_CONTACT_H_
 
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
 
 

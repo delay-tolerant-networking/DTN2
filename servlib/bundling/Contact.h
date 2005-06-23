@@ -38,7 +38,7 @@
 #ifndef _CONTACT_H_
 #define _CONTACT_H_
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Formatter.h>
 
 #include "BundleConsumer.h"

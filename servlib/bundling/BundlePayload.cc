@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/thread/SpinLock.h>
 #include <oasys/util/StringBuffer.h>
 

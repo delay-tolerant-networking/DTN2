@@ -40,7 +40,7 @@
 
 #include <string>
 #include <list>
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 
 namespace dtn {
 

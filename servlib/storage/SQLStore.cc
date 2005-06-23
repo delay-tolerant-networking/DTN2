@@ -40,7 +40,7 @@
 
 #if SQL_ENABLED
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/serialize/SQLImplementation.h>
 
 #include "SQLStore.h"

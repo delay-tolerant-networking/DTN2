@@ -36,7 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 
 #include "bundling/AddressFamily.h"
 #include "bundling/BundleTuple.h"

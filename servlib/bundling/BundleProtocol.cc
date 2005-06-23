@@ -63,7 +63,7 @@
 #include <netinet/in.h>
 #include <algorithm>
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/util/StringUtils.h>
 
 #include "AddressFamily.h"

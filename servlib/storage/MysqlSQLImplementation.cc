@@ -40,7 +40,7 @@
 
 #if MYSQL_ENABLED
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
 
 #include "MysqlSQLImplementation.h"

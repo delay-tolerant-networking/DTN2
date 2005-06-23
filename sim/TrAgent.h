@@ -38,7 +38,7 @@
 #ifndef _TR_AGENT_H
 #define _TR_AGENT_H
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
 
 #include "SimEvent.h"

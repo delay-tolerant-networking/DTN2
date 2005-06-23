@@ -38,7 +38,7 @@
 #ifndef _ADDRESS_FAMILY_H_
 #define _ADDRESS_FAMILY_H_
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/util/StringUtils.h>
 
 namespace dtn {

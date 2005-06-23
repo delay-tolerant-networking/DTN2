@@ -39,7 +39,7 @@
 #define _CONNECTIVITY_H_
 
 #include "SimEventHandler.h"
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Logger.h>
 #include <oasys/util/StringUtils.h>
 

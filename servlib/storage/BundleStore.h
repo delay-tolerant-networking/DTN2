@@ -38,7 +38,7 @@
 #ifndef _BUNDLE_STORE_H_
 #define _BUNDLE_STORE_H_
 
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 
 // forward decl
 namespace oasys {

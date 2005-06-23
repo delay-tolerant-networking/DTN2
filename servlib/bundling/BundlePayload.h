@@ -40,7 +40,7 @@
 
 #include <string>
 #include <oasys/serialize/Serialize.h>
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/io/FileIOClient.h>
 
 namespace dtn {

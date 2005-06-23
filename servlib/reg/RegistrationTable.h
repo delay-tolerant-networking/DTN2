@@ -39,7 +39,7 @@
 #define _REGISTRATION_TABLE_H_
 
 #include <string>
-#include <oasys/debug/Debug.h>
+#include <oasys/debug/DebugUtils.h>
 #include <oasys/util/StringBuffer.h>
 
 #include "Registration.h"
