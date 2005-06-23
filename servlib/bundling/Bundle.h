@@ -209,7 +209,7 @@ public:
     bool is_fragment_;		///< Fragmentary Bundle
     u_int32_t orig_length_;	///< Length of original bundle
     u_int32_t frag_offset_;	///< Offset of fragment in the original bundle
-    BundlePayload payload_;	///< Reference to the payload    
+    BundlePayload payload_;	///< Reference to the payload
 
     /*
      * Public internal fields for managing the bundle.
@@ -219,7 +219,8 @@ public:
                                 ///  updated by multiple threads, e.g.
                                 ///  containers_ and refcount_.
     bool is_reactive_fragment_; ///< Reactive fragmentary bundle
-    std::string owner_;              ///< Declared owner of this bundle, could be empty
+    std::string owner_;         ///< Declared owner of this bundle,
+                                ///  could be empty
 
 protected:
     /*
