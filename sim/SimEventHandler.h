@@ -49,6 +49,7 @@ class SimEvent;
 class SimEventHandler {
 public:
     virtual void process(SimEvent* e) = 0;
+    virtual ~SimEventHandler() {}
 };
 
 } // namespace dtnsim

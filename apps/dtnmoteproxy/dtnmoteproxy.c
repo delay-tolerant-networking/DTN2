@@ -264,7 +264,7 @@ reader_thread(void *p)
 
         if (debug > 1) fprintf(dout, "about to read from motes...\n");
 
-	while((ret=read_packet(motedata,&length))){
+	while((ret=read_packet((char *) motedata, (int *) &length))){
 	    if(ret==DEBUG_PKT)
 		continue;
             if (debug > 0) {
@@ -282,7 +282,7 @@ reader_thread(void *p)
             memset(&send_payload, 0, sizeof(send_payload));
 
             dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM,
-                            motedata, length);
+                            (char *) motedata, length);
  
             if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
                 fprintf(stderr, "error sending bundle: %d (%s)\n",

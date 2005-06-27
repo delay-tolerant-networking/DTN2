@@ -2700,6 +2700,13 @@ echo "${ECHO_T}$oasys_cv_prog_gccver" >&6
 	    DEPFLAGS='-MMD -MP -MT "$*.o $*.E $*.po"'
 	    ;;
 	#
+	# For 4.* and beyond, use auto-dependency flags.
+	# Note that for m4 to output a '$' requires the '$' heinosity below.
+	#
+	4.*)
+	    DEPFLAGS='-MMD -MP -MT "$*.o $*.E $*.po"'
+	    ;;
+	#
 	# Otherwise bail
 	#
         *)

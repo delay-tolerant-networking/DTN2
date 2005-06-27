@@ -91,6 +91,8 @@ public:
      */
     virtual void keys(std::vector<int> * v) = 0;
 
+    virtual ~PersistentStore();
+
 };
 } // namespace dtn
 

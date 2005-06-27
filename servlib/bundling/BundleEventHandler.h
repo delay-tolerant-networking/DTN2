@@ -65,6 +65,12 @@ protected:
     BundleEventHandler(const char* logpath = "/event/handler")
         : oasys::Logger(logpath) {}
     
+    /**
+     * Destructor -- Needs to be defined virtual to be sure that
+     * derived classes get a chance to clean up their stuff on removal.
+     */
+    virtual ~BundleEventHandler() {}
+
     /** 
      * Dispatch the event by type code to one of the event-specific
      * handler functions below.

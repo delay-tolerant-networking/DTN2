@@ -76,7 +76,7 @@ main(int argc, const char** argv)
         usage();
     }
 
-    endpoint = (char*)argv[1];
+    endpoint = (unsigned char*)argv[1];
 
     // open the ipc handle
     if (debug) printf("opening connection to dtn router...\n");
@@ -91,7 +91,7 @@ main(int argc, const char** argv)
     // build a local tuple based on the configuration of our dtn
     // router plus the demux string
     if (debug) printf("calling dtn_build_local_tuple.\n");
-    dtn_build_local_tuple(handle, &local_tuple, endpoint);
+    dtn_build_local_tuple(handle, &local_tuple, (char *) endpoint);
     if (debug) printf("local_tuple [%s %.*s]\n",
                     local_tuple.region,
                     (int)local_tuple.admin.admin_len, 
@@ -138,7 +138,7 @@ main(int argc, const char** argv)
                spec.source.admin.admin_val,
                0);
 
-        buffer = payload.dtn_bundle_payload_t_u.buf.buf_val;
+        buffer = (unsigned char *) payload.dtn_bundle_payload_t_u.buf.buf_val;
         for (k=0; k < payload.dtn_bundle_payload_t_u.buf.buf_len; k++)
         {
             if (buffer[k] >= ' ' && buffer[k] <= '~')
