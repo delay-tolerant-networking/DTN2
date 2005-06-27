@@ -1,8 +1,9 @@
 #
 # configure.ac -- input file for configure script
 #
-# run preconfig.sh when any changes are made
-#
+# Note: make sure to run build-configure.sh when any changes are
+#       made to this file or to any of the files in aclocal
+
 
 AC_PREREQ(2.57)
 AC_INIT(DTN2)
