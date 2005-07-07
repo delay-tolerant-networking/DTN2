@@ -114,16 +114,16 @@ LinkStateGraph::findNextHop(Vertex* from, Vertex *to)
         Vertex* best=(*current->incoming_edges_.begin()).first;
         for(map<Vertex*, Edge*>::iterator e=current->incoming_edges_.begin(); e != current->incoming_edges_.end(); e++)
         {
-            if(best->dijkstra_distance_ >= current->dijkstra_distance_)
+            if((*e).first->dijkstra_distance_ < best->dijkstra_distance_)
                 best=(*e).first;
         }
-       
+
         if(best == from) 
             return current;
-        else
+        else            
             current = best;
     }
-
+    return current;
 }
 
 LinkStateGraph::Edge*

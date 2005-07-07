@@ -165,18 +165,21 @@ void
 LinkStateRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
     Bundle* bundle=event->bundleref_.bundle();
-    ContactManager* cm = BundleDaemon::instance()->contactmgr();
 
-    /** XXX/jakob - I believe this needs extra support in BundleReceivedEvent to work in a general case
-      *
-      * To find the next hop, we must know where we are at the moment. That is, what is the current EID
-      * where we believe the bundle is? The graph may contain multiple EID vertices for a single routing agent,
-      * so just using local_tuple_ the way it is done now is no good at all if there's more than one EID.
-      *
-      * I believe the solution would be to extent BundleReceivedEvent to contain a receivedAtEID field,
-      * which would contain the currrent EID that the bundle is at. 
-      *
-      **/
+    // we don't want any bundles that are already owned by someone
+    if(bundle->owner_ != "") {
+        log_debug("Skipping bundle ID %u owned by %s.\n",bundle->bundleid_,bundle->owner_.c_str());
+        return;
+    }
+    
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    
+    /* XXX/jakob
+     *
+     * This isn't going to work if there are more than one EID on a node. What needs to be done is to listen to
+     * registration events to see what EID's are local. Then, when finding the next hop, we would start at 
+     * any local EID but send the bundle directly to the next _non-local_ EID in the graph.
+     */
     LinkStateGraph::Vertex* nextHop=graph_.findNextHop(graph_.getVertex(local_tuple_.c_str()),
                                                        // getMatchingVertex allows for some *-matching
                                                        graph_.getMatchingVertex(bundle->dest_.c_str())); 
