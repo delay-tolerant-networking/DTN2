@@ -198,12 +198,16 @@ main(int argc, const char** argv)
         region = spec.source.region;
         
         // extract hostname (ignore protocol)
-        host = strstr(source_admin, "://");
-        host += 3; // skip ://
+        if (strcasecmp(region, "internet") == 0) {
+            host = strstr(source_admin, "://");
+            host += 3; // skip ://
 
-        // calculate where host ends (temporarily using dirpath)
-        dirpath = strstr(host, "/dtncp/send");
-        dirpath[0] = '\0'; // null-terminate host
+            // calculate where host ends (temporarily using dirpath)
+            dirpath = strstr(host, "/dtncp/send");
+            dirpath[0] = '\0'; // null-terminate host
+        } else {
+            host = "[non-internet-region]";
+        }
        
         // copy out dest admin value into null-terminated string
         dest_admin_len = spec.dest.admin.admin_len;
@@ -259,8 +263,9 @@ main(int argc, const char** argv)
             if (cmd) {
                 snprintf(cmd, cmdlen, "mv %*s %s", bufsize, buffer,
                          filepath);
-                printf("Moving payload to final filename: %s\n", cmd);
+                printf("Moving payload to final filename: '%s'\n", cmd);
                 system(cmd);
+                free(cmd);
             } else {
                 printf("Out of memory. Find file in %*s.\n", bufsize,
                         buffer);
