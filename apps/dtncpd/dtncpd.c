@@ -49,7 +49,7 @@
 #include "dtn_api.h"
 
 #define BUFSIZE 16
-#define BUNDLE_DIR_DEFAULT "/dtn/received_bundles"
+#define BUNDLE_DIR_DEFAULT "/var/dtn/dtncpd-incoming"
 
 static const char *progname;
 
@@ -168,11 +168,15 @@ main(int argc, const char** argv)
     // loop waiting for bundles
     while(1)
     {
+        // change this to _MEM here to receive into memory then write the file
+        // ourselves. (So this code shows both ways to do it.)
+        dtn_bundle_payload_location_t file_or_mem = DTN_PAYLOAD_FILE;
+
         memset(&spec, 0, sizeof(spec));
         memset(&payload, 0, sizeof(payload));
         
         if ((ret = dtn_recv(handle, &spec,
-                            DTN_PAYLOAD_MEM, &payload, -1)) < 0)
+                            file_or_mem, &payload, -1)) < 0)
         {
             fprintf(stderr, "error getting recv reply: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));
@@ -233,7 +237,6 @@ main(int argc, const char** argv)
         // create file name
         sprintf(filepath, "%s/%s/%s/%s", bundle_dir, host, dirpath, filename);
 
-
         // bundle name is the name of the bundle payload file
         buffer = payload.dtn_bundle_payload_t_u.buf.buf_val;
         bufsize = payload.dtn_bundle_payload_t_u.buf.buf_len;
@@ -249,46 +252,91 @@ main(int argc, const char** argv)
         
         if (debug) printf ("--------------------------------------\n");
 
-        target = fopen(filepath, "w");
+        if (file_or_mem == DTN_PAYLOAD_FILE) {
+            int cmdlen = 5 + strlen(buffer) + strlen(filepath);
+            char *cmd = malloc(cmdlen);
 
-        if (target == NULL)
-        {
-            fprintf(stderr, "Error opening file for writing %s\n", filepath);
-            continue;
-        }
-        
-        marker = 0;
-        while (marker < bufsize)
-        {
-            // write 256 bytes at a time
-            i=0;
-            maxwrite = (marker + 256) > bufsize? bufsize-marker : 256;
-            while (i < maxwrite)
-            {
-                i += fwrite(buffer + marker + i, 1, maxwrite - i, target);
+            if (cmd) {
+                snprintf(cmd, cmdlen, "mv %*s %s", bufsize, buffer,
+                         filepath);
+                printf("Moving payload to final filename: %s\n", cmd);
+                system(cmd);
+            } else {
+                printf("Out of memory. Find file in %*s.\n", bufsize,
+                        buffer);
             }
-            
-            if (debug)
-            {
-                for (i=0; i < maxwrite; i++)
-                {
-                    if (buffer[marker] >= ' ' && buffer[marker] <= '~')
-                        s_buffer[marker%BUFSIZE] = buffer[i];
-                    else
-                        s_buffer[marker%BUFSIZE] = '.';
-                    
+        } else {
 
-                    if (marker%BUFSIZE == 0) // new line every 16 bytes
+            target = fopen(filepath, "w");
+
+            if (target == NULL)
+            {
+                fprintf(stderr, "Error opening file for writing %s\n",
+                         filepath);
+                continue;
+            }
+        
+            marker = 0;
+            while (marker < bufsize)
+            {
+                // write 256 bytes at a time
+                i=0;
+                maxwrite = (marker + 256) > bufsize? bufsize-marker : 256;
+                while (i < maxwrite)
+                {
+                    i += fwrite(buffer + marker + i, 1, maxwrite - i, target);
+                }
+            
+                if (debug)
+                {
+                    for (i=0; i < maxwrite; i++)
                     {
-                        printf("%07x ", marker);
+                        if (buffer[marker] >= ' ' && buffer[marker] <= '~')
+                            s_buffer[marker%BUFSIZE] = buffer[i];
+                        else
+                            s_buffer[marker%BUFSIZE] = '.';
+                    
+                        if (marker%BUFSIZE == 0) // new line every 16 bytes
+                        {
+                            printf("%07x ", marker);
+                        }
+                        else if (marker%2 == 0)
+                        {
+                            printf(" "); // space every 2 bytes
+                        }
+                    
+                        printf("%02x", buffer[i] & 0xff);
+                    
+                        // print character summary (a la emacs hexl-mode)
+                        if (marker%BUFSIZE == BUFSIZE-1)
+                        {
+                            printf(" |  %s\n", s_buffer);
+                        }
+                        marker ++;
                     }
-                    else if (marker%2 == 0)
+                }
+                else
+                {
+                    marker += maxwrite;
+                }
+            }
+    
+            fclose(target);
+    
+            // round off last line
+            if (debug && marker % BUFSIZE != 0)
+            {
+                while (marker % BUFSIZE !=0)
+                {
+                    s_buffer[marker%BUFSIZE] = ' ';
+    
+                    if (marker%2 == 0)
                     {
                         printf(" "); // space every 2 bytes
                     }
-                    
-                    printf("%02x", buffer[i] & 0xff);
-                    
+                        
+                    printf("  ");
+                        
                     // print character summary (a la emacs hexl-mode)
                     if (marker%BUFSIZE == BUFSIZE-1)
                     {
@@ -297,37 +345,8 @@ main(int argc, const char** argv)
                     marker ++;
                 }
             }
-            else
-            {
-                marker += maxwrite;
-            }
         }
-
-        fclose(target);
-
-        // round off last line
-        if (debug && marker % BUFSIZE != 0)
-        {
-            while (marker % BUFSIZE !=0)
-            {
-                s_buffer[marker%BUFSIZE] = ' ';
-
-                if (marker%2 == 0)
-                {
-                    printf(" "); // space every 2 bytes
-                }
-                    
-                printf("  ");
-                    
-                // print character summary (a la emacs hexl-mode)
-                if (marker%BUFSIZE == BUFSIZE-1)
-                {
-                    printf(" |  %s\n", s_buffer);
-                }
-                marker ++;
-            }
-        }
-
+    
         printf ("======================================\n");
         
         free(filepath);
