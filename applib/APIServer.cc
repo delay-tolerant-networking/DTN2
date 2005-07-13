@@ -652,8 +652,19 @@ APIClient::handle_recv()
         
     } else if (location == DTN_PAYLOAD_FILE) {
         oasys::FileIOClient tmpfile;
+        char *tdir, templ[64];
 
-        if (tmpfile.mkstemp("/tmp/bundlePayload_XXXXXX") == -1) {
+        tdir = getenv("TMP");
+        if (tdir == NULL) {
+            tdir = getenv("TEMP");
+        }
+        if (tdir == NULL) {
+            tdir = "/tmp";
+        }
+
+        snprintf(templ, sizeof(templ), "%s/bundlePayload_XXXXXX", tdir);
+
+        if (tmpfile.mkstemp(templ) == -1) {
             log_err("can't open temporary file to deliver bundle");
             return DTN_EINTERNAL;
         }
