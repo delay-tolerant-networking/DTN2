@@ -41,13 +41,13 @@
 #include "AddressFamily.h"
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <net/ethernet.h>
 #include <oasys/compat/inttypes.h>
 
 namespace dtn {
 
-    //#define ETH_ADDR_LEN 6
-    
+#ifndef ETHER_ADDR_LEN
+    #define ETHER_ADDR_LEN 6
+#endif
     
     typedef struct ether_addr {
         u_char octet[ETHER_ADDR_LEN];
