@@ -517,6 +517,9 @@ APIClient::handle_send()
     if (spec.dopts & DOPTS_OVERWRITE)
         NOTIMPLEMENTED;
 
+    // expiration time
+    b->expiration_ = spec.expiration;
+
     // finally, the payload
     size_t payload_len;
     switch ( payload.location ) {

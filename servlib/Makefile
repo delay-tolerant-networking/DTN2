@@ -26,6 +26,7 @@ BUNDLING_SRCS := 				\
 	bundling/InterfaceTable.cc		\
 	bundling/InternetAddressFamily.cc	\
 	bundling/EthernetAddressFamily.cc	\
+	bundling/ExpirationTimer.cc		\
 	bundling/Link.cc			\
 	bundling/OndemandLink.cc		\
 	bundling/OpportunisticLink.cc		\

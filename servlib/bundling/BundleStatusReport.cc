@@ -50,6 +50,10 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle,
     custodian_.assign(source);
     dest_.assign(orig_bundle->replyto_);
 
+    // use the expiration time from the original bundle
+    // XXX/demmer maybe something more clever??
+    expiration_ = orig_bundle->expiration_;
+
     // the report's length is variable based on the original bundle
     // source's region and admin length
     orig_source_.assign(orig_bundle->source_);

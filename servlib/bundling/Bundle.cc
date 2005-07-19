@@ -41,6 +41,7 @@
 
 #include "Bundle.h"
 #include "BundleList.h"
+#include "ExpirationTimer.h"
 
 #include "storage/GlobalStore.h"
 
@@ -58,9 +59,8 @@ Bundle::init(u_int32_t id)
     recv_rcpt_		= false;
     fwd_rcpt_		= false;
     return_rcpt_	= false;
-    expiration_		= 0; // XXX/demmer
+    expiration_		= 0;
     gettimeofday(&creation_ts_, 0);
-
     is_fragment_	= false;
     is_reactive_fragment_ = false;
     orig_length_	= 0;
@@ -75,28 +75,32 @@ Bundle::Bundle()
     u_int32_t id = GlobalStore::instance()->next_bundleid();
     init(id);
     payload_.init(&lock_, id);
+    expiration_timer_ = NULL;
 }
 
 Bundle::Bundle(const oasys::Builder&)
 {
     // don't do anything here except set the id to a bogus default
-    // value, since the fields should all be set when loaded from the
-    // database
+    // value and make sure the expiration timer is NULL, since the
+    // fields should all be set when loaded from the database
     bundleid_ = 0xffffffff;
+    expiration_timer_ = NULL;
 }
 
 Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
 {
     init(id);
     payload_.init(&lock_, id, location);
+    expiration_timer_ = NULL;
 }
 
 Bundle::~Bundle()
 {
     ASSERT(mappings_.size() == 0);
-    // XXX/demmer remove the bundle from the database
-    
     bundleid_ = 0xdeadf00d;
+
+    ASSERTF(expiration_timer_ == NULL,
+            "bundle deleted with pending expiration timer");
 }
 
 int

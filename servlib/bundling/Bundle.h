@@ -55,6 +55,7 @@ namespace dtn {
 
 class BundleList;
 class BundleStore;
+class ExpirationTimer;
 class SQLBundleStore;
 
 /**
@@ -221,16 +222,19 @@ public:
     bool is_reactive_fragment_; ///< Reactive fragmentary bundle
     std::string owner_;         ///< Declared owner of this bundle,
                                 ///  could be empty
+    ExpirationTimer* expiration_timer_;	///< The expiration timer
 
 protected:
-    /*
-     * Protected internal fields.
-     */
     friend class BundleList;
     
-    BundleMappings mappings_;	///< The set of BundleLists that
-                                ///  contain the Bundle.
-    int refcount_;		///< Bundle reference count
+    /*
+     * Protected fields.
+     */
+    BundleMappings mappings_;		///< The set of BundleLists that
+                                	///  contain the Bundle.
+    
+    int refcount_;			///< Bundle reference count
+    
 
 private:
     /**

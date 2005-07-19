@@ -193,6 +193,7 @@ protected:
      */
     void handle_bundle_received(BundleReceivedEvent* event);
     void handle_bundle_transmitted(BundleTransmittedEvent* event);
+    void handle_bundle_expired(BundleExpiredEvent* event);
     void handle_registration_added(RegistrationAddedEvent* event);
     void handle_contact_up(ContactUpEvent* event);
     void handle_contact_down(ContactDownEvent* event);
@@ -210,7 +211,14 @@ protected:
     void generate_status_report(Bundle* bundle, status_report_flag_t flag);
     
     /**
-     * Remove the bundle from the pending list.
+     * Add the bundle to the pending list and (optionally) the
+     * persistent store, and set up the expiration timer for it.
+     */
+    void add_to_pending(Bundle* bundle, bool add_to_store);
+    
+    /**
+     * Remove the bundle from the pending list and data store, and
+     * cancel the expiration timer.
      */
     void delete_from_pending(Bundle* bundle);
         

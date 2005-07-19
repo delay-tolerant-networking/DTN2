@@ -44,6 +44,7 @@
 #include "BundleStatusReport.h"
 #include "Contact.h"
 #include "ContactManager.h"
+#include "ExpirationTimer.h"
 #include "FragmentManager.h"
 #include "reg/Registration.h"
 #include "reg/RegistrationTable.h"
@@ -236,15 +237,10 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         return;
     }
 
-    // add the bundle to the master pending queue
-    pending_bundles_->push_back(bundle);
-
-    // add the bundle to the store (unless we're reloading it in which
-    // case the bundle just came from there)
-    if (event->source_ != EVENTSRC_STORE) {
-        actions_->store_add(bundle);
-    }
-
+    // add the bundle to the master pending queue and the data store
+    // (unless the bundle was just reread from the data store)
+    add_to_pending(bundle, (event->source_ != EVENTSRC_STORE));
+    
     // deliver the bundle to any local registrations that it matches
     check_registrations(bundle);
 
@@ -280,6 +276,20 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      */
     // XXX/demmer implement me
     delete_from_pending(bundle);
+}
+
+void
+BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
+{
+    Bundle* bundle = event->bundleref_.bundle();
+    
+    log_info("BUNDLE_EXPIRED *%p", bundle);
+
+    delete_from_pending(bundle);
+
+    // XXX/demmer need to notify if we have custody...
+
+    // fall through to notify the routers
 }
 
 /**
@@ -468,6 +478,33 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
                                  bundle->payload_.length()));
 }
 
+/**
+ * Add the bundle to the pending list and persistent store, and
+ * set up the expiration timer for it.
+ */
+void
+BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
+{
+    log_debug("adding bundle *%p to pending list", bundle);
+    
+    pending_bundles_->push_back(bundle);
+    
+    if (add_to_store) {
+        actions_->store_add(bundle);
+    }
+
+    // schedule the bundle expiration timer
+    log_debug("scheduling expiration timer for bundle id %d", bundle->bundleid_);
+    struct timeval expiration_time = bundle->creation_ts_;
+    expiration_time.tv_sec += bundle->expiration_;
+    bundle->expiration_timer_ = new ExpirationTimer(bundle);
+    bundle->expiration_timer_->schedule_at(&expiration_time);
+
+    // log a warning if the bundle doesn't have any lifetime
+    if (bundle->expiration_ == 0) {
+        log_warn("bundle arrived with zero expiration time");
+    }
+}
 
 /**
  * Delete the given bundle from the pending list.
@@ -475,12 +512,21 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 void
 BundleDaemon::delete_from_pending(Bundle* bundle)
 {
-    log_debug("removing bundle *%p from pending list", bundle);
-    
+    log_debug("removing bundle *%p from pending list and persistent store",
+              bundle);
+
     actions_->store_del(bundle);
 
     if (! pending_bundles_->erase(bundle)) {
         log_err("unexpected error removing bundle from pending list");
+    }
+
+    // cancel the expiration timer
+    if (bundle->expiration_timer_) {
+        log_debug("cancelling expiration timer for bundle id %d",
+                  bundle->bundleid_);
+        bundle->expiration_timer_->cancel();
+        bundle->expiration_timer_ = NULL;
     }
 }
 
