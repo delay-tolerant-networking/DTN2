@@ -21,6 +21,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
     case BUNDLE_TRANSMITTED:
         handle_bundle_transmitted((BundleTransmittedEvent*)e);
         break;
+
+    case BUNDLE_EXPIRED:
+        handle_bundle_expired((BundleExpiredEvent*)e);
+        break;
         
     case REGISTRATION_ADDED:
         handle_registration_added((RegistrationAddedEvent*)e);
@@ -80,6 +84,14 @@ BundleEventHandler::handle_bundle_received(BundleReceivedEvent* event)
  */
 void
 BundleEventHandler::handle_bundle_transmitted(BundleTransmittedEvent* event)
+{
+}
+
+/**
+ * Default event handler when bundles expire.
+ */
+void
+BundleEventHandler::handle_bundle_expired(BundleExpiredEvent* event)
 {
 }
 

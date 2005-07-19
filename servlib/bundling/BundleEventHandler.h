@@ -86,6 +86,11 @@ protected:
      * Default event handler when bundles are transmitted.
      */
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
+    
+    /**
+     * Default event handler when bundles expire.
+     */
+    virtual void handle_bundle_expired(BundleExpiredEvent* event);
 
     /**
      * Default event handler when a new application registration

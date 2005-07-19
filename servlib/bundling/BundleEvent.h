@@ -232,6 +232,18 @@ public:
     /// XXX/demmer should have bytes_acked
 };
 
+/**
+ * Event class for bundle expiration.
+ */
+class BundleExpiredEvent : public BundleEvent {
+public:
+    BundleExpiredEvent(Bundle* bundle)
+        : BundleEvent(BUNDLE_EXPIRED),
+          bundleref_(bundle, "BundleExpiredEvent") {}
+
+    /// The expired bundle
+    BundleRef bundleref_;
+};
 
 /**
  * Event class for contact up events
