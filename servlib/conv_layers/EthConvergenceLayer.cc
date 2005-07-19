@@ -243,14 +243,14 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         }
 
         /**
-	 * If there already is a timer for this link, cancel it which
-	 * will delete it . Then create a new timer.
-	 *
+	 * If there already is a timer for this link, cancel it, which
+	 * will delete it when it bubbles to the top of the timer
+	 * queue. Then create a new timer.
          */
         BeaconTimer *timer = ((EthCLInfo*)link->cl_info())->timer;
         if (timer)
-            timer->cancel(Timer::DELETE_ON_CANCEL);
-        
+            timer->cancel();
+
         timer = new BeaconTimer(bundles_string); 
         timer->schedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
 	
