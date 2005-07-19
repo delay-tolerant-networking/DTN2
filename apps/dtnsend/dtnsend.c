@@ -55,6 +55,7 @@ int copies              = 1;    // the number of copies to send
 int verbose             = 0;
 
 // bundle options
+int expiration          = 3600; // expiration timer (default one hour)
 int return_receipts     = 0;    // request end to end return receipts
 int forwarding_receipts = 0;    // request per hop departure
 int custody             = 0;    // request custody transfer
@@ -155,6 +156,8 @@ main(int argc, char** argv)
     }
     
     // set the dtn options
+    bundle_spec.expiration = expiration;
+    
     if (return_receipts)
     {
         // set the return receipt option
@@ -243,19 +246,21 @@ void print_usage()
             "-s <source_tuple> -d <dest_tuple> -t <type> -p <payload>\n",
             progname);
     fprintf(stderr, "options:\n");
+    fprintf(stderr, " -v verbose\n");
+    fprintf(stderr, " -h help\n");
     fprintf(stderr, " -s <tuple|demux_string> source tuple)\n");
     fprintf(stderr, " -d <tuple|demux_string> destination tuple)\n");
     fprintf(stderr, " -r <tuple|demux_string> reply to tuple)\n");
     fprintf(stderr, " -t <f|m|d> payload type: file, message, or date\n");
     fprintf(stderr, " -p <filename|string> payload data\n");
-    fprintf(stderr, " -v verbose\n");
-    fprintf(stderr, " -h help\n");
+    fprintf(stderr, " -e <time> expiration time (default one hour)\n");
     fprintf(stderr, " -o turn on queue overwrite option (not implemented yet)\n");
     fprintf(stderr, " -n copies of the bundle to send\n");
     fprintf(stderr, " -c request custody transfer\n");
-    fprintf(stderr, " -y request custody transfer receipts\n");
-    fprintf(stderr, " -e request for end-to-end return receipt\n");
-    fprintf(stderr, " -f request for bundle forwarding receipts\n");
+    fprintf(stderr, " -C request custody transfer receipts\n");
+    fprintf(stderr, " -R request for end-to-end return receipt\n");
+    fprintf(stderr, " -A request for bundle arrival receipts\n");
+    fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
     fprintf(stderr, " -i registration id for reply to\n");
     
@@ -292,11 +297,11 @@ void parse_options(int argc, char**argv)
         case 'd':
             arg_dest = optarg;
             break;
+        case 'e':
+            expiration = atoi(optarg);
+            break;
         case 'n':
             copies = atoi(optarg);
-            break;
-        case 'e':
-            return_receipts = 1;
             break;
         case 'w':
             wait_for_report = 1;
@@ -304,16 +309,19 @@ void parse_options(int argc, char**argv)
         case 'o':
             overwrite = 1;
             break;
-        case 'f':
+        case 'R':
+            return_receipts = 1;
+            break;
+        case 'F':
             forwarding_receipts = 1;
             break;
-        case 'a':
+        case 'A':
             receive_receipts = 1;
             break;
         case 'c':
             custody = 1;
             break;
-        case 'y':
+        case 'C':
             custody_receipts = 1;
             break;
         case 't':

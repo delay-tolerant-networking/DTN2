@@ -277,7 +277,10 @@ reader_thread(void *p)
 	    
 	    // skip packets from base mote 
 	    if(dataPacket->origin_mote_id == 0) continue;
-	    
+
+            // set a default expiration time of one hour
+            bundle_spec.expiration = 3600;
+            
             // fill in a payload
             memset(&send_payload, 0, sizeof(send_payload));
 

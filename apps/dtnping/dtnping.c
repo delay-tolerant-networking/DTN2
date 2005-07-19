@@ -50,8 +50,8 @@ const char *progname;
 void
 usage()
 {
-    fprintf(stderr, "usage: %s [-c count] [-i interval] tuple\n",
-        progname);
+    fprintf(stderr, "usage: %s [-c count] [-i interval] [-e expiration] tuple\n",
+            progname);
     exit(1);
 }
 
@@ -59,6 +59,7 @@ void doOptions(int argc, const char **argv);
 
 int sleepVal = 1;
 int count = 0;
+int expiration = 30;
 char dest_tuple_str[DTN_MAX_TUPLE] = "";
 char source_tuple_str[DTN_MAX_TUPLE] = "";
 char replyto_tuple_str[DTN_MAX_TUPLE] = "";
@@ -182,7 +183,8 @@ main(int argc, const char** argv)
         }
     } while (ret == 0);
     
-    // set the return receipt option
+    // set the expiration time and the return receipt option
+    ping_spec.expiration = expiration;
     ping_spec.dopts |= DOPTS_RETURN_RCPT;
 
     // fill in a payload of a single type code of 0x3 (echo request)
@@ -239,13 +241,16 @@ doOptions(int argc, const char **argv)
 
     progname = argv[0];
 
-    while ( (c=getopt(argc, (char **) argv, "hc:i:d:s:r:")) !=EOF ) {
+    while ( (c=getopt(argc, (char **) argv, "hc:i:e:d:s:r:")) !=EOF ) {
         switch (c) {
         case 'c':
             count = atoi(optarg);
             break;
         case 'i':
             sleepVal = atoi(optarg);
+            break;
+        case 'e':
+            expiration = atoi(optarg);
             break;
         case 'd':
             strcpy(dest_tuple_str, optarg);

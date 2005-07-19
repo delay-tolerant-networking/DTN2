@@ -123,6 +123,9 @@ main(int argc, char** argv)
         print_tuple("dest_tuple", &bundle_spec.dest);
     }
 
+
+    // set the expiration time (one hour)
+    bundle_spec.expiration = 3600;
     
     // set the return receipt option
     bundle_spec.dopts |= DOPTS_RETURN_RCPT;

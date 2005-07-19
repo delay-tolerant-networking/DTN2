@@ -134,6 +134,9 @@ main(int argc, char** argv)
             // assign a standard source tuple for now
             dtn_build_local_tuple(handle, &bundle_spec.source, "dtntunnel");
             dtn_build_local_tuple(handle, &bundle_spec.replyto, "dtntunnel");
+
+            // set a default expiration time of one hour
+            bundle_spec.expiration = 3600;
             
             // fill in a payload
             memset(&send_payload, 0, sizeof(send_payload));
