@@ -38,6 +38,8 @@
 #ifndef _ETHERNET_ADDRESS_FAMILY_H_
 #define _ETHERNET_ADDRESS_FAMILY_H_
 
+#ifdef __linux__
+
 #include "AddressFamily.h"
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -97,5 +99,8 @@ class EthernetAddressFamily : public AddressFamily {
 };
     
 } // namespace dtn
+
+
+#endif /* __linux__ */
 
 #endif /* _ETHERNET_ADDRESS_FAMILY_H_ */

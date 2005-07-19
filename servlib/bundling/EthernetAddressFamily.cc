@@ -36,13 +36,15 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   */
 
- #include <oasys/io/IPSocket.h>
- #include <oasys/io/NetUtils.h>
- #include <oasys/util/URL.h>
+#ifdef __linux__
 
- #include "EthernetAddressFamily.h"
+#include <oasys/io/IPSocket.h>
+#include <oasys/io/NetUtils.h>
+#include <oasys/util/URL.h>
 
- namespace dtn {
+#include "EthernetAddressFamily.h"
+
+namespace dtn {
  
 /**
  * Given an admin string , parse out the ip address and port.
@@ -123,3 +125,5 @@ EthernetAddressFamily::to_string(eth_addr_t* addr, char* outstring)
 
 
 } // namespace dtn
+
+#endif /* __linux__ */
