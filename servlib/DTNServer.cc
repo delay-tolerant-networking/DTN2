@@ -310,8 +310,8 @@ DTNServer::tidy_dir(const char* dirname)
     }
     else
     {
-        PANIC("invalid directory name %s: %s", 
-              dirname, strerror(errno));
+        log_crit("invalid directory name %s: %s", dirname, strerror(errno));
+        exit(1);
     }
 }
 
@@ -326,8 +326,8 @@ DTNServer::validate_dir(const char* dirname)
     }
     else
     {
-        PANIC("invalid directory name %s: %s",
-              dirname, strerror(errno));
+        log_crit("invalid directory name %s: %s", dirname, strerror(errno));
+        exit(1);
     }
 }
 
