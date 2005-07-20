@@ -173,7 +173,7 @@ dnl Checks for header files.
 dnl -------------------------------------------------------------------------
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([arpa/inet.h err.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/ioctl.h sys/socket.h sys/time.h termios.h unistd.h wchar.h])
+AC_CHECK_HEADERS([arpa/inet.h err.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/file.h sys/ioctl.h sys/socket.h sys/time.h termios.h unistd.h wchar.h])
 
 dnl -------------------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
