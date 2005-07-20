@@ -103,8 +103,11 @@ AddressFamilyTable::AddressFamilyTable()
     fixed_family_ 	= new FixedAddressFamily();
     wildcard_family_	= new WildcardAddressFamily();
     string_family_	= NULL;
-    
+
+#ifdef __linux__
     table_["eth"]       = new EthernetAddressFamily("eth");
+#endif
+
     table_["host"] 	= new InternetAddressFamily("host");
     table_["ip"] 	= new InternetAddressFamily("ip");
     table_["smtp"]	= new SmtpAddressFamily();
