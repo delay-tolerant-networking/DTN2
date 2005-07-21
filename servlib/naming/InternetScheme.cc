@@ -46,6 +46,7 @@
 
 namespace dtn {
 
+template <>
 InternetScheme* oasys::Singleton<InternetScheme>::instance_;
 
 /**

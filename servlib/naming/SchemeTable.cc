@@ -42,6 +42,7 @@
 
 namespace dtn {
 
+template <>
 SchemeTable* oasys::Singleton<SchemeTable>::instance_;
 
 /**

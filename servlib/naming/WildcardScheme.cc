@@ -41,6 +41,7 @@
 
 namespace dtn {
 
+template <>
 WildcardScheme* oasys::Singleton<WildcardScheme>::instance_;
 
 /**
