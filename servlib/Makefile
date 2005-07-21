@@ -56,6 +56,13 @@ CMD_SRCS :=					\
 	cmd/StorageCommand.cc			\
 	cmd/TestCommand.cc			\
 
+NAMING_SRCS :=					\
+	naming/EndpointID.cc			\
+	naming/Scheme.cc			\
+	naming/SchemeTable.cc			\
+	naming/InternetScheme.cc		\
+	naming/WildcardScheme.cc		\
+
 REGISTRATION_SRCS :=				\
 	reg/AdminRegistration.cc		\
 	reg/APIRegistration.cc			\
@@ -94,6 +101,7 @@ SERVLIB_SRCS := 				\
 	$(BUNDLING_SRCS) 			\
 	$(CONV_LAYER_SRCS)			\
 	$(CMD_SRCS) 				\
+	$(NAMING_SRCS) 				\
 	$(REGISTRATION_SRCS)			\
 	$(ROUTING_SRCS)				\
 	$(STORAGE_SRCS)				\

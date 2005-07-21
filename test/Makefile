@@ -13,6 +13,7 @@ BINFILES :=				\
 	unit_tests/bundle-list-test	\
 	unit_tests/bundle-payload-test	\
 	unit_tests/bundle-timestamp-test\
+	unit_tests/endpoint-id-test	\
 	unit_tests/simple-marshal-test	\
 
 unit_tests: $(BINFILES)
@@ -41,6 +42,7 @@ unit_tests/%-test.o: unit_tests/%-test.cc
 unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
 	$(CXX) $(CFLAGS) $< $(COMPONENT_LIBS) \
 		-o $@ $(LDFLAGS) $(LIBS) 
+
 
 #
 # Include the common rules
