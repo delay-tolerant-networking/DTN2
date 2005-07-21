@@ -43,7 +43,7 @@
 namespace dtn {
 
 template <>
-SchemeTable* oasys::Singleton<SchemeTable>::instance_;
+SchemeTable* oasys::Singleton<SchemeTable>::instance_ = 0;
 
 /**
  * Constructor -- instantiates and registers all known schemes. Called

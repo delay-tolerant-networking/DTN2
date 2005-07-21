@@ -47,7 +47,7 @@
 namespace dtn {
 
 template <>
-InternetScheme* oasys::Singleton<InternetScheme>::instance_;
+InternetScheme* oasys::Singleton<InternetScheme>::instance_ = 0;
 
 /**
  * Parse out an IP address, port, and application tag from the

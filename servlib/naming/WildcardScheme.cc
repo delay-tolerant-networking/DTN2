@@ -42,7 +42,7 @@
 namespace dtn {
 
 template <>
-WildcardScheme* oasys::Singleton<WildcardScheme>::instance_;
+WildcardScheme* oasys::Singleton<WildcardScheme>::instance_ = 0;
 
 /**
  * Validate that the given ssp is legitimate for this scheme. If
