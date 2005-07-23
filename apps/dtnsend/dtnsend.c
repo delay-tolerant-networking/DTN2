@@ -253,7 +253,7 @@ void print_usage()
     fprintf(stderr, " -r <tuple|demux_string> reply to tuple)\n");
     fprintf(stderr, " -t <f|m|d> payload type: file, message, or date\n");
     fprintf(stderr, " -p <filename|string> payload data\n");
-    fprintf(stderr, " -e <time> expiration time (default one hour)\n");
+    fprintf(stderr, " -e <time> expiration time in seconds (default: one hour)\n");
     fprintf(stderr, " -o turn on queue overwrite option (not implemented yet)\n");
     fprintf(stderr, " -n copies of the bundle to send\n");
     fprintf(stderr, " -c request custody transfer\n");
@@ -277,7 +277,7 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "hHvn:oacfyewt:p:r:d:s:i:");
+        c = getopt(argc, argv, "hHvn:oacfye:wt:p:r:d:s:i:");
         switch (c)
         {
         case 'v':
