@@ -114,6 +114,9 @@ Bundle::format(char* buf, size_t sz)
 void
 Bundle::format_verbose(oasys::StringBuffer* buf)
 {
+
+#define bool_to_str(x)   ((x) ? "true" : "false")
+
     buf->appendf("bundle id %d:\n", bundleid_);
     buf->appendf("            source: %s\n", source_.c_str());
     buf->appendf("              dest: %s\n", dest_.c_str());
@@ -121,16 +124,17 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("           replyto: %s\n", replyto_.c_str());
     buf->appendf("    payload_length: %u\n", (u_int)payload_.length());
     buf->appendf("          priority: %d\n", priority_);
-    buf->appendf("           custreq: %c\n", custreq_ ? 'T' : 'F');
-    buf->appendf("      custody_rcpt: %c\n", custody_rcpt_ ? 'T' : 'F');
-    buf->appendf("         recv_rcpt: %c\n", recv_rcpt_ ? 'T' : 'F');
-    buf->appendf("          fwd_rcpt: %c\n", fwd_rcpt_ ? 'T' : 'F');
-    buf->appendf("       return_rcpt: %c\n", return_rcpt_ ? 'T' : 'F');
+    buf->appendf("           custreq: %s\n", bool_to_str(custreq_));
+    buf->appendf("      custody_rcpt: %s\n", bool_to_str(custody_rcpt_));
+    buf->appendf("         recv_rcpt: %s\n", bool_to_str(recv_rcpt_));
+    buf->appendf("          fwd_rcpt: %s\n", bool_to_str(fwd_rcpt_));
+    buf->appendf("       return_rcpt: %s\n", bool_to_str(return_rcpt_));
     buf->appendf("       creation_ts: %u.%u\n",
                  (u_int)creation_ts_.tv_sec, (u_int)creation_ts_.tv_usec);
     buf->appendf("        expiration: %d\n", expiration_);
-    buf->appendf("       is_fragment: %c\n", is_fragment_ ? 'T' : 'F');
-    buf->appendf("  is_reactive_frag: %c\n", is_reactive_fragment_ ? 'T' : 'F');
+    buf->appendf("       is_fragment: %s\n", bool_to_str(is_fragment_));
+    buf->appendf("  is_reactive_frag: %s\n",
+                                    bool_to_str(is_reactive_fragment_));
     buf->appendf("       orig_length: %d\n", orig_length_);
     buf->appendf("       frag_offset: %d\n", frag_offset_);
 }

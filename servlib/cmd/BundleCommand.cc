@@ -55,8 +55,8 @@ BundleCommand::help_string()
     return "bundle inject <source> <dest> <payload> <length?> \n"
         "bundle stats \n"
         "bundle list \n"
-        "bundle info <id>"
-        "bundle dump <id>"
+        "bundle info <id>\n"
+        "bundle dump <id>\n"
         "bundle dump_ascii <id>"
         ;
 }
@@ -173,7 +173,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        if (!strcmp(cmd, "info")) {
+        if (strcmp(cmd, "info") == 0) {
             oasys::StringBuffer buf;
             bundle->format_verbose(&buf);
             set_result(buf.c_str());
