@@ -2668,7 +2668,7 @@ if test "${oasys_cv_prog_gccver+set}" = set; then
 else
 
       oasys_cv_prog_gccver=`$CC --version | head -1`
-      oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/gcc.*(GCC) //'`
+      oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/.*gcc.*(GCC) //'`
       oasys_cv_prog_gccver=`echo $oasys_cv_prog_gccver | sed 's/ .*//'`
 
 fi
