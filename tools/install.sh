@@ -67,6 +67,6 @@ echo "copying default configuration file to /etc/dtn.conf"
 install -o $acct -m 644 daemon/dtn.conf /etc/dtn.conf
 
 echo "running dtn daemon to create initial database..."
-/usr/bin/dtnd -c "" --init-db
+/usr/bin/dtnd --init-db
 
 echo "installation complete."
