@@ -46,6 +46,7 @@
 #include "ContactManager.h"
 #include "ExpirationTimer.h"
 #include "FragmentManager.h"
+#include "naming/SchemeTable.h"
 #include "reg/Registration.h"
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
@@ -69,6 +70,8 @@ BundleDaemon::BundleDaemon()
     contactmgr_ = new ContactManager();
     fragmentmgr_ = new FragmentManager();
     reg_table_ = new RegistrationTable();
+
+    SchemeTable::create();
 
     router_ = 0;    
 }
