@@ -233,7 +233,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         fragmentmgr_->proactively_fragment(bundle, proactive_frag_threshold_);
     if (nfrags > 0) {
         log_debug("proactive fragmentation: %u byte bundle => %d fragments",
-                  payload_len, nfrags);
+                  (u_int)payload_len, nfrags);
         return;
     }
 
