@@ -151,7 +151,8 @@ DTNServer::start_datastore()
         int err = bdb->init(storage_config_);
         if (err != 0)
         {
-            PANIC("Can't initialize berkeleydb %d", err);
+            log_crit("Can't initialize berkeleydb %d", err);
+            exit(1);
         }
         store_ = new oasys::DurableStore(bdb);
     }
@@ -277,13 +278,15 @@ DTNServer::init_dir(const char* dirname)
     if (statret == -1 && errno == ENOENT)
     {
         if (mkdir(dirname, 0700) != 0) {
-            PANIC("can't create directory %s: %s",
-                  dirname, strerror(errno));
+            log_crit("can't create directory %s: %s",
+                     dirname, strerror(errno));
+            exit(1);
         }
     }
     else if (statret == -1)
     {
-        PANIC("invalid path %s: %s", dirname, strerror(errno));
+        log_crit("invalid path %s: %s", dirname, strerror(errno));
+        exit(1);
     }
 }
 
@@ -300,7 +303,8 @@ DTNServer::tidy_dir(const char* dirname)
         
         if (system(cmd))
         {
-            PANIC("error removing directory %s", dirname);
+            log_crit("error removing directory %s", dirname);
+            exit(1);
         }
         
     }
