@@ -133,7 +133,7 @@ DECLARE_TEST(Internet) {
 
     return UNIT_TEST_PASSED;
 }
-    
+
 DECLARE_TEST(InternetMatch) {
     // test internet style matching
     EIDMATCH(MATCH,
@@ -209,6 +209,23 @@ DECLARE_TEST(WildcardMatch) {
     return UNIT_TEST_PASSED;
 }
 
+DECLARE_TEST(Ethernet) {
+    EIDCHECK(VALID,   KNOWN, "eth://01:23:45:67:89:ab");
+    EIDCHECK(VALID,   KNOWN, "eth://ff:ff:ff:ff:ff:ff");
+    EIDCHECK(VALID,   KNOWN, "eth:01:23:45:67:89:ab");
+    EIDCHECK(VALID,   KNOWN, "eth:ff:ff:ff:ff:ff:ff");
+    EIDCHECK(INVALID, KNOWN, "eth:/ff:ff:ff:ff:ff:ff");
+    EIDCHECK(INVALID, KNOWN, "eth://");
+    EIDCHECK(INVALID, KNOWN, "eth://ff:");
+    EIDCHECK(INVALID, KNOWN, "eth://ff:ff:");
+    EIDCHECK(INVALID, KNOWN, "eth://ff:ff:ff:");
+    EIDCHECK(INVALID, KNOWN, "eth://ff:ff:ff:ff:");
+    EIDCHECK(INVALID, KNOWN, "eth://ff:ff:ff:ff:ff:");
+
+    return UNIT_TEST_PASSED;
+}
+
+
 DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(Invalid);
     ADD_TEST(Unknown);
@@ -216,6 +233,7 @@ DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(InternetMatch);
     ADD_TEST(Wildcard);
     ADD_TEST(WildcardMatch);
+    ADD_TEST(Ethernet);
 }
 
 DECLARE_TEST_FILE(EndpointIDTester, "endpoint id test");

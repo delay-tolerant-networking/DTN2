@@ -35,47 +35,74 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef _ETHERNET_SCHEME_H_
+#define _ETHERNET_SCHEME_H_
 
-#include "SchemeTable.h"
-#include "EthernetScheme.h"
-#include "InternetScheme.h"
-#include "WildcardScheme.h"
+#ifdef __linux__
+
+#include "Scheme.h"
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <oasys/compat/inttypes.h>
+#include <oasys/util/Singleton.h>
 
 namespace dtn {
 
-template <>
-SchemeTable* oasys::Singleton<SchemeTable>::instance_ = 0;
-
-/**
- * Constructor -- instantiates and registers all known schemes. Called
- * from the singleton instance() method the first time the table is
- * accessed.
- */
-SchemeTable::SchemeTable()
-{
-    table_["bp0"]	= InternetScheme::instance();
-    table_["internet"]	= InternetScheme::instance();
-#ifdef __linux__
-    table_["eth"]	= EthernetScheme::instance();
+#ifndef ETHER_ADDR_LEN
+    #define ETHER_ADDR_LEN 6
 #endif
-    table_["*"]		= WildcardScheme::instance();
-}
+    
+    typedef struct ether_addr {
+        u_char octet[ETHER_ADDR_LEN];
+    } eth_addr_t;    
 
 /**
- * Find the appropriate Scheme instance based on the URI
- * scheme of the endpoint id scheme.
+ * Endpoint ID scheme to represent ethernet-style addresses.
  *
- * @return the instance if it exists or NULL if there's no match
- */ 
-Scheme*
-SchemeTable::lookup(const std::string& scheme_str)
-{
-    SchemeMap::iterator iter = table_.find(scheme_str);
-    if (iter == table_.end()) {
-        return NULL;
-    }
-    
-    return (*iter).second;
-}
+ * e.g:  eth://00:01:02:03:04:05
+ */
+class EthernetScheme : public Scheme, public oasys::Singleton<EthernetScheme> {
+public:
+    /**
+     * Validate that the given ssp is legitimate for this scheme. If
+     * the 'is_pattern' paraemeter is true, then the ssp is being
+     * validated as an EndpointIDPattern.
+     *
+     * @return true if valid
+     */
+    virtual bool validate(const std::string& ssp, bool is_pattern = false);
 
-}
+    /**
+     * Match the given ssp with the given pattern.
+     *
+     * @return true if it matches
+     */
+    virtual bool match(EndpointIDPattern* pattern, const std::string& ssp);
+
+    /*
+     * Parse out an ethernet address from the ssp.
+     *
+     * @return true if the extraction was a success, false if
+     * malformed
+     */
+    static bool parse(const std::string& ssp, eth_addr_t* addr);
+
+    /**
+     * Given an ethernet address, write out a string representation.
+     * outstring needs to point to a buffer of length at least 23 chars. 
+     * eth://00:00:00:00:00:00
+     * Returns outstring. 
+     */
+    static char* to_string(eth_addr_t* addr, char* outstring);
+
+private:
+    friend class oasys::Singleton<EthernetScheme>;
+    EthernetScheme() {}
+};
+    
+} // namespace dtn
+
+
+#endif /* __linux__ */
+
+#endif /* _ETHERNET_SCHEME_H_ */
