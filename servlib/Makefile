@@ -30,6 +30,7 @@ BUNDLING_SRCS := 				\
 	bundling/Link.cc			\
 	bundling/OndemandLink.cc		\
 	bundling/OpportunisticLink.cc		\
+	bundling/SDNV.cc			\
 	bundling/ScheduledLink.cc		\
 	bundling/SmtpAddressFamily.cc		\
 	bundling/StringAddressFamily.cc		\

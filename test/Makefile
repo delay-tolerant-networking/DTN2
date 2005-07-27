@@ -15,6 +15,7 @@ BINFILES :=				\
 	unit_tests/bundle-timestamp-test\
 	unit_tests/endpoint-id-test	\
 	unit_tests/simple-marshal-test	\
+	unit_tests/sdnv-test		\
 
 unit_tests: $(BINFILES)
 
