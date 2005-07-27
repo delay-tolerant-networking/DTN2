@@ -61,6 +61,7 @@ NAMING_SRCS :=					\
 	naming/EndpointID.cc			\
 	naming/Scheme.cc			\
 	naming/SchemeTable.cc			\
+	naming/EthernetScheme.cc		\
 	naming/InternetScheme.cc		\
 	naming/WildcardScheme.cc		\
 
