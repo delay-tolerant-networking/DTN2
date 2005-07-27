@@ -91,7 +91,7 @@ InternetScheme::parse(const std::string& ssp,
 
 /**
  * Validate that the given ssp is legitimate for this scheme. If
- * the 'is_pattern' paraemeter is true, then the ssp is being
+ * the 'is_pattern' parameter is true, then the ssp is being
  * validated as an EndpointIDPattern.
  *
  * @return true if valid
