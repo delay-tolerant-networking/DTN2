@@ -225,6 +225,26 @@ DECLARE_TEST(Ethernet) {
     return UNIT_TEST_PASSED;
 }
 
+DECLARE_TEST(None) {
+    EIDCHECK(VALID,   KNOWN, "none:.");
+
+    EIDCHECK(INVALID, KNOWN, "none:");
+    EIDCHECK(INVALID, KNOWN, "none://");
+    EIDCHECK(INVALID, KNOWN, "none:anything");
+
+    return UNIT_TEST_PASSED;
+}
+
+DECLARE_TEST(String) {
+    EIDCHECK(VALID,   KNOWN, "str:anything");
+    EIDCHECK(VALID,   KNOWN, "str://anything");
+    EIDCHECK(VALID,   KNOWN, "str:/anything");
+
+    EIDCHECK(INVALID, KNOWN, "str:");
+
+    return UNIT_TEST_PASSED;
+}
+
 
 DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(Invalid);
@@ -234,6 +254,8 @@ DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(Wildcard);
     ADD_TEST(WildcardMatch);
     ADD_TEST(Ethernet);
+    ADD_TEST(String);
+    ADD_TEST(None);
 }
 
 DECLARE_TEST_FILE(EndpointIDTester, "endpoint id test");

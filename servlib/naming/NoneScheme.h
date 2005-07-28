@@ -35,51 +35,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef _NONE_SCHEME_H_
+#define _NONE_SCHEME_H_
 
-#include "SchemeTable.h"
-#include "EthernetScheme.h"
-#include "InternetScheme.h"
-#include "NoneScheme.h"
-#include "StringScheme.h"
-#include "WildcardScheme.h"
+#include "Scheme.h"
+#include <oasys/util/Singleton.h>
 
 namespace dtn {
 
-template <>
-SchemeTable* oasys::Singleton<SchemeTable>::instance_ = 0;
-
 /**
- * Constructor -- instantiates and registers all known schemes. Called
- * from the singleton instance() method the first time the table is
- * accessed.
+ * The simple default scheme for endpoint ids of the form "none:.".
  */
-SchemeTable::SchemeTable()
-{
-    table_["bp0"]	= InternetScheme::instance();
-    table_["internet"]	= InternetScheme::instance();
-    table_["str"]	= StringScheme::instance();
-    table_["none"]	= NoneScheme::instance();
-    table_["*"]		= WildcardScheme::instance();
-#ifdef __linux__
-    table_["eth"]	= EthernetScheme::instance();
-#endif
-}
+class NoneScheme : public Scheme, public oasys::Singleton<NoneScheme> {
+public:
+    /**
+     * Validate that the given ssp is legitimate for this scheme. If
+     * the 'is_pattern' paraemeter is true, then the ssp is being
+     * validated as an EndpointIDPattern.
+     *
+     * @return true if valid
+     */
+    virtual bool validate(const std::string& ssp, bool is_pattern = false);
 
-/**
- * Find the appropriate Scheme instance based on the URI
- * scheme of the endpoint id scheme.
- *
- * @return the instance if it exists or NULL if there's no match
- */ 
-Scheme*
-SchemeTable::lookup(const std::string& scheme_str)
-{
-    SchemeMap::iterator iter = table_.find(scheme_str);
-    if (iter == table_.end()) {
-        return NULL;
-    }
-    
-    return (*iter).second;
-}
+    /**
+     * Match the given ssp with the given pattern.
+     *
+     * @return true if it matches
+     */
+    virtual bool match(EndpointIDPattern* pattern, const std::string& ssp);
 
-}
+private:
+    friend class oasys::Singleton<NoneScheme>;
+    NoneScheme() {}
+};
+
+} // namespace dtn
+
+#endif /* _NONE_SCHEME_H_ */

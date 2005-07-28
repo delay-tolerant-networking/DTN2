@@ -35,51 +35,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#include "SchemeTable.h"
-#include "EthernetScheme.h"
-#include "InternetScheme.h"
-#include "NoneScheme.h"
 #include "StringScheme.h"
-#include "WildcardScheme.h"
+#include "EndpointID.h"
 
 namespace dtn {
 
 template <>
-SchemeTable* oasys::Singleton<SchemeTable>::instance_ = 0;
+StringScheme* oasys::Singleton<StringScheme>::instance_ = 0;
 
 /**
- * Constructor -- instantiates and registers all known schemes. Called
- * from the singleton instance() method the first time the table is
- * accessed.
- */
-SchemeTable::SchemeTable()
-{
-    table_["bp0"]	= InternetScheme::instance();
-    table_["internet"]	= InternetScheme::instance();
-    table_["str"]	= StringScheme::instance();
-    table_["none"]	= NoneScheme::instance();
-    table_["*"]		= WildcardScheme::instance();
-#ifdef __linux__
-    table_["eth"]	= EthernetScheme::instance();
-#endif
-}
-
-/**
- * Find the appropriate Scheme instance based on the URI
- * scheme of the endpoint id scheme.
+ * Validate that the given ssp is legitimate for this scheme. If
+ * the 'is_pattern' paraemeter is true, then the ssp is being
+ * validated as an EndpointIDPattern.
  *
- * @return the instance if it exists or NULL if there's no match
- */ 
-Scheme*
-SchemeTable::lookup(const std::string& scheme_str)
+ * @return true if valid
+ */
+bool
+StringScheme::validate(const std::string& ssp, bool is_pattern)
 {
-    SchemeMap::iterator iter = table_.find(scheme_str);
-    if (iter == table_.end()) {
-        return NULL;
-    }
+    if (ssp == "")
+        return false;
     
-    return (*iter).second;
+    return true;
 }
 
+/**
+ * Match the given ssp with the given pattern.
+ *
+ * @return true if it matches
+ */
+bool
+StringScheme::match(EndpointIDPattern* pattern, const std::string& ssp)
+{
+    // sanity check
+    ASSERT(pattern->scheme() == this);
+    
+    return (pattern->ssp() == ssp);
 }
+
+} // namespace dtn

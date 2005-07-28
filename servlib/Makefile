@@ -63,6 +63,8 @@ NAMING_SRCS :=					\
 	naming/SchemeTable.cc			\
 	naming/EthernetScheme.cc		\
 	naming/InternetScheme.cc		\
+	naming/NoneScheme.cc			\
+	naming/StringScheme.cc			\
 	naming/WildcardScheme.cc		\
 
 REGISTRATION_SRCS :=				\
