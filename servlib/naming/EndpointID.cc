@@ -62,12 +62,11 @@ EndpointID::parse()
     if ((pos = str_.find(':')) == std::string::npos)
         return false; // no :
 
-    if ((pos == 0) || (pos == str_.length() - 1)) {
-        return false; // empty scheme or ssp
+    if (pos == 0) {
+        return false; // empty scheme
     }
-
+    
     scheme_str_.assign(str_, 0, pos);
-    ssp_.assign(str_, pos + 1, str_.length() - pos);
 
     if (!is_pattern_) {
         // validate that scheme is composed of legitimate characters
@@ -88,8 +87,13 @@ EndpointID::parse()
 
     // XXX/demmer should really validate the rest of it, but the URI
     // validation rules are actually a bit complex...
-        
     scheme_ = SchemeTable::instance()->lookup(scheme_str_);
+    
+    if (pos == str_.length() - 1) {
+        return false; // empty scheme or ssp
+    }
+    ssp_.assign(str_, pos + 1, str_.length() - pos);
+
 
     if (scheme_) {
         valid_ = scheme_->validate(ssp_, is_pattern_);
