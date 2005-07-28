@@ -111,6 +111,9 @@ bool
 EthernetScheme::match(EndpointIDPattern* pattern,
                       const std::string& ssp)
 {
+    // sanity check
+    ASSERT(pattern->scheme() == this);
+    
     std::string pattern_ssp = pattern->ssp();
     
     log_debug("/scheme/ethernet",
