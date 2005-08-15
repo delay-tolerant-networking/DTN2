@@ -38,6 +38,7 @@
 
 #include "InterfaceTable.h"
 #include "conv_layers/ConvergenceLayer.h"
+#include "oasys/util/StringBuffer.h"
 
 namespace dtn {
 
@@ -91,7 +92,7 @@ InterfaceTable::add(const std::string& admin, ConvergenceLayer* cl,
     
     log_info("adding interface %s %s", proto, admin.c_str());
 
-    Interface* iface = new Interface(admin, cl);
+    Interface* iface = new Interface(admin, proto, cl);
     if (! cl->add_interface(iface, argc, argv)) {
         log_err("convergence layer error adding interface %s", admin.c_str());
         delete iface;
@@ -110,8 +111,9 @@ bool
 InterfaceTable::del(const std::string& admin, ConvergenceLayer* cl,
                     const char* proto)
 {
-    Interface* iface;
     InterfaceList::iterator iter;
+    Interface* iface;
+    bool retval = false;
     
     log_info("removing interface %s %s", proto, admin.c_str());
 
@@ -123,9 +125,44 @@ InterfaceTable::del(const std::string& admin, ConvergenceLayer* cl,
 
     iface = *iter;
     iflist_.erase(iter);
+
+    // we got these two different ways (from add and del), but they
+    // should be the same
+    ASSERT(iface->clayer() == cl);
+
+    if (! iface->clayer()->del_interface(iface)) {
+        log_err("error deleteing interface %s from the convergence layer.",
+                admin.c_str());
+        retval = false;
+    }
+
     delete iface;
+    retval = true;
     
-    return true;
+    return retval;
+}
+
+/**
+ * Dumps the interface table into a string.
+ */
+void
+InterfaceTable::list(oasys::StringBuffer *buf)
+{
+    InterfaceList::iterator iter;
+    Interface* iface;
+    int ct = 0;
+
+    for (iter = iflist_.begin(); iter != iflist_.end(); ++(iter)) {
+        iface = *iter;
+        buf->appendf("\t%d: ", ct);
+        buf->append(iface->proto());
+        buf->append(" ");
+        buf->append(iface->admin());
+        buf->append("\n");
+        ct++;
+    }        
+    
+    return;
 }
 
 } // namespace dtn

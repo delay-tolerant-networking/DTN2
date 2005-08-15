@@ -56,6 +56,7 @@ class Interface {
 public:
     // Accessors
     const std::string& admin()   const { return admin_; }
+    const std::string& proto()   const { return proto_; }
     ConvergenceLayer*  clayer()  const { return clayer_; }
     CLInfo*	       cl_info() const { return cl_info_; }
 
@@ -73,10 +74,13 @@ public:
 protected:
     friend class InterfaceTable;
     
-    Interface(const std::string& admin, ConvergenceLayer* clayer);
+    Interface(const std::string& admin, 
+              const std::string& proto,
+              ConvergenceLayer* clayer);
     ~Interface();
     
     std::string admin_;			///< Local address of the interface
+    std::string proto_;			///< What type of CL
     ConvergenceLayer* clayer_;		///< Convergence layer to use
     CLInfo* cl_info_;			///< Convergence layer specific state
 };

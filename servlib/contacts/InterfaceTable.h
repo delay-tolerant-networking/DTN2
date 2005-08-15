@@ -41,6 +41,7 @@
 #include <string>
 #include <list>
 #include <oasys/debug/DebugUtils.h>
+#include <oasys/util/StringBuffer.h>
 
 namespace dtn {
 
@@ -100,6 +101,11 @@ public:
      * Remove the specified interface.
      */
     bool del(const std::string& admin, ConvergenceLayer* cl, const char* proto);
+
+    /**
+     * List the current interfaces.
+     */
+    void list(oasys::StringBuffer *buf);
 
 protected:
     static InterfaceTable* instance_;

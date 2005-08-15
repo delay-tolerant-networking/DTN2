@@ -175,16 +175,19 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
 void
 BundleDaemon::check_registrations(Bundle* bundle)
 {
+    int num;
     log_debug("checking for matching registrations for bundle *%p", bundle);
 
     RegistrationList matches;
     RegistrationList::iterator iter;
 
-    reg_table_->get_matching(bundle->dest_, &matches);
+    num = reg_table_->get_matching(bundle->dest_, &matches);
 
-    // tells routers that this Bundle has been taken care of by the daemon already
-    if(matches.size() > 0) 
+    // tells routers that this Bundle has been taken care of
+    // by the daemon already
+    if(num > 0) {
         bundle->owner_ = "daemon";
+    }
 
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {

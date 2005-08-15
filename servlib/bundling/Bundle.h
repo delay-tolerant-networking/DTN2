@@ -74,8 +74,8 @@ class SQLBundleStore;
  * reaches zero, so care must be taken to never use the pointer after
  * that point.
  *
- * The Bundle class maintains a set of back-pointers each BundleList
- * it is container on, and list addition/removal methods maintain the
+ * The Bundle class maintains a set of back-pointers to each BundleList
+ * it is contained on, and list addition/removal methods maintain the
  * invariant that the entiries of this set correlate exactly with the
  * list pointers.
  */
