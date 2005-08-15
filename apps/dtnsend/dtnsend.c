@@ -152,7 +152,7 @@ main(int argc, char** argv)
             regid);
 
         // bind the current handle to the new registration
-        dtn_bind(handle, regid, &bundle_spec.replyto);
+        dtn_bind(handle, regid);
     }
     
     // set the dtn options

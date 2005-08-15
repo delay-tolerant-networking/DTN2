@@ -404,34 +404,26 @@ int
 APIClient::handle_bind()
 {
     dtn_reg_id_t regid;
-    dtn_tuple_t endpoint;
 
-    memset(&endpoint, 0, sizeof(endpoint));
-    
     // unpack the request
-    if (!xdr_dtn_reg_id_t(&xdr_decode_, &regid) ||
-        !xdr_dtn_tuple_t(&xdr_decode_, &endpoint))
-    {
+    if (!xdr_dtn_reg_id_t(&xdr_decode_, &regid)) {
         log_err("error in xdr unpacking arguments");
         return DTN_EXDR;
     }
 
-    BundleTuple tuple;
-    tuple.assign(&endpoint);
-
     // look up the registration
     RegistrationTable* regtable = BundleDaemon::instance()->reg_table();
-    Registration* reg = regtable->get(regid, tuple);
+    Registration* reg = regtable->get(regid);
 
     if (!reg) {
-        log_err("can't find registration %d tuple %s", regid, tuple.c_str());
+        log_err("can't find registration %d", regid);
         return DTN_ENOTFOUND;
     }
 
     APIRegistration* api_reg = dynamic_cast<APIRegistration*>(reg);
     if (api_reg == NULL) {
-        log_crit("registration %d tuple %s is not an API registration!!",
-                 regid, tuple.c_str());
+        log_crit("registration %d is not an API registration!!",
+                 regid);
         return DTN_ENOTFOUND;
     }
     

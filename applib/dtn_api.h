@@ -92,13 +92,11 @@ extern int dtn_register(dtn_handle_t handle,
                         dtn_reg_id_t* newregid);
 
 /**
- * Associate a registration id and endpoint string with the current
- * ipc channel. This must be called before calling dtn_recv to inform
- * the daemon of which registrations the application is interested in.
+ * Associate a registration with the current ipc channel. This must
+ * be called before calling dtn_recv to inform the daemon of which
+ * registrations the application is interested in.
  */
-extern int dtn_bind(dtn_handle_t handle,
-                    dtn_reg_id_t regid,
-                    dtn_tuple_t* endpoint);
+extern int dtn_bind(dtn_handle_t handle, dtn_reg_id_t regid);
 
 /**
  * Explicitly remove an association from the current ipc handle. Note

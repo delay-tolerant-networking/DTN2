@@ -212,16 +212,14 @@ dtn_register(dtn_handle_t h,
  * registrations the application is interested in.
  */
 int
-dtn_bind(dtn_handle_t h, dtn_reg_id_t regid, dtn_tuple_t* endpoint)
+dtn_bind(dtn_handle_t h, dtn_reg_id_t regid)
 {
     int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     
     // pack the request
-    if (!xdr_dtn_reg_id_t(xdr_encode, &regid) ||
-        !xdr_dtn_tuple_t(xdr_encode, endpoint))
-    {
+    if (!xdr_dtn_reg_id_t(xdr_encode, &regid)) {
         handle->err = DTN_EXDR;
         return -1;
     }

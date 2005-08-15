@@ -161,7 +161,7 @@ main(int argc, const char** argv)
     if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
-    dtn_bind(handle, regid, &source_tuple);
+    dtn_bind(handle, regid);
 
     // check for any bundles queued for the registration
     if (debug) printf("checking for bundles already queued...\n");

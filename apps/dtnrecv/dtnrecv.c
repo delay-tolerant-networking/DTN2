@@ -112,7 +112,7 @@ main(int argc, const char** argv)
     if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
-    dtn_bind(handle, regid, &local_tuple);
+    dtn_bind(handle, regid);
     
     printf("dtn_recv [%s %.*s]...\n",
            local_tuple.region,

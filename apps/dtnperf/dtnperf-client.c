@@ -289,8 +289,7 @@ int main(int argc, char** argv)
 
     // bind the current handle to the new registration
     if (debug) printf("[debug] binding handle to registration...");
-    dtn_bind(handle, regid, &bundle_spec.replyto);
-//    dtn_bind(handle, regid, &source_tuple);
+    dtn_bind(handle, regid);
     if (debug) printf(" done\n");
 
     /* ------------------------------------------------------------------------------

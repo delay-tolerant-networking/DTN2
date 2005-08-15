@@ -153,7 +153,7 @@ main(int argc, char** argv)
     if (verbose) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
-    dtn_bind(handle, regid, &bundle_spec.replyto);
+    dtn_bind(handle, regid);
 
     gettimeofday(&start, NULL); // timer
 

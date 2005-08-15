@@ -174,7 +174,7 @@ main(int argc, char** argv)
         if (verbose) fprintf(stdout, "Registered with DTN daemon");
                 
         // bind the current handle to the new registration
-        dtn_bind(handle, regid, &local_tuple);
+        dtn_bind(handle, regid);
 
 
 /*        local_addr.sin_family = AF_INET;

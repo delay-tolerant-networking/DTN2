@@ -255,7 +255,7 @@ reader_thread(void *p)
     if (debug > 3) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
-    dtn_bind(handle, regid, &bundle_spec.replyto);
+    dtn_bind(handle, regid);
 
     while (1) {
         static unsigned char motedata[BUFSIZ];
