@@ -40,6 +40,7 @@
 #include "bundling/AddressFamily.h"
 #include "bundling/InterfaceTable.h"
 #include "conv_layers/ConvergenceLayer.h"
+#include <oasys/util/StringBuffer.h>
 
 namespace dtn {
 
