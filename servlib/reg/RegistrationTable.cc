@@ -57,17 +57,14 @@ RegistrationTable::~RegistrationTable()
  * Internal method to find the location of the given registration.
  */
 bool
-RegistrationTable::find(u_int32_t regid, const BundleTuple& endpoint,
-                        RegistrationList::iterator* iter)
+RegistrationTable::find(u_int32_t regid, RegistrationList::iterator* iter)
 {
     Registration* reg;
 
     for (*iter = reglist_.begin(); *iter != reglist_.end(); ++(*iter)) {
         reg = *(*iter);
-        
-        if ((reg->regid() == regid) &&
-            (reg->endpoint().compare(endpoint) == 0))
-        {
+
+        if (reg->regid() == regid) {
             return true;
         }
     }
@@ -79,11 +76,11 @@ RegistrationTable::find(u_int32_t regid, const BundleTuple& endpoint,
  * Look up a matching registration.
  */
 Registration*
-RegistrationTable::get(u_int32_t regid, const BundleTuple& endpoint)
+RegistrationTable::get(u_int32_t regid)
 {
     RegistrationList::iterator iter;
 
-    if (find(regid, endpoint, &iter)) {
+    if (find(regid, &iter)) {
         return *iter;
     }
     return NULL;
@@ -91,19 +88,12 @@ RegistrationTable::get(u_int32_t regid, const BundleTuple& endpoint)
 
 /**
  * Add a new registration to the database. Returns true if the
- * registration is successfully added, false if there's another
- * registration with the same {endpoint,regid}.
+ * registration is successfully added, false if there's an
+ * error adding to the persistent store.
  */
 bool
 RegistrationTable::add(Registration* reg)
 {
-    // check if a conflicting registration already exists
-    if (get(reg->regid(), reg->endpoint()) != NULL) {
-        log_err("error adding registration %d/%s: duplicate registration",
-                reg->regid(), reg->endpoint().c_str());
-        return false; 
-    }
-
     // put it in the list
     reglist_.push_back(reg);
 
@@ -126,33 +116,33 @@ RegistrationTable::add(Registration* reg)
 
 /**
  * Remove the registration from the database, returns true if
- * successful, false if the registration didn't exist.
+ * successful, false if the registration didn't exist or if
+ * RegistrationStore returns an error.
  */
 bool
-RegistrationTable::del(u_int32_t regid, const BundleTuple& endpoint)
+RegistrationTable::del(u_int32_t regid)
 {
     RegistrationList::iterator iter;
 
-    log_info("removing registration %d/%s", regid, endpoint.c_str());
+    log_info("removing registration %d", regid);
     
-    if (! find(regid, endpoint, &iter)) {
-        log_err("error removing registration %d/%s: no matching registration",
-                regid, endpoint.c_str());
+    if (! find(regid, &iter)) {
+        log_err("error removing registration %d: no matching registration",
+                regid);
         return false;
     }
 
     if (! RegistrationStore::instance()->del(*iter)) {
-        log_err("error removing registration %d/%s: error in persistent store",
-                regid, endpoint.c_str());
+        log_err("error removing registration %d: error in persistent store",
+                regid);
         return false;
-        
     }
 
     reglist_.erase(iter);
 
     return true;
 }
-    
+
 /**
  * Update the registration in the database. Returns true on
  * success, false on error.
@@ -211,12 +201,12 @@ RegistrationTable::dump(oasys::StringBuffer* buf) const
     RegistrationList::const_iterator i;
     for (i = reglist_.begin(); i != reglist_.end(); ++i)
     {
-	Registration* reg = *i;
-        
-	buf->appendf("id %u: %s (%s)\n",
+        Registration* reg = *i;
+
+        buf->appendf("id %u: %s (%s)\n",
                      reg->regid(),
                      reg->endpoint().c_str(),
-                     Registration::failure_action_toa((reg->failure_action())));
+                     Registration::failure_action_toa(reg->failure_action()));
     }
 }
 

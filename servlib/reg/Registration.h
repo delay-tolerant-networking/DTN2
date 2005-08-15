@@ -56,8 +56,7 @@ class Bundle;
  * defined to also include internal router mechanisms that consume
  * bundles.
  *
- * Stored in the RegistrationTable, indexed by key of
- * {registration_id,endpoint}.
+ * Stored in the RegistrationTable, indexed by regid.
  *
  * Registration state is stored persistently in the database.
  */

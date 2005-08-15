@@ -72,13 +72,13 @@ public:
     /**
      * Look up a matching registration.
      */
-    Registration* get(u_int32_t regid, const BundleTuple& endpoint);
+    Registration* get(u_int32_t regid);
 
     /**
      * Remove the registration from the database, returns true if
      * successful, false if the registration didn't exist.
      */
-    bool del(u_int32_t regid, const BundleTuple& endpoint);
+    bool del(u_int32_t regid);
     
     /**
      * Update the registration in the database. Returns true on
@@ -111,7 +111,6 @@ protected:
      * Internal method to find the location of the given registration.
      */
     bool find(u_int32_t regid,
-              const BundleTuple& endpoint,
               RegistrationList::iterator* iter);
 
     /**

@@ -57,9 +57,12 @@ TclRegistration::TclRegistration(const BundleTuplePattern& endpoint,
     set_active(true);
 
     log_info("new tcl registration on endpoint %s", endpoint.c_str());
-    notifier_channel_ =
-        Tcl_MakeFileChannel((void*)bundle_list_->notifier()->read_fd(),
-                            TCL_READABLE);
+
+    int fd = bundle_list_->notifier()->read_fd();
+    notifier_channel_ = Tcl_MakeFileChannel((ClientData)fd, TCL_READABLE);
+
+    log_debug("notifier_channel_ is %p", notifier_channel_);
+
     Tcl_RegisterChannel(interp, notifier_channel_);
 }
 
