@@ -54,8 +54,8 @@ const char*
 RegistrationCommand::help_string()
 {
     return("registration add <logger|tcl> <endpoint> <args...>\n"
-           "registration tcl <regid> <endpoint> <cmd> <args...>\n"
-           "registration del <regid> <endpoint>\n"
+           "registration tcl <regid> <cmd> <args...>\n"
+           "registration del <regid>\n"
            "registration list");
 }
 
@@ -119,35 +119,34 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         const char* regid_str = argv[2];
         int regid = atoi(regid_str);
 
-        int result = regtable->del(regid, "*");
-        if (result == 0)
+        int result = regtable->del(regid);
+        if (result == true)
             return TCL_OK;
         
-        resultf("RegistrationTable::del(%d, *)' returned %d", regid, result);
+        resultf("RegistrationTable::del(%d) returned %d", regid, result);
         return TCL_ERROR;
 
 
     } else if (strcmp(op, "tcl") == 0) {
-        // registration tcl <regid> <endpoint> <cmd> <args...>
-        if (argc < 5) {
+        // registration tcl <regid> <cmd> <args...>
+        if (argc < 4) {
             wrong_num_args(argc, argv, 2, 5, INT_MAX);
             return TCL_ERROR;
         }
 
         const char* regid_str = argv[2];
         int regid = atoi(regid_str);
-        const char* endpoint = argv[3];
 
         RegistrationTable* regtable = BundleDaemon::instance()->reg_table();
         TclRegistration* reg;
-        reg = (TclRegistration*)regtable->get(regid, endpoint);
+        reg = (TclRegistration*)regtable->get(regid);
 
         if (!reg) {
-            resultf("no matching registration for %s %s", regid_str, endpoint);
+            resultf("no matching registration for %d", regid);
             return TCL_ERROR;
         }
         
-        return reg->exec(argc - 4, &argv[4], interp);
+        return reg->exec(argc - 3, &argv[3], interp);
     }
 
     resultf("invalid registration subcommand '%s'", op);

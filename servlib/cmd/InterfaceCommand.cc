@@ -50,20 +50,32 @@ const char*
 InterfaceCommand::help_string()
 {
     return("interface add <conv_layer> <tuple> [<args>?]\n"
-           "interface del <conv_layer> <tuple>");
+           "interface del <conv_layer> <tuple>\n"
+           "interface list");
 }
 
 int
 InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
+    // interface list
+    // interface add <conv_layer> <admin>
+    // interface del <conv_layer> <admin>
+
+    if (strcmp("list", argv[1]) == 0) {
+        if (argc > 2) {
+            wrong_num_args(argc, argv, 1, 2, 2);
+        }
+        oasys::StringBuffer buf;
+        InterfaceTable::instance()->list(&buf);
+        set_result(buf.c_str());
+        return TCL_OK;
+    }
+
     if (argc < 4) {
         wrong_num_args(argc, argv, 1, 4, INT_MAX);
         return TCL_ERROR;
     }
     
-    // interface add <conv_layer> <admin>
-    // interface del <conv_layer> <admin>
-
     const char* proto = argv[2];
     const char* admin = argv[3];
 
