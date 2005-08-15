@@ -114,6 +114,11 @@ protected:
          */
         Scanner(int secs_per_scan, const std::string& dir);
 
+        /**
+         * Set the flag to ask it to stop next loop.
+         */
+        void stop();
+
     protected:
         /**
          * Main thread function.
@@ -122,6 +127,7 @@ protected:
         
         int secs_per_scan_;	///< scan interval
         std::string dir_;	///< directory to scan for bundles.
+        bool run_;              ///< keep running?
     };
 };
 

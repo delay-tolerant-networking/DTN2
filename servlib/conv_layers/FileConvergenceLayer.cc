@@ -161,9 +161,16 @@ FileConvergenceLayer::add_interface(Interface* iface, int argc, const char* argv
 bool
 FileConvergenceLayer::del_interface(Interface* iface)
 {
-    NOTIMPLEMENTED;
-}
+    CLInfo *cli = iface->cl_info();
+    Scanner *scanner = (Scanner *)cli;
+    scanner->stop();
 
+    // We cannot "delete scanner;" because it is still running
+    // right now. oasys::Thread::thread_run deletes the Scanner object
+    // when Scanner::run() returns 
+
+    return true;
+}
  
 /**
  * Validate that the contact tuple specifies a legit directory.
@@ -277,9 +284,10 @@ FileConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *
  *****************************************************************************/
 FileConvergenceLayer::Scanner::Scanner(int secs_per_scan, const std::string& dir)
-    : Logger("/cl/file/scanner"),
-      secs_per_scan_(secs_per_scan), dir_(dir)
+    : secs_per_scan_(secs_per_scan), dir_(dir), run_(true)
 {
+    logpathf("/cl/file/scanner/%s", dir.c_str());
+    set_flag(DELETE_ON_EXIT);
 }
 
 /**
@@ -294,14 +302,14 @@ FileConvergenceLayer::Scanner::run()
     const char* fname;
     u_char* buf;
     int fd;
-    
+
     if (!dir) {
         // XXX/demmer signal cl somehow?
         log_err("error in opendir");
         return;
     }
     
-    while (1) {
+    while (run_) {
         seekdir(dir, 0);
 
         while ((dirent = readdir(dir)) != 0) {
@@ -402,10 +410,16 @@ FileConvergenceLayer::Scanner::run()
                 new BundleReceivedEvent(bundle, EVENTSRC_PEER));
         }
             
-        //log_debug("sleeping...");
         sleep(secs_per_scan_);
     }
+    log_info("exiting");
 }
 
+/**
+ * Set the flag to ask it to stop next loop.
+ */
+void FileConvergenceLayer::Scanner::stop() {
+    run_ = false;
+}
 
 } // namespace dtn
