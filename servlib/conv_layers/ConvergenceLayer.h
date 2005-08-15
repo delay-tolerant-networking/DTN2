@@ -39,7 +39,6 @@
 #define _CONVERGENCE_LAYER_H_
 
 #include <string>
-#include <oasys/debug/Log.h>
 
 #include "bundling/Contact.h"
 #include "bundling/Interface.h"
@@ -63,7 +62,7 @@ public:
      * Destructor.
      */
     virtual ~ConvergenceLayer();
-    
+
     /**
      * Register a new interface.
      */
