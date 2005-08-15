@@ -1,6 +1,7 @@
 <html>
 <head>
 <title> DTN2 Manual: Compiling DTN2 </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
 </head>
 <body>
 <h1>Compiling DTN2
@@ -36,11 +37,13 @@ script. You might want to customize it, as it currently puts the files
 into <tt>/usr</tt>, and some people prefer to put files in
 <tt>/usr/local</tt>.
 
+<h3> Fetching the source code with CVS </h3>
+
 <p>
 We will try our best to propagate bug fixes to the current release of
 the software. In some cases, however, you may want to get the source
 code from the anonymous CVS repository instead. Please understand that
-you're using PRE-ALPHA software if you use the copy from CVS. We try
+you're using <b>pre-alpha</b> software if you use the copy from CVS. We try
 to keep what's in CVS working, but it is under active development, and
 you might see bugs. Before reporting them, please always use "cvs up"
 to get the newest copy, then recompile and reproduce the bug.
@@ -70,11 +73,11 @@ named <tt>c:\cygwin\download</tt>.
 Start <tt>setup.exe</tt> and choose "Install from Internet". (Always
 think carefully before running an executeable you downloaded from
 the Internet, even if a nice manual like this told you to do it!
-Is your virus checker running? Up to date? Did the file come from the
+Is your virus checker running? Is it up to date? Did the file come from the
 website you think it did?)
 Use the default root directory, <tt>c:\cygwin</tt>.
 Make the "Local Package Directory" <tt>c:\cygwin\download</tt>. Cygwin
-will ask you to choose a mirror, so choose one close to you on the
+will ask you to choose a mirror, so choose one that is close to you on the
 Internet. It will then ask you to "Select Packages". The defaults here
 are pretty good, but you need to make a few changes:
 
@@ -83,13 +86,14 @@ are pretty good, but you need to make a few changes:
 and <b>libdb4.2-devel</b> are selected for installation.
 <li> Open Editors and ensure an editor you like and know how to use is
 selected.
-<li> Open Libs, and select the <b>sunrpc</b> package for installation.
-<li> While in Libs, check that the <b>tcltk</b> package will be installed.
+<li> Open Libs, and check that the <b>tcltk</b> package will be installed.
 </ul>
 
 <p>
 Continue with the installation. When it is done, you'll have a working
-Cygwin installation and be ready to proceed.
+Cygwin installation and be ready to proceed. If you are asked to
+reboot, please do so. This ensures the correct version of Cygwin will be
+used.
 
 <h3> Compile using Cygwin </h3>
 

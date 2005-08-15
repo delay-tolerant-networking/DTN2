@@ -1,6 +1,7 @@
 <html>
 <head>
 <title> DTN2 Manual: dtnd Configuration </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
 </head>
 <body>
 <h1>dtnd Configuration
@@ -8,9 +9,8 @@
 
 <p>
 <i>Note that lots of the info that should be on this page
-has not been written up yet. Sorry! If you'd like to help with
-the manual, please post a message to the dtn-interest list.
-Thanks!</i>
+has not been written up yet. Please see <a href="todo.html">the to do
+list</a> for information on how you can help.</i>
 
 <p>
 At startup, dtnd creates an initializes a TCL interpreter. It then
@@ -36,6 +36,7 @@ example of this, search for <tt>[info hostname]</tt> in the sample
 <a name="api"/>
 <h2> api </h2>
 
+<p>
 Syntax: <tt>api set <i>variable</i> <i>value</i> </tt>
 <br>
 Example: <tt>api set local_addr 10.0.0.1</tt>
@@ -69,9 +70,188 @@ API clients.
 
 </table>
 
+<a name="bundle"/>
+<h2> bundle </h2>
+
+<p> You can use the <tt>bundle</tt> command to see the status of
+bundles currently being held by your dtnd. While testing a DTN,
+you can also inject bundles. 
+
+<h3> Getting statistics </h3>
+
+<p>The <tt>bundle stats</tt> command shows the following counts:
+<ul>
+<li> pending
+<li> received
+<li> locally delivered
+<li> transmitted
+<li> expired
+</ul>
+
+<p>Pending is the current count of bundles in dtnd's store, which may
+be non-zero when the server starts if bundles are still in the store
+from the last time the server was running. All the other
+counters are zeroed when the server boots. Pending is
+practically limited by the storage system and the memory use of dtnd.
+The other counters are unsigned 32-bit integers, and will roll over
+accordingly.
+
+<p> At present there is no way to zero the counters other than by
+restarting the server.
+
+<h3> Getting a list of pending bundles </h3>
+
+<p>
+The <tt>bundle list</tt> command shows a list of all pending
+bundles in the system. It looks like this:
+
+<blockquote><pre>dtn% bundle list
+Currently Pending Bundles (2):
+        0  : bundles://internet/host://mars/rover -> bundles://internet/host://jpl/images length 8096266
+        1  : bundles://internet/host://jpl/commands -> bundles://internet/host://mars/rover length 18</pre></blockquote>
+
+<p>To the left of the colon is the bundle ID. This number is used
+internally by dtnd to keep track of bundles. Remote DTN
+implementations will never see the bundle ID. However, you can use
+the bundle ID with the following commands to inspect the bundles.
+
+<h3> Looking at a bundle </h3>
+
+<p> Using <tt>bundle info <i>bundle-id</i></tt>, you can see more
+information about a bundle. Using <tt>bundle dump <i>bundle-id</i></tt>,
+you can see a hex dump of the bundle. If you know the bundle has only
+printable characters in it, you can see it formatted as a text
+file using <tt>bundle dump_ascii <i>bundle-id</i></tt>.
+
+<h3> Injecting a bundle </h3>
+
+<p>
+Syntax: <tt>bundle inject <i>source</i> <i>dest</i> <i>payload</i>
+[ <i>length</i> ]</tt>
+<br>
+Example: <tt>bundle inject bundles://internet/host://jpl/commands
+bundles://internet/host://mars/rover "turn left 30 degrees, please"</tt>
+
+<p> You can use <tt>bundle inject</tt> to inject a synthetic bundle
+into dtnd. It will route and deliver that packet just like any other
+bundle, as long as it is valid. You have more control over bundles
+you add using the <a href="man/dtnsend">dtnsend</a> client
+application, so it is probably almost always a better choice, even
+for testing situations.
+
+<p><b>Note:</b> It is currently possible to crash the server using
+<tt>bundle inject</tt> with incorrect parameters. Please do not use
+this command unless you can tolerate a server crash. The crash comes
+from a failing assert, so the daemon notices the bad bundle, it just
+cannot proceed with the bad bundle in the store. Once it the bad
+bundle is in the store, you will need to use the "--tidy" option
+to remove it and any other pending bundles.
+
+<p>The length parameter is optional. If you inject a bundle without
+using it, the length of the bundle will simply be the length of the
+string you pass in as the payload. The length parameter can allow
+you to make huge bundles without having to use a huge payload
+string. The payload string is used for at the beginning of the
+bundle and the remainder of the bundle is filled with zeros.
+(But there's a bug that makes this not work right. Try dumping
+out a bundle you made this way to see an assert.)
+
+<a name="debug"/>
+<h2> debug </h2>
+
+<p> The <tt>debug</tt> command exists in all versions of dtnd, but
+the subcommands are only available if you gave "--enable-debug-memory"
+to the configure script while building dtnd. It is not enabled by
+default. You can tell if your dtnd binary has memory debugging support
+by running <tt>help debug</tt>.
+
+<p> When memory use debugging is enabled, you can get a dump of memory
+in use using <tt>debug dump_memory</tt>.  After doing one dump, you
+can get diffs with <tt>debug dump_memory_diffs</tt>.
+
+<a name="help"/>
+<h2> help </h2>
+
+<p>
+You can get help on any of the additional TCL commands in dtnd's
+TCL interpreter using the <tt>help</tt> command.
+
+<a name="interface"/>
+<h2> interface </h2>
+
+<p>Use the interface commands to add and delete interfaces to the
+networks that your dtnd will talk on.
+
+<h3> Adding an interface </h3>
+
+<p>
+Syntax: <tt>interface add <i>convergence-layer</i> <i>address</i> [
+<i>args</i> ]</tt>
+<br>
+Example: <tt>interface add tcp host://0:0:0:0:5000/</tt>
+
+<p> When dtnd encounters an <tt>interface add</tt> command, it
+looks for a matching convergence layer. Next it attempts to
+parse the address. If both of those steps succeed, it
+passes that data to the convergence layer to configure a new
+interface which will listen for incoming bundles.
+
+<p>
+The following address families are supported:
+<ul>
+<li>host://<i>hostname</i>|<i>dotted-quad</i>:<i>port-number</i>
+<li>ip://<i>hostname</i>|<i>dotted-quad</i>:<i>port-number</i>
+<li>string:<i>string</i>
+</ul>
+
+<p> Note that only port numbers, not port names are supported by
+the "host" address family. Also note that "host" and "ip" are
+synonyms.
+
+<p>
+See the following pages on the different convergence layers,
+and what arguments they take.
+
+<ul>
+<li><a href="cl-tcp.html">tcp</a>
+<li><a href="cl-udp.html">udp</a>
+<li><a href="cl-eth.html">eth</a>
+<li><a href="cl-file.html">file</a>
+</ul>
+
+<h3> Deleting an interface </h3>
+
+<p>
+Syntax: <tt>interface add <i>convergence-layer</i> <i>address</i></tt>
+<br>
+Example: <tt>interface add tcp host://0:0:0:0:5000/</tt>
+
+<p>
+Deletes an interface from the system. Each convergence layer
+handles this individually, but generally the convergence layer
+stops listening for new bundles and cleans up any resources it
+was using for the specified tuple.
+
+<h3> Listing the interfaces </h3>
+
+<p>
+Syntax: <tt>interface list</tt>
+<br>
+Example: <tt>interface list</tt>
+
+<p>
+Prints a list of the current interfaces.
+
 <a name="log"/>
 <h2> log </h2>
 
+<p>
+The <tt>log</tt> command deals with the log file, and the log messages
+in it. You can add messages of your own to the log file, or trigger
+various actions related to the log file.
+
+<h3> Logging a message of your own </h3>
+<p>
 Syntax: <tt>log <i>log-path</i> <i>log-level</i> <i>log-string</i> </tt>
 <br>
 Example: <tt>log /dtnd info "dtnd parsing configuration..."</tt>
@@ -81,9 +261,70 @@ You can use the <tt>log</tt> command to add a log message to the dtnd
 log file. The log-path and log-level are used to filter out messages,
 as described in the section on <a href="logging.html">Logging</a>.
 
+<h3> Set the log prefix </h3>
+
+<p>
+Syntax: <tt>log prefix <i>prefix</i></tt>
+<br>
+Example: <tt>log prefix testing</tt>
+
+<p>
+The log prefix shows up in log entries after the left bracket, and
+before the timestamp. You can set it to any string.
+
+<a name="rotate">
+<h3> Rotate the log file </h3>
+
+<p>
+Syntax: <tt>log rotate</tt>
+<br>
+Example: <tt>log rotate</tt>
+
+<p>
+Use this command to force dtnd to reopen the log file for writing.
+Under Unix, even after you have renamed the log file, dtnd will
+continue writing log entries into the file until it executes the
+<tt>log rotate</tt> command.
+
+<p>
+You can include a procedure like this in your dtnd.conf file
+to arrange for dtnd to make a new log file every hour:
+
+<blockquote><pre># rotate the log every 3600 seconds (1 hour)
+proc rotate {} {
+    set date [ clock format [ clock seconds ] -format "%Y-%m-%d-%H" ]
+    set new "dtnd.$date.log"
+    file rename "dtnd.log" $new
+
+    log rotate
+
+    after 3600 rotate
+}
+after 3600 rotate</pre></blockquote>
+
+<p>
+Of course, for this to work, you need to start dtnd in the directory
+where the log file will be, and use the "-o dtnd.log" argument to set
+the log file name.
+
+<a name="reparse_debug_file"/>
+<h3> Change log level </h3>
+
+<p>
+Syntax: <tt>log reparse_debug_file</tt>
+<br>
+Example: <tt>log reparse_debug_file</tt>
+
+<p> The system which dtnd uses to choose which messages to log and
+which to hide is described in the <a href="logging.html">Logging</a>
+section of the manual.  This command forces dtnd to re-read the
+<tt>.dtndebug</tt> file and take into account any new rules that it
+finds for showing or hiding messages.
+
 <a name="storage"/>
 <h2> storage </h2>
 
+<p>
 Syntax: <tt>storage set <i>variable</i> <i>value</i> </tt>
 <br>
 Example: <tt>storage set type berkeleydb</tt>
@@ -149,7 +390,7 @@ you do not want dtnd to continue to try to deliver. If you allow dtnd
 to tidy up when it has custody of a bundle, that bundle will be lost
 for all time and the sending application will not be notified.
 
-<p> For SQL backends, is not possible at this time to configure a
+<p> For SQL backends, it is not possible at this time to configure a
 hostname, username, or password via the <tt>storage</tt> command.  For
 MySQL, the defaults are hostname "localhost", Unix user name, and no
 password. For Postgres, the defaults are taken from the environment

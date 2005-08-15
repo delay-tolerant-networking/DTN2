@@ -1,6 +1,7 @@
 <html>
 <head>
 <title> DTN2 Manual: Starting dtnd and sending a ping </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
 </head>
 <body>
 <h1>Starting dtnd and sending a ping
@@ -33,10 +34,36 @@ In other tutorials, you'll see how to use a SQL database. Set the
 <i>payloaddir</i> to <tt>/home/fred/dtn/bundles</tt> and set the
 <i>dbdir</i> to <tt>/home/fred/dtn/db</tt>.
 
+<p> The <i>dbdir</i> directory is where persistent objects that DTN2 uses to
+manage its internal state live. This database will remain fairly small. It
+needs to be preserved between invocations of the DTN2 daemon, because
+the data in it lets DTN2 know the status of registrations with
+clients, and bundles which are in flight in the network. One of the
+"disruptions" that a DTN is tolerant of is the failure of a node.
+Using the data in the database, a new DTN2 daemon can carry on the
+work the previous one was doing.
+
+<p> The <i>payload</i> directory is where bundles which are in-flight
+live. In general, the bundles in this directory are ones which this
+DTN2 instance has custody of. That means that if they disappear out of
+this directory, they will be lost forever, since there are no other
+authoratative copies of the bundle in the network. DTN2 and the DTN
+protocols are designed to maintain the files in this directory without
+leaving old ones lying around. If you see an old file there, it's
+likely due to a bug. Please help us get to the bottom of what's causing it.
+Unlike packets, which are typically quite small (from 50 to 64,000
+bytes), a single bundle can be very large (over 2 gigabytes).
+On a server dedicated to
+running DTN2, your payload directory should have access to the largest
+partition on your server. As an analogy, on a mail server the mail
+spool is usually on /var, and has access to the majority of the extra
+disk space on a machine. The same should be true for the payload
+directory.
+
 <h3>The Local Tuple</h3>
 
 <p> You don't need to make any changes in the <i>local_tuple</i>, but
-scroll down and take a look at it anyway. In the defualt
+scroll down and take a look at it anyway. In the default
 configuration, it looks like this: <i>route local_tuple
 "bundles://internet/host://[info hostname]"</i>. Note the square
 brackets. To understand what's happening here, you need to know that
@@ -52,7 +79,9 @@ set to a custom string based on your hostname.
 <p> This is the only place in this particular configuration file where
 we will use TCL features like the square brackets. However, you should
 remember that all the power of TCL is available to you as you write
-your own configuration files, should you desire it.
+your own configuration files, should you desire it. For an example of
+this, see <a href="configuration.html#rotate">the example showing how
+to rotate logs</a> from within dtnd.
 
 <p> So the local tuple is set, but what is it? From the
 <a href="arch.html">Architecture</a> section, you should recall
@@ -108,7 +137,7 @@ interfaces, so leave the address as 0.0.0.0.
 
 <p> Note that we are adding an interface of type TCP. There are other
 ways that DTN nodes can communicate, including across a filesystem
-(where some manual process, like a messenger with a USB keychain
+(where some external activity, like a messenger with a USB keychain
 drive, is responsible for moving the files).  When you start using
 alternative <b>convergence layers</b> you'll have other <i>interface
 add</i> lines in your configuration file.
@@ -132,8 +161,8 @@ beginnings come great things!
 <h2> Initializing the Database </h2>
 
 <p>
-Before dtnd can use the databases to keep track of runtime state,
-it needs to initialize them. This is a simple matter of starting
+Before dtnd can use the database to keep track of runtime state,
+it needs to initialize it. This is a simple matter of starting
 the daemon once with the <tt>--init-db</tt> argument. You'll
 also want to give it the location of the configuration file, so
 that dtnd can find the correct database directory. Put that together
@@ -226,16 +255,15 @@ in the <tt>DTN2/apps/dtnping</tt> directory. You'll need to give it
 one argument, which is the tuple address of the endpoint that you
 want to ping. Since there is only one server in your DTN, the
 choice should be simple. You need to use the local tuple
-that you set in the configuration file. If you'd like to
-check what dtnd thinks it's local tuple name is, use the
-<tt>route dump</tt> command in the window where dtnd is running.
+that you set in the configuration file.
 
+<p>
 Alternatively, <tt>dtnping</tt> contains a convenience shortcut
 whereby the string 'localhost' is interpreted as the local tuple
 of the daemon.
 
 <p>
-Here's an example of how to ping a server who's local tuple
+Here's an example of how to ping a server whose local tuple
 is <i>bundles://internet/host://dtn-a</i>:
 
 <blockquote><pre>$ <font color=blue>DTN2/apps/dtnping/dtnping bundles://internet/host://dtn-a</font>
@@ -252,7 +280,7 @@ PING [internet host://dtn-a]...
 You've set up a standalone dtnd and pinged it. From here, you
 can explore two directions. In the <a href="tutorial-2.html">
 DTN2 applications</a> tutorial, you can learn how to use the other
-applications that come with DTN2 to interact with your nnew little
+applications that come with DTN2 to interact with your new little
 DTN. In the <a href="tutorial-3.html">building a bigger DTN</a>
 tutorial, you can see how to use links to make several nodes work
 together as part of a bigger DTN.

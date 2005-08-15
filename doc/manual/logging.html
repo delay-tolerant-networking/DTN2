@@ -1,6 +1,7 @@
 <html>
 <head>
 <title> DTN2 Manual: Logging </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
 </head>
 <body>
 <h1>About the Logging System
@@ -17,7 +18,10 @@ which log messages are emitted and which are ignored. It is read
 one line at a time. Lines may start with "#" to indicate a
 comment. Blank lines are ignored. Any other line should have
 a logpath in the left column, and a log level in the right
-column.  For instance, this .dtndebug file makes the default
+column. The columns are separated by spaces and/or tabs.
+
+<p>
+For instance, this .dtndebug file makes the default
 level info, but causes debug info to be printed for all link
 operations other than for tcp0.
 
@@ -30,8 +34,21 @@ operations other than for tcp0.
 <p>In dtnd, the log messages go out to standard out, by default. You can
 change that using the "-o filename" option to dtnd.
 
-<p>Here is an incomplete list of log paths used by the DTN2
-implementation:
+<p>Here is the list of the logging levels:
+
+<ul>
+<li>debug
+<li>info
+<li>warn, warning
+<li>err, error
+<li>crit, critical
+<li>always
+</ul>
+
+<p>Below is an incomplete list of log paths used by the DTN2
+implementation. You can find others by observing output with
+logging turned up to the maximum ("/ debug") or by searching
+for <tt>logpath</tt> in the source code.
 
 <p>
 <table border>
@@ -48,25 +65,16 @@ implementation:
 <tr><td>/cl/tcp			<td>TCP Convergence Layer
 <tr><td>/cl/tcp/conn/$ip:$port	<td>connection specific messages
 <tr><td>/cl/udp			<td>UDP Convergence Layer
-<tr><td>/contact/bundles	<td>
-<tr><td>/registration		<td>
+<tr><td>/contact/bundles	<td>&nbsp;
+<tr><td>/registration		<td>&nbsp;
 </table>
-
-<p>Here is the list of the logging levels:
-
-<ul>
-<li>debug
-<li>info
-<li>warn, warning
-<li>err, error
-<li>crit, critical
-<li>always
-</ul>
 
 <h2>Rereading the .dtndebug file </h2>
 
 <p>You can force the daemon to reread the <tt>.dtndebug</tt> file
-while it is running by sending it a HUP signal.
+while it is running by sending it a HUP signal. You can also use
+the <a href="configuration.html#reparse_debug_file"><tt>log
+reparse_debug_file</tt></a> TCL command.
 
 <h2>Rotating the log file </h2>
 
@@ -77,6 +85,11 @@ file and start a new one:
 <blockquote><pre>mv log.txt log-`date +%Y-%m-%d`.txt
 pkill -USR1 dtnd
 </pre></blockquote>
+
+<p>
+You can also rotate the log file from inside the TCL interpreter
+using the <a href="configuration.html#rotate"><tt>log rotate</tt></a>
+TCL command.
 
 </body>
 </html>

@@ -1,6 +1,7 @@
 <html>
 <head>
 <title> DTN2 Manual: Environment Variables </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
 </head>
 <body>
 <h1>Environment Variables
@@ -17,6 +18,7 @@ DTN2. The following table summarizes these variables.
 <th> Component
 <th> Syntax
 <th> Description
+<th> Default
 
 <tr>
 <td>DTNAPI_ADDR
@@ -24,6 +26,7 @@ DTN2. The following table summarizes these variables.
 <td>An IP address (<b>not</b> a hostname)
 <td>This is the address that dtnd listens on for requests from DTN
 API clients, and the address that DTN API clients send requests to.
+<td>0.0.0.0
 
 <tr>
 <td>DTNAPI_PORT
@@ -31,6 +34,31 @@ API clients, and the address that DTN API clients send requests to.
 <td>An IP port number
 <td>This is the port that dtnd listens on for requests from DTN
 API clients, and the port that DTN API clients send requests to.
+<td>5010
+
+<tr>
+<td>HOME
+<td>dtnd
+<td>A directory name
+<td>The <a href="logging.html">logging system</a> looks for the 
+<tt>.dtndebug</tt> file in this directory.
+<td><i>Set by operating system.</i>
+
+<tr>
+<td>TMP 
+<td>dtnd
+<td>A directory name
+<td>The directory where bundles will be copied when an application
+asks for a bundle to be delivered as a file. If not set, a default
+of <tt>/tmp</tt> is used.
+<td><i>Set by operating system. (Unix)</i>
+
+<tr>
+<td>TEMP
+<td>dtnd
+<td>A directory name
+<td>Same as TMP. TEMP is used only if TMP is not set.
+<td><i>Set by operating system (Windows).</i>
 
 </table>
 

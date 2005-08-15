@@ -1,0 +1,87 @@
+<html>
+<head>
+<title> DTN2 Manual: TCP Convergence Layer </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>TCP Convergence Layer
+</h1>
+
+<p>
+The TCP Convergence Layer connects DTN nodes via a TCP channel.
+As with all TCP connections, it is reliable (meaning the underlying
+layers attempt to deliver all the data sent, in the order it was
+sent). In the context of a DTN, however, a TCP connection is only
+reliable while it is up. The DTN components (each endpoint of the
+TCP connection) are ready and willing to invoke various types of
+recovery mechanisms if the transfer of a bundle is interrupted
+by a broken TCP connection.
+
+<p>
+The TCP session between two DTN nodes only moves bundles in one
+direction. The TCP session itself is two directional, so that
+the TCP convergence layer on the bundle receiver can send feedback
+to the sender. In a case where bundles need to move both directions
+between two nodes, there will be two TCP connections, each one
+initiated by one of the sides. The side that initiates the connection
+sends bundles over it.
+
+<h2> Interfaces and Links  </h2>
+
+<p> Each TCP link needs to be configured on both sides. On one side,
+it is configured as a passive listener (called an <b>interface</b>
+by dtnd), and on the other side as an active session initiator (called
+a <b>link</b>). But take note of the <tt>receiver_connect</tt> option,
+which reverses things.
+
+<h3>Passive Listener</h3>
+
+<p> The <tt>interface add</tt> command creates the passive
+listener side of the session. It always takes at least one argument,
+which is the local address. This is specified with either the IP or
+Host address families.  For more information about address families,
+see the <a href="configuration.html#interface">interface add</a>
+documentation. After the local address, you may include optional arguments
+which are detailed below.
+
+<h3> Active Initiator</h3>
+
+<p> The <tt>link add</tt> command creates an object in the system that
+is capable of initiating a connection outbound to other DTN nodes.
+Depending on the state of the link, as managed by the various options
+to the <tt>link</tt> command, it may or may not actually be actively
+opening or maintaining a TCP connection at a given time.
+
+<h2>Options</h2>
+
+<p>These options can appear after the <tt>link add</tt> command,
+or after the <tt>interface add</tt> command.
+
+<p>
+<table>
+<tr><th>Name<th>Type<th>Default<th>Comment
+<tr>
+<td>bundle_ack_enabled<td>boolean<td>true
+<td>Should we send an ACK when we have received the entire bundle?
+<tr>
+<td>reactive_frag_enabled<td>boolean<td>true
+<td>If the servers loses the connection while sending, should it
+fragment the bundle so that when the connection is working again
+the it can start sending from the last ack, instead of from the
+beginning?
+<tr>
+<td>receiver_connect<td>boolean<td>false
+<td>This option reverses the direction of dataflow, making the
+initiator receive bundles. (Not yet implemented.)
+<tr>
+<td>
+
+<h3> Parameter Negotiation </h2>
+
+<p>
+What happens when one end asks for something other than what we asked
+for?
+
+</body>
+</html>
+

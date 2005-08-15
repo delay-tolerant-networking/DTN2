@@ -1,6 +1,7 @@
 <html>
 <head>
 <title> DTN2 Manual: DTN2 Applications </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
 </head>
 <body>
 <h1>DTN2 Applications
@@ -272,8 +273,7 @@ dtn_recv [internet host://dtn-a/dtncp/recv:*]...
 <p>
 In another window, we copy a file:
 
-<blockquote><pre>$ <font color=blue>DTN2/apps/dtncp/dtncp
-/etc/motd bundles://internet/host://dtn-a</font></pre></blockquote>
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtncp/dtncp /etc/motd bundles://internet/host://dtn-a</font></pre></blockquote>
 
 <p>
 And in the first window, <tt>dtncpd</tt> says:
@@ -310,18 +310,6 @@ Another place you'll find wildcard endpoints used
 is in the <i>link</i> command. Read <a href="tutorial-3.html">
 Building a bigger DTN</a> for examples of using the
 <i>link</i> command.
-
-<h3> A note on the Cygwin port </h3>
-
-<p>
-Please note that due to a <a
-href="http://cygwin.com/ml/cygwin/2005-03/msg00112.html">bug in
-Cygwin</a>, <tt>dtncpd</tt> will not exit when you hit Ctrl-C.
-To make it exit, you'll need to use <tt>kill</tt> from another
-window, or simply close the window you started it in. If you
-replace your <tt>/usr/bin/cygwin1.dll</tt> file with one
-from <a href="http://cygwin.com/snapshots/">the Cygwin snapshot
-page</a> you'll get the bug fix, which was committed March 3, 2005.
 
 </body>
 </html>

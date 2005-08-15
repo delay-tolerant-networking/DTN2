@@ -1,0 +1,82 @@
+<html>
+<head>
+<title> DTN2 Manual: Style Guide </title>
+<link rel="stylesheet" type="text/css" href="manual.css" />
+</head>
+<body>
+<h1>Style Guide
+</h1>
+
+<h2> Writing </h2>
+
+<p>
+Write the kind of documentation that you would like to read.
+Our role models are old Unix man pages and the MySQL online HTML
+pages (with user comments!).
+Our anti-role-models are Windows help pages: "To start a new file,
+choose File -&gt; New".
+
+<p>
+Know your audience. Be chatty and explain concepts in a tutorial
+page. In a reference page be above all precise, then concise, and
+finally if possible be interesting to read (but this is a distant third).
+For every setting where it makes sense (and it almost always does)
+be crystal clear about what the default is. Offer guidance on
+what the best practices are and why.
+
+<p>
+Be honest about limits, shortcomings, misbehavior and the like.
+When it makes sense, document internal things (include a disclaimer
+that this is something internal, and if you count on it not changing
+you'll probably be surprised.)
+We have no secrets to hide, we have no marketing department to
+keep happy.
+
+<p>
+Read more than you write. While warming up to bang out a new
+section of the manual, proofread a page and look for ways the code
+has changed from when the page was written.
+You should almost always find yourself reading code in order
+to write the docs about it. For some of this code, writing the
+documentation on it is the closest to careful QA it will ever get.
+Don't pass up this chance to kill a few bugs.
+
+<h2> HTML Stuff </h2>
+
+<ul>
+<li> Use the template.html file to start a new file.
+
+<li> If you refer to a file that does not exist yet with an href,
+make it exist as a stub using the content in the template.html file.
+This will hopefully encourage people who stumble across it to help us.
+
+<li> Try for high quality HTML, but don't kill yourself to be
+XHTML 9.x (or whatever the newest annoying thing is from W3C).
+
+<li> Use CSS sparingly to improve readability and simplify the HTML
+code. I'd be surprised/unhappy if we ended up with more then 20
+styles.
+
+<li> Our targeted web browsers are Lynx and Firefox. Realistically,
+every other browser is between these two in capabilities.
+
+<li> Usage of &lt;tt&gt;, &lt;b&gt;, and &lt;i&gt; is not very
+well standardized yet. tt is usually for verbatim output or input.
+i is usually for a variable representing user input.
+
+<li> There's no excuse for these pages to be too big to download
+at 9600 baud from the middle of Africa. Trim fat if doing so does not
+hurt the final product.
+
+</ul>
+
+<h2> Copyright </h2>
+
+<p>
+Your contributions to the manual are on the same terms as the rest
+of the project. Read the license and decide if you can accept it
+before submitting documentation.
+
+</body>
+</html>
+
