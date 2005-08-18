@@ -114,10 +114,9 @@ EthConvergenceLayer::add_interface(Interface* iface,
 bool
 EthConvergenceLayer::del_interface(Interface* iface)
 {
-  // not implemented;
   // XXX/jakob - need to keep track of the Beacon and Receiver threads for each 
   //             interface and kill them.
-  return false;
+  NOTIMPLEMENTED;
 }
 
 bool
@@ -500,7 +499,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 EthConvergenceLayer::Beacon::Beacon(const char* if_name)
 {
     Thread::flags_ |= INTERRUPTABLE;
-    memset(if_name_,0,IFNAMSIZ);
+    memset(if_name_, 0, IFNAMSIZ);
     strcpy(if_name_, if_name);
 }
 
