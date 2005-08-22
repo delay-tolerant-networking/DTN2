@@ -12,7 +12,8 @@ DAEMON_OBJS := $(DAEMON_SRCS:.cc=.o)
 #
 # Default target is to build the daemon
 #
-all: dtnd
+BINFILES := dtnd
+all: $(BINFILES)
 
 COMPONENT_LIBS := \
 	$(SRCDIR)/applib/libdtnapisrv.a \
