@@ -75,7 +75,7 @@ echodep:
 #
 # Clean out all object files
 #
-clean: $(SUBDIRS) objclean depclean genclean binclean
+clean: $(SUBDIRS) objclean depclean genclean libclean binclean
 
 .PHONY: $(SUBDIRS)
 $(SUBDIRS):
@@ -84,22 +84,30 @@ $(SUBDIRS):
 .PHONY: objclean
 objclean:
 	@echo "removing object files..."
-	find . \( -name '*.[Eo]' \) -print | xargs rm -f
+	@find . \( -name '*.[Eo]' \) -print | xargs rm -f
 
 .PHONY: depclean
 depclean:
 	@echo "removing dependency files..."
-	find . \( -name '*.d' \) -print | xargs rm -f
+	@find . \( -name '*.d' \) -print | xargs rm -f
 
 .PHONY: genclean
 genclean:
-	@echo "removing generated files: $(GENFILES)..."
-	@test -z "$(GENFILES)" || rm -f $(GENFILES)
+	@test -z "$(GENFILES)" || \
+		echo "removing generated files: $(GENFILES)..." && \
+		rm -f $(GENFILES)
+
+.PHONY: libclean
+libclean:
+	@test -z "$(LIBFILES)" || \
+		echo "removing library files: $(LIBFILES)..." && \
+		rm -f $(LIBFILES)
 
 .PHONY: binclean
 binclean:
-	@echo "removing binary files: $(BINFILES)..."
-	@test -z "$(BINFILES)" || rm -f $(BINFILES)
+	@test -z "$(BINFILES)" || \
+		echo "removing binary files: $(BINFILES)..." && \
+		rm -f $(BINFILES)
 
 .PHONY: distclean
 CFGFILES := Rules.make config.h config.h config.cache
