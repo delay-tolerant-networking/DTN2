@@ -6,6 +6,7 @@
 OBJS := $(SRCS:.cc=.o)
 OBJS := $(OBJS:.c=.o)
 
+BINFILES := $(APP)
 all: $(APP)
 
 $(APP): $(OBJS) $(SRCDIR)/applib/libdtnapi.a
