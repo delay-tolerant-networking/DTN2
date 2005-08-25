@@ -10,7 +10,7 @@ namespace dtn {
 void
 BundleEventHandler::dispatch_event(BundleEvent* e)
 {
-    log_debug("dispatching event %s", e->type_str());
+    log_debug("dispatching event (%p) %s", e, e->type_str());
     
     switch(e->type_) {
 

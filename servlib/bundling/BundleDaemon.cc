@@ -103,7 +103,7 @@ BundleDaemon::post(BundleEvent* event)
 void
 BundleDaemon::post_event(BundleEvent* event)
 {
-    log_debug("posting event with type %s", event->type_str());
+    log_debug("posting event (%p) with type %s", event, event->type_str());
     eventq_->push(event);
 }
 
@@ -407,7 +407,6 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             // inform the routers that this link is going away
             ContactDownEvent e(link->contact(), reason);
             handle_event(&e);
-
         } else {
             // The only case where we should get this event when the link
             // is not actually open is if it's in the process of being
