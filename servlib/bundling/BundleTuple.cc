@@ -73,6 +73,10 @@ BundleTuple::BundleTuple(const BundleTuple& other)
 void
 BundleTuple::assign(const BundleTuple& other)
 {
+    if (&other == this) {
+            return;
+    }
+    
     valid_ = other.valid_;
     family_ = other.family_;
     tuple_.assign(other.tuple_);
