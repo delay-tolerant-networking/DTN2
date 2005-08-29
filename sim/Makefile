@@ -42,7 +42,13 @@ SIM_OBJS := $(SIM_SRCS:.cc=.o)
 #
 all: dtnsim
 
+#
+# Include dtnsim in files to clean with make clean
+#
+BINFILES += dtnsim
+
 COMPONENT_LIBS := $(SRCDIR)/servlib/libdtnserv.a $(SRCDIR)/oasys/liboasys.a 
+
 dtnsim: $(SIM_OBJS) $(COMPONENT_LIBS)
 	$(CXX) $(SIM_OBJS) $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(LIBS)
 

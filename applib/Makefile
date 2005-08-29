@@ -62,6 +62,11 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 	$(CC) $(CPPFLAGS) $(DEBUG) $(OPTIMIZE) -c $< -o $@
 
 #
+# Include the generated libraries in make clean
+#
+LIBFILES += libdtnapisrv.a libdtnapi.a
+
+#
 # Include the common rules
 #
 SRCDIR := ..
