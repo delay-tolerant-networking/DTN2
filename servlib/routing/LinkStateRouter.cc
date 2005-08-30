@@ -55,7 +55,7 @@
 
 namespace dtn {
 
-#define ROUTER_BCAST_EID "bundles://soontobegone/string://linkstate.router"
+#define ROUTER_BCAST_EID "str://linkstate.router"
 
 LinkStateRouter::LinkStateRouter()
     : BundleRouter("linkstate")
@@ -76,9 +76,11 @@ LinkStateRouter::handle_contact_up(ContactUpEvent* event)
     BundleRouter::handle_contact_up(event);
     LinkStateGraph::Vertex *peer, *local;
 
-    log_info("Contact Up. Adding edges %s <-> %s", local_tuple_.c_str(), event->contact_->nexthop());
+    log_info("Contact Up. Adding edges %s <-> %s",
+             BundleDaemon::instance()->local_eid().c_str(),
+             event->contact_->nexthop());
 
-    local=graph_.getVertex(local_tuple_.c_str());
+    local=graph_.getVertex(BundleDaemon::instance()->local_eid().c_str());
     peer=graph_.getVertex(event->contact_->nexthop());   
 
     /* 
@@ -117,10 +119,12 @@ LinkStateRouter::handle_contact_down(ContactDownEvent* event)
 
     LinkStateGraph::Vertex *peer, *local;
 
-    log_info("Contact Down. Removing edges %s <-> %s", local_tuple_.c_str(), event->contact_->nexthop());
+    log_info("Contact Down. Removing edges %s <-> %s",
+             BundleDaemon::instance()->local_eid().c_str(),
+             event->contact_->nexthop());
     
     peer=graph_.getVertex(event->contact_->nexthop());   
-    local=graph_.getVertex(local_tuple_.c_str());
+    local=graph_.getVertex(BundleDaemon::instance()->local_eid().c_str());
 
     /*
      *  Record this event in the Log for this edge.
@@ -180,17 +184,19 @@ LinkStateRouter::handle_bundle_received(BundleReceivedEvent* event)
      * registration events to see what EID's are local. Then, when finding the next hop, we would start at 
      * any local EID but send the bundle directly to the next _non-local_ EID in the graph.
      */
-    LinkStateGraph::Vertex* nextHop=graph_.findNextHop(graph_.getVertex(local_tuple_.c_str()),
-                                                       // getMatchingVertex allows for some *-matching
-                                                       graph_.getMatchingVertex(bundle->dest_.c_str())); 
-
+    const char* local_eid = BundleDaemon::instance()->local_eid().c_str();
+    LinkStateGraph::Vertex* nextHop=
+        graph_.findNextHop(graph_.getVertex(local_eid),
+                           // getMatchingVertex allows for some *-matching
+                           graph_.getMatchingVertex(bundle->dest_.c_str())); 
+    
     if(!nextHop) {
         log_debug("No LSRoute to destination %s",bundle->dest_.c_str());
         return;
     }
 
     log_debug("Next hop from %s to %s is %s.",
-              local_tuple_.c_str(),
+              local_eid,
               bundle->dest_.c_str(),
               nextHop->eid_);              
     
@@ -244,9 +250,9 @@ LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge, Link* outgoing_li
 
     // make a bundle
     Bundle *b=new Bundle();
-    b->source_.assign(local_tuple_);
-    b->replyto_.assign(local_tuple_);
-    b->custodian_.assign(local_tuple_);
+    b->source_.assign(BundleDaemon::instance()->local_eid());
+    b->replyto_.assign(BundleDaemon::instance()->local_eid());
+    b->custodian_.assign(BundleDaemon::instance()->local_eid());
     b->dest_.assign(ROUTER_BCAST_EID); 
     b->payload_.set_data((const u_char*)&lsa,sizeof(lsa));
 
@@ -257,7 +263,7 @@ LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge, Link* outgoing_li
 
 LinkStateRouter::LSRegistration::LSRegistration(LinkStateRouter* router)
     : Registration(Registration::LINKSTATEROUTER_REGID,
-                   BundleTuple(ROUTER_BCAST_EID),
+                   EndpointID(ROUTER_BCAST_EID),
                    ABORT)
 {
     logpathf("/reg/admin");

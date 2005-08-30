@@ -46,7 +46,7 @@ namespace dtn {
 /**
  * RouteEntry constructor.
  */
-RouteEntry::RouteEntry(const BundleTuplePattern& pattern,
+RouteEntry::RouteEntry(const EndpointIDPattern& pattern,
                        Link* link, Interface* interface,
                        bundle_fwd_action_t action)
     : pattern_(pattern),
@@ -105,7 +105,7 @@ RouteTable::add_entry(RouteEntry* entry)
  * Remove a route entry.
  */
 bool
-RouteTable::del_entry(const BundleTuplePattern& dest,
+RouteTable::del_entry(const EndpointIDPattern& dest,
                       BundleConsumer* next_hop)
 {
     RouteEntrySet::iterator iter;
@@ -157,19 +157,19 @@ RouteTable::del_entries_for_nexthop(BundleConsumer* next_hop)
 
 /**
  * Fill in the entry_set with the list of all entries whose
- * patterns match the given tuple.
+ * patterns match the given eid.
  *
  * @return the count of matching entries
  */
 size_t
-RouteTable::get_matching(const BundleTuple& tuple,
+RouteTable::get_matching(const EndpointID& eid,
                          RouteEntrySet* entry_set) const
 {
     RouteEntrySet::const_iterator iter;
     RouteEntry* entry;
     size_t count = 0;
 
-    log_debug("get_matching %s", tuple.c_str());
+    log_debug("get_matching %s", eid.c_str());
     
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         entry = *iter;
@@ -179,7 +179,7 @@ RouteTable::get_matching(const BundleTuple& tuple,
                   entry->next_hop_->dest_str(),
                   bundle_fwd_action_toa(entry->action_));
             
-        if (entry->pattern_.match(tuple)) {
+        if (entry->pattern_.match(eid)) {
             ++count;
             
             log_debug("match entry %s -> %s (%s)",
@@ -191,7 +191,7 @@ RouteTable::get_matching(const BundleTuple& tuple,
         }
     }
 
-    log_debug("get_matching %s done, %u match(es)", tuple.c_str(), (u_int)count);
+    log_debug("get_matching %s done, %u match(es)", eid.c_str(), (u_int)count);
     return count;
 }
 

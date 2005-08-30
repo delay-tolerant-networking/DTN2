@@ -87,7 +87,7 @@ public:
     void close_session();
     
 protected:
-    int handle_getinfo();
+    int handle_local_eid();
     int handle_register();
     int handle_bind();
     int handle_send();

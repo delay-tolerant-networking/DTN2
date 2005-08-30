@@ -23,7 +23,7 @@ if {$id == 0} {
     setup_interface tcp
     
     link add link-0 host://host-0 OPPORTUNISTIC tcp
-    route add bundles://internet/host://host-0/* link-0
+    route add dtn://host-0/* link-0
 
 } else {
     error "test can only be run for two nodes"

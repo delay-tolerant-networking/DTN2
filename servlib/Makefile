@@ -7,7 +7,6 @@
 #
 
 BUNDLING_SRCS := 				\
-	bundling/AddressFamily.cc		\
 	bundling/Bundle.cc			\
 	bundling/BundleActions.cc		\
 	bundling/BundleConsumer.cc		\
@@ -16,25 +15,18 @@ BUNDLING_SRCS := 				\
 	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
-	bundling/BundleTuple.cc			\
 	bundling/BundleStatusReport.cc		\
 	bundling/Contact.cc			\
 	bundling/ContactManager.cc		\
-	bundling/FixedAddressFamily.cc		\
 	bundling/FragmentManager.cc		\
 	bundling/Interface.cc			\
 	bundling/InterfaceTable.cc		\
-	bundling/InternetAddressFamily.cc	\
-	bundling/EthernetAddressFamily.cc	\
 	bundling/ExpirationTimer.cc		\
 	bundling/Link.cc			\
 	bundling/OndemandLink.cc		\
 	bundling/OpportunisticLink.cc		\
 	bundling/SDNV.cc			\
 	bundling/ScheduledLink.cc		\
-	bundling/SmtpAddressFamily.cc		\
-	bundling/StringAddressFamily.cc		\
-	bundling/WildcardAddressFamily.cc	\
 	bundling/tstotv.c			\
 	bundling/tvtots.c			\
 
@@ -61,8 +53,8 @@ NAMING_SRCS :=					\
 	naming/EndpointID.cc			\
 	naming/Scheme.cc			\
 	naming/SchemeTable.cc			\
+	naming/DTNScheme.cc			\
 	naming/EthernetScheme.cc		\
-	naming/InternetScheme.cc		\
 	naming/NoneScheme.cc			\
 	naming/StringScheme.cc			\
 	naming/WildcardScheme.cc		\
@@ -125,7 +117,8 @@ ifeq ($(SERVLIB_MAKEFILE_INCLUDE),)
 #
 # Default target is to build the library
 #
-all: servlib
+LIBFILES := libdtnserv.a
+all: $(LIBFILES)
 
 servlib: libdtnserv.a
 libdtnserv.a: $(SERVLIB_OBJS)

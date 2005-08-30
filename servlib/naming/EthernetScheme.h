@@ -49,12 +49,12 @@
 namespace dtn {
 
 #ifndef ETHER_ADDR_LEN
-    #define ETHER_ADDR_LEN 6
+#define ETHER_ADDR_LEN 6
 #endif
     
-    typedef struct ether_addr {
-        u_char octet[ETHER_ADDR_LEN];
-    } eth_addr_t;    
+typedef struct ether_addr {
+    u_char octet[ETHER_ADDR_LEN];
+} eth_addr_t;    
 
 /**
  * Endpoint ID scheme to represent ethernet-style addresses.
@@ -77,7 +77,8 @@ public:
      *
      * @return true if it matches
      */
-    virtual bool match(EndpointIDPattern* pattern, const std::string& ssp);
+    virtual bool match(const EndpointIDPattern* pattern,
+                       const std::string& ssp);
 
     /*
      * Parse out an ethernet address from the ssp.

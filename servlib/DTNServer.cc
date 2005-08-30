@@ -48,7 +48,6 @@
 
 #include "applib/APIServer.h"
 
-#include "bundling/AddressFamily.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/InterfaceTable.h"
 #include "bundling/ContactManager.h"
@@ -62,6 +61,8 @@
 #include "cmd/StorageCommand.h"
 
 #include "conv_layers/ConvergenceLayer.h"
+
+#include "naming/SchemeTable.h"
 
 #include "reg/AdminRegistration.h"
 #include "reg/RegistrationTable.h"
@@ -250,7 +251,7 @@ DTNServer::init_commands()
 void
 DTNServer::init_components()
 {
-    AddressFamilyTable::init();
+    SchemeTable::create();
     ConvergenceLayer::init_clayers();
     InterfaceTable::init();
     BundleDaemon::init();

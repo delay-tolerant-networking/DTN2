@@ -51,14 +51,15 @@ public:
     FileConvergenceLayer();
     
     /**
-     * Register a new interface.
+     * Bring up a new interface.
      */
-    virtual bool add_interface(Interface* iface, int argc, const char* argv[]);
+    virtual bool interface_up(Interface* iface,
+                              int argc, const char* argv[]);
 
     /**
-     * Remove an interface
+     * Bring down the interface.
      */
-    virtual bool del_interface(Interface* iface);
+    virtual bool interface_down(Interface* iface);
     
     /**
      * Open the connection to the given contact and prepare for

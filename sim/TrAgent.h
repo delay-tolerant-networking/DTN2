@@ -43,7 +43,7 @@
 
 #include "SimEvent.h"
 #include "SimEventHandler.h"
-#include "bundling/BundleTuple.h"
+#include "naming/EndpointID.h"
 
 namespace dtnsim {
 class Node;
@@ -51,7 +51,7 @@ class Node;
 class TrAgent : public SimEventHandler, public oasys::Logger {
 public:
     static TrAgent* init(Node* node, double start_time,
-                         const BundleTuple& src, const BundleTuple& dst,
+                         const EndpointID& src, const EndpointID& dst,
                          int argc, const char** argv);
 
     virtual ~TrAgent() {}
@@ -59,13 +59,13 @@ public:
     void process(SimEvent *e);
 
 private:
-    TrAgent(Node* node, const BundleTuple& src, const BundleTuple& dst);
+    TrAgent(Node* node, const EndpointID& src, const EndpointID& dst);
     
     void send_bundle();
 
     Node* node_;	///< node where the traffic is injected
-    BundleTuple src_;	///< source tuple
-    BundleTuple dst_;	///< destination tuple
+    EndpointID src_;	///< source eid
+    EndpointID dst_;	///< destination eid
     int size_;		///< size of each message
     int reps_;		///< total number of reps/batches
     int batch_;		///< no of messages in each batch

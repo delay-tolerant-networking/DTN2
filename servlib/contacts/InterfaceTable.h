@@ -92,16 +92,16 @@ public:
     /**
      * Add a new interface to the table. Returns true if the interface
      * is successfully added, false if the interface specification is
-     * invalid.
+     * invalid (or it already exists).
      */
-    bool add(const std::string& admin, ConvergenceLayer* cl, const char* proto,
+    bool add(const std::string& name, ConvergenceLayer* cl, const char* proto,
              int argc, const char* argv[]);
     
     /**
      * Remove the specified interface.
      */
-    bool del(const std::string& admin, ConvergenceLayer* cl, const char* proto);
-
+    bool del(const std::string& name);
+    
     /**
      * List the current interfaces.
      */
@@ -118,10 +118,10 @@ protected:
     InterfaceList iflist_;
 
     /**
-     * Internal method to find the location of the given interface
+     * Internal method to find the location of the given interface in
+     * the list.
      */
-    bool find(const std::string& admin, ConvergenceLayer* cl, 
-              InterfaceList::iterator* iter);
+    bool find(const std::string& name, InterfaceList::iterator* iter);
 };
 
 } // namespace dtn

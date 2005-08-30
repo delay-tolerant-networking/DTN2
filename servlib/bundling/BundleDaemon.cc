@@ -46,7 +46,6 @@
 #include "ContactManager.h"
 #include "ExpirationTimer.h"
 #include "FragmentManager.h"
-#include "naming/SchemeTable.h"
 #include "reg/Registration.h"
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
@@ -59,6 +58,10 @@ size_t BundleDaemon::proactive_frag_threshold_;
 BundleDaemon::BundleDaemon()
     : BundleEventHandler("/bundle/daemon")
 {
+    // default local eid
+    // XXX/demmer fixme
+    local_eid_.assign("dtn:localhost");
+
     bundles_received_ = 0;
     bundles_delivered_ = 0;
     bundles_transmitted_ = 0;
@@ -70,8 +73,6 @@ BundleDaemon::BundleDaemon()
     contactmgr_ = new ContactManager();
     fragmentmgr_ = new FragmentManager();
     reg_table_ = new RegistrationTable();
-
-    SchemeTable::create();
 
     router_ = 0;    
 }
@@ -143,7 +144,7 @@ BundleDaemon::generate_status_report(Bundle* bundle, status_report_flag_t flag)
         
     BundleStatusReport* report;
         
-    report = new BundleStatusReport(bundle, router_->local_tuple());
+    report = new BundleStatusReport(bundle, local_eid_);
     report->set_status(flag);
     report->generate_payload();
     
@@ -163,8 +164,9 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
     registration->consume_bundle(bundle);
     ++bundles_delivered_;
     
-    // deliver the return receipt status report if requested
-    if (bundle->return_rcpt_) {
+    // deliver the delivery ack (aka return receipt) status report if
+    // requested
+    if (bundle->delivery_rcpt_) {
         generate_status_report(bundle, BundleProtocol::STATUS_DELIVERED);
     }
 }

@@ -51,46 +51,35 @@ class Bundle;
 class BundleProtocol {
 public:
     /**
-     * The maximum number of iovecs needed to format the bundle header.
+     * Fill in the given buffer with the formatted bundle headers
+     * including the payload header, but not the payload data.
+     *
+     * @return the total length of the header or -1 on error (i.e. too
+     * small of a buffer)
      */
-    static const int MAX_IOVCNT = 6;
+    static int format_headers(const Bundle* bundle, u_char* buf, size_t len);
     
     /**
-     * Fill in the given iovec with the formatted bundle header.
+     * Parse the header data, filling in the bundle. Note that this
+     * implementation doesn't support sizes bigger than 4GB for the
+     * headers.
      *
-     * @return the total length of the header or -1 on error
-     */
-    static size_t format_headers(const Bundle* bundle,
-                                 struct iovec* iov, int* iovcnt);
-    
-    /**
-     * Free dynamic memory allocated in format_headers.
-     */
-    static void free_header_iovmem(const Bundle* bundle,
-                                   struct iovec* iov, int iovcnt);
-
-    /**
-     * Parse the header data, filling in the bundle.
-     *
-     * @return the length consumed or -1 on error
+     * @return the length consumed or -1 on error (i.e. not enough
+     * data in buffer)
      */
     static int parse_headers(Bundle* bundle, u_char* buf, size_t len);
 
     /**
-     * Store a struct timeval into a 64-bit NTP timestamp, suitable
-     * for transmission over the network. This does not require that
-     * the u_int64_t* be word-aligned.
-     *
-     * Implementation adapted from the NTP source distribution.
+     * Store a struct timeval into a 64-bit timestamp suitable for
+     * transmission over the network. This does not require that the
+     * u_int64_t* be word-aligned.
      */
     static void set_timestamp(u_int64_t* ts, const struct timeval* tv);
     
     /**
-     * Retrieve a struct timeval from a 64-bit NTP timestamp that was
+     * Retrieve a struct timeval from a 64-bit timestamp that was
      * transmitted over the network. This does not require that the
      * u_int64_t* be word-aligned.
-     *
-     * Implementation adapted from the NTP source distribution.
      */
     static void get_timestamp(struct timeval* tv, const u_int64_t* ts);
 
@@ -100,77 +89,73 @@ public:
     static const int CURRENT_VERSION = 0x04;
 
     /**
-     * Valid type codes for bundle headers.
-     * 
-     * DTN protocols use a chained header format reminiscent of IPv6
-     * headers. Each bundle consists of at least a primary bundle
-     * header and a dictionary header. Other header types can be
-     * chained after the dictionary header to support additional
-     * functionality.
+     * Values for bundle processing flags that appear in the primary
+     * header.
      */
     typedef enum {
-        HEADER_NONE 		= 0x00,
-        HEADER_PRIMARY 		= 0x01,
-        HEADER_DICTIONARY	= 0x02,
-        HEADER_RESERVED 	= 0x03,
-        HEADER_RESERVED2	= 0x04,
-        HEADER_PAYLOAD 		= 0x05,
-        HEADER_RESERVED3	= 0x06,
-        HEADER_AUTHENTICATION 	= 0x07,
-        HEADER_PAYLOAD_SECURITY	= 0x08,
-        HEADER_FRAGMENT 	= 0x09,
-        HEADER_EXT1		= 0x10,
-        HEADER_EXT2		= 0x11,
-        HEADER_EXT4		= 0x12,
-    } bundle_header_type_t;
+        BUNDLE_IS_FRAGMENT	= 0x1,
+        BUNDLE_IS_ADMIN		= 0x2,
+        BUNDLE_DO_NOT_FRAGMENT	= 0x4
+    } bundle_flag_t;
 
     /**
-     * The primary bundle header.
+     * The first fixed-field portion of the primary bundle header
+     * preamble structure.
      */
-    struct PrimaryHeader {
+    struct PrimaryHeader1 {
         u_int8_t  version;
-        u_int8_t  next_header_type;
+        u_int8_t  processing_flags;
         u_int8_t  class_of_service;
-        u_int8_t  payload_security;
-        u_int8_t  dest_id;
-        u_int8_t  source_id;
-        u_int8_t  replyto_id;
-        u_int8_t  custodian_id;
+        u_char    header_length[0]; // SDNV
+        
+    } __attribute__((packed));
+
+    /**
+     * The remainder of the fixed-length part of the primary bundle
+     * header that immediately follows the header length.
+     */
+    struct PrimaryHeader2 {
+        u_int16_t dest_scheme_offset;
+        u_int16_t dest_ssp_offset;
+        u_int16_t source_scheme_offset;
+        u_int16_t source_ssp_offset;
+        u_int16_t replyto_scheme_offset;
+        u_int16_t replyto_ssp_offset;
+        u_int16_t custodian_scheme_offset;
+        u_int16_t custodian_ssp_offset;
         u_int64_t creation_ts;
-        u_int32_t expiration;
+        u_int32_t lifetime;
+        
     } __attribute__((packed));
 
     /**
-     * The dictionary header.
-     *
-     * Note that the records field is variable length.
+     * Valid type codes for bundle headers (other than payload).
      */
-    struct DictionaryHeader {
-        u_int8_t  next_header_type;
-        u_int8_t  string_count;
-        u_char    records[0];
-    } __attribute__((packed));
-
+    typedef enum {
+        HEADER_PAYLOAD 		= 0x01
+    } bundle_header_type_t;
+    
     /**
-     * The fragment header.
+     * Values for header processing flags that appear in all headers
+     * except the primary header.
      */
-    struct FragmentHeader {
-        u_int8_t  next_header_type;
-        u_int32_t orig_length;
-        u_int32_t frag_offset;
-    } __attribute__((packed));
-
+    typedef enum {
+        HEADER_FLAG_REPLICATE		= 0x1,
+        HEADER_FLAG_REPORT_ONERROR	= 0x2,
+        HEADER_FLAG_DISCARD_ONERROR	= 0x4
+    } header_flag_t;
+    
     /**
-     * The bundle payload header.
-     *
-     * Note that the data field is variable length application data.
+     * The basic header preamble that's common to all headers
+     * (including the payload header but not the primary header).
      */
-    struct PayloadHeader {
-        u_int8_t  next_header_type;
-        u_int32_t length;
-        u_char    data[0];
+    struct HeaderPreamble {
+        u_int8_t type;
+        u_int8_t flags;
+        u_char length[0]; // SDNV
+        
     } __attribute__((packed));
-
+     
     /**
      * Valid type codes for administrative payloads.
      */
@@ -196,9 +181,10 @@ public:
     } status_report_flag_t;
 
     /**
-     * Structure for a status report payload. Note that the tuple data
-     * portion is variable length. Note also that the 64 bit fields
-     * are _not_ 64-bit aligned so be careful when accessing them.
+     * Structure for a status report payload. Note that the source
+     * endpoint id data portion is variable length. Note also that the
+     * 64 bit fields are _not_ 64-bit aligned so be careful when
+     * accessing them.
      *
      * See BundleStatusReport.cc for the formatting of status reports.
      */
@@ -210,16 +196,15 @@ public:
         u_int64_t forward_ts;
         u_int64_t delivery_ts;
         u_int64_t delete_ts;
-        char tuple_data[0];
+        u_char source_eid_data[0];
     } __attribute__((packed));
 
 protected:
+    static u_int8_t format_processing_flags(const Bundle* bundle);
+    static void parse_processing_flags(Bundle* bundle, u_int8_t flags);
+    
     static u_int8_t format_cos(const Bundle* bundle);
     static void parse_cos(Bundle* bundle, u_int8_t cos);
-
-    static u_int8_t format_payload_security(const Bundle* bundle);
-    static void parse_payload_security(Bundle* bundle,
-                                       u_int8_t payload_security);
 };
 
 } // namespace dtn

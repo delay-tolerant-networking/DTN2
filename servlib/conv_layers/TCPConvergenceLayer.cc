@@ -47,6 +47,7 @@
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Options.h>
 #include <oasys/util/OptParser.h>
+#include <oasys/util/StreamBuffer.h>
 #include <oasys/util/StringBuffer.h>
 #include <oasys/util/URL.h>
 
@@ -58,7 +59,7 @@
 #include "bundling/BundleProtocol.h"
 #include "bundling/ContactManager.h"
 #include "bundling/FragmentManager.h"
-#include "bundling/InternetAddressFamily.h"
+#include "bundling/SDNV.h"
 #include "routing/BundleRouter.h"
 
 namespace dtn {
@@ -74,18 +75,21 @@ struct TCPConvergenceLayer::Params TCPConvergenceLayer::defaults_;
 TCPConvergenceLayer::TCPConvergenceLayer()
     : IPConvergenceLayer("/cl/tcp")
 {
-    // set defaults here, then let ../cmd/ParamCommand.cc handle changing them
-    defaults_.bundle_ack_enabled_ = true;
-    defaults_.reactive_frag_enabled_ = true;
-    defaults_.receiver_connect_	 = false;
-    defaults_.partial_ack_len_ 	 = 1024;
-    defaults_.writebuf_len_ 	 = 4096;
-    defaults_.readbuf_len_ 	 = 4096;
-    defaults_.keepalive_interval_= 2;
-    defaults_.idle_close_time_ 	 = 30;
-    defaults_.connect_timeout_ 	 = 10000; // msecs
-    defaults_.rtt_timeout_ 	 = 5000;  // msecs
-    defaults_.test_fragment_size_ = -1;
+    // set defaults here, then let ../cmd/ParamCommand.cc (as well as
+    // the link specific options) handle changing them
+    defaults_.local_addr_		= INADDR_ANY;
+    defaults_.local_port_		= 5000;
+    defaults_.bundle_ack_enabled_ 	= true;
+    defaults_.reactive_frag_enabled_ 	= true;
+    defaults_.receiver_connect_		= false;
+    defaults_.partial_ack_len_		= 1024;
+    defaults_.writebuf_len_ 		= 32768;
+    defaults_.readbuf_len_ 		= 32768;
+    defaults_.keepalive_interval_	= 2;
+    defaults_.idle_close_time_ 	 	= 30;
+    defaults_.connect_timeout_		= 10000; // msecs
+    defaults_.rtt_timeout_		= 5000;  // msecs
+    defaults_.test_fragment_size_	= -1;
 }
 
 /**
@@ -97,7 +101,9 @@ TCPConvergenceLayer::parse_params(Params* params,
                                   const char** invalidp)
 {
     oasys::OptParser p;
-    
+
+    p.addopt(new oasys::InAddrOpt("local_addr", &params->local_addr_));
+    p.addopt(new oasys::UInt16Opt("local_port", &params->local_port_));
     p.addopt(new oasys::BoolOpt("bundle_ack_enabled",
                                 &params->bundle_ack_enabled_));
     p.addopt(new oasys::BoolOpt("reactive_frag_enabled",
@@ -123,32 +129,16 @@ TCPConvergenceLayer::parse_params(Params* params,
 }
 
 /**
- * Register a new interface.
+ * Bring up a new interface.
  */
 bool
-TCPConvergenceLayer::add_interface(Interface* iface,
-                                   int argc, const char* argv[])
+TCPConvergenceLayer::interface_up(Interface* iface,
+                                  int argc, const char* argv[])
 {
-    in_addr_t addr;
-    u_int16_t port;
-    
-    log_debug("adding interface %s", iface->admin().c_str());
-    
-    // parse out the address / port from the contact tuple
-    if (! InternetAddressFamily::parse(iface->admin(), &addr, &port)) {
-        log_err("interface address '%s' not a valid internet url",
-                iface->admin().c_str());
-        return false;
-    }
-    
-    // make sure the port was specified
-    if (port == 0) {
-        log_err("port not specified in admin url '%s'",
-                iface->admin().c_str());
-        return false;
-    }
+    log_debug("adding interface %s", iface->name().c_str());
 
-    // parse options
+    // parse options (including overrides for the local_addr and
+    // local_port settings from the defaults)
     Params params = TCPConvergenceLayer::defaults_;
     const char* invalid;
     if (!parse_params(&params, argc, argv, &invalid)) {
@@ -157,32 +147,45 @@ TCPConvergenceLayer::add_interface(Interface* iface,
         return false;
     }
 
+    // check that the local interface / port are valid
+    if (params.local_addr_ == INADDR_NONE) {
+        log_err("invalid local address setting of 0");
+        return false;
+    }
+
+    if (params.local_port_ == 0) {
+        log_err("invalid local port setting of 0");
+        return false;
+    }
+
     // now, special case the receiver_connect option which means we
     // create a Connection, not a Listener
     if (params.receiver_connect_) {
-        log_debug("new receiver_connect interface -- starting connection thread");
-        Connection* conn = new Connection(addr, port, false, &params);
+        PANIC("XXX/demmer implement receiver connect");
+//         log_debug("new receiver_connect interface -- "
+//                   "starting connection thread");
+//         Connection* conn = new Connection(addr, port, false, &params);
 
-        // store the connection object in the cl specific part of the
-        // interface
-        iface->set_cl_info(conn);
+//         // store the connection object in the cl specific part of the
+//         // interface
+//         iface->set_cl_info(conn);
 
-        // XXX/demmer again, there should be some structure to manage
-        // the receiver side of connections
-        conn->set_flag(oasys::Thread::DELETE_ON_EXIT);
-        conn->start();
+//         // XXX/demmer again, there should be some structure to manage
+//         // the receiver side of connections
+//         conn->set_flag(oasys::Thread::DELETE_ON_EXIT);
+//         conn->start();
 
-        return true;
+//         return true;
     }
 
     // create a new server socket for the requested interface
     Listener* listener = new Listener(&params);
-    listener->logpathf("%s/iface/%s:%d",
-                       logpath_, intoa(addr), port);
+    listener->logpathf("%s/iface/%s", logpath_, iface->name().c_str());
     
-    int ret = listener->bind(addr, port);
+    int ret = listener->bind(params.local_addr_, params.local_port_);
 
-    // XXX/demmer temporary hack
+    // be a little forgiving -- if the address is in use, wait for a
+    // bit and try again
     if (ret != 0 && errno == EADDRINUSE) {
         listener->logf(oasys::LOG_WARN,
                        "WARNING: error binding to requested socket: %s",
@@ -190,15 +193,12 @@ TCPConvergenceLayer::add_interface(Interface* iface,
         listener->logf(oasys::LOG_WARN,
                        "waiting for 10 seconds then trying again");
         sleep(10);
-
-        ret = listener->bind(addr, port);
+        
+        ret = listener->bind(params.local_addr_, params.local_port_);
     }
 
     if (ret != 0) {
-        listener->logf(oasys::LOG_ERR,
-                       "error binding to requested socket: %s",
-                       strerror(errno));
-        return false;
+        return false; // error already logged
     }
 
     // start listening and then start the thread to loop calling accept()
@@ -213,10 +213,10 @@ TCPConvergenceLayer::add_interface(Interface* iface,
 }
 
 /**
- * Remove an interface
+ * Bring down the interface.
  */
 bool
-TCPConvergenceLayer::del_interface(Interface* iface)
+TCPConvergenceLayer::interface_down(Interface* iface)
 {
     // grab the listener object, set a flag for the thread to stop and
     // then close the socket out from under it, which should cause the
@@ -235,12 +235,23 @@ TCPConvergenceLayer::del_interface(Interface* iface)
 }
 
 /**
+ * Dump out CL specific interface information.
+ */
+void
+TCPConvergenceLayer::dump_interface(Interface* iface,
+                                    oasys::StringBuffer* buf)
+{
+    Params* params = &((Listener*)iface->cl_info())->params_;
+    
+    buf->appendf("\tlocal_addr: %s local_port: %d\n",
+                 intoa(params->local_addr_), params->local_port_);
+}
+
+/**
  * Create any CL-specific components of the Link.
  *
- * This creates a new Connection object and stores it in the LinkInfo
- * slot after parsing the options. We special case OPPORTUNISTIC links
- * which are created as a result of another node coming knocking with
- * the receiver_connect option.
+ * This parses and validates the parameters and stores them in the
+ * CLInfo slot in the Link class.
  */
 bool
 TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
@@ -256,14 +267,19 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     if (link->type() == Link::OPPORTUNISTIC) {
         return true;
     }
-    
-    // parse out the address / port from the contact tuple
-    if (! InternetAddressFamily::parse(link->nexthop(), &addr, &port)) {
-        log_err("next hop address '%s' not a valid internet url",
-                link->nexthop());
+
+    // validate the link next hop address
+    if (! IPConvergenceLayer::parse_nexthop(link->nexthop(), &addr, &port)) {
+        log_err("invalid next hop address '%s'", link->nexthop());
         return false;
     }
 
+    // make sure it's really a valid address
+    if (addr == INADDR_ANY || addr == INADDR_NONE) {
+        log_err("invalid host in next hop address '%s'", link->nexthop());
+        return false;
+    }
+    
     // make sure the port was specified
     if (port == 0) {
         log_err("port not specified in next hop address '%s'",
@@ -271,10 +287,13 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
-    // Create the parameters structure, parse the options, and store
-    // them in the link's cl info slot
-    Params* params = new Params();
-    *params = defaults_;
+    // Create a new parameters structure, parse the options, and store
+    // them in the link's cl info slot. Note that we override the
+    // local_addr and local_ports defaults since in this case, we'd
+    // just as soon let the kernel decide.
+    Params* params = new Params(defaults_);
+    params->local_addr_ = INADDR_NONE;
+    params->local_port_ = 0;
 
     const char* invalid;
     if (! parse_params(params, argc, argv, &invalid)) {
@@ -285,6 +304,20 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     
     link->set_cl_info(params);
     return true;
+}
+
+/**
+ * Dump out CL specific link information.
+ */
+void
+TCPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+{
+    Params* params = (Params*)link->cl_info();
+    
+    buf->appendf("\tlocal_addr: %s local_port: %d\n",
+                 intoa(params->local_addr_), params->local_port_);
+
+    // XXX/demmer more parameters
 }
 
 /**
@@ -301,18 +334,17 @@ TCPConvergenceLayer::open_contact(Contact* contact)
 
     Link* link = contact->link();
 
-    // Parse out the address / port from the contact tuple (again).
-    // The next hop should have already been validated in init_link
-    if (! InternetAddressFamily::parse(link->nexthop(), &addr, &port)) {
-        PANIC("nexthop %s should have already been validated",
-              link->nexthop());
-    }
+    // parse out the address / port from the nexthop address. note
+    // that these should have been validated in init_link() above, so
+    // we ASSERT as such
+    bool valid = parse_nexthop(link->nexthop(), &addr, &port);
+    ASSERT(valid == true);
+    ASSERT(addr != INADDR_NONE && addr != INADDR_ANY);
+    ASSERT(port != 0);
 
-    // start the connection that is cached in the link, passing in the
-    // parameters
     Params* params = (Params*)link->cl_info();
-    ASSERT(params);
     
+    // create a new connection for the contact
     Connection* conn = new Connection(addr, port, true, params);
     conn->set_contact(contact);
     contact->set_cl_info(conn);
@@ -419,12 +451,8 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 
     // create the blocking queue for bundles to be sent on the
-    // connection
+    // connection and the socket wrapper class
     queue_ = new BlockingBundleList(logpath_);
-
-    // cache the remote addr and port in the fields in the socket
-    // since we want to actually connect to the peer side from the
-    // Connection thread, not from the caller thread
     sock_ = new oasys::TCPClient();
 
     // XXX/demmer the basic socket logging emits errors and the like
@@ -434,11 +462,25 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
     // IO routines, or just suppress the IO output altogether
     sock_->logpathf("%s/sock", logpath_);
     sock_->set_logfd(false);
-    
+
+    // cache the remote addr and port in the fields in the socket
+    // since we want to actually connect to the peer side from the
+    // Connection thread, not from the caller thread
     sock_->set_remote_addr(remote_addr);
     sock_->set_remote_port(remote_port);
-}    
 
+    // if the parameters specify a local address, do the bind here --
+    // however if it fails, we can't really do anything about it, so
+    // just log and go on
+    if (params->local_addr_ != INADDR_ANY || params->local_port_ != 0)
+    {
+        if (sock_->bind(params->local_addr_, params->local_port_) != 0) {
+            log_err("error binding to %s:%d: %s",
+                    intoa(params->local_addr_), params->local_port_,
+                    strerror(errno));
+        }
+    }
+}    
 
 /**
  * Constructor for the passive accept side of a connection.
@@ -523,7 +565,7 @@ TCPConvergenceLayer::Connection::run()
 //             ASSERT(clayer);
 
 //             // XXX/demmer work this out better -- should it just use
-//             // the admin or should it use the full tuple?
+//             // the admin or should it use the full eid?
 //             contact_ = cm->new_opportunistic_contact(clayer, this,
 //                                                      nexthop_.admin().c_str());
             
@@ -558,58 +600,75 @@ TCPConvergenceLayer::Connection::run()
 bool
 TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 {
-    int iovcnt;
-    int header_iovcnt = BundleProtocol::MAX_IOVCNT;
-    struct iovec iov[header_iovcnt + 2];
+    int header_len;
     size_t block_len;
     size_t payload_len = bundle->payload_.length();
     size_t payload_offset = 0;
     const u_char* payload_data;
-    oasys::StringBuffer payload_buf(params_.writebuf_len_);
-        
-    // use iov slot zero for the one byte header type, slot one for
-    // the frame header, then N slots for the bundle header, and
-    // finally one more for the first chunk of data
-    BundleDataHeader datahdr;
-    char typecode = BUNDLE_DATA;
-    iov[0].iov_base = &typecode;
-    iov[0].iov_len  = 1;
-    iov[1].iov_base = (char*)&datahdr;
-    iov[1].iov_len  = sizeof(BundleDataHeader);
-        
-    // fill in the bundle header into the iovec
-    u_int16_t header_len =
-        BundleProtocol::format_headers(bundle, &iov[2], &header_iovcnt);
+    oasys::StreamBuffer buf(params_.writebuf_len_);
 
-    log_debug("send_bundle: bundle id %d, header_length %u payload_length %u",
-              bundle->bundleid_, (u_int)header_len, (u_int)payload_len);
+    // Each bundle is preceded by a BUNDLE_DATA typecode and then a
+    // BundleDataHeader that is variable-length since it includes an
+    // SDNV for the total bundle length. So, leave some space at the
+    // beginning of the buffer that can be filled in with the
+    // appropriate preamble once we know the actual bundle header
+    // length.
+    size_t space = 32;
 
-    // fill in the frame header
-    datahdr.bundle_id     = bundle->bundleid_;
-    datahdr.bundle_length = htonl(header_len + payload_len);
-    datahdr.header_length = htons(header_len);
-
-    // all set to go, now write it all out 
-    iovcnt = 2 + header_iovcnt;
-    size_t total = 1 + sizeof(BundleDataHeader) + header_len;
+ retry_headers:
+    header_len = BundleProtocol::format_headers(bundle,
+                                                (u_char*)buf.data() + space,
+                                                buf.size() - space);
+    if (header_len < 0) {
+        log_debug("send_bundle: bundle header too big for buffer len %d -- "
+                  "doubling size and retrying",
+                  params_.writebuf_len_);
+        buf.reserve(buf.size() * 2);
+        goto retry_headers;
+    }
     
-    log_debug("send_bundle: sending %u byte tcpcl hdr, %u byte bundle hdr",
-              (u_int)(1 + sizeof(BundleDataHeader)), (u_int)header_len);
+    size_t sdnv_len = SDNV::encoding_len(header_len + payload_len);
+    size_t tcphdr_len = 1 + sizeof(BundleDataHeader) + sdnv_len;
     
-    int cc = sock_->writev(iov, iovcnt);
+    if (space < tcphdr_len) {
+        // this is unexpected, but we can handle it
+        log_err("send_bundle: bundle frame header too big for space of %d",
+                space);
+        space = space * 2;
+        goto retry_headers;
+    }
+    
+    // Now fill in the type code and the bundle data header (with the
+    // sdnv for the total bundle length)
+    char* bp = buf.data() + space - tcphdr_len;
+    *bp++ = BUNDLE_DATA;
+    
+    BundleDataHeader* dh = (BundleDataHeader*)bp;
+    memcpy(&dh->bundle_id, &bundle->bundleid_, sizeof(bundle->bundleid_));
+    bp += sizeof(BundleDataHeader);
+    
+    int len = SDNV::encode(header_len + payload_len, (u_char*)bp, sdnv_len);
+    bp += len;
+    ASSERT(bp == buf.data() + space);
+    bp -= tcphdr_len; // reset to the beginning of the encoding (not
+                      // necessarily the start of the buffer)
 
-    // free up the iovec data used in the header representation
-    BundleProtocol::free_header_iovmem(bundle, &iov[2], header_iovcnt);
+    // send off the preamble and the headers
+    log_debug("send_bundle: sending bundle id %d "
+              "tcpcl hdr len: %u, bundle header len: %u payload len: %u",
+              bundle->bundleid_, (u_int)tcphdr_len, (u_int)header_len,
+              (u_int)payload_len);
 
-    if (cc != (int)total) {
-        log_crit("XXX/demmer fix this -- for now, closing the connection");
+    int cc = sock_->writeall(bp, tcphdr_len + header_len);
+    if (cc != (int)tcphdr_len + header_len) {
+        log_err("send_bundle: error sending bundle header (wrote %u/%u): %s",
+                cc, tcphdr_len + header_len, strerror(errno));
         bundle->payload_.close_file();
         return false;
     }
     
     // now loop through the the payload, sending blocks and checking
     // for acks as they come in.
-
     bool sentok = false;
     bool writeblocked = false;
     
@@ -623,7 +682,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         // grab the next payload chunk
         payload_data =
             bundle->payload_.read_data(payload_offset, block_len,
-                                       (u_char*)payload_buf.data(), true);
+                                       (u_char*)buf.data(), true);
         
         log_debug("send_bundle: sending %u byte block %p",
                   (u_int)block_len, payload_data);
@@ -771,110 +830,125 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 bool
 TCPConvergenceLayer::Connection::recv_bundle()
 {
-    Bundle* bundle = NULL;
+    int cc;
+    Bundle* bundle = new Bundle();
     BundleDataHeader datahdr;
-    u_int16_t header_len;
-    size_t bundle_len;
+    int header_len;
+    u_int64_t bundle_len;
     size_t rcvd_len = 0;
     size_t acked_len = 0;
     size_t payload_len = 0;
 
-    oasys::StringBuffer payload_buf(params_.readbuf_len_);
+    oasys::StreamBuffer buf(params_.readbuf_len_);
 
     bool valid = false;
     bool recvok = false;
 
-    // read in the data header
-    log_debug("recv_bundle: reading bundle data header...");
-    int cc = sock_->readall((char*)&datahdr, sizeof(BundleDataHeader));
-    if (cc != sizeof(BundleDataHeader)) {
-        log_err("recv_bundle: "
-                "error reading bundle data header (read %d/%d): %s",
-                cc, (u_int)sizeof(BundleDataHeader), strerror(errno));
+    log_debug("recv_bundle: reading bundle headers...");
+
+ incomplete_tcp_header:
+    // read in whatever has shown up on the wire, up to the maximum
+    // length of the stream buffer
+    cc = sock_->timeout_read(buf.end(), buf.tailbytes(), params_.rtt_timeout_);
+    if (cc < 0) {
+        log_err("recv_bundle: error reading bundle headers: %s",
+                strerror(errno));
+        delete bundle;
         return false;
     }
+    buf.fill(cc);
     note_data_rcvd();
- 
-    // extract the lengths from the data header
-    bundle_len = ntohl(datahdr.bundle_length);
-    header_len = ntohs(datahdr.header_length);
+    
+    // parse out the BundleDataHeader
+    if (buf.fullbytes() < sizeof(BundleDataHeader)) {
+        log_err("recv_bundle: read too short to encode data header");
+        goto incomplete_tcp_header;
+    }
+        
+    memcpy(&datahdr, buf.start(), sizeof(BundleDataHeader));
 
-    log_debug("recv_bundle: got bundle data header -- bundle id %d, "
-              "header_length %d bundle_length %d",
-              datahdr.bundle_id, (u_int)header_len, (u_int)bundle_len);
+    // parse out the SDNV that encodes the whole bundle length
+    int sdnv_len = SDNV::decode((u_char*)buf.start() + sizeof(BundleDataHeader),
+                                buf.fullbytes() - sizeof(BundleDataHeader),
+                                &bundle_len);
+    if (sdnv_len < 0) {
+        log_err("recv_bundle: read too short to encode SDNV");
+        goto incomplete_tcp_header;
+    }
+    buf.consume(sizeof(BundleDataHeader) + sdnv_len);
 
-    // now read in the whole bundle header
-    cc = sock_->timeout_readall(payload_buf.data(), header_len,
-                                params_.rtt_timeout_);
-    note_data_rcvd();
-
-    if (cc != (int)header_len) {
-        log_err("recv_bundle: "
-                "error reading bundle headers (read %d/%d): %s",
-                cc, header_len, strerror(errno));
-        goto done;
+ incomplete_bundle_header:
+    // now try to parse the headers into the new bundle, which may
+    // require reading in more data and possibly increasing the size
+    // of the stream buffer
+    header_len = BundleProtocol::parse_headers(bundle,
+                                               (u_char*)buf.start(),
+                                               buf.fullbytes());
+    
+    if (header_len < 0) {
+        if (buf.tailbytes() == 0) {
+            buf.reserve(buf.size() * 2);
+        }
+        cc = sock_->timeout_read(buf.end(), buf.tailbytes(),
+                                 params_.rtt_timeout_);
+        if (cc < 0) {
+            log_err("recv_bundle: error reading bundle headers: %s",
+                    strerror(errno));
+            delete bundle;
+            return false;
+        }
+        buf.fill(cc);
+        note_data_rcvd();
+        goto incomplete_bundle_header;
     }
 
-    // parse the headers into the new bundle.
-    //
-    // note that this extracts payload_len from the bundle's header
-    // and assigns it in the bundle payload
-    bundle = new Bundle();
-    cc = BundleProtocol::parse_headers(bundle, (u_char*)payload_buf.data(),
-                                       header_len);
-    if (cc != (int)header_len) {
-        log_err("recv_bundle: error parsing bundle headers (parsed %d/%d)",
-                cc, header_len);
-        goto done;
-    }
+    log_debug("recv_bundle: got valid bundle header -- "
+              "sender bundle id %d, header_length %u, bundle_length %llu",
+              datahdr.bundle_id, (u_int)header_len, bundle_len);
+    buf.consume(header_len);
 
     // all lengths have been parsed, so we can do some length
     // validation checks
     payload_len = bundle->payload_.length();
     if (bundle_len != header_len + payload_len) {
-        log_err("recv_bundle: error in bundle lengths: "
-                "bundle_length %u, header_length %u, payload_length %u",
-                (u_int)bundle_len, (u_int)header_len, (u_int)payload_len);
-        goto done;
+        log_err("recv_bundle: bundle length mismatch -- "
+                "bundle_len %llu, header_len %u, payload_len %u",
+                bundle_len, (u_int)header_len, (u_int)payload_len);
+        delete bundle;
+        return false;
     }
 
     // so far so good, now loop until we've read the whole payload
-    // done with the rest. note that all reads have a timeout
-    while (rcvd_len < payload_len) {
-
-        // test hook for reactive fragmentation.
-        if (params_.test_fragment_size_ != -1) {
-            if ((int)rcvd_len > params_.test_fragment_size_) {
-                log_info("send_bundle: "
-                         "XXX forcing fragmentation size %d, rcvd %u",
-                         params_.test_fragment_size_, (u_int)rcvd_len);
-                usleep(100000);
+    // done with the rest. note that all reads have a timeout. note
+    // also that we may have some payload data in the buffer
+    // initially, so we check for that before trying to read more
+    do {
+        if (buf.fullbytes() == 0) {
+            // read a chunk of data
+            cc = sock_->timeout_read(buf.data(), params_.readbuf_len_,
+                                     params_.rtt_timeout_);
+            if (cc == oasys::IOTIMEOUT) {
+                log_warn("recv_bundle: timeout reading bundle data block");
+                goto done;
+            } else if (cc == oasys::IOEOF) {
+                log_info("recv_bundle: eof reading bundle data block");
+                goto done;
+            } else if (cc < 0) {
+                log_warn("recv_bundle: error reading bundle data block: %s",
+                         strerror(errno));
                 goto done;
             }
+            buf.fill(cc);
         }
-
-        // read a chunk of data
-        cc = sock_->timeout_read(payload_buf.data(), params_.readbuf_len_,
-                                 params_.rtt_timeout_);
-        if (cc == oasys::IOTIMEOUT) {
-            log_warn("recv_bundle: timeout reading bundle data block");
-            goto done;
-        } else if (cc == oasys::IOEOF) {
-            log_info("recv_bundle: eof reading bundle data block");
-            goto done;
-        } else if (cc < 0) {
-            log_warn("recv_bundle: error reading bundle data block: %s",
-                     strerror(errno));
-            goto done;
-        } 
-
+        
         log_debug("recv_bundle: got %d byte chunk, rcvd_len %u",
-                  cc, (u_int)rcvd_len);
+                  buf.fullbytes(), (u_int)rcvd_len);
         
         // append the chunk of data and update the amount received
-        bundle->payload_.append_data((u_char*)payload_buf.data(), cc);
-        rcvd_len += cc;
-
+        bundle->payload_.append_data((u_char*)buf.start(), buf.fullbytes());
+        rcvd_len += buf.fullbytes();
+        buf.clear();
+        
         // at this point, we can make at least a valid bundle fragment
         // from what we've gotten thus far (assuming reactive
         // fragmentation is enabled)
@@ -892,7 +966,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
             }
             acked_len = rcvd_len;
         }
-    }
+        
+    } while (rcvd_len < payload_len);
 
     // if the sender requested a bundle ack and we haven't yet sent
     // one for the whole bundle in the partial ack check above, send
@@ -1076,35 +1151,36 @@ TCPConvergenceLayer::Connection::send_contact_header()
 
     // if this is the receiver connection option, we immediately
     // follow the contact header with an identity header and the local
-    // tuple information
+    // eid information
     if (!is_sender_ && params_.receiver_connect_) {
-        BundleRouter* router = BundleDaemon::instance()->router();
-        const BundleTuple& local_tuple = router->local_tuple();
-        size_t region_len = local_tuple.region().length();
-        size_t admin_len  = local_tuple.admin().length();
-        
-        log_debug("sending identity header... (region_len %u admin_len %u)",
-                  (u_int)region_len, (u_int)admin_len);
-        
-        size_t len = sizeof(IdentityHeader) + region_len + admin_len;
 
-        // XXX/demmer use scratch buffer instead of malloc
-        IdentityHeader* identityhdr = (IdentityHeader*)malloc(len);
-        identityhdr->region_len = htons(region_len);
-        identityhdr->admin_len  = htons(admin_len);
-
-        char* data = (char*)&identityhdr[1];
-        memcpy(data, local_tuple.region().data(), region_len);
-        memcpy(data + region_len, local_tuple.admin().data(), admin_len);
+        PANIC("XXX/demmer fix receiver connect");
+//         const EndpointID& local_eid = BundleDaemon::instance()->local_eid();
+//         size_t region_len = local_eid.region().length();
+//         size_t admin_len  = local_eid.admin().length();
         
-        cc = sock_->writeall((char*)identityhdr, len);
-        if (cc != (int)len) {
-            log_err("error writing identity header / tuple (wrote %d/%u): %s",
-                    cc, (u_int)len, strerror(errno));
-            return false;
-        }
+//         log_debug("sending identity header... (region_len %u admin_len %u)",
+//                   (u_int)region_len, (u_int)admin_len);
+        
+//         size_t len = sizeof(IdentityHeader) + region_len + admin_len;
 
-        free(identityhdr);
+//         // XXX/demmer use scratch buffer instead of malloc
+//         IdentityHeader* identityhdr = (IdentityHeader*)malloc(len);
+//         identityhdr->region_len = htons(region_len);
+//         identityhdr->admin_len  = htons(admin_len);
+
+//         char* data = (char*)&identityhdr[1];
+//         memcpy(data, local_eid.region().data(), region_len);
+//         memcpy(data + region_len, local_eid.admin().data(), admin_len);
+        
+//         cc = sock_->writeall((char*)identityhdr, len);
+//         if (cc != (int)len) {
+//             log_err("error writing identity header / eid (wrote %d/%u): %s",
+//                     cc, (u_int)len, strerror(errno));
+//             return false;
+//         }
+
+//         free(identityhdr);
     }
     
     return true;
@@ -1180,59 +1256,62 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
 
     // if the other side sent the receiver connect option, then it
     // should send an identity header immediately following the
-    // contact header, so read it in and parse the next hop tuple
+    // contact header, so read it in and parse the next hop eid
     // identifier
     if (contacthdr.flags & RECEIVER_CONNECT) {
-        log_debug("got receiver_connect option: reading identity header");
-        IdentityHeader identityhdr;
 
-        cc = sock_->timeout_readall((char*)&identityhdr,
-                                    sizeof(IdentityHeader),
-                                    params_.rtt_timeout_);
-        if (cc == oasys::IOTIMEOUT) {
-            log_warn("timeout reading receiver_connect identity header");
-            return false;
-        }
-
-        if (cc != sizeof(IdentityHeader)) {
-            log_err("error reading receiver_connect identity (read %d/%u): %s",
-                cc, (u_int)sizeof(IdentityHeader), strerror(errno));
-            return false;
-        }
-
-        size_t region_len = ntohs(identityhdr.region_len);
-        size_t admin_len  = ntohs(identityhdr.admin_len);
-
-        oasys::StringBuffer region_buf(region_len);
-        oasys::StringBuffer  admin_buf(admin_len);
-
-        log_debug("reading region data (length %u)", (u_int)region_len);
-        cc = sock_->timeout_readall(region_buf.data(), region_len,
-                                    params_.rtt_timeout_);
-        if (cc != (int)region_len) {
-            log_err("error reading region string (read %d/%u): %s",
-                cc, (u_int)region_len, strerror(errno));
-            return false;
-        }
-
-        log_debug("reading admin data (length %d)", (u_int)admin_len);
-        cc = sock_->timeout_readall(admin_buf.data(), admin_len,
-                                    params_.rtt_timeout_);
-        if (cc != (int)admin_len) {
-            log_err("error reading admin string (read %d/%u): %s",
-                cc, (u_int)admin_len, strerror(errno));
-            return false;
-        }
-
-        nexthop_.assign(region_buf.data(), region_len,
-                        admin_buf.data(),  admin_len);
+        PANIC("XXX/demmer fix receiver connect");
         
-        if (!nexthop_.valid()) {
-            log_err("invalid peer tuple received: region='%.*s' admin='%.*s'",
-                    (int)region_buf.length(), region_buf.data(),
-                    (int)admin_buf.length(),  admin_buf.data());
-            return false;
-        }
+//         log_debug("got receiver_connect option: reading identity header");
+//         IdentityHeader identityhdr;
+
+//         cc = sock_->timeout_readall((char*)&identityhdr,
+//                                     sizeof(IdentityHeader),
+//                                     params_.rtt_timeout_);
+//         if (cc == oasys::IOTIMEOUT) {
+//             log_warn("timeout reading receiver_connect identity header");
+//             return false;
+//         }
+
+//         if (cc != sizeof(IdentityHeader)) {
+//             log_err("error reading receiver_connect identity (read %d/%u): %s",
+//                 cc, (u_int)sizeof(IdentityHeader), strerror(errno));
+//             return false;
+//         }
+
+//         size_t region_len = ntohs(identityhdr.region_len);
+//         size_t admin_len  = ntohs(identityhdr.admin_len);
+
+//         oasys::StringBuffer region_buf(region_len);
+//         oasys::StringBuffer  admin_buf(admin_len);
+
+//         log_debug("reading region data (length %u)", (u_int)region_len);
+//         cc = sock_->timeout_readall(region_buf.data(), region_len,
+//                                     params_.rtt_timeout_);
+//         if (cc != (int)region_len) {
+//             log_err("error reading region string (read %d/%u): %s",
+//                 cc, (u_int)region_len, strerror(errno));
+//             return false;
+//         }
+
+//         log_debug("reading admin data (length %d)", (u_int)admin_len);
+//         cc = sock_->timeout_readall(admin_buf.data(), admin_len,
+//                                     params_.rtt_timeout_);
+//         if (cc != (int)admin_len) {
+//             log_err("error reading admin string (read %d/%u): %s",
+//                 cc, (u_int)admin_len, strerror(errno));
+//             return false;
+//         }
+
+//         nexthop_.assign(region_buf.data(), region_len,
+//                         admin_buf.data(),  admin_len);
+        
+//         if (!nexthop_.valid()) {
+//             log_err("invalid peer eid received: region='%.*s' admin='%.*s'",
+//                     (int)region_buf.length(), region_buf.data(),
+//                     (int)admin_buf.length(),  admin_buf.data());
+//             return false;
+//         }
     }
 
     note_data_rcvd();

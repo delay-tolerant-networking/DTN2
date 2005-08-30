@@ -64,11 +64,10 @@ char* arg_dtn_peer        = NULL;
 dtn_reg_id_t regid      = DTN_REGID_NONE;
 
 void parse_options(int, char**);
-dtn_tuple_t * parse_tuple(dtn_handle_t handle,
-                          dtn_tuple_t * tuple, 
+dtn_endpoint_id_t * parse_eid(dtn_handle_t handle,
+                          dtn_endpoint_id_t * eid, 
                           char * str);
 void print_usage();
-void print_tuple(char * label, dtn_tuple_t * tuple);
 
 int
 main(int argc, char** argv)
@@ -129,11 +128,11 @@ main(int argc, char** argv)
             memset(&bundle_spec, 0, sizeof(bundle_spec));
             
             if (verbose) fprintf(stdout, "DTN peer: %s\n", arg_dtn_peer);
-            parse_tuple(handle, &bundle_spec.dest, arg_dtn_peer);         
+            parse_eid(handle, &bundle_spec.dest, arg_dtn_peer);         
             
-            // assign a standard source tuple for now
-            dtn_build_local_tuple(handle, &bundle_spec.source, "dtntunnel");
-            dtn_build_local_tuple(handle, &bundle_spec.replyto, "dtntunnel");
+            // assign a standard source eid for now
+            dtn_build_local_eid(handle, &bundle_spec.source, "dtntunnel");
+            dtn_build_local_eid(handle, &bundle_spec.replyto, "dtntunnel");
 
             // set a default expiration time of one hour
             bundle_spec.expiration = 3600;
@@ -153,8 +152,8 @@ main(int argc, char** argv)
     else
     {
         struct hostent *he;
-        dtn_tuple_t local_tuple;
-        dtn_build_local_tuple(handle, &local_tuple, "dtntunnel");
+        dtn_endpoint_id_t local_eid;
+        dtn_build_local_eid(handle, &local_eid, "dtntunnel");
 
 
         printf("Receiver mode.\n");
@@ -162,7 +161,7 @@ main(int argc, char** argv)
         if (verbose) fprintf(stdout,"Registering with DTN daemon.");
         memset(&reginfo, 0, sizeof(reginfo));
 
-        dtn_copy_tuple(&reginfo.endpoint, &local_tuple);
+        dtn_copy_eid(&reginfo.endpoint, &local_eid);
         reginfo.action = DTN_REG_ABORT;
         reginfo.regid = DTN_REGID_NONE;
         reginfo.timeout = 60 * 60;
@@ -175,7 +174,6 @@ main(int argc, char** argv)
                 
         // bind the current handle to the new registration
         dtn_bind(handle, regid);
-
 
 /*        local_addr.sin_family = AF_INET;
         local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -212,12 +210,9 @@ main(int argc, char** argv)
             }
         }
 
-        printf("%d bytes from [%s %.*s]: transit time=%d ms\n",
+        printf("%d bytes from [%s]: transit time=%d ms\n",
                send_payload.dtn_bundle_payload_t_u.buf.buf_len,
-               bundle_spec.source.region,
-               (int) bundle_spec.source.admin.admin_len,
-               bundle_spec.source.admin.admin_val,
-               0);
+               bundle_spec.source.uri, 0);
     }
 
 
@@ -300,32 +295,26 @@ void parse_options(int argc, char**argv)
     CHECK_SET(((arg_dest_host && arg_dest_port) || arg_source_port),"source or destination TCP/UDP endpoint");
 }
 
-dtn_tuple_t * parse_tuple(dtn_handle_t handle, 
-                          dtn_tuple_t* tuple, char * str)
+dtn_endpoint_id_t * parse_eid(dtn_handle_t handle, 
+                          dtn_endpoint_id_t* eid, char * str)
 {
     
-    // try the string as an actual dtn tuple
-    if (!dtn_parse_tuple_string(tuple, str)) 
+    // try the string as an actual dtn eid
+    if (!dtn_parse_eid_string(eid, str)) 
     {
         if (verbose) fprintf(stdout, "%s (literal)\n", str);
-        return tuple;
+        return eid;
     }
-    // build a local tuple based on the configuration of our dtn
+    // build a local eid based on the configuration of our dtn
     // router plus the str as demux string
-    else if (!dtn_build_local_tuple(handle, tuple, str))
+    else if (!dtn_build_local_eid(handle, eid, str))
     {
         if (verbose) fprintf(stdout, "%s (local)\n", str);
-        return tuple;
+        return eid;
     }
     else
     {
-        fprintf(stderr, "invalid tuple string '%s'\n", str);
+        fprintf(stderr, "invalid eid string '%s'\n", str);
         exit(1);
     }
-}
-
-void print_tuple(char *  label, dtn_tuple_t * tuple)
-{
-    printf("%s [%s %.*s]\n", label, tuple->region, 
-           (int) tuple->admin.admin_len, tuple->admin.admin_val);
 }

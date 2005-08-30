@@ -62,7 +62,7 @@ main(int argc, const char** argv)
     int cnt = INT_MAX;
     int ret;
     dtn_handle_t handle;
-    dtn_tuple_t local_tuple;
+    dtn_endpoint_id_t local_eid;
     dtn_reg_info_t reginfo;
     dtn_reg_id_t regid;
     dtn_bundle_spec_t spec;
@@ -88,18 +88,15 @@ main(int argc, const char** argv)
         exit(1);
     }
 
-    // build a local tuple based on the configuration of our dtn
+    // build a local eid based on the configuration of our dtn
     // router plus the demux string
-    if (debug) printf("calling dtn_build_local_tuple.\n");
-    dtn_build_local_tuple(handle, &local_tuple, (char *) endpoint);
-    if (debug) printf("local_tuple [%s %.*s]\n",
-                    local_tuple.region,
-                    (int)local_tuple.admin.admin_len, 
-                    local_tuple.admin.admin_val);
+    if (debug) printf("calling dtn_build_local_eid.\n");
+    dtn_build_local_eid(handle, &local_eid, (char *) endpoint);
+    if (debug) printf("local_eid [%s]\n", local_eid.uri);
 
-    // create a new registration based on this tuple
+    // create a new registration based on this eid
     memset(&reginfo, 0, sizeof(reginfo));
-    dtn_copy_tuple(&reginfo.endpoint, &local_tuple);
+    dtn_copy_eid(&reginfo.endpoint, &local_eid);
     reginfo.action = DTN_REG_ABORT;
     reginfo.regid = DTN_REGID_NONE;
     reginfo.timeout = 60 * 60;
@@ -114,9 +111,7 @@ main(int argc, const char** argv)
     // bind the current handle to the new registration
     dtn_bind(handle, regid);
     
-    printf("dtn_recv [%s %.*s]...\n",
-           local_tuple.region,
-           (int)local_tuple.admin.admin_len, local_tuple.admin.admin_val);
+    printf("dtn_recv [%s]...\n", local_eid.uri);
     
     // loop waiting for bundles
     for (i = 0; i < cnt; ++i) {
@@ -131,12 +126,9 @@ main(int argc, const char** argv)
             exit(1);
         }
 
-        printf("%d bytes from [%s %.*s]: transit time=%d ms\n",
+        printf("%d bytes from [%s]: transit time=%d ms\n",
                payload.dtn_bundle_payload_t_u.buf.buf_len,
-               spec.source.region,
-               (int) spec.source.admin.admin_len,
-               spec.source.admin.admin_val,
-               0);
+               spec.source.uri, 0);
 
         buffer = (unsigned char *) payload.dtn_bundle_payload_t_u.buf.buf_val;
         for (k=0; k < payload.dtn_bundle_payload_t_u.buf.buf_len; k++)

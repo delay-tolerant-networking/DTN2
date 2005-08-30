@@ -62,18 +62,18 @@ directory.
 
 <h3>The Local Tuple</h3>
 
-<p> You don't need to make any changes in the <i>local_tuple</i>, but
-scroll down and take a look at it anyway. In the default
-configuration, it looks like this: <i>route local_tuple
+<p> You don't need to make any changes in the <i>local_eid</i>, but
+scroll down and take a look at it anyway. In the defualt
+configuration, it looks like this: <i>route local_eid
 "bundles://internet/host://[info hostname]"</i>. Note the square
 brackets. To understand what's happening here, you need to know that
 this configuration file is not simply a file of settings for dtnd, but
 an actual <a href="http://www.tcl.tk">TCL</a> script. It is interpreted by
 the TCL interpreter that is built in to dtnd. In TCL, square brackets
 mean "interpret this first, and replace the brackets with the result".
-So before dtnd sees a <i>route local_tuple ...</i> command, TCL
+So before dtnd sees a <i>route local_eid ...</i> command, TCL
 processes the <i>info hostname</i> command. As you might be able to
-guess by now, the entire line results in the <i>local_tuple</i> being
+guess by now, the entire line results in the <i>local_eid</i> being
 set to a custom string based on your hostname.
 
 <p> This is the only place in this particular configuration file where
@@ -83,9 +83,9 @@ your own configuration files, should you desire it. For an example of
 this, see <a href="configuration.html#rotate">the example showing how
 to rotate logs</a> from within dtnd.
 
-<p> So the local tuple is set, but what is it? From the
+<p> So the local eid is set, but what is it? From the
 <a href="arch.html">Architecture</a> section, you should recall
-that nodes in the DTN are identified by tuples. The local tuple
+that nodes in the DTN are identified by eids. The local eid
 is simply the way our DTN node will refer to itself. Without this
 setting, it would not recognize bundles intended for it, and might
 just pass them on ad infinitum! People who have configured Internet
@@ -94,23 +94,23 @@ as mail routers need to know their own name for the same reason.
 
 <p>
 DTN nodes within the administrative region named "internet" are
-expected to use hostnames in the local part of the tuple that
+expected to use hostnames in the local part of the eid that
 resolve to an IP address they have configured. However, that still
-leaves you considerable latitude in how to choose your local tuple.
+leaves you considerable latitude in how to choose your local eid.
 For instance, if you had a machine named something cumbersome like
 <tt>az10001.prod.sfo.company.com</tt>, but there was a nice simple
 CNAME of <tt>dtn.company.com</tt> pointing to it, you could set the
-hostname in the local tuple to the simpler <tt>dtn.company.com</tt>.
+hostname in the local eid to the simpler <tt>dtn.company.com</tt>.
 That might be a very good idea, in fact. Afterall, the computer might
 get renamed, but if it is still playing the same part in the DTN
 there's no reason to force other members of the DTN to use a new name.
 Also, consider the case where you need to move the DTN node to another
 machine due to hardware failure, but there are already bundles in
-flight with a destination tuple using the original name. Using a CNAME
+flight with a destination eid using the original name. Using a CNAME
 can help avoid losing those bundles.
 
 <p>
-At this time, one dtnd can have only one local tuple name. This
+At this time, one dtnd can have only one local eid name. This
 limitation might disappear in future versions if it proves to be a
 problem.
 
@@ -252,22 +252,24 @@ to it, and see what comes back out!
 <p>
 To ping your server, run the <tt>dtnping</tt> command. It lives
 in the <tt>DTN2/apps/dtnping</tt> directory. You'll need to give it
-one argument, which is the tuple address of the endpoint that you
+one argument, which is the eid address of the endpoint that you
 want to ping. Since there is only one server in your DTN, the
-choice should be simple. You need to use the local tuple
-that you set in the configuration file.
+choice should be simple. You need to use the local eid
+that you set in the configuration file. If you'd like to
+check what dtnd thinks it's local eid name is, use the
+<tt>route dump</tt> command in the window where dtnd is running.
 
 <p>
 Alternatively, <tt>dtnping</tt> contains a convenience shortcut
-whereby the string 'localhost' is interpreted as the local tuple
+whereby the string 'localhost' is interpreted as the local eid
 of the daemon.
 
 <p>
-Here's an example of how to ping a server whose local tuple
+Here's an example of how to ping a server who's local eid
 is <i>bundles://internet/host://dtn-a</i>:
 
 <blockquote><pre>$ <font color=blue>DTN2/apps/dtnping/dtnping bundles://internet/host://dtn-a</font>
-local_tuple [internet host://dtn-a/ping]
+local_eid [internet host://dtn-a/ping]
 dtn_register succeeded, regid 0xa
 PING [internet host://dtn-a]...
 69 bytes from [internet host://dtn-a]: time=202.00 ms

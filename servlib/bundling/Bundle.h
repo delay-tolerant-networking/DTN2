@@ -48,7 +48,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "BundlePayload.h"
-#include "BundleTuple.h"
+#include "naming/EndpointID.h"
 
 
 namespace dtn {
@@ -195,21 +195,24 @@ public:
      * nodes according to the bundle protocol (all public to avoid the
      * need for accessor functions).
      */
-    BundleTuple source_;	///< Source tuple
-    BundleTuple dest_;		///< Destination tuple
-    BundleTuple custodian_;	///< Current custodian tuple
-    BundleTuple replyto_;	///< Reply-To tuple
+    EndpointID source_;		///< Source eid
+    EndpointID dest_;		///< Destination eid
+    EndpointID custodian_;	///< Current custodian eid
+    EndpointID replyto_;	///< Reply-To eid
+    bool is_fragment_;		///< Fragmentary Bundle
+    bool is_admin_;		///< Administrative record bundle
+    bool do_not_fragment_;	///< Bundle shouldn't be fragmented
+    bool custody_requested_;	///< Custody requested
     u_int8_t priority_;		///< Bundle priority
-    bool custreq_;		///< Custody requested
+    bool receive_rcpt_;		///< Hop by hop reception receipt
     bool custody_rcpt_;		///< Custody xfer reporting
-    bool recv_rcpt_;		///< Hop by hop reception receipt
-    bool fwd_rcpt_;		///< Hop by hop forwarding receipt
-    bool return_rcpt_;		///< End-to-end return receipt
+    bool forward_rcpt_;		///< Hop by hop forwarding reporting
+    bool delivery_rcpt_;	///< End-to-end delivery reporting
+    bool deletion_rcpt_;	///< Bundle deletion reporting
     timestamp_t creation_ts_;	///< Creation timestamp
     u_int32_t expiration_;	///< Bundle expiration time
-    bool is_fragment_;		///< Fragmentary Bundle
-    u_int32_t orig_length_;	///< Length of original bundle
     u_int32_t frag_offset_;	///< Offset of fragment in the original bundle
+    u_int32_t orig_length_;	///< Length of original bundle
     BundlePayload payload_;	///< Reference to the payload
 
     /*

@@ -50,13 +50,13 @@ char *progname;
 
 // global options
 dtn_bundle_payload_location_t 
-        payload_type    = 0;    // the type of data source for the bundle
+payload_type    = 0;    // the type of data source for the bundle
 int copies              = 1;    // the number of copies to send
 int verbose             = 0;
 
 // bundle options
 int expiration          = 3600; // expiration timer (default one hour)
-int return_receipts     = 0;    // request end to end return receipts
+int delivery_receipts   = 0;    // request end to end delivery receipts
 int forwarding_receipts = 0;    // request per hop departure
 int custody             = 0;    // request custody transfer
 int custody_receipts    = 0;    // request per custodian receipts
@@ -66,7 +66,7 @@ int wait_for_report     = 0;    // wait for bundle status reports
 
 char * data_source      = NULL; // filename or message, depending on type
 
-// specified options for bundle tuples
+// specified options for bundle eids
 char * arg_replyto      = NULL;
 char * arg_source       = NULL;
 char * arg_dest         = NULL;
@@ -75,11 +75,11 @@ dtn_reg_id_t regid      = DTN_REGID_NONE;
 
 
 void parse_options(int, char**);
-dtn_tuple_t * parse_tuple(dtn_handle_t handle,
-                          dtn_tuple_t * tuple, 
-                          char * str);
+dtn_endpoint_id_t * parse_eid(dtn_handle_t handle,
+                              dtn_endpoint_id_t * eid,
+                              char * str);
 void print_usage();
-void print_tuple(char * label, dtn_tuple_t * tuple);
+void print_eid(char * label, dtn_endpoint_id_t * eid);
 
 int
 main(int argc, char** argv)
@@ -110,35 +110,35 @@ main(int argc, char** argv)
     // initialize bundle spec
     memset(&bundle_spec, 0, sizeof(bundle_spec));
 
-    // initialize/parse bundle src/dest/replyto tuples
+    // initialize/parse bundle src/dest/replyto eids
     if (verbose) fprintf(stdout, "Destination: %s\n", arg_dest);
-    parse_tuple(handle, &bundle_spec.dest, arg_dest);
+    parse_eid(handle, &bundle_spec.dest, arg_dest);
 
     if (verbose) fprintf(stdout, "Source: %s\n", arg_source);
-    parse_tuple(handle, &bundle_spec.source, arg_source);
+    parse_eid(handle, &bundle_spec.source, arg_source);
     if (arg_replyto == NULL) 
     {
         if (verbose) fprintf(stdout, "Reply To: same as source\n");
-        dtn_copy_tuple(&bundle_spec.replyto, &bundle_spec.source);
+        dtn_copy_eid(&bundle_spec.replyto, &bundle_spec.source);
     }
     else
     {
         if (verbose) fprintf(stdout, "Reply To: %s\n", arg_replyto);
-        parse_tuple(handle, &bundle_spec.replyto, arg_replyto);
+        parse_eid(handle, &bundle_spec.replyto, arg_replyto);
     }
 
     if (verbose)
     {
-        print_tuple("source_tuple", &bundle_spec.source);
-        print_tuple("replyto_tuple", &bundle_spec.replyto);
-        print_tuple("dest_tuple", &bundle_spec.dest);
+        print_eid("source_eid", &bundle_spec.source);
+        print_eid("replyto_eid", &bundle_spec.replyto);
+        print_eid("dest_eid", &bundle_spec.dest);
     }
 
     if (wait_for_report)
     {
         // create a new dtn registration to receive bundle status reports
         memset(&reginfo, 0, sizeof(reginfo));
-        dtn_copy_tuple(&reginfo.endpoint, &bundle_spec.replyto);
+        dtn_copy_eid(&reginfo.endpoint, &bundle_spec.replyto);
         reginfo.action = DTN_REG_ABORT;
         reginfo.regid = regid;
         reginfo.timeout = 60 * 60;
@@ -149,7 +149,7 @@ main(int argc, char** argv)
         }
     
         if (verbose) printf("dtn_register succeeded, regid 0x%x\n",
-            regid);
+                            regid);
 
         // bind the current handle to the new registration
         dtn_bind(handle, regid);
@@ -158,40 +158,34 @@ main(int argc, char** argv)
     // set the dtn options
     bundle_spec.expiration = expiration;
     
-    if (return_receipts)
+    if (delivery_receipts)
     {
-        // set the return receipt option
-        bundle_spec.dopts |= DOPTS_RETURN_RCPT;
+        // set the delivery receipt option
+        bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
     }
 
     if (forwarding_receipts)
     {
         // set the forward receipt option
-        bundle_spec.dopts |= DOPTS_FWD_RCPT;
+        bundle_spec.dopts |= DOPTS_FORWARD_RCPT;
     }
 
     if (custody)
     {
         // request custody transfer
         bundle_spec.dopts |= DOPTS_CUSTODY;
-    }        
+    }
 
     if (custody_receipts)
     {
         // request custody transfer
-        bundle_spec.dopts |= DOPTS_CUST_RCPT;
-    }        
-
-    if (overwrite)
-    {
-        // queue overwrite option
-        bundle_spec.dopts |= DOPTS_OVERWRITE;
+        bundle_spec.dopts |= DOPTS_CUSTODY_RCPT;
     }
 
     if (receive_receipts)
     {
         // request receive receipt
-        bundle_spec.dopts |= DOPTS_RECV_RCPT;
+        bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
     }
     
 
@@ -225,11 +219,9 @@ main(int argc, char** argv)
             }
             gettimeofday(&end, NULL);
 
-            printf("got %d byte report from [%s %.*s]: time=%.1f ms\n",
+            printf("got %d byte report from [%s]: time=%.1f ms\n",
                    reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
-                   reply_spec.source.region,
-                   (int) reply_spec.source.admin.admin_len,
-                   reply_spec.source.admin.admin_val,
+                   reply_spec.source.uri,
                    ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                     (double)(end.tv_usec - start.tv_usec)/1000.0));
             
@@ -243,23 +235,22 @@ main(int argc, char** argv)
 void print_usage()
 {
     fprintf(stderr, "usage: %s [opts] "
-            "-s <source_tuple> -d <dest_tuple> -t <type> -p <payload>\n",
+            "-s <source_eid> -d <dest_eid> -t <type> -p <payload>\n",
             progname);
     fprintf(stderr, "options:\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h help\n");
-    fprintf(stderr, " -s <tuple|demux_string> source tuple)\n");
-    fprintf(stderr, " -d <tuple|demux_string> destination tuple)\n");
-    fprintf(stderr, " -r <tuple|demux_string> reply to tuple)\n");
+    fprintf(stderr, " -s <eid|demux_string> source eid)\n");
+    fprintf(stderr, " -d <eid|demux_string> destination eid)\n");
+    fprintf(stderr, " -r <eid|demux_string> reply to eid)\n");
     fprintf(stderr, " -t <f|m|d> payload type: file, message, or date\n");
     fprintf(stderr, " -p <filename|string> payload data\n");
     fprintf(stderr, " -e <time> expiration time in seconds (default: one hour)\n");
-    fprintf(stderr, " -o turn on queue overwrite option (not implemented yet)\n");
     fprintf(stderr, " -n copies of the bundle to send\n");
     fprintf(stderr, " -c request custody transfer\n");
     fprintf(stderr, " -C request custody transfer receipts\n");
-    fprintf(stderr, " -R request for end-to-end return receipt\n");
-    fprintf(stderr, " -A request for bundle arrival receipts\n");
+    fprintf(stderr, " -D request for end-to-end delivery receipt\n");
+    fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
     fprintf(stderr, " -i registration id for reply to\n");
@@ -277,7 +268,7 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "hHvn:oacfye:wt:p:r:d:s:i:");
+        c = getopt(argc, argv, "vhHr:s:d:e:n:woDFRcCt:p:i:");
         switch (c)
         {
         case 'v':
@@ -306,16 +297,13 @@ void parse_options(int argc, char**argv)
         case 'w':
             wait_for_report = 1;
             break;
-        case 'o':
-            overwrite = 1;
-            break;
-        case 'R':
-            return_receipts = 1;
+        case 'D':
+            delivery_receipts = 1;
             break;
         case 'F':
             forwarding_receipts = 1;
             break;
-        case 'A':
+        case 'R':
             receive_receipts = 1;
             break;
         case 'c':
@@ -351,8 +339,8 @@ void parse_options(int argc, char**argv)
         exit(1);                                                        \
     }
     
-    CHECK_SET(arg_source,   "source tuple");
-    CHECK_SET(arg_dest,     "destination tuple");
+    CHECK_SET(arg_source,   "source eid");
+    CHECK_SET(arg_dest,     "destination eid");
     CHECK_SET(arg_type,     "payload type");
     if (arg_type != 'd') {
         CHECK_SET(data_source,  "payload data");
@@ -374,32 +362,30 @@ void parse_options(int argc, char**argv)
     }
 }
 
-dtn_tuple_t * parse_tuple(dtn_handle_t handle, 
-                          dtn_tuple_t* tuple, char * str)
+dtn_endpoint_id_t * parse_eid(dtn_handle_t handle, 
+                              dtn_endpoint_id_t* eid, char * str)
 {
-    
-    // try the string as an actual dtn tuple
-    if (!dtn_parse_tuple_string(tuple, str)) 
+    // try the string as an actual dtn eid
+    if (!dtn_parse_eid_string(eid, str)) 
     {
         if (verbose) fprintf(stdout, "%s (literal)\n", str);
-        return tuple;
+        return eid;
     }
-    // build a local tuple based on the configuration of our dtn
+    // build a local eid based on the configuration of our dtn
     // router plus the str as demux string
-    else if (!dtn_build_local_tuple(handle, tuple, str))
+    else if (!dtn_build_local_eid(handle, eid, str))
     {
         if (verbose) fprintf(stdout, "%s (local)\n", str);
-        return tuple;
+        return eid;
     }
     else
     {
-        fprintf(stderr, "invalid tuple string '%s'\n", str);
+        fprintf(stderr, "invalid eid string '%s'\n", str);
         exit(1);
     }
 }
 
-void print_tuple(char *  label, dtn_tuple_t * tuple)
+void print_eid(char *  label, dtn_endpoint_id_t * eid)
 {
-    printf("%s [%s %.*s]\n", label, tuple->region, 
-           (int) tuple->admin.admin_len, tuple->admin.admin_val);
+    printf("%s [%s]\n", label, eid->uri);
 }

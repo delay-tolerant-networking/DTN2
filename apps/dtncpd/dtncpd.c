@@ -69,10 +69,10 @@ main(int argc, const char** argv)
     int i;
     int ret;
     dtn_handle_t handle;
-    dtn_tuple_t local_tuple;
+    dtn_endpoint_id_t local_eid;
     dtn_reg_info_t reginfo;
     dtn_reg_id_t regid;
-    dtn_bundle_spec_t spec;
+    dtn_bundle_spec_t bundle;
     dtn_bundle_payload_t payload;
     char* endpoint;
     int debug = 1;
@@ -80,12 +80,10 @@ main(int argc, const char** argv)
     char * bundle_dir = 0;
 
     char * region;
-    int source_admin_len, dest_admin_len;
-    char *source_admin, *dest_admin;
     char * host;
     char * dirpath;
     char * filename;
-    char * filepath;
+    char filepath[PATH_MAX];
     time_t current;
 
     char * buffer;
@@ -136,17 +134,14 @@ main(int argc, const char** argv)
         exit(1);
     }
 
-    // build a local tuple based on the configuration of our dtn
+    // build a local eid based on the configuration of our dtn
     // router plus the demux string
-    dtn_build_local_tuple(handle, &local_tuple, endpoint);
-    if (debug) printf("local_tuple [%s %.*s]\n",
-                      local_tuple.region,
-                      (int) local_tuple.admin.admin_len, 
-                      local_tuple.admin.admin_val);
+    dtn_build_local_eid(handle, &local_eid, endpoint);
+    if (debug) printf("local_eid [%s]\n", local_eid.uri);
 
-    // create a new registration based on this tuple
+    // create a new registration based on this eid
     memset(&reginfo, 0, sizeof(reginfo));
-    dtn_copy_tuple(&reginfo.endpoint, &local_tuple);
+    dtn_copy_eid(&reginfo.endpoint, &local_eid);
     reginfo.action = DTN_REG_ABORT;
     reginfo.regid = DTN_REGID_NONE;
     reginfo.timeout = 60 * 60;
@@ -161,21 +156,20 @@ main(int argc, const char** argv)
     // bind the current handle to the new registration
     dtn_bind(handle, regid);
     
-    printf("dtn_recv [%s %.*s]...\n",
-           local_tuple.region,
-           (int) local_tuple.admin.admin_len, local_tuple.admin.admin_val);
+    printf("dtn_recv [%s]...\n", local_eid.uri);
     
     // loop waiting for bundles
     while(1)
     {
         // change this to _MEM here to receive into memory then write the file
         // ourselves. (So this code shows both ways to do it.)
+        // XXX/demmer better would be to have a cmd line option
         dtn_bundle_payload_location_t file_or_mem = DTN_PAYLOAD_FILE;
 
-        memset(&spec, 0, sizeof(spec));
+        memset(&bundle, 0, sizeof(bundle));
         memset(&payload, 0, sizeof(payload));
         
-        if ((ret = dtn_recv(handle, &spec,
+        if ((ret = dtn_recv(handle, &bundle,
                             file_or_mem, &payload, -1)) < 0)
         {
             fprintf(stderr, "error getting recv reply: %d (%s)\n",
@@ -186,37 +180,12 @@ main(int argc, const char** argv)
         // mark time received
         current = time(NULL);
 
-        // parse admin string to select file target location
+        // grab the sending authority and service tag (i.e. the path)
+        host = strstr(bundle.source.uri, ":") + 1;
         
-        // copy out admin value into null-terminated string
-        source_admin_len = spec.source.admin.admin_len;
-        source_admin = malloc(sizeof(char) * (source_admin_len+1));
-        memcpy(source_admin, spec.source.admin.admin_val, source_admin_len);
-        source_admin[source_admin_len] = '\0';
-
-        // region is the same
-        region = spec.source.region;
-        
-        // extract hostname (ignore protocol)
-        if (strcasecmp(region, "internet") == 0) {
-            host = strstr(source_admin, "://");
-            host += 3; // skip ://
-
-            // calculate where host ends (temporarily using dirpath)
-            dirpath = strstr(host, "/dtncp/send");
-            dirpath[0] = '\0'; // null-terminate host
-        } else {
-            host = "[non-internet-region]";
-        }
-       
-        // copy out dest admin value into null-terminated string
-        dest_admin_len = spec.dest.admin.admin_len;
-        dest_admin = malloc(sizeof(char) * (dest_admin_len+1));
-        memcpy(dest_admin, spec.dest.admin.admin_val, dest_admin_len);
-        dest_admin[dest_admin_len] = '\0';
-
-        // extract directory path (everything following std demux)
-        dirpath = strstr(dest_admin, "/dtncp/recv:");
+        // extract directory from destination path (everything
+        // following std demux)
+        dirpath = strstr(bundle.dest.uri, "/dtncp/recv:");
         dirpath += 12; // skip /dtncp/recv:
         if (dirpath[0] == '/') dirpath++; // skip leading slash
 
@@ -234,13 +203,13 @@ main(int argc, const char** argv)
         }
 
         // recursively create full directory path
-        filepath = malloc(sizeof(char) * (source_admin_len + dest_admin_len + 10));
+        // XXX/demmer system -- yuck!
         sprintf(filepath, "mkdir -p %s/%s/%s", bundle_dir, host, dirpath);
         system(filepath);
-
+        
         // create file name
         sprintf(filepath, "%s/%s/%s/%s", bundle_dir, host, dirpath, filename);
-
+        
         // bundle name is the name of the bundle payload file
         buffer = payload.dtn_bundle_payload_t_u.buf.buf_val;
         bufsize = payload.dtn_bundle_payload_t_u.buf.buf_len;
@@ -353,10 +322,6 @@ main(int argc, const char** argv)
         }
     
         printf ("======================================\n");
-        
-        free(filepath);
-        free(source_admin);
-        free(dest_admin);
     }
     
     return 0;

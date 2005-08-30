@@ -74,7 +74,7 @@ private:
     static long total_;
     int id_;
     std::vector<Message*> msgq_;
-    //   BundleTuple name_;
+    //   EndpointID name_;
 };
 
 } // namespace dtnsim

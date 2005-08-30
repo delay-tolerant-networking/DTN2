@@ -178,11 +178,11 @@ public:
 class SimAddRouteEvent : public SimEvent {
 public:
     SimAddRouteEvent(double time, SimEventHandler* handler,
-                     const BundleTuplePattern& dest, const char* nexthop)
+                     const EndpointIDPattern& dest, const char* nexthop)
 	: SimEvent(SIM_ADD_ROUTE, time, handler),
           dest_(dest), nexthop_(nexthop) {}
     
-    BundleTuplePattern dest_;
+    EndpointIDPattern dest_;
     std::string nexthop_;
 };
 

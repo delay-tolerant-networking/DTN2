@@ -50,7 +50,7 @@ if {! [info exists no_api] } {
 
 # set up the local route tupl
 if {! [info exists no_local_route]} {
-    route local_tuple bundles://internet/host://host-$id
+    route local_eid dtn://host-$id
 }
 
 #
@@ -65,6 +65,7 @@ proc setup_interface {cl {args ""}} {
 
     set port $ports($cl,$id)
     
-    eval interface add $cl host://$hosts($id):$port $args
+    eval interface add ${cl}if0 $cl \
+	    local_addr=$hosts($id) local_port=$port $args
 }
 

@@ -37,8 +37,8 @@
  */
 
 #include "SchemeTable.h"
+#include "DTNScheme.h"
 #include "EthernetScheme.h"
-#include "InternetScheme.h"
 #include "NoneScheme.h"
 #include "StringScheme.h"
 #include "WildcardScheme.h"
@@ -55,8 +55,8 @@ SchemeTable* oasys::Singleton<SchemeTable>::instance_ = 0;
  */
 SchemeTable::SchemeTable()
 {
-    table_["bp0"]	= InternetScheme::instance();
-    table_["internet"]	= InternetScheme::instance();
+    table_["bp0"]	= DTNScheme::instance(); // XXX/demmer temp
+    table_["dtn"]	= DTNScheme::instance();
     table_["str"]	= StringScheme::instance();
     table_["none"]	= NoneScheme::instance();
     table_["*"]		= WildcardScheme::instance();

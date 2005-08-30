@@ -67,11 +67,11 @@ NeighborhoodRouter::handle_contact_up(ContactUpEvent* event)
     // XXX/jakob - this is pretty nasty really. I believe the
     // bundles://<region> syntax needs to go very soon.
    
-    char tuplestring[255];
-    sprintf(tuplestring, "bundles://internet/%s*",event->contact_->nexthop());
+    char eidstring[255];
+    sprintf(eidstring, "bundles://internet/%s*",event->contact_->nexthop());
 
     // By default, we add a route for all the next hops we have around. 
-    RouteEntry* entry = new RouteEntry(BundleTuplePattern(tuplestring), 
+    RouteEntry* entry = new RouteEntry(EndpointIDPattern(eidstring), 
                                        event->contact_->link(),
                                        NULL,
                                        FORWARD_UNIQUE);

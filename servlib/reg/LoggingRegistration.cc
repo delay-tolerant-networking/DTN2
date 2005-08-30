@@ -48,7 +48,7 @@
 
 namespace dtn {
 
-LoggingRegistration::LoggingRegistration(const BundleTuplePattern& endpoint)
+LoggingRegistration::LoggingRegistration(const EndpointIDPattern& endpoint)
     : Registration(GlobalStore::instance()->next_regid(),
                    endpoint, Registration::ABORT)
 {
@@ -61,23 +61,14 @@ LoggingRegistration::LoggingRegistration(const BundleTuplePattern& endpoint)
 void
 LoggingRegistration::consume_bundle(Bundle* b)
 {
-    log_info("BUNDLE: id %d priority %s dopts: [%s %s %s %s %s]",
-             b->bundleid_, Bundle::prioritytoa(b->priority_),
-             b->custreq_ ? "custreq" : "",
-             b->custody_rcpt_ ? "custody_rcpt" : "",
-             b->recv_rcpt_ ? "recv_rcpt" : "",
-             b->fwd_rcpt_ ? "fwd_rcpt" : "",
-             b->return_rcpt_ ? "return_rcpt" : "");
+    // use the bundle's builtin verbose formatting function and
+    // generate the log output for all the header info
+    oasys::StringBuffer buf;
+    b->format_verbose(&buf);
+    log_multiline(oasys::LOG_INFO, buf.c_str());
 
-    log_info("        source:    %s", b->source_.c_str());
-    log_info("        dest:      %s", b->dest_.c_str());
-    log_info("        replyto:   %s", b->replyto_.c_str());
-    log_info("        custodian: %s", b->custodian_.c_str());
-    log_info("        created %u.%u, expiration %d",
-             (u_int32_t)b->creation_ts_.tv_sec,
-             (u_int32_t)b->creation_ts_.tv_usec,
-             b->expiration_);
-
+    // now dump a short chunk of the payload data, either in ascii or
+    // hexified string output
     size_t len = 128;
     size_t payload_len = b->payload_.length();
     if (payload_len < len) {
@@ -100,6 +91,7 @@ LoggingRegistration::consume_bundle(Bundle* b)
                  (u_int)payload_len, (int)len, hex.data());
     }
 
+    // post the transmitted event
     BundleDaemon::post(
         new BundleTransmittedEvent(b, this, b->payload_.length(), true));
 }

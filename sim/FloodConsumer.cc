@@ -44,7 +44,7 @@
 namespace dtnsim {
 
 FloodConsumer::FloodConsumer(u_int32_t regid,
-                             const BundleTuplePattern& endpoint)
+                             const EndpointIDPattern& endpoint)
     : Registration(regid, endpoint, Registration::ABORT)
 {
     set_active(true);

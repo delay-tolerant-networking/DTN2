@@ -37,7 +37,7 @@
  */
 
 // Only works on Linux (for now)
-#ifdef __linux
+#ifdef __XXX_demmer_fixme__linux
 
 #include <sys/poll.h>
 #include <stdlib.h>
@@ -89,15 +89,15 @@ EthConvergenceLayer::EthConvergenceLayer()
  */
 
 bool
-EthConvergenceLayer::add_interface(Interface* iface,
-                                   int argc, const char* argv[])
+EthConvergenceLayer::interface_up(Interface* iface,
+                                  int argc, const char* argv[])
 {
     // grab the interface name out of the string:// 
     // XXX/jakob - this fugly mess needs to change when we get the config stuff right
         
-    const char* if_name=iface->admin().c_str()+strlen("string://");  
+    const char* if_name=iface->eid().c_str()+strlen("string://");  
     
-    log_info("EthConvergenceLayer::add_interface(%s).",if_name);
+    log_info("EthConvergenceLayer::interface_up(%s).",if_name);
     
     Receiver* receiver = new Receiver(if_name);
     receiver->logpathf("/cl/eth");
@@ -112,7 +112,7 @@ EthConvergenceLayer::add_interface(Interface* iface,
 
 
 bool
-EthConvergenceLayer::del_interface(Interface* iface)
+EthConvergenceLayer::interface_down(Interface* iface)
 {
   // XXX/jakob - need to keep track of the Beacon and Receiver threads for each 
   //             interface and kill them.
@@ -127,8 +127,8 @@ EthConvergenceLayer::open_contact(Contact* contact)
     log_debug("opening contact *%p", contact);
 
     // parse out the address from the contact nexthop
-    BundleTuple bt(contact->nexthop());
-    if (! EthernetAddressFamily::parse(bt.admin().c_str(), &addr)) {
+    EndpointID eid(contact->nexthop());
+    if (! EthernetScheme::parse(eid.ssp(), &addr)) {
         log_err("next hop address '%s' not a valid eth uri",
                 contact->nexthop());
         return false;
@@ -223,7 +223,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 
         char next_hop_string[50];  
 	memset(next_hop_string,0,50);
-        EthernetAddressFamily::to_string((struct ether_addr*)ethhdr->ether_shost, next_hop_string);
+        EthernetScheme::to_string((struct ether_addr*)ethhdr->ether_shost, next_hop_string);
         
         char bundles_string[60];
         memset(bundles_string,0,60);
@@ -368,7 +368,7 @@ EthConvergenceLayer::Sender::Sender(char* if_name, Contact* contact)
     struct sockaddr_ll iface;
     
     memset(src_hw_addr_.octet, 0, 6); // determined in Sender::run()
-    EthernetAddressFamily::parse(contact->nexthop(), &dst_hw_addr_);
+    EthernetScheme::parse(contact->nexthop(), &dst_hw_addr_);
 
     strcpy(if_name_, if_name);
     sock_ = 0;

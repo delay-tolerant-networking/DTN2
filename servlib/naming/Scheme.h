@@ -69,9 +69,21 @@ public:
      *
      * @return true if it matches
      */
-    virtual bool match(EndpointIDPattern* pattern, const std::string& ssp) = 0;
-                       
+    virtual bool match(const EndpointIDPattern* pattern,
+                       const std::string& ssp) = 0;
 
+    /**
+     * Append the given service tag to the ssp in a scheme-specific
+     * manner. By default, the scheme is not capable of this.
+     *
+     * @return true if this scheme is capable of service tags and the
+     * tag is a legal one, false otherwise.
+     */
+    virtual bool append_service_tag(std::string* ssp, const char* tag)
+    {
+        return false;
+    }
+    
 protected:
     /**
      * Destructor (never called);

@@ -68,32 +68,35 @@ FileConvergenceLayer::FileConvergenceLayer()
 }
 
 /**
- * Pull a filesystem directory out of the next hop admin address.
+ * Pull a filesystem directory out of the next hop ssp.
  */
 bool
 FileConvergenceLayer::extract_dir(const char* nexthop, std::string* dirp)
 {
+
+    PANIC("XXX/demmer fix this implementation");
+    
     oasys::URL url(nexthop);
     
     if (! url.valid()) {
-        log_err("extract_dir: next hop admin '%s' not a valid url", nexthop);
+        log_err("extract_dir: next hop ssp '%s' not a valid url", nexthop);
         return false;
     }
 
-    // the admin part of the URL should be of the form:
-    // file:///path1/path2
+    // the ssp part of the URL should be of the form:
+    // /path1/path2
 
     // validate that the "host" part of the url is empty, i.e. that
     // the filesystem path is absolute
     if (url.host_.length() != 0) {
-        log_err("interface tuple '%s' specifies a non-absolute path",
+        log_err("interface eid '%s' specifies a non-absolute path",
                 nexthop);
         return false;
     }
 
     // and make sure there wasn't a port that was parsed out
     if (url.port_ != 0) {
-        log_err("interface tuple '%s' specifies a port", nexthop);
+        log_err("interface eid '%s' specifies a port", nexthop);
         return false;
     }
 
@@ -126,40 +129,44 @@ FileConvergenceLayer::validate_dir(const std::string& dir)
 }
 
 /**
- * Register a new interface.
+ * Bring up a new interface.
  */
 bool
-FileConvergenceLayer::add_interface(Interface* iface, int argc, const char* argv[])
+FileConvergenceLayer::interface_up(Interface* iface,
+                                   int argc, const char* argv[])
 {
-    // parse out the directory from the interface
-    std::string dir;
-    if (!extract_dir(iface->admin().c_str(), &dir)) {
-        return false;
-    }
+    NOTIMPLEMENTED;
     
-    // make sure the directory exists and is readable / executable
-    if (!validate_dir(dir)) {
-        return false;
-    }
+//     // parse out the directory from the interface
+//     std::string dir;
+//     if (!extract_dir(iface->eid().c_str(), &dir)) {
+//         return false;
+//     }
     
-    // XXX/demmer parse argv for frequency
-    int secs_per_scan = 5;
+//     // make sure the directory exists and is readable / executable
+//     if (!validate_dir(dir)) {
+//         return false;
+//     }
+    
+//     // XXX/demmer parse argv for frequency
+//     int secs_per_scan = 5;
 
-    // create a new thread to scan for new bundle files
-    Scanner* scanner = new Scanner(secs_per_scan, dir);
-    scanner->start();
+//     // create a new thread to scan for new bundle files
+//     Scanner* scanner = new Scanner(secs_per_scan, dir);
+//     scanner->start();
 
-    // store the new scanner in the cl specific part of the interface
-    iface->set_cl_info(scanner);
+//     // store the new scanner in the cl specific part of the interface
+//     iface->set_cl_info(scanner);
 
+    
     return true;
 }
 
 /**
- * Remove an interface
+ * Bring down the interface.
  */
 bool
-FileConvergenceLayer::del_interface(Interface* iface)
+FileConvergenceLayer::interface_down(Interface* iface)
 {
     CLInfo *cli = iface->cl_info();
     Scanner *scanner = (Scanner *)cli;
@@ -173,7 +180,7 @@ FileConvergenceLayer::del_interface(Interface* iface)
 }
  
 /**
- * Validate that the contact tuple specifies a legit directory.
+ * Validate that the contact eid specifies a legit directory.
  */
 bool
 FileConvergenceLayer::open_contact(Contact* contact)
@@ -208,6 +215,10 @@ FileConvergenceLayer::close_contact(Contact* contact)
 void
 FileConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
 {
+    // XXX/demmer fix this at some point
+    NOTIMPLEMENTED;
+
+#ifdef notimplemented
     std::string dir;
     if (!extract_dir(contact->nexthop(), &dir)) {
         PANIC("contact should have already been validated");
@@ -276,6 +287,7 @@ FileConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
                                    payload_len, acked));
         
     log_debug("bundle id %d successfully transmitted", bundle->bundleid_);
+#endif // notimplemented
 }
 
 /******************************************************************************

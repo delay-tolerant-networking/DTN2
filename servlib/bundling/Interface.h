@@ -38,9 +38,8 @@
 #ifndef _INTERFACE_H_
 #define _INTERFACE_H_
 
-#include "BundleTuple.h"
-#include "Contact.h"
 #include <oasys/debug/Log.h>
+#include <vector>
 
 namespace dtn {
 
@@ -50,12 +49,16 @@ class CLInfo;
 /**
  * Abstraction of a local dtn interface.
  *
- * Generally, interfaces are created by the console.
+ * Generally, interfaces are created by the configuration file /
+ * console.
  */
 class Interface {
 public:
+    // Data structure for the interface parameter list
+    typedef std::vector<std::string> ParamVector;
+    
     // Accessors
-    const std::string& admin()   const { return admin_; }
+    const std::string& name()    const { return name_; }
     const std::string& proto()   const { return proto_; }
     ConvergenceLayer*  clayer()  const { return clayer_; }
     CLInfo*	       cl_info() const { return cl_info_; }
@@ -74,15 +77,15 @@ public:
 protected:
     friend class InterfaceTable;
     
-    Interface(const std::string& admin, 
+    Interface(const std::string& name,
               const std::string& proto,
               ConvergenceLayer* clayer);
     ~Interface();
     
-    std::string admin_;			///< Local address of the interface
-    std::string proto_;			///< What type of CL
-    ConvergenceLayer* clayer_;		///< Convergence layer to use
-    CLInfo* cl_info_;			///< Convergence layer specific state
+    std::string name_;		///< Name of the interface
+    std::string proto_;		///< What type of CL
+    ConvergenceLayer* clayer_;	///< Convergence layer to use
+    CLInfo* cl_info_;		///< Convergence layer specific state
 };
 
 } // namespace dtn

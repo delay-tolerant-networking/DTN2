@@ -38,6 +38,7 @@
 
 #include <ctype.h>
 
+#include "applib/dtn_types.h"
 #include "EndpointID.h"
 #include "Scheme.h"
 #include "SchemeTable.h"
@@ -105,17 +106,82 @@ EndpointID::parse()
 }
 
 /**
+ * Append the specified service tag (in a scheme-specific manner)
+ * to the ssp.
+ *
+ * @return true if successful, false if the scheme doesn't support
+ * service tags
+ */
+bool
+EndpointID::append_service_tag(const char* tag)
+{
+    if (!scheme_)
+        return false;
+
+    bool ok = scheme_->append_service_tag(&ssp_, tag);
+    if (!ok)
+        return false;
+
+    // rebuild the string
+    str_ = scheme_str_ + ":" + ssp_;
+    
+    return true;
+}
+
+/**
+ * Set the string from the API type dtn_endpoint_id_t
+ *
+ * @return true if the string is a valid id, false if not.
+ */
+bool
+EndpointID::assign(const dtn_endpoint_id_t* eid)
+{
+    str_.assign(eid->uri);
+    return parse();
+}
+    
+/**
+ * Copy the endpoint id contents out to the API type
+ * dtn_endpoint_id_t.
+ */
+void
+EndpointID::copyto(dtn_endpoint_id_t* eid) const
+{
+    ASSERT(str_.length() <= DTN_MAX_ENDPOINT_ID + 1);
+    strcpy(eid->uri, str_.c_str());
+}
+
+
+/**
+ * Virtual from SerializableObject
+ */
+void
+EndpointID::serialize(oasys::SerializeAction* a)
+{
+    a->process("uri", &str_);
+    if (a->action() == oasys::Serialize::UNMARSHAL) {
+        parse();
+        ASSERT(valid_);
+    }
+}
+
+
+/**
  * Shortcut to the matching functionality implemented by the
  * scheme.
  */
 bool
-EndpointIDPattern::match(EndpointID* eid)
+EndpointIDPattern::match(const EndpointID& eid) const
 {
     if (! known_scheme()) {
         return false;
     }
+
+    if (scheme() != eid.scheme()) {
+        return false;
+    }
     
-    return scheme()->match(this, eid->ssp());
+    return scheme()->match(this, eid.ssp());
 }
 
 

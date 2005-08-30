@@ -78,11 +78,12 @@ extern int dtn_errno(dtn_handle_t handle);
 char* dtn_strerror(int err);
 
 /**
- * Information request function.
+ * Build an appropriate local endpoint id by appending the specified
+ * service tag to the daemon's preferred administrative endpoint id.
  */
-extern int dtn_get_info(dtn_handle_t handle,
-                        dtn_info_request_t request,
-                        dtn_info_response_t* response);
+extern int dtn_build_local_eid(dtn_handle_t handle,
+                               dtn_endpoint_id_t* local_eid,
+                               const char* service_tag);
 
 /**
  * Create or modify a dtn registration.
@@ -128,46 +129,15 @@ extern int dtn_recv(dtn_handle_t handle,
  *************************************************************/
 
 /*
- * Copy the value of one tuple to another.
- *
- * Note that this will _not_ call malloc for the admin part so the
- * underlying memory will be shared.
- *
+ * Copy the contents of one eid into another.
  */
-extern void dtn_copy_tuple(dtn_tuple_t* dst, dtn_tuple_t* src);
+extern void dtn_copy_eid(dtn_endpoint_id_t* dst, dtn_endpoint_id_t* src);
 
 /*
- * Sets the value of the tuple to the given region, admin, and
- * endpoint demultiplexer strings.
- *
- * If length fields are <= 0, then their corresponding values are
- * assumed to be C strings and strlen() is used to determine their
- * length.
- *
- * Returns: 0 on success, DTN_EINVAL if the arguments are malformed.
+ * Parse a string into an endpoint id structure, validating that it is
+ * in fact a valid endpoint id (i.e. a URI).
  */
-extern int dtn_set_tuple(dtn_tuple_t* tuple,
-                         char* region, size_t region_len,
-                         char* admin, size_t admin_len);
-
-/*
- * Queries the router for the default local tuple and appends the
- * given endpoint string to the url, assigning the result to the given
- * tuple pointer.
- *
- * Returns: 0 on success, XXX/demmer fill in others
- */
-extern int dtn_build_local_tuple(dtn_handle_t handle,
-                                 dtn_tuple_t* tuple, char* endpoint);
-
-/*
- * Parses the given string according to the generic schema
- * dtn://<region>/<admin> and assigns it to the given tuple.
- *
- * Returns: 0 on success, DTN_EINVAL if the given string is not a
- * valid tuple.
- */
-extern int dtn_parse_tuple_string(dtn_tuple_t* tuple, char* str);
+extern int dtn_parse_eid_string(dtn_endpoint_id_t* eid, const char* str);
 
 /*
  * Sets the value of the given payload structure to either a memory

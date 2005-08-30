@@ -78,16 +78,9 @@ BundleRouter::create_router(const char* type)
  * Constructor.
  */
 BundleRouter::BundleRouter(const std::string& name)
-    : name_(name), local_tuple_(Config.local_tuple_)
+    : name_(name)
 {
-    if (local_tuple_.length() == 0) {
-        local_tuple_.assign("bundles://internet/host://localhost");
-    }
-
     logpathf("/route/%s", name.c_str());
-    
-    log_debug("%s router initializing (local_tuple %s)",
-              name_.c_str(), local_tuple_.c_str());
     
     actions_ = BundleDaemon::instance()->actions();
 

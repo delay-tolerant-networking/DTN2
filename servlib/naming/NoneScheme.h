@@ -62,7 +62,8 @@ public:
      *
      * @return true if it matches
      */
-    virtual bool match(EndpointIDPattern* pattern, const std::string& ssp);
+    virtual bool match(const EndpointIDPattern* pattern,
+                       const std::string& ssp);
 
 private:
     friend class oasys::Singleton<NoneScheme>;

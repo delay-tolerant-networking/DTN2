@@ -39,8 +39,9 @@
 
 #include <oasys/io/NetUtils.h>
 #include <oasys/thread/Timer.h>
-#include <oasys/util/URL.h>
+#include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/util/URL.h>
 
 #include "UDPConvergenceLayer.h"
 #include "bundling/Bundle.h"
@@ -48,9 +49,10 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
-#include "bundling/InternetAddressFamily.h"
 
 namespace dtn {
+
+struct UDPConvergenceLayer::Params UDPConvergenceLayer::defaults_;
 
 /******************************************************************************
  *
@@ -61,45 +63,79 @@ namespace dtn {
 UDPConvergenceLayer::UDPConvergenceLayer()
     : IPConvergenceLayer("/cl/udp")
 {
+    defaults_.local_addr_		= INADDR_ANY;
+    defaults_.local_port_		= 5000;
+    defaults_.remote_addr_		= INADDR_NONE;
+    defaults_.remote_port_		= 0;
 }
+
+/**
+ * Parse variable args into a parameter structure.
+ */
+bool
+UDPConvergenceLayer::parse_params(Params* params,
+                                  int argc, const char** argv,
+                                  const char** invalidp)
+{
+    oasys::OptParser p;
+
+    p.addopt(new oasys::InAddrOpt("local_addr", &params->local_addr_));
+    p.addopt(new oasys::UInt16Opt("local_port", &params->local_port_));
+    p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
+    p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
+
+    if (! p.parse(argc, argv, invalidp)) {
+        return false;
+    }
+
+    return true;
+};
 
 /*
  * Register a new Interface 
  */
 bool
-UDPConvergenceLayer::add_interface(Interface* iface,
-                                   int argc, const char* argv[])
+UDPConvergenceLayer::interface_up(Interface* iface,
+                                  int argc, const char* argv[])
 {
-    in_addr_t addr;
-    u_int16_t port;
+    log_debug("adding interface %s", iface->name().c_str());
     
-    log_debug("adding interface %s", iface->admin().c_str());
-    
-    // parse out the address / port from the contact tuple
-    if (! InternetAddressFamily::parse(iface->admin(), &addr, &port)) {
-        log_err("interface address '%s'not a valid internet url",
-                iface->admin().c_str());
-        return false;
-    }
-    
-    // make sure the port was specified
-    if (port == 0) {
-        log_err("port not specified in admin url '%s'",
-                iface->admin().c_str());
+    // parse options (including overrides for the local_addr and
+    // local_port settings from the defaults)
+    Params params = UDPConvergenceLayer::defaults_;
+    const char* invalid;
+    if (!parse_params(&params, argc, argv, &invalid)) {
+        log_err("error parsing interface options: invalid option '%s'",
+                invalid);
         return false;
     }
 
+    // check that the local interface / port are valid
+    if (params.local_addr_ == INADDR_NONE) {
+        log_err("invalid local address setting of 0");
+        return false;
+    }
+
+    if (params.local_port_ == 0) {
+        log_err("invalid local port setting of 0");
+        return false;
+    }
+    
     // create a new server socket for the requested interface
-    Receiver* receiver = new Receiver();
-    receiver->logpathf("%s/iface/%s:%d", logpath_, intoa(addr), port);
+    Receiver* receiver = new Receiver(&params);
+    receiver->logpathf("%s/iface/%s", logpath_, iface->name().c_str());
     
-    if (receiver->bind(addr, port) != 0) {
-        receiver->logf(oasys::LOG_ERR,
-                       "error binding to requested socket: %s",
-                       strerror(errno));
-        return false;
+    if (receiver->bind(params.local_addr_, params.local_port_) != 0) {
+        return false; // error log already emitted
     }
-
+    
+    // check if the user specified a remote addr/port to connect to
+    if (params.remote_addr_ != INADDR_NONE) {
+        if (receiver->connect(params.remote_addr_, params.remote_port_) != 0) {
+            return false; // error log already emitted
+        }
+    }
+    
     // start the thread which automatically listens for data
     receiver->start();
     
@@ -112,7 +148,7 @@ UDPConvergenceLayer::add_interface(Interface* iface,
 
 
 bool
-UDPConvergenceLayer::del_interface(Interface* iface)
+UDPConvergenceLayer::interface_down(Interface* iface)
 {
     // grab the listener object, set a flag for the thread to stop and
     // then close the socket out from under it, which should cause the
@@ -130,6 +166,92 @@ UDPConvergenceLayer::del_interface(Interface* iface)
     return true;
 }
 
+
+/**
+ * Dump out CL specific interface information.
+ */
+void
+UDPConvergenceLayer::dump_interface(Interface* iface,
+                                    oasys::StringBuffer* buf)
+{
+    Params* params = &((Receiver*)iface->cl_info())->params_;
+    
+    buf->appendf("\tlocal_addr: %s local_port: %d\n",
+                 intoa(params->local_addr_), params->local_port_);
+    
+    if (params->remote_addr_ != INADDR_NONE) {
+        buf->appendf("\tconnected remote_addr: %s remote_port: %d\n",
+                     intoa(params->remote_addr_), params->remote_port_);
+    } else {
+        buf->appendf("\tnot connected\n");
+    }
+}
+
+/**
+ * Create any CL-specific components of the Link.
+ *
+ * This parses and validates the parameters and stores them in the
+ * CLInfo slot in the Link class.
+ */
+bool
+UDPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
+{
+    in_addr_t addr;
+    u_int16_t port = 0;
+    
+    log_debug("adding %s link %s", link->type_str(), link->nexthop());
+
+    // validate the link next hop address
+    if (! IPConvergenceLayer::parse_nexthop(link->nexthop(), &addr, &port)) {
+        log_err("invalid next hop address '%s'", link->nexthop());
+        return false;
+    }
+
+    // make sure it's really a valid address
+    if (addr == INADDR_ANY || addr == INADDR_NONE) {
+        log_err("invalid host in next hop address '%s'", link->nexthop());
+        return false;
+    }
+    
+    // make sure the port was specified
+    if (port == 0) {
+        log_err("port not specified in next hop address '%s'",
+                link->nexthop());
+        return false;
+    }
+
+    // Create a new parameters structure, parse the options, and store
+    // them in the link's cl info slot
+    Params* params = new Params(defaults_);
+    params->local_addr_ = INADDR_NONE;
+    params->local_port_ = 0;
+
+    const char* invalid;
+    if (! parse_params(params, argc, argv, &invalid)) {
+        log_err("error parsing link options: invalid option '%s'", invalid);
+        delete params;
+        return false;
+    }
+
+    link->set_cl_info(params);
+    return true;
+}
+
+/**
+ * Dump out CL specific link information.
+ */
+void
+UDPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+{
+    Params* params = (Params*)link->cl_info();
+    
+    buf->appendf("\tlocal_addr: %s local_port: %d\n",
+                 intoa(params->local_addr_), params->local_port_);
+    buf->appendf("\tremote_addr: %s remote_port: %d\n",
+                 intoa(params->remote_addr_), params->remote_port_);
+    // XXX/demmer more
+}
+
 bool
 UDPConvergenceLayer::open_contact(Contact* contact)
 {
@@ -138,26 +260,34 @@ UDPConvergenceLayer::open_contact(Contact* contact)
     
     log_debug("opening contact *%p", contact);
 
-    // parse out the address / port from the contact tuple
-    if (! InternetAddressFamily::parse(contact->nexthop(), &addr, &port)) {
-        log_err("next hop address '%s' not a valid internet url",
-                contact->nexthop());
-        return false;
-    }
+    Link* link = contact->link();
     
-    // make sure the port was specified
-    if (port == 0) {
-        log_err("port not specified in next hop address '%s'",
-                contact->nexthop());
-        return false;
-    }
+    // parse out the address / port from the nexthop address. note
+    // that these should have been validated in init_link() above, so
+    // we ASSERT as such
+    bool valid = parse_nexthop(link->nexthop(), &addr, &port);
+    ASSERT(valid == true);
+    ASSERT(addr != INADDR_NONE && addr != INADDR_ANY);
+    ASSERT(port != 0);
+    
+    Params* params = (Params*)link->cl_info();
     
     // create a new connection for the contact
-    // XXX/demmer bind?
     Sender* sender = new Sender(contact);
     sender->logpathf("/cl/udp/conn/%s:%d", intoa(addr), port);
     sender->set_logfd(false);
 
+    if (params->local_addr_ != INADDR_ANY || params->local_port_ != 0)
+    {
+        if (sender->bind(params->local_addr_, params->local_port_) != 0) {
+            log_err("error binding to %s:%d: %s",
+                    intoa(params->local_addr_), params->local_port_,
+                    strerror(errno));
+            delete sender;
+            return false;
+        }
+    }
+    
     if (sender->connect(addr, port) != 0) {
         log_err("error issuing udp connect to %s:%d: %s",
                 intoa(addr), port, strerror(errno));
@@ -211,12 +341,12 @@ UDPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  * UDPConvergenceLayer::Receiver
  *
  *****************************************************************************/
-UDPConvergenceLayer::Receiver::Receiver()
+UDPConvergenceLayer::Receiver::Receiver(UDPConvergenceLayer::Params* params)
     : UDPClient("/cl/udp/receiver")
 {
     logfd_ = false;
-    params_.reuseaddr_ = 1;
     Thread::flags_ |= INTERRUPTABLE;
+    params_ = *params;
 }
 
 void
@@ -336,60 +466,62 @@ UDPConvergenceLayer::Sender::Sender(Contact* contact)
 bool 
 UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 {
-    int iovcnt = BundleProtocol::MAX_IOVCNT; 
-    struct iovec iov[iovcnt + 1];
-    UDPCLHeader udpclhdr;
+    NOTIMPLEMENTED;
+        
+//     int iovcnt = BundleProtocol::MAX_IOVCNT; 
+//     struct iovec iov[iovcnt + 1];
+//     UDPCLHeader udpclhdr;
 
-    udpclhdr.magic	= ntohl(MAGIC);
-    udpclhdr.version	= UDPCL_VERSION;
-    udpclhdr.flags	= BUNDLE_DATA;
-    udpclhdr.source_id	= ntohs(local_port_);
-    udpclhdr.bundle_id	= ntohl(bundle->bundleid_);
+//     udpclhdr.magic	= ntohl(MAGIC);
+//     udpclhdr.version	= UDPCL_VERSION;
+//     udpclhdr.flags	= BUNDLE_DATA;
+//     udpclhdr.source_id	= ntohs(local_port_);
+//     udpclhdr.bundle_id	= ntohl(bundle->bundleid_);
 
-    // use iovec slot 0 for the udp cl header
-    iov[0].iov_base = (char*)&udpclhdr;
-    iov[0].iov_len  = sizeof(UDPCLHeader);
+//     // use iovec slot 0 for the udp cl header
+//     iov[0].iov_base = (char*)&udpclhdr;
+//     iov[0].iov_len  = sizeof(UDPCLHeader);
     
-    // fill in the rest of the iovec with the bundle header
-    u_int16_t header_len =
-        BundleProtocol::format_headers(bundle, &iov[1], &iovcnt);
-    size_t payload_len = bundle->payload_.length();
+//     // fill in the rest of the iovec with the bundle header
+//     u_int16_t header_len =
+//         BundleProtocol::format_headers(bundle, &iov[1], &iovcnt);
+//     size_t payload_len = bundle->payload_.length();
     
-    log_debug("send_bundle: bundle id %d, header_length %u payload_length %u",
-              bundle->bundleid_, (u_int)header_len, (u_int)payload_len);
+//     log_debug("send_bundle: bundle id %d, header_length %u payload_length %u",
+//               bundle->bundleid_, (u_int)header_len, (u_int)payload_len);
 
-    oasys::StringBuffer payload_buf(payload_len);
-    const u_char* payload_data =
-        bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
+//     oasys::StringBuffer payload_buf(payload_len);
+//     const u_char* payload_data =
+//         bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
 
-    // XXX/jakob - does this really work? seems there aren't enough slots in the iov array?
-    iov[iovcnt + 1].iov_base = (char*)payload_data;
-    iov[iovcnt + 1].iov_len = payload_len;
+//     // XXX/jakob - does this really work? seems there aren't enough slots in the iov array?
+//     iov[iovcnt + 1].iov_base = (char*)payload_data;
+//     iov[iovcnt + 1].iov_len = payload_len;
 
-    int cc = writevall(iov, iovcnt + 2);
+//     int cc = writevall(iov, iovcnt + 2);
 
-    // free up the iovec data used in the header representation
-    // (bundle header that is)
-    BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt);
+//     // free up the iovec data used in the header representation
+//     // (bundle header that is)
+//     BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt);
 
-    // check that we successfully wrote it all
-    int total = sizeof(UDPCLHeader) + header_len + payload_len;
-    bool ok;
-    if (cc == total) {
-        // cons up a transmission event and pass it to the router,
-        // indicating since acked=false that the protocol is unreliable
-        BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_->link(),
-                                       bundle->payload_.length(),
-                                       false));
-        ok = true;
-    } else {
-        log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
-                cc, total, strerror(errno));
-        ok = false;
-    }
+//     // check that we successfully wrote it all
+//     int total = sizeof(UDPCLHeader) + header_len + payload_len;
+//     bool ok;
+//     if (cc == total) {
+//         // cons up a transmission event and pass it to the router,
+//         // indicating since acked=false that the protocol is unreliable
+//         BundleDaemon::post(
+//             new BundleTransmittedEvent(bundle, contact_->link(),
+//                                        bundle->payload_.length(),
+//                                        false));
+//         ok = true;
+//     } else {
+//         log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
+//                 cc, total, strerror(errno));
+//         ok = false;
+//     }
     
-    return ok;
+//     return ok;
 }
 
 } // namespace dtn

@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2005 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,32 +35,61 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _FIXED_ADDRESS_FAMILY_H_
-#define _FIXED_ADDRESS_FAMILY_H_
+#ifndef _DTN_SCHEME_H_
+#define _DTN_SCHEME_H_
 
-#include "AddressFamily.h"
+#include "Scheme.h"
+#include <oasys/util/Singleton.h>
 
 namespace dtn {
 
-class FixedAddressFamily : public AddressFamily {
+
+/**
+ * This class implements the one default scheme as specified in the
+ * bundle protocol. SSPs for this scheme take the canonical form:
+ *
+ * dtn://<router identifier>[/<application tag>]
+ *
+ * Where <router identifier> is a DNS-style "hostname" string, however
+ * not necessarily a valid internet hostname, and <application tag> is
+ * any string of URI-valid characters.
+ *
+ * This implementation also supports limited wildcard matching for
+ * endpoint patterns.
+ */
+class DTNScheme : public Scheme, public oasys::Singleton<DTNScheme> {
 public:
-    FixedAddressFamily() : AddressFamily("__fixed__") {}
+    /**
+     * Validate that the given ssp is legitimate for this scheme. If
+     * the 'is_pattern' paraemeter is true, then the ssp is being
+     * validated as an EndpointIDPattern.
+     *
+     * @return true if valid
+     */
+    virtual bool validate(const std::string& ssp, bool is_pattern = false);
+
+    /**
+     * Match the given ssp with the given pattern.
+     *
+     * @return true if it matches
+     */
+    virtual bool match(const EndpointIDPattern* pattern,
+                       const std::string& ssp);
     
     /**
-     * Determine if the administrative string is valid.
+     * Append the given service tag to the ssp in a scheme-specific
+     * manner.
+     *
+     * @return true if this scheme is capable of service tags and the
+     * tag is a legal one, false otherwise.
      */
-    bool validate(const std::string& admin);
-
-    /**
-     * Compare two admin strings, implementing any wildcarding or
-     * pattern matching semantics. The default implementation just
-     * does a byte by byte string comparison.
-     */
-    bool match(const std::string& pattern,
-               const std::string& admin);
-
+    virtual bool append_service_tag(std::string* ssp, const char* tag);
+    
+private:
+    friend class oasys::Singleton<DTNScheme>;
+    DTNScheme() {}
 };
+    
+}
 
-} // namespace dtn
-
-#endif /* _FIXED_ADDRESS_FAMILY_H_ */
+#endif /* _DTN_SCHEME_H_ */

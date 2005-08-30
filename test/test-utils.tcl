@@ -117,8 +117,8 @@ proc sendbundle {{peerid -1} {demux "test"}} {
 	append payload "."
     }
     
-    bundle inject bundles://internet/host://host-$id/		\
-	    	  bundles://internet/host://host-$peerid/test	\
+    bundle inject dtn://host-$id/		\
+	    	  dtn://host-$peerid/test	\
 		  $payload $length
 }
 

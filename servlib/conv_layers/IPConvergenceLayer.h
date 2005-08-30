@@ -38,13 +38,18 @@
 #ifndef _IP_CONVERGENCE_LAYER_H_
 #define _IP_CONVERGENCE_LAYER_H_
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <oasys/compat/inttypes.h>
+
 #include "ConvergenceLayer.h"
 
 namespace dtn {
 
 /**
- * Base class for the TCP and UDP convergence layers. The class has no
- * public interface since one of the subclasses is always used.
+ * Base class for shared functionality between the TCP and UDP
+ * convergence layers (currently none).
  */
 class IPConvergenceLayer : public ConvergenceLayer {
 protected:
@@ -55,6 +60,15 @@ protected:
         : ConvergenceLayer(logpath)
     {
     }
+
+    /**
+     * Parse a next hop address specification of the form
+     * <host>[:<port>?].
+     *
+     * @return true if the conversion was successful, false
+     */
+    bool parse_nexthop(const char* nexthop,
+                       in_addr_t* addr, u_int16_t* port);
     
 public:
 };

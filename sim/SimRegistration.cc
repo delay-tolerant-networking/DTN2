@@ -49,8 +49,8 @@ using namespace dtn;
 
 namespace dtnsim {
 
-SimRegistration::SimRegistration(Node* node, const BundleTuple& demux_tuple)
-    : Registration(node->next_regid(), demux_tuple, ABORT), node_(node)
+SimRegistration::SimRegistration(Node* node, const EndpointID& endpoint)
+    : Registration(node->next_regid(), endpoint, ABORT), node_(node)
 {
     logpathf("/reg/%s/%d", node->name(), regid_);
 

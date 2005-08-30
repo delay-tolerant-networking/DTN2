@@ -43,7 +43,6 @@
 #include <oasys/thread/Thread.h>
 
 #include "APIRegistration.h"
-#include "bundling/BundleTuple.h"
 
 namespace dtn {
 
@@ -59,7 +58,7 @@ namespace dtn {
  */
 class TclRegistration : public APIRegistration {
 public:
-    TclRegistration(const BundleTuplePattern& endpoint,
+    TclRegistration(const EndpointIDPattern& endpoint,
                     Tcl_Interp* interp);
     int exec(int argc, const char** argv, Tcl_Interp* interp);
 

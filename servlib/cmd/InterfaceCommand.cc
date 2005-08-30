@@ -37,7 +37,6 @@
  */
 
 #include "InterfaceCommand.h"
-#include "bundling/AddressFamily.h"
 #include "bundling/InterfaceTable.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include <oasys/util/StringBuffer.h>
@@ -50,8 +49,8 @@ InterfaceCommand::InterfaceCommand()
 const char*
 InterfaceCommand::help_string()
 {
-    return("interface add <conv_layer> <tuple> [<args>?]\n"
-           "interface del <conv_layer> <tuple>\n"
+    return("interface add <name> <conv_layer> [<args>?]\n"
+           "interface del <name>\n"
            "interface list");
 }
 
@@ -59,10 +58,7 @@ int
 InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
     // interface list
-    // interface add <conv_layer> <admin>
-    // interface del <conv_layer> <admin>
-
-    if (strcmp("list", argv[1]) == 0) {
+    if (strcasecmp("list", argv[1]) == 0) {
         if (argc > 2) {
             wrong_num_args(argc, argv, 1, 2, 2);
         }
@@ -71,52 +67,50 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         set_result(buf.c_str());
         return TCL_OK;
     }
-
-    if (argc < 4) {
-        wrong_num_args(argc, argv, 1, 4, INT_MAX);
-        return TCL_ERROR;
-    }
     
-    const char* proto = argv[2];
-    const char* admin = argv[3];
-
-    ConvergenceLayer* cl = ConvergenceLayer::find_clayer(proto);
-    if (!cl) {
-        resultf("can't find convergence layer for %s", proto);
-        return TCL_ERROR;
-    }
-
-    bool valid;
-    AddressFamily* af = AddressFamilyTable::instance()->lookup(admin, &valid);
-
-    if (!af || !valid) {
-        resultf("invalid interface admin string '%s'", admin);
-        return TCL_ERROR;
-    }
-
-    if (strcasecmp(argv[1], "add") == 0) {
-        if (! InterfaceTable::instance()->add(admin, cl, proto,
-                                              argc - 4, argv + 4)) {
-            resultf("error adding interface %s %s", proto, admin);
+    // interface add <name> <conv_layer> <args>
+    else if (strcasecmp(argv[1], "add") == 0) {
+        if (argc < 4) {
+            wrong_num_args(argc, argv, 1, 4, INT_MAX);
             return TCL_ERROR;
         }
-    } else if (strcasecmp(argv[1], "del") == 0) {
-        if (argc != 4) {
+        
+        const char* name    = argv[2];
+        const char* proto   = argv[3];
+
+        ConvergenceLayer* cl = ConvergenceLayer::find_clayer(proto);
+        if (!cl) {
+            resultf("can't find convergence layer for %s", proto);
+            return TCL_ERROR;
+        }
+    
+        if (! InterfaceTable::instance()->add(name, cl, proto,
+                                              argc - 4, argv + 4)) {
+            resultf("error adding interface %s", name);
+            return TCL_ERROR;
+        }
+        return TCL_OK;
+    }
+
+    // interface del <name>
+    else if (strcasecmp(argv[1], "del") == 0) {
+        if (argc != 3) {
             wrong_num_args(argc, argv, 2, 4, 4);
             return TCL_ERROR;
         }
 
-        if (! InterfaceTable::instance()->del(admin, cl, proto)) {
-            resultf("error removing interface %s %s", proto, admin);
+        const char* name = argv[2];
+        
+        if (! InterfaceTable::instance()->del(name)) {
+            resultf("error removing interface %s", name);
             return TCL_ERROR;
         }
 
-    } else {
-        resultf("invalid interface subcommand %s", argv[1]);
-        return TCL_ERROR;
+        return TCL_OK;
     }
-
-    return TCL_OK;
+    
+    resultf("invalid interface subcommand %s", argv[1]);
+    return TCL_ERROR;
 }
 
 } // namespace dtn

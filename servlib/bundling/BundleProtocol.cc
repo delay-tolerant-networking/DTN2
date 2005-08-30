@@ -36,29 +36,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * NTP timestamp conversion routines included from the ntp source
- * distribution and is therefore subject to the following copyright.
- * 
- ***********************************************************************
- *                                                                     *
- * Copyright (c) David L. Mills 1992-2003                              *
- *                                                                     *
- * Permission to use, copy, modify, and distribute this software and   *
- * its documentation for any purpose and without fee is hereby         *
- * granted, provided that the above copyright notice appears in all    *
- * copies and that both the copyright notice and this permission       *
- * notice appear in supporting documentation, and that the name        *
- * University of Delaware not be used in advertising or publicity      *
- * pertaining to distribution of the software without specific,        *
- * written prior permission. The University of Delaware makes no       *
- * representations about the suitability this software for any         *
- * purpose. It is provided "as is" without express or implied          *
- * warranty.                                                           *
- *                                                                     *
- ***********************************************************************
- */
-
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <algorithm>
@@ -66,163 +43,245 @@
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/util/StringUtils.h>
 
-#include "AddressFamily.h"
 #include "Bundle.h"
 #include "BundleProtocol.h"
+#include "SDNV.h"
 
 namespace dtn {
 
+struct DictionaryEntry {
+    DictionaryEntry(const std::string& s, size_t off)
+        : str(s), offset(off) {}
+    
+    std::string str;
+    size_t offset;
+};
+
+typedef std::vector<DictionaryEntry> DictionaryVector;
+
 /**
- * For the region and admin parts of the given tuple, fill in the
- * corresponding index into the string vector.
+ * For the scheme and ssp parts of the given endpoint id, see if
+ * they've already appeared in the vector. If not, add them, and
+ * record their length (with the null terminator) in the running
+ * length total.
  */
 static inline void
-add_to_dict(u_int8_t* id, const BundleTuple& tuple,
-            oasys::StringVector* tuples, size_t* dictlen)
+add_to_dict(const EndpointID& eid, DictionaryVector* dict, size_t* dictlen)
 {
-    u_int8_t region_id, admin_id;
-    oasys::StringVector::iterator iter;
+    DictionaryVector::iterator iter;
+    bool found_scheme = false;
+    bool found_ssp = false;
 
-    // first the region string
-    iter = std::find(tuples->begin(), tuples->end(), tuple.region());
-    if (iter == tuples->end()) {
-        tuples->push_back(tuple.region());
-        region_id = tuples->size() - 1;
-        *dictlen += (tuple.region().length() + 1);
-    } else {
-        region_id = iter - tuples->begin();
+    for (iter = dict->begin(); iter != dict->end(); ++iter) {
+        if (iter->str == eid.scheme_str())
+            found_scheme = true;
+
+        if (iter->str == eid.ssp())
+            found_ssp = true;
     }
 
-    // then the admin string
-    iter = std::find(tuples->begin(), tuples->end(), tuple.admin());
-    if (iter == tuples->end()) {
-        tuples->push_back(tuple.admin());
-        admin_id = tuples->size() - 1;
-        *dictlen += (tuple.admin().length() + 1);
-    } else {
-        admin_id = iter - tuples->begin();
+    if (found_scheme == false) {
+        dict->push_back(DictionaryEntry(eid.scheme_str(), *dictlen));
+        *dictlen += (eid.scheme_str().length() + 1);
     }
 
-    // cons up the id field, making sure each id fits in 4 bits
-    ASSERT((region_id <= 0xf) && (admin_id <= 0xf));
-    *id = ((region_id << 4) | admin_id);
-}
-
-/**
- * Fill in the given iovec with the formatted bundle header.
- *
- * @return the total length of the header or -1 on error
- */
-size_t
-BundleProtocol::format_headers(const Bundle* bundle,
-                               struct iovec* iov, int* iovcnt)
-{
-    // make sure that iovcnt is big enough for:
-    // 1) primary header
-    // 2) dictionary header and string data
-    // 3) payload header
-    //
-    // optional ones including:
-    // 4) fragmentation header
-    // 5) authentication header
-    // 6) extension headers (someday)
-    ASSERT(*iovcnt >= 6);
-
-    // by definition, all headers have next_header_type as their first
-    // byte, so this can be used to set the type field as we progress
-    // through building the vector.
-    u_int8_t* next_header_type;
-
-    //
-    // primary header
-    //
-    PrimaryHeader* primary      = (PrimaryHeader*)malloc(sizeof (PrimaryHeader));
-    primary->version 		= CURRENT_VERSION;
-    primary->class_of_service 	= format_cos(bundle);
-    primary->payload_security 	= format_payload_security(bundle);
-    primary->expiration 	= htonl(bundle->expiration_);
-    set_timestamp(&primary->creation_ts, &bundle->creation_ts_);
-
-    next_header_type = &primary->next_header_type;
-    iov[0].iov_base = (char*)primary;
-    iov[0].iov_len  = sizeof(PrimaryHeader);
-    *iovcnt = 1;
-
-    // now figure out how many unique tuples there are, storing the
-    // unique ones in a temp vector and assigning the corresponding
-    // string ids in the primary header. keep track of the total
-    // length of the dictionary header in the process
-    oasys::StringVector tuples;
-    size_t dictlen = sizeof(DictionaryHeader);
-    add_to_dict(&primary->source_id,    bundle->source_,    &tuples, &dictlen);
-    add_to_dict(&primary->dest_id,      bundle->dest_,      &tuples, &dictlen);
-    add_to_dict(&primary->custodian_id, bundle->custodian_, &tuples, &dictlen);
-    add_to_dict(&primary->replyto_id,   bundle->replyto_,   &tuples, &dictlen);
-                      
-    //
-    // dictionary header (must follow the primary)
-    //
-    DictionaryHeader* dictionary = (DictionaryHeader*)malloc(dictlen);
-    int ntuples = tuples.size();
-    dictionary->string_count = ntuples;
-    
-    u_char* records = &dictionary->records[0];
-    for (int i = 0; i < ntuples; ++i) {
-        *records++ = tuples[i].length();
-        memcpy(records, tuples[i].data(), tuples[i].length());
-        records += tuples[i].length();
+    if (found_ssp == false) {
+        dict->push_back(DictionaryEntry(eid.ssp(), *dictlen));
+        *dictlen += (eid.ssp().length() + 1);
     }
-
-    *next_header_type = HEADER_DICTIONARY;
-    next_header_type = &dictionary->next_header_type;
-    iov[*iovcnt].iov_base = (char*)dictionary;
-    iov[*iovcnt].iov_len  = dictlen;
-    (*iovcnt)++;
-
-    //
-    // fragment header (if it's a fragment)
-    //
-    if (bundle->is_fragment_) {
-        FragmentHeader* fragment = (FragmentHeader*)malloc(sizeof(FragmentHeader));
-        u_int32_t orig_length = htonl(bundle->orig_length_);
-        u_int32_t frag_offset = htonl(bundle->frag_offset_);
-        memcpy(&fragment->orig_length, &orig_length, sizeof(orig_length));
-        memcpy(&fragment->frag_offset, &frag_offset, sizeof(frag_offset));
-
-        *next_header_type = HEADER_FRAGMENT;
-        next_header_type = &fragment->next_header_type;
-        iov[*iovcnt].iov_base = (char*)fragment;
-        iov[*iovcnt].iov_len  = sizeof(FragmentHeader);
-        (*iovcnt)++;
-    }
-
-    //
-    // payload header (must be last)
-    //
-    PayloadHeader* payload = (PayloadHeader*)malloc(sizeof(PayloadHeader));
-    u_int32_t payloadlen = htonl(bundle->payload_.length());
-    memcpy(&payload->length, &payloadlen, 4);
-    
-    *next_header_type = HEADER_PAYLOAD;
-    payload->next_header_type = HEADER_NONE;
-    iov[*iovcnt].iov_base = (char*)payload;
-    iov[*iovcnt].iov_len  = sizeof(PayloadHeader);
-    (*iovcnt)++;
-
-    // calculate the total length and then we're done
-    int total_len = 0;
-    for (int i = 0; i < *iovcnt; i++) {
-        total_len += iov[i].iov_len;
-    }
-    return total_len;
 }
 
 void
-BundleProtocol::free_header_iovmem(const Bundle* bundle, struct iovec* iov, int iovcnt)
+get_dict_offsets(DictionaryVector *dict, EndpointID eid,
+                 u_int16_t* scheme_offset, u_int16_t* ssp_offset)
 {
-    for (int i = 0; i < iovcnt; ++i) {
-        free(iov[i].iov_base);
+    DictionaryVector::iterator iter;
+    for (iter = dict->begin(); iter != dict->end(); ++iter) {
+        if (iter->str == eid.scheme_str())
+            *scheme_offset = htons(iter->offset);
+        
+        if (iter->str == eid.ssp())
+            *ssp_offset = htons(iter->offset);
     }
+}
+
+/**
+ * Fill in the given buffer with the formatted bundle headers
+ * including the payload header, but not the payload data.
+ *
+ * @return the total length of the header or -1 on error
+ */
+int
+BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
+{
+    static const char* log = "/bundle/protocol";
+    DictionaryVector dict;
+    size_t orig_len = len;
+    size_t primary_len = 0;
+    size_t dictionary_len = 0;
+    int encoding_len = 0; 	// use an int to handle -1 return values
+    
+    /*
+     * We need to figure out the total length of the primary header,
+     * except for the SDNV used to encode the length itself and the
+     * three byte preamble (PrimaryHeader1).
+     *
+     * First, we determine the size of the dictionary by first
+     * figuring out all the unique strings, and in the process,
+     * remembering their offsets and summing up their lengths
+     * (including the null terminator for each).
+     */
+    add_to_dict(bundle->dest_,      &dict, &dictionary_len);
+    add_to_dict(bundle->source_,    &dict, &dictionary_len);
+    add_to_dict(bundle->custodian_, &dict, &dictionary_len);
+    add_to_dict(bundle->replyto_,   &dict, &dictionary_len);
+
+    log_debug(log, "generated dictionary length %u", dictionary_len);
+    
+    primary_len += SDNV::encoding_len(dictionary_len);
+    primary_len += dictionary_len;
+
+    /*
+     * If the bundle is a fragment, we need to include space for the
+     * fragment offset and the original payload length.
+     */
+    if (bundle->is_fragment_) {
+        primary_len += SDNV::encoding_len(bundle->frag_offset_);
+        primary_len += SDNV::encoding_len(bundle->orig_length_);
+    }
+
+    /*
+     * Finally, tack on the PrimaryHeader2.
+     */
+    primary_len += sizeof(PrimaryHeader2);
+    
+    /*
+     * Now, make sure we have enough space in the buffer for the whole
+     * primary header.
+     */
+    if (len < (sizeof(PrimaryHeader1) +
+               SDNV::encoding_len(primary_len) +
+               primary_len))
+    {
+        return -1;
+    }
+    
+    log_debug(log, "preamble length %u, primary length %u",
+              sizeof(PrimaryHeader1) + SDNV::encoding_len(primary_len),
+              primary_len);
+    
+    /*
+     * Ok, stuff in the preamble and the total header length.
+     */
+    PrimaryHeader1* primary1    = (PrimaryHeader1*)buf;
+    primary1->version 		= CURRENT_VERSION;
+    primary1->processing_flags  = format_processing_flags(bundle);
+    primary1->class_of_service 	= format_cos(bundle);
+    
+    encoding_len = SDNV::encode(primary_len,
+                                &primary1->header_length[0], len - 3);
+    ASSERT(encoding_len > 0);
+    buf += (sizeof(PrimaryHeader1) + encoding_len);
+    len -= (sizeof(PrimaryHeader1) + encoding_len);
+
+    /*
+     * Now fill in the PrimaryHeader2.
+     */
+    PrimaryHeader2* primary2    = (PrimaryHeader2*)buf;
+
+    get_dict_offsets(&dict, bundle->dest_,
+                     &primary2->dest_scheme_offset,
+                     &primary2->dest_ssp_offset);
+    
+    get_dict_offsets(&dict, bundle->source_,
+                     &primary2->source_scheme_offset,
+                     &primary2->source_ssp_offset);
+
+    get_dict_offsets(&dict, bundle->custodian_,
+                     &primary2->custodian_scheme_offset,
+                     &primary2->custodian_ssp_offset);
+    
+    get_dict_offsets(&dict, bundle->replyto_,
+                     &primary2->replyto_scheme_offset,
+                     &primary2->replyto_ssp_offset);
+
+    log_debug(log, "dictionary offsets: dest %u,%u source %u,%u, "
+              "custodian %u,%u replyto %u,%u",
+              ntohs(primary2->dest_scheme_offset),
+              ntohs(primary2->dest_ssp_offset),
+              ntohs(primary2->source_scheme_offset),
+              ntohs(primary2->source_ssp_offset),
+              ntohs(primary2->custodian_scheme_offset),
+              ntohs(primary2->custodian_ssp_offset),
+              ntohs(primary2->replyto_scheme_offset),
+              ntohs(primary2->replyto_ssp_offset));
+    
+    set_timestamp(&primary2->creation_ts, &bundle->creation_ts_);
+    u_int32_t lifetime = htonl(bundle->expiration_);
+    memcpy(&primary2->lifetime, &lifetime, sizeof(lifetime));
+
+    buf += sizeof(PrimaryHeader2);
+    len -= sizeof(PrimaryHeader2);
+
+    /*
+     * Stuff in the dictionary length and dictionary bytes.
+     */
+    encoding_len = SDNV::encode(dictionary_len, buf, len);
+    ASSERT(encoding_len > 0);
+    buf += encoding_len;
+    len -= encoding_len;
+    
+    DictionaryVector::iterator dict_iter;
+    for (dict_iter = dict.begin(); dict_iter != dict.end(); ++dict_iter) {
+        strcpy((char*)buf, dict_iter->str.c_str());
+        buf += dict_iter->str.length() + 1;
+        len -= dict_iter->str.length() + 1;
+    }
+
+    /*
+     * If the bundle is a fragment, stuff in SDNVs for the fragment
+     * offset and original length.
+     */
+    if (bundle->is_fragment_) {
+        encoding_len = SDNV::encode(bundle->frag_offset_, buf, len);
+        ASSERT(encoding_len > 0);
+        buf += encoding_len;
+        len -= encoding_len;
+
+        encoding_len = SDNV::encode(bundle->orig_length_, buf, len);
+        ASSERT(encoding_len > 0);
+        buf += encoding_len;
+        len -= encoding_len;
+    }
+
+    // XXX/demmer deal with other experimental headers
+    
+    /*
+     * Payload header (must be last). Note that we don't stuff in the
+     * actual payload here, even though it's technically part of the
+     * "payload header".
+     */
+    u_int32_t payload_len = bundle->payload_.length();
+    if (len < (sizeof(HeaderPreamble) +
+               SDNV::encoding_len(payload_len)))
+    {
+        return -1;
+    }
+    
+    HeaderPreamble* payload_header = (HeaderPreamble*)buf;
+    payload_header->type = HEADER_PAYLOAD;
+    payload_header->flags = 0;
+    buf += sizeof(HeaderPreamble);
+    len -= sizeof(HeaderPreamble);
+    
+    encoding_len = SDNV::encode(payload_len, buf, len);
+    ASSERT(encoding_len > 0);
+    buf += encoding_len;
+    len -= encoding_len;
+
+    // return the total buffer length consumed
+    log_debug(log, "encoding done -- total length %u", orig_len - len);
+    return orig_len - len;
 }
 
 int
@@ -230,231 +289,238 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
 {
     static const char* log = "/bundle/protocol";
     size_t origlen = len;
-    u_int8_t next_header_type;
+    int encoding_len;
 
-    //
-    // primary header
-    //
-    PrimaryHeader* primary;
-    if (len < sizeof(PrimaryHeader)) {
- tooshort:
-        log_err(log, "bundle too short (length %d)", (u_int)len);
+    /*
+     * First the three bytes of the PrimaryHeader1
+     */
+    PrimaryHeader1* primary1;
+    if (len < sizeof(PrimaryHeader1)) {
+ tooshort1:
+        log_err(log, "buffer too short (parsed %u/%u)",
+                (u_int)origlen - len, (u_int)origlen);
         return -1;
     }
     
-    primary = (PrimaryHeader*)buf;
-    buf += sizeof(PrimaryHeader);
-    len -= sizeof(PrimaryHeader);
-
-    if (primary->version != CURRENT_VERSION) {
+    primary1 = (PrimaryHeader1*)buf;
+    buf += sizeof(PrimaryHeader1);
+    len -= sizeof(PrimaryHeader1);
+    
+    log_debug(log, "parsed primary header 1: version %d", primary1->version);
+    
+    if (primary1->version != CURRENT_VERSION) {
         log_warn(log, "protocol version mismatch %d != %d",
-                 primary->version, CURRENT_VERSION);
+                 primary1->version, CURRENT_VERSION);
         return -1;
     }
 
-    // now pull out the fields from the primary header
-    parse_cos(bundle, primary->class_of_service);
-    parse_payload_security(bundle, primary->payload_security);
-    bundle->expiration_  = ntohl(primary->expiration);
-    get_timestamp(&bundle->creation_ts_, &primary->creation_ts);
+    parse_processing_flags(bundle, primary1->processing_flags);
+    parse_cos(bundle, primary1->class_of_service);
 
-    //
-    // dictionary header (must follow primary)
-    //
-    DictionaryHeader* dictionary;
-    if (primary->next_header_type != HEADER_DICTIONARY) {
-        log_err(log, "dictionary header doesn't follow primary");
+    /*
+     * Now parse the SDNV that describes the total primary header
+     * length.
+     */
+    u_int32_t primary_len;
+    encoding_len = SDNV::decode(buf, len, &primary_len);
+    if (encoding_len == -1) {
+        goto tooshort1;
+    }
+
+    buf += encoding_len;
+    len -= encoding_len;
+
+    log_debug(log, "parsed primary header length %u", primary_len);
+
+    /*
+     * Check if the advertised length is bigger than the amount we
+     * have.
+     */
+    if (len < primary_len) {
+        goto tooshort1;
+    }
+
+    /*
+     * Still, we need to make sure that the sender didn't lie and that
+     * we really do have enough for the decoding...
+     */
+    if (len < sizeof(PrimaryHeader2)) {
+ tooshort2:
+        log_err(log, "primary header advertised incorrect length: "
+                "advertised %u, total buffer %d", primary_len, (u_int)len);
         return -1;
     }
 
-    if (len < sizeof(DictionaryHeader)) {
-        goto tooshort;
+    /*
+     * Parse the PrimaryHeader2
+     */
+    PrimaryHeader2* primary2    = (PrimaryHeader2*)buf;
+    buf += sizeof(PrimaryHeader2);
+    len -= sizeof(PrimaryHeader2);
+
+    get_timestamp(&bundle->creation_ts_, &primary2->creation_ts);
+    u_int32_t lifetime;
+    memcpy(&lifetime, &primary2->lifetime, sizeof(lifetime));
+    bundle->expiration_ = ntohl(lifetime);
+
+    /*
+     * Read the dictionary length.
+     */
+    u_int32_t dictionary_len = 0;
+    encoding_len = SDNV::decode(buf, len, &dictionary_len);
+    if (encoding_len < 0) {
+        goto tooshort2;
+    }
+    buf += encoding_len;
+    len -= encoding_len;
+
+    /*
+     * Verify that we have the whole dictionary.
+     */
+    if (len < dictionary_len) {
+        goto tooshort2;
     }
 
-    // grab the header and advance the pointers
-    dictionary = (DictionaryHeader*)buf;
-    next_header_type = dictionary->next_header_type;
-    buf += sizeof(DictionaryHeader);
-    len -= sizeof(DictionaryHeader);
-
-    // pull out the tuple data into a local temporary array (there can
-    // be at most 8 entries)
-    u_char* tupledata[8];
-    size_t  tuplelen[8];
-    
-    for (int i = 0; i < dictionary->string_count; ++i) {
-        if (len < 1)
-            goto tooshort;
-        
-        tuplelen[i] = *buf++;
-        len--;
-        
-        if (len < tuplelen[i])
-            goto tooshort;
-        
-        tupledata[i] = buf;
-        buf += tuplelen[i];
-        len -= tuplelen[i];
+    /*
+     * Make sure that the dictionary ends with a null byte.
+     */
+    if (buf[dictionary_len - 1] != '\0') {
+        log_err(log, "dictionary does not end with a NULL character!");
+        return -1;
     }
-
-    // now, pull out the tuples
-    u_int8_t region_id, admin_id;
-
-    AddressFamily* fixed_family =
-        AddressFamilyTable::instance()->fixed_family();
+     
+    /*
+     * Now use the dictionary buffer to parse out the various endpoint
+     * identifiers, making sure that none of them peeks past the end
+     * of the dictionary header.
+     */
+    u_char* dictionary = buf;
+    buf += dictionary_len;
+    len -= dictionary_len;
     
-#define EXTRACT_DICTIONARY_TUPLE(_what)                                 \
-    region_id = primary->_what##id >> 4;                                \
-    admin_id  = primary->_what##id & 0xf;                               \
-    ASSERT((region_id <= 0xf) && (admin_id <= 0xf));                    \
+    u_int16_t scheme_offset, ssp_offset;
+    
+#define EXTRACT_DICTIONARY_EID(_what)                                   \
+    memcpy(&scheme_offset, &primary2->_what##_scheme_offset, 2);        \
+    memcpy(&ssp_offset, &primary2->_what##_ssp_offset, 2);              \
+    scheme_offset = ntohs(scheme_offset);                               \
+    ssp_offset = ntohs(ssp_offset);                                     \
                                                                         \
-    bundle->_what.assign(tupledata[region_id], tuplelen[region_id],     \
-                         tupledata[admin_id],  tuplelen[admin_id]);     \
-                                                                        \
-    if (! bundle->_what.valid()) {                                      \
-        log_err(log, "invalid %s tuple '%s'", #_what,                   \
-                bundle->_what.c_str());                                 \
+    if (scheme_offset > (dictionary_len - 1)) {                         \
+        log_err(log, "illegal offset for %s scheme dictionary offset: " \
+                "offset %d, total length %u", #_what,                   \
+                scheme_offset, dictionary_len);                         \
         return -1;                                                      \
     }                                                                   \
                                                                         \
-    if (bundle->_what.family() == fixed_family)                         \
-    {                                                                   \
-        PANIC("fixed family transmission not implemented");             \
+    if (ssp_offset > (dictionary_len - 1)) {                            \
+        log_err(log, "illegal offset for %s ssp dictionary offset: "    \
+                "offset %d, total length %u", #_what,                   \
+                ssp_offset, dictionary_len);                            \
+        return -1;                                                      \
+    }                                                                   \
+    bundle->_what##_.assign((char*)&dictionary[scheme_offset],          \
+                            (char*)&dictionary[ssp_offset]);            \
+                                                                        \
+                                                                        \
+    if (! bundle->_what##_.valid()) {                                   \
+        log_err(log, "invalid %s endpoint id '%s'", #_what,             \
+                bundle->_what##_.c_str());                              \
+        return -1;                                                      \
     }                                                                   \
                                                                         \
-    log_debug(log, "parsed %s tuple (ids %d, %d) %s", #_what,           \
-              region_id, admin_id, bundle->_what.c_str());
+    log_debug(log, "parsed %s eid (offsets %d, %d) %s", #_what,         \
+              scheme_offset, ssp_offset, bundle->_what##_.c_str());     \
 
-    EXTRACT_DICTIONARY_TUPLE(source_);
-    EXTRACT_DICTIONARY_TUPLE(dest_);
-    EXTRACT_DICTIONARY_TUPLE(custodian_);
-    EXTRACT_DICTIONARY_TUPLE(replyto_);
+    EXTRACT_DICTIONARY_EID(source);
+    EXTRACT_DICTIONARY_EID(dest);
+    EXTRACT_DICTIONARY_EID(custodian);
+    EXTRACT_DICTIONARY_EID(replyto);
 
-    // start a loop until we've consumed all the other headers
-    while (next_header_type != HEADER_NONE) {
-        switch (next_header_type) {
-        case HEADER_PRIMARY:
-            log_err(log, "found a second primary header");
-            return -1;
+    if (bundle->is_fragment_) {
+        encoding_len = SDNV::decode(buf, len, &bundle->frag_offset_);
+        if (encoding_len == -1) {
+            goto tooshort2;
+        }
+        buf += encoding_len;
+        len -= encoding_len;
 
-        case HEADER_DICTIONARY:
-            log_err(log, "found a second dictionary header");
-            return -1;
+        encoding_len = SDNV::decode(buf, len, &bundle->orig_length_);
+        if (encoding_len == -1) {
+            goto tooshort2;
+        }
+        buf += encoding_len;
+        len -= encoding_len;
 
-        case HEADER_FRAGMENT: {
-            u_int32_t orig_length, frag_offset;
-            
-            if (len < sizeof(FragmentHeader)) {
-                goto tooshort;
-            }
-            
-            FragmentHeader* fragment = (FragmentHeader*)buf;
-            buf += sizeof(FragmentHeader);
-            len -= sizeof(FragmentHeader);
-            next_header_type = fragment->next_header_type;
-            
-            bundle->is_fragment_ = true;
-            memcpy(&orig_length, &fragment->orig_length, sizeof(orig_length));
-            memcpy(&frag_offset, &fragment->frag_offset, sizeof(frag_offset));
-            bundle->orig_length_ = htonl(orig_length);
-            bundle->frag_offset_ = htonl(frag_offset);
-            break;
+        log_debug(log, "parsed fragmentation info: offset %u, orig_len %u",
+                  bundle->frag_offset_, bundle->orig_length_);
+    }
+
+    /*
+     * Parse the other headers, all of which have a preamble and an
+     * SDNV for their length.
+     */
+    while (len != 0) {
+        if (len <= sizeof(HeaderPreamble)) {
+            goto tooshort1;
         }
 
+        HeaderPreamble* preamble = (HeaderPreamble*)buf;
+        buf += sizeof(HeaderPreamble);
+        len -= sizeof(HeaderPreamble);
+
+        // note that we don't support lengths bigger than 4 bytes
+        // here. this should be fixed when the bundle payload class
+        // supports big payloads.
+        u_int32_t header_len;
+        encoding_len = SDNV::decode(buf, len, &header_len);
+        if (encoding_len == -1) {
+            goto tooshort1;
+        }
+        buf += encoding_len;
+        len -= encoding_len;
+        
+        switch (preamble->type) {
         case HEADER_PAYLOAD: {
-            u_int32_t payload_len;
-            
-            if (len < sizeof(PayloadHeader)) {
-                goto tooshort;
-            }
-
-            PayloadHeader* payload = (PayloadHeader*)buf;
-            buf += sizeof(PayloadHeader);
-            len -= sizeof(PayloadHeader);
-
-            if (payload->next_header_type != HEADER_NONE) {
-                log_err(log, "payload header must be last (next type %d)",
-                        payload->next_header_type);
-                return -1;
-            }
-
-            next_header_type = payload->next_header_type;
-            
-            memcpy(&payload_len, &payload->length, 4);
-            bundle->payload_.set_length(ntohl(payload_len));
-
+            bundle->payload_.set_length(header_len);
             log_debug(log, "parsed payload length %u",
                       (u_int)bundle->payload_.length());
-            break;
+            
+            // note that we don't actually snarf in the payload here
+            // since it's handled by the caller, and since the payload
+            // must be last, we're all done
+            goto done;
         }
-
+            
         default:
-            log_err(log, "unknown header type %d", next_header_type);
+            // XXX/demmer handle extension headers.
+            log_err(log, "unknown header code 0x%x", preamble->type);
             return -1;
         }
     }
     
     // that's all we parse, return the amount we consumed
+ done:
     return origlen - len;
 }
 
-/*
- * Conversion arrays.
- */
-extern "C" u_long ustotslo[];
-extern "C" u_long ustotsmid[];
-extern "C" u_long ustotshi[];
-extern "C" long tstouslo[];
-extern "C" long tstousmid[];
-extern "C" long tstoushi[];
 
-/**
- * Store a struct timeval into a 64-bit NTP timestamp, suitable
- * for transmission over the network. This does not require that
- * the u_int64_t* be word-aligned.
- *
- * Implementation adapted from the NTP source distribution.
- */
-    
 void
 BundleProtocol::set_timestamp(u_int64_t* ts, const struct timeval* tv)
 {
-    u_int32_t tsf = ustotslo[tv->tv_usec & 0xff] \
-                    + ustotsmid[(tv->tv_usec >> 8) & 0xff] \
-                    + ustotshi[(tv->tv_usec >> 16) & 0xf];
-    
-    u_int64_t ts_tmp = (((u_int64_t)ntohl(tv->tv_sec)) << 32) | ntohl(tsf);
+    u_int64_t ts_tmp =
+        (((u_int64_t)ntohl(tv->tv_sec)) << 32) | ntohl(tv->tv_usec);
     memcpy(ts, &ts_tmp, sizeof(*ts));
 }
 
-/**
- * Retrieve a struct timeval from a 64-bit NTP timestamp that was
- * transmitted over the network. This does not require that the
- * u_int64_t* be word-aligned.
- *
- * Implementation adapted from the NTP source distribution.
- */
 void
 BundleProtocol::get_timestamp(struct timeval* tv, const u_int64_t* ts)
 {
-#define TV_SHIFT        3
-#define TV_ROUNDBIT     0x4
-    
     u_int64_t ts_tmp;
     memcpy(&ts_tmp, ts, sizeof(ts_tmp));
 
-    tv->tv_sec = ntohl(ts_tmp >> 32);
-
-    u_int32_t tsf = ntohl((u_int32_t)ts_tmp);
-    tv->tv_usec = (tstoushi[((tsf) >> 24) & 0xff] \
-                   + tstousmid[((tsf) >> 16) & 0xff] \
-                   + tstouslo[((tsf) >> 9) & 0x7f] \
-                   + TV_ROUNDBIT) >> TV_SHIFT;
-
-    if ((tv)->tv_usec == 1000000) {
-        (tv)->tv_sec++;
-        (tv)->tv_usec = 0;
-    }
+    tv->tv_sec  = ntohl(ts_tmp >> 32);
+    tv->tv_usec = ntohl((u_int32_t)ts_tmp);
 }
 
 u_int8_t
@@ -462,22 +528,25 @@ BundleProtocol::format_cos(const Bundle* b)
 {
     u_int8_t cos = 0;
 
-    if (b->custreq_)
+    if (b->custody_requested_)
         cos |= (1 << 7);
 
-    cos |= ((b->priority_ & 0x7) << 4);
-    
-    if (b->return_rcpt_)
-        cos |= (1 << 3);
+    cos |= ((b->priority_ & 0x3) << 5);
 
-    if (b->fwd_rcpt_)
-        cos |= (1 << 2);
-
-    if (b->recv_rcpt_)
-        cos |= (1 << 1);
+    if (b->receive_rcpt_)
+        cos |= 1;
 
     if (b->custody_rcpt_)
-        cos |= 1;
+        cos |= (1 << 1);
+    
+    if (b->forward_rcpt_)
+        cos |= (1 << 2);
+
+    if (b->delivery_rcpt_)
+        cos |= (1 << 3);
+
+    if (b->deletion_rcpt_)
+        cos |= (1 << 4);
 
     return cos;
 }
@@ -486,35 +555,60 @@ void
 BundleProtocol::parse_cos(Bundle* b, u_int8_t cos)
 {
     if (cos & (1 << 7))
-        b->custreq_ = true;
+        b->custody_requested_ = true;
 
-    b->priority_ = ((cos >> 4) & 0x7);
+    b->priority_ = ((cos >> 5) & 0x3);
 
-    if (cos & (1 << 3))
-        b->return_rcpt_ = true;
+    if (cos & 1)
+        b->receive_rcpt_ = true;
+    
+    if (cos & (1 << 1))
+        b->custody_rcpt_ = true;
 
     if (cos & (1 << 2))
-        b->fwd_rcpt_ = true;
+        b->forward_rcpt_ = true;
 
-    if (cos & (1 << 1))
-        b->recv_rcpt_ = true;
+    if (cos & (1 << 3))
+        b->delivery_rcpt_ = true;
     
-    if (cos & 1)
-        b->custody_rcpt_ = true;
+    if (cos & (1 << 4))
+        b->deletion_rcpt_ = true;
 }
 
 u_int8_t
-BundleProtocol::format_payload_security(const Bundle* bundle)
+BundleProtocol::format_processing_flags(const Bundle* bundle)
 {
-    // TBD
-    return 0;
+    u_int8_t flags = 0;
+
+    if (bundle->is_fragment_) {
+        flags |= 1;
+    }
+
+    if (bundle->is_admin_) {
+        flags |= (1 << 1);
+    }
+
+    if (bundle->do_not_fragment_) {
+        flags |= (1 << 2);
+    }
+    
+    return flags;
 }
 
 void
-BundleProtocol::parse_payload_security(Bundle* bundle,
-                                       u_int8_t payload_security)
+BundleProtocol::parse_processing_flags(Bundle* bundle, u_int8_t flags)
 {
-}
+    if (flags & 1) {
+        bundle->is_fragment_ = true;
+    }
 
+    if (flags & (1 << 1)) {
+        bundle->is_admin_ = true;
+    }
+
+    if (flags & (1 << 2)) {
+        bundle->do_not_fragment_ = true;
+    }
+}
 
 } // namespace dtn

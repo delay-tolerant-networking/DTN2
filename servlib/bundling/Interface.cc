@@ -40,10 +40,10 @@
 
 namespace dtn {
 
-Interface::Interface(const std::string& admin,
+Interface::Interface(const std::string& name,
                      const std::string& proto,
                      ConvergenceLayer* clayer)
-    : admin_(admin), proto_(proto), clayer_(clayer), cl_info_(NULL)
+    : name_(name), proto_(proto), clayer_(clayer), cl_info_(NULL)
 {
 }
 

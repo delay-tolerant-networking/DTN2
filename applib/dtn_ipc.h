@@ -90,7 +90,7 @@ typedef struct dtnipc_handle dtnipc_handle_t;
 typedef enum {
     DTN_OPEN	     = 1,
     DTN_CLOSE,
-    DTN_GETINFO,
+    DTN_LOCAL_EID,
     DTN_REGISTER,
     DTN_BIND,
     DTN_SEND,

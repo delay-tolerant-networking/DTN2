@@ -37,12 +37,12 @@
  */
 
 #include "LinkCommand.h"
-#include "bundling/AddressFamily.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/Link.h"
 #include "bundling/ContactManager.h"
 #include "conv_layers/ConvergenceLayer.h"
+#include "naming/Scheme.h"
 #include <oasys/util/StringBuffer.h>
 
 namespace dtn {
@@ -57,7 +57,6 @@ LinkCommand::help_string()
 {
     return ""
         "link add <name> <nexthop> <type> <convergence_layer> <args>\n"
-        "      Note: <nexthop> is a bundle admin identifier, <name> is any string \n"
         "link open <name>\n"
         "link close <name>\n"
         ;
@@ -85,14 +84,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         const char* type_str = argv[4];
         const char* cl_str = argv[5];
 
-        bool valid;
-        AddressFamily* af = AddressFamilyTable::instance()->lookup(nexthop, &valid);
-        
-        if (!af || !valid) {
-            resultf("invalid next hop admin string '%s'", nexthop);
-            return TCL_ERROR;
-        }
-        
+        // validate the link type, make sure there's no link of the
+        // same name, and validate the convergence layer
         Link::link_type_t type = Link::str_to_link_type(type_str);
         if (type == Link::LINK_INVALID) {
             resultf("invalid link type %s", type_str);
@@ -105,19 +98,19 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        // Find convergence layer
         ConvergenceLayer* cl = ConvergenceLayer::find_clayer(cl_str);
         if (!cl) {
             resultf("invalid convergence layer %s", cl_str);
             return TCL_ERROR;
         }
     
-        // XXX/Sushant pass other parameters?
+        // Create the link, parsing the cl-specific next hop string
+        // and other arguments
         link = Link::create_link(name, type, cl, nexthop, argc - 6, &argv[6]);
         if (!link)
             return TCL_ERROR;
 
-        // Add the link to contact manager, which posts a
+        // Add the link to contact manager's table, which posts a
         // LinkCreatedEvent to the daemon
         BundleDaemon::instance()->contactmgr()->add_link(link);
         return TCL_OK;

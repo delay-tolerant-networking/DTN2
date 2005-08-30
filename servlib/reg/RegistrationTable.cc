@@ -169,7 +169,7 @@ RegistrationTable::update(Registration* reg)
  * Returns the count of matching registrations.
  */
 int
-RegistrationTable::get_matching(const BundleTuple& demux,
+RegistrationTable::get_matching(const EndpointID& demux,
                                 RegistrationList* reg_list)
 {
     int count = 0;

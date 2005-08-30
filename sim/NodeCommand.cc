@@ -46,9 +46,9 @@
 #include "Topology.h"
 #include "TrAgent.h"
 #include "bundling/Bundle.h"
-#include "bundling/BundleTuple.h"
 #include "bundling/ContactManager.h"
 #include "bundling/Link.h"
+#include "naming/EndpointID.h"
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
 #include "reg/RegistrationTable.h"
@@ -98,23 +98,23 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     if (strcmp(cmd, "route") == 0)
     {
-        if (strcmp(subcmd, "local_tuple") == 0) {
+        if (strcmp(subcmd, "local_eid") == 0) {
             if (time != 0) {
                 resultf("node %s %s must be run at time 0", cmd, subcmd);
                 return TCL_ERROR;
             }
         
             if (argc == 4) {
-                // <node> 0 route local_tuple
-                set_result(node_->router()->local_tuple().c_str());
+                // <node> 0 route local_eid
+                set_result(node_->local_eid().c_str());
                 return TCL_OK;
                 
             } else if (argc == 5) {
-                // <node> 0 route local_tuple <tuple>
-                node_->router()->set_local_tuple(argv[4]);
+                // <node> 0 route local_eid <eid>
+                node_->set_local_eid(argv[4]);
 
-                if (! node_->router()->local_tuple().valid()) {
-                    resultf("invalid tuple '%s'", argv[4]);
+                if (! node_->local_eid().valid()) {
+                    resultf("invalid eid '%s'", argv[4]);
                     return TCL_ERROR;
                 }
                 return TCL_OK;
@@ -136,9 +136,9 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
             log_debug("adding route to %s through %s", dest_str, nexthop);
             
-            BundleTuplePattern dest(dest_str);
+            EndpointIDPattern dest(dest_str);
             if (!dest.valid()) {
-                resultf("invalid destination tuple %s", dest_str);
+                resultf("invalid destination eid %s", dest_str);
                 return TCL_ERROR;
             }
 
@@ -193,17 +193,17 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     else if (strcmp(cmd, "registration") == 0)
     {
         if (strcmp(subcmd, "add") == 0) {
-            // <node> X registration add <demux_tuple>
-            const char* demux_str = argv[4];
-            BundleTuplePattern demux_tuple(demux_str);
+            // <node> X registration add <eid>
+            const char* eid_str = argv[4];
+            EndpointIDPattern eid(eid_str);
 
-            if (!demux_tuple.valid()) {
+            if (!eid.valid()) {
                 resultf("error in node registration add %s: "
-                        "invalid demux tuple", demux_str);
+                        "invalid demux eid", eid_str);
                 return TCL_ERROR;
             }
 
-            Registration* r = new SimRegistration(node_, demux_tuple);
+            Registration* r = new SimRegistration(node_, eid);
             node_->reg_table()->add(r);
             RegistrationAddedEvent* e = new RegistrationAddedEvent(r);
             Simulator::post(new SimRouterEvent(time, node_, e));
@@ -225,32 +225,32 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         const char* dst = argv[4];
 
         // see if src/dest are node names, in which case we use its
-        // local tuple as the source address
-        BundleTuple src_tuple;
+        // local eid as the source address
+        EndpointID src_eid;
         Node* src_node = Topology::find_node(src);
         if (src_node) {
-            src_tuple.assign(src_node->router()->local_tuple());
+            src_eid.assign(src_node->local_eid());
         } else {
-            src_tuple.assign(src);
-            if (!src_tuple.valid()) {
-                resultf("node tragent: invalid src tuple %s", src);
+            src_eid.assign(src);
+            if (!src_eid.valid()) {
+                resultf("node tragent: invalid src eid %s", src);
                 return TCL_ERROR;
             }
         }
         
-        BundleTuple dst_tuple;
+        EndpointID dst_eid;
         Node* dst_node = Topology::find_node(dst);
         if (dst_node) {
-            dst_tuple.assign(dst_node->router()->local_tuple());
+            dst_eid.assign(dst_node->local_eid());
         } else {
-            dst_tuple.assign(dst);
-            if (!dst_tuple.valid()) {
-                resultf("node tragent: invalid dst tuple %s", dst);
+            dst_eid.assign(dst);
+            if (!dst_eid.valid()) {
+                resultf("node tragent: invalid dst eid %s", dst);
                 return TCL_ERROR;
             }
         }
         
-        TrAgent* a = TrAgent::init(node_, time, src_tuple, dst_tuple,
+        TrAgent* a = TrAgent::init(node_, time, src_eid, dst_eid,
                                    argc - 5, argv + 5);
         if (!a) {
             resultf("error in tragent config");

@@ -24,7 +24,7 @@
  * - possibility to set payload dimension from command-line (-p)
  * - supports multiple sending (-B, -S)
  * - CSV output (-c)
- * - auto-generated source tuple
+ * - auto-generated source eid
  * - enabled transmission > 50000 bytes (using multiple bundles)
  * - added file transfer (-f) in Data-Mode
  */
@@ -61,7 +61,7 @@ int csv_out             = 0;    // if set to 1, a Comma-Separated-Values output 
  * ----------------------------------------------------------------------- */
 
 // bundle options
-int return_receipts     = 1;    // request end to end return receipts (default 1)
+int delivery_receipts   = 1;    // request end to end deliveryreceipts (default 1)
 int forwarding_receipts = 0;    // request per hop departure
 int custody             = 0;    // request custody transfer
 int custody_receipts    = 0;    // request per custodian receipts
@@ -69,10 +69,10 @@ int receive_receipts    = 0;    // request per hop arrival receipt
 int overwrite           = 0;    // queue overwrite option
 int wait_for_report     = 1;    // wait for bundle status reports (default 1)
 
-// specified options for bundle tuples
-char * arg_replyto      = NULL; // replyto_tuple
-char * arg_source       = NULL; // source_tuple
-char * arg_dest         = NULL; // destination_tuple
+// specified options for bundle eids
+char * arg_replyto      = NULL; // replyto_eid
+char * arg_source       = NULL; // source_eid
+char * arg_dest         = NULL; // destination_eid
 
 dtn_reg_id_t regid      = DTN_REGID_NONE;   // registration ID (-i option)
 int bundle_payload      = BUNDLE_PAYLOAD;   // quantity of data (in bytes) to send (-p option)
@@ -97,12 +97,11 @@ char * file_name        = "/dtnbuffer.snd";    // name of the file to be used
  *       function interfaces
  * ------------------------------- */
 void parse_options(int, char**);
-dtn_tuple_t* parse_tuple(dtn_handle_t handle, dtn_tuple_t * tuple, char * str);
+dtn_endpoint_id_t* parse_eid(dtn_handle_t handle, dtn_endpoint_id_t * eid, char * str);
 void print_usage();
-void print_tuple(char * label, dtn_tuple_t * tuple);
 void pattern(char *outBuf, int inBytes);
 struct timeval set(double sec);
-void show_report (u_int buf_len, char* region, int admin_len, char* admin_val, struct timeval start, struct timeval end, int data);
+void show_report (u_int buf_len, char* eid, struct timeval start, struct timeval end, int data);
 void csv_time_report(int b_sent, int payload, struct timeval start, struct timeval end);
 void csv_data_report(int b_id, int payload, struct timeval start, struct timeval end);
 int bundles_needed (int data, int pl);
@@ -128,7 +127,7 @@ int main(int argc, char** argv)
     
     // DTN variables
     dtn_handle_t        handle;
-    dtn_tuple_t         source_tuple;
+    dtn_endpoint_id_t         source_eid;
     dtn_reg_info_t      reginfo;
     dtn_bundle_spec_t   bundle_spec;
     dtn_bundle_spec_t   reply_spec;
@@ -175,52 +174,49 @@ int main(int argc, char** argv)
     memset(&bundle_spec, 0, sizeof(bundle_spec));
     if (debug) printf("[debug] memset for bundle_spec done\n");
 
-    // initialize and parse bundle src/dest/replyto tuples
+    // initialize and parse bundle src/dest/replyto eids
     snprintf(demux, sizeof(demux), "/src");
 
     if (debug) printf("[debug] checking if arg_source != NULL...\n");
     if (arg_source != NULL) {                                   // if user specified a source...
         if (debug) printf("[debug]\t\tsource specified (%s), now parsing...", arg_source);
-        if (dtn_parse_tuple_string(&source_tuple, arg_source)) { // ...use that as the source_tuple...
-            fprintf(stderr, "invalid source tuple string '%s'\n", arg_source);
+        if (dtn_parse_eid_string(&source_eid, arg_source)) { // ...use that as the source_eid...
+            fprintf(stderr, "invalid source eid string '%s'\n", arg_source);
             exit(1);
         }
         if (debug) printf(" done\n");
     } else {                                                     // ...otherwise...
-        if (debug) printf("[debug]\t\tsource not specified, using local tuple... ");
-        dtn_build_local_tuple(handle, &source_tuple, demux);     // ...use local tuple with demux string
+        if (debug) printf("[debug]\t\tsource not specified, using local eid... ");
+        dtn_build_local_eid(handle, &source_eid, demux);     // ...use local eid with demux string
         if (debug) printf(" done\n");
     }
     if (debug) printf("[debug] ...arg_source checked\n");
 
-    if (debug) printf("[debug] Source tuple: bundles://%s/%.*s \n",
-                      source_tuple.region,
-                      (int) source_tuple.admin.admin_len, 
-                      source_tuple.admin.admin_val);
+    if (debug) printf("[debug] Source eid: %s\n", source_eid.uri);
 
-    // set the source tuple in the bundle spec
-    if (debug) printf("[debug] copying source tuple into bundle_spec...");
-    dtn_copy_tuple(&bundle_spec.source, &source_tuple);
+    // set the source eid in the bundle spec
+    if (debug) printf("[debug] copying source eid into bundle_spec...");
+    dtn_copy_eid(&bundle_spec.source, &source_eid);
     if (debug) printf(" done\n");    
 
     if (verbose) fprintf(stdout, "Destination specified: %s\n", arg_dest);
 
-    if (debug) printf("[debug] parse_tuple for destination...");
-    parse_tuple(handle, &bundle_spec.dest, arg_dest);
+    if (debug) printf("[debug] parse_eid for destination...");
+    parse_eid(handle, &bundle_spec.dest, arg_dest);
     if (debug) printf(" done\n");
 
     if (arg_replyto == NULL) 
     {
         if (verbose) fprintf(stdout, "Reply-To specified: none, using Source\n");
-        if (debug) printf("[debug] copying source_tuple to replyto_tuple...");
-        dtn_copy_tuple(&bundle_spec.replyto, &bundle_spec.source);
+        if (debug) printf("[debug] copying source_eid to replyto_eid...");
+        dtn_copy_eid(&bundle_spec.replyto, &bundle_spec.source);
         if (debug) printf(" done\n");
     }
     else
     {
         if (verbose) fprintf(stdout, "Reply-To specified: %s\n", arg_replyto);
-        if (debug) printf("[debug] parsing replyto tuple...");
-        parse_tuple(handle, &bundle_spec.replyto, arg_replyto);
+        if (debug) printf("[debug] parsing replyto eid...");
+        parse_eid(handle, &bundle_spec.replyto, arg_replyto);
         if (debug) printf(" done\n");
     }
 
@@ -232,15 +228,15 @@ int main(int argc, char** argv)
     // default expiration time (one hour)
     bundle_spec.expiration = 3600;
 
-    // return_receipts
-    if (return_receipts) {
-        bundle_spec.dopts |= DOPTS_RETURN_RCPT;
-        if (debug) printf("RETURN_RCPT ");
+    // delivery_receipts
+    if (delivery_receipts) {
+        bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
+        if (debug) printf("DELIVERY_RCPT ");
     }
     // forwarding receipts
     if (forwarding_receipts) {
-        bundle_spec.dopts |= DOPTS_FWD_RCPT;
-        if (debug) printf("FDW_RCPT ");
+        bundle_spec.dopts |= DOPTS_FORWARD_RCPT;
+        if (debug) printf("FORWARD_RCPT ");
     }
     // custody
     if (custody) {
@@ -249,18 +245,13 @@ int main(int argc, char** argv)
     }
     // custody receipts
     if (custody_receipts) {
-        bundle_spec.dopts |= DOPTS_CUST_RCPT;
-        if (debug) printf("CUST_RCPT ");
-    }
-    // overwrite
-    if (overwrite) {
-        bundle_spec.dopts |= DOPTS_OVERWRITE;
-        if (debug) printf("OVERWRITE ");
+        bundle_spec.dopts |= DOPTS_CUSTODY_RCPT;
+        if (debug) printf("CUSTODY_RCPT ");
     }
     // receive receipts
     if (receive_receipts) {
-        bundle_spec.dopts |= DOPTS_RECV_RCPT;
-        if (debug) printf("RECV_RCPT ");
+        bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
+        if (debug) printf("RECEIVE_RCPT ");
     }
     if (debug) printf("option(s) set\n");
 
@@ -270,7 +261,7 @@ int main(int argc, char** argv)
     if (debug) printf(" done\n");
 
     if (debug) printf("[debug] copying bundle_spec.replyto to reginfo.endpoint...");
-    dtn_copy_tuple(&reginfo.endpoint, &bundle_spec.replyto);
+    dtn_copy_eid(&reginfo.endpoint, &bundle_spec.replyto);
     if (debug) printf(" done\n");
 
     if (debug) printf("[debug] setting up reginfo...");
@@ -416,9 +407,7 @@ int main(int argc, char** argv)
             if (csv_out == 0) {
                 printf("%d bundles sent, each with a %d bytes payload\n", bundles_sent, bundle_payload);
                 show_report(reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
-                            reply_spec.source.region,
-                            (int) reply_spec.source.admin.admin_len,
-                            reply_spec.source.admin.admin_val,
+                            reply_spec.source.uri,
                             start,
                             end,
                             data_qty);
@@ -559,9 +548,7 @@ int main(int argc, char** argv)
                     if (verbose) {
                         printf("[%d/%d] ", j+1, n_bundles);
                         show_report(reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
-                                    reply_spec.source.region,
-                                    (int) reply_spec.source.admin.admin_len,
-                                    reply_spec.source.admin.admin_val,
+                                    reply_spec.source.uri,
                                     p_start,
                                     p_end,
                                     ((bundle_payload <= data_qty)?bundle_payload:data_qty));
@@ -610,9 +597,7 @@ int main(int argc, char** argv)
             // show the TOTAL report
             if (csv_out == 0) {
                 show_report(reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
-                            reply_spec.source.region,
-                            (int) reply_spec.source.admin.admin_len,
-                            reply_spec.source.admin.admin_val,
+                            reply_spec.source.uri,
                             start,
                             end,
                             data_qty);
@@ -668,12 +653,12 @@ int main(int argc, char** argv)
 void print_usage()
 {
     fprintf(stderr, "\nSYNTAX: %s "
-            "-s <source_tuple> -d <dest_tuple> "
+            "-s <source_eid> -d <dest_eid> "
             "-t <sec> | -n <num> [options]\n\n", progname);
     fprintf(stderr, "options:\n");
-    fprintf(stderr, " -s <tuple> source tuple\n");
-    fprintf(stderr, " -d <tuple> destination tuple (required)\n");
-    fprintf(stderr, " -r <tuple> reply to tuple\n");
+    fprintf(stderr, " -s <eid> source eid\n");
+    fprintf(stderr, " -d <eid> destination eid (required)\n");
+    fprintf(stderr, " -r <eid> reply to eid\n");
     fprintf(stderr, " -t <sec> Time-Mode: seconds of transmission\n");
     fprintf(stderr, " -n <num> Data-Mode: number of bytes to send\n");
     fprintf(stderr, "common options:\n");
@@ -772,8 +757,8 @@ void parse_options(int argc, char**argv)
         exit(1);                                                        \
     }
     
-//    CHECK_SET(arg_source,   "source tuple");
-    CHECK_SET(arg_dest,     "destination tuple");
+//    CHECK_SET(arg_source,   "source eid");
+    CHECK_SET(arg_dest,     "destination eid");
     CHECK_SET(op_mode,      "-t or -n");
 } // end parse_options
 
@@ -846,39 +831,29 @@ void show_options() {
 
 
 /* ----------------------------
- * parse_tuple
+ * parse_eid
  * ---------------------------- */
-dtn_tuple_t* parse_tuple(dtn_handle_t handle, dtn_tuple_t* tuple, char * str)
+dtn_endpoint_id_t* parse_eid(dtn_handle_t handle, dtn_endpoint_id_t* eid, char * str)
 {
-    // try the string as an actual dtn tuple
-    if (!dtn_parse_tuple_string(tuple, str)) 
+    // try the string as an actual dtn eid
+    if (!dtn_parse_eid_string(eid, str)) 
     {
 //        if (verbose) fprintf(stdout, "%s (literal)\n", str);
-        return tuple;
+        return eid;
     }
-    // build a local tuple based on the configuration of our dtn
+    // build a local eid based on the configuration of our dtn
     // router plus the str as demux string
-    else if (!dtn_build_local_tuple(handle, tuple, str))
+    else if (!dtn_build_local_eid(handle, eid, str))
     {
         if (verbose) fprintf(stdout, "%s (local)\n", str);
-        return tuple;
+        return eid;
     }
     else
     {
-        fprintf(stderr, "invalid tuple string '%s'\n", str);
+        fprintf(stderr, "invalid eid string '%s'\n", str);
         exit(1);
     }
-} // end parse_tuple
-
-
-/* ----------------------------
- * print_tuple
- * ---------------------------- */
-void print_tuple(char *  label, dtn_tuple_t * tuple)
-{
-    printf("%s [%s %.*s]\n", label, tuple->region, 
-           (int) tuple->admin.admin_len, tuple->admin.admin_val);
-} // end print_tuple
+} // end parse_eid
 
 
 /* -------------------------------------------------------------------
@@ -910,14 +885,12 @@ struct timeval set( double sec ) {
 /* --------------------------------------------------
  * show_report
  * -------------------------------------------------- */
-void show_report (u_int buf_len, char* region, int admin_len, char* admin_val, struct timeval start, struct timeval end, int data) {
+void show_report (u_int buf_len, char* eid, struct timeval start, struct timeval end, int data) {
     double g_put;
 
-    printf("got %d byte report from [%s %.*s]: time=%.1f ms - %d bytes sent",
+    printf("got %d byte report from [%s]: time=%.1f ms - %d bytes sent",
                 buf_len,
-                region,
-                admin_len,
-                admin_val,
+                eid,
                 ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                 (double)(end.tv_usec - start.tv_usec)/1000.0),
                 data);

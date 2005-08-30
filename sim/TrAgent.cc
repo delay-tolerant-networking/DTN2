@@ -47,7 +47,7 @@
 
 namespace dtnsim {
 
-TrAgent::TrAgent(Node* node, const BundleTuple& src, const BundleTuple& dst)
+TrAgent::TrAgent(Node* node, const EndpointID& src, const EndpointID& dst)
     : node_(node), src_(src), dst_(dst),
       size_(0), reps_(0), batch_(1), interval_(0)
 {
@@ -56,7 +56,7 @@ TrAgent::TrAgent(Node* node, const BundleTuple& src, const BundleTuple& dst)
 
 TrAgent*
 TrAgent::init(Node* node, double start_time, 
-              const BundleTuple& src, const BundleTuple& dst,
+              const EndpointID& src, const EndpointID& dst,
               int argc, const char** argv)
 {
     TrAgent* a = new TrAgent(node, src, dst);

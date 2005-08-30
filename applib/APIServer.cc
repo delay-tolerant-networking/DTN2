@@ -242,11 +242,11 @@ APIClient::run()
             ret = _fn();                        \
             break;
             
-            DISPATCH(DTN_GETINFO,  handle_getinfo);
-            DISPATCH(DTN_REGISTER, handle_register);
-            DISPATCH(DTN_SEND,     handle_send);
-            DISPATCH(DTN_BIND,     handle_bind);
-            DISPATCH(DTN_RECV,     handle_recv);
+            DISPATCH(DTN_LOCAL_EID, handle_local_eid);
+            DISPATCH(DTN_REGISTER,  handle_register);
+            DISPATCH(DTN_SEND,      handle_send);
+            DISPATCH(DTN_BIND,      handle_bind);
+            DISPATCH(DTN_RECV,      handle_recv);
 #undef DISPATCH
 
         default:
@@ -285,59 +285,36 @@ APIClient::run()
 }
 
 int
-APIClient::handle_getinfo()
+APIClient::handle_local_eid()
 {
-    dtn_info_request_t request;
-    dtn_info_response_t response;
+    dtn_service_tag_t service_tag;
+    dtn_endpoint_id_t local_eid;
     
     // unpack the request
-    if (!xdr_dtn_info_request_t(&xdr_decode_, &request))
+    if (!xdr_dtn_service_tag_t(&xdr_decode_, &service_tag))
     {
         log_err("error in xdr unpacking arguments");
         return DTN_EXDR;
     }
 
-    // initialize the response
-    memset(&response, 0, sizeof(response));
-    response.request = request;
-
-    switch(request) {
-    case DTN_INFOREQ_INTERFACES: {
-        log_debug("getinfo DTN_INFOREQ_INTERFACES");
-        BundleRouter* router = BundleDaemon::instance()->router();
-        
-        dtn_tuple_t* local_tuple =
-            &response.dtn_info_response_t_u.interfaces.local_tuple;
-
-        strncpy(local_tuple->region,
-                router->local_tuple().region().c_str(),
-                DTN_MAX_REGION_LEN);
-        
-        local_tuple->admin.admin_val =
-            (char*)router->local_tuple().admin().c_str();
-        
-        local_tuple->admin.admin_len =
-            router->local_tuple().admin().length();
-
-        break;
+    // build up the response
+    EndpointID eid(BundleDaemon::instance()->local_eid());
+    if (eid.append_service_tag(service_tag.tag) == false) {
+        log_err("error appending service tag");
+        return DTN_EINVAL;
     }
-        
-    case DTN_INFOREQ_CONTACTS:
-        NOTIMPLEMENTED;
-        break;
-        
-    case DTN_INFOREQ_ROUTES:
-        NOTIMPLEMENTED;
-        break;
-    }
+
+    memset(&local_eid, 0, sizeof(local_eid));
+    eid.copyto(&local_eid);
     
-    // fill in the info response code
-    if (!xdr_dtn_info_response_t(&xdr_encode_, &response)) {
-        log_err("internal error in xdr: xdr_dtn_info_response_t");
+    // pack the response
+    if (!xdr_dtn_endpoint_id_t(&xdr_encode_, &local_eid)) {
+        log_err("internal error in xdr: xdr_dtn_endpoint_id_t");
         return DTN_EXDR;
     }
 
-    log_debug("getinfo encoded %d byte response", xdr_getpos(&xdr_encode_));
+    log_debug("get_local_eid encoded %d byte response",
+              xdr_getpos(&xdr_encode_));
     
     return DTN_SUCCESS;
 }
@@ -347,7 +324,7 @@ APIClient::handle_register()
 {
     Registration* reg;
     Registration::failure_action_t action;
-    BundleTuple endpoint;
+    EndpointIDPattern endpoint;
     std::string script;
     
     dtn_reg_info_t reginfo;
@@ -456,26 +433,23 @@ APIClient::handle_send()
     // assign the addressing fields
     b->source_.assign(&spec.source);
     if (!b->source_.valid()) {
-        log_err("invalid source tuple [%s %s]",
-                spec.source.region, spec.source.admin.admin_val);
+        log_err("invalid source eid [%s]", spec.source.uri);
         return DTN_EINVAL;
     }
     
     b->dest_.assign(&spec.dest);
     if (!b->dest_.valid()) {
-        log_err("invalid dest tuple [%s %s]",
-                spec.dest.region, spec.dest.admin.admin_val);
+        log_err("invalid dest eid [%s]", spec.dest.uri);
         return DTN_EINVAL;
     }
     
     b->replyto_.assign(&spec.replyto);
     if (!b->replyto_.valid()) {
-        log_err("invalid replyto tuple [%s %s]",
-                spec.replyto.region, spec.replyto.admin.admin_val);
+        log_err("invalid replyto eid [%s]", spec.replyto.uri);
         return DTN_EINVAL;
     }
 
-    b->custodian_.assign(BundleDaemon::instance()->router()->local_tuple());
+    b->custodian_.assign(BundleDaemon::instance()->local_eid());
     
     // the priority code
     switch (spec.priority) {
@@ -492,22 +466,22 @@ APIClient::handle_send()
 
     // delivery options
     if (spec.dopts & DOPTS_CUSTODY)
-        b->custreq_ = true;
+        b->custody_requested_ = true;
     
-    if (spec.dopts & DOPTS_RETURN_RCPT)
-        b->return_rcpt_ = true;
+    if (spec.dopts & DOPTS_DELIVERY_RCPT)
+        b->delivery_rcpt_ = true;
 
-    if (spec.dopts & DOPTS_RECV_RCPT)
-        b->recv_rcpt_ = true;
+    if (spec.dopts & DOPTS_RECEIVE_RCPT)
+        b->receive_rcpt_ = true;
 
-    if (spec.dopts & DOPTS_FWD_RCPT)
-        b->fwd_rcpt_ = true;
+    if (spec.dopts & DOPTS_FORWARD_RCPT)
+        b->forward_rcpt_ = true;
 
-    if (spec.dopts & DOPTS_CUST_RCPT)
+    if (spec.dopts & DOPTS_CUSTODY_RCPT)
         b->custody_rcpt_ = true;
 
-    if (spec.dopts & DOPTS_OVERWRITE)
-        NOTIMPLEMENTED;
+    if (spec.dopts & DOPTS_DELETE_RCPT)
+        b->deletion_rcpt_ = true;
 
     // expiration time
     b->expiration_ = spec.expiration;
@@ -705,11 +679,6 @@ APIClient::handle_recv()
     // nuke our local reference on the bundle (which may delete it)
     b->del_ref("api_client", reg->logpath());
 
-    // clean up tuple memory
-    free(spec.source.admin.admin_val);
-    free(spec.dest.admin.admin_val);
-    free(spec.replyto.admin.admin_val);
-    
     return err;
 }
 

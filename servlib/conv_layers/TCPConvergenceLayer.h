@@ -111,9 +111,7 @@ public:
      * in the case of the receiver connect option.
      */
     struct IdentityHeader {
-        u_int16_t region_len;		///< length of the region string
-        u_int16_t admin_len;		///< length of the admin string
-        u_char    data[0];		///< region and admin string data
+        u_char    data[0];		///< SDNV + endpoint id
     } __attribute__((packed));
 
     /**
@@ -138,9 +136,7 @@ public:
      */
     struct BundleDataHeader {
         u_int32_t bundle_id;		///< bundle identifier at sender
-        u_int32_t bundle_length;	///< length of the bundle + headers
-        u_int16_t header_length;	///< length of the bundle header
-        u_int16_t pad;			///< unused
+        u_char bundle[0];		///< SDNV of length, followed by data
     } __attribute__((packed));
 
     /**
@@ -157,19 +153,29 @@ public:
     TCPConvergenceLayer();
     
     /**
-     * Register a new interface.
+     * Bring up a new interface.
      */
-    bool add_interface(Interface* iface, int argc, const char* argv[]);
+    bool interface_up(Interface* iface, int argc, const char* argv[]);
 
     /**
-     * Remove an interface
+     * Bring down the interface.
      */
-    bool del_interface(Interface* iface);
+    bool interface_down(Interface* iface);
 
+    /**
+     * Dump out CL specific interface information.
+     */
+    void dump_interface(Interface* iface, oasys::StringBuffer* buf);
+    
     /**
      * Create any CL-specific components of the Link.
      */
     bool init_link(Link* link, int argc, const char* argv[]);
+    
+    /**
+     * Dump out CL specific link information.
+     */
+    void dump_link(Link* link, oasys::StringBuffer* buf);
     
     /**
      * Open the connection to the given contact and prepare for
@@ -189,13 +195,21 @@ public:
     void send_bundle(Contact* contact, Bundle* bundle);
     
     /**
-     * Tunable parameters, defaults configurably for all connections
-     * via the 'param set' command'. Per-connection values are also
-     * configurable via arguments to the 'link add' command.
+     * Tunable parameter structure.
+     *
+     * Defaults can be configured for all links (and interfaces) via
+     * the 'param set' command'. Additionally, per-link and
+     * per-interface settings are also configurable via arguments to
+     * the 'link add' and 'interface add' commands.
+     *
+     * The parameters are stored in each Link's CLInfo slot, as well
+     * as part of the Listener and Connection helper classes.
      */
     class Params : public CLInfo {
     public:
-        bool bundle_ack_enabled_;	///< Are per-bundle acks enabled
+        in_addr_t local_addr_;		///< Local address to bind to
+        u_int16_t local_port_;		///< Local port to bind to
+        bool bundle_ack_enabled_;	///< Use CL-specific bundle acks?
         bool reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         bool receiver_connect_;		///< rcvr-initiated connect (for NAT)
         u_int partial_ack_len_;		///< Bytes to send before ack
@@ -297,7 +311,7 @@ protected:
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
         void note_data_rcvd();
 
-        BundleTuple nexthop_;		///< The next hop we're connected to
+        EndpointID nexthop_;		///< The next hop we're connected to
         bool is_sender_;		///< Are we the sender side
         Contact* contact_;		///< Contact for sender-side
         oasys::TCPClient* sock_;	///< The socket

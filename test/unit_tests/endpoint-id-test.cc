@@ -85,7 +85,7 @@ do {                                                                    \
                                                                         \
     CHECK(p.valid() && eid.valid());                                    \
                                                                         \
-    CHECK_EQUAL((p.assign(_pattern), eid.assign(_eid), p.match(&eid)),  \
+    CHECK_EQUAL((p.assign(_pattern), eid.assign(_eid), p.match(eid)),   \
                 _match);                                                \
 } while (0);
 
@@ -115,74 +115,74 @@ DECLARE_TEST(Unknown) {
     return UNIT_TEST_PASSED;
 }
  
-DECLARE_TEST(Internet) {
+DECLARE_TEST(DTN) {
     // test internet style parsing for some valid names
-    EIDCHECK(VALID,   KNOWN, "bp0://tier.cs.berkeley.edu");
-    EIDCHECK(VALID,   KNOWN, "bp0://tier.cs.berkeley.edu/");
-    EIDCHECK(VALID,   KNOWN, "bp0://tier.cs.berkeley.edu/demux");
-    EIDCHECK(VALID,   KNOWN, "bp0://10.0.0.1/");
-    EIDCHECK(VALID,   KNOWN, "bp0://10.0.0.1/demux/some/more");
-    EIDCHECK(VALID,   KNOWN, "bp0://255.255.255.255/");
-    EIDCHECK(VALID,   KNOWN, "bp0://host/demux");
-    EIDCHECK(VALID,   KNOWN, "bp0://host:1000/demux");
+    EIDCHECK(VALID,   KNOWN, "dtn://tier.cs.berkeley.edu");
+    EIDCHECK(VALID,   KNOWN, "dtn://tier.cs.berkeley.edu/");
+    EIDCHECK(VALID,   KNOWN, "dtn://tier.cs.berkeley.edu/demux");
+    EIDCHECK(VALID,   KNOWN, "dtn://10.0.0.1/");
+    EIDCHECK(VALID,   KNOWN, "dtn://10.0.0.1/demux/some/more");
+    EIDCHECK(VALID,   KNOWN, "dtn://255.255.255.255/");
+    EIDCHECK(VALID,   KNOWN, "dtn://host/demux");
+    EIDCHECK(VALID,   KNOWN, "dtn://host:1000/demux");
 
-    EIDCHECK(INVALID, KNOWN, "bp0:/");
-    EIDCHECK(INVALID, KNOWN, "bp0://");
-    EIDCHECK(INVALID, KNOWN, "bp0:host");
-    EIDCHECK(INVALID, KNOWN, "bp0:/host");
+    EIDCHECK(INVALID, KNOWN, "dtn:/");
+    EIDCHECK(INVALID, KNOWN, "dtn://");
+    EIDCHECK(INVALID, KNOWN, "dtn:host");
+    EIDCHECK(INVALID, KNOWN, "dtn:/host");
 
     return UNIT_TEST_PASSED;
 }
 
-DECLARE_TEST(InternetMatch) {
+DECLARE_TEST(DTNMatch) {
     // test internet style matching
     EIDMATCH(MATCH,
-             "bp0://tier.cs.berkeley.edu/demux",
-             "bp0://tier.cs.berkeley.edu/demux");
+             "dtn://tier.cs.berkeley.edu/demux",
+             "dtn://tier.cs.berkeley.edu/demux");
     
     EIDMATCH(MATCH,
-             "bp0://10.0.0.1/demux",
-             "bp0://10.0.0.1/demux");
+             "dtn://10.0.0.1/demux",
+             "dtn://10.0.0.1/demux");
     
     EIDMATCH(MATCH,
-             "bp0://tier.cs.berkeley.edu/*",
-             "bp0://tier.cs.berkeley.edu/demux");
+             "dtn://tier.cs.berkeley.edu/*",
+             "dtn://tier.cs.berkeley.edu/demux");
 
     EIDMATCH(MATCH,
-             "bp0://tier.cs.berkeley.edu/*",
-             "bp0://tier.cs.berkeley.edu");
+             "dtn://tier.cs.berkeley.edu/*",
+             "dtn://tier.cs.berkeley.edu");
 
     EIDMATCH(MATCH,
-             "bp0://tier.cs.berkeley.edu/*",
-             "bp0://tier.cs.berkeley.edu/");
+             "dtn://tier.cs.berkeley.edu/*",
+             "dtn://tier.cs.berkeley.edu/");
 
     EIDMATCH(MATCH,
-             "bp0://tier.cs.berkeley.edu/demux/*",
-             "bp0://tier.cs.berkeley.edu/demux/");
+             "dtn://tier.cs.berkeley.edu/demux/*",
+             "dtn://tier.cs.berkeley.edu/demux/");
 
     EIDMATCH(MATCH,
-             "bp0://tier.cs.berkeley.edu/demux/*",
-             "bp0://tier.cs.berkeley.edu/demux/something");
+             "dtn://tier.cs.berkeley.edu/demux/*",
+             "dtn://tier.cs.berkeley.edu/demux/something");
 
     EIDMATCH(MATCH,
-             "bp0://*/demux/*",
-             "bp0://tier.cs.berkeley.edu/demux/something");
+             "dtn://*/demux/*",
+             "dtn://tier.cs.berkeley.edu/demux/something");
 
     EIDMATCH(NOMATCH,
-             "bp0://host1/demux",
-             "bp0://host2/demux");
+             "dtn://host1/demux",
+             "dtn://host2/demux");
 
     EIDMATCH(NOMATCH,
-             "bp0://host1/demux",
-             "bp0://host1:9999/demux");
+             "dtn://host1/demux",
+             "dtn://host1:9999/demux");
 
     EIDMATCH(NOMATCH,
-             "bp0://host1/demux",
-             "bp0://host1/demux2");
+             "dtn://host1/demux",
+             "dtn://host1/demux2");
 
     EIDMATCH(NOMATCH,
-             "bp0://host1/demux",
-             "bp0://host1/demux/something");
+             "dtn://host1/demux",
+             "dtn://host1/demux/something");
 
     return UNIT_TEST_PASSED;
 }
@@ -204,7 +204,7 @@ DECLARE_TEST(WildcardMatch) {
     // test wildcard matching with random strings
     EIDMATCH(MATCH, "*:*", "foo:bar");
     EIDMATCH(MATCH, "*:*", "flsdfllsdfgj:087490823uodf");
-    EIDMATCH(MATCH, "*:*", "bp0://host:1000/demux");
+    EIDMATCH(MATCH, "*:*", "dtn://host/demux");
 
     return UNIT_TEST_PASSED;
 }
@@ -249,8 +249,8 @@ DECLARE_TEST(String) {
 DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(Invalid);
     ADD_TEST(Unknown);
-    ADD_TEST(Internet);
-    ADD_TEST(InternetMatch);
+    ADD_TEST(DTN);
+    ADD_TEST(DTNMatch);
     ADD_TEST(Wildcard);
     ADD_TEST(WildcardMatch);
     ADD_TEST(Ethernet);

@@ -62,13 +62,12 @@
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_TUPLE 1024 /* max tuple size (bytes) */
+#define DTN_MAX_ENDPOINT_ID 256 /* max endpoint_id size (bytes) */
 #define DTN_MAX_PATH_LEN PATH_MAX /* max path length */
 #define DTN_MAX_EXEC_LEN ARG_MAX /* length of string passed to exec() */
 #define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
 #define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
 #define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
-#define DTN_MAX_INFREQ_TUPLES 32 /* max number of responses to a dtn_getinfo call */
 // XXX/demmer should move error codes to dtn_api.h
 
 
@@ -96,83 +95,29 @@ xdr_DTN_STATUS (XDR *xdrs, DTN_STATUS *objp)
 #define DTN_ECOMM (DTN_ERRBASE+3) /* error in ipc communication */
 #define DTN_ECONNECT (DTN_ERRBASE+4) /* error connecting to server */
 #define DTN_ETIMEOUT (DTN_ERRBASE+5) /* operation timed out */
-#define DTN_ESIZE (DTN_ERRBASE+6) /* payload too large */
+#define DTN_ESIZE (DTN_ERRBASE+6) /* payload / eid too large */
 #define DTN_ENOTFOUND (DTN_ERRBASE+7) /* not found (e.g. reg) */
 #define DTN_EINTERNAL (DTN_ERRBASE+8) /* misc. internal error */
 #define DTN_ERRMAX 255
 
 /**
- * Specification of a dtn tuple as parsed into a region string and
- * admin identifier. As per the bundle specification, the admin
- * portion is either a URI or a one or two byte binary value.
- *
+ * Specification of a dtn endpoint id, i.e. a URI, implemented as a
+ * fixed-length char buffer. Note that for efficiency reasons, this
+ * fixed length is relatively small (256 bytes). 
+ * 
+ * The alternative is to use the opaque XDR type but then all endpoint
+ * ids would require malloc / free which is more prone to leaks / bugs.
  */
 
 bool_t
-xdr_dtn_tuple_t (XDR *xdrs, dtn_tuple_t *objp)
+xdr_dtn_endpoint_id_t (XDR *xdrs, dtn_endpoint_id_t *objp)
 {
 	register int32_t *buf;
 
 	int i;
-	 if (!xdr_vector (xdrs, (char *)objp->region, DTN_MAX_REGION_LEN,
+	 if (!xdr_vector (xdrs, (char *)objp->uri, DTN_MAX_ENDPOINT_ID,
 		sizeof (char), (xdrproc_t) xdr_char))
 		 return FALSE;
-	 if (!xdr_bytes (xdrs, (char **)&objp->admin.admin_val, (u_int *) &objp->admin.admin_len, DTN_MAX_TUPLE))
-		 return FALSE;
-	return TRUE;
-}
-
-/**
- * Information requests
- *     DTN_INFOREQ_INTERFACES - list of local interfaces
- *     DTN_INFOREQ_CONTACTS   - list of available contacts
- *     DTN_INFOREQ_ROUTES     - list of currently reachable peers
- */
-
-bool_t
-xdr_dtn_info_request_t (XDR *xdrs, dtn_info_request_t *objp)
-{
-	register int32_t *buf;
-
-	 if (!xdr_enum (xdrs, (enum_t *) objp))
-		 return FALSE;
-	return TRUE;
-}
-
-bool_t
-xdr_dtn_inforeq_interfaces_t (XDR *xdrs, dtn_inforeq_interfaces_t *objp)
-{
-	register int32_t *buf;
-
-	int i;
-	 if (!xdr_dtn_tuple_t (xdrs, &objp->local_tuple))
-		 return FALSE;
-	 if (!xdr_vector (xdrs, (char *)objp->other_ifs, DTN_MAX_INFREQ_TUPLES,
-		sizeof (dtn_tuple_t), (xdrproc_t) xdr_dtn_tuple_t))
-		 return FALSE;
-	return TRUE;
-}
-
-/**
- * Information request response structure that is a union, based
- * on the type of the request, of the returned values.
- */
-
-bool_t
-xdr_dtn_info_response_t (XDR *xdrs, dtn_info_response_t *objp)
-{
-	register int32_t *buf;
-
-	 if (!xdr_dtn_info_request_t (xdrs, &objp->request))
-		 return FALSE;
-	switch (objp->request) {
-	case DTN_INFOREQ_INTERFACES:
-		 if (!xdr_dtn_inforeq_interfaces_t (xdrs, &objp->dtn_info_response_t_u.interfaces))
-			 return FALSE;
-		break;
-	default:
-		return FALSE;
-	}
 	return TRUE;
 }
 
@@ -200,6 +145,27 @@ xdr_dtn_timeval_t (XDR *xdrs, dtn_timeval_t *objp)
 	register int32_t *buf;
 
 	 if (!xdr_u_int (xdrs, objp))
+		 return FALSE;
+	return TRUE;
+}
+
+/**
+ * Specification of a service tag used in building a local endpoint
+ * identifier.
+ * 
+ * Note that the application cannot (in general) expect to be able to
+ * use the full DTN_MAX_ENDPOINT_ID, as there is a chance of overflow
+ * when the daemon concats the tag with its own local endpoint id.
+ */
+
+bool_t
+xdr_dtn_service_tag_t (XDR *xdrs, dtn_service_tag_t *objp)
+{
+	register int32_t *buf;
+
+	int i;
+	 if (!xdr_vector (xdrs, (char *)objp->tag, DTN_MAX_ENDPOINT_ID,
+		sizeof (char), (xdrproc_t) xdr_char))
 		 return FALSE;
 	return TRUE;
 }
@@ -236,7 +202,7 @@ xdr_dtn_reg_info_t (XDR *xdrs, dtn_reg_info_t *objp)
 {
 	register int32_t *buf;
 
-	 if (!xdr_dtn_tuple_t (xdrs, &objp->endpoint))
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->endpoint))
 		 return FALSE;
 	 if (!xdr_dtn_reg_action_t (xdrs, &objp->action))
 		 return FALSE;
@@ -273,11 +239,11 @@ xdr_dtn_bundle_priority_t (XDR *xdrs, dtn_bundle_priority_t *objp)
  *     
  *     DOPTS_NONE           - no custody, etc
  *     DOPTS_CUSTODY        - custody xfer
- *     DOPTS_RETURN_RCPT    - end to end return receipt
- *     DOPTS_RECV_RCPT      - per hop arrival receipt
- *     DOPTS_FWD_RCPT       - per hop departure receipt
- *     DOPTS_CUST_RCPT      - per custodian receipt
- *     DOPTS_OVERWRITE      - request queue overwrite option
+ *     DOPTS_DELIVERY_RCPT  - end to end delivery (i.e. return receipt)
+ *     DOPTS_RECEIVE_RCPT   - per hop arrival receipt
+ *     DOPTS_FORWARD_RCPT   - per hop departure receipt
+ *     DOPTS_CUSTODY_RCPT   - per custodian receipt
+ *     DOPTS_DELETE_RCPT    - request deletion receipt
  */
 
 bool_t
@@ -299,11 +265,11 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 {
 	register int32_t *buf;
 
-	 if (!xdr_dtn_tuple_t (xdrs, &objp->source))
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
 		 return FALSE;
-	 if (!xdr_dtn_tuple_t (xdrs, &objp->dest))
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->dest))
 		 return FALSE;
-	 if (!xdr_dtn_tuple_t (xdrs, &objp->replyto))
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->replyto))
 		 return FALSE;
 	 if (!xdr_dtn_bundle_priority_t (xdrs, &objp->priority))
 		 return FALSE;

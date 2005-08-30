@@ -42,7 +42,6 @@
 #include <oasys/thread/Thread.h>
 
 #include "Registration.h"
-#include "bundling/BundleTuple.h"
 
 namespace dtn {
 
@@ -59,7 +58,7 @@ namespace dtn {
  */
 class LoggingRegistration : public Registration {
 public:
-    LoggingRegistration(const BundleTuplePattern& endpoint);
+    LoggingRegistration(const EndpointIDPattern& endpoint);
     void consume_bundle(Bundle* bundle);
 };
 

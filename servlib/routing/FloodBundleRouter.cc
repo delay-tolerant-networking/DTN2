@@ -56,7 +56,7 @@ namespace dtn {
  */
 FloodBundleRouter::FloodBundleRouter()
     : TableBasedRouter("flood"),
-      all_tuples_("bundles://*/*:*")
+      all_eids_("bundles://*/*:*")
 {
     log_info("FloodBundleRouter initialized");
 
@@ -178,7 +178,7 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
     ASSERT(link != NULL);
     log_info("FLOOD: LINK_CREATED *%p", event->link_);
 
-    RouteEntry* entry = new RouteEntry(all_tuples_, link, NULL, FORWARD_COPY);
+    RouteEntry* entry = new RouteEntry(all_eids_, link, NULL, FORWARD_COPY);
 
     add_route(entry);
 
@@ -190,7 +190,7 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
     //copy the pending_bundles_ list into a new exchange list
     //exchange_list_ = pending_bundles_->copy();
     //
-//    new_next_hop(all_tuples_, link, actions_);
+//    new_next_hop(all_eids_, link, actions_);
 }
 
 /**
@@ -203,7 +203,7 @@ FloodBundleRouter::handle_contact_down(ContactDownEvent* event)
     log_info("FLOOD: CONTACT_DOWN *%p: removing queued bundles", contact);
     
     //XXX not implemented yet - neeed to do
-    route_table_->del_entry(all_tuples_, contact->link());
+    route_table_->del_entry(all_eids_, contact->link());
 }
 
 /**
@@ -212,7 +212,7 @@ FloodBundleRouter::handle_contact_down(ContactDownEvent* event)
  * maybe all bundles???) to see if the new consumer matches.
  */
 void
-FloodBundleRouter::new_next_hop(const BundleTuplePattern& dest, Link* next_hop)
+FloodBundleRouter::new_next_hop(const EndpointIDPattern& dest, Link* next_hop)
 {
     log_debug("FLOOD:  new_next_hop");
 

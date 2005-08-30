@@ -65,10 +65,11 @@ ConvergenceLayer::init_clayers()
 {
     add_clayer("tcp", new TCPConvergenceLayer());
     add_clayer("udp", new UDPConvergenceLayer());
-#ifdef __linux
+#ifdef XXX_demmer_fixme__linux
     add_clayer("eth", new EthConvergenceLayer());
 #endif
-    add_clayer("file", new FileConvergenceLayer());
+    // XXX/demmer fixme
+    // add_clayer("file", new FileConvergenceLayer());
 }
 
 ConvergenceLayer*
@@ -86,26 +87,34 @@ ConvergenceLayer::find_clayer(const char* proto)
 
 
 /**
- * Register a new interface.
+ * Bring up a new interface.
  *
  * The default implementation doesn't do anything but log.
  */
 bool
-ConvergenceLayer::add_interface(Interface* iface,
-                                int argc, const char* argv[])
+ConvergenceLayer::interface_up(Interface* iface,
+                               int argc, const char* argv[])
 {
-    log_debug("adding interface %s", iface->admin().c_str());
+    log_debug("init interface %s", iface->name().c_str());
     return true;
 }
 
 /**
- * Remove an interface
+ * Bring down the interface.
  */
 bool
-ConvergenceLayer::del_interface(Interface* iface)
+ConvergenceLayer::interface_down(Interface* iface)
 {
-    log_debug("removing interface %s", iface->admin().c_str());
+    log_debug("stopping interface %s", iface->name().c_str());
     return true;
+}
+
+/**
+ * Dump out CL specific interface information.
+ */
+void
+ConvergenceLayer::dump_interface(Interface* iface, oasys::StringBuffer* buf)
+{
 }
 
 /**
@@ -118,6 +127,14 @@ ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 {
     log_debug("init link %s", link->nexthop());
     return true;
+}
+
+/**
+ * Dump out CL specific link information.
+ */
+void
+ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+{
 }
 
 /**

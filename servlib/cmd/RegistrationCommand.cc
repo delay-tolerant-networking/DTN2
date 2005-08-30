@@ -83,25 +83,25 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         const char* type = argv[2];
-        const char* demux_str = argv[3];
-        BundleTuplePattern demux_tuple(demux_str);
+        const char* eid_str = argv[3];
+        EndpointIDPattern eid(eid_str);
         
-        if (!demux_tuple.valid()) {
-            resultf("error in registration add %s %s: invalid demux tuple",
-                    type, demux_str);
+        if (!eid.valid()) {
+            resultf("error in registration add %s %s: invalid endpoint id",
+                    type, eid_str);
             return TCL_ERROR;
         }
 
         Registration* reg = NULL;
         if (strcmp(type, "logger") == 0) {
-            reg = new LoggingRegistration(demux_tuple);
+            reg = new LoggingRegistration(eid);
             
         } else if (strcmp(type, "tcl") == 0) {
-            reg = new TclRegistration(demux_tuple, interp);
+            reg = new TclRegistration(eid, interp);
             
         } else {
             resultf("error in registration add %s %s: invalid type",
-                    type, demux_str);
+                    type, eid_str);
             return TCL_ERROR;
         }
 

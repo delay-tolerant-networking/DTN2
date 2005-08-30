@@ -43,6 +43,11 @@
 #include "bundling/Contact.h"
 #include "bundling/Interface.h"
 
+// forward declaration
+namespace oasys {
+class StringBuffer;
+}
+
 namespace dtn {
 
 /**
@@ -64,20 +69,31 @@ public:
     virtual ~ConvergenceLayer();
 
     /**
-     * Register a new interface.
+     * Bring up a new interface.
      */
-    virtual bool add_interface(Interface* iface, int argc, const char* argv[]);
+    virtual bool interface_up(Interface* iface,
+                              int argc, const char* argv[]);
 
     /**
-     * Remove an interface
+     * Bring down the interface.
      */
-    virtual bool del_interface(Interface* iface);
+    virtual bool interface_down(Interface* iface);
+
+    /**
+     * Dump out CL specific interface information.
+     */
+    virtual void dump_interface(Interface* iface, oasys::StringBuffer* buf);
 
     /**
      * Create any CL-specific components of the Link.
      */
     virtual bool init_link(Link* link, int argc, const char* argv[]);
-    
+
+    /**
+     * Dump out CL specific link information.
+     */
+    virtual void dump_link(Link* link, oasys::StringBuffer* buf);
+
     /**
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.

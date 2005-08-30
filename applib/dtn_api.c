@@ -117,26 +117,36 @@ dtn_strerror(int err)
 }
 
 /**
- * Information request function.
+ * Build an appropriate local endpoint id by appending the specified
+ * service tag to the daemon's preferred administrative endpoint id.
  */
 int
-dtn_get_info(dtn_handle_t h,
-             dtn_info_request_t request,
-             dtn_info_response_t* response)
+dtn_build_local_eid(dtn_handle_t h,
+                    dtn_endpoint_id_t* local_eid,
+                    const char* tag)
 {
     int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     XDR* xdr_decode = &handle->xdr_decode;
-    
+    struct dtn_service_tag_t service_tag;
+
+    // validate the tag length
+    size_t len = strlen(tag) + 1;
+    if (len > DTN_MAX_ENDPOINT_ID) {
+        handle->err = DTN_EINVAL;
+        return -1;
+    }
+
     // pack the request
-    if (!xdr_dtn_info_request_t(xdr_encode, &request)) {
+    memcpy(&service_tag.tag[0], tag, len);
+    if (!xdr_dtn_service_tag_t(xdr_encode, &service_tag)) {
         handle->err = DTN_EXDR;
         return -1;
     }
 
     // send the message
-    if (dtnipc_send(handle, DTN_GETINFO) != 0) {
+    if (dtnipc_send(handle, DTN_LOCAL_EID) != 0) {
         return -1;
     }
 
@@ -152,16 +162,15 @@ dtn_get_info(dtn_handle_t h,
     }
 
     // unpack the response
-    memset(response, 0, sizeof(*response));
-    if (!xdr_dtn_info_response_t(xdr_decode, response)) {
+    memset(local_eid, 0, sizeof(*local_eid));
+    if (!xdr_dtn_endpoint_id_t(xdr_decode, local_eid)) {
         handle->err = DTN_EXDR;
         return -1;
     }
-
+    
     return 0;
 }
 
-    
 /**
  * Create or modify a dtn registration.
  */
@@ -343,129 +352,43 @@ dtn_recv(dtn_handle_t h,
  *************************************************************/
 
 /*
- * Copy the value of one tuple to another.
- *
- * Note that this will _not_ call malloc for the admin part so the
- * underlying memory will be shared. XXX/demmer this is bad, we need a
- * dtn_free_tuple call...
- *
+ * Copy the contents of one eid into another.
  */
 void
-dtn_copy_tuple(dtn_tuple_t* dst, dtn_tuple_t* src)
+dtn_copy_eid(dtn_endpoint_id_t* dst, dtn_endpoint_id_t* src)
 {
-    memcpy(dst->region, src->region, DTN_MAX_REGION_LEN);
-    dst->admin.admin_val = src->admin.admin_val;
-    dst->admin.admin_len = src->admin.admin_len;
-}
-/*
- * Sets the value of the tuple to the given region, admin, and demux
- * strings.
- *
- * Note that the region and admin strings may be set to the special
- * values of DTN_REGION_LOCAL and DTN_ADMIN_LOCAL in which case the
- * corresponding length arguments are ignored.
- *
- * Returns: 0 on success, DTN_EINVAL if the arguments are invalid.
- */
-int dtn_set_tuple(dtn_tuple_t* tuple,
-                  char* region, size_t region_len,
-                  char* admin, size_t admin_len)
-{
-    return 0;
+    memcpy(dst->uri, src->uri, DTN_MAX_ENDPOINT_ID);
 }
 
-
 /*
- * Parses the given string according to the generic schema
- * bundles://<region>/<admin> and assigns it to the given tuple.
- *
- * Returns: 0 on success, DTN_EINVAL if the given string is not a
- * valid tuple.
+ * Parse a string into an endpoint id structure, validating that it is
+ * in fact a valid endpoint id (i.e. a URI).
  */
 int
-dtn_parse_tuple_string(dtn_tuple_t* tuple, char* str)
+dtn_parse_eid_string(dtn_endpoint_id_t* eid, const char* str)
 {
-    char *s, *end;
+    char *s;
     size_t len;
 
+    len = strlen(str) + 1;
+
+    // check string length
+    if (len > DTN_MAX_ENDPOINT_ID) {
+        return DTN_ESIZE;
+    }
+    
+    // make sure there's a colon
     s = strchr(str, ':');
     if (!s) {
         return DTN_EINVAL;
     }
-    
-    s++;
-    if ((s[0] != '/') || s[1] != '/') {
-        return DTN_EINVAL;
-    }
-    s += 2;
 
-    // s now points to the start of the region string, so search to
-    // the next '/' character
-    end = strchr(s, '/');
-    if (!end) {
-        return DTN_EINVAL;
-    }
-
-    // copy the region string
-    len = end - s;
-    memcpy(&tuple->region, s, len);
-    tuple->region[len] = '\0';
-
-    // the admin part is everything past the '/'
-    s = end + 1;
-    len = strlen(s);
-    tuple->admin.admin_len = len + 1;
-
-    // XXX/demmer memory leak here?
-    tuple->admin.admin_val = (char*)malloc(len + 1);
-    memcpy(tuple->admin.admin_val, s, len);
-    tuple->admin.admin_val[len] = '\0';
+    // XXX/demmer make sure the scheme / ssp are comprised only of
+    // legal URI characters
+    memcpy(&eid->uri[0], str, len);
 
     return 0;
 }
-
-/*
- * Queries the router for the default local tuple and appends the
- * given endpoint string to the url, assigning the result to the given
- * tuple pointer.
- *
- * Returns: 0 on success, XXX/demmer fill in others
- */
-int
-dtn_build_local_tuple(dtn_handle_t handle,
-                      dtn_tuple_t* tuple, char* endpoint)
-{
-    dtn_tuple_t* local_tuple;
-    dtn_info_response_t info;
-    int appendslash = 0;
-    
-    int ret = dtn_get_info(handle, DTN_INFOREQ_INTERFACES, &info);
-    if (ret != 0)
-        return ret;
-
-    local_tuple = &info.dtn_info_response_t_u.interfaces.local_tuple;
-    strncpy(tuple->region, local_tuple->region, DTN_MAX_REGION_LEN);
-    
-    tuple->admin.admin_len = local_tuple->admin.admin_len +
-                             strlen(endpoint) + 1;
-
-    if (local_tuple->admin.admin_val[local_tuple->admin.admin_len-1] != '/' &&
-        endpoint[0] != '/')
-    {
-        appendslash = 1;
-        tuple->admin.admin_len++;
-    }
-
-    // XXX/demmer memory leak?
-    tuple->admin.admin_val = (char*)malloc(tuple->admin.admin_len);
-
-    snprintf(tuple->admin.admin_val, tuple->admin.admin_len, "%.*s%s%s",
-             (int)local_tuple->admin.admin_len, local_tuple->admin.admin_val,
-             appendslash ? "/" : "", endpoint);
-    
-    return 0;
-}
-
 
 /*
  * Sets the value of the given payload structure to either a memory

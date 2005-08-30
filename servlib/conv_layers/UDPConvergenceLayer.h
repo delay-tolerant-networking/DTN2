@@ -78,14 +78,29 @@ public:
     UDPConvergenceLayer();
         
     /**
-     * Register a new interface.
+     * Bring up a new interface.
      */
-    bool add_interface(Interface* iface, int argc, const char* argv[]);
+    bool interface_up(Interface* iface, int argc, const char* argv[]);
 
     /**
-     * Remove an interface
+     * Bring down the interface.
      */
-    bool del_interface(Interface* iface);
+    bool interface_down(Interface* iface);
+    
+    /**
+     * Dump out CL specific interface information.
+     */
+    void dump_interface(Interface* iface, oasys::StringBuffer* buf);
+
+    /**
+     * Create any CL-specific components of the Link.
+     */
+    bool init_link(Link* link, int argc, const char* argv[]);
+    
+    /**
+     * Dump out CL specific link information.
+     */
+    void dump_link(Link* link, oasys::StringBuffer* buf);
     
     /**
      * Open the connection to a given contact and send/listen for 
@@ -104,6 +119,31 @@ public:
     void send_bundle(Contact* contact, Bundle* bundle);
 
     /**
+     * Tunable parameter structure.
+     *
+     * Per-link and per-interface settings are configurable via
+     * arguments to the 'link add' and 'interface add' commands.
+     *
+     * The parameters are stored in each Link's CLInfo slot, as well
+     * as part of the Receiver helper class.
+     */
+    class Params : public CLInfo {
+    public:
+        in_addr_t local_addr_;		///< Local address to bind to
+        u_int16_t local_port_;		///< Local port to bind to
+        in_addr_t remote_addr_;		///< Peer address to connect to
+        u_int16_t remote_port_;		///< Peer port to connect to
+    };
+    
+    /**
+     * Default parameters.
+     */
+    static Params defaults_;
+
+protected:
+    bool parse_params(Params* params, int argc, const char** argv,
+                      const char** invalidp);
+    /**
      * Helper class (and thread) that listens on a registered
      * interface for incoming data.
      */
@@ -115,7 +155,7 @@ public:
         /**
          * Constructor.
          */
-        Receiver();
+        Receiver(UDPConvergenceLayer::Params* params);
 
         /**
          * Destructor.
@@ -132,6 +172,8 @@ public:
          * for this guy, but instead just want to run the main loop.
          */
         void run();
+
+        UDPConvergenceLayer::Params params_;
         
     protected:
         /**

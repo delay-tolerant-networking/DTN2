@@ -47,16 +47,11 @@
 
 namespace dtn {
 
-EthernetScheme* oasys::Singleton<EthernetScheme>::instance_;
+template <>
+EthernetScheme* oasys::Singleton<EthernetScheme>::instance_ = 0;
 
-/**
- * Given an admin string , parse out the ip address and port.
- * Potentially does a hostname lookup if the admin string doesn't
- * contain a specified IP address. If the url did not contain a
- * port, 0 is returned.
- *
- * @return true if the extraction was a success, false if the url
- * is malformed or is not in the internet address family.
+/*
+ * Parse out an ethernet address from the ssp.
  */
 bool
 EthernetScheme::parse(const std::string& ssp, eth_addr_t* addr)
@@ -89,7 +84,7 @@ EthernetScheme::parse(const std::string& ssp, eth_addr_t* addr)
 
 /**
  * Validate that the given ssp is legitimate for this scheme. If
- * the 'is_pattern' paraemeter is true, then the ssp is being
+ * the 'is_pattern' parameter is true, then the ssp is being
  * validated as an EndpointIDPattern.
  *
  * @return true if valid
@@ -108,7 +103,7 @@ EthernetScheme::validate(const std::string& ssp, bool is_pattern)
  * @return true if it matches
  */
 bool
-EthernetScheme::match(EndpointIDPattern* pattern,
+EthernetScheme::match(const EndpointIDPattern* pattern,
                       const std::string& ssp)
 {
     // sanity check

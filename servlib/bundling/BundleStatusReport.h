@@ -47,12 +47,12 @@ namespace dtn {
  * A special bundle class whose payload is a status report. Used at
  * the source to generate the report.
  */
-class BundleStatusReport : public Bundle, private BundleProtocol {
+class BundleStatusReport : public Bundle {
 public:
     /**
      * Constructor.
      */
-    BundleStatusReport(Bundle* orig_bundle, const BundleTuple& source);
+    BundleStatusReport(Bundle* orig_bundle, const EndpointID& source);
 
     /**
      * Destructor.
@@ -63,7 +63,7 @@ public:
      * Sets the given status report flag and corresponding timestamp
      * to the current time.
      */
-    void set_status(status_report_flag_t flag);
+    void set_status(BundleProtocol::status_report_flag_t flag);
 
     /**
      * Stores the completed report into the bundle payload. Must be
@@ -74,9 +74,9 @@ public:
 protected:
     /**
      * The report structure. Note that we malloc extra space for the
-     * source's tuple to follow the fixed-length fields.
+     * source's eid to follow the fixed-length fields.
      */
-    StatusReport* report_;
+    BundleProtocol::StatusReport* report_;
 
     /**
      * The total length of the report.
@@ -84,9 +84,9 @@ protected:
     size_t report_len_;
 
     /**
-     * The original bundle's source tuple.
+     * The original bundle's source endpoint id.
      */
-    BundleTuple orig_source_;
+    EndpointID orig_source_;
 };
 
 } // namespace dtn

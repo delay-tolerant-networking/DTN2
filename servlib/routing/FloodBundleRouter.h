@@ -94,13 +94,13 @@ protected:
      * list of all pending bundles, forwarding all matches to the new
      * link.
      */
-    void new_next_hop(const BundleTuplePattern& dest, Link* next_hop);
+    void new_next_hop(const EndpointIDPattern& dest, Link* next_hop);
 
 
     int fwd_to_matching(Bundle *bundle, bool include_local);
 
 protected:
-    BundleTuplePattern all_tuples_;
+    EndpointIDPattern all_eids_;
 };
 
 } // namespace dtn

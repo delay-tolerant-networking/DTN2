@@ -36,8 +36,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/io/NetUtils.h>
 #include "IPConvergenceLayer.h"
 
 namespace dtn {
+
+/**
+ * Parse a next hop address specification of the form
+ * <host>[:<port>?].
+ *
+ * @return true if the conversion was successful, false
+ */
+bool
+IPConvergenceLayer::parse_nexthop(const char* nexthop,
+                                  in_addr_t* addr, u_int16_t* port)
+{
+    const char* host;
+    std::string tmp;
+
+    *addr = INADDR_NONE;
+    *port = 0;
+
+    // first see if there's a colon in the string -- if so, it should
+    // separate the hostname and port, if not, then the whole string
+    // should be a hostname
+    const char* colon = strchr(nexthop, ':');
+    if (colon != NULL) {
+        char* endstr;
+        u_int32_t portval = strtoul(colon + 1, &endstr, 10);
+        
+        if (*endstr != '\0' || portval > 65535) {
+            log_warn("invalid port %s in next hop '%s'",
+                     colon + 1, nexthop);
+            return false;
+        }
+
+        *port = (u_int16_t)portval;
+        
+        tmp.assign(nexthop, colon - nexthop);
+        host = tmp.c_str();
+    } else {
+        host = nexthop;
+    }
+
+    // now look up the hostname
+    if (oasys::gethostbyname(host, addr) != 0) {
+        log_warn("invalid hostname '%s' in next hop %s",
+                 host, nexthop);
+        return false;
+    }
+    
+    return true;
+}
+    
 
 } // namespace dtn

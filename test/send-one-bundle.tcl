@@ -24,7 +24,7 @@ test set initscript {
 	    puts "payload: [string range $payload 0 64]"
 	}
 
-	tcl_registration "bundles://*/*" test_arrived
+	tcl_registration "*:*" test_arrived
     }
     
     if {$id == 1} {

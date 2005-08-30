@@ -172,7 +172,18 @@ public:
      */
     void get_statistics(oasys::StringBuffer* buf);
 
-    
+    /**
+     * Return the local endpoint identifier.
+     */
+    const EndpointID& local_eid() { return local_eid_; }
+
+    /**
+     * Set the local endpoint id.
+     */
+    void set_local_eid(const char* eid_str) {
+        local_eid_.assign(eid_str);
+    }
+     
     /// XXX/demmer temp for testing fragmentation
     static size_t proactive_frag_threshold_;
     
@@ -261,6 +272,10 @@ protected:
     
     /// The event queue
     oasys::MsgQueue<BundleEvent*>* eventq_;
+
+    /// The default endpoint id for reaching this daemon, used for
+    /// bundle status reports, routing, etc.
+    EndpointID local_eid_;
 
     /// Statistics
     u_int32_t bundles_received_;

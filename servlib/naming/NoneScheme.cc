@@ -63,7 +63,7 @@ NoneScheme::validate(const std::string& ssp, bool is_pattern)
  * @return true if it matches
  */
 bool
-NoneScheme::match(EndpointIDPattern* pattern, const std::string& ssp)
+NoneScheme::match(const EndpointIDPattern* pattern, const std::string& ssp)
 {
     // sanity check
     ASSERT(pattern->scheme() == this);

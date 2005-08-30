@@ -111,10 +111,10 @@ typedef struct data_packet
 #define DEBUG_PKT	0x03
 
 void parse_options(int, char**);
-dtn_tuple_t * parse_tuple(dtn_handle_t handle, dtn_tuple_t * tuple, 
+dtn_endpoint_id_t * parse_eid(dtn_handle_t handle, dtn_endpoint_id_t * eid, 
                           char * str);
 void print_usage();
-void print_tuple(char * label, dtn_tuple_t * tuple);
+void print_eid(char * label, dtn_endpoint_id_t * eid);
 void init_motes();
 void stderr_msg(serial_source_msg problem);
 void usage(char *str1, char *str2);
@@ -218,31 +218,31 @@ reader_thread(void *p)
 
     // destination host is specified at run time, demux is hardcoded
     sprintf(demux, "%s/dtnmoteproxy/recv", arg_dest);
-    parse_tuple(handle, &bundle_spec.dest, demux);
+    parse_eid(handle, &bundle_spec.dest, demux);
 
-    // source is local tuple with file path as demux string
+    // source is local eid with file path as demux string
     sprintf(demux, "/dtnmoteproxy/send");
-    parse_tuple(handle, &bundle_spec.source, demux);
+    parse_eid(handle, &bundle_spec.source, demux);
 
     // reply to is the same as the source
-    dtn_copy_tuple(&bundle_spec.replyto, &bundle_spec.source);
+    dtn_copy_eid(&bundle_spec.replyto, &bundle_spec.source);
 
 
     if (debug > 2)
     {
-        print_tuple("source_tuple", &bundle_spec.source);
-        print_tuple("replyto_tuple", &bundle_spec.replyto);
-        print_tuple("dest_tuple", &bundle_spec.dest);
+        print_eid("source_eid", &bundle_spec.source);
+        print_eid("replyto_eid", &bundle_spec.replyto);
+        print_eid("dest_eid", &bundle_spec.dest);
     }
 
     // set the return receipt option
-    bundle_spec.dopts |= DOPTS_RETURN_RCPT;
+    bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
 
     // send file and wait for reply
 
     // create a new dtn registration to receive bundle status reports
     memset(&reginfo, 0, sizeof(reginfo));
-    dtn_copy_tuple(&reginfo.endpoint, &bundle_spec.replyto);
+    dtn_copy_eid(&reginfo.endpoint, &bundle_spec.replyto);
     reginfo.action = DTN_REG_ABORT;
     reginfo.regid = regid;
     reginfo.timeout = 60 * 60;
@@ -397,31 +397,30 @@ hexdump(unsigned char *buf, int n)
     fflush(stdout);
 }
 
-dtn_tuple_t * parse_tuple(dtn_handle_t handle, 
-                          dtn_tuple_t * tuple, char * str)
+dtn_endpoint_id_t * parse_eid(dtn_handle_t handle, 
+                          dtn_endpoint_id_t * eid, char * str)
 {
     
-    // try the string as an actual dtn tuple
-    if (!dtn_parse_tuple_string(tuple, str)) 
+    // try the string as an actual dtn eid
+    if (!dtn_parse_eid_string(eid, str)) 
     {
-        return tuple;
+        return eid;
     }
-    // build a local tuple based on the configuration of our dtn
+    // build a local eid based on the configuration of our dtn
     // router plus the str as demux string
-    else if (!dtn_build_local_tuple(handle, tuple, str))
+    else if (!dtn_build_local_eid(handle, eid, str))
     {
-        return tuple;
+        return eid;
     }
     else
     {
-        fprintf(stderr, "invalid tuple string '%s'\n", str);
+        fprintf(stderr, "invalid eid string '%s'\n", str);
         exit(1);
     }
 }
 
-void print_tuple(char *  label, dtn_tuple_t * tuple)
+void print_eid(char* label, dtn_endpoint_id_t* eid)
 {
-    printf("%s [%s %.*s]\n", label, tuple->region, 
-           (int) tuple->admin.admin_len, tuple->admin.admin_val);
+    printf("%s [%s]\n", label, eid->uri);
 }
     

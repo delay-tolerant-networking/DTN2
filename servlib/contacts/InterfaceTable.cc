@@ -55,17 +55,18 @@ InterfaceTable::~InterfaceTable()
 }
 
 /**
- * Internal method to find the location of the given interface
+ * Internal method to find the location of the given interface in the
+ * list.
  */
 bool
-InterfaceTable::find(const std::string& admin, ConvergenceLayer* cl,
+InterfaceTable::find(const std::string& name,
                      InterfaceList::iterator* iter)
 {
     Interface* iface;
     for (*iter = iflist_.begin(); *iter != iflist_.end(); ++(*iter)) {
         iface = **iter;
         
-        if ((iface->admin().compare(admin) == 0) && iface->clayer() == cl) {
+        if (iface->name() == name) {
             return true;
         }
     }        
@@ -79,22 +80,23 @@ InterfaceTable::find(const std::string& admin, ConvergenceLayer* cl,
  * specification is invalid.
  */
 bool
-InterfaceTable::add(const std::string& admin, ConvergenceLayer* cl,
+InterfaceTable::add(const std::string& name,
+                    ConvergenceLayer* cl,
                     const char* proto,
                     int argc, const char* argv[])
 {
     InterfaceList::iterator iter;
     
-    if (find(admin, cl, &iter)) {
-        log_err("interface %s already exists", admin.c_str());
+    if (find(name, &iter)) {
+        log_err("interface %s already exists", name.c_str());
         return false;
     }
     
-    log_info("adding interface %s %s", proto, admin.c_str());
+    log_info("adding interface %s (%s)", name.c_str(), proto);
 
-    Interface* iface = new Interface(admin, proto, cl);
-    if (! cl->add_interface(iface, argc, argv)) {
-        log_err("convergence layer error adding interface %s", admin.c_str());
+    Interface* iface = new Interface(name, proto, cl);
+    if (! cl->interface_up(iface, argc, argv)) {
+        log_err("convergence layer error adding interface %s", name.c_str());
         delete iface;
         return false;
     }
@@ -108,37 +110,32 @@ InterfaceTable::add(const std::string& admin, ConvergenceLayer* cl,
  * Remove the specified interface.
  */
 bool
-InterfaceTable::del(const std::string& admin, ConvergenceLayer* cl,
-                    const char* proto)
+InterfaceTable::del(const std::string& name)
 {
     InterfaceList::iterator iter;
     Interface* iface;
     bool retval = false;
     
-    log_info("removing interface %s %s", proto, admin.c_str());
+    log_info("removing interface %s", name.c_str());
 
-    if (! find(admin, cl, &iter)) {
+    if (! find(name, &iter)) {
         log_err("error removing interface %s: no such interface",
-                admin.c_str());
+                name.c_str());
         return false;
     }
 
     iface = *iter;
     iflist_.erase(iter);
 
-    // we got these two different ways (from add and del), but they
-    // should be the same
-    ASSERT(iface->clayer() == cl);
-
-    if (! iface->clayer()->del_interface(iface)) {
-        log_err("error deleteing interface %s from the convergence layer.",
-                admin.c_str());
+    if (iface->clayer()->interface_down(iface)) {
+        retval = true;
+    } else {
+        log_err("error deleting interface %s from the convergence layer.",
+                name.c_str());
         retval = false;
     }
 
     delete iface;
-    retval = true;
-    
     return retval;
 }
 
@@ -150,19 +147,14 @@ InterfaceTable::list(oasys::StringBuffer *buf)
 {
     InterfaceList::iterator iter;
     Interface* iface;
-    int ct = 0;
 
     for (iter = iflist_.begin(); iter != iflist_.end(); ++(iter)) {
         iface = *iter;
-        buf->appendf("\t%d: ", ct);
-        buf->append(iface->proto());
-        buf->append(" ");
-        buf->append(iface->admin());
+        buf->appendf("%s: Convergence Layer: %s\n",
+                     iface->name().c_str(), iface->proto().c_str());
+        iface->clayer()->dump_interface(iface, buf);
         buf->append("\n");
-        ct++;
-    }        
-    
-    return;
+    }
 }
 
 } // namespace dtn

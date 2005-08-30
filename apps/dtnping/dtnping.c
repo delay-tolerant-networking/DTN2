@@ -50,7 +50,7 @@ const char *progname;
 void
 usage()
 {
-    fprintf(stderr, "usage: %s [-c count] [-i interval] [-e expiration] tuple\n",
+    fprintf(stderr, "usage: %s [-c count] [-i interval] [-e expiration] eid\n",
             progname);
     exit(1);
 }
@@ -60,9 +60,9 @@ void doOptions(int argc, const char **argv);
 int sleepVal = 1;
 int count = 0;
 int expiration = 30;
-char dest_tuple_str[DTN_MAX_TUPLE] = "";
-char source_tuple_str[DTN_MAX_TUPLE] = "";
-char replyto_tuple_str[DTN_MAX_TUPLE] = "";
+char dest_eid_str[DTN_MAX_ENDPOINT_ID] = "";
+char source_eid_str[DTN_MAX_ENDPOINT_ID] = "";
+char replyto_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 
 int
 main(int argc, const char** argv)
@@ -71,7 +71,7 @@ main(int argc, const char** argv)
     int ret;
     char b;
     dtn_handle_t handle;
-    dtn_tuple_t source_tuple;
+    dtn_endpoint_id_t source_eid;
     dtn_reg_info_t reginfo;
     dtn_reg_id_t regid;
     dtn_bundle_spec_t ping_spec;
@@ -95,61 +95,55 @@ main(int argc, const char** argv)
         exit(1);
     }
 
-    // make sure they supplied a valid destination tuple or
+    // make sure they supplied a valid destination eid or
     // "localhost", in which case we just use the local daemon
-    if (strcmp(dest_tuple_str, "localhost") == 0) {
-        dtn_build_local_tuple(handle, &ping_spec.dest, "");
-
+    if (strcmp(dest_eid_str, "localhost") == 0) {
+        dtn_build_local_eid(handle, &ping_spec.dest, "");
+        
     } else {
-        if (dtn_parse_tuple_string(&ping_spec.dest, dest_tuple_str)) {
-            fprintf(stderr, "invalid destination tuple string '%s'\n",
-                    dest_tuple_str);
+        if (dtn_parse_eid_string(&ping_spec.dest, dest_eid_str)) {
+            fprintf(stderr, "invalid destination eid string '%s'\n",
+                    dest_eid_str);
             exit(1);
         }
     }
     
-    // if the user specified a source tuple, register on it.
-    // otherwise, build a local tuple based on the configuration of
+    // if the user specified a source eid, register on it.
+    // otherwise, build a local eid based on the configuration of
     // our dtn router plus the demux string
     snprintf(demux, sizeof(demux), "/ping.%d", getpid());
-    if (source_tuple_str[0] != '\0') {
-        if (dtn_parse_tuple_string(&source_tuple, source_tuple_str)) {
-            fprintf(stderr, "invalid source tuple string '%s'\n",
-                    source_tuple_str);
+    if (source_eid_str[0] != '\0') {
+        if (dtn_parse_eid_string(&source_eid, source_eid_str)) {
+            fprintf(stderr, "invalid source eid string '%s'\n",
+                    source_eid_str);
             exit(1);
         }
     } else {
-        dtn_build_local_tuple(handle, &source_tuple, demux);
+        dtn_build_local_eid(handle, &source_eid, demux);
     }
 
-    // set the source tuple in the bundle spec
-    if (debug) printf("source_tuple [%s %.*s]\n",
-                      source_tuple.region,
-                      (int) source_tuple.admin.admin_len, 
-                      source_tuple.admin.admin_val);
-    dtn_copy_tuple(&ping_spec.source, &source_tuple);
+    // set the source eid in the bundle spec
+    if (debug) printf("source_eid [%s]\n", source_eid.uri);
+    dtn_copy_eid(&ping_spec.source, &source_eid);
     
-    // now parse the replyto tuple, if specified. otherwise just use
-    // the source tuple
-    if (replyto_tuple_str[0] != '\0') {
-        if (dtn_parse_tuple_string(&ping_spec.replyto, replyto_tuple_str)) {
-            fprintf(stderr, "invalid replyto tuple string '%s'\n",
-                    replyto_tuple_str);
+    // now parse the replyto eid, if specified. otherwise just use
+    // the source eid
+    if (replyto_eid_str[0] != '\0') {
+        if (dtn_parse_eid_string(&ping_spec.replyto, replyto_eid_str)) {
+            fprintf(stderr, "invalid replyto eid string '%s'\n",
+                    replyto_eid_str);
             exit(1);
         }
         
     } else {
-        dtn_copy_tuple(&ping_spec.replyto, &source_tuple);
+        dtn_copy_eid(&ping_spec.replyto, &source_eid);
     }
 
-    if (debug) printf("replyto_tuple [%s %.*s]\n",
-                      ping_spec.replyto.region,
-                      (int) ping_spec.replyto.admin.admin_len, 
-                      ping_spec.replyto.admin.admin_val);
+    if (debug) printf("replyto_eid [%s]\n", ping_spec.replyto.uri);
     
     // now create a new registration based on the source
     memset(&reginfo, 0, sizeof(reginfo));
-    dtn_copy_tuple(&reginfo.endpoint, &source_tuple);
+    dtn_copy_eid(&reginfo.endpoint, &source_eid);
     reginfo.action = DTN_REG_ABORT;
     reginfo.regid = DTN_REGID_NONE;
     reginfo.timeout = 60 * 60;
@@ -185,17 +179,14 @@ main(int argc, const char** argv)
     
     // set the expiration time and the return receipt option
     ping_spec.expiration = expiration;
-    ping_spec.dopts |= DOPTS_RETURN_RCPT;
+    ping_spec.dopts |= DOPTS_DELIVERY_RCPT;
 
     // fill in a payload of a single type code of 0x3 (echo request)
     b = 0x3;
     memset(&ping_payload, 0, sizeof(ping_payload));
     dtn_set_payload(&ping_payload, DTN_PAYLOAD_MEM, &b, 1);
     
-    printf("PING [%s %.*s]...\n",
-           ping_spec.dest.region,
-           (int) ping_spec.dest.admin.admin_len, 
-           ping_spec.dest.admin.admin_val);
+    printf("PING [%s]...\n", ping_spec.dest.uri);
     
     // loop, sending pings and getting replies.
     for (i = 0; count == 0 || i < count; ++i) {
@@ -220,11 +211,9 @@ main(int argc, const char** argv)
         }
         gettimeofday(&end, NULL);
 
-        printf("%d bytes from [%s %.*s]: time=%0.2f ms\n",
+        printf("%d bytes from [%s]: time=%0.2f ms\n",
                reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
-               reply_spec.source.region,
-               (int) reply_spec.source.admin.admin_len,
-               reply_spec.source.admin.admin_val,
+               reply_spec.source.uri,
                ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                 (double)(end.tv_usec - start.tv_usec)/1000.0));
         
@@ -253,13 +242,13 @@ doOptions(int argc, const char **argv)
             expiration = atoi(optarg);
             break;
         case 'd':
-            strcpy(dest_tuple_str, optarg);
+            strcpy(dest_eid_str, optarg);
             break;
         case 's':
-            strcpy(source_tuple_str, optarg);
+            strcpy(source_eid_str, optarg);
             break;
         case 'r':
-            strcpy(replyto_tuple_str, optarg);
+            strcpy(replyto_eid_str, optarg);
             break;
         case 'h':
             usage();
@@ -269,8 +258,8 @@ doOptions(int argc, const char **argv)
         }
     }
 
-    if ((optind < argc) && (strlen(dest_tuple_str) == 0)) {
-        strcpy(dest_tuple_str, argv[optind++]);
+    if ((optind < argc) && (strlen(dest_eid_str) == 0)) {
+        strcpy(dest_eid_str, argv[optind++]);
     }
 
     if (optind < argc) {
@@ -278,8 +267,8 @@ doOptions(int argc, const char **argv)
         exit(1);
     }
 
-    if (dest_tuple_str[0] == '\0') {
-        fprintf(stderr, "must supply a destination tuple (or 'localhost')\n");
+    if (dest_eid_str[0] == '\0') {
+        fprintf(stderr, "must supply a destination eid (or 'localhost')\n");
         exit(1);
     }
 }

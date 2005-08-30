@@ -39,6 +39,9 @@
 #define _ENDPOINT_ID_H_
 
 #include <string>
+#include <oasys/serialize/Serialize.h>
+
+struct dtn_endpoint_id_t;
 
 namespace dtn {
 
@@ -46,7 +49,7 @@ class EndpointID;
 class EndpointIDPattern;
 class Scheme;
 
-class EndpointID {
+class EndpointID : public oasys::SerializableObject {
 public:
     /**
      * Default constructor
@@ -63,6 +66,33 @@ public:
     }
 
     /**
+     * Construct the endpoint id from another.
+     */
+    EndpointID(const EndpointID& other)
+    {
+        assign(other);
+    }
+
+    /**
+     * Destructor.
+     */
+    virtual ~EndpointID() {}
+
+    /**
+     * Assign this endpoint ID as a copy of the other.
+     */
+    bool assign(const EndpointID& other)
+    {
+        str_         = other.str_;
+        scheme_str_  = other.scheme_str_;
+        ssp_         = other.ssp_;
+        scheme_      = other.scheme_;
+        valid_       = other.valid_;
+        is_pattern_  = other.is_pattern_;
+        return true;
+    }
+        
+    /**
      * Set the string and parse it.
      * @return true if the string is a valid id, false if not.
      */
@@ -71,7 +101,47 @@ public:
         str_.assign(str);
         return parse();
     }
-    
+
+    /**
+     * Set the string from component pieces and parse it.
+     * @return true if the string is a valid id, false if not.
+     */
+    bool assign(const std::string& scheme, const std::string& ssp)
+    {
+        str_ = scheme + ":" + ssp;
+        return parse();
+    }
+
+    /**
+     * Simple equality test function
+     */
+    bool equals(const EndpointID& other)
+    {
+        return str_ == other.str_;
+    }
+
+    /**
+     * Set the string from the API type dtn_endpoint_id_t
+     *
+     * @return true if the string is a valid id, false if not.
+     */
+    bool assign(const dtn_endpoint_id_t* eid);
+
+    /**
+     * Append the specified service tag (in a scheme-specific manner)
+     * to the ssp.
+     *
+     * @return true if successful, false if the scheme doesn't support
+     * service tags
+     */
+    bool append_service_tag(const char* tag);
+
+    /**
+     * Copy the endpoint id contents out to the API type
+     * dtn_endpoint_id_t.
+     */
+    void copyto(dtn_endpoint_id_t* eid) const;
+
     /**
      * Return an indication of whether or not the scheme is known.
      */
@@ -79,7 +149,12 @@ public:
     {
         return (scheme_ != NULL);
     }
-
+    
+    /**
+     * Virtual from SerializableObject
+     */
+    virtual void serialize(oasys::SerializeAction* a);
+    
     /// @{
     /// Accessors and wrappers around the various fields.
     ///
@@ -135,10 +210,29 @@ public:
     }
 
     /**
+     * Construct the endpoint id pattern from another.
+     */
+    EndpointIDPattern(const EndpointIDPattern& other)
+    {
+        is_pattern_ = true;
+        assign(other);
+    }
+
+    /**
+     * Construct the endpoint id pattern from another that is not
+     * necessarily a pattern.
+     */
+    EndpointIDPattern(const EndpointID& other)
+    {
+        is_pattern_ = true;
+        assign(other);
+    }
+
+    /**
      * Shortcut to the matching functionality implemented by the
      * scheme.
      */
-    bool match(EndpointID* eid);
+    bool match(const EndpointID& eid) const;
    
 };
 

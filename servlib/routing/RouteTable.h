@@ -43,7 +43,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "bundling/BundleActions.h"
-#include "bundling/BundleTuple.h"
+#include "naming/EndpointID.h"
 
 namespace dtn {
 
@@ -71,14 +71,14 @@ class RouteEntryInfo;
  */
 class RouteEntry {
 public:
-    RouteEntry(const BundleTuplePattern& pattern,
+    RouteEntry(const EndpointIDPattern& pattern,
                Link* link, Interface* interface,
                bundle_fwd_action_t action);
 
     ~RouteEntry();
 
     /// The destination pattern that matches bundles
-    BundleTuplePattern pattern_;
+    EndpointIDPattern pattern_;
 
     /// Route priority
     int priority_;
@@ -131,7 +131,7 @@ public:
     /**
      * Remove a route entry.
      */
-    bool del_entry(const BundleTuplePattern& dest,
+    bool del_entry(const EndpointIDPattern& dest,
                    BundleConsumer* next_hop);
 
     /**
@@ -141,11 +141,11 @@ public:
 
     /**
      * Fill in the entry_set with the list of all entries whose
-     * patterns match the given tuple.
+     * patterns match the given eid.
      *
      * @return the count of matching entries
      */
-    size_t get_matching(const BundleTuple& tuple,
+    size_t get_matching(const EndpointID& eid,
                         RouteEntrySet* entry_set) const;
     
     /**

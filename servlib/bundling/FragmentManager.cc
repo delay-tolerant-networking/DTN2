@@ -56,21 +56,24 @@ FragmentManager::create_fragment(Bundle* bundle, int offset, size_t length)
 {
     Bundle* fragment = new Bundle();
     
-    fragment->source_ = bundle->source_;
-    fragment->replyto_ = bundle->replyto_;
-    fragment->custodian_ = bundle->custodian_;
-    fragment->dest_ = bundle->dest_;
-    fragment->priority_ = bundle->priority_;
-    fragment->custreq_ = bundle->custreq_;
-    fragment->custody_rcpt_ = bundle->custody_rcpt_;
-    fragment->recv_rcpt_ = bundle->recv_rcpt_;
-    fragment->fwd_rcpt_ = bundle->fwd_rcpt_;
-    fragment->return_rcpt_ = bundle->return_rcpt_;
-    fragment->creation_ts_ = bundle->creation_ts_;
-    fragment->expiration_ = bundle->expiration_;
+    fragment->source_ 		= bundle->source_;
+    fragment->dest_ 		= bundle->dest_;
+    fragment->custodian_	= bundle->custodian_;
+    fragment->replyto_ 		= bundle->replyto_;
+    fragment->priority_ 	= bundle->priority_;
+    fragment->is_admin_ 	= bundle->is_admin_;
+    fragment->custody_requested_= bundle->custody_requested_;
+    fragment->receive_rcpt_ 	= bundle->receive_rcpt_;
+    fragment->custody_rcpt_ 	= bundle->custody_rcpt_;
+    fragment->forward_rcpt_ 	= bundle->forward_rcpt_;
+    fragment->delivery_rcpt_ 	= bundle->delivery_rcpt_;
+    fragment->deletion_rcpt_ 	= bundle->deletion_rcpt_;
+    fragment->creation_ts_ 	= bundle->creation_ts_;
+    fragment->expiration_ 	= bundle->expiration_;
 
-    // always creating a fragment
-    fragment->is_fragment_ = true;
+    // always creating a fragment (which can be further fragmented)
+    fragment->is_fragment_ 	= true;
+    fragment->do_not_fragment_ 	= false;
 
     // initialize the fragment's orig_length and figure out the offset
     // into the payload
@@ -127,8 +130,8 @@ FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
              (unsigned long)bundle->creation_ts_.tv_usec);
     
     key->append(buf);
-    key->append(bundle->source_.tuple());
-    key->append(bundle->dest_.tuple());
+    key->append(bundle->source_.c_str());
+    key->append(bundle->dest_.c_str());
 }
 
 /**

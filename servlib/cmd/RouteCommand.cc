@@ -63,7 +63,6 @@ RouteCommand::help_string()
     return
         "route add <dest> <link/endpoint>\n"
         "route del <dest> <link/endpoint>\n"
-        "route local_tuple <tuple?>\n"
         "route dump"
         ;
 }
@@ -80,16 +79,16 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     
     if (strcmp(cmd, "add") == 0) {
         // route add <dest> <link/endpoint>
-        if (argc < 3) {
-            wrong_num_args(argc, argv, 2, 3, INT_MAX);
+        if (argc < 4) {
+            wrong_num_args(argc, argv, 2, 4, 4);
             return TCL_ERROR;
         }
 
         const char* dest_str = argv[2];
 
-        BundleTuplePattern dest(dest_str);
+        EndpointIDPattern dest(dest_str);
         if (!dest.valid()) {
-            resultf("invalid destination tuple %s", dest_str);
+            resultf("invalid destination eid %s", dest_str);
             return TCL_ERROR;
         }
         const char* name = argv[3];
@@ -123,17 +122,21 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         return TCL_OK;
     }
 
-    else if (strcmp(cmd, "local_tuple") == 0) {
+    else if (strcmp(cmd, "local_eid") == 0) {
         if (argc == 2) {
-            // route local_tuple
-            set_result(BundleRouter::Config.local_tuple_.c_str());
+            // route local_eid
+            set_result(BundleDaemon::instance()->local_eid().c_str());
             return TCL_OK;
             
         } else if (argc == 3) {
-            // route local_tuple <tuple?>
-            BundleRouter::Config.local_tuple_.assign(argv[2]);
-            if (! BundleRouter::Config.local_tuple_.valid()) {
-                resultf("invalid tuple '%s'", argv[2]);
+            // route local_eid <eid?>
+            BundleDaemon::instance()->set_local_eid(argv[2]);
+            if (! BundleDaemon::instance()->local_eid().valid()) {
+                resultf("invalid eid '%s'", argv[2]);
+                return TCL_ERROR;
+            }
+            if (! BundleDaemon::instance()->local_eid().known_scheme()) {
+                resultf("local eid '%s' has unknown scheme", argv[2]);
                 return TCL_ERROR;
             }
         } else {

@@ -99,7 +99,7 @@ main(int argc, const char** argv)
               #x, b.source_.x().c_str(), b2.source_.x().c_str());       \
     }
 
-    COMPARE(tuple);
+    COMPARE(eid);
     COMPARE(region);
     COMPARE(admin);
 

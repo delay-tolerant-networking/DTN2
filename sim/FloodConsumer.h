@@ -39,14 +39,13 @@
 #define __FLOOD_CONSUMER___
 
 #include "reg/Registration.h"
-#include "bundling/BundleTuple.h"
 #include "routing/BundleRouter.h"
 
 namespace dtnsim {
 
-class FloodConsumer: public Registration {
+class FloodConsumer : public Registration {
 public:
-    FloodConsumer(u_int32_t regid, const BundleTuplePattern& endpoint);
+    FloodConsumer(u_int32_t regid, const EndpointIDPattern& endpoint);
     
     void    set_router(BundleRouter *router);
     void    enqueue_bundle(Bundle *bundle);

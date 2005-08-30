@@ -45,7 +45,7 @@
 
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleEventHandler.h"
-#include "bundling/BundleTuple.h"
+#include "naming/EndpointID.h"
 
 namespace dtn {
 
@@ -89,13 +89,10 @@ public:
 
     /**
      * Config variables. These must be static since they're set by the
-     * config parser before the router object is created. At
-     * initialization time, the local_tuple variables are propagated
-     * into the actual router instance.
+     * config parser before any router objects are created.
      */
     static struct config_t {
         std::string         type_;
-        BundleTuple         local_tuple_;
     } Config;
     
     /**
@@ -119,18 +116,6 @@ public:
      */
     virtual void get_routing_state(oasys::StringBuffer* buf) = 0;
     
-    /**
-     * Accessor for the local tuple.
-     */
-    const BundleTuple& local_tuple() { return local_tuple_; }
-
-    /**
-     * Assignment function for the local tuple string.
-     */
-    void set_local_tuple(const char* tuple_str) {
-        local_tuple_.assign(tuple_str);
-    }
-
 protected:
     /**
      * Constructor
@@ -139,13 +124,6 @@ protected:
 
     /// Name of this particular router
     std::string name_;
-    
-    /**
-     * The default tuple for reaching this router, used for bundle
-     * status reports, etc. Note that the region must be one of the
-     * locally configured regions.
-     */
-    BundleTuple local_tuple_;
     
     /// The list of all bundles still pending delivery
     BundleList* pending_bundles_;

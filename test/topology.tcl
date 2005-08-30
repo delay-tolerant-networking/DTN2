@@ -12,10 +12,10 @@ proc setup_linear_topology {type cl {args ""}} {
 	set peeraddr $hosts($peerid)
 	set peerport $ports($cl,$peerid)
 
-	eval link add link-$peerid host://$peeraddr:$peerport \
+	eval link add link-$peerid $peeraddr:$peerport \
 		$type $cl $args 
 
-	route add bundles://internet/host://host-$peerid/* link-$peerid
+	route add dtn://host-$peerid/* link-$peerid
     }
 
     # and previous a hop in chain as well
@@ -24,12 +24,12 @@ proc setup_linear_topology {type cl {args ""}} {
 	set peeraddr $hosts($peerid)
 	set peerport $ports($cl,$peerid)
 	
-	eval link add link-$peerid host://$peeraddr:$peerport \
+	eval link add link-$peerid $peeraddr:$peerport \
 		$type $cl $args
 
-	route add bundles://internet/host://host-$peerid/* link-$peerid
+	route add dtn://host-$peerid/* link-$peerid
 
-	set route_to_root bundles://internet/host://$peeraddr
+	set route_to_root dtn://$peeraddr
     }
 }
 
@@ -55,10 +55,10 @@ proc setup_tree_topology {type cl {args ""}} {
 	for {set child 1} {$child <= 9} {incr child} {
 	    set childaddr $hosts($child)
 	    set childport $ports($cl,$child)
-	    eval link add link-$child host://$childaddr:$childport \
+	    eval link add link-$child $childaddr:$childport \
 		    $type $cl $args
 	    
-	    route add bundles://internet/host://host-$child/* link-$child
+	    route add dtn://host-$child/* link-$child
 	}
     }
 
@@ -68,11 +68,11 @@ proc setup_tree_topology {type cl {args ""}} {
 	set parent 0
 	set parentaddr $hosts($parent)
 	set parentport $ports($cl,$parent)
-	eval link add link-$parent host://$parentaddr:$parentport \
+	eval link add link-$parent $parentaddr:$parentport \
 		$type $cl $args
 	
-	route add bundles://internet/host://host-$parent/* link-$parent
-	set route_to_root bundles://internet/host://$parentaddr
+	route add dtn://host-$parent/* link-$parent
+	set route_to_root dtn://$parentaddr
 	
 	for {set child [expr $id * 10]} \
 		{$child <= [expr ($id * 10) + 9]} \
@@ -80,10 +80,10 @@ proc setup_tree_topology {type cl {args ""}} {
 	{
 	    set childaddr $hosts($child)
 	    set childport $ports($cl,$child)
-	    eval link add link-$child host://$childaddr:$childport \
+	    eval link add link-$child $childaddr:$childport \
 		    $type $cl $args
 	    
-	    route add bundles://internet/host://host-$child/* link-$child
+	    route add dtn://host-$child/* link-$child
 	}
     }
 
@@ -93,20 +93,20 @@ proc setup_tree_topology {type cl {args ""}} {
 	set parent [expr $id / 10]
 	set parentaddr $hosts($parent)
 	set parentport $ports($cl,$parent)
-	eval link add link-$parent host://$parentaddr:$parentport \
+	eval link add link-$parent $parentaddr:$parentport \
 		$type $cl $args
 	
-	route add bundles://internet/host://host-$parent/* link-$parent
-	set route_to_root bundles://internet/host://$parentaddr
+	route add dtn://host-$parent/* link-$parent
+	set route_to_root dtn://$parentaddr
 
 	if {$id <= 154} {
 	    set child [expr $id + 100]
 	    set childaddr $hosts($child)
 	    set childport $ports($cl,$child)
-	    eval link add link-$child host://$childaddr:$childport \
+	    eval link add link-$child $childaddr:$childport \
 		    $type $cl $args
 	    
-	    route add bundles://internet/host://host-$child/* link-$child
+	    route add dtn://host-$child/* link-$child
 	}
     }
 
@@ -115,10 +115,10 @@ proc setup_tree_topology {type cl {args ""}} {
 	set parent [expr $id - 100]
 	set parentaddr $hosts($parent)
 	set parentport $ports($cl,$parent)
-	eval link add link-$parent host://$parentaddr:$parentport \
+	eval link add link-$parent $parentaddr:$parentport \
 		$type $cl $args
 	
-	route add bundles://internet/host://host-$parent/* link-$parent
-	set route_to_root bundles://internet/host://$parentaddr
+	route add dtn://host-$parent/* link-$parent
+	set route_to_root dtn://$parentaddr
     }
 }

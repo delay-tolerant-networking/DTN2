@@ -56,7 +56,7 @@ Registration::failure_action_toa(failure_action_t action)
 }
 
 Registration::Registration(u_int32_t regid,
-                           const BundleTuplePattern& endpoint,
+                           const EndpointIDPattern& endpoint,
                            failure_action_t action,
                            time_t expiration,
                            const std::string& script)

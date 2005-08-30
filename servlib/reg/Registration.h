@@ -45,7 +45,7 @@
 #include <oasys/serialize/Serialize.h>
 
 #include "../bundling/BundleConsumer.h"
-#include "../bundling/BundleTuple.h"
+#include "../naming/EndpointID.h"
 
 namespace dtn {
 
@@ -93,7 +93,7 @@ public:
      * Constructor.
      */
     Registration(u_int32_t regid,
-                 const BundleTuplePattern& endpoint,
+                 const EndpointIDPattern& endpoint,
                  failure_action_t action,
                  time_t expiration = 0,
                  const std::string& script = "");
@@ -106,7 +106,7 @@ public:
     //@{
     /// Accessors
     u_int32_t			regid()		{ return regid_; }
-    const BundleTuplePattern&	endpoint() 	{ return endpoint_; } 
+    const EndpointIDPattern&	endpoint() 	{ return endpoint_; } 
     failure_action_t		failure_action(){ return failure_action_; }
     //@}
 
@@ -129,13 +129,13 @@ public:
 
 protected:
     void init(u_int32_t regid,
-              const BundleTuplePattern& endpoint,
+              const EndpointIDPattern& endpoint,
               failure_action_t action,
               time_t expiration,
               const std::string& script);
 
     u_int32_t regid_;
-    BundleTuplePattern endpoint_;
+    EndpointIDPattern endpoint_;
     failure_action_t failure_action_;	
     std::string script_;
     time_t expiration_;

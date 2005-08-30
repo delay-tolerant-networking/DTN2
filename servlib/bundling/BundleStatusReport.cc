@@ -37,34 +37,39 @@
  */
 
 #include "BundleStatusReport.h"
+#include "SDNV.h"
 #include <netinet/in.h>
 
 namespace dtn {
 
 BundleStatusReport::BundleStatusReport(Bundle* orig_bundle,
-                                       const BundleTuple& source)
+                                       const EndpointID& source)
     : Bundle()
 {
     source_.assign(source);
     replyto_.assign(source);
     custodian_.assign(source);
     dest_.assign(orig_bundle->replyto_);
+    is_admin_ = true;
 
     // use the expiration time from the original bundle
     // XXX/demmer maybe something more clever??
     expiration_ = orig_bundle->expiration_;
 
-    // the report's length is variable based on the original bundle
-    // source's region and admin length
+    // store the original bundle's source eid
     orig_source_.assign(orig_bundle->source_);
-    size_t region_len = orig_source_.region().length();
-    size_t admin_len =  orig_source_.admin().length();
-    report_len_ = sizeof(*report_) + 2 + region_len + admin_len;
+    
+    // the report's length is variable since we need to encode the
+    // original bundle's source endpoint id, so precalculate its
+    // length here
+    int sdnv_len = SDNV::encoding_len(orig_source_.length());
+    report_len_ = sizeof(BundleProtocol::StatusReport) +
+                  sdnv_len + orig_source_.length();
 
-    report_ = (StatusReport*)malloc(report_len_);
+    report_ = (BundleProtocol::StatusReport*)malloc(report_len_);
     memset(report_, 0, report_len_);
     
-    report_->admin_type = ADMIN_STATUS_REPORT;
+    report_->admin_type = BundleProtocol::ADMIN_STATUS_REPORT;
     report_->orig_ts = ((u_int64_t)htonl(orig_bundle->creation_ts_.tv_sec)) << 32;
     report_->orig_ts |= (u_int64_t)htonl(orig_bundle->creation_ts_.tv_usec);
 }
@@ -79,34 +84,34 @@ BundleStatusReport::~BundleStatusReport()
  * current time.
  */
 void
-BundleStatusReport::set_status(status_report_flag_t flag)
+BundleStatusReport::set_status(BundleProtocol::status_report_flag_t flag)
 {
     u_int64_t* ts = 0;
     
     switch(flag) {
-    case STATUS_RECEIVED:
+    case BundleProtocol::STATUS_RECEIVED:
         ts = &report_->receipt_ts;
         break;
             
-    case STATUS_CUSTODY_ACCEPTED:
+    case BundleProtocol::STATUS_CUSTODY_ACCEPTED:
         ts = &report_->receipt_ts;
         break;
                 
-    case STATUS_FORWARDED:
+    case BundleProtocol::STATUS_FORWARDED:
         ts = &report_->forward_ts;
         break;
                     
-    case STATUS_DELIVERED:
+    case BundleProtocol::STATUS_DELIVERED:
         ts = &report_->delivery_ts;
         break;
         
-    case STATUS_TTL_EXPIRED:
+    case BundleProtocol::STATUS_TTL_EXPIRED:
         ts = &report_->delete_ts;
         break;
                             
-    case STATUS_UNAUTHENTIC:
-    case STATUS_UNUSED:
-    case STATUS_FRAGMENT:
+    case BundleProtocol::STATUS_UNAUTHENTIC:
+    case BundleProtocol::STATUS_UNUSED:
+    case BundleProtocol::STATUS_FRAGMENT:
         NOTIMPLEMENTED;
     }
 
@@ -114,7 +119,7 @@ BundleStatusReport::set_status(status_report_flag_t flag)
     gettimeofday(&now, 0);
 
     report_->status_flags |= flag;
-    set_timestamp(ts, &now);
+    BundleProtocol::set_timestamp(ts, &now);
 }
 
 /**
@@ -125,21 +130,20 @@ void
 BundleStatusReport::generate_payload()
 {
     /*
-     * copy the region and admin bits into the variable length part of
-     * the report
+     * Copy out the variable length part (the source endpoint id's
+     * length (as an sdnv) and value.
      */
-    size_t region_len = orig_source_.region().length();
-    size_t admin_len =  orig_source_.admin().length();
+    size_t len = report_len_ - sizeof(BundleProtocol::StatusReport);
+    u_char* bp = &report_->source_eid_data[0];
     
-    char* bp = &report_->tuple_data[0];
-    *bp = region_len;
-    memcpy(&bp[1], orig_source_.region().data(), region_len);
-    bp += 1 + region_len;
- 
-    *bp = admin_len;
-    memcpy(&bp[1], orig_source_.admin().data(), admin_len);
-    bp += 1 + admin_len;
-
+    int sdnv_len = SDNV::encode(orig_source_.length(), bp, len);
+    ASSERT(sdnv_len > 0);
+    
+    len -= sdnv_len;
+    bp += sdnv_len;
+    ASSERT(len == orig_source_.length());
+    memcpy(bp, orig_source_.c_str(), orig_source_.length());
+        
     payload_.set_data((const u_char*)report_, report_len_);
 }
 

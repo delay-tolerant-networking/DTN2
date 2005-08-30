@@ -69,7 +69,7 @@ WildcardScheme::validate(const std::string& ssp, bool is_pattern)
  * @return true if it matches
  */
 bool
-WildcardScheme::match(EndpointIDPattern* pattern, const std::string& ssp)
+WildcardScheme::match(const EndpointIDPattern* pattern, const std::string& ssp)
 {
     ASSERT(pattern->scheme() == this); // sanity
     

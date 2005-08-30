@@ -60,7 +60,7 @@ public:
      * Constructor.
      */
     APIRegistration(u_int32_t regid,
-                    const BundleTuplePattern& endpoint,
+                    const EndpointIDPattern& endpoint,
                     failure_action_t action,
                     time_t expiration = 0,
                     const std::string& script = "");

@@ -92,7 +92,7 @@ public:
      *
      * Returns the count of matching registrations.
      */
-    int get_matching(const BundleTuple& tuple, RegistrationList* reg_list);
+    int get_matching(const EndpointID& eid, RegistrationList* reg_list);
     
     /**
      * Delete any expired registrations

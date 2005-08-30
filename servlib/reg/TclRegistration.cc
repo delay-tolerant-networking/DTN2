@@ -47,7 +47,7 @@
 
 namespace dtn {
 
-TclRegistration::TclRegistration(const BundleTuplePattern& endpoint,
+TclRegistration::TclRegistration(const EndpointIDPattern& endpoint,
                                  Tcl_Interp* interp)
     
     : APIRegistration(GlobalStore::instance()->next_regid(),

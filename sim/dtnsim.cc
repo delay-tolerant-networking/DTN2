@@ -48,9 +48,9 @@
 #include "Simulator.h"
 #include "SimCommand.h"
 #include "SimConvergenceLayer.h"
-#include "bundling/AddressFamily.h"
 #include "bundling/ContactManager.h"
 #include "cmd/ParamCommand.h"
+#include "naming/SchemeTable.h"
 
 /**
  * Namespace for the dtn simulator
@@ -150,8 +150,7 @@ main(int argc, char** argv)
     interp->reg(new SimCommand());
 
     // Set up components
-    AddressFamilyTable::init();
-    AddressFamilyTable::instance()->add_string_family();
+    SchemeTable::create();
     SimConvergenceLayer::init();
     ConvergenceLayer::add_clayer("sim", SimConvergenceLayer::instance());
 

@@ -52,7 +52,7 @@ namespace dtnsim {
  */
 class SimRegistration : public Registration {
 public:
-    SimRegistration(Node* node, const BundleTuple& demux_tuple);
+    SimRegistration(Node* node, const EndpointID& endpoint);
 
     /**
      * Consume the given bundle.

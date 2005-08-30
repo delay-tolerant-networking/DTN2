@@ -39,13 +39,17 @@
 #define _ETH_CONVERGENCE_LAYER_H_
 
 // Only works on Linux (for now)
-#ifdef __linux
+#ifdef XXX_demmer_fixme__linux
+
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <linux/if.h>
 
 #include <oasys/thread/Thread.h>
-#include "ConvergenceLayer.h"
 #include <oasys/thread/Timer.h>
-#include <servlib/bundling/EthernetAddressFamily.h>
-#include "linux/if.h"
+
+#include "ConvergenceLayer.h"
+#include "naming/EthernetScheme.h" // for eth_addr_t
 
 /** 
  *   The EthConvergenceLayer provides access to any ethernet interfaces that
@@ -115,14 +119,14 @@ public:
     EthConvergenceLayer();
         
     /**
-     * Register a new interface.
+     * Bring up a new interface.
      */
-    bool add_interface(Interface* iface, int argc, const char* argv[]);
+    bool interface_up(Interface* iface, int argc, const char* argv[]);
 
     /**
-     * Remove an interface
+     * Bring down the interface.
      */
-    bool del_interface(Interface* iface);
+    bool interface_down(Interface* iface);
     
     /**
      * Open the connection to a given contact and send/listen for 

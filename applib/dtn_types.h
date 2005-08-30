@@ -71,13 +71,12 @@ extern "C" {
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_TUPLE 1024 /* max tuple size (bytes) */
+#define DTN_MAX_ENDPOINT_ID 256 /* max endpoint_id size (bytes) */
 #define DTN_MAX_PATH_LEN PATH_MAX /* max path length */
 #define DTN_MAX_EXEC_LEN ARG_MAX /* length of string passed to exec() */
 #define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
 #define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
 #define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
-#define DTN_MAX_INFREQ_TUPLES 32 /* max number of responses to a dtn_getinfo call */
 // XXX/demmer should move error codes to dtn_api.h
 
 
@@ -97,59 +96,24 @@ typedef int DTN_STATUS;
 #define DTN_ECOMM (DTN_ERRBASE+3) /* error in ipc communication */
 #define DTN_ECONNECT (DTN_ERRBASE+4) /* error connecting to server */
 #define DTN_ETIMEOUT (DTN_ERRBASE+5) /* operation timed out */
-#define DTN_ESIZE (DTN_ERRBASE+6) /* payload too large */
+#define DTN_ESIZE (DTN_ERRBASE+6) /* payload / eid too large */
 #define DTN_ENOTFOUND (DTN_ERRBASE+7) /* not found (e.g. reg) */
 #define DTN_EINTERNAL (DTN_ERRBASE+8) /* misc. internal error */
 #define DTN_ERRMAX 255
 
 /**
- * Specification of a dtn tuple as parsed into a region string and
- * admin identifier. As per the bundle specification, the admin
- * portion is either a URI or a one or two byte binary value.
- *
+ * Specification of a dtn endpoint id, i.e. a URI, implemented as a
+ * fixed-length char buffer. Note that for efficiency reasons, this
+ * fixed length is relatively small (256 bytes). 
+ * 
+ * The alternative is to use the opaque XDR type but then all endpoint
+ * ids would require malloc / free which is more prone to leaks / bugs.
  */
 
-struct dtn_tuple_t {
-	char region[DTN_MAX_REGION_LEN];
-	struct {
-		u_int admin_len;
-		char *admin_val;
-	} admin;
+struct dtn_endpoint_id_t {
+	char uri[DTN_MAX_ENDPOINT_ID];
 };
-typedef struct dtn_tuple_t dtn_tuple_t;
-
-/**
- * Information requests
- *     DTN_INFOREQ_INTERFACES - list of local interfaces
- *     DTN_INFOREQ_CONTACTS   - list of available contacts
- *     DTN_INFOREQ_ROUTES     - list of currently reachable peers
- */
-
-enum dtn_info_request_t {
-	DTN_INFOREQ_INTERFACES = 1,
-	DTN_INFOREQ_CONTACTS = 2,
-	DTN_INFOREQ_ROUTES = 3,
-};
-typedef enum dtn_info_request_t dtn_info_request_t;
-
-struct dtn_inforeq_interfaces_t {
-	dtn_tuple_t local_tuple;
-	dtn_tuple_t other_ifs[DTN_MAX_INFREQ_TUPLES];
-};
-typedef struct dtn_inforeq_interfaces_t dtn_inforeq_interfaces_t;
-
-/**
- * Information request response structure that is a union, based
- * on the type of the request, of the returned values.
- */
-
-struct dtn_info_response_t {
-	dtn_info_request_t request;
-	union {
-		dtn_inforeq_interfaces_t interfaces;
-	} dtn_info_response_t_u;
-};
-typedef struct dtn_info_response_t dtn_info_response_t;
+typedef struct dtn_endpoint_id_t dtn_endpoint_id_t;
 
 /**
  * A registration cookie.
@@ -162,6 +126,20 @@ typedef u_int dtn_reg_id_t;
  */
 
 typedef u_int dtn_timeval_t;
+
+/**
+ * Specification of a service tag used in building a local endpoint
+ * identifier.
+ * 
+ * Note that the application cannot (in general) expect to be able to
+ * use the full DTN_MAX_ENDPOINT_ID, as there is a chance of overflow
+ * when the daemon concats the tag with its own local endpoint id.
+ */
+
+struct dtn_service_tag_t {
+	char tag[DTN_MAX_ENDPOINT_ID];
+};
+typedef struct dtn_service_tag_t dtn_service_tag_t;
 
 /**
  * Value for an unspecified registration cookie (i.e. indication that
@@ -190,7 +168,7 @@ typedef enum dtn_reg_action_t dtn_reg_action_t;
  */
 
 struct dtn_reg_info_t {
-	dtn_tuple_t endpoint;
+	dtn_endpoint_id_t endpoint;
 	dtn_reg_action_t action;
 	dtn_reg_id_t regid;
 	dtn_timeval_t timeout;
@@ -223,21 +201,21 @@ typedef enum dtn_bundle_priority_t dtn_bundle_priority_t;
  *     
  *     DOPTS_NONE           - no custody, etc
  *     DOPTS_CUSTODY        - custody xfer
- *     DOPTS_RETURN_RCPT    - end to end return receipt
- *     DOPTS_RECV_RCPT      - per hop arrival receipt
- *     DOPTS_FWD_RCPT       - per hop departure receipt
- *     DOPTS_CUST_RCPT      - per custodian receipt
- *     DOPTS_OVERWRITE      - request queue overwrite option
+ *     DOPTS_DELIVERY_RCPT  - end to end delivery (i.e. return receipt)
+ *     DOPTS_RECEIVE_RCPT   - per hop arrival receipt
+ *     DOPTS_FORWARD_RCPT   - per hop departure receipt
+ *     DOPTS_CUSTODY_RCPT   - per custodian receipt
+ *     DOPTS_DELETE_RCPT    - request deletion receipt
  */
 
 enum dtn_bundle_delivery_opts_t {
 	DOPTS_NONE = 0,
 	DOPTS_CUSTODY = 1,
-	DOPTS_RETURN_RCPT = 2,
-	DOPTS_RECV_RCPT = 4,
-	DOPTS_FWD_RCPT = 8,
-	DOPTS_CUST_RCPT = 16,
-	DOPTS_OVERWRITE = 32,
+	DOPTS_DELIVERY_RCPT = 2,
+	DOPTS_RECEIVE_RCPT = 4,
+	DOPTS_FORWARD_RCPT = 8,
+	DOPTS_CUSTODY_RCPT = 16,
+	DOPTS_DELETE_RCPT = 32,
 };
 typedef enum dtn_bundle_delivery_opts_t dtn_bundle_delivery_opts_t;
 
@@ -246,9 +224,9 @@ typedef enum dtn_bundle_delivery_opts_t dtn_bundle_delivery_opts_t;
  */
 
 struct dtn_bundle_spec_t {
-	dtn_tuple_t source;
-	dtn_tuple_t dest;
-	dtn_tuple_t replyto;
+	dtn_endpoint_id_t source;
+	dtn_endpoint_id_t dest;
+	dtn_endpoint_id_t replyto;
 	dtn_bundle_priority_t priority;
 	int dopts;
 	int expiration;
@@ -301,12 +279,10 @@ typedef struct dtn_bundle_auth_t dtn_bundle_auth_t;
 
 #if defined(__STDC__) || defined(__cplusplus)
 extern  bool_t xdr_DTN_STATUS (XDR *, DTN_STATUS*);
-extern  bool_t xdr_dtn_tuple_t (XDR *, dtn_tuple_t*);
-extern  bool_t xdr_dtn_info_request_t (XDR *, dtn_info_request_t*);
-extern  bool_t xdr_dtn_inforeq_interfaces_t (XDR *, dtn_inforeq_interfaces_t*);
-extern  bool_t xdr_dtn_info_response_t (XDR *, dtn_info_response_t*);
+extern  bool_t xdr_dtn_endpoint_id_t (XDR *, dtn_endpoint_id_t*);
 extern  bool_t xdr_dtn_reg_id_t (XDR *, dtn_reg_id_t*);
 extern  bool_t xdr_dtn_timeval_t (XDR *, dtn_timeval_t*);
+extern  bool_t xdr_dtn_service_tag_t (XDR *, dtn_service_tag_t*);
 extern  bool_t xdr_dtn_reg_action_t (XDR *, dtn_reg_action_t*);
 extern  bool_t xdr_dtn_reg_info_t (XDR *, dtn_reg_info_t*);
 extern  bool_t xdr_dtn_bundle_priority_t (XDR *, dtn_bundle_priority_t*);
@@ -318,12 +294,10 @@ extern  bool_t xdr_dtn_bundle_auth_t (XDR *, dtn_bundle_auth_t*);
 
 #else /* K&R C */
 extern bool_t xdr_DTN_STATUS ();
-extern bool_t xdr_dtn_tuple_t ();
-extern bool_t xdr_dtn_info_request_t ();
-extern bool_t xdr_dtn_inforeq_interfaces_t ();
-extern bool_t xdr_dtn_info_response_t ();
+extern bool_t xdr_dtn_endpoint_id_t ();
 extern bool_t xdr_dtn_reg_id_t ();
 extern bool_t xdr_dtn_timeval_t ();
+extern bool_t xdr_dtn_service_tag_t ();
 extern bool_t xdr_dtn_reg_action_t ();
 extern bool_t xdr_dtn_reg_info_t ();
 extern bool_t xdr_dtn_bundle_priority_t ();

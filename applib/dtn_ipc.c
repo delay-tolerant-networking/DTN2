@@ -58,7 +58,7 @@ dtnipc_msgtoa(u_int32_t type)
     switch(type) {
         CASE(DTN_OPEN);
         CASE(DTN_CLOSE);
-        CASE(DTN_GETINFO);
+        CASE(DTN_LOCAL_EID);
         CASE(DTN_REGISTER);
         CASE(DTN_BIND);
         CASE(DTN_SEND);
