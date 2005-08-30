@@ -42,7 +42,6 @@
 #include <oasys/debug/Formatter.h>
 
 #include "BundleConsumer.h"
-#include "BundleTuple.h"
 #include "Link.h"
 
 namespace dtn {
@@ -95,7 +94,7 @@ public:
     Link* link() { return link_; }
 
     /**
-     * Accessor to next hop admin string.
+     * Accessor to the link's next hop address info.
      */
     const char* nexthop() { return link_->nexthop() ; }
 
