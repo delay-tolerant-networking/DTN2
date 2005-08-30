@@ -50,7 +50,7 @@ namespace dtn {
  * Static constructor to create different type of links
  */
 Link*
-Link::create_link(std::string name, link_type_t type,
+Link::create_link(const std::string& name, link_type_t type,
                   ConvergenceLayer* cl, const char* nexthop,
                   int argc, const char* argv[])
 {
@@ -76,7 +76,7 @@ Link::create_link(std::string name, link_type_t type,
 /**
  * Constructor
  */
-Link::Link(std::string name, link_type_t type,
+Link::Link(const std::string& name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
     :  BundleConsumer(nexthop, false, LINK),
        type_(type), state_(UNAVAILABLE),
@@ -100,12 +100,13 @@ Link::Link(std::string name, link_type_t type,
 Link::~Link()
 {
     /*
-     * I think it's a better design if links are never actually
-     * deleted. To enforce this constraint, we have this PANIC here,
-     * but also the destructor of the class is protected.
+     * Once they're created, links are never actually deleted.
+     * However, if there's a misconfiguration, then init_link may
+     * delete the link, so we don't want to PANIC here.
+     *
+     * Note also that the destructor of the class is protected so
+     * we're (relatively) sure this constraint does hold.
      */
-    PANIC("Links should never be destroyed");
-    
     ASSERT(!isopen());
     
     if (cl_info_ != NULL) {
@@ -129,7 +130,7 @@ Link::set_state(state_t new_state)
         break; // any old state is valid
 
     case AVAILABLE:
-        ASSERT(state_ == UNAVAILABLE);
+        ASSERT(state_ == CLOSING || state_ == UNAVAILABLE);
         break;
 
     case OPENING:

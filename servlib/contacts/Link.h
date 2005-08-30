@@ -42,7 +42,6 @@
 #include <oasys/debug/Formatter.h>
 
 #include "BundleConsumer.h"
-#include "BundleTuple.h"
 #include "BundleList.h"
 
 namespace dtn {
@@ -92,9 +91,8 @@ class LinkSet : public std::set<Link*> {};
  * Invariants for better understanding: Opening a link means =>
  * Creating a new contact on it. It is an error to open a link which
  * is already open. One can check status, if the link is already open
- * or not. Links are typically opened by the bundle actions layer
- * router when . A Link can be opened only if its
- * availability bit is set to true
+ * or not. A Link can be opened only if its availability bit is set to
+ * true.
  *
  * Closing a link means => Deleting or getting rid of existing contact
  * on it. Free the state stored for that contact. It is an error to
@@ -289,15 +287,15 @@ public:
     /**
      * Static function to create appropriate link object from link type.
      */
-    static Link* create_link(std::string name, link_type_t type,
+    static Link* create_link(const std::string& name, link_type_t type,
                              ConvergenceLayer* cl, const char* nexthop,
                              int argc, const char* argv[]);
     /**
      * Constructor / Destructor
      */
-    Link(std::string name, link_type_t type,
+    Link(const std::string& name, link_type_t type,
          ConvergenceLayer* cl, const char* nexthop);
-
+    
     /**
      * Return the type of the link.
      */
@@ -418,8 +416,7 @@ protected:
     /// State of the link
     state_t state_;
 
-    /// Associated next hop endpoint
-    // XXX/demmer change me to be an endpoint id class
+    /// Next hop address
     std::string nexthop_;
     
     /// Internal name ame of the link 
