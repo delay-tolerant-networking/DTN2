@@ -62,6 +62,11 @@ namespace dtn {
 class SDNV {
 public:
     /**
+     * Return the number of bytes needed to encode the given value.
+     */
+    static size_t encoding_len(u_int64_t val);
+    
+    /**
      * Convert the given 64-bit integer into an SDNV.
      *
      * @return The number of bytes used, or -1 on error.
@@ -75,6 +80,26 @@ public:
      * @return The number of bytes of bp consumed, or -1 on error.
      */
     static int decode(const u_char* bp, size_t len, u_int64_t* val);
+
+    /**
+     * Convert an SDNV pointed to by bp into a unsigned 32-bit
+     * integer. Checks for overflow in the SDNV.
+     *
+     * @return The number of bytes of bp consumed, or -1 on error.
+     */
+    static int decode(const u_char* bp, size_t len, u_int32_t* val)
+    {
+        u_int64_t lval;
+        int ret = decode(bp, len, &lval);
+        
+        if (lval > 0xffffffffLL) {
+            return -1;
+        }
+
+        *val = (u_int32_t)lval;
+        
+        return ret;
+    }
 };
 
 } // namespace dtn

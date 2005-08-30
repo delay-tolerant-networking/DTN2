@@ -86,6 +86,15 @@ SDNV::encode(u_int64_t val, u_char* bp, size_t len)
     return val_len;
 }
 
+size_t
+SDNV::encoding_len(u_int64_t val)
+{
+    u_char buf[16];
+    int ret = encode(val, buf, sizeof(buf));
+    ASSERT(ret != -1 && ret != 0);
+    return ret;
+}
+
 int
 SDNV::decode(const u_char* bp, size_t len, u_int64_t* val)
 {
