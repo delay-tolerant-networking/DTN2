@@ -38,14 +38,12 @@
 #ifndef _BUNDLE_CONSUMER_H_
 #define _BUNDLE_CONSUMER_H_
 
-#include "BundleTuple.h"
 #include <oasys/debug/Log.h>
 
 namespace dtn {
 
 class Bundle;
 class BundleList;
-class BundleTuple;
 
 /**
  * Base class used for "next hops" in the bundle forwarding logic, i.e
@@ -98,7 +96,7 @@ public:
 
     /**
      * Each BundleConsumer has a next hop destination address (either
-     * the registration endpoint or the next-hop link address).
+     * the registration endpoint or the link's next-hop address).
      */
     const char* dest_str() { return dest_str_.c_str(); }
 
@@ -108,7 +106,7 @@ public:
     bool is_local() { return is_local_; }
 
     /**
-     * The type of the consumer (link / registration).
+     * The type of the consumer (link or registration).
      */
     type_t type() { return type_; }
 
@@ -135,43 +133,6 @@ private:
     BundleConsumer();
     BundleConsumer(const BundleConsumer&);
 };
-
-/**
- * Derivative of BundleConsumer that has a BundleList builtin and by
- * default, the consume_bundle function enqueues bundles on the queue.
- */
-class QueueConsumer : public BundleConsumer {
-public:
-    /// @{
-    /// Virtual from BundleConsumer
-    virtual void consume_bundle(Bundle* bundle);
-    virtual bool cancel_bundle(Bundle* bundle);
-    virtual bool is_queued(Bundle* bundle);
-    /// @}
-    
-    /**
-     * Accessor for the list of bundles in this consumer
-     * This can be null, unless it is initalized by the
-     * specific instance of the bundle consumer
-     */
-    BundleList* bundle_list() { return bundle_list_; }
-
-protected:
-    /**
-     * Constructor.
-     */
-    QueueConsumer(const char* dest_str, bool is_local, type_t type);
-    
-    BundleList* bundle_list_;	///< The queue of bundles on this consumer
-
-private:
-    /**
-     * Default constructor and copy constructor should not be used.
-     */
-    QueueConsumer();
-    QueueConsumer(const BundleConsumer&);
-};
-
 } // namespace dtn
 
 #endif /* _BUNDLE_CONSUMER_H_ */

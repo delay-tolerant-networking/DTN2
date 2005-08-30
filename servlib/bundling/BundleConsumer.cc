@@ -62,39 +62,4 @@ BundleConsumer::~BundleConsumer()
 {
 }
 
-/*************************************************
- *
- * QueueConsumer
- *
- *************************************************/
-
-QueueConsumer::QueueConsumer(const char* dest_str, bool is_local, type_t type)
-    : BundleConsumer(dest_str, is_local, type),
-      bundle_list_(NULL)
-{
-}
-
-void
-QueueConsumer::consume_bundle(Bundle* bundle)
-{
-    log_info("consume bundle id %d for delivery to %s",
-             bundle->bundleid_, dest_str_.c_str());
-    bundle_list_->push_back(bundle);
-}
-
-bool
-QueueConsumer::cancel_bundle(Bundle* bundle)
-{
-    log_info("cancel bundle id %d from %s",
-             bundle->bundleid_, dest_str_.c_str());
-    
-    return bundle_list_->erase(bundle);
-}
-
-bool
-QueueConsumer::is_queued(Bundle* bundle)
-{
-    return bundle_list_->contains(bundle);
-}
-
 } // namespace dtn
