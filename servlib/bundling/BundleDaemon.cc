@@ -208,9 +208,10 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     // bundle, including all options, otherwise, a more terse log
     if (log_enabled(oasys::LOG_DEBUG)) {
         oasys::StringBuffer buf;
+        buf.appendf("BUNDLE_RECEIVED: (%u bytes recvd)\n",
+                    (u_int)event->bytes_received_);
         bundle->format_verbose(&buf);
-        log_debug("BUNDLE_RECEIVED: (%u bytes recvd)\n%s",
-                  (u_int)event->bytes_received_, buf.c_str());
+        log_multiline(oasys::LOG_DEBUG, buf.c_str());
     } else {
         log_info("BUNDLE_RECEIVED *%p (%u bytes recvd)",
                  bundle, (u_int)event->bytes_received_);
