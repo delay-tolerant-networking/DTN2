@@ -91,8 +91,8 @@ UDPConvergenceLayer::parse_params(Params* params,
     return true;
 };
 
-/*
- * Register a new Interface 
+/**
+ * Bring up a new interface.
  */
 bool
 UDPConvergenceLayer::interface_up(Interface* iface,
@@ -146,7 +146,9 @@ UDPConvergenceLayer::interface_up(Interface* iface,
     return true;
 }
 
-
+/**
+ * Bring down the interface.
+ */
 bool
 UDPConvergenceLayer::interface_down(Interface* iface)
 {
@@ -165,7 +167,6 @@ UDPConvergenceLayer::interface_down(Interface* iface)
     delete receiver;
     return true;
 }
-
 
 /**
  * Dump out CL specific interface information.
@@ -247,9 +248,9 @@ UDPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
     
     buf->appendf("\tlocal_addr: %s local_port: %d\n",
                  intoa(params->local_addr_), params->local_port_);
+
     buf->appendf("\tremote_addr: %s remote_port: %d\n",
                  intoa(params->remote_addr_), params->remote_port_);
-    // XXX/demmer more
 }
 
 bool
@@ -272,7 +273,7 @@ UDPConvergenceLayer::open_contact(Contact* contact)
     
     Params* params = (Params*)link->cl_info();
     
-    // create a new connection for the contact
+    // create a new connected socket for the contact
     Sender* sender = new Sender(contact);
     sender->logpathf("/cl/udp/conn/%s:%d", intoa(addr), port);
     sender->set_logfd(false);
@@ -353,68 +354,38 @@ void
 UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 {
     Bundle* bundle = NULL;       
-    UDPCLHeader udpclhdr;
-    size_t header_len, bundle_len;
-    
-    log_debug("process_data: reading udp cl header...");
-
-    // copy in the udpcl header.
-    if (len < sizeof(UDPCLHeader)) {
-        log_err("process_data: "
-                "incoming packet too small (len = %d)", (u_int)len);
-        return;
-    }
-    memcpy(&udpclhdr, bp, sizeof(UDPCLHeader));
-
-    // check for valid magic number and version
-    if (ntohl(udpclhdr.magic) != MAGIC) {
-        log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
-                 "-- disconnecting.", udpclhdr.magic, MAGIC);
-        return;
-    }
-
-    if (udpclhdr.version != UDPCL_VERSION) {
-        log_warn("remote sent version %d, expected version %d "
-                 "-- disconnecting.", udpclhdr.version, UDPCL_VERSION);
-        return;
-    }
-    
-    // infer the bundle length based on the packet length minus the
-    // udp cl header
-    bundle_len = len - sizeof(UDPCLHeader);
-
-    log_debug("process_data: got udpcl header -- bundle id %d, length %u",
-	      udpclhdr.bundle_id, (u_int)bundle_len);
-
-    // skip past the cl header
-    bp  += sizeof(UDPCLHeader);
-    len -= sizeof(UDPCLHeader);
+    int header_len;
     
     // parse the headers into a new bundle. this sets the payload_len
     // appropriately in the new bundle and returns the number of bytes
     // consumed for the bundle headers
     bundle = new Bundle();
-    header_len = BundleProtocol::parse_headers(bundle, (u_char*)bp, len);
+    header_len = BundleProtocol::parse_headers(bundle, bp, len);
+
+    if (header_len < 0) {
+        log_err("process_data: invalid or too short bundle header");
+        delete bundle;
+        return;
+    }
     
     size_t payload_len = bundle->payload_.length();
-    if (bundle_len != header_len + payload_len) {
+
+    if (len != header_len + payload_len) {
         log_err("process_data: error in bundle lengths: "
                 "bundle_length %u, header_length %u, payload_length %u",
-                (u_int)bundle_len, (u_int)header_len, (u_int)payload_len);
+                (u_int)len, (u_int)header_len, (u_int)payload_len);
         delete bundle;
         return;
     }
 
     // store the payload and notify the daemon
-    bp  += header_len;
-    len -= header_len;
-    bundle->payload_.append_data(bp, len);
+    bundle->payload_.set_data(bp + header_len, payload_len);
     
     log_debug("process_data: new bundle id %d arrival, payload length %u",
 	      bundle->bundleid_, (u_int)bundle->payload_.length());
     
     BundleDaemon::post(
-        new BundleReceivedEvent(bundle, EVENTSRC_PEER, len));
+        new BundleReceivedEvent(bundle, EVENTSRC_PEER, payload_len));
 }
 
 void
@@ -466,62 +437,47 @@ UDPConvergenceLayer::Sender::Sender(Contact* contact)
 bool 
 UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 {
-    NOTIMPLEMENTED;
-        
-//     int iovcnt = BundleProtocol::MAX_IOVCNT; 
-//     struct iovec iov[iovcnt + 1];
-//     UDPCLHeader udpclhdr;
+    bool ok;
+    int header_len;
+    size_t payload_len = bundle->payload_.length();
 
-//     udpclhdr.magic	= ntohl(MAGIC);
-//     udpclhdr.version	= UDPCL_VERSION;
-//     udpclhdr.flags	= BUNDLE_DATA;
-//     udpclhdr.source_id	= ntohs(local_port_);
-//     udpclhdr.bundle_id	= ntohl(bundle->bundleid_);
+    // stuff in the bundle headers
+    header_len = BundleProtocol::format_headers(bundle, buf_, sizeof(buf_));
+    if (header_len < 0) {
+        log_err("send_bundle: bundle header too big for buffer (len %d)",
+                sizeof(buf_));
+        return false;
+    }
 
-//     // use iovec slot 0 for the udp cl header
-//     iov[0].iov_base = (char*)&udpclhdr;
-//     iov[0].iov_len  = sizeof(UDPCLHeader);
-    
-//     // fill in the rest of the iovec with the bundle header
-//     u_int16_t header_len =
-//         BundleProtocol::format_headers(bundle, &iov[1], &iovcnt);
-//     size_t payload_len = bundle->payload_.length();
-    
-//     log_debug("send_bundle: bundle id %d, header_length %u payload_length %u",
-//               bundle->bundleid_, (u_int)header_len, (u_int)payload_len);
+    // check that the payload isn't too big
+    // XXX/demmer maybe we need to fragment here? or return an MTU for
+    // the higher layer
+    if (payload_len > (sizeof(buf_) - header_len)) {
+        log_err("send_bundle: bundle payload + headers (length %d) too big",
+                header_len + payload_len);
+        return false;
+    }
 
-//     oasys::StringBuffer payload_buf(payload_len);
-//     const u_char* payload_data =
-//         bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
+    // read the payload data into the buffer
+    bundle->payload_.read_data(0, payload_len, &buf_[header_len],
+                               BundlePayload::FORCE_COPY);
 
-//     // XXX/jakob - does this really work? seems there aren't enough slots in the iov array?
-//     iov[iovcnt + 1].iov_base = (char*)payload_data;
-//     iov[iovcnt + 1].iov_len = payload_len;
+    // write it out the socket and make sure we wrote it all
+    int cc = write((char*)buf_, header_len + payload_len);
+    if (cc == (int)(header_len + payload_len)) {
+        log_err("send_bundle: sent bundle length %d", cc);
+        BundleDaemon::post(
+            new BundleTransmittedEvent(bundle, contact_->link(),
+                                       bundle->payload_.length(),
+                                       false));
+        ok = true;
+    } else {
+        log_err("send_bundle: error sending bundle (wrote %d/%d): %s",
+                cc, header_len + payload_len, strerror(errno));
+        ok = false;
+    }
 
-//     int cc = writevall(iov, iovcnt + 2);
-
-//     // free up the iovec data used in the header representation
-//     // (bundle header that is)
-//     BundleProtocol::free_header_iovmem(bundle, &iov[1], iovcnt);
-
-//     // check that we successfully wrote it all
-//     int total = sizeof(UDPCLHeader) + header_len + payload_len;
-//     bool ok;
-//     if (cc == total) {
-//         // cons up a transmission event and pass it to the router,
-//         // indicating since acked=false that the protocol is unreliable
-//         BundleDaemon::post(
-//             new BundleTransmittedEvent(bundle, contact_->link(),
-//                                        bundle->payload_.length(),
-//                                        false));
-//         ok = true;
-//     } else {
-//         log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
-//                 cc, total, strerror(errno));
-//         ok = false;
-//     }
-    
-//     return ok;
+    return ok;
 }
 
 } // namespace dtn

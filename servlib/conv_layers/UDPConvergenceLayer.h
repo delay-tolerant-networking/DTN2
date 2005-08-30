@@ -48,31 +48,6 @@ namespace dtn {
 class UDPConvergenceLayer : public IPConvergenceLayer {
 public:
     /**
-     * Current version of the protocol.
-     */
-    static const u_int8_t UDPCL_VERSION = 0x02;
-
-    /**
-     * The basic UDP header structure.
-     */
-    struct UDPCLHeader {
-        u_int32_t magic;		///< magic word (MAGIC: "dtn!")
-        u_int8_t  version;		///< udpcl protocol version
-        u_int8_t  flags;		///< connection flags and operation
-        u_int16_t source_id;		///< socket identifier at sender
-        u_int32_t bundle_id;		///< bundle identifier at sender
-    } __attribute__((packed));
-
-    /**
-     * Values for flags / op
-     */
-    typedef enum {
-        RELIABLITY_REQUESTED  = 0x10,	///< request sliding-window reliability
-                                        ///< (not implemented)
-        BUNDLE_DATA  	      = 0x01,	///< bundle data transmission
-    } header_flags_t;
-
-    /**
      * Constructor.
      */
     UDPConvergenceLayer();
@@ -209,6 +184,13 @@ protected:
          * The contact that we're representing.
          */
         Contact* contact_;
+
+        /**
+         * Temporary buffer for formatting bundles. Note that the
+         * fixed-length buffer is big enough since UDP packets can't
+         * be any bigger than that.
+         */
+        u_char buf_[16384];
     };   
 };
 
