@@ -56,7 +56,7 @@ Contact::Contact(Link* link)
     bps_         = 0;
     latency_ms_  = 0;
     
-    logpathf("/contact/%s", link->nexthop());
+    logpathf("/contact/%s", link->name());
     log_info("new contact *%p", this);
 }
 
