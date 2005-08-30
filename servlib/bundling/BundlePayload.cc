@@ -357,19 +357,20 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
     // an existing bundle, make a hard link for the new fragment and
     // store the offset in base_offset_
     u_char buf[len];
-    const u_char* bp = src->read_data(src_offset, len, buf, true);
+    const u_char* bp = src->read_data(src_offset, len, buf, KEEP_FILE_OPEN);
     internal_write(bp, dst_offset, len);
 }
 
 /**
  * Return a pointer to a chunk of payload data. For in-memory
- * bundles, this will just be a pointer to the data buffer.
+ * bundles, this will just be a pointer to the data buffer (unless
+ * the FORCE_COPY flag is set).
+ *
  * Otherwise, it will call read() into the supplied buffer (which
  * must be >= len).
  */
 const u_char*
-BundlePayload::read_data(size_t offset, size_t len, u_char* buf,
-                         bool keep_file_open)
+BundlePayload::read_data(size_t offset, size_t len, u_char* buf, int flags)
 {
     oasys::ScopeLock l(lock_);
     
@@ -382,7 +383,12 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf,
             (u_int)rcvd_length_, (u_int)offset, (u_int)len);
     
     if (location_ == MEMORY) {
-        return (u_char*)data_.data() + offset;
+        if (flags & FORCE_COPY) {
+            memcpy(buf, data_.data() + offset, len);
+            return buf;
+        } else {
+            return (u_char*)data_.data() + offset;
+        }
         
     } else {
         ASSERT(buf);
@@ -397,7 +403,7 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf,
         file_->readall((char*)buf, len);
         cur_offset_ = offset + len;
 
-        if (!keep_file_open)
+        if (! flags & KEEP_FILE_OPEN)
             close_file();
         
         return buf;

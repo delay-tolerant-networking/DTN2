@@ -681,8 +681,10 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
         // grab the next payload chunk
         payload_data =
-            bundle->payload_.read_data(payload_offset, block_len,
-                                       (u_char*)buf.data(), true);
+            bundle->payload_.read_data(payload_offset,
+                                       block_len,
+                                       (u_char*)buf.data(),
+                                       BundlePayload::KEEP_FILE_OPEN);
         
         log_debug("send_bundle: sending %u byte block %p",
                   (u_int)block_len, payload_data);

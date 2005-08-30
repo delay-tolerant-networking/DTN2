@@ -82,7 +82,7 @@ payload_test(BundlePayload::location_t initial_location,
     CHECK(p.is_file_open());
     p.append_data((u_char*)"ABCDE", 5);
     CHECK(p.is_file_open());
-    data = p.read_data(0, 15, buf, true);
+    data = p.read_data(0, 15, buf, BundlePayload::KEEP_FILE_OPEN);
     CHECK_EQUALSTRN((char*)data, "abcdefghijABCDE", 15);
     CHECK(p.is_file_open());
 
@@ -116,6 +116,11 @@ payload_test(BundlePayload::location_t initial_location,
     CHECK_EQUAL(p.length(), 30);
     CHECK_EQUALSTR((char*)data, "aBCDefghijABCDEFGH_______XXXXX");
     CHECK(! p.is_file_open());
+
+    log_debug("/test", "checking FORCE_COPY");
+    p.reopen_file();
+    data = p.read_data(0, 30, buf, BundlePayload::FORCE_COPY);
+    CHECK(data == buf);
 
     return UNIT_TEST_PASSED;
 }

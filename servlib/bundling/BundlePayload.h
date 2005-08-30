@@ -169,15 +169,26 @@ public:
         ASSERT(location_ == MEMORY);
         return (const u_char*)data_.c_str();
     }
+
+    /**
+     * Valid flags to read_data.
+     */
+    typedef enum {
+        KEEP_FILE_OPEN = 0x1,	///< Don't close file after read
+        FORCE_COPY     = 0x2,	///< Always copy payload, even for in-memory
+                                ///  bundles
+    } read_data_flags_t;
     
     /**
      * Return a pointer to a chunk of payload data. For in-memory
-     * bundles, this will just be a pointer to the data buffer.
+     * bundles, this will just be a pointer to the data buffer (unless
+     * the FORCE_COPY flag is set).
+     *
      * Otherwise, it will call read() into the supplied buffer (which
      * must be >= len).
      */
     const u_char* read_data(size_t offset, size_t len, u_char* buf,
-                            bool keep_file_open = false);
+                            int flags = 0);
 
     /**
      * Virtual from SerializableObject
