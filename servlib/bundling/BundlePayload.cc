@@ -289,7 +289,7 @@ BundlePayload::set_data(const u_char* bp, size_t len)
 {
     oasys::ScopeLock l(lock_);
     
-    ASSERT(length_ == 0 && rcvd_length_ == 0);
+    ASSERT(rcvd_length_ == 0);
     set_length(len);
     
     reopen_file();
