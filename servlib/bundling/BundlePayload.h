@@ -54,6 +54,9 @@ class BundleStore;
  * separately manage the serialization of header information from the
  * payload.
  *
+ * Note that this implementation doesn't support payloads larger than
+ * 4GB. XXX/demmer fix this.
+ *
  */
 class BundlePayload : public oasys::SerializableObject {
 public:
