@@ -38,11 +38,9 @@
 
 #include <oasys/util/StringBuffer.h>
 
-#include "AddressFamily.h"
 #include "ContactManager.h"
 #include "BundleDaemon.h"
 #include "BundleEvent.h"
-#include "BundleTuple.h"
 #include "Contact.h"
 #include "Link.h"
 

@@ -43,7 +43,6 @@
 
 namespace dtn {
 
-class BundleTuple;
 class Contact;
 class ConvergenceLayer;
 class CLInfo;
