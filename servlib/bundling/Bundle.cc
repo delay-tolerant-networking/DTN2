@@ -55,6 +55,7 @@ Bundle::init(u_int32_t id)
     
     is_fragment_	= false;
     is_admin_		= false;
+    do_not_fragment_	= false;
     is_reactive_fragment_ = false;
     custody_requested_	= false;
     priority_		= COS_NORMAL;
@@ -138,6 +139,7 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("        expiration: %d\n", expiration_);
     buf->appendf("       is_fragment: %s\n", bool_to_str(is_fragment_));
     buf->appendf("          is_admin: %s\n", bool_to_str(is_admin_));
+    buf->appendf("   do_not_fragment: %s\n", bool_to_str(do_not_fragment_));
     buf->appendf("  is_reactive_frag: %s\n",
                                     bool_to_str(is_reactive_fragment_));
     buf->appendf("       orig_length: %d\n", orig_length_);
@@ -148,6 +150,9 @@ void
 Bundle::serialize(oasys::SerializeAction* a)
 {
     a->process("bundleid", &bundleid_);
+    a->process("is_fragment", &is_fragment_);
+    a->process("is_admin", &is_admin_);
+    a->process("do_not_fragment", &do_not_fragment_);
     a->process("source", &source_);
     a->process("dest", &dest_);
     a->process("custodian", &custodian_);
@@ -163,7 +168,6 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("creation_ts_usec", (u_int32_t*)&creation_ts_.tv_usec);
     a->process("expiration", &expiration_);
     a->process("payload", &payload_);
-    a->process("is_fragment", &is_fragment_);
     a->process("orig_length", &orig_length_);
     a->process("frag_offset", &frag_offset_);
     a->process("owner", &owner_);
