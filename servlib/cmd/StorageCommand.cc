@@ -44,7 +44,7 @@
 namespace dtn {
 
 StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
-    : TclCommand("storage")
+    : TclCommand(cfg->cmd_.c_str())
 {
     inited_ = false;
     

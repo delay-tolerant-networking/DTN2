@@ -76,7 +76,8 @@ std::string        logfile     = "-";
 
 TestCommand g_testcmd;
 
-oasys::StorageConfig g_storage_config("berkeleydb",
+oasys::StorageConfig g_storage_config("storage",
+                                      "berkeleydb",
                                       false,
                                       false,
                                       3,
