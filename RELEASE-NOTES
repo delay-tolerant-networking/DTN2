@@ -1,6 +1,33 @@
 Release Notes for DTN2
 ----------------------
 
+2.2.0 (September 2005)
+----------------------
+- Widespread changes for conformance to the latest version of the
+  bundle protocol specification document including replacing the
+  region/admin syntax and BundleTuple class with a new EndpointID
+  class that is a standard URI and replacing fixed-length values in
+  the protocol with SDNVs.
+
+- Removed the use of AddressFamily classes from the configuration of
+  the Interface and Link classes, moving the address specification
+  into the convergence layer specifically.
+
+- Other minor cleanup of Bundle class field names and associated
+  types to match the protocol document more clearly.
+
+- Rework some of the RPC API to have the daemon construct an
+  appropriate endpoint id (in a scheme-specific manner).
+
+- Significant rework of the control flow of Bundles through the
+  system, including the state machine for Links, a reduction in the
+  number of BundleList queues around the code, and an overall
+  simplification of the control flow.
+
+- Update the TCP and UDP convergence layers, removing the fixed-width
+  length fields from the former and removing all the framing
+  overhead from the latter, simply sending a bundle in a UDP datagram.
+
 2.1.1 (March 2005)
 ------------------
 - Patch to configure script to fix build problems on Apple OS X due to
