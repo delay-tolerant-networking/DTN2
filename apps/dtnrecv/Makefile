@@ -2,8 +2,8 @@
 # Makefile for DTN2/apps/dtnrecv
 #
 
-SRCS   := dtnbulkrecv.c
-APP    := dtnbulkrecv
+SRCS   := dtnrecv.c
+APP    := dtnrecv
 SRCDIR := ../..
 
 -include ../Makefile.app
