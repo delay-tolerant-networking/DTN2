@@ -44,7 +44,8 @@ Example: <tt>api set local_addr 10.0.0.1</tt>
 <p>
 Use the <tt>api</tt> command to configure the interface between
 dtnd and the DTN applications (like dtnping, dtncp, etc).
-See also <a href="environment.html">environment variables</a>.
+See also <a href="environment.html">environment variables</a>
+which are used to control the behavior of the API clients.
 
 <p>
 <table>
@@ -197,6 +198,11 @@ passes the remaining arguments to the convergence layer to configure a new
 interface which will listen for incoming bundles.
 
 <p>
+The arguments, if they exist, are a list of strings (delimited by "",
+or {}, according to TCL syntax). Each string starts with the parameter
+name, then an equal sign ("="), then the value.
+
+<p>
 See the following pages on the different convergence layers,
 and what arguments they take.
 
@@ -210,15 +216,15 @@ and what arguments they take.
 <h3> Deleting an interface </h3>
 
 <p>
-Syntax: <tt>interface add <i>convergence-layer</i> <i>address</i></tt>
+Syntax: <tt>interface del <i>convergence-layer</i> </tt>
 <br>
-Example: <tt>interface add tcp host://0:0:0:0:5000/</tt>
+Example: <tt>interface del tcp0</tt>
 
 <p>
 Deletes an interface from the system. Each convergence layer
 handles this individually, but generally the convergence layer
 stops listening for new bundles and cleans up any resources it
-was using for the specified tuple.
+was using.
 
 <h3> Listing the interfaces </h3>
 
