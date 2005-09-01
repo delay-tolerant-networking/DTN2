@@ -59,28 +59,107 @@ or after the <tt>interface add</tt> command.
 
 <p>
 <table>
+
 <tr><th>Name<th>Type<th>Default<th>Comment
+
 <tr>
 <td>bundle_ack_enabled<td>boolean<td>true
 <td>Should we send an ACK when we have received the entire bundle?
+
+<tr>
+<td>connect_timeout<td>integer miliseconds<td>10000 (10 seconds)
+<td>Number of milliseconds to wait for a TCP connection to be established.
+
+<tr>
+<td>idle_close_time<td>integer seconds<td>30
+<td>Number of seconds after which to close the connection if no data
+other than keepalives arrives.
+
+<tr>
+<td>keepalive_interval<td>integer seconds<td>2
+<td>The number of seconds between keepalives requested for
+both directions on this link. The actual value of this parameter
+for a connection will be decided during
+<a href="#negotiation">parameter negotiation</a>.
+
+<tr>
+<td>local_addr<td>IP address or a DNS hostname<td>0.0.0.0
+(interface), -1 (link)
+<td>In the case of an interface, this is the IP address that the
+server will listen on. In the case of a link, the default
+ensures that the operating system choses the appropriate source
+address for the connection before it is initiated.
+
+<tr>
+<td>local_port<td>IP port number<td>5000 (interface), 0 (link)
+<td>In the case of an interface, this is the TCP port that the
+server will listen on. In the case of a link, changing this
+setting from the default of 0 instructs the operating system to
+use the given port. In general, it is better to allow the OS to
+choose the source port itself.
+
+<tr>
+<td>partial_ack_len<td>integer bytes<td>1024
+<td>If dtnd has read at least this much data without sending an
+acknowledgement, send one.
+
 <tr>
 <td>reactive_frag_enabled<td>boolean<td>true
 <td>If the servers loses the connection while sending, should it
 fragment the bundle so that when the connection is working again
 the it can start sending from the last ack, instead of from the
 beginning?
+
+<tr>
+<td>readbuf_len<td>integer bytes<td>32768
+<td>The maximum number of bytes to read from the network
+before flushing them to the local copy of the bundle.
+Recall that the local copy of the bundle might be in
+memory, and not on disk. See <a href="configuration.html#param">
+<tt>param set payload_mem_threshold</tt></a> command.
+
 <tr>
 <td>receiver_connect<td>boolean<td>false
 <td>This option reverses the direction of dataflow, making the
 initiator receive bundles. (Not yet implemented.)
-<tr>
-<td>
 
-<h3> Parameter Negotiation </h2>
+<tr>
+<td>rtt_timeout<td>integer miliseconds<td>5000 (5 seconds)
+<td>Number of milliseconds to wait for an expected
+response from the other side. RTT means Round Trip Time.
+
+<tr>
+<td>test_fragment_size<td>integer bytes<td>-1 (disabled)
+<td>Artifically close the connection, simulating a link failure,
+after this many bytes. This feature is probably only useful while
+testing the fragmentation system. (No longer implemented.)
+
+<tr>
+<td>writebuf_len<td>integer bytes<td>32768
+<td>The maximum number of bytes to read from the on-disk bundle
+at a time for buffering before it is sent across the connection.
+
+</table>
+
+<a name="negotiation"/>
+<h3> Parameter Negotiation </h3>
 
 <p>
-What happens when one end asks for something other than what we asked
-for?
+Some parameters take effect solely inside one daemon or the other.
+Other paramaters are sent across the link at the beginning during
+a negotiation phase. The following table summarizes which parameters are
+subject to negotiation, and how the negotiation works.
+
+<p>
+<table>
+<tr><th>Name<th>Negotiation
+<tr><td>partial_ack_len<td>Minimum of near side and far side.
+<tr><td>keepalive_interval<td>Minimum of near side and far side.
+<tr><td>idle_close_time<td>Minimum of near side and far side.
+<tr><td>bundle_ack_enabled<td>Logical AND of near and far side.
+<tr><td>reactive_frag_enabled<td>Logical AND of near and far side.
+<tr><td>receiver_connect_<td>Logical OR of near and far side.
+</table>
 
 </body>
 </html>

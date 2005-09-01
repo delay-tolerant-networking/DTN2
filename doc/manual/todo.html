@@ -21,7 +21,7 @@ good. Also we need one showing a different storage backend.
 other people's) paper.
 <li> document one of the commands for the main reference page. You
 usually need to read the source to know exactly how things work. This
-is critical, because some things things do not work like you expect
+is critical, because some things do not work like you expect
 from their names... typically this a bug, and you can ask someone to
 fix it, or document it as-is, if it will take several releases to get a
 complete fix done.
@@ -51,3 +51,8 @@ done will involve getting buy-in from Melissa (webmistress
 extraordinare). The system should also run in a mode where a
 maintainer can nuke comments that are no longer needed when their
 content has been rolled into the manual.
+
+<p>
+Find a place to document useful TCL debugging tricks. For example:
+
+<pre>proc bl {} { puts [ bundle list ]; after 5000 bl }</pre>

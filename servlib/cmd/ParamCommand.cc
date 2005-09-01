@@ -70,7 +70,7 @@ ParamCommand::ParamCommand()
 const char*
 ParamCommand::help_string()
 {
-    return("param set <var> <val");
+    return("param set <var> <val>");
 }
 
 } // namespace dtn

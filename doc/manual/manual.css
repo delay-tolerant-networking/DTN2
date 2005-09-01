@@ -1,3 +1,6 @@
 h1 { font-family: sans-serif }
 h2 { font-family: sans-serif; font-style: italic }
 h3 { font-family: sans-serif; font-style: italic }
+
+td { border-width: 1px; border-style: solid }
+th { background-color: grey }

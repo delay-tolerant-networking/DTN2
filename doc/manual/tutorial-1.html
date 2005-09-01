@@ -41,7 +41,10 @@ the data in it lets DTN2 know the status of registrations with
 clients, and bundles which are in flight in the network. One of the
 "disruptions" that a DTN is tolerant of is the failure of a node.
 Using the data in the database, a new DTN2 daemon can carry on the
-work the previous one was doing.
+work the previous one was doing. But note that if the contents of the
+database are lost, it is as if this node never existed, and there will
+be repercussions in the DTN (like retransmissions of bundles) as a
+result.
 
 <p> The <i>payload</i> directory is where bundles which are in-flight
 live. In general, the bundles in this directory are ones which this
@@ -60,7 +63,7 @@ spool is usually on /var, and has access to the majority of the extra
 disk space on a machine. The same should be true for the payload
 directory.
 
-<h3>The Local Tuple</h3>
+<h3>Using TCL in the Config File</h3>
 
 <p> You don't need to make any changes in the <i>local_eid</i>, but
 scroll down and take a look at it anyway. In the defualt
@@ -128,7 +131,7 @@ port 5000, you'll need to choose a different port for your dtnd
 to use.
 
 <p> In some security contexts, and with some virtual interface
-configurations, it is desireable to have dtnd listen only on a certain
+configurations, it is desirable to have dtnd listen only on a certain
 interface, for instance "listen to internal connections only".
 You can do this by changing the 0.0.0.0 address (meaning "listen on
 all interfaces") to an address that is on only one of the host's

@@ -47,7 +47,7 @@ dtnd and the DTN applications (like dtnping, dtncp, etc).
 See also <a href="environment.html">environment variables</a>.
 
 <p>
-<table border>
+<table>
 <tr>
 <th>Variable
 <th>Possible settings
@@ -185,28 +185,16 @@ networks that your dtnd will talk on.
 <h3> Adding an interface </h3>
 
 <p>
-Syntax: <tt>interface add <i>convergence-layer</i> <i>address</i> [
-<i>args</i> ]</tt>
+Syntax: <tt>interface add <i>interface-name</i> <i>convergence-layer</i> [ <i>args</i> ]</tt>
 <br>
-Example: <tt>interface add tcp host://0:0:0:0:5000/</tt>
+Example: <tt>interface add tcp0 tcp local_host=0.0.0.0 local_port=5000</tt>
 
 <p> When dtnd encounters an <tt>interface add</tt> command, it
-looks for a matching convergence layer. Next it attempts to
-parse the address. If both of those steps succeed, it
-passes that data to the convergence layer to configure a new
+checks to make sure the named interface has not been created before.
+Next, it looks for a matching convergence layer. 
+If both of those steps succeed, it
+passes the remaining arguments to the convergence layer to configure a new
 interface which will listen for incoming bundles.
-
-<p>
-The following address families are supported:
-<ul>
-<li>host://<i>hostname</i>|<i>dotted-quad</i>:<i>port-number</i>
-<li>ip://<i>hostname</i>|<i>dotted-quad</i>:<i>port-number</i>
-<li>string:<i>string</i>
-</ul>
-
-<p> Note that only port numbers, not port names are supported by
-the "host" address family. Also note that "host" and "ip" are
-synonyms.
 
 <p>
 See the following pages on the different convergence layers,
@@ -290,7 +278,9 @@ continue writing log entries into the file until it executes the
 You can include a procedure like this in your dtnd.conf file
 to arrange for dtnd to make a new log file every hour:
 
-<blockquote><pre># rotate the log every 3600 seconds (1 hour)
+<blockquote><pre># Rotate the log every 3600 seconds (1 hour)
+# the initial call to rotate (after the proc) is required to
+# start the proc running every hour.
 proc rotate {} {
     set date [ clock format [ clock seconds ] -format "%Y-%m-%d-%H" ]
     set new "dtnd.$date.log"
@@ -298,9 +288,9 @@ proc rotate {} {
 
     log rotate
 
-    after 3600 rotate
+    after 3600000 rotate
 }
-after 3600 rotate</pre></blockquote>
+rotate</pre></blockquote>
 
 <p>
 Of course, for this to work, you need to start dtnd in the directory
@@ -335,7 +325,7 @@ DTN2 will store persistent state like registrations. You may set the
 following variables:
 
 <p>
-<table border>
+<table>
 <tr>
 <th>Variable
 <th>Possible settings

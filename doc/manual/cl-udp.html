@@ -8,8 +8,164 @@
 </h1>
 
 <p>
-This page is not yet done. Please see <a href="todo.html">the todo
-list</a> for information on how you can help finish this manual.
+The UDP Convergence Layer connects DTN nodes via a UDP channel.
+A UDP channel is unreliable, but the the DTN protocols overcome
+this and attempt to achieve reliable delivery of bundles
+over the unreliable UDP channel.
+
+<p>
+A UDP datagram is limited in size to 65536 bytes. The UDP convergence
+layer adds a header of 24 bytes to every datagram.
+Because bundles are sent inside of a single UDP datagram, that
+means that bundles which exceed Y bytes cannot be
+transmitted or received with the UDP convergence layer.
+
+<p>
+Because the underlying datalink protocol (often Ethernet) rarely
+supports the full size of the maximum UDP datagram, is will be broken
+into fragments and reassembled at the far end. This process, like the
+UDP protocol itself, has no provisions for retransmissions. As a
+result, over a sufficiently lossy link UDP datgrams large enough
+to trigger IP fragmentation may end up with a successful transmission
+rate of 0. As a result, the practical upper limit for the size of bundles
+sent via the UDP Convergence Layer is nearer to 2 to 3 times the
+Maximum Transmission Unit (MTU) of the underlying medium. For
+Ethernet, the MTU is 1500 bytes.
+
+<h2> Interfaces and Links  </h2>
+
+<p> Each TCP link needs to be configured on both sides. On one side,
+it is configured as a passive listener (called an <b>interface</b>
+by dtnd), and on the other side as an active session initiator (called
+a <b>link</b>). But take note of the <tt>receiver_connect</tt> option,
+which reverses things.
+
+<h3>Passive Listener</h3>
+
+<p> The <tt>interface add</tt> command creates the passive
+listener side of the session. It always takes at least one argument,
+which is the local address. This is specified with either the IP or
+Host address families.  For more information about address families,
+see the <a href="configuration.html#interface">interface add</a>
+documentation. After the local address, you may include optional arguments
+which are detailed below.
+
+<h3> Active Initiator</h3>
+
+<p> The <tt>link add</tt> command creates an object in the system that
+is capable of initiating a connection outbound to other DTN nodes.
+Depending on the state of the link, as managed by the various options
+to the <tt>link</tt> command, it may or may not actually be actively
+opening or maintaining a TCP connection at a given time.
+
+<h2>Options</h2>
+
+<p>These options can appear after the <tt>link add</tt> command,
+or after the <tt>interface add</tt> command.
+
+<p>
+<table>
+
+<tr><th>Name<th>Type<th>Default<th>Comment
+
+<tr>
+<td>bundle_ack_enabled<td>boolean<td>true
+<td>Should we send an ACK when we have received the entire bundle?
+
+<tr>
+<td>connect_timeout<td>integer miliseconds<td>10000 (10 seconds)
+<td>Number of milliseconds to wait for a TCP connection to be established.
+
+<tr>
+<td>idle_close_time<td>integer seconds<td>30
+<td>Number of seconds after which to close the connection if no data
+other than keepalives arrives.
+
+<tr>
+<td>keepalive_interval<td>integer seconds<td>2
+<td>The number of seconds between keepalives requested for
+both directions on this link. The actual value of this parameter
+for a connection will be decided during
+<a href="#negotiation">parameter negotiation</a>.
+
+<tr>
+<td>local_addr<td>IP address or a DNS hostname<td>0.0.0.0
+(interface), -1 (link)
+<td>In the case of an interface, this is the IP address that the
+server will listen on. In the case of a link, the default
+ensures that the operating system choses the appropriate source
+address for the connection before it is initiated.
+
+<tr>
+<td>local_port<td>IP port number<td>5000 (interface), 0 (link)
+<td>In the case of an interface, this is the TCP port that the
+server will listen on. In the case of a link, changing this
+setting from the default of 0 instructs the operating system to
+use the given port. In general, it is better to allow the OS to
+choose the source port itself.
+
+<tr>
+<td>partial_ack_len<td>integer bytes<td>1024
+<td>If dtnd has read at least this much data without sending an
+acknowledgement, send one.
+
+<tr>
+<td>reactive_frag_enabled<td>boolean<td>true
+<td>If the servers loses the connection while sending, should it
+fragment the bundle so that when the connection is working again
+the it can start sending from the last ack, instead of from the
+beginning?
+
+<tr>
+<td>readbuf_len<td>integer bytes<td>32768
+<td>The maximum number of bytes to read from the network
+before flushing them to the local copy of the bundle.
+Recall that the local copy of the bundle might be in
+memory, and not on disk. See <a href="configuration.html#param">
+<tt>param set payload_mem_threshold</tt></a> command.
+
+<tr>
+<td>receiver_connect<td>boolean<td>false
+<td>This option reverses the direction of dataflow, making the
+initiator receive bundles. (Not yet implemented.)
+
+<tr>
+<td>rtt_timeout<td>integer miliseconds<td>5000 (5 seconds)
+<td>Number of milliseconds to wait for an expected
+response from the other side. RTT means Round Trip Time.
+
+<tr>
+<td>test_fragment_size<td>integer bytes<td>-1 (disabled)
+<td>Artifically close the connection, simulating a link failure,
+after this many bytes. This feature is probably only useful while
+testing the fragmentation system. (No longer implemented.)
+
+<tr>
+<td>writebuf_len<td>integer bytes<td>32768
+<td>The maximum number of bytes to read from the on-disk bundle
+at a time for buffering before it is sent across the connection.
+
+</table>
+
+<a name="negotiation"/>
+<h3> Parameter Negotiation </h3>
+
+<p>
+Some parameters take effect solely inside one daemon or the other.
+Other paramaters are sent across the link at the beginning during
+a negotiation phase. The following table summarizes which parameters are
+subject to negotiation, and how the negotiation works.
+
+<p>
+<table>
+<tr><th>Name<th>Negotiation
+<tr><td>partial_ack_len<td>Minimum of near side and far side.
+<tr><td>keepalive_interval<td>Minimum of near side and far side.
+<tr><td>idle_close_time<td>Minimum of near side and far side.
+<tr><td>bundle_ack_enabled<td>Logical AND of near and far side.
+<tr><td>reactive_frag_enabled<td>Logical AND of near and far side.
+<tr><td>receiver_connect_<td>Logical OR of near and far side.
+</table>
 
 </body>
 </html>
