@@ -190,7 +190,7 @@ protected:
          * fixed-length buffer is big enough since UDP packets can't
          * be any bigger than that.
          */
-        u_char buf_[16384];
+        u_char buf_[65507];
     };   
 };
 
