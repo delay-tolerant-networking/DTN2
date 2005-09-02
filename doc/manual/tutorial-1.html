@@ -68,7 +68,7 @@ directory.
 <p> You don't need to make any changes in the <i>local_eid</i>, but
 scroll down and take a look at it anyway. In the defualt
 configuration, it looks like this: <i>route local_eid
-"bundles://internet/host://[info hostname]"</i>. Note the square
+"dtn://[info hostname].dtn"</i>. Note the square
 brackets. To understand what's happening here, you need to know that
 this configuration file is not simply a file of settings for dtnd, but
 an actual <a href="http://www.tcl.tk">TCL</a> script. It is interpreted by
@@ -86,9 +86,9 @@ your own configuration files, should you desire it. For an example of
 this, see <a href="configuration.html#rotate">the example showing how
 to rotate logs</a> from within dtnd.
 
-<p> So the local eid is set, but what is it? From the
+<p> So the local EID is set, but what is it? From the
 <a href="arch.html">Architecture</a> section, you should recall
-that nodes in the DTN are identified by eids. The local eid
+that nodes in the DTN are identified by EIDs. The local EID
 is simply the way our DTN node will refer to itself. Without this
 setting, it would not recognize bundles intended for it, and might
 just pass them on ad infinitum! People who have configured Internet
@@ -96,24 +96,13 @@ email systems like Postfix or Sendmail might recognize this setting,
 as mail routers need to know their own name for the same reason.
 
 <p>
-DTN nodes within the administrative region named "internet" are
-expected to use hostnames in the local part of the eid that
-resolve to an IP address they have configured. However, that still
-leaves you considerable latitude in how to choose your local eid.
-For instance, if you had a machine named something cumbersome like
-<tt>az10001.prod.sfo.company.com</tt>, but there was a nice simple
-CNAME of <tt>dtn.company.com</tt> pointing to it, you could set the
-hostname in the local eid to the simpler <tt>dtn.company.com</tt>.
-That might be a very good idea, in fact. Afterall, the computer might
-get renamed, but if it is still playing the same part in the DTN
-there's no reason to force other members of the DTN to use a new name.
-Also, consider the case where you need to move the DTN node to another
-machine due to hardware failure, but there are already bundles in
-flight with a destination eid using the original name. Using a CNAME
-can help avoid losing those bundles.
+And EID is a string that is used throughout the DTN to identify
+an endpoint. That leaves you considerable latitude on how to set
+it. We recommend for now that you set it according to the
+machine name where the DTN node is running, as the example does.
 
 <p>
-At this time, one dtnd can have only one local eid name. This
+At this time, one dtnd can have only one local EID. This
 limitation might disappear in future versions if it proves to be a
 problem.
 
@@ -255,20 +244,22 @@ to it, and see what comes back out!
 <p>
 To ping your server, run the <tt>dtnping</tt> command. It lives
 in the <tt>DTN2/apps/dtnping</tt> directory. You'll need to give it
-one argument, which is the eid address of the endpoint that you
+one argument, which is the EID address of the endpoint that you
 want to ping. Since there is only one server in your DTN, the
-choice should be simple. You need to use the local eid
+choice should be simple. You need to use the local EID
 that you set in the configuration file. If you'd like to
-check what dtnd thinks it's local eid name is, use the
-<tt>route dump</tt> command in the window where dtnd is running.
+check what dtnd thinks it's local EID name is, use the
+<tt>registration list</tt> command in the window where dtnd is running.
+the first registration is always the server registering it's own
+
 
 <p>
 Alternatively, <tt>dtnping</tt> contains a convenience shortcut
-whereby the string 'localhost' is interpreted as the local eid
+whereby the string 'localhost' is interpreted as the local EID
 of the daemon.
 
 <p>
-Here's an example of how to ping a server who's local eid
+Here's an example of how to ping a server who's local EID
 is <i>bundles://internet/host://dtn-a</i>:
 
 <blockquote><pre>$ <font color=blue>DTN2/apps/dtnping/dtnping bundles://internet/host://dtn-a</font>

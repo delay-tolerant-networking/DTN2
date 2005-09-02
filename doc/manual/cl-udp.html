@@ -14,10 +14,11 @@ this and attempt to achieve reliable delivery of bundles
 over the unreliable UDP channel.
 
 <p>
-A UDP datagram is limited in size to 65536 bytes. The UDP convergence
-layer adds a header of 24 bytes to every datagram.
+A UDP datagram is limited in size to 65507 bytes. The UDP convergence
+layer adds a header of variable size (but almost always less than 1000 bytes)
+to every datagram.
 Because bundles are sent inside of a single UDP datagram, that
-means that bundles which exceed Y bytes cannot be
+means that bundles which exceed about 64000 bytes cannot be
 transmitted or received with the UDP convergence layer.
 
 <p>
