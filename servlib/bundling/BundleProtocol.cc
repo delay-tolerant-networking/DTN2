@@ -136,7 +136,7 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     add_to_dict(bundle->custodian_, &dict, &dictionary_len);
     add_to_dict(bundle->replyto_,   &dict, &dictionary_len);
 
-    log_debug(log, "generated dictionary length %u", dictionary_len);
+    log_debug(log, "generated dictionary length %u", (u_int)dictionary_len);
     
     primary_len += SDNV::encoding_len(dictionary_len);
     primary_len += dictionary_len;
@@ -167,8 +167,8 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     }
     
     log_debug(log, "preamble length %u, primary length %u",
-              sizeof(PrimaryHeader1) + SDNV::encoding_len(primary_len),
-              primary_len);
+              (u_int)(sizeof(PrimaryHeader1) + SDNV::encoding_len(primary_len)),
+              (u_int)primary_len);
     
     /*
      * Ok, stuff in the preamble and the total header length.
@@ -280,7 +280,7 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     len -= encoding_len;
 
     // return the total buffer length consumed
-    log_debug(log, "encoding done -- total length %u", orig_len - len);
+    log_debug(log, "encoding done -- total length %u", (u_int)(orig_len - len));
     return orig_len - len;
 }
 
@@ -298,7 +298,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     if (len < sizeof(PrimaryHeader1)) {
  tooshort1:
         log_err(log, "buffer too short (parsed %u/%u)",
-                (u_int)origlen - len, (u_int)origlen);
+                (u_int)(origlen - len), (u_int)origlen);
         return -1;
     }
     
