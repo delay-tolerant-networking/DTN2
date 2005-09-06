@@ -48,19 +48,17 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
 {
     inited_ = false;
     
-    bind_s("type",	&cfg->type_);
-    bind_b("tidy",	&cfg->tidy_);
-    bind_i("tidy_wait",	&cfg->tidy_wait_);
-    bind_s("dbname",	&cfg->dbname_);
-    bind_s("dbdir",	&cfg->dbdir_);
-    bind_s("dberrlog",	&cfg->dberrlog_);
-    bind_s("payloaddir",&BundlePayload::payloaddir_);
-}
-
-const char*
-StorageCommand::help_string()
-{
-    return("storage set <var> <val>");
+    bind_s("type",	&cfg->type_, "What storage system to use.");
+    bind_b("tidy",	&cfg->tidy_, "Same as the --tidy argument to dtnd.");
+    bind_i("tidy_wait",	&cfg->tidy_wait_,
+        "How long to wait before really doing the tidy operation.");
+    bind_s("dbname",	&cfg->dbname_, "The database name.");
+    bind_s("dbdir",	&cfg->dbdir_,
+        "The directory where the database will be created.");
+    bind_s("dberrlog",	&cfg->dberrlog_,
+        "The name of the log for transactions in the database.");
+    bind_s("payloaddir",&BundlePayload::payloaddir_,
+        "The directory in which payloads will live while they are in this node's custody.");
 }
 
 } // namespace dtn

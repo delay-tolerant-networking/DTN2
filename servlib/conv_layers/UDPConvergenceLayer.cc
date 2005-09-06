@@ -278,7 +278,7 @@ UDPConvergenceLayer::open_contact(Contact* contact)
     sender->logpathf("/cl/udp/conn/%s:%d", intoa(addr), port);
     sender->set_logfd(false);
 
-    if (params->local_addr_ != INADDR_ANY || params->local_port_ != 0)
+    if (params->local_addr_ != INADDR_NONE || params->local_port_ != 0)
     {
         if (sender->bind(params->local_addr_, params->local_port_) != 0) {
             log_err("error binding to %s:%d: %s",

@@ -109,37 +109,48 @@ problem.
 <h3> Interfaces </h3>
 
 <p>
-Take a look at the <i>interface add</i> command a few lines
-down. You will not likely need to change this, but you can see
-that this is where you control which IP address and port dtnd will
-be listening on. Usually DTN nodes that are communicating via
+Take a look at the <i>interface add</i> commands a few lines
+down. The command <i>interface add tcp0 tcp</i> adds a
+TCP convergence layer named <i>tcp0</i> to the server. This
+means that the daemon will start listening on port 5000 for incoming
+connections from other servers in the DTN.
+
+<p>Usually DTN nodes that are communicating via
 TCP listen on port 5000, but that is not an IETF port assignment
 and nothing about the protocol requires operation on that port.
 If you have another application on the same server listening on
 port 5000, you'll need to choose a different port for your dtnd
-to use.
+to use. 
+
+<p> The <i>interface add</i> command can take convergence layer
+specific arguments to customize the behavior of the interface.
+For the purposes of this tutorial,
+we will be using the defaults. For more information on these arguments
+see the reference pages on the <a href="configuration.html#cls">various
+convergence layers</a>.
 
 <p> In some security contexts, and with some virtual interface
 configurations, it is desirable to have dtnd listen only on a certain
 interface, for instance "listen to internal connections only".
-You can do this by changing the 0.0.0.0 address (meaning "listen on
-all interfaces") to an address that is on only one of the host's
-interface. For this tutorial, we will allow dtnd to listen on all
-interfaces, so leave the address as 0.0.0.0.
+You can do this by adding <i>local_addr=desired-ip</i> to the end of
+the <i>interface add</i> command. The default <i>local_addr</i>
+is 0.0.0.0, meaning "listen on all interfaces".
+For this tutorial, we will allow dtnd to listen on all
+interfaces, so leave the <i>interface add</i> command as it is.
 
 <p> Note that we are adding an interface of type TCP. There are other
-ways that DTN nodes can communicate, including across a filesystem
+ways that DTN nodes can communicate, including via UDP, raw
+ethernet frames, and across a filesystem
 (where some external activity, like a messenger with a USB keychain
-drive, is responsible for moving the files).  When you start using
-alternative <b>convergence layers</b> you'll have other <i>interface
-add</i> lines in your configuration file.
+drive, is responsible for moving the files). A server that is
+using multiple convergence layers
+has other <i>interface add</i> lines in the configuration file.
 
-<p> The <i>interface add</i> command can take convergence layer
-specific arguments to customize the default behavior of links
-that operate across that interface. For the purposes of this tutorial,
-we will be using the defaults. For more information on these arguments
-see the reference pages on the <a href="configuration.html#link">link
-command</a>.
+<p>
+In fact, below the <i>interface add</i> line for the TCP convergence
+layer is one for the UDP covergence layer. Because we are setting up
+a standalone server in this tutorial, neither <i>udp0</i> nor
+<i>tcp0</i> will end up getting used to move bundles at this point.
 
 <h3> Links and Routes </h3>
 
@@ -250,8 +261,9 @@ choice should be simple. You need to use the local EID
 that you set in the configuration file. If you'd like to
 check what dtnd thinks it's local EID name is, use the
 <tt>registration list</tt> command in the window where dtnd is running.
-the first registration is always the server registering it's own
-
+The first registration is always the server registering it's own
+EID with itself, so that it can handle administrative bundles, like
+the ping bundle we are about to send.
 
 <p>
 Alternatively, <tt>dtnping</tt> contains a convenience shortcut
@@ -260,14 +272,16 @@ of the daemon.
 
 <p>
 Here's an example of how to ping a server who's local EID
-is <i>bundles://internet/host://dtn-a</i>:
+is <i>dtn://dtn-a.dtn</i>:
 
-<blockquote><pre>$ <font color=blue>DTN2/apps/dtnping/dtnping bundles://internet/host://dtn-a</font>
-local_eid [internet host://dtn-a/ping]
-dtn_register succeeded, regid 0xa
-PING [internet host://dtn-a]...
-69 bytes from [internet host://dtn-a]: time=202.00 ms
-69 bytes from [internet host://dtn-a]: time=208.00 ms
+<blockquote><pre>$ <font color=blue>./dtnping localhost</font>
+source_eid [dtn://dtn-a.dtn/ping.2384]
+replyto_eid [dtn://dtn-a.dtn/ping.2384]
+dtn_register succeeded, regid 0x11
+checking for bundles already queued...
+PING [dtn://dtn-a.dtn/]...
+68 bytes from [dtn://dtn-a.dtn]: time=161.00 ms
+68 bytes from [dtn://dtn-a.dtn]: time=228.00 ms
 <font color=blue>Ctrl-C</font></pre></blockquote>
 
 <h2> What next? </h2>

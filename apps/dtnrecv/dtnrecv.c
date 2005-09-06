@@ -72,7 +72,7 @@ main(int argc, const char** argv)
     int debug = 1;
 
     progname = argv[0];    
-    if (argc != 2) {
+    if (argc != 2 || (argc == 2 && strncmp(argv[1], "-h", 2) == 0)) {
         usage();
     }
 

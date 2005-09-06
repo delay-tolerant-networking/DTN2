@@ -49,7 +49,6 @@ class StorageCommand : public oasys::TclCommand {
 public:    
     StorageCommand(oasys::StorageConfig* config);
     
-    const char* help_string();
 protected:
     bool inited_;
 };

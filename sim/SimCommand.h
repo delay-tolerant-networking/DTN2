@@ -48,7 +48,6 @@ namespace dtnsim {
 class SimCommand : public oasys::TclCommand {
 public:
     SimCommand();
-    const char* help_string();
    
     /**
      * Virtual from CommandModule.

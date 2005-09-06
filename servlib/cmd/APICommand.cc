@@ -44,14 +44,12 @@ namespace dtn {
 APICommand::APICommand()
     : TclCommand("api")
 {
-    bind_addr("local_addr",  &APIServer::local_addr_);
-    bind_i("local_port", &APIServer::local_port_);
-}
-
-const char*
-APICommand::help_string()
-{
-    return("api set <var> <val>");
+    bind_addr("local_addr",  &APIServer::local_addr_,
+        "The IP address on which the API Server will listen. "
+        "Default is localhost.");
+    bind_i("local_port", &APIServer::local_port_,
+        "The TCP port on which the API Server will listen. "
+        "Default is 5010.");
 }
 
 } // namespace dtn

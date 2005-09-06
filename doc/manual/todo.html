@@ -25,13 +25,11 @@ is critical, because some things do not work like you expect
 from their names... typically this a bug, and you can ask someone to
 fix it, or document it as-is, if it will take several releases to get a
 complete fix done.
-<li> write the first man page, probably for something easy like dtnrecv,
-since the first man page is more about process than content: You
-should add hooks into the makefiles to arrange for your man page to be
-converted into text (nroff -man $file.1 &gt; $file.txt) and (hopefully)
-html (but I don't know which tool to use for this). This is obviously
-the hardest project waiting to be done, but it blocks other man pages,
-so it is important to do it and get it done right.
+<li> Write more manpages. As of now, only two are done. (When you do
+dtnd.8, beware that you'll need to edit the Makefiles a bit, since
+they currently assume all manpages are in section 1.)
+<li> Choose the best tool to turn man pages into HTML and arrange
+for it to run when you run make.
 <li> choose a documentation markup system (like docbook) and setup a
 system to generate .html, .pdf, etc from it. Convert everything that's
 done so far into the new system and write a document for manual

@@ -47,30 +47,29 @@ ParamCommand::ParamCommand()
     : TclCommand("param")
 {
     bind_i("payload_mem_threshold",
-           (int*)&BundlePayload::mem_threshold_, 16384);
+           (int*)&BundlePayload::mem_threshold_, 16384,
+           "The bundle size below which bundles are held in memory. "
+           "(Default is 16k.)");
     bind_b("payload_test_no_remove",
-           &BundlePayload::test_no_remove_, false);
+           &BundlePayload::test_no_remove_, false,
+           "Boolean to control not removing bundles (for testing).");
 
     bind_i("proactive_frag_threshold",
-           (int*)&BundleDaemon::proactive_frag_threshold_, -1);
+           (int*)&BundleDaemon::proactive_frag_threshold_, -1,
+           "Proactively fragment bundles to this size. (0 is off.)");
 
     // defaults for these are set all together in TCPConvergenceLayer
     // constructor (because there is not a flavor of bind_i that
     // handles default values for type u_int32_t)
+    // No help here because these guys are going to get killed soon.
     bind_i("tcpcl_partial_ack_len",
-           &TCPConvergenceLayer::defaults_.partial_ack_len_);
+           &TCPConvergenceLayer::defaults_.partial_ack_len_, "");
     bind_i("tcpcl_keepalive_interval",
-           &TCPConvergenceLayer::defaults_.keepalive_interval_);
+           &TCPConvergenceLayer::defaults_.keepalive_interval_, "");
     bind_i("tcpcl_idle_close_time",
-           &TCPConvergenceLayer::defaults_.idle_close_time_);
+           &TCPConvergenceLayer::defaults_.idle_close_time_, "");
     bind_i("tcpcl_test_fragment_size",
-           &TCPConvergenceLayer::defaults_.test_fragment_size_);
-}
-
-const char*
-ParamCommand::help_string()
-{
-    return("param set <var> <val>");
+           &TCPConvergenceLayer::defaults_.test_fragment_size_, "");
 }
 
 } // namespace dtn

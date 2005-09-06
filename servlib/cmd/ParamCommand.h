@@ -48,11 +48,6 @@ namespace dtn {
 class ParamCommand : public oasys::TclCommand {
 public:
     ParamCommand();
-    
-    /**
-     * Virtual from CommandModule.
-     */
-    const char* help_string();
 };
 
 

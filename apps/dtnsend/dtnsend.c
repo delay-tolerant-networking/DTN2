@@ -209,7 +209,7 @@ main(int argc, char** argv)
             memset(&reply_spec, 0, sizeof(reply_spec));
             memset(&reply_payload, 0, sizeof(reply_payload));
             
-            // now we block waiting for the echo reply
+            // now we block waiting for any replies
             if ((ret = dtn_recv(handle, &reply_spec,
                                 DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
             {
@@ -246,14 +246,14 @@ void print_usage()
     fprintf(stderr, " -t <f|m|d> payload type: file, message, or date\n");
     fprintf(stderr, " -p <filename|string> payload data\n");
     fprintf(stderr, " -e <time> expiration time in seconds (default: one hour)\n");
-    fprintf(stderr, " -n copies of the bundle to send\n");
+    fprintf(stderr, " -i <regid> registration id for reply to\n");
+    fprintf(stderr, " -n <int> copies of the bundle to send\n");
     fprintf(stderr, " -c request custody transfer\n");
     fprintf(stderr, " -C request custody transfer receipts\n");
     fprintf(stderr, " -D request for end-to-end delivery receipt\n");
     fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
-    fprintf(stderr, " -i registration id for reply to\n");
     
     exit(1);
 }

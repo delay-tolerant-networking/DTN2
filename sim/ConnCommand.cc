@@ -48,7 +48,7 @@ namespace dtnsim {
 ConnCommand::ConnCommand()
     : TclCommand("conn")
 {
-    bind_s("type", &Connectivity::type_);
+    bind_s("type", &Connectivity::type_, "Connectivity type.");
 }
 
 

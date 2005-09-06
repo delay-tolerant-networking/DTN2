@@ -48,11 +48,6 @@ namespace dtn {
 class APICommand : public oasys::TclCommand {
 public:
     APICommand();
-    
-    /**
-     * Virtual from CommandModule.
-     */
-    const char* help_string();
 };
 
 

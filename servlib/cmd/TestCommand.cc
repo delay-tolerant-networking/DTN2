@@ -48,10 +48,10 @@ TestCommand::TestCommand()
 void
 TestCommand::bind_vars()
 {
-    bind_i("id", &id_);
-    bind_s("initscript", &initscript_);
-    bind_s("argv", &argv_);
-    bind_b("fork", &fork_);
+    bind_i("id", &id_, "The test id. (Defualt is 0.)");
+    bind_s("initscript", &initscript_, "The script to start.");
+    bind_s("argv", &argv_, "A string to pass as the argument to the script.");
+    bind_b("fork", &fork_, "A boolean to control forking. (Default is false.)");
 }
 
 int

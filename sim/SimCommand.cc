@@ -55,15 +55,9 @@ namespace dtnsim {
 SimCommand::SimCommand()
     : TclCommand("sim")
 {
-    bind_d("runtill", &Simulator::runtill_);
-    bind_s("route_type", &BundleRouter::Config.type_, "static");
-}
-
-
-const char*
-SimCommand::help_string()
-{
-    NOTIMPLEMENTED;
+    bind_d("runtill", &Simulator::runtill_, "Run simulation for this many steps.");
+    bind_s("route_type", &BundleRouter::Config.type_, "static",
+        "What type of router to use.");
 }
 
 int

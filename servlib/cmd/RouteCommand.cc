@@ -54,7 +54,8 @@ namespace dtn {
 RouteCommand::RouteCommand()
     : TclCommand("route")
 {
-    bind_s("type", &BundleRouter::Config.type_, "static");
+    bind_s("type", &BundleRouter::Config.type_, "static",
+        "Which routing algorithm to use.");
 }
 
 const char*

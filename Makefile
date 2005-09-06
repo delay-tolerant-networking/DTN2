@@ -70,4 +70,6 @@ Rules.make.in:
 	@echo error -- Makefile did not set SRCDIR properly
 	@exit 1
 
+GENFILES = doc/manual/man/*.txt
+
 -include Rules.make
