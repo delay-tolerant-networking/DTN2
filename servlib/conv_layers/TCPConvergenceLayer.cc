@@ -632,8 +632,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
     
     if (space < tcphdr_len) {
         // this is unexpected, but we can handle it
-        log_err("send_bundle: bundle frame header too big for space of %d",
-                space);
+        log_err("send_bundle: bundle frame header too big for space of %u",
+                (u_int)space);
         space = space * 2;
         goto retry_headers;
     }
@@ -661,8 +661,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
 
     int cc = sock_->writeall(bp, tcphdr_len + header_len);
     if (cc != (int)tcphdr_len + header_len) {
-        log_err("send_bundle: error sending bundle header (wrote %u/%u): %s",
-                cc, tcphdr_len + header_len, strerror(errno));
+        log_err("send_bundle: error sending bundle header (wrote %d/%u): %s",
+                cc, (u_int)(tcphdr_len + header_len), strerror(errno));
         bundle->payload_.close_file();
         return false;
     }
@@ -943,8 +943,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
             buf.fill(cc);
         }
         
-        log_debug("recv_bundle: got %d byte chunk, rcvd_len %u",
-                  buf.fullbytes(), (u_int)rcvd_len);
+        log_debug("recv_bundle: got %u byte chunk, rcvd_len %u",
+                  (u_int)buf.fullbytes(), (u_int)rcvd_len);
         
         // append the chunk of data and update the amount received
         bundle->payload_.append_data((u_char*)buf.start(), buf.fullbytes());

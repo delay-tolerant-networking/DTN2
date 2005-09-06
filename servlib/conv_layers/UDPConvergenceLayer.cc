@@ -444,8 +444,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     // stuff in the bundle headers
     header_len = BundleProtocol::format_headers(bundle, buf_, sizeof(buf_));
     if (header_len < 0) {
-        log_err("send_bundle: bundle header too big for buffer (len %d)",
-                sizeof(buf_));
+        log_err("send_bundle: bundle header too big for buffer (len %u)",
+                (u_int)sizeof(buf_));
         return false;
     }
 
@@ -453,8 +453,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     // XXX/demmer maybe we need to fragment here? or return an MTU for
     // the higher layer
     if (payload_len > (sizeof(buf_) - header_len)) {
-        log_err("send_bundle: bundle payload + headers (length %d) too big",
-                header_len + payload_len);
+        log_err("send_bundle: bundle payload + headers (length %u) too big",
+                (u_int)(header_len + payload_len));
         return false;
     }
 
@@ -472,8 +472,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
                                        false));
         ok = true;
     } else {
-        log_err("send_bundle: error sending bundle (wrote %d/%d): %s",
-                cc, header_len + payload_len, strerror(errno));
+        log_err("send_bundle: error sending bundle (wrote %d/%u): %s",
+                cc, (u_int)(header_len + payload_len), strerror(errno));
         ok = false;
     }
 
