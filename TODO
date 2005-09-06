@@ -2,18 +2,16 @@ DTN2 TODO LIST
 -------------
 
 - forwarding logic
-  - get rid of all the queues on peer / link / contact
-  - add transmission history
-  - add bundle delete command
-  - add bundle expiration timers
+  - add transmission log
+  - fix up bundle deletion before expiration time
+  - implement class of service notification features
   - honor bundle priority bits in forwarding
-    - built into bundlelist to sort by priority?
-  - class of service notification features
+  - custody transfer
+  - add bundle delete command
   - change the consumer_bundle to have a bit indicating whether or not
     fragments can be sent to it. if not, enqueue on the reassembler
     which should simply post a new event when the reassembly is
     completed.
-  - custody transfer
   - bundle overwrite option
   - bundle echo option
 
@@ -24,13 +22,12 @@ DTN2 TODO LIST
   - expirations
 
 - bundle protocol 
-  - update to new spec
   - handle extension headers
-  - get rid of iovec complexity
-
+  - change lengths to 64 bit (requires changing oasys serialize layer)
 
 - misc
   - in tcl layer, add procs s.t. 'module var val' is interpreted as 
     'module set var val'
   - file-based backing store
   - control / management interface
+  - simulator 'at' command
