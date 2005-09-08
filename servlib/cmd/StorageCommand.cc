@@ -50,6 +50,7 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
     
     bind_s("type",	&cfg->type_, "What storage system to use.");
     bind_b("tidy",	&cfg->tidy_, "Same as the --tidy argument to dtnd.");
+    bind_b("init_db",	&cfg->init_, "Same as the --init-db argument to dtnd.");
     bind_i("tidy_wait",	&cfg->tidy_wait_,
         "How long to wait before really doing the tidy operation.");
     bind_s("dbname",	&cfg->dbname_, "The database name.");
