@@ -83,7 +83,7 @@ DECLARE_TEST(BasicPushPop) {
 
     for (int i = 0; i < COUNT; ++i) {
         b = l1->pop_front();
-        CHECK_EQUAL(b, bundles[i]);
+        CHECK(b == bundles[i]);
         b->del_ref("test pop");
         CHECK_EQUAL(b->refcount(), 1);
     }
@@ -97,7 +97,7 @@ DECLARE_TEST(BasicPushPop) {
     
     for (int i = 0; i < COUNT; ++i) {
         b = l1->pop_back();
-        CHECK_EQUAL(b, bundles[i]);
+        CHECK(b == bundles[i]);
         b->del_ref("test pop");
         CHECK_EQUAL(b->refcount(), 1);
     }
