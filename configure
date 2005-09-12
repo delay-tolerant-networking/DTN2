@@ -3699,1335 +3699,6 @@ fi
 
 
 
-    ac_tclvers='8.4 8.3'
-    ac_tcldir='system'
-
-
-# Check whether --with-tcl or --without-tcl was given.
-if test "${with_tcl+set}" = set; then
-  withval="$with_tcl"
-  ac_tcldir=$withval
-fi;
-
-
-# Check whether --with-tcldir or --without-tcldir was given.
-if test "${with_tcldir+set}" = set; then
-  withval="$with_tcldir"
-  ac_tcldir=$withval
-fi;
-
-
-# Check whether --with-tclver or --without-tclver was given.
-if test "${with_tclver+set}" = set; then
-  withval="$with_tclver"
-  ac_tclvers=$withval
-fi;
-
-                if test $ac_tcldir = no ; then
-       { { echo "$as_me:$LINENO: error: cannot configure without tcl" >&5
-echo "$as_me: error: cannot configure without tcl" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-
-                        if test $ac_tcldir = system -a ! x$oasys_cv_path_tcl_h = x ; then
-        echo "checking for tcl installation... (cached) $oasys_cv_path_tcl_h/tcl.h, $oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
-    else
-
-    oasys_cv_path_tcl_h=
-
-    ac_save_CPPFLAGS="$CPPFLAGS"
-    ac_save_LDFLAGS="$LDFLAGS"
-    ac_save_LIBS="$LIBS"
-
-    if test $ac_tcldir = system -o $ac_tcldir = yes -o $ac_tcldir = "" ; then
-        ac_tcldir=system
-        ac_tclincdirs="/usr/include /usr/local/include"
-	for ac_tclver in $ac_tclvers ; do
-           ac_tclincdirs="$ac_tclincdirs /usr/include/tcl$ac_tclver"
-           ac_tclincdirs="$ac_tclincdirs /usr/local/include/tcl$ac_tclver"
-        done
-        ac_tcllibdirs="/usr/lib /usr/local/lib"
-    else
-        ac_tclincdirs=$ac_tcldir/include/
-        ac_tcllibdirs="$ac_tcldir/lib"
-    fi
-
-    for ac_tclver in $ac_tclvers ; do
-    for ac_tclincdir in $ac_tclincdirs; do
-
-        ac_tclver_major=`echo $ac_tclver | cut -d . -f1`
-	ac_tclver_minor=`echo $ac_tclver | cut -d . -f2`
-	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_tclincdir"
-	LDFLAGS="$ac_save_LDFLAGS"
-	LIBS="$ac_save_LIBS"
-
-					        echo "$as_me:$LINENO: checking for tcl.h (version $ac_tclver) in $ac_tclincdir" >&5
-echo $ECHO_N "checking for tcl.h (version $ac_tclver) in $ac_tclincdir... $ECHO_C" >&6
-
-	cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-                #include <tcl.h>
-
-                #if (TCL_MAJOR_VERSION != ${ac_tclver_major}) || \
-                    (TCL_MINOR_VERSION != ${ac_tclver_minor})
-                #error "incorrect version"
-                #endif
-
-int
-main ()
-{
-
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-              echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-              echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-              continue
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-
-      for ac_tcllibdir in $ac_tcllibdirs; do
-      for ac_tcllib in tcl$ac_tclver tcl$ac_tclver_major$ac_tclver_minor tcl; do
-
-        #AC_MSG_CHECKING([for tcl library in $ac_tcllibdir, -l$ac_tcllib])
-	LDFLAGS="$ac_save_LDFLAGS -L$ac_tcllibdir"
-    	if test x"$STATIC" = x"yes" ; then
-		LIBS="$ac_save_LIBS -Wl,-Bstatic -l$ac_tcllib -Wl,-Bdynamic -ldl -lm"
-	else
-		LIBS="$ac_save_LIBS -l$ac_tcllib"
-	fi
-
-        echo "$as_me:$LINENO: checking for tcl library in $ac_tcllibdir: $LIBS" >&5
-echo $ECHO_N "checking for tcl library in $ac_tcllibdir: $LIBS... $ECHO_C" >&6
-
-	cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-                #include <tcl.h>
-
-                #if (TCL_MAJOR_VERSION != ${ac_tclver_major}) || \
-                    (TCL_MINOR_VERSION != ${ac_tclver_minor})
-                #error "incorrect version"
-                #endif
-
-int
-main ()
-{
-
-                Tcl_Interp* interp = Tcl_CreateInterp();
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-              echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-              oasys_cv_path_tcl_h=$ac_tclincdir
-              oasys_cv_path_tcl_lib=$ac_tcllibdir
-              oasys_cv_lib_tcl=$ac_tcllib
-
-              #Buggy
-              #if test ! x"$STATIC" = x"yes" ; then
-                  #oasys_cv_path_tcl_lib="${ac_tcllibdir} -Wl,-rpath,${ac_tcllibdir}"
-                  #oasys_cv_lib_tcl="${ac_tcllib} -Wl,-rpath,${ac_tcllibdir}"
-              #fi
-
-              break 4
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-              echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-    done
-    done
-    done
-    done
-
-    CPPFLAGS="$ac_save_CPPFLAGS"
-    LDFLAGS="$ac_save_LDFLAGS"
-    LIBS="$ac_save_LIBS"
-
-    if test x$oasys_cv_path_tcl_h = x ; then
-        { { echo "$as_me:$LINENO: error: can't find usable tcl.h" >&5
-echo "$as_me: error: can't find usable tcl.h" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-
-    fi
-
-    if test ! $oasys_cv_path_tcl_h = /usr/include ; then
-        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_tcl_h"
-    fi
-
-    if test ! x"$oasys_cv_path_tcl_lib" = x"/usr/lib" ; then
-        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_tcl_lib"
-    fi
-
-    if test x"$STATIC" = x"yes" ; then
-        OASYS_LIBS="$OASYS_LIBS -Wl,-Bstatic -l$oasys_cv_lib_tcl -Wl,-Bdynamic -ldl -lm"
-    else
-        OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_tcl"
-    fi
-
-
-
-    ac_storage_required="required"
-
-
-    ac_dbvers='4.3 4.2'
-    ac_dbdir='yes'
-
-
-# Check whether --with-db or --without-db was given.
-if test "${with_db+set}" = set; then
-  withval="$with_db"
-  ac_dbdir=$withval
-fi;
-
-
-# Check whether --with-dbver or --without-dbver was given.
-if test "${with_dbver+set}" = set; then
-  withval="$with_dbver"
-  ac_dbvers=$withval
-fi;
-
-                if test "$ac_dbdir" = no ; then
-    LIBDB_ENABLED=0
-    else
-
-    LIBDB_ENABLED=1
-
-cat >>confdefs.h <<_ACEOF
-#define LIBDB_ENABLED 1
-_ACEOF
-
-
-                            if test "$ac_dbdir" = yes -a ! x$dtn_cv_path_db_h = x ; then
-        echo "checking for Berkeley DB installation... (cached) $dtn_cv_path_db_h/db.h, $dtn_cv_path_db_lib -l$dtn_cv_lib_db"
-    else
-
-    dtn_cv_path_db_h=
-    dtn_cv_path_db_lib=
-    dtn_cv_lib_db=
-
-    ac_save_CPPFLAGS="$CPPFLAGS"
-    ac_save_LDFLAGS="$LDFLAGS"
-    ac_save_LIBS="$LIBS"
-
-    ac_ext=cc
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-
-    for ac_dbver in $ac_dbvers ; do
-
-    ac_dbver_major=`echo $ac_dbver | cut -d . -f1`
-    ac_dbver_minor=`echo $ac_dbver | cut -d . -f2`
-
-    if test "$ac_dbdir" = system -o \
-            "$ac_dbdir" = yes -o \
-            "$ac_dbdir" = "" ;
-    then
-        ac_dbincdirs="/usr/include /usr/local/include/db4"
-        ac_dbincdirs="$ac_dbincdirs /usr/include/db$ac_dbver"
-        ac_dbincdirs="$ac_dbincdirs /usr/local/BerkeleyDB.$ac_dbver/include"
-        ac_dblibdirs="/usr/lib /usr/local/lib"
-        ac_dblibdirs="$ac_dblibdirs /usr/local/BerkeleyDB.$ac_dbver/lib"
-    else
-        ac_dbincdirs="$ac_dbdir/include"
-        ac_dblibdirs="$ac_dbdir/lib"
-    fi
-
-    for ac_dbincdir in $ac_dbincdirs; do
-	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_dbincdir"
-	LDFLAGS="$ac_save_LDFLAGS"
-	LIBS="$ac_save_LIBS"
-
-					        echo "$as_me:$LINENO: checking for Berkeley DB header (version $ac_dbver) in $ac_dbincdir" >&5
-echo $ECHO_N "checking for Berkeley DB header (version $ac_dbver) in $ac_dbincdir... $ECHO_C" >&6
-	cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-                #include <db.h>
-
-                #if (DB_VERSION_MAJOR != ${ac_dbver_major}) || \
-                    (DB_VERSION_MINOR != ${ac_dbver_minor})
-                #error "incorrect version"
-                #endif
-
-int
-main ()
-{
-
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-	      echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-              echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-	      continue
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-
-      for ac_dblibdir in $ac_dblibdirs; do
-      for ac_dblib    in db-$ac_dbver; do
-
-	LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
-	if test x"$STATIC" = x"yes" ; then
-		LIBS="$ac_save_LIBS -Wl,-Bstatic -l$ac_dblib -Wl,-Bdynamic"
-	else
-		LIBS="$ac_save_LIBS -l$ac_dblib"
-	fi
-
-        echo "$as_me:$LINENO: checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib" >&5
-echo $ECHO_N "checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib... $ECHO_C" >&6
-	cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-                #include <db.h>
-
-int
-main ()
-{
-
-	        DB *db;
-                db_create(&db, NULL, 0);
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-              echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-              dtn_cv_path_db_h=$ac_dbincdir
-              dtn_cv_path_db_lib=$ac_dblibdir
-              dtn_cv_lib_db=$ac_dblib
-              break 4
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-              echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-    done
-    done
-    done
-    done
-
-    ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-    CPPFLAGS="$ac_save_CPPFLAGS"
-    LDFLAGS="$ac_save_LDFLAGS"
-    LIBS="$ac_save_LIBS"
-
-    if test x$dtn_cv_path_db_h = x ; then
-
-cat <<EOF
-
-Configure error with Berkeley DB...
-
-If your installed version is not one of $dbversions, you may
-have to specify it with --with-dbver.
-
-If your installation is in a non-standard path, you can specify
-it with --with-db=DIR.
-
-To download the latest version, go to http://www.sleepycat.com
-To build and install to /usr/local/BerkeleyDB-<version>:
-
-# cd <db_download_dir>/build_unix
-# ../dist/configure --enable-cxx
-# make
-# make install
-
-EOF
-
-
-        { { echo "$as_me:$LINENO: error: can't find usable Berkeley DB installation" >&5
-echo "$as_me: error: can't find usable Berkeley DB installation" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-
-    fi
-
-    if test ! $dtn_cv_path_db_h = /usr/include ; then
-        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$dtn_cv_path_db_h"
-    fi
-
-    if test ! $dtn_cv_path_db_lib = /usr/lib ; then
-        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$dtn_cv_path_db_lib"
-    fi
-
-    if test x"$STATIC" = x"yes" ; then
-        OASYS_LIBS="$OASYS_LIBS -Wl,-Bstatic -l$dtn_cv_lib_db -Wl,-Bdynamic"
-    else
-    	OASYS_LIBS="$OASYS_LIBS -l$dtn_cv_lib_db"
-    fi
-
-    fi # LIBDB_ENABLED
-
-
-    ac_mysqldir='no'
-
-
-# Check whether --with-mysql or --without-mysql was given.
-if test "${with_mysql+set}" = set; then
-  withval="$with_mysql"
-  ac_mysqldir=$withval
-fi;
-
-    ac_mysqldaemon='no'
-
-# Check whether --with-mysql-daemon or --without-mysql-daemon was given.
-if test "${with_mysql_daemon+set}" = set; then
-  withval="$with_mysql_daemon"
-  ac_mysqldaemon=$withval
-fi;
-
-                if test "$ac_mysqldir" = no; then
-    MYSQL_ENABLED=0
-    else
-
-    MYSQL_ENABLED=1
-
-cat >>confdefs.h <<_ACEOF
-#define MYSQL_ENABLED 1
-_ACEOF
-
-
-                    if test ! "$ac_mysqldaemon" = "no" ; then
-
-cat >>confdefs.h <<_ACEOF
-#define LIBMYSQLD_ENABLED 1
-_ACEOF
-
-
-       echo "$as_me:$LINENO: checking for library containing request_init" >&5
-echo $ECHO_N "checking for library containing request_init... $ECHO_C" >&6
-if test "${ac_cv_search_request_init+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_func_search_save_LIBS=$LIBS
-ac_cv_search_request_init=no
-cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char request_init ();
-int
-main ()
-{
-request_init ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_search_request_init="none required"
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-if test "$ac_cv_search_request_init" = no; then
-  for ac_lib in wrap; do
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-    cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char request_init ();
-int
-main ()
-{
-request_init ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_search_request_init="-l$ac_lib"
-break
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-  done
-fi
-LIBS=$ac_func_search_save_LIBS
-fi
-echo "$as_me:$LINENO: result: $ac_cv_search_request_init" >&5
-echo "${ECHO_T}$ac_cv_search_request_init" >&6
-if test "$ac_cv_search_request_init" != no; then
-  test "$ac_cv_search_request_init" = "none required" || LIBS="$ac_cv_search_request_init $LIBS"
-
-fi
-
-       echo "$as_me:$LINENO: checking for library containing exp" >&5
-echo $ECHO_N "checking for library containing exp... $ECHO_C" >&6
-if test "${ac_cv_search_exp+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_func_search_save_LIBS=$LIBS
-ac_cv_search_exp=no
-cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char exp ();
-int
-main ()
-{
-exp ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_search_exp="none required"
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-if test "$ac_cv_search_exp" = no; then
-  for ac_lib in m; do
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-    cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char exp ();
-int
-main ()
-{
-exp ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_search_exp="-l$ac_lib"
-break
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-  done
-fi
-LIBS=$ac_func_search_save_LIBS
-fi
-echo "$as_me:$LINENO: result: $ac_cv_search_exp" >&5
-echo "${ECHO_T}$ac_cv_search_exp" >&6
-if test "$ac_cv_search_exp" != no; then
-  test "$ac_cv_search_exp" = "none required" || LIBS="$ac_cv_search_exp $LIBS"
-
-fi
-
-       echo "$as_me:$LINENO: checking for library containing crypt" >&5
-echo $ECHO_N "checking for library containing crypt... $ECHO_C" >&6
-if test "${ac_cv_search_crypt+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_func_search_save_LIBS=$LIBS
-ac_cv_search_crypt=no
-cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char crypt ();
-int
-main ()
-{
-crypt ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_search_crypt="none required"
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-if test "$ac_cv_search_crypt" = no; then
-  for ac_lib in crypt; do
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-    cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char crypt ();
-int
-main ()
-{
-crypt ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_search_crypt="-l$ac_lib"
-break
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-  done
-fi
-LIBS=$ac_func_search_save_LIBS
-fi
-echo "$as_me:$LINENO: result: $ac_cv_search_crypt" >&5
-echo "${ECHO_T}$ac_cv_search_crypt" >&6
-if test "$ac_cv_search_crypt" != no; then
-  test "$ac_cv_search_crypt" = "none required" || LIBS="$ac_cv_search_crypt $LIBS"
-
-fi
-
-       echo "$as_me:$LINENO: checking for library containing compress" >&5
-echo $ECHO_N "checking for library containing compress... $ECHO_C" >&6
-if test "${ac_cv_search_compress+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_func_search_save_LIBS=$LIBS
-ac_cv_search_compress=no
-cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char compress ();
-int
-main ()
-{
-compress ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_search_compress="none required"
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-if test "$ac_cv_search_compress" = no; then
-  for ac_lib in z; do
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-    cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char compress ();
-int
-main ()
-{
-compress ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_search_compress="-l$ac_lib"
-break
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-  done
-fi
-LIBS=$ac_func_search_save_LIBS
-fi
-echo "$as_me:$LINENO: result: $ac_cv_search_compress" >&5
-echo "${ECHO_T}$ac_cv_search_compress" >&6
-if test "$ac_cv_search_compress" != no; then
-  test "$ac_cv_search_compress" = "none required" || LIBS="$ac_cv_search_compress $LIBS"
-
-fi
-
-    fi
-
-                            if test "$ac_mysqldir" = yes -a ! x$dtn_cv_path_mysql_h = x ; then
-        echo "checking for mysql installation... (cached) $dtn_cv_path_mysql_h/mysql.h, $dtn_cv_path_mysql_lib -lmysql"
-    else
-
-    dtn_cv_path_mysql_h=
-    dtn_cv_path_mysql_lib=
-
-    ac_save_CPPFLAGS="$CPPFLAGS"
-    ac_save_LDFLAGS="$LDFLAGS"
-    ac_save_LIBS="$LIBS"
-
-    if test "$ac_mysqldir" = system -o \
-            "$ac_mysqldir" = yes -o \
-            "$ac_mysqldir" = "" ;
-    then
-        ac_mysqlincdirs="/usr/include /usr/include/mysql \
-                         /usr/local/mysql/include"
-        ac_mysqllibdirs="/usr/lib /usr/lib/mysql /usr/local/mysql/lib"
-    else
-        ac_mysqlincdirs="$ac_mysqldir/include"
-        ac_mysqllibdirs="$ac_mysqldir/lib"
-    fi
-
-    for ac_mysqlincdir in $ac_mysqlincdirs; do
-
-	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_mysqlincdir"
-	LDFLAGS="$ac_save_LDFLAGS"
-	LIBS="$ac_save_LIBS"
-
-					        echo "$as_me:$LINENO: checking for mysql header mysql.h in $ac_mysqlincdir" >&5
-echo $ECHO_N "checking for mysql header mysql.h in $ac_mysqlincdir... $ECHO_C" >&6
-	cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-                #include <mysql.h>
-
-int
-main ()
-{
-
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-	      echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-              dtn_cv_path_mysql_h=$ac_mysqlincdir
-	      break
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-              echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-	      continue
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-    done
-
-    if test x$dtn_cv_path_mysql_h = x ; then
-        { { echo "$as_me:$LINENO: error: can't find usable mysql installation" >&5
-echo "$as_me: error: can't find usable mysql installation" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-
-    for ac_mysqllibdir in $ac_mysqllibdirs; do
-
-	LDFLAGS="$ac_save_LDFLAGS -L$ac_mysqllibdir"
-	if test "$ac_mysqldaemon" = "no" ; then
- 	    LIBS="$ac_save_LIBS -lmysqlclient"
-        else
- 	    LIBS="$ac_save_LIBS -lmysqld"
-        fi
-
-        echo "$as_me:$LINENO: checking for mysql library libmysql in $ac_mysqllibdir" >&5
-echo $ECHO_N "checking for mysql library libmysql in $ac_mysqllibdir... $ECHO_C" >&6
-	cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-                #include <mysql.h>
-
-int
-main ()
-{
-
-		MYSQL m;
-	        mysql_init(&m);
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-              echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-              dtn_cv_path_mysql_lib=$ac_mysqllibdir
-              break
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-              echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-    done
-
-    CPPFLAGS="$ac_save_CPPFLAGS"
-    LDFLAGS="$ac_save_LDFLAGS"
-    LIBS="$ac_save_LIBS"
-
-    if test x$dtn_cv_path_mysql_lib = x ; then
-        { { echo "$as_me:$LINENO: error: can't find usable mysql library" >&5
-echo "$as_me: error: can't find usable mysql library" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-
-    fi
-
-    if test ! $dtn_cv_path_mysql_h = /usr/include ; then
-        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$dtn_cv_path_mysql_h"
-    fi
-
-    if test ! $dtn_cv_path_mysql_lib = /usr/lib ; then
-        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$dtn_cv_path_mysql_lib"
-    fi
-
-    if test "$ac_mysqldaemon" = "no" ; then
-        OASYS_LIBS="$OASYS_LIBS -lmysqlclient"
-    else
-        OASYS_LIBS="$OASYS_LIBS -lmysqld"
-    fi
-
-    fi # MYSQL_ENABLED
-
-
-    ac_postgresdir='no'
-
-
-# Check whether --with-postgres or --without-postgres was given.
-if test "${with_postgres+set}" = set; then
-  withval="$with_postgres"
-  ac_postgresdir=$withval
-fi;
-
-                if test "$ac_postgresdir" = no ; then
-    POSTGRES_ENABLED=0
-    else
-
-    POSTGRES_ENABLED=1
-
-cat >>confdefs.h <<_ACEOF
-#define POSTGRES_ENABLED 1
-_ACEOF
-
-
-                            if test "$ac_postgresdir" = yes -a ! x$oasys_cv_path_postgres_h = x ; then
-        echo "checking for postgres installation... (cached) $oasys_cv_path_postgres_h/libpq-fe.h, $oasys_cv_path_postgres_lib -lpq"
-    else
-
-    oasys_cv_path_postgres_h=
-    oasys_cv_path_postgres_lib=
-
-    ac_save_CPPFLAGS="$CPPFLAGS"
-    ac_save_LDFLAGS="$LDFLAGS"
-    ac_save_LIBS="$LIBS"
-
-    if test "$ac_postgresdir" = system -o \
-            "$ac_postgresdir" = yes -o \
-            "$ac_postgresdir" = "" ;
-    then
-        ac_postgresincdirs="/usr/include /usr/include/postgresql \
-                            /usr/local/pgsql/include"
-        ac_postgreslibdirs="/usr/lib /usr/lib/pgsql /usr/local/pgsql/lib"
-    else
-        ac_postgresincdirs="$ac_postgresdir/include"
-        ac_postgreslibdirs="$ac_postgresdir/lib"
-    fi
-
-    for ac_postgresincdir in $ac_postgresincdirs; do
-
-	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_postgresincdir"
-	LDFLAGS="$ac_save_LDFLAGS"
-	LIBS="$ac_save_LIBS"
-
-					        echo "$as_me:$LINENO: checking for postgres header libpq-fe.h in $ac_postgresincdir" >&5
-echo $ECHO_N "checking for postgres header libpq-fe.h in $ac_postgresincdir... $ECHO_C" >&6
-	cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-                #include <libpq-fe.h>
-
-int
-main ()
-{
-
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-	      echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-              oasys_cv_path_postgres_h=$ac_postgresincdir
-	      break
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-              echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-	      continue
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-    done
-
-    if test x$oasys_cv_path_postgres_h = x ; then
-        { { echo "$as_me:$LINENO: error: can't find usable postgres installation" >&5
-echo "$as_me: error: can't find usable postgres installation" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-
-    for ac_postgreslibdir in $ac_postgreslibdirs; do
-
-	LDFLAGS="$ac_save_LDFLAGS -L$ac_postgreslibdir"
-	LIBS="$ac_save_LIBS -lpq"
-
-        echo "$as_me:$LINENO: checking for postgres library libpq in $ac_postgreslibdir" >&5
-echo $ECHO_N "checking for postgres library libpq in $ac_postgreslibdir... $ECHO_C" >&6
-	cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-                #include <libpq-fe.h>
-
-int
-main ()
-{
-
-	        PGconn *conn = PQconnectStart("");
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-              echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-              oasys_cv_path_postgres_lib=$ac_postgreslibdir
-              break
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-
-              echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-    done
-
-    CPPFLAGS="$ac_save_CPPFLAGS"
-    LDFLAGS="$ac_save_LDFLAGS"
-    LIBS="$ac_save_LIBS"
-
-    if test x$oasys_cv_path_postgres_lib = x ; then
-        { { echo "$as_me:$LINENO: error: can't find usable postgres library" >&5
-echo "$as_me: error: can't find usable postgres library" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-
-    fi
-
-    if test ! $oasys_cv_path_postgres_h = /usr/include ; then
-        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_postgres_h"
-    fi
-
-    if test ! $oasys_cv_path_postgres_lib = /usr/lib ; then
-        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_postgres_lib"
-    fi
-
-    OASYS_LIBS="$OASYS_LIBS -lpq"
-
-    fi # POSTGRES_ENABLED
-
-
-                if test "$MYSQL_ENABLED" = "1" -o "$POSTGRES_ENABLED" = "1" ; then
-
-cat >>confdefs.h <<_ACEOF
-#define SQL_ENABLED 1
-_ACEOF
-
-    fi
-
-
-                    if test "$ac_storage_required" = "required" -a \
-            ! "$LIBDB_ENABLED" = 1 -a \
-            ! "$MYSQL_ENABLED" = 1 -a \
-            ! "$POSTGRES_ENABLED" = 1  ;
-    then
-        { { echo "$as_me:$LINENO: error: Must enable at least one storage option (libdb, postgres, mysql)" >&5
-echo "$as_me: error: Must enable at least one storage option (libdb, postgres, mysql)" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-
-
-
 
 
 
@@ -7931,6 +6602,1320 @@ done
 
 
 
+    ac_tclvers='8.4 8.3'
+    ac_tcldir='system'
+
+
+# Check whether --with-tcl or --without-tcl was given.
+if test "${with_tcl+set}" = set; then
+  withval="$with_tcl"
+  ac_tcldir=$withval
+fi;
+
+
+# Check whether --with-tcldir or --without-tcldir was given.
+if test "${with_tcldir+set}" = set; then
+  withval="$with_tcldir"
+  ac_tcldir=$withval
+fi;
+
+
+# Check whether --with-tclver or --without-tclver was given.
+if test "${with_tclver+set}" = set; then
+  withval="$with_tclver"
+  ac_tclvers=$withval
+fi;
+
+                if test $ac_tcldir = no ; then
+       { { echo "$as_me:$LINENO: error: cannot configure without tcl" >&5
+echo "$as_me: error: cannot configure without tcl" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+                        if test $ac_tcldir = system -a ! x$oasys_cv_path_tcl_h = x ; then
+        echo "checking for tcl installation... (cached) $oasys_cv_path_tcl_h/tcl.h, $oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
+    else
+
+    oasys_cv_path_tcl_h=
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    ac_save_LDFLAGS="$LDFLAGS"
+    ac_save_LIBS="$LIBS"
+
+    if test $ac_tcldir = system -o $ac_tcldir = yes -o $ac_tcldir = "" ; then
+        ac_tcldir=system
+        ac_tclincdirs="/usr/include /usr/local/include"
+	for ac_tclver in $ac_tclvers ; do
+           ac_tclincdirs="$ac_tclincdirs /usr/include/tcl$ac_tclver"
+           ac_tclincdirs="$ac_tclincdirs /usr/local/include/tcl$ac_tclver"
+        done
+        ac_tcllibdirs="/usr/lib /usr/local/lib"
+    else
+        ac_tclincdirs=$ac_tcldir/include/
+        ac_tcllibdirs="$ac_tcldir/lib"
+    fi
+
+    for ac_tclver in $ac_tclvers ; do
+    for ac_tclincdir in $ac_tclincdirs; do
+
+        ac_tclver_major=`echo $ac_tclver | cut -d . -f1`
+	ac_tclver_minor=`echo $ac_tclver | cut -d . -f2`
+	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_tclincdir"
+	LDFLAGS="$ac_save_LDFLAGS"
+	LIBS="$ac_save_LIBS"
+
+					        echo "$as_me:$LINENO: checking for tcl.h (version $ac_tclver) in $ac_tclincdir" >&5
+echo $ECHO_N "checking for tcl.h (version $ac_tclver) in $ac_tclincdir... $ECHO_C" >&6
+
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <tcl.h>
+
+                #if (TCL_MAJOR_VERSION != ${ac_tclver_major}) || \
+                    (TCL_MINOR_VERSION != ${ac_tclver_minor})
+                #error "incorrect version"
+                #endif
+
+int
+main ()
+{
+
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+              continue
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+
+      for ac_tcllibdir in $ac_tcllibdirs; do
+      for ac_tcllib in tcl$ac_tclver tcl$ac_tclver_major$ac_tclver_minor tcl; do
+
+        #AC_MSG_CHECKING([for tcl library in $ac_tcllibdir, -l$ac_tcllib])
+	LDFLAGS="$ac_save_LDFLAGS -L$ac_tcllibdir"
+    	if test x"$STATIC" = x"yes" ; then
+		LIBS="$ac_save_LIBS -Wl,-Bstatic -l$ac_tcllib -Wl,-Bdynamic -ldl -lm"
+	else
+		LIBS="$ac_save_LIBS -l$ac_tcllib"
+	fi
+
+        echo "$as_me:$LINENO: checking for tcl library in $ac_tcllibdir: $LIBS" >&5
+echo $ECHO_N "checking for tcl library in $ac_tcllibdir: $LIBS... $ECHO_C" >&6
+
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <tcl.h>
+
+                #if (TCL_MAJOR_VERSION != ${ac_tclver_major}) || \
+                    (TCL_MINOR_VERSION != ${ac_tclver_minor})
+                #error "incorrect version"
+                #endif
+
+int
+main ()
+{
+
+                Tcl_Interp* interp = Tcl_CreateInterp();
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              oasys_cv_path_tcl_h=$ac_tclincdir
+              oasys_cv_path_tcl_lib=$ac_tcllibdir
+              oasys_cv_lib_tcl=$ac_tcllib
+
+              #Buggy
+              #if test ! x"$STATIC" = x"yes" ; then
+                  #oasys_cv_path_tcl_lib="${ac_tcllibdir} -Wl,-rpath,${ac_tcllibdir}"
+                  #oasys_cv_lib_tcl="${ac_tcllib} -Wl,-rpath,${ac_tcllibdir}"
+              #fi
+
+              break 4
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
+    done
+    done
+    done
+
+    CPPFLAGS="$ac_save_CPPFLAGS"
+    LDFLAGS="$ac_save_LDFLAGS"
+    LIBS="$ac_save_LIBS"
+
+    if test x$oasys_cv_path_tcl_h = x ; then
+        { { echo "$as_me:$LINENO: error: can't find usable tcl.h" >&5
+echo "$as_me: error: can't find usable tcl.h" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    fi
+
+    if test ! $oasys_cv_path_tcl_h = /usr/include ; then
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_tcl_h"
+    fi
+
+    if test ! x"$oasys_cv_path_tcl_lib" = x"/usr/lib" ; then
+        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_tcl_lib"
+    fi
+
+    if test x"$STATIC" = x"yes" ; then
+        OASYS_LIBS="$OASYS_LIBS -Wl,-Bstatic -l$oasys_cv_lib_tcl -Wl,-Bdynamic -ldl -lm"
+    else
+        OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_tcl"
+    fi
+
+
+    ac_storage_required="required"
+
+
+    ac_dbvers='4.3 4.2'
+    ac_dbdir='yes'
+
+
+# Check whether --with-db or --without-db was given.
+if test "${with_db+set}" = set; then
+  withval="$with_db"
+  ac_dbdir=$withval
+fi;
+
+
+# Check whether --with-dbver or --without-dbver was given.
+if test "${with_dbver+set}" = set; then
+  withval="$with_dbver"
+  ac_dbvers=$withval
+fi;
+
+                if test "$ac_dbdir" = no ; then
+    LIBDB_ENABLED=0
+    else
+
+    LIBDB_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define LIBDB_ENABLED 1
+_ACEOF
+
+
+                            if test "$ac_dbdir" = yes -a ! x$oasys_cv_path_db_h = x ; then
+        echo "checking for Berkeley DB installation... (cached) $oasys_cv_path_db_h/db.h, $oasys_cv_path_db_lib -l$oasys_cv_lib_db"
+    else
+
+    oasys_cv_path_db_h=
+    oasys_cv_path_db_lib=
+    oasys_cv_lib_db=
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    ac_save_LDFLAGS="$LDFLAGS"
+    ac_save_LIBS="$LIBS"
+
+    for ac_dbver in $ac_dbvers ; do
+
+    ac_dbver_major=`echo $ac_dbver | cut -d . -f1`
+    ac_dbver_minor=`echo $ac_dbver | cut -d . -f2`
+
+    if test "$ac_dbdir" = system -o \
+            "$ac_dbdir" = yes -o \
+            "$ac_dbdir" = "" ;
+    then
+        ac_dbincdirs="/usr/include /usr/local/include/db4"
+        ac_dbincdirs="$ac_dbincdirs /usr/include/db$ac_dbver"
+        ac_dbincdirs="$ac_dbincdirs /usr/local/BerkeleyDB.$ac_dbver/include"
+        ac_dblibdirs="/usr/lib /usr/local/lib"
+        ac_dblibdirs="$ac_dblibdirs /usr/local/BerkeleyDB.$ac_dbver/lib"
+    else
+        ac_dbincdirs="$ac_dbdir/include"
+        ac_dblibdirs="$ac_dbdir/lib"
+    fi
+
+    for ac_dbincdir in $ac_dbincdirs; do
+	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_dbincdir"
+	LDFLAGS="$ac_save_LDFLAGS"
+	LIBS="$ac_save_LIBS"
+
+					        echo "$as_me:$LINENO: checking for Berkeley DB header (version $ac_dbver) in $ac_dbincdir" >&5
+echo $ECHO_N "checking for Berkeley DB header (version $ac_dbver) in $ac_dbincdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <db.h>
+
+                #if (DB_VERSION_MAJOR != ${ac_dbver_major}) || \
+                    (DB_VERSION_MINOR != ${ac_dbver_minor})
+                #error "incorrect version"
+                #endif
+
+int
+main ()
+{
+
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+	      echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+	      continue
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+
+      for ac_dblibdir in $ac_dblibdirs; do
+      for ac_dblib    in db-$ac_dbver; do
+
+	LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
+	if test x"$STATIC" = x"yes" ; then
+		LIBS="$ac_save_LIBS -Wl,-Bstatic -l$ac_dblib -Wl,-Bdynamic"
+	else
+		LIBS="$ac_save_LIBS -l$ac_dblib"
+	fi
+
+        echo "$as_me:$LINENO: checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib" >&5
+echo $ECHO_N "checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <db.h>
+
+int
+main ()
+{
+
+	        DB *db;
+                db_create(&db, NULL, 0);
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              oasys_cv_path_db_h=$ac_dbincdir
+              oasys_cv_path_db_lib=$ac_dblibdir
+              oasys_cv_lib_db=$ac_dblib
+              break 4
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
+    done
+    done
+    done
+
+    CPPFLAGS="$ac_save_CPPFLAGS"
+    LDFLAGS="$ac_save_LDFLAGS"
+    LIBS="$ac_save_LIBS"
+
+    if test x$oasys_cv_path_db_h = x ; then
+
+cat <<EOF
+
+Configure error with Berkeley DB...
+
+If your installed version is not one of $dbversions, you may
+have to specify it with --with-dbver.
+
+If your installation is in a non-standard path, you can specify
+it with --with-db=DIR.
+
+To download the latest version, go to http://www.sleepycat.com
+To build and install to /usr/local/BerkeleyDB-<version>:
+
+# cd <db_download_dir>/build_unix
+# ../dist/configure --enable-cxx
+# make
+# make install
+
+EOF
+
+
+        { { echo "$as_me:$LINENO: error: can't find usable Berkeley DB installation" >&5
+echo "$as_me: error: can't find usable Berkeley DB installation" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    fi
+
+    if test ! $oasys_cv_path_db_h = /usr/include ; then
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_db_h"
+    fi
+
+    if test ! $oasys_cv_path_db_lib = /usr/lib ; then
+        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_db_lib"
+    fi
+
+    if test x"$STATIC" = x"yes" ; then
+        OASYS_LIBS="$OASYS_LIBS -Wl,-Bstatic -l$oasys_cv_lib_db -Wl,-Bdynamic"
+    else
+    	OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_db"
+    fi
+
+    fi # LIBDB_ENABLED
+
+
+    ac_mysqldir='no'
+
+
+# Check whether --with-mysql or --without-mysql was given.
+if test "${with_mysql+set}" = set; then
+  withval="$with_mysql"
+  ac_mysqldir=$withval
+fi;
+
+    ac_mysqldaemon='no'
+
+# Check whether --with-mysql-daemon or --without-mysql-daemon was given.
+if test "${with_mysql_daemon+set}" = set; then
+  withval="$with_mysql_daemon"
+  ac_mysqldaemon=$withval
+fi;
+
+                if test "$ac_mysqldir" = no; then
+    MYSQL_ENABLED=0
+    else
+
+    MYSQL_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define MYSQL_ENABLED 1
+_ACEOF
+
+
+                    if test ! "$ac_mysqldaemon" = "no" ; then
+
+cat >>confdefs.h <<_ACEOF
+#define LIBMYSQLD_ENABLED 1
+_ACEOF
+
+
+       echo "$as_me:$LINENO: checking for library containing request_init" >&5
+echo $ECHO_N "checking for library containing request_init... $ECHO_C" >&6
+if test "${ac_cv_search_request_init+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+ac_cv_search_request_init=no
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char request_init ();
+int
+main ()
+{
+request_init ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_request_init="none required"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+if test "$ac_cv_search_request_init" = no; then
+  for ac_lib in wrap; do
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+    cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char request_init ();
+int
+main ()
+{
+request_init ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_request_init="-l$ac_lib"
+break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+  done
+fi
+LIBS=$ac_func_search_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_search_request_init" >&5
+echo "${ECHO_T}$ac_cv_search_request_init" >&6
+if test "$ac_cv_search_request_init" != no; then
+  test "$ac_cv_search_request_init" = "none required" || LIBS="$ac_cv_search_request_init $LIBS"
+
+fi
+
+       echo "$as_me:$LINENO: checking for library containing exp" >&5
+echo $ECHO_N "checking for library containing exp... $ECHO_C" >&6
+if test "${ac_cv_search_exp+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+ac_cv_search_exp=no
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char exp ();
+int
+main ()
+{
+exp ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_exp="none required"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+if test "$ac_cv_search_exp" = no; then
+  for ac_lib in m; do
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+    cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char exp ();
+int
+main ()
+{
+exp ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_exp="-l$ac_lib"
+break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+  done
+fi
+LIBS=$ac_func_search_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_search_exp" >&5
+echo "${ECHO_T}$ac_cv_search_exp" >&6
+if test "$ac_cv_search_exp" != no; then
+  test "$ac_cv_search_exp" = "none required" || LIBS="$ac_cv_search_exp $LIBS"
+
+fi
+
+       echo "$as_me:$LINENO: checking for library containing crypt" >&5
+echo $ECHO_N "checking for library containing crypt... $ECHO_C" >&6
+if test "${ac_cv_search_crypt+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+ac_cv_search_crypt=no
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char crypt ();
+int
+main ()
+{
+crypt ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_crypt="none required"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+if test "$ac_cv_search_crypt" = no; then
+  for ac_lib in crypt; do
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+    cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char crypt ();
+int
+main ()
+{
+crypt ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_crypt="-l$ac_lib"
+break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+  done
+fi
+LIBS=$ac_func_search_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_search_crypt" >&5
+echo "${ECHO_T}$ac_cv_search_crypt" >&6
+if test "$ac_cv_search_crypt" != no; then
+  test "$ac_cv_search_crypt" = "none required" || LIBS="$ac_cv_search_crypt $LIBS"
+
+fi
+
+       echo "$as_me:$LINENO: checking for library containing compress" >&5
+echo $ECHO_N "checking for library containing compress... $ECHO_C" >&6
+if test "${ac_cv_search_compress+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+ac_cv_search_compress=no
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char compress ();
+int
+main ()
+{
+compress ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_compress="none required"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+if test "$ac_cv_search_compress" = no; then
+  for ac_lib in z; do
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+    cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char compress ();
+int
+main ()
+{
+compress ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_compress="-l$ac_lib"
+break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+  done
+fi
+LIBS=$ac_func_search_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_search_compress" >&5
+echo "${ECHO_T}$ac_cv_search_compress" >&6
+if test "$ac_cv_search_compress" != no; then
+  test "$ac_cv_search_compress" = "none required" || LIBS="$ac_cv_search_compress $LIBS"
+
+fi
+
+    fi
+
+                            if test "$ac_mysqldir" = yes -a ! x$oasys_cv_path_mysql_h = x ; then
+        echo "checking for mysql installation... (cached) $oasys_cv_path_mysql_h/mysql.h, $oasys_cv_path_mysql_lib -lmysql"
+    else
+
+    oasys_cv_path_mysql_h=
+    oasys_cv_path_mysql_lib=
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    ac_save_LDFLAGS="$LDFLAGS"
+    ac_save_LIBS="$LIBS"
+
+    if test "$ac_mysqldir" = system -o \
+            "$ac_mysqldir" = yes -o \
+            "$ac_mysqldir" = "" ;
+    then
+        ac_mysqlincdirs="/usr/include /usr/include/mysql \
+                         /usr/local/mysql/include"
+        ac_mysqllibdirs="/usr/lib /usr/lib/mysql /usr/local/mysql/lib"
+    else
+        ac_mysqlincdirs="$ac_mysqldir/include"
+        ac_mysqllibdirs="$ac_mysqldir/lib"
+    fi
+
+    for ac_mysqlincdir in $ac_mysqlincdirs; do
+
+	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_mysqlincdir"
+	LDFLAGS="$ac_save_LDFLAGS"
+	LIBS="$ac_save_LIBS"
+
+					        echo "$as_me:$LINENO: checking for mysql header mysql.h in $ac_mysqlincdir" >&5
+echo $ECHO_N "checking for mysql header mysql.h in $ac_mysqlincdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <mysql.h>
+
+int
+main ()
+{
+
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+	      echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              oasys_cv_path_mysql_h=$ac_mysqlincdir
+	      break
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+	      continue
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
+
+    if test x$oasys_cv_path_mysql_h = x ; then
+        { { echo "$as_me:$LINENO: error: can't find usable mysql installation" >&5
+echo "$as_me: error: can't find usable mysql installation" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    for ac_mysqllibdir in $ac_mysqllibdirs; do
+
+	LDFLAGS="$ac_save_LDFLAGS -L$ac_mysqllibdir"
+	if test "$ac_mysqldaemon" = "no" ; then
+ 	    LIBS="$ac_save_LIBS -lmysqlclient"
+        else
+ 	    LIBS="$ac_save_LIBS -lmysqld"
+        fi
+
+        echo "$as_me:$LINENO: checking for mysql library libmysql in $ac_mysqllibdir" >&5
+echo $ECHO_N "checking for mysql library libmysql in $ac_mysqllibdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <mysql.h>
+
+int
+main ()
+{
+
+		MYSQL m;
+	        mysql_init(&m);
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              oasys_cv_path_mysql_lib=$ac_mysqllibdir
+              break
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
+
+    CPPFLAGS="$ac_save_CPPFLAGS"
+    LDFLAGS="$ac_save_LDFLAGS"
+    LIBS="$ac_save_LIBS"
+
+    if test x$oasys_cv_path_mysql_lib = x ; then
+        { { echo "$as_me:$LINENO: error: can't find usable mysql library" >&5
+echo "$as_me: error: can't find usable mysql library" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    fi
+
+    if test ! $oasys_cv_path_mysql_h = /usr/include ; then
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_mysql_h"
+    fi
+
+    if test ! $oasys_cv_path_mysql_lib = /usr/lib ; then
+        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_mysql_lib"
+    fi
+
+    if test "$ac_mysqldaemon" = "no" ; then
+        OASYS_LIBS="$OASYS_LIBS -lmysqlclient"
+    else
+        OASYS_LIBS="$OASYS_LIBS -lmysqld"
+    fi
+
+    fi # MYSQL_ENABLED
+
+
+    ac_postgresdir='no'
+
+
+# Check whether --with-postgres or --without-postgres was given.
+if test "${with_postgres+set}" = set; then
+  withval="$with_postgres"
+  ac_postgresdir=$withval
+fi;
+
+                if test "$ac_postgresdir" = no ; then
+    POSTGRES_ENABLED=0
+    else
+
+    POSTGRES_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define POSTGRES_ENABLED 1
+_ACEOF
+
+
+                            if test "$ac_postgresdir" = yes -a ! x$oasys_cv_path_postgres_h = x ; then
+        echo "checking for postgres installation... (cached) $oasys_cv_path_postgres_h/libpq-fe.h, $oasys_cv_path_postgres_lib -lpq"
+    else
+
+    oasys_cv_path_postgres_h=
+    oasys_cv_path_postgres_lib=
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    ac_save_LDFLAGS="$LDFLAGS"
+    ac_save_LIBS="$LIBS"
+
+    if test "$ac_postgresdir" = system -o \
+            "$ac_postgresdir" = yes -o \
+            "$ac_postgresdir" = "" ;
+    then
+        ac_postgresincdirs="/usr/include /usr/include/postgresql \
+                            /usr/local/pgsql/include"
+        ac_postgreslibdirs="/usr/lib /usr/lib/pgsql /usr/local/pgsql/lib"
+    else
+        ac_postgresincdirs="$ac_postgresdir/include"
+        ac_postgreslibdirs="$ac_postgresdir/lib"
+    fi
+
+    for ac_postgresincdir in $ac_postgresincdirs; do
+
+	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_postgresincdir"
+	LDFLAGS="$ac_save_LDFLAGS"
+	LIBS="$ac_save_LIBS"
+
+					        echo "$as_me:$LINENO: checking for postgres header libpq-fe.h in $ac_postgresincdir" >&5
+echo $ECHO_N "checking for postgres header libpq-fe.h in $ac_postgresincdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <libpq-fe.h>
+
+int
+main ()
+{
+
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+	      echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              oasys_cv_path_postgres_h=$ac_postgresincdir
+	      break
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+	      continue
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
+
+    if test x$oasys_cv_path_postgres_h = x ; then
+        { { echo "$as_me:$LINENO: error: can't find usable postgres installation" >&5
+echo "$as_me: error: can't find usable postgres installation" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    for ac_postgreslibdir in $ac_postgreslibdirs; do
+
+	LDFLAGS="$ac_save_LDFLAGS -L$ac_postgreslibdir"
+	LIBS="$ac_save_LIBS -lpq"
+
+        echo "$as_me:$LINENO: checking for postgres library libpq in $ac_postgreslibdir" >&5
+echo $ECHO_N "checking for postgres library libpq in $ac_postgreslibdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <libpq-fe.h>
+
+int
+main ()
+{
+
+	        PGconn *conn = PQconnectStart("");
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              oasys_cv_path_postgres_lib=$ac_postgreslibdir
+              break
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
+
+    CPPFLAGS="$ac_save_CPPFLAGS"
+    LDFLAGS="$ac_save_LDFLAGS"
+    LIBS="$ac_save_LIBS"
+
+    if test x$oasys_cv_path_postgres_lib = x ; then
+        { { echo "$as_me:$LINENO: error: can't find usable postgres library" >&5
+echo "$as_me: error: can't find usable postgres library" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    fi
+
+    if test ! $oasys_cv_path_postgres_h = /usr/include ; then
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_postgres_h"
+    fi
+
+    if test ! $oasys_cv_path_postgres_lib = /usr/lib ; then
+        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_postgres_lib"
+    fi
+
+    OASYS_LIBS="$OASYS_LIBS -lpq"
+
+    fi # POSTGRES_ENABLED
+
+
+                if test "$MYSQL_ENABLED" = "1" -o "$POSTGRES_ENABLED" = "1" ; then
+
+cat >>confdefs.h <<_ACEOF
+#define SQL_ENABLED 1
+_ACEOF
+
+    fi
+
+
+                    if test "$ac_storage_required" = "required" -a \
+            ! "$LIBDB_ENABLED" = 1 -a \
+            ! "$MYSQL_ENABLED" = 1 -a \
+            ! "$POSTGRES_ENABLED" = 1  ;
+    then
+        { { echo "$as_me:$LINENO: error: Must enable at least one storage option (libdb, postgres, mysql)" >&5
+echo "$as_me: error: Must enable at least one storage option (libdb, postgres, mysql)" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+
+
 CPPFLAGS="$CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
 LIBS="$LIBS $OASYS_LIBS $DTN_LIBS"
@@ -9201,17 +9186,17 @@ echo " "
 echo "External packages:"
 echo "  tcl: $oasys_cv_path_tcl_h/tcl.h -L$oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
 if test $LIBDB_ENABLED = 1 ; then
-  echo "  db: $dtn_cv_path_db_h/db.h -L$dtn_cv_path_db_lib -l$dtn_cv_lib_db"
+  echo "  db: $oasys_cv_path_db_h/db.h -L$oasys_cv_path_db_lib -l$oasys_cv_lib_db"
 fi
 
 if test $POSTGRES_ENABLED = 1 ; then
-  echo "  postgres: $dtn_cv_path_postgres_h/libpq-fe.h -L $dtn_cv_path_postgres_lib -lpq"
+  echo "  postgres: $oasys_cv_path_postgres_h/libpq-fe.h -L $oasys_cv_path_postgres_lib -lpq"
 fi
 
 if test $MYSQL_ENABLED = 1 ; then
   if test "$ac_mysqldaemon" = "no" ; then
-     echo "  mysql: $dtn_cv_path_mysql_h/mysql.h -L $dtn_cv_path_mysql_lib -lmysqlclient"
+     echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqlclient"
   else
-     echo "  mysql: $dtn_cv_path_mysql_h/mysql.h -L $dtn_cv_path_mysql_lib -lmysqld"
+     echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqld"
   fi
 fi

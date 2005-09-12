@@ -165,9 +165,6 @@ AC_SEARCH_LIBS(gethostbyname, nsl, [],
 AC_SEARCH_LIBS(xdr_int, rpc, [],
   AC_MSG_ERROR([can't find required library function (xdr_int)]))
 
-AC_OASYS_CONFIG_TCL
-AC_OASYS_CONFIG_STORAGE(required)
-
 dnl -------------------------------------------------------------------------
 dnl Checks for header files.
 dnl -------------------------------------------------------------------------
@@ -210,6 +207,12 @@ AC_OASYS_FUNC_FPCLASSIFY
 AC_CHECK_FUNCS([bzero ftruncate getaddrinfo gethostbyname gethostbyname_r getopt_long gettimeofday inet_aton inet_pton isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir select setenv socket strcasecmp strncasecmp strchr strcspn strdup strerror strrchr strspn strstr strtol strtoul])
 
 dnl -------------------------------------------------------------------------
+dnl Checks for dependent third-party libraries
+dnl -------------------------------------------------------------------------
+AC_OASYS_CONFIG_TCL
+AC_OASYS_CONFIG_STORAGE(required)
+
+dnl -------------------------------------------------------------------------
 dnl Output
 dnl -------------------------------------------------------------------------
 
@@ -246,17 +249,17 @@ echo " "
 echo "External packages:"
 echo "  tcl: $oasys_cv_path_tcl_h/tcl.h -L$oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
 if test $LIBDB_ENABLED = 1 ; then
-  echo "  db: $dtn_cv_path_db_h/db.h -L$dtn_cv_path_db_lib -l$dtn_cv_lib_db"
+  echo "  db: $oasys_cv_path_db_h/db.h -L$oasys_cv_path_db_lib -l$oasys_cv_lib_db"
 fi
 
 if test $POSTGRES_ENABLED = 1 ; then
-  echo "  postgres: $dtn_cv_path_postgres_h/libpq-fe.h -L $dtn_cv_path_postgres_lib -lpq"
+  echo "  postgres: $oasys_cv_path_postgres_h/libpq-fe.h -L $oasys_cv_path_postgres_lib -lpq"
 fi
 
 if test $MYSQL_ENABLED = 1 ; then 
   if test "$ac_mysqldaemon" = "no" ; then
-     echo "  mysql: $dtn_cv_path_mysql_h/mysql.h -L $dtn_cv_path_mysql_lib -lmysqlclient"
+     echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqlclient"
   else
-     echo "  mysql: $dtn_cv_path_mysql_h/mysql.h -L $dtn_cv_path_mysql_lib -lmysqld"
+     echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqld"
   fi
 fi
