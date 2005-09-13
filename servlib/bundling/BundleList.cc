@@ -100,7 +100,11 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
     ASSERT(b->lock_.is_locked_by_me());
 
     list_.insert(pos, b);
-    
+
+    if (notifier_) {
+        notifier_->notify();
+    }
+
     b->add_ref("bundle_list", name_.c_str());
 
     log_debug("/bundle/mapping", "bundle id %d add mapping [%s] to list %p",
@@ -200,7 +204,7 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
  * Helper routine to remove a bundle from the indicated position.
  */
 Bundle*
-BundleList::del_bundle(const iterator& pos)
+BundleList::del_bundle(const iterator& pos, bool used_notifier)
 {
     Bundle* b = *pos;
     ASSERT(lock_->is_locked_by_me());
@@ -224,6 +228,11 @@ BundleList::del_bundle(const iterator& pos)
 
     // remove the bundle from the list
     list_.erase(pos);
+    
+    // drain one element from the semaphore
+    if (notifier_ && !used_notifier) {
+        notifier_->drain_pipe();
+    }
 
     // note that we explicitly do _not_ decrement the reference count
     // since the reference is passed to the calling function
@@ -235,11 +244,15 @@ BundleList::del_bundle(const iterator& pos)
  * Remove (and return) the first bundle on the list.
  */
 Bundle*
-BundleList::pop_front()
+BundleList::pop_front(bool used_notifier)
 {
     oasys::ScopeLock l(lock_);
     if (list_.empty()) {
         return NULL;
+    }
+
+    if (notifier_ && !used_notifier) {
+        notifier_->drain_pipe();
     }
 
     return del_bundle(list_.begin());
@@ -249,11 +262,15 @@ BundleList::pop_front()
  * Remove (and return) the last bundle on the list.
  */
 Bundle*
-BundleList::pop_back()
+BundleList::pop_back(bool used_notifier)
 {
     oasys::ScopeLock l(lock_);
     if (list_.empty()) {
         return NULL;
+    }
+
+    if (notifier_ && !used_notifier) {
+        notifier_->drain_pipe();
     }
 
     return del_bundle(--list_.end());
@@ -452,7 +469,7 @@ BlockingBundleList::pop_blocking(int timeout)
     // thread waiting on the queue - which is an error.
     ASSERT(!list_.empty());
 
-    Bundle* b = pop_front();
+    Bundle* b = pop_front(true);
     lock_->unlock();
 
     log_debug("/bundle/mapping", "pop_blocking got bundle %p from list %p", 

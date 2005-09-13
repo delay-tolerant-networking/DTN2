@@ -149,9 +149,13 @@ public:
      * Note (as explained above) that this does not decrement the
      * bundle reference count.
      *
+     * @param used_notifier Popping off of the BundleList after coming 
+     *     off of a notifier. This will drain one item off of the 
+     *     notifier queue.
+     *                    
      * @return the bundle or NULL if the list is empty.
      */
-    Bundle* pop_front();
+    Bundle* pop_front(bool used_notifier = false);
 
     /**
      * Remove (and return) the last bundle on the list.
@@ -159,9 +163,13 @@ public:
      * Note (as explained above) that this does not decrement the
      * bundle reference count.
      *
+     * @param used_notifier Popping off of the BundleList after coming 
+     *     off of a notifier. This will drain one item off of the 
+     *     notifier queue.
+     *
      * @return the bundle or NULL if the list is empty.
      */
-    Bundle* pop_back();
+    Bundle* pop_back(bool used_notifier = false);
 
     /**
      * Remove the given bundle from the list. Returns true if the
@@ -248,9 +256,13 @@ protected:
     /**
      * Helper routine to remove a bundle from the indicated position.
      *
+     * @param used_notifier Popping off of the BundleList after coming 
+     *     off of a notifier. This will drain one item off of the 
+     *     notifier queue.
+     *
      * @returns the bundle that, before this call, was at the position
      */
-    Bundle* del_bundle(const iterator& pos);
+    Bundle* del_bundle(const iterator& pos, bool used_notifier = false);
     
     std::string name_;
     oasys::SpinLock* lock_;
