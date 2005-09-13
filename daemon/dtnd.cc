@@ -270,4 +270,5 @@ main(int argc, char* argv[])
     log_err("/dtnd", "command loop exited unexpectedly");
 
     delete_z(dtnserver);
+    delete_z(apiserver);
 }

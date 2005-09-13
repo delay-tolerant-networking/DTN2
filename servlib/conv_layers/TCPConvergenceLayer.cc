@@ -43,6 +43,8 @@
 #include <sys/poll.h>
 #include <stdlib.h>
 
+#include <oasys/thread/Notifier.h>
+#include <oasys/io/IO.h>
 #include <oasys/io/NetUtils.h>
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Options.h>
@@ -222,9 +224,10 @@ TCPConvergenceLayer::interface_down(Interface* iface)
     // then close the socket out from under it, which should cause the
     // thread to break out of the blocking call to accept() and
     // terminate itself
-    Listener* listener = (Listener*)iface->cl_info();
+    Listener* listener = static_cast<Listener*>(iface->cl_info());
     listener->set_should_stop();
-    listener->interrupt();
+
+    listener->interrupt_from_io();
     
     while (! listener->is_stopped()) {
         oasys::Thread::yield();
@@ -368,11 +371,13 @@ TCPConvergenceLayer::close_contact(Contact* contact)
         if (!conn->is_stopped() && !conn->should_stop()) {
             log_debug("interrupting connection thread");
             conn->set_should_stop();
-            conn->interrupt();
+            conn->interrupt_from_io();
         }
             
         while (!conn->is_stopped()) {
             log_debug("waiting for connection thread to stop...");
+            usleep(100000);
+            conn->interrupt_from_io();
             oasys::Thread::yield();
         }
         
@@ -407,10 +412,10 @@ TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *
  *****************************************************************************/
 TCPConvergenceLayer::Listener::Listener(Params* params)
-    : TCPServerThread("/cl/tcp/listener")
+    : InterruptableIO(new oasys::Notifier()), 
+      TCPServerThread("/cl/tcp/listener")
 {
-    logfd_ = false;
-    Thread::flags_ |= INTERRUPTABLE;
+    logfd_  = false;
     params_ = *params;
 }
 
@@ -446,8 +451,6 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
 
     : params_(*params), is_sender_(is_sender), contact_(NULL)
 {
-    Thread::flags_ |= INTERRUPTABLE;
-
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 
     // create the blocking queue for bundles to be sent on the
@@ -468,6 +471,9 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
     // Connection thread, not from the caller thread
     sock_->set_remote_addr(remote_addr);
     sock_->set_remote_port(remote_port);
+    
+    // set the notifier to be able to interrupt IO
+    sock_->set_notifier(new oasys::Notifier());
 
     // if the parameters specify a local address, do the bind here --
     // however if it fails, we can't really do anything about it, so
@@ -738,20 +744,19 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         int revents;
         do {
             cc = sock_->poll(POLLIN | POLLOUT, &revents, params_.rtt_timeout_);
-            if (cc < 0) {
+            if (cc == oasys::IOTIMEOUT) {
+                log_warn("send_bundle: "
+                         "timeout waiting for ack or write-ready");
+                goto done;
+            } else if (cc == oasys::IOINTR) {
+                PANIC("Handle intr?");
+            } else if (cc < 0) {
                 log_warn("send_bundle: error waiting for ack: %s",
                          strerror(errno));
                 goto done;
             }
-            
-            if (cc == 0) {
-                log_warn("send_bundle: "
-                         "timeout waiting for ack or write-ready");
-                goto done;
-            }
 
             ASSERT(cc == 1);
-
             if (revents & POLLIN) {
                 cc = handle_ack(bundle, acked_len);
                 
@@ -1213,8 +1218,9 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
     }
     
     if (cc != sizeof(ContactHeader)) {
-        log_err("error reading contact header (read %d/%u): %s", 
-                cc, (u_int)sizeof(ContactHeader), strerror(errno));
+        log_err("error reading contact header (read %d/%u): %d-%s", 
+                cc, (u_int)sizeof(ContactHeader), 
+                errno, strerror(errno));
         return false;
     }
 
@@ -1537,6 +1543,7 @@ TCPConvergenceLayer::Connection::send_loop()
         int timeout = params_.keepalive_interval_ * 1000;
         log_debug("send_loop: calling poll (timeout %d)", timeout);
                   
+        // XXX/bowei - this use of poll probably needs cleanup
         int nready = poll(pollfds, 2, timeout);
         if (nready < 0) {
             if (errno == EINTR)

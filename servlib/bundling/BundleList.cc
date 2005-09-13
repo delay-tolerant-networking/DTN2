@@ -103,8 +103,8 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
     
     b->add_ref("bundle_list", name_.c_str());
 
-    log_debug("/bundle/mapping", "bundle id %d add mapping [%s]",
-              b->bundleid_, name_.c_str());
+    log_debug("/bundle/mapping", "bundle id %d add mapping [%s] to list %p",
+              b->bundleid_, name_.c_str(), this);
     
     if (b->mappings_.insert(this).second == false) {
         log_err("/bundle/mapping", "ERROR in add mapping: "
@@ -114,6 +114,8 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
 }
 
 
+// XXX/bowei - these are had race conditions on the use of the
+// notifier!!
 /**
  * Add a new bundle to the front of the list.
  */
@@ -128,7 +130,7 @@ BundleList::push_front(Bundle* b)
     b->lock_.unlock();
     lock_->unlock();
     
-    if (notifier_ != NULL && size() == 1) {
+    if (notifier_ != NULL) {
         notifier_->notify();
     }
 }
@@ -147,7 +149,7 @@ BundleList::push_back(Bundle* b)
     b->lock_.unlock();
     lock_->unlock();
     
-    if (notifier_ != NULL && size() == 1) {
+    if (notifier_ != 0) {
         notifier_->notify();
     }
 }
@@ -189,7 +191,7 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
     add_bundle(b, iter);
     lock_->unlock();
     
-    if (notifier_ != NULL && size() == 1) {
+    if (notifier_ != 0) {
         notifier_->notify();
     }
 }
@@ -236,14 +238,9 @@ Bundle*
 BundleList::pop_front()
 {
     oasys::ScopeLock l(lock_);
-
-    // always drain the pipe to make sure that if the list is empty,
-    // then the pipe must be empty as well
-    if (notifier_)
-        notifier_->drain_pipe();
-    
-    if (list_.empty())
+    if (list_.empty()) {
         return NULL;
+    }
 
     return del_bundle(list_.begin());
 }
@@ -255,14 +252,9 @@ Bundle*
 BundleList::pop_back()
 {
     oasys::ScopeLock l(lock_);
-
-    // always drain the pipe to maintain the invariant that if the
-    // list is empty, then the pipe must be empty as well
-    if (notifier_)
-        notifier_->drain_pipe();
-
-    if (list_.empty())
+    if (list_.empty()) {
         return NULL;
+    }
 
     return del_bundle(--list_.end());
 }
@@ -437,6 +429,8 @@ Bundle*
 BlockingBundleList::pop_blocking(int timeout)
 {
     ASSERT(notifier_);
+
+    log_debug("/bundle/mapping", "pop_blocking on list %p", this);
     
     lock_->lock();
 
@@ -448,17 +442,23 @@ BlockingBundleList::pop_blocking(int timeout)
         // still nothing on the list
         if (!notified) {
             lock_->unlock();
-            return NULL;
+            log_debug("/bundle/mapping", "pop_blocking timeout on list %p", this);
+
+            return 0;
         }
-
-        // the pipe is drained in pop_front()
     }
-
-    Bundle *b = NULL;
-    if(! list_.empty()) 
-        b = pop_front();
-
+    
+    // This can't be empty if we got notified, unless there is another
+    // thread waiting on the queue - which is an error.
+    if (!list_.empty()) {
+        return 0;
+        // PANIC("list should have a least one bundle if notified");
+    }
+    Bundle* b = pop_front();
     lock_->unlock();
+
+    log_debug("/bundle/mapping", "pop_blocking got bundle %p from list %p", 
+              b, this);
     
     return b;
 }

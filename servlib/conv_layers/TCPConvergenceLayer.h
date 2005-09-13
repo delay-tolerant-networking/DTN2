@@ -294,6 +294,9 @@ protected:
          */
         void set_contact(Contact* contact) { contact_ = contact; }
 
+        //! Interrupt from IO operations
+        void interrupt_from_io() { sock_->interrupt_from_io(); }
+
     protected:
         friend class TCPConvergenceLayer;
         
@@ -311,12 +314,12 @@ protected:
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
         void note_data_rcvd();
 
-        EndpointID nexthop_;		///< The next hop we're connected to
-        bool is_sender_;		///< Are we the sender side
-        Contact* contact_;		///< Contact for sender-side
-        oasys::TCPClient* sock_;	///< The socket
+        EndpointID          nexthop_;	///< The next hop we're connected to
+        bool                is_sender_;	///< Are we the sender side
+        Contact*            contact_;	///< Contact for sender-side
+        oasys::TCPClient*   sock_;	///< The socket
         BlockingBundleList* queue_;	///< Queue of bundles for the connection
-        struct timeval data_rcvd_;	///< Timestamp for idle timer
+        struct timeval      data_rcvd_;	///< Timestamp for idle timer
     };
 };
 

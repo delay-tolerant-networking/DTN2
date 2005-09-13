@@ -158,7 +158,7 @@ UDPConvergenceLayer::interface_down(Interface* iface)
     // terminate itself
     Receiver* receiver = (Receiver*)iface->cl_info();
     receiver->set_should_stop();
-    receiver->interrupt();
+    receiver->interrupt_from_io();
     
     while (! receiver->is_stopped()) {
         oasys::Thread::yield();
@@ -343,10 +343,10 @@ UDPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *
  *****************************************************************************/
 UDPConvergenceLayer::Receiver::Receiver(UDPConvergenceLayer::Params* params)
-    : UDPClient("/cl/udp/receiver")
+    : InterruptableIO(new oasys::Notifier()),
+      UDPClient("/cl/udp/receiver")
 {
-    logfd_ = false;
-    Thread::flags_ |= INTERRUPTABLE;
+    logfd_  = false;
     params_ = *params;
 }
 

@@ -351,6 +351,8 @@ APIClient::handle_register()
     }
     }
 
+    // XXX/bowei - is this dead code? or did someone forget to do
+    // something with script?
     if (action == Registration::EXEC) {
         script.assign(reginfo.args.args_val, reginfo.args.args_len);
     }
