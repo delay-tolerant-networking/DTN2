@@ -450,10 +450,8 @@ BlockingBundleList::pop_blocking(int timeout)
     
     // This can't be empty if we got notified, unless there is another
     // thread waiting on the queue - which is an error.
-    if (!list_.empty()) {
-        return 0;
-        // PANIC("list should have a least one bundle if notified");
-    }
+    ASSERT(!list_.empty());
+
     Bundle* b = pop_front();
     lock_->unlock();
 
