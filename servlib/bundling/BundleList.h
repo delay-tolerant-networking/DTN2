@@ -178,7 +178,7 @@ public:
      * Unlike the pop() functions, this does remove the list's
      * reference on the bundle.
      */
-    bool erase(Bundle* bundle);
+    bool erase(Bundle* bundle, bool used_notifier = false);
 
     /**
      * Search the list for the given bundle.
@@ -262,7 +262,7 @@ protected:
      *
      * @returns the bundle that, before this call, was at the position
      */
-    Bundle* del_bundle(const iterator& pos, bool used_notifier = false);
+    Bundle* del_bundle(const iterator& pos, bool used_notifier);
     
     std::string name_;
     oasys::SpinLock* lock_;

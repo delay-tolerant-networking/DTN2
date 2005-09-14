@@ -99,22 +99,22 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
     ASSERT(lock_->is_locked_by_me());
     ASSERT(b->lock_.is_locked_by_me());
 
-    list_.insert(pos, b);
-
-    if (notifier_) {
-        notifier_->notify();
-    }
-
-    b->add_ref("bundle_list", name_.c_str());
-
-    log_debug("/bundle/mapping", "bundle id %d add mapping [%s] to list %p",
-              b->bundleid_, name_.c_str(), this);
-    
     if (b->mappings_.insert(this).second == false) {
         log_err("/bundle/mapping", "ERROR in add mapping: "
                 "bundle id %d already on list [%s]",
                 b->bundleid_, name_.c_str());
+
+        return;
     }
+
+    list_.insert(pos, b);
+    b->add_ref("bundle_list", name_.c_str()); 
+    if (notifier_ != 0) {
+        notifier_->notify();
+    }
+
+    log_debug("/bundle/mapping", "bundle id %d add mapping [%s] to list %p",
+              b->bundleid_, name_.c_str(), this);
 }
 
 
@@ -126,17 +126,9 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
 void
 BundleList::push_front(Bundle* b)
 {
-    lock_->lock();
-    b->lock_.lock();
-    
+    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock bl(&b->lock_);
     add_bundle(b, list_.begin());
-
-    b->lock_.unlock();
-    lock_->unlock();
-    
-    if (notifier_ != NULL) {
-        notifier_->notify();
-    }
 }
 
 /**
@@ -145,17 +137,9 @@ BundleList::push_front(Bundle* b)
 void
 BundleList::push_back(Bundle* b)
 {
-    lock_->lock();
-    b->lock_.lock();
-    
+    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock bl(&b->lock_);
     add_bundle(b, list_.end());
-
-    b->lock_.unlock();
-    lock_->unlock();
-    
-    if (notifier_ != 0) {
-        notifier_->notify();
-    }
 }
         
 /**
@@ -165,8 +149,7 @@ void
 BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
 {
     iterator iter;
-
-    lock_->lock();
+    oasys::ScopeLock l(lock_);
 
     // scan through the list until the iterator either a) reaches the
     // end of the list or b) reaches the bundle that should follow the
@@ -193,11 +176,6 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
     }
     
     add_bundle(b, iter);
-    lock_->unlock();
-    
-    if (notifier_ != 0) {
-        notifier_->notify();
-    }
 }
 
 /**
@@ -251,11 +229,7 @@ BundleList::pop_front(bool used_notifier)
         return NULL;
     }
 
-    if (notifier_ && !used_notifier) {
-        notifier_->drain_pipe();
-    }
-
-    return del_bundle(list_.begin());
+    return del_bundle(list_.begin(), used_notifier);
 }
 
 /**
@@ -269,11 +243,7 @@ BundleList::pop_back(bool used_notifier)
         return NULL;
     }
 
-    if (notifier_ && !used_notifier) {
-        notifier_->drain_pipe();
-    }
-
-    return del_bundle(--list_.end());
+    return del_bundle(--list_.end(), used_notifier);
 }
 
 /**
@@ -284,7 +254,7 @@ BundleList::pop_back(bool used_notifier)
  * reference on the bundle.
  */
 bool
-BundleList::erase(Bundle* bundle)
+BundleList::erase(Bundle* bundle, bool used_notifier)
 {
     oasys::ScopeLock l(lock_);
 
@@ -293,7 +263,7 @@ BundleList::erase(Bundle* bundle)
         return false;
     }
 
-    del_bundle(pos);
+    del_bundle(pos, used_notifier);
     
     bundle->del_ref("bundle_list", name_.c_str());
     return true;
@@ -433,6 +403,8 @@ BlockingBundleList::BlockingBundleList(const std::string& name)
     : BundleList(name)
 {
     notifier_ = new oasys::Notifier();
+    notifier_->logpathf("/bundle/mapping/notifier/%s", 
+                        name.c_str());
 }
 
 /**
@@ -447,11 +419,14 @@ BlockingBundleList::pop_blocking(int timeout)
 {
     ASSERT(notifier_);
 
-    log_debug("/bundle/mapping", "pop_blocking on list %p", this);
+    log_debug("/bundle/mapping", "pop_blocking on list %p [%s]", 
+              this, name_.c_str());
     
     lock_->lock();
 
+    bool used_wait;
     if (list_.empty()) {
+        used_wait = true;
         bool notified = notifier_->wait(lock_, timeout);
         ASSERT(lock_->is_locked_by_me());
 
@@ -463,13 +438,14 @@ BlockingBundleList::pop_blocking(int timeout)
 
             return 0;
         }
+    } else {
+        used_wait = false;
     }
     
     // This can't be empty if we got notified, unless there is another
     // thread waiting on the queue - which is an error.
     ASSERT(!list_.empty());
-
-    Bundle* b = pop_front(true);
+    Bundle* b = pop_front(used_wait);
     lock_->unlock();
 
     log_debug("/bundle/mapping", "pop_blocking got bundle %p from list %p", 
