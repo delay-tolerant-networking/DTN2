@@ -197,7 +197,7 @@ APIClient::run()
         return;
     }
 
-    while (1) {
+    while (true) {
         xdr_setpos(&xdr_encode_, 0);
         xdr_setpos(&xdr_decode_, 0);
 
