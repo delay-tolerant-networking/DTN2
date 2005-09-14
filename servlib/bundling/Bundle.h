@@ -106,7 +106,7 @@ public:
     /**
      * Virtual from formatter.
      */
-    int format(char* buf, size_t sz);
+    int format(char* buf, size_t sz) const;
     
     /**
      * Virtual from formatter.

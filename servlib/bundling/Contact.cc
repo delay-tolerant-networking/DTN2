@@ -69,7 +69,7 @@ Contact::~Contact()
  * Formatting...
  */
 int
-Contact::format(char* buf, size_t sz)
+Contact::format(char* buf, size_t sz) const
 {
     return snprintf(buf, sz, "contact %s (started %u.%u)", nexthop(),
                     (u_int32_t)start_time_.tv_sec,

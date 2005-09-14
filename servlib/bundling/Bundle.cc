@@ -108,7 +108,7 @@ Bundle::~Bundle()
 }
 
 int
-Bundle::format(char* buf, size_t sz)
+Bundle::format(char* buf, size_t sz) const
 {
     return snprintf(buf, sz, "bundle id %d %s -> %s (%d bytes payload)",
                     bundleid_, source_.c_str(), dest_.c_str(),

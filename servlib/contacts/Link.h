@@ -354,7 +354,7 @@ public:
     /**
      * Return the current contact information (if any).
      */
-    Contact* contact() { return contact_; }
+    Contact* contact() const { return contact_; }
 
     /**
      * Store convergence layer state associated with the link.
@@ -370,27 +370,27 @@ public:
     /**
      * Accessor to the convergence layer state.
      */
-    CLInfo* cl_info() { return cl_info_; }
+    CLInfo* cl_info() const { return cl_info_; }
     
     /**
      * Accessor to this contact's convergence layer.
      */
-    ConvergenceLayer* clayer() { return clayer_; }
+    ConvergenceLayer* clayer() const { return clayer_; }
 
     /**
      * Accessor to this links name
      */
-    const char* name() { return name_.c_str(); }
+    const char* name() const { return name_.c_str(); }
 
     /**
      * Accessor to next hop string
      */
-    const char* nexthop() { return nexthop_.c_str(); }
+    const char* nexthop() const { return nexthop_.c_str(); }
 
     /**
      * Virtual from formatter
      */
-    int format(char* buf, size_t sz);
+    int format(char* buf, size_t sz) const;
     
 protected:
     friend class BundleActions;

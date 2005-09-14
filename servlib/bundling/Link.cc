@@ -213,7 +213,7 @@ Link::close()
  * Formatting
  */
 int
-Link::format(char* buf, size_t sz)
+Link::format(char* buf, size_t sz) const
 {
     return snprintf(buf, sz, "%s %s -> %s (%s)",
                     type_str_, name(), nexthop(),

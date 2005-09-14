@@ -96,12 +96,12 @@ public:
     /**
      * Accessor to the link's next hop address info.
      */
-    const char* nexthop() { return link_->nexthop() ; }
+    const char* nexthop() const { return link_->nexthop() ; }
 
     /**
      * Virtual from formatter
      */
-    int format(char* buf, size_t sz);
+    int format(char* buf, size_t sz) const;
 
     /// Time when the contact begin
     struct timeval start_time_;
