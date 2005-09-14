@@ -1597,7 +1597,7 @@ TCPConvergenceLayer::Connection::send_loop()
         if (bundle_poll->revents != 0) {
             ASSERT(bundle_poll->revents == POLLIN);
             ASSERT(queue_->front() != NULL);
-            queue_->notifier()->drain_pipe();
+            queue_->notifier()->drain_pipe(1);
         }
 
         // if nready is zero then the command timed out, implying that

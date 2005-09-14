@@ -209,7 +209,7 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
     
     // drain one element from the semaphore
     if (notifier_ && !used_notifier) {
-        notifier_->drain_pipe();
+        notifier_->drain_pipe(1);
     }
 
     // note that we explicitly do _not_ decrement the reference count
