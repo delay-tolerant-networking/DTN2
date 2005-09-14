@@ -110,9 +110,6 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         return TCL_OK; // empty list
     }
 
-    // always drain the notification pipe
-    bundle_list_->notifier()->drain_pipe();
-
     // read in all the payload data (XXX/demmer this will not be nice
     // for big bundles)
     size_t payload_len = b->payload_.length();
