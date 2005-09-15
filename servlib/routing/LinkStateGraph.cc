@@ -54,14 +54,12 @@
 namespace dtn {
 using namespace std;
 
-LinkStateGraph::LinkStateGraph() {
-    
-}
+//////////////////////////////////////////////////////////////////////////////
+LinkStateGraph::LinkStateGraph() 
+    : Logger("/linkstategraph") 
+{}
 
-/**
- *   Run the dijkstra algorithm, and then return the best next hop. This is very naive, but at least less bug prone.
- */
-
+//////////////////////////////////////////////////////////////////////////////
 LinkStateGraph::Vertex* 
 LinkStateGraph::findNextHop(Vertex* from, Vertex *to) 
 {
@@ -70,12 +68,12 @@ LinkStateGraph::findNextHop(Vertex* from, Vertex *to)
     
     if(!from || !to) 
     {
-        log_info("LinkStateGraph","Can't route to null Vertex.");
+        log_info("Can't route to null Vertex.");
         return 0;
     }
 
     queue.push(from);
-
+    
     /* first reset all the costs in the link state graph */
     for(set<Vertex*>::iterator i=vertices_.begin(); i!=vertices_.end(); i++) 
         (*i)->dijkstra_distance_=100000;  //maxint?
@@ -87,27 +85,31 @@ LinkStateGraph::findNextHop(Vertex* from, Vertex *to)
     {
         current = queue.top();        
         queue.pop();
-        for(map<Vertex*, Edge*>::iterator e=from->outgoing_edges_.begin(); e!=from->outgoing_edges_.end(); e++)
+        for(map<Vertex*, Edge*>::iterator e=from->outgoing_edges_.begin(); 
+            e!=from->outgoing_edges_.end(); e++)
         {
             Vertex* peer=(*e).first;
             Edge* edge=(*e).second;
 
             ASSERT(peer && edge); // sanity check
 
-            if(peer->dijkstra_distance_ >= current->dijkstra_distance_ + edge->cost_)
+            if(peer->dijkstra_distance_ >= current->dijkstra_distance_ + 
+               edge->cost_)
             {
-                peer->dijkstra_distance_ = current->dijkstra_distance_ + edge->cost_;
+                peer->dijkstra_distance_ = current->dijkstra_distance_ + 
+                                           edge->cost_;
                 queue.push(peer);
             }            
         }
     }
 
     if(to->dijkstra_distance_ == 100000) {
-        log_debug("LinkStateGraph","No link-state route to %s from %s.",to->eid_, from->eid_);
+        log_debug( "No link-state route to %s from %s.",to->eid_, from->eid_);
         return 0;
     }
 
-    /* to get the next hop (or the entire path), walk backwards from the destination */
+    /* to get the next hop (or the entire path), walk backwards from
+     * the destination */
     current = to;
     while(true)
     {
@@ -126,6 +128,7 @@ LinkStateGraph::findNextHop(Vertex* from, Vertex *to)
     return current;
 }
 
+//////////////////////////////////////////////////////////////////////////////
 LinkStateGraph::Edge*
 LinkStateGraph::addEdge(Vertex *from, Vertex *to, cost_t cost) {
     if(!from->outgoing_edges_[to]) {
@@ -138,14 +141,17 @@ LinkStateGraph::addEdge(Vertex *from, Vertex *to, cost_t cost) {
     else return 0;
 }
 
+//////////////////////////////////////////////////////////////////////////////
 LinkStateGraph::Edge*
 LinkStateGraph::getEdge(Vertex *from, Vertex *to)
 {
     return from->outgoing_edges_[to];
 }
 
+//////////////////////////////////////////////////////////////////////////////
 void 
-LinkStateGraph::removeEdge(Edge* e) {
+LinkStateGraph::removeEdge(Edge* e) 
+{
     Vertex *from=e->from_, *to=e->to_;
     
     ASSERT(from->outgoing_edges_[to]==e);
@@ -157,20 +163,19 @@ LinkStateGraph::removeEdge(Edge* e) {
     delete e;
 }
 
-/**
- * Finds a vertex that matches the given eid. Only suffix matching is supported, as in "pattern*"
- **/
+//////////////////////////////////////////////////////////////////////////////
 LinkStateGraph::Vertex *
 LinkStateGraph::getMatchingVertex(const char* eid) {
 
-    log_info("LinkStateGraph","getMatchingVertex has %u vertices.",(u_int)vertices_.size());
-
+    log_info("getMatchingVertex has %u vertices.",
+             (u_int)vertices_.size());
+    
     for(set<Vertex*>::iterator iter=vertices_.begin();iter!=vertices_.end();iter++)
     {
         char* pattern=(*iter)->eid_;        
         unsigned int len=min(strlen(pattern),strlen(eid));
 
-        log_info("LinkStateGraph","Matching pattern %s against eid %s.",pattern,eid);
+        log_info("Matching pattern %s against eid %s.",pattern,eid);
 
         // compare the string against the pattern. 
         // XXX/jakob - this matching is pretty lame. what can we do 
@@ -182,7 +187,7 @@ LinkStateGraph::getMatchingVertex(const char* eid) {
                 goto not_a_match;
                     
         // if we found a match, we're done  (XXX/jakob - not bothering with many matches at the moment)
-        log_debug("LinkStateGraph","Found a match! %s matches %s",pattern,eid);
+        log_debug("Found a match! %s matches %s",pattern,eid);
         return *iter;
 
  not_a_match:
@@ -198,7 +203,7 @@ LinkStateGraph::getVertex(const char* eid) {
     for(set<Vertex*>::iterator i=vertices_.begin();i!=vertices_.end();i++)
     {
         if(strcmp(eid,(*i)->eid_)==0) {
-            log_debug("LinkStateGraph","Found matching vertex for %s.",eid);
+            log_debug("Found matching vertex for %s.",eid);
             return *i;
         }
     }

@@ -38,9 +38,12 @@
 #ifndef _LINK_STATE_GRAPH_H_
 #define _LINK_STATE_GRAPH_H_
 
-#include "BundleRouter.h"
 #include <set>
+#include <oasys/debug/Logger.h>
+
+#include "BundleRouter.h"
 #include "LinkScheduleEstimator.h"
+
 
 #define MAX_EID 255
 
@@ -79,7 +82,7 @@ namespace dtn {
  *              is it strong enough to allow the ugliness it causes?
  */
 
-class LinkStateGraph {
+class LinkStateGraph : public oasys::Logger {
 public:
     LinkStateGraph();
 
@@ -87,30 +90,33 @@ public:
     class Edge;
 
     typedef int cost_t;
-    
+    typedef std::set<Vertex*> VertexSet;
+    typedef std::set<Edge*>  EdgeSet;
+
     /**
-     *  Every eid is represented by its own vertice. This means a single machine
-     *  could potentially be represented by a large number of vertices in the graph.
+     *  Every eid is represented by its own vertice. This means a
+     *  single machine could potentially be represented by a large
+     *  number of vertices in the graph.
      */
-    std::set<Vertex*> vertices_;    
+    VertexSet vertices_;    
 
     /**
      *  There is at most one edge between any pair of vertices.
      *
-     *  Note: machines may have more than one edge between them,
-     *        but that's because they have several interfaces.         
+     *  Note: machines may have more than one edge between them, but
+     *  that's because they have several interfaces.
      */
-    std::set<Edge*> edges_;
+    EdgeSet edges_;
 
     /**
      *  Adds an edge to the link state graph. 
      */
-    Edge* addEdge(Vertex *from, Vertex *to, cost_t cost);
+    Edge* addEdge(Vertex* from, Vertex* to, cost_t cost);
 
     /*
      *  Returns the edge between from and to, if such an edge exists.
      */
-    Edge* getEdge(Vertex *from, Vertex *to);
+    Edge* getEdge(Vertex* from, Vertex* to);
 
     /**
      * Removes an edge from the link state graph.
@@ -118,16 +124,28 @@ public:
     void removeEdge(Edge *to);
     
     /**
-     *  Finds the Vertex with the given eid, or creates a new one if none is found.
-     *  New Vertices are automatically added to the lsg.
+     *  Finds the Vertex with the given eid, or creates a new one if
+     *  none is found.  New Vertices are automatically added to the
+     *  lsg.
      */
     Vertex* getVertex(const char* eid);
+
+    /**
+     *  Run the dijkstra algorithm, and then return the best next
+     *  hop. This is very naive, but at least less bug prone.
+     */
     Vertex* getMatchingVertex(const char* eid);
 
+    /**
+     *   Run the dijkstra algorithm, and then return the best next
+     *   hop. This is very naive, but at least less bug prone.
+     */
     Vertex* findNextHop(Vertex* from, Vertex *to);
+
+    //! Dump a debug version of the graph to buf
     void dumpGraph(oasys::StringBuffer* buf);
 
-    std::set<Edge*> edges();
+    EdgeSet edges();
 
     /* A time-varying connection between two vertices in the graph */
     class Edge {
@@ -140,8 +158,7 @@ public:
         cost_t cost_;
 
         // log of all the up/down events this edge has seen
-        LinkScheduleEstimator::Log log_;
-
+        LinkScheduleEstimator::Log      log_;
         LinkScheduleEstimator::LogEntry contact_;
     };
 
