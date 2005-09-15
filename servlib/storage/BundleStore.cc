@@ -64,7 +64,7 @@ BundleStore::do_init(const oasys::StorageConfig& cfg,
 
     if (cfg.init_)
         flags |= oasys::DS_CREATE;
-    int err = store->get_table(&store_, BUNDLE_TABLE, flags, NULL);
+    int err = store->get_table(&store_, BUNDLE_TABLE, flags);
 
     if (err != 0) {
         log_err("error initializing bundle store");

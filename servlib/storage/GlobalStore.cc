@@ -104,7 +104,7 @@ GlobalStore::do_init(const oasys::StorageConfig& cfg,
         flags |= oasys::DS_CREATE;
     }
 
-    int err = store->get_table(&store_, GLOBAL_TABLE, flags, NULL);
+    int err = store->get_table(&store_, GLOBAL_TABLE, flags);
 
     if (err != 0) {
         log_err("error initializing global store: %s",
