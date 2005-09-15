@@ -743,7 +743,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
  blocked:
         int revents;
         do {
-            cc = sock_->poll(POLLIN | POLLOUT, &revents, params_.rtt_timeout_);
+            cc = sock_->poll_sockfd(POLLIN | POLLOUT, &revents, 
+                                    params_.rtt_timeout_);
             if (cc == oasys::IOTIMEOUT) {
                 log_warn("send_bundle: "
                          "timeout waiting for ack or write-ready");
@@ -791,7 +792,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         log_debug("send_bundle: acked %d/%d, waiting for more",
                   (u_int)*acked_len, (u_int)payload_len);
 
-        cc = sock_->poll(POLLIN, NULL, params_.rtt_timeout_);
+        cc = sock_->poll_sockfd(POLLIN, NULL, params_.rtt_timeout_);
         if (cc < 0) {
             log_warn("send_bundle: error waiting for ack: %s",
                      strerror(errno));
@@ -1467,26 +1468,31 @@ TCPConvergenceLayer::Connection::send_loop()
 
     // build up a poll vector since we need to block below on input
     // from both the socket and the bundle list notifier
-    struct pollfd pollfds[2];
+    struct pollfd pollfds[3];
 
     struct pollfd* bundle_poll = &pollfds[0];
-    bundle_poll->fd = queue_->notifier()->read_fd();
-    bundle_poll->events = POLLIN;
-    
+    bundle_poll->fd            = queue_->notifier()->read_fd();
+    bundle_poll->events        = POLLIN;
+
     struct pollfd* sock_poll = &pollfds[1];
-    sock_poll->fd = sock_->fd();
-    sock_poll->events = POLLIN;
+    sock_poll->fd            = sock_->fd();
+    sock_poll->events        = POLLIN;
+
+    struct pollfd* notifier_poll = &pollfds[2];
+    notifier_poll->fd            = sock_->get_notifier()->read_fd();
+    notifier_poll->events        = POLLIN;
 
     // keep track of the time we got data and keepalives
-    struct timeval now, keepalive_rcvd, keepalive_sent;
+    struct timeval now;
+    struct timeval keepalive_rcvd;
+    struct timeval keepalive_sent;
 
     // let's give the remote end credit for a keepalive, even though all they
     // have done so far is open the connection.
     ::gettimeofday(&keepalive_rcvd, 0);
 
     // main loop
-    while (1) {
-        // first see if someone wants us to stop
+    while (true) {
         // XXX/demmer debug this and make it a clean close_contact
         if (should_stop()) {
             return;
@@ -1529,16 +1535,16 @@ TCPConvergenceLayer::Connection::send_loop()
             continue;
         }
 
-        // no bundle, so we'll block waiting for a) some activity on
-        // the socket, i.e. a keepalive or shutdown, or b) the bundle
-        // list notifier indicating there's a new bundle for us to
-        // send
-        //
+        // No bundle, so we'll block for:
+        // 1) some activity on the socket, i.e. a keepalive or shutdown
+        // 2) the bundle list notifier indicates new bundle to send
+        // 3) thread is interrupted XXX/bowei
         // note that we pass the negotiated keepalive as the timeout
         // to the poll call to make sure the other side sends its
         // keepalive in time
         pollfds[0].revents = 0;
         pollfds[1].revents = 0;
+        pollfds[2].revents = 0;        
 
         int timeout = params_.keepalive_interval_ * 1000;
         log_debug("send_loop: calling poll (timeout %d)", timeout);
