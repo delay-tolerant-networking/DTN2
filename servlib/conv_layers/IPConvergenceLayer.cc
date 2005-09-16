@@ -57,10 +57,10 @@ IPConvergenceLayer::parse_nexthop(const char* nexthop,
     *addr = INADDR_NONE;
     *port = 0;
 
-    // first see if there's a colon in the string -- if so, it should
-    // separate the hostname and port, if not, then the whole string
-    // should be a hostname
-    const char* colon = strchr(nexthop, ':');
+    // first see if there's a last colon in the string -- if so, it
+    // should separate the hostname and port, if not, then the whole
+    // string should be a hostname
+    const char* colon = strrchr(nexthop, ':');
     if (colon != NULL) {
         char* endstr;
         u_int32_t portval = strtoul(colon + 1, &endstr, 10);
