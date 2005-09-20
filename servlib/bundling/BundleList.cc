@@ -117,9 +117,6 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
               b->bundleid_, name_.c_str(), this);
 }
 
-
-// XXX/bowei - these are had race conditions on the use of the
-// notifier!!
 /**
  * Add a new bundle to the front of the list.
  */
@@ -225,9 +222,13 @@ Bundle*
 BundleList::pop_front(bool used_notifier)
 {
     oasys::ScopeLock l(lock_);
+
     if (list_.empty()) {
         return NULL;
     }
+
+    ASSERT(list_.size() != 0);
+    
 
     return del_bundle(list_.begin(), used_notifier);
 }
