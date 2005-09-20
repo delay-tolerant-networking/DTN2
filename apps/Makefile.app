@@ -12,9 +12,11 @@ MANTXT := ../../doc/manual/man/$(APP).txt
 BINFILES := $(APP)
 all: $(APP) $(MANTXT)
 
+APPLFLAGS := -L$(SRCDIR)/applib -L$(SRCDIR)/oasys $(LDFLAGS) \
+		-ldtnapi -loasyscompat $(LIBS) 
+
 $(APP): $(OBJS) $(SRCDIR)/applib/libdtnapi.a
-	$(CXX) $(OBJS) -L$(SRCDIR)/applib -L$(SRCDIR)/oasys $(LDFLAGS) \
-		-ldtnapi -loasyscompat $(LIBS) -o $@
+	$(CXX) $(OBJS) $(APPLFLAGS) -o $@
 
 # this next line and the dash to ignore errs are because not all the
 # manpages are done. When they are, we'll remove these to cause
