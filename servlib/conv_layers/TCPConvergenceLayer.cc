@@ -1597,14 +1597,6 @@ TCPConvergenceLayer::Connection::send_loop()
             }
 
         }
-        
-        // if the bundle list was triggered, we check the list at the
-        // beginning of the loop, but make sure to drain the pipe here
-        if (bundle_poll->revents != 0) {
-            ASSERT(bundle_poll->revents == POLLIN);
-            ASSERT(queue_->front() != NULL);
-            queue_->notifier()->drain_pipe(1);
-        }
 
         // if nready is zero then the command timed out, implying that
         // it's time to send a keepalive.
