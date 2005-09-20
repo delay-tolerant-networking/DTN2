@@ -412,7 +412,7 @@ TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *
  *****************************************************************************/
 TCPConvergenceLayer::Listener::Listener(Params* params)
-    : InterruptableIO(new oasys::Notifier()), 
+    : IOHandlerBase(new oasys::Notifier()), 
       TCPServerThread("/cl/tcp/listener")
 {
     logfd_  = false;

@@ -343,7 +343,7 @@ UDPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *
  *****************************************************************************/
 UDPConvergenceLayer::Receiver::Receiver(UDPConvergenceLayer::Params* params)
-    : InterruptableIO(new oasys::Notifier()),
+    : IOHandlerBase(new oasys::Notifier()),
       UDPClient("/cl/udp/receiver")
 {
     logfd_  = false;
