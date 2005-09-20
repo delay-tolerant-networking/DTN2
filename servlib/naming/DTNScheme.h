@@ -48,10 +48,12 @@ namespace dtn {
  * This class implements the one default scheme as specified in the
  * bundle protocol. SSPs for this scheme take the canonical form:
  *
+ * <code>
  * dtn://<router identifier>[/<application tag>]
+ * </code>
  *
- * Where <router identifier> is a DNS-style "hostname" string, however
- * not necessarily a valid internet hostname, and <application tag> is
+ * Where "router identifier" is a DNS-style "hostname" string, however
+ * not necessarily a valid internet hostname, and "application tag" is
  * any string of URI-valid characters.
  *
  * This implementation also supports limited wildcard matching for

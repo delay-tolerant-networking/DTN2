@@ -11,6 +11,22 @@
 
 namespace dtn {
     
+/**
+ *    Given a log on the form (start1, duration1), ... ,(startN,
+ *    durationN), the LinkScheduleEstimator algorithm figures out a
+ *    periodic schedule that this log conforms to.
+ *
+ *    The schedule computed can then be used to predict future link-up
+ *    events, and to inform far-away nodes about the future predicted
+ *    availability of the link in question.
+ *
+ *    Usage:
+ *      Log* find_schedule(Log* log);
+ *
+ *    Returns the best schedule for the given log. If there's no
+ *    discernible periodicity in the log, the return value will be
+ *    NULL.
+ */
 class LinkScheduleEstimator : public oasys::Logger {
 public:
     typedef struct {

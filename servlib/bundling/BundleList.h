@@ -256,9 +256,10 @@ protected:
     /**
      * Helper routine to remove a bundle from the indicated position.
      *
-     * @param used_notifier Popping off of the BundleList after coming 
-     *     off of a notifier. This will drain one item off of the 
-     *     notifier queue.
+     * @param pos	    Position to delete
+     * @param used_notifier Popping off of the BundleList after coming
+     *                      off of a notifier. This will drain one item
+     *                      off of the notifier queue.
      *
      * @returns the bundle that, before this call, was at the position
      */

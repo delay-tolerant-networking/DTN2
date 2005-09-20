@@ -136,8 +136,8 @@ protected:
     
     /**
      * The state structures are stored in a table indexed by strings
-     * of the form <node1>,<node2>. Defaults can be set in the config
-     * with a node name of '*' (and are stored in the table as such).
+     * of the form NODE1,NODE2. Defaults can be set in the config with
+     * a node name of '*' (and are stored in the table as such).
      */
     typedef oasys::StringHashMap<ConnState> StateTable;
     StateTable state_;

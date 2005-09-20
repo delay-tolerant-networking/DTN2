@@ -43,7 +43,7 @@ namespace dtn {
 
 /**
  * Parse a next hop address specification of the form
- * <host>[:<port>?].
+ * HOST[:PORT?].
  *
  * @return true if the conversion was successful, false
  */
