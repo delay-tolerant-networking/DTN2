@@ -56,10 +56,12 @@ public:
 
     virtual ~ExpirationTimer() {} 
 
+    /// The reference to the bundle, which is public since 
+    BundleRef bundleref_;
+    
 protected:
     void timeout(struct timeval* now);
 
-    BundleRef bundleref_;
 };
 
 } // namespace dtn
