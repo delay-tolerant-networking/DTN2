@@ -76,9 +76,8 @@ public:
     
     /**
      * Accessor for the queue of bundles for the registration.
-     * XXX/demmer fixme 
      */
-    BlockingBundleList* xxx_bundle_list() { return bundle_list_; }
+    BlockingBundleList* bundle_list() { return bundle_list_; }
     
 protected:
     /// Queue of bundles for the registration
