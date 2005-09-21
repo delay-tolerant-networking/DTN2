@@ -26,6 +26,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_expired((BundleExpiredEvent*)e);
         break;
         
+    case BUNDLE_FREE:
+        handle_bundle_free((BundleFreeEvent*)e);
+        break;
+        
     case REGISTRATION_ADDED:
         handle_registration_added((RegistrationAddedEvent*)e);
         break;
@@ -92,6 +96,15 @@ BundleEventHandler::handle_bundle_transmitted(BundleTransmittedEvent* event)
  */
 void
 BundleEventHandler::handle_bundle_expired(BundleExpiredEvent* event)
+{
+}
+
+/**
+ * Default event handler when bundles are free (i.e. no more
+ * references).
+ */
+void
+BundleEventHandler::handle_bundle_free(BundleFreeEvent* event)
 {
 }
 

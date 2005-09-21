@@ -183,9 +183,17 @@ public:
     void set_local_eid(const char* eid_str) {
         local_eid_.assign(eid_str);
     }
-     
-    /// XXX/demmer temp for testing fragmentation
-    static size_t proactive_frag_threshold_;
+
+    struct Params {
+        /// Whether or not to delete bundles before they're expired if
+        /// all routers / registrations have handled it
+        bool early_deletion_;
+        
+        /// Threshold for proactive fragmentation
+        size_t proactive_frag_threshold_;
+    };
+
+    static Params params_;
     
 protected:
     /**
@@ -205,6 +213,7 @@ protected:
     void handle_bundle_received(BundleReceivedEvent* event);
     void handle_bundle_transmitted(BundleTransmittedEvent* event);
     void handle_bundle_expired(BundleExpiredEvent* event);
+    void handle_bundle_free(BundleFreeEvent* event);
     void handle_registration_added(RegistrationAddedEvent* event);
     void handle_contact_up(ContactUpEvent* event);
     void handle_contact_down(ContactDownEvent* event);

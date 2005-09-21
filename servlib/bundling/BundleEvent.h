@@ -64,6 +64,7 @@ typedef enum {
     BUNDLE_RECEIVED = 0x1,	///< New bundle arrival
     BUNDLE_TRANSMITTED,		///< Bundle or fragment successfully sent
     BUNDLE_EXPIRED,		///< Bundle expired
+    BUNDLE_FREE,		///< No more references to the bundle
     BUNDLE_FORWARD_TIMEOUT,	///< A Mapping timed out
 
     CONTACT_UP,		        ///< Contact is up
@@ -98,6 +99,7 @@ event_to_str(event_type_t event)
     case BUNDLE_RECEIVED:	return "BUNDLE_RECEIVED";
     case BUNDLE_TRANSMITTED:	return "BUNDLE_TRANSMITTED";
     case BUNDLE_EXPIRED:	return "BUNDLE_EXPIRED";
+    case BUNDLE_FREE:		return "BUNDLE_FREE";
     case BUNDLE_FORWARD_TIMEOUT: return "BUNDLE_FORWARD_TIMEOUT";
 
     case CONTACT_UP:		return "CONTACT_UP";
@@ -243,6 +245,23 @@ public:
 
     /// The expired bundle
     BundleRef bundleref_;
+};
+
+/**
+ * Event class for bundles that have no more references to them.
+ */
+class BundleFreeEvent : public BundleEvent {
+public:
+    BundleFreeEvent(Bundle* bundle)
+        : BundleEvent(BUNDLE_FREE),
+          bundle_(bundle)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+    
+    /// The freed bundle
+    Bundle* bundle_;
 };
 
 /**

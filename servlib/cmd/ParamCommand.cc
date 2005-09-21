@@ -50,13 +50,19 @@ ParamCommand::ParamCommand()
            (int*)&BundlePayload::mem_threshold_, 16384,
            "The bundle size below which bundles are held in memory. "
            "(Default is 16k.)");
+
     bind_b("payload_test_no_remove",
            &BundlePayload::test_no_remove_, false,
            "Boolean to control not removing bundles (for testing).");
 
     bind_i("proactive_frag_threshold",
-           (int*)&BundleDaemon::proactive_frag_threshold_, -1,
+           (int*)&BundleDaemon::params_.proactive_frag_threshold_, -1,
            "Proactively fragment bundles to this size. (0 is off.)");
+
+    bind_b("early_deletion",
+           &BundleDaemon::params_.early_deletion_, true,
+           "Delete forwarded / delivered bundles before they've expired "
+           "(default is true)");
 
     // defaults for these are set all together in TCPConvergenceLayer
     // constructor (because there is not a flavor of bind_i that

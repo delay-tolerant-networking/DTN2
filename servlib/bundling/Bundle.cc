@@ -40,6 +40,7 @@
 #include <oasys/thread/SpinLock.h>
 
 #include "Bundle.h"
+#include "BundleDaemon.h"
 #include "BundleList.h"
 #include "ExpirationTimer.h"
 
@@ -211,9 +212,12 @@ Bundle::del_ref(const char* what1, const char* what2)
         return ret;
     }
 
-    log_debug("/bundle", "bundle id %d: no more references, deleting bundle",
+    log_debug("/bundle",
+              "bundle id %d: no more references, posting free event",
               bundleid_);
-    delete this;
+
+    BundleDaemon::instance()->post(new BundleFreeEvent(this));
+    
     return 0;
 }
 

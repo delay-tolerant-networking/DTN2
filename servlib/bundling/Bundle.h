@@ -233,11 +233,10 @@ protected:
     /*
      * Protected fields.
      */
-    BundleMappings mappings_;		///< The set of BundleLists that
-                                	///  contain the Bundle.
+    BundleMappings mappings_;   ///< The set of BundleLists that
+                               	///  contain the Bundle.
     
-    int refcount_;			///< Bundle reference count
-    
+    int refcount_;		///< Bundle reference count
 
 private:
     /**

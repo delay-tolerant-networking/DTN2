@@ -93,6 +93,12 @@ protected:
     virtual void handle_bundle_expired(BundleExpiredEvent* event);
 
     /**
+     * Default event handler when bundles are free (i.e. no more
+     * references).
+     */
+    virtual void handle_bundle_free(BundleFreeEvent* event);
+
+    /**
      * Default event handler when a new application registration
      * arrives.
      */

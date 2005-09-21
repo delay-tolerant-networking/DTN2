@@ -53,7 +53,7 @@
 namespace dtn {
 
 BundleDaemon* BundleDaemon::instance_ = NULL;
-size_t BundleDaemon::proactive_frag_threshold_;
+BundleDaemon::Params BundleDaemon::params_;
 
 BundleDaemon::BundleDaemon()
     : BundleEventHandler("/bundle/daemon")
@@ -217,6 +217,24 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  bundle, (u_int)event->bytes_received_);
     }
 
+
+    
+    // log a warning if the bundle doesn't have any expiration time or
+    // has a creation time in the past. in either case, we proceed as
+    // normal, though we know that the expiration timer will
+    // immediately fire
+    if (bundle->expiration_ == 0) {
+        log_warn("bundle id %d arrived with zero expiration time",
+                 bundle->bundleid_);
+    }
+
+    struct timeval now;
+    gettimeofday(&now, 0);
+    if (bundle->creation_ts_.tv_sec < now.tv_sec) {
+        log_warn("bundle id %d arrived with creation time (%u) in the past",
+                 bundle->bundleid_, (u_int)bundle->creation_ts_.tv_sec);
+    }
+    
     // XXX/demmer generate the bundle received status report
 
     /*
@@ -239,7 +257,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * XXX/demmer rethink this
      */
     int nfrags =
-        fragmentmgr_->proactively_fragment(bundle, proactive_frag_threshold_);
+        fragmentmgr_->proactively_fragment(bundle, params_.proactive_frag_threshold_);
     if (nfrags > 0) {
         log_debug("proactive fragmentation: %u byte bundle => %d fragments",
                   (u_int)payload_len, nfrags);
@@ -280,23 +298,63 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     // XXX/demmer generate the bundle forwarded status report
 
     /*
-     * Check with the various routers whether or not the bundle can be
-     * deleted.
+     * If there are no more mappings for the bundle (except for the
+     * pending list), and we're configured for early deletion, then
+     * remove the bundle from the pending list. Then when all refs to
+     * the bundle are removed, it will be timed out.
+     *
+     * This allows a router (or the custody system) to maintain a
+     * retention constraint by adding a mapping or just adding a
+     * reference.
      */
-    // XXX/demmer implement me
-    delete_from_pending(bundle);
+    if (params_.early_deletion_ && (bundle->num_mappings() == 1)) {
+        delete_from_pending(bundle);
+    }
 }
 
 void
 BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 {
     Bundle* bundle = event->bundleref_.bundle();
-    
+    oasys::ScopeLock l(&bundle->lock_);
+
     log_info("BUNDLE_EXPIRED *%p", bundle);
 
-    delete_from_pending(bundle);
-
+    ASSERT(bundle->expiration_timer_ == NULL);
+    
     // XXX/demmer need to notify if we have custody...
+
+    // check that the bundle is on the pending list and then remove it
+    // if it is. if it's not, then there was a race between the
+    // expiration timer and a prior call to delete_from_pending. check
+    // that the bundle isn't on any other lists (which it shouldn't
+    // be), and return
+    if (pending_bundles_->contains(bundle)) {
+        delete_from_pending(bundle);
+
+    } else {
+        if (bundle->num_mappings() == 0) {
+            log_debug("expired bundle *%p already removed from pending "
+                      "list and all other lists", bundle);
+            return;
+
+        } else {
+            log_err("expired bundle *%p not on pending list but still "
+                    "queued on other lists!!", bundle);
+
+            // fall through to remove other mappings
+        }
+    }
+    
+    // now remove all other mappings as well
+    bool deleted;
+    BundleList* bundle_list;
+    while (bundle->num_mappings() != 0) {
+        bundle_list = *bundle->mappings_begin();
+        ASSERT(bundle_list != NULL);
+        deleted = bundle_list->erase(bundle);
+        ASSERT(deleted);
+    }
 
     // fall through to notify the routers
 }
@@ -502,16 +560,18 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     }
 
     // schedule the bundle expiration timer
-    log_debug("scheduling expiration timer for bundle id %d", bundle->bundleid_);
     struct timeval expiration_time = bundle->creation_ts_;
     expiration_time.tv_sec += bundle->expiration_;
     bundle->expiration_timer_ = new ExpirationTimer(bundle);
     bundle->expiration_timer_->schedule_at(&expiration_time);
 
-    // log a warning if the bundle doesn't have any lifetime
-    if (bundle->expiration_ == 0) {
-        log_warn("bundle arrived with zero expiration time");
-    }
+    struct timeval now;
+    gettimeofday(&now, 0);
+    log_debug("scheduling expiration for bundle id %d at %u.%u (in %lu msec)",
+              bundle->bundleid_,
+              (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec,
+              TIMEVAL_DIFF_MSEC(expiration_time, now));
+    
 }
 
 /**
@@ -520,22 +580,47 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 void
 BundleDaemon::delete_from_pending(Bundle* bundle)
 {
-    log_debug("removing bundle *%p from pending list and persistent store",
-              bundle);
+    oasys::ScopeLock l(&bundle->lock_);
+    
+    log_debug("removing bundle *%p from pending list", bundle);
 
-    actions_->store_del(bundle);
-
-    if (! pending_bundles_->erase(bundle)) {
-        log_err("unexpected error removing bundle from pending list");
-    }
-
-    // cancel the expiration timer
+    // first try to cancel the expiration timer if it's still
+    // around
     if (bundle->expiration_timer_) {
         log_debug("cancelling expiration timer for bundle id %d",
                   bundle->bundleid_);
-        bundle->expiration_timer_->cancel();
-        bundle->expiration_timer_ = NULL;
+        
+        bool cancelled = bundle->expiration_timer_->cancel();
+        if (cancelled) {
+            bundle->expiration_timer_->bundleref_.release();
+            bundle->expiration_timer_ = NULL;
+        } else {
+            // if the timer is no longer in the pending queue (i.e. it
+            // can't be cancelled), then we just hit a race where the
+            // timer is about to fire, which is ok since
+            // handle_bundle_expired takes care of this correctly
+            bundle->expiration_timer_ = NULL;
+        }
     }
+    
+    if (! pending_bundles_->erase(bundle)) {
+        log_err("unexpected error removing bundle from pending list");
+    } 
+}
+
+/**
+ * The last step in the lifetime of a bundle occurs when there are no
+ * more references to it and we get this event.
+ */
+void
+BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
+{
+    Bundle* bundle = event->bundle_;
+    
+    actions_->store_del(bundle);
+
+    delete bundle;
+    event->bundle_ = NULL;
 }
 
 /**
