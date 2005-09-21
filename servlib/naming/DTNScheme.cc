@@ -133,7 +133,8 @@ DTNScheme::match(const EndpointIDPattern* pattern, const std::string& ssp)
         (pattern_url.host_ != ssp_url.host_))
     {
         log_debug("/scheme/dtn",
-                  "match failed: url hosts not equal ('%s' != '%s')",
+                  "match(%s, %s) failed: url hosts not equal ('%s' != '%s')",
+                  ssp_url.c_str(), pattern_url.c_str(),
                   pattern_url.host_.c_str(), ssp_url.host_.c_str());
         return false;
     }
@@ -142,7 +143,8 @@ DTNScheme::match(const EndpointIDPattern* pattern, const std::string& ssp)
     if (pattern_url.port_ != ssp_url.port_)
     {
         log_debug("/scheme/dtn",
-                  "match failed: url ports not equal (%d != %d)",
+                  "match(%s, %s) failed: url ports not equal (%d != %d)",
+                  ssp_url.c_str(), pattern_url.c_str(),
                   pattern_url.port_, ssp_url.port_);
         return false;
     }
@@ -152,7 +154,8 @@ DTNScheme::match(const EndpointIDPattern* pattern, const std::string& ssp)
         (pattern_url.path_ == ssp_url.path_))
     {
         log_debug("/scheme/dtn",
-                  "match succeeded: pattern '%s' ssp '%s'",
+                  "match(%s, %s) succeeded: pattern '%s' ssp '%s'",
+                  ssp_url.c_str(), pattern_url.c_str(),
                   pattern_url.host_.c_str(), ssp_url.host_.c_str());
         return true;
     }
@@ -166,7 +169,9 @@ DTNScheme::match(const EndpointIDPattern* pattern, const std::string& ssp)
             ssp_url.path_.substr(0, patternlen))
         {
             log_debug("/scheme/dtn",
-                      "match substring succeeded: pattern '%s' ssp '%s'",
+                      "match(%s, %s) substring succeeded: "
+                      "pattern '%s' ssp '%s'",
+                      ssp_url.c_str(), pattern_url.c_str(),
                       pattern_url.host_.c_str(), ssp_url.host_.c_str());
             return true;
         }
