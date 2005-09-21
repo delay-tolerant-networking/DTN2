@@ -160,7 +160,9 @@ BundleActions::store_add(Bundle* bundle)
 {
     log_debug("adding bundle %d to data store", bundle->bundleid_);
     bool added = BundleStore::instance()->add(bundle);
-    ASSERT(added);
+    if (! added) {
+        log_crit("error adding bundle %d to data store!!", bundle->bundleid_);
+    }
 }
 
 /**
@@ -171,7 +173,9 @@ BundleActions::store_del(Bundle* bundle)
 {
     log_debug("removing bundle %d from data store", bundle->bundleid_);
     bool removed = BundleStore::instance()->del(bundle->bundleid_);
-    ASSERT(removed);
+    if (! removed) {
+        log_crit("error adding bundle %d to data store!!", bundle->bundleid_);
+    }
 }
 
 } // namespace dtn
