@@ -76,11 +76,13 @@ RegistrationTable::find(u_int32_t regid, RegistrationList::iterator* iter)
  * Look up a matching registration.
  */
 Registration*
-RegistrationTable::get(u_int32_t regid)
+RegistrationTable::get(u_int32_t regid) const
 {
     RegistrationList::iterator iter;
 
-    if (find(regid, &iter)) {
+    // the const_cast lets us use the same find method for get as we
+    // use for add/del
+    if (const_cast<RegistrationTable*>(this)->find(regid, &iter)) {
         return *iter;
     }
     return NULL;
@@ -170,11 +172,11 @@ RegistrationTable::update(Registration* reg)
  */
 int
 RegistrationTable::get_matching(const EndpointID& demux,
-                                RegistrationList* reg_list)
+                                RegistrationList* reg_list) const
 {
     int count = 0;
     
-    RegistrationList::iterator iter;
+    RegistrationList::const_iterator iter;
     Registration* reg;
 
     log_debug("get_matching %s", demux.c_str());

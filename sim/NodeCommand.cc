@@ -204,7 +204,6 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             }
 
             Registration* r = new SimRegistration(node_, eid);
-            node_->reg_table()->add(r);
             RegistrationAddedEvent* e = new RegistrationAddedEvent(r);
             Simulator::post(new SimRouterEvent(time, node_, e));
             

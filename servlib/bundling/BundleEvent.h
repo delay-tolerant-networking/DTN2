@@ -101,7 +101,7 @@ event_to_str(event_type_t event)
     case BUNDLE_TRANSMITTED:	return "BUNDLE_TRANSMITTED";
     case BUNDLE_EXPIRED:	return "BUNDLE_EXPIRED";
     case BUNDLE_FREE:		return "BUNDLE_FREE";
-    case BUNDLE_FORWARD_TIMEOUT: return "BUNDLE_FORWARD_TIMEOUT";
+    case BUNDLE_FORWARD_TIMEOUT:return "BUNDLE_FORWARD_TIMEOUT";
 
     case CONTACT_UP:		return "CONTACT_UP";
     case CONTACT_DOWN:		return "CONTACT_DOWN";
@@ -420,6 +420,18 @@ public:
         : BundleEvent(REGISTRATION_ADDED), registration_(reg) {}
 
     /// The newly added registration
+    Registration* registration_;
+};
+
+/**
+ * Event class for registration removals.
+ */
+class RegistrationRemovedEvent : public BundleEvent {
+public:
+    RegistrationRemovedEvent(Registration* reg)
+        : BundleEvent(REGISTRATION_REMOVED), registration_(reg) {}
+
+    /// The to-be-removed registration
     Registration* registration_;
 };
 

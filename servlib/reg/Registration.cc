@@ -91,8 +91,6 @@ Registration::Registration(const oasys::Builder&)
  */
 Registration::~Registration()
 {
-    // XXX/demmer loop through bundle list and remove refcounts
-    NOTIMPLEMENTED;
 }
     
 /**

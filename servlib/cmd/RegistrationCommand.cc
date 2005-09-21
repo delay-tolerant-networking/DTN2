@@ -108,24 +108,25 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         ASSERT(reg);
 
         BundleDaemon::post(new RegistrationAddedEvent(reg));
-        BundleDaemon::instance()->reg_table()->add(reg);
         
         resultf("%d", reg->regid());
         return TCL_OK;
         
     } else if (strcmp(op, "del") == 0) {
-        RegistrationTable* regtable = BundleDaemon::instance()->reg_table();
+        const RegistrationTable* regtable =
+            BundleDaemon::instance()->reg_table();
 
         const char* regid_str = argv[2];
         int regid = atoi(regid_str);
 
-        int result = regtable->del(regid);
-        if (result == true)
-            return TCL_OK;
-        
-        resultf("RegistrationTable::del(%d) returned %d", regid, result);
-        return TCL_ERROR;
+        Registration* reg = regtable->get(regid);
+        if (!reg) {
+            resultf("no registration exists with id %d", regid);
+            return TCL_ERROR;
+        }
 
+        BundleDaemon::post(new RegistrationRemovedEvent(reg));
+        return TCL_OK;
 
     } else if (strcmp(op, "tcl") == 0) {
         // registration tcl <regid> <cmd> <args...>
@@ -137,9 +138,10 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         const char* regid_str = argv[2];
         int regid = atoi(regid_str);
 
-        RegistrationTable* regtable = BundleDaemon::instance()->reg_table();
-        TclRegistration* reg;
-        reg = (TclRegistration*)regtable->get(regid);
+        const RegistrationTable* regtable =
+            BundleDaemon::instance()->reg_table();
+
+        TclRegistration* reg = (TclRegistration*)regtable->get(regid);
 
         if (!reg) {
             resultf("no matching registration for %d", regid);

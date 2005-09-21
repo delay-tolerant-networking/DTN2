@@ -117,7 +117,7 @@ DTNServer::start()
     RegistrationStore::instance()->load();
     
     // create the administrative registration
-    daemon->reg_table()->add(new AdminRegistration());
+    daemon->post(new RegistrationAddedEvent(new AdminRegistration()));
 
     router->initialize();
     

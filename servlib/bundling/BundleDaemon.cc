@@ -368,10 +368,15 @@ void
 BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
 {
     Registration* registration = event->registration_;
-    log_info("REGISTRATION_ADDED %s", registration->endpoint().c_str());
+    log_info("REGISTRATION_ADDED %d %s",
+             registration->regid(), registration->endpoint().c_str());
 
+    if (!reg_table_->add(registration)) {
+        log_err("error adding registration %d to table",
+                registration->regid());
+    }
+    
     oasys::ScopeLock l(pending_bundles_->lock());
-
     BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();
@@ -384,6 +389,21 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
             deliver_to_registration(bundle, registration);
         }
     }
+}
+
+void
+BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
+{
+    Registration* registration = event->registration_;
+    log_info("REGISTRATION_REMOVED %d %s",
+             registration->regid(), registration->endpoint().c_str());
+    
+    if (!reg_table_->del(registration->regid())) {
+        log_err("error removing registration %d from table",
+                registration->regid());
+    }
+
+    delete registration;
 }
 
 /**

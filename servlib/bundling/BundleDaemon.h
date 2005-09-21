@@ -150,7 +150,7 @@ public:
     /**
      * Accessor for the registration table.
      */
-    RegistrationTable* reg_table() { return reg_table_; }
+    const RegistrationTable* reg_table() { return reg_table_; }
 
     /**
      * Accessor for the pending bundles list.
@@ -215,6 +215,7 @@ protected:
     void handle_bundle_expired(BundleExpiredEvent* event);
     void handle_bundle_free(BundleFreeEvent* event);
     void handle_registration_added(RegistrationAddedEvent* event);
+    void handle_registration_removed(RegistrationRemovedEvent* event);
     void handle_contact_up(ContactUpEvent* event);
     void handle_contact_down(ContactDownEvent* event);
     void handle_link_available(LinkAvailableEvent* event);    

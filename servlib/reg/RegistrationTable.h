@@ -68,11 +68,11 @@ public:
      * registration with the same {endpoint,regid}.
      */
     bool add(Registration* reg);
-    
+
     /**
      * Look up a matching registration.
      */
-    Registration* get(u_int32_t regid);
+    Registration* get(u_int32_t regid) const;
 
     /**
      * Remove the registration from the database, returns true if
@@ -92,7 +92,7 @@ public:
      *
      * Returns the count of matching registrations.
      */
-    int get_matching(const EndpointID& eid, RegistrationList* reg_list);
+    int get_matching(const EndpointID& eid, RegistrationList* reg_list) const;
     
     /**
      * Delete any expired registrations
@@ -110,8 +110,7 @@ protected:
     /**
      * Internal method to find the location of the given registration.
      */
-    bool find(u_int32_t regid,
-              RegistrationList::iterator* iter);
+    bool find(u_int32_t regid, RegistrationList::iterator* iter);
 
     /**
      * All registrations are tabled in-memory in a flat list. It's

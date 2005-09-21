@@ -67,7 +67,7 @@ void
 LinkStateRouter::initialize() 
 {
     reg_=new LSRegistration(this);
-    BundleDaemon::instance()->reg_table()->add(reg_);
+    BundleDaemon::instance()->post(new RegistrationAddedEvent(reg_));
 }
 
 void

@@ -34,6 +34,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_registration_added((RegistrationAddedEvent*)e);
         break;
 
+    case REGISTRATION_REMOVED:
+        handle_registration_removed((RegistrationRemovedEvent*)e);
+        break;
+
     case ROUTE_ADD:
         handle_route_add((RouteAddEvent*)e);
         break;
@@ -116,7 +120,15 @@ void
 BundleEventHandler::handle_registration_added(RegistrationAddedEvent* event)
 {
 }
-    
+
+/**
+ * Default event handler when a registration is removed.
+ */
+void
+BundleEventHandler::handle_registration_removed(RegistrationRemovedEvent* e)
+{
+}
+
 /**
  * Default event handler when a new contact is up.
  */

@@ -112,8 +112,8 @@ public:
 
     /**
      * Accessor indicating whether or not the registration is
-     * currently expecting bundles, as defined as a period of "passive
-     * bundle activity" in the bundle spec.
+     * currently expecting bundles, i.e. in the active mode according
+     * to the bundle spec.
      */
     bool active() { return active_; }
 
