@@ -138,8 +138,6 @@ SimConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
     
     Simulator::post(new SimRouterEvent(Simulator::time(),
                                        dst_node, rcv_event));
-
-    bundle->del_ref("SimConvergenceLayer");
 }
 
 

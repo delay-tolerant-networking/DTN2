@@ -74,20 +74,31 @@ DECLARE_TEST(Init) {
 }
 
 DECLARE_TEST(BasicPushPop) {
-    Bundle* b;
+    BundleRef b("BasicPushPop temporary");
+
+    CHECK(l1->front() == NULL);
+    CHECK(l1->back() == NULL);
     
     for (int i = 0; i < COUNT; ++i) {
         l1->push_back(bundles[i]);
+        CHECK(l1->back() == bundles[i]);
         CHECK_EQUAL(bundles[i]->refcount(), 2);
     }
+
+    CHECK(l1->front() == bundles[0]);
+    CHECK(l1->back() == bundles[COUNT-1]);
 
     for (int i = 0; i < COUNT; ++i) {
         b = l1->pop_front();
         CHECK(b == bundles[i]);
-        b->del_ref("test pop");
-        CHECK_EQUAL(b->refcount(), 1);
+        CHECK_EQUAL(b->refcount(), 2);
+        b = NULL;
+        CHECK_EQUAL(bundles[i]->refcount(), 1);
     }
 
+    CHECK(l1->front() == NULL);
+    CHECK(l1->back() == NULL);
+    
     for (int i = 0; i < COUNT; ++i) {
         l1->push_front(bundles[i]);
         CHECK_EQUAL(bundles[i]->refcount(), 2);
@@ -98,8 +109,8 @@ DECLARE_TEST(BasicPushPop) {
     for (int i = 0; i < COUNT; ++i) {
         b = l1->pop_back();
         CHECK(b == bundles[i]);
-        b->del_ref("test pop");
-        CHECK_EQUAL(b->refcount(), 1);
+        b = NULL;
+        CHECK_EQUAL(bundles[i]->refcount(), 1);
     }
 
     CHECK_EQUAL(l1->size(), 0);

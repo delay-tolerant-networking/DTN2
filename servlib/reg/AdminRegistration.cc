@@ -60,6 +60,8 @@ void
 AdminRegistration::consume_bundle(Bundle* bundle)
 {
     u_char typecode;
+
+    BundleRef ref(bundle, "AdminRegistration::consume_bundle");
     
     size_t payload_len = bundle->payload_.length();
     oasys::StringBuffer payload_buf(payload_len);

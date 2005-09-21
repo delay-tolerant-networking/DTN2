@@ -158,8 +158,8 @@ void
 BundleDaemon::deliver_to_registration(Bundle* bundle,
                                       Registration* registration)
 {
-    log_debug("delivering bundle *%p to registration %s",
-              bundle, registration->endpoint().c_str());
+    log_debug("delivering bundle *%p to registration %d (%s)",
+              bundle, registration->regid(), registration->endpoint().c_str());
     
     registration->consume_bundle(bundle);
     ++bundles_delivered_;
@@ -531,17 +531,15 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
     log_info("REASSEMBLY_COMPLETED bundle id %d",
              event->bundle_->bundleid_);
     
-    Bundle* bundle;
-    while ((bundle = event->fragments_.pop_front()) != NULL) {
+    BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
+    while ((ref = event->fragments_.pop_front()) != NULL) {
         // remove the fragment from the pending list
-        // XXX/demmer fix me re deleting bundles
-        delete_from_pending(bundle);
-        bundle->del_ref("bundle_list", event->fragments_.name().c_str());
+        delete_from_pending(ref.object());
     }
 
     // post a new event for the newly reassembled event
-    post(new BundleReceivedEvent(bundle, EVENTSRC_FRAGMENTATION,
-                                 bundle->payload_.length()));
+    post(new BundleReceivedEvent(ref.object(), EVENTSRC_FRAGMENTATION,
+                                 ref->payload_.length()));
 }
 
 /**
@@ -616,6 +614,8 @@ void
 BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
 {
     Bundle* bundle = event->bundle_;
+
+    bundle->lock_.lock();
     
     actions_->store_del(bundle);
 

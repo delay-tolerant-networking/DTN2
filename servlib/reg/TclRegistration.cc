@@ -104,8 +104,9 @@ int
 TclRegistration::get_bundle_data(Tcl_Interp* interp)
 {
     oasys::TclCommandInterp* cmdinterp = oasys::TclCommandInterp::instance();
-    Bundle* b = bundle_list_->pop_front();
-    if (!b) {
+    BundleRef b("TclRegistration::get_bundle_data temporary");
+    b = bundle_list_->pop_front();
+    if (b == NULL) {
         cmdinterp->set_objresult(Tcl_NewListObj(0, 0));
         return TCL_OK; // empty list
     }
@@ -125,11 +126,9 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     objv[3] = Tcl_NewIntObj(payload_len);
 
     cmdinterp->set_objresult(Tcl_NewListObj(4, objv));
-
-    b->del_ref("TclRegistration");
     
     BundleDaemon::post(
-        new BundleTransmittedEvent(b, this, payload_len, true));
+        new BundleTransmittedEvent(b.object(), this, payload_len, true));
         
     return TCL_OK;
 }

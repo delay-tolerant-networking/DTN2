@@ -166,9 +166,9 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         BundleList* pending =
             BundleDaemon::instance()->pending_bundles();
         
-        Bundle* bundle = pending->find(bundleid);
+        BundleRef bundle = pending->find(bundleid);
 
-        if (!bundle) {
+        if (bundle == NULL) {
             resultf("no bundle with id %d", bundleid);
             return TCL_ERROR;
         }

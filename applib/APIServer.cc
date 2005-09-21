@@ -572,8 +572,6 @@ APIClient::handle_send()
 int
 APIClient::handle_recv()
 {
-    int err;
-    Bundle* b = NULL;
     APIRegistration* reg = NULL;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
@@ -631,8 +629,7 @@ APIClient::handle_recv()
     if (sock_poll->revents != 0) {
         log_debug("handle_recv: api socket ready -- trying to read one byte");
         char b;
-        int err = read(&b, 1);
-        if (err != 0) {
+        if (read(&b, 1) != 0) {
             log_err("handle_recv: protocol error -- "
                     "data arrived or error while blocked in recv");
             return DTN_ECOMM;
@@ -650,13 +647,13 @@ APIClient::handle_recv()
         return DTN_EINTERNAL;
     }
     
-    b = reg->bundle_list()->pop_front();
+    BundleRef bref("APIClient::handle_recv");
+    bref = reg->bundle_list()->pop_front();
+    Bundle* b = bref.object();
     ASSERT(b != NULL);
     
-    log_debug("handle_recv: popped for registration %d (timeout %d)",
-              reg->regid(), timeout);
-
-    ASSERT(b);
+    log_debug("handle_recv: popped bundle %d for registration %d (timeout %d)",
+              b->bundleid_, reg->regid(), timeout);
 
     memset(&spec, 0, sizeof(spec));
     memset(&payload, 0, sizeof(payload));
@@ -715,34 +712,29 @@ APIClient::handle_recv()
         
     } else {
         log_err("payload location %d not understood", location);
-        err = DTN_EINVAL;
-        goto done;
+        return DTN_EINVAL;
     }
 
     if (!xdr_dtn_bundle_spec_t(&xdr_encode_, &spec))
     {
         log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
-        err = DTN_EXDR;
-        goto done;
+        return DTN_EXDR;
     }
     
     if (!xdr_dtn_bundle_payload_t(&xdr_encode_, &payload))
     {
         log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
-        err = DTN_EXDR;
-        goto done;
+        return DTN_EXDR;
     }
+
+    log_debug("handle_recv: "
+              "successfully delivered bundle %d to registration %d",
+              b->bundleid_, reg->regid());
 
     BundleDaemon::post(
         new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
 
-    err = DTN_SUCCESS;
-    
- done:
-    // nuke our local reference on the bundle (which may delete it)
-    b->del_ref("api_client", reg->logpath());
-
-    return err;
+    return DTN_SUCCESS;
 }
 
 } // namespace dtn

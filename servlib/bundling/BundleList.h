@@ -42,6 +42,8 @@
 #include <oasys/compat/inttypes.h>
 #include <oasys/thread/Notifier.h>
 
+#include "BundleRef.h"
+
 namespace oasys {
 class SpinLock;
 }
@@ -68,16 +70,11 @@ class Bundle;
  *
  * Lists follow the reference counting rules for bundles. In
  * particular, the push*() methods increment the reference count, and
- * erase() decrements it. However, it is important to note that the
- * pop*() methods _do not_ decrement the reference count, as the
- * reference is passed to the caller. It is therefore the
- * responsibility of the caller of pop*() to explicitly decrement the
- * reference count.
+ * erase() decrements it. In particular, the pop() variants (as well
+ * as the other accessors) return instances of the BundleRef classes
+ * that forces the caller to use the BundleRef classes as well in
+ * order to properly maintain the reference counts.
  *
- * A simple derivative BlockingBundleList hooks in an oasys Notifier,
- * which thereby allows inter-thread signalling via a pop_blocking()
- * method. This allows one thread to block until another has added a
- * bundle to the list.
  */
 class BundleList {
 public:
@@ -111,14 +108,14 @@ public:
      *
      * @return the bundle or NULL if the list is empty
      */
-    Bundle* front();
+    BundleRef front();
 
     /**
      * Peek at the last bundle on the list.
      *
      * @return the bundle or NULL if the list is empty
      */
-    Bundle* back();
+    BundleRef back();
 
     /**
      * Add a new bundle to the front of the list.
@@ -144,18 +141,16 @@ public:
     void insert_sorted(Bundle* bundle, sort_order_t sort_order);
     
     /**
-     * Remove (and return) the first bundle on the list.
-     *
-     * Note (as explained above) that this does not decrement the
-     * bundle reference count.
+     * Remove (and return) a reference to the first bundle on the list.
      *
      * @param used_notifier Popping off of the BundleList after coming 
      *     off of a notifier. This will drain one item off of the 
      *     notifier queue.
      *                    
-     * @return the bundle or NULL if the list is empty.
+     * @return a reference to the bundle or a reference to NULL if the
+     * list is empty.
      */
-    Bundle* pop_front(bool used_notifier = false);
+    BundleRef pop_front(bool used_notifier = false);
 
     /**
      * Remove (and return) the last bundle on the list.
@@ -167,9 +162,10 @@ public:
      *     off of a notifier. This will drain one item off of the 
      *     notifier queue.
      *
-     * @return the bundle or NULL if the list is empty.
+     * @return a reference to the bundle or a reference to NULL if the
+     * list is empty.
      */
-    Bundle* pop_back(bool used_notifier = false);
+    BundleRef pop_back(bool used_notifier = false);
 
     /**
      * Remove the given bundle from the list. Returns true if the
@@ -190,9 +186,10 @@ public:
     /**
      * Search the list for a bundle with the given id.
      *
-     * @return the bundle or NULL if not found.
+     * @return a reference to the bundle or a reference to NULL if the
+     * list is empty.
      */
-    Bundle* find(u_int32_t bundleid);
+    BundleRef find(u_int32_t bundleid);
 
     /**
      * Move all bundles from this list to another.
@@ -271,6 +268,12 @@ protected:
     List list_;
 };
 
+/**
+ * A simple derivative to the BundleList class that hooks in an oasys
+ * Notifier, which thereby allows inter-thread signalling via a
+ * pop_blocking() method. This allows one thread to block until
+ * another has added a bundle to the list.
+ */
 class BlockingBundleList : public BundleList {
 public:
     BlockingBundleList(const std::string& name);
@@ -279,12 +282,10 @@ public:
      * Remove (and return) the first bundle on the list, blocking
      * (potentially limited by the given timeout) if there are none.
      *
-     * Note (as explained above) that this does not decrement the
-     * bundle reference count.
-     *
-     * @return the bundle or NULL if the timeout occurred.
+     * @return a reference to the bundle or a reference to NULL if the
+     * list is empty.
      */
-    Bundle* pop_blocking(int timeout = -1);
+    BundleRef pop_blocking(int timeout = -1);
 
     /**
      * Accessor for the internal notifier.

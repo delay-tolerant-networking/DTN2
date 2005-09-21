@@ -1449,7 +1449,6 @@ TCPConvergenceLayer::Connection::break_contact(ContactDownEvent::reason_t reason
 void
 TCPConvergenceLayer::Connection::send_loop()
 {
-    Bundle* bundle;
     char typecode;
     int ret;
 
@@ -1493,6 +1492,8 @@ TCPConvergenceLayer::Connection::send_loop()
 
     // main loop
     while (true) {
+        BundleRef bundle("TCPCL::send_loop temporary");
+
         // XXX/demmer debug this and make it a clean close_contact
         if (should_stop()) {
             return;
@@ -1502,11 +1503,11 @@ TCPConvergenceLayer::Connection::send_loop()
         // local reference on it
         bundle = queue_->pop_front();
 
-        if (bundle) {
+        if (bundle != NULL) {
             size_t acked_len = 0;
             
             // we got a bundle, so send it off. 
-            bool sentok = send_bundle(bundle, &acked_len);
+            bool sentok = send_bundle(bundle.object(), &acked_len);
 
             // reset the keepalive timer
             ::gettimeofday(&keepalive_rcvd, 0);
@@ -1517,11 +1518,12 @@ TCPConvergenceLayer::Connection::send_loop()
             if (sentok || (acked_len > 0)) {
                 contact_->link()->set_state(Link::OPEN);
                 BundleDaemon::post(
-                    new BundleTransmittedEvent(bundle, contact_->link(),
+                    new BundleTransmittedEvent(bundle.object(),
+                                               contact_->link(),
                                                acked_len, true));
             }
-                
-            bundle->del_ref("tcpcl");
+
+            // remove the local reference
             bundle = NULL;
 
             // if the last transmission wasn't completely successful,

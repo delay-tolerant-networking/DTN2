@@ -64,29 +64,33 @@ BundleList::~BundleList()
 /**
  * Peek at the first bundle on the list.
  */
-Bundle*
+BundleRef
 BundleList::front()
 {
     oasys::ScopeLock l(lock_);
-
-    if (list_.empty())
-        return NULL;
     
-    return list_.front();
+    BundleRef ret("BundleList::front() temporary");
+    if (list_.empty())
+        return ret;
+
+    ret = list_.front();
+    return ret;
 }
 
 /**
  * Peek at the last bundle on the list.
  */
-Bundle*
+BundleRef
 BundleList::back()
 {
     oasys::ScopeLock l(lock_);
 
+    BundleRef ret("BundleList::back() temporary");
     if (list_.empty())
-        return NULL;
-    
-    return list_.back();
+        return ret;
+
+    ret = list_.back();
+    return ret;
 }
 
 /**
@@ -218,33 +222,45 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
 /**
  * Remove (and return) the first bundle on the list.
  */
-Bundle*
+BundleRef
 BundleList::pop_front(bool used_notifier)
 {
     oasys::ScopeLock l(lock_);
 
+    BundleRef ret("BundleList::pop_front() temporary");
+
     if (list_.empty()) {
-        return NULL;
+        return ret;
     }
-
-    ASSERT(list_.size() != 0);
     
+    ASSERT(list_.size() != 0);
 
-    return del_bundle(list_.begin(), used_notifier);
+    // Assign the bundle to a temporary reference, then remove the
+    // list reference on the bundle and return the temporary
+    ret = del_bundle(list_.begin(), used_notifier);
+    ret.object()->del_ref("bundle_list", name_.c_str()); 
+    return ret;
 }
 
 /**
  * Remove (and return) the last bundle on the list.
  */
-Bundle*
+BundleRef
 BundleList::pop_back(bool used_notifier)
 {
     oasys::ScopeLock l(lock_);
+
+    BundleRef ret("BundleList::pop_back() temporary");
+
     if (list_.empty()) {
-        return NULL;
+        return ret;
     }
 
-    return del_bundle(--list_.end(), used_notifier);
+    // Assign the bundle to a temporary reference, then remove the
+    // list reference on the bundle and return the temporary
+    ret = del_bundle(--list_.end(), used_notifier);
+    ret->del_ref("bundle_list", name_.c_str()); 
+    return ret;
 }
 
 /**
@@ -287,17 +303,19 @@ BundleList::contains(Bundle* bundle)
  *
  * @return the bundle or NULL if not found.
  */
-Bundle*
+BundleRef
 BundleList::find(u_int32_t bundle_id)
 {
     oasys::ScopeLock l(lock_);
+    BundleRef ret("BundleList::find() temporary");
     for (iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->bundleid_ == bundle_id) {
-            return *iter;
+            ret = *iter;
+            return ret;
         }
     }
 
-    return NULL;
+    return ret;
 }
 
 /**
@@ -309,11 +327,10 @@ BundleList::move_contents(BundleList* other)
     oasys::ScopeLock l1(lock_);
     oasys::ScopeLock l2(other->lock_);
 
-    Bundle* b;
+    BundleRef b("BundleList::move_contents temporary");
     while (!list_.empty()) {
         b = pop_front();
-        other->push_back(b);
-        b->del_ref("BundleList move_contents from", name_.c_str());
+        other->push_back(b.object());
     }
 }
 
@@ -323,12 +340,11 @@ BundleList::move_contents(BundleList* other)
 void
 BundleList::clear()
 {
-    Bundle* b;
     oasys::ScopeLock l(lock_);
     
     while (!list_.empty()) {
+        BundleRef b("BundleList::clear temporary");
         b = pop_front();
-        b->del_ref("bundle_list", name_.c_str()); // may delete the bundle
     }
 }
 
@@ -415,7 +431,7 @@ BlockingBundleList::BlockingBundleList(const std::string& name)
  * Blocking read can be interrupted by calling BundleList::notify(). 
  * If this is done, the return value will be NULL.
  */
-Bundle*
+BundleRef
 BlockingBundleList::pop_blocking(int timeout)
 {
     ASSERT(notifier_);
@@ -435,7 +451,8 @@ BlockingBundleList::pop_blocking(int timeout)
         // still nothing on the list
         if (!notified) {
             lock_->unlock();
-            log_debug("/bundle/mapping", "pop_blocking timeout on list %p", this);
+            log_debug("/bundle/mapping",
+                      "pop_blocking timeout on list %p", this);
 
             return 0;
         }
@@ -446,13 +463,16 @@ BlockingBundleList::pop_blocking(int timeout)
     // This can't be empty if we got notified, unless there is another
     // thread waiting on the queue - which is an error.
     ASSERT(!list_.empty());
-    Bundle* b = pop_front(used_wait);
+    
+    BundleRef ret("BlockingBundleList::pop_blocking temporary");
+    ret = pop_front(used_wait);
+    
     lock_->unlock();
 
     log_debug("/bundle/mapping", "pop_blocking got bundle %p from list %p", 
-              b, this);
+              ret.object(), this);
     
-    return b;
+    return ret;
 }
 
 
