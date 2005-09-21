@@ -88,11 +88,21 @@ main(int argc, const char** argv)
         exit(1);
     }
 
-    // build a local eid based on the configuration of our dtn
-    // router plus the demux string
-    if (debug) printf("calling dtn_build_local_eid.\n");
-    dtn_build_local_eid(handle, &local_eid, (char *) endpoint);
-    if (debug) printf("local_eid [%s]\n", local_eid.uri);
+    // if the specified eid starts with '/', then build a local eid
+    // based on the configuration of our dtn router plus the demux
+    // string. otherwise make sure it's a valid one
+    if (endpoint[0] == '/') {
+        if (debug) printf("calling dtn_build_local_eid.\n");
+        dtn_build_local_eid(handle, &local_eid, (char *) endpoint);
+        if (debug) printf("local_eid [%s]\n", local_eid.uri);
+    } else {
+        if (debug) printf("calling parse_eid_string\n");
+        if (dtn_parse_eid_string(&local_eid, endpoint)) {
+            fprintf(stderr, "invalid destination endpoint '%s'\n",
+                    endpoint);
+            exit(1);
+        }
+    }
 
     // create a new registration based on this eid
     memset(&reginfo, 0, sizeof(reginfo));
