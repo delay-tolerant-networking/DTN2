@@ -38,50 +38,17 @@
 #ifndef _BUNDLEREF_H_
 #define _BUNDLEREF_H_
 
-#include "Bundle.h"
+#include <oasys/util/Ref.h>
+#include <oasys/util/TempRef.h>
 
 namespace dtn {
 
+class Bundle;
+
 /**
- * Simple smart pointer class to maintain reference counts on Bundles.
+ * Class definition for a Bundle reference.
  */
-class BundleRef {
-public:
-    BundleRef(Bundle* bundle, const char* what1, const char* what2 = "")
-        : bundle_(bundle), what1_(what1), what2_(what2)
-    {
-        if (bundle_)
-            bundle->add_ref(what1_, what2_);
-    }
-
-    ~BundleRef()
-    {
-        if (bundle_)
-            bundle_->del_ref(what1_, what2_);
-    }
-
-    Bundle* bundle()
-    {
-        return bundle_;
-    }
-
-    // XXX/demmer move this into an oasys ref class
-    void release()
-    {
-        if (bundle_) {
-            bundle_->del_ref(what1_, what2_);
-            bundle_ = NULL;
-        }
-    }
-    
-private:
-    BundleRef();
-    BundleRef(const BundleRef& copy);
-    
-    Bundle* bundle_;
-
-    const char *what1_, *what2_;
-};
+typedef oasys::Ref<Bundle> BundleRef;
 
 } // namespace dtn
 

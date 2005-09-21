@@ -78,7 +78,7 @@ TableBasedRouter::handle_event(BundleEvent* event)
 void
 TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
-    Bundle* bundle = event->bundleref_.bundle();
+    Bundle* bundle = event->bundleref_.object();
     log_debug("handle bundle received: *%p", bundle);
     fwd_to_matching(bundle);
 }

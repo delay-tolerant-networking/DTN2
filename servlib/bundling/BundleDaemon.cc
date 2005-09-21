@@ -201,7 +201,7 @@ BundleDaemon::check_registrations(Bundle* bundle)
 void
 BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 {
-    Bundle* bundle = event->bundleref_.bundle();
+    Bundle* bundle = event->bundleref_.object();
     size_t payload_len = bundle->payload_.length();
     
     // if debug logging is enabled, dump out a verbose printing of the
@@ -282,7 +282,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * The bundle was delivered to either a next-hop contact or a
      * registration.
      */
-    Bundle* bundle = event->bundleref_.bundle();
+    Bundle* bundle = event->bundleref_.object();
 
     log_info("BUNDLE_TRANSMITTED id:%d (%u bytes) %s -> %s",
              bundle->bundleid_, (u_int)event->bytes_sent_,
@@ -315,7 +315,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 void
 BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 {
-    Bundle* bundle = event->bundleref_.bundle();
+    Bundle* bundle = event->bundleref_.object();
     oasys::ScopeLock l(&bundle->lock_);
 
     log_info("BUNDLE_EXPIRED *%p", bundle);
@@ -529,7 +529,7 @@ void
 BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 {
     log_info("REASSEMBLY_COMPLETED bundle id %d",
-             event->bundle_.bundle()->bundleid_);
+             event->bundle_->bundleid_);
     
     Bundle* bundle;
     while ((bundle = event->fragments_.pop_front()) != NULL) {

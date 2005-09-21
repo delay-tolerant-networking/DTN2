@@ -149,7 +149,7 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
 void
 FloodBundleRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
-    Bundle* bundle = event->bundleref_.bundle();
+    Bundle* bundle = event->bundleref_.object();
     
     //only call the fragmentation routine if we send nonzero bytes
     if(event->bytes_sent_ > 0) {

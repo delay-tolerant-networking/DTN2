@@ -168,7 +168,7 @@ LinkStateRouter::handle_contact_down(ContactDownEvent* event)
 void
 LinkStateRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
-    Bundle* bundle=event->bundleref_.bundle();
+    Bundle* bundle=event->bundleref_.object();
 
     // we don't want any bundles that are already owned by someone
     if(bundle->owner_ != "") {

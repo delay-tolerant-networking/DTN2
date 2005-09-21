@@ -38,6 +38,7 @@
 #ifndef _BUNDLE_EVENT_H_
 #define _BUNDLE_EVENT_H_
 
+#include "Bundle.h"
 #include "BundleRef.h"
 #include "BundleList.h"
 #include "Link.h"
