@@ -64,6 +64,15 @@ public:
     {
         return bundle_;
     }
+
+    // XXX/demmer move this into an oasys ref class
+    void release()
+    {
+        if (bundle_) {
+            bundle_->del_ref(what1_, what2_);
+            bundle_ = NULL;
+        }
+    }
     
 private:
     BundleRef();
