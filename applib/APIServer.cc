@@ -156,14 +156,21 @@ APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
     xdrmem_create(&xdr_decode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_DECODE);
 
     bindings_ = new APIRegistrationList();
+
 }
 
 void
 APIClient::close_session()
 {
-    // XXX/demmer go through registrations and disassociate them
-
     TCPClient::close();
+
+    APIRegistration* reg;
+    while (! bindings_->empty()) {
+        reg = bindings_->front();
+        bindings_->pop_front();
+    }
+
+    // XXX/demmer finish me
 }
 
 void
@@ -197,15 +204,14 @@ APIClient::run()
         return;
     }
 
+    
     while (true) {
         xdr_setpos(&xdr_encode_, 0);
         xdr_setpos(&xdr_decode_, 0);
 
         ret = read(buf_, DTN_MAX_API_MSG);
+            
         if (ret <= 0) {
-            if (errno == EINTR)
-                continue;
-
             log_warn("client error or disconnection");
             close_session();
             return;
@@ -253,6 +259,13 @@ APIClient::run()
             log_err("unknown message type code 0x%x", type);
             ret = DTN_ECOMM;
             break;
+        }
+
+        // if the handler returned -1, then the session should be
+        // immediately terminated
+        if (ret == -1) {
+            close_session();
+            return;
         }
 
         // make sure the dispatched function returned a valid error
@@ -362,6 +375,9 @@ APIClient::handle_register()
         regid = reginfo.regid;
         
     } else {
+        // XXX/demmer move this so the table is updated in the event
+        // handler in the daemon
+        
         u_int32_t regid = GlobalStore::instance()->next_regid();
         reg = new APIRegistration(regid, endpoint, action);
         BundleDaemon::instance()->reg_table()->add(reg);
@@ -574,25 +590,70 @@ APIClient::handle_recv()
     }
 
     // XXX/demmer implement this for multiple registrations by
-    // building up a poll vector in bind / unbind. for now we assert
-    // in bind that there's only one binding.
+    // building up a poll vector here. for now we assert in bind that
+    // there's only one binding.
     reg = bindings_->front();
     if (!reg) {
         log_err("no bound registration");
         return DTN_EINVAL;
     }
 
+    struct pollfd pollfds[2];
+
+    struct pollfd* bundle_poll = &pollfds[0];
+    bundle_poll->fd            = reg->bundle_list()->notifier()->read_fd();
+    bundle_poll->events        = POLLIN;
+    bundle_poll->revents       = 0;
+    
+    struct pollfd* sock_poll   = &pollfds[1];
+    sock_poll->fd              = TCPClient::fd_;
+    sock_poll->events          = POLLIN | POLLERR;
+    sock_poll->revents         = 0;
+
     log_debug("handle_recv: "
               "blocking to get bundle for registration %d (timeout %d)",
               reg->regid(), timeout);
-    b = reg->xxx_bundle_list()->pop_blocking(timeout);
-    
-    if (!b) {
+    int nready = oasys::IO::poll_multiple(&pollfds[0], 2, timeout,
+                                          NULL, logpath_);
+
+    if (nready == oasys::IOTIMEOUT) {
         log_debug("handle_recv: timeout waiting for bundle");
         return DTN_ETIMEOUT;
+
+    } else if (nready <= 0) {
+        log_err("handle_recv: unexpected error polling for bundle");
+        return DTN_EINTERNAL;
+    }
+
+    // if there's data on the socket, that either means the socket was
+    // closed by an exiting application or the app is violating the
+    // protocol...
+    if (sock_poll->revents != 0) {
+        log_debug("handle_recv: api socket ready -- trying to read one byte");
+        char b;
+        int err = read(&b, 1);
+        if (err != 0) {
+            log_err("handle_recv: protocol error -- "
+                    "data arrived or error while blocked in recv");
+            return DTN_ECOMM;
+        }
+
+        log_info("IPC socket closed while blocked in read... "
+                 "application must have exited");
+        return -1;
+    }
+
+    // otherwise, there should be data on the bundle list
+    if (bundle_poll->revents == 0) {
+        log_crit("handle_recv: unexpected error polling for bundle: "
+                 "neither file descriptor is ready");
+        return DTN_EINTERNAL;
     }
     
-    log_debug("handle_recv: popped bundle for registration %d (timeout %d)",
+    b = reg->bundle_list()->pop_front();
+    ASSERT(b != NULL);
+    
+    log_debug("handle_recv: popped for registration %d (timeout %d)",
               reg->regid(), timeout);
 
     ASSERT(b);
