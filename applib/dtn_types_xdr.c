@@ -68,37 +68,6 @@
 #define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
 #define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
 #define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
-// XXX/demmer should move error codes to dtn_api.h
-
-
-
-/**********************************
- * Error codes
- *
- */
-
-
-bool_t
-xdr_DTN_STATUS (XDR *xdrs, DTN_STATUS *objp)
-{
-	register int32_t *buf;
-
-	 if (!xdr_int (xdrs, objp))
-		 return FALSE;
-	return TRUE;
-}
-
-#define DTN_SUCCESS (0) /* ok */
-#define DTN_ERRBASE 128
-#define DTN_EINVAL (DTN_ERRBASE+1) /* invalid argument */
-#define DTN_EXDR (DTN_ERRBASE+2) /* error in xdr routines */
-#define DTN_ECOMM (DTN_ERRBASE+3) /* error in ipc communication */
-#define DTN_ECONNECT (DTN_ERRBASE+4) /* error connecting to server */
-#define DTN_ETIMEOUT (DTN_ERRBASE+5) /* operation timed out */
-#define DTN_ESIZE (DTN_ERRBASE+6) /* payload / eid too large */
-#define DTN_ENOTFOUND (DTN_ERRBASE+7) /* not found (e.g. reg) */
-#define DTN_EINTERNAL (DTN_ERRBASE+8) /* misc. internal error */
-#define DTN_ERRMAX 255
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a

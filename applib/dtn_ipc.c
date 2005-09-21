@@ -48,6 +48,7 @@
 #include <oasys/compat/inttypes.h>
 
 #include "dtn_ipc.h"
+#include "dtn_errno.h"
 #include "dtn_types.h"
 
 const char*
@@ -172,6 +173,9 @@ dtnipc_open(dtnipc_handle_t* handle)
 void
 dtnipc_close(dtnipc_handle_t* handle)
 {
+    // XXX/demmer should send over a close RPC rather than getting the
+    // warning on the other end
+    
     xdr_destroy(&handle->xdr_encode);
     xdr_destroy(&handle->xdr_decode);
 

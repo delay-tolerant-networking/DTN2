@@ -68,50 +68,6 @@
 %#define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
 %#define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
 
-
-%// XXX/demmer should move error codes to dtn_api.h
-
-%
-%
-%
-%/**********************************
-% * Error codes
-% *
-% */
-%
-typedef	int DTN_STATUS;		
-%
-%#define DTN_SUCCESS	 (0)		   /* ok */
-%#define DTN_ERRBASE	 128
-%#define DTN_EINVAL	 (DTN_ERRBASE+1)   /* invalid argument */
-%#define DTN_EXDR	 (DTN_ERRBASE+2)   /* error in xdr routines */
-%#define DTN_ECOMM	 (DTN_ERRBASE+3)   /* error in ipc communication */
-%#define DTN_ECONNECT	 (DTN_ERRBASE+4)   /* error connecting to server */
-%#define DTN_ETIMEOUT	 (DTN_ERRBASE+5)   /* operation timed out */
-%#define DTN_ESIZE	 (DTN_ERRBASE+6)   /* payload / eid too large */
-%#define DTN_ENOTFOUND   (DTN_ERRBASE+7)   /* not found (e.g. reg) */
-%#define DTN_EINTERNAL   (DTN_ERRBASE+8)   /* misc. internal error */
-%#define DTN_ERRMAX	 255
-                                          
-
-#if OLD
-%#define DTN_NOTFOUND	(DTN_BASE+2)	/* not found: (eg:file) */
-%#define DTN_PERMS	(DTN_BASE+3)	/* permissions problem of some kind */
-%#define DTN_EXISTS	(DTN_BASE+4)	/* bundle already being sent? */
-%#define DTN_TPROB	(DTN_BASE+5)	/* endpoint_id problem (too long) */
-%#define DTN_NODATA	(DTN_BASE+6)	/* data missing/too short */
-%#define DTN_DISPERR	(DTN_BASE+7)	/* error delivering to local app */
-%#define DTN_SPECERR	(DTN_BASE+8)	/* bad bundle spec */
-%#define DTN_SMEMERR	(DTN_BASE+10)	/* server memory error */
-%#define DTN_RTPROB	(DTN_BASE+11)	/* forwarding error */
-%#define DTN_BADCOOKIE	(DTN_BASE+12)	/* bad cookie provided by app */
-%#define DTN_ISOPEN	(DTN_BASE+13)	/* open on opened handle */
-%#define DTN_ISCLOSED	(DTN_BASE+14)	/* close on closed handle */
-%#define DTN_COMM	(DTN_BASE+15)	/* misc error with app/agent comm */
-%#define DTN_INVAL	(DTN_BASE+16)	/* invalid value in an argument */
-%#define DTN_LIBERR	(DTN_BASE+17)	/* misc app side error */
-#endif
-
 %
 %/**
 % * Specification of a dtn endpoint id, i.e. a URI, implemented as a

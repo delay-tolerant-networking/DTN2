@@ -38,6 +38,7 @@
 #ifndef DTN_API_H
 #define DTN_API_H
 
+#include "dtn_errno.h"
 #include "dtn_types.h"
 
 /**
