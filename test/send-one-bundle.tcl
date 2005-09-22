@@ -1,12 +1,11 @@
 
-import "dtn-test-lib.tcl"
-
-net::num_nodes 3
 test::name send-one-bundle
+net::num_nodes 3
 
-config_berkeleydb
-config_interface tcp
-config_linear_topology ONDEMAND tcp true
+dtn_config
+
+dtn_config_interface tcp
+dtn_config_linear_topology ONDEMAND tcp true
 
 conf::add dtnd 0 {
     proc test_arrived {regid bundle_info} {

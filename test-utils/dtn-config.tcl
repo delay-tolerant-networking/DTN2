@@ -1,13 +1,27 @@
 #
+# Basic configuration proc for test dtnd's
+#
+
+proc dtn_config {args} {
+    # XXX/demmer parse args to make below optional
+    
+    conf::add dtnd * {source "dtnd-test-utils.tcl"}
+
+    dtn_config_api_server
+    dtn_config_berkeleydb
+}
+
+#
 # Utility proc to get the adjusted port number for various things
 #
 proc dtn_port {what id} {
     set portbase $net::portbase($id)
     
     switch -- $what {
-	api	{ return [expr $portbase + 0] }
-	tcp	{ return [expr $portbase + 1] }
-	udp	{ return [expr $portbase + 1] }
+	console { return [expr $portbase + 0] }
+	api	{ return [expr $portbase + 1] }
+	tcp	{ return [expr $portbase + 2] }
+	udp	{ return [expr $portbase + 2] }
 	default { error "unknown port type $what" }
     }
 }
@@ -15,7 +29,7 @@ proc dtn_port {what id} {
 #
 # Create a new interface for the given convergence layer
 #
-proc config_interface {cl args } {
+proc dtn_config_interface {cl args } {
     foreach id [net::nodelist] {
 	set host $net::host($id)
 	set port [dtn_port $cl $id]
@@ -28,17 +42,17 @@ proc config_interface {cl args } {
 #
 # Set up the API server
 #
-proc config_api_server {} {
+proc dtn_config_api_server {} {
     foreach id [net::nodelist] {
-	conf::add dtnd $id api set local_addr $net::host($id)
-	conf::add dtnd $id api set local_port [dtn_port api $id]
+	conf::add dtnd $id "api set local_addr $net::host($id)"
+	conf::add dtnd $id "api set local_port [dtn_port api $id]"
     }
 }
 
 #
 # Configuure berkeley db storage
 #
-proc config_berkeleydb {} {
+proc dtn_config_berkeleydb {} {
     conf::add dtnd * {
 	storage set type berkeleydb
 	storage set payloaddir bundles
@@ -47,3 +61,4 @@ proc config_berkeleydb {} {
 	storage set dberrlog   DTN.errlog
     }
 }
+
