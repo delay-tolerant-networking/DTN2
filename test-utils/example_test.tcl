@@ -14,10 +14,9 @@ conf::add 0 {
     storage set dbname     DTN
     storage set dbdir      db
     storage set dberrlog   DTN.errlog
+
     route set type static
     route local_eid "dtn://[info hostname].dtn"
-    interface add tcp0 tcp
-    interface add udp0 udp
 }
 
 conf::add 1 {
@@ -28,10 +27,13 @@ conf::add 1 {
     storage set dbname     DTN
     storage set dbdir      db
     storage set dberrlog   DTN.errlog
+    
     route set type static
     route local_eid "dtn://[info hostname].dtn"
-    interface add tcp0 tcp
-    interface add udp0 udp
+}
+
+for {set i 0} {$i < 2} {incr i} {
+    conf::add $i "api set local_port $net::portbase($i)\n"
 }
 
 test::decl {
