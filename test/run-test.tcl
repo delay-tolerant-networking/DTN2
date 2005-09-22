@@ -3,7 +3,7 @@ source "oasys/test_utils/test-lib.tcl"
 source "oasys/test_utils/run.tcl"
 
 if {[llength $argv] < 2} {
-    puts "run <test script> <net file> options..."
+    puts "run-test.tcl <test script> <net file> options..."
     puts ""
     puts "Required:"
     puts "    <net file>    Network testbed file"
