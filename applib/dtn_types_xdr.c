@@ -145,15 +145,14 @@ xdr_dtn_service_tag_t (XDR *xdrs, dtn_service_tag_t *objp)
  */
 
 /**
- * Registration actions
- *     DTN_REG_ABORT  - drop bundle if unreachable
+ * Registration delivery failure actions
+ *     DTN_REG_DROP   - drop bundle if registration not active
  *     DTN_REG_DEFER  - spool bundle for later retrieval
  *     DTN_REG_EXEC   - exec program on bundle arrival
- *     DTN_REG_CANCEL - cancel a prior registration
  */
 
 bool_t
-xdr_dtn_reg_action_t (XDR *xdrs, dtn_reg_action_t *objp)
+xdr_dtn_reg_failure_action_t (XDR *xdrs, dtn_reg_failure_action_t *objp)
 {
 	register int32_t *buf;
 
@@ -173,13 +172,13 @@ xdr_dtn_reg_info_t (XDR *xdrs, dtn_reg_info_t *objp)
 
 	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->endpoint))
 		 return FALSE;
-	 if (!xdr_dtn_reg_action_t (xdrs, &objp->action))
-		 return FALSE;
 	 if (!xdr_dtn_reg_id_t (xdrs, &objp->regid))
 		 return FALSE;
-	 if (!xdr_dtn_timeval_t (xdrs, &objp->timeout))
+	 if (!xdr_dtn_reg_failure_action_t (xdrs, &objp->failure_action))
 		 return FALSE;
-	 if (!xdr_bytes (xdrs, (char **)&objp->args.args_val, (u_int *) &objp->args.args_len, DTN_MAX_EXEC_LEN))
+	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
+		 return FALSE;
+	 if (!xdr_bytes (xdrs, (char **)&objp->script.script_val, (u_int *) &objp->script.script_len, DTN_MAX_EXEC_LEN))
 		 return FALSE;
 	return TRUE;
 }
@@ -244,7 +243,7 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 		 return FALSE;
 	 if (!xdr_int (xdrs, &objp->dopts))
 		 return FALSE;
-	 if (!xdr_int (xdrs, &objp->expiration))
+	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
 		 return FALSE;
 	return TRUE;
 }

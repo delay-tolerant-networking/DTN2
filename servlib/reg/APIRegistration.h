@@ -62,18 +62,14 @@ public:
     APIRegistration(u_int32_t regid,
                     const EndpointIDPattern& endpoint,
                     failure_action_t action,
-                    time_t expiration = 0,
+                    u_int32_t expiration,
                     const std::string& script = "");
 
     ~APIRegistration();
     
-    /// @{
     /// Virtual from BundleConsumer
     virtual void consume_bundle(Bundle* bundle);
-    virtual bool dequeue_bundle(Bundle* bundle);
-    virtual bool is_queued(Bundle* bundle);
-    /// @}
-    
+
     /**
      * Accessor for the queue of bundles for the registration.
      */
@@ -81,7 +77,7 @@ public:
     
 protected:
     /// Queue of bundles for the registration
-    BlockingBundleList* bundle_list_;	
+    BlockingBundleList* bundle_list_;
 };
 
 /**

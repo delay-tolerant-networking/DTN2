@@ -82,6 +82,7 @@ public:
 class APIClient : public oasys::Thread, public oasys::TCPClient {
 public:
     APIClient(int fd, in_addr_t remote_host, u_int16_t remote_port);
+    virtual ~APIClient();
     virtual void run();
 
     void close_session();

@@ -48,15 +48,115 @@
 
 const char *progname;
 
+int   verbose           = 0;    	// verbose output
+char* endpoint		= NULL; 	// endpoint for registration
+int   regid		= DTN_REGID_NONE;// registration id
+int   expiration	= 30; 		// registration expiration time
+int   failure_action	= DTN_REG_DEFER;// registration delivery failure action
+char* failure_script	= "";	 	// script to exec
+int   register_only	= 0;    	// register and quit
+int   no_register	= 0;    	// don't call register, use existing
+int   change		= 0;    	// change existing registration 
+int   recv_timeout	= -1;    	// timeout to dtn_recv call
+
 void
 usage()
 {
-    fprintf(stderr, "usage: %s [endpoint]\n", progname);
-    exit(1);
+    fprintf(stderr, "usage: %s [opts] <endpoint> \n", progname);
+    fprintf(stderr, "options:\n");
+    fprintf(stderr, " -v verbose\n");
+    fprintf(stderr, " -h help\n");
+    fprintf(stderr, " -d <eid|demux_string> endpoint id)\n");
+    fprintf(stderr, " -r <regid> registration id)\n");
+    fprintf(stderr, " -e <time> registration expiration time in seconds "
+            "(default: one hour)\n");
+    fprintf(stderr, " -f <defer|drop|exec> failure action\n");
+    fprintf(stderr, " -F <script> failure script for exec action\n");
+    fprintf(stderr, " -x call dtn_register and immediately exit\n");
+    fprintf(stderr, " -n don't call dtn_register, use an existing one\n");
+    fprintf(stderr, " -c call dtn_change_registration and immediately exit\n");
+    fprintf(stderr, " -t <timeout> timeout value for call to dtn_recv\n");
 }
 
+void
+parse_options(int argc, char**argv)
+{
+    char c, done = 0;
+
+    progname = argv[0];
+
+    while (!done)
+    {
+        c = getopt(argc, argv, "vhHd:r:e:f:F:xcnt:");
+        switch (c)
+        {
+        case 'v':
+            verbose = 1;
+            break;
+        case 'h':
+        case 'H':
+            usage();
+            exit(0);
+            return;
+        case 'r':
+            regid = atoi(optarg);
+            break;
+        case 'e':
+            expiration = atoi(optarg);
+            break;
+        case 'f':
+            if (!strcasecmp(optarg, "defer")) {
+                failure_action = DTN_REG_DEFER;
+
+            } else if (!strcasecmp(optarg, "drop")) {
+                failure_action = DTN_REG_DROP;
+
+            } else if (!strcasecmp(optarg, "exec")) {
+                failure_action = DTN_REG_EXEC;
+
+            } else {
+                fprintf(stderr, "invalid failure action '%s'\n", optarg);
+                usage();
+                exit(1);
+            }
+        case 'F':
+            failure_script = optarg;
+            break;
+        case 'x':
+            register_only = 1;
+            break;
+        case 'n':
+            no_register = 1;
+            break;
+        case 'c':
+            change = 1;
+            break;
+        case 't':
+            recv_timeout = atoi(optarg);
+            break;
+        case -1:
+            done = 1;
+            break;
+        default:
+            // getopt already prints an error message for unknown
+            // option characters
+            usage();
+            exit(1);
+        }
+    }
+
+    endpoint = argv[optind];
+    
+    if (failure_action == DTN_REG_EXEC && failure_script == NULL) {
+        fprintf(stderr, "failure action EXEC must supply script\n");
+        usage();
+        exit(1);
+    }
+}
+
+
 int
-main(int argc, const char** argv)
+main(int argc, char** argv)
 {
     int i, k;
     int cnt = INT_MAX;
@@ -64,39 +164,34 @@ main(int argc, const char** argv)
     dtn_handle_t handle;
     dtn_endpoint_id_t local_eid;
     dtn_reg_info_t reginfo;
-    dtn_reg_id_t regid;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
-    unsigned char* endpoint, *buffer;
+    unsigned char* buffer;
     char s_buffer[BUFSIZE];
-    int debug = 1;
 
-    progname = argv[0];    
-    if (argc != 2 || (argc == 2 && strncmp(argv[1], "-h", 2) == 0)) {
-        usage();
-    }
+    progname = argv[0];
 
-    endpoint = (unsigned char*)argv[1];
+    parse_options(argc, argv);
 
     // open the ipc handle
-    if (debug) printf("opening connection to dtn router...\n");
+    if (verbose) printf("opening connection to dtn router...\n");
     handle = dtn_open();
-    if (debug) printf("opened connection to dtn router...\n");
     if (handle == 0) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
                 strerror(errno));
         exit(1);
     }
+    if (verbose) printf("opened connection to dtn router...\n");
 
     // if the specified eid starts with '/', then build a local eid
     // based on the configuration of our dtn router plus the demux
     // string. otherwise make sure it's a valid one
     if (endpoint[0] == '/') {
-        if (debug) printf("calling dtn_build_local_eid.\n");
+        if (verbose) printf("calling dtn_build_local_eid.\n");
         dtn_build_local_eid(handle, &local_eid, (char *) endpoint);
-        if (debug) printf("local_eid [%s]\n", local_eid.uri);
+        if (verbose) printf("local_eid [%s]\n", local_eid.uri);
     } else {
-        if (debug) printf("calling parse_eid_string\n");
+        if (verbose) printf("calling parse_eid_string\n");
         if (dtn_parse_eid_string(&local_eid, endpoint)) {
             fprintf(stderr, "invalid destination endpoint '%s'\n",
                     endpoint);
@@ -107,29 +202,45 @@ main(int argc, const char** argv)
     // create a new registration based on this eid
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &local_eid);
-    reginfo.action = DTN_REG_ABORT;
-    reginfo.regid = DTN_REGID_NONE;
-    reginfo.timeout = 60 * 60;
-    if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
-        fprintf(stderr, "error creating registration: %d (%s)\n",
-                ret, dtn_strerror(dtn_errno(handle)));
-        exit(1);
+    reginfo.regid             = regid;
+    reginfo.expiration        = expiration;
+    reginfo.failure_action    = failure_action;
+    reginfo.script.script_val = failure_script;
+    reginfo.script.script_len = strlen(failure_script) + 1;
+
+    if (!no_register && !change) {
+        if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
+            fprintf(stderr, "error creating registration: %d (%s)\n",
+                    ret, dtn_strerror(dtn_errno(handle)));
+            exit(1);
+        }
+    } else if (change) {
+        if ((ret = dtn_change_registration(handle, regid, &reginfo)) != 0) {
+            fprintf(stderr, "error changing registration: %d (%s)\n",
+                    ret, dtn_strerror(dtn_errno(handle)));
+            exit(1);
+        }
     }
+
+    printf("%s succeeded, regid %d\n",
+           change ? "change registration" : "register", regid);
     
-    if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
+    if (register_only) {
+        exit(0);
+    }
 
     // bind the current handle to the new registration
     dtn_bind(handle, regid);
-    
-    printf("dtn_recv [%s]...\n", local_eid.uri);
     
     // loop waiting for bundles
     for (i = 0; i < cnt; ++i) {
         memset(&spec, 0, sizeof(spec));
         memset(&payload, 0, sizeof(payload));
         
+        printf("dtn_recv [%s]...\n", local_eid.uri);
+    
         if ((ret = dtn_recv(handle, &spec,
-                            DTN_PAYLOAD_MEM, &payload, -1)) < 0)
+                            DTN_PAYLOAD_MEM, &payload, recv_timeout)) < 0)
         {
             fprintf(stderr, "error getting recv reply: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));

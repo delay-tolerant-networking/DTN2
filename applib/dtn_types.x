@@ -115,17 +115,15 @@ const DTN_REGID_NONE = 0;
 
 %
 %/**
-% * Registration actions
-% *     DTN_REG_ABORT  - drop bundle if unreachable
+% * Registration delivery failure actions
+% *     DTN_REG_DROP   - drop bundle if registration not active
 % *     DTN_REG_DEFER  - spool bundle for later retrieval
 % *     DTN_REG_EXEC   - exec program on bundle arrival
-% *     DTN_REG_CANCEL - cancel a prior registration
 % */
-enum dtn_reg_action_t {
-    DTN_REG_ABORT  = 1,
+enum dtn_reg_failure_action_t {
+    DTN_REG_DROP   = 1,
     DTN_REG_DEFER  = 2,
-    DTN_REG_EXEC   = 3,
-    DTN_REG_CANCEL = 4
+    DTN_REG_EXEC   = 3
 };
 
 %
@@ -133,11 +131,11 @@ enum dtn_reg_action_t {
 % * Registration state.
 % */
 struct dtn_reg_info_t {
-    dtn_endpoint_id_t 	endpoint;
-    dtn_reg_action_t 	action;
-    dtn_reg_id_t	regid;
-    dtn_timeval_t	timeout;
-    opaque		args<DTN_MAX_EXEC_LEN>;
+    dtn_endpoint_id_t 		endpoint;
+    dtn_reg_id_t		regid;
+    dtn_reg_failure_action_t 	failure_action;
+    dtn_timeval_t		expiration;
+    opaque			script<DTN_MAX_EXEC_LEN>;
 };
 
 %
@@ -188,7 +186,7 @@ struct dtn_bundle_spec_t {
     dtn_endpoint_id_t		replyto;
     dtn_bundle_priority_t	priority;
     int				dopts;
-    int				expiration;
+    dtn_timeval_t		expiration;
 };
 
 %

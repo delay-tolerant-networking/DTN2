@@ -43,6 +43,7 @@
 
 #include <oasys/debug/Log.h>
 #include <oasys/serialize/Serialize.h>
+#include <oasys/thread/Timer.h>
 
 #include "../bundling/BundleConsumer.h"
 #include "../naming/EndpointID.h"
@@ -63,7 +64,7 @@ class Bundle;
 class Registration : public BundleConsumer, public oasys::SerializableObject {
 public:
     /**
-     * Reserved registration identifiers. XXX/demmer fix me
+     * Reserved registration identifiers.
      */
     static const u_int32_t ADMIN_REGID = 0;
     static const u_int32_t LINKSTATEROUTER_REGID = 1;
@@ -74,8 +75,8 @@ public:
      * how to handle bundles when not connected.
      */
     typedef enum {
+        DROP,		///< Drop bundles
         DEFER,		///< Spool bundles until requested
-        ABORT,		///< Drop bundles
         EXEC		///< Execute the specified callback procedure
     } failure_action_t;
 
@@ -95,7 +96,7 @@ public:
     Registration(u_int32_t regid,
                  const EndpointIDPattern& endpoint,
                  failure_action_t action,
-                 time_t expiration = 0,
+                 u_int32_t expiration,
                  const std::string& script = "");
 
     /**
@@ -105,41 +106,50 @@ public:
     
     //@{
     /// Accessors
-    u_int32_t			regid()		{ return regid_; }
-    const EndpointIDPattern&	endpoint() 	{ return endpoint_; } 
-    failure_action_t		failure_action(){ return failure_action_; }
+    u_int32_t	             regid()	         { return regid_; }
+    const EndpointIDPattern& endpoint()          { return endpoint_; } 
+    failure_action_t         failure_action()    { return failure_action_; }
+    const std::string&       script()            { return script_; }
+    u_int32_t	             expiration()	 { return expiration_; }
+    bool                     active()            { return active_; }
+    void                     set_active(bool a)  { active_ = a; }
+    bool                     expired()           { return expired_; }
+    void                     set_expired(bool e) { expired_ = e; }
     //@}
 
-    /**
-     * Accessor indicating whether or not the registration is
-     * currently expecting bundles, i.e. in the active mode according
-     * to the bundle spec.
-     */
-    bool active() { return active_; }
-
-    /**
-     * Accessor to set the active state.
-     */
-    void set_active(bool active) { active_ = active; }
-    
     /**
      * Virtual from SerializableObject.
      */
     void serialize(oasys::SerializeAction* a);
 
 protected:
-    void init(u_int32_t regid,
-              const EndpointIDPattern& endpoint,
-              failure_action_t action,
-              time_t expiration,
-              const std::string& script);
+    /**
+     * Class to implement registration expirations. Note that we use
+     * the registration id and not a pointer to the registration class
+     * to mitigate potential race conditions that could lead to a
+     * dangling pointer.
+     */
+    class ExpirationTimer : public oasys::Timer {
+    public:
+        ExpirationTimer(u_int32_t regid)
+            : regid_(regid) {}
 
+        virtual void timeout(struct timeval* now);
+        
+        u_int32_t regid_;
+    };
+
+    void init_expiration_timer();
+    
     u_int32_t regid_;
     EndpointIDPattern endpoint_;
     failure_action_t failure_action_;	
     std::string script_;
-    time_t expiration_;
-    bool active_;
+    u_int32_t expiration_;
+    ExpirationTimer* expiration_timer_;
+    bool active_;    
+    bool bound_;    
+    bool expired_;    
 };
 
 /**

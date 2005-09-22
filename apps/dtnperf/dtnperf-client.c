@@ -286,9 +286,9 @@ int main(int argc, char** argv)
     if (debug) printf(" done\n");
 
     if (debug) printf("[debug] setting up reginfo...");
-    reginfo.action = DTN_REG_ABORT;
+    reginfo.failure_action = DTN_REG_DEFER;
     reginfo.regid = regid;
-    reginfo.timeout = 60 * 60;
+    reginfo.expiration = 30;
     if (debug) printf(" done\n");
 
     if (debug) printf("[debug] registering to local daemon...");

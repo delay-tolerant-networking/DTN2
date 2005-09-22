@@ -436,6 +436,18 @@ public:
 };
 
 /**
+ * Event class for registration expiration.
+ */
+class RegistrationExpiredEvent : public BundleEvent {
+public:
+    RegistrationExpiredEvent(u_int32_t regid)
+        : BundleEvent(REGISTRATION_EXPIRED), regid_(regid) {}
+
+    /// The to-be-removed registration id
+    u_int32_t regid_;
+};
+
+/**
  * Event class for route add events
  */
 class RouteAddEvent : public BundleEvent {

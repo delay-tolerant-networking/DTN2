@@ -50,7 +50,7 @@ using namespace dtn;
 namespace dtnsim {
 
 SimRegistration::SimRegistration(Node* node, const EndpointID& endpoint)
-    : Registration(node->next_regid(), endpoint, ABORT), node_(node)
+    : Registration(node->next_regid(), endpoint, DEFER, 0), node_(node)
 {
     logpathf("/reg/%s/%d", node->name(), regid_);
 

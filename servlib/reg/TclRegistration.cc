@@ -50,20 +50,27 @@ namespace dtn {
 TclRegistration::TclRegistration(const EndpointIDPattern& endpoint,
                                  Tcl_Interp* interp)
     
-    : APIRegistration(GlobalStore::instance()->next_regid(),
-                      endpoint, Registration::ABORT)
+    : Registration(GlobalStore::instance()->next_regid(),
+                   endpoint, Registration::DEFER, 0) // XXX/demmer expiration??
 {
     logpathf("/registration/logging/%d", regid_);
     set_active(true);
 
     log_info("new tcl registration on endpoint %s", endpoint.c_str());
 
+    bundle_list_ = new BlockingBundleList(logpath_);
     int fd = bundle_list_->notifier()->read_fd();
     notifier_channel_ = Tcl_MakeFileChannel((ClientData)fd, TCL_READABLE);
 
     log_debug("notifier_channel_ is %p", notifier_channel_);
 
     Tcl_RegisterChannel(interp, notifier_channel_);
+}
+
+void
+TclRegistration::consume_bundle(Bundle* bundle)
+{
+    bundle_list_->push_back(bundle);
 }
 
 int

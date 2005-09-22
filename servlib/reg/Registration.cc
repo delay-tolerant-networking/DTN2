@@ -38,6 +38,7 @@
 
 #include "Registration.h"
 #include "bundling/Bundle.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "storage/GlobalStore.h"
 
@@ -47,8 +48,8 @@ const char*
 Registration::failure_action_toa(failure_action_t action)
 {
     switch(action) {
+    case DROP:  return "DROP";
     case DEFER:	return "DEFER";
-    case ABORT: return "ABORT";
     case EXEC:  return "EXEC";
     }
 
@@ -58,7 +59,7 @@ Registration::failure_action_toa(failure_action_t action)
 Registration::Registration(u_int32_t regid,
                            const EndpointIDPattern& endpoint,
                            failure_action_t action,
-                           time_t expiration,
+                           u_int32_t expiration,
                            const std::string& script)
     
     : BundleConsumer(endpoint.c_str(), true, REGISTRATION),
@@ -67,23 +68,26 @@ Registration::Registration(u_int32_t regid,
       failure_action_(action),
       script_(script),
       expiration_(expiration),
-      active_(false)
+      active_(false),
+      expired_(false)
 {
     logpathf("/registration/%d", regid);
-
-    if (expiration == 0) {
-        // XXX/demmer default expiration
-    }
+    init_expiration_timer();
 }
 
 /**
  * Constructor for deserialization
  */
 Registration::Registration(const oasys::Builder&)
-    : BundleConsumer("", true, REGISTRATION)
+    : BundleConsumer("", true, REGISTRATION),
+      regid_(0),
+      endpoint_(),
+      failure_action_(DEFER),
+      script_(),
+      expiration_(0),
+      active_(false),
+      expired_(false)
 {
-    // XXX/demmer unserialization needs to correctly set up the bundle
-    // comsumer's dest_str after the object is unserialized
 }
 
 /**
@@ -91,8 +95,12 @@ Registration::Registration(const oasys::Builder&)
  */
 Registration::~Registration()
 {
+    if (expiration_timer_) {
+        ASSERT(! expiration_timer_->pending());
+        delete expiration_timer_;
+    }
 }
-    
+
 /**
  * Virtual from SerializableObject.
  */
@@ -103,7 +111,28 @@ Registration::serialize(oasys::SerializeAction* a)
     a->process("regid", &regid_);
     a->process("action", (u_int32_t*)&failure_action_);
     a->process("script", &script_);
-    a->process("expiration", (u_int32_t*)&expiration_);
+    a->process("expiration", &expiration_);
+
+    // finish constructing the object after unserialization
+    if (a->action_code() == oasys::Serialize::UNMARSHAL) {
+        BundleConsumer::set_dest_str(endpoint_.c_str());
+        init_expiration_timer();
+    }
+}
+
+void
+Registration::init_expiration_timer()
+{
+    if (expiration_ != 0) {
+        expiration_timer_ = new ExpirationTimer(regid_);
+        expiration_timer_->schedule_in(expiration_ * 1000);
+    }
+}
+
+void
+Registration::ExpirationTimer::timeout(struct timeval* now)
+{
+    BundleDaemon::post(new RegistrationExpiredEvent(regid_));
 }
 
 } // namespace dtn

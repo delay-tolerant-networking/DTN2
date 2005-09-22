@@ -50,7 +50,7 @@ namespace dtn {
 
 LoggingRegistration::LoggingRegistration(const EndpointIDPattern& endpoint)
     : Registration(GlobalStore::instance()->next_regid(),
-                   endpoint, Registration::ABORT)
+                   endpoint, Registration::DEFER, 0)
 {
     logpathf("/registration/logging/%d", regid_);
     set_active(true);

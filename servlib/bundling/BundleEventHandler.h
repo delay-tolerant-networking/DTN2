@@ -110,6 +110,11 @@ protected:
     virtual void handle_registration_removed(RegistrationRemovedEvent* event);
     
     /**
+     * Default event handler when a registration expires.
+     */
+    virtual void handle_registration_expired(RegistrationExpiredEvent* event);
+    
+    /**
      * Default event handler when a new contact is up.
      */
     virtual void handle_contact_up(ContactUpEvent* event);

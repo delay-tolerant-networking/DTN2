@@ -42,9 +42,11 @@
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Thread.h>
 
-#include "APIRegistration.h"
+#include "Registration.h"
 
 namespace dtn {
+
+class BlockingBundleList;
 
 /**
  * A simple utility class used mostly for testing registrations.
@@ -56,7 +58,7 @@ namespace dtn {
  * to arrive on the registration's bundle list, then tcl the
  * bundles and looping again.
  */
-class TclRegistration : public APIRegistration {
+class TclRegistration : public Registration {
 public:
     TclRegistration(const EndpointIDPattern& endpoint,
                     Tcl_Interp* interp);
@@ -75,7 +77,11 @@ public:
      */
     int get_bundle_data(Tcl_Interp* interp);
 
+    /// virtual from BundleConsumer
+    void consume_bundle(Bundle* bundle);
+
 protected:
+    BlockingBundleList* bundle_list_;
     Tcl_Channel notifier_channel_;
 };
 

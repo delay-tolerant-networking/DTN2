@@ -156,7 +156,11 @@ APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
     xdrmem_create(&xdr_decode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_DECODE);
 
     bindings_ = new APIRegistrationList();
+}
 
+APIClient::~APIClient()
+{
+    log_debug("client destroyed");
 }
 
 void
@@ -168,9 +172,14 @@ APIClient::close_session()
     while (! bindings_->empty()) {
         reg = bindings_->front();
         bindings_->pop_front();
-    }
+        
+        reg->set_active(false);
 
-    // XXX/demmer finish me
+        if (reg->expired()) {
+            log_debug("removing expired registration %d", reg->regid());
+            BundleDaemon::post(new RegistrationRemovedEvent(reg));
+        }
+    }
 }
 
 void
@@ -341,7 +350,6 @@ APIClient::handle_register()
     std::string script;
     
     dtn_reg_info_t reginfo;
-    dtn_reg_id_t regid;
 
     memset(&reginfo, 0, sizeof(reginfo));
     
@@ -354,36 +362,28 @@ APIClient::handle_register()
 
     endpoint.assign(&reginfo.endpoint);
     
-    switch (reginfo.action) {
-    case DTN_REG_ABORT: action = Registration::ABORT; break;
+    switch (reginfo.failure_action) {
     case DTN_REG_DEFER: action = Registration::DEFER; break;
+    case DTN_REG_DROP:  action = Registration::DROP;  break;
     case DTN_REG_EXEC:  action = Registration::EXEC;  break;
     default: {
-        log_err("invalid action code 0x%x", reginfo.action);
+        log_err("invalid failure action code 0x%x", reginfo.failure_action);
         return DTN_EINVAL;
     }
     }
 
-    // XXX/bowei - is this dead code? or did someone forget to do
-    // something with script?
     if (action == Registration::EXEC) {
-        script.assign(reginfo.args.args_val, reginfo.args.args_len);
+        script.assign(reginfo.script.script_val, reginfo.script.script_len);
     }
 
-    if (reginfo.regid != DTN_REGID_NONE){
-        PANIC("lookup and modify existing registration unimplemented");
-        regid = reginfo.regid;
-        
-    } else {
-        // XXX/demmer move this so the table is updated in the event
-        // handler in the daemon
-        
-        u_int32_t regid = GlobalStore::instance()->next_regid();
-        reg = new APIRegistration(regid, endpoint, action);
-        BundleDaemon::post(new RegistrationAddedEvent(reg));
+    if (reginfo.expiration == 0) {
+        log_err("zero expiration time for registration");
+        return DTN_EINVAL;
     }
 
-    regid = reg->regid();
+    u_int32_t regid = GlobalStore::instance()->next_regid();
+    reg = new APIRegistration(regid, endpoint, action, reginfo.expiration, script);
+    BundleDaemon::post(new RegistrationAddedEvent(reg));
     
     // fill the response with the new registration id
     if (!xdr_dtn_reg_id_t(&xdr_encode_, &regid)) {
@@ -420,9 +420,9 @@ APIClient::handle_bind()
                  regid);
         return DTN_ENOTFOUND;
     }
-    
     // store the registration in the list for this session
     bindings_->push_back(api_reg);
+    api_reg->set_active(true);
 
     return DTN_SUCCESS;
 }
@@ -589,11 +589,12 @@ APIClient::handle_recv()
     // XXX/demmer implement this for multiple registrations by
     // building up a poll vector here. for now we assert in bind that
     // there's only one binding.
-    reg = bindings_->front();
-    if (!reg) {
-        log_err("no bound registration");
+    if (bindings_->empty()) {
+        log_err("no bound registration for recv");
         return DTN_EINVAL;
     }
+    
+    reg = bindings_->front();
 
     struct pollfd pollfds[2];
 

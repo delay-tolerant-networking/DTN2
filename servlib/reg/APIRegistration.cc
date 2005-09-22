@@ -38,6 +38,7 @@
 
 #include "APIRegistration.h"
 #include "bundling/Bundle.h"
+#include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 
 namespace dtn {
@@ -51,7 +52,7 @@ APIRegistration::APIRegistration(const oasys::Builder& builder)
 APIRegistration::APIRegistration(u_int32_t regid,
                                  const EndpointIDPattern& endpoint,
                                  failure_action_t action,
-                                 time_t expiration,
+                                 u_int32_t expiration,
                                  const std::string& script)
     : Registration(regid, endpoint, action, expiration, script)
 {
@@ -66,27 +67,36 @@ APIRegistration::~APIRegistration()
 void
 APIRegistration::consume_bundle(Bundle* bundle)
 {
-    log_info("enqueue bundle id %d for delivery to %s",
-             bundle->bundleid_, dest_str_.c_str());
+    if (!active() && (failure_action_ == DROP)) {
+        log_info("consume_bundle: "
+                 "dropping bundle id %d for passive registration %d (%s)",
+                 bundle->bundleid_, regid_, endpoint_.c_str());
+        
+        // post an event saying we "delivered" it
+        // XXX/demmer change this event class
+        BundleDaemon::post(
+            new BundleTransmittedEvent(bundle, this,
+                                       bundle->payload_.length(), true));
+    }
+
+    if (!active() && (failure_action_ == EXEC)) {
+        // this sure seems like a security hole, but what can you
+        // do -- it's in the spec
+        log_info("consume_bundle: "
+                 "running script '%s' for registration %d (%s)",
+                 script_.c_str(), regid_, endpoint_.c_str());
+        
+        system(script_.c_str());
+        // fall through
+    }
+
+    log_info("consume_bundle: queuing bundle id %d for %s delivery to %s",
+             bundle->bundleid_,
+             active() ? "active" : "deferred",
+             dest_str_.c_str());
+    
     bundle_list_->push_back(bundle);
-
-    // XXX/demmer this should handle the connected / disconnnected
-    // action stuff
 }
 
-bool
-APIRegistration::dequeue_bundle(Bundle* bundle)
-{
-    log_info("dequeue bundle id %d from %s",
-             bundle->bundleid_, dest_str_.c_str());
-
-    return bundle_list_->erase(bundle);
-}
-
-bool
-APIRegistration::is_queued(Bundle* bundle)
-{
-    return bundle_list_->contains(bundle);
-}
 
 } // namespace dtn

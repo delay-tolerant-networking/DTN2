@@ -162,9 +162,9 @@ main(int argc, char** argv)
         memset(&reginfo, 0, sizeof(reginfo));
 
         dtn_copy_eid(&reginfo.endpoint, &local_eid);
-        reginfo.action = DTN_REG_ABORT;
+        reginfo.failure_action = DTN_REG_DEFER;
         reginfo.regid = DTN_REGID_NONE;
-        reginfo.timeout = 60 * 60;
+        reginfo.expiration = 30;
         if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
             fprintf(stderr, "error creating registration: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));

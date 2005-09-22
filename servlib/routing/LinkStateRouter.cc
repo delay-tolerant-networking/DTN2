@@ -264,7 +264,7 @@ LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge, Link* outgoing_li
 LinkStateRouter::LSRegistration::LSRegistration(LinkStateRouter* router)
     : Registration(Registration::LINKSTATEROUTER_REGID,
                    EndpointID(ROUTER_BCAST_EID),
-                   ABORT)
+                   Registration::DEFER, 0)
 {
     logpathf("/reg/admin");
 

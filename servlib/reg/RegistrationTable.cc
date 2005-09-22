@@ -205,10 +205,13 @@ RegistrationTable::dump(oasys::StringBuffer* buf) const
     {
         Registration* reg = *i;
 
-        buf->appendf("id %u: %s (%s)\n",
+        buf->appendf("id %u: %s %s (%s%s)\n",
                      reg->regid(),
+                     reg->active() ? "active" : "passive",
                      reg->endpoint().c_str(),
-                     Registration::failure_action_toa(reg->failure_action()));
+                     Registration::failure_action_toa(reg->failure_action()),
+                     reg->failure_action() == Registration::EXEC ?
+                       reg->script().c_str() : "");
     }
 }
 

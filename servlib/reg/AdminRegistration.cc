@@ -49,7 +49,8 @@ namespace dtn {
 AdminRegistration::AdminRegistration()
     : Registration(ADMIN_REGID,
                    BundleDaemon::instance()->local_eid(),
-                   ABORT)
+                   Registration::DEFER,
+                   0)
 {
     logpathf("/reg/admin");
 

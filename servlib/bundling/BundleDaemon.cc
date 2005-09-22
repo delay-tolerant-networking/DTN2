@@ -405,6 +405,32 @@ BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
     delete registration;
 }
 
+void
+BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
+{
+    
+    Registration* registration = reg_table_->get(event->regid_);
+    if (registration == NULL) {
+        log_warn("REGISTRATION_EXPIRED -- dead regid %d", event->regid_);
+        return;
+    }
+
+    registration->set_expired(true);
+    
+    if (registration->active()) {
+        // if the registration is currently active (i.e. has a
+        // binding), we wait for the binding to clear, which will then
+        // clean up the registration
+        log_info("REGISTRATION_EXPIRED %d -- deferred until binding clears",
+                 event->regid_);
+    } else {
+        // otherwise remove the registration from the table
+        log_info("REGISTRATION_EXPIRED %d", event->regid_);
+        reg_table_->del(registration->regid());
+        delete registration;
+    }
+}
+
 /**
  * Default event handler when a new link is available.
  */
