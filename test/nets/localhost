@@ -1,3 +1,6 @@
+#
+# Network definition file for localhost network.
+#
 for {set i 0} {$i < 254} {incr i} {
     net::node $i localhost [expr 10000 + $i*1000]
 }
