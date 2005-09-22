@@ -204,7 +204,7 @@ AC_FUNC_STAT
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_OASYS_FUNC_FPCLASSIFY
-AC_CHECK_FUNCS([bzero ftruncate getaddrinfo gethostbyname gethostbyname_r getopt_long gettimeofday inet_aton inet_pton isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir select setenv socket strcasecmp strncasecmp strchr strcspn strdup strerror strrchr strspn strstr strtol strtoul])
+AC_CHECK_FUNCS([bzero ftruncate getaddrinfo gethostbyname gethostbyname_r getopt_long gettimeofday inet_aton inet_pton isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir select setenv socket strcasecmp strncasecmp strchr strcspn strdup strerror strpbrk strrchr strspn strstr strtol strtoul])
 
 dnl -------------------------------------------------------------------------
 dnl Checks for dependent third-party libraries
