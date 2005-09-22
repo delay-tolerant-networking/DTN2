@@ -38,7 +38,7 @@
 #ifndef _BUNDLE_PROTOCOL_H_
 #define _BUNDLE_PROTOCOL_H_
 
-#include <sys/uio.h>
+#include <sys/types.h>
 
 namespace dtn {
 
