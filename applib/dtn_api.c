@@ -216,6 +216,32 @@ dtn_register(dtn_handle_t h,
 }
 
 /**
+ * Remove a dtn registration.
+ */
+int
+dtn_unregister(dtn_handle_t h, dtn_reg_id_t regid)
+{
+    // XXX/demmer implement me
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    handle->err = DTN_EINTERNAL;
+    return -1;
+}
+
+/**
+ * Modify an existing registration.
+ */
+int
+dtn_change_registration(dtn_handle_t h,
+                        dtn_reg_id_t regid,
+                        dtn_reg_info_t *reginfo)
+{
+    // XXX/demmer implement me
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    handle->err = DTN_EINTERNAL;
+    return -1;
+}
+
+/**
  * Associate a registration id with the current ipc channel. This must
  * be called before calling dtn_recv to inform the daemon of which
  * registrations the application is interested in.

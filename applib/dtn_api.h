@@ -87,25 +87,41 @@ extern int dtn_build_local_eid(dtn_handle_t handle,
                                const char* service_tag);
 
 /**
- * Create or modify a dtn registration.
+ * Create a dtn registration.
  */
 extern int dtn_register(dtn_handle_t handle,
-                        dtn_reg_info_t *reginfo,
+                        dtn_reg_info_t* reginfo,
                         dtn_reg_id_t* newregid);
+
+/**
+ * Remove a dtn registration.
+ */
+extern int dtn_unregister(dtn_handle_t handle,
+                          dtn_reg_id_t regid);
+
+/**
+ * Modify an existing registration.
+ */
+extern int dtn_change_registration(dtn_handle_t handle,
+                                   dtn_reg_id_t newregid,
+                                   dtn_reg_info_t *reginfo);
 
 /**
  * Associate a registration with the current ipc channel. This must
  * be called before calling dtn_recv to inform the daemon of which
  * registrations the application is interested in.
+ *
+ * This serves to put the registration in "active" mode.
  */
 extern int dtn_bind(dtn_handle_t handle, dtn_reg_id_t regid);
 
 /**
  * Explicitly remove an association from the current ipc handle. Note
  * that this is also implicitly done when the handle is closed.
+ *
+ * This serves to put the registration back in "passive" mode.
  */
-extern int dtn_unbind(dtn_handle_t handle,
-                      dtn_reg_id_t regid);
+extern int dtn_unbind(dtn_handle_t handle, dtn_reg_id_t regid);
 
 /**
  * Send a bundle either from memory or from a file.
