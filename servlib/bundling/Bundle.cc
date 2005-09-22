@@ -180,14 +180,14 @@ Bundle::serialize(oasys::SerializeAction* a)
 int
 Bundle::add_ref(const char* what1, const char* what2)
 {
-    lock_.lock("Bundle::add_ref");
+    oasys::ScopeLock(&lock_, "Bundle::add_ref");
+
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
     log_debug("/bundle/refs",
               "bundle id %d: refcount %d -> %d (%u mappings) add %s %s",
               bundleid_, refcount_ - 1, refcount_, (u_int)mappings_.size(),
               what1, what2);
-    lock_.unlock();
     return ret;
 }
 
@@ -199,8 +199,8 @@ Bundle::add_ref(const char* what1, const char* what2)
 int
 Bundle::del_ref(const char* what1, const char* what2)
 {
-    lock_.lock("Bundle::del_ref");
-    ASSERT(refcount_ > 0);
+    oasys::ScopeLock(&lock_, "Bundle::del_ref");
+
     int ret = --refcount_;
     log_debug("/bundle/refs",
               "bundle id %d: refcount %d -> %d (%u mappings) del %s %s",
@@ -208,7 +208,6 @@ Bundle::del_ref(const char* what1, const char* what2)
               what1, what2);
     
     if (refcount_ != 0) {
-        lock_.unlock();
         return ret;
     }
 
