@@ -26,4 +26,8 @@ proc dtn_exec_opt_fcn {id} {
     return [array get dtn]
 }
 
+# standard manifest
+manifest::file daemon/dtnd dtnd
+manifest::dir  bundles
+
 run $args $test_script $net_file [pwd] "oasys/test_utils" dtn_exec_opt_fcn
