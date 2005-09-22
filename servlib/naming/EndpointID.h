@@ -70,7 +70,8 @@ public:
      */
     EndpointID(const EndpointID& other)
     {
-        assign(other);
+	if (&other != this)
+	    assign(other);
     }
 
     /**
