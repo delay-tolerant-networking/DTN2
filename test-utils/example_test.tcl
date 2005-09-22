@@ -1,10 +1,9 @@
-net::set_nodes 2
-test::set_name example
+net::num_nodes 2
+test::name example
 
 manifest::file "test_utils/example_test.tcl" "f/o/o/foo"
 manifest::dir  "bundles"
 manifest::dir  "db"
-manifest::dir  "bar"
 
 conf::add 0 {
     puts "Put node 0 configuration here"
@@ -36,6 +35,8 @@ for {set i 0} {$i < 2} {incr i} {
     conf::add $i "api set local_port $net::portbase($i)\n"
 }
 
-test::decl {
-    puts "Put your test actions here"
+test::script {
+    puts ""
+    puts "Example test script"
+    puts ""
 }
