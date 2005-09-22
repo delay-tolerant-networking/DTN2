@@ -82,7 +82,7 @@ public:
      * (word-aligned) u_int64_t* destination.
      */
     static void set_timestamp(u_int64_t* ts, const struct timeval* tv) {
-	set_timestamp((u_char *) ts, tv);
+        set_timestamp((u_char *) ts, tv);
     }
     
     /**
@@ -102,9 +102,9 @@ public:
      * header.
      */
     typedef enum {
-        BUNDLE_IS_FRAGMENT	= 0x1,
-        BUNDLE_IS_ADMIN		= 0x2,
-        BUNDLE_DO_NOT_FRAGMENT	= 0x4
+        BUNDLE_IS_FRAGMENT      = 0x1,
+        BUNDLE_IS_ADMIN         = 0x2,
+        BUNDLE_DO_NOT_FRAGMENT  = 0x4
     } bundle_flag_t;
 
     /**
@@ -141,7 +141,7 @@ public:
      * Valid type codes for bundle headers (other than payload).
      */
     typedef enum {
-        HEADER_PAYLOAD 		= 0x01
+        HEADER_PAYLOAD          = 0x01
     } bundle_header_type_t;
     
     /**
@@ -149,9 +149,9 @@ public:
      * except the primary header.
      */
     typedef enum {
-        HEADER_FLAG_REPLICATE		= 0x1,
-        HEADER_FLAG_REPORT_ONERROR	= 0x2,
-        HEADER_FLAG_DISCARD_ONERROR	= 0x4
+        HEADER_FLAG_REPLICATE           = 0x1,
+        HEADER_FLAG_REPORT_ONERROR      = 0x2,
+        HEADER_FLAG_DISCARD_ONERROR     = 0x4
     } header_flag_t;
     
     /**
@@ -169,21 +169,21 @@ public:
      * Valid type codes for administrative payloads.
      */
     typedef enum {
-        ADMIN_STATUS_REPORT	= 0x01,
-        ADMIN_CUSTODY_SIGNAL 	= 0x02,
-        ADMIN_ECHO		= 0x03,
-        ADMIN_NULL		= 0x04,
+        ADMIN_STATUS_REPORT     = 0x01,
+        ADMIN_CUSTODY_SIGNAL    = 0x02,
+        ADMIN_ECHO              = 0x03,
+        ADMIN_NULL              = 0x04,
     } admin_payload_type_t;
 
     /**
      * Valid status flags.
      */
     typedef enum {
-        STATUS_RECEIVED		= 0x01,
-        STATUS_CUSTODY_ACCEPTED	= 0x02,
-        STATUS_FORWARDED	= 0x04,
-        STATUS_DELIVERED	= 0x08,
-        STATUS_TTL_EXPIRED	= 0x10,
+        STATUS_RECEIVED         = 0x01,
+        STATUS_CUSTODY_ACCEPTED = 0x02,
+        STATUS_FORWARDED        = 0x04,
+        STATUS_DELIVERED        = 0x08,
+        STATUS_DELETED  	= 0x10,
         STATUS_UNAUTHENTIC	= 0x20,
         STATUS_UNUSED		= 0x40,
         STATUS_FRAGMENT		= 0x80,
