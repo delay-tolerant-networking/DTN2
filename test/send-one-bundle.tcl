@@ -19,11 +19,11 @@ conf::add dtnd 0 {
 
     # XXX/demmer move this to a tell
     test set initscript {
-	tcl_registration "*:*" test_arrived
+	tcl_registration dtn://host-0/test test_arrived
     }
 }
 
-conf::add dtnd 1 {
+conf::add dtnd [expr [net::num_nodes] - 1] {
     # XXX/demmer this should move to a 'tell' command
     test set initscript {
 	after 5000
