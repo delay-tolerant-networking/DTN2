@@ -144,9 +144,8 @@ BundleDaemon::generate_status_report(Bundle* bundle, status_report_flag_t flag)
         
     BundleStatusReport* report;
         
-    report = new BundleStatusReport(bundle, local_eid_);
-    report->set_status(flag);
-    report->generate_payload();
+    report = new BundleStatusReport(bundle, local_eid_, flag,
+				    BundleProtocol::REASON_NO_ADDTL_INFO);
     
     BundleReceivedEvent e(report, EVENTSRC_ADMIN,
                           report->payload_.length());

@@ -506,11 +506,11 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
 
 
 void
-BundleProtocol::set_timestamp(u_int64_t* ts, const struct timeval* tv)
+BundleProtocol::set_timestamp(u_char* ts, const struct timeval* tv)
 {
     u_int64_t ts_tmp =
-        (((u_int64_t)ntohl(tv->tv_sec)) << 32) | ntohl(tv->tv_usec);
-    memcpy(ts, &ts_tmp, sizeof(*ts));
+        (((u_int64_t)htonl(tv->tv_sec)) << 32) | htonl(tv->tv_usec);
+    memcpy(ts, &ts_tmp, sizeof(u_int64_t));
 }
 
 void

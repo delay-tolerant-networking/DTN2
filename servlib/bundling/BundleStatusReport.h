@@ -52,41 +52,10 @@ public:
     /**
      * Constructor.
      */
-    BundleStatusReport(Bundle* orig_bundle, const EndpointID& source);
-
-    /**
-     * Destructor.
-     */
-    virtual ~BundleStatusReport();
-
-    /**
-     * Sets the given status report flag and corresponding timestamp
-     * to the current time.
-     */
-    void set_status(BundleProtocol::status_report_flag_t flag);
-
-    /**
-     * Stores the completed report into the bundle payload. Must be
-     * called before transmitting the bundle.
-     */
-    void generate_payload();
-
-protected:
-    /**
-     * The report structure. Note that we malloc extra space for the
-     * source's eid to follow the fixed-length fields.
-     */
-    BundleProtocol::StatusReport* report_;
-
-    /**
-     * The total length of the report.
-     */
-    size_t report_len_;
-
-    /**
-     * The original bundle's source endpoint id.
-     */
-    EndpointID orig_source_;
+    BundleStatusReport(Bundle* orig_bundle,
+                       const EndpointID& source,
+                       BundleProtocol::status_report_flag_t flag,
+                       BundleProtocol::status_report_reason_t reason);
 };
 
 } // namespace dtn

@@ -74,7 +74,15 @@ public:
      * transmission over the network. This does not require that the
      * u_int64_t* be word-aligned.
      */
-    static void set_timestamp(u_int64_t* ts, const struct timeval* tv);
+    static void set_timestamp(u_char* ts, const struct timeval* tv);
+    /**
+     * XXX Store a struct timeval into a 64-bit timestamp suitable for
+     * transmission over the network. This does not require that the
+     * u_int64_t* be word-aligned.
+     */
+    static void set_timestamp(u_int64_t* ts, const struct timeval* tv) {
+	set_timestamp((u_char *) ts, tv);
+    }
     
     /**
      * Retrieve a struct timeval from a 64-bit timestamp that was
@@ -181,24 +189,20 @@ public:
     } status_report_flag_t;
 
     /**
-     * Structure for a status report payload. Note that the source
-     * endpoint id data portion is variable length. Note also that the
-     * 64 bit fields are _not_ 64-bit aligned so be careful when
-     * accessing them.
-     *
-     * See BundleStatusReport.cc for the formatting of status reports.
+     * Bundle Status Report "Reason Code" flags
      */
-    struct StatusReport {
-        u_int8_t  admin_type;
-        u_int8_t  status_flags;
-        u_int64_t orig_ts;
-        u_int64_t receipt_ts;
-        u_int64_t forward_ts;
-        u_int64_t delivery_ts;
-        u_int64_t delete_ts;
-        u_char source_eid_data[0];
-    } __attribute__((packed));
-
+    typedef enum {
+	REASON_NO_ADDTL_INFO              = 0X00,
+	REASON_LIFETIME_EXPIRED           = 0X01,
+	REASON_RESERVERED_FUTURE_USE      = 0X02,
+	REASON_TRANSMISSION_CANCELLED     = 0X03,
+	REASON_DEPLETED_STORAGE           = 0X04,
+	REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0X05,
+	REASON_NO_ROUTE_TO_DEST           = 0X06,
+	REASON_NO_TIMELY_CONTACT          = 0X07,
+	REASON_HEADER_UNINTELLIGIBLE      = 0X08,
+    } status_report_reason_t;
+	
 protected:
     static u_int8_t format_processing_flags(const Bundle* bundle);
     static void parse_processing_flags(Bundle* bundle, u_int8_t flags);
