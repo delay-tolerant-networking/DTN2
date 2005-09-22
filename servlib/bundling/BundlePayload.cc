@@ -144,7 +144,7 @@ BundlePayload::serialize(oasys::SerializeAction* a)
 void
 BundlePayload::set_length(size_t length, location_t new_location)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundlePayload::set_length");
 
     length_ = length;
 
@@ -165,7 +165,7 @@ BundlePayload::set_length(size_t length, location_t new_location)
 void
 BundlePayload::truncate(size_t length)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundlePayload::truncate");
     
     ASSERT(length <= length_);
     ASSERT(length <= rcvd_length_);
@@ -287,7 +287,7 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
 void
 BundlePayload::set_data(const u_char* bp, size_t len)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundlePayload::set_data");
     
     ASSERT(rcvd_length_ == 0);
     set_length(len);
@@ -304,7 +304,7 @@ BundlePayload::set_data(const u_char* bp, size_t len)
 void
 BundlePayload::append_data(const u_char* bp, size_t len)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundlePayload::append_data");
     
     ASSERT(length_ > 0);
     ASSERT(file_->is_open());
@@ -325,7 +325,7 @@ BundlePayload::append_data(const u_char* bp, size_t len)
 void
 BundlePayload::write_data(const u_char* bp, size_t offset, size_t len)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundlePayload::write_data");
     
     ASSERT(length_ >= (len + offset));
     ASSERT(file_->is_open());
@@ -342,7 +342,7 @@ void
 BundlePayload::write_data(BundlePayload* src, size_t src_offset,
                           size_t len, size_t dst_offset)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundlePayload::write_data");
 
     log_debug("/bundle/payload",
               "write_data: file=%s length_=%u src_offset=%u dst_offset=%u len %u",
@@ -372,7 +372,7 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
 const u_char*
 BundlePayload::read_data(size_t offset, size_t len, u_char* buf, int flags)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundlePayload::read_data");
     
     ASSERTF(length_ >= (offset + len),
             "length=%u offset=%u len=%u",

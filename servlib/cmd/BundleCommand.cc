@@ -130,7 +130,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         BundleList* pending =
             BundleDaemon::instance()->pending_bundles();
         
-        oasys::ScopeLock l(pending->lock());
+        oasys::ScopeLock l(pending->lock(), "BundleCommand::exec");
         buf.appendf("Currently Pending Bundles (%u): \n", (u_int)pending->size());
     
         for (iter = pending->begin(); iter != pending->end(); ++iter) {

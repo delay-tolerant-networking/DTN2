@@ -225,7 +225,8 @@ TableBasedRouter::check_next_hop(Link* next_hop)
     log_debug("check_next_hop %s: checking pending bundle list...",
               next_hop->dest_str());
 
-    oasys::ScopeLock l(pending_bundles_->lock());
+    oasys::ScopeLock l(pending_bundles_->lock(), 
+                       "TableBasedRouter::check_next_hop");
     BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();

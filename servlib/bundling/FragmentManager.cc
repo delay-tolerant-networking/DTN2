@@ -337,7 +337,7 @@ FragmentManager::reactively_fragment(Bundle* bundle, size_t bytes_sent)
 Bundle* 
 FragmentManager::process_for_reassembly(Bundle* fragment)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "FragmentManger::process_for_reassembly");
 
     ReassemblyState* state;
     ReassemblyTable::iterator iter;
@@ -373,7 +373,8 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
 
     // grab a lock on the fragment list and tack on the new fragment
     // to the fragment list
-    oasys::ScopeLock fraglock(state->fragments_.lock());
+    oasys::ScopeLock fraglock(state->fragments_.lock(), 
+                              "FragmentManager::process_for_reassembly");
     state->fragments_.insert_sorted(fragment, BundleList::SORT_FRAG_OFFSET);
     
     // store the fragment data in the partially reassembled bundle file

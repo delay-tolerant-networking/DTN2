@@ -315,7 +315,7 @@ void
 BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 {
     Bundle* bundle = event->bundleref_.object();
-    oasys::ScopeLock l(&bundle->lock_);
+    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::handle_bundle_expired");
 
     log_info("BUNDLE_EXPIRED *%p", bundle);
 
@@ -375,7 +375,8 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
                 registration->regid());
     }
     
-    oasys::ScopeLock l(pending_bundles_->lock());
+    oasys::ScopeLock l(pending_bundles_->lock(), 
+                       "BundleDaemon::handle_registration_added");
     BundleList::iterator iter;
     for (iter = pending_bundles_->begin();
          iter != pending_bundles_->end();
@@ -623,7 +624,7 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 void
 BundleDaemon::delete_from_pending(Bundle* bundle)
 {
-    oasys::ScopeLock l(&bundle->lock_);
+    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::delete_from_pending");
     
     log_debug("removing bundle *%p from pending list", bundle);
 
@@ -660,7 +661,7 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
 {
     Bundle* bundle = event->bundle_;
 
-    bundle->lock_.lock();
+    bundle->lock_.lock("BundleDaemon::handle_bundle_free");
     
     actions_->store_del(bundle);
 

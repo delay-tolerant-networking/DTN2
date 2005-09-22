@@ -67,7 +67,7 @@ BundleList::~BundleList()
 BundleRef
 BundleList::front()
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundleList::front");
     
     BundleRef ret("BundleList::front() temporary");
     if (list_.empty())
@@ -83,7 +83,7 @@ BundleList::front()
 BundleRef
 BundleList::back()
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundleList::back");
 
     BundleRef ret("BundleList::back() temporary");
     if (list_.empty())
@@ -127,8 +127,8 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
 void
 BundleList::push_front(Bundle* b)
 {
-    oasys::ScopeLock l(lock_);
-    oasys::ScopeLock bl(&b->lock_);
+    oasys::ScopeLock l(lock_, "BundleList::push_front");
+    oasys::ScopeLock bl(&b->lock_, "BundleList::push_front");
     add_bundle(b, list_.begin());
 }
 
@@ -138,8 +138,8 @@ BundleList::push_front(Bundle* b)
 void
 BundleList::push_back(Bundle* b)
 {
-    oasys::ScopeLock l(lock_);
-    oasys::ScopeLock bl(&b->lock_);
+    oasys::ScopeLock l(lock_, "BundleList::push_back");
+    oasys::ScopeLock bl(&b->lock_, "BundleList::push_back");
     add_bundle(b, list_.end());
 }
         
@@ -150,7 +150,7 @@ void
 BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
 {
     iterator iter;
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundleList::insert_sorted");
 
     // scan through the list until the iterator either a) reaches the
     // end of the list or b) reaches the bundle that should follow the
@@ -189,7 +189,7 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
     ASSERT(lock_->is_locked_by_me());
 
     // lock the bundle
-    oasys::ScopeLock l(& b->lock_);
+    oasys::ScopeLock l(& b->lock_, "BundleList::del_bundle");
 
     // remove the mapping
     log_debug("/bundle/mapping",
@@ -225,7 +225,7 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
 BundleRef
 BundleList::pop_front(bool used_notifier)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "pop_front");
 
     BundleRef ret("BundleList::pop_front() temporary");
 
@@ -248,7 +248,7 @@ BundleList::pop_front(bool used_notifier)
 BundleRef
 BundleList::pop_back(bool used_notifier)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundleList::pop_back");
 
     BundleRef ret("BundleList::pop_back() temporary");
 
@@ -273,7 +273,7 @@ BundleList::pop_back(bool used_notifier)
 bool
 BundleList::erase(Bundle* bundle, bool used_notifier)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundleList::erase");
 
     iterator pos = std::find(begin(), end(), bundle);
     if (pos == end()) {
@@ -294,7 +294,7 @@ BundleList::erase(Bundle* bundle, bool used_notifier)
 bool
 BundleList::contains(Bundle* bundle)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundleList::contains");
     return (std::find(begin(), end(), bundle) != end());
 }
 
@@ -306,7 +306,7 @@ BundleList::contains(Bundle* bundle)
 BundleRef
 BundleList::find(u_int32_t bundle_id)
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     for (iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->bundleid_ == bundle_id) {
@@ -324,8 +324,8 @@ BundleList::find(u_int32_t bundle_id)
 void
 BundleList::move_contents(BundleList* other)
 {
-    oasys::ScopeLock l1(lock_);
-    oasys::ScopeLock l2(other->lock_);
+    oasys::ScopeLock l1(lock_, "BundleList::move_contents");
+    oasys::ScopeLock l2(other->lock_, "BundleList::move_contents");
 
     BundleRef b("BundleList::move_contents temporary");
     while (!list_.empty()) {
@@ -340,7 +340,7 @@ BundleList::move_contents(BundleList* other)
 void
 BundleList::clear()
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundleList::clear");
     
     while (!list_.empty()) {
         BundleRef b("BundleList::clear temporary");
@@ -355,7 +355,7 @@ BundleList::clear()
 size_t
 BundleList::size() const
 {
-    oasys::ScopeLock l(lock_);
+    oasys::ScopeLock l(lock_, "BundleList::size");
     return list_.size();
 }
 
@@ -439,7 +439,7 @@ BlockingBundleList::pop_blocking(int timeout)
     log_debug("/bundle/mapping", "pop_blocking on list %p [%s]", 
               this, name_.c_str());
     
-    lock_->lock();
+    lock_->lock("BlockingBundleList::pop_blocking");
 
     bool used_wait;
     if (list_.empty()) {

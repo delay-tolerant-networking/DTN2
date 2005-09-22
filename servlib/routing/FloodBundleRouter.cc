@@ -219,7 +219,8 @@ FloodBundleRouter::new_next_hop(const EndpointIDPattern& dest, Link* next_hop)
     Bundle* bundle;
     BundleList::iterator iter;
 
-    oasys::ScopeLock lock(pending_bundles_->lock());
+    oasys::ScopeLock lock(pending_bundles_->lock(), 
+                          "FloodBundleRouter::new_next_hop");
     
     // upon arrival of new contact, send all pending bundles over contact
     for (iter = pending_bundles_->begin(); 

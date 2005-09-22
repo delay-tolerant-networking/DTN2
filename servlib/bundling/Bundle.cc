@@ -180,7 +180,7 @@ Bundle::serialize(oasys::SerializeAction* a)
 int
 Bundle::add_ref(const char* what1, const char* what2)
 {
-    lock_.lock();
+    lock_.lock("Bundle::add_ref");
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
     log_debug("/bundle/refs",
@@ -199,7 +199,7 @@ Bundle::add_ref(const char* what1, const char* what2)
 int
 Bundle::del_ref(const char* what1, const char* what2)
 {
-    lock_.lock();
+    lock_.lock("Bundle::del_ref");
     ASSERT(refcount_ > 0);
     int ret = --refcount_;
     log_debug("/bundle/refs",
