@@ -2,9 +2,7 @@
 
 source "oasys/test_utils/import.tcl"
 set import_path [list [pwd]/test_utils [pwd]/test/nets [pwd]/oasys/test_utils]
-
-import "test-lib.tcl"
-import "dtn-test-lib.tcl"
+import "test-lib.tcl" ; # from oasys
 
 if {[llength $argv] < 1} {
     puts "run-test.tcl <test script> options..."
@@ -16,10 +14,6 @@ if {[llength $argv] < 1} {
     run::usage
     exit
 }
-
-# standard manifest
-manifest::file daemon/dtnd dtnd
-manifest::dir  bundles
 
 # default args
 set defaults [list -net localhost]

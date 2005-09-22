@@ -1,9 +1,12 @@
 net::num_nodes 2
 test::name example
 
-manifest::file "test_utils/example_test.tcl" "f/o/o/foo"
-manifest::dir  "bundles"
-manifest::dir  "db"
+# To add additional files, include the following:
+# manifest::file "test_utils/example_test.tcl" "f/o/o/foo"
+
+config_berkeleydb
+config_interface tcp
+config_linear_topology ONDEMAND
 
 conf::add dtnd 0 {
     puts ""
@@ -25,11 +28,6 @@ conf::add dtnd 1 {
     puts "dtnd id 1 starting up..."
     puts ""
 
-    storage set type berkeleydb
-    storage set payloaddir bundles
-    storage set dbname     DTN
-    storage set dbdir      db
-    storage set dberrlog   DTN.errlog
     
     route set type static
     route local_eid "dtn://[info hostname].dtn"
