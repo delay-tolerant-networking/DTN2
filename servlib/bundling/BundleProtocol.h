@@ -71,14 +71,15 @@ public:
 
     /**
      * Store a struct timeval into a 64-bit timestamp suitable for
-     * transmission over the network. This does not require that the
-     * u_int64_t* be word-aligned.
+     * transmission over the network. This takes a u_char* and doesn't
+     * require the 64-bit destination to be word-aligned
      */
     static void set_timestamp(u_char* ts, const struct timeval* tv);
+    
     /**
-     * XXX Store a struct timeval into a 64-bit timestamp suitable for
-     * transmission over the network. This does not require that the
-     * u_int64_t* be word-aligned.
+     *  Store a struct timeval into a 64-bit timestamp suitable for
+     * transmission over the network. This prototype requires a 
+     * (word-aligned) u_int64_t* destination.
      */
     static void set_timestamp(u_int64_t* ts, const struct timeval* tv) {
 	set_timestamp((u_char *) ts, tv);
