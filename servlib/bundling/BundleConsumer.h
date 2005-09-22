@@ -121,6 +121,14 @@ protected:
      */
     BundleConsumer(const char* dest_str, bool is_local, type_t type);
 
+    /**
+     * Set the destination string after constrution.
+     */
+    void set_dest_str(const std::string& str)
+    {
+        dest_str_.assign(str);
+    }
+
     std::string dest_str_;	///< The next hop destination
     bool is_local_;		///< Bit indicating if this is a registration
     type_t type_;		///< Type of the consumer
