@@ -14,7 +14,7 @@
 #
 proc tcl_registration_bundle_ready {regid endpoint callback callback_data} {
     while {1} {
-	set bundle_data [registration tcl $regid $endpoint get_bundle_data]
+	set bundle_data [registration tcl $regid get_bundle_data]
 	if {$bundle_data == {}} {
 	    return
 	}
