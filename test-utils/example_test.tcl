@@ -5,8 +5,10 @@ manifest::file "test_utils/example_test.tcl" "f/o/o/foo"
 manifest::dir  "bundles"
 manifest::dir  "db"
 
-conf::add 0 {
-    puts "Put node 0 configuration here"
+conf::add dtnd 0 {
+    puts ""
+    puts "dtnd id 0 starting up..."
+    puts ""
 
     storage set type berkeleydb
     storage set payloaddir bundles
@@ -18,8 +20,10 @@ conf::add 0 {
     route local_eid "dtn://[info hostname].dtn"
 }
 
-conf::add 1 {
-    puts "Put node 1 configuration here"
+conf::add dtnd 1 {
+    puts ""
+    puts "dtnd id 1 starting up..."
+    puts ""
 
     storage set type berkeleydb
     storage set payloaddir bundles
@@ -32,7 +36,7 @@ conf::add 1 {
 }
 
 for {set i 0} {$i < 2} {incr i} {
-    conf::add $i "api set local_port $net::portbase($i)\n"
+    conf::add dtnd $i "api set local_port $net::portbase($i)\n"
 }
 
 test::script {
