@@ -295,8 +295,12 @@ FileConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  * FileConvergenceLayer::Scanner
  *
  *****************************************************************************/
-FileConvergenceLayer::Scanner::Scanner(int secs_per_scan, const std::string& dir)
-    : secs_per_scan_(secs_per_scan), dir_(dir), run_(true)
+FileConvergenceLayer::Scanner::Scanner(int secs_per_scan, 
+                                       const std::string& dir)
+    : Thread("FileConvergenceLayer::Scanner"), 
+      secs_per_scan_(secs_per_scan), 
+      dir_(dir), 
+      run_(true)
 {
     logpathf("/cl/file/scanner/%s", dir.c_str());
     set_flag(DELETE_ON_EXIT);

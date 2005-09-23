@@ -449,7 +449,8 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
                                             bool is_sender,
                                             Params* params)
 
-    : params_(*params), is_sender_(is_sender), contact_(NULL)
+    : Thread("TCPConvergenceLayer::Connection"), 
+      params_(*params), is_sender_(is_sender), contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 
@@ -496,7 +497,8 @@ TCPConvergenceLayer::Connection::Connection(int fd,
                                             u_int16_t remote_port,
                                             Params* params)
 
-    : params_(*params), is_sender_(false), contact_(NULL)
+    : Thread("TCPConvergenceLayer::Connection"),
+      params_(*params), is_sender_(false), contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 

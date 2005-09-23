@@ -56,7 +56,8 @@ BundleDaemon* BundleDaemon::instance_ = NULL;
 BundleDaemon::Params BundleDaemon::params_;
 
 BundleDaemon::BundleDaemon()
-    : BundleEventHandler("/bundle/daemon")
+    : BundleEventHandler("/bundle/daemon"),
+      Thread("BundleDaemon")
 {
     // default local eid
     // XXX/demmer fixme

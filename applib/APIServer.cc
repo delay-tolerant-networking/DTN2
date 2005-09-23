@@ -102,7 +102,7 @@ APIServer::init()
 }
 
 APIServer::APIServer()
-    : TCPServerThread("/apiserver", DELETE_ON_EXIT)
+    : TCPServerThread("APIServer", "/apiserver", DELETE_ON_EXIT)
 {
     // override the defaults via environment variables, if given
     char *env;
@@ -148,7 +148,7 @@ APIServer::accepted(int fd, in_addr_t addr, u_int16_t port)
 }
 
 APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
-    : Thread(DELETE_ON_EXIT),
+    : Thread("APIClient", DELETE_ON_EXIT),
       TCPClient(fd, addr, port, "/apiclient")
 {
     // note that we skip space for the message length and code/status
