@@ -27,10 +27,7 @@ set args [concat $defaults [lrange $argv 1 end]]
 run::init $args $test_script
 
 # ignore errors in the run_script, but leave crap if there are
-if {[catch { test::run_script }]} {
-    set opt(crap) 1
-}
-
+eval test::run_script
 run::wait_for_programs
 run::collect_logs
 run::cleanup

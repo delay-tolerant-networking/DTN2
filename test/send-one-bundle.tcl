@@ -1,4 +1,3 @@
-
 test::name send-one-bundle
 net::num_nodes 3
 
