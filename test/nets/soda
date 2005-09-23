@@ -4,3 +4,4 @@ net::node 2 frontier.cs.berkeley.edu 10000
 net::node 3 pisco.cs.berkeley.edu    10000
 net::node 4 deccan.cs.berkeley.edu   10000 
 net::node 5 sergiu.cs.berkeley.edu   10000 
+net::node 6 sergiu.cs.berkeley.edu   10000 
