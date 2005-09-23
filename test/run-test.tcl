@@ -17,7 +17,6 @@ if {[llength $argv] < 1} {
 
 # default args
 set defaults [list -net localhost]
-
 if { [llength $argv] > 0 } {
     set test_script [lindex $argv 0]
 } else {
@@ -26,8 +25,12 @@ if { [llength $argv] > 0 } {
 set args [concat $defaults [lrange $argv 1 end]]
 
 run::init $args $test_script
-# ignore errors in the run_script
-catch {
-    test::run_script
+
+# ignore errors in the run_script, but leave crap if there are
+if {[catch { test::run_script }]} {
+    set opt(crap) 1
 }
+
+run::wait_for_programs
 run::collect_logs
+run::cleanup
