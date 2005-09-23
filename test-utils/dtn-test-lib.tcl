@@ -1,12 +1,6 @@
 import "dtn-config.tcl"
 import "dtn-topology.tcl"
 
-# standard dtn manifest
-manifest::file daemon/dtnd dtnd
-manifest::file test_utils/dtnd-test-utils.tcl dtnd-test-utils.tcl
-manifest::dir  bundles
-manifest::dir  db
-
 namespace eval dtn {
     proc run_node { id { exec_file "dtnd" } {other_opts ""} } {
 	global opt net::host net::portbase net::extra test::testname

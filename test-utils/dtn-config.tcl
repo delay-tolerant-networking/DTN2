@@ -7,8 +7,19 @@ proc dtn_config {args} {
     
     conf::add dtnd * {source "dtnd-test-utils.tcl"}
 
+    dtn_manifest
     dtn_config_api_server
     dtn_config_berkeleydb
+}
+
+#
+# Standard manifest
+#
+proc dtn_manifest {} {
+    manifest::file daemon/dtnd dtnd
+    manifest::file test_utils/dtnd-test-utils.tcl dtnd-test-utils.tcl
+    manifest::dir  bundles
+    manifest::dir  db
 }
 
 #
@@ -22,7 +33,7 @@ proc dtn_port {what id} {
 	api	{ return [expr $portbase + 1] }
 	tcp	{ return [expr $portbase + 2] }
 	udp	{ return [expr $portbase + 2] }
-	default { error "unknown port type $what" }
+	default { return -1 }
     }
 }
 
