@@ -1,9 +1,8 @@
-
 #!/usr/bin/tclsh
-
 source "oasys/test_utils/import.tcl"
 set import::path [list [pwd]/test_utils [pwd]/test/nets [pwd]/oasys/test_utils]
-import "test-lib.tcl" ; # from oasys
+
+import "test-lib.tcl" 
 import "dtn-test-lib.tcl"
 
 if {[llength $argv] < 1} {
