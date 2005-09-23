@@ -1,10 +1,10 @@
 test::name send-one-bundle
 net::num_nodes 3
 
-dtn_config
+dtn::config
 
-dtn_config_interface tcp
-dtn_config_linear_topology ONDEMAND tcp true
+dtn::config_interface tcp
+dtn::config_linear_topology ONDEMAND tcp true
 
 conf::add dtnd 0 {
     proc test_arrived {regid bundle_info} {

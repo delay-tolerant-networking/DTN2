@@ -11,7 +11,7 @@ namespace eval dtn {
 		append exec_opts " -d"
 	    }	    
 	    # XXX/demmer add config hook for console (not just cmdline arg)
-	    append dtnd(exec_opts) " --console-port [dtn_port console $id]"
+	    append dtnd(exec_opts) " --console-port [dtn::get_port console $id]"
 	} else {
 	    set exec_opts "$other_opts"
 	}

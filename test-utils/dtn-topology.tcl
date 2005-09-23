@@ -1,7 +1,10 @@
 #
 # Default config shared by all these topologies
 #
-proc dtn_config_topology_common {} {
+
+namespace eval dtn {
+
+proc config_topology_common {} {
     foreach id [net::nodelist] {
 	conf::add dtnd $id "route set type static"
 	conf::add dtnd $id "route local_eid dtn://host-$id"
@@ -11,8 +14,8 @@ proc dtn_config_topology_common {} {
 #
 # Set up a linear topology using TCP or UDP
 #
-proc dtn_config_linear_topology {type cl with_routes {args ""}} {
-    dtn_config_topology_common
+proc config_linear_topology {type cl with_routes {args ""}} {
+    dtn::config_topology_common
     
     set last [expr [net::num_nodes] - 1]
     foreach id [net::nodelist] {
@@ -20,7 +23,7 @@ proc dtn_config_linear_topology {type cl with_routes {args ""}} {
 	if { $id != $last } {
 	    set peerid   [expr $id + 1]
 	    set peeraddr $net::host($peerid)
-	    set peerport [dtn_port $cl $peerid]
+	    set peerport [dtn::get_port $cl $peerid]
 
 	    conf::add dtnd $id [eval list link add link-$peerid  \
 		    $peeraddr:$peerport $type $cl $args]
@@ -37,7 +40,7 @@ proc dtn_config_linear_topology {type cl with_routes {args ""}} {
 	if { $id != 0 } {
 	    set peerid   [expr $id - 1]
 	    set peeraddr $net::host($peerid)
-	    set peerport [dtn_port $cl $peerid]
+	    set peerport [dtn::get_port $cl $peerid]
 	    
 	    conf::add dtnd $id [eval list link add link-$peerid \
 		    $peeraddr:$peerport  $type $cl $args]
@@ -66,7 +69,7 @@ proc dtn_config_linear_topology {type cl with_routes {args ""}} {
 #  |   |       |   |  
 # 210 211     218 219
 #
-proc dtn_config_tree_topology {type cl {args ""}} {
+proc config_tree_topology {type cl {args ""}} {
     global hosts ports num_nodes id route_to_root
 
     # the root has routes to all 9 first-hop descendents
@@ -140,4 +143,7 @@ proc dtn_config_tree_topology {type cl {args ""}} {
 	route add dtn://host-$parent/* link-$parent
 	set route_to_root dtn://$parentaddr
     }
+}
+
+# namespace dtn
 }
