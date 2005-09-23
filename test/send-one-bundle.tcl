@@ -31,3 +31,11 @@ conf::add dtnd [expr [net::num_nodes] - 1] {
     }
 }
 
+test::script {
+    for {set i 0} {$i < [net::num_nodes]} {incr i} {
+	dtn::run_node $i
+    }
+
+    after 5000
+    dtn::tell 
+}

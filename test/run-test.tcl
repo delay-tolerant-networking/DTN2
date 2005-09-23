@@ -9,8 +9,7 @@ if {[llength $argv] < 1} {
     puts "run-test.tcl <test script> options..."
     puts ""
     puts "Required:"
-    puts "    <test script> Test script"
-    puts "    <net file>    Network testbed file"
+    puts "    <test script> Test script to run"
     puts ""
     run::usage
     exit
@@ -27,4 +26,8 @@ if { [llength $argv] > 0 } {
 set args [concat $defaults [lrange $argv 1 end]]
 
 run::init $args $test_script
-run::run [net::nodelist] dtnd_opts
+# ignore errors in the run_script
+catch {
+    test::run_script
+}
+run::collect_logs
