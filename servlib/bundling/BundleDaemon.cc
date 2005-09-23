@@ -138,14 +138,14 @@ BundleDaemon::get_statistics(oasys::StringBuffer* buf)
 
 
 void
-BundleDaemon::generate_status_report(Bundle* bundle, status_report_flag_t flag)
+BundleDaemon::generate_status_report(Bundle* bundle, status_report_flag_t flag,
+                                     status_report_reason_t reason)
 {
     log_debug("generating return receipt status report");
         
     BundleStatusReport* report;
         
-    report = new BundleStatusReport(bundle, local_eid_, flag,
-				    BundleProtocol::REASON_NO_ADDTL_INFO);
+    report = new BundleStatusReport(bundle, local_eid_, flag, reason);
     
     BundleReceivedEvent e(report, EVENTSRC_ADMIN,
                           report->payload_.length());
@@ -234,7 +234,9 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  bundle->bundleid_, (u_int)bundle->creation_ts_.tv_sec);
     }
     
-    // XXX/demmer generate the bundle received status report
+    if (bundle->receive_rcpt_) {
+        generate_status_report(bundle, BundleProtocol::STATUS_RECEIVED);
+    }
 
     /*
      * Check if the bundle isn't complete. If so, do reactive
@@ -294,7 +296,9 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      */
     fragmentmgr_->reactively_fragment(bundle, event->bytes_sent_);
 
-    // XXX/demmer generate the bundle forwarded status report
+    if (bundle->forward_rcpt_) {
+        generate_status_report(bundle, BundleProtocol::STATUS_FORWARDED);
+    }
 
     /*
      * If there are no more mappings for the bundle (except for the
@@ -307,7 +311,8 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * reference.
      */
     if (params_.early_deletion_ && (bundle->num_mappings() == 1)) {
-        delete_from_pending(bundle);
+        // XXX/matt make sure we don't ever want a status report generated
+        delete_from_pending(bundle, BundleProtocol::REASON_NO_ADDTL_INFO);
     }
 }
 
@@ -320,7 +325,7 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     log_info("BUNDLE_EXPIRED *%p", bundle);
 
     ASSERT(bundle->expiration_timer_ == NULL);
-    
+
     // XXX/demmer need to notify if we have custody...
 
     // check that the bundle is on the pending list and then remove it
@@ -329,7 +334,7 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     // that the bundle isn't on any other lists (which it shouldn't
     // be), and return
     if (pending_bundles_->contains(bundle)) {
-        delete_from_pending(bundle);
+        delete_from_pending(bundle, BundleProtocol::REASON_LIFETIME_EXPIRED);
 
     } else {
         if (bundle->num_mappings() == 0) {
@@ -580,7 +585,8 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
     while ((ref = event->fragments_.pop_front()) != NULL) {
         // remove the fragment from the pending list
-        delete_from_pending(ref.object());
+        delete_from_pending(ref.object(),
+                            BundleProtocol::REASON_NO_ADDTL_INFO);
     }
 
     // post a new event for the newly reassembled event
@@ -619,10 +625,13 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 }
 
 /**
- * Delete the given bundle from the pending list.
+ * Delete the given bundle from the pending list. If the reason code
+ * is REASON_NO_ADDTL_INFO, we will never send a BundleStatusReport
+ * regardless of whether deletion_rcpt_ is set
  */
 void
-BundleDaemon::delete_from_pending(Bundle* bundle)
+BundleDaemon::delete_from_pending(Bundle* bundle,
+                                  status_report_reason_t reason)
 {
     oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::delete_from_pending");
     
@@ -647,9 +656,16 @@ BundleDaemon::delete_from_pending(Bundle* bundle)
         }
     }
     
-    if (! pending_bundles_->erase(bundle)) {
+    if (pending_bundles_->erase(bundle)) {
+        if (bundle->deletion_rcpt_ && (reason !=
+                                       BundleProtocol::REASON_NO_ADDTL_INFO)) {
+            generate_status_report(bundle,
+                                   BundleProtocol::STATUS_DELETED,
+                                   reason);
+        }
+    } else {
         log_err("unexpected error removing bundle from pending list");
-    } 
+    }
 }
 
 /**

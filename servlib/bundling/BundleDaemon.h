@@ -226,11 +226,15 @@ protected:
     ///@}
 
     typedef BundleProtocol::status_report_flag_t status_report_flag_t;
+    typedef BundleProtocol::status_report_reason_t status_report_reason_t;
     
     /**
      * Locally generate a status report for the given bundle.
      */
-    void generate_status_report(Bundle* bundle, status_report_flag_t flag);
+    void generate_status_report(Bundle* bundle,
+                                status_report_flag_t flag,
+                                status_report_reason_t reason =
+                                BundleProtocol::REASON_NO_ADDTL_INFO);
     
     /**
      * Add the bundle to the pending list and (optionally) the
@@ -242,7 +246,7 @@ protected:
      * Remove the bundle from the pending list and data store, and
      * cancel the expiration timer.
      */
-    void delete_from_pending(Bundle* bundle);
+    void delete_from_pending(Bundle* bundle, status_report_reason_t reason);
         
     /**
      * Deliver the bundle to the given registration
