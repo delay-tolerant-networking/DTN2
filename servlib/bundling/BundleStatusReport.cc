@@ -39,7 +39,7 @@
 #include "BundleStatusReport.h"
 #include "SDNV.h"
 #include <netinet/in.h>
-#include <oasys/util/StaticScratchBuffer.h>
+#include <oasys/util/ScratchBuffer.h>
 
 namespace dtn {
 
@@ -67,7 +67,7 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle,
     int report_length = 0;
     
     // we generally don't expect the Status Peport length to be > 256 bytes
-    oasys::StaticScratchBuffer<256, u_char*> scratch;
+    oasys::ScratchBuffer<u_char*, 256> scratch;
 
     //
     // Calculate Report Size and Set Fragment Status Flag:
