@@ -57,6 +57,6 @@ proc sendbundle {source_eid dest_eid args} {
 	append payload "."
     }
     
-    bundle inject $source_eid $dest_eid $payload $length
+    bundle inject $source_eid $dest_eid $payload option [list length $length]
 }
 

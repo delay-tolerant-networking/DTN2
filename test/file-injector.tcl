@@ -80,7 +80,7 @@ proc file_injector_scan {dir source dest period} {
 	    flush $fd_ftplog
 	
 	}
-	bundle inject $source "$dest/[file tail $file]" $payload $len
+	bundle inject $source "$dest/[file tail $file]" $payload option [list length $len]
 
 	file delete $file
     }
