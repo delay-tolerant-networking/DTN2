@@ -12,7 +12,7 @@ MANTXT := ../../doc/manual/man/$(APP).txt
 BINFILES := $(APP)
 all: $(APP) $(MANTXT)
 
-APPLFLAGS := -L$(SRCDIR)/applib -L$(SRCDIR)/oasys $(LDFLAGS) \
+APPLFLAGS = -L$(SRCDIR)/applib -L$(SRCDIR)/oasys $(LDFLAGS) \
 		-ldtnapi -loasyscompat $(LIBS) 
 
 $(APP): $(OBJS) $(SRCDIR)/applib/libdtnapi.a
