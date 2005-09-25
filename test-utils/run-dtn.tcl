@@ -1,6 +1,11 @@
 #!/usr/bin/tclsh
 source "oasys/test_utils/import.tcl"
-set import::path [list [pwd]/test_utils [pwd]/test/nets [pwd]/oasys/test_utils]
+set import::path [list \
+	[pwd]/test_utils \
+	[pwd]/test/nets \
+	[pwd]/oasys/test_utils \
+	[pwd]/oasys/tclcmd \
+	]
 
 import "test-lib.tcl" 
 import "dtn-test-lib.tcl"
