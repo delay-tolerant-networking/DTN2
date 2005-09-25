@@ -11,12 +11,29 @@ namespace eval dtn {
 		append exec_opts " -d"
 	    }	    
 	    # XXX/demmer add config hook for console (not just cmdline arg)
-	    append dtnd(exec_opts) " --console-port [dtn::get_port console $id]"
+	    append exec_opts " --console-port [dtn::get_port console $id]"
 	} else {
 	    set exec_opts "$other_opts"
 	}
 
 	run::run $id $exec_file $exec_opts $test::testname.conf \
 	    [conf::get dtnd $id]
+    }
+
+    proc wait_for_dtnd {id} {
+	global net::host
+	
+	if {$id == "*"} {
+	    foreach id [net::nodelist] {
+		wait_for_dtnd $id
+	    }
+	}
+
+	tell::wait $net::host($id) [dtn::get_port console $id]
+    }
+
+    proc tell { id args } {
+	global net::host
+	return [tell::tell $net::host($id) [dtn::get_port console $id] $args]
     }
 }
