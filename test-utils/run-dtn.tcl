@@ -39,6 +39,10 @@ if {[catch {test::run_script} err]} {
 if {!$opt(daemon)} {
     command_loop "dtntest"
 }
+if {[catch {test::run_exit_script} err]} {
+    global errorInfo
+    puts "error: $errorInfo"
+}
 run::wait_for_programs
 run::collect_logs
 run::cleanup
