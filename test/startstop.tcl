@@ -10,8 +10,11 @@ test::script {
     dtn::run_dtnd *
     puts "* Waiting for dtnd"
     dtn::wait_for_dtnd *
-    puts "* Exiting dtn daemons"
-    dtn::tell_dtnd * {puts "startstop test complete"}
-    dtn::tell_dtnd * {exit}
+    dtn::tell_dtnd * {puts "startstop test"}
     puts "* Startstop test script complete"
+}
+
+test::exit_script {
+    puts "* Exiting dtn daemons"
+    dtn::tell_dtnd * {exit}
 }

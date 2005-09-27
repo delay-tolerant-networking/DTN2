@@ -41,4 +41,11 @@ test::script {
 	    break
 	}
     }
+
+    puts "* test success!"
+}
+
+test::exit_script {
+    puts "* stopping all dtnds"
+    dtn::tell_dtnd * exit
 }
