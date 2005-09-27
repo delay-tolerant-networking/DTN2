@@ -31,8 +31,14 @@ set args [concat $defaults [lrange $argv 1 end]]
 
 run::init $args $test_script
 
-# ignore errors in the run_script, but leave crap if there are
-eval test::run_script
+# catch and report errors in the test script
+if {[catch {test::run_script} err]} {
+    global errorInfo
+    puts "error: $errorInfo"
+}
+if {!$opt(daemon)} {
+    command_loop "dtntest"
+}
 run::wait_for_programs
 run::collect_logs
 run::cleanup

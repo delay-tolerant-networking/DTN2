@@ -1,20 +1,17 @@
 test::name startstop
-net::num_nodes 1
+net::default_num_nodes 1
 
 dtn::config
-
 dtn::config_interface tcp
 dtn::config_linear_topology ONDEMAND tcp true
 
 test::script {
-    puts "***"
-    puts "*** test script starting ***"
-    puts "***"
-    dtn::run_node 0
-
+    puts "* Startstop test script executing..."
+    dtn::run_dtnd *
+    puts "* Waiting for dtnd"
     dtn::wait_for_dtnd *
-    
-    after 2000
-    dtn::tell 0 exit
-    puts "*** test script complete ***"
+    puts "* Exiting dtn daemons"
+    dtn::tell_dtnd * {puts "startstop test complete"}
+    dtn::tell_dtnd * {exit}
+    puts "* Startstop test script complete"
 }

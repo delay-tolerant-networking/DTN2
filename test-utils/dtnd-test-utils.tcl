@@ -47,7 +47,7 @@ proc sendbundle {source_eid dest_eid args} {
 
     # XXX/matt for now just assume args consists of a list of "bundle
     # inject" option pairs
-    set length  5000
+    set length 5000
     set i [lsearch -exact $args length]
     if {$i != -1} {
 	set length [lindex $args [expr $i + 1]]
