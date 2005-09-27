@@ -10,6 +10,7 @@ proc config {args} {
     conf::add dtnd * {source "dtnd-test-utils.tcl"}
 
     dtn::standard_manifest
+    dtn::config_console
     dtn::config_api_server
     dtn::config_berkeleydb
 }
@@ -49,6 +50,16 @@ proc config_interface {cl args } {
 	
 	conf::add dtnd $id [eval list interface add ${cl}0 $cl \
 		local_addr=$host local_port=$port $args]
+    }
+}
+
+#
+# Configure the console server
+#
+proc config_console {} {
+    foreach id [net::nodelist] {
+	conf::add dtnd $id "console set addr $net::host($id)"
+	conf::add dtnd $id "console set port [dtn::get_port console $id]"
     }
 }
 
