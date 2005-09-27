@@ -1,9 +1,9 @@
 #!/usr/bin/tclsh
-source "oasys/test_utils/import.tcl"
+source "oasys/test-utils/import.tcl"
 set import::path [list \
-	[pwd]/test_utils \
+	[pwd]/test-utils \
 	[pwd]/test/nets \
-	[pwd]/oasys/test_utils \
+	[pwd]/oasys/test-utils \
 	[pwd]/oasys/tclcmd \
 	]
 

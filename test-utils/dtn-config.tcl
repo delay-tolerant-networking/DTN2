@@ -19,7 +19,7 @@ proc config {args} {
 #
 proc standard_manifest {} {
     manifest::file daemon/dtnd dtnd
-    manifest::file test_utils/dtnd-test-utils.tcl dtnd-test-utils.tcl
+    manifest::file test-utils/dtnd-test-utils.tcl dtnd-test-utils.tcl
     manifest::dir  bundles
     manifest::dir  db
 }
