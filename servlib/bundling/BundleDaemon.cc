@@ -142,7 +142,8 @@ void
 BundleDaemon::generate_status_report(Bundle* bundle, status_report_flag_t flag,
                                      status_report_reason_t reason)
 {
-    log_debug("generating return receipt status report");
+    log_debug("generating return receipt status report, flag = 0x%x, reason = 0x%x",
+              flag, reason);
         
     BundleStatusReport* report;
         
