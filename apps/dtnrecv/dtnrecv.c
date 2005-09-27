@@ -50,7 +50,7 @@ const char *progname;
 
 int   verbose           = 0;    	// verbose output
 char* endpoint		= NULL; 	// endpoint for registration
-int   regid		= DTN_REGID_NONE;// registration id
+dtn_reg_id_t regid	= DTN_REGID_NONE;// registration id
 int   expiration	= 30; 		// registration expiration time
 int   failure_action	= DTN_REG_DEFER;// registration delivery failure action
 char* failure_script	= "";	 	// script to exec
