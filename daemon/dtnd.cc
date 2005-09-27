@@ -267,7 +267,7 @@ main(int argc, char* argv[])
         oasys::TclCommandInterp::instance()->command_loop("dtn");
     }
     
-    log_err("/dtnd", "command loop exited unexpectedly");
+    log_info("/dtnd", "command loop exited... shutting down daemon");
 
     delete_z(dtnserver);
     delete_z(apiserver);
