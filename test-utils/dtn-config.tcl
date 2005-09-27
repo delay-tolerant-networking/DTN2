@@ -67,7 +67,8 @@ proc config_api_server {} {
 #
 proc config_berkeleydb {} {
     conf::add dtnd * {
-	storage set type berkeleydb
+	storage set tidy_wait  0
+	storage set type       berkeleydb
 	storage set payloaddir bundles
 	storage set dbname     DTN
 	storage set dbdir      db
