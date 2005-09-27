@@ -45,8 +45,13 @@ proc tcl_registration {endpoint callback {callback_data ""}} {
 proc sendbundle {source_eid dest_eid args} {
     global id
 
-    # XXX/demmer parse length and payload from args
+    # XXX/matt for now just assume args consists of a list of "bundle
+    # inject" option pairs
     set length  5000
+    set i [lsearch -exact $args length]
+    if {$i != -1} {
+	set length [lindex $args [expr $i + 1]]
+    }
     set payload "test bundle payload data\n"
 
     while {$length - [string length $payload] > 32} {
@@ -56,7 +61,9 @@ proc sendbundle {source_eid dest_eid args} {
     while {$length > [string length $payload]} {
 	append payload "."
     }
-    
-    bundle inject $source_eid $dest_eid $payload option [list length $length]
+
+    set options [concat [list length $length] $args]
+    bundle inject $source_eid $dest_eid $payload \
+	option $options
 }
 

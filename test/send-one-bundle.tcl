@@ -22,11 +22,14 @@ conf::add dtnd 0 {
     }
 }
 
-conf::add dtnd [expr [net::num_nodes] - 1] {
+set last_node [expr [net::num_nodes] - 1]
+conf::add dtnd $last_node "set last_node $last_node\n\n"
+conf::add dtnd $last_node {
     # XXX/demmer this should move to a 'tell' command
     test set initscript {
 	after 5000
-	sendbundle dtn://host-1/test dtn://host-0/test
+	sendbundle dtn://host-$last_node/test dtn://host-0/test \
+	    length 5555 receive_rcpt true forward_rcpt true deletion_rcpt true delivery_rcpt true
     }
 }
 
