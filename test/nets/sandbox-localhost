@@ -1,0 +1,7 @@
+#
+# Network definition file for the "sandbox" network, which is just
+# like the localhost one but acts like a distributed test.
+#
+for {set i 0} {$i < 254} {incr i} {
+    net::node $i sandbox.dtnrg.org [expr 10000 + $i*1000]
+}
