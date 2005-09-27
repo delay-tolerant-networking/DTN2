@@ -42,8 +42,10 @@
 #include <sys/time.h>
 
 #include <oasys/debug/Log.h>
+#include <oasys/io/NetUtils.h>
 #include <oasys/memory/Memory.h>
 #include <oasys/storage/StorageConfig.h>
+#include <oasys/tclcmd/ConsoleCommand.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Getopt.h>
@@ -64,17 +66,16 @@ using namespace dtn;
 // Configuration variables
 int         g_random_seed      = 0;
 bool        g_random_seed_set  = false;
-bool	    g_daemon           = false;
 bool        g_conf_file_set    = false;
 std::string g_conf_file        = "";
 bool	    g_print_version    = false;
-int         g_console_port     = 0;
 
 std::string        loglevelstr;
 oasys::log_level_t loglevel;
 std::string        logfile     = "-";
 
 TestCommand g_testcmd;
+oasys::ConsoleCommand g_console;
 
 oasys::StorageConfig g_storage_config("storage",
                                       "berkeleydb",
@@ -107,8 +108,7 @@ get_options(int argc, char* argv[])
         new oasys::StringOpt('c', "conf", &g_conf_file, "<conf>",
                              "set the configuration file", &g_conf_file_set));
     oasys::Getopt::addopt(
-
-        new oasys::BoolOpt('d', "daemon", &g_daemon,
+        new oasys::BoolOpt('d', "daemon", &g_console.daemon_,
                            "run as a daemon"));
 
     oasys::Getopt::addopt(
@@ -124,8 +124,12 @@ get_options(int argc, char* argv[])
                           "random number generator seed", &g_random_seed_set));
 
     oasys::Getopt::addopt(
-        new oasys::IntOpt(0, "console-port", &g_console_port, "<port>",
-                          "set the port for a console server (default off)"));
+        new oasys::InAddrOpt(0, "console-addr", &g_console.addr_, "<addr>",
+                             "set the console listening addr (default off)"));
+    
+    oasys::Getopt::addopt(
+        new oasys::UInt16Opt(0, "console-port", &g_console.port_, "<port>",
+                             "set the console listening port (default off)"));
     
     oasys::Getopt::addopt(
         new oasys::IntOpt('i', 0, &g_testcmd.id_, "<id>",
@@ -228,6 +232,7 @@ main(int argc, char* argv[])
 
     dtnserver->init();
     apiserver->init();
+    oasys::TclCommandInterp::instance()->reg(&g_console);
     init_testcmd(argc, argv);
 
     dtnserver->parse_conf_file(g_conf_file, g_conf_file_set);
@@ -255,13 +260,15 @@ main(int argc, char* argv[])
     }
 
     // launch the console server
-    if (g_console_port != 0) {
-        log_info("/dtnd", "starting console on localhost:%d", g_console_port);
+    if (g_console.port_ != 0) {
+        log_info("/dtnd", "starting console on %s:%d",
+                 intoa(g_console.addr_), g_console.port_);
+        
         oasys::TclCommandInterp::instance()->
-            command_server("dtn", htonl(INADDR_LOOPBACK), g_console_port);
+            command_server("dtn", g_console.addr_, g_console.port_);
     }
     
-    if (g_daemon) {
+    if (g_console.daemon_) {
         oasys::TclCommandInterp::instance()->event_loop();
     } else {
         oasys::TclCommandInterp::instance()->command_loop("dtn");
