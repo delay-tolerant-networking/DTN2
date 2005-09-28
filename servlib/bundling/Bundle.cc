@@ -65,7 +65,6 @@ Bundle::init(u_int32_t id)
     forward_rcpt_	= false;
     delivery_rcpt_	= false;
     deletion_rcpt_	= false;
-    expiration_		= 0;
     gettimeofday(&creation_ts_, 0);
     orig_length_	= 0;
     frag_offset_	= 0;
