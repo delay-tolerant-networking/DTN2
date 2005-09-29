@@ -54,6 +54,26 @@ public:
      */
     virtual int exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp);
     virtual const char* help_string();
+
+    /**
+     * "bundle inject" command parameters/options
+     */
+    struct InjectOpts {
+        bool receive_rcpt_;	///< Hop by hop reception receipt
+        bool custody_rcpt_;	///< Custody xfer reporting
+        bool forward_rcpt_;	///< Hop by hop forwarding reporting
+        bool delivery_rcpt_;	///< End-to-end delivery reporting
+        bool deletion_rcpt_;	///< Bundle deletion reporting
+        size_t expiration_;     ///< Bundle TTL
+        size_t length_;         ///< Bundle payload length
+    };
+
+    static InjectOpts defaults_;
+
+private:
+    bool parse_inject_options(InjectOpts* options, int objc, Tcl_Obj** objv,
+                              const char** invalidp);
+    
 };
 
 } // namespace dtn

@@ -38,6 +38,7 @@
 
 #include <oasys/util/HexDumpBuffer.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/util/OptParser.h>
 
 #include "BundleCommand.h"
 #include "bundling/Bundle.h"
@@ -46,8 +47,55 @@
 
 namespace dtn {
 
+// XXX/matt ask demmer about this
+struct BundleCommand::InjectOpts BundleCommand::defaults_;
+
 BundleCommand::BundleCommand()
-    : TclCommand("bundle") {}
+    : TclCommand("bundle")
+{
+    // set the defaults for the "bundle inject" optional parameters
+    // here
+
+    defaults_.receive_rcpt_   = false;
+    defaults_.custody_rcpt_   = false;
+    defaults_.forward_rcpt_   = false;
+    defaults_.delivery_rcpt_  = false;
+    defaults_.deletion_rcpt_  = false;
+    defaults_.expiration_     = 60; // bundle TTL
+    defaults_.length_         = 0; // bundle payload length
+
+}
+
+bool
+BundleCommand::parse_inject_options(InjectOpts* options,
+                                    int objc, Tcl_Obj** objv,
+                                    const char** invalidp)
+{
+    // no options specified:
+    if (objc < 6) {
+        return true;
+    }
+    
+    oasys::OptParser p;
+
+    p.addopt(new oasys::BoolOpt("receive_rcpt", &options->receive_rcpt_));
+    p.addopt(new oasys::BoolOpt("custody_rcpt", &options->custody_rcpt_));
+    p.addopt(new oasys::BoolOpt("forward_rcpt", &options->forward_rcpt_));
+    p.addopt(new oasys::BoolOpt("delivery_rcpt", &options->delivery_rcpt_));
+    p.addopt(new oasys::BoolOpt("deletion_rcpt", &options->deletion_rcpt_));
+    p.addopt(new oasys::UIntOpt("expiration", &options->expiration_));
+    p.addopt(new oasys::UIntOpt("length", &options->length_));
+
+    for (int i=5; i<objc; i++) {
+        int len;
+        const char* option_name = Tcl_GetStringFromObj(objv[i], &len);
+        if (! p.parse_opt(option_name, len)) {
+            *invalidp = option_name;
+            return false;
+        }
+    }
+    return true;
+}
 
 const char*
 BundleCommand::help_string()
@@ -55,16 +103,15 @@ BundleCommand::help_string()
     // XXX/matt ugly way to represent the optional "option" argument
     // that requires a Tcl List if present, also need to enumerate
     // what options you can provide
-    return "bundle inject <source> <dest> <payload> <option option_list?> \n"
-        "    option_list is a Tcl list consisting of one or more of"
-        "the following pairs:\n"
-        "        receive_rcpt  [boolean]\n"
-        "        custody_rcpt  [boolean]\n"
-        "        forward_rcpt  [boolean]\n"
-        "        delivery_rcpt [boolean]\n"
-        "        deletion_rcpt [boolean]\n"
-        "        expiration    [int]\n"
-        "        length        [int]\n"
+    return "bundle inject <source> <dest> <payload> <opt1<=val1?>...optN<=valN?>?> \n"
+        "    valid options:\n"
+        "        receive_rcpt\n"
+        "        custody_rcpt\n"
+        "        forward_rcpt\n"
+        "        delivery_rcpt\n"
+        "        deletion_rcpt\n"
+        "        expiration=integer\n"
+        "        length=integer\n"
         "bundle stats \n"
         "bundle list \n"
         "bundle info <id>\n"
@@ -85,11 +132,9 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
     const char* cmd = Tcl_GetStringFromObj(objv[1], 0);
 
     if (strcmp(cmd, "inject") == 0) {
-        // bundle inject <source> <dest> <payload> <option tcl_list_of_options ?>
-        // XXX this check should really be for exactly 5 or 7, but
-        // wrong_num_args outputs a non-sensical message if it was 6
-        if (objc < 5 || objc > 7) {
-            wrong_num_args(objc, objv, 2, 5, 7);
+        // bundle inject <source> <dest> <payload> <param1<=value1?>?> ... <paramN<=valueN?>?>
+        if (objc < 5) {
+            wrong_num_args(objc, objv, 2, 5, INT_MAX);
             return TCL_ERROR;
         }
         
@@ -98,159 +143,35 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         b->replyto_.assign(Tcl_GetStringFromObj(objv[2], 0));
         b->custodian_.assign(Tcl_GetStringFromObj(objv[2], 0));
         b->dest_.assign(Tcl_GetStringFromObj(objv[3], 0));
-        b->expiration_ = 60; // default value, can be overidden in options
 
         int payload_len;
         u_char* payload_data = Tcl_GetByteArrayFromObj(objv[4], &payload_len);
         int total = payload_len;
 
-        if (objc == 7) {
-            const char* param_name = Tcl_GetStringFromObj(objv[5], 0);
-            
-            if (strcmp(param_name, "option") != 0) {
-                resultf("unknown parameter %s", cmd);
-                return TCL_ERROR;
-            }
-
-            int ok, optsC;
-            Tcl_Obj** optsV;
-            ok = Tcl_ListObjGetElements(interp, objv[6], &optsC, &optsV);
-
-            if (ok != TCL_OK) {
-                resultf("invalid Tcl list of options");
-                return TCL_ERROR;
-            }
-
-            const char* option_name;
-            int i = 0, value, len = optsC;
-            
-            while (len > 0) {
-                option_name = Tcl_GetStringFromObj(optsV[i++], 0);
-
-                // can check here for now because all options take a value
-                if (len < 2) {
-                    resultf("missing value for option %s", option_name);
-                    return TCL_ERROR;
-                }
-                
-                // OPTIONS:
-                //
-                // receive_rcpt  [boolean]
-                // custody_rcpt  [boolean]
-                // forward_rcpt  [boolean]
-                // delivery_rcpt [boolean]
-                // deletion_rcpt [boolean]
-                // expiration    [int]
-                // length        [int]
-                    
-                if (!strcmp(option_name, "receive_rcpt")) {
-                    
-                    ok = Tcl_GetBooleanFromObj(interp, optsV[i], &value);
-
-                    if (ok != TCL_OK) {
-                        resultf("invalid receive_rcpt parameter %s",
-                                Tcl_GetStringFromObj(optsV[i], 0));
-                        return TCL_ERROR;
-                    }
-                    
-                    b->receive_rcpt_ = value;
-                    
-                } else if (!strcmp(option_name, "custody_rcpt")) {
-
-                    ok = Tcl_GetBooleanFromObj(interp, optsV[i], &value);
-
-                    if (ok != TCL_OK) {
-                        resultf("invalid custody_rcpt parameter %s",
-                                Tcl_GetStringFromObj(optsV[i], 0));
-                        return TCL_ERROR;
-                    }
-                    
-                    b->custody_rcpt_ = value;
-                    
-                } else if (!strcmp(option_name, "forward_rcpt")) {
-
-                    ok = Tcl_GetBooleanFromObj(interp, optsV[i], &value);
-
-                    if (ok != TCL_OK) {
-                        resultf("invalid forward_rcpt parameter %s",
-                                Tcl_GetStringFromObj(optsV[i], 0));
-                        return TCL_ERROR;
-                    }
-                    
-                    b->forward_rcpt_ = value;
-                    
-                } else if (!strcmp(option_name, "delivery_rcpt")) {
-
-                    ok = Tcl_GetBooleanFromObj(interp, optsV[i], &value);
-
-                    if (ok != TCL_OK) {
-                        resultf("invalid delivery_rcpt parameter %s",
-                                Tcl_GetStringFromObj(optsV[i], 0));
-                        return TCL_ERROR;
-                    }
-                    
-                    b->delivery_rcpt_ = value;
-                    
-                } else if (!strcmp(option_name, "deletion_rcpt")) {
-
-                    ok = Tcl_GetBooleanFromObj(interp, optsV[i], &value);
-
-                    if (ok != TCL_OK) {
-                        resultf("invalid deletion_rcpt parameter %s",
-                                Tcl_GetStringFromObj(optsV[i], 0));
-                        return TCL_ERROR;
-                    }
-                    
-                    b->deletion_rcpt_ = value;
-
-                } else if (!strcmp(option_name, "expiration")) {
-
-                    ok = Tcl_GetIntFromObj(interp, optsV[i], &value);
-
-                    if (ok != TCL_OK) {
-                        resultf("invalid parameter %s",
-                                Tcl_GetStringFromObj(optsV[i], 0));
-                        return TCL_ERROR;
-                    }
-                    
-                    b->expiration_ = value;
-
-                } else if (!strcmp(option_name, "length")) {
-                    
-                    ok = Tcl_GetIntFromObj(interp, optsV[i], &total);
-                            
-                    if (ok != TCL_OK) {
-                        resultf("invalid length parameter %s",
-                                Tcl_GetStringFromObj(optsV[i], 0));
-                        return TCL_ERROR;
-                    }
-            
-                    if (total == 0) {
-                        resultf("invalid zero length parameter");
-                        return TCL_ERROR;
-                    }
-
-                } else {
-                    resultf("unknown option %s", option_name);
-                    return TCL_ERROR;
-                }              
-                    
-                // can do this here for now because all options take a
-                // value; could have incremented i while getting
-                // values but then have ugliness in the Tcl error
-                // strings
-                i++;
-                len -= 2;
-            }
+        // now process any optional parameters:
+        InjectOpts options = BundleCommand::defaults_;
+        const char* invalid;
+        if (!parse_inject_options(&options, objc, objv, &invalid)) {
+            log_err("error parsing bundle inject options: invalid option '%s'",
+                    invalid);
+            return false;
         }
+        
+        b->receive_rcpt_  = options.receive_rcpt_;
+        b->custody_rcpt_  = options.custody_rcpt_;
+        b->forward_rcpt_  = options.forward_rcpt_;
+        b->delivery_rcpt_ = options.delivery_rcpt_;
+        b->deletion_rcpt_ = options.deletion_rcpt_;
+        b->expiration_    = options.expiration_;
 
-        if (total == payload_len) {
-            // no explicit length, use the object length
-            b->payload_.set_data(payload_data, payload_len);
-        } else {
-            b->payload_.set_length(total);
+        if (options.length_ != 0) {
+            // explicit length
+            b->payload_.set_length(options.length_);
             b->payload_.append_data(payload_data, payload_len);
-        }            
+        } else {
+            // use the object length
+            b->payload_.set_data(payload_data, payload_len);
+        }
             
         log_debug("inject %d byte bundle %s->%s", total,
                   b->source_.c_str(), b->dest_.c_str());
