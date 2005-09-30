@@ -264,7 +264,8 @@ bool Bundle::validate(oasys::StringBuffer* errbuf) {
     }
 
     if (receipt_requested() && source_.equals(replyto_)) {
-        errbuf->appendf("one or more return receipt flags set but source EID = reply-to EID (%s)",
+        errbuf->appendf("one or more return receipt flags set but "
+                        "source EID = reply-to EID (%s)",
                         source_.data());
         return false;
     }        
