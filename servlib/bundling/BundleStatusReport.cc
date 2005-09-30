@@ -111,7 +111,6 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle,
     
     // Admin Payload Type
     *bp++ = BundleProtocol::ADMIN_STATUS_REPORT;
-    bp++;
     len--;
 
     // Status Flags
