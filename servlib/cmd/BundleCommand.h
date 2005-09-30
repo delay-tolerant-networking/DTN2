@@ -55,10 +55,15 @@ public:
     virtual int exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp);
     virtual const char* help_string();
 
+private:
+
     /**
      * "bundle inject" command parameters/options
      */
-    struct InjectOpts {
+    class InjectOpts {
+    public:
+        InjectOpts();
+        
         bool receive_rcpt_;	///< Hop by hop reception receipt
         bool custody_rcpt_;	///< Custody xfer reporting
         bool forward_rcpt_;	///< Hop by hop forwarding reporting
@@ -66,11 +71,12 @@ public:
         bool deletion_rcpt_;	///< Bundle deletion reporting
         size_t expiration_;     ///< Bundle TTL
         size_t length_;         ///< Bundle payload length
+        std::string replyto_;   ///< Bundle Reply-To EID
     };
 
-    static InjectOpts defaults_;
-
-private:
+    /**
+     * Parse the "bundle inject" command line options
+     */
     bool parse_inject_options(InjectOpts* options, int objc, Tcl_Obj** objv,
                               const char** invalidp);
     

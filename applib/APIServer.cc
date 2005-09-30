@@ -449,23 +449,14 @@ APIClient::handle_send()
 
     // assign the addressing fields
     b->source_.assign(&spec.source);
-    if (!b->source_.valid()) {
-        log_err("invalid source eid [%s]", spec.source.uri);
-        return DTN_EINVAL;
-    }
-    
     b->dest_.assign(&spec.dest);
-    if (!b->dest_.valid()) {
-        log_err("invalid dest eid [%s]", spec.dest.uri);
-        return DTN_EINVAL;
-    }
-    
     b->replyto_.assign(&spec.replyto);
-    if (!b->replyto_.valid()) {
-        log_err("invalid replyto eid [%s]", spec.replyto.uri);
+     
+    oasys::StringBuffer error;
+    if (!b->validate(&error)) {
+        log_err("bundle validation failed: %s", error.data());
         return DTN_EINVAL;
     }
-
     b->custodian_.assign(BundleDaemon::instance()->local_eid());
     
     // the priority code

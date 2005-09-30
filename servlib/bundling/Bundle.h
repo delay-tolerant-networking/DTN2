@@ -162,6 +162,20 @@ public:
      * Return an iterator to mark the end of the mappings set.
      */
     MappingsIterator mappings_end();
+
+    /**
+     * Validate the bundle's fields
+     */
+    bool validate(oasys::StringBuffer* errbuf);
+
+    /**
+     * True if any return receipt fields are set
+     */
+    bool receipt_requested()
+    {
+        return (receive_rcpt_ | custody_rcpt_ | forward_rcpt_ |
+                delivery_rcpt_ | delivery_rcpt_);
+    }
     
     /**
      * Values for the bundle priority field.

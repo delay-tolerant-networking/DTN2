@@ -243,4 +243,34 @@ Bundle::mappings_end()
     return mappings_.end();
 }
 
+/**
+ * Validate the bundle's fields
+ */
+bool Bundle::validate(oasys::StringBuffer* errbuf) {
+
+    if (!source_.valid()) {
+        errbuf->appendf("invalid source eid [%s]", source_.data());
+        return false;
+    }
+    
+    if (!dest_.valid()) {
+        errbuf->appendf("invalid dest eid [%s]", dest_.data());
+        return false;
+    }
+
+    if (!replyto_.valid()) {
+        errbuf->appendf("invalid replyto eid [%s]", replyto_.data());
+        return false;
+    }
+
+    if (receipt_requested() && source_.equals(replyto_)) {
+        errbuf->appendf("one or more return receipt flags set but source EID = reply-to EID (%s)",
+                        source_.data());
+        return false;
+    }        
+
+    return true;
+    
+}
+
 } // namespace dtn

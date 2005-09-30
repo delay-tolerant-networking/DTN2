@@ -47,25 +47,20 @@
 
 namespace dtn {
 
-// XXX/matt ask demmer about this
-struct BundleCommand::InjectOpts BundleCommand::defaults_;
-
 BundleCommand::BundleCommand()
-    : TclCommand("bundle")
-{
-    // set the defaults for the "bundle inject" optional parameters
-    // here
+    : TclCommand("bundle") {}
 
-    defaults_.receive_rcpt_   = false;
-    defaults_.custody_rcpt_   = false;
-    defaults_.forward_rcpt_   = false;
-    defaults_.delivery_rcpt_  = false;
-    defaults_.deletion_rcpt_  = false;
-    defaults_.expiration_     = 60; // bundle TTL
-    defaults_.length_         = 0; // bundle payload length
-
-}
-
+BundleCommand::InjectOpts::InjectOpts()
+    : receive_rcpt_(false), 
+      custody_rcpt_(false), 
+      forward_rcpt_(false), 
+      delivery_rcpt_(false), 
+      deletion_rcpt_(false), 
+      expiration_(60),  // bundle TTL
+      length_(0),  // bundle payload length
+      replyto_("")
+{}
+    
 bool
 BundleCommand::parse_inject_options(InjectOpts* options,
                                     int objc, Tcl_Obj** objv,
@@ -85,6 +80,7 @@ BundleCommand::parse_inject_options(InjectOpts* options,
     p.addopt(new oasys::BoolOpt("deletion_rcpt", &options->deletion_rcpt_));
     p.addopt(new oasys::UIntOpt("expiration", &options->expiration_));
     p.addopt(new oasys::UIntOpt("length", &options->length_));
+    p.addopt(new oasys::StringOpt("replyto", &options->replyto_));
 
     for (int i=5; i<objc; i++) {
         int len;
@@ -149,12 +145,12 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         int total = payload_len;
 
         // now process any optional parameters:
-        InjectOpts options = BundleCommand::defaults_;
+        InjectOpts options;
         const char* invalid;
         if (!parse_inject_options(&options, objc, objv, &invalid)) {
             log_err("error parsing bundle inject options: invalid option '%s'",
                     invalid);
-            return false;
+            return TCL_ERROR;
         }
         
         b->receive_rcpt_  = options.receive_rcpt_;
@@ -172,7 +168,17 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             // use the object length
             b->payload_.set_data(payload_data, payload_len);
         }
-            
+
+        if (options.replyto_ != "") {
+            b->replyto_.assign(options.replyto_.c_str());
+        }
+
+        oasys::StringBuffer error;
+        if (!b->validate(&error)) {
+            log_err("bundle validation failed: %s", error.data());
+            return TCL_ERROR;
+        }
+        
         log_debug("inject %d byte bundle %s->%s", total,
                   b->source_.c_str(), b->dest_.c_str());
 
