@@ -39,7 +39,6 @@
 #define _BUNDLEREF_H_
 
 #include <oasys/util/Ref.h>
-#include <oasys/util/TempRef.h>
 
 namespace dtn {
 
