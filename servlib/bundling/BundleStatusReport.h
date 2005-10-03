@@ -44,6 +44,24 @@
 namespace dtn {
 
 /**
+ * Specification of the contents of a DTN Bundle Status Report
+ */
+struct status_report_data_t {
+    u_char                admin_type_;
+    u_char                status_flags_;
+    u_char                reason_code_;
+    u_int64_t             frag_offset_;
+    u_int64_t             frag_length_;
+    timeval               receipt_tv_;
+    timeval               forwarding_tv_;
+    timeval               delivery_tv_;
+    timeval               deletion_tv_;
+    timeval               creation_tv_;
+    oasys::StringBuffer   EID_;
+};
+typedef struct status_report_data_t status_report_data_t;
+
+/**
  * A special bundle class whose payload is a status report. Used at
  * the source to generate the report.
  */
@@ -56,6 +74,14 @@ public:
                        const EndpointID& source,
                        BundleProtocol::status_report_flag_t flag,
                        BundleProtocol::status_report_reason_t reason);
+
+    /**
+     * Parse a byte stream containing a Status Report Payload and
+     * store the fields in the given struct. Returns false if parsing
+     * failed
+     */
+    static bool parse_status_report(status_report_data_t* data,
+                                    const u_char* bp, u_int len);
 };
 
 } // namespace dtn

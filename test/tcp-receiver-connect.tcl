@@ -34,7 +34,10 @@ test set initscript {
     
     if {$id == 0} {
 	proc test_arrived {regid bundle_info} {
-	    foreach {source dest payload length} $bundle_info {}
+	    foreach {isadmin source dest length payload} $bundle_info {}
+	    if ($isadmin) {
+		error "Unexpected admin bundle arrival $source -> $dest"
+	    }
 	    puts "bundle arrival"
 	    puts "source:  $source"
 	    puts "dest:    $dest"

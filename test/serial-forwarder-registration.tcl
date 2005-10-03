@@ -14,7 +14,11 @@ proc serial_forwarder_registration {endpoint port} {
 
 proc sfreg_bundle_arrived {regid bundle_data} {
     
-    foreach {source dest payload len} $bundle_data {}
+    foreach {isadmin source dest len payload} $bundle_data {}
+    
+    if ($isadmin) {
+	error "Unexpected admin bundle arrival $source -> $dest"
+    }
     
     log /sf debug "got bundle of length $len for registration $regid"
     

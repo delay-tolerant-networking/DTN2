@@ -161,4 +161,91 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle,
     payload_.set_data(scratch.buf(), report_length);
 }
 
+/**
+ * Parse a byte stream containing a Status Report Payload and store
+ * the fields in the given struct. Returns false if parsing failed.
+ */
+bool BundleStatusReport::parse_status_report(status_report_data_t* data,
+                                             const u_char* bp, u_int len)
+{
+    // 1 byte Admin Payload Type:
+    if (len < 1) { return false; }
+    data->admin_type_ = *bp++;
+    len--;
+        
+    // 1 byte Status Flags:
+    if (len < 1) { return false; }
+    data->status_flags_ = *bp++;
+    len--;
+    
+    // 1 byte Reason Code:
+    if (len < 1) { return false; }
+    data->reason_code_ = *bp++;
+    len--;
+
+    // Fragment SDNV Fields (offset & length), if present:
+    if (data->status_flags_ & BundleProtocol::STATUS_FRAGMENT) {
+        int sdnv_bytes = SDNV::decode(bp, len, &data->frag_offset_);
+        if (sdnv_bytes == -1) { return false; }
+        bp  += sdnv_bytes;
+        len -= sdnv_bytes;
+        sdnv_bytes = SDNV::decode(bp, len, &data->frag_length_);
+        if (sdnv_bytes == -1) { return false; }
+        bp  += sdnv_bytes;
+        len -= sdnv_bytes;
+    }
+
+    // The 4 Optional ACK Timestamps:
+    
+    if (data->status_flags_ & BundleProtocol::STATUS_RECEIVED) {
+        if (len < sizeof(u_int64_t)) { return false; }
+        BundleProtocol::get_timestamp(&data->receipt_tv_, bp);
+        bp  += sizeof(u_int64_t);
+        len -= sizeof(u_int64_t);
+    }
+
+    if (data->status_flags_ & BundleProtocol::STATUS_FORWARDED) {
+        if (len < sizeof(u_int64_t)) { return false; }
+        BundleProtocol::get_timestamp(&data->forwarding_tv_, bp);
+        bp  += sizeof(u_int64_t);
+        len -= sizeof(u_int64_t);
+    }
+
+    if (data->status_flags_ & BundleProtocol::STATUS_DELIVERED) {
+        if (len < sizeof(u_int64_t)) { return false; }
+        BundleProtocol::get_timestamp(&data->delivery_tv_, bp);
+        bp  += sizeof(u_int64_t);
+        len -= sizeof(u_int64_t);
+    }
+
+    if (data->status_flags_ & BundleProtocol::STATUS_DELETED) {
+        if (len < sizeof(u_int64_t)) { return false; }
+        BundleProtocol::get_timestamp(&data->deletion_tv_, bp);
+        bp  += sizeof(u_int64_t);
+        len -= sizeof(u_int64_t);
+    }
+
+    
+    // Bundle Creation Timestamp
+    if (len < sizeof(u_int64_t)) { return false; }
+    BundleProtocol::get_timestamp(&data->creation_tv_, bp);
+    bp  += sizeof(u_int64_t);
+    len -= sizeof(u_int64_t);
+
+    
+    // EID of Bundle
+    u_int64_t EID_len;
+    int num_bytes = SDNV::decode(bp, len, &EID_len);
+    if (num_bytes == -1) { return false; }
+    bp  += num_bytes;
+    len -= num_bytes;
+
+    if (len != EID_len) { return false; }
+    // XXX/matt OK to convert u_char to char here?
+    data->EID_.append((const char*)bp, len);
+
+    return true;
+    
+}
+
 } // namespace dtn
