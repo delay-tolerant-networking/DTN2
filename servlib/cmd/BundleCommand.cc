@@ -148,7 +148,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         InjectOpts options;
         const char* invalid;
         if (!parse_inject_options(&options, objc, objv, &invalid)) {
-            log_err("error parsing bundle inject options: invalid option '%s'",
+            resultf("error parsing bundle inject options: invalid option '%s'",
                     invalid);
             return TCL_ERROR;
         }
@@ -175,7 +175,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
         oasys::StringBuffer error;
         if (!b->validate(&error)) {
-            log_err("bundle validation failed: %s", error.data());
+            resultf("bundle validation failed: %s", error.data());
             return TCL_ERROR;
         }
         
