@@ -9,7 +9,7 @@ dtn::config_linear_topology ONDEMAND tcp true
 conf::add dtnd 0 {
     proc test_arrived {regid bundle_info} {
 	foreach {isadmin source dest length payload} $bundle_info {}
-	if ($isadmin) {
+	if {$isadmin} {
 	    error "Unexpected admin bundle arrival $source -> $dest"
 	}
 	puts "bundle arrival"
@@ -47,7 +47,7 @@ test::script {
 	    }
 	} ]
 	# save 10 seconds at the end of the test:
-	if ($i < 13) {
+	if {$i < 13} {
 	    after 10000
 	}
     }
