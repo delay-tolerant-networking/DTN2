@@ -17,7 +17,7 @@ if {[llength $argv] < 1} {
     puts "    <test script> Test script to run"
     puts ""
     run::usage
-    exit
+    real_exit
 }
 
 # default args
