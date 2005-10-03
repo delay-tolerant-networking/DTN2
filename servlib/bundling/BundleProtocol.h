@@ -71,15 +71,14 @@ public:
 
     /**
      * Store a struct timeval into a 64-bit timestamp suitable for
-     * transmission over the network. This takes a u_char* and doesn't
-     * require the 64-bit destination to be word-aligned
+     * transmission over the network.
      */
     static void set_timestamp(u_char* ts, const struct timeval* tv);
     
     /**
-     *  Store a struct timeval into a 64-bit timestamp suitable for
-     * transmission over the network. This prototype requires a 
-     * (word-aligned) u_int64_t* destination.
+     * Store a struct timeval into a 64-bit timestamp suitable for
+     * transmission over the network. This doesn't require the 64-bit
+     * destination to be word-aligned
      */
     static void set_timestamp(u_int64_t* ts, const struct timeval* tv) {
         set_timestamp((u_char *) ts, tv);
@@ -87,10 +86,19 @@ public:
     
     /**
      * Retrieve a struct timeval from a 64-bit timestamp that was
-     * transmitted over the network. This does not require that the
-     * u_int64_t* be word-aligned.
+     * transmitted over the network. This does not require the
+     * timestamp to be word-aligned.
      */
-    static void get_timestamp(struct timeval* tv, const u_int64_t* ts);
+    static void get_timestamp(struct timeval* tv, const u_char* ts);
+
+    /**
+     * Retrieve a struct timeval from a 64-bit timestamp that was
+     * transmitted over the network. This does not require the
+     * timestamp to be word-aligned.
+     */
+    static void get_timestamp(struct timeval* tv, const u_int64_t* ts) {
+        get_timestamp(tv,(u_char *) ts);
+    }
 
     /**
      * The current version of the bundling protocol.

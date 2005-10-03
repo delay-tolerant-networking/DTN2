@@ -514,7 +514,7 @@ BundleProtocol::set_timestamp(u_char* ts, const struct timeval* tv)
 }
 
 void
-BundleProtocol::get_timestamp(struct timeval* tv, const u_int64_t* ts)
+BundleProtocol::get_timestamp(struct timeval* tv, const u_char* ts)
 {
     u_int64_t ts_tmp;
     memcpy(&ts_tmp, ts, sizeof(ts_tmp));
