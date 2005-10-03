@@ -36,17 +36,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "BundleRouter.h"
-#include "RouteTable.h"
-#include "bundling/Bundle.h"
-#include "bundling/BundleActions.h"
-#include "bundling/BundleDaemon.h"
-#include "bundling/BundleList.h"
-#include "bundling/Contact.h"
-#include "bundling/FragmentManager.h"
-#include "reg/Registration.h"
 #include <stdlib.h>
 #include <set>
+#include <queue>
 
 #include "LinkStateGraph.h"
 

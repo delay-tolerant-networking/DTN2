@@ -41,9 +41,9 @@
 #include "bundling/BundleActions.h"
 #include "bundling/BundleConsumer.h"
 #include "bundling/BundleDaemon.h"
-#include "bundling/Contact.h"
 #include "bundling/FragmentManager.h"
-#include "bundling/Link.h"
+#include "contacts/Contact.h"
+#include "contacts/Link.h"
 
 namespace dtn {
 

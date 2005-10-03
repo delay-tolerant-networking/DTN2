@@ -39,8 +39,8 @@
 #include "LinkCommand.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
-#include "bundling/Link.h"
-#include "bundling/ContactManager.h"
+#include "contacts/Link.h"
+#include "contacts/ContactManager.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "naming/Scheme.h"
 #include <oasys/util/StringBuffer.h>

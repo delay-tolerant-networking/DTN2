@@ -41,7 +41,7 @@
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Formatter.h>
 
-#include "BundleConsumer.h"
+#include "bundling/BundleConsumer.h"
 #include "Link.h"
 
 namespace dtn {

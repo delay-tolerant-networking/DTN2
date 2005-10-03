@@ -41,8 +41,8 @@
 #include <set>
 #include <oasys/debug/Formatter.h>
 
-#include "BundleConsumer.h"
-#include "BundleList.h"
+#include "bundling/BundleConsumer.h"
+#include "bundling/BundleList.h"
 
 namespace dtn {
 

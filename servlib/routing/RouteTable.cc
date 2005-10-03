@@ -39,7 +39,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "RouteTable.h"
-#include "bundling/Link.h"
+#include "contacts/Link.h"
 
 namespace dtn {
 

@@ -39,8 +39,9 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "RouteCommand.h"
-#include "bundling/Link.h"
-#include "bundling/ContactManager.h"
+
+#include "contacts/Link.h"
+#include "contacts/ContactManager.h"
 
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"

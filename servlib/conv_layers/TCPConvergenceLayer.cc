@@ -59,9 +59,9 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
-#include "bundling/ContactManager.h"
 #include "bundling/FragmentManager.h"
 #include "bundling/SDNV.h"
+#include "contacts/ContactManager.h"
 #include "routing/BundleRouter.h"
 
 namespace dtn {

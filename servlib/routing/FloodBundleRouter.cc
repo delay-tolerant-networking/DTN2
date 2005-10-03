@@ -42,8 +42,8 @@
 #include "bundling/BundleActions.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
-#include "bundling/Contact.h"
 #include "bundling/FragmentManager.h"
+#include "contacts/Contact.h"
 #include "reg/Registration.h"
 #include <stdlib.h>
 

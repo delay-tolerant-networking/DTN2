@@ -41,7 +41,7 @@
 #include "bundling/BundleActions.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleConsumer.h"
-#include "bundling/Contact.h"
+#include "contacts/Contact.h"
 
 #include "SimConvergenceLayer.h"
 

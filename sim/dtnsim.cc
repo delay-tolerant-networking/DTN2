@@ -48,7 +48,7 @@
 #include "Simulator.h"
 #include "SimCommand.h"
 #include "SimConvergenceLayer.h"
-#include "bundling/ContactManager.h"
+#include "contacts/ContactManager.h"
 #include "cmd/ParamCommand.h"
 #include "naming/SchemeTable.h"
 

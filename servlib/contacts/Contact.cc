@@ -37,11 +37,11 @@
  */
 
 #include "Contact.h"
-#include "Bundle.h"
-#include "BundleList.h"
+#include "bundling/Bundle.h"
+#include "bundling/BundleDaemon.h"
+#include "bundling/BundleEvent.h"
+#include "bundling/BundleList.h"
 #include "conv_layers/ConvergenceLayer.h"
-#include "BundleDaemon.h"
-#include "BundleEvent.h"
 
 namespace dtn {
 

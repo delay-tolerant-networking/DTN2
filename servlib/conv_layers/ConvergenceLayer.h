@@ -40,8 +40,8 @@
 
 #include <string>
 
-#include "bundling/Contact.h"
-#include "bundling/Interface.h"
+#include "contacts/Contact.h"
+#include "contacts/Interface.h"
 
 // forward declaration
 namespace oasys {

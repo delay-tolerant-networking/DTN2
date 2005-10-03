@@ -37,7 +37,7 @@
  */
 
 #include "OndemandLink.h"
-#include "BundleDaemon.h"
+#include "bundling/BundleDaemon.h"
 
 namespace dtn {
 

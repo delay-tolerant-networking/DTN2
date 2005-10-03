@@ -37,7 +37,7 @@
  */
 
 #include "InterfaceCommand.h"
-#include "bundling/InterfaceTable.h"
+#include "contacts/InterfaceTable.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include <oasys/util/StringBuffer.h>
 

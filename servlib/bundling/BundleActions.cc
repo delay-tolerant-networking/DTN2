@@ -41,8 +41,8 @@
 #include "BundleConsumer.h"
 #include "BundleDaemon.h"
 #include "BundleList.h"
+#include "contacts/Link.h"
 #include "storage/BundleStore.h"
-#include "Link.h"
 
 namespace dtn {
 

@@ -38,9 +38,8 @@
 
 #include <oasys/util/StringBuffer.h>
 
-#include "bundling/Contact.h"
 #include "bundling/BundleEvent.h"
-
+#include "contacts/Contact.h"
 #include "routing/RouteTable.h"
 #include "routing/BundleRouter.h"
 #include "SimEvent.h"

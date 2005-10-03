@@ -16,19 +16,21 @@ BUNDLING_SRCS := 				\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
 	bundling/BundleStatusReport.cc		\
-	bundling/Contact.cc			\
-	bundling/ContactManager.cc		\
 	bundling/FragmentManager.cc		\
-	bundling/Interface.cc			\
-	bundling/InterfaceTable.cc		\
 	bundling/ExpirationTimer.cc		\
-	bundling/Link.cc			\
-	bundling/OndemandLink.cc		\
-	bundling/OpportunisticLink.cc		\
 	bundling/SDNV.cc			\
-	bundling/ScheduledLink.cc		\
 	bundling/tstotv.c			\
 	bundling/tvtots.c			\
+
+CONTACT_SRCS :=					\
+	contacts/Contact.cc			\
+	contacts/ContactManager.cc		\
+	contacts/Interface.cc			\
+	contacts/InterfaceTable.cc		\
+	contacts/Link.cc			\
+	contacts/OndemandLink.cc		\
+	contacts/OpportunisticLink.cc		\
+	contacts/ScheduledLink.cc		\
 
 CONV_LAYER_SRCS :=				\
 	conv_layers/ConvergenceLayer.cc		\
@@ -95,6 +97,7 @@ SERVLIB_SRCS := 				\
 	../version.c				\
 	DTNServer.cc				\
 	$(BUNDLING_SRCS) 			\
+	$(CONTACT_SRCS)				\
 	$(CONV_LAYER_SRCS)			\
 	$(CMD_SRCS) 				\
 	$(NAMING_SRCS) 				\

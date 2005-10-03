@@ -41,7 +41,7 @@
 #include "Bundle.h"
 #include "BundleRef.h"
 #include "BundleList.h"
-#include "Link.h"
+#include "contacts/Link.h"
 
 namespace dtn {
 

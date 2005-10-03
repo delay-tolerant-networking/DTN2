@@ -60,8 +60,8 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
-#include "bundling/ContactManager.h"
-#include "bundling/Link.h"
+#include "contacts/ContactManager.h"
+#include "contacts/Link.h"
 
 using namespace oasys;
 namespace dtn {

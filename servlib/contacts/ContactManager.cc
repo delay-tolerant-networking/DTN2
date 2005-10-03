@@ -39,10 +39,10 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "ContactManager.h"
-#include "BundleDaemon.h"
-#include "BundleEvent.h"
 #include "Contact.h"
 #include "Link.h"
+#include "bundling/BundleDaemon.h"
+#include "bundling/BundleEvent.h"
 
 namespace dtn {
 

@@ -49,8 +49,9 @@
 #include "applib/APIServer.h"
 
 #include "bundling/BundleDaemon.h"
-#include "bundling/InterfaceTable.h"
-#include "bundling/ContactManager.h"
+
+#include "contacts/InterfaceTable.h"
+#include "contacts/ContactManager.h"
 
 #include "cmd/BundleCommand.h"
 #include "cmd/InterfaceCommand.h"

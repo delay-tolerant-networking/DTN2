@@ -36,13 +36,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "Link.h"
-#include "conv_layers/ConvergenceLayer.h"
 #include "ContactManager.h"
 #include "OndemandLink.h"
 #include "ScheduledLink.h"
 #include "OpportunisticLink.h"
-#include "BundleDaemon.h"
-#include "BundleEvent.h"
+
+#include "bundling/BundleDaemon.h"
+#include "bundling/BundleEvent.h"
+#include "conv_layers/ConvergenceLayer.h"
 
 namespace dtn {
 
