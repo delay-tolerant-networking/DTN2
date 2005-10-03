@@ -50,8 +50,8 @@ class Link;
 class LinkSet;
 
 /**
- * A contact manager class. Maintains topological information
- * regarding available links and contacts.
+ * A contact manager class. Maintains topological information and
+ * connectivity state regarding available links and contacts.
  */
 class ContactManager : public oasys::Logger {
 public:
@@ -100,21 +100,6 @@ public:
      * Return the list of links 
      */
     LinkSet* links() { return links_; }
-
-    /**********************************************
-     *
-     * Link state manipulation routines
-     *
-     *********************************************/
-    /**
-     * Open the given link.
-     */
-    void open_link(Link* link);
-    
-    /**
-     * Close the given link.
-     */
-    void close_link(Link* link);
 
     /**********************************************
      *
