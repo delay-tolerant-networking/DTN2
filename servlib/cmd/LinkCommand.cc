@@ -135,7 +135,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_OK;
         }
 
-        BundleDaemon::post(new LinkStateChangeRequest(link, Link::OPEN));
+        BundleDaemon::post(new LinkStateChangeRequest(link, Link::OPEN,
+                                                      ContactEvent::USER));
         
     } else if (strcmp(cmd, "close") == 0) {
         // link close <name>
@@ -205,7 +206,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             }
 
             BundleDaemon::post(
-                new LinkStateChangeRequest(link, Link::AVAILABLE));
+                new LinkStateChangeRequest(link, Link::AVAILABLE,
+                                           ContactEvent::USER));
             
             return TCL_OK;
 
@@ -217,13 +219,31 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             }
             
             BundleDaemon::post(
-                new LinkStateChangeRequest(link, Link::UNAVAILABLE));
-
+                new LinkStateChangeRequest(link, Link::UNAVAILABLE,
+                                           ContactEvent::USER));
+    
             return TCL_OK;
         }
-        
     }
-   else {
+    else if (strcmp(cmd, "state") == 0) {
+        // link state <name>
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+
+        const char* name = argv[2];
+
+        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        if (link == NULL) {
+            resultf("link %s doesn't exist", name);
+            return TCL_ERROR;
+        }
+
+        resultf("%s", Link::state_to_str(link->state()));
+        return TCL_OK;
+    }
+    else {
         resultf("unimplemented link subcommand %s", cmd);
         return TCL_ERROR;
     }

@@ -266,28 +266,20 @@ public:
 };
 
 /**
- * Event class for contact up events
+ * Abstract class for the subset of events related to contacts and
+ * links that defines a reason code enumerated type.
  */
-class ContactUpEvent : public BundleEvent {
-public:
-    ContactUpEvent(Contact* contact)
-        : BundleEvent(CONTACT_UP), contact_(contact) {}
-
-    /// The contact that is up
-    Contact* contact_;
-};
-
-/**
- * Event class for contact down events
- */
-class ContactDownEvent : public BundleEvent {
+class ContactEvent : public BundleEvent {
 public:
     /**
-     * Reason codes for why the contact went down.
+     * Reason codes for contact state operations
      */
     typedef enum {
         INVALID = 0,	///< Should not be used
+        NO_INFO,	///< No additional info
+        USER,		///< User action (i.e. console / config)
         BROKEN,		///< Unexpected session interruption
+        RECONNECT,	///< Re-establish link after failure
         IDLE,		///< Idle connection shut down by the CL
         TIMEOUT		///< Scheduled link ended duration
     } reason_t;
@@ -297,31 +289,55 @@ public:
      */
     static const char* reason_to_str(reason_t reason) {
         switch(reason) {
-        case INVALID: return "INVALID";
-        case BROKEN:  return "BROKEN";
-        case IDLE:    return "IDLE";
-        case TIMEOUT: return "TIMEOUT";
+        case INVALID:	return "INVALID";
+        case NO_INFO:	return "no additional info";
+        case USER: 	return "user action";
+        case BROKEN:	return "connection broken";
+        case RECONNECT:	return "re-establishing connection";
+        case IDLE:	return "connection idle";
+        case TIMEOUT:	return "schedule timed out";
         }
         NOTREACHED;
     }
-        
+
+    /// Constructor
+    ContactEvent(event_type_t type, reason_t reason = NO_INFO)
+        : BundleEvent(type), reason_(reason) {}
+
+    reason_t reason_;	///< reason code for the event
+};
+
+/**
+ * Event class for contact up events
+ */
+class ContactUpEvent : public ContactEvent {
+public:
+    ContactUpEvent(Contact* contact)
+        : ContactEvent(CONTACT_UP), contact_(contact) {}
+
+    /// The contact that is up
+    Contact* contact_;
+};
+
+/**
+ * Event class for contact down events
+ */
+class ContactDownEvent : public ContactEvent {
+public:
     ContactDownEvent(Contact* contact, reason_t reason)
-        : BundleEvent(CONTACT_DOWN), contact_(contact), reason_(reason) {}
+        : ContactEvent(CONTACT_DOWN, reason), contact_(contact) {}
 
     /// The contact that is now down
     Contact* contact_;
-
-    /// Why the contact went down
-    reason_t reason_;
 };
 
 /**
  * Event class for link creation events
  */
-class LinkCreatedEvent : public BundleEvent {
+class LinkCreatedEvent : public ContactEvent {
 public:
     LinkCreatedEvent(Link* link)
-        : BundleEvent(LINK_CREATED), link_(link) {}
+        : ContactEvent(LINK_CREATED, ContactEvent::USER), link_(link) {}
 
     Link* link_;
 };
@@ -329,10 +345,10 @@ public:
 /**
  * Event class for link deletion events
  */
-class LinkDeletedEvent : public BundleEvent {
+class LinkDeletedEvent : public ContactEvent {
 public:
     LinkDeletedEvent(Link* link)
-        : BundleEvent(LINK_DELETED), link_(link) {}
+        : ContactEvent(LINK_DELETED, ContactEvent::USER), link_(link) {}
 
     /// The link that is up
     Link* link_;
@@ -341,10 +357,10 @@ public:
 /**
  * Event class for link available events
  */
-class LinkAvailableEvent : public BundleEvent {
+class LinkAvailableEvent : public ContactEvent {
 public:
-    LinkAvailableEvent(Link* link)
-        : BundleEvent(LINK_AVAILABLE), link_(link) {}
+    LinkAvailableEvent(Link* link, reason_t reason)
+        : ContactEvent(LINK_AVAILABLE, reason), link_(link) {}
 
     Link* link_;
 };
@@ -352,10 +368,10 @@ public:
 /**
  * Event class for link unavailable events
  */
-class LinkUnavailableEvent : public BundleEvent {
+class LinkUnavailableEvent : public ContactEvent {
 public:
-    LinkUnavailableEvent(Link* link)
-        : BundleEvent(LINK_UNAVAILABLE), link_(link) {}
+    LinkUnavailableEvent(Link* link, reason_t reason)
+        : ContactEvent(LINK_UNAVAILABLE, reason), link_(link) {}
 
     /// The link that is up
     Link* link_;
@@ -369,36 +385,16 @@ public:
  *
  * When closing a link, a reason must be given for the event.
  */
-class LinkStateChangeRequest : public BundleEvent {
+class LinkStateChangeRequest : public ContactEvent {
 public:
     /// Shared type code for state_t with Link
     typedef Link::state_t state_t;
 
-    /// Shared type code for reason with ContactDownEvent
-    typedef ContactDownEvent::reason_t reason_t;
-
-    /// Constructor used for any operation except closing the link
-    LinkStateChangeRequest(Link* link, state_t state)
-        : BundleEvent(LINK_STATE_CHANGE_REQUEST),
-          link_(link), state_(state), reason_(ContactDownEvent::INVALID)
-    {
-        daemon_only_ = true;	// should be processed only by the daemon
-        
-        if (state == Link::CLOSING) {
-            PANIC("must specify a reason when closing a link");
-        }
-    }
-
-    /// Constructor used when closing a link
     LinkStateChangeRequest(Link* link, state_t state, reason_t reason)
-        : BundleEvent(LINK_STATE_CHANGE_REQUEST),
-          link_(link), state_(state), reason_(reason)
+        : ContactEvent(LINK_STATE_CHANGE_REQUEST, reason),
+          link_(link), state_(state)
     {
         daemon_only_ = true;
-        
-        if (state != Link::CLOSING) {
-            PANIC("must not specify a reason when not closing a link");
-        }
     }
 
     /// The link to be changed
@@ -406,9 +402,6 @@ public:
 
     /// Requested state
     state_t state_;
-
-    /// Reason for closing the link
-    reason_t reason_;
 };
 
 /**

@@ -41,6 +41,7 @@
 #include "ContactManager.h"
 #include "Contact.h"
 #include "Link.h"
+#include "OndemandLink.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
 
@@ -50,9 +51,14 @@ namespace dtn {
  * Constructor / Destructor
  */
 ContactManager::ContactManager()
-    : Logger("/contact_manager"), opportunistic_cnt_(0)
+    : opportunistic_cnt_(0)
 {
     links_ = new LinkSet();
+    logpathf("/contact_manager");
+}
+
+ContactManager::~ContactManager()
+{
 }
 
 /**********************************************
@@ -63,6 +69,8 @@ ContactManager::ContactManager()
 void
 ContactManager::add_link(Link* link)
 {
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
     log_debug("adding link %s", link->name());
     links_->insert(link);
     
@@ -72,6 +80,8 @@ ContactManager::add_link(Link* link)
 void
 ContactManager::del_link(Link *link)
 {
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
     log_debug("deleting link %s", link->name());
     if (!has_link(link)) {
         log_err("Error in del_link: link %s does not exist \n",
@@ -86,6 +96,8 @@ ContactManager::del_link(Link *link)
 bool
 ContactManager::has_link(Link *link)
 {
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
     LinkSet::iterator iter = links_->find(link);
     if (iter == links_->end())
         return false;
@@ -98,6 +110,8 @@ ContactManager::has_link(Link *link)
 Link*
 ContactManager::find_link(const char* name)
 {
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
     LinkSet::iterator iter;
     Link* link = NULL;
     for (iter = links_->begin(); iter != links_->end(); ++iter)
@@ -115,6 +129,8 @@ ContactManager::find_link(const char* name)
 Link*
 ContactManager::find_link_to(const char* next_hop)
 {
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
     LinkSet::iterator iter;
     Link* link = NULL;
     for (iter = links_->begin(); iter != links_->end(); ++iter)
@@ -127,6 +143,123 @@ ContactManager::find_link_to(const char* next_hop)
 }
 
 /**
+ * Timeout function when a link is to be made available again.
+ */
+void
+ContactManager::LinkAvailabilityTimer::timeout(struct timeval* now)
+{
+    oasys::ScopeLock l(&cm_->lock_, "ContactManager");
+    
+    __log_debug("/contact_manager",
+              "availability timer fired for link %s", link_->name());
+
+    if (link_->state() == Link::UNAVAILABLE) {
+        BundleDaemon::post(
+            new LinkStateChangeRequest(link_, Link::AVAILABLE,
+                                       ContactEvent::RECONNECT));
+    } else {
+        // state race
+        __log_err("/contact_manager",
+                "availability timer fired for link %s but state is %s",
+                  link_->name(), Link::state_to_str(link_->state()));
+    }
+
+    cm_->availability_timers_.erase(link_->name_str());
+
+    delete this;
+}
+ 
+/**
+ * Event handler when a link becomes available.
+ */
+void
+ContactManager::handle_link_available(LinkAvailableEvent* event)
+{
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
+    AvailabilityTimerMap::iterator iter;
+    iter = availability_timers_.find(event->link_->name_str());
+    if (iter == availability_timers_.end()) {
+        return; // no timer for this link
+    }
+
+    LinkAvailabilityTimer* timer = iter->second;
+    availability_timers_.erase(event->link_->name_str());
+
+    // try to cancel the timer and rely on the timer system to clean
+    // it up once it bubbles to the top of the queue... if there's a
+    // race and the timer is in the process of firing, it should clean
+    // itself up in the timeout handler.
+    if (! timer->cancel()) {
+        log_warn("can't cancel availability timer: race condition ");
+    }
+}
+
+/**
+ * Event handler when a link becomes unavailable.
+ */
+void
+ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
+{
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
+    // don't do anything for ondemand links
+    if (event->link_->type() != Link::ONDEMAND) {
+        log_debug("ignoring link unavailable for link of type %s",
+                  event->link_->type_str());
+        return;
+    }
+
+    // or if the link was not broken
+    if (event->reason_ != ContactEvent::BROKEN) {
+        log_debug("ignoring link unavailable for unavailable due to %s",
+                  event->reason_to_str(event->reason_));
+        return;
+    }
+    
+    // adjust the retry interval in the link to handle backoff in case
+    // it continuously fails to open, then schedule the timer.
+    // the retry interval is reset in the link open event handler
+    OndemandLink* link = (OndemandLink*)event->link_;
+    int timeout = link->retry_interval_;
+    
+    link->retry_interval_ *= 2;
+    if (link->retry_interval_ > link->max_retry_interval_) {
+        link->retry_interval_ = link->max_retry_interval_;
+    }
+
+    LinkAvailabilityTimer* timer = new LinkAvailabilityTimer(this, link);
+
+    AvailabilityTimerMap::value_type val(link->name_str(), timer);
+    if (availability_timers_.insert(val).second == false) {
+        log_err("error inserting timer for link %s into table!",
+                link->name());
+        delete timer;
+        return;
+    }
+
+    log_debug("scheduling availability timer in %d seconds for link %s",
+              timeout, link->name());
+    timer->schedule_in(timeout * 1000);
+}
+
+
+/**
+ * Event handler when a link is opened successfully
+ */
+void
+ContactManager::handle_contact_up(ContactUpEvent* event)
+{
+    if (event->contact_->link()->type() == Link::ONDEMAND) {
+        OndemandLink* link = (OndemandLink*)event->contact_->link();
+        log_debug("resetting retry interval for link %s: %d -> %d",
+                  link->name(),
+                  link->retry_interval_, link->min_retry_interval_);
+        link->retry_interval_ = link->min_retry_interval_;
+    }
+}
+
+/**
  * Helper routine to find or create an idle opportunistic link.
  */
 Link*
@@ -134,6 +267,8 @@ ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
 				       CLInfo* clinfo,
 				       const char* nexthop)
 {
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
     LinkSet::iterator iter;
     Link* link = NULL;
 
@@ -152,7 +287,8 @@ ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
                 return link;
             }
             else {
-                log_debug("found match: link %s, but it's already open! Returning it anyway.", link->name());
+                log_debug("found match: link %s, but it's already open! "
+                          "Returning it anyway.", link->name());
                 return link;
             }
         }
@@ -196,17 +332,19 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
                                        CLInfo* clinfo,
                                        const char* nexthop)
 {
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
     Link* link = get_opportunistic_link(cl, clinfo, nexthop);
     if (!link) // no link means it couldn't be created
         return NULL;
 
     if (link->isopen()) {
-        log_debug("Contact to %s already established, ignoring...",nexthop);
+        log_debug("Contact to %s already established, ignoring...", nexthop);
         return link;
     }
 
     // notify the daemon that the link is available
-    BundleDaemon::post(new LinkAvailableEvent(link));
+    BundleDaemon::post(new LinkAvailableEvent(link, ContactEvent::NO_INFO));
     return link;
 }
     
@@ -216,6 +354,8 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
 void
 ContactManager::dump(oasys::StringBuffer* buf) const
 {
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
     buf->append("Links:\n");
     LinkSet::iterator iter;
     Link* link = NULL;

@@ -39,7 +39,11 @@
 #define _CONTACT_MANAGER_H_
 
 #include <oasys/debug/Log.h>
+#include <oasys/thread/SpinLock.h>
+#include <oasys/thread/Timer.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/util/StringUtils.h>
+#include "bundling/BundleEventHandler.h"
 
 namespace dtn {
 
@@ -53,13 +57,13 @@ class LinkSet;
  * A contact manager class. Maintains topological information and
  * connectivity state regarding available links and contacts.
  */
-class ContactManager : public oasys::Logger {
+class ContactManager : public BundleEventHandler {
 public:
     /**
      * Constructor / Destructor
      */
     ContactManager();
-    virtual ~ContactManager() {}
+    virtual ~ContactManager();
     
     /**
      * Dump a string representation of the info inside contact manager.
@@ -101,6 +105,35 @@ public:
      */
     LinkSet* links() { return links_; }
 
+
+    /**********************************************
+     *
+     * Event handler routines
+     *
+     *********************************************/
+    /**
+     * Generic event handler.
+     */
+    void handle_event(BundleEvent* event)
+    {
+        dispatch_event(event);
+    }
+    
+    /**
+     * Event handler when a link becomes unavailable.
+     */
+    void handle_link_available(LinkAvailableEvent* event);
+    
+    /**
+     * Event handler when a link becomes unavailable.
+     */
+    void handle_link_unavailable(LinkUnavailableEvent* event);
+
+    /**
+     * Event handler when a link is opened successfully
+     */
+    void handle_contact_up(ContactUpEvent* event);
+
     /**********************************************
      *
      * Opportunistic contact routines
@@ -127,6 +160,32 @@ protected:
     
     LinkSet* links_;			///< Set of all links
     int opportunistic_cnt_;		///< Counter for opportunistic links
+
+    /**
+     * Timer class used to re-enable broken ondemand links.
+     */
+    class LinkAvailabilityTimer : public oasys::Timer {
+    public:
+        LinkAvailabilityTimer(ContactManager* cm, Link* link)
+            : cm_(cm), link_(link) {}
+        
+        virtual void timeout(struct timeval* now);
+
+        ContactManager* cm_;	///< The contact manager object
+        Link* link_;		///< The link in question
+    };
+    friend class LinkAvailabilityTimer;
+
+    /**
+     * Table storing link name -> availability timer class.
+     */
+    typedef oasys::StringMap<LinkAvailabilityTimer*> AvailabilityTimerMap;
+    AvailabilityTimerMap availability_timers_;
+
+    /**
+     * Lock to protect internal data structures.
+     */
+    mutable oasys::SpinLock lock_;
 };
 
 

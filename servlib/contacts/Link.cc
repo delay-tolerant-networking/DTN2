@@ -63,14 +63,24 @@ Link::create_link(const std::string& name, link_type_t type,
     default: 		PANIC("bogus link_type_t");
     }
 
-    // Notify the convergence layer, which parses options
-    // XXX/demmer how to deal with options for scheduled links?
+    // hook for the link subclass that parses any arguments and shifts
+    // argv appropriately
+    int count = link->parse_args(argc, argv);
+    if (count == -1) {
+        delete link;
+        return NULL;
+    }
+
+    argc -= count;
+    
+    // notify the convergence layer, which parses the rest of the
+    // arguments
     ASSERT(link->clayer_);
     if (!link->clayer_->init_link(link, argc, argv)) {
         delete link;
         return NULL;
     }
-
+    
     return link;
 }
 
@@ -96,6 +106,12 @@ Link::Link(const std::string& name, link_type_t type,
     }
 
     log_info("new link *%p", this);
+}
+
+int
+Link::parse_args(int argc, const char* argv[])
+{
+    return 0;
 }
 
 Link::~Link()
@@ -126,33 +142,40 @@ Link::set_state(state_t new_state)
     log_debug("set_state %s -> %s",
               state_to_str(state_), state_to_str(new_state));
 
+#define ASSERT_STATE(condition)                                                 \
+    if (!(condition)) {                                                         \
+        log_err("set_state %s -> %s: expected %s",                              \
+                state_to_str(state_), state_to_str(new_state), #condition);     \
+    }
+
     switch(new_state) {
     case UNAVAILABLE:
         break; // any old state is valid
 
     case AVAILABLE:
-        ASSERT(state_ == CLOSING || state_ == UNAVAILABLE);
+        ASSERT_STATE(state_ == CLOSING || state_ == UNAVAILABLE);
         break;
 
     case OPENING:
-        ASSERT(state_ == AVAILABLE);
+        ASSERT_STATE(state_ == AVAILABLE);
         break;
         
     case OPEN:
-        ASSERT(state_ == OPENING || state_ == BUSY);
+        ASSERT_STATE(state_ == OPENING || state_ == BUSY);
         break;
 
     case BUSY:
-        ASSERT(state_ == OPEN);
+        ASSERT_STATE(state_ == OPEN);
         break;
     
     case CLOSING:
-        ASSERT(state_ == OPENING || state_ == OPEN || state_ == BUSY);
+        ASSERT_STATE(state_ == OPENING || state_ == OPEN || state_ == BUSY);
         break;
 
     default:
         NOTREACHED;
     }
+#undef ASSERT_STATE
 
     state_ = new_state;
 }

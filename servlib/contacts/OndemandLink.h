@@ -56,6 +56,28 @@ public:
      * Sets the state to AVAILABLE immediately.
      */
     OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
+
+    /**
+     * Parse the arguments.
+     */
+    virtual int parse_args(int argc, const char* argv[]);
+
+    /**
+     * Seconds to wait between attempts to re-open an unavailable
+     * link, doubles up to max_retry_interval_. Default is 30 seconds.
+     */
+    int retry_interval_;
+
+    /**
+     * Minimum amount to wait between attempts to re-open the link.
+     */
+    int min_retry_interval_;
+    
+    /**
+     * Maximum amount to wait between attempts to re-open the link.
+     * Default is 10 minutes.
+     */
+    int max_retry_interval_;
 };
 
 } // namespace dtn

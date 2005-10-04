@@ -36,6 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/util/OptParser.h>
 #include "OndemandLink.h"
 #include "bundling/BundleDaemon.h"
 
@@ -51,7 +52,22 @@ OndemandLink::OndemandLink(std::string name,
     : Link(name, ONDEMAND, cl, nexthop)
 {
     set_state(AVAILABLE);
-    BundleDaemon::post(new LinkAvailableEvent(this));
+    BundleDaemon::post(new LinkAvailableEvent(this, ContactEvent::NO_INFO));
+}
+
+int
+OndemandLink::parse_args(int argc, const char* argv[])
+{
+    oasys::OptParser p;
+
+    min_retry_interval_ = 30;
+    max_retry_interval_ = 10 * 60;
+    
+    p.addopt(new oasys::IntOpt("min_retry_interval", &min_retry_interval_));
+    p.addopt(new oasys::IntOpt("max_retry_interval", &max_retry_interval_));
+    retry_interval_ = min_retry_interval_;
+    
+    return p.parse_and_shift(argc, argv);
 }
 
 } // namespace dtn

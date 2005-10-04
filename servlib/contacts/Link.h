@@ -57,119 +57,49 @@ class Link;
 class LinkSet : public std::set<Link*> {};
 
 /**
- * Abstraction for a DTN link. A DTN link has a destination next hop
- * associated with it.
- 
- * The state of a link (regarding its availability) is described by
- * two bits: First: Every link has a 'bool' availability bit. This
- * indicates whether the link is a potential candidate to be used for
- * actual transmission of packets. If this bit is set the link can be
- * used to send packets, and if not then it can not be used to send
- * packets. This bit is also the key difference between different
- * types of links. How is the bit set/unset is discussed later. (see
- * below)
+ * Abstraction for a DTN link, i.e. a one way communication channel to
+ * a next hop node in the DTN overlay.
  *
- * Second: A link can have a contact associated with it. A contact
- * represents an actual connection. A contact is created only if
- * link's availability is set. If a contact exists on link we say that
- * the link is open (i.e contact_ != NULL), otherwise we say that the
- * link is closed.
+ * The state of a link (regarding its availability) is described by
+ * the Link::state_t enumerated type.
+ *
+ * All links in the OPEN, BUSY, or CLOSING states have an associated
+ * contact that represents an actual connection.
  *
  * Every link has a unique name asssociated with it which is used to
  * identify it. The name is configured explicitly when the link is
  * created.
  *
  * Creating new links:
- * Links are created explicitly in the configuration. Syntax is:
+ * Links are created explicitly in the configuration file. Syntax is:
  * @code
  * link add <name> <nexthop> <type> <conv_layer> <args>
  * @endcode
  * See servlib/cmd/LinkCommand.cc for implementation of this TCL cmd.
- *
- *  ----------------------------------------------------------
- *
- * Invariants for better understanding: Opening a link means =>
- * Creating a new contact on it. It is an error to open a link which
- * is already open. One can check status, if the link is already open
- * or not. A Link can be opened only if its availability bit is set to
- * true.
- *
- * Closing a link means => Deleting or getting rid of existing contact
- * on it. Free the state stored for that contact. It is an error to
- * close a link which is already closed. The link close procedure is
- * always issued in response to a CONTACT_DOWN event being sent to the
- * router. This may be in response to a user command or the scheduling
- * layer, or from the convergence layer itself in response to a
- * timeout or other such event.
- *
- * XXX/demmer update above
  *
  * ----------------------------------------------------------
  *
  * Links are of three types as discussed in the DTN architecture
  * ONDEMAND, SCHEDULED, OPPORTUNISTIC.
  *
- * The key differences from an implementation perspectives are
- * "who" and "when"  sets/unsets the link availability bit.
+ * The key differences from an implementation perspectives are "who"
+ * and "when" manipulates the link state regarding availability.
  *
- * Only for ONDEMAND links is the availability bit is set when the
- * link is constructed. i.e an ONDEMAND link is always available as
- * one would expect. Though by default it is not open until the router
- * explicitly opens it.
+ * ONDEMAND links are initializd in the AVAILABLE state, as one would
+ * expect. It remains in this state until a router explicitly opens
+ * it.
  *
- * An ONDEMAND link can be closed either because of convergence layer
- * failure or because the link has been idle for too long. If link
- * gets closed because the convergence layer detects failure and there
- * are messages which are queued on the link, the router will
- * automatically open the link again.
+ * An ONDEMAND link can then be closed either due to connection
+ * failure or because the link has been idle for too long, both
+ * triggered by the convergence layer. If an ONDEMAND link is closed
+ * due to connection failure, then the contact manager is notified of
+ * this event and periodically tries to re-establish the link.
  *
- * For ONDEMAND links mostly in the default router implemetation there
- * are no messages queued on the link queue. This is because since
- * link is always available as soon as something is to be queued on
- * the link router tries to open it. And once the link is open all
- * messages are queued on the contact queue. If the convergence layer
- * closes the link because of failure, there may be messages queued on
- * the link temporarily before the link is opened again.
+ * For OPPORTUNISTIC links the availability state is set by the code
+ * which detects that there is a new link available to be used. 
  *
- *
- * For OPPORTUNISTIC links the availability bit is set by the code which
- * detects when the link is available to be used.
- * The OPPORTUNISTIC link has a queue containing bundles which are waiting 
- * for link to become available. When the link becomes available the
- * router is informed.
- * It is up to the router to open a new contact on the link and transfer 
- * messages from one queue to another. Similarly when a contact is broken
- * the router performs the transferring of messages from contact's
- * queue to link's queue.
- * The key is that an external entity controls when to set/unset link
- * availability bit.
- * ONDEMAND links may also store history or any other aggregrate
- * statistics in link info if they need.
- *
- * SCHEDULED links
- *
- * Scheduled links have a list of future contacts.
- * A future contact is nothing more than a place to store messages and
- * some associated time at which the contact is supposed to happen.
- * By definition, future contacts are not active entities. Based
- * on schedule they are converted from future contact to contact
- * when they become active entity. Therefore, the way contacts
- * are created for scheduled links is to convert an existing future
- * contact into a current contact.
- * How and when are future contacts created is an open question.
- *
- * A scheduled link can also have its own queue. This happens
- * when router does not want to assign bundle to any specific
- * future contact. When an actual contact comes / or rather a future
- * contact becomes a contact all the data should be transferred from
- * the link queue to the contact queue.
- * (similar to what happens in OPPORTUNISTIC links)
- *
- * An interesting question is to define the order in which the messages
- * from the link queue and the contact queue are merged. This is because
- * router may already have scheduled some messages on the queue of
- * current contact when it was a future contact.
- *
+ * SCHEDULED links have their availability dictated by the schedule
+ * implementation.
  */
 class Link : public oasys::Formatter, public BundleConsumer {
 public:
@@ -295,6 +225,11 @@ public:
      */
     Link(const std::string& name, link_type_t type,
          ConvergenceLayer* cl, const char* nexthop);
+
+    /**
+     * Hook for subclass to parse arguments.
+     */
+    virtual int parse_args(int argc, const char* argv[]);
     
     /**
      * Return the type of the link.
@@ -381,6 +316,11 @@ public:
      * Accessor to this links name
      */
     const char* name() const { return name_.c_str(); }
+
+    /**
+     * Accessor to this links name as a c++ string
+     */
+    const std::string& name_str() const { return name_; }
 
     /**
      * Accessor to next hop string

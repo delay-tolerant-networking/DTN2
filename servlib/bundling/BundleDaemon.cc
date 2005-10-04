@@ -468,7 +468,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 {
     Link* link = request->link_;
     Link::state_t new_state = request->state_;
-    ContactDownEvent::reason_t reason = request->reason_;
+    ContactEvent::reason_t reason = request->reason_;
     
     log_info("LINK_STATE_CHANGE_REQUEST *%p [%s -> %s] (%s)", link,
              Link::state_to_str(link->state()),
@@ -484,7 +484,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             return;
         }
         link->set_state(new_state);
-        post(new LinkUnavailableEvent(link));
+        post(new LinkUnavailableEvent(link, reason));
         break;
 
     case Link::AVAILABLE:
@@ -495,7 +495,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             return;
         }
         link->set_state(new_state);
-        post(new LinkAvailableEvent(link));
+        post(new LinkAvailableEvent(link, reason));
         break;
         
     case Link::BUSY:
@@ -546,7 +546,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             link->set_state(Link::AVAILABLE);
         } else {
             link->set_state(Link::UNAVAILABLE);
-            post(new LinkUnavailableEvent(link));
+            post(new LinkUnavailableEvent(link, reason));
         }
 
         break;
@@ -726,12 +726,12 @@ BundleDaemon::handle_event(BundleEvent* event)
                               // into individual handlers
      
     dispatch_event(event);
+
     
     if (! event->daemon_only_) {
-        // dispatch the event to the router(s)
+        // dispatch the event to the router(s) and the contact manager
         router_->handle_event(event);
-        
-        // XXX/demmer dispatch to contact mgr?
+        contactmgr_->handle_event(event);
     }
 }
 
