@@ -45,4 +45,28 @@ namespace eval dtn {
 	}
 	return [tell::tell $net::host($id) [dtn::get_port console $id] $cmd]
     }
+
+    proc check_link_state { id link state {log_error 0}} {
+	global net::host
+	
+	set result [tell_dtnd $id "link state $link"]
+
+	if {$result != $state} {
+	    if {$log_error} {
+		puts "ERROR: check_link_state: \
+			id $id expected state $state, got $result"
+	    }
+	    return 0
+	}
+	return 1
+    }
+
+    proc wait_for_link_state { id link state {timeout 30000} } {
+	do_until "waiting for link state $state" $timeout {
+	    if [check_link_state $id $link $state 0] {
+		return
+	    }
+	    after 1000
+	}
+    }
 }
