@@ -89,7 +89,8 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     defaults_.readbuf_len_ 		= 32768;
     defaults_.keepalive_interval_	= 2;
     defaults_.idle_close_time_ 	 	= 30;
-    defaults_.connect_timeout_		= 10000; // msecs
+    defaults_.connect_retry_		= 10000; // msecs
+    defaults_.connect_timeout_		= 30000; // msecs
     defaults_.rtt_timeout_		= 5000;  // msecs
     defaults_.test_fragment_size_	= -1;
 }
@@ -118,6 +119,7 @@ TCPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::UIntOpt("keepalive_interval",
                                 &params->keepalive_interval_));
     p.addopt(new oasys::UIntOpt("idle_close_time", &params->idle_close_time_));
+    p.addopt(new oasys::UIntOpt("connect_retry", &params->connect_retry_));
     p.addopt(new oasys::UIntOpt("connect_timeout", &params->connect_timeout_));
     p.addopt(new oasys::UIntOpt("rtt_timeout", &params->rtt_timeout_));
     p.addopt(new oasys::IntOpt("test_fragment_size",
@@ -1343,6 +1345,9 @@ TCPConvergenceLayer::Connection::connect()
     log_debug("connect: connecting to %s:%d...",
               intoa(sock_->remote_addr()), sock_->remote_port());
 
+    struct timeval start, now;
+    ::gettimeofday(&start, 0);
+    
     while (1) {
         int ret = sock_->timeout_connect(sock_->remote_addr(),
                                          sock_->remote_port(),
@@ -1360,11 +1365,12 @@ TCPConvergenceLayer::Connection::connect()
             log_info("connection attempt to %s:%d failed... "
                      "waiting %d seconds and retrying connect",
                      intoa(sock_->remote_addr()), sock_->remote_port(),
-                     params_.connect_timeout_ / 1000);
-            sleep(params_.connect_timeout_ / 1000);
-
+                     params_.connect_retry_ / 1000);
+            sleep(params_.connect_retry_ / 1000);
+            
             if (should_stop()) {
-                log_debug("connect thread interrupted in sleep, should_stop set");
+                log_debug("connect thread interrupted in sleep, "
+                          "should_stop set");
                 return false;
             }
         }
@@ -1374,8 +1380,16 @@ TCPConvergenceLayer::Connection::connect()
         }
         
         sock_->close();
-    }
 
+        ::gettimeofday(&now, 0);
+        if (TIMEVAL_DIFF_MSEC(start, now) > params_.connect_timeout_) {
+            log_info("connection attempt to %s:%d failed: "
+                     "timeout exceeded, link unavailable",
+                     intoa(sock_->remote_addr()), sock_->remote_port());
+            
+            return false;
+        }
+    }
     log_debug("connect: connection established, sending contact header...");
     if (!send_contact_header())
         return false;
