@@ -109,29 +109,48 @@ TclRegistration::get_list_channel(Tcl_Interp* interp)
 
 
 /**
- * return a list of bundle data to a registered procedure each time a
- * bundle arrives. The returned TCL list is of the following form.
+ * return a Tcl list key-value pairs detailing bundle contents to a
+ * registered procedure each time a bundle arrives. The returned TCL
+ * list is suitable for assigning to an array, e.g.
+ *     array set b $bundle_info
  *
- * If the bundle is an admin bundle a 12-element list is returned.
- * Otherwise there are 5 elements. The first 4 elements are commond to
- * both bundle types:
+ * Below is a description of the array keys and values in the form
+ * "key : description of value"
+ *
+ * ALWAYS DEFINIED KEY-VALUE PAIRS:
+ *
+ * isadmin : Is it an admin bundle? (boolean)
+ * source  : Source EID
+ * dest    : Destination EID
+ * length  : Payload Length
+ * payload : Payload contents
+ *
+ *
+ * ADMIN-BUNDLE-ONLY KEY-VALUE PAIRS:
+ *
+ * admin_type  : the Admin Type (the following pairs are only defined
+ *               if the admin_type = "Stauts Report")
+ * reason_code : Reason Code string
+ * creation_ts : creation timestamp of original bundle
+ * orig_source : EID of the original bundle's source
+ *
+ * ADMIN-BUNDLE-ONLY OPTIONAL KEY-VALUE PAIRS:
+ *
+ * (Note that the presence of these keys implies a corresponding flag
+ * has been set true.  For example if forwarded_time is returned the
+ * Bundle Forwarded status flag was set; if frag_offset and
+ * frag_length are returned the ACK'ed bundle was fragmented.)
+ *
+ * frag_offset             : Offset of Fragment
+ * frag_length             : Length of Fragment
+ * received_time           : bundle reception timestamp
+ * forwarded_time          : bundle forwarding timestamp
+ * delivered_time          : bundle delivery timestamp
+ * deletion_time           : bundle deletion timestamp
+ * status_unathentic       : flag was set
+ * status_unused_flag      : flag was set
+ * custody_accepted_status : flag was set
  * 
- * LIST INDEX: CONTENT
- *
- * 0:  Is it an admin bundle? (boolean)
- * 1:  Source EID
- * 2:  Destination EID
- * 3:  Payload Length
- * 4:  Payload contents [for non-admin, regular bundles]
- * 4:  Admin Type [for admin bundles]
- * 5:  Status Flags
- * 6:  Reason Code
- * 7:  Fragment_Offset or "" if not fragmented
- * 8:  Fragment Length or "" if not fragmented
- * 9:  0 or more comma-separated "TIMESTAMP_TYPE=TIMESTAMP_VALUE"'s
- * 10: Bundle creation timestamp
- * 11: Source EID (as contained in the Status Report payload)
- *
  */
 int
 TclRegistration::get_bundle_data(Tcl_Interp* interp)
@@ -152,198 +171,210 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         b->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
     log_debug("got %u bytes of bundle data", (u_int)payload_len);
 
-    // These are return values common to both regular and admin bundles:
-    Tcl_Obj* objv[12];
-    objv[0] = Tcl_NewBooleanObj(b->is_admin_);
-    objv[1] = Tcl_NewStringObj(b->source_.data(), b->source_.length());
-    objv[2] = Tcl_NewStringObj(b->dest_.data(), b->dest_.length());
-    objv[3] = Tcl_NewIntObj(payload_len);
+    Tcl_Obj* objv = Tcl_NewListObj(0, NULL);
+
+#define addElement(e) \
+    if (Tcl_ListObjAppendElement(interp, objv, (e)) != TCL_OK) {\
+        cmdinterp->resultf("Tcl_ListObjAppendElement failed");\
+        return TCL_ERROR;\
+    }
+    
+    // These key-value pairs are common to both regular and admin bundles:
+
+    addElement(Tcl_NewStringObj("isadmin", -1));
+    addElement(Tcl_NewBooleanObj(b->is_admin_));
+    addElement(Tcl_NewStringObj("source", -1));
+    addElement(Tcl_NewStringObj(b->source_.data(), b->source_.length()));
+    addElement(Tcl_NewStringObj("dest", -1));
+    addElement(Tcl_NewStringObj(b->dest_.data(), b->dest_.length()));
+    addElement(Tcl_NewStringObj("length", -1));
+    addElement(Tcl_NewIntObj(payload_len));
+    addElement(Tcl_NewStringObj("payload", -1));
+    addElement(Tcl_NewByteArrayObj((u_char*)payload_data, payload_len));
+
+    // There are (at least for now) no additional key-value pairs with
+    // non-admin bundles, so set the result and return
     
     if (!b->is_admin_) {
-        
-        objv[4] = Tcl_NewByteArrayObj((u_char*)payload_data, payload_len);
-        cmdinterp->set_objresult(Tcl_NewListObj(5, objv));
-        
-    } else {
-        
-        // admin bundle:
+        cmdinterp->set_objresult(objv);
+        BundleDaemon::post(
+            new BundleTransmittedEvent(b.object(), this, payload_len, true));
+        return TCL_OK;
+    }
 
-        status_report_data_t sr;
-        if (!BundleStatusReport::parse_status_report(&sr, payload_data,
-                                                     payload_len)) {
-            cmdinterp->resultf("Admin Bundle Status Report parsing failed");
-            return TCL_ERROR;
-        }
+    // from here on we know we're dealing with an admin bundle
 
-        oasys::StringBuffer buf;
+    status_report_data_t sr;
+    if (!BundleStatusReport::parse_status_report(&sr, payload_data,
+                                                 payload_len)) {
+        cmdinterp->resultf("Admin Bundle Status Report parsing failed");
+        return TCL_ERROR;
+    }
 
-        // go through the SR fields and build up the return list
+    char tmp_buf[128];              // used for sprintf strings
 
-        // Admin Type:
-        switch (sr.admin_type_) {
-        case BundleProtocol::ADMIN_STATUS_REPORT:
-            buf.append("Admin Status Report");
-            break;
+    // go through the SR fields and build up the return list
 
-        case BundleProtocol::ADMIN_CUSTODY_SIGNAL:
-            buf.append("Admin Custody Signal");
-            break;
+    // Admin Type:
+    addElement(Tcl_NewStringObj("admin_type", -1));
+    switch (sr.admin_type_) {
+    case BundleProtocol::ADMIN_STATUS_REPORT:
+        addElement(Tcl_NewStringObj("Status Report", -1));
+        break;
 
-        case BundleProtocol::ADMIN_ECHO:
-            buf.append("Admin Echo Signal");
-            break;
+    case BundleProtocol::ADMIN_CUSTODY_SIGNAL:
+        addElement(Tcl_NewStringObj("Custody Signal", -1));
+        break;
 
-        case BundleProtocol::ADMIN_NULL:
-            buf.append("Admin Null Signal");
-            break;
+    case BundleProtocol::ADMIN_ECHO:
+        addElement(Tcl_NewStringObj("Admin Echo Signal", -1));
+        break;
 
-        default:
-            buf.appendf("Error: Unknown Status Report Type 0x%x", sr.admin_type_);
-            break;
-        }
+    case BundleProtocol::ADMIN_NULL:
+        addElement(Tcl_NewStringObj("Admin Null Signal", -1));
+        break;
 
-        objv[4] = Tcl_NewStringObj(buf.data(), buf.length());
-        buf.set_length(0);
-        
-        if (sr.admin_type_ != BundleProtocol::ADMIN_STATUS_REPORT) {
-            // not handled yet
-            cmdinterp->set_objresult(Tcl_NewListObj(5, objv));
-            BundleDaemon::post(
-                new BundleTransmittedEvent(b.object(), this, payload_len, true));
-            return TCL_OK;
-        }
+    default:
+        sprintf(tmp_buf,
+                "Error: Unknown Status Report Type 0x%x", sr.admin_type_);
+        addElement(Tcl_NewStringObj(tmp_buf,-1));
+        break;
+    }
 
-        // construct the return result of optional TimeStamps and
-        // Fragment data while parsing the status flags; everything is a
-        // comma-separated lists
-        oasys::StringBuffer timebuf;
+    // We don't do anything with admin bundles that aren't status
+    // reports:
+    if (sr.admin_type_ != BundleProtocol::ADMIN_STATUS_REPORT) {
+        cmdinterp->set_objresult(objv);
+        BundleDaemon::post(
+            new BundleTransmittedEvent(b.object(), this, payload_len, true));
+        return TCL_OK;
+    }
 
-        // Fragments (will be set to "" if not a fragment ACK:
-        if (sr.status_flags_ & BundleProtocol::STATUS_FRAGMENT) {
-            buf.append("Fragment,");
-            objv[7] = Tcl_NewLongObj(sr.frag_offset_);
-            objv[8] = Tcl_NewLongObj(sr.frag_length_);
-        } else {
-            objv[7] = Tcl_NewStringObj("", 0);
-            objv[8] = Tcl_NewStringObj("", 0);
-        }            
+    // Fragment fields
+    if (sr.status_flags_ & BundleProtocol::STATUS_FRAGMENT) {
+        addElement(Tcl_NewStringObj("frag_offset", -1));
+        addElement(Tcl_NewLongObj(sr.frag_offset_));
+        addElement(Tcl_NewStringObj("frag_length", -1));
+        addElement(Tcl_NewLongObj(sr.frag_length_));
+    }
+
+    // Status fields with timestamps:
     
-        if (sr.status_flags_ & BundleProtocol::STATUS_RECEIVED) {
-            buf.append("Received,");
-            timebuf.appendf("ReceiptTime=%ld.%06ld",
-                            (long)sr.receipt_tv_.tv_sec,
-                             (long)sr.receipt_tv_.tv_usec);
-        }
+    if (sr.status_flags_ & BundleProtocol::STATUS_RECEIVED) {
+        addElement(Tcl_NewStringObj("received_time", -1));
+        sprintf(tmp_buf, "%ld.%06ld",
+                (long)sr.receipt_tv_.tv_sec, (long)sr.receipt_tv_.tv_usec);
+        addElement(Tcl_NewStringObj(tmp_buf,-1));
+    }
 
-        if (sr.status_flags_ & BundleProtocol::STATUS_CUSTODY_ACCEPTED) {
-            buf.append("Custody Accepted,");
-        }
+    if (sr.status_flags_ & BundleProtocol::STATUS_CUSTODY_ACCEPTED) {
+        // XXX the lack of a "Time of Custody Acceptance" field is
+        // probably a bug in the spec; if it turns out to be rewrite
+        // this to return a "custody_time" (will also need to re-write
+        // BundleStatusReport to include it)
+        addElement(Tcl_NewStringObj("custody_accepted_status", -1));
+        addElement(Tcl_NewBooleanObj(true));
+    }
 
-        if (sr.status_flags_ & BundleProtocol::STATUS_FORWARDED) {
-            buf.append("Forwarded,");
-            timebuf.appendf("ForwardingTime=%ld.%06ld",
-                            (long)sr.forwarding_tv_.tv_sec,
-                             (long)sr.forwarding_tv_.tv_usec);
-        }
+    if (sr.status_flags_ & BundleProtocol::STATUS_FORWARDED) {
+        addElement(Tcl_NewStringObj("forwarded_time", -1));
+        sprintf(tmp_buf, "%ld.%06ld",
+                (long)sr.forwarding_tv_.tv_sec, (long)sr.forwarding_tv_.tv_usec);
+        addElement(Tcl_NewStringObj(tmp_buf,-1));
+    }
 
-        if (sr.status_flags_ & BundleProtocol::STATUS_DELIVERED) {
-            buf.append("Delivered,");
-            timebuf.appendf("DeliveryTime=%ld.%06ld",
-                            (long)sr.delivery_tv_.tv_sec,
-                             (long)sr.delivery_tv_.tv_usec);
-        }
+    if (sr.status_flags_ & BundleProtocol::STATUS_DELIVERED) {
+        addElement(Tcl_NewStringObj("delivered_time", -1));
+        sprintf(tmp_buf, "%ld.%06ld",
+                (long)sr.delivery_tv_.tv_sec, (long)sr.delivery_tv_.tv_usec);
+        addElement(Tcl_NewStringObj(tmp_buf,-1));
+    }
 
-        if (sr.status_flags_ & BundleProtocol::STATUS_DELETED) {
-            buf.append("Deleted,");
-            timebuf.appendf("DeletionTime=%ld.%06ld",
-                            (long)sr.deletion_tv_.tv_sec,
-                             (long)sr.deletion_tv_.tv_usec);
-        }
+    if (sr.status_flags_ & BundleProtocol::STATUS_DELETED) {
+        addElement(Tcl_NewStringObj("deleted_time", -1));
+        sprintf(tmp_buf, "%ld.%06ld",
+                (long)sr.deletion_tv_.tv_sec, (long)sr.deletion_tv_.tv_usec);
+        addElement(Tcl_NewStringObj(tmp_buf,-1));
+    }
 
-        if (sr.status_flags_ & BundleProtocol::STATUS_UNAUTHENTIC) {
-            buf.append("Unauthentic,");
-        }
+    if (sr.status_flags_ & BundleProtocol::STATUS_UNAUTHENTIC) {
+        addElement(Tcl_NewStringObj("status_unathentic", -1));
+        addElement(Tcl_NewBooleanObj(true));
+    }
 
-        if (sr.status_flags_ & BundleProtocol::STATUS_UNUSED) {
-            buf.append("Unused Status Flag,");
-        }
+    if (sr.status_flags_ & BundleProtocol::STATUS_UNUSED) {
+        addElement(Tcl_NewStringObj("status_unused_flag", -1));
+        addElement(Tcl_NewBooleanObj(true));
+    }
 
-        // strip trailing "," if any
-        if (buf.length() > 0) {
-            buf.trim(1);
-        }
-        if (timebuf.length() > 0) {
-            timebuf.trim(1);
-        }
-
-        objv[5] = Tcl_NewStringObj(buf.data(), buf.length());
-        objv[9] = Tcl_NewStringObj(timebuf.data(), timebuf.length());
-        buf.set_length(0);
-
-        // Reason Code:
-        switch (sr.reason_code_) {
-        case BundleProtocol::REASON_NO_ADDTL_INFO:
-            buf.append("No additional information.");
-            break;
+    // Reason Code:
+    addElement(Tcl_NewStringObj("reason_code", -1));
+    switch (sr.reason_code_) {
+    case BundleProtocol::REASON_NO_ADDTL_INFO:
+        addElement(Tcl_NewStringObj("No additional information.", -1));
+        break;
             
-        case BundleProtocol::REASON_LIFETIME_EXPIRED:
-            buf.append("Lifetime expired.");
-            break;
+    case BundleProtocol::REASON_LIFETIME_EXPIRED:
+        addElement(Tcl_NewStringObj("Lifetime expired.", -1));
+        break;
             
-        case BundleProtocol::REASON_RESERVERED_FUTURE_USE:
-            buf.append("Reserved for future use.");
-            break;
+    case BundleProtocol::REASON_RESERVERED_FUTURE_USE:
+        addElement(Tcl_NewStringObj("Reserved for future use.", -1));
+        break;
                         
-        case BundleProtocol::REASON_TRANSMISSION_CANCELLED:
-            buf.append("Transmission cancelled.");
-            break;
+    case BundleProtocol::REASON_TRANSMISSION_CANCELLED:
+        addElement(Tcl_NewStringObj("Transmission cancelled.", -1));
+        break;
             
-        case BundleProtocol::REASON_DEPLETED_STORAGE:
-            buf.append("Depleted storage.");
-            break;
+    case BundleProtocol::REASON_DEPLETED_STORAGE:
+        addElement(Tcl_NewStringObj("Depleted storage.", -1));
+        break;
             
-        case BundleProtocol::REASON_ENDPOINT_ID_UNINTELLIGIBLE:
-            buf.append("Destination endpoint ID unintelligible.");
-            break;
+    case BundleProtocol::REASON_ENDPOINT_ID_UNINTELLIGIBLE:
+        addElement(
+            Tcl_NewStringObj("Destination endpoint ID unintelligible.", -1));
+        break;
             
-        case BundleProtocol::REASON_NO_ROUTE_TO_DEST:
-            buf.append("No known route to destination from here.");
-            break;
+    case BundleProtocol::REASON_NO_ROUTE_TO_DEST:
+        addElement(
+            Tcl_NewStringObj("No known route to destination from here.", -1));
+        break;
             
-        case BundleProtocol::REASON_NO_TIMELY_CONTACT:
-            buf.append("No timely contact with next node on route.");
-            break;
+    case BundleProtocol::REASON_NO_TIMELY_CONTACT:
+        addElement(
+            Tcl_NewStringObj("No timely contact with next node on route.", -1));
+        break;
             
-        case BundleProtocol::REASON_HEADER_UNINTELLIGIBLE:
-            buf.append("Header unintelligible.");
-            break;
+    case BundleProtocol::REASON_HEADER_UNINTELLIGIBLE:
+        addElement(
+            Tcl_NewStringObj("Header unintelligible.", -1));
+        break;
             
-        default:
-            buf.appendf("Error: Unknown Status Report Reason Code 0x%x", sr.reason_code_);
-            break;
-        }
+    default:
+        sprintf(tmp_buf, "Error: Unknown Status Report Reason Code 0x%x",
+                sr.reason_code_);
+        addElement(Tcl_NewStringObj(tmp_buf,-1));
+        break;
+    }
 
-        objv[6] = Tcl_NewStringObj(buf.data(), buf.length());
-        buf.set_length(0);
-        
+    // Bundle creation timestamp
+    addElement(Tcl_NewStringObj("creation_ts", -1));
+    sprintf(tmp_buf, "%ld.%06ld",
+            (long)sr.creation_tv_.tv_sec, (long)sr.creation_tv_.tv_usec);
+    addElement(Tcl_NewStringObj(tmp_buf,-1));
 
-        // Bundle creation timestamp
-        buf.appendf("%ld.%06ld",
-                    (long)sr.creation_tv_.tv_sec,
-                     (long)sr.creation_tv_.tv_usec);
-        objv[10] = Tcl_NewStringObj(buf.data(), buf.length());
-        buf.set_length(0);
+    // Status Report's Source EID:
+    addElement(Tcl_NewStringObj("orig_source", -1));
+    addElement(Tcl_NewStringObj(sr.EID_.data(), sr.EID_.length()));
 
 
-        // Source EID:
-        objv[11] = Tcl_NewStringObj(sr.EID_.data(), sr.EID_.length());
-        cmdinterp->set_objresult(Tcl_NewListObj(12, objv));
-
-    } // end admin bundle
+    // Finished with the admin bundle
     
+    cmdinterp->set_objresult(objv);
+
     BundleDaemon::post(
         new BundleTransmittedEvent(b.object(), this, payload_len, true));
-        
+    
     return TCL_OK;
 }
 

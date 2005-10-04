@@ -8,15 +8,18 @@ dtn::config_linear_topology ONDEMAND tcp true
 
 conf::add dtnd 0 {
     proc test_arrived {regid bundle_info} {
-	foreach {isadmin source dest length payload} $bundle_info {}
-	if ($isadmin) {
-	    error "Unexpected admin bundle arrival $source -> $dest"
+	array set b $bundle_info
+	if ($b(isadmin)) {
+	    error "Unexpected admin bundle arrival $b(source) -> b($dest)"
 	}
 	puts "bundle arrival"
-	puts "source:  $source"
-	puts "dest:    $dest"
-	puts "length:  $length"
-	puts "payload: [string range $payload 0 64]"
+	foreach {key val} [array get b] {
+	    if {$key == "payload"} {
+		puts "payload:\t [string range $b(payload) 0 64]"
+	    } else {
+		puts "$key:\t $b($key)"
+	    }
+	}
     }
 }
 

@@ -13,14 +13,14 @@ proc serial_forwarder_registration {endpoint port} {
 }
 
 proc sfreg_bundle_arrived {regid bundle_data} {
+
+    array set b $bundle_data
     
-    foreach {isadmin source dest len payload} $bundle_data {}
-    
-    if ($isadmin) {
-	error "Unexpected admin bundle arrival $source -> $dest"
+    if ($b(isadmin)) {
+	error "Unexpected admin bundle arrival $b(source) -> $b(dest)"
     }
     
-    log /sf debug "got bundle of length $len for registration $regid"
+    log /sf debug "got bundle of length $b(length) for registration $regid"
     
     set chanVar sfreg_chan_$regid
     global $chanVar
@@ -31,7 +31,7 @@ proc sfreg_bundle_arrived {regid bundle_data} {
     }
 
     set chan [set $chanVar]
-    puts -nonewline $chan [binary format ca* $len $payload]
+    puts -nonewline $chan [binary format ca* $b(length) $b(payload)]
     flush $chan
 
 }
