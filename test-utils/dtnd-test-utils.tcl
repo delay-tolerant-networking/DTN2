@@ -45,8 +45,7 @@ proc tcl_registration {endpoint callback {callback_data ""}} {
 proc sendbundle {source_eid dest_eid args} {
     global id
 
-    # XXX/matt for now just assume args consists of a list of "bundle
-    # inject" option pairs
+    # assume args consists of a list of valid "bundle inject" options
     set length 5000
     set i [lsearch -glob $args length=*]
     if {$i != -1} {
@@ -63,6 +62,7 @@ proc sendbundle {source_eid dest_eid args} {
 	append payload "."
     }
 
-    eval [concat {bundle inject $source_eid $dest_eid $payload length=$length} $args]
+    return [eval [concat {bundle inject $source_eid \
+			      $dest_eid $payload length=$length} $args]]
 }
 

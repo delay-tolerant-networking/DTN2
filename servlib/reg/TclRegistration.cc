@@ -119,20 +119,21 @@ TclRegistration::get_list_channel(Tcl_Interp* interp)
  *
  * ALWAYS DEFINIED KEY-VALUE PAIRS:
  *
- * isadmin : Is it an admin bundle? (boolean)
- * source  : Source EID
- * dest    : Destination EID
- * length  : Payload Length
- * payload : Payload contents
+ * isadmin     : Is it an admin bundle? (boolean)
+ * source      : Source EID
+ * dest        : Destination EID
+ * length      : Payload Length
+ * payload     : Payload contents
+ * creation_ts : Creation timestamp
  *
  *
  * ADMIN-BUNDLE-ONLY KEY-VALUE PAIRS:
  *
- * admin_type  : the Admin Type (the following pairs are only defined
- *               if the admin_type = "Stauts Report")
- * reason_code : Reason Code string
- * creation_ts : creation timestamp of original bundle
- * orig_source : EID of the original bundle's source
+ * admin_type       : the Admin Type (the following pairs are only defined
+ *                    if the admin_type = "Stauts Report")
+ * reason_code      : Reason Code string
+ * orig_creation_ts : creation timestamp of original bundle
+ * orig_source      : EID of the original bundle's source
  *
  * ADMIN-BUNDLE-ONLY OPTIONAL KEY-VALUE PAIRS:
  *
@@ -172,6 +173,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     log_debug("got %u bytes of bundle data", (u_int)payload_len);
 
     Tcl_Obj* objv = Tcl_NewListObj(0, NULL);
+    char tmp_buf[128];              // used for sprintf strings
 
 #define addElement(e) \
     if (Tcl_ListObjAppendElement(interp, objv, (e)) != TCL_OK) {\
@@ -191,6 +193,10 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     addElement(Tcl_NewIntObj(payload_len));
     addElement(Tcl_NewStringObj("payload", -1));
     addElement(Tcl_NewByteArrayObj((u_char*)payload_data, payload_len));
+    addElement(Tcl_NewStringObj("creation_ts", -1));
+    sprintf(tmp_buf, "%ld.%06ld",
+            (long)b->creation_ts_.tv_sec, (long)b->creation_ts_.tv_usec);
+    addElement(Tcl_NewStringObj(tmp_buf, -1));
 
     // There are (at least for now) no additional key-value pairs with
     // non-admin bundles, so set the result and return
@@ -210,8 +216,6 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         cmdinterp->resultf("Admin Bundle Status Report parsing failed");
         return TCL_ERROR;
     }
-
-    char tmp_buf[128];              // used for sprintf strings
 
     // go through the SR fields and build up the return list
 
@@ -237,7 +241,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     default:
         sprintf(tmp_buf,
                 "Error: Unknown Status Report Type 0x%x", sr.admin_type_);
-        addElement(Tcl_NewStringObj(tmp_buf,-1));
+        addElement(Tcl_NewStringObj(tmp_buf, -1));
         break;
     }
 
@@ -264,7 +268,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         addElement(Tcl_NewStringObj("received_time", -1));
         sprintf(tmp_buf, "%ld.%06ld",
                 (long)sr.receipt_tv_.tv_sec, (long)sr.receipt_tv_.tv_usec);
-        addElement(Tcl_NewStringObj(tmp_buf,-1));
+        addElement(Tcl_NewStringObj(tmp_buf, -1));
     }
 
     if (sr.status_flags_ & BundleProtocol::STATUS_CUSTODY_ACCEPTED) {
@@ -280,21 +284,21 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         addElement(Tcl_NewStringObj("forwarded_time", -1));
         sprintf(tmp_buf, "%ld.%06ld",
                 (long)sr.forwarding_tv_.tv_sec, (long)sr.forwarding_tv_.tv_usec);
-        addElement(Tcl_NewStringObj(tmp_buf,-1));
+        addElement(Tcl_NewStringObj(tmp_buf, -1));
     }
 
     if (sr.status_flags_ & BundleProtocol::STATUS_DELIVERED) {
         addElement(Tcl_NewStringObj("delivered_time", -1));
         sprintf(tmp_buf, "%ld.%06ld",
                 (long)sr.delivery_tv_.tv_sec, (long)sr.delivery_tv_.tv_usec);
-        addElement(Tcl_NewStringObj(tmp_buf,-1));
+        addElement(Tcl_NewStringObj(tmp_buf, -1));
     }
 
     if (sr.status_flags_ & BundleProtocol::STATUS_DELETED) {
         addElement(Tcl_NewStringObj("deleted_time", -1));
         sprintf(tmp_buf, "%ld.%06ld",
                 (long)sr.deletion_tv_.tv_sec, (long)sr.deletion_tv_.tv_usec);
-        addElement(Tcl_NewStringObj(tmp_buf,-1));
+        addElement(Tcl_NewStringObj(tmp_buf, -1));
     }
 
     if (sr.status_flags_ & BundleProtocol::STATUS_UNAUTHENTIC) {
@@ -353,15 +357,15 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     default:
         sprintf(tmp_buf, "Error: Unknown Status Report Reason Code 0x%x",
                 sr.reason_code_);
-        addElement(Tcl_NewStringObj(tmp_buf,-1));
+        addElement(Tcl_NewStringObj(tmp_buf, -1));
         break;
     }
 
     // Bundle creation timestamp
-    addElement(Tcl_NewStringObj("creation_ts", -1));
+    addElement(Tcl_NewStringObj("orig_creation_ts", -1));
     sprintf(tmp_buf, "%ld.%06ld",
             (long)sr.creation_tv_.tv_sec, (long)sr.creation_tv_.tv_usec);
-    addElement(Tcl_NewStringObj(tmp_buf,-1));
+    addElement(Tcl_NewStringObj(tmp_buf, -1));
 
     // Status Report's Source EID:
     addElement(Tcl_NewStringObj("orig_source", -1));

@@ -183,6 +183,11 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
                   b->source_.c_str(), b->dest_.c_str());
 
         BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP, total));
+
+        // return the creation timestamp (can use with source EID to
+        // create a globally unique bundle identifier
+        resultf("%ld.%06ld",
+                (long)b->creation_ts_.tv_sec, (long)b->creation_ts_.tv_usec);
         return TCL_OK;
         
     } else if (!strcmp(cmd, "stats")) {
