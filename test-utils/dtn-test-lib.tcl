@@ -51,7 +51,7 @@ namespace eval dtn {
     }
 
     proc wait_for_bundle {id bundle_guid {timeout 30000}} {
-	do_until "in wait_for_bundle $bundle_guid" $timeout {
+	do_until "wait_for_bundle $bundle_guid" $timeout {
 	    if {[check_bundle_arrived $id $bundle_guid]} {
 		break
 	    }
