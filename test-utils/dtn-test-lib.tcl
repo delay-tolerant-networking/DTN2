@@ -35,15 +35,41 @@ namespace eval dtn {
 	tell::wait $net::host($id) [dtn::get_port console $id]
     }
     
-    proc tell_dtnd { id cmd } {
+    proc tell_dtnd { id args } {
 	global net::host
 	if {$id == "*"} {
 	    foreach id [net::nodelist] {
-		tell_dtnd $id $cmd
+		eval tell_dtnd $id $args
 	    }
 	    return
 	}
-	return [tell::tell $net::host($id) [dtn::get_port console $id] $cmd]
+	return [eval "tell::tell $net::host($id) [dtn::get_port console $id] $args"]
+    }
+
+    proc check_bundle_arrived {id bundle_guid} {
+	return [dtn::tell_dtnd $id "info exists bundle_info($bundle_guid)"]
+    }
+
+    proc wait_for_bundle {id bundle_guid {timeout 30000}} {
+	do_until "in wait_for_bundle $bundle_guid" $timeout {
+	    if {[check_bundle_arrived $id $bundle_guid]} {
+		break
+	    }
+	}
+    }
+
+    proc get_bundle_data {id bundle_guid} {
+	return [dtn::tell_dtnd $id "set bundle_info($bundle_guid)"]
+    }
+
+    proc check_bundle_data {id bundle_guid {args}} {
+	array set bundle_data [get_bundle_data $id $bundle_guid]
+	foreach {var val} $args {
+	    if {$bundle_data($var) != $val} {
+		error "check_bundle_data: bundle $bundle_guid \
+			$var $bundle_data($var) != expected $val"
+	    }
+	}
     }
 
     proc check_link_state { id link state {log_error 0}} {

@@ -47,28 +47,25 @@ test::script {
     puts "* waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
-    dtn::tell_dtnd 0 {
+    dtn::tell_dtnd 0 \
         tcl_registration dtn://host-0/test test_arrived
-    }
-
+    
     set last_node [expr [net::num_nodes] - 1]
-    set source [dtn::tell_dtnd $last_node {
-        route local_eid
-    }]
+    set source [dtn::tell_dtnd $last_node {route local_eid}]
+    set dest   dtn://host-0/test
     
     puts "* sending bundle"
-    set timestamp [dtn::tell_dtnd $last_node {
-        sendbundle [route local_eid] dtn://host-0/test
-    }]
-
+    set timestamp [dtn::tell_dtnd $last_node sendbundle $source $dest]
+    
     puts "* waiting for bundle arrival"
-    do_until "checking for bundle arrival" 5000 [subst -nocommand {
-        if {[dtn::tell_dtnd 0 {check_bundle_arrived "$source,$timestamp"}]} {
-            break
-        }
-    }]
+    dtn::wait_for_bundle 0 "$source,$timestamp" 5000
 
+    puts "* checking bundle data"
+    dtn::check_bundle_data 0 "$source,$timestamp" \
+	    isadmin 0 source $source dest $dest
+    
     puts "* doing sanity check on stats"
+    # XXX/matt make wrapper fn
     do_until "stats sanity check" 5000 {
         set stats [dtn::tell_dtnd 0 "bundle stats"]
         if {[string match "* 1 received *" $stats]} {
