@@ -30,13 +30,13 @@ proc standard_manifest {} {
 #
 proc get_port {what id} {
     global net::portbase
-    set portbase $net::portbase($id)
+    set dtn_portbase $net::portbase($id)
     
     switch -- $what {
-	console { return [expr $portbase + 0] }
-	api	{ return [expr $portbase + 1] }
-	tcp	{ return [expr $portbase + 2] }
-	udp	{ return [expr $portbase + 2] }
+	console { return [expr $dtn_portbase + 0] }
+	api	{ return [expr $dtn_portbase + 1] }
+	tcp	{ return [expr $dtn_portbase + 2] }
+	udp	{ return [expr $dtn_portbase + 2] }
 	default { return -1 }
     }
 }
