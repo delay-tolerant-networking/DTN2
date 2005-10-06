@@ -17,6 +17,7 @@ all: checkconfigure $(SUBDIRS)
 #
 ifeq ($(SRCDIR),)
 SRCDIR	:= .
+CFGDIR	:= .
 endif
 
 #
