@@ -7,6 +7,7 @@
 #
 ifeq ($(SRCDIR),)
 SRCDIR := ..
+CFGDIR := ..
 endif
 
 DAEMON_SRCS :=			\

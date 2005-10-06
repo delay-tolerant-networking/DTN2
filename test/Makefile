@@ -1,7 +1,14 @@
 #
 # Makefile for DTN2/test
 #
-SRCDIR := ..
+
+#
+# Make sure SRCDIR is set.
+#
+ifeq ($(SRCDIR),)
+SRCDIR := ../..
+CFGDIR := ../..
+endif
 
 #
 # Default target is to build all unit tests

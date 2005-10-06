@@ -2,6 +2,7 @@
 # Makefile to build in directories other than the source directory
 #
 SRCDIR := @SRCDIR@
+CFGDIR := ..
 
 vpath %.c  $(SRCDIR)/daemon
 vpath %.cc $(SRCDIR)/daemon

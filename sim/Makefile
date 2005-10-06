@@ -7,6 +7,7 @@
 #
 ifeq ($(SRCDIR),)
 SRCDIR := ..
+CFGDIR := ..
 endif
 
 OLD_SIM_SRCS :=	\
@@ -52,7 +53,7 @@ all: dtnsim
 #
 BINFILES += dtnsim
 
-COMPONENT_LIBS := $(SRCDIR)/servlib/libdtnserv.a $(SRCDIR)/oasys/liboasys.a 
+COMPONENT_LIBS := ../servlib/libdtnserv.a ../oasys/liboasys.a 
 
 dtnsim: $(SIM_OBJS) $(COMPONENT_LIBS)
 	$(CXX) $(SIM_OBJS) $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(LIBS)

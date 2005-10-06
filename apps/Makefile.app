@@ -28,10 +28,11 @@ $(MANTXT): $(MAN)
 	@if [ -f $(MAN) ] ; then  man ./$(MAN) | col -b > $@ ; fi
 
 #
-# Fix up the SRCDIR
+# Make sure SRCDIR is set.
 #
 ifeq ($(SRCDIR),)
 SRCDIR := ../..
+CFGDIR := ../..
 endif
 
 #
