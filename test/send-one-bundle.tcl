@@ -7,10 +7,10 @@ dtn::config_interface tcp
 dtn::config_linear_topology ONDEMAND tcp true
 
 test::script {
-    puts "* running dtnds"
+    puts "* Running dtnds"
     dtn::run_dtnd *
 
-    puts "* waiting for dtnds to start up"
+    puts "* Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
     set last_node [expr [net::num_nodes] - 1]
@@ -19,23 +19,23 @@ test::script {
     
     dtn::tell_dtnd 0 tcl_registration $dest
     
-    puts "* sending bundle"
+    puts "* Sending bundle"
     set timestamp [dtn::tell_dtnd $last_node sendbundle $source $dest]
     
-    puts "* waiting for bundle arrival"
+    puts "* Waiting for bundle arrival"
     dtn::wait_for_bundle 0 "$source,$timestamp" 5000
 
-    puts "* checking bundle data"
+    puts "* Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \
 	    isadmin 0 source $source dest $dest
     
-    puts "* doing sanity check on stats"
+    puts "* Doing sanity check on stats"
     dtn::wait_for_stat 0 1 received 5000
     
-    puts "* test success!"
+    puts "* Test success!"
 }
 
 test::exit_script {
-    puts "* stopping all dtnds"
+    puts "* Stopping all dtnds"
     dtn::tell_dtnd * exit
 }
