@@ -72,6 +72,46 @@ namespace eval dtn {
 	}
     }
 
+    proc check_bundle_stats {id args} {
+        set stats [dtn::tell_dtnd $id "bundle stats"]
+	foreach {val stat_type} $args {
+	    if {![string match "* $val $stat_type *" $stats]} {
+		error "node $i stat check for $stat_type failed \
+		       expected $val but stats=\"$stats\""
+	    }
+	}
+    }
+    
+    proc test_bundle_stats {id args} {
+        set stats [dtn::tell_dtnd $id "bundle stats"]
+	foreach {val stat_type} $args {
+	    if {![string match "* $val $stat_type *" $stats]} {
+		return false
+	    }
+	}
+	return true
+    }
+
+    proc wait_for_stat {id val stat_type {timeout 30000}} {
+	do_until "in wait for node $id's stat $stat_type = $val" $timeout {
+	    if {[test_bundle_stats $id $val $stat_type]} {
+		break
+	    }
+	}
+    }
+
+    # separate procedure because this one requires an explicit list
+    # argument to allow for optional timeout argument
+    proc wait_for_stats {id stat_list {timeout 30000}} {
+	foreach {val stat_type} $stat_list {
+	    do_until "in wait for node $id's stat $stat_type = $val" $timeout {
+		if {[test_bundle_stats $id $val $stat_type]} {
+		    break
+		}
+	    }
+	}
+    }
+
     proc check_link_state { id link state {log_error 0}} {
 	global net::host
 	

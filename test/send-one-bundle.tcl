@@ -6,40 +6,6 @@ dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ONDEMAND tcp true
 
-conf::add dtnd 0 {
-    
-    proc test_arrived {regid bundle_data} {
-        array set b $bundle_data
-        if ($b(isadmin)) {
-            error "Unexpected admin bundle arrival $b(source) -> b($dest)"
-        }
-        puts "bundle arrival"
-        foreach {key val} [array get b] {
-            if {$key == "payload"} {
-                puts "payload:\t [string range $b(payload) 0 64]"
-            } else {
-                puts "$key:\t $b($key)"
-            }
-        }
-        # record the bundle's arrival
-        set guid "$b(source),$b(creation_ts)"
-        global bundle_payloads
-        set bundle_payloads($guid) $b(payload)
-        global bundle_info
-        unset b(payload)
-        set bundle_info($guid) [array get b]
-    }
-
-    proc check_bundle_arrived {bundle_guid} {
-        global bundle_info
-        if {[info exists bundle_info($bundle_guid)]} {
-            return true
-        }
-        return false
-    }
-    
-}
-
 test::script {
     puts "* running dtnds"
     dtn::run_dtnd *
@@ -47,12 +13,11 @@ test::script {
     puts "* waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
-    dtn::tell_dtnd 0 \
-        tcl_registration dtn://host-0/test test_arrived
-    
     set last_node [expr [net::num_nodes] - 1]
-    set source [dtn::tell_dtnd $last_node {route local_eid}]
-    set dest   dtn://host-0/test
+    set source    [dtn::tell_dtnd $last_node {route local_eid}]
+    set dest      dtn://host-0/test
+    
+    dtn::tell_dtnd 0 tcl_registration $dest
     
     puts "* sending bundle"
     set timestamp [dtn::tell_dtnd $last_node sendbundle $source $dest]
@@ -65,13 +30,7 @@ test::script {
 	    isadmin 0 source $source dest $dest
     
     puts "* doing sanity check on stats"
-    # XXX/matt make wrapper fn
-    do_until "stats sanity check" 5000 {
-        set stats [dtn::tell_dtnd 0 "bundle stats"]
-        if {[string match "* 1 received *" $stats]} {
-            break
-        }
-    }
+    dtn::wait_for_stat 0 1 received 5000
     
     puts "* test success!"
 }

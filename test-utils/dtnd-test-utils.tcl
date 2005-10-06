@@ -30,7 +30,7 @@ proc tcl_registration_bundle_ready {regid endpoint callback callback_data} {
 #
 # Set up a new tcl callback registration
 #
-proc tcl_registration {endpoint callback {callback_data ""}} {
+proc tcl_registration {endpoint {callback default_bundle_arrived} {callback_data ""}} {
     set regid [registration add tcl $endpoint]
     after 1000;     # XXX/demmer fix me
     set chan [registration tcl $regid get_list_channel]
@@ -38,6 +38,32 @@ proc tcl_registration {endpoint callback {callback_data ""}} {
 	    $regid $endpoint $callback $callback_data]
     return $regid
 }
+
+proc default_bundle_arrived {regid bundle_data} {
+    array set b $bundle_data
+    global bundle_payloads
+    global bundle_info
+    global bundle_status_reports
+    
+    puts "bundle arrival"
+    foreach {key val} [array get b] {
+	if {$key == "payload"} {
+	    puts "payload:\t [string range $val 0 64]"
+	} else {
+	    puts "$key:\t $val"
+	}
+    }
+    # record the bundle's arrival
+    set guid "$b(source),$b(creation_ts)"
+    set bundle_payloads($guid) $b(payload)
+    unset b(payload)
+    set bundle_info($guid) [array get b]
+    if {$b(isadmin) && {$b(admin_type) == "Status Report"}} {
+	set sr_guid "$b(orig_source),$b(orig_creation_ts),$b(source)"
+	set bundle_status_reports($sr_guid) [array get b]
+    }	
+}
+
 
 #
 # test proc for sending a bundle
