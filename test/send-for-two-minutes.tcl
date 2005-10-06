@@ -6,41 +6,8 @@ dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ONDEMAND tcp true
 
-conf::add dtnd 0 {
-    
-    proc test_arrived {regid bundle_data} {
-        array set b $bundle_data
-        if ($b(isadmin)) {
-            error "Unexpected admin bundle arrival $b(source) -> b($dest)"
-        }
-        puts "bundle arrival"
-        foreach {key val} [array get b] {
-            if {$key == "payload"} {
-                puts "payload:\t [string range $b(payload) 0 64]"
-            } else {
-                puts "$key:\t $b($key)"
-            }
-        }
-        # record the bundle's arrival
-        set guid "$b(source),$b(creation_ts)"
-        global bundle_payloads
-        set bundle_payloads($guid) $b(payload)
-        global bundle_info
-        unset b(payload)
-        set bundle_info($guid) [array get b]
-    }
-
-    proc check_bundle_arrived {bundle_guid} {
-        global bundle_info
-        if {[info exists bundle_info($bundle_guid)]} {
-            return true
-        }
-        return false
-    }
-    
-}
-
 test::script {
+    
     puts "* running dtnds"
     dtn::run_dtnd *
 
@@ -48,22 +15,17 @@ test::script {
     dtn::wait_for_dtnd *
     
     set last_node [expr [net::num_nodes] - 1]
-    set source [dtn::tell_dtnd $last_node {
-        route local_eid
-    }]
+    set source    [dtn::tell_dtnd $last_node route local_eid]
+    set dest      dtn://host-0/test
     
-    dtn::tell_dtnd 0 {
-        tcl_registration dtn://host-0/test test_arrived
-    }
+    dtn::tell_dtnd 0 tcl_registration $dest
 
     puts "* sending one bundle every 10 seconds for 2 minutes"
     set timestamps {}
     for {set i 1} {$i <= 13} {incr i} {
         puts "* sending bundle $i"
-        lappend timestamps [dtn::tell_dtnd $last_node {
-            sendbundle [route local_eid] dtn://host-0/test
-        }]
-        # save 10 seconds at the end of the test:
+        lappend timestamps [dtn::tell_dtnd $last_node sendbundle $source $dest]
+        # save 10 seconds at the end of the test
         if {$i < 13} {
             after 10000
         }
@@ -72,16 +34,12 @@ test::script {
     set i 1
     foreach timestamp $timestamps {
         puts -nonewline "* Checking that bundle $i arrived... "
-        do_until "checking that bundle $i arrived" 5000 [subst -nocommand {
-                    if {[dtn::tell_dtnd 0 {check_bundle_arrived \
-                                               "$source,$timestamp"}]} {
-                        break
-                    }
-        }]
+        dtn::wait_for_bundle 0 "$source,$timestamp" 5000
         # the Marv Albert of test reports:
         puts "yes! And it counts!"
         incr i
     }
+
     puts "* test success!"
 }
 
