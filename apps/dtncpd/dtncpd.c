@@ -79,7 +79,6 @@ main(int argc, const char** argv)
 
     char * bundle_dir = 0;
 
-    char * region;
     char * host;
     char * dirpath;
     char * filename;
@@ -216,7 +215,6 @@ main(int argc, const char** argv)
 
         printf ("======================================\n");
         printf (" File Received at %s\n", ctime(&current));
-        printf ("   region : %s\n", region);
         printf ("   host   : %s\n", host);
         printf ("   path   : %s\n", dirpath);
         printf ("   file   : %s\n", filename);
