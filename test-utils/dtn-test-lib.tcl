@@ -116,7 +116,6 @@ namespace eval dtn {
 
     proc check_sr_fields {id sr_guid {args}} {
 	array set sr_data [get_sr_data $id $sr_guid]
-	puts "XXX \"$sr_guid\" = [get_sr_data $id $sr_guid]"
 	foreach field $args {
 	    if {![info exists sr_data($field)]} {
 		error "check_sr_fields: SR \"$sr_guid\" field $field not found"
