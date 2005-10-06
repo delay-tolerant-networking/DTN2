@@ -29,6 +29,7 @@ proc standard_manifest {} {
 # Utility proc to get the adjusted port number for various things
 #
 proc get_port {what id} {
+    global net::portbase
     set portbase $net::portbase($id)
     
     switch -- $what {
