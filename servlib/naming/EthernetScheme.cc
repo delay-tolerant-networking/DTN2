@@ -52,6 +52,8 @@ EthernetScheme* oasys::Singleton<EthernetScheme>::instance_ = 0;
 
 /*
  * Parse out an ethernet address from the ssp.
+ *
+ * @return true if the string is a valid ethernet address, false if not.
  */
 bool
 EthernetScheme::parse(const std::string& ssp, eth_addr_t* addr)
@@ -74,8 +76,6 @@ EthernetScheme::parse(const std::string& ssp, eth_addr_t* addr)
                    &addr->octet[4],
                    &addr->octet[5]);
     if (r != 6) {
-        log_err("/scheme/ethernet",
-                "string %s is not a valid ethernet URL", ssp.c_str());
         return false;
     }
 
