@@ -67,8 +67,14 @@ libdtnapisrv.a: $(SERVERLIB_OBJS)
 LIBFILES += libdtnapisrv.a libdtnapi.a
 
 #
+# Make sure SRCDIR is set (.. by default)
+#
+ifeq ($(SRCDIR),)
+SRCDIR := ..
+endif
+
+#
 # Include the common rules
 #
-SRCDIR := ..
--include $(SRCDIR)/Rules.make
+include ../Rules.make
 

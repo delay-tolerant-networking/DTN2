@@ -10,19 +10,20 @@ TARGET 		= @TARGET@
 #
 # Common settings extracted from the configure script
 #
+SRCDIR		= @SRCDIR@
 CC		= @CC@
 CXX		= @CXX@
 DEPFLAGS	= @DEPFLAGS@
 DEBUG 		= @DEBUG@
 OPTIMIZE	= @OPTIMIZE@
-CPPFLAGS	= -I$(SRCDIR) -I$(SRCDIR)/servlib @CPPFLAGS@
+CPPFLAGS	= -I$(SRCDIR) -I. -I$(SRCDIR)/servlib @CPPFLAGS@
 WARN  		= -Wall -Werror @OPTIMIZE_WARN@
 CFLAGS		= $(CPPFLAGS) $(DEBUG) $(OPTIMIZE) $(DEPFLAGS) $(WARN)
-LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
+LDFLAGS		= @LDFLAGS@
 
 #
-# Add a phony rule to make sure this isn't created before the default
+# Add a phony rule to make sure this isn't included before the default
 #
 .PHONY: catchdefault
 catchdefault:
@@ -31,7 +32,7 @@ catchdefault:
 
 #
 # Rule for generating a .o file from the corresponding .cc file;
-# automatically creates dependencies via the -MMD flag.
+# automatically creates dependencies via the dependency flags.
 #
 %.o: %.cc
 	@rm -f $@; mkdir -p $(@D)
@@ -54,7 +55,7 @@ catchdefault:
 
 #
 # Always include all the .d files that we can find, based on all the
-# source files we can find.
+# source files we can find (unless they're specified).
 #
 ifeq ($(ALLSRCS),)
 ALLSRCS := $(shell find . -name \*.cc -o -name \*.c)
@@ -73,7 +74,7 @@ echodep:
 	@echo "depfiles: $(DEPFILES)"
 
 #
-# Clean out all object files
+# Some rules for cleaning object files
 #
 clean: $(SUBDIRS) objclean depclean genclean libclean binclean
 
@@ -110,7 +111,7 @@ binclean:
 		rm -f $(BINFILES)
 
 .PHONY: distclean
-CFGFILES := Rules.make config.h config.h config.cache
+CFGFILES := Rules.make config.h config.cache
 distclean: clean
 	@echo "removing configure generated files: $(CFGFILES)..."
 	@test -z "$(CFGFILES)" || rm -f $(CFGFILES)

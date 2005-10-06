@@ -25,11 +25,10 @@ then
 fi
 ])
 
-# First set srcdir
-ac_prog=$0
-ac_confdir=`echo "$ac_prog" | sed 's%[\\/][^\\/][^\\/]*$%%'`
-test "x$ac_confdir" = "x$ac_prog" && ac_confdir=.
-SRCDIR=$ac_confdir
+# First set srcdir, as calculated above in AC_CONFIG_SRCDIR
+AC_MSG_CHECKING([location of source directory])
+AC_MSG_RESULT(\"$srcdir\")
+SRCDIR=$srcdir
 AC_SUBST(SRCDIR)
 
 dnl -------------------------------------------------------------------------
@@ -169,19 +168,19 @@ dnl -------------------------------------------------------------------------
 dnl Checks for header files.
 dnl -------------------------------------------------------------------------
 AC_HEADER_DIRENT
-AC_HEADER_STDC
 AC_CHECK_HEADERS([arpa/inet.h err.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/file.h sys/ioctl.h sys/socket.h sys/time.h termios.h unistd.h wchar.h])
+AC_HEADER_STDBOOL
+AC_HEADER_STDC
+AC_HEADER_TIME
 
 dnl -------------------------------------------------------------------------
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl -------------------------------------------------------------------------
-AC_HEADER_STDBOOL
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
-AC_HEADER_TIME
 AC_C_VOLATILE
 AC_CHECK_TYPES([ptrdiff_t])
 AC_CHECK_TYPES([uint32_t])
@@ -225,11 +224,20 @@ dnl
 dnl We defer setting the various CFLAGS to avoid interfering with the 
 dnl basic system tests.
 dnl
-CPPFLAGS="$CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
+CPPFLAGS="-I\$(SRCDIR)/servlib $CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
 LIBS="$LIBS $OASYS_LIBS $DTN_LIBS"
 
-AC_CONFIG_FILES(Rules.make)
+AC_CONFIG_FILES(Rules.make:oasys/Rules.make.in)
+
+if test ! $SRCDIR = . ; then
+   AC_CONFIG_FILES([Makefile:oasys/Makefile-Builddir.in])
+   AC_CONFIG_FILES([applib/Makefile:applib/Makefile-Builddir.in])
+   AC_CONFIG_FILES([servlib/Makefile:servlib/Makefile-Builddir.in])
+   AC_CONFIG_FILES([daemon/Makefile:daemon/Makefile-Builddir.in])
+   AC_CONFIG_FILES([apps/Makefile:apps/Makefile-Builddir.in])
+   AC_CONFIG_FILES([sim/Makefile:sim/Makefile-Builddir.in])
+fi
 
 dnl
 dnl Always reconfigure oasys as well

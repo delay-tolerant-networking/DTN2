@@ -13,6 +13,18 @@ SUBDIRS := oasys applib servlib daemon apps sim
 all: checkconfigure $(SUBDIRS)
 
 #
+# If srcdir isn't set by some other makefile, then it must be .
+#
+ifeq ($(SRCDIR),)
+SRCDIR	:= .
+endif
+
+#
+# Include the common rules
+#
+-include Rules.make
+
+#
 # Dependency rules between subdirectories needed for make -j
 #
 applib servlib: oasys
@@ -58,18 +70,16 @@ tags TAGS:
 # And a rule to make sure that configure has been run recently enough.
 #
 .PHONY: checkconfigure
-checkconfigure: configure Rules.make
+checkconfigure: Rules.make
 
-Rules.make: Rules.make.in configure
+Rules.make: $(SRCDIR)/configure $(SRCDIR)/oasys/Rules.make.in 
 	@[ ! x`echo "$(MAKECMDGOALS)" | grep clean` = x ] || \
 	(echo "$@ is out of date, need to rerun configure" && \
 	exit 1)
 
-Rules.make.in:
+$(SRCDIR)/configure $(SRCDIR)/oasys/Rules.make.in:
 	@echo SRCDIR: $(SRCDIR)
 	@echo error -- Makefile did not set SRCDIR properly
 	@exit 1
 
 GENFILES = doc/manual/man/*.txt
-
--include Rules.make

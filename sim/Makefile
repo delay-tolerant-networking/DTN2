@@ -1,8 +1,13 @@
 #
 # Makefile for DTN2/sim
 #
-SRCDIR := ..
 
+#
+# Make sure SRCDIR is set (.. by default)
+#
+ifeq ($(SRCDIR),)
+SRCDIR := ..
+endif
 
 OLD_SIM_SRCS :=	\
 	dtnsim.cc	\
@@ -55,4 +60,4 @@ dtnsim: $(SIM_OBJS) $(COMPONENT_LIBS)
 #
 # Include the common rules
 #
--include $(SRCDIR)/Rules.make
+-include ../Rules.make

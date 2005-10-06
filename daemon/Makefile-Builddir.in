@@ -1,0 +1,9 @@
+#
+# Makefile to build in directories other than the source directory
+#
+SRCDIR := @SRCDIR@
+
+vpath %.c  $(SRCDIR)/daemon
+vpath %.cc $(SRCDIR)/daemon
+
+include $(SRCDIR)/daemon/Makefile

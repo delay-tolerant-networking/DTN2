@@ -150,10 +150,16 @@ debug/gdtoa-%.o: debug/gdtoa-%.c debug/arith.h
 GENFILES += debug/arith.h debug/arith-native.h debug/arithchk
 
 #
+# Make sure SRCDIR is set (.. by default)
+#
+ifeq ($(SRCDIR),)
+SRCDIR := ..
+endif
+
+#
 # Include the common rules here to define symbols that may be needed
 # in the special rules below
 #
-SRCDIR := ..
--include $(SRCDIR)/Rules.make
+-include ../Rules.make
 
 endif

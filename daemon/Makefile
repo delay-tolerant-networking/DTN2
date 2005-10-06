@@ -1,11 +1,17 @@
 #
 # Makefile for DTN2/daemon
 #
-SRCDIR := ..
 
-DAEMON_SRCS :=		\
-	dtnd.cc		\
-	../version.c
+#
+# Make sure SRCDIR is set (.. by default)
+#
+ifeq ($(SRCDIR),)
+SRCDIR := ..
+endif
+
+DAEMON_SRCS :=			\
+	dtnd.cc			\
+	$(SRCDIR)/version.c	\
 
 DAEMON_OBJS := $(DAEMON_SRCS:.cc=.o)
 
@@ -16,9 +22,9 @@ BINFILES := dtnd
 all: $(BINFILES)
 
 COMPONENT_LIBS := \
-	$(SRCDIR)/applib/libdtnapisrv.a \
-	$(SRCDIR)/servlib/libdtnserv.a 	\
-	$(SRCDIR)/oasys/liboasys.a 	\
+	../applib/libdtnapisrv.a 	\
+	../servlib/libdtnserv.a 	\
+	../oasys/liboasys.a 		\
 
 dtnd: $(DAEMON_OBJS) $(COMPONENT_LIBS)
 	$(CXX) $(DAEMON_OBJS) $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(LIBS)
@@ -26,4 +32,5 @@ dtnd: $(DAEMON_OBJS) $(COMPONENT_LIBS)
 #
 # Include the common rules
 #
--include $(SRCDIR)/Rules.make
+-include ../Rules.make
+

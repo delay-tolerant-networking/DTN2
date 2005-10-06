@@ -1335,11 +1335,12 @@ fi
 
 fi;
 
-# First set srcdir
-ac_prog=$0
-ac_confdir=`echo "$ac_prog" | sed 's%\\/^\\/^\\/*$%%'`
-test "x$ac_confdir" = "x$ac_prog" && ac_confdir=.
-SRCDIR=$ac_confdir
+# First set srcdir and confdir, calculated above in AC_CONFIG_SRCDIR
+echo "$as_me:$LINENO: checking location of source directory" >&5
+echo $ECHO_N "checking location of source directory... $ECHO_C" >&6
+echo "$as_me:$LINENO: result: \"$srcdir\"" >&5
+echo "${ECHO_T}\"$srcdir\"" >&6
+SRCDIR=$srcdir
 
 
 
@@ -7972,12 +7973,27 @@ echo "$as_me: error: Must enable at least one storage option (libdb, postgres, m
 
 
 
-CPPFLAGS="$CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
+CPPFLAGS="-I\$(SRCDIR)/servlib $CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
 LIBS="$LIBS $OASYS_LIBS $DTN_LIBS"
 
-          ac_config_files="$ac_config_files Rules.make"
+          ac_config_files="$ac_config_files Rules.make:oasys/Rules.make.in"
 
+
+if test ! $SRCDIR = . ; then
+             ac_config_files="$ac_config_files Makefile:oasys/Makefile-Builddir.in"
+
+             ac_config_files="$ac_config_files applib/Makefile:applib/Makefile-Builddir.in"
+
+             ac_config_files="$ac_config_files servlib/Makefile:servlib/Makefile-Builddir.in"
+
+             ac_config_files="$ac_config_files daemon/Makefile:daemon/Makefile-Builddir.in"
+
+             ac_config_files="$ac_config_files apps/Makefile:apps/Makefile-Builddir.in"
+
+             ac_config_files="$ac_config_files sim/Makefile:sim/Makefile-Builddir.in"
+
+fi
 
 
 
@@ -8508,7 +8524,13 @@ for ac_config_target in $ac_config_targets
 do
   case "$ac_config_target" in
   # Handling of arguments.
-  "Rules.make" ) CONFIG_FILES="$CONFIG_FILES Rules.make" ;;
+  "Rules.make" ) CONFIG_FILES="$CONFIG_FILES Rules.make:oasys/Rules.make.in" ;;
+  "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile:oasys/Makefile-Builddir.in" ;;
+  "applib/Makefile" ) CONFIG_FILES="$CONFIG_FILES applib/Makefile:applib/Makefile-Builddir.in" ;;
+  "servlib/Makefile" ) CONFIG_FILES="$CONFIG_FILES servlib/Makefile:servlib/Makefile-Builddir.in" ;;
+  "daemon/Makefile" ) CONFIG_FILES="$CONFIG_FILES daemon/Makefile:daemon/Makefile-Builddir.in" ;;
+  "apps/Makefile" ) CONFIG_FILES="$CONFIG_FILES apps/Makefile:apps/Makefile-Builddir.in" ;;
+  "sim/Makefile" ) CONFIG_FILES="$CONFIG_FILES sim/Makefile:sim/Makefile-Builddir.in" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}

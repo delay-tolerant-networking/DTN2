@@ -7,15 +7,15 @@ OBJS := $(SRCS:.cc=.o)
 OBJS := $(OBJS:.c=.o)
 
 MAN := $(APP).1
-MANTXT := ../../doc/manual/man/$(APP).txt
+MANTXT := $(TOPDIR)/doc/manual/man/$(APP).txt
 
 BINFILES := $(APP)
 all: $(APP) $(MANTXT)
 
-APPLFLAGS = -L$(SRCDIR)/applib -L$(SRCDIR)/oasys $(LDFLAGS) \
+APPLFLAGS = -L$(TOPDIR)/applib -L$(TOPDIR)/oasys $(LDFLAGS) \
 		-ldtnapi -loasyscompat $(LIBS) 
 
-$(APP): $(OBJS) $(SRCDIR)/applib/libdtnapi.a
+$(APP): $(OBJS) $(TOPDIR)/applib/libdtnapi.a
 	$(CXX) $(OBJS) $(APPLFLAGS) -o $@
 
 # this next line and the dash to ignore errs are because not all the
@@ -28,8 +28,16 @@ $(MANTXT): $(MAN)
 	@if [ -f $(MAN) ] ; then  man ./$(MAN) | col -b > $@ ; fi
 
 #
+# Fix up the SRCDIR
+#
+ifeq ($(SRCDIR),)
+SRCDIR := ../..
+endif
+
+#
 # Include the common rules
 #
--include $(SRCDIR)/Rules.make
+-include $(TOPDIR)/Rules.make
 
-CPPFLAGS += -I $(SRCDIR)/applib
+CPPFLAGS += -I$(SRCDIR)/applib
+
