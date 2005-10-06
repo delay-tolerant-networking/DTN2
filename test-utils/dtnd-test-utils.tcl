@@ -43,7 +43,7 @@ proc default_bundle_arrived {regid bundle_data} {
     array set b $bundle_data
     global bundle_payloads
     global bundle_info
-    global bundle_status_reports
+    global bundle_sr_info
     
     puts "bundle arrival"
     foreach {key val} [array get b] {
@@ -58,9 +58,9 @@ proc default_bundle_arrived {regid bundle_data} {
     set bundle_payloads($guid) $b(payload)
     unset b(payload)
     set bundle_info($guid) [array get b]
-    if {$b(isadmin) && {$b(admin_type) == "Status Report"}} {
+    if { $b(isadmin) && [string match "Status Report" $b(admin_type)] } {
 	set sr_guid "$b(orig_source),$b(orig_creation_ts),$b(source)"
-	set bundle_status_reports($sr_guid) [array get b]
+	set bundle_sr_info($sr_guid) [array get b]
     }	
 }
 

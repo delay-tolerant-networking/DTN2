@@ -1,6 +1,11 @@
 import "dtn-config.tcl"
 import "dtn-topology.tcl"
 
+# procedure naming conventions:
+#
+# check_*    - errors out if the check fails
+# wait_for_* - errors out if the check never succeeds within a timeout
+
 namespace eval dtn {
     proc run_dtnd { id {other_opts ""} } {
 	global opt net::host net::portbase net::extra test::testname
@@ -46,13 +51,19 @@ namespace eval dtn {
 	return [eval "tell::tell $net::host($id) [dtn::get_port console $id] $args"]
     }
 
+    
+    # dtn bundle data functions
+
     proc check_bundle_arrived {id bundle_guid} {
-	return [dtn::tell_dtnd $id "info exists bundle_info($bundle_guid)"]
+	if {![dtn::tell_dtnd $id "info exists bundle_info($bundle_guid)"]} {
+	    error "check for bundle arrival failed: \
+	        node $id bundle $bundle_guid"
+	}
     }
 
     proc wait_for_bundle {id bundle_guid {timeout 30000}} {
 	do_until "wait_for_bundle $bundle_guid" $timeout {
-	    if {[check_bundle_arrived $id $bundle_guid]} {
+	    if {![catch {check_bundle_arrived $id $bundle_guid}]} {
 		break
 	    }
 	}
@@ -72,6 +83,50 @@ namespace eval dtn {
 	}
     }
 
+    
+    # dtn status report bundle data functions
+
+    proc check_sr_arrived {id sr_guid} {
+	if {![dtn::tell_dtnd $id "info exists bundle_sr_info($sr_guid)"]} {
+	    error "check for SR arrival failed: node $id SR $sr_guid"
+	}
+    }
+
+    proc wait_for_sr {id sr_guid {timeout 30000}} {
+	do_until "wait_for_sr $sr_guid" $timeout {
+	    if {![catch {check_sr_arrived $id $sr_guid}]} {
+		break
+	    }
+	}
+    }
+
+    proc get_sr_data {id sr_guid} {
+	return [dtn::tell_dtnd $id "set bundle_sr_info($sr_guid)"]
+    }
+
+    proc check_sr_data {id sr_guid {args}} {
+	array set sr_data [get_sr_data $id $sr_guid]
+	foreach {var val} $args {
+	    if {$sr_data($var) != $val} {
+		error "check_sr_data: SR $sr_guid \
+			$var $sr_data($var) != expected $val"
+	    }
+	}
+    }
+
+    proc check_sr_fields {id sr_guid {args}} {
+	array set sr_data [get_sr_data $id $sr_guid]
+	puts "XXX \"$sr_guid\" = [get_sr_data $id $sr_guid]"
+	foreach field $args {
+	    if {![info exists sr_data($field)]} {
+		error "check_sr_fields: SR \"$sr_guid\" field $field not found"
+	    }
+	}
+    }
+
+    
+    # dtnd "bundle stats" functions
+    
     proc check_bundle_stats {id args} {
         set stats [dtn::tell_dtnd $id "bundle stats"]
 	foreach {val stat_type} $args {
@@ -112,24 +167,22 @@ namespace eval dtn {
 	}
     }
 
-    proc check_link_state { id link state {log_error 0}} {
+    # dtnd "link state" functions
+
+    proc check_link_state { id link state } {
 	global net::host
 	
 	set result [tell_dtnd $id "link state $link"]
 
 	if {$result != $state} {
-	    if {$log_error} {
-		puts "ERROR: check_link_state: \
-			id $id expected state $state, got $result"
-	    }
-	    return 0
+	    error "ERROR: check_link_state: \
+		id $id expected state $state, got $result"
 	}
-	return 1
     }
 
     proc wait_for_link_state { id link state {timeout 30000} } {
 	do_until "waiting for link state $state" $timeout {
-	    if [check_link_state $id $link $state 0] {
+	    if {![catch {check_link_state $id $link $state}]} {
 		return
 	    }
 	    after 1000
