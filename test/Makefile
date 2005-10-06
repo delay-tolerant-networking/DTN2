@@ -6,8 +6,8 @@
 # Make sure SRCDIR is set.
 #
 ifeq ($(SRCDIR),)
-SRCDIR := ../..
-CFGDIR := ../..
+SRCDIR := ..
+CFGDIR := ..
 endif
 
 #
