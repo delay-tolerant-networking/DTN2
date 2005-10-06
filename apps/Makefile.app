@@ -22,8 +22,10 @@ $(APP): $(OBJS) $(SRCDIR)/applib/libdtnapi.a
 # manpages are done. When they are, we'll remove these to cause
 # an error when there is no man page.
 $(MAN):
+	@echo "NOTE: no manpage exists for $(APP)"
+
 $(MANTXT): $(MAN)
-	-[ -f $(MAN) ] && man ./$(MAN) | col -b > $@
+	@if [ -f $(MAN) ] ; then  man ./$(MAN) | col -b > $@ ; fi
 
 #
 # Include the common rules
