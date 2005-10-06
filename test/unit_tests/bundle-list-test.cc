@@ -182,7 +182,7 @@ DECLARE_TEST(MultipleLists) {
 
     b = bundles[0];
     CHECK_EQUAL(b->num_mappings(), 3);
-    b->lock_.lock();
+    b->lock_.lock("test lock");
     for (map_iter = b->mappings_begin();
          map_iter != b->mappings_end();
          ++map_iter)
@@ -211,13 +211,13 @@ DECLARE_TEST(MultipleListRemoval) {
     Bundle* b;
     BundleList* l;
 
-    l3->lock()->lock();
+    l3->lock()->lock("test lock");
     for (iter = l3->begin(); iter != l3->end(); )
     {
         b = *iter;
         ++iter; // increment before removal
 
-        b->lock_.lock();
+        b->lock_.lock("test lock");
         CHECK_EQUAL(b->num_mappings(), 3);
         
         for (map_iter = b->mappings_begin();
