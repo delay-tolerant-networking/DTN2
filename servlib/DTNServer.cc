@@ -301,7 +301,7 @@ DTNServer::tidy_dir(const char* dirname)
     if (stat(dirname, &st) == 0)
     {
         snprintf(cmd, sizeof(cmd), "/bin/rm -rf %s", dirname);
-        log_warn("tidy option removing directory '%s'", cmd);
+        log_info("tidy option removing directory '%s'", cmd);
         
         if (system(cmd))
         {
