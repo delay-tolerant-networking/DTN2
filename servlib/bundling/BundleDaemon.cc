@@ -231,11 +231,15 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 
     struct timeval now;
     gettimeofday(&now, 0);
-    if (bundle->creation_ts_.tv_sec < now.tv_sec) {
-        log_warn("bundle id %d arrived with creation time (%u) in the past",
-                 bundle->bundleid_, (u_int)bundle->creation_ts_.tv_sec);
+    if (TIMEVAL_GT(bundle->creation_ts_, now)) {
+        log_warn("bundle id %d arrived with creation time in the future "
+                 "(%u.%u > %u.%u)",
+                 bundle->bundleid_,
+                 (u_int)bundle->creation_ts_.tv_sec,
+                 (u_int)bundle->creation_ts_.tv_usec,
+                 (u_int)now.tv_sec, (u_int)now.tv_usec);
     }
-    
+        
     if (bundle->receive_rcpt_) {
         generate_status_report(bundle, BundleProtocol::STATUS_RECEIVED);
     }
