@@ -563,10 +563,10 @@ int
 APIClient::handle_recv()
 {
     APIRegistration* reg = NULL;
-    dtn_bundle_spec_t spec;
-    dtn_bundle_payload_t payload;
+    dtn_bundle_spec_t             spec;
+    dtn_bundle_payload_t          payload;
     dtn_bundle_payload_location_t location;
-    dtn_timeval_t timeout;
+    dtn_timeval_t                 timeout;
     oasys::StringBuffer buf;
 
     // unpack the arguments
