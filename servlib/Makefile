@@ -153,8 +153,8 @@ GENFILES += debug/arith.h debug/arith-native.h debug/arithchk
 # Make sure SRCDIR is set (.. by default)
 #
 ifeq ($(SRCDIR),)
-SRCDIR := ..
-CFGDIR := ..
+SRCDIR   := ..
+BUILDDIR := ..
 endif
 
 #

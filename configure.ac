@@ -25,11 +25,17 @@ then
 fi
 ])
 
-# First set srcdir, as calculated above in AC_CONFIG_SRCDIR
+# First set srcdir and builddir, calculated above in AC_CONFIG_SRCDIR
 AC_MSG_CHECKING([location of source directory])
-AC_MSG_RESULT(\"$srcdir\")
-SRCDIR=$srcdir
+SRCDIR=`(cd $srcdir && pwd)`
+AC_MSG_RESULT(\"$SRCDIR\")
 AC_SUBST(SRCDIR)
+
+builddir=`pwd`
+AC_MSG_CHECKING([location of build directory])
+AC_MSG_RESULT(\"$builddir\")
+BUILDDIR=$builddir
+AC_SUBST(BUILDDIR)
 
 dnl -------------------------------------------------------------------------
 dnl Basic user-configurable options

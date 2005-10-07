@@ -6,8 +6,8 @@
 # Make sure SRCDIR is set (.. by default)
 #
 ifeq ($(SRCDIR),)
-SRCDIR := ..
-CFGDIR := ..
+SRCDIR   := ..
+BUILDDIR := ..
 endif
 
 OLD_SIM_SRCS :=	\

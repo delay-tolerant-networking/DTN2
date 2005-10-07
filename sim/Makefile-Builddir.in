@@ -1,8 +1,8 @@
 #
 # Makefile to build in directories other than the source directory
 #
-SRCDIR := @SRCDIR@
-CFGDIR := ..
+SRCDIR   := @SRCDIR@
+BUILDDIR := @BUILDDIR@
 
 vpath %.c  $(SRCDIR)/sim
 vpath %.cc $(SRCDIR)/sim

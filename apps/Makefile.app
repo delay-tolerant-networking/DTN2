@@ -31,8 +31,8 @@ $(MANTXT): $(MAN)
 # Make sure SRCDIR is set.
 #
 ifeq ($(SRCDIR),)
-SRCDIR := ../..
-CFGDIR := ../..
+SRCDIR   := ../..
+BUILDDIR := ../..
 endif
 
 #

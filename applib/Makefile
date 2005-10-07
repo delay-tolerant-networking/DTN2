@@ -70,8 +70,8 @@ LIBFILES += libdtnapisrv.a libdtnapi.a
 # Make sure SRCDIR is set (.. by default)
 #
 ifeq ($(SRCDIR),)
-CFGDIR := ..
-SRCDIR := ..
+SRCDIR   := ..
+BUILDDIR := ..
 endif
 
 #

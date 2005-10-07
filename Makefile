@@ -13,11 +13,12 @@ SUBDIRS := oasys applib servlib daemon apps sim
 all: checkconfigure $(SUBDIRS)
 
 #
-# If srcdir isn't set by some other makefile, then it must be .
+# If srcdir/builddir aren't set by some other makefile, 
+# then default to .
 #
 ifeq ($(SRCDIR),)
-SRCDIR	:= .
-CFGDIR	:= .
+SRCDIR	 := .
+BUILDDIR := .
 endif
 
 #
