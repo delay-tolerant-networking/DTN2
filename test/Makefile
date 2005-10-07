@@ -44,10 +44,12 @@ COMPONENT_LIBS := \
 # Default pattern rule to build the tests
 #
 unit_tests/%-test.o: unit_tests/%-test.cc
-	$(CXX) $(CFLAGS) -c $< -o $@
+	@rm -f $@; mkdir -p $(@D)
+	$(CXX) $(CFLAGS) -c $< -o $@	
 
 %-test: unit_tests/%-test
 unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
+	@rm -f $@; mkdir -p $(@D)
 	$(CXX) $(CFLAGS) $< $(COMPONENT_LIBS) \
 		-o $@ $(LDFLAGS) $(LIBS) 
 
