@@ -62,15 +62,25 @@ public:
      *
      * @return true if valid
      */
-    virtual bool validate(const std::string& ssp, bool is_pattern = false) = 0;
+    virtual bool validate(const std::string& ssp,
+                          bool is_pattern = false) = 0;
+
+    /**
+     * Match the given scheme string with the given pattern.
+     *
+     * By default, this just compares the two strings literally, but
+     * some schemes (i.e. the wildcard) may tolerate many more.
+     */
+    virtual bool match_scheme(const EndpointIDPattern* pattern,
+                              const std::string& scheme);
 
     /**
      * Match the given ssp with the given pattern.
      *
      * @return true if it matches
      */
-    virtual bool match(const EndpointIDPattern* pattern,
-                       const std::string& ssp) = 0;
+    virtual bool match_ssp(const EndpointIDPattern* pattern,
+                           const std::string& ssp) = 0;
 
     /**
      * Append the given service tag to the ssp in a scheme-specific

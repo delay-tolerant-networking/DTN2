@@ -96,7 +96,7 @@ DTNScheme::validate(const std::string& ssp, bool is_pattern)
  * @return true if it matches
  */
 bool
-DTNScheme::match(const EndpointIDPattern* pattern, const std::string& ssp)
+DTNScheme::match_ssp(const EndpointIDPattern* pattern, const std::string& ssp)
 {
     // sanity check
     ASSERT(pattern->scheme() == this);

@@ -64,12 +64,28 @@ WildcardScheme::validate(const std::string& ssp, bool is_pattern)
 }
     
 /**
+ * Match the given scheme with the given pattern.
+ *
+ * @return true if it matches
+ */
+bool
+WildcardScheme::match_scheme(const EndpointIDPattern* pattern,
+                             const std::string& scheme)
+{
+    ASSERT(pattern->scheme() == this); // sanity
+    
+    // always matches everything
+    return true;
+}
+
+/**
  * Match the given ssp with the given pattern.
  *
  * @return true if it matches
  */
 bool
-WildcardScheme::match(const EndpointIDPattern* pattern, const std::string& ssp)
+WildcardScheme::match_ssp(const EndpointIDPattern* pattern,
+                          const std::string& ssp)
 {
     ASSERT(pattern->scheme() == this); // sanity
     

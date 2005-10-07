@@ -77,8 +77,8 @@ public:
      *
      * @return true if it matches
      */
-    virtual bool match(const EndpointIDPattern* pattern,
-                       const std::string& ssp);
+    virtual bool match_ssp(const EndpointIDPattern* pattern,
+                           const std::string& ssp);
 
     /*
      * Parse out an ethernet address from the ssp.
