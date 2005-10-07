@@ -8148,7 +8148,7 @@ LIBS="$LIBS $OASYS_LIBS $DTN_LIBS"
           ac_config_files="$ac_config_files Rules.make:oasys/Rules.make.in"
 
 
-if test ! $SRCDIR = . ; then
+if test ! $SRCDIR = `pwd` ; then
              ac_config_files="$ac_config_files Makefile:oasys/Makefile-Builddir.in"
 
              ac_config_files="$ac_config_files applib/Makefile:applib/Makefile-Builddir.in"

@@ -236,7 +236,7 @@ LIBS="$LIBS $OASYS_LIBS $DTN_LIBS"
 
 AC_CONFIG_FILES(Rules.make:oasys/Rules.make.in)
 
-if test ! $SRCDIR = . ; then
+if test ! $SRCDIR = `pwd` ; then
    AC_CONFIG_FILES([Makefile:oasys/Makefile-Builddir.in])
    AC_CONFIG_FILES([applib/Makefile:applib/Makefile-Builddir.in])
    AC_CONFIG_FILES([servlib/Makefile:servlib/Makefile-Builddir.in])
