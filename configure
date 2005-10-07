@@ -8161,6 +8161,8 @@ if test ! $SRCDIR = `pwd` ; then
 
              ac_config_files="$ac_config_files sim/Makefile:sim/Makefile-Builddir.in"
 
+             ac_config_files="$ac_config_files test/Makefile:test/Makefile-Builddir.in"
+
 fi
 
 
@@ -8699,6 +8701,7 @@ do
   "daemon/Makefile" ) CONFIG_FILES="$CONFIG_FILES daemon/Makefile:daemon/Makefile-Builddir.in" ;;
   "apps/Makefile" ) CONFIG_FILES="$CONFIG_FILES apps/Makefile:apps/Makefile-Builddir.in" ;;
   "sim/Makefile" ) CONFIG_FILES="$CONFIG_FILES sim/Makefile:sim/Makefile-Builddir.in" ;;
+  "test/Makefile" ) CONFIG_FILES="$CONFIG_FILES test/Makefile:test/Makefile-Builddir.in" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}

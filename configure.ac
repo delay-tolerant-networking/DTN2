@@ -243,6 +243,7 @@ if test ! $SRCDIR = `pwd` ; then
    AC_CONFIG_FILES([daemon/Makefile:daemon/Makefile-Builddir.in])
    AC_CONFIG_FILES([apps/Makefile:apps/Makefile-Builddir.in])
    AC_CONFIG_FILES([sim/Makefile:sim/Makefile-Builddir.in])
+   AC_CONFIG_FILES([test/Makefile:test/Makefile-Builddir.in])
 fi
 
 dnl
