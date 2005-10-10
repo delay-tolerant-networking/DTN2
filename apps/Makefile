@@ -26,11 +26,12 @@ all: $(APPS) $(MANPAGES)
 -include ../Rules.make
 CFLAGS  += -I$(SRCDIR)/applib
 LDFLAGS += -L../applib -L../oasys
-LIBS    += -ldtnapi -loasyscompat
+LIBS    := -ldtnapi -loasyscompat $(LIBS)
 
 BINFILES += $(APPS)
 
-dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o dtnmoteproxy/serialsource.o
+dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
+			   dtnmoteproxy/serialsource.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) 
 
 $(SINGLE_SOURCE_APPS): %: %.o
