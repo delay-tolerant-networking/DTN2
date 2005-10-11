@@ -99,7 +99,7 @@ Link::Link(const std::string& name, link_type_t type,
 
     // pretty up the BundleConsumer type str
     switch(type) {
-    case ONDEMAND: 	type_str_ = "Ondemand Link"; break;
+    case ONDEMAND: 	type_str_ = "On Demand Link"; break;
     case SCHEDULED: 	type_str_ = "Scheduled Link"; break;
     case OPPORTUNISTIC: type_str_ = "Opportunistic Link"; break;
     default: 		PANIC("bogus link_type_t");
