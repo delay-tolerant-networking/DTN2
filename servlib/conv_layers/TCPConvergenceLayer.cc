@@ -703,7 +703,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         
         if (cc == 0) {
             // eof from the other side
-            log_warn("send_bundle: remote side closed connection");
+            log_info("send_bundle: remote side closed connection");
             goto done;
         }
         
@@ -750,7 +750,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
             cc = sock_->poll_sockfd(POLLIN | POLLOUT, &revents, 
                                     params_.rtt_timeout_);
             if (cc == oasys::IOTIMEOUT) {
-                log_warn("send_bundle: "
+                log_info("send_bundle: "
                          "timeout waiting for ack or write-ready");
                 goto done;
             } else if (cc == oasys::IOINTR) {
@@ -804,7 +804,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         }
         
         if (cc == 0) {
-            log_warn("send_bundle: timeout waiting for ack");
+            log_info ("send_bundle: timeout waiting for ack");
             goto done;
         }
 
@@ -1582,7 +1582,7 @@ TCPConvergenceLayer::Connection::send_loop()
             if ((sock_poll->revents & POLLHUP) ||
                 (sock_poll->revents & POLLERR))
             {
-                log_warn("send_loop: remote connection error");
+                log_info("send_loop: remote connection error");
                 goto broken;
             }
 
@@ -1593,7 +1593,7 @@ TCPConvergenceLayer::Connection::send_loop()
             log_debug("send_loop: data available on the socket");
             ret = sock_->read(&typecode, 1);
             if (ret != 1) {
-                log_warn("send_loop: "
+                log_info("send_loop: "
                          "remote connection unexpectedly closed");
                 goto broken;
             }
@@ -1623,7 +1623,7 @@ TCPConvergenceLayer::Connection::send_loop()
             typecode = KEEPALIVE;
             ret = sock_->write(&typecode, 1);
             if (ret != 1) {
-                log_warn("send_loop: "
+                log_info("send_loop: "
                          "remote connection unexpectedly closed");
                 goto broken;
             }
@@ -1636,7 +1636,7 @@ TCPConvergenceLayer::Connection::send_loop()
         ::gettimeofday(&now, 0);
         u_int elapsed = TIMEVAL_DIFF_MSEC(now, keepalive_rcvd);
         if (elapsed > (2 * params_.keepalive_interval_ * 1000)) {
-            log_warn("send_loop: no keepalive heard for %d msecs "
+            log_info("send_loop: no keepalive heard for %d msecs "
                      "(sent %u.%u, rcvd %u.%u, now %u.%u) -- closing contact",
                      elapsed,
                      (u_int)keepalive_sent.tv_sec,
@@ -1692,13 +1692,13 @@ TCPConvergenceLayer::Connection::recv_loop()
                   timeout);
         int ret = sock_->timeout_read(&typecode, 1, timeout);
         if (ret == oasys::IOEOF || ret == oasys::IOERROR) {
-            log_warn("recv_loop: remote connection unexpectedly closed");
+            log_info("recv_loop: remote connection unexpectedly closed");
  shutdown:
             break_contact(ContactDownEvent::BROKEN);
             return;
             
         } else if (ret == oasys::IOTIMEOUT) {
-            log_warn("recv_loop: no message heard for > %d msecs -- "
+            log_info("recv_loop: no message heard for > %d msecs -- "
                      "breaking contact", timeout);
             goto shutdown;
         }
@@ -1716,7 +1716,7 @@ TCPConvergenceLayer::Connection::recv_loop()
                       "got keepalive, sending response");
             ret = sock_->write(&typecode, 1);
             if (ret != 1) {
-                log_warn("recv_loop: remote connection unexpectedly closed");
+                log_info("recv_loop: remote connection unexpectedly closed");
                 goto shutdown;
             }
             continue;
