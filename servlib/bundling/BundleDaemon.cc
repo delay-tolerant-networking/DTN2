@@ -188,7 +188,7 @@ BundleDaemon::check_registrations(Bundle* bundle)
 
     // tells routers that this Bundle has been taken care of
     // by the daemon already
-    if(num > 0) {
+    if (num > 0) {
         bundle->owner_ = "daemon";
     }
 
@@ -600,6 +600,35 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
                                  ref->payload_.length()));
 }
 
+void
+BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
+{
+
+    log_info("Received shutdown request");
+
+    LinkSet* links = contactmgr_->links();
+    LinkSet::iterator iter;
+    Link* link = NULL;
+
+    // close any open links
+    for (iter = links->begin(); iter != links->end(); ++iter)
+    {
+        link = *iter;
+        if (link->isopen()) {
+            log_debug("Shutdown: closing link *%p\n", link);
+            if ((link->state() != Link::CLOSING)) {
+                link->set_state(Link::CLOSING);
+            }
+            link->close();
+        }
+    }
+
+    // XXX/todo: cleanly sync the various data stores
+
+    
+    exit(0);
+}
+  
 /**
  * Add the bundle to the pending list and persistent store, and
  * set up the expiration timer for it.

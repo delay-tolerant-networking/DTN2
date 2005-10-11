@@ -59,6 +59,7 @@
 #include "cmd/ParamCommand.h"
 #include "cmd/RegistrationCommand.h"
 #include "cmd/RouteCommand.h"
+#include "cmd/ShutdownCommand.h"
 #include "cmd/StorageCommand.h"
 
 #include "conv_layers/ConvergenceLayer.h"
@@ -244,6 +245,7 @@ DTNServer::init_commands()
     interp->reg(new ParamCommand());
     interp->reg(new RegistrationCommand());
     interp->reg(new RouteCommand());
+    interp->reg(new ShutdownCommand());
     interp->reg(new StorageCommand(storage_config_));
 
     log_debug("registered dtn commands");

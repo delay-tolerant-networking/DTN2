@@ -48,6 +48,7 @@ CMD_SRCS :=					\
 	cmd/ParamCommand.cc			\
 	cmd/RegistrationCommand.cc		\
 	cmd/RouteCommand.cc			\
+	cmd/ShutdownCommand.cc			\
 	cmd/StorageCommand.cc			\
 	cmd/TestCommand.cc			\
 

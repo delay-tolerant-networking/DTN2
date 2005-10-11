@@ -223,6 +223,7 @@ protected:
     void handle_link_unavailable(LinkUnavailableEvent* event);
     void handle_link_state_change_request(LinkStateChangeRequest* request);
     void handle_reassembly_completed(ReassemblyCompletedEvent* event);
+    void handle_shutdown_request(ShutdownRequest* event);
     ///@}
 
     typedef BundleProtocol::status_report_flag_t status_report_flag_t;

@@ -87,6 +87,8 @@ typedef enum {
     ROUTE_ADD,			///< Add a new entry to the route table
     ROUTE_DEL,			///< Remove an entry from the route table
 
+    SHUTDOWN,                   ///< Shut the daemon down cleanly
+
 } event_type_t;
 
 /**
@@ -122,6 +124,8 @@ event_to_str(event_type_t event)
     case ROUTE_ADD:		return "ROUTE_ADD";
     case ROUTE_DEL:		return "ROUTE_DEL";
 
+    case SHUTDOWN:		return "SHUTDOWN";
+        
     default:			return "(invalid event type)";
     }
 }
@@ -471,6 +475,22 @@ public:
     /// The list of bundle fragments
     BundleList fragments_;
 };
+
+/**
+ * Event class for shutting down a daemon. The daemon goes through all
+ * the links and call link->close() on them (if they're in one of the
+ * open link states), then cleanly closes the various data
+ * stores, then calls exit().
+ */
+class ShutdownRequest : public ContactEvent {
+public:
+    ShutdownRequest() : ContactEvent(SHUTDOWN)
+    {
+        daemon_only_ = true;
+    }
+
+};
+
 
 } // namespace dtn
 

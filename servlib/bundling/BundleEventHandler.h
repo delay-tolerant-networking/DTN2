@@ -159,6 +159,11 @@ protected:
      * or management interface.
      */
     virtual void handle_route_add(RouteAddEvent* event);
+    
+    /**
+     * Default event handler for shutdown requests.
+     */
+    virtual void handle_shutdown_request(ShutdownRequest* event);
 };
 
 } // namespace dtn

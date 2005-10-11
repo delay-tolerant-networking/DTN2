@@ -78,6 +78,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_reassembly_completed((ReassemblyCompletedEvent*)e);
         break;
 
+    case SHUTDOWN:
+        handle_shutdown_request((ShutdownRequest*)e);
+        break;
+
     default:
         PANIC("unimplemented event type %d", e->type_);
     }
@@ -211,6 +215,14 @@ BundleEventHandler::handle_reassembly_completed(ReassemblyCompletedEvent* event)
  */
 void
 BundleEventHandler::handle_route_add(RouteAddEvent* event)
+{
+}
+
+/**
+ * Default event handler for shutdown requests.
+ */
+void
+BundleEventHandler::handle_shutdown_request(ShutdownRequest* r)
 {
 }
 
