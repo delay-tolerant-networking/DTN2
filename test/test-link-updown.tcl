@@ -46,14 +46,12 @@ test::script {
     set timestamp [dtn::tell_dtnd $last_node sendbundle $source $dest]
 
     puts "* checking that link is now UNAVAILABLE"
-    dtn::tell_dtnd $last_node log /flamebox info "flamebox-ignore ign1 connection attempt to * failed"
     dtn::wait_for_link_state $last_node link-1 UNAVAILABLE
 
     puts "* waiting for a few retry timers"
     after 30000
     
     puts "* checking that link is still UNAVAILABLE"
-    dtn::tell_dtnd $last_node log /flamebox info "flamebox-cancel-ignore ign1"
     dtn::wait_for_link_state $last_node link-1 UNAVAILABLE
     
     puts "* restarting daemon 1"
