@@ -53,9 +53,11 @@ struct status_report_data_t {
     u_int64_t             frag_offset_;
     u_int64_t             frag_length_;
     timeval               receipt_tv_;
+    timeval               custody_tv_;
     timeval               forwarding_tv_;
     timeval               delivery_tv_;
     timeval               deletion_tv_;
+    timeval               acknowledgement_tv_;
     timeval               creation_tv_;
     oasys::StringBuffer   EID_;
 };

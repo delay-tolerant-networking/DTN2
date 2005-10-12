@@ -192,7 +192,7 @@ public:
         STATUS_FORWARDED        = 0x04,
         STATUS_DELIVERED        = 0x08,
         STATUS_DELETED  	= 0x10,
-        STATUS_UNAUTHENTIC	= 0x20,
+        STATUS_ACKED_BY_APP	= 0x20,
         STATUS_UNUSED		= 0x40,
         STATUS_FRAGMENT		= 0x80,
     } status_report_flag_t;
@@ -203,7 +203,7 @@ public:
     typedef enum {
 	REASON_NO_ADDTL_INFO              = 0X00,
 	REASON_LIFETIME_EXPIRED           = 0X01,
-	REASON_RESERVERED_FUTURE_USE      = 0X02,
+	REASON_FORWARDED_UNIDIR_LINK      = 0X02,
 	REASON_TRANSMISSION_CANCELLED     = 0X03,
 	REASON_DEPLETED_STORAGE           = 0X04,
 	REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0X05,

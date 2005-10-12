@@ -301,7 +301,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         addElement(Tcl_NewStringObj(tmp_buf, -1));
     }
 
-    if (sr.status_flags_ & BundleProtocol::STATUS_UNAUTHENTIC) {
+    if (sr.status_flags_ & BundleProtocol::STATUS_ACKED_BY_APP) {
         addElement(Tcl_NewStringObj("status_unathentic", -1));
         addElement(Tcl_NewBooleanObj(true));
     }
@@ -322,8 +322,8 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         addElement(Tcl_NewStringObj("Lifetime expired.", -1));
         break;
             
-    case BundleProtocol::REASON_RESERVERED_FUTURE_USE:
-        addElement(Tcl_NewStringObj("Reserved for future use.", -1));
+    case BundleProtocol::REASON_FORWARDED_UNIDIR_LINK:
+        addElement(Tcl_NewStringObj("Forwarded Over Unidirectional Link.", -1));
         break;
                         
     case BundleProtocol::REASON_TRANSMISSION_CANCELLED:

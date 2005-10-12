@@ -75,6 +75,9 @@ test::script {
     after 1000
     test_sr deletion_rcpt deleted_time dtn://host-1
 
+    # XXX/todo: add Custody and App-Acknowledgement SR tests once the
+    # ability to generate those types of SRs has been implemented
+
     puts "* Success!"
     
 }

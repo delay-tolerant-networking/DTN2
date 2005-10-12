@@ -303,6 +303,12 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     fragmentmgr_->reactively_fragment(bundle, event->bytes_sent_);
 
     if (bundle->forward_rcpt_) {
+        // XXX/matt todo: change to generate with a reason code of
+        // "forwarded over unidirectional link" if the bundle has the
+        // retention constraint "custody accepted" and all of the
+        // nodes in the minimum reception group of the endpoint
+        // selected for forwarding are known to be unable to send
+        // bundles back to this node
         generate_status_report(bundle, BundleProtocol::STATUS_FORWARDED);
     }
 

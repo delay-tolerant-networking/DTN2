@@ -80,14 +80,17 @@ BundleStatusReport::BundleStatusReport(Bundle* orig_bundle,
     // 1 byte Reason Code
     // SDNV   [Fragment Offset (if present)]
     // SDNV   [Fragment Length (if present)]
-    // 8 byte Time of {receipt/forwarding/delivery/deletion} of bundle X
+    // 8 byte Time of {receipt/forwarding/delivery/deletion/custody/app-ack}
+    //        of bundle X
     // 8 byte Copy of bundle X's Creation Timestamp
     // SDNV   Length of X's source endpoint ID
     // vari   Source endpoint ID of bundle X
 
-    // note that the spec allows for all 4 of the "Time of..." fields
-    // to be present, but for this implementation we will always have
-    // one and only one of the 4 timestamp fields in our Status Report
+    // note that the spec allows for all 6 of the "Time of..." fields
+    // to be present in a single Status Report, but for this
+    // implementation we will always have one and only one of the 6
+    // timestamp fields
+    // XXX/matt we may want to change to allow multiple-timestamps per SR
 
     // the non-optional, fixed-length fields above:
     report_length = 1 + 1 + 1 + 8 + 8;
@@ -195,11 +198,18 @@ bool BundleStatusReport::parse_status_report(status_report_data_t* data,
         len -= sdnv_bytes;
     }
 
-    // The 4 Optional ACK Timestamps:
+    // The 6 Optional ACK Timestamps:
     
     if (data->status_flags_ & BundleProtocol::STATUS_RECEIVED) {
         if (len < sizeof(u_int64_t)) { return false; }
         BundleProtocol::get_timestamp(&data->receipt_tv_, bp);
+        bp  += sizeof(u_int64_t);
+        len -= sizeof(u_int64_t);
+    }
+
+    if (data->status_flags_ & BundleProtocol::STATUS_CUSTODY_ACCEPTED) {
+        if (len < sizeof(u_int64_t)) { return false; }
+        BundleProtocol::get_timestamp(&data->custody_tv_, bp);
         bp  += sizeof(u_int64_t);
         len -= sizeof(u_int64_t);
     }
@@ -221,6 +231,13 @@ bool BundleStatusReport::parse_status_report(status_report_data_t* data,
     if (data->status_flags_ & BundleProtocol::STATUS_DELETED) {
         if (len < sizeof(u_int64_t)) { return false; }
         BundleProtocol::get_timestamp(&data->deletion_tv_, bp);
+        bp  += sizeof(u_int64_t);
+        len -= sizeof(u_int64_t);
+    }
+
+    if (data->status_flags_ & BundleProtocol::STATUS_ACKED_BY_APP) {
+        if (len < sizeof(u_int64_t)) { return false; }
+        BundleProtocol::get_timestamp(&data->acknowledgement_tv_, bp);
         bp  += sizeof(u_int64_t);
         len -= sizeof(u_int64_t);
     }
