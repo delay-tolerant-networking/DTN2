@@ -40,6 +40,7 @@
 #include <oasys/compat/inet_aton.h>
 #include <oasys/io/FileIOClient.h>
 #include <oasys/io/NetUtils.h>
+#include <oasys/util/ScratchBuffer.h>
 
 #include "APIServer.h"
 #include "bundling/Bundle.h"
@@ -567,7 +568,7 @@ APIClient::handle_recv()
     dtn_bundle_payload_t          payload;
     dtn_bundle_payload_location_t location;
     dtn_timeval_t                 timeout;
-    oasys::StringBuffer buf;
+    oasys::ScratchBuffer<u_char*> buf;
 
     // unpack the arguments
     if ((!xdr_dtn_bundle_payload_location_t(&xdr_decode_, &location)) ||
@@ -668,7 +669,7 @@ APIClient::handle_recv()
         buf.reserve(payload_len);
         payload.dtn_bundle_payload_t_u.buf.buf_len = payload_len;
         payload.dtn_bundle_payload_t_u.buf.buf_val =
-            (char*)b->payload_.read_data(0, payload_len, (u_char*)buf.data());
+            (char*)b->payload_.read_data(0, payload_len, buf.buf());
         
     } else if (location == DTN_PAYLOAD_FILE) {
         oasys::FileIOClient tmpfile;
