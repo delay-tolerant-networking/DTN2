@@ -6,6 +6,10 @@ import "dtn-topology.tcl"
 # check_*    - errors out if the check fails
 # wait_for_* - errors out if the check never succeeds within a timeout
 
+proc tell_dtnd {id args} {
+    return [eval dtn::tell_dtnd $id $args]
+}
+
 namespace eval dtn {
     proc run_dtnd { id {other_opts ""} } {
 	global opt net::host net::portbase net::extra test::testname
