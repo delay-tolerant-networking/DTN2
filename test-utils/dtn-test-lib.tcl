@@ -29,7 +29,30 @@ namespace eval dtn {
 	append exec_opts " $other_opts"
 
 	run::run $id "dtnd" $exec_opts $test::testname.conf \
-		[conf::get dtnd $id]
+		[conf::get dtnd $id] ""
+	
+    }
+
+    proc run_app { id app_name {exec_args ""} } {
+	global opt net::host net::portbase net::extra test::testname
+	
+	if {$id == "*"} {
+	    foreach id [net::nodelist] {
+		run_app $id $app_name $exec_args
+	    }
+	    return
+	}
+
+	set s [socket -async $net::host($id) [dtn::get_port api $id]]
+	set addr [lindex [fconfigure $s -sockname] 0]
+	close $s
+	
+	lappend exec_env DTNAPI_ADDR $addr
+	lappend exec_env DTNAPI_PORT [dtn::get_port api $id]
+	
+	run::run $id "$app_name" $exec_args $test::testname-$app_name.conf \
+		[conf::get $app_name $id] $exec_env
+	
     }
 
     proc wait_for_dtnd {id} {
