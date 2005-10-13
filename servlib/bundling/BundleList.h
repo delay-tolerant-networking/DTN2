@@ -277,6 +277,8 @@ protected:
 class BlockingBundleList : public BundleList {
 public:
     BlockingBundleList(const std::string& name);
+
+    virtual ~BlockingBundleList();
     
     /**
      * Remove (and return) the first bundle on the list, blocking

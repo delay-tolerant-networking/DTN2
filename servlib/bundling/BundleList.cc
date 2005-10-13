@@ -424,6 +424,12 @@ BlockingBundleList::BlockingBundleList(const std::string& name)
                         name.c_str());
 }
 
+BlockingBundleList::~BlockingBundleList()
+{
+    delete notifier_;
+    notifier_ = NULL;
+}
+
 /**
  * Remove (and return) the first bundle on the list, blocking if
  * there are none. 
