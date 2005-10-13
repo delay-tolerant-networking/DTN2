@@ -717,13 +717,14 @@ void
 BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
 {
     Bundle* bundle = event->bundle_;
-
+    event->bundle_ = NULL;
+    ASSERT(bundle->refcount() == 0);
+    
     bundle->lock_.lock("BundleDaemon::handle_bundle_free");
     
     actions_->store_del(bundle);
-
+    
     delete bundle;
-    event->bundle_ = NULL;
 }
 
 /**
