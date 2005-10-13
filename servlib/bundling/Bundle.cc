@@ -53,6 +53,7 @@ Bundle::init(u_int32_t id)
 {
     bundleid_		= id;
     refcount_		= 0;
+    freed_		= false;
     
     is_fragment_	= false;
     is_admin_		= false;
@@ -179,14 +180,17 @@ Bundle::serialize(oasys::SerializeAction* a)
 int
 Bundle::add_ref(const char* what1, const char* what2)
 {
-    oasys::ScopeLock(&lock_, "Bundle::add_ref");
+    oasys::ScopeLock l(&lock_, "Bundle::add_ref");
 
+    ASSERTF(freed_ == false, "Bundle::add_ref on bundle %d (%p)"
+            "called when bundle is already being freed!", bundleid_, this);
+    
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
     log_debug("/bundle/refs",
-              "bundle id %d: refcount %d -> %d (%u mappings) add %s %s",
-              bundleid_, refcount_ - 1, refcount_, (u_int)mappings_.size(),
-              what1, what2);
+              "bundle id %d (%p): refcount %d -> %d (%u mappings) add %s %s",
+              bundleid_, this, refcount_ - 1, refcount_,
+              (u_int)mappings_.size(), what1, what2);
     return ret;
 }
 
@@ -198,21 +202,26 @@ Bundle::add_ref(const char* what1, const char* what2)
 int
 Bundle::del_ref(const char* what1, const char* what2)
 {
-    oasys::ScopeLock(&lock_, "Bundle::del_ref");
+    oasys::ScopeLock l(&lock_, "Bundle::del_ref");
 
+    ASSERTF(freed_ == false, "Bundle::del_ref on bundle %d (%p)"
+            "called when bundle is already being freed!", bundleid_, this);
+    
     int ret = --refcount_;
     log_debug("/bundle/refs",
-              "bundle id %d: refcount %d -> %d (%u mappings) del %s %s",
-              bundleid_, refcount_ + 1, refcount_, (u_int)mappings_.size(),
-              what1, what2);
+              "bundle id %d (%p): refcount %d -> %d (%u mappings) del %s %s",
+              bundleid_, this, refcount_ + 1, refcount_,
+              (u_int)mappings_.size(), what1, what2);
     
     if (refcount_ != 0) {
         return ret;
     }
 
+    freed_ = true;
+    
     log_debug("/bundle",
-              "bundle id %d: no more references, posting free event",
-              bundleid_);
+              "bundle id %d (%p): no more references, posting free event",
+              bundleid_, this);
 
     BundleDaemon::instance()->post(new BundleFreeEvent(this));
     

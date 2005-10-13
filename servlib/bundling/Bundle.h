@@ -250,7 +250,9 @@ protected:
     BundleMappings mappings_;   ///< The set of BundleLists that
                                	///  contain the Bundle.
     
-    int refcount_;		///< Bundle reference count
+    int  refcount_;		///< Bundle reference count
+    bool freed_;		///< Bit to indicate whether or not a bundle
+                                ///  free event has been posted for us
 
 private:
     /**
