@@ -208,7 +208,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     // if debug logging is enabled, dump out a verbose printing of the
     // bundle, including all options, otherwise, a more terse log
     if (log_enabled(oasys::LOG_DEBUG)) {
-        oasys::StringBuffer buf;
+        oasys::StaticStringBuffer<1024> buf;
         buf.appendf("BUNDLE_RECEIVED: (%u bytes recvd)\n",
                     (u_int)event->bytes_received_);
         bundle->format_verbose(&buf);
