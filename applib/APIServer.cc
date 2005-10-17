@@ -137,8 +137,12 @@ APIServer::APIServer()
         local_port_ = (u_int16_t)port;
     }
 
-    log_debug("APIServer init (addr %s port %d)",
-              intoa(local_addr_), local_port_);
+    if (local_addr_ != INADDR_ANY || local_port_ != 0) {
+        log_debug("APIServer init (evironment set addr %s port %d)",
+                  intoa(local_addr_), local_port_);
+    } else {
+        log_debug("APIServer init");
+    }
 }
 
 void
