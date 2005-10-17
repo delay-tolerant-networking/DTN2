@@ -3,56 +3,65 @@
 # Used to enable reception of bundles across a firewall / NAT router.
 #
 
-set num_nodes 2
-set network loopback
-set topology linear
-route set type "static"
+test::name tcp-receiver-connect
+net::num_nodes 2
 
-# source the main test script harness
-source "test/main.tcl"
+dtn::config
+dtn::config_topology_common
 
-if {$id == 0} {
-    # For node 0 (the receiver), configure the special interface to
-    # enable bundles to be received after making the connection
-    interface add tcp host://$hosts(1):$ports(tcp,1) receiver_connect
+set host0 $net::host(0)
+set host1 $net::host(1)
+
+set port0 [dtn::get_port tcp 0]
+set port1 [dtn::get_port tcp 1]
+
+conf::add dtnd 0 "interface add tcp0 tcp \
+	receiver_connect \
+	local_host=$host0 local_port=$port0 \
+	remote_host=$host1 remote_port=$port1"
+
+conf::add dtnd 1 "interface add tcp0 tcp \
+	local_host=$host1 local_port=$port1"
+
+conf::add dtnd 1 "link add link-0 $host0:$port0 OPPORTUNISTIC tcp \
+	remote_host=$host0 remote_port=$port0 \
+	receiver_connect"
+
+conf::add dtnd 1 "route add dtn://host-0/* link-0"
+
+test::script {
+    puts "* Running dtnds"
+    dtn::run_dtnd *
+
+    puts "* Waiting for dtnds to start up"
+    dtn::wait_for_dtnd *
+
+    set source    dtn://host-1/test
+    set dest      dtn://host-0/test
+
+    puts "* Setting up registration"
+    dtn::tell_dtnd 0 tcl_registration $dest
     
-} elseif {$id == 1} {
-    # For node 1 (the sender), we just set up a normal interface
-    # as well as an opportunistic link and a route
-    # to point to the peer (who hasn't come knocking yet)
-    setup_interface tcp
-    
-    link add link-0 host://host-0 OPPORTUNISTIC tcp
-    route add dtn://host-0/* link-0
+    puts "* Waiting for link to open"
+    dtn::wait_for_link_state 1 link-0 OPEN
 
-} else {
-    error "test can only be run for two nodes"
+    puts "* Sending bundle"
+    set timestamp [dtn::tell_dtnd 1 sendbundle $source $dest]
+    
+    puts "* Waiting for bundle arrival"
+    dtn::wait_for_bundle 0 "$source,$timestamp" 5000
+
+    puts "* Checking bundle data"
+    dtn::check_bundle_data 0 "$source,$timestamp" \
+	    isadmin 0 source $source dest $dest
+    
+    puts "* Doing sanity check on stats"
+    dtn::wait_for_stat 0 1 received 5000
+    
+    puts "* Test success!"
 }
 
-test set initscript {
-    log "/test" INFO "route dump:\n[route dump]"
-    
-    if {$id == 0} {
-	proc test_arrived {regid bundle_info} {
-	    array set b $bundle_info
-	    if ($b(isadmin)) {
-		error "Unexpected admin bundle arrival $source -> $dest"
-	    }
-	    puts "bundle arrival"
-	    foreach {key val} [array get b] {
-		if {$key == "payload"} {
-		    puts "payload:\t [string range $b(payload) 0 64]"
-		} else {
-		    puts "$key:\t $b($key)"
-		}
-	    }
-	}
-
-	tcl_registration "bundles://*/*" test_arrived
-    }
-    
-    if {$id == 1} {
-	sendbundle
-    }
+test::exit_script {
+    puts "* Stopping all dtnds"
+    dtn::tell_dtnd * shutdown
 }
-
