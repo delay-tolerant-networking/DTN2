@@ -44,7 +44,7 @@ proc get_port {what id} {
 #
 # Create a new interface for the given convergence layer
 #
-proc config_interface {cl args } {
+proc config_interface {cl args} {
     foreach id [net::nodelist] {
 	set host $net::host($id)
 	set port [dtn::get_port $cl $id]
@@ -79,12 +79,12 @@ proc config_api_server {} {
 #
 proc config_berkeleydb {} {
     conf::add dtnd * {
-	storage set tidy_wait  0
-	storage set type       berkeleydb
-	storage set payloaddir bundles
-	storage set dbname     DTN
-	storage set dbdir      db
-	storage set dberrlog   DTN.errlog
+storage set tidy_wait  0
+storage set type       berkeleydb
+storage set payloaddir bundles
+storage set dbname     DTN
+storage set dbdir      db
+storage set dberrlog   DTN.errlog
     }
 }
 
