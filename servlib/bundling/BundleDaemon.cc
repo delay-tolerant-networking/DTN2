@@ -57,7 +57,7 @@ BundleDaemon::Params BundleDaemon::params_;
 
 BundleDaemon::BundleDaemon()
     : BundleEventHandler("/bundle/daemon"),
-      Thread("BundleDaemon")
+      Thread("BundleDaemon", CREATE_JOINABLE)
 {
     // default local eid
     // XXX/demmer fixme
