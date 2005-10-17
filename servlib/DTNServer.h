@@ -75,6 +75,9 @@ public:
     void parse_conf_file(std::string& conf_file,
                          bool         conf_file_set);
 
+    //! Shut down the server
+    void shutdown();
+
 private:
     bool init_;
 

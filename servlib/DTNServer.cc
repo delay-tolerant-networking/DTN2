@@ -273,6 +273,13 @@ DTNServer::close_datastore()
 }
 
 void
+DTNServer::shutdown()
+{
+    BundleDaemon::instance()->post(new ShutdownRequest());
+    BundleDaemon::instance()->join();
+}
+
+void
 DTNServer::init_dir(const char* dirname)
 {
     struct stat st;

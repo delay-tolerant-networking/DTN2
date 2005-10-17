@@ -273,9 +273,7 @@ main(int argc, char* argv[])
     } else {
         oasys::TclCommandInterp::instance()->command_loop("dtn");
     }
-    
-    log_info("/dtnd", "command loop exited... shutting down daemon");
 
-    delete_z(dtnserver);
-    delete_z(apiserver);
+    log_info("/dtnd", "command loop exited... shutting down daemon");
+    dtnserver->shutdown();
 }
