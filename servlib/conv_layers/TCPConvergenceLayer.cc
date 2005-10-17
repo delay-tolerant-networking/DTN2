@@ -81,6 +81,8 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     // the link specific options) handle changing them
     defaults_.local_addr_		= INADDR_ANY;
     defaults_.local_port_		= 5000;
+    defaults_.remote_addr_		= INADDR_NONE;
+    defaults_.remote_port_		= 0;
     defaults_.bundle_ack_enabled_ 	= true;
     defaults_.reactive_frag_enabled_ 	= true;
     defaults_.receiver_connect_		= false;
@@ -107,6 +109,8 @@ TCPConvergenceLayer::parse_params(Params* params,
 
     p.addopt(new oasys::InAddrOpt("local_addr", &params->local_addr_));
     p.addopt(new oasys::UInt16Opt("local_port", &params->local_port_));
+    p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
+    p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
     p.addopt(new oasys::BoolOpt("bundle_ack_enabled",
                                 &params->bundle_ack_enabled_));
     p.addopt(new oasys::BoolOpt("reactive_frag_enabled",
@@ -153,7 +157,7 @@ TCPConvergenceLayer::interface_up(Interface* iface,
 
     // check that the local interface / port are valid
     if (params.local_addr_ == INADDR_NONE) {
-        log_err("invalid local address setting of 0");
+        log_err("invalid local address setting of INADDR_NONE");
         return false;
     }
 
@@ -165,21 +169,28 @@ TCPConvergenceLayer::interface_up(Interface* iface,
     // now, special case the receiver_connect option which means we
     // create a Connection, not a Listener
     if (params.receiver_connect_) {
-        PANIC("XXX/demmer implement receiver connect");
-//         log_debug("new receiver_connect interface -- "
-//                   "starting connection thread");
-//         Connection* conn = new Connection(addr, port, false, &params);
+        if (params.remote_addr_ == INADDR_NONE) {
+            log_err("receiver_connect option requires remote_addr setting");
+            return false;
+        }
 
-//         // store the connection object in the cl specific part of the
-//         // interface
-//         iface->set_cl_info(conn);
+        if (params.remote_port_ == 0) {
+            log_err("receiver_connect option requires remote_port setting");
+            return false;
+        }
 
-//         // XXX/demmer again, there should be some structure to manage
-//         // the receiver side of connections
-//         conn->set_flag(oasys::Thread::DELETE_ON_EXIT);
-//         conn->start();
+        log_debug("new receiver_connect interface -- "
+                  "starting connection thread");
+        Connection* conn =
+            new Connection(params.remote_addr_, params.remote_port_,
+                           Connection::RECEIVER, &params);
 
-//         return true;
+        // XXX/demmer again, there should be some structure to manage
+        // the receiver side of connections
+        conn->set_flag(oasys::Thread::DELETE_ON_EXIT);
+        conn->start();
+
+        return true;
     }
 
     // create a new server socket for the requested interface
@@ -266,13 +277,6 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     
     log_debug("adding %s link %s", link->type_str(), link->nexthop());
 
-    // if the link is OPPORTUNISTIC, we don't do anything here since
-    // the connection will be established by someone else coming
-    // knocking on our door.
-    if (link->type() == Link::OPPORTUNISTIC) {
-        return true;
-    }
-
     // validate the link next hop address
     if (! IPConvergenceLayer::parse_nexthop(link->nexthop(), &addr, &port)) {
         log_err("invalid next hop address '%s'", link->nexthop());
@@ -293,21 +297,29 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     }
 
     // Create a new parameters structure, parse the options, and store
-    // them in the link's cl info slot. Note that we override the
-    // local_addr and local_ports defaults since in this case, we'd
-    // just as soon let the kernel decide.
+    // them in the link's cl info slot.
     Params* params = new Params(defaults_);
-    params->local_addr_ = INADDR_NONE;
-    params->local_port_ = 0;
-
     const char* invalid;
     if (! parse_params(params, argc, argv, &invalid)) {
         log_err("error parsing link options: invalid option '%s'", invalid);
         delete params;
         return false;
     }
+
+    // check that the local interface is valid
+    if (params->local_addr_ == INADDR_NONE) {
+        log_err("invalid local address setting of INADDR_NONE");
+        return false;
+    }
     
     link->set_cl_info(params);
+
+    if (params->receiver_connect_ && (link->type() != Link::OPPORTUNISTIC)) {
+        log_err("receiver_connect option can only be used with "
+                "opportunistic links");
+        return false;
+    }
+
     return true;
 }
 
@@ -350,7 +362,7 @@ TCPConvergenceLayer::open_contact(Contact* contact)
     Params* params = (Params*)link->cl_info();
     
     // create a new connection for the contact
-    Connection* conn = new Connection(addr, port, true, params);
+    Connection* conn = new Connection(addr, port, Connection::SENDER, params);
     conn->set_contact(contact);
     contact->set_cl_info(conn);
     
@@ -425,7 +437,11 @@ void
 TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
 {
     log_debug("new connection from %s:%d", intoa(addr), port);
-    Connection* conn = new Connection(fd, addr, port, &params_);
+    Connection* conn = new Connection(fd, addr, port,
+                                      params_.receiver_connect_ ?
+                                      Connection::SENDER  :
+                                      Connection::RECEIVER,
+                                      &params_);
     
     // XXX/demmer this should really make a Contact equivalent or
     // something like that and then not DELETE_ON_EXIT
@@ -448,17 +464,20 @@ TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
  */
 TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
                                             u_int16_t remote_port,
-                                            bool is_sender,
+                                            direction_t direction,
                                             Params* params)
 
     : Thread("TCPConvergenceLayer::Connection"), 
-      params_(*params), is_sender_(is_sender), contact_(NULL)
+      params_(*params), initiate_(true), direction_(direction), contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 
-    // create the blocking queue for bundles to be sent on the
-    // connection and the socket wrapper class
-    queue_ = new BlockingBundleList(logpath_);
+    // create the blocking queue for bundles to be sent on
+    if (direction == SENDER) {
+        queue_ = new BlockingBundleList(logpath_);
+    }
+    
+    // the actual socket
     sock_ = new oasys::TCPClient();
 
     // XXX/demmer the basic socket logging emits errors and the like
@@ -497,15 +516,18 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
 TCPConvergenceLayer::Connection::Connection(int fd,
                                             in_addr_t remote_addr,
                                             u_int16_t remote_port,
+                                            direction_t direction,
                                             Params* params)
 
     : Thread("TCPConvergenceLayer::Connection"),
-      params_(*params), is_sender_(false), contact_(NULL)
+      params_(*params), initiate_(false), direction_(direction), contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 
-    // no queue necessary for the receiver side
-    queue_ = NULL;
+    // create the blocking queue for bundles to be sent on
+    if (direction == SENDER) {
+        queue_ = new BlockingBundleList(logpath_);
+    }
 
     sock_ = new oasys::TCPClient(fd, remote_addr, remote_port, logpath_);
     sock_->set_logfd(false);
@@ -528,7 +550,7 @@ TCPConvergenceLayer::Connection::~Connection()
 void
 TCPConvergenceLayer::Connection::run()
 {
-    if (is_sender_ || params_.receiver_connect_)
+    if (initiate_)
     {
         if (! connect()) {
             /*
@@ -557,42 +579,9 @@ TCPConvergenceLayer::Connection::run()
             log_debug("accept failed");
             return; // trigger a deletion
         }
-
-        /*
-         * Now if the receiver_connect option is set, then we're going
-         * to be the sender, so notify the contact manager and enter
-         * the send loop.
-         */
-        if (params_.receiver_connect_) {
-            log_debug("accept negotiated receiver_connect... "
-                      "adding new opportunistic contact");
-
-            PANIC("XXX/demmer fix receiver connect");
-            
-//             ContactManager* cm = BundleDaemon::instance()->contactmgr();
-
-//             ConvergenceLayer* clayer = ConvergenceLayer::find_clayer("tcp");
-//             ASSERT(clayer);
-
-//             // XXX/demmer work this out better -- should it just use
-//             // the admin or should it use the full eid?
-//             contact_ = cm->new_opportunistic_contact(clayer, this,
-//                                                      nexthop_.admin().c_str());
-            
-//             if (!contact_) {
-//                 log_err("receiver_connect: error finding opportunistic link");
-//                 return;
-//             }
-
-//             // XXX/demmer fix all this memory management stuff
-//             Thread::clear_flag(DELETE_ON_EXIT);
-            
-//             is_sender_ = true;
-//             queue_ = new BlockingBundleList();
-        }
     }
     
-    if (is_sender_) {
+    if (direction_ == SENDER) {
         send_loop();
     } else {
         recv_loop();
@@ -1130,8 +1119,7 @@ TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
 }
 
 /**
- * Helper function to format and send a contact header and our local
- * identifier.
+ * Helper function to format and send a contact header.
  */
 bool
 TCPConvergenceLayer::Connection::send_contact_header()
@@ -1161,40 +1149,6 @@ TCPConvergenceLayer::Connection::send_contact_header()
         return false;
     }
 
-    // if this is the receiver connection option, we immediately
-    // follow the contact header with an identity header and the local
-    // eid information
-    if (!is_sender_ && params_.receiver_connect_) {
-
-        PANIC("XXX/demmer fix receiver connect");
-//         const EndpointID& local_eid = BundleDaemon::instance()->local_eid();
-//         size_t region_len = local_eid.region().length();
-//         size_t admin_len  = local_eid.admin().length();
-        
-//         log_debug("sending identity header... (region_len %u admin_len %u)",
-//                   (u_int)region_len, (u_int)admin_len);
-        
-//         size_t len = sizeof(IdentityHeader) + region_len + admin_len;
-
-//         // XXX/demmer use scratch buffer instead of malloc
-//         IdentityHeader* identityhdr = (IdentityHeader*)malloc(len);
-//         identityhdr->region_len = htons(region_len);
-//         identityhdr->admin_len  = htons(admin_len);
-
-//         char* data = (char*)&identityhdr[1];
-//         memcpy(data, local_eid.region().data(), region_len);
-//         memcpy(data + region_len, local_eid.admin().data(), admin_len);
-        
-//         cc = sock_->writeall((char*)identityhdr, len);
-//         if (cc != (int)len) {
-//             log_err("error writing identity header / eid (wrote %d/%u): %s",
-//                     cc, (u_int)len, strerror(errno));
-//             return false;
-//         }
-
-//         free(identityhdr);
-    }
-    
     return true;
 }
 
@@ -1263,78 +1217,77 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
 
     params_.reactive_frag_enabled_ = params_.reactive_frag_enabled_ &
                                      contacthdr.flags & REACTIVE_FRAG_ENABLED;
-    
-    params_.receiver_connect_   = params_.receiver_connect_ |
-                                  contacthdr.flags & RECEIVER_CONNECT;
 
-    // if the other side sent the receiver connect option, then it
-    // should send an identity header immediately following the
-    // contact header, so read it in and parse the next hop eid
-    // identifier
-    if (contacthdr.flags & RECEIVER_CONNECT) {
-
-        PANIC("XXX/demmer fix receiver connect");
-        
-//         log_debug("got receiver_connect option: reading identity header");
-//         IdentityHeader identityhdr;
-
-//         cc = sock_->timeout_readall((char*)&identityhdr,
-//                                     sizeof(IdentityHeader),
-//                                     params_.rtt_timeout_);
-//         if (cc == oasys::IOTIMEOUT) {
-//             log_warn("timeout reading receiver_connect identity header");
-//             return false;
-//         }
-
-//         if (cc != sizeof(IdentityHeader)) {
-//             log_err("error reading receiver_connect identity (read %d/%u): %s",
-//                 cc, (u_int)sizeof(IdentityHeader), strerror(errno));
-//             return false;
-//         }
-
-//         size_t region_len = ntohs(identityhdr.region_len);
-//         size_t admin_len  = ntohs(identityhdr.admin_len);
-
-//         oasys::StringBuffer region_buf(region_len);
-//         oasys::StringBuffer  admin_buf(admin_len);
-
-//         log_debug("reading region data (length %u)", (u_int)region_len);
-//         cc = sock_->timeout_readall(region_buf.data(), region_len,
-//                                     params_.rtt_timeout_);
-//         if (cc != (int)region_len) {
-//             log_err("error reading region string (read %d/%u): %s",
-//                 cc, (u_int)region_len, strerror(errno));
-//             return false;
-//         }
-
-//         log_debug("reading admin data (length %d)", (u_int)admin_len);
-//         cc = sock_->timeout_readall(admin_buf.data(), admin_len,
-//                                     params_.rtt_timeout_);
-//         if (cc != (int)admin_len) {
-//             log_err("error reading admin string (read %d/%u): %s",
-//                 cc, (u_int)admin_len, strerror(errno));
-//             return false;
-//         }
-
-//         nexthop_.assign(region_buf.data(), region_len,
-//                         admin_buf.data(),  admin_len);
-        
-//         if (!nexthop_.valid()) {
-//             log_err("invalid peer eid received: region='%.*s' admin='%.*s'",
-//                     (int)region_buf.length(), region_buf.data(),
-//                     (int)admin_buf.length(),  admin_buf.data());
-//             return false;
-//         }
+    if ((params_.receiver_connect_ && !(contacthdr.flags & RECEIVER_CONNECT)) ||
+        (!params_.receiver_connect_ && (contacthdr.flags & RECEIVER_CONNECT)))
+    {
+        log_err("receiver connect option mismatch: local %s peer %s",
+                params_.receiver_connect_ ? "set" : "not set",
+                (contacthdr.flags & RECEIVER_CONNECT) ? "set" : "not set");
+        return false;
     }
-
+        
     note_data_rcvd();
     return true;
 }
 
+
+/**
+ * Helper function to send our local address, used for the receiver
+ * connect.
+ */
+bool
+TCPConvergenceLayer::Connection::send_address()
+{
+    AddressHeader addresshdr;
+    addresshdr.addr = htonl(sock_->local_addr());
+    addresshdr.port = htons(sock_->local_port());
+    
+    log_debug("sending address header %s:%d...",
+              intoa(sock_->local_addr()), sock_->local_port());
+
+    int cc = sock_->writeall((char*)&addresshdr, sizeof(AddressHeader));
+    if (cc != sizeof(AddressHeader)) {
+        log_err("error writing address header (wrote %d/%u): %s",
+                cc, (u_int)sizeof(AddressHeader), strerror(errno));
+        return false;
+    }
+    
+    return true;
+}
+
+
+/**
+ * Helper function to receive the peer's address, used for the
+ * receiver connect option to match the connection with a link.
+ *
+ * Stores the retrieved address and port in the parameters structure.
+ */
+bool
+TCPConvergenceLayer::Connection::recv_address(int timeout)
+{
+    AddressHeader addresshdr;
+
+    log_debug("retrieving address header...");
+
+    int cc = sock_->timeout_readall((char*)&addresshdr, sizeof(AddressHeader),
+                                    timeout);
+    
+    if (cc != sizeof(AddressHeader)) {
+        log_err("error reading address header (read %d/%u): %s",
+                cc, (u_int)sizeof(AddressHeader), strerror(errno));
+        return false;
+    }
+
+    params_.remote_addr_ = ntohl(addresshdr.addr);
+    params_.remote_port_ = ntohs(addresshdr.port);
+
+    return true;
+}
 
 /**
- * Sender side of the initial handshake. First connect to the peer
- * side, then exchange ContactHeaders and negotiate session
+ * Active connect side of the initial handshake. First connect to the
+ * peer side, then exchange ContactHeaders and negotiate session
  * parameters.
  */
 bool
@@ -1398,11 +1351,66 @@ TCPConvergenceLayer::Connection::connect()
     if (!recv_contact_header(params_.rtt_timeout_))
         return false;
 
+    if (params_.receiver_connect_) {
+        ASSERT(direction_ == RECEIVER);
+        log_debug("connect: receiver_connect sending local address");
+        if (!send_address()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+                
+bool
+TCPConvergenceLayer::Connection::open_opportunistic_link()
+{
+    oasys::StringBuffer nexthop("%s:%d",
+                                intoa(params_.remote_addr_),
+                                params_.remote_port_);
+
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    Link* link = cm->find_link_to(nexthop.c_str());
+
+    if (link == NULL) {
+        log_err("receiver connect can't find matching link for next hop %s",
+                nexthop.c_str());
+        return false;
+    }
+    
+    if (link->type() != Link::OPPORTUNISTIC) {
+        log_err("receiver connect link *%p not of type OPPORTUNISTIC", link);
+        return false;
+    }
+
+    if (link->state() != Link::UNAVAILABLE) {
+        log_err("receiver connect link *%p in unexpected state %s", link,
+                Link::state_to_str(link->state()));
+        return false;
+    }
+
+    if (direction_ != SENDER) {
+        log_err("receiver_connect connection for link *%p not the sender",
+                link);
+        return false;
+    }
+    
+    // create a new contact
+    contact_ = new Contact(link);
+    contact_->set_cl_info(this);
+    
+    // handle memory management
+    Thread::clear_flag(DELETE_ON_EXIT);
+
+    link->set_state(Link::OPENING);
+    BundleDaemon::post(new ContactUpEvent(contact_));
+
     return true;
 }
 
+
 /**
- * Receiver side of the initial handshake.
+ * Passive accept side of the initial handshake.
  */
 bool
 TCPConvergenceLayer::Connection::accept()
@@ -1416,6 +1424,19 @@ TCPConvergenceLayer::Connection::accept()
     log_debug("accept: waiting for peer contact header...");
     if (!recv_contact_header(0))
         return false;
+    
+    if (params_.receiver_connect_) {
+        ASSERT(direction_ == SENDER);
+        
+        log_debug("connect: receiver_connect retrieving local address");
+        if (!recv_address(0)) {
+            return false;
+        }
+
+        if (!open_opportunistic_link()) {
+            return false;
+        }
+    }
     
     return true;
 }
@@ -1452,7 +1473,7 @@ TCPConvergenceLayer::Connection::break_contact(ContactDownEvent::reason_t reason
     // to stop the Connection thread. So we preemptively indicate in
     // the thread flags that we're gonna stop shortly.
     set_should_stop();
-
+    
     if (contact_ && !contact_->link()->isclosing()) {
         BundleDaemon::post(
             new LinkStateChangeRequest(contact_->link(), Link::CLOSING, reason));

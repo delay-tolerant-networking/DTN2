@@ -107,11 +107,14 @@ public:
     } __attribute__((packed));
 
     /**
-     * Identity header. Sent immediately following the contact header
-     * in the case of the receiver connect option.
+     * Address header. Sent by the active connector side immediately
+     * after the contact header in the case of the receiver connect
+     * option.
      */
-    struct IdentityHeader {
-        u_char    data[0];		///< SDNV + endpoint id
+    struct AddressHeader {
+        u_int32_t addr;			///< address
+        u_int16_t port;			///< port
+        u_int16_t __unused;
     } __attribute__((packed));
 
     /**
@@ -209,6 +212,8 @@ public:
     public:
         in_addr_t local_addr_;		///< Local address to bind to
         u_int16_t local_port_;		///< Local port to bind to
+        in_addr_t remote_addr_;		///< Peer address used for rcvr-connect
+        u_int16_t remote_port_;		///< Peer port used for rcvr-connect
         bool bundle_ack_enabled_;	///< Use CL-specific bundle acks?
         bool reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         bool receiver_connect_;		///< rcvr-initiated connect (for NAT)
@@ -252,14 +257,19 @@ protected:
      * connection with a peer daemon.
      *
      * Although the same class is used in both cases, a particular
-     * Connection is either a receiver or a sender. Note that to deal
-     * with NAT, the side which does the active connect is not
-     * necessarily the sender.
+     * Connection is either a receiver or a sender, as indicated by
+     * the direction variable. Note that to deal with NAT, the side
+     * which does the active connect is not necessarily the sender.
      */
     class Connection : public CLInfo,
                        public oasys::Thread,
                        public oasys::Logger {
     public:
+        typedef enum {
+            SENDER,
+            RECEIVER
+        } direction_t;
+           
         /**
          * Constructor for the active connection side of a connection.
          * Note that this may be used both for the actual data sender
@@ -268,7 +278,7 @@ protected:
          */
         Connection(in_addr_t remote_addr,
                    u_int16_t remote_port,
-                   bool is_sender,
+                   direction_t direction,
                    Params* params);
         
         /**
@@ -277,6 +287,7 @@ protected:
         Connection(int fd,
                    in_addr_t remote_addr,
                    u_int16_t remote_port,
+                   direction_t direction,
                    Params* params);
 
         /**
@@ -309,14 +320,17 @@ protected:
         bool accept();
         bool send_contact_header();
         bool recv_contact_header(int timeout);
+        bool send_address();
+        bool recv_address(int timeout);
+        bool open_opportunistic_link();
         bool send_bundle(Bundle* bundle, size_t* acked_len);
         bool recv_bundle();
         int  handle_ack(Bundle* bundle, size_t* acked_len);
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
         void note_data_rcvd();
 
-        EndpointID          nexthop_;	///< The next hop we're connected to
-        bool                is_sender_;	///< Are we the sender side
+        bool                initiate_;	///< Do we initiate the connection
+        direction_t         direction_; ///< SENDER or RECEIVER
         Contact*            contact_;	///< Contact for sender-side
         oasys::TCPClient*   sock_;	///< The socket
         BlockingBundleList* queue_;	///< Queue of bundles for the connection
