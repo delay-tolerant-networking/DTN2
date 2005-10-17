@@ -22,14 +22,8 @@ if {[llength $argv] < 1} {
 
 # default args
 set defaults [list -net localhost]
-if { [llength $argv] > 0 } {
-    set test_script [lindex $argv 0]
-} else {
-    set test_script "invalid"
-}
-set args [concat $defaults [lrange $argv 1 end]]
-
-run::init $args $test_script
+set argv [concat $defaults [lrange $argv 1 end]]
+run::init $argv
 
 # catch and report errors in the test script
 if {[catch {test::run_script} err]} {
