@@ -22,7 +22,7 @@ if {[llength $argv] < 1} {
 
 # default args
 set defaults [list -net localhost]
-set argv [concat $defaults [lrange $argv 1 end]]
+set argv [concat $defaults $argv]
 run::init $argv
 
 # catch and report errors in the test script
