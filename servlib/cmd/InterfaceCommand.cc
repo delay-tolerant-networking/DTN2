@@ -83,7 +83,8 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             resultf("can't find convergence layer for %s", proto);
             return TCL_ERROR;
         }
-    
+
+        // XXX/demmer return error string from here
         if (! InterfaceTable::instance()->add(name, cl, proto,
                                               argc - 4, argv + 4)) {
             resultf("error adding interface %s", name);

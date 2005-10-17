@@ -203,7 +203,8 @@ ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
 {
     oasys::ScopeLock l(&lock_, "ContactManager");
     
-    // don't do anything for ondemand links
+    // don't do anything for links that aren't ondemand links
+    // XXX/demmer handle always-on links too
     if (event->link_->type() != Link::ONDEMAND) {
         log_debug("ignoring link unavailable for link of type %s",
                   event->link_->type_str());
