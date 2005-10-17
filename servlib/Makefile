@@ -23,6 +23,7 @@ BUNDLING_SRCS := 				\
 	bundling/tvtots.c			\
 
 CONTACT_SRCS :=					\
+	contacts/AlwaysOnLink.cc		\
 	contacts/Contact.cc			\
 	contacts/ContactManager.cc		\
 	contacts/Interface.cc			\

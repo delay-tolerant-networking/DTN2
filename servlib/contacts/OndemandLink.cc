@@ -48,8 +48,9 @@ namespace dtn {
  */
 OndemandLink::OndemandLink(std::string name,
                            ConvergenceLayer* cl,
-                           const char* nexthop)
-    : Link(name, ONDEMAND, cl, nexthop)
+                           const char* nexthop,
+                           link_type_t type)
+    : Link(name, type, cl, nexthop)
 {
     set_state(AVAILABLE);
     BundleDaemon::post(new LinkAvailableEvent(this, ContactEvent::NO_INFO));

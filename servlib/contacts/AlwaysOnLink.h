@@ -35,55 +35,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _ONDEMAND_LINK_H_
-#define _ONDEMAND_LINK_H_
+#ifndef _ALWAYSONLINK_H_
+#define _ALWAYSONLINK_H_
 
-#include "Link.h"
+#include "OndemandLink.h"
 
 namespace dtn {
 
-/**
- * Abstraction for a ONDEMAND link and an ALWAYSON link.
- *
- * ALWAYSON links are immediately opened upon creation and remain open
- * for their duration.
- *
- * ONDEMAND links have to be opened everytime one wants to use it. It
- * has by definition only -one contact- that is associated and no
- * future contacts/history.
- */
-class OndemandLink : public Link {
+class AlwaysOnLink : public OndemandLink {
 public:
-    /**
-     * Constructor.
-     * Sets the state to AVAILABLE immediately.
-     */
-   OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop,
-                link_type_t type = ONDEMAND);
+    AlwaysOnLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
 
-    /**
-     * Parse the arguments.
-     */
-    virtual int parse_args(int argc, const char* argv[]);
-
-    /**
-     * Seconds to wait between attempts to re-open an unavailable
-     * link, doubles up to max_retry_interval_. Default is 30 seconds.
-     */
-    int retry_interval_;
-
-    /**
-     * Minimum amount to wait between attempts to re-open the link.
-     */
-    int min_retry_interval_;
-    
-    /**
-     * Maximum amount to wait between attempts to re-open the link.
-     * Default is 10 minutes.
-     */
-    int max_retry_interval_;
 };
-
 } // namespace dtn
 
-#endif /* _ONDEMAND_LINK_H_ */
+#endif /* _ALWAYSONLINK_H_ */

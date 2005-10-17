@@ -37,6 +37,7 @@
  */
 #include "Link.h"
 #include "ContactManager.h"
+#include "AlwaysOnLink.h"
 #include "OndemandLink.h"
 #include "ScheduledLink.h"
 #include "OpportunisticLink.h"
@@ -57,6 +58,7 @@ Link::create_link(const std::string& name, link_type_t type,
 {
     Link* link;
     switch(type) {
+    case ALWAYSON: 	link = new AlwaysOnLink(name, cl, nexthop); break;
     case ONDEMAND: 	link = new OndemandLink(name, cl, nexthop); break;
     case SCHEDULED: 	link = new ScheduledLink(name, cl, nexthop); break;
     case OPPORTUNISTIC: link = new OpportunisticLink(name, cl, nexthop); break;
@@ -99,7 +101,8 @@ Link::Link(const std::string& name, link_type_t type,
 
     // pretty up the BundleConsumer type str
     switch(type) {
-    case ONDEMAND: 	type_str_ = "On Demand Link"; break;
+    case ALWAYSON:	type_str_ = "Always on Link"; break;
+    case ONDEMAND: 	type_str_ = "On demand Link"; break;
     case SCHEDULED: 	type_str_ = "Scheduled Link"; break;
     case OPPORTUNISTIC: type_str_ = "Opportunistic Link"; break;
     default: 		PANIC("bogus link_type_t");

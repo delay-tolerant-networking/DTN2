@@ -111,16 +111,25 @@ public:
         LINK_INVALID = -1,
         
         /**
-         * The link is expected to be either ALWAYS available, or can
-         * be made available easily. Examples include DSL (always),
-         * and dialup (easily available).
+         * The link is expected to be ALWAYS available, and any
+         * convergence layer connection state is always maintained for
+         * it.
          */
-        ONDEMAND = 1,
+        ALWAYSON = 1,
+        
+        /**
+         * The link is expected to be either always available, or can
+         * be made available easily. Examples include DSL (always),
+         * and dialup (easily available). Convergence layers are free
+         * to tear down idle connection state, but are expected to be
+         * able to easily re-establish it.
+         */
+        ONDEMAND = 2,
         
         /**
          * The link is only available at pre-determined times.
          */
-        SCHEDULED = 2,
+        SCHEDULED = 3,
         
         /**
          * The link may or may not be available, based on
@@ -128,7 +137,7 @@ public:
          * whose connectivity depends on the relative locations of the
          * two nodes.
          */
-        OPPORTUNISTIC = 3
+        OPPORTUNISTIC = 4
     }
     link_type_t;
 
@@ -139,6 +148,7 @@ public:
     link_type_to_str(link_type_t type)
     {
         switch(type) {
+        case ALWAYSON:		return "ALWAYSON";
         case ONDEMAND:		return "ONDEMAND";
         case SCHEDULED:		return "SCHEDULED";
         case OPPORTUNISTIC: 	return "OPPORTUNISTIC";
@@ -149,6 +159,9 @@ public:
     static inline link_type_t
     str_to_link_type(const char* str)
     {
+        if (strcasecmp(str, "ALWAYSON") == 0)
+            return ALWAYSON;
+        
         if (strcasecmp(str, "ONDEMAND") == 0)
             return ONDEMAND;
         
