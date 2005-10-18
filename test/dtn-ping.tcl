@@ -8,9 +8,20 @@ dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ONDEMAND tcp true
 
-test::script {
+global num_pings
+set num_pings 10
+foreach {var val} $opt(opts) {
+    if {$var == "-n" } {
+	set num_pings $val
+	
+    } else {
+	puts "ERROR: unrecognized test option '$var'"
+	exit 1
+    }
+}
 
-    set num_pings 10
+test::script {
+    global num_pings
     
     puts "* Running dtnds"
     dtn::run_dtnd *
@@ -23,10 +34,10 @@ test::script {
     set dest      dtn://host-0/
 
     for {set i $last_node} {$i >= 0} {incr i -1} {
-	puts "* Dtnping'ing from node $last_node to node $i\
+	puts "* Dtnping'ing from node $last_node to dtn://host-$i\
 	    for $num_pings pings (one per second)"
 	dtn::run_app $last_node dtnping "-c $num_pings dtn://host-$i"
-	after [expr ($num_pings - 1) * 1000]
+	after [expr ($num_pings) * 1000]
     }
     
     for {set i 0} {$i < $last_node} {incr i} {
