@@ -466,7 +466,7 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     // write it out the socket and make sure we wrote it all
     int cc = write((char*)buf_, header_len + payload_len);
     if (cc == (int)(header_len + payload_len)) {
-        log_err("send_bundle: sent bundle length %d", cc);
+        log_info("send_bundle: sent bundle length %d", cc);
         BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact_->link(),
                                        bundle->payload_.length(),
