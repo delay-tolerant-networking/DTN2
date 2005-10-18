@@ -305,6 +305,16 @@ public:
     Contact* contact() const { return contact_; }
 
     /**
+     * Set the contact information (used by opportunistic connection
+     * CLs).
+     */
+    void set_contact(Contact* contact)
+    {
+        ASSERT(contact_ == NULL);
+        contact_ = contact;
+    }
+
+    /**
      * Store convergence layer state associated with the link.
      */
     void set_cl_info(CLInfo* cl_info)
