@@ -28,18 +28,13 @@ test::script {
 
     puts "* Starting dtnping for $num_pings seconds"
     dtn::run_app 0 dtnping "-c $num_pings $net::host(0)"
-
     after [expr ($num_pings * 1000) + 1000]
-
-    # XXX/todo check stats here:
-
-    puts "DTN daemon stats: [dtn::tell_dtnd 0 bundle stats]"
-    puts "XXX still need to check the stats once "
     
-    # XXX shtudown ping here?
+    puts "* Checking bundle stats"
+    dtn::wait_for_stat 0 6 received 5000
+    dtn::wait_for_stat 0 6 "locally delivered" 5000
+
     puts "* Test success!"
-    
-    
 }
 
 test::exit_script {
