@@ -53,7 +53,6 @@ AdminRegistration::AdminRegistration()
                    0)
 {
     logpathf("/reg/admin");
-
     BundleDaemon::post(new RegistrationAddedEvent(this));
 }
 
@@ -84,7 +83,8 @@ AdminRegistration::consume_bundle(Bundle* bundle)
      * 0x4     - null request
      * (other) - reserved
      */
-    typecode = *(bundle->payload_.read_data(0, 1, (u_char*)payload_buf.data()));
+    typecode =
+        *(bundle->payload_.read_data(0, 1, (u_char*)payload_buf.data()));
 
     switch(typecode) {
     case BundleProtocol::ADMIN_STATUS_REPORT:
