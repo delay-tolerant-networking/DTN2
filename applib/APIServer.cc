@@ -201,7 +201,8 @@ APIClient::run()
     // handle the handshake
     ret = readall((char*)&handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
-        log_err("error reading handshake: %s", strerror(errno));
+        log_err("error reading handshake: (got %d/%u) %s",
+                ret, sizeof(handshake), strerror(errno));
         close_session();
         return;
     }
