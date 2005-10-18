@@ -138,11 +138,12 @@ BundleDaemon::get_statistics(oasys::StringBuffer* buf)
 }
 
 void
-BundleDaemon::generate_status_report(Bundle* bundle, status_report_flag_t flag,
+BundleDaemon::generate_status_report(Bundle* bundle,
+                                     status_report_flag_t flag,
                                      status_report_reason_t reason)
 {
-    log_debug("generating return receipt status report, flag = 0x%x, reason = 0x%x",
-              flag, reason);
+    log_debug("generating return receipt status report, "
+              "flag = 0x%x, reason = 0x%x", flag, reason);
         
     BundleStatusReport* report;
         
@@ -159,7 +160,8 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
                                       Registration* registration)
 {
     log_debug("delivering bundle *%p to registration %d (%s)",
-              bundle, registration->regid(), registration->endpoint().c_str());
+              bundle, registration->regid(),
+              registration->endpoint().c_str());
     
     registration->consume_bundle(bundle);
     ++bundles_delivered_;
@@ -216,8 +218,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         log_info("BUNDLE_RECEIVED *%p (%u bytes recvd)",
                  bundle, (u_int)event->bytes_received_);
     }
-
-
     
     // log a warning if the bundle doesn't have any expiration time or
     // has a creation time in the past. in either case, we proceed as
@@ -699,8 +699,9 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
     }
     
     if (pending_bundles_->erase(bundle)) {
-        if (bundle->deletion_rcpt_ && (reason !=
-                                       BundleProtocol::REASON_NO_ADDTL_INFO)) {
+        if (bundle->deletion_rcpt_ &&
+            (reason != BundleProtocol::REASON_NO_ADDTL_INFO))
+        {
             generate_status_report(bundle,
                                    BundleProtocol::STATUS_DELETED,
                                    reason);
@@ -767,7 +768,6 @@ BundleDaemon::handle_event(BundleEvent* event)
                               // into individual handlers
      
     dispatch_event(event);
-
     
     if (! event->daemon_only_) {
         // dispatch the event to the router(s) and the contact manager
