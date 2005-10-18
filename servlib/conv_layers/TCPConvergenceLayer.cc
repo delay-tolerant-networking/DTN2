@@ -505,7 +505,7 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
     // if the parameters specify a local address, do the bind here --
     // however if it fails, we can't really do anything about it, so
     // just log and go on
-    if (params->local_addr_ != INADDR_ANY || params->local_port_ != 0)
+    if (params->local_addr_ != INADDR_ANY)
     {
         if (sock_->bind(params->local_addr_, params->local_port_) != 0) {
             log_err("error binding to %s:%d: %s",
