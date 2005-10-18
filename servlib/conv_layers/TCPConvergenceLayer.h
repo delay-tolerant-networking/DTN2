@@ -243,12 +243,13 @@ protected:
      */
     class Listener : public CLInfo, public oasys::TCPServerThread {
     public:
-        Listener(Params* params);
+        Listener(TCPConvergenceLayer* cl, Params* params);
         void accepted(int fd, in_addr_t addr, u_int16_t port);
 
-        /**
-         * Per-connection parameters for accepted connections.
-         */
+        /// The TCPCL instance
+        TCPConvergenceLayer* cl_;
+        
+        /// Per-connection parameters for accepted connections.
         TCPConvergenceLayer::Params params_;
     };
 
@@ -266,6 +267,7 @@ protected:
                        public oasys::Logger {
     public:
         typedef enum {
+            UNKNOWN,
             SENDER,
             RECEIVER
         } direction_t;
@@ -276,7 +278,8 @@ protected:
          * or for the data receiver side when used with the
          * receiver_connect option.
          */
-        Connection(in_addr_t remote_addr,
+        Connection(TCPConvergenceLayer* cl,
+                   in_addr_t remote_addr,
                    u_int16_t remote_port,
                    direction_t direction,
                    Params* params);
@@ -284,10 +287,10 @@ protected:
         /**
          * Constructor for the passive accept side of a connection.
          */
-        Connection(int fd,
+        Connection(TCPConvergenceLayer* cl,
+                   int fd,
                    in_addr_t remote_addr,
                    u_int16_t remote_port,
-                   direction_t direction,
                    Params* params);
 
         /**
@@ -329,6 +332,7 @@ protected:
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
         void note_data_rcvd();
 
+        TCPConvergenceLayer* cl_;	///< Pointer to the CL instance
         bool                initiate_;	///< Do we initiate the connection
         direction_t         direction_; ///< SENDER or RECEIVER
         Contact*            contact_;	///< Contact for sender-side

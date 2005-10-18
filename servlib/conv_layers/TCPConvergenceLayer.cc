@@ -182,7 +182,7 @@ TCPConvergenceLayer::interface_up(Interface* iface,
         log_debug("new receiver_connect interface -- "
                   "starting connection thread");
         Connection* conn =
-            new Connection(params.remote_addr_, params.remote_port_,
+            new Connection(this, params.remote_addr_, params.remote_port_,
                            Connection::RECEIVER, &params);
 
         // XXX/demmer again, there should be some structure to manage
@@ -194,7 +194,7 @@ TCPConvergenceLayer::interface_up(Interface* iface,
     }
 
     // create a new server socket for the requested interface
-    Listener* listener = new Listener(&params);
+    Listener* listener = new Listener(this, &params);
     listener->logpathf("%s/iface/%s", logpath_, iface->name().c_str());
     
     int ret = listener->bind(params.local_addr_, params.local_port_);
@@ -362,7 +362,8 @@ TCPConvergenceLayer::open_contact(Contact* contact)
     Params* params = (Params*)link->cl_info();
     
     // create a new connection for the contact
-    Connection* conn = new Connection(addr, port, Connection::SENDER, params);
+    Connection* conn = new Connection(this, addr, port,
+                                      Connection::SENDER, params);
     conn->set_contact(contact);
     contact->set_cl_info(conn);
     
@@ -425,23 +426,22 @@ TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  * TCPConvergenceLayer::Listener
  *
  *****************************************************************************/
-TCPConvergenceLayer::Listener::Listener(Params* params)
+TCPConvergenceLayer::Listener::Listener(TCPConvergenceLayer* cl,
+                                        Params* params)
     : IOHandlerBase(new oasys::Notifier()), 
-      TCPServerThread("/cl/tcp/listener")
+      TCPServerThread("/cl/tcp/listener"),
+      cl_(cl), params_(*params)
 {
     logfd_  = false;
-    params_ = *params;
 }
 
 void
-TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
+TCPConvergenceLayer::Listener::accepted(int fd,
+                                        in_addr_t addr, u_int16_t port)
 {
     log_debug("new connection from %s:%d", intoa(addr), port);
-    Connection* conn = new Connection(fd, addr, port,
-                                      params_.receiver_connect_ ?
-                                      Connection::SENDER  :
-                                      Connection::RECEIVER,
-                                      &params_);
+
+    Connection* conn = new Connection(cl_, fd, addr, port, &params_);
     
     // XXX/demmer this should really make a Contact equivalent or
     // something like that and then not DELETE_ON_EXIT
@@ -462,21 +462,26 @@ TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
  * or for the data receiver side when used with the
  * receiver_connect option.
  */
-TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
+TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
+                                            in_addr_t remote_addr,
                                             u_int16_t remote_port,
                                             direction_t direction,
                                             Params* params)
 
     : Thread("TCPConvergenceLayer::Connection"), 
-      params_(*params), initiate_(true), direction_(direction), contact_(NULL)
+      params_(*params), cl_(cl), initiate_(true),
+      direction_(direction), contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 
-    // create the blocking queue for bundles to be sent on
+    // create the blocking queue for bundles to be sent on (if we're
+    // the sender)
     if (direction == SENDER) {
         queue_ = new BlockingBundleList(logpath_);
+    } else {
+        queue_ = NULL;
     }
-    
+
     // the actual socket
     sock_ = new oasys::TCPClient();
 
@@ -513,22 +518,22 @@ TCPConvergenceLayer::Connection::Connection(in_addr_t remote_addr,
 /**
  * Constructor for the passive accept side of a connection.
  */
-TCPConvergenceLayer::Connection::Connection(int fd,
+TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
+                                            int fd,
                                             in_addr_t remote_addr,
                                             u_int16_t remote_port,
-                                            direction_t direction,
                                             Params* params)
 
     : Thread("TCPConvergenceLayer::Connection"),
-      params_(*params), initiate_(false), direction_(direction), contact_(NULL)
+      params_(*params), cl_(cl), initiate_(false),
+      direction_(UNKNOWN), contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
 
-    // create the blocking queue for bundles to be sent on
-    if (direction == SENDER) {
-        queue_ = new BlockingBundleList(logpath_);
-    }
-
+    // create an empty queue (for now)
+    ASSERT(!params->receiver_connect_);
+    queue_ = NULL;
+    
     sock_ = new oasys::TCPClient(fd, remote_addr, remote_port, logpath_);
     sock_->set_logfd(false);
 }
@@ -555,18 +560,20 @@ TCPConvergenceLayer::Connection::run()
         if (! connect()) {
             /*
              * If the connection fails, assuming the link is not
-             * already in the process of being we tell the daemon to
-             * close the link with a BROKEN reason code. If it
-             * succeeds, then the first thing that send_loop() does is
-             * post the ContactUpEvent.
+             * already in the process of being broken we tell the
+             * daemon to close the link with a BROKEN reason code. If
+             * it succeeds, then the first thing that send_loop() does
+             * is post the ContactUpEvent.
              */
             log_debug("connection failed");
 
-            if (!contact_->link()->isclosing()) {
+            if (contact_ != NULL && !contact_->link()->isclosing()) {
                 BundleDaemon::post(
-                    new LinkStateChangeRequest(contact_->link(), Link::CLOSING,
+                    new LinkStateChangeRequest(contact_->link(),
+                                               Link::CLOSING,
                                                ContactDownEvent::BROKEN));
             }
+            
             return; // trigger a deletion
         }
     } else {
@@ -580,11 +587,15 @@ TCPConvergenceLayer::Connection::run()
             return; // trigger a deletion
         }
     }
-    
+
     if (direction_ == SENDER) {
         send_loop();
-    } else {
+
+    } else if (direction_ == RECEIVER) {
         recv_loop();
+        
+    } else {
+        PANIC("direction_ not set by connect() or accept()");
     }
 
     log_debug("connection thread main loop complete -- thread exiting");
@@ -1163,17 +1174,14 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
 {
     ContactHeader contacthdr;
     
-    int cc;
-    if (timeout != 0) {
-        cc = sock_->timeout_readall((char*)&contacthdr, sizeof(ContactHeader),
+    ASSERT(timeout != 0);
+    int cc = sock_->timeout_readall((char*)&contacthdr,
+                                    sizeof(ContactHeader),
                                     timeout);
         
-        if (cc == oasys::IOTIMEOUT) {
-            log_warn("timeout reading contact header");
-            return false;
-        }
-    } else {
-        cc = sock_->readall((char*)&contacthdr, sizeof(ContactHeader));
+    if (cc == oasys::IOTIMEOUT) {
+        log_warn("timeout reading contact header");
+        return false;
     }
     
     if (cc != sizeof(ContactHeader)) {
@@ -1218,15 +1226,32 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
     params_.reactive_frag_enabled_ = params_.reactive_frag_enabled_ &
                                      contacthdr.flags & REACTIVE_FRAG_ENABLED;
 
-    if ((params_.receiver_connect_ && !(contacthdr.flags & RECEIVER_CONNECT)) ||
-        (!params_.receiver_connect_ && (contacthdr.flags & RECEIVER_CONNECT)))
-    {
-        log_err("receiver connect option mismatch: local %s peer %s",
-                params_.receiver_connect_ ? "set" : "not set",
-                (contacthdr.flags & RECEIVER_CONNECT) ? "set" : "not set");
-        return false;
+    if (initiate_) {
+        // check that the passive side didn't try to set the
+        // receiver_connect option
+        if (contacthdr.flags & RECEIVER_CONNECT) {
+            log_err("receiver_connect option set by passive acceptor");
+            return false;
+        }
+
+        // direction should already have been set
+        ASSERT(direction_ != UNKNOWN);
+
+    } else {
+        // for the passive acceptor, set the direction based on the
+        // received option for receiver_connect
+        ASSERT(direction_ == UNKNOWN);
+
+        if (contacthdr.flags & RECEIVER_CONNECT) {
+            params_.receiver_connect_ = true;
+            queue_ = new BlockingBundleList(logpath_);
+            sock_->set_notifier(new oasys::Notifier());
+            direction_ = SENDER;
+        } else {
+            direction_ = RECEIVER;
+        }
     }
-        
+    
     note_data_rcvd();
     return true;
 }
@@ -1270,9 +1295,15 @@ TCPConvergenceLayer::Connection::recv_address(int timeout)
 
     log_debug("retrieving address header...");
 
-    int cc = sock_->timeout_readall((char*)&addresshdr, sizeof(AddressHeader),
+    int cc = sock_->timeout_readall((char*)&addresshdr,
+                                    sizeof(AddressHeader),
                                     timeout);
-    
+            
+    if (cc == oasys::IOTIMEOUT) {
+        log_warn("timeout reading address header");
+        return false;
+    }
+
     if (cc != sizeof(AddressHeader)) {
         log_err("error reading address header (read %d/%u): %s",
                 cc, (u_int)sizeof(AddressHeader), strerror(errno));
@@ -1365,24 +1396,49 @@ TCPConvergenceLayer::Connection::connect()
 bool
 TCPConvergenceLayer::Connection::open_opportunistic_link()
 {
-    oasys::StringBuffer nexthop("%s:%d",
-                                intoa(params_.remote_addr_),
-                                params_.remote_port_);
-
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    Link* link = cm->find_link_to(nexthop.c_str());
+    
+    oasys::ScopeLock l(cm->lock(), "TCPCL::open_opportunistic_link");
+    LinkSet::const_iterator iter;
+    Link* link;
+    
+    for (iter = cm->links()->begin(); iter != cm->links()->end(); ++iter) {
+        link = *iter;
+        
+        // ignore non-tcp links and non-opportunistic links
+        if (link->clayer() != cl_) {
+            continue;
+        }
+
+        if (link->type() != Link::OPPORTUNISTIC) {
+            continue;
+        }
+        
+        // grab the parameters structure and look for a matching
+        // remote_addr and remote_port
+        Params* link_params = (Params*)link->cl_info();
+        ASSERT(link_params);
+
+        log_debug("open_opportunistic_link: checking link *%p %s:%d", link,
+                  intoa(link_params->remote_addr_),
+                  link_params->remote_port_);
+        
+        if (link_params->remote_addr_ == params_.remote_addr_ &&
+            link_params->remote_port_ == params_.remote_port_)
+        {
+            // found it!
+            break;
+        }
+
+        link = NULL;
+    }
 
     if (link == NULL) {
-        log_err("receiver connect can't find matching link for next hop %s",
-                nexthop.c_str());
+        log_err("receiver connect can't find matching link for peer %s:%d",
+                intoa(params_.remote_addr_), params_.remote_port_);
         return false;
     }
     
-    if (link->type() != Link::OPPORTUNISTIC) {
-        log_err("receiver connect link *%p not of type OPPORTUNISTIC", link);
-        return false;
-    }
-
     if (link->state() != Link::UNAVAILABLE) {
         log_err("receiver connect link *%p in unexpected state %s", link,
                 Link::state_to_str(link->state()));
@@ -1397,14 +1453,16 @@ TCPConvergenceLayer::Connection::open_opportunistic_link()
     
     // create a new contact
     contact_ = new Contact(link);
+    link->set_contact(contact_);
     contact_->set_cl_info(this);
     
     // handle memory management
     Thread::clear_flag(DELETE_ON_EXIT);
 
+    // a contact up event is delivered at the start of the send loop,
+    // but we need to first put the link into OPENING state
     link->set_state(Link::OPENING);
-    BundleDaemon::post(new ContactUpEvent(contact_));
-
+    
     return true;
 }
 
@@ -1422,14 +1480,14 @@ TCPConvergenceLayer::Connection::accept()
         return false;
 
     log_debug("accept: waiting for peer contact header...");
-    if (!recv_contact_header(0))
+    if (!recv_contact_header(params_.rtt_timeout_))
         return false;
     
     if (params_.receiver_connect_) {
         ASSERT(direction_ == SENDER);
         
-        log_debug("connect: receiver_connect retrieving local address");
-        if (!recv_address(0)) {
+        log_debug("accept: receiver_connect retrieving local address");
+        if (!recv_address(params_.rtt_timeout_)) {
             return false;
         }
 
