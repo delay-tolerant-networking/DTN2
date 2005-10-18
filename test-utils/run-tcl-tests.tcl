@@ -18,6 +18,7 @@ set tests(basic) {"send-one-bundle.tcl"
 		  "send-for-two-minutes.tcl"
 		  "bundle-status-reports.tcl"
 		  "test-link-updown.tcl"
+		  "tcp-receiver-connect.tcl"
 		  }
 
 
