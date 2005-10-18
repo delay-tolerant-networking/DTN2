@@ -24,7 +24,7 @@ test::script {
     global num_pings
     
     puts "* Running dtnds"
-    dtn::run_dtnd *
+    puts [dtn::run_dtnd *]
 
     puts "* Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
@@ -36,8 +36,9 @@ test::script {
     for {set i $last_node} {$i >= 0} {incr i -1} {
 	puts "* Dtnping'ing from node $last_node to dtn://host-$i\
 	    for $num_pings pings (one per second)"
-	dtn::run_app $last_node dtnping "-c $num_pings dtn://host-$i"
-	after [expr ($num_pings) * 1000]
+	set pid [dtn::run_app $last_node dtnping "-c $num_pings dtn://host-$i"]
+	after [expr ($num_pings -1) * 1000]
+	run::wait_for_pid_exit $last_node $pid 5000
     }
     
     for {set i 0} {$i < $last_node} {incr i} {
