@@ -118,12 +118,12 @@ DTNServer::start()
     BundleStore::instance()->load();
     RegistrationStore::instance()->load();
     
-    // create the administrative registration
-    daemon->post(new RegistrationAddedEvent(new AdminRegistration()));
+    // XXX/demmer this needs a better place
+    new AdminRegistration();
 
     router->initialize();
-    
     daemon->start();
+    
     log_debug("started dtn server");
 }
 
