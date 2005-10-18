@@ -160,7 +160,7 @@ Link::set_state(state_t new_state)
         break;
 
     case OPENING:
-        ASSERT_STATE(state_ == AVAILABLE);
+        ASSERT_STATE(state_ == AVAILABLE || state_ == UNAVAILABLE);
         break;
         
     case OPEN:
