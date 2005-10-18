@@ -1400,7 +1400,7 @@ TCPConvergenceLayer::Connection::open_opportunistic_link()
     
     oasys::ScopeLock l(cm->lock(), "TCPCL::open_opportunistic_link");
     LinkSet::const_iterator iter;
-    Link* link;
+    Link* link = NULL;
     
     for (iter = cm->links()->begin(); iter != cm->links()->end(); ++iter) {
         link = *iter;
