@@ -54,6 +54,9 @@ public:
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
     virtual const char* help_string();
+
+private:
+    oasys::Notifier* notifier_;
 };
 
 } // namespace dtn

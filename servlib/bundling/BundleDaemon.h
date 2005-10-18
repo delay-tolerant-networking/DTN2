@@ -108,11 +108,17 @@ public:
     }
 
     /**
-     * Dispatches to the virtual post_event implementation.
+     * Queues the event for processing by the daemon thread.
      */
     static void post(BundleEvent* event);
-
+ 
     /**
+     * Post the given event and wait for it to be processed by the
+     * daemon thread.
+     */
+    static void post_and_wait(BundleEvent* event, oasys::Notifier* notifier);
+
+   /**
      * Virtual post_event function, overridden by the Node class in
      * the simulator to use a modified event queue.
      */

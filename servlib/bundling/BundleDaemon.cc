@@ -90,12 +90,25 @@ BundleDaemon::do_init()
 }
 
 /**
- * Dispatches to the virtual post_event implementation.
+ * Queues the event for processing by the daemon thread.
  */
 void
 BundleDaemon::post(BundleEvent* event)
 {
     instance_->post_event(event);
+}
+
+/**
+ * Post the given event and wait for it to be processed by the
+ * daemon thread.
+ */
+void
+BundleDaemon::post_and_wait(BundleEvent* event, oasys::Notifier* notifier)
+{
+    ASSERT(event->processed_notifier_ == NULL);
+    event->processed_notifier_ = notifier;
+    post(event);
+    notifier->wait();
 }
 
 /**

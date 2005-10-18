@@ -36,6 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/thread/Notifier.h>
 #include <oasys/util/StringBuffer.h>
 
 #include "RegistrationCommand.h"
@@ -48,7 +49,10 @@
 namespace dtn {
 
 RegistrationCommand::RegistrationCommand()
-    : TclCommand("registration") {}
+    : TclCommand("registration")
+{
+    notifier_ = new oasys::Notifier();
+}
 
 const char*
 RegistrationCommand::help_string()
@@ -107,7 +111,8 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         ASSERT(reg);
 
-        BundleDaemon::post(new RegistrationAddedEvent(reg));
+        BundleDaemon::post_and_wait(new RegistrationAddedEvent(reg),
+                                    notifier_);
         
         resultf("%d", reg->regid());
         return TCL_OK;
@@ -125,7 +130,8 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        BundleDaemon::post(new RegistrationRemovedEvent(reg));
+        BundleDaemon::post_and_wait(new RegistrationRemovedEvent(reg),
+                                    notifier_);
         return TCL_OK;
 
     } else if (strcmp(op, "tcl") == 0) {

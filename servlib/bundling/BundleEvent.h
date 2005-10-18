@@ -159,6 +159,11 @@ public:
     bool daemon_only_;
 
     /**
+     * Slot for a notifier to indicate that the event was processed.
+     */
+    oasys::Notifier* processed_notifier_;
+
+    /**
      * Used for printing
      */
     const char* type_str() {
@@ -167,16 +172,23 @@ public:
 
     /**
      * Need a virtual destructor to make sure all the right bits are
-     * cleaned up.
+     * cleaned up and to notify any threads that are waiting for the
+     * event to be processed.
      */
-    virtual ~BundleEvent() {}
+    virtual ~BundleEvent()
+    {
+        if (processed_notifier_) {
+            processed_notifier_->notify();
+        }
+    }
 
 protected:
     /**
      * Constructor (protected since one of the subclasses should
      * always be that which is actually initialized.
      */
-    BundleEvent(event_type_t type) : type_(type), daemon_only_(false) {};
+    BundleEvent(event_type_t type)
+        : type_(type), daemon_only_(false), processed_notifier_(false) {}
 };
 
 /**

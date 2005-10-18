@@ -161,6 +161,7 @@ APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
     xdrmem_create(&xdr_decode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_DECODE);
 
     bindings_ = new APIRegistrationList();
+    notifier_ = new oasys::Notifier();
 }
 
 APIClient::~APIClient()
@@ -198,7 +199,7 @@ APIClient::run()
               intoa(remote_addr()), remote_port());
 
     // handle the handshake
-    ret = read((char*)&handshake, sizeof(handshake));
+    ret = readall((char*)&handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
         log_err("error reading handshake: %s", strerror(errno));
         close_session();
@@ -211,7 +212,7 @@ APIClient::run()
         return;
     }
     
-    ret = write((char*)&handshake, sizeof(handshake));
+    ret = writeall((char*)&handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
         log_err("error writing handshake: %s", strerror(errno));
         close_session();
@@ -388,8 +389,9 @@ APIClient::handle_register()
     }
 
     u_int32_t regid = GlobalStore::instance()->next_regid();
-    reg = new APIRegistration(regid, endpoint, action, reginfo.expiration, script);
-    BundleDaemon::post(new RegistrationAddedEvent(reg));
+    reg = new APIRegistration(regid, endpoint, action,
+                              reginfo.expiration, script);
+    BundleDaemon::post_and_wait(new RegistrationAddedEvent(reg), notifier_);
     
     // fill the response with the new registration id
     if (!xdr_dtn_reg_id_t(&xdr_encode_, &regid)) {
