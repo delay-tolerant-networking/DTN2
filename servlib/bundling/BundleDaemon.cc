@@ -322,7 +322,10 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * reference.
      */
     if (params_.early_deletion_ && (bundle->num_mappings() == 1)) {
-        // XXX/matt make sure we don't ever want a status report generated
+        // XXX/matt if we delete a bundle just because there are no
+        // more mappings, and not because it expired, then we don't
+        // want to generate a status report, so pass the
+        // REASON_NO_ADDTL_INFO reason code
         delete_from_pending(bundle, BundleProtocol::REASON_NO_ADDTL_INFO);
     }
 }
