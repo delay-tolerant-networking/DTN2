@@ -143,6 +143,18 @@ ContactManager::find_link_to(const char* next_hop)
 }
 
 /**
+ * Return the list of links. Asserts that the CM spin lock is held
+ * by the caller.
+ */
+const LinkSet*
+ContactManager::links()
+{
+    ASSERTF(lock_.is_locked_by_me(),
+            "ContactManager::links must be called while holding lock");
+    return links_;
+}
+
+/**
  * Timeout function when a link is to be made available again.
  */
 void

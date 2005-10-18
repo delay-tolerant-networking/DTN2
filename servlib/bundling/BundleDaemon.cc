@@ -137,7 +137,6 @@ BundleDaemon::get_statistics(oasys::StringBuffer* buf)
                  bundles_expired_);
 }
 
-
 void
 BundleDaemon::generate_status_report(Bundle* bundle, status_report_flag_t flag,
                                      status_report_reason_t reason)
@@ -612,8 +611,10 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 
     log_info("Received shutdown request");
 
-    LinkSet* links = contactmgr_->links();
-    LinkSet::iterator iter;
+    oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_shutdown");
+    
+    const LinkSet* links = contactmgr_->links();
+    LinkSet::const_iterator iter;
     Link* link = NULL;
 
     // close any open links

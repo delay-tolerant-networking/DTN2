@@ -101,10 +101,15 @@ public:
     Link* find_link_to(const char* next_hop);
 
     /**
-     * Return the list of links 
+     * Return the list of links. Asserts that the CM spin lock is held
+     * by the caller.
      */
-    LinkSet* links() { return links_; }
+    const LinkSet* links();
 
+    /**
+     * Accessor for the ContactManager internal lock.
+     */
+    oasys::Lock* lock() { return &lock_; }
 
     /**********************************************
      *

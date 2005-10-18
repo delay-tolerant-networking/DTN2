@@ -225,8 +225,10 @@ void
 LinkStateRouter::flood_announcement(LinkStateGraph::Edge* edge, bool exists)
 {
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    LinkSet* links=cm->links();
-    for(LinkSet::iterator i=links->begin(); i!=links->end(); i++)
+    oasys::ScopeLock l(cm->lock(), "flood_announcement");
+
+    const LinkSet* links=cm->links();
+    for(LinkSet::const_iterator i=links->begin(); i!=links->end(); i++)
         send_announcement(edge, (*i), exists);
 }
 
