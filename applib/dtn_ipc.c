@@ -170,11 +170,11 @@ dtnipc_open(dtnipc_handle_t* handle)
  * Clean up the handle. dtnipc_open must have already been called on
  * the handle.
  */
-void
+int
 dtnipc_close(dtnipc_handle_t* handle)
 {
-    // XXX/demmer should send over a close RPC rather than getting the
-    // warning on the other end
+    // first send a close over RPC
+    int ret = dtnipc_send_recv(handle, DTN_CLOSE);
     
     xdr_destroy(&handle->xdr_encode);
     xdr_destroy(&handle->xdr_decode);
@@ -184,6 +184,8 @@ dtnipc_close(dtnipc_handle_t* handle)
     }
 
     handle->sock = 0;
+
+    return ret;
 }
       
 
@@ -290,3 +292,31 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
     return len;
 }
 
+
+/**
+ * Send a message and wait for a response over the dtn ipc protocol.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int dtnipc_send_recv(dtnipc_handle_t* handle, dtnapi_message_type_t type)
+{
+    int status;
+
+    // send the message
+    if (dtnipc_send(handle, type) < 0) {
+        return -1;
+    }
+
+    // wait for a response
+    if (dtnipc_recv(handle, &status) < 0) {
+        return -1;
+    }
+
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
+        return -1;
+    }
+
+    return 0;
+}

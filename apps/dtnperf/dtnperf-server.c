@@ -329,6 +329,9 @@ int main(int argc, char** argv)
 
     } // while(1)
 
+    // if this was ever changed to gracefully shutdown, it would be good to call:
+    dtn_close(handle);
+    
     return 0;
 
 } //main
@@ -363,7 +366,7 @@ void parse_options (int argc, char** argv) {
     char c, done = 0;
 
     while (!done) {
-        c = getopt(argc, argv, "hvDfmd:");
+        c = getopt(argc, argv, "hvDfmd:e:");
 
         switch(c) {
             case 'h':           // show help
@@ -387,11 +390,11 @@ void parse_options (int argc, char** argv) {
             case 'd':           // destination directory
                 bundle_dir = optarg;
                 break;
-/*
+
             case 'e':           // destination endpoint
                 endpoint = optarg;
                 break;
-*/
+                
             case -1:
                 done = 1;
                 break;

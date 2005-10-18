@@ -181,7 +181,9 @@ main(int argc, char** argv)
                    reply_spec.source.uri,
                    ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                     (double)(end.tv_usec - start.tv_usec)/1000.0));
-            
+
+    dtn_close(handle);
+    
     return 0;
 }
 

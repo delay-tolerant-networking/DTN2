@@ -308,6 +308,10 @@ reader_thread(void *p)
         if (debug > 0)
             fprintf(dout, "reader loop.... nothing to do? [shouldn't happen]\n");
     }
+
+    // if this was ever changed to gracefully shutdown, it would be good to call:
+    dtn_close(handle);
+    
     return (1);
     // NOTREACHED 
 }

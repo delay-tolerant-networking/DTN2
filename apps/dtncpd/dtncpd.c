@@ -321,6 +321,8 @@ main(int argc, const char** argv)
     
         printf ("======================================\n");
     }
+
+    dtn_close(handle);
     
     return 0;
 }

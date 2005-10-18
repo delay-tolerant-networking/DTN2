@@ -113,8 +113,10 @@ int dtnipc_open(dtnipc_handle_t* handle);
 /*
  * Clean up the handle. dtnipc_open must have already been called on
  * the handle.
+ *
+ * Returns 0 on success, -1 on error.
  */
-void dtnipc_close(dtnipc_handle_t* handle);
+int dtnipc_close(dtnipc_handle_t* handle);
     
 /*
  * Send a message over the dtn ipc protocol.
@@ -132,6 +134,14 @@ int dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type);
  * error.
  */
 int dtnipc_recv(dtnipc_handle_t* handle, int* status);
+
+/**
+ * Send a message and wait for a response over the dtn ipc protocol.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int dtnipc_send_recv(dtnipc_handle_t* handle, dtnapi_message_type_t type);
+
 
 #ifdef  __cplusplus
 }

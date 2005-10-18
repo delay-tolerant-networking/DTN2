@@ -81,6 +81,9 @@ dtn_open()
 int
 dtn_close(dtn_handle_t handle)
 {
+    // XXX/matt: (a) this error code is meaningless, as we return -1 no
+    // matter what dtnipc_close returns; (b) it's inconsistent with
+    // all other functions to return -1 as a "success" code
     dtnipc_close((dtnipc_handle_t *)handle);
     free(handle);
     return -1;
@@ -249,7 +252,6 @@ dtn_change_registration(dtn_handle_t h,
 int
 dtn_bind(dtn_handle_t h, dtn_reg_id_t regid)
 {
-    int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     
@@ -260,18 +262,7 @@ dtn_bind(dtn_handle_t h, dtn_reg_id_t regid)
     }
 
     // send the message
-    if (dtnipc_send(handle, DTN_BIND) < 0) {
-        return -1;
-    }
-
-    // get the reply
-    if (dtnipc_recv(handle, &status) < 0) {
-        return -1;
-    }
-
-    // handle server-side errors
-    if (status != DTN_SUCCESS) {
-        handle->err = status;
+    if (dtnipc_send_recv(handle, DTN_BIND) < 0) {
         return -1;
     }
 
@@ -286,7 +277,6 @@ dtn_send(dtn_handle_t h,
          dtn_bundle_spec_t* spec,
          dtn_bundle_payload_t* payload)
 {
-    int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
 
@@ -298,18 +288,7 @@ dtn_send(dtn_handle_t h,
     }
 
     // send the message
-    if (dtnipc_send(handle, DTN_SEND) < 0) {
-        return -1;
-    }
-
-    // wait for a response
-    if (dtnipc_recv(handle, &status) < 0) {
-        return -1;
-    }
-
-    // handle server-side errors
-    if (status != DTN_SUCCESS) {
-        handle->err = status;
+    if (dtnipc_send_recv(handle, DTN_SEND) < 0) {
         return -1;
     }
 
@@ -326,8 +305,6 @@ dtn_recv(dtn_handle_t h,
          dtn_bundle_payload_t* payload,
          dtn_timeval_t timeout)
 {
-    int ret;
-    int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     XDR* xdr_decode = &handle->xdr_decode;
@@ -345,18 +322,7 @@ dtn_recv(dtn_handle_t h,
     }
 
     // send the message
-    if (dtnipc_send(handle, DTN_RECV) < 0) {
-        return -1;
-    }
-
-    // wait for a response
-    if ((ret = dtnipc_recv(handle, &status)) < 0) {
-        return -1;
-    }
-
-    // handle server-side errors
-    if (status != DTN_SUCCESS) {
-        handle->err = status;
+    if (dtnipc_send_recv(handle, DTN_RECV) < 0) {
         return -1;
     }
 
@@ -370,6 +336,7 @@ dtn_recv(dtn_handle_t h,
     
     return 0;
 }
+
 
 /*************************************************************
  *

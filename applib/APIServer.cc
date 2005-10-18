@@ -267,6 +267,7 @@ APIClient::run()
             DISPATCH(DTN_SEND,      handle_send);
             DISPATCH(DTN_BIND,      handle_bind);
             DISPATCH(DTN_RECV,      handle_recv);
+            DISPATCH(DTN_CLOSE,     handle_close);
 #undef DISPATCH
 
         default:
@@ -731,6 +732,14 @@ APIClient::handle_recv()
         new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
 
     return DTN_SUCCESS;
+}
+
+int
+APIClient::handle_close()
+{
+    log_info("received DTN_CLOSE message; closing API handle");
+    // return -1 to force the session to close:
+    return -1;
 }
 
 } // namespace dtn

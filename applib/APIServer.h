@@ -93,6 +93,7 @@ protected:
     int handle_bind();
     int handle_send();
     int handle_recv();
+    int handle_close();
     
     char buf_[DTN_MAX_API_MSG];
     XDR xdr_encode_;

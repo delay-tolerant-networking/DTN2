@@ -228,6 +228,8 @@ main(int argc, char** argv)
             sleep(1);
         }
     }
+
+    dtn_close(handle);
     
     return 0;
 }

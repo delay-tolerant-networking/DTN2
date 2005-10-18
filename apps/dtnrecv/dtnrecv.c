@@ -292,6 +292,8 @@ main(int argc, char** argv)
         }
 	printf("\n");
     }
+
+    dtn_close(handle);
     
     return 0;
 }

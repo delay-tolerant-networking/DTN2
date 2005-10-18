@@ -219,6 +219,8 @@ main(int argc, const char** argv)
         
         sleep(sleepVal);
     }
+
+    dtn_close(handle);
     
     return 0;
 }
