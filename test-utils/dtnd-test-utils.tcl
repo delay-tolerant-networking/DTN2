@@ -32,7 +32,6 @@ proc tcl_registration_bundle_ready {regid endpoint callback callback_data} {
 #
 proc tcl_registration {endpoint {callback default_bundle_arrived} {callback_data ""}} {
     set regid [registration add tcl $endpoint]
-    after 1000;     # XXX/demmer fix me
     set chan [registration tcl $regid get_list_channel]
     fileevent $chan readable [list tcl_registration_bundle_ready \
 	    $regid $endpoint $callback $callback_data]
