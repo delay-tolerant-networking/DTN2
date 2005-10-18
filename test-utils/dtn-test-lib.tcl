@@ -15,10 +15,11 @@ namespace eval dtn {
 	global opt net::host net::portbase net::extra test::testname
 	
 	if {$id == "*"} {
+	    set pids ""
 	    foreach id [net::nodelist] {
-		run_dtnd $id $other_opts
+		lappend pids [run_dtnd $id $other_opts]
 	    }
-	    return
+	    return $pids
 	}
 	
 	set exec_opts "-i $id -t -c $test::testname.conf"
@@ -28,8 +29,8 @@ namespace eval dtn {
 
 	append exec_opts " $other_opts"
 
-	run::run $id "dtnd" $exec_opts $test::testname.conf \
-		[conf::get dtnd $id] ""
+	return [run::run $id "dtnd" $exec_opts $test::testname.conf \
+		    [conf::get dtnd $id] ""]
 	
     }
 
@@ -37,10 +38,11 @@ namespace eval dtn {
 	global opt net::host net::portbase net::extra test::testname
 	
 	if {$id == "*"} {
+	    set pids ""
 	    foreach id [net::nodelist] {
-		run_app $id $app_name $exec_args
+		lappend pids [run_app $id $app_name $exec_args]
 	    }
-	    return
+	    return $pids
 	}
 
 	set addr [gethostbyname $net::host($id)]
@@ -48,8 +50,9 @@ namespace eval dtn {
 	lappend exec_env DTNAPI_ADDR $addr
 	lappend exec_env DTNAPI_PORT [dtn::get_port api $id]
 	
-	run::run $id "$app_name" $exec_args $test::testname-$app_name.conf \
-		[conf::get $app_name $id] $exec_env
+	return [run::run $id "$app_name" $exec_args \
+		    $test::testname-$app_name.conf \
+		    [conf::get $app_name $id] $exec_env]
 	
     }
 
