@@ -3,8 +3,21 @@ net::num_nodes 3
 
 dtn::config
 
-dtn::config_interface tcp
-dtn::config_linear_topology ONDEMAND tcp true
+set clayer tcp
+
+foreach {var val} $opt(opts) {
+    if {$var == "-cl" || $var == "cl"} {
+	set clayer $val
+	
+    } else {
+	puts "ERROR: unrecognized test option '$var'"
+	exit 1
+    }
+}
+
+puts "* Configuring $clayer interfaces / links"
+dtn::config_interface $clayer
+dtn::config_linear_topology ONDEMAND $clayer true
 
 test::script {
     puts "* Running dtnds"
