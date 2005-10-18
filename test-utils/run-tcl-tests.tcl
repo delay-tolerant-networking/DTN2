@@ -10,21 +10,17 @@ if {[llength $argv] < 1} {
     exit
 }
 
-# associative array keyed by test group
-set array tests
-
-# only one group for now:
-set tests(basic) {"send-one-bundle.tcl"
-		  "send-for-two-minutes.tcl"
-		  "bundle-status-reports.tcl"
-		  "test-link-updown.tcl"
-		  "tcp-receiver-connect.tcl"
-		  "dtn-ping.tcl"
+# the basic test group (all we have now)
+set tests(basic) {"send-one-bundle.tcl"		"-cl tcp"
+                  "send-one-bundle.tcl"		"-cl udp"
+		  "send-for-two-minutes.tcl"	""
+		  "bundle-status-reports.tcl"	""
+		  "test-link-updown.tcl"	""
+		  "tcp-receiver-connect.tcl"	""
+		  "dtn-ping.tcl"		""
 		  }
 
-
 # check test group
-
 set group [lindex $argv 0]
 set options [lrange $argv 1 end]
 
@@ -33,12 +29,18 @@ if {![info exists tests($group)]} {
     exit -1
 }
 
-foreach test $tests($group) {
+foreach {test testopts} $tests($group) {
     puts "***"
-    puts "*** $test"
+    puts "*** $test $testopts"
     puts "***"
+
+    if {$testopts != ""} {
+	set options "$options --opts \"$testopts\""
+    }
+    
     if [catch {
-	eval exec ./test-utils/run-dtn.tcl test/$test -d $options < /dev/null >&@ stdout
+	eval exec ./test-utils/run-dtn.tcl test/$test -d $options \
+		< /dev/null >&@ stdout
     } err ] {
 	puts "unexpected error: $err"
     }
