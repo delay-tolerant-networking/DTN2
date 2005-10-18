@@ -1,5 +1,5 @@
 test::name dtn-ping
-net::num_nodes 1
+net::num_nodes 3
 
 manifest::file apps/dtnping/dtnping dtnping
 
@@ -10,9 +10,7 @@ dtn::config_linear_topology ONDEMAND tcp true
 
 test::script {
 
-    # XXX set this to 30 or something once we figure out why the DTND
-    # bundle stats are so screwy
-    set num_pings 3
+    set num_pings 10
     
     puts "* Running dtnds"
     dtn::run_dtnd *
@@ -20,20 +18,32 @@ test::script {
     puts "* Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
 
-    set last_node [expr [net::num_nodes] - 1]
-    set source    [dtn::tell_dtnd $last_node {route local_eid}]
-    set dest      dtn://host-0/test
-    
-    dtn::tell_dtnd 0 tcl_registration $dest
+    set N [net::num_nodes]
+    set last_node [expr $N - 1]
+    set dest      dtn://host-0/
 
-    puts "* Starting dtnping for $num_pings seconds"
-    dtn::run_app 0 dtnping "-c $num_pings $net::host(0)"
-    after [expr ($num_pings * 1000) + 1000]
+    for {set i $last_node} {$i >= 0} {incr i -1} {
+	puts "* Dtnping'ing from node $last_node to node $i\
+	    for $num_pings pings (one per second)"
+	dtn::run_app $last_node dtnping "-c $num_pings dtn://host-$i"
+	after [expr ($num_pings - 1) * 1000]
+    }
     
-    puts "* Checking bundle stats"
-    dtn::wait_for_stat 0 6 received 5000
-    dtn::wait_for_stat 0 6 "locally delivered" 5000
-
+    for {set i 0} {$i < $last_node} {incr i} {
+	puts "* Checking bundle stats on node $i"
+	dtn::wait_for_stats $i [list $num_pings "locally delivered" \
+				[expr $num_pings * 2 * ($i + 1)]    \
+				"received"] 5000
+    }
+    
+    # last node is the ping source so it *also* has N * num_pings
+    # locally delivered due to the delivery of the ping responses:
+    puts "* Checking bundle stats on node $last_node"
+    dtn::wait_for_stats $last_node [list [expr $num_pings * (1 + $N)] \
+				    "locally delivered" \
+				    [expr $num_pings * 2 * $N ] \
+				    "received"] 5000
+    
     puts "* Test success!"
 }
 
