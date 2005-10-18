@@ -19,6 +19,7 @@ set tests(basic) {"send-one-bundle.tcl"
 		  "bundle-status-reports.tcl"
 		  "test-link-updown.tcl"
 		  "tcp-receiver-connect.tcl"
+		  "dtn-ping.tcl"
 		  }
 
 
