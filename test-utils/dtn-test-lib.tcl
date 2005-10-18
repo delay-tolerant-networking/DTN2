@@ -43,9 +43,7 @@ namespace eval dtn {
 	    return
 	}
 
-	set s [socket -async $net::host($id) [dtn::get_port api $id]]
-	set addr [lindex [fconfigure $s -sockname] 0]
-	close $s
+	set addr [gethostbyname $net::host($id)]
 	
 	lappend exec_env DTNAPI_ADDR $addr
 	lappend exec_env DTNAPI_PORT [dtn::get_port api $id]
