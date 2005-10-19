@@ -37,8 +37,6 @@
  */
 
 #include "ShutdownCommand.h"
-// #include "bundling/Bundle.h"
-// #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
 
 namespace dtn {
@@ -62,8 +60,9 @@ ShutdownCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         return TCL_ERROR;
     }
 
-    // post a shutdown event now
-    BundleDaemon::instance()->post(new ShutdownRequest());
+    oasys::Notifier done;
+    BundleDaemon::instance()->post_and_wait(new ShutdownRequest(), &done);
+    exit(0);
 
     return TCL_OK;
 }

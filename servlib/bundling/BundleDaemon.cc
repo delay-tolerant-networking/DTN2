@@ -75,7 +75,10 @@ BundleDaemon::BundleDaemon()
     fragmentmgr_ = new FragmentManager();
     reg_table_ = new RegistrationTable();
 
-    router_ = 0;    
+    router_ = 0;
+
+    app_shutdown_proc_ = NULL;
+    app_shutdown_data_ = NULL;
 }
 
 /**
@@ -624,7 +627,6 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 void
 BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 {
-
     log_info("Received shutdown request");
 
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_shutdown");
@@ -648,8 +650,9 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 
     // XXX/todo: cleanly sync the various data stores
 
-    
-    exit(0);
+    if (app_shutdown_proc_) {
+        (*app_shutdown_proc_)(app_shutdown_data_);
+    }
 }
   
 /**

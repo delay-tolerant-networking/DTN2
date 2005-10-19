@@ -275,8 +275,15 @@ DTNServer::close_datastore()
 void
 DTNServer::shutdown()
 {
-    BundleDaemon::instance()->post(new ShutdownRequest());
-    BundleDaemon::instance()->join();
+    oasys::Notifier done;
+    BundleDaemon::instance()->post_and_wait(new ShutdownRequest(), &done);
+    exit(0);
+}
+
+void
+DTNServer::set_app_shutdown(ShutdownProc proc, void* data)
+{
+    BundleDaemon::instance()->set_app_shutdown(proc, data);
 }
 
 void

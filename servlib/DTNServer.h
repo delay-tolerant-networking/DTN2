@@ -78,6 +78,12 @@ public:
     //! Shut down the server
     void shutdown();
 
+    //! Typedef for a shutdown procedure
+    typedef void (*ShutdownProc) (void* args);
+
+    //! Set an application-specific shutdown handler.
+    void set_app_shutdown(ShutdownProc proc, void* data);
+
 private:
     bool init_;
 

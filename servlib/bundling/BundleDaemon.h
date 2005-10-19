@@ -200,6 +200,20 @@ public:
     };
 
     static Params params_;
+
+    /**
+     * Typedef for a shutdown procedure.
+     */
+    typedef void (*ShutdownProc) (void* args);
+    
+    /**
+     * Set an application-specific shutdown handler.
+     */
+    void set_app_shutdown(ShutdownProc proc, void* data)
+    {
+        app_shutdown_proc_ = proc;
+        app_shutdown_data_ = data;
+    }
     
 protected:
     /**
@@ -305,6 +319,13 @@ protected:
     u_int32_t bundles_transmitted_;
     u_int32_t bundles_expired_;
 
+    /// Application-specific shutdown handler
+    ShutdownProc app_shutdown_proc_;
+ 
+    /// Application-specific shutdown data
+    void* app_shutdown_data_;
+
+   /// The static instance
     static BundleDaemon* instance_;
 };
 
