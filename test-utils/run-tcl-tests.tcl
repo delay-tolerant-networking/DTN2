@@ -11,17 +11,21 @@ if {[llength $argv] < 1} {
 }
 
 # the basic test group
-set tests(basic) {"send-one-bundle.tcl"		"-cl tcp"
-                  "send-one-bundle.tcl"		"-cl udp"
-		  "send-for-two-minutes.tcl"	""
-		  "bundle-status-reports.tcl"	""
-		  "test-link-updown.tcl"	""
-		  "tcp-receiver-connect.tcl"	""
-		  "dtn-ping.tcl"		""
-		  }
+set tests(basic) {
+    "send-one-bundle.tcl"	"-cl tcp"
+    "send-one-bundle.tcl"	"-cl udp"
+    "send-for-two-minutes.tcl"	""
+    "bundle-status-reports.tcl"	""
+    "test-link-updown.tcl"	""
+    "tcp-receiver-connect.tcl"	""
+    "dtn-ping.tcl"		""
+}
 
 # the performance test group
-set tests(perf) {"dtn-perf.tcl"		        ""}
+set tests(perf) {
+    "dtn-perf.tcl"		""
+    "dtn-perf.tcl"		"-forwarding_rcpts -receive_rcpts"
+}
 
 # check test group
 set group [lindex $argv 0]
