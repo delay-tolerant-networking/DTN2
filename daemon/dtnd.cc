@@ -159,7 +159,7 @@ seed_random(bool seed_set, int seed)
         seed = tv.tv_usec;
     }
     
-    log_info("/dtnd", "random seed is %u\n", seed);
+    log_notice("/dtnd", "random seed is %u\n", seed);
     srand(seed);
 }
 
@@ -169,7 +169,7 @@ init_log(const std::string& loglevelstr)
     // Parse the debugging level argument
     if (loglevelstr.length() == 0) 
     {
-        loglevel = LOG_DEFAULT_THRESHOLD;
+        loglevel = oasys::LOG_NOTICE;
     }
     else 
     {
@@ -215,6 +215,9 @@ main(int argc, char* argv[])
     }
 
     init_log(loglevelstr);
+    
+    log_notice("/dtnd", "DTN daemon starting up...");
+    
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
         log_crit("/dtnd", "Can't init TCL");
