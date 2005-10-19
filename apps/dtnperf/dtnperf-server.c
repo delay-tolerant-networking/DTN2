@@ -37,6 +37,7 @@ const char *progname   ;
 int use_file        = 1;        // if set to 0, memorize received bundles into memory (max 50000 bytes)
                                 // if set to 1, memorize received bundles into a file (-f) [0]
 int verbose         = 0;        // if set to 1, show verbose messages [0]
+int aggregate       = 0;        // if > 0, print after aggregate arrivals
 int debug           = 0;        // if set to 1, show debug messages [1]
 char * endpoint     = "/dtnperf:/dest";     // endpoint (-e) ["/dtnperf:/dest"]
 char * bundle_dir   = BUNDLE_DIR_DEFAULT;   // destination directory (-d)
@@ -76,7 +77,8 @@ int main(int argc, char** argv)
     char * filepath;
     char * filename = OUTFILE;      // source filename [OUTFILE]
     int bufsize;
-
+    int count = 0;
+    int total = 0;
 
     /* -------
      *  begin
@@ -156,6 +158,7 @@ int main(int argc, char** argv)
     if (debug) printf(" done. Bundles will be saved into %s\n", use_file ? "file" : "memory");
 
     if (debug) printf("[debug] entering infinite loop...\n");
+
     // infinite loop, waiting for bundles
     while (1) {
 
@@ -171,16 +174,23 @@ int main(int argc, char** argv)
             exit(1);
         }
         if (debug) printf(" bundle received\n");
+        count++;
+        total += payload.dtn_bundle_payload_t_u.buf.buf_len;
 
         // mark current time
         if (debug) printf("[debug] marking time...");
         current = time(NULL);
         if (debug) printf(" done\n");
 
-        printf("%s : %d bytes from %s\n",
-               ctime(&current),
-               payload.dtn_bundle_payload_t_u.buf.buf_len,
-               spec.source.uri);
+        if (aggregate == 0) {
+            printf("%s : %d bytes from %s\n",
+                   ctime(&current),
+                   payload.dtn_bundle_payload_t_u.buf.buf_len,
+                   spec.source.uri);
+        } else if (count % aggregate == 0) {
+            printf("%s : %d bundles, total length %d bytes\n",
+                   ctime(&current), count, total);
+        }
 
         /* ---------------------------------------------------
          *  parse admin string to select file target location
@@ -362,6 +372,7 @@ void print_usage(char* progname)
     fprintf(stderr, " -m: save received bundles into memory\n");
     fprintf(stderr, " -h: shows this help\n");
     fprintf(stderr, " -v: verbose\n");
+    fprintf(stderr, " -a <n>: print message every n arrivals\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -373,7 +384,7 @@ void parse_options (int argc, char** argv) {
     char c, done = 0;
 
     while (!done) {
-        c = getopt(argc, argv, "hvDfmd:e:");
+        c = getopt(argc, argv, "hvDfmd:e:a:");
 
         switch(c) {
             case 'h':           // show help
@@ -400,6 +411,10 @@ void parse_options (int argc, char** argv) {
 
             case 'e':           // destination endpoint
                 endpoint = optarg;
+                break;
+                
+            case 'a':           // aggregate
+                aggregate = atoi(optarg);
                 break;
                 
             case -1:

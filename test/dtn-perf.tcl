@@ -38,7 +38,7 @@ test::script {
     # braindead to not care about creating the directory even when
     # bundles are saved into memory (-m), and I don't feel like
     # touching that code
-    set server_pid [dtn::run_app 0 dtnperf-server "-m -v -d /tmp"]
+    set server_pid [dtn::run_app 0 dtnperf-server "-m -v -a 100 -d /tmp"]
     after 1000
 
     puts "* Running dtnperf-client for $perftime seconds"
