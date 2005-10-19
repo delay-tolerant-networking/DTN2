@@ -52,14 +52,12 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
     bind_b("tidy",	&cfg->tidy_, "Same as the --tidy argument to dtnd.");
     bind_b("init_db",	&cfg->init_, "Same as the --init-db argument to dtnd.");
     bind_i("tidy_wait",	&cfg->tidy_wait_,
-        "How long to wait before really doing the tidy operation.");
+           "How long to wait before really doing the tidy operation.");
     bind_s("dbname",	&cfg->dbname_, "The database name.");
-    bind_s("dbdir",	&cfg->dbdir_,
-        "The directory where the database will be created.");
-    bind_s("dberrlog",	&cfg->dberrlog_,
-        "The name of the log for transactions in the database.");
+    bind_s("dbdir",	&cfg->dbdir_,  "The database directory.");
     bind_s("payloaddir",&BundlePayload::payloaddir_,
-        "The directory in which payloads will live while they are in this node's custody.");
+        "directory for payloads while in transit");
+    bind_b("dbsharefile", &cfg->dbsharefile_, "use shared database file");
 }
 
 } // namespace dtn

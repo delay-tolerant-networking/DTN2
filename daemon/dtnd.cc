@@ -84,7 +84,6 @@ oasys::StorageConfig g_storage_config("storage",
                                       3,
                                       "DTN",
                                       "/var/dtn/db",
-                                      "dberror.log",
                                       0,
                                       false);
 

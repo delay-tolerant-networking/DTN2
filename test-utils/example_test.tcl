@@ -29,7 +29,6 @@ conf::add dtnd 0 {
     storage set payloaddir bundles
     storage set dbname     DTN
     storage set dbdir      db
-    storage set dberrlog   DTN.errlog
 
     route set type static
     route local_eid "dtn://[info hostname].dtn"

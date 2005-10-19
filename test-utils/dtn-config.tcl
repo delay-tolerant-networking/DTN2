@@ -84,7 +84,6 @@ storage set type       berkeleydb
 storage set payloaddir bundles
 storage set dbname     DTN
 storage set dbdir      db
-storage set dberrlog   DTN.errlog
     }
 }
 
