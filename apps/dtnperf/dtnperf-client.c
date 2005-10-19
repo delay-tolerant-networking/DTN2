@@ -72,11 +72,10 @@ int csv_out             = 0;    // if set to 1, a Comma-Separated-Values output 
 // bundle options
 int expiration          = 3600; // expiration time (sec) [3600]
 int delivery_receipts   = 1;    // request delivery receipts [1]
-//int return_receipts     = 1;    // request end to end return receipts [1]
 int forwarding_receipts = 0;    // request per hop departure [0]
 int custody             = 0;    // request custody transfer [0]
 int custody_receipts    = 0;    // request per custodian receipts [0]
-int receive_receipts    = 1;    // request per hop arrival receipt [0]
+int receive_receipts    = 0;    // request per hop arrival receipt [0]
 //int overwrite           = 0;    // queue overwrite option [0]
 int wait_for_report     = 1;    // wait for bundle status reports [1]
 
@@ -258,13 +257,6 @@ int main(int argc, char** argv)
         if (debug) printf("RECEIVE_RCPT ");
     }
 
-/*
-    // return_receipts
-    if (return_receipts) {
-        bundle_spec.dopts |= DOPTS_RETURN_RCPT;
-        if (debug) printf("RETURN_RCPT ");
-    }
-*/
 /*
     // overwrite
     if (overwrite) {
@@ -739,7 +731,7 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "hvDcmr:d:i:t:p:n:S:B:");
+        c = getopt(argc, argv, "hvDcmr:d:i:t:p:n:S:B:FR");
         switch (c)
         {
         case 'v':
@@ -829,6 +821,15 @@ void parse_options(int argc, char**argv)
             use_file = 0;
             payload_type = DTN_PAYLOAD_MEM;
             break;
+
+        case 'F':
+            forwarding_receipts = 1;
+            break;
+            
+        case 'R':
+            receive_receipts = 1;
+            break;
+            
         case -1:
             done = 1;
             break;
