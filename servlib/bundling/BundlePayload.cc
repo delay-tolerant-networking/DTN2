@@ -206,7 +206,9 @@ BundlePayload::reopen_file()
 void
 BundlePayload::close_file()
 {
-    file_->close();
+    if (file_->is_open()) {
+        file_->close();
+    }
 }
 
 /**
