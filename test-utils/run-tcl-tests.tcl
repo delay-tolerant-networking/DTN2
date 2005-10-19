@@ -32,6 +32,16 @@ if {![info exists tests($group)]} {
     exit -1
 }
 
+# print a "Table of Contents" first before running the tests
+puts "***"
+puts "*** The following tests will be run:"
+puts "***"
+foreach {test testopts} $tests($group) {
+    puts "***   $test $testopts"
+}
+puts "***\n"
+
+# run the tests
 foreach {test testopts} $tests($group) {
     puts "***"
     puts "*** $test $testopts"
