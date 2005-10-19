@@ -34,11 +34,8 @@ daemon: applib servlib
 apps: applib
 sim: servlib
 
-alltest:
+tests: 
 	$(MAKE) all
-	$(MAKE) -C test
-
-tests:
 	$(MAKE) -C oasys tests
 	$(MAKE) -C test
 
