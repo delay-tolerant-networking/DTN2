@@ -659,6 +659,9 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
     if (app_shutdown_proc_) {
         (*app_shutdown_proc_)(app_shutdown_data_);
     }
+
+    // signal to the main loop to bail
+    set_should_stop();
 }
   
 /**
@@ -810,6 +813,10 @@ BundleDaemon::run()
     BundleEvent* event;
     
     while (1) {
+        if (should_stop()) {
+            break;
+        }
+        
         // grab an event off the queue, blocking until we get one
         event = eventq_->pop_blocking();
         ASSERT(event);
