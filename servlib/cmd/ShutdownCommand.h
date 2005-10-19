@@ -56,7 +56,9 @@ public:
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
     virtual const char* help_string();
-    
+
+protected:
+    static void call_exit(void* clientData);
 };
 
 } // namespace dtn
