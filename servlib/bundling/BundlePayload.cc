@@ -279,7 +279,9 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
     file_->writeall((char*)bp, len);
 
     cur_offset_  += len;
-    rcvd_length_ += len;
+    rcvd_length_ = std::max(rcvd_length_, offset + len);
+
+    ASSERT(rcvd_length_ <= length_);
 }
 
 /**
