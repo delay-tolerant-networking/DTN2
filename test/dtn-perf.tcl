@@ -9,8 +9,8 @@ dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ONDEMAND tcp true
 
-global perf_time
-set perf_time 60
+global perftime
+set perftime 60
 foreach {var val} $opt(opts) {
     if {$var == "-perftime" } {
 	set perftime $val
@@ -22,7 +22,7 @@ foreach {var val} $opt(opts) {
 }
 
 test::script {
-    global perf_time
+    global perftime
 
     puts "* Running dtnds"
     dtn::run_dtnd *
@@ -41,12 +41,12 @@ test::script {
     set server_pid [dtn::run_app 0 dtnperf-server "-m -v -d /tmp"]
     after 1000
 
-    puts "* Running dtnperf-client for $perf_time seconds"
+    puts "* Running dtnperf-client for $perftime seconds"
     set client_pid [dtn::run_app $last_node dtnperf-client \
-			"-t $perf_time -m -d $dest" ]
+			"-t $perftime -m -d $dest" ]
 # XXX might want to try running dtnperf-client when sending to a non-existent endpoint too, such as:    
-# 			"-t $perf_time -m -d $dest/foo" ]
-    after [expr $perf_time * 1000]
+# 			"-t $perftime -m -d $dest/foo" ]
+    after [expr $perftime * 1000]
 
     run::wait_for_pid_exit $last_node $client_pid
 
