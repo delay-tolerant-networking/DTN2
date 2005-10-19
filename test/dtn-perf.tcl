@@ -9,11 +9,19 @@ dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ONDEMAND tcp true
 
-global perftime
+global perftime delivery_opts
 set perftime 60
+set delivery_opts ""
+
 foreach {var val} $opt(opts) {
     if {$var == "-perftime" } {
 	set perftime $val
+
+    } elseif {$var == "-forwarding_rcpts" } {
+	append delivery_opts "-F "
+
+    } elseif {$var == "-receive_rcpts" } {
+	append delivery_opts "-R "
 	
     } else {
 	puts "ERROR: unrecognized test option '$var'"
@@ -43,14 +51,29 @@ test::script {
 
     puts "* Running dtnperf-client for $perftime seconds"
     set client_pid [dtn::run_app $last_node dtnperf-client \
-			"-t $perftime -m -d $dest" ]
-# XXX might want to try running dtnperf-client when sending to a non-existent endpoint too, such as:    
-# 			"-t $perftime -m -d $dest/foo" ]
-    after [expr $perftime * 1000]
+			"-t $perftime -m $delivery_opts -d $dest" ]
+    
 
+    # XXX might want to try running dtnperf-client when sending to a
+    # non-existent endpoint too, such as:
+    # "-t $perftime -m -d # $dest/foo" ]
+
+    for {set i 0} {$i < $perftime} {incr i} {
+	for {set id 0} {$id <= $last_node} {incr id} {
+	    puts "* Node $id: [dtn::tell_dtnd $id bundle stats]"
+	}
+	puts ""
+	after 1000
+    }
+    
     run::wait_for_pid_exit $last_node $client_pid
 
-    puts "* Node 0 stats: [dtn::tell_dtnd 0 bundle stats]"
+    puts "* Final stats:"
+    for {set id 0} {$id <= $last_node} {incr id} {
+	puts "* $id: [dtn::tell_dtnd $id bundle stats]"
+    }
+    puts ""
+
     puts "* Test success!"
 }
 
