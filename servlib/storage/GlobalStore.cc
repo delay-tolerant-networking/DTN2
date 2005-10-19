@@ -39,6 +39,7 @@
 #include <oasys/storage/DurableStore.h>
 #include <oasys/storage/StorageConfig.h>
 #include <oasys/serialize/TypeShims.h>
+#include <oasys/thread/Mutex.h>
 
 #include "GlobalStore.h"
 #include "reg/Registration.h"
@@ -79,6 +80,7 @@ GlobalStore* GlobalStore::instance_;
 GlobalStore::GlobalStore()
     : Logger("/storage/globals"), globals_(NULL), store_(NULL)
 {
+    lock_ = new oasys::Mutex(NULL);
 }
 
 int
@@ -162,6 +164,8 @@ GlobalStore::~GlobalStore()
 u_int32_t
 GlobalStore::next_bundleid()
 {
+    oasys::ScopeLock l(lock_, "next_bundleid");
+    
     ASSERT(globals_->next_bundleid_ != 0xffffffff);
     log_debug("next_bundleid %d -> %d",
               globals_->next_bundleid_,
@@ -183,6 +187,8 @@ GlobalStore::next_bundleid()
 u_int32_t
 GlobalStore::next_regid()
 {
+    oasys::ScopeLock l(lock_, "next_regid");
+    
     ASSERT(globals_->next_regid_ != 0xffffffff);
     log_debug("next_regid %d -> %d",
               globals_->next_regid_,
@@ -225,6 +231,8 @@ GlobalStore::load()
 void
 GlobalStore::update()
 {
+    ASSERT(lock_->is_locked_by_me());
+    
     log_debug("updating global store");
 
     // make certain we don't attempt to write out globals before

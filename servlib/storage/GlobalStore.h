@@ -45,6 +45,7 @@
 namespace oasys {
 template<typename _Type> class SingleTypeDurableTable;
 class DurableStore;
+class Mutex;
 class StorageConfig;
 }
 
@@ -135,6 +136,8 @@ protected:
     bool loaded_;
     Globals* globals_;
     oasys::SingleTypeDurableTable<Globals>* store_;
+
+    oasys::Mutex* lock_;
 
     static GlobalStore* instance_; ///< singleton instance
 };
