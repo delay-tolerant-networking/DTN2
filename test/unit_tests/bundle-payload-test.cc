@@ -86,7 +86,7 @@ payload_test(BundlePayload::location_t initial_location,
     CHECK_EQUALSTRN((char*)data, "abcdefghijABCDE", 15);
     CHECK(p.is_file_open());
 
-    p.append_data((u_char*)"FGH", 5);
+    p.append_data((u_char*)"FGH", 3);
     CHECK(p.is_file_open());
     data = p.read_data(0, 18, buf);
     CHECK_EQUAL(p.length(), 18);
