@@ -90,7 +90,7 @@ DTNServer::DTNServer(oasys::StorageConfig* storage_config)
 DTNServer::~DTNServer()
 {
     close_datastore();
-    log_info("Daemon exiting...");
+    log_notice("daemon exiting...");
 }
 
 void
@@ -317,7 +317,7 @@ DTNServer::tidy_dir(const char* dirname)
     if (stat(dirname, &st) == 0)
     {
         snprintf(cmd, sizeof(cmd), "/bin/rm -rf %s", dirname);
-        log_info("tidy option removing directory '%s'", cmd);
+        log_notice("tidy option removing directory '%s'", cmd);
         
         if (system(cmd))
         {

@@ -233,6 +233,8 @@ TCPConvergenceLayer::interface_up(Interface* iface,
 bool
 TCPConvergenceLayer::interface_down(Interface* iface)
 {
+    // XXX/demmer fixme for receiver connect
+    
     // grab the listener object, set a flag for the thread to stop and
     // then close the socket out from under it, which should cause the
     // thread to break out of the blocking call to accept() and
@@ -804,7 +806,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         }
         
         if (cc == 0) {
-            log_info ("send_bundle: timeout waiting for ack");
+            log_info("send_bundle: timeout waiting for ack");
             goto done;
         }
 

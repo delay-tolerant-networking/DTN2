@@ -627,7 +627,7 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 void
 BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 {
-    log_info("Received shutdown request");
+    log_notice("Received shutdown request");
 
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_shutdown");
     
