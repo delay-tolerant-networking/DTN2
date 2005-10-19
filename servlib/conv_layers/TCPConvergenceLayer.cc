@@ -49,7 +49,6 @@
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Options.h>
 #include <oasys/util/OptParser.h>
-#include <oasys/util/StreamBuffer.h>
 #include <oasys/util/StringBuffer.h>
 #include <oasys/util/URL.h>
 
@@ -842,68 +841,30 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
  * the wire.
  */
 bool
-TCPConvergenceLayer::Connection::recv_bundle()
+TCPConvergenceLayer::Connection::recv_bundle(oasys::StreamBuffer* buf)
 {
     int cc;
     Bundle* bundle = new Bundle();
     BundleDataHeader datahdr;
     int header_len;
     u_int64_t bundle_len;
+    int    sdnv_len = 0;
     size_t rcvd_len = 0;
     size_t acked_len = 0;
     size_t payload_len = 0;
-
-    oasys::StreamBuffer buf(params_.readbuf_len_);
 
     bool valid = false;
     bool recvok = false;
 
     log_debug("recv_bundle: reading bundle headers...");
 
+    // if we don't yet have enough bundle data, so read in as much as
+    // we can, first making sure we have enough space in the buffer
+    // for at least the bundle data header and the SDNV
+    if (buf->fullbytes() < sizeof(BundleDataHeader)) {
  incomplete_tcp_header:
-    // read in whatever has shown up on the wire, up to the maximum
-    // length of the stream buffer
-    cc = sock_->timeout_read(buf.end(), buf.tailbytes(), params_.rtt_timeout_);
-    if (cc < 0) {
-        log_err("recv_bundle: error reading bundle headers: %s",
-                strerror(errno));
-        delete bundle;
-        return false;
-    }
-    buf.fill(cc);
-    note_data_rcvd();
-    
-    // parse out the BundleDataHeader
-    if (buf.fullbytes() < sizeof(BundleDataHeader)) {
-        log_err("recv_bundle: read too short to encode data header");
-        goto incomplete_tcp_header;
-    }
-        
-    memcpy(&datahdr, buf.start(), sizeof(BundleDataHeader));
-
-    // parse out the SDNV that encodes the whole bundle length
-    int sdnv_len = SDNV::decode((u_char*)buf.start() + sizeof(BundleDataHeader),
-                                buf.fullbytes() - sizeof(BundleDataHeader),
-                                &bundle_len);
-    if (sdnv_len < 0) {
-        log_err("recv_bundle: read too short to encode SDNV");
-        goto incomplete_tcp_header;
-    }
-    buf.consume(sizeof(BundleDataHeader) + sdnv_len);
-
- incomplete_bundle_header:
-    // now try to parse the headers into the new bundle, which may
-    // require reading in more data and possibly increasing the size
-    // of the stream buffer
-    header_len = BundleProtocol::parse_headers(bundle,
-                                               (u_char*)buf.start(),
-                                               buf.fullbytes());
-    
-    if (header_len < 0) {
-        if (buf.tailbytes() == 0) {
-            buf.reserve(buf.size() * 2);
-        }
-        cc = sock_->timeout_read(buf.end(), buf.tailbytes(),
+        buf->reserve(sizeof(BundleDataHeader) + 10);
+        cc = sock_->timeout_read(buf->end(), buf->tailbytes(),
                                  params_.rtt_timeout_);
         if (cc < 0) {
             log_err("recv_bundle: error reading bundle headers: %s",
@@ -911,7 +872,52 @@ TCPConvergenceLayer::Connection::recv_bundle()
             delete bundle;
             return false;
         }
-        buf.fill(cc);
+        buf->fill(cc);
+        note_data_rcvd();
+    }
+        
+    // parse out the BundleDataHeader
+    if (buf->fullbytes() < sizeof(BundleDataHeader)) {
+        log_err("recv_bundle: read too short to encode data header");
+        goto incomplete_tcp_header;
+    }
+
+    // copy out the data header but don't advance the buffer (yet)
+    memcpy(&datahdr, buf->start(), sizeof(BundleDataHeader));
+    
+    // parse out the SDNV that encodes the whole bundle length
+    sdnv_len = SDNV::decode((u_char*)buf->start() + sizeof(BundleDataHeader),
+                            buf->fullbytes() - sizeof(BundleDataHeader),
+                            &bundle_len);
+    if (sdnv_len < 0) {
+        log_err("recv_bundle: read too short to encode SDNV");
+        goto incomplete_tcp_header;
+    }
+
+    // got the full tcp header, so skip that much in the buffer
+    buf->consume(sizeof(BundleDataHeader) + sdnv_len);
+
+ incomplete_bundle_header:
+    // now try to parse the headers into the new bundle, which may
+    // require reading in more data and possibly increasing the size
+    // of the stream buffer
+    header_len = BundleProtocol::parse_headers(bundle,
+                                               (u_char*)buf->start(),
+                                               buf->fullbytes());
+    
+    if (header_len < 0) {
+        if (buf->tailbytes() == 0) {
+            buf->reserve(buf->size() * 2);
+        }
+        cc = sock_->timeout_read(buf->end(), buf->tailbytes(),
+                                 params_.rtt_timeout_);
+        if (cc < 0) {
+            log_err("recv_bundle: error reading bundle headers: %s",
+                    strerror(errno));
+            delete bundle;
+            return false;
+        }
+        buf->fill(cc);
         note_data_rcvd();
         goto incomplete_bundle_header;
     }
@@ -919,7 +925,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     log_debug("recv_bundle: got valid bundle header -- "
               "sender bundle id %d, header_length %u, bundle_length %llu",
               datahdr.bundle_id, (u_int)header_len, bundle_len);
-    buf.consume(header_len);
+    buf->consume(header_len);
 
     // all lengths have been parsed, so we can do some length
     // validation checks
@@ -937,11 +943,10 @@ TCPConvergenceLayer::Connection::recv_bundle()
     // also that we may have some payload data in the buffer
     // initially, so we check for that before trying to read more
     do {
-        if (buf.fullbytes() == 0) {
+        if (buf->fullbytes() == 0) {
             // read a chunk of data
-            cc = sock_->timeout_read(buf.data(),
-                                     std::min(params_.readbuf_len_,
-                                              payload_len - rcvd_len),
+            cc = sock_->timeout_read(buf->data(),
+                                     params_.readbuf_len_,
                                      params_.rtt_timeout_);
             if (cc == oasys::IOTIMEOUT) {
                 log_warn("recv_bundle: timeout reading bundle data block");
@@ -954,16 +959,18 @@ TCPConvergenceLayer::Connection::recv_bundle()
                          strerror(errno));
                 goto done;
             }
-            buf.fill(cc);
+            buf->fill(cc);
         }
         
         log_debug("recv_bundle: got %u byte chunk, rcvd_len %u",
-                  (u_int)buf.fullbytes(), (u_int)rcvd_len);
+                  (u_int)buf->fullbytes(), (u_int)rcvd_len);
         
-        // append the chunk of data and update the amount received
-        bundle->payload_.append_data((u_char*)buf.start(), buf.fullbytes());
-        rcvd_len += buf.fullbytes();
-        buf.clear();
+        // append the chunk of data up to the maximum size of the
+        // bundle and update the amount received
+        cc = std::min(buf->fullbytes(), payload_len - rcvd_len);
+        bundle->payload_.append_data((u_char*)buf->start(), cc);
+        rcvd_len += cc;
+        buf->consume(cc);
         
         // at this point, we can make at least a valid bundle fragment
         // from what we've gotten thus far (assuming reactive
@@ -1753,9 +1760,13 @@ TCPConvergenceLayer::Connection::send_loop()
 void
 TCPConvergenceLayer::Connection::recv_loop()
 {
+    int timeout;
+    int ret;
     char typecode;
     struct timeval now;
     u_int elapsed;
+
+    oasys::StreamBuffer buf(params_.readbuf_len_);
 
     while (1) {
         // see if it is time to close the connection due to it being idle
@@ -1770,31 +1781,41 @@ TCPConvergenceLayer::Connection::recv_loop()
                       elapsed, params_.idle_close_time_ * 1000);
         }
 
-        // block on the one byte typecode
-        int timeout = 2 * params_.keepalive_interval_ * 1000;
-        log_debug("recv_loop: blocking on frame typecode... (timeout %d)",
-                  timeout);
-        int ret = sock_->timeout_read(&typecode, 1, timeout);
-        if (ret == oasys::IOEOF || ret == oasys::IOERROR) {
-            log_info("recv_loop: remote connection unexpectedly closed");
- shutdown:
-            break_contact(ContactDownEvent::BROKEN);
-            return;
+        // if there's nothing in the buffer,
+        // block waiting for the one byte typecode
+        if (buf.fullbytes() == 0) {
+            ASSERT(buf.end() == buf.data()); // sanity
             
-        } else if (ret == oasys::IOTIMEOUT) {
-            log_info("recv_loop: no message heard for > %d msecs -- "
-                     "breaking contact", timeout);
-            goto shutdown;
-        }
-        
-        ASSERT(ret == 1);
+            timeout = 2 * params_.keepalive_interval_ * 1000;
+            log_debug("recv_loop: blocking on frame... (timeout %d)",
+                      timeout);
+            
+            ret = sock_->timeout_read(buf.end(), params_.readbuf_len_, timeout);
+            
+            if (ret == oasys::IOEOF || ret == oasys::IOERROR) {
+                log_info("recv_loop: remote connection unexpectedly closed");
+ shutdown:
+                break_contact(ContactDownEvent::BROKEN);
+                return;
+                
+            } else if (ret == oasys::IOTIMEOUT) {
+                log_info("recv_loop: no message heard for > %d msecs -- "
+                         "breaking contact", timeout);
+                goto shutdown;
+            }
 
+            buf.fill(ret);
+        }
+
+        typecode = *buf.start();
+        buf.consume(1);
+        
         log_debug("recv_loop: got frame packet type 0x%x...", typecode);
 
         if (typecode == SHUTDOWN) {
             goto shutdown;
         }
-
+        
         if (typecode == KEEPALIVE) {
             log_debug("recv_loop: "
                       "got keepalive, sending response");
@@ -1812,9 +1833,9 @@ TCPConvergenceLayer::Connection::recv_loop()
                     typecode);
             goto shutdown;
         }
-
+        
         // process the bundle
-        if (! recv_bundle()) {
+        if (! recv_bundle(&buf)) {
             goto shutdown;
         }
      }

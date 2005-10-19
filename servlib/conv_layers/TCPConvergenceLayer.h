@@ -40,6 +40,7 @@
 
 #include <oasys/io/TCPClient.h>
 #include <oasys/io/TCPServer.h>
+#include <oasys/util/StreamBuffer.h>
 
 #include "IPConvergenceLayer.h"
 #include "bundling/BundleEvent.h"
@@ -327,7 +328,7 @@ protected:
         bool recv_address(int timeout);
         bool open_opportunistic_link();
         bool send_bundle(Bundle* bundle, size_t* acked_len);
-        bool recv_bundle();
+        bool recv_bundle(oasys::StreamBuffer* buf);
         int  handle_ack(Bundle* bundle, size_t* acked_len);
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
         void note_data_rcvd();
