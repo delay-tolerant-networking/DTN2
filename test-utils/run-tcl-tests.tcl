@@ -10,7 +10,7 @@ if {[llength $argv] < 1} {
     exit
 }
 
-# the basic test group (all we have now)
+# the basic test group
 set tests(basic) {"send-one-bundle.tcl"		"-cl tcp"
                   "send-one-bundle.tcl"		"-cl udp"
 		  "send-for-two-minutes.tcl"	""
@@ -19,6 +19,10 @@ set tests(basic) {"send-one-bundle.tcl"		"-cl tcp"
 		  "tcp-receiver-connect.tcl"	""
 		  "dtn-ping.tcl"		""
 		  }
+
+# the performance test group
+set tests(perf) {"dtn-perf.tcl"		        ""}
+    
 
 # check test group
 set group [lindex $argv 0]
