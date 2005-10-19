@@ -39,6 +39,7 @@ alltest:
 	$(MAKE) -C test
 
 tests:
+	$(MAKE) -C oasys tests
 	$(MAKE) -C test
 
 #
