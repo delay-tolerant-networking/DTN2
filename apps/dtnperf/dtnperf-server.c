@@ -177,7 +177,8 @@ int main(int argc, char** argv)
         current = time(NULL);
         if (debug) printf(" done\n");
 
-        printf("%d bytes from %s\n",
+        printf("%s : %d bytes from %s\n",
+               ctime(&current),
                payload.dtn_bundle_payload_t_u.buf.buf_len,
                spec.source.uri);
 
@@ -197,19 +198,19 @@ int main(int argc, char** argv)
             printf("\n");
         }
 /*
-        // copy SOURCE admin value and region
-        if (debug) printf("[debug]\tcopying source data...");
-        source_admin_len = spec.source.admin.admin_len;
-        source_admin = malloc(sizeof(char) * (source_admin_len+1));
-        memcpy(source_admin, spec.source.admin.admin_val, source_admin_len);
-        source_admin[source_admin_len] = '\0'; // terminate the string
-        source_region = spec.source.region; // extract source region
-        if (debug) {
-            printf(" done:\n");
-            printf("\tsource_admin = %s\n", source_admin);
-            printf("\tsource region = %s\n", source_region);
-            printf("\n");
-        }
+// copy SOURCE admin value and region
+if (debug) printf("[debug]\tcopying source data...");
+source_admin_len = spec.source.admin.admin_len;
+source_admin = malloc(sizeof(char) * (source_admin_len+1));
+memcpy(source_admin, spec.source.admin.admin_val, source_admin_len);
+source_admin[source_admin_len] = '\0'; // terminate the string
+source_region = spec.source.region; // extract source region
+if (debug) {
+printf(" done:\n");
+printf("\tsource_admin = %s\n", source_admin);
+printf("\tsource region = %s\n", source_region);
+printf("\n");
+}
 */
 
         // copy DEST eid
@@ -219,26 +220,26 @@ int main(int argc, char** argv)
         memcpy(dest_eid, spec.dest.uri, dest_eid_len);
         dest_eid[dest_eid_len] = '\0';
         if (debug) {
-             printf(" done:\n");
-             printf("\tdest_eid = %s\n", dest_eid);
-             printf("\n");
+            printf(" done:\n");
+            printf("\tdest_eid = %s\n", dest_eid);
+            printf("\n");
         }
 
 /*
-        // copy DEST admin value
-        if (debug) printf("[debug]\tcopying dest data...");
+// copy DEST admin value
+if (debug) printf("[debug]\tcopying dest data...");
 
-        if (spec.dest.admin.admin_val != NULL) {
-            dest_admin_len = spec.dest.admin.admin_len;
-            dest_admin = malloc(sizeof(char) * (dest_admin_len+1));
-            memcpy(dest_admin, spec.dest.admin.admin_val, dest_admin_len);
-            dest_admin[dest_admin_len] = '\0';
-        }
-        if (debug) {
-             printf(" done:\n");
-             printf("\tdest_admin = %s\n", dest_admin);
-             printf("\n");
-        }
+if (spec.dest.admin.admin_val != NULL) {
+dest_admin_len = spec.dest.admin.admin_len;
+dest_admin = malloc(sizeof(char) * (dest_admin_len+1));
+memcpy(dest_admin, spec.dest.admin.admin_val, dest_admin_len);
+dest_admin[dest_admin_len] = '\0';
+}
+if (debug) {
+printf(" done:\n");
+printf("\tdest_admin = %s\n", dest_admin);
+printf("\n");
+}
 */
         // recursively create full directory path
         filepath = malloc(sizeof(char) * dest_eid_len + 10);
@@ -254,14 +255,16 @@ int main(int argc, char** argv)
         buffer = payload.dtn_bundle_payload_t_u.buf.buf_val;
         bufsize = payload.dtn_bundle_payload_t_u.buf.buf_len;
 
-        printf ("======================================\n");
-        printf (" Bundle received at %s\n", ctime(&current));
-        printf ("  source: %s\n", spec.source.uri);
-        if (use_file) {
-            printf ("  saved into    : %s\n", filepath);
-        }
+        if (debug) {
+            printf ("======================================\n");
+            printf (" Bundle received at %s\n", ctime(&current));
+            printf ("  source: %s\n", spec.source.uri);
+            if (use_file) {
+                printf ("  saved into    : %s\n", filepath);
+            }
         
-        if (debug) printf ("--------------------------------------\n");
+            printf ("--------------------------------------\n");
+        }
 
 
         if (pl_type == DTN_PAYLOAD_FILE) { // if bundle was saved into file
@@ -280,53 +283,57 @@ int main(int argc, char** argv)
 
         } else { // if bundle was saved into memory
 
-            for (k=0; k < payload.dtn_bundle_payload_t_u.buf.buf_len; k++)
-            {
-                if (buffer[k] >= ' ' && buffer[k] <= '~')
-                    s_buffer[k%BUFSIZE] = buffer[k];
-                else
-                    s_buffer[k%BUFSIZE] = '.';
+            if (debug) {
+                for (k=0; k < payload.dtn_bundle_payload_t_u.buf.buf_len; k++)
+                {
+                    if (buffer[k] >= ' ' && buffer[k] <= '~')
+                        s_buffer[k%BUFSIZE] = buffer[k];
+                    else
+                        s_buffer[k%BUFSIZE] = '.';
 
-                if (k%BUFSIZE == 0) // new line every 16 bytes
-                {
-                    printf("%07x ", k);
-                }
-                else if (k%2 == 0)
-                {
-                    printf(" "); // space every 2 bytes
-                }
-                        
-                printf("%02x", buffer[k] & 0xff);
-                        
-                // print character summary (a la emacs hexl-mode)
-                if (k%BUFSIZE == BUFSIZE-1)
-                {
-                    printf(" |  %.*s\n", BUFSIZE, s_buffer);
-                }
-            } // for
-    
-            // print spaces to fill out the rest of the line
-        	if (k%BUFSIZE != BUFSIZE-1) {
-                while (k%BUFSIZE != BUFSIZE-1) {
-                    if (k%2 == 0) {
-                        printf(" ");
+                    if (k%BUFSIZE == 0) // new line every 16 bytes
+                    {
+                        printf("%07x ", k);
                     }
-                    printf("  ");
-                    k++;
-                }
-            printf("   |  %.*s\n",
-                  (int)payload.dtn_bundle_payload_t_u.buf.buf_len%BUFSIZE, s_buffer);
-            } // if
+                    else if (k%2 == 0)
+                    {
+                        printf(" "); // space every 2 bytes
+                    }
+                        
+                    printf("%02x", buffer[k] & 0xff);
+                        
+                    // print character summary (a la emacs hexl-mode)
+                    if (k%BUFSIZE == BUFSIZE-1)
+                    {
+                        printf(" |  %.*s\n", BUFSIZE, s_buffer);
+                    }
+                } // for
+    
+                // print spaces to fill out the rest of the line
+        	if (k%BUFSIZE != BUFSIZE-1) {
+                    while (k%BUFSIZE != BUFSIZE-1) {
+                        if (k%2 == 0) {
+                            printf(" ");
+                        }
+                        printf("  ");
+                        k++;
+                    }
+                    printf("   |  %.*s\n",
+                           (int)payload.dtn_bundle_payload_t_u.buf.buf_len%BUFSIZE, s_buffer);
+                } // if
 
-            printf ("======================================\n");
+                printf ("======================================\n");
         
+            } // if (debug) 
+            
             free(filepath);
             free(source_eid);
             free(dest_eid);
+
         }
 
-	   printf("\n");
-
+        fflush(stdout);
+        
     } // while(1)
 
     // if this was ever changed to gracefully shutdown, it would be good to call:
