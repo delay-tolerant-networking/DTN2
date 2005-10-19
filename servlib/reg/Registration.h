@@ -131,12 +131,12 @@ protected:
      */
     class ExpirationTimer : public oasys::Timer {
     public:
-        ExpirationTimer(u_int32_t regid)
-            : regid_(regid) {}
+        ExpirationTimer(Registration* reg)
+            : reg_(reg) {}
 
         virtual void timeout(struct timeval* now);
         
-        u_int32_t regid_;
+        Registration* reg_;
     };
 
     void init_expiration_timer();

@@ -124,7 +124,7 @@ void
 Registration::init_expiration_timer()
 {
     if (expiration_ != 0) {
-        expiration_timer_ = new ExpirationTimer(regid_);
+        expiration_timer_ = new ExpirationTimer(this);
         expiration_timer_->schedule_in(expiration_ * 1000);
     }
 }
@@ -132,7 +132,11 @@ Registration::init_expiration_timer()
 void
 Registration::ExpirationTimer::timeout(struct timeval* now)
 {
-    BundleDaemon::post(new RegistrationExpiredEvent(regid_));
+    reg_->set_expired(true);
+                      
+    if (! reg_->active()) {
+        BundleDaemon::post(new RegistrationExpiredEvent(reg_->regid()));
+    } 
 }
 
 } // namespace dtn
