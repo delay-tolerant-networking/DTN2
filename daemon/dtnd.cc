@@ -85,7 +85,8 @@ oasys::StorageConfig g_storage_config("storage",
                                       "DTN",
                                       "/var/dtn/db",
                                       "dberror.log",
-                                      0);
+                                      0,
+                                      false);
 
 void
 get_options(int argc, char* argv[])
