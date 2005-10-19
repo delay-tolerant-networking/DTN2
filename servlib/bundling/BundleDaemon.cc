@@ -538,6 +538,12 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 
 
     case Link::CLOSING:
+        if (link->isclosing()) {
+            log_warn("link close request for *%p (%s) already in closing state",
+                     link, ContactDownEvent::reason_to_str(reason));
+            break;
+        }
+        
         if (link->isopen()) {
             Contact* contact = link->contact();
             ASSERT(contact);
