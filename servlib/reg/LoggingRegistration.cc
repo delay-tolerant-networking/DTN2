@@ -65,7 +65,7 @@ LoggingRegistration::consume_bundle(Bundle* b)
     // generate the log output for all the header info
     oasys::StringBuffer buf;
     b->format_verbose(&buf);
-    log_multiline(oasys::LOG_INFO, buf.c_str());
+    log_multiline(oasys::LOG_ALWAYS, buf.c_str());
 
     // now dump a short chunk of the payload data, either in ascii or
     // hexified string output
@@ -79,7 +79,7 @@ LoggingRegistration::consume_bundle(Bundle* b)
     const u_char* data = b->payload_.read_data(0, len, payload_buf);
 
     if (oasys::str_isascii(data, len)) {
-        log_info("        payload (ascii): length %u '%.*s'",
+        log_always("        payload (ascii): length %u '%.*s'",
                  (u_int)payload_len, (int)len, data);
     } else {
         std::string hex;
@@ -87,7 +87,7 @@ LoggingRegistration::consume_bundle(Bundle* b)
         len *= 2;
         if (len > 128)
             len = 128;
-        log_info("        payload (binary): length %u %.*s",
+        log_always("        payload (binary): length %u %.*s",
                  (u_int)payload_len, (int)len, hex.data());
     }
 
