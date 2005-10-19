@@ -34,6 +34,19 @@ namespace eval dtn {
 	
     }
 
+    proc stop_dtnd {id} {
+	global net::host
+	if {$id == "*"} {
+	    foreach id [net::nodelist] {
+		stop_dtnd $id
+	    }
+	    return
+	}
+	
+	tell_dtnd $id shutdown
+	tell::close_socket $net::host($id) [dtn::get_port console $id]
+    }
+
     proc run_app { id app_name {exec_args ""} } {
 	global opt net::host net::portbase net::extra test::testname
 	

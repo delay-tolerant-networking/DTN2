@@ -14,7 +14,7 @@ test::script {
     dtn::tell_dtnd * {puts "startstop test"}
 
     puts "* Shutting down dtnd"
-    dtn::tell_dtnd * {shutdown}
+    dtn::stop_dtnd *
 
     puts "* Waiting for dtnd to quit"
     run::wait_for_programs

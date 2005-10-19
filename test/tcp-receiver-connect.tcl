@@ -63,5 +63,5 @@ test::script {
 
 test::exit_script {
     puts "* Stopping all dtnds"
-    dtn::tell_dtnd * shutdown
+    dtn::stop_dtnd *
 }
