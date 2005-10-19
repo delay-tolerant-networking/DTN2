@@ -34,7 +34,7 @@ test::script {
     dtn::check_link_state $last_node link-1 OPEN
 
     puts "* killing daemon 1"
-    dtn::tell_dtnd 1 {exit}
+    dtn::stop_dtnd 1
     
     puts "* checking that link is unavailable"
     dtn::wait_for_link_state $last_node link-1 UNAVAILABLE
