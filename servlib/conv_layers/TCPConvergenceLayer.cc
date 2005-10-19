@@ -939,7 +939,9 @@ TCPConvergenceLayer::Connection::recv_bundle()
     do {
         if (buf.fullbytes() == 0) {
             // read a chunk of data
-            cc = sock_->timeout_read(buf.data(), params_.readbuf_len_,
+            cc = sock_->timeout_read(buf.data(),
+                                     std::min(params_.readbuf_len_,
+                                              payload_len - rcvd_len),
                                      params_.rtt_timeout_);
             if (cc == oasys::IOTIMEOUT) {
                 log_warn("recv_bundle: timeout reading bundle data block");
@@ -1013,6 +1015,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     
     // inform the daemon that we got a valid bundle, though it may not
     // be complete (as indicated by passing the rcvd_len)
+    ASSERT(rcvd_len <= bundle->payload_.length());
     BundleDaemon::post(
         new BundleReceivedEvent(bundle, EVENTSRC_PEER, rcvd_len));
     
