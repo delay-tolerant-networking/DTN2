@@ -22,11 +22,10 @@ set tests(basic) {"send-one-bundle.tcl"		"-cl tcp"
 
 # the performance test group
 set tests(perf) {"dtn-perf.tcl"		        ""}
-    
 
 # check test group
 set group [lindex $argv 0]
-set options [lrange $argv 1 end]
+set common_options [lrange $argv 1 end]
 
 if {![info exists tests($group)]} {
     puts "Error: test group \"$group\" not defined"
@@ -39,7 +38,9 @@ foreach {test testopts} $tests($group) {
     puts "***"
 
     if {$testopts != ""} {
-	set options "$options --opts \"$testopts\""
+	set options "$common_options --opts \"$testopts\""
+    } else {
+	set options $common_options
     }
     
     if [catch {
