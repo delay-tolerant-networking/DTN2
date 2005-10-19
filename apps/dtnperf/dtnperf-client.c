@@ -86,7 +86,7 @@ char * arg_source       = NULL; // source_tuple
 char * arg_dest         = NULL; // destination_tuple
 
 dtn_reg_id_t regid      = DTN_REGID_NONE;   // registration ID (-i option)
-long bundle_payload     = ILLEGAL_PAYLOAD;  // quantity of data (in bytes) to send (-p option)
+long bundle_payload     = DEFAULT_PAYLOAD;  // quantity of data (in bytes) to send (-p option)
 char * p_arg              ;                 // argument of -p option
 
 // Time-Mode options
@@ -304,6 +304,12 @@ int main(int argc, char** argv)
     dtn_bind(handle, regid);
     if (debug) printf(" done\n");
 
+    // if bundle_payload > MAX_MEM_PAYLOAD, transfer a file
+    if (bundle_payload > MAX_MEM_PAYLOAD)
+        use_file = 1;
+    else
+        use_file = 0;
+    
     /* ------------------------------------------------------------------------------
      * select the operative-mode (between Time_Mode and Data_Mode)
      * ------------------------------------------------------------------------------ */
@@ -315,11 +321,6 @@ int main(int argc, char** argv)
         if (verbose) printf("Working in Time_Mode\n");
         if (verbose) printf("requested %d second(s) of transmission\n", transmission_time);
 
-        // if bundle_payload >= MAX_MEM_PAYLOAD, transfer a file
-        if (bundle_payload >= MAX_MEM_PAYLOAD)
-            use_file = 1;
-        else
-            use_file = 0;
         if (debug) printf("[debug] bundle_payload %s %d bytes\n",
                             use_file ? ">=" : "<",
                             MAX_MEM_PAYLOAD);
@@ -888,13 +889,13 @@ void check_options() {
     if ((!use_file) && (bundle_payload <= ILLEGAL_PAYLOAD) && (op_mode == 'd')) {
         if (data_qty <= MAX_MEM_PAYLOAD) {
             bundle_payload = data_qty;
-            fprintf(stderr, "\nWARNING (c1): bundle payload set to %ld bytes\n\n", bundle_payload);
+            fprintf(stderr, "\nWARNING (c1): bundle payload set to %ld bytes\n", bundle_payload);
             fprintf(stderr, "(!use_file + payload <= %d + data_qty <= %d + op_mode=='d')\n\n",
                             ILLEGAL_PAYLOAD, MAX_MEM_PAYLOAD);
         }
         if (data_qty > MAX_MEM_PAYLOAD) {
             bundle_payload = MAX_MEM_PAYLOAD;
-            fprintf(stderr, "(!use_file + payload <= %d + data_qty > %d + op_mode=='d')\n\n",
+            fprintf(stderr, "(!use_file + payload <= %d + data_qty > %d + op_mode=='d')\n",
                             ILLEGAL_PAYLOAD, MAX_MEM_PAYLOAD);
             fprintf(stderr, "\nWARNING (c2): bundle payload set to %ld bytes\n\n", bundle_payload);
         }
@@ -906,8 +907,9 @@ void check_options() {
             fprintf(stderr, "(!use_file + payload <= %d + op_mode=='t')\n\n", ILLEGAL_PAYLOAD);
         }
         if (bundle_payload > MAX_MEM_PAYLOAD) {
+            fprintf(stderr, "\nWARNING (d2): bundle payload was set to %ld bytes, now set to %ld bytes\n",
+                    bundle_payload, (long)DEFAULT_PAYLOAD);
             bundle_payload = DEFAULT_PAYLOAD;
-            fprintf(stderr, "\nWARNING (d2): bundle payload set to %ld bytes\n\n", bundle_payload);
             fprintf(stderr, "(!use_file + payload > %d)\n\n", MAX_MEM_PAYLOAD);
         }
     }
