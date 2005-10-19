@@ -24,7 +24,7 @@ test::script {
     global num_pings
     
     puts "* Running dtnds"
-    puts [dtn::run_dtnd *]
+    dtn::run_dtnd *
 
     puts "* Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
