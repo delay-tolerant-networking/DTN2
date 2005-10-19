@@ -140,13 +140,16 @@ BundleStore::add(Bundle* bundle)
 {
     int err = store_->put(oasys::IntShim(bundle->bundleid_), bundle,
                           oasys::DS_CREATE | oasys::DS_EXCL);
-    if (err != 0) {
-        log_err("add bundle *%p: %s", bundle,
-                (err == oasys::DS_EXISTS) ?
-                "bundle already exists" : "unknown error");
+
+    if (err == oasys::DS_EXISTS) {
+        log_err("add bundle *%p: bundle already exists", bundle);
         return false;
     }
 
+    if (err != 0) {
+        PANIC("BundleStore::add_bundle(*%p): fatal database error", bundle);
+    }
+    
     return true;
 }
 
@@ -154,11 +157,14 @@ bool
 BundleStore::update(Bundle* bundle)
 {
     int err = store_->put(oasys::IntShim(bundle->bundleid_), bundle, 0);
-    if (err != 0) {
-        log_err("update bundle *%p: %s", bundle,
-                (err == oasys::DS_NOTFOUND) ?
-                "bundle doesn't exist" : "unknown error");
+
+    if (err == oasys::DS_NOTFOUND) {
+        log_err("update bundle *%p: bundle doesn't exist", bundle);
         return false;
+    }
+    
+    if (err != 0) {
+        PANIC("BundleStore::add_bundle(*%p): fatal database error", bundle);
     }
 
     return true;

@@ -168,9 +168,8 @@ GlobalStore::next_bundleid()
               globals_->next_bundleid_ + 1);
     
     u_int32_t ret = globals_->next_bundleid_++;
-    if (! update()) {
-        log_err("error updating globals table");
-    }
+
+    update();
 
     return ret;
 }
@@ -190,9 +189,8 @@ GlobalStore::next_regid()
               globals_->next_regid_ + 1);
 
     u_int32_t ret = globals_->next_regid_++;
-    if (! update()) {
-        log_err("error updating globals table");
-    }
+
+    update();
 
     return ret;
 }
@@ -224,7 +222,7 @@ GlobalStore::load()
     return true;
 }
 
-bool
+void
 GlobalStore::update()
 {
     log_debug("updating global store");
@@ -236,11 +234,9 @@ GlobalStore::update()
     int err = store_->put(oasys::StringShim(GLOBAL_KEY), globals_, 0);
 
     if (err != 0) {
-        log_err("error updating global store");
-        return false;
+        PANIC("GlobalStore::update fatal error updating database: %s",
+              oasys::durable_strerror(err));
     }
-    
-    return true;
 }
 
 void

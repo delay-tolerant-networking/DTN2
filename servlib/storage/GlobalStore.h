@@ -122,16 +122,16 @@ public:
     bool load();
 
     /**
-     * Update the globals in the store.
-     */
-    bool update();
-
-    /**
      * Close (and flush) the data store.
      */
     void close();
 
 protected:
+    /**
+     * Update the globals in the store.
+     */
+    void update();
+
     bool loaded_;
     Globals* globals_;
     oasys::SingleTypeDurableTable<Globals>* store_;
