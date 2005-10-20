@@ -216,7 +216,7 @@ main(int argc, char* argv[])
 
     init_log(loglevelstr);
     
-    log_notice("/dtnd", "DTN daemon starting up...");
+    log_notice("/dtnd", "DTN daemon starting up... (pid %d)", getpid());
     
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
