@@ -87,5 +87,5 @@ test::exit_script {
     tell_dtnd 0 log /test always {flamebox-ignore-cancel ign0}
     
     puts "* Stopping all dtnds"
-    dtn::tell_stop *
+    dtn::stop_dtnd *
 }
