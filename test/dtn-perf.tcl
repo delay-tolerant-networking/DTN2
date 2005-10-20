@@ -52,7 +52,6 @@ test::script {
     puts "* Running dtnperf-client for $perftime seconds"
     set client_pid [dtn::run_app $last_node dtnperf-client \
 			"-t $perftime -m $delivery_opts -d $dest" ]
-    
 
     # XXX might want to try running dtnperf-client when sending to a
     # non-existent endpoint too, such as:
@@ -80,8 +79,12 @@ test::script {
 test::exit_script {
     puts "* Stopping dtnperf-server"
     
-    # XXX wrap flamebox ignores around here if necessary:
+    tell_dtnd 0 log /test always \
+	    {flamebox-ignore ign0 client error or disconnection}
+    
     run::kill_pid 0 $server_pid 1
+    
+    tell_dtnd 0 log /test always {flamebox-ignore-cancel ign0}
     
     puts "* Stopping all dtnds"
     dtn::tell_dtnd * shutdown
