@@ -278,18 +278,26 @@ printf("\n");
 
 
         if (pl_type == DTN_PAYLOAD_FILE) { // if bundle was saved into file
-            int cmdlen = 5 + strlen(buffer) + strlen(filepath); // 5 chars added b/c of "mv" command
-            char *cmd = malloc(cmdlen);
 
-            if (cmd) {
-                snprintf(cmd, cmdlen, "mv %*s %s", bufsize, buffer, filepath);
-                if (debug) printf("[debug] moving file: %s...", cmd);
-                system(cmd);
-                free(cmd);
-                if (debug) printf(" done\n");
-            } else {
-                printf("[ERROR] Couldn't execute \"mv\" command. Find file in %*s.\n", bufsize, buffer);
+            if (debug) printf("[debug] renaming file %s -> %s...",
+                              buffer, filepath);
+            if (rename(buffer, filepath) != 0) {
+                printf("[ERROR] Couldn't rename %s -> %s: %s",
+                       buffer, filepath, strerror(errno));
             }
+            
+//             int cmdlen = 5 + strlen(buffer) + strlen(filepath); // 5 chars added b/c of "mv" command
+//             char *cmd = malloc(cmdlen);
+
+//             if (cmd) {
+//                 snprintf(cmd, cmdlen, "mv %*s %s", bufsize, buffer, filepath);
+//                 if (debug) printf("[debug] moving file: %s...", cmd);
+//                 system(cmd);
+//                 free(cmd);
+//                 if (debug) printf(" done\n");
+//             } else {
+//                 printf("[ERROR] Couldn't execute \"mv\" command. Find file in %*s.\n", bufsize, buffer);
+//             }
 
         } else { // if bundle was saved into memory
 
