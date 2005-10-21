@@ -49,15 +49,55 @@ test::script {
     set timestamp [dtn::tell_dtnd 1 sendbundle $source $dest]
     
     puts "* Waiting for bundle arrival"
-    dtn::wait_for_bundle 0 "$source,$timestamp" 5000
+    dtn::wait_for_bundle 0 "$source,$timestamp"
 
     puts "* Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \
 	    isadmin 0 source $source dest $dest
     
-    puts "* Doing sanity check on stats"
-    dtn::wait_for_stat 0 1 received 5000
+    puts "* Killing sender-side daemon"
+    dtn::stop_dtnd 1
+
+    puts "* Restarting sender-side daemon"
+    dtn::run_dtnd 1
+    dtn::wait_for_dtnd 1
+
+    puts "* Waiting for link to open"
+    dtn::wait_for_link_state 1 link-0 OPEN
+
+    puts "* Sending bundle"
+    set timestamp [dtn::tell_dtnd 1 sendbundle $source $dest]
     
+    puts "* Waiting for bundle arrival"
+    dtn::wait_for_bundle 0 "$source,$timestamp"
+
+    puts "* Checking bundle data"
+    dtn::check_bundle_data 0 "$source,$timestamp" \
+	    isadmin 0 source $source dest $dest
+    
+    puts "* Killing receiver-side daemon"
+    dtn::stop_dtnd 0
+
+    puts "* Checking that link is unavailable"
+    dtn::wait_for_link_state 1 link-0 UNAVAILABLE
+
+    puts "* Restarting receiver-side daemon"
+    dtn::run_dtnd 0
+    dtn::wait_for_dtnd 0
+
+    puts "* Waiting for link to open"
+    dtn::wait_for_link_state 1 link-0 OPEN
+
+    puts "* Sending bundle"
+    set timestamp [dtn::tell_dtnd 1 sendbundle $source $dest]
+    
+    puts "* Waiting for bundle arrival"
+    dtn::wait_for_bundle 0 "$source,$timestamp"
+
+    puts "* Checking bundle data"
+    dtn::check_bundle_data 0 "$source,$timestamp" \
+	    isadmin 0 source $source dest $dest
+
     puts "* Test success!"
 }
 

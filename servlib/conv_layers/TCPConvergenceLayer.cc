@@ -1469,10 +1469,17 @@ TCPConvergenceLayer::Connection::open_opportunistic_link()
         return false;
     }
     
-    // create a new contact
-    contact_ = new Contact(link);
-    link->set_contact(contact_);
-    contact_->set_cl_info(this);
+    // create a new contact if this is the first time the link is open
+    // XXX/demmer this seems kinda bogus...
+    if (link->contact() == NULL) {
+        contact_ = new Contact(link);
+        link->set_contact(contact_);
+        contact_->set_cl_info(this);
+    } else {
+        ASSERT(contact_ == NULL);
+        contact_ = link->contact();
+        contact_->set_cl_info(this);
+    }
     
     // handle memory management
     Thread::clear_flag(DELETE_ON_EXIT);
@@ -1575,6 +1582,15 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
             contact_->link()->state() != Link::UNAVAILABLE)
         {
             BundleDaemon::post(new ContactDownEvent(contact_, reason));
+        }
+
+        // if we're the passive acceptor but have a contact, then we
+        // must be in receiver connect mode... that means the main
+        // loop is about to exit, deleting this object. hence we make
+        // sure there's no dangling pointer to us in the contact
+        // cl_info slot
+        if (! initiate_) {
+            contact_->set_cl_info(NULL);
         }
         
     } else {
