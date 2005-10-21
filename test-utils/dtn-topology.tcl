@@ -12,6 +12,29 @@ proc config_topology_common {} {
 }
 
 #
+# Generate a unique link name
+#
+proc get_link_name {cl src dst} {
+    global dtn::link_names
+
+    set name "$cl-link:$src-$dst"
+    if {![info exists link_names($name)] } {
+	set link_names($name) 1
+	return $name
+    }
+
+    set i 2
+    while {1} {
+	set name "$cl-link.$i:$src-$dst"
+	if {![info exists link_names($name)]} {
+	    set link_names($name) 1
+	    return $name
+	}
+	incr i
+    }
+}
+
+#
 # Set up a linear topology using TCP or UDP
 #
 proc config_linear_topology {type cl with_routes {args ""}} {
@@ -24,14 +47,15 @@ proc config_linear_topology {type cl with_routes {args ""}} {
 	    set peerid   [expr $id + 1]
 	    set peeraddr $net::host($peerid)
 	    set peerport [dtn::get_port $cl $peerid]
+	    set link [get_link_name $cl $id $peerid]
 
-	    conf::add dtnd $id [eval list link add link-$peerid  \
+	    conf::add dtnd $id [eval list link add $link  \
 		    $peeraddr:$peerport $type $cl $args]
 
 	    if {$with_routes} {
 		for {set dest $peerid} {$dest <= $last} {incr dest} {
 		    conf::add dtnd $id \
-			    "route add dtn://host-$dest/* link-$peerid"
+			    "route add dtn://host-$dest/* $link"
 		}
 	    }
 	}
@@ -41,14 +65,15 @@ proc config_linear_topology {type cl with_routes {args ""}} {
 	    set peerid   [expr $id - 1]
 	    set peeraddr $net::host($peerid)
 	    set peerport [dtn::get_port $cl $peerid]
-	    
-	    conf::add dtnd $id [eval list link add link-$peerid \
+
+	    set link [get_link_name $cl $id $peerid]
+	    conf::add dtnd $id [eval list link add $link \
 		    $peeraddr:$peerport  $type $cl $args]
 	    
 	    if {$with_routes} {
 		for {set dest $peerid} {$dest >= 0} {incr dest -1} {
 		    conf::add dtnd $id \
-			    "route add dtn://host-$dest/* link-$peerid"
+			    "route add dtn://host-$dest/* $link"
 		}
 	    }
 	}
@@ -71,6 +96,8 @@ proc config_linear_topology {type cl with_routes {args ""}} {
 #
 proc config_tree_topology {type cl {args ""}} {
     global hosts ports num_nodes id route_to_root
+
+    error "XXX/demmer fixme"
 
     # the root has routes to all 9 first-hop descendents
     if { $id == 0 } {
