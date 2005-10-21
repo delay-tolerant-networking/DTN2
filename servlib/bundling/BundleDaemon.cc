@@ -555,6 +555,10 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         } else if (link->state() == Link::BUSY) {
             link->set_state(Link::OPEN);
 
+        } else if (link->state() == Link::OPEN) {
+            // a CL might send multiple requests to go from
+            // BUSY->OPEN, so we can safely ignore this
+            
         } else {
             log_err("LINK_STATE_CHANGE_REQUEST *%p: "
                     "tried to set state AVAILABLE in state %s",
