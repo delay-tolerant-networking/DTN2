@@ -919,6 +919,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
                 goto done;
             }
             rcvbuf_.fill(cc);
+            note_data_rcvd();
         }
         
         log_debug("recv_bundle: got %u byte chunk, rcvd_len %u",
@@ -1623,7 +1624,7 @@ TCPConvergenceLayer::Connection::handle_reply()
             rcvbuf_.consume(1);
             log_info("got shutdown request from other side");
             break_contact(ContactEvent::USER);
-            break;
+            return false;
         
         } else {
             log_err("got unexpected frame code %d", typecode);
@@ -1866,6 +1867,7 @@ TCPConvergenceLayer::Connection::recv_loop()
             }
 
             rcvbuf_.fill(ret);
+            note_data_rcvd();
         }
 
         typecode = *rcvbuf_.start();
