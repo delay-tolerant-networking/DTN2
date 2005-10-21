@@ -21,7 +21,7 @@ test::script {
     dtn::tell_dtnd 0 tcl_registration $dest
 
     puts "* checking that link is available "
-    dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
+    dtn::wait_for_link_state 2 tcp-link:2-1 AVAILABLE
     
     puts "* sending bundle"
     set timestamp [dtn::tell_dtnd 2 sendbundle $source $dest]
