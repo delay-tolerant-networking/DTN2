@@ -731,7 +731,7 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "hvDcmr:d:i:t:p:n:S:B:FR");
+        c = getopt(argc, argv, "hvDcmr:d:i:t:p:n:S:B:FRf:");
         switch (c)
         {
         case 'v':
@@ -811,12 +811,12 @@ void parse_options(int argc, char**argv)
         case 'S':
             sleepVal = atoi(optarg);
             break;
-/*
+
         case 'f':
             use_file = 1;
-            payload_type = DTN_PAYLOAD_FILE;
+            file_name_src = strdup(optarg);
             break;
-*/
+
         case 'm':
             use_file = 0;
             payload_type = DTN_PAYLOAD_MEM;
