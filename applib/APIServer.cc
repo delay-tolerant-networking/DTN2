@@ -565,7 +565,8 @@ APIClient::handle_send()
     
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
-    BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP));
+    BundleDaemon::post_and_wait(new BundleReceivedEvent(b, EVENTSRC_APP),
+                                notifier_);
     
     return DTN_SUCCESS;
 }
