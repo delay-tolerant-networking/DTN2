@@ -1481,9 +1481,6 @@ TCPConvergenceLayer::Connection::open_opportunistic_link()
         contact_->set_cl_info(this);
     }
     
-    // handle memory management
-    Thread::clear_flag(DELETE_ON_EXIT);
-
     // a contact up event is delivered at the start of the send loop,
     // but we need to first put the link into OPENING state
     link->set_state(Link::OPENING);
@@ -1585,12 +1582,24 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
         }
 
         // if we're the passive acceptor but have a contact, then we
-        // must be in receiver connect mode... that means the main
-        // loop is about to exit, deleting this object. hence we make
-        // sure there's no dangling pointer to us in the contact
-        // cl_info slot
+        // must be in receiver connect mode...
+        // a) the connection was broken and the main loop is about to
+        // exit, deleting this object, in which case we make sure
+        // there's no dangling pointer to us in the contact cl_info
+        // slot... or
+        //
+        // b) the user (likely by calling shutdown) is calling
+        // close_link() which interrupted us... in which case we leave
+        // the cl_info slot, and clear the DELETE_ON_EXIT flag since
+        // the caller will delete us
+        
         if (! initiate_) {
-            contact_->set_cl_info(NULL);
+            if (reason == ContactDownEvent::USER) { // a)
+                clear_flag(Thread::DELETE_ON_EXIT);
+
+            } else { // b)
+                contact_->set_cl_info(NULL);
+            }
         }
         
     } else {
@@ -1668,7 +1677,7 @@ TCPConvergenceLayer::Connection::handle_reply()
         } else if (typecode == SHUTDOWN) {
             rcvbuf_.consume(1);
             log_info("got shutdown request from other side");
-            break_contact(ContactEvent::USER);
+            break_contact(ContactEvent::SHUTDOWN);
             return false;
         
         } else {
@@ -1909,7 +1918,7 @@ TCPConvergenceLayer::Connection::recv_loop()
         log_debug("recv_loop: got frame packet type 0x%x...", typecode);
 
         if (typecode == SHUTDOWN) {
-            break_contact(ContactEvent::USER);
+            break_contact(ContactEvent::SHUTDOWN);
             return;
         }
         
