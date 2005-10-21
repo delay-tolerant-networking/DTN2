@@ -67,7 +67,7 @@ test::script {
 
     # test the SR's
     test_sr delivery_rcpt delivered_time $dest_node
-    test_sr forward_rcpt forwarded_time $all_nodes
+    test_sr forward_rcpt forwarded_time [lrange $all_nodes 1 end]
     test_sr receive_rcpt received_time $all_nodes
     
     # need to cut the link to create a deletion SR:
