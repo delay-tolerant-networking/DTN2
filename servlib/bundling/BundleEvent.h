@@ -88,7 +88,7 @@ typedef enum {
     ROUTE_ADD,			///< Add a new entry to the route table
     ROUTE_DEL,			///< Remove an entry from the route table
 
-    SHUTDOWN,                   ///< Shut the daemon down cleanly
+    DAEMON_SHUTDOWN,            ///< Shut the daemon down cleanly
 
 } event_type_t;
 
@@ -126,7 +126,7 @@ event_to_str(event_type_t event)
     case ROUTE_ADD:		return "ROUTE_ADD";
     case ROUTE_DEL:		return "ROUTE_DEL";
 
-    case SHUTDOWN:		return "SHUTDOWN";
+    case DAEMON_SHUTDOWN:	return "SHUTDOWN";
         
     default:			return "(invalid event type)";
     }
@@ -314,6 +314,7 @@ public:
         NO_INFO,	///< No additional info
         USER,		///< User action (i.e. console / config)
         BROKEN,		///< Unexpected session interruption
+        SHUTDOWN,	///< Clean connection shutdown
         RECONNECT,	///< Re-establish link after failure
         IDLE,		///< Idle connection shut down by the CL
         TIMEOUT		///< Scheduled link ended duration
@@ -327,6 +328,7 @@ public:
         case INVALID:	return "INVALID";
         case NO_INFO:	return "no additional info";
         case USER: 	return "user action";
+        case SHUTDOWN: 	return "peer shut down";
         case BROKEN:	return "connection broken";
         case RECONNECT:	return "re-establishing connection";
         case IDLE:	return "connection idle";
@@ -515,7 +517,7 @@ public:
  */
 class ShutdownRequest : public ContactEvent {
 public:
-    ShutdownRequest() : ContactEvent(SHUTDOWN)
+    ShutdownRequest() : ContactEvent(DAEMON_SHUTDOWN)
     {
         daemon_only_ = true;
     }

@@ -82,7 +82,7 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_reassembly_completed((ReassemblyCompletedEvent*)e);
         break;
 
-    case SHUTDOWN:
+    case DAEMON_SHUTDOWN:
         handle_shutdown_request((ShutdownRequest*)e);
         break;
 
