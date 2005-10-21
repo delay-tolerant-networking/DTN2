@@ -24,7 +24,6 @@ set tests(basic) {
 # the performance test group
 set tests(perf) {
     "dtn-perf.tcl"		""
-    "dtn-perf.tcl"		"-forwarding_rcpts -receive_rcpts"
 }
 
 # check test group
