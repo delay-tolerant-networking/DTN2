@@ -48,6 +48,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "BundlePayload.h"
+#include "ForwardingLog.h"
 #include "naming/EndpointID.h"
 
 
@@ -228,6 +229,7 @@ public:
     u_int32_t frag_offset_;	///< Offset of fragment in the original bundle
     u_int32_t orig_length_;	///< Length of original bundle
     BundlePayload payload_;	///< Reference to the payload
+    ForwardingLog fwdlog_;	///< Log of bundle forwarding actions
 
     /*
      * Public internal fields for managing the bundle.

@@ -107,7 +107,7 @@ BundleActions::create_link(std::string& endpoint, Interface* interface)
 /**
  * Initiate transmission of a bundle out the given link.
  *
- * @param bundle		the bundle
+ * @param bundle	the bundle
  * @param link		the link to send it on
  */
 void
@@ -116,6 +116,7 @@ BundleActions::send_bundle(Bundle* bundle, Link* link)
     log_debug("send bundle *%p to %s link %s (%s)",
               bundle, link->type_str(), link->name(), link->nexthop());
 
+    bundle->fwdlog_.update(link->nexthop(), ForwardingEntry::IN_FLIGHT);
     link->consume_bundle(bundle);
 }
 
@@ -132,6 +133,7 @@ BundleActions::cancel_bundle(Bundle* bundle, Link* link)
     log_debug("cancel bundle *%p on %s link %s (%s)",
               bundle, link->type_str(), link->name(), link->nexthop());
 
+    bundle->fwdlog_.update(link->nexthop(), ForwardingEntry::CANCELLED);
     return link->cancel_bundle(bundle);
 }
 

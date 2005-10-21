@@ -16,6 +16,7 @@ BUNDLING_SRCS := 				\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
 	bundling/BundleStatusReport.cc		\
+	bundling/ForwardingLog.cc		\
 	bundling/FragmentManager.cc		\
 	bundling/ExpirationTimer.cc		\
 	bundling/SDNV.cc			\
