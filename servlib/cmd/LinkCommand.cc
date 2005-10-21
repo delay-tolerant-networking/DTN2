@@ -159,7 +159,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         BundleDaemon::instance()->post(
-            new LinkStateChangeRequest(link, Link::CLOSING, ContactDownEvent::BROKEN));
+            new LinkStateChangeRequest(link, Link::CLOSING,
+                                       ContactEvent::BROKEN));
 
         return TCL_OK;
 
