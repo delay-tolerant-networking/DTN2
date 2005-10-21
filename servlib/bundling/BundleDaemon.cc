@@ -180,13 +180,6 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
               registration->endpoint().c_str());
     
     registration->consume_bundle(bundle);
-    ++bundles_delivered_;
-    
-    // deliver the delivery ack (aka return receipt) status report if
-    // requested
-    if (bundle->delivery_rcpt_) {
-        generate_status_report(bundle, BundleProtocol::STATUS_DELIVERED);
-    }
 }
 
 /**
@@ -301,16 +294,20 @@ void
 BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
     /**
-     * The bundle was delivered to either a next-hop contact or a
-     * registration.
+     * The bundle was delivered to a next-hop contact.
      */
     Bundle* bundle = event->bundleref_.object();
 
     log_info("BUNDLE_TRANSMITTED id:%d (%u bytes) %s -> %s",
              bundle->bundleid_, (u_int)event->bytes_sent_,
              event->acked_ ? "ACKED" : "UNACKED",
-             event->consumer_->dest_str());
+             event->contact_->nexthop());
 
+    /**
+     * Update the forwarding log
+     */
+    bundle->fwdlog_.update(event->contact_->nexthop(), ForwardingEntry::SENT);
+                            
     /*
      * Check for reactive fragmentation. The unsent portion (if any)
      * will show up as a new bundle received event.
@@ -325,6 +322,42 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         // selected for forwarding are known to be unable to send
         // bundles back to this node
         generate_status_report(bundle, BundleProtocol::STATUS_FORWARDED);
+    }
+
+    /*
+     * If there are no more mappings for the bundle (except for the
+     * pending list), and we're configured for early deletion, then
+     * remove the bundle from the pending list. Then when all refs to
+     * the bundle are removed, it will be timed out.
+     *
+     * This allows a router (or the custody system) to maintain a
+     * retention constraint by adding a mapping or just adding a
+     * reference.
+     */
+    if (params_.early_deletion_ && (bundle->num_mappings() == 1)) {
+        // XXX/matt if we delete a bundle just because there are no
+        // more mappings, and not because it expired, then we don't
+        // want to generate a status report, so pass the
+        // REASON_NO_ADDTL_INFO reason code
+        delete_from_pending(bundle, BundleProtocol::REASON_NO_ADDTL_INFO);
+    }
+}
+
+void
+BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
+{
+    /**
+     * The bundle was delivered to a registration.
+     */
+    Bundle* bundle = event->bundleref_.object();
+
+    log_info("BUNDLE_DELIVERED id:%d (%u bytes) -> regid %d (%s)",
+             bundle->bundleid_, bundle->payload_.length(),
+             event->registration_->regid(),
+             event->registration_->endpoint().c_str());
+
+    if (bundle->delivery_rcpt_) {
+        generate_status_report(bundle, BundleProtocol::STATUS_DELIVERED);
     }
 
     /*
@@ -501,7 +534,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
     log_info("LINK_STATE_CHANGE_REQUEST *%p [%s -> %s] (%s)", link,
              Link::state_to_str(link->state()),
              Link::state_to_str(new_state),
-             ContactDownEvent::reason_to_str(reason));
+             ContactEvent::reason_to_str(reason));
 
     switch(new_state) {
     case Link::UNAVAILABLE:
@@ -516,13 +549,19 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         break;
 
     case Link::AVAILABLE:
-        if (link->state() != Link::UNAVAILABLE) {
+        if (link->state() == Link::UNAVAILABLE) {
+            link->set_state(Link::AVAILABLE);
+
+        } else if (link->state() == Link::BUSY) {
+            link->set_state(Link::OPEN);
+
+        } else {
             log_err("LINK_STATE_CHANGE_REQUEST *%p: "
                     "tried to set state AVAILABLE in state %s",
                     link, Link::state_to_str(link->state()));
             return;
         }
-        link->set_state(new_state);
+        
         post(new LinkAvailableEvent(link, reason));
         break;
         
@@ -536,11 +575,10 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         actions_->open_link(link);
         break;
 
-
     case Link::CLOSING:
         if (link->isclosing()) {
             log_warn("link close request for *%p (%s) already in closing state",
-                     link, ContactDownEvent::reason_to_str(reason));
+                     link, ContactEvent::reason_to_str(reason));
             break;
         }
         
@@ -563,7 +601,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             // LinkUnavailableEvent
             if (! link->isopening()) {
                 log_err("LINK_CLOSE_REQUEST *%p (%s) in unexpected state %s",
-                        link, ContactDownEvent::reason_to_str(reason),
+                        link, ContactEvent::reason_to_str(reason),
                         link->state_to_str(link->state()));
             }
 
@@ -576,7 +614,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 
         // now, based on the reason code, update the link availability and
         // set state accordingly
-        if (reason == ContactDownEvent::IDLE) {
+        if (reason == ContactEvent::IDLE) {
             link->set_state(Link::AVAILABLE);
         } else {
             link->set_state(Link::UNAVAILABLE);
@@ -770,12 +808,13 @@ BundleDaemon::update_statistics(BundleEvent* event)
         break;
         
     case BUNDLE_TRANSMITTED:
-        // XXX/demmer wonky
-        if (! ((BundleTransmittedEvent*)event)->consumer_->is_local()) {
-            bundles_transmitted_++;
-        }
+        bundles_transmitted_++;
         break;
 
+    case BUNDLE_DELIVERED:
+        bundles_delivered_++;
+        break;
+        
     case BUNDLE_EXPIRED:
         bundles_expired_++;
         break;

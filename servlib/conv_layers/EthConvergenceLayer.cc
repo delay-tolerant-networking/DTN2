@@ -488,7 +488,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         // since this is an unreliable protocol, acked_len = 0, and
         // ack = false
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_->link(),
+            new BundleTransmittedEvent(bundle, contact_,
                                        bundle->payload_.length(), false));
         ok = true;
     }

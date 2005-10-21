@@ -88,6 +88,11 @@ protected:
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
     
     /**
+     * Default event handler when bundles are locally delivered.
+     */
+    virtual void handle_bundle_delivered(BundleDeliveredEvent* event);
+    
+    /**
      * Default event handler when bundles expire.
      */
     virtual void handle_bundle_expired(BundleExpiredEvent* event);

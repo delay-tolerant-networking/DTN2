@@ -67,8 +67,7 @@ SimRegistration::consume_bundle(Bundle* bundle)
              bundle->source_.c_str(), bundle->dest_.c_str(),
              (u_int)payload_len);
 
-    BundleDaemon::post(
-        new BundleTransmittedEvent(bundle, this, payload_len, true));
+    BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
 
     // hold a reference on the bundle to put it in the arrivals table
     double now = Simulator::time();

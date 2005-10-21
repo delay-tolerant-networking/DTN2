@@ -283,8 +283,7 @@ FileConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
     // cons up a transmission event and pass it to the router
     bool acked = false;
     BundleDaemon::post(
-        new BundleTransmittedEvent(bundle, contact->link(),
-                                   payload_len, acked));
+        new BundleTransmittedEvent(bundle, contact, payload_len, acked));
         
     log_debug("bundle id %d successfully transmitted", bundle->bundleid_);
 #endif // notimplemented

@@ -64,6 +64,7 @@ class Link;
 typedef enum {
     BUNDLE_RECEIVED = 0x1,	///< New bundle arrival
     BUNDLE_TRANSMITTED,		///< Bundle or fragment successfully sent
+    BUNDLE_DELIVERED,		///< Bundle locally delivered
     BUNDLE_EXPIRED,		///< Bundle expired
     BUNDLE_FREE,		///< No more references to the bundle
     BUNDLE_FORWARD_TIMEOUT,	///< A Mapping timed out
@@ -101,6 +102,7 @@ event_to_str(event_type_t event)
 
     case BUNDLE_RECEIVED:	return "BUNDLE_RECEIVED";
     case BUNDLE_TRANSMITTED:	return "BUNDLE_TRANSMITTED";
+    case BUNDLE_DELIVERED:	return "BUNDLE_DELIVERED";
     case BUNDLE_EXPIRED:	return "BUNDLE_EXPIRED";
     case BUNDLE_FREE:		return "BUNDLE_FREE";
     case BUNDLE_FORWARD_TIMEOUT:return "BUNDLE_FORWARD_TIMEOUT";
@@ -229,18 +231,17 @@ public:
  */
 class BundleTransmittedEvent : public BundleEvent {
 public:
-    BundleTransmittedEvent(Bundle* bundle, BundleConsumer* consumer,
+    BundleTransmittedEvent(Bundle* bundle, Contact* contact,
                            size_t bytes_sent, bool acked)
         : BundleEvent(BUNDLE_TRANSMITTED),
           bundleref_(bundle, "BundleTransmittedEvent"),
-          consumer_(consumer),
-          bytes_sent_(bytes_sent), acked_(acked) {}
+          contact_(contact), bytes_sent_(bytes_sent), acked_(acked) {}
 
     /// The transmitted bundle
     BundleRef bundleref_;
 
-    /// The contact or registration where the bundle was sent
-    BundleConsumer* consumer_;
+    /// The contact where the bundle was sent
+    Contact* contact_;
 
     /// Total number of bytes sent
     size_t bytes_sent_;
@@ -249,6 +250,24 @@ public:
     bool acked_;
 
     /// XXX/demmer should have bytes_acked
+};
+
+/**
+ * Event class for local bundle delivery.
+ */
+class BundleDeliveredEvent : public BundleEvent {
+public:
+    BundleDeliveredEvent(Bundle* bundle, Registration* registration)
+        : BundleEvent(BUNDLE_DELIVERED),
+          bundleref_(bundle, "BundleDeliveredEvent"),
+          registration_(registration) {}
+
+
+    /// The delivered bundle
+    BundleRef bundleref_;
+
+    /// The registration that got it
+    Registration* registration_;
 };
 
 /**

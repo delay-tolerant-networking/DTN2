@@ -40,6 +40,7 @@
 #include <oasys/compat/inet_aton.h>
 #include <oasys/io/FileIOClient.h>
 #include <oasys/io/NetUtils.h>
+#include <oasys/util/Pointers.h>
 #include <oasys/util/ScratchBuffer.h>
 
 #include "APIServer.h"
@@ -456,6 +457,11 @@ APIClient::handle_send()
 
     b = new Bundle();
 
+    // make sure the xdr unpacked call to malloc is cleaned up
+    oasys::ScopeMalloc m((payload.location == DTN_PAYLOAD_MEM) ?
+                         payload.dtn_bundle_payload_t_u.buf.buf_val :
+                         payload.dtn_bundle_payload_t_u.filename.filename_val);
+    
     // assign the addressing fields
     b->source_.assign(&spec.source);
     b->dest_.assign(&spec.dest);
@@ -731,8 +737,7 @@ APIClient::handle_recv()
               "successfully delivered bundle %d to registration %d",
               b->bundleid_, reg->regid());
 
-    BundleDaemon::post(
-        new BundleTransmittedEvent(b, reg, b->payload_.length(), true));
+    BundleDaemon::post(new BundleDeliveredEvent(b, reg));
 
     return DTN_SUCCESS;
 }

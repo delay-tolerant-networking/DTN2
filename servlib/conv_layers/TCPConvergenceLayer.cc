@@ -82,6 +82,8 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     defaults_.local_port_		= 5000;
     defaults_.remote_addr_		= INADDR_NONE;
     defaults_.remote_port_		= 0;
+    defaults_.pipeline_			= true;
+    defaults_.busy_queue_depth_		= 10;
     defaults_.bundle_ack_enabled_ 	= true;
     defaults_.reactive_frag_enabled_ 	= true;
     defaults_.receiver_connect_		= false;
@@ -313,13 +315,18 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
     
-    link->set_cl_info(params);
-
     if (params->receiver_connect_ && (link->type() != Link::OPPORTUNISTIC)) {
         log_err("receiver_connect option can only be used with "
                 "opportunistic links");
         return false;
     }
+
+    // the only idle links that are closed should be ondemand ones
+    if (link->type() != Link::ONDEMAND) {
+        params->idle_close_time_ = 0; 
+    }
+
+    link->set_cl_info(params);
 
     return true;
 }
@@ -383,6 +390,8 @@ TCPConvergenceLayer::close_contact(Contact* contact)
 
     log_info("close_contact *%p", contact);
 
+    // XXX/demmer move this into an IO/Thread utility function
+    
     if (conn) {
         if (!conn->is_stopped() && !conn->should_stop()) {
             log_debug("interrupting connection thread");
@@ -414,11 +423,17 @@ void
 TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
 {
     log_debug("send_bundle *%p to *%p", bundle, contact);
-    contact->link()->set_state(Link::BUSY);
 
     Connection* conn = (Connection*)contact->cl_info();
+
+    // set the busy state to apply bundle backpressure
+    if ((conn->queue_->size() + 1) >= conn->params_.busy_queue_depth_) {
+        contact->link()->set_state(Link::BUSY);
+    }
+    
     ASSERT(conn);
     conn->queue_->push_back(bundle);
+
 }
 
 
@@ -572,7 +587,7 @@ TCPConvergenceLayer::Connection::run()
                 BundleDaemon::post(
                     new LinkStateChangeRequest(contact_->link(),
                                                Link::CLOSING,
-                                               ContactDownEvent::BROKEN));
+                                               ContactEvent::BROKEN));
             }
             
             return; // trigger a deletion
@@ -609,80 +624,86 @@ TCPConvergenceLayer::Connection::run()
  * Return true if the bundle was sent successfully, false if not.
  */
 bool
-TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
+TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
 {
     int header_len;
+    size_t sdnv_len;
+    size_t tcphdr_len;
+    u_char tcphdr_buf[32];
     size_t block_len;
     size_t payload_len = bundle->payload_.length();
     size_t payload_offset = 0;
     const u_char* payload_data;
-    oasys::StreamBuffer buf(params_.writebuf_len_);
+
+    // first put the bundle on the inflight_ queue
+    inflight_.push_back(InFlightBundle(bundle));
 
     // Each bundle is preceded by a BUNDLE_DATA typecode and then a
     // BundleDataHeader that is variable-length since it includes an
-    // SDNV for the total bundle length. So, leave some space at the
-    // beginning of the buffer that can be filled in with the
-    // appropriate preamble once we know the actual bundle header
-    // length.
-    size_t space = 32;
+    // SDNV for the total bundle length.
+    //
+    // So, first calculate the length of the bundle headers while we
+    // put it into the send buffer, then fill in the small CL buffer
 
  retry_headers:
-    header_len = BundleProtocol::format_headers(bundle,
-                                                (u_char*)buf.data() + space,
-                                                buf.size() - space);
+    header_len =
+        BundleProtocol::format_headers(bundle, sndbuf_.buf(),
+                                       sndbuf_.buf_len());
     if (header_len < 0) {
         log_debug("send_bundle: bundle header too big for buffer len %d -- "
-                  "doubling size and retrying",
-                  params_.writebuf_len_);
-        buf.reserve(buf.size() * 2);
+                  "doubling size and retrying", sndbuf_.buf_len());
+        sndbuf_.reserve(sndbuf_.buf_len() * 2);
         goto retry_headers;
     }
     
-    size_t sdnv_len = SDNV::encoding_len(header_len + payload_len);
-    size_t tcphdr_len = 1 + sizeof(BundleDataHeader) + sdnv_len;
-    
-    if (space < tcphdr_len) {
-        // this is unexpected, but we can handle it
-        log_err("send_bundle: bundle frame header too big for space of %u",
-                (u_int)space);
-        space = space * 2;
-        goto retry_headers;
-    }
+    sdnv_len = SDNV::encoding_len(header_len + payload_len);
+    tcphdr_len = 1 + sizeof(BundleDataHeader) + sdnv_len;
+
+    ASSERT(sizeof(tcphdr_buf) >= tcphdr_len);
     
     // Now fill in the type code and the bundle data header (with the
     // sdnv for the total bundle length)
-    char* bp = buf.data() + space - tcphdr_len;
-    *bp++ = BUNDLE_DATA;
-    
-    BundleDataHeader* dh = (BundleDataHeader*)bp;
+    tcphdr_buf[0] = BUNDLE_DATA;
+    BundleDataHeader* dh = (BundleDataHeader*)(&tcphdr_buf[1]);
     memcpy(&dh->bundle_id, &bundle->bundleid_, sizeof(bundle->bundleid_));
-    bp += sizeof(BundleDataHeader);
-    
-    int len = SDNV::encode(header_len + payload_len, (u_char*)bp, sdnv_len);
-    bp += len;
-    ASSERT(bp == buf.data() + space);
-    bp -= tcphdr_len; // reset to the beginning of the encoding (not
-                      // necessarily the start of the buffer)
+    SDNV::encode(header_len + payload_len, &dh->total_length[0], sdnv_len);
 
+    // Build up a two element iovec
+    struct iovec iov[2];
+    iov[0].iov_base = tcphdr_buf;
+    iov[0].iov_len  = tcphdr_len;
+
+    iov[1].iov_base = sndbuf_.buf();
+    iov[1].iov_len  = header_len;
+    
     // send off the preamble and the headers
     log_debug("send_bundle: sending bundle id %d "
               "tcpcl hdr len: %u, bundle header len: %u payload len: %u",
               bundle->bundleid_, (u_int)tcphdr_len, (u_int)header_len,
               (u_int)payload_len);
 
-    int cc = sock_->writeall(bp, tcphdr_len + header_len);
-    if (cc != (int)tcphdr_len + header_len) {
-        log_err("send_bundle: error sending bundle header (wrote %d/%u): %s",
-                cc, (u_int)(tcphdr_len + header_len), strerror(errno));
-        bundle->payload_.close_file();
+    int cc = sock_->writevall(iov, 2);
+
+    if (cc == oasys::IOINTR) {
+        log_info("send_bundle: interrupted while sending bundle header");
+        break_contact(ContactEvent::USER);
+        return false;
+    
+    } else if (cc != (int)tcphdr_len + header_len) {
+        if (cc == 0) {
+            log_err("send_bundle: remote side closed connection");
+        } else {
+            log_err("send_bundle: "
+                    "error sending bundle header (wrote %d/%u): %s",
+                    cc, (u_int)(tcphdr_len + header_len), strerror(errno));
+        }
+
+        break_contact(ContactEvent::BROKEN);
         return false;
     }
     
-    // now loop through the the payload, sending blocks and checking
-    // for acks as they come in.
-    bool sentok = false;
-    bool writeblocked = false;
-    
+    // now loop through the the payload, sending blocks of data and
+    // checking for incoming acks along the way
     while (payload_len > 0) {
         if (payload_len <= params_.writebuf_len_) {
             block_len = payload_len;
@@ -694,144 +715,78 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
         payload_data =
             bundle->payload_.read_data(payload_offset,
                                        block_len,
-                                       (u_char*)buf.data(),
+                                       sndbuf_.buf(block_len),
                                        BundlePayload::KEEP_FILE_OPEN);
         
         log_debug("send_bundle: sending %u byte block %p",
                   (u_int)block_len, payload_data);
         
-        cc = sock_->write((char*)payload_data, block_len);
-        
-        if (cc == 0) {
-            // eof from the other side
-            log_info("send_bundle: remote side closed connection");
-            goto done;
-        }
-        
-        else if (cc < 0) {
-            if (errno == EWOULDBLOCK) {
-                // socket buffer full. we'll loop down below waiting
-                // for it to drain
-                log_debug("send_bundle: write returned EWOULDBLOCK");
-                writeblocked = true;
-                goto blocked;
-                
-            } else {
-                // some other error, bail
-                log_warn("send_bundle: "
-                         "error writing bundle block (wrote %d/%u): %s",
-                         cc, (u_int)block_len, strerror(errno));
-                goto done;
-            }
-        }
-        
-        if (cc < (int)block_len) {
-            // unexpected short write -- just adjust block_len to
-            // reflect the amount actually written and fall through
-            log_warn("send_bundle: "
-                     "short write sending bundle block (wrote %d/%u): %s",
-                     cc, (u_int)block_len, strerror(errno));
+        cc = sock_->writeall((char*)payload_data, block_len);
 
-            block_len = cc;
-        }
+        if (cc == oasys::IOINTR) {
+            log_info("send_bundle: interrupted while sending bundle block");
+            break_contact(ContactEvent::USER);
+            bundle->payload_.close_file();
+            return false;
         
+        } else if (cc != (int)block_len) {
+            if (cc == 0) {
+                log_err("send_bundle: remote side closed connection");
+            } else {
+                log_err("send_bundle: "
+                        "error sending bundle block (wrote %d/%u): %s",
+                        cc, block_len, strerror(errno));
+            }
+
+            break_contact(ContactEvent::BROKEN);
+            bundle->payload_.close_file();
+            return false;
+        }
+
         // update payload_offset and payload_len
         payload_offset += block_len;
         payload_len    -= block_len;
-
+        
         // call poll() to check for any pending ack replies on the
-        // socket, and if we're write blocked, to check for an
-        // indication that the socket buffer has drained. note that if
-        // we're not actually write blocked, the call should return
-        // immediately, but will still give us the indication of
-        // pending data to read.
- blocked:
+        // socket with a timeout of zero, indicating that we don't
+        // want to block
         int revents;
-        do {
-            cc = sock_->poll_sockfd(POLLIN | POLLOUT, &revents, 
-                                    params_.rtt_timeout_);
-            if (cc == oasys::IOTIMEOUT) {
-                log_info("send_bundle: "
-                         "timeout waiting for ack or write-ready");
-                goto done;
-            } else if (cc == oasys::IOINTR) {
-                PANIC("Handle intr?");
-            } else if (cc < 0) {
-                log_warn("send_bundle: error waiting for ack: %s",
-                         strerror(errno));
-                goto done;
-            }
+        cc = sock_->poll_sockfd(POLLIN, &revents, 0);
 
-            ASSERT(cc == 1);
-            if (revents & POLLIN) {
-                cc = handle_ack(bundle, acked_len);
-                
-                if (cc == oasys::IOERROR) {
-                    goto done;
-                }
-                ASSERT(cc == 1);
-                
-                log_debug("send_bundle: got ack for %d/%u -- "
-                          "looping to send more", (u_int)*acked_len,
-                          (u_int)bundle->payload_.length());
+        if (cc == 1) {
+            log_debug("send_bundle: data available on the socket");
+            if (! handle_reply()) {
+                return false;
             }
             
-            if (!(revents & POLLOUT)) {
-                log_debug("poll returned write not ready");
-                writeblocked = true;
-            }
+        } else if (cc == 0 || cc == oasys::IOTIMEOUT) {
+            // nothing to do
 
-            else if (writeblocked && (revents & POLLOUT)) {
-                log_debug("poll returned write ready");
-                writeblocked = false;
-            }
-            
-        } while (writeblocked);
+        } else if (cc == oasys::IOINTR) {
+            log_info("send_bundle: interrupted while checking for acks");
+            break_contact(ContactEvent::USER);
+            bundle->payload_.close_file();
+            return false;
+
+        } else {
+            log_err("send_bundle: unexpected error while checking for acks");
+            break_contact(ContactEvent::BROKEN);
+            bundle->payload_.close_file();
+            return false;
+        }
     }
 
-    // now we've written the whole payload, so loop and block until we
-    // get all the acks, but cap the wait based on rtt_timeout
-    payload_len = bundle->payload_.length();
-
-    while (*acked_len < payload_len) {
-        log_debug("send_bundle: acked %d/%d, waiting for more",
-                  (u_int)*acked_len, (u_int)payload_len);
-
-        cc = sock_->poll_sockfd(POLLIN, NULL, params_.rtt_timeout_);
-        if (cc < 0) {
-            log_warn("send_bundle: error waiting for ack: %s",
-                     strerror(errno));
-            goto done;
-        }
-        
-        if (cc == 0) {
-            log_info("send_bundle: timeout waiting for ack");
-            goto done;
-        }
-
-        ASSERT(cc == 1);
-        
-        cc = handle_ack(bundle, acked_len);
-        if (cc == oasys::IOERROR) {
-            goto done;
-        }
-        ASSERT(cc == 1);
-        
-        log_debug("send_bundle: got ack for %d/%d",
-                  (u_int)*acked_len, (u_int)payload_len);
+    // if we got here, we sent the whole bundle successfully, so if
+    // we're not using acks, post an event for the router. if we are
+    // using acks, the event is posted in handle_ack
+    if (! params_.bundle_ack_enabled_) {
+        inflight_.pop_front();
+        BundleDaemon::post(
+            new BundleTransmittedEvent(bundle, contact_, payload_len, false));
     }
-    
-    sentok = true;
 
- done:
     bundle->payload_.close_file();
-        
-    if (*acked_len > 0) {
-        ASSERT(!sentok || (*acked_len == payload_len));
-    }
-    
-    // all done!
-    return sentok;
+    return true;
 }
 
 
@@ -841,13 +796,13 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle, size_t* acked_len)
  * the wire.
  */
 bool
-TCPConvergenceLayer::Connection::recv_bundle(oasys::StreamBuffer* buf)
+TCPConvergenceLayer::Connection::recv_bundle()
 {
     int cc;
     Bundle* bundle = new Bundle();
     BundleDataHeader datahdr;
     int header_len;
-    u_int64_t bundle_len;
+    u_int64_t total_len;
     int    sdnv_len = 0;
     size_t rcvd_len = 0;
     size_t acked_len = 0;
@@ -856,15 +811,15 @@ TCPConvergenceLayer::Connection::recv_bundle(oasys::StreamBuffer* buf)
     bool valid = false;
     bool recvok = false;
 
-    log_debug("recv_bundle: reading bundle headers...");
+    log_debug("recv_bundle: consuming bundle headers...");
 
     // if we don't yet have enough bundle data, so read in as much as
     // we can, first making sure we have enough space in the buffer
     // for at least the bundle data header and the SDNV
-    if (buf->fullbytes() < sizeof(BundleDataHeader)) {
+    if (rcvbuf_.fullbytes() < sizeof(BundleDataHeader)) {
  incomplete_tcp_header:
-        buf->reserve(sizeof(BundleDataHeader) + 10);
-        cc = sock_->timeout_read(buf->end(), buf->tailbytes(),
+        rcvbuf_.reserve(sizeof(BundleDataHeader) + 10);
+        cc = sock_->timeout_read(rcvbuf_.end(), rcvbuf_.tailbytes(),
                                  params_.rtt_timeout_);
         if (cc < 0) {
             log_err("recv_bundle: error reading bundle headers: %s",
@@ -872,44 +827,46 @@ TCPConvergenceLayer::Connection::recv_bundle(oasys::StreamBuffer* buf)
             delete bundle;
             return false;
         }
-        buf->fill(cc);
+
+        log_debug("recv_bundle: read %d bytes...", cc);
+        rcvbuf_.fill(cc);
         note_data_rcvd();
     }
         
     // parse out the BundleDataHeader
-    if (buf->fullbytes() < sizeof(BundleDataHeader)) {
+    if (rcvbuf_.fullbytes() < sizeof(BundleDataHeader)) {
         log_err("recv_bundle: read too short to encode data header");
         goto incomplete_tcp_header;
     }
 
     // copy out the data header but don't advance the buffer (yet)
-    memcpy(&datahdr, buf->start(), sizeof(BundleDataHeader));
+    memcpy(&datahdr, rcvbuf_.start(), sizeof(BundleDataHeader));
     
     // parse out the SDNV that encodes the whole bundle length
-    sdnv_len = SDNV::decode((u_char*)buf->start() + sizeof(BundleDataHeader),
-                            buf->fullbytes() - sizeof(BundleDataHeader),
-                            &bundle_len);
+    sdnv_len = SDNV::decode((u_char*)rcvbuf_.start() + sizeof(BundleDataHeader),
+                            rcvbuf_.fullbytes() - sizeof(BundleDataHeader),
+                            &total_len);
     if (sdnv_len < 0) {
         log_err("recv_bundle: read too short to encode SDNV");
         goto incomplete_tcp_header;
     }
 
     // got the full tcp header, so skip that much in the buffer
-    buf->consume(sizeof(BundleDataHeader) + sdnv_len);
+    rcvbuf_.consume(sizeof(BundleDataHeader) + sdnv_len);
 
  incomplete_bundle_header:
     // now try to parse the headers into the new bundle, which may
     // require reading in more data and possibly increasing the size
     // of the stream buffer
     header_len = BundleProtocol::parse_headers(bundle,
-                                               (u_char*)buf->start(),
-                                               buf->fullbytes());
+                                               (u_char*)rcvbuf_.start(),
+                                               rcvbuf_.fullbytes());
     
     if (header_len < 0) {
-        if (buf->tailbytes() == 0) {
-            buf->reserve(buf->size() * 2);
+        if (rcvbuf_.tailbytes() == 0) {
+            rcvbuf_.reserve(rcvbuf_.size() * 2);
         }
-        cc = sock_->timeout_read(buf->end(), buf->tailbytes(),
+        cc = sock_->timeout_read(rcvbuf_.end(), rcvbuf_.tailbytes(),
                                  params_.rtt_timeout_);
         if (cc < 0) {
             log_err("recv_bundle: error reading bundle headers: %s",
@@ -917,23 +874,23 @@ TCPConvergenceLayer::Connection::recv_bundle(oasys::StreamBuffer* buf)
             delete bundle;
             return false;
         }
-        buf->fill(cc);
+        rcvbuf_.fill(cc);
         note_data_rcvd();
         goto incomplete_bundle_header;
     }
 
     log_debug("recv_bundle: got valid bundle header -- "
-              "sender bundle id %d, header_length %u, bundle_length %llu",
-              datahdr.bundle_id, (u_int)header_len, bundle_len);
-    buf->consume(header_len);
+              "sender bundle id %d, header_length %u, total_length %llu",
+              datahdr.bundle_id, (u_int)header_len, total_len);
+    rcvbuf_.consume(header_len);
 
     // all lengths have been parsed, so we can do some length
     // validation checks
     payload_len = bundle->payload_.length();
-    if (bundle_len != header_len + payload_len) {
+    if (total_len != header_len + payload_len) {
         log_err("recv_bundle: bundle length mismatch -- "
-                "bundle_len %llu, header_len %u, payload_len %u",
-                bundle_len, (u_int)header_len, (u_int)payload_len);
+                "total_len %llu, header_len %u, payload_len %u",
+                total_len, (u_int)header_len, (u_int)payload_len);
         delete bundle;
         return false;
     }
@@ -943,10 +900,12 @@ TCPConvergenceLayer::Connection::recv_bundle(oasys::StreamBuffer* buf)
     // also that we may have some payload data in the buffer
     // initially, so we check for that before trying to read more
     do {
-        if (buf->fullbytes() == 0) {
+        if (rcvbuf_.fullbytes() == 0) {
             // read a chunk of data
-            cc = sock_->timeout_read(buf->data(),
-                                     params_.readbuf_len_,
+            ASSERT(rcvbuf_.data() == rcvbuf_.end());
+            
+            cc = sock_->timeout_read(rcvbuf_.data(),
+                                     rcvbuf_.tailbytes(),
                                      params_.rtt_timeout_);
             if (cc == oasys::IOTIMEOUT) {
                 log_warn("recv_bundle: timeout reading bundle data block");
@@ -959,18 +918,18 @@ TCPConvergenceLayer::Connection::recv_bundle(oasys::StreamBuffer* buf)
                          strerror(errno));
                 goto done;
             }
-            buf->fill(cc);
+            rcvbuf_.fill(cc);
         }
         
         log_debug("recv_bundle: got %u byte chunk, rcvd_len %u",
-                  (u_int)buf->fullbytes(), (u_int)rcvd_len);
+                  (u_int)rcvbuf_.fullbytes(), (u_int)rcvd_len);
         
         // append the chunk of data up to the maximum size of the
         // bundle and update the amount received
-        cc = std::min(buf->fullbytes(), payload_len - rcvd_len);
-        bundle->payload_.append_data((u_char*)buf->start(), cc);
+        cc = std::min(rcvbuf_.fullbytes(), payload_len - rcvd_len);
+        bundle->payload_.append_data((u_char*)rcvbuf_.start(), cc);
         rcvd_len += cc;
-        buf->consume(cc);
+        rcvbuf_.consume(cc);
         
         // at this point, we can make at least a valid bundle fragment
         // from what we've gotten thus far (assuming reactive
@@ -1061,6 +1020,34 @@ TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
 
 
 /**
+ * Send a keepalive byte.
+ */
+bool
+TCPConvergenceLayer::Connection::send_keepalive()
+{
+    char typecode = KEEPALIVE;
+    int ret = sock_->write(&typecode, 1);
+
+    if (ret == oasys::IOINTR) { 
+        log_info("connection interrupted");
+        break_contact(ContactEvent::USER);
+        return false;
+    }
+
+    if (ret != 1) {
+        log_info("remote connection unexpectedly closed");
+        break_contact(ContactEvent::BROKEN);
+        return false;
+    }
+    
+    ::gettimeofday(&keepalive_sent_, 0);
+    
+    return true;
+}
+
+
+
+/**
  * Note that we observed some data inbound on this connection.
  */
 void
@@ -1072,73 +1059,71 @@ TCPConvergenceLayer::Connection::note_data_rcvd()
 
 
 /**
- * Handle an incoming ack, updating the acked length count. Timeout
- * specifies the amount of time the sender is willing to wait for the
- * ack.
+ * Handle an incoming ack from the receive buffer.
  */
 int
-TCPConvergenceLayer::Connection::handle_ack(Bundle* bundle, size_t* acked_len)
+TCPConvergenceLayer::Connection::handle_ack()
 {
-    char typecode;
-    size_t new_acked_len;
-
-    // first read in the typecode 
-    int cc = sock_->read(&typecode, 1);
-    if (cc != 1) {
-        log_err("handle_ack: error reading typecode: %s",
-                strerror(errno));
-        return oasys::IOERROR;
+    if (inflight_.empty()) {
+        log_err("handle_ack: received ack but no bundles in flight!");
+ protocol_error:
+        break_contact(ContactEvent::BROKEN);
+        return EINVAL;
     }
-    note_data_rcvd();
+    InFlightBundle* ifbundle = &inflight_.front();
 
-    // ignore KEEPALIVE messages, we are looking for acks
-    // ignore SHUTDOWN, because the caller will figure it out anyway
-    if (typecode == KEEPALIVE || typecode == SHUTDOWN) {
-        return 1;
+    // now see if we got a complete ack header
+    if (rcvbuf_.fullbytes() < (1 + sizeof(BundleAckHeader))) {
+        log_debug("handle_ack: not enough space in buffer (got %u, need %u...",
+                  rcvbuf_.fullbytes(), sizeof(BundleAckHeader));
+        return ENOMEM;
     }
 
-    // other than that, all we should get are acks
-    if (typecode != BUNDLE_ACK) {
-        log_err("handle_ack: unexpected frame header type code 0x%x",
-                typecode);
-        return oasys::IOERROR;
-    }
-
-    // now just read in the ack header and validate the acked length
-    // and the bundle id
+    // if we do, copy it out, after skipping the typecode
     BundleAckHeader ackhdr;
-    cc = sock_->read((char*)&ackhdr, sizeof(BundleAckHeader));
-    if (cc != sizeof(BundleAckHeader))
-    {
-        log_err("handle_ack: error reading ack header (got %d/%u): %s",
-                cc, (u_int)sizeof(BundleAckHeader), strerror(errno));
-        return oasys::IOERROR;
-    }
-    note_data_rcvd();
+    memcpy(&ackhdr, rcvbuf_.start() + 1, sizeof(BundleAckHeader));
+    rcvbuf_.consume(1 + sizeof(BundleAckHeader));
 
-    new_acked_len = ntohl(ackhdr.acked_length);
+    Bundle* bundle = ifbundle->bundle_.object();
+    size_t new_acked_len = ntohl(ackhdr.acked_length);
     size_t payload_len = bundle->payload_.length();
     
     log_debug("handle_ack: got ack length %d for bundle id %d length %d",
               (u_int)new_acked_len, ackhdr.bundle_id, (u_int)payload_len);
-
-    if (ackhdr.bundle_id != bundle->bundleid_)
-    {
+    
+    if (ackhdr.bundle_id != bundle->bundleid_) {
         log_err("handle_ack: error: bundle id mismatch %d != %d",
                 ackhdr.bundle_id, bundle->bundleid_);
-        return oasys::IOERROR;
+        goto protocol_error;
     }
 
-    if (new_acked_len < *acked_len ||
-        new_acked_len > payload_len)
+    if (new_acked_len < ifbundle->acked_len_ || new_acked_len > payload_len)
     {
         log_err("handle_ack: invalid acked length %u (acked %u, bundle %u)",
-                (u_int)new_acked_len, (u_int)*acked_len, (u_int)payload_len);
-        return oasys::IOERROR;
+                (u_int)new_acked_len, (u_int)ifbundle->acked_len_,
+                (u_int)payload_len);
+        goto protocol_error;
     }
-    
-    *acked_len = new_acked_len;
-    return 1;
+
+    // check if we're done with the bundle and if we need to unblock
+    // the link (assuming we're not doing pipelining)
+    if (new_acked_len == payload_len) {
+        inflight_.pop_front();
+        
+        BundleDaemon::post(
+            new BundleTransmittedEvent(bundle, contact_, payload_len, true));
+        
+        if ((!params_.pipeline_) && (contact_->link()->state() == Link::BUSY)) {
+            BundleDaemon::post(
+                new LinkStateChangeRequest(contact_->link(), Link::AVAILABLE,
+                                           ContactEvent::NO_INFO));
+        }
+
+    } else {
+        ifbundle->acked_len_ = new_acked_len;
+    }
+
+    return 0;
 }
 
 /**
@@ -1328,6 +1313,7 @@ TCPConvergenceLayer::Connection::recv_address(int timeout)
     return true;
 }
 
+
 /**
  * Active connect side of the initial handshake. First connect to the
  * peer side, then exchange ContactHeaders and negotiate session
@@ -1404,7 +1390,8 @@ TCPConvergenceLayer::Connection::connect()
 
     return true;
 }
-                
+
+
 bool
 TCPConvergenceLayer::Connection::open_opportunistic_link()
 {
@@ -1478,7 +1465,7 @@ TCPConvergenceLayer::Connection::open_opportunistic_link()
     return true;
 }
 
-
+
 /**
  * Passive accept side of the initial handshake.
  */
@@ -1511,6 +1498,7 @@ TCPConvergenceLayer::Connection::accept()
     return true;
 }
 
+
 /**
  * Send an event to the system indicating that this contact is broken
  * and close the side of the connection.
@@ -1523,58 +1511,155 @@ TCPConvergenceLayer::Connection::accept()
  * a request that it be closed.
  */
 void
-TCPConvergenceLayer::Connection::break_contact(ContactDownEvent::reason_t reason)
+TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
 {
-    char typecode = SHUTDOWN;
     ASSERT(sock_);
-
-    if (sock_->set_nonblocking(true) == 0) {
-        sock_->write(&typecode, 1);
-        // do not log an error when we fail to write, since the
-        // SHUTDOWN is basically advisory. Expected errors here
-        // include a short write due to socket already closed,
-        // or maybe EAGAIN due to socket not ready for write.
-    }
-    sock_->close();
-
-    // In all cases where break_contact is called, the Connection
-    // thread is about to terminate. However, once the
-    // ContactDownEvent is posted, TCPCL::close_contact() will try
-    // to stop the Connection thread. So we preemptively indicate in
-    // the thread flags that we're gonna stop shortly.
-    set_should_stop();
     
-    if (contact_ && !contact_->link()->isclosing()) {
-        BundleDaemon::post(
-            new LinkStateChangeRequest(contact_->link(), Link::CLOSING, reason));
+    // do not log an error when we fail to write, since the
+    // SHUTDOWN is basically advisory. Expected errors here
+    // include a short write due to socket already closed,
+    // or maybe EAGAIN due to socket not ready for write.
+    char typecode = SHUTDOWN;
+    if (sock_->state() != oasys::IPSocket::CLOSED) {
+        sock_->set_nonblocking(true);
+        sock_->write(&typecode, 1);
+        sock_->close();
+    }
+
+    if (contact_) {
+        // drain the inflight queue, posting transmitted events for all
+        // bundles that haven't yet been fully acked
+        while (! inflight_.empty()) {
+            InFlightBundle* inflight = &inflight_.front();
+
+            if (inflight->acked_len_ != 0) {
+                BundleDaemon::post(
+                    new BundleTransmittedEvent(inflight->bundle_.object(),
+                                               contact_,
+                                               inflight->acked_len_,
+                                               true));
+            } else {
+                BundleDaemon::post(
+                    new BundleTransmittedEvent(inflight->bundle_.object(),
+                                               contact_,
+                                               inflight->bundle_->payload_.length(),
+                                               false));
+            }
+
+            inflight_.pop_front();
+        }
+
+        if (!contact_->link()->isclosing()) {
+            BundleDaemon::post(
+                new LinkStateChangeRequest(contact_->link(), Link::CLOSING,
+                                           reason));
+        }
+    } else {
+        // if there's no contact, there shouldn't be any in
+        // flight bundles
+        ASSERT(inflight_.empty());
     }
 }
 
+
+/**
+ * Handle an incoming message from the receiver side (i.e. an ack,
+ * keepalive, or shutdown. We expect that the caller has previously
+ * done a poll(), so we expect data to actually be on the socket. As
+ * such, we read as much as we can into the receive buffer and process
+ * until we run out of complete messages.
+ */
+bool
+TCPConvergenceLayer::Connection::handle_reply()
+{
+    // Reserve at least one byte of space, which has the side-effect
+    // of moving up any needed buffer space if we're at the end.
+    //
+    // However, the buffer should have been pre-reserved with the
+    // configured receive buffer size.
+    rcvbuf_.reserve(1);
+
+    int ret = sock_->read(rcvbuf_.end(), rcvbuf_.tailbytes());
+
+    if (ret == oasys::IOINTR) {
+        log_info("connection interrupted");
+        break_contact(ContactEvent::USER);
+        return false;
+    }
+
+    if (ret < 1) {
+        log_info("remote connection unexpectedly closed");
+        break_contact(ContactEvent::BROKEN);
+        return false;
+    }
+
+    rcvbuf_.fill(ret);
+    note_data_rcvd();
+
+    do {
+        char typecode = *rcvbuf_.start();
+        
+        if (typecode == BUNDLE_ACK) {
+            int ret = handle_ack();
+
+            if (ret == 0) {
+                // complete ack, nothing to do                
+                
+            } else if (ret == ENOMEM) {
+                break; // incomplete ack message
+            
+            } else if (ret == EINVAL) {
+                return false; // internal error, break contact was called
+
+            } else {
+                PANIC("unexpected return %d from handle_ack", ret);
+            }
+            
+        } else if (typecode == KEEPALIVE) {
+            rcvbuf_.consume(1);
+            ::gettimeofday(&data_rcvd_, 0);
+
+        } else if (typecode == SHUTDOWN) {
+            rcvbuf_.consume(1);
+            log_info("got shutdown request from other side");
+            break_contact(ContactEvent::USER);
+            break;
+        
+        } else {
+            log_err("got unexpected frame code %d", typecode);
+            break_contact(ContactEvent::BROKEN);
+            return false;
+        }
+        
+    } while (rcvbuf_.fullbytes() > 0);
+    
+    return true;
+}
+
+
 /**
  * The sender side main thread loop.
  */
 void
 TCPConvergenceLayer::Connection::send_loop()
 {
-    char typecode;
-    int ret;
-
     // someone should already have established the session
     ASSERT(sock_->state() == oasys::IPSocket::ESTABLISHED);
     
     // inform the daemon that the contact is available
     ASSERT(contact_);
     BundleDaemon::post(new ContactUpEvent(contact_));
+
+    // reserve space in the buffers
+    rcvbuf_.reserve(params_.readbuf_len_);
+    sndbuf_.reserve(params_.writebuf_len_);
     
     log_info("connection established -- (keepalive time %d seconds)",
              params_.keepalive_interval_);
 
-    // from now on, all our operations will use non-blocking semantics
-    sock_->set_nonblocking(true);
-
     // build up a poll vector since we need to block below on input
-    // from both the socket and the bundle list notifier
-    struct pollfd pollfds[3];
+    // from the socket and the bundle list
+    struct pollfd pollfds[2];
 
     struct pollfd* bundle_poll = &pollfds[0];
     bundle_poll->fd            = queue_->notifier()->read_fd();
@@ -1584,91 +1669,92 @@ TCPConvergenceLayer::Connection::send_loop()
     sock_poll->fd            = sock_->fd();
     sock_poll->events        = POLLIN;
 
-    struct pollfd* notifier_poll = &pollfds[2];
-    notifier_poll->fd            = sock_->get_notifier()->read_fd();
-    notifier_poll->events        = POLLIN;
-
-    // keep track of the time we got data and keepalives
+    // keep track of the time we got data and idle
     struct timeval now;
-    struct timeval keepalive_rcvd;
-    struct timeval keepalive_sent;
+    struct timeval idle_start;
 
-    // let's give the remote end credit for a keepalive, even though all they
-    // have done so far is open the connection.
-    ::gettimeofday(&keepalive_rcvd, 0);
-
+    // flag for whether or not we're in idle state
+    bool idle = false;
+    
     // main loop
     while (true) {
         BundleRef bundle("TCPCL::send_loop temporary");
 
-        // XXX/demmer debug this and make it a clean close_contact
+        // if we've been interrupted, then the link should close
         if (should_stop()) {
+            break_contact(ContactEvent::USER);
             return;
         }
-        
+
         // pop the bundle (if any) off the queue, which gives us a
         // local reference on it
         bundle = queue_->pop_front();
 
         if (bundle != NULL) {
-            size_t acked_len = 0;
+            // clear the idle bit
+            idle = false;
             
-            // we got a bundle, so send it off. 
-            bool sentok = send_bundle(bundle.object(), &acked_len);
-
-            // reset the keepalive timer
-            ::gettimeofday(&keepalive_rcvd, 0);
-
-            // if we sent some part of the bundle successfully, mark
-            // the link as not busy any more and notify the daemon
-            // that the transmission succeeded.
-            if (sentok || (acked_len > 0)) {
-                contact_->link()->set_state(Link::OPEN);
+            // if the link is currently busy, notify the router that
+            // we're not any more. note that if we're not pipelining,
+            // this is done by handle_ack once the bundle has been
+            // acknowledged
+            if (params_.pipeline_ && (contact_->link()->state() == Link::BUSY))
+            {
                 BundleDaemon::post(
-                    new BundleTransmittedEvent(bundle.object(),
-                                               contact_->link(),
-                                               acked_len, true));
+                    new LinkStateChangeRequest(contact_->link(),
+                                               Link::AVAILABLE,
+                                               ContactEvent::NO_INFO));
             }
-
-            // remove the local reference
+            
+            // send the bundle off and remove our local reference
+            bool sentok = send_bundle(bundle.object());
             bundle = NULL;
-
+            
             // if the last transmission wasn't completely successful,
             // it's time to break the contact
             if (!sentok) {
-                goto broken;
+                return;
             }
 
             // otherwise, we loop back to the beginning and check for
-            // more bundles on the queue
+            // more bundles on the queue as an optimization to check
+            // the list before calling poll
             continue;
         }
 
+        // Check for whether or not we've just become idle, in which
+        // case we record the current time
+        if (!idle && inflight_.empty()) {
+            idle = true;
+            ::gettimeofday(&idle_start, 0);
+        }
+        
         // No bundle, so we'll block for:
-        // 1) some activity on the socket, i.e. a keepalive or shutdown
-        // 2) the bundle list notifier indicates new bundle to send
-        // 3) thread is interrupted XXX/bowei
-        // note that we pass the negotiated keepalive as the timeout
-        // to the poll call to make sure the other side sends its
-        // keepalive in time
+        // 1) some activity on the socket, (i.e. keepalive, ack, or shutdown)
+        // 2) the bundle list notifier that indicates new bundle to send
+        //
+        // Note that we pass the negotiated keepalive timer (if set)
+        // as the timeout to the poll call so we know when we should
+        // send a keepalive
         pollfds[0].revents = 0;
         pollfds[1].revents = 0;
-        pollfds[2].revents = 0;        
 
         int timeout = params_.keepalive_interval_ * 1000;
-        log_debug("send_loop: calling poll (timeout %d)", timeout);
-                  
-        // XXX/bowei - this use of poll probably needs cleanup
-        int nready = poll(pollfds, 2, timeout);
-        if (nready < 0) {
-            if (errno == EINTR)
-                continue;
-            
-            log_err("error return %d from poll: %s", nready, strerror(errno));
-            goto broken;
+        if (timeout == 0) {
+            timeout = -1; // block forever
         }
 
-        // check for a message (or shutdown) from the other side
+        log_debug("send_loop: calling poll (timeout %d)", timeout);
+        int cc = oasys::IO::poll_multiple(pollfds, 2, timeout,
+                                          sock_->get_notifier(), logpath_);
+        
+        if (cc == oasys::IOINTR) {
+            log_info("send_loop: interrupted from poll, breaking connection");
+            break_contact(ContactEvent::USER);
+            return;
+        }
+
+        // check for a message from the other side
         if (sock_poll->revents != 0) {
             if ((sock_poll->revents & POLLHUP) ||
                 (sock_poll->revents & POLLERR))
@@ -1676,70 +1762,45 @@ TCPConvergenceLayer::Connection::send_loop()
                 log_info("send_loop: remote connection error");
                 goto broken;
             }
-
+            
             if (! (sock_poll->revents & POLLIN)) {
                 PANIC("unknown revents value 0x%x", sock_poll->revents);
             }
-
+            
             log_debug("send_loop: data available on the socket");
-            ret = sock_->read(&typecode, 1);
-            if (ret != 1) {
-                log_info("send_loop: "
-                         "remote connection unexpectedly closed");
-                goto broken;
+            if (!handle_reply()) {
+                return;
             }
-
-            // do not note_data_rcvd() after this read, because it
-            // is the one where we expect KEEPALIVEs to arrive,
-            // and they don't count to keep the connection from
-            // being declared idle.
-
-            if (typecode == KEEPALIVE) {
-                // mark that we got a keepalive as expected
-                ::gettimeofday(&keepalive_rcvd, 0);
-            } else if (typecode == SHUTDOWN) {
-                goto idle;
-            } else {
-                log_warn("send_loop: "
-                         "got unexpected frame code %d", typecode);
-                goto broken;
-            }
-
         }
 
-        // if nready is zero then the command timed out, implying that
-        // it's time to send a keepalive.
-        if (nready == 0) {
-            log_debug("send_loop: timeout fired, sending keepalive");
-            typecode = KEEPALIVE;
-            ret = sock_->write(&typecode, 1);
-            if (ret != 1) {
-                log_info("send_loop: "
-                         "remote connection unexpectedly closed");
-                goto broken;
-            }
-
-            ::gettimeofday(&keepalive_sent, 0);
+        // check if it's time to send a keepalive
+        if (cc == oasys::IOTIMEOUT) {
+            log_debug("timeout from poll, sending keepalive");
+            ASSERT(params_.keepalive_interval_ != 0);
+            send_keepalive();
+            continue;
         }
 
         // check that it hasn't been too long since the other side
-        // sent us a keepalive
+        // sent us some data
         ::gettimeofday(&now, 0);
-        u_int elapsed = TIMEVAL_DIFF_MSEC(now, keepalive_rcvd);
+        u_int elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
         if (elapsed > (2 * params_.keepalive_interval_ * 1000)) {
-            log_info("send_loop: no keepalive heard for %d msecs "
+            log_info("send_loop: no data heard for %d msecs "
                      "(sent %u.%u, rcvd %u.%u, now %u.%u) -- closing contact",
                      elapsed,
-                     (u_int)keepalive_sent.tv_sec,
-                     (u_int)keepalive_sent.tv_usec,
-                     (u_int)keepalive_rcvd.tv_sec,
-                     (u_int)keepalive_rcvd.tv_usec,
+                     (u_int)keepalive_sent_.tv_sec,
+                     (u_int)keepalive_sent_.tv_usec,
+                     (u_int)data_rcvd_.tv_sec, (u_int)data_rcvd_.tv_usec,
                      (u_int)now.tv_sec, (u_int)now.tv_usec);
             goto broken;
         }
-        // see if it is time to close the connection due to it going idle
-        elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
-        if (elapsed > (params_.idle_close_time_ * 1000)) {
+
+        // check if the connection has been idle for too long
+        elapsed = TIMEVAL_DIFF_MSEC(now, idle_start);
+        if (params_.idle_close_time_ != 0 &&
+            (elapsed > params_.idle_close_time_ * 1000))
+        {
             log_info("connection idle for %d msecs, closing.", elapsed);
             goto idle;
         } else {
@@ -1749,11 +1810,11 @@ TCPConvergenceLayer::Connection::send_loop()
     }
         
  broken:
-    break_contact(ContactDownEvent::BROKEN);
+    break_contact(ContactEvent::BROKEN);
     return;
 
  idle:
-    break_contact(ContactDownEvent::IDLE);
+    break_contact(ContactEvent::IDLE);
     return;
 }
 
@@ -1766,15 +1827,16 @@ TCPConvergenceLayer::Connection::recv_loop()
     struct timeval now;
     u_int elapsed;
 
-    oasys::StreamBuffer buf(params_.readbuf_len_);
-
+    // reserve space in the buffer
+    rcvbuf_.reserve(params_.readbuf_len_);
+    
     while (1) {
         // see if it is time to close the connection due to it being idle
         ::gettimeofday(&now, 0);
         elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
         if (elapsed > params_.idle_close_time_ * 1000) {
             log_info("connection idle for %d milliseconds, closing.", elapsed);
-            break_contact(ContactDownEvent::IDLE);
+            break_contact(ContactEvent::IDLE);
             return;
         } else {
             log_debug("connection not idle: %d <= %d",
@@ -1783,19 +1845,18 @@ TCPConvergenceLayer::Connection::recv_loop()
 
         // if there's nothing in the buffer,
         // block waiting for the one byte typecode
-        if (buf.fullbytes() == 0) {
-            ASSERT(buf.end() == buf.data()); // sanity
+        if (rcvbuf_.fullbytes() == 0) {
+            ASSERT(rcvbuf_.end() == rcvbuf_.data()); // sanity
             
             timeout = 2 * params_.keepalive_interval_ * 1000;
-            log_debug("recv_loop: blocking on frame... (timeout %d)",
-                      timeout);
+            log_debug("recv_loop: blocking on frame... (timeout %d)", timeout);
             
-            ret = sock_->timeout_read(buf.end(), params_.readbuf_len_, timeout);
+            ret = sock_->timeout_read(rcvbuf_.end(), rcvbuf_.tailbytes(), timeout);
             
             if (ret == oasys::IOEOF || ret == oasys::IOERROR) {
                 log_info("recv_loop: remote connection unexpectedly closed");
  shutdown:
-                break_contact(ContactDownEvent::BROKEN);
+                break_contact(ContactEvent::BROKEN);
                 return;
                 
             } else if (ret == oasys::IOTIMEOUT) {
@@ -1804,11 +1865,11 @@ TCPConvergenceLayer::Connection::recv_loop()
                 goto shutdown;
             }
 
-            buf.fill(ret);
+            rcvbuf_.fill(ret);
         }
 
-        typecode = *buf.start();
-        buf.consume(1);
+        typecode = *rcvbuf_.start();
+        rcvbuf_.consume(1);
         
         log_debug("recv_loop: got frame packet type 0x%x...", typecode);
 
@@ -1817,11 +1878,9 @@ TCPConvergenceLayer::Connection::recv_loop()
         }
         
         if (typecode == KEEPALIVE) {
-            log_debug("recv_loop: "
-                      "got keepalive, sending response");
-            ret = sock_->write(&typecode, 1);
-            if (ret != 1) {
-                log_info("recv_loop: remote connection unexpectedly closed");
+            log_debug("recv_loop: " "got keepalive, sending response");
+
+            if (!send_keepalive()) {
                 goto shutdown;
             }
             continue;
@@ -1835,7 +1894,7 @@ TCPConvergenceLayer::Connection::recv_loop()
         }
         
         // process the bundle
-        if (! recv_bundle(&buf)) {
+        if (! recv_bundle()) {
             goto shutdown;
         }
      }

@@ -92,8 +92,7 @@ LoggingRegistration::consume_bundle(Bundle* b)
     }
 
     // post the transmitted event
-    BundleDaemon::post(
-        new BundleTransmittedEvent(b, this, b->payload_.length(), true));
+    BundleDaemon::post(new BundleDeliveredEvent(b, this));
 }
 
 } // namespace dtn

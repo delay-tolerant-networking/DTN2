@@ -73,10 +73,7 @@ APIRegistration::consume_bundle(Bundle* bundle)
                  bundle->bundleid_, regid_, endpoint_.c_str());
         
         // post an event saying we "delivered" it
-        // XXX/demmer change this event class
-        BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, this,
-                                       bundle->payload_.length(), true));
+        BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
     }
 
     if (!active() && (failure_action_ == EXEC)) {

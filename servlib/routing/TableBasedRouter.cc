@@ -116,18 +116,6 @@ TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
 }
 
 /**
- * And again if we've sent a bundle on the link (since it may have
- * been busy.
- */
-void
-TableBasedRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
-{
-    if (event->consumer_->type() == BundleConsumer::LINK) {
-        check_next_hop((Link*)event->consumer_);
-    }
-}
-
-/**
  * Format the given StringBuffer with current routing info.
  */
 void
@@ -199,15 +187,29 @@ TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
     int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
-        if (next_hop == NULL || (next_hop == (*iter)->next_hop_)) {
-            fwd_to_nexthop(bundle, *iter);
-            ++count;
-        } else {
+        if (next_hop != NULL && (next_hop != (*iter)->next_hop_)) {
             log_debug("fwd_to_matching %s: "
                       "ignoring match %s since next_hop link %s set",
                       bundle->dest_.c_str(), (*iter)->next_hop_->name(),
                       next_hop->name());
+            continue;
         }
+
+        ForwardingEntry::state_t state =
+            bundle->fwdlog_.get_state((*iter)->next_hop_->nexthop());
+        
+        if (state == ForwardingEntry::SENT ||
+            state == ForwardingEntry::IN_FLIGHT)
+        {
+            log_debug("fwd_to_matching %s: "
+                      "ignore match %s due to forwarding log entry %s",
+                      bundle->dest_.c_str(), (*iter)->next_hop_->name(),
+                      ForwardingEntry::state_to_str(state));
+            continue;
+        }
+                      
+        fwd_to_nexthop(bundle, *iter);
+        ++count;
     }
 
     log_debug("fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);

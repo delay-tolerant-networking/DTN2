@@ -335,7 +335,7 @@ LinkStateRouter::LSRegistration::consume_bundle(Bundle* bundle)
     }    
 
  done:
-    BundleDaemon::post(new BundleTransmittedEvent(bundle, this, payload_len, true));
+    BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
 }
 
 } // namespace dtn

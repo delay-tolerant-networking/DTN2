@@ -232,6 +232,7 @@ protected:
      */
     void handle_bundle_received(BundleReceivedEvent* event);
     void handle_bundle_transmitted(BundleTransmittedEvent* event);
+    void handle_bundle_delivered(BundleDeliveredEvent* event);
     void handle_bundle_expired(BundleExpiredEvent* event);
     void handle_bundle_free(BundleFreeEvent* event);
     void handle_registration_added(RegistrationAddedEvent* event);

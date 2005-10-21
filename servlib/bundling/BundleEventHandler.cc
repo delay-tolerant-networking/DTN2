@@ -22,6 +22,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_transmitted((BundleTransmittedEvent*)e);
         break;
 
+    case BUNDLE_DELIVERED:
+        handle_bundle_delivered((BundleDeliveredEvent*)e);
+        break;
+
     case BUNDLE_EXPIRED:
         handle_bundle_expired((BundleExpiredEvent*)e);
         break;
@@ -100,6 +104,14 @@ BundleEventHandler::handle_bundle_received(BundleReceivedEvent* event)
  */
 void
 BundleEventHandler::handle_bundle_transmitted(BundleTransmittedEvent* event)
+{
+}
+
+/**
+ * Default event handler when bundles are locally delivered.
+ */
+void
+BundleEventHandler::handle_bundle_delivered(BundleDeliveredEvent* event)
 {
 }
 

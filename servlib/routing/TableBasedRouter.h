@@ -97,12 +97,6 @@ protected:
     void handle_link_available(LinkAvailableEvent* event);
 
     /**
-     * And again if we've sent a bundle on the link (since it may have
-     * been busy.
-     */
-    void handle_bundle_transmitted(BundleTransmittedEvent* event);
-        
-    /**
      * Dump the routing state.
      */
     void get_routing_state(oasys::StringBuffer* buf);

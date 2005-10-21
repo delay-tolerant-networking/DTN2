@@ -468,7 +468,7 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     if (cc == (int)(header_len + payload_len)) {
         log_info("send_bundle: sent bundle length %d", cc);
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_->link(),
+            new BundleTransmittedEvent(bundle, contact_,
                                        bundle->payload_.length(),
                                        false));
         ok = true;

@@ -203,8 +203,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     
     if (!b->is_admin_) {
         cmdinterp->set_objresult(objv);
-        BundleDaemon::post(
-            new BundleTransmittedEvent(b.object(), this, payload_len, true));
+        BundleDaemon::post(new BundleDeliveredEvent(b.object(), this));
         return TCL_OK;
     }
 
@@ -249,8 +248,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     // reports:
     if (sr.admin_type_ != BundleProtocol::ADMIN_STATUS_REPORT) {
         cmdinterp->set_objresult(objv);
-        BundleDaemon::post(
-            new BundleTransmittedEvent(b.object(), this, payload_len, true));
+        BundleDaemon::post(new BundleDeliveredEvent(b.object(), this));
         return TCL_OK;
     }
 
@@ -376,8 +374,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     
     cmdinterp->set_objresult(objv);
 
-    BundleDaemon::post(
-        new BundleTransmittedEvent(b.object(), this, payload_len, true));
+    BundleDaemon::post(new BundleDeliveredEvent(b.object(), this));
     
     return TCL_OK;
 }
