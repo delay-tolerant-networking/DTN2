@@ -142,6 +142,7 @@ dtn_build_local_eid(dtn_handle_t h,
     }
 
     // pack the request
+    memset(&service_tag, 0, sizeof(service_tag));
     memcpy(&service_tag.tag[0], tag, len);
     if (!xdr_dtn_service_tag_t(xdr_encode, &service_tag)) {
         handle->err = DTN_EXDR;
