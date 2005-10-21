@@ -42,9 +42,15 @@ namespace eval dtn {
 	    }
 	    return
 	}
-	
-	tell_dtnd $id shutdown
-	tell::close_socket $net::host($id) [dtn::get_port console $id]
+
+	if [catch {
+	    tell_dtnd $id shutdown
+	} err] {
+	    puts "ERROR: error in shutdown of dtnd id $id"
+	}
+	catch {
+	    tell::close_socket $net::host($id) [dtn::get_port console $id]
+	}
     }
 
     proc run_app { id app_name {exec_args ""} } {
