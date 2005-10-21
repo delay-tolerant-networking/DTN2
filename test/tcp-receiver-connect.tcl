@@ -85,6 +85,9 @@ test::script {
     dtn::run_dtnd 0
     dtn::wait_for_dtnd 0
 
+    puts "* Setting up registration"
+    dtn::tell_dtnd 0 tcl_registration $dest
+
     puts "* Waiting for link to open"
     dtn::wait_for_link_state 1 link-0 OPEN
 
