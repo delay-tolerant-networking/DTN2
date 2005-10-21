@@ -25,6 +25,9 @@ set tests(basic) {
 # the performance test group
 set tests(perf) {
     "dtn-perf.tcl"		""
+    "dtn-perf.tcl"		"-payload_len 50B"
+    "dtn-perf.tcl"		"-payload_len 5MB  -file_payload"
+    "dtn-perf.tcl"		"-payload_len 50MB -file_payload"
 }
 
 # check test group
