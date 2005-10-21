@@ -593,10 +593,6 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             // note that the link is being closed
             link->set_state(Link::CLOSING);
         
-            // immediately handle (don't post) a new ContactDownEvent to
-            // inform the routers that this link is going away
-            ContactDownEvent e(link->contact(), reason);
-            handle_event(&e);
         } else {
             // The only case where we should get this event when the link
             // is not actually open is if it's in the process of being
@@ -613,11 +609,18 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             link->set_state(Link::CLOSING);
         }
     
+        // if this request is user generated, we need to inform the
+        // routers that the contact is going down
+        if (reason == ContactEvent::USER) {
+            ContactDownEvent e(link->contact(), reason);
+            handle_event(&e);
+        }
+        
         // now actually close the link
         link->close();
 
-        // now, based on the reason code, update the link availability and
-        // set state accordingly
+        // now, based on the reason code, update the link availability
+        // and set state accordingly
         if (reason == ContactEvent::IDLE) {
             link->set_state(Link::AVAILABLE);
         } else {
@@ -646,7 +649,20 @@ void
 BundleDaemon::handle_contact_down(ContactDownEvent* event)
 {
     Contact* contact = event->contact_;
-    log_info("CONTACT_DOWN *%p", contact);
+    Link* link = event->contact_->link();
+    ContactEvent::reason_t reason = event->reason_;
+    
+    log_info("CONTACT_DOWN *%p (%s)",
+             contact, ContactEvent::reason_to_str(reason));
+    
+    // based on the reason code, update the link availability
+    // and set state accordingly
+    if (reason == ContactEvent::IDLE) {
+        post(new LinkStateChangeRequest(link, Link::CLOSING, reason));
+    } else {
+        link->set_state(Link::UNAVAILABLE);
+        post(new LinkUnavailableEvent(link, reason));
+    }
 }
 
 /**

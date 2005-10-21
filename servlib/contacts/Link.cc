@@ -35,6 +35,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <oasys/util/OptParser.h>
+
 #include "Link.h"
 #include "ContactManager.h"
 #include "AlwaysOnLink.h"
@@ -109,12 +111,21 @@ Link::Link(const std::string& name, link_type_t type,
     }
 
     log_info("new link *%p", this);
+
+    min_retry_interval_ = 0;
+    max_retry_interval_ = 0;
+    retry_interval_     = 0;
 }
 
 int
 Link::parse_args(int argc, const char* argv[])
 {
-    return 0;
+    oasys::OptParser p;
+    
+    p.addopt(new oasys::UIntOpt("min_retry_interval", &min_retry_interval_));
+    p.addopt(new oasys::UIntOpt("max_retry_interval", &max_retry_interval_));
+    
+    return p.parse_and_shift(argc, argv);
 }
 
 Link::~Link()

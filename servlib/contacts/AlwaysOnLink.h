@@ -38,14 +38,20 @@
 #ifndef _ALWAYSONLINK_H_
 #define _ALWAYSONLINK_H_
 
-#include "OndemandLink.h"
+#include "Link.h"
 
 namespace dtn {
 
-class AlwaysOnLink : public OndemandLink {
+
+/**
+ * Abstraction for an always on link.
+ *
+ * ALWAYSON links are immediately opened upon creation and remain open
+ * for their duration.
+ */
+class AlwaysOnLink : public Link {
 public:
     AlwaysOnLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
-
 };
 } // namespace dtn
 

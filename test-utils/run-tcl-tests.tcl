@@ -16,7 +16,8 @@ set tests(basic) {
     "send-one-bundle.tcl"	"-cl udp"
     "send-for-two-minutes.tcl"	""
     "bundle-status-reports.tcl"	""
-    "test-link-updown.tcl"	""
+    "tcp-ondemand-links.tcl"	""
+    "tcp-alwayson-links.tcl"	""
     "tcp-receiver-connect.tcl"	""
     "dtn-ping.tcl"		""
 }

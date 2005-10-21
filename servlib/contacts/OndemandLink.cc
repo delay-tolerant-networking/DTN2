@@ -48,26 +48,28 @@ namespace dtn {
  */
 OndemandLink::OndemandLink(std::string name,
                            ConvergenceLayer* cl,
-                           const char* nexthop,
-                           link_type_t type)
-    : Link(name, type, cl, nexthop)
+                           const char* nexthop)
+    : Link(name, ONDEMAND, cl, nexthop)
 {
     set_state(AVAILABLE);
+
+    min_retry_interval_ = 5;
+    max_retry_interval_ = 10 * 60;
+    retry_interval_     = min_retry_interval_;
+    idle_close_time_    = 30;
+
     BundleDaemon::post(new LinkAvailableEvent(this, ContactEvent::NO_INFO));
 }
 
 int
 OndemandLink::parse_args(int argc, const char* argv[])
 {
+    if (Link::parse_args(argc, argv) == -1) {
+        return -1;
+    }
+    
     oasys::OptParser p;
-
-    min_retry_interval_ = 30;
-    max_retry_interval_ = 10 * 60;
-    
-    p.addopt(new oasys::IntOpt("min_retry_interval", &min_retry_interval_));
-    p.addopt(new oasys::IntOpt("max_retry_interval", &max_retry_interval_));
-    retry_interval_ = min_retry_interval_;
-    
+    p.addopt(new oasys::UIntOpt("idle_close_time", &idle_close_time_));
     return p.parse_and_shift(argc, argv);
 }
 

@@ -104,8 +104,7 @@ public:
         u_int8_t  flags;		///< connection flags (see above)
         u_int16_t partial_ack_len;	///< requested size for partial acks
         u_int16_t keepalive_interval;	///< seconds between keepalive packets
-        u_int16_t idle_close_time;	///< seconds of idle time before close
-				///  (keepalive packets do not count)
+        u_int16_t __unused;
     } __attribute__((packed));
 
     /**
@@ -225,9 +224,10 @@ public:
         u_int writebuf_len_;		///< Buffer size per write() call
         u_int readbuf_len_;		///< Buffer size per read() call
         u_int keepalive_interval_;	///< Seconds between keepalive pacekts
-        u_int idle_close_time_;		///< Seconds to keep idle connections
-        u_int connect_retry_;		///< Msecs between connect attempts
-        u_int connect_timeout_;		///< Msecs for connection timeout
+        u_int retry_interval_;		///< (copied from Link params)
+        u_int min_retry_interval_;	///< (copied from Link params)
+        u_int max_retry_interval_;	///< (copied from Link params)
+        u_int16_t idle_close_time;	///< Seconds of idle time before close
         u_int rtt_timeout_;		///< Msecs to wait for data
         int test_fragment_size_;	///< Test hook to force reactive frag.
     };

@@ -61,6 +61,7 @@
 #include "bundling/FragmentManager.h"
 #include "bundling/SDNV.h"
 #include "contacts/ContactManager.h"
+#include "contacts/OndemandLink.h"
 #include "routing/BundleRouter.h"
 
 namespace dtn {
@@ -91,9 +92,9 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     defaults_.writebuf_len_ 		= 32768;
     defaults_.readbuf_len_ 		= 32768;
     defaults_.keepalive_interval_	= 2;
-    defaults_.idle_close_time_ 	 	= 30;
-    defaults_.connect_retry_		= 10000; // msecs
-    defaults_.connect_timeout_		= 30000; // msecs
+    defaults_.retry_interval_		= 5;
+    defaults_.min_retry_interval_	= 5;
+    defaults_.max_retry_interval_	= 10 * 60;
     defaults_.rtt_timeout_		= 5000;  // msecs
     defaults_.test_fragment_size_	= -1;
 }
@@ -123,9 +124,10 @@ TCPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::UIntOpt("readbuf_len", &params->readbuf_len_));
     p.addopt(new oasys::UIntOpt("keepalive_interval",
                                 &params->keepalive_interval_));
-    p.addopt(new oasys::UIntOpt("idle_close_time", &params->idle_close_time_));
-    p.addopt(new oasys::UIntOpt("connect_retry", &params->connect_retry_));
-    p.addopt(new oasys::UIntOpt("connect_timeout", &params->connect_timeout_));
+    p.addopt(new oasys::UIntOpt("min_retry_interval",
+                                &params->min_retry_interval_));
+    p.addopt(new oasys::UIntOpt("max_retry_interval",
+                                &params->max_retry_interval_));
     p.addopt(new oasys::UIntOpt("rtt_timeout", &params->rtt_timeout_));
     p.addopt(new oasys::IntOpt("test_fragment_size",
                                &params->test_fragment_size_));
@@ -321,11 +323,12 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
-    // the only idle links that are closed should be ondemand ones
-    if (link->type() != Link::ONDEMAND) {
-        params->idle_close_time_ = 0; 
-    }
-
+    // copy the retry parameters from the link itself (we need a copy
+    // for ourselves to support receiver connect)
+    params->retry_interval_     = link->retry_interval_;
+    params->min_retry_interval_ = link->min_retry_interval_;
+    params->max_retry_interval_ = link->max_retry_interval_;
+    
     link->set_cl_info(params);
 
     return true;
@@ -565,53 +568,96 @@ TCPConvergenceLayer::Connection::~Connection()
 
 /**
  * The main loop for a connection. Based on the initial construction
- * state, it may initiate a connection to the other side, then calls
- * one of send_loop or recv_loop.
+ * state, it either initiates a connection to the other side, or
+ * accepts one, then calls one of send_loop or recv_loop.
+ *
+ * The whole thing is wrapped in a big loop so the active side of the
+ * connection is restarted if it's supposed to be, e.g. for links that
+ * are configured as ALWAYSON but end up breaking the connection.
  */
 void
 TCPConvergenceLayer::Connection::run()
 {
-    if (initiate_)
-    {
-        if (! connect()) {
-            /*
-             * If the connection fails, assuming the link is not
-             * already in the process of being broken we tell the
-             * daemon to close the link with a BROKEN reason code. If
-             * it succeeds, then the first thing that send_loop() does
-             * is post the ContactUpEvent.
-             */
-            log_debug("connection failed");
+    // XXX/demmer much of this could be abstracted into a generic CL
+    // ConnectionThread class, assuming we had another
+    // connection-oriented CL that we wanted to support (e.g. SCTP)
 
-            if (contact_ != NULL && !contact_->link()->isclosing()) {
-                BundleDaemon::post(
-                    new LinkStateChangeRequest(contact_->link(),
-                                               Link::CLOSING,
-                                               ContactEvent::BROKEN));
+    while (1) {
+        log_debug("connection main loop starting up...");
+        
+        if (initiate_)
+        {
+            if (! connect()) {
+                log_debug("connection failed");
+                break_contact(ContactEvent::BROKEN);
+                goto broken;
+            }
+
+            // if we successfully connected, reset the retry timer to
+            // the minimum interval
+            params_.retry_interval_ = params_.min_retry_interval_;
+
+            // if the link isn't currently in OPENING state, then we
+            // need to put it there since send_loop will post a
+            // ContactUpEvent
+            if (contact_ && (contact_->link()->state() != Link::OPENING)) {
+                contact_->link()->set_state(Link::OPENING);
             }
             
-            return; // trigger a deletion
+        } else {
+            /*
+             * If accepting a connection failed, we always return
+             * which triggers the thread to be deleted and therefore
+             * cleans up our state.
+             */
+            if (! accept()) {
+                log_debug("accept failed");
+                return; // trigger a deletion
+            }
         }
-    } else {
-        /*
-         * If accepting a connection failed, we just return which
-         * triggers the thread to be deleted and therefore to clean up
-         * our state.
-         */
-        if (! accept()) {
-            log_debug("accept failed");
-            return; // trigger a deletion
-        }
-    }
 
-    if (direction_ == SENDER) {
-        send_loop();
+        if (direction_ == SENDER) {
+            send_loop();
 
-    } else if (direction_ == RECEIVER) {
-        recv_loop();
+        } else if (direction_ == RECEIVER) {
+            recv_loop();
         
-    } else {
-        PANIC("direction_ not set by connect() or accept()");
+        } else {
+            PANIC("direction_ not set by connect() or accept()");
+        }
+
+ broken:
+        // use the thread's should_stop() indicator (set by
+        // break_contact() as well as the interruption routines) to
+        // determine when we should exit, either because we were
+        // interrupted by a user action (i.e. link close), we're the
+        // passive acceptor, or because an ondemand link is idle
+        if (should_stop())
+            return;
+
+        // otherwise, we should really be the initiator, or else
+        // something wierd happened
+        if (!initiate_) {
+            log_err("passive side exited loop but didn't set should_stop!");
+            return;
+        }
+        
+        // sleep for the appropriate retry amount (by waiting to see
+        // if we're interrupted) and try to re-establish the
+        // connection
+        ASSERT(sock_->get_notifier());
+        log_info("waiting for %d seconds before retrying connection",
+                 params_.retry_interval_);
+        if (sock_->get_notifier()->wait(NULL, params_.retry_interval_ * 1000)) {
+            log_info("socket interrupted from retry sleep -- exiting thread");
+            return;
+        }
+
+        // double the retry timer up to the max for the next time around
+        params_.retry_interval_ = params_.retry_interval_ * 2;
+        if (params_.retry_interval_ > params_.max_retry_interval_) {
+            params_.retry_interval_ = params_.max_retry_interval_;
+        }
     }
 
     log_debug("connection thread main loop complete -- thread exiting");
@@ -1149,7 +1195,6 @@ TCPConvergenceLayer::Connection::send_contact_header()
     
     contacthdr.partial_ack_len 	  = htons(params_.partial_ack_len_);
     contacthdr.keepalive_interval = htons(params_.keepalive_interval_);
-    contacthdr.idle_close_time    = htons(params_.idle_close_time_);
 
     int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
     if (cc != sizeof(ContactHeader)) {
@@ -1214,15 +1259,12 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
     
     params_.keepalive_interval_ = MIN(params_.keepalive_interval_,
                                       ntohs(contacthdr.keepalive_interval));
-    
-    params_.idle_close_time_    = MIN(params_.idle_close_time_,
-                                      ntohs(contacthdr.idle_close_time));
 
-    params_.bundle_ack_enabled_ = params_.bundle_ack_enabled_ &
-                                  contacthdr.flags & BUNDLE_ACK_ENABLED;
+    params_.bundle_ack_enabled_ = params_.bundle_ack_enabled_ &&
+                                  (contacthdr.flags & BUNDLE_ACK_ENABLED);
 
-    params_.reactive_frag_enabled_ = params_.reactive_frag_enabled_ &
-                                     contacthdr.flags & REACTIVE_FRAG_ENABLED;
+    params_.reactive_frag_enabled_ = params_.reactive_frag_enabled_ &&
+                                     (contacthdr.flags & REACTIVE_FRAG_ENABLED);
 
     if (initiate_) {
         // check that the passive side didn't try to set the
@@ -1328,51 +1370,27 @@ TCPConvergenceLayer::Connection::connect()
     log_debug("connect: connecting to %s:%d...",
               intoa(sock_->remote_addr()), sock_->remote_port());
 
-    struct timeval start, now;
-    ::gettimeofday(&start, 0);
-    
-    while (1) {
-        int ret = sock_->timeout_connect(sock_->remote_addr(),
-                                         sock_->remote_port(),
-                                         params_.connect_timeout_);
+    int ret = sock_->timeout_connect(sock_->remote_addr(),
+                                     sock_->remote_port(),
+                                     params_.rtt_timeout_);
 
-        if (should_stop()) {
-            log_debug("connect thread interrupted, should_stop set");
-            return false;
-        }
-
-        if (ret == 0) { 
-            break; // success
-        }
-        else if (ret == oasys::IOERROR) {
-            log_info("connection attempt to %s:%d failed... "
-                     "waiting %d seconds and retrying connect",
-                     intoa(sock_->remote_addr()), sock_->remote_port(),
-                     params_.connect_retry_ / 1000);
-            sleep(params_.connect_retry_ / 1000);
-            
-            if (should_stop()) {
-                log_debug("connect thread interrupted in sleep, "
-                          "should_stop set");
-                return false;
-            }
-        }
-        else if (ret == oasys::IOTIMEOUT) {
-            log_info("connection attempt to %s:%d timed out... retrying",
-                     intoa(sock_->remote_addr()), sock_->remote_port());
-        }
-        
-        sock_->close();
-
-        ::gettimeofday(&now, 0);
-        if (TIMEVAL_DIFF_MSEC(start, now) > params_.connect_timeout_) {
-            log_info("connection attempt to %s:%d failed: "
-                     "timeout exceeded, link unavailable",
-                     intoa(sock_->remote_addr()), sock_->remote_port());
-            
-            return false;
-        }
+    if (ret == oasys::IOINTR) {
+        log_debug("connect thread interrupted");
+        return false;
     }
+    
+    else if (ret == oasys::IOERROR) {
+        log_info("connection attempt to %s:%d failed... ",
+                 intoa(sock_->remote_addr()), sock_->remote_port());
+        return false;
+    }
+    
+    else if (ret == oasys::IOTIMEOUT) {
+        log_info("connection attempt to %s:%d timed out...",
+                 intoa(sock_->remote_addr()), sock_->remote_port());
+        return false;
+    }
+        
     log_debug("connect: connection established, sending contact header...");
     if (!send_contact_header())
         return false;
@@ -1380,7 +1398,7 @@ TCPConvergenceLayer::Connection::connect()
     log_debug("connect: waiting for contact header reply...");
     if (!recv_contact_header(params_.rtt_timeout_))
         return false;
-
+    
     if (params_.receiver_connect_) {
         ASSERT(direction_ == RECEIVER);
         log_debug("connect: receiver_connect sending local address");
@@ -1388,7 +1406,7 @@ TCPConvergenceLayer::Connection::connect()
             return false;
         }
     }
-
+    
     return true;
 }
 
@@ -1550,15 +1568,26 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
             inflight_.pop_front();
         }
 
-        if (!contact_->link()->isclosing()) {
-            BundleDaemon::post(
-                new LinkStateChangeRequest(contact_->link(), Link::CLOSING,
-                                           reason));
+        // if the link is not being closed by the user, and the link
+        // isn't already in state unavailable, inform the daemon /
+        // routers that it's gone down
+        if (reason != ContactEvent::USER &&
+            contact_->link()->state() != Link::UNAVAILABLE)
+        {
+            BundleDaemon::post(new ContactDownEvent(contact_, reason));
         }
+        
     } else {
         // if there's no contact, there shouldn't be any in
         // flight bundles
         ASSERT(inflight_.empty());
+    }
+
+    // if we're the passive acceptor, or the link went idle, we want
+    // to exit the main loop, so set the should_stop flag as an
+    // indicator of this
+    if (!initiate_ || (reason == ContactEvent::IDLE)) {
+        set_should_stop();
     }
 }
 
@@ -1761,7 +1790,8 @@ TCPConvergenceLayer::Connection::send_loop()
                 (sock_poll->revents & POLLERR))
             {
                 log_info("send_loop: remote connection error");
-                goto broken;
+                break_contact(ContactEvent::BROKEN);
+                return;
             }
             
             if (! (sock_poll->revents & POLLIN)) {
@@ -1794,29 +1824,30 @@ TCPConvergenceLayer::Connection::send_loop()
                      (u_int)keepalive_sent_.tv_usec,
                      (u_int)data_rcvd_.tv_sec, (u_int)data_rcvd_.tv_usec,
                      (u_int)now.tv_sec, (u_int)now.tv_usec);
-            goto broken;
+            
+            break_contact(ContactEvent::BROKEN);
+            return;
         }
 
         // check if the connection has been idle for too long
-        elapsed = TIMEVAL_DIFF_MSEC(now, idle_start);
-        if (params_.idle_close_time_ != 0 &&
-            (elapsed > params_.idle_close_time_ * 1000))
-        {
-            log_info("connection idle for %d msecs, closing.", elapsed);
-            goto idle;
-        } else {
-            log_debug("connection not idle: %d <= %d",
-                      elapsed, params_.idle_close_time_ * 1000);
+        // (on demand links only)
+        if (contact_->link()->type() == Link::ONDEMAND) {
+            u_int idle_close_time =
+                ((OndemandLink*)contact_->link())->idle_close_time_;
+            
+            elapsed = TIMEVAL_DIFF_MSEC(now, idle_start);
+            if (idle_close_time != 0 && (elapsed > idle_close_time * 1000))
+            {
+                log_info("connection idle for %d msecs, closing.", elapsed);
+                set_should_stop();
+                break_contact(ContactEvent::IDLE);
+                return;
+            } else {
+                log_debug("connection not idle: %d <= %d",
+                          elapsed, idle_close_time * 1000);
+            }
         }
     }
-        
- broken:
-    break_contact(ContactEvent::BROKEN);
-    return;
-
- idle:
-    break_contact(ContactEvent::IDLE);
-    return;
 }
 
 void
@@ -1825,25 +1856,11 @@ TCPConvergenceLayer::Connection::recv_loop()
     int timeout;
     int ret;
     char typecode;
-    struct timeval now;
-    u_int elapsed;
 
     // reserve space in the buffer
     rcvbuf_.reserve(params_.readbuf_len_);
     
     while (1) {
-        // see if it is time to close the connection due to it being idle
-        ::gettimeofday(&now, 0);
-        elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
-        if (elapsed > params_.idle_close_time_ * 1000) {
-            log_info("connection idle for %d milliseconds, closing.", elapsed);
-            break_contact(ContactEvent::IDLE);
-            return;
-        } else {
-            log_debug("connection not idle: %d <= %d",
-                      elapsed, params_.idle_close_time_ * 1000);
-        }
-
         // if there's nothing in the buffer,
         // block waiting for the one byte typecode
         if (rcvbuf_.fullbytes() == 0) {
@@ -1876,14 +1893,15 @@ TCPConvergenceLayer::Connection::recv_loop()
         log_debug("recv_loop: got frame packet type 0x%x...", typecode);
 
         if (typecode == SHUTDOWN) {
-            goto shutdown;
+            break_contact(ContactEvent::USER);
+            return;
         }
         
         if (typecode == KEEPALIVE) {
             log_debug("recv_loop: " "got keepalive, sending response");
 
             if (!send_keepalive()) {
-                goto shutdown;
+                return;
             }
             continue;
         }

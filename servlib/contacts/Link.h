@@ -354,6 +354,32 @@ public:
      * Virtual from formatter
      */
     int format(char* buf, size_t sz) const;
+
+    /**************************************************************
+     * Link Parameters
+     */
+    
+    /**
+     * Seconds to wait between attempts to re-open an unavailable
+     * link, doubles up to max_retry_interval_.
+     */
+    u_int retry_interval_;
+
+    /**
+     * Minimum amount to wait between attempts to re-open the link.
+     *
+     * Default is set by the various Link types but can be overridden
+     * by configuration parameters.
+     */
+    u_int min_retry_interval_;
+    
+    /**
+     * Maximum amount to wait between attempts to re-open the link.
+     *
+     * Default is set by the various Link types but can be overridden
+     * by configuration parameters.
+     */
+    u_int max_retry_interval_;
     
 protected:
     friend class BundleActions;

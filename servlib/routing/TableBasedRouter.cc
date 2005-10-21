@@ -135,7 +135,7 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
 {
     Link* link = nexthop->next_hop_;
 
-    // if the link is open and idle, send the bundle to it
+    // if the link is open and not busy, send the bundle to it
     if (link->isopen() && !link->isbusy()) {
         log_debug("sending *%p to *%p", bundle, link);
         actions_->send_bundle(bundle, link);

@@ -43,10 +43,16 @@ namespace dtn {
 
 AlwaysOnLink::AlwaysOnLink(std::string name, ConvergenceLayer* cl,
                            const char* nexthop)
-    : OndemandLink(name, cl, nexthop, ALWAYSON)
+    : Link(name, ALWAYSON, cl, nexthop)
 {
-    BundleDaemon::post(new LinkStateChangeRequest(this, Link::OPEN,
-                                                  ContactEvent::USER));
+    set_state(AVAILABLE);
+
+    min_retry_interval_ = 5;
+    max_retry_interval_ = 10 * 60;
+    retry_interval_     = min_retry_interval_;
+
+    BundleDaemon::post(
+        new LinkStateChangeRequest(this, Link::OPEN, ContactEvent::USER));
 }
 
 } // namespace dtn

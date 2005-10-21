@@ -43,14 +43,10 @@
 namespace dtn {
 
 /**
- * Abstraction for a ONDEMAND link and an ALWAYSON link.
+ * Abstraction for a ONDEMAND link.
  *
- * ALWAYSON links are immediately opened upon creation and remain open
- * for their duration.
- *
- * ONDEMAND links have to be opened everytime one wants to use it. It
- * has by definition only -one contact- that is associated and no
- * future contacts/history.
+ * ONDEMAND links have to be opened everytime one wants to use it and
+ * close after an idle period.
  */
 class OndemandLink : public Link {
 public:
@@ -58,30 +54,18 @@ public:
      * Constructor.
      * Sets the state to AVAILABLE immediately.
      */
-   OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop,
-                link_type_t type = ONDEMAND);
-
+    OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
+    
     /**
      * Parse the arguments.
      */
     virtual int parse_args(int argc, const char* argv[]);
-
-    /**
-     * Seconds to wait between attempts to re-open an unavailable
-     * link, doubles up to max_retry_interval_. Default is 30 seconds.
-     */
-    int retry_interval_;
-
-    /**
-     * Minimum amount to wait between attempts to re-open the link.
-     */
-    int min_retry_interval_;
     
     /**
-     * Maximum amount to wait between attempts to re-open the link.
-     * Default is 10 minutes.
+     * Seconds of idle time before the link is closed.
+     * Default is 30 seconds.
      */
-    int max_retry_interval_;
+    u_int idle_close_time_;
 };
 
 } // namespace dtn

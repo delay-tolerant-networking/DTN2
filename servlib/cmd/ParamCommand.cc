@@ -72,8 +72,6 @@ ParamCommand::ParamCommand()
            &TCPConvergenceLayer::defaults_.partial_ack_len_, "");
     bind_i("tcpcl_keepalive_interval",
            &TCPConvergenceLayer::defaults_.keepalive_interval_, "");
-    bind_i("tcpcl_idle_close_time",
-           &TCPConvergenceLayer::defaults_.idle_close_time_, "");
     bind_i("tcpcl_test_fragment_size",
            &TCPConvergenceLayer::defaults_.test_fragment_size_, "");
 }
