@@ -220,10 +220,12 @@ namespace eval dtn {
 	}
     }
 
-    proc wait_for_link_state { id link state {timeout 30000} } {
-	do_until "waiting for link state $state" $timeout {
-	    if {![catch {check_link_state $id $link $state}]} {
-		return
+    proc wait_for_link_state { id link states {timeout 30000} } {
+	do_until "waiting for link state $states" $timeout {
+	    foreach state $states {
+		if {![catch {check_link_state $id $link $state}]} {
+		    return
+		}
 	    }
 	    after 1000
 	}
