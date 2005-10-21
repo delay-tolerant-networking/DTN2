@@ -71,7 +71,7 @@ test::script {
     test_sr receive_rcpt received_time $all_nodes
     
     # need to cut the link to create a deletion SR:
-    dtn::tell_dtnd 1 link close link-0
+    dtn::tell_dtnd 1 link close tcp-link:1-0
     after 1000
     test_sr deletion_rcpt deleted_time dtn://host-1
 
