@@ -58,8 +58,8 @@ test::script {
     dtn::run_dtnd 1
     dtn::wait_for_dtnd 1
     
-    puts "* checking that link is AVAILABLE"
-    dtn::wait_for_link_state $last_node link-1 UNAVAILABLE
+    puts "* checking that link is AVAILABLE or OPEN"
+    dtn::wait_for_link_state $last_node link-1 {AVAILABLE OPEN}
 
     puts "* waiting for bundle arrival"
     dtn::wait_for_bundle 0 "$source,$timestamp" 5000
