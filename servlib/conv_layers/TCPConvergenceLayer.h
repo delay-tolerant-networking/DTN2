@@ -217,7 +217,7 @@ public:
         in_addr_t remote_addr_;		///< Peer address used for rcvr-connect
         u_int16_t remote_port_;		///< Peer port used for rcvr-connect
         bool pipeline_;			///< Pipeline bundles on the socket
-        bool busy_queue_depth_;		///< Max # bundles in BD -> conn. queue
+        u_int32_t busy_queue_depth_;	///< Max # bundles in BD -> conn. queue
         bool bundle_ack_enabled_;	///< Use CL-specific bundle acks?
         bool reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         bool receiver_connect_;		///< rcvr-initiated connect (for NAT)
