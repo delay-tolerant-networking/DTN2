@@ -126,90 +126,18 @@ STATIC=
 test $static = yes && STATIC=yes
 AC_SUBST(STATIC)
 
-dnl
-dnl Handle --with-cc=CC
-dnl
-ac_with_cc=$CC
-AC_ARG_WITH(cc,
-    AC_HELP_STRING([--with-cc=CC],
-		   [name (or path) of the C compiler to use]),
-                   ac_with_cc=$withval)
-
-if test x$ac_with_cc = x ; then
-    ac_try_cc="gcc gcc-3.3 gcc-3.2 gcc-2.96 gcc296 gcc-2.95 gcc295"
-    ac_try_cxx="g++ g++-3.3 g++-3.2 g++-2.96 g++296 g++-2.95 g++295"
-else
-    CC=$ac_with_cc
-    ac_try_cc=$ac_with_cc
-    ac_try_cxx=`echo $ac_with_cc | sed 's/cc/++/'`
-fi
-
 dnl -------------------------------------------------------------------------
 dnl Checks for programs and libraries
 dnl -------------------------------------------------------------------------
-AC_MSG_CHECKING([for a C compiler (trying $ac_try_cc)])
-AC_MSG_RESULT([])
-AC_PROG_CC($ac_try_cc)
-AC_MSG_CHECKING([for a C++ compiler (trying $ac_try_cxx)])
-AC_MSG_RESULT([])
-AC_PROG_CXX($ac_try_cxx)
-AC_PROG_AWK
-AC_PROG_INSTALL
-AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 AC_OASYS_CONFIG_GCC
-AC_PROG_GCC_TRADITIONAL
-AC_SEARCH_LIBS(pthread_create, pthread, [], 
-  AC_MSG_ERROR([can't find required library function (pthread_create)]))
-AC_CHECK_FUNC(pthread_yield, [], [AC_SEARCH_LIBS(sched_yield, rt, [],
-  AC_MSG_ERROR([can't find required library function (pthread_yield or sched_yield)]))])
-AC_SEARCH_LIBS(socket, socket, [],
-  AC_MSG_ERROR([can't find required library function (socket)]))
-AC_SEARCH_LIBS(gethostbyname, nsl, [],
-  AC_MSG_ERROR([can't find required library function (gethostbyname)]))
-AC_SEARCH_LIBS(xdr_int, rpc, [],
-  AC_MSG_ERROR([can't find required library function (xdr_int)]))
-
-dnl -------------------------------------------------------------------------
-dnl Checks for header files.
-dnl -------------------------------------------------------------------------
-AC_HEADER_DIRENT
-AC_CHECK_HEADERS([arpa/inet.h err.h fcntl.h float.h limits.h locale.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h synch.h sys/cdefs.h sys/file.h sys/ioctl.h sys/socket.h sys/time.h termios.h unistd.h wchar.h])
-AC_HEADER_STDBOOL
-AC_HEADER_STDC
-AC_HEADER_TIME
-
-dnl -------------------------------------------------------------------------
-dnl Checks for typedefs, structures, and compiler characteristics.
-dnl -------------------------------------------------------------------------
-AC_C_CONST
-AC_C_INLINE
-AC_TYPE_MODE_T
-AC_TYPE_OFF_T
-AC_TYPE_SIZE_T
-AC_C_VOLATILE
-AC_CHECK_TYPES([ptrdiff_t])
-AC_CHECK_TYPES([uint32_t])
-AC_CHECK_TYPES([u_int32_t])
-
-dnl -------------------------------------------------------------------------
-dnl Checks for library functions.
-dnl -------------------------------------------------------------------------
-if test "$cross_compiling" = yes; then
-    AC_MSG_NOTICE([assuming GNU libc compatible malloc and realloc for cross-compilation])
-    ac_cv_func_malloc_0_nonnull=yes
-    ac_cv_func_realloc_0_nonnull=yes
-fi
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
-AC_FUNC_MEMCMP
+AC_OASYS_SYSTEM_PROGRAMS
+AC_OASYS_SYSTEM_LIBRARIES
+AC_OASYS_SYSTEM_HEADERS
+AC_OASYS_SYSTEM_TYPES
+AC_OASYS_SYSTEM_FUNCTIONS
+AC_CHECK_HEADERS([sys/file.h termios.h])
+AC_CHECK_FUNCS([select strpbrk])
 AC_FUNC_SELECT_ARGTYPES
-AC_TYPE_SIGNAL
-AC_FUNC_STAT
-AC_FUNC_STRTOD
-AC_FUNC_VPRINTF
-AC_OASYS_FUNC_FPCLASSIFY
-AC_CHECK_FUNCS([bzero ftruncate getaddrinfo gethostbyname gethostbyname_r getopt_long gettimeofday inet_aton inet_pton isascii localeconv memchr memmove memset pthread_yield sched_yield mkdir select setenv socket strcasecmp strncasecmp strchr strcspn strdup strerror strpbrk strrchr strspn strstr strtol strtoul])
 
 dnl -------------------------------------------------------------------------
 dnl Dump the autoconf cache now to try to avoid redundant checks
