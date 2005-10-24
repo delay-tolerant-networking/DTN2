@@ -1195,7 +1195,8 @@ TCPConvergenceLayer::Connection::send_contact_header()
     
     contacthdr.partial_ack_len 	  = htons(params_.partial_ack_len_);
     contacthdr.keepalive_interval = htons(params_.keepalive_interval_);
-
+    contacthdr.__unused           = 0;
+    
     int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
     if (cc != sizeof(ContactHeader)) {
         log_err("error writing contact header (wrote %d/%u): %s",
@@ -1724,15 +1725,15 @@ TCPConvergenceLayer::Connection::send_loop()
     sock_poll->fd            = sock_->fd();
     sock_poll->events        = POLLIN;
 
-    // keep track of the time we got data and idle
-    struct timeval now;
-    struct timeval idle_start;
-
     // flag for whether or not we're in idle state
     bool idle = false;
     
     // main loop
     while (true) {
+        // keep track of the time we got data and idle
+        struct timeval now;
+        struct timeval idle_start;
+
         BundleRef bundle("TCPCL::send_loop temporary");
 
         // if we've been interrupted, then the link should close
@@ -1848,6 +1849,7 @@ TCPConvergenceLayer::Connection::send_loop()
                      (u_int)keepalive_sent_.tv_sec,
                      (u_int)keepalive_sent_.tv_usec,
                      (u_int)data_rcvd_.tv_sec, (u_int)data_rcvd_.tv_usec,
+
                      (u_int)now.tv_sec, (u_int)now.tv_usec);
             
             break_contact(ContactEvent::BROKEN);
@@ -1856,7 +1858,7 @@ TCPConvergenceLayer::Connection::send_loop()
 
         // check if the connection has been idle for too long
         // (on demand links only)
-        if (contact_->link()->type() == Link::ONDEMAND) {
+        if (idle && (contact_->link()->type() == Link::ONDEMAND)) {
             u_int idle_close_time =
                 ((OndemandLink*)contact_->link())->idle_close_time_;
             
