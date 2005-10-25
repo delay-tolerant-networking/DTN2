@@ -59,7 +59,7 @@ proc config_interface {cl args} {
 #
 proc config_console {} {
     foreach id [net::nodelist] {
-	conf::add dtnd $id "console set addr $net::host($id)"
+	conf::add dtnd $id "console set addr [gethostbyname $net::host($id)]"
 	conf::add dtnd $id "console set port [dtn::get_port console $id]"
     }
 }
@@ -69,7 +69,7 @@ proc config_console {} {
 #
 proc config_api_server {} {
     foreach id [net::nodelist] {
-	conf::add dtnd $id "api set local_addr $net::host($id)"
+	conf::add dtnd $id "api set local_addr [gethostbyname $net::host($id)]"
 	conf::add dtnd $id "api set local_port [dtn::get_port api $id]"
     }
 }
