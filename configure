@@ -311,7 +311,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all oasys"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR BUILDDIR TARGET DEBUG OPTIMIZE OPTIMIZE_WARN STATIC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP EGREP DEPFLAGS AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB LIBOBJS POW_LIB subdirs LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR BUILDDIR TARGET DEBUG OPTIMIZE OPTIMIZE_WARN PROFILE STATIC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP EGREP DEPFLAGS AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB LIBOBJS POW_LIB subdirs LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -853,14 +853,15 @@ Optional Features:
   --disable-debug         compile with debugging turned off
   --enable-debug-memory   enable memory debugging
   --disable-optimize      compile with optimization turned off
+  --enable-profile        compile with profiling
   --enable-static         use static libraries for tcl and berkeley db
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-previous-options      read config.status for configure options
-  --with-target=TARGET    use target TARGET (default native)
   --with-cc=CC            name (or path) of the C compiler to use
+  --with-target=TARGET    use target TARGET (default native)
   --with-tcl=DIR          location of a tcl installation (default system)
   --with-tcldir=DIR       same as --with-tcl
   --with-tclver=VERSION   tcl version to use (default 8.4 or 8.3)
@@ -1352,7 +1353,25 @@ BUILDDIR=$builddir
 
 
 
-TARGET=native
+                ac_with_cc=$CC
+
+# Check whether --with-cc or --without-cc was given.
+if test "${with_cc+set}" = set; then
+  withval="$with_cc"
+  ac_with_cc=$withval
+fi;
+
+    if test x$ac_with_cc = x ; then
+        ac_try_cc="gcc gcc-3.3 gcc-3.2 gcc-2.96 gcc296 gcc-2.95 gcc295"
+        ac_try_cxx="g++ g++-3.3 g++-3.2 g++-2.96 g++296 g++-2.95 g++295"
+    else
+        CC=$ac_with_cc
+        ac_try_cc=$ac_with_cc
+        ac_try_cxx=`echo $ac_with_cc | sed 's/cc/++/'`
+    fi
+
+
+                TARGET=native
 
 # Check whether --with-target or --without-target was given.
 if test "${with_target+set}" = set; then
@@ -1360,13 +1379,13 @@ if test "${with_target+set}" = set; then
   TARGET=$withval
 fi;
 
-echo "$as_me:$LINENO: checking compilation target" >&5
+    echo "$as_me:$LINENO: checking compilation target" >&5
 echo $ECHO_N "checking compilation target... $ECHO_C" >&6
-echo "$as_me:$LINENO: result: $TARGET" >&5
+    echo "$as_me:$LINENO: result: $TARGET" >&5
 echo "${ECHO_T}$TARGET" >&6
 
 
-# Check whether --enable-debug or --disable-debug was given.
+                    # Check whether --enable-debug or --disable-debug was given.
 if test "${enable_debug+set}" = set; then
   enableval="$enable_debug"
   debug=$enableval
@@ -1374,18 +1393,18 @@ else
   debug=yes
 fi;
 
-echo "$as_me:$LINENO: checking whether to compile with debugging" >&5
+    echo "$as_me:$LINENO: checking whether to compile with debugging" >&5
 echo $ECHO_N "checking whether to compile with debugging... $ECHO_C" >&6
-echo "$as_me:$LINENO: result: $debug" >&5
+    echo "$as_me:$LINENO: result: $debug" >&5
 echo "${ECHO_T}$debug" >&6
 
-DEBUG=
-if test $debug = yes ; then
-   DEBUG="-g -fno-inline"
-fi
+    DEBUG=
+    if test $debug = yes ; then
+        DEBUG="-g -fno-inline"
+    fi
 
 
-# Check whether --enable-debug_memory or --disable-debug_memory was given.
+                    # Check whether --enable-debug_memory or --disable-debug_memory was given.
 if test "${enable_debug_memory+set}" = set; then
   enableval="$enable_debug_memory"
   debug_memory=$enableval
@@ -1393,21 +1412,21 @@ else
   debug_memory=no
 fi;
 
-echo "$as_me:$LINENO: checking whether to compile with memory debugging" >&5
+    echo "$as_me:$LINENO: checking whether to compile with memory debugging" >&5
 echo $ECHO_N "checking whether to compile with memory debugging... $ECHO_C" >&6
-echo "$as_me:$LINENO: result: $debug_memory" >&5
+    echo "$as_me:$LINENO: result: $debug_memory" >&5
 echo "${ECHO_T}$debug_memory" >&6
 
-if test $debug_memory = yes ; then
+    if test $debug_memory = yes ; then
 
 cat >>confdefs.h <<_ACEOF
 #define OASYS_DEBUG_MEMORY_ENABLED 1
 _ACEOF
 
-fi
+    fi
 
-optimize=yes
-# Check whether --enable-optimize or --disable-optimize was given.
+                    optimize=yes
+    # Check whether --enable-optimize or --disable-optimize was given.
 if test "${enable_optimize+set}" = set; then
   enableval="$enable_optimize"
   optimize=$enableval
@@ -1415,21 +1434,42 @@ else
   optimize=no
 fi;
 
-echo "$as_me:$LINENO: checking whether to compile with optimization" >&5
+    echo "$as_me:$LINENO: checking whether to compile with optimization" >&5
 echo $ECHO_N "checking whether to compile with optimization... $ECHO_C" >&6
-echo "$as_me:$LINENO: result: $optimize" >&5
+    echo "$as_me:$LINENO: result: $optimize" >&5
 echo "${ECHO_T}$optimize" >&6
 
-OPTIMIZE=
-OPTIMIZE_WARN=
-if test $optimize = yes ; then
-   OPTIMIZE=-O2
-   OPTIMIZE_WARN=-Wuninitialized
-fi
+    OPTIMIZE=
+    OPTIMIZE_WARN=
+    if test $optimize = yes ; then
+        OPTIMIZE=-O2
+        OPTIMIZE_WARN=-Wuninitialized
+    fi
 
 
 
-# Check whether --enable-static or --disable-static was given.
+                profile=
+    # Check whether --enable-profile or --disable-profile was given.
+if test "${enable_profile+set}" = set; then
+  enableval="$enable_profile"
+  profile=$enableval
+else
+  profile=no
+fi;
+
+    echo "$as_me:$LINENO: checking whether to compile with profiling" >&5
+echo $ECHO_N "checking whether to compile with profiling... $ECHO_C" >&6
+    echo "$as_me:$LINENO: result: $profile" >&5
+echo "${ECHO_T}$profile" >&6
+
+    PROFILE=
+    if test $profile = yes ; then
+        PROFILE="-pg"
+    fi
+
+
+
+                    # Check whether --enable-static or --disable-static was given.
 if test "${enable_static+set}" = set; then
   enableval="$enable_static"
   static=$enableval
@@ -1437,13 +1477,13 @@ else
   static=no
 fi;
 
-echo "$as_me:$LINENO: checking whether to build and link using static tcl and db libraries" >&5
+    echo "$as_me:$LINENO: checking whether to build and link using static tcl and db libraries" >&5
 echo $ECHO_N "checking whether to build and link using static tcl and db libraries... $ECHO_C" >&6
-echo "$as_me:$LINENO: result: $static" >&5
+    echo "$as_me:$LINENO: result: $static" >&5
 echo "${ECHO_T}$static" >&6
 
-STATIC=
-test $static = yes && STATIC=yes
+    STATIC=
+    test $static = yes && STATIC=yes
 
 
 
@@ -1463,23 +1503,6 @@ echo "${ECHO_T}$ac_cv_prog_egrep" >&6
  EGREP=$ac_cv_prog_egrep
 
 
-
-                ac_with_cc=$CC
-
-# Check whether --with-cc or --without-cc was given.
-if test "${with_cc+set}" = set; then
-  withval="$with_cc"
-  ac_with_cc=$withval
-fi;
-
-    if test x$ac_with_cc = x ; then
-        ac_try_cc="gcc gcc-3.3 gcc-3.2 gcc-2.96 gcc296 gcc-2.95 gcc295"
-        ac_try_cxx="g++ g++-3.3 g++-3.2 g++-2.96 g++296 g++-2.95 g++295"
-    else
-        CC=$ac_with_cc
-        ac_try_cc=$ac_with_cc
-        ac_try_cxx=`echo $ac_with_cc | sed 's/cc/++/'`
-    fi
 
                 echo "$as_me:$LINENO: checking for a C compiler (trying $ac_try_cc)" >&5
 echo $ECHO_N "checking for a C compiler (trying $ac_try_cc)... $ECHO_C" >&6
@@ -9147,6 +9170,7 @@ s,@TARGET@,$TARGET,;t t
 s,@DEBUG@,$DEBUG,;t t
 s,@OPTIMIZE@,$OPTIMIZE,;t t
 s,@OPTIMIZE_WARN@,$OPTIMIZE_WARN,;t t
+s,@PROFILE@,$PROFILE,;t t
 s,@STATIC@,$STATIC,;t t
 s,@CC@,$CC,;t t
 s,@CFLAGS@,$CFLAGS,;t t

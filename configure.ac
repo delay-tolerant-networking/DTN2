@@ -38,97 +38,9 @@ BUILDDIR=$builddir
 AC_SUBST(BUILDDIR)
 
 dnl -------------------------------------------------------------------------
-dnl Basic user-configurable options
-dnl -------------------------------------------------------------------------
-
-dnl
-dnl Handle --with-target=target
-dnl
-TARGET=native
-AC_ARG_WITH(target,
-	AC_HELP_STRING([--with-target=TARGET],[use target TARGET (default native)]),
-	[TARGET=$withval])
-
-AC_MSG_CHECKING([compilation target])
-AC_MSG_RESULT($TARGET)
-AC_SUBST(TARGET)
-
-dnl
-dnl Handle --enable-debug[=yes|no]
-dnl 	   --disable-debug
-dnl
-AC_ARG_ENABLE(debug,
-	AC_HELP_STRING([--disable-debug],[compile with debugging turned off]),
-	[debug=$enableval],
-	[debug=yes])
-
-AC_MSG_CHECKING([whether to compile with debugging])
-AC_MSG_RESULT($debug)
-
-DEBUG=
-if test $debug = yes ; then 
-   DEBUG="-g -fno-inline"
-fi
-AC_SUBST(DEBUG)
-	
-dnl
-dnl Handle --enable-debug-memory[=yes|no]
-dnl 	   --disable-debug-memory
-dnl
-AC_ARG_ENABLE(debug_memory,
-	AC_HELP_STRING([--enable-debug-memory],[enable memory debugging]),
-	[debug_memory=$enableval],
-	[debug_memory=no])
-
-AC_MSG_CHECKING([whether to compile with memory debugging])
-AC_MSG_RESULT($debug_memory)
-
-if test $debug_memory = yes ; then
-AC_DEFINE_UNQUOTED(OASYS_DEBUG_MEMORY_ENABLED, 1,
-                  [whether oasys memory debugging is enabled])
-fi
-
-dnl
-dnl Handle --enable-optimize[=yes|no]
-dnl 	   --disable-optimize
-dnl
-optimize=yes
-AC_ARG_ENABLE(optimize,
-	AC_HELP_STRING([--disable-optimize],[compile with optimization turned off]),
-	[optimize=$enableval],
-	[optimize=no])
-
-AC_MSG_CHECKING([whether to compile with optimization])
-AC_MSG_RESULT($optimize)
-
-OPTIMIZE=
-OPTIMIZE_WARN=
-if test $optimize = yes ; then
-   OPTIMIZE=-O2
-   OPTIMIZE_WARN=-Wuninitialized
-fi
-AC_SUBST(OPTIMIZE)
-AC_SUBST(OPTIMIZE_WARN)
-
-dnl
-dnl Handle --enable-static[=yes|no]
-dnl 	   --disable-static
-dnl
-AC_ARG_ENABLE(static,
-	AC_HELP_STRING([--enable-static],[use static libraries for tcl and berkeley db]),
-	[static=$enableval],
-	[static=no])
-
-AC_MSG_CHECKING([whether to build and link using static tcl and db libraries])
-AC_MSG_RESULT($static)
-
-STATIC=
-test $static = yes && STATIC=yes
-AC_SUBST(STATIC)
-
-dnl -------------------------------------------------------------------------
 dnl Checks for programs and libraries
 dnl -------------------------------------------------------------------------
+AC_OASYS_CONFIG_GCC_OPTS
 AC_OASYS_CONFIG_GCC
 AC_OASYS_SYSTEM_PROGRAMS
 AC_OASYS_SYSTEM_LIBRARIES
