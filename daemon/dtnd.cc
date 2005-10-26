@@ -41,6 +41,7 @@
 #include <string>
 #include <sys/time.h>
 
+#include <oasys/debug/FatalSignals.h>
 #include <oasys/debug/Log.h>
 #include <oasys/io/NetUtils.h>
 #include <oasys/memory/Memory.h>
@@ -217,6 +218,7 @@ main(int argc, char* argv[])
     init_log(loglevelstr);
     
     log_notice("/dtnd", "DTN daemon starting up... (pid %d)", getpid());
+    oasys::FatalSignals::init("dtnd");
     
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
