@@ -50,7 +50,7 @@ proc config_interface {cl args} {
 	set port [dtn::get_port $cl $id]
 	
 	conf::add dtnd $id [eval list interface add ${cl}0 $cl \
-		local_addr=$host local_port=$port $args]
+		local_addr=[gethostbyname $host] local_port=$port $args]
     }
 }
 
