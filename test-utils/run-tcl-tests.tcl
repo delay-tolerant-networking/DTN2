@@ -14,7 +14,6 @@ if {[llength $argv] < 1} {
 set tests(basic) {
     "send-one-bundle.tcl"	"-cl tcp"
     "send-one-bundle.tcl"	"-cl udp"
-    "send-for-two-minutes.tcl"	""
     "bundle-status-reports.tcl"	""
     "tcp-ondemand-links.tcl"	""
     "tcp-alwayson-links.tcl"	""
