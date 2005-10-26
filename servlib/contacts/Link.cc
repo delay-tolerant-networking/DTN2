@@ -235,6 +235,11 @@ Link::close()
         return;
     }
 
+    if (!contact_) {
+        log_err("Link::close with no contact");
+        return;
+    }
+    
     // Kick the convergence layer to close the contact and make sure
     // it cleaned up its state
     clayer()->close_contact(contact_);
