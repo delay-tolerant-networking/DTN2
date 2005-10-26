@@ -1582,24 +1582,28 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
             BundleDaemon::post(new ContactDownEvent(contact_, reason));
         }
 
-        // if we're the passive acceptor but have a contact, then we
-        // must be in receiver connect mode...
-        // a) the connection was broken and the main loop is about to
-        // exit, deleting this object, in which case we make sure
-        // there's no dangling pointer to us in the contact cl_info
-        // slot... or
+        // if we have a contact but we're the passive acceptor (i.e.
+        // initiate_ is false), we must be in receiver connect mode,
+        // so either:
+        //
+        // a) the connection was broken and the Connection run() loop
+        // is about to exit, deleting this object, in which case we
+        // make sure there's no dangling pointer to us in the contact
+        // cl_info slot, or...
         //
         // b) the user (likely by calling shutdown) is calling
         // close_link() which interrupted us... in which case we leave
         // the cl_info slot, and clear the DELETE_ON_EXIT flag since
         // the caller will delete us
+        //
+        // XXX/demmer there's still annoying race conditions here...
         
         if (! initiate_) {
-            if (reason == ContactDownEvent::USER) { // a)
-                clear_flag(Thread::DELETE_ON_EXIT);
+            if (reason != ContactDownEvent::USER) { // a)
+                contact_->set_cl_info(NULL);
 
             } else { // b)
-                contact_->set_cl_info(NULL);
+                clear_flag(Thread::DELETE_ON_EXIT);
             }
         }
         
