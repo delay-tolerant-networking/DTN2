@@ -187,12 +187,8 @@ TCPConvergenceLayer::interface_up(Interface* iface,
         Connection* conn =
             new Connection(this, params.remote_addr_, params.remote_port_,
                            Connection::RECEIVER, &params);
-
-        // XXX/demmer again, there should be some structure to manage
-        // the receiver side of connections
-        conn->set_flag(oasys::Thread::DELETE_ON_EXIT);
         conn->start();
-
+        
         return true;
     }
 
@@ -376,8 +372,6 @@ TCPConvergenceLayer::open_contact(Contact* contact)
     Connection* conn = new Connection(this, addr, port,
                                       Connection::SENDER, params);
     conn->set_contact(contact);
-    contact->set_cl_info(conn);
-    
     conn->start();
 
     return true;
@@ -393,26 +387,26 @@ TCPConvergenceLayer::close_contact(Contact* contact)
 
     log_info("close_contact *%p", contact);
 
-    // XXX/demmer move this into an IO/Thread utility function
-    
     if (conn) {
         if (!conn->is_stopped() && !conn->should_stop()) {
             log_debug("interrupting connection thread");
             conn->set_should_stop();
             conn->interrupt_from_io();
+            oasys::Thread::yield();
         }
-            
-        while (!conn->is_stopped()) {
+
+        // the connection thread will delete itself when it
+        // terminates, however, it first clears the cl_info slot in
+        // the Contact class which is our indication that it exited,
+        // allowing us to exit
+        
+        while (contact->cl_info() != NULL) {
             log_debug("waiting for connection thread to stop...");
             usleep(100000);
-            conn->interrupt_from_io();
             oasys::Thread::yield();
         }
         
         log_debug("connection thread stopped...");
-
-        delete conn;
-        contact->set_cl_info(NULL);
     }
     
     return true;
@@ -461,10 +455,6 @@ TCPConvergenceLayer::Listener::accepted(int fd,
     log_debug("new connection from %s:%d", intoa(addr), port);
 
     Connection* conn = new Connection(cl_, fd, addr, port, &params_);
-    
-    // XXX/demmer this should really make a Contact equivalent or
-    // something like that and then not DELETE_ON_EXIT
-    conn->set_flag(Thread::DELETE_ON_EXIT);
     conn->start();
 }
 
@@ -500,6 +490,9 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
     } else {
         queue_ = NULL;
     }
+
+    // we always delete the thread object when we exit
+    Thread::set_flag(Thread::DELETE_ON_EXIT);
 
     // the actual socket
     sock_ = new oasys::TCPClient();
@@ -548,6 +541,9 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
       direction_(UNKNOWN), contact_(NULL)
 {
     logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
+
+    // we always delete the thread object when we exit
+    Thread::set_flag(Thread::DELETE_ON_EXIT);
 
     // create an empty queue (for now)
     ASSERT(!params->receiver_connect_);
@@ -1476,11 +1472,9 @@ TCPConvergenceLayer::Connection::open_opportunistic_link()
     if (link->contact() == NULL) {
         contact_ = new Contact(link);
         link->set_contact(contact_);
-        contact_->set_cl_info(this);
     } else {
         ASSERT(contact_ == NULL);
         contact_ = link->contact();
-        contact_->set_cl_info(this);
     }
     
     // a contact up event is delivered at the start of the send loop,
@@ -1584,24 +1578,14 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
             {
                 BundleDaemon::post(new ContactDownEvent(contact_, reason));
             }
-         
-            // unless we're not the connection initiator, meaning we
-            // must be in receiver connect mode. the thread is about
-            // to self-terminate due to the DELETE_ON_EXIT flag, so we
-            // need to clear out the contact's cl info structure to
-            // allow it to be reused later for another connection
-            if (! initiate_)
-            {
-                ASSERT(contact_->cl_info() == this);
-                contact_->set_cl_info(NULL);
-            }
         }
-        else
-        {
-            // if the connection is being closed by the user, then
-            // make sure we don't self-delete when we exit the run
-            // loop (receiver-connect threads)
-            Thread::clear_flag(Thread::DELETE_ON_EXIT);
+                 
+        // since we delete ourself using DELETE_ON_EXIT, we need to
+        // signal to the main thread that we've quit. we indicate as
+        // such by clearing the cl_info slot in the Contact
+        if (contact_->cl_info() != NULL) {
+            ASSERT(contact_->cl_info() == this);
+            contact_->set_cl_info(NULL);
         }
         
     } else {
@@ -1702,9 +1686,13 @@ TCPConvergenceLayer::Connection::send_loop()
 {
     // someone should already have established the session
     ASSERT(sock_->state() == oasys::IPSocket::ESTABLISHED);
+
+    // store our state in the contact's cl info slot
+    ASSERT(contact_);
+    ASSERT(contact_->cl_info() == NULL);
+    contact_->set_cl_info(this);
     
     // inform the daemon that the contact is available
-    ASSERT(contact_);
     BundleDaemon::post(new ContactUpEvent(contact_));
 
     // reserve space in the buffers
