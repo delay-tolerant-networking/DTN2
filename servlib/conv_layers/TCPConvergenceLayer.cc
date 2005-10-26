@@ -1306,9 +1306,10 @@ bool
 TCPConvergenceLayer::Connection::send_address()
 {
     AddressHeader addresshdr;
-    addresshdr.addr = htonl(sock_->local_addr());
-    addresshdr.port = htons(sock_->local_port());
-    
+    addresshdr.addr     = htonl(sock_->local_addr());
+    addresshdr.port     = htons(sock_->local_port());
+    addresshdr.__unused = 0;
+        
     log_debug("sending address header %s:%d...",
               intoa(sock_->local_addr()), sock_->local_port());
 
@@ -1573,38 +1574,34 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
             inflight_.pop_front();
         }
 
-        // if the link is not being closed by the user, and the link
-        // isn't already in state unavailable, inform the daemon /
-        // routers that it's gone down
-        if (reason != ContactEvent::USER &&
-            contact_->link()->state() != Link::UNAVAILABLE)
+        if (reason != ContactEvent::USER)
         {
-            BundleDaemon::post(new ContactDownEvent(contact_, reason));
-        }
-
-        // if we have a contact but we're the passive acceptor (i.e.
-        // initiate_ is false), we must be in receiver connect mode,
-        // so either:
-        //
-        // a) the connection was broken and the Connection run() loop
-        // is about to exit, deleting this object, in which case we
-        // make sure there's no dangling pointer to us in the contact
-        // cl_info slot, or...
-        //
-        // b) the user (likely by calling shutdown) is calling
-        // close_link() which interrupted us... in which case we leave
-        // the cl_info slot, and clear the DELETE_ON_EXIT flag since
-        // the caller will delete us
-        //
-        // XXX/demmer there's still annoying race conditions here...
-        
-        if (! initiate_) {
-            if (reason != ContactDownEvent::USER) { // a)
-                contact_->set_cl_info(NULL);
-
-            } else { // b)
-                clear_flag(Thread::DELETE_ON_EXIT);
+            // if the connection isn't being closed by the user, and
+            // the link is open, we need to notify the daemon.
+            // typically, we then just bounce back to the main run
+            // loop to try to re-establish the connection... 
+            if (contact_->link()->isopen())
+            {
+                BundleDaemon::post(new ContactDownEvent(contact_, reason));
             }
+         
+            // unless we're not the connection initiator, meaning we
+            // must be in receiver connect mode. the thread is about
+            // to self-terminate due to the DELETE_ON_EXIT flag, so we
+            // need to clear out the contact's cl info structure to
+            // allow it to be reused later for another connection
+            if (! initiate_)
+            {
+                ASSERT(contact_->cl_info() == this);
+                contact_->set_cl_info(NULL);
+            }
+        }
+        else
+        {
+            // if the connection is being closed by the user, then
+            // make sure we don't self-delete when we exit the run
+            // loop (receiver-connect threads)
+            Thread::clear_flag(Thread::DELETE_ON_EXIT);
         }
         
     } else {
