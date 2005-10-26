@@ -9,8 +9,8 @@ net::num_nodes 2
 dtn::config
 dtn::config_topology_common
 
-set host0 $net::host(0)
-set host1 $net::host(1)
+set host0 [gethostbyname $net::host(0)]
+set host1 [gethostbyname $net::host(1)]
 
 set port0 [dtn::get_port tcp 0]
 set port1 [dtn::get_port tcp 1]
