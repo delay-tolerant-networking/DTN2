@@ -855,6 +855,8 @@ Optional Features:
   --disable-optimize      compile with optimization turned off
   --enable-profile        compile with profiling
   --enable-static         use static libraries for tcl and berkeley db
+  --enable-google-profiling
+                          compile with google profiling
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -871,6 +873,9 @@ Optional Packages:
   --with-mysql=DIR        location of a mysql installation (default none)
   --with-mysql-daemon     use the daemon library (not the client library)
   --with-postgres=DIR     location of a postgres installation (default none)
+  --with-google-perftools=DIR
+                          location of a google perftools installation (default
+                          none)
 
 Some influential environment variables:
   CC          C compiler command
@@ -8515,6 +8520,255 @@ _ACEOF
 echo "$as_me: error: Must enable at least one storage option (libdb, postgres, mysql)" >&2;}
    { (exit 1); exit 1; }; }
     fi
+
+
+
+
+    ac_google_perfdir='no'
+
+# Check whether --with-google-perftools or --without-google-perftools was given.
+if test "${with_google_perftools+set}" = set; then
+  withval="$with_google_perftools"
+  ac_google_perfdir=$withval
+fi;
+
+    # Check whether --enable-google-profiling or --disable-google-profiling was given.
+if test "${enable_google_profiling+set}" = set; then
+  enableval="$enable_google_profiling"
+  google_profile=$enableval
+else
+  google_profile=no
+fi;
+
+    echo "$as_me:$LINENO: checking whether to compile with google profiling" >&5
+echo $ECHO_N "checking whether to compile with google profiling... $ECHO_C" >&6
+    echo "$as_me:$LINENO: result: $google_profile" >&5
+echo "${ECHO_T}$google_profile" >&6
+
+    GOOGLE_PROFILE_ENABLED=0
+    if test $google_profile = yes ; then
+        if test $ac_google_perfdir = no ; then
+	   { { echo "$as_me:$LINENO: error: must specify --with-google-perftools to use google profiling" >&5
+echo "$as_me: error: must specify --with-google-perftools to use google profiling" >&2;}
+   { (exit 1); exit 1; }; }
+	fi
+        GOOGLE_PROFILE_ENABLED=1
+    fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define GOOGLE_PROFILE_ENABLED $GOOGLE_PROFILE_ENABLED
+_ACEOF
+
+
+                if test "$ac_google_perfdir" = no; then
+    GOOGLE_PERFTOOLS_ENABLED=0
+    else
+
+    GOOGLE_PERFTOOLS_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define GOOGLE_PERFTOOLS_ENABLED 1
+_ACEOF
+
+
+                            if test "$ac_google_perfdir" = yes -a \
+	    ! "$oasys_cv_path_google_perf_h" = "" ; then
+        echo "checking for google_perf installation... (cached)"
+    else
+
+    oasys_cv_path_google_perf_h=
+    oasys_cv_path_google_perf_lib=
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    ac_save_LDFLAGS="$LDFLAGS"
+    ac_save_LIBS="$LIBS"
+
+    ac_ext=cc
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
+    if test "$ac_google_perfdir" = system -o \
+            "$ac_google_perfdir" = yes -o \
+            "$ac_google_perfdir" = "" ;
+    then
+        ac_google_perfincdirs="/usr/local/include \
+	                       /usr/local/google-perftools/include"
+        ac_google_perflibdirs="/usr/local/lib \
+	                       /usr/local/google-perftools/lib"
+    else
+        ac_google_perfincdirs="$ac_google_perfdir/include"
+        ac_google_perflibdirs="$ac_google_perfdir/lib"
+    fi
+
+    for ac_google_perfincdir in $ac_google_perfincdirs; do
+
+	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_google_perfincdir"
+	LDFLAGS="$ac_save_LDFLAGS"
+	LIBS="$ac_save_LIBS"
+
+					        echo "$as_me:$LINENO: checking for google perftools header profiler.h in $ac_google_perfincdir" >&5
+echo $ECHO_N "checking for google perftools header profiler.h in $ac_google_perfincdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <google/profiler.h>
+
+int
+main ()
+{
+
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+	      echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              oasys_cv_path_google_perf_h=$ac_google_perfincdir
+	      break
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+	      continue
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
+
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+    if test x$oasys_cv_path_google_perf_h = x ; then
+        { { echo "$as_me:$LINENO: error: can't find usable google perftools installation" >&5
+echo "$as_me: error: can't find usable google perftools installation" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    ac_ext=cc
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
+    for ac_google_perflibdir in $ac_google_perflibdirs; do
+
+	LDFLAGS="$ac_save_LDFLAGS -L$ac_google_perflibdir"
+        LIBS="$ac_save_LIBS -lprofiler"
+
+        echo "$as_me:$LINENO: checking for google perftolos library libprofiler in $ac_google_perflibdir" >&5
+echo $ECHO_N "checking for google perftolos library libprofiler in $ac_google_perflibdir... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <google/profiler.h>
+
+int
+main ()
+{
+
+		ProfilerStart("test");
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              oasys_cv_path_google_perf_lib=$ac_google_perflibdir
+              break
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+    done
+
+    CPPFLAGS="$ac_save_CPPFLAGS"
+    LDFLAGS="$ac_save_LDFLAGS"
+    LIBS="$ac_save_LIBS"
+
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+    if test x$oasys_cv_path_google_perf_lib = x ; then
+        { { echo "$as_me:$LINENO: error: can't find usable google perftools library" >&5
+echo "$as_me: error: can't find usable google perftools library" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    fi
+
+    if test ! $oasys_cv_path_google_perf_h = /usr/include ; then
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_google_perf_h"
+    fi
+
+    if test ! $oasys_cv_path_google_perf_lib = /usr/lib ; then
+        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_google_perf_lib"
+    fi
+
+    OASYS_LIBS="$OASYS_LIBS -Wl,-Bstatic -lprofiler -Wl,-Bdynamic"
+
+    fi # GOOGLE_PERF_ENABLED
 
 
 
