@@ -54,7 +54,7 @@ TclRegistration::TclRegistration(const EndpointIDPattern& endpoint,
     : Registration(GlobalStore::instance()->next_regid(),
                    endpoint, Registration::DEFER, 0) // XXX/demmer expiration??
 {
-    logpathf("/registration/logging/%d", regid_);
+    logpathf("/registration/tcl/%d", regid_);
     set_active(true);
 
     log_info("new tcl registration on endpoint %s", endpoint.c_str());
@@ -63,9 +63,13 @@ TclRegistration::TclRegistration(const EndpointIDPattern& endpoint,
     int fd = bundle_list_->notifier()->read_fd();
     notifier_channel_ = Tcl_MakeFileChannel((ClientData)fd, TCL_READABLE);
 
-    log_debug("notifier_channel_ is %p", notifier_channel_);
-
-    Tcl_RegisterChannel(interp, notifier_channel_);
+    if (notifier_channel_ == NULL) {
+        log_err("can't create tcl file channel: %s",
+                strerror(Tcl_GetErrno()));
+    } else {
+        log_debug("notifier_channel_ is %p", notifier_channel_);
+        Tcl_RegisterChannel(interp, notifier_channel_);
+    }
 }
 
 void
