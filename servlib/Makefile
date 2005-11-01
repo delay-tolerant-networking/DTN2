@@ -97,7 +97,6 @@ STORAGE_SRCS :=					\
 	storage/RegistrationStore.cc		\
 
 SERVLIB_SRCS := 				\
-	../version.c				\
 	DTNServer.cc				\
 	$(BUNDLING_SRCS) 			\
 	$(CONTACT_SRCS)				\
@@ -110,6 +109,7 @@ SERVLIB_SRCS := 				\
 
 SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)
+SERVLIB_OBJS := $(SERVLIB_OBJS) version.o
 
 ALLSRCS := $(SERVLIB_SRCS)
 
@@ -161,9 +161,13 @@ BUILDDIR := ..
 endif
 
 #
-# Include the common rules here to define symbols that may be needed
-# in the special rules below
+# Include the common rules.
 #
 -include ../Rules.make
+
+#
+# Special vpath directive to build version info into the library.
+#
+vpath version.c $(SRCDIR)
 
 endif

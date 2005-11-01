@@ -10,7 +10,6 @@ CLIENTLIB_SRCS := 			\
 		$(XDRSRCS)		\
 		dtn_api.c		\
 		dtn_ipc.c		\
-		../version.c		\
 
 # Sources for the server side of the library
 SERVERLIB_SRCS := 			\
@@ -20,6 +19,7 @@ SERVERLIB_SRCS := 			\
 
 CLIENTLIB_OBJS := $(CLIENTLIB_SRCS:.c=.o)
 CLIENTLIB_OBJS := $(CLIENTLIB_OBJS:.ccc=.o)
+CLIENTLIB_OBJS := $(CLIENTLIB_OBJS) version.o
 
 SERVERLIB_OBJS := $(SERVERLIB_SRCS:.c=.o)
 SERVERLIB_OBJS := $(SERVERLIB_OBJS:.cc=.o)
@@ -78,4 +78,9 @@ endif
 # Include the common rules
 #
 include ../Rules.make
+
+#
+# Special vpath directive to build version info into the library.
+#
+vpath version.c $(SRCDIR)
 
