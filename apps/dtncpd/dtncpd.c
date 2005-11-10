@@ -228,7 +228,7 @@ main(int argc, const char** argv)
             char *cmd = malloc(cmdlen);
 
             if (cmd) {
-                snprintf(cmd, cmdlen, "mv %*s %s", bufsize, buffer,
+                snprintf(cmd, cmdlen, "mv %.*s %s", bufsize, buffer,
                          filepath);
                 printf("Moving payload to final filename: '%s'\n", cmd);
                 system(cmd);
