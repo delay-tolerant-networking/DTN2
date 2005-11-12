@@ -745,11 +745,20 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 
     struct timeval now;
     gettimeofday(&now, 0);
-    log_debug("scheduling expiration for bundle id %d at %u.%u (in %lu msec)",
-              bundle->bundleid_,
-              (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec,
-              TIMEVAL_DIFF_MSEC(expiration_time, now));
-    
+    long int when = TIMEVAL_DIFF_MSEC(expiration_time, now);
+
+    if (when > 0) {
+        log_debug("scheduling expiration for bundle id %d at %u.%u (in %lu msec)",
+                  bundle->bundleid_,
+                  (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec, when);
+    } else {
+        log_warn("scheduling IMMEDIATE expiration for bundle id %d: "
+                 "[expiration %u, creation time %u.%u, now %u.%u]",
+                 bundle->bundleid_,
+                 (u_int)bundle->creation_ts_.tv_sec,
+                 (u_int)bundle->creation_ts_.tv_usec,
+                 bundle->expiration_, (u_int)now.tv_sec, (u_int)now.tv_usec);
+    }
 }
 
 /**
