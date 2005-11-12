@@ -239,7 +239,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 
     struct timeval now;
     gettimeofday(&now, 0);
-    if (TIMEVAL_GT(bundle->creation_ts_, now)) {
+    if (TIMEVAL_DIFF_MSEC(bundle->creation_ts_, now) > 30000) {
         log_warn("bundle id %d arrived with creation time in the future "
                  "(%u.%u > %u.%u)",
                  bundle->bundleid_,
