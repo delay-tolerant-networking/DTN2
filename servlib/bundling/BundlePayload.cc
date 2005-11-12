@@ -93,7 +93,7 @@ BundlePayload::init(oasys::SpinLock* lock, int bundleid, location_t location)
  * Initialization when re-reading the database.
  */
 void
-BundlePayload::init(oasys::SpinLock* lock, int bundleid, BundleStore* store)
+BundlePayload::init_from_store(oasys::SpinLock* lock, int bundleid)
 {
     lock_ = lock;
     location_ = DISK;

@@ -53,7 +53,6 @@ Bundle::init(u_int32_t id)
 {
     bundleid_		= id;
     refcount_		= 0;
-    freed_		= false;
     
     is_fragment_	= false;
     is_admin_		= false;
@@ -81,6 +80,7 @@ Bundle::Bundle()
     init(id);
     payload_.init(&lock_, id);
     expiration_timer_ = NULL;
+    freed_	      = false;
 }
 
 Bundle::Bundle(const oasys::Builder&)
@@ -90,6 +90,7 @@ Bundle::Bundle(const oasys::Builder&)
     // fields should all be set when loaded from the database
     bundleid_ = 0xffffffff;
     expiration_timer_ = NULL;
+    freed_	      = false;
 }
 
 Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
@@ -97,6 +98,7 @@ Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
     init(id);
     payload_.init(&lock_, id, location);
     expiration_timer_ = NULL;
+    freed_	      = false;
 }
 
 Bundle::~Bundle()

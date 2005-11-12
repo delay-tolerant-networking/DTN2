@@ -82,7 +82,7 @@ public:
     /**
      * Initialization when re-reading the database
      */
-    void init(oasys::SpinLock* lock, int bundleid, BundleStore* store);
+    void init_from_store(oasys::SpinLock* lock, int bundleid);
   
     /**
      * Set the payload length in preparation for filling in with data.

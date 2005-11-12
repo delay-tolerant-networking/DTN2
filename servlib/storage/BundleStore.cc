@@ -119,9 +119,9 @@ BundleStore::load()
             log_err("BundleStore::load: error retrieving bundle");
             return false;
         }
-
+        
         ASSERT(bundle);
-        bundle->payload_.init(&bundle->lock_, bundle->bundleid_);
+        bundle->payload_.init_from_store(&bundle->lock_, bundle->bundleid_);
 
         BundleDaemon::post(new BundleReceivedEvent(bundle, EVENTSRC_STORE));
     }
