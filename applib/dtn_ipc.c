@@ -102,8 +102,8 @@ dtnipc_open(dtnipc_handle_t* handle)
     handle->sock = socket(PF_INET, SOCK_STREAM, 0);
     if (handle->sock < 0)
     {
-        dtnipc_close(handle);
         handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
         return -1;
     }
 
@@ -140,8 +140,8 @@ dtnipc_open(dtnipc_handle_t* handle)
     
     ret = connect(handle->sock, (const struct sockaddr*)&sa, sizeof(sa));
     if (ret != 0) {
-        dtnipc_close(handle);
         handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
         return -1;
     }
 
@@ -149,8 +149,8 @@ dtnipc_open(dtnipc_handle_t* handle)
     handshake = htonl(DTN_OPEN);
     ret = write(handle->sock, &handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
-        dtnipc_close(handle);
         handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
         return -1;
     }
 
@@ -158,8 +158,8 @@ dtnipc_open(dtnipc_handle_t* handle)
     handshake = 0;
     ret = read(handle->sock, &handshake, sizeof(handshake));
     if (ret != sizeof(handshake) || htonl(handshake) != DTN_OPEN) {
-        dtnipc_close(handle);
         handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
         return -1;
     }
     
@@ -173,8 +173,14 @@ dtnipc_open(dtnipc_handle_t* handle)
 int
 dtnipc_close(dtnipc_handle_t* handle)
 {
+    int ret;
+    
     // first send a close over RPC
-    int ret = dtnipc_send_recv(handle, DTN_CLOSE);
+    if (handle->err != DTN_ECOMM) {
+        ret = dtnipc_send_recv(handle, DTN_CLOSE);
+    } else {
+        ret = -1;
+    }
     
     xdr_destroy(&handle->xdr_encode);
     xdr_destroy(&handle->xdr_decode);
@@ -225,8 +231,8 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
             if (errno == EINTR)
                 continue;
             
-            dtnipc_close(handle);
             handle->err = DTN_ECOMM;
+            dtnipc_close(handle);
             return -1;
         }
         
@@ -260,8 +266,8 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
 
     // make sure we got at least the status code and length
     if (ret < 8) {
-        dtnipc_close(handle);
         handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
         return -1;
     }
     
@@ -281,8 +287,8 @@ dtnipc_recv(dtnipc_handle_t* handle, int* status)
             if (errno == EINTR)
                 continue;
             
-            dtnipc_close(handle);
             handle->err = DTN_ECOMM;
+            dtnipc_close(handle);
             return -1;
         }
 
