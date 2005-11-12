@@ -52,8 +52,6 @@ void
 Bundle::init(u_int32_t id)
 {
     bundleid_		= id;
-    refcount_		= 0;
-    
     is_fragment_	= false;
     is_admin_		= false;
     do_not_fragment_	= false;
@@ -79,6 +77,7 @@ Bundle::Bundle()
     u_int32_t id = GlobalStore::instance()->next_bundleid();
     init(id);
     payload_.init(&lock_, id);
+    refcount_	      = 0;
     expiration_timer_ = NULL;
     freed_	      = false;
 }
@@ -88,7 +87,8 @@ Bundle::Bundle(const oasys::Builder&)
     // don't do anything here except set the id to a bogus default
     // value and make sure the expiration timer is NULL, since the
     // fields should all be set when loaded from the database
-    bundleid_ = 0xffffffff;
+    refcount_	      = 0;
+    bundleid_ 	      = 0xffffffff;
     expiration_timer_ = NULL;
     freed_	      = false;
 }
@@ -97,6 +97,7 @@ Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
 {
     init(id);
     payload_.init(&lock_, id, location);
+    refcount_	      = 0;
     expiration_timer_ = NULL;
     freed_	      = false;
 }
