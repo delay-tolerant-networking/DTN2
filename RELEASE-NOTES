@@ -1,17 +1,26 @@
 Release Notes for DTN2
 ----------------------
 
-2.2.0 (September 2005)
+2.2.0 (???? 2005)
 ----------------------
 - Widespread changes for conformance to the latest version of the
   bundle protocol specification document including replacing the
   region/admin syntax and BundleTuple class with a new EndpointID
-  class that is a standard URI and replacing fixed-length values in
+  class that is a standard URI, and replacing fixed-length values in
   the protocol with SDNVs.
+
+- Completed implementation of expiration timers for both bundles and
+  application registrations, as specified by the protocol document and
+  architecture specification.
 
 - Removed the use of AddressFamily classes from the configuration of
   the Interface and Link classes, moving the address specification
   into the convergence layer specifically.
+
+- Faster and more robust configure scripts, including support for
+  configuring a build directory that's different from the source
+  directory. Improved build system so make -j works to build in
+  parallel. Add support for the gcc-4.0 series of compilers.
 
 - Other minor cleanup of Bundle class field names and associated
   types to match the protocol document more clearly.
@@ -24,9 +33,12 @@ Release Notes for DTN2
   number of BundleList queues around the code, and an overall
   simplification of the control flow.
 
-- Update the TCP and UDP convergence layers, removing the fixed-width
-  length fields from the former and removing all the framing
-  overhead from the latter, simply sending a bundle in a UDP datagram.
+- Update the TCP and UDP convergence layers: removed fixed-width
+  length fields from TCP; added pipelining so multiple bundles can be
+  "in-flight" on a single TCP connection; removed all the framing
+  overhead from UDP by simply sending a bundle per UDP datagram.
+
+- Support added for Cygwin as well as Apple OS X.
 
 2.1.1 (March 2005)
 ------------------
