@@ -441,7 +441,7 @@ TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *****************************************************************************/
 TCPConvergenceLayer::Listener::Listener(TCPConvergenceLayer* cl,
                                         Params* params)
-    : IOHandlerBase(new oasys::Notifier()), 
+    : IOHandlerBase(new oasys::Notifier("/notifier/cl/tcp/listener")), 
       TCPServerThread("/cl/tcp/listener"),
       cl_(cl), params_(*params)
 {
@@ -512,7 +512,7 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
     sock_->set_remote_port(remote_port);
     
     // set the notifier to be able to interrupt IO
-    sock_->set_notifier(new oasys::Notifier());
+    sock_->set_notifier(new oasys::Notifier(logpath_));
 
     // if the parameters specify a local address, do the bind here --
     // however if it fails, we can't really do anything about it, so
@@ -1282,7 +1282,8 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
         if (contacthdr.flags & RECEIVER_CONNECT) {
             params_.receiver_connect_ = true;
             queue_ = new BlockingBundleList(logpath_);
-            sock_->set_notifier(new oasys::Notifier());
+            sock_->set_notifier(
+                new oasys::Notifier("/notifier/tcpcl/socket"));
             direction_ = SENDER;
         } else {
             direction_ = RECEIVER;

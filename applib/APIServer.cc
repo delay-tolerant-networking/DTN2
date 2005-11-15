@@ -162,7 +162,7 @@ APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
     xdrmem_create(&xdr_decode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_DECODE);
 
     bindings_ = new APIRegistrationList();
-    notifier_ = new oasys::Notifier();
+    notifier_ = new oasys::Notifier(logpath_);
 }
 
 APIClient::~APIClient()

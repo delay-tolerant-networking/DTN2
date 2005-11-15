@@ -66,7 +66,7 @@ ShutdownCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         return TCL_ERROR;
     }
 
-    oasys::Notifier done;
+    oasys::Notifier done("/notifier/shutdown_command");
     BundleDaemon::instance()->post_and_wait(new ShutdownRequest(), &done);
     Tcl_CreateTimerHandler(0, ShutdownCommand::call_exit, 0);
 
