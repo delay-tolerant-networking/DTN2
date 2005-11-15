@@ -89,7 +89,7 @@ void
 BundleDaemon::do_init()
 {
     actions_ = new BundleActions();
-    eventq_ = new oasys::MsgQueue<BundleEvent*>;
+    eventq_ = new oasys::MsgQueue<BundleEvent*>(logpath_);
 }
 
 /**

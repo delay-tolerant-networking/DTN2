@@ -343,7 +343,7 @@ UDPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *
  *****************************************************************************/
 UDPConvergenceLayer::Receiver::Receiver(UDPConvergenceLayer::Params* params)
-    : IOHandlerBase(new oasys::Notifier("/notifier/cl/udp/receiver")),
+    : IOHandlerBase(new oasys::Notifier("/cl/udp/receiver")),
       UDPClient("/cl/udp/receiver"),
       Thread("UDPConvergenceLayer::Receiver")
 {

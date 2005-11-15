@@ -419,9 +419,11 @@ BundleList::end() const
 BlockingBundleList::BlockingBundleList(const std::string& name)
     : BundleList(name)
 {
-    notifier_ = new oasys::Notifier("/notifier/bundle/list/%s",
-                                    name[0] == '/' ? name.c_str() + 1 :
-                                    name.c_str());
+    if (name[0] == '/') {
+        notifier_ = new oasys::Notifier(name.c_str());
+    } else {
+        notifier_ = new oasys::Notifier("/bundle/list");
+    }
 }
 
 BlockingBundleList::~BlockingBundleList()

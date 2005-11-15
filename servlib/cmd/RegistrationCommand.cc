@@ -51,7 +51,7 @@ namespace dtn {
 RegistrationCommand::RegistrationCommand()
     : TclCommand("registration")
 {
-    notifier_ = new oasys::Notifier("/notifier/registration_command");
+    notifier_ = new oasys::Notifier("/registration/command");
 }
 
 const char*

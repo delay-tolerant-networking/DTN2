@@ -441,7 +441,7 @@ TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *****************************************************************************/
 TCPConvergenceLayer::Listener::Listener(TCPConvergenceLayer* cl,
                                         Params* params)
-    : IOHandlerBase(new oasys::Notifier("/notifier/cl/tcp/listener")), 
+    : IOHandlerBase(new oasys::Notifier("/cl/tcp/listener")), 
       TCPServerThread("/cl/tcp/listener"),
       cl_(cl), params_(*params)
 {
@@ -1282,8 +1282,8 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
         if (contacthdr.flags & RECEIVER_CONNECT) {
             params_.receiver_connect_ = true;
             queue_ = new BlockingBundleList(logpath_);
-            sock_->set_notifier(
-                new oasys::Notifier("/notifier/tcpcl/socket"));
+            queue_->notifier()->logpath_appendf("/queue");
+            sock_->set_notifier(new oasys::Notifier(logpath_));
             direction_ = SENDER;
         } else {
             direction_ = RECEIVER;
