@@ -681,10 +681,14 @@ APIClient::handle_recv()
         // XXX/demmer verify bounds
 
         size_t payload_len = b->payload_.length();
-        buf.reserve(payload_len);
         payload.dtn_bundle_payload_t_u.buf.buf_len = payload_len;
-        payload.dtn_bundle_payload_t_u.buf.buf_val =
-            (char*)b->payload_.read_data(0, payload_len, buf.buf());
+        if (payload_len != 0) {
+            buf.reserve(payload_len);
+            payload.dtn_bundle_payload_t_u.buf.buf_val =
+                (char*)b->payload_.read_data(0, payload_len, buf.buf());
+        } else {
+            payload.dtn_bundle_payload_t_u.buf.buf_val = 0;
+        }
         
     } else if (location == DTN_PAYLOAD_FILE) {
         oasys::FileIOClient tmpfile;
