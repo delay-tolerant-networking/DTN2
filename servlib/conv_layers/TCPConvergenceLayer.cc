@@ -968,11 +968,13 @@ TCPConvergenceLayer::Connection::recv_bundle()
                   (u_int)rcvbuf_.fullbytes(), (u_int)rcvd_len);
         
         // append the chunk of data up to the maximum size of the
-        // bundle and update the amount received
+        // bundle (which may be empty) and update the amount received
         cc = std::min(rcvbuf_.fullbytes(), payload_len - rcvd_len);
-        bundle->payload_.append_data((u_char*)rcvbuf_.start(), cc);
-        rcvd_len += cc;
-        rcvbuf_.consume(cc);
+        if (cc != 0) {
+            bundle->payload_.append_data((u_char*)rcvbuf_.start(), cc);
+            rcvd_len += cc;
+            rcvbuf_.consume(cc);
+        }
         
         // at this point, we can make at least a valid bundle fragment
         // from what we've gotten thus far (assuming reactive
