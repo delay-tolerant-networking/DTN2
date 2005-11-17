@@ -999,7 +999,9 @@ TCPConvergenceLayer::Connection::recv_bundle()
     // if the sender requested a bundle ack and we haven't yet sent
     // one for the whole bundle in the partial ack check above, send
     // one now
-    if (params_.bundle_ack_enabled_ && (acked_len != rcvd_len)) {
+    if (params_.bundle_ack_enabled_ && 
+        (payload_len == 0 || (acked_len != rcvd_len)))
+    {
         if (! send_ack(datahdr.bundle_id, payload_len)) {
             log_err("recv_bundle: error sending ack");
             goto done;
