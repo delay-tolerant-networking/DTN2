@@ -85,14 +85,18 @@ proc sendbundle {source_eid dest_eid args} {
 	set length [lindex $args [expr $i + 1]]
 	set length [string map {length= ""} [lindex $args $i]]
     }
-    set payload "test bundle payload data\n"
 
-    while {$length - [string length $payload] > 32} {
-	append payload [format "%4d: 0123456789abcdef\n" \
-		[string length $payload]]
-    }
-    while {$length > [string length $payload]} {
-	append payload "."
+    set payload ""
+    if {$length != 0} {
+        set payload "test bundle payload data\n"
+
+        while {$length - [string length $payload] > 32} {
+            append payload [format "%4d: 0123456789abcdef\n" \
+    		[string length $payload]]
+        }
+        while {$length > [string length $payload]} {
+	    append payload "."
+        }
     }
 
     return [eval [concat {bundle inject $source_eid \

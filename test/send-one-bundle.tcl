@@ -4,11 +4,13 @@ net::num_nodes 3
 dtn::config
 
 set clayer tcp
+set length 5000
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set clayer $val
-	
+    } elseif {$var == "-length" || $var == "length"} {
+        set length $val	
     } else {
 	puts "ERROR: unrecognized test option '$var'"
 	exit 1
@@ -33,7 +35,7 @@ test::script {
     dtn::tell_dtnd 0 tcl_registration $dest
     
     puts "* Sending bundle"
-    set timestamp [dtn::tell_dtnd $last_node sendbundle $source $dest]
+    set timestamp [dtn::tell_dtnd $last_node sendbundle $source $dest length=$length]
     
     puts "* Waiting for bundle arrival"
     dtn::wait_for_bundle 0 "$source,$timestamp" 5000
