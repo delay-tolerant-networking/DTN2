@@ -36,7 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/util/StringBuffer.h>
+#include <oasys/util/ScratchBuffer.h>
 
 #include "TclRegistration.h"
 #include "bundling/Bundle.h"
@@ -171,9 +171,12 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
     // read in all the payload data (XXX/demmer this will not be nice
     // for big bundles)
     size_t payload_len = b->payload_.length();
-    oasys::StringBuffer payload_buf(payload_len);
-    const u_char* payload_data =
-        b->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
+    oasys::ScratchBuffer<u_char*> payload_buf;
+    const u_char* payload_data = (const u_char*)"";
+    if (payload_len != 0) {
+        payload_data = b->payload_.read_data(0, payload_len, 
+                                             payload_buf.buf(payload_len));
+    }
     log_debug("got %u bytes of bundle data", (u_int)payload_len);
 
     Tcl_Obj* objv = Tcl_NewListObj(0, NULL);
