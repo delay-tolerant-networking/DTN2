@@ -146,6 +146,10 @@ parse_options(int argc, char**argv)
     }
 
     endpoint = argv[optind];
+    if (!endpoint) {
+        usage();
+        exit(1);
+    }
     
     if (failure_action == DTN_REG_EXEC && failure_script == NULL) {
         fprintf(stderr, "failure action EXEC must supply script\n");
