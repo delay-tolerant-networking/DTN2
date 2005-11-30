@@ -229,7 +229,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
     
     // log a warning if the bundle doesn't have any expiration time or
-    // has a creation time in the past. in either case, we proceed as
+    // has a creation time in the future. in either case, we proceed as
     // normal, though we know that the expiration timer will
     // immediately fire
     if (bundle->expiration_ == 0) {
