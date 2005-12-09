@@ -37,6 +37,7 @@
  */
 
 #include <ctype.h>
+#include <oasys/debug/Log.h>
 #include <oasys/util/URL.h>
 
 #include "DTNScheme.h"

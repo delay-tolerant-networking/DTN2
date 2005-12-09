@@ -37,6 +37,7 @@
  */
 
 #include <oasys/debug/DebugUtils.h>
+#include <oasys/debug/Log.h>
 
 #include "SDNV.h"
 
