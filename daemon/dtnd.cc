@@ -186,6 +186,10 @@ init_log(const std::string& loglevelstr)
     oasys::Log::init(logfile.c_str(), loglevel, "", "~/.dtndebug");
     oasys::Log::instance()->add_reparse_handler(SIGHUP);
     oasys::Log::instance()->add_rotate_handler(SIGUSR1);
+
+    if (g_console.daemon_) {
+        oasys::Log::instance()->redirect_stdio();
+    }
 }
 
 void
