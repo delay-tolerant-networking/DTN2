@@ -91,11 +91,11 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     defaults_.partial_ack_len_		= 1024;
     defaults_.writebuf_len_ 		= 32768;
     defaults_.readbuf_len_ 		= 32768;
-    defaults_.keepalive_interval_	= 2;
+    defaults_.keepalive_interval_	= 10;
     defaults_.retry_interval_		= 5;
     defaults_.min_retry_interval_	= 5;
     defaults_.max_retry_interval_	= 10 * 60;
-    defaults_.rtt_timeout_		= 5000;  // msecs
+    defaults_.rtt_timeout_		= 30000;  // msecs
     defaults_.test_fragment_size_	= -1;
 }
 
