@@ -79,8 +79,20 @@ BundlePayload::init(oasys::SpinLock* lock, int bundleid, location_t location)
                                  BundlePayload::payloaddir_.c_str(), bundleid);
         file_ = new oasys::FileIOClient();
         file_->logpathf("/bundle/payload/%d", bundleid);
-        if (file_->open(path.c_str(),
-                        O_EXCL | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR) < 0)
+        int open_errno = 0;
+        int err = file_->open(path.c_str(), O_EXCL | O_CREAT | O_RDWR,
+                              S_IRUSR | S_IWUSR, &open_errno);
+
+        if (err < 0 && open_errno == EEXIST)
+        {
+            log_err("/bundle/payload",
+                    "payload file %s already exists: overwriting and retrying",
+                    path.c_str());
+
+            err = file_->open(path.c_str(), O_RDWR, S_IRUSR | S_IWUSR);
+        }
+        
+        if (err < 0)
         {
             log_crit("/bundle/payload", "error opening payload file %s: %s",
                      path.c_str(), strerror(errno));
