@@ -693,7 +693,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
                                        sndbuf_.buf_len());
     if (header_len < 0) {
         log_debug("send_bundle: bundle header too big for buffer len %d -- "
-                  "doubling size and retrying", sndbuf_.buf_len());
+                  "doubling size and retrying", (u_int)sndbuf_.buf_len());
         sndbuf_.reserve(sndbuf_.buf_len() * 2);
         goto retry_headers;
     }
@@ -712,10 +712,10 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
 
     // Build up a two element iovec
     struct iovec iov[2];
-    iov[0].iov_base = tcphdr_buf;
+    iov[0].iov_base = (char*)tcphdr_buf;
     iov[0].iov_len  = tcphdr_len;
 
-    iov[1].iov_base = sndbuf_.buf();
+    iov[1].iov_base = (char*)sndbuf_.buf();
     iov[1].iov_len  = header_len;
     
     // send off the preamble and the headers
@@ -777,7 +777,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
             } else {
                 log_err("send_bundle: "
                         "error sending bundle block (wrote %d/%u): %s",
-                        cc, block_len, strerror(errno));
+                        cc, (u_int)block_len, strerror(errno));
             }
 
             break_contact(ContactEvent::BROKEN);
@@ -1122,7 +1122,7 @@ TCPConvergenceLayer::Connection::handle_ack()
     // now see if we got a complete ack header
     if (rcvbuf_.fullbytes() < (1 + sizeof(BundleAckHeader))) {
         log_debug("handle_ack: not enough space in buffer (got %u, need %u...",
-                  rcvbuf_.fullbytes(), sizeof(BundleAckHeader));
+                  (u_int)rcvbuf_.fullbytes(), (u_int)sizeof(BundleAckHeader));
         return ENOMEM;
     }
 
@@ -1195,7 +1195,7 @@ TCPConvergenceLayer::Connection::send_contact_header()
     
     contacthdr.partial_ack_len 	  = htons(params_.partial_ack_len_);
     contacthdr.keepalive_interval = htons(params_.keepalive_interval_);
-    contacthdr.__unused           = 0;
+    contacthdr.xx__unused         = 0;
     
     int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
     if (cc != sizeof(ContactHeader)) {
@@ -1307,9 +1307,9 @@ bool
 TCPConvergenceLayer::Connection::send_address()
 {
     AddressHeader addresshdr;
-    addresshdr.addr     = htonl(sock_->local_addr());
-    addresshdr.port     = htons(sock_->local_port());
-    addresshdr.__unused = 0;
+    addresshdr.addr       = htonl(sock_->local_addr());
+    addresshdr.port       = htons(sock_->local_port());
+    addresshdr.xx__unused = 0;
         
     log_debug("sending address header %s:%d...",
               intoa(sock_->local_addr()), sock_->local_port());

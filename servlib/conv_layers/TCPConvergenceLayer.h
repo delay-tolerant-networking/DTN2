@@ -104,7 +104,7 @@ public:
         u_int8_t  flags;		///< connection flags (see above)
         u_int16_t partial_ack_len;	///< requested size for partial acks
         u_int16_t keepalive_interval;	///< seconds between keepalive packets
-        u_int16_t __unused;
+        u_int16_t xx__unused;
     } __attribute__((packed));
 
     /**
@@ -115,7 +115,7 @@ public:
     struct AddressHeader {
         u_int32_t addr;			///< address
         u_int16_t port;			///< port
-        u_int16_t __unused;
+        u_int16_t xx__unused;
     } __attribute__((packed));
 
     /**

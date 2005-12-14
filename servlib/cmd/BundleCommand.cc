@@ -73,14 +73,14 @@ BundleCommand::parse_inject_options(InjectOpts* options,
     
     oasys::OptParser p;
 
-    p.addopt(new oasys::BoolOpt("receive_rcpt", &options->receive_rcpt_));
-    p.addopt(new oasys::BoolOpt("custody_rcpt", &options->custody_rcpt_));
-    p.addopt(new oasys::BoolOpt("forward_rcpt", &options->forward_rcpt_));
+    p.addopt(new oasys::BoolOpt("receive_rcpt",  &options->receive_rcpt_));
+    p.addopt(new oasys::BoolOpt("custody_rcpt",  &options->custody_rcpt_));
+    p.addopt(new oasys::BoolOpt("forward_rcpt",  &options->forward_rcpt_));
     p.addopt(new oasys::BoolOpt("delivery_rcpt", &options->delivery_rcpt_));
     p.addopt(new oasys::BoolOpt("deletion_rcpt", &options->deletion_rcpt_));
-    p.addopt(new oasys::UIntOpt("expiration", &options->expiration_));
-    p.addopt(new oasys::UIntOpt("length", &options->length_));
-    p.addopt(new oasys::StringOpt("replyto", &options->replyto_));
+    p.addopt(new oasys::UIntOpt("expiration",    &options->expiration_));
+    p.addopt(new oasys::UIntOpt("length",        &options->length_));
+    p.addopt(new oasys::StringOpt("replyto",     &options->replyto_));
 
     for (int i=5; i<objc; i++) {
         int len;

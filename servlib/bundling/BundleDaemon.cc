@@ -354,7 +354,7 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
     Bundle* bundle = event->bundleref_.object();
 
     log_info("BUNDLE_DELIVERED id:%d (%u bytes) -> regid %d (%s)",
-             bundle->bundleid_, bundle->payload_.length(),
+             bundle->bundleid_, (u_int)bundle->payload_.length(),
              event->registration_->regid(),
              event->registration_->endpoint().c_str());
 

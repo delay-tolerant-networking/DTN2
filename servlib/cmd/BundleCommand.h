@@ -69,8 +69,8 @@ private:
         bool forward_rcpt_;	///< Hop by hop forwarding reporting
         bool delivery_rcpt_;	///< End-to-end delivery reporting
         bool deletion_rcpt_;	///< Bundle deletion reporting
-        size_t expiration_;     ///< Bundle TTL
-        size_t length_;         ///< Bundle payload length
+        u_int expiration_;      ///< Bundle TTL
+        u_int length_;          ///< Bundle payload length
         std::string replyto_;   ///< Bundle Reply-To EID
     };
 
