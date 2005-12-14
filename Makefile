@@ -40,17 +40,19 @@ sim: servlib
 dtn-version.o: dtn-version.c
 dtn-version.c: dtn-version.h
 dtn-version.h: dtn-version.h.in version.dat
-	%(SRCDIR)/tools/subst-version < $(SRCDIR)/dtn-version.h.in > dtn-version.h
+	$(SRCDIR)/tools/subst-version < $(SRCDIR)/dtn-version.h.in > dtn-version.h
 
 vpath dtn-version.h.in $(SRCDIR)
 vpath dtn-version.h    $(SRCDIR)
 vpath dtn-version.c    $(SRCDIR)
 vpath version.dat      $(SRCDIR)
 
-
 bump-version:
 	cd $(SRCDIR) && tools/bump-version
 
+#
+# Test rules
+#
 tests: 
 	$(MAKE) all
 	$(MAKE) -C oasys tests
