@@ -1,6 +1,8 @@
 -TCA Readme
 
-These are some basic configuration and usage notes about the TCA (Tetherless Computing Architecture) implementation. For a higher-level view of TCA, see the documentation at www.mindstream.watsmore.net
+These are some basic configuration and usage notes about the TCA
+(Tetherless Computing Architecture) implementation. For a higher-level
+view of TCA, see the documentation at www.mindstream.watsmore.net
 
 
 1 Configuration
@@ -27,30 +29,53 @@ route add tca://* default
 A new mobile node (hail) can register as follows:
 dtnsend -s tca://hail/tca_admin -d tca://registry -t m -p ""
 
-Once hail has registered, another node (windstorm) can send it a bundle like this:
-dtnsend -s tca://windstorm/test_app -d tca://hail/test_app -t m -p "windstorm says hi"
+Once hail has registered, another node (windstorm) can send it a
+bundle like this: 
+
+dtnsend -s tca://windstorm/test_app -d
+tca://hail/test_app -t m -p "windstorm says hi"
 
 
 3 Unimplemented Features, Known Bugs, and Limitations
 
-- Unimplemented. Change-Of-Address notification and reverse path destruction is not complete. This will occur when a mobile node has re-registered in a new place in the network. The previous path to the mobile should be destroyed and bundles en-route to the mobile should be re-directed.
+- Unimplemented. Change-Of-Address notification and reverse path
+destruction is not complete. This will occur when a mobile node has
+re-registered in a new place in the network. The previous path to the
+mobile should be destroyed and bundles en-route to the mobile should
+be re-directed.
 
-- Limitation. OpenDHT nodes are hard-coded at the moment. There should be a file of nodes to use instead.
+- Limitation. OpenDHT nodes are hard-coded at the moment. There should
+be a file of nodes to use instead.
 
-- Limitation. OpenDHT nodes are tested on startup and only those nodes that are responsive are kept. This process should be repeated periodically to refresh the list of ?live? OpenDHT nodes.
+- Limitation. OpenDHT nodes are tested on startup and only those nodes
+that are responsive are kept. This process should be repeated
+periodically to refresh the list of ?live? OpenDHT nodes.
 
-- Limitation. Entries in the DHT are set to time out at 1 week, the maximum TTL allowed by OpenDHT. This value is hard-coded.
+- Limitation. Entries in the DHT are set to time out at 1 week, the
+maximum TTL allowed by OpenDHT. This value is hard-coded.
 
-- Unimplemented. The rules for registration lifetime is not quite settled. When a gateway receives a bundle for an unregistered node (perhaps never registered, perhaps previously registered but expired) the bundle is kept in the gateway?s queue until the bundle times out.
+- Unimplemented. The rules for registration lifetime is not quite
+settled. When a gateway receives a bundle for an unregistered node
+(perhaps never registered, perhaps previously registered but expired)
+the bundle is kept in the gateway?s queue until the bundle times out.
 
-- Limitation. TCA Routers won?t work across firewalls that apply NAT (Network Address Translation) because in this case their ?published? address will be different from their actual address. Currently, all routers publish their actual tcp address.
+- Limitation. TCA Routers won?t work across firewalls that apply NAT
+(Network Address Translation) because in this case their ?published?
+address will be different from their actual address. Currently, all
+routers publish their actual tcp address.
 
-- Bug. When a registry bundle is processed resulting in a new link being created, bundles are immediately tested to go out on this new link. This causes duplicate handling of the registry bundle. The logic is correct but performance is sub-optimal.
+- Bug. When a registry bundle is processed resulting in a new link
+being created, bundles are immediately tested to go out on this new
+link. This causes duplicate handling of the registry bundle. The logic
+is correct but performance is sub-optimal.
 
 
 4 Modified Files
 
-This is a complete list of files that were modified or added in the TCA implementation. In files that are part of the core DTN implementation, modifications to the source code are flagged with the string ?DK:? in a comment line.
+This is a complete list of files that were modified or added in the
+TCA implementation. In files that are part of the core DTN
+implementation, modifications to the source code are flagged with the
+string ?DK:? in a comment line.
 
 TCPConvergenceLayer.*
 Added code to append listener?s link_id to outgoing bundles.
@@ -58,11 +83,13 @@ Added code to append listener?s link_id to outgoing bundles.
 Bundle.*
 Added last_hop_ field to Bundle class to contain link_id of previous hop.
 
-BundleProtocol.*
-Added code for optional ROUTERECORD header to format_headers and parse_headers to handle last_hop info.
+BundleProtocol.* 
+Added code for optional ROUTERECORD header to
+format_headers and parse_headers to handle last_hop info.
 
-TCAScheme.*
-Initial checkin. New singleton class, borrowed heavily from DTNScheme.
+TCAScheme.* 
+Initial checkin. New singleton class, borrowed heavily
+from DTNScheme.
 
 SchemeTable.cc
 Added an instance of TCAScheme to the scheme table.
@@ -90,14 +117,3 @@ Initial checkin. Class for accessing the TCA registry.
 
 TcaRouter.*
 Initial checkin. Main TCA implementation.
-
-
-
-
-
-
-
-
-
-
-
