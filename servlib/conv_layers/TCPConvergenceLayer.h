@@ -3,26 +3,26 @@
  * downloading, copying, installing or using the software you agree to
  * this license. If you do not agree to this license, do not download,
  * install, copy or use the software.
- *
- * Intel Open Source License
- *
- * Copyright (c) 2004 Intel Corporation. All rights reserved.
- *
+ * 
+ * Intel Open Source License 
+ * 
+ * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- *
+ * 
  *   Redistributions of source code must retain the above copyright
  *   notice, this list of conditions and the following disclaimer.
- *
+ * 
  *   Redistributions in binary form must reproduce the above copyright
  *   notice, this list of conditions and the following disclaimer in the
  *   documentation and/or other materials provided with the distribution.
- *
+ * 
  *   Neither the name of the Intel Corporation nor the names of its
  *   contributors may be used to endorse or promote products derived from
  *   this software without specific prior written permission.
- *
+ *  
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -35,13 +35,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _TCP_CONVERGENCE_LAYER_H_
+#Ifndef _TCP_CONVERGENCE_LAYER_H_
 #define _TCP_CONVERGENCE_LAYER_H_
 
 #include <oasys/io/TCPClient.h>
 #include <oasys/io/TCPServer.h>
-#include <oasys/util/ScratchBuffer.h>
-#include <oasys/util/StreamBuffer.h>
 
 #include "IPConvergenceLayer.h"
 #include "bundling/BundleEvent.h"
@@ -132,15 +130,15 @@ public:
         KEEPALIVE	= 0x3,		///< keepalive packet
         SHUTDOWN	= 0x4,		///< sending side will shutdown now
     } tcpcl_header_type_t;
-
+    
     /**
      * Header for the start of a block of bundle data. In UDP mode,
-     * this always precedes a full bundle (or a fragment at the
+     * this always precedes a full bundle (or a fragment at the 
      * bundling layer).
      */
     struct BundleDataHeader {
         u_int32_t bundle_id;		///< bundle identifier at sender
-        u_char    total_length[0];	///< SDNV of total length
+        u_char bundle[0];		///< SDNV of length, followed by data
     } __attribute__((packed));
 
     /**
@@ -150,12 +148,12 @@ public:
         u_int32_t bundle_id;		///< identical to BundleStartHeader
         u_int32_t acked_length;		///< total length received
     } __attribute__((packed));
-
+    
     /**
      * Constructor.
      */
     TCPConvergenceLayer();
-
+    
     /**
      * Bring up a new interface.
      */
@@ -170,23 +168,23 @@ public:
      * Dump out CL specific interface information.
      */
     void dump_interface(Interface* iface, oasys::StringBuffer* buf);
-
+    
     /**
      * Create any CL-specific components of the Link.
      */
     bool init_link(Link* link, int argc, const char* argv[]);
-
+    
     /**
      * Dump out CL specific link information.
      */
     void dump_link(Link* link, oasys::StringBuffer* buf);
-
+    
     /**
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.
      */
     bool open_contact(Contact* contact);
-
+    
     /**
      * Close the connnection to the contact.
      */
@@ -197,7 +195,7 @@ public:
      * the bundle on the Connection's bundle queue.
      */
     void send_bundle(Contact* contact, Bundle* bundle);
-
+    
     /**
      * Tunable parameter structure.
      *
@@ -213,10 +211,6 @@ public:
     public:
         in_addr_t local_addr_;		///< Local address to bind to
         u_int16_t local_port_;		///< Local port to bind to
-        in_addr_t remote_addr_;		///< Peer address used for rcvr-connect
-        u_int16_t remote_port_;		///< Peer port used for rcvr-connect
-        bool pipeline_;			///< Pipeline bundles on the socket
-        u_int32_t busy_queue_depth_;	///< Max # bundles in BD -> conn. queue
         bool bundle_ack_enabled_;	///< Use CL-specific bundle acks?
         bool reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         bool receiver_connect_;		///< rcvr-initiated connect (for NAT)
@@ -224,10 +218,8 @@ public:
         u_int writebuf_len_;		///< Buffer size per write() call
         u_int readbuf_len_;		///< Buffer size per read() call
         u_int keepalive_interval_;	///< Seconds between keepalive pacekts
-        u_int retry_interval_;		///< (copied from Link params)
-        u_int min_retry_interval_;	///< (copied from Link params)
-        u_int max_retry_interval_;	///< (copied from Link params)
-        u_int16_t idle_close_time;	///< Seconds of idle time before close
+        u_int idle_close_time_;		///< Seconds to keep idle connections
+        u_int connect_timeout_;		///< Msecs for connection timeout
         u_int rtt_timeout_;		///< Msecs to wait for data
         int test_fragment_size_;	///< Test hook to force reactive frag.
     };
@@ -236,6 +228,9 @@ public:
      * Default parameters.
      */
     static Params defaults_;
+
+	// DK: 
+	Params listener_params_;	// params for listener thread
 
 protected:
     bool parse_params(Params* params, int argc, const char** argv,
@@ -247,13 +242,12 @@ protected:
      */
     class Listener : public CLInfo, public oasys::TCPServerThread {
     public:
-        Listener(TCPConvergenceLayer* cl, Params* params);
+        Listener(Params* params);
         void accepted(int fd, in_addr_t addr, u_int16_t port);
 
-        /// The TCPCL instance
-        TCPConvergenceLayer* cl_;
-
-        /// Per-connection parameters for accepted connections.
+        /**
+         * Per-connection parameters for accepted connections.
+         */
         TCPConvergenceLayer::Params params_;
     };
 
@@ -262,37 +256,30 @@ protected:
      * connection with a peer daemon.
      *
      * Although the same class is used in both cases, a particular
-     * Connection is either a receiver or a sender, as indicated by
-     * the direction variable. Note that to deal with NAT, the side
-     * which does the active connect is not necessarily the sender.
+     * Connection is either a receiver or a sender. Note that to deal
+     * with NAT, the side which does the active connect is not
+     * necessarily the sender.
      */
     class Connection : public CLInfo,
                        public oasys::Thread,
                        public oasys::Logger {
     public:
-        typedef enum {
-            UNKNOWN,
-            SENDER,
-            RECEIVER
-        } direction_t;
-
         /**
          * Constructor for the active connection side of a connection.
          * Note that this may be used both for the actual data sender
          * or for the data receiver side when used with the
          * receiver_connect option.
          */
-        Connection(TCPConvergenceLayer* cl,
-                   in_addr_t remote_addr,
+        Connection(in_addr_t remote_addr,
                    u_int16_t remote_port,
-                   direction_t direction,
-                   Params* params);
-
+                   bool is_sender,
+                   Params* params,
+				   Params* listener_params);
+        
         /**
          * Constructor for the passive accept side of a connection.
          */
-        Connection(TCPConvergenceLayer* cl,
-                   int fd,
+        Connection(int fd,
                    in_addr_t remote_addr,
                    u_int16_t remote_port,
                    Params* params);
@@ -306,6 +293,9 @@ protected:
          * Per-connection parameters.
          */
         TCPConvergenceLayer::Params params_;
+        
+		// DK: params for the listener thread started at this node.
+		TCPConvergenceLayer::Params	listener_params_;
 
         /**
          * Attach to the given contact. Used on the sender side when
@@ -318,60 +308,30 @@ protected:
 
     protected:
         friend class TCPConvergenceLayer;
-
+        
         virtual void run();
         void send_loop();
         void recv_loop();
-        void break_contact(ContactEvent::reason_t reason);
+        void break_contact(ContactDownEvent::reason_t reason);
         bool connect();
         bool accept();
         bool send_contact_header();
         bool recv_contact_header(int timeout);
-        bool send_address();
-        bool recv_address(int timeout);
-        bool open_opportunistic_link();
-        bool send_bundle(Bundle* bundle);
+        bool send_bundle(Bundle* bundle, size_t* acked_len);
         bool recv_bundle();
-        bool handle_reply();
-        int handle_ack();
+        int  handle_ack(Bundle* bundle, size_t* acked_len);
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
-        bool send_keepalive();
         void note_data_rcvd();
 
-        /// Struct used to record bundles that are in-flight along
-        /// with their transmission times
-        struct InFlightBundle {
-            InFlightBundle(Bundle* b)
-                : bundle_(b, "TCPCL::InFlightBundle"), acked_len_(0) {}
-
-            InFlightBundle(const InFlightBundle& other)
-                : bundle_(other.bundle_),
-                  xmit_start_time_(other.xmit_start_time_),
-                  xmit_finish_time_(other.xmit_finish_time_),
-                  acked_len_(other.acked_len_) {}
-            
-            BundleRef      bundle_;
-            struct timeval xmit_start_time_;
-            struct timeval xmit_finish_time_;
-            size_t         acked_len_;
-        };
-
-        /// Typedef for the list of in-flight bundles
-        typedef std::list<InFlightBundle> InFlightList;
-
-        TCPConvergenceLayer* cl_;	///< Pointer to the CL       instance
-        bool                initiate_;	///< Do we initiate the connection
-        direction_t         direction_; ///< SENDER or RECEIVER
+        EndpointID          nexthop_;	///< The next hop we're connected to
+        bool                is_sender_;	///< Are we the sender side
         Contact*            contact_;	///< Contact for sender-side
         oasys::TCPClient*   sock_;	///< The socket
-        oasys::StreamBuffer rcvbuf_;	///< Buffer for incoming data
-        oasys::ScratchBuffer<u_char*> sndbuf_;///< Buffer for outgoing bundle data
         BlockingBundleList* queue_;	///< Queue of bundles for the connection
-        InFlightList	    inflight_;	///< List of bundles to be acked
+        struct timeval      data_rcvd_;	///< Timestamp for idle timer
 
-        struct timeval data_rcvd_;	///< Timestamp for idle timer
-        struct timeval keepalive_sent_;	///< Timestamp for keepalive timer
     };
+
 };
 
 } // namespace dtn
