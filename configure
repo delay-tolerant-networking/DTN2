@@ -273,7 +273,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="DTN2"
-ac_unique_file="version.h"
+ac_unique_file="dtn-version.h"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>

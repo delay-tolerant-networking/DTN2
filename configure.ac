@@ -7,7 +7,7 @@
 
 AC_PREREQ(2.57)
 AC_INIT(DTN2)
-AC_CONFIG_SRCDIR([version.h])
+AC_CONFIG_SRCDIR([dtn-version.h])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_AUX_DIR(tools)
 
