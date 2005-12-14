@@ -109,7 +109,7 @@ SERVLIB_SRCS := 				\
 
 SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)
-SERVLIB_OBJS := $(SERVLIB_OBJS) version.o
+SERVLIB_OBJS := $(SERVLIB_OBJS) dtn-version.o
 
 ALLSRCS := $(SERVLIB_SRCS)
 
@@ -168,6 +168,6 @@ endif
 #
 # Special vpath directive to build version info into the library.
 #
-vpath version.c $(SRCDIR)
+vpath dtn-version.c $(SRCDIR)
 
 endif

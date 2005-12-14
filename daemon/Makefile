@@ -11,8 +11,7 @@ BUILDDIR := ..
 endif
 
 DAEMON_SRCS :=			\
-	dtnd.cc			\
-	$(SRCDIR)/version.c	\
+	dtnd.cc
 
 DAEMON_OBJS := $(DAEMON_SRCS:.cc=.o)
 

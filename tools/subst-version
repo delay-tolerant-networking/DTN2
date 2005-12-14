@@ -1,0 +1,23 @@
+#!/bin/bash
+
+VERSION_DAT=none
+for f in ./version.dat ../version.dat ../../version.dat ; do
+    if [ -f $f ]; then
+        VERSION_DAT=$f
+	break
+    fi
+done
+
+if [ $VERSION_DAT = none ]; then
+   echo "can't find version.dat"
+   exit 1
+fi
+
+major=`awk '{print $1}' < $VERSION_DAT`
+minor=`awk '{print $2}' < $VERSION_DAT`
+patch=`awk '{print $3}' < $VERSION_DAT`
+
+sed "s/%MAJOR%/$major/" | \
+sed "s/%MINOR%/$minor/" | \
+sed "s/%PATCH%/$patch/"
+

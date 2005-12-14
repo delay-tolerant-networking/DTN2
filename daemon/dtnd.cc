@@ -52,10 +52,11 @@
 #include <oasys/util/Getopt.h>
 #include <oasys/util/StringBuffer.h>
 
-#include "version.h"
 #include "applib/APIServer.h"
 #include "cmd/TestCommand.h"
 #include "servlib/DTNServer.h"
+
+extern const char* dtn_version;
 
 /**
  * Namespace for the dtn daemon source code.

@@ -1,13 +1,18 @@
 Release Notes for DTN2
 ----------------------
 
-2.2.0 (???? 2005)
+2.1.99 (November 2005)
 ----------------------
+
 - Widespread changes for conformance to the latest version of the
   bundle protocol specification document including replacing the
   region/admin syntax and BundleTuple class with a new EndpointID
   class that is a standard URI, and replacing fixed-length values in
   the protocol with SDNVs.
+  
+  ** NOTE: Due to time constraints, this task was not completed, so
+     this release does not include the full bundle spec support,
+     though the next one will.
 
 - Completed implementation of expiration timers for both bundles and
   application registrations, as specified by the protocol document and

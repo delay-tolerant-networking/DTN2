@@ -33,6 +33,16 @@ applib servlib: oasys
 daemon: applib servlib
 apps: applib
 sim: servlib
+servlib: dtn-version.o
+
+dtn-version.o: dtn-version.h dtn-version.c version.dat
+	$(CC) -g -c dtn-version.c -o dtn-version.o
+
+dtn-version.h: dtn-version.h.in version.dat
+	tools/subst-version < dtn-version.h.in > dtn-version.h
+
+bump-version:
+	tools/bump-version
 
 tests: 
 	$(MAKE) all
@@ -53,6 +63,11 @@ uninstall:
 #
 doxygen:
 	doxygen doc/doxyfile
+
+#
+# Pull in the rules for building a debian package
+#
+-include debian/debpkg.mk
 
 #
 # Build a TAGS database. Note this includes all the sources so it gets
