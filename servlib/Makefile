@@ -109,7 +109,7 @@ SERVLIB_SRCS := 				\
 
 SERVLIB_OBJS := $(SERVLIB_SRCS:.cc=.o)
 SERVLIB_OBJS := $(SERVLIB_OBJS:.c=.o)
-SERVLIB_OBJS := $(SERVLIB_OBJS) dtn-version.o
+SERVLIB_OBJS := $(SERVLIB_OBJS) $(BUILDDIR)/dtn-version.o
 
 ALLSRCS := $(SERVLIB_SRCS)
 
@@ -164,10 +164,5 @@ endif
 # Include the common rules.
 #
 -include ../Rules.make
-
-#
-# Special vpath directive to build version info into the library.
-#
-vpath dtn-version.c $(SRCDIR)
 
 endif

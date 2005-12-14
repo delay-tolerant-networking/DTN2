@@ -18,8 +18,8 @@ SERVERLIB_SRCS := 			\
 		dtn_ipc.c		\
 
 CLIENTLIB_OBJS := $(CLIENTLIB_SRCS:.c=.o)
-CLIENTLIB_OBJS := $(CLIENTLIB_OBJS:.ccc=.o)
-CLIENTLIB_OBJS := $(CLIENTLIB_OBJS) version.o
+CLIENTLIB_OBJS := $(CLIENTLIB_OBJS:.cc=.o)
+CLIENTLIB_OBJS := $(CLIENTLIB_OBJS) $(BUILDDIR)/dtn-version.o
 
 SERVERLIB_OBJS := $(SERVERLIB_SRCS:.c=.o)
 SERVERLIB_OBJS := $(SERVERLIB_OBJS:.cc=.o)
@@ -78,9 +78,3 @@ endif
 # Include the common rules
 #
 include ../Rules.make
-
-#
-# Special vpath directive to build version info into the library.
-#
-vpath version.c $(SRCDIR)
-

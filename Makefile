@@ -29,20 +29,27 @@ endif
 #
 # Dependency rules between subdirectories needed for make -j
 #
-applib servlib: oasys
+applib servlib: oasys dtn-version.o
 daemon: applib servlib
 apps: applib
 sim: servlib
-servlib: dtn-version.o
 
-dtn-version.o: dtn-version.h dtn-version.c version.dat
-	$(CC) -g -c dtn-version.c -o dtn-version.o
-
+#
+# Rules for the version files
+#
+dtn-version.o: dtn-version.c
+dtn-version.c: dtn-version.h
 dtn-version.h: dtn-version.h.in version.dat
-	tools/subst-version < dtn-version.h.in > dtn-version.h
+	%(SRCDIR)/tools/subst-version < $(SRCDIR)/dtn-version.h.in > dtn-version.h
+
+vpath dtn-version.h.in $(SRCDIR)
+vpath dtn-version.h    $(SRCDIR)
+vpath dtn-version.c    $(SRCDIR)
+vpath version.dat      $(SRCDIR)
+
 
 bump-version:
-	tools/bump-version
+	cd $(SRCDIR) && tools/bump-version
 
 tests: 
 	$(MAKE) all
