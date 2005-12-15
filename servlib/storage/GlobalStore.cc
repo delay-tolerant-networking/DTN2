@@ -164,7 +164,7 @@ GlobalStore::~GlobalStore()
 u_int32_t
 GlobalStore::next_bundleid()
 {
-    oasys::ScopeLock l(lock_, "next_bundleid");
+    oasys::ScopeLock l(lock_, "GlobalStore::next_bundleid");
     
     ASSERT(globals_->next_bundleid_ != 0xffffffff);
     log_debug("next_bundleid %d -> %d",
@@ -187,7 +187,7 @@ GlobalStore::next_bundleid()
 u_int32_t
 GlobalStore::next_regid()
 {
-    oasys::ScopeLock l(lock_, "next_regid");
+    oasys::ScopeLock l(lock_, "GlobalStore::next_regid");
     
     ASSERT(globals_->next_regid_ != 0xffffffff);
     log_debug("next_regid %d -> %d",
@@ -250,6 +250,8 @@ GlobalStore::update()
 void
 GlobalStore::close()
 {
+    oasys::ScopeLock l(lock_, "GlobalStore::close");
+    
     delete store_;
     store_ = NULL;
 }
