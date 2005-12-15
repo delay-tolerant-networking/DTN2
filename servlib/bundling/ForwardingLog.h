@@ -40,6 +40,7 @@
 
 #include <string>
 #include <vector>
+#include <sys/time.h>
 
 #include <oasys/debug/DebugUtils.h>
 
