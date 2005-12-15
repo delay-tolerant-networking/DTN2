@@ -52,10 +52,10 @@ int   verbose           = 0;    	// verbose output
 char* endpoint		= NULL; 	// endpoint for registration
 dtn_reg_id_t regid	= DTN_REGID_NONE;// registration id
 int   expiration	= 30; 		// registration expiration time
+int   count             = 0;            // exit after count bundles received
 int   failure_action	= DTN_REG_DEFER;// registration delivery failure action
 char* failure_script	= "";	 	// script to exec
 int   register_only	= 0;    	// register and quit
-int   no_register	= 0;    	// don't call register, use existing
 int   change		= 0;    	// change existing registration 
 int   recv_timeout	= -1;    	// timeout to dtn_recv call
 
@@ -66,14 +66,14 @@ usage()
     fprintf(stderr, "options:\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h help\n");
-    fprintf(stderr, " -d <eid|demux_string> endpoint id)\n");
-    fprintf(stderr, " -r <regid> registration id)\n");
+    fprintf(stderr, " -d <eid|demux_string> endpoint id\n");
+    fprintf(stderr, " -r <regid> use existing registration regid\n");
+    fprintf(stderr, " -n <count> exit after count bundles received\n");
     fprintf(stderr, " -e <time> registration expiration time in seconds "
             "(default: one hour)\n");
     fprintf(stderr, " -f <defer|drop|exec> failure action\n");
     fprintf(stderr, " -F <script> failure script for exec action\n");
     fprintf(stderr, " -x call dtn_register and immediately exit\n");
-    fprintf(stderr, " -n don't call dtn_register, use an existing one\n");
     fprintf(stderr, " -c call dtn_change_registration and immediately exit\n");
     fprintf(stderr, " -t <timeout> timeout value for call to dtn_recv\n");
 }
@@ -87,7 +87,7 @@ parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHd:r:e:f:F:xcnt:");
+        c = getopt(argc, argv, "vhHd:r:e:f:F:xcn:t:");
         switch (c)
         {
         case 'v':
@@ -126,7 +126,7 @@ parse_options(int argc, char**argv)
             register_only = 1;
             break;
         case 'n':
-            no_register = 1;
+            count = atoi(optarg);
             break;
         case 'c':
             change = 1;
@@ -163,7 +163,6 @@ int
 main(int argc, char** argv)
 {
     int i, k;
-    int cnt = INT_MAX;
     int ret;
     dtn_handle_t handle;
     dtn_endpoint_id_t local_eid;
@@ -212,17 +211,28 @@ main(int argc, char** argv)
     reginfo.script.script_val = failure_script;
     reginfo.script.script_len = strlen(failure_script) + 1;
 
-    if (!no_register && !change) {
-        if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
-            fprintf(stderr, "error creating registration: %d (%s)\n",
-                    ret, dtn_strerror(dtn_errno(handle)));
+    if (change) {
+        if (regid == DTN_REGID_NONE) {
+            fprintf(stderr, "must specify regid when using -c option\n");
+            usage();
             exit(1);
         }
-    } else if (change) {
+
+        
         if ((ret = dtn_change_registration(handle, regid, &reginfo)) != 0) {
             fprintf(stderr, "error changing registration: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));
             exit(1);
+        }
+
+    } else {
+        // if the user didn't give us a registration to use, get a new one
+        if (regid == DTN_REGID_NONE) {
+            if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
+                fprintf(stderr, "error creating registration: %d (%s)\n",
+                        ret, dtn_strerror(dtn_errno(handle)));
+                exit(1);
+            }
         }
     }
 
@@ -235,9 +245,9 @@ main(int argc, char** argv)
 
     // bind the current handle to the new registration
     dtn_bind(handle, regid);
-    
+
     // loop waiting for bundles
-    for (i = 0; i < cnt; ++i) {
+    for (i = 0; (count == 0) || (i < count); ++i) {
         memset(&spec, 0, sizeof(spec));
         memset(&payload, 0, sizeof(payload));
         
