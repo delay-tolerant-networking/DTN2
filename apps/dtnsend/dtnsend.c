@@ -53,6 +53,7 @@ dtn_bundle_payload_location_t
 payload_type    = 0;    // the type of data source for the bundle
 int copies              = 1;    // the number of copies to send
 int verbose             = 0;
+int sleep_time          = 0;
 
 // bundle options
 int expiration          = 3600; // expiration timer (default one hour)
@@ -65,6 +66,7 @@ int overwrite           = 0;    // queue overwrite option
 int wait_for_report     = 0;    // wait for bundle status reports
 
 char * data_source      = NULL; // filename or message, depending on type
+char date_buf[256];             // buffer for date payloads
 
 // specified options for bundle eids
 char * arg_replyto      = NULL;
@@ -80,6 +82,7 @@ dtn_endpoint_id_t * parse_eid(dtn_handle_t handle,
                               char * str);
 void print_usage();
 void print_eid(char * label, dtn_endpoint_id_t * eid);
+void fill_payload(dtn_bundle_payload_t* payload);
 
 int
 main(int argc, char** argv)
@@ -188,16 +191,12 @@ main(int argc, char** argv)
         bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
     }
     
-
-    // fill in a payload
-    memset(&send_payload, 0, sizeof(send_payload));
-
-    dtn_set_payload(&send_payload, payload_type, data_source, strlen(data_source));
-     
     // loop, sending sends and getting replies.
     for (i = 0; i < copies; ++i) {
         gettimeofday(&start, NULL);
 
+        fill_payload(&send_payload);
+        
         if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
             fprintf(stderr, "error sending bundle: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));
@@ -224,8 +223,10 @@ main(int argc, char** argv)
                    reply_spec.source.uri,
                    ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                     (double)(end.tv_usec - start.tv_usec)/1000.0));
-            
-            sleep(1);
+        }
+
+        if (sleep_time != 0) {
+            usleep(sleep_time * 1000);
         }
     }
 
@@ -250,6 +251,7 @@ void print_usage()
     fprintf(stderr, " -e <time> expiration time in seconds (default: one hour)\n");
     fprintf(stderr, " -i <regid> registration id for reply to\n");
     fprintf(stderr, " -n <int> copies of the bundle to send\n");
+    fprintf(stderr, " -z <time> msecs to sleep between transmissions\n");
     fprintf(stderr, " -c request custody transfer\n");
     fprintf(stderr, " -C request custody transfer receipts\n");
     fprintf(stderr, " -D request for end-to-end delivery receipt\n");
@@ -264,13 +266,12 @@ void parse_options(int argc, char**argv)
 {
     char c, done = 0;
     char arg_type = 0;
-    time_t current;
 
     progname = argv[0];
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHr:s:d:e:n:woDFRcCt:p:i:");
+        c = getopt(argc, argv, "vhHr:s:d:e:n:woDFRcCt:p:i:z:");
         switch (c)
         {
         case 'v':
@@ -323,6 +324,9 @@ void parse_options(int argc, char**argv)
         case 'i':
             regid = atoi(optarg);
             break;
+        case 'z':
+            sleep_time = atoi(optarg);
+            break;
         case -1:
             done = 1;
             break;
@@ -353,9 +357,8 @@ void parse_options(int argc, char**argv)
     case 'f': payload_type = DTN_PAYLOAD_FILE; break;
     case 'm': payload_type = DTN_PAYLOAD_MEM; break;
     case 'd': 
-        payload_type = DTN_PAYLOAD_MEM; 
-        current = time(NULL);
-        data_source = ctime(&current);
+        payload_type = DTN_PAYLOAD_MEM;
+        data_source = date_buf;
         break;
     default:
         fprintf(stderr, "dtnsend: type argument '%d' invalid\n", arg_type);
@@ -390,4 +393,15 @@ dtn_endpoint_id_t * parse_eid(dtn_handle_t handle,
 void print_eid(char *  label, dtn_endpoint_id_t * eid)
 {
     printf("%s [%s]\n", label, eid->uri);
+}
+
+void fill_payload(dtn_bundle_payload_t* payload) {
+
+    if (data_source == date_buf) {
+        time_t current = time(NULL);
+        strcpy(date_buf, ctime(&current));
+    }
+
+    memset(payload, 0, sizeof(*payload));
+    dtn_set_payload(payload, payload_type, data_source, strlen(data_source));
 }
