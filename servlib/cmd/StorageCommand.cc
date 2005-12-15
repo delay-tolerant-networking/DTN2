@@ -57,6 +57,7 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
     bind_s("dbdir",	&cfg->dbdir_,  "The database directory.");
     bind_s("payloaddir",&BundlePayload::payloaddir_,
         "directory for payloads while in transit");
+    bind_i("dbtxmax",   &cfg->dbtxmax_, "max # of active transactions in Berkeley DB");
     bind_b("dbsharefile", &cfg->dbsharefile_, "use shared database file");
 }
 

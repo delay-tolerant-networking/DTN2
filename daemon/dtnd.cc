@@ -87,6 +87,7 @@ oasys::StorageConfig g_storage_config("storage",
                                       "DTN",
                                       "/var/dtn/db",
                                       0,
+                                      1000,
                                       false);
 
 void
