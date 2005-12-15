@@ -578,6 +578,10 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         
     case Link::OPENING:
     case Link::OPEN:
+        // force the link to be available, since someone really wants it open
+        if (link->state() == Link::UNAVAILABLE) {
+            link->set_state(Link::AVAILABLE);
+        }
         actions_->open_link(link);
         break;
 
