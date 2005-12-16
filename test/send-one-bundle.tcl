@@ -38,14 +38,14 @@ test::script {
     set timestamp [dtn::tell_dtnd $last_node sendbundle $source $dest length=$length]
     
     puts "* Waiting for bundle arrival"
-    dtn::wait_for_bundle 0 "$source,$timestamp" 5000
+    dtn::wait_for_bundle 0 "$source,$timestamp" 30000
 
     puts "* Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \
 	    isadmin 0 source $source dest $dest
     
     puts "* Doing sanity check on stats"
-    dtn::wait_for_stat 0 1 received 5000
+    dtn::check_bundle_stats 0 1 received
     
     puts "* Test success!"
 }
