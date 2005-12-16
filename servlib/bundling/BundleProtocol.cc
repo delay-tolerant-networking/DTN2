@@ -297,8 +297,8 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     PrimaryHeader1* primary1;
     if (len < sizeof(PrimaryHeader1)) {
  tooshort1:
-        log_err(log, "buffer too short (parsed %u/%u)",
-                (u_int)(origlen - len), (u_int)origlen);
+        log_debug(log, "buffer too short (parsed %u/%u)",
+                  (u_int)(origlen - len), (u_int)origlen);
         return -1;
     }
     
