@@ -79,16 +79,18 @@ std::string        logfile     = "-";
 TestCommand g_testcmd;
 oasys::ConsoleCommand g_console;
 
-oasys::StorageConfig g_storage_config("storage",
-                                      "berkeleydb",
-                                      false,
-                                      false,
-                                      3,
-                                      "DTN",
-                                      "/var/dtn/db",
-                                      0,
-                                      1000,
-                                      false);
+oasys::StorageConfig
+   g_storage_config("storage",		// command name
+                    "berkeleydb",	// storage type
+                    false,		// init storage
+                    false,		// tidy storage
+                    3,			// tidy wait (seconds)
+                    "DTN",		// DB name
+                    "/var/dtn/db",	// DB directory
+                    0,			// DB flags
+                    1000,		// BDB max tx
+                    5000,		// BDB lock detect freq.
+                    false);		// BDB share file
 
 void
 get_options(int argc, char* argv[])
