@@ -1,12 +1,19 @@
 DTN Reference Implementation
 ============================
 
+This is the Delay Tolerant Networking reference implementation. See
+the file STATUS for an overview of the state of the code, particularly
+in reference to the various internet drafts and (someday) RFCs that
+describe the bundling protocol. Also, the file RELEASE-NOTES describes
+major changes in each release. 
+
 Compilation / Installation Instructions
 ---------------------------------------
 
 ./configure -C
 make
 make install
+(or make deb ; dpkg -i dtnd.<version>.deb)
 
 Note that by default, the configure script will also run configure
 inside the oasys/ subdirectory. The -C argument enables the autoconf
@@ -41,21 +48,26 @@ daemon/			dtn router daemon sources
 ideas/			temporary code idea repository
 servlib/		dtn router internals
 servlib/bundling/	bundle management and forwarding logic
+servlib/contacts/	next hop structures and link types
 servlib/cmd/		tcl based command interface
 servlib/conv_layers/	convergence layers
 servlib/naming/		endpoint identifier schemes
+servlib/reg/		local registrations
 servlib/routing/	bundle routing logic
 servlib/storage/	persistent storage management
 sim/			simulation framework
 test/			unit tests and other test files
+test-utils/		test scripts and utilities
 
 oasys/compat/		portability and compatibility logic
 oasys/debug/		debugging and logging support code
 oasys/io/		I/O and networking support code
 oasys/memory/		memory management and debugging support
 oasys/serialize/	object serialization support
+oasys/smtp/		SMTP (mail) protocol handlers
+oasys/storage/		persistant storage interface 
 oasys/tclcmd/		tcl command infrastructure and support
-oasys/test/		thread / lock support implementation
+oasys/test/		unit tests and other test files
 oasys/thread/		thread / lock support implementation
 oasys/util/		miscellaneous utility classes
 
@@ -74,3 +86,5 @@ one or more of:
 Optional External Packages
 --------------------------
 tclreadline
+tclx
+tcllib
