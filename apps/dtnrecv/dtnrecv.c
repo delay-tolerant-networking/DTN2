@@ -49,6 +49,7 @@
 const char *progname;
 
 int   verbose           = 0;    	// verbose output
+int   quiet             = 0;    	// quiet output
 char* endpoint		= NULL; 	// endpoint for registration
 dtn_reg_id_t regid	= DTN_REGID_NONE;// registration id
 int   expiration	= 30; 		// registration expiration time
@@ -65,6 +66,7 @@ usage()
     fprintf(stderr, "usage: %s [opts] <endpoint> \n", progname);
     fprintf(stderr, "options:\n");
     fprintf(stderr, " -v verbose\n");
+    fprintf(stderr, " -q quiet\n");
     fprintf(stderr, " -h help\n");
     fprintf(stderr, " -d <eid|demux_string> endpoint id\n");
     fprintf(stderr, " -r <regid> use existing registration regid\n");
@@ -87,11 +89,14 @@ parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHd:r:e:f:F:xcn:t:");
+        c = getopt(argc, argv, "vqhHd:r:e:f:F:xcn:t:");
         switch (c)
         {
         case 'v':
             verbose = 1;
+            break;
+        case 'q':
+            quiet = 1;
             break;
         case 'h':
         case 'H':
@@ -164,6 +169,7 @@ main(int argc, char** argv)
 {
     int i, k;
     int ret;
+    int total_bytes = 0;
     dtn_handle_t handle;
     dtn_endpoint_id_t local_eid;
     dtn_reg_info_t reginfo;
@@ -175,6 +181,12 @@ main(int argc, char** argv)
     progname = argv[0];
 
     parse_options(argc, argv);
+
+    if (count == 0) { 
+        printf("dtnrecv (pid %d) starting up\n", getpid());
+    } else {
+        printf("dtnrecv (pid %d) starting up -- count %u\n", getpid(), count);
+    }
 
     // open the ipc handle
     if (verbose) printf("opening connection to dtn router...\n");
@@ -250,8 +262,10 @@ main(int argc, char** argv)
     for (i = 0; (count == 0) || (i < count); ++i) {
         memset(&spec, 0, sizeof(spec));
         memset(&payload, 0, sizeof(payload));
-        
-        printf("dtn_recv [%s]...\n", local_eid.uri);
+
+        if (!quiet) {
+            printf("dtn_recv [%s]...\n", local_eid.uri);
+        }
     
         if ((ret = dtn_recv(handle, &spec,
                             DTN_PAYLOAD_MEM, &payload, recv_timeout)) < 0)
@@ -261,6 +275,12 @@ main(int argc, char** argv)
             exit(1);
         }
 
+        total_bytes += payload.dtn_bundle_payload_t_u.buf.buf_len;
+
+        if (quiet) {
+            continue;
+        }
+        
         printf("%d bytes from [%s]: transit time=%d ms\n",
                payload.dtn_bundle_payload_t_u.buf.buf_len,
                spec.source.uri, 0);
@@ -306,6 +326,9 @@ main(int argc, char** argv)
         }
 	printf("\n");
     }
+
+    printf("dtnrecv (pid %d) exiting: %d bundles received, %d total bytes\n\n",
+           getpid(), i, total_bytes);
 
     dtn_close(handle);
     
