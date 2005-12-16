@@ -105,13 +105,14 @@ BundleDaemon::post(BundleEvent* event)
  * Post the given event and wait for it to be processed by the
  * daemon thread.
  */
-void
-BundleDaemon::post_and_wait(BundleEvent* event, oasys::Notifier* notifier)
+bool
+BundleDaemon::post_and_wait(BundleEvent* event, oasys::Notifier* notifier,
+                            int timeout)
 {
     ASSERT(event->processed_notifier_ == NULL);
     event->processed_notifier_ = notifier;
     post(event);
-    notifier->wait();
+    return notifier->wait(NULL, timeout);
 }
 
 /**
@@ -151,6 +152,15 @@ BundleDaemon::get_statistics(oasys::StringBuffer* buf)
                  bundles_delivered_,
                  bundles_transmitted_,
                  bundles_expired_);
+}
+
+void
+BundleDaemon::reset_statistics()
+{
+    bundles_received_    = 0;
+    bundles_delivered_   = 0;
+    bundles_transmitted_ = 0;
+    bundles_expired_     = 0;
 }
 
 void

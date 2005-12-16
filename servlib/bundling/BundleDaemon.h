@@ -114,9 +114,10 @@ public:
  
     /**
      * Post the given event and wait for it to be processed by the
-     * daemon thread.
+     * daemon thread or the given timeout to elapse.
      */
-    static void post_and_wait(BundleEvent* event, oasys::Notifier* notifier);
+    static bool post_and_wait(BundleEvent* event, oasys::Notifier* notifier,
+                              int timeout = -1);
 
    /**
      * Virtual post_event function, overridden by the Node class in
@@ -177,6 +178,11 @@ public:
      * Format the given StringBuffer with the current statistics value.
      */
     void get_statistics(oasys::StringBuffer* buf);
+
+    /**
+     * Reset the bundle statistics.
+     */
+    void reset_statistics();
 
     /**
      * Return the local endpoint identifier.

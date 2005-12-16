@@ -109,6 +109,7 @@ BundleCommand::help_string()
         "        expiration=integer\n"
         "        length=integer\n"
         "bundle stats \n"
+        "bundle reset_stats \n"
         "bundle list \n"
         "bundle info <id>\n"
         "bundle dump <id>\n"
@@ -194,6 +195,10 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         oasys::StringBuffer buf("Bundle Statistics: ");
         BundleDaemon::instance()->get_statistics(&buf);
         set_result(buf.c_str());
+        return TCL_OK;
+
+    } else if (!strcmp(cmd, "reset_stats")) {
+        BundleDaemon::instance()->reset_statistics();
         return TCL_OK;
         
     } else if (!strcmp(cmd, "list")) {
