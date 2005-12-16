@@ -212,8 +212,8 @@ GlobalStore::load()
     oasys::StringShim key(GLOBAL_KEY);
 
     if (store_->get(key, &globals_) != 0) {
-        log_err("error loading global data");
-        return false;
+        log_crit("error loading global data");
+        exit(1);
     }
     ASSERT(globals_ != NULL);
 
