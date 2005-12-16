@@ -510,9 +510,14 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
     // Connection thread, not from the caller thread
     sock_->set_remote_addr(remote_addr);
     sock_->set_remote_port(remote_port);
+
+    // create a notifier for synchronization with the BundleDaemon
+    event_notifier_ = new oasys::Notifier(logpath_);
+    event_notifier_->logpath_appendf("/event_notifier");
     
     // set the notifier to be able to interrupt IO
     sock_->set_notifier(new oasys::Notifier(logpath_));
+    sock_->get_notifier()->logpath_appendf("/sock_notifier");
 
     // if the parameters specify a local address, do the bind here --
     // however if it fails, we can't really do anything about it, so
@@ -551,6 +556,8 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
     
     sock_ = new oasys::TCPClient(fd, remote_addr, remote_port, logpath_);
     sock_->set_logfd(false);
+
+    event_notifier_ = NULL;
 }
 
 TCPConvergenceLayer::Connection::~Connection()
@@ -559,6 +566,9 @@ TCPConvergenceLayer::Connection::~Connection()
         delete queue_;
     
     delete sock_;
+
+    if (event_notifier_)
+        delete event_notifier_;
 }
 
 
@@ -577,7 +587,7 @@ TCPConvergenceLayer::Connection::run()
     // XXX/demmer much of this could be abstracted into a generic CL
     // ConnectionThread class, assuming we had another
     // connection-oriented CL that we wanted to support (e.g. SCTP)
-
+    
     while (1) {
         log_debug("connection main loop starting up...");
         
@@ -1161,9 +1171,10 @@ TCPConvergenceLayer::Connection::handle_ack()
             new BundleTransmittedEvent(bundle, contact_, payload_len, true));
         
         if ((!params_.pipeline_) && (contact_->link()->state() == Link::BUSY)) {
-            BundleDaemon::post(
+            BundleDaemon::post_and_wait(
                 new LinkStateChangeRequest(contact_->link(), Link::AVAILABLE,
-                                           ContactEvent::NO_INFO));
+                                           ContactEvent::NO_INFO),
+                event_notifier_);
         }
 
     } else {
@@ -1578,16 +1589,52 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
             // if the connection isn't being closed by the user, and
             // the link is open, we need to notify the daemon.
             // typically, we then just bounce back to the main run
-            // loop to try to re-establish the connection... 
+            // loop to try to re-establish the connection...
+            //
+            // we block until the daemon has processed the event to
+            // make sure that we don't clear the cl_info slot too
+            // early (triggering a crash)
             if (contact_->link()->isopen())
             {
-                BundleDaemon::post(new ContactDownEvent(contact_, reason));
+                bool ok = BundleDaemon::post_and_wait(
+                    new ContactDownEvent(contact_, reason),
+                    event_notifier_, 5000);
+
+                // one particularly annoying condition occurs if we
+                // attempt to close the link at the same time that the
+                // daemon does -- the thread in close_contact is
+                // blocked waiting for us to clear the cl_info slot
+                // below.
+                //
+                // XXX/demmer maybe this should be done for all calls
+                // to post_and_wait??
+                int total = 0;
+                while (!ok) {
+                    total += 5;
+                    if (should_stop()) {
+                        log_notice("bundle daemon took > %d seconds to process event: "
+                                   "breaking close_contact deadlock", total);
+                        break;
+                    }
+
+                    if (total >= 60) {
+                        PANIC("bundle daemon took > 60 seconds to process event: "
+                              "fatal deadlock condition");
+                    }
+                    
+                    log_warn("bundle daemon took > %d seconds to process event", total);
+                    ok = event_notifier_->wait(0, 5000);
+                }
             }
         }
+
+        if (queue_->size() > 0) {
+            log_warn("%d bundles still in queue", queue_->size());
+        }
                  
-        // since we delete ourself using DELETE_ON_EXIT, we need to
-        // signal to the main thread that we've quit. we indicate as
-        // such by clearing the cl_info slot in the Contact
+        // once the main thread knows the contact is down (by the
+        // event above) we need to signal that we've quit -- to do so,
+        // clear the cl_info slot in the Contact
         if (contact_->cl_info() != NULL) {
             ASSERT(contact_->cl_info() == this);
             contact_->set_cl_info(NULL);
@@ -1698,7 +1745,7 @@ TCPConvergenceLayer::Connection::send_loop()
     contact_->set_cl_info(this);
     
     // inform the daemon that the contact is available
-    BundleDaemon::post(new ContactUpEvent(contact_));
+    BundleDaemon::post_and_wait(new ContactUpEvent(contact_), event_notifier_);
 
     // reserve space in the buffers
     rcvbuf_.reserve(params_.readbuf_len_);
@@ -1750,10 +1797,11 @@ TCPConvergenceLayer::Connection::send_loop()
             // acknowledged
             if (params_.pipeline_ && (contact_->link()->state() == Link::BUSY))
             {
-                BundleDaemon::post(
+                BundleDaemon::post_and_wait(
                     new LinkStateChangeRequest(contact_->link(),
                                                Link::AVAILABLE,
-                                               ContactEvent::NO_INFO));
+                                               ContactEvent::NO_INFO),
+                    event_notifier_);
             }
             
             // send the bundle off and remove our local reference

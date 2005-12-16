@@ -368,6 +368,7 @@ protected:
         oasys::ScratchBuffer<u_char*> sndbuf_;///< Buffer for outgoing bundle data
         BlockingBundleList* queue_;	///< Queue of bundles for the connection
         InFlightList	    inflight_;	///< List of bundles to be acked
+        oasys::Notifier*    event_notifier_; ///< Notifier for BD event synch.
 
         struct timeval data_rcvd_;	///< Timestamp for idle timer
         struct timeval keepalive_sent_;	///< Timestamp for keepalive timer
