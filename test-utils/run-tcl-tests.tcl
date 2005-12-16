@@ -22,6 +22,7 @@ set tests(basic) {
     "tcp-receiver-connect.tcl"	""
     "dtn-ping.tcl"		""
     "bidirectional.tcl"         ""
+    "tcp-bogus-link.tcl"	""
 }
 
 # the performance test group
