@@ -1297,8 +1297,11 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
         if (contacthdr.flags & RECEIVER_CONNECT) {
             params_.receiver_connect_ = true;
             queue_ = new BlockingBundleList(logpath_);
-            queue_->notifier()->logpath_appendf("/queue");
+            event_notifier_ = new oasys::Notifier(logpath_);
             sock_->set_notifier(new oasys::Notifier(logpath_));
+            queue_->notifier()->logpath_appendf("/queue");
+            event_notifier_->logpath_appendf("/event_notifier");
+            sock_->get_notifier()->logpath_appendf("/sock_notifier");
             direction_ = SENDER;
         } else {
             direction_ = RECEIVER;
