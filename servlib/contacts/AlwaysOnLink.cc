@@ -50,7 +50,11 @@ AlwaysOnLink::AlwaysOnLink(std::string name, ConvergenceLayer* cl,
     min_retry_interval_ = 5;
     max_retry_interval_ = 10 * 60;
     retry_interval_     = min_retry_interval_;
+}
 
+void
+AlwaysOnLink::set_initial_state()
+{
     BundleDaemon::post(
         new LinkStateChangeRequest(this, Link::OPEN, ContactEvent::USER));
 }

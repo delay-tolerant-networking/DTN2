@@ -243,7 +243,13 @@ public:
      * Hook for subclass to parse arguments.
      */
     virtual int parse_args(int argc, const char* argv[]);
-    
+
+    /**
+     * Hook for subclass to post events to control the initial link
+     * state, after all initialization is complete.
+     */
+    virtual void set_initial_state();
+
     /**
      * Return the type of the link.
      */

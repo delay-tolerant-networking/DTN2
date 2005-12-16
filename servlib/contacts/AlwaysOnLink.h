@@ -52,7 +52,9 @@ namespace dtn {
 class AlwaysOnLink : public Link {
 public:
     AlwaysOnLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
+    void set_initial_state();
 };
+
 } // namespace dtn
 
 #endif /* _ALWAYSONLINK_H_ */

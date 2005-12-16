@@ -84,6 +84,12 @@ Link::create_link(const std::string& name, link_type_t type,
         delete link;
         return NULL;
     }
+
+    // now dispatch to the subclass for any initial state events that
+    // need to be posted. this needs to be done after all the above is
+    // completed to avoid potential race conditions if the core of the
+    // system tries to use the link before its completely created
+    link->set_initial_state();
     
     return link;
 }
@@ -126,6 +132,11 @@ Link::parse_args(int argc, const char* argv[])
     p.addopt(new oasys::UIntOpt("max_retry_interval", &max_retry_interval_));
     
     return p.parse_and_shift(argc, argv);
+}
+
+void
+Link::set_initial_state()
+{
 }
 
 Link::~Link()

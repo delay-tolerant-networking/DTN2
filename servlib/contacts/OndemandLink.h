@@ -50,16 +50,9 @@ namespace dtn {
  */
 class OndemandLink : public Link {
 public:
-    /**
-     * Constructor.
-     * Sets the state to AVAILABLE immediately.
-     */
     OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
-    
-    /**
-     * Parse the arguments.
-     */
-    virtual int parse_args(int argc, const char* argv[]);
+    int parse_args(int argc, const char* argv[]);
+    void set_initial_state();
     
     /**
      * Seconds of idle time before the link is closed.

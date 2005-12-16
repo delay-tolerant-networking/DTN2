@@ -42,10 +42,6 @@
 
 namespace dtn {
 
-/**
- * Constructor.
- * Sets the state to AVAILABLE immediately.
- */
 OndemandLink::OndemandLink(std::string name,
                            ConvergenceLayer* cl,
                            const char* nexthop)
@@ -57,8 +53,6 @@ OndemandLink::OndemandLink(std::string name,
     max_retry_interval_ = 10 * 60;
     retry_interval_     = min_retry_interval_;
     idle_close_time_    = 30;
-
-    BundleDaemon::post(new LinkAvailableEvent(this, ContactEvent::NO_INFO));
 }
 
 int
@@ -71,6 +65,12 @@ OndemandLink::parse_args(int argc, const char* argv[])
     oasys::OptParser p;
     p.addopt(new oasys::UIntOpt("idle_close_time", &idle_close_time_));
     return p.parse_and_shift(argc, argv);
+}
+
+void
+OndemandLink::set_initial_state()
+{
+    BundleDaemon::post(new LinkAvailableEvent(this, ContactEvent::NO_INFO));
 }
 
 } // namespace dtn
