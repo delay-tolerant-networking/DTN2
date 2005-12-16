@@ -58,6 +58,8 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
     bind_s("payloaddir",&BundlePayload::payloaddir_,
         "directory for payloads while in transit");
     bind_i("dbtxmax",   &cfg->dbtxmax_, "max # of active transactions in Berkeley DB");
+    bind_i("dblockdetect",   &cfg->dblockdetect_,
+           "frequency to check for Berkeley DB deadlocks (zero disables locking)");
     bind_b("dbsharefile", &cfg->dbsharefile_, "use shared database file");
 }
 
