@@ -1,4 +1,4 @@
-test::name dtn-perf
+test::name bidirectional
 net::num_nodes 3
 
 manifest::file apps/dtnsend/dtnsend dtnsend
@@ -31,8 +31,8 @@ test::script {
     puts "* "
 
     puts "* Running senders / receivers for $count bundles, sleep $sleep"
-    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -n $count"]
-    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -n $count"]
+    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q -n $count"]
+    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -q -n $count"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
@@ -69,8 +69,8 @@ test::script {
     dtn::wait_for_dtnd *
     
     puts "* Running senders / receivers for $count bundles, sleep $sleep"
-    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -n $count"]
-    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -n $count"]
+    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q -n $count"]
+    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -q -n $count"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
@@ -123,8 +123,8 @@ test::script {
     set fudge 30
 
     puts "* Running senders / receivers for $count bundles, sleep $sleep, fudge $fudge"
-    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -n [expr $count - $fudge]"]
-    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -n [expr $count - $fudge]"]
+    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q -n [expr $count - $fudge]"]
+    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -q -n [expr $count - $fudge]"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
