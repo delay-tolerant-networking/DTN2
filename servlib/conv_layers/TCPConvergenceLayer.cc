@@ -395,10 +395,11 @@ TCPConvergenceLayer::close_contact(Contact* contact)
             oasys::Thread::yield();
         }
 
-        // the connection thread will delete itself when it
-        // terminates, however, it first clears the cl_info slot in
-        // the Contact class which is our indication that it exited,
-        // allowing us to exit
+        // the connection thread will delete itself when it terminates
+        // so we can't check any state in the thread itself (i.e. the
+        // is_stopped flag). however, it first clears the cl_info slot
+        // in the Contact class which is our indication that it has
+        // exited, allowing us to return
         
         while (contact->cl_info() != NULL) {
             log_debug("waiting for connection thread to stop...");
