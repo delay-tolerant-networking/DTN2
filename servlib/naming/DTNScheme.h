@@ -43,7 +43,6 @@
 
 namespace dtn {
 
-
 /**
  * This class implements the one default scheme as specified in the
  * bundle protocol. SSPs for this scheme take the canonical form:
