@@ -60,18 +60,16 @@ StringScheme::validate(const std::string& ssp, bool is_pattern)
 }
 
 /**
- * Match the given ssp with the given pattern.
- *
- * @return true if it matches
- */
+ * Match the pattern to the endpoint id in a scheme-specific
+ * manner.
+     */
 bool
-StringScheme::match_ssp(const EndpointIDPattern* pattern,
-                        const std::string& ssp)
+StringScheme::match(const EndpointIDPattern& pattern,
+                    const EndpointID& eid)
 {
     // sanity check
-    ASSERT(pattern->scheme() == this);
-    
-    return (pattern->ssp() == ssp);
+    ASSERT(pattern.scheme() == this);
+    return (pattern.str() == eid.str());
 }
 
 } // namespace dtn

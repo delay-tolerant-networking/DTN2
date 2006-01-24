@@ -58,7 +58,7 @@ SimRegistration::SimRegistration(Node* node, const EndpointID& endpoint)
 }
 
 void
-SimRegistration::consume_bundle(Bundle* bundle)
+SimRegistration::deliver_bundle(Bundle* bundle)
 {
     size_t payload_len = bundle->payload_.length();
 

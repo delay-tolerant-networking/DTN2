@@ -45,16 +45,9 @@ namespace dtn {
 class RouteTable;
 
 /**
- * This is the implementation of the basic bundle routing algorithm
- * that only does static routing. Routes can be parsed from a
- * configuration file or injected via the command line and/or
- * management interfaces.
- *
- * As a result, the class simply uses the default base class handlers
- * for all bundle events that flow through it, and the only code here
- * is that which parses the static route configuration file.
+ * This is an abstract class that is intended to be used for all
+ * routing algorithms that store routing state in a table.
  */
- 
 class TableBasedRouter : public BundleRouter {
 protected:
     /**
@@ -86,6 +79,12 @@ protected:
     void handle_route_add(RouteAddEvent* event);
 
     /**
+     * Default event handler when a route is deleted by the command
+     * or management interface.
+     */
+    void handle_route_del(RouteDelEvent* event);
+    
+    /**
      * When a contact comes up, check to see if there are any matching
      * bundles for it.
      */
@@ -97,6 +96,11 @@ protected:
     void handle_link_available(LinkAvailableEvent* event);
 
     /**
+     * Handle a custody transfer timeout.
+     */
+    void handle_custody_timeout(CustodyTimeoutEvent* event);
+    
+    /**
      * Dump the routing state.
      */
     void get_routing_state(oasys::StringBuffer* buf);
@@ -105,6 +109,11 @@ protected:
      * Add a route entry to the routing table. 
      */
     void add_route(RouteEntry *entry);
+
+    /**
+     * Remove matrhing route entry(s) from the routing table. 
+     */
+    void del_route(const EndpointIDPattern& id);
 
     /**
      * Add an action to forward a bundle to a next hop route, making

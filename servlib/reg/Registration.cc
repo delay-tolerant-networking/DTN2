@@ -62,8 +62,7 @@ Registration::Registration(u_int32_t regid,
                            u_int32_t expiration,
                            const std::string& script)
     
-    : BundleConsumer(endpoint.c_str(), true, REGISTRATION),
-      regid_(regid),
+    : regid_(regid),
       endpoint_(endpoint),
       failure_action_(action),
       script_(script),
@@ -79,8 +78,7 @@ Registration::Registration(u_int32_t regid,
  * Constructor for deserialization
  */
 Registration::Registration(const oasys::Builder&)
-    : BundleConsumer("", true, REGISTRATION),
-      regid_(0),
+    : regid_(0),
       endpoint_(),
       failure_action_(DEFER),
       script_(),
@@ -115,7 +113,6 @@ Registration::serialize(oasys::SerializeAction* a)
 
     // finish constructing the object after unserialization
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
-        BundleConsumer::set_dest_str(endpoint_.c_str());
         init_expiration_timer();
     }
 }

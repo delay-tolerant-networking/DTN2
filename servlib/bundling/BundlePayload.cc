@@ -57,9 +57,9 @@ bool BundlePayload::test_no_remove_;
 /**
  * Constructor
  */
-BundlePayload::BundlePayload()
+BundlePayload::BundlePayload(oasys::SpinLock* lock)
     : location_(DISK), length_(0), rcvd_length_(0), file_(NULL),
-      cur_offset_(0), base_offset_(0), lock_(0)
+      cur_offset_(0), base_offset_(0), lock_(lock)
 {
 }
 
@@ -67,9 +67,8 @@ BundlePayload::BundlePayload()
  * Actual payload initialization function.
  */
 void
-BundlePayload::init(oasys::SpinLock* lock, int bundleid, location_t location)
+BundlePayload::init(int bundleid, location_t location)
 {
-    lock_ = lock;
     location_ = location;
 
     // initialize the file handle for the backing store, but
@@ -105,9 +104,8 @@ BundlePayload::init(oasys::SpinLock* lock, int bundleid, location_t location)
  * Initialization when re-reading the database.
  */
 void
-BundlePayload::init_from_store(oasys::SpinLock* lock, int bundleid)
+BundlePayload::init_from_store(int bundleid)
 {
-    lock_ = lock;
     location_ = DISK;
 
     oasys::StringBuffer path("%s/bundle_%d.dat",

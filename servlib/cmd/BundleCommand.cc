@@ -51,7 +51,8 @@ BundleCommand::BundleCommand()
     : TclCommand("bundle") {}
 
 BundleCommand::InjectOpts::InjectOpts()
-    : receive_rcpt_(false), 
+    : custody_xfer_(false),
+      receive_rcpt_(false), 
       custody_rcpt_(false), 
       forward_rcpt_(false), 
       delivery_rcpt_(false), 
@@ -73,6 +74,7 @@ BundleCommand::parse_inject_options(InjectOpts* options,
     
     oasys::OptParser p;
 
+    p.addopt(new oasys::BoolOpt("custody_xfer",  &options->custody_xfer_));
     p.addopt(new oasys::BoolOpt("receive_rcpt",  &options->receive_rcpt_));
     p.addopt(new oasys::BoolOpt("custody_rcpt",  &options->custody_rcpt_));
     p.addopt(new oasys::BoolOpt("forward_rcpt",  &options->forward_rcpt_));
@@ -101,6 +103,7 @@ BundleCommand::help_string()
     // what options you can provide
     return "bundle inject <source> <dest> <payload> <opt1<=val1?>...optN<=valN?>?> \n"
         "    valid options:\n"
+        "        custody_xfer\n"
         "        receive_rcpt\n"
         "        custody_rcpt\n"
         "        forward_rcpt\n"
@@ -138,9 +141,9 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         Bundle* b = new Bundle();
         b->source_.assign(Tcl_GetStringFromObj(objv[2], 0));
         b->replyto_.assign(Tcl_GetStringFromObj(objv[2], 0));
-        b->custodian_.assign(Tcl_GetStringFromObj(objv[2], 0));
+        b->custodian_.assign(EndpointID::NULL_EID());
         b->dest_.assign(Tcl_GetStringFromObj(objv[3], 0));
-
+        
         int payload_len;
         u_char* payload_data = Tcl_GetByteArrayFromObj(objv[4], &payload_len);
         int total = payload_len;
@@ -153,13 +156,14 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
                     invalid);
             return TCL_ERROR;
         }
-        
-        b->receive_rcpt_  = options.receive_rcpt_;
-        b->custody_rcpt_  = options.custody_rcpt_;
-        b->forward_rcpt_  = options.forward_rcpt_;
-        b->delivery_rcpt_ = options.delivery_rcpt_;
-        b->deletion_rcpt_ = options.deletion_rcpt_;
-        b->expiration_    = options.expiration_;
+
+        b->custody_requested_ = options.custody_xfer_;
+        b->receive_rcpt_      = options.receive_rcpt_;
+        b->custody_rcpt_      = options.custody_rcpt_;
+        b->forward_rcpt_      = options.forward_rcpt_;
+        b->delivery_rcpt_     = options.delivery_rcpt_;
+        b->deletion_rcpt_     = options.deletion_rcpt_;
+        b->expiration_        = options.expiration_;
 
         if (options.length_ != 0) {
             // explicit length

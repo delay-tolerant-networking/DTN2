@@ -73,6 +73,11 @@ public:
      * Create any CL-specific components of the Link.
      */
     bool init_link(Link* link, int argc, const char* argv[]);
+
+    /**
+     * Open the given contact.
+     */
+    bool open_contact(Contact* contact);
     
     /**
      * Send the bundle out the contact.

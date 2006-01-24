@@ -38,9 +38,9 @@
 
 #include "BundleActions.h"
 #include "Bundle.h"
-#include "BundleConsumer.h"
 #include "BundleDaemon.h"
 #include "BundleList.h"
+#include "conv_layers/ConvergenceLayer.h"
 #include "contacts/Link.h"
 #include "storage/BundleStore.h"
 
@@ -109,15 +109,29 @@ BundleActions::create_link(std::string& endpoint, Interface* interface)
  *
  * @param bundle	the bundle
  * @param link		the link to send it on
+ * @param action	the forwarding action that was taken
+ * @param custody_timer	custody timer specification
  */
-void
-BundleActions::send_bundle(Bundle* bundle, Link* link)
+bool
+BundleActions::send_bundle(Bundle* bundle, Link* link,
+                           bundle_fwd_action_t action,
+                           const CustodyTimerSpec& custody_timer)
 {
     log_debug("send bundle *%p to %s link %s (%s)",
               bundle, link->type_str(), link->name(), link->nexthop());
 
-    bundle->fwdlog_.update(link->nexthop(), ForwardingEntry::IN_FLIGHT);
-    link->consume_bundle(bundle);
+    if (link->state() != Link::OPEN) {
+        log_err("send bundle *%p to %s link %s (%s): link not open!!",
+              bundle, link->type_str(), link->name(), link->nexthop());
+        return false;
+    }
+
+    ASSERT(link->contact() != NULL);
+    bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
+                              custody_timer);
+
+    link->clayer()->send_bundle(link->contact(), bundle);
+    return true;
 }
 
 /**
@@ -133,8 +147,14 @@ BundleActions::cancel_bundle(Bundle* bundle, Link* link)
     log_debug("cancel bundle *%p on %s link %s (%s)",
               bundle, link->type_str(), link->name(), link->nexthop());
 
-    bundle->fwdlog_.update(link->nexthop(), ForwardingEntry::CANCELLED);
-    return link->cancel_bundle(bundle);
+    if (link->state() != Link::OPEN) {
+        return false;
+    }
+
+    ASSERT(link->contact() != NULL);
+    bundle->fwdlog_.update(link, ForwardingInfo::CANCELLED);
+    
+    return link->clayer()->cancel_bundle(link->contact(), bundle);
 }
 
 /**
@@ -149,6 +169,8 @@ BundleActions::cancel_bundle(Bundle* bundle, Link* link)
 void
 BundleActions::inject_bundle(Bundle* bundle)
 {
+    PANIC("XXX/demmer fix this");
+    
     log_debug("inject bundle *%p", bundle);
     BundleDaemon::instance()->pending_bundles()->push_back(bundle);
     store_add(bundle);
@@ -164,6 +186,21 @@ BundleActions::store_add(Bundle* bundle)
     bool added = BundleStore::instance()->add(bundle);
     if (! added) {
         log_crit("error adding bundle %d to data store!!", bundle->bundleid_);
+    }
+}
+
+
+/**
+ * Update the on-disk version of the given bundle, after it's
+ * bookkeeping or header fields have been modified.
+ */
+void
+BundleActions::store_update(Bundle* bundle)
+{
+    log_debug("updating bundle %d in data store", bundle->bundleid_);
+    bool updated = BundleStore::instance()->update(bundle);
+    if (! updated) {
+        log_crit("error updating bundle %d in data store!!", bundle->bundleid_);
     }
 }
 

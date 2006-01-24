@@ -77,7 +77,7 @@ public:
 SimConvergenceLayer* SimConvergenceLayer::instance_;
 
 SimConvergenceLayer::SimConvergenceLayer()
-    : ConvergenceLayer("/cl/sim")
+    : ConvergenceLayer("sim")
 {
 }
 
@@ -102,6 +102,14 @@ SimConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 
     link->set_cl_info(info);
 
+    return true;
+}
+
+bool
+SimConvergenceLayer::open_contact(Contact* contact)
+{
+    log_debug("open_contact %s", contact->nexthop());
+    BundleDaemon::post(new ContactUpEvent(contact));
     return true;
 }
 

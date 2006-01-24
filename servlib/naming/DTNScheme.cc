@@ -58,6 +58,11 @@ DTNScheme* oasys::Singleton<DTNScheme>::instance_ = 0;
 bool
 DTNScheme::validate(const std::string& ssp, bool is_pattern)
 {
+    // first check for the special ssp that is simply "none"
+    if (ssp == "none") {
+        return true;
+    }
+    
     // use the oasys builtin class for URLs, though we need to re-add
     // the dtn: since it was stripped by the basic endpoint id parsing
     std::string url_str = "dtn:";
@@ -97,32 +102,40 @@ DTNScheme::validate(const std::string& ssp, bool is_pattern)
  * @return true if it matches
  */
 bool
-DTNScheme::match_ssp(const EndpointIDPattern* pattern, const std::string& ssp)
+DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
 {
     // sanity check
-    ASSERT(pattern->scheme() == this);
+    ASSERT(pattern.scheme() == this);
+
+    // we only match endpoint ids of the same scheme
+    if (!eid.known_scheme() || (eid.scheme() != this)) {
+        return false;
+    }
+    
+    // if the ssp is "none", then nothing should match it (ever)
+    if (eid.ssp() == "none") {
+        return false;
+    }
     
     // parse the two strings into URLs for easier manipulation
-    std::string url_str = "dtn:";
-    url_str.append(ssp);
-    oasys::URL ssp_url(url_str);
-    oasys::URL pattern_url(pattern->str());
+    oasys::URL eid_url(eid.str());
+    oasys::URL pattern_url(pattern.str());
     
-    if (!ssp_url.valid()) {
+    if (!eid_url.valid()) {
         log_warn("/scheme/dtn",
-                 "match error: ssp '%s' not a valid ssp",
-                 ssp.c_str());
+                 "match error: eid '%s' not a valid url",
+                 eid.c_str());
         return false;
     }
     
     if (!pattern_url.valid()) {
         log_warn("/scheme/dtn",
                  "match error: pattern '%s' not a valid url",
-                 pattern->c_str());
+                 pattern.c_str());
         return false;
     }
     
-    // check for a wildcard host specifier e.g bp0://*
+    // check for a wildcard host specifier e.g dtn://*
     if (pattern_url.host_ == "*" && pattern_url.path_ == "")
     {
         return true;
@@ -131,33 +144,33 @@ DTNScheme::match_ssp(const EndpointIDPattern* pattern, const std::string& ssp)
     // match the host part of the urls (though if the pattern host is
     // "*", fall through to the rest of the comparison)
     if ((pattern_url.host_ != "*") &&
-        (pattern_url.host_ != ssp_url.host_))
+        (pattern_url.host_ != eid_url.host_))
     {
         log_debug("/scheme/dtn",
                   "match(%s, %s) failed: url hosts not equal ('%s' != '%s')",
-                  ssp_url.c_str(), pattern_url.c_str(),
-                  pattern_url.host_.c_str(), ssp_url.host_.c_str());
+                  eid_url.c_str(), pattern_url.c_str(),
+                  pattern_url.host_.c_str(), eid_url.host_.c_str());
         return false;
     }
 
     // make sure the ports are equal (or unspecified in which case they're 0)
-    if (pattern_url.port_ != ssp_url.port_)
+    if (pattern_url.port_ != eid_url.port_)
     {
         log_debug("/scheme/dtn",
                   "match(%s, %s) failed: url ports not equal (%d != %d)",
-                  ssp_url.c_str(), pattern_url.c_str(),
-                  pattern_url.port_, ssp_url.port_);
+                  eid_url.c_str(), pattern_url.c_str(),
+                  pattern_url.port_, eid_url.port_);
         return false;
     }
 
     // check for a wildcard path or an exact match of the path strings
     if ((pattern_url.path_ == "*") ||
-        (pattern_url.path_ == ssp_url.path_))
+        (pattern_url.path_ == eid_url.path_))
     {
         log_debug("/scheme/dtn",
                   "match(%s, %s) succeeded: pattern '%s' ssp '%s'",
-                  ssp_url.c_str(), pattern_url.c_str(),
-                  pattern_url.host_.c_str(), ssp_url.host_.c_str());
+                  eid_url.c_str(), pattern_url.c_str(),
+                  pattern_url.host_.c_str(), eid_url.host_.c_str());
         return true;
     }
 
@@ -167,13 +180,13 @@ DTNScheme::match_ssp(const EndpointIDPattern* pattern, const std::string& ssp)
         patternlen--;
         
         if (pattern_url.path_.substr(0, patternlen) ==
-            ssp_url.path_.substr(0, patternlen))
+            eid_url.path_.substr(0, patternlen))
         {
             log_debug("/scheme/dtn",
                       "match(%s, %s) substring succeeded: "
                       "pattern '%s' ssp '%s'",
-                      ssp_url.c_str(), pattern_url.c_str(),
-                      pattern_url.host_.c_str(), ssp_url.host_.c_str());
+                      eid_url.c_str(), pattern_url.c_str(),
+                      pattern_url.host_.c_str(), eid_url.host_.c_str());
             return true;
         }
     }

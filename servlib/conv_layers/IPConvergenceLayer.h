@@ -56,8 +56,8 @@ protected:
     /**
      * Constructor.
      */
-    IPConvergenceLayer(const char* logpath)
-        : ConvergenceLayer(logpath)
+    IPConvergenceLayer(const char* name)
+        : ConvergenceLayer(name)
     {
     }
 

@@ -116,7 +116,7 @@ DECLARE_TEST(Unknown) {
 }
  
 DECLARE_TEST(DTN) {
-    // test internet style parsing for some valid names
+    // test parsing for some valid names
     EIDCHECK(VALID,   KNOWN, "dtn://tier.cs.berkeley.edu");
     EIDCHECK(VALID,   KNOWN, "dtn://tier.cs.berkeley.edu/");
     EIDCHECK(VALID,   KNOWN, "dtn://tier.cs.berkeley.edu/demux");
@@ -126,6 +126,10 @@ DECLARE_TEST(DTN) {
     EIDCHECK(VALID,   KNOWN, "dtn://host/demux");
     EIDCHECK(VALID,   KNOWN, "dtn://host:1000/demux");
 
+    // and the lone valid null scheme
+    EIDCHECK(VALID,   KNOWN, "dtn:none");
+
+    // and some invalid ones
     EIDCHECK(INVALID, KNOWN, "dtn:/");
     EIDCHECK(INVALID, KNOWN, "dtn://");
     EIDCHECK(INVALID, KNOWN, "dtn:host");
@@ -135,7 +139,7 @@ DECLARE_TEST(DTN) {
 }
 
 DECLARE_TEST(DTNMatch) {
-    // test internet style matching
+    // valid matches
     EIDMATCH(MATCH,
              "dtn://tier.cs.berkeley.edu/demux",
              "dtn://tier.cs.berkeley.edu/demux");
@@ -165,9 +169,14 @@ DECLARE_TEST(DTNMatch) {
              "dtn://tier.cs.berkeley.edu/demux/something");
 
     EIDMATCH(MATCH,
+             "dtn://*",
+             "dtn://tier.cs.berkeley.edu");
+
+    EIDMATCH(MATCH,
              "dtn://*/demux/*",
              "dtn://tier.cs.berkeley.edu/demux/something");
 
+    // invalid matches
     EIDMATCH(NOMATCH,
              "dtn://host1/demux",
              "dtn://host2/demux");
@@ -183,6 +192,20 @@ DECLARE_TEST(DTNMatch) {
     EIDMATCH(NOMATCH,
              "dtn://host1/demux",
              "dtn://host1/demux/something");
+
+    // the none ssp never matches
+    EIDMATCH(NOMATCH,
+             "dtn:none",
+             "dtn://none");
+    
+    EIDMATCH(NOMATCH,
+             "dtn:none",
+             "dtn:none");
+
+    // finally, don't match other schemes
+    EIDMATCH(NOMATCH,
+             "dtn://host",
+             "dtn2://host");
 
     return UNIT_TEST_PASSED;
 }
@@ -206,6 +229,9 @@ DECLARE_TEST(WildcardMatch) {
     EIDMATCH(MATCH, "*:*", "flsdfllsdfgj:087490823uodf");
     EIDMATCH(MATCH, "*:*", "dtn://host/demux");
 
+    // there's one exception -- that is the null eid
+    EIDMATCH(NOMATCH, "*:*", "dtn:none");
+    
     return UNIT_TEST_PASSED;
 }
 
@@ -225,16 +251,6 @@ DECLARE_TEST(Ethernet) {
     return UNIT_TEST_PASSED;
 }
 
-DECLARE_TEST(None) {
-    EIDCHECK(VALID,   KNOWN, "none:.");
-
-    EIDCHECK(INVALID, KNOWN, "none:");
-    EIDCHECK(INVALID, KNOWN, "none://");
-    EIDCHECK(INVALID, KNOWN, "none:anything");
-
-    return UNIT_TEST_PASSED;
-}
-
 DECLARE_TEST(String) {
     EIDCHECK(VALID,   KNOWN, "str:anything");
     EIDCHECK(VALID,   KNOWN, "str://anything");
@@ -245,6 +261,18 @@ DECLARE_TEST(String) {
     return UNIT_TEST_PASSED;
 }
 
+DECLARE_TEST(StringMatch) {
+    EIDMATCH(MATCH, "str:foo", "str:foo");
+    EIDMATCH(MATCH, "str://anything", "str://anything");
+
+    EIDMATCH(NOMATCH, "str:none", "dtn:none");
+    EIDMATCH(NOMATCH, "dtn:none", "str:none");
+
+    EIDMATCH(NOMATCH, "str://host", "dtn://host");
+    EIDMATCH(NOMATCH, "dtn://host", "str://host");
+    
+    return UNIT_TEST_PASSED;
+}
 
 DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(Invalid);
@@ -255,7 +283,7 @@ DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(WildcardMatch);
     ADD_TEST(Ethernet);
     ADD_TEST(String);
-    ADD_TEST(None);
+    ADD_TEST(StringMatch);
 }
 
 DECLARE_TEST_FILE(EndpointIDTester, "endpoint id test");

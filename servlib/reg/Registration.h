@@ -45,7 +45,6 @@
 #include <oasys/serialize/Serialize.h>
 #include <oasys/thread/Timer.h>
 
-#include "../bundling/BundleConsumer.h"
 #include "../naming/EndpointID.h"
 
 namespace dtn {
@@ -61,7 +60,7 @@ class Bundle;
  *
  * Registration state is stored persistently in the database.
  */
-class Registration : public BundleConsumer, public oasys::SerializableObject {
+class Registration : public oasys::SerializableObject, public oasys::Logger {
 public:
     /**
      * Reserved registration identifiers.
@@ -103,6 +102,11 @@ public:
      * Destructor.
      */
     virtual ~Registration();
+
+    /**
+     * Abstract hook for subclasses to deliver a bundle to this registration.
+     */
+    virtual void deliver_bundle(Bundle* bundle) = 0;
     
     //@{
     /// Accessors

@@ -77,8 +77,8 @@ public:
      */
     int get_bundle_data(Tcl_Interp* interp);
 
-    /// virtual from BundleConsumer
-    void consume_bundle(Bundle* bundle);
+    /// virtual from Registration
+    void deliver_bundle(Bundle* bundle);
 
 protected:
     BlockingBundleList* bundle_list_;

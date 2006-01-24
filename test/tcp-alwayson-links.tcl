@@ -61,11 +61,7 @@ test::script {
     dtn::tell_dtnd 2 link close tcp-link:2-1
     dtn::wait_for_link_state 2 tcp-link:2-1 UNAVAILABLE
 
-    puts "* resetting the link to available, checking that it stays closed"
-    dtn::tell_dtnd 2 link set_available tcp-link:2-1 true
-    dtn::wait_for_link_state 2 tcp-link:2-1 AVAILABLE
-    
-    puts "* forcibly opening the link"
+    puts "* re-opening the link"
     dtn::tell_dtnd 2 link open tcp-link:2-1
     dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
 

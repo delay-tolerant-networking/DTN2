@@ -40,40 +40,17 @@
 
 #include <vector>
 #include <oasys/debug/Log.h>
+#include "ForwardingInfo.h"
 
 namespace dtn {
 
 class Bundle;
 class BundleList;
-class BundleConsumer;
+class CustodyTimerSpec;
+class EndpointID;
 class Interface;
 class Link;
 class RouterInfo;
-
-/**
- * Various forwarding actions
- */
-typedef enum {
-    FORWARD_INVALID = 0,///< Invalid action
-    
-    FORWARD_UNIQUE,	///< Forward the bundle only to one next hop
-    FORWARD_COPY,	///< Forward a copy of the bundle
-    FORWARD_FIRST,	///< Forward to the first of a set
-    FORWARD_REASSEMBLE	///< First reassemble fragments (if any) then forward
-} bundle_fwd_action_t;
-
-inline const char*
-bundle_fwd_action_toa(bundle_fwd_action_t action)
-{
-    switch(action) {
-    case FORWARD_UNIQUE:	return "FORWARD_UNIQUE";
-    case FORWARD_COPY:		return "FORWARD_COPY";
-    case FORWARD_FIRST:		return "FORWARD_FIRST";
-    case FORWARD_REASSEMBLE:	return "FORWARD_REASSEMBLE";
-    default:
-        NOTREACHED;
-    }
-}
 
 /**
  * Intermediary class that provides the interface that is exposed to
@@ -110,15 +87,22 @@ public:
     virtual void create_link(std::string& endpoint, Interface* interface);
     
     /**
-     * Initiate transmission of a bundle out the given link.
+     * Initiate transmission of a bundle out the given link. The link
+     * must already be open.
      *
      * @param bundle		the bundle
      * @param link		the link on which to send the bundle
+     * @param action		the forwarding action that was taken
+     * @param custody_timer	custody timer specification
+     *
+     * @return true if the transmission was successfully initiated
      */
-    virtual void send_bundle(Bundle* bundle, Link* link);
+    virtual bool send_bundle(Bundle* bundle, Link* link,
+                             bundle_fwd_action_t action,
+                             const CustodyTimerSpec& custody_timer);
     
     /**
-     * Cancel transmission of a bundle on the given link.
+     * Attempt to cancel transmission of a bundle on the given link.
      *
      * @param bundle		the bundle
      * @param link		the link on which the bundle was queued
@@ -147,6 +131,12 @@ protected:
      * Add the given bundle to the data store.
      */
     virtual void store_add(Bundle* bundle);
+
+    /**
+     * Update the on-disk version of the given bundle, after it's
+     * bookkeeping or header fields have been modified.
+     */
+    virtual void store_update(Bundle* bundle);
 
     /**
      * Remove the given bundle from the data store.

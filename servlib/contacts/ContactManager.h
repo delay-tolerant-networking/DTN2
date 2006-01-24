@@ -76,7 +76,7 @@ public:
      *
      *********************************************/
     /**
-     * Add a link
+     * Add a link.
      */
     void add_link(Link* link);
     
@@ -96,9 +96,10 @@ public:
     Link* find_link(const char* name);
 
     /**
-     * Finds link to given next hop
+     * Finds link to given next hop. Optionally restricts the search
+     * to include only links using the given convergence layer.
      */
-    Link* find_link_to(const char* next_hop);
+    Link* find_link_to(const char* next_hop, const char* clayer = NULL);
 
     /**
      * Return the list of links. Asserts that the CM spin lock is held

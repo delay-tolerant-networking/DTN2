@@ -8,7 +8,7 @@
 # by default.
 #
 
-SUBDIRS := oasys applib servlib daemon apps sim
+SUBDIRS := oasys applib servlib daemon apps
 
 all: checkconfigure $(SUBDIRS)
 

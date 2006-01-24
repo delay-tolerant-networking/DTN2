@@ -294,8 +294,16 @@ BundleList::erase(Bundle* bundle, bool used_notifier)
 bool
 BundleList::contains(Bundle* bundle)
 {
+    bool ret = bundle->is_queued_on(this);
+
+#define DEBUG_MAPPINGS
+#ifdef DEBUG_MAPPINGS
     oasys::ScopeLock l(lock_, "BundleList::contains");
-    return (std::find(begin(), end(), bundle) != end());
+    bool ret2 = (std::find(begin(), end(), bundle) != end());
+    ASSERT(ret == ret2);
+#endif
+
+    return ret;
 }
 
 /**
@@ -310,6 +318,32 @@ BundleList::find(u_int32_t bundle_id)
     BundleRef ret("BundleList::find() temporary");
     for (iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->bundleid_ == bundle_id) {
+            ret = *iter;
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * Search the list for a bundle with the given source eid and
+ * timestamp.
+ *
+ * @return the bundle or NULL if not found.
+ */
+BundleRef
+BundleList::find(const EndpointID& source_eid,
+                 const struct timeval& creation_ts)
+{
+    oasys::ScopeLock l(lock_, "BundleList::find");
+    BundleRef ret("BundleList::find() temporary");
+    
+    for (iterator iter = begin(); iter != end(); ++iter) {
+        if ((*iter)->source_.equals(source_eid) &&
+            (*iter)->creation_ts_.tv_sec == creation_ts.tv_sec &&
+            (*iter)->creation_ts_.tv_usec == creation_ts.tv_usec)
+        {
             ret = *iter;
             return ret;
         }

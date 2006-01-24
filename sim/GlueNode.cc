@@ -40,7 +40,6 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleActions.h"
 #include "bundling/BundleEvent.h"
-#include "bundling/BundleConsumer.h"
 #include "contacts/Contact.h"
 
 #include "SimConvergenceLayer.h"

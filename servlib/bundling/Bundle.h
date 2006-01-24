@@ -48,6 +48,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "BundlePayload.h"
+#include "CustodyTimer.h"
 #include "ForwardingLog.h"
 #include "naming/EndpointID.h"
 
@@ -121,7 +122,7 @@ public:
 
     /**
      * Return the bundle's reference count, corresponding to the
-     * number of entries in the containers_ set, i.e. the number of
+     * number of entries in the mappings set, i.e. the number of
      * BundleLists that have a reference to this bundle, as well as
      * any other scopes that are processing the bundle.
      */
@@ -165,6 +166,11 @@ public:
     MappingsIterator mappings_end();
 
     /**
+     * Return true if the bundle is on the given list.
+     */
+    bool is_queued_on(BundleList* l);
+
+    /**
      * Validate the bundle's fields
      */
     bool validate(oasys::StringBuffer* errbuf);
@@ -174,8 +180,8 @@ public:
      */
     bool receipt_requested()
     {
-        return (receive_rcpt_ | custody_rcpt_ | forward_rcpt_ |
-                delivery_rcpt_ | delivery_rcpt_);
+        return (receive_rcpt_ || custody_rcpt_ || forward_rcpt_ ||
+                delivery_rcpt_ || delivery_rcpt_);
     }
     
     /**
@@ -224,24 +230,27 @@ public:
     bool forward_rcpt_;		///< Hop by hop forwarding reporting
     bool delivery_rcpt_;	///< End-to-end delivery reporting
     bool deletion_rcpt_;	///< Bundle deletion reporting
+    bool app_acked_rcpt_;	///< Acknowlege by application reporting
     timestamp_t creation_ts_;	///< Creation timestamp
     u_int32_t expiration_;	///< Bundle expiration time
     u_int32_t frag_offset_;	///< Offset of fragment in the original bundle
     u_int32_t orig_length_;	///< Length of original bundle
     BundlePayload payload_;	///< Reference to the payload
-    ForwardingLog fwdlog_;	///< Log of bundle forwarding actions
 
     /*
-     * Public internal fields for managing the bundle.
+     * Internal fields and structures for managing the bundle that are
+     * not transmitted over the network.
      */
     u_int32_t bundleid_;	///< Local bundle identifier
     oasys::SpinLock lock_;	///< Lock for bundle data that can be
-                                ///  updated by multiple threads, e.g.
-                                ///  containers_ and refcount_.
+                                ///  updated by multiple threads
     bool is_reactive_fragment_; ///< Reactive fragmentary bundle
-    std::string owner_;         ///< Declared owner of this bundle,
-                                ///  could be empty
+    bool local_custody_;	///< Local node has custody
+    std::string owner_;         ///< Declared router that "owns" this
+                                ///  bundle, which could be empty
+    ForwardingLog fwdlog_;	///< Log of bundle forwarding records
     ExpirationTimer* expiration_timer_;	///< The expiration timer
+    CustodyTimerVec custody_timers_; ///< Live custody timers for this bundle
 
 protected:
     friend class BundleList;

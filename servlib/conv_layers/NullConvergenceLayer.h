@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2006 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,28 +35,36 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _ADMIN_REGISTRATION_H_
-#define _ADMIN_REGISTRATION_H_
+#ifndef _NULLCONVERGENCELAYER_H_
+#define _NULLCONVERGENCELAYER_H_
 
-#include "Registration.h"
+#include "ConvergenceLayer.h"
 
 namespace dtn {
 
 /**
- * Internal registration that recieves all administrative bundles
- * destined for the router itself (i.e. status reports, custody
- * acknowledgements, ping bundles, etc.)
-*/
-class AdminRegistration : public Registration {
+ * The null convergence layer consumes all bundles immediately and
+ * does no actual transmission, roughly similar to /dev/null.
+ */
+class NullConvergenceLayer : public ConvergenceLayer {
 public:
-    AdminRegistration();
+    /**
+     * Constructor.
+     */
+    NullConvergenceLayer()
+        : ConvergenceLayer("null") {}
 
     /**
-     * Deliver the given bundle.
+     * Open the given contact.
      */
-    void deliver_bundle(Bundle* bundle);
+    bool open_contact(Contact* contact);
+
+    /**
+     * Try to send the given bundle on the current link.
+     */
+    void send_bundle(Contact* contact, Bundle* bundle);
 };
 
 } // namespace dtn
 
-#endif /* _ADMIN_REGISTRATION_H_ */
+#endif /* _NULLCONVERGENCELAYER_H_ */

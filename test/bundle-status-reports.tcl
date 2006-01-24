@@ -4,7 +4,7 @@ net::num_nodes 3
 dtn::config
 
 dtn::config_interface tcp
-dtn::config_linear_topology ONDEMAND tcp true
+dtn::config_linear_topology ALWAYSON tcp true
 
 test::script {
 
@@ -17,6 +17,7 @@ test::script {
 	global dest_node
 	
 	puts "* Sending bundle to $dest with $sr_option set"
+
 	# 3 second expiration for deleted SR's to be generated in time:
 	set timestamp [dtn::tell_dtnd $last_node \
 			   sendbundle $source $dest replyto=$sr_dest \
@@ -50,6 +51,10 @@ test::script {
     puts "* Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
+    puts "* Waiting for links to open"
+    dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
+    dtn::wait_for_link_state 1 tcp-link:1-0 OPEN
+
     # global constants
     set last_node [expr [net::num_nodes] - 1]
     set source    [dtn::tell_dtnd $last_node {route local_eid}]
@@ -66,14 +71,14 @@ test::script {
     dtn::tell_dtnd 0 tcl_registration $dest
 
     # test the SR's
-    test_sr delivery_rcpt delivered_time $dest_node
-    test_sr forward_rcpt forwarded_time [lrange $all_nodes 1 end]
-    test_sr receive_rcpt received_time $all_nodes
+    test_sr delivery_rcpt sr_delivered_time $dest_node
+    test_sr forward_rcpt  sr_forwarded_time [lrange $all_nodes 1 end]
+    test_sr receive_rcpt  sr_received_time $all_nodes
     
     # need to cut the link to create a deletion SR:
     dtn::tell_dtnd 1 link close tcp-link:1-0
     after 1000
-    test_sr deletion_rcpt deleted_time dtn://host-1
+    test_sr deletion_rcpt sr_deleted_time dtn://host-1
 
     # XXX/todo: add Custody and App-Acknowledgement SR tests once the
     # ability to generate those types of SRs has been implemented

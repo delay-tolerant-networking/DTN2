@@ -86,8 +86,8 @@ DECLARE_TEST(Basic)
     Bundle* bundle = new Bundle(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://source.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
-    bundle->custodian_.assign("none:.");
-    bundle->replyto_.assign("none:.");
+    bundle->custodian_.assign("dtn:none");
+    bundle->replyto_.assign("dtn:none");
     
     bundle->expiration_ = 1000;
     bundle->creation_ts_.tv_sec  = 10101010;
@@ -104,8 +104,8 @@ DECLARE_TEST(Fragment)
     Bundle* bundle = new Bundle(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://frag.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
-    bundle->custodian_.assign("none:.");
-    bundle->replyto_.assign("none:.");
+    bundle->custodian_.assign("dtn:none");
+    bundle->replyto_.assign("dtn:none");
     
     bundle->expiration_ = 30;
     bundle->is_fragment_ = 1;
@@ -122,8 +122,8 @@ DECLARE_TEST(AllFlags)
     Bundle* bundle = new Bundle(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://source.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
-    bundle->custodian_.assign("none:.");
-    bundle->replyto_.assign("none:.");
+    bundle->custodian_.assign("dtn:none");
+    bundle->replyto_.assign("dtn:none");
 
     bundle->is_admin_ = true;
     bundle->do_not_fragment_ = true;

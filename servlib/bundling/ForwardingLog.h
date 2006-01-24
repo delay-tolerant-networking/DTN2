@@ -38,69 +38,82 @@
 #ifndef _FORWARDINGLOG_H_
 #define _FORWARDINGLOG_H_
 
-#include <string>
 #include <vector>
-#include <sys/time.h>
 
-#include <oasys/debug/DebugUtils.h>
+#include "ForwardingInfo.h"
+
+namespace oasys { class SpinLock; }
 
 namespace dtn {
 
-class ForwardingEntry;
+class Link;
 class ForwardingLog;
 
 /**
- * Class to encapsulate a single entry in the forwarding log.
- */
-class ForwardingEntry {
-public:
-    typedef enum {
-        NONE            = 0, ///< Return value for no entry
-        IN_FLIGHT       = 1, ///< Currently being sent
-        SENT            = 2, ///< Successfully sent
-        CANCELLED	= 4, ///< Transmission cancelled
-    } state_t;
-
-    static const char* state_to_str(state_t state)
-    {
-        switch(state) {
-        case NONE:      return "NONE";
-        case IN_FLIGHT: return "IN_FLIGHT";
-        case SENT:      return "SENT";
-        case CANCELLED: return "CANCELLED";
-        default:
-            NOTREACHED;
-        }
-    }
-
-    ForwardingEntry(const std::string& nexthop, state_t state)
-        : nexthop_(nexthop), state_(state) {}
-
-    std::string    nexthop_;
-    state_t        state_;
-    struct timeval timestamp_;
-};
-
-/**
- * Class to maintain a log of next hop addresses where a bundle has
- * been forwarded.
+ * Class to maintain a log of informational records as to where and
+ * when a bundle has been forwarded.
  *
- * Used by the router to make sure that a bundle isn't forwarded to
- * the same next hop multiple times.
+ * This state can be (and is) used by the router logic to prevent it
+ * from naively forwarding a bundle to the same next hop multiple
+ * times. It also is used to store the custody timer spec as supplied
+ * by the router so the main forwarding engine knows how to set the
+ * appropriate timer.
+ *
+ * Although a bundle can be sent over multiple links, and may even be
+ * sent over the same link multiple times, the forwarding logic
+ * assumes that for a given link and bundle, there is only one active
+ * transmission. Thus the accessors below always return / update the
+ * last entry in the log for a given link.
  */
-class ForwardingLog : public std::vector<ForwardingEntry> {
+class ForwardingLog {
 public:
-    typedef ForwardingEntry::state_t state_t;
+    typedef ForwardingInfo::state_t state_t;
 
     /**
-     * Get the state for the given next hop from the log
+     * Constructor that takes a pointer to the relevant Bundle's lock,
+     * used when querying or updating the log.
      */
-    state_t get_state(const std::string& nexthop) const;
+    ForwardingLog(oasys::SpinLock* lock);
+    
+    /**
+     * Get the most recent entry for the given link from the log.
+     */
+    bool get_latest_entry(Link* link, ForwardingInfo* info) const;
+    
+    /**
+     * Get the most recent entry for the given link from the log.
+     */
+    state_t get_latest_entry(Link* link) const;
 
     /**
-     * Update or add a new entry for the given nexthop.
+     * Add a new forwarding info entry for the given link.
      */
-    void update(const std::string& nexthop, state_t state);
+    void add_entry(Link* link,
+                   bundle_fwd_action_t action,
+                   state_t state,
+                   const CustodyTimerSpec& custody_timer);
+    
+    /**
+     * Update the state for the latest forwarding info entry for the
+     * given link.
+     *
+     * @return true if the next hop entry was found
+     */
+    bool update(Link* link, state_t state);
+    
+    /**
+     * Return a count of the number of entries in the given state.
+     */
+    size_t get_count(state_t state) const;
+
+    /**
+     * Typedef for the log itself.
+     */
+    typedef std::vector<ForwardingInfo> Log;
+
+protected:
+    Log log_;			///< The actual log
+    oasys::SpinLock* lock_;	///< Copy of the bundle's lock
 };
 
 } // namespace dtn

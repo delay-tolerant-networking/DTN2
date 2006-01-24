@@ -83,7 +83,7 @@ public:
     /**
      * Current version of the protocol.
      */
-    static const u_int8_t TCPCL_VERSION = 0x01;
+    static const u_int8_t TCPCL_VERSION = 0x02;
 
     /**
      * Values for ContactHeader flags.
@@ -95,16 +95,14 @@ public:
     } contact_header_flags_t;
 
     /**
-     * Contact parameter header. Sent once in each direction for TCP,
-     * and at the start of each bundle for UDP.
+     * Contact initiation header.
      */
     struct ContactHeader {
         u_int32_t magic;		///< magic word (MAGIC: "dtn!")
         u_int8_t  version;		///< tcpcl protocol version
         u_int8_t  flags;		///< connection flags (see above)
-        u_int16_t partial_ack_len;	///< requested size for partial acks
         u_int16_t keepalive_interval;	///< seconds between keepalive packets
-        u_int16_t xx__unused;
+        u_int32_t partial_ack_length;	///< requested size for partial acks
     } __attribute__((packed));
 
     /**
@@ -115,7 +113,6 @@ public:
     struct AddressHeader {
         u_int32_t addr;			///< address
         u_int16_t port;			///< port
-        u_int16_t xx__unused;
     } __attribute__((packed));
 
     /**

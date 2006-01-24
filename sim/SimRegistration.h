@@ -55,9 +55,9 @@ public:
     SimRegistration(Node* node, const EndpointID& endpoint);
 
     /**
-     * Consume the given bundle.
+     * Deliver the given bundle.
      */
-    void consume_bundle(Bundle* bundle);
+    void deliver_bundle(Bundle* bundle);
 
     /**
      * Log each bundle's arrival time (and the bundle itself) in a big

@@ -75,7 +75,7 @@ struct TCPConvergenceLayer::Params TCPConvergenceLayer::defaults_;
  *
  *****************************************************************************/
 TCPConvergenceLayer::TCPConvergenceLayer()
-    : IPConvergenceLayer("/cl/tcp")
+    : IPConvergenceLayer("tcp")
 {
     // set defaults here, then let ../cmd/ParamCommand.cc (as well as
     // the link specific options) handle changing them
@@ -92,9 +92,9 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     defaults_.writebuf_len_ 		= 32768;
     defaults_.readbuf_len_ 		= 32768;
     defaults_.keepalive_interval_	= 10;
-    defaults_.retry_interval_		= 5;
-    defaults_.min_retry_interval_	= 5;
-    defaults_.max_retry_interval_	= 10 * 60;
+    defaults_.retry_interval_		= 0;
+    defaults_.min_retry_interval_	= 0;
+    defaults_.max_retry_interval_	= 0;
     defaults_.rtt_timeout_		= 30000;  // msecs
     defaults_.test_fragment_size_	= -1;
 }
@@ -324,6 +324,11 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     params->retry_interval_     = link->retry_interval_;
     params->min_retry_interval_ = link->min_retry_interval_;
     params->max_retry_interval_ = link->max_retry_interval_;
+
+    // assert that the parameters are sane
+    ASSERT(params->retry_interval_ > 0);
+    ASSERT(params->min_retry_interval_ > 0);
+    ASSERT(params->max_retry_interval_ > 0);
     
     link->set_cl_info(params);
 
@@ -400,7 +405,7 @@ TCPConvergenceLayer::close_contact(Contact* contact)
         // is_stopped flag). however, it first clears the cl_info slot
         // in the Contact class which is our indication that it has
         // exited, allowing us to return
-        
+
         while (contact->cl_info() != NULL) {
             log_debug("waiting for connection thread to stop...");
             usleep(100000);
@@ -423,14 +428,15 @@ TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
     log_debug("send_bundle *%p to *%p", bundle, contact);
 
     Connection* conn = (Connection*)contact->cl_info();
-    ASSERT(conn);
 
     // set the busy state to apply bundle backpressure
     if ((conn->queue_->size() + 1) >= conn->params_.busy_queue_depth_) {
         contact->link()->set_state(Link::BUSY);
     }
     
+    ASSERT(conn);
     conn->queue_->push_back(bundle);
+
 }
 
 
@@ -652,6 +658,7 @@ TCPConvergenceLayer::Connection::run()
         // if we're interrupted) and try to re-establish the
         // connection
         ASSERT(sock_->get_notifier());
+        ASSERT(params_.retry_interval_ != 0);
         log_info("waiting for %d seconds before retrying connection",
                  params_.retry_interval_);
         if (sock_->get_notifier()->wait(NULL, params_.retry_interval_ * 1000)) {
@@ -1204,9 +1211,8 @@ TCPConvergenceLayer::Connection::send_contact_header()
     if (params_.receiver_connect_)
         contacthdr.flags |= RECEIVER_CONNECT;
     
-    contacthdr.partial_ack_len 	  = htons(params_.partial_ack_len_);
     contacthdr.keepalive_interval = htons(params_.keepalive_interval_);
-    contacthdr.xx__unused         = 0;
+    contacthdr.partial_ack_length = htonl(params_.partial_ack_len_);
     
     int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
     if (cc != sizeof(ContactHeader)) {
@@ -1267,7 +1273,7 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
      * Now do parameter negotiation.
      */
     params_.partial_ack_len_	= MIN(params_.partial_ack_len_,
-                                      ntohs(contacthdr.partial_ack_len));
+                                      ntohl(contacthdr.partial_ack_length));
     
     params_.keepalive_interval_ = MIN(params_.keepalive_interval_,
                                       ntohs(contacthdr.keepalive_interval));
@@ -1323,7 +1329,6 @@ TCPConvergenceLayer::Connection::send_address()
     AddressHeader addresshdr;
     addresshdr.addr       = htonl(sock_->local_addr());
     addresshdr.port       = htons(sock_->local_port());
-    addresshdr.xx__unused = 0;
         
     log_debug("sending address header %s:%d...",
               intoa(sock_->local_addr()), sock_->local_port());
@@ -1633,8 +1638,10 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
 
         if (queue_->size() > 0) {
             log_warn("%d bundles still in queue", queue_->size());
+
+            // XXX/demmer what to do about this????
         }
-                 
+        
         // once the main thread knows the contact is down (by the
         // event above) we need to signal that we've quit -- to do so,
         // clear the cl_info slot in the Contact

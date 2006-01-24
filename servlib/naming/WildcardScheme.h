@@ -55,20 +55,12 @@ public:
     virtual bool validate(const std::string& ssp, bool is_pattern = false);
     
     /**
-     * Match the given scheme string with the given pattern.
-     *
-     * @return true if it matches
+     * Match the pattern to the endpoint id in a scheme-specific
+     * manner.
      */
-    virtual bool match_scheme(const EndpointIDPattern* pattern,
-                              const std::string& scheme);
+    virtual bool match(const EndpointIDPattern& pattern,
+                       const EndpointID& eid);
     
-    /**
-     * Match the given ssp with the given pattern.
-     *
-     * @return true if it matches
-     */
-    virtual bool match_ssp(const EndpointIDPattern* pattern,
-                           const std::string& ssp);
 
 private:
     friend class oasys::Singleton<WildcardScheme>;

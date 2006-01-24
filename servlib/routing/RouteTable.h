@@ -43,11 +43,12 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "bundling/BundleActions.h"
+#include "bundling/CustodyTimer.h"
 #include "naming/EndpointID.h"
 
 namespace dtn {
 
-class BundleConsumer;
+class Link;
 class RouteEntryInfo;
 
 /**
@@ -57,9 +58,11 @@ class RouteEntryInfo;
  * the destination address in the various bundles to determine if the
  * route entry should be used for the bundle.
  *
- * An entry also has a forwarding action type code which indicates if
- * the bundle should be copied to the next hop or sent only once,
- * along with an integer priority for ranking the route entry matches.
+ * An entry also has a forwarding action type code which indicates
+ * whether the bundle should be forwarded to this next hop and others
+ * (FORWARD_COPY) or sent only to the given next hop (FORWARD_UNIQUE).
+ * The entry also stores the custody transfer timeout parameters,
+ * unique for a given route.
  *
  * There is also a pointer to either an interface or a link for each
  * entry. In case the entry contains a link, then that link will be
@@ -72,11 +75,16 @@ class RouteEntryInfo;
 class RouteEntry {
 public:
     RouteEntry(const EndpointIDPattern& pattern,
-               Link* link, Interface* interface,
-               bundle_fwd_action_t action);
+               Link* link, bundle_fwd_action_t action,
+               const CustodyTimerSpec& custody_timeout);
 
     ~RouteEntry();
 
+    /**
+     * Dump a string representation of the route entry.
+     */
+    void dump(oasys::StringBuffer* buf) const;
+    
     /// The destination pattern that matches bundles
     EndpointIDPattern pattern_;
 
@@ -86,11 +94,11 @@ public:
     /// Next hop link
     Link* next_hop_;
         
-    /// Interface to use if a new link is to be created
-    Interface* interface_;
-
     /// Forwarding action code 
     bundle_fwd_action_t action_;
+
+    /// Custody timer specification
+    CustodyTimerSpec custody_timeout_;
 
     /// Abstract pointer to any algorithm-specific state that needs to
     /// be stored in the route entry
@@ -102,14 +110,14 @@ public:
 };
 
 /**
- * Typedef for a set of route entries. Used for the route table itself
- * and for what is returned in get_matching().
+ * Typedef for a vector of route entries. Used for the route table
+ * itself and for what is returned in get_matching().
  */
-typedef std::vector<RouteEntry*> RouteEntrySet;
+typedef std::vector<RouteEntry*> RouteEntryVec;
 
 /**
- * Class that implements the routing table, currently implemented
- * using a stl set.
+ * Class that implements the routing table, implemented
+ * with an stl vector.
  */
 class RouteTable : public oasys::Logger {
 public:
@@ -131,33 +139,56 @@ public:
     /**
      * Remove a route entry.
      */
-    bool del_entry(const EndpointIDPattern& dest,
-                   BundleConsumer* next_hop);
-
+    bool del_entry(const EndpointIDPattern& dest, Link* next_hop);
+    
     /**
-     * Remove all entries that rely on the given next_hop
+     * Remove all entries to the given endpoint id pattern.
+     *
+     * @return the number of entries removed
+     */
+    size_t del_entries(const EndpointIDPattern& dest);
+    
+    /**
+     * Remove all entries that rely on the given next_hop link
+     *
+     * @return the number of entries removed
      **/
-    bool del_entries_for_nexthop(BundleConsumer* next_hop);
+    size_t del_entries_for_nexthop(Link* next_hop);
 
     /**
      * Fill in the entry_set with the list of all entries whose
-     * patterns match the given eid.
+     * patterns match the given eid and next hop. If the next hop is
+     * NULL, it is ignored.
+     *
+     * @return the count of matching entries
+     */
+    size_t get_matching(const EndpointID& eid, Link* next_hop,
+                        RouteEntryVec* entry_set) const;
+    
+    /**
+     * Syntactic sugar to call get_matching for all links.
      *
      * @return the count of matching entries
      */
     size_t get_matching(const EndpointID& eid,
-                        RouteEntrySet* entry_set) const;
+                        RouteEntryVec* entry_set) const
+    {
+        return get_matching(eid, NULL, entry_set);
+    }
     
     /**
      * Dump a string representation of the routing table.
      */
     void dump(oasys::StringBuffer* buf) const;
 
+    /**
+     * Return the size of the table.
+     */
     int size() { return route_table_.size(); }
 
 protected:
     /// The routing table itself
-    RouteEntrySet route_table_;
+    RouteEntryVec route_table_;
 };
 
 /**

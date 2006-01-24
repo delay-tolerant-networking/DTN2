@@ -472,7 +472,7 @@ APIClient::handle_send()
         log_err("bundle validation failed: %s", error.data());
         return DTN_EINVAL;
     }
-    b->custodian_.assign(BundleDaemon::instance()->local_eid());
+    b->custodian_.assign(EndpointID::NULL_EID());
     
     // the priority code
     switch (spec.priority) {

@@ -55,7 +55,6 @@ namespace dtn {
 class Bundle;
 class BundleAction;
 class BundleActions;
-class BundleConsumer;
 class BundleList;
 class BundleRouter;
 class ContactManager;
@@ -196,10 +195,16 @@ public:
         local_eid_.assign(eid_str);
     }
 
+    /**
+     * General daemon parameters, initialized in ParamCommand.
+     */
     struct Params {
         /// Whether or not to delete bundles before they're expired if
         /// all routers / registrations have handled it
         bool early_deletion_;
+
+        /// Whether or not to accept custody when requested
+        bool accept_custody_;
         
         /// Threshold for proactive fragmentation
         size_t proactive_frag_threshold_;
@@ -250,9 +255,14 @@ protected:
     void handle_link_unavailable(LinkUnavailableEvent* event);
     void handle_link_state_change_request(LinkStateChangeRequest* request);
     void handle_reassembly_completed(ReassemblyCompletedEvent* event);
+    void handle_route_add(RouteAddEvent* event);
+    void handle_route_del(RouteDelEvent* event);
+    void handle_custody_signal(CustodySignalEvent* event);
+    void handle_custody_timeout(CustodyTimeoutEvent* event);
     void handle_shutdown_request(ShutdownRequest* event);
     ///@}
 
+    typedef BundleProtocol::custody_signal_reason_t custody_signal_reason_t;
     typedef BundleProtocol::status_report_flag_t status_report_flag_t;
     typedef BundleProtocol::status_report_reason_t status_report_reason_t;
     
@@ -263,7 +273,30 @@ protected:
                                 status_report_flag_t flag,
                                 status_report_reason_t reason =
                                 BundleProtocol::REASON_NO_ADDTL_INFO);
+
+    /**
+     * Generate a custody signal to be sent to the current custodian.
+     */
+    void generate_custody_signal(Bundle* bundle, bool succeeded,
+                                 custody_signal_reason_t reason);
     
+    /**
+     * Cancel any pending custody timers for the bundle.
+     */
+    void cancel_custody_timers(Bundle* bundle);
+
+    /**
+     * Take custody for the given bundle, sending the appropriate
+     * signal to the current custodian.
+     */
+    void accept_custody(Bundle* bundle);
+
+    /**
+     * Release custody of the given bundle, sending the appropriate
+     * signal to the current custodian.
+     */
+    void release_custody(Bundle* bundle);
+
     /**
      * Add the bundle to the pending list and (optionally) the
      * persistent store, and set up the expiration timer for it.
@@ -275,7 +308,14 @@ protected:
      * cancel the expiration timer.
      */
     void delete_from_pending(Bundle* bundle, status_report_reason_t reason);
-        
+
+    /**
+     * Check if we should delete this bundle, called once it's been
+     * transmitted or delivered at least once. If so, call
+     * delete_from_pending.
+     */
+    void try_delete_from_pending(Bundle* bundle);
+    
     /**
      * Deliver the bundle to the given registration
      */
@@ -286,11 +326,6 @@ protected:
      * match.
      */
     void check_registrations(Bundle* bundle);
-    
-    /**
-     * Update statistics based on the event arrival.
-     */
-    void update_statistics(BundleEvent* event);
     
     /// The active bundle router
     BundleRouter* router_;
@@ -323,6 +358,7 @@ protected:
     /// Statistics
     u_int32_t bundles_received_;
     u_int32_t bundles_delivered_;
+    u_int32_t bundles_generated_;
     u_int32_t bundles_transmitted_;
     u_int32_t bundles_expired_;
 
@@ -332,7 +368,7 @@ protected:
     /// Application-specific shutdown data
     void* app_shutdown_data_;
 
-   /// The static instance
+    /// The static instance
     static BundleDaemon* instance_;
 };
 

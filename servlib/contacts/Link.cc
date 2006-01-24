@@ -90,7 +90,7 @@ Link::create_link(const std::string& name, link_type_t type,
     // completed to avoid potential race conditions if the core of the
     // system tries to use the link before its completely created
     link->set_initial_state();
-    
+
     return link;
 }
 
@@ -99,28 +99,20 @@ Link::create_link(const std::string& name, link_type_t type,
  */
 Link::Link(const std::string& name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
-    :  BundleConsumer(nexthop, false, LINK),
-       type_(type), state_(UNAVAILABLE),
+    :  type_(type), state_(UNAVAILABLE),
        nexthop_(nexthop), name_(name), contact_(NULL),
        clayer_(cl), cl_info_(NULL)
 {
     ASSERT(clayer_);
     logpathf("/link/%s", name_.c_str());
 
-    // pretty up the BundleConsumer type str
-    switch(type) {
-    case ALWAYSON:	type_str_ = "Always on Link"; break;
-    case ONDEMAND: 	type_str_ = "On demand Link"; break;
-    case SCHEDULED: 	type_str_ = "Scheduled Link"; break;
-    case OPPORTUNISTIC: type_str_ = "Opportunistic Link"; break;
-    default: 		PANIC("bogus link_type_t");
-    }
-
     log_info("new link *%p", this);
 
-    min_retry_interval_ = 0;
-    max_retry_interval_ = 0;
-    retry_interval_     = 0;
+    // XXX/TODO fix these parameter settings so they have defaults
+    // that are globally settable
+    retry_interval_     = 5;
+    min_retry_interval_ = 5;
+    max_retry_interval_ = 10 * 60;
 }
 
 int
@@ -130,8 +122,15 @@ Link::parse_args(int argc, const char* argv[])
     
     p.addopt(new oasys::UIntOpt("min_retry_interval", &min_retry_interval_));
     p.addopt(new oasys::UIntOpt("max_retry_interval", &max_retry_interval_));
-    
-    return p.parse_and_shift(argc, argv);
+
+    // XXX/TODO add mtu parameter to control proactive fragmentation
+    int ret = p.parse_and_shift(argc, argv);
+
+    if (min_retry_interval_ == 0 || max_retry_interval_ == 0) {
+        return -1;
+    }
+
+    return ret;
 }
 
 void
@@ -270,41 +269,8 @@ int
 Link::format(char* buf, size_t sz) const
 {
     return snprintf(buf, sz, "%s %s -> %s (%s)",
-                    type_str_, name(), nexthop(),
+                    link_type_to_str(type_), name(), nexthop(),
                     state_to_str(state_));
-}
-
-
-void
-Link::consume_bundle(Bundle* bundle)
-{
-    // BundleActions should make sure that we're only called on to
-    // send a bundle if we can
-    if (state_ != OPEN) {
-        PANIC("Link::consume_bundle in state %s", state_to_str(state_));
-    }
-
-    clayer()->send_bundle(contact_, bundle);
-}
-
-/**
- * Attempt to remove the given bundle from the queue.
- *
- * @return true if the bundle was dequeued, false if not.
- */
-bool
-Link::cancel_bundle(Bundle* bundle)
-{
-    return clayer()->cancel_bundle(contact_, bundle);
-}
-    
-/**
- * Check if the given bundle is already queued on this consumer.
- */
-bool
-Link::is_queued(Bundle* bundle)
-{
-    return clayer()->is_queued(contact_, bundle);
 }
 
 } // namespace dtn

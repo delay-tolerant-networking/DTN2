@@ -39,6 +39,7 @@
 #include "ParamCommand.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundlePayload.h"
+#include "bundling/CustodyTimer.h"
 #include "conv_layers/TCPConvergenceLayer.h"
 
 namespace dtn {
@@ -64,6 +65,25 @@ ParamCommand::ParamCommand()
            "Delete forwarded / delivered bundles before they've expired "
            "(default is true)");
 
+    bind_b("accept_custody",
+           &BundleDaemon::params_.accept_custody_, true,
+           "Accept custody when requested (default is true)");
+
+    // defaults for these are set in the CustodyTimerSpec defaults
+    // static initializer
+    bind_i("custody_timer_base",
+           &CustodyTimerSpec::defaults_.base_,
+           "default value for custody timer base");
+    
+    bind_i("custody_timer_lifetime_pct",
+           &CustodyTimerSpec::defaults_.lifetime_pct_,
+           "default value for custody timer lifetime percentage");
+    
+    bind_i("custody_timer_limit",
+           &CustodyTimerSpec::defaults_.limit_,
+           "default value for custody timer upper bound");
+    
+    
     // defaults for these are set all together in TCPConvergenceLayer
     // constructor (because there is not a flavor of bind_i that
     // handles default values for type u_int32_t)

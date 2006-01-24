@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2005 Intel Corporation. All rights reserved. 
+ *  2006 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -36,87 +36,78 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/thread/SpinLock.h>
-#include "conv_layers/ConvergenceLayer.h"
-#include "contacts/Link.h"
-#include "ForwardingLog.h"
+#include <algorithm>
+#include <oasys/util/OptParser.h>
+
+#include "Bundle.h"
+#include "BundleDaemon.h"
+#include "BundleEvent.h"
+#include "CustodyTimer.h"
 
 namespace dtn {
 
-//----------------------------------------------------------------------
-ForwardingLog::ForwardingLog(oasys::SpinLock* lock)
-    : lock_(lock)
-{
-}
+/**
+ * Default custody timer specification:
+ *
+ * base: 30 minutes
+ * lifetime percent: 25%
+ * limit: unlimited
+ */
+CustodyTimerSpec CustodyTimerSpec::defaults_(30 * 60, 25, 0);
 
 //----------------------------------------------------------------------
-bool
-ForwardingLog::get_latest_entry(Link* link, ForwardingInfo* info) const
+u_int32_t
+CustodyTimerSpec::calculate_timeout(const Bundle* bundle) const
 {
-    oasys::ScopeLock l(lock_, "ForwardingLog::get_latest_state");
-    
-    Log::const_reverse_iterator iter;
-    for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
-    {
-        if (iter->nexthop_ == link->nexthop() &&
-            iter->clayer_  == link->clayer()->name())
-        {
-            *info = *iter;
-            return true;
-        }
+    u_int32_t timeout = base_;
+    timeout += (u_int32_t)((double)lifetime_pct_ * bundle->expiration_ / 100.0);
+
+    if (limit_ != 0) {
+        timeout = std::min(timeout, limit_);
     }
-
-    return false;
+    
+    log_debug("/custody", "calculate_timeout: "
+              "base %u, lifetime_pct %u, expiration %u, limit %u: timeout %u",
+              base_, lifetime_pct_, bundle->expiration_, limit_, timeout);
+    return timeout;
 }
 
 //----------------------------------------------------------------------
-size_t
-ForwardingLog::get_count(state_t state) const
+int
+CustodyTimerSpec::parse_options(int argc, const char* argv[])
 {
-    size_t ret = 0;
-
-    oasys::ScopeLock l(lock_, "ForwardingLog::get_count");
-    
-    Log::const_iterator iter;
-    for (iter = log_.begin(); iter != log_.end(); ++iter)
-    {
-        if (iter->state_ == state) {
-            ++ret;
-        }
-    }
-
-    return ret;
+    oasys::OptParser p;
+    p.addopt(new oasys::UIntOpt("custody_timer_base", &base_));
+    p.addopt(new oasys::UIntOpt("custody_timer_lifetime_pct", &lifetime_pct_));
+    p.addopt(new oasys::UIntOpt("custody_timer_limit", &limit_));
+    return p.parse_and_shift(argc, argv);
 }
-    
+
+//----------------------------------------------------------------------
+CustodyTimer::CustodyTimer(const struct timeval& xmit_time,
+                           const CustodyTimerSpec& spec,
+                           Bundle* bundle, Link* link)
+    : bundle_(bundle, "CustodyTimer"), link_(link)
+{
+    struct timeval tv = xmit_time;
+    u_int32_t delay = spec.calculate_timeout(bundle);
+    tv.tv_sec += delay;
+
+    struct timeval now;
+    ::gettimeofday(&now, 0);
+    log_info("/custody", "scheduling timer: xmit_time %u.%u delay %u secs "
+             "(in %lu msecs) for *%p",
+             (u_int)xmit_time.tv_sec, (u_int)xmit_time.tv_usec, delay,
+             TIMEVAL_DIFF_MSEC(tv, now), bundle);
+    schedule_at(&tv);
+}
+
 //----------------------------------------------------------------------
 void
-ForwardingLog::add_entry(Link* link,
-                         bundle_fwd_action_t action,
-                         state_t state,
-                         const CustodyTimerSpec& custody_timer)
+CustodyTimer::timeout(struct timeval* now)
 {
-    log_.push_back(ForwardingInfo(state, action, link->clayer()->name(),
-                                  link->nexthop(), custody_timer));
-}
-
-//----------------------------------------------------------------------
-bool
-ForwardingLog::update(Link* link, state_t state)
-{
-    oasys::ScopeLock l(lock_, "ForwardingLog::update");
-    
-    Log::reverse_iterator iter;
-    for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
-    {
-        if (iter->nexthop_ == link->nexthop() &&
-            iter->clayer_  == link->clayer()->name())
-        {
-            iter->set_state(state);
-            return true;
-        }
-    }
-    
-    return false;
+    log_info("/custody", "CustodyTimer::timeout");
+    BundleDaemon::post(new CustodyTimeoutEvent(bundle_.object(), link_));
 }
 
 } // namespace dtn

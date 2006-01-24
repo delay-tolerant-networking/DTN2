@@ -120,7 +120,7 @@ TrAgent::send_bundle()
 
     b->source_.assign(src_);
     b->replyto_.assign(src_);
-    b->custodian_.assign(src_);
+    b->custodian_.assign(EndpointID::NULL_EID());
     b->dest_.assign(dst_);
     b->payload_.set_length(size_);
 

@@ -64,6 +64,7 @@ private:
     public:
         InjectOpts();
         
+        bool custody_xfer_; 	///< Custody xfer requested
         bool receive_rcpt_;	///< Hop by hop reception receipt
         bool custody_rcpt_;	///< Custody xfer reporting
         bool forward_rcpt_;	///< Hop by hop forwarding reporting

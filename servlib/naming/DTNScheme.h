@@ -45,15 +45,19 @@ namespace dtn {
 
 /**
  * This class implements the one default scheme as specified in the
- * bundle protocol. SSPs for this scheme take the canonical form:
+ * bundle protocol. SSPs for this scheme take the canonical forms:
  *
  * <code>
  * dtn://<router identifier>[/<application tag>]
+ * dtn:none
  * </code>
  *
  * Where "router identifier" is a DNS-style "hostname" string, however
  * not necessarily a valid internet hostname, and "application tag" is
  * any string of URI-valid characters.
+ *
+ * The special endpoint identifier "dtn:none" is used to represent the
+ * null endpoint.
  *
  * This implementation also supports limited wildcard matching for
  * endpoint patterns.
@@ -70,12 +74,11 @@ public:
     virtual bool validate(const std::string& ssp, bool is_pattern = false);
 
     /**
-     * Match the given ssp with the given pattern.
-     *
-     * @return true if it matches
+     * Match the pattern to the endpoint id in a scheme-specific
+     * manner.
      */
-    virtual bool match_ssp(const EndpointIDPattern* pattern,
-                           const std::string& ssp);
+    virtual bool match(const EndpointIDPattern& pattern,
+                       const EndpointID& eid);
     
     /**
      * Append the given service tag to the ssp in a scheme-specific

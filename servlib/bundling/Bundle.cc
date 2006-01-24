@@ -57,12 +57,14 @@ Bundle::init(u_int32_t id)
     do_not_fragment_	= false;
     is_reactive_fragment_ = false;
     custody_requested_	= false;
+    local_custody_      = false;
     priority_		= COS_NORMAL;
     receive_rcpt_	= false;
     custody_rcpt_	= false;
     forward_rcpt_	= false;
     delivery_rcpt_	= false;
     deletion_rcpt_	= false;
+    app_acked_rcpt_	= false;
     gettimeofday(&creation_ts_, 0);
     orig_length_	= 0;
     frag_offset_	= 0;
@@ -73,20 +75,23 @@ Bundle::init(u_int32_t id)
 }
 
 Bundle::Bundle()
+    : payload_(&lock_), fwdlog_(&lock_)
 {
     u_int32_t id = GlobalStore::instance()->next_bundleid();
     init(id);
-    payload_.init(&lock_, id);
+    payload_.init(id);
     refcount_	      = 0;
     expiration_timer_ = NULL;
     freed_	      = false;
 }
 
 Bundle::Bundle(const oasys::Builder&)
+    : payload_(&lock_), fwdlog_(&lock_)
 {
     // don't do anything here except set the id to a bogus default
     // value and make sure the expiration timer is NULL, since the
-    // fields should all be set when loaded from the database
+    // fields are set and the payload initialized when loading from
+    // the database
     refcount_	      = 0;
     bundleid_ 	      = 0xffffffff;
     expiration_timer_ = NULL;
@@ -94,9 +99,10 @@ Bundle::Bundle(const oasys::Builder&)
 }
 
 Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
+    : payload_(&lock_), fwdlog_(&lock_)
 {
     init(id);
-    payload_.init(&lock_, id, location);
+    payload_.init(id, location);
     refcount_	      = 0;
     expiration_timer_ = NULL;
     freed_	      = false;
@@ -109,13 +115,16 @@ Bundle::~Bundle()
 
     ASSERTF(expiration_timer_ == NULL,
             "bundle deleted with pending expiration timer");
+
 }
 
 int
 Bundle::format(char* buf, size_t sz) const
 {
-    return snprintf(buf, sz, "bundle id %d %s -> %s (%d bytes payload)",
+    return snprintf(buf, sz, "bundle id %d %s -> %s (%s%s%d bytes payload)",
                     bundleid_, source_.c_str(), dest_.c_str(),
+                    is_admin_    ? "is_admin " : "",
+                    is_fragment_ ? "is_fragment " : "",
                     (u_int32_t)payload_.length());
 }
 
@@ -133,11 +142,13 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("    payload_length: %u\n", (u_int)payload_.length());
     buf->appendf("          priority: %d\n", priority_);
     buf->appendf(" custody_requested: %s\n", bool_to_str(custody_requested_));
+    buf->appendf("     local_custody: %s\n", bool_to_str(local_custody_));
     buf->appendf("      receive_rcpt: %s\n", bool_to_str(receive_rcpt_));
     buf->appendf("      custody_rcpt: %s\n", bool_to_str(custody_rcpt_));
     buf->appendf("      forward_rcpt: %s\n", bool_to_str(forward_rcpt_));
     buf->appendf("     delivery_rcpt: %s\n", bool_to_str(delivery_rcpt_));
     buf->appendf("     deletion_rcpt: %s\n", bool_to_str(deletion_rcpt_));
+    buf->appendf("    app_acked_rcpt: %s\n", bool_to_str(app_acked_rcpt_));
     buf->appendf("       creation_ts: %u.%u\n",
                  (u_int)creation_ts_.tv_sec, (u_int)creation_ts_.tv_usec);
     buf->appendf("        expiration: %d\n", expiration_);
@@ -163,11 +174,13 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("replyto", &replyto_);
     a->process("priority", &priority_);
     a->process("custody_requested", &custody_requested_);
+    a->process("local_custody", &local_custody_);
     a->process("custody_rcpt", &custody_rcpt_);
     a->process("receive_rcpt", &receive_rcpt_);
     a->process("forward_rcpt", &forward_rcpt_);
     a->process("delivery_rcpt", &delivery_rcpt_);
     a->process("deletion_rcpt", &deletion_rcpt_);
+    a->process("app_acked_rcpt", &app_acked_rcpt_);
     a->process("creation_ts_sec",  (u_int32_t*)&creation_ts_.tv_sec);
     a->process("creation_ts_usec", (u_int32_t*)&creation_ts_.tv_usec);
     a->process("expiration", &expiration_);
@@ -175,6 +188,10 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("orig_length", &orig_length_);
     a->process("frag_offset", &frag_offset_);
     a->process("owner", &owner_);
+
+    // XXX/TODO serialize the forwarding log and make sure it's
+    // updated on disk as it changes in memory
+    //a->process("forwarding_log", &fwdlog_);
 }
 
 /**
@@ -256,31 +273,40 @@ Bundle::mappings_end()
 }
 
 /**
+ * Return true if the bundle is on the given list.
+ */
+bool
+Bundle::is_queued_on(BundleList* bundle_list)
+{
+    oasys::ScopeLock l(&lock_, "Bundle::is_queued_on");
+    return (mappings_.count(bundle_list) > 0);
+}
+
+/**
  * Validate the bundle's fields
  */
-bool Bundle::validate(oasys::StringBuffer* errbuf) {
-
+bool
+Bundle::validate(oasys::StringBuffer* errbuf)
+{
     if (!source_.valid()) {
-        errbuf->appendf("invalid source eid [%s]", source_.data());
+        errbuf->appendf("invalid source eid [%s]", source_.c_str());
         return false;
     }
     
     if (!dest_.valid()) {
-        errbuf->appendf("invalid dest eid [%s]", dest_.data());
+        errbuf->appendf("invalid dest eid [%s]", dest_.c_str());
         return false;
     }
 
     if (!replyto_.valid()) {
-        errbuf->appendf("invalid replyto eid [%s]", replyto_.data());
+        errbuf->appendf("invalid replyto eid [%s]", replyto_.c_str());
         return false;
     }
 
-    if (receipt_requested() && source_.equals(replyto_)) {
-        errbuf->appendf("one or more return receipt flags set but "
-                        "source EID = reply-to EID (%s)",
-                        source_.data());
+    if (!custodian_.valid()) {
+        errbuf->appendf("invalid custodian eid [%s]", custodian_.c_str());
         return false;
-    }        
+    }
 
     return true;
     

@@ -73,7 +73,7 @@ namespace dtn {
  *****************************************************************************/
 
 EthConvergenceLayer::EthConvergenceLayer()
-    : ConvergenceLayer("/cl/eth")
+    : ConvergenceLayer("eth")
 {
 }
 

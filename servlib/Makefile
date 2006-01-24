@@ -9,13 +9,14 @@
 BUNDLING_SRCS := 				\
 	bundling/Bundle.cc			\
 	bundling/BundleActions.cc		\
-	bundling/BundleConsumer.cc		\
 	bundling/BundleDaemon.cc		\
 	bundling/BundleEventHandler.cc		\
 	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
 	bundling/BundleStatusReport.cc		\
+	bundling/CustodySignal.cc		\
+	bundling/CustodyTimer.cc		\
 	bundling/ForwardingLog.cc		\
 	bundling/FragmentManager.cc		\
 	bundling/ExpirationTimer.cc		\
@@ -39,12 +40,14 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/FileConvergenceLayer.cc	\
 	conv_layers/IPConvergenceLayer.cc	\
 	conv_layers/EthConvergenceLayer.cc	\
+	conv_layers/NullConvergenceLayer.cc	\
 	conv_layers/TCPConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
 
 CMD_SRCS :=					\
 	cmd/APICommand.cc			\
 	cmd/BundleCommand.cc			\
+	cmd/CompletionNotifier.cc		\
 	cmd/InterfaceCommand.cc			\
 	cmd/LinkCommand.cc          		\
 	cmd/ParamCommand.cc			\
@@ -60,7 +63,6 @@ NAMING_SRCS :=					\
 	naming/SchemeTable.cc			\
 	naming/DTNScheme.cc			\
 	naming/EthernetScheme.cc		\
-	naming/NoneScheme.cc			\
 	naming/StringScheme.cc			\
 	naming/WildcardScheme.cc		\
 

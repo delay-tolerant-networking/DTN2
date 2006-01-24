@@ -205,7 +205,8 @@ LinkStateRouter::handle_bundle_received(BundleReceivedEvent* event)
     ASSERT(link!=0); // if the link is in the graph, it better exist too
 
     // Send the bundle on the appropriate link.
-    actions_->send_bundle(bundle, link); 
+    // XXX/demmer fixme
+    actions_->send_bundle(bundle, link, FORWARD_UNIQUE, CustodyTimerSpec::defaults_);
 }
 
 void
@@ -253,14 +254,14 @@ LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge, Link* outgoing_li
     // make a bundle
     Bundle *b=new Bundle();
     b->source_.assign(BundleDaemon::instance()->local_eid());
-    b->replyto_.assign(BundleDaemon::instance()->local_eid());
-    b->custodian_.assign(BundleDaemon::instance()->local_eid());
+    b->replyto_.assign(EndpointID::NULL_EID());
+    b->custodian_.assign(EndpointID::NULL_EID());
     b->dest_.assign(ROUTER_BCAST_EID); 
     b->payload_.set_data((const u_char*)&lsa,sizeof(lsa));
 
     // propagate it to the outgoing link
     actions_->inject_bundle(b);
-    actions_->send_bundle(b, outgoing_link);
+    actions_->send_bundle(b, outgoing_link, FORWARD_UNIQUE, CustodyTimerSpec::defaults_);
 }
 
 LinkStateRouter::LSRegistration::LSRegistration(LinkStateRouter* router)
@@ -276,7 +277,7 @@ LinkStateRouter::LSRegistration::LSRegistration(LinkStateRouter* router)
 }
 
 void
-LinkStateRouter::LSRegistration::consume_bundle(Bundle* bundle)
+LinkStateRouter::LSRegistration::deliver_bundle(Bundle* bundle)
 {
     u_char typecode;      
 

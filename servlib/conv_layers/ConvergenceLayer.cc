@@ -36,52 +36,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "ConvergenceLayer.h"
+#include "EthConvergenceLayer.h"
+#include "FileConvergenceLayer.h"
+#include "NullConvergenceLayer.h"
 #include "TCPConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
-#include "FileConvergenceLayer.h"
-#include "EthConvergenceLayer.h"
 
 namespace dtn {
+
+ConvergenceLayer::CLVec ConvergenceLayer::clayers_;
 
 ConvergenceLayer::~ConvergenceLayer()
 {
 }
 
-ConvergenceLayer::Protocol* ConvergenceLayer::protocol_list_ = NULL;
-
-void
-ConvergenceLayer::add_clayer(const char* proto, ConvergenceLayer* cl)
-{
-    Protocol* p = new Protocol();
-    p->proto_ = proto;
-    p->cl_ = cl;
-
-    p->next_ = protocol_list_;
-    protocol_list_ = p;
-}
-
 void
 ConvergenceLayer::init_clayers()
 {
-    add_clayer("tcp", new TCPConvergenceLayer());
-    add_clayer("udp", new UDPConvergenceLayer());
+    clayers_.push_back(new NullConvergenceLayer());
+    clayers_.push_back(new TCPConvergenceLayer());
+    clayers_.push_back(new UDPConvergenceLayer());
 #ifdef XXX_demmer_fixme__linux
-    add_clayer("eth", new EthConvergenceLayer());
+    clayers_.push_back(new EthConvergenceLayer());
 #endif
     // XXX/demmer fixme
     // add_clayer("file", new FileConvergenceLayer());
 }
 
 ConvergenceLayer*
-ConvergenceLayer::find_clayer(const char* proto)
+ConvergenceLayer::find_clayer(const char* name)
 {
-    Protocol* p;
-    for (p = protocol_list_; p != NULL; p = p->next_)
+    CLVec::iterator iter;
+    for (iter = clayers_.begin(); iter != clayers_.end(); ++iter)
     {
-        if (strcasecmp(proto, p->proto_) == 0) {
-            return p->cl_;
+        if (strcasecmp(name, (*iter)->name()) == 0) {
+            return *iter;
         }
     }
+
     return NULL;
 }
 
@@ -137,17 +129,6 @@ ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 {
 }
 
-/**
- * Open the connection to the given contact and prepare for
- * bundles to be transmitted.
- */
-bool
-ConvergenceLayer::open_contact(Contact* contact)
-{
-    log_debug("opening contact *%p", contact);
-    return true;
-}
-    
 /**
  * Close the connnection to the contact.
  */

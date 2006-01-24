@@ -63,7 +63,7 @@ namespace dtn {
  *
  *****************************************************************************/
 FileConvergenceLayer::FileConvergenceLayer()
-    : ConvergenceLayer("/cl/file")
+    : ConvergenceLayer("file")
 {
 }
 

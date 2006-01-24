@@ -116,7 +116,7 @@ public:
     /**
      * Simple equality test function
      */
-    bool equals(const EndpointID& other)
+    bool equals(const EndpointID& other) const
     {
         return str_ == other.str_;
     }
@@ -150,6 +150,12 @@ public:
     {
         return (scheme_ != NULL);
     }
+
+    /**
+     * Return the special endpoint id used for the null endpoint,
+     * namely "dtn:none".
+     */
+    static EndpointID NULL_EID() { return EndpointID("dtn:none"); }
     
     /**
      * Virtual from SerializableObject

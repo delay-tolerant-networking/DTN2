@@ -38,10 +38,10 @@
 
 #include "Bundle.h"
 #include "BundleActions.h"
-#include "BundleConsumer.h"
 #include "BundleEvent.h"
 #include "BundleDaemon.h"
 #include "BundleStatusReport.h"
+#include "CustodySignal.h"
 #include "ExpirationTimer.h"
 #include "FragmentManager.h"
 #include "contacts/Contact.h"
@@ -49,12 +49,14 @@
 #include "reg/Registration.h"
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
+#include "routing/RouteTable.h"
 
 namespace dtn {
 
 BundleDaemon* BundleDaemon::instance_ = NULL;
 BundleDaemon::Params BundleDaemon::params_;
 
+//----------------------------------------------------------------------
 BundleDaemon::BundleDaemon()
     : BundleEventHandler("/bundle/daemon"),
       Thread("BundleDaemon", CREATE_JOINABLE)
@@ -65,6 +67,7 @@ BundleDaemon::BundleDaemon()
 
     bundles_received_ = 0;
     bundles_delivered_ = 0;
+    bundles_generated_ = 0;
     bundles_transmitted_ = 0;
     bundles_expired_ = 0;
 
@@ -81,10 +84,7 @@ BundleDaemon::BundleDaemon()
     app_shutdown_data_ = NULL;
 }
 
-/**
- * Virtual initialization function. Overridden in the simulator by
- * the Node class. 
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::do_init()
 {
@@ -92,33 +92,28 @@ BundleDaemon::do_init()
     eventq_ = new oasys::MsgQueue<BundleEvent*>(logpath_);
 }
 
-/**
- * Queues the event for processing by the daemon thread.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::post(BundleEvent* event)
 {
     instance_->post_event(event);
 }
 
-/**
- * Post the given event and wait for it to be processed by the
- * daemon thread.
- */
+//----------------------------------------------------------------------
 bool
-BundleDaemon::post_and_wait(BundleEvent* event, oasys::Notifier* notifier,
+BundleDaemon::post_and_wait(BundleEvent* event,
+                            oasys::Notifier* notifier,
                             int timeout)
 {
+    ASSERT(instance()->started());
+    
     ASSERT(event->processed_notifier_ == NULL);
     event->processed_notifier_ = notifier;
     post(event);
     return notifier->wait(NULL, timeout);
 }
 
-/**
- * Virtual post function, overridden in the simulator to use the
- * modified event queue.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::post_event(BundleEvent* event)
 {
@@ -126,9 +121,7 @@ BundleDaemon::post_event(BundleEvent* event)
     eventq_->push(event);
 }
 
-/**
- * Format the given StringBuffer with current routing info.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::get_routing_state(oasys::StringBuffer* buf)
 {
@@ -136,51 +129,167 @@ BundleDaemon::get_routing_state(oasys::StringBuffer* buf)
     contactmgr_->dump(buf);
 }
 
-/**
- * Format the given StringBuffer with the current statistics value.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::get_statistics(oasys::StringBuffer* buf)
 {
     buf->appendf("%u pending -- "
+                 "%u custody -- "
                  "%u received -- "
-                 "%u locally delivered -- "
+                 "%u delivered -- "
+                 "%u generated -- "
                  "%u transmitted -- "
                  "%u expired",
                  (u_int)pending_bundles()->size(),
+                 (u_int)custody_bundles()->size(),
                  bundles_received_,
                  bundles_delivered_,
+                 bundles_generated_,
                  bundles_transmitted_,
                  bundles_expired_);
 }
 
+//----------------------------------------------------------------------
 void
 BundleDaemon::reset_statistics()
 {
     bundles_received_    = 0;
     bundles_delivered_   = 0;
+    bundles_generated_   = 0;
     bundles_transmitted_ = 0;
     bundles_expired_     = 0;
 }
 
+//----------------------------------------------------------------------
 void
-BundleDaemon::generate_status_report(Bundle* bundle,
+BundleDaemon::generate_status_report(Bundle* orig_bundle,
                                      status_report_flag_t flag,
                                      status_report_reason_t reason)
 {
     log_debug("generating return receipt status report, "
               "flag = 0x%x, reason = 0x%x", flag, reason);
         
-    BundleStatusReport* report;
-        
-    report = new BundleStatusReport(bundle, local_eid_, flag, reason);
+    Bundle* report = new Bundle();
+    BundleStatusReport::create_status_report(report, orig_bundle,
+                                             local_eid_, flag, reason);
     
-    BundleReceivedEvent e(report, EVENTSRC_ADMIN,
-                          report->payload_.length());
+    BundleReceivedEvent e(report, EVENTSRC_ADMIN, report->payload_.length());
     handle_event(&e);
 }
 
+//----------------------------------------------------------------------
+void
+BundleDaemon::generate_custody_signal(Bundle* bundle, bool succeeded,
+                                      custody_signal_reason_t reason)
+{
+    if (bundle->local_custody_) {
+        log_err("send_custody_signal(*%p): already have local custody",
+                bundle);
+        return;
+    }
 
+    if (bundle->custodian_.equals(EndpointID::NULL_EID())) {
+        log_err("send_custody_signal(*%p): current custodian is NULL_EID",
+                bundle);
+        return;
+    }
+    
+    Bundle* signal = new Bundle();
+    CustodySignal::create_custody_signal(signal, bundle, local_eid_,
+                                         succeeded, reason);
+    
+    BundleReceivedEvent e(signal, EVENTSRC_ADMIN, signal->payload_.length());
+    handle_event(&e);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::cancel_custody_timers(Bundle* bundle)
+{
+    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::cancel_custody_timers");
+    
+    CustodyTimerVec::iterator iter;
+    for (iter =  bundle->custody_timers_.begin();
+         iter != bundle->custody_timers_.end();
+         ++iter)
+    {
+        // XXX/demmer fix this race
+        if (!(*iter)->cancel()) {
+            log_err("custody timer cancel race!!");
+            continue;
+        }
+
+        // the timer will be deleted when it bubbles to the top of the
+        // timer queue
+    }
+    
+    bundle->custody_timers_.clear();
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::accept_custody(Bundle* bundle)
+{
+    log_info("accept_custody *%p", bundle);
+    
+    if (bundle->local_custody_) {
+        log_err("accept_custody(*%p): already have local custody",
+                bundle);
+        return;
+    }
+
+    if (bundle->custodian_.equals(local_eid_)) {
+        log_err("send_custody_signal(*%p): "
+                "current custodian is already local_eid",
+                bundle);
+        return;
+    }
+    
+    // send a custody acceptance signal to the current custodian (if
+    // it is someone, and not the null eid)
+    if (! bundle->custodian_.equals(EndpointID::NULL_EID())) {
+        generate_custody_signal(bundle, true, BundleProtocol::CUSTODY_NO_ADDTL_INFO);
+    }
+
+    // now we mark the bundle to indicate that we have custody and add
+    // it to the custody bundles list
+    bundle->custodian_.assign(local_eid_);
+    bundle->local_custody_ = true;
+    actions_->store_update(bundle);
+    
+    custody_bundles_->push_back(bundle);
+
+    // finally, if the bundle requested custody acknowledgements,
+    // deliver them now
+    if (bundle->custody_rcpt_) {
+        generate_status_report(bundle, BundleProtocol::STATUS_CUSTODY_ACCEPTED);
+    }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::release_custody(Bundle* bundle)
+{
+    log_info("release_custody *%p", bundle);
+
+    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::release_custody");
+    
+    if (!bundle->local_custody_) {
+        log_err("release_custody(*%p): don't have local custody",
+                bundle);
+        return;
+    }
+
+    cancel_custody_timers(bundle);
+
+    bundle->custodian_.assign(EndpointID::NULL_EID());
+    bundle->local_custody_ = false;
+    actions_->store_update(bundle);
+    
+    custody_bundles_->erase(bundle);
+}
+
+//----------------------------------------------------------------------
 void
 BundleDaemon::deliver_to_registration(Bundle* bundle,
                                       Registration* registration)
@@ -189,12 +298,10 @@ BundleDaemon::deliver_to_registration(Bundle* bundle,
               bundle, registration->regid(),
               registration->endpoint().c_str());
     
-    registration->consume_bundle(bundle);
+    registration->deliver_bundle(bundle);
 }
 
-/**
- * Deliver the bundle to any matching registrations.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::check_registrations(Bundle* bundle)
 {
@@ -219,23 +326,34 @@ BundleDaemon::check_registrations(Bundle* bundle)
     }
 }
 
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 {
     Bundle* bundle = event->bundleref_.object();
-    size_t payload_len = bundle->payload_.length();
+
+    // update statistics and store an appropriate event descriptor
+    const char* source_str = "";
+    if (event->source_ == EVENTSRC_ADMIN) {
+        bundles_generated_++;
+        source_str = " (generated)";
+    } else if (event->source_ == EVENTSRC_STORE) {
+        source_str = " (from data store)";
+    } else {
+        bundles_received_++;
+    }
     
     // if debug logging is enabled, dump out a verbose printing of the
     // bundle, including all options, otherwise, a more terse log
     if (log_enabled(oasys::LOG_DEBUG)) {
         oasys::StaticStringBuffer<1024> buf;
-        buf.appendf("BUNDLE_RECEIVED: (%u bytes recvd)\n",
-                    (u_int)event->bytes_received_);
+        buf.appendf("BUNDLE_RECEIVED%s: (%u bytes recvd)\n",
+                    source_str, (u_int)event->bytes_received_);
         bundle->format_verbose(&buf);
         log_multiline(oasys::LOG_DEBUG, buf.c_str());
     } else {
-        log_info("BUNDLE_RECEIVED *%p (%u bytes recvd)",
-                 bundle, (u_int)event->bytes_received_);
+        log_info("BUNDLE_RECEIVED%s *%p (%u bytes recvd)",
+                 source_str, bundle, (u_int)event->bytes_received_);
     }
     
     // log a warning if the bundle doesn't have any expiration time or
@@ -259,8 +377,11 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  (u_int)bundle->creation_ts_.tv_usec,
                  (u_int)now.tv_sec, (u_int)now.tv_usec);
     }
-        
-    if (bundle->receive_rcpt_) {
+
+    /*
+     * Send the reception receipt 
+     */
+    if (bundle->receive_rcpt_ && (event->source_ != EVENTSRC_STORE)) {
         generate_status_report(bundle, BundleProtocol::STATUS_RECEIVED);
     }
 
@@ -276,89 +397,109 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
 
     /*
-     * Check for inbound proactive fragmentation. If it returns true,
-     * then the one big bundle has been replaced with a bundle of
-     * small ones, each of which has an individual bundle arrival
-     * event, so we ignore this one.
-     *
-     * XXX/demmer rethink this
+     * Add the bundle to the master pending queue and the data store
+     * (unless the bundle was just reread from the data store on startup)
      */
-    int nfrags =
-        fragmentmgr_->proactively_fragment(bundle, params_.proactive_frag_threshold_);
-    if (nfrags > 0) {
-        log_debug("proactive fragmentation: %u byte bundle => %d fragments",
-                  (u_int)payload_len, nfrags);
-        return;
-    }
-
-    // add the bundle to the master pending queue and the data store
-    // (unless the bundle was just reread from the data store)
     add_to_pending(bundle, (event->source_ != EVENTSRC_STORE));
-    
-    // deliver the bundle to any local registrations that it matches
-    check_registrations(bundle);
 
-    // bounce out so the configured routers can do something further
-    // with the bundle in response to the event.
+    /*
+     * If the bundle is a custody bundle and we're configured to take
+     * custody, then do so. In case the event was delivered due to a
+     * reload from the data store, then if we have local custody, make
+     * sure it's added to the custody bundles list.
+     */
+    if (bundle->custody_requested_ && params_.accept_custody_)
+    {
+        if (event->source_ != EVENTSRC_STORE) {
+            accept_custody(bundle);
+        
+        } else if (bundle->local_custody_) {
+            custody_bundles_->push_back(bundle);
+        }
+    }
+    
+    /*
+     * Deliver the bundle to any local registrations that it matches
+     */
+    check_registrations(bundle);
+    
+    /*
+     * Finally, bounce out so the router(s) can do something further
+     * with the bundle in response to the event.
+     */
 }
 
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
-    /**
+    // update statistics
+    bundles_transmitted_++;
+    
+    /*
      * The bundle was delivered to a next-hop contact.
      */
     Bundle* bundle = event->bundleref_.object();
 
-    log_info("BUNDLE_TRANSMITTED id:%d (%u bytes) %s -> %s",
+    log_info("BUNDLE_TRANSMITTED id:%d (%u bytes) %s -> %s (%s)",
              bundle->bundleid_, (u_int)event->bytes_sent_,
              event->acked_ ? "ACKED" : "UNACKED",
+             event->contact_->link()->name(),
              event->contact_->nexthop());
 
-    /**
+    /*
      * Update the forwarding log
      */
-    bundle->fwdlog_.update(event->contact_->nexthop(), ForwardingEntry::SENT);
+    bundle->fwdlog_.update(event->contact_->link(), ForwardingInfo::SENT);
                             
+    /*
+     * Grab the updated forwarding log information.
+     */
+    ForwardingInfo fwdinfo;
+    bool ok = bundle->fwdlog_.get_latest_entry(event->contact_->link(), &fwdinfo);
+    ASSERTF(ok, "no forwarding log entry for transmission");
+    ASSERT(fwdinfo.state_ == ForwardingInfo::SENT);
+    
     /*
      * Check for reactive fragmentation. The unsent portion (if any)
      * will show up as a new bundle received event.
      */
     fragmentmgr_->reactively_fragment(bundle, event->bytes_sent_);
-
+    
     if (bundle->forward_rcpt_) {
-        // XXX/matt todo: change to generate with a reason code of
-        // "forwarded over unidirectional link" if the bundle has the
-        // retention constraint "custody accepted" and all of the
-        // nodes in the minimum reception group of the endpoint
-        // selected for forwarding are known to be unable to send
-        // bundles back to this node
         generate_status_report(bundle, BundleProtocol::STATUS_FORWARDED);
     }
 
-    /*
-     * If there are no more mappings for the bundle (except for the
-     * pending list), and we're configured for early deletion, then
-     * remove the bundle from the pending list. Then when all refs to
-     * the bundle are removed, it will be timed out.
-     *
-     * This allows a router (or the custody system) to maintain a
-     * retention constraint by adding a mapping or just adding a
-     * reference.
-     */
-    if (params_.early_deletion_ && (bundle->num_mappings() == 1)) {
-        // XXX/matt if we delete a bundle just because there are no
-        // more mappings, and not because it expired, then we don't
-        // want to generate a status report, so pass the
-        // REASON_NO_ADDTL_INFO reason code
-        delete_from_pending(bundle, BundleProtocol::REASON_NO_ADDTL_INFO);
+    if (bundle->local_custody_) {
+        bundle->custody_timers_.push_back(
+            new CustodyTimer(fwdinfo.timestamp_,
+                             fwdinfo.custody_timer_,
+                             bundle, event->contact_->link()));
+        
+        // XXX/TODO: generate failed custodial signal for "forwarded
+        // over unidirectional link" if the bundle has the retention
+        // constraint "custody accepted" and all of the nodes in the
+        // minimum reception group of the endpoint selected for
+        // forwarding are known to be unable to send bundles back to
+        // this node
     }
+
+    /*
+     * Check if we should can delete the bundle from the pending list,
+     * i.e. we don't have custody and it's not being transmitted
+     * anywhere else.
+     */
+    try_delete_from_pending(bundle);
 }
 
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
 {
-    /**
+    // update statistics
+    bundles_delivered_++;
+    
+    /*
      * The bundle was delivered to a registration.
      */
     Bundle* bundle = event->bundleref_.object();
@@ -368,32 +509,50 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
              event->registration_->regid(),
              event->registration_->endpoint().c_str());
 
-    if (bundle->delivery_rcpt_) {
+    /*
+     * Generate the delivery status report if requested.
+     */
+    if (bundle->delivery_rcpt_)
+    {
         generate_status_report(bundle, BundleProtocol::STATUS_DELIVERED);
     }
 
     /*
-     * If there are no more mappings for the bundle (except for the
-     * pending list), and we're configured for early deletion, then
-     * remove the bundle from the pending list. Then when all refs to
-     * the bundle are removed, it will be timed out.
-     *
-     * This allows a router (or the custody system) to maintain a
-     * retention constraint by adding a mapping or just adding a
-     * reference.
+     * If this is a custodial bundle and it was delivered, we either
+     * release custody (if we have it), or send a custody signal to
+     * the current custodian indicating that the bundle was
+     * successfully delivered, unless there is no current custodian
+     * (the eid is still dtn:none).
      */
-    if (params_.early_deletion_ && (bundle->num_mappings() == 1)) {
-        // XXX/matt if we delete a bundle just because there are no
-        // more mappings, and not because it expired, then we don't
-        // want to generate a status report, so pass the
-        // REASON_NO_ADDTL_INFO reason code
-        delete_from_pending(bundle, BundleProtocol::REASON_NO_ADDTL_INFO);
+    if (bundle->custody_requested_)
+    {
+        if (bundle->local_custody_) {
+            release_custody(bundle);
+
+        } else if (bundle->custodian_.equals(EndpointID::NULL_EID())) {
+            log_info("custodial bundle *%p delivered before custody accepted", bundle);
+
+        } else {
+            generate_custody_signal(bundle, true,
+                                    BundleProtocol::CUSTODY_NO_ADDTL_INFO);
+        }
     }
+
+    /*
+     * Finally, check if we can and should delete the bundle from the
+     * pending list, i.e. we don't have custody and it's not being
+     * transmitted anywhere else.
+     */
+    try_delete_from_pending(bundle);
 }
 
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 {
+    // update statistics
+    bundles_expired_++;
+    
     Bundle* bundle = event->bundleref_.object();
     oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::handle_bundle_expired");
 
@@ -401,7 +560,8 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 
     ASSERT(bundle->expiration_timer_ == NULL);
 
-    // XXX/demmer need to notify if we have custody...
+    // cancel any pending custody timers for the bundle
+    cancel_custody_timers(bundle);
 
     // check that the bundle is on the pending list and then remove it
     // if it is. if it's not, then there was a race between the
@@ -438,11 +598,7 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     // fall through to notify the routers
 }
 
-/**
- * When a new application registration arrives, add it to the
- * registration table and then walk the pending list to see if there
- * are any bundles that need delivery to the given registration.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
 {
@@ -471,6 +627,7 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
     }
 }
 
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
 {
@@ -486,6 +643,7 @@ BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
     delete registration;
 }
 
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
 {
@@ -512,9 +670,7 @@ BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
     }
 }
 
-/**
- * Default event handler when a new link is available.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_link_available(LinkAvailableEvent* event)
 {
@@ -524,9 +680,7 @@ BundleDaemon::handle_link_available(LinkAvailableEvent* event)
     log_info("LINK_AVAILABLE *%p", link);
 }
 
-/**
- * Default event handler when a link is unavailable
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
 {
@@ -536,6 +690,7 @@ BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
     log_info("LINK UNAVAILABLE *%p", link);
 }
 
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 {
@@ -651,6 +806,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
     }
 }
   
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_contact_up(ContactUpEvent* event)
 {
@@ -661,6 +817,7 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     link->set_state(Link::OPEN);
 }
 
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_contact_down(ContactDownEvent* event)
 {
@@ -681,11 +838,7 @@ BundleDaemon::handle_contact_down(ContactDownEvent* event)
     }
 }
 
-/**
- * Default event handler when reassembly is completed. For each
- * bundle on the list, check the pending count to see if the
- * fragment can be deleted.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 {
@@ -704,6 +857,118 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
                                  ref->payload_.length()));
 }
 
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_route_add(RouteAddEvent* event)
+{
+    oasys::StringBuffer buf;
+    event->entry_->dump(&buf);
+    log_info("ROUTE_ADD %s", buf.c_str());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_route_del(RouteDelEvent* event)
+{
+    log_info("ROUTE_DEL %s", event->dest_.c_str());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
+{
+    log_info("CUSTODY_SIGNAL: %s %u.%u %s",
+             event->data_.orig_source_eid_.c_str(),
+             (u_int)event->data_.orig_creation_tv_.tv_sec,
+             (u_int)event->data_.orig_creation_tv_.tv_usec,
+             event->data_.succeeded_ ? "succeeded" : "failed");
+
+    BundleRef orig_bundle =
+        custody_bundles_->find(event->data_.orig_source_eid_,
+                               event->data_.orig_creation_tv_);
+    
+    if (orig_bundle == NULL) {
+        log_warn("received custody signal for bundle %s %u.%u "
+                 "but don't have custody",
+                 event->data_.orig_source_eid_.c_str(),
+                 (u_int)event->data_.orig_creation_tv_.tv_sec,
+                 (u_int)event->data_.orig_creation_tv_.tv_usec);
+        return;
+    }
+    
+    if (event->data_.succeeded_) {
+        release_custody(orig_bundle.object());
+        try_delete_from_pending(orig_bundle.object());
+    }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
+{
+    Bundle* bundle = event->bundle_.object();
+    Link*   link   = event->link_;
+    
+    log_info("CUSTODY_TIMEOUT *%p, *%p", bundle, link);
+    
+    // remove and delete the expired timer from the bundle
+    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::handle_custody_timeout");
+
+    bool found = false;
+    CustodyTimer* timer;
+    CustodyTimerVec::iterator iter;
+    for (iter = bundle->custody_timers_.begin();
+         iter != bundle->custody_timers_.end();
+         ++iter)
+    {
+        timer = *iter;
+        if (timer->link_ == link)
+        {
+            if (timer->pending()) {
+                log_err("multiple pending custody timers for link %s",
+                        link->nexthop());
+                continue;
+            }
+            
+            found = true;
+            bundle->custody_timers_.erase(iter);
+            break;
+        }
+    }
+
+    if (!found) {
+        log_err("custody timeout for *%p *%p: timer not found in bundle list",
+                bundle, link);
+        return;
+    }
+
+    // XXX/demmer fix this race
+    if (timer->cancelled()) {
+        log_err("custody timer for *%p *%p: timer was cancelled after it fired",
+                bundle, link);
+    }
+    
+    if (!pending_bundles_->contains(bundle)) {
+        log_err("custody timeout for *%p *%p: bundle not in pending list",
+                bundle, link);
+    }
+
+    // add an entry to the forwarding log to indicate that we got the
+    // custody failure signal. this simplifies the task of routers, as
+    // the most recent entry in the log will not be SENT, so the
+    // router will know to retransmit the bundle.
+    bundle->fwdlog_.add_entry(link, FORWARD_INVALID,
+                              ForwardingInfo::CUSTODY_TIMEOUT,
+                              CustodyTimerSpec::defaults_);
+
+    delete timer;
+
+    // now fall through to let the router handle the event, typically
+    // triggering a retransmission to the link in the event
+}
+
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 {
@@ -737,11 +1002,8 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
     // signal to the main loop to bail
     set_should_stop();
 }
-  
-/**
- * Add the bundle to the pending list and persistent store, and
- * set up the expiration timer for it.
- */
+
+//----------------------------------------------------------------------
 void
 BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 {
@@ -770,18 +1032,14 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     } else {
         log_warn("scheduling IMMEDIATE expiration for bundle id %d: "
                  "[expiration %u, creation time %u.%u, now %u.%u]",
-                 bundle->bundleid_,
+                 bundle->bundleid_, bundle->expiration_,
                  (u_int)bundle->creation_ts_.tv_sec,
                  (u_int)bundle->creation_ts_.tv_usec,
-                 bundle->expiration_, (u_int)now.tv_sec, (u_int)now.tv_usec);
+                 (u_int)now.tv_sec, (u_int)now.tv_usec);
     }
 }
 
-/**
- * Delete the given bundle from the pending list. If the reason code
- * is REASON_NO_ADDTL_INFO, we will never send a BundleStatusReport
- * regardless of whether deletion_rcpt_ is set
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::delete_from_pending(Bundle* bundle,
                                   status_report_reason_t reason)
@@ -808,7 +1066,7 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
             bundle->expiration_timer_ = NULL;
         }
     }
-    
+
     if (pending_bundles_->erase(bundle)) {
         if (bundle->deletion_rcpt_ &&
             (reason != BundleProtocol::REASON_NO_ADDTL_INFO))
@@ -822,10 +1080,62 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
     }
 }
 
-/**
- * The last step in the lifetime of a bundle occurs when there are no
- * more references to it and we get this event.
- */
+//----------------------------------------------------------------------
+void
+BundleDaemon::try_delete_from_pending(Bundle* bundle)
+{
+    /*
+     * Check to see if we should remove the bundle from the pending
+     * list, after which all references to the bundle should be
+     * cleaned up and the bundle will be deleted from the system.
+     *
+     * We do this only if:
+     *
+     * 1) We're configured for early deletion
+     * 2) The bundle isn't queued on any lists other than the pending
+     *    list. This covers the case where we have custody, since the
+     *    bundle will be on the custody_bundles list
+     * 3) The bundle isn't currently in flight, as recorded
+     *    in the forwarding log.
+     *
+     * This allows a router (or the custody system) to maintain a
+     * retention constraint by putting the bundle on a list, and
+     * thereby adding a mapping.
+     */
+
+    if (! bundle->is_queued_on(pending_bundles_)) {
+        log_err("try_delete_from_pending(*%p): bundle not in pending list!",
+                bundle);
+        return;
+    }
+
+    if (!params_.early_deletion_) {
+        log_debug("try_delete_from_pending(*%p): not deleting because "
+                  "early deletion disabled",
+                  bundle);
+        return;
+    }
+
+    size_t num_mappings = bundle->num_mappings();
+    if (num_mappings != 1) {
+        log_debug("try_delete_from_pending(*%p): not deleting because "
+                  "bundle has %u mappings",
+                  bundle, (u_int)num_mappings);
+        return;
+    }
+    
+    size_t num_in_flight = bundle->fwdlog_.get_count(ForwardingInfo::IN_FLIGHT);
+    if (num_in_flight > 0) {
+        log_debug("try_delete_from_pending(*%p): not deleting because "
+                  "bundle in flight on %u links",
+                  bundle, (u_int)num_in_flight);
+        return;
+    }
+
+    delete_from_pending(bundle, BundleProtocol::REASON_NO_ADDTL_INFO);
+}
+
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
 {
@@ -840,45 +1150,10 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
     delete bundle;
 }
 
-/**
- * Update statistics based on the event arrival.
- */
-void
-BundleDaemon::update_statistics(BundleEvent* event)
-{
-    switch(event->type_) {
-
-    case BUNDLE_RECEIVED:
-        bundles_received_++;
-        break;
-        
-    case BUNDLE_TRANSMITTED:
-        bundles_transmitted_++;
-        break;
-
-    case BUNDLE_DELIVERED:
-        bundles_delivered_++;
-        break;
-        
-    case BUNDLE_EXPIRED:
-        bundles_expired_++;
-        break;
-        
-    default:
-        break;
-    }
-}
-
-/**
- * Event handler override for the daemon. First dispatches to the
- * local event handlers, then to the list of attached routers.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_event(BundleEvent* event)
 {
-    update_statistics(event); // XXX/demmer remove the fn and move
-                              // into individual handlers
-     
     dispatch_event(event);
     
     if (! event->daemon_only_) {
@@ -888,14 +1163,12 @@ BundleDaemon::handle_event(BundleEvent* event)
     }
 }
 
-/**
- * The main run loop.
- */
+//----------------------------------------------------------------------
 void
 BundleDaemon::run()
 {
     BundleEvent* event;
-    
+
     while (1) {
         if (should_stop()) {
             break;

@@ -1,10 +1,14 @@
 DTN2 TODO LIST
 -------------
 
+- bundle status reports:
+  - test with fragments
+
+- dtndump utility
+
 - forwarding logic
   - add transmission log
   - fix up bundle deletion before expiration time
-  - implement class of service notification features
   - honor bundle priority bits in forwarding
   - custody transfer
   - add bundle delete command
@@ -16,10 +20,7 @@ DTN2 TODO LIST
   - bundle echo option
 
 - registrations
-  - re-enable registration store
-  - implement registration disconnection
   - present / not present flag
-  - expirations
 
 - bundle protocol 
   - handle extension headers

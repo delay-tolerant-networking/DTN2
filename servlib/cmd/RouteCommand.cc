@@ -39,13 +39,13 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "RouteCommand.h"
+#include "CompletionNotifier.h"
 
 #include "contacts/Link.h"
 #include "contacts/ContactManager.h"
 
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
-#include "bundling/BundleConsumer.h"
 
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
@@ -80,9 +80,9 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     const char* cmd = argv[1];
     
     if (strcmp(cmd, "add") == 0) {
-        // route add <dest> <link/endpoint>
+        // route add <dest> <link/endpoint> <args>
         if (argc < 4) {
-            wrong_num_args(argc, argv, 2, 4, 4);
+            wrong_num_args(argc, argv, 2, 4, INT_MAX);
             return TCL_ERROR;
         }
 
@@ -98,23 +98,66 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         
         link = BundleDaemon::instance()->contactmgr()->find_link(name);
 
-        // XXX/demmer search for interface
-        
         if (link == NULL) {
             resultf("no such link %s", name);
             return TCL_ERROR;
         }
+
+        // skip over the consumed arguments to parse optional ones
+        argc -= 4;
+        argv += 4;
         
-        // post the event
-        RouteEntry* entry = new RouteEntry(dest, link, NULL, FORWARD_COPY);
-        BundleDaemon::post(new RouteAddEvent(entry));
+        CustodyTimerSpec custody_timer;
+        int num = custody_timer.parse_options(argc, argv);
+        argc -= num;
+        argv += num;
+
+        // XXX/TODO add hooks so individual routers can parse
+        // additional options
+        
+        if (argc != 0) {
+            resultf("invalid argument '%s'", argv[0]);
+            return TCL_ERROR;
+        }
+        
+        // post the event -- if the daemon has been started, we wait
+        // for the event to be consumed, otherwise we just return
+        // immediately. this allows the command to have the
+        // appropriate semantics both in the static config file and in
+        // an interactive mode
+        
+        RouteEntry* entry = new RouteEntry(dest, link, FORWARD_COPY, custody_timer);
+        if (BundleDaemon::instance()->started()) {
+            BundleDaemon::post_and_wait(new RouteAddEvent(entry),
+                                        CompletionNotifier::notifier());
+        } else {
+            BundleDaemon::post(new RouteAddEvent(entry));
+        }
 
         return TCL_OK;
     }
 
     else if (strcmp(cmd, "del") == 0) {
-        resultf("route delete unimplemented");
-        return TCL_ERROR;
+        // route del <dest>
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+
+        EndpointIDPattern pat(argv[2]);
+        if (!pat.valid()) {
+            resultf("invalid endpoint id pattern '%s'", argv[2]);
+            return TCL_ERROR;
+        }
+
+        if (BundleDaemon::instance()->started()) {
+            BundleDaemon::post_and_wait(new RouteDelEvent(pat),
+                                        CompletionNotifier::notifier());
+        } else {
+            BundleDaemon::post(new RouteDelEvent(pat));
+        }
+        
+        return TCL_OK;
     }
 
     else if (strcmp(cmd, "dump") == 0) {

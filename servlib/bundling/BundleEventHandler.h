@@ -166,6 +166,22 @@ protected:
     virtual void handle_route_add(RouteAddEvent* event);
     
     /**
+     * Default event handler when a route is deleted by the command
+     * or management interface.
+     */
+    virtual void handle_route_del(RouteDelEvent* event);
+
+    /**
+     * Default event handler when custody signals are received.
+     */
+    virtual void handle_custody_signal(CustodySignalEvent* event);
+    
+    /**
+     * Default event handler when custody transfer timers expire
+     */
+    virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
+    
+    /**
      * Default event handler for shutdown requests.
      */
     virtual void handle_shutdown_request(ShutdownRequest* event);

@@ -42,16 +42,13 @@
 
 namespace dtn {
 
+class EndpointID;
 class EndpointIDPattern;
 
 /**
  * The base class for various endpoint id schemes. The class provides
- * three pure virtual methods -- validate(), validate_pattern(), and
- * match() -- that are overridden by various scheme implementations.
- *
- * Each scheme subclass may also define some sort of parsing method to
- * extract lower-layer addresses (e.g. IP addresses) embedded in the
- * scheme specific part of an endpoint id.
+ * two pure virtual methods -- validate() and match() -- that are
+ * overridden by the various scheme implementations.
  */
 class Scheme {
 public:
@@ -66,22 +63,12 @@ public:
                           bool is_pattern = false) = 0;
 
     /**
-     * Match the given scheme string with the given pattern.
-     *
-     * By default, this just compares the two strings literally, but
-     * some schemes (i.e. the wildcard) may tolerate many more.
+     * Match the pattern to the endpoint id in a scheme-specific
+     * manner.
      */
-    virtual bool match_scheme(const EndpointIDPattern* pattern,
-                              const std::string& scheme);
-
-    /**
-     * Match the given ssp with the given pattern.
-     *
-     * @return true if it matches
-     */
-    virtual bool match_ssp(const EndpointIDPattern* pattern,
-                           const std::string& ssp) = 0;
-
+    virtual bool match(const EndpointIDPattern& pattern,
+                       const EndpointID& eid) = 0;
+    
     /**
      * Append the given service tag to the ssp in a scheme-specific
      * manner. By default, the scheme is not capable of this.

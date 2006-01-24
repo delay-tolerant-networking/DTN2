@@ -13,6 +13,7 @@ proc config {args} {
     dtn::config_console
     dtn::config_api_server
     dtn::config_berkeleydb
+    dtn::config_null_link
 }
 
 #
@@ -71,6 +72,15 @@ proc config_api_server {} {
     foreach id [net::nodelist] {
 	conf::add dtnd $id "api set local_addr [gethostbyname $net::host($id)]"
 	conf::add dtnd $id "api set local_port [dtn::get_port api $id]"
+    }
+}
+
+#
+# Set up a null link on each host
+#
+proc config_null_link {} {
+    foreach id [net::nodelist] {
+	conf::add dtnd $id "link add null /dev/null ALWAYSON null"
     }
 }
 

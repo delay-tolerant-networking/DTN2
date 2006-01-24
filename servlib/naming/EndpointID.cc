@@ -177,8 +177,7 @@ EndpointIDPattern::match(const EndpointID& eid) const
         return false;
     }
 
-    return (scheme()->match_scheme(this, eid.scheme_str()) &&
-            scheme()->match_ssp(this, eid.ssp()));
+    return scheme()->match(*this, eid);
 }
 
 

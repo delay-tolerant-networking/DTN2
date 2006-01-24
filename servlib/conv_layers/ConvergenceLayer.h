@@ -39,6 +39,7 @@
 #define _CONVERGENCE_LAYER_H_
 
 #include <string>
+#include <vector>
 
 #include "contacts/Contact.h"
 #include "contacts/Interface.h"
@@ -58,9 +59,10 @@ public:
     /**
      * Constructor.
      */
-    ConvergenceLayer(const char* logpath)
-        : Logger(logpath)
+    ConvergenceLayer(const char* name)
+        : name_(name)
     {
+        logpathf("/cl/%s", name);
     }
 
     /**
@@ -97,8 +99,11 @@ public:
     /**
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.
+     *
+     * Must post a ContactUpEvent when the contact is successfully
+     * initiated.
      */
-    virtual bool open_contact(Contact* contact);
+    virtual bool open_contact(Contact* contact) = 0;
     
     /**
      * Close the connnection to the contact.
@@ -107,11 +112,15 @@ public:
      * function.
      * After calling this function, the contact can be deleted
      * from the system.
+     *
+     * Note that this function should NOT post a ContactDownEvent, as
+     * this function is only called to clean up the contact state
+     * after it has been closed.
      */
     virtual bool close_contact(Contact* contact);
 
     /**
-     * Try to send the bundles given bundle on the current link.
+     * Try to send the given bundle on the current link.
      *
      * In some cases (e.g. TCP) this just sticks bundles on a queue
      * for another thread to consume (after setting the link state to
@@ -142,14 +151,18 @@ public:
      * layers.
      */
     static void init_clayers();
-    static void add_clayer(const char* proto, ConvergenceLayer* cl);
     
     /**
-     * Find the appropriate convergence layer for the given protocol
+     * Find the appropriate convergence layer for the given 
      * string.
      */
     static ConvergenceLayer* find_clayer(const char* proto);
 
+    /**
+     * Accessor for the convergence layer name.
+     */
+    const char* name() { return name_; }
+    
     /**
      * Magic number used for DTN convergence layers     
      */
@@ -157,19 +170,16 @@ public:
     
 protected:
     /**
-     * Struct that maps a convergence layer protocol to its
-     * implementation.
+     * The unique name of this convergence layer.
      */
-    struct Protocol {
-        const char* proto_;	///< protocol name
-        ConvergenceLayer* cl_;	///< the registered convergence layer
-        Protocol* next_;	///< link to next registered protocol
-    };
-    
+    const char* name_;
+
     /**
-     * The linked list of all protocols
+     * Use a static vector to enumerate the convergence layers that
+     * are currently implemented.
      */
-    static Protocol* protocol_list_;
+    typedef std::vector<ConvergenceLayer*> CLVec;
+    static CLVec clayers_;
 };
 
 /**

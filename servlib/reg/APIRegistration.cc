@@ -65,10 +65,10 @@ APIRegistration::~APIRegistration()
 }
 
 void
-APIRegistration::consume_bundle(Bundle* bundle)
+APIRegistration::deliver_bundle(Bundle* bundle)
 {
     if (!active() && (failure_action_ == DROP)) {
-        log_info("consume_bundle: "
+        log_info("deliver_bundle: "
                  "dropping bundle id %d for passive registration %d (%s)",
                  bundle->bundleid_, regid_, endpoint_.c_str());
         
@@ -79,7 +79,7 @@ APIRegistration::consume_bundle(Bundle* bundle)
     if (!active() && (failure_action_ == EXEC)) {
         // this sure seems like a security hole, but what can you
         // do -- it's in the spec
-        log_info("consume_bundle: "
+        log_info("deliver_bundle: "
                  "running script '%s' for registration %d (%s)",
                  script_.c_str(), regid_, endpoint_.c_str());
         
@@ -87,10 +87,10 @@ APIRegistration::consume_bundle(Bundle* bundle)
         // fall through
     }
 
-    log_info("consume_bundle: queuing bundle id %d for %s delivery to %s",
+    log_info("deliver_bundle: queuing bundle id %d for %s delivery to %s",
              bundle->bundleid_,
              active() ? "active" : "deferred",
-             dest_str_.c_str());
+             endpoint_.c_str());
     
     bundle_list_->push_back(bundle);
 }

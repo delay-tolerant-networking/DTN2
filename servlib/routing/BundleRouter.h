@@ -50,7 +50,6 @@
 namespace dtn {
 
 class BundleActions;
-class BundleConsumer;
 class BundleRouter;
 class StringBuffer;
 

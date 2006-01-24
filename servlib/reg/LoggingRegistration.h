@@ -59,7 +59,7 @@ namespace dtn {
 class LoggingRegistration : public Registration {
 public:
     LoggingRegistration(const EndpointIDPattern& endpoint);
-    void consume_bundle(Bundle* bundle);
+    void deliver_bundle(Bundle* bundle);
 };
 
 } // namespace dtn

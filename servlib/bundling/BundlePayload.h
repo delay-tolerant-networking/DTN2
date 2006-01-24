@@ -60,7 +60,7 @@ class BundleStore;
  */
 class BundlePayload : public oasys::SerializableObject {
 public:
-    BundlePayload();
+    BundlePayload(oasys::SpinLock* lock);
     virtual ~BundlePayload();
     
     /**
@@ -76,13 +76,12 @@ public:
     /**
      * Actual payload initialization function.
      */
-    void init(oasys::SpinLock* lock, int bundleid,
-              location_t location = UNDETERMINED);
+    void init(int bundleid, location_t location = UNDETERMINED);
   
     /**
      * Initialization when re-reading the database
      */
-    void init_from_store(oasys::SpinLock* lock, int bundleid);
+    void init_from_store(int bundleid);
   
     /**
      * Set the payload length in preparation for filling in with data.
@@ -190,6 +189,19 @@ public:
     const u_char* read_data(size_t offset, size_t len, u_char* buf,
                             int flags = 0);
 
+    /**
+     * Since read_data doesn't really change anything of substance in
+     * the payload class (just the internal bookkeeping fields), we
+     * define a "const" variant that just casts itself away and calls
+     * the normal variant.
+     */
+    const u_char* read_data(size_t offset, size_t len, u_char* buf,
+                            int flags = 0) const
+    {
+        return const_cast<BundlePayload*>(this)->read_data(offset, len, buf, flags);
+    }
+
+     
     /**
      * Virtual from SerializableObject
      */

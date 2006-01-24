@@ -67,8 +67,8 @@ public:
 
     ~APIRegistration();
     
-    /// Virtual from BundleConsumer
-    virtual void consume_bundle(Bundle* bundle);
+    /// Virtual from Registration
+    virtual void deliver_bundle(Bundle* bundle);
 
     /**
      * Accessor for the queue of bundles for the registration.

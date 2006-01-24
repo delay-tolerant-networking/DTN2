@@ -50,6 +50,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_route_add((RouteAddEvent*)e);
         break;
 
+    case ROUTE_DEL:
+        handle_route_del((RouteDelEvent*)e);
+        break;
+
     case CONTACT_UP:
         handle_contact_up((ContactUpEvent*)e);
         break;
@@ -80,6 +84,14 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         
     case REASSEMBLY_COMPLETED:
         handle_reassembly_completed((ReassemblyCompletedEvent*)e);
+        break;
+
+    case CUSTODY_SIGNAL:
+        handle_custody_signal((CustodySignalEvent*)e);
+        break;
+
+    case CUSTODY_TIMEOUT:
+        handle_custody_timeout((CustodyTimeoutEvent*)e);
         break;
 
     case DAEMON_SHUTDOWN:
@@ -230,6 +242,31 @@ BundleEventHandler::handle_route_add(RouteAddEvent* event)
 {
 }
 
+/**
+ * Default event handler when a route is deleted by the command
+ * or management interface.
+ */
+void
+BundleEventHandler::handle_route_del(RouteDelEvent* event)
+{
+}
+
+/**
+ * Default event handler when custody signals are received.
+ */
+void
+BundleEventHandler::handle_custody_signal(CustodySignalEvent* event)
+{
+}
+    
+/**
+ * Default event handler when custody transfer timers expire
+ */
+void
+BundleEventHandler::handle_custody_timeout(CustodyTimeoutEvent* event)
+{
+}
+    
 /**
  * Default event handler for shutdown requests.
  */

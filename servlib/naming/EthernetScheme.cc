@@ -103,27 +103,25 @@ EthernetScheme::validate(const std::string& ssp, bool is_pattern)
  * @return true if it matches
  */
 bool
-EthernetScheme::match_ssp(const EndpointIDPattern* pattern,
-                          const std::string& ssp)
+EthernetScheme::match(const EndpointIDPattern& pattern,
+                      const EndpointID& eid)
 {
     // sanity check
-    ASSERT(pattern->scheme() == this);
-    
-    std::string pattern_ssp = pattern->ssp();
+    ASSERT(pattern.scheme() == this);
     
     log_debug("/scheme/ethernet",
-              "matching %s against %s.", pattern_ssp.c_str(), ssp.c_str());
+              "matching %s against %s.", pattern.ssp().c_str(), eid.ssp().c_str());
 
-    size_t patternlen = pattern_ssp.length();
+    size_t patternlen = pattern.ssp().length();
     
-    if (pattern_ssp == ssp) 
+    if (pattern.ssp() == eid.ssp()) 
         return true;
     
-    if (patternlen >= 1 && pattern_ssp[patternlen-1] == '*') {
+    if (patternlen >= 1 && pattern.ssp()[patternlen-1] == '*') {
         patternlen--;
         
-        if (pattern_ssp.substr(0, patternlen) ==
-            ssp.substr(0, patternlen))
+        if (pattern.ssp().substr(0, patternlen) ==
+            eid.ssp().substr(0, patternlen))
         {
             return true;
         }

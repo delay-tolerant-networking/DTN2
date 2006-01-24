@@ -59,7 +59,7 @@ LoggingRegistration::LoggingRegistration(const EndpointIDPattern& endpoint)
 }
 
 void
-LoggingRegistration::consume_bundle(Bundle* b)
+LoggingRegistration::deliver_bundle(Bundle* b)
 {
     // use the bundle's builtin verbose formatting function and
     // generate the log output for all the header info

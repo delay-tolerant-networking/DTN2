@@ -41,7 +41,6 @@
 #include <set>
 #include <oasys/debug/Formatter.h>
 
-#include "bundling/BundleConsumer.h"
 #include "bundling/BundleList.h"
 
 namespace dtn {
@@ -101,7 +100,7 @@ class LinkSet : public std::set<Link*> {};
  * SCHEDULED links have their availability dictated by the schedule
  * implementation.
  */
-class Link : public oasys::Formatter, public BundleConsumer {
+class Link : public oasys::Formatter, public oasys::Logger {
 public:
     /**
      * Valid types for a link.
@@ -298,13 +297,6 @@ public:
      */
     void set_state(state_t state);
 
-    /// @{
-    /// Virtual from BundleConsumer / QueueConsumer
-    virtual void consume_bundle(Bundle* bundle);
-    virtual bool cancel_bundle(Bundle* bundle);
-    virtual bool is_queued(Bundle* bundle);
-    /// @}
-    
     /**
      * Return the current contact information (if any).
      */

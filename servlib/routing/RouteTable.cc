@@ -47,12 +47,12 @@ namespace dtn {
  * RouteEntry constructor.
  */
 RouteEntry::RouteEntry(const EndpointIDPattern& pattern,
-                       Link* link, Interface* interface,
-                       bundle_fwd_action_t action)
+                       Link* link, bundle_fwd_action_t action,
+                       const CustodyTimerSpec& custody_timeout)
     : pattern_(pattern),
       next_hop_(link),
-      interface_(interface),
       action_(action),
+      custody_timeout_(custody_timeout),
       info_(NULL)
 {
 }
@@ -64,6 +64,22 @@ RouteEntry::~RouteEntry()
 {
     if (info_)
         delete info_;
+}
+
+/**
+ * Dump a string representation of the route entry.
+ */
+void
+RouteEntry::dump(oasys::StringBuffer* buf) const
+{
+    buf->appendf("%s -> %s (%s) "
+                 "[custody timeout: base %u lifetime_pct %u limit %u]\n",
+                 pattern_.c_str(),
+                 next_hop_->name(),
+                 bundle_fwd_action_toa(action_),
+                 custody_timeout_.base_,
+                 custody_timeout_.lifetime_pct_,
+                 custody_timeout_.limit_);
 }
 
 /**
@@ -87,11 +103,9 @@ RouteTable::~RouteTable()
 bool
 RouteTable::add_entry(RouteEntry* entry)
 {
-    // XXC/demmer check for duplicates?
-    // XXX/jakob - shouldn't be necessary since route table is a set?
     log_debug("add_route %s -> %s (%s)",
               entry->pattern_.c_str(),
-              entry->next_hop_->dest_str(),
+              entry->next_hop_->nexthop(),
               bundle_fwd_action_toa(entry->action_));
     
     route_table_.push_back(entry);
@@ -99,16 +113,13 @@ RouteTable::add_entry(RouteEntry* entry)
     return true;
 }
 
-
-
 /**
  * Remove a route entry.
  */
 bool
-RouteTable::del_entry(const EndpointIDPattern& dest,
-                      BundleConsumer* next_hop)
+RouteTable::del_entry(const EndpointIDPattern& dest, Link* next_hop)
 {
-    RouteEntrySet::iterator iter;
+    RouteEntryVec::iterator iter;
     RouteEntry* entry;
 
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
@@ -116,56 +127,114 @@ RouteTable::del_entry(const EndpointIDPattern& dest,
 
         if (entry->pattern_.equals(dest) && entry->next_hop_ == next_hop) {
             log_debug("del_route %s -> %s",
-                      dest.c_str(), next_hop->dest_str());
+                      dest.c_str(), next_hop->nexthop());
 
             route_table_.erase(iter);
+            delete entry;
             return true;
         }
     }    
 
     log_debug("del_route %s -> %s: no match!",
-              dest.c_str(), next_hop->dest_str());
+              dest.c_str(), next_hop->nexthop());
     return false;
 }
 
 /**
- * Remove a route entry.
+ * Remove all entries to the given endpoint id pattern.
  */
-bool
-RouteTable::del_entries_for_nexthop(BundleConsumer* next_hop)
+size_t
+RouteTable::del_entries(const EndpointIDPattern& dest)
 {
-    RouteEntrySet::iterator iter;
+    RouteEntryVec::iterator iter;
     RouteEntry* entry;
 
-    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
-        entry = *iter;
-
-	printf("Comparing %x to %x\n",(int)entry->next_hop_,(int)next_hop);
-        if (entry->next_hop_ == next_hop) {
-	  log_debug("del_route %s -> %s",
-		    entry->pattern_.c_str(), next_hop->dest_str());
-	  
-	  route_table_.erase(iter);
-	  return true;
+    // since deleting from the middle of a vector invalidates
+    // iterators for that vector, we have to loop multiple times until
+    // we don't find any more entries that match
+    int num_found = 0;
+    bool found;
+    do {
+        found = false;
+        for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+            entry = *iter;
+            
+            if (dest.equals(entry->pattern_)) {
+                log_debug("del_route %s -> %s",
+                          entry->pattern_.c_str(), entry->next_hop_->nexthop());
+                
+                route_table_.erase(iter);
+                delete entry;
+                found = true;
+                ++num_found;
+                break;
+            }
         }
-    }    
+    } while (found);
 
-    log_debug("del_route_for_nexthop %s :no match!",
-             next_hop->dest_str());
-    return false;
+    if (num_found == 0) {
+        log_debug("del_entries %s: no matches!", dest.c_str());
+    } else {
+        log_debug("del_entries %s: removed %d routes", dest.c_str(), num_found);
+    }
+    
+    return num_found;
+}
+
+size_t
+RouteTable::del_entries_for_nexthop(Link* next_hop)
+{
+    RouteEntryVec::iterator iter;
+    RouteEntry* entry;
+
+    // since deleting from the middle of a vector invalidates
+    // iterators for that vector, we have to loop multiple times.
+    
+    // since deleting from the middle of a vector invalidates
+    // iterators for that vector, we have to loop multiple times until
+    // we don't find any more entries that match
+    int num_found = 0;
+    bool found;
+    do {
+        found = false;
+        for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+            entry = *iter;
+
+            if (entry->next_hop_ == next_hop) {
+                log_debug("del_route %s -> %s",
+                          entry->pattern_.c_str(), next_hop->nexthop());
+
+                route_table_.erase(iter);
+                delete entry;
+                found = true;
+                ++num_found;
+                break;
+            }
+        }
+    } while (found);
+
+    if (num_found == 0) {
+        log_debug("del_entries_for_nexthop %s: no matches!",
+                  next_hop->name());
+    } else {
+        log_debug("del_entries_for_nexthop %s: removed %d routes",
+                  next_hop->name(), num_found);
+    }
+    
+    return num_found;
 }
 
 /**
  * Fill in the entry_set with the list of all entries whose
- * patterns match the given eid.
+ * patterns match the given eid and next hop.
  *
  * @return the count of matching entries
  */
 size_t
-RouteTable::get_matching(const EndpointID& eid,
-                         RouteEntrySet* entry_set) const
+RouteTable::get_matching(const EndpointID& eid, Link* next_hop,
+                         RouteEntryVec* entry_set) const
 {
-    RouteEntrySet::const_iterator iter;
+    RouteEntryVec::const_iterator iter;
     RouteEntry* entry;
     size_t count = 0;
 
@@ -176,15 +245,17 @@ RouteTable::get_matching(const EndpointID& eid,
 
         log_debug("check entry %s -> %s (%s)",
                   entry->pattern_.c_str(),
-                  entry->next_hop_->dest_str(),
+                  entry->next_hop_->nexthop(),
                   bundle_fwd_action_toa(entry->action_));
-            
-        if (entry->pattern_.match(eid)) {
+        
+        if ((next_hop == NULL || entry->next_hop_ == next_hop) &&
+            entry->pattern_.match(eid))
+        {
             ++count;
             
             log_debug("match entry %s -> %s (%s)",
                       entry->pattern_.c_str(),
-                      entry->next_hop_->dest_str(),
+                      entry->next_hop_->nexthop(),
                       bundle_fwd_action_toa(entry->action_));
 
             entry_set->push_back(entry);
@@ -201,14 +272,10 @@ RouteTable::get_matching(const EndpointID& eid,
 void
 RouteTable::dump(oasys::StringBuffer* buf) const
 {
-    RouteEntrySet::const_iterator iter;
+    RouteEntryVec::const_iterator iter;
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
-        RouteEntry* entry = *iter;
-        buf->appendf("\t%s -> %s (%s) (%s)\n",
-                     entry->pattern_.c_str(),
-                     entry->next_hop_->dest_str(),
-                     entry->next_hop_->type_str(),
-                     bundle_fwd_action_toa(entry->action_));
+        buf->append("\t");
+        (*iter)->dump(buf);
     }
 }
 } // namespace dtn

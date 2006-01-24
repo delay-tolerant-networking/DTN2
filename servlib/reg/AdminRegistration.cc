@@ -36,12 +36,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/util/StringBuffer.h>
+#include <oasys/util/ScratchBuffer.h>
 
 #include "AdminRegistration.h"
 #include "RegistrationTable.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleProtocol.h"
+#include "bundling/CustodySignal.h"
 #include "routing/BundleRouter.h"
 
 namespace dtn {
@@ -57,25 +58,27 @@ AdminRegistration::AdminRegistration()
 }
 
 void
-AdminRegistration::consume_bundle(Bundle* bundle)
+AdminRegistration::deliver_bundle(Bundle* bundle)
 {
     u_char typecode;
 
-    BundleRef ref(bundle, "AdminRegistration::consume_bundle");
-    
     size_t payload_len = bundle->payload_.length();
-    oasys::StringBuffer payload_buf(payload_len);
+    oasys::ScratchBuffer<u_char*, 256> scratch(payload_len);
+    const u_char* payload_buf = 
+        bundle->payload_.read_data(0, payload_len, scratch.buf(payload_len));
+    
     log_debug("got %u byte bundle", (u_int)payload_len);
-
+        
     if (payload_len == 0) {
         log_err("admin registration got 0 byte bundle *%p", bundle);
         goto done;
     }
 
+
     /*
-     * As outlined in the bundle specification, the first byte of all
-     * administrative bundles is a type code, with the following
-     * values:
+     * As outlined in the bundle specification, the first four bits of
+     * all administrative bundles hold the type code, with the
+     * following values:
      *
      * 0x1     - bundle status report
      * 0x2     - custodial signal
@@ -83,27 +86,42 @@ AdminRegistration::consume_bundle(Bundle* bundle)
      * 0x4     - null request
      * (other) - reserved
      */
-    typecode =
-        *(bundle->payload_.read_data(0, 1, (u_char*)payload_buf.data()));
-
+    typecode = payload_buf[0] >> 4;
+    
     switch(typecode) {
     case BundleProtocol::ADMIN_STATUS_REPORT:
-        PANIC("status report not implemented yet");
+    {
+        log_err("status report *%p received at admin registration", bundle);
         break;
-
+    }
+    
     case BundleProtocol::ADMIN_CUSTODY_SIGNAL:
-        PANIC("custody signal not implemented yet");
-        break;
+    {
+        log_info("ADMIN_CUSTODY_SIGNAL *%p received", bundle);
+        CustodySignal::data_t data;
+        
+        bool ok = CustodySignal::parse_custody_signal(&data, payload_buf, payload_len);
+        if (!ok) {
+            log_err("malformed custody signal *%p", bundle);
+            break;
+        }
 
+        BundleDaemon::post(new CustodySignalEvent(data));
+
+        break;
+    }
     case BundleProtocol::ADMIN_ECHO:
+    {
         log_info("ADMIN_ECHO from %s", bundle->source_.c_str());
 
         // XXX/demmer implement the echo
         break;
-        
+    }   
     case BundleProtocol::ADMIN_NULL:
+    {
         log_info("ADMIN_NULL from %s", bundle->source_.c_str());
         break;
+    }
         
     default:
         log_warn("unexpected admin bundle with type 0x%x *%p",

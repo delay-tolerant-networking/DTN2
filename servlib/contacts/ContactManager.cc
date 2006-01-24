@@ -44,6 +44,7 @@
 #include "OndemandLink.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
+#include "conv_layers/ConvergenceLayer.h"
 
 namespace dtn {
 
@@ -127,7 +128,7 @@ ContactManager::find_link(const char* name)
  * Finds link to a given next_hop
  */
 Link*
-ContactManager::find_link_to(const char* next_hop)
+ContactManager::find_link_to(const char* next_hop, const char* clayer)
 {
     oasys::ScopeLock l(&lock_, "ContactManager");
     
@@ -136,8 +137,12 @@ ContactManager::find_link_to(const char* next_hop)
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        if (strcasecmp(link->nexthop(), next_hop) == 0)
+        if ((strcasecmp(link->nexthop(), next_hop) == 0) &&
+            (clayer == NULL ||
+             (strcasecmp(link->clayer()->name(), clayer) == 0)))
+        {
             return link;
+        }
     }
     return NULL;
 }

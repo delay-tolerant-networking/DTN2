@@ -41,6 +41,7 @@
 #include "Bundle.h"
 #include "BundleRef.h"
 #include "BundleList.h"
+#include "CustodySignal.h"
 #include "contacts/Link.h"
 
 namespace dtn {
@@ -52,7 +53,6 @@ namespace dtn {
  */
 
 class Bundle;
-class BundleConsumer;
 class Contact;
 class Registration;
 class RouteEntry;
@@ -88,6 +88,9 @@ typedef enum {
     ROUTE_ADD,			///< Add a new entry to the route table
     ROUTE_DEL,			///< Remove an entry from the route table
 
+    CUSTODY_SIGNAL,		///< Custody transfer signal received
+    CUSTODY_TIMEOUT,		///< Custody transfer timer fired
+    
     DAEMON_SHUTDOWN,            ///< Shut the daemon down cleanly
 
 } event_type_t;
@@ -126,6 +129,9 @@ event_to_str(event_type_t event)
     case ROUTE_ADD:		return "ROUTE_ADD";
     case ROUTE_DEL:		return "ROUTE_DEL";
 
+    case CUSTODY_SIGNAL:	return "CUSTODY_SIGNAL";
+    case CUSTODY_TIMEOUT:	return "CUSTODY_TIMEOUT";
+    
     case DAEMON_SHUTDOWN:	return "SHUTDOWN";
         
     default:			return "(invalid event type)";
@@ -490,6 +496,18 @@ public:
 };
 
 /**
+ * Event class for route delete events
+ */
+class RouteDelEvent : public BundleEvent {
+public:
+    RouteDelEvent(const EndpointIDPattern& dest)
+        : BundleEvent(ROUTE_DEL), dest_(dest) {}
+
+    /// The destination eid to be removed
+    EndpointIDPattern dest_;
+};
+
+/**
  * Event class for reassembly completion.
  */
 class ReassemblyCompletedEvent : public BundleEvent {
@@ -510,6 +528,35 @@ public:
 };
 
 /**
+ * Event class for custody transfer signal arrivals.
+ */
+class CustodySignalEvent : public BundleEvent {
+public:
+    CustodySignalEvent(const CustodySignal::data_t& data)
+        : BundleEvent(CUSTODY_SIGNAL), data_(data) {}
+    
+    /// The parsed data from the custody transfer signal
+    CustodySignal::data_t data_;
+};
+
+/**
+ * Event class for custody transfer timeout events
+ */
+class CustodyTimeoutEvent : public BundleEvent {
+public:
+    CustodyTimeoutEvent(Bundle* bundle, Link* link)
+        : BundleEvent(CUSTODY_TIMEOUT),
+          bundle_(bundle, "CustodyTimeoutEvent"),
+          link_(link) {}
+
+    ///< The bundle whose timer fired
+    BundleRef bundle_;
+
+    ///< The link it was sent on
+    Link* link_;
+};
+
+/**
  * Event class for shutting down a daemon. The daemon goes through all
  * the links and call link->close() on them (if they're in one of the
  * open link states), then cleanly closes the various data
@@ -523,7 +570,6 @@ public:
     }
 
 };
-
 
 } // namespace dtn
 

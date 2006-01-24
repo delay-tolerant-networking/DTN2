@@ -43,6 +43,7 @@
 #include <oasys/thread/Notifier.h>
 
 #include "BundleRef.h"
+#include "naming/EndpointID.h"
 
 namespace oasys {
 class SpinLock;
@@ -191,6 +192,16 @@ public:
      */
     BundleRef find(u_int32_t bundleid);
 
+    /**
+     * Search the list for a bundle with the given source eid and
+     * timestamp.
+     *
+     * @return a reference to the bundle or a reference to NULL if the
+     * list is empty.
+     */
+    BundleRef find(const EndpointID& source_eid,
+                   const struct timeval& creation_ts);
+    
     /**
      * Move all bundles from this list to another.
      */

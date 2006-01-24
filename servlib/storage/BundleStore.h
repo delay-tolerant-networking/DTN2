@@ -118,7 +118,7 @@ public:
     bool add(Bundle* bundle);
 
     /**
-     * Update a bundle's contents in the data store..
+     * Update a bundle's contents in the data store.
      */
     bool update(Bundle* bundle);
 

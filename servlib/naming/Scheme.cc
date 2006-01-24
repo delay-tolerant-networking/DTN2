@@ -44,11 +44,4 @@ Scheme::~Scheme()
     PANIC("Scheme destructor should never be called");
 }
 
-bool
-Scheme::match_scheme(const EndpointIDPattern* pattern,
-                     const std::string& scheme)
-{
-    return (pattern->scheme_str() == scheme);
-}
-
-}
+} // namespace dtn

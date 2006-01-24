@@ -178,7 +178,8 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
     ASSERT(link != NULL);
     log_info("FLOOD: LINK_CREATED *%p", event->link_);
 
-    RouteEntry* entry = new RouteEntry(all_eids_, link, NULL, FORWARD_COPY);
+    RouteEntry* entry =
+        new RouteEntry(all_eids_, link, FORWARD_COPY, CustodyTimerSpec());
 
     add_route(entry);
 
@@ -226,7 +227,8 @@ FloodBundleRouter::new_next_hop(const EndpointIDPattern& dest, Link* next_hop)
     for (iter = pending_bundles_->begin(); 
          iter != pending_bundles_->end(); ++iter) {
         bundle = *iter;
-        actions_->send_bundle(bundle, next_hop);
+        actions_->send_bundle(bundle, next_hop, FORWARD_COPY,
+                              CustodyTimerSpec::defaults_);
     }
 }
 
@@ -235,25 +237,25 @@ int
 FloodBundleRouter::fwd_to_matching(Bundle* bundle, bool include_local)
 {
     RouteEntry* entry;
-    RouteEntrySet matches;
-    RouteEntrySet::iterator iter;
+    RouteEntryVec matches;
+    RouteEntryVec::iterator iter;
 
     route_table_->get_matching(bundle->dest_, &matches);
     
     int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter) {
         entry = *iter;
-        log_info("\tentry: point:%s --> %s [%s] local:%d",
-                entry->pattern_.c_str(),
-                entry->next_hop_->dest_str(),
-                bundle_fwd_action_toa(entry->action_),
-                entry->next_hop_->is_local());
-        if (!entry->next_hop_->is_local())
-            continue;
+        log_info("\tentry: point:%s --> %s [%s]",
+                 entry->pattern_.c_str(),
+                 entry->next_hop_->nexthop(),
+                 bundle_fwd_action_toa(entry->action_));
         
-        actions_->send_bundle(bundle, entry->next_hop_);
+        actions_->send_bundle(bundle, entry->next_hop_, FORWARD_COPY,
+                              CustodyTimerSpec::defaults_);
         ++count;
     }
+
+    PANIC("XXX/demmer fixme");
 
     log_info("FLOOD: local_fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);
     return count;

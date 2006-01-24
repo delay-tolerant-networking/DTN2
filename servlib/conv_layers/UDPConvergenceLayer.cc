@@ -61,7 +61,7 @@ struct UDPConvergenceLayer::Params UDPConvergenceLayer::defaults_;
  *****************************************************************************/
 
 UDPConvergenceLayer::UDPConvergenceLayer()
-    : IPConvergenceLayer("/cl/udp")
+    : IPConvergenceLayer("udp")
 {
     defaults_.local_addr_		= INADDR_ANY;
     defaults_.local_port_		= 5000;

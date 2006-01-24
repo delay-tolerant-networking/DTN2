@@ -39,7 +39,6 @@
 #include "TableBasedRouter.h"
 #include "RouteTable.h"
 #include "bundling/BundleActions.h"
-#include "bundling/BundleConsumer.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/FragmentManager.h"
 #include "contacts/Contact.h"
@@ -58,6 +57,12 @@ TableBasedRouter::add_route(RouteEntry *entry)
 {
     route_table_->add_entry(entry);
     check_next_hop(entry->next_hop_);        
+}
+
+void
+TableBasedRouter::del_route(const EndpointIDPattern& dest)
+{
+    route_table_->del_entries(dest);
 }
 
 /**
@@ -97,6 +102,19 @@ TableBasedRouter::handle_route_add(RouteAddEvent* event)
 }
 
 /**
+ * Default event handler when a route is deleted by the command
+ * or management interface.
+ *
+ * Looks through the route table for the appropriate entry, then
+ * removes the route.
+ */
+void
+TableBasedRouter::handle_route_del(RouteDelEvent* event)
+{
+    del_route(event->dest_);
+}
+
+/**
  * When a contact comes up, check to see if there are any matching
  * bundles for it.
  */
@@ -116,6 +134,21 @@ TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
 }
 
 /**
+ * Handle a custody transfer timeout.
+ */
+void
+TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
+{
+    // the bundle daemon should have recorded a new entry in the
+    // forwarding log for the given link to note that custody transfer
+    // timed out, and of course the bundle should still be in the
+    // pending list. therefore, calling check_next_hop should find the
+    // appropriate bundle in the pending list, match it in the route
+    // table, and re-forward to the given link
+    check_next_hop(event->link_);
+}
+
+/**
  * Format the given StringBuffer with current routing info.
  */
 void
@@ -126,9 +159,7 @@ TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
 }
 
 /**
- * Add an action to forward a bundle to a next hop route, making
- * sure to do reassembly if the forwarding action specifies as
- * such.
+ * Forward a bundle to a next hop route.
  */
 void
 TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
@@ -138,7 +169,8 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
     // if the link is open and not busy, send the bundle to it
     if (link->isopen() && !link->isbusy()) {
         log_debug("sending *%p to *%p", bundle, link);
-        actions_->send_bundle(bundle, link);
+        actions_->send_bundle(bundle, link,
+                              nexthop->action_, nexthop->custody_timeout_);
     }
 
     // if the link is available and not open, open it
@@ -179,34 +211,37 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
 int
 TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
 {
-    RouteEntrySet matches;
-    RouteEntrySet::iterator iter;
+    RouteEntryVec matches;
+    RouteEntryVec::iterator iter;
 
-    route_table_->get_matching(bundle->dest_, &matches);
+    // if next hop is specified, it will filter the results of
+    // get_matching appropriately
+    route_table_->get_matching(bundle->dest_, next_hop, &matches);
     
     int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
-        if (next_hop != NULL && (next_hop != (*iter)->next_hop_)) {
-            log_debug("fwd_to_matching %s: "
-                      "ignoring match %s since next_hop link %s set",
-                      bundle->dest_.c_str(), (*iter)->next_hop_->name(),
-                      next_hop->name());
-            continue;
+        ForwardingInfo info;
+        bool found = bundle->fwdlog_.get_latest_entry((*iter)->next_hop_, &info);
+        if (found) {
+            ASSERT(info.state_ != ForwardingInfo::NONE);
         }
-
-        ForwardingEntry::state_t state =
-            bundle->fwdlog_.get_state((*iter)->next_hop_->nexthop());
         
-        if (state == ForwardingEntry::SENT ||
-            state == ForwardingEntry::IN_FLIGHT)
+        if (found &&
+            (info.state_ == ForwardingInfo::SENT ||
+             info.state_ == ForwardingInfo::IN_FLIGHT))
         {
             log_debug("fwd_to_matching %s: "
                       "ignore match %s due to forwarding log entry %s",
                       bundle->dest_.c_str(), (*iter)->next_hop_->name(),
-                      ForwardingEntry::state_to_str(state));
+                      ForwardingInfo::state_to_str(info.state_));
             continue;
-        }
+        } else {
+            log_debug("fwd_to_matching %s: "
+                      "found match %s: forwarding log entry %s",
+                      bundle->dest_.c_str(), (*iter)->next_hop_->name(),
+                      ForwardingInfo::state_to_str(info.state_));
+        }   
                       
         fwd_to_nexthop(bundle, *iter);
         ++count;
@@ -225,7 +260,7 @@ void
 TableBasedRouter::check_next_hop(Link* next_hop)
 {
     log_debug("check_next_hop %s: checking pending bundle list...",
-              next_hop->dest_str());
+              next_hop->nexthop());
 
     oasys::ScopeLock l(pending_bundles_->lock(), 
                        "TableBasedRouter::check_next_hop");

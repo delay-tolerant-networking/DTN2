@@ -107,12 +107,12 @@ protected:
   public:
     LSRegistration(LinkStateRouter* router);
 
-    /**
-     * Consume the given bundle, queueing it if required.
-     */
     LinkStateRouter* router_;
     
-    void consume_bundle(Bundle* bundle);
+    /**
+     * Deliver the given bundle, queueing it if required.
+     */
+    void deliver_bundle(Bundle* bundle);
 
  };
 

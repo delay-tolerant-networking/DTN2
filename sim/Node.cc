@@ -132,7 +132,8 @@ Node::process(SimEvent* simevent)
         }
 
         // XXX/demmer fix this FORWARD_COPY
-        RouteEntry* entry = new RouteEntry(e->dest_, link, NULL, FORWARD_COPY);
+        RouteEntry* entry =
+            new RouteEntry(e->dest_, link, FORWARD_COPY, CustodyTimerSpec());
         post_event(new RouteAddEvent(entry));
         break;
     }
