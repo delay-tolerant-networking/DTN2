@@ -53,8 +53,8 @@ class BundleList;
 
 // XXX/demmer should change the overall flow of the reassembly so all
 // arriving bundle fragments are enqueued onto the appropriate
-// reassembly state list immediately, not based on the
-// FORWARD_REASSEMBLE action
+// reassembly state list immediately -- in fact all the fragmentation
+// and reassembly stuff needs rework
 
 /**
  * The Fragment Manager maintains state for all of the fragmentary
