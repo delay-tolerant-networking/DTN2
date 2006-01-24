@@ -423,15 +423,14 @@ TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
     log_debug("send_bundle *%p to *%p", bundle, contact);
 
     Connection* conn = (Connection*)contact->cl_info();
+    ASSERT(conn);
 
     // set the busy state to apply bundle backpressure
     if ((conn->queue_->size() + 1) >= conn->params_.busy_queue_depth_) {
         contact->link()->set_state(Link::BUSY);
     }
     
-    ASSERT(conn);
     conn->queue_->push_back(bundle);
-
 }
 
 
