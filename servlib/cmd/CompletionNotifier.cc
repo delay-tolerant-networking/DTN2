@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2006 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,27 +35,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _REGISTRATION_COMMAND_H_
-#define _REGISTRATION_COMMAND_H_
 
-#include <oasys/tclcmd/TclCommand.h>
+#include "CompletionNotifier.h"
 
 namespace dtn {
 
-/**
- * The "registration" command.
- */
-class RegistrationCommand : public oasys::TclCommand {
-public:
-    RegistrationCommand();
-    
-    /**
-     * Virtual from CommandModule.
-     */
-    virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
-    virtual const char* help_string();
-};
+template <>
+CompletionNotifier* oasys::Singleton<CompletionNotifier>::instance_ = 0;
 
 } // namespace dtn
-
-#endif /* _REGISTRATION_COMMAND_H_ */

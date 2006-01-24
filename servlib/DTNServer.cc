@@ -53,6 +53,7 @@
 #include "contacts/InterfaceTable.h"
 #include "contacts/ContactManager.h"
 
+#include "cmd/CompletionNotifier.h"
 #include "cmd/BundleCommand.h"
 #include "cmd/InterfaceCommand.h"
 #include "cmd/LinkCommand.h"
@@ -238,7 +239,8 @@ void
 DTNServer::init_commands()
 {
     oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
-    
+
+    CompletionNotifier::create();
     interp->reg(new BundleCommand());
     interp->reg(new InterfaceCommand());
     interp->reg(new LinkCommand());

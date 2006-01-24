@@ -40,6 +40,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "RegistrationCommand.h"
+#include "CompletionNotifier.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
 #include "reg/LoggingRegistration.h"
@@ -51,7 +52,6 @@ namespace dtn {
 RegistrationCommand::RegistrationCommand()
     : TclCommand("registration")
 {
-    notifier_ = new oasys::Notifier("/registration/command");
 }
 
 const char*
@@ -112,7 +112,7 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         ASSERT(reg);
 
         BundleDaemon::post_and_wait(new RegistrationAddedEvent(reg),
-                                    notifier_);
+                                    CompletionNotifier::notifier());
         
         resultf("%d", reg->regid());
         return TCL_OK;
@@ -131,7 +131,7 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         BundleDaemon::post_and_wait(new RegistrationRemovedEvent(reg),
-                                    notifier_);
+                                    CompletionNotifier::notifier());
         return TCL_OK;
 
     } else if (strcmp(op, "tcl") == 0) {

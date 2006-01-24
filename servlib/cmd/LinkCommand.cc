@@ -92,18 +92,25 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
+        ConvergenceLayer* cl = ConvergenceLayer::find_clayer(cl_str);
+        if (!cl) {
+            resultf("invalid convergence layer %s", cl_str);
+            return TCL_ERROR;
+        }
+
         Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link != NULL) {
             resultf("link name %s already exists, use different name", name);
             return TCL_ERROR;
         }
 
-        ConvergenceLayer* cl = ConvergenceLayer::find_clayer(cl_str);
-        if (!cl) {
-            resultf("invalid convergence layer %s", cl_str);
+        link = BundleDaemon::instance()->contactmgr()->find_link_to(nexthop, cl_str);
+        if (link != NULL) {
+            resultf("link to %s using clayer %s already exists (link %s)",
+                    nexthop, cl_str, name);
             return TCL_ERROR;
         }
-    
+        
         // Create the link, parsing the cl-specific next hop string
         // and other arguments
         link = Link::create_link(name, type, cl, nexthop, argc - 6, &argv[6]);
@@ -135,6 +142,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_OK;
         }
 
+        // XXX/TODO should change all these to post_and_wait
+        
         BundleDaemon::post(new LinkStateChangeRequest(link, Link::OPEN,
                                                       ContactEvent::USER));
         

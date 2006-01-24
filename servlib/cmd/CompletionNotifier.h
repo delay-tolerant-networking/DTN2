@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2006 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,27 +35,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _REGISTRATION_COMMAND_H_
-#define _REGISTRATION_COMMAND_H_
+#ifndef _COMPLETIONNOTIFIER_H_
+#define _COMPLETIONNOTIFIER_H_
 
-#include <oasys/tclcmd/TclCommand.h>
+#include <oasys/thread/Notifier.h>
+#include <oasys/util/Singleton.h>
 
 namespace dtn {
 
 /**
- * The "registration" command.
+ * Simple singleton class used by DTN commands when they need to call
+ * BundleDaemon::post_and_wait().
  */
-class RegistrationCommand : public oasys::TclCommand {
+class CompletionNotifier : public oasys::Singleton<CompletionNotifier> {
 public:
-    RegistrationCommand();
+    CompletionNotifier()
+        : notifier_("/command/completion_notifier") {}
     
-    /**
-     * Virtual from CommandModule.
-     */
-    virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
-    virtual const char* help_string();
+    static oasys::Notifier* notifier() { return &instance()->notifier_; }
+
+protected:
+    oasys::Notifier notifier_;
 };
 
 } // namespace dtn
 
-#endif /* _REGISTRATION_COMMAND_H_ */
+#endif /* _COMPLETIONNOTIFIER_H_ */

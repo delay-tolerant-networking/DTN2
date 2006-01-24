@@ -37,6 +37,7 @@
  */
 
 #include "ShutdownCommand.h"
+#include "CompletionNotifier.h"
 #include "bundling/BundleDaemon.h"
 
 namespace dtn {
@@ -47,8 +48,7 @@ ShutdownCommand::ShutdownCommand()
 const char*
 ShutdownCommand::help_string()
 {
-    return "shutdown\n"
-        ;
+    return "shutdown\n";
 }
 
 void
@@ -66,8 +66,12 @@ ShutdownCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         return TCL_ERROR;
     }
 
-    oasys::Notifier done("/shutdown/command");
-    BundleDaemon::instance()->post_and_wait(new ShutdownRequest(), &done);
+    // to make it possible to both return from the shutdown command
+    // and still cleanly return from the tcl command, we post the
+    // shutdown event and wait for it to complete, then post a tcl
+    // timer to call exit() after we return
+    BundleDaemon::post_and_wait(new ShutdownRequest(),
+                                CompletionNotifier::notifier());
     Tcl_CreateTimerHandler(0, ShutdownCommand::call_exit, 0);
 
     return TCL_OK;
