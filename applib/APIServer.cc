@@ -466,13 +466,13 @@ APIClient::handle_send()
     b->source_.assign(&spec.source);
     b->dest_.assign(&spec.dest);
     b->replyto_.assign(&spec.replyto);
+    b->custodian_.assign(EndpointID::NULL_EID());
      
     oasys::StringBuffer error;
     if (!b->validate(&error)) {
         log_err("bundle validation failed: %s", error.data());
         return DTN_EINVAL;
     }
-    b->custodian_.assign(EndpointID::NULL_EID());
     
     // the priority code
     switch (spec.priority) {
