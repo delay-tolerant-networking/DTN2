@@ -112,8 +112,9 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
     
-    // if the ssp is "none", then nothing should match it (ever)
-    if (eid.ssp() == "none") {
+    // if the ssp of either string is "none", then nothing should
+    // match it (ever)
+    if (pattern.ssp() == "none" || eid.ssp() == "none") {
         return false;
     }
     
