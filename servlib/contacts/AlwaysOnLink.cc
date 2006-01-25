@@ -46,10 +46,6 @@ AlwaysOnLink::AlwaysOnLink(std::string name, ConvergenceLayer* cl,
     : Link(name, ALWAYSON, cl, nexthop)
 {
     set_state(AVAILABLE);
-
-    min_retry_interval_ = 5;
-    max_retry_interval_ = 10 * 60;
-    retry_interval_     = min_retry_interval_;
 }
 
 void

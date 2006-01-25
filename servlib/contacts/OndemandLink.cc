@@ -49,9 +49,6 @@ OndemandLink::OndemandLink(std::string name,
 {
     set_state(AVAILABLE);
 
-    min_retry_interval_ = 5;
-    max_retry_interval_ = 10 * 60;
-    retry_interval_     = min_retry_interval_;
     idle_close_time_    = 30;
 }
 
