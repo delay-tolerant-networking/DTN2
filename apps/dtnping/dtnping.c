@@ -63,13 +63,13 @@ int expiration = 30;
 char dest_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char source_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char replyto_eid_str[DTN_MAX_ENDPOINT_ID] = "";
+char* payload_str = "dtn_ping!";
 
 int
 main(int argc, const char** argv)
 {
     int i;
     int ret;
-    char b;
     dtn_handle_t handle;
     dtn_endpoint_id_t source_eid;
     dtn_reg_info_t reginfo;
@@ -80,6 +80,7 @@ main(int argc, const char** argv)
     dtn_bundle_payload_t reply_payload;
     int debug = 1;
     char demux[64];
+    char payload_buf[1024];
 
     struct timeval start, end;
     
@@ -177,14 +178,17 @@ main(int argc, const char** argv)
         }
     } while (ret == 0);
     
-    // set the expiration time and the return receipt option
+    // set the expiration time
     ping_spec.expiration = expiration;
-    ping_spec.dopts |= DOPTS_DELIVERY_RCPT;
 
     // fill in a payload of a single type code of 0x3 (echo request)
-    b = 0x3;
+    // and no flags, followed by a short payload string to verify the
+    // echo feature
+    payload_buf[0] = 0x3 << 4;
+    strcpy(&payload_buf[1], payload_str);
+
     memset(&ping_payload, 0, sizeof(ping_payload));
-    dtn_set_payload(&ping_payload, DTN_PAYLOAD_MEM, &b, 1);
+    dtn_set_payload(&ping_payload, DTN_PAYLOAD_MEM, payload_buf, 1 + strlen(payload_str));
     
     printf("PING [%s]...\n", ping_spec.dest.uri);
     
@@ -211,9 +215,11 @@ main(int argc, const char** argv)
         }
         gettimeofday(&end, NULL);
 
-        printf("%d bytes from [%s]: time=%0.2f ms\n",
+        printf("%d bytes from [%s]: '%.*s' time=%0.2f ms\n",
                reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
                reply_spec.source.uri,
+               reply_payload.dtn_bundle_payload_t_u.buf.buf_len - 1,
+               reply_payload.dtn_bundle_payload_t_u.buf.buf_val + 1,
                ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                 (double)(end.tv_usec - start.tv_usec)/1000.0));
         fflush(stdout);

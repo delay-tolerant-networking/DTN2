@@ -74,7 +74,6 @@ AdminRegistration::deliver_bundle(Bundle* bundle)
         goto done;
     }
 
-
     /*
      * As outlined in the bundle specification, the first four bits of
      * all administrative bundles hold the type code, with the
@@ -114,7 +113,22 @@ AdminRegistration::deliver_bundle(Bundle* bundle)
     {
         log_info("ADMIN_ECHO from %s", bundle->source_.c_str());
 
-        // XXX/demmer implement the echo
+        Bundle* reply = new Bundle();
+        reply->source_.assign(bundle->dest_);
+        reply->dest_.assign(bundle->source_);
+        reply->replyto_.assign(EndpointID::NULL_EID());
+        reply->custodian_.assign(EndpointID::NULL_EID());
+        reply->expiration_ = bundle->expiration_;
+
+        // we impose an arbitrary cap of 1K on the payload data to be echoed
+        size_t payload_len = bundle->payload_.length();
+
+        u_char buf[1024];
+        const u_char* bp = bundle->payload_.read_data(0, payload_len, buf);
+        reply->payload_.set_data(bp, payload_len);
+        
+        BundleDaemon::post(new BundleReceivedEvent(reply, EVENTSRC_ADMIN, payload_len));
+        
         break;
     }   
     case BundleProtocol::ADMIN_NULL:

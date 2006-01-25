@@ -38,23 +38,23 @@ test::script {
 	    for $num_pings pings (one per second)"
 	set pid [dtn::run_app $last_node dtnping "-c $num_pings dtn://host-$i"]
 	after [expr ($num_pings -1) * 1000]
-	run::wait_for_pid_exit $last_node $pid 5000
+	run::wait_for_pid_exit $last_node $pid 30000
     }
     
     for {set i 0} {$i < $last_node} {incr i} {
 	puts "* Checking bundle stats on node $i"
-	dtn::wait_for_stats $i [list $num_pings "locally delivered" \
-				[expr $num_pings * 2 * ($i + 1)]    \
-				"received"] 5000
+	dtn::wait_for_stats $i [list $num_pings "delivered" \
+		$num_pings "generated" \
+		[expr $num_pings + ($num_pings * 2 * $i)] "received"] 5000
     }
     
-    # last node is the ping source so it *also* has N * num_pings
+    # Last node is the ping source so it *also* has N * num_pings
     # locally delivered due to the delivery of the ping responses:
     puts "* Checking bundle stats on node $last_node"
-    dtn::wait_for_stats $last_node [list [expr $num_pings * (1 + $N)] \
-				    "locally delivered" \
-				    [expr $num_pings * 2 * $N ] \
-				    "received"] 5000
+    dtn::wait_for_stats $last_node [list \
+	    [expr $num_pings * (1 + $N)]  "delivered" \
+	    $num_pings "generated" \
+	    [expr $num_pings + ($num_pings * 2 * $last_node) ] "received"] 5000
     
     puts "* Test success!"
 }
