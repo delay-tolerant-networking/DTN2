@@ -4,9 +4,20 @@ net::num_nodes 3
 dtn::config
 
 dtn::config_interface tcp
-dtn::config_linear_topology ONDEMAND tcp true \
-	min_retry_interval=1 max_retry_interval=10 \
-	rtt_timeout=1000 idle_close_time=5
+
+set retry_opts ""
+for {set i 0} {$i < [llength $opt(opts)]} {incr i} {
+    set var [lindex $opt(opts) $i]
+
+    if {$var == "-fast_retries"} {
+	set retry_opts "min_retry_interval=1 max_retry_interval=10 rtt_timeout=1000"
+    } else {
+	error "unknown test option $var"
+    }
+}
+
+eval dtn::config_linear_topology ONDEMAND tcp true \
+	$retry_opts idle_close_time=5
 
 test::script {
     puts "* running dtnds"
