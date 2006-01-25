@@ -152,7 +152,7 @@ main(int argc, char** argv)
     // Set up components
     SchemeTable::create();
     SimConvergenceLayer::init();
-    ConvergenceLayer::add_clayer("sim", SimConvergenceLayer::instance());
+    ConvergenceLayer::add_clayer(SimConvergenceLayer::instance());
 
     if (interp->exec_file(conf_file.c_str()) != 0) {
         log_err("/sim", "error in configuration file, exiting...");
