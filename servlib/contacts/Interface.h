@@ -54,9 +54,6 @@ class CLInfo;
  */
 class Interface {
 public:
-    // Data structure for the interface parameter list
-    typedef std::vector<std::string> ParamVector;
-    
     // Accessors
     const std::string& name()    const { return name_; }
     const std::string& proto()   const { return proto_; }
