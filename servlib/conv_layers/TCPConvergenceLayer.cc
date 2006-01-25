@@ -92,9 +92,15 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     defaults_.writebuf_len_ 		= 32768;
     defaults_.readbuf_len_ 		= 32768;
     defaults_.keepalive_interval_	= 10;
-    defaults_.retry_interval_		= 0;
-    defaults_.min_retry_interval_	= 0;
-    defaults_.max_retry_interval_	= 0;
+
+    // XXX/demmer these parameters are also set in the Link class, but
+    // we need a copy here for the receiver connect option -- which
+    // altogether needs some rework, but in the meantime, just set
+    // some defaults here
+    defaults_.retry_interval_		= 5; 
+    defaults_.min_retry_interval_	= 5; 
+    defaults_.max_retry_interval_	= 10 * 30;
+    
     defaults_.rtt_timeout_		= 30000;  // msecs
     defaults_.test_fragment_size_	= -1;
 }
