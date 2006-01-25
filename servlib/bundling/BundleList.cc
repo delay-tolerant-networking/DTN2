@@ -294,6 +294,10 @@ BundleList::erase(Bundle* bundle, bool used_notifier)
 bool
 BundleList::contains(Bundle* bundle)
 {
+    if (bundle == NULL) {
+        return false;
+    }
+    
     bool ret = bundle->is_queued_on(this);
 
 #define DEBUG_MAPPINGS
