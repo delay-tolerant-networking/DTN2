@@ -51,13 +51,19 @@ ConvergenceLayer::~ConvergenceLayer()
 }
 
 void
+ConvergenceLayer::add_clayer(ConvergenceLayer* cl)
+{
+    clayers_.push_back(cl);
+}
+    
+void
 ConvergenceLayer::init_clayers()
 {
-    clayers_.push_back(new NullConvergenceLayer());
-    clayers_.push_back(new TCPConvergenceLayer());
-    clayers_.push_back(new UDPConvergenceLayer());
+    add_clayer(new NullConvergenceLayer());
+    add_clayer(new TCPConvergenceLayer());
+    add_clayer(new UDPConvergenceLayer());
 #ifdef XXX_demmer_fixme__linux
-    clayers_.push_back(new EthConvergenceLayer());
+    add_clayer(new EthConvergenceLayer());
 #endif
     // XXX/demmer fixme
     // add_clayer("file", new FileConvergenceLayer());

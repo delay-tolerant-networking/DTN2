@@ -147,10 +147,11 @@ public:
     }
     
     /**
-     * Boot-time initialization and registration of convergence
-     * layers.
+     * Boot-time initialization and registration of statically defined
+     * convergence layers.
      */
     static void init_clayers();
+    static void add_clayer(ConvergenceLayer* cl);
     
     /**
      * Find the appropriate convergence layer for the given 
