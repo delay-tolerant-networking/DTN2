@@ -28,7 +28,7 @@ run::init $argv
 # catch and report errors in the test script
 if {[catch {test::run_script} err]} {
     global errorInfo
-    puts "error: $errorInfo"
+    puts "error in test [test::name]: $errorInfo"
 }
 if {!$opt(daemon)} {
     command_loop "dtntest"
