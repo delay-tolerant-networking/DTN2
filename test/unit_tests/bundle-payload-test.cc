@@ -51,11 +51,12 @@ payload_test(BundlePayload::location_t initial_location,
 {
     u_char buf[64];
     const u_char* data;
-    BundlePayload p;
+    SpinLock l;
+    BundlePayload p(&l);
     bzero(buf, sizeof(buf));
 
     log_debug("/test", "checking initialization");
-    p.init(new SpinLock(), 1, initial_location);
+    p.init(1, initial_location);
     CHECK_EQUAL(p.location(), initial_location);
     CHECK(p.length() == 0);
     
