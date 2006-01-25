@@ -1637,7 +1637,7 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
         }
 
         if (queue_->size() > 0) {
-            log_warn("%d bundles still in queue", queue_->size());
+            log_warn("%u bundles still in queue", (u_int)queue_->size());
 
             // XXX/demmer what to do about this????
         }
