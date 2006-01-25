@@ -590,7 +590,7 @@ BundleProtocol::parse_cos_flags(Bundle* b, u_int8_t cos_flags)
 u_int8_t
 BundleProtocol::format_srr_flags(const Bundle* b)
 {
-    u_int8_t srr_flags;
+    u_int8_t srr_flags = 0;
     
     if (b->receive_rcpt_)
 	srr_flags |= STATUS_RECEIVED;
