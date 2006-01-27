@@ -1,12 +1,12 @@
 
 
 Network Working Group                                          M. Demmer
-Internet-Draft                              UC Berkeley / Intel Research
-Expires: September 6, 2005                                 March 8, 2005
+Internet-Draft                            U.C. Berkeley / Intel Research
+Expires: August 30, 2005                                      March 2005
 
 
-            Protocol for the TCP Bundling Convergence Layer
-                   draft-irtf-dtnrg-bundle-tcpcl.txt
+               Protocol for the DTN TCP Convergence Layer
+                    draft-irtf-dtnrg-tcp-clayer.txt
 
 Status of this Memo
 
@@ -33,7 +33,7 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on September 6, 2005.
+   This Internet-Draft will expire on August 30, 2005.
 
 Copyright Notice
 
@@ -52,29 +52,36 @@ Abstract
 
 
 
-Demmer                 Expires September 6, 2005                [Page 1]
+Demmer                  Expires August 30, 2005                 [Page 1]
 
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
+Internet-Draft         DTN TCP Convergence Layer              March 2005
 
 
 Table of Contents
 
    1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
-   2.  Contact Header . . . . . . . . . . . . . . . . . . . . . . . .  3
-   3.  Magic number and version validation  . . . . . . . . . . . . .  5
-   4.  Message Type Codes . . . . . . . . . . . . . . . . . . . . . .  5
-   5.  Bundle Data  . . . . . . . . . . . . . . . . . . . . . . . . .  6
-   6.  Bundle Acknowledgements  . . . . . . . . . . . . . . . . . . .  6
-   7.  Partial Bundle Acknowledgements  . . . . . . . . . . . . . . .  7
-   8.  Keepalive Messages . . . . . . . . . . . . . . . . . . . . . .  8
-   9.  Idle Connection Shutdown . . . . . . . . . . . . . . . . . . .  8
-   10.   Receiver Initated Connection . . . . . . . . . . . . . . . .  9
-   11.   Reactive Fragmentation . . . . . . . . . . . . . . . . . . .  9
-   12.   Requirements notation  . . . . . . . . . . . . . . . . . . .  9
-   13.   Security Considerations  . . . . . . . . . . . . . . . . . .  9
-   14.   References . . . . . . . . . . . . . . . . . . . . . . . . .  9
-       Author's Address . . . . . . . . . . . . . . . . . . . . . . .  9
-       Intellectual Property and Copyright Statements . . . . . . . . 10
+   2.  Definitions  . . . . . . . . . . . . . . . . . . . . . . . . .  4
+     2.1   Definitions Relating to the Bundle Protocol  . . . . . . .  4
+     2.2   Definitions specific to the TCPCL Protocol . . . . . . . .  5
+   3.  Connection Establishment . . . . . . . . . . . . . . . . . . .  6
+     3.1   Contact Header . . . . . . . . . . . . . . . . . . . . . .  6
+     3.2   Validation and parameter negotiation . . . . . . . . . . .  8
+     3.3   Receiver Initated Connection . . . . . . . . . . . . . . .  9
+   4.  Established Connection Operation . . . . . . . . . . . . . . .  9
+     4.1   Message Type Codes . . . . . . . . . . . . . . . . . . . .  9
+     4.2   Bundle Data  . . . . . . . . . . . . . . . . . . . . . . . 10
+     4.3   Bundle Acknowledgements  . . . . . . . . . . . . . . . . . 11
+     4.4   Partial Bundle Acknowledgements  . . . . . . . . . . . . . 12
+     4.5   Keepalive Messages . . . . . . . . . . . . . . . . . . . . 12
+     4.6   Reactive Fragmentation . . . . . . . . . . . . . . . . . . 12
+   5.  Connection Termination . . . . . . . . . . . . . . . . . . . . 13
+     5.1   Idle Connection Shutdown . . . . . . . . . . . . . . . . . 13
+   6.  Requirements notation  . . . . . . . . . . . . . . . . . . . . 13
+   7.  Security Considerations  . . . . . . . . . . . . . . . . . . . 13
+   8.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . . 13
+   9.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+       Author's Address . . . . . . . . . . . . . . . . . . . . . . . 14
+       Intellectual Property and Copyright Statements . . . . . . . . 15
 
 
 
@@ -101,72 +108,233 @@ Table of Contents
 
 
 
-
-
-
-
-
-
-
-Demmer                 Expires September 6, 2005                [Page 2]
+Demmer                  Expires August 30, 2005                 [Page 2]
 
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
+Internet-Draft         DTN TCP Convergence Layer              March 2005
 
 
 1.  Introduction
 
-   This document describes the protocol used when implementing a TCP
-   Convergence Layer, as described in the Architecture for Delay
-   Tolerant Networking [2] (DTN).
+   This document describes version 2 of the Delay Tolerant Networking
+   TCP convergence layer protocol (DTN-TCPCL).  Delay Tolerant
+   Networking is an end-to-end architecture providing communications in
+   and/or through highly stressed environments, including those with
+   intermittent connectivity, long and/or variable delays, and high bit
+   error rates.  More detailed descriptions of the rationale and
+   capabilities of these networks can be found in the Delay-Tolerant
+   Network Architecture [2] Internet Draft.
 
-   Note that this document describes version 2 of the protocol.  Version
-   1 was never specified in an Internet Draft or other public document,
-   although it was implemented in the DTN reference implementation [3]
+   An important goal of the DTN architecture is to accomodate a wide
+   range of networking technologies and environments.  The protocol used
+   for DTN communications is the Bundling Protocol (BP) [3], an
+   application-layer protocol that is used to construct a
+   store-and-forward overlay network.  As described in the bundle
+   protocol specification, BP requires the services of a "convergence
+   layer adapter" (CLA) to send and receive bundles using an underlying
+   internet protocol.  This document describes one such convergence
+   layer adapter that uses the well-known Transmission Control Protocol
+   (TCP) [5].
+
+   The locations of the TCPCL and BP in the Internet model protocol
+   stack are shown in Figure Figure 1.  In particular, both the BP and
+   the TCPCL sit at the application layer, while TCP and IP sit at their
+   normal layers.
+
+      +-------------------------+
+      |     DTN Application     | -\
+      +-------------------------|   |
+      |  Bundle Protocol (BP)   |   -> Application Layer
+      +-------------------------+   |
+      | TCP Conv. Layer (TCPCL) | -/
+      +-------------------------+
+      |          TCP            | ---> Transport Layer
+      +-------------------------+
+      |           IP            | ---> Network Layer
+      +-------------------------+
+      |   Link-Layer Protocol   | ---> Link Layer
+      +-------------------------+
+      |    Physical Medium      | ---> Physical Layer
+      +-------------------------+
+
+       Figure 1: The locations of the bundle protocol and the TCP
+       convergence layer protocol in the Internet protocol stack
+
+   This document describes the format of the protocol data units (called
+   bundles) passed between entities participating in TCPCL
+
+
+
+Demmer                  Expires August 30, 2005                 [Page 3]
+
+Internet-Draft         DTN TCP Convergence Layer              March 2005
+
+
+   communications.  The entities are referred to as "bundle nodes".
+   This document does not address:
+
+        The format of protocol data units of the bundling protocol
+        itself, as those are defined elsewhere [3].
+
+        Mechanisms for locating or identifying other bundle nodes within
+        an internet.
+
+        Operational logic or procedures used to implement this protocol.
+
+
+   Note that this document describes version 2 of the protocol.
+   Versions 0 and 1 were never specified in any Internet Draft, RFC, or
+   any other public document.  These prior versions of the protocol
+   were, however, implemented in the DTN reference implementation [4]
    versions 2.0.1 and 2.0.2.
 
-   Communication between two Bundle daemons using the TCP Convergence
-   Layer is initiated by one daemon opening a TCP session via the normal
-   TCP connection establishment mechanism (i.e.  the connect() call in
-   the BSD sockets API).  This operation establishes a new TCP session
-   between the two nodes, herein termed a "connection".
+2.  Definitions
 
-   In this protocol, one side of the connection is termed the "sender"
-   and one side is the "receiver".  All bundle transmissions occur in
-   only one direction, from sender to receiver.  However, other messages
-   are transmitted from receiver to sender, as described below.  In
-   addition, as will be described in Section 10, the party that
-   initiates the TCP connection is not necessarily the sender.
+2.1  Definitions Relating to the Bundle Protocol
 
-   XXX something about byte order
+   The following set of definitions are abbreviated versions of those
+   which appear in the Bundle Protocol Specification [3].  To the extent
+   in which terms appear in both documents, they are intended to have
+   the same meaning.
+   Bundle -- A bundle is a protocol data unit of the DTN bundle
+        protocol.
 
-2.  Contact Header
+   Bundle payload -- A bundle payload (or simply "payload") is the
+        application data whose conveyance to the bundle's destination is
+        the purpose for the transmission of a given bundle.
+
+   Fragment -- A fragment is a bundle whose payload contains a range of
+        bytes from another bundle's payload.
+
+   Bundle node -- A bundle node (or simply a "node") is any entity that
+        can send and/or receive bundles.  The particular instantiation
+        of this entity is deliberately unconstrained, allowing for
+        implementations in software libraries, long-running processes,
+        or even hardware.  One component of the bundle node is the
+        implementation of a convergence layer adapter.
+
+   Convergence layer adapter -- A convergence layer adapter (CLA) sends
+        and receives bundles utilizing the services of some 'native'
+        internet protocol.  This document describes the manner in which
+        a CLA sends and receives bundles when using the TCP protocol for
+        inter-node communication.
+
+
+
+Demmer                  Expires August 30, 2005                 [Page 4]
+
+Internet-Draft         DTN TCP Convergence Layer              March 2005
+
+
+
+   Self Describing Numeric Value -- A self describing numeric value
+        (SDNV) is a variable length encoding for integer values, defined
+        in the bundle protocol specification.
+
+
+2.2  Definitions specific to the TCPCL Protocol
+
+   This section contains definitions that are interpreted to be specific
+   to the operation of the TCPCL protocol, as described below.
+   TCP Session -- XXX need something??
+
+   Connection -- A connection is a TCPCL communication session between
+        two bundle nodes.  The lifetime of a connection is one-to-one
+        with the lifetime of an underlying TCP session.  Therefore a
+        TCPCL connection is initated when a bundle node initiates a TCP
+        session to be initiated for the purposes of bundle
+        communication.  A connection is terminated when the TCP session
+        ends, due either to one or both nodes actively terminating the
+        connection or due to network errors causing a failure of the
+        session.
+
+   Connection parameters -- The connection parameters are a set of
+        values used to affect the operation of the TCPCL for a given
+        connection.  The manner in which these parameters are conveyed
+        to the bundle node and thereby to the TCPCL is implementation
+        dependant.  However, the mechanism by which two bundle nodes
+        exchange and negotiate the values to be used for a given
+        connection is described in Secion Section 3.2.
+
+   Connection initiator -- The connection initiator is the bundle node
+        that causes the establishment of a new connection by creating a
+        new TCP session (for example, by using the connect() call in the
+        BSD sockets API) and then following the procedures described in
+        Section 3.
+
+   Connection acceptor -- The connection acceptor is the bundle node
+        that establishes a connection in response to an active
+        connection attempt by another bundle node (for example, by using
+        the listen() and accept() calls of the BSD sockets API) and then
+        following the procedures described in Section 3.
+
+   Transmission -- Transmission refers to the procedures and mechanisms
+        (described below) for conveyance of a bundle from the sender
+        node to the receiver node.
+
+
+
+
+
+
+Demmer                  Expires August 30, 2005                 [Page 5]
+
+Internet-Draft         DTN TCP Convergence Layer              March 2005
+
+
+
+   Sender node -- As bundle communication over a TCPCL connection is
+        unidirectional, the sender node or simply "sender" is the bundle
+        node that performs the transmission of bundles.  Note that for a
+        single connection, the connection initiator is not always the
+        sender, nor is the connection acceptor always the receiver, as
+        described in Section 3.
+
+   Receiver node -- Correspondingly, the receiver node is the recipient
+        of bundle transmissions over a TCPCL connection.
+
+
+3.  Connection Establishment
+
+   For bundle transmissions to occur using the TCPCL, a connection must
+   first be established between the sender and receiver nodes.  The
+   manner in which a bundle node makes the decision to establish such a
+   connection is implementation dependant.  For example, some
+   connections may be opened proactively and maintained for as long as
+   is possible given the network conditions, yet other connections may
+   be opened only when there is a bundle that is ready for transmission
+   over it.
+
+   To establish a TCPCL connection, a node must first establish a TCP
+   session with the intended peer node, typically by using the services
+   provided by the operating system.  If the node is unable to establish
+   a connection for any reason, then it is an implementation manner to
+   determine how to handle the failed connection.  For example, a node
+   may decide to re-attempt to establish the connection, perhaps after
+   some delay or it may attempt to find an alternate route for bundle
+   data.
+
+   Once a TCP session is established, both the connection initiator and
+   the connection acceptor should immediately transmit a contact header
+   over the session.  The format of the contact header is described in
+   Section 3.1.
+
+   Upon receipt of the contact header, both nodes perform the validation
+   and negotiation procedures defined in Section 3.2
+
+3.1  Contact Header
 
    When a connection is established between a sender and receiver, both
-   parties MUST transmit a Contact Header upon establishing a
-   connection.
+   parties must transmit a Contact Header upon establishing a
+   connection.  This section describes the format of the contact header
+   and the meaning of its fields.
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Demmer                 Expires September 6, 2005                [Page 3]
+Demmer                  Expires August 30, 2005                 [Page 6]
 
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
+Internet-Draft         DTN TCP Convergence Layer              March 2005
 
 
    The format for the Contact Header is as follows:
@@ -176,12 +344,12 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
    +---------------+---------------+---------------+---------------+
    |                          magic='dtn!'                         |
    +---------------+---------------+---------------+---------------+
-   |     version   |     flags     |        partial_ack_len        |
+   |     version   |     flags     |      keepalive_interval       |
    +---------------+---------------+---------------+---------------+
-   |        idle_close_time        |       keepalive_interval      |
+   |                      partial_ack_length                       |
    +---------------+---------------+---------------+---------------+
 
-                    Figure 1: Contact Header Format
+                    Figure 2: Contact Header Format
 
    The fields of the contact header are:
 
@@ -189,68 +357,153 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
         0x76 0x6e 0x21, i.e.  the ASCII string "dtn!".
 
    version: A one byte field value containing the current version of the
-        protocol.
+        protocol, i.e.  2.
 
    flags: A one byte field containing optional connection flags.  The
         first five bits are unused and must be set to zero.  The last
-        three bits are interpreted as follows.
+        three bits are interpreted as follows:
 
-        +-------+----------------------------------------------+
-        | Value |                    Meaning                   |
-        +-------+----------------------------------------------+
-        |  001  | Request acknowledgement of bundle reception. |
-        |  010  |        Request reactive fragmentation.       |
-        |  100  |     Connection initiator is the receiver.    |
-        +-------+----------------------------------------------+
+      +-------+-------------------------------------------------+
+      | Value |                     Meaning                     |
+      +-------+-------------------------------------------------+
+      |  001  |   Request acknowledgement of bundle reception.  |
+      |  010  |   Request enabling of reactive fragmentation.   |
+      |  100  | The connection initiator shall be the receiver. |
+      +-------+-------------------------------------------------+
 
                      Table 1: Contact Header Flags
 
-   partial_ack_len: A two byte field containing the length in bytes for
-        which partial reception acknowledgements are requested (see
-        Section 7).
+   keepalive_interval: A two byte integer field containing the number of
+        seconds between exchanges of keepalive messages on the
+        connection (see Section 4.5).  This value is in network byte
+        order, as are all other multi-byte fields described in this
+        protocol.
 
-   idle_close_time: A two byte field containing the number of seconds
-        that a connection should be maintained when no data (bundles or
-        acknowledgements) are being exchanged (see Section 9).
+   partial_ack_length: A four byte integer field containing the length
+        in bytes for which partial reception acknowledgements are
+        requested (see Section 4.4).
 
-   keepalive_interval: A two byte field containing the number of seconds
-        between exchanges of keepalive messages on the connection (see
-        Section 8).
-
+   The manner in which values are configured and chosen for the various
+   flags and parameters in the contact header is implementation
 
 
 
-Demmer                 Expires September 6, 2005                [Page 4]
+Demmer                  Expires August 30, 2005                 [Page 7]
 
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
+Internet-Draft         DTN TCP Convergence Layer              March 2005
 
 
-3.  Magic number and version validation
+   dependent.
 
-   Upon receipt of the contact header from the other side, both the
-   sender and receiver follow the following semantics for validating the
-   the value of each connection flag and parameter.
+3.2  Validation and parameter negotiation
 
-   If either side does not send the correct magic string, the connection
-   MUST be terminated.  The intent of the magic string is to provide
-   some more apparent protection against an inadvertent connection to a
-   TCP convergence layer.  To prevent a flood of repeated connections,
-   either side MAY choose to hold an invalid connection open for some
-   time before closing it.
+   Upon reception of the contact header from the other side, both the
+   connection initiator and the connection acceptor follow the following
+   procedures for ensuring the validity of the connection and to
+   negotiate values for the connection parameters.
 
-   If one party receives a version number that is greater than that
-   node's current version of the protocol, the receiving party SHOULD
-   interpret all received fields as if the sending party was conforming
-   to the node's current version.  For the party that receives a version
-   number that is smaller than the node's current version, the node MAY
-   conform to the older version of the protocol or the node MAY
-   terminate the connection.
+   If the magic string is not present and valid, the connection must be
+   terminated.  The intent of the magic string is to provide a some
+   protection against an inadvertent connection to a node from a
+   misconfigured application.  To prevent a flood of repeated
+   connections from a misconfigured application, a node may hold an
+   invalid connection open for some time before closing it.
 
-4.  Message Type Codes
+   If a node receives a contact header with a version that is greater
+   than the version of the protocol that the node implements, then the
+   node should interpret all received fields as it would normally with a
+   peer using the same version of the protocol.  If a node receives a
+   contact header with a version that is smaller than the version of the
+   protocol that the node implements, the node may either terminate the
+   connection due to the version mismatch, or may adapt its usage to
+   conform to the older version of the protocol.  This decision is an
+   implementation manner.
+
+   A node calculates connection parameters by negotiating the values
+   from its own preferences, as conveyed by the contact header it sent
+   with the preferences of the peer node, as conveyed in the contact
+   header that was received.  This negotiation should proceed in the
+   following manner:
+        The bundle acknowledgements enabled parameter is set to true iff
+        the corresponding flag is set in both contact headers.
+        The reactive fragmentation enabled parameter is set to true iff
+        the corresponding flag is set in both contact headers.
+        The connection initiator is receiver flag may only ever be set
+        by the connection initiator, if it intends to follow the
+        procedures described in Section 3.3 to be the receiver node
+        instead of the sender node.  For the connection acceptor, this
+        flag must always be set to zero.
+        The keealive_interval parameter should be set to the minimum
+        value from both contact headers.  If one or both contact headers
+        contains the value zero, the keepalive feature (described in
+        Section 4.5) is disabled.
+        The partial_ack_length parameter should be set to the minimum
+        value from both contact headers.  IF zero is specified, the
+        partial acknowledgement feature (described in Section 4.4 is
+        disabled.
+
+
+
+Demmer                  Expires August 30, 2005                 [Page 8]
+
+Internet-Draft         DTN TCP Convergence Layer              March 2005
+
+
+   Once this process of parameter negotiation is completed, there is no
+   additional mechanism to change the parameters of an established
+   connection; to effect a change, the connection must be terminated and
+   a new connection established.
+
+3.3  Receiver Initated Connection
+
+   In typical operation of the TCPCL, the connection initiator is the
+   sender node.  However, there are certain circumstances in which a
+   node can initiate a connection with the purpose of giving the
+   connection acceptor a mechanism of sending bundles to the connection
+   initiator.  For example, if the network path between two bundle nodes
+   uses network address translation (NAT), then it is difficult and/or
+   impossible for a node to connect to one that is on the private
+   network side of NAT.  Instead, that node could initiate a connection
+   to the node with a public address and request that bundles be sent to
+   it.
+
+   To effect a receiver initiated connection, the connection initator
+   first sets the "connection initiator is receiver" flag in the contact
+   header.  Additionally, immediately after transmitting the contact
+   header, the connection initiator also transmits a four byte IPv4
+   address and a two byte port number (both in network byte order).  The
+   address and port number serve as a mechanism for the connection
+   acceptor to identify the connection initiator for the purposes of
+   routing bundles to the new connection.  This address and port may or
+   may not correspond to the public or private IPv4 address of the
+   connection initiator.
+
+   After this exchange, the operation of a receiver initiated connection
+   is identical to that of a sender initated one, as described in the
+   following sections.
+
+4.  Established Connection Operation
+
+   This section describes the protocol operation for the duration of an
+   established connection, including the mechanisms for transmitting
+   bundles over the connection.
+
+4.1  Message Type Codes
 
    After the initial exchange of a contact header, all messages
    transmitted over the connection are preceded by a one byte message
    type code.
+
+
+
+
+
+
+
+Demmer                  Expires August 30, 2005                 [Page 9]
+
+Internet-Draft         DTN TCP Convergence Layer              March 2005
+
 
    The types and values for the message type code are as follows.
 
@@ -262,33 +515,23 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
    |             |      | transmission of a Bundle.                    |
    |  BUNDLE_ACK | 0x02 | Precedes the transmission of a Bundle        |
    |             |      | Acknowledgement Header.                      |
-   |  KEEPALIVE  | 0x03 | Described in Section 8.                      |
-   |   SHUTDOWN  | 0x04 | Indicates that the transmitting side of the  |
-   |             |      | connection wishes to cleanly terminate the   |
-   |             |      | connection.                                  |
+   |  KEEPALIVE  | 0x03 | Described in Section 4.5.                    |
+   |   SHUTDOWN  | 0x04 | Indicates that one of the nodes              |
+   |             |      | participating inthe connection wishes to     |
+   |             |      | cleanly terminate the connection.            |
    +-------------+------+----------------------------------------------+
 
                       Table 2: TCPCL Header Types
 
 
-
-
-
-
-
-Demmer                 Expires September 6, 2005                [Page 5]
-
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
-
-
-5.  Bundle Data
+4.2  Bundle Data
 
    The sender side transmits a bundle to the receiver side by first
    transmitting a BUNDLE_DATA message code, and then transmitting a
    Bundle Data Header.
 
-   The format for the Bundle Data Header and the preceding type is as
-   follows.
+   The format for the Bundle Data Header with its preceding message type
+   code is as follows.
 
                         1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -297,12 +540,10 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
    +---------------+---------------+---------------+---------------+
    |                           bundle_id                           |
    +---------------+---------------+---------------+---------------+
-   |                         bundle_length                         |
-   +---------------+---------------+---------------+---------------+
-   |         header_length         |          __unused__           |
+   |                       bundle_length (vari.)                  ...
    +---------------+---------------+---------------+---------------+
 
-                  Figure 2: Bundle Data Header Format
+                  Figure 3: Bundle Data Header Format
 
    The fields of the bundle data header are:
 
@@ -310,32 +551,31 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
         bundle at the sender.  The format and specification for this
         field is implementation specific.
 
-   bundle_length: A four byte field the contains the total length of the
-        bundle transmission that immediately follows.
 
-   header_length: A two byte field the contains the total length of the
-        bundle transmission that follows the bundle data header.
 
-   __unused__: A two byte field that is ignored.
+
+
+
+Demmer                  Expires August 30, 2005                [Page 10]
+
+Internet-Draft         DTN TCP Convergence Layer              March 2005
+
+
+
+   bundle_length: The total length of the bundle that immediately
+        follows, expressed as an SDNV, and therefore is variable-length.
+
 
    Immediately following the Bundle Data Header is the transmission of a
-   bundle, as specified in XXX cite bundle protocol.
+   bundle, as described in [3].
 
-6.  Bundle Acknowledgements
+4.3  Bundle Acknowledgements
+
+   XXX something about why have app level acks
 
    When sending acknowledgements of receipt of data, the receiver side
    of the connection first transmits a BUNDLE_ACK message type code and
    then transmits a Bundle Acknowledgement Header.
-
-
-
-
-
-
-Demmer                 Expires September 6, 2005                [Page 6]
-
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
-
 
    The format for the Bundle Acknowledgement Header and the preceding
    type code is as follows.
@@ -350,7 +590,7 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
    |                          acked_length                         |
    +---------------+---------------+---------------+---------------+
 
-             Figure 3: Bundle Acknowledgement Header Format
+             Figure 4: Bundle Acknowledgement Header Format
 
    The fields of the bundle acknowledgement header are:
 
@@ -363,19 +603,29 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
         and is being acknowledged.
 
    If, during the exchange of contact headers, BOTH the sender and
-   receiver set the bundle_ack_enabled flag (see Section 2), then the
-   receiver MUST transmit a bundle acknowledgement header when it
+   receiver set the bundle_ack_enabled flag (see Section 3.1), then the
+   receiver must transmit a bundle acknowledgement header when it
    successfully receives the entire bundle.
 
-7.  Partial Bundle Acknowledgements
+
+
+
+
+
+Demmer                  Expires August 30, 2005                [Page 11]
+
+Internet-Draft         DTN TCP Convergence Layer              March 2005
+
+
+4.4  Partial Bundle Acknowledgements
 
    The protocol also includes a provision for bundle acknowledgements to
    be transmitted during the course of receiving a bundle.  The
    motivation behind this feature is to enable the bundle daemon to
    communicate state knowledge to enable "reactive fragmentation", as
-   described in Section 11.
+   described in Section 4.6.
 
-   As described in Section 2, one of the parameters in the contact
+   As described in Section 3.1, one of the parameters in the contact
    header is the partial_ack_len.  The sender populates this field with
    a requested length (in bytes), and the receiver populates the field
    with an offered length (in bytes).  The two parties agree that the
@@ -384,100 +634,108 @@ Internet-Draft       TCP Bundling Convergence Layer           March 2005
    and no partial acknowledgements are transmitted.
 
    If the two parties agree to a non-zero value of the partial_ack_len
-   parameter, then the receiver SHOULD transmit a bundle acknowledgement
-
-
-
-Demmer                 Expires September 6, 2005                [Page 7]
-
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
-
-
-   (see Section 6) whenever it receives at least partial_ack_len
+   parameter, then the receiver should transmit a bundle acknowledgement
+   (see Section 4.3) whenever it receives at least partial_ack_len
    additional bytes of the bundle payload since the last acknowledgement
    transmission (or the start of the bundle if no acknowledgements have
    been sent).
 
-8.  Keepalive Messages
+4.5  Keepalive Messages
 
    The protocol includes a provision for transmission of keepalive
    messages over the TCP connection to determine if the connection has
    been disrupted.
 
-   As described in Section 2, one of the parameters in the contact
+   As described in Section 3.1, one of the parameters in the contact
    header is the keepalive_interval.  Both sides populate this field
    with their requested intervals (in seconds) between keepalive
-   messages.  The two parties SHOULD set the negotiated interval to the
-   MAXIMUM value of the two requests.  If either side sets the interval
-   to zero, then this feature is disabled and no keepalive messages
-   should be sent.
+   messages.
 
    The format of a keepalive message is a one byte message type code of
    KEEPALIVE (as described in Table 2, with no additional data.  Both
-   sides SHOULD send a keepalive message whenever the negotiated
+   sides should send a keepalive message whenever the negotiated
    interval has elapsed without transmission of any message (keepalive
    or other).
 
    If no message (keepalive or other) has been received for at least
-   twice the keepalive interval, then either party MAY terminate the
+   twice the keepalive interval, then either party may terminate the
    session by transmitting a one byte message type code of SHUTDOWN (as
    described in Table 2) and closing the TCP connection.
 
-9.  Idle Connection Shutdown
+4.6  Reactive Fragmentation
+
+
+
+
+
+Demmer                  Expires August 30, 2005                [Page 12]
+
+Internet-Draft         DTN TCP Convergence Layer              March 2005
+
+
+5.  Connection Termination
+
+   This section describes the procedures for ending a TCPCL connection.
+
+5.1  Idle Connection Shutdown
 
    The protocol includes a provision for clean shutdown of idle TCP
    connections.
 
-   As described in Section 2, one of the parameters in the contact
+   As described in Section 3.1, one of the parameters in the contact
    header is the idle_close_time.  Both sides populate this field with
    the requested duration (in seconds) to maintain an open connection
    after the last non-keepalive message is transmitted over the
-   connection.  The two parties SHOULD set the negotiated interval to
+   connection.  The two parties should set the negotiated interval to
    the MAXIMUM value of the two requests.  If either side sets the
-   interval to zero, then that side SHOULD not close idle connections.
-   The other party MAY adopt this same behavior or MAY choose to close
+   interval to zero, then that side should not close idle connections.
+   The other party may adopt this same behavior or may choose to close
    idle connections at its own behest.
 
-   If no bundle data other) has been received for at least twice the
-   keepalive interval, then either party MAY terminate the session by
-   transmitting a one byte message type code of SHUTDOWN (as described
+   If no bundle data other than keepalives has been received for at
+   least twice the keepalive interval, then either party may terminate
+   the session by transmitting a one byte message type code of SHUTDOWN
+   (as described in Table 2) and closing the TCP connection.
 
-
-
-Demmer                 Expires September 6, 2005                [Page 8]
-
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
-
-
-   in Table 2) and closing the TCP connection.
-
-10.  Receiver Initated Connection
-
-11.  Reactive Fragmentation
-
-12.  Requirements notation
+6.  Requirements notation
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
    "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
    document are to be interpreted as described in [1].
 
-13.  Security Considerations
+7.  Security Considerations
 
-   None.
+   XXX something about DOS and peer identification
 
-14  References
+8.  IANA Considerations
+
+   XXX something about a well-known port
+
+9  References
 
    [1]  YZ, X., "XXX".
 
    [2]  Cerf et al, V., "Delay-Tolerant Network Architecture".
 
-   [3]  Demmer et al, M., "Implementing Delay Tolerant Networking".
+   [3]  Scott, K. and S. Burleigh, "Bundle Protocol Specification".
+
+   [4]  Demmer et al, M., "Implementing Delay Tolerant Networking".
+
+
+
+
+Demmer                  Expires August 30, 2005                [Page 13]
+
+Internet-Draft         DTN TCP Convergence Layer              March 2005
+
+
+   [5]  "XXX TCP RFC".
 
 
 Author's Address
 
    Michael J. Demmer
-   University of California, Berkeley Intel Research Berkeley
+   University of California, Berkeley Intel Research Berkeley XXX address, etc
 
 
 
@@ -500,9 +758,31 @@ Author's Address
 
 
 
-Demmer                 Expires September 6, 2005                [Page 9]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Demmer                  Expires August 30, 2005                [Page 14]
 
-Internet-Draft       TCP Bundling Convergence Layer           March 2005
+Internet-Draft         DTN TCP Convergence Layer              March 2005
 
 
 Intellectual Property Statement
@@ -556,5 +836,5 @@ Acknowledgment
 
 
 
-Demmer                 Expires September 6, 2005               [Page 10]
+Demmer                  Expires August 30, 2005                [Page 15]
 
