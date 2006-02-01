@@ -584,17 +584,10 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
             // fall through to remove other mappings
         }
     }
-    
-    // now remove all other mappings as well
-    bool deleted;
-    BundleList* bundle_list;
-    while (bundle->num_mappings() != 0) {
-        bundle_list = *bundle->mappings_begin();
-        ASSERT(bundle_list != NULL);
-        deleted = bundle_list->erase(bundle);
-        ASSERT(deleted);
-    }
 
+    // XXX/demmer should try to cancel transmission on any links where
+    // the bundle is active
+    
     // fall through to notify the routers
 }
 
@@ -1018,8 +1011,6 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     // schedule the bundle expiration timer
     struct timeval expiration_time = bundle->creation_ts_;
     expiration_time.tv_sec += bundle->expiration_;
-    bundle->expiration_timer_ = new ExpirationTimer(bundle);
-    bundle->expiration_timer_->schedule_at(&expiration_time);
 
     struct timeval now;
     gettimeofday(&now, 0);
@@ -1037,6 +1028,9 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
                  (u_int)bundle->creation_ts_.tv_usec,
                  (u_int)now.tv_sec, (u_int)now.tv_usec);
     }
+
+    bundle->expiration_timer_ = new ExpirationTimer(bundle);
+    bundle->expiration_timer_->schedule_at(&expiration_time);
 }
 
 //----------------------------------------------------------------------
