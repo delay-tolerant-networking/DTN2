@@ -1154,7 +1154,9 @@ TCPConvergenceLayer::Connection::handle_ack()
     memcpy(&ackhdr, rcvbuf_.start() + 1, sizeof(BundleAckHeader));
     rcvbuf_.consume(1 + sizeof(BundleAckHeader));
 
-    Bundle* bundle = ifbundle->bundle_.object();
+    // make sure we keep a local reference on the bundle
+    BundleRef bundle("TCPCL::Connection::handle_ack local");
+    bundle = ifbundle->bundle_;
     size_t new_acked_len = ntohl(ackhdr.acked_length);
     size_t payload_len = bundle->payload_.length();
     
@@ -1181,7 +1183,7 @@ TCPConvergenceLayer::Connection::handle_ack()
         inflight_.pop_front();
         
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_, payload_len, true));
+            new BundleTransmittedEvent(bundle.object(), contact_, payload_len, true));
         
         if ((!params_.pipeline_) && (contact_->link()->state() == Link::BUSY)) {
             BundleDaemon::post_and_wait(
