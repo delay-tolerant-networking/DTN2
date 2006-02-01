@@ -80,5 +80,7 @@ set noexpandtab      " don't turn tabs into spaces
 Testing
 -------
 
-There is no formal testing procedure in place (yet). However, please
-try to test that your additions do not break existing functionality.
+There is an extensive set of unit tests and system tests in the test/
+directories of both DTN2 and oasys, as well as a suite of test
+utilities in the test-utils directories of both. 
+
