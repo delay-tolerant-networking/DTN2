@@ -1509,6 +1509,9 @@ echo "${ECHO_T}$static" >&6
 
 
                 TARGET=$target
+    if test -z "$TARGET" ; then
+       TARGET=native
+    fi
 
 
 
