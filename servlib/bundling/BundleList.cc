@@ -151,6 +151,7 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
 {
     iterator iter;
     oasys::ScopeLock l(lock_, "BundleList::insert_sorted");
+    oasys::ScopeLock bl(&b->lock_, "BundleList::insert_sorted");
 
     // scan through the list until the iterator either a) reaches the
     // end of the list or b) reaches the bundle that should follow the
@@ -187,7 +188,7 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
 {
     Bundle* b = *pos;
     ASSERT(lock_->is_locked_by_me());
-
+    
     // lock the bundle
     oasys::ScopeLock l(& b->lock_, "BundleList::del_bundle");
 
@@ -273,6 +274,9 @@ BundleList::pop_back(bool used_notifier)
 bool
 BundleList::erase(Bundle* bundle, bool used_notifier)
 {
+    ASSERTF(!bundle->lock_.is_locked_by_me(),
+            "bundle cannot be locked in erase due to potential deadlock");
+    
     oasys::ScopeLock l(lock_, "BundleList::erase");
 
     iterator pos = std::find(begin(), end(), bundle);

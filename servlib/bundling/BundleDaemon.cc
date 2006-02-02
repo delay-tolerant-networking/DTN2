@@ -271,8 +271,6 @@ void
 BundleDaemon::release_custody(Bundle* bundle)
 {
     log_info("release_custody *%p", bundle);
-
-    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::release_custody");
     
     if (!bundle->local_custody_) {
         log_err("release_custody(*%p): don't have local custody",
@@ -554,7 +552,6 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
     bundles_expired_++;
     
     Bundle* bundle = event->bundleref_.object();
-    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::handle_bundle_expired");
 
     log_info("BUNDLE_EXPIRED *%p", bundle);
 
@@ -1038,8 +1035,6 @@ void
 BundleDaemon::delete_from_pending(Bundle* bundle,
                                   status_report_reason_t reason)
 {
-    oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::delete_from_pending");
-    
     log_debug("removing bundle *%p from pending list", bundle);
 
     // first try to cancel the expiration timer if it's still
@@ -1057,6 +1052,9 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
             // can't be cancelled), then we just hit a race where the
             // timer is about to fire, which is ok since
             // handle_bundle_expired takes care of this correctly
+            
+            // XXX/demmer this would be fixed if the daemon thread
+            // handled timers
             bundle->expiration_timer_ = NULL;
         }
     }
