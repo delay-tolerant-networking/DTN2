@@ -61,6 +61,12 @@ class Bundle;
  * that needs to perform more complicated functions (like scanning the
  * list) must lock the list before doing so.
  *
+ * NOTE: It is important that no locks be held on any bundles that
+ * might be contained within the list when calling list manipulation
+ * functions. Doing so could cause a potential deadlock due to a lock
+ * ordering violation, as the list manipulation routines first lock
+ * the list, and then lock the bundle(s) being added or removed. 
+ *
  * The internal data structure is an STL list of Bundle pointers. The
  * list is also derived from Notifier, and the various push() calls
  * will call notify() if there is a thread blocked on an empty list
