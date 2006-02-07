@@ -1065,23 +1065,26 @@ bool
 TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
                                           size_t acked_len)
 {
-    char typecode = BUNDLE_ACK;
-    
-    BundleAckHeader ackhdr;
-    ackhdr.bundle_id = bundle_id;
-    ackhdr.acked_length = htonl(acked_len);
+    // size of the header plus a 1 byte typecode and <=10 bytes of sdnv
+    u_char buf[1 + sizeof(BundleAckHeader) + 10];
+    size_t sdnv_len;
 
-    struct iovec iov[2];
-    iov[0].iov_base = &typecode;
-    iov[0].iov_len  = 1;
-    iov[1].iov_base = (char*)&ackhdr;
-    iov[1].iov_len  = sizeof(BundleAckHeader);
+    buf[0] = BUNDLE_ACK;
     
-    int total = 1 + sizeof(BundleAckHeader);
-    int cc = sock_->writevall(iov, 2);
-    if (cc != total) {
+    BundleAckHeader* ackhdr = (BundleAckHeader*)&buf[1];
+
+    // no need to change byte ordering since we're just going to get
+    // it back again as-is
+    memcpy(&ackhdr->bundle_id, &bundle_id, sizeof(bundle_id));
+
+    sdnv_len = SDNV::encode(acked_len, &ackhdr->acked_length[0],
+                            sizeof(buf) - sizeof(BundleAckHeader) - 1);
+
+    int total_len = 1 + sizeof(BundleAckHeader) + sdnv_len;
+    int cc = sock_->writeall((const char*)buf, total_len);
+    if (cc != total_len) {
         log_err("recv_bundle: error sending ack (wrote %d/%d): %s",
-                cc, total, strerror(errno));
+                cc, total_len, strerror(errno));
         return false;
     }
 
@@ -1142,22 +1145,41 @@ TCPConvergenceLayer::Connection::handle_ack()
     }
     InFlightBundle* ifbundle = &inflight_.front();
 
-    // now see if we got a complete ack header
-    if (rcvbuf_.fullbytes() < (1 + sizeof(BundleAckHeader))) {
-        log_debug("handle_ack: not enough space in buffer (got %u, need %u...",
-                  (u_int)rcvbuf_.fullbytes(), (u_int)sizeof(BundleAckHeader));
+    // now see if we got a complete ack header and at least one byte of SDNV
+    if (rcvbuf_.fullbytes() < (1 + sizeof(BundleAckHeader) + 1)) {
+        log_debug("handle_ack: "
+                  "not enough space in buffer (got %u, need >= %u...)",
+                  (u_int)rcvbuf_.fullbytes(),
+                  (u_int)sizeof(BundleAckHeader) + 2);
         return ENOMEM;
     }
 
-    // if we do, copy it out, after skipping the typecode
+    // now try to extract the SDNV
+    u_int32_t new_acked_len = 0;
+    int sdnv_len =
+        SDNV::decode((const u_char*)rcvbuf_.start() + 1 + sizeof(BundleAckHeader),
+                     rcvbuf_.fullbytes() - 1 - sizeof(BundleAckHeader),
+                     &new_acked_len);
+    
+    // check that we got enough bytes
+    // XXX/demmer check for error too
+    if (sdnv_len == -1) {
+        log_debug("handle_ack: "
+                  "not enough space in buffer for sdnv (got %u, need >= %u...)",
+                  (u_int)rcvbuf_.fullbytes(),
+                  (u_int)sizeof(BundleAckHeader) + 2);
+        return ENOMEM;
+    }
+
+    // ok, so we got enough to copy out the ack header
     BundleAckHeader ackhdr;
     memcpy(&ackhdr, rcvbuf_.start() + 1, sizeof(BundleAckHeader));
-    rcvbuf_.consume(1 + sizeof(BundleAckHeader));
+    rcvbuf_.consume(1 + sizeof(BundleAckHeader) + sdnv_len);
 
     // make sure we keep a local reference on the bundle
     BundleRef bundle("TCPCL::Connection::handle_ack local");
     bundle = ifbundle->bundle_;
-    size_t new_acked_len = ntohl(ackhdr.acked_length);
+
     size_t payload_len = bundle->payload_.length();
     
     log_debug("handle_ack: got ack length %d for bundle id %d length %d",

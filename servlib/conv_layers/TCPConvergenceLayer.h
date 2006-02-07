@@ -145,7 +145,7 @@ public:
      */
     struct BundleAckHeader {
         u_int32_t bundle_id;		///< identical to BundleStartHeader
-        u_int32_t acked_length;		///< total length received
+        u_char    acked_length[0];	///< SDNV of acked length
     } __attribute__((packed));
 
     /**
