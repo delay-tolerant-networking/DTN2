@@ -141,7 +141,10 @@ DECLARE_TEST(AllFlags)
 
     CHECK(protocol_test(bundle));
 
-    return UNIT_TEST_PASSED;    
+    return UNIT_TEST_PASSED;
+
+    // XXX/demmer add tests for malformed / mangled headers, too long
+    // sdnv's, etc
 }
 
 DECLARE_TESTER(BundleProtocolTest) {
