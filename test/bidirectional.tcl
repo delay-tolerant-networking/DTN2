@@ -55,7 +55,7 @@ test::script {
 
     puts "* Stopping dtnds"
     dtn::stop_dtnd *
-    
+
     # ----------------------------------------------------------------------
 
     puts "* "
@@ -95,7 +95,7 @@ test::script {
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
 	dtn::check_bundle_stats $node \
-		$count "locally delivered" \
+		$count "delivered" \
 		[expr $count * 2] "received"
     }
 
@@ -130,8 +130,8 @@ test::script {
 
     for {set i 0} {$i < 10} {incr i} {
 
-	if {[dtn::test_bundle_stats 0 [list $count "locally delivered"]] && \
-		[dtn::test_bundle_stats 1 [list $count "locally delivered"]]} {
+	if {[dtn::test_bundle_stats 0 [list $count "delivered"]] && \
+		[dtn::test_bundle_stats 1 [list $count "delivered"]]} {
 	    break; # all done
 	}
 	
@@ -165,7 +165,7 @@ test::script {
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
 	dtn::check_bundle_stats $node \
-		[expr $count - $fudge] "locally delivered" \
+		[expr $count - $fudge] "delivered" \
 		$count "transmitted"
     }
 
