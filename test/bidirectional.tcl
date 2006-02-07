@@ -45,7 +45,7 @@ test::script {
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
 	dtn::check_bundle_stats $node \
-		$count "locally delivered" \
+		$count "delivered" \
 		[expr $count * 2] "received"
     }
 
