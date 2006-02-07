@@ -196,7 +196,9 @@ DECLARE_TEST(MultipleLists) {
          ++map_iter)
     {
         l = *map_iter;
+        b->lock_.unlock();
         CHECK(l->erase(b));
+        b->lock_.lock("test lock");
         CHECK(! l->contains(b));
     }
 
@@ -227,7 +229,9 @@ DECLARE_TEST(MultipleListRemoval) {
             l = *map_iter;
             
             CHECK(l->contains(b));
+            b->lock_.unlock();
             CHECK(l->erase(b));
+            b->lock_.lock("test lock");
             CHECK(! l->contains(b));
         }
         
