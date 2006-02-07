@@ -702,7 +702,11 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             return;
         }
         link->set_state(new_state);
-        post(new LinkUnavailableEvent(link, reason));
+
+        {
+            LinkUnavailableEvent evt(link, reason);
+            handle_event(&evt);
+        }
         break;
 
     case Link::AVAILABLE:
@@ -722,8 +726,11 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
                     link, Link::state_to_str(link->state()));
             return;
         }
-        
-        post(new LinkAvailableEvent(link, reason));
+
+        {
+            LinkAvailableEvent e(link, reason);
+            handle_event(&e);
+        }
         break;
         
     case Link::BUSY:
