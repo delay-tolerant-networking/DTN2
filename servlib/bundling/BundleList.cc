@@ -274,6 +274,10 @@ BundleList::pop_back(bool used_notifier)
 bool
 BundleList::erase(Bundle* bundle, bool used_notifier)
 {
+    if (bundle == NULL) {
+        return false;
+    }
+
     ASSERTF(!bundle->lock_.is_locked_by_me(),
             "bundle cannot be locked in erase due to potential deadlock");
     
