@@ -129,7 +129,7 @@ SDNV::decode(const u_char* bp, size_t len, u_int64_t* val)
     /*
      * Since the spec allows for infinite length values but this
      * implementation only handles up to 64 bits, check for overflow.
-     * Note that the only supportably 10 byte SDNV must store exactly
+     * Note that the only supportable 10 byte SDNV must store exactly
      * one bit in the first byte of the encoding (i.e. the 64'th bit
      * of the original value).
      */
@@ -137,6 +137,11 @@ SDNV::decode(const u_char* bp, size_t len, u_int64_t* val)
         log_err("/sdnv", "overflow value in sdnv!!!");
         return -1;
     }
+
+    // XXX/demmer shouldn't use -1 as indication of both too short of
+    // a buffer and of error due to overflow or malformed SDNV since
+    // callers just assume that they need more data to decode and
+    // don't really check for errors
 
     return val_len;
 }
