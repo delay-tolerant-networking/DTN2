@@ -23,7 +23,7 @@
       </organization>
    </author>
 
-   <date month="March" year="2005"/>
+   <date month="March" year="2006"/>
 
    <abstract><t> This internet draft describes a protocol for
       implementing a Convergence Layer as described in the <xref
@@ -427,14 +427,17 @@ manner:
 </t>
 
 <list style="hanging" hangIndent="5">
-
+   <t></t>
+   
    <t>The bundle acknowledgements enabled parameter is set to true iff
       the corresponding flag is set in both contact headers.
    </t>
+   <t></t>
 
    <t>The reactive fragmentation enabled parameter is set to true iff
       the corresponding flag is set in both contact headers.
    </t>
+   <t></t>
 
    <t>The connection initiator is receiver flag may only ever be set
       by the connection initiator, if it intends to follow the
@@ -442,26 +445,29 @@ manner:
       be the receiver node instead of the sender node. For the
       connection acceptor, this flag must always be set to zero.
    </t>
+   <t></t>
 
    <t>The keealive_interval parameter should be set to the minimum
       value from both contact headers. If one or both contact headers
-      contains the value zero, the keepalive feature (described in
-      <xref target="sec:keepalive"/>) is disabled.
+      contains the value zero, then the keepalive feature (described
+      in <xref target="sec:keepalive"/>) is disabled.
    </t>
+   <t></t>
 
    <t>The partial_ack_length parameter should be set to the minimum
-      value from both contact headers. IF zero is specified, the
-      partial acknowledgement feature (described in <xref
-      target="sec:partial"/> is disabled.
+      value from both contact headers. If one or both contact headers
+      contains the value zero, then the partial acknowledgement
+      feature (described in <xref target="sec:partial"/>) is disabled.
    </t>
+   <t></t>
    
 </list>
 
 <t>
-Once this process of parameter negotiation is completed, there is no
-additional mechanism to change the parameters of an established
-connection; to effect a change, the connection must be terminated and
-a new connection established.
+Once this process of parameter negotiation is completed, the protocol
+defines no additional mechanism to change the parameters of an
+established connection; to effect such a change, the connection must
+be terminated and a new connection established.
 </t>
 
 </section> <!-- Negotiation -->
@@ -471,13 +477,15 @@ a new connection established.
 <t>
 In typical operation of the TCPCL, the connection initiator is the
 sender node. However, there are certain circumstances in which a node
-can initiate a connection with the purpose of giving the connection
-acceptor a mechanism of sending bundles to the connection initiator.
-For example, if the network path between two bundle nodes uses network
-address translation (NAT), then it is difficult and/or impossible for
-a node to connect to one that is on the private network side of NAT.
-Instead, that node could initiate a connection to the node with a
-public address and request that bundles be sent to it.
+can initiate a connection and then be the receiver node, i.e. the
+connection provides a mechanism of sending bundles back to the
+connection initiator. For example, if the network path between two
+bundle nodes traverses firewall or a a router that uses network
+address translation (NAT), then it may be difficult or impossible for
+a node on the public side of the NAT to initiate a TCP connection to a
+node on the private side of the NAT. Instead, using a receiver
+initated connection, the private-side node could initiate a connection
+to the public-side node and use that connection to receive bundles.
 </t>
 
 <t>
@@ -486,11 +494,14 @@ first sets the "connection initiator is receiver" flag in the contact
 header. Additionally, immediately after transmitting the contact
 header, the connection initiator also transmits a four byte IPv4
 address and a two byte port number (both in network byte order). The
-address and port number serve as a mechanism for the connection
-acceptor to identify the connection initiator for the purposes of
-routing bundles to the new connection. This address and port may or
-may not correspond to the public or private IPv4 address of the
-connection initiator.
+address and port number can be used by the connection acceptor to
+identify the connection initiator for the purposes of routing bundles
+to the new connection. This address and port will typically correspond
+to some IPv4 address on the private network on which the connection
+initiator is bound, and some port. The combination of the public IPv4
+address (which can be obtained from the TCP socket), and the private
+IPv4 address/port conveyed in the address header can then identify the
+initator node. XXX rework this
 </t>
 
 <t>
@@ -515,8 +526,8 @@ bundles over the connection.
 
 <t>
 After the initial exchange of a contact header, all messages
-transmitted over the connection are preceded by a one byte message
-type code.
+transmitted over the connection are denoted by a one byte message type
+code.
 </t>
 
 <texttable anchor="types:codes"
@@ -525,29 +536,33 @@ type code.
    <preamble>
       The types and values for the message type code are as follows.
    </preamble>
-   <ttcol align="center" width="18%">Header</ttcol>
-   <ttcol align="center" width="6%">Type</ttcol>
-   <ttcol align="left" width="76%">Comment</ttcol>
+   <ttcol align="center" valign="top" width="25%">Type</ttcol>
+   <ttcol align="center" valign="top" width="10%">Code</ttcol>
+   <ttcol align="left"   valign="top" width="65%">Comment</ttcol>
    
    <c>BUNDLE_DATA</c>
    <c>0x01</c>
    <c>Precedes the transmission of a Bundle Data Header, which itself
       precedes the transmission of a Bundle.
-      <t></t>
    </c>
+   <c>&nbsp;</c><c></c><c></c>
 
    <c>BUNDLE_ACK</c>
    <c>0x02</c>
    <c>Precedes the transmission of a Bundle Acknowledgement Header.</c>
+   <c>&nbsp;</c><c></c><c></c>
 
    <c>KEEPALIVE</c>
    <c>0x03</c>
-   <c>Described in <xref target="sec:keepalive"/>.</c>
+   <c>Keepalive message for the connection, described in <xref
+   target="sec:keepalive"/>.</c>
+   <c>&nbsp;</c><c></c><c></c>
    
    <c>SHUTDOWN</c>
    <c>0x04</c>
-   <c>Indicates that one of the nodes participating inthe connection
-      wishes to cleanly terminate the connection.
+   <c>Indicates that one of the nodes participating in the connection
+      wishes to cleanly terminate the connection, described in <xref
+      target="sec:termination"/>.
    </c>
 </texttable>
 </section> <!-- Message type codes -->
@@ -612,22 +627,36 @@ Bundle Data Header.
 <section title="Bundle Acknowledgements" anchor="sec:acks">
 
 <t>
-XXX something about why have app level acks
+   Although the TCP transport provides reliable transfer of data
+   between hosts, the typical BSD sockets interface provides no
+   mechanism to a sending application to determine when the receiving
+   host has delivered transmitted data to the receiving application.
+   Furthermore, as described in the <xref target="refs.dtnarch">DTN
+   architecture</xref>, some convergence layer adaptors may offer
+   reliable bundle transmission service to the bundling layer. The
+   reliable nature of the TCP transport therefore implies that a
+   convergence layer should be able to offer reliable bundle
+   transport.
 </t>
-   
+
 <t>
-   When sending acknowledgements of receipt of data, the receiver side
-   of the connection first transmits a BUNDLE_ACK message type code
-   and then transmits a Bundle Acknowledgement Header.
+   To this end, the TCPCL protocol offers an optional feature whereby
+   the receiving node will transmit acknowledgements of bundle
+   reception. This feature is enabled if during the exchange of
+   contact headers, both the sender and receiver set the
+   bundle_ack_enabled flag (see <xref target="sec:contact_header"/>).
+   If so, then the receiver must transmit a bundle acknowledgement
+   header when it successfully receives the entire bundle.
 </t>
 
 <figure anchor="fig:ack_header"
         title="Bundle Acknowledgement Header Format">
 
    <preamble>
-      The format for the Bundle Acknowledgement Header and the
-      preceding type code is as follows.
-   </preamble>
+      To transmit a bundle acknowledgement header, a node first
+      transmits a BUNDLE_ACK message type code, then transmits a
+      Bundle Acknowledgement Header, with the following format:
+      </preamble>
 
    <artwork>
                      1                   2                   3  
@@ -637,7 +666,7 @@ XXX something about why have app level acks
 +---------------+---------------+---------------+---------------+
 |                           bundle_id                           |
 +---------------+---------------+---------------+---------------+
-|                          acked_length                         |
+|                       acked_length (vari.)                    |
 +---------------+---------------+---------------+---------------+
    </artwork>
 </figure>
@@ -649,27 +678,19 @@ XXX something about why have app level acks
 <t>
 <list style="hanging" hangIndent="5">
    <t hangText="bundle_id:"> A four byte field that contains the
-      identifier for the bundle at the sender that was transmitted in
+      sender-specified identifier for the bundle that was received in
       the bundle data header.
    </t>
    <t></t>
 
-   <t hangText="acked_length:"> A four byte field the contains the
-      total length (in bytes) of the amount of data that has been
-      successfully received and is being acknowledged.
+   <t hangText="acked_length:"> An SDNV that contains the total length
+      (in bytes) of the data that has been successfully received and
+      is being acknowledged.
    </t>
 </list>
 </t>
 
-<t>
-   If, during the exchange of contact headers, BOTH the sender and
-   receiver set the bundle_ack_enabled flag (see <xref
-   target="sec:contact_header"/>), then the receiver must transmit a bundle
-   acknowledgement header when it successfully receives the entire
-   bundle.
-</t>
-
-</section> <!-- Bundle acks -->
+</section>
 
 <section title="Partial Bundle Acknowledgements" anchor="sec:partial">
 <t>
@@ -681,14 +702,14 @@ XXX something about why have app level acks
 </t>
 
 <t>
-   As described in <xref target="sec:contact_header"/>, one of the parameters
-   in the contact header is the partial_ack_len. The sender populates
-   this field with a requested length (in bytes), and the receiver
-   populates the field with an offered length (in bytes). The two
-   parties agree that the negotiated value is the MAXIMUM of the two
-   lengths. However, if either side sets the length to be zero, then
-   the feature is disabled and no partial acknowledgements are
-   transmitted.
+   As described in <xref target="sec:contact_header"/>, one of the
+   parameters negotiated in the contact header is the partial_ack_len.
+   The sender populates this field with a requested length (in bytes),
+   and the receiver populates the field with an offered length (in
+   bytes). As described above, the two parties agree to a negotiated
+   value that is is the minimum of the two lengths, and if either side
+   sets the length to be zero, then the feature is disabled and no
+   partial acknowledgements are transmitted.
 </t>
 
 <t>
@@ -709,10 +730,11 @@ XXX something about why have app level acks
 </t>
 
 <t>
-   As described in <xref target="sec:contact_header"/>, one of the parameters
-   in the contact header is the keepalive_interval. Both sides
-   populate this field with their requested intervals (in seconds)
-   between keepalive messages. </t>
+   As described in <xref target="sec:contact_header"/>, one of the
+   parameters in the contact header is the keepalive_interval. Both
+   sides populate this field with their requested intervals (in
+   seconds) between keepalive messages.
+</t>
 
 <t>
    The format of a keepalive message is a one byte message type code
@@ -742,6 +764,16 @@ XXX something about why have app level acks
    This section describes the procedures for ending a TCPCL connection.
 </t>
 
+<section title="Shutdown Message" anchor="sec:shutdown">
+<t>
+   To cleanly shut down a connection, a one byte message type code of
+   SHUTDOWN may be transmitted at any time by either the sender or the
+   receiver. When a node receives a SHUTDOWN message, it should send a
+   SHUTDOWN message in return, then close the connection and clean up
+   the TCP session.
+</t>
+</section>
+
 <section title="Idle Connection Shutdown" anchor="sec:idle">
 <t>
    The protocol includes a provision for clean shutdown of idle TCP
@@ -749,15 +781,15 @@ XXX something about why have app level acks
 </t>
 
 <t>
-   As described in <xref target="sec:contact_header"/>, one of the parameters
-   in the contact header is the idle_close_time. Both sides populate
-   this field with the requested duration (in seconds) to maintain an
-   open connection after the last non-keepalive message is transmitted
-   over the connection. The two parties should set the negotiated
-   interval to the MAXIMUM value of the two requests. If either side
-   sets the interval to zero, then that side should not close idle
-   connections. The other party may adopt this same behavior or may
-   choose to close idle connections at its own behest.
+   As described in <xref target="sec:contact_header"/>, one of the
+   parameters in the contact header is the idle_close_time. Both nodes
+   populate this field with the requested duration (in seconds) to
+   maintain an open connection after the last (non-keepalive) message
+   is transmitted over the connection. The two parties should set the
+   negotiated interval to the MAXIMUM value of the two requests. If
+   either side sets the interval to zero, then that side should not
+   close idle connections. The other party may adopt this same
+   behavior or may choose to close idle connections at its own behest.
 </t>
 
 <t>
