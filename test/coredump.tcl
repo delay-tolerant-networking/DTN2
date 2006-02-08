@@ -12,7 +12,7 @@ test::script {
     set dtnpid [dtn::tell_dtnd 0 pid]
 
     puts "* Sending dtnd pid $dtnpid an abort signal"
-    run::kill_pid $net::host(0) $dtnpid ABRT
+    run::kill_pid 0 $dtnpid ABRT
 
     puts "* Test complete"
 }
