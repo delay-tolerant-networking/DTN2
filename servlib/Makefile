@@ -43,6 +43,7 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/NullConvergenceLayer.cc	\
 	conv_layers/TCPConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
+	conv_layers/BluetoothConvergenceLayer.cc\
 
 CMD_SRCS :=					\
 	cmd/APICommand.cc			\

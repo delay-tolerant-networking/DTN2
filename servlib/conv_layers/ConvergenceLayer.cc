@@ -35,12 +35,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <config.h>
 #include "ConvergenceLayer.h"
 #include "EthConvergenceLayer.h"
 #include "FileConvergenceLayer.h"
 #include "NullConvergenceLayer.h"
 #include "TCPConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
+#include "BluetoothConvergenceLayer.h"
 
 namespace dtn {
 
@@ -64,6 +66,9 @@ ConvergenceLayer::init_clayers()
     add_clayer(new UDPConvergenceLayer());
 #ifdef XXX_demmer_fixme__linux
     add_clayer(new EthConvergenceLayer());
+#endif
+#ifdef OASYS_BLUETOOTH_ENABLED
+    add_clayer(new BluetoothConvergenceLayer());
 #endif
     // XXX/demmer fixme
     // add_clayer("file", new FileConvergenceLayer());

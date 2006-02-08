@@ -62,6 +62,7 @@ dnl -------------------------------------------------------------------------
 AC_OASYS_CONFIG_TCL
 AC_OASYS_CONFIG_STORAGE(required)
 AC_OASYS_CONFIG_GOOGLE_PERFTOOLS
+AC_OASYS_CONFIG_BLUEZ
 
 dnl -------------------------------------------------------------------------
 dnl Output
