@@ -97,13 +97,8 @@ test::script {
 
 test::exit_script {
     puts "* Stopping dtnperf-server"
-    
-    tell_dtnd 0 log /test always \
-	    {flamebox-ignore ign0 client error or disconnection}
-    
     run::kill_pid 0 $server_pid 1
-    
-    tell_dtnd 0 log /test always {flamebox-ignore-cancel ign0}
+    run::wait_for_pid_exit 0 $server_pid
     
     puts "* Stopping all dtnds"
     dtn::stop_dtnd *
