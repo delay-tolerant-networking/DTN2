@@ -146,35 +146,11 @@ DTNServer::start_datastore()
     }
     validate_dir(BundlePayload::payloaddir_.c_str());
 
-    if (0) {} // symmetry
-
-#if LIBDB_ENABLED
-    else if (storage_config_->type_.compare("berkeleydb") == 0)
-    {
-        oasys::BerkeleyDBStore* bdb = new oasys::BerkeleyDBStore();
-        int err = bdb->init(storage_config_);
-        if (err != 0)
-        {
-            log_crit("Can't initialize berkeleydb %d", err);
-            exit(1);
-        }
-        store_ = new oasys::DurableStore(bdb);
-    }
-#endif
-
-#if MYSQL_ENABLED
-#error Mysql support not yet added to oasys
-#endif // MYSQL_ENABLED
-
-#if POSTGRES_ENABLED
-#error Postgres support not yet added to oasys
-#endif // POSTGRES_ENABLED
-
-    else
-    {
-        log_crit("storage type %s not implemented, exiting...",
-                 storage_config_->type_.c_str());
-        exit(1);
+    int err = oasys::DurableStore::create_store(*storage_config_,
+                                                &store_);
+    if (err != 0) {
+        log_crit("Can't initialize storage system");
+        exit(-1);
     }
 
     if ((GlobalStore::init(*storage_config_, store_)       != 0) || 
