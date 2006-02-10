@@ -224,7 +224,7 @@ Link::open()
     // has established a session however it needs to, it will set the
     // Link state to OPEN and post a ContactUpEvent
     ASSERT(contact_ == NULL);
-    contact_ = new Contact(this);
+    set_contact(new Contact(this));
     clayer()->open_contact(contact_); 
 }
     
@@ -257,7 +257,7 @@ Link::close()
     
     // Clean it up
     delete contact_;
-    contact_ = NULL;
+    set_contact(NULL);
 
     log_debug("Link::close complete");
 }

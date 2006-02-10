@@ -294,6 +294,11 @@ public:
     /**
      * Sets the state of the link. Performs various assertions to
      * ensure the state transitions are legal.
+     *
+     * This function should only ever be called by the main
+     * BundleDaemon thread. All other threads must use a
+     * LinkStateChangeRequest event to cause changes in the link
+     * state.
      */
     void set_state(state_t state);
 
