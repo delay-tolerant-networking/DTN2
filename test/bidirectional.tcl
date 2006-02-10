@@ -10,12 +10,6 @@ dtn::config_interface tcp
 dtn::config_linear_topology ALWAYSON tcp true
 
 test::script {
-    puts "* Running dtnds"
-    dtn::run_dtnd *
-
-    puts "* Waiting for dtnds to start up"
-    dtn::wait_for_dtnd *
-
     set N [net::num_nodes]
     set last [expr $N - 1]
 
@@ -29,6 +23,12 @@ test::script {
     puts "* "
     puts "* Test phase 1: continuous connectivity"
     puts "* "
+
+    puts "* Running dtnds"
+    dtn::run_dtnd *
+
+    puts "* Waiting for dtnds to start up"
+    dtn::wait_for_dtnd *
 
     puts "* Running senders / receivers for $count bundles, sleep $sleep"
     set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q -n $count"]
@@ -74,13 +74,13 @@ test::script {
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
-    for {set i 0} {$i < 10} {incr i} {
-	after [expr $i * 500]
+    for {set i 0} {$i < 20} {incr i} {
+	after [expr int(2000 * rand())]
 	puts "* Closing links on node 1"
 	tell_dtnd 1 link close tcp-link:1-0
 	tell_dtnd 1 link close tcp-link:1-2
 
-	after [expr $i * 500]
+	after [expr int(2000 * rand())]
 	puts "* Opening links on node 1"
 	tell_dtnd 1 link open tcp-link:1-0
 	tell_dtnd 1 link open tcp-link:1-2
