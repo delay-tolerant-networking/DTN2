@@ -100,6 +100,13 @@ BundleDaemon::post(BundleEvent* event)
 }
 
 //----------------------------------------------------------------------
+void
+BundleDaemon::post_at_head(BundleEvent* event)
+{
+    instance_->post_event(event, false);
+}
+
+//----------------------------------------------------------------------
 bool
 BundleDaemon::post_and_wait(BundleEvent* event,
                             oasys::Notifier* notifier,
@@ -115,10 +122,11 @@ BundleDaemon::post_and_wait(BundleEvent* event,
 
 //----------------------------------------------------------------------
 void
-BundleDaemon::post_event(BundleEvent* event)
+BundleDaemon::post_event(BundleEvent* event, bool at_back)
 {
-    log_debug("posting event (%p) with type %s", event, event->type_str());
-    eventq_->push(event);
+    log_debug("posting event (%p) with type %s (at %s)",
+              event, event->type_str(), at_back ? "back" : "head");
+    eventq_->push(event, at_back);
 }
 
 //----------------------------------------------------------------------
@@ -702,11 +710,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             return;
         }
         link->set_state(new_state);
-
-        {
-            LinkUnavailableEvent evt(link, reason);
-            handle_event(&evt);
-        }
+        post_at_head(new LinkUnavailableEvent(link, reason));
         break;
 
     case Link::AVAILABLE:
@@ -727,10 +731,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             return;
         }
 
-        {
-            LinkAvailableEvent e(link, reason);
-            handle_event(&e);
-        }
+        post_at_head(new LinkAvailableEvent(link, reason));
         break;
         
     case Link::BUSY:
@@ -793,7 +794,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             link->set_state(Link::AVAILABLE);
         } else {
             link->set_state(Link::UNAVAILABLE);
-            post(new LinkUnavailableEvent(link, reason));
+            post_at_head(new LinkUnavailableEvent(link, reason));
         }
 
         break;
@@ -828,10 +829,10 @@ BundleDaemon::handle_contact_down(ContactDownEvent* event)
     // based on the reason code, update the link availability
     // and set state accordingly
     if (reason == ContactEvent::IDLE) {
-        post(new LinkStateChangeRequest(link, Link::CLOSING, reason));
+        post_at_head(new LinkStateChangeRequest(link, Link::CLOSING, reason));
     } else {
         link->set_state(Link::UNAVAILABLE);
-        post(new LinkUnavailableEvent(link, reason));
+        post_at_head(new LinkUnavailableEvent(link, reason));
     }
 }
 

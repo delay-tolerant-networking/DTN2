@@ -107,10 +107,17 @@ public:
     }
 
     /**
-     * Queues the event for processing by the daemon thread.
+     * Queues the event at the tail of the queue for processing by the
+     * daemon thread.
      */
     static void post(BundleEvent* event);
  
+    /**
+     * Queues the event at the head of the queue for processing by the
+     * daemon thread.
+     */
+    static void post_at_head(BundleEvent* event);
+    
     /**
      * Post the given event and wait for it to be processed by the
      * daemon thread or the given timeout to elapse.
@@ -122,7 +129,7 @@ public:
      * Virtual post_event function, overridden by the Node class in
      * the simulator to use a modified event queue.
      */
-    virtual void post_event(BundleEvent* event);
+    virtual void post_event(BundleEvent* event, bool at_back = true);
 
     /**
      * Returns the current bundle router.
