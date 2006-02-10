@@ -63,7 +63,7 @@ BundleDaemon::BundleDaemon()
 {
     // default local eid
     // XXX/demmer fixme
-    local_eid_.assign("dtn:localhost");
+    local_eid_.assign("dtn://localhost.dtn");
 
     bundles_received_ = 0;
     bundles_delivered_ = 0;
