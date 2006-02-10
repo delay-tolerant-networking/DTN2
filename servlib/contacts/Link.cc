@@ -257,7 +257,7 @@ Link::close()
     
     // Clean it up
     delete contact_;
-    set_contact(NULL);
+    contact_ = NULL;
 
     log_debug("Link::close complete");
 }
