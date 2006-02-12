@@ -618,6 +618,10 @@ TCPConvergenceLayer::Connection::run()
             // if the link isn't currently in OPENING state, then we
             // need to put it there since send_loop will post a
             // ContactUpEvent
+
+            // XXX/demmer this is a violation of the link state
+            // semantics since it should really only be done by the
+            // BundleDaemon thread
             if (contact_ && (contact_->link()->state() != Link::OPENING)) {
                 contact_->link()->set_state(Link::OPENING);
             }
