@@ -258,7 +258,10 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         if (strcmp(cmd, "info") == 0) {
             oasys::StringBuffer buf;
             bundle->format_verbose(&buf);
+            buf.append("\n");
+            bundle->fwdlog_.dump(&buf);
             set_result(buf.c_str());
+            
         } else {
             size_t len = bundle->payload_.length();
             oasys::HexDumpBuffer buf(len);

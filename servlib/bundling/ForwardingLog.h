@@ -42,7 +42,10 @@
 
 #include "ForwardingInfo.h"
 
-namespace oasys { class SpinLock; }
+namespace oasys {
+class SpinLock;
+class StringBuffer;
+}
 
 namespace dtn {
 
@@ -105,6 +108,11 @@ public:
      * Return a count of the number of entries in the given state.
      */
     size_t get_count(state_t state) const;
+
+    /**
+     * Dump a string representation of the log.
+     */
+    void dump(oasys::StringBuffer* buf) const;
 
     /**
      * Typedef for the log itself.

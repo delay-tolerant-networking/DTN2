@@ -37,6 +37,7 @@
  */
 
 #include <oasys/thread/SpinLock.h>
+#include <oasys/util/StringBuffer.h>
 #include "conv_layers/ConvergenceLayer.h"
 #include "contacts/Link.h"
 #include "ForwardingLog.h"
@@ -86,6 +87,30 @@ ForwardingLog::get_count(state_t state) const
     }
 
     return ret;
+}
+
+//----------------------------------------------------------------------
+void
+ForwardingLog::dump(oasys::StringBuffer* buf) const
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::dump");
+    buf->appendf("forwarding log:\n");
+    Log::const_iterator iter;
+    for (iter = log_.begin(); iter != log_.end(); ++iter)
+    {
+        const ForwardingInfo* info = &(*iter);
+        
+        buf->appendf("\t%s -> %s %u.%u [%s cl:%s] [custody base %d pct %d limit %d]\n",
+                     ForwardingInfo::state_to_str(info->state_),
+                     info->clayer_.c_str(),
+                     (u_int)info->timestamp_.tv_sec,
+                     (u_int)info->timestamp_.tv_usec,
+                     bundle_fwd_action_toa(info->action_),
+                     info->nexthop_.c_str(),
+                     info->custody_timer_.base_,
+                     info->custody_timer_.lifetime_pct_,
+                     info->custody_timer_.limit_);
+    }
 }
     
 //----------------------------------------------------------------------
