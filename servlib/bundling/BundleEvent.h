@@ -64,6 +64,7 @@ class Link;
 typedef enum {
     BUNDLE_RECEIVED = 0x1,	///< New bundle arrival
     BUNDLE_TRANSMITTED,		///< Bundle or fragment successfully sent
+    BUNDLE_TRANSMIT_FAILED,	///< Bundle or fragment successfully sent
     BUNDLE_DELIVERED,		///< Bundle locally delivered
     BUNDLE_EXPIRED,		///< Bundle expired
     BUNDLE_FREE,		///< No more references to the bundle
@@ -105,6 +106,7 @@ event_to_str(event_type_t event)
 
     case BUNDLE_RECEIVED:	return "BUNDLE_RECEIVED";
     case BUNDLE_TRANSMITTED:	return "BUNDLE_TRANSMITTED";
+    case BUNDLE_TRANSMIT_FAILED:return "BUNDLE_TRANSMIT_FAILED";
     case BUNDLE_DELIVERED:	return "BUNDLE_DELIVERED";
     case BUNDLE_EXPIRED:	return "BUNDLE_EXPIRED";
     case BUNDLE_FREE:		return "BUNDLE_FREE";
@@ -238,10 +240,10 @@ public:
 class BundleTransmittedEvent : public BundleEvent {
 public:
     BundleTransmittedEvent(Bundle* bundle, Contact* contact,
-                           size_t bytes_sent, bool acked)
+                           size_t bytes_sent, bool reliable)
         : BundleEvent(BUNDLE_TRANSMITTED),
           bundleref_(bundle, "BundleTransmittedEvent"),
-          contact_(contact), bytes_sent_(bytes_sent), acked_(acked) {}
+          contact_(contact), bytes_sent_(bytes_sent), reliable_(reliable) {}
 
     /// The transmitted bundle
     BundleRef bundleref_;
@@ -252,10 +254,29 @@ public:
     /// Total number of bytes sent
     size_t bytes_sent_;
 
-    /// Indication if the destination acknowledged bundle receipt
-    bool acked_;
+    /// Indication if the transmission should be considered reliable
+    /// (either because the other side acknowledged it or because of
+    /// some other means such as sufficient FEC)
+    bool reliable_;
+};
 
-    /// XXX/demmer should have bytes_acked
+/**
+ * Event class for a failed transmission, which can occur if a link
+ * closes after a router has issued a transmission request but before
+ * the bundle is successfully sent.
+ */
+class BundleTransmitFailedEvent : public BundleEvent {
+public:
+    BundleTransmitFailedEvent(Bundle* bundle, Contact* contact)
+        : BundleEvent(BUNDLE_TRANSMIT_FAILED),
+          bundleref_(bundle, "BundleTransmitFailedEvent"),
+          contact_(contact) {}
+
+    /// The transmitted bundle
+    BundleRef bundleref_;
+
+    /// The contact where the bundle was attempted to be sent
+    Contact* contact_;
 };
 
 /**

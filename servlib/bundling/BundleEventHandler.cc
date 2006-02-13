@@ -22,6 +22,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_transmitted((BundleTransmittedEvent*)e);
         break;
 
+    case BUNDLE_TRANSMIT_FAILED:
+        handle_bundle_transmit_failed((BundleTransmitFailedEvent*)e);
+        break;
+
     case BUNDLE_DELIVERED:
         handle_bundle_delivered((BundleDeliveredEvent*)e);
         break;
@@ -116,6 +120,14 @@ BundleEventHandler::handle_bundle_received(BundleReceivedEvent* event)
  */
 void
 BundleEventHandler::handle_bundle_transmitted(BundleTransmittedEvent* event)
+{
+}
+
+/**
+ * Default event handler when a bundle transmission fails.
+ */
+void
+BundleEventHandler::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
 {
 }
 

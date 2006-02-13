@@ -340,15 +340,34 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 
     // update statistics and store an appropriate event descriptor
     const char* source_str = "";
-    if (event->source_ == EVENTSRC_ADMIN) {
+    switch (event->source_) {
+    case EVENTSRC_PEER:
+        bundles_received_++;
+        break;
+        
+    case EVENTSRC_APP:
+        bundles_received_++;
+        source_str = " (from app)";
+        break;
+        
+    case EVENTSRC_STORE:
+        source_str = " (from data store)";
+        break;
+        
+    case EVENTSRC_ADMIN:
         bundles_generated_++;
         source_str = " (generated)";
-    } else if (event->source_ == EVENTSRC_STORE) {
-        source_str = " (from data store)";
-    } else {
-        bundles_received_++;
+        break;
+        
+    case EVENTSRC_FRAGMENTATION:
+        bundles_generated_++;
+        source_str = " (from fragmentation)";
+        break;
+
+    default:
+        NOTREACHED;
     }
-    
+
     // if debug logging is enabled, dump out a verbose printing of the
     // bundle, including all options, otherwise, a more terse log
     if (log_enabled(oasys::LOG_DEBUG)) {
@@ -449,33 +468,42 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 
     log_info("BUNDLE_TRANSMITTED id:%d (%u bytes) %s -> %s (%s)",
              bundle->bundleid_, (u_int)event->bytes_sent_,
-             event->acked_ ? "ACKED" : "UNACKED",
+             event->reliable_ ? "RELIABLE" : "UNRELIABLE",
              event->contact_->link()->name(),
              event->contact_->nexthop());
 
     /*
      * Update the forwarding log
      */
-    bundle->fwdlog_.update(event->contact_->link(), ForwardingInfo::SENT);
+    bundle->fwdlog_.update(event->contact_->link(), ForwardingInfo::TRANSMITTED);
                             
     /*
-     * Grab the updated forwarding log information.
+     * Grab the updated forwarding log information so we can find the
+     * custody timer information (if any).
      */
     ForwardingInfo fwdinfo;
     bool ok = bundle->fwdlog_.get_latest_entry(event->contact_->link(), &fwdinfo);
     ASSERTF(ok, "no forwarding log entry for transmission");
-    ASSERT(fwdinfo.state_ == ForwardingInfo::SENT);
+    ASSERT(fwdinfo.state_ == ForwardingInfo::TRANSMITTED);
     
     /*
-     * Check for reactive fragmentation. The unsent portion (if any)
-     * will show up as a new bundle received event.
+     * Check for reactive fragmentation. If the bundle was only
+     * partially sent, then a new bundle received event for the tail
+     * part of the bundle will be processed immediately after this
+     * event.
      */
     fragmentmgr_->reactively_fragment(bundle, event->bytes_sent_);
-    
+
+    /*
+     * Generate the forwarding status report if requested
+     */
     if (bundle->forward_rcpt_) {
         generate_status_report(bundle, BundleProtocol::STATUS_FORWARDED);
     }
 
+    /*
+     * Schedule a custody timer if we have custody.
+     */
     if (bundle->local_custody_) {
         bundle->custody_timers_.push_back(
             new CustodyTimer(fwdinfo.timestamp_,
@@ -496,6 +524,31 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * anywhere else.
      */
     try_delete_from_pending(bundle);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
+{
+    /*
+     * The bundle was delivered to a next-hop contact.
+     */
+    Bundle* bundle = event->bundleref_.object();
+
+    log_info("BUNDLE_TRANSMIT_FAILED id:%d -> %s (%s)",
+             bundle->bundleid_,
+             event->contact_->link()->name(),
+             event->contact_->nexthop());
+    
+    /*
+     * Update the forwarding log so routers know to try to retransmit
+     * on the next contact.
+     */
+    bundle->fwdlog_.update(event->contact_->link(), ForwardingInfo::TRANSMIT_FAILED);
+
+    /*
+     * Fall through to notify the routers
+     */
 }
 
 //----------------------------------------------------------------------

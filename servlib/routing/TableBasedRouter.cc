@@ -223,13 +223,15 @@ TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
     {
         ForwardingInfo info;
         bool found = bundle->fwdlog_.get_latest_entry((*iter)->next_hop_, &info);
+
         if (found) {
             ASSERT(info.state_ != ForwardingInfo::NONE);
+        } else {
+            ASSERT(info.state_ == ForwardingInfo::NONE);
         }
         
-        if (found &&
-            (info.state_ == ForwardingInfo::SENT ||
-             info.state_ == ForwardingInfo::IN_FLIGHT))
+        if (info.state_ == ForwardingInfo::TRANSMITTED ||
+            info.state_ == ForwardingInfo::IN_FLIGHT)
         {
             log_debug("fwd_to_matching %s: "
                       "ignore match %s due to forwarding log entry %s",

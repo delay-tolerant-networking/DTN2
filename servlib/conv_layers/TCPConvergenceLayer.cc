@@ -442,7 +442,6 @@ TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
     
     ASSERT(conn);
     conn->queue_->push_back(bundle);
-
 }
 
 
@@ -1604,8 +1603,9 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
     }
 
     if (contact_) {
-        // drain the inflight queue, posting transmitted events for all
-        // bundles that haven't yet been fully acked
+        // drain the inflight queue, posting transmitted or transmit
+        // failed events for all bundles that haven't yet been fully
+        // acked
         while (! inflight_.empty()) {
             InFlightBundle* inflight = &inflight_.front();
 
@@ -1673,9 +1673,14 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
         if (queue_->size() > 0) {
             log_warn("%u bundles still in queue", (u_int)queue_->size());
 
-            // XXX/demmer what to do about this????
+            while (queue_->size() > 0) {
+                BundleRef bundle("TCPCL::break_contact temporary");
+                bundle = queue_->pop_front();
+                BundleDaemon::post(
+                    new BundleTransmitFailedEvent(bundle.object(), contact_));
+            }
         }
-        
+
         // once the main thread knows the contact is down (by the
         // event above) we need to signal that we've quit -- to do so,
         // clear the cl_info slot in the Contact

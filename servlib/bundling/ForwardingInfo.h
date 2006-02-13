@@ -57,6 +57,7 @@ inline const char*
 bundle_fwd_action_toa(bundle_fwd_action_t action)
 {
     switch(action) {
+    case FORWARD_INVALID:	return "FORWARD_INVALID";
     case FORWARD_UNIQUE:	return "FORWARD_UNIQUE";
     case FORWARD_COPY:		return "FORWARD_COPY";
     case FORWARD_FIRST:		return "FORWARD_FIRST";
@@ -80,11 +81,12 @@ namespace dtn {
 class ForwardingInfo {
 public:
     typedef enum {
-        NONE            = 0, ///< Return value for no entry
-        IN_FLIGHT       = 1, ///< Currently being sent
-        SENT            = 2, ///< Successfully sent
-        CANCELLED	= 3, ///< Transmission cancelled
-        CUSTODY_TIMEOUT	= 4, ///< Custody transfer timeout
+        NONE,             ///< Return value for no entry
+        IN_FLIGHT,        ///< Currently being sent
+        TRANSMITTED,      ///< Successfully transmitted
+        TRANSMIT_FAILED,  ///< Transmission failed
+        CANCELLED,	  ///< Transmission cancelled
+        CUSTODY_TIMEOUT,  ///< Custody transfer timeout
     } state_t;
 
     static const char* state_to_str(state_t state)
@@ -92,7 +94,8 @@ public:
         switch(state) {
         case NONE:      	return "NONE";
         case IN_FLIGHT: 	return "IN_FLIGHT";
-        case SENT:      	return "SENT";
+        case TRANSMITTED:      	return "TRANSMITTED";
+        case TRANSMIT_FAILED:  	return "TRANSMIT_FAILED";
         case CANCELLED: 	return "CANCELLED";
         case CUSTODY_TIMEOUT:	return "CUSTODY_TIMEOUT";
         default:
