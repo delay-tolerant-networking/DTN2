@@ -226,7 +226,9 @@ public:
         u_int max_retry_interval_;	///< (copied from Link params)
         u_int16_t idle_close_time;	///< Seconds of idle time before close
         u_int rtt_timeout_;		///< Msecs to wait for data
-        int test_fragment_size_;	///< Test hook to force reactive frag.
+
+        u_int test_read_delay_;		///< Msecs to sleep between read calls
+        u_int test_write_delay_;	///< Msecs to sleep between write calls
     };
 
     /**

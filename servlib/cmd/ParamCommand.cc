@@ -92,8 +92,10 @@ ParamCommand::ParamCommand()
            &TCPConvergenceLayer::defaults_.partial_ack_len_, "");
     bind_i("tcpcl_keepalive_interval",
            &TCPConvergenceLayer::defaults_.keepalive_interval_, "");
-    bind_i("tcpcl_test_fragment_size",
-           &TCPConvergenceLayer::defaults_.test_fragment_size_, "");
+    bind_i("tcpcl_test_read_delay",
+           &TCPConvergenceLayer::defaults_.test_read_delay_, "");
+    bind_i("tcpcl_test_write_delay",
+           &TCPConvergenceLayer::defaults_.test_write_delay_, "");
 }
-
+    
 } // namespace dtn

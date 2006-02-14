@@ -100,9 +100,11 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     defaults_.retry_interval_		= 5; 
     defaults_.min_retry_interval_	= 5; 
     defaults_.max_retry_interval_	= 10 * 30;
-    
     defaults_.rtt_timeout_		= 30000;  // msecs
-    defaults_.test_fragment_size_	= -1;
+
+    // testing parameters
+    defaults_.test_read_delay_		= 0;
+    defaults_.test_write_delay_		= 0;
 }
 
 /**
@@ -119,6 +121,8 @@ TCPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::UInt16Opt("local_port", &params->local_port_));
     p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
     p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
+    p.addopt(new oasys::BoolOpt("pipeline", &params->pipeline_));
+    p.addopt(new oasys::UIntOpt("busy_queue_depth", &params->busy_queue_depth_));
     p.addopt(new oasys::BoolOpt("bundle_ack_enabled",
                                 &params->bundle_ack_enabled_));
     p.addopt(new oasys::BoolOpt("reactive_frag_enabled",
@@ -135,8 +139,11 @@ TCPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::UIntOpt("max_retry_interval",
                                 &params->max_retry_interval_));
     p.addopt(new oasys::UIntOpt("rtt_timeout", &params->rtt_timeout_));
-    p.addopt(new oasys::IntOpt("test_fragment_size",
-                               &params->test_fragment_size_));
+
+    p.addopt(new oasys::UIntOpt("test_read_delay",
+                                &params->test_read_delay_));
+    p.addopt(new oasys::UIntOpt("test_write_delay",
+                                &params->test_write_delay_));
     
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -744,6 +751,10 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
     iov[1].iov_base = (char*)sndbuf_.buf();
     iov[1].iov_len  = header_len;
     
+    if (params_.test_write_delay_ != 0) {
+        usleep(params_.test_write_delay_ * 1000);
+    }
+    
     // send off the preamble and the headers
     log_debug("send_bundle: sending bundle id %d "
               "tcpcl hdr len: %u, bundle header len: %u payload len: %u",
@@ -769,7 +780,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
         break_contact(ContactEvent::BROKEN);
         return false;
     }
-    
+
     // now loop through the the payload, sending blocks of data and
     // checking for incoming acks along the way
     while (payload_len > 0) {
@@ -786,6 +797,10 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
                                        sndbuf_.buf(block_len),
                                        BundlePayload::KEEP_FILE_OPEN);
         
+        if (params_.test_write_delay_ != 0) {
+            usleep(params_.test_write_delay_ * 1000);
+        }
+    
         log_debug("send_bundle: sending %u byte block %p",
                   (u_int)block_len, payload_data);
         
@@ -879,6 +894,10 @@ TCPConvergenceLayer::Connection::recv_bundle()
     bool valid = false;
     bool recvok = false;
 
+    if (params_.test_read_delay_ != 0) {
+        usleep(params_.test_read_delay_ * 1000);
+    }
+
     log_debug("recv_bundle: consuming bundle headers...");
 
     // if we don't yet have enough bundle data, so read in as much as
@@ -969,6 +988,10 @@ TCPConvergenceLayer::Connection::recv_bundle()
     // initially, so we check for that before trying to read more
     do {
         if (rcvbuf_.fullbytes() == 0) {
+            if (params_.test_read_delay_ != 0) {
+                usleep(params_.test_read_delay_ * 1000);
+            }
+            
             // read a chunk of data
             ASSERT(rcvbuf_.data() == rcvbuf_.end());
             
