@@ -465,7 +465,11 @@ APIClient::handle_send()
     // assign the addressing fields
     b->source_.assign(&spec.source);
     b->dest_.assign(&spec.dest);
-    b->replyto_.assign(&spec.replyto);
+    if (spec.replyto.uri[0] == '\0') {
+        b->replyto_.assign(EndpointID::NULL_EID());
+    } else {
+        b->replyto_.assign(&spec.replyto);
+    }
     b->custodian_.assign(EndpointID::NULL_EID());
      
     oasys::StringBuffer error;
