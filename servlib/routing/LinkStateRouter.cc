@@ -44,7 +44,6 @@
 #include "bundling/BundleList.h"
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
-#include "bundling/FragmentManager.h"
 
 #include "reg/Registration.h"
 #include "reg/RegistrationTable.h"

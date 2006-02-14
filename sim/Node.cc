@@ -39,7 +39,6 @@
 #include "Node.h"
 #include "SimBundleActions.h"
 #include "bundling/BundleDaemon.h"
-#include "bundling/FragmentManager.h"
 #include "contacts/ContactManager.h"
 #include "contacts/Link.h"
 #include "routing/BundleRouter.h"

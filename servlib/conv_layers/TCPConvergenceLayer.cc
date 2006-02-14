@@ -58,7 +58,6 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
-#include "bundling/FragmentManager.h"
 #include "bundling/SDNV.h"
 #include "contacts/ContactManager.h"
 #include "contacts/OndemandLink.h"
