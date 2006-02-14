@@ -194,6 +194,30 @@ Bundle::serialize(oasys::SerializeAction* a)
     //a->process("forwarding_log", &fwdlog_);
 }
 
+    
+void
+Bundle::copy_metadata(Bundle* new_bundle)
+{
+    new_bundle->is_admin_ 		= is_admin_;
+    new_bundle->is_fragment_ 		= is_fragment_;
+    new_bundle->do_not_fragment_ 	= do_not_fragment_;
+    new_bundle->source_ 		= source_;
+    new_bundle->dest_ 			= dest_;
+    new_bundle->custodian_		= custodian_;
+    new_bundle->replyto_ 		= replyto_;
+    new_bundle->priority_ 		= priority_;
+    new_bundle->custody_requested_	= custody_requested_;
+    new_bundle->local_custody_		= false;
+    new_bundle->custody_rcpt_ 		= custody_rcpt_;
+    new_bundle->receive_rcpt_ 		= receive_rcpt_;
+    new_bundle->forward_rcpt_ 		= forward_rcpt_;
+    new_bundle->delivery_rcpt_ 		= delivery_rcpt_;
+    new_bundle->deletion_rcpt_	 	= deletion_rcpt_;
+    new_bundle->app_acked_rcpt_	 	= app_acked_rcpt_;
+    new_bundle->creation_ts_ 		= creation_ts_;
+    new_bundle->expiration_ 		= expiration_;
+}
+
 /**
  * Bump up the reference count.
  */

@@ -106,6 +106,12 @@ public:
     virtual ~Bundle();
 
     /**
+     * Copy the metadata from one bundle to another (used in
+     * fragmentation).
+     */
+    void copy_metadata(Bundle* new_bundle);
+
+    /**
      * Virtual from formatter.
      */
     int format(char* buf, size_t sz) const;
