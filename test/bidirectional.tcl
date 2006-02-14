@@ -21,7 +21,6 @@ test::script {
     set count 200
     set sleep 100
 
-if {0} {
     # ----------------------------------------------------------------------
     puts "* "
     puts "* Test phase 1: continuous connectivity"
@@ -109,7 +108,7 @@ if {0} {
 
     puts "* Stopping dtnds"
     dtn::stop_dtnd *
-}
+
     # ----------------------------------------------------------------------
     
     puts "* "
