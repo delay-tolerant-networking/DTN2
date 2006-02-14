@@ -79,7 +79,8 @@ main(int argc, const char** argv)
 
     char * bundle_dir = 0;
 
-    char * host;
+    char host[PATH_MAX];
+    int host_len;
     char * dirpath;
     char * filename;
     char filepath[PATH_MAX];
@@ -94,6 +95,8 @@ main(int argc, const char** argv)
 
     s_buffer[BUFSIZE] = '\0';
 
+    struct stat st;
+
     progname = argv[0];
     
     if (argc > 2) {
@@ -101,7 +104,7 @@ main(int argc, const char** argv)
     }
     else if (argc == 2)
     {
-        if (argv[1][0] == '-' && argv[1][1] == 'h') {
+        if (argv[1][0] == '-') {
             usage();
         }
         bundle_dir = (char *) argv[1];
@@ -111,18 +114,26 @@ main(int argc, const char** argv)
         bundle_dir = BUNDLE_DIR_DEFAULT;
     }
 
-    buffer = malloc(sizeof(char) * (strlen(bundle_dir) + 10));
-    sprintf(buffer, "mkdir -p %s", bundle_dir);
-
-    if (system(buffer) == -1)
-    {
-        fprintf(stderr, "Error opening bundle directory: %s\n", bundle_dir);
-        exit(1);
+    if (access(bundle_dir, W_OK | X_OK) == -1) {
+        fprintf(stderr, "can't access directory '%s': %s\n",
+                bundle_dir, strerror(errno));
+        usage();
     }
-    free(buffer);
+
+    if (stat(bundle_dir, &st) == -1) { 
+        fprintf(stderr, "can't stat directory '%s': %s\n",
+                bundle_dir, strerror(errno));
+        usage();
+    }
+
+    if (!S_ISDIR(st.st_mode)) {
+        fprintf(stderr, "path '%s' is not a directory\n",
+                bundle_dir);
+        usage();
+    }
 
     // designated endpoint
-    endpoint = "/dtncp/recv:*";
+    endpoint = "/dtncp/recv?*";
 
     // open the ipc handle
     if (debug) printf("opening connection to dtn router...\n");
@@ -179,13 +190,27 @@ main(int argc, const char** argv)
         // mark time received
         current = time(NULL);
 
+        if (strncmp(bundle.source.uri, "dtn://", 6) != 0)
+        {
+            fprintf(stderr, "bundle source uri '%s' must be a dtn:// uri\n",
+                    bundle.source.uri);
+            exit(1);
+        }
+
         // grab the sending authority and service tag (i.e. the path)
-        host = strstr(bundle.source.uri, ":") + 1;
+        host_len = strchr(&bundle.source.uri[6], '/') - &bundle.source.uri[6];
+        strncpy(host, &bundle.source.uri[6], host_len);
         
         // extract directory from destination path (everything
         // following std demux)
-        dirpath = strstr(bundle.dest.uri, "/dtncp/recv:");
-        dirpath += 12; // skip /dtncp/recv:
+        dirpath = strstr(bundle.dest.uri, "/dtncp/recv?");
+        if (!dirpath) {
+            fprintf(stderr, "can't find /dtncp/recv? in uri '%s'\n",
+                    bundle.dest.uri);
+            exit(1);
+        }
+        
+        dirpath += 12; // skip /dtncp/recv?
         if (dirpath[0] == '/') dirpath++; // skip leading slash
 
         // filename is everything following last /

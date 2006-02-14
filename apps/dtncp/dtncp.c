@@ -105,24 +105,18 @@ main(int argc, char** argv)
     memset(&bundle_spec, 0, sizeof(bundle_spec));
 
     // destination host is specified at run time, demux is hardcoded
-    sprintf(demux, "%s/dtncp/recv:/%s", arg_dest, arg_target);
+    sprintf(demux, "%s/dtncp/recv?%s", arg_dest, arg_target);
     parse_eid(handle, &bundle_spec.dest, demux);
 
     // source is local eid with file path as demux string
-    sprintf(demux, "/dtncp/send:%s", data_source);
+    sprintf(demux, "/dtncp/send?%s", data_source);
     parse_eid(handle, &bundle_spec.source, demux);
-
-    // reply to is the same as the source
-    dtn_copy_eid(&bundle_spec.replyto, &bundle_spec.source);
-
 
     if (verbose)
     {
         print_eid("source_eid", &bundle_spec.source);
-        print_eid("replyto_eid", &bundle_spec.replyto);
         print_eid("dest_eid", &bundle_spec.dest);
     }
-
 
     // set the expiration time (one hour)
     bundle_spec.expiration = 3600;
@@ -189,10 +183,12 @@ main(int argc, char** argv)
 
 void print_usage()
 {
-    fprintf(stderr, "usage: %s filename bundles://region/host://admin "
-                    "[remote-name]\n", progname);
-    fprintf(stderr, "    Remote filename is optional; defaults to the "
-                    "local filename.\n");
+    fprintf(stderr,
+            "usage: %s [filename] [destination_eid] "
+            "[remote-name]\n", progname);
+    fprintf(stderr,
+            "    Remote filename is optional; defaults to the "
+            "local filename.\n");
     
     exit(1);
 }
@@ -239,7 +235,7 @@ dtn_endpoint_id_t * parse_eid(dtn_handle_t handle,
     }
     else
     {
-        fprintf(stderr, "invalid eid string '%s'\n", str);
+        fprintf(stderr, "invalid endpoint id string '%s'\n", str);
         exit(1);
     }
 }
