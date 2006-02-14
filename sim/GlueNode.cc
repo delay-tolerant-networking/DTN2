@@ -218,7 +218,7 @@ GlueNode::forward_event(BundleEvent* event)
 void    
 GlueNode::create_consumer()
 {
-    consumer_ = new FloodConsumer(id_,"bundles://sim/simcl://2");
+    consumer_ = new FloodConsumer(id_,"dtn://2");
     consumer_->set_router(router_);
 
     RegistrationAddedEvent *reg_add = new RegistrationAddedEvent(consumer_);

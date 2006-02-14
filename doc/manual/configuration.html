@@ -108,8 +108,8 @@ bundles in the system. It looks like this:
 
 <blockquote><pre>dtn% bundle list
 Currently Pending Bundles (2):
-        0  : bundles://internet/host://mars/rover -> bundles://internet/host://jpl/images length 8096266
-        1  : bundles://internet/host://jpl/commands -> bundles://internet/host://mars/rover length 18</pre></blockquote>
+        0  : dtn://mars/rover   -> dtn://jpl/images length 8096266
+        1  : dtn://jpl/commands -> dtn://mars/rover length 18</pre></blockquote>
 
 <p>To the left of the colon is the bundle ID. This number is used
 internally by dtnd to keep track of bundles. Remote DTN
@@ -130,8 +130,8 @@ file using <tt>bundle dump_ascii <i>bundle-id</i></tt>.
 Syntax: <tt>bundle inject <i>source</i> <i>dest</i> <i>payload</i>
 [ <i>length</i> ]</tt>
 <br>
-Example: <tt>bundle inject bundles://internet/host://jpl/commands
-bundles://internet/host://mars/rover "turn left 30 degrees, please"</tt>
+Example: <tt>bundle inject dtn://jpl/commands
+dtn://mars/rover "turn left 30 degrees, please"</tt>
 
 <p> You can use <tt>bundle inject</tt> to inject a synthetic bundle
 into dtnd. It will route and deliver that packet just like any other

@@ -227,7 +227,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         
         char bundles_string[60];
         memset(bundles_string,0,60);
-        sprintf(bundles_string,"bundles://soontobegone/%s",next_hop_string);
+        sprintf(bundles_string,"dtn://%s",next_hop_string);
 
         Link* link=cm->find_link_to(bundles_string);	
         if(!link || !link->isopen()) 

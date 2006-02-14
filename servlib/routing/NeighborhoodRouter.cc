@@ -63,11 +63,8 @@ NeighborhoodRouter::handle_contact_up(ContactUpEvent* event)
     
     log_info("Contact Up: *%p adding route", event->contact_);
 
-    // XXX/jakob - this is pretty nasty really. I believe the
-    // bundles://<region> syntax needs to go very soon.
-   
     char eidstring[255];
-    sprintf(eidstring, "bundles://internet/%s*",event->contact_->nexthop());
+    sprintf(eidstring, "dtn://%s", event->contact_->nexthop());
 
     // By default, we add a route for all the next hops we have around. 
     RouteEntry* entry = new RouteEntry(EndpointIDPattern(eidstring), 
