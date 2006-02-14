@@ -82,7 +82,7 @@ GlueNode::chewing_complete(SimContact* c, double size, Message* msg)
     Contact* consumer = SimConvergenceLayer::simlink2ct(c);
     int tsize = (int)size;
     BundleTransmittedEvent* e = 
-        new BundleTransmittedEvent(bundle,consumer,tsize,acked);
+        new BundleTransmittedEvent(bundle,consumer,tsize,acked ? tsize : 0);
     forward_event(e);
     
 }

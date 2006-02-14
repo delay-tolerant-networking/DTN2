@@ -9,6 +9,8 @@ dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ALWAYSON tcp true
 
+# XXX/demmer do this test with bigger bundles...
+
 test::script {
     set N [net::num_nodes]
     set last [expr $N - 1]
@@ -19,6 +21,7 @@ test::script {
     set count 200
     set sleep 100
 
+if {0} {
     # ----------------------------------------------------------------------
     puts "* "
     puts "* Test phase 1: continuous connectivity"
@@ -55,6 +58,7 @@ test::script {
 
     puts "* Stopping dtnds"
     dtn::stop_dtnd *
+
 
     # ----------------------------------------------------------------------
 
@@ -105,7 +109,7 @@ test::script {
 
     puts "* Stopping dtnds"
     dtn::stop_dtnd *
-
+}
     # ----------------------------------------------------------------------
     
     puts "* "

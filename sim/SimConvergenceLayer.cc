@@ -136,7 +136,7 @@ SimConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
     len = bundle->payload_.length();
        
     BundleTransmittedEvent* tx_event =
-        new BundleTransmittedEvent(bundle, contact, len, reliable);
+        new BundleTransmittedEvent(bundle, contact, len, reliable ? len : 0);
 
     Simulator::post(new SimRouterEvent(Simulator::time(),
                                        src_node, tx_event));

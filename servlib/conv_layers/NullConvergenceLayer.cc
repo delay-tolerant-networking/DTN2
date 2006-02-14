@@ -58,8 +58,7 @@ NullConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
     
     BundleDaemon::post(
         new BundleTransmittedEvent(bundle, contact,
-                                   bundle->payload_.length(),
-                                   false));
+                                   bundle->payload_.length(), 0));
 }
 
 } // namespace dtn

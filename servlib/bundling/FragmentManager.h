@@ -114,19 +114,28 @@ public:
      * If only part of the given bundle was sent successfully, create
      * a new fragment for the unsent portion.
      *
-     * Return 1 if a fragment was created, 0 otherwise.
+     * Return true if a fragment was created
      */
-    int reactively_fragment(Bundle* bundle, size_t bytes_sent);
+    bool try_to_reactively_fragment(Bundle* bundle, size_t bytes_sent);
 
     /**
      * Given a newly arrived bundle fragment, append it to the table
      * of fragments and see if it allows us to reassemble the bundle.
+     *
+     * If it does, a ReassemblyCompletedEvent will be posted.
      */
-    Bundle* process_for_reassembly(Bundle* fragment);
+    void process_for_reassembly(Bundle* fragment);
 
  protected:
     /// Reassembly state structure
-    struct ReassemblyState;
+    struct ReassemblyState {
+        ReassemblyState()
+            : bundle_("reassembly_state"), fragments_("reassembly_state")
+        {}
+        
+        BundleRef  bundle_;	///< The bundle to eb 
+        BundleList fragments_;	///< List of partial fragments
+    };
     
     /**
      * Calculate a hash table key from a bundle
@@ -141,9 +150,6 @@ public:
     /// Table of partial bundles
     typedef oasys::StringHashMap<ReassemblyState*> ReassemblyTable;
     ReassemblyTable reassembly_table_;
-
-    /// Lock
-    oasys::SpinLock* lock_;
 };
 
 } // namespace dtn

@@ -341,17 +341,13 @@ protected:
         /// with their transmission times
         struct InFlightBundle {
             InFlightBundle(Bundle* b)
-                : bundle_(b, "TCPCL::InFlightBundle"), acked_len_(0) {}
+                : bundle_(b, "TCPCL::InFlightBundle"),
+                  xmit_len_(0), acked_len_(0) {}
 
-            InFlightBundle(const InFlightBundle& other)
-                : bundle_(other.bundle_),
-                  xmit_start_time_(other.xmit_start_time_),
-                  xmit_finish_time_(other.xmit_finish_time_),
-                  acked_len_(other.acked_len_) {}
-            
             BundleRef      bundle_;
             struct timeval xmit_start_time_;
             struct timeval xmit_finish_time_;
+            size_t         xmit_len_;
             size_t         acked_len_;
         };
 

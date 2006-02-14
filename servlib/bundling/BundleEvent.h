@@ -240,10 +240,12 @@ public:
 class BundleTransmittedEvent : public BundleEvent {
 public:
     BundleTransmittedEvent(Bundle* bundle, Contact* contact,
-                           size_t bytes_sent, bool reliable)
+                           size_t bytes_sent, size_t reliably_sent)
         : BundleEvent(BUNDLE_TRANSMITTED),
           bundleref_(bundle, "BundleTransmittedEvent"),
-          contact_(contact), bytes_sent_(bytes_sent), reliable_(reliable) {}
+          contact_(contact),
+          bytes_sent_(bytes_sent),
+          reliably_sent_(reliably_sent) {}
 
     /// The transmitted bundle
     BundleRef bundleref_;
@@ -254,10 +256,10 @@ public:
     /// Total number of bytes sent
     size_t bytes_sent_;
 
-    /// Indication if the transmission should be considered reliable
-    /// (either because the other side acknowledged it or because of
-    /// some other means such as sufficient FEC)
-    bool reliable_;
+    /// If the convergence layer that we sent on is reliable, this is
+    /// the count of the bytes reliably sent, which must be less than
+    /// or equal to the bytes transmitted
+    size_t reliably_sent_;
 };
 
 /**

@@ -48,33 +48,18 @@ namespace dtn {
 FragmentManager::FragmentManager()
     : Logger("/bundle/fragment")
 {
-    lock_ = new oasys::SpinLock();
 }
 
 Bundle* 
 FragmentManager::create_fragment(Bundle* bundle, int offset, size_t length)
 {
     Bundle* fragment = new Bundle();
+
+    // copy the metadata into the new  fragment (which can be further fragmented)
+    bundle->copy_metadata(fragment);
+    fragment->is_fragment_     = true;
+    fragment->do_not_fragment_ = false;
     
-    fragment->source_ 		= bundle->source_;
-    fragment->dest_ 		= bundle->dest_;
-    fragment->custodian_	= bundle->custodian_;
-    fragment->replyto_ 		= bundle->replyto_;
-    fragment->priority_ 	= bundle->priority_;
-    fragment->is_admin_ 	= bundle->is_admin_;
-    fragment->custody_requested_= bundle->custody_requested_;
-    fragment->receive_rcpt_ 	= bundle->receive_rcpt_;
-    fragment->custody_rcpt_ 	= bundle->custody_rcpt_;
-    fragment->forward_rcpt_ 	= bundle->forward_rcpt_;
-    fragment->delivery_rcpt_ 	= bundle->delivery_rcpt_;
-    fragment->deletion_rcpt_ 	= bundle->deletion_rcpt_;
-    fragment->creation_ts_ 	= bundle->creation_ts_;
-    fragment->expiration_ 	= bundle->expiration_;
-
-    // always creating a fragment (which can be further fragmented)
-    fragment->is_fragment_ 	= true;
-    fragment->do_not_fragment_ 	= false;
-
     // initialize the fragment's orig_length and figure out the offset
     // into the payload
     if (! bundle->is_fragment_) {
@@ -137,21 +122,14 @@ FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
 /**
  * Reassembly state structure.
  */
-struct FragmentManager::ReassemblyState {
-    ReassemblyState()
-        : fragments_("reassembly_state")
-    {}
-    
-    Bundle* bundle_;		///< The reassembled bundle
-    BundleList fragments_;	///< List of partial fragments
-};
-
 bool
 FragmentManager::check_completed(ReassemblyState* state)
 {
     Bundle* fragment;
     BundleList::iterator iter;
-
+    oasys::ScopeLock l(state->fragments_.lock(),
+                       "FragmentManager::check_completed");
+    
     size_t done_up_to = 0;  // running total of completed reassembly
     size_t f_len;
     size_t f_offset;
@@ -302,16 +280,16 @@ FragmentManager::proactively_fragment(Bundle* bundle, size_t max_length)
  * If only part of the given bundle was sent successfully, create
  * a new fragment for the unsent portion.
  *
- * Return 1 if a fragment was created, 0 otherwise.
+ * Return true if a fragment was created
  */
-int
-FragmentManager::reactively_fragment(Bundle* bundle, size_t bytes_sent)
+bool
+FragmentManager::try_to_reactively_fragment(Bundle* bundle, size_t bytes_sent)
 {
     size_t payload_len = bundle->payload_.length();
     
-    if (bytes_sent == payload_len)
+    if ((bytes_sent == 0) || (bytes_sent == payload_len))
     {
-        return 0; // nothing to do
+        return false; // nothing to do
     }
     
     size_t frag_off = bytes_sent;
@@ -327,18 +305,16 @@ FragmentManager::reactively_fragment(Bundle* bundle, size_t bytes_sent)
     tail->is_reactive_fragment_ = true;
 
     // treat the new fragment as if it just arrived
-    BundleDaemon::post(
+    BundleDaemon::post_at_head(
         new BundleReceivedEvent(tail, EVENTSRC_FRAGMENTATION, frag_len));
 
-    return 1;
+    return true;
 }
 
 
-Bundle* 
+void
 FragmentManager::process_for_reassembly(Bundle* fragment)
 {
-    oasys::ScopeLock l(lock_, "FragmentManger::process_for_reassembly");
-
     ReassemblyState* state;
     ReassemblyTable::iterator iter;
 
@@ -357,11 +333,15 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
                   hash_key.c_str());
         state = new ReassemblyState();
 
+        // copy the metadata from the first fragment to arrive, but
+        // make sure we mark the bundle that it's not a fragment (or
+        // at least won't be for long)
         state->bundle_ = new Bundle();
+        fragment->copy_metadata(state->bundle_.object());
+        state->bundle_->is_fragment_ = false;
+        
         state->bundle_->payload_.set_length(fragment->orig_length_,
                                             BundlePayload::DISK);
-        state->bundle_->add_ref("reassembly_state");
-        
         reassembly_table_[hash_key] = state;
     } else {
         state = iter->second;
@@ -371,17 +351,13 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
         state->bundle_->payload_.reopen_file();
     }
 
-    // grab a lock on the fragment list and tack on the new fragment
-    // to the fragment list
-    oasys::ScopeLock fraglock(state->fragments_.lock(), 
-                              "FragmentManager::process_for_reassembly");
+    // stick the fragment on the reassembly list
     state->fragments_.insert_sorted(fragment, BundleList::SORT_FRAG_OFFSET);
     
     // store the fragment data in the partially reassembled bundle file
     size_t fraglen = fragment->payload_.length();
-
-    log_debug(
-              "write_data: length_=%u src_offset=%u dst_offset=%u len %u",
+    
+    log_debug("write_data: length_=%u src_offset=%u dst_offset=%u len %u",
               (u_int)state->bundle_->payload_.length(), 
               0, fragment->frag_offset_, (u_int)fraglen);
 
@@ -391,21 +367,15 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
     
     // check see if we're done
     if (!check_completed(state)) {
-        return NULL;
+        return;
     }
 
-    Bundle* ret = state->bundle_;
-    
-    BundleDaemon::post
-        (new ReassemblyCompletedEvent(ret, &state->fragments_));
-    
-    state->bundle_->del_ref("reassembly_state");
-    state->fragments_.clear();
+    BundleDaemon::post_at_head
+        (new ReassemblyCompletedEvent(state->bundle_.object(),
+                                      &state->fragments_));
+    ASSERT(state->fragments_.size() == 0); // moved into the event
     reassembly_table_.erase(hash_key);
-    fraglock.unlock();
     delete state;
-    
-    return ret;
 }
 
 

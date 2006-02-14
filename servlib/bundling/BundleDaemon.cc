@@ -300,6 +300,20 @@ void
 BundleDaemon::deliver_to_registration(Bundle* bundle,
                                       Registration* registration)
 {
+    // tells routers that this Bundle has been taken care of
+    // by the daemon already
+    bundle->owner_ = "daemon";
+
+    if (bundle->is_fragment_) {
+        log_debug("deferring delivery of bundle *%p to registration %d (%s) "
+                  "since bundle is a fragment",
+                  bundle, registration->regid(),
+                  registration->endpoint().c_str());
+        
+        fragmentmgr_->process_for_reassembly(bundle);
+        return;
+    }
+
     log_debug("delivering bundle *%p to registration %d (%s)",
               bundle, registration->regid(),
               registration->endpoint().c_str());
@@ -318,12 +332,6 @@ BundleDaemon::check_registrations(Bundle* bundle)
     RegistrationList::iterator iter;
 
     num = reg_table_->get_matching(bundle->dest_, &matches);
-
-    // tells routers that this Bundle has been taken care of
-    // by the daemon already
-    if (num > 0) {
-        bundle->owner_ = "daemon";
-    }
 
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
@@ -466,11 +474,31 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      */
     Bundle* bundle = event->bundleref_.object();
 
-    log_info("BUNDLE_TRANSMITTED id:%d (%u bytes) %s -> %s (%s)",
-             bundle->bundleid_, (u_int)event->bytes_sent_,
-             event->reliable_ ? "RELIABLE" : "UNRELIABLE",
+    log_info("BUNDLE_TRANSMITTED id:%d (%u bytes_sent/%u reliable) -> %s (%s)",
+             bundle->bundleid_,
+             (u_int)event->bytes_sent_,
+             (u_int)event->reliably_sent_,
              event->contact_->link()->name(),
              event->contact_->nexthop());
+
+    /*
+     * If we're configured to wait for reliable transmission, then
+     * check the special case where we transmitted some or all a
+     * bundle but nothing was acked. In this case, we create a
+     * transmission failed event in the forwarding log and don't do
+     * any of the rest of the processing below.
+     *
+     * XXX/demmer a better thing to do (maybe) would be to record the
+     * lengths in the forwarding log as part of the transmitted entry
+     */
+    if (params_.retry_reliable_unacked_ &&
+        event->contact_->link()->is_reliable() &&
+        event->reliably_sent_ == 0)
+    {
+        bundle->fwdlog_.update(event->contact_->link(),
+                               ForwardingInfo::TRANSMIT_FAILED);
+        return;
+    }
 
     /*
      * Update the forwarding log
@@ -490,9 +518,13 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * Check for reactive fragmentation. If the bundle was only
      * partially sent, then a new bundle received event for the tail
      * part of the bundle will be processed immediately after this
-     * event.
+     * event. For reliable convergence latyer
      */
-    fragmentmgr_->reactively_fragment(bundle, event->bytes_sent_);
+    if (event->contact_->link()->reliable_) {
+        fragmentmgr_->try_to_reactively_fragment(bundle, event->reliably_sent_);
+    } else {
+        fragmentmgr_->try_to_reactively_fragment(bundle, event->bytes_sent_);
+    }
 
     /*
      * Generate the forwarding status report if requested
@@ -642,6 +674,8 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
             // fall through to remove other mappings
         }
     }
+
+    // XXX/demmer check if the bundle is a fragment awaiting reassembly
 
     // XXX/demmer should try to cancel transmission on any links where
     // the bundle is active
@@ -895,17 +929,17 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 {
     log_info("REASSEMBLY_COMPLETED bundle id %d",
              event->bundle_->bundleid_);
-    
+
+    // remove all the fragments from the pending list
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
     while ((ref = event->fragments_.pop_front()) != NULL) {
-        // remove the fragment from the pending list
-        delete_from_pending(ref.object(),
-                            BundleProtocol::REASON_NO_ADDTL_INFO);
+        try_delete_from_pending(ref.object());
     }
 
-    // post a new event for the newly reassembled event
-    post(new BundleReceivedEvent(ref.object(), EVENTSRC_FRAGMENTATION,
-                                 ref->payload_.length()));
+    // post a new event for the newly reassembled bundle
+    post_at_head(new BundleReceivedEvent(event->bundle_.object(),
+                                         EVENTSRC_FRAGMENTATION,
+                                         event->bundle_->payload_.length()));
 }
 
 

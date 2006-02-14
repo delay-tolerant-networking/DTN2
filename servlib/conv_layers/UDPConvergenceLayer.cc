@@ -470,7 +470,7 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact_,
                                        bundle->payload_.length(),
-                                       false));
+                                       0));
         ok = true;
     } else {
         log_err("send_bundle: error sending bundle (wrote %d/%u): %s",

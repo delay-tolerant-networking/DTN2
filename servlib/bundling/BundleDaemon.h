@@ -212,7 +212,13 @@ public:
 
         /// Whether or not to accept custody when requested
         bool accept_custody_;
+
+        /// Whether or not reactive fragmentation is enabled
+        bool reactive_frag_enabled_;
         
+        /// Whether or not to retry unacked transmissions on reliable CLs.
+        bool retry_reliable_unacked_;
+
         /// Threshold for proactive fragmentation
         size_t proactive_frag_threshold_;
     };

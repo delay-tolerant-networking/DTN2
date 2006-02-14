@@ -69,6 +69,14 @@ ParamCommand::ParamCommand()
            &BundleDaemon::params_.accept_custody_, true,
            "Accept custody when requested (default is true)");
 
+    bind_b("reactive_frag_enabled",
+           &BundleDaemon::params_.reactive_frag_enabled_, true,
+           "Is reactive fragmentation enabled (default is true)");
+
+    bind_b("retry_reliable_unacked",
+           &BundleDaemon::params_.retry_reliable_unacked_, false,
+           "Retry unacked transmissions on reliable CLs (default is false)");
+
     // defaults for these are set in the CustodyTimerSpec defaults
     // static initializer
     bind_i("custody_timer_base",

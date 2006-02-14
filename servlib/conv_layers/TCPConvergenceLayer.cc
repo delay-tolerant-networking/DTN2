@@ -331,6 +331,9 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
+    // if bundle acks are enabled, set the reliabiltiy bit in the link
+    link->set_reliable(params->bundle_ack_enabled_);
+
     // copy the retry parameters from the link itself (we need a copy
     // for ourselves to support receiver connect)
     params->retry_interval_     = link->retry_interval_;
@@ -706,11 +709,12 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
     u_char tcphdr_buf[32];
     size_t block_len;
     size_t payload_len = bundle->payload_.length();
-    size_t payload_offset = 0;
     const u_char* payload_data;
 
     // first put the bundle on the inflight_ queue
     inflight_.push_back(InFlightBundle(bundle));
+    InFlightBundle* ifbundle = &inflight_.back();
+    ASSERT(ifbundle->bundle_ == bundle);
 
     // Each bundle is preceded by a BUNDLE_DATA typecode and then a
     // BundleDataHeader that is variable-length since it includes an
@@ -791,7 +795,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
 
         // grab the next payload chunk
         payload_data =
-            bundle->payload_.read_data(payload_offset,
+            bundle->payload_.read_data(ifbundle->xmit_len_,
                                        block_len,
                                        sndbuf_.buf(block_len),
                                        BundlePayload::KEEP_FILE_OPEN);
@@ -825,9 +829,9 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
             return false;
         }
 
-        // update payload_offset and payload_len
-        payload_offset += block_len;
-        payload_len    -= block_len;
+        // update xmit_len and payload_len
+        ifbundle->xmit_len_ += block_len;
+        payload_len         -= block_len;
         
         // call poll() to check for any pending ack replies on the
         // socket with a timeout of zero, indicating that we don't
@@ -864,7 +868,7 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
     if (! params_.bundle_ack_enabled_) {
         inflight_.pop_front();
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_, payload_len, false));
+            new BundleTransmittedEvent(bundle, contact_, payload_len, 0));
     }
 
     bundle->payload_.close_file();
@@ -1230,7 +1234,8 @@ TCPConvergenceLayer::Connection::handle_ack()
         inflight_.pop_front();
         
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle.object(), contact_, payload_len, true));
+            new BundleTransmittedEvent(bundle.object(), contact_,
+                                       payload_len, new_acked_len));
         
         if ((!params_.pipeline_) && (contact_->link()->state() == Link::BUSY)) {
             BundleDaemon::post_and_wait(
@@ -1631,20 +1636,11 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
         while (! inflight_.empty()) {
             InFlightBundle* inflight = &inflight_.front();
 
-            if (inflight->acked_len_ != 0) {
-                BundleDaemon::post(
-                    new BundleTransmittedEvent(inflight->bundle_.object(),
-                                               contact_,
-                                               inflight->acked_len_,
-                                               true));
-            } else {
-                BundleDaemon::post(
-                    new BundleTransmittedEvent(inflight->bundle_.object(),
-                                               contact_,
-                                               inflight->bundle_->payload_.length(),
-                                               false));
-            }
-
+            BundleDaemon::post(
+                new BundleTransmittedEvent(inflight->bundle_.object(),
+                                           contact_,
+                                           inflight->xmit_len_,
+                                           inflight->acked_len_));
             inflight_.pop_front();
         }
 

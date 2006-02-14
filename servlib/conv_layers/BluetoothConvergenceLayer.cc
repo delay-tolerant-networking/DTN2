@@ -995,7 +995,7 @@ retry_headers:
     if (! params_.bundle_ack_enabled_) {
         inflight_.pop_front();
         BundleDaemon::post(
-                new BundleTransmittedEvent(bundle, contact_, payload_len, false));
+                new BundleTransmittedEvent(bundle, contact_, payload_len, 0));
     }
 
     bundle->payload_.close_file();
@@ -1350,7 +1350,7 @@ BluetoothConvergenceLayer::Connection::handle_ack()
         inflight_.pop_front();
         
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_, payload_len, true));
+            new BundleTransmittedEvent(bundle, contact_, payload_len, new_acked_len));
         
         if (contact_->link()->state() == Link::BUSY) {
             BundleDaemon::post_and_wait(
@@ -1528,13 +1528,13 @@ BluetoothConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reas
                     new BundleTransmittedEvent(inflight->bundle_.object(),
                                           contact_,
                                           inflight->acked_len_,
-                                          true));
+                                          inflight->acked_len_));
             } else {
                 BundleDaemon::post(
                     new BundleTransmittedEvent(inflight->bundle_.object(),
                                           contact_,
                                           inflight->bundle_->payload_.length(),
-                                          false));
+                                          0));
             }
             inflight_.pop_front();
         }

@@ -354,6 +354,16 @@ public:
     const char* nexthop() const { return nexthop_.c_str(); }
 
     /**
+     * Accessor to the reliability bit.
+     */
+    bool is_reliable() const { return reliable_; }
+
+    /**
+     * Accessor to set the reliability bit when the link is created.
+     */
+    void set_reliable(bool r) { reliable_ = r; }
+
+    /**
      * Virtual from formatter
      */
     int format(char* buf, size_t sz) const;
@@ -383,7 +393,7 @@ public:
      * by configuration parameters.
      */
     u_int max_retry_interval_;
-    
+
 protected:
     friend class BundleActions;
     friend class BundleDaemon;
@@ -411,9 +421,12 @@ protected:
     /// Next hop address
     std::string nexthop_;
     
-    /// Internal name ame of the link 
+    /// Internal name of the link 
     std::string name_;
 
+    /// Whether or not this link is reliable
+    bool reliable_;
+    
     /// Current contact. contact_ != null iff link is open
     Contact* contact_;
 

@@ -76,7 +76,7 @@ Link::create_link(const std::string& name, link_type_t type,
     }
 
     argc -= count;
-    
+
     // notify the convergence layer, which parses the rest of the
     // arguments
     ASSERT(link->clayer_);
@@ -100,7 +100,7 @@ Link::create_link(const std::string& name, link_type_t type,
 Link::Link(const std::string& name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
     :  type_(type), state_(UNAVAILABLE),
-       nexthop_(nexthop), name_(name), contact_(NULL),
+       nexthop_(nexthop), name_(name), reliable_(false), contact_(NULL),
        clayer_(cl), cl_info_(NULL)
 {
     ASSERT(clayer_);
@@ -120,6 +120,7 @@ Link::parse_args(int argc, const char* argv[])
 {
     oasys::OptParser p;
     
+    p.addopt(new oasys::BoolOpt("reliable", &reliable_));
     p.addopt(new oasys::UIntOpt("min_retry_interval", &min_retry_interval_));
     p.addopt(new oasys::UIntOpt("max_retry_interval", &max_retry_interval_));
 
