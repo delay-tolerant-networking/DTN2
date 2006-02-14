@@ -23,6 +23,8 @@ set tests(basic) {
     "dtn-ping.tcl"		""
     "bidirectional.tcl"         ""
     "tcp-bogus-link.tcl"	""
+    "tcp-writeblocked.tcl"	""
+    "reactive-fragmentation.tcl"	""
 }
 
 # the performance test group
