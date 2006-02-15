@@ -26,7 +26,7 @@ all: $(APPS) $(MANPAGES)
 -include ../Rules.make
 CFLAGS  += -I$(SRCDIR)/applib
 LDFLAGS += -L../applib -L../oasys
-LIBS    := -ldtnapi -loasyscompat $(LIBS)
+LIBS    := -ldtnapi -loasyscompat
 
 BINFILES += $(APPS)
 
