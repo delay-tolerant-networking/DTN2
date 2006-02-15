@@ -1,5 +1,3 @@
-/* $Id$ */
-
 #include <config.h>
 #ifdef OASYS_BLUETOOTH_ENABLED
 
