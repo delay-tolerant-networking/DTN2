@@ -90,7 +90,6 @@ DTNServer::DTNServer(oasys::StorageConfig* storage_config)
 
 DTNServer::~DTNServer()
 {
-    close_datastore();
     log_notice("daemon exiting...");
 }
 
@@ -243,6 +242,8 @@ DTNServer::init_components()
 void
 DTNServer::close_datastore()
 {
+    log_notice("closing persistent data store");
+    
     RegistrationStore::instance()->close();
     BundleStore::instance()->close();
     GlobalStore::instance()->close();
@@ -255,6 +256,7 @@ DTNServer::shutdown()
 {
     oasys::Notifier done("/dtnserver/shutdown");
     BundleDaemon::instance()->post_and_wait(new ShutdownRequest(), &done);
+    close_datastore();
     exit(0);
 }
 

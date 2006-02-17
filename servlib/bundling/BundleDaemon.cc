@@ -1078,14 +1078,16 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
         }
     }
 
-    // XXX/todo: cleanly sync the various data stores
-
+    // call the app shutdown procedure
     if (app_shutdown_proc_) {
         (*app_shutdown_proc_)(app_shutdown_data_);
     }
 
     // signal to the main loop to bail
     set_should_stop();
+
+    // fall through -- the DTNServer will close and flush all the data
+    // stores
 }
 
 //----------------------------------------------------------------------

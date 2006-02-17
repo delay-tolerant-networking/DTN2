@@ -250,7 +250,10 @@ GlobalStore::update()
 void
 GlobalStore::close()
 {
-    oasys::ScopeLock l(lock_, "GlobalStore::close");
+    // we prevent the potential for shutdown race crashes by leaving
+    // the global store locked after it's been closed so other threads
+    // will simply block, not crash due to a null store
+    lock_->lock("GlobalStore::close");
     
     delete store_;
     store_ = NULL;
