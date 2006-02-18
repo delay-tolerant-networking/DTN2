@@ -100,7 +100,7 @@ BundleStore::load()
         }
         
         
-        err = iter->get(&key);
+        err = iter->get_key(&key);
         if (err != 0)
         {
             log_err("BundleStore::load: error in iterator get");
