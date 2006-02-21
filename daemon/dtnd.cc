@@ -85,6 +85,7 @@ oasys::StorageConfig
                     false,		// init storage
                     false,		// tidy storage
                     3,			// tidy wait (seconds)
+                    true,               // .ds_clean file on shutdown
                     "DTN",		// DB name
                     "/var/dtn/db",	// DB directory
                     0,			// DB flags
