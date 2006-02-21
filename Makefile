@@ -24,7 +24,7 @@ endif
 #
 # Include the common rules
 #
--include Rules.make
+include Rules.make
 
 #
 # Dependency rules between subdirectories needed for make -j
@@ -76,7 +76,7 @@ doxygen:
 #
 # Pull in the rules for building a debian package
 #
--include debian/debpkg.mk
+include $(SRCDIR)/debian/debpkg.mk
 
 #
 # Build a TAGS database. Note this includes all the sources so it gets

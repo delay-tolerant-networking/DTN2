@@ -23,7 +23,7 @@ APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
 all: $(APPS) $(MANPAGES)
 
--include ../Rules.make
+include ../Rules.make
 CFLAGS  += -I$(SRCDIR)/applib
 LDFLAGS += -L../applib -L../oasys
 LIBS    := -ldtnapi -loasyscompat

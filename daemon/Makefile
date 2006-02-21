@@ -32,5 +32,5 @@ dtnd: $(DAEMON_OBJS) $(COMPONENT_LIBS)
 #
 # Include the common rules
 #
--include ../Rules.make
+include ../Rules.make
 

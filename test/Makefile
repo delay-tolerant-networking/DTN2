@@ -30,7 +30,7 @@ unit_tests: $(BINFILES)
 # Include the servlib Makefile to get the list of servlib objects
 #
 SERVLIB_MAKEFILE_INCLUDE := true
--include $(SRCDIR)/servlib/Makefile
+include $(SRCDIR)/servlib/Makefile
 SERVLIB_OBJS := $(patsubst %,$(SRCDIR)/servlib/%,$(SERVLIB_OBJS))
 
 echoobjs:
@@ -58,4 +58,4 @@ unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
 #
 # Include the common rules
 #
--include $(SRCDIR)/Rules.make
+include $(SRCDIR)/Rules.make
