@@ -172,5 +172,42 @@ proc config_tree_topology {type cl {args ""}} {
     }
 }
 
+# A two level tree with a single root and children
+#            0
+#      /  / ...  \  \
+#     1     ...      n
+#
+proc config_twolevel_topology {type cl with_routes {args ""}} {   
+    # setup ingress links for each node
+    set root_addr $net::host(0)
+    set root_port [dtn::get_port $cl 0]
+
+    foreach id [net::nodelist] {
+	set to_root_link   [get_link_name $cl $id 0]
+	set from_root_link [get_link_name $cl 0 $id]
+
+	if { $id != 0 } {
+	    # setup links b/t root and children and routes
+	    set child_addr $net::host($id)
+	    set child_port [dtn::get_port $cl $id]
+	    
+	    conf::add dtnd 0 [eval list link add $from_root_link \
+				  $child_addr:$child_port $type $cl $args]
+	    conf::add dtnd $id [eval list link add $to_root_link \
+				    $root_addr:$root_port $type $cl $args]
+
+	    if {$with_routes} {
+		for {set child 0} {$child < [net::num_nodes]} {incr child} {
+		    if {$child != $id} {
+			conf::add dtnd $id \
+			    "route add dtn://host-$child/* $to_root_link"
+		    }
+		}
+		conf::add dtnd 0 "route add dtn://host-$id/* $from_root_link"
+	    }
+	}
+    }
+}
+
 # namespace dtn
 }
