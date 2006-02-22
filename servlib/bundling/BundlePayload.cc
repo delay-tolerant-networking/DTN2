@@ -119,6 +119,7 @@ BundlePayload::init_from_store(int bundleid)
                  path.c_str(), strerror(errno));
         return;
     }
+    file_->close();
 }
 
 /**
