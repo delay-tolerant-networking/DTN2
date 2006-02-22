@@ -189,10 +189,12 @@ public:
         u_int rtt_timeout_;        ///< Msecs to wait for data
     };
 
+protected:
     // forward declarations;
     class Listener;
     class Connection;
 
+public:
     /**
      * Keep up with the Listener object for each Bluetooth adapter,
      * as indexed by bdaddr_t, so that only one object (whether
