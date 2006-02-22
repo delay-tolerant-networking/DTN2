@@ -46,10 +46,13 @@
 #include "FragmentManager.h"
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
+#include "reg/AdminRegistration.h"
 #include "reg/Registration.h"
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
 #include "routing/RouteTable.h"
+#include "storage/BundleStore.h"
+#include "storage/RegistrationStore.h"
 
 namespace dtn {
 
@@ -70,6 +73,7 @@ BundleDaemon::BundleDaemon()
     bundles_generated_ = 0;
     bundles_transmitted_ = 0;
     bundles_expired_ = 0;
+    events_processed_ = 0;
 
     pending_bundles_ = new BundleList("pending_bundles");
     custody_bundles_ = new BundleList("custody_bundles");
@@ -139,7 +143,7 @@ BundleDaemon::get_routing_state(oasys::StringBuffer* buf)
 
 //----------------------------------------------------------------------
 void
-BundleDaemon::get_statistics(oasys::StringBuffer* buf)
+BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
 {
     buf->appendf("%u pending -- "
                  "%u custody -- "
@@ -159,13 +163,25 @@ BundleDaemon::get_statistics(oasys::StringBuffer* buf)
 
 //----------------------------------------------------------------------
 void
-BundleDaemon::reset_statistics()
+BundleDaemon::get_daemon_stats(oasys::StringBuffer* buf)
+{
+    buf->appendf("%u pending_events -- "
+                 "%u processed_events",
+                 (u_int)eventq_->size(),
+                 events_processed_);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::reset_stats()
 {
     bundles_received_    = 0;
     bundles_delivered_   = 0;
     bundles_generated_   = 0;
     bundles_transmitted_ = 0;
     bundles_expired_     = 0;
+
+    events_processed_    = 0;
 }
 
 //----------------------------------------------------------------------
@@ -1231,7 +1247,7 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
     Bundle* bundle = event->bundle_;
     event->bundle_ = NULL;
     ASSERT(bundle->refcount() == 0);
-    
+
     bundle->lock_.lock("BundleDaemon::handle_bundle_free");
     
     actions_->store_del(bundle);
@@ -1250,14 +1266,57 @@ BundleDaemon::handle_event(BundleEvent* event)
         router_->handle_event(event);
         contactmgr_->handle_event(event);
     }
+
+    ++events_processed_;
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::load_registrations()
+{
+    admin_reg_ = new AdminRegistration();
+    {
+        RegistrationAddedEvent e(admin_reg_);
+        handle_event(&e);
+    }
+
+    // XXX/demmer fix this
+    RegistrationStore::instance()->load();
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::load_bundles()
+{
+    Bundle* bundle;
+    BundleStore* bundle_store = BundleStore::instance();
+    BundleStore::iterator* iter = bundle_store->new_iterator();
+
+    while (iter->next() == 0) {
+        bundle = bundle_store->get(iter->cur_bundleid());
+        if (bundle == NULL) {
+            log_err("error loading bundle %d from data store", iter->cur_bundleid());
+            continue;
+        }
+        
+        BundleReceivedEvent e(bundle, EVENTSRC_STORE);
+        handle_event(&e);
+    }
+
+    delete iter;
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::run()
 {
-    BundleEvent* event;
+    router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
+    router_->initialize();
+    
+    load_registrations();
+    load_bundles();
 
+    BundleEvent* event;
     while (1) {
         if (should_stop()) {
             break;

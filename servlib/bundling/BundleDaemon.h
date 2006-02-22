@@ -52,6 +52,7 @@
 
 namespace dtn {
 
+class AdminRegistration;
 class Bundle;
 class BundleAction;
 class BundleActions;
@@ -141,11 +142,6 @@ public:
     }
 
     /**
-     * Sets the active router.
-     */
-    void set_router(BundleRouter* router) { router_ = router; }
-
-    /**
      * Return the current actions handler.
      */
     BundleActions* actions() { return actions_; }
@@ -181,14 +177,21 @@ public:
     void get_routing_state(oasys::StringBuffer* buf);
 
     /**
-     * Format the given StringBuffer with the current statistics value.
+     * Format the given StringBuffer with the current bundle
+     * statistics.
      */
-    void get_statistics(oasys::StringBuffer* buf);
+    void get_bundle_stats(oasys::StringBuffer* buf);
 
     /**
-     * Reset the bundle statistics.
+     * Format the given StringBuffer with the current internal
+     * statistics value.
      */
-    void reset_statistics();
+    void get_daemon_stats(oasys::StringBuffer* buf);
+
+    /**
+     * Reset all internal stats.
+     */
+    void reset_stats();
 
     /**
      * Return the local endpoint identifier.
@@ -240,6 +243,16 @@ public:
     }
     
 protected:
+    /**
+     * Initialize and load in the registrations.
+     */
+    void load_registrations();
+        
+    /**
+     * Initialize and load in stored bundles.
+     */
+    void load_bundles();
+        
     /**
      * Main thread function that dispatches events.
      */
@@ -347,6 +360,9 @@ protected:
     /// The active bundle actions handler
     BundleActions* actions_;
 
+    /// The administrative registration
+    AdminRegistration* admin_reg_;
+
     /// The contact manager
     ContactManager* contactmgr_;
 
@@ -375,6 +391,8 @@ protected:
     u_int32_t bundles_generated_;
     u_int32_t bundles_transmitted_;
     u_int32_t bundles_expired_;
+
+    u_int32_t events_processed_;
 
     /// Application-specific shutdown handler
     ShutdownProc app_shutdown_proc_;

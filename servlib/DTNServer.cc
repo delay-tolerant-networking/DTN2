@@ -105,30 +105,14 @@ DTNServer::init()
 void
 DTNServer::start()
 {
-    start_datastore();
-
-    BundleRouter* router;
-    router = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
-
+    init_datastore();
     BundleDaemon* daemon = BundleDaemon::instance();
-    daemon->set_router(router);
-
-    // This has to be first because it checks for datastore version
-    GlobalStore::instance()->load(); 
-    BundleStore::instance()->load();
-    RegistrationStore::instance()->load();
-    
-    // XXX/demmer this needs a better place
-    new AdminRegistration();
-
-    router->initialize();
     daemon->start();
-    
     log_debug("started dtn server");
 }
 
 void
-DTNServer::start_datastore()
+DTNServer::init_datastore()
 {
     if (storage_config_->tidy_) 
     {
@@ -159,6 +143,10 @@ DTNServer::start_datastore()
         log_crit("error initializing data store");
         exit(1);
     }
+
+    // load in the global store here since that will check the
+    // database version and exit if there's a mismatch
+    GlobalStore::instance()->load(); 
 }
  
 void

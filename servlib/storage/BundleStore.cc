@@ -73,64 +73,6 @@ BundleStore::do_init(const oasys::StorageConfig& cfg,
 
     return 0;
 }
-
-bool
-BundleStore::load()
-{
-    Bundle* bundle;
-    int err;
-    
-    log_debug("Loading existing bundles from database.");
-
-    // load existing stored bundles
-    oasys::DurableIterator* iter = store_->iter();
-
-    while (1) {
-        oasys::IntShim key(-1);
-        
-        err = iter->next();
-        if (err == oasys::DS_NOTFOUND)
-        {
-            break; // all done
-        }
-        else if (err != 0)
-        {
-            log_err("BundleStore::load: error in iterator next");
-            return false;
-        }
-        
-        
-        err = iter->get_key(&key);
-        if (err != 0)
-        {
-            log_err("BundleStore::load: error in iterator get");
-            return false;
-        }
-        
-        if (key.value() == -1)
-        {
-            log_err("BundleStore::load: error extracting key value");
-            return false;
-        }
-
-        err = store_->get(key, &bundle);
-        if (err != 0)
-        {
-            log_err("BundleStore::load: error retrieving bundle");
-            return false;
-        }
-        
-        ASSERT(bundle);
-        bundle->payload_.init_from_store(bundle->bundleid_);
-
-        BundleDaemon::post(new BundleReceivedEvent(bundle, EVENTSRC_STORE));
-    }
-
-    delete iter;
-    
-    return true;
-}
-
 BundleStore::~BundleStore()
 {
 }
@@ -138,7 +80,7 @@ BundleStore::~BundleStore()
 bool
 BundleStore::add(Bundle* bundle)
 {
-    int err = store_->put(oasys::IntShim(bundle->bundleid_), bundle,
+    int err = store_->put(oasys::UIntShim(bundle->bundleid_), bundle,
                           oasys::DS_CREATE | oasys::DS_EXCL);
 
     if (err == oasys::DS_EXISTS) {
@@ -153,10 +95,28 @@ BundleStore::add(Bundle* bundle)
     return true;
 }
 
+Bundle*
+BundleStore::get(u_int32_t bundle_id)
+{
+    Bundle* bundle = NULL;
+    int err = store_->get(oasys::UIntShim(bundle_id), &bundle);
+    if (err == oasys::DS_NOTFOUND) {
+        log_warn("BundleStore::get(%d): bundle doesn't exist", bundle_id);
+        return NULL;
+    }
+
+    ASSERTF(err == 0, "BundleStore::get(%d): internal database error", bundle_id);
+
+    ASSERT(bundle != NULL);
+    ASSERT(bundle->bundleid_ == bundle_id);
+    bundle->payload_.init_from_store(bundle_id);
+    return bundle;
+}
+
 bool
 BundleStore::update(Bundle* bundle)
 {
-    int err = store_->put(oasys::IntShim(bundle->bundleid_), bundle, 0);
+    int err = store_->put(oasys::UIntShim(bundle->bundleid_), bundle, 0);
 
     if (err == oasys::DS_NOTFOUND) {
         log_err("update bundle *%p: bundle doesn't exist", bundle);
@@ -171,9 +131,9 @@ BundleStore::update(Bundle* bundle)
 }
 
 bool
-BundleStore::del(int bundle_id)
+BundleStore::del(u_int32_t bundle_id)
 {
-    int err = store_->del(oasys::IntShim(bundle_id));
+    int err = store_->del(oasys::UIntShim(bundle_id));
     if (err != 0) {
         log_err("del bundle %d: %s", bundle_id,
                 (err == oasys::DS_NOTFOUND) ?
@@ -194,4 +154,49 @@ BundleStore::close()
     store_ = NULL;
 }
 
+BundleStore::iterator*
+BundleStore::new_iterator()
+{
+    return new BundleStore::iterator(store_->iter());
+}
+
+BundleStore::iterator::iterator(oasys::DurableIterator* iter)
+    : iter_(iter), cur_bundleid_(0)
+{
+}
+
+BundleStore::iterator::~iterator()
+{
+    delete iter_;
+    iter_ = NULL;
+}
+
+int
+BundleStore::iterator::next()
+{
+    int err = iter_->next();
+    if (err == oasys::DS_NOTFOUND)
+    {
+        return err; // all done
+    }
+    
+    else if (err != oasys::DS_OK)
+    {
+        __log_err("/storage/bundles", "error in iterator next");
+        return err;
+    }
+
+    oasys::UIntShim key;
+    err = iter_->get_key(&key);
+    if (err != 0)
+    {
+        __log_err("/storage/bundles", "error in iterator get");
+        return oasys::DS_ERR;
+    }
+    
+    cur_bundleid_ = key.value();
+    return oasys::DS_OK;
+}
+
 } // namespace dtn
+

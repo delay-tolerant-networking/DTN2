@@ -112,6 +112,7 @@ BundleCommand::help_string()
         "        expiration=integer\n"
         "        length=integer\n"
         "bundle stats \n"
+        "bundle daemon_stats \n"
         "bundle reset_stats \n"
         "bundle list \n"
         "bundle info <id>\n"
@@ -166,9 +167,11 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         b->expiration_        = options.expiration_;
 
         if (options.length_ != 0) {
-            // explicit length
+            // explicit length but some of the data may just be left
+            // as garbage
             b->payload_.set_length(options.length_);
             b->payload_.append_data(payload_data, payload_len);
+            b->payload_.close_file();
         } else {
             // use the object length
             b->payload_.set_data(payload_data, payload_len);
@@ -197,12 +200,18 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         
     } else if (!strcmp(cmd, "stats")) {
         oasys::StringBuffer buf("Bundle Statistics: ");
-        BundleDaemon::instance()->get_statistics(&buf);
+        BundleDaemon::instance()->get_bundle_stats(&buf);
+        set_result(buf.c_str());
+        return TCL_OK;
+
+    } else if (!strcmp(cmd, "daemon_stats")) {
+        oasys::StringBuffer buf("Bundle Daemon Statistics: ");
+        BundleDaemon::instance()->get_daemon_stats(&buf);
         set_result(buf.c_str());
         return TCL_OK;
 
     } else if (!strcmp(cmd, "reset_stats")) {
-        BundleDaemon::instance()->reset_statistics();
+        BundleDaemon::instance()->reset_stats();
         return TCL_OK;
         
     } else if (!strcmp(cmd, "list")) {

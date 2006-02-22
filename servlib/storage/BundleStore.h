@@ -44,6 +44,7 @@
 namespace oasys {
 template<typename _Type> class SingleTypeDurableTable;
 class StorageConfig;
+class DurableIterator;
 class DurableStore;
 }
 
@@ -103,11 +104,6 @@ public:
     ~BundleStore();
 
     /**
-     * Load in the stored bundles
-     */
-    bool load();
-
-    /**
      * Close (and flush) the data store.
      */
     void close();
@@ -118,6 +114,11 @@ public:
     bool add(Bundle* bundle);
 
     /**
+     * Get a new bundle from the store.
+     */
+    Bundle* get(u_int32_t bundle_id);
+
+    /**
      * Update a bundle's contents in the data store.
      */
     bool update(Bundle* bundle);
@@ -125,7 +126,49 @@ public:
     /**
      * Remove the bundle (by id) from the data store.
      */
-    bool del(int bundle_id);
+    bool del(u_int32_t bundle_id);
+
+    /**
+     * Iterator class used to loop through the keys (i.e. bundle ids)
+     * in the store.
+     */
+    class iterator {
+    public:
+        /**
+         * Destructor that cleans up the internal iterator as well.
+         */
+        virtual ~iterator();
+
+        /**
+         * Advances the iterator.
+         *
+         * @return DS_OK, DS_NOTFOUND if no more elements, DS_ERR if
+         * an error occurred while iterating.
+         */
+        int next();
+
+        /**
+         * Return the bundle id at the current location.
+         */
+        u_int32_t cur_bundleid() { return cur_bundleid_; }
+
+    private:
+        friend class BundleStore;
+
+        /// Private constructor, used only by the BundleStore.
+        iterator(oasys::DurableIterator* iter);
+
+        /// The underlying iterator
+        oasys::DurableIterator* iter_;
+
+        /// Cache of the current bundle id
+        u_int32_t cur_bundleid_;
+    };
+
+    /**
+     * Return a new iterator.
+     */
+    iterator* new_iterator();
     
 protected:
     oasys::SingleTypeDurableTable<Bundle>* store_;

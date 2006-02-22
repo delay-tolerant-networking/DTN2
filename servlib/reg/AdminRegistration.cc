@@ -54,7 +54,6 @@ AdminRegistration::AdminRegistration()
                    0)
 {
     logpathf("/reg/admin");
-    BundleDaemon::post(new RegistrationAddedEvent(this));
 }
 
 void

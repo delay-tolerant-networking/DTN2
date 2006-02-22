@@ -65,11 +65,11 @@ public:
      */
     void init();
 
+    //! Initialize the datastore (used to create an empty database)
+    void init_datastore();
+
     //! Start DTN daemon
     void start();
-
-    //! Start just the datastore (used to create an empty database)
-    void start_datastore();
 
     //! Parse the conf file
     void parse_conf_file(std::string& conf_file,
@@ -104,11 +104,6 @@ private:
      * Initialize all components before modifying any configuration.
      */
     void init_components();
-
-    /**
-     * Post configuration, initialize the datastore.
-     */
-    void init_datastore();
 
     /**
      * Close and sync the data store.

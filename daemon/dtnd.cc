@@ -254,7 +254,7 @@ main(int argc, char* argv[])
     // If we're running as --init-db, make an empty database and exit
     if (g_storage_config.init_ && !g_storage_config.tidy_)
     {
-        dtnserver->start_datastore();
+        dtnserver->init_datastore();
         delete_z(dtnserver);
 
         log_info("/dtnd", "database initialization complete.");
