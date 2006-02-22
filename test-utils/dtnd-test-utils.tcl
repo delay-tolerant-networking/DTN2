@@ -88,8 +88,6 @@ proc sendbundle {source_eid dest_eid args} {
 
     set payload ""
     if {$length != 0} {
-        set payload "test bundle payload data\n"
-
         while {$length - [string length $payload] > 32} {
             append payload [format "%4d: 0123456789abcdef\n" \
     		[string length $payload]]
