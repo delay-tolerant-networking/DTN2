@@ -25,6 +25,7 @@ set tests(basic) {
     "tcp-bogus-link.tcl"	""
     "tcp-writeblocked.tcl"	""
     "reactive-fragmentation.tcl"	""
+    "many-bundles.tcl"		""
 }
 
 # the performance test group
