@@ -11,7 +11,7 @@ proc tell_dtnd {id args} {
 }
 
 namespace eval dtn {
-    proc run_dtnd { id {other_opts ""} } {
+    proc run_dtnd { id {other_opts "-t"} } {
 	global opt net::host net::portbase net::extra test::testname
 	
 	if {$id == "*"} {
@@ -22,7 +22,7 @@ namespace eval dtn {
 	    return $pids
 	}
 	
-	set exec_opts "-i $id -t -c $test::testname.conf"
+	set exec_opts "-i $id -c $test::testname.conf"
 	if {! $opt(xterm)} {
 	    append exec_opts " -d"
 	}	    
