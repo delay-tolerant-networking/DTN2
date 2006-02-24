@@ -112,6 +112,12 @@ proc mote_proxy_chan_readable {chan} {
     set byte [read $chan 1]
     binary scan $byte c length
 
+    if [eof $chan] {
+	log /mote-proxy warn "eof on mote proxy channel"
+	close $chan
+	return
+    }
+
     log /mote-proxy debug "mote proxy channel read length byte $length"
 
     set data [read $chan $length]
