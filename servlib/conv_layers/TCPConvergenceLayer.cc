@@ -1929,15 +1929,9 @@ TCPConvergenceLayer::Connection::send_loop()
                 return;
             }
 
-            //sock_poll->revents often returns a POLLNVAL 
-            //when links have high packet loss or frequent 
-            //periods of disconnection.  Need to do something 
-            //other than PANIC in this case.  Logging for now.
-
             if (sock_poll->revents & POLLNVAL)
             {
-                log_info("send_loop: remote connection error (POLLNVAL)");
-                break_contact(ContactEvent::BROKEN);
+                PANIC("send_loop: sock_poll->revents returned with POLLNVAL (0x%x)", sock_poll->revents);
                 return;
             }
 
@@ -1956,7 +1950,7 @@ TCPConvergenceLayer::Connection::send_loop()
         if (cc == oasys::IOTIMEOUT) {
             log_debug("timeout from poll, sending keepalive");
             ASSERT(params_.keepalive_interval_ != 0);
-            send_keepalive();
+            if ( send_keepalive() == false ) return;
             continue;
         }
 
