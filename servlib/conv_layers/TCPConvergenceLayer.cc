@@ -1928,6 +1928,19 @@ TCPConvergenceLayer::Connection::send_loop()
                 break_contact(ContactEvent::BROKEN);
                 return;
             }
+
+            //sock_poll->revents often returns a POLLNVAL 
+            //when links have high packet loss or frequent 
+            //periods of disconnection.  Need to do something 
+            //other than PANIC in this case.  Logging for now.
+
+            if (sock_poll->revents & POLLNVAL)
+            {
+                log_info("send_loop: remote connection error (POLLNVAL)");
+                break_contact(ContactEvent::BROKEN);
+                return;
+            }
+
             
             if (! (sock_poll->revents & POLLIN)) {
                 PANIC("unknown revents value 0x%x", sock_poll->revents);
