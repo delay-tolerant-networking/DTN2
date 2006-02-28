@@ -231,6 +231,8 @@ public:
         u_int test_write_delay_;	///< Msecs to sleep between write calls
     };
 
+    void dump_params(Params* params);
+
     /**
      * Default parameters.
      */
