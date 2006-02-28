@@ -126,7 +126,7 @@ public:
                  Bundle* bundle, Link* link);
 
     /** Virtual timeout function */
-    void timeout(struct timeval* now);
+    void timeout(const struct timeval& now);
 
     ///< The bundle for whom the the timer refers
     BundleRef bundle_;

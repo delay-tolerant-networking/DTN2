@@ -138,7 +138,7 @@ protected:
         ExpirationTimer(Registration* reg)
             : reg_(reg) {}
 
-        virtual void timeout(struct timeval* now);
+        void timeout(const struct timeval& now);
         
         Registration* reg_;
     };

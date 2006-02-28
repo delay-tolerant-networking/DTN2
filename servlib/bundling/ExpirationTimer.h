@@ -60,7 +60,7 @@ public:
     BundleRef bundleref_;
     
 protected:
-    void timeout(struct timeval* now);
+    void timeout(const struct timeval& now);
 
 };
 
