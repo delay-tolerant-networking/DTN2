@@ -20,6 +20,9 @@ if {[llength $argv] < 1} {
     real_exit
 }
 
+# no buffering for stdout
+fconfigure stdout -buffering none
+
 # default args
 set defaults [list -net localhost]
 set argv [concat $defaults $argv]
