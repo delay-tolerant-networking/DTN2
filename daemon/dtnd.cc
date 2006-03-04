@@ -82,16 +82,8 @@ oasys::ConsoleCommand g_console;
 oasys::StorageConfig
    g_storage_config("storage",		// command name
                     "berkeleydb",	// storage type
-                    false,		// init storage
-                    false,		// tidy storage
-                    3,			// tidy wait (seconds)
-                    true,               // .ds_clean file on shutdown
                     "DTN",		// DB name
-                    "/var/dtn/db",	// DB directory
-                    0,			// DB flags
-                    1000,		// BDB max tx
-                    5000,		// BDB lock detect freq.
-                    false);		// BDB share file
+                    "/var/dtn/db");	// DB directory
 
 void
 get_options(int argc, char* argv[])
@@ -240,6 +232,9 @@ main(int argc, char* argv[])
     // stop thread creation b/c of initialization dependencies
     oasys::Thread::activate_start_barrier();
     oasys::TimerSystem::instance()->start();
+
+    // override defaults from oasys storage config
+    g_storage_config.db_max_tx_ = 1000;
     
     DTNServer* dtnserver = new DTNServer(&g_storage_config);
     APIServer* apiserver = new APIServer();

@@ -57,10 +57,17 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
     bind_s("dbdir",	&cfg->dbdir_,  "The database directory.");
     bind_s("payloaddir",&BundlePayload::payloaddir_,
         "directory for payloads while in transit");
-    bind_i("dbtxmax",   &cfg->dbtxmax_, "max # of active transactions in Berkeley DB");
-    bind_i("dblockdetect",   &cfg->dblockdetect_,
+    bind_i("db_max_tx",   &cfg->db_max_tx_,
+           "max # of active transactions in Berkeley DB");
+    bind_i("db_max_locks", &cfg->db_max_locks_,
+           "max # of active locks in Berkeley DB");
+    bind_i("db_max_lockers", &cfg->db_max_lockers_,
+           "max # of active locking threads in Berkeley DB");
+    bind_i("db_max_lockedobjs", &cfg->db_max_lockedobjs_,
+           "max # of active locked objects in Berkeley DB");
+    bind_i("db_lockdetect",   &cfg->db_lockdetect_,
            "frequency to check for Berkeley DB deadlocks (zero disables locking)");
-    bind_b("dbsharefile", &cfg->dbsharefile_, "use shared database file");
+    bind_b("db_sharefile", &cfg->db_sharefile_, "use shared database file");
 }
 
 } // namespace dtn
