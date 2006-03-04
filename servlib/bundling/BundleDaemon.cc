@@ -1292,15 +1292,23 @@ BundleDaemon::load_bundles()
     BundleStore* bundle_store = BundleStore::instance();
     BundleStore::iterator* iter = bundle_store->new_iterator();
 
+    log_notice("loading bundles from data store");
+    BundleEvent* event;
     while (iter->next() == 0) {
         bundle = bundle_store->get(iter->cur_bundleid());
         if (bundle == NULL) {
-            log_err("error loading bundle %d from data store", iter->cur_bundleid());
+            log_err("error loading bundle %d from data store",
+                    iter->cur_bundleid());
             continue;
         }
         
         BundleReceivedEvent e(bundle, EVENTSRC_STORE);
         handle_event(&e);
+
+        while (eventq_->try_pop(&event)) {
+            handle_event(event);
+            delete event;
+        }
     }
 
     delete iter;
