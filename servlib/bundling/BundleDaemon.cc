@@ -94,6 +94,7 @@ BundleDaemon::do_init()
 {
     actions_ = new BundleActions();
     eventq_ = new oasys::MsgQueue<BundleEvent*>(logpath_);
+    eventq_->disable_notify();
 }
 
 //----------------------------------------------------------------------
@@ -1293,7 +1294,6 @@ BundleDaemon::load_bundles()
     BundleStore::iterator* iter = bundle_store->new_iterator();
 
     log_notice("loading bundles from data store");
-    BundleEvent* event;
     while (iter->next() == 0) {
         bundle = bundle_store->get(iter->cur_bundleid());
         if (bundle == NULL) {
@@ -1305,10 +1305,10 @@ BundleDaemon::load_bundles()
         BundleReceivedEvent e(bundle, EVENTSRC_STORE);
         handle_event(&e);
 
-        while (eventq_->try_pop(&event)) {
-            handle_event(event);
-            delete event;
-        }
+        // in the constructor, we disabled notifiers on the event
+        // queue, so in case loading triggers other events, we just
+        // let them queue up and handle them later when we're done
+        // loading all the bundles
     }
 
     delete iter;
