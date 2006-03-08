@@ -237,6 +237,12 @@ TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
                       bundle->dest_.c_str(), (*iter)->next_hop_->name(),
                       ForwardingInfo::state_to_str(info.state_));
             continue;
+        } else if (info.state_ == ForwardingInfo::TRANSMIT_FAILED) {
+            log_debug("fwd_to_matching %s: "
+                      "found match %s: forwarding log entry %s RETRYFWD %d",
+                      bundle->dest_.c_str(), (*iter)->next_hop_->name(),
+                      ForwardingInfo::state_to_str(info.state_),
+                      bundle->bundleid_);
         } else {
             log_debug("fwd_to_matching %s: "
                       "found match %s: forwarding log entry %s",
