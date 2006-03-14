@@ -41,7 +41,7 @@ test::script {
     dtn::wait_for_bundle 0 "$source,$timestamp" 5000
     
     puts "* sanity checking stats"
-    dtn::wait_for_stat 0 1 received 5000
+    dtn::wait_for_bundle_stat 0 1 received 5000
 
     puts "* checking that link is open"
     dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
@@ -72,7 +72,7 @@ test::script {
     dtn::wait_for_bundle 0 "$source,$timestamp" 5000
     
     puts "* sanity checking stats"
-    dtn::wait_for_stat 0 2 received 5000
+    dtn::wait_for_bundle_stat 0 2 received 5000
 
     puts "* waiting for the idle timer to close the link"
     dtn::wait_for_link_state 2 tcp-link:2-1 AVAILABLE
