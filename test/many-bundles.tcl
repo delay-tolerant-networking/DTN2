@@ -40,7 +40,7 @@ test::script {
     }
 
     puts "* Checking that all the bundles are queued"
-    dtn::wait_for_stats 0 "$count pending"
+    dtn::wait_for_bundle_stats 0 "$count pending"
 
     puts "* Restarting dtnd 0"
     dtn::stop_dtnd 0
@@ -48,7 +48,7 @@ test::script {
 
     puts "* Checking that all bundles were re-read from the database"
     dtn::wait_for_dtnd 0
-    dtn::wait_for_stats 0 "$count pending"
+    dtn::wait_for_bundle_stats 0 "$count pending"
 
     puts "* Starting dtnd 1"
     dtn::run_dtnd 1
@@ -58,8 +58,8 @@ test::script {
     dtn::tell_dtnd 0 link open $clayer-link:0-1
 
     puts "* Waiting for all bundles to flow"
-    dtn::wait_for_stats 0 "0 pending" [expr 10000 + ($count * 100)]
-    dtn::wait_for_stats 1 "$count pending"  [expr 10000 + ($count * 100)]
+    dtn::wait_for_bundle_stats 0 "0 pending" [expr 10000 + ($count * 100)]
+    dtn::wait_for_bundle_stats 1 "$count pending"  [expr 10000 + ($count * 100)]
 
     puts "* Starting dtnd 2 and 3"
     dtn::run_dtnd 2
@@ -75,9 +75,9 @@ test::script {
     dtn::tell_dtnd 1 link open $clayer-link:1-2
 
     puts "* Waiting for all bundles to be delivered"
-    dtn::wait_for_stats 1 "0 pending"  [expr 10000 + ($count * 100)]
-    dtn::wait_for_stats 2 "0 pending"  [expr 10000 + ($count * 100)]
-    dtn::wait_for_stats 3 "$count delivered"  [expr 10000 + ($count * 100)]
+    dtn::wait_for_bundle_stats 1 "0 pending"  [expr 10000 + ($count * 100)]
+    dtn::wait_for_bundle_stats 2 "0 pending"  [expr 10000 + ($count * 100)]
+    dtn::wait_for_bundle_stats 3 "$count delivered"  [expr 10000 + ($count * 100)]
 
     puts "* Waiting for receiver to complete"
     run::wait_for_pid_exit 3 $rcvpid

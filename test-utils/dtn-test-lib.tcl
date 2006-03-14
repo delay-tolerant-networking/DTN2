@@ -193,7 +193,7 @@ namespace eval dtn {
 	return true
     }
 
-    proc wait_for_stat {id val stat_type {timeout 30000}} {
+    proc wait_for_bundle_stat {id val stat_type {timeout 30000}} {
 	do_until "in wait for node $id's stat $stat_type = $val" $timeout {
 	    if {[test_bundle_stats $id $val $stat_type]} {
 		break
@@ -203,7 +203,7 @@ namespace eval dtn {
 
     # separate procedure because this one requires an explicit list
     # argument to allow for optional timeout argument
-    proc wait_for_stats {id stat_list {timeout 30000}} {
+    proc wait_for_bundle_stats {id stat_list {timeout 30000}} {
 	foreach {val stat_type} $stat_list {
 	    do_until "in wait for node $id's stat $stat_type = $val" $timeout {
 		if {[test_bundle_stats $id $val $stat_type]} {

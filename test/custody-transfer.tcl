@@ -30,16 +30,16 @@ test::script {
     set timestamp [dtn::tell_dtnd 0 sendbundle $src $dst custody]
 
     puts "* checking that node 0 got the bundle"
-    dtn::wait_for_stats 0 {1 received 0 transmitted}
-    dtn::wait_for_stats 1 {0 received 0 transmitted}
-    dtn::wait_for_stats 2 {0 received 0 transmitted}
-    dtn::wait_for_stats 3 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 0 {1 received 0 transmitted}
+    dtn::wait_for_bundle_stats 1 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 2 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 3 {0 received 0 transmitted}
 
     puts "* checking that node 0 took custody"
-    dtn::wait_for_stats 0 {1 pending 1 custody}
-    dtn::wait_for_stats 1 {0 pending 0 custody}
-    dtn::wait_for_stats 2 {0 pending 0 custody}
-    dtn::wait_for_stats 3 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 0 {1 pending 1 custody}
+    dtn::wait_for_bundle_stats 1 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 2 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
     puts "* opening backward links"
     dtn::tell_dtnd 3 link open tcp-link:3-2
@@ -55,27 +55,27 @@ test::script {
     dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
 
     puts "* checking that custody was transferred"
-    dtn::wait_for_stats 0 {2 received 1 transmitted}
-    dtn::wait_for_stats 1 {1 received 1 generated 1 transmitted}
-    dtn::wait_for_stats 2 {0 received 0 transmitted}
-    dtn::wait_for_stats 3 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 0 {2 received 1 transmitted}
+    dtn::wait_for_bundle_stats 1 {1 received 1 generated 1 transmitted}
+    dtn::wait_for_bundle_stats 2 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 3 {0 received 0 transmitted}
     
-    dtn::wait_for_stats 0 {0 pending 0 custody}
-    dtn::wait_for_stats 1 {1 pending 1 custody}
-    dtn::wait_for_stats 2 {0 pending 0 custody}
-    dtn::wait_for_stats 3 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 1 {1 pending 1 custody}
+    dtn::wait_for_bundle_stats 2 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
     puts "* open the rest of the links, check delivery"
     dtn::tell_dtnd 1 link open tcp-link:1-2
     dtn::tell_dtnd 2 link open tcp-link:2-3
 
-    dtn::wait_for_stats 3 {1 delivered}
+    dtn::wait_for_bundle_stats 3 {1 delivered}
     dtn::wait_for_bundle 3 "$src,$timestamp" 30000
     
-    dtn::wait_for_stats 0 {0 pending 0 custody}
-    dtn::wait_for_stats 1 {0 pending 0 custody}
-    dtn::wait_for_stats 2 {0 pending 0 custody}
-    dtn::wait_for_stats 3 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 1 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 2 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
     puts "*"
     puts "* Test 2: custody timer retransmission"
@@ -91,57 +91,57 @@ test::script {
     puts "* sending another bundle, checking that node 1 has custody"
     set timestamp [dtn::tell_dtnd 0 sendbundle $src $dst custody]
     
-    dtn::wait_for_stats 0 {2 received 1 transmitted}
-    dtn::wait_for_stats 1 {1 received 1 generated 1 transmitted}
-    dtn::wait_for_stats 2 {0 received 0 transmitted}
-    dtn::wait_for_stats 3 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 0 {2 received 1 transmitted}
+    dtn::wait_for_bundle_stats 1 {1 received 1 generated 1 transmitted}
+    dtn::wait_for_bundle_stats 2 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 3 {0 received 0 transmitted}
     
-    dtn::wait_for_stats 0 {0 pending 0 custody}
-    dtn::wait_for_stats 1 {1 pending 1 custody}
-    dtn::wait_for_stats 2 {0 pending 0 custody}
-    dtn::wait_for_stats 3 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 1 {1 pending 1 custody}
+    dtn::wait_for_bundle_stats 2 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
     puts "* adding route to null on node 1, checking transmitted"
     eval dtn::tell_dtnd 1 route add $dst_route null $custody_timer_opts
 
-    dtn::wait_for_stats 0 {2 received 1 transmitted}
-    dtn::wait_for_stats 1 {1 received 1 generated 2 transmitted}
-    dtn::wait_for_stats 2 {0 received 0 transmitted}
-    dtn::wait_for_stats 3 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 0 {2 received 1 transmitted}
+    dtn::wait_for_bundle_stats 1 {1 received 1 generated 2 transmitted}
+    dtn::wait_for_bundle_stats 2 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 3 {0 received 0 transmitted}
     
-    dtn::wait_for_stats 0 {0 pending 0 custody}
-    dtn::wait_for_stats 1 {1 pending 1 custody}
-    dtn::wait_for_stats 2 {0 pending 0 custody}
-    dtn::wait_for_stats 3 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 1 {1 pending 1 custody}
+    dtn::wait_for_bundle_stats 2 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
     puts "* waiting for a couple retransmissions"
 
-    dtn::wait_for_stats 0 {2 received 1 transmitted}
-    dtn::wait_for_stats 1 {1 received 4 transmitted}
-    dtn::wait_for_stats 2 {0 received 0 transmitted}
-    dtn::wait_for_stats 3 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 0 {2 received 1 transmitted}
+    dtn::wait_for_bundle_stats 1 {1 received 4 transmitted}
+    dtn::wait_for_bundle_stats 2 {0 received 0 transmitted}
+    dtn::wait_for_bundle_stats 3 {0 received 0 transmitted}
     
-    dtn::wait_for_stats 0 {0 pending 0 custody}
-    dtn::wait_for_stats 1 {1 pending 1 custody}
-    dtn::wait_for_stats 2 {0 pending 0 custody}
-    dtn::wait_for_stats 3 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 1 {1 pending 1 custody}
+    dtn::wait_for_bundle_stats 2 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
     puts "* switching route back, waiting for retransmission and delivery"
     dtn::tell_dtnd 1 route del $dst_route
     eval dtn::tell_dtnd 1 route add $dst_route tcp-link:1-2 $custody_timer_opts
 
-    dtn::wait_for_stats 0 {2 received 1 transmitted}
-    dtn::wait_for_stats 1 {2 received 5 transmitted}
-    dtn::wait_for_stats 2 {2 received 2 transmitted}
-    dtn::wait_for_stats 3 {1 received 1 transmitted}
+    dtn::wait_for_bundle_stats 0 {2 received 1 transmitted}
+    dtn::wait_for_bundle_stats 1 {2 received 5 transmitted}
+    dtn::wait_for_bundle_stats 2 {2 received 2 transmitted}
+    dtn::wait_for_bundle_stats 3 {1 received 1 transmitted}
     
-    dtn::wait_for_stats 3 {1 delivered}
+    dtn::wait_for_bundle_stats 3 {1 delivered}
     dtn::wait_for_bundle 3 "$src,$timestamp" 30000
     
-    dtn::wait_for_stats 0 {0 pending 0 custody}
-    dtn::wait_for_stats 1 {0 pending 0 custody}
-    dtn::wait_for_stats 2 {0 pending 0 custody}
-    dtn::wait_for_stats 3 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 1 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 2 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
     # XXX/TODO: add support / test cases for:
     #

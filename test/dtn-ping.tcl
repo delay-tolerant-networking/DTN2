@@ -43,7 +43,7 @@ test::script {
     
     for {set i 0} {$i < $last_node} {incr i} {
 	puts "* Checking bundle stats on node $i"
-	dtn::wait_for_stats $i [list $num_pings "delivered" \
+	dtn::wait_for_bundle_stats $i [list $num_pings "delivered" \
 		$num_pings "generated" \
 		[expr $num_pings + ($num_pings * 2 * $i)] "received"] 5000
     }
@@ -51,7 +51,7 @@ test::script {
     # Last node is the ping source so it *also* has N * num_pings
     # locally delivered due to the delivery of the ping responses:
     puts "* Checking bundle stats on node $last_node"
-    dtn::wait_for_stats $last_node [list \
+    dtn::wait_for_bundle_stats $last_node [list \
 	    [expr $num_pings * (1 + $N)]  "delivered" \
 	    $num_pings "generated" \
 	    [expr $num_pings + ($num_pings * 2 * $last_node) ] "received"] 5000
