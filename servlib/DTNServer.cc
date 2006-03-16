@@ -105,13 +105,12 @@ DTNServer::init()
 void
 DTNServer::start()
 {
-    init_datastore();
     BundleDaemon* daemon = BundleDaemon::instance();
     daemon->start();
     log_debug("started dtn server");
 }
 
-void
+bool
 DTNServer::init_datastore()
 {
     if (storage_config_->tidy_) 
@@ -120,20 +119,27 @@ DTNServer::init_datastore()
 
         // remove bundle data directory (the db contents are cleaned
         // up by the implementation)
-        tidy_dir(BundlePayload::payloaddir_.c_str());
+        if (!tidy_dir(BundlePayload::payloaddir_.c_str())) {
+            return false;
+        }
     }
 
     if (storage_config_->init_)
     {
-        init_dir(BundlePayload::payloaddir_.c_str());
+        if (!init_dir(BundlePayload::payloaddir_.c_str())) {
+            return false;
+        }
     }
-    validate_dir(BundlePayload::payloaddir_.c_str());
+
+    if (!validate_dir(BundlePayload::payloaddir_.c_str())) {
+        return false;
+    }
 
     int err = oasys::DurableStore::create_store(*storage_config_,
                                                 &store_);
     if (err != 0) {
-        log_crit("Can't initialize storage system");
-        exit(-1);
+        log_crit("error creating storage system");
+        return false;
     }
 
     if ((GlobalStore::init(*storage_config_, store_)       != 0) || 
@@ -141,15 +147,19 @@ DTNServer::init_datastore()
         (RegistrationStore::init(*storage_config_, store_) != 0))
     {
         log_crit("error initializing data store");
-        exit(1);
+        return false;
     }
 
     // load in the global store here since that will check the
     // database version and exit if there's a mismatch
-    GlobalStore::instance()->load(); 
+    if (!GlobalStore::instance()->load()) {
+        return false;
+    }
+
+    return true;
 }
  
-void
+bool
 DTNServer::parse_conf_file(std::string& conf_file,
                            bool         conf_file_set)
 {
@@ -161,7 +171,7 @@ DTNServer::parse_conf_file(std::string& conf_file,
         {
             log_err("configuration file \"%s\" not readable",
                     conf_file.c_str());
-            exit(1);
+            return false;
         }
     }
     else if (!conf_file_set) 
@@ -187,15 +197,16 @@ DTNServer::parse_conf_file(std::string& conf_file,
 
     if (conf_file.size() == 0) {
         log_info("No config file specified.");
-        return;
+        return false;
     }
 
     log_info("parsing configuration file %s...", conf_file.c_str());
     if (oasys::TclCommandInterp::instance()->exec_file(conf_file.c_str()) != 0)
     {
-        log_err("error in configuration file, exiting...");
-        exit(1);
+        return false;
     }
+
+    return true;
 }
 
 void
@@ -254,7 +265,7 @@ DTNServer::set_app_shutdown(ShutdownProc proc, void* data)
     BundleDaemon::instance()->set_app_shutdown(proc, data);
 }
 
-void
+bool
 DTNServer::init_dir(const char* dirname)
 {
     struct stat st;
@@ -266,17 +277,19 @@ DTNServer::init_dir(const char* dirname)
         if (mkdir(dirname, 0700) != 0) {
             log_crit("can't create directory %s: %s",
                      dirname, strerror(errno));
-            exit(1);
+            return false;
         }
     }
     else if (statret == -1)
     {
         log_crit("invalid path %s: %s", dirname, strerror(errno));
-        exit(1);
+        return false;
     }
+
+    return true;
 }
 
-void
+bool
 DTNServer::tidy_dir(const char* dirname)
 {
     char cmd[256];
@@ -290,7 +303,7 @@ DTNServer::tidy_dir(const char* dirname)
         if (system(cmd))
         {
             log_crit("error removing directory %s", dirname);
-            exit(1);
+            return false;
         }
         
     }
@@ -301,11 +314,13 @@ DTNServer::tidy_dir(const char* dirname)
     else
     {
         log_crit("invalid directory name %s: %s", dirname, strerror(errno));
-        exit(1);
+        return false;
     }
+
+    return true;
 }
 
-void
+bool
 DTNServer::validate_dir(const char* dirname)
 {
     struct stat st;
@@ -317,8 +332,10 @@ DTNServer::validate_dir(const char* dirname)
     else
     {
         log_crit("invalid directory name %s: %s", dirname, strerror(errno));
-        exit(1);
+        return false;
     }
+
+    return true;
 }
 
 } // namespace dtn

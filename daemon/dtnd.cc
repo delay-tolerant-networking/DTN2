@@ -61,80 +61,117 @@ extern const char* dtn_version;
 /**
  * Namespace for the dtn daemon source code.
  */
-namespace dtn {}
+namespace dtn {
 
-using namespace dtn;
+/**
+ * Thin class that implements the daemon itself.
+ */
+class DTND {
+public:
+    DTND();
+    int main(int argc, char* argv[]);
 
-// Configuration variables
-int         g_random_seed      = 0;
-bool        g_random_seed_set  = false;
-bool        g_conf_file_set    = false;
-std::string g_conf_file        = "";
-bool	    g_print_version    = false;
+protected:
+    bool                  daemonize_;
+    int                   daemonize_pipe_[2];
+    int                   random_seed_;
+    bool                  random_seed_set_;
+    std::string           conf_file_;
+    bool                  conf_file_set_;
+    bool                  print_version_;
+    std::string           loglevelstr_;
+    oasys::log_level_t    loglevel_;
+    std::string           logfile_;
+    TestCommand           testcmd_;
+    oasys::ConsoleCommand consolecmd_;
+    oasys::StorageConfig  storage_config_;
 
-std::string        loglevelstr;
-oasys::log_level_t loglevel;
-std::string        logfile     = "-";
+    void get_options(int argc, char* argv[]);
+    void daemonize();
+    void notify_parent(char status);
+    void notify_and_exit(char status);
+    void seed_random();
+    void init_log();
+    void init_testcmd(int argc, char* argv[]);
+    void run_console();
+};
 
-TestCommand g_testcmd;
-oasys::ConsoleCommand g_console;
+//----------------------------------------------------------------------
+DTND::DTND()
+    : daemonize_(false),
+      random_seed_(0),
+      random_seed_set_(false),
+      conf_file_(""),
+      conf_file_set_(false),
+      print_version_(false),
+      loglevelstr_(""),
+      loglevel_(LOG_DEFAULT_THRESHOLD),
+      logfile_("-"),
+      testcmd_(),
+      consolecmd_(),
+      storage_config_("storage",	// command name
+                      "berkeleydb",	// storage type
+                      "DTN",		// DB name
+                      "/var/dtn/db")	// DB directory
+{
+    // override defaults from oasys storage config
+    storage_config_.db_max_tx_ = 1000;
 
-oasys::StorageConfig
-   g_storage_config("storage",		// command name
-                    "berkeleydb",	// storage type
-                    "DTN",		// DB name
-                    "/var/dtn/db");	// DB directory
+    daemonize_pipe_[0] = -1;
+    daemonize_pipe_[1] = -1;
+}
 
+//----------------------------------------------------------------------
 void
-get_options(int argc, char* argv[])
+DTND::get_options(int argc, char* argv[])
 {
     // Register all command line options
     oasys::Getopt::addopt(
-        new oasys::BoolOpt('v', "version", &g_print_version,
+        new oasys::BoolOpt('v', "version", &print_version_,
                            "print version information and exit"));
 
     oasys::Getopt::addopt(
-        new oasys::StringOpt('o', "output", &logfile, "<output>",
+        new oasys::StringOpt('o', "output", &logfile_, "<output>",
                              "file name for logging output "
                              "(default - indicates stdout)"));
 
     oasys::Getopt::addopt(
-        new oasys::StringOpt('l', NULL, &loglevelstr, "<level>",
+        new oasys::StringOpt('l', NULL, &loglevelstr_, "<level>",
                              "default log level [debug|warn|info|crit]"));
 
     oasys::Getopt::addopt(
-        new oasys::StringOpt('c', "conf", &g_conf_file, "<conf>",
-                             "set the configuration file", &g_conf_file_set));
+        new oasys::StringOpt('c', "conf", &conf_file_, "<conf>",
+                             "set the configuration file", &conf_file_set_));
     oasys::Getopt::addopt(
-        new oasys::BoolOpt('d', "daemon", &g_console.daemon_,
+        new oasys::BoolOpt('d', "daemonize", &daemonize_,
                            "run as a daemon"));
 
     oasys::Getopt::addopt(
-        new oasys::BoolOpt('t', "tidy", &g_storage_config.tidy_,
+        new oasys::BoolOpt('t', "tidy", &storage_config_.tidy_,
                            "clear database and initialize tables on startup"));
 
     oasys::Getopt::addopt(
-        new oasys::BoolOpt(0, "init-db", &g_storage_config.init_,
+        new oasys::BoolOpt(0, "init-db", &storage_config_.init_,
                            "initialize database on startup"));
 
     oasys::Getopt::addopt(
-        new oasys::IntOpt('s', "seed", &g_random_seed, "<seed>",
-                          "random number generator seed", &g_random_seed_set));
+        new oasys::IntOpt('s', "seed", &random_seed_, "<seed>",
+                          "random number generator seed", &random_seed_set_));
 
     oasys::Getopt::addopt(
-        new oasys::InAddrOpt(0, "console-addr", &g_console.addr_, "<addr>",
+        new oasys::InAddrOpt(0, "console-addr", &consolecmd_.addr_, "<addr>",
                              "set the console listening addr (default off)"));
     
     oasys::Getopt::addopt(
-        new oasys::UInt16Opt(0, "console-port", &g_console.port_, "<port>",
+        new oasys::UInt16Opt(0, "console-port", &consolecmd_.port_, "<port>",
                              "set the console listening port (default off)"));
     
     oasys::Getopt::addopt(
-        new oasys::IntOpt('i', 0, &g_testcmd.id_, "<id>",
+        new oasys::IntOpt('i', 0, &testcmd_.id_, "<id>",
                           "set the test id"));
     
     oasys::Getopt::addopt(
-        new oasys::BoolOpt('f', 0, &g_testcmd.fork_,
+        new oasys::BoolOpt('f', 0, &testcmd_.fork_,
                            "test scripts should fork child daemons"));
 
     int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
@@ -146,63 +183,165 @@ get_options(int argc, char* argv[])
     }
 }
 
+//----------------------------------------------------------------------
 void
-seed_random(bool seed_set, int seed)
+DTND::daemonize()
+{
+    if (!daemonize_) {
+        return;
+    }
+       
+    /*
+     * If we're running as a daemon, we fork the parent process as
+     * soon as possible, and in particular, before TCL has been
+     * initialized.
+     *
+     * Then, the parent waits on a pipe for the child to notify it as
+     * to whether or not the initialization succeeded.
+     */
+    fclose(stdin);
+    
+    if (pipe(daemonize_pipe_) != 0) {
+        fprintf(stderr, "error creating pipe for daemonize process: %s",
+                strerror(errno));
+        exit(1);
+    }
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        fprintf(stderr, "error forking daemon process: %s",
+                strerror(errno));
+        exit(1);
+    }
+
+    if (pid > 0) {
+        // the parent closes the write half of the pipe, then waits
+        // for the child to return its status on the read half
+        close(daemonize_pipe_[1]);
+        
+        char status;
+        int count = read(daemonize_pipe_[0], &status, 1);
+        if (count != 1) {
+            fprintf(stderr, "error reading from daemon pipe: %s",
+                    strerror(errno));
+            exit(1);
+        }
+
+        close(daemonize_pipe_[1]);
+        exit(status);
+
+    } else {
+        // the child continues on in a new session, closing the
+        // unneeded read half of the pipe
+        close(daemonize_pipe_[0]);
+        setsid();
+    }
+}
+
+//----------------------------------------------------------------------
+void
+DTND::notify_parent(char status)
+{
+    if (daemonize_) {
+        write(daemonize_pipe_[1], &status, 1);
+        close(daemonize_pipe_[1]);
+    }
+}
+
+//----------------------------------------------------------------------
+void
+DTND::notify_and_exit(char status)
+{
+    notify_parent(status);
+    exit(status);
+}
+
+//----------------------------------------------------------------------
+void
+DTND::seed_random()
 {
     // seed the random number generator
-    if (!seed_set) 
+    if (!random_seed_set_) 
     {
         struct timeval tv;
         gettimeofday(&tv, NULL);
-        seed = tv.tv_usec;
+        random_seed_ = tv.tv_usec;
     }
     
-    log_notice("/dtnd", "random seed is %u\n", seed);
-    srand(seed);
+    log_notice("/dtnd", "random seed is %u\n", random_seed_);
+    srand(random_seed_);
 }
 
+//----------------------------------------------------------------------
 void
-init_log(const std::string& loglevelstr)
+DTND::init_log()
 {
     // Parse the debugging level argument
-    if (loglevelstr.length() == 0) 
+    if (loglevelstr_.length() == 0) 
     {
-        loglevel = oasys::LOG_NOTICE;
+        loglevel_ = oasys::LOG_NOTICE;
     }
     else 
     {
-        loglevel = oasys::str2level(loglevelstr.c_str());
-        if (loglevel == oasys::LOG_INVALID) 
+        loglevel_ = oasys::str2level(loglevelstr_.c_str());
+        if (loglevel_ == oasys::LOG_INVALID) 
         {
             fprintf(stderr, "invalid level value '%s' for -l option, "
                     "expected debug | info | warning | error | crit\n",
-                    loglevelstr.c_str());
-            exit(1);
+                    loglevelstr_.c_str());
+            notify_and_exit(1);
         }
     }
-    oasys::Log::init(logfile.c_str(), loglevel, "", "~/.dtndebug");
+    oasys::Log::init(logfile_.c_str(), loglevel_, "", "~/.dtndebug");
     oasys::Log::instance()->add_reparse_handler(SIGHUP);
     oasys::Log::instance()->add_rotate_handler(SIGUSR1);
 
-    if (g_console.daemon_) {
+    if (daemonize_) {
+        if (logfile_ == "-") {
+            fprintf(stderr, "daemon mode requires setting of -o <logfile>\n");
+            notify_and_exit(1);
+        }
+        
         oasys::Log::instance()->redirect_stdio();
     }
 }
 
+//----------------------------------------------------------------------
 void
-init_testcmd(int argc, char* argv[])
+DTND::init_testcmd(int argc, char* argv[])
 {
     for (int i = 0; i < argc; ++i) {
-        g_testcmd.argv_.append(argv[i]);
-        g_testcmd.argv_.append(" ");
+        testcmd_.argv_.append(argv[i]);
+        testcmd_.argv_.append(" ");
     }
 
-    g_testcmd.bind_vars();
-    oasys::TclCommandInterp::instance()->reg(&g_testcmd);
+    testcmd_.bind_vars();
+    oasys::TclCommandInterp::instance()->reg(&testcmd_);
 }
 
+//----------------------------------------------------------------------
+void
+DTND::run_console()
+{
+    // launch the console server
+    if (consolecmd_.port_ != 0) {
+        log_info("/dtnd", "starting console on %s:%d",
+                 intoa(consolecmd_.addr_), consolecmd_.port_);
+        
+        oasys::TclCommandInterp::instance()->
+            command_server("dtn", consolecmd_.addr_, consolecmd_.port_);
+    }
+    
+    if (daemonize_ || (consolecmd_.stdio_ == false)) {
+        oasys::TclCommandInterp::instance()->event_loop();
+    } else {
+        oasys::TclCommandInterp::instance()->command_loop("dtn");
+    }
+}
+
+//----------------------------------------------------------------------
 int
-main(int argc, char* argv[])
+DTND::main(int argc, char* argv[])
 {
 #ifdef OASYS_DEBUG_MEMORY_ENABLED
     oasys::DbgMemInfo::init();
@@ -210,13 +349,15 @@ main(int argc, char* argv[])
 
     get_options(argc, argv);
 
-    if (g_print_version) 
+    if (print_version_) 
     {
         printf("%s\n", dtn_version);
         exit(0);
     }
 
-    init_log(loglevelstr);
+    daemonize();
+
+    init_log();
     
     log_notice("/dtnd", "DTN daemon starting up... (pid %d)", getpid());
     oasys::FatalSignals::init("dtnd");
@@ -224,37 +365,44 @@ main(int argc, char* argv[])
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
         log_crit("/dtnd", "Can't init TCL");
-        exit(1);
+        notify_and_exit(1);
     }
 
-    seed_random(g_random_seed_set, g_random_seed);
+    seed_random();
 
     // stop thread creation b/c of initialization dependencies
     oasys::Thread::activate_start_barrier();
     oasys::TimerSystem::instance()->start();
 
-    // override defaults from oasys storage config
-    g_storage_config.db_max_tx_ = 1000;
-    
-    DTNServer* dtnserver = new DTNServer(&g_storage_config);
+    DTNServer* dtnserver = new DTNServer(&storage_config_);
     APIServer* apiserver = new APIServer();
 
     dtnserver->init();
     apiserver->init();
-    oasys::TclCommandInterp::instance()->reg(&g_console);
+    oasys::TclCommandInterp::instance()->reg(&consolecmd_);
     init_testcmd(argc, argv);
 
-    dtnserver->parse_conf_file(g_conf_file, g_conf_file_set);
-
-    // If we're running as --init-db, make an empty database and exit
-    if (g_storage_config.init_ && !g_storage_config.tidy_)
-    {
-        dtnserver->init_datastore();
-        delete_z(dtnserver);
-
-        log_info("/dtnd", "database initialization complete.");
-        exit(0);
+    if (! dtnserver->parse_conf_file(conf_file_, conf_file_set_)) {
+        log_err("/dtnd", "error in configuration file, exiting...");
+        notify_and_exit(1);
     }
+
+    if (! dtnserver->init_datastore()) {
+        log_err("/dtnd", "error initiaqlizing data store, exiting...");
+        notify_and_exit(1);
+    }
+    
+    // If we're running as --init-db, make an empty database and exit
+    if (storage_config_.init_ && !storage_config_.tidy_)
+    {
+        dtnserver->close_datastore();
+        log_info("/dtnd", "database initialization complete.");
+        notify_and_exit(0);
+    }
+
+    // if we've daemonized, now is the time to notify our parent
+    // process that we've successfully initialized
+    notify_parent(0);
     
     dtnserver->start();
     apiserver->bind_listen_start(APIServer::local_addr_, 
@@ -263,26 +411,24 @@ main(int argc, char* argv[])
 
     // if the test script specified something to run for the test,
     // then execute it now
-    if (g_testcmd.initscript_.length() != 0) {
+    if (testcmd_.initscript_.length() != 0) {
         oasys::TclCommandInterp::instance()->
-            exec_command(g_testcmd.initscript_.c_str());
+            exec_command(testcmd_.initscript_.c_str());
     }
 
-    // launch the console server
-    if (g_console.port_ != 0) {
-        log_info("/dtnd", "starting console on %s:%d",
-                 intoa(g_console.addr_), g_console.port_);
-        
-        oasys::TclCommandInterp::instance()->
-            command_server("dtn", g_console.addr_, g_console.port_);
-    }
-    
-    if (g_console.daemon_) {
-        oasys::TclCommandInterp::instance()->event_loop();
-    } else {
-        oasys::TclCommandInterp::instance()->command_loop("dtn");
-    }
+    run_console();
 
     log_info("/dtnd", "command loop exited... shutting down daemon");
     dtnserver->shutdown();
+    
+    return 0;
+}
+
+} // namespace dtn
+
+int
+main(int argc, char* argv[])
+{
+    dtn::DTND dtnd;
+    return dtnd.main(argc, argv);
 }

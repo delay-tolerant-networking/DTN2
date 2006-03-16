@@ -48,8 +48,7 @@ namespace dtn {
 class APIServer;
 
 /*!
- * Encapsulation class for the "guts" of the server library. All
- * functions and member variables are static.
+ * Encapsulation class for the "guts" of the server library.
  */
 class DTNServer : public oasys::Logger {
 public:
@@ -65,14 +64,17 @@ public:
      */
     void init();
 
-    //! Initialize the datastore (used to create an empty database)
-    void init_datastore();
+    //! Initialize the datastore
+    bool init_datastore();
 
+    //! Close and sync the data store.
+    void close_datastore();
+    
     //! Start DTN daemon
     void start();
 
     //! Parse the conf file
-    void parse_conf_file(std::string& conf_file,
+    bool parse_conf_file(std::string& conf_file,
                          bool         conf_file_set);
 
     //! Shut down the server
@@ -91,9 +93,9 @@ private:
     oasys::DurableStore*  store_;
     APIServer*            api_server_;
 
-    void init_dir(const char* dirname);
-    void tidy_dir(const char* dirname);
-    void validate_dir(const char* dirname);    
+    bool init_dir(const char* dirname);
+    bool tidy_dir(const char* dirname);
+    bool validate_dir(const char* dirname);    
 
     /**
      * Initialize and register all the server related dtn commands.
@@ -104,11 +106,6 @@ private:
      * Initialize all components before modifying any configuration.
      */
     void init_components();
-
-    /**
-     * Close and sync the data store.
-     */
-    void close_datastore();
 };
 
 } // namespace dtn

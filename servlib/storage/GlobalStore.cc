@@ -213,7 +213,7 @@ GlobalStore::load()
 
     if (store_->get(key, &globals_) != 0) {
         log_crit("error loading global data");
-        exit(1);
+        return false;
     }
     ASSERT(globals_ != NULL);
 
@@ -221,7 +221,7 @@ GlobalStore::load()
         log_crit("datastore version mismatch: "
                  "expected version %d, database version %d",
                  CURRENT_VERSION, globals_->version_);
-        exit(1);
+        return false;
     }
 
     loaded_ = true;
