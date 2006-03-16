@@ -91,8 +91,9 @@ typedef enum {
 
     CUSTODY_SIGNAL,		///< Custody transfer signal received
     CUSTODY_TIMEOUT,		///< Custody transfer timer fired
-    
+
     DAEMON_SHUTDOWN,            ///< Shut the daemon down cleanly
+    DAEMON_STATUS,		///< No-op event to check the daemon
 
 } event_type_t;
 
@@ -135,6 +136,7 @@ event_to_str(event_type_t event)
     case CUSTODY_TIMEOUT:	return "CUSTODY_TIMEOUT";
     
     case DAEMON_SHUTDOWN:	return "SHUTDOWN";
+    case DAEMON_STATUS:		return "DAEMON_STATUS";
         
     default:			return "(invalid event type)";
     }
@@ -585,13 +587,23 @@ public:
  * open link states), then cleanly closes the various data
  * stores, then calls exit().
  */
-class ShutdownRequest : public ContactEvent {
+class ShutdownRequest : public BundleEvent {
 public:
-    ShutdownRequest() : ContactEvent(DAEMON_SHUTDOWN)
+    ShutdownRequest() : BundleEvent(DAEMON_SHUTDOWN)
     {
         daemon_only_ = true;
     }
+};
 
+/**
+ * Event class for checking that the daemon is still running.
+ */
+class StatusRequest : public BundleEvent {
+public:
+    StatusRequest() : BundleEvent(DAEMON_STATUS)
+    {
+        daemon_only_ = true;
+    }
 };
 
 } // namespace dtn

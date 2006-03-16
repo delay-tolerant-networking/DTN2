@@ -287,6 +287,7 @@ protected:
     void handle_custody_signal(CustodySignalEvent* event);
     void handle_custody_timeout(CustodyTimeoutEvent* event);
     void handle_shutdown_request(ShutdownRequest* event);
+    void handle_status_request(StatusRequest* event);
     ///@}
 
     typedef BundleProtocol::custody_signal_reason_t custody_signal_reason_t;

@@ -1109,6 +1109,13 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 
 //----------------------------------------------------------------------
 void
+BundleDaemon::handle_status_request(StatusRequest* request)
+{
+    log_info("Received status request");
+}
+
+//----------------------------------------------------------------------
+void
 BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 {
     log_debug("adding bundle *%p to pending list", bundle);

@@ -190,6 +190,11 @@ protected:
      * Default event handler for shutdown requests.
      */
     virtual void handle_shutdown_request(ShutdownRequest* event);
+
+    /**
+     * Default event handler for status requests.
+     */
+    virtual void handle_status_request(StatusRequest* event);
 };
 
 } // namespace dtn

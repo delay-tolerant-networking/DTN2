@@ -41,6 +41,7 @@
 #include <oasys/util/OptParser.h>
 
 #include "BundleCommand.h"
+#include "CompletionNotifier.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
@@ -113,6 +114,7 @@ BundleCommand::help_string()
         "        length=integer\n"
         "bundle stats \n"
         "bundle daemon_stats \n"
+        "bundle daemon_status \n"
         "bundle reset_stats \n"
         "bundle list \n"
         "bundle info <id>\n"
@@ -209,7 +211,11 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         BundleDaemon::instance()->get_daemon_stats(&buf);
         set_result(buf.c_str());
         return TCL_OK;
-
+    } else if (!strcmp(cmd, "daemon_status")) {
+        BundleDaemon::post_and_wait(new StatusRequest(),
+                                    CompletionNotifier::notifier());
+        set_result("DTN daemon ok");
+        return TCL_OK;
     } else if (!strcmp(cmd, "reset_stats")) {
         BundleDaemon::instance()->reset_stats();
         return TCL_OK;

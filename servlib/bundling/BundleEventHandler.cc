@@ -102,6 +102,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_shutdown_request((ShutdownRequest*)e);
         break;
 
+    case DAEMON_STATUS:
+        handle_status_request((StatusRequest*)e);
+        break;
+
     default:
         PANIC("unimplemented event type %d", e->type_);
     }
@@ -284,6 +288,14 @@ BundleEventHandler::handle_custody_timeout(CustodyTimeoutEvent* event)
  */
 void
 BundleEventHandler::handle_shutdown_request(ShutdownRequest* r)
+{
+}
+
+/**
+ * Default event handler for status requests.
+ */
+void
+BundleEventHandler::handle_status_request(StatusRequest* r)
 {
 }
 
