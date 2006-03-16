@@ -335,6 +335,17 @@ DTNServer::validate_dir(const char* dirname)
         return false;
     }
 
+    if (access(dirname, R_OK | W_OK | X_OK) == 0)
+    {
+        log_debug("directory access validated: %s", dirname);
+    }
+    else
+    {
+        log_crit("access failed on directory %s: %s",
+                 dirname, strerror(errno));
+        return false;
+    }
+
     return true;
 }
 
