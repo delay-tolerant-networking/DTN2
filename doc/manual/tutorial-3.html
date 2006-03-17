@@ -7,11 +7,139 @@
 <h1>Building a bigger DTN
 </h1>
 
-In this tutorial, you'll learn how to add more nodes to
-a DTN. <i>But it is not done yet.
-Please see <a href="todo.html"> the to do list</a>
-for information on how you can help.
-</i>
+<p>
+This tutorial will show you how to set up two DTN2 daemons on two separate
+computers and make them talk to one another. 
+
+<h2>Setting up the config files</h2>
+
+<p> You'll be using server config files like the one from the
+<a href="tutorial-1.html">first tutorial</a>. Follow these instructions
+ on both servers, making each refer to the other one.
+
+
+<h3> Routing </h3>
+
+Find the area called Routing
+configuration. Create a route for each daemon like this:
+
+<blockquote><pre>route local_eid dtn://<i>name</i>.dtn</pre></blockquote>
+
+<p>
+Name can be anything you want it to be, provided it is unique for each daemon.
+e.g.  dtn://bob.dtn.  EID stands for Endpoint identifier. These are used to
+identify the sender and the final destination of the bundles.
+
+<h3>Interfaces</h3>
+
+<p>
+We need to modify the interfaces a little. An interface looks for
+bundles directed to that specific daemon. It is also used for routing bundles
+onwards that are not intended for that specific daemon. The <tt>interface</tt>
+command has the following format: 
+
+<blockquote>
+interface add <i>name_of_interface</i> <i>type_of_interface</i>
+local_addr = <i>local address</i> local_port = <i>local port number</i>
+</blockquote>
+
+<p>For example:
+
+<blockquote><pre>interface add tcp0 tcp local_port=5000</pre></blockquote>
+
+<p> tcp0 is merely the name of the interface. It doesn't matter what you choose
+as it's just used to refer back to the interface later on. TCP is the type of
+interface being used. TCP stands for Transmission Control Protocol. It is the
+transport layer protocol we will be using to send our bundles on. There are
+other transport layer protocols we can use but for now we are going to use TCP.
+The local_addr is the address of the computer. It can be an IP address or a
+name. We won't be using the name as we will be using the default IP address on
+the machine. Finally the local_port is the port of the machine that the daemon
+will listen for incoming bundles on. We have changed it to 5000 so that the
+Daemon will know incoming traffic will be going to port 5000
+
+<h3>Links</h3>
+
+<p> Next we have to set up a link between our computers. A link allows the
+daemons to communicate to one another via the correct IP addresses and ports.
+It points the bundles in the direction of the distant computer.
+Go down to the link section in the conf file. Add the following:
+
+<blockquote>
+link add <i>link_name</i> <i>ip address</i>:<i>port number</i> ONDEMAND tcp
+</blockquote>
+
+<p>For example:
+
+<blockquote><pre>link add link_tcp 131.12.45.192:5000 ONDEMAND tcp</pre></blockquote>
+
+<p>
+The link_name is what the link will be called and referenced to. It may be
+called anything. The ip address is the IP address of the computer running the
+other DTN daemon. The computer name on the network can be used, for
+instance if DHCP is in use and we don't know the IP address of the machine. We
+will stick with IP addresses for now. The port number should be the port
+number that the other DTN daemon will listen on.
+
+<h3>Route</h3>
+
+<p> Lastly, add a route for the end point of the daemon. This locates the
+daemon on the other computer. Without it the bundles will not be sent. 
+
+<blockquote>route add <i>name</i> <i>link_name</i></blockquote>
+
+<p> For example:
+
+<blockquote><pre>route add dtn://george.dtn/* link_tcp</pre></blockquote>
+
+Don't forget to add the star. The asterisk is there to make all
+bundles match this route, instead of being mistaken as administrative
+bundles to be processed on the local node.
+
+<h2>Communication: dtnsend and dtnrecv</h2>
+
+Now you're ready to send bundles to and from daemons! Load both daemons up.
+Open a terminal up and go into the dtn2/apps/dtnsend folder or find the dtnsend
+executable.
+Dtnsend is a function of DTN2 that creates bundles and passes
+them to a daemon on the local machine. It also allows you to set options for
+each bundle you wish to create. The dtnsend program communicates with a DTN
+daemon through port 5010 on the local machine. Note that this port number may
+be changed in the configuration of the DTN daemon.
+
+<blockquote>./dtnsend -s <i>name of sender</i> -d <i>name of destination</i>
+	-t <i> type of message to be sent</i>
+	-p <i>name of file being sent/message being sent</i>
+</blockquote>
+
+<p>
+The -t argument can have three values (m, f, or d) for message, file, or date.
+
+<p>
+Use dtnsend to send to one of the daemons. In this example, we'll
+make bob send to george:
+
+<blockquote><pre>./dtnsend -s dtn://bob.dtn/b -d dtn://george.dtn/g -t m -p "Hello george"</pre></blockquote>
+
+<p>
+Notice how I have added an extra part to the daemon's EID in the source and
+destination parameters of the dtnsend command. The g and b are merely there to
+add a path for the bundle. Without the path the receiving
+daemon will interpret the bundle as an administrative bundle. The bundles will
+still go to the daemon indicated by the EID. The name of the extra part to the
+EID doesn't matter. It can be whatever you want it to be. Type bundle list
+into bob's daemon. We should see no bundles there! Then type bundle list into
+george's daemon. A bundle should be waiting there to be retrieved. 
+
+<p>
+To retrieve the bundle, use dtnrecv.  It collects the bundles and delivers the
+message/file/date.  The dtnrecv program will wait indefinitely for new bundles
+to arrive from the DTN daemon. To get out of dtnrecv hit Control-C.
+
+<blockquote><pre>dtn2/apps/dtnrecv/dtnrecv dtn://george.dtn/g</pre></blockquote>
+
+<p>
+The message "Hello george" should be displayed. Success!
 
 </body>
 </html>
