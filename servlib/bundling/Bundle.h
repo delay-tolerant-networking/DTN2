@@ -230,6 +230,7 @@ public:
     bool is_admin_;		///< Administrative record bundle
     bool do_not_fragment_;	///< Bundle shouldn't be fragmented
     bool custody_requested_;	///< Custody requested
+    bool singleton_dest_;	///< Destination endpoint is a singleton
     u_int8_t priority_;		///< Bundle priority
     bool receive_rcpt_;		///< Hop by hop reception receipt
     bool custody_rcpt_;		///< Custody xfer reporting

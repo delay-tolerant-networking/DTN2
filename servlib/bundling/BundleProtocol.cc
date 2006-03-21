@@ -546,7 +546,9 @@ BundleProtocol::format_bundle_flags(const Bundle* bundle)
         flags |= BUNDLE_CUSTODY_XFER_REQUESTED;
     }
 
-    // XXX/demmer what about singleton destinations??
+    if (bundle->singleton_dest_) {
+        flags |= BUNDLE_SINGLETON_DESTINATION;
+    }
 
     return flags;
 }
@@ -568,6 +570,10 @@ BundleProtocol::parse_bundle_flags(Bundle* bundle, u_int8_t flags)
 
     if (flags & BUNDLE_CUSTODY_XFER_REQUESTED) {
 	bundle->custody_requested_ = true;
+    }
+
+    if (flags & BUNDLE_SINGLETON_DESTINATION) {
+	bundle->singleton_dest_ = true;
     }
 }
 

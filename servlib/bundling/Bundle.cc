@@ -58,6 +58,7 @@ Bundle::init(u_int32_t id)
     is_reactive_fragment_ = false;
     custody_requested_	= false;
     local_custody_      = false;
+    singleton_dest_     = true;
     priority_		= COS_NORMAL;
     receive_rcpt_	= false;
     custody_rcpt_	= false;
@@ -143,6 +144,7 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("          priority: %d\n", priority_);
     buf->appendf(" custody_requested: %s\n", bool_to_str(custody_requested_));
     buf->appendf("     local_custody: %s\n", bool_to_str(local_custody_));
+    buf->appendf("    singleton_dest: %s\n", bool_to_str(singleton_dest_));
     buf->appendf("      receive_rcpt: %s\n", bool_to_str(receive_rcpt_));
     buf->appendf("      custody_rcpt: %s\n", bool_to_str(custody_rcpt_));
     buf->appendf("      forward_rcpt: %s\n", bool_to_str(forward_rcpt_));
@@ -175,6 +177,7 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("priority", &priority_);
     a->process("custody_requested", &custody_requested_);
     a->process("local_custody", &local_custody_);
+    a->process("singleton_dest", &singleton_dest_);
     a->process("custody_rcpt", &custody_rcpt_);
     a->process("receive_rcpt", &receive_rcpt_);
     a->process("forward_rcpt", &forward_rcpt_);
@@ -208,6 +211,7 @@ Bundle::copy_metadata(Bundle* new_bundle)
     new_bundle->priority_ 		= priority_;
     new_bundle->custody_requested_	= custody_requested_;
     new_bundle->local_custody_		= false;
+    new_bundle->singleton_dest_		= singleton_dest_;
     new_bundle->custody_rcpt_ 		= custody_rcpt_;
     new_bundle->receive_rcpt_ 		= receive_rcpt_;
     new_bundle->forward_rcpt_ 		= forward_rcpt_;
