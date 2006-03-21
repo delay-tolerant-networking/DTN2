@@ -387,8 +387,13 @@ DTND::main(int argc, char* argv[])
         notify_and_exit(1);
     }
 
+    if (storage_config_.init_)
+    {
+        log_notice("/dtnd", "initializing persistent data store");
+    }
+
     if (! dtnserver->init_datastore()) {
-        log_err("/dtnd", "error initiaqlizing data store, exiting...");
+        log_err("/dtnd", "error initializing data store, exiting...");
         notify_and_exit(1);
     }
     
