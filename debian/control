@@ -9,7 +9,7 @@ Architecture: any
 Suggests: tclreadline
 Depends: ${shlibs:Depends}
 Provides: dtnd
-Description: Delay Tolerant Networking reference implementation.
+Description: Delay Tolerant Networking reference implementation
  .
  This package contains the reference implementation of the Delay
  Tolerant Networking (DTN) architecture. This includes the DTN daemon
