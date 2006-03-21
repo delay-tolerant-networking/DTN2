@@ -1,0 +1,5 @@
+dtn (2.2.0-1) unstable; urgency=low
+
+  * Initial version of a debian package
+
+ -- Michael Demmer <demmer@cs.berkeley.edu>  Tue, 14 Mar 2006 15:02:24 -0800

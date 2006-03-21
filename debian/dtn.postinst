@@ -1,0 +1,21 @@
+#!/bin/sh
+
+DO_WHAT=$1
+VERSION=$2
+
+set -e
+
+if [ $DO_WHAT = configure ] ; then
+    if [ x$VERSION = x ]; then
+	echo "Initializing DTN persistent data store..."
+	dtnd --init-db -o /var/log/dtnd.log
+    else
+	echo "Checking DTN persistent data store..."
+	test -d /var/dtn/bundles
+	test -d /var/dtn/db
+    fi
+fi
+
+#DEBHELPER#
+
+exit 0

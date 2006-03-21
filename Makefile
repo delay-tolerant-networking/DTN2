@@ -59,24 +59,40 @@ tests:
 	$(MAKE) -C test
 
 #
-# Install/uninstall rules
+# Installation rules
 #
 install:
-	@tools/install.sh
+	for dir in $(DESTDIR)/var/dtn \
+		   $(DESTDIR)/var/dtn/bundles \
+		   $(DESTDIR)/var/dtn/db ; do \
+	    (mkdir -p $$dir; chmod 755 $$dir; \
+		[ x$(DTN_USER) = x ] || chown $(DTN_USER) $$dir); \
+	done
 
-uninstall:
-	@tools/uninstall.sh
+	[ -d $(DESTDIR)$(bindir) ] || \
+	    (mkdir -p $(DESTDIR)$(bindir); chmod 755 $(DESTDIR)$(bindir))
+
+	for prog in daemon/dtnd \
+		    tools/dtnd-control \
+		    apps/dtncp/dtncp \
+		    apps/dtncpd/dtncpd \
+		    apps/dtnping/dtnping \
+		    apps/dtnrecv/dtnrecv \
+		    apps/dtnsend/dtnsend \
+		    apps/dtntunnel/dtntunnel ; do \
+	    ($(INSTALL_PROGRAM) $$prog $(DESTDIR)$(bindir)) ; \
+	done
+
+	[ x$(DTN_USER) = x ] || chown -R $(DTN_USER) $(DESTDIR)$(bindir)
+
+	mkdir -p $(DESTDIR)/etc/
+	$(INSTALL_DATA) daemon/dtn.conf $(DESTDIR)/etc/dtn.conf
 
 #
 # Generate the doxygen documentation
 #
 doxygen:
 	doxygen doc/doxyfile
-
-#
-# Pull in the rules for building a debian package
-#
-include $(SRCDIR)/debian/debpkg.mk
 
 #
 # Build a TAGS database. Note this includes all the sources so it gets
