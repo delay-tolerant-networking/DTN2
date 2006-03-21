@@ -1,0 +1,99 @@
+#!/usr/bin/tclsh
+
+set port 5050
+
+proc usage {} {
+    puts stderr "dtnd-control \[-port port\] stop|check|logrotate"
+    exit 1
+}
+
+proc shift {listVar} {
+    upvar $listVar l
+    
+    set ret [lindex $l 0]
+    set l [lrange $l 1 end]
+    return $ret
+}
+
+after 30000 {exit 1}
+
+while {[llength $argv] > 1} {
+    set arg [shift argv]
+
+    if {[string index $arg 0] != "-"} {
+	break
+    }
+	
+    switch -- $arg {
+	-port   { set port [shift argv] }
+	default {
+	    puts stderr "unknown argument $arg"
+	    usage
+	}
+    }
+}
+
+set operation [shift argv]
+
+switch -- $operation {
+    stop - check - status - logrotate {}
+    default {
+	puts "unknown operation $operation"
+	usage
+    }
+}
+
+if {[llength $argv] != 0} {
+    puts "extra arguments after operation"
+    usage
+}
+
+if [catch {
+    set sock [socket localhost $port]
+
+} err] {
+    puts stderr "dtnd-control: cannot connect to localhost port $port"
+    exit 1
+}
+
+puts $sock "tell_encode"
+flush $sock
+set ret1 [gets $sock]; # the prompt
+set ret2 [gets $sock]; # the command response
+
+if {$operation == "check" || $operation == "status"} {
+    set cmd "bundle daemon_status"
+    
+} elseif {$operation == "stop"} {
+    set cmd "shutdown"
+    
+} elseif {$operation == "logrotate"} {
+    set cmd "log rotate"
+
+} else {
+    error "bogus op $operation"
+}
+
+puts $sock $cmd
+flush $sock
+
+set cmd_response [gets $sock]
+if {($cmd_response == "") || [eof $sock]} {
+    puts stderr "error getting response"
+    exit 1
+}
+
+set cmd_error [string index $cmd_response 0]
+set result    [string range $cmd_response 2 end]
+regsub -all -- {\\n} $result "\n" result
+
+if {$cmd_error == 0} {
+    puts $result
+    exit 0
+} else {
+    puts "error running command '$cmd':"
+    puts $result
+    exit 1
+}
+
+exit 0
