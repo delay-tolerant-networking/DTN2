@@ -49,7 +49,26 @@
 namespace dtn {
 
 BundleCommand::BundleCommand()
-    : TclCommand("bundle") {}
+    : TclCommand("bundle") 
+{
+    add_to_help("inject <src> <dst> <payload> <opt1=val1> .. <optN=valN>",
+                "valid options:\n"
+                "            custody_xfer\n"
+                "            receive_rcpt\n"
+                "            custody_rcpt\n"
+                "            forward_rcpt\n"
+                "            delivery_rcpt\n"
+                "            deletion_rcpt\n"
+                "            expiration=integer\n"
+                "            length=integer\n");
+    add_to_help("stats", "get statistics on the bundles");
+    add_to_help("daemon_stats", "daemon stats");
+    add_to_help("reset_stats", "reset currently maintained statistics");
+    add_to_help("list", "list all of the bundles in the system");
+    add_to_help("info <id>", "get info on a specific bundle");
+    add_to_help("dump <id>", "dump a specific bundle");
+    add_to_help("dump_ascii <id>", "dump the bundle in ascii");
+}
 
 BundleCommand::InjectOpts::InjectOpts()
     : custody_xfer_(false),
@@ -94,33 +113,6 @@ BundleCommand::parse_inject_options(InjectOpts* options,
         }
     }
     return true;
-}
-
-const char*
-BundleCommand::help_string()
-{
-    // XXX/matt ugly way to represent the optional "option" argument
-    // that requires a Tcl List if present, also need to enumerate
-    // what options you can provide
-    return "bundle inject <source> <dest> <payload> <opt1<=val1?>...optN<=valN?>?> \n"
-        "    valid options:\n"
-        "        custody_xfer\n"
-        "        receive_rcpt\n"
-        "        custody_rcpt\n"
-        "        forward_rcpt\n"
-        "        delivery_rcpt\n"
-        "        deletion_rcpt\n"
-        "        expiration=integer\n"
-        "        length=integer\n"
-        "bundle stats \n"
-        "bundle daemon_stats \n"
-        "bundle daemon_status \n"
-        "bundle reset_stats \n"
-        "bundle list \n"
-        "bundle info <id>\n"
-        "bundle dump <id>\n"
-        "bundle dump_ascii <id>"
-        ;
 }
 
 int

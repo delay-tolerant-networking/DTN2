@@ -53,7 +53,6 @@ public:
      * Virtual from CommandModule.
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
-    virtual const char* help_string();
 };
 
 } // namespace dtn

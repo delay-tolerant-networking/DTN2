@@ -52,15 +52,10 @@ namespace dtn {
 RegistrationCommand::RegistrationCommand()
     : TclCommand("registration")
 {
-}
-
-const char*
-RegistrationCommand::help_string()
-{
-    return("registration add <logger|tcl> <endpoint> <args...>\n"
-           "registration tcl <regid> <cmd> <args...>\n"
-           "registration del <regid>\n"
-           "registration list");
+    add_to_help("add <logger | tcl> <endpoint> <args..>", "add a registration");
+    add_to_help("tcl <reg id> <cmd <args ...>", "add a tcl registration");
+    add_to_help("del <reg id>", "delete a registration");
+    add_to_help("list", "list all of the registrations");
 }
 
 int

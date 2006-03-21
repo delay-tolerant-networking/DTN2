@@ -44,14 +44,12 @@
 namespace dtn {
 
 InterfaceCommand::InterfaceCommand()
-    : TclCommand("interface") {}
-
-const char*
-InterfaceCommand::help_string()
+    : TclCommand("interface") 
 {
-    return("interface add <name> <conv_layer> [<args>?]\n"
-           "interface del <name>\n"
-           "interface list");
+    add_to_help("add <name> <conv layer> [<args>?]",
+                "add an interface");
+    add_to_help("del <name>", "delete an interface");
+    add_to_help("list", "list all of the interfaces");
 }
 
 int
@@ -59,12 +57,15 @@ InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
     // interface list
     if (strcasecmp("list", argv[1]) == 0) {
+        // XXX/bowei -- seems to like to core
         if (argc > 2) {
             wrong_num_args(argc, argv, 1, 2, 2);
         }
+
         oasys::StringBuffer buf;
         InterfaceTable::instance()->list(&buf);
         set_result(buf.c_str());
+
         return TCL_OK;
     }
     

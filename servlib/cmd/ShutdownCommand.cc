@@ -43,12 +43,9 @@
 namespace dtn {
 
 ShutdownCommand::ShutdownCommand()
-    : TclCommand("shutdown") {}
-
-const char*
-ShutdownCommand::help_string()
+    : TclCommand("shutdown") 
 {
-    return "shutdown\n";
+    add_to_help("shutdown", "shutdown the daemon");
 }
 
 void

@@ -53,7 +53,6 @@ public:
      * Virtual from CommandModule.
      */
     virtual int exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp);
-    virtual const char* help_string();
 
 private:
 

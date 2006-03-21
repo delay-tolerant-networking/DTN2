@@ -57,16 +57,9 @@ RouteCommand::RouteCommand()
 {
     bind_s("type", &BundleRouter::Config.type_, "static",
         "Which routing algorithm to use.");
-}
-
-const char*
-RouteCommand::help_string()
-{
-    return
-        "route add <dest> <link/endpoint>\n"
-        "route del <dest> <link/endpoint>\n"
-        "route dump"
-        ;
+    add_to_help("add <dest> <link/endpoint>", "add a route");
+    add_to_help("del <dest> <link/endpoint>", "delete a route");
+    add_to_help("dump", "dump all of the static routes");
 }
 
 int

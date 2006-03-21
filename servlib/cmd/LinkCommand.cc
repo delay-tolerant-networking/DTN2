@@ -36,6 +36,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+#include <oasys/thread/Lock.h>
+#include <oasys/util/StringBuffer.h>
+
 #include "LinkCommand.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
@@ -43,23 +47,19 @@
 #include "contacts/ContactManager.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include "naming/Scheme.h"
-#include <oasys/util/StringBuffer.h>
 
 namespace dtn {
 
 LinkCommand::LinkCommand()
     : TclCommand("link")
 {
-}
-
-const char*
-LinkCommand::help_string()
-{
-    return ""
-        "link add <name> <nexthop> <type> <convergence_layer> <args>\n"
-        "link open <name>\n"
-        "link close <name>\n"
-        ;
+    add_to_help("add <name> <next hop> <type> <conv layer> <args>", "add links");
+    add_to_help("open <name>", "open the link");
+    add_to_help("close <name>", "close the link");
+    add_to_help("list", "list all of the links");
+    add_to_help("set_available <name> <true | false>", 
+                "hacky way to make the link available");
+    add_to_help("state <name>", "check the state of the link");
 }
 
 int
@@ -253,7 +253,20 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         resultf("%s", Link::state_to_str(link->state()));
         return TCL_OK;
     }
-    else {
+    else if (strcmp(cmd, "list") == 0) 
+    {
+        ContactManager* cm = BundleDaemon::instance()->contactmgr();
+        oasys::ScopeLock l(cm->lock(), "LinkCommand::exec");
+        
+        const LinkSet* links = cm->links();
+        for (LinkSet::const_iterator i = links->begin();
+             i != links->end(); ++i)
+        {
+            append_resultf("*%p\n", *i);
+        }
+    }
+    else 
+    {
         resultf("unimplemented link subcommand %s", cmd);
         return TCL_ERROR;
     }
