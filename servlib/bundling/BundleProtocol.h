@@ -172,7 +172,7 @@ public:
     struct HeaderPreamble {
         u_int8_t type;
         u_int8_t flags;
-        u_char length[0]; // SDNV
+        u_char   length[0]; // SDNV
 
     } __attribute__((packed));
 
@@ -241,7 +241,8 @@ public:
      *
      * @return true if successful
      */
-    static bool get_admin_type(const Bundle* bundle, admin_record_type_t* type);
+    static bool get_admin_type(const Bundle* bundle,
+                               admin_record_type_t* type);
 
 protected:
     static u_int8_t format_bundle_flags(const Bundle* bundle);
