@@ -59,9 +59,13 @@ proc config_interface {cl args} {
 # Configure the console server
 #
 proc config_console {} {
+    global opt
     foreach id [net::nodelist] {
 	conf::add dtnd $id "console set addr [gethostbyname $net::host($id)]"
 	conf::add dtnd $id "console set port [dtn::get_port console $id]"
+	if {! $opt(xterm)} {
+	    conf::add dtnd $id "console set stdio false"
+	}	    
     }
 }
 

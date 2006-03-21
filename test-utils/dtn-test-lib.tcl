@@ -23,9 +23,6 @@ namespace eval dtn {
 	}
 	
 	set exec_opts "-i $id -c $test::testname.conf"
-	if {! $opt(xterm)} {
-	    append exec_opts " -d"
-	}	    
 
 	append exec_opts " $other_opts"
 
