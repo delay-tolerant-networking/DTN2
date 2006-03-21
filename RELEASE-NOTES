@@ -1,6 +1,34 @@
 Release Notes for DTN2
 ----------------------
 
+2.2.0 (March 2006)
+------------------
+
+- Various changes for conformance with version 4 of the bundle
+  protocol as specified in the Bundle Protocol Internet Draft, as
+  released on November 2005.
+
+- Initial implementation of custody transfer, including
+  flexible per-route timing specifications for retransmissions.
+
+- Initial implementation of a Bluetooth convergence layer from Jeff
+  Wilson <Jeff_Wilson@baylor.edu>.
+
+- Added support for the ARM architecture, gcc 4.0, and BerkeleyDB 4.4.
+
+- Added support for a file system based persistent storage
+  implementation as an alternative to Berkeley DB.
+
+- Many minor changes to improve stability and robustness of the code,
+  largely due to an improved testing infrastructure including several
+  tcl based system tests.
+
+- Miscellaneous other improvements including: a persistent
+  ForwardingLog for each bundle to maintain the history of where (and
+  when) the bundle was sent to peers, restored support for reactive
+  fragmentation, a NullConvergenceLayer and other testing hooks, and
+  some scalability improvements.
+
 2.1.99 (December 2005)
 ----------------------
 
