@@ -1,3 +1,4 @@
-control
-dtnd
-
+dtn
+*.debhelper
+dtn.substvars
+files
