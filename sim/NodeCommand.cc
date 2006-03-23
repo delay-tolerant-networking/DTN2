@@ -60,13 +60,11 @@ namespace dtnsim {
 NodeCommand::NodeCommand(Node* node)
     : TclCommand(node->name()), node_(node)
 {
-}
-
-
-const char*
-NodeCommand::help_string()
-{
-    return "(see documentation)";
+    add_to_help("<time> route", "XXX");
+    add_to_help("<time> add", "XXX");
+    add_to_help("<time> tragent", "XXX");
+    add_to_help("<time> link", "XXX");
+    add_to_help("<time> registration", "XXX");
 }
 
 int

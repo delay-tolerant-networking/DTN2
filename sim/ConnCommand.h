@@ -48,7 +48,6 @@ namespace dtnsim {
 class ConnCommand : public oasys::TclCommand {
 public:
     ConnCommand();
-    const char* help_string();
    
     /**
      * Virtual from CommandModule.

@@ -49,13 +49,9 @@ ConnCommand::ConnCommand()
     : TclCommand("conn")
 {
     bind_s("type", &Connectivity::type_, "Connectivity type.");
-}
-
-
-const char*
-ConnCommand::help_string()
-{
-    NOTIMPLEMENTED;
+    
+    add_to_help("up", "Take connection up XXX");
+    add_to_help("down", "Take connection down XXX");
 }
 
 int

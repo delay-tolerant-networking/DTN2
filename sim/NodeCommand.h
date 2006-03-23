@@ -50,7 +50,6 @@ class Node;
 class NodeCommand : public oasys::TclCommand {
 public:
     NodeCommand(Node* node);
-    const char* help_string();
    
     /**
      * Virtual from CommandModule.

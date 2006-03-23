@@ -56,7 +56,6 @@ public:
      */
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
     void at_reg();
-    virtual const char* help_string();
 
 protected:
     static Simdtn2Command instance_;
