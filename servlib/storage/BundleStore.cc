@@ -157,7 +157,7 @@ BundleStore::close()
 BundleStore::iterator*
 BundleStore::new_iterator()
 {
-    return new BundleStore::iterator(store_->iter());
+    return new BundleStore::iterator(store_->itr());
 }
 
 BundleStore::iterator::iterator(oasys::DurableIterator* iter)
