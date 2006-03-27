@@ -119,7 +119,7 @@ protected:
     /**
      * Constructor
      */
-    BundleRouter(const std::string& name);
+    BundleRouter(const char* classname, const std::string& name);
 
     /// Name of this particular router
     std::string name_;

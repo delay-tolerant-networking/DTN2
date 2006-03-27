@@ -46,7 +46,7 @@
 namespace dtn {
 
 FragmentManager::FragmentManager()
-    : Logger("/bundle/fragment")
+    : Logger("FragmentManager", "/dtn/bundle/fragmentation")
 {
 }
 

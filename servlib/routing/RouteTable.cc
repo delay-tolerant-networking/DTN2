@@ -86,8 +86,8 @@ RouteEntry::dump(oasys::StringBuffer* buf) const
  * Constructor
  */
 RouteTable::RouteTable(const std::string& router_name)
+    : Logger("RouteTable", "/dtn/routing/%s/table", router_name.c_str())
 {
-    logpathf("/route/%s/table", router_name.c_str());
 }
 
 /**

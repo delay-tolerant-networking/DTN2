@@ -118,7 +118,7 @@ public:
  * is up to the router to initiate a retransmission on one or more
  * links.
  */
-class CustodyTimer : public oasys::Timer {
+class CustodyTimer : public oasys::Timer, public oasys::Logger {
 public:
     /** Constructor */
     CustodyTimer(const struct timeval& xmit_time,

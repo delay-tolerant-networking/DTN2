@@ -56,7 +56,7 @@ class RouteTable;
  
 class StaticBundleRouter : public TableBasedRouter {
 public:
-    StaticBundleRouter() : TableBasedRouter("static") {}
+    StaticBundleRouter() : TableBasedRouter("StaticBundleRouter", "static") {}
 };
 
 } // namespace dtn

@@ -48,7 +48,7 @@ RegistrationStore* RegistrationStore::instance_;
  * Constructor
  */
 RegistrationStore::RegistrationStore()
-    : Logger("/storage/reg")
+    : Logger("RegistrationStore", "/dtn/storage/registration")
 {
 }
 

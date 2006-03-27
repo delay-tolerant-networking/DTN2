@@ -86,7 +86,7 @@ DTNScheme::validate(const std::string& ssp, bool is_pattern)
         if (is_pattern && (c == '*'))
             continue;
 
-        log_debug("/scheme/dtn",
+        log_debug("/dtn/scheme/dtn",
                   "ssp '%s' contains invalid hostname character '%c'",
                   ssp.c_str(), c);
 
@@ -123,14 +123,14 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
     oasys::URL pattern_url(pattern.str());
     
     if (!eid_url.valid()) {
-        log_warn("/scheme/dtn",
+        log_warn("/dtn/scheme/dtn",
                  "match error: eid '%s' not a valid url",
                  eid.c_str());
         return false;
     }
     
     if (!pattern_url.valid()) {
-        log_warn("/scheme/dtn",
+        log_warn("/dtn/scheme/dtn",
                  "match error: pattern '%s' not a valid url",
                  pattern.c_str());
         return false;
@@ -147,7 +147,7 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
     if ((pattern_url.host_ != "*") &&
         (pattern_url.host_ != eid_url.host_))
     {
-        log_debug("/scheme/dtn",
+        log_debug("/dtn/scheme/dtn",
                   "match(%s, %s) failed: url hosts not equal ('%s' != '%s')",
                   eid_url.c_str(), pattern_url.c_str(),
                   pattern_url.host_.c_str(), eid_url.host_.c_str());
@@ -157,7 +157,7 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
     // make sure the ports are equal (or unspecified in which case they're 0)
     if (pattern_url.port_ != eid_url.port_)
     {
-        log_debug("/scheme/dtn",
+        log_debug("/dtn/scheme/dtn",
                   "match(%s, %s) failed: url ports not equal (%d != %d)",
                   eid_url.c_str(), pattern_url.c_str(),
                   pattern_url.port_, eid_url.port_);
@@ -168,7 +168,7 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
     if ((pattern_url.path_ == "*") ||
         (pattern_url.path_ == eid_url.path_))
     {
-        log_debug("/scheme/dtn",
+        log_debug("/dtn/scheme/dtn",
                   "match(%s, %s) succeeded: pattern '%s' ssp '%s'",
                   eid_url.c_str(), pattern_url.c_str(),
                   pattern_url.host_.c_str(), eid_url.host_.c_str());
@@ -183,7 +183,7 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         if (pattern_url.path_.substr(0, patternlen) ==
             eid_url.path_.substr(0, patternlen))
         {
-            log_debug("/scheme/dtn",
+            log_debug("/dtn/scheme/dtn",
                       "match(%s, %s) substring succeeded: "
                       "pattern '%s' ssp '%s'",
                       eid_url.c_str(), pattern_url.c_str(),

@@ -52,7 +52,7 @@ public:
      * Constructor.
      */
     NullConvergenceLayer()
-        : ConvergenceLayer("null") {}
+        : ConvergenceLayer("NullConvergenceLayer", "null") {}
 
     /**
      * Open the given contact.

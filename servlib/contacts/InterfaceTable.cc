@@ -45,7 +45,7 @@ namespace dtn {
 InterfaceTable* InterfaceTable::instance_ = NULL;
 
 InterfaceTable::InterfaceTable()
-    : Logger("/interface")
+    : Logger("InterfaceTable", "/dtn/interface/table")
 {
 }
 

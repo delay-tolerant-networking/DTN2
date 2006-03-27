@@ -74,7 +74,7 @@ struct TCPConvergenceLayer::Params TCPConvergenceLayer::defaults_;
  *
  *****************************************************************************/
 TCPConvergenceLayer::TCPConvergenceLayer()
-    : IPConvergenceLayer("tcp")
+    : IPConvergenceLayer("TCPConvergenceLayer", "tcp")
 {
     // set defaults here, then let ../cmd/ParamCommand.cc (as well as
     // the link specific options) handle changing them
@@ -488,8 +488,9 @@ TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *****************************************************************************/
 TCPConvergenceLayer::Listener::Listener(TCPConvergenceLayer* cl,
                                         Params* params)
-    : IOHandlerBase(new oasys::Notifier("/cl/tcp/listener")), 
-      TCPServerThread("/cl/tcp/listener"),
+    : IOHandlerBase(new oasys::Notifier("/dtn/cl/tcp/listener")), 
+      TCPServerThread("TCPConvergenceLayer::Listener",
+                      "/dtn/cl/tcp/listener"),
       cl_(cl), params_(*params)
 {
     logfd_  = false;
@@ -525,11 +526,11 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
                                             Params* params)
 
     : Thread("TCPConvergenceLayer::Connection"), 
+      Logger("TCPConvergenceLayer::Connection",
+             "%s/conn/%s:%d", cl->logpath(), intoa(remote_addr), remote_port),
       params_(*params), cl_(cl), initiate_(true),
       direction_(direction), contact_(NULL)
 {
-    logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
-
     // create the blocking queue for bundles to be sent on (if we're
     // the sender)
     if (direction == SENDER) {
@@ -542,7 +543,7 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
     Thread::set_flag(Thread::DELETE_ON_EXIT);
 
     // the actual socket
-    sock_ = new oasys::TCPClient();
+    sock_ = new oasys::TCPClient(logpath_);
 
     // XXX/demmer the basic socket logging emits errors and the like
     // when connections break. that may not be great since we kinda
@@ -588,12 +589,12 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
                                             u_int16_t remote_port,
                                             Params* params)
 
-    : Thread("TCPConvergenceLayer::Connection"),
+    : Thread("TCPConvergenceLayer::Connection"), 
+      Logger("TCPConvergenceLayer::Connection",
+             "%s/conn/%s:%d", cl->logpath(), intoa(remote_addr), remote_port),
       params_(*params), cl_(cl), initiate_(false),
       direction_(UNKNOWN), contact_(NULL)
 {
-    logpathf("/cl/tcp/conn/%s:%d", intoa(remote_addr), remote_port);
-
     // we always delete the thread object when we exit
     Thread::set_flag(Thread::DELETE_ON_EXIT);
 

@@ -13,7 +13,7 @@ namespace dtn {
 unsigned int **dist;
 
 LinkScheduleEstimator::LinkScheduleEstimator() 
-  : Logger("LinkScheduleEstimator")
+    : Logger("LinkScheduleEstimator", "/dtn/route/linkstate/estimator")
 {}  
 
 /*

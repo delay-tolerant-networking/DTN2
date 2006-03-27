@@ -61,7 +61,7 @@ struct UDPConvergenceLayer::Params UDPConvergenceLayer::defaults_;
  *****************************************************************************/
 
 UDPConvergenceLayer::UDPConvergenceLayer()
-    : IPConvergenceLayer("udp")
+    : IPConvergenceLayer("UDPConvergenceLayer", "udp")
 {
     defaults_.local_addr_		= INADDR_ANY;
     defaults_.local_port_		= 5000;
@@ -275,7 +275,7 @@ UDPConvergenceLayer::open_contact(Contact* contact)
     
     // create a new connected socket for the contact
     Sender* sender = new Sender(contact);
-    sender->logpathf("/cl/udp/conn/%s:%d", intoa(addr), port);
+    sender->logpathf("%s/conn/%s:%d", logpath_, intoa(addr), port);
     sender->set_logfd(false);
 
     if (params->local_addr_ != INADDR_NONE || params->local_port_ != 0)
@@ -343,8 +343,8 @@ UDPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *
  *****************************************************************************/
 UDPConvergenceLayer::Receiver::Receiver(UDPConvergenceLayer::Params* params)
-    : IOHandlerBase(new oasys::Notifier("/cl/udp/receiver")),
-      UDPClient("/cl/udp/receiver"),
+    : IOHandlerBase(new oasys::Notifier("/dtn/cl/udp/receiver")),
+      UDPClient("/dtn/cl/udp/receiver"),
       Thread("UDPConvergenceLayer::Receiver")
 {
     logfd_  = false;

@@ -46,7 +46,7 @@ struct BluetoothConvergenceLayer::ConnectionManager BluetoothConvergenceLayer::c
  *****************************************************************************/
 
 BluetoothConvergenceLayer::BluetoothConvergenceLayer() :
-    ConvergenceLayer("bt")
+    ConvergenceLayer("BluetoothConvergenceLayer", "bt")
 {
     // set defaults here, then let ../cmd/ParamCommand.cc (as well as the link
     // specific options) handle changing them
@@ -665,12 +665,14 @@ BluetoothConvergenceLayer::Connection::Connection(
         u_int8_t remote_channel,
         BluetoothConvergenceLayer::Params* params)
     : Thread("BluetoothConvergenceLayer::Connection"),
+      Logger("BluetoothConvergenceLayer::Connection", "/dtn/cl/bt/conn"),
       params_(*params)
 {
     char buff[18];
-    logpathf("/cl/bt/active-conn/%s:%d",
-             oasys::Bluetooth::batostr(&remote_addr,buff),
-             remote_channel);
+    logpath_appendf("/%s:%d",
+                    oasys::Bluetooth::batostr(&remote_addr,buff),
+                    remote_channel);
+
     cl_ = cl;
     parent_ = NULL;
     contact_ = NULL;
@@ -700,10 +702,11 @@ BluetoothConvergenceLayer::Connection::Connection(
         u_int8_t remote_channel,
         Params* params)
     : Thread("BluetoothConvergenceLayer::Connection"),
+      Logger("BluetoothConvergenceLayer::Connection", "/dtn/cl/bt/conn"),
       params_(*params)
 {
     char buff[18];
-    logpathf("/cl/bt/passive-conn/%s:%d", oasys::Bluetooth::batostr(&remote_addr,buff),
+    logpathf("/dtn/cl/bt/passive-conn/%s:%d", oasys::Bluetooth::batostr(&remote_addr,buff),
              remote_channel);
     cl_ = cl;
     parent_ = NULL;

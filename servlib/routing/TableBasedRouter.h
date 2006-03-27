@@ -54,7 +54,7 @@ protected:
      * Constructor -- protected since this class is never instantiated
      * by itself.
      */
-    TableBasedRouter(const std::string& name);
+    TableBasedRouter(const char* classname, const std::string& name);
 
     /**
      * Event handler overridden from BundleRouter / BundleEventHandler

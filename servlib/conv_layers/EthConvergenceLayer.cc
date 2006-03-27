@@ -186,7 +186,7 @@ EthConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
  *
  *****************************************************************************/
 EthConvergenceLayer::Receiver::Receiver(const char* if_name)
-  : Logger("/cl/eth/receiver")
+  : Logger("/dtn/cl/eth/receiver")
 {
     memset(if_name_,0, IFNAMSIZ);
     strcpy(if_name_,if_name);
@@ -586,7 +586,7 @@ void EthConvergenceLayer::Beacon::run()
 }
 
 EthConvergenceLayer::BeaconTimer::BeaconTimer(char * next_hop)
-    : Logger("/cl/eth/beacontimer")
+    : Logger("/dtn/cl/eth/beacontimer")
 {
     next_hop_=(char*)malloc(strlen(next_hop)+1);
     strcpy(next_hop_, next_hop);

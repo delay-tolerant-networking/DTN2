@@ -50,7 +50,7 @@ namespace dtn {
 
 BundleConsumer::BundleConsumer(const char* dest_str,
                                bool is_local, type_t type)
-    : Logger("/bundle/consumer"),
+    : Logger("/dtn/bundle/consumer"),
       dest_str_(dest_str),
       is_local_(is_local),
       type_(type)

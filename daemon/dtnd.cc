@@ -374,7 +374,7 @@ DTND::main(int argc, char* argv[])
     oasys::Thread::activate_start_barrier();
     oasys::TimerSystem::instance()->start();
 
-    DTNServer* dtnserver = new DTNServer(&storage_config_);
+    DTNServer* dtnserver = new DTNServer("/dtnd", &storage_config_);
     APIServer* apiserver = new APIServer();
 
     dtnserver->init();

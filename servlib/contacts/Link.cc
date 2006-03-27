@@ -99,12 +99,12 @@ Link::create_link(const std::string& name, link_type_t type,
  */
 Link::Link(const std::string& name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
-    :  type_(type), state_(UNAVAILABLE),
+    :  Logger("Link", "/dtn/link/%s", name.c_str()),
+       type_(type), state_(UNAVAILABLE),
        nexthop_(nexthop), name_(name), reliable_(false), contact_(NULL),
        clayer_(cl), cl_info_(NULL)
 {
     ASSERT(clayer_);
-    logpathf("/link/%s", name_.c_str());
 
     log_info("new link *%p", this);
 

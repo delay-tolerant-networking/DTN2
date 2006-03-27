@@ -134,7 +134,7 @@ SDNV::decode(const u_char* bp, size_t len, u_int64_t* val)
      * of the original value).
      */
     if ((val_len > 10) || ((val_len == 10) && (*start != 0x81))) {
-        log_err("/sdnv", "overflow value in sdnv!!!");
+        log_err("/dtn/bundle/sdnv", "overflow value in sdnv!!!");
         return -1;
     }
 

@@ -104,7 +104,7 @@ APIServer::init()
 }
 
 APIServer::APIServer()
-    : TCPServerThread("APIServer", "/apiserver", DELETE_ON_EXIT)
+    : TCPServerThread("APIServer", "/dtn/apiserver", DELETE_ON_EXIT)
 {
     // override the defaults via environment variables, if given
     char *env;
@@ -155,7 +155,7 @@ APIServer::accepted(int fd, in_addr_t addr, u_int16_t port)
 
 APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
     : Thread("APIClient", DELETE_ON_EXIT),
-      TCPClient(fd, addr, port, "/apiclient")
+      TCPClient(fd, addr, port, "/dtn/apiclient")
 {
     // note that we skip space for the message length and code/status
     xdrmem_create(&xdr_encode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_ENCODE);

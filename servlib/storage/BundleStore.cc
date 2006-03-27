@@ -52,7 +52,8 @@ BundleStore* BundleStore::instance_;
 static const char* BUNDLE_TABLE = "bundles";
 
 BundleStore::BundleStore()
-    : Logger("/storage/bundles"), store_(0)
+    : Logger("BundleStore", "/dtn/storage/%s", BUNDLE_TABLE),
+      store_(0)
 {
 }
 
@@ -182,7 +183,8 @@ BundleStore::iterator::next()
     
     else if (err != oasys::DS_OK)
     {
-        __log_err("/storage/bundles", "error in iterator next");
+        __log_err(BundleStore::instance()->logpath(),
+                  "error in iterator next");
         return err;
     }
 
@@ -190,7 +192,8 @@ BundleStore::iterator::next()
     err = iter_->get_key(&key);
     if (err != 0)
     {
-        __log_err("/storage/bundles", "error in iterator get");
+        __log_err(BundleStore::instance()->logpath(),
+                  "error in iterator get");
         return oasys::DS_ERR;
     }
     

@@ -62,7 +62,8 @@ Registration::Registration(u_int32_t regid,
                            u_int32_t expiration,
                            const std::string& script)
     
-    : regid_(regid),
+    : Logger("Registration", "/dtn/registration/%d", regid),
+      regid_(regid),
       endpoint_(endpoint),
       failure_action_(action),
       script_(script),
@@ -70,7 +71,6 @@ Registration::Registration(u_int32_t regid,
       active_(false),
       expired_(false)
 {
-    logpathf("/registration/%d", regid);
     init_expiration_timer();
 }
 
@@ -78,7 +78,8 @@ Registration::Registration(u_int32_t regid,
  * Constructor for deserialization
  */
 Registration::Registration(const oasys::Builder&)
-    : regid_(0),
+    : Logger("Registration", "/dtn/registration"),
+      regid_(0),
       endpoint_(),
       failure_action_(DEFER),
       script_(),
@@ -115,6 +116,8 @@ Registration::serialize(oasys::SerializeAction* a)
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         init_expiration_timer();
     }
+
+    logpathf("/dtn/registration/%d", regid_);
 }
 
 void

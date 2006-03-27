@@ -48,10 +48,10 @@
 namespace dtnsim {
 
 TrAgent::TrAgent(Node* node, const EndpointID& src, const EndpointID& dst)
-    : node_(node), src_(src), dst_(dst),
+    : Logger("TrAgent", "/sim/tragent/%s", node->name()),
+      node_(node), src_(src), dst_(dst),
       size_(0), reps_(0), batch_(1), interval_(0)
 {
-    logpathf("/tragent/%s", node->name());
 }
 
 TrAgent*

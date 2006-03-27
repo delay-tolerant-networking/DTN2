@@ -77,10 +77,11 @@ BundleRouter::create_router(const char* type)
 /**
  * Constructor.
  */
-BundleRouter::BundleRouter(const std::string& name)
-    : name_(name)
+BundleRouter::BundleRouter(const char* classname, const std::string& name)
+    : BundleEventHandler(classname, "/dtn/route"),
+      name_(name)
 {
-    logpathf("/route/%s", name.c_str());
+    logpathf("/dtn/route/%s", name.c_str());
     
     actions_ = BundleDaemon::instance()->actions();
 

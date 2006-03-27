@@ -212,8 +212,11 @@ public:
     class ConnectionManager : public Logger {
     public:
         ConnectionManager() :
-        Logger("/cl/bt/connmgr")
-        { l_map_.clear(); }
+            Logger("BluetoothConvergenceLayer::ConnectionManager",
+                   "/dtn/cl/bt/connmgr")
+        {
+            l_map_.clear();
+        }
         ~ConnectionManager() {;}
 
         /**

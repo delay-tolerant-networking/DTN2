@@ -55,7 +55,7 @@ TclRegistration::TclRegistration(const EndpointIDPattern& endpoint,
     : Registration(GlobalStore::instance()->next_regid(),
                    endpoint, Registration::DEFER, 0) // XXX/demmer expiration??
 {
-    logpathf("/registration/tcl/%d", regid_);
+    logpathf("/dtn/registration/tcl/%d", regid_);
     set_active(true);
 
     log_info("new tcl registration on endpoint %s", endpoint.c_str());

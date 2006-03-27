@@ -83,7 +83,7 @@ class Bundle;
  * order to properly maintain the reference counts.
  *
  */
-class BundleList {
+class BundleList : public oasys::Logger {
 public:
     /**
      * Type for the list itself.

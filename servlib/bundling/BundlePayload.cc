@@ -58,7 +58,8 @@ bool BundlePayload::test_no_remove_;
  * Constructor
  */
 BundlePayload::BundlePayload(oasys::SpinLock* lock)
-    : location_(DISK), length_(0), rcvd_length_(0), file_(NULL),
+    : Logger("BundlePayload", "/dtn/bundle/payload"),
+      location_(DISK), length_(0), rcvd_length_(0), file_(NULL),
       cur_offset_(0), base_offset_(0), lock_(lock)
 {
 }
@@ -71,21 +72,22 @@ BundlePayload::init(int bundleid, location_t location)
 {
     location_ = location;
 
+    logpathf("/dtn/bundle/payload/%d", bundleid);
+
     // initialize the file handle for the backing store, but
     // immediately close it
     if (location != NODATA) {
         oasys::StringBuffer path("%s/bundle_%d.dat",
                                  BundlePayload::payloaddir_.c_str(), bundleid);
         file_ = new oasys::FileIOClient();
-        file_->logpathf("/bundle/payload/%d", bundleid);
+        file_->logpathf("%s/file", logpath_);
         int open_errno = 0;
         int err = file_->open(path.c_str(), O_EXCL | O_CREAT | O_RDWR,
                               S_IRUSR | S_IWUSR, &open_errno);
 
         if (err < 0 && open_errno == EEXIST)
         {
-            log_err("/bundle/payload",
-                    "payload file %s already exists: overwriting and retrying",
+            log_err("payload file %s already exists: overwriting and retrying",
                     path.c_str());
 
             err = file_->open(path.c_str(), O_RDWR, S_IRUSR | S_IWUSR);
@@ -93,7 +95,7 @@ BundlePayload::init(int bundleid, location_t location)
         
         if (err < 0)
         {
-            log_crit("/bundle/payload", "error opening payload file %s: %s",
+            log_crit("error opening payload file %s: %s",
                      path.c_str(), strerror(errno));
             return;
         }
@@ -115,7 +117,7 @@ BundlePayload::init_from_store(int bundleid)
     if (file_->open(path.c_str(),
                     O_RDWR, S_IRUSR | S_IWUSR) < 0)
     {
-        log_crit("/bundle/payload", "error opening payload file %s: %s",
+        log_crit("error opening payload file %s: %s",
                  path.c_str(), strerror(errno));
         return;
     }
@@ -202,7 +204,7 @@ BundlePayload::reopen_file()
 {
     if (!file_->is_open()) {
         if (file_->reopen(O_RDWR) < 0) {
-            log_err("/payload", "error reopening file %s: %s",
+            log_err("error reopening file %s: %s",
                     file_->path(), strerror(errno));
             return;
         }
@@ -359,8 +361,7 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
 {
     oasys::ScopeLock l(lock_, "BundlePayload::write_data");
 
-    log_debug("/bundle/payload",
-              "write_data: file=%s length_=%u src_offset=%u dst_offset=%u len %u",
+    log_debug("write_data: file=%s length_=%u src_offset=%u dst_offset=%u len %u",
               file_->path(),
               (u_int)length_, (u_int)src_offset, (u_int)dst_offset, (u_int)len);
 

@@ -81,8 +81,9 @@
 
 namespace dtn {
 
-DTNServer::DTNServer(oasys::StorageConfig* storage_config)
-    : Logger("/dtnd"),
+DTNServer::DTNServer(const char* logpath,
+                     oasys::StorageConfig* storage_config)
+    : Logger("DTNServer", logpath),
       init_(false),
       storage_config_(storage_config),
       store_(0)
@@ -135,8 +136,8 @@ DTNServer::init_datastore()
         return false;
     }
 
-    int err = oasys::DurableStore::create_store(*storage_config_,
-                                                &store_);
+    store_ = new oasys::DurableStore("/dtn/storage");
+    int err = store_->create_store(*storage_config_);
     if (err != 0) {
         log_crit("error creating storage system");
         return false;

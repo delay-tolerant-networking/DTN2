@@ -51,7 +51,8 @@ namespace dtn {
 // descriptors... we only really need it for the contact
 
 BundleList::BundleList(const std::string& name)
-    : name_(name), lock_(new oasys::SpinLock()), notifier_(NULL)
+    : Logger("BundleList", "/dtn/bundle/list/%s", name.c_str()),
+      name_(name), lock_(new oasys::SpinLock()), notifier_(NULL)
 {
 }
 
@@ -104,7 +105,7 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
     ASSERT(b->lock_.is_locked_by_me());
 
     if (b->mappings_.insert(this).second == false) {
-        log_err("/bundle/mapping", "ERROR in add mapping: "
+        log_err("ERROR in add bundle: "
                 "bundle id %d already on list [%s]",
                 b->bundleid_, name_.c_str());
 
@@ -117,7 +118,7 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
         notifier_->notify();
     }
 
-    log_debug("/bundle/mapping", "bundle id %d add mapping [%s] to list %p",
+    log_debug("bundle id %d add mapping [%s] to list %p",
               b->bundleid_, name_.c_str(), this);
 }
 
@@ -193,13 +194,12 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
     oasys::ScopeLock l(& b->lock_, "BundleList::del_bundle");
 
     // remove the mapping
-    log_debug("/bundle/mapping",
-              "bundle id %d del_bundle: deleting mapping [%s]",
+    log_debug("bundle id %d del_bundle: deleting mapping [%s]",
               b->bundleid_, name_.c_str());
     
     Bundle::BundleMappings::iterator mapping_pos = b->mappings_.find(this);
     if (mapping_pos == b->mappings_.end()) {
-        log_err("/bundle/mapping", "ERROR in del mapping: "
+        log_err("ERROR in del bundle: "
                 "bundle id %d not on list [%s]",
                 b->bundleid_, name_.c_str());
     } else {
@@ -465,11 +465,7 @@ BundleList::end() const
 BlockingBundleList::BlockingBundleList(const std::string& name)
     : BundleList(name)
 {
-    if (name[0] == '/') {
-        notifier_ = new oasys::Notifier(name.c_str());
-    } else {
-        notifier_ = new oasys::Notifier("/bundle/list");
-    }
+    notifier_ = new oasys::Notifier(logpath_);
 }
 
 BlockingBundleList::~BlockingBundleList()
@@ -490,7 +486,7 @@ BlockingBundleList::pop_blocking(int timeout)
 {
     ASSERT(notifier_);
 
-    log_debug("/bundle/mapping", "pop_blocking on list %p [%s]", 
+    log_debug("pop_blocking on list %p [%s]", 
               this, name_.c_str());
     
     lock_->lock("BlockingBundleList::pop_blocking");
@@ -505,8 +501,7 @@ BlockingBundleList::pop_blocking(int timeout)
         // still nothing on the list
         if (!notified) {
             lock_->unlock();
-            log_debug("/bundle/mapping",
-                      "pop_blocking timeout on list %p", this);
+            log_debug("pop_blocking timeout on list %p", this);
 
             return 0;
         }
@@ -523,7 +518,7 @@ BlockingBundleList::pop_blocking(int timeout)
     
     lock_->unlock();
 
-    log_debug("/bundle/mapping", "pop_blocking got bundle %p from list %p", 
+    log_debug("pop_blocking got bundle %p from list %p", 
               ret.object(), this);
     
     return ret;

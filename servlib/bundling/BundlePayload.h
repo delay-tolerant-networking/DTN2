@@ -58,7 +58,7 @@ class BundleStore;
  * 4GB. XXX/demmer fix this.
  *
  */
-class BundlePayload : public oasys::SerializableObject {
+class BundlePayload : public oasys::SerializableObject, public oasys::Logger {
 public:
     BundlePayload(oasys::SpinLock* lock);
     virtual ~BundlePayload();

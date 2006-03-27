@@ -49,14 +49,14 @@ namespace dtn {
  * Constructor
  */
 Contact::Contact(Link* link)
-    : link_(link), cl_info_(NULL)
+    : Logger("Contact", "/dtn/link/%s/contact",link->name()),
+             link_(link), cl_info_(NULL)
 {
     ::gettimeofday(&start_time_, 0);
     duration_ms_ = 0;
     bps_         = 0;
     latency_ms_  = 0;
     
-    logpathf("/contact/%s", link->name());
     log_info("new contact *%p", this);
 }
 

@@ -81,7 +81,8 @@ class SQLBundleStore;
  * invariant that the entiries of this set correlate exactly with the
  * list pointers.
  */
-class Bundle : public oasys::Formatter, public oasys::SerializableObject {
+class Bundle : public oasys::Formatter, public oasys::SerializableObject
+{
 public:
     /**
      * Default constructor to create an empty bundle, initializing all

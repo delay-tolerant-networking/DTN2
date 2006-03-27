@@ -72,7 +72,7 @@ Bundle::init(u_int32_t id)
     expiration_		= 0;
     owner_              = "";
 
-    log_debug("/bundle", "Bundle::init bundle id %d", id);
+    log_debug("/dtn/bundle", "Bundle::init bundle id %d", id);
 }
 
 Bundle::Bundle()
@@ -235,7 +235,7 @@ Bundle::add_ref(const char* what1, const char* what2)
     
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
-    log_debug("/bundle/refs",
+    log_debug("/dtn/bundle/refs",
               "bundle id %d (%p): refcount %d -> %d (%u mappings) add %s %s",
               bundleid_, this, refcount_ - 1, refcount_,
               (u_int)mappings_.size(), what1, what2);
@@ -256,7 +256,7 @@ Bundle::del_ref(const char* what1, const char* what2)
             "called when bundle is already being freed!", bundleid_, this);
     
     int ret = --refcount_;
-    log_debug("/bundle/refs",
+    log_debug("/dtn/bundle/refs",
               "bundle id %d (%p): refcount %d -> %d (%u mappings) del %s %s",
               bundleid_, this, refcount_ + 1, refcount_,
               (u_int)mappings_.size(), what1, what2);
@@ -267,7 +267,7 @@ Bundle::del_ref(const char* what1, const char* what2)
 
     freed_ = true;
     
-    log_debug("/bundle",
+    log_debug("/dtn/bundle",
               "bundle id %d (%p): no more references, posting free event",
               bundleid_, this);
 

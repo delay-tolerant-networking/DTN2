@@ -77,7 +77,7 @@ public:
 SimConvergenceLayer* SimConvergenceLayer::instance_;
 
 SimConvergenceLayer::SimConvergenceLayer()
-    : ConvergenceLayer("sim")
+    : ConvergenceLayer("SimConvergenceLayer", "sim")
 {
 }
 

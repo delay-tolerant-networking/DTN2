@@ -78,9 +78,12 @@ Globals::serialize(oasys::SerializeAction* a)
 GlobalStore* GlobalStore::instance_;
 
 GlobalStore::GlobalStore()
-    : Logger("/storage/globals"), globals_(NULL), store_(NULL)
+    : Logger("GlobalStore", "/dtn/storage/%s", GLOBAL_TABLE),
+      globals_(NULL), store_(NULL)
 {
-    lock_ = new oasys::Mutex(NULL);
+    lock_ = new oasys::Mutex(logpath_,
+                             oasys::Mutex::TYPE_RECURSIVE,
+                             true /* quiet */);
 }
 
 int
@@ -89,7 +92,7 @@ GlobalStore::init(const oasys::StorageConfig& cfg,
 {
     if (instance_ != NULL) 
     {
-            PANIC("GlobalStore::init called multiple times");
+        PANIC("GlobalStore::init called multiple times");
     }
     
     instance_ = new GlobalStore();

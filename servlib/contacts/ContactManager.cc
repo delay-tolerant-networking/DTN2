@@ -52,10 +52,10 @@ namespace dtn {
  * Constructor / Destructor
  */
 ContactManager::ContactManager()
-    : opportunistic_cnt_(0)
+    : BundleEventHandler("ContactManager", "/dtn/contact/manager"),
+      opportunistic_cnt_(0)
 {
     links_ = new LinkSet();
-    logpathf("/contact_manager");
 }
 
 ContactManager::~ContactManager()

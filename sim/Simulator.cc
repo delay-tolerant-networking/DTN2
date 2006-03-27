@@ -47,7 +47,7 @@ double Simulator::time_ = 0;
 double Simulator::runtill_ = -1;
 
 Simulator::Simulator() 
-    : Logger ("/sim/main"),
+    : Logger("Simulator", "/sim/main"),
       eventq_()
 {
 }

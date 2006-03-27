@@ -57,9 +57,8 @@ namespace dtn {
 #define ROUTER_BCAST_EID "str://linkstate.router"
 
 LinkStateRouter::LinkStateRouter()
-    : BundleRouter("linkstate")
+    : BundleRouter("LinkStateRouter", "linkstate")
 {
-    log_info("initializing LinkStateRouter");
 }
 
 void 

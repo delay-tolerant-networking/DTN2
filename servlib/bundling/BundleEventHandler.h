@@ -62,8 +62,9 @@ protected:
      * Constructor -- protected since this class shouldn't ever be
      * instantiated directly.
      */
-    BundleEventHandler(const char* logpath = "/event/handler")
-        : oasys::Logger(logpath) {}
+    BundleEventHandler(const char* classname,
+                       const char* logpath)
+        : oasys::Logger(classname, logpath) {}
     
     /**
      * Destructor -- Needs to be defined virtual to be sure that

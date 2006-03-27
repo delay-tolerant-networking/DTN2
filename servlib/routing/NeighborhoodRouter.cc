@@ -51,7 +51,7 @@
 namespace dtn {
 
 NeighborhoodRouter::NeighborhoodRouter()
-    : TableBasedRouter("neighborhood")
+    : TableBasedRouter("NeighborhoodRouter", "neighborhood")
 {
     log_info("Initializing NeighborhoodRouter");
 }

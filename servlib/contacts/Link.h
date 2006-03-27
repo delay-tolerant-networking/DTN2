@@ -99,6 +99,13 @@ class LinkSet : public std::set<Link*> {};
  *
  * SCHEDULED links have their availability dictated by the schedule
  * implementation.
+ *
+ * ----------------------------------------------------------
+ *
+ * Links are used for input and/or output. In other words, for
+ * connection-oriented convergence layers like TCP, a link object is
+ * created whenever a new connection is made to a peer or when a
+ * connection arrives from a peer. 
  */
 class Link : public oasys::Formatter, public oasys::Logger {
 public:

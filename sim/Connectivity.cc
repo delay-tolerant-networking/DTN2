@@ -48,7 +48,7 @@ Connectivity* Connectivity::instance_(NULL);
 std::string   Connectivity::type_("");
 
 Connectivity::Connectivity()
-    : Logger("/conn")
+    : Logger("Connectivity", "/sim/conn")
 {
 }
 

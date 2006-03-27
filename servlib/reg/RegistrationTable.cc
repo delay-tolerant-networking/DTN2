@@ -44,7 +44,7 @@
 namespace dtn {
 
 RegistrationTable::RegistrationTable()
-    : Logger("/registration")
+    : Logger("RegistrationTable", "/dtn/registration/table")
 {
 }
 

@@ -114,7 +114,7 @@ get_dict_offsets(DictionaryVector *dict, EndpointID eid,
 int
 BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
 {
-    static const char* log = "/bundle/protocol";
+    static const char* log = "/dtn/bundle/protocol";
     DictionaryVector dict;
     size_t orig_len = len;
     size_t primary_len = 0;
@@ -288,7 +288,7 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
 int
 BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
 {
-    static const char* log = "/bundle/protocol";
+    static const char* log = "/dtn/bundle/protocol";
     size_t origlen = len;
     int encoding_len;
 

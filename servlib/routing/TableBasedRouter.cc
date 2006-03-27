@@ -45,8 +45,8 @@
 
 namespace dtn {
 
-TableBasedRouter::TableBasedRouter(const std::string& name)
-    : BundleRouter(name)
+TableBasedRouter::TableBasedRouter(const char* classname, const std::string& name)
+    : BundleRouter(classname, name)
 {
     route_table_ = new RouteTable(name);
 }

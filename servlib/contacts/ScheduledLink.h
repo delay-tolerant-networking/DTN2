@@ -89,7 +89,7 @@ protected:
  * Abstract base class for FutureContact
  * Relevant only for scheduled links.
  */
-class FutureContact : public oasys::Logger {
+class FutureContact {
 public:
     /**
      * Constructor / Destructor

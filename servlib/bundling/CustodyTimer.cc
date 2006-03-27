@@ -66,7 +66,7 @@ CustodyTimerSpec::calculate_timeout(const Bundle* bundle) const
         timeout = std::min(timeout, limit_);
     }
     
-    log_debug("/custody", "calculate_timeout: "
+    log_debug("/dtn/bundle/custody_timer", "calculate_timeout: "
               "base %u, lifetime_pct %u, expiration %u, limit %u: timeout %u",
               base_, lifetime_pct_, bundle->expiration_, limit_, timeout);
     return timeout;
@@ -87,7 +87,8 @@ CustodyTimerSpec::parse_options(int argc, const char* argv[])
 CustodyTimer::CustodyTimer(const struct timeval& xmit_time,
                            const CustodyTimerSpec& spec,
                            Bundle* bundle, Link* link)
-    : bundle_(bundle, "CustodyTimer"), link_(link)
+    : Logger("CustodyTimer", "/dtn/bundle/custody_timer"),
+      bundle_(bundle, "CustodyTimer"), link_(link)
 {
     struct timeval tv = xmit_time;
     u_int32_t delay = spec.calculate_timeout(bundle);
@@ -95,7 +96,7 @@ CustodyTimer::CustodyTimer(const struct timeval& xmit_time,
 
     struct timeval now;
     ::gettimeofday(&now, 0);
-    log_info("/custody", "scheduling timer: xmit_time %u.%u delay %u secs "
+    log_info("scheduling timer: xmit_time %u.%u delay %u secs "
              "(in %lu msecs) for *%p",
              (u_int)xmit_time.tv_sec, (u_int)xmit_time.tv_usec, delay,
              TIMEVAL_DIFF_MSEC(tv, now), bundle);
@@ -106,7 +107,7 @@ CustodyTimer::CustodyTimer(const struct timeval& xmit_time,
 void
 CustodyTimer::timeout(const struct timeval& now)
 {
-    log_info("/custody", "CustodyTimer::timeout");
+    log_info("CustodyTimer::timeout");
     BundleDaemon::post(new CustodyTimeoutEvent(bundle_.object(), link_));
 }
 

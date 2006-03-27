@@ -59,10 +59,11 @@ public:
     /**
      * Constructor.
      */
-    ConvergenceLayer(const char* name)
-        : name_(name)
+    ConvergenceLayer(const char* classname,
+                     const char* name)
+        : Logger(classname, "/dtn/cl/%s", name),
+          name_(name)
     {
-        logpathf("/cl/%s", name);
     }
 
     /**

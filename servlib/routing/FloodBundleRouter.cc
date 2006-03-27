@@ -54,7 +54,7 @@ namespace dtn {
  * Constructor.
  */
 FloodBundleRouter::FloodBundleRouter()
-    : TableBasedRouter("flood"),
+    : TableBasedRouter("FloodBundleRouter", "flood"),
       all_eids_("dtn://*")
 {
     log_info("FloodBundleRouter initialized");

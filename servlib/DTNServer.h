@@ -52,7 +52,8 @@ class APIServer;
  */
 class DTNServer : public oasys::Logger {
 public:
-    DTNServer(oasys::StorageConfig* storage_config);
+    DTNServer(const char* logpath,
+              oasys::StorageConfig* storage_config);
     ~DTNServer();
     
     oasys::StorageConfig* storage_config() { return storage_config_; }

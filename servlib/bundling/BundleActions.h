@@ -60,7 +60,7 @@ class RouterInfo;
  */
 class BundleActions : public oasys::Logger {
 public:
-    BundleActions() : Logger("/bundle/actions") {}
+    BundleActions() : Logger("BundleActions", "/dtn/bundle/actions") {}
     virtual ~BundleActions() {}
     
     /**
