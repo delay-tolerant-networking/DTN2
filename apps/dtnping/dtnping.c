@@ -84,6 +84,10 @@ main(int argc, const char** argv)
 
     struct timeval start, end;
     
+    // force stdout to always be line buffered, even if output is
+    // redirected to a pipe or file
+    setvbuf(stdout, (char *)NULL, _IOLBF, 0);
+    
     doOptions(argc, argv);
 
     memset(&ping_spec, 0, sizeof(ping_spec));

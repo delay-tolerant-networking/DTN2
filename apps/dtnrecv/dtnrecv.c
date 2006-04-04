@@ -178,6 +178,10 @@ main(int argc, char** argv)
     unsigned char* buffer;
     char s_buffer[BUFSIZE];
 
+    // force stdout to always be line buffered, even if output is
+    // redirected to a pipe or file
+    setvbuf(stdout, (char *)NULL, _IOLBF, 0);
+    
     progname = argv[0];
 
     parse_options(argc, argv);

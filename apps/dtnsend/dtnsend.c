@@ -97,6 +97,10 @@ main(int argc, char** argv)
     dtn_bundle_payload_t reply_payload;
     struct timeval start, end;
     
+    // force stdout to always be line buffered, even if output is
+    // redirected to a pipe or file
+    setvbuf(stdout, (char *)NULL, _IOLBF, 0);
+    
     parse_options(argc, argv);
 
     // open the ipc handle

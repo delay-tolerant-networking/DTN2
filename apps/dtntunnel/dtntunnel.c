@@ -82,6 +82,10 @@ main(int argc, char** argv)
 
     struct sockaddr_in  local_addr, remote_addr;
     
+    // force stdout to always be line buffered, even if output is
+    // redirected to a pipe or file
+    setvbuf(stdout, (char *)NULL, _IOLBF, 0);
+    
     parse_options(argc, argv);
 
     // open the ipc handle

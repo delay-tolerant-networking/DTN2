@@ -93,6 +93,10 @@ main(int argc, const char** argv)
 
     FILE * target;
 
+    // force stdout to always be line buffered, even if output is
+    // redirected to a pipe or file
+    setvbuf(stdout, (char *)NULL, _IOLBF, 0);
+    
     s_buffer[BUFSIZE] = '\0';
 
     struct stat st;

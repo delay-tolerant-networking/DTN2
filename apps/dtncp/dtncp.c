@@ -82,6 +82,10 @@ main(int argc, char** argv)
 /*     //struct stat finfo; */
 /*     char buffer[4096]; // max filesize to send is 4096 (temp) */
 /*     int bufsize = 0; */
+
+    // force stdout to always be line buffered, even if output is
+    // redirected to a pipe or file
+    setvbuf(stdout, (char *)NULL, _IOLBF, 0);
     
     parse_options(argc, argv);
 
