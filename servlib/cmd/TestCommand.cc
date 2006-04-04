@@ -57,6 +57,27 @@ TestCommand::bind_vars()
 int
 TestCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
+    if (argc < 2) {
+        resultf("need a test subcommand");
+        return TCL_ERROR;
+    }
+
+    const char* cmd = argv[1];
+    if (!strcmp(cmd, "segfault"))
+    {
+        int* x = NULL;
+        (void)*x;
+        NOTREACHED;
+    }
+    else if (!strcmp(cmd, "panic"))
+    {
+        PANIC("panic");
+    }
+    else if (!strcmp(cmd, "assert"))
+    {
+        ASSERT(0);
+    }
+
     return TCL_ERROR;
 }
 
