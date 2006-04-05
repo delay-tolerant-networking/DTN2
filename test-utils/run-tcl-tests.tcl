@@ -26,6 +26,8 @@ set tests(basic) {
     "tcp-writeblocked.tcl"	""
     "reactive-fragmentation.tcl"	""
     "many-bundles.tcl"		""
+    "storage.tcl"		""
+    "storage.tcl"		"-storage_type filesysdb"
 }
 
 # the performance test group
