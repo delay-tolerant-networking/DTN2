@@ -1,0 +1,96 @@
+DTN Logging
+===========
+
+The logging in DTN is organized into hierarchical paths. A partially
+complete list of the targets is below. In the .dtndebug file, specific
+targets can be enabled at the various logging levels. In addition,
+classes that inherit from the oasys::Logger base class also pass the
+class name to the log system, allowing logging to be enabled for the
+specific class as well as the hierarchical section. 
+
+The basic idea is that a logf command contains an arbitrary log path,
+a level, and a printf-style body. For example:
+
+logf("/some/path", LOG_INFO, "something happened %d times", count);
+
+Each application should at intialization call Log::init(level) to
+prime the default level. All log messages with a level equal or higher
+than the default are output, others aren't.
+
+The code also checks for a ~/.dtndebug file which can optionally
+contain log paths and other levels. For example:
+
+# my ~/.dtndebug file
+% brief color
+/some/path debug
+/other info
+/other/more/specific debug
+
+The paths are interpreted to include everything below them, thus in
+the example above, all messages to /some/path/... would be output at
+level debug.
+
+In addition to the basic logf interface, there are also a set of
+macros (log_debug(), log_info(), log_notice(), log_warn(), log_err(),
+log_crit()) that are more efficient.
+
+For example, log_debug expands to
+
+#define log_debug(path, ...)                         \
+   if (log_enabled(LOG_DEBUG, path)) {               \
+       logf(LOG_DEBUG, path, ## __VA_ARGS__);        \
+  }                                                  \
+
+In this way, the check for whether or not the path is enabled at level
+debug occurs before the call to logf(). As such, the formatting of the
+log string, including any inline calls in the arg list are avoided
+unless the log line will actually be output. Under non-debug builds,
+all calls to log_debug are completely compiled out.
+
+.dtndebug file options
+======================
+
+There are several options that can be used to customize the display
+of debug output, and these options are specified on a line in the
+.debug file prefixed with '%' (see example above):
+
+no_path   - Don't display log path
+no_time - Don't display time stamp
+no_level  - Don't display log level
+brief     - Truncate log name to a fixed length and use brief error codes
+color   - Use terminal escape code to colorize output
+object  - When possible, display the address of the object that 
+          generated the log.
+classname - When possible, display the class that generated the log message.
+See comments in oasys/debug/{Log,Logger}.h for a more in-depth
+explanation.
+
+Logging Targets
+===============
+
+/command			Singleton tcl command interpreter
+/command/<command_name>		Specific command "command_name"
+/log				Internal logging system
+/timer				Timer system
+/thread				Threading system
+
+/dtnd				DTN daemon wrapper
+/dtn/bundle/actions		BundleActions interface
+/dtn/bundle/daemon		BundleDaemon forwarder and basic logic
+/dtn/bundle/fragmentation	Fragmentation related code
+/dtn/bundle/list/<name>		BundleList data structure
+/dtn/bundle/protocol		Bundle wire protocol
+/dtn/bundle/refs		Reference counting for in-memory bundle objs
+/dtn/cl/<name>			Convergence layer
+/dtn/cl/tcp/conn		TCP convergence layer connection
+/dtn/contact/manager		Contact Managment
+/dtn/interface/table		Local Interface table
+/dtn/link/<name>		Links to next-hop peers
+/dtn/link/<name>/contact	Open contact on links
+/dtn/route/<name>		BundleRouter <name>
+/dtn/registration/<regid>	Registration
+/dtn/registration/table		Table of registrations
+/dtn/storage/bundles		Storage backend for bundles
+/dtn/storage/global		Storage backend for global data
+/dtn/storage/registration	Storage backend for registrations
+
