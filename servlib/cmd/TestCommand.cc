@@ -43,6 +43,9 @@ namespace dtn {
 TestCommand::TestCommand()
     : TclCommand("test"), id_(0), fork_(false)
 {
+    add_to_help("segfault", "Generate a segfault.");
+    add_to_help("panic", "Trigger a panic.");
+    add_to_help("assert", "Trigger a false assert.");
 }
 
 void
