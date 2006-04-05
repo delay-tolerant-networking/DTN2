@@ -5,14 +5,32 @@
 namespace eval dtn {
 
 proc config {args} {
-    # XXX/demmer parse args to make below optional
-    
     conf::add dtnd * {source "dtnd-test-utils.tcl"}
 
+    # defaults
+    set storage_type berkeleydb
+    
+    set i 0
+    while {$i < [llength $args]} {
+	set arg [lindex $args $i]
+	switch -- $arg {
+	    -storage_type  -
+	    --storage_type {
+		set storage_type [lindex $args [incr i]]
+	    }
+
+	    default {
+		error "unknown dtn::config argument '$arg'"
+	    }
+	}
+
+	incr i
+    }
+    
     dtn::standard_manifest
     dtn::config_console
     dtn::config_api_server
-    dtn::config_berkeleydb
+    dtn::config_storage $storage_type
     dtn::config_null_link
 }
 
@@ -89,16 +107,16 @@ proc config_null_link {} {
 }
 
 #
-# Configuure berkeley db storage
+# Configure storage
 #
-proc config_berkeleydb {} {
-    conf::add dtnd * {
+proc config_storage {type} {
+    conf::add dtnd * [subst {
 storage set tidy_wait  0
-storage set type       berkeleydb
 storage set payloaddir bundles
+storage set type       $type
 storage set dbname     DTN
 storage set dbdir      db
-    }
+    }]
 }
 
 # namespace dtn
