@@ -45,16 +45,17 @@ namespace dtn {
  * Open the given contact.
  */
 bool
-NullConvergenceLayer::open_contact(Contact* contact)
+NullConvergenceLayer::open_contact(Link* link)
 {
-    BundleDaemon::post(new ContactUpEvent(contact));
+    link->set_contact(new Contact(link));
+    BundleDaemon::post(new ContactUpEvent(link->contact()));
     return true;
 }
 
 void
-NullConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
+NullConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
-    log_debug("send_bundle *%p to *%p", bundle, contact);
+    log_debug("send_bundle *%p to *%p", bundle, contact.object());
     
     BundleDaemon::post(
         new BundleTransmittedEvent(bundle, contact,

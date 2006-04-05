@@ -279,14 +279,15 @@ BluetoothConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
  * bundles to be transmitted.
  */
 bool
-BluetoothConvergenceLayer::open_contact(Contact* contact)
+BluetoothConvergenceLayer::open_contact(Link* link)
 {
     bdaddr_t addr;
     u_int8_t channel
 
-    log_debug("opening contact *%p", contact);
+    log_debug("opening contact on link *%p", link);
 
-    Link* link = contact->link();
+    Contact* contact = new Contact(link);
+    link->set_contact(contact);
 
     // parse out the address / port from the nexthop address. note
     // that these should have been validated in init_link() above, so
@@ -312,10 +313,10 @@ BluetoothConvergenceLayer::open_contact(Contact* contact)
  * Close the connection to the contact.
  */
 bool
-BluetoothConvergenceLayer::close_contact(Contact* contact)
+BluetoothConvergenceLayer::close_contact(const ContactRef& contact)
 {
     Connection* sender = (Connection*)contact->cl_info();
-    log_info("close_contact *%p", contact);
+    log_info("close_contact *%p", contact.object());
 
     if (sender) {
 
@@ -354,9 +355,9 @@ BluetoothConvergenceLayer::close_contact(Contact* contact)
  * Send a bundle to the Contact, mark the link as busy, and queue the
  * bundle on the Connection's bundle queue.
  */
-void BluetoothConvergenceLayer::send_bundle(Contact* contact,Bundle* bundle) 
+void BluetoothConvergenceLayer::send_bundle(const ContactRef& contact,Bundle* bundle) 
 {
-    log_info("send_bundle *%p to *%p",bundle,contact);
+    log_info("send_bundle *%p to *%p",bundle,contact.object());
     Connection* sender = (Connection*)contact->cl_info();
 
     ASSERT(sender != NULL);
@@ -666,7 +667,8 @@ BluetoothConvergenceLayer::Connection::Connection(
         BluetoothConvergenceLayer::Params* params)
     : Thread("BluetoothConvergenceLayer::Connection"),
       Logger("BluetoothConvergenceLayer::Connection", "/dtn/cl/bt/conn"),
-      params_(*params)
+      params_(*params),
+      contact_("BluetoothConvergenceLayer::Connection")
 {
     char buff[18];
     logpath_appendf("/%s:%d",
@@ -703,7 +705,8 @@ BluetoothConvergenceLayer::Connection::Connection(
         Params* params)
     : Thread("BluetoothConvergenceLayer::Connection"),
       Logger("BluetoothConvergenceLayer::Connection", "/dtn/cl/bt/conn"),
-      params_(*params)
+      params_(*params),
+      contact_("BluetoothConvergenceLayer::Connection")
 {
     char buff[18];
     logpathf("/dtn/cl/bt/passive-conn/%s:%d", oasys::Bluetooth::batostr(&remote_addr,buff),
@@ -1521,7 +1524,7 @@ BluetoothConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reas
 
     contact_init_ = false;
 
-    if (contact_) {
+    if (contact_ != NULL) {
         while (!inflight_.empty()) {
             InFlightBundle* inflight = &inflight_.front();
             if (inflight->acked_len_ != 0) {
@@ -1869,7 +1872,9 @@ BluetoothConvergenceLayer::Connection::main_loop()
 
         // check for whether to send a keepalive
         // check if the connection has been idle for too long (ONDEMAND only)
-        if (idle && contact_ && (contact_->link()->type() == Link::ONDEMAND)) {
+        if (idle && (contact_ != NULL) &&
+            (contact_->link()->type() == Link::ONDEMAND))
+        {
             u_int idle_close_time =
                 ((OndemandLink*)contact_->link())->idle_close_time_;
 

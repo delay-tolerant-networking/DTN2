@@ -496,7 +496,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
              (u_int)event->bytes_sent_,
              (u_int)event->reliably_sent_,
              event->contact_->link()->name(),
-             event->contact_->nexthop());
+             event->contact_->link()->nexthop());
 
     /*
      * If we're configured to wait for reliable transmission, then
@@ -587,7 +587,7 @@ BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
     log_info("BUNDLE_TRANSMIT_FAILED id:%d -> %s (%s)",
              bundle->bundleid_,
              event->contact_->link()->name(),
-             event->contact_->nexthop());
+             event->contact_->link()->nexthop());
     
     /*
      * Update the forwarding log so routers know to try to retransmit
@@ -860,10 +860,8 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         }
         
         if (link->isopen()) {
-            Contact* contact = link->contact();
-            ASSERT(contact);
-
             // note that the link is being closed
+            ASSERT(link->contact() != NULL);
             link->set_state(Link::CLOSING);
         
         } else {
@@ -912,10 +910,10 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 void
 BundleDaemon::handle_contact_up(ContactUpEvent* event)
 {
-    Contact* contact = event->contact_;
-    log_info("CONTACT_UP *%p", contact);
+    const ContactRef& contact = event->contact_;
+    log_info("CONTACT_UP *%p", contact.object());
     
-    Link* link = event->contact_->link();
+    Link* link = contact->link();
     link->set_state(Link::OPEN);
 }
 
@@ -923,12 +921,12 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
 void
 BundleDaemon::handle_contact_down(ContactDownEvent* event)
 {
-    Contact* contact = event->contact_;
-    Link* link = event->contact_->link();
+    const ContactRef& contact = event->contact_;
+    Link* link = contact->link();
     ContactEvent::reason_t reason = event->reason_;
     
     log_info("CONTACT_DOWN *%p (%s)",
-             contact, ContactEvent::reason_to_str(reason));
+             contact.object(), ContactEvent::reason_to_str(reason));
     
     // based on the reason code, update the link availability
     // and set state accordingly

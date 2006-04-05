@@ -391,19 +391,17 @@ TCPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
     // XXX/demmer more parameters
 }
 
-/**
- * Open the connection to the given contact and prepare for
- * bundles to be transmitted.
- */
+//----------------------------------------------------------------------
 bool
-TCPConvergenceLayer::open_contact(Contact* contact)
+TCPConvergenceLayer::open_contact(Link* link)
 {
     in_addr_t addr;
     u_int16_t port = 0;
     
-    log_debug("opening contact *%p", contact);
+    log_debug("opening contact on link *%p", link);
 
-    Link* link = contact->link();
+    Contact* contact = new Contact(link);
+    link->set_contact(contact);
 
     // parse out the address / port from the nexthop address. note
     // that these should have been validated in init_link() above, so
@@ -428,11 +426,11 @@ TCPConvergenceLayer::open_contact(Contact* contact)
  * Close the connnection to the contact.
  */
 bool
-TCPConvergenceLayer::close_contact(Contact* contact)
+TCPConvergenceLayer::close_contact(const ContactRef& contact)
 {
     Connection* conn = (Connection*)contact->cl_info();
 
-    log_info("close_contact *%p", contact);
+    log_info("close_contact *%p", contact.object());
 
     if (conn) {
         if (!conn->is_stopped() && !conn->should_stop()) {
@@ -465,9 +463,9 @@ TCPConvergenceLayer::close_contact(Contact* contact)
  * the bundle on the Connection's bundle queue.
  */
 void
-TCPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
+TCPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
-    log_debug("send_bundle *%p to *%p", bundle, contact);
+    log_debug("send_bundle *%p to *%p", bundle, contact.object());
 
     Connection* conn = (Connection*)contact->cl_info();
 
@@ -529,7 +527,8 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
       Logger("TCPConvergenceLayer::Connection",
              "%s/conn/%s:%d", cl->logpath(), intoa(remote_addr), remote_port),
       params_(*params), cl_(cl), initiate_(true),
-      direction_(direction), contact_(NULL)
+      direction_(direction),
+      contact_("TCPConvergenceLayer::Connection")
 {
     // create the blocking queue for bundles to be sent on (if we're
     // the sender)
@@ -592,8 +591,8 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
     : Thread("TCPConvergenceLayer::Connection"), 
       Logger("TCPConvergenceLayer::Connection",
              "%s/conn/%s:%d", cl->logpath(), intoa(remote_addr), remote_port),
-      params_(*params), cl_(cl), initiate_(false),
-      direction_(UNKNOWN), contact_(NULL)
+      params_(*params), cl_(cl), initiate_(false), direction_(UNKNOWN),
+      contact_("TCPConvergenceLayer::Connection")
 {
     // we always delete the thread object when we exit
     Thread::set_flag(Thread::DELETE_ON_EXIT);
@@ -658,7 +657,9 @@ TCPConvergenceLayer::Connection::run()
             // XXX/demmer this is a violation of the link state
             // semantics since it should really only be done by the
             // BundleDaemon thread
-            if (contact_ && (contact_->link()->state() != Link::OPENING)) {
+            if ((contact_ != NULL) &&
+                (contact_->link()->state() != Link::OPENING))
+            {
                 contact_->link()->set_state(Link::OPENING);
             }
             
@@ -1583,7 +1584,7 @@ TCPConvergenceLayer::Connection::open_opportunistic_link()
     // XXX/demmer this seems kinda bogus...
     if (link->contact() == NULL) {
         contact_ = new Contact(link);
-        link->set_contact(contact_);
+        link->set_contact(contact_.object());
     } else {
         ASSERT(contact_ == NULL);
         contact_ = link->contact();
@@ -1657,7 +1658,7 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
         sock_->close();
     }
 
-    if (contact_) {
+    if (contact_ != NULL) {
         // drain the inflight queue, posting transmitted or transmit
         // failed events for all bundles that haven't yet been fully
         // acked
@@ -1835,7 +1836,7 @@ TCPConvergenceLayer::Connection::send_loop()
     ASSERT(sock_->state() == oasys::IPSocket::ESTABLISHED);
 
     // store our state in the contact's cl info slot
-    ASSERT(contact_);
+    ASSERT(contact_ != NULL);
     ASSERT(contact_->cl_info() == NULL);
     contact_->set_cl_info(this);
     

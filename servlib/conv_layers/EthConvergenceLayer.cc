@@ -120,11 +120,14 @@ EthConvergenceLayer::interface_down(Interface* iface)
 }
 
 bool
-EthConvergenceLayer::open_contact(Contact* contact)
+EthConvergenceLayer::open_contact(Link* link)
 {
     eth_addr_t addr;
     
-    log_debug("opening contact *%p", contact);
+    log_debug("opening contact to link *%p", link);
+
+    Contact* contact = new Contact(link);
+    link->set_contact(contact);
 
     // parse out the address from the contact nexthop
     EndpointID eid(contact->nexthop());
@@ -147,7 +150,7 @@ EthConvergenceLayer::open_contact(Contact* contact)
 }
 
 bool
-EthConvergenceLayer::close_contact(Contact* contact)
+EthConvergenceLayer::close_contact(const ContactRef& contact)
 {  
     Sender* sender = (Sender*)contact->cl_info();
     
@@ -165,7 +168,7 @@ EthConvergenceLayer::close_contact(Contact* contact)
  * Send bundles queued up for the contact.
  */
 void
-EthConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
+EthConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
     Sender* sender = (Sender*)contact->cl_info();
     if (!sender) {
@@ -361,7 +364,7 @@ EthConvergenceLayer::Receiver::run()
 /**
  * Constructor for the active connection side of a connection.
  */
-EthConvergenceLayer::Sender::Sender(char* if_name, Contact* contact)
+EthConvergenceLayer::Sender::Sender(char* if_name, const ContactRef& contact)
     : contact_(contact)
 {
     struct ifreq req;

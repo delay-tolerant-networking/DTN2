@@ -81,17 +81,17 @@ public:
      * Open the connection to a given contact and send/listen for 
      * bundles over this contact.
      */
-    bool open_contact(Contact* contact);
+    bool open_contact(Link* link);
     
     /**
      * Close the connnection to the contact.
      */
-    bool close_contact(Contact* contact);
+    bool close_contact(const ContactRef& contact);
 
     /**
      * Send the bundle out the link.
      */
-    void send_bundle(Contact* contact, Bundle* bundle);
+    void send_bundle(const ContactRef& contact, Bundle* bundle);
 
     /**
      * Tunable parameter structure.
@@ -173,7 +173,7 @@ protected:
         /**
          * Constructor.
          */
-        Sender(Contact* contact);
+        Sender(const ContactRef& contact);
         
         /**
          * Send one bundle.
@@ -183,7 +183,7 @@ protected:
         /**
          * The contact that we're representing.
          */
-        Contact* contact_;
+        ContactRef contact_;
 
         /**
          * Temporary buffer for formatting bundles. Note that the

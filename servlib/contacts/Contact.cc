@@ -49,8 +49,9 @@ namespace dtn {
  * Constructor
  */
 Contact::Contact(Link* link)
-    : Logger("Contact", "/dtn/link/%s/contact",link->name()),
-             link_(link), cl_info_(NULL)
+    : RefCountedObject("/dtn/contact/refs"),
+      Logger("Contact", "/dtn/contact/%s",link->name()),
+      link_(link), cl_info_(NULL)
 {
     ::gettimeofday(&start_time_, 0);
     duration_ms_ = 0;
@@ -71,7 +72,8 @@ Contact::~Contact()
 int
 Contact::format(char* buf, size_t sz) const
 {
-    return snprintf(buf, sz, "contact %s (started %u.%u)", nexthop(),
+    return snprintf(buf, sz, "contact %s (started %u.%u)",
+                    link_->nexthop(),
                     (u_int32_t)start_time_.tv_sec,
                     (u_int32_t)start_time_.tv_usec);
 }

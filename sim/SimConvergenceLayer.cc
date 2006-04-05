@@ -106,17 +106,19 @@ SimConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 }
 
 bool
-SimConvergenceLayer::open_contact(Contact* contact)
+SimConvergenceLayer::open_contact(Link* link)
 {
-    log_debug("open_contact %s", contact->nexthop());
-    BundleDaemon::post(new ContactUpEvent(contact));
+    log_debug("opening contact for link *%p", link);
+    
+    link->set_contact(new Contact(link));
+    BundleDaemon::post(new ContactUpEvent(link->contact()));
     return true;
 }
 
 void 
-SimConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
+SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
-    log_debug("send_bundles on contact %s", contact->nexthop());
+    log_debug("send_bundles on contact %s", contact->link()->nexthop());
 
     SimCLInfo* info = (SimCLInfo*)contact->link()->cl_info();
     ASSERT(info);

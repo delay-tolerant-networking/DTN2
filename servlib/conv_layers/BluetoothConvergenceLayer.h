@@ -257,9 +257,9 @@ public:
     bool interface_up(Interface* iface, int argc, const char* argv[]);
     bool interface_down(Interface* iface);
     void dump_interface(Interface* iface, oasys::StringBuffer* buf);
-    bool open_contact(Contact* contact);
-    bool close_contact(Contact* contact);
-    void send_bundle(Contact*,Bundle*);
+    bool open_contact(Link* link);
+    bool close_contact(const ContactRef& contact);
+    void send_bundle(const ContactRef&,Bundle*);
 
     static Params defaults_;
     static ConnectionManager connections_;
@@ -426,7 +426,7 @@ protected:
         bool                initiate_;  ///< Do we initiate the connection
         direction_t         direction_; ///< SENDER or RECEIVER
         oasys::RFCOMMClient* sock_;     ///< The socket
-        Contact*            contact_;   ///< Contact for sender-side
+        ContactRef          contact_;   ///< Contact for sender-side
         oasys::StreamBuffer rcvbuf_;    ///< Buffer for incoming data
         oasys::ScratchBuffer<u_char*> sndbuf_;///< Buffer outgoing bundle data
         BlockingBundleList* queue_;     ///< Queue of bundles

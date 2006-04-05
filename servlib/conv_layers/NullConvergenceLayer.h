@@ -48,21 +48,11 @@ namespace dtn {
  */
 class NullConvergenceLayer : public ConvergenceLayer {
 public:
-    /**
-     * Constructor.
-     */
     NullConvergenceLayer()
         : ConvergenceLayer("NullConvergenceLayer", "null") {}
 
-    /**
-     * Open the given contact.
-     */
-    bool open_contact(Contact* contact);
-
-    /**
-     * Try to send the given bundle on the current link.
-     */
-    void send_bundle(Contact* contact, Bundle* bundle);
+    bool open_contact(Link* link);
+    void send_bundle(const ContactRef& contact, Bundle* bundle);
 };
 
 } // namespace dtn

@@ -61,10 +61,10 @@ NeighborhoodRouter::handle_contact_up(ContactUpEvent* event)
 {
     TableBasedRouter::handle_contact_up(event);
     
-    log_info("Contact Up: *%p adding route", event->contact_);
+    log_info("Contact Up: *%p adding route", event->contact_.object());
 
     char eidstring[255];
-    sprintf(eidstring, "dtn://%s", event->contact_->nexthop());
+    sprintf(eidstring, "dtn://%s", event->contact_->link()->nexthop());
 
     // By default, we add a route for all the next hops we have around. 
     RouteEntry* entry = new RouteEntry(EndpointIDPattern(eidstring), 

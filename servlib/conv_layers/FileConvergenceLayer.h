@@ -49,33 +49,15 @@ public:
      * Constructor.
      */
     FileConvergenceLayer();
+
+    /// @{
     
-    /**
-     * Bring up a new interface.
-     */
     virtual bool interface_up(Interface* iface,
                               int argc, const char* argv[]);
-
-    /**
-     * Bring down the interface.
-     */
     virtual bool interface_down(Interface* iface);
-    
-    /**
-     * Open the connection to the given contact and prepare for
-     * bundles to be transmitted.
-     */
-    virtual bool open_contact(Contact* contact);
-    
-    /**
-     * Close the connnection to the contact.
-     */
-    virtual bool close_contact(Contact* contact);
-    
-    /**
-     * Send the given bundle on the contact.
-     */
-    virtual void send_bundle(Contact* contact, Bundle* bundle);
+    virtual bool open_contact(Link* link);
+    virtual bool close_contact(const ContactRef& contact);
+    virtual void send_bundle(const ContactRef& contact, Bundle* bundle);
 
 protected:
     /**

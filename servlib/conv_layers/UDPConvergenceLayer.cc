@@ -254,14 +254,15 @@ UDPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 }
 
 bool
-UDPConvergenceLayer::open_contact(Contact* contact)
+UDPConvergenceLayer::open_contact(Link* link)
 {
     in_addr_t addr;
     u_int16_t port;
     
-    log_debug("opening contact *%p", contact);
-
-    Link* link = contact->link();
+    log_debug("opening contact for link *%p", link);
+    
+    Contact* contact = new Contact(link);
+    link->set_contact(contact);
     
     // parse out the address / port from the nexthop address. note
     // that these should have been validated in init_link() above, so
@@ -272,9 +273,9 @@ UDPConvergenceLayer::open_contact(Contact* contact)
     ASSERT(port != 0);
     
     Params* params = (Params*)link->cl_info();
-    
+
     // create a new connected socket for the contact
-    Sender* sender = new Sender(contact);
+    Sender* sender = new Sender(link->contact());
     sender->logpathf("%s/conn/%s:%d", logpath_, intoa(addr), port);
     sender->set_logfd(false);
 
@@ -298,17 +299,17 @@ UDPConvergenceLayer::open_contact(Contact* contact)
     
     contact->set_cl_info(sender);
 
-    BundleDaemon::post(new ContactUpEvent(contact));
+    BundleDaemon::post(new ContactUpEvent(link->contact()));
     
     return true;
 }
 
 bool
-UDPConvergenceLayer::close_contact(Contact* contact)
+UDPConvergenceLayer::close_contact(const ContactRef& contact)
 {
     Sender* sender = (Sender*)contact->cl_info();
     
-    log_info("close_contact *%p", contact);
+    log_info("close_contact *%p", contact.object());
 
     if (sender) {
         delete sender;
@@ -324,12 +325,12 @@ UDPConvergenceLayer::close_contact(Contact* contact)
  * when the bundle is queued on the contact.
  */
 void
-UDPConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
+UDPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
     Sender* sender = (Sender*)contact->cl_info();
     if (!sender) {
         log_crit("send_bundles called on contact *%p with no Sender!!",
-                 contact);
+                 contact.object());
         return;
     }
     ASSERT(contact == sender->contact_);
@@ -427,11 +428,11 @@ UDPConvergenceLayer::Receiver::run()
 /**
  * Constructor for the active connection side of a connection.
  */
-UDPConvergenceLayer::Sender::Sender(Contact* contact)
-    : contact_(contact)
+UDPConvergenceLayer::Sender::Sender(const ContactRef& contact)
+    : contact_(contact.object(), "UDPCovergenceLayer::Sender")
 {
 }
-        
+
 /* 
  * Send one bundle.
  */

@@ -183,18 +183,20 @@ FileConvergenceLayer::interface_down(Interface* iface)
  * Validate that the contact eid specifies a legit directory.
  */
 bool
-FileConvergenceLayer::open_contact(Contact* contact)
+FileConvergenceLayer::open_contact(Link* link)
 {
-    // parse out the directory from the contact
-    std::string dir;
-    if (!extract_dir(contact->nexthop(), &dir)) {
-        return false;
-    }
+    // XXX/demmer fixme
     
-    // make sure the directory exists and is readable / executable
-    if (!validate_dir(dir)) {
-        return false;
-    }
+    // parse out the directory from the contact
+//     std::string dir;
+//     if (!extract_dir(contact->nexthop(), &dir)) {
+//         return false;
+//     }
+    
+//     // make sure the directory exists and is readable / executable
+//     if (!validate_dir(dir)) {
+//         return false;
+//     }
 
     return true;
 }
@@ -203,7 +205,7 @@ FileConvergenceLayer::open_contact(Contact* contact)
  * Close the connnection to the contact.
  */
 bool
-FileConvergenceLayer::close_contact(Contact* contact)
+FileConvergenceLayer::close_contact(const ContactRef& contact)
 {
     // nothing to do
     return true;
@@ -213,7 +215,7 @@ FileConvergenceLayer::close_contact(Contact* contact)
  * Try to send the bundles queued up for the given contact.
  */
 void
-FileConvergenceLayer::send_bundle(Contact* contact, Bundle* bundle)
+FileConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
     // XXX/demmer fix this at some point
     NOTIMPLEMENTED;

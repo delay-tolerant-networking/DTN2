@@ -144,9 +144,9 @@ ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
  * Close the connnection to the contact.
  */
 bool
-ConvergenceLayer::close_contact(Contact* contact)
+ConvergenceLayer::close_contact(const ContactRef& contact)
 {
-    log_debug("closing contact *%p", contact);
+    log_debug("closing contact *%p", contact.object());
     return true;
 }
 

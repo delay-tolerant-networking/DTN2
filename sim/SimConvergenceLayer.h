@@ -69,20 +69,12 @@ public:
      */
     SimConvergenceLayer();
 
-    /**
-     * Create any CL-specific components of the Link.
-     */
+    /// @{
+    /// Virtual from ConvergenceLayer
     bool init_link(Link* link, int argc, const char* argv[]);
-
-    /**
-     * Open the given contact.
-     */
-    bool open_contact(Contact* contact);
-    
-    /**
-     * Send the bundle out the contact.
-     */
-    void send_bundle(Contact* contact, Bundle* bundle);
+    bool open_contact(Link* link);
+    void send_bundle(const ContactRef& contact, Bundle* bundle);
+    /// @}
     
 protected:
     static SimConvergenceLayer* instance_;

@@ -182,18 +182,18 @@ public:
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.
      */
-    bool open_contact(Contact* contact);
+    bool open_contact(Link* link);
 
     /**
      * Close the connnection to the contact.
      */
-    bool close_contact(Contact* contact);
+    bool close_contact(const ContactRef& contact);
 
     /**
      * Send a bundle to the contact. Mark the link as busy and queue
      * the bundle on the Connection's bundle queue.
      */
-    void send_bundle(Contact* contact, Bundle* bundle);
+    void send_bundle(const ContactRef& contact, Bundle* bundle);
 
     /**
      * Tunable parameter structure.
@@ -359,7 +359,7 @@ protected:
         TCPConvergenceLayer* cl_;	///< Pointer to the CL       instance
         bool                initiate_;	///< Do we initiate the connection
         direction_t         direction_; ///< SENDER or RECEIVER
-        Contact*            contact_;	///< Contact for sender-side
+        ContactRef          contact_;	///< Contact for sender-side
         oasys::TCPClient*   sock_;	///< The socket
         oasys::StreamBuffer rcvbuf_;	///< Buffer for incoming data
         oasys::ScratchBuffer<u_char*> sndbuf_;///< Buffer for outgoing bundle data

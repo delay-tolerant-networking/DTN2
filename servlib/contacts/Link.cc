@@ -101,7 +101,8 @@ Link::Link(const std::string& name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
     :  Logger("Link", "/dtn/link/%s", name.c_str()),
        type_(type), state_(UNAVAILABLE),
-       nexthop_(nexthop), name_(name), reliable_(false), contact_(NULL),
+       nexthop_(nexthop), name_(name), reliable_(false),
+       contact_("Link"),
        clayer_(cl), cl_info_(NULL)
 {
     ASSERT(clayer_);
@@ -221,12 +222,11 @@ Link::open()
 
     set_state(OPENING);
 
-    // create a new contact and kick the convergence layer. once it
-    // has established a session however it needs to, it will set the
-    // Link state to OPEN and post a ContactUpEvent
+    // tell the convergence layer to establish a new session however
+    // it needs to, it will set the Link state to OPEN and post a
+    // ContactUpEvent
     ASSERT(contact_ == NULL);
-    set_contact(new Contact(this));
-    clayer()->open_contact(contact_); 
+    clayer()->open_contact(this);
 }
     
 /**
@@ -246,7 +246,7 @@ Link::close()
         return;
     }
 
-    if (!contact_) {
+    if (contact_ == NULL) {
         log_err("Link::close with no contact");
         return;
     }
@@ -256,8 +256,7 @@ Link::close()
     clayer()->close_contact(contact_);
     ASSERT(contact_->cl_info() == NULL);
     
-    // Clean it up
-    delete contact_;
+    // Remove the reference, which will clean up the object
     contact_ = NULL;
 
     log_debug("Link::close complete");

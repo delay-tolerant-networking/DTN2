@@ -241,11 +241,11 @@ public:
  */
 class BundleTransmittedEvent : public BundleEvent {
 public:
-    BundleTransmittedEvent(Bundle* bundle, Contact* contact,
+    BundleTransmittedEvent(Bundle* bundle, const ContactRef& contact,
                            size_t bytes_sent, size_t reliably_sent)
         : BundleEvent(BUNDLE_TRANSMITTED),
           bundleref_(bundle, "BundleTransmittedEvent"),
-          contact_(contact),
+          contact_(contact.object(), "BundleTransmittedEvent"),
           bytes_sent_(bytes_sent),
           reliably_sent_(reliably_sent) {}
 
@@ -253,7 +253,7 @@ public:
     BundleRef bundleref_;
 
     /// The contact where the bundle was sent
-    Contact* contact_;
+    ContactRef contact_;
 
     /// Total number of bytes sent
     size_t bytes_sent_;
@@ -271,16 +271,16 @@ public:
  */
 class BundleTransmitFailedEvent : public BundleEvent {
 public:
-    BundleTransmitFailedEvent(Bundle* bundle, Contact* contact)
+    BundleTransmitFailedEvent(Bundle* bundle, const ContactRef& contact)
         : BundleEvent(BUNDLE_TRANSMIT_FAILED),
           bundleref_(bundle, "BundleTransmitFailedEvent"),
-          contact_(contact) {}
+          contact_(contact.object(), "BundleTransmitFailedEvent") {}
 
     /// The transmitted bundle
     BundleRef bundleref_;
 
     /// The contact where the bundle was attempted to be sent
-    Contact* contact_;
+    ContactRef contact_;
 };
 
 /**
@@ -380,11 +380,12 @@ public:
  */
 class ContactUpEvent : public ContactEvent {
 public:
-    ContactUpEvent(Contact* contact)
-        : ContactEvent(CONTACT_UP), contact_(contact) {}
+    ContactUpEvent(const ContactRef& contact)
+        : ContactEvent(CONTACT_UP),
+          contact_(contact.object(), "ContactUpEvent") {}
 
     /// The contact that is up
-    Contact* contact_;
+    ContactRef contact_;
 };
 
 /**
@@ -392,11 +393,12 @@ public:
  */
 class ContactDownEvent : public ContactEvent {
 public:
-    ContactDownEvent(Contact* contact, reason_t reason)
-        : ContactEvent(CONTACT_DOWN, reason), contact_(contact) {}
+    ContactDownEvent(const ContactRef& contact, reason_t reason)
+        : ContactEvent(CONTACT_DOWN, reason),
+          contact_(contact.object(), "ContactDownEvent") {}
 
     /// The contact that is now down
-    Contact* contact_;
+    ContactRef contact_;
 };
 
 /**

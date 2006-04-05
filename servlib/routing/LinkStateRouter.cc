@@ -76,10 +76,10 @@ LinkStateRouter::handle_contact_up(ContactUpEvent* event)
 
     log_info("Contact Up. Adding edges %s <-> %s",
              BundleDaemon::instance()->local_eid().c_str(),
-             event->contact_->nexthop());
+             event->contact_->link()->nexthop());
 
     local=graph_.getVertex(BundleDaemon::instance()->local_eid().c_str());
-    peer=graph_.getVertex(event->contact_->nexthop());   
+    peer=graph_.getVertex(event->contact_->link()->nexthop());
 
     /* 
      *  Contact Up means we are able to transmit to the node at the other side. 
@@ -119,9 +119,9 @@ LinkStateRouter::handle_contact_down(ContactDownEvent* event)
 
     log_info("Contact Down. Removing edges %s <-> %s",
              BundleDaemon::instance()->local_eid().c_str(),
-             event->contact_->nexthop());
+             event->contact_->link()->nexthop());
     
-    peer=graph_.getVertex(event->contact_->nexthop());   
+    peer=graph_.getVertex(event->contact_->link()->nexthop());
     local=graph_.getVertex(BundleDaemon::instance()->local_eid().c_str());
 
     /*

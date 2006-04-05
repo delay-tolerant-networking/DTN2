@@ -40,8 +40,8 @@
 
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Formatter.h>
-
-#include "Link.h"
+#include <oasys/util/Ref.h>
+#include <oasys/util/RefCountedObject.h>
 
 namespace dtn {
 
@@ -49,28 +49,41 @@ class Bundle;
 class BundleList;
 class ConvergenceLayer;
 class CLInfo;
+class Link;
 
 /**
  * Encapsulation of an active connection to a next-hop DTN contact.
- * This is basically a repository for any abstract state about the
- * contact opportunity including start time and estimations for
- * bandwidth / latency. It also contains the CLInfo slot for the
- * convergence layer to put any state associated with the active
- * connection.
+ * This is basically a repository for any state about the contact
+ * opportunity including start time, estimations for bandwidth or
+ * latency, etc.
+ *
+ * It also contains the CLInfo slot for the convergence layer to put
+ * any state associated with the active connection.
+ *
+ * Since the contact object may be used by multiple threads in the
+ * case of a connection-oriented convergence layer, and because the
+ * object is intended to be deleted when the contact opportunity ends,
+ * all object instances are reference counted and will be deleted when
+ * the last reference is removed.
  */
-class Contact : public oasys::Formatter, public oasys::Logger {
+class Contact : public oasys::RefCountedObject,
+                public oasys::Logger
+{
 public:
     /**
-     * Constructor / Destructor
+     * Constructor
      */
     Contact(Link* link);
-    virtual ~Contact();
- 
-    /**
-     * Accessor to this contact's convergence layer.
-     */
-    ConvergenceLayer* clayer() { return link_->clayer(); }
 
+private:
+    /**
+     * Destructor -- private since the class is reference counted and
+     * therefore is never explicitly deleted.
+     */ 
+    virtual ~Contact();
+    friend class oasys::RefCountedObject;
+
+public:
     /**
      * Store the convergence layer state associated with the contact.
      */
@@ -91,11 +104,6 @@ public:
      * Accessor to the link
      */
     Link* link() { return link_; }
-
-    /**
-     * Accessor to the link's next hop address info.
-     */
-    const char* nexthop() const { return link_->nexthop() ; }
 
     /**
      * Virtual from formatter
@@ -120,6 +128,11 @@ protected:
     
     CLInfo* cl_info_;	///< convergence layer specific info
 };
+
+/**
+ * Typedef for a reference on a contact.
+ */
+typedef oasys::Ref<Contact> ContactRef;
 
 } // namespace dtn
 

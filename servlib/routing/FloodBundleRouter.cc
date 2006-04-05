@@ -199,8 +199,8 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
 void
 FloodBundleRouter::handle_contact_down(ContactDownEvent* event)
 {
-    Contact* contact = event->contact_;
-    log_info("FLOOD: CONTACT_DOWN *%p: removing queued bundles", contact);
+    const ContactRef& contact = event->contact_;
+    log_info("FLOOD: CONTACT_DOWN *%p: removing queued bundles", contact.object());
     
     //XXX not implemented yet - neeed to do
     route_table_->del_entry(all_eids_, contact->link());

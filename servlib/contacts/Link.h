@@ -43,6 +43,8 @@
 
 #include "bundling/BundleList.h"
 
+#include "Contact.h"
+
 namespace dtn {
 
 class ConvergenceLayer;
@@ -312,14 +314,14 @@ public:
     /**
      * Return the current contact information (if any).
      */
-    Contact* contact() const { return contact_; }
+    const ContactRef& contact() const { return contact_; }
 
     /**
-     * Set the contact information (used by opportunistic connection
-     * CLs).
+     * Set the contact information.
      */
     void set_contact(Contact* contact)
     {
+        // XXX/demmer check this invariant
         ASSERT(contact_ == NULL);
         contact_ = contact;
     }
@@ -435,7 +437,7 @@ protected:
     bool reliable_;
     
     /// Current contact. contact_ != null iff link is open
-    Contact* contact_;
+    ContactRef contact_;
 
     /// Pointer to convergence layer
     ConvergenceLayer* clayer_;

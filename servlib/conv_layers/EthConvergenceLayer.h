@@ -132,17 +132,17 @@ public:
      * Open the connection to a given contact and send/listen for 
      * bundles over this contact.
      */
-    bool open_contact(Contact* contact);
+    bool open_contact(Link* link);
     
     /**
      * Close the connnection to the contact.
      */
-    bool close_contact(Contact* contact);
+    bool close_contact(const ContactRef& contact);
 
     /**
      * Send the bundle to the contact
      */
-    void send_bundle(Contact* contact, Bundle* bundle);
+    void send_bundle(const ContactRef& contact, Bundle* bundle);
     
     /**
      * Helper class (and thread) that listens on a registered
@@ -195,7 +195,7 @@ public:
         /**
          * Constructor for the active connection side of a connection.
          */
-        Sender(char* if_name, Contact* contact);
+        Sender(char* if_name, const ContactRef& contact);
 
         /**
          * Destructor.
@@ -211,7 +211,7 @@ public:
         bool send_bundle(Bundle* bundle);
 
         /// The contact that we're representing
-        Contact* contact_;
+        ContactRef contact_;
         
         /// Socket identifier
         int sock_;
