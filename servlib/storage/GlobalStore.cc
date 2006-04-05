@@ -46,7 +46,7 @@
 
 namespace dtn {
 
-const u_int32_t GlobalStore::CURRENT_VERSION = 1;
+const u_int32_t GlobalStore::CURRENT_VERSION = 2;
 static const char* GLOBAL_TABLE = "globals";
 static const char* GLOBAL_KEY   = "global_key";
 
