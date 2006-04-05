@@ -503,7 +503,7 @@ BlockingBundleList::pop_blocking(int timeout)
             lock_->unlock();
             log_debug("pop_blocking timeout on list %p", this);
 
-            return 0;
+            return BundleRef("BlockingBundleList::pop_blocking temporary");
         }
     } else {
         used_wait = false;
