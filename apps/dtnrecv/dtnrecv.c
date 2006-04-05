@@ -256,7 +256,7 @@ main(int argc, char** argv)
            change ? "change registration" : "register", regid);
     
     if (register_only) {
-        exit(0);
+        goto done;
     }
 
     // bind the current handle to the new registration
@@ -334,6 +334,7 @@ main(int argc, char** argv)
     printf("dtnrecv (pid %d) exiting: %d bundles received, %d total bytes\n\n",
            getpid(), i, total_bytes);
 
+ done:
     dtn_close(handle);
     
     return 0;
