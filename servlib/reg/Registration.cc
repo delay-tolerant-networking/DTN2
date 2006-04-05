@@ -68,6 +68,7 @@ Registration::Registration(u_int32_t regid,
       failure_action_(action),
       script_(script),
       expiration_(expiration),
+      expiration_timer_(NULL),
       active_(false),
       expired_(false)
 {
@@ -84,6 +85,7 @@ Registration::Registration(const oasys::Builder&)
       failure_action_(DEFER),
       script_(),
       expiration_(0),
+      expiration_timer_(NULL),
       active_(false),
       expired_(false)
 {
