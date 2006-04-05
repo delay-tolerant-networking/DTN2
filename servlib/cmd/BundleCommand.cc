@@ -36,7 +36,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/serialize/TclListSerialize.h>
 #include <oasys/util/HexDumpBuffer.h>
+#include <oasys/util/ScratchBuffer.h>
 #include <oasys/util/StringBuffer.h>
 #include <oasys/util/OptParser.h>
 
@@ -67,6 +69,7 @@ BundleCommand::BundleCommand()
     add_to_help("list", "list all of the bundles in the system");
     add_to_help("info <id>", "get info on a specific bundle");
     add_to_help("dump <id>", "dump a specific bundle");
+    add_to_help("dump_tcl <id>", "dump a bundle as a tcl list");
     add_to_help("dump_ascii <id>", "dump the bundle in ascii");
 }
 
@@ -237,6 +240,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         
     } else if (!strcmp(cmd, "info") ||
                !strcmp(cmd, "dump") ||
+               !strcmp(cmd, "dump_tcl") ||
                !strcmp(cmd, "dump_ascii"))
     {
         // bundle [info|dump|dump_ascii] <id>
@@ -268,6 +272,30 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             buf.append("\n");
             bundle->fwdlog_.dump(&buf);
             set_result(buf.c_str());
+
+        } else if (strcmp(cmd, "dump_tcl") == 0) {
+            oasys::TclListSerialize s(interp, oasys::Serialize::CONTEXT_LOCAL, 0);
+            bundle->serialize(&s);
+            Tcl_Obj* list_obj = s.tcl_list();
+
+            size_t len = bundle->payload_.length();
+            oasys::ScratchBuffer<u_char*> buf(len);
+            const u_char* bp =
+                bundle->payload_.read_data(0, len, buf.buf());
+
+            Tcl_ListObjAppendElement(interp, list_obj,
+                                     Tcl_NewStringObj("payload_len", -1));
+
+            Tcl_ListObjAppendElement(interp, list_obj,
+                                     Tcl_NewIntObj(len));
+
+            Tcl_ListObjAppendElement(interp, list_obj,
+                                     Tcl_NewStringObj("payload", -1));
+
+            Tcl_ListObjAppendElement(interp, list_obj,
+                                     Tcl_NewByteArrayObj(bp, len));
+
+            set_objresult(list_obj);
             
         } else {
             size_t len = bundle->payload_.length();
