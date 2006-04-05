@@ -36,6 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/serialize/TclListSerialize.h>
 #include <oasys/thread/Notifier.h>
 #include <oasys/util/StringBuffer.h>
 
@@ -56,6 +57,7 @@ RegistrationCommand::RegistrationCommand()
     add_to_help("tcl <reg id> <cmd <args ...>", "add a tcl registration");
     add_to_help("del <reg id>", "delete a registration");
     add_to_help("list", "list all of the registrations");
+    add_to_help("dump_tcl <reg id>", "dump a tcl representation of the reg");
 }
 
 int
@@ -72,6 +74,26 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         oasys::StringBuffer buf;
         BundleDaemon::instance()->reg_table()->dump(&buf);
         set_result(buf.c_str());
+        return TCL_OK;
+        
+    } else if (strcmp(op, "dump_tcl") == 0) {
+        const RegistrationTable* regtable =
+            BundleDaemon::instance()->reg_table();
+        
+        const char* regid_str = argv[2];
+        int regid = atoi(regid_str);
+        
+        Registration* reg = regtable->get(regid);
+        if (!reg) {
+            resultf("no registration exists with id %d", regid);
+            return TCL_ERROR;
+        }
+
+        Tcl_Obj* result = Tcl_NewListObj(0, 0);
+        oasys::TclListSerialize s(interp, result,
+                                  oasys::Serialize::CONTEXT_LOCAL, 0);
+        reg->serialize(&s);
+        set_objresult(result);
         return TCL_OK;
         
     } else if (strcmp(op, "add") == 0) {
@@ -106,8 +128,9 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         ASSERT(reg);
 
-        BundleDaemon::post_and_wait(new RegistrationAddedEvent(reg),
-                                    CompletionNotifier::notifier());
+        BundleDaemon::post_and_wait(
+            new RegistrationAddedEvent(reg, EVENTSRC_ADMIN),
+            CompletionNotifier::notifier());
         
         resultf("%d", reg->regid());
         return TCL_OK;

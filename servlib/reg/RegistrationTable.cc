@@ -36,6 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "APIRegistration.h"
 #include "RegistrationTable.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
@@ -94,20 +95,28 @@ RegistrationTable::get(u_int32_t regid) const
  * error adding to the persistent store.
  */
 bool
-RegistrationTable::add(Registration* reg)
+RegistrationTable::add(Registration* reg, bool add_to_store)
 {
     // put it in the list
     reglist_.push_back(reg);
 
     // don't store (or log) default registrations 
-    if (reg->regid() <= Registration::MAX_RESERVED_REGID) {
+    if (!add_to_store || reg->regid() <= Registration::MAX_RESERVED_REGID) {
         return true;
     }
 
+    // now, all we should get are API registrations
+    APIRegistration* api_reg = dynamic_cast<APIRegistration*>(reg);
+    if (api_reg == NULL) {
+        log_err("non-api registration %d passed to registration store",
+                reg->regid());
+        return false;
+    }
+    
     log_info("adding registration %d/%s", reg->regid(),
              reg->endpoint().c_str());
     
-    if (! RegistrationStore::instance()->add(reg)) {
+    if (! RegistrationStore::instance()->add(api_reg)) {
         log_err("error adding registration %d/%s: error in persistent store",
                 reg->regid(), reg->endpoint().c_str());
         return false;
@@ -134,7 +143,7 @@ RegistrationTable::del(u_int32_t regid)
         return false;
     }
 
-    if (! RegistrationStore::instance()->del(*iter)) {
+    if (! RegistrationStore::instance()->del(regid)) {
         log_err("error removing registration %d: error in persistent store",
                 regid);
         return false;
@@ -155,7 +164,14 @@ RegistrationTable::update(Registration* reg)
     log_info("updating registration %d/%s",
              reg->regid(), reg->endpoint().c_str());
 
-    if (! RegistrationStore::instance()->update(reg)) {
+    APIRegistration* api_reg = dynamic_cast<APIRegistration*>(reg);
+    if (api_reg == NULL) {
+        log_err("non-api registration %d passed to registration store",
+                reg->regid());
+        return false;
+    }
+    
+    if (! RegistrationStore::instance()->update(api_reg)) {
         log_err("error updating registration %d/%s: error in persistent store",
                 reg->regid(), reg->endpoint().c_str());
         return false;

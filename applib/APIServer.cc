@@ -393,7 +393,9 @@ APIClient::handle_register()
     u_int32_t regid = GlobalStore::instance()->next_regid();
     reg = new APIRegistration(regid, endpoint, action,
                               reginfo.expiration, script);
-    BundleDaemon::post_and_wait(new RegistrationAddedEvent(reg), notifier_);
+
+    BundleDaemon::post_and_wait(new RegistrationAddedEvent(reg, EVENTSRC_APP),
+                                notifier_);
     
     // fill the response with the new registration id
     if (!xdr_dtn_reg_id_t(&xdr_encode_, &regid)) {

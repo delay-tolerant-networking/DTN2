@@ -221,7 +221,8 @@ GlueNode::create_consumer()
     consumer_ = new FloodConsumer(id_,"dtn://2");
     consumer_->set_router(router_);
 
-    RegistrationAddedEvent *reg_add = new RegistrationAddedEvent(consumer_);
+    RegistrationAddedEvent *reg_add =
+        new RegistrationAddedEvent(consumer_, EVENTSRC_ADMIN);
     forward_event(reg_add);
 }
 

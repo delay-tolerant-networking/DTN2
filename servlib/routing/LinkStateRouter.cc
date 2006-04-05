@@ -65,7 +65,7 @@ void
 LinkStateRouter::initialize() 
 {
     reg_=new LSRegistration(this);
-    BundleDaemon::instance()->post(new RegistrationAddedEvent(reg_));
+    BundleDaemon::instance()->post(new RegistrationAddedEvent(reg_, EVENTSRC_ADMIN));
 }
 
 void
@@ -271,7 +271,7 @@ LinkStateRouter::LSRegistration::LSRegistration(LinkStateRouter* router)
 
     router_=router;
 
-    BundleDaemon::post(new RegistrationAddedEvent(this));
+    BundleDaemon::post(new RegistrationAddedEvent(this, EVENTSRC_ADMIN));
 }
 
 void

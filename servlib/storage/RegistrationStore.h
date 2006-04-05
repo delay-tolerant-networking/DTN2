@@ -39,21 +39,21 @@
 #define _REGISTRATION_STORE_H_
 
 #include <oasys/debug/Log.h>
-#include <oasys/storage/StorageConfig.h>
 
 // forward decl
 namespace oasys {
 template<typename _Type> class SingleTypeDurableTable;
+class StorageConfig;
+class DurableIterator;
 class DurableStore;
 }
 
 namespace dtn {
 
-class Registration;
-class RegistrationList;
+class APIRegistration;
 
 /**
- * Abstract base class for the persistent registration store.
+ * The persistent store for API registrations.
  */
 class RegistrationStore : public oasys::Logger {
 public:
@@ -116,23 +116,70 @@ public:
      * Add a new registration to the database. Returns true if the
      * registration is successfully added, false on error.
      */
-    bool add(Registration* reg);
+    bool add(APIRegistration* reg);
+    
+    /**
+     * Load a registration from the store.
+     */
+    APIRegistration* get(u_int32_t regid);
     
     /**
      * Remove the registration from the database, returns true if
      * successful, false on error.
      */
-    bool del(Registration* reg);
+    bool del(u_int32_t regid);
     
     /**
      * Update the registration in the database. Returns true on
      * success, false if there's no matching registration or on error.
      */
-    bool update(Registration* reg);
+    bool update(APIRegistration* reg);
 
+    /**
+     * Iterator class used to loop through the keys (i.e. bundle ids)
+     * in the store.
+     */
+    class iterator {
+    public:
+        /**
+         * Destructor that cleans up the internal iterator as well.
+         */
+        virtual ~iterator();
+
+        /**
+         * Advances the iterator.
+         *
+         * @return DS_OK, DS_NOTFOUND if no more elements, DS_ERR if
+         * an error occurred while iterating.
+         */
+        int next();
+
+        /**
+         * Return the registration id at the current location.
+         */
+        u_int32_t cur_regid() { return cur_regid_; }
+
+    private:
+        friend class RegistrationStore;
+
+        /// Private constructor, used only by the BundleStore.
+        iterator(oasys::DurableIterator* iter);
+
+        /// The underlying iterator
+        oasys::DurableIterator* iter_;
+
+        /// Cache of the current registration id
+        u_int32_t cur_regid_;
+    };
+
+    /**
+     * Return a new iterator.
+     */
+    iterator* new_iterator();
+    
 protected:
     static RegistrationStore* instance_;
-    oasys::SingleTypeDurableTable<Registration>* store_;
+    oasys::SingleTypeDurableTable<APIRegistration>* store_;
 };
 } // namespace dtn
 

@@ -47,6 +47,7 @@
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
 #include "reg/AdminRegistration.h"
+#include "reg/APIRegistration.h"
 #include "reg/Registration.h"
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
@@ -708,7 +709,9 @@ BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
     log_info("REGISTRATION_ADDED %d %s",
              registration->regid(), registration->endpoint().c_str());
 
-    if (!reg_table_->add(registration)) {
+    if (!reg_table_->add(registration,
+                         (event->source_ == EVENTSRC_APP) ? true : false))
+    {
         log_err("error adding registration %d to table",
                 registration->regid());
     }
@@ -1282,12 +1285,25 @@ BundleDaemon::load_registrations()
 {
     admin_reg_ = new AdminRegistration();
     {
-        RegistrationAddedEvent e(admin_reg_);
+        RegistrationAddedEvent e(admin_reg_, EVENTSRC_ADMIN);
         handle_event(&e);
     }
 
-    // XXX/demmer fix this
-    RegistrationStore::instance()->load();
+    Registration* reg;
+    RegistrationStore* reg_store = RegistrationStore::instance();
+    RegistrationStore::iterator* iter = reg_store->new_iterator();
+
+    while (iter->next() == 0) {
+        reg = reg_store->get(iter->cur_regid());
+        if (reg == NULL) {
+            log_err("error loading registration %d from data store",
+                    iter->cur_regid());
+            continue;
+        }
+        
+        RegistrationAddedEvent e(reg, EVENTSRC_STORE);
+        handle_event(&e);
+    }
 }
 
 //----------------------------------------------------------------------

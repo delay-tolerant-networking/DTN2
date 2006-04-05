@@ -66,8 +66,12 @@ public:
      * Add a new registration to the database. Returns true if the
      * registration is successfully added, false if there's another
      * registration with the same {endpoint,regid}.
+     *
+     * The flag controls whether or not the registration is added to
+     * the persistent store, which is only done for registrations
+     * added from the RPC interface.
      */
-    bool add(Registration* reg);
+    bool add(Registration* reg, bool add_to_store = true);
 
     /**
      * Look up a matching registration.

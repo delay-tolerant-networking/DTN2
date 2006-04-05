@@ -479,11 +479,15 @@ public:
  */
 class RegistrationAddedEvent : public BundleEvent {
 public:
-    RegistrationAddedEvent(Registration* reg)
-        : BundleEvent(REGISTRATION_ADDED), registration_(reg) {}
+    RegistrationAddedEvent(Registration* reg, event_source_t source)
+        : BundleEvent(REGISTRATION_ADDED), registration_(reg),
+          source_(source) {}
 
     /// The newly added registration
     Registration* registration_;
+
+    /// Why is the registration added
+    event_source_t source_;
 };
 
 /**
