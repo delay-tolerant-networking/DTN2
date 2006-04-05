@@ -113,8 +113,18 @@ namespace eval dtn {
 	}
     }
 
+    # this gets bundle data either through the tcl registration (in
+    # which case it's in a global array bundle_info and bundle_guid is
+    # a source,timestamp pair, or by calling the bundle dump_tcl
+    # command if it's in the pending list, in in which case bundle_guid
+    # should be of the form "bundleid-XXX"
+    
     proc get_bundle_data {id bundle_guid} {
-	return [dtn::tell_dtnd $id "set bundle_info($bundle_guid)"]
+	if [regexp -- {bundleid-([0-9]+)} $bundle_guid match bundle_id] {
+	    return [dtn::tell_dtnd $id "bundle dump_tcl $bundle_id"]
+	} else {
+	    return [dtn::tell_dtnd $id "set bundle_info($bundle_guid)"]
+	}
     }
 
     proc check_bundle_data {id bundle_guid {args}} {
@@ -127,7 +137,6 @@ namespace eval dtn {
 	}
     }
 
-    
     # dtn status report bundle data functions
 
     proc check_sr_arrived {id sr_guid} {
@@ -167,7 +176,17 @@ namespace eval dtn {
 	}
     }
 
-    
+    # registration functions
+    proc check_reg_data {id regid {args}} {
+	array set reg_data [tell_dtnd $id registration dump_tcl $regid]
+	foreach {var val} $args {
+	    if {$reg_data($var) != $val} {
+		error "check_reg_data: registration $regid \
+			$var $reg_data($var) != expected $val"
+	    }
+	}
+    }
+
     # dtnd "bundle stats" functions
     
     proc check_bundle_stats {id args} {
