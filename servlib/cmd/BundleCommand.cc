@@ -36,9 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/serialize/TclListSerialize.h>
 #include <oasys/util/HexDumpBuffer.h>
-#include <oasys/util/ScratchBuffer.h>
 #include <oasys/util/StringBuffer.h>
 #include <oasys/util/OptParser.h>
 
@@ -47,6 +45,7 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
+#include "reg/TclRegistration.h"
 
 namespace dtn {
 
@@ -274,28 +273,12 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             set_result(buf.c_str());
 
         } else if (strcmp(cmd, "dump_tcl") == 0) {
-            oasys::TclListSerialize s(interp, oasys::Serialize::CONTEXT_LOCAL, 0);
-            bundle->serialize(&s);
-            Tcl_Obj* list_obj = s.tcl_list();
-
-            size_t len = bundle->payload_.length();
-            oasys::ScratchBuffer<u_char*> buf(len);
-            const u_char* bp =
-                bundle->payload_.read_data(0, len, buf.buf());
-
-            Tcl_ListObjAppendElement(interp, list_obj,
-                                     Tcl_NewStringObj("payload_len", -1));
-
-            Tcl_ListObjAppendElement(interp, list_obj,
-                                     Tcl_NewIntObj(len));
-
-            Tcl_ListObjAppendElement(interp, list_obj,
-                                     Tcl_NewStringObj("payload", -1));
-
-            Tcl_ListObjAppendElement(interp, list_obj,
-                                     Tcl_NewByteArrayObj(bp, len));
-
-            set_objresult(list_obj);
+            Tcl_Obj* result = NULL;
+            int ok =
+                TclRegistration::parse_bundle_data(interp, bundle, &result);
+            
+            set_objresult(result);
+            return ok;
             
         } else {
             size_t len = bundle->payload_.length();

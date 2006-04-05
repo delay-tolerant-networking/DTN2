@@ -36,10 +36,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/serialize/TclListSerialize.h>
 #include <oasys/util/ScratchBuffer.h>
 
 #include "TclRegistration.h"
-#include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
@@ -113,23 +113,38 @@ TclRegistration::get_list_channel(Tcl_Interp* interp)
 }
 
 
+int
+TclRegistration::get_bundle_data(Tcl_Interp* interp)
+{
+    oasys::TclCommandInterp* cmdinterp = oasys::TclCommandInterp::instance();
+    BundleRef b("TclRegistration::get_bundle_data temporary");
+    b = bundle_list_->pop_front();
+    if (b == NULL) {
+        cmdinterp->set_objresult(Tcl_NewListObj(0, 0));
+        return TCL_OK; // empty list
+    }
+
+    Tcl_Obj* result;
+    int ok = parse_bundle_data(interp, b, &result);
+    cmdinterp->set_objresult(result);
+
+    if (ok != TCL_OK) {
+        return ok;
+    }
+    
+    BundleDaemon::post(new BundleDeliveredEvent(b.object(), this));
+    return TCL_OK;
+    
+}
+
 /**
- * return a Tcl list key-value pairs detailing bundle contents to a
+ * Return a Tcl list key-value pairs detailing bundle contents to a
  * registered procedure each time a bundle arrives. The returned TCL
  * list is suitable for assigning to an array, e.g.
  *     array set b $bundle_info
  *
- * Below is a description of the array keys and values in the form
- * "key : description of value"
- *
- * ALWAYS DEFINED KEY-VALUE PAIRS:
- *
- * isadmin     : Is it an admin bundle? (boolean)
- * source      : Source EID
- * dest        : Destination EID
- * length      : Payload Length
- * payload     : Payload contents
- * creation_ts : Creation timestamp
+ * Using the TclListSerialize class, all fields that are serialized in
+ * Bundle::serialize will be present in the returned tcl list.
  *
  * ADMIN-BUNDLE-ONLY KEY-VALUE PAIRS:
  *
@@ -165,15 +180,17 @@ TclRegistration::get_list_channel(Tcl_Interp* interp)
  * custody_signal_time        : custody transfer time
  */
 int
-TclRegistration::get_bundle_data(Tcl_Interp* interp)
+TclRegistration::parse_bundle_data(Tcl_Interp* interp,
+                                   const BundleRef& b,
+                                   Tcl_Obj** result)
 {
-    oasys::TclCommandInterp* cmdinterp = oasys::TclCommandInterp::instance();
-    BundleRef b("TclRegistration::get_bundle_data temporary");
-    b = bundle_list_->pop_front();
-    if (b == NULL) {
-        cmdinterp->set_objresult(Tcl_NewListObj(0, 0));
-        return TCL_OK; // empty list
-    }
+    // Using the tcl based serializer, grab all the serialized
+    // metadata fields into a new list object
+    Tcl_Obj* objv = Tcl_NewListObj(0, 0);
+    oasys::TclListSerialize s(interp, objv,
+                              oasys::Serialize::CONTEXT_LOCAL,
+                              0);
+    b->serialize(&s);
 
     // read in all the payload data (XXX/demmer this will not be nice
     // for big bundles)
@@ -184,40 +201,29 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         payload_data = b->payload_.read_data(0, payload_len, 
                                              payload_buf.buf(payload_len));
     }
-    log_debug("got %u bytes of bundle data", (u_int)payload_len);
 
-    Tcl_Obj* objv = Tcl_NewListObj(0, NULL);
     char tmp_buf[128];              // used for sprintf strings
 
-#define addElement(e) \
-    if (Tcl_ListObjAppendElement(interp, objv, (e)) != TCL_OK) {\
-        cmdinterp->resultf("Tcl_ListObjAppendElement failed");\
-        return TCL_ERROR;\
+#define addElement(e)                                                      \
+    if (Tcl_ListObjAppendElement(interp, objv, (e)) != TCL_OK) {           \
+        *result = Tcl_NewStringObj("Tcl_ListObjAppendElement failed", -1); \
+        return TCL_ERROR;                                                  \
     }
     
-    // These key-value pairs are common to both regular and admin bundles:
-
-    addElement(Tcl_NewStringObj("isadmin", -1));
-    addElement(Tcl_NewBooleanObj(b->is_admin_));
-    addElement(Tcl_NewStringObj("source", -1));
-    addElement(Tcl_NewStringObj(b->source_.data(), b->source_.length()));
-    addElement(Tcl_NewStringObj("dest", -1));
-    addElement(Tcl_NewStringObj(b->dest_.data(), b->dest_.length()));
-    addElement(Tcl_NewStringObj("length", -1));
+    // stick in the payload
+    addElement(Tcl_NewStringObj("payload_len", -1));
     addElement(Tcl_NewIntObj(payload_len));
-    addElement(Tcl_NewStringObj("payload", -1));
-    addElement(Tcl_NewByteArrayObj((u_char*)payload_data, payload_len));
+    
+    addElement(Tcl_NewStringObj("payload_data", -1));
+    addElement(Tcl_NewByteArrayObj(payload_data, payload_len));
+
+    // and a pretty formatted creation timestamp
     addElement(Tcl_NewStringObj("creation_ts", -1));
     sprintf(tmp_buf, "%ld.%06ld",
             (long)b->creation_ts_.tv_sec, (long)b->creation_ts_.tv_usec);
     addElement(Tcl_NewStringObj(tmp_buf, -1));
 
-    // XXX/TODO add is_fragment byte and fragment offset/length fields
-    // from original bundle
-
-    // There are (at least for now) no additional key-value pairs with
-    // non-admin bundles, so set the result and return
-    
+    // If we're not an admin bundle, we're done
     if (!b->is_admin_) {
         goto done;
     }
@@ -239,7 +245,8 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         BundleStatusReport::data_t sr;
         if (!BundleStatusReport::parse_status_report(&sr, payload_data,
                                                      payload_len)) {
-            cmdinterp->resultf("Admin Bundle Status Report parsing failed");
+            *result =
+                Tcl_NewStringObj("Admin Bundle Status Report parsing failed", -1);
             return TCL_ERROR;
         }
 
@@ -348,7 +355,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
         if (!CustodySignal::parse_custody_signal(&cs, payload_data,
                                                  payload_len))
         {
-            cmdinterp->resultf("Admin Custody Signal parsing failed");
+            *result = Tcl_NewStringObj("Admin Custody Signal parsing failed", -1);
             return TCL_ERROR;
         }
 
@@ -446,9 +453,7 @@ TclRegistration::get_bundle_data(Tcl_Interp* interp)
 
     // all done
  done:
-    cmdinterp->set_objresult(objv);
-    BundleDaemon::post(new BundleDeliveredEvent(b.object(), this));
-    
+    *result = objv;
     return TCL_OK;
 }
 

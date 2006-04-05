@@ -43,10 +43,12 @@
 #include <oasys/thread/Thread.h>
 
 #include "Registration.h"
+#include "bundling/Bundle.h"
 
 namespace dtn {
 
 class BlockingBundleList;
+
 
 /**
  * A simple utility class used mostly for testing registrations.
@@ -76,6 +78,14 @@ public:
      * relevant metadata and the payload data.
      */
     int get_bundle_data(Tcl_Interp* interp);
+
+    /**
+     * Parse the given bundle's internals into a new tcl list object
+     * (or an error if parsing fails).
+     */
+    static int parse_bundle_data(Tcl_Interp* interp,
+                                 const BundleRef& b,
+                                 Tcl_Obj** result);
 
     /// virtual from Registration
     void deliver_bundle(Bundle* bundle);
