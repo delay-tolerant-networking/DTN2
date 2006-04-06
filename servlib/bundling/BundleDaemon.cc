@@ -1304,6 +1304,8 @@ BundleDaemon::load_registrations()
         RegistrationAddedEvent e(reg, EVENTSRC_STORE);
         handle_event(&e);
     }
+
+    delete iter;
 }
 
 //----------------------------------------------------------------------
