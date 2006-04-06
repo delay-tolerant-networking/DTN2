@@ -53,7 +53,7 @@ test::script {
 
     puts "* Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \
-	    isadmin 0 source $source dest $dest
+	    is_admin 0 source $source dest $dest
     
     puts "* Killing sender-side daemon"
     dtn::stop_dtnd 1
@@ -73,7 +73,7 @@ test::script {
 
     puts "* Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \
-	    isadmin 0 source $source dest $dest
+	    is_admin 0 source $source dest $dest
     
     puts "* Killing receiver-side daemon"
     dtn::stop_dtnd 0
@@ -99,7 +99,7 @@ test::script {
 
     puts "* Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \
-	    isadmin 0 source $source dest $dest
+	    is_admin 0 source $source dest $dest
 
     puts "* Test success!"
 }

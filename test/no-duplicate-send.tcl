@@ -43,7 +43,7 @@ test::script {
 
     puts "* Checking bundle data"
     dtn::check_bundle_data 0 "$source,$timestamp" \
-	    isadmin 0 source $source dest $dest
+	    is_admin 0 source $source dest $dest
     
     puts "* Checking that bundle was received"
     dtn::check_bundle_stats 0 1 received

@@ -48,7 +48,7 @@ proc default_bundle_arrived {regid bundle_data} {
     foreach {key val} [array get b] {
 	if {$key == "payload"} {
 	    # don't print out binary admin bundle payloads
-	    if {!$b(isadmin)} {
+	    if {!$b(is_admin)} {
 		puts "payload:\t [string range $val 0 64]"
 	    }
 	} else {
@@ -65,7 +65,7 @@ proc default_bundle_arrived {regid bundle_data} {
     # that can be determined without knowing the SR bundle's creation
     # timestamp (which we can't easily get because SRs are
     # automatically generated)
-    if { $b(isadmin) && [string match "Status Report" $b(admin_type)] } {
+    if { $b(is_admin) && [string match "Status Report" $b(admin_type)] } {
 	set sr_guid "$b(orig_source),$b(orig_creation_ts),$b(source)"
 	set bundle_sr_info($sr_guid) [array get b]
     }	

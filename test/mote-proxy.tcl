@@ -62,7 +62,7 @@ proc mote_proxy_handshake {chan} {
 proc mote_proxy_bundle_arrived {regid bundle_data} {
     array set b $bundle_data
     
-    if ($b(isadmin)) {
+    if ($b(is_admin)) {
 	error "Unexpected admin bundle arrival $b(source) -> $b(dest)"
     }
     
