@@ -27,13 +27,13 @@ all: $(APPS) $(MANPAGES)
 include ../Rules.make
 CFLAGS  += -I$(SRCDIR)/applib
 LDFLAGS += -L../applib -L../oasys
-LIBS    := -ldtnapi -loasyscompat
+DTN_LIBS := -ldtnapi -loasyscompat
 
 BINFILES += $(APPS)
 
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 			   dtnmoteproxy/serialsource.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) 
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) $(DTN_LIBS)
 
 tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/TcaEndpointID.o \
@@ -43,10 +43,11 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_prot_clnt.o \
                 tca_admin/libs/gateway_prot_xdr.o \
                 tca_admin/libs/sha1.o
-	$(CXX) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) -loasys -lpthread
+	$(CXX) $(CFLAGS) $^ -o \
+		$@ $(LDFLAGS) $(LIBS) $(DTN_LIBS) -loasys $(OASYS_LIBS)
 
 
 
 $(SINGLE_SOURCE_APPS): %: %.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) 
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) $(DTN_LIBS)
 

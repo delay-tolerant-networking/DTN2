@@ -313,7 +313,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all oasys"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR BUILDDIR DEBUG OPTIMIZE OPTIMIZE_WARN PROFILE STATIC TARGET CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP EGREP DEPFLAGS AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR BUILDDIR DEBUG OPTIMIZE OPTIMIZE_WARN PROFILE STATIC TARGET CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX CPP EGREP DEPFLAGS AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE RANLIB ac_ct_RANLIB OASYS_LIBS subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -7847,7 +7847,7 @@ echo "$as_me: error: can't find bluez headers or library" >&2;}
 
 CPPFLAGS="-I\$(SRCDIR)/servlib $CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
-LIBS="$LIBS $OASYS_LIBS $DTN_LIBS"
+
 
           ac_config_files="$ac_config_files Rules.make:oasys/Rules.make.in"
 
@@ -8520,6 +8520,7 @@ s,@INSTALL_DATA@,$INSTALL_DATA,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@RANLIB@,$RANLIB,;t t
 s,@ac_ct_RANLIB@,$ac_ct_RANLIB,;t t
+s,@OASYS_LIBS@,$OASYS_LIBS,;t t
 s,@subdirs@,$subdirs,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t

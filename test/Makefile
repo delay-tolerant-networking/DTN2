@@ -52,7 +52,7 @@ unit_tests/%-test.o: unit_tests/%-test.cc
 unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
 	@rm -f $@; mkdir -p $(@D)
 	$(CXX) $(CFLAGS) $< $(COMPONENT_LIBS) \
-		-o $@ $(LDFLAGS) $(LIBS) 
+		-o $@ $(LDFLAGS) $(LIBS)  $(OASYS_LIBS)
 
 
 #

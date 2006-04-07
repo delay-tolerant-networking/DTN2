@@ -27,7 +27,8 @@ COMPONENT_LIBS := \
 	../oasys/liboasys.a 		\
 
 dtnd: $(DAEMON_OBJS) $(COMPONENT_LIBS)
-	$(CXX) $(DAEMON_OBJS) $(COMPONENT_LIBS) -o $@ $(LDFLAGS) $(LIBS)
+	$(CXX) $(DAEMON_OBJS) $(COMPONENT_LIBS) \
+		-o $@ $(LDFLAGS) $(LIBS) $(OASYS_LIBS)
 
 #
 # Include the common rules
