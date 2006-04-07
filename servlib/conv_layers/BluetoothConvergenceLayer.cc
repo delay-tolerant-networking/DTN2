@@ -1164,7 +1164,6 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
                       (u_int)rcvd_len, (u_int)acked_len);
             
             if (! send_ack(datahdr.bundle_id, rcvd_len)) {
-                log_err("recv_bundle: error sending ack");
                 goto done;
             }
             acked_len = rcvd_len;
@@ -1179,7 +1178,6 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
         (payload_len == 0 || (acked_len != rcvd_len)))
     {
         if (! send_ack(datahdr.bundle_id, payload_len)) {
-            log_err("recv_bundle: error sending ack");
             goto done;
         }
     }
@@ -1234,7 +1232,7 @@ BluetoothConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
     int cc = sock_->writevall(iov, 2);
 
     if (cc != total) {
-        log_err("recv_bundle: error sending ack (wrote %d/%d): %s",
+        log_info("recv_bundle: problem sending ack (wrote %d/%d): %s",
                 cc, total, strerror(errno));
         return false;
     }

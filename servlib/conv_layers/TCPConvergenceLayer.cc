@@ -1069,7 +1069,6 @@ TCPConvergenceLayer::Connection::recv_bundle()
                       (u_int)rcvd_len, (u_int)acked_len);
             
             if (! send_ack(datahdr.bundle_id, rcvd_len)) {
-                log_err("recv_bundle: error sending ack");
                 goto done;
             }
             acked_len = rcvd_len;
@@ -1084,7 +1083,6 @@ TCPConvergenceLayer::Connection::recv_bundle()
         (payload_len == 0 || (acked_len != rcvd_len)))
     {
         if (! send_ack(datahdr.bundle_id, payload_len)) {
-            log_err("recv_bundle: error sending ack");
             goto done;
         }
     }
@@ -1141,8 +1139,8 @@ TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
     int total_len = 1 + sizeof(BundleAckHeader) + sdnv_len;
     int cc = sock_->writeall((const char*)buf, total_len);
     if (cc != total_len) {
-        log_err("recv_bundle: error sending ack (wrote %d/%d): %s",
-                cc, total_len, strerror(errno));
+        log_info("recv_bundle: problem sending ack (wrote %d/%d): %s",
+                 cc, total_len, strerror(errno));
         return false;
     }
 
