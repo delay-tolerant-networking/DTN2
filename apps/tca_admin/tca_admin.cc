@@ -44,6 +44,8 @@
 #include <sys/time.h>
 
 #include <string>
+#include <oasys/debug/Log.h>
+
 #include "dtn_api.h"
 #include "TcaController.h"
 
@@ -194,6 +196,9 @@ parse_options(int argc, const char **argv)
 int
 main(int argc, const char** argv)
 {
+    oasys::Log::init("-", oasys::LOG_NOTICE, "", "~/.tcadebug");
+    log_notice("/tca/admin", "tca_admin starting up");
+    
     parse_options(argc, argv);
 
     TcaController controller(role, link_id, ask_addr, adv_string,

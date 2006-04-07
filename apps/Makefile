@@ -18,7 +18,7 @@ SINGLE_SOURCE_APPS := 			\
 
 OTHER_APPS :=				\
 	dtnmoteproxy/dtnmoteproxy	\
-	tca_admin/tca_admin	\
+	tca_admin/tca_admin		\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
@@ -43,7 +43,7 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_prot_clnt.o \
                 tca_admin/libs/gateway_prot_xdr.o \
                 tca_admin/libs/sha1.o
-	$(CXX) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) 
+	$(CXX) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) -loasys -lpthread
 
 
 
