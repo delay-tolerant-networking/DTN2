@@ -12,7 +12,7 @@ The following are important TCA directives in dtn.conf :
 # There are two types of tca nodes: routers and gateways:
 route set type [ tca_router | tca_gateway]
 
-# A tca endpointid uses the tca scheme, of the form: ?tca://guid/app?
+# A tca endpointid uses the tca scheme, of the form: "tca://guid/app"
 route local_eid "tca://hail"
 
 # All tca nodes must have a tcp0 contact interface
@@ -26,8 +26,8 @@ route add tca://* default
 
 2 Using TCA
 
-A new mobile node (hail) can register as follows:
-dtnsend -s tca://hail/tca_admin -d tca://registry -t m -p ""
+A new mobile endpoint (hail/app) can register as follows:
+dtnsend -s tca://hail/app -d tca://registry -t m -p "register"
 
 Once hail has registered, another node (windstorm) can send it a
 bundle like this: 
@@ -38,82 +38,74 @@ tca://hail/test_app -t m -p "windstorm says hi"
 
 3 Unimplemented Features, Known Bugs, and Limitations
 
-- Unimplemented. Change-Of-Address notification and reverse path
-destruction is not complete. This will occur when a mobile node has
-re-registered in a new place in the network. The previous path to the
-mobile should be destroyed and bundles en-route to the mobile should
-be re-directed.
-
 - Limitation. OpenDHT nodes are hard-coded at the moment. There should
 be a file of nodes to use instead.
 
 - Limitation. OpenDHT nodes are tested on startup and only those nodes
 that are responsive are kept. This process should be repeated
-periodically to refresh the list of ?live? OpenDHT nodes.
+periodically to refresh the list of "live" OpenDHT nodes.
 
 - Limitation. Entries in the DHT are set to time out at 1 week, the
 maximum TTL allowed by OpenDHT. This value is hard-coded.
 
-- Unimplemented. The rules for registration lifetime is not quite
+- Unimplemented. The rules for registration lifetime are not quite
 settled. When a gateway receives a bundle for an unregistered node
 (perhaps never registered, perhaps previously registered but expired)
-the bundle is kept in the gateway?s queue until the bundle times out.
+the bundle is kept in the gateway's queue until the bundle times out.
 
-- Limitation. TCA Routers won?t work across firewalls that apply NAT
-(Network Address Translation) because in this case their ?published?
-address will be different from their actual address. Currently, all
-routers publish their actual tcp address.
-
-- Bug. When a registry bundle is processed resulting in a new link
-being created, bundles are immediately tested to go out on this new
-link. This causes duplicate handling of the registry bundle. The logic
-is correct but performance is sub-optimal.
-
+- Bug. Undeliverable control bundles are not deleted. They remain in the
+pending bundle list until timeout. This is an error but it affects performance,
+not correctness.
 
 4 Modified Files
 
-This is a complete list of files that were modified or added in the
-TCA implementation. In files that are part of the core DTN
-implementation, modifications to the source code are flagged with the
-string ?DK:? in a comment line.
+The key new classes in the implementation are TcaController and TcaRouter.
 
-TCPConvergenceLayer.*
-Added code to append listener?s link_id to outgoing bundles.
+This is a complete list of files that were modified or added to DTN
+as part of the TCA implementation:
 
-Bundle.*
-Added last_hop_ field to Bundle class to contain link_id of previous hop.
+servlib/naming/TCAScheme.* 
+New singleton class, borrowed heavily from DTNScheme.
 
-BundleProtocol.* 
-Added code for optional ROUTERECORD header to
-format_headers and parse_headers to handle last_hop info.
-
-TCAScheme.* 
-Initial checkin. New singleton class, borrowed heavily
-from DTNScheme.
-
-SchemeTable.cc
+servlib/naming/SchemeTable.cc
 Added an instance of TCAScheme to the scheme table.
 
-RouteTable.*
-Added function del_entries_for_dest.
-
-InterfaceTable.*
-Added a public find function.
-
-BundleRouter.cc
+servlib/routing/BundleRouter.cc
 Added TcaRouter instantiations to factory method.
 
-TableBasedRouter.h
-Made handle_bundle_received virtual.
+servlib/routing/TableBasedRouter.h
+Made some bundle handler functions virtual.
 
-tca_lib/*
-New checkins. Third-party tools.
+apps/tca_admin
+New directory for tca controller app.
 
-TcaTypes.*
-Initial checkin. Common TCA classes
+apps/tca_admin/tca_lib/*
+Third-party tools.
 
-TcaRegistry.*
-Initial checkin. Class for accessing the TCA registry.
+apps/tca_admin/TcaRegistry.*
+New class for accessing the TCA registry.
 
-TcaRouter.*
-Initial checkin. Main TCA implementation.
+apps/tca_admin/TcaEndpointID.*
+New class for manipulating TCA endpoint ids.
+
+apps/tca_admin/TcaController.*
+Main implementation of TCA Control logic at the control layer.
+
+apps/tca_admin/tca_admin.cc
+The TCA controller's command-line parsing and main() function.
+
+/servlib/routing/TcaEndpointID.*
+New class for manipulating TCA endpoint ids, subclassed from EndpointID.
+
+/servlib/routing/TcaControlBundle.*
+New class for manipulating TCA control bundles.
+
+/servlib/routing/TcaRouter.*
+Main implementation of TCA Control logic at the bundle routing layer.
+
+servlib/Makefile
+Modified to include TcaRouter and related sources
+
+apps/Makefile
+Modified to include tca_admin app and related sources
+
