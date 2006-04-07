@@ -85,9 +85,9 @@ ROUTING_SRCS :=					\
 	routing/LinkScheduleEstimator.cc	\
 	routing/RouteTable.cc			\
 	routing/TableBasedRouter.cc		\
-    routing/TcaEndpointID.cc     \
-    routing/TcaControlBundle.cc     \
-    routing/TcaRouter.cc        \
+	routing/TcaEndpointID.cc                \
+	routing/TcaControlBundle.cc             \
+	routing/TcaRouter.cc                    \
 
 OLD_STORAGE_SRCS :=				\
 	storage/GlobalStore.cc			\
