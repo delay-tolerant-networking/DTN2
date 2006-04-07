@@ -18,6 +18,7 @@ SINGLE_SOURCE_APPS := 			\
 
 OTHER_APPS :=				\
 	dtnmoteproxy/dtnmoteproxy	\
+	tca_admin/tca_admin	\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
@@ -33,6 +34,18 @@ BINFILES += $(APPS)
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 			   dtnmoteproxy/serialsource.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) 
+
+tca_admin/tca_admin: tca_admin/tca_admin.o \
+                tca_admin/TcaEndpointID.o \
+                ../servlib/routing/TcaControlBundle.o \
+                tca_admin/TcaRegistry.o \
+                tca_admin/TcaController.o \
+                tca_admin/libs/gateway_prot_clnt.o \
+                tca_admin/libs/gateway_prot_xdr.o \
+                tca_admin/libs/sha1.o
+	$(CXX) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) 
+
+
 
 $(SINGLE_SOURCE_APPS): %: %.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) 
