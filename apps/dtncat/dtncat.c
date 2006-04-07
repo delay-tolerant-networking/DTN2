@@ -40,6 +40,9 @@
  * dtncat: move stdin to bundles and vice-versa
  * resembles the nc (netcat) unix program
  * - kfall Apr 2006
+ *
+ *   Usage: dtncat [-options] EID
+ *   dtncat -l EID
  */
 
 #include <stdio.h>
@@ -90,11 +93,11 @@ void print_eid(FILE*, char * label, dtn_endpoint_id_t * eid);
 void fill_payload(dtn_bundle_payload_t* payload);
 
 FILE* info;
+#define REG_EXPIRE (60 * 60)
 
 int
 main(int argc, char** argv)
 {
-    int i;
     int ret;
     dtn_handle_t handle;
     dtn_reg_info_t reginfo;
@@ -134,7 +137,8 @@ main(int argc, char** argv)
     if (verbose) fprintf(info, "Source: %s\n", arg_source);
     parse_eid(handle, &bundle_spec.source, arg_source);
     if (arg_replyto == NULL) {
-        if (verbose) fprintf(info, "Reply To: same as source\n");
+        if (verbose)
+		fprintf(info, "Reply To: same as source\n");
         dtn_copy_eid(&bundle_spec.replyto, &bundle_spec.source);
     } else {
         if (verbose)
@@ -154,9 +158,9 @@ main(int argc, char** argv)
         dtn_copy_eid(&reginfo.endpoint, &bundle_spec.replyto);
         reginfo.failure_action = DTN_REG_DROP;
         reginfo.regid = regid;
-        reginfo.expiration = 60 * 60;
-        if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
-            fprintf(stderr, "%s: error creating registration (id=%d): %d (%s)\n",
+        reginfo.expiration = REG_EXPIRE;
+	if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
+            fprintf(stderr, "%s: error creating registration (id=0x%x): %d (%s)\n",
                     progname, regid, ret, dtn_strerror(dtn_errno(handle)));
             exit(EXIT_FAILURE);
         }
@@ -196,49 +200,46 @@ main(int argc, char** argv)
         bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
     }
     
-    // loop, sending sends and getting replies.
-    for (i = 0; i < copies; ++i) {
-        if (gettimeofday(&start, NULL) < 0) {
+    if (gettimeofday(&start, NULL) < 0) {
 		fprintf(stderr, "%s: gettimeofday(start) returned error %s\n",
 			progname, strerror(errno));
 		exit(EXIT_FAILURE);
-	}
+    }
 
-        fill_payload(&send_payload);
+    fill_payload(&send_payload);
         
-        if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
-            fprintf(stderr, "error sending bundle: %d (%s)\n",
-                    ret, dtn_strerror(dtn_errno(handle)));
-            exit(EXIT_FAILURE);
-        }
+    if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
+        fprintf(stderr, "error sending bundle: %d (%s)\n",
+	    ret, dtn_strerror(dtn_errno(handle)));
+        exit(EXIT_FAILURE);
+    }
 
-        if (wait_for_report) {
-            memset(&reply_spec, 0, sizeof(reply_spec));
-            memset(&reply_payload, 0, sizeof(reply_payload));
-            
-            // now we block waiting for any replies
-            if ((ret = dtn_recv(handle, &reply_spec,
-                                DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0) {
-                fprintf(stderr, "%s: error getting reply: %d (%s)\n",
-                        progname, ret, dtn_strerror(dtn_errno(handle)));
-                exit(EXIT_FAILURE);
-            }
-            if (gettimeofday(&end, NULL) < 0) {
-		fprintf(stderr, "%s: gettimeofday(end) returned error %s\n",
-			progname, strerror(errno));
-		exit(EXIT_FAILURE);
-	    }
-
-            fprintf(info, "got %d byte report from [%s]: time=%.1f ms\n",
-                   reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
-                   reply_spec.source.uri,
-                   ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-                    (double)(end.tv_usec - start.tv_usec)/1000.0));
+    if (wait_for_report) {
+        memset(&reply_spec, 0, sizeof(reply_spec));
+        memset(&reply_payload, 0, sizeof(reply_payload));
+        
+        // now we block waiting for any replies
+        if ((ret = dtn_recv(handle, &reply_spec,
+			    DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0) {
+	    fprintf(stderr, "%s: error getting reply: %d (%s)\n",
+		    progname, ret, dtn_strerror(dtn_errno(handle)));
+	    exit(EXIT_FAILURE);
         }
-
-        if (sleep_time != 0) {
-            usleep(sleep_time * 1000);
+        if (gettimeofday(&end, NULL) < 0) {
+	    fprintf(stderr, "%s: gettimeofday(end) returned error %s\n",
+		    progname, strerror(errno));
+	    exit(EXIT_FAILURE);
         }
+    
+        fprintf(info, "got %d byte report from [%s]: time=%.1f ms\n",
+	       reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
+	       reply_spec.source.uri,
+	       ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
+	        (double)(end.tv_usec - start.tv_usec)/1000.0));
+    }
+
+    if (sleep_time != 0) {
+        usleep(sleep_time * 1000);
     }
 
     dtn_close(handle);
@@ -249,20 +250,17 @@ main(int argc, char** argv)
 void print_usage()
 {
     fprintf(stderr, "usage: %s [opts] "
-            "-s <source_eid> -d <dest_eid> -t <type> -p <payload>\n",
+            "-s <source_eid> -d <dest_eid>\n",
             progname);
     fprintf(stderr, "options:\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h help\n");
+    fprintf(stderr, " -H help\n");
     fprintf(stderr, " -s <eid|demux_string> source eid)\n");
     fprintf(stderr, " -d <eid|demux_string> destination eid)\n");
     fprintf(stderr, " -r <eid|demux_string> reply to eid)\n");
-    fprintf(stderr, " -t <f|m|d> payload type: file, message, or date\n");
-    fprintf(stderr, " -p <filename|string> payload data\n");
     fprintf(stderr, " -e <time> expiration time in seconds (default: one hour)\n");
     fprintf(stderr, " -i <regid> registration id for reply to\n");
-    fprintf(stderr, " -n <int> copies of the bundle to send\n");
-    fprintf(stderr, " -z <time> msecs to sleep between transmissions\n");
     fprintf(stderr, " -c request custody transfer\n");
     fprintf(stderr, " -C request custody transfer receipts\n");
     fprintf(stderr, " -D request for end-to-end delivery receipt\n");
@@ -281,7 +279,7 @@ void parse_options(int argc, char**argv)
     progname = argv[0];
 
     while (!done) {
-        c = getopt(argc, argv, "vhHr:s:d:e:n:woDFRcCt:p:i:z:");
+        c = getopt(argc, argv, "vhHr:s:d:e:wDFRcCi:");
         switch (c) {
         case 'v':
             verbose = 1;
@@ -303,9 +301,6 @@ void parse_options(int argc, char**argv)
         case 'e':
             expiration = atoi(optarg);
             break;
-        case 'n':
-            copies = atoi(optarg);
-            break;
         case 'w':
             wait_for_report = 1;
             break;
@@ -324,17 +319,8 @@ void parse_options(int argc, char**argv)
         case 'C':
             custody_receipts = 1;
             break;
-        case 't':
-            arg_type = optarg[0];
-            break;
-        case 'p':
-            data_source = strdup(optarg);
-            break;
         case 'i':
             regid = atoi(optarg);
-            break;
-        case 'z':
-            sleep_time = atoi(optarg);
             break;
         case -1:
             done = 1;
