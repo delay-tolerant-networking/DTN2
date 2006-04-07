@@ -66,6 +66,7 @@ NAMING_SRCS :=					\
 	naming/EthernetScheme.cc		\
 	naming/StringScheme.cc			\
 	naming/WildcardScheme.cc		\
+	naming/TCAScheme.cc		\
 
 REGISTRATION_SRCS :=				\
 	reg/AdminRegistration.cc		\
@@ -84,6 +85,9 @@ ROUTING_SRCS :=					\
 	routing/LinkScheduleEstimator.cc	\
 	routing/RouteTable.cc			\
 	routing/TableBasedRouter.cc		\
+    routing/TcaEndpointID.cc     \
+    routing/TcaControlBundle.cc     \
+    routing/TcaRouter.cc        \
 
 OLD_STORAGE_SRCS :=				\
 	storage/GlobalStore.cc			\
