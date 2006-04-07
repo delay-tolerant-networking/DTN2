@@ -74,8 +74,11 @@ test::script {
     tell_dtnd 0 bundle inject $source_eid2 $dest_eid2 $payload
 
     puts "* running dtnrecv to create registrations"
-    dtn::run_app 0 dtnrecv "-x $reg_eid1 -e 20"
-    dtn::run_app 0 dtnrecv "-x $reg_eid2 -f drop -e 30"
+    set pid1 [dtn::run_app 0 dtnrecv "-x $reg_eid1 -e 20"]
+    set pid2 [dtn::run_app 0 dtnrecv "-x $reg_eid2 -f drop -e 30"]
+
+    run::wait_for_pid_exit 0 $pid1
+    run::wait_for_pid_exit 0 $pid2
 
     puts "* checking the data before shutdown"
     check
