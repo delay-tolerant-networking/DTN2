@@ -6037,8 +6037,6 @@ echo "$as_me: error: can't find usable tcl.h" >&2;}
     fi
 
 
-    ac_storage_required="required"
-
 
     ac_dbvers='4.4 4.3 4.2'
     ac_dbdir='yes'
@@ -7250,17 +7248,6 @@ cat >>confdefs.h <<_ACEOF
 #define SQL_ENABLED 1
 _ACEOF
 
-    fi
-
-
-                    if test "$ac_storage_required" = "required" -a \
-            ! "$LIBDB_ENABLED" = 1 -a \
-            ! "$MYSQL_ENABLED" = 1 -a \
-            ! "$POSTGRES_ENABLED" = 1  ;
-    then
-        { { echo "$as_me:$LINENO: error: Must enable at least one storage option (libdb, postgres, mysql)" >&5
-echo "$as_me: error: Must enable at least one storage option (libdb, postgres, mysql)" >&2;}
-   { (exit 1); exit 1; }; }
     fi
 
 
