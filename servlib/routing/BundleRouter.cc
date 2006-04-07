@@ -45,6 +45,7 @@
 #include "FloodBundleRouter.h"
 #include "NeighborhoodRouter.h"
 #include "LinkStateRouter.h"
+#include "TcaRouter.h"
 
 namespace dtn {
 
@@ -69,6 +70,12 @@ BundleRouter::create_router(const char* type)
     else if (strcmp(type, "linkstate") == 0) {
         return new LinkStateRouter();
     }    
+    else if (!strcmp(type, "tca_router")) {
+        return new TcaRouter(TcaRouter::TCA_ROUTER);
+    }
+    else if (!strcmp(type, "tca_gateway")) {
+        return new TcaRouter(TcaRouter::TCA_GATEWAY);
+    }
     else {
         PANIC("unknown type %s for router", type);
     }

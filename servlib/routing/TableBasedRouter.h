@@ -67,7 +67,7 @@ protected:
      * Handler for new bundle arrivals simply forwards the newly arrived
      * bundle to all matching entries in the table.
      */
-    void handle_bundle_received(BundleReceivedEvent* event);
+    virtual void handle_bundle_received(BundleReceivedEvent* event);
     
     /**
      * Default event handler when a new route is added by the command
@@ -88,12 +88,12 @@ protected:
      * When a contact comes up, check to see if there are any matching
      * bundles for it.
      */
-    void handle_contact_up(ContactUpEvent* event);
+    virtual void handle_contact_up(ContactUpEvent* event);
 
     /**
      * Ditto if a link becomes available.
      */
-    void handle_link_available(LinkAvailableEvent* event);
+    virtual void handle_link_available(LinkAvailableEvent* event);
 
     /**
      * Handle a custody transfer timeout.
