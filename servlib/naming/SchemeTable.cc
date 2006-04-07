@@ -41,6 +41,7 @@
 #include "EthernetScheme.h"
 #include "StringScheme.h"
 #include "WildcardScheme.h"
+#include "TCAScheme.h"
 
 namespace dtn {
 
@@ -60,6 +61,7 @@ SchemeTable::SchemeTable()
 #ifdef __linux__
     table_["eth"]	= EthernetScheme::instance();
 #endif
+    table_["tca"]   = TCAScheme::instance();
 }
 
 /**
