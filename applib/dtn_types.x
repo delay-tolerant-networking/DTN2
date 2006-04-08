@@ -195,7 +195,7 @@ struct dtn_bundle_spec_t {
 % * in which case the payload structure contains the filename, or in
 % * memory where the struct has the actual data.
 % *
-% * Note that there is a limit (DTN_PAYLOAD_MEM) on the maximum size
+% * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
 % * bundle payload that can be sent or received in memory.
 % */
 enum dtn_bundle_payload_location_t {
