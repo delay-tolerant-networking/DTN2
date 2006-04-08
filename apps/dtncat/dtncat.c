@@ -41,8 +41,8 @@
  * resembles the nc (netcat) unix program
  * - kfall Apr 2006
  *
- *   Usage: dtncat [-options] EID
- *   dtncat -l EID
+ *   Usage: dtncat [-options] -s EID -d EID
+ *   dtncat -l -s EID -d EID
  */
 
 #include <stdio.h>
@@ -70,6 +70,7 @@ int custody_receipts    = 0;    // request per custodian receipts
 int receive_receipts    = 0;    // request per hop arrival receipt
 int overwrite           = 0;    // queue overwrite option
 int wait_for_report     = 0;    // wait for bundle status reports
+int bundle_count	= 1;	// # bundles to receive
 
 // specified options for bundle eids
 char * arg_replyto      = NULL;
@@ -90,18 +91,24 @@ FILE* info;
 #define REG_EXPIRE (60 * 60)
 char payload_buf[DTN_MAX_BUNDLE_MEM];
 
+int from_bundles_flag;
+
+void to_bundles();
+void from_bundles();
+
+dtn_handle_t handle;
+dtn_reg_info_t reginfo;
+dtn_bundle_spec_t bundle_spec;
+dtn_bundle_spec_t reply_spec;
+dtn_bundle_payload_t primary_payload;
+dtn_bundle_payload_t reply_payload;
+struct timeval start, end;
+
 int
 main(int argc, char** argv)
 {
-    int ret, bytes = 0;
-    dtn_handle_t handle;
-    dtn_reg_info_t reginfo;
-    dtn_bundle_spec_t bundle_spec;
-    dtn_bundle_spec_t reply_spec;
-    dtn_bundle_payload_t send_payload;
-    dtn_bundle_payload_t reply_payload;
-    struct timeval start, end;
 
+    int ret;
     info = stderr;
     
     // force stdout to always be line buffered, even if output is
@@ -129,8 +136,10 @@ main(int argc, char** argv)
 	fprintf(info, "Destination: %s\n", arg_dest);
     parse_eid(handle, &bundle_spec.dest, arg_dest);
 
-    if (verbose) fprintf(info, "Source: %s\n", arg_source);
+    if (verbose)
+	fprintf(info, "Source: %s\n", arg_source);
     parse_eid(handle, &bundle_spec.source, arg_source);
+
     if (arg_replyto == NULL) {
         if (verbose)
 		fprintf(info, "Reply To: same as source\n");
@@ -148,7 +157,7 @@ main(int argc, char** argv)
     }
 
     if (wait_for_report) {
-        // create a new dtn registration to receive bundle status reports
+        // create a new dtn registration to receive bundles
         memset(&reginfo, 0, sizeof(reginfo));
         dtn_copy_eid(&reginfo.endpoint, &bundle_spec.replyto);
         reginfo.failure_action = DTN_REG_DROP;
@@ -201,13 +210,117 @@ main(int argc, char** argv)
 		exit(EXIT_FAILURE);
     }
 
-    if ((bytes = fill_payload(&send_payload)) < 0) {
+    if (from_bundles_flag)
+	    from_bundles();
+    else
+	    to_bundles();
+
+    dtn_close(handle);
+    return (EXIT_SUCCESS);
+}
+
+/*
+ * [bundles] -> stdout
+ */
+
+void
+from_bundles()
+{
+    int total_bytes = 0, i, ret, k;
+    char *buffer;
+    char s_buffer[BUFSIZ];
+
+    memset(&primary_payload, 0, sizeof(primary_payload));
+
+    // loop waiting for bundles
+    for (i = 0; i < bundle_count; ++i) {
+        int bytes = 0;
+	// read from network
+        if ((ret = dtn_recv(handle, &bundle_spec,
+	        DTN_PAYLOAD_MEM, &primary_payload, -1)) < 0) {
+            fprintf(stderr, "%s: error getting recv reply: %d (%s)\n",
+                    progname, ret, dtn_strerror(dtn_errno(handle)));
+            exit(EXIT_FAILURE);
+        }
+
+        bytes = primary_payload.dtn_bundle_payload_t_u.buf.buf_len;
+        buffer =
+	  (unsigned char *) primary_payload.dtn_bundle_payload_t_u.buf.buf_val;
+        total_bytes += bytes;
+
+	// write to stdout
+	if (fwrite(buffer, 1, bytes, stdout) != bytes) {
+            fprintf(stderr, "%s: error writing to stdout\n",
+                    progname);
+            exit(EXIT_FAILURE);
+	}
+
+        if (!verbose) {
+            continue;
+        }
+        
+        fprintf(info, "%d bytes from [%s]: transit time=%d ms\n",
+               primary_payload.dtn_bundle_payload_t_u.buf.buf_len,
+               bundle_spec.source.uri, 0);
+
+        for (k=0; k < primary_payload.dtn_bundle_payload_t_u.buf.buf_len; k++) {
+            if (buffer[k] >= ' ' && buffer[k] <= '~')
+                s_buffer[k%BUFSIZ] = buffer[k];
+            else
+                s_buffer[k%BUFSIZ] = '.';
+
+            if (k%BUFSIZ == 0) // new line every 16 bytes
+            {
+                fprintf(info,"%07x ", k);
+            }
+            else if (k%2 == 0)
+            {
+                fprintf(info," "); // space every 2 bytes
+            }
+                    
+            fprintf(info,"%02x", buffer[k] & 0xff);
+                    
+            // print character summary (a la emacs hexl-mode)
+            if (k%BUFSIZ == BUFSIZ-1)
+            {
+                fprintf(info," |  %.*s\n", BUFSIZ, s_buffer);
+            }
+        }
+
+        // print spaces to fill out the rest of the line
+	if (k%BUFSIZ != BUFSIZ-1) {
+            while (k%BUFSIZ != BUFSIZ-1) {
+                if (k%2 == 0) {
+                    fprintf(info," ");
+                }
+                fprintf(info,"  ");
+                k++;
+            }
+            fprintf(info,"   |  %.*s\n",
+              (int)primary_payload.dtn_bundle_payload_t_u.buf.buf_len%BUFSIZ, 
+                   s_buffer);
+        }
+	fprintf(info,"\n");
+    }
+}
+
+/*
+ * stdout -> [bundles]
+ */
+
+void
+to_bundles()
+{
+
+    int bytes, ret;
+
+    if ((bytes = fill_payload(&primary_payload)) < 0) {
 	fprintf(stderr, "%s: error reading bundle data\n",
 	    progname);
 	exit(EXIT_FAILURE);
     }
 	
-    if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
+    if ((ret = dtn_send(handle, &bundle_spec, &primary_payload)) != 0) {
 	fprintf(stderr, "%s: error sending bundle: %d (%s)\n",
 	    progname, ret, dtn_strerror(dtn_errno(handle)));
 	exit(EXIT_FAILURE);
@@ -241,10 +354,8 @@ main(int argc, char** argv)
 	       ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
 		(double)(end.tv_usec - start.tv_usec)/1000.0));
     }
-
-    dtn_close(handle);
-    return (EXIT_SUCCESS);
 }
+
 
 void print_usage()
 {
@@ -266,6 +377,7 @@ void print_usage()
     fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
+    fprintf(stderr, " -n <count> exit after count bundles received\n");
     
     return;
 }
@@ -278,8 +390,11 @@ parse_options(int argc, char**argv)
     progname = argv[0];
 
     while (!done) {
-        c = getopt(argc, argv, "vhHr:s:d:e:wDFRcCi:");
+        c = getopt(argc, argv, "lvhHr:s:d:e:wDFRcCi:n:");
         switch (c) {
+	case 'l':
+	    from_bundles_flag = 1;
+	    break;
         case 'v':
             verbose = 1;
             break;
@@ -321,6 +436,9 @@ parse_options(int argc, char**argv)
         case 'i':
             regid = atoi(optarg);
             break;
+	case 'n':
+	    bundle_count = atoi(optarg);
+	    break;
         case -1:
             done = 1;
             break;
