@@ -58,11 +58,8 @@
 char *progname;
 
 // global options
-dtn_bundle_payload_location_t 
-payload_type    = 0;    // the type of data source for the bundle
 int copies              = 1;    // the number of copies to send
 int verbose             = 0;
-int sleep_time          = 0;
 
 // bundle options
 int expiration          = 3600; // expiration timer (default one hour)
@@ -73,9 +70,6 @@ int custody_receipts    = 0;    // request per custodian receipts
 int receive_receipts    = 0;    // request per hop arrival receipt
 int overwrite           = 0;    // queue overwrite option
 int wait_for_report     = 0;    // wait for bundle status reports
-
-char * data_source      = NULL; // filename or message, depending on type
-char date_buf[256];             // buffer for date payloads
 
 // specified options for bundle eids
 char * arg_replyto      = NULL;
@@ -90,10 +84,11 @@ dtn_endpoint_id_t * parse_eid(dtn_handle_t handle,
                               char * str);
 void print_usage();
 void print_eid(FILE*, char * label, dtn_endpoint_id_t * eid);
-void fill_payload(dtn_bundle_payload_t* payload);
+int fill_payload(dtn_bundle_payload_t* payload);
 
 FILE* info;
 #define REG_EXPIRE (60 * 60)
+char payload_buf[DTN_MAX_BUNDLE_MEM];
 
 int
 main(int argc, char** argv)
@@ -206,45 +201,44 @@ main(int argc, char** argv)
 		exit(EXIT_FAILURE);
     }
 
-    fill_payload(&send_payload);
-        
-    if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
-        fprintf(stderr, "error sending bundle: %d (%s)\n",
-	    ret, dtn_strerror(dtn_errno(handle)));
-        exit(EXIT_FAILURE);
-    }
+	    if (fill_payload(&send_payload) < 0) {
+		fprintf(stderr, "%s: error reading bundle data\n",
+		    progname);
+		exit(EXIT_FAILURE);
+	    }
+		
+	    if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
+		fprintf(stderr, "error sending bundle: %d (%s)\n",
+		    ret, dtn_strerror(dtn_errno(handle)));
+		exit(EXIT_FAILURE);
+	    }
 
-    if (wait_for_report) {
-        memset(&reply_spec, 0, sizeof(reply_spec));
-        memset(&reply_payload, 0, sizeof(reply_payload));
-        
-        // now we block waiting for any replies
-        if ((ret = dtn_recv(handle, &reply_spec,
-			    DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0) {
-	    fprintf(stderr, "%s: error getting reply: %d (%s)\n",
-		    progname, ret, dtn_strerror(dtn_errno(handle)));
-	    exit(EXIT_FAILURE);
-        }
-        if (gettimeofday(&end, NULL) < 0) {
-	    fprintf(stderr, "%s: gettimeofday(end) returned error %s\n",
-		    progname, strerror(errno));
-	    exit(EXIT_FAILURE);
-        }
-    
-        fprintf(info, "got %d byte report from [%s]: time=%.1f ms\n",
-	       reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
-	       reply_spec.source.uri,
-	       ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-	        (double)(end.tv_usec - start.tv_usec)/1000.0));
-    }
-
-    if (sleep_time != 0) {
-        usleep(sleep_time * 1000);
-    }
+	    if (wait_for_report) {
+		memset(&reply_spec, 0, sizeof(reply_spec));
+		memset(&reply_payload, 0, sizeof(reply_payload));
+		
+		// now we block waiting for any replies
+		if ((ret = dtn_recv(handle, &reply_spec,
+				    DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0) {
+		    fprintf(stderr, "%s: error getting reply: %d (%s)\n",
+			    progname, ret, dtn_strerror(dtn_errno(handle)));
+		    exit(EXIT_FAILURE);
+		}
+		if (gettimeofday(&end, NULL) < 0) {
+		    fprintf(stderr, "%s: gettimeofday(end) returned error %s\n",
+			    progname, strerror(errno));
+		    exit(EXIT_FAILURE);
+		}
+	    
+		fprintf(info, "got %d byte report from [%s]: time=%.1f ms\n",
+		       reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
+		       reply_spec.source.uri,
+		       ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
+			(double)(end.tv_usec - start.tv_usec)/1000.0));
+	    }
 
     dtn_close(handle);
-    
-    return EXIT_SUCCESS;
+    return (EXIT_SUCCESS);
 }
 
 void print_usage()
@@ -268,10 +262,11 @@ void print_usage()
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
     
-    exit(EXIT_FAILURE);
+    return;
 }
 
-void parse_options(int argc, char**argv)
+void
+parse_options(int argc, char**argv)
 {
     char c, done = 0;
     char arg_type = 0;
@@ -342,23 +337,6 @@ void parse_options(int argc, char**argv)
     
     CHECK_SET(arg_source,   "source eid");
     CHECK_SET(arg_dest,     "destination eid");
-    CHECK_SET(arg_type,     "payload type");
-    if (arg_type != 'd') {
-        CHECK_SET(data_source,  "payload data");
-    }
-
-    switch (arg_type) {
-    case 'f': payload_type = DTN_PAYLOAD_FILE; break;
-    case 'm': payload_type = DTN_PAYLOAD_MEM; break;
-    case 'd': 
-        payload_type = DTN_PAYLOAD_MEM;
-        data_source = date_buf;
-        break;
-    default:
-        fprintf(stderr, "dtnsend: type argument '%d' invalid\n", arg_type);
-        print_usage();
-        exit(EXIT_FAILURE);
-    }
 }
 
 dtn_endpoint_id_t *
@@ -380,19 +358,38 @@ parse_eid(dtn_handle_t handle, dtn_endpoint_id_t* eid, char * str)
     }
 }
 
-void print_eid(FILE *dest, char *  label, dtn_endpoint_id_t * eid)
+void
+print_eid(FILE *dest, char *  label, dtn_endpoint_id_t * eid)
 {
     fprintf(dest, "%s [%s]\n", label, eid->uri);
 }
 
-void
+/*
+ * read from stdin to get the payload
+ */
+
+int
 fill_payload(dtn_bundle_payload_t* payload)
 {
 
-    if (data_source == date_buf) {
-        time_t current = time(NULL);
-        strcpy(date_buf, ctime(&current));
-    }
-    memset(payload, 0, sizeof(*payload));
-    dtn_set_payload(payload, payload_type, data_source, strlen(data_source));
+   char buf[BUFSIZ];
+   char *p = payload_buf;
+   size_t n, total = 0;
+   int maxread = sizeof(buf);
+
+   while (1) {
+       if ((p + maxread) > ((char *)(payload_buf + 1)))
+	       maxread = ((char *)(payload_buf+1)) - p;
+       if (((n = fread(buf, maxread, 1, stdin))) == 0)
+	       break;
+       memcpy(p, buf, n);
+       p += n;
+       total += n;
+   }
+   if (ferror(stdin))
+       return (-1); 
+
+   if (dtn_set_payload(payload, DTN_PAYLOAD_MEM, payload_buf, total) == DTN_ESIZE)
+	   return (-1);
+   return(total);
 }
