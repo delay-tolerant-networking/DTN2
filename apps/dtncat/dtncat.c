@@ -93,7 +93,7 @@ char payload_buf[DTN_MAX_BUNDLE_MEM];
 int
 main(int argc, char** argv)
 {
-    int ret;
+    int ret, bytes = 0;
     dtn_handle_t handle;
     dtn_reg_info_t reginfo;
     dtn_bundle_spec_t bundle_spec;
@@ -201,41 +201,46 @@ main(int argc, char** argv)
 		exit(EXIT_FAILURE);
     }
 
-	    if (fill_payload(&send_payload) < 0) {
-		fprintf(stderr, "%s: error reading bundle data\n",
-		    progname);
-		exit(EXIT_FAILURE);
-	    }
-		
-	    if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
-		fprintf(stderr, "error sending bundle: %d (%s)\n",
-		    ret, dtn_strerror(dtn_errno(handle)));
-		exit(EXIT_FAILURE);
-	    }
+    if ((bytes = fill_payload(&send_payload)) < 0) {
+	fprintf(stderr, "%s: error reading bundle data\n",
+	    progname);
+	exit(EXIT_FAILURE);
+    }
+	
+    if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
+	fprintf(stderr, "%s: error sending bundle: %d (%s)\n",
+	    progname, ret, dtn_strerror(dtn_errno(handle)));
+	exit(EXIT_FAILURE);
+    }
 
-	    if (wait_for_report) {
-		memset(&reply_spec, 0, sizeof(reply_spec));
-		memset(&reply_payload, 0, sizeof(reply_payload));
-		
-		// now we block waiting for any replies
-		if ((ret = dtn_recv(handle, &reply_spec,
-				    DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0) {
-		    fprintf(stderr, "%s: error getting reply: %d (%s)\n",
-			    progname, ret, dtn_strerror(dtn_errno(handle)));
-		    exit(EXIT_FAILURE);
-		}
-		if (gettimeofday(&end, NULL) < 0) {
-		    fprintf(stderr, "%s: gettimeofday(end) returned error %s\n",
-			    progname, strerror(errno));
-		    exit(EXIT_FAILURE);
-		}
-	    
-		fprintf(info, "got %d byte report from [%s]: time=%.1f ms\n",
-		       reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
-		       reply_spec.source.uri,
-		       ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-			(double)(end.tv_usec - start.tv_usec)/1000.0));
-	    }
+    if (verbose)
+        fprintf(info, "Read %d bytes from stdin and wrote to bundles\n",
+		bytes);
+
+    if (wait_for_report) {
+	memset(&reply_spec, 0, sizeof(reply_spec));
+	memset(&reply_payload, 0, sizeof(reply_payload));
+	
+	// now we block waiting for any replies
+	if ((ret = dtn_recv(handle, &reply_spec,
+			    DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0) {
+	    fprintf(stderr, "%s: error getting reply: %d (%s)\n",
+		    progname, ret, dtn_strerror(dtn_errno(handle)));
+	    exit(EXIT_FAILURE);
+	}
+	if (gettimeofday(&end, NULL) < 0) {
+	    fprintf(stderr, "%s: gettimeofday(end) returned error %s\n",
+		    progname, strerror(errno));
+	    exit(EXIT_FAILURE);
+	}
+    
+	if (verbose)
+	    fprintf(info, "got %d byte report from [%s]: time=%.1f ms\n",
+	       reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
+	       reply_spec.source.uri,
+	       ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
+		(double)(end.tv_usec - start.tv_usec)/1000.0));
+    }
 
     dtn_close(handle);
     return (EXIT_SUCCESS);
