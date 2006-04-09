@@ -494,15 +494,15 @@ int
 fill_payload(dtn_bundle_payload_t* payload)
 {
 
-   char buf[BUFSIZ];
-   char *p = payload_buf;
+   unsigned char buf[BUFSIZ];
+   unsigned char *p = payload_buf;
+   unsigned char *endp = p + sizeof(payload_buf);
    size_t n, total = 0;
-   int maxread = sizeof(buf);
+   size_t maxread = sizeof(buf);
 
    while (1) {
-       if ((p + maxread) > ((char *)(payload_buf + 1)))
-	       maxread = ((char *)(payload_buf+1)) - p;
-       if (((n = fread(buf, maxread, 1, stdin))) == 0)
+       maxread = MIN(sizeof(buf), (endp-p));
+       if ((n = fread(buf, 1, maxread, stdin)) == 0)
 	       break;
        memcpy(p, buf, n);
        p += n;
