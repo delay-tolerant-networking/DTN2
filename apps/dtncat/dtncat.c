@@ -68,9 +68,8 @@ int forwarding_receipts = 0;    // request per hop departure
 int custody             = 0;    // request custody transfer
 int custody_receipts    = 0;    // request per custodian receipts
 int receive_receipts    = 0;    // request per hop arrival receipt
-int overwrite           = 0;    // queue overwrite option
 int wait_for_report     = 0;    // wait for bundle status reports
-int bundle_count	= 1;	// # bundles to receive
+int bundle_count	= -1;	// # bundles to receive (-l option)
 
 // specified options for bundle eids
 char * arg_replyto      = NULL;
@@ -93,11 +92,11 @@ char payload_buf[DTN_MAX_BUNDLE_MEM];
 
 int from_bundles_flag;
 
-void to_bundles();
-void from_bundles();
+void to_bundles();	// stdin -> bundles
+void from_bundles();	// bundles -> stdout
+void make_registration(dtn_bundle_spec_t*, dtn_reg_failure_action_t, dtn_timeval_t);
 
 dtn_handle_t handle;
-dtn_reg_info_t reginfo;
 dtn_bundle_spec_t bundle_spec;
 dtn_bundle_spec_t reply_spec;
 dtn_bundle_payload_t primary_payload;
@@ -108,11 +107,10 @@ int
 main(int argc, char** argv)
 {
 
-    int ret;
     info = stderr;
     
     // force stdout to always be line buffered, even if output is
-    // redirected to a pipe or file -- why?
+    // redirected to a pipe or file -- why? kf
     // setvbuf(stdout, (char *)NULL, _IOLBF, 0);
     
     parse_options(argc, argv);
@@ -157,23 +155,8 @@ main(int argc, char** argv)
     }
 
     if (wait_for_report) {
-        // create a new dtn registration to receive bundles
-        memset(&reginfo, 0, sizeof(reginfo));
-        dtn_copy_eid(&reginfo.endpoint, &bundle_spec.replyto);
-        reginfo.failure_action = DTN_REG_DROP;
-        reginfo.regid = regid;
-        reginfo.expiration = REG_EXPIRE;
-	if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
-            fprintf(stderr, "%s: error creating registration (id=0x%x): %d (%s)\n",
-                    progname, regid, ret, dtn_strerror(dtn_errno(handle)));
-            exit(EXIT_FAILURE);
-        }
-    
-        if (verbose)
-		fprintf(info, "dtn_register succeeded, regid 0x%x\n", regid);
-
-        // bind the current handle to the new registration
-        dtn_bind(handle, regid);
+	// make a registration for incoming reports
+	make_registration(&bundle_spec, DTN_REG_DROP, REG_EXPIRE);
     }
     
     // set the dtn options
@@ -231,6 +214,12 @@ from_bundles()
     char s_buffer[BUFSIZ];
 
     memset(&primary_payload, 0, sizeof(primary_payload));
+
+    make_registration(&bundle_spec, DTN_REG_DROP, REG_EXPIRE);
+
+    if (verbose)
+	    fprintf(info, "waiting to receive %d bundles\n",
+			    bundle_count);
 
     // loop waiting for bundles
     for (i = 0; i < bundle_count; ++i) {
@@ -364,8 +353,8 @@ void print_usage()
             progname);
     fprintf(stderr, "options:\n");
     fprintf(stderr, " -v verbose\n");
-    fprintf(stderr, " -h help\n");
-    fprintf(stderr, " -H help\n");
+    fprintf(stderr, " -h/H help\n");
+    fprintf(stderr, " -l receive bundles instead of sending them (listen)\n");
     fprintf(stderr, " -s <eid|demux_string> source eid)\n");
     fprintf(stderr, " -d <eid|demux_string> destination eid)\n");
     fprintf(stderr, " -r <eid|demux_string> reply to eid)\n");
@@ -377,7 +366,7 @@ void print_usage()
     fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
-    fprintf(stderr, " -n <count> exit after count bundles received\n");
+    fprintf(stderr, " -n <count> exit after count bundles received (-l option required)\n");
     
     return;
 }
@@ -450,6 +439,7 @@ parse_options(int argc, char**argv)
         }
     }
 
+
 #define CHECK_SET(_arg, _what)                                          \
     if (_arg == 0) {                                                    \
         fprintf(stderr, "%s: %s must be specified\n", progname, _what); \
@@ -459,6 +449,14 @@ parse_options(int argc, char**argv)
     
     CHECK_SET(arg_source,   "source eid");
     CHECK_SET(arg_dest,     "destination eid");
+
+    if (!from_bundles_flag) {
+	    if (bundle_count != -1) {
+		    fprintf(stderr, "%s: can't specify bundle count of %d w/out -l option\n",
+				    progname, bundle_count);
+		    exit(EXIT_FAILURE);
+	    }
+    }	
 }
 
 dtn_endpoint_id_t *
@@ -514,4 +512,29 @@ fill_payload(dtn_bundle_payload_t* payload)
    if (dtn_set_payload(payload, DTN_PAYLOAD_MEM, payload_buf, total) == DTN_ESIZE)
 	   return (-1);
    return(total);
+}
+
+void
+make_registration(dtn_bundle_spec_t* bspec, dtn_reg_failure_action_t action, dtn_timeval_t reg_expire)
+{
+	int ret;
+	dtn_reg_info_t reginfo;
+
+        // create a new dtn registration to receive bundles
+        memset(&reginfo, 0, sizeof(reginfo));
+        dtn_copy_eid(&reginfo.endpoint, &bspec->replyto);
+        reginfo.failure_action = action;
+        reginfo.regid = regid;
+        reginfo.expiration = reg_expire;
+	if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
+            fprintf(stderr, "%s: error creating registration (id=0x%x): %d (%s)\n",
+                    progname, regid, ret, dtn_strerror(dtn_errno(handle)));
+            exit(EXIT_FAILURE);
+        }
+    
+        if (verbose)
+		fprintf(info, "dtn_register succeeded, regid 0x%x\n", regid);
+
+        // bind the current handle to the new registration
+        dtn_bind(handle, regid);
 }
