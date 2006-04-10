@@ -31,7 +31,7 @@ include Rules.make
 #
 applib servlib: oasys dtn-version.o
 daemon: applib servlib
-apps: applib
+apps: applib servlib
 sim: servlib
 
 #
