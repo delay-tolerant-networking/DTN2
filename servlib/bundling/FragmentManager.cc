@@ -139,6 +139,7 @@ FragmentManager::check_completed(ReassemblyState* state)
     
     int fragi = 0;
     int fragn = state->fragments_.size();
+    (void)fragn; // in case NDEBUG is defined
 
     for (iter = state->fragments_.begin();
          iter != state->fragments_.end();

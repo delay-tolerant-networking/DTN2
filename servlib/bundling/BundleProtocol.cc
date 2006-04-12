@@ -136,6 +136,7 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     add_to_dict(bundle->custodian_, &dict, &dictionary_len);
     add_to_dict(bundle->replyto_,   &dict, &dictionary_len);
 
+    (void)log; // in case NDEBUG is defined
     log_debug(log, "generated dictionary length %u", (u_int)dictionary_len);
 
     primary_len += SDNV::encoding_len(dictionary_len);
