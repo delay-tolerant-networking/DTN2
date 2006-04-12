@@ -57,6 +57,11 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
     bind_s("dbdir",	&cfg->dbdir_,  "The database directory.");
     bind_s("payloaddir",&BundlePayload::payloaddir_,
         "directory for payloads while in transit");
+
+    bind_b("db_mpool", &cfg->db_mpool_, "use mpool in Berkeley DB");
+    bind_b("db_log", &cfg->db_log_, "use logging in Berkeley DB");
+    bind_b("db_txn", &cfg->db_txn_, "use transactions in Berkeley DB");
+    bind_b("db_sharefile", &cfg->db_sharefile_, "use shared database file");
     bind_i("db_max_tx",   &cfg->db_max_tx_,
            "max # of active transactions in Berkeley DB");
     bind_i("db_max_locks", &cfg->db_max_locks_,
