@@ -1427,6 +1427,8 @@ echo "${ECHO_T}$debug" >&6
     DEBUG=
     if test $debug = yes ; then
         DEBUG="-g -fno-inline"
+    else
+        CPPFLAGS="$CPPFLAGS -DNDEBUG"
     fi
 
 
