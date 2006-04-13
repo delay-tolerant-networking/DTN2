@@ -1,4 +1,3 @@
-/* $Id$ */
 #ifndef _BT_CONVERGENCE_LAYER_H_
 #define _BT_CONVERGENCE_LAYER_H_
 
@@ -174,9 +173,7 @@ public:
     public:
         bdaddr_t local_addr_;      ///< local address
         bdaddr_t remote_addr_;     ///< remote address
-        u_int8_t channel_;         ///< RFCOMM channel
         std::string hcidev_;       ///< local device
-        u_int bind_retry_;         ///< how many times to retry failed bind()?
         bool bundle_ack_enabled_;  ///< Use CL-specific bundle acks?
         u_int partial_ack_len_;    ///< Bytes to send before ack
         u_int writebuf_len_;       ///< Buffer size per write() call
@@ -227,11 +224,9 @@ public:
         /**
          * Factory method to create active, or reuse passive, Connections
          */
-        Connection *connection(BluetoothConvergenceLayer*,bdaddr_t&,u_int8_t,Params*);
+        Connection *connection(BluetoothConvergenceLayer*,bdaddr_t&,Params*);
 
         bool del_listener(Listener*); 
-        bool del_connection(Connection*);
-        bool del_connection(bdaddr_t&);
 
     protected:
         Listener* listener(bdaddr_t&);
@@ -267,7 +262,7 @@ public:
 protected:
     bool parse_params(Params* params, int argc, const char** argv,
                       const char** invalidp);
-    bool parse_nexthop(const char*, bdaddr_t*, u_int8_t*);
+    bool parse_nexthop(const char*, bdaddr_t*);
 
     /**
      * Helper class (and thread) that listens on a registered
@@ -284,12 +279,6 @@ protected:
                  BluetoothConvergenceLayer::Params* params);
 
         /**
-         * To wait out a conflict on the socket ... allow retry by setting
-         * parameter bind_retry to something greater than 0
-         */
-        int bind_with_retry();
-
-        /**
          * Callback handler for passive connections
          */
         void accepted(int fd, bdaddr_t addr, u_int8_t channel); 
@@ -300,7 +289,6 @@ protected:
         friend class Connection;
         friend class ConnectionManager;
         BluetoothConvergenceLayer* cl_;
-        Connection* connection_;
     };
 
     /**
@@ -322,7 +310,6 @@ protected:
          */
          Connection(BluetoothConvergenceLayer* cl,
                     bdaddr_t remote_addr,
-                    u_int8_t remote_channel,
                     Params* params);
 
          /**
@@ -331,7 +318,7 @@ protected:
          Connection(BluetoothConvergenceLayer* cl,
                     int fd,
                     bdaddr_t remote_addr,
-                    u_int8_t remote_channel,
+                    u_int8_t channel,
                     Params* params);
 
         /**
@@ -344,20 +331,7 @@ protected:
          */
         BluetoothConvergenceLayer::Params params_;
 
-        /**
-         * Since bind() must precede connect() it's possible we may need
-         * to wait out a conflict on the socket ... allow retry by setting
-         * parameter bind_retry to something greater than 0
-         */
-        int connect_with_retry();
-
         void set_contact(Contact *c) { contact_ = c; }
-
-        /**
-         * Calling thread blocks until connection object is initialized
-         * and ready to process bundles
-         */
-        bool is_ready(int timeout = -1);
 
         /**
          * Was this object formed by active or passive connect?
@@ -379,7 +353,8 @@ protected:
         friend class ConnectionManager;
         friend class Listener;
 
-        void main_loop();
+        void recv_loop();
+        void send_loop();
         void break_contact(ContactEvent::reason_t reason);
         bool connect();
         bool accept();
@@ -394,12 +369,6 @@ protected:
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
         bool send_keepalive();
         void note_data_rcvd();
-        void note_data_sent();
-        bool init_passive_contact();
-        //void notify_passive_contact() {
-            //ASSERT(!initiate_);
-            //pci_notifier_->notify();
-        //}
 
         /// Struct used to record bundles that are in-flight along
         /// with their transmission times
@@ -421,7 +390,7 @@ protected:
         /// Typedef for the list of in-flight bundles
         typedef std::list<InFlightBundle> InFlightList;
 
-        Listener* parent_;              ///< only used by passive
+        Listener* listener_;            ///< only used by passive
         BluetoothConvergenceLayer* cl_; ///< Pointer to the CL instance
         bool                initiate_;  ///< Do we initiate the connection
         direction_t         direction_; ///< SENDER or RECEIVER
@@ -432,10 +401,9 @@ protected:
         BlockingBundleList* queue_;     ///< Queue of bundles
         InFlightList        inflight_;  ///< List of bundles to be acked
         oasys::Notifier*    event_notifier_; ///< Notifier for BD event synch.
-        bool contact_init_; ///< has contact been initialized? (passive only)
 
         struct timeval data_rcvd_;      ///< Timestamp for idle timer
-        struct timeval data_sent_;      ///< Timestamp for keepalive timer
+        struct timeval keepalive_sent_; ///< Timestamp for keepalive timer
     };
 };
 

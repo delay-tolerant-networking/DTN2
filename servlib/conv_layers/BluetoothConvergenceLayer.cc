@@ -52,9 +52,7 @@ BluetoothConvergenceLayer::BluetoothConvergenceLayer() :
     // specific options) handle changing them
     bacpy(&defaults_.local_addr_,BDADDR_ANY);
     bacpy(&defaults_.remote_addr_,BDADDR_ANY);
-    defaults_.channel_            = 10;
     defaults_.hcidev_             = "hci0";
-    defaults_.bind_retry_         = 2;
     defaults_.bundle_ack_enabled_ = true;
     defaults_.partial_ack_len_    = 1024;
     defaults_.writebuf_len_       = 32768;
@@ -77,9 +75,7 @@ BluetoothConvergenceLayer::parse_params(Params* params, int argc, const char** a
 
     p.addopt(new oasys::BdAddrOpt("local_addr", &params->local_addr_));
     p.addopt(new oasys::BdAddrOpt("remote_addr", &params->remote_addr_));
-    p.addopt(new oasys::UInt8Opt("channel", &params->channel_));
     p.addopt(new oasys::StringOpt("hcidev", &params->hcidev_));
-    p.addopt(new oasys::UIntOpt("bind_retry", &params->bind_retry_));
     p.addopt(new oasys::BoolOpt("bundle_ack_enabled",
                                 &params->bundle_ack_enabled_));
     p.addopt(new oasys::UIntOpt("partial_ack_len", &params->partial_ack_len_));
@@ -136,9 +132,14 @@ BluetoothConvergenceLayer::interface_up(Interface* iface,
     Listener* receiver = connections_.listener(this,&params);
     receiver->logpathf("%s/iface/%s", logpath_, iface->name().c_str());
 
-    // bind_with_retry also starts the thread, if bind is successful
-    if (receiver->bind_with_retry() != 0)
+    // Scan each of RFCOMM's 30 channels, bind to first available
+    if (receiver->rc_bind() != 0)
         return false; // error log already emitted
+
+    if (receiver->listen() != 0)
+        return false; // error log already emitted
+
+    receiver->start();
 
     // store the new listener object in the cl specific portion of the
     // interface
@@ -181,9 +182,8 @@ BluetoothConvergenceLayer::dump_interface(Interface* iface,
     Params* params = &((Listener*)iface->cl_info())->params_;
 
     char buff[18];
-    buf->appendf("\tlocal_addr: %s channel: %d device: %s\n",
+    buf->appendf("\tlocal_addr: %s device: %s\n",
                  oasys::Bluetooth::batostr(&params->local_addr_,buff),
-                 params->channel_,
                  params->hcidev_.c_str());
 
     if (bacmp(&params->remote_addr_,BDADDR_ANY) != 0) {
@@ -204,12 +204,11 @@ bool
 BluetoothConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 {
     bdaddr_t addr;
-    u_int8_t channel = 0;
 
     log_debug("adding %s link %s", link->type_str(), link->nexthop());
 
     // validate the link next hop address
-    if (! parse_nexthop(link->nexthop(), &addr, &channel)) {
+    if (! parse_nexthop(link->nexthop(), &addr)) {
         log_err("invalid next hop address '%s'", link->nexthop());
         return false;
     }
@@ -217,13 +216,6 @@ BluetoothConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     // make sure it's really a valid address
     if (bacmp(&addr,BDADDR_ANY) == 0 ) {
         log_err("invalid host in next hop address '%s'", link->nexthop());
-        return false;
-    }
-
-    // make sure the channel was specified
-    if (channel == 0) {
-        log_err("channel not specified in next hop address '%s'",
-                link->nexthop());
         return false;
     }
 
@@ -267,9 +259,8 @@ BluetoothConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
     Params* params = (Params*) link->cl_info();
 
     char buff[18];
-    buf->appendf("\tlocal_addr: %s channel: %d\n",
-                 oasys::Bluetooth::batostr(&params->local_addr_,buff),
-                 params->channel_);
+    buf->appendf("\tlocal_addr: %s\n",
+                 oasys::Bluetooth::batostr(&params->local_addr_,buff));
     buf->appendf("\tremote_addr: %s\n",
                  oasys::Bluetooth::batostr(&params->remote_addr_,buff));
 }
@@ -282,7 +273,6 @@ bool
 BluetoothConvergenceLayer::open_contact(Link* link)
 {
     bdaddr_t addr;
-    u_int8_t channel
 
     log_debug("opening contact on link *%p", link);
 
@@ -292,21 +282,23 @@ BluetoothConvergenceLayer::open_contact(Link* link)
     // parse out the address / port from the nexthop address. note
     // that these should have been validated in init_link() above, so
     // we ASSERT as such
-    bool valid = parse_nexthop(link->nexthop(),&addr,&channel);
+    bool valid = parse_nexthop(link->nexthop(),&addr);
     ASSERT(valid == true);
     ASSERT(bacmp(&addr,BDADDR_ANY) != 0);
-    ASSERT(channel != 0);
 
     Params* params = (Params*)link->cl_info();
 
     // Using ConnectionManager factory method to manage bind() contention;
     // reuse existing passive or create new active
-    Connection* sender = connections_.connection(this,addr,channel,params);
+    Connection* sender = connections_.connection(this,addr,params);
+
+    if (sender == NULL) return false;
 
     // save this contact
     sender->set_contact(contact);
+    sender->start();
 
-    return sender->is_ready();
+    return true;
 }
 
 /**
@@ -318,10 +310,7 @@ BluetoothConvergenceLayer::close_contact(const ContactRef& contact)
     Connection* sender = (Connection*)contact->cl_info();
     log_info("close_contact *%p", contact.object());
 
-    if (sender) {
-
-        bdaddr_t addr;
-        sender->sock_->local_addr(addr);
+    if (sender != NULL) {
 
         if (!sender->is_stopped() && !sender->should_stop()) {
             log_debug("interrupting connection thread");
@@ -329,9 +318,6 @@ BluetoothConvergenceLayer::close_contact(const ContactRef& contact)
             sender->interrupt_from_io();
             oasys::Thread::yield();
         }
-
-        // Track close_contact through ConnectionManager
-        connections_.del_connection(addr);
     
         // the connection thread will delete itself when it terminates
         // so we can't check any state in the thread itself (i.e. the
@@ -371,20 +357,12 @@ void BluetoothConvergenceLayer::send_bundle(const ContactRef& contact,Bundle* bu
 
 bool
 BluetoothConvergenceLayer::parse_nexthop(const char* nexthop, 
-                                  bdaddr_t* addr, 
-                                  u_int8_t* channel)
+                                         bdaddr_t* addr)
 {
     std::string tmp;
     bdaddr_t ba;
     const char* p = nexthop;
-    int numcolons = 6; // expecting 6 colons total
-
-    // valid nexthop formats
-    //             1        2
-    //   01234567890123457890
-    //   00:11:22:aa:bb:cc:10   -- :10 is optional
-    //
-    // the Bluetooth adapter address followed by channel 
+    int numcolons = 5; // expecting 6 colons total
 
     while (numcolons > 0) {
         p = strchr(p+1, ':');
@@ -396,18 +374,9 @@ BluetoothConvergenceLayer::parse_nexthop(const char* nexthop,
             return false;
         }
     }
-    tmp.assign(nexthop, p - nexthop);
+    tmp.assign(nexthop, p - nexthop + 3);
     oasys::Bluetooth::strtoba(tmp.c_str(),&ba);
 
-    char* endstr;
-    u_int32_t val = strtoul(p + 1, &endstr, 10);
-    if (*endstr != '\0' || val > 30) {
-        log_warn("invalid channel %s specified in nexthop '%s'",
-                 p + 1, nexthop);
-        return false;
-    }
-
-    *channel = (u_int8_t) val;
     bacpy(addr,&ba);
     return true;
 }
@@ -494,10 +463,10 @@ BluetoothConvergenceLayer::ConnectionManager::del_listener(Listener* l)
 }
 
 BluetoothConvergenceLayer::Connection*
-BluetoothConvergenceLayer::ConnectionManager::connection(BluetoothConvergenceLayer* cl,
-                                                  bdaddr_t& addr,
-                                                  u_int8_t channel,
-                                                  Params* params)
+BluetoothConvergenceLayer::ConnectionManager::connection(
+                                          BluetoothConvergenceLayer* cl,
+                                          bdaddr_t& addr,
+                                          Params* params)
 {
     ASSERT(bacmp(&addr,BDADDR_ANY) != 0);
     ASSERT(params != NULL);
@@ -508,29 +477,9 @@ BluetoothConvergenceLayer::ConnectionManager::connection(BluetoothConvergenceLay
 
     if (prev != NULL ) {
 
-        // First, try to reuse passive
-        if (prev->channel() == channel && prev->connection_ != NULL) {
-            //log_debug("Found existing connection *%p",prev->connection_);
-            log_debug("Found existing connection");
-            return prev->connection_;
-        }
-
-        // No passive connection found, so deal with the 
-        // contention by closing the socket that's bound to this addr
-        prev->set_should_stop();
-        prev->interrupt_from_io();
-        int sanity=100;
-        while(!prev->is_stopped()){
-            oasys::Thread::yield();
-            if(--sanity==0) {
-                log_err("Notifier never interrupted!");
-                break;
-            }
-        }
-        prev->close();
-        Connection *c = new Connection(cl,addr,channel,params);
-        //log_debug("Instantiating new connection *%p",c);
         log_debug("Instantiating new connection");
+        Connection *c = new Connection(cl,addr,params);
+        c->listener_ = prev;
         return c;
 
     } else {
@@ -555,45 +504,6 @@ BluetoothConvergenceLayer::ConnectionManager::connection(BluetoothConvergenceLay
     return NULL;
 }
 
-bool
-BluetoothConvergenceLayer::ConnectionManager::del_connection(Connection* c)
-{
-    ASSERT(c != NULL);
-    bdaddr_t addr;
-    c->sock_->local_addr(addr);
-    return del_connection(addr);
-}
-
-bool
-BluetoothConvergenceLayer::ConnectionManager::del_connection(bdaddr_t& addr)
-{
-    if (bacmp(&addr,BDADDR_ANY) != 0) {
-        log_debug("del_connection called with BDADDR_ANY");
-        return false;
-    }
-
-    Listener *prev = listener(addr);
-
-    if (prev != NULL) {
-
-        // does it have a passive?
-        if (prev->connection_ != NULL) {
-            bdaddr_t ba;
-            prev->connection_->sock_->local_addr(ba);
-            ASSERT(bacmp(&ba,&addr)==0);
-            prev->connection_ = NULL;
-        }
-
-        // start the thread which automatically listens for data
-        return (prev->bind_with_retry() == 0);
-
-    } else return false;
-
-    // guess there's nothing to do here ... ? 
-    // XXX/wilsonj this is pro'ly wrong, should pro'ly PANIC
-    return true;
-}
-
 
 /*****************************************************************************
  *
@@ -606,14 +516,11 @@ BluetoothConvergenceLayer::Listener::Listener(BluetoothConvergenceLayer* cl,
       params_(*params),
       cl_(cl)
 {
-    connection_ = NULL;
     set_notifier(new oasys::Notifier("/cl/bt/listener"));
-    //logfd_  = false;
 
     ASSERT(bacmp(&params->local_addr_,BDADDR_ANY) != 0);
 
     set_local_addr(params->local_addr_);
-    set_channel(params->channel_);
 
     // pause every second to check for interrupt
     set_accept_timeout(1000);
@@ -625,29 +532,13 @@ void
 BluetoothConvergenceLayer::Listener::accepted(int fd, bdaddr_t addr, u_int8_t channel)
 {
     ASSERT(cl_ != NULL);
-    ASSERT(connection_ == NULL);
-    connection_ = new Connection(cl_,fd,addr,channel,&params_);
-    connection_->parent_ = this;
-    connection_->start();
-}
-
-int
-BluetoothConvergenceLayer::Listener::bind_with_retry()
-{
-    int retry = params_.bind_retry_;
-    int res = -1;
-
-    ASSERT(bacmp(&params_.local_addr_,BDADDR_ANY) != 0);
-
-    while ((res = bind_listen_start(params_.local_addr_,
-                                    params_.channel_))
-                  != 0) {
-        if (--retry <= 0) break;
-        if (errno != EADDRINUSE) break;
-        sleep(1);  // perhaps some other socket is close()ing?  wait it out
-    }
-
-    return res;
+    Connection *c = new Connection(cl_,fd,addr,channel,&params_);
+    c->listener_ = this;
+    c->start();
+    // this channel is now taken over by the passive, so close() and rc_bind()
+    // all over again
+    ASSERT(rc_bind() == 0);
+    ASSERT(listen() == 0);
 }
 
 
@@ -663,31 +554,23 @@ BluetoothConvergenceLayer::Listener::bind_with_retry()
 BluetoothConvergenceLayer::Connection::Connection(
         BluetoothConvergenceLayer* cl,
         bdaddr_t remote_addr,
-        u_int8_t remote_channel,
         BluetoothConvergenceLayer::Params* params)
     : Thread("BluetoothConvergenceLayer::Connection"),
       Logger("BluetoothConvergenceLayer::Connection", "/dtn/cl/bt/conn"),
-      params_(*params),
+      params_(*params), listener_(NULL), cl_(cl), initiate_(true),
       contact_("BluetoothConvergenceLayer::Connection")
 {
     char buff[18];
-    logpath_appendf("/%s:%d",
-                    oasys::Bluetooth::batostr(&remote_addr,buff),
-                    remote_channel);
+    logpath_appendf("/%s",oasys::Bluetooth::batostr(&remote_addr,buff));
 
-    cl_ = cl;
-    parent_ = NULL;
-    contact_ = NULL;
-    initiate_ = true;
-    contact_init_ = false;
     queue_ = new BlockingBundleList(logpath_);
     queue_->notifier()->logpath_appendf("/queue");
     Thread::set_flag(Thread::DELETE_ON_EXIT);
     sock_ = new oasys::RFCOMMClient();
+    sock_->set_local_addr(params->local_addr_);
     sock_->logpathf("%s/sock",logpath_);
     sock_->set_logfd(false);
     sock_->set_remote_addr(remote_addr);
-    sock_->set_channel(remote_channel);
     sock_->set_notifier(new oasys::Notifier("/cl/bt/active-connection"));
     sock_->get_notifier()->logpath_appendf("/sock_notifier");
     event_notifier_ = new oasys::Notifier(logpath_);
@@ -701,31 +584,25 @@ BluetoothConvergenceLayer::Connection::Connection(
         BluetoothConvergenceLayer* cl,
         int fd,
         bdaddr_t remote_addr,
-        u_int8_t remote_channel,
+        u_int8_t channel,
         Params* params)
     : Thread("BluetoothConvergenceLayer::Connection"),
       Logger("BluetoothConvergenceLayer::Connection", "/dtn/cl/bt/conn"),
-      params_(*params),
+      params_(*params), listener_(NULL), cl_(cl), initiate_(false),
       contact_("BluetoothConvergenceLayer::Connection")
 {
     char buff[18];
     logpathf("/dtn/cl/bt/passive-conn/%s:%d", oasys::Bluetooth::batostr(&remote_addr,buff),
-             remote_channel);
-    cl_ = cl;
-    parent_ = NULL;
-    contact_ = NULL;
-    initiate_ = false;
-    contact_init_ = false;
-    queue_ = new BlockingBundleList(logpath_);
-    queue_->notifier()->logpath_appendf("/queue");
+             channel);
+    queue_ = NULL;
     Thread::set_flag(Thread::DELETE_ON_EXIT);
-    sock_ = new oasys::RFCOMMClient(fd,remote_addr,remote_channel,logpath_);
+    sock_ = new oasys::RFCOMMClient(fd,remote_addr,channel,logpath_);
+    sock_->set_local_addr(params->local_addr_);
     sock_->logpathf("%s/sock",logpath_);
     sock_->set_logfd(false);
     sock_->set_notifier(new oasys::Notifier("/cl/bt/passive-connection"));
     sock_->get_notifier()->logpath_appendf("/sock_notifier");
-    event_notifier_ = new oasys::Notifier(logpath_);
-    event_notifier_->logpath_appendf("/event_notifier");
+    event_notifier_ = NULL;
 }
 
 /**
@@ -733,10 +610,9 @@ BluetoothConvergenceLayer::Connection::Connection(
  */
 BluetoothConvergenceLayer::Connection::~Connection()
 {
-    delete queue_;
+    if (queue_) delete queue_;
     delete sock_;
-    delete event_notifier_;
-    if (parent_) parent_->connection_ = NULL;
+    if (event_notifier_) delete event_notifier_;
 }
 
 
@@ -778,12 +654,7 @@ BluetoothConvergenceLayer::Connection::run()
                 contact_->link()->set_state(Link::OPENING);
             }
 
-            ASSERT(contact_->cl_info() == NULL);
-            contact_->set_cl_info(this);
-
-            BundleDaemon::post_and_wait(
-                            new ContactUpEvent(contact_),
-                            event_notifier_);
+            send_loop();
 
         } else {
             /*
@@ -795,10 +666,10 @@ BluetoothConvergenceLayer::Connection::run()
                 log_debug("accept failed");
                 return; // trigger a deletion
             }
-        }
 
-        // always assume bidirectional, always poll for read
-        main_loop();
+
+            recv_loop();
+        }
 
  broken:
         // use the thread's should_stop() indicator (set by
@@ -819,6 +690,7 @@ BluetoothConvergenceLayer::Connection::run()
         // sleep for the appropriate retry amount (by waiting to see
         // if we're interrupted) and try to re-establish the connection
         ASSERT(sock_->get_notifier());
+        ASSERT(params_.retry_interval_ != 0);
         log_info("waiting for %d seconds before retrying connection",
                  params_.retry_interval_);
         if (sock_->get_notifier()->wait(NULL, params_.retry_interval_ * 1000)) {
@@ -833,7 +705,6 @@ BluetoothConvergenceLayer::Connection::run()
         }
     }
 
-    // not reached
     log_debug("connection thread main loop complete -- thread exiting");
 }
 
@@ -903,7 +774,6 @@ retry_headers:
               (u_int)payload_len);
 
     int cc = sock_->writevall(iov, 2);
-    note_data_sent();
 
     if (cc == oasys::IOINTR) {
         log_info("send_bundle: interrupted while sending bundle header");
@@ -943,7 +813,6 @@ retry_headers:
                   (u_int)block_len, payload_data);
 
         cc = sock_->writeall((char*)payload_data, block_len);
-        note_data_sent();
 
         if (cc == oasys::IOINTR) {
             log_info("send_bundle: interrupted while sending bundle block");
@@ -1237,8 +1106,6 @@ BluetoothConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
         return false;
     }
 
-    note_data_sent();
-
     return true;
 }
 
@@ -1254,16 +1121,8 @@ BluetoothConvergenceLayer::Connection::send_keepalive()
 
     if (ret == oasys::IOINTR) { 
         log_info("send_keepalive: connection interrupted");
-
-        // this represents a self-interrupt
-        if( !contact_init_ && !initiate_ && contact_ != NULL )
-            init_passive_contact();
-
-        // otherwise, user interrupt
-        else {
-            break_contact(ContactEvent::USER);
-            return false;
-        }
+        break_contact(ContactEvent::USER);
+        return false;
     }
 
     if (ret != 1) {
@@ -1272,20 +1131,7 @@ BluetoothConvergenceLayer::Connection::send_keepalive()
         return false;
     }
     
-    note_data_sent();
-    
     return true;
-}
-
-
-/**
- * Note that we observed some data outbound on this connection.
- */
-void
-BluetoothConvergenceLayer::Connection::note_data_sent()
-{
-    log_debug("noting data sent");
-    ::gettimeofday(&data_sent_, 0);
 }
 
 
@@ -1393,8 +1239,6 @@ BluetoothConvergenceLayer::Connection::send_contact_header()
         return false;
     } 
 
-    note_data_sent();
-    
     return true;
 }
 
@@ -1469,12 +1313,33 @@ BluetoothConvergenceLayer::Connection::connect()
     char buff[18];
     bdaddr_t ba;
     sock_->remote_addr(ba);
-    log_debug("connect: connecting to %s:%d ... ",
-              oasys::Bluetooth::batostr(&ba,buff),
-              sock_->channel());
-    int ret = connect_with_retry();
+    ASSERT(bacmp(&ba,BDADDR_ANY) != 0);
+    log_debug("connect: connecting to %s ... ",
+              oasys::Bluetooth::batostr(&ba,buff));
+
+    // before attempting to scan the remote host for available channels,
+    // shut down the local listener to release its channel for bind()
+    ASSERT(listener_ != NULL);
+    listener_->set_should_stop();
+    listener_->interrupt_from_io();
+    while(!listener_->is_stopped()) {
+        oasys::Thread::yield();
+    }
+    listener_->close();
+
+    // scan all 30 channels
+    int ret = sock_->rc_connect();
+
+    // re-enable local listener
+    // Scan each of RFCOMM's 30 channels, bind to first available
+    if (listener_->rc_bind() == 0 &&
+        listener_->listen() == 0) {
+        listener_->start();
+    }
+
     if (ret != 0) return false;
-    log_debug("connect: connection established, sending contact header ... ");
+    log_debug("connect: connection established (channel %d), "
+              "sending contact header ... ", sock_->channel());
     if (!send_contact_header()) return false;
     log_debug("connect: waiting for contact header reply ... ");
     if (!recv_contact_header(params_.rtt_timeout_)) return false;
@@ -1519,8 +1384,6 @@ BluetoothConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reas
         sock_->write(&typecode,1);
         sock_->close();
     }
-
-    contact_init_ = false;
 
     if (contact_ != NULL) {
         while (!inflight_.empty()) {
@@ -1615,16 +1478,8 @@ BluetoothConvergenceLayer::Connection::handle_reply()
 
     if (ret == oasys::IOINTR) {
         log_info("connection interrupted");
-
-        // this represents a self-interrupt
-        if( !contact_init_ && !initiate_ && contact_ != NULL )
-            init_passive_contact();
-
-        // otherwise, user-interrupt
-        else {
-            break_contact(ContactEvent::USER);
-            return false;
-        }
+        break_contact(ContactEvent::USER);
+        return false;
     }
 
     if (ret < 1) {
@@ -1674,155 +1529,113 @@ BluetoothConvergenceLayer::Connection::handle_reply()
     return true;
 }
 
-/**
-  * Calling thread blocks until connection object is initialized
-  * and ready to process bundles
-  */
-bool
-BluetoothConvergenceLayer::Connection::is_ready(int timeout)
-{
-    if (!initiate_) {
-
-        // tell the other thread to check the new contact_
-        sock_->interrupt_from_io();
-
-    } else {
-
-        // silliness, but this way actives don't get confused?
-        contact_init_ = true;
-
-        // passive is already running at this point
-        start();
-    }
-    return true;
-}
-
-bool
-BluetoothConvergenceLayer::Connection::init_passive_contact()
-{
-    if (contact_init_) return true;
-
-    ASSERT(!initiate_);
-    ASSERT(contact_ != NULL);
-    ASSERT(contact_->cl_info() == NULL);
-
-    // signal the OPENING state
-    if (contact_->link()->state() != Link::OPENING) {
-        contact_->link()->set_state(Link::OPENING);
-    }
-
-    contact_->set_cl_info(this);
-    contact_init_ = true;
-    log_info("passive connection initialized as sender");
-
-    // inform the daemon that the contact is available
-    BundleDaemon::post_and_wait(new ContactUpEvent(contact_),
-                                event_notifier_);
-
-    return true;
-}
 
 /**
- * Main loop for bidirectional Connection object
+ * The sender side main loop.
  */
 void
-BluetoothConvergenceLayer::Connection::main_loop()
+BluetoothConvergenceLayer::Connection::send_loop()
 {
     // someone should already have established the session
     ASSERT(sock_->state() == oasys::BluetoothSocket::ESTABLISHED);
+
+    // store our state in the contact's cl info slot
+    ASSERT(contact_ != NULL);
+    ASSERT(contact_->cl_info() == NULL);
+    contact_->set_cl_info(this);
+
+    // inform the daemon that the contact is available
+    BundleDaemon::post_and_wait(new ContactUpEvent(contact_), event_notifier_);
 
     // reserve space in the buffers
     rcvbuf_.reserve(params_.readbuf_len_);
     sndbuf_.reserve(params_.writebuf_len_);
 
-    if (initiate_)
-        log_info("connection established -- (keepalive time %d seconds)",
-                 params_.keepalive_interval_);
 
-    // build up a poll vector since we need to block on input from the
-    // socket and the bundle list
+    log_info("connection established -- (keepalive time %d seconds)",
+             params_.keepalive_interval_);
+
+    // build up a poll vector since we need to block below on input
+    // from the socket and the bundle list
     struct pollfd pollfds[2];
 
-    struct pollfd* sock_poll = &pollfds[0];
-    sock_poll->fd            = sock_->fd();
-    sock_poll->events        = POLLIN;
-
-    struct pollfd* bundle_poll = &pollfds[1];
+    struct pollfd* bundle_poll = &pollfds[0];
     bundle_poll->fd          = queue_->notifier()->read_fd();
     bundle_poll->events      = POLLIN;
 
-    // flag for idle state
+    struct pollfd* sock_poll = &pollfds[1];
+    sock_poll->fd            = sock_->fd();
+    sock_poll->events        = POLLIN;
+
+    // flag for whether or not we're in idle state
     bool idle = false;
 
     // main loop
     while (true) {
-        // keep track of the time for data and idle
+        // keep track of the time we got data and idle
         struct timeval now;
         struct timeval idle_start;
 
-        // if interrupted, link should close
+        BundleRef bundle("BTCL::send_loop temporary");
+
+        // if we've been interrupted, then the link should close
         if (should_stop()) {
             break_contact(ContactEvent::USER);
             return;
         }
 
-        if (contact_ != NULL) {
+        // pop the bundle (if any) off the queue, which gives us a
+        // local reference on it
+        bundle = queue_->pop_front();
 
-            // Hack for bidirectional reuse of passive
-            if (!initiate_ && !contact_init_)
-                init_passive_contact();
+        if (bundle != NULL) {
+            // clear the idle bit
+            idle = false;
 
-            BundleRef bundle("BTCL::main_loop temporary");
+            // send the bundle off and remove our local reference
+            bool sentok = send_bundle(bundle.object());
+            bundle = NULL;
 
-            // pop the bundle (if any) off the queue, which gives a local ref
-            bundle = queue_->pop_front();
-
-            if (bundle != NULL) {
-                // clear the idle bit
-                idle = false;
-
-                // send the bundle off and remove local ref
-                bool sentok = send_bundle(bundle.object());
-                bundle = NULL;
-
-                // if problems on that last transmission, break the contact
-                if (!sentok) return;
-                continue;
+            // if the last transmission wasn't completely successful,
+            // it's time to break the contact
+            if (!sentok) {
+                return;
             }
 
-            // Check for idle; if so, record current time
-            if (!idle && inflight_.empty()) {
-                idle = true;
-                ::gettimeofday(&idle_start, 0);
-            }
+            // otherwise, we loop back to the beginning and check for
+            // more bundles on the queue as an optimization to check
+            // the list before calling poll
+            continue;
         }
 
-        // Note that the negotiated keepalive timer (if set) is the timeout
-        // to the poll call to keep track of when to send the keepalive
+        // Check for whether or not we've just become idle, in which
+        // case we record the current time
+        if (!idle && inflight_.empty()) {
+            idle = true;
+            ::gettimeofday(&idle_start, 0);
+        }
+
+        // No bundle, so we'll block for:
+        // 1) some activity on the socket, (i.e. keepalive, ack, or shutdown)
+        // 2) the bundle list notifier that indicates new bundle to send
+        //
+        // Note that we pass the negotiated keepalive timer (if set)
+        // as the timeout to the poll call so we know when we should
+        // send a keepalive
         pollfds[0].revents = 0;
         pollfds[1].revents = 0;
 
         int timeout = params_.keepalive_interval_ * 1000;
-        if (timeout == 0) timeout = -1; // block forever if not set
-        // keepalive is a response for passives
-        else if (!initiate_) timeout *= 2;
+        if (timeout == 0) {
+            timeout = -1; // block forever
+        }
 
-        log_debug("main_loop: calling poll (timeout %d)",timeout);
-
+        log_debug("send_loop: calling poll (timeout %d)", timeout);
         int cc = oasys::IO::poll_multiple(pollfds, 2, timeout,
                                       sock_->get_notifier(), logpath_);
 
         if (cc == oasys::IOINTR) {
-
-            if (!initiate_ && !contact_init_ && contact_ != NULL ) {
-
-                init_passive_contact();
-
-                // this is not an error condition, so keep on going
-                continue;
-            }
-
-            log_info("main_loop: interrupted from poll, breaking connection");
+            log_info("send_loop: interrupted from poll, breaking connection");
             break_contact(ContactEvent::USER);
             return;
         }
@@ -1832,52 +1645,59 @@ BluetoothConvergenceLayer::Connection::main_loop()
             if ((sock_poll->revents & POLLHUP) ||
                 (sock_poll->revents & POLLERR))
             {
-                log_info("main_loop: remote connection error (0x%x)",sock_poll->revents);
+                log_info("send_loop: remote connection error");
                 break_contact(ContactEvent::BROKEN);
                 return;
             }
 
-            if (! (sock_poll->revents & POLLIN))
-                PANIC("unknown revents value 0x%x", sock_poll->revents);
+            if (sock_poll->revents & POLLNVAL)
+            {
+                PANIC("send_loop: sock_poll->revents returned with "
+                      "POLLNVAL (0x%x)", sock_poll->revents);
+                return;
+            }
 
-            log_debug("main_loop: data available on the socket");
-            if (!handle_reply()) return;
+            if (! (sock_poll->revents & POLLIN)) {
+                PANIC("unknown revents value 0x%x", sock_poll->revents);
+            }
+
+            log_debug("send_loop: data available on the socket");
+            if (!handle_reply()) {
+                return;
+            }
         }
 
-        // check for whether to send a keepalive
-        if (initiate_ && (cc == oasys::IOTIMEOUT)) {
-            log_debug("active-side timeout from poll, sending keepalive");
+        // check if it's time to send a keepalive
+        if (cc == oasys::IOTIMEOUT) {
+            log_debug("timeout from poll, sending keepalive");
             ASSERT(params_.keepalive_interval_ != 0);
-            send_keepalive();
+            if (send_keepalive() == false) return;
             continue;
         }
 
-        // check for whether to send a keepalive
-        // check that remote peer hasn't timed out
+        // check that it hasn't been too long since the other side
+        // sent us some data
         ::gettimeofday(&now,0);
         u_int elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
         if (elapsed > (2 * params_.keepalive_interval_ * 1000)) {
-            log_info("main_loop: no data rcvd for %d msecs "
+            log_info("send_loop: no data rcvd for %d msecs "
                      "(sent %u.%u, rcvd %u.%u, now %u.%u) -- closing contact",
                      elapsed,
-                     (u_int)data_sent_.tv_sec,
-                     (u_int)data_sent_.tv_usec,
+                     (u_int)keepalive_sent_.tv_sec,
+                     (u_int)keepalive_sent_.tv_usec,
                      (u_int)data_rcvd_.tv_sec, (u_int)data_rcvd_.tv_usec,
                      (u_int)now.tv_sec, (u_int)now.tv_usec);
             break_contact(ContactEvent::BROKEN);
             return;
         }
 
-        // check for whether to send a keepalive
         // check if the connection has been idle for too long (ONDEMAND only)
-        if (idle && (contact_ != NULL) &&
-            (contact_->link()->type() == Link::ONDEMAND))
-        {
+        if (idle && (contact_->link()->type() == Link::ONDEMAND)) {
             u_int idle_close_time =
                 ((OndemandLink*)contact_->link())->idle_close_time_;
 
             // this is bidirectional
-            elapsed = std::min(TIMEVAL_DIFF_MSEC(now, idle_start),TIMEVAL_DIFF_MSEC(now, data_rcvd_));
+            elapsed = TIMEVAL_DIFF_MSEC(now, idle_start);
             if (idle_close_time != 0 && (elapsed > idle_close_time * 1000))
             {
                 log_info("connection idle for %d msecs, closing.",elapsed);
@@ -1892,49 +1712,76 @@ BluetoothConvergenceLayer::Connection::main_loop()
     }
 }
 
-
-/**
- * Attempt at making a more resilient connect()
- */
-int
-BluetoothConvergenceLayer::Connection::connect_with_retry()
+void
+BluetoothConvergenceLayer::Connection::recv_loop()
 {
-    bdaddr_t addr;
-    sock_->remote_addr(addr);
-    u_int8_t channel = sock_->channel();
+    int timeout;
+    int ret;
+    char typecode;
 
-    int retry = params_.bind_retry_;
-    int res = -1;
-    char buff[18];
-    while ((res = sock_->bind(params_.local_addr_,params_.channel_)) != 0) {
-        if (--retry <= 0 || errno != EADDRINUSE) break;
-        sock_->close();
-        sleep(1); // perhaps some other socket is close()ing?  wait it out
-    }
-    if (res != 0) {
-        log_err("error binding to %s:%d: %s",
-                oasys::Bluetooth::batostr(&params_.local_addr_,buff),
-                params_.channel_,
-                strerror(errno));
-        return res; // give up, bail out
-    }
+    // reserve space in the buffer
+    rcvbuf_.reserve(params_.readbuf_len_);
 
-    // reset the counter for the run through connect()
-    retry = params_.bind_retry_;
-    while ((res = sock_->connect(addr,channel)) != 0) {
-        if (--retry <= 0) break;
-        sock_->close();
-        sleep(1); // perhaps remote side is fumbling on bind()?  wait it out
-        if ((res = sock_->bind(params_.local_addr_,params_.channel_)) != 0) {
-            if(errno != EADDRINUSE) break;
+    while (1) {
+        // if there's nothing in the buffer,
+        // block waiting for the one byte typecode
+        if (rcvbuf_.fullbytes() == 0) {
+            ASSERT(rcvbuf_.end() == rcvbuf_.data()); // sanity
+
+            timeout = 2 * params_.keepalive_interval_ * 1000;
+            log_debug("recv_loop: blocking on frame... (timeout %d)", timeout);
+
+            ret = sock_->timeout_read(rcvbuf_.end(),
+                                      rcvbuf_.tailbytes(),
+                                      timeout);
+
+            if (ret == oasys::IOEOF || ret == oasys::IOERROR) {
+                log_info("recv_loop: remote connection unexpectedly closed");
+shutdown:
+                break_contact(ContactEvent::BROKEN);
+                return;
+
+            } else if (ret == oasys::IOTIMEOUT) {
+                log_info("recv_loop: no message heard for > %d msecs -- "
+                         "breaking contact", timeout);
+                goto shutdown;
+            }
+
+            rcvbuf_.fill(ret);
+            note_data_rcvd();
+        }
+
+        typecode = *rcvbuf_.start();
+        rcvbuf_.consume(1);
+
+        log_debug("recv_loop: got frame packet type 0x%x...", typecode);
+        
+        if (typecode == SHUTDOWN) {
+            break_contact(ContactEvent::SHUTDOWN);
+            return;
+        }
+
+        if (typecode == KEEPALIVE) {
+            log_debug("recv_loop: " "got keepalive, sending response");
+
+            if (!send_keepalive()) {
+                return;
+            }
+            continue;
+        }
+
+        if (typecode != BUNDLE_DATA) {
+            log_err("recv_loop: "
+                    "unexpected typecode 0x%x waiting for BUNDLE_DATA",
+                    typecode);
+            goto shutdown;
+        }
+
+        // process the bundle
+        if (! recv_bundle()) {
+            goto shutdown;
         }
     }
-    if (res != 0) {
-        log_err("error connecting to %s:%d: %s",
-                oasys::Bluetooth::batostr(&addr,buff),
-                channel, strerror(errno));
-    }
-    return res;
 }
 
 } // namespace dtn
