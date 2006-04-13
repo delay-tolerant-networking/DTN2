@@ -58,6 +58,9 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
     bind_s("payloaddir",&BundlePayload::payloaddir_,
         "directory for payloads while in transit");
 
+    bind_i("fs_fd_cache_size", &cfg->fs_fd_cache_size_, 
+           "number of open fds to cache");
+
     bind_b("db_mpool", &cfg->db_mpool_, "use mpool in Berkeley DB");
     bind_b("db_log", &cfg->db_log_, "use logging in Berkeley DB");
     bind_b("db_txn", &cfg->db_txn_, "use transactions in Berkeley DB");
