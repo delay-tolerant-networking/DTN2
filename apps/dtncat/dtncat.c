@@ -99,7 +99,7 @@ int from_bundles_flag;
 
 void to_bundles();	// stdin -> bundles
 void from_bundles();	// bundles -> stdout
-void make_registration(dtn_reg_info_t*, dtn_reg_failure_action_t, dtn_timeval_t);
+void make_registration(dtn_reg_info_t*);
 
 dtn_handle_t handle;
 dtn_bundle_spec_t bundle_spec;
@@ -163,7 +163,7 @@ from_bundles()
     dtn_endpoint_id_t local_eid;
     dtn_bundle_spec_t receive_spec;
 
-    if (arg_receive[0] == '/') {
+    if (arg_receive[0] != '/') {
 	    dtn_build_local_eid(handle, &local_eid, arg_receive);
 	    if (verbose)
 		    fprintf(info, "local_eid [%s]\n", local_eid.uri);
@@ -174,8 +174,9 @@ from_bundles()
 	    exit(EXIT_FAILURE);
 	}
     }
+    memset(&reg, 0, sizeof(reg));
     dtn_copy_eid(&reg.endpoint, &local_eid);
-    make_registration(&reg, DTN_REG_DROP, REG_EXPIRE);
+    make_registration(&reg);
 
     if (verbose)
 	    fprintf(info, "waiting to receive %d bundles using reg >%s<\n",
@@ -285,7 +286,7 @@ to_bundles()
 	// make a registration for incoming reports
         memset(&reg_report, 0, sizeof(reg_report));
 	dtn_copy_eid(&reg_report.endpoint, &bundle_spec.replyto);
-	make_registration(&reg_report, DTN_REG_DROP, REG_EXPIRE);
+	make_registration(&reg_report);
     }
     
     // set the dtn options
@@ -564,15 +565,14 @@ fill_payload(dtn_bundle_payload_t* payload)
 }
 
 void
-make_registration(dtn_reg_info_t* reginfo, dtn_reg_failure_action_t action, dtn_timeval_t reg_expire)
+make_registration(dtn_reg_info_t* reginfo)
 {
 	int ret;
 
         // create a new dtn registration to receive bundles
-        memset(reginfo, 0, sizeof(*reginfo));
         reginfo->regid = regid;
-        reginfo->expiration = reg_expire;
-        reginfo->failure_action = action;
+        reginfo->expiration = REG_EXPIRE;
+        reginfo->failure_action = DTN_REG_DROP;
 	reginfo->script.script_val = FAILURE_SCRIPT;
 	reginfo->script.script_len = strlen(reginfo->script.script_val) + 1;
 
