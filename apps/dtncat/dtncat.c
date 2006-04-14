@@ -71,10 +71,15 @@ int receive_receipts    = 0;    // request per hop arrival receipt
 int wait_for_report     = 0;    // wait for bundle status reports
 int bundle_count	= -1;	// # bundles to receive (-l option)
 
+#define DEFAULT_BUNDLE_COUNT	1
+#define FAILURE_SCRIPT ""
+
+
 // specified options for bundle eids
 char * arg_replyto      = NULL;
 char * arg_source       = NULL;
 char * arg_dest         = NULL;
+char * arg_receive         = NULL;
 
 dtn_reg_id_t regid      = DTN_REGID_NONE;
 
@@ -86,7 +91,7 @@ void print_usage();
 void print_eid(FILE*, char * label, dtn_endpoint_id_t * eid);
 int fill_payload(dtn_bundle_payload_t* payload);
 
-FILE* info;
+FILE* info;	/* when -v option is used, write to here */
 #define REG_EXPIRE (60 * 60)
 char payload_buf[DTN_MAX_BUNDLE_MEM];
 
@@ -94,7 +99,7 @@ int from_bundles_flag;
 
 void to_bundles();	// stdin -> bundles
 void from_bundles();	// bundles -> stdout
-void make_registration(dtn_bundle_spec_t*, dtn_reg_failure_action_t, dtn_timeval_t);
+void make_registration(dtn_reg_info_t*, dtn_reg_failure_action_t, dtn_timeval_t);
 
 dtn_handle_t handle;
 dtn_bundle_spec_t bundle_spec;
@@ -102,6 +107,7 @@ dtn_bundle_spec_t reply_spec;
 dtn_bundle_payload_t primary_payload;
 dtn_bundle_payload_t reply_payload;
 struct timeval start, end;
+
 
 int
 main(int argc, char** argv)
@@ -126,67 +132,6 @@ main(int argc, char** argv)
         exit(EXIT_FAILURE);
     }
 
-    // initialize bundle spec
-    memset(&bundle_spec, 0, sizeof(bundle_spec));
-
-    // initialize/parse bundle src/dest/replyto eids
-    if (verbose)
-	fprintf(info, "Destination: %s\n", arg_dest);
-    parse_eid(handle, &bundle_spec.dest, arg_dest);
-
-    if (verbose)
-	fprintf(info, "Source: %s\n", arg_source);
-    parse_eid(handle, &bundle_spec.source, arg_source);
-
-    if (arg_replyto == NULL) {
-        if (verbose)
-		fprintf(info, "Reply To: same as source\n");
-        dtn_copy_eid(&bundle_spec.replyto, &bundle_spec.source);
-    } else {
-        if (verbose)
-		fprintf(info, "Reply To: %s\n", arg_replyto);
-        parse_eid(handle, &bundle_spec.replyto, arg_replyto);
-    }
-
-    if (verbose) {
-        print_eid(info, "source_eid", &bundle_spec.source);
-        print_eid(info, "replyto_eid", &bundle_spec.replyto);
-        print_eid(info, "dest_eid", &bundle_spec.dest);
-    }
-
-    if (wait_for_report) {
-	// make a registration for incoming reports
-	make_registration(&bundle_spec, DTN_REG_DROP, REG_EXPIRE);
-    }
-    
-    // set the dtn options
-    bundle_spec.expiration = expiration;
-    
-    if (delivery_receipts) {
-        // set the delivery receipt option
-        bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
-    }
-
-    if (forwarding_receipts) {
-        // set the forward receipt option
-        bundle_spec.dopts |= DOPTS_FORWARD_RCPT;
-    }
-
-    if (custody) {
-        // request custody transfer
-        bundle_spec.dopts |= DOPTS_CUSTODY;
-    }
-
-    if (custody_receipts) {
-        // request custody transfer
-        bundle_spec.dopts |= DOPTS_CUSTODY_RCPT;
-    }
-
-    if (receive_receipts) {
-        // request receive receipt
-        bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
-    }
-    
     if (gettimeofday(&start, NULL) < 0) {
 		fprintf(stderr, "%s: gettimeofday(start) returned error %s\n",
 			progname, strerror(errno));
@@ -202,6 +147,7 @@ main(int argc, char** argv)
     return (EXIT_SUCCESS);
 }
 
+
 /*
  * [bundles] -> stdout
  */
@@ -213,19 +159,33 @@ from_bundles()
     char *buffer;
     char s_buffer[BUFSIZ];
 
-    memset(&primary_payload, 0, sizeof(primary_payload));
+    dtn_reg_info_t reg;
+    dtn_endpoint_id_t local_eid;
+    dtn_bundle_spec_t receive_spec;
 
-    make_registration(&bundle_spec, DTN_REG_DROP, REG_EXPIRE);
+    if (arg_receive[0] == '/') {
+	    dtn_build_local_eid(handle, &local_eid, arg_receive);
+	    if (verbose)
+		    fprintf(info, "local_eid [%s]\n", local_eid.uri);
+    } else {
+	if (verbose) fprintf(info, "calling parse_eid_string\n");
+	if (dtn_parse_eid_string(&local_eid, arg_receive)) {
+	    fprintf(stderr, "invalid destination endpoint '%s'\n", arg_receive);
+	    exit(EXIT_FAILURE);
+	}
+    }
+    dtn_copy_eid(&reg.endpoint, &local_eid);
+    make_registration(&reg, DTN_REG_DROP, REG_EXPIRE);
 
     if (verbose)
-	    fprintf(info, "waiting to receive %d bundles\n",
-			    bundle_count);
+	    fprintf(info, "waiting to receive %d bundles using reg >%s<\n",
+			    bundle_count, reg.endpoint.uri);
 
     // loop waiting for bundles
     for (i = 0; i < bundle_count; ++i) {
         int bytes = 0;
 	// read from network
-        if ((ret = dtn_recv(handle, &bundle_spec,
+        if ((ret = dtn_recv(handle, &receive_spec,
 	        DTN_PAYLOAD_MEM, &primary_payload, -1)) < 0) {
             fprintf(stderr, "%s: error getting recv reply: %d (%s)\n",
                     progname, ret, dtn_strerror(dtn_errno(handle)));
@@ -250,7 +210,7 @@ from_bundles()
         
         fprintf(info, "%d bytes from [%s]: transit time=%d ms\n",
                primary_payload.dtn_bundle_payload_t_u.buf.buf_len,
-               bundle_spec.source.uri, 0);
+               receive_spec.source.uri, 0);
 
         for (k=0; k < primary_payload.dtn_bundle_payload_t_u.buf.buf_len; k++) {
             if (buffer[k] >= ' ' && buffer[k] <= '~')
@@ -302,6 +262,60 @@ to_bundles()
 {
 
     int bytes, ret;
+    dtn_reg_info_t reg_report; /* for reports, if reqd */
+    
+    // initialize bundle spec
+    memset(&bundle_spec, 0, sizeof(bundle_spec));
+    parse_eid(handle, &bundle_spec.dest, arg_dest);
+    parse_eid(handle, &bundle_spec.source, arg_source);
+
+    if (arg_replyto == NULL) {
+        dtn_copy_eid(&bundle_spec.replyto, &bundle_spec.source);
+    } else {
+        parse_eid(handle, &bundle_spec.replyto, arg_replyto);
+    }
+
+    if (verbose) {
+        print_eid(info, "source_eid", &bundle_spec.source);
+        print_eid(info, "replyto_eid", &bundle_spec.replyto);
+        print_eid(info, "dest_eid", &bundle_spec.dest);
+    }
+
+    if (wait_for_report) {
+	// make a registration for incoming reports
+        memset(&reg_report, 0, sizeof(reg_report));
+	dtn_copy_eid(&reg_report.endpoint, &bundle_spec.replyto);
+	make_registration(&reg_report, DTN_REG_DROP, REG_EXPIRE);
+    }
+    
+    // set the dtn options
+    bundle_spec.expiration = expiration;
+    
+    if (delivery_receipts) {
+        // set the delivery receipt option
+        bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
+    }
+
+    if (forwarding_receipts) {
+        // set the forward receipt option
+        bundle_spec.dopts |= DOPTS_FORWARD_RCPT;
+    }
+
+    if (custody) {
+        // request custody transfer
+        bundle_spec.dopts |= DOPTS_CUSTODY;
+    }
+
+    if (custody_receipts) {
+        // request custody transfer
+        bundle_spec.dopts |= DOPTS_CUSTODY_RCPT;
+    }
+
+    if (receive_receipts) {
+        // request receive receipt
+        bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
+    }
+    
 
     if ((bytes = fill_payload(&primary_payload)) < 0) {
 	fprintf(stderr, "%s: error reading bundle data\n",
@@ -348,13 +362,20 @@ to_bundles()
 
 void print_usage()
 {
-    fprintf(stderr, "usage: %s [opts] "
-            "-s <source_eid> -d <dest_eid>\n",
+    fprintf(stderr, "To source bundles from stdin:\n");
+    fprintf(stderr, "    usage: %s [opts] -s <source_eid> -d <dest_eid>\n",
             progname);
-    fprintf(stderr, "options:\n");
+    fprintf(stderr, "To receive bundles to stdout:\n");
+    fprintf(stderr, "    usage: %s [opts] -l <receive_eid>\n", progname);
+
+    fprintf(stderr, "common options:\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -h/H help\n");
-    fprintf(stderr, " -l receive bundles instead of sending them (listen)\n");
+    fprintf(stderr, "receive only options (-l option required):\n");
+
+    fprintf(stderr, " -l <eid> receive bundles destined for eid (instead of sending)\n");
+    fprintf(stderr, " -n <count> exit after count bundles received (-l option required)\n");
+    fprintf(stderr, "send only options (-l option prohibited):\n");
     fprintf(stderr, " -s <eid|demux_string> source eid)\n");
     fprintf(stderr, " -d <eid|demux_string> destination eid)\n");
     fprintf(stderr, " -r <eid|demux_string> reply to eid)\n");
@@ -366,7 +387,6 @@ void print_usage()
     fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
-    fprintf(stderr, " -n <count> exit after count bundles received (-l option required)\n");
     
     return;
 }
@@ -375,14 +395,16 @@ void
 parse_options(int argc, char**argv)
 {
     char c, done = 0;
+    int lopts = 0, notlopts = 0;
 
     progname = argv[0];
 
     while (!done) {
-        c = getopt(argc, argv, "lvhHr:s:d:e:wDFRcCi:n:");
+        c = getopt(argc, argv, "l:vhHr:s:d:e:wDFRcCi:n:");
         switch (c) {
 	case 'l':
 	    from_bundles_flag = 1;
+	    arg_receive = optarg;
 	    break;
         case 'v':
             verbose = 1;
@@ -394,39 +416,51 @@ parse_options(int argc, char**argv)
             return;
         case 'r':
             arg_replyto = optarg;
+	    lopts++;
             break;
         case 's':
             arg_source = optarg;
+	    notlopts++;
             break;
         case 'd':
             arg_dest = optarg;
+	    notlopts++;
             break;
         case 'e':
             expiration = atoi(optarg);
+	    notlopts++;
             break;
         case 'w':
             wait_for_report = 1;
+	    notlopts++;
             break;
         case 'D':
             delivery_receipts = 1;
+	    notlopts++;
             break;
         case 'F':
             forwarding_receipts = 1;
+	    notlopts++;
             break;
         case 'R':
             receive_receipts = 1;
+	    notlopts++;
             break;
         case 'c':
             custody = 1;
+	    notlopts++;
             break;
         case 'C':
             custody_receipts = 1;
+	    notlopts++;
             break;
         case 'i':
             regid = atoi(optarg);
+	    notlopts++;
             break;
 	case 'n':
 	    bundle_count = atoi(optarg);
+	    lopts++;
 	    break;
         case -1:
             done = 1;
@@ -439,6 +473,20 @@ parse_options(int argc, char**argv)
         }
     }
 
+    if (from_bundles_flag && (notlopts > 0)) {
+	    fprintf(stderr, "%s: error: transmission options specified when using -l flag\n",
+			progname);
+        print_usage();
+        exit(EXIT_FAILURE);
+    }
+
+    if (!from_bundles_flag && (lopts > 0)) {
+	    fprintf(stderr, "%s: error: receive option specified but -l option not selected\n",
+			progname);
+        print_usage();
+        exit(EXIT_FAILURE);
+    }
+
 
 #define CHECK_SET(_arg, _what)                                          \
     if (_arg == 0) {                                                    \
@@ -447,16 +495,17 @@ parse_options(int argc, char**argv)
         exit(EXIT_FAILURE);                                             \
     }
     
-    CHECK_SET(arg_source,   "source eid");
-    CHECK_SET(arg_dest,     "destination eid");
-
     if (!from_bundles_flag) {
-	    if (bundle_count != -1) {
-		    fprintf(stderr, "%s: can't specify bundle count of %d w/out -l option\n",
-				    progname, bundle_count);
-		    exit(EXIT_FAILURE);
+    	    /* transmitting to bundles - no -l option */
+	    CHECK_SET(arg_source,   "source eid");
+	    CHECK_SET(arg_dest,     "destination eid");
+    } else {
+    	    /* receiving from bundles - -l option specified */
+	    CHECK_SET(arg_receive,  "receive eid");
+	    if (bundle_count == -1) {
+		    bundle_count = DEFAULT_BUNDLE_COUNT;
 	    }
-    }	
+    }
 }
 
 dtn_endpoint_id_t *
@@ -515,18 +564,19 @@ fill_payload(dtn_bundle_payload_t* payload)
 }
 
 void
-make_registration(dtn_bundle_spec_t* bspec, dtn_reg_failure_action_t action, dtn_timeval_t reg_expire)
+make_registration(dtn_reg_info_t* reginfo, dtn_reg_failure_action_t action, dtn_timeval_t reg_expire)
 {
 	int ret;
-	dtn_reg_info_t reginfo;
 
         // create a new dtn registration to receive bundles
-        memset(&reginfo, 0, sizeof(reginfo));
-        dtn_copy_eid(&reginfo.endpoint, &bspec->replyto);
-        reginfo.failure_action = action;
-        reginfo.regid = regid;
-        reginfo.expiration = reg_expire;
-	if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
+        memset(reginfo, 0, sizeof(*reginfo));
+        reginfo->regid = regid;
+        reginfo->expiration = reg_expire;
+        reginfo->failure_action = action;
+	reginfo->script.script_val = FAILURE_SCRIPT;
+	reginfo->script.script_len = strlen(reginfo->script.script_val) + 1;
+
+	if ((ret = dtn_register(handle, reginfo, &regid)) != 0) {
             fprintf(stderr, "%s: error creating registration (id=0x%x): %d (%s)\n",
                     progname, regid, ret, dtn_strerror(dtn_errno(handle)));
             exit(EXIT_FAILURE);
