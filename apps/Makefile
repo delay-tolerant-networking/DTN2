@@ -7,6 +7,7 @@ SRCDIR := ..
 endif
 
 SINGLE_SOURCE_APPS := 			\
+	dtncat/dtncat			\
 	dtncp/dtncp			\
 	dtncpd/dtncpd			\
 	dtnping/dtnping			\
