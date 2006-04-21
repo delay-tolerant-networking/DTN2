@@ -195,7 +195,7 @@ from_bundles()
 
         bytes = primary_payload.dtn_bundle_payload_t_u.buf.buf_len;
         buffer =
-	  (unsigned char *) primary_payload.dtn_bundle_payload_t_u.buf.buf_val;
+	  (char *) primary_payload.dtn_bundle_payload_t_u.buf.buf_val;
         total_bytes += bytes;
 
 	// write to stdout
@@ -543,7 +543,7 @@ fill_payload(dtn_bundle_payload_t* payload)
 {
 
    unsigned char buf[BUFSIZ];
-   unsigned char *p = payload_buf;
+   unsigned char *p = (unsigned char*) payload_buf;
    unsigned char *endp = p + sizeof(payload_buf);
    size_t n, total = 0;
    size_t maxread = sizeof(buf);
