@@ -51,10 +51,7 @@
 #include "dtn_api.h"
 #include "dtn_ipc.h"
 
-/**
- * Open a new connection to the router.
- * Returns the new handle on success, 0 on error.
- */
+//----------------------------------------------------------------------
 dtn_handle_t
 dtn_open()
 {
@@ -75,9 +72,7 @@ dtn_open()
     return (dtn_handle_t)handle;
 }
 
-/**
- * Close an open dtn handle.
- */
+//----------------------------------------------------------------------
 int
 dtn_close(dtn_handle_t handle)
 {
@@ -89,18 +84,14 @@ dtn_close(dtn_handle_t handle)
     return -1;
 }
 
-/**
- * Get the error associated with the given handle.
- */
+//----------------------------------------------------------------------
 int
 dtn_errno(dtn_handle_t handle)
 {
     return ((dtnipc_handle_t*)handle)->err;
 }
 
-/**
- * Get a string value associated with the dtn error code.
- */
+//----------------------------------------------------------------------
 char*
 dtn_strerror(int err)
 {
@@ -119,10 +110,7 @@ dtn_strerror(int err)
     return "(unknown error)";
 }
 
-/**
- * Build an appropriate local endpoint id by appending the specified
- * service tag to the daemon's preferred administrative endpoint id.
- */
+//----------------------------------------------------------------------
 int
 dtn_build_local_eid(dtn_handle_t h,
                     dtn_endpoint_id_t* local_eid,
@@ -175,9 +163,7 @@ dtn_build_local_eid(dtn_handle_t h,
     return 0;
 }
 
-/**
- * Create or modify a dtn registration.
- */
+//----------------------------------------------------------------------
 int
 dtn_register(dtn_handle_t h,
              dtn_reg_info_t *reginfo,
@@ -219,9 +205,7 @@ dtn_register(dtn_handle_t h,
     return 0;
 }
 
-/**
- * Remove a dtn registration.
- */
+//----------------------------------------------------------------------
 int
 dtn_unregister(dtn_handle_t h, dtn_reg_id_t regid)
 {
@@ -231,9 +215,7 @@ dtn_unregister(dtn_handle_t h, dtn_reg_id_t regid)
     return -1;
 }
 
-/**
- * Modify an existing registration.
- */
+//----------------------------------------------------------------------
 int
 dtn_change_registration(dtn_handle_t h,
                         dtn_reg_id_t regid,
@@ -245,11 +227,7 @@ dtn_change_registration(dtn_handle_t h,
     return -1;
 }
 
-/**
- * Associate a registration id with the current ipc channel. This must
- * be called before calling dtn_recv to inform the daemon of which
- * registrations the application is interested in.
- */
+//---------------------------------------------------------------------- 
 int
 dtn_bind(dtn_handle_t h, dtn_reg_id_t regid)
 {
@@ -270,9 +248,7 @@ dtn_bind(dtn_handle_t h, dtn_reg_id_t regid)
     return 0;
 }
 
-/**
- * Send a bundle either from memory or from a file.
- */
+//----------------------------------------------------------------------
 int
 dtn_send(dtn_handle_t h,
          dtn_bundle_spec_t* spec,
@@ -296,9 +272,7 @@ dtn_send(dtn_handle_t h,
     return 0;
 }
 
-/**
- * Blocking receive for a bundle
- */
+//----------------------------------------------------------------------
 int
 dtn_recv(dtn_handle_t h,
          dtn_bundle_spec_t* spec,
@@ -344,20 +318,13 @@ dtn_recv(dtn_handle_t h,
  *                     Utility Functions
  *
  *************************************************************/
-
-/*
- * Copy the contents of one eid into another.
- */
 void
 dtn_copy_eid(dtn_endpoint_id_t* dst, dtn_endpoint_id_t* src)
 {
     memcpy(dst->uri, src->uri, DTN_MAX_ENDPOINT_ID);
 }
 
-/*
- * Parse a string into an endpoint id structure, validating that it is
- * in fact a valid endpoint id (i.e. a URI).
- */
+//----------------------------------------------------------------------
 int
 dtn_parse_eid_string(dtn_endpoint_id_t* eid, const char* str)
 {
@@ -384,13 +351,7 @@ dtn_parse_eid_string(dtn_endpoint_id_t* eid, const char* str)
     return 0;
 }
 
-/*
- * Sets the value of the given payload structure to either a memory
- * buffer or a file location.
- *
- * Returns: 0 on success, DTN_ESIZE if the memory location is
- * selected and the payload is too big.
- */
+//----------------------------------------------------------------------
 int
 dtn_set_payload(dtn_bundle_payload_t* payload,
                 dtn_bundle_payload_location_t location,
