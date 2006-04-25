@@ -141,7 +141,6 @@ typedef enum dtn_reg_failure_action_t dtn_reg_failure_action_t;
 /**
  * Registration state.
  */
-
 struct dtn_reg_info_t {
 	dtn_endpoint_id_t endpoint;
 	dtn_reg_id_t regid;

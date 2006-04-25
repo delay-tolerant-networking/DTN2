@@ -265,12 +265,13 @@ APIClient::run()
             ret = _fn();                        \
             break;
             
-            DISPATCH(DTN_LOCAL_EID, handle_local_eid);
-            DISPATCH(DTN_REGISTER,  handle_register);
-            DISPATCH(DTN_SEND,      handle_send);
-            DISPATCH(DTN_BIND,      handle_bind);
-            DISPATCH(DTN_RECV,      handle_recv);
-            DISPATCH(DTN_CLOSE,     handle_close);
+            DISPATCH(DTN_LOCAL_EID,         handle_local_eid);
+            DISPATCH(DTN_REGISTER,          handle_register);
+            DISPATCH(DTN_FIND_REGISTRATION, handle_find_registration);
+            DISPATCH(DTN_SEND,              handle_send);
+            DISPATCH(DTN_BIND,              handle_bind);
+            DISPATCH(DTN_RECV,              handle_recv);
+            DISPATCH(DTN_CLOSE,             handle_close);
 #undef DISPATCH
 
         default:
@@ -371,6 +372,12 @@ APIClient::handle_register()
 
     endpoint.assign(&reginfo.endpoint);
     
+    if (!endpoint.valid()) {
+        log_err("invalid endpoint id in register: '%s'",
+                reginfo.endpoint.uri);
+        return DTN_EINVAL;
+    }
+    
     switch (reginfo.failure_action) {
     case DTN_REG_DEFER: action = Registration::DEFER; break;
     case DTN_REG_DROP:  action = Registration::DROP;  break;
@@ -396,6 +403,43 @@ APIClient::handle_register()
 
     BundleDaemon::post_and_wait(new RegistrationAddedEvent(reg, EVENTSRC_APP),
                                 notifier_);
+    
+    // fill the response with the new registration id
+    if (!xdr_dtn_reg_id_t(&xdr_encode_, &regid)) {
+        log_err("internal error in xdr: xdr_dtn_reg_id_t");
+        return DTN_EXDR;
+    }
+    
+    return DTN_SUCCESS;
+}
+
+int
+APIClient::handle_find_registration()
+{
+    Registration* reg;
+    EndpointIDPattern endpoint;
+    dtn_endpoint_id_t app_eid;
+
+    // unpack and parse the request
+    if (!xdr_dtn_endpoint_id_t(&xdr_decode_, &app_eid))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    endpoint.assign(&app_eid);
+    if (!endpoint.valid()) {
+        log_err("invalid endpoint id in find_registration: '%s'",
+                app_eid.uri);
+        return DTN_EINVAL;
+    }
+
+    reg = BundleDaemon::instance()->reg_table()->get(endpoint);
+    if (reg == NULL) {
+        return DTN_ENOTFOUND;
+    }
+
+    u_int32_t regid = reg->regid();
     
     // fill the response with the new registration id
     if (!xdr_dtn_reg_id_t(&xdr_encode_, &regid)) {
@@ -620,6 +664,9 @@ APIClient::handle_recv()
     sock_poll->fd              = TCPClient::fd_;
     sock_poll->events          = POLLIN | POLLERR;
     sock_poll->revents         = 0;
+
+    // XXX/demmer this should really check the bundle list and if it's
+    // not empty, don't bother with the poll at all
 
     log_debug("handle_recv: "
               "blocking to get bundle for registration %d (timeout %d)",

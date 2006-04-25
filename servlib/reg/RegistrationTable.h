@@ -79,6 +79,12 @@ public:
     Registration* get(u_int32_t regid) const;
 
     /**
+     * Look up the first matching registration for the exact endpoint
+     * id pattern given.
+     */
+    Registration* get(const EndpointIDPattern& eid) const;
+
+    /**
      * Remove the registration from the database, returns true if
      * successful, false if the registration didn't exist.
      */

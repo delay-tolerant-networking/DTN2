@@ -54,9 +54,7 @@ RegistrationTable::~RegistrationTable()
     NOTREACHED;
 }
 
-/**
- * Internal method to find the location of the given registration.
- */
+//----------------------------------------------------------------------
 bool
 RegistrationTable::find(u_int32_t regid, RegistrationList::iterator* iter)
 {
@@ -73,9 +71,7 @@ RegistrationTable::find(u_int32_t regid, RegistrationList::iterator* iter)
     return false;
 }
 
-/**
- * Look up a matching registration.
- */
+//----------------------------------------------------------------------
 Registration*
 RegistrationTable::get(u_int32_t regid) const
 {
@@ -89,11 +85,24 @@ RegistrationTable::get(u_int32_t regid) const
     return NULL;
 }
 
-/**
- * Add a new registration to the database. Returns true if the
- * registration is successfully added, false if there's an
- * error adding to the persistent store.
- */
+//----------------------------------------------------------------------
+Registration*
+RegistrationTable::get(const EndpointIDPattern& eid) const
+{
+    Registration* reg;
+    RegistrationList::const_iterator iter;
+    
+    for (iter = reglist_.begin(); iter != reglist_.end(); ++iter) {
+        reg = *iter;
+        if (reg->endpoint().equals(eid)) {
+            return reg;
+        }
+    }
+    
+    return NULL;
+}
+
+//----------------------------------------------------------------------
 bool
 RegistrationTable::add(Registration* reg, bool add_to_store)
 {
@@ -125,11 +134,7 @@ RegistrationTable::add(Registration* reg, bool add_to_store)
     return true;
 }
 
-/**
- * Remove the registration from the database, returns true if
- * successful, false if the registration didn't exist or if
- * RegistrationStore returns an error.
- */
+//----------------------------------------------------------------------
 bool
 RegistrationTable::del(u_int32_t regid)
 {
@@ -154,10 +159,7 @@ RegistrationTable::del(u_int32_t regid)
     return true;
 }
 
-/**
- * Update the registration in the database. Returns true on
- * success, false on error.
- */
+//----------------------------------------------------------------------
 bool
 RegistrationTable::update(Registration* reg)
 {
@@ -179,13 +181,8 @@ RegistrationTable::update(Registration* reg)
 
     return true;
 }
-    
-/**
- * Populate the given reglist with all registrations with an endpoint
- * id that matches the prefix of that in the bundle demux string.
- *
- * Returns the count of matching registrations.
- */
+
+//----------------------------------------------------------------------
 int
 RegistrationTable::get_matching(const EndpointID& demux,
                                 RegistrationList* reg_list) const

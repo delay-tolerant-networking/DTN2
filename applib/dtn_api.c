@@ -217,6 +217,48 @@ dtn_unregister(dtn_handle_t h, dtn_reg_id_t regid)
 
 //----------------------------------------------------------------------
 int
+dtn_find_registration(dtn_handle_t h,
+                      dtn_endpoint_id_t *eid,
+                      dtn_reg_id_t* regid)
+{
+    int status;
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    XDR* xdr_decode = &handle->xdr_decode;
+    
+    // pack the request
+    if (!xdr_dtn_endpoint_id_t(xdr_encode, eid)) {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send(handle, DTN_FIND_REGISTRATION) != 0) {
+        return -1;
+    }
+
+    // get the reply
+    if (dtnipc_recv(handle, &status) < 0) {
+        return -1;
+    }
+
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
+        return -1;
+    }
+
+    // unpack the response
+    if (!xdr_dtn_reg_id_t(xdr_decode, regid)) {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    return 0;
+}
+
+//----------------------------------------------------------------------
+int
 dtn_change_registration(dtn_handle_t h,
                         dtn_reg_id_t regid,
                         dtn_reg_info_t *reginfo)

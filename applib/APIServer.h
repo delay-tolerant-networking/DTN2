@@ -90,6 +90,7 @@ public:
 protected:
     int handle_local_eid();
     int handle_register();
+    int handle_find_registration();
     int handle_bind();
     int handle_send();
     int handle_recv();

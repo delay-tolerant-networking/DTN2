@@ -100,6 +100,15 @@ extern int dtn_unregister(dtn_handle_t handle,
                           dtn_reg_id_t regid);
 
 /**
+ * Check for an existing registration on the given endpoint id,
+ * returning DTN_SUCCSS and filling in the registration id if it
+ * exists, or returning ENOENT if it doesn't.
+ */
+extern int dtn_find_registration(dtn_handle_t handle,
+                                 dtn_endpoint_id_t* eid,
+                                 dtn_reg_id_t* regid);
+
+/**
  * Modify an existing registration.
  */
 extern int dtn_change_registration(dtn_handle_t handle,
