@@ -61,7 +61,7 @@ protected:
      * that dispatches to the type specific handlers where
      * appropriate.
      */
-    void handle_event(BundleEvent* event);
+    virtual void handle_event(BundleEvent* event);
 
     /**
      * Handler for new bundle arrivals simply forwards the newly arrived
@@ -70,19 +70,24 @@ protected:
     virtual void handle_bundle_received(BundleReceivedEvent* event);
     
     /**
+     * Handler for transmission failures.
+     */
+    virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
+    
+    /**
      * Default event handler when a new route is added by the command
      * or management interface.
      *
      * Adds an entry to the route table, then walks the pending list
      * to see if any bundles match the new route.
      */
-    void handle_route_add(RouteAddEvent* event);
+    virtual void handle_route_add(RouteAddEvent* event);
 
     /**
      * Default event handler when a route is deleted by the command
      * or management interface.
      */
-    void handle_route_del(RouteDelEvent* event);
+    virtual void handle_route_del(RouteDelEvent* event);
     
     /**
      * When a contact comes up, check to see if there are any matching
@@ -98,7 +103,7 @@ protected:
     /**
      * Handle a custody transfer timeout.
      */
-    void handle_custody_timeout(CustodyTimeoutEvent* event);
+    virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
     
     /**
      * Dump the routing state.

@@ -88,6 +88,17 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 }
 
 /**
+ * If a transmission failed, just try to reforward it.
+ */
+void
+TableBasedRouter::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
+{
+    Bundle* bundle = event->bundleref_.object();
+    log_debug("handle bundle transmit failed: *%p", bundle);
+    fwd_to_matching(bundle);
+}
+
+/**
  * Default event handler when a new route is added by the command
  * or management interface.
  *
