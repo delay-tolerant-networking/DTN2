@@ -70,6 +70,9 @@ EndpointIDOpt::set(const char* val, size_t len)
         return -1;
     }
 
+    if (setp_)
+        *setp_ = true;
+    
     return 0;
 }
 
