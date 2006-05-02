@@ -856,7 +856,8 @@ Optional Features:
   --enable-debug-memory   enable memory debugging
   --disable-optimize      compile with optimization turned off
   --enable-profile        compile with profiling
-  --enable-static         use static libraries for tcl and berkeley db
+  --enable-static         statically link all binaries
+  --enable-static-libs    use static supporting libraries
   --enable-google-profiling
                           compile with google profiling
 
@@ -1428,7 +1429,7 @@ echo "${ECHO_T}$debug" >&6
     if test $debug = yes ; then
         DEBUG="-g -fno-inline"
     else
-        CPPFLAGS="$CPPFLAGS -DNDEBUG"
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -DNDEBUG"
     fi
 
 
@@ -1505,13 +1506,31 @@ else
   static=no
 fi;
 
-    echo "$as_me:$LINENO: checking whether to build and link using static tcl and db libraries" >&5
-echo $ECHO_N "checking whether to build and link using static tcl and db libraries... $ECHO_C" >&6
+    echo "$as_me:$LINENO: checking whether to link statically" >&5
+echo $ECHO_N "checking whether to link statically... $ECHO_C" >&6
     echo "$as_me:$LINENO: result: $static" >&5
 echo "${ECHO_T}$static" >&6
 
-    STATIC=
-    test $static = yes && STATIC=yes
+    # Check whether --enable-static-libs or --disable-static-libs was given.
+if test "${enable_static_libs+set}" = set; then
+  enableval="$enable_static_libs"
+  staticlibs=$enableval
+else
+  staticlibs=no
+fi;
+
+    echo "$as_me:$LINENO: checking whether to link using static supporting libraries" >&5
+echo $ECHO_N "checking whether to link using static supporting libraries... $ECHO_C" >&6
+    echo "$as_me:$LINENO: result: $staticlibs" >&5
+echo "${ECHO_T}$staticlibs" >&6
+
+    STATIC=no
+    if [ $static = yes ] ; then
+       STATIC=yes
+       LDFLAGS="$LDFLAGS -static"
+    elif [ $staticlibs = yes ] ; then
+        STATIC=libs
+    fi
 
 
                 TARGET=$target
@@ -5822,6 +5841,263 @@ echo "$as_me: error: cannot configure without tcl" >&2;}
    { (exit 1); exit 1; }; }
     fi
 
+                echo "$as_me:$LINENO: checking for library containing pow" >&5
+echo $ECHO_N "checking for library containing pow... $ECHO_C" >&6
+if test "${ac_cv_search_pow+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+ac_cv_search_pow=no
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char pow ();
+int
+main ()
+{
+pow ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_pow="none required"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+if test "$ac_cv_search_pow" = no; then
+  for ac_lib in m; do
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+    cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char pow ();
+int
+main ()
+{
+pow ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_pow="-l$ac_lib"
+break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+  done
+fi
+LIBS=$ac_func_search_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_search_pow" >&5
+echo "${ECHO_T}$ac_cv_search_pow" >&6
+if test "$ac_cv_search_pow" != no; then
+  test "$ac_cv_search_pow" = "none required" || LIBS="$ac_cv_search_pow $LIBS"
+
+else
+  { { echo "$as_me:$LINENO: error: can't find required library function (pow)" >&5
+echo "$as_me: error: can't find required library function (pow)" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+    echo "$as_me:$LINENO: checking for library containing dlopen" >&5
+echo $ECHO_N "checking for library containing dlopen... $ECHO_C" >&6
+if test "${ac_cv_search_dlopen+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+ac_cv_search_dlopen=no
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char dlopen ();
+int
+main ()
+{
+dlopen ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_dlopen="none required"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+if test "$ac_cv_search_dlopen" = no; then
+  for ac_lib in dl; do
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+    cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char dlopen ();
+int
+main ()
+{
+dlopen ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_dlopen="-l$ac_lib"
+break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+  done
+fi
+LIBS=$ac_func_search_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_search_dlopen" >&5
+echo "${ECHO_T}$ac_cv_search_dlopen" >&6
+if test "$ac_cv_search_dlopen" != no; then
+  test "$ac_cv_search_dlopen" = "none required" || LIBS="$ac_cv_search_dlopen $LIBS"
+
+else
+  { { echo "$as_me:$LINENO: error: can't find required library function (dlopen)" >&5
+echo "$as_me: error: can't find required library function (dlopen)" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+
                         if test $ac_tcldir = system -a ! x$oasys_cv_path_tcl_h = x ; then
         echo "checking for tcl installation... (cached) $oasys_cv_path_tcl_h/tcl.h, $oasys_cv_path_tcl_lib -l$oasys_cv_lib_tcl"
     else
@@ -5927,10 +6203,10 @@ rm -f conftest.err conftest.$ac_objext \
 
         #AC_MSG_CHECKING([for tcl library in $ac_tcllibdir, -l$ac_tcllib])
 	LDFLAGS="$ac_save_LDFLAGS -L$ac_tcllibdir"
-    	if test x"$STATIC" = x"yes" ; then
-		LIBS="$ac_save_LIBS -Wl,-Bstatic -l$ac_tcllib -Wl,-Bdynamic -ldl -lm"
+    	if test x"$STATIC" = x"libs" ; then
+		LIBS="-Wl,-Bstatic -l$ac_tcllib -Wl,-Bdynamic -ldl -lm $ac_save_LIBS"
 	else
-		LIBS="$ac_save_LIBS -l$ac_tcllib"
+		LIBS="-l$ac_tcllib $ac_save_LIBS"
 	fi
 
         echo "$as_me:$LINENO: checking for tcl library in $ac_tcllibdir: $LIBS" >&5
@@ -6032,11 +6308,7 @@ echo "$as_me: error: can't find usable tcl.h" >&2;}
         OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_tcl_lib"
     fi
 
-    if test x"$STATIC" = x"yes" ; then
-        OASYS_LIBS="$OASYS_LIBS -Wl,-Bstatic -l$oasys_cv_lib_tcl -Wl,-Bdynamic -ldl -lm"
-    else
-        OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_tcl"
-    fi
+    OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_tcl"
 
 
 
@@ -6178,10 +6450,10 @@ rm -f conftest.err conftest.$ac_objext \
       for ac_dblib    in db-$ac_dbver; do
 
 	LDFLAGS="$ac_save_LDFLAGS -L$ac_dblibdir"
-	if test x"$STATIC" = x"yes" ; then
-		LIBS="$ac_save_LIBS -Wl,-Bstatic -l$ac_dblib -Wl,-Bdynamic"
+	if test x"$STATIC" = x"libs" ; then
+		LIBS="-Wl,-Bstatic -l$ac_dblib -Wl,-Bdynamic $ac_save_LIBS"
 	else
-		LIBS="$ac_save_LIBS -l$ac_dblib"
+		LIBS="-l$ac_dblib $ac_save_LIBS"
 	fi
 
         echo "$as_me:$LINENO: checking for Berkeley DB library in $ac_dblibdir, -l$ac_dblib" >&5
@@ -6299,11 +6571,7 @@ echo "$as_me: error: can't find usable Berkeley DB installation" >&2;}
         OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_db_lib"
     fi
 
-    if test x"$STATIC" = x"yes" ; then
-        OASYS_LIBS="$OASYS_LIBS -Wl,-Bstatic -l$oasys_cv_lib_db -Wl,-Bdynamic"
-    else
-    	OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_db"
-    fi
+    OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_db"
 
     fi # LIBDB_ENABLED
 
@@ -7836,6 +8104,10 @@ echo "$as_me: error: can't find bluez headers or library" >&2;}
 
 CPPFLAGS="-I\$(SRCDIR)/servlib $CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
+
+if [ $STATIC = libs ] ; then
+   OASYS_LIBS="-Wl,-Bstatic $OASYS_LIBS -Wl,-Bdynamic"
+fi
 
 
           ac_config_files="$ac_config_files Rules.make:oasys/Rules.make.in"

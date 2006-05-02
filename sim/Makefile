@@ -57,7 +57,7 @@ COMPONENT_LIBS := ../servlib/libdtnserv.a ../oasys/liboasys.a
 
 dtnsim: $(SIM_OBJS) $(COMPONENT_LIBS)
 	$(CXX) $(SIM_OBJS) $(COMPONENT_LIBS) \
-		-o $@ $(LDFLAGS) $(LIBS) $(OASYS_LIBS)
+		-o $@ $(LDFLAGS) $(OASYS_LIBS) $(LIBS)
 
 #
 # Include the common rules

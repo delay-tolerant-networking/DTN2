@@ -34,7 +34,7 @@ BINFILES += $(APPS)
 
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 			   dtnmoteproxy/serialsource.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) $(DTN_LIBS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
 
 tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/TcaEndpointID.o \
@@ -45,7 +45,7 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_prot_xdr.o \
                 tca_admin/libs/sha1.o
 	$(CXX) $(CFLAGS) $^ -o \
-		$@ $(LDFLAGS) $(LIBS) $(DTN_LIBS) -loasys $(OASYS_LIBS)
+		$@ $(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS)
 
 
 
