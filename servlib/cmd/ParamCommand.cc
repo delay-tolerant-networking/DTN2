@@ -77,6 +77,10 @@ ParamCommand::ParamCommand()
            &BundleDaemon::params_.retry_reliable_unacked_, false,
            "Retry unacked transmissions on reliable CLs (default is false)");
 
+    bind_b("test_permuted_delivery",
+           &BundleDaemon::params_.test_permuted_delivery_, false,
+           "Permute the order of bundles before delivering to registrations");
+
     // defaults for these are set in the CustodyTimerSpec defaults
     // static initializer
     bind_i("custody_timer_base",
@@ -90,7 +94,6 @@ ParamCommand::ParamCommand()
     bind_i("custody_timer_limit",
            &CustodyTimerSpec::defaults_.limit_,
            "default value for custody timer upper bound");
-    
     
     // defaults for these are set all together in TCPConvergenceLayer
     // constructor (because there is not a flavor of bind_i that

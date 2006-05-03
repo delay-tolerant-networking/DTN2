@@ -146,6 +146,12 @@ public:
      * Insert the given bundle sorted by the given sort method.
      */
     void insert_sorted(Bundle* bundle, sort_order_t sort_order);
+
+    /**
+     * As a testing hook, insert the given bundle into a random
+     * location in the list.
+     */
+    void insert_random(Bundle* bundle);
     
     /**
      * Remove (and return) a reference to the first bundle on the list.

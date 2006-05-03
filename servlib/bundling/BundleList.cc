@@ -37,6 +37,7 @@
  */
 
 #include <algorithm>
+#include <stdlib.h>
 #include <oasys/thread/SpinLock.h>
 
 #include "Bundle.h"
@@ -178,6 +179,32 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
         }
     }
     
+    add_bundle(b, iter);
+}
+
+/**
+ * As a testing hook, insert the given bundle into a random
+ * location in the list.
+ */
+void
+BundleList::insert_random(Bundle* b)
+{
+    iterator iter;
+    oasys::ScopeLock l(lock_, "BundleList::insert_random");
+    oasys::ScopeLock bl(&b->lock_, "BundleList::insert_random");
+
+    iter = begin();
+    int location = 0;
+    if (size() != 0) {
+        location = random() % size();
+    }
+
+    log_info("insert_random at %d/%d", location, size());
+    
+    for (int i = 0; i < location; ++i) {
+        ++iter;
+    }
+
     add_bundle(b, iter);
 }
 

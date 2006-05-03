@@ -224,6 +224,9 @@ public:
 
         /// Threshold for proactive fragmentation
         size_t proactive_frag_threshold_;
+
+        /// Test hook to permute bundles before delivering to registrations
+        bool test_permuted_delivery_;
     };
 
     static Params params_;

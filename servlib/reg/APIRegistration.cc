@@ -91,8 +91,12 @@ APIRegistration::deliver_bundle(Bundle* bundle)
              bundle->bundleid_,
              active() ? "active" : "deferred",
              endpoint_.c_str());
-    
-    bundle_list_->push_back(bundle);
+
+    if (BundleDaemon::instance()->params_.test_permuted_delivery_) {
+        bundle_list_->insert_random(bundle);
+    } else {
+        bundle_list_->push_back(bundle);
+    }
 }
 
 
