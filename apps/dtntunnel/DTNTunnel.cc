@@ -73,7 +73,8 @@ DTNTunnel::DTNTunnel()
       local_addr_(INADDR_ANY),
       local_port_(0),
       remote_addr_(INADDR_NONE),
-      remote_port_(0)
+      remote_port_(0),
+      max_size_(4096)
 {
     memset(&local_eid_, 0, sizeof(local_eid_));
     memset(&dest_eid_,  0, sizeof(dest_eid_));
@@ -132,6 +133,10 @@ DTNTunnel::get_options(int argc, char* argv[])
     oasys::Getopt::addopt(
         new oasys::UInt16Opt("rport", &remote_port_, "<port>",
                              "remote port to proxy"));
+    
+    oasys::Getopt::addopt(
+        new oasys::UIntOpt('z', "max_size", &max_size_, "<bytes>",
+                           "maximum bundle size for stream transports (e.g. tcp)"));
     
     int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
     if (remainder != argc) {
@@ -276,7 +281,7 @@ DTNTunnel::init_registration()
 
 //----------------------------------------------------------------------
 int
-DTNTunnel::send_bundle(dtn::APIBundle* bundle)
+DTNTunnel::send_bundle(dtn::APIBundle* bundle, dtn_endpoint_id_t* dest_eid)
 {
     // lock to coordinate access to the send_handle_ from multiple
     // client threads
@@ -285,7 +290,7 @@ DTNTunnel::send_bundle(dtn::APIBundle* bundle)
     dtn_bundle_spec_t spec;
     memset(&spec, 0, sizeof(spec));
     dtn_copy_eid(&spec.source, &local_eid_);
-    dtn_copy_eid(&spec.dest,   &dest_eid_);
+    dtn_copy_eid(&spec.dest,   dest_eid);
     spec.priority   = COS_NORMAL;
     spec.dopts      = DOPTS_NONE;
     spec.expiration = expiration_;

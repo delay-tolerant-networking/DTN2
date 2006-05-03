@@ -63,45 +63,42 @@ public:
     /// Constructor
     DTNTunnel();
 
-    /// Typecode enum for bundle messages
-    typedef enum {
-        CONNECT	= 1,
-        DATA	= 2,
-        FINI	= 3
-    } bundle_type_t;
-
     /// Struct to encapsulate the header sent with each tunneled
     /// bundle. Note that since it is declared as a packed struct, it
     /// can be sent over the wire as-is.
     ///
     /// XXX/demmer if this is used for non-IP tunnels, the address
     /// fields will need to be union'd or something like that
-    
     struct BundleHeader {
         BundleHeader() {} 
 
         BundleHeader(u_int8_t  protocol,
-                     u_int8_t  type,
-                     u_int16_t remote_port,
-                     u_int32_t remote_addr)
-
+                     u_int32_t seqno,
+                     u_int32_t client_addr,
+                     u_int32_t remote_addr,
+                     u_int16_t client_port,
+                     u_int16_t remote_port)
             : protocol_(protocol),
-              type_(type),
-              remote_port_(remote_port),
-              remote_addr_(remote_addr)
+              seqno_(seqno),
+              client_addr_(client_addr),
+              remote_addr_(remote_addr),
+              client_port_(client_port),
+              remote_port_(remote_port)
         {
         }
 
         u_int8_t  protocol_;
-        u_int8_t  type_;
-        u_int16_t remote_port_;
+        u_int32_t seqno_;
+        u_int32_t client_addr_;
         u_int32_t remote_addr_;
+        u_int16_t client_port_;
+        u_int16_t remote_port_;
                              
     } __attribute__((packed));
 
     /// Hook for various tunnel classes to send a bundle. Assumes
     /// ownership of the passed-in bundle
-    int send_bundle(dtn::APIBundle* bundle);
+    int send_bundle(dtn::APIBundle* bundle, dtn_endpoint_id_t* dest_eid);
 
     /// Called for arriving bundles
     int handle_bundle(dtn_bundle_spec_t* spec,
@@ -109,6 +106,10 @@ public:
 
     /// Main application loop
     int main(int argc, char* argv[]);
+
+    /// Accessors
+    u_int max_size()              { return max_size_; }
+    dtn_endpoint_id_t* dest_eid() { return &dest_eid_; }
 
 protected:
     std::string         loglevelstr_;
@@ -131,6 +132,7 @@ protected:
     u_int16_t		local_port_;
     in_addr_t		remote_addr_;
     u_int16_t		remote_port_;
+    u_int		max_size_;
 
     void init_log();
     void init_tunnel();

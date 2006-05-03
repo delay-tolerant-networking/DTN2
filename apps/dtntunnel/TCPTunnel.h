@@ -38,6 +38,7 @@
 #ifndef _TCPTUNNEL_H_
 #define _TCPTUNNEL_H_
 
+#include <map>
 #include <dtn_api.h>
 
 #include <oasys/debug/Log.h>
@@ -68,12 +69,6 @@ public:
     void handle_bundle(dtn::APIBundle* bundle);
 
 protected:
-
-    /// Add a new proxy definition
-    void add_proxy(in_addr_t listen_addr, u_int16_t listen_port,
-                   in_addr_t remote_addr, u_int16_t remote_port);
-
-    
     /// Helper class to accept incoming TCP connections
     class Listener : public oasys::TCPServerThread {
     public:
@@ -82,6 +77,17 @@ protected:
                  in_addr_t remote_addr, u_int16_t remote_port);
         
         void accepted(int fd, in_addr_t addr, u_int16_t port);
+
+    protected:
+        TCPTunnel* tcptun_;
+
+        /// @{
+        /// Proxy parameters
+        in_addr_t listen_addr_;
+        u_int16_t listen_port_;
+        in_addr_t remote_addr_;
+        u_int16_t remote_port_;
+        /// @}
     };
 
     /// Helper class to handle an actively proxied connection
@@ -89,18 +95,82 @@ protected:
     public:
         /// Constructor called to initiate a connection due to an
         /// arriving bundle request
-        Connection(in_addr_t addr, u_int16_t port);
+        Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid,
+                   in_addr_t client_addr, u_int16_t client_port,
+                   in_addr_t remote_addr, u_int16_t remote_port);
 
         /// Constructor called when a new connection was accepted
-        Connection(int fd, in_addr_t addr, u_int16_t port);
+        Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid, int fd,
+                   in_addr_t client_addr, u_int16_t client_port,
+                   in_addr_t remote_addr, u_int16_t remote_port);
+
+        /// Destructor
+        ~Connection();
+        
+        /// Handle a newly arriving bundle
+        void handle_bundle(dtn::APIBundle* bundle);
         
     protected:
+        friend class TCPTunnel;
+        
         /// virtual run method
         void run();
 
+        /// The tcp tunnel object
+        TCPTunnel* tcptun_;
+        
         /// The tcp socket
-        oasys::TCPClient* sock_;
+        oasys::TCPClient sock_;
+
+        /// Queue for bundles on this connection
+        dtn::APIBundleQueue queue_;
+
+        /// Parameters for the connection
+        dtn_endpoint_id_t dest_eid_;
+        in_addr_t         client_addr_;
+        u_int16_t         client_port_;
+        in_addr_t         remote_addr_;
+        u_int16_t         remote_port_;
     };
+
+    /// Hook called by the listener when a new connection comes in
+    void new_connection(Connection* c);
+
+    /// Hook called when a new connection dies
+    void kill_connection(Connection* c);
+
+    /// Helper struct used as the index key into the connection table
+    struct ConnKey {
+        ConnKey()
+            : client_addr_(INADDR_NONE), client_port_(0),
+              remote_addr_(INADDR_NONE), remote_port_(0) {}
+
+        ConnKey(in_addr_t client_addr, u_int16_t client_port,
+                in_addr_t remote_addr, u_int16_t remote_port)
+            : client_addr_(client_addr),
+              client_port_(client_port),
+              remote_addr_(remote_addr),
+              remote_port_(remote_port) {}
+
+        bool operator<(const ConnKey& other) const {
+            return ((client_addr_ < other.client_addr_) ||
+                    (client_port_ < other.client_port_) ||
+                    (remote_addr_ < other.remote_addr_) ||
+                    (remote_port_ < other.remote_port_));
+        }
+        
+        in_addr_t client_addr_;
+        u_int16_t client_port_;
+        in_addr_t remote_addr_;
+        u_int16_t remote_port_;
+    };
+
+    /// Table of connection classes indexed by the remote address/port
+    typedef std::map<ConnKey, Connection*> ConnTable;
+    ConnTable connections_;
+
+    /// Lock to protect the connections table
+    oasys::SpinLock lock_;
 };
 
 } // namespace dtntunnel

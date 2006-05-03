@@ -112,7 +112,9 @@ UDPTunnel::Listener::run()
 
     DTNTunnel::BundleHeader hdr;
     hdr.protocol_    = IPPROTO_UDP;
-    hdr.type_        = DTNTunnel::DATA;
+    hdr.seqno_       = 0;
+    hdr.client_addr_ = listen_addr_;
+    hdr.client_port_ = htons(listen_port_);
     hdr.remote_addr_ = remote_addr_;
     hdr.remote_port_ = htons(remote_port_);
     
@@ -131,7 +133,7 @@ UDPTunnel::Listener::run()
         memcpy(bp + sizeof(hdr), recv_buf_, len);
         b->payload_.set_len(sizeof(hdr) + len);
         
-        tunnel->send_bundle(b);
+        tunnel->send_bundle(b, tunnel->dest_eid());
     }
 }
 
