@@ -151,7 +151,7 @@ main(int argc, const char** argv)
     dtn_copy_eid(&reginfo.endpoint, &source_eid);
     reginfo.failure_action = DTN_REG_DEFER;
     reginfo.regid = DTN_REGID_NONE;
-    reginfo.expiration = 30;
+    reginfo.expiration = 5;
     if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
         fprintf(stderr, "error creating registration: %d (%s)\n",
                 ret, dtn_strerror(dtn_errno(handle)));
@@ -180,6 +180,8 @@ main(int argc, const char** argv)
                     dtn_strerror(dtn_errno(handle)));
             exit(1);
         }
+
+        dtn_free_payload(&reply_payload);
     } while (ret == 0);
     
     // set the expiration time
@@ -227,10 +229,12 @@ main(int argc, const char** argv)
                ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                 (double)(end.tv_usec - start.tv_usec)/1000.0));
         fflush(stdout);
+        dtn_free_payload(&reply_payload);
         
         sleep(sleepVal);
     }
 
+    dtn_unregister(handle, regid);
     dtn_close(handle);
     
     return 0;
