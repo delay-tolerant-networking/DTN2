@@ -97,8 +97,17 @@ Registration::Registration(const oasys::Builder&)
 Registration::~Registration()
 {
     if (expiration_timer_) {
-        ASSERT(! expiration_timer_->pending());
-        delete expiration_timer_;
+        // try to cancel the expiration timer. if it is still pending,
+        // then we're being deleted due to a user action from either
+        // the console or a call to dtn_unregister, and the timer will
+        // clean itself up when it eventually fires. otherwise, assert
+        // that we have actually expired and delete the timer itself
+        bool pending = expiration_timer_->cancel();
+
+        if (! pending) {
+            ASSERT(expired_);
+            delete expiration_timer_;
+        }
     }
 }
 
@@ -125,9 +134,14 @@ Registration::serialize(oasys::SerializeAction* a)
 void
 Registration::init_expiration_timer()
 {
+    // XXX/demmer need to actually store the creation time as well so
+    // the expiration time doesn't get reset every time we start up
+    
     if (expiration_ != 0) {
         expiration_timer_ = new ExpirationTimer(this);
         expiration_timer_->schedule_in(expiration_ * 1000);
+    } else {
+        set_expired(true);
     }
 }
 

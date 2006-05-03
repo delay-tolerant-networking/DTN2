@@ -92,6 +92,7 @@ protected:
     int handle_handshake();
     int handle_local_eid();
     int handle_register();
+    int handle_unregister();
     int handle_find_registration();
     int handle_bind();
     int handle_send();

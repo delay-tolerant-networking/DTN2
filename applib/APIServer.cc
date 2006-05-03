@@ -230,9 +230,9 @@ APIClient::run()
     u_int8_t type;
     u_int32_t len;
     
-    log_debug("new session %s:%d -> %s:%d",
-              intoa(local_addr()), local_port(),
-              intoa(remote_addr()), remote_port());
+    log_info("new session %s:%d -> %s:%d",
+             intoa(local_addr()), local_port(),
+             intoa(remote_addr()), remote_port());
 
     if (handle_handshake() != 0) {
         close_session();
@@ -294,6 +294,7 @@ APIClient::run()
             
             DISPATCH(DTN_LOCAL_EID,         handle_local_eid);
             DISPATCH(DTN_REGISTER,          handle_register);
+            DISPATCH(DTN_UNREGISTER,        handle_unregister);
             DISPATCH(DTN_FIND_REGISTRATION, handle_find_registration);
             DISPATCH(DTN_SEND,              handle_send);
             DISPATCH(DTN_BIND,              handle_bind);
@@ -456,6 +457,31 @@ APIClient::handle_register()
         log_err("internal error in xdr: xdr_dtn_reg_id_t");
         return DTN_EXDR;
     }
+    
+    return DTN_SUCCESS;
+}
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_unregister()
+{
+    Registration* reg;
+    dtn_reg_id_t regid;
+    
+    // unpack and parse the request
+    if (!xdr_dtn_reg_id_t(&xdr_decode_, &regid))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    reg = BundleDaemon::instance()->reg_table()->get(regid);
+    if (reg == NULL) {
+        return DTN_ENOTFOUND;
+    }
+
+    BundleDaemon::post_and_wait(new RegistrationRemovedEvent(reg),
+                                notifier_);
     
     return DTN_SUCCESS;
 }

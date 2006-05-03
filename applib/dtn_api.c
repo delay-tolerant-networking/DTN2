@@ -230,18 +230,40 @@ dtn_register(dtn_handle_t h,
 int
 dtn_unregister(dtn_handle_t h, dtn_reg_id_t regid)
 {
-    // XXX/demmer implement me
+    int status;
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+
+    XDR* xdr_encode = &handle->xdr_encode;
 
     // check if the handle is in the middle of poll
     if (handle->in_poll) {
         handle->err = DTN_EINPOLL;
         return -1;
     }
-
     
-    handle->err = DTN_EINTERNAL;
-    return -1;
+    // pack the request
+    if (!xdr_dtn_reg_id_t(xdr_encode, &regid)) {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send(handle, DTN_UNREGISTER) != 0) {
+        return -1;
+    }
+
+    // get the reply
+    if (dtnipc_recv(handle, &status) < 0) {
+        return -1;
+    }
+
+    // handle server-side errors
+    if (status != DTN_SUCCESS) {
+        handle->err = status;
+        return -1;
+    }
+    
+    return 0;
 }
 
 //----------------------------------------------------------------------
