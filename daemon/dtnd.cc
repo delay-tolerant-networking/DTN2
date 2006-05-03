@@ -270,6 +270,7 @@ DTND::seed_random()
     
     log_notice("/dtnd", "random seed is %u\n", random_seed_);
     srand(random_seed_);
+    srandom(random_seed_);
 }
 
 //----------------------------------------------------------------------

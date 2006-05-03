@@ -141,6 +141,7 @@ main(int argc, char** argv)
     }
     log_info("/sim", "random seed is %u\n", random_seed);
     srand(random_seed);
+    srandom(random_seed);
 
     // Set up the command interpreter
     oasys::TclCommandInterp::init(argv[0]);
