@@ -132,11 +132,11 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
     i = connections_.find(key);
 
     if (i == connections_.end()) {
-        log_debug("new connection %s:%d -> %s:%d",
-                  intoa(hdr.client_addr_),
-                  hdr.client_port_,
-                  intoa(hdr.remote_addr_),
-                  hdr.remote_port_);
+        log_info("new connection %s:%d -> %s:%d",
+                 intoa(hdr.client_addr_),
+                 hdr.client_port_,
+                 intoa(hdr.remote_addr_),
+                 hdr.remote_port_);
         
         conn = new Connection(this, &bundle->spec_.source,
                               hdr.client_addr_, hdr.client_port_,
@@ -188,6 +188,7 @@ TCPTunnel::Connection::Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid,
       tcptun_(t),
       sock_(logpath_),
       queue_(logpath_),
+      next_seqno_(0),
       client_addr_(client_addr),
       client_port_(client_port),
       remote_addr_(remote_addr),
@@ -206,6 +207,7 @@ TCPTunnel::Connection::Connection(TCPTunnel* t, dtn_endpoint_id_t* dest_eid,
       tcptun_(t),
       sock_(fd, client_addr, client_port, logpath_),
       queue_(logpath_),
+      next_seqno_(0),
       client_addr_(client_addr),
       client_port_(client_port),
       remote_addr_(remote_addr),
@@ -228,7 +230,9 @@ void
 TCPTunnel::Connection::run()
 {
     DTNTunnel* tunnel = DTNTunnel::instance();
-    u_int32_t seqno = 0;
+    u_int32_t send_seqno = 0;
+    u_int32_t next_recv_seqno = 0;
+    bool sock_eof = false;
 
     // header for outgoing bundles
     DTNTunnel::BundleHeader hdr;
@@ -261,14 +265,17 @@ TCPTunnel::Connection::run()
         msg_poll->fd             = queue_.read_fd();
         msg_poll->events         = POLLIN;
         msg_poll->revents        = 0;
-    
+
         struct pollfd* sock_poll = &pollfds[1];
         sock_poll->fd            = sock_.fd();
         sock_poll->events        = POLLIN | POLLERR;
         sock_poll->revents       = 0;
 
+        // if the socket already had an eof, we just poll for activity
+        // on the message queue
         log_debug("blocking in poll...");
-        int nready = oasys::IO::poll_multiple(pollfds, 2, -1, NULL, logpath_);
+        int nfds = sock_eof ? 1 : 2;
+        int nready = oasys::IO::poll_multiple(pollfds, nfds, -1, NULL, logpath_);
         if (nready <= 0) {
             log_err("unexpected error in poll: %s", strerror(errno));
             goto done;
@@ -287,14 +294,14 @@ TCPTunnel::Connection::run()
                 goto done;
             }
 
-            hdr.seqno_ = ntohl(seqno++);
+            hdr.seqno_ = ntohl(send_seqno++);
             b->payload_.set_len(sizeof(hdr) + ret);
             memcpy(b->payload_.buf(), &hdr, sizeof(hdr));
             tunnel->send_bundle(b, &dest_eid_);
             log_info("sent %d byte payload to dtn", ret);
 
             if (ret == 0) {
-                goto done;
+                sock_eof = true;
             }
         }
         
@@ -303,7 +310,21 @@ TCPTunnel::Connection::run()
             dtn::APIBundle* b = queue_.pop_blocking();
             ASSERT(b);
 
-            // XXX/demmer check seqno
+            DTNTunnel::BundleHeader* recv_hdr =
+                (DTNTunnel::BundleHeader*)b->payload_.buf();
+
+            u_int32_t recv_seqno = ntohl(recv_hdr->seqno_);
+
+            // check the seqno match -- reordering should have been
+            // handled before the bundle was put on the blocking
+            // message queue
+            if (recv_seqno != next_recv_seqno) {
+                log_err("got out of order bundle: seqno %d, expected %d",
+                        recv_seqno, next_recv_seqno);
+                delete b;
+                goto done;
+            }
+            ++next_recv_seqno;
 
             u_int len = b->payload_.len() - sizeof(hdr);
 
@@ -335,7 +356,45 @@ TCPTunnel::Connection::run()
 void
 TCPTunnel::Connection::handle_bundle(dtn::APIBundle* bundle)
 {
+    DTNTunnel::BundleHeader* hdr =
+        (DTNTunnel::BundleHeader*)bundle->payload_.buf();
+    
+    u_int32_t recv_seqno = ntohl(hdr->seqno_);
+    
+    // if it's out of order, stick it in the reorder table and return
+    if (recv_seqno != next_seqno_)
+    {
+        log_info("got out of order bundle: expected seqno %d, got %d",
+                 next_seqno_, recv_seqno);
+        
+        reorder_table_[recv_seqno] = bundle;
+        return;
+    }
+
+    // deliver the one that just arrived
+    log_info("delivering %d byte bundle with seqno %d",
+             bundle->payload_.len(), recv_seqno);
     queue_.push_back(bundle);
+    next_seqno_++;
+    
+    // once we get one that's in order, that might let us transfer
+    // more bundles out of the reorder table and into the queue
+    ReorderTable::iterator iter;
+    while (1) {
+        iter = reorder_table_.find(next_seqno_);
+        if (iter == reorder_table_.end()) {
+            break;
+        }
+
+        bundle = iter->second;
+        log_info("delivering %d byte bundle with seqno %d (from reorder table)",
+                 bundle->payload_.len(), next_seqno_);
+        
+        reorder_table_.erase(iter);
+        next_seqno_++;
+        
+        queue_.push_back(bundle);
+    }
 }
 
 } // namespace dtntunnel

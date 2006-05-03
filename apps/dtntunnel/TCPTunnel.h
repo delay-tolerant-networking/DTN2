@@ -125,6 +125,13 @@ protected:
         /// Queue for bundles on this connection
         dtn::APIBundleQueue queue_;
 
+        /// Table for out-of-order bundles
+        typedef std::map<u_int32_t, dtn::APIBundle*> ReorderTable;
+        ReorderTable reorder_table_;
+
+        /// Running sequence number counter
+        u_int32_t next_seqno_;
+
         /// Parameters for the connection
         dtn_endpoint_id_t dest_eid_;
         in_addr_t         client_addr_;
