@@ -15,10 +15,10 @@ SINGLE_SOURCE_APPS := 			\
 	dtnperf/dtnperf-server		\
 	dtnrecv/dtnrecv			\
 	dtnsend/dtnsend			\
-	dtntunnel/dtntunnel		\
 
 OTHER_APPS :=				\
 	dtnmoteproxy/dtnmoteproxy	\
+	dtntunnel/dtntunnel		\
 	tca_admin/tca_admin		\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
@@ -35,6 +35,12 @@ BINFILES += $(APPS)
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 			   dtnmoteproxy/serialsource.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
+
+dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
+		     dtntunnel/TCPTunnel.o \
+		     dtntunnel/UDPTunnel.o
+	$(CXX) $(CFLAGS) $^ -o $@ \
+		$(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS) 
 
 tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/TcaEndpointID.o \
