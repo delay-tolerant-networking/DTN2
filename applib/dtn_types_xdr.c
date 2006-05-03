@@ -74,7 +74,7 @@
  * fixed-length char buffer. Note that for efficiency reasons, this
  * fixed length is relatively small (256 bytes). 
  * 
- * The alternative is to use the opaque XDR type but then all endpoint
+ * The alternative is to use the string XDR type but then all endpoint
  * ids would require malloc / free which is more prone to leaks / bugs.
  */
 
@@ -84,8 +84,7 @@ xdr_dtn_endpoint_id_t (XDR *xdrs, dtn_endpoint_id_t *objp)
 	register int32_t *buf;
 
 	int i;
-	 if (!xdr_vector (xdrs, (char *)objp->uri, DTN_MAX_ENDPOINT_ID,
-		sizeof (char), (xdrproc_t) xdr_char))
+	 if (!xdr_opaque (xdrs, objp->uri, DTN_MAX_ENDPOINT_ID))
 		 return FALSE;
 	return TRUE;
 }
@@ -117,6 +116,11 @@ xdr_dtn_timeval_t (XDR *xdrs, dtn_timeval_t *objp)
 		 return FALSE;
 	return TRUE;
 }
+
+/**
+ * An infinite wait is a timeout of -1.
+ */
+#define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
 
 /**
  * Specification of a service tag used in building a local endpoint
@@ -253,7 +257,7 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
  * in which case the payload structure contains the filename, or in
  * memory where the struct has the actual data.
  *
- * Note that there is a limit (DTN_PAYLOAD_MEM) on the maximum size
+ * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
  * bundle payload that can be sent or received in memory.
  */
 

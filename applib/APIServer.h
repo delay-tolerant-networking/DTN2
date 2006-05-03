@@ -49,6 +49,7 @@
 
 namespace dtn {
 
+class APIRegistration;
 class APIRegistrationList;
 
 /**
@@ -88,13 +89,28 @@ public:
     void close_session();
     
 protected:
+    int handle_handshake();
     int handle_local_eid();
     int handle_register();
     int handle_find_registration();
     int handle_bind();
     int handle_send();
     int handle_recv();
+    int handle_begin_poll();
+    int handle_cancel_poll();
     int handle_close();
+
+    // wait for a bundle arrival on any bound registration, or for
+    // traffic on the api socket.
+    //
+    // returns the oasys IO error code if there was a timeout or an
+    // internal error. returns 0 if there is a bundle waiting or
+    // socket data on the channel, and assigns the reg or sock_ready
+    // pointers appropriately
+    int wait_for_bundle(const char* operation, dtn_timeval_t timeout,
+                        APIRegistration** reg, bool* sock_ready);
+
+    int send_response(int ret);
     
     char buf_[DTN_MAX_API_MSG];
     XDR xdr_encode_;

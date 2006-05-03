@@ -91,6 +91,7 @@ namespace dtn {
 in_addr_t APIServer::local_addr_;
 u_int16_t APIServer::local_port_;
 
+//----------------------------------------------------------------------
 void
 APIServer::init()
 {
@@ -103,6 +104,7 @@ APIServer::init()
     oasys::TclCommandInterp::instance()->reg(new APICommand());
 }
 
+//----------------------------------------------------------------------
 APIServer::APIServer()
     : TCPServerThread("APIServer", "/dtn/apiserver", DELETE_ON_EXIT)
 {
@@ -146,6 +148,7 @@ APIServer::APIServer()
     }
 }
 
+//----------------------------------------------------------------------
 void
 APIServer::accepted(int fd, in_addr_t addr, u_int16_t port)
 {
@@ -153,6 +156,7 @@ APIServer::accepted(int fd, in_addr_t addr, u_int16_t port)
     c->start();
 }
 
+//----------------------------------------------------------------------
 APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
     : Thread("APIClient", DELETE_ON_EXIT),
       TCPClient(fd, addr, port, "/dtn/apiclient")
@@ -165,11 +169,13 @@ APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
     notifier_ = new oasys::Notifier(logpath_);
 }
 
+//----------------------------------------------------------------------
 APIClient::~APIClient()
 {
     log_debug("client destroyed");
 }
 
+//----------------------------------------------------------------------
 void
 APIClient::close_session()
 {
@@ -189,70 +195,91 @@ APIClient::close_session()
     }
 }
 
-void
-APIClient::run()
+//----------------------------------------------------------------------
+int
+APIClient::handle_handshake()
 {
-    int ret;
-    u_int32_t handshake, type, len, msglen;
+    u_int32_t handshake;
     
-    log_debug("new session %s:%d -> %s:%d",
-              intoa(local_addr()), local_port(),
-              intoa(remote_addr()), remote_port());
-
-    // handle the handshake
-    ret = readall((char*)&handshake, sizeof(handshake));
+    int ret = readall((char*)&handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
         log_err("error reading handshake: (got %d/%u), \"error\" %s",
                 ret, (u_int)sizeof(handshake), strerror(errno));
-        close_session();
-        return;
+        return -1;
     }
 
     if (ntohl(handshake) != DTN_OPEN) {
         log_err("handshake %d != DTN_OPEN", handshake);
-        close_session();
-        return;
+        return -1;
     }
     
     ret = writeall((char*)&handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
         log_err("error writing handshake: %s", strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+//----------------------------------------------------------------------
+void
+APIClient::run()
+{
+    int ret;
+    u_int8_t type;
+    u_int32_t len;
+    
+    log_debug("new session %s:%d -> %s:%d",
+              intoa(local_addr()), local_port(),
+              intoa(remote_addr()), remote_port());
+
+    if (handle_handshake() != 0) {
         close_session();
         return;
     }
-
     
     while (true) {
         xdr_setpos(&xdr_encode_, 0);
         xdr_setpos(&xdr_decode_, 0);
 
-        ret = read(buf_, DTN_MAX_API_MSG);
+        // read the incoming message into the fourth byte of the
+        // buffer, since the typecode + message length is only five
+        // bytes long, but the XDR engines are set to point at the
+        // eighth byte of the buffer
+        ret = read(&buf_[3], DTN_MAX_API_MSG);
             
         if (ret <= 0) {
             log_warn("client error or disconnection");
             close_session();
             return;
         }
-
-        if (ret < 8) {
+        
+        if (ret < 5) {
             log_err("ack!! can't handle really short read...");
             close_session();
             return;
         }
-        
-        memcpy(&type, buf_,     sizeof(type));
-        memcpy(&len,  &buf_[4], sizeof(len));
 
-        type = ntohl(type);
-        len  = ntohl(len);
+        // NOTE: this protocol is duplicated in the implementation of
+        // handle_begin_poll to take care of a cancel_poll request
+        // coming in while the thread is waiting for bundles so any
+        // modifications must be propagated there
+        type = buf_[3];
+        memcpy(&len, &buf_[4], sizeof(len));
 
-        log_debug("got %s (%d/%d bytes)", dtnipc_msgtoa(type), ret - 8, len);
-        
-        // if we didn't get the whole message, loop to get the rest
-        if ((ret - 8) < (int)len) {
-            int toget = len - (ret - 8);
-            if (readall(&buf_[ret], toget) != toget) {
-                log_err("error reading message remainder: %s", strerror(errno));
+        len = ntohl(len);
+
+        ret -= 5;
+        log_debug("got %s (%d/%d bytes)", dtnipc_msgtoa(type), ret, len);
+
+        // if we didn't get the whole message, loop to get the rest,
+        // skipping the header bytes and the already-read amount
+        if (ret < (int)len) {
+            int toget = len - ret;
+            if (readall(&buf_[8 + ret], toget) != toget) {
+                log_err("error reading message remainder: %s",
+                        strerror(errno));
                 close_session();
                 return;
             }
@@ -271,6 +298,8 @@ APIClient::run()
             DISPATCH(DTN_SEND,              handle_send);
             DISPATCH(DTN_BIND,              handle_bind);
             DISPATCH(DTN_RECV,              handle_recv);
+            DISPATCH(DTN_BEGIN_POLL,        handle_begin_poll);
+            DISPATCH(DTN_CANCEL_POLL,       handle_cancel_poll);
             DISPATCH(DTN_CLOSE,             handle_close);
 #undef DISPATCH
 
@@ -286,36 +315,53 @@ APIClient::run()
             close_session();
             return;
         }
-
-        // make sure the dispatched function returned a valid error
-        // code
-        ASSERT(ret == DTN_SUCCESS ||
-               (DTN_ERRBASE <= ret && ret <= DTN_ERRMAX));
         
-        // fill in the reply message with the status code and the
-        // length of the reply. note that if there is no reply, then
-        // the xdr position should still be zero
-        len = xdr_getpos(&xdr_encode_);
-        log_debug("building reply: status %s, length %d",
-                  dtnipc_msgtoa(ret), len);
-
-        msglen = len + 8;
-        ret = ntohl(ret);
-        len = htonl(len);
-
-        memcpy(buf_,     &ret, sizeof(ret));
-        memcpy(&buf_[4], &len, sizeof(len));
-
-        log_debug("sending %d byte reply message", msglen);
-        if (writeall(buf_, msglen) != (int)msglen) {
-            log_err("error sending reply: %s", strerror(errno));
-            close_session();
+        // send the response
+        if (send_response(ret) != 0) {
             return;
         }
         
     } // while(1)
 }
 
+//----------------------------------------------------------------------
+int
+APIClient::send_response(int ret)
+{
+    u_int32_t len, msglen;
+    
+    // make sure the dispatched function returned a valid error
+    // code
+    ASSERT(ret == DTN_SUCCESS ||
+           (DTN_ERRBASE <= ret && ret <= DTN_ERRMAX));
+        
+    // fill in the reply message with the status code and the
+    // length of the reply. note that if there is no reply, then
+    // the xdr position should still be zero
+    len = xdr_getpos(&xdr_encode_);
+    log_debug("building reply: status %s, length %d",
+              dtnipc_msgtoa(ret), len);
+
+    msglen = len + 8;
+    ret = ntohl(ret);
+    len = htonl(len);
+
+    memcpy(buf_,     &ret, sizeof(ret));
+    memcpy(&buf_[4], &len, sizeof(len));
+
+    log_debug("sending %d byte reply message", msglen);
+    if (writeall(buf_, msglen) != (int)msglen) {
+        log_err("error sending reply: %s", strerror(errno));
+        close_session();
+        return -1;
+    }
+
+    return 0;
+}
+        
+
+
+//----------------------------------------------------------------------
 int
 APIClient::handle_local_eid()
 {
@@ -351,6 +397,7 @@ APIClient::handle_local_eid()
     return DTN_SUCCESS;
 }
 
+//----------------------------------------------------------------------
 int
 APIClient::handle_register()
 {
@@ -413,6 +460,7 @@ APIClient::handle_register()
     return DTN_SUCCESS;
 }
 
+//----------------------------------------------------------------------
 int
 APIClient::handle_find_registration()
 {
@@ -450,6 +498,7 @@ APIClient::handle_find_registration()
     return DTN_SUCCESS;
 }
 
+//----------------------------------------------------------------------
 int
 APIClient::handle_bind()
 {
@@ -476,13 +525,22 @@ APIClient::handle_bind()
                  regid);
         return DTN_ENOTFOUND;
     }
+
+    if (api_reg->active()) {
+        log_err("registration %d is already in active mode", regid);
+        return DTN_EBUSY;
+    }
+    
     // store the registration in the list for this session
     bindings_->push_back(api_reg);
     api_reg->set_active(true);
 
+    log_info("DTN_BIND: bound to registration %d", reg->regid());
+    
     return DTN_SUCCESS;
 }
     
+//----------------------------------------------------------------------
 int
 APIClient::handle_send()
 {
@@ -612,6 +670,8 @@ APIClient::handle_send()
         log_err("payload.location of %d unknown", payload.location);
         return DTN_EINVAL;
     }
+
+    log_info("DTN_SEND bundle *%p", b);
     
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
@@ -625,15 +685,17 @@ APIClient::handle_send()
 // via files.
 #define DTN_FILE_DELIVERY_BUF_SIZE 1000
 
+//----------------------------------------------------------------------
 int
 APIClient::handle_recv()
 {
-    APIRegistration* reg = NULL;
     dtn_bundle_spec_t             spec;
     dtn_bundle_payload_t          payload;
     dtn_bundle_payload_location_t location;
     dtn_timeval_t                 timeout;
     oasys::ScratchBuffer<u_char*> buf;
+    APIRegistration*              reg = NULL;
+    bool                          sock_ready = false;
 
     // unpack the arguments
     if ((!xdr_dtn_bundle_payload_location_t(&xdr_decode_, &location)) ||
@@ -642,51 +704,16 @@ APIClient::handle_recv()
         log_err("error in xdr unpacking arguments");
         return DTN_EXDR;
     }
-
-    // XXX/demmer implement this for multiple registrations by
-    // building up a poll vector here. for now we assert in bind that
-    // there's only one binding.
-    if (bindings_->empty()) {
-        log_err("no bound registration for recv");
-        return DTN_EINVAL;
+    
+    int err = wait_for_bundle("recv", timeout, &reg, &sock_ready);
+    if (err != 0) {
+        return err;
     }
     
-    reg = bindings_->front();
-
-    struct pollfd pollfds[2];
-
-    struct pollfd* bundle_poll = &pollfds[0];
-    bundle_poll->fd            = reg->bundle_list()->notifier()->read_fd();
-    bundle_poll->events        = POLLIN;
-    bundle_poll->revents       = 0;
-    
-    struct pollfd* sock_poll   = &pollfds[1];
-    sock_poll->fd              = TCPClient::fd_;
-    sock_poll->events          = POLLIN | POLLERR;
-    sock_poll->revents         = 0;
-
-    // XXX/demmer this should really check the bundle list and if it's
-    // not empty, don't bother with the poll at all
-
-    log_debug("handle_recv: "
-              "blocking to get bundle for registration %d (timeout %d)",
-              reg->regid(), timeout);
-    int nready = oasys::IO::poll_multiple(&pollfds[0], 2, timeout,
-                                          NULL, logpath_);
-
-    if (nready == oasys::IOTIMEOUT) {
-        log_debug("handle_recv: timeout waiting for bundle");
-        return DTN_ETIMEOUT;
-
-    } else if (nready <= 0) {
-        log_err("handle_recv: unexpected error polling for bundle");
-        return DTN_EINTERNAL;
-    }
-
     // if there's data on the socket, that either means the socket was
     // closed by an exiting application or the app is violating the
     // protocol...
-    if (sock_poll->revents != 0) {
+    if (sock_ready) {
         log_debug("handle_recv: api socket ready -- trying to read one byte");
         char b;
         if (read(&b, 1) != 0) {
@@ -699,13 +726,6 @@ APIClient::handle_recv()
                  "application must have exited");
         return -1;
     }
-
-    // otherwise, there should be data on the bundle list
-    if (bundle_poll->revents == 0) {
-        log_crit("handle_recv: unexpected error polling for bundle: "
-                 "neither file descriptor is ready");
-        return DTN_EINTERNAL;
-    }
     
     BundleRef bref("APIClient::handle_recv");
     bref = reg->bundle_list()->pop_front();
@@ -714,7 +734,7 @@ APIClient::handle_recv()
     
     log_debug("handle_recv: popped bundle %d for registration %d (timeout %d)",
               b->bundleid_, reg->regid(), timeout);
-
+    
     memset(&spec, 0, sizeof(spec));
     memset(&payload, 0, sizeof(payload));
 
@@ -790,16 +810,185 @@ APIClient::handle_recv()
         log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
         return DTN_EXDR;
     }
-
-    log_debug("handle_recv: "
-              "successfully delivered bundle %d to registration %d",
-              b->bundleid_, reg->regid());
-
+    
+    log_info("DTN_RECV: "
+             "successfully delivered bundle %d to registration %d",
+             b->bundleid_, reg->regid());
+    
     BundleDaemon::post(new BundleDeliveredEvent(b, reg));
 
     return DTN_SUCCESS;
 }
 
+//----------------------------------------------------------------------
+int
+APIClient::handle_begin_poll()
+{
+    dtn_timeval_t    timeout;
+    APIRegistration* reg = NULL;
+    bool             sock_ready = false;
+    
+    // unpack the arguments
+    if ((!xdr_dtn_timeval_t(&xdr_decode_, &timeout)))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    int err = wait_for_bundle("poll", timeout, &reg, &sock_ready);
+    if (err != 0) {
+        return err;
+    }
+
+    // if there's data on the socket, then the application either quit
+    // and closed the socket, or called dtn_poll_cancel
+    if (sock_ready) {
+        log_debug("handle_begin_poll: "
+                  "api socket ready -- trying to read one byte");
+        char type;
+        
+        int ret = read(&type, 1);
+        if (ret == 0) {
+            log_info("IPC socket closed while blocked in read... "
+                     "application must have exited");
+            return -1;
+        }
+
+        if (ret == -1) {
+            log_err("handle_begin_poll: protocol error -- "
+                    "error while blocked in poll");
+            return DTN_ECOMM;
+        }
+
+        if (type != DTN_CANCEL_POLL) {
+            log_err("handle_poll: error got unexpected message '%s' "
+                    "while blocked in poll", dtnipc_msgtoa(type));
+            return DTN_ECOMM;
+        }
+
+        // read in the length which must be zero
+        u_int32_t len;
+        ret = read((char*)&len, 4);
+        if (ret != 4 || len != 0) {
+            log_err("handle_begin_poll: protocol error -- "
+                    "error getting cancel poll length");
+            return DTN_ECOMM;
+        }
+
+        // immediately send the response to the poll cancel, then
+        // we return from the handler which will follow it with the
+        // response code to the original poll request
+        send_response(DTN_SUCCESS);
+    }
+    
+    return DTN_SUCCESS;
+}
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_cancel_poll()
+{
+    // the only reason we should get in here is if the call to
+    // dtn_begin_poll() returned but the app still called cancel_poll
+    // and so the messages crossed. but, since there's nothing wrong
+    // with this, we just return success in both cases
+    
+    return DTN_SUCCESS;
+}
+        
+//----------------------------------------------------------------------
+int
+APIClient::wait_for_bundle(const char* operation, dtn_timeval_t dtn_timeout,
+                           APIRegistration** regp, bool* sock_ready)
+{
+    APIRegistration* reg;
+    
+    // XXX/demmer implement this for multiple registrations by
+    // building up a poll vector here. for now we assert in bind that
+    // there's only one binding.
+    
+    if (bindings_->empty()) {
+        log_err("wait_for_bundle(%s): no bound registration", 
+                operation);
+        return DTN_EINVAL;
+    }
+    
+    reg = bindings_->front();
+
+    // short-circuit the poll
+    if (reg->bundle_list()->size() != 0) {
+        log_debug("wait_for_bundle(%s): "
+                  "immediately returning bundle for reg %d",
+                  operation, reg->regid());
+        *regp = reg;
+        return 0;
+    }
+
+    int timeout = (int)dtn_timeout;
+    if (timeout < -1) {
+        log_err("wait_for_bundle(%s): "
+                "invalid timeout value %d", operation, timeout);
+        return DTN_EINVAL;
+    }
+
+    struct pollfd pollfds[2];
+
+    struct pollfd* bundle_poll = &pollfds[0];
+    bundle_poll->fd            = reg->bundle_list()->notifier()->read_fd();
+    bundle_poll->events        = POLLIN;
+    bundle_poll->revents       = 0;
+    
+    struct pollfd* sock_poll   = &pollfds[1];
+    sock_poll->fd              = TCPClient::fd_;
+    sock_poll->events          = POLLIN | POLLERR;
+    sock_poll->revents         = 0;
+
+    log_debug("wait_for_bundle(%s): "
+              "blocking to get bundle for registration %d (timeout %d)",
+              operation, reg->regid(), timeout);
+    int nready = oasys::IO::poll_multiple(&pollfds[0], 2, timeout,
+                                          NULL, logpath_);
+
+    if (nready == oasys::IOTIMEOUT) {
+        log_debug("wait_for_bundle(%s): timeout waiting for bundle",
+                  operation);
+        return DTN_ETIMEOUT;
+
+    } else if (nready <= 0) {
+        log_err("wait_for_bundle(%s): unexpected error polling for bundle",
+                operation);
+        return DTN_EINTERNAL;
+    }
+
+    ASSERT(nready == 1);
+    
+    // if there's data on the socket, that either means the socket was
+    // closed by an exiting application or the app is violating the
+    // protocol...
+    if (sock_poll->revents != 0) {
+        *sock_ready = true;
+        return 0;
+    }
+
+    // otherwise, there should be data on the bundle list
+    if (bundle_poll->revents == 0) {
+        log_crit("wait_for_bundle(%s): unexpected error polling for bundle: "
+                 "neither file descriptor is ready", operation);
+        return DTN_EINTERNAL;
+    }
+
+    if (reg->bundle_list()->size() == 0) {
+        log_err("wait_for_bundle(%s): "
+                "bundle list returned ready but no bundle on queue!!",
+                operation);
+        return DTN_EINTERNAL;
+    }
+
+    *regp = reg;
+    return 0;
+}
+
+//----------------------------------------------------------------------
 int
 APIClient::handle_close()
 {

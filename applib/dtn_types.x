@@ -74,11 +74,11 @@
 % * fixed-length char buffer. Note that for efficiency reasons, this
 % * fixed length is relatively small (256 bytes). 
 % * 
-% * The alternative is to use the opaque XDR type but then all endpoint
+% * The alternative is to use the string XDR type but then all endpoint
 % * ids would require malloc / free which is more prone to leaks / bugs.
 % */
 struct dtn_endpoint_id_t {
-    char	uri[DTN_MAX_ENDPOINT_ID];
+    opaque	uri[DTN_MAX_ENDPOINT_ID];
 };
 
 %
@@ -92,6 +92,12 @@ typedef u_int dtn_reg_id_t;
 % * DTN timeouts are specified in seconds.
 % */
 typedef u_int dtn_timeval_t;
+
+%
+%/**
+% * An infinite wait is a timeout of -1.
+% */
+%#define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
 
 %
 %/**

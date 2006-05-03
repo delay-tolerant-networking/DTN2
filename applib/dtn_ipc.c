@@ -52,7 +52,7 @@
 #include "dtn_types.h"
 
 const char*
-dtnipc_msgtoa(u_int32_t type)
+dtnipc_msgtoa(u_int8_t type)
 {
 #define CASE(_type) case _type : return #_type; break;
     
@@ -61,9 +61,14 @@ dtnipc_msgtoa(u_int32_t type)
         CASE(DTN_CLOSE);
         CASE(DTN_LOCAL_EID);
         CASE(DTN_REGISTER);
+        CASE(DTN_UNREGISTER);
+        CASE(DTN_FIND_REGISTRATION);
+        CASE(DTN_CHANGE_REGISTRATION);
         CASE(DTN_BIND);
         CASE(DTN_SEND);
         CASE(DTN_RECV);
+        CASE(DTN_BEGIN_POLL);
+        CASE(DTN_CANCEL_POLL);
 
     default:
         return "(unknown type)";
@@ -89,9 +94,10 @@ dtnipc_open(dtnipc_handle_t* handle)
     // zero out the handle
     memset(handle, 0, sizeof(dtnipc_handle_t));
     
-    // note that we leave eight bytes free in both buffers to be used
-    // for the framing -- the type code and length for send, and the
-    // return code and length for recv
+    // note that we leave eight bytes free to be used for the framing
+    // -- the type code and length for send (which is only five
+    // bytes), and the return code and length for recv (which is
+    // actually eight bytes)
     xdrmem_create(&handle->xdr_encode, handle->buf + 8,
                   DTN_MAX_API_MSG, XDR_ENCODE);
     
@@ -205,17 +211,16 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
 {
     int ret;
     size_t len, msglen;
-    u_int32_t typecode = type;
     
-    // pack the message code in the first four bytes of the buffer and
-    // the message length into the next four. we don't use xdr
-    // routines for these since we need to be able to decode the
-    // length on the other side to make sure we've read the whole
-    // message, and we need the type to know which xdr decoder to call
-    typecode = htonl(type);
-    memcpy(handle->buf, &typecode, sizeof(typecode));
+    // pack the message code in the fourth byte of the buffer and the
+    // message length into the next four. we don't use xdr routines
+    // for these since we need to be able to decode the length on the
+    // other side to make sure we've read the whole message, and we
+    // need the type to know which xdr decoder to call
+    handle->buf[3] = type;
 
-    msglen = len = xdr_getpos(&handle->xdr_encode);
+    len = xdr_getpos(&handle->xdr_encode);
+    msglen = len + 5;
     len = htonl(len);
     memcpy(&handle->buf[4], &len, sizeof(len));
     
@@ -223,9 +228,9 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
     xdr_setpos(&handle->xdr_encode, 0);
     
     // send the message, looping until it's all sent
-    msglen += 8;
+    char* bp = &handle->buf[3];
     do {
-        ret = write(handle->sock, handle->buf, msglen);
+        ret = write(handle->sock, bp, msglen);
         
         if (ret <= 0) {
             if (errno == EINTR)
@@ -235,7 +240,8 @@ dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
             dtnipc_close(handle);
             return -1;
         }
-        
+
+        bp     += ret;
         msglen -= ret;
         
     } while (msglen > 0);

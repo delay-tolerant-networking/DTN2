@@ -105,9 +105,18 @@ dtn_strerror(int err)
     case DTN_ESIZE: 	return "payload too large";
     case DTN_ENOTFOUND: return "not found";
     case DTN_EINTERNAL: return "internal error";
+    case DTN_EINPOLL:   return "illegal operation called after dtn_poll";
+    case DTN_EBUSY:     return "registration already in use";
+    case -1:            return "(invalid error code -1)";
     }
 
-    return "(unknown error)";
+    // there's a small race condition here in case there are two
+    // simultaneous calls that will clobber the same buffer, but this
+    // should be rare and the worst that happens is that the output
+    // string is garbled
+    static char buf[128];
+    snprintf(buf, sizeof(buf), "(unknown error %d)", err);
+    return buf;
 }
 
 //----------------------------------------------------------------------
@@ -122,6 +131,12 @@ dtn_build_local_eid(dtn_handle_t h,
     XDR* xdr_decode = &handle->xdr_decode;
     struct dtn_service_tag_t service_tag;
 
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+    
     // validate the tag length
     size_t len = strlen(tag) + 1;
     if (len > DTN_MAX_ENDPOINT_ID) {
@@ -174,6 +189,12 @@ dtn_register(dtn_handle_t h,
     XDR* xdr_encode = &handle->xdr_encode;
     XDR* xdr_decode = &handle->xdr_decode;
     
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+    
     // pack the request
     if (!xdr_dtn_reg_info_t(xdr_encode, reginfo)) {
         handle->err = DTN_EXDR;
@@ -211,6 +232,14 @@ dtn_unregister(dtn_handle_t h, dtn_reg_id_t regid)
 {
     // XXX/demmer implement me
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+
+    
     handle->err = DTN_EINTERNAL;
     return -1;
 }
@@ -225,6 +254,12 @@ dtn_find_registration(dtn_handle_t h,
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
     XDR* xdr_decode = &handle->xdr_decode;
+
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
     
     // pack the request
     if (!xdr_dtn_endpoint_id_t(xdr_encode, eid)) {
@@ -265,6 +300,13 @@ dtn_change_registration(dtn_handle_t h,
 {
     // XXX/demmer implement me
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+    
     handle->err = DTN_EINTERNAL;
     return -1;
 }
@@ -275,6 +317,12 @@ dtn_bind(dtn_handle_t h, dtn_reg_id_t regid)
 {
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
+
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
     
     // pack the request
     if (!xdr_dtn_reg_id_t(xdr_encode, &regid)) {
@@ -298,6 +346,12 @@ dtn_send(dtn_handle_t h,
 {
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
+
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
 
     // pack the arguments
     if ((!xdr_dtn_bundle_spec_t(xdr_encode, spec)) ||
@@ -326,6 +380,19 @@ dtn_recv(dtn_handle_t h,
     XDR* xdr_encode = &handle->xdr_encode;
     XDR* xdr_decode = &handle->xdr_decode;
 
+    if (handle->in_poll) {
+        int poll_status = 0;
+        if (dtnipc_recv(handle, &poll_status) != 0) {
+            return -1;
+        }
+        
+        if (poll_status != DTN_SUCCESS) {
+            handle->err = poll_status;
+            return -1;
+        }
+    }
+
+    
     // zero out the spec and payload structures
     memset(spec, 0, sizeof(*spec));
     memset(payload, 0, sizeof(*payload));
@@ -354,6 +421,61 @@ dtn_recv(dtn_handle_t h,
     return 0;
 }
 
+//----------------------------------------------------------------------
+int
+dtn_begin_poll(dtn_handle_t h, dtn_timeval_t timeout)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+    
+    // check if the handle is already in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+
+    handle->in_poll = 1;
+    
+    if ((!xdr_dtn_timeval_t(xdr_encode, &timeout)))
+    {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    // send the message but don't block for the response code -- we'll
+    // grab it in dtn_recv or dtn_cancel_poll
+    if (dtnipc_send(handle, DTN_BEGIN_POLL) < 0) {
+        return -1;
+    }
+    
+    return 0;
+}
+
+//----------------------------------------------------------------------
+int
+dtn_cancel_poll(dtn_handle_t h)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    
+    // make sure the handle is already in the middle of poll
+    if (! (handle->in_poll)) {
+        handle->err = DTN_EINVAL;
+        return -1;
+    }
+
+    // clear the poll flag
+    handle->in_poll = 0;
+    
+    // send the message and get the response code. however there is a
+    // race condition meaning that we can't tell whether what we get
+    // back is the original response from poll or from the subsequent
+    // call to cancel poll
+    if (dtnipc_send_recv(handle, DTN_CANCEL_POLL) < 0) {
+        return -1;
+    }
+    
+    return 0;
+}
 
 /*************************************************************
  *
@@ -419,3 +541,9 @@ dtn_set_payload(dtn_bundle_payload_t* payload,
     return 0;
 }
 
+//----------------------------------------------------------------------
+void
+dtn_free_payload(dtn_bundle_payload_t* payload)
+{
+    xdr_free((xdrproc_t)xdr_dtn_bundle_payload_t, (char*)payload);
+}

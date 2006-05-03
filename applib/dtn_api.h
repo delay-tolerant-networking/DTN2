@@ -148,6 +148,27 @@ extern int dtn_recv(dtn_handle_t handle,
                     dtn_bundle_payload_t* payload,
                     dtn_timeval_t timeout);
 
+/**
+ * Begin a polling period for incoming bundles. Returns a file
+ * descriptor suitable for calling poll() or select() on. Note that
+ * dtn_bind() must have been previously called at least once on the
+ * handle.
+ *
+ * If the kernel returns an indication that there is data ready on the
+ * file descriptor, a call to dtn_recv will then return the bundle
+ * without blocking.
+ *
+ * Also, no other API calls besides dtn_recv can be executed during a
+ * polling period, so an app must call dtn_poll_cancel before trying
+ * to run other API calls.
+ */
+extern int dtn_begin_poll(dtn_handle_t handle, dtn_timeval_t timeout);
+
+/**
+ * Cancel a polling interval.
+ */
+extern int dtn_cancel_poll(dtn_handle_t handle);
+
 /*************************************************************
  *
  *                     Utility Functions
@@ -175,6 +196,12 @@ extern int dtn_parse_eid_string(dtn_endpoint_id_t* eid, const char* str);
 extern int dtn_set_payload(dtn_bundle_payload_t* payload,
                            dtn_bundle_payload_location_t location,
                            char* val, int len);
+
+/*
+ * Frees dynamic storage allocated by the xdr for a bundle payload in
+ * dtn_recv.
+ */
+void dtn_free_payload(dtn_bundle_payload_t* payload);
 
 #ifdef  __cplusplus
 }

@@ -51,6 +51,8 @@
 #define DTN_ESIZE 	(DTN_ERRBASE+6) /* payload / eid too large */
 #define DTN_ENOTFOUND 	(DTN_ERRBASE+7) /* not found (e.g. reg) */
 #define DTN_EINTERNAL 	(DTN_ERRBASE+8) /* misc. internal error */
+#define DTN_EINPOLL 	(DTN_ERRBASE+9) /* illegal op. called after dtn_poll */
+#define DTN_EBUSY 	(DTN_ERRBASE+10) /* registration already in use */
 #define DTN_ERRMAX 255
 
 #endif /* DTN_ERRNO_H */

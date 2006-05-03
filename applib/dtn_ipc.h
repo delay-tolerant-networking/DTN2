@@ -75,8 +75,8 @@ extern "C" {
  */
 struct dtnipc_handle {
     int sock;				///< Socket file descriptor
-    socklen_t sa_len;			///< Length of the address
     int err;				///< Error code
+    int in_poll;			///< Flag to register a call to poll()
     char buf[DTN_MAX_API_MSG];		///< send/recv buffer
     XDR xdr_encode;			///< XDR encoder
     XDR xdr_decode;			///< XDR decoder
@@ -88,22 +88,24 @@ typedef struct dtnipc_handle dtnipc_handle_t;
  * Type codes for api messages.
  */
 typedef enum {
-    DTN_OPEN	     = 1,
-    DTN_CLOSE,
-    DTN_LOCAL_EID,
-    DTN_REGISTER,
-    DTN_UNREGISTER,
-    DTN_FIND_REGISTRATION,
-    DTN_CHANGE_REGISTRATION,
-    DTN_BIND,
-    DTN_SEND,
-    DTN_RECV
+    DTN_OPEN	    		= 1,
+    DTN_CLOSE			= 2,
+    DTN_LOCAL_EID		= 3,
+    DTN_REGISTER		= 4,
+    DTN_UNREGISTER		= 5,
+    DTN_FIND_REGISTRATION	= 6,
+    DTN_CHANGE_REGISTRATION	= 7,
+    DTN_BIND			= 8,
+    DTN_SEND			= 9,
+    DTN_RECV			= 10,
+    DTN_BEGIN_POLL		= 11,
+    DTN_CANCEL_POLL		= 12
 } dtnapi_message_type_t;
 
 /**
  * Type code to string conversion routine.
  */
-const char* dtnipc_msgtoa(u_int32_t type);
+const char* dtnipc_msgtoa(u_int8_t type);
 
 /*
  * Initialize the handle structure and a new ipc session with the
