@@ -49,6 +49,7 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 struct DictionaryEntry {
     DictionaryEntry(const std::string& s, size_t off)
 	: str(s), offset(off) {}
@@ -59,15 +60,16 @@ struct DictionaryEntry {
 
 typedef std::vector<DictionaryEntry> DictionaryVector;
 
-/**
- * For the scheme and ssp parts of the given endpoint id, see if
- * they've already appeared in the vector. If not, add them, and
- * record their length (with the null terminator) in the running
- * length total.
- */
+//----------------------------------------------------------------------
 static inline void
 add_to_dict(const EndpointID& eid, DictionaryVector* dict, size_t* dictlen)
 {
+    /*
+     * For the scheme and ssp parts of the given endpoint id, see if
+     * they've already appeared in the vector. If not, add them, and
+     * record their length (with the null terminator) in the running
+     * length total.
+     */
     DictionaryVector::iterator iter;
     bool found_scheme = false;
     bool found_ssp = false;
@@ -91,6 +93,7 @@ add_to_dict(const EndpointID& eid, DictionaryVector* dict, size_t* dictlen)
     }
 }
 
+//----------------------------------------------------------------------
 void
 get_dict_offsets(DictionaryVector *dict, EndpointID eid,
 		 u_int16_t* scheme_offset, u_int16_t* ssp_offset)
@@ -105,12 +108,7 @@ get_dict_offsets(DictionaryVector *dict, EndpointID eid,
     }
 }
 
-/**
- * Fill in the given buffer with the formatted bundle headers
- * including the payload header, but not the payload data.
- *
- * @return the total length of the header or -1 on error
- */
+//----------------------------------------------------------------------
 int
 BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
 {
@@ -286,6 +284,7 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     return orig_len - len;
 }
 
+//----------------------------------------------------------------------
 int
 BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
 {
@@ -507,7 +506,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     return origlen - len;
 }
 
-
+//----------------------------------------------------------------------
 void
 BundleProtocol::set_timestamp(u_char* ts, const struct timeval* tv)
 {
@@ -521,6 +520,7 @@ BundleProtocol::set_timestamp(u_char* ts, const struct timeval* tv)
     memcpy(ts, &tmp, sizeof(u_int32_t));
 }
 
+//----------------------------------------------------------------------
 void
 BundleProtocol::get_timestamp(struct timeval* tv, const u_char* ts)
 {
@@ -534,6 +534,7 @@ BundleProtocol::get_timestamp(struct timeval* tv, const u_char* ts)
     tv->tv_usec = ntohl(tmp);
 }
 
+//----------------------------------------------------------------------
 u_int8_t
 BundleProtocol::format_bundle_flags(const Bundle* bundle)
 {
@@ -562,6 +563,7 @@ BundleProtocol::format_bundle_flags(const Bundle* bundle)
     return flags;
 }
 
+//----------------------------------------------------------------------
 void
 BundleProtocol::parse_bundle_flags(Bundle* bundle, u_int8_t flags)
 {
@@ -586,6 +588,7 @@ BundleProtocol::parse_bundle_flags(Bundle* bundle, u_int8_t flags)
     }
 }
 
+//----------------------------------------------------------------------
 u_int8_t
 BundleProtocol::format_cos_flags(const Bundle* b)
 {
@@ -596,12 +599,14 @@ BundleProtocol::format_cos_flags(const Bundle* b)
     return cos_flags;
 }
 
+//----------------------------------------------------------------------
 void
 BundleProtocol::parse_cos_flags(Bundle* b, u_int8_t cos_flags)
 {
     b->priority_ = ((cos_flags >> 6) & 0x3);
 }
 
+//----------------------------------------------------------------------
 u_int8_t
 BundleProtocol::format_srr_flags(const Bundle* b)
 {
@@ -628,6 +633,7 @@ BundleProtocol::format_srr_flags(const Bundle* b)
     return srr_flags;
 }
     
+//----------------------------------------------------------------------
 void
 BundleProtocol::parse_srr_flags(Bundle* b, u_int8_t srr_flags)
 {
@@ -650,6 +656,7 @@ BundleProtocol::parse_srr_flags(Bundle* b, u_int8_t srr_flags)
 	b->app_acked_rcpt_ = true;
 }
 
+//----------------------------------------------------------------------
 bool
 BundleProtocol::get_admin_type(const Bundle* bundle, admin_record_type_t* type)
 {
@@ -674,6 +681,5 @@ BundleProtocol::get_admin_type(const Bundle* bundle, admin_record_type_t* type)
 
     return false; // unknown type
 }
-
 
 } // namespace dtn

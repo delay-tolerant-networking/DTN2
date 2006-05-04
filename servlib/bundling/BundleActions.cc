@@ -46,19 +46,7 @@
 
 namespace dtn {
 
-/**
- * Open a link for bundle transmission. The link should be in
- * state AVAILABLE for this to be called.
- *
- * This may either immediately open the link in which case the
- * link's state will be OPEN, or post a request for the
- * convergence layer to complete the session initiation in which
- * case the link state is OPENING.
- *
- * Note that there is no exposed analog for closing a link since
- * the assumption is that each convergence layer will do the idle
- * connection management.
- */
+//----------------------------------------------------------------------
 void
 BundleActions::open_link(Link* link)
 {
@@ -77,10 +65,7 @@ BundleActions::open_link(Link* link)
     link->open();
 }
 
-/**
- * Open a link for bundle transmission. The link should be in
- * an open state for this call.
- */
+//----------------------------------------------------------------------
 void
 BundleActions::close_link(Link* link)
 {
@@ -94,24 +79,14 @@ BundleActions::close_link(Link* link)
     link->close();
 }
 
-/**
- * Create and open a new link for bundle transmissions to the
- * given next hop destination, using the given interface.
- */
+//----------------------------------------------------------------------
 void
 BundleActions::create_link(std::string& endpoint, Interface* interface)
 {
     NOTIMPLEMENTED;
 }
 
-/**
- * Initiate transmission of a bundle out the given link.
- *
- * @param bundle	the bundle
- * @param link		the link to send it on
- * @param action	the forwarding action that was taken
- * @param custody_timer	custody timer specification
- */
+//----------------------------------------------------------------------
 bool
 BundleActions::send_bundle(Bundle* bundle, Link* link,
                            bundle_fwd_action_t action,
@@ -134,13 +109,7 @@ BundleActions::send_bundle(Bundle* bundle, Link* link,
     return true;
 }
 
-/**
- * Remove a previously queued bundle.
- *
- * @param bundle	the bundle
- * @param nexthop	the next hop consumer
- * @return              true if successful
- */
+//----------------------------------------------------------------------
 bool
 BundleActions::cancel_bundle(Bundle* bundle, Link* link)
 {
@@ -157,15 +126,7 @@ BundleActions::cancel_bundle(Bundle* bundle, Link* link)
     return link->clayer()->cancel_bundle(link->contact(), bundle);
 }
 
-/**
- * Inject a new bundle into the core system, which places it in
- * the pending bundles list as well as in the persistent store.
- * This is typically used by routing algorithms that need to
- * generate their own bundles for distribuing route announcements.
- * It does not, therefore, generate a BundleReceivedEvent.
- *
- * @param bundle		the new bundle
- */
+//----------------------------------------------------------------------
 void
 BundleActions::inject_bundle(Bundle* bundle)
 {
@@ -176,9 +137,7 @@ BundleActions::inject_bundle(Bundle* bundle)
     store_add(bundle);
 }
 
-/**
- * Add the given bundle to the data store.
- */
+//----------------------------------------------------------------------
 void
 BundleActions::store_add(Bundle* bundle)
 {
@@ -189,11 +148,7 @@ BundleActions::store_add(Bundle* bundle)
     }
 }
 
-
-/**
- * Update the on-disk version of the given bundle, after it's
- * bookkeeping or header fields have been modified.
- */
+//----------------------------------------------------------------------
 void
 BundleActions::store_update(Bundle* bundle)
 {
@@ -204,9 +159,7 @@ BundleActions::store_update(Bundle* bundle)
     }
 }
 
-/**
- * Remove the given bundle from the data store.
- */
+//----------------------------------------------------------------------
 void
 BundleActions::store_del(Bundle* bundle)
 {

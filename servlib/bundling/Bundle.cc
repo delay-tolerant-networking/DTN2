@@ -48,6 +48,7 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 void
 Bundle::init(u_int32_t id)
 {
@@ -75,6 +76,7 @@ Bundle::init(u_int32_t id)
     log_debug("/dtn/bundle", "Bundle::init bundle id %d", id);
 }
 
+//----------------------------------------------------------------------
 Bundle::Bundle()
     : payload_(&lock_), fwdlog_(&lock_)
 {
@@ -86,6 +88,7 @@ Bundle::Bundle()
     freed_	      = false;
 }
 
+//----------------------------------------------------------------------
 Bundle::Bundle(const oasys::Builder&)
     : payload_(&lock_), fwdlog_(&lock_)
 {
@@ -99,6 +102,7 @@ Bundle::Bundle(const oasys::Builder&)
     freed_	      = false;
 }
 
+//----------------------------------------------------------------------
 Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
     : payload_(&lock_), fwdlog_(&lock_)
 {
@@ -109,6 +113,7 @@ Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
     freed_	      = false;
 }
 
+//----------------------------------------------------------------------
 Bundle::~Bundle()
 {
     ASSERT(mappings_.size() == 0);
@@ -119,6 +124,7 @@ Bundle::~Bundle()
 
 }
 
+//----------------------------------------------------------------------
 int
 Bundle::format(char* buf, size_t sz) const
 {
@@ -129,6 +135,7 @@ Bundle::format(char* buf, size_t sz) const
                     (u_int32_t)payload_.length());
 }
 
+//----------------------------------------------------------------------
 void
 Bundle::format_verbose(oasys::StringBuffer* buf)
 {
@@ -163,6 +170,7 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("       frag_offset: %d\n", frag_offset_);
 }
 
+//----------------------------------------------------------------------
 void
 Bundle::serialize(oasys::SerializeAction* a)
 {
@@ -196,8 +204,8 @@ Bundle::serialize(oasys::SerializeAction* a)
     // updated on disk as it changes in memory
     //a->process("forwarding_log", &fwdlog_);
 }
-
     
+//----------------------------------------------------------------------
 void
 Bundle::copy_metadata(Bundle* new_bundle)
 {
@@ -222,9 +230,7 @@ Bundle::copy_metadata(Bundle* new_bundle)
     new_bundle->expiration_ 		= expiration_;
 }
 
-/**
- * Bump up the reference count.
- */
+//----------------------------------------------------------------------
 int
 Bundle::add_ref(const char* what1, const char* what2)
 {
@@ -242,11 +248,7 @@ Bundle::add_ref(const char* what1, const char* what2)
     return ret;
 }
 
-/**
- * Decrement the reference count.
- *
- * If the reference count becomes zero, the bundle is deleted.
- */
+//----------------------------------------------------------------------
 int
 Bundle::del_ref(const char* what1, const char* what2)
 {
@@ -276,9 +278,7 @@ Bundle::del_ref(const char* what1, const char* what2)
     return 0;
 }
 
-/**
- * Return an iterator to scan through the mappings.
- */
+//----------------------------------------------------------------------
 Bundle::MappingsIterator
 Bundle::mappings_begin()
 {
@@ -288,9 +288,7 @@ Bundle::mappings_begin()
     return mappings_.begin();
 }
     
-/**
- * Return an iterator to mark the end of the mappings set.
- */
+//----------------------------------------------------------------------
 Bundle::MappingsIterator
 Bundle::mappings_end()
 {
@@ -300,9 +298,7 @@ Bundle::mappings_end()
     return mappings_.end();
 }
 
-/**
- * Return true if the bundle is on the given list.
- */
+//----------------------------------------------------------------------
 bool
 Bundle::is_queued_on(BundleList* bundle_list)
 {
@@ -310,9 +306,7 @@ Bundle::is_queued_on(BundleList* bundle_list)
     return (mappings_.count(bundle_list) > 0);
 }
 
-/**
- * Validate the bundle's fields
- */
+//----------------------------------------------------------------------
 bool
 Bundle::validate(oasys::StringBuffer* errbuf)
 {
