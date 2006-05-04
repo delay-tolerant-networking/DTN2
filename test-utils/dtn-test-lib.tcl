@@ -95,6 +95,21 @@ namespace eval dtn {
 	return [eval "tell::tell $net::host($id) [dtn::get_port console $id] $args"]
     }
 
+    # generic checker function
+    proc check {args} {
+	set orig_args $args
+	
+	set expected 1
+	if {[lindex $args 0] == "!"} {
+	    set expected 0
+	    set args [lrange $args 1 end]
+	}
+
+	set result [eval $args]
+	if {$result != $expected} {
+	    error "check '$orig_args' failed"
+	}
+    }
     
     # dtn bundle data functions
 
@@ -177,6 +192,15 @@ namespace eval dtn {
     }
 
     # registration functions
+    proc test_reg_exists {id regid} {
+	if [catch {
+	    tell_dtnd $id registration dump_tcl $regid
+	} err] {
+	    return 0
+	}
+	return 1
+    }
+    
     proc check_reg_data {id regid {args}} {
 	array set reg_data [tell_dtnd $id registration dump_tcl $regid]
 	foreach {var val} $args {
