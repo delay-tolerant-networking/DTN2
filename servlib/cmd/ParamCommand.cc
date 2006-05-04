@@ -81,6 +81,14 @@ ParamCommand::ParamCommand()
            &BundleDaemon::params_.test_permuted_delivery_, false,
            "Permute the order of bundles before delivering to registrations");
 
+    bind_i("link_min_retry_interval",
+           &Link::default_params_.min_retry_interval_, 5,
+           "Default minimum connection retry interval for links");
+
+    bind_i("link_max_retry_interval",
+           &Link::default_params_.max_retry_interval_, 10 * 60,
+           "Default maximum connection retry interval for links");
+
     // defaults for these are set in the CustodyTimerSpec defaults
     // static initializer
     bind_i("custody_timer_base",

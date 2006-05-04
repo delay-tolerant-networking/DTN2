@@ -50,6 +50,14 @@
 
 namespace dtn {
 
+/// Default parameters, values set in ParamCommand
+Link::Params Link::default_params_ = {
+    default_params_.mtu_                = 0,
+    default_params_.retry_interval_     = 0,
+    default_params_.min_retry_interval_ = 5,
+    default_params_.max_retry_interval_ = 10 * 60
+};
+
 /**
  * Static constructor to create different type of links
  */
@@ -109,11 +117,8 @@ Link::Link(const std::string& name, link_type_t type,
 
     log_info("new link *%p", this);
 
-    // XXX/TODO fix these parameter settings so they have defaults
-    // that are globally settable
-    retry_interval_     = 5;
-    min_retry_interval_ = 5;
-    max_retry_interval_ = 10 * 60;
+    params_ = default_params_;
+    params_.retry_interval_ = params_.min_retry_interval_;
 }
 
 int
@@ -122,13 +127,15 @@ Link::parse_args(int argc, const char* argv[])
     oasys::OptParser p;
     
     p.addopt(new oasys::BoolOpt("reliable", &reliable_));
-    p.addopt(new oasys::UIntOpt("min_retry_interval", &min_retry_interval_));
-    p.addopt(new oasys::UIntOpt("max_retry_interval", &max_retry_interval_));
+    p.addopt(new oasys::UIntOpt("mtu",     &params_.mtu_));
+    p.addopt(new oasys::UIntOpt("min_retry_interval", &params_.min_retry_interval_));
+    p.addopt(new oasys::UIntOpt("max_retry_interval", &params_.max_retry_interval_));
 
-    // XXX/TODO add mtu parameter to control proactive fragmentation
     int ret = p.parse_and_shift(argc, argv);
 
-    if (min_retry_interval_ == 0 || max_retry_interval_ == 0) {
+    if (params_.min_retry_interval_ == 0 ||
+        params_.max_retry_interval_ == 0)
+    {
         return -1;
     }
 

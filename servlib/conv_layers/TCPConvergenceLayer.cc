@@ -277,9 +277,11 @@ TCPConvergenceLayer::interface_down(Interface* iface)
     // then close the socket out from under it, which should cause the
     // thread to break out of the blocking call to accept() and
     // terminate itself
-    Listener* listener = static_cast<Listener*>(iface->cl_info());
+    Listener* listener = dynamic_cast<Listener*>(iface->cl_info());
+    ASSERT(listener != NULL);
+    
     listener->set_should_stop();
-
+    
     listener->interrupt_from_io();
     
     while (! listener->is_stopped()) {
@@ -358,14 +360,14 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
-    // if bundle acks are enabled, set the reliabiltiy bit in the link
+    // if bundle acks are enabled, set the reliability bit in the link
     link->set_reliable(params->bundle_ack_enabled_);
 
     // copy the retry parameters from the link itself (we need a copy
     // for ourselves to support receiver connect)
-    params->retry_interval_     = link->retry_interval_;
-    params->min_retry_interval_ = link->min_retry_interval_;
-    params->max_retry_interval_ = link->max_retry_interval_;
+    params->retry_interval_     = link->params().retry_interval_;
+    params->min_retry_interval_ = link->params().min_retry_interval_;
+    params->max_retry_interval_ = link->params().max_retry_interval_;
 
     // assert that the parameters are sane
     ASSERT(params->retry_interval_ > 0);

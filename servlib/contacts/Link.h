@@ -380,32 +380,44 @@ public:
     /**************************************************************
      * Link Parameters
      */
+    struct Params {
+        /**
+         * MTU of the link, used to control proactive fragmentation.
+         */
+        u_int mtu_;
+         
+        /**
+         * Seconds to wait between attempts to re-open an unavailable
+         * link, doubles up to max_retry_interval_.
+         */
+        u_int retry_interval_;
+
+        /**
+         * Minimum amount to wait between attempts to re-open the link.
+         *
+         * Default is set by the various Link types but can be overridden
+         * by configuration parameters.
+         */
+        u_int min_retry_interval_;
     
-    /**
-     * Seconds to wait between attempts to re-open an unavailable
-     * link, doubles up to max_retry_interval_.
-     */
-    u_int retry_interval_;
+        /**
+         * Maximum amount to wait between attempts to re-open the link.
+         *
+         * Default is set by the various Link types but can be overridden
+         * by configuration parameters.
+         */
+        u_int max_retry_interval_;
+    };
 
     /**
-     * Minimum amount to wait between attempts to re-open the link.
-     *
-     * Default is set by the various Link types but can be overridden
-     * by configuration parameters.
+     * Accessor for the parameter structure.
      */
-    u_int min_retry_interval_;
-    
-    /**
-     * Maximum amount to wait between attempts to re-open the link.
-     *
-     * Default is set by the various Link types but can be overridden
-     * by configuration parameters.
-     */
-    u_int max_retry_interval_;
+    const Params& params() { return params_; }
 
 protected:
     friend class BundleActions;
     friend class BundleDaemon;
+    friend class ParamCommand;
     
     /**
      * Open the link. Protected to make sure only the friend
@@ -435,7 +447,13 @@ protected:
 
     /// Whether or not this link is reliable
     bool reliable_;
-    
+
+    /// Parameters of the link
+    Params params_;
+
+    /// Default parameters of the link
+    static Params default_params_;
+
     /// Current contact. contact_ != null iff link is open
     ContactRef contact_;
 
