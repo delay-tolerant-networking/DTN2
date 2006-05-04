@@ -131,9 +131,7 @@ public:
     } tcpcl_header_type_t;
 
     /**
-     * Header for the start of a block of bundle data. In UDP mode,
-     * this always precedes a full bundle (or a fragment at the
-     * bundling layer).
+     * Header for the start of a block of bundle data.
      */
     struct BundleDataHeader {
         u_int32_t bundle_id;		///< bundle identifier at sender
