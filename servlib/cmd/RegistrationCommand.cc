@@ -77,6 +77,11 @@ RegistrationCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         return TCL_OK;
         
     } else if (strcmp(op, "dump_tcl") == 0) {
+        if (argc < 3) {
+            wrong_num_args(argc, argv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+        
         const RegistrationTable* regtable =
             BundleDaemon::instance()->reg_table();
         
