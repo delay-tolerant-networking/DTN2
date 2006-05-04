@@ -140,9 +140,6 @@ Registration::serialize(oasys::SerializeAction* a)
 void
 Registration::init_expiration_timer()
 {
-    // XXX/demmer need to actually store the creation time as well so
-    // the expiration time doesn't get reset every time we start up
-    
     if (expiration_ != 0) {
         struct timeval when, now;
         when.tv_sec  = creation_time_ + expiration_;
