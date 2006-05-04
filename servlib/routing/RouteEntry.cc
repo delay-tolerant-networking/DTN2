@@ -75,8 +75,9 @@ RouteEntry::parse_options(int argc, const char** argv)
     oasys::EnumOpt::Case fwdopts[] = {
         {"forward_unique", FORWARD_UNIQUE},
         {"forward_copy",   FORWARD_COPY},
+	{0, 0}
     };
-    p.addopt(new oasys::EnumOpt("action", 2, fwdopts, (int*)&action_));
+    p.addopt(new oasys::EnumOpt("action", fwdopts, (int*)&action_));
 
     num += p.parse_and_shift(argc, argv);
     return num;
