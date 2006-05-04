@@ -72,6 +72,10 @@ Registration::Registration(u_int32_t regid,
       active_(false),
       expired_(false)
 {
+    struct timeval now;
+    ::gettimeofday(&now, 0);
+    creation_time_ = now.tv_sec;
+    
     init_expiration_timer();
 }
 
@@ -85,6 +89,7 @@ Registration::Registration(const oasys::Builder&)
       failure_action_(DEFER),
       script_(),
       expiration_(0),
+      creation_time_(0),
       expiration_timer_(NULL),
       active_(false),
       expired_(false)
@@ -121,6 +126,7 @@ Registration::serialize(oasys::SerializeAction* a)
     a->process("regid", &regid_);
     a->process("action", (u_int32_t*)&failure_action_);
     a->process("script", &script_);
+    a->process("creation_time", &creation_time_);
     a->process("expiration", &expiration_);
 
     // finish constructing the object after unserialization
@@ -138,8 +144,26 @@ Registration::init_expiration_timer()
     // the expiration time doesn't get reset every time we start up
     
     if (expiration_ != 0) {
+        struct timeval when, now;
+        when.tv_sec  = creation_time_ + expiration_;
+        when.tv_usec = 0;
+
+        ::gettimeofday(&now, 0);
+
+        long int in_how_long = TIMEVAL_DIFF_MSEC(when, now);
+        if (in_how_long < 0) {
+            log_warn("scheduling IMMEDIATE expiration for registration id %d: "
+                     "[creation_time %u, expiration %u, now %u]", 
+                     regid_, creation_time_, expiration_, (u_int)now.tv_sec);
+        } else {
+            log_debug("scheduling expiration for registration id %d at %u.%u "
+                      "(in %ld seconds): ", regid_,
+                      (u_int)when.tv_sec, (u_int)when.tv_usec, in_how_long / 1000);
+        }
+        
         expiration_timer_ = new ExpirationTimer(this);
-        expiration_timer_->schedule_in(expiration_ * 1000);
+        expiration_timer_->schedule_at(&when);
+
     } else {
         set_expired(true);
     }

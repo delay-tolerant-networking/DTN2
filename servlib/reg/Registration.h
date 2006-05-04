@@ -150,6 +150,7 @@ protected:
     failure_action_t failure_action_;	
     std::string script_;
     u_int32_t expiration_;
+    u_int32_t creation_time_;
     ExpirationTimer* expiration_timer_;
     bool active_;    
     bool bound_;    
