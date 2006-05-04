@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2004 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2006 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -36,49 +36,65 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "BundleRouter.h"
-#include "RouteTable.h"
-#include "bundling/Bundle.h"
-#include "bundling/BundleActions.h"
-#include "bundling/BundleDaemon.h"
-#include "bundling/BundleList.h"
-#include "contacts/Contact.h"
-#include "reg/Registration.h"
-#include <stdlib.h>
-
-#include "NeighborhoodRouter.h"
+#include <oasys/util/OptParser.h>
+#include <oasys/util/StringBuffer.h>
+#include "RouteEntry.h"
+#include "contacts/Link.h"
 
 namespace dtn {
 
-NeighborhoodRouter::NeighborhoodRouter()
-    : TableBasedRouter("NeighborhoodRouter", "neighborhood")
+//----------------------------------------------------------------------
+RouteEntry::RouteEntry(const EndpointIDPattern& pattern, Link* link)
+    : pattern_(pattern),
+      priority_(0),
+      next_hop_(link),
+      action_(FORWARD_COPY),
+      custody_timeout_(),
+      info_(NULL)
 {
-    log_info("Initializing NeighborhoodRouter");
 }
 
-void
-NeighborhoodRouter::handle_contact_up(ContactUpEvent* event)
+//----------------------------------------------------------------------
+RouteEntry::~RouteEntry()
 {
-    TableBasedRouter::handle_contact_up(event);
+    if (info_)
+        delete info_;
+}
+
+//----------------------------------------------------------------------
+int
+RouteEntry::parse_options(int argc, const char** argv)
+{
+    int num = custody_timeout_.parse_options(argc, argv);
+    argc -= num;
     
-    log_info("Contact Up: *%p adding route", event->contact_.object());
+    oasys::OptParser p;
 
-    char eidstring[255];
-    sprintf(eidstring, "dtn://%s", event->contact_->link()->nexthop());
+    p.addopt(new oasys::UIntOpt("priority", &priority_));
 
-    // By default, we add a route for all the next hops we have around. 
-    RouteEntry* entry = new RouteEntry(EndpointIDPattern(eidstring), 
-                                       event->contact_->link());
-    entry->action_ = FORWARD_UNIQUE;
-    add_route(entry);
+    oasys::EnumOpt::Case fwdopts[] = {
+        {"forward_unique", FORWARD_UNIQUE},
+        {"forward_copy",   FORWARD_COPY},
+    };
+    p.addopt(new oasys::EnumOpt("action", 2, fwdopts, (int*)&action_));
+
+    num += p.parse_and_shift(argc, argv);
+    return num;
 }
 
+//----------------------------------------------------------------------
 void
-NeighborhoodRouter::handle_contact_down(ContactDownEvent* event)
+RouteEntry::dump(oasys::StringBuffer* buf) const
 {
-    route_table_->del_entries_for_nexthop(event->contact_->link());
-
-    TableBasedRouter::handle_contact_down(event);
+    buf->appendf("%s -> %s (%s) priority %d "
+                 "[custody timeout: base %u lifetime_pct %u limit %u]\n",
+                 pattern_.c_str(),
+                 next_hop_->name(),
+                 bundle_fwd_action_toa(action_),
+                 priority_,
+                 custody_timeout_.base_,
+                 custody_timeout_.lifetime_pct_,
+                 custody_timeout_.limit_);
 }
 
 } // namespace dtn

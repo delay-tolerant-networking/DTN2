@@ -873,9 +873,8 @@ TcaRouter::create_route(const std::string& pattern, Link* p_link)
     log_debug("TcaRouter::create_route: pattern=%s, p_link=%d",
             pattern.c_str(), int(p_link));
 
-    CustodyTimerSpec ct;
-    RouteEntry* p_entry = new RouteEntry(pattern, p_link,
-                            FORWARD_COPY, ct);
+    RouteEntry* p_entry = new RouteEntry(pattern, p_link);
+    p_entry->action_ = FORWARD_COPY;
 
     route_table_->add_entry(p_entry);
 

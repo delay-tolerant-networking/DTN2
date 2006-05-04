@@ -48,7 +48,7 @@
 #include "bundling/BundleDaemon.h"
 
 #include "routing/BundleRouter.h"
-#include "routing/RouteTable.h"
+#include "routing/RouteEntry.h"
 
 namespace dtn {
 
@@ -57,7 +57,7 @@ RouteCommand::RouteCommand()
 {
     bind_s("type", &BundleRouter::Config.type_, "static",
         "Which routing algorithm to use.");
-    add_to_help("add <dest> <link/endpoint>", "add a route");
+    add_to_help("add <dest> <link/endpoint> [opts]", "add a route");
     add_to_help("del <dest> <link/endpoint>", "delete a route");
     add_to_help("dump", "dump all of the static routes");
 }
@@ -96,19 +96,14 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        // skip over the consumed arguments to parse optional ones
+        RouteEntry* entry = new RouteEntry(dest, link);
+        
+        // skip over the consumed arguments and parse optional ones.
+        // any invalid options are shifted into argv[0]
         argc -= 4;
         argv += 4;
-        
-        CustodyTimerSpec custody_timer;
-        int num = custody_timer.parse_options(argc, argv);
-        argc -= num;
-        argv += num;
-
-        // XXX/TODO add hooks so individual routers can parse
-        // additional options
-        
-        if (argc != 0) {
+        if (argc != 0 && (entry->parse_options(argc, argv) != argc))
+        {
             resultf("invalid argument '%s'", argv[0]);
             return TCL_ERROR;
         }
@@ -119,7 +114,6 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         // appropriate semantics both in the static config file and in
         // an interactive mode
         
-        RouteEntry* entry = new RouteEntry(dest, link, FORWARD_COPY, custody_timer);
         if (BundleDaemon::instance()->started()) {
             BundleDaemon::post_and_wait(new RouteAddEvent(entry),
                                         CompletionNotifier::notifier());

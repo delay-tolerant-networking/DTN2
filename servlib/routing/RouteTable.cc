@@ -36,51 +36,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/util/StringBuffer.h>
-
 #include "RouteTable.h"
 #include "contacts/Link.h"
 
 namespace dtn {
-
-/**
- * RouteEntry constructor.
- */
-RouteEntry::RouteEntry(const EndpointIDPattern& pattern,
-                       Link* link, bundle_fwd_action_t action,
-                       const CustodyTimerSpec& custody_timeout)
-    : pattern_(pattern),
-      next_hop_(link),
-      action_(action),
-      custody_timeout_(custody_timeout),
-      info_(NULL)
-{
-}
-
-/**
- * RouteEntry destructor
- */
-RouteEntry::~RouteEntry()
-{
-    if (info_)
-        delete info_;
-}
-
-/**
- * Dump a string representation of the route entry.
- */
-void
-RouteEntry::dump(oasys::StringBuffer* buf) const
-{
-    buf->appendf("%s -> %s (%s) "
-                 "[custody timeout: base %u lifetime_pct %u limit %u]\n",
-                 pattern_.c_str(),
-                 next_hop_->name(),
-                 bundle_fwd_action_toa(action_),
-                 custody_timeout_.base_,
-                 custody_timeout_.lifetime_pct_,
-                 custody_timeout_.limit_);
-}
 
 /**
  * Constructor

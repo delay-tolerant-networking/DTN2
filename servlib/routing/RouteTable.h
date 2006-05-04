@@ -42,78 +42,9 @@
 #include <oasys/debug/Log.h>
 #include <oasys/util/StringBuffer.h>
 
-#include "bundling/BundleActions.h"
-#include "bundling/CustodyTimer.h"
-#include "naming/EndpointID.h"
+#include "RouteEntry.h"
 
 namespace dtn {
-
-class Link;
-class RouteEntryInfo;
-
-/**
- * Class to represent route table entry.
- *
- * Each entry contains an endpoint id pattern that is matched against
- * the destination address in the various bundles to determine if the
- * route entry should be used for the bundle.
- *
- * An entry also has a forwarding action type code which indicates
- * whether the bundle should be forwarded to this next hop and others
- * (FORWARD_COPY) or sent only to the given next hop (FORWARD_UNIQUE).
- * The entry also stores the custody transfer timeout parameters,
- * unique for a given route.
- *
- * There is also a pointer to either an interface or a link for each
- * entry. In case the entry contains a link, then that link will be
- * used to send the bundle. If there is no link, there must be an
- * interface. In that case, bundles which match the entry will cause
- * the router to create a new link to the given endpoint whenever a
- * bundle arrives that matches the route entry. This new link is then
- * typically added to the route table.
- */
-class RouteEntry {
-public:
-    RouteEntry(const EndpointIDPattern& pattern,
-               Link* link, bundle_fwd_action_t action,
-               const CustodyTimerSpec& custody_timeout);
-
-    ~RouteEntry();
-
-    /**
-     * Dump a string representation of the route entry.
-     */
-    void dump(oasys::StringBuffer* buf) const;
-    
-    /// The destination pattern that matches bundles
-    EndpointIDPattern pattern_;
-
-    /// Route priority
-    int priority_;
-        
-    /// Next hop link
-    Link* next_hop_;
-        
-    /// Forwarding action code 
-    bundle_fwd_action_t action_;
-
-    /// Custody timer specification
-    CustodyTimerSpec custody_timeout_;
-
-    /// Abstract pointer to any algorithm-specific state that needs to
-    /// be stored in the route entry
-    RouteEntryInfo* info_;        
-    
-    // XXX/demmer confidence? latency? capacity?
-    // XXX/demmer bit to distinguish
-    // XXX/demmer make this serializable?
-};
-
-/**
- * Typedef for a vector of route entries. Used for the route table
- * itself and for what is returned in get_matching().
- */
-typedef std::vector<RouteEntry*> RouteEntryVec;
 
 /**
  * Class that implements the routing table, implemented
@@ -189,14 +120,6 @@ public:
 protected:
     /// The routing table itself
     RouteEntryVec route_table_;
-};
-
-/**
- * Interface for any per-entry routing algorithm state.
- */
-class RouteEntryInfo {
-public:
-    virtual ~RouteEntryInfo() {}
 };
 
 } // namespace dtn

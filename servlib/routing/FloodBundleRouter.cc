@@ -177,9 +177,8 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
     ASSERT(link != NULL);
     log_info("FLOOD: LINK_CREATED *%p", event->link_);
 
-    RouteEntry* entry =
-        new RouteEntry(all_eids_, link, FORWARD_COPY, CustodyTimerSpec());
-
+    RouteEntry* entry = new RouteEntry(all_eids_, link);
+    entry->action_ = FORWARD_COPY;
     add_route(entry);
 
 //    route_table_->add_entry(entry);

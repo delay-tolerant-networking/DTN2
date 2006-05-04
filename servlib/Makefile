@@ -83,6 +83,7 @@ ROUTING_SRCS :=					\
 	routing/LinkStateGraph.cc		\
 	routing/LinkStateRouter.cc		\
 	routing/LinkScheduleEstimator.cc	\
+	routing/RouteEntry.cc			\
 	routing/RouteTable.cc			\
 	routing/TableBasedRouter.cc		\
 	routing/TcaEndpointID.cc                \
