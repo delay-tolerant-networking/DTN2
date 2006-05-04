@@ -47,10 +47,8 @@
  */
 typedef enum {
     FORWARD_INVALID = 0,///< Invalid action
-    
-    FORWARD_UNIQUE,	///< Forward the bundle only to one next hop
-    FORWARD_COPY,	///< Forward a copy of the bundle
-    FORWARD_FIRST,	///< Forward to the first of a set
+    FORWARD_UNIQUE,	///< Forward the bundle to only this next hop
+    FORWARD_COPY	///< Forward a copy of the bundle
 } bundle_fwd_action_t;
 
 inline const char*
@@ -60,7 +58,6 @@ bundle_fwd_action_toa(bundle_fwd_action_t action)
     case FORWARD_INVALID:	return "FORWARD_INVALID";
     case FORWARD_UNIQUE:	return "FORWARD_UNIQUE";
     case FORWARD_COPY:		return "FORWARD_COPY";
-    case FORWARD_FIRST:		return "FORWARD_FIRST";
     default:
         NOTREACHED;
     }
