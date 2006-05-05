@@ -44,6 +44,7 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 const char*
 Registration::failure_action_toa(failure_action_t action)
 {
@@ -56,6 +57,7 @@ Registration::failure_action_toa(failure_action_t action)
     return "__INVALID__";
 }
 
+//----------------------------------------------------------------------
 Registration::Registration(u_int32_t regid,
                            const EndpointIDPattern& endpoint,
                            failure_action_t action,
@@ -79,9 +81,7 @@ Registration::Registration(u_int32_t regid,
     init_expiration_timer();
 }
 
-/**
- * Constructor for deserialization
- */
+//----------------------------------------------------------------------
 Registration::Registration(const oasys::Builder&)
     : Logger("Registration", "/dtn/registration"),
       regid_(0),
@@ -96,29 +96,43 @@ Registration::Registration(const oasys::Builder&)
 {
 }
 
-/**
- * Destructor.
- */
+//----------------------------------------------------------------------
 Registration::~Registration()
+{
+    cleanup_expiration_timer();
+}
+
+//----------------------------------------------------------------------
+void
+Registration::force_expire()
+{
+    ASSERT(active_);
+    
+    cleanup_expiration_timer();
+    set_expired(true);
+}
+
+//----------------------------------------------------------------------
+void
+Registration::cleanup_expiration_timer()
 {
     if (expiration_timer_) {
         // try to cancel the expiration timer. if it is still pending,
-        // then we're being deleted due to a user action from either
-        // the console or a call to dtn_unregister, and the timer will
-        // clean itself up when it eventually fires. otherwise, assert
-        // that we have actually expired and delete the timer itself
+        // then the timer will clean itself up when it eventually
+        // fires. otherwise, assert that we have actually expired and
+        // delete the timer itself.
         bool pending = expiration_timer_->cancel();
-
+        
         if (! pending) {
             ASSERT(expired_);
             delete expiration_timer_;
         }
+        
+        expiration_timer_ = NULL;
     }
 }
 
-/**
- * Virtual from SerializableObject.
- */
+//----------------------------------------------------------------------
 void
 Registration::serialize(oasys::SerializeAction* a)
 {
@@ -137,6 +151,7 @@ Registration::serialize(oasys::SerializeAction* a)
     logpathf("/dtn/registration/%d", regid_);
 }
 
+//----------------------------------------------------------------------
 void
 Registration::init_expiration_timer()
 {
@@ -166,6 +181,7 @@ Registration::init_expiration_timer()
     }
 }
 
+//----------------------------------------------------------------------
 void
 Registration::ExpirationTimer::timeout(const struct timeval& now)
 {

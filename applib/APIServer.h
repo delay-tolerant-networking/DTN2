@@ -112,6 +112,8 @@ protected:
                         APIRegistration** reg, bool* sock_ready);
 
     int send_response(int ret);
+
+    bool is_bound(u_int32_t regid);
     
     char buf_[DTN_MAX_API_MSG];
     XDR xdr_encode_;

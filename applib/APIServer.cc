@@ -203,8 +203,8 @@ APIClient::handle_handshake()
     
     int ret = readall((char*)&handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
-        log_err("error reading handshake: (got %d/%u), \"error\" %s",
-                ret, (u_int)sizeof(handshake), strerror(errno));
+        log_err("error reading handshake: (got %d/%zu), \"error\" %s",
+                ret, sizeof(handshake), strerror(errno));
         return -1;
     }
 
@@ -360,7 +360,19 @@ APIClient::send_response(int ret)
     return 0;
 }
         
+//----------------------------------------------------------------------
+bool
+APIClient::is_bound(u_int32_t regid)
+{
+    APIRegistrationList::iterator iter;
+    for (iter = bindings_->begin(); iter != bindings_->end(); ++iter) {
+        if ((*iter)->regid() == regid) {
+            return true;
+        }
+    }
 
+    return false;
+}
 
 //----------------------------------------------------------------------
 int
@@ -480,6 +492,26 @@ APIClient::handle_unregister()
         return DTN_ENOTFOUND;
     }
 
+    // handle the special case in which we're unregistering a
+    // currently bound registration, in which we actually leave it
+    // around in the expired state, soit will be cleaned up when the
+    // application either calls dtn_unbind() or closes the api socket
+    if (is_bound(reg->regid()) && reg->active()) {
+        if (reg->expired()) {
+            return DTN_EINVAL;
+        }
+        
+        reg->force_expire();
+        ASSERT(reg->expired());
+        return DTN_SUCCESS;
+    }
+
+    // otherwise it's an error to call unregister on a registration
+    // that's in-use by someone else
+    if (reg->active()) {
+        return DTN_EBUSY;
+    }
+
     BundleDaemon::post_and_wait(new RegistrationRemovedEvent(reg),
                                 notifier_);
     
@@ -554,6 +586,12 @@ APIClient::handle_bind()
 
     if (api_reg->active()) {
         log_err("registration %d is already in active mode", regid);
+        return DTN_EBUSY;
+    }
+
+    // XXX/demmer fixme to allow multiple registrations
+    if (! bindings_->empty()) {
+        log_err("error: handle already bound to a registration");
         return DTN_EBUSY;
     }
     

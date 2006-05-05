@@ -126,6 +126,14 @@ public:
      */
     void serialize(oasys::SerializeAction* a);
 
+    /**
+     * Force the registration to expire immediately. This hook is used
+     * to allow applications to call unregister on a bound
+     * registration, which causes the registration to be cleaned up
+     * once the app quits.
+     */
+    void force_expire();
+
 protected:
     /**
      * Class to implement registration expirations. Note that we use
@@ -144,6 +152,7 @@ protected:
     };
 
     void init_expiration_timer();
+    void cleanup_expiration_timer();
     
     u_int32_t regid_;
     EndpointIDPattern endpoint_;

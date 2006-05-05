@@ -95,6 +95,13 @@ extern int dtn_register(dtn_handle_t handle,
 
 /**
  * Remove a dtn registration.
+ *
+ * If the registration is in the passive state (i.e. not bound to any
+ * handle), it is immediately removed from the system. If it is in
+ * active state and bound to the given handle, the removal is deferred
+ * until the handle unbinds the registration or closes. This allows
+ * applications to pre-emptively call unregister so they don't leak
+ * registrations.
  */
 extern int dtn_unregister(dtn_handle_t handle,
                           dtn_reg_id_t regid);
