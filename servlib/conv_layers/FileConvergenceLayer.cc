@@ -368,7 +368,7 @@ FileConvergenceLayer::Scanner::run()
             u_int16_t header_len = ntohs(filehdr.header_length);
             size_t bundle_len = ntohl(filehdr.bundle_length);
             
-            log_debug("found bundle file %s: header_length %zu bundle_length %zu",
+            log_debug("found bundle file %s: header_length %u bundle_length %zu",
                       path.c_str(), header_len, bundle_len);
 
             // read in and parse the headers
@@ -394,7 +394,7 @@ FileConvergenceLayer::Scanner::run()
             size_t payload_len = bundle->payload_.length();
             if (bundle_len != header_len + payload_len) {
                 log_err("error in bundle lengths in file %s: "
-                        "bundle_length %zu, header_length %zu, payload_length %zu",
+                        "bundle_length %zu, header_length %u, payload_length %zu",
                         path.c_str(), bundle_len, header_len, payload_len);
                 delete bundle;
                 continue;

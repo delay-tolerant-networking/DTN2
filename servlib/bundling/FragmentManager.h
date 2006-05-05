@@ -89,7 +89,7 @@ public:
      * @return
      *   pointer to the newly created bundle
      */
-    Bundle* create_fragment(Bundle* bundle, int offset, size_t length);
+    Bundle* create_fragment(Bundle* bundle, size_t offset, size_t length);
 
     /**
      * Turn a bundle into a fragment. Note this is used just for

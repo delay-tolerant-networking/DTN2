@@ -1239,7 +1239,7 @@ TCPConvergenceLayer::Connection::handle_ack()
 
     size_t payload_len = bundle->payload_.length();
     
-    log_debug("handle_ack: got ack length %zu for bundle id %d length %zu",
+    log_debug("handle_ack: got ack length %u for bundle id %d length %zu",
               new_acked_len, ackhdr.bundle_id, payload_len);
     
     if (ackhdr.bundle_id != bundle->bundleid_) {
@@ -1250,7 +1250,7 @@ TCPConvergenceLayer::Connection::handle_ack()
 
     if (new_acked_len < ifbundle->acked_len_ || new_acked_len > payload_len)
     {
-        log_err("handle_ack: invalid acked length %zu (acked %zu, bundle %zu)",
+        log_err("handle_ack: invalid acked length %u (acked %zu, bundle %zu)",
                 new_acked_len, ifbundle->acked_len_,
                 payload_len);
         goto protocol_error;

@@ -51,7 +51,7 @@ FragmentManager::FragmentManager()
 }
 
 Bundle* 
-FragmentManager::create_fragment(Bundle* bundle, int offset, size_t length)
+FragmentManager::create_fragment(Bundle* bundle, size_t offset, size_t length)
 {
     Bundle* fragment = new Bundle();
 
@@ -73,7 +73,7 @@ FragmentManager::create_fragment(Bundle* bundle, int offset, size_t length)
     // check for overallocated length
     if ((offset + length) > fragment->orig_length_) {
         PANIC("fragment length overrun: "
-              "orig_length %zu frag_offset %zu requested offset %zu length %zu",
+              "orig_length %u frag_offset %u requested offset %zu length %zu",
               fragment->orig_length_, fragment->frag_offset_,
               offset, length);
     }
