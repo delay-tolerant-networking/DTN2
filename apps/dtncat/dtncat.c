@@ -74,6 +74,10 @@ int bundle_count	= -1;	// # bundles to receive (-l option)
 #define DEFAULT_BUNDLE_COUNT	1
 #define FAILURE_SCRIPT ""
 
+#ifdef MIN
+#undef MIN
+#endif
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 // specified options for bundle eids
 char * arg_replyto      = NULL;
