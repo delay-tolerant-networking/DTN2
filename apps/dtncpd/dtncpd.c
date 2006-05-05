@@ -153,24 +153,34 @@ main(int argc, const char** argv)
     dtn_build_local_eid(handle, &local_eid, endpoint);
     if (debug) printf("local_eid [%s]\n", local_eid.uri);
 
-    // create a new registration based on this eid
-    memset(&reginfo, 0, sizeof(reginfo));
-    dtn_copy_eid(&reginfo.endpoint, &local_eid);
-    reginfo.failure_action = DTN_REG_DEFER;
-    reginfo.regid = DTN_REGID_NONE;
-    reginfo.expiration = 30;
-    if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
-        fprintf(stderr, "error creating registration: %d (%s)\n",
-                ret, dtn_strerror(dtn_errno(handle)));
+    // try to find an existin registration, or create a new
+    // registration based on this eid
+    ret = dtn_find_registration(handle, &local_eid, &regid);
+    if (ret == 0) {
+        if (debug) printf("dtn_find_registration succeeded, regid 0x%x\n", regid);
+
+    } else if (dtn_errno(handle) == DTN_ENOTFOUND) {
+        memset(&reginfo, 0, sizeof(reginfo));
+        dtn_copy_eid(&reginfo.endpoint, &local_eid);
+        reginfo.failure_action = DTN_REG_DEFER;
+        reginfo.regid = DTN_REGID_NONE;
+        reginfo.expiration = 60 * 60;
+        if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
+            fprintf(stderr, "error creating registration: %d (%s)\n",
+                    ret, dtn_strerror(dtn_errno(handle)));
+            exit(1);
+        }
+    
+        if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
+
+    } else {
+        fprintf(stderr, "error in dtn_find_registration: %s",
+                dtn_strerror(dtn_errno(handle)));
         exit(1);
     }
-    
-    if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     // bind the current handle to the new registration
     dtn_bind(handle, regid);
-    
-    printf("dtn_recv [%s]...\n", local_eid.uri);
     
     // loop waiting for bundles
     while(1)
@@ -183,6 +193,8 @@ main(int argc, const char** argv)
         memset(&bundle, 0, sizeof(bundle));
         memset(&payload, 0, sizeof(payload));
         
+        printf("dtn_recv [%s]...\n", local_eid.uri);
+    
         if ((ret = dtn_recv(handle, &bundle,
                             file_or_mem, &payload, -1)) < 0)
         {
