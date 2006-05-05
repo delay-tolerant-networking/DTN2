@@ -66,7 +66,7 @@ main(int argc, const char** argv)
     }
 
     size_t sz = s.size();
-    logf("/test", LOG_INFO, "marshalled size is %d", (u_int)sz);
+    logf("/test", LOG_INFO, "marshalled size is %zu", sz);
 
     u_char* buf = (u_char*)malloc(sz);
 

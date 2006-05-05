@@ -199,7 +199,7 @@ BundleList::insert_random(Bundle* b)
         location = random() % size();
     }
 
-    log_info("insert_random at %d/%d", location, size());
+    log_info("insert_random at %d/%zu", location, size());
     
     for (int i = 0; i < location; ++i) {
         ++iter;

@@ -123,8 +123,8 @@ TcaControlBundle::parse_payload(const std::string& payload, TypeCode& type,
 void
 TcaControlBundle::dump(const std::string& intro) const
 {
-    printf("%s code='%s', args=%d\n", intro.c_str(), code_.c_str(),
-                args_.size());
+    printf("%s code='%s', args=%u\n", intro.c_str(), code_.c_str(),
+           (u_int)args_.size());
     for (unsigned int i=0; i<args_.size(); ++i)
     {
         printf("    '%s'\n", args_[i].c_str());

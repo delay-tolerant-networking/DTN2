@@ -147,15 +147,15 @@ BundleDaemon::get_routing_state(oasys::StringBuffer* buf)
 void
 BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
 {
-    buf->appendf("%u pending -- "
-                 "%u custody -- "
+    buf->appendf("%zu pending -- "
+                 "%zu custody -- "
                  "%u received -- "
                  "%u delivered -- "
                  "%u generated -- "
                  "%u transmitted -- "
                  "%u expired",
-                 (u_int)pending_bundles()->size(),
-                 (u_int)custody_bundles()->size(),
+                 pending_bundles()->size(),
+                 custody_bundles()->size(),
                  bundles_received_,
                  bundles_delivered_,
                  bundles_generated_,
@@ -167,9 +167,9 @@ BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
 void
 BundleDaemon::get_daemon_stats(oasys::StringBuffer* buf)
 {
-    buf->appendf("%u pending_events -- "
+    buf->appendf("%zu pending_events -- "
                  "%u processed_events",
-                 (u_int)eventq_->size(),
+                 eventq_->size(),
                  events_processed_);
 }
 
@@ -398,13 +398,13 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     // bundle, including all options, otherwise, a more terse log
     if (log_enabled(oasys::LOG_DEBUG)) {
         oasys::StaticStringBuffer<1024> buf;
-        buf.appendf("BUNDLE_RECEIVED%s: (%u bytes recvd)\n",
-                    source_str, (u_int)event->bytes_received_);
+        buf.appendf("BUNDLE_RECEIVED%s: (%zu bytes recvd)\n",
+                    source_str, event->bytes_received_);
         bundle->format_verbose(&buf);
         log_multiline(oasys::LOG_DEBUG, buf.c_str());
     } else {
-        log_info("BUNDLE_RECEIVED%s *%p (%u bytes recvd)",
-                 source_str, bundle, (u_int)event->bytes_received_);
+        log_info("BUNDLE_RECEIVED%s *%p (%zu bytes recvd)",
+                 source_str, bundle, event->bytes_received_);
     }
     
     // log a warning if the bundle doesn't have any expiration time or
@@ -441,8 +441,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * fragmentation.
      */
     if (event->bytes_received_ != bundle->payload_.length()) {
-        log_debug("partial bundle, making reactive fragment of %u bytes",
-                  (u_int)event->bytes_received_);
+        log_debug("partial bundle, making reactive fragment of %zu bytes",
+                  event->bytes_received_);
 
         fragmentmgr_->convert_to_fragment(bundle, event->bytes_received_);
     }
@@ -492,10 +492,10 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      */
     Bundle* bundle = event->bundleref_.object();
 
-    log_info("BUNDLE_TRANSMITTED id:%d (%u bytes_sent/%u reliable) -> %s (%s)",
+    log_info("BUNDLE_TRANSMITTED id:%d (%zu bytes_sent/%zu reliable) -> %s (%s)",
              bundle->bundleid_,
-             (u_int)event->bytes_sent_,
-             (u_int)event->reliably_sent_,
+             event->bytes_sent_,
+             event->reliably_sent_,
              event->contact_->link()->name(),
              event->contact_->link()->nexthop());
 
@@ -613,8 +613,8 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
      */
     Bundle* bundle = event->bundleref_.object();
 
-    log_info("BUNDLE_DELIVERED id:%d (%u bytes) -> regid %d (%s)",
-             bundle->bundleid_, (u_int)bundle->payload_.length(),
+    log_info("BUNDLE_DELIVERED id:%d (%zu bytes) -> regid %d (%s)",
+             bundle->bundleid_, bundle->payload_.length(),
              event->registration_->regid(),
              event->registration_->endpoint().c_str());
 
@@ -1233,16 +1233,16 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
     size_t num_mappings = bundle->num_mappings();
     if (num_mappings != 1) {
         log_debug("try_delete_from_pending(*%p): not deleting because "
-                  "bundle has %u mappings",
-                  bundle, (u_int)num_mappings);
+                  "bundle has %zu mappings",
+                  bundle, num_mappings);
         return;
     }
     
     size_t num_in_flight = bundle->fwdlog_.get_count(ForwardingInfo::IN_FLIGHT);
     if (num_in_flight > 0) {
         log_debug("try_delete_from_pending(*%p): not deleting because "
-                  "bundle in flight on %u links",
-                  bundle, (u_int)num_in_flight);
+                  "bundle in flight on %zu links",
+                  bundle, num_in_flight);
         return;
     }
 

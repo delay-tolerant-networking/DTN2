@@ -759,8 +759,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
         BundleProtocol::format_headers(bundle, sndbuf_.buf(),
                                        sndbuf_.buf_len());
     if (header_len < 0) {
-        log_debug("send_bundle: bundle header too big for buffer len %d -- "
-                  "doubling size and retrying", (u_int)sndbuf_.buf_len());
+        log_debug("send_bundle: bundle header too big for buffer len %zu -- "
+                  "doubling size and retrying", sndbuf_.buf_len());
         sndbuf_.reserve(sndbuf_.buf_len() * 2);
         goto retry_headers;
     }
@@ -791,9 +791,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
     
     // send off the preamble and the headers
     log_debug("send_bundle: sending bundle id %d "
-              "tcpcl hdr len: %u, bundle header len: %u payload len: %u",
-              bundle->bundleid_, (u_int)tcphdr_len, (u_int)header_len,
-              (u_int)payload_len);
+              "tcpcl hdr len: %zu, bundle header len: %d payload len: %zu",
+              bundle->bundleid_, tcphdr_len, header_len, payload_len);
 
     int cc = sock_->writevall(iov, 2);
 
@@ -802,13 +801,13 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
         break_contact(ContactEvent::USER);
         return false;
     
-    } else if (cc != (int)tcphdr_len + header_len) {
+    } else if (cc != (int)(tcphdr_len + header_len)) {
         if (cc == 0) {
             log_err("send_bundle: remote side closed connection");
         } else {
             log_err("send_bundle: "
-                    "error sending bundle header (wrote %d/%u): %s",
-                    cc, (u_int)(tcphdr_len + header_len), strerror(errno));
+                    "error sending bundle header (wrote %d/%zu): %s",
+                    cc, (tcphdr_len + header_len), strerror(errno));
         }
 
         break_contact(ContactEvent::BROKEN);
@@ -835,8 +834,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
             usleep(params_.test_write_delay_ * 1000);
         }
     
-        log_debug("send_bundle: sending %u byte block %p",
-                  (u_int)block_len, payload_data);
+        log_debug("send_bundle: sending %zu byte block %p",
+                  block_len, payload_data);
         
         cc = sock_->writeall((char*)payload_data, block_len);
 
@@ -851,8 +850,8 @@ TCPConvergenceLayer::Connection::send_bundle(Bundle* bundle)
                 log_err("send_bundle: remote side closed connection");
             } else {
                 log_err("send_bundle: "
-                        "error sending bundle block (wrote %d/%u): %s",
-                        cc, (u_int)block_len, strerror(errno));
+                        "error sending bundle block (wrote %d/%zu): %s",
+                        cc, block_len, strerror(errno));
             }
 
             break_contact(ContactEvent::BROKEN);
@@ -918,7 +917,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     int cc;
     Bundle* bundle = new Bundle();
     BundleDataHeader datahdr;
-    int header_len;
+    size_t header_len;
     u_int64_t total_len;
     int    sdnv_len = 0;
     size_t rcvd_len = 0;
@@ -1001,8 +1000,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
     }
 
     log_debug("recv_bundle: got valid bundle header -- "
-              "sender bundle id %d, header_length %u, total_length %llu",
-              datahdr.bundle_id, (u_int)header_len, total_len);
+              "sender bundle id %d, header_length %zu, total_length %llu",
+              datahdr.bundle_id, header_len, total_len);
     rcvbuf_.consume(header_len);
 
     // all lengths have been parsed, so we can do some length
@@ -1010,8 +1009,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
     payload_len = bundle->payload_.length();
     if (total_len != header_len + payload_len) {
         log_err("recv_bundle: bundle length mismatch -- "
-                "total_len %llu, header_len %u, payload_len %u",
-                total_len, (u_int)header_len, (u_int)payload_len);
+                "total_len %llu, header_len %zu, payload_len %zu",
+                total_len, header_len, payload_len);
         delete bundle;
         return false;
     }
@@ -1047,8 +1046,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
             note_data_rcvd();
         }
         
-        log_debug("recv_bundle: got %u byte chunk, rcvd_len %u",
-                  (u_int)rcvbuf_.fullbytes(), (u_int)rcvd_len);
+        log_debug("recv_bundle: got %zu byte chunk, rcvd_len %zu",
+                  rcvbuf_.fullbytes(), rcvd_len);
         
         // append the chunk of data up to the maximum size of the
         // bundle (which may be empty) and update the amount received
@@ -1067,8 +1066,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
         // check if we've read enough to send an ack
         if (rcvd_len - acked_len > params_.partial_ack_len_) {
             log_debug("recv_bundle: "
-                      "got %u bytes acked %u, sending partial ack",
-                      (u_int)rcvd_len, (u_int)acked_len);
+                      "got %zu bytes acked %zu, sending partial ack",
+                      rcvd_len, acked_len);
             
             if (! send_ack(datahdr.bundle_id, rcvd_len)) {
                 goto done;
@@ -1104,8 +1103,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
     }
 
     log_debug("recv_bundle: "
-              "new bundle id %d arrival, payload length %u (rcvd %u)",
-              bundle->bundleid_, (u_int)payload_len, (u_int)rcvd_len);
+              "new bundle id %d arrival, payload length %zu (rcvd %zu)",
+              bundle->bundleid_, payload_len, rcvd_len);
     
     // inform the daemon that we got a valid bundle, though it may not
     // be complete (as indicated by passing the rcvd_len)
@@ -1206,9 +1205,9 @@ TCPConvergenceLayer::Connection::handle_ack()
     // now see if we got a complete ack header and at least one byte of SDNV
     if (rcvbuf_.fullbytes() < (1 + sizeof(BundleAckHeader) + 1)) {
         log_debug("handle_ack: "
-                  "not enough space in buffer (got %u, need >= %u...)",
-                  (u_int)rcvbuf_.fullbytes(),
-                  (u_int)sizeof(BundleAckHeader) + 2);
+                  "not enough space in buffer (got %zu, need >= %zu...)",
+                  rcvbuf_.fullbytes(),
+                  sizeof(BundleAckHeader) + 2);
         return ENOMEM;
     }
 
@@ -1223,9 +1222,9 @@ TCPConvergenceLayer::Connection::handle_ack()
     // XXX/demmer check for error too
     if (sdnv_len == -1) {
         log_debug("handle_ack: "
-                  "not enough space in buffer for sdnv (got %u, need >= %u...)",
-                  (u_int)rcvbuf_.fullbytes(),
-                  (u_int)sizeof(BundleAckHeader) + 2);
+                  "not enough space in buffer for sdnv (got %zu, need >= %zu...)",
+                  rcvbuf_.fullbytes(),
+                  sizeof(BundleAckHeader) + 2);
         return ENOMEM;
     }
 
@@ -1240,8 +1239,8 @@ TCPConvergenceLayer::Connection::handle_ack()
 
     size_t payload_len = bundle->payload_.length();
     
-    log_debug("handle_ack: got ack length %d for bundle id %d length %d",
-              (u_int)new_acked_len, ackhdr.bundle_id, (u_int)payload_len);
+    log_debug("handle_ack: got ack length %zu for bundle id %d length %zu",
+              new_acked_len, ackhdr.bundle_id, payload_len);
     
     if (ackhdr.bundle_id != bundle->bundleid_) {
         log_err("handle_ack: error: bundle id mismatch %d != %d",
@@ -1251,9 +1250,9 @@ TCPConvergenceLayer::Connection::handle_ack()
 
     if (new_acked_len < ifbundle->acked_len_ || new_acked_len > payload_len)
     {
-        log_err("handle_ack: invalid acked length %u (acked %u, bundle %u)",
-                (u_int)new_acked_len, (u_int)ifbundle->acked_len_,
-                (u_int)payload_len);
+        log_err("handle_ack: invalid acked length %zu (acked %zu, bundle %zu)",
+                new_acked_len, ifbundle->acked_len_,
+                payload_len);
         goto protocol_error;
     }
 
@@ -1305,8 +1304,8 @@ TCPConvergenceLayer::Connection::send_contact_header()
     
     int cc = sock_->writeall((char*)&contacthdr, sizeof(ContactHeader));
     if (cc != sizeof(ContactHeader)) {
-        log_err("error writing contact header (wrote %d/%u): %s",
-                cc, (u_int)sizeof(ContactHeader), strerror(errno));
+        log_err("error writing contact header (wrote %d/%zu): %s",
+                cc, sizeof(ContactHeader), strerror(errno));
         return false;
     }
 
@@ -1335,8 +1334,8 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
     }
     
     if (cc != sizeof(ContactHeader)) {
-        log_err("error reading contact header (read %d/%u): %d-%s", 
-                cc, (u_int)sizeof(ContactHeader), 
+        log_err("error reading contact header (read %d/%zu): %d-%s", 
+                cc, sizeof(ContactHeader), 
                 errno, strerror(errno));
         return false;
     }
@@ -1424,8 +1423,8 @@ TCPConvergenceLayer::Connection::send_address()
 
     int cc = sock_->writeall((char*)&addresshdr, sizeof(AddressHeader));
     if (cc != sizeof(AddressHeader)) {
-        log_err("error writing address header (wrote %d/%u): %s",
-                cc, (u_int)sizeof(AddressHeader), strerror(errno));
+        log_err("error writing address header (wrote %d/%zu): %s",
+                cc, sizeof(AddressHeader), strerror(errno));
         return false;
     }
     
@@ -1456,8 +1455,8 @@ TCPConvergenceLayer::Connection::recv_address(int timeout)
     }
 
     if (cc != sizeof(AddressHeader)) {
-        log_err("error reading address header (read %d/%u): %s",
-                cc, (u_int)sizeof(AddressHeader), strerror(errno));
+        log_err("error reading address header (read %d/%zu): %s",
+                cc, sizeof(AddressHeader), strerror(errno));
         return false;
     }
 
@@ -1718,7 +1717,7 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
         }
 
         if (queue_->size() > 0) {
-            log_warn("%u bundles still in queue", (u_int)queue_->size());
+            log_warn("%zu bundles still in queue", queue_->size());
 
             while (queue_->size() > 0) {
                 BundleRef bundle("TCPCL::break_contact temporary");

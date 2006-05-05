@@ -159,8 +159,8 @@ LinkStateGraph::removeEdge(Edge* e)
 LinkStateGraph::Vertex *
 LinkStateGraph::getMatchingVertex(const char* eid) {
 
-    log_info("getMatchingVertex has %u vertices.",
-             (u_int)vertices_.size());
+    log_info("getMatchingVertex has %zu vertices.",
+             vertices_.size());
     
     for(set<Vertex*>::iterator iter=vertices_.begin();iter!=vertices_.end();iter++)
     {

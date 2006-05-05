@@ -98,8 +98,8 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
 //      * fragmentation in the forwarder?
 //      */
 //     if (event->bytes_received_ != bundle->payload_.length()) {
-//         log_info("XXX: PARTIAL bundle:%d, making fragment of %d bytes",
-//                   bundle->bundleid_, (u_int)event->bytes_received_);
+//         log_info("XXX: PARTIAL bundle:%d, making fragment of %zu bytes",
+//                   bundle->bundleid_, event->bytes_received_);
 //         BundleDaemon::instance()->fragmentmgr()->
 //             convert_to_fragment(bundle, event->bytes_received_);
 //     }
@@ -122,8 +122,8 @@ FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
 //     for (iter = pending_bundles_->begin(); 
 //          iter != pending_bundles_->end(); ++iter) {
 //         iter_bundle = *iter;
-//         log_info("pending_bundle:%d size:%d",
-//                  iter_bundle->bundleid_, (u_int)iter_bundle->payload_.length());
+//         log_info("pending_bundle:%d size:%zu",
+//                  iter_bundle->bundleid_, iter_bundle->payload_.length());
 
 //         if (iter_bundle->bundleid_ == bundle->bundleid_) {
 //             //delete the bundle

@@ -79,16 +79,16 @@ LoggingRegistration::deliver_bundle(Bundle* b)
     const u_char* data = b->payload_.read_data(0, len, payload_buf);
 
     if (oasys::str_isascii(data, len)) {
-        log_always("        payload (ascii): length %u '%.*s'",
-                 (u_int)payload_len, (int)len, data);
+        log_always("        payload (ascii): length %zu '%.*s'",
+                   payload_len, (int)len, data);
     } else {
         std::string hex;
         oasys::hex2str(&hex, data, len);
         len *= 2;
         if (len > 128)
             len = 128;
-        log_always("        payload (binary): length %u %.*s",
-                 (u_int)payload_len, (int)len, hex.data());
+        log_always("        payload (binary): length %zu %.*s",
+                 payload_len, (int)len, hex.data());
     }
 
     // post the transmitted event

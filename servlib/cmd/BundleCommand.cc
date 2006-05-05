@@ -222,15 +222,15 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             BundleDaemon::instance()->pending_bundles();
         
         oasys::ScopeLock l(pending->lock(), "BundleCommand::exec");
-        buf.appendf("Currently Pending Bundles (%u): \n", (u_int)pending->size());
+        buf.appendf("Currently Pending Bundles (%zu): \n", pending->size());
     
         for (iter = pending->begin(); iter != pending->end(); ++iter) {
             b = *iter;
-            buf.appendf("\t%-3d: %s -> %s length %u\n",
+            buf.appendf("\t%-3d: %s -> %s length %zu\n",
                         b->bundleid_,
                         b->source_.c_str(),
                         b->dest_.c_str(),
-                        (u_int)b->payload_.length());
+                        b->payload_.length());
         }
         
         set_result(buf.c_str());

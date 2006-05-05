@@ -220,7 +220,7 @@ TcaRegistry::init_addrs()
             
     if (dht_addrs_.size() == 0) return false;
 
-    printf("...dht nodes available = %d / %d\n",
+    printf("...dht nodes available = %zu / %zu\n",
            dht_addrs_.size(), dht_nodes_.size());
     return true;
 }

@@ -147,7 +147,7 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("              dest: %s\n", dest_.c_str());
     buf->appendf("         custodian: %s\n", custodian_.c_str());
     buf->appendf("           replyto: %s\n", replyto_.c_str());
-    buf->appendf("    payload_length: %u\n", (u_int)payload_.length());
+    buf->appendf("    payload_length: %zu\n", payload_.length());
     buf->appendf("          priority: %d\n", priority_);
     buf->appendf(" custody_requested: %s\n", bool_to_str(custody_requested_));
     buf->appendf("     local_custody: %s\n", bool_to_str(local_custody_));
@@ -242,9 +242,9 @@ Bundle::add_ref(const char* what1, const char* what2)
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
     log_debug("/dtn/bundle/refs",
-              "bundle id %d (%p): refcount %d -> %d (%u mappings) add %s %s",
+              "bundle id %d (%p): refcount %d -> %d (%zu mappings) add %s %s",
               bundleid_, this, refcount_ - 1, refcount_,
-              (u_int)mappings_.size(), what1, what2);
+              mappings_.size(), what1, what2);
     return ret;
 }
 
@@ -259,9 +259,9 @@ Bundle::del_ref(const char* what1, const char* what2)
     
     int ret = --refcount_;
     log_debug("/dtn/bundle/refs",
-              "bundle id %d (%p): refcount %d -> %d (%u mappings) del %s %s",
+              "bundle id %d (%p): refcount %d -> %d (%zu mappings) del %s %s",
               bundleid_, this, refcount_ + 1, refcount_,
-              (u_int)mappings_.size(), what1, what2);
+              mappings_.size(), what1, what2);
     
     if (refcount_ != 0) {
         return ret;

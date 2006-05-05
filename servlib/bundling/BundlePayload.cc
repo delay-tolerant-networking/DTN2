@@ -273,14 +273,14 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
         // that should cover it all
         else {
             PANIC("unexpected case in internal_write: "
-                  "data.length=%u offset=%u len=%u",
-                  (u_int)data_.length(), (u_int)offset, (u_int)len);
+                  "data.length=%zu offset=%zu len=%zu",
+                  data_.length(), offset, len);
         }
 
         // sanity check
         ASSERTF(data_.length() >= offset + len,
-                "length=%u offset=%u len=%u",
-                (u_int)data_.length(), (u_int)offset, (u_int)len);
+                "length=%zu offset=%zu len=%zu",
+                data_.length(), offset, len);
     }
     
     // check if we need to seek
@@ -361,9 +361,9 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
 {
     oasys::ScopeLock l(lock_, "BundlePayload::write_data");
 
-    log_debug("write_data: file=%s length_=%u src_offset=%u dst_offset=%u len %u",
+    log_debug("write_data: file=%s length_=%zu src_offset=%zu dst_offset=%zu len %zu",
               file_->path(),
-              (u_int)length_, (u_int)src_offset, (u_int)dst_offset, (u_int)len);
+              length_, src_offset, dst_offset, len);
 
     ASSERT(length_       >= dst_offset + len);
     ASSERT(src->length() >= src_offset + len);
@@ -391,12 +391,12 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf, int flags)
     oasys::ScopeLock l(lock_, "BundlePayload::read_data");
     
     ASSERTF(length_ >= (offset + len),
-            "length=%u offset=%u len=%u",
-            (u_int)length_, (u_int)offset, (u_int)len);
+            "length=%zu offset=%zu len=%zu",
+            length_, offset, len);
 
     ASSERTF(rcvd_length_ >= (offset + len),
-            "rcvd_length=%u offset=%u len=%u",
-            (u_int)rcvd_length_, (u_int)offset, (u_int)len);
+            "rcvd_length=%zu offset=%zu len=%zu",
+            rcvd_length_, offset, len);
     
     if (location_ == MEMORY) {
         if (flags & FORCE_COPY) {

@@ -221,7 +221,7 @@ RouteTable::get_matching(const EndpointID& eid, Link* next_hop,
         }
     }
 
-    log_debug("get_matching %s done, %u match(es)", eid.c_str(), (u_int)count);
+    log_debug("get_matching %s done, %zu match(es)", eid.c_str(), count);
     return count;
 }
 

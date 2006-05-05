@@ -104,7 +104,7 @@ static void
 log_controlbundle(const TcaControlBundle& cb)
 {
     log_debug("/dtn/tca", "    code='%s', args=%d",
-              cb.code_.c_str(), cb.args_.size());
+              cb.code_.c_str(), (u_int)cb.args_.size());
     for (unsigned int i=0; i<cb.args_.size(); ++i)
     {
         log_debug("/dtn/tca", "        '%s'", cb.args_[i].c_str());

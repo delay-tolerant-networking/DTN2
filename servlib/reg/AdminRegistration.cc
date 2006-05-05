@@ -66,7 +66,7 @@ AdminRegistration::deliver_bundle(Bundle* bundle)
     const u_char* payload_buf = 
         bundle->payload_.read_data(0, payload_len, scratch.buf(payload_len));
     
-    log_debug("got %u byte bundle", (u_int)payload_len);
+    log_debug("got %zu byte bundle", payload_len);
         
     if (payload_len == 0) {
         log_err("admin registration got 0 byte bundle *%p", bundle);

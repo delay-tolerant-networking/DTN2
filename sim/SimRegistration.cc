@@ -62,10 +62,10 @@ SimRegistration::deliver_bundle(Bundle* bundle)
 {
     size_t payload_len = bundle->payload_.length();
 
-    log_info("N[%s]: RCV id:%d %s -> %s size:%d",
+    log_info("N[%s]: RCV id:%d %s -> %s size:%zu",
              node_->name(), bundle->bundleid_,
              bundle->source_.c_str(), bundle->dest_.c_str(),
-             (u_int)payload_len);
+             payload_len);
 
     BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
 

@@ -374,8 +374,8 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 
     if (len != header_len + payload_len) {
         log_err("process_data: error in bundle lengths: "
-                "bundle_length %u, header_length %u, payload_length %u",
-                (u_int)len, (u_int)header_len, (u_int)payload_len);
+                "bundle_length %zu, header_length %d, payload_length %zu",
+                len, header_len, payload_len);
         delete bundle;
         return;
     }
@@ -383,8 +383,8 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     // store the payload and notify the daemon
     bundle->payload_.set_data(bp + header_len, payload_len);
     
-    log_debug("process_data: new bundle id %d arrival, payload length %u",
-	      bundle->bundleid_, (u_int)bundle->payload_.length());
+    log_debug("process_data: new bundle id %d arrival, payload length %zu",
+	      bundle->bundleid_, bundle->payload_.length());
     
     BundleDaemon::post(
         new BundleReceivedEvent(bundle, EVENTSRC_PEER, payload_len));
@@ -446,8 +446,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     // stuff in the bundle headers
     header_len = BundleProtocol::format_headers(bundle, buf_, sizeof(buf_));
     if (header_len < 0) {
-        log_err("send_bundle: bundle header too big for buffer (len %u)",
-                (u_int)sizeof(buf_));
+        log_err("send_bundle: bundle header too big for buffer (len %zu)",
+                sizeof(buf_));
         return false;
     }
 
@@ -455,8 +455,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     // XXX/demmer maybe we need to fragment here? or return an MTU for
     // the higher layer
     if (payload_len > (sizeof(buf_) - header_len)) {
-        log_err("send_bundle: bundle payload + headers (length %u) too big",
-                (u_int)(header_len + payload_len));
+        log_err("send_bundle: bundle payload + headers (length %zu) too big",
+                header_len + payload_len);
         return false;
     }
 
@@ -474,8 +474,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
                                        0));
         ok = true;
     } else {
-        log_err("send_bundle: error sending bundle (wrote %d/%u): %s",
-                cc, (u_int)(header_len + payload_len), strerror(errno));
+        log_err("send_bundle: error sending bundle (wrote %d/%zu): %s",
+                cc, (header_len + payload_len), strerror(errno));
         ok = false;
     }
 
