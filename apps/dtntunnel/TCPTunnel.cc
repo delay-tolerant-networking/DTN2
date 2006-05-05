@@ -115,7 +115,7 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
 {
     oasys::ScopeLock l(&lock_, "TCPTunnel::handle_bundle");
 
-    log_debug("handle_bundle got %d byte bundle", bundle->payload_.len());
+    log_debug("handle_bundle got %zu byte bundle", bundle->payload_.len());
     
     DTNTunnel::BundleHeader hdr;
     memcpy(&hdr, bundle->payload_.buf(), sizeof(hdr));
@@ -372,7 +372,7 @@ TCPTunnel::Connection::handle_bundle(dtn::APIBundle* bundle)
     }
 
     // deliver the one that just arrived
-    log_info("delivering %d byte bundle with seqno %d",
+    log_info("delivering %zu byte bundle with seqno %d",
              bundle->payload_.len(), recv_seqno);
     queue_.push_back(bundle);
     next_seqno_++;
@@ -387,7 +387,7 @@ TCPTunnel::Connection::handle_bundle(dtn::APIBundle* bundle)
         }
 
         bundle = iter->second;
-        log_info("delivering %d byte bundle with seqno %d (from reorder table)",
+        log_info("delivering %zu byte bundle with seqno %d (from reorder table)",
                  bundle->payload_.len(), next_seqno_);
         
         reorder_table_.erase(iter);

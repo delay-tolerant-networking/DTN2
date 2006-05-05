@@ -77,7 +77,7 @@ UDPTunnel::handle_bundle(dtn::APIBundle* bundle)
         log_err("error sending packet to %s:%d: %s",
                 intoa(hdr.remote_addr_), hdr.remote_port_, strerror(errno));
     } else {
-        log_info("sent %d byte packet to %s:%d",
+        log_info("sent %zu byte packet to %s:%d",
                  bundle->payload_.len() - sizeof(hdr),
                  intoa(hdr.remote_addr_), hdr.remote_port_);
     }

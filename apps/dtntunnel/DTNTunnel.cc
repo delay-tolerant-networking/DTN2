@@ -315,8 +315,7 @@ DTNTunnel::send_bundle(dtn::APIBundle* bundle, dtn_endpoint_id_t* dest_eid)
         return err;
     }
 
-    log_info("sent %d byte bundle",
-             bundle->payload_.len());
+    log_info("sent %zu byte bundle", bundle->payload_.len());
 
     return DTN_SUCCESS;
 }
