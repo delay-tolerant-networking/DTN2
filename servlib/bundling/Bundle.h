@@ -247,7 +247,6 @@ public:
     oasys::SpinLock lock_;	///< Lock for bundle data that can be
                                 ///  updated by multiple threads
     bool in_datastore_;		///< Is the bundle in the persistent store
-    bool is_reactive_fragment_; ///< Reactive fragmentary bundle
     bool local_custody_;	///< Local node has custody
     std::string owner_;         ///< Declared router that "owns" this
                                 ///  bundle, which could be empty

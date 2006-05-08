@@ -45,11 +45,13 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 FragmentManager::FragmentManager()
     : Logger("FragmentManager", "/dtn/bundle/fragmentation")
 {
 }
 
+//----------------------------------------------------------------------
 Bundle* 
 FragmentManager::create_fragment(Bundle* bundle, size_t offset, size_t length)
 {
@@ -87,6 +89,7 @@ FragmentManager::create_fragment(Bundle* bundle, size_t offset, size_t length)
     return fragment;
 }
 
+//----------------------------------------------------------------------
 void
 FragmentManager::convert_to_fragment(Bundle* bundle, size_t length)
 {
@@ -106,6 +109,7 @@ FragmentManager::convert_to_fragment(Bundle* bundle, size_t length)
     bundle->payload_.truncate(length);
 }
 
+//----------------------------------------------------------------------
 void
 FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
 {
@@ -119,9 +123,7 @@ FragmentManager::get_hash_key(const Bundle* bundle, std::string* key)
     key->append(bundle->dest_.c_str());
 }
 
-/**
- * Reassembly state structure.
- */
+//----------------------------------------------------------------------
 bool
 FragmentManager::check_completed(ReassemblyState* state)
 {
@@ -229,6 +231,7 @@ FragmentManager::check_completed(ReassemblyState* state)
     }
 }
 
+//----------------------------------------------------------------------
 int
 FragmentManager::proactively_fragment(Bundle* bundle, size_t max_length)
 {
@@ -271,13 +274,7 @@ FragmentManager::proactively_fragment(Bundle* bundle, size_t max_length)
     return count;
 }
 
-
-/**
- * If only part of the given bundle was sent successfully, create
- * a new fragment for the unsent portion.
- *
- * Return true if a fragment was created
- */
+//----------------------------------------------------------------------
 bool
 FragmentManager::try_to_reactively_fragment(Bundle* bundle, size_t bytes_sent)
 {
@@ -297,9 +294,6 @@ FragmentManager::try_to_reactively_fragment(Bundle* bundle, size_t bytes_sent)
     Bundle* tail = create_fragment(bundle, frag_off, frag_len);
     bundle->payload_.close_file();
 
-    // XXX/demmer temp to put it on the head of the contact list
-    tail->is_reactive_fragment_ = true;
-
     // treat the new fragment as if it just arrived
     BundleDaemon::post_at_head(
         new BundleReceivedEvent(tail, EVENTSRC_FRAGMENTATION, frag_len));
@@ -307,7 +301,7 @@ FragmentManager::try_to_reactively_fragment(Bundle* bundle, size_t bytes_sent)
     return true;
 }
 
-
+//----------------------------------------------------------------------
 void
 FragmentManager::process_for_reassembly(Bundle* fragment)
 {

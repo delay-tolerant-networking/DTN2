@@ -56,7 +56,6 @@ Bundle::init(u_int32_t id)
     is_fragment_	= false;
     is_admin_		= false;
     do_not_fragment_	= false;
-    is_reactive_fragment_ = false;
     in_datastore_       = false;
     custody_requested_	= false;
     local_custody_      = false;
@@ -154,8 +153,6 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("       is_fragment: %s\n", bool_to_str(is_fragment_));
     buf->appendf("          is_admin: %s\n", bool_to_str(is_admin_));
     buf->appendf("   do_not_fragment: %s\n", bool_to_str(do_not_fragment_));
-    buf->appendf("  is_reactive_frag: %s\n",
-                                    bool_to_str(is_reactive_fragment_));
     buf->appendf("       orig_length: %d\n", orig_length_);
     buf->appendf("       frag_offset: %d\n", frag_offset_);
 }
