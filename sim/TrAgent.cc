@@ -116,7 +116,9 @@ TrAgent::process(SimEvent* e)
 void
 TrAgent::send_bundle()
 {
-    Bundle* b = new Bundle(node_->next_bundleid(), BundlePayload::NODATA);
+    Bundle* b = new Bundle(oasys::Builder::builder());
+    b->bundleid_ = node_->next_bundleid();
+    b->payload_.init(b->bundleid_, BundlePayload::NODATA);
 
     b->source_.assign(src_);
     b->replyto_.assign(src_);
