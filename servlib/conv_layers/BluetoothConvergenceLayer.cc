@@ -62,6 +62,7 @@ BluetoothConvergenceLayer::BluetoothConvergenceLayer() :
     defaults_.min_retry_interval_ = 5;
     defaults_.max_retry_interval_ = 10 * 60;
     defaults_.rtt_timeout_        = 30000;  // msecs
+    defaults_.neighbor_poll_interval_ = 0; // no polling
 }
 
 /**
@@ -88,6 +89,8 @@ BluetoothConvergenceLayer::parse_params(Params* params, int argc, const char** a
     p.addopt(new oasys::UIntOpt("max_retry_interval",
                                 &params->max_retry_interval_));
     p.addopt(new oasys::UIntOpt("rtt_timeout", &params->rtt_timeout_));
+    p.addopt(new oasys::UIntOpt("neighbor_poll_interval",
+                                &params->neighbor_poll_interval_));
 
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -141,6 +144,14 @@ BluetoothConvergenceLayer::interface_up(Interface* iface,
 
     receiver->start();
 
+    // scan for neighbors
+    if (params.neighbor_poll_interval_ > 0) {
+        log_debug("Starting up neighbor polling with interval=%d",
+                  params.neighbor_poll_interval_);
+        receiver->nd_ = new NeighborDiscovery(params.neighbor_poll_interval_);
+        receiver->nd_->start();
+    }
+
     // store the new listener object in the cl specific portion of the
     // interface
     iface->set_cl_info(receiver);
@@ -167,6 +178,16 @@ BluetoothConvergenceLayer::interface_down(Interface* iface)
     }
     receiver->close();
 
+    if (receiver->nd_ != NULL) {
+        receiver->nd_->set_should_stop();
+        receiver->nd_->interrupt();
+        while (! receiver->nd_->is_stopped()) {
+            oasys::Thread::yield();
+        }
+        delete receiver->nd_;
+        receiver->nd_ = NULL;
+    }
+
     bool res = connections_.del_listener(receiver);
     delete receiver;
     return res;
@@ -186,12 +207,13 @@ BluetoothConvergenceLayer::dump_interface(Interface* iface,
                  oasys::Bluetooth::batostr(&params->local_addr_,buff),
                  params->hcidev_.c_str());
 
-    if (bacmp(&params->remote_addr_,BDADDR_ANY) != 0) {
+    if (bacmp(&params->remote_addr_,BDADDR_ANY) != 0)
         buf->appendf("\tremote_addr: %s\n",
                      oasys::Bluetooth::batostr(&params->remote_addr_,buff));
-    } else {
-        buf->appendf("\tno remote_addr specified\n");
-    }
+
+    if (params->neighbor_poll_interval_ >= 0) 
+        buf->appendf("\tneighbor_poll_interval: %d\n",
+                     params->neighbor_poll_interval_);
 }
 
 /**
@@ -241,9 +263,9 @@ BluetoothConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     }
 
     // copy the retry parameters from the link itself
-    params->retry_interval_     = link->retry_interval_;
-    params->min_retry_interval_ = link->min_retry_interval_;
-    params->max_retry_interval_ = link->max_retry_interval_;
+    params->retry_interval_     = link->params().retry_interval_;
+    params->min_retry_interval_ = link->params().min_retry_interval_;
+    params->max_retry_interval_ = link->params().max_retry_interval_;
 
     link->set_cl_info(params);
 
@@ -526,6 +548,7 @@ BluetoothConvergenceLayer::Listener::Listener(BluetoothConvergenceLayer* cl,
     set_accept_timeout(1000);
 
     logfd_  = false;
+    nd_ = NULL;
 }
 
 void
@@ -1781,6 +1804,61 @@ shutdown:
             goto shutdown;
         }
     }
+}
+
+void
+BluetoothConvergenceLayer::NeighborDiscovery::run()
+{ 
+    char buff[18]; // used by oasys::batostr
+
+    if (poll_interval_ < 0) {
+        return;
+    }
+
+    // register DTN service with local SDP daemon
+    oasys::BluetoothServiceRegistration sdp_reg;
+    if (sdp_reg.success() == false) {
+        log_err("SDP registration failed");
+        return;
+    }
+
+    //XXX/jwilson timeout should probably be randomized to avoid
+    //   inquiry synchronization/syncopation
+
+    // loop forever (until interrupted)
+    while (notifier_->wait(NULL,poll_interval_) == false) {
+
+        // initiate inquiry on local Bluetooth controller
+        int nr = inquire(); // blocks until inquiry process completes
+
+        if (should_stop()) break;
+
+        if (nr < 0) {
+            log_debug("no Bluetooth devices in range");
+            continue;
+        }
+
+        // enumerate any remote Bluetooth adapters in range
+        oasys::BluetoothInquiryInfo bii;
+        while (next(bii) != -1) {
+
+            // query SDP daemon on remote host for DTN's registration
+            oasys::BluetoothServiceDiscoveryClient sdpclient;
+            if (sdpclient.is_dtn_router(bii.addr_)) {
+                // this is where you hand off something intelligent to the CL
+                log_info("DTN router present on %s",
+                         oasys::Bluetooth::batostr(&bii.addr_,buff));
+            }
+            if (should_stop()) break;
+        }
+        if (should_stop()) break;
+
+        // flush results of previous inquiry
+        reset();
+    }
+
+    // interrupted! unregister
+    log_info("Bluetooth inquiry interrupted by user");
 }
 
 } // namespace dtn

@@ -6,6 +6,8 @@
 
 #include <oasys/bluez/RFCOMMClient.h>
 #include <oasys/bluez/RFCOMMServer.h>
+#include <oasys/bluez/BluetoothSDP.h>
+#include <oasys/bluez/BluetoothInquiry.h>
 #include <oasys/util/Options.h>
 
 #include <set>
@@ -140,6 +142,7 @@ public:
         BUNDLE_ACK  = 0x2,  ///< bundle acknowledgment
         KEEPALIVE   = 0x3,  ///< keepalive packet
         SHUTDOWN    = 0x4,  ///< indicates sending side will close connection
+        ANNOUNCE    = 0x5,  ///< beacon bundle for neighbor discovery
     } btcl_header_type_t;
 
     /**
@@ -156,6 +159,14 @@ public:
     struct BundleAckHeader {
         u_int32_t bundle_id;       ///< identical to BundleStartHeader
         u_int32_t acked_length;    ///< total length received
+    } __attribute__((packed));
+
+    /**
+     * Header for announcement (beacon) bundle.
+     */
+    struct AnnounceBundleHeader {
+        u_int32_t eid_size; ///< size of EID to follow
+        u_char    eid[0];   ///< EID
     } __attribute__((packed));
 
     /**
@@ -184,12 +195,14 @@ public:
         u_int max_retry_interval_; ///< (copied from Link params)
         u_int16_t idle_close_time; ///< Seconds of idle time before close
         u_int rtt_timeout_;        ///< Msecs to wait for data
+        u_int neighbor_poll_interval_; ///< Seconds between polling 
     };
 
 protected:
     // forward declarations;
     class Listener;
     class Connection;
+    class NeighborDiscovery;
 
 public:
     /**
@@ -284,6 +297,8 @@ protected:
         void accepted(int fd, bdaddr_t addr, u_int8_t channel); 
 
         BluetoothConvergenceLayer::Params params_;
+
+        NeighborDiscovery* nd_;
 
     protected:
         friend class Connection;
@@ -404,8 +419,52 @@ protected:
 
         struct timeval data_rcvd_;      ///< Timestamp for idle timer
         struct timeval keepalive_sent_; ///< Timestamp for keepalive timer
-    };
-};
+    }; // Listener
+
+    class NeighborDiscovery : public oasys::BluetoothInquiry,
+                              public oasys::Thread
+    {
+    public:
+        //XXX/jwilson expose more tunable parameters to CL
+        // -- see base class BluetoothInquiry for details
+        // -- eg, 
+        //     * pass in local_addr to bind SDP registration
+        //     * pass in hci_dev for inquiry
+        //     * perhaps just pass in Params?
+        NeighborDiscovery(int poll_interval = 30,
+                                   const char* logpath = "/dtn/bt/cl/neighbordiscovery") :
+            Thread("NeighborDiscovery")
+        {
+            poll_interval_ = poll_interval;
+            Thread::set_flag(Thread::INTERRUPTABLE);
+            notifier_ = new oasys::Notifier(logpath);
+        }
+        ~NeighborDiscovery() {
+            delete notifier_;
+        }
+
+        int poll_interval() {
+            return poll_interval_;
+        }
+
+        // -1 indicates no polling, 0 indicates no waiting
+        void poll_interval(int poll_int) {
+            poll_interval_ = poll_int;
+        }
+
+        void interrupt() {
+            notifier_->notify();
+        }
+
+    protected:
+        void run();
+
+        int poll_interval_; ///< seconds between neighbor discovery polling
+        oasys::Notifier* notifier_;
+
+    }; // NeighborDiscovery
+
+}; // BluetoothConvergenceLayer
 
 } // namespace dtn
 
