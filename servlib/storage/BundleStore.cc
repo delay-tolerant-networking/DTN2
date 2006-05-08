@@ -110,6 +110,7 @@ BundleStore::get(u_int32_t bundle_id)
 
     ASSERT(bundle != NULL);
     ASSERT(bundle->bundleid_ == bundle_id);
+    bundle->in_datastore_ = true;
     bundle->payload_.init_from_store(bundle_id);
     return bundle;
 }

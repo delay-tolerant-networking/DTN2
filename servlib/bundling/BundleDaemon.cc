@@ -448,6 +448,33 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
 
     /*
+     * Check if the bundle is a duplicate, i.e. shares a source id and
+     * timestamp with some other bundle in the system.
+     */
+    Bundle* duplicate = find_duplicate(bundle);
+    if (duplicate != NULL) {
+        log_notice("got duplicate bundle: %s -> %s creation %u.%u",
+                   bundle->source_.c_str(),
+                   bundle->dest_.c_str(),
+                   (u_int)bundle->creation_ts_.tv_sec,
+                   (u_int)bundle->creation_ts_.tv_usec);
+        
+        if (bundle->custody_requested_ && duplicate->local_custody_)
+        {
+            generate_custody_signal(bundle, false,
+                                    BundleProtocol::CUSTODY_REDUNDANT_RECEPTION);
+        }
+
+        // since we don't want the bundle to be processed by the rest
+        // of the system, we mark the event as daemon_only (meaning it
+        // won't be forwarded to routers) and return, which should
+        // eventually remove all references on the bundle and then it
+        // will be deleted
+        event->daemon_only_ = true;
+        return;
+    }
+    
+    /*
      * Add the bundle to the master pending queue and the data store
      * (unless the bundle was just reread from the data store on startup)
      */
@@ -981,11 +1008,12 @@ BundleDaemon::handle_route_del(RouteDelEvent* event)
 void
 BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
 {
-    log_info("CUSTODY_SIGNAL: %s %u.%u %s",
+    log_info("CUSTODY_SIGNAL: %s %u.%u %s (%s)",
              event->data_.orig_source_eid_.c_str(),
              (u_int)event->data_.orig_creation_tv_.tv_sec,
              (u_int)event->data_.orig_creation_tv_.tv_usec,
-             event->data_.succeeded_ ? "succeeded" : "failed");
+             event->data_.succeeded_ ? "succeeded" : "failed",
+             CustodySignal::reason_to_str(event->data_.reason_));
 
     BundleRef orig_bundle =
         custody_bundles_->find(event->data_.orig_source_eid_,
@@ -999,8 +1027,23 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
                  (u_int)event->data_.orig_creation_tv_.tv_usec);
         return;
     }
+
+    // release custody if either the signal succeded or if it
+    // (paradoxically) failed due to duplicate transmission
+    bool release = event->data_.succeeded_;
+    if ((event->data_.succeeded_ == false) &&
+        (event->data_.reason_ == BundleProtocol::CUSTODY_REDUNDANT_RECEPTION))
+    {
+        log_notice("releasing custody for bundle %s %u.%u "
+                   "due to redundant reception",
+                   event->data_.orig_source_eid_.c_str(),
+                   (u_int)event->data_.orig_creation_tv_.tv_sec,
+                   (u_int)event->data_.orig_creation_tv_.tv_usec);
+        
+        release = true;
+    }
     
-    if (event->data_.succeeded_) {
+    if (release) {
         release_custody(orig_bundle.object());
         try_delete_from_pending(orig_bundle.object());
     }
@@ -1124,6 +1167,7 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     pending_bundles_->push_back(bundle);
     
     if (add_to_store) {
+        bundle->in_datastore_ = true;
         actions_->store_add(bundle);
     }
 
@@ -1181,7 +1225,10 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
         }
     }
 
-    if (pending_bundles_->erase(bundle)) {
+    bool erased = pending_bundles_->erase(bundle);
+
+    if (erased) {
+        
         if (bundle->deletion_rcpt_ &&
             (reason != BundleProtocol::REASON_NO_ADDTL_INFO))
         {
@@ -1250,6 +1297,33 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
 }
 
 //----------------------------------------------------------------------
+Bundle*
+BundleDaemon::find_duplicate(Bundle* b)
+{
+    oasys::ScopeLock l(pending_bundles_->lock(), 
+                       "BundleDaemon::find_duplicate");
+    BundleList::iterator iter;
+    for (iter = pending_bundles_->begin();
+         iter != pending_bundles_->end();
+         ++iter)
+    {
+        Bundle* b2 = *iter;
+        
+        if ((b->source_.equals(b2->source_)) &&
+            (b->creation_ts_.tv_sec  == b2->creation_ts_.tv_sec) &&
+            (b->creation_ts_.tv_usec == b2->creation_ts_.tv_usec) &&
+            (b->is_fragment_         == b2->is_fragment_) &&
+            (b->frag_offset_         == b2->frag_offset_) &&
+            (b->orig_length_         == b2->orig_length_))
+        {
+            return b2;
+        }
+    }
+
+    return NULL;
+}
+
+//----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
 {
@@ -1258,8 +1332,10 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
     ASSERT(bundle->refcount() == 0);
 
     bundle->lock_.lock("BundleDaemon::handle_bundle_free");
-    
-    actions_->store_del(bundle);
+
+    if (bundle->in_datastore_) {
+        actions_->store_del(bundle);
+    }
     
     delete bundle;
 }
@@ -1364,6 +1440,5 @@ BundleDaemon::run()
         delete event;
     }
 }
-
 
 } // namespace dtn

@@ -346,7 +346,14 @@ protected:
      * delete_from_pending.
      */
     void try_delete_from_pending(Bundle* bundle);
-    
+
+    /**
+     * Check if there are any bundles in the pending queue that match
+     * the source id, timestamp, and fragmentation offset/length
+     * fields.
+     */
+    Bundle* find_duplicate(Bundle* bundle);
+
     /**
      * Deliver the bundle to the given registration
      */
