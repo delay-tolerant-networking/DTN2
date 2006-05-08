@@ -96,12 +96,6 @@ public:
     Bundle(const oasys::Builder&);
 
     /**
-     * Constructor that takes an explicit id and location of the
-     * payload.
-     */
-    Bundle(u_int32_t id, BundlePayload::location_t location);
-
-    /**
      * Bundle destructor.
      */
     virtual ~Bundle();
@@ -252,6 +246,7 @@ public:
     u_int32_t bundleid_;	///< Local bundle identifier
     oasys::SpinLock lock_;	///< Lock for bundle data that can be
                                 ///  updated by multiple threads
+    bool in_datastore_;		///< Is the bundle in the persistent store
     bool is_reactive_fragment_; ///< Reactive fragmentary bundle
     bool local_custody_;	///< Local node has custody
     std::string owner_;         ///< Declared router that "owns" this

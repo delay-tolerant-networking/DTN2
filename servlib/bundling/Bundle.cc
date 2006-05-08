@@ -57,6 +57,7 @@ Bundle::init(u_int32_t id)
     is_admin_		= false;
     do_not_fragment_	= false;
     is_reactive_fragment_ = false;
+    in_datastore_       = false;
     custody_requested_	= false;
     local_custody_      = false;
     singleton_dest_     = true;
@@ -98,17 +99,6 @@ Bundle::Bundle(const oasys::Builder&)
     // the database
     refcount_	      = 0;
     bundleid_ 	      = 0xffffffff;
-    expiration_timer_ = NULL;
-    freed_	      = false;
-}
-
-//----------------------------------------------------------------------
-Bundle::Bundle(u_int32_t id, BundlePayload::location_t location)
-    : payload_(&lock_), fwdlog_(&lock_)
-{
-    init(id);
-    payload_.init(id, location);
-    refcount_	      = 0;
     expiration_timer_ = NULL;
     freed_	      = false;
 }
