@@ -221,4 +221,35 @@ CustodySignal::parse_custody_signal(data_t* data,
     return true;
 }
 
+const char*
+CustodySignal::reason_to_str(u_int8_t reason)
+{
+    switch (reason) {
+    case BundleProtocol::CUSTODY_NO_ADDTL_INFO:
+        return "no additional info";
+        
+    case BundleProtocol::CUSTODY_REDUNDANT_RECEPTION:
+        return "redundant reception";
+        
+    case BundleProtocol::CUSTODY_DEPLETED_STORAGE:
+        return "depleted storage";
+        
+    case BundleProtocol::CUSTODY_ENDPOINT_ID_UNINTELLIGIBLE:
+        return "eid unintelligible";
+        
+    case BundleProtocol::CUSTODY_NO_ROUTE_TO_DEST:
+        return "no route to dest";
+        
+    case BundleProtocol::CUSTODY_NO_TIMELY_CONTACT:
+        return "no timely contact";
+        
+    case BundleProtocol::CUSTODY_HEADER_UNINTELLIGIBLE:
+        return "header unintelligible";
+    }
+
+    static char buf[64];
+    snprintf(buf, 64, "unknown reason %d", reason);
+    return buf;
+}
+
 } // namespace dtn

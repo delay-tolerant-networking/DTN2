@@ -82,6 +82,11 @@ public:
      */
     static bool parse_custody_signal(data_t* data,
                                      const u_char* bp, u_int len);
+
+    /**
+     * Pretty printer for custody signal reasons.
+     */
+    static const char* reason_to_str(u_int8_t reason);
 };
 
 } // namespace dtn
