@@ -135,12 +135,14 @@ TableBasedRouter::handle_contact_up(ContactUpEvent* event)
 }
 
 /**
- * Ditto if a link becomes available.
+ * Ditto if an ondemand link becomes available.
  */
 void
 TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
 {
-    check_next_hop(event->link_);
+    if (event->link_->type() == Link::ONDEMAND) {
+        check_next_hop(event->link_);
+    }
 }
 
 /**
@@ -152,10 +154,11 @@ TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
     // the bundle daemon should have recorded a new entry in the
     // forwarding log for the given link to note that custody transfer
     // timed out, and of course the bundle should still be in the
-    // pending list. therefore, calling check_next_hop should find the
-    // appropriate bundle in the pending list, match it in the route
-    // table, and re-forward to the given link
-    check_next_hop(event->link_);
+    // pending list.
+    //
+    // therefore, trying again to forward the bundle should match
+    // either the previous link or any other route
+    fwd_to_matching(event->bundle_.object());
 }
 
 /**
