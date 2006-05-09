@@ -75,7 +75,6 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
            "max # of active locked objects in Berkeley DB");
     bind_i("db_lockdetect",   &cfg->db_lockdetect_,
            "frequency to check for Berkeley DB deadlocks (zero disables locking)");
-    bind_b("db_sharefile", &cfg->db_sharefile_, "use shared database file");
 }
 
 } // namespace dtn
