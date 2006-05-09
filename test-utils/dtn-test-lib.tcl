@@ -216,7 +216,7 @@ namespace eval dtn {
     proc check_bundle_stats {id args} {
         set stats [dtn::tell_dtnd $id "bundle stats"]
 	foreach {val stat_type} $args {
-	    if {![string match "* $val $stat_type *" $stats]} {
+	    if {![string match "*$val ${stat_type}*" $stats]} {
 		error "node $id stat check for $stat_type failed \
 		       expected $val but stats=\"$stats\""
 	    }
@@ -226,7 +226,7 @@ namespace eval dtn {
     proc test_bundle_stats {id args} {
         set stats [dtn::tell_dtnd $id "bundle stats"]
 	foreach {val stat_type} $args {
-	    if {![string match "* $val $stat_type *" $stats]} {
+	    if {![string match "*$val ${stat_type}*" $stats]} {
 		return false
 	    }
 	}
