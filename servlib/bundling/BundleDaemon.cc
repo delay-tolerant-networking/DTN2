@@ -621,7 +621,8 @@ BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
      * Update the forwarding log so routers know to try to retransmit
      * on the next contact.
      */
-    bundle->fwdlog_.update(event->contact_->link(), ForwardingInfo::TRANSMIT_FAILED);
+    bundle->fwdlog_.update(event->contact_->link(),
+                           ForwardingInfo::TRANSMIT_FAILED);
 
     /*
      * Fall through to notify the routers
@@ -666,7 +667,8 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
             release_custody(bundle);
 
         } else if (bundle->custodian_.equals(EndpointID::NULL_EID())) {
-            log_info("custodial bundle *%p delivered before custody accepted", bundle);
+            log_info("custodial bundle *%p delivered before custody accepted",
+                     bundle);
 
         } else {
             generate_custody_signal(bundle, true,
@@ -695,8 +697,10 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 
     ASSERT(bundle->expiration_timer_ == NULL);
 
-    // cancel any pending custody timers for the bundle
-    cancel_custody_timers(bundle);
+    // check if we have custody, if so, remove it
+    if (bundle->local_custody_) {
+        release_custody(bundle);
+    }
 
     // check that the bundle is on the pending list and then remove it
     // if it is. if it's not, then there was a race between the
