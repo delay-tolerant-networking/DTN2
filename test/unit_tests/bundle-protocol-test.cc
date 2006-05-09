@@ -53,7 +53,10 @@ protocol_test(Bundle* b1)
     encode_len = BundleProtocol::format_headers(b1, buf, sizeof(buf));
     CHECK(encode_len != -1);
     
-    Bundle* b2 = new Bundle(0, BundlePayload::NODATA);
+    Bundle* b2 = new Bundle(oasys::Builder::builder());
+    b2->bundleid_ = 0;
+    b2->payload_.init(0, BundlePayload::NODATA);
+    
     decode_len = BundleProtocol::parse_headers(b2, buf, encode_len);
     CHECK_EQUAL(decode_len, encode_len);
 
@@ -83,7 +86,9 @@ protocol_test(Bundle* b1)
 
 DECLARE_TEST(Basic)
 {
-    Bundle* bundle = new Bundle(10, BundlePayload::NODATA);
+    Bundle* bundle = new Bundle(oasys::Builder::builder());
+    bundle->bundleid_ = 10;
+    bundle->payload_.init(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://source.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
     bundle->custodian_.assign("dtn:none");
@@ -101,7 +106,9 @@ DECLARE_TEST(Basic)
 
 DECLARE_TEST(Fragment)
 {
-    Bundle* bundle = new Bundle(10, BundlePayload::NODATA);
+    Bundle* bundle = new Bundle(oasys::Builder::builder());
+    bundle->bundleid_ = 10;
+    bundle->payload_.init(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://frag.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
     bundle->custodian_.assign("dtn:none");
@@ -119,7 +126,9 @@ DECLARE_TEST(Fragment)
 
 DECLARE_TEST(AllFlags)
 {
-    Bundle* bundle = new Bundle(10, BundlePayload::NODATA);
+    Bundle* bundle = new Bundle(oasys::Builder::builder());
+    bundle->bundleid_ = 10;
+    bundle->payload_.init(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://source.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
     bundle->custodian_.assign("dtn:none");

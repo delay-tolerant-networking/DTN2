@@ -54,7 +54,9 @@ BundleList *l1, *l2, *l3;
 
 DECLARE_TEST(Init) {
     for (int i = 0; i < COUNT; ++i) {
-        bundles[i] = new Bundle(i, BundlePayload::NODATA);
+        bundles[i] = new Bundle(oasys::Builder::builder());
+        bundles[i]->bundleid_ = i;
+        bundles[i]->payload_.init(i, BundlePayload::NODATA);
         bundles[i]->add_ref("test");
     }
 

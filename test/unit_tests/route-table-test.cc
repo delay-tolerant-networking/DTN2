@@ -72,11 +72,7 @@ DECLARE_TEST(Init) {
 bool
 add_entry(RouteTable* t, const std::string& dest, Link* link)
 {
-    return t->add_entry(new RouteEntry(
-                            EndpointIDPattern(dest),
-                            link,
-                            FORWARD_COPY,
-                            CustodyTimerSpec()));
+    return t->add_entry(new RouteEntry(EndpointIDPattern(dest), link));
 }
 
 DECLARE_TEST(GetMatching) {
