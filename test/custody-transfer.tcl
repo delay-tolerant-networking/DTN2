@@ -206,11 +206,55 @@ test::script {
     dtn::wait_for_bundle_stats 1 {0 pending 0 custody}
     dtn::wait_for_bundle_stats 2 {0 pending 0 custody}
     dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
+
+    puts "*"
+    puts "* Test 4: bundle expiration with custody"
+    puts "*"
+    dtn::tell_dtnd * bundle reset_stats
+
+    puts "* removing route for node 1"
+    dtn::tell_dtnd 1 route del $dst_route
+
+    puts "* sending bundle, checking custody transfer"
+    set timestamp [dtn::tell_dtnd 0 sendbundle $src $dst custody expiration=10]
     
+    dtn::wait_for_bundle_stats 0 {2 received 1 transmitted}
+    dtn::wait_for_bundle_stats 1 {1 received 1 generated 1 transmitted}
+    
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody}
+    dtn::wait_for_bundle_stats 1 {1 pending 1 custody}
+
+    puts "* waiting for bundle to expire"
+    dtn::wait_for_bundle_stats 1 {1 expired}
+
+    puts "* checking that custody was cleaned up"
+    dtn::wait_for_bundle_stats 1 {0 pending 0 custody}
+
+    puts "* re-adding route"
+    dtn::tell_dtnd 1 route add $dst_route tcp-link:1-2
+
+    puts "*"
+    puts "* Test 5: delivery before taking custody"
+    puts "*"
+
+    dtn::tell_dtnd * bundle reset_stats
+
+    puts "* disabling custody acceptance on node 0"
+    dtn::tell_dtnd 0 param set accept_custody 0
+
+    puts "* sending a bundle to a nonexistant registration"
+    set dst2 "dtn://host-0/test2"
+    set timestamp [dtn::tell_dtnd 0 sendbundle $src $dst2 custody expiration=10]
+
+    puts "* checking that it is pending with no custodian"
+    dtn::wait_for_bundle_stats 0 {1 received 1 pending 0 custody}
+
+    puts "* adding a registration, checking delivery"
+    dtn::tell_dtnd 0 tcl_registration $dst2
+    dtn::wait_for_bundle_stats 0 {0 pending 0 custody 1 delivered}
     
     # XXX/TODO: add support / test cases for:
     #
-    # delivery before anyone takes custody
     # restart posts a new custody timer
     # noroute timer
     # no contact timer
