@@ -43,32 +43,35 @@ proc default_bundle_arrived {regid bundle_data} {
     global bundle_payloads
     global bundle_info
     global bundle_sr_info
-    
+
+    # loop through the key/value pairs in the bundle structure,
+    # printing them out and also dumping them into the bundle_info
+    # array indexed by guid. at the same time, status report bundles
+    # are put into a separate array indexed via a GUID that can be
+    # determined without knowing the SR bundle's creation timestamp
+    # (which we can't easily get because SRs are automatically
+    # generated)
     puts "bundle arrival"
-    foreach {key val} [array get b] {
-	if {$key == "payload"} {
-	    # don't print out binary admin bundle payloads
-	    if {!$b(is_admin)} {
-		puts "payload:\t [string range $val 0 64]"
-	    }
-	} else {
-	    puts "$key:\t $val"
-	}
-    }
-    # record the bundle's arrival
     set guid "$b(source),$b(creation_ts)"
-    set bundle_payloads($guid) $b(payload)
-    unset b(payload)
-    set bundle_info($guid) [array get b]
-    
-    # store admin bundles in an additional array indexed via a GUID
-    # that can be determined without knowing the SR bundle's creation
-    # timestamp (which we can't easily get because SRs are
-    # automatically generated)
     if { $b(is_admin) && [string match "Status Report" $b(admin_type)] } {
 	set sr_guid "$b(orig_source),$b(orig_creation_ts),$b(source)"
-	set bundle_sr_info($sr_guid) [array get b]
-    }	
+    }
+    
+    foreach {key val} [array get b] {
+	if {($key == "payload" || $key == "payload_data")} {
+	    continue
+	}
+
+	puts "$key:\t $val"
+	
+	lappend bundle_info($guid) $key $val
+	if {[info exists sr_guid]} {
+	    lappend bundle_sr_info($sr_guid) $key $val
+	}
+    }
+    
+    # record the bundle payload separately
+    set bundle_payloads($guid) $b(payload)
 }
 
 
