@@ -199,7 +199,7 @@ def alreadyHaveLink(theLinks, newLink):
 
 def myBroadcast():
 	answer = []
-	myaddrs = os.popen("ip addr show").read()
+	myaddrs = os.popen("/sbin/ip addr show").read()
 	myaddrs = string.split(myaddrs, "\n")
 
 	myaddrs = onlyLinesContaining(myaddrs, ["inet.*brd"])
@@ -275,15 +275,28 @@ def doServer(host, port):
 	print "doServer started on host:", host, "port: ", port
 
 	# Create socket and bind to address
-	UDPSock = socket(AF_INET,SOCK_DGRAM)
-	UDPSock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+	try:
+		UDPSock = socket(AF_INET,SOCK_DGRAM)
+	except:
+		print "Can't create UDP socket."
+		sys.exit(0)
+	try:
+		UDPSock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+	except:
+		print "Can't set UDP socket for broadcast."
+		sys.exit(0)
+
 	UDPSock.bind(addr)
 
 	myEID = myLocalEID()
 
 	# Receive messages
 	while 1:
-		data,addr = UDPSock.recvfrom(buf)
+		try:
+			data,addr = UDPSock.recvfrom(buf)
+		except:
+			"UDP recvfrom failed."
+
 		if not data:
 			print "Client has exited!"
 			break
@@ -347,8 +360,16 @@ def doClient(sendToAddresses, port):
 	print "doClient thread started with sendToAddresses:", sendToAddresses, ", port:", port
 
 	# Create socket
-	UDPSock = socket(AF_INET,SOCK_DGRAM)
-	UDPSock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+	try:
+		UDPSock = socket(AF_INET,SOCK_DGRAM)
+	except:
+		print "Can't create UDP socket."
+		sys.exit(0)
+	try:
+		UDPSock.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+	except:
+		print "Can't set UDP socket for broadcast."
+		sys.exit(0)
 
 	myListenPort = findListeningPort()
 	if myListenPort == None:
@@ -463,6 +484,9 @@ if __name__ == '__main__':
 	if len(theBroadcastAddress)==0:
 		#theBroadcastAddress = ['<broadcast>']
 		theBroadcastAddress = myBroadcast()
+		if len(theBroadcastAddress)==0:
+			print "I don't have anybody to broadcast to."
+			sys.exit(0)
 		print "I figure to transmit to:", theBroadcastAddress
 
 	if clientOn:
