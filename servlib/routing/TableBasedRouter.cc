@@ -140,9 +140,7 @@ TableBasedRouter::handle_contact_up(ContactUpEvent* event)
 void
 TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
 {
-    if (event->link_->type() == Link::ONDEMAND) {
-        check_next_hop(event->link_);
-    }
+    check_next_hop(event->link_);
 }
 
 /**
