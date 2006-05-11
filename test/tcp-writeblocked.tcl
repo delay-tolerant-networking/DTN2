@@ -29,7 +29,7 @@ test::script {
 
     for {set i 0} {$i < $N} {incr i} {
 	puts "* Waiting for arrival of bundle $i"
-	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp($i)" 5000
+	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp($i)" 10000
     }
     
     puts "* Doing sanity check on stats"
@@ -50,8 +50,8 @@ test::script {
 
     for {set i 0} {$i < $N} {incr i} {
 	puts "* Waiting for arrival of bundle $i at each node"
-	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp(1,$i)" 5000
-	dtn::wait_for_bundle 1 "dtn://host-0/test,$timestamp(0,$i)" 5000
+	dtn::wait_for_bundle 0 "dtn://host-1/test,$timestamp(1,$i)" 10000
+	dtn::wait_for_bundle 1 "dtn://host-0/test,$timestamp(0,$i)" 10000
     }
     
     puts "* Doing sanity check on stats"
