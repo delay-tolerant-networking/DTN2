@@ -81,12 +81,6 @@ public:
     virtual void close_link(Link* link);
     
     /**
-     * Create and open a new link for bundle transmissions to the
-     * given next hop destination, using the given interface.
-     */
-    virtual void create_link(std::string& endpoint, Interface* interface);
-    
-    /**
      * Initiate transmission of a bundle out the given link. The link
      * must already be open.
      *

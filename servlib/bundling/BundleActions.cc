@@ -80,13 +80,6 @@ BundleActions::close_link(Link* link)
 }
 
 //----------------------------------------------------------------------
-void
-BundleActions::create_link(std::string& endpoint, Interface* interface)
-{
-    NOTIMPLEMENTED;
-}
-
-//----------------------------------------------------------------------
 bool
 BundleActions::send_bundle(Bundle* bundle, Link* link,
                            bundle_fwd_action_t action,
