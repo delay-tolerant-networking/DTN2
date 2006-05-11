@@ -917,7 +917,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     int cc;
     Bundle* bundle = new Bundle();
     BundleDataHeader datahdr;
-    size_t header_len;
+    int header_len;
     u_int64_t total_len;
     int    sdnv_len = 0;
     size_t rcvd_len = 0;
