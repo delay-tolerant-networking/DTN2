@@ -76,6 +76,10 @@ test::script {
     puts "* waiting for dtnd"
     dtn::wait_for_dtnd 0
 
+    puts "* setting up flamebox ignores"
+    tell_dtnd 0 log /test always \
+	    "flamebox-ignore ign scheduling IMMEDIATE expiration"
+
     puts "* injecting two bundles"
     tell_dtnd 0 bundle inject $source_eid1 $dest_eid1 $payload expiration=20
     tell_dtnd 0 bundle inject $source_eid2 $dest_eid2 $payload expiration=10
@@ -132,6 +136,10 @@ test::script {
     dtn::check_bundle_stats 0 0 pending
     dtn::check ! test_reg_exists 0 10
     dtn::check ! test_reg_exists 0 11
+
+    puts "* clearing flamebox ignores"
+    tell_dtnd 0 log /test always \
+	    "flamebox-ignore ign scheduling IMMEDIATE expiration"
 }
 
 test::exit_script {
