@@ -69,6 +69,7 @@ public:
      * Construct the endpoint id from another.
      */
     EndpointID(const EndpointID& other)
+        : SerializableObject(other)
     {
 	if (&other != this)
 	    assign(other);
@@ -220,6 +221,7 @@ public:
      * Construct the endpoint id pattern from another.
      */
     EndpointIDPattern(const EndpointIDPattern& other)
+         : EndpointID(other)
     {
         is_pattern_ = true;
         assign(other);

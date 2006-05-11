@@ -46,6 +46,7 @@ namespace dtnsim {
 void
 SimBundleActions::store_add(Bundle* bundle)
 {
+    (void)bundle;
 }
 
 /**
@@ -54,6 +55,7 @@ SimBundleActions::store_add(Bundle* bundle)
 void
 SimBundleActions::store_del(Bundle* bundle)
 {
+    (void)bundle;
 }
 
 } // namespace dtnsim

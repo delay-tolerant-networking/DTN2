@@ -185,7 +185,8 @@ parse_options(int argc, char**argv)
 int
 main(int argc, char** argv)
 {
-    int i, k;
+    int i;
+    u_int k;
     int ret;
     int total_bytes = 0;
     dtn_handle_t handle;

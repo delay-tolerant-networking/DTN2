@@ -78,6 +78,8 @@ public:
      */
     virtual bool append_service_tag(std::string* ssp, const char* tag)
     {
+        (void)ssp;
+        (void)tag;
         return false;
     }
     

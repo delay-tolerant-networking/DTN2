@@ -70,6 +70,8 @@ NodeCommand::NodeCommand(Node* node)
 int
 NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
+    (void)interp;
+    
     if (argc < 3) {
         wrong_num_args(argc, argv, 2, 4, INT_MAX);
         return TCL_ERROR;

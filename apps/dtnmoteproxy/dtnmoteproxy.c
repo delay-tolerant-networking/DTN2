@@ -354,6 +354,8 @@ readCommandLineArgs(int argc, char **argv)
 void
 usage(char *str1, char *str2)
 {
+    (void)str2;
+    
     fprintf(stderr, "usage: %s\n", str1);
     fprintf(stderr, "  [-b baudrate]     - baud rate\n");
     fprintf(stderr, "  [-t devicename]      - name of mote network dev tty\n");

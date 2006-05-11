@@ -115,7 +115,7 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
  * Default event handler for new bundle arrivals.
  */
 void
-BundleEventHandler::handle_bundle_received(BundleReceivedEvent* event)
+BundleEventHandler::handle_bundle_received(BundleReceivedEvent*)
 {
 }
     
@@ -123,7 +123,7 @@ BundleEventHandler::handle_bundle_received(BundleReceivedEvent* event)
  * Default event handler when bundles are transmitted.
  */
 void
-BundleEventHandler::handle_bundle_transmitted(BundleTransmittedEvent* event)
+BundleEventHandler::handle_bundle_transmitted(BundleTransmittedEvent*)
 {
 }
 
@@ -131,7 +131,7 @@ BundleEventHandler::handle_bundle_transmitted(BundleTransmittedEvent* event)
  * Default event handler when a bundle transmission fails.
  */
 void
-BundleEventHandler::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
+BundleEventHandler::handle_bundle_transmit_failed(BundleTransmitFailedEvent*)
 {
 }
 
@@ -139,7 +139,7 @@ BundleEventHandler::handle_bundle_transmit_failed(BundleTransmitFailedEvent* eve
  * Default event handler when bundles are locally delivered.
  */
 void
-BundleEventHandler::handle_bundle_delivered(BundleDeliveredEvent* event)
+BundleEventHandler::handle_bundle_delivered(BundleDeliveredEvent*)
 {
 }
 
@@ -147,7 +147,7 @@ BundleEventHandler::handle_bundle_delivered(BundleDeliveredEvent* event)
  * Default event handler when bundles expire.
  */
 void
-BundleEventHandler::handle_bundle_expired(BundleExpiredEvent* event)
+BundleEventHandler::handle_bundle_expired(BundleExpiredEvent*)
 {
 }
 
@@ -156,7 +156,7 @@ BundleEventHandler::handle_bundle_expired(BundleExpiredEvent* event)
  * references).
  */
 void
-BundleEventHandler::handle_bundle_free(BundleFreeEvent* event)
+BundleEventHandler::handle_bundle_free(BundleFreeEvent*)
 {
 }
 
@@ -165,7 +165,7 @@ BundleEventHandler::handle_bundle_free(BundleFreeEvent* event)
  * arrives.
  */
 void
-BundleEventHandler::handle_registration_added(RegistrationAddedEvent* event)
+BundleEventHandler::handle_registration_added(RegistrationAddedEvent*)
 {
 }
 
@@ -173,7 +173,7 @@ BundleEventHandler::handle_registration_added(RegistrationAddedEvent* event)
  * Default event handler when a registration is removed.
  */
 void
-BundleEventHandler::handle_registration_removed(RegistrationRemovedEvent* e)
+BundleEventHandler::handle_registration_removed(RegistrationRemovedEvent*)
 {
 }
 
@@ -181,7 +181,7 @@ BundleEventHandler::handle_registration_removed(RegistrationRemovedEvent* e)
  * Default event handler when a registration expires.
  */
 void
-BundleEventHandler::handle_registration_expired(RegistrationExpiredEvent* event)
+BundleEventHandler::handle_registration_expired(RegistrationExpiredEvent*)
 {
 }
 
@@ -189,7 +189,7 @@ BundleEventHandler::handle_registration_expired(RegistrationExpiredEvent* event)
  * Default event handler when a new contact is up.
  */
 void
-BundleEventHandler::handle_contact_up(ContactUpEvent* event)
+BundleEventHandler::handle_contact_up(ContactUpEvent*)
 {
 }
     
@@ -197,7 +197,7 @@ BundleEventHandler::handle_contact_up(ContactUpEvent* event)
  * Default event handler when a contact is down.
  */
 void
-BundleEventHandler::handle_contact_down(ContactDownEvent* event)
+BundleEventHandler::handle_contact_down(ContactDownEvent*)
 {
 }
 
@@ -205,7 +205,7 @@ BundleEventHandler::handle_contact_down(ContactDownEvent* event)
  * Default event handler when a new link is created.
  */
 void
-BundleEventHandler::handle_link_created(LinkCreatedEvent* event)
+BundleEventHandler::handle_link_created(LinkCreatedEvent*)
 {
 }
     
@@ -213,7 +213,7 @@ BundleEventHandler::handle_link_created(LinkCreatedEvent* event)
  * Default event handler when a link is deleted.
  */
 void
-BundleEventHandler::handle_link_deleted(LinkDeletedEvent* event)
+BundleEventHandler::handle_link_deleted(LinkDeletedEvent*)
 {
 }
 
@@ -221,7 +221,7 @@ BundleEventHandler::handle_link_deleted(LinkDeletedEvent* event)
  * Default event handler when link becomes available
  */
 void
-BundleEventHandler::handle_link_available(LinkAvailableEvent* event)
+BundleEventHandler::handle_link_available(LinkAvailableEvent*)
 {
 }
 
@@ -229,7 +229,7 @@ BundleEventHandler::handle_link_available(LinkAvailableEvent* event)
  * Default event handler when a link is unavailable
  */
 void
-BundleEventHandler::handle_link_unavailable(LinkUnavailableEvent* event)
+BundleEventHandler::handle_link_unavailable(LinkUnavailableEvent*)
 {
 }
 
@@ -237,7 +237,7 @@ BundleEventHandler::handle_link_unavailable(LinkUnavailableEvent* event)
  * Default event handler for link state change requests.
  */
 void
-BundleEventHandler::handle_link_state_change_request(LinkStateChangeRequest* r)
+BundleEventHandler::handle_link_state_change_request(LinkStateChangeRequest*)
 {
 }
 
@@ -245,7 +245,7 @@ BundleEventHandler::handle_link_state_change_request(LinkStateChangeRequest* r)
  * Default event handler when reassembly is completed.
  */
 void
-BundleEventHandler::handle_reassembly_completed(ReassemblyCompletedEvent* event)
+BundleEventHandler::handle_reassembly_completed(ReassemblyCompletedEvent*)
 {
 }
     
@@ -254,7 +254,7 @@ BundleEventHandler::handle_reassembly_completed(ReassemblyCompletedEvent* event)
  * or management interface.
  */
 void
-BundleEventHandler::handle_route_add(RouteAddEvent* event)
+BundleEventHandler::handle_route_add(RouteAddEvent*)
 {
 }
 
@@ -263,7 +263,7 @@ BundleEventHandler::handle_route_add(RouteAddEvent* event)
  * or management interface.
  */
 void
-BundleEventHandler::handle_route_del(RouteDelEvent* event)
+BundleEventHandler::handle_route_del(RouteDelEvent*)
 {
 }
 
@@ -271,7 +271,7 @@ BundleEventHandler::handle_route_del(RouteDelEvent* event)
  * Default event handler when custody signals are received.
  */
 void
-BundleEventHandler::handle_custody_signal(CustodySignalEvent* event)
+BundleEventHandler::handle_custody_signal(CustodySignalEvent*)
 {
 }
     
@@ -279,7 +279,7 @@ BundleEventHandler::handle_custody_signal(CustodySignalEvent* event)
  * Default event handler when custody transfer timers expire
  */
 void
-BundleEventHandler::handle_custody_timeout(CustodyTimeoutEvent* event)
+BundleEventHandler::handle_custody_timeout(CustodyTimeoutEvent*)
 {
 }
     
@@ -287,7 +287,7 @@ BundleEventHandler::handle_custody_timeout(CustodyTimeoutEvent* event)
  * Default event handler for shutdown requests.
  */
 void
-BundleEventHandler::handle_shutdown_request(ShutdownRequest* r)
+BundleEventHandler::handle_shutdown_request(ShutdownRequest*)
 {
 }
 
@@ -295,7 +295,7 @@ BundleEventHandler::handle_shutdown_request(ShutdownRequest* r)
  * Default event handler for status requests.
  */
 void
-BundleEventHandler::handle_status_request(StatusRequest* r)
+BundleEventHandler::handle_status_request(StatusRequest*)
 {
 }
 

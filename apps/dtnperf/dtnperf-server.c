@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     /* -----------------------
      *  variables declaration
      * ----------------------- */
-    int k;
+    u_int k;
     int ret;
     dtn_handle_t        handle;
     dtn_endpoint_id_t   local_eid;

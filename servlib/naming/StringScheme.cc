@@ -53,6 +53,8 @@ StringScheme* oasys::Singleton<StringScheme>::instance_ = 0;
 bool
 StringScheme::validate(const std::string& ssp, bool is_pattern)
 {
+    (void)is_pattern;
+    
     if (ssp == "")
         return false;
     

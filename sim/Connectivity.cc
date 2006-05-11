@@ -218,6 +218,8 @@ Connectivity::process(SimEvent *e)
 bool
 Connectivity::exec(int argc, const char** argv)
 {
+    (void)argc;
+    (void)argv;
     return false;
 }
     

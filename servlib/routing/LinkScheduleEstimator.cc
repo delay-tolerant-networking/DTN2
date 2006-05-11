@@ -48,7 +48,8 @@ LinkScheduleEstimator::log_dist_r(Log &a, unsigned int a_index, unsigned int a_o
 
     // can't compute values outside the boundaries.
     //XXX/jakob - why did we get here anyway?
-    if(a_index<0 || b_index<0) return MAX_DIST;
+    // XXX/demmer this is a bogus compariosn
+    //if(a_index<0 || b_index<0) return MAX_DIST;
 
     // if we've already computed the dist, return it
     if(dist[a_index][b_index]<MAX_DIST)

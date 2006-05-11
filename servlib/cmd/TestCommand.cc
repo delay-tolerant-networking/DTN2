@@ -60,6 +60,8 @@ TestCommand::bind_vars()
 int
 TestCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
+    (void)interp;
+    
     if (argc < 2) {
         resultf("need a test subcommand");
         return TCL_ERROR;

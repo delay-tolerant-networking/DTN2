@@ -133,6 +133,8 @@ public:
      */
     virtual bool cancel_bundle(const ContactRef& contact, Bundle* bundle)
     {
+        (void)contact;
+        (void)bundle;
         return false;
     }
     
@@ -142,6 +144,8 @@ public:
      */
     virtual bool is_queued(const ContactRef& contact, Bundle* bundle)
     {
+        (void)contact;
+        (void)bundle;
         return false;
     }
     

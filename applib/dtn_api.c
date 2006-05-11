@@ -320,6 +320,9 @@ dtn_change_registration(dtn_handle_t h,
                         dtn_reg_id_t regid,
                         dtn_reg_info_t *reginfo)
 {
+    (void)regid;
+    (void)reginfo;
+    
     // XXX/demmer implement me
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
 

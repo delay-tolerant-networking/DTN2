@@ -55,6 +55,7 @@ InterfaceCommand::InterfaceCommand()
 int
 InterfaceCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
+    (void)interp;
     // interface list
     if (strcasecmp("list", argv[1]) == 0) {
         // XXX/bowei -- seems to like to core

@@ -107,6 +107,7 @@ CustodyTimer::CustodyTimer(const struct timeval& xmit_time,
 void
 CustodyTimer::timeout(const struct timeval& now)
 {
+    (void)now;
     log_info("CustodyTimer::timeout");
     BundleDaemon::post(new CustodyTimeoutEvent(bundle_.object(), link_));
 }

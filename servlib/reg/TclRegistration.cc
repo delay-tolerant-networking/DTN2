@@ -107,6 +107,7 @@ TclRegistration::exec(int argc, const char** argv, Tcl_Interp* interp)
 int
 TclRegistration::get_list_channel(Tcl_Interp* interp)
 {
+    (void)interp;
     oasys::TclCommandInterp* cmdinterp = oasys::TclCommandInterp::instance();
     cmdinterp->set_result(Tcl_GetChannelName(notifier_channel_));
     return TCL_OK;

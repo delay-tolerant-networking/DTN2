@@ -135,6 +135,10 @@ bool
 FileConvergenceLayer::interface_up(Interface* iface,
                                    int argc, const char* argv[])
 {
+    (void)iface;
+    (void)argc;
+    (void)argv;
+    
     NOTIMPLEMENTED;
     
 //     // parse out the directory from the interface
@@ -185,6 +189,7 @@ FileConvergenceLayer::interface_down(Interface* iface)
 bool
 FileConvergenceLayer::open_contact(Link* link)
 {
+    (void)link;
     // XXX/demmer fixme
     
     // parse out the directory from the contact
@@ -207,6 +212,7 @@ FileConvergenceLayer::open_contact(Link* link)
 bool
 FileConvergenceLayer::close_contact(const ContactRef& contact)
 {
+    (void)contact;
     // nothing to do
     return true;
 }
@@ -217,6 +223,9 @@ FileConvergenceLayer::close_contact(const ContactRef& contact)
 void
 FileConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
+    (void)contact;
+    (void)bundle;
+    
     // XXX/demmer fix this at some point
     NOTIMPLEMENTED;
 

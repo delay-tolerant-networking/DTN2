@@ -78,6 +78,7 @@ ScheduledLink::delete_fc(FutureContact* fc)
 void
 ScheduledLink::convert_fc(FutureContact* fc)
 {
+    (void)fc;
     NOTIMPLEMENTED ;
 }
 

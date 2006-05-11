@@ -92,6 +92,8 @@ EthernetScheme::parse(const std::string& ssp, eth_addr_t* addr)
 bool
 EthernetScheme::validate(const std::string& ssp, bool is_pattern)
 {
+    (void)is_pattern;
+    
     // make sure it's a valid url
     eth_addr_t addr;
     return parse(ssp, &addr);

@@ -339,6 +339,8 @@ bool
 TcaController::handle_unb(const dtn_bundle_spec_t& spec,
                           const TcaControlBundle& cb)
 {
+    (void)spec;
+    
     if (role_ != TCA_GATEWAY)
     {
         printf("TcaController error: non-gateway received unb bundle.\n");
@@ -373,6 +375,8 @@ bool
 TcaController::handle_coa_sent(const dtn_bundle_spec_t& spec,
                                const TcaControlBundle& cb)
 {
+    (void)spec;
+    
     if (role_ == TCA_MOBILE)
     {
         printf("TcaController error: mobile received coa_sent bundle.\n");
@@ -409,6 +413,8 @@ bool
 TcaController::handle_link_announce(const dtn_bundle_spec_t& spec,
                                     const TcaControlBundle& cb)
 {
+    (void)spec;
+            
     // Note: the port number is omitted from the link_announce bundle.
     // It is up to TcaController to decide which port to probe.
     if (!check_nargs(cb, 1)) return false;
@@ -422,6 +428,8 @@ bool
 TcaController::handle_ask(const dtn_bundle_spec_t& spec,
                           const TcaControlBundle& cb)
 {
+    (void)spec;
+    (void)cb;
     printf("error -- we should never receive an ask bundle!\n");
 
     return true;
@@ -432,6 +440,7 @@ bool
 TcaController::handle_ask_received(const dtn_bundle_spec_t& spec,
                                    const TcaControlBundle& cb)
 {
+    (void)spec;
     TcaWrappedBundle wb(cb);
 
     // respond by adding a route and sending adv
@@ -458,6 +467,7 @@ bool
 TcaController::handle_ask_sent(const dtn_bundle_spec_t& spec,
                                const TcaControlBundle& cb)
 {
+    (void)spec;
     TcaWrappedBundle wb(cb);
 
     // respond by deleting the route
@@ -473,6 +483,8 @@ bool
 TcaController::handle_adv(const dtn_bundle_spec_t& spec,
                           const TcaControlBundle& cb)
 {
+    (void)spec;
+    (void)cb;
     // TODO: This is the place to be smart and try to decide on a
     // router to use for the default route.
     // For now, do nothing.
@@ -484,6 +496,7 @@ bool
 TcaController::handle_adv_sent(const dtn_bundle_spec_t& spec,
                                const TcaControlBundle& cb)
 {
+    (void)spec;
     TcaWrappedBundle wb(cb);
 
     // respond by deleting the route
@@ -504,6 +517,7 @@ bool
 TcaController::handle_routes(const dtn_bundle_spec_t& spec,
                              const TcaControlBundle& cb)
 {
+    (void)spec;
 
     printf("routes:\n");
     for (unsigned int i=0; i<cb.args_.size(); ++i)
@@ -518,6 +532,7 @@ bool
 TcaController::route_reg(const dtn_bundle_spec_t& spec,
                          const TcaControlBundle& cb)
 {
+    (void)spec;
     // A (small) problem is that we will get 2 links for a node that
     // already has an link defined explicitly in the dtn.conf file.
     // Another link will be auto-created with a different name, same params.
@@ -574,6 +589,7 @@ bool
 TcaController::gate_reg(const dtn_bundle_spec_t& spec,
                         const TcaControlBundle& cb)
 {
+    (void)spec;
     TcaWrappedBundle wb(cb);
 
     std::string mobile_eid = wb.args_[2];

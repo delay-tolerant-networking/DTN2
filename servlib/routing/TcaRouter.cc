@@ -269,6 +269,7 @@ TcaRouter::handle_contact_up(ContactUpEvent* event)
 void
 TcaRouter::handle_contact_down(ContactDownEvent* event)
 {
+    (void)event;
     log_debug("TcaRouter::contact down");
     post_bundle(BL, admin_app_, "contact_down");
 
@@ -289,6 +290,7 @@ TcaRouter::handle_link_available(LinkAvailableEvent* event)
 void
 TcaRouter::handle_link_unavailable(LinkUnavailableEvent* event)
 {
+    (void)event;
     log_debug("TcaRouter::link unavailable");
     post_bundle(BL, admin_app_, "link_unavailable");
 }
@@ -297,6 +299,7 @@ TcaRouter::handle_link_unavailable(LinkUnavailableEvent* event)
 void
 TcaRouter::handle_shutdown_request(ShutdownRequest* event)
 {
+    (void)event;
     log_debug("TcaRouter::daemon shutdown");
     post_bundle(BL, admin_app_, "daemon_shutdown");
 }
@@ -646,6 +649,7 @@ TcaRouter::handle_bl_control_bundle(Bundle* b)
 bool
 TcaRouter::handle_bl_ask(Bundle* b, const TcaControlBundle& cb)
 {
+    (void)cb;
     // Note: We should never get here! asks should be addressed to the
     // control app, not bundle layer.
     return post_bundle(BL, b->source_,
@@ -684,6 +688,8 @@ TcaRouter::handle_get_routes(Bundle* b, const TcaControlBundle& cb)
 bool
 TcaRouter::handle_add_route(Bundle* b, const TcaControlBundle& cb)
 {
+    (void)b;
+    
     if (!check_nargs(cb, 2)) return false;
 
     const std::string& pattern = cb.args_[0];
@@ -703,6 +709,8 @@ TcaRouter::handle_add_route(Bundle* b, const TcaControlBundle& cb)
 bool
 TcaRouter::handle_del_route(Bundle* b, const TcaControlBundle& cb)
 {
+    (void)b;
+    
     if (!check_nargs(cb, 1)) return false;
 
     log_debug("TcaRouter:: del_route bundle received. body = '%s'",

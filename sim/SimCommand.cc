@@ -63,6 +63,7 @@ SimCommand::SimCommand()
 int
 SimCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
 {
+    (void)tclinterp;
     if (argc < 3) {
         wrong_num_args(argc, argv, 2, 3, 11);
         return TCL_ERROR;

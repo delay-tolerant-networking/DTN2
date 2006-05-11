@@ -57,6 +57,8 @@ ConnCommand::ConnCommand()
 int
 ConnCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
 {
+    (void)tclinterp;
+    
     if (argc < 3) {
         wrong_num_args(argc, argv, 2, 4, INT_MAX);
         return TCL_ERROR;

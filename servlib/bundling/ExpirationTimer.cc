@@ -50,6 +50,7 @@ ExpirationTimer::ExpirationTimer(Bundle* bundle)
 void
 ExpirationTimer::timeout(const struct timeval& now)
 {
+    (void)now;
     oasys::ScopeLock l(&bundleref_->lock_, "ExpirationTimer::timeout");
     
     // make sure the bundle doesn't try to cancel us after we've

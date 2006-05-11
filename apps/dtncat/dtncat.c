@@ -159,7 +159,7 @@ main(int argc, char** argv)
 void
 from_bundles()
 {
-    int total_bytes = 0, i, ret, k;
+    int total_bytes = 0, i, ret;
     char *buffer;
     char s_buffer[BUFSIZ];
 
@@ -188,7 +188,9 @@ from_bundles()
 
     // loop waiting for bundles
     for (i = 0; i < bundle_count; ++i) {
-        int bytes = 0;
+        size_t bytes = 0;
+        u_int k;
+        
 	// read from network
         if ((ret = dtn_recv(handle, &receive_spec,
 	        DTN_PAYLOAD_MEM, &primary_payload, -1)) < 0) {
@@ -553,7 +555,7 @@ fill_payload(dtn_bundle_payload_t* payload)
    size_t maxread = sizeof(buf);
 
    while (1) {
-       maxread = MIN(sizeof(buf), (endp-p));
+       maxread = MIN((int)sizeof(buf), (endp-p));
        if ((n = fread(buf, 1, maxread, stdin)) == 0)
 	       break;
        memcpy(p, buf, n);

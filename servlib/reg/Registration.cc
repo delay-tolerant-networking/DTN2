@@ -185,6 +185,8 @@ Registration::init_expiration_timer()
 void
 Registration::ExpirationTimer::timeout(const struct timeval& now)
 {
+    (void)now;
+    
     reg_->set_expired(true);
                       
     if (! reg_->active()) {

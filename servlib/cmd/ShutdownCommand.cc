@@ -51,12 +51,15 @@ ShutdownCommand::ShutdownCommand()
 void
 ShutdownCommand::call_exit(void* clientData)
 {
+    (void)clientData;
     exit(0);
 }
 
 int
 ShutdownCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
+    (void)interp;
+
     // should have no subcommands or options
     if (argc !=  1) {
         wrong_num_args(argc, argv, 1, 1, 1);

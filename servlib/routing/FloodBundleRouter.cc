@@ -84,6 +84,8 @@ FloodBundleRouter::~FloodBundleRouter()
 void
 FloodBundleRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
+    (void)event;
+    
     // XXX/demmer fixme
     NOTIMPLEMENTED;
     
@@ -213,6 +215,8 @@ FloodBundleRouter::handle_contact_down(ContactDownEvent* event)
 void
 FloodBundleRouter::new_next_hop(const EndpointIDPattern& dest, Link* next_hop)
 {
+    (void)dest;
+    
     log_debug("FLOOD:  new_next_hop");
 
     Bundle* bundle;
@@ -234,6 +238,8 @@ FloodBundleRouter::new_next_hop(const EndpointIDPattern& dest, Link* next_hop)
 int
 FloodBundleRouter::fwd_to_matching(Bundle* bundle, bool include_local)
 {
+    (void)include_local;
+    
     RouteEntry* entry;
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;

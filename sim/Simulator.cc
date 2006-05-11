@@ -119,6 +119,7 @@ extern "C" {
 int
 gettimeofday(struct timeval *tv, struct timezone *tz)
 {
+    (void)tz;
     double now = Simulator::time();
     tv->tv_sec = (long int) now;
     tv->tv_usec = (int) ((now - tv->tv_sec) * 100000.0);
@@ -129,6 +130,7 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 void
 Simulator::process(SimEvent *e)
 {
+    (void)e;
     NOTIMPLEMENTED;
 }
 

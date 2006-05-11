@@ -1122,6 +1122,8 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
 void
 BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 {
+    (void)request;
+    
     log_notice("Received shutdown request");
 
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_shutdown");
@@ -1159,6 +1161,7 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 void
 BundleDaemon::handle_status_request(StatusRequest* request)
 {
+    (void)request;
     log_info("Received status request");
 }
 

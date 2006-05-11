@@ -98,6 +98,8 @@ bool
 ConvergenceLayer::interface_up(Interface* iface,
                                int argc, const char* argv[])
 {
+    (void)argc;
+    (void)argv;
     log_debug("init interface %s", iface->name().c_str());
     return true;
 }
@@ -118,6 +120,8 @@ ConvergenceLayer::interface_down(Interface* iface)
 void
 ConvergenceLayer::dump_interface(Interface* iface, oasys::StringBuffer* buf)
 {
+    (void)iface;
+    (void)buf;
 }
 
 /**
@@ -128,6 +132,8 @@ ConvergenceLayer::dump_interface(Interface* iface, oasys::StringBuffer* buf)
 bool
 ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 {
+    (void)argc;
+    (void)argv;
     log_debug("init link %s", link->nexthop());
     return true;
 }
@@ -138,6 +144,8 @@ ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 void
 ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 {
+    (void)link;
+    (void)buf;
 }
 
 /**
