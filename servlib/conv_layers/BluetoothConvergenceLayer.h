@@ -10,6 +10,7 @@
 #include <oasys/bluez/BluetoothInquiry.h>
 #include <oasys/util/Options.h>
 
+#include <time.h>
 #include <set>
 #include <map>
 using namespace std;
@@ -313,13 +314,6 @@ protected:
                        public oasys::Thread,
                        public oasys::Logger {
     public:
-        typedef enum {
-            UNKNOWN,
-            ACTIVE_SENDER,     ///< implies receive
-            PASSIVE_RECEIVER,
-            PASSIVE_SENDER     ///< implies receive
-        } direction_t;
-
         /**
          * Constructor for the active connection side of a connection.
          */
@@ -358,16 +352,13 @@ protected:
          */
         void interrupt_from_io() { sock_->interrupt_from_io(); }
 
-        /**
-         * Perhaps it makes sense to run without threading for SLAVE scenario
-         */
-        virtual void run();
-
     protected:
         friend class BluetoothConvergenceLayer;
+        friend class NeighborDiscovery;
         friend class ConnectionManager;
         friend class Listener;
 
+        virtual void run();
         void recv_loop();
         void send_loop();
         void break_contact(ContactEvent::reason_t reason);
@@ -378,6 +369,7 @@ protected:
         bool send_address();
         bool recv_address(int timeout);
         bool send_bundle(Bundle* bundle);
+        bool send_announce(const bdaddr_t& remote);
         bool recv_bundle();
         bool handle_reply();
         int handle_ack();
@@ -408,7 +400,6 @@ protected:
         Listener* listener_;            ///< only used by passive
         BluetoothConvergenceLayer* cl_; ///< Pointer to the CL instance
         bool                initiate_;  ///< Do we initiate the connection
-        direction_t         direction_; ///< SENDER or RECEIVER
         oasys::RFCOMMClient* sock_;     ///< The socket
         ContactRef          contact_;   ///< Contact for sender-side
         oasys::StreamBuffer rcvbuf_;    ///< Buffer for incoming data
@@ -425,42 +416,41 @@ protected:
                               public oasys::Thread
     {
     public:
-        //XXX/jwilson expose more tunable parameters to CL
-        // -- see base class BluetoothInquiry for details
-        // -- eg, 
-        //     * pass in local_addr to bind SDP registration
-        //     * pass in hci_dev for inquiry
-        //     * perhaps just pass in Params?
-        NeighborDiscovery(int poll_interval = 30,
-                                   const char* logpath = "/dtn/bt/cl/neighbordiscovery") :
-            Thread("NeighborDiscovery")
+        NeighborDiscovery(BluetoothConvergenceLayer *cl,
+                          Params* params,
+                          const char* logpath = "/dtn/cl/bt/neighbordiscovery") :
+            Thread("NeighborDiscovery"),
+            cl_(cl),
+            params_(*params)
         {
-            poll_interval_ = poll_interval;
+            poll_interval_ = params->neighbor_poll_interval_;
+            ASSERT(poll_interval_ > 0);
             Thread::set_flag(Thread::INTERRUPTABLE);
-            notifier_ = new oasys::Notifier(logpath);
-        }
-        ~NeighborDiscovery() {
-            delete notifier_;
+            set_logpath(logpath);
+            srand(time(0));
         }
 
-        int poll_interval() {
+        ~NeighborDiscovery() {
+        }
+
+        u_int poll_interval() {
             return poll_interval_;
         }
 
-        // -1 indicates no polling, 0 indicates no waiting
-        void poll_interval(int poll_int) {
+        // 0 indicates no polling
+        void poll_interval(u_int poll_int) {
             poll_interval_ = poll_int;
         }
 
-        void interrupt() {
-            notifier_->notify();
-        }
-
     protected:
-        void run();
+        friend class Connection;
 
-        int poll_interval_; ///< seconds between neighbor discovery polling
-        oasys::Notifier* notifier_;
+        void run();
+        void send_announce(bdaddr_t remote);
+
+        u_int poll_interval_; ///< seconds between neighbor discovery polling
+        BluetoothConvergenceLayer* cl_;
+        Params params_;
 
     }; // NeighborDiscovery
 
