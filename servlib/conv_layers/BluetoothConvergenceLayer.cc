@@ -24,6 +24,7 @@ extern int errno;
 
 #include "BluetoothConvergenceLayer.h"
 #include "bundling/Bundle.h"
+#include "bundling/AnnounceBundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
@@ -108,20 +109,20 @@ BluetoothConvergenceLayer::interface_up(Interface* iface,
 {
     log_debug("adding interface %s",iface->name().c_str());
 
-    Params params = BluetoothConvergenceLayer::defaults_;
+    Params *params = new Params(defaults_);
     const char* invalid;
-    if (!parse_params(&params, argc, argv, &invalid)) {
+    if (!parse_params(params, argc, argv, &invalid)) {
       log_err("error parsing interface options: invalid option '%s'",
               invalid);
       return false;
     }
 
     // check for valid Bluetooth address or device name
-    if (bacmp(&params.local_addr_,BDADDR_ANY) == 0 ) {
+    if (bacmp(&params->local_addr_,BDADDR_ANY) == 0 ) {
         // try to read bdaddr from HCI device name
-        oasys::Bluetooth::hci_get_bdaddr(params.hcidev_.c_str(),
-                                         &params.local_addr_);
-        if (bacmp(&params.local_addr_,BDADDR_ANY) == 0 ) {
+        oasys::Bluetooth::hci_get_bdaddr(params->hcidev_.c_str(),
+                                         &params->local_addr_);
+        if (bacmp(&params->local_addr_,BDADDR_ANY) == 0 ) {
             // cannot proceed without valid local Bluetooth device
             log_err("invalid local address setting of BDADDR_ANY");
             return false;
@@ -132,7 +133,7 @@ BluetoothConvergenceLayer::interface_up(Interface* iface,
     // ConnectionManager's factory method (Bluetooth can only allow one 
     // process at a time to bind to bdaddr_t so we track anything that 
     // wants to bind using ConnectionManager)
-    Listener* receiver = connections_.listener(this,&params);
+    Listener* receiver = connections_.listener(this,params);
     receiver->logpathf("%s/iface/%s", logpath_, iface->name().c_str());
 
     // Scan each of RFCOMM's 30 channels, bind to first available
@@ -145,10 +146,11 @@ BluetoothConvergenceLayer::interface_up(Interface* iface,
     receiver->start();
 
     // scan for neighbors
-    if (params.neighbor_poll_interval_ > 0) {
+    if (params->neighbor_poll_interval_ > 0) {
         log_debug("Starting up neighbor polling with interval=%d",
-                  params.neighbor_poll_interval_);
-        receiver->nd_ = new NeighborDiscovery(params.neighbor_poll_interval_);
+                  params->neighbor_poll_interval_);
+        receiver->nd_ = new NeighborDiscovery(this,params);
+        receiver->nd_->logpathf("%s/neighbordiscovery",logpath_);
         receiver->nd_->start();
     }
 
@@ -211,7 +213,7 @@ BluetoothConvergenceLayer::dump_interface(Interface* iface,
         buf->appendf("\tremote_addr: %s\n",
                      oasys::Bluetooth::batostr(&params->remote_addr_,buff));
 
-    if (params->neighbor_poll_interval_ >= 0) 
+    if (params->neighbor_poll_interval_ > 0) 
         buf->appendf("\tneighbor_poll_interval: %d\n",
                      params->neighbor_poll_interval_);
 }
@@ -560,6 +562,7 @@ BluetoothConvergenceLayer::Listener::accepted(int fd, bdaddr_t addr, u_int8_t ch
     c->start();
     // this channel is now taken over by the passive, so close() and rc_bind()
     // all over again
+    close();
     ASSERT(rc_bind() == 0);
     ASSERT(listen() == 0);
 }
@@ -733,10 +736,44 @@ BluetoothConvergenceLayer::Connection::run()
 
 
 /**
-  * Send one bundle over the wire.
-  *
-  * Return true if the bundle was sent successfully, false if not.
-  */
+ * Send announcement bundle to bluetooth address
+ */
+bool
+BluetoothConvergenceLayer::Connection::send_announce(const bdaddr_t& remote)
+{
+    char buff[18]; //used by oasys::batostr below
+
+    // create the ANNOUNCE bundle
+    Bundle* announce = new Bundle();
+
+    AnnounceBundle::create_announce_bundle(announce,
+            BundleDaemon::instance()->local_eid());
+
+    oasys::StaticStringBuffer<1024> buf;
+    buf.appendf("BTCL AnnounceBundle:\n");
+    announce->format_verbose(&buf);
+    log_multiline(oasys::LOG_DEBUG, buf.c_str());
+
+
+    log_debug("attempting to contact %s with ANNOUNCE",
+              oasys::Bluetooth::batostr(&remote,buff));
+    if (! connect()) {
+        log_debug("connect failed");
+        return false;
+    }
+
+    // malloc() some space for serializing the bundle
+    sndbuf_.reserve(params_.writebuf_len_);
+
+    return send_bundle(announce);
+}
+
+
+/**
+ * Send one bundle over the wire.
+ *
+ * Return true if the bundle was sent successfully, false if not.
+ */
 bool
 BluetoothConvergenceLayer::Connection::send_bundle(Bundle* bundle)
 {
@@ -766,7 +803,6 @@ retry_headers:
     if (header_len < 0) {
         log_debug("send_bundle: bundle header too big for buffer len %zu -- "
                   "doubling size and retrying", sndbuf_.buf_len());
-                  sndbuf_.reserve(sndbuf_.buf_len() * 2);
         goto retry_headers;
     }
 
@@ -1703,7 +1739,7 @@ BluetoothConvergenceLayer::Connection::send_loop()
         u_int elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
         if (elapsed > (2 * params_.keepalive_interval_ * 1000)) {
             log_info("send_loop: no data rcvd for %d msecs "
-                     "(sent %u.%u, rcvd %u.%u, now %u.%u) -- closing contact",
+                     "(sent %zu.%zu, rcvd %zu.%zu, now %zu.%zu) -- closing contact",
                      elapsed,
                      (u_int)keepalive_sent_.tv_sec,
                      (u_int)keepalive_sent_.tv_usec,
@@ -1718,7 +1754,6 @@ BluetoothConvergenceLayer::Connection::send_loop()
             u_int idle_close_time =
                 ((OndemandLink*)contact_->link())->idle_close_time_;
 
-            // this is bidirectional
             elapsed = TIMEVAL_DIFF_MSEC(now, idle_start);
             if (idle_close_time != 0 && (elapsed > idle_close_time * 1000))
             {
@@ -1807,26 +1842,53 @@ shutdown:
 }
 
 void
+BluetoothConvergenceLayer::NeighborDiscovery::send_announce(bdaddr_t remote)
+{
+    char buff[18]; // used by oasys::batostr
+
+    // Short-lived connection object will send ANNOUNCE bundle
+    Connection *sender = BluetoothConvergenceLayer::
+                            connections_.connection(cl_,remote,&params_);
+    sender->logpathf("%s/announce",logpath_);
+
+    if (! sender->send_announce(remote))
+        log_debug("failed to send announce bundle to %s",
+                  oasys::Bluetooth::batostr(&remote,buff));
+
+    // In this unconventional scenario, the thread does not self-delete
+    delete sender;
+}
+
+void
 BluetoothConvergenceLayer::NeighborDiscovery::run()
 { 
     char buff[18]; // used by oasys::batostr
 
-    if (poll_interval_ < 0) {
+    if (poll_interval_ == 0) {
         return;
     }
 
     // register DTN service with local SDP daemon
-    oasys::BluetoothServiceRegistration sdp_reg;
+    oasys::BluetoothServiceRegistration sdp_reg(&params_.local_addr_);
     if (sdp_reg.success() == false) {
         log_err("SDP registration failed");
         return;
     }
 
-    //XXX/jwilson timeout should probably be randomized to avoid
-    //   inquiry synchronization/syncopation
-
     // loop forever (until interrupted)
-    while (notifier_->wait(NULL,poll_interval_) == false) {
+    while (true) {
+
+        // naive randomizer ... I'm certainly open to suggestions here!
+        // the point is that two nodes with zero prior knowledge of each other
+        // need to be able to discover each other in a reasonably short time.
+        // if common practice is that all set their poll_interval to 1 or 30 or x
+        // then there's the chance of synchronization or syncopation such that 
+        // discovery doesn't happen.
+        double ratio = rand()/(RAND_MAX+1.0);
+        int sleep_time = 1 + (u_int32_t) ( (poll_interval_ + 1.0) * ratio );
+
+        log_debug("sleep_time %d",sleep_time);
+        sleep(sleep_time);
 
         // initiate inquiry on local Bluetooth controller
         int nr = inquire(); // blocks until inquiry process completes
@@ -1844,10 +1906,11 @@ BluetoothConvergenceLayer::NeighborDiscovery::run()
 
             // query SDP daemon on remote host for DTN's registration
             oasys::BluetoothServiceDiscoveryClient sdpclient;
+            sdpclient.set_local_addr(params_.local_addr_);
             if (sdpclient.is_dtn_router(bii.addr_)) {
-                // this is where you hand off something intelligent to the CL
-                log_info("DTN router present on %s",
+                log_info("sending announce bundle to DTN router at %s",
                          oasys::Bluetooth::batostr(&bii.addr_,buff));
+                send_announce(bii.addr_);
             }
             if (should_stop()) break;
         }
@@ -1881,6 +1944,7 @@ int
 BdAddrOpt::set(const char* val, size_t len)
 {
     bdaddr_t newval;
+    (void)len;
 
     /* returns NULL on failure */
     if (oasys::Bluetooth::strtoba(val, &newval) == 0) {
