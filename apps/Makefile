@@ -56,5 +56,5 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
 
 
 $(SINGLE_SOURCE_APPS): %: %.o
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS) $(DTN_LIBS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
 
