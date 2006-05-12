@@ -221,6 +221,9 @@ Bundle::copy_metadata(Bundle* new_bundle)
 int
 Bundle::add_ref(const char* what1, const char* what2)
 {
+    (void)what1;
+    (void)what2;
+    
     oasys::ScopeLock l(&lock_, "Bundle::add_ref");
 
     ASSERTF(freed_ == false, "Bundle::add_ref on bundle %d (%p)"
@@ -239,6 +242,9 @@ Bundle::add_ref(const char* what1, const char* what2)
 int
 Bundle::del_ref(const char* what1, const char* what2)
 {
+    (void)what1;
+    (void)what2;
+    
     oasys::ScopeLock l(&lock_, "Bundle::del_ref");
 
     ASSERTF(freed_ == false, "Bundle::del_ref on bundle %d (%p)"

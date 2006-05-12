@@ -90,6 +90,9 @@ check_nargs(const TcaControlBundle& cb, uint n_expected)
 static void
 log_bundle(const std::string& comment, const Bundle* b, bool include_payload)
 {
+    (void)comment;
+    (void)b;
+    
     if (include_payload)
         log_debug("/dtn/tca", "%s [%s] -> [%s] : '%s'", comment.c_str(),
                 b->source_.str().c_str(), b->dest_.c_str(),
