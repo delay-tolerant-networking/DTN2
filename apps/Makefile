@@ -49,6 +49,7 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/TcaController.o \
                 tca_admin/libs/gateway_prot_clnt.o \
                 tca_admin/libs/gateway_prot_xdr.o \
+                tca_admin/libs/gateway_rpc.o \
                 tca_admin/libs/sha1.o
 	$(CXX) $(CFLAGS) $^ -o \
 		$@ $(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS)

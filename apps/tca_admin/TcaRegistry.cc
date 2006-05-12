@@ -36,119 +36,28 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <netdb.h>                  // needed for gethostbyname
 #include "libs/gateway_prot.h"
+#include "libs/gateway_rpc.h"
 #include "libs/sha1.h"
 #include "TcaRegistry.h"
 
-
 static const char* APP_STRING = "tca";
 static const char* CLIB_STRING = "rpcgen";
-static const int DHT_PORT = 5852;
 
 static const int DHT_KEYLEN = 20;           // number of uints in a key
 
 
-///////////////////////////////////////////////////////////////////////////////
-// Functions for interfacing with OpenDHT
-
-// lookup hostname, store address in addr
-static bool
-lookup_host(const char* host, int port, struct sockaddr_in* addr)
-{
-    struct hostent* h = gethostbyname (host);
-    if (h == NULL) return false;
-
-    bzero (addr, sizeof(struct sockaddr_in));
-    addr->sin_family = AF_INET;
-    addr->sin_port = htons(port);
-    addr->sin_addr = *((struct in_addr *) h->h_addr);
-    return true;
-}
-
-
-// try to open connection to given dht node by addr
-static CLIENT*
-get_connection(sockaddr_in addr)
-{
-    int sockp = RPC_ANYSOCK;
-    CLIENT * c = clnttcp_create(&addr, BAMBOO_DHT_GATEWAY_PROGRAM,
-                        BAMBOO_DHT_GATEWAY_VERSION, &sockp, 0, 0);
-    return c;
-}
-
-
-/*
-// try to open connection to given dht node by hostname
-static CLIENT*
-get_connection(const char* hostname)
-{
-    struct sockaddr_in addr;
-    if(lookup_host(hostname, DHT_PORT, &addr) < 0) return NULL;
-    return get_connection(addr);
-}
-*/
-
-
-// useful for probing a dht node to see if it's alive:
-static bool
-do_null_op(CLIENT* c)
-{
-    void* null_args = NULL;
-    void* res = bamboo_dht_proc_null_2(&null_args, c);
-    return (res != NULL);
-}
-
-
-// test dht node, printing status messages
-// if successful, addr contains a valid sockaddr_in
-static bool
-test_node(const char* hostname, sockaddr_in& addr)
-{
-    printf("   testing dht node %s... ", hostname);
-
-    // try to get host addr
-    if (!lookup_host(hostname, DHT_PORT, &addr))
-    {
-        printf("lookup_host failed\n");
-        return false;
-    }
-
-    // try to connect to node
-    // Note: This step seems to be insanely slow when it fails. Is there
-    // a way to timeout faster?
-    CLIENT* p_client = get_connection(addr);
-    if (p_client == NULL)
-    {
-        printf("get_connection failed\n");
-        return false;
-    }
-
-    // try a null op
-    if (!do_null_op(p_client))
-    {
-        printf("null_op failed\n");
-        clnt_destroy(p_client);
-        return false;
-    }
-
-    printf("succeeded.\n");
-    clnt_destroy(p_client);
-    return true;
-}
-
-
-// hash a key s, from original long-string form, down to 20-byte key
-// usable in the dht
-static void
-hash(const std::string& s, uint8 digest[DHT_KEYLEN])
-{
-    // Use sha1 hash of endpointid to get a (probably) unique 20-byte key
-    sha1_context ctx;
-    sha1_starts(&ctx);
-    sha1_update(&ctx, (unsigned char*)(s.c_str()), s.length());
-    sha1_finish(&ctx, digest);
-}
+ // hash a key s, from original long-string form, down to 20-byte key
+ // usable in the dht
+ static void
+ hash(const std::string& s, uint8 digest[DHT_KEYLEN])
+ {
+     // Use sha1 hash of endpointid to get a (probably) unique 20-byte key
+     sha1_context ctx;
+     sha1_starts(&ctx);
+     sha1_update(&ctx, (unsigned char*)(s.c_str()), s.length());
+     sha1_finish(&ctx, digest);
+ }
 
 
 /*
@@ -160,8 +69,7 @@ dump_digest(uint8 digest[DHT_KEYLEN])
     printf("\n");
 }
 */
-
-
+ 
 ///////////////////////////////////////////////////////////////////////////////
 // class TcaRegistry
 
@@ -211,7 +119,7 @@ TcaRegistry::init_addrs()
     sockaddr_in addr;
     for (unsigned int i=0; i<dht_nodes_.size(); ++i)
     {
-        if (test_node(dht_nodes_[i].c_str(), addr))
+        if (test_node(dht_nodes_[i].c_str(), &addr))
         {
             // it's a keeper
             dht_addrs_.push_back(addr);
@@ -357,7 +265,7 @@ TcaRegistry::get_node()
     for (unsigned int i = last_node_ + 1; i != last_node_; ++i)
     {
         if (i == dht_addrs_.size()) i = 0;
-        p_node = get_connection(dht_addrs_[i]);
+        p_node = get_connection(&dht_addrs_[i]);
         if (p_node)
         {
             last_node_ = i;

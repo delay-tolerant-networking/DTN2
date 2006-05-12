@@ -42,9 +42,7 @@
 #include <netinet/in.h>
 #include <string>
 #include <vector>
-
-
-struct CLIENT;
+#include <rpc/rpc.h>
 
 
 
