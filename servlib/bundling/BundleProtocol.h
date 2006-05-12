@@ -184,6 +184,7 @@ public:
         ADMIN_CUSTODY_SIGNAL    = 0x02,
         ADMIN_ECHO              = 0x03,   // NOT IN BUNDLE SPEC
         ADMIN_NULL              = 0x04,   // NOT IN BUNDLE SPEC
+        ADMIN_ANNOUNCE          = 0x05,   // NOT IN BUNDLE SPEC
     } admin_record_type_t;
 
     /**
