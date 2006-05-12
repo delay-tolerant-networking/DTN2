@@ -82,6 +82,7 @@ AdminRegistration::deliver_bundle(Bundle* bundle)
      * 0x2     - custodial signal
      * 0x3     - echo request
      * 0x4     - null request
+     * 0x5     - announce
      * (other) - reserved
      */
     typecode = payload_buf[0] >> 4;
@@ -133,6 +134,11 @@ AdminRegistration::deliver_bundle(Bundle* bundle)
     case BundleProtocol::ADMIN_NULL:
     {
         log_info("ADMIN_NULL from %s", bundle->source_.c_str());
+        break;
+    }
+    case BundleProtocol::ADMIN_ANNOUNCE:
+    {
+        log_info("ADMIN_ANNOUNCE from %s", bundle->source_.c_str());
         break;
     }
         
