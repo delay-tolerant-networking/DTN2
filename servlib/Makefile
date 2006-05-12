@@ -7,6 +7,7 @@
 #
 
 BUNDLING_SRCS := 				\
+	bundling/AnnounceBundle.cc	\
 	bundling/Bundle.cc			\
 	bundling/BundleActions.cc		\
 	bundling/BundleDaemon.cc		\
