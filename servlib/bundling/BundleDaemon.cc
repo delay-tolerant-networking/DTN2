@@ -448,8 +448,9 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
 
     /*
-     * Check if the bundle is a duplicate, i.e. shares a source id and
-     * timestamp with some other bundle in the system.
+     * Check if the bundle is a duplicate, i.e. shares a source id,
+     * timestamp, and fragmentation information with some other bundle
+     * in the system.
      */
     Bundle* duplicate = find_duplicate(bundle);
     if (duplicate != NULL) {
@@ -548,7 +549,8 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     /*
      * Update the forwarding log
      */
-    bundle->fwdlog_.update(event->contact_->link(), ForwardingInfo::TRANSMITTED);
+    bundle->fwdlog_.update(event->contact_->link(),
+                           ForwardingInfo::TRANSMITTED);
                             
     /*
      * Grab the updated forwarding log information so we can find the
@@ -1321,7 +1323,8 @@ BundleDaemon::find_duplicate(Bundle* b)
             (b->creation_ts_.tv_usec == b2->creation_ts_.tv_usec) &&
             (b->is_fragment_         == b2->is_fragment_) &&
             (b->frag_offset_         == b2->frag_offset_) &&
-            (b->orig_length_         == b2->orig_length_))
+            (b->orig_length_         == b2->orig_length_) &&
+            (b->payload_.length()    == b2->payload_.length()))
         {
             return b2;
         }
