@@ -157,7 +157,7 @@ main(int argc, const char** argv)
                 ret, dtn_strerror(dtn_errno(handle)));
         exit(1);
     }    
-    if (debug) printf("dtn_register succeeded, regid 0x%x\n", regid);
+    if (debug) printf("dtn_register succeeded, regid %d\n", regid);
 
     // bind the current handle to the new registration, then
     // immediately unregister, which causes the registration to stick
