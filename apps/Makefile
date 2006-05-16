@@ -18,6 +18,7 @@ SINGLE_SOURCE_APPS := 			\
 
 OTHER_APPS :=				\
 	dtnmoteproxy/dtnmoteproxy	\
+	dtntest/dtntest			\
 	dtntunnel/dtntunnel		\
 	tca_admin/tca_admin		\
 
@@ -35,6 +36,10 @@ BINFILES += $(APPS)
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 			   dtnmoteproxy/serialsource.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
+
+dtntest/dtntest: dtntest/dtntest.o
+	$(CXX) $(CFLAGS) $^ -o $@ \
+		$(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS) 
 
 dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \

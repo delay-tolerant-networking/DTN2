@@ -10,6 +10,10 @@ proc tell_dtnd {id args} {
     return [eval dtn::tell_dtnd $id $args]
 }
 
+proc tell_dtntest {id args} {
+    return [eval dtn::tell_dtntest $id $args]
+}
+
 namespace eval dtn {
     proc run_dtnd { id {other_opts "-t"} } {
 	global opt net::host net::portbase net::extra test::testname
@@ -31,6 +35,31 @@ namespace eval dtn {
 	
     }
 
+    proc run_dtntest { id {other_opts ""}} {
+	global opt net::host net::portbase net::extra test::testname
+	
+	if {$id == "*"} {
+	    set pids ""
+	    foreach id [net::nodelist] {
+		lappend pids [run_dtntest $id $other_opts]
+	    }
+	    return $pids
+	}
+
+	set confname "$test::testname.dtntest.conf"
+	set exec_opts "-c $confname"
+	append exec_opts " $other_opts"
+
+	set addr [gethostbyname $net::host($id)]
+	
+	lappend exec_env DTNAPI_ADDR $addr
+	lappend exec_env DTNAPI_PORT [dtn::get_port api $id]
+
+	return [run::run $id "dtntest" $exec_opts \
+		$confname [conf::get dtntest $id] $exec_env]
+	
+    }
+
     proc stop_dtnd {id} {
 	global net::host
 	if {$id == "*"} {
@@ -47,6 +76,25 @@ namespace eval dtn {
 	}
 	catch {
 	    tell::close_socket $net::host($id) [dtn::get_port console $id]
+	}
+    }
+    
+    proc stop_dtntest {id} {
+	global net::host
+	if {$id == "*"} {
+	    foreach id [net::nodelist] {
+		stop_dtntest $id
+	    }
+	    return
+	}
+
+	if [catch {
+	    tell_dtntest $id shutdown
+	} err] {
+	    puts "ERROR: error in shutdown of dtnd id $id"
+	}
+	catch {
+	    tell::close_socket $net::host($id) [dtn::get_port dtntest $id]
 	}
     }
 
@@ -84,6 +132,18 @@ namespace eval dtn {
 	tell::wait $net::host($id) [dtn::get_port console $id]
     }
     
+    proc wait_for_dtntest {id} {
+	global net::host
+	
+	if {$id == "*"} {
+	    foreach id [net::nodelist] {
+		wait_for_dtnd $id
+	    }
+	}
+
+	tell::wait $net::host($id) [dtn::get_port dtntest $id]
+    }
+    
     proc tell_dtnd { id args } {
 	global net::host
 	if {$id == "*"} {
@@ -92,7 +152,20 @@ namespace eval dtn {
 	    }
 	    return
 	}
-	return [eval "tell::tell $net::host($id) [dtn::get_port console $id] $args"]
+	return [eval "tell::tell $net::host($id) \
+		[dtn::get_port console $id] $args"]
+    }
+
+    proc tell_dtntest { id args } {
+	global net::host
+	if {$id == "*"} {
+	    foreach id [net::nodelist] {
+		eval tell_dtntest $id $args
+	    }
+	    return
+	}
+	return [eval "tell::tell $net::host($id) \
+		[dtn::get_port dtntest $id] $args"]
     }
 
     # generic checker function

@@ -32,6 +32,8 @@ proc config {args} {
     dtn::config_api_server
     dtn::config_storage $storage_type
     dtn::config_null_link
+
+    dtn::config_dtntest
 }
 
 #
@@ -56,6 +58,7 @@ proc get_port {what id} {
 	api	{ return [expr $dtn_portbase + 1] }
 	tcp	{ return [expr $dtn_portbase + 2] }
 	udp	{ return [expr $dtn_portbase + 2] }
+	dtntest	{ return [expr $dtn_portbase + 3] }
 	default { return -1 }
     }
 }
@@ -117,6 +120,20 @@ storage set type       $type
 storage set dbname     DTN
 storage set dbdir      db
     }]
+}
+
+#
+# Configure dtntest
+#
+proc config_dtntest {} {
+    foreach id [net::nodelist] {
+	conf::add dtntest $id \
+		"console set stdio false"
+	conf::add dtntest $id \
+		"console set addr [gethostbyname $net::host($id)]"
+	conf::add dtntest $id \
+		"console set port [dtn::get_port dtntest $id]"
+    }
 }
 
 # namespace dtn
