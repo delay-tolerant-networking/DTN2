@@ -118,7 +118,11 @@ BundleDaemon::post_and_wait(BundleEvent* event,
                             oasys::Notifier* notifier,
                             int timeout)
 {
-    ASSERT(instance()->started());
+    /*
+     * Make sure that we're either already started up or are about to
+     * start. Otherwise the wait call below would block indefinitely.
+     */
+    ASSERT(! oasys::Thread::start_barrier_enabled());
     
     ASSERT(event->processed_notifier_ == NULL);
     event->processed_notifier_ = notifier;
