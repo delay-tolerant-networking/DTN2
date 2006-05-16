@@ -159,20 +159,21 @@ APIServer::accepted(int fd, in_addr_t addr, u_int16_t port)
 //----------------------------------------------------------------------
 APIClient::APIClient(int fd, in_addr_t addr, u_int16_t port)
     : Thread("APIClient", DELETE_ON_EXIT),
-      TCPClient(fd, addr, port, "/dtn/apiclient")
+      TCPClient(fd, addr, port, "/dtn/apiclient"),
+      notifier_(logpath_)
 {
     // note that we skip space for the message length and code/status
     xdrmem_create(&xdr_encode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_ENCODE);
     xdrmem_create(&xdr_decode_, buf_ + 8, DTN_MAX_API_MSG - 8, XDR_DECODE);
 
     bindings_ = new APIRegistrationList();
-    notifier_ = new oasys::Notifier(logpath_);
 }
 
 //----------------------------------------------------------------------
 APIClient::~APIClient()
 {
     log_debug("client destroyed");
+    delete_z(bindings_);
 }
 
 //----------------------------------------------------------------------
@@ -462,7 +463,7 @@ APIClient::handle_register()
                               reginfo.expiration, script);
 
     BundleDaemon::post_and_wait(new RegistrationAddedEvent(reg, EVENTSRC_APP),
-                                notifier_);
+                                &notifier_);
     
     // fill the response with the new registration id
     if (!xdr_dtn_reg_id_t(&xdr_encode_, &regid)) {
@@ -513,7 +514,7 @@ APIClient::handle_unregister()
     }
 
     BundleDaemon::post_and_wait(new RegistrationRemovedEvent(reg),
-                                notifier_);
+                                &notifier_);
     
     return DTN_SUCCESS;
 }
@@ -740,7 +741,7 @@ APIClient::handle_send()
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
     BundleDaemon::post_and_wait(new BundleReceivedEvent(b, EVENTSRC_APP),
-                                notifier_);
+                                &notifier_);
     
     return DTN_SUCCESS;
 }

@@ -119,7 +119,7 @@ protected:
     XDR xdr_encode_;
     XDR xdr_decode_;
     APIRegistrationList* bindings_;
-    oasys::Notifier* notifier_;
+    oasys::Notifier notifier_;
 };
 
 } // namespace dtn
