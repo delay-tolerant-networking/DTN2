@@ -216,7 +216,8 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
     addElement(Tcl_NewIntObj(payload_len));
     
     addElement(Tcl_NewStringObj("payload_data", -1));
-    addElement(Tcl_NewByteArrayObj(payload_data, payload_len));
+    addElement(Tcl_NewByteArrayObj(const_cast<u_char*>(payload_data), 
+			    	   payload_len));
 
     // and a pretty formatted creation timestamp
     addElement(Tcl_NewStringObj("creation_ts", -1));
