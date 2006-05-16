@@ -28,6 +28,7 @@ set tests(basic) {
     "many-bundles.tcl"		""
     "storage.tcl"		""
     "storage.tcl"		"-storage_type filesysdb"
+    "api-leak-test.tcl"		""
 }
 
 # the performance test group
