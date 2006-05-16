@@ -116,9 +116,16 @@ public:
 class ShutdownCommand : public oasys::TclCommand {
 public:
     ShutdownCommand() : TclCommand("shutdown") {}
+    static void call_exit(void* clientData);
     int exec(int argc, const char **argv,  Tcl_Interp* interp);
 };
 
+void
+ShutdownCommand::call_exit(void* clientData)
+{
+    (void)clientData;
+    exit(0);
+}
 
 //----------------------------------------------------------------------
 int
@@ -127,7 +134,7 @@ ShutdownCommand::exec(int argc, const char **argv, Tcl_Interp* interp)
     (void)argc;
     (void)argv;
     (void)interp;
-    oasys::TclCommandInterp::instance()->exec_command("after 0 exit");
+    Tcl_CreateTimerHandler(0, ShutdownCommand::call_exit, 0);
     return TCL_OK;
 }
 
