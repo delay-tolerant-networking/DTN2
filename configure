@@ -8105,7 +8105,7 @@ echo "$as_me: error: can't find bluez headers or library" >&2;}
 CPPFLAGS="-I\$(SRCDIR)/servlib $CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
 
-if [ $STATIC = libs ] ; then
+if test x$STATIC = xlibs ; then
    OASYS_LIBS="-Wl,-Bstatic $OASYS_LIBS -Wl,-Bdynamic"
 fi
 

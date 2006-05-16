@@ -76,7 +76,7 @@ dnl
 CPPFLAGS="-I\$(SRCDIR)/servlib $CPPFLAGS $OASYS_CPPFLAGS $DTN_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OASYS_LDFLAGS $DTN_LDFLAGS"
 
-if [[ $STATIC = libs ]] ; then
+if test x$STATIC = xlibs ; then
    OASYS_LIBS="-Wl,-Bstatic $OASYS_LIBS -Wl,-Bdynamic"
 fi
 AC_SUBST(OASYS_LIBS)
