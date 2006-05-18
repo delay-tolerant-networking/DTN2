@@ -186,7 +186,7 @@ main(int argc, char** argv)
         interp->command_server("dtn-test", console_cmd.addr_, console_cmd.port_);
     }
 
-    if (daemon) {
+    if (daemon || (console_cmd.stdio_ == false)) {
         oasys::TclCommandInterp::instance()->event_loop();
     } else {
         oasys::TclCommandInterp::instance()->command_loop("dtn-test");
