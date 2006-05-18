@@ -26,6 +26,8 @@ dtn::config_interface $clayer
 dtn::config_linear_topology OPPORTUNISTIC $clayer true
 
 test::script {
+    puts "flamebox-ignore ign-pipe pipe appears to be full"
+    
     puts "* Running dtnd 0"
     dtn::run_dtnd 0
     dtn::wait_for_dtnd 0
@@ -88,4 +90,8 @@ test::script {
 test::exit_script {
     puts "* Stopping all dtnds"
     dtn::stop_dtnd *
+}
+
+test::cleanup_script {
+    puts "flamebox-ignore-cancel ign-pipe"
 }

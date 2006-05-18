@@ -43,3 +43,7 @@ if {[catch {test::run_exit_script} err]} {
 run::wait_for_programs
 run::collect_logs
 run::cleanup
+if {[catch {test::run_cleanup_script} err]} {
+    global errorInfo
+    puts "error: $errorInfo"
+}
