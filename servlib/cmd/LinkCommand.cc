@@ -62,6 +62,9 @@ LinkCommand::LinkCommand()
     add_to_help("state <name>", "return the state of a link");
     add_to_help("stats <name>", "dump link statistics");
     add_to_help("dump", "print the overally of existing links");
+    add_to_help("reconfigure <name> <opt=val> <opt2=val2>...",
+                "configure link options after initialization "
+                "(not all options support this feature)");
 }
 
 int
@@ -124,6 +127,36 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         // Add the link to contact manager's table, which posts a
         // LinkCreatedEvent to the daemon
         BundleDaemon::instance()->contactmgr()->add_link(link);
+        return TCL_OK;
+
+    } else if (strcmp(cmd, "reconfigure") == 0) {
+        // link set_option <name> <opt=val> <opt2=val2>...
+        if (argc < 4) {
+            wrong_num_args(argc, argv, 2, 4, INT_MAX);
+            return TCL_ERROR;
+        }
+
+        const char* name = argv[2];
+        
+        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        if (link == NULL) {
+            resultf("link %s doesn't exist", name);
+            return TCL_ERROR;
+        } 
+
+        argc -= 3;
+        argv += 3;
+        
+        int count = link->parse_args(argc, argv);
+        if (count == -1) {
+            return TCL_ERROR;
+        }
+        argc -= count;
+        
+        if (! link->clayer()->reconfigure_link(link, argc, argv)) {
+            return TCL_ERROR;
+        }
+        
         return TCL_OK;
         
     } else if (strcmp(cmd, "open") == 0) {

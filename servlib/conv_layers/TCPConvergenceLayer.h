@@ -177,6 +177,11 @@ public:
     void dump_link(Link* link, oasys::StringBuffer* buf);
 
     /**
+     * Post-initialization, parse any CL-specific options for the link.
+     */
+    bool reconfigure_link(Link* link, int argc, const char* argv[]);
+    
+    /**
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.
      */

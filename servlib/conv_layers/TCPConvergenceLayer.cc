@@ -395,6 +395,31 @@ TCPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 
 //----------------------------------------------------------------------
 bool
+TCPConvergenceLayer::reconfigure_link(Link* link, int argc, const char* argv[])
+{
+    const char* invalid;
+    Params* params = (Params*)link->cl_info();
+    if (! parse_params(params, argc, argv, &invalid)) {
+        log_err("reconfigure_link: invalid parameter %s", invalid);
+        return false;
+    }
+        
+    // XXX/demmer this is a big ugly hack but should go away once the
+    // bidirectional link stuff is finished. for now, we need to
+    // configure the params structure that's in the connection as well
+    // as the one in the link. yuck.
+    if (link->contact() != NULL) {
+        Connection* conn = (Connection*)link->contact()->cl_info();
+        if (conn) {
+            parse_params(&conn->params_, argc, argv, &invalid);
+        }
+    }
+    
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
 TCPConvergenceLayer::open_contact(Link* link)
 {
     in_addr_t addr;

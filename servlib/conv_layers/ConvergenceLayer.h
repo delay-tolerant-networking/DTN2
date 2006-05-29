@@ -98,6 +98,11 @@ public:
     virtual void dump_link(Link* link, oasys::StringBuffer* buf);
 
     /**
+     * Post-initialization, parse any CL-specific options for the link.
+     */
+    virtual bool reconfigure_link(Link* link, int argc, const char* argv[]);
+    
+    /**
      * Open a new contact for the given link. The implementation will
      * create a new Contact object (or find one that already exists),
      * establish any CL specific connections, then post a

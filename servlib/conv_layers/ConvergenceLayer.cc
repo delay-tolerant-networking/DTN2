@@ -151,6 +151,14 @@ ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
     (void)buf;
 }
 
+bool
+ConvergenceLayer::reconfigure_link(Link* link, int argc, const char* argv[])
+{
+    (void)link;
+    (void)argv;
+    return (argc == 0);
+}
+
 /**
  * Close the connnection to the contact.
  */
