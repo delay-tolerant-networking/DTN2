@@ -55,6 +55,8 @@ proc config_link {id peerid type cl with_routes link_args} {
 	conf::add dtnd $id \
 		"route add dtn://host-$peerid/* $link"
     }
+    
+    return $link
 }
 
 #
@@ -70,17 +72,19 @@ proc config_linear_topology {type cl with_routes {link_args ""}} {
 	# link to next hop in chain (except for last one) and routes
 	# to non-immediate neighbors
 	if { $id != $last} {
-	    config_link $id [expr $id + 1] $type $cl $with_routes $link_args
+	    set link [config_link $id [expr $id + 1] \
+	         $type $cl $with_routes $link_args]
 
 	    for {set dest [expr $id + 2]} {$dest <= $last} {incr dest} {
 		conf::add dtnd $id \
-			"route add dtn://host-$peerid/* $link"
+			"route add dtn://host-$dest/* $link"
 	    }
 	}
 	
 	# and previous a hop in chain as well
 	if { $id != 0 } {
-	    config_link $id [expr $id - 1] $type $cl $with_routes $link_args
+	    set link [config_link $id [expr $id - 1] \
+	        $type $cl $with_routes $link_args]
 
 	    if {$with_routes} {
 		for {set dest [expr $id - 2]} {$dest >= 0} {incr dest -1} {
