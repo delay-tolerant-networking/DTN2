@@ -51,7 +51,7 @@ proc default_bundle_arrived {regid bundle_data} {
     # determined without knowing the SR bundle's creation timestamp
     # (which we can't easily get because SRs are automatically
     # generated)
-    puts "bundle arrival"
+    log /test notice "bundle arrival"
     set guid "$b(source),$b(creation_ts)"
     if { $b(is_admin) && [string match "Status Report" $b(admin_type)] } {
 	set sr_guid "$b(orig_source),$b(orig_creation_ts),$b(source)"
@@ -62,7 +62,7 @@ proc default_bundle_arrived {regid bundle_data} {
 	    continue
 	}
 
-	puts "$key:\t $val"
+	log /test notice "$key:\t $val"
 	
 	lappend bundle_info($guid) $key $val
 	if {[info exists sr_guid]} {
