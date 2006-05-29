@@ -414,6 +414,43 @@ public:
      */
     const Params& params() { return params_; }
 
+    /*************************************************************
+     * Link Statistics
+     */
+    struct Stats {
+        /**
+         * Number of bundles transmitted
+         */
+        u_int bundles_transmitted_;
+
+        /**
+         * Total bytes transmitted (not counting convergence layer
+         * overhead).
+         */
+        u_int bytes_transmitted_;
+
+        /**
+         * Number of bundles currently in flight.
+         */
+        u_int bundles_inflight_;
+
+        /**
+         * Total bytes currently in flight (not counting convergence
+         * layer overhead).
+         */
+        u_int bytes_inflight_;
+    };
+    
+    /**
+     * Accessor for the stats structure.
+     */
+    Stats* stats() { return &stats_; }
+
+    /**
+     * Dump a printable version of the stats.
+     */
+    void dump_stats(oasys::StringBuffer* buf);
+
 protected:
     friend class BundleActions;
     friend class BundleDaemon;
@@ -453,6 +490,9 @@ protected:
 
     /// Default parameters of the link
     static Params default_params_;
+
+    /// Stats for the link
+    Stats stats_;
 
     /// Current contact. contact_ != null iff link is open
     ContactRef contact_;

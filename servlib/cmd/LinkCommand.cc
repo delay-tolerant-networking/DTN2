@@ -59,7 +59,9 @@ LinkCommand::LinkCommand()
     add_to_help("list", "list all of the links");
     add_to_help("set_available <name> <true | false>", 
                 "hacky way to make the link available");
-    add_to_help("state <name>", "check the state of the link");
+    add_to_help("state <name>", "return the state of a link");
+    add_to_help("stats <name>", "dump link statistics");
+    add_to_help("dump", "print the overally of existing links");
 }
 
 int
@@ -237,8 +239,11 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_OK;
         }
     }
-    else if (strcmp(cmd, "state") == 0) {
+    else if ((strcmp(cmd, "state") == 0) ||
+             (strcmp(cmd, "stats") == 0))
+    {
         // link state <name>
+        // link stats <name>
         if (argc != 3) {
             wrong_num_args(argc, argv, 2, 3, 3);
             return TCL_ERROR;
@@ -252,10 +257,16 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        resultf("%s", Link::state_to_str(link->state()));
+        if (strcmp(cmd, "state") == 0) {
+            resultf("%s", Link::state_to_str(link->state()));
+        } else {
+            oasys::StringBuffer buf;
+            link->dump_stats(&buf);
+            set_result(buf.c_str());
+        }
         return TCL_OK;
     }
-    else if (strcmp(cmd, "list") == 0) 
+    else if (strcmp(cmd, "dump") == 0) 
     {
         ContactManager* cm = BundleDaemon::instance()->contactmgr();
         oasys::ScopeLock l(cm->lock(), "LinkCommand::exec");

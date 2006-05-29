@@ -50,6 +50,7 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 /// Default parameters, values set in ParamCommand
 Link::Params Link::default_params_ = {
     default_params_.mtu_                = 0,
@@ -58,9 +59,7 @@ Link::Params Link::default_params_ = {
     default_params_.max_retry_interval_ = 10 * 60
 };
 
-/**
- * Static constructor to create different type of links
- */
+//----------------------------------------------------------------------
 Link*
 Link::create_link(const std::string& name, link_type_t type,
                   ConvergenceLayer* cl, const char* nexthop,
@@ -102,9 +101,7 @@ Link::create_link(const std::string& name, link_type_t type,
     return link;
 }
 
-/**
- * Constructor
- */
+//----------------------------------------------------------------------
 Link::Link(const std::string& name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
     :  Logger("Link", "/dtn/link/%s", name.c_str()),
@@ -119,8 +116,11 @@ Link::Link(const std::string& name, link_type_t type,
 
     params_ = default_params_;
     params_.retry_interval_ = params_.min_retry_interval_;
+
+    memset(&stats_, 0, sizeof(Stats));
 }
 
+//----------------------------------------------------------------------
 int
 Link::parse_args(int argc, const char* argv[])
 {
@@ -128,8 +128,10 @@ Link::parse_args(int argc, const char* argv[])
     
     p.addopt(new oasys::BoolOpt("reliable", &reliable_));
     p.addopt(new oasys::UIntOpt("mtu",     &params_.mtu_));
-    p.addopt(new oasys::UIntOpt("min_retry_interval", &params_.min_retry_interval_));
-    p.addopt(new oasys::UIntOpt("max_retry_interval", &params_.max_retry_interval_));
+    p.addopt(new oasys::UIntOpt("min_retry_interval",
+                                &params_.min_retry_interval_));
+    p.addopt(new oasys::UIntOpt("max_retry_interval",
+                                &params_.max_retry_interval_));
 
     int ret = p.parse_and_shift(argc, argv);
 
@@ -142,11 +144,13 @@ Link::parse_args(int argc, const char* argv[])
     return ret;
 }
 
+//----------------------------------------------------------------------
 void
 Link::set_initial_state()
 {
 }
 
+//----------------------------------------------------------------------
 Link::~Link()
 {
     /*
@@ -165,10 +169,7 @@ Link::~Link()
     }
 }
 
-/**
- * Sets the state of the link. Performs various assertions to
- * ensure the state transitions are legal.
- */
+//----------------------------------------------------------------------
 void
 Link::set_state(state_t new_state)
 {
@@ -213,9 +214,7 @@ Link::set_state(state_t new_state)
     state_ = new_state;
 }
 
-/**
- * Open the link.
- */
+//----------------------------------------------------------------------
 void
 Link::open()
 {
@@ -236,9 +235,7 @@ Link::open()
     clayer()->open_contact(this);
 }
     
-/**
- * Close the link.
- */
+//----------------------------------------------------------------------
 void
 Link::close()
 {
@@ -269,15 +266,27 @@ Link::close()
     log_debug("Link::close complete");
 }
 
-/**
- * Formatting
- */
+//----------------------------------------------------------------------
 int
 Link::format(char* buf, size_t sz) const
 {
     return snprintf(buf, sz, "%s %s -> %s (%s)",
                     link_type_to_str(type_), name(), nexthop(),
                     state_to_str(state_));
+}
+
+//----------------------------------------------------------------------
+void
+Link::dump_stats(oasys::StringBuffer* buf)
+{
+    buf->appendf("%u bundles_transmitted -- "
+                 "%u bytes_transmitted -- "
+                 "%u bundles_inflight -- "
+                 "%u bytes_inflight ",
+                 stats_.bundles_transmitted_,
+                 stats_.bytes_transmitted_,
+                 stats_.bundles_inflight_,
+                 stats_.bytes_inflight_);
 }
 
 } // namespace dtn

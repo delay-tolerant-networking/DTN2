@@ -85,9 +85,12 @@ BundleActions::send_bundle(Bundle* bundle, Link* link,
                            bundle_fwd_action_t action,
                            const CustodyTimerSpec& custody_timer)
 {
-    log_debug("send bundle *%p to %s link %s (%s)",
-              bundle, link->type_str(), link->name(), link->nexthop());
-
+    size_t total_len = BundleProtocol::formatted_length(bundle);
+    
+    log_debug("send bundle *%p to %s link %s (%s) (total len %zu)",
+              bundle, link->type_str(), link->name(), link->nexthop(),
+              total_len);
+    
     if (link->state() != Link::OPEN) {
         log_err("send bundle *%p to %s link %s (%s): link not open!!",
                 bundle, link->type_str(), link->name(), link->nexthop());
@@ -100,9 +103,19 @@ BundleActions::send_bundle(Bundle* bundle, Link* link,
                 bundle, link->type_str(), link->name(), link->nexthop());
         return false;
     }
-    
+
+    if ((link->params().mtu_ != 0) && (total_len > link->params().mtu_)) {
+        log_err("send bundle *%p to %s link %s (%s): length %zu > mtu %u",
+                bundle, link->type_str(), link->name(), link->nexthop(),
+                total_len, link->params().mtu_);
+        return false;
+    }
+
     bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
                               custody_timer);
+
+    link->stats()->bundles_inflight_++;
+    link->stats()->bytes_inflight_ += total_len;
     
     ASSERT(link->contact() != NULL);
     link->clayer()->send_bundle(link->contact(), bundle);

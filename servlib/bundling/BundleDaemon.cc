@@ -516,20 +516,30 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 void
 BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
-    // update statistics
-    bundles_transmitted_++;
+    Bundle* bundle = event->bundleref_.object();
+    Link* link = event->contact_->link();
     
     /*
-     * The bundle was delivered to a next-hop contact.
+     * Update statistics. Note that the link's inflight length must
+     * always be decremented by the full formatted size of the bundle,
+     * yet the transmitted length is only the amount reported by the
+     * event.
      */
-    Bundle* bundle = event->bundleref_.object();
+    size_t total_len = BundleProtocol::formatted_length(bundle);
+    
+    bundles_transmitted_++;
+    link->stats()->bundles_transmitted_++;
+    link->stats()->bundles_inflight_--;
 
+    link->stats()->bytes_transmitted_ += event->bytes_sent_;
+    link->stats()->bytes_inflight_ -= total_len;
+    
     log_info("BUNDLE_TRANSMITTED id:%d (%zu bytes_sent/%zu reliable) -> %s (%s)",
              bundle->bundleid_,
              event->bytes_sent_,
              event->reliably_sent_,
-             event->contact_->link()->name(),
-             event->contact_->link()->nexthop());
+             link->name(),
+             link->nexthop());
 
     /*
      * If we're configured to wait for reliable transmission, then
@@ -539,21 +549,20 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * any of the rest of the processing below.
      *
      * XXX/demmer a better thing to do (maybe) would be to record the
-     * lengths in the forwarding log as part of the transmitted entry
+     * lengths in the forwarding log as part of the transmitted entry.
      */
     if (params_.retry_reliable_unacked_ &&
-        event->contact_->link()->is_reliable() &&
+        link->is_reliable() &&
         event->reliably_sent_ == 0)
     {
-        bundle->fwdlog_.update(event->contact_->link(),
-                               ForwardingInfo::TRANSMIT_FAILED);
+        bundle->fwdlog_.update(link, ForwardingInfo::TRANSMIT_FAILED);
         return;
     }
 
     /*
      * Update the forwarding log
      */
-    bundle->fwdlog_.update(event->contact_->link(),
+    bundle->fwdlog_.update(link,
                            ForwardingInfo::TRANSMITTED);
                             
     /*
@@ -561,7 +570,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * custody timer information (if any).
      */
     ForwardingInfo fwdinfo;
-    bool ok = bundle->fwdlog_.get_latest_entry(event->contact_->link(), &fwdinfo);
+    bool ok = bundle->fwdlog_.get_latest_entry(link, &fwdinfo);
     ASSERTF(ok, "no forwarding log entry for transmission");
     ASSERT(fwdinfo.state_ == ForwardingInfo::TRANSMITTED);
     
@@ -571,7 +580,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * part of the bundle will be processed immediately after this
      * event. For reliable convergence latyer
      */
-    if (event->contact_->link()->reliable_) {
+    if (link->reliable_) {
         fragmentmgr_->try_to_reactively_fragment(bundle, event->reliably_sent_);
     } else {
         fragmentmgr_->try_to_reactively_fragment(bundle, event->bytes_sent_);
@@ -591,7 +600,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         bundle->custody_timers_.push_back(
             new CustodyTimer(fwdinfo.timestamp_,
                              fwdinfo.custody_timer_,
-                             bundle, event->contact_->link()));
+                             bundle, link));
         
         // XXX/TODO: generate failed custodial signal for "forwarded
         // over unidirectional link" if the bundle has the retention

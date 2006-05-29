@@ -58,11 +58,13 @@ struct DictionaryEntry {
     size_t offset;
 };
 
-typedef std::vector<DictionaryEntry> DictionaryVector;
+class DictionaryVector : public std::vector<DictionaryEntry> {};
 
 //----------------------------------------------------------------------
-static inline void
-add_to_dict(const EndpointID& eid, DictionaryVector* dict, size_t* dictlen)
+void
+BundleProtocol::add_to_dictionary(const EndpointID& eid,
+                                  DictionaryVector* dict,
+                                  size_t* dictlen)
 {
     /*
      * For the scheme and ssp parts of the given endpoint id, see if
@@ -95,8 +97,10 @@ add_to_dict(const EndpointID& eid, DictionaryVector* dict, size_t* dictlen)
 
 //----------------------------------------------------------------------
 void
-get_dict_offsets(DictionaryVector *dict, EndpointID eid,
-		 u_int16_t* scheme_offset, u_int16_t* ssp_offset)
+BundleProtocol::get_dictionary_offsets(DictionaryVector *dict,
+                                       EndpointID eid,
+                                       u_int16_t* scheme_offset,
+                                       u_int16_t* ssp_offset)
 {
     DictionaryVector::iterator iter;
     for (iter = dict->begin(); iter != dict->end(); ++iter) {
@@ -106,6 +110,76 @@ get_dict_offsets(DictionaryVector *dict, EndpointID eid,
 	if (iter->str == eid.ssp())
 	    *ssp_offset = htons(iter->offset);
     }
+}
+
+//----------------------------------------------------------------------
+size_t
+BundleProtocol::get_primary_len(const Bundle* bundle,
+                                DictionaryVector* dict,
+                                size_t* dictionary_len)
+{
+    static const char* log = "/dtn/bundle/protocol";
+    size_t primary_len = 0;
+    *dictionary_len = 0;
+
+    /*
+     * We need to figure out the total length of the primary header,
+     * except for the SDNV used to encode the length itself and the
+     * three byte preamble (PrimaryHeader1).
+     *
+     * First, we determine the size of the dictionary by first
+     * figuring out all the unique strings, and in the process,
+     * remembering their offsets and summing up their lengths
+     * (including the null terminator for each).
+     */
+    add_to_dictionary(bundle->dest_,      dict, dictionary_len);
+    add_to_dictionary(bundle->source_,    dict, dictionary_len);
+    add_to_dictionary(bundle->custodian_, dict, dictionary_len);
+    add_to_dictionary(bundle->replyto_,   dict, dictionary_len);
+
+    (void)log; // in case NDEBUG is defined
+    log_debug(log, "generated dictionary length %zu", *dictionary_len);
+
+    primary_len += SDNV::encoding_len(*dictionary_len);
+    primary_len += *dictionary_len;
+
+    /*
+     * If the bundle is a fragment, we need to include space for the
+     * fragment offset and the original payload length.
+     *
+     * Note: Any changes to this protocol must be reflected into the
+     * FragmentManager since it depends on this length when
+     * calculating fragment sizes.
+     */
+    if (bundle->is_fragment_) {
+	primary_len += SDNV::encoding_len(bundle->frag_offset_);
+	primary_len += SDNV::encoding_len(bundle->orig_length_);
+    }
+
+    /*
+     * Tack on the size of the PrimaryHeader2, 
+     */
+    primary_len += sizeof(PrimaryHeader2);
+
+    /*
+     * Finally, add the size of the PrimaryHeader1 as well as the SDNV
+     * length to encode the rest.
+     */
+    primary_len += sizeof(PrimaryHeader1) +
+                   SDNV::encoding_len(primary_len);
+
+    log_debug(log, "get_primary_len(bundle %d): %zu",
+              bundle->bundleid_, primary_len);
+    
+    return primary_len;
+}
+
+//----------------------------------------------------------------------
+size_t
+BundleProtocol::get_payload_header_len(const Bundle* bundle)
+{
+    return (sizeof(HeaderPreamble) +
+            SDNV::encoding_len(bundle->payload_.length()));
 }
 
 //----------------------------------------------------------------------
@@ -119,49 +193,14 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     size_t dictionary_len = 0;
     int encoding_len = 0;	// use an int to handle -1 return values
 
-    /*
-     * We need to figure out the total length of the primary header,
-     * except for the SDNV used to encode the length itself and the
-     * three byte preamble (PrimaryHeader1).
-     *
-     * First, we determine the size of the dictionary by first
-     * figuring out all the unique strings, and in the process,
-     * remembering their offsets and summing up their lengths
-     * (including the null terminator for each).
-     */
-    add_to_dict(bundle->dest_,      &dict, &dictionary_len);
-    add_to_dict(bundle->source_,    &dict, &dictionary_len);
-    add_to_dict(bundle->custodian_, &dict, &dictionary_len);
-    add_to_dict(bundle->replyto_,   &dict, &dictionary_len);
-
-    (void)log; // in case NDEBUG is defined
-    log_debug(log, "generated dictionary length %zu", dictionary_len);
-
-    primary_len += SDNV::encoding_len(dictionary_len);
-    primary_len += dictionary_len;
-
-    /*
-     * If the bundle is a fragment, we need to include space for the
-     * fragment offset and the original payload length.
-     */
-    if (bundle->is_fragment_) {
-	primary_len += SDNV::encoding_len(bundle->frag_offset_);
-	primary_len += SDNV::encoding_len(bundle->orig_length_);
-    }
-
-    /*
-     * Finally, tack on the PrimaryHeader2.
-     */
-    primary_len += sizeof(PrimaryHeader2);
-
+    // grab the primary header length
+    primary_len = get_primary_len(bundle, &dict, &dictionary_len);
+    
     /*
      * Now, make sure we have enough space in the buffer for the whole
      * primary header.
      */
-    if (len < (sizeof(PrimaryHeader1) +
-	       SDNV::encoding_len(primary_len) +
-	       primary_len))
-    {
+    if (len < primary_len) {
 	return -1;
     }
 
@@ -189,21 +228,21 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
      */
     PrimaryHeader2* primary2    = (PrimaryHeader2*)buf;
 
-    get_dict_offsets(&dict, bundle->dest_,
-		     &primary2->dest_scheme_offset,
-		     &primary2->dest_ssp_offset);
+    get_dictionary_offsets(&dict, bundle->dest_,
+                           &primary2->dest_scheme_offset,
+                           &primary2->dest_ssp_offset);
 
-    get_dict_offsets(&dict, bundle->source_,
-		     &primary2->source_scheme_offset,
-		     &primary2->source_ssp_offset);
+    get_dictionary_offsets(&dict, bundle->source_,
+                           &primary2->source_scheme_offset,
+                           &primary2->source_ssp_offset);
 
-    get_dict_offsets(&dict, bundle->custodian_,
-		     &primary2->custodian_scheme_offset,
-		     &primary2->custodian_ssp_offset);
+    get_dictionary_offsets(&dict, bundle->custodian_,
+                           &primary2->custodian_scheme_offset,
+                           &primary2->custodian_ssp_offset);
 
-    get_dict_offsets(&dict, bundle->replyto_,
-		     &primary2->replyto_scheme_offset,
-		     &primary2->replyto_ssp_offset);
+    get_dictionary_offsets(&dict, bundle->replyto_,
+                           &primary2->replyto_scheme_offset,
+                           &primary2->replyto_ssp_offset);
 
     log_debug(log, "dictionary offsets: dest %u,%u source %u,%u, "
 	      "custodian %u,%u replyto %u,%u",
@@ -253,6 +292,15 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
 	buf += encoding_len;
 	len -= encoding_len;
     }
+
+#ifndef NDEBUG
+    {
+        DictionaryVector dict2;
+        size_t dict2_len = 0;
+        size_t len2 = get_primary_len(bundle, &dict2, &dict2_len);
+        ASSERT(len2 == (orig_len - len));
+    }
+#endif
 
     // XXX/demmer deal with other experimental headers
 
@@ -506,6 +554,20 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     return origlen - len;
 }
 
+//----------------------------------------------------------------------
+size_t
+BundleProtocol::formatted_length(const Bundle* bundle)
+{
+    DictionaryVector dict;
+    size_t dictionary_len;
+
+    // XXX/demmer if this ends up being slow, we can cache it in the bundle
+    
+    return (get_primary_len(bundle, &dict, &dictionary_len) +
+            get_payload_header_len(bundle) +
+            bundle->payload_.length());
+}
+    
 //----------------------------------------------------------------------
 void
 BundleProtocol::set_timestamp(u_char* ts, const struct timeval* tv)

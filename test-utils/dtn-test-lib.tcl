@@ -71,6 +71,7 @@ namespace eval dtn {
 
 	if [catch {
 	    tell_dtnd $id shutdown
+	    after 500
 	} err] {
 	    puts "ERROR: error in shutdown of dtnd id $id"
 	}
@@ -349,4 +350,49 @@ namespace eval dtn {
 	    after 1000
 	}
     }
+
+    # dtnd "link stats" functions
+    
+    proc check_link_stats {id link args} {
+        set stats [dtn::tell_dtnd $id "link stats $link"]
+	foreach {val stat_type} $args {
+	    if {![string match "*$val ${stat_type}*" $stats]} {
+		error "node $id link $link stat check for $stat_type failed \
+		       expected $val but stats=\"$stats\""
+	    }
+	}
+    }
+    
+    proc test_link_stats {id link args} {
+        set stats [dtn::tell_dtnd $id "link stats $link"]
+	foreach {val stat_type} $args {
+	    if {![string match "*$val ${stat_type}*" $stats]} {
+		return false
+	    }
+	}
+	return true
+    }
+
+    proc wait_for_link_stat {id link val stat_type {timeout 30000}} {
+	do_until "wait for node $id's link $link stat $stat_type = $val" \
+		$timeout {
+	    if {[test_bundle_stats $id $link $val $stat_type]} {
+		break
+	    }
+	}
+    }
+
+    # separate procedure because this one requires an explicit list
+    # argument to allow for optional timeout argument
+    proc wait_for_link_stats {id link stat_list {timeout 30000}} {
+	foreach {val stat_type} $stat_list {
+	    do_until "wait for node $id's link $link stat $stat_type = $val" \
+		    $timeout {
+		if {[test_bundle_stats $id $link $val $stat_type]} {
+		    break
+		}
+	    }
+	}
+    }
+
 }

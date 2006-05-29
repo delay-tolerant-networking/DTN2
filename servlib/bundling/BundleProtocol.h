@@ -43,6 +43,7 @@
 namespace dtn {
 
 class Bundle;
+class DictionaryVector;
 
 /**
  * Class used to convert a Bundle to / from the bundle protocol
@@ -68,7 +69,13 @@ public:
      * data in buffer)
      */
     static int parse_headers(Bundle* bundle, u_char* buf, size_t len);
-
+    
+    /**
+     * Return the length of the on-the-wire bundle protocol format for
+     * the given bundle.
+     */
+    static size_t formatted_length(const Bundle* bundle);
+    
     /**
      * Store a struct timeval into a 64-bit timestamp suitable for
      * transmission over the network.
@@ -246,6 +253,21 @@ public:
                                admin_record_type_t* type);
 
 protected:
+    static size_t get_primary_len(const Bundle* bundle,
+                                  DictionaryVector* dict,
+                                  size_t* dictionary_len);    
+
+    static size_t get_payload_header_len(const Bundle* bundle);
+    
+    static void add_to_dictionary(const EndpointID& eid,
+                                  DictionaryVector* dict,
+                                  size_t* dictlen);
+    
+    static void get_dictionary_offsets(DictionaryVector *dict,
+                                       EndpointID eid,
+                                       u_int16_t* scheme_offset,
+                                       u_int16_t* ssp_offset);
+    
     static u_int8_t format_bundle_flags(const Bundle* bundle);
     static void parse_bundle_flags(Bundle* bundle, u_int8_t flags);
 
