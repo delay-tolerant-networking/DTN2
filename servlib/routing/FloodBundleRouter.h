@@ -43,26 +43,32 @@
 namespace dtn {
 
 /**
- * This is the implementation of the basic bundle routing algorithm
- * that only does flood routing. Routes can be parsed from a
- * configuration file or injected via the command line and/or
- * management interfaces.
+ * This is the implementation of a flooding based bundle router.
  *
- * As a result, the class simply uses the default base class handlers
- * for all bundle events that flow through it, and the only code here
- * is that which parses the flood route configuration file.
+ * The implementation is very simple: The class maintains an internal
+ * BundleList in which all bundles are kept until their expiration
+ * time. This prevents the main daemon logic from opportunistically
+ * deleting bundles when they've been transmitted.
+ *
+ * Whenever a new link arrives, we add a wildcard route to the table.
+ * Then when a bundle arrives, we can stick it on the all_bundles list
+ * and just call the base class fwd_to_matching function. The core
+ * base class logic then makes sure that a copy of the bundle is
+ * forwarded exactly once to each neighbor.
+ *
+ * XXX/demmer This should be extended to avoid forwarding a bundle
+ * back to the node from which it arrived. With the upcoming
+ * bidirectional link changes, this should be able to be done easily.
  */
- 
 class FloodBundleRouter : public TableBasedRouter {
 public:
-    FloodBundleRouter();
-    ~FloodBundleRouter();
-    
-    const int id() { return id_;}
-protected:
-    int id_;
     /**
-     * Default event handler for new bundle arrivals.
+     * Constructor.
+     */
+    FloodBundleRouter();
+    
+    /**
+     * Event handler for new bundle arrivals.
      *
      * Queue the bundle on the pending delivery list, and then
      * searches through the route table to find any matching next
@@ -71,35 +77,21 @@ protected:
     void handle_bundle_received(BundleReceivedEvent* event);
     
     /**
-     * Default event handler when bundles are transmitted.
-     *
-     * If the bundle was only partially transmitted, this calls into
-     * the fragmentation module to create a new bundle fragment and
-     * enqeues the new fragment on the appropriate list.
-     */
-    void handle_bundle_transmitted(BundleTransmittedEvent* event);
-
-    /**
-     * Default event handler when a link is created.
+     * When a link is created, add a new route for it.
      */
     void handle_link_created(LinkCreatedEvent* event);
     
     /**
-     * Default event handler when a contact is down
+     * Default event handler when bundles expire
      */
-    void handle_contact_down(ContactDownEvent* event);
+    void handle_bundle_expired(BundleExpiredEvent* event);
     
-    /**
-     * Called whenever a new next hop link arrives. This walks the
-     * list of all pending bundles, forwarding all matches to the new
-     * link.
-     */
-    void new_next_hop(const EndpointIDPattern& dest, Link* next_hop);
-
-
-    int fwd_to_matching(Bundle *bundle, bool include_local);
-
 protected:
+    /// To ensure bundles aren't deleted by the system just after they
+    /// are forwarded, we hold them all in this separate list.
+    BundleList all_bundles_;
+
+    /// Wildcard pattern to match all bundles.
     EndpointIDPattern all_eids_;
 };
 
