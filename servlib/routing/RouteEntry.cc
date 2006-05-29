@@ -46,7 +46,7 @@ namespace dtn {
 //----------------------------------------------------------------------
 RouteEntry::RouteEntry(const EndpointIDPattern& pattern, Link* link)
     : pattern_(pattern),
-      priority_(0),
+      route_priority_(0),
       next_hop_(link),
       action_(FORWARD_COPY),
       custody_timeout_(),
@@ -70,7 +70,7 @@ RouteEntry::parse_options(int argc, const char** argv)
     
     oasys::OptParser p;
 
-    p.addopt(new oasys::UIntOpt("priority", &priority_));
+    p.addopt(new oasys::UIntOpt("route_priority", &route_priority_));
 
     oasys::EnumOpt::Case fwdopts[] = {
         {"forward_unique", FORWARD_UNIQUE},
@@ -87,12 +87,12 @@ RouteEntry::parse_options(int argc, const char** argv)
 void
 RouteEntry::dump(oasys::StringBuffer* buf) const
 {
-    buf->appendf("%s -> %s (%s) priority %d "
+    buf->appendf("%s -> %s (%s) route_priority %d "
                  "[custody timeout: base %u lifetime_pct %u limit %u]\n",
                  pattern_.c_str(),
                  next_hop_->name(),
                  bundle_fwd_action_toa(action_),
-                 priority_,
+                 route_priority_,
                  custody_timeout_.base_,
                  custody_timeout_.lifetime_pct_,
                  custody_timeout_.limit_);

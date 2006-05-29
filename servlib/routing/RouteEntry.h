@@ -94,7 +94,7 @@ public:
     EndpointIDPattern pattern_;
 
     /// Route priority
-    u_int priority_;
+    u_int route_priority_;
         
     /// Next hop link
     Link* next_hop_;
