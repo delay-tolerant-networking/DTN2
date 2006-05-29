@@ -90,14 +90,21 @@ BundleActions::send_bundle(Bundle* bundle, Link* link,
 
     if (link->state() != Link::OPEN) {
         log_err("send bundle *%p to %s link %s (%s): link not open!!",
-              bundle, link->type_str(), link->name(), link->nexthop());
+                bundle, link->type_str(), link->name(), link->nexthop());
         return false;
     }
 
-    ASSERT(link->contact() != NULL);
+    ForwardingInfo::state_t state = bundle->fwdlog_.get_latest_entry(link);
+    if (state == ForwardingInfo::IN_FLIGHT) {
+        log_err("send bundle *%p to %s link %s (%s): already in flight",
+                bundle, link->type_str(), link->name(), link->nexthop());
+        return false;
+    }
+    
     bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
                               custody_timer);
-
+    
+    ASSERT(link->contact() != NULL);
     link->clayer()->send_bundle(link->contact(), bundle);
     return true;
 }
