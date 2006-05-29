@@ -9,6 +9,7 @@ proc config {args} {
 
     # defaults
     set storage_type berkeleydb
+    set null_link true
     
     set i 0
     while {$i < [llength $args]} {
@@ -17,6 +18,10 @@ proc config {args} {
 	    -storage_type  -
 	    --storage_type {
 		set storage_type [lindex $args [incr i]]
+	    }
+	    -no_null_link -
+	    --no_null_link {
+		set null_link false
 	    }
 
 	    default {
@@ -31,7 +36,9 @@ proc config {args} {
     dtn::config_console
     dtn::config_api_server
     dtn::config_storage $storage_type
-    dtn::config_null_link
+    if {$null_link} {
+	dtn::config_null_link
+    }
 
     dtn::config_dtntest
 }
