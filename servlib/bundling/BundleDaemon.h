@@ -331,8 +331,11 @@ protected:
     /**
      * Add the bundle to the pending list and (optionally) the
      * persistent store, and set up the expiration timer for it.
+     *
+     * @return true if the bundle is legal to be delivered and/or
+     * forwarded, false if it's already expired
      */
-    void add_to_pending(Bundle* bundle, bool add_to_store);
+    bool add_to_pending(Bundle* bundle, bool add_to_store);
     
     /**
      * Remove the bundle from the pending list and data store, and

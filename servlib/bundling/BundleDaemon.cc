@@ -483,9 +483,20 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     /*
      * Add the bundle to the master pending queue and the data store
      * (unless the bundle was just reread from the data store on startup)
+     *
+     * Note that if add_to_pending returns false, the bundle has
+     * already expired so we immediately return instead of trying to
+     * deliver and/or forward the bundle. Otherwise there's a chance
+     * that expired bundles will persist in the network.
      */
-    add_to_pending(bundle, (event->source_ != EVENTSRC_STORE));
+    bool ok_to_route =
+        add_to_pending(bundle, (event->source_ != EVENTSRC_STORE));
 
+    if (!ok_to_route) {
+        event->daemon_only_ = true;
+        return;
+    }
+    
     /*
      * If the bundle is a custody bundle and we're configured to take
      * custody, then do so. In case the event was delivered due to a
@@ -735,8 +746,6 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
         } else {
             log_err("expired bundle *%p not on pending list but still "
                     "queued on other lists!!", bundle);
-
-            // fall through to remove other mappings
         }
     }
 
@@ -1182,7 +1191,7 @@ BundleDaemon::handle_status_request(StatusRequest* request)
 }
 
 //----------------------------------------------------------------------
-void
+bool
 BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 {
     log_debug("adding bundle *%p to pending list", bundle);
@@ -1202,10 +1211,13 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     gettimeofday(&now, 0);
     long int when = TIMEVAL_DIFF_MSEC(expiration_time, now);
 
+    bool ok_to_route = true;
+    
     if (when > 0) {
         log_debug("scheduling expiration for bundle id %d at %u.%u (in %lu msec)",
                   bundle->bundleid_,
-                  (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec, when);
+                  (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec,
+                  when);
     } else {
         log_warn("scheduling IMMEDIATE expiration for bundle id %d: "
                  "[expiration %u, creation time %u.%u, now %u.%u]",
@@ -1213,10 +1225,14 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
                  (u_int)bundle->creation_ts_.tv_sec,
                  (u_int)bundle->creation_ts_.tv_usec,
                  (u_int)now.tv_sec, (u_int)now.tv_usec);
+
+        ok_to_route = false;
     }
 
     bundle->expiration_timer_ = new ExpirationTimer(bundle);
     bundle->expiration_timer_->schedule_at(&expiration_time);
+
+    return ok_to_route;
 }
 
 //----------------------------------------------------------------------
@@ -1251,7 +1267,6 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
     bool erased = pending_bundles_->erase(bundle);
 
     if (erased) {
-        
         if (bundle->deletion_rcpt_ &&
             (reason != BundleProtocol::REASON_NO_ADDTL_INFO))
         {
@@ -1287,7 +1302,14 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
      * thereby adding a mapping.
      */
 
-    if (! bundle->is_queued_on(pending_bundles_)) {
+    if (! bundle->is_queued_on(pending_bundles_))
+    {
+        if (bundle->expiration_timer_ == NULL) {
+            log_debug("try_delete_from_pending(*%p): bundle already expired",
+                      bundle);
+            return;
+        }
+        
         log_err("try_delete_from_pending(*%p): bundle not in pending list!",
                 bundle);
         return;
