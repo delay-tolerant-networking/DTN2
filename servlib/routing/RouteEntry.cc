@@ -48,7 +48,7 @@ RouteEntry::RouteEntry(const EndpointIDPattern& pattern, Link* link)
     : pattern_(pattern),
       route_priority_(0),
       next_hop_(link),
-      action_(FORWARD_COPY),
+      action_(FORWARD_UNIQUE),
       custody_timeout_(),
       info_(NULL)
 {
@@ -96,6 +96,29 @@ RouteEntry::dump(oasys::StringBuffer* buf) const
                  custody_timeout_.base_,
                  custody_timeout_.lifetime_pct_,
                  custody_timeout_.limit_);
+}
+
+//----------------------------------------------------------------------
+/**
+ * Functor class to sort a vector by priority.
+ */
+struct RoutePriorityGT {
+    bool operator() (RouteEntry* a, RouteEntry* b) {
+        if (a->route_priority_ == b->route_priority_)
+        {
+            return (a->next_hop_->stats()->bytes_inflight_ <
+                    b->next_hop_->stats()->bytes_inflight_);
+        }
+        
+        return a->route_priority_ > b->route_priority_;
+    }
+};
+
+//----------------------------------------------------------------------
+void
+RouteEntryVec::sort_by_priority()
+{
+    std::sort(begin(), end(), RoutePriorityGT());
 }
 
 } // namespace dtn

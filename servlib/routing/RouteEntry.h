@@ -115,10 +115,18 @@ public:
 };
 
 /**
- * Typedef for a vector of route entries. Used for the route table
+ * Class for a vector of route entries. Used for the route table
  * itself and for what is returned in get_matching().
  */
-typedef std::vector<RouteEntry*> RouteEntryVec;
+class RouteEntryVec : public std::vector<RouteEntry*> {
+public:
+    /**
+     * Sort the entries in the vector in descending priority order,
+     * i.e. the highest priority first. In case of a tie, select the
+     * link with fewer bytes in flight.
+     */
+    void sort_by_priority();
+};
 
 /**
  * Interface for any per-entry routing algorithm state.
