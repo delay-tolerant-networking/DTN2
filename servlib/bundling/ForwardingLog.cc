@@ -84,6 +84,31 @@ ForwardingLog::get_latest_entry(Link* link) const
 
 //----------------------------------------------------------------------
 size_t
+ForwardingLog::get_transmission_count(bundle_fwd_action_t action,
+                                      bool include_inflight) const
+{
+    size_t ret = 0;
+    
+    oasys::ScopeLock l(lock_, "ForwardingLog::get_transmission_count");
+    
+    Log::const_iterator iter;
+    for (iter = log_.begin(); iter != log_.end(); ++iter)
+    {
+        if (iter->state_ == ForwardingInfo::TRANSMITTED ||
+            (include_inflight && (iter->state_ == ForwardingInfo::IN_FLIGHT)))
+        {
+            if ((action == iter->action_) || (action == FORWARD_INVALID))
+            {
+                ++ret;
+            }
+        }
+    }
+    
+    return ret;
+}
+
+//----------------------------------------------------------------------
+size_t
 ForwardingLog::get_count(state_t state) const
 {
     size_t ret = 0;

@@ -84,10 +84,19 @@ public:
     bool get_latest_entry(Link* link, ForwardingInfo* info) const;
     
     /**
-     * Get the most recent entry for the given link from the log.
+     * Get the most recent state for the given link from the log.
      */
     state_t get_latest_entry(Link* link) const;
-
+    
+    /**
+     * Return the transmission count of the bundle, optionally
+     * including inflight entries as well. If an action is specified
+     * (i.e. not FORWARD_INVALID), only count log entries that match
+     * the action code.
+     */
+    size_t get_transmission_count(bundle_fwd_action_t action = FORWARD_INVALID,
+                                  bool include_inflight = false) const;
+    
     /**
      * Add a new forwarding info entry for the given link.
      */
