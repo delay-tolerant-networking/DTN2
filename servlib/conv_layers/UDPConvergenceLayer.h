@@ -48,6 +48,11 @@ namespace dtn {
 class UDPConvergenceLayer : public IPConvergenceLayer {
 public:
     /**
+     * Maximum bundle size
+     */
+    static const u_int MAX_BUNDLE_LEN = 65507;
+
+    /**
      * Constructor.
      */
     UDPConvergenceLayer();
@@ -190,7 +195,7 @@ protected:
          * fixed-length buffer is big enough since UDP packets can't
          * be any bigger than that.
          */
-        u_char buf_[65507];
+        u_char buf_[UDPConvergenceLayer::MAX_BUNDLE_LEN];
     };   
 };
 

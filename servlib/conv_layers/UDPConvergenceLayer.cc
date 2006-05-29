@@ -234,6 +234,13 @@ UDPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
+    if (link->params().mtu_ > MAX_BUNDLE_LEN) {
+        log_err("error parsing link options: mtu %d > maximum %d",
+                link->params().mtu_, MAX_BUNDLE_LEN);
+        delete params;
+        return false;
+    }
+
     link->set_cl_info(params);
     return true;
 }
@@ -474,6 +481,9 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
                                        0));
         ok = true;
     } else {
+        BundleDaemon::post(
+            new BundleTransmitFailedEvent(bundle, contact_));
+        
         log_err("send_bundle: error sending bundle (wrote %d/%zu): %s",
                 cc, (header_len + payload_len), strerror(errno));
         ok = false;
