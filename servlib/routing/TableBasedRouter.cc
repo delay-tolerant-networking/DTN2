@@ -45,12 +45,15 @@
 
 namespace dtn {
 
-TableBasedRouter::TableBasedRouter(const char* classname, const std::string& name)
+//----------------------------------------------------------------------
+TableBasedRouter::TableBasedRouter(const char* classname,
+                                   const std::string& name)
     : BundleRouter(classname, name)
 {
     route_table_ = new RouteTable(name);
 }
 
+//----------------------------------------------------------------------
 void
 TableBasedRouter::add_route(RouteEntry *entry)
 {
@@ -58,27 +61,21 @@ TableBasedRouter::add_route(RouteEntry *entry)
     check_next_hop(entry->next_hop_);        
 }
 
+//----------------------------------------------------------------------
 void
 TableBasedRouter::del_route(const EndpointIDPattern& dest)
 {
     route_table_->del_entries(dest);
 }
 
-/**
- * Event handler overridden from BundleRouter / BundleEventHandler
- * that dispatches to the type specific handlers where
- * appropriate.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::handle_event(BundleEvent* event)
 {
     dispatch_event(event);
 }
 
-/**
- * Handler for new bundle arrivals simply forwards the newly arrived
- * bundle to all matching entries in the table.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 {
@@ -87,9 +84,7 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
     fwd_to_matching(bundle);
 }
 
-/**
- * If a transmission failed, just try to reforward it.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
 {
@@ -98,54 +93,35 @@ TableBasedRouter::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event
     fwd_to_matching(bundle);
 }
 
-/**
- * Default event handler when a new route is added by the command
- * or management interface.
- *
- * Adds an entry to the route table, then walks the pending list
- * to see if any bundles match the new route.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::handle_route_add(RouteAddEvent* event)
 {
     add_route(event->entry_);
 }
 
-/**
- * Default event handler when a route is deleted by the command
- * or management interface.
- *
- * Looks through the route table for the appropriate entry, then
- * removes the route.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::handle_route_del(RouteDelEvent* event)
 {
     del_route(event->dest_);
 }
 
-/**
- * When a contact comes up, check to see if there are any matching
- * bundles for it.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::handle_contact_up(ContactUpEvent* event)
 {
     check_next_hop(event->contact_->link());
 }
 
-/**
- * Ditto if an ondemand link becomes available.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
 {
     check_next_hop(event->link_);
 }
 
-/**
- * Handle a custody transfer timeout.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
 {
@@ -159,9 +135,7 @@ TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
     fwd_to_matching(event->bundle_.object());
 }
 
-/**
- * Format the given StringBuffer with current routing info.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
 {
@@ -169,9 +143,7 @@ TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
     route_table_->dump(buf);
 }
 
-/**
- * Forward a bundle to a next hop route.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
 {
@@ -208,17 +180,7 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
     }
 }
 
-/**
- * Check the route table entries that match the given bundle and
- * have not already been found in the bundle history. If a match
- * is found, call fwd_to_nexthop on it.
- *
- * @param bundle	the bundle to forward
- * @param next_hop	if specified, restricts forwarding to the given
- * 			next hop link
- *
- * Returns the number of matches found and assigned.
- */
+//----------------------------------------------------------------------
 int
 TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
 {
@@ -270,11 +232,7 @@ TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
     return count;
 }
 
-/**
- * Called whenever a new consumer (i.e. registration or contact)
- * arrives. This walks the list of all pending bundles, forwarding
- * all matches to the new contact.
- */
+//----------------------------------------------------------------------
 void
 TableBasedRouter::check_next_hop(Link* next_hop)
 {
