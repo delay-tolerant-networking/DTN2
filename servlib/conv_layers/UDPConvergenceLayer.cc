@@ -458,9 +458,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         return false;
     }
 
-    // check that the payload isn't too big
-    // XXX/demmer maybe we need to fragment here? or return an MTU for
-    // the higher layer
+    // check that the payload isn't too big (it should have been
+    // fragmented by the higher layers)
     if (payload_len > (sizeof(buf_) - header_len)) {
         log_err("send_bundle: bundle payload + headers (length %zu) too big",
                 header_len + payload_len);
