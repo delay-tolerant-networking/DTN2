@@ -71,6 +71,18 @@ ForwardingLog::get_latest_entry(Link* link, ForwardingInfo* info) const
 }
 
 //----------------------------------------------------------------------
+ForwardingLog::state_t
+ForwardingLog::get_latest_entry(Link* link) const
+{
+    ForwardingInfo info;
+    if (! get_latest_entry(link, &info)) {
+        return ForwardingInfo::NONE;
+    }
+
+    return info.state_;
+}
+
+//----------------------------------------------------------------------
 size_t
 ForwardingLog::get_count(state_t state) const
 {
