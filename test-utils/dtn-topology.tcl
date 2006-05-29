@@ -4,9 +4,13 @@
 
 namespace eval dtn {
 
+set router_type "static"
+
 proc config_topology_common {} {
+    global dtn::router_type
+    
     foreach id [net::nodelist] {
-	conf::add dtnd $id "route set type static"
+	conf::add dtnd $id "route set type $router_type"
 	conf::add dtnd $id "route local_eid dtn://host-$id"
     }
 }
@@ -41,7 +45,7 @@ proc config_link {id peerid type cl with_routes link_args} {
     set peeraddr $net::host($peerid)
     set peerport [dtn::get_port $cl $peerid]
     set link [get_link_name $cl $id $peerid]
-
+    
     conf::add dtnd $id [join [list \
 	    link add $link $peeraddr:$peerport $type $cl $link_args]]
     
@@ -203,6 +207,8 @@ proc config_twolevel_topology {type cl with_routes {link_args ""}} {
 #     \ /
 #      3
 proc config_diamond_topology {type cl with_routes {link_args ""}} {
+    dtn::config_topology_common
+    
     config_link 0 1 $type $cl $with_routes $link_args
     config_link 0 2 $type $cl $with_routes $link_args
     
