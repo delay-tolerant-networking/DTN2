@@ -155,28 +155,28 @@ TCPConvergenceLayer::parse_params(Params* params,
 /**
  * Simply dump the Parameters to the log.  Handy for debugging.  
  */
-void TCPConvergenceLayer::dump_params(Params* params)
+void
+TCPConvergenceLayer::dump_params(Params* params)
 {
-	oasys::StringBuffer buf;
+    oasys::StringBuffer buf;
 
-	buf.appendf("pipeline_ %d ", params->pipeline_);
-	buf.appendf("busy_queue_depth_ %d ", params->busy_queue_depth_);
-	buf.appendf("bundle_ack_enabled_ %d ", params->bundle_ack_enabled_);
-	buf.appendf("reactive_frag_enabled_ %d ", params->reactive_frag_enabled_);
-	buf.appendf("receiver_connect_ %d ", params->receiver_connect_);
-	buf.appendf("partial_ack_len_ %d ", params->partial_ack_len_);
-	buf.appendf("writebuf_len_ %d ", params->writebuf_len_);
-	buf.appendf("readbuf_len_ %d ", params->readbuf_len_);
-	buf.appendf("keepalive_interval_ %d ", params->keepalive_interval_);
-	buf.appendf("retry_interval_ %d ", params->retry_interval_);
-	buf.appendf("min_retry_interval_ %d ", params->min_retry_interval_);
-	buf.appendf("max_retry_interval_ %d ", params->max_retry_interval_);
-	buf.appendf("idle_close_time %d ", params->idle_close_time);
-	buf.appendf("rtt_timeout_ %d ", params->rtt_timeout_);
+    buf.appendf("pipeline_ %d ", params->pipeline_);
+    buf.appendf("busy_queue_depth_ %d ", params->busy_queue_depth_);
+    buf.appendf("bundle_ack_enabled_ %d ", params->bundle_ack_enabled_);
+    buf.appendf("reactive_frag_enabled_ %d ", params->reactive_frag_enabled_);
+    buf.appendf("receiver_connect_ %d ", params->receiver_connect_);
+    buf.appendf("partial_ack_len_ %d ", params->partial_ack_len_);
+    buf.appendf("writebuf_len_ %d ", params->writebuf_len_);
+    buf.appendf("readbuf_len_ %d ", params->readbuf_len_);
+    buf.appendf("keepalive_interval_ %d ", params->keepalive_interval_);
+    buf.appendf("retry_interval_ %d ", params->retry_interval_);
+    buf.appendf("min_retry_interval_ %d ", params->min_retry_interval_);
+    buf.appendf("max_retry_interval_ %d ", params->max_retry_interval_);
+    buf.appendf("idle_close_time %d ", params->idle_close_time);
+    buf.appendf("rtt_timeout_ %d ", params->rtt_timeout_);
 
-	log_info("%s: %s", __FUNCTION__, buf.c_str() );
+    log_info("%s: %s", __FUNCTION__, buf.c_str() );
 }
- 
 
 /**
  * Bring up a new interface.
