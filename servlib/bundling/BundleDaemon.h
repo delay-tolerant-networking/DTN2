@@ -403,7 +403,7 @@ protected:
         u_int32_t bundles_generated_;
         u_int32_t bundles_transmitted_;
         u_int32_t bundles_expired_;
-        u_int32_t bundles_duplicate_;
+        u_int32_t duplicate_bundles_;
         u_int32_t events_processed_;
     };
 

@@ -161,7 +161,7 @@ BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
                  stats_.bundles_generated_,
                  stats_.bundles_transmitted_,
                  stats_.bundles_expired_,
-                 stats_.bundles_duplicate_);
+                 stats_.duplicate_bundles_);
 }
 
 //----------------------------------------------------------------------
@@ -179,6 +179,14 @@ void
 BundleDaemon::reset_stats()
 {
     memset(&stats_, 0, sizeof(stats_));
+
+    oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::reset_stats");
+    
+    const LinkSet* links = contactmgr_->links();
+    LinkSet::const_iterator iter;
+    for (iter = links->begin(); iter != links->end(); ++iter) {
+        (*iter)->reset_stats();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -454,6 +462,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                    bundle->dest_.c_str(),
                    (u_int)bundle->creation_ts_.tv_sec,
                    (u_int)bundle->creation_ts_.tv_usec);
+
+        stats_.duplicate_bundles_++;
         
         if (bundle->custody_requested_ && duplicate->local_custody_)
         {
