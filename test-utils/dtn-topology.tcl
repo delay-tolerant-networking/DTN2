@@ -35,43 +35,51 @@ proc get_link_name {cl src dst} {
 }
 
 #
+# Add a link and optionally a route from a to b
+#
+proc config_link {id peerid type cl with_routes link_args} {
+    set peeraddr $net::host($peerid)
+    set peerport [dtn::get_port $cl $peerid]
+    set link [get_link_name $cl $id $peerid]
+
+    conf::add dtnd $id [join [list \
+	    link add $link $peeraddr:$peerport $type $cl $link_args]]
+    
+    if {$with_routes} {
+	# XXX/demmer this should become unnecessary since the one-hop
+	# neigbors should be automatically added to the route table
+	conf::add dtnd $id \
+		"route add dtn://host-$peerid/* $link"
+    }
+}
+
+#
 # Set up a linear topology using TCP or UDP
 #
-proc config_linear_topology {type cl with_routes {args ""}} {
+proc config_linear_topology {type cl with_routes {link_args ""}} {
     dtn::config_topology_common
     
     set last [expr [net::num_nodes] - 1]
+    
     foreach id [net::nodelist] {
-	# link to next hop in chain (except for last one)
-	if { $id != $last } {
-	    set peerid   [expr $id + 1]
-	    set peeraddr $net::host($peerid)
-	    set peerport [dtn::get_port $cl $peerid]
-	    set link [get_link_name $cl $id $peerid]
 
-	    conf::add dtnd $id [eval list link add $link  \
-		    $peeraddr:$peerport $type $cl $args]
+	# link to next hop in chain (except for last one) and routes
+	# to non-immediate neighbors
+	if { $id != $last} {
+	    config_link $id [expr $id + 1] $type $cl $with_routes $link_args
 
-	    if {$with_routes} {
-		for {set dest $peerid} {$dest <= $last} {incr dest} {
-		    conf::add dtnd $id \
-			    "route add dtn://host-$dest/* $link"
-		}
+	    for {set dest [expr $id + 2]} {$dest <= $last} {incr dest} {
+		conf::add dtnd $id \
+			"route add dtn://host-$peerid/* $link"
 	    }
 	}
 	
 	# and previous a hop in chain as well
 	if { $id != 0 } {
-	    set peerid   [expr $id - 1]
-	    set peeraddr $net::host($peerid)
-	    set peerport [dtn::get_port $cl $peerid]
+	    config_link $id [expr $id - 1] $type $cl $with_routes $link_args
 
-	    set link [get_link_name $cl $id $peerid]
-	    conf::add dtnd $id [eval list link add $link \
-		    $peeraddr:$peerport  $type $cl $args]
-	    
 	    if {$with_routes} {
-		for {set dest $peerid} {$dest >= 0} {incr dest -1} {
+		for {set dest [expr $id - 2]} {$dest >= 0} {incr dest -1} {
 		    conf::add dtnd $id \
 			    "route add dtn://host-$dest/* $link"
 		}
@@ -94,7 +102,7 @@ proc config_linear_topology {type cl with_routes {args ""}} {
 #  |   |       |   |  
 # 210 211     218 219
 #
-proc config_tree_topology {type cl {args ""}} {
+proc config_tree_topology {type cl {link_args ""}} {
     global hosts ports num_nodes id route_to_root
 
     error "XXX/demmer fixme"
@@ -105,7 +113,7 @@ proc config_tree_topology {type cl {args ""}} {
 	    set childaddr $hosts($child)
 	    set childport $ports($cl,$child)
 	    eval link add link-$child $childaddr:$childport \
-		    $type $cl $args
+		    $type $cl $link_args
 	    
 	    route add dtn://host-$child/* link-$child
 	}
@@ -118,7 +126,7 @@ proc config_tree_topology {type cl {args ""}} {
 	set parentaddr $hosts($parent)
 	set parentport $ports($cl,$parent)
 	eval link add link-$parent $parentaddr:$parentport \
-		$type $cl $args
+		$type $cl $link_args
 	
 	route add dtn://host-$parent/* link-$parent
 	set route_to_root dtn://$parentaddr
@@ -130,7 +138,7 @@ proc config_tree_topology {type cl {args ""}} {
 	    set childaddr $hosts($child)
 	    set childport $ports($cl,$child)
 	    eval link add link-$child $childaddr:$childport \
-		    $type $cl $args
+		    $type $cl $link_args
 	    
 	    route add dtn://host-$child/* link-$child
 	}
@@ -143,7 +151,7 @@ proc config_tree_topology {type cl {args ""}} {
 	set parentaddr $hosts($parent)
 	set parentport $ports($cl,$parent)
 	eval link add link-$parent $parentaddr:$parentport \
-		$type $cl $args
+		$type $cl $link_args
 	
 	route add dtn://host-$parent/* link-$parent
 	set route_to_root dtn://$parentaddr
@@ -153,7 +161,7 @@ proc config_tree_topology {type cl {args ""}} {
 	    set childaddr $hosts($child)
 	    set childport $ports($cl,$child)
 	    eval link add link-$child $childaddr:$childport \
-		    $type $cl $args
+		    $type $cl $link_args
 	    
 	    route add dtn://host-$child/* link-$child
 	}
@@ -165,48 +173,59 @@ proc config_tree_topology {type cl {args ""}} {
 	set parentaddr $hosts($parent)
 	set parentport $ports($cl,$parent)
 	eval link add link-$parent $parentaddr:$parentport \
-		$type $cl $args
+		$type $cl $link_args
 	
 	route add dtn://host-$parent/* link-$parent
 	set route_to_root dtn://$parentaddr
     }
 }
 
-# A two level tree with a single root and children
+# A two level tree with a single root and N children
 #            0
 #      /  / ...  \  \
 #     1     ...      n
 #
-proc config_twolevel_topology {type cl with_routes {args ""}} {   
-    # setup ingress links for each node
-    set root_addr $net::host(0)
-    set root_port [dtn::get_port $cl 0]
-
+proc config_twolevel_topology {type cl with_routes {link_args ""}} {
     foreach id [net::nodelist] {
-	set to_root_link   [get_link_name $cl $id 0]
-	set from_root_link [get_link_name $cl 0 $id]
-
 	if { $id != 0 } {
-	    # setup links b/t root and children and routes
-	    set child_addr $net::host($id)
-	    set child_port [dtn::get_port $cl $id]
-	    
-	    conf::add dtnd 0 [eval list link add $from_root_link \
-				  $child_addr:$child_port $type $cl $args]
-	    conf::add dtnd $id [eval list link add $to_root_link \
-				    $root_addr:$root_port $type $cl $args]
-
-	    if {$with_routes} {
-		for {set child 0} {$child < [net::num_nodes]} {incr child} {
-		    if {$child != $id} {
-			conf::add dtnd $id \
-			    "route add dtn://host-$child/* $to_root_link"
-		    }
-		}
-		conf::add dtnd 0 "route add dtn://host-$id/* $from_root_link"
-	    }
+	    config_link 0   $id $type $cl $with_routes $link_args
+	    config_link $id 0   $type $cl $with_routes $link_args
 	}
     }
+}
+
+# A simple four node diamond topology with multiple
+# routes of the same priority for two-hop neighbors.
+#
+#      0
+#     / \
+#    1   2
+#     \ /
+#      3
+proc config_diamond_topology {type cl with_routes {link_args ""}} {
+    config_link 0 1 $type $cl $with_routes $link_args
+    config_link 0 2 $type $cl $with_routes $link_args
+    
+    conf::add dtnd 0 "route add dtn://host-3/* $cl-link:0-1"
+    conf::add dtnd 0 "route add dtn://host-3/* $cl-link:0-2"
+    
+    config_link 1 0 $type $cl $with_routes $link_args
+    config_link 1 3 $type $cl $with_routes $link_args
+
+    conf::add dtnd 1 "route add dtn://host-2/* $cl-link:1-0"
+    conf::add dtnd 1 "route add dtn://host-2/* $cl-link:1-3"
+    
+    config_link 2 0 $type $cl $with_routes $link_args
+    config_link 2 3 $type $cl $with_routes $link_args
+
+    conf::add dtnd 2 "route add dtn://host-1/* $cl-link:2-0"
+    conf::add dtnd 2 "route add dtn://host-1/* $cl-link:2-3"
+    
+    config_link 3 1 $type $cl $with_routes $link_args
+    config_link 3 2 $type $cl $with_routes $link_args
+
+    conf::add dtnd 3 "route add dtn://host-0/* $cl-link:3-1"
+    conf::add dtnd 3 "route add dtn://host-0/* $cl-link:3-2"
 }
 
 # namespace dtn
