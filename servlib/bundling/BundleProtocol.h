@@ -44,6 +44,7 @@ namespace dtn {
 
 class Bundle;
 class DictionaryVector;
+class EndpointID;
 
 /**
  * Class used to convert a Bundle to / from the bundle protocol
