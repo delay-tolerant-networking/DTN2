@@ -396,14 +396,19 @@ protected:
     /// bundle status reports, routing, etc.
     EndpointID local_eid_;
 
-    /// Statistics
-    u_int32_t bundles_received_;
-    u_int32_t bundles_delivered_;
-    u_int32_t bundles_generated_;
-    u_int32_t bundles_transmitted_;
-    u_int32_t bundles_expired_;
+    /// Statistics structure definition
+    struct Stats {
+        u_int32_t bundles_received_;
+        u_int32_t bundles_delivered_;
+        u_int32_t bundles_generated_;
+        u_int32_t bundles_transmitted_;
+        u_int32_t bundles_expired_;
+        u_int32_t bundles_duplicate_;
+        u_int32_t events_processed_;
+    };
 
-    u_int32_t events_processed_;
+    /// Stats instance
+    Stats stats_;
 
     /// Application-specific shutdown handler
     ShutdownProc app_shutdown_proc_;

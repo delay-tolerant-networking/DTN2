@@ -69,12 +69,7 @@ BundleDaemon::BundleDaemon()
     // XXX/demmer fixme
     local_eid_.assign("dtn://localhost.dtn");
 
-    bundles_received_ = 0;
-    bundles_delivered_ = 0;
-    bundles_generated_ = 0;
-    bundles_transmitted_ = 0;
-    bundles_expired_ = 0;
-    events_processed_ = 0;
+    memset(&stats_, 0, sizeof(stats_));
 
     pending_bundles_ = new BundleList("pending_bundles");
     custody_bundles_ = new BundleList("custody_bundles");
@@ -157,14 +152,16 @@ BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
                  "%u delivered -- "
                  "%u generated -- "
                  "%u transmitted -- "
-                 "%u expired",
+                 "%u expired -- "
+                 "%u duplicate",
                  pending_bundles()->size(),
                  custody_bundles()->size(),
-                 bundles_received_,
-                 bundles_delivered_,
-                 bundles_generated_,
-                 bundles_transmitted_,
-                 bundles_expired_);
+                 stats_.bundles_received_,
+                 stats_.bundles_delivered_,
+                 stats_.bundles_generated_,
+                 stats_.bundles_transmitted_,
+                 stats_.bundles_expired_,
+                 stats_.bundles_duplicate_);
 }
 
 //----------------------------------------------------------------------
@@ -174,20 +171,14 @@ BundleDaemon::get_daemon_stats(oasys::StringBuffer* buf)
     buf->appendf("%zu pending_events -- "
                  "%u processed_events",
                  eventq_->size(),
-                 events_processed_);
+                 stats_.events_processed_);
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::reset_stats()
 {
-    bundles_received_    = 0;
-    bundles_delivered_   = 0;
-    bundles_generated_   = 0;
-    bundles_transmitted_ = 0;
-    bundles_expired_     = 0;
-
-    events_processed_    = 0;
+    memset(&stats_, 0, sizeof(stats_));
 }
 
 //----------------------------------------------------------------------
@@ -372,11 +363,11 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     const char* source_str = "";
     switch (event->source_) {
     case EVENTSRC_PEER:
-        bundles_received_++;
+        stats_.bundles_received_++;
         break;
         
     case EVENTSRC_APP:
-        bundles_received_++;
+        stats_.bundles_received_++;
         source_str = " (from app)";
         break;
         
@@ -385,12 +376,12 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         break;
         
     case EVENTSRC_ADMIN:
-        bundles_generated_++;
+        stats_.bundles_generated_++;
         source_str = " (generated)";
         break;
         
     case EVENTSRC_FRAGMENTATION:
-        bundles_generated_++;
+        stats_.bundles_generated_++;
         source_str = " (from fragmentation)";
         break;
 
@@ -527,7 +518,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      */
     size_t total_len = BundleProtocol::formatted_length(bundle);
     
-    bundles_transmitted_++;
+    stats_.bundles_transmitted_++;
     link->stats()->bundles_transmitted_++;
     link->stats()->bundles_inflight_--;
 
@@ -649,7 +640,7 @@ void
 BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
 {
     // update statistics
-    bundles_delivered_++;
+    stats_.bundles_delivered_++;
     
     /*
      * The bundle was delivered to a registration.
@@ -704,7 +695,7 @@ void
 BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 {
     // update statistics
-    bundles_expired_++;
+    stats_.bundles_expired_++;
     
     Bundle* bundle = event->bundleref_.object();
 
@@ -1375,7 +1366,7 @@ BundleDaemon::handle_event(BundleEvent* event)
         contactmgr_->handle_event(event);
     }
 
-    ++events_processed_;
+    stats_.events_processed_++;
 }
 
 //----------------------------------------------------------------------
