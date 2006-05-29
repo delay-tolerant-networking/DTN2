@@ -104,6 +104,7 @@ TCPConvergenceLayer::TCPConvergenceLayer()
     // testing parameters
     defaults_.test_read_delay_		= 0;
     defaults_.test_write_delay_		= 0;
+    defaults_.test_recv_delay_		= 0;
 }
 
 /**
@@ -143,6 +144,8 @@ TCPConvergenceLayer::parse_params(Params* params,
                                 &params->test_read_delay_));
     p.addopt(new oasys::UIntOpt("test_write_delay",
                                 &params->test_write_delay_));
+    p.addopt(new oasys::UIntOpt("test_recv_delay",
+                                &params->test_recv_delay_));
     
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -1130,6 +1133,11 @@ TCPConvergenceLayer::Connection::recv_bundle()
     log_debug("recv_bundle: "
               "new bundle id %d arrival, payload length %zu (rcvd %zu)",
               bundle->bundleid_, payload_len, rcvd_len);
+
+    log_notice("sleeping for %u msecs", params_.test_recv_delay_);
+    if (params_.test_recv_delay_ != 0) {
+        usleep(params_.test_recv_delay_ * 1000);
+    }
     
     // inform the daemon that we got a valid bundle, though it may not
     // be complete (as indicated by passing the rcvd_len)
