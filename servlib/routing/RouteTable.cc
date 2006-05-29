@@ -191,7 +191,7 @@ RouteTable::del_entries_for_nexthop(Link* next_hop)
  */
 size_t
 RouteTable::get_matching(const EndpointID& eid, Link* next_hop,
-                         RouteEntryVec* entry_set) const
+                         RouteEntryVec* entry_vec) const
 {
     RouteEntryVec::const_iterator iter;
     RouteEntry* entry;
@@ -217,7 +217,7 @@ RouteTable::get_matching(const EndpointID& eid, Link* next_hop,
                       entry->next_hop_->nexthop(),
                       bundle_fwd_action_toa(entry->action_));
 
-            entry_set->push_back(entry);
+            entry_vec->push_back(entry);
         }
     }
 
