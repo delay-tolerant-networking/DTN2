@@ -3,6 +3,7 @@ import "dtn-topology.tcl"
 
 # procedure naming conventions:
 #
+# test_*     - returns true/false for a given check
 # check_*    - errors out if the check fails
 # wait_for_* - errors out if the check never succeeds within a timeout
 
