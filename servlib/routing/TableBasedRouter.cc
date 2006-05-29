@@ -145,15 +145,15 @@ TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
 
 //----------------------------------------------------------------------
 void
-TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
+TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
 {
-    Link* link = nexthop->next_hop_;
+    Link* link = route->next_hop_;
 
     // if the link is open and not busy, send the bundle to it
     if (link->isopen() && !link->isbusy()) {
         log_debug("sending *%p to *%p", bundle, link);
         actions_->send_bundle(bundle, link,
-                              nexthop->action_, nexthop->custody_timeout_);
+                              route->action_, route->custody_timeout_);
     }
 
     // if the link is available and not open, open it
@@ -181,54 +181,89 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop)
 }
 
 //----------------------------------------------------------------------
+bool
+TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
+{
+    ForwardingInfo info;
+    bool found = bundle->fwdlog_.get_latest_entry(route->next_hop_, &info);
+
+    if (found) {
+        ASSERT(info.state_ != ForwardingInfo::NONE);
+    } else {
+        ASSERT(info.state_ == ForwardingInfo::NONE);
+    }
+    
+    if (info.state_ == ForwardingInfo::TRANSMITTED ||
+        info.state_ == ForwardingInfo::IN_FLIGHT)
+    {
+        log_debug("should_fwd bundle %d: "
+                  "skip %s due to forwarding log entry %s",
+                  bundle->bundleid_, route->next_hop_->name(),
+                  ForwardingInfo::state_to_str(info.state_));
+        return false;
+    }
+
+    if (route->action_ == FORWARD_UNIQUE) {
+        size_t count;
+        
+        count = bundle->fwdlog_.get_transmission_count(FORWARD_UNIQUE, true);
+        if (count > 0) {
+            log_debug("should_fwd bundle %d: "
+                      "skip %s since already transmitted (count %zu)",
+                      bundle->bundleid_, route->next_hop_->name(), count);
+            return false;
+        } else {
+            log_debug("should_fwd bundle %d: "
+                      "link %s ok since transmission count=%d",
+                      bundle->bundleid_, route->next_hop_->name(), count);
+        }
+    }
+    
+    if (info.state_ == ForwardingInfo::TRANSMIT_FAILED) {
+        log_debug("should_fwd bundle %d: "
+                  "match %s: forwarding log entry %s TRANSMIT_FAILED %d",
+                  bundle->bundleid_, route->next_hop_->name(),
+                  ForwardingInfo::state_to_str(info.state_),
+                  bundle->bundleid_);
+        
+    } else {
+        log_debug("should_fwd bundle %d: "
+                  "match %s: forwarding log entry %s",
+                  bundle->bundleid_, route->next_hop_->name(),
+                  ForwardingInfo::state_to_str(info.state_));
+    }
+
+    return true;
+}
+
+//----------------------------------------------------------------------
 int
 TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
 {
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;
 
-    // if next hop is specified, it will filter the results of
-    // get_matching appropriately
+    // get_matching only returns results that match the next_hop link,
+    // if it's not null
     route_table_->get_matching(bundle->dest_, next_hop, &matches);
+
+    // sort the list by route priority, breaking ties with the total
+    // bytes in flight
+    matches.sort_by_priority();
     
     int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
-        ForwardingInfo info;
-        bool found = bundle->fwdlog_.get_latest_entry((*iter)->next_hop_, &info);
-
-        if (found) {
-            ASSERT(info.state_ != ForwardingInfo::NONE);
-        } else {
-            ASSERT(info.state_ == ForwardingInfo::NONE);
+        if (! should_fwd(bundle, *iter)) {
+            continue;
         }
         
-        if (info.state_ == ForwardingInfo::TRANSMITTED ||
-            info.state_ == ForwardingInfo::IN_FLIGHT)
-        {
-            log_debug("fwd_to_matching %s: "
-                      "ignore match %s due to forwarding log entry %s",
-                      bundle->dest_.c_str(), (*iter)->next_hop_->name(),
-                      ForwardingInfo::state_to_str(info.state_));
-            continue;
-        } else if (info.state_ == ForwardingInfo::TRANSMIT_FAILED) {
-            log_debug("fwd_to_matching %s: "
-                      "found match %s: forwarding log entry %s RETRYFWD %d",
-                      bundle->dest_.c_str(), (*iter)->next_hop_->name(),
-                      ForwardingInfo::state_to_str(info.state_),
-                      bundle->bundleid_);
-        } else {
-            log_debug("fwd_to_matching %s: "
-                      "found match %s: forwarding log entry %s",
-                      bundle->dest_.c_str(), (*iter)->next_hop_->name(),
-                      ForwardingInfo::state_to_str(info.state_));
-        }   
-                      
         fwd_to_nexthop(bundle, *iter);
         ++count;
     }
 
-    log_debug("fwd_to_matching %s: %d matches", bundle->dest_.c_str(), count);
+    log_debug("fwd_to_matching bundle id %d: %d matches",
+              bundle->bundleid_, count);
     return count;
 }
 

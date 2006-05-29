@@ -125,8 +125,16 @@ protected:
      * sure to do reassembly if the forwarding action specifies as
      * such.
      */
-    virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* nexthop);
-     
+    virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* route);
+
+    /**
+     * Check if the bundle should be forwarded to the given next hop.
+     * Reasons why it would not be forwarded include that it was
+     * already transmitted or is currently in flight on the link, or
+     * that the route indicates FORWARD_UNIQUE and it is already in
+     * flight on another route.
+     */
+    virtual bool should_fwd(const Bundle* bundle, RouteEntry* route);
     
     /**
      * Check the route table entries that match the given bundle and
