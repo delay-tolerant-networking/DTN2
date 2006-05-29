@@ -447,6 +447,14 @@ public:
     Stats* stats() { return &stats_; }
 
     /**
+     * Reset the stats.
+     */
+    void reset_stats() const
+    {
+        memset(&stats_, 0, sizeof(stats_));
+    }
+
+    /**
      * Dump a printable version of the stats.
      */
     void dump_stats(oasys::StringBuffer* buf);
@@ -492,7 +500,7 @@ protected:
     static Params default_params_;
 
     /// Stats for the link
-    Stats stats_;
+    mutable Stats stats_;
 
     /// Current contact. contact_ != null iff link is open
     ContactRef contact_;
