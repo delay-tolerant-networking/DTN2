@@ -1134,8 +1134,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
               "new bundle id %d arrival, payload length %zu (rcvd %zu)",
               bundle->bundleid_, payload_len, rcvd_len);
 
-    log_notice("sleeping for %u msecs", params_.test_recv_delay_);
     if (params_.test_recv_delay_ != 0) {
+        log_notice("sleeping for %u msecs", params_.test_recv_delay_);
         usleep(params_.test_recv_delay_ * 1000);
     }
     
