@@ -116,12 +116,14 @@ BundleProtocol::get_dictionary_offsets(DictionaryVector *dict,
 size_t
 BundleProtocol::get_primary_len(const Bundle* bundle,
                                 DictionaryVector* dict,
-                                size_t* dictionary_len)
+                                size_t* dictionary_len,
+                                size_t* primary_var_len)
 {
     static const char* log = "/dtn/bundle/protocol";
     size_t primary_len = 0;
     *dictionary_len = 0;
-
+    *primary_var_len = 0;
+    
     /*
      * We need to figure out the total length of the primary header,
      * except for the SDNV used to encode the length itself and the
@@ -140,8 +142,8 @@ BundleProtocol::get_primary_len(const Bundle* bundle,
     (void)log; // in case NDEBUG is defined
     log_debug(log, "generated dictionary length %zu", *dictionary_len);
 
-    primary_len += SDNV::encoding_len(*dictionary_len);
-    primary_len += *dictionary_len;
+    *primary_var_len += SDNV::encoding_len(*dictionary_len);
+    *primary_var_len += *dictionary_len;
 
     /*
      * If the bundle is a fragment, we need to include space for the
@@ -152,22 +154,24 @@ BundleProtocol::get_primary_len(const Bundle* bundle,
      * calculating fragment sizes.
      */
     if (bundle->is_fragment_) {
-	primary_len += SDNV::encoding_len(bundle->frag_offset_);
-	primary_len += SDNV::encoding_len(bundle->orig_length_);
+	*primary_var_len += SDNV::encoding_len(bundle->frag_offset_);
+	*primary_var_len += SDNV::encoding_len(bundle->orig_length_);
     }
 
     /*
      * Tack on the size of the PrimaryHeader2, 
      */
-    primary_len += sizeof(PrimaryHeader2);
+    *primary_var_len += sizeof(PrimaryHeader2);
 
     /*
-     * Finally, add the size of the PrimaryHeader1 as well as the SDNV
-     * length to encode the rest.
+     * Finally, add up the initial PrimaryHeader1 plus the size of the
+     * SDNV to encode the variable length part, plus the variable
+     * length part itself.
      */
-    primary_len += sizeof(PrimaryHeader1) +
-                   SDNV::encoding_len(primary_len);
-
+    primary_len = sizeof(PrimaryHeader1) +
+                  SDNV::encoding_len(*primary_var_len) +
+                  *primary_var_len;
+    
     log_debug(log, "get_primary_len(bundle %d): %zu",
               bundle->bundleid_, primary_len);
     
@@ -188,27 +192,28 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
 {
     static const char* log = "/dtn/bundle/protocol";
     DictionaryVector dict;
-    size_t orig_len = len;
-    size_t primary_len = 0;
-    size_t dictionary_len = 0;
+    size_t orig_len = len;      // original length of the buffer
+    size_t primary_len = 0;     // total length of the primary header
+    size_t primary_var_len = 0; // length of the variable part of the primary
+    size_t dictionary_len = 0;  // length of the dictionary
     int encoding_len = 0;	// use an int to handle -1 return values
 
-    // grab the primary header length
-    primary_len = get_primary_len(bundle, &dict, &dictionary_len);
-    
     /*
-     * Now, make sure we have enough space in the buffer for the whole
-     * primary header.
+     * Grab the primary header length and make sure we have enough
+     * space in the buffer for it.
      */
+    primary_len = get_primary_len(bundle, &dict, &dictionary_len,
+                                  &primary_var_len);
     if (len < primary_len) {
 	return -1;
     }
-
+    
     (void)log; // in case NDEBUG is defined
-    log_debug(log, "preamble length %zu, primary length %zu",
-	      (sizeof(PrimaryHeader1) + SDNV::encoding_len(primary_len)),
-	      primary_len);
-
+    log_debug(log, "primary length %zu (preamble %zu var length %zu)",
+              primary_len,
+	      (sizeof(PrimaryHeader1) + SDNV::encoding_len(primary_var_len)),
+	      primary_var_len);
+    
     /*
      * Ok, stuff in the preamble and the total header length.
      */
@@ -217,8 +222,8 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     primary1->bundle_processing_flags     = format_bundle_flags(bundle);
     primary1->class_of_service_flags	  = format_cos_flags(bundle);
     primary1->status_report_request_flags = format_srr_flags(bundle);
-
-    encoding_len = SDNV::encode(primary_len,
+    
+    encoding_len = SDNV::encode(primary_var_len,
 				&primary1->header_length[0], len - 3);
     ASSERT(encoding_len > 0);
     buf += (sizeof(PrimaryHeader1) + encoding_len);
@@ -227,7 +232,7 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     /*
      * Now fill in the PrimaryHeader2.
      */
-    PrimaryHeader2* primary2    = (PrimaryHeader2*)buf;
+    PrimaryHeader2* primary2 = (PrimaryHeader2*)buf;
 
     get_dictionary_offsets(&dict, bundle->dest_,
                            &primary2->dest_scheme_offset,
@@ -298,10 +303,14 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     {
         DictionaryVector dict2;
         size_t dict2_len = 0;
-        size_t len2 = get_primary_len(bundle, &dict2, &dict2_len);
+        size_t p2len;
+        size_t len2 = get_primary_len(bundle, &dict2, &dict2_len, &p2len);
         ASSERT(len2 == (orig_len - len));
     }
 #endif
+
+    // safety assertion
+    ASSERT(primary_len == (orig_len - len));
 
     // XXX/demmer deal with other experimental headers
 
@@ -561,10 +570,11 @@ BundleProtocol::formatted_length(const Bundle* bundle)
 {
     DictionaryVector dict;
     size_t dictionary_len;
+    size_t primary_var_len;
 
     // XXX/demmer if this ends up being slow, we can cache it in the bundle
     
-    return (get_primary_len(bundle, &dict, &dictionary_len) +
+    return (get_primary_len(bundle, &dict, &dictionary_len, &primary_var_len) +
             get_payload_header_len(bundle) +
             bundle->payload_.length());
 }

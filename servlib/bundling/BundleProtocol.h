@@ -256,7 +256,8 @@ public:
 protected:
     static size_t get_primary_len(const Bundle* bundle,
                                   DictionaryVector* dict,
-                                  size_t* dictionary_len);    
+                                  size_t* dictionary_len,
+                                  size_t* primary_var_len);
 
     static size_t get_payload_header_len(const Bundle* bundle);
     
