@@ -377,7 +377,7 @@ namespace eval dtn {
     proc wait_for_link_stat {id link val stat_type {timeout 30000}} {
 	do_until "wait for node $id's link $link stat $stat_type = $val" \
 		$timeout {
-	    if {[test_bundle_stats $id $link $val $stat_type]} {
+	    if {[test_link_stats $id $link $val $stat_type]} {
 		break
 	    }
 	}
@@ -389,7 +389,7 @@ namespace eval dtn {
 	foreach {val stat_type} $stat_list {
 	    do_until "wait for node $id's link $link stat $stat_type = $val" \
 		    $timeout {
-		if {[test_bundle_stats $id $link $val $stat_type]} {
+		if {[test_link_stats $id $link $val $stat_type]} {
 		    break
 		}
 	    }
