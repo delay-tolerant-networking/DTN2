@@ -204,6 +204,7 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
 	return -1;
     }
 
+    (void)log; // in case NDEBUG is defined
     log_debug(log, "preamble length %zu, primary length %zu",
 	      (sizeof(PrimaryHeader1) + SDNV::encoding_len(primary_len)),
 	      primary_len);
