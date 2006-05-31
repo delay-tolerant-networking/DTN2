@@ -45,12 +45,16 @@ test::script {
 	    is_admin 0 source $source dest $dest
     
     puts "* Doing sanity check on stats"
+    dtn::wait_for_bundle_stats 0 {0 pending}
+    dtn::wait_for_bundle_stats 1 {0 pending}
+    dtn::wait_for_bundle_stats 2 {0 pending}
+    dtn::wait_for_bundle_stats 0 {1 received}
     dtn::wait_for_bundle_stats 0 {1 received}
     dtn::wait_for_bundle_stats 1 {1 transmitted}
-    dtn::check_link_stats   1 $clayer-link:1-0 1    bundles_transmitted
-    dtn::check_link_stats   1 $clayer-link:1-0 5000 bytes_transmitted
-    dtn::check_link_stats   1 $clayer-link:1-0 0    bundles_inflight
-    dtn::check_link_stats   1 $clayer-link:1-0 0    bytes_inflight
+    dtn::wait_for_link_stat 1 $clayer-link:1-0 1 bundles_transmitted
+    dtn::wait_for_link_stat 1 $clayer-link:1-0 $length bytes_transmitted
+    dtn::wait_for_link_stat 1 $clayer-link:1-0 0 bundles_inflight
+    dtn::wait_for_link_stat 1 $clayer-link:1-0 0 bytes_inflight
     
     puts "* Test success!"
 }
