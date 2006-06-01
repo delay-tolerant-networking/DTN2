@@ -30,7 +30,7 @@ set tests(basic) {
     "storage.tcl"		"-storage_type filesysdb"
     "api-leak-test.tcl"		""
     "multipath-forwarding.tcl"	""
-    "multipath-forwarding.tcl"	"--linktype ONDEMAND"
+    "multipath-forwarding.tcl"	"-linktype ONDEMAND"
     "loopback-link.tcl"		""
     "flood-router.tcl"		""
 }
