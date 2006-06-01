@@ -74,7 +74,7 @@ foreach {test testopts} $tests($group) {
     }
     
     if [catch {
-	eval exec ./test-utils/run-dtn.tcl test/$test -d $options \
+	eval exec [file dirname $argv0]/run-dtn.tcl test/$test -d $options \
 		< /dev/null >&@ stdout
     } err ] {
 	puts "unexpected error: $err"

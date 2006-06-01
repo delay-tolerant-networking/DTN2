@@ -47,8 +47,10 @@ proc config {args} {
 # Standard manifest
 #
 proc standard_manifest {} {
+    global opt
     manifest::file daemon/dtnd dtnd
-    manifest::file test-utils/dtnd-test-utils.tcl dtnd-test-utils.tcl
+    manifest::file [file join $opt(base_test_dir) \
+	    test-utils/dtnd-test-utils.tcl] dtnd-test-utils.tcl
     manifest::dir  bundles
     manifest::dir  db
 }

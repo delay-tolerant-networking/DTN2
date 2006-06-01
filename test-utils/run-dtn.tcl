@@ -1,23 +1,42 @@
 #!/usr/bin/tclsh
-source "oasys/test-utils/import.tcl"
+
+#
+# Before the import, snarf out the base test dir option so we can
+# properly set up the import path
+#
+set base_test_dir [pwd]
+if {[llength $argv] >= 2} {
+    for {set i 0} {$i < [llength $argv]} {incr i} {
+	if {[lindex $argv $i] == "--base-test-dir"} {
+	    set base_test_dir [file normalize [pwd]/[lindex $argv [expr $i + 1]]]
+	}
+    }
+}
+
+source "$base_test_dir/oasys/test-utils/import.tcl"
 set import::path [list \
-	[pwd]/test-utils \
-	[pwd]/test/nets \
-	[pwd]/oasys/test-utils \
-	[pwd]/oasys/tclcmd \
+	$base_test_dir/test-utils \
+	$base_test_dir/test/nets \
+	$base_test_dir/oasys/test-utils \
+	$base_test_dir/oasys/tclcmd \
 	]
 
 import "test-lib.tcl" 
 import "dtn-test-lib.tcl"
 
 if {[llength $argv] < 1} {
-    puts "run-test.tcl <test script> options..."
+    puts "run-dtn.tcl <init_options> <test script> <options>..."
     puts ""
     puts "Required:"
     puts "    <test script> Test script to run"
     puts ""
     run::usage
-    real_exit
+
+    if {[info commands real_exit] != ""} {
+	real_exit
+    } else {
+	exit
+    }
 }
 
 # no buffering for stdout
