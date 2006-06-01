@@ -1047,7 +1047,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     // done with the rest. note that all reads have a timeout. note
     // also that we may have some payload data in the buffer
     // initially, so we check for that before trying to read more
-    do {
+    while (rcvd_len < payload_len) {
         if (rcvbuf_.fullbytes() == 0) {
             if (params_.test_read_delay_ != 0) {
                 usleep(params_.test_read_delay_ * 1000);
@@ -1086,11 +1086,6 @@ TCPConvergenceLayer::Connection::recv_bundle()
             rcvbuf_.consume(cc);
         }
         
-        // at this point, we can make at least a valid bundle fragment
-        // from what we've gotten thus far (assuming reactive
-        // fragmentation is enabled)
-        valid = true;
-
         // check if we've read enough to send an ack
         if (rcvd_len - acked_len > params_.partial_ack_len_) {
             log_debug("recv_bundle: "
@@ -1102,9 +1097,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
             }
             acked_len = rcvd_len;
         }
-        
-    } while (rcvd_len < payload_len);
-
+    }; 
+    
     // if the sender requested a bundle ack and we haven't yet sent
     // one for the whole bundle in the partial ack check above, send
     // one now
@@ -1118,6 +1112,12 @@ TCPConvergenceLayer::Connection::recv_bundle()
     
     recvok = true;
 
+    // see if we got at least some of the bundle, making sure to
+    // handle the case that the bundle itself is zero bytes
+    if ((rcvd_len > 0) || (payload_len == 0)) {
+        valid = true;
+    }
+
  done:
     bundle->payload_.close_file();
     
@@ -1126,6 +1126,10 @@ TCPConvergenceLayer::Connection::recv_bundle()
         // reactive fragmentation isn't enabled so just return
         if (bundle)
             delete bundle;
+
+        log_debug("bundle reception failed: valid %s recvok %s",
+                  valid  ? "true" : "false",
+                  recvok ? "true" : "false");
         
         return false;
     }
@@ -1160,6 +1164,9 @@ TCPConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
     size_t sdnv_len;
 
     buf[0] = BUNDLE_ACK;
+
+    log_debug("sending ack bundle id %d acked len %zu",
+              bundle_id, acked_len);
     
     BundleAckHeader* ackhdr = (BundleAckHeader*)&buf[1];
 
@@ -1678,6 +1685,8 @@ void
 TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
 {
     ASSERT(sock_);
+
+    log_debug("break_contact: %s", ContactEvent::reason_to_str(reason));
     
     // do not log an error when we fail to write, since the
     // SHUTDOWN is basically advisory. Expected errors here

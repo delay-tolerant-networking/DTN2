@@ -45,9 +45,9 @@ test::script {
 	    is_admin 0 source $source dest $dest
     
     puts "* Doing sanity check on stats"
-    dtn::wait_for_bundle_stats 0 {0 pending}
-    dtn::wait_for_bundle_stats 1 {0 pending}
-    dtn::wait_for_bundle_stats 2 {0 pending}
+    dtn::wait_for_bundle_stats 0 {0 pending 0 expired}
+    dtn::wait_for_bundle_stats 1 {0 pending 0 expired}
+    dtn::wait_for_bundle_stats 2 {0 pending 0 expired}
     dtn::wait_for_bundle_stats 0 {1 received}
     dtn::wait_for_bundle_stats 0 {1 received}
     dtn::wait_for_bundle_stats 1 {1 transmitted}

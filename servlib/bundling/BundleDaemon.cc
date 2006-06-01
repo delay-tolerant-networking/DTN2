@@ -560,12 +560,18 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * transmission failed event in the forwarding log and don't do
      * any of the rest of the processing below.
      *
+     * Note also the special care taken to handle a zero-length
+     * bundle. XXX/demmer this should all go away when the lengths
+     * include both the header length and the payload length (in which
+     * case it's never zero).
+     *
      * XXX/demmer a better thing to do (maybe) would be to record the
      * lengths in the forwarding log as part of the transmitted entry.
      */
     if (params_.retry_reliable_unacked_ &&
         link->is_reliable() &&
-        event->reliably_sent_ == 0)
+        (event->bytes_sent_ != event->reliably_sent_) &&
+        (event->reliably_sent_ == 0))
     {
         bundle->fwdlog_.update(link, ForwardingInfo::TRANSMIT_FAILED);
         return;
