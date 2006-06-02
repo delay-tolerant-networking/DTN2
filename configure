@@ -6539,17 +6539,21 @@ cat <<EOF
 
 Configure error with Berkeley DB...
 
-If your installed version is not one of $dbversions, you may
-have to specify it with --with-dbver.
+If you do not want Berkeley DB support at all, you can specify
+--without-db.
+
+If your installed version is not one of the following versions:
+'$ac_dbvers', you may have to specify the version explicitly
+with --with-dbver=<version>.
 
 If your installation is in a non-standard path, you can specify
-it with --with-db=DIR.
+the path with --with-db=DIR.
 
 To download the latest version, go to http://www.sleepycat.com
 To build and install to /usr/local/BerkeleyDB-<version>:
 
 # cd <db_download_dir>/build_unix
-# ../dist/configure --enable-cxx
+# ../dist/configure
 # make
 # make install
 
