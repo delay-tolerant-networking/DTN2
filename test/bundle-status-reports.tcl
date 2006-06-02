@@ -51,9 +51,11 @@ test::script {
     puts "* Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
-    puts "* Waiting for links to open"
-    dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
+    puts "* Waiting for all links to open"
+    dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
     dtn::wait_for_link_state 1 tcp-link:1-0 OPEN
+    dtn::wait_for_link_state 1 tcp-link:1-2 OPEN
+    dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
 
     # global constants
     set last_node [expr [net::num_nodes] - 1]
