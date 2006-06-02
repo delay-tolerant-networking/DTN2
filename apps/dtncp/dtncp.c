@@ -75,6 +75,7 @@ main(int argc, char** argv)
     dtn_bundle_spec_t reply_spec;
     dtn_bundle_payload_t send_payload;
     dtn_bundle_payload_t reply_payload;
+    dtn_bundle_id_t bundle_id;
     char demux[4096];
     struct timeval start, end;
 
@@ -158,7 +159,10 @@ main(int argc, char** argv)
 
     gettimeofday(&start, NULL); // timer
 
-    if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
+    memset(&bundle_id, 0, sizeof(bundle_id));
+                
+    if ((ret = dtn_send(handle, &bundle_spec, &send_payload,
+                        &bundle_id)) != 0) {
         fprintf(stderr, "error sending file bundle: %d (%s)\n",
                 ret, dtn_strerror(dtn_errno(handle)));
         exit(1);

@@ -194,6 +194,7 @@ reader_thread(void *p)
     dtn_reg_id_t regid = DTN_REGID_NONE;
     dtn_bundle_spec_t bundle_spec;
     dtn_bundle_payload_t send_payload;
+    dtn_bundle_id_t bundle_id;
     char demux[4096];
 
     p = NULL;
@@ -287,7 +288,11 @@ reader_thread(void *p)
             dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM,
                             (char *) motedata, length);
  
-            if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
+            memset(&bundle_id, 0, sizeof(bundle_id));
+                        
+            if ((ret = dtn_send(handle, &bundle_spec, &send_payload,
+                                &bundle_id)) != 0)
+            {
                 fprintf(stderr, "error sending bundle: %d (%s)\n",
                         ret, dtn_strerror(dtn_errno(handle)));
             }   

@@ -294,6 +294,24 @@ xdr_dtn_bundle_payload_t (XDR *xdrs, dtn_bundle_payload_t *objp)
 }
 
 /**
+ * Type definition for a bundle identifier as returned from dtn_send.
+ */
+
+bool_t
+xdr_dtn_bundle_id_t (XDR *xdrs, dtn_bundle_id_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->creation_secs))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->creation_subsecs))
+		 return FALSE;
+	return TRUE;
+}
+
+/**
  * Bundle authentication data. TBD
  */
 

@@ -367,10 +367,12 @@ dtn_bind(dtn_handle_t h, dtn_reg_id_t regid)
 int
 dtn_send(dtn_handle_t h,
          dtn_bundle_spec_t* spec,
-         dtn_bundle_payload_t* payload)
+         dtn_bundle_payload_t* payload,
+         dtn_bundle_id_t* id)
 {
     dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
     XDR* xdr_encode = &handle->xdr_encode;
+    XDR* xdr_decode = &handle->xdr_decode;
 
     // check if the handle is in the middle of poll
     if (handle->in_poll) {
@@ -388,6 +390,15 @@ dtn_send(dtn_handle_t h,
     // send the message
     if (dtnipc_send_recv(handle, DTN_SEND) < 0) {
         return -1;
+    }
+    
+    // unpack the bundle id return value
+    memset(id, 0, sizeof(id));
+    
+    if (!xdr_dtn_bundle_id_t(xdr_decode, id))
+    {
+        handle->err = DTN_EXDR;
+        return DTN_EXDR;
     }
 
     return 0;

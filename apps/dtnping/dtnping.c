@@ -78,6 +78,7 @@ main(int argc, const char** argv)
     dtn_bundle_spec_t reply_spec;
     dtn_bundle_payload_t ping_payload;
     dtn_bundle_payload_t reply_payload;
+    dtn_bundle_id_t bundle_id;
     int debug = 1;
     char demux[64];
     char payload_buf[1024];
@@ -214,7 +215,10 @@ main(int argc, const char** argv)
     for (i = 0; count == 0 || i < count; ++i) {
         gettimeofday(&start, NULL);
         
-        if ((ret = dtn_send(handle, &ping_spec, &ping_payload)) != 0) {
+        memset(&bundle_id, 0, sizeof(bundle_id));
+                    
+        if ((ret = dtn_send(handle, &ping_spec, &ping_payload,
+                            &bundle_id)) != 0) {
             fprintf(stderr, "error sending bundle: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));
             exit(1);

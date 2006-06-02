@@ -110,6 +110,7 @@ dtn_bundle_spec_t bundle_spec;
 dtn_bundle_spec_t reply_spec;
 dtn_bundle_payload_t primary_payload;
 dtn_bundle_payload_t reply_payload;
+dtn_bundle_id_t bundle_id;
 struct timeval start, end;
 
 
@@ -270,7 +271,7 @@ to_bundles()
 
     int bytes, ret;
     dtn_reg_info_t reg_report; /* for reports, if reqd */
-    
+	
     // initialize bundle spec
     memset(&bundle_spec, 0, sizeof(bundle_spec));
     parse_eid(handle, &bundle_spec.dest, arg_dest);
@@ -329,8 +330,10 @@ to_bundles()
 	    progname);
 	exit(EXIT_FAILURE);
     }
-	
-    if ((ret = dtn_send(handle, &bundle_spec, &primary_payload)) != 0) {
+
+    memset(&bundle_id, 0, sizeof(bundle_id));
+    if ((ret = dtn_send(handle, &bundle_spec, &primary_payload,
+                        &bundle_id)) != 0) {
 	fprintf(stderr, "%s: error sending bundle: %d (%s)\n",
 	    progname, ret, dtn_strerror(dtn_errno(handle)));
 	exit(EXIT_FAILURE);

@@ -151,6 +151,7 @@ int main(int argc, char** argv)
     dtn_bundle_spec_t   reply_spec;
     dtn_bundle_payload_t send_payload;
     dtn_bundle_payload_t reply_payload;
+    dtn_bundle_id_t     bundle_id;
     char demux[64];
 
     // buffer specifications
@@ -391,7 +392,8 @@ int main(int argc, char** argv)
 
             // send the bundle
             if (debug) printf("\t[debug] sending the bundle...");
-            if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
+            memset(&bundle_id, 0, sizeof(bundle_id));
+            if ((ret = dtn_send(handle, &bundle_spec, &send_payload, &bundle_id)) != 0) {
                 fprintf(stderr, "error sending bundle: %d (%s)\n",
                         ret, dtn_strerror(dtn_errno(handle)));
                 exit(1);
@@ -557,7 +559,8 @@ int main(int argc, char** argv)
     
                     // send the bundle
                     if (debug) printf("\t\t[debug] sending copy %d...", i+1);
-                    if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
+                    memset(&bundle_id, 0, sizeof(bundle_id));
+                    if ((ret = dtn_send(handle, &bundle_spec, &send_payload, &bundle_id)) != 0) {
                         fprintf(stderr, "error sending bundle: %d (%s)\n",
                                 ret, dtn_strerror(dtn_errno(handle)));
                         exit(1);

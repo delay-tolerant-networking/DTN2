@@ -93,6 +93,7 @@ main(int argc, char** argv)
     dtn_reg_info_t reginfo;
     dtn_bundle_spec_t bundle_spec;
     dtn_bundle_spec_t reply_spec;
+    dtn_bundle_id_t bundle_id;
     dtn_bundle_payload_t send_payload;
     dtn_bundle_payload_t reply_payload;
     struct timeval start, end;
@@ -201,11 +202,20 @@ main(int argc, char** argv)
 
         fill_payload(&send_payload);
         
-        if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
+        memset(&bundle_id, 0, sizeof(bundle_id));
+        
+        if ((ret = dtn_send(handle, &bundle_spec, &send_payload,
+                            &bundle_id)) != 0)
+        {
             fprintf(stderr, "error sending bundle: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));
             exit(1);
         }
+
+        if (verbose) fprintf(stdout, "bundle sent successfully: id %s,%u.%u\n",
+                             bundle_id.source.uri,
+                             bundle_id.creation_secs,
+                             bundle_id.creation_subsecs);
 
         if (wait_for_report)
         {

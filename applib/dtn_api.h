@@ -144,7 +144,8 @@ extern int dtn_unbind(dtn_handle_t handle, dtn_reg_id_t regid);
  */
 extern int dtn_send(dtn_handle_t handle,
                     dtn_bundle_spec_t* spec,
-                    dtn_bundle_payload_t* payload);
+                    dtn_bundle_payload_t* payload,
+                    dtn_bundle_id_t* id);
 
 /**
  * Blocking receive for a bundle

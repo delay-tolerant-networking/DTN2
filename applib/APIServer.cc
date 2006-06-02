@@ -736,12 +736,24 @@ APIClient::handle_send()
         return DTN_EINVAL;
     }
 
+    //  before posting the received event, fill in the bundle id struct
+    dtn_bundle_id_t id;
+    memcpy(&id.source, &spec.source, sizeof(dtn_endpoint_id_t));
+    id.creation_secs    = b->creation_ts_.tv_sec;
+    id.creation_subsecs = b->creation_ts_.tv_usec;
+    
     log_info("DTN_SEND bundle *%p", b);
     
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
     BundleDaemon::post_and_wait(new BundleReceivedEvent(b, EVENTSRC_APP),
                                 &notifier_);
+
+    // return the bundle id struct
+    if (!xdr_dtn_bundle_id_t(&xdr_encode_, &id)) {
+        log_err("internal error in xdr: xdr_dtn_bundle_id_t");
+        return DTN_EXDR;
+    }
     
     return DTN_SUCCESS;
 }

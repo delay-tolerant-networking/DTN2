@@ -219,6 +219,16 @@ union dtn_bundle_payload_t switch(dtn_bundle_payload_location_t location)
 
 %
 %/**
+% * Type definition for a bundle identifier as returned from dtn_send.
+% */
+struct dtn_bundle_id_t {
+    dtn_endpoint_id_t   source;
+    u_int               creation_secs;
+    u_int               creation_subsecs;
+};
+
+%
+%/**
 % * Bundle authentication data. TBD
 % */
 struct dtn_bundle_auth_t {

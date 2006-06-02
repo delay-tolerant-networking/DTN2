@@ -244,6 +244,17 @@ struct dtn_bundle_payload_t {
 typedef struct dtn_bundle_payload_t dtn_bundle_payload_t;
 
 /**
+ * Type definition for a bundle identifier as returned from dtn_send.
+ */
+
+struct dtn_bundle_id_t {
+	dtn_endpoint_id_t source;
+	u_int creation_secs;
+	u_int creation_subsecs;
+};
+typedef struct dtn_bundle_id_t dtn_bundle_id_t;
+
+/**
  * Bundle authentication data. TBD
  */
 
@@ -269,6 +280,7 @@ extern  bool_t xdr_dtn_bundle_delivery_opts_t (XDR *, dtn_bundle_delivery_opts_t
 extern  bool_t xdr_dtn_bundle_spec_t (XDR *, dtn_bundle_spec_t*);
 extern  bool_t xdr_dtn_bundle_payload_location_t (XDR *, dtn_bundle_payload_location_t*);
 extern  bool_t xdr_dtn_bundle_payload_t (XDR *, dtn_bundle_payload_t*);
+extern  bool_t xdr_dtn_bundle_id_t (XDR *, dtn_bundle_id_t*);
 extern  bool_t xdr_dtn_bundle_auth_t (XDR *, dtn_bundle_auth_t*);
 
 #else /* K&R C */
@@ -283,6 +295,7 @@ extern bool_t xdr_dtn_bundle_delivery_opts_t ();
 extern bool_t xdr_dtn_bundle_spec_t ();
 extern bool_t xdr_dtn_bundle_payload_location_t ();
 extern bool_t xdr_dtn_bundle_payload_t ();
+extern bool_t xdr_dtn_bundle_id_t ();
 extern bool_t xdr_dtn_bundle_auth_t ();
 
 #endif /* K&R C */

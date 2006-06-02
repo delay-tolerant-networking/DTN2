@@ -897,10 +897,13 @@ TcaController::send_bundle(const dtn_bundle_spec_t& spec,
     dtn_set_payload(&send_payload, DTN_PAYLOAD_MEM,
             const_cast<char*>(payload.c_str()), payload.length());
 
+    dtn_bundle_id_t bundle_id;
+    memset(&bundle_id, 0, sizeof(bundle_id));
+
     int r = 0;    
     if ((r = dtn_send(handle_,
                     const_cast<dtn_bundle_spec_t*>(&spec),
-                    &send_payload)) != 0)
+                    &send_payload, &bundle_id)) != 0)
     {
         fprintf(stderr, "TcaController::send_bundle error %d (%s)\n",
                 r, dtn_strerror(dtn_errno(handle_)));
