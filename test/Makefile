@@ -13,7 +13,8 @@ endif
 #
 # Default target is to build all unit tests
 #
-all: unit_tests
+dtn-tests: unit_tests
+all: dtn-tests
 
 BINFILES :=				\
 	unit_tests/bundle-list-test	\

@@ -58,6 +58,9 @@ tests:
 	$(MAKE) -C oasys tests
 	$(MAKE) -C test
 
+dtn-tests:
+	$(MAKE) -C test
+
 #
 # Installation rules
 #
