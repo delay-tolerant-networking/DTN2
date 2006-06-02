@@ -1112,13 +1112,24 @@ TCPConvergenceLayer::Connection::recv_bundle()
     
     recvok = true;
 
+ done:
     // see if we got at least some of the bundle, making sure to
     // handle the case that the bundle itself is zero bytes
     if ((rcvd_len > 0) || (payload_len == 0)) {
         valid = true;
     }
 
- done:
+    //
+    // XXX/demmer MAJOR BUG HERE WRT FRAGMENTATION:
+    //
+    // Since there's no framing header sent for payload blocks, if the
+    // other side decides to shut down the link, it will send a
+    // SHUTDOWN typecode byte that will end up getting consumed into
+    // part of the payload.
+    //
+    // The right solution is to add a bundle data framing header which
+    // we need for bidirectionality anyway.
+    //
     bundle->payload_.close_file();
     
     if ((!valid) || (!recvok && !params_.reactive_frag_enabled_)) {
