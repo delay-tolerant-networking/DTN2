@@ -38,8 +38,6 @@
 #ifndef _SHUTDOWN_COMMAND_H_
 #define _SHUTDOWN_COMMAND_H_
 
-// XXX/demmer this really belongs in the daemon directory...
-
 #include <oasys/tclcmd/TclCommand.h>
 
 namespace dtn {
@@ -49,7 +47,7 @@ namespace dtn {
  */
 class ShutdownCommand : public oasys::TclCommand {
 public:
-    ShutdownCommand();
+    ShutdownCommand(const char* cmd = "shutdown");
 
     /**
      * Virtual from CommandModule.

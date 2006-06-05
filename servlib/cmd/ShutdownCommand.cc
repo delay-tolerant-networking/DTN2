@@ -42,10 +42,10 @@
 
 namespace dtn {
 
-ShutdownCommand::ShutdownCommand()
-    : TclCommand("shutdown") 
+ShutdownCommand::ShutdownCommand(const char* cmd)
+    : TclCommand(cmd) 
 {
-    add_to_help("shutdown", "shutdown the daemon");
+    add_to_help(cmd, "shutdown the daemon");
 }
 
 void

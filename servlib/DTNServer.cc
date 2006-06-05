@@ -222,7 +222,8 @@ DTNServer::init_commands()
     interp->reg(new ParamCommand());
     interp->reg(new RegistrationCommand());
     interp->reg(new RouteCommand());
-    interp->reg(new ShutdownCommand());
+    interp->reg(new ShutdownCommand("shutdown"));
+    interp->reg(new ShutdownCommand("quit"));
     interp->reg(new StorageCommand(storage_config_));
 
     log_debug("registered dtn commands");
