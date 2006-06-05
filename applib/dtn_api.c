@@ -363,6 +363,33 @@ dtn_bind(dtn_handle_t h, dtn_reg_id_t regid)
     return 0;
 }
 
+//---------------------------------------------------------------------- 
+int
+dtn_unbind(dtn_handle_t h, dtn_reg_id_t regid)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+    
+    // pack the request
+    if (!xdr_dtn_reg_id_t(xdr_encode, &regid)) {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send_recv(handle, DTN_UNBIND) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
 //----------------------------------------------------------------------
 int
 dtn_send(dtn_handle_t h,

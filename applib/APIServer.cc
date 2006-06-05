@@ -299,6 +299,7 @@ APIClient::run()
             DISPATCH(DTN_FIND_REGISTRATION, handle_find_registration);
             DISPATCH(DTN_SEND,              handle_send);
             DISPATCH(DTN_BIND,              handle_bind);
+            DISPATCH(DTN_UNBIND,            handle_unbind);
             DISPATCH(DTN_RECV,              handle_recv);
             DISPATCH(DTN_BEGIN_POLL,        handle_begin_poll);
             DISPATCH(DTN_CANCEL_POLL,       handle_cancel_poll);
@@ -603,6 +604,50 @@ APIClient::handle_bind()
     log_info("DTN_BIND: bound to registration %d", reg->regid());
     
     return DTN_SUCCESS;
+}
+    
+//----------------------------------------------------------------------
+int
+APIClient::handle_unbind()
+{
+    dtn_reg_id_t regid;
+
+    // unpack the request
+    if (!xdr_dtn_reg_id_t(&xdr_decode_, &regid)) {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+
+    // look up the registration
+    const RegistrationTable* regtable = BundleDaemon::instance()->reg_table();
+    Registration* reg = regtable->get(regid);
+
+    if (!reg) {
+        log_err("can't find registration %d", regid);
+        return DTN_ENOTFOUND;
+    }
+
+    APIRegistration* api_reg = dynamic_cast<APIRegistration*>(reg);
+    if (api_reg == NULL) {
+        log_crit("registration %d is not an API registration!!",
+                 regid);
+        return DTN_ENOTFOUND;
+    }
+
+    APIRegistrationList::iterator iter;
+    for (iter = bindings_->begin(); iter != bindings_->end(); ++iter) {
+        if (*iter == api_reg) {
+            bindings_->erase(iter);
+            ASSERT(api_reg->active());
+            api_reg->set_active(false);
+
+            log_info("DTN_UNBIND: unbound from registration %d", regid);
+            return DTN_SUCCESS;
+        }
+    }
+
+    log_err("registration %d not bound to this api client", regid);
+    return DTN_ENOTFOUND;
 }
     
 //----------------------------------------------------------------------

@@ -96,10 +96,11 @@ typedef enum {
     DTN_FIND_REGISTRATION	= 6,
     DTN_CHANGE_REGISTRATION	= 7,
     DTN_BIND			= 8,
-    DTN_SEND			= 9,
-    DTN_RECV			= 10,
-    DTN_BEGIN_POLL		= 11,
-    DTN_CANCEL_POLL		= 12
+    DTN_UNBIND			= 9,
+    DTN_SEND			= 10,
+    DTN_RECV			= 11,
+    DTN_BEGIN_POLL		= 12,
+    DTN_CANCEL_POLL		= 13
 } dtnapi_message_type_t;
 
 /**

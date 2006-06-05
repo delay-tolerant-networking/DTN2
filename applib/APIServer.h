@@ -95,6 +95,7 @@ protected:
     int handle_unregister();
     int handle_find_registration();
     int handle_bind();
+    int handle_unbind();
     int handle_send();
     int handle_recv();
     int handle_begin_poll();
