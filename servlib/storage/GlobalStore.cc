@@ -157,6 +157,8 @@ GlobalStore::do_init(const oasys::StorageConfig& cfg,
 GlobalStore::~GlobalStore()
 {
     delete store_;
+    delete globals_;
+    delete lock_;
 }
 
 /**
@@ -214,6 +216,11 @@ GlobalStore::load()
 
     oasys::StringShim key(GLOBAL_KEY);
 
+    if (globals_ != NULL) {
+        delete globals_;
+        globals_ = NULL;
+    }
+
     if (store_->get(key, &globals_) != 0) {
         log_crit("error loading global data");
         return false;
@@ -260,6 +267,9 @@ GlobalStore::close()
     
     delete store_;
     store_ = NULL;
+
+    delete instance_;
+    instance_ = NULL;
 }
 
 } // namespace dtn

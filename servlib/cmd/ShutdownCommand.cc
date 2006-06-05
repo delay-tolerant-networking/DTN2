@@ -52,7 +52,7 @@ void
 ShutdownCommand::call_exit(void* clientData)
 {
     (void)clientData;
-    exit(0);
+    oasys::TclCommandInterp::instance()->exit_event_loop();
 }
 
 int
@@ -67,11 +67,8 @@ ShutdownCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
 
     // to make it possible to both return from the shutdown command
-    // and still cleanly return from the tcl command, we post the
-    // shutdown event and wait for it to complete, then post a tcl
-    // timer to call exit() after we return
-    BundleDaemon::post_and_wait(new ShutdownRequest(),
-                                CompletionNotifier::notifier());
+    // and still cleanly return from the tcl command, we exit from the
+    // event loop in the background
     Tcl_CreateTimerHandler(0, ShutdownCommand::call_exit, 0);
 
     return TCL_OK;

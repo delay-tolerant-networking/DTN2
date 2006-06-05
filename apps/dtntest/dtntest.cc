@@ -570,7 +570,7 @@ void
 ShutdownCommand::call_exit(void* clientData)
 {
     (void)clientData;
-    exit(0);
+    oasys::TclCommandInterp::instance()->exit_event_loop();
 }
 
 //----------------------------------------------------------------------
@@ -646,4 +646,7 @@ main(int argc, char** argv)
     }
 
     log_notice("/dtn-test", "dtn-test shutting down...");
+    delete State::instance();
+    oasys::TclCommandInterp::shutdown();
+    oasys::Log::shutdown();
 }

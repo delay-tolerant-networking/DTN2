@@ -82,8 +82,8 @@ protected:
     std::string           loglevelstr_;
     oasys::log_level_t    loglevel_;
     std::string           logfile_;
-    TestCommand           testcmd_;
-    oasys::ConsoleCommand consolecmd_;
+    TestCommand*          testcmd_;
+    oasys::ConsoleCommand* consolecmd_;
     oasys::StorageConfig  storage_config_;
 
     void get_options(int argc, char* argv[]);
@@ -107,8 +107,8 @@ DTND::DTND()
       loglevelstr_(""),
       loglevel_(LOG_DEFAULT_THRESHOLD),
       logfile_("-"),
-      testcmd_(),
-      consolecmd_(),
+      testcmd_(NULL),
+      consolecmd_(NULL),
       storage_config_("storage",	// command name
                       "berkeleydb",	// storage type
                       "DTN",		// DB name
@@ -119,12 +119,16 @@ DTND::DTND()
 
     daemonize_pipe_[0] = -1;
     daemonize_pipe_[1] = -1;
+
+    testcmd_    = new TestCommand();
+    consolecmd_ = new oasys::ConsoleCommand();
 }
 
 //----------------------------------------------------------------------
 void
 DTND::get_options(int argc, char* argv[])
 {
+    
     // Register all command line options
     oasys::Getopt::addopt(
         new oasys::BoolOpt('v', "version", &print_version_,
@@ -159,19 +163,19 @@ DTND::get_options(int argc, char* argv[])
                           "random number generator seed", &random_seed_set_));
 
     oasys::Getopt::addopt(
-        new oasys::InAddrOpt(0, "console-addr", &consolecmd_.addr_, "<addr>",
+        new oasys::InAddrOpt(0, "console-addr", &consolecmd_->addr_, "<addr>",
                              "set the console listening addr (default off)"));
     
     oasys::Getopt::addopt(
-        new oasys::UInt16Opt(0, "console-port", &consolecmd_.port_, "<port>",
+        new oasys::UInt16Opt(0, "console-port", &consolecmd_->port_, "<port>",
                              "set the console listening port (default off)"));
     
     oasys::Getopt::addopt(
-        new oasys::IntOpt('i', 0, &testcmd_.id_, "<id>",
+        new oasys::IntOpt('i', 0, &testcmd_->id_, "<id>",
                           "set the test id"));
     
     oasys::Getopt::addopt(
-        new oasys::BoolOpt('f', 0, &testcmd_.fork_,
+        new oasys::BoolOpt('f', 0, &testcmd_->fork_,
                            "test scripts should fork child daemons"));
 
     int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
@@ -312,12 +316,12 @@ void
 DTND::init_testcmd(int argc, char* argv[])
 {
     for (int i = 0; i < argc; ++i) {
-        testcmd_.argv_.append(argv[i]);
-        testcmd_.argv_.append(" ");
+        testcmd_->argv_.append(argv[i]);
+        testcmd_->argv_.append(" ");
     }
 
-    testcmd_.bind_vars();
-    oasys::TclCommandInterp::instance()->reg(&testcmd_);
+    testcmd_->bind_vars();
+    oasys::TclCommandInterp::instance()->reg(testcmd_);
 }
 
 //----------------------------------------------------------------------
@@ -325,15 +329,15 @@ void
 DTND::run_console()
 {
     // launch the console server
-    if (consolecmd_.port_ != 0) {
+    if (consolecmd_->port_ != 0) {
         log_info("/dtnd", "starting console on %s:%d",
-                 intoa(consolecmd_.addr_), consolecmd_.port_);
+                 intoa(consolecmd_->addr_), consolecmd_->port_);
         
         oasys::TclCommandInterp::instance()->
-            command_server("dtn", consolecmd_.addr_, consolecmd_.port_);
+            command_server("dtn", consolecmd_->addr_, consolecmd_->port_);
     }
     
-    if (daemonize_ || (consolecmd_.stdio_ == false)) {
+    if (daemonize_ || (consolecmd_->stdio_ == false)) {
         oasys::TclCommandInterp::instance()->event_loop();
     } else {
         oasys::TclCommandInterp::instance()->command_loop("dtn");
@@ -380,7 +384,7 @@ DTND::main(int argc, char* argv[])
 
     dtnserver->init();
     apiserver->init();
-    oasys::TclCommandInterp::instance()->reg(&consolecmd_);
+    oasys::TclCommandInterp::instance()->reg(consolecmd_);
     init_testcmd(argc, argv);
 
     if (! dtnserver->parse_conf_file(conf_file_, conf_file_set_)) {
@@ -417,16 +421,20 @@ DTND::main(int argc, char* argv[])
 
     // if the test script specified something to run for the test,
     // then execute it now
-    if (testcmd_.initscript_.length() != 0) {
+    if (testcmd_->initscript_.length() != 0) {
         oasys::TclCommandInterp::instance()->
-            exec_command(testcmd_.initscript_.c_str());
+            exec_command(testcmd_->initscript_.c_str());
     }
 
     run_console();
 
     log_info("/dtnd", "command loop exited... shutting down daemon");
     dtnserver->shutdown();
-    
+    delete apiserver;
+    delete dtnserver;
+    oasys::TclCommandInterp::shutdown();
+    oasys::Log::shutdown();
+
     return 0;
 }
 
@@ -436,5 +444,5 @@ int
 main(int argc, char* argv[])
 {
     dtn::DTND dtnd;
-    return dtnd.main(argc, argv);
+    dtnd.main(argc, argv);
 }
