@@ -121,7 +121,7 @@ DTND::DTND()
     daemonize_pipe_[1] = -1;
 
     testcmd_    = new TestCommand();
-    consolecmd_ = new oasys::ConsoleCommand();
+    consolecmd_ = new oasys::ConsoleCommand("dtn% ");
 }
 
 //----------------------------------------------------------------------
@@ -334,13 +334,15 @@ DTND::run_console()
                  intoa(consolecmd_->addr_), consolecmd_->port_);
         
         oasys::TclCommandInterp::instance()->
-            command_server("dtn", consolecmd_->addr_, consolecmd_->port_);
+            command_server(consolecmd_->prompt_.c_str(),
+                           consolecmd_->addr_, consolecmd_->port_);
     }
     
     if (daemonize_ || (consolecmd_->stdio_ == false)) {
         oasys::TclCommandInterp::instance()->event_loop();
     } else {
-        oasys::TclCommandInterp::instance()->command_loop("dtn");
+        oasys::TclCommandInterp::instance()->
+            command_loop(consolecmd_->prompt_.c_str());
     }
 }
 

@@ -615,7 +615,7 @@ main(int argc, char** argv)
         exit(1);
     }
 
-    console_cmd = new oasys::ConsoleCommand();
+    console_cmd = new oasys::ConsoleCommand("dtntest% ");
     interp->reg(console_cmd);
     interp->reg(new DTNOpenCommand());
     interp->reg(new DTNCloseCommand());
@@ -642,7 +642,8 @@ main(int argc, char** argv)
     if (daemon || (console_cmd->stdio_ == false)) {
         oasys::TclCommandInterp::instance()->event_loop();
     } else {
-        oasys::TclCommandInterp::instance()->command_loop("dtn-test");
+        oasys::TclCommandInterp::instance()->
+            command_loop(console_cmd->prompt_.c_str());
     }
 
     log_notice("/dtn-test", "dtn-test shutting down...");
