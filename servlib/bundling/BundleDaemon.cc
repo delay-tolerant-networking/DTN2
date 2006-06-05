@@ -805,6 +805,7 @@ BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
     if (!reg_table_->del(registration->regid())) {
         log_err("error removing registration %d from table",
                 registration->regid());
+        return;
     }
 
     delete registration;
