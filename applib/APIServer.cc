@@ -728,6 +728,8 @@ APIClient::handle_send()
                 sleep(1); // pause before re-reading
             }
         }
+
+        fclose(file);
         b->payload_.close_file();
         break;
         
