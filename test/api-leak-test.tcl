@@ -60,8 +60,8 @@ test::script {
     }
 
     puts "* Checking that all bundles were delivered"
-    dtn::check_bundle_stats 0 0 pending
-    dtn::check_bundle_stats 0 [expr $count * 2] delivered
+    dtn::wait_for_bundle_stat 0 0 pending
+    dtn::wait_for_bundle_stat 0 [expr $count * 2] delivered
     
     puts "* Test success!"
 }
