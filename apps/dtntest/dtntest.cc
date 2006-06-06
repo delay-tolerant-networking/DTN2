@@ -36,6 +36,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <oasys/debug/Log.h>
 #include <oasys/io/NetUtils.h>
 #include <oasys/tclcmd/ConsoleCommand.h>
@@ -550,8 +551,21 @@ public:
             return TCL_ERROR;
         }
         
-        dtn_free_payload(&payload);
+        if (!opts_.payload_mem_) {
+            char payload_path[PATH_MAX];
+            memcpy(payload_path, payload.dtn_bundle_payload_t_u.filename.filename_val,
+                   payload.dtn_bundle_payload_t_u.filename.filename_len);
+            payload_path[payload.dtn_bundle_payload_t_u.filename.filename_len] = 0;
+            
+            err = unlink(payload_path);
+            if (err != 0) {
+                log_err("error unlinking payload file '%s': %s",
+                        payload_path, strerror(errno));
+            }
+        }
         
+        dtn_free_payload(&payload);
+
         // XXX/demmer should fill in the return with something useful, no?
         
         return TCL_OK;
