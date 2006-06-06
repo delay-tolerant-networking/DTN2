@@ -148,7 +148,15 @@ extern int dtn_send(dtn_handle_t handle,
                     dtn_bundle_id_t* id);
 
 /**
- * Blocking receive for a bundle
+ * Blocking receive for a bundle, filling in the spec and payload
+ * structures with the bundle data. The location parameter indicates
+ * the manner by which the caller wants to receive payload data (i.e.
+ * either in memory or in a file). The timeout parameter specifies an
+ * interval in milliseconds to block on the server-side (-1 means
+ * infinite wait).
+ *
+ * Note that it is advisable to call dtn_free_payload on the returned
+ * structure, otherwise the XDR routines will memory leak.
  */
 extern int dtn_recv(dtn_handle_t handle,
                     dtn_bundle_spec_t* spec,
