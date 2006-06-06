@@ -48,15 +48,15 @@ test::script {
     puts "* Sending / receiving $count bundles from memory"
     for {set i 0} {$i < $count} {incr i} {
 	dtn::tell_dtntest 0 dtn_send $h source=dtn://source dest=dtn://dest \
-		expiration=1 payload_data=this_is_some_test_payload_data
-	dtn::tell_dtntest 0 dtn_recv $h payload_mem=true timeout=-1
+		expiration=10 payload_data=this_is_some_test_payload_data
+	dtn::tell_dtntest 0 dtn_recv $h payload_mem=true timeout=10000
     }
     
     puts "* Sending / receiving $count bundles from files"
     for {set i 0} {$i < $count} {incr i} {
 	dtn::tell_dtntest 0 dtn_send $h source=dtn://source dest=dtn://dest \
-		expiration=1 payload_file=test-payload.dat
-	dtn::tell_dtntest 0 dtn_recv $h payload_file=true timeout=-1
+		expiration=10 payload_file=test-payload.dat
+	dtn::tell_dtntest 0 dtn_recv $h payload_file=true timeout=10000
     }
     
     puts "* Checking that all bundles were delivered"
