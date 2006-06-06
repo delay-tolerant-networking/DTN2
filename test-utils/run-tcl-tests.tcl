@@ -31,6 +31,7 @@ set tests(basic) {
     "api-leak-test.tcl"		""
     "multipath-forwarding.tcl"	""
     "multipath-forwarding.tcl"	"-linktype ONDEMAND"
+    "inflight-expiration.tcl"	""
     "loopback-link.tcl"		""
     "flood-router.tcl"		""
 }
