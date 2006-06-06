@@ -2,7 +2,7 @@ test::name api-leak-test
 net::num_nodes 1
 
 manifest::file apps/dtntest/dtntest dtntest
-manifest::file test/api-leak-test.tcl test-payload.dat
+manifest::file Rules.make test-payload.dat
 
 dtn::config
 
@@ -49,16 +49,16 @@ test::script {
     for {set i 0} {$i < $count} {incr i} {
 	dtn::tell_dtntest 0 dtn_send $h source=dtn://source dest=dtn://dest \
 		expiration=1 payload_data=this_is_some_test_payload_data
-	dtn::tell_dtntest 0 dtn_recv $h payload_mem=true timeout=60
+	dtn::tell_dtntest 0 dtn_recv $h payload_mem=true timeout=-1
     }
     
     puts "* Sending / receiving $count bundles from files"
     for {set i 0} {$i < $count} {incr i} {
 	dtn::tell_dtntest 0 dtn_send $h source=dtn://source dest=dtn://dest \
 		expiration=1 payload_file=test-payload.dat
-	dtn::tell_dtntest 0 dtn_recv $h payload_file=true timeout=60
+	dtn::tell_dtntest 0 dtn_recv $h payload_file=true timeout=-1
     }
-
+    
     puts "* Checking that all bundles were delivered"
     dtn::wait_for_bundle_stat 0 0 pending
     dtn::wait_for_bundle_stat 0 [expr $count * 2] delivered
