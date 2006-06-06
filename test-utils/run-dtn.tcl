@@ -53,7 +53,7 @@ if {[catch {test::run_script} err]} {
     puts "error in test [test::name]: $errorInfo"
 }
 if {!$opt(daemon)} {
-    command_loop "dtntest"
+    command_loop "dtntest% "
 }
 if {[catch {test::run_exit_script} err]} {
     global errorInfo
