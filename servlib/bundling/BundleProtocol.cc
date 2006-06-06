@@ -45,6 +45,7 @@
 
 #include "Bundle.h"
 #include "BundleProtocol.h"
+#include "BundleTimestamp.h"
 #include "SDNV.h"
 
 namespace dtn {
@@ -581,30 +582,30 @@ BundleProtocol::formatted_length(const Bundle* bundle)
     
 //----------------------------------------------------------------------
 void
-BundleProtocol::set_timestamp(u_char* ts, const struct timeval* tv)
+BundleProtocol::set_timestamp(u_char* ts, const BundleTimestamp* tv)
 {
     u_int32_t tmp;
 
-    tmp = htonl(tv->tv_sec);
+    tmp = htonl(tv->seconds_);
     memcpy(ts, &tmp, sizeof(u_int32_t));
     ts += sizeof(u_int32_t);
 
-    tmp = htonl(tv->tv_usec);
+    tmp = htonl(tv->seqno_);
     memcpy(ts, &tmp, sizeof(u_int32_t));
 }
 
 //----------------------------------------------------------------------
 void
-BundleProtocol::get_timestamp(struct timeval* tv, const u_char* ts)
+BundleProtocol::get_timestamp(BundleTimestamp* tv, const u_char* ts)
 {
     u_int32_t tmp;
 
     memcpy(&tmp, ts, sizeof(u_int32_t));
-    tv->tv_sec  = ntohl(tmp);
+    tv->seconds_  = ntohl(tmp);
     ts += sizeof(u_int32_t);
     
     memcpy(&tmp, ts, sizeof(u_int32_t));
-    tv->tv_usec = ntohl(tmp);
+    tv->seqno_ = ntohl(tmp);
 }
 
 //----------------------------------------------------------------------

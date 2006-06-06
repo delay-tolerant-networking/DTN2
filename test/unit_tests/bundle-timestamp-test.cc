@@ -38,38 +38,42 @@
 
 #include <oasys/util/UnitTest.h>
 #include "bundling/BundleProtocol.h"
+#include "bundling/BundleTimestamp.h"
 
 using namespace dtn;
 
 DECLARE_TEST(NowTest) {
-    struct timeval now, test;
+    BundleTimestamp now, test;
     u_int64_t ts;
 
-    ::gettimeofday(&now, 0);
+    now.seconds_ = BundleTimestamp::get_current_time();
+    now.seqno_ = 90909;
 
     BundleProtocol::set_timestamp(&ts, &now);
     BundleProtocol::get_timestamp(&test, &ts);
-
-    CHECK_EQUAL(now.tv_sec,  test.tv_sec);
-    CHECK_EQUAL(now.tv_usec, test.tv_usec);
+    
+    CHECK_EQUAL(now.seconds_, test.seconds_);
+    CHECK_EQUAL(now.seqno_,   test.seqno_);
     
     return oasys::UNIT_TEST_PASSED;
 }
 
 DECLARE_TEST(AlignmentTest) {
-    struct timeval now, test;
+    BundleTimestamp now, test;
     char buf[16];
     u_int64_t* ts;
 
-    ::gettimeofday(&now, 0);
+    now.seconds_ = BundleTimestamp::get_current_time();
+    now.seqno_ = 90909;
+
     for (int i = 0; i < 8; ++i) {
         ts = (u_int64_t*)&buf[i];
-    
+        
         BundleProtocol::set_timestamp(ts, &now);
         BundleProtocol::get_timestamp(&test, ts);
 
-        CHECK_EQUAL(now.tv_sec,  test.tv_sec);
-        CHECK_EQUAL(now.tv_usec, test.tv_usec);
+        CHECK_EQUAL(now.seconds_, test.seconds_);
+        CHECK_EQUAL(now.seqno_,   test.seqno_);
     }
     
     return oasys::UNIT_TEST_PASSED;

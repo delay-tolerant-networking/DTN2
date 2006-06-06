@@ -52,6 +52,7 @@ class SpinLock;
 namespace dtn {
 
 class Bundle;
+class BundleTimestamp;
 
 /**
  * List structure for handling bundles.
@@ -212,7 +213,7 @@ public:
      * list is empty.
      */
     BundleRef find(const EndpointID& source_eid,
-                   const struct timeval& creation_ts);
+                   const BundleTimestamp& creation_ts);
     
     /**
      * Move all bundles from this list to another.

@@ -74,8 +74,8 @@ protocol_test(Bundle* b1)
     CHECK_EQUAL(b1->forward_rcpt_,         b2->forward_rcpt_);
     CHECK_EQUAL(b1->delivery_rcpt_,        b2->delivery_rcpt_);
     CHECK_EQUAL(b1->deletion_rcpt_,        b2->deletion_rcpt_);
-    CHECK_EQUAL(b1->creation_ts_.tv_sec,   b2->creation_ts_.tv_sec);
-    CHECK_EQUAL(b1->creation_ts_.tv_usec,  b2->creation_ts_.tv_usec);
+    CHECK_EQUAL(b1->creation_ts_.seconds_, b2->creation_ts_.seconds_);
+    CHECK_EQUAL(b1->creation_ts_.seqno_,   b2->creation_ts_.seqno_);
     CHECK_EQUAL(b1->expiration_,           b2->expiration_);
     CHECK_EQUAL(b1->frag_offset_,          b2->frag_offset_);
     CHECK_EQUAL(b1->orig_length_,          b2->orig_length_);
@@ -95,8 +95,8 @@ DECLARE_TEST(Basic)
     bundle->replyto_.assign("dtn:none");
     
     bundle->expiration_ = 1000;
-    bundle->creation_ts_.tv_sec  = 10101010;
-    bundle->creation_ts_.tv_usec = 44556677;
+    bundle->creation_ts_.seconds_ = 10101010;
+    bundle->creation_ts_.seqno_ = 44556677;
     bundle->payload_.set_length(1024);
 
     CHECK(protocol_test(bundle));
@@ -145,8 +145,8 @@ DECLARE_TEST(AllFlags)
     bundle->deletion_rcpt_ = true;
     
     bundle->expiration_ = 1000;
-    bundle->creation_ts_.tv_sec  = 10101010;
-    bundle->creation_ts_.tv_usec = 44556677;
+    bundle->creation_ts_.seconds_  = 10101010;
+    bundle->creation_ts_.seqno_ = 44556677;
 
     CHECK(protocol_test(bundle));
 

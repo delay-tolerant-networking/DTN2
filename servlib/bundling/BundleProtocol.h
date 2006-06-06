@@ -43,6 +43,7 @@
 namespace dtn {
 
 class Bundle;
+class BundleTimestamp;
 class DictionaryVector;
 class EndpointID;
 
@@ -76,20 +77,21 @@ public:
      * the given bundle.
      */
     static size_t formatted_length(const Bundle* bundle);
-    
+
     /**
-     * Store a struct timeval into a 64-bit timestamp suitable for
+     * Store a DTN timestamp into a 64-bit timestamp suitable for
      * transmission over the network.
      */
-    static void set_timestamp(u_char* ts, const struct timeval* tv);
+    static void set_timestamp(u_char* bp, const BundleTimestamp* tv);
 
     /**
      * Store a struct timeval into a 64-bit timestamp suitable for
-     * transmission over the network. This doesn't require the 64-bit
-     * destination to be word-aligned
+     * transmission over the network. The implementation doesn't
+     * require the 64-bit destination to be word-aligned so it is safe
+     * to cast here.
      */
-    static void set_timestamp(u_int64_t* ts, const struct timeval* tv) {
-        set_timestamp((u_char *) ts, tv);
+    static void set_timestamp(u_int64_t* bp, const BundleTimestamp* tv) {
+        set_timestamp((u_char *) bp, tv);
     }
 
     /**
@@ -97,15 +99,15 @@ public:
      * transmitted over the network. This does not require the
      * timestamp to be word-aligned.
      */
-    static void get_timestamp(struct timeval* tv, const u_char* ts);
+    static void get_timestamp(BundleTimestamp* tv, const u_char* bp);
 
     /**
      * Retrieve a struct timeval from a 64-bit timestamp that was
      * transmitted over the network. This does not require the
      * timestamp to be word-aligned.
      */
-    static void get_timestamp(struct timeval* tv, const u_int64_t* ts) {
-        get_timestamp(tv,(u_char *) ts);
+    static void get_timestamp(BundleTimestamp* tv, const u_int64_t* bp) {
+        get_timestamp(tv, (u_char *) bp);
     }
 
     /**

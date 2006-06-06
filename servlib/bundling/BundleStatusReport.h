@@ -40,6 +40,7 @@
 
 #include "Bundle.h"
 #include "BundleProtocol.h"
+#include "BundleTimestamp.h"
 
 namespace dtn {
 
@@ -62,20 +63,20 @@ public:
      * Specification of the contents of a Bundle Status Report
      */
     struct data_t {
-        u_int8_t       admin_type_;
-        u_int8_t       admin_flags_;
-        u_int8_t       status_flags_;
-        u_int8_t       reason_code_;
-        u_int64_t      orig_frag_offset_;
-        u_int64_t      orig_frag_length_;
-        timeval        receipt_tv_;
-        timeval        custody_tv_;
-        timeval        forwarding_tv_;
-        timeval        delivery_tv_;
-        timeval        deletion_tv_;
-        timeval        acknowledgement_tv_;
-        timeval        orig_creation_tv_;
-        EndpointID     orig_source_eid_;
+        u_int8_t        admin_type_;
+        u_int8_t        admin_flags_;
+        u_int8_t        status_flags_;
+        u_int8_t        reason_code_;
+        u_int64_t       orig_frag_offset_;
+        u_int64_t       orig_frag_length_;
+        BundleTimestamp receipt_tv_;
+        BundleTimestamp custody_tv_;
+        BundleTimestamp forwarding_tv_;
+        BundleTimestamp delivery_tv_;
+        BundleTimestamp deletion_tv_;
+        BundleTimestamp acknowledgement_tv_;
+        BundleTimestamp orig_creation_tv_;
+        EndpointID      orig_source_eid_;
     };
 
     /**

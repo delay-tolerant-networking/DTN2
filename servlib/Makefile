@@ -7,7 +7,7 @@
 #
 
 BUNDLING_SRCS := 				\
-	bundling/AnnounceBundle.cc	\
+	bundling/AnnounceBundle.cc		\
 	bundling/Bundle.cc			\
 	bundling/BundleActions.cc		\
 	bundling/BundleDaemon.cc		\
@@ -16,6 +16,7 @@ BUNDLING_SRCS := 				\
 	bundling/BundlePayload.cc		\
 	bundling/BundleProtocol.cc		\
 	bundling/BundleStatusReport.cc		\
+	bundling/BundleTimestamp.cc		\
 	bundling/CustodySignal.cc		\
 	bundling/CustodyTimer.cc		\
 	bundling/ForwardingLog.cc		\

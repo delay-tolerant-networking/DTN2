@@ -130,8 +130,9 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     }   
 
     // Time field, set to the current time:
-    struct timeval now;
-    gettimeofday(&now, 0);
+    BundleTimestamp now;
+    now.seconds_ = BundleTimestamp::get_current_time();
+    now.seqno_   = 0;
     BundleProtocol::set_timestamp(bp, &now);
     len -= sizeof(u_int64_t);
     bp  += sizeof(u_int64_t);

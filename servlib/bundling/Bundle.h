@@ -48,6 +48,7 @@
 #include <oasys/util/StringBuffer.h>
 
 #include "BundlePayload.h"
+#include "BundleTimestamp.h"
 #include "CustodyTimer.h"
 #include "ForwardingLog.h"
 #include "naming/EndpointID.h"
@@ -207,11 +208,6 @@ public:
         }
     }
 
-    /**
-     * Use a struct timeval (for now) as the creation timestamp type.
-     */
-    typedef struct timeval timestamp_t;
-
     /*
      * Bundle data fields that correspond to data transferred between
      * nodes according to the bundle protocol (all public to avoid the
@@ -233,7 +229,7 @@ public:
     bool delivery_rcpt_;	///< End-to-end delivery reporting
     bool deletion_rcpt_;	///< Bundle deletion reporting
     bool app_acked_rcpt_;	///< Acknowlege by application reporting
-    timestamp_t creation_ts_;	///< Creation timestamp
+    BundleTimestamp creation_ts_; ///< Creation timestamp
     u_int32_t expiration_;	///< Bundle expiration time
     u_int32_t frag_offset_;	///< Offset of fragment in the original bundle
     u_int32_t orig_length_;	///< Length of original bundle

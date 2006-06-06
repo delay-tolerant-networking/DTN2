@@ -323,6 +323,8 @@ APIClient::run()
         if (send_response(ret) != 0) {
             return;
         }
+
+        
         
     } // while(1)
 }
@@ -786,8 +788,8 @@ APIClient::handle_send()
     //  before posting the received event, fill in the bundle id struct
     dtn_bundle_id_t id;
     memcpy(&id.source, &spec.source, sizeof(dtn_endpoint_id_t));
-    id.creation_secs    = b->creation_ts_.tv_sec;
-    id.creation_subsecs = b->creation_ts_.tv_usec;
+    id.creation_secs    = b->creation_ts_.seconds_;
+    id.creation_subsecs = b->creation_ts_.seqno_;
     
     log_info("DTN_SEND bundle *%p", b);
     

@@ -41,6 +41,7 @@
 #include "BundleEvent.h"
 #include "BundleDaemon.h"
 #include "BundleStatusReport.h"
+#include "BundleTimestamp.h"
 #include "CustodySignal.h"
 #include "ExpirationTimer.h"
 #include "FragmentManager.h"
@@ -411,27 +412,22 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
     
     // log a warning if the bundle doesn't have any expiration time or
-    // has a creation time in the future. in either case, we proceed as
-    // normal, though we know that the expiration timer will
-    // immediately fire
+    // has a creation time that's in the future. in either case, we
+    // proceed as normal
     if (bundle->expiration_ == 0) {
         log_warn("bundle id %d arrived with zero expiration time",
                  bundle->bundleid_);
     }
 
-    struct timeval now;
-    gettimeofday(&now, 0);
-    if (TIMEVAL_GT(bundle->creation_ts_, now) &&
-        TIMEVAL_DIFF_MSEC(bundle->creation_ts_, now) > 30000)
+    u_int32_t now = BundleTimestamp::get_current_time();
+    if ((bundle->creation_ts_.seconds_ > now) &&
+        (bundle->creation_ts_.seconds_ - now > 30000))
     {
         log_warn("bundle id %d arrived with creation time in the future "
-                 "(%u.%u > %u.%u)",
-                 bundle->bundleid_,
-                 (u_int)bundle->creation_ts_.tv_sec,
-                 (u_int)bundle->creation_ts_.tv_usec,
-                 (u_int)now.tv_sec, (u_int)now.tv_usec);
+                 "(%u > %u)",
+                 bundle->bundleid_, bundle->creation_ts_.seconds_, now);
     }
-
+    
     /*
      * Send the reception receipt 
      */
@@ -460,8 +456,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         log_notice("got duplicate bundle: %s -> %s creation %u.%u",
                    bundle->source_.c_str(),
                    bundle->dest_.c_str(),
-                   (u_int)bundle->creation_ts_.tv_sec,
-                   (u_int)bundle->creation_ts_.tv_usec);
+                   bundle->creation_ts_.seconds_,
+                   bundle->creation_ts_.seqno_);
 
         stats_.duplicate_bundles_++;
         
@@ -1046,8 +1042,8 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
 {
     log_info("CUSTODY_SIGNAL: %s %u.%u %s (%s)",
              event->data_.orig_source_eid_.c_str(),
-             (u_int)event->data_.orig_creation_tv_.tv_sec,
-             (u_int)event->data_.orig_creation_tv_.tv_usec,
+             event->data_.orig_creation_tv_.seconds_,
+             event->data_.orig_creation_tv_.seqno_,
              event->data_.succeeded_ ? "succeeded" : "failed",
              CustodySignal::reason_to_str(event->data_.reason_));
 
@@ -1059,8 +1055,8 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
         log_warn("received custody signal for bundle %s %u.%u "
                  "but don't have custody",
                  event->data_.orig_source_eid_.c_str(),
-                 (u_int)event->data_.orig_creation_tv_.tv_sec,
-                 (u_int)event->data_.orig_creation_tv_.tv_usec);
+                 event->data_.orig_creation_tv_.seconds_,
+                 event->data_.orig_creation_tv_.seqno_);
         return;
     }
 
@@ -1073,8 +1069,8 @@ BundleDaemon::handle_custody_signal(CustodySignalEvent* event)
         log_notice("releasing custody for bundle %s %u.%u "
                    "due to redundant reception",
                    event->data_.orig_source_eid_.c_str(),
-                   (u_int)event->data_.orig_creation_tv_.tv_sec,
-                   (u_int)event->data_.orig_creation_tv_.tv_usec);
+                   event->data_.orig_creation_tv_.seconds_,
+                   event->data_.orig_creation_tv_.seqno_);
         
         release = true;
     }
@@ -1211,28 +1207,35 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
     }
 
     // schedule the bundle expiration timer
-    struct timeval expiration_time = bundle->creation_ts_;
-    expiration_time.tv_sec += bundle->expiration_;
-
+    struct timeval expiration_time;
+    expiration_time.tv_sec =
+        BundleTimestamp::TIMEVAL_CONVERSION +
+        bundle->creation_ts_.seconds_ + 
+        bundle->expiration_;
+    
+    expiration_time.tv_usec = 0;
+    
     struct timeval now;
     gettimeofday(&now, 0);
-    long int when = TIMEVAL_DIFF_MSEC(expiration_time, now);
+    long int when = expiration_time.tv_sec - now.tv_sec;
 
     bool ok_to_route = true;
     
     if (when > 0) {
-        log_debug("scheduling expiration for bundle id %d at %u.%u (in %lu msec)",
+        log_debug("scheduling expiration for bundle id %d at %u.%u "
+                  "(in %lu seconds)",
                   bundle->bundleid_,
                   (u_int)expiration_time.tv_sec, (u_int)expiration_time.tv_usec,
                   when);
     } else {
         log_warn("scheduling IMMEDIATE expiration for bundle id %d: "
-                 "[expiration %u, creation time %u.%u, now %u.%u]",
+                 "[expiration %u, creation time %u.%u, offset %u, now %u.%u]",
                  bundle->bundleid_, bundle->expiration_,
-                 (u_int)bundle->creation_ts_.tv_sec,
-                 (u_int)bundle->creation_ts_.tv_usec,
+                 (u_int)bundle->creation_ts_.seconds_,
+                 (u_int)bundle->creation_ts_.seqno_,
+                 BundleTimestamp::TIMEVAL_CONVERSION,
                  (u_int)now.tv_sec, (u_int)now.tv_usec);
-
+        
         ok_to_route = false;
     }
 
@@ -1362,12 +1365,12 @@ BundleDaemon::find_duplicate(Bundle* b)
         Bundle* b2 = *iter;
         
         if ((b->source_.equals(b2->source_)) &&
-            (b->creation_ts_.tv_sec  == b2->creation_ts_.tv_sec) &&
-            (b->creation_ts_.tv_usec == b2->creation_ts_.tv_usec) &&
-            (b->is_fragment_         == b2->is_fragment_) &&
-            (b->frag_offset_         == b2->frag_offset_) &&
-            (b->orig_length_         == b2->orig_length_) &&
-            (b->payload_.length()    == b2->payload_.length()))
+            (b->creation_ts_.seconds_ == b2->creation_ts_.seconds_) &&
+            (b->creation_ts_.seqno_   == b2->creation_ts_.seqno_) &&
+            (b->is_fragment_          == b2->is_fragment_) &&
+            (b->frag_offset_          == b2->frag_offset_) &&
+            (b->orig_length_          == b2->orig_length_) &&
+            (b->payload_.length()     == b2->payload_.length()))
         {
             return b2;
         }
@@ -1470,6 +1473,10 @@ BundleDaemon::load_bundles()
 void
 BundleDaemon::run()
 {
+    if (! BundleTimestamp::check_local_clock()) {
+        exit(1);
+    }
+    
     router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
     router_->initialize();
     

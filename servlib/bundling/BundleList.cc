@@ -42,6 +42,7 @@
 
 #include "Bundle.h"
 #include "BundleList.h"
+#include "BundleTimestamp.h"
 
 namespace dtn {
 
@@ -373,15 +374,15 @@ BundleList::find(u_int32_t bundle_id)
  */
 BundleRef
 BundleList::find(const EndpointID& source_eid,
-                 const struct timeval& creation_ts)
+                 const BundleTimestamp& creation_ts)
 {
     oasys::ScopeLock l(lock_, "BundleList::find");
     BundleRef ret("BundleList::find() temporary");
     
     for (iterator iter = begin(); iter != end(); ++iter) {
         if ((*iter)->source_.equals(source_eid) &&
-            (*iter)->creation_ts_.tv_sec == creation_ts.tv_sec &&
-            (*iter)->creation_ts_.tv_usec == creation_ts.tv_usec)
+            (*iter)->creation_ts_.seconds_ == creation_ts.seconds_ &&
+            (*iter)->creation_ts_.seqno_ == creation_ts.seqno_)
         {
             ret = *iter;
             return ret;

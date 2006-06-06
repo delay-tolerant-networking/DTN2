@@ -67,11 +67,16 @@ Bundle::init(u_int32_t id)
     delivery_rcpt_	= false;
     deletion_rcpt_	= false;
     app_acked_rcpt_	= false;
-    gettimeofday(&creation_ts_, 0);
     orig_length_	= 0;
     frag_offset_	= 0;
     expiration_		= 0;
     owner_              = "";
+
+    // as per the spec, the creation timestamp should be calculated as
+    // seconds since 1/1/1970, and since the bundle id should be
+    // monotonically increasing, it's safe to use that for the seqno
+    creation_ts_.seconds_ = BundleTimestamp::get_current_time();
+    creation_ts_.seqno_   = bundleid_;
 
     log_debug("/dtn/bundle", "Bundle::init bundle id %d", id);
 }
@@ -148,7 +153,7 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("     deletion_rcpt: %s\n", bool_to_str(deletion_rcpt_));
     buf->appendf("    app_acked_rcpt: %s\n", bool_to_str(app_acked_rcpt_));
     buf->appendf("       creation_ts: %u.%u\n",
-                 (u_int)creation_ts_.tv_sec, (u_int)creation_ts_.tv_usec);
+                 creation_ts_.seconds_, creation_ts_.seqno_);
     buf->appendf("        expiration: %d\n", expiration_);
     buf->appendf("       is_fragment: %s\n", bool_to_str(is_fragment_));
     buf->appendf("          is_admin: %s\n", bool_to_str(is_admin_));
@@ -180,8 +185,8 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("delivery_rcpt", &delivery_rcpt_);
     a->process("deletion_rcpt", &deletion_rcpt_);
     a->process("app_acked_rcpt", &app_acked_rcpt_);
-    a->process("creation_ts_sec",  (u_int32_t*)&creation_ts_.tv_sec);
-    a->process("creation_ts_usec", (u_int32_t*)&creation_ts_.tv_usec);
+    a->process("creation_ts_seconds", &creation_ts_.seconds_);
+    a->process("creation_ts_seqno", &creation_ts_.seqno_);
     a->process("expiration", &expiration_);
     a->process("payload", &payload_);
     a->process("orig_length", &orig_length_);

@@ -142,9 +142,11 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
         len -= sdnv_encoding_len;
     }   
 
-    // Time field, set to the current time:
-    struct timeval now;
-    gettimeofday(&now, 0);
+    // Time field, set to the current time (with no sub-second
+    // accuracy defined at all)
+    BundleTimestamp now;
+    now.seconds_ = BundleTimestamp::get_current_time();
+    now.seqno_   = 0;
     BundleProtocol::set_timestamp(bp, &now);
     len -= sizeof(u_int64_t);
     bp  += sizeof(u_int64_t);

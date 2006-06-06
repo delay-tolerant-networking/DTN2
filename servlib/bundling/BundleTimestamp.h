@@ -3,26 +3,26 @@
  * downloading, copying, installing or using the software you agree to
  * this license. If you do not agree to this license, do not download,
  * install, copy or use the software.
- *
- * Intel Open Source License
- *
- * 2006 Intel Corporation. All rights reserved.
- *
+ * 
+ * Intel Open Source License 
+ * 
+ * Copyright (c) 2006 Intel Corporation. All rights reserved. 
+ * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- *
+ * 
  *   Redistributions of source code must retain the above copyright
  *   notice, this list of conditions and the following disclaimer.
- *
+ * 
  *   Redistributions in binary form must reproduce the above copyright
  *   notice, this list of conditions and the following disclaimer in the
  *   documentation and/or other materials provided with the distribution.
- *
+ * 
  *   Neither the name of the Intel Corporation nor the names of its
  *   contributors may be used to endorse or promote products derived from
  *   this software without specific prior written permission.
- *
+ *  
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -35,60 +35,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _CUSTODYSIGNAL_H_
-#define _CUSTODYSIGNAL_H_
+#ifndef _BUNDLETIMESTAMP_H_
+#define _BUNDLETIMESTAMP_H_
 
-#include "Bundle.h"
-#include "BundleProtocol.h"
+#include <sys/types.h>
 
 namespace dtn {
 
 /**
- * Utility class to format and parse custody signal bundles.
+ * Simple struct definition for bundle creation timestamps. Although
+ * quite similar to a struct timeval, the bundle protocol
+ * specification mandates that timestamps should be calculated as
+ * seconds since Jan 1, 2000 (not 1970) so we use a different type.
  */
-class CustodySignal {
-public:
+struct BundleTimestamp {
+    u_int32_t seconds_; ///< Seconds since 1/1/2000
+    u_int32_t seqno_;   ///< Sub-second sequence number
+    
     /**
-     * The reason codes are defined in the bundle protocol class.
+     * Return the current time in the correct format for the bundle
+     * protocol, i.e. seconds since Jan 1, 2000 in UTC.
      */
-    typedef BundleProtocol::custody_signal_reason_t reason_t;
+    static u_int32_t get_current_time();
 
     /**
-     * Struct to hold the payload data of the custody signal.
+     * Check that the local clock setting is valid (i.e. is at least
+     * up to date with the protocol.
      */
-    struct data_t {
-        u_int8_t        admin_type_;
-        u_int8_t        admin_flags_;
-        bool            succeeded_;
-        u_int8_t        reason_;
-        u_int64_t       orig_frag_offset_;
-        u_int64_t       orig_frag_length_;
-        BundleTimestamp custody_signal_tv_;
-        BundleTimestamp orig_creation_tv_;
-        EndpointID      orig_source_eid_;
-    };
+    static bool check_local_clock();
 
     /**
-     * Constructor-like function to create a new custody signal bundle.
+     * The number of seconds between 1/1/1970 and 1/1/2000.
      */
-    static void create_custody_signal(Bundle*           bundle,
-                                      const Bundle*     orig_bundle,
-                                      const EndpointID& source_eid,
-                                      bool              succeeded,
-                                      reason_t          reason);
-
-    /**
-     * Parsing function for custody signal bundles.
-     */
-    static bool parse_custody_signal(data_t* data,
-                                     const u_char* bp, u_int len);
-
-    /**
-     * Pretty printer for custody signal reasons.
-     */
-    static const char* reason_to_str(u_int8_t reason);
+    static const u_int32_t TIMEVAL_CONVERSION = 946684800;
 };
 
 } // namespace dtn
 
-#endif /* _CUSTODYSIGNAL_H_ */
+#endif /* _BUNDLETIMESTAMP_H_ */
