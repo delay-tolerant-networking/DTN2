@@ -45,7 +45,7 @@
 #include <oasys/util/OptParser.h>
 
 #include <dtn_api.h>
-#include <EndpointIDOpt.h>
+#include <APIEndpointIDOpt.h>
 
 typedef std::map<int, dtn_handle_t> HandleMap;
 
@@ -146,7 +146,7 @@ public:
 
     DTNRegisterCommand() : TclCommand("dtn_register")
     {
-        parser_.addopt(new dtn::EndpointIDOpt("endpoint", &opts_.endpoint_));
+        parser_.addopt(new dtn::APIEndpointIDOpt("endpoint", &opts_.endpoint_));
         parser_.addopt(new oasys::EnumOpt("failure_action",
                                           FailureActionCases,
                                           &opts_.failure_action_));
@@ -291,9 +291,9 @@ public:
 
     DTNSendCommand() : TclCommand("dtn_send")
     {
-        parser_.addopt(new dtn::EndpointIDOpt("source", &opts_.source_));
-        parser_.addopt(new dtn::EndpointIDOpt("dest", &opts_.dest_));
-        parser_.addopt(new dtn::EndpointIDOpt("replyto", &opts_.replyto_));
+        parser_.addopt(new dtn::APIEndpointIDOpt("source", &opts_.source_));
+        parser_.addopt(new dtn::APIEndpointIDOpt("dest", &opts_.dest_));
+        parser_.addopt(new dtn::APIEndpointIDOpt("replyto", &opts_.replyto_));
         parser_.addopt(new oasys::EnumOpt("priority", PriorityCases,
                                           &opts_.priority_));
         parser_.addopt(new oasys::BoolOpt("custody_xfer",

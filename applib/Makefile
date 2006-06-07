@@ -10,7 +10,7 @@ CLIENTLIB_SRCS := 			\
 		$(XDRSRCS)		\
 		dtn_api.c		\
 		dtn_ipc.c		\
-		EndpointIDOpt.cc	\
+		APIEndpointIDOpt.cc	\
 
 # Sources for the server side of the library
 SERVERLIB_SRCS := 			\

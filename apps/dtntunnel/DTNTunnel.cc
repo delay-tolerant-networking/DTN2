@@ -46,7 +46,7 @@
 #include <sys/socket.h>
 
 #include "dtn_api.h"
-#include "EndpointIDOpt.h"
+#include "APIEndpointIDOpt.h"
 
 #include <oasys/util/Getopt.h>
 
@@ -111,12 +111,12 @@ DTNTunnel::get_options(int argc, char* argv[])
     
     bool dest_eid_set = false;
     oasys::Getopt::addopt(
-        new dtn::EndpointIDOpt('d', "dest_eid", &dest_eid_, "<eid>",
-                               "destination endpoint id", &dest_eid_set));
-
+        new dtn::APIEndpointIDOpt('d', "dest_eid", &dest_eid_, "<eid>",
+                                  "destination endpoint id", &dest_eid_set));
+    
     oasys::Getopt::addopt(
-        new dtn::EndpointIDOpt("local_eid_override", &local_eid_, "<eid>",
-                               "local endpoint id"));
+        new dtn::APIEndpointIDOpt("local_eid_override", &local_eid_, "<eid>",
+                                  "local endpoint id"));
     
     oasys::Getopt::addopt(
         new oasys::InAddrOpt("laddr", &local_addr_, "<addr>",

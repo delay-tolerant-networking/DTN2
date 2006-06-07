@@ -50,7 +50,7 @@ namespace dtn {
  * Extension class to the oasys Opt hierarchy that validates that the
  * option is a DTN endpoint identifier (i.e. a URI).
  */
-class EndpointIDOpt : public oasys::Opt {
+class APIEndpointIDOpt : public oasys::Opt {
 public:
     /**
      * Basic constructor.
@@ -62,9 +62,9 @@ public:
      * @param setp    optional pointer to indicate whether or not
                       the option was set
      */
-    EndpointIDOpt(const char* opt, dtn_endpoint_id_t* valp,
-                  const char* valdesc = "", const char* desc = "",
-                  bool* setp = NULL);
+    APIEndpointIDOpt(const char* opt, dtn_endpoint_id_t* valp,
+                     const char* valdesc = "", const char* desc = "",
+                     bool* setp = NULL);
 
     /**
      * Alternative constructor with both short and long options,
@@ -78,9 +78,10 @@ public:
      * @param setp      optional pointer to indicate whether or not
                         the option was set
      */
-    EndpointIDOpt(char shortopt, const char* longopt, dtn_endpoint_id_t* valp,
-                  const char* valdesc = "", const char* desc = "",
-                  bool* setp = NULL);
+    APIEndpointIDOpt(char shortopt, const char* longopt,
+                     dtn_endpoint_id_t* valp,
+                     const char* valdesc = "", const char* desc = "",
+                     bool* setp = NULL);
     
 protected:
     int set(const char* val, size_t len);

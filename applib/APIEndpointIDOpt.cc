@@ -36,26 +36,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "EndpointIDOpt.h"
+#include "APIEndpointIDOpt.h"
 #include "dtn_api.h"
 
 namespace dtn {
 
-EndpointIDOpt::EndpointIDOpt(const char* opt, dtn_endpoint_id_t* valp,
-                             const char* valdesc, const char* desc, bool* setp)
+APIEndpointIDOpt::APIEndpointIDOpt(const char* opt, dtn_endpoint_id_t* valp,
+                                   const char* valdesc, const char* desc,
+                                   bool* setp)
     : Opt(0, opt, valp, setp, true, valdesc, desc)
 {
 }
 
-EndpointIDOpt::EndpointIDOpt(char shortopt, const char* longopt,
-                             dtn_endpoint_id_t* valp,
-                             const char* valdesc, const char* desc, bool* setp)
+APIEndpointIDOpt::APIEndpointIDOpt(char shortopt, const char* longopt,
+                                   dtn_endpoint_id_t* valp,
+                                   const char* valdesc, const char* desc,
+                                   bool* setp)
     : Opt(shortopt, longopt, valp, setp, true, valdesc, desc)
 {
 }
 
 int
-EndpointIDOpt::set(const char* val, size_t len)
+APIEndpointIDOpt::set(const char* val, size_t len)
 {
     char buf[DTN_MAX_ENDPOINT_ID];
     if (len > (DTN_MAX_ENDPOINT_ID - 1)) {
