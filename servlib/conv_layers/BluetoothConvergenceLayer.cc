@@ -21,6 +21,7 @@ extern int errno;
 #include <oasys/bluez/Bluetooth.h>
 #include <oasys/bluez/BluetoothSocket.h>
 #include <oasys/bluez/RFCOMMClient.h>
+#include <oasys/util/ScratchBuffer.h>
 
 #include "BluetoothConvergenceLayer.h"
 #include "bundling/Bundle.h"
@@ -243,6 +244,9 @@ BluetoothConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
+    // Nothing further, if OpLink
+    if (link->type() == Link::OPPORTUNISTIC) return true;
+
     // Create a new parameters structure, parse the options, and store
     // them in the link's cl info slot.
     Params* params = new Params(defaults_);
@@ -272,6 +276,39 @@ BluetoothConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     link->set_cl_info(params);
 
     return true;
+}
+
+/**
+ * Create a connection to the remote device specified by bdaddr_t
+ */
+BluetoothConvergenceLayer::Connection *
+BluetoothConvergenceLayer::create_opportunistic_connection(bdaddr_t& remote,Params* params) {
+
+    char buff[18];
+
+    const char *nexthop =
+                    (const char*)oasys::Bluetooth::batostr(&remote,buff);
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    Link* link = cm->find_link_to(nexthop,"bt");
+
+    if (link == NULL || link->isopen() == false) {
+
+        // Using ConnectionManager factory method to manage bind()
+        // contention
+        Connection* sender = connections_.connection(
+                                (BluetoothConvergenceLayer*)this,
+                                remote, params);
+
+        if (sender == NULL) return NULL;
+
+        // return the new connection
+        return sender;
+
+    }
+
+    // There is already an open link to remote, so no need to
+    // create a new temporary connection to exchange AnnounceBundles
+    return NULL;
 }
 
 /**
@@ -499,6 +536,9 @@ BluetoothConvergenceLayer::ConnectionManager::connection(
     // search for passive connections first
     Listener* prev = listener(params->local_addr_);
 
+    //XXX/wilson Need to keep some registry of Connections to
+    // keep count and reflect the seven or less simultaneous Bluetooth
+    // limitation here at the application layer
     if (prev != NULL ) {
 
         log_debug("Instantiating new connection");
@@ -584,7 +624,8 @@ BluetoothConvergenceLayer::Connection::Connection(
     : Thread("BluetoothConvergenceLayer::Connection"),
       Logger("BluetoothConvergenceLayer::Connection", "/dtn/cl/bt/conn"),
       params_(*params), listener_(NULL), cl_(cl), initiate_(true),
-      contact_("BluetoothConvergenceLayer::Connection")
+      contact_("BluetoothConvergenceLayer::Connection"),
+      announce_("BluetoothConvergenceLayer::Connection")
 {
     char buff[18];
     logpath_appendf("/%s",oasys::Bluetooth::batostr(&remote_addr,buff));
@@ -615,7 +656,8 @@ BluetoothConvergenceLayer::Connection::Connection(
     : Thread("BluetoothConvergenceLayer::Connection"),
       Logger("BluetoothConvergenceLayer::Connection", "/dtn/cl/bt/conn"),
       params_(*params), listener_(NULL), cl_(cl), initiate_(false),
-      contact_("BluetoothConvergenceLayer::Connection")
+      contact_("BluetoothConvergenceLayer::Connection"),
+      announce_("BluetoothConvergenceLayer::Connection")
 {
     char buff[18];
     logpathf("/dtn/cl/bt/passive-conn/%s:%d", oasys::Bluetooth::batostr(&remote_addr,buff),
@@ -739,33 +781,96 @@ BluetoothConvergenceLayer::Connection::run()
  * Send announcement bundle to bluetooth address
  */
 bool
-BluetoothConvergenceLayer::Connection::send_announce(const bdaddr_t& remote)
+BluetoothConvergenceLayer::Connection::send_announce()
 {
     char buff[18]; //used by oasys::batostr below
 
+    bdaddr_t remote;
+    sock_->remote_addr(remote);
+
+    ASSERT( bacmp(&remote,BDADDR_ANY) != 0 );
+
     // create the ANNOUNCE bundle
-    Bundle* announce = new Bundle();
-
-    AnnounceBundle::create_announce_bundle(announce,
+    if (announce_ == NULL) {
+        announce_ = new Bundle();
+        // Mark this bundle as Admin,
+        // set bundle type to ADMIN_ANNOUNCE, and
+        // set source eid to local_eid
+        AnnounceBundle::create_announce_bundle(announce_.object(),
             BundleDaemon::instance()->local_eid());
-
-    oasys::StaticStringBuffer<1024> buf;
-    buf.appendf("BTCL AnnounceBundle:\n");
-    announce->format_verbose(&buf);
-    log_multiline(oasys::LOG_DEBUG, buf.c_str());
-
+    }
 
     log_debug("attempting to contact %s with ANNOUNCE",
               oasys::Bluetooth::batostr(&remote,buff));
-    if (! connect()) {
-        log_debug("connect failed");
-        return false;
-    }
 
-    // malloc() some space for serializing the bundle
+    oasys::StaticStringBuffer<1024> buf;
+    buf.appendf("BTCL AnnounceBundle:\n");
+    announce_->format_verbose(&buf);
+    log_multiline(oasys::LOG_DEBUG, buf.c_str());
+
+    // first reserve space in the buffers
+    rcvbuf_.reserve(params_.readbuf_len_);
     sndbuf_.reserve(params_.writebuf_len_);
 
-    return send_bundle(announce);
+    // sock_ will be established if this is the receiving thread
+    // sending back a response
+    if (sock_->state() != oasys::BluetoothSocket::ESTABLISHED) {
+        if (! connect()) {
+            log_debug("connect failed");
+            return false;
+        }
+    }
+
+    return send_bundle(announce_.object());
+}
+
+
+/**
+ * Receive bundle (expected to be response Bundle Announcement)
+ */
+bool
+BluetoothConvergenceLayer::Connection::recv_announce()
+{
+    int timeout;
+    int ret;
+    char typecode;
+    // if there's nothing in the buffer,
+    // block waiting for the one byte typecode
+    if (rcvbuf_.fullbytes() == 0) {
+        ASSERT(rcvbuf_.end() == rcvbuf_.data()); // sanity
+
+        timeout = 2 * params_.keepalive_interval_ * 1000;
+        log_debug("recv_announce: blocking on frame... (timeout %d)", timeout);
+
+        ret = sock_->timeout_read(rcvbuf_.end(),
+                                  rcvbuf_.tailbytes(),
+                                  timeout);
+        if (ret == oasys::IOEOF || ret == oasys::IOERROR) {
+            log_info("recv_announce: remote connection unexpectedly closed");
+shutdown:
+            break_contact(ContactEvent::BROKEN);
+            return false;
+
+        } else if (ret == oasys::IOTIMEOUT) {
+            log_info("recv_announce: no message heard for > %d msecs -- "
+                     "breaking contact", timeout);
+            goto shutdown;
+        }
+
+        rcvbuf_.fill(ret);
+        note_data_rcvd();
+    }
+
+    typecode = *rcvbuf_.start();
+    rcvbuf_.consume(1);
+
+    if (typecode != BUNDLE_DATA)
+        goto shutdown;
+
+    if (! recv_bundle() )
+        goto shutdown;
+
+    return true;
 }
 
 
@@ -787,7 +892,8 @@ BluetoothConvergenceLayer::Connection::send_bundle(Bundle* bundle)
     const u_char* payload_data;
 
     // first put the bundle on the inflight_ queue
-    inflight_.push_back(InFlightBundle(bundle));
+    if (AnnounceBundle::parse_announce_bundle(bundle) == false)
+        inflight_.push_back(InFlightBundle(bundle));
 
     // Each bundle is preceded by a BUNDLE_DATA typecode and then a
     // BundleDataHeader that is variable-length since it includes an
@@ -923,7 +1029,8 @@ retry_headers:
     // if we got here, we sent the whole bundle successfully, so if
     // we're not using acks, post an event for the router. if we are
     // using acks, the event is posted in handle_ack
-    if (! params_.bundle_ack_enabled_) {
+    if (! params_.bundle_ack_enabled_ && 
+          (AnnounceBundle::parse_announce_bundle(bundle) == false)) {
         inflight_.pop_front();
         BundleDaemon::post(
                 new BundleTransmittedEvent(bundle, contact_, payload_len, 0));
@@ -1085,7 +1192,8 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
 
 
         // check if we've read enough to send an ack
-        if (rcvd_len - acked_len > params_.partial_ack_len_) {
+        if (rcvd_len - acked_len > params_.partial_ack_len_ &&
+               AnnounceBundle::parse_announce_bundle(bundle) == false) {
             log_debug("recv_bundle: "
                       "got %zu bytes acked %zu, sending partial ack",
                       rcvd_len, acked_len);
@@ -1102,6 +1210,7 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
     // one for the whole bundle in the partial ack check above, send
     // one now
     if (params_.bundle_ack_enabled_ && 
+        (AnnounceBundle::parse_announce_bundle(bundle) == false) &&
         (payload_len == 0 || (acked_len != rcvd_len)))
     {
         if (! send_ack(datahdr.bundle_id, payload_len)) {
@@ -1133,6 +1242,69 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
     BundleDaemon::post(
         new BundleReceivedEvent(bundle, EVENTSRC_PEER, rcvd_len));
     
+    // snoop on bundles to see if Announce bundle crosses by
+    EndpointID eid;
+    if (AnnounceBundle::parse_announce_bundle(bundle,&eid)) {
+
+        char buff[18];
+        bdaddr_t remote;
+        sock_->remote_addr(remote);
+        const char *nexthop =
+            (const char *) oasys::Bluetooth::batostr(&remote,buff);
+
+        // AnnounceBundle has been received, which either means
+        // 1) this is the first news we've heard of remote
+        // or
+        // 2) remote is sending this AnnounceBundle as ack to our original
+
+        // log the AnnounceBundle, source EID and remote BT addr
+        oasys::StaticStringBuffer<1024> buf;
+        buf.appendf("received BTCL AnnounceBundle from %s at %s\n",
+                    eid.c_str(),
+                    nexthop);
+        bundle->format_verbose(&buf);
+        log_multiline(oasys::LOG_INFO, buf.c_str());
+
+        // if this is the first we've heard of it, announce_ will be NULL
+        if (announce_ == NULL) {
+            // so respond on the same connection
+            send_announce();
+        }
+
+        // otherwise, we are the initiator, and this is the response.
+
+
+        // either way, it's time to light up a link and post it up
+        // to BundleDaemon
+        ContactManager* cm = BundleDaemon::instance()->contactmgr();
+        Link* link = cm->find_link_to(nexthop,"bt");
+        if (link == NULL || link->isopen() == false) {
+
+            link = cm->new_opportunistic_link(
+                            cl_,
+                            new Params(params_),
+                            nexthop,
+                            &eid);
+
+            if (link != NULL) { 
+
+                // Available for use!
+                link->set_state(Link::AVAILABLE);
+
+                // In fact, go ahead and open it
+                BundleDaemon::post(
+                    new LinkStateChangeRequest(link,
+                        Link::OPEN,ContactEvent::NO_INFO)
+                );
+            }
+        }
+
+        // our work here is done; time to self delete
+        set_should_stop();
+        interrupt_from_io();
+        break_contact(ContactEvent::BROKEN);
+        return false; // tells recv_loop to back out
+    }
     return true;
 }
 
@@ -1159,7 +1331,7 @@ BluetoothConvergenceLayer::Connection::send_ack(u_int32_t bundle_id,
     int cc = sock_->writevall(iov, 2);
 
     if (cc != total) {
-        log_info("recv_bundle: problem sending ack (wrote %d/%d): %s",
+        log_info("send_ack: problem sending ack (wrote %d/%d): %s",
                 cc, total, strerror(errno));
         return false;
     }
@@ -1609,7 +1781,6 @@ BluetoothConvergenceLayer::Connection::send_loop()
     rcvbuf_.reserve(params_.readbuf_len_);
     sndbuf_.reserve(params_.writebuf_len_);
 
-
     log_info("connection established -- (keepalive time %d seconds)",
              params_.keepalive_interval_);
 
@@ -1846,17 +2017,18 @@ BluetoothConvergenceLayer::NeighborDiscovery::send_announce(bdaddr_t remote)
 {
     char buff[18]; // used by oasys::batostr
 
-    // Short-lived connection object will send ANNOUNCE bundle
-    Connection *sender = BluetoothConvergenceLayer::
-                            connections_.connection(cl_,remote,&params_);
-    sender->logpathf("%s/announce",logpath_);
+    Connection *sender = cl_->create_opportunistic_connection(remote,&params_);
+    const char *nexthop = oasys::Bluetooth::batostr(&remote,buff);
 
-    if (! sender->send_announce(remote))
-        log_debug("failed to send announce bundle to %s",
-                  oasys::Bluetooth::batostr(&remote,buff));
-
-    // In this unconventional scenario, the thread does not self-delete
-    delete sender;
+    if (sender != NULL) {
+        log_info("sending announce bundle to %s", nexthop);
+        if (sender->send_announce()) {
+            (void)sender->recv_announce();
+        }
+        // thread never started, so cleanup is not automatic
+        delete sender;
+        sender = NULL;
+    }
 }
 
 void
@@ -1908,7 +2080,7 @@ BluetoothConvergenceLayer::NeighborDiscovery::run()
             oasys::BluetoothServiceDiscoveryClient sdpclient;
             sdpclient.set_local_addr(params_.local_addr_);
             if (sdpclient.is_dtn_router(bii.addr_)) {
-                log_info("sending announce bundle to DTN router at %s",
+                log_info("discovered DTN router at %s",
                          oasys::Bluetooth::batostr(&bii.addr_,buff));
                 send_announce(bii.addr_);
             }
