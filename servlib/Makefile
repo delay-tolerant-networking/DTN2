@@ -62,6 +62,7 @@ CMD_SRCS :=					\
 
 NAMING_SRCS :=					\
 	naming/EndpointID.cc			\
+	naming/EndpointIDOpt.cc			\
 	naming/Scheme.cc			\
 	naming/SchemeTable.cc			\
 	naming/DTNScheme.cc			\
