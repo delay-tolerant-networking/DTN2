@@ -143,7 +143,6 @@ public:
         BUNDLE_ACK  = 0x2,  ///< bundle acknowledgment
         KEEPALIVE   = 0x3,  ///< keepalive packet
         SHUTDOWN    = 0x4,  ///< indicates sending side will close connection
-        ANNOUNCE    = 0x5,  ///< beacon bundle for neighbor discovery
     } btcl_header_type_t;
 
     /**
@@ -160,14 +159,6 @@ public:
     struct BundleAckHeader {
         u_int32_t bundle_id;       ///< identical to BundleStartHeader
         u_int32_t acked_length;    ///< total length received
-    } __attribute__((packed));
-
-    /**
-     * Header for announcement (beacon) bundle.
-     */
-    struct AnnounceBundleHeader {
-        u_int32_t eid_size; ///< size of EID to follow
-        u_char    eid[0];   ///< EID
     } __attribute__((packed));
 
     /**
@@ -207,18 +198,13 @@ protected:
 
 public:
     /**
-     * Keep up with the Listener object for each Bluetooth adapter,
-     * as indexed by bdaddr_t, so that only one object (whether
-     * Listener or Connection) binds on a bdaddr_t at any given
-     * point in time.
-     * 
-     * Typical operation is, add a Listener with add_interface,
-     * then open_contact brings up a Connection for a brief time,
-     * then close_contact shuts down that Connection. ConnectionManager
-     * facilitates the bookkeeping of who's doing what. Essentially
-     * Listener hibernates while Connection exists, then as 
-     * Connection is shut down, Listener is put back into listening
-     * mode.
+     * ConnectionManager associates Listeners to their Bluetooth adapter
+     * address and provides a factory method for instantiating Connection
+     * objects.  When Connections are created, ConnectionManager finds the
+     * listener and closes its socket to increase the chances of rc_connect
+     * establishing communication with the remote device.  As soon as the
+     * Connection's socket is established, ConnectionManager restores the
+     * Listener to whatever RFCOMM channel is available (using rc_bind).
      */
     class ConnectionManager : public Logger {
     public:
@@ -231,12 +217,12 @@ public:
         ~ConnectionManager() {;}
 
         /**
-         * Factory method to create, or reuse, Listeners
+         * Factory method to create Listeners
          */
         Listener *listener(BluetoothConvergenceLayer*,Params*);
 
         /**
-         * Factory method to create active, or reuse passive, Connections
+         * Factory method to create active Connections
          */
         Connection *connection(BluetoothConvergenceLayer*,bdaddr_t&,Params*);
 
@@ -279,6 +265,14 @@ protected:
     bool parse_nexthop(const char*, bdaddr_t*);
 
     /**
+     * Create a temporary connection for the purpose of initiating
+     * exchange of AnnounceBundles between newly discovered neighbors
+     * N.B.: does not self-delete, since it never gets start()'d.
+     */
+    Connection* create_opportunistic_connection(bdaddr_t&,
+                        BluetoothConvergenceLayer::Params*);
+
+    /**
      * Helper class (and thread) that listens on a registered
      * interface for incoming data.
      */
@@ -305,7 +299,7 @@ protected:
         friend class Connection;
         friend class ConnectionManager;
         BluetoothConvergenceLayer* cl_;
-    };
+    }; // Listener
 
     /**
      * Helper class that wraps the sender-side per-contact state.
@@ -369,8 +363,9 @@ protected:
         bool send_address();
         bool recv_address(int timeout);
         bool send_bundle(Bundle* bundle);
-        bool send_announce(const bdaddr_t& remote);
+        bool send_announce();
         bool recv_bundle();
+        bool recv_announce();
         bool handle_reply();
         int handle_ack();
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
@@ -407,10 +402,11 @@ protected:
         BlockingBundleList* queue_;     ///< Queue of bundles
         InFlightList        inflight_;  ///< List of bundles to be acked
         oasys::Notifier*    event_notifier_; ///< Notifier for BD event synch.
+        BundleRef           announce_;  ///< contains AnnounceBundle, if used
 
         struct timeval data_rcvd_;      ///< Timestamp for idle timer
         struct timeval keepalive_sent_; ///< Timestamp for keepalive timer
-    }; // Listener
+    }; // Connection
 
     class NeighborDiscovery : public oasys::BluetoothInquiry,
                               public oasys::Thread
