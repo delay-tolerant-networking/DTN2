@@ -101,6 +101,11 @@ protected:
     virtual void handle_link_available(LinkAvailableEvent* event);
 
     /**
+     * If a link gets created with a remote eid, add the route
+     */
+    virtual void handle_link_created(LinkCreatedEvent* event);
+
+    /**
      * Handle a custody transfer timeout.
      */
     virtual void handle_custody_timeout(CustodyTimeoutEvent* event);

@@ -123,6 +123,21 @@ TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
 
 //----------------------------------------------------------------------
 void
+TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
+{
+    Link* link = event->link_;
+    EndpointID eid = link->remote_eid();
+    if (! eid.equals(EndpointID::NULL_EID()) ) {
+        // create route entry, post new route event
+        RouteEntry *entry = new RouteEntry(
+                EndpointIDPattern(eid.str() + std::string("/*")), link);
+        entry->action_ = FORWARD_UNIQUE;
+        BundleDaemon::post(new RouteAddEvent(entry));
+    }
+}
+
+//----------------------------------------------------------------------
+void
 TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
 {
     // the bundle daemon should have recorded a new entry in the
