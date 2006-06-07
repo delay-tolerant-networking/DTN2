@@ -102,7 +102,7 @@ EndpointID::parse()
         valid_ = true;
     }
     
-    return true;
+    return valid_;
 }
 
 /**
