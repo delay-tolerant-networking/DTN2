@@ -108,7 +108,7 @@ Link::Link(const std::string& name, link_type_t type,
        type_(type), state_(UNAVAILABLE),
        nexthop_(nexthop), name_(name), reliable_(false),
        contact_("Link"),
-       clayer_(cl), cl_info_(NULL)
+       clayer_(cl), cl_info_(NULL), remote_eid_(EndpointID::NULL_EID())
 {
     ASSERT(clayer_);
 
@@ -262,6 +262,9 @@ Link::close()
     
     // Remove the reference, which will clean up the object
     contact_ = NULL;
+
+    // Scrub out the EID
+    remote_eid_.assign(EndpointID::NULL_EID());
 
     log_debug("Link::close complete");
 }

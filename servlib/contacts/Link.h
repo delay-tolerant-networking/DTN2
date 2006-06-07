@@ -42,6 +42,7 @@
 #include <oasys/debug/Formatter.h>
 
 #include "bundling/BundleList.h"
+#include "naming/EndpointID.h"
 
 #include "Contact.h"
 
@@ -67,7 +68,7 @@ class LinkSet : public std::set<Link*> {};
  * All links in the OPEN, BUSY, or CLOSING states have an associated
  * contact that represents an actual connection.
  *
- * Every link has a unique name asssociated with it which is used to
+ * Every link has a unique name associated with it which is used to
  * identify it. The name is configured explicitly when the link is
  * created.
  *
@@ -83,7 +84,7 @@ class LinkSet : public std::set<Link*> {};
  * Links are of three types as discussed in the DTN architecture
  * ONDEMAND, SCHEDULED, OPPORTUNISTIC.
  *
- * The key differences from an implementation perspectives are "who"
+ * The key differences from an implementation perspective are "who"
  * and "when" manipulates the link state regarding availability.
  *
  * ONDEMAND links are initializd in the AVAILABLE state, as one would
@@ -372,6 +373,9 @@ public:
      */
     void set_reliable(bool r) { reliable_ = r; }
 
+    void set_remote_eid(EndpointID& remote) { remote_eid_.assign(remote); }
+    EndpointID& remote_eid() { return remote_eid_; }
+
     /**
      * Virtual from formatter
      */
@@ -510,6 +514,9 @@ protected:
 
     /// Convergence layer specific info, if needed
     CLInfo* cl_info_;
+
+    /// Remote's endpoint ID (eg, dtn://hostname.dtn)
+    EndpointID remote_eid_;
 
     /// Destructor -- protected since links shouldn't be deleted
     virtual ~Link();
