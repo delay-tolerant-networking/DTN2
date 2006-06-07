@@ -138,7 +138,8 @@ public:
      */
     Link* new_opportunistic_link(ConvergenceLayer* cl,
                                  CLInfo* clinfo,
-                                 const char* nexthop);
+                                 const char* nexthop,
+                                 EndpointID* remote_eid = NULL);
 
 protected:
     /**
