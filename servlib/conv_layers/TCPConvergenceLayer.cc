@@ -970,8 +970,8 @@ TCPConvergenceLayer::Connection::recv_bundle()
         cc = sock_->timeout_read(rcvbuf_.end(), rcvbuf_.tailbytes(),
                                  params_.rtt_timeout_);
         if (cc < 0) {
-            log_err("recv_bundle: error reading bundle headers: %s",
-                    strerror(errno));
+            log_info("recv_bundle: error reading bundle headers: %s",
+                     strerror(errno));
             delete bundle;
             return false;
         }
@@ -983,7 +983,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
         
     // parse out the BundleDataHeader
     if (rcvbuf_.fullbytes() < sizeof(BundleDataHeader)) {
-        log_err("recv_bundle: read too short to encode data header");
+        log_info("recv_bundle: read too short to encode data header");
         goto incomplete_tcp_header;
     }
 
@@ -995,7 +995,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
                             rcvbuf_.fullbytes() - sizeof(BundleDataHeader),
                             &total_len);
     if (sdnv_len < 0) {
-        log_err("recv_bundle: read too short to encode SDNV");
+        log_info("recv_bundle: read too short to encode SDNV");
         goto incomplete_tcp_header;
     }
 
