@@ -44,6 +44,7 @@
 #include "StaticBundleRouter.h"
 #include "FloodBundleRouter.h"
 #include "NeighborhoodRouter.h"
+#include "ProphetRouter.h"
 #include "LinkStateRouter.h"
 #include "TcaRouter.h"
 
@@ -63,6 +64,9 @@ BundleRouter::create_router(const char* type)
     }
     else if (strcmp(type, "neighborhood") == 0) {
         return new NeighborhoodRouter();
+    }
+    else if (strcmp(type, "prophet") == 0) {
+        return new ProphetRouter();
     }
     else if (strcmp(type, "flood") == 0) {
         return new FloodBundleRouter();
