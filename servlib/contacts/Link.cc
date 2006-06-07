@@ -93,6 +93,8 @@ Link::create_link(const std::string& name, link_type_t type,
         delete link;
         return NULL;
     }
+    
+    link->logf(oasys::LOG_INFO, "new link *%p", link);
 
     // now dispatch to the subclass for any initial state events that
     // need to be posted. this needs to be done after all the above is
@@ -113,8 +115,6 @@ Link::Link(const std::string& name, link_type_t type,
        clayer_(cl), cl_info_(NULL), remote_eid_(EndpointID::NULL_EID())
 {
     ASSERT(clayer_);
-
-    log_info("new link *%p", this);
 
     params_ = default_params_;
     params_.retry_interval_ = params_.min_retry_interval_;
