@@ -82,6 +82,7 @@ ROUTING_SRCS :=					\
 	routing/BundleRouter.cc			\
 	routing/FloodBundleRouter.cc		\
 	routing/NeighborhoodRouter.cc		\
+	routing/ProphetRouter.cc		\
 	routing/LinkStateGraph.cc		\
 	routing/LinkStateRouter.cc		\
 	routing/LinkScheduleEstimator.cc	\
