@@ -14,8 +14,10 @@ class AnnounceBundle
 {
 public:
     static void create_announce_bundle(Bundle *bundle,
-                                       const EndpointID& eid);
+                                       const EndpointID& route_eid);
 
+    static bool parse_announce_bundle(Bundle *bundle,
+                                      EndpointID *route_eid = NULL);
 }; // AnnounceBundle
 
 } // dtn
