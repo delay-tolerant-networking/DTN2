@@ -56,7 +56,16 @@ RouteCommand::RouteCommand()
     : TclCommand("route")
 {
     bind_s("type", &BundleRouter::Config.type_, "static",
-        "Which routing algorithm to use.");
+           "Which routing algorithm to use.");
+
+    bind_b("add_nexthop_routes",
+           &BundleRouter::Config.add_nexthop_routes_, true,
+           "Whether or not to automatically add routes for next hop links");
+    
+    bind_i("default_priority",
+           &BundleRouter::Config.default_priority_, 0,
+           "Default priority for new routes (initially zero)");
+    
     add_to_help("add <dest> <link/endpoint> [opts]", "add a route");
     add_to_help("del <dest> <link/endpoint>", "delete a route");
     add_to_help("dump", "dump all of the static routes");

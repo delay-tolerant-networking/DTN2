@@ -125,14 +125,17 @@ TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
 void
 TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
 {
-    Link* link = event->link_;
-    EndpointID eid = link->remote_eid();
-    if (! eid.equals(EndpointID::NULL_EID()) ) {
-        // create route entry, post new route event
-        RouteEntry *entry = new RouteEntry(
+    if (Config.add_nexthop_routes_) {
+        Link* link = event->link_;
+        EndpointID eid = link->remote_eid();
+
+        if (! eid.equals(EndpointID::NULL_EID()) ) {
+            // create route entry, post new route event
+            RouteEntry *entry = new RouteEntry(
                 EndpointIDPattern(eid.str() + std::string("/*")), link);
-        entry->action_ = FORWARD_UNIQUE;
-        BundleDaemon::post(new RouteAddEvent(entry));
+            entry->action_ = FORWARD_UNIQUE;
+            BundleDaemon::post(new RouteAddEvent(entry));
+        }
     }
 }
 

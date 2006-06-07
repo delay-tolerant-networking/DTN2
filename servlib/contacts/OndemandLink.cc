@@ -53,15 +53,15 @@ OndemandLink::OndemandLink(std::string name,
 }
 
 int
-OndemandLink::parse_args(int argc, const char* argv[])
+OndemandLink::parse_args(int argc, const char* argv[], const char** invalidp)
 {
-    if (Link::parse_args(argc, argv) == -1) {
+    if (Link::parse_args(argc, argv, invalidp) == -1) {
         return -1;
     }
     
     oasys::OptParser p;
     p.addopt(new oasys::UIntOpt("idle_close_time", &idle_close_time_));
-    return p.parse_and_shift(argc, argv);
+    return p.parse_and_shift(argc, argv, invalidp);
 }
 
 void

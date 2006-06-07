@@ -83,7 +83,8 @@ public:
     /**
      * Hook to parse route configuration options.
      */
-    int parse_options(int argc, const char** argv);
+    int parse_options(int argc, const char** argv,
+                      const char** invalidp = NULL);
 
     /**
      * Dump a string representation of the route entry.

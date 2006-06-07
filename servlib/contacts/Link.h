@@ -241,7 +241,8 @@ public:
      */
     static Link* create_link(const std::string& name, link_type_t type,
                              ConvergenceLayer* cl, const char* nexthop,
-                             int argc, const char* argv[]);
+                             int argc, const char* argv[],
+                             const char** invalid_argp = NULL);
     /**
      * Constructor / Destructor
      */
@@ -251,7 +252,8 @@ public:
     /**
      * Hook for subclass to parse arguments.
      */
-    virtual int parse_args(int argc, const char* argv[]);
+    virtual int parse_args(int argc, const char* argv[],
+                           const char** invalidp = NULL);
 
     /**
      * Hook for subclass to post events to control the initial link

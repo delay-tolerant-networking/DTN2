@@ -47,6 +47,7 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
 #include "conv_layers/ConvergenceLayer.h"
+#include "naming/EndpointIDOpt.h"
 
 namespace dtn {
 
@@ -63,7 +64,8 @@ Link::Params Link::default_params_ = {
 Link*
 Link::create_link(const std::string& name, link_type_t type,
                   ConvergenceLayer* cl, const char* nexthop,
-                  int argc, const char* argv[])
+                  int argc, const char* argv[],
+                  const char** invalid_argp)
 {
     Link* link;
     switch(type) {
@@ -76,7 +78,7 @@ Link::create_link(const std::string& name, link_type_t type,
 
     // hook for the link subclass that parses any arguments and shifts
     // argv appropriately
-    int count = link->parse_args(argc, argv);
+    int count = link->parse_args(argc, argv, invalid_argp);
     if (count == -1) {
         delete link;
         return NULL;
@@ -122,10 +124,11 @@ Link::Link(const std::string& name, link_type_t type,
 
 //----------------------------------------------------------------------
 int
-Link::parse_args(int argc, const char* argv[])
+Link::parse_args(int argc, const char* argv[], const char** invalidp)
 {
     oasys::OptParser p;
-    
+
+    p.addopt(new dtn::EndpointIDOpt("remote_eid", &remote_eid_));
     p.addopt(new oasys::BoolOpt("reliable", &reliable_));
     p.addopt(new oasys::UIntOpt("mtu",     &params_.mtu_));
     p.addopt(new oasys::UIntOpt("min_retry_interval",
@@ -133,11 +136,15 @@ Link::parse_args(int argc, const char* argv[])
     p.addopt(new oasys::UIntOpt("max_retry_interval",
                                 &params_.max_retry_interval_));
 
-    int ret = p.parse_and_shift(argc, argv);
+    int ret = p.parse_and_shift(argc, argv, invalidp);
+    if (ret == -1) {
+        return -1;
+    }
 
     if (params_.min_retry_interval_ == 0 ||
         params_.max_retry_interval_ == 0)
     {
+        *invalidp = "invalid retry interval";
         return -1;
     }
 
@@ -273,9 +280,9 @@ Link::close()
 int
 Link::format(char* buf, size_t sz) const
 {
-    return snprintf(buf, sz, "%s %s -> %s (%s)",
+    return snprintf(buf, sz, "%s %s -> %s (%s) (remote_eid %s)",
                     link_type_to_str(type_), name(), nexthop(),
-                    state_to_str(state_));
+                    state_to_str(state_), remote_eid_.c_str());
 }
 
 //----------------------------------------------------------------------

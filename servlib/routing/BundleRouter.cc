@@ -50,6 +50,9 @@
 
 namespace dtn {
 
+/**
+ * Config defaults are set in RouteCommand.cc
+ */
 BundleRouter::config_t BundleRouter::Config;
 
 /**

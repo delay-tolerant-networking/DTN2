@@ -74,13 +74,14 @@ CustodyTimerSpec::calculate_timeout(const Bundle* bundle) const
 
 //----------------------------------------------------------------------
 int
-CustodyTimerSpec::parse_options(int argc, const char* argv[])
+CustodyTimerSpec::parse_options(int argc, const char* argv[],
+                                const char** invalidp)
 {
     oasys::OptParser p;
     p.addopt(new oasys::UIntOpt("custody_timer_base", &base_));
     p.addopt(new oasys::UIntOpt("custody_timer_lifetime_pct", &lifetime_pct_));
     p.addopt(new oasys::UIntOpt("custody_timer_limit", &limit_));
-    return p.parse_and_shift(argc, argv);
+    return p.parse_and_shift(argc, argv, invalidp);
 }
 
 //----------------------------------------------------------------------

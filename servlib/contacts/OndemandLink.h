@@ -51,7 +51,7 @@ namespace dtn {
 class OndemandLink : public Link {
 public:
     OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
-    int parse_args(int argc, const char* argv[]);
+    int parse_args(int argc, const char* argv[], const char** invalidp = NULL);
     void set_initial_state();
     
     /**

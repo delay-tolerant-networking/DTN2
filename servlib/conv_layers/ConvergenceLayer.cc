@@ -129,7 +129,8 @@ ConvergenceLayer::dump_interface(Interface* iface, oasys::StringBuffer* buf)
 /**
  * Create any CL-specific components of the Link.
  *
- * The default implementation doesn't do anything but log.
+ * The default implementation doesn't do anything but log an error if
+ * there are any arguments (since they should have been handled).
  */
 bool
 ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
@@ -137,6 +138,12 @@ ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     (void)link;
     (void)argc;
     (void)argv;
+    if (argc != 0) {
+        log_err("error configuring link '%s': invalid argument %s",
+                link->name(), argv[0]);
+        return false;
+    }
+
     log_debug("init link %s", link->nexthop());
     return true;
 }

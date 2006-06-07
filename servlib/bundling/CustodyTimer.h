@@ -98,7 +98,8 @@ public:
      *
      * @return the number of parsed options
      */
-    int parse_options(int argc, const char* argv[]);
+    int parse_options(int argc, const char* argv[],
+                      const char** invalidp = NULL);
 
     u_int32_t base_;		///< base timer
     u_int32_t lifetime_pct_;	///< percentage of lifetime

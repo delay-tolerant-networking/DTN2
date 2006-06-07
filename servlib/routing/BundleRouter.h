@@ -91,7 +91,16 @@ public:
      * config parser before any router objects are created.
      */
     static struct config_t {
-        std::string         type_;
+        /// The routing algorithm type
+        std::string type_;
+        
+        /// Whether or not to add routes for nexthop links that know
+        /// the remote endpoint id (default true)
+        bool add_nexthop_routes_;
+        
+        /// Default priority for new routes
+        int default_priority_;
+                
     } Config;
     
     /**

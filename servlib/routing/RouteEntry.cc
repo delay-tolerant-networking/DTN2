@@ -38,6 +38,7 @@
 
 #include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
+#include "BundleRouter.h"
 #include "RouteEntry.h"
 #include "contacts/Link.h"
 
@@ -52,6 +53,7 @@ RouteEntry::RouteEntry(const EndpointIDPattern& pattern, Link* link)
       custody_timeout_(),
       info_(NULL)
 {
+    route_priority_ = BundleRouter::Config.default_priority_;
 }
 
 //----------------------------------------------------------------------
@@ -63,9 +65,13 @@ RouteEntry::~RouteEntry()
 
 //----------------------------------------------------------------------
 int
-RouteEntry::parse_options(int argc, const char** argv)
+RouteEntry::parse_options(int argc, const char** argv, const char** invalidp)
 {
-    int num = custody_timeout_.parse_options(argc, argv);
+    int num = custody_timeout_.parse_options(argc, argv, invalidp);
+    if (num == -1) {
+        return -1;
+    }
+    
     argc -= num;
     
     oasys::OptParser p;
@@ -79,8 +85,12 @@ RouteEntry::parse_options(int argc, const char** argv)
     };
     p.addopt(new oasys::EnumOpt("action", fwdopts, (int*)&action_));
 
-    num += p.parse_and_shift(argc, argv);
-    return num;
+    int num2 = p.parse_and_shift(argc, argv, invalidp);
+    if (num2 == -1) {
+        return -1;
+    }
+
+    return num + num2;
 }
 
 //----------------------------------------------------------------------
