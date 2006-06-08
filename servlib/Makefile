@@ -23,8 +23,6 @@ BUNDLING_SRCS := 				\
 	bundling/FragmentManager.cc		\
 	bundling/ExpirationTimer.cc		\
 	bundling/SDNV.cc			\
-	bundling/tstotv.c			\
-	bundling/tvtots.c			\
 
 CONTACT_SRCS :=					\
 	contacts/AlwaysOnLink.cc		\
