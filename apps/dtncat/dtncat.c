@@ -569,6 +569,29 @@ make_registration(dtn_reg_info_t* reginfo)
 {
 	int ret;
 
+        // try to find an existing registration to use
+        ret = dtn_find_registration(handle, &reginfo->endpoint, &regid);
+
+        if (ret == 0) {
+
+            // found the registration, bind it to the handle
+            if (dtn_bind(handle, regid) != DTN_SUCCESS) {
+                fprintf(stderr, "%s: error in bind (id=0x%x): %d (%s)\n",
+                        progname, regid, ret, dtn_strerror(dtn_errno(handle)));
+                exit(EXIT_FAILURE);
+            }
+
+            return;
+            
+        } else if (dtn_errno(handle) == DTN_ENOTFOUND) {
+            // fall through
+
+        } else {
+            fprintf(stderr, "%s: error in dtn_find_registration: %d (%s)\n",
+                    progname, ret, dtn_strerror(dtn_errno(handle)));
+            exit(EXIT_FAILURE);
+        }
+
         // create a new dtn registration to receive bundles
         reginfo->regid = regid;
         reginfo->expiration = REG_EXPIRE;
