@@ -142,7 +142,7 @@ main(int argc, char** argv)
     dtn_copy_eid(&reginfo.endpoint, &bundle_spec.source);
     reginfo.failure_action = DTN_REG_DEFER;
     reginfo.regid = regid;
-    reginfo.expiration = 60;
+    reginfo.expiration = 0;
     if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
         fprintf(stderr, "error creating registration (id=%d): %d (%s)\n",
                 regid, ret, dtn_strerror(dtn_errno(handle)));
@@ -150,12 +150,6 @@ main(int argc, char** argv)
     }
     
     if (verbose) printf("dtn_register succeeded, regid 0x%x\n", regid);
-
-    // bind the current handle to the new registration, then
-    // immediately call dtn_unregister which means it will get removed
-    // when the handle is cleaned up
-    dtn_bind(handle, regid);
-    dtn_unregister(handle, regid);
 
     gettimeofday(&start, NULL); // timer
 

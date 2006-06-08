@@ -74,6 +74,7 @@ APIRegistration::deliver_bundle(Bundle* bundle)
         
         // post an event saying we "delivered" it
         BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
+        return;
     }
 
     if (!active() && (failure_action_ == EXEC)) {

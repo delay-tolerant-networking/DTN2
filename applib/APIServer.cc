@@ -434,7 +434,7 @@ APIClient::handle_local_eid()
 int
 APIClient::handle_register()
 {
-    Registration* reg;
+    APIRegistration* reg;
     Registration::failure_action_t action;
     EndpointIDPattern endpoint;
     std::string script;
@@ -472,15 +472,22 @@ APIClient::handle_register()
         script.assign(reginfo.script.script_val, reginfo.script.script_len);
     }
 
-    if (reginfo.expiration == 0) {
-        log_err("zero expiration time for registration");
-        return DTN_EINVAL;
-    }
-
     u_int32_t regid = GlobalStore::instance()->next_regid();
     reg = new APIRegistration(regid, endpoint, action,
                               reginfo.expiration, script);
 
+    if (! reginfo.init_passive) {
+        // XXX/demmer fixme to allow multiple registrations
+        if (! bindings_->empty()) {
+            log_err("error: handle already bound to a registration");
+            return DTN_EBUSY;
+        }
+        
+        // store the registration in the list for this session
+        bindings_->push_back(reg);
+        reg->set_active(true);
+    }
+    
     BundleDaemon::post_and_wait(new RegistrationAddedEvent(reg, EVENTSRC_APP),
                                 &notifier_);
     

@@ -196,6 +196,7 @@ main(int argc, char** argv)
     dtn_bundle_payload_t payload;
     unsigned char* buffer;
     char s_buffer[BUFSIZE];
+    int call_bind;
 
     // force stdout to always be line buffered, even if output is
     // redirected to a pipe or file
@@ -281,11 +282,11 @@ main(int argc, char** argv)
                         dtn_strerror(dtn_errno(handle)));
                 goto err;
             }
-        } else {
-            printf("find registration succeeded, regid %d\n", regid);
         }
+        printf("find registration succeeded, regid %d\n", regid);
+        call_bind = 1;
     }
-        
+    
     // if the user didn't give us a registration to use, get a new one
     if (regid == DTN_REGID_NONE) {
         if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
@@ -295,18 +296,23 @@ main(int argc, char** argv)
         }
 
         printf("register succeeded, regid %d\n", regid);
+        call_bind = 0;
+    } else {
+        call_bind = 1;
     }
     
     if (register_only) {
         goto done;
     }
 
-    // bind the current handle to the new registration
-    printf("binding to regid %d\n", regid);
-    if (dtn_bind(handle, regid) != 0) {
-        fprintf(stderr, "error binding to registration: %s\n",
-                dtn_strerror(dtn_errno(handle)));
-        goto err;
+    if (call_bind) {
+        // bind the current handle to the found registration
+        printf("binding to regid %d\n", regid);
+        if (dtn_bind(handle, regid) != 0) {
+            fprintf(stderr, "error binding to registration: %s\n",
+                    dtn_strerror(dtn_errno(handle)));
+            goto err;
+        }
     }
 
     // loop waiting for bundles

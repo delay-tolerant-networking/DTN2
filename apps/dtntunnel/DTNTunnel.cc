@@ -250,8 +250,15 @@ DTNTunnel::init_registration()
     u_int32_t regid;
     int err = dtn_find_registration(recv_handle_, &local_eid_, &regid);
     if (err == 0) {
-        log_notice("found existing registration id %d", regid);
+        log_notice("found existing registration id %d, calling dtn_bind",
+                   regid);
         
+        err = dtn_bind(recv_handle_, regid);
+        if (err != 0) {
+            log_crit("error in dtn_bind: %s", 
+                     dtn_strerror(dtn_errno(recv_handle_)));
+            exit(1);
+        }
     } else if (dtn_errno(recv_handle_) == DTN_ENOTFOUND) {
         dtn_reg_info_t reginfo;
         memset(&reginfo, 0, sizeof(reginfo));
@@ -267,13 +274,6 @@ DTNTunnel::init_registration()
         }
     } else {
         log_crit("error in dtn_find_registration: %s",
-                 dtn_strerror(dtn_errno(recv_handle_)));
-        exit(1);
-    }
-
-    err = dtn_bind(recv_handle_, regid);
-    if (err != 0) {
-        log_crit("error in dtn_bind: %s", 
                  dtn_strerror(dtn_errno(recv_handle_)));
         exit(1);
     }

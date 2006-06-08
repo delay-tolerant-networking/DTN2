@@ -141,6 +141,7 @@ struct dtn_reg_info_t {
     dtn_reg_id_t		regid;
     dtn_reg_failure_action_t 	failure_action;
     dtn_timeval_t		expiration;
+    bool			init_passive;
     opaque			script<DTN_MAX_EXEC_LEN>;
 };
 

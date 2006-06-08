@@ -87,7 +87,11 @@ extern int dtn_build_local_eid(dtn_handle_t handle,
                                const char* service_tag);
 
 /**
- * Create a dtn registration.
+ * Create a dtn registration. If the init_passive flag in the reginfo
+ * struct is true, the registration is initially in passive state,
+ * requiring a call to dtn_bind to activate it. Otherwise, the call to
+ * dtn_bind is unnecessary as the registration will be created in the
+ * active state and bound to the handle.
  */
 extern int dtn_register(dtn_handle_t handle,
                         dtn_reg_info_t* reginfo,
@@ -123,10 +127,7 @@ extern int dtn_change_registration(dtn_handle_t handle,
                                    dtn_reg_info_t *reginfo);
 
 /**
- * Associate a registration with the current ipc channel. This must
- * be called before calling dtn_recv to inform the daemon of which
- * registrations the application is interested in.
- *
+ * Associate a registration with the current ipc channel.
  * This serves to put the registration in "active" mode.
  */
 extern int dtn_bind(dtn_handle_t handle, dtn_reg_id_t regid);

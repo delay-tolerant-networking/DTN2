@@ -157,8 +157,12 @@ main(int argc, const char** argv)
     // registration based on this eid
     ret = dtn_find_registration(handle, &local_eid, &regid);
     if (ret == 0) {
-        if (debug) printf("dtn_find_registration succeeded, regid 0x%x\n", regid);
-
+        if (debug) printf("dtn_find_registration succeeded, regid 0x%x\n",
+                          regid);
+        
+        // bind the current handle to the new registration
+        dtn_bind(handle, regid);
+        
     } else if (dtn_errno(handle) == DTN_ENOTFOUND) {
         memset(&reginfo, 0, sizeof(reginfo));
         dtn_copy_eid(&reginfo.endpoint, &local_eid);
@@ -178,9 +182,6 @@ main(int argc, const char** argv)
                 dtn_strerror(dtn_errno(handle)));
         exit(1);
     }
-
-    // bind the current handle to the new registration
-    dtn_bind(handle, regid);
     
     // loop waiting for bundles
     while(1)

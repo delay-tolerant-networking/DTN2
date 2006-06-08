@@ -135,7 +135,7 @@ int main(int argc, char** argv)
     dtn_copy_eid(&reginfo.endpoint, &local_eid);
     reginfo.failure_action = DTN_REG_DEFER;
     reginfo.regid = DTN_REGID_NONE;
-    reginfo.expiration = 30;
+    reginfo.expiration = 0;
     if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
         fprintf(stderr, "error creating registration: %d (%s)\n",
                 ret, dtn_strerror(dtn_errno(handle)));
@@ -144,11 +144,6 @@ int main(int argc, char** argv)
     if (debug) printf(" done\n");
     if (verbose) printf("regid 0x%x\n", regid);
 
-    // bind the current handle to the new registration
-    if (debug) printf("[debug] executing dtn_bind...");
-    dtn_bind(handle, regid);
-    if (debug) printf(" done\n");
-    
     // set bundle destination type
     if (debug) printf("[debug] choosing bundle destination type...");
     if (use_file)

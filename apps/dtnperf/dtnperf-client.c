@@ -292,11 +292,6 @@ int main(int argc, char** argv)
     }    
     if (debug) printf(" done: regid 0x%x\n", regid);
 
-    // bind the current handle to the new registration
-    if (debug) printf("[debug] binding handle to registration...");
-    dtn_bind(handle, regid);
-    if (debug) printf(" done\n");
-
     // if bundle_payload > MAX_MEM_PAYLOAD, transfer a file
     if (bundle_payload > MAX_MEM_PAYLOAD)
         use_file = 1;

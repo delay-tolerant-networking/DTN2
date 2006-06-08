@@ -170,7 +170,8 @@ Registration::init_expiration_timer()
         } else {
             log_debug("scheduling expiration for registration id %d at %u.%u "
                       "(in %ld seconds): ", regid_,
-                      (u_int)when.tv_sec, (u_int)when.tv_usec, in_how_long / 1000);
+                      (u_int)when.tv_sec, (u_int)when.tv_usec,
+                      in_how_long / 1000);
         }
         
         expiration_timer_ = new ExpirationTimer(this);

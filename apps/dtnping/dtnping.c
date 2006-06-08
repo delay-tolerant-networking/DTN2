@@ -152,7 +152,7 @@ main(int argc, const char** argv)
     dtn_copy_eid(&reginfo.endpoint, &source_eid);
     reginfo.failure_action = DTN_REG_DEFER;
     reginfo.regid = DTN_REGID_NONE;
-    reginfo.expiration = 60;
+    reginfo.expiration = 0;
     if ((ret = dtn_register(handle, &reginfo, &regid)) != 0) {
         fprintf(stderr, "error creating registration: %d (%s)\n",
                 ret, dtn_strerror(dtn_errno(handle)));
@@ -160,21 +160,6 @@ main(int argc, const char** argv)
     }    
     if (debug) printf("dtn_register succeeded, regid %d\n", regid);
 
-    // bind the current handle to the new registration, then
-    // immediately unregister, which causes the registration to stick
-    // around only as long as the handle is bound to it
-    if ((ret = dtn_bind(handle, regid)) != 0) {
-        fprintf(stderr, "error binding registration: %d (%s)\n",
-                ret, dtn_strerror(dtn_errno(handle)));
-        exit(1);
-    }    
-
-    if ((ret = dtn_unregister(handle, regid)) != 0) {
-        fprintf(stderr, "error removing registration: %d (%s)\n",
-                ret, dtn_strerror(dtn_errno(handle)));
-        exit(1);
-    }    
-    
     // check for any bundles queued for the registration
     if (debug) printf("checking for bundles already queued...\n");
     do {

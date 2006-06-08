@@ -182,6 +182,8 @@ xdr_dtn_reg_info_t (XDR *xdrs, dtn_reg_info_t *objp)
 		 return FALSE;
 	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
 		 return FALSE;
+	 if (!xdr_bool (xdrs, &objp->init_passive))
+		 return FALSE;
 	 if (!xdr_bytes (xdrs, (char **)&objp->script.script_val, (u_int *) &objp->script.script_len, DTN_MAX_EXEC_LEN))
 		 return FALSE;
 	return TRUE;

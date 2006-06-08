@@ -164,13 +164,6 @@ TcaController::dtn_reg(dtn_endpoint_id_t& eid, dtn_reg_id_t& id)
     }    
     // if (debug) printf("dtn_register succeeded, id 0x%x\n", id);
     
-    // bind the current handle to the new registration
-    if (dtn_bind(handle_, id) != 0)
-    {
-        fprintf(stderr, "dtn_bind failed\n");
-        return false;
-    }   
-     
     printf("TcaController::dtn_reg: app registered as %s, id=0x%x\n",
             eid.uri, id);
 

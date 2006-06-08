@@ -152,6 +152,7 @@ struct dtn_reg_info_t {
 	dtn_reg_id_t regid;
 	dtn_reg_failure_action_t failure_action;
 	dtn_timeval_t expiration;
+	bool_t init_passive;
 	struct {
 		u_int script_len;
 		char *script_val;

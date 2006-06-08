@@ -155,12 +155,8 @@ main(int argc, char** argv)
                     regid, ret, dtn_strerror(dtn_errno(handle)));
             exit(1);
         }
-    
-        if (verbose) printf("dtn_register succeeded, regid 0x%x\n",
-                            regid);
-
-        // bind the current handle to the new registration
-        dtn_bind(handle, regid);
+        
+        if (verbose) printf("dtn_register succeeded, regid 0x%x\n", regid);
     }
     
     // set the dtn options

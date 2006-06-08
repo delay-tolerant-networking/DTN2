@@ -168,17 +168,8 @@ from_bundles()
     dtn_endpoint_id_t local_eid;
     dtn_bundle_spec_t receive_spec;
 
-    if (arg_receive[0] != '/') {
-	    dtn_build_local_eid(handle, &local_eid, arg_receive);
-	    if (verbose)
-		    fprintf(info, "local_eid [%s]\n", local_eid.uri);
-    } else {
-	if (verbose) fprintf(info, "calling parse_eid_string\n");
-	if (dtn_parse_eid_string(&local_eid, arg_receive)) {
-	    fprintf(stderr, "invalid destination endpoint '%s'\n", arg_receive);
-	    exit(EXIT_FAILURE);
-	}
-    }
+    parse_eid(handle, &local_eid, arg_receive);
+
     memset(&reg, 0, sizeof(reg));
     dtn_copy_eid(&reg.endpoint, &local_eid);
     make_registration(&reg);
@@ -592,8 +583,5 @@ make_registration(dtn_reg_info_t* reginfo)
         }
     
         if (verbose)
-		fprintf(info, "dtn_register succeeded, regid 0x%x\n", regid);
-
-        // bind the current handle to the new registration
-        dtn_bind(handle, regid);
+            fprintf(info, "dtn_register succeeded, regid 0x%x\n", regid);
 }
