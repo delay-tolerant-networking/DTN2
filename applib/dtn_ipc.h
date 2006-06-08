@@ -58,6 +58,15 @@ extern "C" {
  *************************************************************/
 
 /**
+ * DTN IPC version. Just a simple number for now; we can refine it to
+ * a major/minor version later if desired.
+ *
+ * Make sure to bump this when changing any data structures, message
+ * types, adding functions, etc.
+ */
+#define DTN_IPC_VERSION 2
+
+/**
  * Default api ports. The handshake port is used for initial contact
  * with the daemon to establish a session, and the latter is used for
  * individual sessions.

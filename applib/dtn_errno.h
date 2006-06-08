@@ -53,6 +53,8 @@
 #define DTN_EINTERNAL 	(DTN_ERRBASE+8) /* misc. internal error */
 #define DTN_EINPOLL 	(DTN_ERRBASE+9) /* illegal op. called after dtn_poll */
 #define DTN_EBUSY 	(DTN_ERRBASE+10) /* registration already in use */
+#define DTN_EVERSION    (DTN_ERRBASE+11) /* ipc version mismatch */
+#define DTN_EMSGTYPE    (DTN_ERRBASE+12) /* unknown message type */
 #define DTN_ERRMAX 255
 
 #endif /* DTN_ERRNO_H */

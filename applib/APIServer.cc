@@ -201,6 +201,7 @@ int
 APIClient::handle_handshake()
 {
     u_int32_t handshake;
+    u_int16_t message_type, ipc_version;
     
     int ret = readall((char*)&handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
@@ -209,8 +210,18 @@ APIClient::handle_handshake()
         return -1;
     }
 
-    if (ntohl(handshake) != DTN_OPEN) {
-        log_err("handshake %d != DTN_OPEN", handshake);
+    message_type = ntohl(handshake) >> 16;
+    ipc_version = (u_int16_t) (ntohl(handshake) & 0x0ffff);
+
+    if (message_type != DTN_OPEN) {
+        log_err("handshake (%d)'s message type %d != DTN_OPEN (%d)",
+                handshake, message_type, DTN_OPEN);
+        return -1;
+    }
+    
+    if (ipc_version != DTN_IPC_VERSION) {
+        log_err("handshake (%d)'s version %d != DTN_IPC_VERSION (%d)",
+                handshake, ipc_version, DTN_IPC_VERSION);
         return -1;
     }
     
@@ -308,7 +319,7 @@ APIClient::run()
 
         default:
             log_err("unknown message type code 0x%x", type);
-            ret = DTN_ECOMM;
+            ret = DTN_EMSGTYPE;
             break;
         }
 
@@ -323,8 +334,13 @@ APIClient::run()
         if (send_response(ret) != 0) {
             return;
         }
-
-        
+        // if there was an IPC communication error or unknown message
+        // type, close terminate the session
+        // XXX/matt we could potentially close on all errors, not just these 2
+        if (ret == DTN_ECOMM || ret == DTN_EMSGTYPE) {
+            close_session();
+            return;
+        }
         
     } // while(1)
 }

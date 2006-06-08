@@ -51,6 +51,9 @@
 #include "dtn_errno.h"
 #include "dtn_types.h"
 
+/* exposed globally for testing purposes only */
+int dtnipc_version = DTN_IPC_VERSION;
+
 const char*
 dtnipc_msgtoa(u_int8_t type)
 {
@@ -151,8 +154,10 @@ dtnipc_open(dtnipc_handle_t* handle)
         return -1;
     }
 
-    // send the session initiation to the server on the handshake port
-    handshake = htonl(DTN_OPEN);
+    // send the session initiation to the server on the handshake
+    // port. it consists of DTN_OPEN in the high 16 bits and IPC
+    // version in the low 16 bits
+    handshake = htonl(DTN_OPEN << 16 | dtnipc_version);
     ret = write(handle->sock, &handshake, sizeof(handshake));
     if (ret != sizeof(handshake)) {
         handle->err = DTN_ECOMM;
@@ -163,8 +168,14 @@ dtnipc_open(dtnipc_handle_t* handle)
     // wait for the handshake response
     handshake = 0;
     ret = read(handle->sock, &handshake, sizeof(handshake));
-    if (ret != sizeof(handshake) || htonl(handshake) != DTN_OPEN) {
+    if (ret != sizeof(handshake) || (ntohl(handshake) >> 16) != DTN_OPEN) {
         handle->err = DTN_ECOMM;
+        dtnipc_close(handle);
+        return -1;
+    }
+    
+    if ((ntohl(handshake) & 0x0ffff) != DTN_IPC_VERSION) {
+        handle->err = DTN_EMSGTYPE;
         dtnipc_close(handle);
         return -1;
     }
