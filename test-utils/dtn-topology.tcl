@@ -6,12 +6,13 @@ namespace eval dtn {
 
 set router_type "static"
 
-proc config_topology_common {} {
+proc config_topology_common {with_routes} {
     global dtn::router_type
     
     foreach id [net::nodelist] {
 	conf::add dtnd $id "route set type $router_type"
 	conf::add dtnd $id "route local_eid dtn://host-$id"
+	conf::add dtnd $id "route set add_nexthop_routes $with_routes"
     }
 }
 
@@ -45,16 +46,11 @@ proc config_link {id peerid type cl with_routes link_args} {
     set peeraddr $net::host($peerid)
     set peerport [dtn::get_port $cl $peerid]
     set link [get_link_name $cl $id $peerid]
+    set peer_eid  dtn://host-$peerid
     
     conf::add dtnd $id [join [list \
-	    link add $link $peeraddr:$peerport $type $cl $link_args]]
-    
-    if {$with_routes} {
-	# XXX/demmer this should become unnecessary since the one-hop
-	# neigbors should be automatically added to the route table
-	conf::add dtnd $id \
-		"route add dtn://host-$peerid/* $link"
-    }
+	    link add $link $peeraddr:$peerport $type $cl \
+	    remote_eid=$peer_eid $link_args]]
     
     return $link
 }
@@ -63,7 +59,7 @@ proc config_link {id peerid type cl with_routes link_args} {
 # Set up a linear topology using TCP or UDP
 #
 proc config_linear_topology {type cl with_routes {link_args ""}} {
-    dtn::config_topology_common
+    dtn::config_topology_common $with_routes
     
     set last [expr [net::num_nodes] - 1]
     
@@ -194,6 +190,8 @@ proc config_tree_topology {type cl {link_args ""}} {
 #     1     ...      n
 #
 proc config_twolevel_topology {type cl with_routes {link_args ""}} {
+    dtn::config_topology_common $with_routes
+ 
     foreach id [net::nodelist] {
 	if { $id != 0 } {
 	    config_link 0   $id $type $cl $with_routes $link_args
@@ -211,8 +209,8 @@ proc config_twolevel_topology {type cl with_routes {link_args ""}} {
 #     \ /
 #      3
 proc config_diamond_topology {type cl with_routes {link_args ""}} {
-    dtn::config_topology_common
-    
+    dtn::config_topology_common $with_routes
+     
     config_link 0 1 $type $cl $with_routes $link_args
     config_link 0 2 $type $cl $with_routes $link_args
     
