@@ -7,7 +7,7 @@ test::name tcp-receiver-connect
 net::num_nodes 2
 
 dtn::config
-dtn::config_topology_common
+dtn::config_topology_common false
 
 set host0 [gethostbyname $net::host(0)]
 set host1 [gethostbyname $net::host(1)]

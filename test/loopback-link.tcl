@@ -14,9 +14,9 @@ foreach {var val} $opt(opts) {
     }
 }
 
-puts "* Configuring $clayer interface"
-dtn::config_topology_common
+dtn::config_topology_common false
 
+puts "* Configuring $clayer interface"
 dtn::config_interface $clayer
 
 test::script {
