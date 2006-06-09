@@ -34,16 +34,15 @@ test::script {
     puts "* Creating / removing $count registrations and bindings"
     for {set i 0} {$i < $count} {incr i} {
 	set regid [dtn::tell_dtntest 0 dtn_register $h \
-		endpoint=dtn://test expiration=100]
+		endpoint=dtn://test expiration=100 init_passive=true]
 	dtn::tell_dtntest 0 dtn_bind $h $regid
 	dtn::tell_dtntest 0 dtn_unbind $h $regid
 	dtn::tell_dtntest 0 dtn_unregister $h $regid
     }
     
-    puts "* Creating one more registration and binding"
+    puts "* Creating one more registration"
     set regid [dtn::tell_dtntest 0 dtn_register $h \
 	    endpoint=dtn://dest expiration=100]
-    dtn::tell_dtntest 0 dtn_bind $h $regid
     
     puts "* Sending / receiving $count bundles from memory"
     for {set i 0} {$i < $count} {incr i} {
