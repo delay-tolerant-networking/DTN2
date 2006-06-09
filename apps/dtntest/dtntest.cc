@@ -45,6 +45,7 @@
 #include <oasys/util/OptParser.h>
 
 #include <dtn_api.h>
+#include <dtn_ipc.h>
 #include <APIEndpointIDOpt.h>
 
 typedef std::map<int, dtn_handle_t> HandleMap;
@@ -58,21 +59,47 @@ struct State : public oasys::Singleton<State> {
 
 template <> State* oasys::Singleton<State>::instance_ = 0;
 
+extern int dtnipc_version;
+
 //----------------------------------------------------------------------
 class DTNOpenCommand : public oasys::TclCommand {
 public:
-    DTNOpenCommand() : TclCommand("dtn_open") {}
+    oasys::OptParser parser_;
+    
+    struct OpenOpts {
+        u_int16_t             version_;
+    };
+    
+    OpenOpts opts_;
+    
+    void init_opts() {
+        opts_.version_ = DTN_IPC_VERSION;
+    }
+    
+    DTNOpenCommand() : TclCommand("dtn_open") {
+        parser_.addopt(new oasys::UInt16Opt("version", &opts_.version_));
+    }
+    
     int exec(int argc, const char **argv,  Tcl_Interp* interp)
     {
         (void)argc;
         (void)argv;
         (void)interp;
 
-        if (argc != 1) {
-            wrong_num_args(argc, argv, 1, 1, 1);
+        if (argc < 1 || argc > 2) {
+            wrong_num_args(argc, argv, 1, 1, 2);
             return TCL_ERROR;
         }
 
+        init_opts();
+        
+        const char* invalid = 0;
+        if (! parser_.parse(argc - 1, argv + 1, &invalid)) {
+            resultf("invalid option '%s'", invalid);
+            return TCL_ERROR;
+        }
+
+        dtnipc_version = opts_.version_;
         dtn_handle_t h = dtn_open();
         if (h == NULL) {
             resultf("can't connect to dtn daemon");
