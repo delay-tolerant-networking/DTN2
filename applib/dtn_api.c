@@ -52,36 +52,38 @@
 #include "dtn_ipc.h"
 
 //----------------------------------------------------------------------
-dtn_handle_t
-dtn_open()
+int 
+dtn_open(dtn_handle_t* h)
 {
     dtnipc_handle_t* handle;
 
     handle = (dtnipc_handle_t *) malloc(sizeof(struct dtnipc_handle));
-    if (!handle)
-        return 0;
+    if (!handle) {
+        *h = NULL;
+        return DTN_EINTERNAL;
+    }
     
     if (dtnipc_open(handle) != 0) {
+        int ret = handle->err;
         free(handle);
-        return 0;
+        *h = NULL;
+        return ret;
     }
 
     xdr_setpos(&handle->xdr_encode, 0);
     xdr_setpos(&handle->xdr_decode, 0);
 
-    return (dtn_handle_t)handle;
+    *h = (dtn_handle_t)handle;
+    return DTN_SUCCESS;
 }
 
 //----------------------------------------------------------------------
 int
 dtn_close(dtn_handle_t handle)
 {
-    // XXX/matt: (a) this error code is meaningless, as we return -1 no
-    // matter what dtnipc_close returns; (b) it's inconsistent with
-    // all other functions to return -1 as a "success" code
     dtnipc_close((dtnipc_handle_t *)handle);
     free(handle);
-    return -1;
+    return DTN_SUCCESS;
 }
 
 //----------------------------------------------------------------------

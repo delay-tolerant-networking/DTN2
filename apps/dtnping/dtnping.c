@@ -94,10 +94,10 @@ main(int argc, const char** argv)
     memset(&ping_spec, 0, sizeof(ping_spec));
 
     // open the ipc handle
-    handle = dtn_open();
-    if (handle == 0) {
+    int err = dtn_open(&handle);
+    if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
-                strerror(errno));
+                dtn_strerror(err));
         exit(1);
     }
 

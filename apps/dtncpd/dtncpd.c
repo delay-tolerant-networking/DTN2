@@ -141,10 +141,10 @@ main(int argc, const char** argv)
 
     // open the ipc handle
     if (debug) printf("opening connection to dtn router...\n");
-    handle = dtn_open();
-    if (handle == 0) {
+    int err = dtn_open(&handle);
+    if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
-                strerror(errno));
+                dtn_strerror(err));
         exit(1);
     }
 

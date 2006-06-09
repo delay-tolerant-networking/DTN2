@@ -175,11 +175,10 @@ bool
 TcaController::init(bool tidy)
 {
     // open the ipc handle
-    handle_ = dtn_open();
-    if (handle_ == 0)
-    {
+    int err = dtn_open(&handle_);
+    if (err != DTN_SUCCESS) {
         fprintf(stderr, "fatal error opening dtn handle: %s\n",
-                strerror(errno));
+                dtn_strerror(err));
         return false;
     }
 

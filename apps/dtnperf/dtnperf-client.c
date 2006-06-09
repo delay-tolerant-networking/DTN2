@@ -179,9 +179,10 @@ int main(int argc, char** argv)
 
     // open the ipc handle
     if (debug) fprintf(stdout, "Opening connection to local DTN daemon...");
-    handle = dtn_open();
-    if (handle == 0) {
-        fprintf(stderr, "fatal error opening dtn handle: %s\n", strerror(errno));
+    int err = dtn_open(&handle);
+    if (err != DTN_SUCCESS) {
+        fprintf(stderr, "fatal error opening dtn handle: %s\n",
+                dtn_strerror(err));
         exit(1);
     }
     if (debug) printf(" done\n");
@@ -666,9 +667,8 @@ int main(int argc, char** argv)
         exit(3);
     }
 
-    // close dtn-handle -- IN DTN_2.1.1 SIMPLY RETURNS -1
     if (debug) printf("[debug] closing DTN handle...");
-    if (dtn_close(handle) != -1)
+    if (dtn_close(handle) != DTN_SUCCESS)
     {
         fprintf(stderr, "fatal error closing dtn handle: %s\n",
                 strerror(errno));

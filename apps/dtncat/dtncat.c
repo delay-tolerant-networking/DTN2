@@ -130,10 +130,10 @@ main(int argc, char** argv)
     if (verbose)
 	fprintf(info, "Opening connection to local DTN daemon\n");
 
-    handle = dtn_open();
-    if (handle == 0) {
+    int err = dtn_open(&handle);
+    if (err != DTN_SUCCESS) {
         fprintf(stderr, "%s: fatal error opening dtn handle: %s\n",
-                progname, strerror(errno));
+                progname, dtn_strerror(err));
         exit(EXIT_FAILURE);
     }
 

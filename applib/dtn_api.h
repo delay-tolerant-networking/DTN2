@@ -59,12 +59,14 @@ extern "C" {
 /**
  * Open a new connection to the router.
  *
- * Returns the new handle on success, NULL on error.
+ * On success, initializes the handle parameter as a new handle to the
+ * daemon and returns DTN_SUCCESS. On failure, sets handle to NULL and
+ * returns a dtn_errno error code.
  */
-extern dtn_handle_t dtn_open();
+extern int dtn_open(dtn_handle_t* handle);
 
 /**
- * Close an open dtn handle.
+ * Close an open dtn handle.  Returns DTN_SUCCESS on success.
  */
 extern int dtn_close(dtn_handle_t handle);
 

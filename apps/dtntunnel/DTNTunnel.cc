@@ -224,20 +224,22 @@ DTNTunnel::init_tunnel()
 void
 DTNTunnel::init_registration()
 {
-    recv_handle_ = dtn_open();
-    if (recv_handle_ == NULL) {
-        log_crit("can't open recv handle to daemon");
+    int err = dtn_open(&recv_handle_);
+    if (err != DTN_SUCCESS) {
+        log_crit("can't open recv handle to daemon: %s",
+                 dtn_strerror(err));
         exit(1);
     }
     
-    send_handle_ = dtn_open();
-    if (send_handle_ == NULL) {
-        log_crit("can't open send handle to daemon");
+    err = dtn_open(&send_handle_);
+    if (err != DTN_SUCCESS) {
+        log_crit("can't open send handle to daemon: %s",
+                 dtn_strerror(err));
         exit(1);
     }
 
     if (local_eid_.uri[0] == '\0') {
-        int err = dtn_build_local_eid(recv_handle_, &local_eid_, "dtntunnel");
+        err = dtn_build_local_eid(recv_handle_, &local_eid_, "dtntunnel");
         if (err != DTN_SUCCESS) {
             log_crit("can't build local eid: %s",
                      dtn_strerror(dtn_errno(recv_handle_)));
@@ -248,7 +250,7 @@ DTNTunnel::init_registration()
     log_debug("using local endpoint id %s", local_eid_.uri);
 
     u_int32_t regid;
-    int err = dtn_find_registration(recv_handle_, &local_eid_, &regid);
+    err = dtn_find_registration(recv_handle_, &local_eid_, &regid);
     if (err == 0) {
         log_notice("found existing registration id %d, calling dtn_bind",
                    regid);

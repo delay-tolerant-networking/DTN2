@@ -100,14 +100,16 @@ public:
         }
 
         dtnipc_version = opts_.version_;
-        dtn_handle_t h = dtn_open();
-        if (h == NULL) {
-            resultf("can't connect to dtn daemon");
+        dtn_handle_t handle;
+        int err = dtn_open(&handle);
+        if (err != DTN_SUCCESS) {
+            resultf("can't connect to dtn daemon: %s",
+                    dtn_strerror(err));
             return TCL_ERROR;
         }
 
         int n = State::instance()->handle_num_++;
-        State::instance()->handles_[n] = h;
+        State::instance()->handles_[n] = handle;
 
         resultf("%d", n);
         return TCL_OK;
