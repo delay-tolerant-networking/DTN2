@@ -29,6 +29,7 @@ set tests(basic) {
     "storage.tcl"		""
     "storage.tcl"		"-storage_type filesysdb"
     "api-leak-test.tcl"		""
+    "ipc-version-test.tcl"	""
     "multipath-forwarding.tcl"	""
     "multipath-forwarding.tcl"	"-linktype ONDEMAND"
     "inflight-expiration.tcl"	""
