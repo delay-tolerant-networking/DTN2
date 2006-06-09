@@ -38,12 +38,13 @@
 
 #include "ShutdownCommand.h"
 #include "CompletionNotifier.h"
+#include "DTNServer.h"
 #include "bundling/BundleDaemon.h"
 
 namespace dtn {
 
-ShutdownCommand::ShutdownCommand(const char* cmd)
-    : TclCommand(cmd) 
+ShutdownCommand::ShutdownCommand(DTNServer* dtnserver, const char* cmd)
+    : TclCommand(cmd), dtnserver_(dtnserver)
 {
     add_to_help(cmd, "shutdown the daemon");
 }
@@ -51,8 +52,9 @@ ShutdownCommand::ShutdownCommand(const char* cmd)
 void
 ShutdownCommand::call_exit(void* clientData)
 {
-    (void)clientData;
+    DTNServer* dtnserver = (DTNServer*)clientData;
     oasys::TclCommandInterp::instance()->exit_event_loop();
+    dtnserver->shutdown();
 }
 
 int
@@ -69,7 +71,8 @@ ShutdownCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     // to make it possible to both return from the shutdown command
     // and still cleanly return from the tcl command, we exit from the
     // event loop in the background
-    Tcl_CreateTimerHandler(0, ShutdownCommand::call_exit, 0);
+    Tcl_CreateTimerHandler(0, ShutdownCommand::call_exit,
+                           (void*)dtnserver_);
 
     return TCL_OK;
 }

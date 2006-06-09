@@ -42,12 +42,14 @@
 
 namespace dtn {
 
+class DTNServer;
+
 /**
  * CommandModule for the "shutdown" command.
  */
 class ShutdownCommand : public oasys::TclCommand {
 public:
-    ShutdownCommand(const char* cmd = "shutdown");
+    ShutdownCommand(DTNServer* server, const char* cmd = "shutdown");
 
     /**
      * Virtual from CommandModule.
@@ -56,6 +58,8 @@ public:
 
 protected:
     static void call_exit(void* clientData);
+
+    DTNServer* dtnserver_;
 };
 
 } // namespace dtn

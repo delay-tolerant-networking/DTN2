@@ -40,6 +40,7 @@
 
 #include <oasys/debug/Logger.h>
 #include <oasys/storage/StorageConfig.h>
+#include <oasys/thread/Atomic.h>
 
 namespace oasys { class DurableStore; }
 
@@ -89,6 +90,7 @@ public:
 
 private:
     bool init_;
+    oasys::atomic_t in_shutdown_;
 
     oasys::StorageConfig* storage_config_;
     oasys::DurableStore*  store_;

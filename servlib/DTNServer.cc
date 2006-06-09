@@ -85,6 +85,7 @@ DTNServer::DTNServer(const char* logpath,
                      oasys::StorageConfig* storage_config)
     : Logger("DTNServer", logpath),
       init_(false),
+      in_shutdown_(0),
       storage_config_(storage_config),
       store_(0)
 {}
@@ -222,8 +223,8 @@ DTNServer::init_commands()
     interp->reg(new ParamCommand());
     interp->reg(new RegistrationCommand());
     interp->reg(new RouteCommand());
-    interp->reg(new ShutdownCommand("shutdown"));
-    interp->reg(new ShutdownCommand("quit"));
+    interp->reg(new ShutdownCommand(this, "shutdown"));
+    interp->reg(new ShutdownCommand(this, "quit"));
     interp->reg(new StorageCommand(storage_config_));
 
     log_debug("registered dtn commands");
@@ -255,10 +256,24 @@ DTNServer::close_datastore()
 void
 DTNServer::shutdown()
 {
+    log_notice("shutting down dtn server");
+    
+    // make sure only one thread does this
+    u_int32_t old_val = atomic_incr_ret(&in_shutdown_);
+    if (old_val != 1) {
+        while (1) {
+            sleep(1000000);
+        }
+    }
+
     oasys::Notifier done("/dtnserver/shutdown");
     log_info("DTNServer shutdown called, posting shutdown request to daemon");
     BundleDaemon::instance()->post_and_wait(new ShutdownRequest(), &done);
+    
     close_datastore();
+    
+    oasys::Log::shutdown();
+    exit(0);
 }
 
 void

@@ -616,7 +616,7 @@ void
 ShutdownCommand::call_exit(void* clientData)
 {
     (void)clientData;
-    oasys::TclCommandInterp::instance()->exit_event_loop();
+    exit(0);
 }
 
 //----------------------------------------------------------------------
