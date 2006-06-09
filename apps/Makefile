@@ -61,6 +61,8 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
 
 
 
-$(SINGLE_SOURCE_APPS): %: %.o
+# kind of a hack, doesn't check and properly error message if
+# libdtnapi.a doesn't exist yet
+$(SINGLE_SOURCE_APPS): %: %.o ../applib/libdtnapi.a
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
 
