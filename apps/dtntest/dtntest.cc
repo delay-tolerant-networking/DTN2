@@ -160,6 +160,7 @@ public:
         int               failure_action_;
         u_int             expiration_;
         std::string       script_;
+        bool		  init_passive_;
     };
     
     RegistrationOpts opts_;
@@ -169,6 +170,7 @@ public:
         opts_.failure_action_ = DTN_REG_DROP;
         opts_.expiration_ = 0;
         opts_.script_ = "";
+        opts_.init_passive_ = false;
     }
 
     DTNRegisterCommand() : TclCommand("dtn_register")
@@ -179,6 +181,8 @@ public:
                                           &opts_.failure_action_));
         parser_.addopt(new oasys::UIntOpt("expiration", &opts_.expiration_));
         parser_.addopt(new oasys::StringOpt("script", &opts_.script_));
+        parser_.addopt(new oasys::BoolOpt("init_passive",
+                                          &opts_.init_passive_));
     }
     
     int exec(int argc, const char **argv,  Tcl_Interp* interp)
@@ -228,6 +232,7 @@ public:
         reginfo.expiration = opts_.expiration_;
         reginfo.script.script_len = opts_.script_.length();
         reginfo.script.script_val = (char*)opts_.script_.c_str();
+        reginfo.init_passive = opts_.init_passive_;
 
         dtn_reg_id_t regid = 0;
         
