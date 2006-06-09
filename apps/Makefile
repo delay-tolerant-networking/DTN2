@@ -24,7 +24,14 @@ OTHER_APPS :=				\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
-all: $(APPS) $(MANPAGES)
+all: ../applib/libdtnapi.a $(APPS) $(MANPAGES)
+
+# Fake build target in case the api lib doesn't exist, but allows us
+# to include it as a dependency above so the apps get properly rebuilt
+# for the 'all' target
+../applib/libdtnapi.a:
+	@echo "ERROR: libdtnapi.a must be built before the apps can"
+	exit 1
 
 include ../Rules.make
 CFLAGS  += -I$(SRCDIR)/applib
@@ -59,10 +66,6 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
 	$(CXX) $(CFLAGS) $^ -o \
 		$@ $(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS)
 
-
-
-# kind of a hack, doesn't check and properly error message if
-# libdtnapi.a doesn't exist yet
-$(SINGLE_SOURCE_APPS): %: %.o ../applib/libdtnapi.a
+$(SINGLE_SOURCE_APPS): %: %.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
 
