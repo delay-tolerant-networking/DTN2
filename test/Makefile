@@ -38,9 +38,9 @@ echoobjs:
 	@echo $(SERVLIB_OBJS)
 
 COMPONENT_LIBS := \
-	$(SRCDIR)/applib/libdtnapisrv.a \
-	$(SRCDIR)/servlib/libdtnserv.a 	\
-	$(SRCDIR)/oasys/liboasys.a 	\
+	$(BUILDDIR)/applib/libdtnapisrv.a 	\
+	$(BUILDDIR)/servlib/libdtnserv.a 	\
+	$(BUILDDIR)/oasys/liboasys.a 		\
 
 #
 # Default pattern rule to build the tests
@@ -55,8 +55,14 @@ unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
 	$(CXX) $(CFLAGS) $< $(COMPONENT_LIBS) \
 		-o $@ $(LDFLAGS) $(LIBS)  $(OASYS_LIBS)
 
+#
+# As one exception, the bundle-timestamp-test can't have -Wcast-align
+#
+unit_tests/bundle-timestamp-test.o: unit_tests/bundle-timestamp-test.cc
+	@rm -f $@; mkdir -p $(@D)
+	$(CXX) $(CFLAGS) -Wno-cast-align -c $< -o $@	
 
 #
 # Include the common rules
 #
-include $(SRCDIR)/Rules.make
+include ../Rules.make

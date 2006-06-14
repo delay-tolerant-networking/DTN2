@@ -45,14 +45,14 @@ xdrs:
 clientlib: libdtnapi.a
 libdtnapi.a: $(CLIENTLIB_OBJS)
 	rm -f $@
-	ar ruc $@ $^
-	ranlib $@ || true
+	$(AR) ruc $@ $^
+	$(RANLIB) $@ || true
 
 serverlib: libdtnapisrv.a
 libdtnapisrv.a: $(SERVERLIB_OBJS)
 	rm -f $@
-	ar ruc $@ $^
-	ranlib $@ || true
+	$(AR) ruc $@ $^
+	$(RANLIB) $@ || true
 
 #
 # rpcgen emits code that has unused variables, so we can't use our

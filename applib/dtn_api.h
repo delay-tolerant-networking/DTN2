@@ -44,7 +44,7 @@
 /**
  * The basic handle for communication with the dtn router.
  */
-typedef char* dtn_handle_t;
+typedef int* dtn_handle_t;
 
 #ifdef  __cplusplus
 extern "C" {

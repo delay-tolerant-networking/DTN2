@@ -139,8 +139,8 @@ all: $(LIBFILES)
 servlib: libdtnserv.a
 libdtnserv.a: $(SERVLIB_OBJS)
 	rm -f $@
-	ar ruc $@ $^
-	ranlib $@ || true
+	$(AR) ruc $@ $^
+	$(RANLIB) $@ || true
 
 #
 # Need special rules for the gdtoa sources adapted from the source

@@ -34,26 +34,46 @@ all: ../applib/libdtnapi.a $(APPS) $(MANPAGES)
 	exit 1
 
 include ../Rules.make
-CFLAGS  += -I$(SRCDIR)/applib
+CFLAGS += -I$(SRCDIR)/applib
 LDFLAGS += -L../applib -L../oasys
 DTN_LIBS := -ldtnapi -loasyscompat
 
 BINFILES += $(APPS)
 
+#
+# For dtnmoteproxy, don't worry about cast alignment
+#
+dtnmoteproxy/dtnmoteproxy.o: dtnmoteproxy/dtnmoteproxy.c
+	@rm -f $@; mkdir -p $(@D)
+	$(CC) $(CFLAGS) -Wno-cast-align -c $< -o $@
+
+dtnmoteproxy/serialsource.o: dtnmoteproxy/serialsource.c
+	@rm -f $@; mkdir -p $(@D)
+	$(CC) $(CFLAGS) -Wno-cast-align -c $< -o $@
+
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 			   dtnmoteproxy/serialsource.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
 
+#
+# Rules for dtntest
+#
 dtntest/dtntest: dtntest/dtntest.o
 	$(CXX) $(CFLAGS) $^ -o $@ \
 		$(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS) 
 
+#
+# Rules for dtntunnel
+#
 dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \
 		     dtntunnel/UDPTunnel.o
 	$(CXX) $(CFLAGS) $^ -o $@ \
 		$(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS) 
 
+#
+# Rules for tca_admin
+#
 tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/TcaEndpointID.o \
                 ../servlib/routing/TcaControlBundle.o \
@@ -66,6 +86,9 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
 	$(CXX) $(CFLAGS) $^ -o \
 		$@ $(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS)
 
+#
+# Default rule for all single source apps
+#
 $(SINGLE_SOURCE_APPS): %: %.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(DTN_LIBS) $(LIBS)
 

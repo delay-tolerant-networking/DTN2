@@ -15,6 +15,9 @@
 /* Define to 1 if you have the <err.h> header file. */
 #undef HAVE_ERR_H
 
+/* Define to 1 if you have the <execinfo.h> header file. */
+#undef HAVE_EXECINFO_H
+
 /* Whether math.h defines fpclassify */
 #undef HAVE_FPCLASSIFY
 
