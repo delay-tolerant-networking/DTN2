@@ -20,7 +20,10 @@ lookup_host(const char* host, int port, struct sockaddr_in* addr)
     bzero (addr, sizeof(struct sockaddr_in));
     addr->sin_family = AF_INET;
     addr->sin_port = htons(port);
-    addr->sin_addr = *((struct in_addr *) h->h_addr);
+
+    // demmer: rewrote the following as a memcpy to avoid -Wcast-align bugs
+    //addr->sin_addr = *((struct in_addr *) h->h_addr);
+    memcpy(&addr->sin_addr, h->h_addr, sizeof(struct in_addr));
     return 1;
 }
 
