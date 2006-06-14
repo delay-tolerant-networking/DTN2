@@ -3,6 +3,7 @@
 #
 
 ifeq ($(SRCDIR),)
+BUILDDIR := ..
 SRCDIR := ..
 endif
 
