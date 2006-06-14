@@ -1,0 +1,49 @@
+
+Cross-Compiling DTN2
+====================
+
+(This file last updated June 14, 2006)
+
+The actual steps needed for cross compiling DTN2 will depend on the
+particular toolchain in use as well as the target architecture. This
+file defines steps for certain known-to-work configurations.
+
+Cross compilation toolchain installed on Linux
+----------------------------------------------
+
+In this configuration, we assume that some cross-compilation toolchain
+was installed with all toolchain executables prefixed by the name of
+the target system. In this example, assume that the target system is
+arm-linux, so all tools are named arm-linux-<tool>, and are installed
+into a directory on the system called /opt/arm-linux-toolchain/bin.
+
+First set the path to include the installed toolchain directory:
+
+% export PATH=/opt/arm-linux-toolchain/bin:$PATH
+
+Then download and unpack sources for tcl and berkeley db. The
+following will compile and install them into /opt/arm-linux-libraries.
+Note that BerkeleyDB is not required, so if you don't want it, you can
+skip that step and pass --without-db to the DTN2 configure invocation.
+
+(In the unpacked tcl source dir)
+% cd unix
+% CC=arm-linux-gcc ./configure --prefix=/opt/arm-linux-libraries
+% make
+% make install
+
+(In the unpacked Berkeley DB source dir)
+% cd build_unix
+% ../dist/configure --prefix=/opt/arm-linux-libraries \
+    --build=`uname -m` --host=arm-linux
+% make
+% make install
+
+The final step is to configure and build DTN2, again with the PATH set
+to include the cross-compilation toolchain and with tcl and Berkeley
+DB installed in /opt/arm-linux-libraries.
+
+% ./configure --build=`uname -m` --host=arm-linux \
+  --with-db=/opt/arm-linux-libraries  --with-tcl=/opt/arm-linux-libraries 
+% make
+
