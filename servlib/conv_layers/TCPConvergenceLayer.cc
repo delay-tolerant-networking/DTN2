@@ -1415,7 +1415,7 @@ TCPConvergenceLayer::Connection::recv_contact_header(int timeout)
                                       ntohl(contacthdr.partial_ack_length));
     
     params_.keepalive_interval_ = MIN(params_.keepalive_interval_,
-                                      ntohs(contacthdr.keepalive_interval));
+                                      (u_int)ntohs(contacthdr.keepalive_interval));
 
     params_.bundle_ack_enabled_ = params_.bundle_ack_enabled_ &&
                                   (contacthdr.flags & BUNDLE_ACK_ENABLED);
