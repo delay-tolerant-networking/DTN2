@@ -60,7 +60,7 @@ public:
     /**
      * Constructor for deserialization.
      */
-    EndpointID(const oasys::Builder& builder)
+    EndpointID(const oasys::Builder&)
         : scheme_(NULL), valid_(false), is_pattern_(false) {}
 
     /**
