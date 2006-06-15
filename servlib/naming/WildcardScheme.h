@@ -35,11 +35,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _WILDCARD_ADDRESS_FAMILY_H_
-#define _WILDCARD_ADDRESS_FAMILY_H_
+#ifndef _WILDCARD_SCHEME_H_
+#define _WILDCARD_SCHEME_H_
+
+#include <oasys/util/Singleton.h>
 
 #include "Scheme.h"
-#include <oasys/util/Singleton.h>
 
 namespace dtn {
 
@@ -61,7 +62,6 @@ public:
     virtual bool match(const EndpointIDPattern& pattern,
                        const EndpointID& eid);
     
-
 private:
     friend class oasys::Singleton<WildcardScheme>;
     WildcardScheme() {}
@@ -69,4 +69,4 @@ private:
 
 } // namespace dtn
 
-#endif /* _WILDCARD_ADDRESS_FAMILY_H_ */
+#endif /* _WILDCARD_SCHEME_H_ */

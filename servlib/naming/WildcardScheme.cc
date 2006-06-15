@@ -71,12 +71,15 @@ bool
 WildcardScheme::match(const EndpointIDPattern& pattern,
                       const EndpointID& eid)
 {
+    (void)eid;
     ASSERT(pattern.scheme() == this); // sanity
+
+    // XXX/demmer why was this here:
     
     // the only thing we don't match is the special null endpoint
-    if (eid.str() == "dtn:none") {
-        return false;
-    }
+//     if (eid.str() == "dtn:none") {
+//         return false;
+//     }
 
     return true;
 }
