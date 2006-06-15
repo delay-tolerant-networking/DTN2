@@ -229,8 +229,8 @@ DECLARE_TEST(WildcardMatch) {
     EIDMATCH(MATCH, "*:*", "flsdfllsdfgj:087490823uodf");
     EIDMATCH(MATCH, "*:*", "dtn://host/demux");
 
-    // there's one exception -- that is the null eid
-    EIDMATCH(NOMATCH, "*:*", "dtn:none");
+    // now we match the null eid as well
+    EIDMATCH(MATCH, "*:*", "dtn:none");
     
     return UNIT_TEST_PASSED;
 }
