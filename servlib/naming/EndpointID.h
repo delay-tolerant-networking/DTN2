@@ -156,7 +156,14 @@ public:
      * Return the special endpoint id used for the null endpoint,
      * namely "dtn:none".
      */
-    static EndpointID NULL_EID() { return EndpointID("dtn:none"); }
+    static const EndpointID NULL_EID() { return EndpointID("dtn:none"); }
+    
+    /**
+     * Return the special wildcard Endpoint ID. This functionality is
+     * not in the bundle spec, but is used internally to this
+     * implementation.
+     */
+    static const EndpointID WILDCARD_EID() { return EndpointID("*:*"); }
     
     /**
      * Virtual from SerializableObject
