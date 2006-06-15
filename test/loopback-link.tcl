@@ -34,7 +34,7 @@ test::script {
     eval dtn::tell_dtnd 0 link add loopback-link \
 	    "$net::host(0):[dtn::get_port $clayer 0]" ALWAYSON $clayer
 
-    dtn::tell_dtnd 0 route add *:* loopback-link action=forward_copy
+    dtn::tell_dtnd 0 route add *:* loopback-link action=copy
     
     puts "* Adding a registration"
     dtn::tell_dtnd 0 tcl_registration dtn://host-0/test

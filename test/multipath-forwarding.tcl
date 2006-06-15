@@ -95,14 +95,14 @@ test::script {
     dtn::tell_dtnd * bundle reset_stats
     
     puts "*"
-    puts "* Test 3: forward_copy routes"
+    puts "* Test 3: copy routes"
     puts "*"
 
     puts "* swapping routes on node 0"
     tell_dtnd 0 route del dtn://host-3/*
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-1 route_priority=100 
     tell_dtnd 0 route add dtn://host-3/* tcp-link:0-2 \
-	    route_priority=0 action=forward_copy
+	    route_priority=0 action=copy
 
     puts "* sending 10 bundles (to different destination)"
     for {set i 0} {$i < 10} {incr i} {
