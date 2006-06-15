@@ -40,6 +40,7 @@
 
 #include <string>
 #include <oasys/serialize/Serialize.h>
+#include <oasys/serialize/SerializableVector.h>
 
 struct dtn_endpoint_id_t;
 
@@ -55,6 +56,12 @@ public:
      * Default constructor
      */
     EndpointID() : scheme_(NULL), valid_(false), is_pattern_(false) {}
+
+    /**
+     * Constructor for deserialization.
+     */
+    EndpointID(const oasys::Builder& builder)
+        : scheme_(NULL), valid_(false), is_pattern_(false) {}
 
     /**
      * Construct the endpoint id from the given string.
@@ -251,6 +258,11 @@ public:
     bool match(const EndpointID& eid) const;
    
 };
+
+/**
+ * A (serializable) vector of endpoint ids.
+ */
+class EndpointIDVector : public oasys::SerializableVector<EndpointID> {};
 
 } // namespace dtn
 
