@@ -289,7 +289,7 @@ public:
     bool isbusy() { return (state_ == BUSY); }
 
     /**
-     * Return whether the link is in the process of shutting down.
+     * Return whether the link is in the process of opening.
      */
     bool isopening() { return (state_ == OPENING); }
     
