@@ -1408,7 +1408,7 @@ fi;
         ac_try_cxx="g++ g++-4.0 g++-3.4 g++-3.3 g++-3.2 g++-2.96 g++296 g++-2.95 g++295"
     else
         ac_try_cc=$ac_with_cc
-        ac_try_cxx=`echo $ac_with_cc | sed 's/cc$/++/'`
+        ac_try_cxx=`echo $ac_with_cc | sed 's/cc/++/'`
 
 	CC=$ac_try_cc
 	CXX=$ac_try_cxx
@@ -6290,7 +6290,7 @@ fi
         done
         ac_tcllibdirs="/usr/lib /usr/local/lib"
     else
-        ac_tclincdirs=$ac_tcldir/include/
+        ac_tclincdirs=$ac_tcldir/include
         ac_tcllibdirs="$ac_tcldir/lib"
     fi
 
