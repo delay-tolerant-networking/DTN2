@@ -130,9 +130,9 @@ Node::process(SimEvent* simevent)
             PANIC("no such link or node exists %s", e->nexthop_.c_str());
         }
 
-        // XXX/demmer fix this FORWARD_COPY
+        // XXX/demmer fix this ForwardingInfo::COPY_ACTION
         RouteEntry* entry = new RouteEntry(e->dest_, link);
-        entry->action_ = FORWARD_COPY;
+        entry->action_ = ForwardingInfo::COPY_ACTION;
         post_event(new RouteAddEvent(entry));
         break;
     }

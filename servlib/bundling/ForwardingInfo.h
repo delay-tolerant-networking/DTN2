@@ -42,27 +42,6 @@
 #include <sys/time.h>
 #include "CustodyTimer.h"
 
-/**
- * Various forwarding actions
- */
-typedef enum {
-    FORWARD_INVALID = 0,///< Invalid action
-    FORWARD_UNIQUE,	///< Forward the bundle to only this next hop
-    FORWARD_COPY	///< Forward a copy of the bundle
-} bundle_fwd_action_t;
-
-inline const char*
-bundle_fwd_action_toa(bundle_fwd_action_t action)
-{
-    switch(action) {
-    case FORWARD_INVALID:	return "FORWARD_INVALID";
-    case FORWARD_UNIQUE:	return "FORWARD_UNIQUE";
-    case FORWARD_COPY:		return "FORWARD_COPY";
-    default:
-        NOTREACHED;
-    }
-}
-
 namespace dtn {
 
 /**
@@ -77,6 +56,29 @@ namespace dtn {
  */
 class ForwardingInfo {
 public:
+    /**
+     * The forwarding action type codes.
+     */
+    typedef enum {
+        INVALID_ACTION = 0,	///< Invalid action
+        FORWARD_ACTION,		///< Forward the bundle to only this next hop
+        COPY_ACTION		///< Forward a copy of the bundle
+    } action_t;
+
+    static inline const char* action_to_str(action_t action)
+    {
+        switch(action) {
+        case INVALID_ACTION:	return "INVALID";
+        case FORWARD_ACTION:	return "FORWARD";
+        case COPY_ACTION:	return "COPY";
+        default:
+            NOTREACHED;
+        }
+    }
+
+    /**
+     * The forwarding log state codes.
+     */
     typedef enum {
         NONE,             ///< Return value for no entry
         IN_FLIGHT,        ///< Currently being sent
@@ -105,7 +107,7 @@ public:
      */
     ForwardingInfo()
         : state_(NONE),
-          action_(FORWARD_INVALID),
+          action_(INVALID_ACTION),
           clayer_(""),
           nexthop_(""),
           custody_timer_() {}
@@ -114,7 +116,7 @@ public:
      * Constructor used for new entries.
      */
     ForwardingInfo(state_t state,
-                   bundle_fwd_action_t action,
+                   action_t action,
                    const std::string& clayer,
                    const std::string& nexthop,
                    const CustodyTimerSpec& custody_timer)
@@ -136,9 +138,6 @@ public:
         ::gettimeofday(&timestamp_, 0);
     }
     
-    /// Typedef action_t for convenience
-    typedef bundle_fwd_action_t action_t;
-
     state_t          state_;		///< State of the transmission
     action_t	     action_;           ///< Forwarding action
     std::string      clayer_;		///< Convergence layer for the contact

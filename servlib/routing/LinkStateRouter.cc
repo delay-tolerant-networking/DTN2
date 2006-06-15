@@ -204,7 +204,8 @@ LinkStateRouter::handle_bundle_received(BundleReceivedEvent* event)
 
     // Send the bundle on the appropriate link.
     // XXX/demmer fixme
-    actions_->send_bundle(bundle, link, FORWARD_UNIQUE, CustodyTimerSpec::defaults_);
+    actions_->send_bundle(bundle, link, ForwardingInfo::FORWARD_ACTION,
+                          CustodyTimerSpec::defaults_);
 }
 
 void
@@ -232,7 +233,8 @@ LinkStateRouter::flood_announcement(LinkStateGraph::Edge* edge, bool exists)
 }
 
 void
-LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge, Link* outgoing_link, bool exists)
+LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge,
+                                   Link* outgoing_link, bool exists)
 {
     LinkStateAnnouncement lsa;
     memset(&lsa,0,sizeof(lsa));
@@ -259,7 +261,8 @@ LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge, Link* outgoing_li
 
     // propagate it to the outgoing link
     actions_->inject_bundle(b);
-    actions_->send_bundle(b, outgoing_link, FORWARD_UNIQUE, CustodyTimerSpec::defaults_);
+    actions_->send_bundle(b, outgoing_link, ForwardingInfo::FORWARD_ACTION,
+                          CustodyTimerSpec::defaults_);
 }
 
 LinkStateRouter::LSRegistration::LSRegistration(LinkStateRouter* router)

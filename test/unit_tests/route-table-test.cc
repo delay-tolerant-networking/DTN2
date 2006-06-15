@@ -85,7 +85,7 @@ DECLARE_TEST(GetMatching) {
     
     CHECK_EQUAL(t.get_matching(EndpointID("dtn://d1"), &v), 1);
     CHECK_EQUAL(v.size(), 1);
-    CHECK_EQUALSTR(v[0]->pattern_.c_str(), "dtn://d1");
+    CHECK_EQUALSTR(v[0]->dest_pattern_.c_str(), "dtn://d1");
     CHECK(v[0]->next_hop_ == l1);
     v.clear();
     
@@ -94,11 +94,11 @@ DECLARE_TEST(GetMatching) {
     
     CHECK_EQUAL(t.get_matching(EndpointID("dtn://d2"), &v), 3);
     CHECK_EQUAL(v.size(), 3);
-    CHECK_EQUALSTR(v[0]->pattern_.c_str(), "dtn://d2");
+    CHECK_EQUALSTR(v[0]->dest_pattern_.c_str(), "dtn://d2");
     CHECK(v[0]->next_hop_ == l2);
-    CHECK_EQUALSTR(v[1]->pattern_.c_str(), "*:*");
+    CHECK_EQUALSTR(v[1]->dest_pattern_.c_str(), "*:*");
     CHECK(v[1]->next_hop_ == l1);
-    CHECK_EQUALSTR(v[2]->pattern_.c_str(), "dtn://d2/*");
+    CHECK_EQUALSTR(v[2]->dest_pattern_.c_str(), "dtn://d2/*");
     CHECK(v[2]->next_hop_ == l2);
 
     CHECK(add_entry(&t, "dtn://d1", l1));
@@ -122,7 +122,7 @@ DECLARE_TEST(DelEntry) {
     
     CHECK_EQUAL(t.get_matching(EndpointID("dtn://d1"), &v), 1);
     CHECK_EQUAL(v.size(), 1);
-    CHECK_EQUALSTR(v[0]->pattern_.c_str(), "dtn://d1");
+    CHECK_EQUALSTR(v[0]->dest_pattern_.c_str(), "dtn://d1");
     CHECK(v[0]->next_hop_ == l1);
     v.clear();
 
@@ -146,7 +146,7 @@ DECLARE_TEST(DelEntries) {
     
     CHECK_EQUAL(t.get_matching(EndpointID("dtn://d1"), &v), 1);
     CHECK_EQUAL(v.size(), 1);
-    CHECK_EQUALSTR(v[0]->pattern_.c_str(), "dtn://d1");
+    CHECK_EQUALSTR(v[0]->dest_pattern_.c_str(), "dtn://d1");
     CHECK(v[0]->next_hop_ == l1);
     v.clear();
 
@@ -193,7 +193,7 @@ DECLARE_TEST(DelEntriesForNextHop) {
     
     CHECK_EQUAL(t.get_matching(EndpointID("dtn://d1"), &v), 1);
     CHECK_EQUAL(v.size(), 1);
-    CHECK_EQUALSTR(v[0]->pattern_.c_str(), "dtn://d1");
+    CHECK_EQUALSTR(v[0]->dest_pattern_.c_str(), "dtn://d1");
     CHECK(v[0]->next_hop_ == l1);
     v.clear();
 

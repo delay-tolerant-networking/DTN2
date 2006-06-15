@@ -38,6 +38,8 @@
 #ifndef _BUNDLE_ROUTEENTRY_H_
 #define _BUNDLE_ROUTEENTRY_H_
 
+#include <oasys/debug/Formatter.h>
+
 #include "bundling/CustodyTimer.h"
 #include "bundling/ForwardingInfo.h"
 #include "naming/EndpointID.h"
@@ -56,9 +58,9 @@ class RouteEntryInfo;
  *
  * An entry also has a forwarding action type code which indicates
  * whether the bundle should be forwarded to this next hop and others
- * (FORWARD_COPY) or sent only to the given next hop (FORWARD_UNIQUE).
- * The entry also stores the custody transfer timeout parameters,
- * unique for a given route.
+ * (ForwardingInfo::COPY_ACTION) or sent only to the given next hop
+ * (ForwardingInfo::FORWARD_ACTION). The entry also stores the custody
+ * transfer timeout parameters, unique for a given route.
  *
  * There is also a pointer to either an interface or a link for each
  * entry. In case the entry contains a link, then that link will be
@@ -68,12 +70,12 @@ class RouteEntryInfo;
  * bundle arrives that matches the route entry. This new link is then
  * typically added to the route table.
  */
-class RouteEntry {
+class RouteEntry : public oasys::Formatter {
 public:
     /**
-     * Default constructor
+     * Default constructor requires a destination pattern and a link.
      */
-    RouteEntry(const EndpointIDPattern& pattern, Link* link);
+    RouteEntry(const EndpointIDPattern& dest_pattern, Link* link);
 
     /**
      * Destructor.
@@ -87,13 +89,31 @@ public:
                       const char** invalidp = NULL);
 
     /**
-     * Dump a string representation of the route entry.
+     * Virtual from formatter.
      */
-    void dump(oasys::StringBuffer* buf) const;
+    int format(char* buf, size_t sz) const;
+     
+    /**
+     * Dump a header string in preparation for subsequent calls to dump();
+     */
+    static void dump_header(oasys::StringBuffer* buf);
     
-    /// The destination pattern that matches bundles
-    EndpointIDPattern pattern_;
+    /**
+     * Dump a string representation of the route entry. Any endpoint
+     * ids that don't fit into the column width get put into the
+     * long_eids vector.
+     */
+    void dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const;
+    
+    /// The pattern that matches bundles' destination eid
+    EndpointIDPattern dest_pattern_;
 
+    /// The pattern that matches bundles' source eid
+    EndpointIDPattern source_pattern_;
+    
+    /// Bit vector of the bundle priority classes that should match this route
+    u_int bundle_cos_;
+    
     /// Route priority
     u_int route_priority_;
         
@@ -101,7 +121,7 @@ public:
     Link* next_hop_;
         
     /// Forwarding action code 
-    bundle_fwd_action_t action_;
+    ForwardingInfo::action_t action_;
 
     /// Custody timer specification
     CustodyTimerSpec custody_timeout_;

@@ -91,17 +91,17 @@ ParamCommand::ParamCommand()
 
     // defaults for these are set in the CustodyTimerSpec defaults
     // static initializer
-    bind_i("custody_timer_base",
-           &CustodyTimerSpec::defaults_.base_,
-           "default value for custody timer base");
+    bind_i("custody_timer_min",
+           &CustodyTimerSpec::defaults_.min_,
+           "default value for custody timer min");
     
     bind_i("custody_timer_lifetime_pct",
            &CustodyTimerSpec::defaults_.lifetime_pct_,
            "default value for custody timer lifetime percentage");
     
-    bind_i("custody_timer_limit",
-           &CustodyTimerSpec::defaults_.limit_,
-           "default value for custody timer upper bound");
+    bind_i("custody_timer_max",
+           &CustodyTimerSpec::defaults_.max_,
+           "default value for custody timer max");
     
     // defaults for these are set all together in TCPConvergenceLayer
     // constructor (because there is not a flavor of bind_i that

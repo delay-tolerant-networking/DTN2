@@ -325,7 +325,8 @@ TcaRouter::fwd_to_all(Bundle* bundle)
     int count = 0;
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
-        log_debug("TcaRouter::fwd_to_all: %s", (*iter)->pattern_.str().c_str());
+        log_debug("TcaRouter::fwd_to_all: %s",
+                  (*iter)->dest_pattern_.str().c_str());
         fwd_to_nexthop(bundle, *iter);
         ++count;
     }
@@ -373,7 +374,7 @@ TcaRouter::fwd_to_matching_r(Bundle* bundle, Link* next_hop,
     RouteEntryVec   hard_matches;       // non-default matches
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
-        if ((*iter)->pattern_.str() == "tca://*")
+        if ((*iter)->dest_pattern_.str() == "tca://*")
         {
             default_route = *iter;
         }
@@ -678,7 +679,7 @@ TcaRouter::handle_get_routes(Bundle* b, const TcaControlBundle& cb)
     std::string response = "routes:";
     for (iter = matches.begin(); iter != matches.end(); ++iter)
     {
-        response += (*iter)->pattern_.str().c_str();
+        response += (*iter)->dest_pattern_.str().c_str();
         response += "\t";
     }
 
@@ -885,7 +886,7 @@ TcaRouter::create_route(const std::string& pattern, Link* p_link)
             pattern.c_str(), int(p_link));
 
     RouteEntry* p_entry = new RouteEntry(pattern, p_link);
-    p_entry->action_ = FORWARD_COPY;
+    p_entry->action_ = ForwardingInfo::COPY_ACTION;
 
     route_table_->add_entry(p_entry);
 

@@ -1024,9 +1024,7 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 void
 BundleDaemon::handle_route_add(RouteAddEvent* event)
 {
-    oasys::StringBuffer buf;
-    event->entry_->dump(&buf);
-    log_info("ROUTE_ADD %s", buf.c_str());
+    log_info("ROUTE_ADD *%p", event->entry_);
 }
 
 //----------------------------------------------------------------------
@@ -1136,7 +1134,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
     // custody failure signal. this simplifies the task of routers, as
     // the most recent entry in the log will not be SENT, so the
     // router will know to retransmit the bundle.
-    bundle->fwdlog_.add_entry(link, FORWARD_INVALID,
+    bundle->fwdlog_.add_entry(link, ForwardingInfo::INVALID_ACTION,
                               ForwardingInfo::CUSTODY_TIMEOUT,
                               CustodyTimerSpec::defaults_);
 

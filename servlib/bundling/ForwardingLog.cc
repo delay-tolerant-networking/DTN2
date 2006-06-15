@@ -84,7 +84,7 @@ ForwardingLog::get_latest_entry(Link* link) const
 
 //----------------------------------------------------------------------
 size_t
-ForwardingLog::get_transmission_count(bundle_fwd_action_t action,
+ForwardingLog::get_transmission_count(ForwardingInfo::action_t action,
                                       bool include_inflight) const
 {
     size_t ret = 0;
@@ -97,7 +97,8 @@ ForwardingLog::get_transmission_count(bundle_fwd_action_t action,
         if (iter->state_ == ForwardingInfo::TRANSMITTED ||
             (include_inflight && (iter->state_ == ForwardingInfo::IN_FLIGHT)))
         {
-            if ((action == iter->action_) || (action == FORWARD_INVALID))
+            if ((action == iter->action_) ||
+                (action == ForwardingInfo::INVALID_ACTION))
             {
                 ++ret;
             }
@@ -137,23 +138,23 @@ ForwardingLog::dump(oasys::StringBuffer* buf) const
     {
         const ForwardingInfo* info = &(*iter);
         
-        buf->appendf("\t%s -> %s %u.%u [%s cl:%s] [custody base %d pct %d limit %d]\n",
+        buf->appendf("\t%s -> %s %u.%u [%s cl:%s] [custody min %d pct %d max %d]\n",
                      ForwardingInfo::state_to_str(info->state_),
                      info->clayer_.c_str(),
                      (u_int)info->timestamp_.tv_sec,
                      (u_int)info->timestamp_.tv_usec,
-                     bundle_fwd_action_toa(info->action_),
+                     ForwardingInfo::action_to_str(info->action_),
                      info->nexthop_.c_str(),
-                     info->custody_timer_.base_,
+                     info->custody_timer_.min_,
                      info->custody_timer_.lifetime_pct_,
-                     info->custody_timer_.limit_);
+                     info->custody_timer_.max_);
     }
 }
     
 //----------------------------------------------------------------------
 void
 ForwardingLog::add_entry(Link* link,
-                         bundle_fwd_action_t action,
+                         ForwardingInfo::action_t action,
                          state_t state,
                          const CustodyTimerSpec& custody_timer)
 {

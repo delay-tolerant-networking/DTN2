@@ -69,7 +69,7 @@ NeighborhoodRouter::handle_contact_up(ContactUpEvent* event)
     // By default, we add a route for all the next hops we have around. 
     RouteEntry* entry = new RouteEntry(EndpointIDPattern(eidstring), 
                                        event->contact_->link());
-    entry->action_ = FORWARD_UNIQUE;
+    entry->action_ = ForwardingInfo::FORWARD_ACTION;
     add_route(entry);
 }
 

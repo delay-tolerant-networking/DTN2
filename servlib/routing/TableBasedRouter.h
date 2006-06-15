@@ -136,8 +136,8 @@ protected:
      * Check if the bundle should be forwarded to the given next hop.
      * Reasons why it would not be forwarded include that it was
      * already transmitted or is currently in flight on the link, or
-     * that the route indicates FORWARD_UNIQUE and it is already in
-     * flight on another route.
+     * that the route indicates ForwardingInfo::FORWARD_ACTION and it
+     * is already in flight on another route.
      */
     virtual bool should_fwd(const Bundle* bundle, RouteEntry* route);
     
@@ -146,13 +146,13 @@ protected:
      * have not already been found in the bundle history. If a match
      * is found, call fwd_to_nexthop on it.
      *
-     * @param bundle	the bundle to forward
-     * @param next_hop	if specified, restricts forwarding to the given
-     * 			next hop link
+     * @param bundle		the bundle to forward
+     * @param this_link_only	if specified, restricts forwarding to
+     * 				the given next hop link
      *
      * Returns the number of matches found and assigned.
      */
-    virtual int fwd_to_matching(Bundle* bundle, Link* next_hop = NULL);
+    virtual int fwd_to_matching(Bundle* bundle, Link* this_link_only = NULL);
 
     /**
      * Called when the next hop link is available for transmission

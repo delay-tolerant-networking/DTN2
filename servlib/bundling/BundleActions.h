@@ -92,7 +92,7 @@ public:
      * @return true if the transmission was successfully initiated
      */
     virtual bool send_bundle(Bundle* bundle, Link* link,
-                             bundle_fwd_action_t action,
+                             ForwardingInfo::action_t action,
                              const CustodyTimerSpec& custody_timer);
     
     /**

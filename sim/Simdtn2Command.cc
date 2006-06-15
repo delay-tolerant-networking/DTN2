@@ -92,7 +92,8 @@ Simdtn2Command::exec(int argc, const char** argv, Tcl_Interp* interp)
         std::string dest_str_full = 
             SimConvergenceLayer::id2node(atoi(dest_str));
         EndpointIDPattern dest(dest_str_full);
-        RouteEntry* entry = new RouteEntry(dest, contact, FORWARD_COPY);
+        RouteEntry* entry = new RouteEntry(dest, contact,
+                                           ForwardingInfo::COPY_ACTION);
         
         log_info("addroute to dest %s using contact id %d",
                  dest_str_full.c_str(), cid);

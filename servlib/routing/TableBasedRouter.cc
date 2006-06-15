@@ -133,7 +133,7 @@ TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
             // create route entry, post new route event
             RouteEntry *entry = new RouteEntry(
                 EndpointIDPattern(eid.str() + std::string("/*")), link);
-            entry->action_ = FORWARD_UNIQUE;
+            entry->action_ = ForwardingInfo::FORWARD_ACTION;
             BundleDaemon::post(new RouteAddEvent(entry));
         }
     }
@@ -157,8 +157,20 @@ TableBasedRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
 void
 TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
 {
-    buf->appendf("Route table for %s router:\n", name_.c_str());
-    route_table_->dump(buf);
+    EndpointIDVector long_eids;
+    buf->appendf("Route table for %s router:\n\n", name_.c_str());
+    route_table_->dump(buf, &long_eids);
+
+    if (long_eids.size() > 0) {
+        buf->appendf("\nLong Endpoint IDs referenced above:\n");
+        for (u_int i = 0; i < long_eids.size(); ++i) {
+            buf->appendf("\t[%d]: %s\n", i, long_eids[i].c_str());
+        }
+        buf->appendf("\n");
+    }
+    
+    buf->append("\nClass of Service (COS) bits:\n"
+                "\tB: Bulk  N: Normal  E: Expedited\n\n");
 }
 
 //----------------------------------------------------------------------
@@ -221,10 +233,11 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
         return false;
     }
 
-    if (route->action_ == FORWARD_UNIQUE) {
+    if (route->action_ == ForwardingInfo::FORWARD_ACTION) {
         size_t count;
         
-        count = bundle->fwdlog_.get_transmission_count(FORWARD_UNIQUE, true);
+        count = bundle->fwdlog_.
+                get_transmission_count(ForwardingInfo::FORWARD_ACTION, true);
         if (count > 0) {
             log_debug("should_fwd bundle %d: "
                       "skip %s since already transmitted (count %zu)",
@@ -256,14 +269,14 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
 
 //----------------------------------------------------------------------
 int
-TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
+TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* this_link_only)
 {
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;
 
-    // get_matching only returns results that match the next_hop link,
-    // if it's not null
-    route_table_->get_matching(bundle->dest_, next_hop, &matches);
+    // get_matching only returns results that match the this_link_only
+    // link, if it's not null
+    route_table_->get_matching(bundle->dest_, this_link_only, &matches);
 
     // sort the list by route priority, breaking ties with the total
     // bytes in flight

@@ -62,10 +62,7 @@ RouteTable::~RouteTable()
 bool
 RouteTable::add_entry(RouteEntry* entry)
 {
-    log_debug("add_route %s -> %s (%s)",
-              entry->pattern_.c_str(),
-              entry->next_hop_->nexthop(),
-              bundle_fwd_action_toa(entry->action_));
+    log_debug("add_route *%p", entry);
     
     route_table_.push_back(entry);
     
@@ -84,17 +81,16 @@ RouteTable::del_entry(const EndpointIDPattern& dest, Link* next_hop)
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         entry = *iter;
 
-        if (entry->pattern_.equals(dest) && entry->next_hop_ == next_hop) {
-            log_debug("del_route %s -> %s",
-                      dest.c_str(), next_hop->nexthop());
-
+        if (entry->dest_pattern_.equals(dest) && entry->next_hop_ == next_hop) {
+            log_debug("del_entry *%p", entry);
+            
             route_table_.erase(iter);
             delete entry;
             return true;
         }
     }    
 
-    log_debug("del_route %s -> %s: no match!",
+    log_debug("del_entry %s -> %s: no match!",
               dest.c_str(), next_hop->nexthop());
     return false;
 }
@@ -118,9 +114,8 @@ RouteTable::del_entries(const EndpointIDPattern& dest)
         for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
             entry = *iter;
             
-            if (dest.equals(entry->pattern_)) {
-                log_debug("del_route %s -> %s",
-                          entry->pattern_.c_str(), entry->next_hop_->nexthop());
+            if (dest.equals(entry->dest_pattern_)) {
+                log_debug("del_route *%p", entry);
                 
                 route_table_.erase(iter);
                 delete entry;
@@ -160,8 +155,7 @@ RouteTable::del_entries_for_nexthop(Link* next_hop)
             entry = *iter;
 
             if (entry->next_hop_ == next_hop) {
-                log_debug("del_route %s -> %s",
-                          entry->pattern_.c_str(), next_hop->nexthop());
+                log_debug("del_route *%p", entry);
 
                 route_table_.erase(iter);
                 delete entry;
@@ -202,21 +196,15 @@ RouteTable::get_matching(const EndpointID& eid, Link* next_hop,
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
         entry = *iter;
 
-        log_debug("check entry %s -> %s (%s)",
-                  entry->pattern_.c_str(),
-                  entry->next_hop_->nexthop(),
-                  bundle_fwd_action_toa(entry->action_));
+        log_debug("check entry *%p", entry);
         
         if ((next_hop == NULL || entry->next_hop_ == next_hop) &&
-            entry->pattern_.match(eid))
+            entry->dest_pattern_.match(eid))
         {
             ++count;
             
-            log_debug("match entry %s -> %s (%s)",
-                      entry->pattern_.c_str(),
-                      entry->next_hop_->nexthop(),
-                      bundle_fwd_action_toa(entry->action_));
-
+            log_debug("match entry *%p", entry);
+            
             entry_vec->push_back(entry);
         }
     }
@@ -229,12 +217,12 @@ RouteTable::get_matching(const EndpointID& eid, Link* next_hop,
  * Dump the routing table.
  */
 void
-RouteTable::dump(oasys::StringBuffer* buf) const
+RouteTable::dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
 {
+    RouteEntry::dump_header(buf);
     RouteEntryVec::const_iterator iter;
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
-        buf->append("\t");
-        (*iter)->dump(buf);
+        (*iter)->dump(buf, long_eids);
     }
 }
 } // namespace dtn

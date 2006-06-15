@@ -110,7 +110,7 @@ public:
     /**
      * Dump a string representation of the routing table.
      */
-    void dump(oasys::StringBuffer* buf) const;
+    void dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const;
 
     /**
      * Return the size of the table.

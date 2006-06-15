@@ -49,9 +49,9 @@ namespace dtn {
 /**
  * Default custody timer specification:
  *
- * base: 30 minutes
+ * min: 30 minutes
  * lifetime percent: 25%
- * limit: unlimited
+ * max: unlimited
  */
 CustodyTimerSpec CustodyTimerSpec::defaults_(30 * 60, 25, 0);
 
@@ -59,16 +59,16 @@ CustodyTimerSpec CustodyTimerSpec::defaults_(30 * 60, 25, 0);
 u_int32_t
 CustodyTimerSpec::calculate_timeout(const Bundle* bundle) const
 {
-    u_int32_t timeout = base_;
+    u_int32_t timeout = min_;
     timeout += (u_int32_t)((double)lifetime_pct_ * bundle->expiration_ / 100.0);
 
-    if (limit_ != 0) {
-        timeout = std::min(timeout, limit_);
+    if (max_ != 0) {
+        timeout = std::min(timeout, max_);
     }
     
     log_debug("/dtn/bundle/custody_timer", "calculate_timeout: "
-              "base %u, lifetime_pct %u, expiration %u, limit %u: timeout %u",
-              base_, lifetime_pct_, bundle->expiration_, limit_, timeout);
+              "min %u, lifetime_pct %u, expiration %u, max %u: timeout %u",
+              min_, lifetime_pct_, bundle->expiration_, max_, timeout);
     return timeout;
 }
 
@@ -78,9 +78,9 @@ CustodyTimerSpec::parse_options(int argc, const char* argv[],
                                 const char** invalidp)
 {
     oasys::OptParser p;
-    p.addopt(new oasys::UIntOpt("custody_timer_base", &base_));
+    p.addopt(new oasys::UIntOpt("custody_timer_min", &min_));
     p.addopt(new oasys::UIntOpt("custody_timer_lifetime_pct", &lifetime_pct_));
-    p.addopt(new oasys::UIntOpt("custody_timer_limit", &limit_));
+    p.addopt(new oasys::UIntOpt("custody_timer_max", &max_));
     return p.parse_and_shift(argc, argv, invalidp);
 }
 

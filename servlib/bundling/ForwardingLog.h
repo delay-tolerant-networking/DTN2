@@ -91,17 +91,18 @@ public:
     /**
      * Return the transmission count of the bundle, optionally
      * including inflight entries as well. If an action is specified
-     * (i.e. not FORWARD_INVALID), only count log entries that match
-     * the action code.
+     * (i.e. not ForwardingInfo::INVALID_ACTION), only count log entries
+     * that match the action code.
      */
-    size_t get_transmission_count(bundle_fwd_action_t action = FORWARD_INVALID,
+    size_t get_transmission_count(ForwardingInfo::action_t action =
+                                    ForwardingInfo::INVALID_ACTION,
                                   bool include_inflight = false) const;
     
     /**
      * Add a new forwarding info entry for the given link.
      */
     void add_entry(Link* link,
-                   bundle_fwd_action_t action,
+                   ForwardingInfo::action_t action,
                    state_t state,
                    const CustodyTimerSpec& custody_timer);
     

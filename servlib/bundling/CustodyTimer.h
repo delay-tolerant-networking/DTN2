@@ -55,13 +55,13 @@ class Link;
  *
  * The current basic scheme calculates the timer as:
  * <code>
- * timer = min(limit_, base_ + (lifetime_pct_ * bundle->lifetime_ / 100))
+ * timer = min((min_ + (lifetime_pct_ * bundle->lifetime_ / 100)), max_)
  * </code>
  *
  * In other words, this class allows a retransmisison to be specified
- * according to a minimum timer (base_), a multiplying factor based on
- * the bundle's lifetime (lifetime_pct_), and a maximum bound
- * (limit_). All values are in seconds.
+ * according to a minimum timer (min_), a multiplying factor based on
+ * the bundle's lifetime (lifetime_pct_), and a maximum bound (max_).
+ * All values are in seconds.
  */
 class CustodyTimerSpec {
 public:
@@ -73,18 +73,18 @@ public:
     /**
      * Constructor.
      */
-    CustodyTimerSpec(u_int32_t base,
+    CustodyTimerSpec(u_int32_t min,
                      u_int32_t lifetime_pct,
-                     u_int32_t limit)
-        : base_(base), lifetime_pct_(lifetime_pct), limit_(limit) {}
+                     u_int32_t max)
+        : min_(min), lifetime_pct_(lifetime_pct), max_(max) {}
 
     /**
      * Default Constructor.
      */
     CustodyTimerSpec()
-        : base_(defaults_.base_),
+        : min_(defaults_.min_),
           lifetime_pct_(defaults_.lifetime_pct_),
-          limit_(defaults_.limit_) {}
+          max_(defaults_.max_) {}
 
     /**
      * Calculate the appropriate timeout for the given bundle.
@@ -101,9 +101,9 @@ public:
     int parse_options(int argc, const char* argv[],
                       const char** invalidp = NULL);
 
-    u_int32_t base_;		///< base timer
+    u_int32_t min_;		///< min timer
     u_int32_t lifetime_pct_;	///< percentage of lifetime
-    u_int32_t limit_;		///< upper bound
+    u_int32_t max_;		///< upper bound
 };
 
 /**

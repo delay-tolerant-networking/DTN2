@@ -82,7 +82,7 @@ BundleActions::close_link(Link* link)
 //----------------------------------------------------------------------
 bool
 BundleActions::send_bundle(Bundle* bundle, Link* link,
-                           bundle_fwd_action_t action,
+                           ForwardingInfo::action_t action,
                            const CustodyTimerSpec& custody_timer)
 {
     size_t total_len = BundleProtocol::formatted_length(bundle);
