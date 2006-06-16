@@ -109,10 +109,15 @@ Link::create_link(const std::string& name, link_type_t type,
 Link::Link(const std::string& name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
     :  Logger("Link", "/dtn/link/%s", name.c_str()),
-       type_(type), state_(UNAVAILABLE),
-       nexthop_(nexthop), name_(name), reliable_(false),
+       type_(type),
+       state_(UNAVAILABLE),
+       nexthop_(nexthop),
+       name_(name),
+       reliable_(false),
        contact_("Link"),
-       clayer_(cl), cl_info_(NULL), remote_eid_(EndpointID::NULL_EID())
+       clayer_(cl),
+       cl_info_(NULL),
+       remote_eid_(EndpointID::NULL_EID())
 {
     ASSERT(clayer_);
 
@@ -120,6 +125,60 @@ Link::Link(const std::string& name, link_type_t type,
     params_.retry_interval_ = params_.min_retry_interval_;
 
     memset(&stats_, 0, sizeof(Stats));
+}
+
+//----------------------------------------------------------------------
+Link::Link(const oasys::Builder&)
+    : Logger("Link", "/dtn/link/UNKNOWN!!!"),
+      type_(LINK_INVALID),
+      state_(UNAVAILABLE),
+      nexthop_(""),
+      name_(""),
+      reliable_(false),
+      contact_("Link"),
+      clayer_(NULL),
+      cl_info_(NULL),
+      remote_eid_(EndpointID::NULL_EID())
+{
+}
+
+//----------------------------------------------------------------------
+void
+Link::serialize(oasys::SerializeAction* a)
+{
+    std::string cl_name;
+    std::string type_str;
+
+    if (a->action_code() == oasys::Serialize::UNMARSHAL) {
+        a->process("type",     &type_str);
+        type_ = str_to_link_type(type_str.c_str());
+        ASSERT(type_ != LINK_INVALID);
+    } else {
+        type_str = link_type_to_str(type_);
+        a->process("type",     &type_str);
+    }
+    
+    a->process("nexthop",  &nexthop_);
+    a->process("name",     &name_);
+    a->process("reliable", &reliable_);
+
+    if (a->action_code() == oasys::Serialize::UNMARSHAL) {
+        a->process("clayer", &cl_name);
+        clayer_ = ConvergenceLayer::find_clayer(cl_name.c_str());
+        ASSERT(clayer_);
+    } else {
+        cl_name = clayer_->name();
+        a->process("clayer", &cl_name);
+    }
+
+    a->process("remote_eid",         &remote_eid_);
+    a->process("retry_interval",     &params_.retry_interval_);
+    a->process("min_retry_interval", &params_.min_retry_interval_);
+    a->process("max_retry_interval", &params_.max_retry_interval_);
+
+    if (a->action_code() == oasys::Serialize::UNMARSHAL) {
+        logpathf("/dtn/link/%s", name_.c_str());
+    }
 }
 
 //----------------------------------------------------------------------
@@ -183,10 +242,12 @@ Link::set_state(state_t new_state)
     log_debug("set_state %s -> %s",
               state_to_str(state_), state_to_str(new_state));
 
-#define ASSERT_STATE(condition)                                                 \
-    if (!(condition)) {                                                         \
-        log_err("set_state %s -> %s: expected %s",                              \
-                state_to_str(state_), state_to_str(new_state), #condition);     \
+#define ASSERT_STATE(condition)                         \
+    if (!(condition)) {                                 \
+        log_err("set_state %s -> %s: expected %s",      \
+                state_to_str(state_),                   \
+                state_to_str(new_state),                \
+                #condition);                            \
     }
 
     switch(new_state) {

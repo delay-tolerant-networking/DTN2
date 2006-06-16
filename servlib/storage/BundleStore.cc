@@ -36,171 +36,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/storage/DurableStore.h>
-#include <oasys/storage/StorageConfig.h>
-#include <oasys/serialize/TypeShims.h>
-
 #include "BundleStore.h"
 #include "bundling/Bundle.h"
-#include "bundling/BundleDaemon.h"
-#include "bundling/BundleEvent.h"
 
 namespace dtn {
 
 BundleStore* BundleStore::instance_;
 
-static const char* BUNDLE_TABLE = "bundles";
-
 BundleStore::BundleStore()
-    : Logger("BundleStore", "/dtn/storage/%s", BUNDLE_TABLE),
-      store_(0)
+    : BundleStoreImpl("BundleStore", "/dtn/storage/bundles",
+                      "bundle", "bundles")
 {
 }
 
-int
-BundleStore::do_init(const oasys::StorageConfig& cfg,
-                     oasys::DurableStore*        store)
-{
-    int flags = 0;
-
-    if (cfg.init_)
-        flags |= oasys::DS_CREATE;
-    int err = store->get_table(&store_, BUNDLE_TABLE, flags);
-
-    if (err != 0) {
-        log_err("error initializing bundle store");
-        return err;
-    }
-
-    return 0;
-}
-BundleStore::~BundleStore()
-{
-}
-
-bool
-BundleStore::add(Bundle* bundle)
-{
-    int err = store_->put(oasys::UIntShim(bundle->bundleid_), bundle,
-                          oasys::DS_CREATE | oasys::DS_EXCL);
-
-    if (err == oasys::DS_EXISTS) {
-        log_err("add bundle *%p: bundle already exists", bundle);
-        return false;
-    }
-
-    if (err != 0) {
-        PANIC("BundleStore::add_bundle(*%p): fatal database error", bundle);
-    }
-    
-    return true;
-}
-
-Bundle*
-BundleStore::get(u_int32_t bundle_id)
-{
-    Bundle* bundle = NULL;
-    int err = store_->get(oasys::UIntShim(bundle_id), &bundle);
-    if (err == oasys::DS_NOTFOUND) {
-        log_warn("BundleStore::get(%d): bundle doesn't exist", bundle_id);
-        return NULL;
-    }
-
-    ASSERTF(err == 0, "BundleStore::get(%d): internal database error", bundle_id);
-
-    ASSERT(bundle != NULL);
-    ASSERT(bundle->bundleid_ == bundle_id);
-    bundle->in_datastore_ = true;
-    bundle->payload_.init_from_store(bundle_id);
-    return bundle;
-}
-
-bool
-BundleStore::update(Bundle* bundle)
-{
-    int err = store_->put(oasys::UIntShim(bundle->bundleid_), bundle, 0);
-
-    if (err == oasys::DS_NOTFOUND) {
-        log_err("update bundle *%p: bundle doesn't exist", bundle);
-        return false;
-    }
-    
-    if (err != 0) {
-        PANIC("BundleStore::add_bundle(*%p): fatal database error", bundle);
-    }
-
-    return true;
-}
-
-bool
-BundleStore::del(u_int32_t bundle_id)
-{
-    int err = store_->del(oasys::UIntShim(bundle_id));
-    if (err != 0) {
-        log_err("del bundle %d: %s", bundle_id,
-                (err == oasys::DS_NOTFOUND) ?
-                "bundle doesn't exist" : "unknown error");
-        return false;
-    }
-
-    return true;
-}
-
-
-void
-BundleStore::close()
-{
-    log_debug("closing bundle store");
-
-    delete store_;
-    store_ = NULL;
-}
-
-BundleStore::iterator*
-BundleStore::new_iterator()
-{
-    return new BundleStore::iterator(store_->itr());
-}
-
-BundleStore::iterator::iterator(oasys::DurableIterator* iter)
-    : iter_(iter), cur_bundleid_(0)
-{
-}
-
-BundleStore::iterator::~iterator()
-{
-    delete iter_;
-    iter_ = NULL;
-}
-
-int
-BundleStore::iterator::next()
-{
-    int err = iter_->next();
-    if (err == oasys::DS_NOTFOUND)
-    {
-        return err; // all done
-    }
-    
-    else if (err != oasys::DS_OK)
-    {
-        __log_err(BundleStore::instance()->logpath(),
-                  "error in iterator next");
-        return err;
-    }
-
-    oasys::UIntShim key;
-    err = iter_->get_key(&key);
-    if (err != 0)
-    {
-        __log_err(BundleStore::instance()->logpath(),
-                  "error in iterator get");
-        return oasys::DS_ERR;
-    }
-    
-    cur_bundleid_ = key.value();
-    return oasys::DS_OK;
-}
 
 } // namespace dtn
 

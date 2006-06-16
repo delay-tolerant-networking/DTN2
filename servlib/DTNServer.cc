@@ -73,6 +73,7 @@
 #include "routing/BundleRouter.h"
 
 #include "storage/BundleStore.h"
+#include "storage/LinkStore.h"
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
 
@@ -146,6 +147,7 @@ DTNServer::init_datastore()
 
     if ((GlobalStore::init(*storage_config_, store_)       != 0) || 
         (BundleStore::init(*storage_config_, store_)       != 0) ||
+        (LinkStore::init(*storage_config_, store_)         != 0) ||
         (RegistrationStore::init(*storage_config_, store_) != 0))
     {
         log_crit("error initializing data store");
@@ -247,6 +249,7 @@ DTNServer::close_datastore()
     log_notice("closing persistent data store");
     
     RegistrationStore::instance()->close();
+    LinkStore::instance()->close();
     BundleStore::instance()->close();
     GlobalStore::instance()->close();
 

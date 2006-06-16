@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2005 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2004 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,37 +35,67 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _ONDEMAND_LINK_H_
-#define _ONDEMAND_LINK_H_
+#ifndef _LINK_STORE_H_
+#define _LINK_STORE_H_
 
-#include "Link.h"
+#include <oasys/debug/DebugUtils.h>
+#include <oasys/serialize/TypeShims.h>
+#include <oasys/storage/InternalKeyDurableTable.h>
 
 namespace dtn {
 
+class Link;
+
 /**
- * Abstraction for a ONDEMAND link.
- *
- * ONDEMAND links have to be opened everytime one wants to use it and
- * close after an idle period.
+ * Convenience typedef for the oasys adaptor that implements the link
+ * durable store.
  */
-class OndemandLink : public Link {
+typedef oasys::InternalKeyDurableTable<
+    oasys::StringShim, std::string, Link> LinkStoreImpl;
+
+/**
+ * The class for link storage.
+ */
+class LinkStore : public LinkStoreImpl {
 public:
-    OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
-    int parse_args(int argc, const char* argv[], const char** invalidp = NULL);
-    void set_initial_state();
+    /**
+     * Singleton instance accessor.
+     */
+    static LinkStore* instance() {
+        if (instance_ == NULL) {
+            PANIC("LinkStore::init not called yet");
+        }
+        return instance_;
+    }
 
     /**
-     * Virtual from SerializableObject
+     * Boot time initializer that takes as a parameter the storage
+     * configuration to use.
      */
-    void serialize(oasys::SerializeAction* action);
+    static int init(const oasys::StorageConfig& cfg,
+                    oasys::DurableStore*        store) 
+    {
+        if (instance_ != NULL) {
+            PANIC("LinkStore::init called multiple times");
+        }
+        instance_ = new LinkStore();
+        return instance_->do_init(cfg, store);
+    }
     
     /**
-     * Seconds of idle time before the link is closed.
-     * Default is 30 seconds.
+     * Constructor.
      */
-    u_int idle_close_time_;
+    LinkStore();
+
+    /**
+     * Return true if initialization has completed.
+     */
+    static bool initialized() { return (instance_ != NULL); }
+    
+protected:
+    static LinkStore* instance_; ///< singleton instance
 };
 
 } // namespace dtn
 
-#endif /* _ONDEMAND_LINK_H_ */
+#endif /* _LINK_STORE_H_ */

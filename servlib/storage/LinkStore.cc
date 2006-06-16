@@ -6,7 +6,7 @@
  * 
  * Intel Open Source License 
  * 
- * Copyright (c) 2005 Intel Corporation. All rights reserved. 
+ * Copyright (c) 2004 Intel Corporation. All rights reserved. 
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -35,37 +35,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef _ONDEMAND_LINK_H_
-#define _ONDEMAND_LINK_H_
 
-#include "Link.h"
+#include "LinkStore.h"
+#include "contacts/Link.h"
 
 namespace dtn {
 
-/**
- * Abstraction for a ONDEMAND link.
- *
- * ONDEMAND links have to be opened everytime one wants to use it and
- * close after an idle period.
- */
-class OndemandLink : public Link {
-public:
-    OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
-    int parse_args(int argc, const char* argv[], const char** invalidp = NULL);
-    void set_initial_state();
+LinkStore* LinkStore::instance_;
 
-    /**
-     * Virtual from SerializableObject
-     */
-    void serialize(oasys::SerializeAction* action);
-    
-    /**
-     * Seconds of idle time before the link is closed.
-     * Default is 30 seconds.
-     */
-    u_int idle_close_time_;
-};
+LinkStore::LinkStore()
+    : LinkStoreImpl("LinkStore", "/dtn/storage/links", "link", "links")
+{
+}
+
 
 } // namespace dtn
 
-#endif /* _ONDEMAND_LINK_H_ */

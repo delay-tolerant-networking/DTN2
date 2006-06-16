@@ -42,6 +42,7 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 OndemandLink::OndemandLink(std::string name,
                            ConvergenceLayer* cl,
                            const char* nexthop)
@@ -52,6 +53,7 @@ OndemandLink::OndemandLink(std::string name,
     idle_close_time_    = 30;
 }
 
+//----------------------------------------------------------------------
 int
 OndemandLink::parse_args(int argc, const char* argv[], const char** invalidp)
 {
@@ -70,10 +72,20 @@ OndemandLink::parse_args(int argc, const char* argv[], const char** invalidp)
     return num + num2;
 }
 
+//----------------------------------------------------------------------
 void
 OndemandLink::set_initial_state()
 {
     BundleDaemon::post(new LinkAvailableEvent(this, ContactEvent::NO_INFO));
 }
+
+//----------------------------------------------------------------------
+void
+OndemandLink::serialize(oasys::SerializeAction* a)
+{
+    Link::serialize(a);
+    a->process("idle_close_time", &idle_close_time_);
+}
+
 
 } // namespace dtn

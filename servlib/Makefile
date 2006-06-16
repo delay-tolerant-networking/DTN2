@@ -103,6 +103,7 @@ OLD_STORAGE_SRCS :=				\
 
 STORAGE_SRCS :=					\
 	storage/BundleStore.cc			\
+	storage/LinkStore.cc			\
 	storage/GlobalStore.cc			\
 	storage/RegistrationStore.cc		\
 

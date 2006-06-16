@@ -40,6 +40,7 @@
 
 #include <set>
 #include <oasys/debug/Formatter.h>
+#include <oasys/serialize/Serialize.h>
 
 #include "bundling/BundleList.h"
 #include "naming/EndpointID.h"
@@ -110,7 +111,9 @@ class LinkSet : public std::set<Link*> {};
  * created whenever a new connection is made to a peer or when a
  * connection arrives from a peer. 
  */
-class Link : public oasys::Formatter, public oasys::Logger {
+class Link : public oasys::Formatter,
+             public oasys::Logger,
+             public oasys::SerializableObject {
 public:
     /**
      * Valid types for a link.
@@ -248,6 +251,16 @@ public:
      */
     Link(const std::string& name, link_type_t type,
          ConvergenceLayer* cl, const char* nexthop);
+
+    /**
+     * Constructor for unserialization.
+     */
+    Link(const oasys::Builder& b);
+    
+    /**
+     * Virtual from SerializableObject
+     */
+    void serialize(oasys::SerializeAction* action);
 
     /**
      * Hook for subclass to parse arguments.

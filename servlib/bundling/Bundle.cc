@@ -196,6 +196,11 @@ Bundle::serialize(oasys::SerializeAction* a)
     // XXX/TODO serialize the forwarding log and make sure it's
     // updated on disk as it changes in memory
     //a->process("forwarding_log", &fwdlog_);
+
+    if (a->action_code() == oasys::Serialize::UNMARSHAL) {
+        in_datastore_ = true;
+        payload_.init_from_store(bundleid_);
+    }
 }
     
 //----------------------------------------------------------------------

@@ -1424,10 +1424,10 @@ BundleDaemon::load_registrations()
     RegistrationStore::iterator* iter = reg_store->new_iterator();
 
     while (iter->next() == 0) {
-        reg = reg_store->get(iter->cur_regid());
+        reg = reg_store->get(iter->cur_val());
         if (reg == NULL) {
             log_err("error loading registration %d from data store",
-                    iter->cur_regid());
+                    iter->cur_val());
             continue;
         }
         
@@ -1447,11 +1447,11 @@ BundleDaemon::load_bundles()
     BundleStore::iterator* iter = bundle_store->new_iterator();
 
     log_notice("loading bundles from data store");
-    while (iter->next() == 0) {
-        bundle = bundle_store->get(iter->cur_bundleid());
+    for (iter->begin(); iter->more(); iter->next()) {
+        bundle = bundle_store->get(iter->cur_val());
         if (bundle == NULL) {
             log_err("error loading bundle %d from data store",
-                    iter->cur_bundleid());
+                    iter->cur_val());
             continue;
         }
         

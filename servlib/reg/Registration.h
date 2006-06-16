@@ -110,6 +110,7 @@ public:
     
     //@{
     /// Accessors
+    u_int32_t	             durable_key()       { return regid_; }
     u_int32_t	             regid()	         { return regid_; }
     const EndpointIDPattern& endpoint()          { return endpoint_; } 
     failure_action_t         failure_action()    { return failure_action_; }

@@ -39,24 +39,24 @@
 #define _BUNDLE_STORE_H_
 
 #include <oasys/debug/DebugUtils.h>
-
-// forward decl
-namespace oasys {
-template<typename _Type> class SingleTypeDurableTable;
-class StorageConfig;
-class DurableIterator;
-class DurableStore;
-}
+#include <oasys/serialize/TypeShims.h>
+#include <oasys/storage/InternalKeyDurableTable.h>
 
 namespace dtn {
 
 class Bundle;
-class BundleList;
 
 /**
- * Abstract base class for bundle storage.
+ * Convenience typedef for the oasys template parent class.
  */
-class BundleStore : public oasys::Logger {
+typedef oasys::InternalKeyDurableTable<
+    oasys::UIntShim, u_int32_t, Bundle> BundleStoreImpl;
+
+/**
+ * The class for bundle storage is simply an instantiation of the
+ * generic oasys durable table interface.
+ */
+class BundleStore : public BundleStoreImpl {
 public:
     /**
      * Singleton instance accessor.
@@ -69,8 +69,8 @@ public:
     }
 
     /**
-     * Boot time initializer that takes as a parameter the actual
-     * instance to use.
+     * Boot time initializer that takes as a parameter the storage
+     * configuration to use.
      */
     static int init(const oasys::StorageConfig& cfg,
                     oasys::DurableStore*        store) 
@@ -88,90 +88,11 @@ public:
     BundleStore();
 
     /**
-     * Real initialization method.
-     */
-    int do_init(const oasys::StorageConfig& cfg,
-                oasys::DurableStore*        store);
-
-    /**
      * Return true if initialization has completed.
      */
     static bool initialized() { return (instance_ != NULL); }
     
-    /**
-     * Destructor.
-     */
-    ~BundleStore();
-
-    /**
-     * Close (and flush) the data store.
-     */
-    void close();
-    
-    /**
-     * Add a new bundle to the data store.
-     */
-    bool add(Bundle* bundle);
-
-    /**
-     * Get a new bundle from the store.
-     */
-    Bundle* get(u_int32_t bundle_id);
-
-    /**
-     * Update a bundle's contents in the data store.
-     */
-    bool update(Bundle* bundle);
-
-    /**
-     * Remove the bundle (by id) from the data store.
-     */
-    bool del(u_int32_t bundle_id);
-
-    /**
-     * Iterator class used to loop through the keys (i.e. bundle ids)
-     * in the store.
-     */
-    class iterator {
-    public:
-        /**
-         * Destructor that cleans up the internal iterator as well.
-         */
-        virtual ~iterator();
-
-        /**
-         * Advances the iterator.
-         *
-         * @return DS_OK, DS_NOTFOUND if no more elements, DS_ERR if
-         * an error occurred while iterating.
-         */
-        int next();
-
-        /**
-         * Return the bundle id at the current location.
-         */
-        u_int32_t cur_bundleid() { return cur_bundleid_; }
-
-    private:
-        friend class BundleStore;
-
-        /// Private constructor, used only by the BundleStore.
-        iterator(oasys::DurableIterator* iter);
-
-        /// The underlying iterator
-        oasys::DurableIterator* iter_;
-
-        /// Cache of the current bundle id
-        u_int32_t cur_bundleid_;
-    };
-
-    /**
-     * Return a new iterator.
-     */
-    iterator* new_iterator();
-    
 protected:
-    oasys::SingleTypeDurableTable<Bundle>* store_;
     static BundleStore* instance_; ///< singleton instance
 };
 

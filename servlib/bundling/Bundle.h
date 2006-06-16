@@ -123,6 +123,12 @@ public:
     void serialize(oasys::SerializeAction* a);
 
     /**
+     * Hook for the generic durable table implementation to know what
+     * the key is for the database.
+     */
+    u_int32_t durable_key() { return bundleid_; }
+
+    /**
      * Return the bundle's reference count, corresponding to the
      * number of entries in the mappings set, i.e. the number of
      * BundleLists that have a reference to this bundle, as well as

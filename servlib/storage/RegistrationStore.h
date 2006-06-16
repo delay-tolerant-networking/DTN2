@@ -38,24 +38,25 @@
 #ifndef _REGISTRATION_STORE_H_
 #define _REGISTRATION_STORE_H_
 
-#include <oasys/debug/Log.h>
+#include <oasys/debug/DebugUtils.h>
+#include <oasys/serialize/TypeShims.h>
+#include <oasys/storage/InternalKeyDurableTable.h>
 
-// forward decl
-namespace oasys {
-template<typename _Type> class SingleTypeDurableTable;
-class StorageConfig;
-class DurableIterator;
-class DurableStore;
-}
+#include "reg/APIRegistration.h"
 
 namespace dtn {
 
-class APIRegistration;
+/**
+ * Convenience typedef for the oasys template parent class.
+ */
+typedef oasys::InternalKeyDurableTable<
+    oasys::UIntShim, u_int32_t, APIRegistration> RegistrationStoreImpl;
 
 /**
- * The persistent store for API registrations.
+ * The class for registration storage is simply an instantiation of the
+ * generic oasys durable table interface.
  */
-class RegistrationStore : public oasys::Logger {
+class RegistrationStore : public RegistrationStoreImpl {
 public:
     /**
      * Singleton instance accessor.
@@ -68,8 +69,8 @@ public:
     }
 
     /**
-     * Boot time initializer that takes as a parameter the actual
-     * instance to use.
+     * Boot time initializer that takes as a parameter the storage
+     * configuration to use.
      */
     static int init(const oasys::StorageConfig& cfg,
                     oasys::DurableStore*        store) 
@@ -80,107 +81,21 @@ public:
         instance_ = new RegistrationStore();
         return instance_->do_init(cfg, store);
     }
-
+    
     /**
      * Constructor.
      */
     RegistrationStore();
 
     /**
-     * Real initialization method.
-     */
-    int do_init(const oasys::StorageConfig& cfg,
-                oasys::DurableStore*        store);
-
-    /**
      * Return true if initialization has completed.
      */
     static bool initialized() { return (instance_ != NULL); }
     
-    /**
-     * Destructor
-     */
-    ~RegistrationStore();
-
-    /**
-     * Load in the database of registrations.
-     */
-    void load();
-
-    /**
-     * Close (and flush) the data store.
-     */
-    void close();
-
-    /**
-     * Add a new registration to the database. Returns true if the
-     * registration is successfully added, false on error.
-     */
-    bool add(APIRegistration* reg);
-    
-    /**
-     * Load a registration from the store.
-     */
-    APIRegistration* get(u_int32_t regid);
-    
-    /**
-     * Remove the registration from the database, returns true if
-     * successful, false on error.
-     */
-    bool del(u_int32_t regid);
-    
-    /**
-     * Update the registration in the database. Returns true on
-     * success, false if there's no matching registration or on error.
-     */
-    bool update(APIRegistration* reg);
-
-    /**
-     * Iterator class used to loop through the keys (i.e. bundle ids)
-     * in the store.
-     */
-    class iterator {
-    public:
-        /**
-         * Destructor that cleans up the internal iterator as well.
-         */
-        virtual ~iterator();
-
-        /**
-         * Advances the iterator.
-         *
-         * @return DS_OK, DS_NOTFOUND if no more elements, DS_ERR if
-         * an error occurred while iterating.
-         */
-        int next();
-
-        /**
-         * Return the registration id at the current location.
-         */
-        u_int32_t cur_regid() { return cur_regid_; }
-
-    private:
-        friend class RegistrationStore;
-
-        /// Private constructor, used only by the BundleStore.
-        iterator(oasys::DurableIterator* iter);
-
-        /// The underlying iterator
-        oasys::DurableIterator* iter_;
-
-        /// Cache of the current registration id
-        u_int32_t cur_regid_;
-    };
-
-    /**
-     * Return a new iterator.
-     */
-    iterator* new_iterator();
-    
 protected:
-    static RegistrationStore* instance_;
-    oasys::SingleTypeDurableTable<APIRegistration>* store_;
+    static RegistrationStore* instance_; ///< singleton instance
 };
+
 } // namespace dtn
 
 #endif /* _REGISTRATION_STORE_H_ */
