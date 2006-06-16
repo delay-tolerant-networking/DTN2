@@ -128,7 +128,7 @@ protected:
     /**
      * Try to forward a bundle to a next hop route.
      */
-    virtual bool fwd_to_nexthop(Bundle* bundle, RouteEntry* route);
+    virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* route);
 
     /**
      * Check if the bundle should be forwarded to the given next hop.
