@@ -415,7 +415,6 @@ protected:
             ASSERT(poll_interval_ > 0);
             Thread::set_flag(Thread::INTERRUPTABLE);
             set_logpath(logpath);
-            srand(time(0));
         }
 
         ~NeighborDiscovery() {
