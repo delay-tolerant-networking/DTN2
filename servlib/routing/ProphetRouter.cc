@@ -21,6 +21,13 @@ ProphetRouter::ProphetRouter()
 }
 
 void
+ProphetRouter::handle_link_created(LinkCreatedEvent* event)
+{
+    ASSERT(event->link_->remote_eid().equals(EndpointID::NULL_EID()) == false);
+    TableBasedRouter::handle_link_created(event);
+}
+
+void
 ProphetRouter::handle_contact_down(ContactDownEvent* event)
 {
     route_table_->del_entries_for_nexthop(event->contact_->link());

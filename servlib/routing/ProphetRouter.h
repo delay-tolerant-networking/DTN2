@@ -10,6 +10,7 @@ class ProphetRouter : public TableBasedRouter {
 public:
     ProphetRouter();
 
+    void handle_link_created(LinkCreatedEvent* event);
     void handle_contact_down(ContactDownEvent* event);
 
 }; // ProphetRouter
