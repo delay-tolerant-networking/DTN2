@@ -1,7 +1,7 @@
 #ifndef _DTN_PROPHET_ALGORITHM_
 #define _DTN_PROPHET_ALGORITHM_
 
-// pages and paragraphs refer to IETF Prophet, Sept. 2006
+// pages and paragraphs refer to IETF Prophet, March 2006
 
 namespace dtn {
 
