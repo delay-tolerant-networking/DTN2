@@ -265,14 +265,6 @@ protected:
     bool parse_nexthop(const char*, bdaddr_t*);
 
     /**
-     * Create a temporary connection for the purpose of initiating
-     * exchange of AnnounceBundles between newly discovered neighbors
-     * N.B.: does not self-delete, since it never gets start()'d.
-     */
-    Connection* create_opportunistic_connection(bdaddr_t&,
-                        BluetoothConvergenceLayer::Params*);
-
-    /**
      * Helper class (and thread) that listens on a registered
      * interface for incoming data.
      */
@@ -365,7 +357,7 @@ protected:
         bool send_bundle(Bundle* bundle);
         bool send_announce();
         bool recv_bundle();
-        bool recv_announce();
+        void recv_announce();
         bool handle_reply();
         int handle_ack();
         bool send_ack(u_int32_t bundle_id, size_t acked_len);

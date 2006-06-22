@@ -22,6 +22,7 @@ extern int errno;
 #include <oasys/bluez/BluetoothSocket.h>
 #include <oasys/bluez/RFCOMMClient.h>
 #include <oasys/util/ScratchBuffer.h>
+#include <oasys/util/Random.h>
 
 #include "BluetoothConvergenceLayer.h"
 #include "bundling/Bundle.h"
@@ -276,39 +277,6 @@ BluetoothConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     link->set_cl_info(params);
 
     return true;
-}
-
-/**
- * Create a connection to the remote device specified by bdaddr_t
- */
-BluetoothConvergenceLayer::Connection *
-BluetoothConvergenceLayer::create_opportunistic_connection(bdaddr_t& remote,Params* params) {
-
-    char buff[18];
-
-    const char *nexthop =
-                    (const char*)oasys::Bluetooth::batostr(&remote,buff);
-    ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    Link* link = cm->find_link_to(nexthop,"bt");
-
-    if (link == NULL || link->isopen() == false) {
-
-        // Using ConnectionManager factory method to manage bind()
-        // contention
-        Connection* sender = connections_.connection(
-                                (BluetoothConvergenceLayer*)this,
-                                remote, params);
-
-        if (sender == NULL) return NULL;
-
-        // return the new connection
-        return sender;
-
-    }
-
-    // There is already an open link to remote, so no need to
-    // create a new temporary connection to exchange AnnounceBundles
-    return NULL;
 }
 
 /**
@@ -705,7 +673,23 @@ BluetoothConvergenceLayer::Connection::run()
         
         if (initiate_)
         {
+            ASSERT(contact_ != NULL);
+            Link* link = contact_->link();
+            
             if (! connect()) {
+
+                //XXX/wilson or demmer
+                // Add params for number of times to retry
+                // and for how long to sleep between tries
+                int param_num_retries = 3;
+                int param_how_long = 5;
+
+                if (link->type() == Link::OPPORTUNISTIC) {
+                    do {
+                        sleep(param_how_long);
+                        if(--param_num_retries == 0) break;
+                    } while (!connect());
+                }
                 log_debug("connection failed");
                 break_contact(ContactEvent::BROKEN);
                 goto broken;
@@ -715,11 +699,9 @@ BluetoothConvergenceLayer::Connection::run()
             // to the minimum interval
             params_.retry_interval_ = params_.min_retry_interval_;
 
-            ASSERT(contact_ != NULL);
-            
             // signal the OPENING state
-            if (contact_->link()->state() != Link::OPENING) {
-                contact_->link()->set_state(Link::OPENING);
+            if (link->state() != Link::OPENING) {
+                link->set_state(Link::OPENING);
             }
 
             send_loop();
@@ -828,7 +810,7 @@ BluetoothConvergenceLayer::Connection::send_announce()
 /**
  * Receive bundle (expected to be response Bundle Announcement)
  */
-bool
+void
 BluetoothConvergenceLayer::Connection::recv_announce()
 {
     int timeout;
@@ -849,7 +831,7 @@ BluetoothConvergenceLayer::Connection::recv_announce()
             log_info("recv_announce: remote connection unexpectedly closed");
 shutdown:
             break_contact(ContactEvent::BROKEN);
-            return false;
+            return;
 
         } else if (ret == oasys::IOTIMEOUT) {
             log_info("recv_announce: no message heard for > %d msecs -- "
@@ -869,8 +851,6 @@ shutdown:
 
     if (! recv_bundle() )
         goto shutdown;
-
-    return true;
 }
 
 
@@ -1246,6 +1226,8 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
     EndpointID eid;
     if (AnnounceBundle::parse_announce_bundle(bundle,&eid)) {
 
+        ASSERT(params_.neighbor_poll_interval_ > 0);
+
         char buff[18];
         bdaddr_t remote;
         sock_->remote_addr(remote);
@@ -1266,44 +1248,30 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
         log_multiline(oasys::LOG_INFO, buf.c_str());
 
         // if this is the first we've heard of it, announce_ will be NULL
+        bool receiver = false;
         if (announce_ == NULL) {
             // so respond on the same connection
             send_announce();
+            receiver = true;
         }
 
         // otherwise, we are the initiator, and this is the response.
 
-
         // either way, it's time to light up a link and post it up
         // to BundleDaemon
         ContactManager* cm = BundleDaemon::instance()->contactmgr();
-        Link* link = cm->find_link_to(nexthop,"bt");
-        if (link == NULL || link->isopen() == false) {
 
-            link = cm->new_opportunistic_link(
-                            cl_,
-                            new Params(params_),
-                            nexthop,
-                            &eid);
+        // Finds the link (if it exists) otherwise creates the link and
+        // posts LinkCreatedEvent 
+        // Either way, it posts LinkAvailableEvent for this link
+        (void)cm->new_opportunistic_link(cl_,new Params(params_),nexthop,&eid);
 
-            if (link != NULL) { 
-
-                // Available for use!
-                link->set_state(Link::AVAILABLE);
-
-                // In fact, go ahead and open it
-                BundleDaemon::post(
-                    new LinkStateChangeRequest(link,
-                        Link::OPEN,ContactEvent::NO_INFO)
-                );
-            }
+        if (receiver) {
+            // our work here is done; time to self delete
+            set_should_stop();
+            break_contact(ContactEvent::BROKEN);
+            return false; // tells recv_loop to back out
         }
-
-        // our work here is done; time to self delete
-        set_should_stop();
-        interrupt_from_io();
-        break_contact(ContactEvent::BROKEN);
-        return false; // tells recv_loop to back out
     }
     return true;
 }
@@ -1549,6 +1517,8 @@ BluetoothConvergenceLayer::Connection::connect()
 
     // before attempting to scan the remote host for available channels,
     // shut down the local listener to release its channel for bind()
+    // NOTE:  This is only the listener.  Child sockets from previous
+    // calls to accepted() are not (and should not be) affected
     ASSERT(listener_ != NULL);
     listener_->set_should_stop();
     listener_->interrupt_from_io();
@@ -2016,26 +1986,32 @@ void
 BluetoothConvergenceLayer::NeighborDiscovery::send_announce(bdaddr_t remote)
 {
     char buff[18]; // used by oasys::batostr
-
-    Connection *sender = cl_->create_opportunistic_connection(remote,&params_);
     const char *nexthop = oasys::Bluetooth::batostr(&remote,buff);
 
-    if (sender != NULL) {
-        log_info("sending announce bundle to %s", nexthop);
-        if (sender->send_announce()) {
-            (void)sender->recv_announce();
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    Link* link = cm->find_link_to(nexthop,"bt");
+    if (link == NULL) {
+        // Using ConnectionManager factory method to manage bind()
+        // contention ... returns NULL if error
+        Connection *sender = cl_->connections_.connection(
+                                      cl_,remote,&params_);
+        if (sender != NULL) {
+            log_info("sending announce bundle to %s", nexthop);
+            if (sender->send_announce()) {
+                // new OpportunisticLink gets created within recv_announce,
+                // if successful
+                sender->recv_announce();
+            }
+            // thread never started, so cleanup is not automatic
+            delete sender;
+            sender = NULL;
         }
-        // thread never started, so cleanup is not automatic
-        delete sender;
-        sender = NULL;
     }
 }
 
 void
 BluetoothConvergenceLayer::NeighborDiscovery::run()
 { 
-    char buff[18]; // used by oasys::batostr
-
     if (poll_interval_ == 0) {
         return;
     }
@@ -2056,8 +2032,7 @@ BluetoothConvergenceLayer::NeighborDiscovery::run()
         // if common practice is that all set their poll_interval to 1 or 30 or x
         // then there's the chance of synchronization or syncopation such that 
         // discovery doesn't happen.
-        double ratio = rand()/(RAND_MAX+1.0);
-        int sleep_time = 1 + (u_int32_t) ( (poll_interval_ + 1.0) * ratio );
+        int sleep_time = oasys::Random::rand(poll_interval_);
 
         log_debug("sleep_time %d",sleep_time);
         sleep(sleep_time);
@@ -2080,8 +2055,6 @@ BluetoothConvergenceLayer::NeighborDiscovery::run()
             oasys::BluetoothServiceDiscoveryClient sdpclient;
             sdpclient.set_local_addr(params_.local_addr_);
             if (sdpclient.is_dtn_router(bii.addr_)) {
-                log_info("discovered DTN router at %s",
-                         oasys::Bluetooth::batostr(&bii.addr_,buff));
                 send_announce(bii.addr_);
             }
             if (should_stop()) break;
