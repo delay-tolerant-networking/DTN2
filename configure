@@ -879,7 +879,7 @@ Optional Packages:
   --with-google-perftools=DIR
                           location of a google perftools installation (default
                           none)
-  --with-bluez            compile in bluetooth support (default no)
+  --with-bluez            compile in bluetooth support (default try)
 
 Some influential environment variables:
   CC          C compiler command
@@ -7972,21 +7972,22 @@ if test "${with_bluez+set}" = set; then
   withval="$with_bluez"
   ac_use_bluez=$withval
 else
-  ac_use_bluez=no
+  ac_use_bluez=try
 fi;
 
     ac_has_libbluetooth="no"
     ac_has_bluetooth_h="no"
 
-    echo "$as_me:$LINENO: checking whether bluetooth support is enabled" >&5
-echo $ECHO_N "checking whether bluetooth support is enabled... $ECHO_C" >&6
+    echo "$as_me:$LINENO: checking whether bluetooth support should be enabled" >&5
+echo $ECHO_N "checking whether bluetooth support should be enabled... $ECHO_C" >&6
 
     if test "$ac_use_bluez" = "no"; then
         echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
+
     else
-        echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
+        echo "$as_me:$LINENO: result: $ac_use_bluez" >&5
+echo "${ECHO_T}$ac_use_bluez" >&6
 
                                 echo "$as_me:$LINENO: checking for library containing baswap" >&5
 echo $ECHO_N "checking for library containing baswap... $ECHO_C" >&6
@@ -8263,14 +8264,23 @@ fi
 done
 
 
-                                if test "$ac_has_libbluetooth" = yes -a "$ac_has_bluetooth_h" = yes; then
+                                echo "$as_me:$LINENO: checking whether bluetooth support was found" >&5
+echo $ECHO_N "checking whether bluetooth support was found... $ECHO_C" >&6
 
+                                if test "$ac_has_libbluetooth" = yes -a "$ac_has_bluetooth_h" = yes; then
 
 cat >>confdefs.h <<\_ACEOF
 #define OASYS_BLUETOOTH_ENABLED 1
 _ACEOF
 
-	else
+          echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+
+	elif test "$ac_use_bluez" = "try" ; then
+          echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+        else
           { { echo "$as_me:$LINENO: error: can't find bluez headers or library" >&5
 echo "$as_me: error: can't find bluez headers or library" >&2;}
    { (exit 1); exit 1; }; }
