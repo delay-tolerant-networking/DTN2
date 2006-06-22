@@ -43,6 +43,7 @@
 #include <oasys/debug/Log.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/util/Getopt.h>
+#include <oasys/util/Random.h>
 
 #include "ConnCommand.h"
 #include "Simulator.h"
@@ -140,9 +141,8 @@ main(int argc, char** argv)
       random_seed = tv.tv_usec;
     }
     log_info("/sim", "random seed is %u\n", random_seed);
-    srand(random_seed);
-    srandom(random_seed);
-
+    oasys::Random::seed(random_seed);
+    
     // Set up the command interpreter
     oasys::TclCommandInterp::init(argv[0]);
     oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();

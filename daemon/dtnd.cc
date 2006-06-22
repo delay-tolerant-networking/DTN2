@@ -50,6 +50,7 @@
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
 #include <oasys/util/Getopt.h>
+#include <oasys/util/Random.h>
 #include <oasys/util/StringBuffer.h>
 
 #include "applib/APIServer.h"
@@ -273,8 +274,7 @@ DTND::seed_random()
     }
     
     log_notice("/dtnd", "random seed is %u\n", random_seed_);
-    srand(random_seed_);
-    srandom(random_seed_);
+    oasys::Random::seed(random_seed_);
 }
 
 //----------------------------------------------------------------------
