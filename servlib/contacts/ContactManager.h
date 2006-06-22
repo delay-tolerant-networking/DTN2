@@ -147,7 +147,8 @@ protected:
      */
     Link* get_opportunistic_link(ConvergenceLayer* cl,
 				 CLInfo* clinfo,
-				 const char* nexthop);
+				 const char* nexthop,
+                 EndpointID* remote_eid = NULL);
     
     
     LinkSet* links_;			///< Set of all links

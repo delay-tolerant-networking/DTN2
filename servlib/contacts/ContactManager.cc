@@ -165,7 +165,8 @@ ContactManager::links()
 Link*
 ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
 				       CLInfo* clinfo,
-				       const char* nexthop)
+				       const char* nexthop,
+				       EndpointID* remote_eid)
 {
     oasys::ScopeLock l(&lock_, "ContactManager");
     
@@ -206,6 +207,8 @@ ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
     } while (link != NULL);
         
     link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop, 0, NULL);
+    if ( remote_eid != NULL )
+        link->set_remote_eid (*remote_eid);
         
     if (!link) {
         log_crit("unexpected error creating opportunistic link!!");
@@ -236,7 +239,7 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
 {
     oasys::ScopeLock l(&lock_, "ContactManager");
     
-    Link* link = get_opportunistic_link(cl, clinfo, nexthop);
+    Link* link = get_opportunistic_link(cl, clinfo, nexthop, remote_eid);
     if (!link) // no link means it couldn't be created
         return NULL;
 
@@ -246,7 +249,6 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
     }
 
     if (remote_eid != NULL) {
-        link->set_remote_eid(*remote_eid);
         link->set_state(Link::AVAILABLE);
     }
 
