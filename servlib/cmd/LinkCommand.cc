@@ -56,12 +56,11 @@ LinkCommand::LinkCommand()
     add_to_help("add <name> <next hop> <type> <conv layer> <args>", "add links");
     add_to_help("open <name>", "open the link");
     add_to_help("close <name>", "close the link");
-    add_to_help("list", "list all of the links");
     add_to_help("set_available <name> <true | false>", 
                 "hacky way to make the link available");
     add_to_help("state <name>", "return the state of a link");
     add_to_help("stats <name>", "dump link statistics");
-    add_to_help("dump", "print the overally of existing links");
+    add_to_help("dump", "print the list of existing links");
     add_to_help("reconfigure <name> <opt=val> <opt2=val2>...",
                 "configure link options after initialization "
                 "(not all options support this feature)");
