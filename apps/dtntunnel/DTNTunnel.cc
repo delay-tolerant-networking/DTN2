@@ -86,7 +86,7 @@ DTNTunnel::get_options(int argc, char* argv[])
 {
     oasys::Getopt::addopt(
         new oasys::StringOpt('o', "output", &logfile_, "<output>",
-                             "file name for logging output "
+                             "file name for error logging output "
                              "(- indicates stdout)"));
 
     oasys::Getopt::addopt(
@@ -152,6 +152,10 @@ DTNTunnel::get_options(int argc, char* argv[])
         goto usage; \
     }
     
+    //
+    // TODO?:  couldn't we use these in listen mode to over-ride
+    // what is provided at the sender? -kfall.  Also: mcast for udp?
+    //
     if (listen_) {
         CHECK_OPT(dest_eid_set, "setting destination eid is "
                   "meaningless in listen mode");

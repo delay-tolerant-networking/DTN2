@@ -253,7 +253,10 @@ TCPTunnel::Connection::run()
             dtn::APIBundle* b = new dtn::APIBundle();
             memcpy(b->payload_.buf(sizeof(hdr)), &hdr, sizeof(hdr));
             b->payload_.set_len(sizeof(hdr));
-            tunnel->send_bundle(b, &dest_eid_);
+            if (tunnel->send_bundle(b, &dest_eid_) != DTN_SUCCESS) {
+    		tcptun_->kill_connection(this);
+		exit(1);
+	    }
             goto done;
         }
     }
@@ -297,8 +300,10 @@ TCPTunnel::Connection::run()
             hdr.seqno_ = ntohl(send_seqno++);
             b->payload_.set_len(sizeof(hdr) + ret);
             memcpy(b->payload_.buf(), &hdr, sizeof(hdr));
-            tunnel->send_bundle(b, &dest_eid_);
-            log_info("sent %d byte payload to dtn", ret);
+            if (tunnel->send_bundle(b, &dest_eid_) != DTN_SUCCESS)
+		exit(1);
+            else
+                log_info("sent %d byte payload to dtn", ret);
 
             if (ret == 0) {
                 sock_eof = true;

@@ -133,7 +133,8 @@ UDPTunnel::Listener::run()
         memcpy(bp + sizeof(hdr), recv_buf_, len);
         b->payload_.set_len(sizeof(hdr) + len);
         
-        tunnel->send_bundle(b, tunnel->dest_eid());
+        if (tunnel->send_bundle(b, tunnel->dest_eid()) != DTN_SUCCESS)
+	    exit(1);
     }
 }
 
