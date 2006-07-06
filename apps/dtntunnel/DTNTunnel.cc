@@ -172,7 +172,7 @@ DTNTunnel::get_options(int argc, char* argv[])
                   "cannot set both tcp and udp mode");
         CHECK_OPT(local_addr_  == INADDR_NONE, "local addr is invalid");
         CHECK_OPT(local_port_  == 0,  "must set local port");
-        CHECK_OPT(remote_addr_ == INADDR_NONE, "must set remote port");
+        CHECK_OPT(remote_addr_ == INADDR_NONE, "must set remote host");
         CHECK_OPT(remote_port_ == 0,  "must set remote port");
     }
     
