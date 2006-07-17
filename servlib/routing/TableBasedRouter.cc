@@ -245,7 +245,7 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
             return false;
         } else {
             log_debug("should_fwd bundle %d: "
-                      "link %s ok since transmission count=%d",
+                      "link %s ok since transmission count=%zu",
                       bundle->bundleid_, route->next_hop_->name(), count);
         }
     }

@@ -160,7 +160,7 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("   do_not_fragment: %s\n", bool_to_str(do_not_fragment_));
     buf->appendf("       orig_length: %d\n", orig_length_);
     buf->appendf("       frag_offset: %d\n", frag_offset_);
-    buf->appendf("transmission_count: %d\n", fwdlog_.get_transmission_count());
+    buf->appendf("transmission_count: %zu\n", fwdlog_.get_transmission_count());
 }
 
 //----------------------------------------------------------------------

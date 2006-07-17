@@ -1028,7 +1028,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     }
 
     log_debug("recv_bundle: got valid bundle header -- "
-              "sender bundle id %d, header_length %zu, total_length %llu",
+              "sender bundle id %d, header_length %d, total_length %llu",
               datahdr.bundle_id, header_len, total_len);
     rcvbuf_.consume(header_len);
 
@@ -1037,7 +1037,7 @@ TCPConvergenceLayer::Connection::recv_bundle()
     payload_len = bundle->payload_.length();
     if (total_len != header_len + payload_len) {
         log_err("recv_bundle: bundle length mismatch -- "
-                "total_len %llu, header_len %zu, payload_len %zu",
+                "total_len %llu, header_len %d, payload_len %zu",
                 total_len, header_len, payload_len);
         delete bundle;
         return false;

@@ -155,16 +155,16 @@ RouteEntry::dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
     if (dest_pattern_.length() <= 15) {
         buf->appendf("%-15s ", dest_pattern_.c_str());
     } else {
-        len = buf->appendf("[%u]", long_eids->size());
-        buf->appendf("%.*s", 16 - len, "               ");
+        len = buf->appendf("[%zu]", long_eids->size());
+        buf->appendf("%.*s", 16 - (int)len, "               ");
         long_eids->push_back(dest_pattern_);
     }
     
     if (source_pattern_.length() <= 10) {
         buf->appendf("%-10s ", source_pattern_.c_str());
     } else {
-        len = buf->appendf("[%u]", long_eids->size());
-        buf->appendf("%.*s", 11 - len, "               ");
+        len = buf->appendf("[%zu]", long_eids->size());
+        buf->appendf("%.*s", 11 - (int)len, "               ");
         long_eids->push_back(source_pattern_);
     }
     
