@@ -5277,7 +5277,7 @@ cat >>conftest.$ac_ext <<_ACEOF
 int
 main ()
 {
-int main() {}
+
   ;
   return 0;
 }
