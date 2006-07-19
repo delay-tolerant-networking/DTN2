@@ -41,6 +41,7 @@
 #include "FileConvergenceLayer.h"
 #include "NullConvergenceLayer.h"
 #include "TCPConvergenceLayer.h"
+#include "TCP2ConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
 #include "BluetoothConvergenceLayer.h"
 
@@ -63,6 +64,7 @@ ConvergenceLayer::init_clayers()
 {
     add_clayer(new NullConvergenceLayer());
     add_clayer(new TCPConvergenceLayer());
+    add_clayer(new TCP2ConvergenceLayer());
     add_clayer(new UDPConvergenceLayer());
 #ifdef XXX_demmer_fixme__linux
     add_clayer(new EthConvergenceLayer());
@@ -129,8 +131,7 @@ ConvergenceLayer::dump_interface(Interface* iface, oasys::StringBuffer* buf)
 /**
  * Create any CL-specific components of the Link.
  *
- * The default implementation doesn't do anything but log an error if
- * there are any arguments (since they should have been handled).
+ * The default implementation doesn't do anything but log.
  */
 bool
 ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
@@ -138,12 +139,6 @@ ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     (void)link;
     (void)argc;
     (void)argv;
-    if (argc != 0) {
-        log_err("error configuring link '%s': invalid argument %s",
-                link->name(), argv[0]);
-        return false;
-    }
-
     log_debug("init link %s", link->nexthop());
     return true;
 }

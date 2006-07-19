@@ -52,14 +52,9 @@ ExpirationTimer::timeout(const struct timeval& now)
 {
     (void)now;
     oasys::ScopeLock l(&bundleref_->lock_, "ExpirationTimer::timeout");
-    
-    // make sure the bundle doesn't try to cancel us after we've
-    // already been deleted by the timer system by nulling out the
-    // pointer in the bundle class
-    bundleref_->expiration_timer_ = NULL;
 
     // post the expiration event
-    BundleDaemon::post(new BundleExpiredEvent(bundleref_.object()));
+    BundleDaemon::post_at_head(new BundleExpiredEvent(bundleref_.object()));
 
     // clean ourselves up
     delete this;

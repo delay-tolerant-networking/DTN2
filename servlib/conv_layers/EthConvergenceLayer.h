@@ -132,7 +132,7 @@ public:
      * Open the connection to a given contact and send/listen for 
      * bundles over this contact.
      */
-    bool open_contact(Link* link);
+    bool open_contact(const ContactRef& contact);
     
     /**
      * Close the connnection to the contact.

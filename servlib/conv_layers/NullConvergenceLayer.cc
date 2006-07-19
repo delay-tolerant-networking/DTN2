@@ -45,10 +45,9 @@ namespace dtn {
  * Open the given contact.
  */
 bool
-NullConvergenceLayer::open_contact(Link* link)
+NullConvergenceLayer::open_contact(const ContactRef& contact)
 {
-    link->set_contact(new Contact(link));
-    BundleDaemon::post(new ContactUpEvent(link->contact()));
+    BundleDaemon::post(new ContactUpEvent(contact));
     return true;
 }
 

@@ -121,13 +121,14 @@ public:
     
     /**
      * Post the given event and wait for it to be processed by the
-     * daemon thread or the given timeout to elapse.
+     * daemon thread or for the given timeout to elapse.
      */
-    static bool post_and_wait(BundleEvent* event, oasys::Notifier* notifier,
-                              int timeout = -1);
-
+    static bool post_and_wait(BundleEvent* event,
+                              oasys::Notifier* notifier,
+                              int timeout = -1, bool at_back = true);
+    
    /**
-     * Virtual post_event function, overridden by the Node class in
+    * Virtual post_event function, overridden by the Node class in
      * the simulator to use a modified event queue.
      */
     virtual void post_event(BundleEvent* event, bool at_back = true);

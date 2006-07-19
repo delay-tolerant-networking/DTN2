@@ -41,16 +41,13 @@
 #include "ContactManager.h"
 #include "Contact.h"
 #include "Link.h"
-#include "OndemandLink.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
 #include "conv_layers/ConvergenceLayer.h"
 
 namespace dtn {
 
-/**
- * Constructor / Destructor
- */
+//----------------------------------------------------------------------
 ContactManager::ContactManager()
     : BundleEventHandler("ContactManager", "/dtn/contact/manager"),
       opportunistic_cnt_(0)
@@ -58,15 +55,12 @@ ContactManager::ContactManager()
     links_ = new LinkSet();
 }
 
+//----------------------------------------------------------------------
 ContactManager::~ContactManager()
 {
 }
 
-/**********************************************
- *
- * Link set accessor functions
- *
- *********************************************/
+//----------------------------------------------------------------------
 void
 ContactManager::add_link(Link* link)
 {
@@ -78,6 +72,7 @@ ContactManager::add_link(Link* link)
     BundleDaemon::post(new LinkCreatedEvent(link));
 }
 
+//----------------------------------------------------------------------
 void
 ContactManager::del_link(Link *link)
 {
@@ -94,6 +89,7 @@ ContactManager::del_link(Link *link)
     BundleDaemon::post(new LinkDeletedEvent(link));
 }
 
+//----------------------------------------------------------------------
 bool
 ContactManager::has_link(Link *link)
 {
@@ -105,9 +101,7 @@ ContactManager::has_link(Link *link)
     return true;
 }
 
-/**
- * Finds link with a given name
- */
+//----------------------------------------------------------------------
 Link*
 ContactManager::find_link(const char* name)
 {
@@ -124,9 +118,7 @@ ContactManager::find_link(const char* name)
     return NULL;
 }
 
-/**
- * Finds link to a given next_hop
- */
+//----------------------------------------------------------------------
 Link*
 ContactManager::find_link_to(const char* next_hop, const char* clayer)
 {
@@ -147,10 +139,7 @@ ContactManager::find_link_to(const char* next_hop, const char* clayer)
     return NULL;
 }
 
-/**
- * Return the list of links. Asserts that the CM spin lock is held
- * by the caller.
- */
+//----------------------------------------------------------------------
 const LinkSet*
 ContactManager::links()
 {
@@ -159,9 +148,127 @@ ContactManager::links()
     return links_;
 }
 
-/**
- * Helper routine to find or create an idle opportunistic link.
- */
+//----------------------------------------------------------------------
+void
+ContactManager::LinkAvailabilityTimer::timeout(const struct timeval& now)
+{
+    (void)now;
+    cm_->reopen_link(link_);
+    delete this;
+}
+
+//----------------------------------------------------------------------
+void
+ContactManager::reopen_link(Link* link)
+{
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
+    log_debug("reopen link %s", link->name());
+    
+    if (link->state() == Link::UNAVAILABLE) {
+        BundleDaemon::post_at_head(
+            new LinkStateChangeRequest(link, Link::OPEN,
+                                       ContactEvent::RECONNECT));
+    } else {
+        // state race (possibly due to user action)
+        log_err("availability timer fired for link %s but state is %s",
+                link->name(), Link::state_to_str(link->state()));
+    }
+
+    availability_timers_.erase(link);
+}
+
+//----------------------------------------------------------------------
+void
+ContactManager::handle_link_available(LinkAvailableEvent* event)
+{
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
+    AvailabilityTimerMap::iterator iter;
+    iter = availability_timers_.find(event->link_);
+    if (iter == availability_timers_.end()) {
+        return; // no timer for this link
+    }
+    
+    LinkAvailabilityTimer* timer = iter->second;
+    availability_timers_.erase(event->link_);
+    
+    // try to cancel the timer and rely on the timer system to clean
+    // it up once it bubbles to the top of the queue... if there's a
+    // race and the timer is in the process of firing, it should clean
+    // itself up in the timeout handler.
+    if (! timer->cancel()) {
+        log_warn("can't cancel availability timer: race condition ");
+    }
+}
+
+//----------------------------------------------------------------------
+void
+ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
+{
+    oasys::ScopeLock l(&lock_, "ContactManager");
+    
+    // don't do anything for links that aren't ondemand or alwayson
+    if (event->link_->type() != Link::ONDEMAND &&
+        event->link_->type() != Link::ALWAYSON)
+    {
+        log_debug("ignoring link unavailable for link of type %s",
+                  event->link_->type_str());
+        return;
+    }
+    
+    // or if the link wasn't broken but instead was closed by user
+    // action or by going idle
+    if (event->reason_ != ContactEvent::BROKEN) {
+        log_debug("ignoring link unavailable for unavailable due to %s",
+                  event->reason_to_str(event->reason_));
+        return;
+    }
+    
+    // adjust the retry interval in the link to handle backoff in case
+    // it continuously fails to open, then schedule the timer.
+    // the retry interval is reset in the link open event handler
+    Link* link = event->link_;
+    int timeout = link->retry_interval_;
+    
+    link->retry_interval_ *= 2;
+    if (link->retry_interval_ > link->params().max_retry_interval_) {
+        link->retry_interval_ = link->params().max_retry_interval_;
+    }
+
+    LinkAvailabilityTimer* timer = new LinkAvailabilityTimer(this, link);
+
+    AvailabilityTimerMap::value_type val(link, timer);
+    if (availability_timers_.insert(val).second == false) {
+        log_err("error inserting timer for link %s into table!",
+                link->name());
+        delete timer;
+        return;
+    }
+
+    log_debug("scheduling availability timer in %d seconds for link %s",
+              timeout, link->name());
+    timer->schedule_in(timeout * 1000);
+}
+
+
+//----------------------------------------------------------------------
+void
+ContactManager::handle_contact_up(ContactUpEvent* event)
+{
+    Link* link = event->contact_->link();
+    if (link->type() == Link::ONDEMAND ||
+        link->type() == Link::ALWAYSON)
+    {
+        log_debug("resetting retry interval for link %s: %d -> %d",
+                  link->name(),
+                  link->retry_interval_,
+                  link->params().min_retry_interval_);
+        link->retry_interval_ = link->params().min_retry_interval_;
+    }
+}
+
+//----------------------------------------------------------------------
 Link*
 ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
 				       CLInfo* clinfo,
@@ -223,14 +330,7 @@ ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
     return link;
 }
 
-/**
- * Notification from a convergence layer that a new contact has come
- * knocking.
- *
- * Find the appropriate Link, store the given convergence layer state
- * in the link and post a new LinkAvailableEvent along which will kick
- * the daemon.
- */
+//----------------------------------------------------------------------
 Link*
 ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
                                        CLInfo* clinfo,
@@ -257,9 +357,7 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
     return link;
 }
     
-/**
- * Dump the contact manager info
- */
+//----------------------------------------------------------------------
 void
 ContactManager::dump(oasys::StringBuffer* buf) const
 {

@@ -55,7 +55,7 @@ public:
     virtual bool interface_up(Interface* iface,
                               int argc, const char* argv[]);
     virtual bool interface_down(Interface* iface);
-    virtual bool open_contact(Link* link);
+    virtual bool open_contact(const ContactRef& contact);
     virtual bool close_contact(const ContactRef& contact);
     virtual void send_bundle(const ContactRef& contact, Bundle* bundle);
 

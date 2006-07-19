@@ -120,14 +120,12 @@ EthConvergenceLayer::interface_down(Interface* iface)
 }
 
 bool
-EthConvergenceLayer::open_contact(Link* link)
+EthConvergenceLayer::open_contact(const ContactRef& contact)
 {
     eth_addr_t addr;
-    
-    log_debug("opening contact to link *%p", link);
 
-    Contact* contact = new Contact(link);
-    link->set_contact(contact);
+    Link* link = contact->link();
+    log_debug("opening contact to link *%p", link);
 
     // parse out the address from the contact nexthop
     EndpointID eid(contact->nexthop());
@@ -614,7 +612,8 @@ EthConvergenceLayer::BeaconTimer::timeout(struct timeval* now)
     }
     else if(l->isopen()) {
 	BundleDaemon::post(
-            new LinkStateChangeRequest(l, Link::CLOSING, ContactDownEvent::BROKEN));
+            new LinkStateChangeRequest(l, Link::CLOSED,
+                                       ContactDownEvent::BROKEN));
     }
     else {
 	log_warn("next_hop %s unexpectedly not open",next_hop_);

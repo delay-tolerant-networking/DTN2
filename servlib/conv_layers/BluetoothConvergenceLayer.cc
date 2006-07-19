@@ -299,14 +299,12 @@ BluetoothConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
  * bundles to be transmitted.
  */
 bool
-BluetoothConvergenceLayer::open_contact(Link* link)
+BluetoothConvergenceLayer::open_contact(const ContactRef& contact)
 {
     bdaddr_t addr;
 
+    Link* link = contact->link();
     log_debug("opening contact on link *%p", link);
-
-    Contact* contact = new Contact(link);
-    link->set_contact(contact);
 
     // parse out the address / port from the nexthop address. note
     // that these should have been validated in init_link() above, so

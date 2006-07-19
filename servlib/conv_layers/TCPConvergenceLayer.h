@@ -185,7 +185,7 @@ public:
      * Open the connection to the given contact and prepare for
      * bundles to be transmitted.
      */
-    bool open_contact(Link* link);
+    bool open_contact(const ContactRef& contact);
 
     /**
      * Close the connnection to the contact.

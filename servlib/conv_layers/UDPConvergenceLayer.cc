@@ -261,15 +261,13 @@ UDPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 }
 
 bool
-UDPConvergenceLayer::open_contact(Link* link)
+UDPConvergenceLayer::open_contact(const ContactRef& contact)
 {
     in_addr_t addr;
     u_int16_t port;
-    
+
+    Link* link = contact->link();
     log_debug("opening contact for link *%p", link);
-    
-    Contact* contact = new Contact(link);
-    link->set_contact(contact);
     
     // parse out the address / port from the nexthop address. note
     // that these should have been validated in init_link() above, so

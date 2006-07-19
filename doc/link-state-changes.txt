@@ -1,6 +1,6 @@
 
-All outgoing links in the system have a state variable, described in
-the enum (copied from Link.h):
+All links in the system have a state variable, described in the enum
+(copied from Link.h):
 
 typedef enum {
     UNAVAILABLE,    ///< The link is closed and not able to be
@@ -29,8 +29,10 @@ typedef enum {
                     ///  convergence layer and no more bundles may
                     ///  be delivered to the link.
 
-    CLOSING         ///< The link is in the process of being
-                    ///  closed.
+   CLOSED           ///< Bogus state that's never actually used in
+                    ///  the Link state_ variable, but is used for
+                    ///  signalling the daemon thread with a
+                    ///  LinkStateChangeRequest
     
 } state_t;
 
@@ -39,12 +41,12 @@ of events to routers, only the BundleDaemon thread can change the
 state of a link directly. All other threads should post a
 LinkStateChangeRequest event to the bundle daemon queue. 
 
-The only exception to this is the setting up of the initial link state
-when a link is created. For OPPORTUNISTIC and SCHEDULED links, the
-initial state is UNAVAILABLE. For ONDEMAND and ALWAYSON links, the
-initial state is AVAILABLE. ALWAYSON links also immediately post an
-event to attempt to open the link by posting a link state change
-request of OPENING.
+One exception to this is the setting up of the initial link state when
+a link is created. For OPPORTUNISTIC and SCHEDULED links, the initial
+state is UNAVAILABLE. For ONDEMAND and ALWAYSON links, the initial
+state is AVAILABLE. ALWAYSON links also immediately post an event to
+attempt to open the link by posting a link state change request of
+OPENING.
 
 XXX/demmer this isn't really true -- the connection reestablishement
 code in the TCPCL currently sets the state to OPENING from UNAVAILABLE
@@ -68,15 +70,16 @@ LinkUnavailableEvent is delivered to the router(s).
 
 There is also the Contact structure, which is conceptually a tuple of
 [link, time interval] for open links. Currently, a contact is created
-in Link::open and deleted in Link::close. XXX/demmer this causes some
-clunkiness with opportunistic connections or other connections that
-are re-established after becoming unavailable
+in Link::open and deleted (i.e. dereferenced) in Link::close. A
+Contact is also created by convergence layers when opportunistic
+connections are established. These contacts are then attached to
+existing idle opportunistic links, or if none exist, new opportunistic
+links are created.
 
 At the beginning and end of a contact opportunity, a ContactUpEvent
-and ContactDownEvent are delivered to the main system, used to inform
-the router(s) of the new opportunity to send data. These plus the link
-availability events are all the notifications that the router(s) see
-currently.
+and ContactDownEvent are delivered to inform the router(s). These plus
+the link availability events are all the notifications that the
+router(s) see currently. When a link goes down unexpectedly, 
 
 ---
 
@@ -92,7 +95,9 @@ the router(s) that there is a new opportunity to send bundles.
 
 XXX/demmer this is strange w.r.t. the router interface since they
 don't get notified when the link becomes busy, but they do get
-notified when the link is available again...
+notified when the link is available again... i should really add a
+LinkBusyEvent
 
 ---
 
+The following 

@@ -137,10 +137,7 @@ public:
 
 protected:
     /**
-     * Class to implement registration expirations. Note that we use
-     * the registration id and not a pointer to the registration class
-     * to mitigate potential race conditions that could lead to a
-     * dangling pointer.
+     * Class to implement registration expirations.
      */
     class ExpirationTimer : public oasys::Timer {
     public:

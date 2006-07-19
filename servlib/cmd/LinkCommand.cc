@@ -178,7 +178,6 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         // XXX/TODO should change all these to post_and_wait
-        
         BundleDaemon::post(new LinkStateChangeRequest(link, Link::OPEN,
                                                       ContactEvent::USER));
         
@@ -203,8 +202,8 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         BundleDaemon::instance()->post(
-            new LinkStateChangeRequest(link, Link::CLOSING,
-                                       ContactEvent::BROKEN));
+            new LinkStateChangeRequest(link, Link::CLOSED,
+                                       ContactEvent::USER));
 
         return TCL_OK;
 

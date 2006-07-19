@@ -187,9 +187,9 @@ FileConvergenceLayer::interface_down(Interface* iface)
  * Validate that the contact eid specifies a legit directory.
  */
 bool
-FileConvergenceLayer::open_contact(Link* link)
+FileConvergenceLayer::open_contact(const ContactRef& contact)
 {
-    (void)link;
+    (void)contact;
     // XXX/demmer fixme
     
     // parse out the directory from the contact

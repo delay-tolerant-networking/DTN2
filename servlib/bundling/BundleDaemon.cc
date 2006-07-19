@@ -91,7 +91,7 @@ BundleDaemon::do_init()
 {
     actions_ = new BundleActions();
     eventq_ = new oasys::MsgQueue<BundleEvent*>(logpath_);
-    eventq_->disable_notify();
+    eventq_->notify_when_empty();
 }
 
 //----------------------------------------------------------------------
@@ -112,7 +112,7 @@ BundleDaemon::post_at_head(BundleEvent* event)
 bool
 BundleDaemon::post_and_wait(BundleEvent* event,
                             oasys::Notifier* notifier,
-                            int timeout)
+                            int timeout, bool at_back)
 {
     /*
      * Make sure that we're either already started up or are about to
@@ -122,7 +122,11 @@ BundleDaemon::post_and_wait(BundleEvent* event,
     
     ASSERT(event->processed_notifier_ == NULL);
     event->processed_notifier_ = notifier;
-    post(event);
+    if (at_back) {
+        post(event);
+    } else {
+        post_at_head(event);
+    }
     return notifier->wait(NULL, timeout);
 }
 
@@ -243,12 +247,12 @@ BundleDaemon::cancel_custody_timers(Bundle* bundle)
          iter != bundle->custody_timers_.end();
          ++iter)
     {
-        // XXX/demmer fix this race
-        if (!(*iter)->cancel()) {
-            log_err("custody timer cancel race!!");
-            continue;
+        bool ok = (*iter)->cancel();
+        if (!ok) {
+            log_crit("unexpected error cancelling custody timer for bundle *%p",
+                     bundle);
         }
-
+        
         // the timer will be deleted when it bubbles to the top of the
         // timer queue
     }
@@ -731,28 +735,11 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
         release_custody(bundle);
     }
 
-    // check that the bundle is on the pending list and then remove it
-    // if it is. if it's not, then there was a race between the
-    // expiration timer and a prior call to delete_from_pending. check
-    // that the bundle isn't on any other lists (which it shouldn't
-    // be), and return
-    if (pending_bundles_->contains(bundle)) {
-        delete_from_pending(bundle, BundleProtocol::REASON_LIFETIME_EXPIRED);
-
-    } else {
-        if (bundle->num_mappings() == 0) {
-            log_debug("expired bundle *%p already removed from pending "
-                      "list and all other lists", bundle);
-            return;
-
-        } else {
-            log_err("expired bundle *%p not on pending list but still "
-                    "queued on other lists!!", bundle);
-        }
-    }
+    // delete the bundle from the pending list
+    delete_from_pending(bundle, BundleProtocol::REASON_LIFETIME_EXPIRED);
 
     // XXX/demmer check if the bundle is a fragment awaiting reassembly
-
+    
     // XXX/demmer should try to cancel transmission on any links where
     // the bundle is active
     
@@ -811,13 +798,13 @@ BundleDaemon::handle_registration_removed(RegistrationRemovedEvent* event)
 void
 BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
 {
-    
     Registration* registration = reg_table_->get(event->regid_);
+
     if (registration == NULL) {
-        log_warn("REGISTRATION_EXPIRED -- dead regid %d", event->regid_);
+        log_err("REGISTRATION_EXPIRED -- dead regid %d", event->regid_);
         return;
     }
-
+    
     registration->set_expired(true);
     
     if (registration->active()) {
@@ -882,10 +869,10 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
     case Link::AVAILABLE:
         if (link->state() == Link::UNAVAILABLE) {
             link->set_state(Link::AVAILABLE);
-
+            
         } else if (link->state() == Link::BUSY) {
             link->set_state(Link::OPEN);
-
+            
         } else if (link->state() == Link::OPEN) {
             // a CL might send multiple requests to go from
             // BUSY->OPEN, so we can safely ignore this
@@ -914,53 +901,35 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         actions_->open_link(link);
         break;
 
-    case Link::CLOSING:
-        if (link->isclosing()) {
-            log_warn("link close request for *%p (%s) already in closing state",
-                     link, ContactEvent::reason_to_str(reason));
+    case Link::CLOSED:
+        // The only case where we should get this event when the link
+        // is not actually open is if it's in the process of being
+        // opened but the CL can't actually open it.
+        if (! link->isopen() && ! link->isopening()) {
+            log_err("LINK_CLOSE_REQUEST *%p (%s) in unexpected state %s",
+                    link, ContactEvent::reason_to_str(reason),
+                    link->state_to_str(link->state()));
             break;
         }
-        
+
+        // If the link is open (not OPENING), we need a ContactDownEvent
         if (link->isopen()) {
-            // note that the link is being closed
-            ASSERT(link->contact() != NULL);
-            link->set_state(Link::CLOSING);
-        
-        } else {
-            // The only case where we should get this event when the link
-            // is not actually open is if it's in the process of being
-            // opened but the CL can't actually open it. Check this and
-            // fall through to close the link and deliver a
-            // LinkUnavailableEvent
-            if (! link->isopening()) {
-                log_err("LINK_CLOSE_REQUEST *%p (%s) in unexpected state %s",
-                        link, ContactEvent::reason_to_str(reason),
-                        link->state_to_str(link->state()));
-            }
-
-            // note that the link is being closed
-            link->set_state(Link::CLOSING);
+            post_at_head(new ContactDownEvent(link->contact(), reason));
         }
-    
-        // if this request is user generated, we need to inform the
-        // routers that the contact is going down
-        if (reason == ContactEvent::USER) {
-            ContactDownEvent e(link->contact(), reason);
-            handle_event(&e);
-        }
-        
-        // now actually close the link
-        link->close();
 
+        // close the link
+        actions_->close_link(link);
+        
         // now, based on the reason code, update the link availability
         // and set state accordingly
         if (reason == ContactEvent::IDLE) {
+            ASSERT(link->type() == Link::ONDEMAND);
             link->set_state(Link::AVAILABLE);
         } else {
             link->set_state(Link::UNAVAILABLE);
             post_at_head(new LinkUnavailableEvent(link, reason));
         }
-
+    
         break;
 
     default:
@@ -993,7 +962,7 @@ BundleDaemon::handle_contact_down(ContactDownEvent* event)
     // based on the reason code, update the link availability
     // and set state accordingly
     if (reason == ContactEvent::IDLE) {
-        post_at_head(new LinkStateChangeRequest(link, Link::CLOSING, reason));
+        post_at_head(new LinkStateChangeRequest(link, Link::CLOSED, reason));
     } else {
         link->set_state(Link::UNAVAILABLE);
         post_at_head(new LinkUnavailableEvent(link, reason));
@@ -1119,11 +1088,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
         return;
     }
 
-    // XXX/demmer fix this race
-    if (timer->cancelled()) {
-        log_err("custody timer for *%p *%p: timer was cancelled after it fired",
-                bundle, link);
-    }
+    ASSERT(!timer->cancelled());
     
     if (!pending_bundles_->contains(bundle)) {
         log_err("custody timeout for *%p *%p: bundle not in pending list",
@@ -1164,9 +1129,6 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
         link = *iter;
         if (link->isopen()) {
             log_debug("Shutdown: closing link *%p\n", link);
-            if ((link->state() != Link::CLOSING)) {
-                link->set_state(Link::CLOSING);
-            }
             link->close();
         }
     }
@@ -1257,19 +1219,13 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
                   bundle->bundleid_);
         
         bool cancelled = bundle->expiration_timer_->cancel();
-        if (cancelled) {
-            bundle->expiration_timer_->bundleref_.release();
-            bundle->expiration_timer_ = NULL;
-        } else {
-            // if the timer is no longer in the pending queue (i.e. it
-            // can't be cancelled), then we just hit a race where the
-            // timer is about to fire, which is ok since
-            // handle_bundle_expired takes care of this correctly
-            
-            // XXX/demmer this would be fixed if the daemon thread
-            // handled timers
-            bundle->expiration_timer_ = NULL;
+        if (!cancelled) {
+           log_crit("unexpected error cancelling expiration timer "
+                     "for bundle *%p", bundle);
         }
+        
+        bundle->expiration_timer_->bundleref_.release();
+        bundle->expiration_timer_ = NULL;
     }
 
     bool erased = pending_bundles_->erase(bundle);
@@ -1482,20 +1438,67 @@ BundleDaemon::run()
     load_bundles();
 
     BundleEvent* event;
+
+    oasys::TimerSystem* timersys = oasys::TimerSystem::instance();
+    
+    struct pollfd pollfds[2];
+    struct pollfd* event_poll = &pollfds[0];
+    struct pollfd* timer_poll = &pollfds[1];
+    
+    event_poll->fd     = eventq_->read_fd();
+    event_poll->events = POLLIN;
+
+    timer_poll->fd     = timersys->notifier()->read_fd();
+    timer_poll->events = POLLIN;
+    
     while (1) {
         if (should_stop()) {
             break;
         }
-        
-        // grab an event off the queue, blocking until we get one
-        event = eventq_->pop_blocking();
-        ASSERT(event);
 
-        // handle the event
-        handle_event(event);
+        int timeout = timersys->run_expired_timers();
+
+        if (eventq_->size() > 0) {
+            bool ok = eventq_->try_pop(&event);
+            ASSERT(ok);
+            
+            // handle the event
+            handle_event(event);
         
-        // clean up the event
-        delete event;
+            // clean up the event
+            delete event;
+            
+            continue; // no reason to poll
+        }
+        
+        pollfds[0].revents = 0;
+        pollfds[1].revents = 0;
+
+        int cc = oasys::IO::poll_multiple(pollfds, 2, timeout);
+        log_debug("poll returned %d", cc);
+
+        if (cc == oasys::IOTIMEOUT) {
+            log_debug("poll timeout");
+            continue;
+
+        } else if (cc <= 0) {
+            log_err("unexpected return %d from poll_multiple!", cc);
+            continue;
+        }
+
+        // if the event poll fired, we just go back to the top of the
+        // loop to drain the queue
+        if (event_poll->revents != 0) {
+            log_debug("poll returned new event to handle");
+        }
+
+        // if the timer notifier fired, then someone just scheduled a
+        // new timer, so we just continue, which will call
+        // run_expired_timers and handle it
+        if (timer_poll->revents != 0) {
+            log_debug("poll returned new timers to handle");
+            timersys->notifier()->drain_pipe(0);
+        }
     }
 }
 

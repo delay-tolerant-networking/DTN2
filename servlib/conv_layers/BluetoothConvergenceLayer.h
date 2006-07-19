@@ -252,7 +252,7 @@ public:
     bool interface_up(Interface* iface, int argc, const char* argv[]);
     bool interface_down(Interface* iface);
     void dump_interface(Interface* iface, oasys::StringBuffer* buf);
-    bool open_contact(Link* link);
+    bool open_contact(const ContactRef& contact);
     bool close_contact(const ContactRef& contact);
     void send_bundle(const ContactRef&,Bundle*);
 

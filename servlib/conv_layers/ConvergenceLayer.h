@@ -108,7 +108,7 @@ public:
      * establish any CL specific connections, then post a
      * ContactUpEvent when the contact is successfully initiated.
      */
-    virtual bool open_contact(Link* link) = 0;
+    virtual bool open_contact(const ContactRef& contact) = 0;
     
     /**
      * Close the open contact.

@@ -72,7 +72,7 @@ public:
     /// @{
     /// Virtual from ConvergenceLayer
     bool init_link(Link* link, int argc, const char* argv[]);
-    bool open_contact(Link* link);
+    bool open_contact(const ContactRef& contact);
     void send_bundle(const ContactRef& contact, Bundle* bundle);
     /// @}
     

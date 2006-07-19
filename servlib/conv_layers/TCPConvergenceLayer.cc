@@ -132,8 +132,6 @@ TCPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::UIntOpt("partial_ack_len", &params->partial_ack_len_));
     p.addopt(new oasys::UIntOpt("writebuf_len", &params->writebuf_len_));
     p.addopt(new oasys::UIntOpt("readbuf_len", &params->readbuf_len_));
-    p.addopt(new oasys::UIntOpt("keepalive_interval",
-                                &params->keepalive_interval_));
     p.addopt(new oasys::UIntOpt("min_retry_interval",
                                 &params->min_retry_interval_));
     p.addopt(new oasys::UIntOpt("max_retry_interval",
@@ -368,7 +366,7 @@ TCPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 
     // copy the retry parameters from the link itself (we need a copy
     // for ourselves to support receiver connect)
-    params->retry_interval_     = link->params().retry_interval_;
+    params->retry_interval_     = link->retry_interval_;
     params->min_retry_interval_ = link->params().min_retry_interval_;
     params->max_retry_interval_ = link->params().max_retry_interval_;
 
@@ -423,15 +421,13 @@ TCPConvergenceLayer::reconfigure_link(Link* link, int argc, const char* argv[])
 
 //----------------------------------------------------------------------
 bool
-TCPConvergenceLayer::open_contact(Link* link)
+TCPConvergenceLayer::open_contact(const ContactRef& contact)
 {
     in_addr_t addr;
     u_int16_t port = 0;
-    
-    log_debug("opening contact on link *%p", link);
 
-    Contact* contact = new Contact(link);
-    link->set_contact(contact);
+    Link* link = contact->link();
+    log_debug("opening contact on link *%p", link);
 
     // parse out the address / port from the nexthop address. note
     // that these should have been validated in init_link() above, so
@@ -446,7 +442,7 @@ TCPConvergenceLayer::open_contact(Link* link)
     // create a new connection for the contact
     Connection* conn = new Connection(this, addr, port,
                                       Connection::SENDER, params);
-    conn->set_contact(contact);
+    conn->set_contact(contact.object());
     conn->start();
 
     return true;
@@ -1630,15 +1626,7 @@ TCPConvergenceLayer::Connection::open_opportunistic_link()
         return false;
     }
     
-    // create a new contact if this is the first time the link is open
-    // XXX/demmer this seems kinda bogus...
-    if (link->contact() == NULL) {
-        contact_ = new Contact(link);
-        link->set_contact(contact_.object());
-    } else {
-        ASSERT(contact_ == NULL);
-        contact_ = link->contact();
-    }
+    contact_ = link->contact();
     
     // a contact up event is delivered at the start of the send loop,
     // but we need to first put the link into OPENING state
@@ -1727,45 +1715,42 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
 
         if (reason != ContactEvent::USER)
         {
-            // if the connection isn't being closed by the user, and
-            // the link is open, we need to notify the daemon.
-            // typically, we then just bounce back to the main run
-            // loop to try to re-establish the connection...
+            // if the connection isn't being closed by the user, we
+            // need to notify the daemon to close the link
             //
             // we block until the daemon has processed the event to
             // make sure that we don't clear the cl_info slot too
             // early (triggering a crash)
-            if (contact_->link()->isopen())
-            {
-                bool ok = BundleDaemon::post_and_wait(
-                    new ContactDownEvent(contact_, reason),
-                    event_notifier_, 5000);
+            bool ok = BundleDaemon::post_and_wait(
+                new LinkStateChangeRequest(contact_->link(),
+                                           Link::CLOSED,
+                                           reason),
+                event_notifier_, 5000, true /* at_head */);
 
-                // one particularly annoying condition occurs if we
-                // attempt to close the link at the same time that the
-                // daemon does -- the thread in close_contact is
-                // blocked waiting for us to clear the cl_info slot
-                // below.
-                //
-                // XXX/demmer maybe this should be done for all calls
-                // to post_and_wait??
-                int total = 0;
-                while (!ok) {
-                    total += 5;
-                    if (should_stop()) {
-                        log_notice("bundle daemon took > %d seconds to process event: "
-                                   "breaking close_contact deadlock", total);
-                        break;
-                    }
-
-                    if (total >= 60) {
-                        PANIC("bundle daemon took > 60 seconds to process event: "
-                              "fatal deadlock condition");
-                    }
-                    
-                    log_warn("bundle daemon took > %d seconds to process event", total);
-                    ok = event_notifier_->wait(0, 5000);
+            // one particularly annoying condition occurs if we
+            // attempt to close the link at the same time that the
+            // daemon does -- the thread in close_contact is
+            // blocked waiting for us to clear the cl_info slot
+            // below.
+            //
+            // XXX/demmer maybe this should be done for all calls
+            // to post_and_wait??
+            int total = 0;
+            while (!ok) {
+                total += 5;
+                if (should_stop()) {
+                    log_notice("bundle daemon took > %d seconds to process event: "
+                               "breaking close_contact deadlock", total);
+                    break;
                 }
+
+                if (total >= 60) {
+                    PANIC("bundle daemon took > 60 seconds to process event: "
+                          "fatal deadlock condition");
+                }
+                    
+                log_warn("bundle daemon took > %d seconds to process event", total);
+                ok = event_notifier_->wait(0, 5000);
             }
         }
 
@@ -1794,12 +1779,8 @@ TCPConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
         ASSERT(inflight_.empty());
     }
 
-    // if we're the passive acceptor, or the link went idle, we want
-    // to exit the main loop, so set the should_stop flag as an
-    // indicator of this
-    if (!initiate_ || (reason == ContactEvent::IDLE)) {
-        set_should_stop();
-    }
+    // set the should_stop flag to exit the main loop
+    set_should_stop();
 }
 
 
@@ -1892,9 +1873,9 @@ TCPConvergenceLayer::Connection::send_loop()
     ASSERT(contact_->cl_info() == NULL);
     contact_->set_cl_info(this);
     
-    // inform the daemon that the contact is available
+    // inform the daemon that the link is now open
     BundleDaemon::post_and_wait(new ContactUpEvent(contact_), event_notifier_);
-
+    
     // reserve space in the buffers
     rcvbuf_.reserve(params_.readbuf_len_);
     sndbuf_.reserve(params_.writebuf_len_);
@@ -1970,7 +1951,7 @@ TCPConvergenceLayer::Connection::send_loop()
 
         // Check for whether or not we've just become idle, in which
         // case we record the current time
-        if (!idle && inflight_.empty()) {
+        if ((idle == false) && inflight_.empty()) {
             idle = true;
             ::gettimeofday(&idle_start, 0);
         }
@@ -2032,7 +2013,6 @@ TCPConvergenceLayer::Connection::send_loop()
             log_debug("timeout from poll, sending keepalive");
             ASSERT(params_.keepalive_interval_ != 0);
             if ( send_keepalive() == false ) return;
-            continue;
         }
 
         // check that it hasn't been too long since the other side

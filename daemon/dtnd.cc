@@ -379,7 +379,6 @@ DTND::main(int argc, char* argv[])
 
     // stop thread creation b/c of initialization dependencies
     oasys::Thread::activate_start_barrier();
-    oasys::TimerSystem::instance()->start();
 
     DTNServer* dtnserver = new DTNServer("/dtnd", &storage_config_);
     APIServer* apiserver = new APIServer();

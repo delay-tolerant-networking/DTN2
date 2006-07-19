@@ -66,8 +66,8 @@ class LinkSet : public std::set<Link*> {};
  * The state of a link (regarding its availability) is described by
  * the Link::state_t enumerated type.
  *
- * All links in the OPEN, BUSY, or CLOSING states have an associated
- * contact that represents an actual connection.
+ * All links in the OPEN or BUSY states have an associated contact
+ * that represents an actual connection.
  *
  * Every link has a unique name associated with it which is used to
  * identify it. The name is configured explicitly when the link is
@@ -216,8 +216,10 @@ public:
                         ///  convergence layer and no more bundles may
                         ///  be delivered to the link.
 
-        CLOSING		///< The link is in the process of being
-                        ///  closed.
+        CLOSED		///< Bogus state that's never actually used in
+                        ///  the Link state_ variable, but is used for
+                        ///  signalling the daemon thread with a
+                        ///  LinkStateChangeRequest
         
     } state_t;
 
@@ -233,7 +235,7 @@ public:
         case OPENING: 		return "OPENING";
         case OPEN: 		return "OPEN";
         case BUSY: 		return "BUSY";
-        case CLOSING: 		return "CLOSING";
+        case CLOSED: 		return "CLOSED";
         }
 
         NOTREACHED;
@@ -288,8 +290,7 @@ public:
      * Return whether or not the link is open.
      */
     bool isopen() { return ( (state_ == OPEN) ||
-                             (state_ == BUSY) ||
-                             (state_ == CLOSING) ); }
+                             (state_ == BUSY) ); }
 
     /**
      * Return the availability state of the link.
@@ -307,11 +308,6 @@ public:
     bool isopening() { return (state_ == OPENING); }
     
     /**
-     * Return whether the link is in the process of shutting down.
-     */
-    bool isclosing() { return (state_ == CLOSING); }
-
-    /**
      * Return the actual state.
      */
     state_t state() { return state_; }
@@ -321,9 +317,13 @@ public:
      * ensure the state transitions are legal.
      *
      * This function should only ever be called by the main
-     * BundleDaemon thread. All other threads must use a
-     * LinkStateChangeRequest event to cause changes in the link
+     * BundleDaemon thread and helper classes. All other threads must
+     * use a LinkStateChangeRequest event to cause changes in the link
      * state.
+     *
+     * The function isn't protected since some callers (i.e.
+     * convergence layers) are not friend classes but some functions
+     * are run by the BundleDaemon thread.
      */
     void set_state(state_t state);
 
@@ -406,12 +406,6 @@ public:
         u_int mtu_;
          
         /**
-         * Seconds to wait between attempts to re-open an unavailable
-         * link, doubles up to max_retry_interval_.
-         */
-        u_int retry_interval_;
-
-        /**
          * Minimum amount to wait between attempts to re-open the link.
          *
          * Default is set by the various Link types but can be overridden
@@ -427,6 +421,13 @@ public:
          */
         u_int max_retry_interval_;
     };
+
+    /**
+     * Seconds to wait between attempts to re-open an unavailable
+     * link. Initially set to min_retry_interval_, then doubles up to
+     * max_retry_interval_.
+     */
+    u_int retry_interval_;
 
     /**
      * Accessor for the parameter structure.
@@ -481,6 +482,7 @@ public:
 protected:
     friend class BundleActions;
     friend class BundleDaemon;
+    friend class ContactManager;
     friend class ParamCommand;
     
     /**

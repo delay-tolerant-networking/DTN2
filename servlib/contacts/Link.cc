@@ -55,7 +55,6 @@ namespace dtn {
 /// Default parameters, values set in ParamCommand
 Link::Params Link::default_params_ = {
     default_params_.mtu_                = 0,
-    default_params_.retry_interval_     = 0,
     default_params_.min_retry_interval_ = 5,
     default_params_.max_retry_interval_ = 10 * 60
 };
@@ -122,7 +121,7 @@ Link::Link(const std::string& name, link_type_t type,
     ASSERT(clayer_);
 
     params_ = default_params_;
-    params_.retry_interval_ = params_.min_retry_interval_;
+    retry_interval_ = params_.min_retry_interval_;
 
     memset(&stats_, 0, sizeof(Stats));
 }
@@ -172,7 +171,6 @@ Link::serialize(oasys::SerializeAction* a)
     }
 
     a->process("remote_eid",         &remote_eid_);
-    a->process("retry_interval",     &params_.retry_interval_);
     a->process("min_retry_interval", &params_.min_retry_interval_);
     a->process("max_retry_interval", &params_.max_retry_interval_);
 
@@ -189,7 +187,7 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
 
     p.addopt(new dtn::EndpointIDOpt("remote_eid", &remote_eid_));
     p.addopt(new oasys::BoolOpt("reliable", &reliable_));
-    p.addopt(new oasys::UIntOpt("mtu",     &params_.mtu_));
+    p.addopt(new oasys::UIntOpt("mtu", &params_.mtu_));
     p.addopt(new oasys::UIntOpt("min_retry_interval",
                                 &params_.min_retry_interval_));
     p.addopt(new oasys::UIntOpt("max_retry_interval",
@@ -255,7 +253,7 @@ Link::set_state(state_t new_state)
         break; // any old state is valid
 
     case AVAILABLE:
-        ASSERT_STATE(state_ == CLOSING || state_ == UNAVAILABLE);
+        ASSERT_STATE(state_ == UNAVAILABLE);
         break;
 
     case OPENING:
@@ -270,10 +268,6 @@ Link::set_state(state_t new_state)
         ASSERT_STATE(state_ == OPEN);
         break;
     
-    case CLOSING:
-        ASSERT_STATE(state_ == OPENING || state_ == OPEN || state_ == BUSY);
-        break;
-
     default:
         NOTREACHED;
     }
@@ -298,9 +292,10 @@ Link::open()
 
     // tell the convergence layer to establish a new session however
     // it needs to, it will set the Link state to OPEN and post a
-    // ContactUpEvent
+    // ContactUpEvent when it has done the deed
     ASSERT(contact_ == NULL);
-    clayer()->open_contact(this);
+    contact_ = new Contact(this);
+    clayer()->open_contact(contact_);
 }
     
 //----------------------------------------------------------------------
@@ -309,15 +304,7 @@ Link::close()
 {
     log_debug("Link::close");
 
-    // This should only be called when the state has been set to
-    // CLOSING by the daemon's handler for the link state change
-    // request
-    if (state_ != CLOSING) {
-        log_err("Link::close in state %s: expected state CLOSING",
-                state_to_str(state_));
-        return;
-    }
-
+    // we should always be open, therefore we must have a contact
     if (contact_ == NULL) {
         log_err("Link::close with no contact");
         return;
@@ -327,12 +314,10 @@ Link::close()
     // it cleaned up its state
     clayer()->close_contact(contact_);
     ASSERT(contact_->cl_info() == NULL);
-    
-    // Remove the reference, which will clean up the object
-    contact_ = NULL;
 
-    // Scrub out the EID
-    remote_eid_.assign(EndpointID::NULL_EID());
+    // Remove the reference from the link, which will clean up the
+    // object eventually
+    contact_ = NULL;
 
     log_debug("Link::close complete");
 }

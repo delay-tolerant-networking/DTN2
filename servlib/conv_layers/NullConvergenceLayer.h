@@ -51,7 +51,7 @@ public:
     NullConvergenceLayer()
         : ConvergenceLayer("NullConvergenceLayer", "null") {}
 
-    bool open_contact(Link* link);
+    bool open_contact(const ContactRef& contact);
     void send_bundle(const ContactRef& contact, Bundle* bundle);
 };
 
