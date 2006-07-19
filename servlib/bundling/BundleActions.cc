@@ -71,12 +71,13 @@ BundleActions::close_link(Link* link)
 {
     log_debug("closing link %s", link->name());
 
-    if (! link->isopen()) {
-        log_err("not closing link %s since already closed", link->name());
+    if (! link->isopen() && ! link->isopening()) {
+        log_err("not closing link %s since not open", link->name());
         return;
     }
 
     link->close();
+    ASSERT(link->contact() == NULL);
 }
 
 //----------------------------------------------------------------------
