@@ -75,8 +75,8 @@ public:
     virtual void open_link(Link* link);
 
     /**
-     * Open a link for bundle transmission. The link should be in
-     * an open state for this call.
+     * Open a link for bundle transmission. The link should be in an
+     * open state for this to be called.
      */
     virtual void close_link(Link* link);
     
