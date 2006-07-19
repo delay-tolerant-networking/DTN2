@@ -245,9 +245,6 @@ BluetoothConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
-    // Nothing further, if OpLink
-    if (link->type() == Link::OPPORTUNISTIC) return true;
-
     // Create a new parameters structure, parse the options, and store
     // them in the link's cl info slot.
     Params* params = new Params(defaults_);
@@ -269,8 +266,18 @@ BluetoothConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         }
     }
 
+    // XXX/demmer this seems like a 1/2 done patch
+    //char buff[18];
+    //link->set_local(oasys::Bluetooth::batostr(&params->local_addr_,buff));
+
+    // Nothing further, if OpLink
+    if (link->type() == Link::OPPORTUNISTIC) {
+        delete params;
+        return true;
+    }
+
     // copy the retry parameters from the link itself
-    params->retry_interval_     = link->params().retry_interval_;
+    params->retry_interval_     = link->retry_interval_;
     params->min_retry_interval_ = link->params().min_retry_interval_;
     params->max_retry_interval_ = link->params().max_retry_interval_;
 
@@ -2024,7 +2031,7 @@ BluetoothConvergenceLayer::NeighborDiscovery::run()
     // loop forever (until interrupted)
     while (true) {
 
-        // naive randomizer ... I'm certainly open to suggestions here!
+        // randomize the sleep time:
         // the point is that two nodes with zero prior knowledge of each other
         // need to be able to discover each other in a reasonably short time.
         // if common practice is that all set their poll_interval to 1 or 30 or x

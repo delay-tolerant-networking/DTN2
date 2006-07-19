@@ -326,7 +326,7 @@ protected:
          */
         BluetoothConvergenceLayer::Params params_;
 
-        void set_contact(Contact *c) { contact_ = c; }
+        void set_contact(const ContactRef& c) { contact_ = c; }
 
         /**
          * Was this object formed by active or passive connect?
