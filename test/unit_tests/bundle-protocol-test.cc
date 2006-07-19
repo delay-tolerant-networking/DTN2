@@ -50,14 +50,14 @@ protocol_test(Bundle* b1)
     u_char buf[32768];
     int encode_len, decode_len;
 
-    encode_len = BundleProtocol::format_headers(b1, buf, sizeof(buf));
+    encode_len = BundleProtocol::format_header_blocks(b1, buf, sizeof(buf));
     CHECK(encode_len != -1);
     
     Bundle* b2 = new Bundle(oasys::Builder::builder());
     b2->bundleid_ = 0;
     b2->payload_.init(0, BundlePayload::NODATA);
     
-    decode_len = BundleProtocol::parse_headers(b2, buf, encode_len);
+    decode_len = BundleProtocol::parse_header_blocks(b2, buf, encode_len);
     CHECK_EQUAL(decode_len, encode_len);
 
     CHECK_EQUALSTR(b1->source_.c_str(),    b2->source_.c_str());

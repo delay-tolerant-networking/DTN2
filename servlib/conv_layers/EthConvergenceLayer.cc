@@ -450,7 +450,8 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 
     // fill in the rest of the iovec with the bundle header
 
-    u_int16_t header_len = BundleProtocol::format_headers(bundle, &iov[2], &iovcnt);
+    u_int16_t header_len =
+        BundleProtocol::format_header_blocks(bundle, &iov[2], &iovcnt);
     size_t payload_len = bundle->payload_.length();
     
     log_info("send_bundle: bundle id %d, header_length %d payload_length %d",

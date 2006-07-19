@@ -369,7 +369,7 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     // appropriately in the new bundle and returns the number of bytes
     // consumed for the bundle headers
     bundle = new Bundle();
-    header_len = BundleProtocol::parse_headers(bundle, bp, len);
+    header_len = BundleProtocol::parse_header_blocks(bundle, bp, len);
 
     if (header_len < 0) {
         log_err("process_data: invalid or too short bundle header");
@@ -451,7 +451,8 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     size_t payload_len = bundle->payload_.length();
 
     // stuff in the bundle headers
-    header_len = BundleProtocol::format_headers(bundle, buf_, sizeof(buf_));
+    header_len =
+        BundleProtocol::format_header_blocks(bundle, buf_, sizeof(buf_));
     if (header_len < 0) {
         log_err("send_bundle: bundle header too big for buffer (len %zu)",
                 sizeof(buf_));

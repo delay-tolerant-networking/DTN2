@@ -248,7 +248,7 @@ FileConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 
     // fill in the bundle header portion
     u_int16_t header_len =
-        BundleProtocol::format_headers(bundle, &iov[1], &iovcnt);
+        BundleProtocol::format_header_blocks(bundle, &iov[1], &iovcnt);
 
     // fill in the file header
     size_t payload_len = bundle->payload_.length();
@@ -391,7 +391,7 @@ FileConvergenceLayer::Scanner::run()
             }
 
             Bundle* bundle = new Bundle();
-            if (! BundleProtocol::parse_headers(bundle, buf, header_len)) {
+            if (! BundleProtocol::parse_header_blocks(bundle, buf, header_len)) {
                 log_err("error parsing bundle headers in file %s", path.c_str());
                 free(buf);
                 delete bundle;

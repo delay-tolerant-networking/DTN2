@@ -244,8 +244,8 @@ CustodySignal::reason_to_str(u_int8_t reason)
     case BundleProtocol::CUSTODY_NO_TIMELY_CONTACT:
         return "no timely contact";
         
-    case BundleProtocol::CUSTODY_HEADER_UNINTELLIGIBLE:
-        return "header unintelligible";
+    case BundleProtocol::CUSTODY_BLOCK_UNINTELLIGIBLE:
+        return "block unintelligible";
     }
 
     static char buf[64];

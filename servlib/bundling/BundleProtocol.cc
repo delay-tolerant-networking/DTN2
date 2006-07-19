@@ -126,9 +126,9 @@ BundleProtocol::get_primary_len(const Bundle* bundle,
     *primary_var_len = 0;
     
     /*
-     * We need to figure out the total length of the primary header,
+     * We need to figure out the total length of the primary block,
      * except for the SDNV used to encode the length itself and the
-     * three byte preamble (PrimaryHeader1).
+     * three byte preamble (PrimaryBlock1).
      *
      * First, we determine the size of the dictionary by first
      * figuring out all the unique strings, and in the process,
@@ -160,16 +160,16 @@ BundleProtocol::get_primary_len(const Bundle* bundle,
     }
 
     /*
-     * Tack on the size of the PrimaryHeader2, 
+     * Tack on the size of the PrimaryBlock2, 
      */
-    *primary_var_len += sizeof(PrimaryHeader2);
+    *primary_var_len += sizeof(PrimaryBlock2);
 
     /*
-     * Finally, add up the initial PrimaryHeader1 plus the size of the
+     * Finally, add up the initial PrimaryBlock1 plus the size of the
      * SDNV to encode the variable length part, plus the variable
      * length part itself.
      */
-    primary_len = sizeof(PrimaryHeader1) +
+    primary_len = sizeof(PrimaryBlock1) +
                   SDNV::encoding_len(*primary_var_len) +
                   *primary_var_len;
     
@@ -181,26 +181,27 @@ BundleProtocol::get_primary_len(const Bundle* bundle,
 
 //----------------------------------------------------------------------
 size_t
-BundleProtocol::get_payload_header_len(const Bundle* bundle)
+BundleProtocol::get_payload_block_len(const Bundle* bundle)
 {
-    return (sizeof(HeaderPreamble) +
+    return (sizeof(BlockPreamble) +
             SDNV::encoding_len(bundle->payload_.length()));
 }
 
 //----------------------------------------------------------------------
 int
-BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
+BundleProtocol::format_header_blocks(const Bundle* bundle,
+                                     u_char* buf, size_t len)
 {
     static const char* log = "/dtn/bundle/protocol";
     DictionaryVector dict;
     size_t orig_len = len;      // original length of the buffer
-    size_t primary_len = 0;     // total length of the primary header
+    size_t primary_len = 0;     // total length of the primary block
     size_t primary_var_len = 0; // length of the variable part of the primary
     size_t dictionary_len = 0;  // length of the dictionary
     int encoding_len = 0;	// use an int to handle -1 return values
 
     /*
-     * Grab the primary header length and make sure we have enough
+     * Grab the primary block length and make sure we have enough
      * space in the buffer for it.
      */
     primary_len = get_primary_len(bundle, &dict, &dictionary_len,
@@ -212,28 +213,28 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     (void)log; // in case NDEBUG is defined
     log_debug(log, "primary length %zu (preamble %zu var length %zu)",
               primary_len,
-	      (sizeof(PrimaryHeader1) + SDNV::encoding_len(primary_var_len)),
+	      (sizeof(PrimaryBlock1) + SDNV::encoding_len(primary_var_len)),
 	      primary_var_len);
     
     /*
-     * Ok, stuff in the preamble and the total header length.
+     * Ok, stuff in the preamble and the total block length.
      */
-    PrimaryHeader1* primary1              = (PrimaryHeader1*)buf;
+    PrimaryBlock1* primary1              = (PrimaryBlock1*)buf;
     primary1->version		          = CURRENT_VERSION;
     primary1->bundle_processing_flags     = format_bundle_flags(bundle);
     primary1->class_of_service_flags	  = format_cos_flags(bundle);
     primary1->status_report_request_flags = format_srr_flags(bundle);
     
     encoding_len = SDNV::encode(primary_var_len,
-				&primary1->header_length[0], len - 3);
+				&primary1->block_length[0], len - 3);
     ASSERT(encoding_len > 0);
-    buf += (sizeof(PrimaryHeader1) + encoding_len);
-    len -= (sizeof(PrimaryHeader1) + encoding_len);
+    buf += (sizeof(PrimaryBlock1) + encoding_len);
+    len -= (sizeof(PrimaryBlock1) + encoding_len);
 
     /*
-     * Now fill in the PrimaryHeader2.
+     * Now fill in the PrimaryBlock2.
      */
-    PrimaryHeader2* primary2 = (PrimaryHeader2*)buf;
+    PrimaryBlock2* primary2 = (PrimaryBlock2*)buf;
 
     get_dictionary_offsets(&dict, bundle->dest_,
                            &primary2->dest_scheme_offset,
@@ -266,8 +267,8 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     u_int32_t lifetime = htonl(bundle->expiration_);
     memcpy(&primary2->lifetime, &lifetime, sizeof(lifetime));
 
-    buf += sizeof(PrimaryHeader2);
-    len -= sizeof(PrimaryHeader2);
+    buf += sizeof(PrimaryBlock2);
+    len -= sizeof(PrimaryBlock2);
 
     /*
      * Stuff in the dictionary length and dictionary bytes.
@@ -313,25 +314,25 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
     // safety assertion
     ASSERT(primary_len == (orig_len - len));
 
-    // XXX/demmer deal with other experimental headers
+    // XXX/demmer deal with other experimental blocks
 
     /*
-     * Payload header (must be last). Note that we don't stuff in the
+     * Handle the payload block. Note that we don't stuff in the
      * actual payload here, even though it's technically part of the
-     * "payload header".
+     * "payload block".
      */
     u_int32_t payload_len = bundle->payload_.length();
-    if (len < (sizeof(HeaderPreamble) +
+    if (len < (sizeof(BlockPreamble) +
 	       SDNV::encoding_len(payload_len)))
     {
 	return -1;
     }
 
-    HeaderPreamble* payload_header = (HeaderPreamble*)buf;
-    payload_header->type = HEADER_PAYLOAD;
-    payload_header->flags = 0;
-    buf += sizeof(HeaderPreamble);
-    len -= sizeof(HeaderPreamble);
+    BlockPreamble* payload_block = (BlockPreamble*)buf;
+    payload_block->type  = PAYLOAD_BLOCK;
+    payload_block->flags = BLOCK_FLAG_LAST_BLOCK;
+    buf += sizeof(BlockPreamble);
+    len -= sizeof(BlockPreamble);
 
     encoding_len = SDNV::encode(payload_len, buf, len);
     ASSERT(encoding_len > 0);
@@ -345,28 +346,29 @@ BundleProtocol::format_headers(const Bundle* bundle, u_char* buf, size_t len)
 
 //----------------------------------------------------------------------
 int
-BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
+BundleProtocol::parse_header_blocks(Bundle* bundle,
+                                    u_char* buf, size_t len)
 {
     static const char* log = "/dtn/bundle/protocol";
     size_t origlen = len;
     int encoding_len;
 
     /*
-     * First the three bytes of the PrimaryHeader1
+     * First the three bytes of the PrimaryBlock1
      */
-    PrimaryHeader1* primary1;
-    if (len < sizeof(PrimaryHeader1)) {
+    PrimaryBlock1* primary1;
+    if (len < sizeof(PrimaryBlock1)) {
  tooshort1:
 	log_debug(log, "buffer too short (parsed %zu/%zu)",
 		  (origlen - len), origlen);
 	return -1;
     }
 
-    primary1 = (PrimaryHeader1*)buf;
-    buf += sizeof(PrimaryHeader1);
-    len -= sizeof(PrimaryHeader1);
+    primary1 = (PrimaryBlock1*)buf;
+    buf += sizeof(PrimaryBlock1);
+    len -= sizeof(PrimaryBlock1);
 
-    log_debug(log, "parsed primary header 1: version %d", primary1->version);
+    log_debug(log, "parsed primary block 1: version %d", primary1->version);
 
     if (primary1->version != CURRENT_VERSION) {
 	log_warn(log, "protocol version mismatch %d != %d",
@@ -379,7 +381,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     parse_srr_flags(bundle, primary1->status_report_request_flags);
 
     /*
-     * Now parse the SDNV that describes the total primary header
+     * Now parse the SDNV that describes the total primary block
      * length.
      */
     u_int32_t primary_len;
@@ -391,7 +393,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     buf += encoding_len;
     len -= encoding_len;
 
-    log_debug(log, "parsed primary header length %u", primary_len);
+    log_debug(log, "parsed primary block length %u", primary_len);
 
     /*
      * Check if the advertised length is bigger than the amount we
@@ -405,19 +407,19 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
      * Still, we need to make sure that the sender didn't lie and that
      * we really do have enough for the decoding...
      */
-    if (len < sizeof(PrimaryHeader2)) {
+    if (len < sizeof(PrimaryBlock2)) {
  tooshort2:
-	log_err(log, "primary header advertised incorrect length: "
+	log_err(log, "primary block advertised incorrect length: "
 		"advertised %u, total buffer %zu", primary_len, len);
 	return -1;
     }
 
     /*
-     * Parse the PrimaryHeader2
+     * Parse the PrimaryBlock2
      */
-    PrimaryHeader2* primary2    = (PrimaryHeader2*)buf;
-    buf += sizeof(PrimaryHeader2);
-    len -= sizeof(PrimaryHeader2);
+    PrimaryBlock2* primary2    = (PrimaryBlock2*)buf;
+    buf += sizeof(PrimaryBlock2);
+    len -= sizeof(PrimaryBlock2);
 
     get_timestamp(&bundle->creation_ts_, &primary2->creation_ts);
     u_int32_t lifetime;
@@ -453,7 +455,7 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     /*
      * Now use the dictionary buffer to parse out the various endpoint
      * identifiers, making sure that none of them peeks past the end
-     * of the dictionary header.
+     * of the dictionary block.
      */
     u_char* dictionary = buf;
     buf += dictionary_len;
@@ -518,23 +520,23 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
     }
 
     /*
-     * Parse the other headers, all of which have a preamble and an
+     * Parse the other blocks, all of which have a preamble and an
      * SDNV for their length.
      */
     while (len != 0) {
-	if (len <= sizeof(HeaderPreamble)) {
+	if (len <= sizeof(BlockPreamble)) {
 	    goto tooshort1;
 	}
 
-	HeaderPreamble* preamble = (HeaderPreamble*)buf;
-	buf += sizeof(HeaderPreamble);
-	len -= sizeof(HeaderPreamble);
+	BlockPreamble* preamble = (BlockPreamble*)buf;
+	buf += sizeof(BlockPreamble);
+	len -= sizeof(BlockPreamble);
 
 	// note that we don't support lengths bigger than 4 bytes
 	// here. this should be fixed when the bundle payload class
 	// supports big payloads.
-	u_int32_t header_len;
-	encoding_len = SDNV::decode(buf, len, &header_len);
+	u_int32_t block_len;
+	encoding_len = SDNV::decode(buf, len, &block_len);
 	if (encoding_len == -1) {
 	    goto tooshort1;
 	}
@@ -542,20 +544,28 @@ BundleProtocol::parse_headers(Bundle* bundle, u_char* buf, size_t len)
 	len -= encoding_len;
 
 	switch (preamble->type) {
-	case HEADER_PAYLOAD: {
-	    bundle->payload_.set_length(header_len);
+	case PAYLOAD_BLOCK: {
+	    bundle->payload_.set_length(block_len);
 	    log_debug(log, "parsed payload length %zu",
 		      bundle->payload_.length());
 
+            // XXX/demmer add support for blocks after the payload block
+            if (! (preamble->flags & BLOCK_FLAG_LAST_BLOCK)) {
+                log_crit(log,
+                         "this implementation cannot handle blocks after "
+                         "the payload!!");
+            }
+            
 	    // note that we don't actually snarf in the payload here
 	    // since it's handled by the caller, and since the payload
-	    // must be last, we're all done
+	    // must be the last thing we handle in this function,
+	    // we're done.
 	    goto done;
 	}
-
+            
 	default:
-	    // XXX/demmer handle extension headers.
-	    log_err(log, "unknown header code 0x%x", preamble->type);
+	    // XXX/demmer handle extension blocks.
+	    log_err(log, "unknown block code 0x%x", preamble->type);
 	    return -1;
 	}
     }
@@ -574,9 +584,10 @@ BundleProtocol::formatted_length(const Bundle* bundle)
     size_t primary_var_len;
 
     // XXX/demmer if this ends up being slow, we can cache it in the bundle
+    // XXX/demmer need to add tail blocks as well
     
     return (get_primary_len(bundle, &dict, &dictionary_len, &primary_var_len) +
-            get_payload_header_len(bundle) +
+            get_payload_block_len(bundle) +
             bundle->payload_.length());
 }
     
@@ -752,7 +763,7 @@ BundleProtocol::get_admin_type(const Bundle* bundle, admin_record_type_t* type)
 	CASE(ADMIN_ANNOUNCE);
 
 #undef  CASE
-        default:
+    default:
         return false; // unknown type
     }
 

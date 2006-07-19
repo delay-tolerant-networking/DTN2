@@ -320,9 +320,9 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
                 Tcl_NewStringObj("No timely contact with next node on route.", -1));
             break;
             
-        case BundleProtocol::REASON_HEADER_UNINTELLIGIBLE:
+        case BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE:
             addElement(
-                Tcl_NewStringObj("Header unintelligible.", -1));
+                Tcl_NewStringObj("Block unintelligible.", -1));
             break;
             
         default:
@@ -397,8 +397,8 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
             addElement(Tcl_NewStringObj("No timely contact with next node en route.", -1));
             break;
             
-        case BundleProtocol::CUSTODY_HEADER_UNINTELLIGIBLE:
-            addElement(Tcl_NewStringObj("Header unintelligible.", -1));
+        case BundleProtocol::CUSTODY_BLOCK_UNINTELLIGIBLE:
+            addElement(Tcl_NewStringObj("Block unintelligible.", -1));
             break;
             
         default:

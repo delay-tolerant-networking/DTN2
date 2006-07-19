@@ -54,23 +54,64 @@ class EndpointID;
 class BundleProtocol {
 public:
     /**
-     * Fill in the given buffer with the formatted bundle headers
-     * including the payload header, but not the payload data.
+     * Fill in the given buffer with the formatted bundle blocks that
+     * should go before the payload data, including the payload block
+     * header (i.e. typecode, flags, and length) but none of the
+     * payload data.
      *
-     * @return the total length of the header or -1 on error (i.e. too
-     * small of a buffer)
+     * @return the total length of the formatted blocks or -1 on error
+     * (i.e. too small of a buffer)
      */
-    static int format_headers(const Bundle* bundle, u_char* buf, size_t len);
-
+    static int format_header_blocks(const Bundle* bundle,
+                                    u_char* buf, size_t len);
+    
     /**
-     * Parse the header data, filling in the bundle. Note that this
-     * implementation doesn't support sizes bigger than 4GB for the
-     * headers.
+     * Parse the received blocks, filling in the bundle with the
+     * relevant data if successful. This succeeds iff the buffer
+     * contains a payload block header, and returns the length of all
+     * blocks up to the first byte of payload data.
      *
-     * @return the length consumed or -1 on error (i.e. not enough
-     * data in buffer)
+     * Note that this implementation doesn't support sizes bigger than
+     * 4GB for the headers.
+     *
+     * @return the length of the header blocks or -1 on error (i.e.
+     * not enough data in buffer)
      */
-    static int parse_headers(Bundle* bundle, u_char* buf, size_t len);
+    static int parse_header_blocks(Bundle* bundle,
+                                   u_char* buf, size_t len);
+    
+    /**
+     * Fill in the given buffer with the formatted bundle blocks that
+     * should go after the payload data.
+     *
+     * @return the total length of the formatted blocks or -1 on error
+     * (i.e. too small of a buffer)
+     */
+    static int format_tail_blocks(const Bundle* bundle,
+                                  u_char* buf, size_t len)
+    {
+        (void)bundle;
+        (void)buf;
+        (void)len;
+            
+        return 0; // no trailing blocks implemented yet
+    }
+    
+    /**
+     * Parse the blocks received after the payload data, filling in
+     * the bundle with the relevant data if successful.
+     *
+     * @return the length of the header blocks or -1 on error (i.e.
+     * not enough data in buffer)
+     */
+    static int parse_tail_blocks(Bundle* bundle,
+                                 u_char* buf, size_t len)
+    {
+        (void)bundle;
+        (void)buf;
+        (void)len;
+        return 0;
+    }
     
     /**
      * Return the length of the on-the-wire bundle protocol format for
@@ -117,7 +158,7 @@ public:
 
     /**
      * Values for bundle processing flags that appear in the primary
-     * header.
+     * block.
      */
     typedef enum {
         BUNDLE_IS_FRAGMENT             = 1 << 0,
@@ -128,22 +169,22 @@ public:
     } bundle_processing_flag_t;
     
     /**
-     * The first fixed-field portion of the primary bundle header
+     * The first fixed-field portion of the primary bundle block
      * preamble structure.
      */
-    struct PrimaryHeader1 {
+    struct PrimaryBlock1 {
         u_int8_t  version;
         u_int8_t  bundle_processing_flags;
         u_int8_t  class_of_service_flags;
         u_int8_t  status_report_request_flags;
-        u_char    header_length[0]; // SDNV
+        u_char    block_length[0]; // SDNV
     } __attribute__((packed));
 
     /**
      * The remainder of the fixed-length part of the primary bundle
-     * header that immediately follows the header length.
+     * block that immediately follows the block length.
      */
-    struct PrimaryHeader2 {
+    struct PrimaryBlock2 {
         u_int16_t dest_scheme_offset;
         u_int16_t dest_ssp_offset;
         u_int16_t source_scheme_offset;
@@ -158,32 +199,32 @@ public:
     } __attribute__((packed));
 
     /**
-     * Valid type codes for bundle headers except the primary header.
+     * Valid type codes for bundle blocks other than the primary
+     * block.
      */
     typedef enum {
-        HEADER_PAYLOAD          = 0x01
-    } bundle_header_type_t;
+        PAYLOAD_BLOCK          = 0x01
+    } bundle_block_type_t;
 
     /**
-     * Values for header processing flags that appear in all headers
-     * except the primary header.
+     * Values for block processing flags that appear in all blocks
+     * except the primary block.
      */
     typedef enum {
-        HEADER_FLAG_REPLICATE           = 1 << 0,
-        HEADER_FLAG_REPORT_ONERROR      = 1 << 1,
-        HEADER_FLAG_DISCARD_ONERROR     = 1 << 2,
-        HEADER_FLAG_LAST_HEADER		= 1 << 3,
-    } header_flag_t;
+        BLOCK_FLAG_REPLICATE		= 1 << 0,
+        BLOCK_FLAG_REPORT_ONERROR	= 1 << 1,
+        BLOCK_FLAG_DISCARD_ONERROR	= 1 << 2,
+        BLOCK_FLAG_LAST_BLOCK		= 1 << 3,
+    } block_flag_t;
 
     /**
-     * The basic header preamble that's common to all headers
-     * (including the payload header but not the primary header).
+     * The basic block preamble that's common to all blocks
+     * (including the payload block but not the primary block).
      */
-    struct HeaderPreamble {
+    struct BlockPreamble {
         u_int8_t type;
         u_int8_t flags;
         u_char   length[0]; // SDNV
-
     } __attribute__((packed));
 
     /**
@@ -230,7 +271,7 @@ public:
 	REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
 	REASON_NO_ROUTE_TO_DEST           = 0x06,
 	REASON_NO_TIMELY_CONTACT          = 0x07,
-	REASON_HEADER_UNINTELLIGIBLE      = 0x08,
+	REASON_BLOCK_UNINTELLIGIBLE       = 0x08,
     } status_report_reason_t;
 
     /**
@@ -243,7 +284,7 @@ public:
         CUSTODY_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
         CUSTODY_NO_ROUTE_TO_DEST           = 0x06,
         CUSTODY_NO_TIMELY_CONTACT          = 0x07,
-        CUSTODY_HEADER_UNINTELLIGIBLE      = 0x08
+        CUSTODY_BLOCK_UNINTELLIGIBLE	   = 0x08
     } custody_signal_reason_t;
 
     /**
@@ -261,7 +302,7 @@ protected:
                                   size_t* dictionary_len,
                                   size_t* primary_var_len);
 
-    static size_t get_payload_header_len(const Bundle* bundle);
+    static size_t get_payload_block_len(const Bundle* bundle);
     
     static void add_to_dictionary(const EndpointID& eid,
                                   DictionaryVector* dict,

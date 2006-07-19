@@ -884,8 +884,8 @@ BluetoothConvergenceLayer::Connection::send_bundle(Bundle* bundle)
 
 retry_headers:
     header_len =
-        BundleProtocol::format_headers(bundle, sndbuf_.buf(),
-                                       sndbuf_.buf_len());
+        BundleProtocol::format_header_blocks(bundle, sndbuf_.buf(),
+                                             sndbuf_.buf_len());
     if (header_len < 0) {
         log_debug("send_bundle: bundle header too big for buffer len %zu -- "
                   "doubling size and retrying", sndbuf_.buf_len());
@@ -1089,9 +1089,9 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
     // now try to parse the headers into the new bundle, which may
     // require reading in more data and possibly increasing the size
     // of the stream buffer
-    header_len = BundleProtocol::parse_headers(bundle,
-                                               (u_char*)rcvbuf_.start(),
-                                               rcvbuf_.fullbytes());
+    header_len = BundleProtocol::parse_header_blocks(bundle,
+                                                     (u_char*)rcvbuf_.start(),
+                                                     rcvbuf_.fullbytes());
     
     if (header_len < 0) {
         if (rcvbuf_.tailbytes() == 0) {
