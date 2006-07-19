@@ -114,6 +114,12 @@
 /* whether mysql support is enabled */
 #undef MYSQL_ENABLED
 
+/* whether atomic routines are implemented with a mutex */
+#undef OASYS_ATOMIC_MUTEX
+
+/* whether non-atomic "atomic" routines are enabled */
+#undef OASYS_ATOMIC_NONATOMIC
+
 /* whether bluetooth support is enabled */
 #undef OASYS_BLUETOOTH_ENABLED
 

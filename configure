@@ -858,6 +858,10 @@ Optional Features:
   --enable-profile        compile with profiling
   --enable-static         statically link all binaries
   --enable-static-libs    use static supporting libraries
+  --enable-atomic-nonatomic
+                          compile with non-atomic "atomic" routines (testing
+                          only)
+  --disable-atomic-asm    compile without assembly-based atomic functions
   --enable-google-profiling
                           compile with google profiling
 
@@ -5434,6 +5438,58 @@ _ACEOF
 fi
 done
 
+
+
+                    # Check whether --enable-atomic_nonatomic or --disable-atomic_nonatomic was given.
+if test "${enable_atomic_nonatomic+set}" = set; then
+  enableval="$enable_atomic_nonatomic"
+  atomic_nonatomic=$enableval
+else
+  atomic_nonatomic=no
+fi;
+
+    echo "$as_me:$LINENO: checking whether to compile with non-atomic \"atomic\" routines" >&5
+echo $ECHO_N "checking whether to compile with non-atomic \"atomic\" routines... $ECHO_C" >&6
+    echo "$as_me:$LINENO: result: $atomic_nonatomic" >&5
+echo "${ECHO_T}$atomic_nonatomic" >&6
+
+    if test $atomic_nonatomic = yes ; then
+        { echo "$as_me:$LINENO: ***" >&5
+echo "$as_me: ***" >&6;}
+        { echo "$as_me:$LINENO: *** WARNING: non-atomic \"atomic\" routines are for testing only ***" >&5
+echo "$as_me: *** WARNING: non-atomic \"atomic\" routines are for testing only ***" >&6;}
+        { echo "$as_me:$LINENO: ***" >&5
+echo "$as_me: ***" >&6;}
+
+
+cat >>confdefs.h <<_ACEOF
+#define OASYS_ATOMIC_NONATOMIC 1
+_ACEOF
+
+    else
+
+                    # Check whether --enable-atomic_asm or --disable-atomic_asm was given.
+if test "${enable_atomic_asm+set}" = set; then
+  enableval="$enable_atomic_asm"
+  atomic_asm=$enableval
+else
+  atomic_asm=yes
+fi;
+
+    echo "$as_me:$LINENO: checking whether to compile with assembly-based atomic functions" >&5
+echo $ECHO_N "checking whether to compile with assembly-based atomic functions... $ECHO_C" >&6
+    echo "$as_me:$LINENO: result: $atomic_asm" >&5
+echo "${ECHO_T}$atomic_asm" >&6
+
+    if test $atomic_asm = no ; then
+
+cat >>confdefs.h <<_ACEOF
+#define OASYS_ATOMIC_MUTEX 1
+_ACEOF
+
+    fi
+
+    fi
 
 
 
