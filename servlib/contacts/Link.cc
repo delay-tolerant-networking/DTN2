@@ -226,11 +226,7 @@ Link::~Link()
      * we're (relatively) sure this constraint does hold.
      */
     ASSERT(!isopen());
-    
-    if (cl_info_ != NULL) {
-        delete cl_info_;
-        cl_info_ = NULL;
-    }
+    ASSERT(cl_info_ == NULL);
 }
 
 //----------------------------------------------------------------------
@@ -261,7 +257,8 @@ Link::set_state(state_t new_state)
         break;
         
     case OPEN:
-        ASSERT_STATE(state_ == OPENING || state_ == BUSY);
+        ASSERT_STATE(state_ == OPENING || state_ == BUSY ||
+                     state_ == UNAVAILABLE /* for opportunistic links */);
         break;
 
     case BUSY:
@@ -326,9 +323,9 @@ Link::close()
 int
 Link::format(char* buf, size_t sz) const
 {
-    return snprintf(buf, sz, "%s %s -> %s (%s) (remote_eid %s)",
-                    link_type_to_str(type_), name(), nexthop(),
-                    state_to_str(state_), remote_eid_.c_str());
+    return snprintf(buf, sz, "%s [%s %s %s %s]",
+                    name(), nexthop(), remote_eid_.c_str(),
+                    link_type_to_str(type_), state_to_str(state_));
 }
 
 //----------------------------------------------------------------------
