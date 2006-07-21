@@ -114,10 +114,40 @@ public:
     }
     
     /**
+     * Return the length of the header blocks.
+     */
+    static size_t header_block_length(const Bundle* bundle);
+    
+    /**
+     * Return the length of the tail blocks.
+     */
+    static size_t tail_block_length(const Bundle* bundle)
+    {
+        (void)bundle;
+        return 0;
+    }
+    
+    /**
      * Return the length of the on-the-wire bundle protocol format for
-     * the given bundle.
+     * the whole bundle, i.e. 
      */
     static size_t formatted_length(const Bundle* bundle);
+    
+    /**
+     * Format the whole bundle, stuffing it in the supplied buffer.
+     *
+     * @return the total length of the formatted bundle or -1 on error
+     * (i.e. too small of a buffer)
+     */
+    static int format_bundle(const Bundle* bundle, u_char* buf, size_t len);
+
+    /**
+     * Parse a whole bundle.
+     *
+     * @return the total length of the parsed bundle or -1 on error
+     * (i.e. too small of a buffer)
+     */
+    static int parse_bundle(Bundle* bundle, u_char* buf, size_t len);
 
     /**
      * Store a DTN timestamp into a 64-bit timestamp suitable for
@@ -173,11 +203,11 @@ public:
      * preamble structure.
      */
     struct PrimaryBlock1 {
-        u_int8_t  version;
-        u_int8_t  bundle_processing_flags;
-        u_int8_t  class_of_service_flags;
-        u_int8_t  status_report_request_flags;
-        u_char    block_length[0]; // SDNV
+        u_int8_t version;
+        u_int8_t bundle_processing_flags;
+        u_int8_t class_of_service_flags;
+        u_int8_t status_report_request_flags;
+        u_char   block_length[0]; // SDNV
     } __attribute__((packed));
 
     /**

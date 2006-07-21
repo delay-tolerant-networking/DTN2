@@ -577,18 +577,92 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
 
 //----------------------------------------------------------------------
 size_t
-BundleProtocol::formatted_length(const Bundle* bundle)
+BundleProtocol::header_block_length(const Bundle* bundle)
 {
     DictionaryVector dict;
     size_t dictionary_len;
     size_t primary_var_len;
 
     // XXX/demmer if this ends up being slow, we can cache it in the bundle
-    // XXX/demmer need to add tail blocks as well
     
     return (get_primary_len(bundle, &dict, &dictionary_len, &primary_var_len) +
-            get_payload_block_len(bundle) +
-            bundle->payload_.length());
+            get_payload_block_len(bundle));
+}
+
+//----------------------------------------------------------------------
+size_t
+BundleProtocol::formatted_length(const Bundle* bundle)
+{
+    return header_block_length(bundle) +
+        bundle->payload_.length() +
+        tail_block_length(bundle);
+}
+
+//----------------------------------------------------------------------
+int
+BundleProtocol::format_bundle(const Bundle* bundle, u_char* buf, size_t len)
+{
+    size_t origlen = len;
+    
+    // first the header blocks
+    int ret = format_header_blocks(bundle, buf, len);
+    if (ret < 0) {
+        return ret;
+    }
+    buf += ret;
+    len -= ret;
+
+    // then the payload
+    size_t payload_len = bundle->payload_.length();
+    if (payload_len > len) {
+        return -1;
+    }
+    bundle->payload_.read_data(0, payload_len, buf,
+                               BundlePayload::FORCE_COPY);
+    len -= payload_len;
+    buf += payload_len;
+
+    ret = format_tail_blocks(bundle, buf, len);
+    if (ret < 0) {
+        return ret;
+    }
+    len -= ret;
+    buf += ret;
+
+    return origlen - len;
+}
+    
+//----------------------------------------------------------------------
+int
+BundleProtocol::parse_bundle(Bundle* bundle, u_char* buf, size_t len)
+{
+    size_t origlen = len;
+    
+    // first the header blocks
+    int ret = parse_header_blocks(bundle, buf, len);
+    if (ret < 0) {
+        return ret;
+    }
+    buf += ret;
+    len -= ret;
+
+    // then the payload
+    size_t payload_len = bundle->payload_.length();
+    if (payload_len > len) {
+        return -1;
+    }
+    bundle->payload_.set_data(buf, payload_len);
+    len -= payload_len;
+    buf += payload_len;
+
+    ret = parse_tail_blocks(bundle, buf, len);
+    if (ret < 0) {
+        return ret;
+    }
+    len -= ret;
+    buf += ret;
+
+    return origlen - len;
 }
     
 //----------------------------------------------------------------------
