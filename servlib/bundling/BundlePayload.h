@@ -198,9 +198,9 @@ public:
     const u_char* read_data(size_t offset, size_t len, u_char* buf,
                             int flags = 0) const
     {
-        return const_cast<BundlePayload*>(this)->read_data(offset, len, buf, flags);
+        return const_cast<BundlePayload*>(this)->
+            read_data(offset, len, buf, flags);
     }
-
      
     /**
      * Virtual from SerializableObject
