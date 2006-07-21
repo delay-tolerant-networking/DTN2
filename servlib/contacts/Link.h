@@ -190,20 +190,20 @@ public:
      * The possible states for a link.
      */
     typedef enum {
-        UNAVAILABLE,	///< The link is closed and not able to be
+        UNAVAILABLE = 1,///< The link is closed and not able to be
                         ///  opened currently.
 
-        AVAILABLE,	///< The link is closed but is able to be
+        AVAILABLE = 2,	///< The link is closed but is able to be
                         ///  opened, either because it is an on demand
                         ///  link, or because an opportunistic peer
                         ///  node is in close proximity but no
                         ///  convergence layer session has yet been
                         ///  opened.
         
-        OPENING,	///< A convergence layer session is in the
+        OPENING = 4,	///< A convergence layer session is in the
                         ///  process of being established.
         
-        OPEN,		///< A convergence layer session has been
+        OPEN = 8,	///< A convergence layer session has been
                         ///  established, and the link has capacity
                         ///  for a bundle to be sent on it. This may
                         ///  be because no bundle is currently being
@@ -211,12 +211,12 @@ public:
                         ///  can handle multiple simultaneous bundle
                         ///  transmissions.
         
-        BUSY,		///< The link is busy, i.e. a bundle is
+        BUSY = 16,	///< The link is busy, i.e. a bundle is
                         ///  currently being sent on it by the
                         ///  convergence layer and no more bundles may
                         ///  be delivered to the link.
 
-        CLOSED		///< Bogus state that's never actually used in
+        CLOSED = 32	///< Bogus state that's never actually used in
                         ///  the Link state_ variable, but is used for
                         ///  signalling the daemon thread with a
                         ///  LinkStateChangeRequest
@@ -388,8 +388,17 @@ public:
      */
     void set_reliable(bool r) { reliable_ = r; }
 
-    void set_remote_eid(EndpointID& remote) { remote_eid_.assign(remote); }
-    EndpointID& remote_eid() { return remote_eid_; }
+    /**
+     * Accessor to set the remote endpoint id.
+     */
+    void set_remote_eid(const EndpointID& remote) {
+        remote_eid_.assign(remote);
+    }
+
+    /**
+     * Accessor to the remote endpoint id.
+     */
+    const EndpointID& remote_eid() { return remote_eid_; }
 
     /**
      * Virtual from formatter
