@@ -77,6 +77,7 @@ install:
 
 	for prog in daemon/dtnd \
 		    tools/dtnd-control \
+		    apps/dtncat/dtncat \
 		    apps/dtncp/dtncp \
 		    apps/dtncpd/dtncpd \
 		    apps/dtnping/dtnping \
