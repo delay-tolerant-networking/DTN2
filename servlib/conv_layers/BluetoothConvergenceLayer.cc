@@ -447,6 +447,7 @@ BluetoothConvergenceLayer::ConnectionManager::listener(bdaddr_t& addr)
     }
 
     char buff[18];
+    (void)buff;
 
     // Search listeners
     it_ = l_map_.find(addr);
@@ -478,6 +479,8 @@ BluetoothConvergenceLayer::ConnectionManager::addListener(Listener* l)
     ASSERT(l != NULL);
 
     char buff[18];
+    (void)buff;
+    
     bdaddr_t addr;
     l->local_addr(addr);
 
@@ -528,6 +531,8 @@ BluetoothConvergenceLayer::ConnectionManager::connection(
         for(it_ = l_map_.begin(); it_ != l_map_.end(); it_++) {
             Listener *l = (*it_).second;
             bdaddr_t ba = (*it_).first;
+            (void)l;
+            (void)ba;
             log_debug("Listener\tListener %p bdaddr %s",
                       l,oasys::Bluetooth::batostr(&ba,buff));
         }
@@ -771,6 +776,7 @@ bool
 BluetoothConvergenceLayer::Connection::send_announce()
 {
     char buff[18]; //used by oasys::batostr below
+    (void)buff;
 
     bdaddr_t remote;
     sock_->remote_addr(remote);
@@ -1514,6 +1520,8 @@ BluetoothConvergenceLayer::Connection::connect()
 {
     ASSERT(sock_->state() != oasys::BluetoothSocket::ESTABLISHED);
     char buff[18];
+    (void)buff;
+    
     bdaddr_t ba;
     sock_->remote_addr(ba);
     ASSERT(bacmp(&ba,BDADDR_ANY) != 0);
