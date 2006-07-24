@@ -391,6 +391,7 @@ next_incoming_bundle:
     while (end != incoming->ack_data_.end()) {
         size_t ack_len   = *end + 1;
         size_t block_len = ack_len - *start;
+        (void)block_len;
         
         // make sure we have space in the send buffer
         size_t encoding_len = 1 + SDNV::encoding_len(ack_len);
