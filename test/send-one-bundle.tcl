@@ -1,5 +1,5 @@
 test::name send-one-bundle
-net::num_nodes 3
+net::default_num_nodes 2
 
 dtn::config
 
@@ -45,17 +45,23 @@ test::script {
 	    is_admin 0 source $source dest $dest
     
     puts "* Doing sanity check on stats"
-    dtn::wait_for_bundle_stats 0 {0 pending 0 expired}
-    dtn::wait_for_bundle_stats 1 {0 pending 0 expired}
-    dtn::wait_for_bundle_stats 2 {0 pending 0 expired}
-    dtn::wait_for_bundle_stats 0 {1 received}
-    dtn::wait_for_bundle_stats 0 {1 received}
-    dtn::wait_for_bundle_stats 1 {1 transmitted}
-    dtn::wait_for_link_stat 1 $clayer-link:1-0 1 bundles_transmitted
-    dtn::wait_for_link_stat 1 $clayer-link:1-0 $length bytes_transmitted
-    dtn::wait_for_link_stat 1 $clayer-link:1-0 0 bundles_inflight
-    dtn::wait_for_link_stat 1 $clayer-link:1-0 0 bytes_inflight
+    for {set i 0} {$i <= $last_node} {incr i} {
+	dtn::wait_for_bundle_stats $i {0 pending}
+	dtn::wait_for_bundle_stats $i {0 expired}
+	dtn::wait_for_bundle_stats $i {1 received}
+    }
     
+    dtn::wait_for_bundle_stats 0 {1 delivered}
+    
+    for {set i 1} {$i <= $last_node} {incr i} {
+	set outgoing_link $clayer-link:$i-[expr $i - 1]
+	dtn::wait_for_bundle_stats $i {1 transmitted}
+	dtn::wait_for_link_stat $i $outgoing_link 1 bundles_transmitted
+	dtn::wait_for_link_stat $i $outgoing_link $length bytes_transmitted
+	dtn::wait_for_link_stat $i $outgoing_link 0 bundles_inflight
+	dtn::wait_for_link_stat $i $outgoing_link 0 bytes_inflight
+    }
+	
     puts "* Test success!"
 }
 
