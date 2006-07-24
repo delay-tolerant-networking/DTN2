@@ -36,14 +36,19 @@ CONTACT_SRCS :=					\
 	contacts/ScheduledLink.cc		\
 
 CONV_LAYER_SRCS :=				\
+	conv_layers/BluetoothConvergenceLayer.cc \
+	conv_layers/ConnectionConvergenceLayer.cc \
+	conv_layers/CLConnection.cc \
 	conv_layers/ConvergenceLayer.cc		\
+	conv_layers/EthConvergenceLayer.cc	\
 	conv_layers/FileConvergenceLayer.cc	\
 	conv_layers/IPConvergenceLayer.cc	\
-	conv_layers/EthConvergenceLayer.cc	\
+	conv_layers/IPConvergenceLayerUtils.cc	\
 	conv_layers/NullConvergenceLayer.cc	\
+	conv_layers/StreamConvergenceLayer.cc   \
 	conv_layers/TCPConvergenceLayer.cc	\
+	conv_layers/TCP2ConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
-	conv_layers/BluetoothConvergenceLayer.cc\
 
 CMD_SRCS :=					\
 	cmd/APICommand.cc			\

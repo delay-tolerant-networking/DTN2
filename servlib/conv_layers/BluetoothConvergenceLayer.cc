@@ -1269,7 +1269,7 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
         // Finds the link (if it exists) otherwise creates the link and
         // posts LinkCreatedEvent 
         // Either way, it posts LinkAvailableEvent for this link
-        (void)cm->new_opportunistic_link(cl_,new Params(params_),nexthop,&eid);
+        (void)cm->new_opportunistic_link(cl_,nexthop,eid);
 
         if (receiver) {
             // our work here is done; time to self delete

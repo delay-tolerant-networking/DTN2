@@ -96,8 +96,27 @@ public:
     Link* find_link(const char* name);
 
     /**
+     * Helper routine to find a link based on the given criteria
+     *
+     * @param cl 	 The convergence layer
+     * @param nexthop	 The next hop string
+     * @param remote_eid Remote endpoint id
+     * @param type	 Link type (LINK_INVALID for any)
+     * @param states	 Bit vector of legal link states, e.g. ~(OPEN | OPENING)
+     *
+     * @return The link if it matches or NULL if there's no match
+     */
+    Link* find_link_to(ConvergenceLayer* cl,
+                       const std::string& nexthop,
+                       const EndpointID& remote_eid,
+                       Link::link_type_t type,
+                       u_int states);
+    
+    /**
      * Finds link to given next hop. Optionally restricts the search
      * to include only links using the given convergence layer.
+     *
+     * XXX/demmer should this include remote_eid as well?
      */
     Link* find_link_to(const char* next_hop, const char* clayer = NULL);
 
@@ -149,22 +168,13 @@ public:
      * Notification from a convergence layer that a new opportunistic
      * link has come knocking.
      *
-     * @return A link to represent the new link.
+     * @return An idle link to represent the new contact
      */
     Link* new_opportunistic_link(ConvergenceLayer* cl,
-                                 CLInfo* clinfo,
-                                 const char* nexthop,
-                                 EndpointID* remote_eid = NULL);
-
-protected:
-    /**
-     * Helper routine to find or create an opportunistic link.
-     */
-    Link* get_opportunistic_link(ConvergenceLayer* cl,
-				 CLInfo* clinfo,
-				 const char* nexthop,
-                 EndpointID* remote_eid = NULL);
+                                 const std::string& nexthop,
+                                 const EndpointID& remote_eid);
     
+protected:
     
     LinkSet* links_;			///< Set of all links
     int opportunistic_cnt_;		///< Counter for opportunistic links

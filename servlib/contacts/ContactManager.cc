@@ -270,90 +270,76 @@ ContactManager::handle_contact_up(ContactUpEvent* event)
 
 //----------------------------------------------------------------------
 Link*
-ContactManager::get_opportunistic_link(ConvergenceLayer* cl,
-				       CLInfo* clinfo,
-				       const char* nexthop,
-				       EndpointID* remote_eid)
+ContactManager::find_link_to(ConvergenceLayer* cl,
+                             const std::string& nexthop,
+                             const EndpointID& remote_eid,
+                             Link::link_type_t type,
+                             u_int states)
 {
     oasys::ScopeLock l(&lock_, "ContactManager");
     
     LinkSet::iterator iter;
     Link* link = NULL;
-
-    // first look through the list of links for an idle opportunistic
-    // link to this next hop
-    log_debug("looking for OPPORTUNISTIC link to %s", nexthop);
+    
+    log_debug("find_link_to: cl %s nexthop %s remote_eid %s "
+              "type %s states 0x%x",
+              cl ? cl->name() : "ANY",
+              nexthop.c_str(), remote_eid.c_str(),
+              type == Link::LINK_INVALID ? "ANY" : Link::link_type_to_str(type),
+              states);
+    
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        // find_link is case independent, better make this one the same, no?
-        if ( (strcasecmp(link->nexthop(), nexthop) == 0) &&   
-             (link->type() == Link::OPPORTUNISTIC)   &&
-             (link->clayer() == cl) ) {
-            if(! link->isopen()) {
-                log_debug("found match: link %s", link->name());
-                return link;
-            }
-            else {
-                log_debug("found match: link %s, but it's already open! "
-                          "Returning it anyway.", link->name());
-                return link;
-            }
+        
+        if ( ((type == Link::LINK_INVALID) || (type == link->type())) &&
+             ((cl == NULL) || (link->clayer() == cl)) &&
+             (nexthop == link->nexthop()) &&
+             (remote_eid.equals(link->remote_eid())) &&
+             ((states & link->state()) != 0) )
+        {
+            log_debug("find_link_to: matched link *%p", link);
+            return link;
         }
     }
 
-    log_debug("no match, creating new link to %s", nexthop);
-
-    // find a unique link name
-    char name[64];
-    do {
-        snprintf(name, sizeof(name), "opportunistic-%d",
-                 opportunistic_cnt_);
-        opportunistic_cnt_++;
-        link = find_link(name);
-    } while (link != NULL);
-        
-    link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop, 0, NULL);
-    if ( remote_eid != NULL )
-        link->set_remote_eid (*remote_eid);
-        
-    if (!link) {
-        log_crit("unexpected error creating opportunistic link!!");
-        return NULL;
-    }
-
-    link->set_cl_info(clinfo);
-
-    // add the link to the set and post a link created event
-    add_link(link);
-
-    return link;
+    log_debug("find_link_to: no match");
+    return NULL;
 }
 
 //----------------------------------------------------------------------
 Link*
 ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
-                                       CLInfo* clinfo,
-                                       const char* nexthop,
-                                       EndpointID* remote_eid)
+                                       const std::string& nexthop,
+                                       const EndpointID& remote_eid)
 {
+    log_debug("new_opportunistic_link: cl %s nexthop %s remote_eid %s",
+              cl->name(), nexthop.c_str(), remote_eid.c_str());
+    
     oasys::ScopeLock l(&lock_, "ContactManager");
     
-    Link* link = get_opportunistic_link(cl, clinfo, nexthop, remote_eid);
-    if (!link) // no link means it couldn't be created
-        return NULL;
+    Link* link = find_link_to(cl, nexthop, remote_eid, Link::OPPORTUNISTIC,
+                              Link::AVAILABLE | Link::UNAVAILABLE);
 
-    if (link->isopen()) {
-        log_debug("Contact to %s already established, ignoring...", nexthop);
-        return link;
+    if (!link) {
+        log_debug("no match, creating new link to %s", nexthop.c_str());
+
+        // find a unique link name
+        char name[64];
+        do {
+            snprintf(name, sizeof(name), "opportunistic-%d",
+                     opportunistic_cnt_);
+            opportunistic_cnt_++;
+            link = find_link(name);
+        } while (link != NULL);
+        
+        link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop.c_str(),
+                                 0, NULL);
+        ASSERTF(link, "unexpected error creating opportunistic link!!");
+        link->set_remote_eid(remote_eid);
+        add_link(link);
     }
-
-    if (remote_eid != NULL) {
-        link->set_state(Link::AVAILABLE);
-    }
-
-    // notify the daemon that the link is available
-    BundleDaemon::post(new LinkAvailableEvent(link, ContactEvent::NO_INFO));
+    
     return link;
 }
     
