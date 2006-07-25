@@ -273,7 +273,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 
         char bundles_string[60];
         memset(bundles_string,0,60);
-        EthernetScheme::to_string((struct ether_addr*)ethhdr->ether_shost,
+        EthernetScheme::to_string(&ethhdr->ether_shost[0],
                                   bundles_string);
         char next_hop_string[50], *ptr;
 	memset(next_hop_string,0,50);

@@ -133,12 +133,10 @@ EthernetScheme::match(const EndpointIDPattern& pattern,
 }
 
 char* 
-EthernetScheme::to_string(eth_addr_t* addr, char* outstring)
+EthernetScheme::to_string(u_int8_t* addr, char* outstring)
 {
     sprintf(outstring,"eth://%02X:%02X:%02X:%02X:%02X:%02X", 
-            addr->octet[0], addr->octet[1],
-            addr->octet[2], addr->octet[3],
-            addr->octet[4], addr->octet[5]);
+            addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
     
     return outstring;
 }

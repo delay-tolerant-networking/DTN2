@@ -89,11 +89,12 @@ public:
 
     /**
      * Given an ethernet address, write out a string representation.
+     * addr needs to point to a six-byte buffer that contains the address.
      * outstring needs to point to a buffer of length at least 23 chars. 
      * eth://00:00:00:00:00:00
      * Returns outstring. 
      */
-    static char* to_string(eth_addr_t* addr, char* outstring);
+    static char* to_string(u_int8_t* addr, char* outstring);
 
 private:
     friend class oasys::Singleton<EthernetScheme>;
