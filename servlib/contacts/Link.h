@@ -374,6 +374,16 @@ public:
     const std::string& name_str() const { return name_; }
 
     /**
+     * Mutator for local string
+     */
+    void set_local(const char* local) { local_.assign(local); }
+
+    /**
+     * Accessor to local string
+     */
+    const char* local() const { return local_.c_str(); }
+
+    /**
      * Accessor to next hop string
      */
     const char* nexthop() const { return nexthop_.c_str(); }
@@ -514,6 +524,9 @@ protected:
     /// State of the link
     state_t state_;
 
+    /// Local address (optional)
+    std::string local_;
+    
     /// Next hop address
     std::string nexthop_;
     
