@@ -49,16 +49,19 @@ namespace dtn {
 
 ConvergenceLayer::CLVec ConvergenceLayer::clayers_;
 
+//----------------------------------------------------------------------
 ConvergenceLayer::~ConvergenceLayer()
 {
 }
 
+//----------------------------------------------------------------------
 void
 ConvergenceLayer::add_clayer(ConvergenceLayer* cl)
 {
     clayers_.push_back(cl);
 }
     
+//----------------------------------------------------------------------
 void
 ConvergenceLayer::init_clayers()
 {
@@ -76,6 +79,7 @@ ConvergenceLayer::init_clayers()
     // add_clayer("file", new FileConvergenceLayer());
 }
 
+//----------------------------------------------------------------------
 ConvergenceLayer*
 ConvergenceLayer::find_clayer(const char* name)
 {
@@ -90,12 +94,7 @@ ConvergenceLayer::find_clayer(const char* name)
     return NULL;
 }
 
-
-/**
- * Bring up a new interface.
- *
- * The default implementation doesn't do anything but log.
- */
+//----------------------------------------------------------------------
 bool
 ConvergenceLayer::interface_up(Interface* iface,
                                int argc, const char* argv[])
@@ -107,9 +106,7 @@ ConvergenceLayer::interface_up(Interface* iface,
     return true;
 }
 
-/**
- * Bring down the interface.
- */
+//----------------------------------------------------------------------
 bool
 ConvergenceLayer::interface_down(Interface* iface)
 {
@@ -118,9 +115,7 @@ ConvergenceLayer::interface_down(Interface* iface)
     return true;
 }
 
-/**
- * Dump out CL specific interface information.
- */
+//----------------------------------------------------------------------
 void
 ConvergenceLayer::dump_interface(Interface* iface, oasys::StringBuffer* buf)
 {
@@ -128,11 +123,7 @@ ConvergenceLayer::dump_interface(Interface* iface, oasys::StringBuffer* buf)
     (void)buf;
 }
 
-/**
- * Create any CL-specific components of the Link.
- *
- * The default implementation doesn't do anything but log.
- */
+//----------------------------------------------------------------------
 bool
 ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 {
@@ -143,9 +134,7 @@ ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     return true;
 }
 
-/**
- * Dump out CL specific link information.
- */
+//----------------------------------------------------------------------
 void
 ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 {
@@ -153,6 +142,7 @@ ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
     (void)buf;
 }
 
+//----------------------------------------------------------------------
 bool
 ConvergenceLayer::reconfigure_link(Link* link, int argc, const char* argv[])
 {
@@ -161,9 +151,7 @@ ConvergenceLayer::reconfigure_link(Link* link, int argc, const char* argv[])
     return (argc == 0);
 }
 
-/**
- * Close the connnection to the contact.
- */
+//----------------------------------------------------------------------
 bool
 ConvergenceLayer::close_contact(const ContactRef& contact)
 {
