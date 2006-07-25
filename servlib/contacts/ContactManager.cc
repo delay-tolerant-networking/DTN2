@@ -333,8 +333,8 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
             link = find_link(name);
         } while (link != NULL);
         
-        link = Link::create_link(name, Link::OPPORTUNISTIC, cl, nexthop.c_str(),
-                                 0, NULL);
+        link = Link::create_link(name, Link::OPPORTUNISTIC, cl,
+                                 nexthop.c_str(), 0, NULL);
         ASSERTF(link, "unexpected error creating opportunistic link!!");
         link->set_remote_eid(remote_eid);
         add_link(link);
