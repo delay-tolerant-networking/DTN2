@@ -73,37 +73,47 @@ TCP2ConvergenceLayer::new_link_params()
 
 //----------------------------------------------------------------------
 bool
-TCP2ConvergenceLayer::parse_link_params(LinkParams* lparams, Link* link,
+TCP2ConvergenceLayer::parse_link_params(LinkParams* lparams,
                                         int argc, const char** argv,
                                         const char** invalidp)
 {
-    if (! StreamConvergenceLayer::parse_link_params(lparams, link,
-                                                    argc, argv, invalidp)) {
-        return false;
-    }
-
     TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(lparams);
     ASSERT(params != NULL);
 
     oasys::OptParser p;
-
+    
     p.addopt(new oasys::InAddrOpt("local_addr", &params->local_addr_));
-    p.addopt(new oasys::UInt16Opt("local_port", &params->local_port_));
-    p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
-    p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
-
-    if (! p.parse(argc, argv, invalidp)) {
+    
+    int count = p.parse_and_shift(argc, argv, invalidp);
+    if (count == -1) {
+        return false; // bogus value
+    }
+    argc -= count;
+    
+    if (params->local_addr_ == INADDR_NONE) {
+        log_err("invalid local address setting of INADDR_NONE");
         return false;
     }
+    
+    // continue up to parse the parent class
+    return StreamConvergenceLayer::parse_link_params(lparams, argc, argv,
+                                                     invalidp);
+}
 
-    // validate the link next hop address
+//----------------------------------------------------------------------
+bool
+TCP2ConvergenceLayer::parse_nexthop(Link* link, LinkParams* lparams)
+{
+    TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(lparams);
+    ASSERT(params != NULL);
+
     if (! IPConvergenceLayerUtils::parse_nexthop(link->nexthop(),
                                                  &params->remote_addr_,
                                                  &params->remote_port_)) {
         log_err("invalid next hop address '%s'", link->nexthop());
         return false;
     }
-
+    
     if (params->remote_addr_ == INADDR_ANY ||
         params->remote_addr_ == INADDR_NONE)
     {
@@ -118,12 +128,6 @@ TCP2ConvergenceLayer::parse_link_params(LinkParams* lparams, Link* link,
         return false;
     }
     
-    // check that the local interface is valid
-    if (params->local_addr_ == INADDR_NONE) {
-        log_err("invalid local address setting of INADDR_NONE");
-        return false;
-    }
-
     return true;
 }
 

@@ -142,10 +142,15 @@ protected:
      * Parse the link parameters, returning true iff the args are
      * valid for the given nexthop address.
      */
-    virtual bool parse_link_params(LinkParams* params, Link* link,
+    virtual bool parse_link_params(LinkParams* params,
                                    int argc, const char** argv,
                                    const char** invalidp);
     
+    /**
+     * Parse and validate the nexthop address for the given link.
+     */
+    virtual bool parse_nexthop(Link* link, LinkParams* params) = 0;
+
     /**
      * Create a new CL-specific connection object.
      */

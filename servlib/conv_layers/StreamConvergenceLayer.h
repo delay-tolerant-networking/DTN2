@@ -247,7 +247,6 @@ protected:
     
     /// @{ Virtual from ConnectionConvergenceLayer
     virtual bool parse_link_params(LinkParams* params,
-                                   Link* link,
                                    int argc, const char** argv,
                                    const char** invalidp);
     /// @}

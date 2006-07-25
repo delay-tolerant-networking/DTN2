@@ -69,7 +69,7 @@ StreamConvergenceLayer::StreamConvergenceLayer(const char* logpath,
 
 //----------------------------------------------------------------------
 bool
-StreamConvergenceLayer::parse_link_params(LinkParams* lparams, Link* link,
+StreamConvergenceLayer::parse_link_params(LinkParams* lparams,
                                           int argc, const char** argv,
                                           const char** invalidp)
 {
@@ -78,11 +78,6 @@ StreamConvergenceLayer::parse_link_params(LinkParams* lparams, Link* link,
     StreamLinkParams* params = dynamic_cast<StreamLinkParams*>(lparams);
     ASSERT(params != NULL);
                                
-    if (! ConnectionConvergenceLayer::parse_link_params(params, link,
-                                                        argc, argv, invalidp)) {
-        return false;
-    }
-    
     oasys::OptParser p;
 
     p.addopt(new oasys::BoolOpt("block_ack_enabled",
@@ -97,11 +92,14 @@ StreamConvergenceLayer::parse_link_params(LinkParams* lparams, Link* link,
     p.addopt(new oasys::UIntOpt("block_length",
                                 &params->block_length_));
     
-    if (! p.parse(argc, argv, invalidp)) {
+    int count = p.parse_and_shift(argc, argv, invalidp);
+    if (count == -1) {
         return false;
     }
+    argc -= count;
     
-    return true;
+    return ConnectionConvergenceLayer::parse_link_params(lparams, argc, argv,
+                                                         invalidp);
 }
 
 //----------------------------------------------------------------------

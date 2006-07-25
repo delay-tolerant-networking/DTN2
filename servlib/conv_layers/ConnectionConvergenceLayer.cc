@@ -69,20 +69,20 @@ ConnectionConvergenceLayer::ConnectionConvergenceLayer(const char* classname,
 
 //----------------------------------------------------------------------
 bool
-ConnectionConvergenceLayer::parse_link_params(LinkParams* params, Link* link,
+ConnectionConvergenceLayer::parse_link_params(LinkParams* params,
                                               int argc, const char** argv,
                                               const char** invalidp)
 {
-    (void)link;
     oasys::OptParser p;
     
-    p.addopt(new oasys::UIntOpt("busy_queue_depth", &params->busy_queue_depth_));
+    p.addopt(new oasys::UIntOpt("busy_queue_depth",
+                                &params->busy_queue_depth_));    
     p.addopt(new oasys::BoolOpt("reactive_frag_enabled",
                                 &params->reactive_frag_enabled_));
     p.addopt(new oasys::UIntOpt("sendbuf_len", &params->sendbuf_len_));
     p.addopt(new oasys::UIntOpt("recvbuf_len", &params->recvbuf_len_));
     p.addopt(new oasys::UIntOpt("data_timeout", &params->data_timeout_));
-
+    
     p.addopt(new oasys::UIntOpt("test_read_delay",
                                 &params->test_read_delay_));
     p.addopt(new oasys::UIntOpt("test_write_delay",
@@ -107,7 +107,6 @@ ConnectionConvergenceLayer::parse_link_params(LinkParams* params, Link* link,
     return true;
 }
 
-
 //----------------------------------------------------------------------
 bool
 ConnectionConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
@@ -117,9 +116,15 @@ ConnectionConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     // Create a new parameters structure, parse the options, and store
     // them in the link's cl info slot.
     LinkParams* params = new_link_params();
+
+    if (! parse_nexthop(link, params)) {
+        log_err("error parsing link nexthop '%s'", link->nexthop());
+        delete params;
+        return false;
+    }
     
     const char* invalid;
-    if (! parse_link_params(params, link,argc, argv, &invalid)) {
+    if (! parse_link_params(params, argc, argv, &invalid)) {
         log_err("error parsing link options: invalid option '%s'", invalid);
         delete params;
         return false;
@@ -139,7 +144,7 @@ ConnectionConvergenceLayer::reconfigure_link(Link* link,
     ASSERT(params != NULL);
     
     const char* invalid;
-    if (! parse_link_params(params, link, argc, argv, &invalid)) {
+    if (! parse_link_params(params, argc, argv, &invalid)) {
         log_err("reconfigure_link: invalid parameter %s", invalid);
         return false;
     }

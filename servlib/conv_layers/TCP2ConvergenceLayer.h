@@ -93,9 +93,10 @@ public:
 protected:
     /// @{ Virtual from ConnectionConvergenceLayer
     virtual LinkParams* new_link_params();
-    virtual bool parse_link_params(LinkParams* params, Link* link,
+    virtual bool parse_link_params(LinkParams* params,
                                    int argc, const char** argv,
                                    const char** invalidp);
+    virtual bool parse_nexthop(Link* link, LinkParams* params);
     virtual CLConnection* new_connection(LinkParams* params);
     /// @}
 
