@@ -66,7 +66,7 @@ ConvergenceLayer::init_clayers()
     add_clayer(new TCPConvergenceLayer());
     add_clayer(new TCP2ConvergenceLayer());
     add_clayer(new UDPConvergenceLayer());
-#ifdef XXX_demmer_fixme__linux
+#ifdef __linux__
     add_clayer(new EthConvergenceLayer());
 #endif
 #ifdef OASYS_BLUETOOTH_ENABLED

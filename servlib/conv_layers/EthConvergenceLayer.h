@@ -39,7 +39,7 @@
 #define _ETH_CONVERGENCE_LAYER_H_
 
 // Only works on Linux (for now)
-#ifdef XXX_demmer_fixme__linux
+#ifdef __linux__ 
 
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -72,18 +72,25 @@ class EthConvergenceLayer : public ConvergenceLayer {
 
 public:
     class BeaconTimer;
+
     /**
      * Current version of the protocol.
      */
-    static const u_int8_t ETHCL_VERSION = 0x01;
-    static const u_int16_t MAX_ETHER_PACKET = 1518;
+    static const u_int8_t  ETHCL_VERSION = 0x01;
     static const u_int16_t ETHERTYPE_DTN = 0xd710;
 
-    static const u_int8_t ETHCL_BEACON = 0x01;
-    static const u_int8_t ETHCL_BUNDLE = 0x02;
+    static const u_int8_t  ETHCL_BEACON = 0x01;
+    static const u_int8_t  ETHCL_BUNDLE = 0x02;
 
     static const u_int32_t ETHCL_BEACON_TIMEOUT_INTERVAL = 2500; // 2.5 seconds
 
+    static const u_int16_t MAX_ETHER_PACKET = 1518;
+
+    /**
+     * Maximum bundle size
+     */
+    static const u_int MAX_BUNDLE_LEN = 65507;
+    
     /**
      * The basic Eth header structure.
      */
@@ -94,21 +101,25 @@ public:
         u_int32_t bundle_id;		///< bundle identifier at sender
     } __attribute__((packed));
 
+    /**
+     * Data state of a Eth cl
+     *
+     */
     class EthCLInfo : public CLInfo {
       public:
-        EthCLInfo(char* if_name) {            
+        EthCLInfo(char* if_name) {
 	    memset(if_name_,0,IFNAMSIZ);
             strcpy(if_name_,if_name);
-	    timer=NULL;
+	    timer    = NULL;
         }
 
 	~EthCLInfo() {
 	  if(timer)
-	    delete timer;
+              delete timer;
 	}
         
         // Name of the device 
-        char if_name_[IFNAMSIZ]; 
+        char if_name_[IFNAMSIZ];
 
 	BeaconTimer* timer;
     };
@@ -143,17 +154,39 @@ public:
      * Send the bundle to the contact
      */
     void send_bundle(const ContactRef& contact, Bundle* bundle);
+
+    /**
+     * Tunable parameter structure.
+     *
+     * Per-link and per-interface settings are configurable via
+     * arguments to the 'link add' and 'interface add' commands.
+     *
+     * The parameters are stored in each Link's CLInfo slot, as well
+     * as part of the Receiver helper class.
+     */
+    class Params : public CLInfo {
+    public:
+        u_int32_t beacon_interval_;       ///< Beacon Interval
+    };
+    
+    /**
+     * Default parameters.
+     */
+    static Params defaults_;
     
     /**
      * Helper class (and thread) that listens on a registered
      * interface for incoming data.
      */
-    class Receiver : public CLInfo, public oasys::Logger, public oasys::Thread {
+    class Receiver : public CLInfo,
+                     public oasys::Logger,
+                     public oasys::Thread
+    {
     public:
         /**
          * Constructor.
          */
-        Receiver(const char* if_name);
+        Receiver(const char *if_name, EthConvergenceLayer::Params* params);
 
         /**
          * Destructor.
@@ -190,7 +223,9 @@ public:
      * a connection. The receiver will just receive data. Therefore,
      * we don't need a passive side of a connection
      */
-    class Sender : public CLInfo, public oasys::Logger {
+    class Sender : public CLInfo,
+                   public oasys::Logger
+    {
     public:
         /**
          * Constructor for the active connection side of a connection.
@@ -224,21 +259,31 @@ public:
         char if_name_[IFNAMSIZ]; 
         
 	char canary_[7];
-    };   
+
+       /**
+        * Temporary buffer for formatting bundles. Note that the
+        * fixed-length buffer is big enough since UDP packets can't
+        * be any bigger than that.
+        */
+        u_char buf_[EthConvergenceLayer::MAX_BUNDLE_LEN];
+    };
 
     /** 
      *  helper class (and thread) that periodically sends beacon messages
      *  over the specified ethernet interface.
-    */
-    class Beacon : public oasys::Logger, public oasys::Thread {
+     */
+    class Beacon : public oasys::Logger,
+                   public oasys::Thread
+    {
     public:
-      Beacon(const char* if_name);
+        Beacon(const char* if_name, unsigned int beacon_interval);
 
-      virtual ~Beacon() {};
+        virtual ~Beacon() {};
 
     private:
-      virtual void run();
-      char if_name_[IFNAMSIZ];
+        virtual void run();
+        char if_name_[IFNAMSIZ];
+        unsigned int beacon_interval_;
     };
 
     class BeaconTimer : public oasys::Logger, public oasys::Timer, public CLInfo {
@@ -248,11 +293,20 @@ public:
         BeaconTimer(char * next_hop);
         ~BeaconTimer();
 
-        void timeout(struct timeval* now);
+        void timeout(const struct timeval& now);
 
         Timer* copy();
     };    
 
+protected:
+    /**
+     * Parses parameters during EthConvegenceLayer initialization
+     */
+    bool parse_params(Params* params, int argc, const char** argv,
+		      const char** invalidp);
+
+private:
+    Beacon *if_beacon_;
 };
 
 
