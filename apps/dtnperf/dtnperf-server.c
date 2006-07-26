@@ -1,19 +1,19 @@
 /* ----------------------
- *      dtnServer.c
+ *    dtnperf-server.c
  * ---------------------- */
 
 /* -----------------------------------------------------------
  *  PLEASE NOTE: this software was developed
- *    by Piero Cornice <piero.cornice@gmail.com>.
+ *    by Piero Cornice <piero.cornice@gmail.com>
+ *    at DEIS - University of Bologna, Italy.
  *  If you want to modify it, please contact me
  *  at piero.cornice(at)gmail.com. Thanks =)
  * -----------------------------------------------------------
  */
 
-/* version 1.5.0 - 17/09/05
+/* version 1.6.0 - 23/06/06
  *
- * - can store bundles both in memory and into a file
- * - modified to fit the new APIs
+ * - compatible with DTN 2.2.0 reference implementation
  */
 
 #include <stdio.h>
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     /* -----------------------
      *  variables declaration
      * ----------------------- */
-    u_int k;
+    int k;
     int ret;
     dtn_handle_t        handle;
     dtn_endpoint_id_t   local_eid;
@@ -83,6 +83,12 @@ int main(int argc, char** argv)
     /* -------
      *  begin
      * ------- */
+
+    // print information header
+    printf("\nDTNperf - SERVER - v 1.6.0");
+    printf("\nwritten by Piero Cornice <piero.cornice@gmail.com>");
+    printf("\nDEIS - University of Bologna, Italy");
+    printf("\n");
 
     // parse command-line options
     parse_options(argc, argv);
@@ -144,6 +150,11 @@ int main(int argc, char** argv)
     if (debug) printf(" done\n");
     if (verbose) printf("regid 0x%x\n", regid);
 
+    // bind the current handle to the new registration
+    if (debug) printf("[debug] executing dtn_bind...");
+    dtn_bind(handle, regid);
+    if (debug) printf(" done\n");
+    
     // set bundle destination type
     if (debug) printf("[debug] choosing bundle destination type...");
     if (use_file)
@@ -202,21 +213,6 @@ int main(int argc, char** argv)
             printf("\tsource_eid = %s\n", source_eid);
             printf("\n");
         }
-/*
-// copy SOURCE admin value and region
-if (debug) printf("[debug]\tcopying source data...");
-source_admin_len = spec.source.admin.admin_len;
-source_admin = malloc(sizeof(char) * (source_admin_len+1));
-memcpy(source_admin, spec.source.admin.admin_val, source_admin_len);
-source_admin[source_admin_len] = '\0'; // terminate the string
-source_region = spec.source.region; // extract source region
-if (debug) {
-printf(" done:\n");
-printf("\tsource_admin = %s\n", source_admin);
-printf("\tsource region = %s\n", source_region);
-printf("\n");
-}
-*/
 
         // copy DEST eid
         if (debug) printf("[debug]\tcopying dest eid...");
@@ -230,22 +226,6 @@ printf("\n");
             printf("\n");
         }
 
-/*
-// copy DEST admin value
-if (debug) printf("[debug]\tcopying dest data...");
-
-if (spec.dest.admin.admin_val != NULL) {
-dest_admin_len = spec.dest.admin.admin_len;
-dest_admin = malloc(sizeof(char) * (dest_admin_len+1));
-memcpy(dest_admin, spec.dest.admin.admin_val, dest_admin_len);
-dest_admin[dest_admin_len] = '\0';
-}
-if (debug) {
-printf(" done:\n");
-printf("\tdest_admin = %s\n", dest_admin);
-printf("\n");
-}
-*/
         // recursively create full directory path
         filepath = malloc(sizeof(char) * dest_eid_len + 10);
         sprintf(filepath, "mkdir -p %s", bundle_dir);
@@ -267,37 +247,21 @@ printf("\n");
             if (use_file) {
                 printf ("  saved into    : %s\n", filepath);
             }
-        
+
             printf ("--------------------------------------\n");
         }
 
-
         if (pl_type == DTN_PAYLOAD_FILE) { // if bundle was saved into file
 
-            if (debug) printf("[debug] renaming file %s -> %s...",
-                              buffer, filepath);
+            if (debug) printf("[debug] renaming file %s -> %s...", buffer, filepath);
             if (rename(buffer, filepath) != 0) {
-                printf("[ERROR] Couldn't rename %s -> %s: %s",
-                       buffer, filepath, strerror(errno));
+                printf("[ERROR] Couldn't rename %s -> %s: %s", buffer, filepath, strerror(errno));
             }
-            
-//             int cmdlen = 5 + strlen(buffer) + strlen(filepath); // 5 chars added b/c of "mv" command
-//             char *cmd = malloc(cmdlen);
-
-//             if (cmd) {
-//                 snprintf(cmd, cmdlen, "mv %*s %s", bufsize, buffer, filepath);
-//                 if (debug) printf("[debug] moving file: %s...", cmd);
-//                 system(cmd);
-//                 free(cmd);
-//                 if (debug) printf(" done\n");
-//             } else {
-//                 printf("[ERROR] Couldn't execute \"mv\" command. Find file in %*s.\n", bufsize, buffer);
-//             }
 
         } else { // if bundle was saved into memory
 
             if (debug) {
-                for (k=0; k < payload.dtn_bundle_payload_t_u.buf.buf_len; k++)
+                for (k=0; k < (int)payload.dtn_bundle_payload_t_u.buf.buf_len; k++)
                 {
                     if (buffer[k] >= ' ' && buffer[k] <= '~')
                         s_buffer[k%BUFSIZE] = buffer[k];
@@ -312,18 +276,18 @@ printf("\n");
                     {
                         printf(" "); // space every 2 bytes
                     }
-                        
+
                     printf("%02x", buffer[k] & 0xff);
-                        
+
                     // print character summary (a la emacs hexl-mode)
                     if (k%BUFSIZE == BUFSIZE-1)
                     {
                         printf(" |  %.*s\n", BUFSIZE, s_buffer);
                     }
                 } // for
-    
-                // print spaces to fill out the rest of the line
-        	if (k%BUFSIZE != BUFSIZE-1) {
+
+            // print spaces to fill out the rest of the line
+            if (k%BUFSIZE != BUFSIZE-1) {
                     while (k%BUFSIZE != BUFSIZE-1) {
                         if (k%2 == 0) {
                             printf(" ");
@@ -336,9 +300,9 @@ printf("\n");
                 } // if
 
                 printf ("======================================\n");
-        
+ 
             } // if (debug) 
-            
+
             free(filepath);
             free(source_eid);
             free(dest_eid);
@@ -346,12 +310,12 @@ printf("\n");
         }
 
         fflush(stdout);
-        
+
     } // while(1)
 
     // if this was ever changed to gracefully shutdown, it would be good to call:
     dtn_close(handle);
-    
+
     return 0;
 
 } //main
@@ -400,11 +364,6 @@ void parse_options (int argc, char** argv) {
             case 'D':           // debug messages
                 debug = 1;
                 break;
-/*
-            case 'f':           // save received bundles into a file
-                use_file = 1;
-                break;
-*/
             case 'm':           // save received bundles into memory
                 use_file = 0;
                 break;
@@ -415,11 +374,11 @@ void parse_options (int argc, char** argv) {
             case 'e':           // destination endpoint
                 endpoint = optarg;
                 break;
-                
+
             case 'a':           // aggregate
                 aggregate = atoi(optarg);
                 break;
-                
+
             case -1:
                 done = 1;
                 break;
@@ -435,8 +394,7 @@ void parse_options (int argc, char** argv) {
         print_usage(argv[0]);                                                  \
         exit(1);                                                        \
     }
-    
-//    CHECK_SET(endpoint, "endpoint");
+
 }
 
 /* ----------------------------
@@ -447,7 +405,6 @@ dtn_endpoint_id_t* parse_eid(dtn_handle_t handle, dtn_endpoint_id_t* eid, char *
     // try the string as an actual dtn tuple
     if (!dtn_parse_eid_string(eid, str)) 
     {
-//        if (verbose) fprintf(stdout, "%s (literal)\n", str);
         return eid;
     }
     // build a local tuple based on the configuration of our dtn

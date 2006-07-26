@@ -1,10 +1,11 @@
 /* ----------------------
- *      dtnperf-client.c
+ *    dtnperf-client.c
  * ---------------------- */
 
 /* -----------------------------------------------------------
  *  PLEASE NOTE: this software was developed
- *    by Piero Cornice <piero.cornice@gmail.com>.
+ *    by Piero Cornice <piero.cornice@gmail.com>
+ *    at DEIS - University of Bologna, Italy.
  *  If you want to modify it, please contact me
  *  at piero.cornice(at)gmail.com. Thanks =)
  * -----------------------------------------------------------
@@ -16,21 +17,10 @@
  * source distribution.
  */
 
-/* version 1.5.0 - 17/09/05
+/* version 1.6.0 - 23/06/06
  *
- * - cleared and optimized code
- * - deleted old (useless) command-line options
- * - possibility to set debug mode from command-line (-D)
- * - possibility to set payload dimension from command-line (-p)
- * - supports multiple sending in Data-Mode (-B, -S)
- * - CSV output (-c)
- * - auto-generated source tuple
- * - enabled transmission > MAX_MEM_PAYLOAD bytes (using multiple bundles)
- * - added file transfer (-f) in Data-Mode
- * - modified to fit the new APIs
- * - added new checks on bundle payload
- * - added MB and KB converters (-n and -p options)
- * - use_file is now the default
+ * - compatible with DTN 2.2.0 reference implementation
+ * - fixed measure units errors
  */
 
 #include <stdio.h>
@@ -149,9 +139,9 @@ int main(int argc, char** argv)
     dtn_reg_info_t      reginfo;
     dtn_bundle_spec_t   bundle_spec;
     dtn_bundle_spec_t   reply_spec;
+    dtn_bundle_id_t     bundle_id;
     dtn_bundle_payload_t send_payload;
     dtn_bundle_payload_t reply_payload;
-    dtn_bundle_id_t     bundle_id;
     char demux[64];
 
     // buffer specifications
@@ -162,6 +152,12 @@ int main(int argc, char** argv)
     /* -------
      *  begin
      * ------- */
+
+    // print information header
+    printf("\nDTNperf - CLIENT - v 1.6.0");
+    printf("\nwritten by piero.cornice@gmail.com");
+    printf("\nDEIS - University of Bologna, Italy");
+    printf("\n");
 
     // parse command-line options
     parse_options(argc, argv);
@@ -181,8 +177,7 @@ int main(int argc, char** argv)
     if (debug) fprintf(stdout, "Opening connection to local DTN daemon...");
     int err = dtn_open(&handle);
     if (err != DTN_SUCCESS) {
-        fprintf(stderr, "fatal error opening dtn handle: %s\n",
-                dtn_strerror(err));
+        fprintf(stderr, "fatal error opening dtn handle: %s\n", dtn_strerror(err));
         exit(1);
     }
     if (debug) printf(" done\n");
@@ -292,6 +287,11 @@ int main(int argc, char** argv)
         exit(1);
     }    
     if (debug) printf(" done: regid 0x%x\n", regid);
+
+    // bind the current handle to the new registration
+    if (debug) printf("[debug] binding handle to registration...");
+    dtn_bind(handle, regid);
+    if (debug) printf(" done\n");
 
     // if bundle_payload > MAX_MEM_PAYLOAD, transfer a file
     if (bundle_payload > MAX_MEM_PAYLOAD)
@@ -426,7 +426,7 @@ int main(int argc, char** argv)
 
             // get the PARTIAL end time
             if (debug) printf("\t[debug] getting partial end-time...");
-	        gettimeofday(&p_end, NULL);
+            gettimeofday(&p_end, NULL);
             if (debug) printf(" end.tv_sec = %u sec\n", (u_int)p_end.tv_sec);
 
             if (debug) printf("----- END OF THIS LOOP -----\n\n");
@@ -440,10 +440,10 @@ int main(int argc, char** argv)
 
         // get the TOTAL end time
         if (debug) printf("[debug] getting total end-time...");
-	    gettimeofday(&end, NULL);
+        gettimeofday(&end, NULL);
         if (debug) printf(" end.tv_sec = %u sec\n", (u_int)end.tv_sec);
-	
-    	// show the report
+    
+        // show the report
         if (csv_out == 0) {
             printf("%d bundles sent, each with a %ld bytes payload\n", bundles_sent, bundle_payload);
             show_report(reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
@@ -482,12 +482,6 @@ int main(int argc, char** argv)
                             bufferLen, use_file ? "data_qty" : "bundle_payload");
 
         if (use_file) {
-/*
-            // set bundle_payload size
-            if (debug) printf("[debug] setting bundle_payload...");
-            bundle_payload = data_qty;
-            if (debug) printf(" bundle_payload set to %d bytes\n", bundle_payload);
-*/
             // create the file
             if (debug) printf("[debug] creating file %s...", file_name_src);
             fd = open(file_name_src, O_CREAT|O_TRUNC|O_WRONLY|O_APPEND, 0666);
@@ -529,7 +523,7 @@ int main(int argc, char** argv)
         //    for each transmission.
         // 2) If you are using FILE, you may want to send an amount of data
         //    using smaller bundles.
-        // So you have to calculate how many bundles are needed.
+        // So it's necessary to calculate how many bundles are needed.
         if (debug) printf("[debug] calculating how many bundles are needed...");
         n_bundles = bundles_needed(data_qty, bundle_payload);
         if (debug) printf(" n_bundles = %d\n", n_bundles);
@@ -542,17 +536,15 @@ int main(int argc, char** argv)
         if (debug) printf("[debug] entering n_copies loop...\n");
         // --------------- loop until all n_copies are sent
         for (i=0; i<n_copies; i++) {
-    
-//            if (!use_file) {
 
                 if (debug) printf("\t[debug] entering n_bundles loop...\n");
                 for (j=0; j<n_bundles; j++) {
-    
+
                     // initialize PARTIAL start timer
                     if (debug) printf("\t\t[debug] initializing PARTIAL start timer...");
                     gettimeofday(&p_start, NULL);
                     if (debug) printf(" p_start.tv_sec = %u sec\n", (u_int)p_start.tv_sec);
-    
+
                     // send the bundle
                     if (debug) printf("\t\t[debug] sending copy %d...", i+1);
                     memset(&bundle_id, 0, sizeof(bundle_id));
@@ -571,7 +563,7 @@ int main(int argc, char** argv)
                         memset(&reply_payload, 0, sizeof(reply_payload));
                         if (debug) printf(" done\n");
                     }
-        
+
                     // wait for the reply
                     if (debug) printf("\t\t[debug] waiting for the reply...");
                     if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
@@ -580,12 +572,12 @@ int main(int argc, char** argv)
                         exit(1);
                     }
                     if (debug) printf(" reply received\n");
-    
+
                     // get PARTIAL end time
                     if (debug) printf("\t\t[debug] stopping PARTIAL timer...");
                     gettimeofday(&p_end, NULL);
                     if (debug) printf(" p_end.tv_sec = %u sec\n", (u_int)p_end.tv_sec);
-        
+
                     // show the PARTIAL report (verbose mode)
                     if (verbose) {
                         printf("[%d/%d] ", j+1, n_bundles);
@@ -597,40 +589,7 @@ int main(int argc, char** argv)
                     }
                 } // end for(n_bundles)
                 if (debug) printf("\t[debug] ...out from n_bundles loop\n");
-//            } // end if(!use_file)
-/*
-            else if (use_file) {
-                // send the bundle
-                if (debug) printf("[debug] sending the bundle...");
-                if ((ret = dtn_send(handle, &bundle_spec, &send_payload)) != 0) {
-                    fprintf(stderr, "error sending file bundle: %d (%s)\n",
-                            ret, dtn_strerror(dtn_errno(handle)));
-                    exit(1);
-                } 
-                if (debug) printf(" done\n");
 
-                // prepare memory areas for the reply
-                if (debug) printf("[debug] setting memory for reply...");
-                memset(&reply_spec, 0, sizeof(reply_spec));
-                memset(&reply_payload, 0, sizeof(reply_payload));
-                if (debug) printf(" done\n");
-            
-                // now we block waiting for the echo reply
-                if (debug) printf("[debug] waiting fot the reply...");
-                if ((ret = dtn_recv(handle, &reply_spec, DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
-                {
-                    fprintf(stderr, "error getting reply: %d (%s)\n", ret, dtn_strerror(dtn_errno(handle)));
-                    exit(1);
-                }
-                if (debug) printf(" reply received\n");
-            } // end if(use_file)
-*/
-/*
-            else {      // this should not be executed (written only for debug purpouse)
-                fprintf(stderr, "\n ERROR: this should not be executed!!!\n");
-                exit(3);
-            }
-*/
             // calculate TOTAL end time
             if (debug) printf("\t[debug] calculating TOTAL end time...");
             gettimeofday(&end, NULL);
@@ -667,6 +626,7 @@ int main(int argc, char** argv)
         exit(3);
     }
 
+    // close dtn-handle -- IN DTN_2.1.1 SIMPLY RETURNS -1
     if (debug) printf("[debug] closing DTN handle...");
     if (dtn_close(handle) != DTN_SUCCESS)
     {
@@ -697,16 +657,13 @@ void print_usage(char* progname)
             "-d <dest_eid> "
             "[-t <sec> | -n <num>] [options]\n\n", progname);
     fprintf(stderr, "where:\n");
-//    fprintf(stderr, " -s <eid> source eid\n");
     fprintf(stderr, " -d <eid> destination eid (required)\n");
     fprintf(stderr, " -t <sec> Time-Mode: seconds of transmission\n");
     fprintf(stderr, " -n <num> Data-Mode: number of MBytes to send\n");
     fprintf(stderr, "Options common to both Time and Data Mode:\n");
     fprintf(stderr, " -p <size> size in KBytes of bundle payload\n");
     fprintf(stderr, " -r <eid> reply-to eid (if none specified, source tuple is used)\n");
-//    fprintf(stderr, " -i registration id for reply-to\n");
     fprintf(stderr, "Data-Mode options:\n");
-//    fprintf(stderr, " -f transfer a file\n");
     fprintf(stderr, " -m use memory instead of file\n");
     fprintf(stderr, " -B <num> number of consecutive transmissions (default 1)\n");
     fprintf(stderr, " -S <sec> sleeping seconds between consecutive transmissions (default 1)\n");
@@ -715,6 +672,8 @@ void print_usage(char* progname)
     fprintf(stderr, " -h help: show this message\n");
     fprintf(stderr, " -v verbose\n");
     fprintf(stderr, " -D debug messages (many)\n");
+    fprintf(stderr, " -F enables forwarding receipts\n");
+    fprintf(stderr, " -R enables receive receipts\n");
     fprintf(stderr, "\n");
     exit(1);
 } // end print_usage
@@ -745,11 +704,6 @@ void parse_options(int argc, char**argv)
         case 'r':
             arg_replyto = optarg;
             break;
-/*
-        case 's':
-            arg_source = optarg;
-            break;
-*/
         case 'd':
             arg_dest = optarg;
             break;
@@ -762,7 +716,6 @@ void parse_options(int argc, char**argv)
         case 't':
             op_mode = 't';
             transmission_time = atoi(optarg);
-//            payload_type = DTN_PAYLOAD_MEM;
             break;
         case 'n':
             op_mode = 'd';
@@ -784,7 +737,7 @@ void parse_options(int argc, char**argv)
                     break;
             }
             break;
-    	case 'p':
+        case 'p':
             p_arg = optarg;
             data_unit = findDataUnit(p_arg);
             switch (data_unit) {
@@ -823,11 +776,11 @@ void parse_options(int argc, char**argv)
         case 'F':
             forwarding_receipts = 1;
             break;
-            
+
         case 'R':
             receive_receipts = 1;
             break;
-            
+
         case -1:
             done = 1;
             break;
@@ -1041,7 +994,7 @@ void show_report (u_int buf_len, char* eid, struct timeval start, struct timeval
     // report goodput (bits transmitted / time)
     g_put = (data*8) / ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                       (double)(end.tv_usec - start.tv_usec)/1000.0);
-    printf(" (goodput = %.2f bit/s)\n", g_put);
+    printf(" (goodput = %.2f Kbit/s)\n", g_put);
 
     if (debug) {
         // report start - end time
@@ -1054,7 +1007,7 @@ void show_report (u_int buf_len, char* eid, struct timeval start, struct timeval
  * csv_time_report
  * -------------------------------------------------- */
 void csv_time_report(int b_sent, int payload, struct timeval start, struct timeval end) {
-	
+    
     double g_put, data;
 
     data = b_sent * payload;
