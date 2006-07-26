@@ -374,19 +374,24 @@ public:
     const std::string& name_str() const { return name_; }
 
     /**
-     * Mutator for local string
-     */
-    void set_local(const char* local) { local_.assign(local); }
-
-    /**
      * Accessor to local string
      */
     const char* local() const { return local_.c_str(); }
 
     /**
+     * Mutator for local string
+     */
+    void set_local(const std::string& local) { local_.assign(local); }
+
+    /**
      * Accessor to next hop string
      */
     const char* nexthop() const { return nexthop_.c_str(); }
+
+    /**
+     * Override for the next hop string.
+     */
+    void set_nexthop(const std::string& nexthop) { nexthop_.assign(nexthop); }
 
     /**
      * Accessor to the reliability bit.
