@@ -74,6 +74,18 @@ proc get_port {what id} {
 }
 
 #
+# Utility proc to determine whether or not the given convergence layer
+# is bidirectional
+#
+proc is_bidirectional {cl} {
+    switch -- $cl {
+	tcp2 { return 1 }
+    }
+    
+    return 0
+}
+
+#
 # Create a new interface for the given convergence layer
 #
 proc config_interface {cl args} {

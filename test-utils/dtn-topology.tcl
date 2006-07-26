@@ -19,7 +19,7 @@ proc config_topology_common {with_routes} {
 #
 # Generate a unique link name
 #
-proc get_link_name {cl src dst} {
+proc new_link_name {cl src dst} {
     global dtn::link_names
 
     set name "$cl-link:$src-$dst"
@@ -40,13 +40,38 @@ proc get_link_name {cl src dst} {
 }
 
 #
-# Add a link and optionally a route from a to b
+# Return the name of a link between a and b (if it's been configured)
+#
+proc get_link_name {cl src dst} {
+    global dtn::link_names
+    
+    set name "$cl-link:$src-$dst"
+    if {![info exists link_names($name)] } {
+	return ""
+    }
+    return $name
+}
+
+#
+# Add a link and optionally a route from a to b.
 #
 proc config_link {id peerid type cl with_routes link_args} {
+    global dtn::link_names
+    
     set peeraddr $net::host($peerid)
     set peerport [dtn::get_port $cl $peerid]
-    set link [get_link_name $cl $id $peerid]
+    set link [new_link_name $cl $id $peerid]
     set peer_eid  dtn://host-$peerid
+
+    # For bidirectional convergence layers, we configure an ONDEMAND
+    # or ALWAYSON link in only one direction, since the other side
+    # gets created in response to the connection establishment, and
+    # hence is OPPORUNISTIC.
+    if {[dtn::is_bidirectional $cl] && \
+	    ($type == "ONDEMAND" || $type == "ALWAYSON") && \
+	    [get_link_name $cl $peerid $id] != ""} {
+	set type OPPORTUNISTIC
+    }
     
     conf::add dtnd $id [join [list \
 	    link add $link $peeraddr:$peerport $type $cl \
@@ -67,7 +92,7 @@ proc config_linear_topology {type cl with_routes {link_args ""}} {
 
 	# link to next hop in chain (except for last one) and routes
 	# to non-immediate neighbors
-	if { $id != $last} {
+	if { $id != $last } {
 	    set link [config_link $id [expr $id + 1] \
 	         $type $cl $with_routes $link_args]
 
