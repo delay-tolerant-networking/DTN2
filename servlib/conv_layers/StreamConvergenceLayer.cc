@@ -290,15 +290,37 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     /**
      * Now, if we're the passive acceptor, we need to find or create
      * an appropriate opportunistic link for the connection.
+     *
+     * First, we check if there's an idle (i.e. UNAVAILABLE) link to
+     * the remote eid. We explicitly ignore the nexthop address, since
+     * that can change (due to things like TCP/UDP port number
+     * assignment), but we pass in the remote eid to match for a link.
+     *
+     * If we can't find one, then we create a new opportunistic link
+     * for the connection.
      */
     if (contact_ == NULL) {
-        // the derived class must set the nexthop in the constructor
-        ASSERT(nexthop_ != "");
+
+        ASSERT(nexthop_ != ""); // the derived class must have set the
+                                // nexthop in the constructor
         
         ContactManager* cm = BundleDaemon::instance()->contactmgr();
-        Link* link = cm->new_opportunistic_link(cl_,
-                                                nexthop_.c_str(),
-                                                announce.source_);
+
+        Link* link = cm->find_link_to(cl_, "", announce.source_,
+                                      Link::OPPORTUNISTIC,
+                                      Link::AVAILABLE | Link::UNAVAILABLE);
+
+        if (link != NULL) {
+            link->set_nexthop(nexthop_);
+            log_debug("found idle opportunistic link *%p", link);
+            
+        } else {
+            link = cm->new_opportunistic_link(cl_,
+                                              nexthop_.c_str(),
+                                              announce.source_);
+            log_debug("created new opportunistic link *%p", link);
+        }
+        
         ASSERT(! link->isopen());
 
         contact_ = new Contact(link);

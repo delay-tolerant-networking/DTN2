@@ -2000,7 +2000,7 @@ BluetoothConvergenceLayer::NeighborDiscovery::send_announce(bdaddr_t remote)
     const char *nexthop = oasys::Bluetooth::batostr(&remote,buff);
 
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    Link* link = cm->find_link_to(nexthop,"bt");
+    Link* link = cm->find_link_to(cl_, nexthop);
     if (link == NULL) {
         // Using ConnectionManager factory method to manage bind()
         // contention ... returns NULL if error

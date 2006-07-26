@@ -96,11 +96,11 @@ public:
     Link* find_link(const char* name);
 
     /**
-     * Helper routine to find a link based on the given criteria
+     * Helper routine to find a link based on criteria:
      *
      * @param cl 	 The convergence layer
      * @param nexthop	 The next hop string
-     * @param remote_eid Remote endpoint id
+     * @param remote_eid Remote endpoint id (NULL_EID for any)
      * @param type	 Link type (LINK_INVALID for any)
      * @param states	 Bit vector of legal link states, e.g. ~(OPEN | OPENING)
      *
@@ -108,18 +108,10 @@ public:
      */
     Link* find_link_to(ConvergenceLayer* cl,
                        const std::string& nexthop,
-                       const EndpointID& remote_eid,
-                       Link::link_type_t type,
-                       u_int states);
+                       const EndpointID& remote_eid = EndpointID::NULL_EID(),
+                       Link::link_type_t type = Link::LINK_INVALID,
+                       u_int states = 0xffffffff);
     
-    /**
-     * Finds link to given next hop. Optionally restricts the search
-     * to include only links using the given convergence layer.
-     *
-     * XXX/demmer should this include remote_eid as well?
-     */
-    Link* find_link_to(const char* next_hop, const char* clayer = NULL);
-
     /**
      * Return the list of links. Asserts that the CM spin lock is held
      * by the caller.

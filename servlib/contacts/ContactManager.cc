@@ -119,27 +119,6 @@ ContactManager::find_link(const char* name)
 }
 
 //----------------------------------------------------------------------
-Link*
-ContactManager::find_link_to(const char* next_hop, const char* clayer)
-{
-    oasys::ScopeLock l(&lock_, "ContactManager");
-    
-    LinkSet::iterator iter;
-    Link* link = NULL;
-    for (iter = links_->begin(); iter != links_->end(); ++iter)
-    {
-        link = *iter;
-        if ((strcasecmp(link->nexthop(), next_hop) == 0) &&
-            (clayer == NULL ||
-             (strcasecmp(link->clayer()->name(), clayer) == 0)))
-        {
-            return link;
-        }
-    }
-    return NULL;
-}
-
-//----------------------------------------------------------------------
 const LinkSet*
 ContactManager::links()
 {
@@ -287,15 +266,22 @@ ContactManager::find_link_to(ConvergenceLayer* cl,
               nexthop.c_str(), remote_eid.c_str(),
               type == Link::LINK_INVALID ? "ANY" : Link::link_type_to_str(type),
               states);
+
+    // make sure some sane criteria was specified
+    ASSERT((cl != NULL) ||
+           (nexthop != "") ||
+           (remote_eid != EndpointID::NULL_EID()) ||
+           (type != Link::LINK_INVALID));
     
     for (iter = links_->begin(); iter != links_->end(); ++iter)
     {
         link = *iter;
-        
+
         if ( ((type == Link::LINK_INVALID) || (type == link->type())) &&
              ((cl == NULL) || (link->clayer() == cl)) &&
-             (nexthop == link->nexthop()) &&
-             (remote_eid.equals(link->remote_eid())) &&
+             ((nexthop == "") || (nexthop == link->nexthop())) &&
+             ((remote_eid == EndpointID::NULL_EID()) ||
+              (remote_eid == link->remote_eid())) &&
              ((states & link->state()) != 0) )
         {
             log_debug("find_link_to: matched link *%p", link);
@@ -317,28 +303,22 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
               cl->name(), nexthop.c_str(), remote_eid.c_str());
     
     oasys::ScopeLock l(&lock_, "ContactManager");
-    
-    Link* link = find_link_to(cl, nexthop, remote_eid, Link::OPPORTUNISTIC,
-                              Link::AVAILABLE | Link::UNAVAILABLE);
 
-    if (!link) {
-        log_debug("no match, creating new link to %s", nexthop.c_str());
-
-        // find a unique link name
-        char name[64];
-        do {
-            snprintf(name, sizeof(name), "opportunistic-%d",
-                     opportunistic_cnt_);
-            opportunistic_cnt_++;
-            link = find_link(name);
-        } while (link != NULL);
+    // find a unique link name
+    char name[64];
+    Link* link = NULL;
+    do {
+        snprintf(name, sizeof(name), "opportunistic-%d",
+                 opportunistic_cnt_);
+        opportunistic_cnt_++;
+        link = find_link(name);
+    } while (link != NULL);
         
-        link = Link::create_link(name, Link::OPPORTUNISTIC, cl,
-                                 nexthop.c_str(), 0, NULL);
-        ASSERTF(link, "unexpected error creating opportunistic link!!");
-        link->set_remote_eid(remote_eid);
-        add_link(link);
-    }
+    link = Link::create_link(name, Link::OPPORTUNISTIC, cl,
+                             nexthop.c_str(), 0, NULL);
+    ASSERTF(link, "unexpected error creating opportunistic link!!");
+    link->set_remote_eid(remote_eid);
+    add_link(link);
     
     return link;
 }

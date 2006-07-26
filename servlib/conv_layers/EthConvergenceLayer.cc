@@ -279,19 +279,26 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 	memset(next_hop_string,0,50);
         ptr = strrchr(bundles_string, '/');
         strcpy(next_hop_string, ptr+1);
+        
+        ConvergenceLayer* cl = ConvergenceLayer::find_clayer("eth");
+        EndpointID remote_eid(bundles_string);
 
-        Link* link=cm->find_link_to(next_hop_string);	
-        if(!link || !link->isavailable()) 
+        Link* link=cm->find_link_to(cl,
+                                    next_hop_string,
+                                    remote_eid,
+                                    Link::OPPORTUNISTIC);
+        
+        if(!link)
         {
             log_info("Discovered next_hop %s on interface %s.",
                      next_hop_string, if_name_);
-
+            
             // registers a new contact with the routing layer
             link=cm->new_opportunistic_link(
-                ConvergenceLayer::find_clayer("eth"),
+                cl,
                 next_hop_string,
                 EndpointID(bundles_string));
-
+            
             // XXX/demmer I'm not sure about the following
             if (link->cl_info() == NULL) {
                 link->set_cl_info(new EthCLInfo(if_name_));
@@ -299,6 +306,14 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
                 ASSERT(strcmp(((EthCLInfo*)link->cl_info())->if_name_,
                               if_name_) == 0);
             }
+        }
+
+        if(!link->isavailable())
+        {
+            log_info("Got beacon for previously unavailable link");
+            
+            // XXX/demmer something should be done here to kick the link...
+            log_err("XXx/demmer do something about link availability");
         }
         
         /**
@@ -671,7 +686,8 @@ void
 EthConvergenceLayer::BeaconTimer::timeout(const struct timeval& now)
 {
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    Link * l = cm->find_link_to(next_hop_);
+    ConvergenceLayer* cl = ConvergenceLayer::find_clayer("eth");
+    Link * l = cm->find_link_to(cl, next_hop_);
 
     (void)now;
 

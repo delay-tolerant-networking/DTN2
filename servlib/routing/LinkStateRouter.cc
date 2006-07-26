@@ -78,6 +78,8 @@ LinkStateRouter::handle_contact_up(ContactUpEvent* event)
              BundleDaemon::instance()->local_eid().c_str(),
              event->contact_->link()->nexthop());
 
+    // XXX/demmer this is bogus too... fix this whole implementation
+    
     local=graph_.getVertex(BundleDaemon::instance()->local_eid().c_str());
     peer=graph_.getVertex(event->contact_->link()->nexthop());
 
@@ -197,8 +199,12 @@ LinkStateRouter::handle_bundle_received(BundleReceivedEvent* event)
               local_eid,
               bundle->dest_.c_str(),
               nextHop->eid_);              
-    
-    Link* link=cm->find_link_to(nextHop->eid_);
+
+    // XXX/demmer fixme
+    EndpointID eid(nextHop->eid_);
+    ASSERT(eid.valid());
+           
+    Link* link=cm->find_link_to(NULL, "", eid);
 
     ASSERT(link!=0); // if the link is in the graph, it better exist too
 
