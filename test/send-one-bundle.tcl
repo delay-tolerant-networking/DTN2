@@ -19,7 +19,7 @@ foreach {var val} $opt(opts) {
 
 puts "* Configuring $clayer interfaces / links"
 dtn::config_interface $clayer
-dtn::config_linear_topology ONDEMAND $clayer true
+dtn::config_linear_topology ALWAYSON $clayer true
 
 test::script {
     puts "* Running dtnds"
