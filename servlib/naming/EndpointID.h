@@ -130,6 +130,22 @@ public:
     }
 
     /**
+     * Operator overload for equality syntactic sugar
+     */
+    bool operator==(const EndpointID& other) const
+    {
+        return str_ == other.str_;
+    }
+    
+    /**
+     * Operator overload for inequality syntactic sugar
+     */
+    bool operator!=(const EndpointID& other) const
+    {
+        return str_ != other.str_;
+    }
+
+    /**
      * Set the string from the API type dtn_endpoint_id_t
      *
      * @return true if the string is a valid id, false if not.
