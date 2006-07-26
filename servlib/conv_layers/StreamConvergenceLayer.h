@@ -159,20 +159,17 @@ protected:
     /**
      * Link parameters shared among all stream based convergence layers.
      */
-    struct StreamLinkParams : public ConnectionConvergenceLayer::LinkParams {
-        StreamLinkParams();
-
+    class StreamLinkParams : public ConnectionConvergenceLayer::LinkParams {
+    public:
         bool  block_ack_enabled_;	///< Use per-block acks
-        bool  reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         u_int keepalive_interval_;	///< Seconds between keepalive packets
         u_int block_length_;		///< Maximum size of transmitted blocks
+
+    protected:
+        // See comment in LinkParams for why this should be protected
+        StreamLinkParams(bool init_defaults);
     };
     
-    /**
-     * Default link params.
-     */
-    static StreamLinkParams default_link_params_;
-
     /**
      * Version of the actual CL protocol.
      */
@@ -244,6 +241,10 @@ protected:
 
     /// XXX/demmer not sure why this is needed, but it seems to be sometimes
     typedef ConnectionConvergenceLayer::LinkParams LinkParams;
+    
+    /// @{ Virtual from ConvergenceLayer
+    void dump_link(Link* link, oasys::StringBuffer* buf);
+    /// @}
     
     /// @{ Virtual from ConnectionConvergenceLayer
     virtual bool parse_link_params(LinkParams* params,

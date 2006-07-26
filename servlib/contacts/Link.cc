@@ -330,6 +330,30 @@ Link::format(char* buf, size_t sz) const
 
 //----------------------------------------------------------------------
 void
+Link::dump(oasys::StringBuffer* buf)
+{
+    buf->appendf("Link %s:\n"
+                 "type: %s\n"
+                 "state: %s\n"
+                 "nexthop: %s\n"
+                 "remote eid: %s\n"
+                 "mtu: %u\n"
+                 "min_retry_interval: %u\n"
+                 "max_retry_interval: %u\n",
+                 name(), 
+                 link_type_to_str(type_),
+                 state_to_str(state_),
+                 nexthop(),
+                 remote_eid_.c_str(),
+                 params_.mtu_,
+                 params_.min_retry_interval_,
+                 params_.max_retry_interval_);
+    
+    clayer_->dump_link(this, buf);
+}
+
+//----------------------------------------------------------------------
+void
 Link::dump_stats(oasys::StringBuffer* buf)
 {
     buf->appendf("%u bundles_transmitted -- "

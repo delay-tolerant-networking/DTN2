@@ -102,6 +102,7 @@ public:
 
     /// @{ Virtual from ConvergenceLayer
     bool init_link(Link* link, int argc, const char* argv[]);
+    void dump_link(Link* link, oasys::StringBuffer* buf);
     bool reconfigure_link(Link* link, int argc, const char* argv[]);
     bool open_contact(const ContactRef& contact);
     bool close_contact(const ContactRef& contact);
@@ -115,7 +116,6 @@ public:
      */
     class LinkParams : public CLInfo {
     public:
-        LinkParams();
         u_int32_t busy_queue_depth_;	///< Max # bundles in BD -> conn. queue
         bool reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         u_int sendbuf_len_;		///< Buffer size for sending data
@@ -125,12 +125,14 @@ public:
         u_int test_read_delay_;		///< Msecs to sleep between read calls
         u_int test_write_delay_;	///< Msecs to sleep between write calls
         u_int test_recv_delay_;		///< Msecs to sleep before recv evt
-    };
 
-    /**
-     * Default parameters.
-     */
-    static LinkParams default_link_params_;
+    protected:
+        // The only time this constructor should be called is to
+        // initialize the default parameters. All other cases (i.e.
+        // derivative parameter classes) should use a copy constructor
+        // to grab the default settings.
+        LinkParams(bool init_defaults);
+    };
 
 protected:
     /**

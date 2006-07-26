@@ -60,10 +60,13 @@ LinkCommand::LinkCommand()
                 "hacky way to make the link available");
     add_to_help("state <name>", "return the state of a link");
     add_to_help("stats <name>", "dump link statistics");
-    add_to_help("dump", "print the list of existing links");
+    add_to_help("dump <name?>", "print the list of existing links or "
+                "detailed info about a single link");
     add_to_help("reconfigure <name> <opt=val> <opt2=val2>...",
                 "configure link options after initialization "
                 "(not all options support this feature)");
+    add_to_help("set_cl_defaults <cl> <opt=val> <opt2=val2>...",
+                "configure convergence layer specific default options");
 }
 
 int
@@ -298,17 +301,58 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     }
     else if (strcmp(cmd, "dump") == 0) 
     {
-        ContactManager* cm = BundleDaemon::instance()->contactmgr();
-        oasys::ScopeLock l(cm->lock(), "LinkCommand::exec");
-        
-        const LinkSet* links = cm->links();
-        for (LinkSet::const_iterator i = links->begin();
-             i != links->end(); ++i)
-        {
-            append_resultf("*%p\n", *i);
+        // link dump <name?>
+        if (argc == 2) {
+            ContactManager* cm = BundleDaemon::instance()->contactmgr();
+            oasys::ScopeLock l(cm->lock(), "LinkCommand::exec");
+            
+            const LinkSet* links = cm->links();
+            for (LinkSet::const_iterator i = links->begin();
+                 i != links->end(); ++i)
+            {
+                append_resultf("*%p\n", *i);
+            }
+        } else if (argc == 3) {
+            const char* name = argv[2];
+            
+            Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+            if (link == NULL) {
+                resultf("link %s doesn't exist", name);
+                return TCL_ERROR;
+            }
+
+            oasys::StringBuffer buf;
+            link->dump(&buf);
+            set_result(buf.c_str());
+            return TCL_OK;
+        } else {
+            wrong_num_args(argc, argv, 2, 2, 3);
+            return TCL_ERROR;
         }
     }
-    else 
+    else if (strcmp(cmd, "set_cl_defaults") == 0)
+    {
+        // link set_cl_defaults <cl> <opt=val> <opt2=val2> ...
+        if (argc < 4) {
+            wrong_num_args(argc, argv, 2, 4, INT_MAX);
+            return TCL_ERROR;
+        }
+
+        ConvergenceLayer* cl = ConvergenceLayer::find_clayer(argv[2]);
+        if (cl == NULL) {
+            resultf("unknown convergence layer %s", argv[2]);
+            return TCL_ERROR;
+        }
+
+        const char* invalid;
+        if (!cl->set_link_defaults(argc - 3, &argv[3], &invalid)) {
+            resultf("invalid link option: %s", invalid);
+            return TCL_ERROR;
+        }
+        
+        return TCL_OK;
+    }
+    else
     {
         resultf("unimplemented link subcommand %s", cmd);
         return TCL_ERROR;

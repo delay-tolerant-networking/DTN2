@@ -44,11 +44,8 @@
 
 namespace dtn {
 
-ConnectionConvergenceLayer::LinkParams
-    ConnectionConvergenceLayer::default_link_params_;
-
 //----------------------------------------------------------------------
-ConnectionConvergenceLayer::LinkParams::LinkParams()
+ConnectionConvergenceLayer::LinkParams::LinkParams(bool init_defaults)
     : busy_queue_depth_(10),
       reactive_frag_enabled_(true),
       sendbuf_len_(32768),
@@ -58,6 +55,7 @@ ConnectionConvergenceLayer::LinkParams::LinkParams()
       test_write_delay_(0),
       test_recv_delay_(0)
 {
+    (void)init_defaults;
 }
 
 //----------------------------------------------------------------------
@@ -105,6 +103,23 @@ ConnectionConvergenceLayer::parse_link_params(LinkParams* params,
     }
     
     return true;
+}
+
+//----------------------------------------------------------------------
+void
+ConnectionConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+{
+    LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
+    ASSERT(params != NULL);
+    
+    buf->appendf("busy_queue_depth: %u\n", params->busy_queue_depth_);
+    buf->appendf("reactive_frag_enabled: %u\n", params->reactive_frag_enabled_);
+    buf->appendf("sendbuf_len: %u\n", params->sendbuf_len_);
+    buf->appendf("recvbuf_len: %u\n", params->recvbuf_len_);
+    buf->appendf("data_timeout: %u\n", params->data_timeout_);
+    buf->appendf("test_read_delay: %u\n", params->test_read_delay_);
+    buf->appendf("test_write_delay: %u\n", params->test_write_delay_);
+    buf->appendf("test_recv_delay: %u\n",params->test_recv_delay_);
 }
 
 //----------------------------------------------------------------------

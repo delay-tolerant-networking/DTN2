@@ -96,6 +96,32 @@ ConvergenceLayer::find_clayer(const char* name)
 
 //----------------------------------------------------------------------
 bool
+ConvergenceLayer::set_interface_defaults(int argc, const char* argv[],
+                                         const char** invalidp)
+{
+    if (argc == 0) {
+        return true;
+    } else {
+        invalidp = &argv[0];
+        return false;
+    }
+}
+
+//----------------------------------------------------------------------
+bool
+ConvergenceLayer::set_link_defaults(int argc, const char* argv[],
+                                    const char** invalidp)
+{
+    if (argc == 0) {
+        return true;
+    } else {
+        invalidp = &argv[0];
+        return false;
+    }
+}
+
+//----------------------------------------------------------------------
+bool
 ConvergenceLayer::interface_up(Interface* iface,
                                int argc, const char* argv[])
 {

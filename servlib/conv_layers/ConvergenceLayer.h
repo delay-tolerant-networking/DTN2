@@ -72,6 +72,18 @@ public:
     virtual ~ConvergenceLayer();
 
     /**
+     * Set default interface options.
+     */
+    virtual bool set_interface_defaults(int argc, const char* argv[],
+                                        const char** invalidp);
+    
+    /**
+     * Set default link options.
+     */
+    virtual bool set_link_defaults(int argc, const char* argv[],
+                                   const char** invalidp);
+    
+    /**
      * Bring up a new interface.
      */
     virtual bool interface_up(Interface* iface,
@@ -101,7 +113,7 @@ public:
      * Post-initialization, parse any CL-specific options for the link.
      */
     virtual bool reconfigure_link(Link* link, int argc, const char* argv[]);
-    
+
     /**
      * Open a new contact for the given link. The implementation will
      * create a new Contact object (or find one that already exists),

@@ -415,6 +415,11 @@ public:
      */
     int format(char* buf, size_t sz) const;
 
+    /**
+     * Debugging printout.
+     */
+    void dump(oasys::StringBuffer* buf);
+
     /**************************************************************
      * Link Parameters
      */

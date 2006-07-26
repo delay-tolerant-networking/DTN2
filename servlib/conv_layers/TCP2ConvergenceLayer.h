@@ -76,11 +76,14 @@ public:
      */
     class TCPLinkParams : public StreamLinkParams {
     public:
-        TCPLinkParams();
         in_addr_t local_addr_;		///< Local address to bind to
-        u_int16_t local_port_;		///< Local port to bind to
         in_addr_t remote_addr_;		///< Peer address used for rcvr-connect
         u_int16_t remote_port_;		///< Peer port used for rcvr-connect
+
+    protected:
+        // See comment in LinkParams for why this is protected
+        TCPLinkParams(bool init_defaults);
+        friend class TCP2ConvergenceLayer;
     };
 
     void dump_params(TCPLinkParams* params);
@@ -91,6 +94,12 @@ public:
     static TCPLinkParams default_link_params_;
 
 protected:
+    /// @{ Virtual from ConvergenceLayer
+    bool set_link_defaults(int argc, const char* argv[],
+                           const char** invalidp);
+    void dump_link(Link* link, oasys::StringBuffer* buf);
+    /// @}
+    
     /// @{ Virtual from ConnectionConvergenceLayer
     virtual LinkParams* new_link_params();
     virtual bool parse_link_params(LinkParams* params,

@@ -47,12 +47,13 @@
 
 namespace dtn {
 
-TCP2ConvergenceLayer::TCPLinkParams TCP2ConvergenceLayer::default_link_params_;
+TCP2ConvergenceLayer::TCPLinkParams
+    TCP2ConvergenceLayer::default_link_params_(true);
 
 //----------------------------------------------------------------------
-TCP2ConvergenceLayer::TCPLinkParams::TCPLinkParams()
-    : local_addr_(INADDR_ANY),
-      local_port_(0),
+TCP2ConvergenceLayer::TCPLinkParams::TCPLinkParams(bool init_defaults)
+    : StreamLinkParams(init_defaults),
+      local_addr_(INADDR_ANY),
       remote_addr_(INADDR_NONE),
       remote_port_(TCPCL_DEFAULT_PORT)
 {
@@ -98,6 +99,26 @@ TCP2ConvergenceLayer::parse_link_params(LinkParams* lparams,
     // continue up to parse the parent class
     return StreamConvergenceLayer::parse_link_params(lparams, argc, argv,
                                                      invalidp);
+}
+
+//----------------------------------------------------------------------
+void
+TCP2ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+{
+    StreamConvergenceLayer::dump_link(link, buf);
+    
+    TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(link->cl_info());
+    ASSERT(params != NULL);
+    
+    buf->appendf("local_addr: %s\n", intoa(params->local_addr_));
+}
+
+//----------------------------------------------------------------------
+bool
+TCP2ConvergenceLayer::set_link_defaults(int argc, const char* argv[],
+                                        const char** invalidp)
+{
+    return parse_link_params(&default_link_params_, argc, argv, invalidp);
 }
 
 //----------------------------------------------------------------------
@@ -316,9 +337,9 @@ TCP2ConvergenceLayer::Connection::Connection(TCP2ConvergenceLayer* cl,
     // just log and go on
     if (params->local_addr_ != INADDR_ANY)
     {
-        if (sock_->bind(params->local_addr_, params->local_port_) != 0) {
-            log_err("error binding to %s:%d: %s",
-                    intoa(params->local_addr_), params->local_port_,
+        if (sock_->bind(params->local_addr_, 0) != 0) {
+            log_err("error binding to %s: %s",
+                    intoa(params->local_addr_),
                     strerror(errno));
         }
     }

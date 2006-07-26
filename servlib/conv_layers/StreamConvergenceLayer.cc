@@ -46,13 +46,10 @@
 
 namespace dtn {
 
-StreamConvergenceLayer::StreamLinkParams
-    StreamConvergenceLayer::default_link_params_;
-
 //----------------------------------------------------------------------
-StreamConvergenceLayer::StreamLinkParams::StreamLinkParams()
-    : block_ack_enabled_(true),
-      reactive_frag_enabled_(true),
+StreamConvergenceLayer::StreamLinkParams::StreamLinkParams(bool init_defaults)
+    : LinkParams(init_defaults),
+      block_ack_enabled_(true),
       keepalive_interval_(10),
       block_length_(4096)
 {
@@ -83,9 +80,6 @@ StreamConvergenceLayer::parse_link_params(LinkParams* lparams,
     p.addopt(new oasys::BoolOpt("block_ack_enabled",
                                 &params->block_ack_enabled_));
     
-    p.addopt(new oasys::BoolOpt("reactive_frag_enabled",
-                                &params->reactive_frag_enabled_));
-
     p.addopt(new oasys::UIntOpt("keepalive_interval",
                                 &params->keepalive_interval_));
     
@@ -100,6 +94,21 @@ StreamConvergenceLayer::parse_link_params(LinkParams* lparams,
     
     return ConnectionConvergenceLayer::parse_link_params(lparams, argc, argv,
                                                          invalidp);
+}
+
+//----------------------------------------------------------------------
+void
+StreamConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+{
+    ConnectionConvergenceLayer::dump_link(link, buf);
+    
+    StreamLinkParams* params =
+        dynamic_cast<StreamLinkParams*>(link->cl_info());
+    ASSERT(params != NULL);
+    
+    buf->appendf("block_ack_enabled: %u\n", params->block_ack_enabled_);
+    buf->appendf("keepalive_interval: %u\n", params->keepalive_interval_);
+    buf->appendf("block_length: %u\n", params->block_length_);
 }
 
 //----------------------------------------------------------------------
