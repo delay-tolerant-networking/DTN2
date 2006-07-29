@@ -5,12 +5,15 @@ dtn::config
 
 set clayer tcp
 set length 5000
+set blocklen 0
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set clayer $val
     } elseif {$var == "-length" || $var == "length"} {
         set length $val	
+    } elseif {$var == "-blocklen" || $var == "blocklen"} {
+        set blocklen $val	
     } else {
 	puts "ERROR: unrecognized test option '$var'"
 	exit 1
@@ -19,7 +22,13 @@ foreach {var val} $opt(opts) {
 
 puts "* Configuring $clayer interfaces / links"
 dtn::config_interface $clayer
-dtn::config_linear_topology ALWAYSON $clayer true
+
+set linkopts ""
+if {$blocklen != 0} {
+    set linkopts "block_length=$blocklen"
+}
+    
+dtn::config_linear_topology ALWAYSON $clayer true $linkopts
 
 test::script {
     puts "* Running dtnds"
