@@ -233,6 +233,9 @@ protected:
         struct timeval keepalive_sent_;	///< Timestamp for keepalive timer
     };
 
+    /// For some gcc variants, this typedef seems to be needed
+    typedef ConnectionConvergenceLayer::LinkParams LinkParams;
+
     /// @{ Virtual from ConvergenceLayer
     void dump_link(Link* link, oasys::StringBuffer* buf);
     /// @}
