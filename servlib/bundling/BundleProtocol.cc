@@ -252,17 +252,6 @@ BundleProtocol::format_header_blocks(const Bundle* bundle,
                            &primary2->replyto_scheme_offset,
                            &primary2->replyto_ssp_offset);
 
-    log_debug(log, "dictionary offsets: dest %u,%u source %u,%u, "
-	      "custodian %u,%u replyto %u,%u",
-	      ntohs(primary2->dest_scheme_offset),
-	      ntohs(primary2->dest_ssp_offset),
-	      ntohs(primary2->source_scheme_offset),
-	      ntohs(primary2->source_ssp_offset),
-	      ntohs(primary2->custodian_scheme_offset),
-	      ntohs(primary2->custodian_ssp_offset),
-	      ntohs(primary2->replyto_scheme_offset),
-	      ntohs(primary2->replyto_ssp_offset));
-
     set_timestamp(&primary2->creation_ts, &bundle->creation_ts_);
     u_int32_t lifetime = htonl(bundle->expiration_);
     memcpy(&primary2->lifetime, &lifetime, sizeof(lifetime));
@@ -283,6 +272,31 @@ BundleProtocol::format_header_blocks(const Bundle* bundle,
 	strcpy((char*)buf, dict_iter->str.c_str());
 	buf += dict_iter->str.length() + 1;
 	len -= dict_iter->str.length() + 1;
+    }
+    
+    if (oasys::__log_enabled(oasys::LOG_DEBUG, "/dtn/bundle/protocol/dictionary")) {
+        oasys::StringBuffer dict_copy;
+        ASSERT(buf[-1] == '\0');
+        char* bp = (char*)buf - dictionary_len;
+        while (bp != (char*)buf) {
+            dict_copy.appendf("%s ", bp);
+            bp += strlen(bp) + 1;
+        }
+
+        log_debug("/dtn/bundle/protocol/dictionary",
+                  "len %zu, value: '%s'", dictionary_len, dict_copy.c_str());
+                  
+        log_debug("/dtn/bundle/protocol/dictionary",
+                  "offsets: dest %u,%u source %u,%u, "
+                  "custodian %u,%u replyto %u,%u",
+                  ntohs(primary2->dest_scheme_offset),
+                  ntohs(primary2->dest_ssp_offset),
+                  ntohs(primary2->source_scheme_offset),
+                  ntohs(primary2->source_ssp_offset),
+                  ntohs(primary2->custodian_scheme_offset),
+                  ntohs(primary2->custodian_ssp_offset),
+                  ntohs(primary2->replyto_scheme_offset),
+                  ntohs(primary2->replyto_ssp_offset));
     }
 
     /*
@@ -463,6 +477,20 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
 
     u_int16_t scheme_offset, ssp_offset;
 
+    if (oasys::__log_enabled(oasys::LOG_DEBUG, "/dtn/bundle/protocol/dictionary")) {
+        oasys::StringBuffer dict_copy;
+        ASSERT(buf[-1] == '\0');
+        char* bp = (char*)buf - dictionary_len;
+        while (bp != (char*)buf) {
+            dict_copy.appendf("%s ", bp);
+            bp += strlen(bp) + 1;
+        }
+
+        log_debug("/dtn/bundle/protocol/dictionary",
+                  "len %u, value: '%s'", dictionary_len, dict_copy.c_str());
+    }
+                  
+
 #define EXTRACT_DICTIONARY_EID(_what)                                   \
     memcpy(&scheme_offset, &primary2->_what##_scheme_offset, 2);        \
     memcpy(&ssp_offset, &primary2->_what##_ssp_offset, 2);              \
@@ -494,7 +522,7 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
                 scheme_offset,                                          \
                 bundle->_what##_.ssp().c_str(),                         \
                 ssp_offset, dictionary_len);                            \
-	return -1;                                                      \
+        return -1;                                                      \
     }                                                                   \
 									\
     log_debug(log, "parsed %s eid (offsets %d, %d) %s", #_what,         \
