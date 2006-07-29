@@ -324,6 +324,7 @@ TCP2ConvergenceLayer::Connection::Connection(TCP2ConvergenceLayer* cl,
     // IO routines, or just suppress the IO output altogether
     sock_->logpathf("%s/sock", logpath_);
     sock_->set_logfd(false);
+    sock_->set_nonblocking(true);
 
     // cache the remote addr and port in the fields in the socket
     // since we want to actually connect to the peer side from the
