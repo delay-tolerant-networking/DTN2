@@ -143,7 +143,6 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         
         int payload_len;
         u_char* payload_data = Tcl_GetByteArrayFromObj(objv[4], &payload_len);
-        int total = payload_len;
 
         // now process any optional parameters:
         InjectOpts options;
@@ -164,15 +163,25 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 
         if (options.length_ != 0) {
             // explicit length but some of the data may just be left
-            // as garbage
+            // as garbage. 
             b->payload_.set_length(options.length_);
-            b->payload_.append_data(payload_data, payload_len);
+            if (payload_len != 0) {
+                b->payload_.append_data(payload_data, payload_len);
+            }
+
+            // make sure to write a byte at the end of the payload to
+            // properly fool the BundlePayload into thinking that we
+            // actually got all the data
+            u_char byte = 0;
+            b->payload_.write_data(&byte, options.length_ - 1, 1);
             b->payload_.close_file();
+            
+            payload_len = options.length_;
         } else {
             // use the object length
             b->payload_.set_data(payload_data, payload_len);
         }
-
+        
         if (options.replyto_ != "") {
             b->replyto_.assign(options.replyto_.c_str());
         }
@@ -183,10 +192,10 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
         
-        log_debug("inject %d byte bundle %s->%s", total,
+        log_debug("inject %d byte bundle %s->%s", payload_len,
                   b->source_.c_str(), b->dest_.c_str());
 
-        BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP, total));
+        BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP, payload_len));
 
         // return the creation timestamp (can use with source EID to
         // create a globally unique bundle identifier
