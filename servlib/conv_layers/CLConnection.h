@@ -174,9 +174,14 @@ protected:
      * Struct used to record bundles that are in-flight along with
      * their transmission state and optionally acknowledgement data.
      */
-    struct InFlightBundle {
+    class InFlightBundle {
+    public:
         InFlightBundle(Bundle* b)
-            : bundle_(b, "CLConnection::InFlightBundle") {}
+            : bundle_(b, "CLConnection::InFlightBundle"),
+              formatted_length_(0),
+              header_block_length_(0),
+              tail_block_length_(0),
+              partial_block_todo_(0) {}
         
         BundleRef bundle_;
 
@@ -184,42 +189,58 @@ protected:
         size_t header_block_length_;
         size_t tail_block_length_;
         
+        size_t partial_block_todo_;
+        
         DataBitmap sent_data_;
         DataBitmap ack_data_;
+
+    private:
+        // make sure we don't copy the structure by leaving the copy
+        // constructor undefined
+        InFlightBundle(const InFlightBundle& copy);
     };
 
     /**
      * Typedef for the list of in-flight bundles.
      */
-    typedef std::list<InFlightBundle> InFlightList;
+    typedef std::list<InFlightBundle*> InFlightList;
 
     /**
      * Struct used to record bundles that are in the process of being
      * received along with their transmission state and relevant
      * acknowledgement data.
      */
-    struct IncomingBundle {
+    class IncomingBundle {
+    public:
         IncomingBundle(Bundle* b)
-            : bundle_(b, "CLConnection::IncomingBundle") {}
-        
+            : bundle_(b, "CLConnection::IncomingBundle"),
+              total_rcvd_length_(0),
+              header_block_length_(0) {}
+
         BundleRef bundle_;
         
-        size_t formatted_length_;
+        size_t total_rcvd_length_;
         size_t header_block_length_;
-        
+
         DataBitmap rcvd_data_;
         DataBitmap ack_data_;
+
+    private:
+        // make sure we don't copy the structure by leaving the copy
+        // constructor undefined
+        IncomingBundle(const IncomingBundle& copy);
     };
 
     /**
      * Typedef for the list of in-flight bundles.
      */
-    typedef std::list<IncomingBundle> IncomingList;
+    typedef std::list<IncomingBundle*> IncomingList;
     
     ContactRef          contact_;	///< Ref to the Contact
     oasys::MsgQueue<CLMsg> cmdqueue_;	///< Queue of commands from daemon
     ConvergenceLayer*   cl_;		///< Pointer to the CL
-    LinkParams*		params_;	///< Link parameters
+    LinkParams*		params_;	///< Pointer to Link parameters, or
+                                        ///< to defaults until Link is bound
     std::string		nexthop_;	///< Nexthop identifier set by CL
     int    		num_pollfds_;   ///< Number of pollfds in use
     static const int	MAXPOLL = 8;	///< Maximum number of pollfds

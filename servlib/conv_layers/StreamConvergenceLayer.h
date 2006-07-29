@@ -72,7 +72,8 @@ namespace dtn {
  * exception to this is that the connection might be write blocked in
  * the middle of sending a data block. In that case, we must first
  * finish transmitting the current block before sending any other acks
- * (or the shutdown message).
+ * (or the shutdown message), otherwise those messages will be
+ * consumed as part of the payload.
  *
  * To make sure that we don't deadlock with the other side, we always
  * drain any data that is ready on the channel. All incoming messages
@@ -127,35 +128,15 @@ protected:
      */
     typedef enum {
         START_BUNDLE	= 0x1,		///< begin a new bundle transmission
-        DATA_BLOCK	= 0x2,		///< a block of bundle data
-        ACK_BLOCK	= 0x3,		///< acknowledgement of a block
-        KEEPALIVE	= 0x4,		///< keepalive packet
-        SHUTDOWN	= 0x5,		///< sending side will shutdown now
+        END_BUNDLE	= 0x2,		///< end of a bundle transmission
+        DATA_BLOCK	= 0x3,		///< a block of bundle data
+                                        ///< (followed by a SDNV block length)
+        ACK_BLOCK	= 0x4,		///< acknowledgement of a block
+                                        ///< (followed by a SDNV ack length)
+        KEEPALIVE	= 0x5,		///< keepalive packet
+        SHUTDOWN	= 0x6,		///< about to shutdown
     } stream_cl_header_type_t;
     
-    /**
-     * Header for the start of a bundle transmission.
-     */
-    struct StartHeader {
-        u_char    bundle_length[0];	///< total length of the bundle
-    } __attribute__((packed));
-
-    /**
-     * Header for a block of bundle data for cases where the
-     * underlying protocol doesn't provide packet boundaries (i.e. TCP
-     * or Bluetooth but not SCTP).
-     */
-    struct DataHeader {
-        u_char    length[0];		///< SDNV of block length
-    } __attribute__((packed));
-    
-    /**
-     * Header for an acknowledgement.
-     */
-    struct AckHeader {
-        u_char    length[0];		///< SDNV of end of block
-    } __attribute__((packed));
-
     /**
      * Link parameters shared among all stream based convergence layers.
      */
@@ -218,30 +199,40 @@ protected:
         void note_data_rcvd();
         void send_pending_acks();
         void send_pending_blocks();
-        bool send_start_bundle(InFlightBundle* inflight);
+        bool start_bundle(InFlightBundle* inflight);
         bool send_next_block(InFlightBundle* inflight);
-        void check_completed(IncomingBundle* incoming);
+        void send_data_todo(InFlightBundle* inflight);
+        bool finish_bundle(InFlightBundle* inflight);
         
         void handle_contact_initiation();
         bool handle_start_bundle();
+        bool handle_end_bundle();
         bool handle_data_block();
         bool handle_data_todo();
         bool handle_ack_block();
         bool handle_keepalive();
         bool handle_shutdown();
         /// @}
+
+        /**
+         * Utility function to downcast the params_ pointer that's
+         * stored in the CLConnection parent class.
+         */
+        StreamLinkParams* stream_lparams()
+        {
+            StreamLinkParams* ret = dynamic_cast<StreamLinkParams*>(params_);
+            ASSERT(ret != NULL);
+            return ret;
+        }
         
     protected:
-        StreamLinkParams* params_;	///< Link parameters
+        InFlightBundle* current_inflight_; ///< Current bundle that's in flight 
         size_t send_block_todo_; 	///< Bytes left to send of current block
         size_t recv_block_todo_; 	///< Bytes left to recv of current block
         struct timeval data_rcvd_;	///< Timestamp for idle timer
         struct timeval keepalive_sent_;	///< Timestamp for keepalive timer
     };
 
-    /// XXX/demmer not sure why this is needed, but it seems to be sometimes
-    typedef ConnectionConvergenceLayer::LinkParams LinkParams;
-    
     /// @{ Virtual from ConvergenceLayer
     void dump_link(Link* link, oasys::StringBuffer* buf);
     /// @}
@@ -255,6 +246,5 @@ protected:
 };
 
 } // namespace dtn
-
 
 #endif /* _STREAM_CONVERGENCE_LAYER_H_ */

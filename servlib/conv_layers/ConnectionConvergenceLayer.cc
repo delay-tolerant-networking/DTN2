@@ -163,7 +163,31 @@ ConnectionConvergenceLayer::reconfigure_link(Link* link,
         log_err("reconfigure_link: invalid parameter %s", invalid);
         return false;
     }
+
+    if (link->isopen()) {
+        LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
+        ASSERT(params != NULL);
         
+        CLConnection* conn = dynamic_cast<CLConnection*>(link->contact()->cl_info());
+        ASSERT(conn != NULL);
+        
+        if ((params->sendbuf_len_ != conn->sendbuf_.size()) &&
+            (params->sendbuf_len_ >= conn->sendbuf_.fullbytes()))
+        {
+            log_info("resizing link *%p send buffer from %zu -> %u",
+                     link, conn->sendbuf_.size(), params->sendbuf_len_);
+            conn->sendbuf_.set_size(params->sendbuf_len_);
+        }
+
+        if ((params->recvbuf_len_ != conn->recvbuf_.size()) &&
+            (params->recvbuf_len_ >= conn->recvbuf_.fullbytes()))
+        {
+            log_info("resizing link *%p recv buffer from %zu -> %u",
+                     link, conn->recvbuf_.size(), params->recvbuf_len_);
+            conn->recvbuf_.set_size(params->recvbuf_len_);
+        }
+    }
+
     return true;
 }
 
@@ -177,7 +201,8 @@ ConnectionConvergenceLayer::open_contact(const ContactRef& contact)
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
-    // create a new connection for the contact
+    // create a new connection for the contact, set up to use the
+    // link's configured parameters
     CLConnection* conn = new_connection(params);
     conn->set_contact(contact);
     contact->set_cl_info(conn);

@@ -94,18 +94,25 @@ CLConnection::run()
             return;
         }
 
+        // check the comand queue coming in from the bundle daemon
+        // if any arrive, we continue to the top of the loop to check
+        // contact_broken and then process any other commands before
+        // checking for data to/from the remote side
         if (cmdqueue_.size() != 0) {
             process_command();
-            continue; // process any other commands
+            continue;
         }
         
         // send any data there is to send
         send_pending_data();
-        
+
+        // now we poll() to wait for a new command (indicated by the
+        // notifier on the command queue), data arriving from the
+        // remote side, or write-readiness on the socket indicating
+        // that we can send more data.
         for (int i = 0; i < num_pollfds_ + 1; ++i) {
             pollfds_[i].revents = 0;
         }
-        
         int cc = oasys::IO::poll_multiple(pollfds_, num_pollfds_ + 1,
                                           poll_timeout_, NULL, logpath_);
 
@@ -201,10 +208,15 @@ CLConnection::close_contact()
     // drain the inflight queue, posting transmitted or transmit
     // failed events
     while (! inflight_.empty()) {
-        InFlightBundle* inflight = &inflight_.front();
+        InFlightBundle* inflight = inflight_.front();
 
         size_t sent_bytes  = inflight->sent_data_.num_contiguous();
         size_t acked_bytes = inflight->ack_data_.num_contiguous();
+
+        // XXX/demmer the reactive fragmentation code needs to be
+        // fixed to count the header bytes
+        sent_bytes  -= inflight->header_block_length_;
+        acked_bytes -= inflight->header_block_length_;
         
         if (sent_bytes == 0 || ! params->reactive_frag_enabled_) {
             BundleDaemon::post(

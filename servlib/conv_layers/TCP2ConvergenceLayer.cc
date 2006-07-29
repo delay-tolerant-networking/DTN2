@@ -303,8 +303,7 @@ TCP2ConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
 TCP2ConvergenceLayer::Connection::Connection(TCP2ConvergenceLayer* cl,
                                              TCPLinkParams* params)
     : StreamConvergenceLayer::Connection("TCP2ConvergenceLayer::Connection",
-                                         cl->logpath(), cl, params),
-      params_(params)
+                                         cl->logpath(), cl, params)
 {
     logpathf("%s/conn/%s:%d", cl->logpath(),
              intoa(params->remote_addr_), params->remote_port_);
@@ -352,8 +351,7 @@ TCP2ConvergenceLayer::Connection::Connection(TCP2ConvergenceLayer* cl,
                                              in_addr_t remote_addr,
                                              u_int16_t remote_port)
     : StreamConvergenceLayer::Connection("TCP2ConvergenceLayer::Connection",
-                                         cl->logpath(), cl, params),
-      params_(params)
+                                         cl->logpath(), cl, params)
 {
     logpathf("%s/conn/%s:%d", cl->logpath(), intoa(remote_addr), remote_port);
     
@@ -450,13 +448,13 @@ TCP2ConvergenceLayer::Connection::disconnect()
 void
 TCP2ConvergenceLayer::Connection::handle_poll_activity()
 {
-    if (sock_pollfd_->events & POLLHUP) {
+    if (sock_pollfd_->revents & POLLHUP) {
         log_info("remote socket closed connection -- returned POLLHUP");
         break_contact(ContactEvent::BROKEN);
         return;
     }
     
-    if (sock_pollfd_->events & POLLERR) {
+    if (sock_pollfd_->revents & POLLERR) {
         log_info("error condition on remote socket -- returned POLLERR");
         break_contact(ContactEvent::BROKEN);
         return;
@@ -465,7 +463,7 @@ TCP2ConvergenceLayer::Connection::handle_poll_activity()
     // first check for write readiness, meaning either we're getting a
     // notification that the deferred connect() call completed, or
     // that we are no longer write blocked
-    if (sock_pollfd_->events & POLLOUT)
+    if (sock_pollfd_->revents & POLLOUT)
     {
         log_debug("poll returned write ready, clearing POLLOUT bit");
         sock_pollfd_->events &= ~POLLOUT;
@@ -491,7 +489,7 @@ TCP2ConvergenceLayer::Connection::handle_poll_activity()
     }
 
     // finally, check for incoming data
-    if (sock_pollfd_->events & POLLIN) {
+    if (sock_pollfd_->revents & POLLIN) {
         recv_data();
         process_data();
     }
@@ -515,6 +513,10 @@ TCP2ConvergenceLayer::Connection::send_data()
             sock_pollfd_->events |= POLLOUT;
         }
         
+    } else if (errno == EWOULDBLOCK) {
+        log_debug("send_data: write returned EWOULDBLOCK, setting POLLOUT bit");
+        sock_pollfd_->events |= POLLOUT;
+        
     } else {
         log_info("send_data: remote connection unexpectedly closed: %s",
                  strerror(errno));
@@ -533,6 +535,13 @@ TCP2ConvergenceLayer::Connection::recv_data()
         return;
     }
     
+    if (params_->test_read_delay_ != 0) {
+        log_debug("recv_data: sleeping for test_read_delay msecs %u",
+                  params_->test_read_delay_);
+        
+        usleep(params_->test_read_delay_ * 1000);
+    }
+            
     log_debug("recv_data: draining up to %zu bytes into recv buffer...",
               recvbuf_.tailbytes());
     int cc = sock_->read(recvbuf_.end(), recvbuf_.tailbytes());

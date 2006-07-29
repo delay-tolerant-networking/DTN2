@@ -173,7 +173,17 @@ protected:
         bool send_ack(u_int32_t bundle_id, size_t acked_len);
         bool send_keepalive();
 
-        TCPLinkParams*    params_;	///< Link parameters
+        /**
+         * Utility function to downcast the params_ pointer that's
+         * stored in the CLConnection parent class.
+         */
+        TCPLinkParams* tcp_lparams()
+        {
+            TCPLinkParams* ret = dynamic_cast<TCPLinkParams*>(params_);
+            ASSERT(ret != NULL);
+            return ret;
+        }
+        
         oasys::TCPClient* sock_;	///< The socket
         struct pollfd*	  sock_pollfd_;	///< Poll structure for the socket
     };
