@@ -110,6 +110,8 @@ Bundle::Bundle(const oasys::Builder&)
 //----------------------------------------------------------------------
 Bundle::~Bundle()
 {
+    log_debug("/dtn/bundle/free", "destroying bundle id %d", bundleid_);
+    
     ASSERT(mappings_.size() == 0);
     bundleid_ = 0xdeadf00d;
 
