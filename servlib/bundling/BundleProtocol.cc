@@ -469,14 +469,14 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
     scheme_offset = ntohs(scheme_offset);                               \
     ssp_offset = ntohs(ssp_offset);                                     \
 									\
-    if (scheme_offset > (dictionary_len - 1)) {                         \
+    if (scheme_offset >= (dictionary_len - 1)) {                        \
 	log_err(log, "illegal offset for %s scheme dictionary offset: " \
 		"offset %d, total length %u", #_what,                   \
 		scheme_offset, dictionary_len);                         \
 	return -1;                                                      \
     }                                                                   \
 									\
-    if (ssp_offset > (dictionary_len - 1)) {                            \
+    if (ssp_offset >= (dictionary_len - 1)) {                           \
 	log_err(log, "illegal offset for %s ssp dictionary offset: "    \
 		"offset %d, total length %u", #_what,                   \
 		ssp_offset, dictionary_len);                            \
@@ -487,8 +487,13 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
 									\
 									\
     if (! bundle->_what##_.valid()) {                                   \
-	log_err(log, "invalid %s endpoint id '%s'", #_what,             \
-		bundle->_what##_.c_str());                              \
+	log_err(log, "invalid %s endpoint id '%s': "                    \
+                "scheme '%s' offset %u ssp '%s' offset %u/%u", #_what,  \
+		bundle->_what##_.c_str(),                               \
+                bundle->_what##_.scheme_str().c_str(),                  \
+                scheme_offset,                                          \
+                bundle->_what##_.ssp().c_str(),                         \
+                ssp_offset, dictionary_len);                            \
 	return -1;                                                      \
     }                                                                   \
 									\
