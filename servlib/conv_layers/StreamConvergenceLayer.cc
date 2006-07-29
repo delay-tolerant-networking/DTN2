@@ -575,7 +575,6 @@ StreamConvergenceLayer::Connection::send_pending_blocks()
         }
         else
         {
-        
             log_debug("send_pending_blocks: completed transmission of bundle %d",
                       inflight->bundle_->bundleid_);
             
@@ -1036,9 +1035,11 @@ StreamConvergenceLayer::Connection::handle_data_block()
     // size) and return to wait for more data to arrive.
     if (incoming->rcvd_data_.empty()) {
         Bundle* bundle = new Bundle();
+
+        size_t rcvd_bytes = recvbuf_.fullbytes() - 1 - sdnv_len;
         int header_len = BundleProtocol::parse_header_blocks(bundle,
                                                              bp + 1 + sdnv_len,
-                                                             block_len);
+                                                             rcvd_bytes);
         if (header_len < 0) {
             log_debug("handle_data_block: "
                       "not enough data to parse bundle headers [have %zu]",
