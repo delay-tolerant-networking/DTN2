@@ -1044,6 +1044,7 @@ StreamConvergenceLayer::Connection::handle_data_block()
             log_debug("handle_data_block: "
                       "not enough data to parse bundle headers [have %zu]",
                       recvbuf_.fullbytes());
+            delete bundle;
             return false;
         }
 
