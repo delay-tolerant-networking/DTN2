@@ -870,10 +870,12 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         if (link->state() == Link::UNAVAILABLE) {
             link->set_state(Link::AVAILABLE);
             
-        } else if (link->state() == Link::BUSY) {
+        } else if (link->state() == Link::BUSY &&
+                   reason        == ContactEvent::UNBLOCKED) {
             link->set_state(Link::OPEN);
             
-        } else if (link->state() == Link::OPEN) {
+        } else if (link->state() == Link::OPEN &&
+                   reason        == ContactEvent::UNBLOCKED) {
             // a CL might send multiple requests to go from
             // BUSY->AVAILABLE, so we can safely ignore this
             
