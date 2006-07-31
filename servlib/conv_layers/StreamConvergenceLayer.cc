@@ -1064,6 +1064,7 @@ StreamConvergenceLayer::Connection::handle_data_block()
         // this is a chunk of payload and/or tail block
         block_offset          = incoming->rcvd_data_.num_contiguous();
         size_t payload_offset = block_offset - incoming->header_block_length_;
+        (void)payload_offset;
 
         log_debug("handle_data_block: "
                   "got block of length %u at offset %zu "
