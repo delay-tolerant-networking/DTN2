@@ -263,7 +263,7 @@ protected:
     oasys::StreamBuffer recvbuf_;	///< Buffer for incoming data
     InFlightList	inflight_;	///< Bundles going out the wire
     IncomingList	incoming_;	///< Bundles arriving on the wire
-    bool                contact_broken_;///< Contact has been broken
+    volatile bool	contact_broken_; ///< Contact has been broken
 };
 
 } // namespace dtn
