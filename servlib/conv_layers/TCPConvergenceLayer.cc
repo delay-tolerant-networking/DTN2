@@ -1928,7 +1928,7 @@ TCPConvergenceLayer::Connection::send_loop()
                 BundleDaemon::post_and_wait(
                     new LinkStateChangeRequest(contact_->link(),
                                                Link::AVAILABLE,
-                                               ContactEvent::NO_INFO),
+                                               ContactEvent::UNBLOCKED),
                     event_notifier_);
             }
             
