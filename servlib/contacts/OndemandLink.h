@@ -51,19 +51,7 @@ namespace dtn {
 class OndemandLink : public Link {
 public:
     OndemandLink(std::string name, ConvergenceLayer* cl, const char* nexthop);
-    int parse_args(int argc, const char* argv[], const char** invalidp = NULL);
     void set_initial_state();
-
-    /**
-     * Virtual from SerializableObject
-     */
-    void serialize(oasys::SerializeAction* action);
-    
-    /**
-     * Seconds of idle time before the link is closed.
-     * Default is 30 seconds.
-     */
-    u_int idle_close_time_;
 };
 
 } // namespace dtn

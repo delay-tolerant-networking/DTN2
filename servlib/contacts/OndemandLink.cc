@@ -36,7 +36,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <oasys/util/OptParser.h>
 #include "OndemandLink.h"
 #include "bundling/BundleDaemon.h"
 
@@ -50,26 +49,8 @@ OndemandLink::OndemandLink(std::string name,
 {
     set_state(AVAILABLE);
 
-    idle_close_time_    = 30;
-}
-
-//----------------------------------------------------------------------
-int
-OndemandLink::parse_args(int argc, const char* argv[], const char** invalidp)
-{
-    int num = Link::parse_args(argc, argv, invalidp);
-    if (num == -1) {
-        return -1;
-    }
-    
-    oasys::OptParser p;
-    p.addopt(new oasys::UIntOpt("idle_close_time", &idle_close_time_));
-    int num2 = p.parse_and_shift(argc, argv, invalidp);
-    if (num2 == -1) {
-        return -1;
-    }
-
-    return num + num2;
+    // override the default for the idle close time
+    params_.idle_close_time_ = 30;
 }
 
 //----------------------------------------------------------------------
@@ -77,14 +58,6 @@ void
 OndemandLink::set_initial_state()
 {
     BundleDaemon::post(new LinkAvailableEvent(this, ContactEvent::NO_INFO));
-}
-
-//----------------------------------------------------------------------
-void
-OndemandLink::serialize(oasys::SerializeAction* a)
-{
-    Link::serialize(a);
-    a->process("idle_close_time", &idle_close_time_);
 }
 
 

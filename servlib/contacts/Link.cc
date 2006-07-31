@@ -56,7 +56,8 @@ namespace dtn {
 Link::Params Link::default_params_ = {
     default_params_.mtu_                = 0,
     default_params_.min_retry_interval_ = 5,
-    default_params_.max_retry_interval_ = 10 * 60
+    default_params_.max_retry_interval_ = 10 * 60,
+    default_params_.idle_close_time_    = 0
 };
 
 //----------------------------------------------------------------------
@@ -173,6 +174,7 @@ Link::serialize(oasys::SerializeAction* a)
     a->process("remote_eid",         &remote_eid_);
     a->process("min_retry_interval", &params_.min_retry_interval_);
     a->process("max_retry_interval", &params_.max_retry_interval_);
+    a->process("idle_close_time",    &params_.idle_close_time_);
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         logpathf("/dtn/link/%s", name_.c_str());
@@ -192,7 +194,9 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
                                 &params_.min_retry_interval_));
     p.addopt(new oasys::UIntOpt("max_retry_interval",
                                 &params_.max_retry_interval_));
-
+    p.addopt(new oasys::UIntOpt("idle_close_time",
+                                &params_.idle_close_time_));
+    
     int ret = p.parse_and_shift(argc, argv, invalidp);
     if (ret == -1) {
         return -1;
@@ -204,7 +208,13 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
         *invalidp = "invalid retry interval";
         return -1;
     }
-
+    
+    if (params_.idle_close_time_ != 0 && type_ == ALWAYSON)
+    {
+        *invalidp = "idle_close_time must be zero for always on link";
+        return -1;
+    }
+    
     return ret;
 }
 
@@ -249,7 +259,7 @@ Link::set_state(state_t new_state)
         break; // any old state is valid
 
     case AVAILABLE:
-        ASSERT_STATE(state_ == UNAVAILABLE);
+        ASSERT_STATE(state_ == OPEN || state_ == UNAVAILABLE);
         break;
 
     case OPENING:

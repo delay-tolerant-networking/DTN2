@@ -449,6 +449,15 @@ public:
          * by configuration parameters.
          */
         u_int max_retry_interval_;
+
+        /**
+         * Seconds of idle time before the link is closed. Must be
+         * zero for always on links (i.e. they are never closed).
+         *
+         * Default is 30 seconds for on demand links, zero for
+         * opportunistic links.
+         */
+        u_int idle_close_time_;
     };
 
     /**

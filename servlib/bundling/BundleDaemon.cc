@@ -906,7 +906,8 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         // is not actually open is if it's in the process of being
         // opened but the CL can't actually open it.
         if (! link->isopen() && ! link->isopening()) {
-            log_err("LINK_CLOSE_REQUEST *%p (%s) in unexpected state %s",
+            log_err("LINK_STATE_CHANGE_REQUEST *%p: "
+                    "setting state CLOSED (%s) in unexpected state %s",
                     link, ContactEvent::reason_to_str(reason),
                     link->state_to_str(link->state()));
             break;
@@ -923,7 +924,6 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         // now, based on the reason code, update the link availability
         // and set state accordingly
         if (reason == ContactEvent::IDLE) {
-            ASSERT(link->type() == Link::ONDEMAND);
             link->set_state(Link::AVAILABLE);
         } else {
             link->set_state(Link::UNAVAILABLE);
@@ -957,16 +957,10 @@ BundleDaemon::handle_contact_down(ContactDownEvent* event)
     ContactEvent::reason_t reason = event->reason_;
     
     log_info("CONTACT_DOWN *%p (%s)",
-             contact.object(), ContactEvent::reason_to_str(reason));
-    
-    // based on the reason code, update the link availability
-    // and set state accordingly
-    if (reason == ContactEvent::IDLE) {
-        post_at_head(new LinkStateChangeRequest(link, Link::CLOSED, reason));
-    } else {
-        link->set_state(Link::UNAVAILABLE);
-        post_at_head(new LinkUnavailableEvent(link, reason));
-    }
+             link, ContactEvent::reason_to_str(reason));
+
+    // we don't need to do anything here since we just generated this
+    // event in response to a link state change request
 }
 
 //----------------------------------------------------------------------
