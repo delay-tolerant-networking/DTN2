@@ -303,6 +303,8 @@ Link::open()
     ASSERT(contact_ == NULL);
     contact_ = new Contact(this);
     clayer()->open_contact(contact_);
+
+    log_debug("*%p new contact %p", this, contact_.object());
 }
     
 //----------------------------------------------------------------------
