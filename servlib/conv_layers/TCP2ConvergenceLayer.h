@@ -86,8 +86,6 @@ public:
         friend class TCP2ConvergenceLayer;
     };
 
-    void dump_params(TCPLinkParams* params);
-
     /**
      * Default link parameters.
      */
@@ -162,9 +160,9 @@ protected:
 
         /// @{ virtual from StreamConvergenceLayer::Connection
         void send_data();
-        void recv_data();
         /// @}
         
+        void recv_data();
         bool recv_contact_header(int timeout);
         bool send_bundle(Bundle* bundle);
         bool recv_bundle();

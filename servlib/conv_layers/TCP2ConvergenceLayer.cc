@@ -111,6 +111,8 @@ TCP2ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
     ASSERT(params != NULL);
     
     buf->appendf("local_addr: %s\n", intoa(params->local_addr_));
+    buf->appendf("remote_addr: %s\n", intoa(params->remote_addr_));
+    buf->appendf("remote_port: %d\n", params->remote_port_);
 }
 
 //----------------------------------------------------------------------
@@ -159,22 +161,6 @@ TCP2ConvergenceLayer::new_connection(LinkParams* p)
     TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(p);
     ASSERT(params != NULL);
     return new Connection(this, params);
-}
-
-//----------------------------------------------------------------------
-void
-TCP2ConvergenceLayer::dump_params(TCPLinkParams* params)
-{
-    oasys::StringBuffer buf;
-
-    buf.appendf("busy_queue_depth_ %d ", params->busy_queue_depth_);
-    buf.appendf("reactive_frag_enabled_ %d ", params->reactive_frag_enabled_);
-    buf.appendf("sendbuf_len_ %d ", params->sendbuf_len_);
-    buf.appendf("recvbuf_len_ %d ", params->recvbuf_len_);
-    buf.appendf("keepalive_interval_ %d ", params->keepalive_interval_);
-    buf.appendf("data_timeout_ %d ", params->data_timeout_);
-
-    log_info("%s: %s", __FUNCTION__, buf.c_str() );
 }
 
 //----------------------------------------------------------------------
@@ -324,13 +310,15 @@ TCP2ConvergenceLayer::Connection::Connection(TCP2ConvergenceLayer* cl,
     // IO routines, or just suppress the IO output altogether
     sock_->logpathf("%s/sock", logpath_);
     sock_->set_logfd(false);
-    sock_->set_nonblocking(true);
 
     // cache the remote addr and port in the fields in the socket
     // since we want to actually connect to the peer side from the
     // Connection thread, not from the caller thread
     sock_->set_remote_addr(params->remote_addr_);
     sock_->set_remote_port(params->remote_port_);
+
+    sock_->init_socket();
+    sock_->set_nonblocking(true);
 
     // if the parameters specify a local address, do the bind here --
     // however if it fails, we can't really do anything about it, so
@@ -375,16 +363,22 @@ TCP2ConvergenceLayer::Connection::~Connection()
 void
 TCP2ConvergenceLayer::Connection::initialize_pollfds()
 {
-    if (sock_->state() == oasys::IPSocket::INIT) {
-        sock_->init_socket();
-    }
-    
-    sock_pollfd_  = &pollfds_[0];
-    num_pollfds_  = 1;
-    poll_timeout_ = params_->data_timeout_;
+    sock_pollfd_ = &pollfds_[0];
+    num_pollfds_ = 1;
     
     sock_pollfd_->fd     = sock_->fd();
     sock_pollfd_->events = POLLIN;
+    
+    TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(params_);
+    ASSERT(params != NULL);
+    
+    poll_timeout_ = params->data_timeout_;
+    
+    if (params->keepalive_interval_ != 0 &&
+        (params->keepalive_interval_ * 1000) < params->data_timeout_)
+    {
+        poll_timeout_ = params->keepalive_interval_ * 1000;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -434,13 +428,15 @@ TCP2ConvergenceLayer::Connection::accept()
 void
 TCP2ConvergenceLayer::Connection::disconnect()
 {
-    // do not log an error when we fail to write, since the
-    // SHUTDOWN is basically advisory. Expected errors here
-    // include a short write due to socket already closed,
-    // or maybe EAGAIN due to socket not ready for write.
-    char typecode = SHUTDOWN;
     if (sock_->state() != oasys::IPSocket::CLOSED) {
-        sock_->write(&typecode, 1);
+        // we can only send a shutdown byte if we're not in the middle
+        // of sending a block, otherwise the shutdown byte would be
+        // interpreted as a part of the payload
+        if (send_block_todo_ == 0) {
+            char typecode = SHUTDOWN;
+            sock_->write(&typecode, 1);
+        }
+        
         sock_->close();
     }
 }
@@ -500,6 +496,11 @@ TCP2ConvergenceLayer::Connection::handle_poll_activity()
 void
 TCP2ConvergenceLayer::Connection::send_data()
 {
+    // XXX/demmer this assertion is mostly for debugging to catch call
+    // chains where the contact is broken but we're still using the
+    // socket
+    ASSERT(! contact_broken_);
+    
     log_debug("send_data: trying to drain %zu bytes from send buffer...",
               sendbuf_.fullbytes());
     ASSERT(sendbuf_.fullbytes() > 0);
@@ -508,7 +509,7 @@ TCP2ConvergenceLayer::Connection::send_data()
         log_debug("send_data: wrote %d/%zu bytes from send buffer",
                   cc, sendbuf_.fullbytes());
         sendbuf_.consume(cc);
-
+        
         if (sendbuf_.fullbytes() != 0) {
             log_debug("send_data: incomplete write, setting POLLOUT bit");
             sock_pollfd_->events |= POLLOUT;
@@ -529,10 +530,14 @@ TCP2ConvergenceLayer::Connection::send_data()
 void
 TCP2ConvergenceLayer::Connection::recv_data()
 {
+    // XXX/demmer this assertion is mostly for debugging to catch call
+    // chains where the contact is broken but we're still using the
+    // socket
+    ASSERT(! contact_broken_);
+    
     // this shouldn't ever happen
     if (recvbuf_.tailbytes() == 0) {
         log_err("no space in receive buffer to accept data!!!");
-        break_contact(ContactEvent::BROKEN);
         return;
     }
     
@@ -552,6 +557,8 @@ TCP2ConvergenceLayer::Connection::recv_data()
         return;
     }
 
+    log_debug("recv_data: read %d bytes, rcvbuf has %zu bytes",
+              cc, recvbuf_.fullbytes());
     recvbuf_.fill(cc);
 }
 
