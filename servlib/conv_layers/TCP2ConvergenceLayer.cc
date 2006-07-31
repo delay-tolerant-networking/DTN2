@@ -291,8 +291,7 @@ TCP2ConvergenceLayer::Connection::Connection(TCP2ConvergenceLayer* cl,
     : StreamConvergenceLayer::Connection("TCP2ConvergenceLayer::Connection",
                                          cl->logpath(), cl, params)
 {
-    logpathf("%s/conn/%s:%d", cl->logpath(),
-             intoa(params->remote_addr_), params->remote_port_);
+    logpathf("%s/conn/%p", cl->logpath(), this);
 
     // set up the base class' nexthop parameter
     oasys::StringBuffer nexthop("%s:%d",
@@ -342,7 +341,7 @@ TCP2ConvergenceLayer::Connection::Connection(TCP2ConvergenceLayer* cl,
     : StreamConvergenceLayer::Connection("TCP2ConvergenceLayer::Connection",
                                          cl->logpath(), cl, params)
 {
-    logpathf("%s/conn/%s:%d", cl->logpath(), intoa(remote_addr), remote_port);
+    logpathf("%s/conn/%p", cl->logpath(), this);
     
     // set up the base class' nexthop parameter
     oasys::StringBuffer nexthop("%s:%d", intoa(remote_addr), remote_port);
@@ -430,9 +429,10 @@ TCP2ConvergenceLayer::Connection::disconnect()
 {
     if (sock_->state() != oasys::IPSocket::CLOSED) {
         // we can only send a shutdown byte if we're not in the middle
-        // of sending a block, otherwise the shutdown byte would be
+        // of sending a block, otherwise the shutdown byte could be
         // interpreted as a part of the payload
         if (send_block_todo_ == 0) {
+            log_debug("disconnect: trying to send shutdown byte");
             char typecode = SHUTDOWN;
             sock_->write(&typecode, 1);
         }

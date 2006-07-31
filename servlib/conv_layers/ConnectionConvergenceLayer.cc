@@ -145,8 +145,23 @@ ConnectionConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
         return false;
     }
 
+    if (! finish_init_link(link, params)) {
+        log_err("error in finish_init_link");
+        delete params;
+        return false;
+    }
+
     link->set_cl_info(params);
 
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+ConnectionConvergenceLayer::finish_init_link(Link* link, LinkParams* params)
+{
+    (void)link;
+    (void)params;
     return true;
 }
 
@@ -219,9 +234,13 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
 
     CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
     ASSERT(conn != NULL);
-    
-    conn->cmdqueue_.push_back(
-        CLConnection::CLMsg(CLConnection::CLMSG_BREAK_CONTACT));
+
+    // if the connection isn't already broken, then we need to tell it
+    // to do so
+    if (! conn->contact_broken_) {
+        conn->cmdqueue_.push_back(
+            CLConnection::CLMsg(CLConnection::CLMSG_BREAK_CONTACT));
+    }
     
     while (!conn->is_stopped()) {
         log_debug("waiting for connection thread to stop...");
@@ -255,7 +274,7 @@ ConnectionConvergenceLayer::send_bundle(const ContactRef& contact,
     
     // to prevent the queue from filling up, set the busy state to
     // apply backpressure
-    if ((conn->cmdqueue_.size() + 1) >= params->busy_queue_depth_)
+    if (conn->cmdqueue_.size() >= params->busy_queue_depth_)
     {
         contact->link()->set_state(Link::BUSY);
     }

@@ -238,9 +238,10 @@ protected:
     /// @}
     
     /// @{ Virtual from ConnectionConvergenceLayer
-    virtual bool parse_link_params(LinkParams* params,
-                                   int argc, const char** argv,
-                                   const char** invalidp);
+    bool parse_link_params(LinkParams* params,
+                           int argc, const char** argv,
+                           const char** invalidp);
+    bool finish_init_link(Link* link, LinkParams* params);
     /// @}
 
 };

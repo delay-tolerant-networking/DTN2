@@ -154,6 +154,12 @@ protected:
     virtual bool parse_nexthop(Link* link, LinkParams* params) = 0;
 
     /**
+     * After the link parameters are parsed, do any initialization of
+     * the link that's necessary before starting up a connection.
+     */
+    virtual bool finish_init_link(Link* link, LinkParams* params);
+    
+    /**
      * Create a new CL-specific connection object.
      */
     virtual CLConnection* new_connection(LinkParams* params) = 0;

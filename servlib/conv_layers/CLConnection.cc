@@ -103,6 +103,17 @@ CLConnection::run()
             process_command();
             continue;
         }
+
+        // check if we need to unblock the link by clearing the BUSY state
+        if (contact_ != NULL &&
+            contact_->link()->state() == Link::BUSY &&
+            cmdqueue_.size() < params_->busy_queue_depth_)
+        {
+            BundleDaemon::post(
+                new LinkStateChangeRequest(contact_->link(),
+                                           Link::AVAILABLE,
+                                           ContactEvent::UNBLOCKED));
+        }
         
         // send any data there is to send
         send_pending_data();
@@ -179,9 +190,13 @@ void
 CLConnection::break_contact(ContactEvent::reason_t reason)
 {
     log_debug("break_contact: %s", ContactEvent::reason_to_str(reason));
-    
-    disconnect();
 
+    if (reason != ContactEvent::BROKEN) {
+        disconnect();
+    }
+
+    contact_broken_ = true;
+    
     // if the connection isn't being closed by the user, we need to
     // notify the daemon that either the contact ended or the link
     // became unavailable before a contact began.
@@ -189,14 +204,12 @@ CLConnection::break_contact(ContactEvent::reason_t reason)
     // we need to check that there is in fact a contact, since a
     // connection may be accepted and then break before establishing a
     // contact
-    if (reason != ContactEvent::USER && contact_ != NULL) {
+    if ((reason != ContactEvent::USER) && (contact_ != NULL)) {
         BundleDaemon::post(
             new LinkStateChangeRequest(contact_->link(),
                                        Link::CLOSED,
                                        reason));
     }
-    
-    contact_broken_ = true;
 }
 
 //----------------------------------------------------------------------
@@ -213,18 +226,25 @@ CLConnection::close_contact()
 
         size_t sent_bytes  = inflight->sent_data_.num_contiguous();
         size_t acked_bytes = inflight->ack_data_.num_contiguous();
-
-        // XXX/demmer the reactive fragmentation code needs to be
-        // fixed to count the header bytes
-        sent_bytes  -= inflight->header_block_length_;
-        acked_bytes -= inflight->header_block_length_;
         
-        if (sent_bytes == 0 || ! params->reactive_frag_enabled_) {
+        if ((! params->reactive_frag_enabled_) ||
+            (sent_bytes == 0) ||
+            (contact_->link()->is_reliable() && acked_bytes == 0))
+        {
             BundleDaemon::post(
                 new BundleTransmitFailedEvent(inflight->bundle_.object(),
                                               contact_));
             
         } else {
+            // XXX/demmer the reactive fragmentation code needs to be
+            // fixed to include the header bytes
+            sent_bytes  -= inflight->header_block_length_;
+            if (acked_bytes > inflight->header_block_length_) {
+                acked_bytes -= inflight->header_block_length_;
+            } else {
+                acked_bytes = 0;
+            }
+            
             BundleDaemon::post(
                 new BundleTransmittedEvent(inflight->bundle_.object(),
                                            contact_,
@@ -239,14 +259,17 @@ CLConnection::close_contact()
     while (! incoming_.empty()) {
         IncomingBundle* incoming = incoming_.front();
         
-        // XXX/demmer need to fix the fragmentation code to assume the
-        // event includes the header bytes as well as the payload.
-        size_t bytes_rcvd = incoming->total_rcvd_length_ -
-                            incoming->header_block_length_;
-        
-        if ((bytes_rcvd != 0) && params->reactive_frag_enabled_) {
+        if (params->reactive_frag_enabled_ &&
+            (incoming->total_rcvd_length_ > incoming->header_block_length_))
+        {
+            size_t bytes_rcvd = incoming->total_rcvd_length_ -
+                                incoming->header_block_length_;
+            
             log_debug("partial arrival of bundle (got %zu/%zu payload bytes)",
                       bytes_rcvd, incoming->bundle_->payload_.length());
+
+            // XXX/demmer need to fix the fragmentation code to assume the
+            // event includes the header bytes as well as the payload.
             
             BundleDaemon::post(
                 new BundleReceivedEvent(incoming->bundle_.object(),

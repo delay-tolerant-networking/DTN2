@@ -91,9 +91,24 @@ StreamConvergenceLayer::parse_link_params(LinkParams* lparams,
         return false;
     }
     argc -= count;
-    
+
     return ConnectionConvergenceLayer::parse_link_params(lparams, argc, argv,
                                                          invalidp);
+}
+
+//----------------------------------------------------------------------
+bool
+StreamConvergenceLayer::finish_init_link(Link* link, LinkParams* lparams)
+{
+    StreamLinkParams* params = dynamic_cast<StreamLinkParams*>(lparams);
+    ASSERT(params != NULL);
+
+    // make sure to set the reliability bit in the link structure
+    if (params->block_ack_enabled_) {
+        link->set_reliable(true);
+    }
+    
+    return true;
 }
 
 //----------------------------------------------------------------------
@@ -264,7 +279,7 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     
     params->reactive_frag_enabled_ = params->reactive_frag_enabled_ &&
                                      (contacthdr.flags & REACTIVE_FRAG_ENABLED);
-    
+
     /*
      * Now skip the sdnv that encodes the announce bundle length since
      * we parsed it above.
@@ -350,7 +365,7 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     /*
      * Finally, we note that the contact is now up.
      */
-    BundleDaemon::post(new ContactUpEvent(contact_));
+    contact_up();
 }
 
 
@@ -392,7 +407,8 @@ StreamConvergenceLayer::Connection::send_pending_data()
     if (send_block_todo_ != 0) {
         ASSERT(current_inflight_ != NULL);        
         send_data_todo(current_inflight_);
-        if (send_block_todo_ != 0) {
+        
+        if (contact_broken_ || (send_block_todo_ != 0)) {
             return;
         }
     }
@@ -418,6 +434,9 @@ next_incoming_bundle:
     if (incoming_.empty()) {
         return; // nothing to do
     }
+
+    if (contact_broken_)
+        return;
     
     IncomingBundle* incoming = incoming_.front();
 
@@ -458,7 +477,7 @@ next_incoming_bundle:
                       ack_len, block_len, received_bytes);
             break;
         }
-        
+
         // make sure we have space in the send buffer
         size_t encoding_len = 1 + SDNV::encoding_len(ack_len);
         if (encoding_len <= sendbuf_.tailbytes()) {
@@ -482,6 +501,9 @@ next_incoming_bundle:
 
             note_data_sent();
             send_data();
+
+            if (contact_broken_)
+                break;
 
         } else {
             log_debug("send_pending_acks: "
@@ -539,6 +561,9 @@ StreamConvergenceLayer::Connection::send_pending_blocks()
     InFlightList::iterator iter;
     for (iter = inflight_.begin(); iter != inflight_.end(); ++iter) {
         InFlightBundle* inflight = *iter;
+
+        if (contact_broken_)
+            return;
 
         // skip entries that we've sent completely
         if (inflight->sent_data_.num_contiguous() ==
@@ -729,6 +754,7 @@ StreamConvergenceLayer::Connection::send_next_block(InFlightBundle* inflight)
     sendbuf_.fill(1 + sdnv_len);
     send_block_todo_ = block_len;
 
+    // send_data_todo actually does the deed
     send_data_todo(inflight);
 
     bool more_to_send = true;
@@ -736,7 +762,7 @@ StreamConvergenceLayer::Connection::send_next_block(InFlightBundle* inflight)
         more_to_send = false;
     }
     
-    return more_to_send;
+    return (!contact_broken_) && more_to_send;
 }
 
 //----------------------------------------------------------------------
@@ -769,6 +795,9 @@ StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
 
         note_data_sent();
         send_data();
+
+        if (contact_broken_)
+            return;
     }
 
     if (inflight->sent_data_.num_contiguous() == inflight->formatted_length_)
