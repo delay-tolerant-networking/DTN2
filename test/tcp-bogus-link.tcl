@@ -13,26 +13,26 @@ test::script {
     puts "* Adding a bogus link"
     dtn::tell_dtnd 0 link add bogus 1.2.3.4:9999 ALWAYSON tcp
 
-    puts "* Checking link is OPENING"
-    dtn::check_link_state 0 bogus OPENING
+    puts "* Checking link is OPENING or UNAVAILABLE"
+    dtn::wait_for_link_state 0 bogus {OPENING UNAVAILABLE}
 
     puts "* Closing bogus link"
     dtn::tell_dtnd 0 link close bogus
 
     puts "* Checking link is UNAVAILABLE"
-    dtn::check_link_state 0 bogus UNAVAILABLE
+    dtn::wait_for_link_state 0 bogus UNAVAILABLE
 
     puts "* Reopening link"
     dtn::tell_dtnd 0 link open bogus
     
-    puts "* Checking link is OPENING"
-    dtn::check_link_state 0 bogus OPENING
+    puts "* Checking link is OPENING or UNAVAILABLE"
+    dtn::wait_for_link_state 0 bogus {OPENING UNAVAILABLE}
     
     puts "* Closing bogus link again"
     dtn::tell_dtnd 0 link close bogus
 
     puts "* Checking link is UNAVAILABLE"
-    dtn::check_link_state 0 bogus UNAVAILABLE
+    dtn::wait_for_link_state 0 bogus UNAVAILABLE
     
     puts "* Test success!"
 }
