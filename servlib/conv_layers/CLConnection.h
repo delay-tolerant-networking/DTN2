@@ -147,9 +147,22 @@ protected:
         CLMSG_CANCEL_BUNDLE = 2,
         CLMSG_BREAK_CONTACT = 3,
     } clmsg_t;
+
+    /**
+     * Message to string conversion.
+     */
+    const char* clmsg_to_str(clmsg_t type) {
+        switch(type) {
+        case CLMSG_INVALID:		return "CLMSG_INVALID";
+        case CLMSG_SEND_BUNDLE:		return "CLMSG_SEND_BUNDLE";
+        case CLMSG_CANCEL_BUNDLE:	return "CLMSG_CANCEL_BUNDLE";
+        case CLMSG_BREAK_CONTACT:	return "CLMSG_BREAK_CONTACT";
+        default:			PANIC("bogus clmsg_t");
+        }
+    }
     
     /**
-     * Struct used for messages going from the daemon thread to the
+     * struct used for messages going from the daemon thread to the
      * connection thread.
      */
     struct CLMsg {
