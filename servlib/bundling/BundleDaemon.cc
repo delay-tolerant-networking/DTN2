@@ -849,10 +849,10 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
     Link::state_t new_state = request->state_;
     ContactEvent::reason_t reason = request->reason_;
     
-    log_info("LINK_STATE_CHANGE_REQUEST *%p [%s -> %s] (%s)", link,
-             Link::state_to_str(link->state()),
-             Link::state_to_str(new_state),
-             ContactEvent::reason_to_str(reason));
+    log_info("LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p ", 
+             Link::state_to_str(link->state()), Link::state_to_str(new_state),
+             ContactEvent::reason_to_str(reason),
+             link);
 
     switch(new_state) {
     case Link::UNAVAILABLE:
@@ -875,7 +875,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             
         } else if (link->state() == Link::OPEN) {
             // a CL might send multiple requests to go from
-            // BUSY->OPEN, so we can safely ignore this
+            // BUSY->AVAILABLE, so we can safely ignore this
             
         } else {
             log_err("LINK_STATE_CHANGE_REQUEST *%p: "
@@ -915,6 +915,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 
         // If the link is open (not OPENING), we need a ContactDownEvent
         if (link->isopen()) {
+            ASSERT(link->contact() != NULL);
             post_at_head(new ContactDownEvent(link->contact(), reason));
         }
 
@@ -942,7 +943,7 @@ void
 BundleDaemon::handle_contact_up(ContactUpEvent* event)
 {
     const ContactRef& contact = event->contact_;
-    log_info("CONTACT_UP *%p", contact.object());
+    log_info("CONTACT_UP *%p (contact %p)", contact->link(), contact.object());
     
     Link* link = contact->link();
     link->set_state(Link::OPEN);
@@ -956,8 +957,8 @@ BundleDaemon::handle_contact_down(ContactDownEvent* event)
     Link* link = contact->link();
     ContactEvent::reason_t reason = event->reason_;
     
-    log_info("CONTACT_DOWN *%p (%s)",
-             link, ContactEvent::reason_to_str(reason));
+    log_info("CONTACT_DOWN *%p (%s) (contact %p)",
+             link, ContactEvent::reason_to_str(reason), contact.object());
 
     // we don't need to do anything here since we just generated this
     // event in response to a link state change request
