@@ -68,7 +68,8 @@ public:
     CLConnection(const char* classname,
                  const char* logpath,
                  ConvergenceLayer* cl,
-                 LinkParams* params);
+                 LinkParams* params,
+                 bool active_connector);
 
     /**
      * Destructor.
@@ -266,6 +267,7 @@ protected:
     ConvergenceLayer*   cl_;		///< Pointer to the CL
     LinkParams*		params_;	///< Pointer to Link parameters, or
                                         ///< to defaults until Link is bound
+    bool                active_connector_; ///< Should we connect() or accept()
     std::string		nexthop_;	///< Nexthop identifier set by CL
     int    		num_pollfds_;   ///< Number of pollfds in use
     static const int	MAXPOLL = 8;	///< Maximum number of pollfds

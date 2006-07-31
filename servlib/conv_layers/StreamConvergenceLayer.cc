@@ -130,8 +130,9 @@ StreamConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 StreamConvergenceLayer::Connection::Connection(const char* classname,
                                                const char* logpath,
                                                ConvergenceLayer* cl,
-                                               StreamLinkParams* params)
-    : CLConnection(classname, logpath, cl, params),
+                                               StreamLinkParams* params,
+                                               bool active_connector)
+    : CLConnection(classname, logpath, cl, params, active_connector),
       current_inflight_(NULL),
       send_block_todo_(0),
       recv_block_todo_(0)

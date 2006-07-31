@@ -167,7 +167,8 @@ protected:
         Connection(const char* classname,
                    const char* logpath,
                    ConvergenceLayer* cl,
-                   StreamLinkParams* params);
+                   StreamLinkParams* params,
+                   bool active_connector);
 
         /// @{ virtual from CLConnection
         void send_pending_data();

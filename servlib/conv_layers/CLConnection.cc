@@ -46,16 +46,18 @@
 namespace dtn {
 
 //----------------------------------------------------------------------
-CLConnection::CLConnection(const char* classname,
-                           const char* logpath,
+CLConnection::CLConnection(const char*       classname,
+                           const char*       logpath,
                            ConvergenceLayer* cl,
-                           LinkParams* params)
+                           LinkParams*       params,
+                           bool              active_connector)
     : Thread(classname),
       Logger(classname, logpath),
       contact_(classname),
       cmdqueue_(logpath),
       cl_(cl),
       params_(params),
+      active_connector_(active_connector),
       num_pollfds_(0),
       poll_timeout_(-1),
       contact_broken_(false)
@@ -81,10 +83,11 @@ CLConnection::run()
     cmdqueue_poll->fd     = cmdqueue_.read_fd();
     cmdqueue_poll->events = POLLIN;
 
-    // the contact_ field is set by open_contact when we're initiating
-    // a new connection. otherwise, we're being started in response to
-    // an underlying CL connection and so we need to accept it
-    if (contact_ != NULL) {
+    // based on the parameter passed to the constructor, we either
+    // initiate a connection or accept one, then move on to the main
+    // run() loop. it is the responsibility of the underlying CL to
+    // make sure that a contact_ structure is found / created
+    if (active_connector_) {
         connect();
     } else {
         accept();

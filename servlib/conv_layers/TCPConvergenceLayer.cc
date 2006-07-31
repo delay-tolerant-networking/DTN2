@@ -75,8 +75,8 @@ TCPConvergenceLayer::new_link_params()
 //----------------------------------------------------------------------
 bool
 TCPConvergenceLayer::parse_link_params(LinkParams* lparams,
-                                        int argc, const char** argv,
-                                        const char** invalidp)
+                                       int argc, const char** argv,
+                                       const char** invalidp)
 {
     TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(lparams);
     ASSERT(params != NULL);
@@ -118,7 +118,7 @@ TCPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 //----------------------------------------------------------------------
 bool
 TCPConvergenceLayer::set_link_defaults(int argc, const char* argv[],
-                                        const char** invalidp)
+                                       const char** invalidp)
 {
     return parse_link_params(&default_link_params_, argc, argv, invalidp);
 }
@@ -254,7 +254,7 @@ TCPConvergenceLayer::interface_down(Interface* iface)
 //----------------------------------------------------------------------
 void
 TCPConvergenceLayer::dump_interface(Interface* iface,
-                                     oasys::StringBuffer* buf)
+                                    oasys::StringBuffer* buf)
 {
     Listener* listener = dynamic_cast<Listener*>(iface->cl_info());
     ASSERT(listener != NULL);
@@ -287,9 +287,10 @@ TCPConvergenceLayer::Listener::accepted(int fd, in_addr_t addr, u_int16_t port)
 
 //----------------------------------------------------------------------
 TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
-                                             TCPLinkParams* params)
+                                            TCPLinkParams* params)
     : StreamConvergenceLayer::Connection("TCPConvergenceLayer::Connection",
-                                         cl->logpath(), cl, params)
+                                         cl->logpath(), cl, params,
+                                         true /* call connect() */)
 {
     logpathf("%s/conn/%p", cl->logpath(), this);
 
@@ -334,12 +335,13 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
 
 //----------------------------------------------------------------------
 TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
-                                             TCPLinkParams* params,
-                                             int fd,
-                                             in_addr_t remote_addr,
-                                             u_int16_t remote_port)
+                                            TCPLinkParams* params,
+                                            int fd,
+                                            in_addr_t remote_addr,
+                                            u_int16_t remote_port)
     : StreamConvergenceLayer::Connection("TCPConvergenceLayer::Connection",
-                                         cl->logpath(), cl, params)
+                                         cl->logpath(), cl, params,
+                                         false /* call accept() */)
 {
     logpathf("%s/conn/%p", cl->logpath(), this);
     
