@@ -183,12 +183,6 @@ protected:
          */
         virtual void send_data() = 0;
 
-        /**
-         * Hook used to tell the derived CL class to read data into
-         * the receive buffer.
-         */
-        virtual void recv_data() = 0;
-
         /// @{ utility functions used by derived classes
         void initiate_contact();
         void process_data();
@@ -197,12 +191,14 @@ protected:
     private:
         /// @{ utility functions used internally in this class
         void note_data_rcvd();
+        void note_data_sent();
         void send_pending_acks();
         void send_pending_blocks();
         bool start_bundle(InFlightBundle* inflight);
         bool send_next_block(InFlightBundle* inflight);
         void send_data_todo(InFlightBundle* inflight);
         bool finish_bundle(InFlightBundle* inflight);
+        void send_keepalive();
         
         void handle_contact_initiation();
         bool handle_start_bundle();
@@ -229,7 +225,8 @@ protected:
         InFlightBundle* current_inflight_; ///< Current bundle that's in flight 
         size_t send_block_todo_; 	///< Bytes left to send of current block
         size_t recv_block_todo_; 	///< Bytes left to recv of current block
-        struct timeval data_rcvd_;	///< Timestamp for idle timer
+        struct timeval data_rcvd_;	///< Timestamp for idle/keepalive timer
+        struct timeval data_sent_;	///< Timestamp for idle timer
         struct timeval keepalive_sent_;	///< Timestamp for keepalive timer
     };
 

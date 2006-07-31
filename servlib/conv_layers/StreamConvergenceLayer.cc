@@ -185,6 +185,7 @@ StreamConvergenceLayer::Connection::initiate_contact()
     sendbuf_.fill(ret);
 
     // drain the send buffer
+    note_data_sent();
     send_data();
 }
 
@@ -478,7 +479,8 @@ next_incoming_bundle:
                                    sendbuf_.tailbytes() - 1);
             ASSERT(encoding_len = len + 1);
             sendbuf_.fill(encoding_len);
-            
+
+            note_data_sent();
             send_data();
 
         } else {
@@ -666,6 +668,7 @@ StreamConvergenceLayer::Connection::start_bundle(InFlightBundle* inflight)
         send_data_todo(inflight);
 
     } else {
+        note_data_sent();
         send_data();
     }
 
@@ -764,6 +767,7 @@ StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
 
         send_block_todo_ -= send_len;
 
+        note_data_sent();
         send_data();
     }
 
@@ -794,6 +798,7 @@ StreamConvergenceLayer::Connection::finish_bundle(InFlightBundle* inflight)
     *sendbuf_.end() = END_BUNDLE;
     sendbuf_.fill(1);
     
+    note_data_sent();
     send_data();
     
     ASSERT(current_inflight_ != NULL);
@@ -802,6 +807,31 @@ StreamConvergenceLayer::Connection::finish_bundle(InFlightBundle* inflight)
     return true;
 }
 
+//----------------------------------------------------------------------
+void
+StreamConvergenceLayer::Connection::send_keepalive()
+{
+    // there's no point in putting another byte in the buffer if
+    // there's already data waiting to go out, since the arrival of
+    // that data on the other end will do the same job as the
+    // keepalive byte
+    if (sendbuf_.fullbytes() != 0) {
+        log_debug("send_keepalive: "
+                  "send buffer has %zu bytes queued, suppressing keepalive",
+                  sendbuf_.fullbytes());
+        return;
+    }
+    ASSERT(sendbuf_.tailbytes() > 0);
+
+    ::gettimeofday(&keepalive_sent_, 0);
+
+    *(sendbuf_.end()) = KEEPALIVE;
+    sendbuf_.fill(1);
+
+    // don't note_data_sent() here since keepalive messages shouldn't
+    // be counted for keeping an idle link open
+    send_data();
+}
 //----------------------------------------------------------------------
 void
 StreamConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
@@ -813,6 +843,67 @@ StreamConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
 void
 StreamConvergenceLayer::Connection::handle_poll_timeout()
 {
+    struct timeval now;
+    u_int elapsed, elapsed2;
+
+    StreamLinkParams* params = dynamic_cast<StreamLinkParams*>(params_);
+    ASSERT(params != NULL);
+    
+    ::gettimeofday(&now, 0);
+    
+    // check that it hasn't been too long since we got some data from
+    // the other side
+    elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
+    if (elapsed > params->data_timeout_) {
+        log_info("handle_poll_timeout: no data heard for %d msecs "
+                 "(keepalive_sent %u.%u, data_rcvd %u.%u, now %u.%u) "
+                 "-- closing contact",
+                 elapsed,
+                 (u_int)keepalive_sent_.tv_sec,
+                 (u_int)keepalive_sent_.tv_usec,
+                 (u_int)data_rcvd_.tv_sec, (u_int)data_rcvd_.tv_usec,
+                 (u_int)now.tv_sec, (u_int)now.tv_usec);
+            
+        break_contact(ContactEvent::BROKEN);
+        return;
+    }
+
+    // check if the connection has been idle for too long
+    // (on demand links only)
+    if (contact_->link()->type() == Link::ONDEMAND) {
+        u_int idle_close_time = contact_->link()->params().idle_close_time_;
+        
+        elapsed  = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
+        elapsed2 = TIMEVAL_DIFF_MSEC(now, data_sent_);
+        
+        if (idle_close_time != 0 &&
+            (elapsed > idle_close_time * 1000) &&
+            (elapsed2 > idle_close_time * 1000))
+        {
+            log_info("closing idle connection "
+                     "(no data received for %d msecs or sent for %d msecs)",
+                     elapsed, elapsed2);
+            break_contact(ContactEvent::IDLE);
+            return;
+        } else {
+            log_debug("connection not idle: recvd %d / sent %d <= timeout %d",
+                      elapsed, elapsed2, idle_close_time * 1000);
+        }
+    }
+    
+    // check if it's time for us to send a keepalive (i.e. that we
+    // haven't sent some data or another keepalive in at least the
+    // configured keepalive_interval)
+    if (params->keepalive_interval_ != 0) {
+        elapsed  = TIMEVAL_DIFF_MSEC(now, data_sent_);
+        elapsed2 = TIMEVAL_DIFF_MSEC(now, keepalive_sent_);
+
+        if (std::min(elapsed, elapsed2) > (params->keepalive_interval_ * 1000))
+        {
+            log_debug("handle_poll_timeout: sending keepalive");
+            send_keepalive();
+        }
+    }
 }
 
 //----------------------------------------------------------------------
@@ -823,10 +914,12 @@ StreamConvergenceLayer::Connection::process_data()
         return;
     }
 
-    note_data_rcvd();
-    
     log_debug("processing up to %zu bytes from receive buffer",
               recvbuf_.fullbytes());
+
+    // all data (keepalives included) should be noted since it's used
+    // for generating new keepalives
+    note_data_rcvd();
 
     // the first thing we need to do is handle the contact initiation
     // sequence, i.e. the contact header and the announce bundle. we
@@ -854,6 +947,8 @@ StreamConvergenceLayer::Connection::process_data()
     // byte yet since there's a possibility that we need to read more
     // from the remote side to handle the whole message
     while (recvbuf_.fullbytes() != 0) {
+        if (contact_broken_) return;
+        
         char type = *recvbuf_.start();
 
         log_debug("recvbuf has %zu full bytes, dispatching to handler routine",
@@ -910,8 +1005,16 @@ StreamConvergenceLayer::Connection::process_data()
 void
 StreamConvergenceLayer::Connection::note_data_rcvd()
 {
-    log_debug("noting receipt of data");
+    log_debug("noting data_rcvd");
     ::gettimeofday(&data_rcvd_, 0);
+}
+
+//----------------------------------------------------------------------
+void
+StreamConvergenceLayer::Connection::note_data_sent()
+{
+    log_debug("noting data_sent");
+    ::gettimeofday(&data_sent_, 0);
 }
 
 //----------------------------------------------------------------------
@@ -1224,6 +1327,8 @@ StreamConvergenceLayer::Connection::handle_ack_block()
 bool
 StreamConvergenceLayer::Connection::handle_keepalive()
 {
+    log_debug("got keepalive message");
+    recvbuf_.consume(1);
     return true;
 }
 
