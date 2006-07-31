@@ -40,6 +40,7 @@
 
 #include "CLConnection.h"
 #include "bundling/BundleDaemon.h"
+#include "bundling/BundlePayload.h"
 
 namespace dtn {
 
@@ -233,18 +234,43 @@ CLConnection::close_contact()
         inflight_.pop_front();
     }
 
-    log_err("XXX/demmer need to drain the incoming queue");
-
+    // ditto for the incoming queue, posting received events for all
+    // in-progress bundles (if reactive fragmentation is enabled)
+    while (! incoming_.empty()) {
+        IncomingBundle* incoming = incoming_.front();
+        
+        // XXX/demmer need to fix the fragmentation code to assume the
+        // event includes the header bytes as well as the payload.
+        size_t bytes_rcvd = incoming->total_rcvd_length_ -
+                            incoming->header_block_length_;
+        
+        if ((bytes_rcvd != 0) && params->reactive_frag_enabled_) {
+            log_debug("partial arrival of bundle (got %zu/%zu payload bytes)",
+                      bytes_rcvd, incoming->bundle_->payload_.length());
+            
+            BundleDaemon::post(
+                new BundleReceivedEvent(incoming->bundle_.object(),
+                                        EVENTSRC_PEER,
+                                        bytes_rcvd));
+        }
+        
+        incoming_.pop_front();
+        delete incoming;
+    }
+        
     // now drain the message queue, posting transmit failed events for
-    // any send bundle commands that may be in there
+    // any send bundle commands that may be in there (though this is
+    // unlikely to happen)
     if (cmdqueue_.size() > 0) {
-        log_warn("%zu commands still in queue", cmdqueue_.size());
+        log_warn("close_contact: %zu CL commands still in queue: ", cmdqueue_.size());
 
         while (cmdqueue_.size() != 0) {
             CLMsg msg;
             bool ok = cmdqueue_.try_pop(&msg);
             ASSERT(ok);
 
+            log_warn("close_contact: %s still in queue", clmsg_to_str(msg.type_));
+            
             if (msg.type_ == CLMSG_SEND_BUNDLE) {
                 BundleDaemon::post(
                     new BundleTransmitFailedEvent(msg.bundle_.object(),
