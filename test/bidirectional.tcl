@@ -142,7 +142,7 @@ test::script {
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
-    for {set i 0} {$i < 10} {incr i} {
+    for {set i 0} {$i < 20} {incr i} {
 
 	if {[dtn::test_bundle_stats 0 [list $count "delivered"]] && \
 		[dtn::test_bundle_stats 1 [list $count "delivered"]]} {
