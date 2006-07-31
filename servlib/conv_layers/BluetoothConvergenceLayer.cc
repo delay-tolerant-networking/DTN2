@@ -31,7 +31,6 @@ extern int errno;
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
 #include "bundling/SDNV.h"
-#include "contacts/OndemandLink.h"
 #include "contacts/ContactManager.h"
 #include "routing/BundleRouter.h"
 
@@ -1903,8 +1902,7 @@ BluetoothConvergenceLayer::Connection::send_loop()
 
         // check if the connection has been idle for too long (ONDEMAND only)
         if (idle && (contact_->link()->type() == Link::ONDEMAND)) {
-            u_int idle_close_time =
-                ((OndemandLink*)contact_->link())->idle_close_time_;
+            u_int idle_close_time = contact_->link()->params().idle_close_time_;
 
             elapsed = TIMEVAL_DIFF_MSEC(now, idle_start);
             if (idle_close_time != 0 && (elapsed > idle_close_time * 1000))
