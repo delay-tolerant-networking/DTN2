@@ -143,6 +143,8 @@ ContactManager::reopen_link(Link* link)
     oasys::ScopeLock l(&lock_, "ContactManager");
     
     log_debug("reopen link %s", link->name());
+
+    availability_timers_.erase(link);
     
     if (link->state() == Link::UNAVAILABLE) {
         BundleDaemon::post_at_head(
@@ -153,8 +155,6 @@ ContactManager::reopen_link(Link* link)
         log_err("availability timer fired for link %s but state is %s",
                 link->name(), Link::state_to_str(link->state()));
     }
-
-    availability_timers_.erase(link);
 }
 
 //----------------------------------------------------------------------
