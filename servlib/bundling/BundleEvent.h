@@ -348,7 +348,8 @@ public:
         SHUTDOWN,	///< Clean connection shutdown
         RECONNECT,	///< Re-establish link after failure
         IDLE,		///< Idle connection shut down by the CL
-        TIMEOUT		///< Scheduled link ended duration
+        TIMEOUT,	///< Scheduled link ended duration
+        UNBLOCKED	///< No longer busy
     } reason_t;
 
     /**
@@ -364,6 +365,7 @@ public:
         case RECONNECT:	return "re-establishing connection";
         case IDLE:	return "connection idle";
         case TIMEOUT:	return "schedule timed out";
+        case UNBLOCKED:	return "no longer busy";
         }
         NOTREACHED;
     }
