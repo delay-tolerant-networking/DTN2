@@ -198,8 +198,10 @@ ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
     
     // or if the link wasn't broken but instead was closed by user
     // action or by going idle
-    if (event->reason_ != ContactEvent::BROKEN) {
-        log_debug("ignoring link unavailable for unavailable due to %s",
+    if (event->reason_ == ContactEvent::USER ||
+        event->reason_ == ContactEvent::IDLE)
+    {
+        log_debug("ignoring link unavailable due to %s",
                   event->reason_to_str(event->reason_));
         return;
     }
@@ -225,8 +227,8 @@ ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
         return;
     }
 
-    log_debug("scheduling availability timer in %d seconds for link %s",
-              timeout, link->name());
+    log_debug("link %s unavailable (%s): scheduling retry timer in %d seconds",
+              link->name(), event->reason_to_str(event->reason_), timeout);
     timer->schedule_in(timeout * 1000);
 }
 
