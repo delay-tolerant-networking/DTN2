@@ -4,10 +4,23 @@ net::num_nodes 3
 manifest::file apps/dtnsend/dtnsend dtnsend
 manifest::file apps/dtnrecv/dtnrecv dtnrecv
 
+set cl tcp
+
+foreach {var val} $opt(opts) {
+    if {$var == "-cl" || $var == "cl"} {
+	set cl $val
+    } else {
+	puts "ERROR: unrecognized test option '$var'"
+	exit 1
+    }
+}
+
 dtn::config
 
-dtn::config_interface tcp
-dtn::config_linear_topology ALWAYSON tcp true
+dtn::config_interface $cl
+dtn::config_linear_topology ALWAYSON $cl true
+
+conf::add dtnd * "param set early_deletion false"
 
 # XXX/demmer do this test with bigger bundles...
 
@@ -58,13 +71,7 @@ test::script {
     puts "* Stopping dtnds"
     dtn::stop_dtnd *
 
-
     # ----------------------------------------------------------------------
-
-    puts "* WARNING: test disabled since it doesn't work!"
-
-if {0} {
-
     puts "* "
     puts "* Test phase 2: interrupted links"
     puts "* "
@@ -84,13 +91,13 @@ if {0} {
     for {set i 0} {$i < 20} {incr i} {
 	after [expr int(2000 * rand())]
 	puts "* Closing links on node 1"
-	tell_dtnd 1 link close tcp-link:1-0
-	tell_dtnd 1 link close tcp-link:1-2
+	tell_dtnd 1 link close $cl-link:1-0
+	tell_dtnd 1 link close $cl-link:1-2
 
 	after [expr int(2000 * rand())]
 	puts "* Opening links on node 1"
-	tell_dtnd 1 link open tcp-link:1-0
-	tell_dtnd 1 link open tcp-link:1-2
+	tell_dtnd 1 link open $cl-link:1-0
+	tell_dtnd 1 link open $cl-link:1-2
     }
 
     puts "* Waiting for senders / receivers to complete"
@@ -127,7 +134,7 @@ if {0} {
     
     # XXX/demmer since some bundles get lost along the way, we give it a
     # little fudge factor so the test completes
-    set fudge 30
+    set fudge 0
 
     puts "* Running senders / receivers for $count bundles, sleep $sleep, fudge $fudge"
     set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q -n [expr $count - $fudge]"]
@@ -141,21 +148,27 @@ if {0} {
 		[dtn::test_bundle_stats 1 [list $count "delivered"]]} {
 	    break; # all done
 	}
+
+	set sleep [expr int(2000 * rand())]
+	puts "* Sleeping for %sleep msecs"
+	after $sleep
 	
-	after [expr $i * 500]
 	puts "* Killing node 1"
 	dtn::stop_dtnd 1
 
-	after [expr $i * 500]
+	set sleep [expr int(2000 * rand())]
+	puts "* Sleeping for %sleep msecs"
+	after $sleep
+
 	puts "* Starting node 1"
 	dtn::run_dtnd 1
 	dtn::wait_for_dtnd 1
 
 	puts "* Waiting for links to open"
-	dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
-	dtn::wait_for_link_state 1 tcp-link:1-0 OPEN
-	dtn::wait_for_link_state 1 tcp-link:1-2 OPEN
-	dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
+	dtn::wait_for_link_state 0 $cl-link:0-1 OPEN
+	dtn::wait_for_link_state 1 $cl-link:1-0 OPEN
+	dtn::wait_for_link_state 1 $cl-link:1-2 OPEN
+	dtn::wait_for_link_state 2 $cl-link:2-1 OPEN
     }
 
     puts "* Done with killing loop.. stats:"
@@ -178,7 +191,6 @@ if {0} {
 
     puts "* Stopping all dtnds"
     dtn::stop_dtnd *
-}
 
     puts "* Test success!"
 }

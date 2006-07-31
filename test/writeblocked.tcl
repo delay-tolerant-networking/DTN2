@@ -1,7 +1,7 @@
 test::name writeblocked.tcl
 net::num_nodes 2
 
-set cl tcp2
+set cl tcp
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {

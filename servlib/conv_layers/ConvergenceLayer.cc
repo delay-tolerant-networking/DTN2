@@ -41,7 +41,6 @@
 #include "FileConvergenceLayer.h"
 #include "NullConvergenceLayer.h"
 #include "TCPConvergenceLayer.h"
-#include "TCP2ConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
 #include "BluetoothConvergenceLayer.h"
 
@@ -67,7 +66,6 @@ ConvergenceLayer::init_clayers()
 {
     add_clayer(new NullConvergenceLayer());
     add_clayer(new TCPConvergenceLayer());
-    add_clayer(new TCP2ConvergenceLayer());
     add_clayer(new UDPConvergenceLayer());
 #ifdef __linux__
     add_clayer(new EthConvergenceLayer());

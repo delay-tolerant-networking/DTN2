@@ -1,7 +1,7 @@
 test::name ondemand-links
 net::num_nodes 3
 
-set cl tcp2
+set cl tcp
 set link_opts "idle_close_time=5"
 
 for {set i 0} {$i < [llength $opt(opts)]} {incr i} {

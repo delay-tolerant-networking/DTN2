@@ -47,7 +47,6 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/NullConvergenceLayer.cc	\
 	conv_layers/StreamConvergenceLayer.cc   \
 	conv_layers/TCPConvergenceLayer.cc	\
-	conv_layers/TCP2ConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
 
 CMD_SRCS :=					\

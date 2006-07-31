@@ -66,7 +66,6 @@ proc get_port {what id} {
 	console { return [expr $dtn_portbase + 0] }
 	api	{ return [expr $dtn_portbase + 1] }
 	tcp	{ return [expr $dtn_portbase + 2] }
-	tcp2	{ return [expr $dtn_portbase + 2] }
 	udp	{ return [expr $dtn_portbase + 2] }
 	dtntest	{ return [expr $dtn_portbase + 3] }
 	default { return -1 }
@@ -79,7 +78,7 @@ proc get_port {what id} {
 #
 proc is_bidirectional {cl} {
     switch -- $cl {
-	tcp2 { return 1 }
+	tcp { return 1 }
     }
     
     return 0

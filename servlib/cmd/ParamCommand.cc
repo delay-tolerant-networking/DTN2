@@ -102,19 +102,6 @@ ParamCommand::ParamCommand()
     bind_i("custody_timer_max",
            &CustodyTimerSpec::defaults_.max_,
            "default value for custody timer max");
-    
-    // defaults for these are set all together in TCPConvergenceLayer
-    // constructor (because there is not a flavor of bind_i that
-    // handles default values for type u_int32_t)
-    // No help here because these guys are going to get killed soon.
-    bind_i("tcpcl_partial_ack_len",
-           &TCPConvergenceLayer::defaults_.partial_ack_len_, "");
-    bind_i("tcpcl_keepalive_interval",
-           &TCPConvergenceLayer::defaults_.keepalive_interval_, "");
-    bind_i("tcpcl_test_read_delay",
-           &TCPConvergenceLayer::defaults_.test_read_delay_, "");
-    bind_i("tcpcl_test_write_delay",
-           &TCPConvergenceLayer::defaults_.test_write_delay_, "");
 }
     
 } // namespace dtn
