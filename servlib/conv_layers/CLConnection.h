@@ -81,11 +81,23 @@ public:
     void set_contact(const ContactRef& contact) { contact_ = contact; }
 
 protected:
+    /**
+     * Main run loop.
+     */
     void run();
+
+    /// @{
+    /// Utility functions 
     void contact_up();
     void break_contact(ContactEvent::reason_t reason);
     void close_contact();
     void process_command();
+    void handle_announce_bundle(Bundle* bundle);
+    /// @}
+
+    /**
+     * Assignment function for the nexthop identifier
+     */
     void set_nexthop(const std::string& nexthop) {
         nexthop_ = nexthop;
     }
