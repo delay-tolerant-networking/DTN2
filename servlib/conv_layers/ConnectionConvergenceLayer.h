@@ -120,7 +120,7 @@ public:
         bool reactive_frag_enabled_;	///< Is reactive fragmentation enabled
         u_int sendbuf_len_;		///< Buffer size for sending data
         u_int recvbuf_len_;		///< Buffer size for receiving data
-        u_int data_timeout_;		///< Msecs to wait for data
+        u_int data_timeout_;		///< Msecs to wait for data arrival
         
         u_int test_read_delay_;		///< Msecs to sleep between read calls
         u_int test_write_delay_;	///< Msecs to sleep between write calls
