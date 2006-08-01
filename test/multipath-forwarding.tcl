@@ -38,9 +38,9 @@ test::script {
 
     puts "* adding small write delay to node 0 links"
     tell_dtnd 0 link reconfigure tcp-link:0-1 \
-	    test_write_delay=100 writebuf_len=1024
+	    test_write_delay=100 sendbuf_len=1024
     tell_dtnd 0 link reconfigure tcp-link:0-2 \
-	    test_write_delay=100 writebuf_len=1024
+	    test_write_delay=100 sendbuf_len=1024
 
     puts "*"
     puts "* Test 1: equal size bundles, equal priority routes"
