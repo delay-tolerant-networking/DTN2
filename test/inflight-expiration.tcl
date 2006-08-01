@@ -6,7 +6,7 @@ dtn::config
 puts "* Configuring tcp interfaces / links"
 dtn::config_interface tcp
 dtn::config_linear_topology ALWAYSON tcp true \
-	"test_write_delay=1000 writebuf_len=1024"
+	"test_write_delay=1000 sendbuf_len=1024"
 
 test::script {
     puts "* Running dtnds"
