@@ -136,9 +136,15 @@ protected:
 
     /**
      * Start or continue transmission of bundle data or cl acks. This
-     * is called each time through the main run loop.
+     * is called each time through the main run loop. Note that in
+     * general, this function should send one "unit" of data, i.e. a
+     * block of bundle data, a packet, etc.
+     *
+     * @returns true if some data was sent, which will trigger another
+     * call, or false if the main loop should poll() on the socket
+     * before calling again
      */
-    virtual void send_pending_data() = 0;
+    virtual bool send_pending_data() = 0;
     
     /**
      * Handle network activity from the remote side.
@@ -240,12 +246,12 @@ protected:
     public:
         IncomingBundle(Bundle* b)
             : bundle_(b, "CLConnection::IncomingBundle"),
-              total_rcvd_length_(0),
+              total_length_(0),
               header_block_length_(0) {}
 
         BundleRef bundle_;
         
-        size_t total_rcvd_length_;
+        size_t total_length_;
         size_t header_block_length_;
 
         DataBitmap rcvd_data_;

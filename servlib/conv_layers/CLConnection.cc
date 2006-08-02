@@ -108,20 +108,19 @@ CLConnection::run()
             continue;
         }
 
-        // check if we need to unblock the link by clearing the BUSY state
-        if (contact_ != NULL &&
-            contact_->link()->state() == Link::BUSY &&
-            cmdqueue_.size() < params_->busy_queue_depth_)
-        {
-            BundleDaemon::post(
-                new LinkStateChangeRequest(contact_->link(),
-                                           Link::AVAILABLE,
-                                           ContactEvent::UNBLOCKED));
+        // send any data there is to send, and if something was sent
+        // out, we'll call poll() with a zero timeout so we can read
+        // any data there is to consume, then return to send another
+        // chunk.
+        bool more_to_send = send_pending_data();
+
+        // check again here for contact broken since we don't want to
+        // poll if the socket's been closed
+        if (contact_broken_) {
+            log_debug("contact_broken set, exiting main loop");
+            return;
         }
         
-        // send any data there is to send
-        send_pending_data();
-
         // now we poll() to wait for a new command (indicated by the
         // notifier on the command queue), data arriving from the
         // remote side, or write-readiness on the socket indicating
@@ -129,8 +128,11 @@ CLConnection::run()
         for (int i = 0; i < num_pollfds_ + 1; ++i) {
             pollfds_[i].revents = 0;
         }
+
+        int timeout = more_to_send ? 0 : poll_timeout_;
+        
         int cc = oasys::IO::poll_multiple(pollfds_, num_pollfds_ + 1,
-                                          poll_timeout_, NULL, logpath_);
+                                          timeout, NULL, logpath_);
 
         if (cc == oasys::IOTIMEOUT)
         {
@@ -177,6 +179,17 @@ CLConnection::process_command()
         break;
     default:
         PANIC("invalid CLMsg typecode %d", msg.type_);
+    }
+
+    // check if we need to unblock the link by clearing the BUSY state
+    if (contact_ != NULL &&
+        contact_->link()->state() == Link::BUSY &&
+        cmdqueue_.size() < params_->busy_queue_depth_)
+    {
+        BundleDaemon::post(
+            new LinkStateChangeRequest(contact_->link(),
+                                       Link::AVAILABLE,
+                                       ContactEvent::UNBLOCKED));
     }
 }
 
@@ -235,6 +248,12 @@ CLConnection::close_contact()
             (sent_bytes == 0) ||
             (contact_->link()->is_reliable() && acked_bytes == 0))
         {
+            log_debug("posting transmission failed event "
+                      "(reactive fragmentation %s, %s link, acked_bytes %d)",
+                      params->reactive_frag_enabled_ ? "enabled" : "disabled",
+                      contact_->link()->is_reliable() ? "reliable" : "unreliable",
+                      acked_bytes);
+            
             BundleDaemon::post(
                 new BundleTransmitFailedEvent(inflight->bundle_.object(),
                                               contact_));
@@ -262,23 +281,27 @@ CLConnection::close_contact()
     // in-progress bundles (if reactive fragmentation is enabled)
     while (! incoming_.empty()) {
         IncomingBundle* incoming = incoming_.front();
+
+        size_t rcvd_len = incoming->rcvd_data_.last() + 1;
+
+        log_debug("checking for partial arrival of bundle: "
+                  "reactive fragmentation %s, got %zu bytes [hdr %zu payload %zu]",
+                  params->reactive_frag_enabled_ ? "enabled" : "disabled",
+                  rcvd_len, incoming->header_block_length_,
+                  incoming->bundle_->payload_.length());
         
         if (params->reactive_frag_enabled_ &&
-            (incoming->total_rcvd_length_ > incoming->header_block_length_))
+            (rcvd_len > incoming->header_block_length_))
         {
-            size_t bytes_rcvd = incoming->total_rcvd_length_ -
-                                incoming->header_block_length_;
-            
-            log_debug("partial arrival of bundle (got %zu/%zu payload bytes)",
-                      bytes_rcvd, incoming->bundle_->payload_.length());
-
             // XXX/demmer need to fix the fragmentation code to assume the
             // event includes the header bytes as well as the payload.
+            
+            size_t payload_rcvd = rcvd_len - incoming->header_block_length_;
             
             BundleDaemon::post(
                 new BundleReceivedEvent(incoming->bundle_.object(),
                                         EVENTSRC_PEER,
-                                        bytes_rcvd));
+                                        payload_rcvd));
         }
         
         incoming_.pop_front();

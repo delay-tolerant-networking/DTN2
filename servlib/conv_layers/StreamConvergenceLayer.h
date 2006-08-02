@@ -171,7 +171,7 @@ protected:
                    bool active_connector);
 
         /// @{ virtual from CLConnection
-        void send_pending_data();
+        bool send_pending_data();
         void handle_send_bundle(Bundle* bundle);
         void handle_cancel_bundle(Bundle* bundle);
         void handle_poll_timeout();
@@ -193,11 +193,10 @@ protected:
         /// @{ utility functions used internally in this class
         void note_data_rcvd();
         void note_data_sent();
-        void send_pending_acks();
-        void send_pending_blocks();
-        bool start_bundle(InFlightBundle* inflight);
+        bool send_pending_acks();
+        bool start_next_bundle();
         bool send_next_block(InFlightBundle* inflight);
-        void send_data_todo(InFlightBundle* inflight);
+        bool send_data_todo(InFlightBundle* inflight);
         bool finish_bundle(InFlightBundle* inflight);
         void send_keepalive();
         
