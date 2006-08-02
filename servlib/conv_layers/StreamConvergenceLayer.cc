@@ -367,10 +367,11 @@ StreamConvergenceLayer::Connection::send_pending_data()
         return false;
     }
     
-    // now check if there are acks we need to send
-    if (send_pending_acks()) {
-        return true;
-    }
+    // now check if there are acks we need to send -- even if it
+    // returns true, we continue on and try to send some real payload
+    // data, otherwise we could get starved by arriving data and never
+    // send anything out.
+    send_pending_acks();
     
     // check if we need to start a new bundle. if we do, then
     // start_next_bundle handles the correct return code
