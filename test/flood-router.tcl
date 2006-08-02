@@ -3,12 +3,12 @@ net::num_nodes 5
 
 dtn::config --no_null_link
 
-set clayer   tcp
+set cl   tcp
 set linktype ALWAYSON
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
-	set clayer $val
+	set cl $val
     } elseif {$var == "-linktype" || $var == "linktype"} {
         set linktype $val	
     } else {
@@ -17,12 +17,12 @@ foreach {var val} $opt(opts) {
     }
 }
 
-puts "* Configuring $clayer interfaces / links"
+puts "* Configuring $cl interfaces / links"
 
 set dtn::router_type "flood"
 
-dtn::config_interface $clayer
-dtn::config_diamond_topology $linktype $clayer false
+dtn::config_interface $cl
+dtn::config_diamond_topology $linktype $cl false
 
 test::script {
     puts "* Running dtnds"
@@ -33,8 +33,8 @@ test::script {
 
     if {$linktype == "ALWAYSON"} {
 	puts "* Waiting for links to open"
-	dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
-	dtn::wait_for_link_state 0 tcp-link:0-2 OPEN
+	dtn::wait_for_link_state 0 $cl-link:0-1 OPEN
+	dtn::wait_for_link_state 0 $cl-link:0-2 OPEN
     }
     
     puts "* injecting a bundle"
@@ -54,14 +54,18 @@ test::script {
     dtn::wait_for_bundle_stats 3 {1 duplicate}
 
     puts "* adding links from node 4 to/from nodes 2 and 3"
-    tell_dtnd 4 link add $clayer-link:4-2 \
-	    "$net::host(2):[dtn::get_port $clayer 2]" $linktype $clayer
-    tell_dtnd 2 link add $clayer-link:2-4 \
-	    "$net::host(4):[dtn::get_port $clayer 4]" $linktype $clayer
-    tell_dtnd 4 link add $clayer-link:4-3 \
-	    "$net::host(3):[dtn::get_port $clayer 3]" $linktype $clayer
-    tell_dtnd 3 link add $clayer-link:3-4 \
-	    "$net::host(4):[dtn::get_port $clayer 4]" $linktype $clayer
+    tell_dtnd 4 link add $cl-link:4-2 \
+	    "$net::host(2):[dtn::get_port $cl 2]" $linktype $cl
+    if {! [dtn::is_bidirectional $cl]} {
+	tell_dtnd 2 link add $cl-link:2-4 \
+		"$net::host(4):[dtn::get_port $cl 4]" $linktype $cl
+    }
+    tell_dtnd 4 link add $cl-link:4-3 \
+	    "$net::host(3):[dtn::get_port $cl 3]" $linktype $cl
+    if {! [dtn::is_bidirectional $cl]} {
+	tell_dtnd 3 link add $cl-link:3-4 \
+		"$net::host(4):[dtn::get_port $cl 4]" $linktype $cl
+    }
     
     puts "* checking the bundle is flooded to node 4 (and back)"
     dtn::wait_for_bundle_stats 4 {1 pending 2 transmitted 1 duplicate}
