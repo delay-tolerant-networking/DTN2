@@ -15,7 +15,7 @@ foreach {var val} $opt(opts) {
 dtn::config
 dtn::config_interface $cl 
 dtn::config_linear_topology ALWAYSON $cl true \
-	"test_read_delay=500 block_len=1000"
+	"test_read_delay=500 block_length=1000"
 
 test::script {
     puts "* Running dtnds"
@@ -32,8 +32,11 @@ test::script {
     dtn::wait_for_link_state 1 $cl-link:1-0 OPEN
 
     puts "* Shrinking send/recv buffers"
-    dtn::tell_dtnd 0 link reconfigure $cl-link:0-1 sendbuf_len=1000 recvbuf_len=1000
-    dtn::tell_dtnd 1 link reconfigure $cl-link:1-0 sendbuf_len=1000 recvbuf_len=1000
+    dtn::tell_dtnd 0 link reconfigure $cl-link:0-1 \
+	    sendbuf_len=1000 recvbuf_len=1000
+    
+    dtn::tell_dtnd 1 link reconfigure $cl-link:1-0 \
+	    sendbuf_len=1000 recvbuf_len=1000
 
     set N 20
     puts "* Sending $N bundles in one direction"
@@ -79,8 +82,10 @@ test::script {
     dtn::tell_dtnd * bundle reset_stats
 
     puts "* Clearing the read_delay"
-    dtn::tell_dtnd 0 link reconfigure $cl-link:0-1 test_read_delay=0 block_length=[expr 100 * 1024]
-    dtn::tell_dtnd 1 link reconfigure $cl-link:1-0 test_read_delay=0 block_length=[expr 100 * 1024]
+    dtn::tell_dtnd 0 link reconfigure $cl-link:0-1 \
+	    test_read_delay=0 block_length=[expr 100 * 1024]
+    dtn::tell_dtnd 1 link reconfigure $cl-link:1-0 \
+	    test_read_delay=0 block_length=[expr 100 * 1024]
 
     puts "* Upping the block length"
     dtn::tell_dtnd 0 link reconfigure $cl-link:0-1 block_length=[expr 100 * 1024]
