@@ -49,6 +49,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <strings.h>
+#include <string.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>

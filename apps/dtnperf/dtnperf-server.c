@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <strings.h>
+#include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include "dtn_api.h"
