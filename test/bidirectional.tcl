@@ -109,8 +109,9 @@ test::script {
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
 	dtn::check_bundle_stats $node \
-		$count "delivered" \
-		[expr $count * 2] "received"
+		[expr $count * 2] "pending" \
+		$count "transmitted" \
+		$count "delivered"
     }
 
     for {set i 0} {$i < $N} {incr i} {
@@ -132,13 +133,9 @@ test::script {
     puts "* Waiting for dtnds to start up"
     dtn::wait_for_dtnd *
     
-    # XXX/demmer since some bundles get lost along the way, we give it a
-    # little fudge factor so the test completes
-    set fudge 0
-
-    puts "* Running senders / receivers for $count bundles, sleep $sleep, fudge $fudge"
-    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q -n [expr $count - $fudge]"]
-    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -q -n [expr $count - $fudge]"]
+    puts "* Running senders / receivers for $count bundles, sleep $sleep"
+    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q -n $count"]
+    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -q -n $count"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
@@ -150,14 +147,14 @@ test::script {
 	}
 
 	set sleep [expr int(2000 * rand())]
-	puts "* Sleeping for %sleep msecs"
+	puts "* Sleeping for $sleep msecs"
 	after $sleep
 	
 	puts "* Killing node 1"
 	dtn::stop_dtnd 1
 
 	set sleep [expr int(2000 * rand())]
-	puts "* Sleeping for %sleep msecs"
+	puts "* Sleeping for $sleep msecs"
 	after $sleep
 
 	puts "* Starting node 1"
@@ -181,12 +178,14 @@ test::script {
     run::wait_for_pid_exit $last $sndpid2
     run::wait_for_pid_exit 0     $rcvpid1
     run::wait_for_pid_exit $last $rcvpid2
-    
+
+    # all we can really check for is that they all got transmitted,
+    # since some might end up getting lost when the node gets killed,
+    # but after the ack was sent
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
 	dtn::check_bundle_stats $node \
-		[expr $count - $fudge] "delivered" \
-		$count "transmitted"
+		$count "transmitted" \
     }
 
     puts "* Stopping all dtnds"
