@@ -728,8 +728,6 @@ StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
 bool
 StreamConvergenceLayer::Connection::finish_bundle(InFlightBundle* inflight)
 {
-    (void)inflight;
-
     if (sendbuf_.tailbytes() == 0) {
         log_warn("finish_bundle: rare out of space condition... "
                  "making room for one byte");
@@ -745,10 +743,43 @@ StreamConvergenceLayer::Connection::finish_bundle(InFlightBundle* inflight)
     note_data_sent();
     send_data();
     
-    ASSERT(current_inflight_ != NULL);
+    ASSERT(current_inflight_ == inflight);
     current_inflight_ = NULL;
     
+    check_completed(inflight);
+    
     return true;
+}
+
+//----------------------------------------------------------------------
+void
+StreamConvergenceLayer::Connection::check_completed(InFlightBundle* inflight)
+{
+    // we can pop the inflight bundle off of the queue and clean it up
+    // only when both finish_bundle is called (so current_inflight_ no
+    // longer points to the inflight bundle), and after the final ack
+    // for the bundle has been received (determined by looking at
+    // inflight->ack_data_)
+
+    if (current_inflight_ == inflight) {
+        log_debug("check_completed: bundle %d still waiting for finish_bundle",
+                  inflight->bundle_->bundleid_);
+        return;
+    }
+
+    size_t acked_len = inflight->ack_data_.num_contiguous();
+    if (acked_len < inflight->formatted_length_) {
+        log_debug("check_completed: bundle %d only acked %zu/%zu",
+                  inflight->bundle_->bundleid_,
+                  acked_len, inflight->formatted_length_);
+        return;
+    }
+
+    log_debug("check_completed: bundle %d transmission complete",
+              inflight->bundle_->bundleid_);
+    ASSERT(inflight == inflight_.front());
+    inflight_.pop_front();
+    delete inflight;
 }
 
 //----------------------------------------------------------------------
@@ -1248,15 +1279,16 @@ StreamConvergenceLayer::Connection::handle_ack_block()
 
         // XXX/demmer change this event to include the header bytes
         
-        BundleDaemon::post(new BundleTransmittedEvent(inflight->bundle_.object(),
-                                                      contact_,
-                                                      inflight->sent_data_.num_contiguous() -
-                                                      inflight->header_block_length_,
-                                                      inflight->ack_data_.num_contiguous() -
-                                                        inflight->header_block_length_));
+        BundleDaemon::post(
+            new BundleTransmittedEvent(inflight->bundle_.object(),
+                                       contact_,
+                                       inflight->sent_data_.num_contiguous() -
+                                         inflight->header_block_length_,
+                                       inflight->ack_data_.num_contiguous() -
+                                         inflight->header_block_length_));
 
-        inflight_.pop_front();
-        delete inflight;
+        // might delete inflight
+        check_completed(inflight);
         
     } else {
         log_debug("handle_ack_block: "

@@ -198,6 +198,7 @@ protected:
         bool send_next_block(InFlightBundle* inflight);
         bool send_data_todo(InFlightBundle* inflight);
         bool finish_bundle(InFlightBundle* inflight);
+        void check_completed(InFlightBundle* inflight);
         void send_keepalive();
         
         void handle_contact_initiation();
