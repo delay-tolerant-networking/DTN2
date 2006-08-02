@@ -151,11 +151,6 @@ int main(int argc, char** argv)
     if (debug) printf(" done\n");
     if (verbose) printf("regid 0x%x\n", regid);
 
-    // bind the current handle to the new registration
-    if (debug) printf("[debug] executing dtn_bind...");
-    dtn_bind(handle, regid);
-    if (debug) printf(" done\n");
-    
     // set bundle destination type
     if (debug) printf("[debug] choosing bundle destination type...");
     if (use_file)
