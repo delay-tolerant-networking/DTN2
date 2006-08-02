@@ -742,6 +742,8 @@ StreamConvergenceLayer::Connection::finish_bundle(InFlightBundle* inflight)
     
     note_data_sent();
     send_data();
+
+    ASSERT(! inflight->bundle_->payload_.is_file_open());
     
     ASSERT(current_inflight_ == inflight);
     current_inflight_ = NULL;
@@ -1070,6 +1072,8 @@ StreamConvergenceLayer::Connection::handle_end_bundle()
     // event includes the header bytes as well as the payload.
     size_t payload_rcvd = incoming->total_length_ -
                           incoming->header_block_length_;
+
+    incoming->bundle_->payload_.close_file();
     
     BundleDaemon::post(
         new BundleReceivedEvent(incoming->bundle_.object(),
