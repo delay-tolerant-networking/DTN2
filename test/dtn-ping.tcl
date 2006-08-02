@@ -6,7 +6,7 @@ manifest::file apps/dtnping/dtnping dtnping
 dtn::config
 
 dtn::config_interface tcp
-dtn::config_linear_topology ONDEMAND tcp true
+dtn::config_linear_topology ALWAYSON tcp true
 
 global num_pings
 set num_pings 10
