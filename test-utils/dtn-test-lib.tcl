@@ -200,6 +200,7 @@ namespace eval dtn {
 	    if {![catch {check_bundle_arrived $id $bundle_guid}]} {
 		break
 	    }
+	    after 500
 	}
     }
 
@@ -240,6 +241,7 @@ namespace eval dtn {
 	    if {![catch {check_sr_arrived $id $sr_guid}]} {
 		break
 	    }
+	    after 500
 	}
     }
 
@@ -313,6 +315,7 @@ namespace eval dtn {
 	    if {[test_bundle_stats $id $val $stat_type]} {
 		break
 	    }
+	    after 500
 	}
     }
 
@@ -324,6 +327,7 @@ namespace eval dtn {
 		if {[test_bundle_stats $id $val $stat_type]} {
 		    break
 		}
+		after 500
 	    }
 	}
     }
@@ -348,7 +352,7 @@ namespace eval dtn {
 		    return
 		}
 	    }
-	    after 1000
+	    after 500
 	}
     }
 
@@ -380,6 +384,7 @@ namespace eval dtn {
 	    if {[test_link_stats $id $link $val $stat_type]} {
 		break
 	    }
+	    after 500
 	}
     }
 
@@ -392,6 +397,7 @@ namespace eval dtn {
 		if {[test_link_stats $id $link $val $stat_type]} {
 		    break
 		}
+		after 500
 	    }
 	}
     }
