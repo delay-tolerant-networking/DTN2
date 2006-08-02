@@ -419,7 +419,7 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf, int flags)
         file_->readall((char*)buf, len);
         cur_offset_ = offset + len;
 
-        if (! flags & KEEP_FILE_OPEN)
+        if (! (flags & KEEP_FILE_OPEN))
             close_file();
         
         return buf;
