@@ -249,7 +249,7 @@ CLConnection::close_contact()
             (contact_->link()->is_reliable() && acked_bytes == 0))
         {
             log_debug("posting transmission failed event "
-                      "(reactive fragmentation %s, %s link, acked_bytes %d)",
+                      "(reactive fragmentation %s, %s link, acked_bytes %zu)",
                       params->reactive_frag_enabled_ ? "enabled" : "disabled",
                       contact_->link()->is_reliable() ? "reliable" : "unreliable",
                       acked_bytes);
