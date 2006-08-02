@@ -181,15 +181,18 @@ CLConnection::process_command()
         PANIC("invalid CLMsg typecode %d", msg.type_);
     }
 
-    // check if we need to unblock the link by clearing the BUSY state
-    if (contact_ != NULL &&
-        contact_->link()->state() == Link::BUSY &&
-        cmdqueue_.size() < params_->busy_queue_depth_)
+    // check if we need to unblock the link by clearing the BUSY
+    // state. note that we only post the BUSY->AVAILABLE event when
+    // the command queue passes back to be within the threshold to
+    // limit the number of redundant events posted to the daemon
+    if (contact_ != NULL && contact_->link()->state() == Link::BUSY)
     {
-        BundleDaemon::post(
-            new LinkStateChangeRequest(contact_->link(),
-                                       Link::AVAILABLE,
-                                       ContactEvent::UNBLOCKED));
+        if (cmdqueue_.size() == (params_->busy_queue_depth_ - 1)) {
+            BundleDaemon::post(
+                new LinkStateChangeRequest(contact_->link(),
+                                           Link::AVAILABLE,
+                                           ContactEvent::UNBLOCKED));
+        }
     }
 }
 
