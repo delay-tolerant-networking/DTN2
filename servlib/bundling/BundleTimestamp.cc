@@ -63,7 +63,7 @@ BundleTimestamp::check_local_clock()
     if ((u_int)now.tv_sec < TIMEVAL_CONVERSION) {
         log_err("/dtn/bundle/timestamp", "invalid local clock setting: "
                 "current time '%s' is before Jan 1, 2000",
-                ctime(&now.tv_sec));
+                ctime((const time_t*)&now.tv_sec));
         return false;
     }
 
