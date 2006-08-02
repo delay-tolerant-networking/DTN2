@@ -54,7 +54,7 @@ test::script {
 
     set N [net::num_nodes]
     set last_node [expr $N - 1]
-    set dest      dtn://host-0
+    set dest      dtn://host-${last_node}
 
     # make sure we properly tell the client and server where to put things
     set rundir [dist::get_rundir $net::host($last_node) $last_node]
@@ -64,11 +64,11 @@ test::script {
     if {$mode == "memory"} {
 	append server_opts "-m"
     }
-    set server_pid [dtn::run_app 0 dtnperf-server $server_opts]
+    set server_pid [dtn::run_app $last_node dtnperf-server $server_opts]
     after 1000
     
     puts "* Running dtnperf-client for $perftime seconds"
-    set client_pid [dtn::run_app $last_node dtnperf-client \
+    set client_pid [dtn::run_app 0 dtnperf-client \
 			"-t $perftime $delivery_opts -d $dest" ]
 
     # XXX might want to try running dtnperf-client when sending to a
@@ -84,7 +84,7 @@ test::script {
     }
 
     puts "* waiting for dtnperf-client to exit"
-    run::wait_for_pid_exit $last_node $client_pid
+    run::wait_for_pid_exit 0 $client_pid
 
     puts "* Final stats:"
     for {set id 0} {$id <= $last_node} {incr id} {
@@ -97,8 +97,8 @@ test::script {
 
 test::exit_script {
     puts "* Stopping dtnperf-server"
-    run::kill_pid 0 $server_pid 1
-    run::wait_for_pid_exit 0 $server_pid
+    run::kill_pid $last_node $server_pid 1
+    run::wait_for_pid_exit $last_node $server_pid
     
     puts "* Stopping all dtnds"
     dtn::stop_dtnd *
