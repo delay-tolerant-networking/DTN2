@@ -431,6 +431,16 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  "(%u > %u)",
                  bundle->bundleid_, bundle->creation_ts_.seconds_, now);
     }
+
+    /*
+     * Log a warning if the convergence layer didn't close the bundle
+     * payload file.
+     */
+    if (bundle->payload_.is_file_open()) {
+        log_warn("bundle id %d arrived with payload file still open",
+                 bundle->bundleid_);
+        bundle->payload_.close_file();
+    }
     
     /*
      * Send the reception receipt 
@@ -845,6 +855,10 @@ BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
 void
 BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 {
+    // XXX/demmer should also store the contact in the request -- that
+    // way we can tell if it's still relevant or if it refers to
+    // something in the past
+    
     Link* link = request->link_;
     Link::state_t new_state = request->state_;
     ContactEvent::reason_t reason = request->reason_;
@@ -1494,7 +1508,7 @@ BundleDaemon::run()
         // run_expired_timers and handle it
         if (timer_poll->revents != 0) {
             log_debug("poll returned new timers to handle");
-            timersys->notifier()->drain_pipe(0);
+            timersys->notifier()->clear();
         }
     }
 }
