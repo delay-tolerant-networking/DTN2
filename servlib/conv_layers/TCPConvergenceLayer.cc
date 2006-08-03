@@ -533,6 +533,11 @@ TCPConvergenceLayer::Connection::send_data()
                  strerror(errno));
         break_contact(ContactEvent::BROKEN);
     }
+
+    if (sock_pollfd_->events & POLLOUT) {
+        log_debug("send_data: drained buffer, clearing POLLOUT bit");
+        sock_pollfd_->events &= ~POLLOUT;
+    }
 }
 
 //----------------------------------------------------------------------
