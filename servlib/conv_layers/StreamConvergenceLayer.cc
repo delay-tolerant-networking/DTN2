@@ -371,16 +371,19 @@ StreamConvergenceLayer::Connection::send_pending_data()
     // returns true, we continue on and try to send some real payload
     // data, otherwise we could get starved by arriving data and never
     // send anything out.
-    send_pending_acks();
+    bool sent_ack = send_pending_acks();
     
     // check if we need to start a new bundle. if we do, then
     // start_next_bundle handles the correct return code
+    bool sent_data;
     if (current_inflight_ == NULL) {
-        return start_next_bundle();
+        sent_data = start_next_bundle();
+    } else {
+        // otherwise send the next block of the current bundle
+        sent_data = send_next_block(current_inflight_);
     }
 
-    // otherwise send the next block of the current bundle
-    return send_next_block(current_inflight_);
+    return sent_ack || sent_data;
 }
 
 //----------------------------------------------------------------------
