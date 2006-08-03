@@ -464,9 +464,12 @@ public:
 
     LinkStateChangeRequest(Link* link, state_t state, reason_t reason)
         : ContactEvent(LINK_STATE_CHANGE_REQUEST, reason),
-          link_(link), state_(state)
+          link_(link), state_(state), contact_("LinkStateChangeRequest")
     {
         daemon_only_ = true;
+        
+        contact_   = link->contact();
+        old_state_ = link->state();
     }
 
     /// The link to be changed
@@ -474,6 +477,12 @@ public:
 
     /// Requested state
     state_t state_;
+    
+    /// The active Contact when the request was made
+    ContactRef contact_;
+
+    /// State when the request was made
+    state_t old_state_;
 };
 
 /**

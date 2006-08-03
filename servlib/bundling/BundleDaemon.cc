@@ -861,13 +861,31 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
     
     Link* link = request->link_;
     Link::state_t new_state = request->state_;
+    Link::state_t old_state = request->old_state_;
     ContactEvent::reason_t reason = request->reason_;
     
-    log_info("LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p ", 
-             Link::state_to_str(link->state()), Link::state_to_str(new_state),
-             ContactEvent::reason_to_str(reason),
-             link);
+    if (link->contact() != request->contact_) {
+        log_warn("stale LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p: "
+                 "contact %p != current contact %p", 
+                 Link::state_to_str(old_state), Link::state_to_str(new_state),
+                 ContactEvent::reason_to_str(reason), link,
+                 request->contact_.object(), link->contact().object());
+        return;
+    }
 
+    if (old_state != link->state()) {
+        log_warn("stale LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p: "
+                 "old_state != current state", 
+                 Link::state_to_str(old_state), Link::state_to_str(new_state),
+                 ContactEvent::reason_to_str(reason), link);
+        return;
+    }
+    
+    log_info("LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p: "
+             "old_state != current state", 
+             Link::state_to_str(old_state), Link::state_to_str(new_state),
+             ContactEvent::reason_to_str(reason), link);
+    
     switch(new_state) {
     case Link::UNAVAILABLE:
         if (link->state() != Link::AVAILABLE) {
