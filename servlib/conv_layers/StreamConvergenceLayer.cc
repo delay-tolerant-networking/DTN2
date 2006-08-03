@@ -952,7 +952,7 @@ StreamConvergenceLayer::Connection::process_data()
             ok = handle_shutdown();
             break;
         default:
-            log_debug("invalid CL message type 0x%x", type);
+            log_err("invalid CL message type 0x%x", type);
             break_contact(ContactEvent::BROKEN);
             return;
         }
