@@ -244,6 +244,10 @@ CLConnection::close_contact()
     while (! inflight_.empty()) {
         InFlightBundle* inflight = inflight_.front();
 
+        // make sure the payload file is closed
+        ASSERT(inflight->bundle_.object() != NULL);
+        inflight->bundle_->payload_.close_file();
+
         size_t sent_bytes  = inflight->sent_data_.num_contiguous();
         size_t acked_bytes = inflight->ack_data_.num_contiguous();
         
@@ -300,6 +304,10 @@ CLConnection::close_contact()
             // event includes the header bytes as well as the payload.
             
             size_t payload_rcvd = rcvd_len - incoming->header_block_length_;
+            
+            // make sure the payload file is closed
+            ASSERT(incoming->bundle_.object() != NULL);
+            incoming->bundle_->payload_.close_file();
             
             BundleDaemon::post(
                 new BundleReceivedEvent(incoming->bundle_.object(),
