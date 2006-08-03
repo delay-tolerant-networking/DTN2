@@ -304,6 +304,8 @@ Link::open()
     contact_ = new Contact(this);
     clayer()->open_contact(contact_);
 
+    stats_.contact_attempts_++;
+
     log_debug("*%p new contact %p", this, contact_.object());
 }
     
@@ -368,10 +370,14 @@ Link::dump(oasys::StringBuffer* buf)
 void
 Link::dump_stats(oasys::StringBuffer* buf)
 {
-    buf->appendf("%u bundles_transmitted -- "
+    buf->appendf("%u contact_attempts -- "
+                 "%u contacts -- "
+                 "%u bundles_transmitted -- "
                  "%u bytes_transmitted -- "
                  "%u bundles_inflight -- "
                  "%u bytes_inflight ",
+                 stats_.contact_attempts_,
+                 stats_.contacts_,
                  stats_.bundles_transmitted_,
                  stats_.bytes_transmitted_,
                  stats_.bundles_inflight_,

@@ -477,6 +477,17 @@ public:
      */
     struct Stats {
         /**
+         * Number of times the link attempted to be opened.
+         */
+        u_int contact_attempts_;
+        
+        /**
+         * Number of contacts ever successfully opened on the link
+         * (equivalent to the number of times the link was open)
+         */
+        u_int contacts_;
+        
+        /**
          * Number of bundles transmitted
          */
         u_int bundles_transmitted_;

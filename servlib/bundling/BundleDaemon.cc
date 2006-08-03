@@ -981,6 +981,7 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     
     Link* link = contact->link();
     link->set_state(Link::OPEN);
+    link->stats_.contacts_++;
 }
 
 //----------------------------------------------------------------------
