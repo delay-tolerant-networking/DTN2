@@ -284,22 +284,23 @@ CLConnection::close_contact()
         inflight_.pop_front();
     }
 
-    // ditto for the incoming queue, posting received events for all
-    // in-progress bundles (if reactive fragmentation is enabled)
-    while (! incoming_.empty()) {
-        IncomingBundle* incoming = incoming_.front();
-
+    // check the tail of the incoming queue to see if there's a
+    // partially-received bundle that we need to post a received event
+    // for (if reactive fragmentation is enabled)
+    if (! incoming_.empty()) {
+        IncomingBundle* incoming = incoming_.back();
+            
         size_t rcvd_len = incoming->rcvd_data_.last() + 1;
-
-        log_debug("checking for partial arrival of bundle: "
-                  "reactive fragmentation %s, got %zu bytes [hdr %zu payload %zu]",
-                  params->reactive_frag_enabled_ ? "enabled" : "disabled",
-                  rcvd_len, incoming->header_block_length_,
-                  incoming->bundle_->payload_.length());
         
-        if (params->reactive_frag_enabled_ &&
+        if ((incoming->total_length_ == 0) && 
+            params->reactive_frag_enabled_ &&
             (rcvd_len > incoming->header_block_length_))
         {
+            log_debug("partial arrival of bundle: "
+                      "got %zu bytes [hdr %zu payload %zu]",
+                      rcvd_len, incoming->header_block_length_,
+                      incoming->bundle_->payload_.length());
+            
             // XXX/demmer need to fix the fragmentation code to assume the
             // event includes the header bytes as well as the payload.
             
@@ -314,17 +315,22 @@ CLConnection::close_contact()
                                         EVENTSRC_PEER,
                                         payload_rcvd));
         }
-        
-        incoming_.pop_front();
+    }
+
+    // now drain the incoming queue
+    while (!incoming_.empty()) {
+        IncomingBundle* incoming = incoming_.back();
+        incoming_.pop_back();
         delete incoming;
     }
-        
-    // now drain the message queue, posting transmit failed events for
-    // any send bundle commands that may be in there (though this is
-    // unlikely to happen)
+    
+    // finally, drain the message queue, posting transmit failed
+    // events for any send bundle commands that may be in there
+    // (though this is unlikely to happen)
     if (cmdqueue_.size() > 0) {
-        log_warn("close_contact: %zu CL commands still in queue: ", cmdqueue_.size());
-
+        log_warn("close_contact: %zu CL commands still in queue: ",
+                 cmdqueue_.size());
+        
         while (cmdqueue_.size() != 0) {
             CLMsg msg;
             bool ok = cmdqueue_.try_pop(&msg);
