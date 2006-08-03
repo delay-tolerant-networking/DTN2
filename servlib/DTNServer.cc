@@ -119,7 +119,16 @@ DTNServer::init_datastore()
     if (storage_config_->tidy_) 
     {
         storage_config_->init_ = true; // init is implicit with tidy
+    }
+    store_ = new oasys::DurableStore("/dtn/storage");
+    int err = store_->create_store(*storage_config_);
+    if (err != 0) {
+        log_crit("error creating storage system");
+        return false;
+    }
 
+    if (storage_config_->tidy_)
+    {
         // remove bundle data directory (the db contents are cleaned
         // up by the implementation)
         if (!tidy_dir(BundlePayload::payloaddir_.c_str())) {
@@ -135,13 +144,6 @@ DTNServer::init_datastore()
     }
 
     if (!validate_dir(BundlePayload::payloaddir_.c_str())) {
-        return false;
-    }
-
-    store_ = new oasys::DurableStore("/dtn/storage");
-    int err = store_->create_store(*storage_config_);
-    if (err != 0) {
-        log_crit("error creating storage system");
         return false;
     }
 
@@ -310,30 +312,33 @@ DTNServer::init_dir(const char* dirname)
 }
 
 bool
-DTNServer::tidy_dir(const char* dirname)
+DTNServer::tidy_dir(const char* dir)
 {
     char cmd[256];
     struct stat st;
+
+    std::string dirname(dir);
+    oasys::FileUtils::abspath(&dirname);
     
-    if (stat(dirname, &st) == 0)
+    if (stat(dirname.c_str(), &st) == 0)
     {
-        snprintf(cmd, sizeof(cmd), "/bin/rm -rf %s", dirname);
+        snprintf(cmd, sizeof(cmd), "/bin/rm -rf %s", dirname.c_str());
         log_notice("tidy option removing directory '%s'", cmd);
         
         if (system(cmd))
         {
-            log_crit("error removing directory %s", dirname);
+            log_crit("error removing directory %s", dirname.c_str());
             return false;
         }
         
     }
     else if (errno == ENOENT)
     {
-        log_debug("directory already removed %s", dirname);
+        log_debug("directory already removed %s", dirname.c_str());
     }
     else
     {
-        log_crit("invalid directory name %s: %s", dirname, strerror(errno));
+        log_crit("invalid directory name %s: %s", dirname.c_str(), strerror(errno));
         return false;
     }
 
