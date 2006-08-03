@@ -522,8 +522,13 @@ TCPConvergenceLayer::Connection::send_data()
         if (sendbuf_.fullbytes() != 0) {
             log_debug("send_data: incomplete write, setting POLLOUT bit");
             sock_pollfd_->events |= POLLOUT;
+
+        } else {
+            if (sock_pollfd_->events & POLLOUT) {
+                log_debug("send_data: drained buffer, clearing POLLOUT bit");
+                sock_pollfd_->events &= ~POLLOUT;
+            }
         }
-        
     } else if (errno == EWOULDBLOCK) {
         log_debug("send_data: write returned EWOULDBLOCK, setting POLLOUT bit");
         sock_pollfd_->events |= POLLOUT;
@@ -532,11 +537,6 @@ TCPConvergenceLayer::Connection::send_data()
         log_info("send_data: remote connection unexpectedly closed: %s",
                  strerror(errno));
         break_contact(ContactEvent::BROKEN);
-    }
-
-    if (sock_pollfd_->events & POLLOUT) {
-        log_debug("send_data: drained buffer, clearing POLLOUT bit");
-        sock_pollfd_->events &= ~POLLOUT;
     }
 }
 
