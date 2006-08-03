@@ -61,6 +61,10 @@ test::script {
     dtn::wait_for_bundle_stats 0 "0 pending" [expr 10000 + ($count * 100)]
     dtn::wait_for_bundle_stats 1 "$count pending"  [expr 10000 + ($count * 100)]
 
+    puts "* Checking that the link stayed open"
+    dtn::check_link_stats 0 $clayer-link:0-1 "1 contacts"
+    dtn::check_link_stats 1 $clayer-link:1-0 "1 contacts"
+
     puts "* Starting dtnd 2 and 3"
     dtn::run_dtnd 2
     dtn::run_dtnd 3
@@ -78,6 +82,14 @@ test::script {
     dtn::wait_for_bundle_stats 1 "0 pending"  [expr 10000 + ($count * 100)]
     dtn::wait_for_bundle_stats 2 "0 pending"  [expr 10000 + ($count * 100)]
     dtn::wait_for_bundle_stats 3 "$count delivered"  [expr 10000 + ($count * 100)]
+
+    puts "* Checking that all links stayed open"
+    dtn::check_link_stats 0 $clayer-link:0-1 "1 contacts"
+    dtn::check_link_stats 1 $clayer-link:1-0 "1 contacts"
+    dtn::check_link_stats 1 $clayer-link:1-2 "1 contacts"
+    dtn::check_link_stats 2 $clayer-link:2-1 "1 contacts"
+    dtn::check_link_stats 2 $clayer-link:2-3 "1 contacts"
+    dtn::check_link_stats 3 $clayer-link:3-2 "1 contacts"
 
     puts "* Waiting for receiver to complete"
     run::wait_for_pid_exit 3 $rcvpid
