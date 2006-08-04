@@ -362,7 +362,7 @@ namespace eval dtn {
         set stats [dtn::tell_dtnd $id "link stats $link"]
 	foreach {val stat_type} $args {
 	    if {![string match "*$val ${stat_type}*" $stats]} {
-		error "node $id link $link stat check for $stat_type failed \
+		error "node $id link $link stat check for ${stat_type} failed \
 		       expected $val but stats=\"$stats\""
 	    }
 	}
