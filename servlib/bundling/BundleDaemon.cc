@@ -881,8 +881,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         return;
     }
     
-    log_info("LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p: "
-             "old_state != current state", 
+    log_info("LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p",
              Link::state_to_str(old_state), Link::state_to_str(new_state),
              ContactEvent::reason_to_str(reason), link);
     
