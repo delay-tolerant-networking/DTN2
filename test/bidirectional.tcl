@@ -68,6 +68,10 @@ test::script {
 	puts "Node $i: [dtn::tell_dtnd $i bundle stats]"
     }
 
+    puts "* Checking link stats"
+    dtn::check_link_stats 0 $cl-link:0-1 1 contacts 200 bundles_transmitted
+    dtn::check_link_stats 1 $cl-link:1-0 1 contacts
+
     puts "* Stopping dtnds"
     dtn::stop_dtnd *
 
@@ -90,13 +94,13 @@ test::script {
 
     for {set i 0} {$i < 20} {incr i} {
 	after [expr int(2000 * rand())]
-	puts "* Closing links on node 1"
-	tell_dtnd 1 link close $cl-link:1-0
+	puts "* Closing links to/from node 1"
+	tell_dtnd 0 link close $cl-link:0-1
 	tell_dtnd 1 link close $cl-link:1-2
 
 	after [expr int(2000 * rand())]
-	puts "* Opening links on node 1"
-	tell_dtnd 1 link open $cl-link:1-0
+	puts "* Opening links to/from node 1"
+	tell_dtnd 0 link open $cl-link:0-1
 	tell_dtnd 1 link open $cl-link:1-2
     }
 
@@ -105,7 +109,7 @@ test::script {
     run::wait_for_pid_exit $last $sndpid2
     run::wait_for_pid_exit 0     $rcvpid1
     run::wait_for_pid_exit $last $rcvpid2
-    
+     
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
 	dtn::check_bundle_stats $node \
