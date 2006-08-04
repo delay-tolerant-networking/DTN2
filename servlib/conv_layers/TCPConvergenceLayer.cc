@@ -467,7 +467,7 @@ TCPConvergenceLayer::Connection::handle_poll_activity()
         log_debug("poll returned write ready, clearing POLLOUT bit");
         sock_pollfd_->events &= ~POLLOUT;
             
-        if (sock_->state() != oasys::IPSocket::ESTABLISHED) {
+        if (sock_->state() == oasys::IPSocket::CONNECTING) {
             int result = sock_->async_connect_result();
             if (result == 0) {
                 log_debug("delayed_connect to %s:%d succeeded",
