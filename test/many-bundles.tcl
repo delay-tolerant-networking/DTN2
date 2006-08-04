@@ -101,7 +101,3 @@ test::exit_script {
     puts "* Stopping all dtnds"
     dtn::stop_dtnd *
 }
-
-test::cleanup_script {
-    puts "flamebox-ignore-cancel ign-pipe"
-}
