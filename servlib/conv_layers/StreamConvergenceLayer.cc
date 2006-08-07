@@ -315,6 +315,15 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     recvbuf_.consume(announce_len);
 
     /*
+     * Now we initialize the various timers that are used for
+     * keepalives / idle timeouts to make sure they're not used
+     * uninitialized.
+     */
+    ::gettimeofday(&data_rcvd_, 0);
+    ::gettimeofday(&data_sent_, 0);
+    ::gettimeofday(&keepalive_sent_, 0);
+
+    /*
      * Finally, we note that the contact is now up.
      */
     contact_up();
