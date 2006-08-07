@@ -39,6 +39,13 @@ test::script {
 	dtn::tell_dtntest 0 dtn_unbind $h $regid
 	dtn::tell_dtntest 0 dtn_unregister $h $regid
     }
+
+    puts "* Creating / removing a registration with an eval script"
+    set regid [dtn::tell_dtntest 0 dtn_register $h \
+	    endpoint=dtn://dest expiration=100 script="/tmp/foobar"]
+    dtn::tell_dtntest 0 dtn_unregister $h $regid
+    dtn::tell_dtntest 0 dtn_unbind $h $regid
+    dtn::tell_dtntest 0 dtn_unregister $h $regid
     
     puts "* Creating one more registration"
     set regid [dtn::tell_dtntest 0 dtn_register $h \
