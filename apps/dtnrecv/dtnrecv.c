@@ -337,6 +337,7 @@ main(int argc, char** argv)
         total_bytes += payload.dtn_bundle_payload_t_u.buf.buf_len;
 
         if (quiet) {
+            dtn_free_payload(&payload);
             continue;
         }
         
