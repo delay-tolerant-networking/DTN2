@@ -225,6 +225,8 @@ main(int argc, char** argv)
 
     // if we're not given a regid, or we're in change mode, we need to
     // build up the reginfo
+    memset(&reginfo, 0, sizeof(reginfo));
+
     if ((regid == DTN_REGID_NONE) || change)
     {
         // if the specified eid starts with '/', then build a local
@@ -244,7 +246,6 @@ main(int argc, char** argv)
         }
 
         // create a new registration based on this eid
-        memset(&reginfo, 0, sizeof(reginfo));
         dtn_copy_eid(&reginfo.endpoint, &local_eid);
         reginfo.regid             = regid;
         reginfo.expiration        = expiration;
