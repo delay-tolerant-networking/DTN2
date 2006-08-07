@@ -42,6 +42,7 @@
 #include <oasys/io/NetUtils.h>
 #include <oasys/util/Pointers.h>
 #include <oasys/util/ScratchBuffer.h>
+#include <oasys/util/XDRUtils.h>
 
 #include "APIServer.h"
 #include "bundling/Bundle.h"
@@ -450,8 +451,12 @@ APIClient::handle_register()
         return DTN_EXDR;
     }
 
-    endpoint.assign(&reginfo.endpoint);
+    // make sure we free any dynamically-allocated bits in the
+    // incoming structure before we exit the proc
+    oasys::ScopeXDRFree x((xdrproc_t)xdr_dtn_reg_info_t, (char*)&reginfo);
     
+    endpoint.assign(&reginfo.endpoint);
+
     if (!endpoint.valid()) {
         log_err("invalid endpoint id in register: '%s'",
                 reginfo.endpoint.uri);
