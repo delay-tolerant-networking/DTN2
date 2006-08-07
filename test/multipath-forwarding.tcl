@@ -4,13 +4,10 @@ net::num_nodes 4
 dtn::config
 
 set clayer   tcp
-set linktype ALWAYSON
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set clayer $val
-    } elseif {$var == "-linktype" || $var == "linktype"} {
-        set linktype $val	
     } else {
 	puts "ERROR: unrecognized test option '$var'"
 	exit 1
@@ -19,7 +16,7 @@ foreach {var val} $opt(opts) {
 
 puts "* Configuring $clayer interfaces / links"
 dtn::config_interface $clayer
-dtn::config_diamond_topology $linktype $clayer true
+dtn::config_diamond_topology ALWAYSON $clayer true
 
 test::script {
     puts "* Running dtnds"
@@ -30,13 +27,11 @@ test::script {
 
     dtn::tell_dtnd 3 tcl_registration dtn://host-3/test
     
-    if {$linktype == "ALWAYSON"} {
-	puts "* Waiting for links to open"
-	dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
-	dtn::wait_for_link_state 0 tcp-link:0-2 OPEN
-    }
+    puts "* Waiting for links to open"
+    dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
+    dtn::wait_for_link_state 0 tcp-link:0-2 OPEN
 
-    puts "* adding small write delay to node 0 links"
+    puts "* adding write delay to node 0 links"
     tell_dtnd 0 link reconfigure tcp-link:0-1 \
 	    test_write_delay=100 sendbuf_len=1024
     tell_dtnd 0 link reconfigure tcp-link:0-2 \
