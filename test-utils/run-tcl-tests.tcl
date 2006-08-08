@@ -64,7 +64,7 @@ puts "***\n"
 # run the tests
 foreach {test testopts} $tests($group) {
     puts "***"
-    puts "*** $test $testopts"
+    puts "*** Running Test: $test $testopts"
     puts "***"
 
     if {$testopts != ""} {
