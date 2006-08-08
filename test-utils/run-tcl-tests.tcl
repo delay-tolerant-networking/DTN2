@@ -41,6 +41,10 @@ set tests(perf) {
     "dtn-perf.tcl"		"-payload_len 50B"
     "dtn-perf.tcl"		"-payload_len 5MB  -file_payload"
     "dtn-perf.tcl"		"-payload_len 50MB -file_payload"
+    "dtn-perf.tcl"		"-storage_type filesysdb"
+    "dtn-perf.tcl"		"-payload_len 50B -storage_type filesysdb"
+    "dtn-perf.tcl"		"-payload_len 5MB  -file_payload -storage_type filesysdb"
+    "dtn-perf.tcl"		"-payload_len 50MB -file_payload -storage_type filesysdb"
 }
 
 # check test group
