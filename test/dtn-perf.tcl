@@ -4,13 +4,9 @@ net::num_nodes 3
 manifest::file apps/dtnperf/dtnperf-server dtnperf-server
 manifest::file apps/dtnperf/dtnperf-client dtnperf-client
 
-dtn::config
-
-dtn::config_interface tcp
-dtn::config_linear_topology ONDEMAND tcp true
-
 set perftime 60
 set delivery_opts ""
+set storage_type berkeleydb
 
 set mode "memory"
 
@@ -33,11 +29,18 @@ for {set i 0} {$i < [llength $opt(opts)]} {incr i} {
     } elseif {$var == "-file_payload"} {
 	set mode "file"
 	
+    } elseif {$var == "-storage_type" } {
+	set storage_type [lindex $opt(opts) [incr i]]
+
     } else {
 	puts "ERROR: unrecognized test option '$var'"
 	exit 1
     }
 }
+
+dtn::config -storage_type $storage_type
+dtn::config_interface tcp
+dtn::config_linear_topology ONDEMAND tcp true
 
 if {$mode == "memory"} {
     append delivery_opts "-m "
