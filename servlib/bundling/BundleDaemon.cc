@@ -36,6 +36,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <oasys/util/Time.h>
+
 #include "Bundle.h"
 #include "BundleActions.h"
 #include "BundleEvent.h"
@@ -1491,8 +1493,17 @@ BundleDaemon::run()
             bool ok = eventq_->try_pop(&event);
             ASSERT(ok);
             
+            oasys::Time now;
+            now.get_time();
+        
             // handle the event
             handle_event(event);
+
+            int elapsed = now.elapsed_ms();
+            if (elapsed > 2000) {
+                log_warn("event %s took %d ms to process",
+                         event->type_str(), elapsed);
+            }
         
             // clean up the event
             delete event;
