@@ -200,7 +200,9 @@ protected:
      * always be that which is actually initialized.
      */
     BundleEvent(event_type_t type)
-        : type_(type), daemon_only_(false), processed_notifier_(false) {}
+        : type_(type),
+          daemon_only_(false),
+          processed_notifier_(NULL) {}
 };
 
 /**
