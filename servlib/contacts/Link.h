@@ -435,7 +435,8 @@ public:
         u_int mtu_;
          
         /**
-         * Minimum amount to wait between attempts to re-open the link.
+         * Minimum amount to wait between attempts to re-open the link
+         * (in seconds).
          *
          * Default is set by the various Link types but can be overridden
          * by configuration parameters.
@@ -443,7 +444,8 @@ public:
         u_int min_retry_interval_;
     
         /**
-         * Maximum amount to wait between attempts to re-open the link.
+         * Maximum amount to wait between attempts to re-open the link
+         * (in seconds).
          *
          * Default is set by the various Link types but can be overridden
          * by configuration parameters.
