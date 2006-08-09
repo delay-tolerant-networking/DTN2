@@ -121,8 +121,8 @@ Link::Link(const std::string& name, link_type_t type,
 {
     ASSERT(clayer_);
 
-    params_ = default_params_;
-    retry_interval_ = params_.min_retry_interval_;
+    params_         = default_params_;
+    retry_interval_ = 0; // set in ContactManager
 
     memset(&stats_, 0, sizeof(Stats));
 }

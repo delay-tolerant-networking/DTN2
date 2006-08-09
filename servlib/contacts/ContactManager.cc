@@ -207,11 +207,17 @@ ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
     }
     
     // adjust the retry interval in the link to handle backoff in case
-    // it continuously fails to open, then schedule the timer.
-    // the retry interval is reset in the link open event handler
+    // it continuously fails to open, then schedule the timer. note
+    // that if this is the first time the link is opened, the
+    // retry_interval will be initialized to zero so we set it to the
+    // minimum here. the retry interval is reset in the link open
+    // event handler.
     Link* link = event->link_;
+    if (link->retry_interval_ == 0) {
+        link->retry_interval_ = link->params().min_retry_interval_;
+    }
+
     int timeout = link->retry_interval_;
-    
     link->retry_interval_ *= 2;
     if (link->retry_interval_ > link->params().max_retry_interval_) {
         link->retry_interval_ = link->params().max_retry_interval_;
