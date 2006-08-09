@@ -89,26 +89,13 @@ typedef int (*xdr_putlong_t)(XDR *, long *);
 
 namespace dtn {
 
-in_addr_t APIServer::local_addr_;
-u_int16_t APIServer::local_port_;
-
-//----------------------------------------------------------------------
-void
-APIServer::init()
-{
-    /*
-     * Default values for address / ports, overrided via the
-     * configuration interface (see servlib/cmd/APICommand.cc).
-     */
-    APIServer::local_addr_ = htonl(INADDR_LOOPBACK);
-    APIServer::local_port_ = DTN_IPC_PORT;
-    oasys::TclCommandInterp::instance()->reg(new APICommand());
-}
-
 //----------------------------------------------------------------------
 APIServer::APIServer()
     : TCPServerThread("APIServer", "/dtn/apiserver", DELETE_ON_EXIT)
 {
+    local_addr_ = htonl(INADDR_LOOPBACK);
+    local_port_ = DTN_IPC_PORT;
+
     // override the defaults via environment variables, if given
     char *env;
     if ((env = getenv("DTNAPI_ADDR")) != NULL) {
@@ -147,6 +134,8 @@ APIServer::APIServer()
     } else {
         log_debug("APIServer init");
     }
+
+    oasys::TclCommandInterp::instance()->reg(new APICommand(this));
 }
 
 //----------------------------------------------------------------------

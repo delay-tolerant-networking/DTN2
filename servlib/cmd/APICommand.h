@@ -40,6 +40,8 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+#include "applib/APIServer.h"
+
 namespace dtn {
 
 /**
@@ -47,7 +49,7 @@ namespace dtn {
  */
 class APICommand : public oasys::TclCommand {
 public:
-    APICommand();
+    APICommand(APIServer* server);
 };
 
 

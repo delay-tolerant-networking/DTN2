@@ -384,7 +384,7 @@ DTND::main(int argc, char* argv[])
     APIServer* apiserver = new APIServer();
 
     dtnserver->init();
-    apiserver->init();
+
     oasys::TclCommandInterp::instance()->reg(consolecmd_);
     init_testcmd(argc, argv);
 
@@ -416,8 +416,8 @@ DTND::main(int argc, char* argv[])
     notify_parent(0);
     
     dtnserver->start();
-    apiserver->bind_listen_start(APIServer::local_addr_, 
-                                 APIServer::local_port_);
+    apiserver->bind_listen_start(apiserver->local_addr(), 
+                                 apiserver->local_port());
     oasys::Thread::release_start_barrier(); // run blocked threads
 
     // if the test script specified something to run for the test,

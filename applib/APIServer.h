@@ -65,16 +65,18 @@ public:
      */
     APIServer();
 
-    /**
-     * Initialize and register all the api server related dtn commands.
-     */
-    void init();
-    
     // Virtual from TCPServerThread
     void accepted(int fd, in_addr_t addr, u_int16_t port);
     
-    static in_addr_t local_addr_;	///< local address to bind to
-    static u_int16_t local_port_;	///< local port to use for api
+    in_addr_t  local_addr() const { return local_addr_; }
+    in_addr_t* local_addr_ptr() { return &local_addr_; }
+    
+    u_int16_t  local_port() const { return local_port_; }
+    u_int16_t* local_port_ptr() { return &local_port_; }
+    
+private:
+    in_addr_t local_addr_;    ///< local address to bind to
+    u_int16_t local_port_;    ///< local port to use for api
 };
 
 /**
