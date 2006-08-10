@@ -185,7 +185,7 @@ test::script {
 
     puts "* Killing receivers"
     run::kill_pid 0     $rcvpid1 TERM
-    run::kill_pid $last $rcvpid1 TERM
+    run::kill_pid $last $rcvpid2 TERM
 
     # all we can really check for is that they all got transmitted,
     # since some might end up getting lost when the node gets killed,
