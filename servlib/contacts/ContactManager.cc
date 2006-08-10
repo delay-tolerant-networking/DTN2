@@ -147,7 +147,7 @@ ContactManager::reopen_link(Link* link)
     availability_timers_.erase(link);
     
     if (link->state() == Link::UNAVAILABLE) {
-        BundleDaemon::post_at_head(
+        BundleDaemon::post(
             new LinkStateChangeRequest(link, Link::OPEN,
                                        ContactEvent::RECONNECT));
     } else {
