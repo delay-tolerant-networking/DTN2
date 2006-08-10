@@ -905,6 +905,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             
         } else if (link->state() == Link::BUSY &&
                    reason        == ContactEvent::UNBLOCKED) {
+            ASSERT(link->contact() != NULL);
             link->set_state(Link::OPEN);
             
         } else if (link->state() == Link::OPEN &&
@@ -981,6 +982,7 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     log_info("CONTACT_UP *%p (contact %p)", contact->link(), contact.object());
     
     Link* link = contact->link();
+    ASSERT(link->contact() == contact);
     link->set_state(Link::OPEN);
     link->stats_.contacts_++;
 }
