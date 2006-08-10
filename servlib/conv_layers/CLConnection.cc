@@ -54,6 +54,7 @@ CLConnection::CLConnection(const char*       classname,
     : Thread(classname),
       Logger(classname, logpath),
       contact_(classname),
+      contact_up_(false),
       cmdqueue_(logpath),
       cl_(cl),
       params_(params),
@@ -202,6 +203,10 @@ CLConnection::contact_up()
 {
     log_debug("contact_up");
     ASSERT(contact_ != NULL);
+    
+    ASSERT(!contact_up_);
+    contact_up_ = true;
+    
     BundleDaemon::post(new ContactUpEvent(contact_));
 }
 

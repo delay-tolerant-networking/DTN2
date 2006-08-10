@@ -269,6 +269,7 @@ protected:
     typedef std::list<IncomingBundle*> IncomingList;
     
     ContactRef          contact_;	///< Ref to the Contact
+    bool		contact_up_;	///< Has contact_up been called
     oasys::MsgQueue<CLMsg> cmdqueue_;	///< Queue of commands from daemon
     ConvergenceLayer*   cl_;		///< Pointer to the CL
     LinkParams*		params_;	///< Pointer to Link parameters, or

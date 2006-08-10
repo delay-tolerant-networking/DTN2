@@ -209,6 +209,8 @@ StreamConvergenceLayer::Connection::initiate_contact()
 void
 StreamConvergenceLayer::Connection::handle_contact_initiation()
 {
+    ASSERT(! contact_up_);
+
     /*
      * First check that we have enough data for the contact header
      */
@@ -913,8 +915,8 @@ StreamConvergenceLayer::Connection::process_data()
 
     // the first thing we need to do is handle the contact initiation
     // sequence, i.e. the contact header and the announce bundle. we
-    // know we need to do this if we don't have an OPEN link yet
-    if (contact_ == NULL || contact_->link()->state() == Link::OPENING) {
+    // know we need to do this if we haven't yet called contact_up()
+    if (! contact_up_) {
         handle_contact_initiation();
         return;
     }
