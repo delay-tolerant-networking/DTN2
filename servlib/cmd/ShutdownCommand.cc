@@ -63,7 +63,7 @@ ShutdownCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     (void)interp;
 
     // should have no subcommands or options
-    if (argc !=  1) {
+    if (argc != 1) {
         wrong_num_args(argc, argv, 1, 1, 1);
         return TCL_ERROR;
     }
