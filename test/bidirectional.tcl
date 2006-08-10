@@ -104,11 +104,16 @@ test::script {
 	tell_dtnd 1 link open $cl-link:1-2
     }
 
+    puts "* Done will link closing loop, stats:"
+    for {set i 0} {$i < $N} {incr i} {
+	puts "Node $i: [dtn::tell_dtnd $i bundle stats]"
+    }
+
     puts "* Waiting for senders / receivers to complete"
-    run::wait_for_pid_exit 0     $sndpid1
-    run::wait_for_pid_exit $last $sndpid2
-    run::wait_for_pid_exit 0     $rcvpid1
-    run::wait_for_pid_exit $last $rcvpid2
+    run::wait_for_pid_exit 0     $sndpid1 60000
+    run::wait_for_pid_exit $last $sndpid2 60000
+    run::wait_for_pid_exit 0     $rcvpid1 60000
+    run::wait_for_pid_exit $last $rcvpid2 60000
      
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
