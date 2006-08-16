@@ -1,1 +1,3 @@
 *.d
+*.swp
+.BundleDaemon.cc.swp
