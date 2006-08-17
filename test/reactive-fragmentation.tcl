@@ -4,7 +4,7 @@ net::num_nodes 2
 dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ALWAYSON tcp true \
-	"test_write_delay=1000 block_length=512"
+	"test_write_delay=1000 segment_length=512"
 
 test::script {
     puts "* Running dtnds"

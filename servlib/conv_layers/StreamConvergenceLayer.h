@@ -51,11 +51,11 @@ namespace dtn {
  * semantics.
  *
  * For the protocol, bundles are broken up into configurable-sized
- * blocks that are sent sequentially. Only a single bundle is inflight
- * on the wire at one time (i.e. we don't interleave blocks from
- * different bundles). When block acknowledgements are enabled (the
- * default behavior), the receiving node sends an acknowledgement for
- * each block of the bundle that was received.
+ * segments that are sent sequentially. Only a single bundle is
+ * inflight on the wire at one time (i.e. we don't interleave segments
+ * from different bundles). When segment acknowledgements are enabled
+ * (the default behavior), the receiving node sends an acknowledgement
+ * for each segment of the bundle that was received.
  *
  * Keepalive messages are sent back and forth to ensure that the
  * connection remains open. In the case of on demand links, a
@@ -68,11 +68,11 @@ namespace dtn {
  * Flow control is managed through the poll callbacks given by the
  * base class CLConnection. In send_pending_data, we check if there
  * are any acks that need to be sent, then check if there are bundle
- * blocks to be sent (i.e. acks are given priority). The only
+ * segments to be sent (i.e. acks are given priority). The only
  * exception to this is that the connection might be write blocked in
- * the middle of sending a data block. In that case, we must first
- * finish transmitting the current block before sending any other acks
- * (or the shutdown message), otherwise those messages will be
+ * the middle of sending a data segment. In that case, we must first
+ * finish transmitting the current segment before sending any other
+ * acks (or the shutdown message), otherwise those messages will be
  * consumed as part of the payload.
  *
  * To make sure that we don't deadlock with the other side, we always
@@ -81,18 +81,18 @@ namespace dtn {
  * and IncomingList), then rely on send_pending_data to send the
  * appropriate responses.
  *
- * To record the blocks we've sent, we fill in the sent_data_ sparse
- * bitmap with the range of bytes as we send blocks out. As acks come
- * in, we extend the ack_data_ field to match. Once the whole bundle
- * is acked, the entry is removed from the InFlightList.
+ * To record the segments we've sent, we fill in the sent_data_ sparse
+ * bitmap with the range of bytes as we send segments out. As acks
+ * come in, we extend the ack_data_ field to match. Once the whole
+ * bundle is acked, the entry is removed from the InFlightList.
  *
- * To track blocks that we have received but haven't yet acked, we set
- * a single bit for the offset of the end of the block in the
+ * To track segments that we have received but haven't yet acked, we
+ * set a single bit for the offset of the end of the segment in the
  * ack_data_ bitmap as well as extending the contiguous range in
  * rcvd_data_. That way, the gap in the ack_data_ structure expresses
- * the individual block lengths that were sent by the peer. Then, once
- * the acks are sent, we fill in the contiguous range to identify as
- * such.
+ * the individual segment lengths that were sent by the peer. Then,
+ * once the acks are sent, we fill in the contiguous range to identify
+ * as such.
  */
 class StreamConvergenceLayer : public ConnectionConvergenceLayer {
 public:
@@ -107,7 +107,7 @@ protected:
      * Values for ContactHeader flags.
      */
     typedef enum {
-        BLOCK_ACK_ENABLED     = 0x1,	///< block acks requested
+        SEGMENT_ACK_ENABLED   = 0x1,	///< segment acks requested
         REACTIVE_FRAG_ENABLED = 0x2,	///< reactive fragmentation enabled
     } contact_header_flags_t;
 
@@ -129,9 +129,9 @@ protected:
     typedef enum {
         START_BUNDLE	= 0x1,		///< begin a new bundle transmission
         END_BUNDLE	= 0x2,		///< end of a bundle transmission
-        DATA_BLOCK	= 0x3,		///< a block of bundle data
-                                        ///< (followed by a SDNV block length)
-        ACK_BLOCK	= 0x4,		///< acknowledgement of a block
+        DATA_SEGMENT	= 0x3,		///< a segment of bundle data
+                                        ///< (followed by a SDNV segment length)
+        ACK_SEGMENT	= 0x4,		///< acknowledgement of a segment
                                         ///< (followed by a SDNV ack length)
         KEEPALIVE	= 0x5,		///< keepalive packet
         SHUTDOWN	= 0x6,		///< about to shutdown
@@ -142,9 +142,9 @@ protected:
      */
     class StreamLinkParams : public ConnectionConvergenceLayer::LinkParams {
     public:
-        bool  block_ack_enabled_;	///< Use per-block acks
+        bool  segment_ack_enabled_;	///< Use per-segment acks
         u_int keepalive_interval_;	///< Seconds between keepalive packets
-        u_int block_length_;		///< Maximum size of transmitted blocks
+        u_int segment_length_;		///< Maximum size of transmitted segments
 
     protected:
         // See comment in LinkParams for why this should be protected
@@ -195,7 +195,7 @@ protected:
         void note_data_sent();
         bool send_pending_acks();
         bool start_next_bundle();
-        bool send_next_block(InFlightBundle* inflight);
+        bool send_next_segment(InFlightBundle* inflight);
         bool send_data_todo(InFlightBundle* inflight);
         bool finish_bundle(InFlightBundle* inflight);
         void check_completed(InFlightBundle* inflight);
@@ -204,9 +204,9 @@ protected:
         void handle_contact_initiation();
         bool handle_start_bundle();
         bool handle_end_bundle();
-        bool handle_data_block();
+        bool handle_data_segment();
         bool handle_data_todo();
-        bool handle_ack_block();
+        bool handle_ack_segment();
         bool handle_keepalive();
         bool handle_shutdown();
         /// @}
@@ -224,8 +224,8 @@ protected:
         
     protected:
         InFlightBundle* current_inflight_; ///< Current bundle that's in flight 
-        size_t send_block_todo_; 	///< Bytes left to send of current block
-        size_t recv_block_todo_; 	///< Bytes left to recv of current block
+        size_t send_segment_todo_; 	///< Bytes left to send of current segment
+        size_t recv_segment_todo_; 	///< Bytes left to recv of current segment
         struct timeval data_rcvd_;	///< Timestamp for idle/keepalive timer
         struct timeval data_sent_;	///< Timestamp for idle timer
         struct timeval keepalive_sent_;	///< Timestamp for keepalive timer

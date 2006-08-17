@@ -15,7 +15,7 @@ foreach {var val} $opt(opts) {
 dtn::config
 dtn::config_interface $cl 
 dtn::config_linear_topology ALWAYSON $cl true \
-	"test_read_delay=500 block_length=1000"
+	"test_read_delay=500 segment_length=1000"
 
 test::script {
     puts "* Running dtnds"
@@ -83,13 +83,13 @@ test::script {
 
     puts "* Clearing the read_delay"
     dtn::tell_dtnd 0 link reconfigure $cl-link:0-1 \
-	    test_read_delay=0 block_length=[expr 100 * 1024]
+	    test_read_delay=0 segment_length=[expr 100 * 1024]
     dtn::tell_dtnd 1 link reconfigure $cl-link:1-0 \
-	    test_read_delay=0 block_length=[expr 100 * 1024]
+	    test_read_delay=0 segment_length=[expr 100 * 1024]
 
     puts "* Upping the block length"
-    dtn::tell_dtnd 0 link reconfigure $cl-link:0-1 block_length=[expr 100 * 1024]
-    dtn::tell_dtnd 1 link reconfigure $cl-link:1-0 block_length=[expr 100 * 1024]
+    dtn::tell_dtnd 0 link reconfigure $cl-link:0-1 segment_length=[expr 100 * 1024]
+    dtn::tell_dtnd 1 link reconfigure $cl-link:1-0 segment_length=[expr 100 * 1024]
 
     puts "* Growing the send/recv buffers"
     dtn::tell_dtnd 0 link reconfigure $cl-link:0-1 sendbuf_len=32768 recvbuf_len=32768

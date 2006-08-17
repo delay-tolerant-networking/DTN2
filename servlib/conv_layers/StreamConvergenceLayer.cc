@@ -49,9 +49,9 @@ namespace dtn {
 //----------------------------------------------------------------------
 StreamConvergenceLayer::StreamLinkParams::StreamLinkParams(bool init_defaults)
     : LinkParams(init_defaults),
-      block_ack_enabled_(true),
+      segment_ack_enabled_(true),
       keepalive_interval_(10),
-      block_length_(4096)
+      segment_length_(4096)
 {
 }
 
@@ -77,14 +77,14 @@ StreamConvergenceLayer::parse_link_params(LinkParams* lparams,
                                
     oasys::OptParser p;
 
-    p.addopt(new oasys::BoolOpt("block_ack_enabled",
-                                &params->block_ack_enabled_));
+    p.addopt(new oasys::BoolOpt("segment_ack_enabled",
+                                &params->segment_ack_enabled_));
     
     p.addopt(new oasys::UIntOpt("keepalive_interval",
                                 &params->keepalive_interval_));
     
-    p.addopt(new oasys::UIntOpt("block_length",
-                                &params->block_length_));
+    p.addopt(new oasys::UIntOpt("segment_length",
+                                &params->segment_length_));
     
     int count = p.parse_and_shift(argc, argv, invalidp);
     if (count == -1) {
@@ -104,7 +104,7 @@ StreamConvergenceLayer::finish_init_link(Link* link, LinkParams* lparams)
     ASSERT(params != NULL);
 
     // make sure to set the reliability bit in the link structure
-    if (params->block_ack_enabled_) {
+    if (params->segment_ack_enabled_) {
         link->set_reliable(true);
     }
     
@@ -121,9 +121,9 @@ StreamConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
         dynamic_cast<StreamLinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
-    buf->appendf("block_ack_enabled: %u\n", params->block_ack_enabled_);
+    buf->appendf("segment_ack_enabled: %u\n", params->segment_ack_enabled_);
     buf->appendf("keepalive_interval: %u\n", params->keepalive_interval_);
-    buf->appendf("block_length: %u\n", params->block_length_);
+    buf->appendf("segment_length: %u\n", params->segment_length_);
 }
 
 //----------------------------------------------------------------------
@@ -134,8 +134,8 @@ StreamConvergenceLayer::Connection::Connection(const char* classname,
                                                bool active_connector)
     : CLConnection(classname, logpath, cl, params, active_connector),
       current_inflight_(NULL),
-      send_block_todo_(0),
-      recv_block_todo_(0)
+      send_segment_todo_(0),
+      recv_segment_todo_(0)
 {
 }
 
@@ -154,8 +154,8 @@ StreamConvergenceLayer::Connection::initiate_contact()
 
     StreamLinkParams* params = stream_lparams();
     
-    if (params->block_ack_enabled_)
-        contacthdr.flags |= BLOCK_ACK_ENABLED;
+    if (params->segment_ack_enabled_)
+        contacthdr.flags |= SEGMENT_ACK_ENABLED;
     
     if (params->reactive_frag_enabled_)
         contacthdr.flags |= REACTIVE_FRAG_ENABLED;
@@ -279,8 +279,8 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
         std::min(params->keepalive_interval_,
                  (u_int)contacthdr.keepalive_interval);
 
-    params->block_ack_enabled_ = params->block_ack_enabled_ &&
-                                 (contacthdr.flags & BLOCK_ACK_ENABLED);
+    params->segment_ack_enabled_ = params->segment_ack_enabled_ &&
+                                   (contacthdr.flags & SEGMENT_ACK_ENABLED);
     
     params->reactive_frag_enabled_ = params->reactive_frag_enabled_ &&
                                      (contacthdr.flags & REACTIVE_FRAG_ENABLED);
@@ -364,17 +364,17 @@ StreamConvergenceLayer::Connection::send_pending_data()
         return false;
     }
 
-    // if we're in the middle of sending a block, we need to continue
-    // sending it. only if we completely send the block do we fall
+    // if we're in the middle of sending a segment, we need to continue
+    // sending it. only if we completely send the segment do we fall
     // through to send acks, otherwise we return to try to finish it
     // again later.
-    if (send_block_todo_ != 0) {
+    if (send_segment_todo_ != 0) {
         ASSERT(current_inflight_ != NULL);        
         send_data_todo(current_inflight_);
     }
     
     // see if we're broken or write blocked
-    if (contact_broken_ || (send_block_todo_ != 0)) {
+    if (contact_broken_ || (send_segment_todo_ != 0)) {
         return false;
     }
     
@@ -390,8 +390,8 @@ StreamConvergenceLayer::Connection::send_pending_data()
     if (current_inflight_ == NULL) {
         sent_data = start_next_bundle();
     } else {
-        // otherwise send the next block of the current bundle
-        sent_data = send_next_block(current_inflight_);
+        // otherwise send the next segment of the current bundle
+        sent_data = send_next_segment(current_inflight_);
     }
 
     return sent_ack || sent_data;
@@ -411,11 +411,11 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         return false; // nothing to do
     }
 
-    // when data block headers are received, the first and last bit of
-    // the block are marked in ack_data.
+    // when data segment headers are received, the first and last bit of
+    // the segment are marked in ack_data.
     //
     // therefore, to figure out what acks should be sent for those
-    // blocks, we set the start iterator to be the last byte in the
+    // segments, we set the start iterator to be the last byte in the
     // contiguous range at the beginning of ack_data_, thereby
     // skipping everything that's already been acked. we then set the
     // end iterator to the next byte to be acked (i.e. the last byte
@@ -423,7 +423,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     // therefore the range up to and including the end byte
     //
     // however, we have to be careful to check the recv_data as well
-    // to make sure we've actually gotten the block.
+    // to make sure we've actually gotten the segment.
     DataBitmap::iterator start = incoming->ack_data_.begin();
     start.skip_contiguous();
     DataBitmap::iterator end = start + 1;
@@ -434,14 +434,14 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     size_t last_ack = 0;
     while (end != incoming->ack_data_.end()) {
         size_t ack_len   = *end + 1;
-        size_t block_len = ack_len - *start;
-        (void)block_len;
+        size_t segment_len = ack_len - *start;
+        (void)segment_len;
 
         if (ack_len > received_bytes) {
             log_debug("send_pending_acks: "
-                      "waiting to send ack length %zu for %zu byte block "
+                      "waiting to send ack length %zu for %zu byte segment "
                       "since only received %zu",
-                      ack_len, block_len, received_bytes);
+                      ack_len, segment_len, received_bytes);
             break;
         }
 
@@ -449,9 +449,9 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         size_t encoding_len = 1 + SDNV::encoding_len(ack_len);
         if (encoding_len <= sendbuf_.tailbytes()) {
             log_debug("send_pending_acks: "
-                      "sending ack length %zu for %zu byte block "
+                      "sending ack length %zu for %zu byte segment "
                       "[range %zu..%zu]",
-                      ack_len, block_len, *start, *end);
+                      ack_len, segment_len, *start, *end);
 
             if (sent_start == -1) {
                 sent_start = *start;
@@ -460,7 +460,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
             ASSERT(last_ack <= ack_len);
             last_ack = ack_len;
             
-            *sendbuf_.end() = ACK_BLOCK;
+            *sendbuf_.end() = ACK_SEGMENT;
             int len = SDNV::encode(ack_len, (u_char*)sendbuf_.end() + 1,
                                    sendbuf_.tailbytes() - 1);
             ASSERT(encoding_len = len + 1);
@@ -473,7 +473,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
             break;
         }
 
-        // advance the two iterators to the next block
+        // advance the two iterators to the next segment
         start = end + 1;
         if (start == incoming->ack_data_.end()) {
             break;
@@ -563,22 +563,22 @@ StreamConvergenceLayer::Connection::start_next_bundle()
     StreamLinkParams* params = stream_lparams();
     
     // to start off the transmission, we send the START_BUNDLE
-    // typecode, followed by a block of bundle data, including at a
+    // typecode, followed by a segment of bundle data, including at a
     // minimum the bundle headers.
 
     size_t header_len = BundleProtocol::header_block_length(bundle);
-    size_t block_len = std::min((size_t)params->block_length_,
-                                current_inflight_->formatted_length_);
-    if (block_len < header_len) {
-        log_warn("configured block_len %zu smaller than header block "
-                 "length %zu... upping block length", block_len, header_len);
-        block_len = header_len;
+    size_t segment_len = std::min((size_t)params->segment_length_,
+                                  current_inflight_->formatted_length_);
+    if (segment_len < header_len) {
+        log_warn("configured segment_len %zu smaller than header segment "
+                 "length %zu... upping segment length", segment_len, header_len);
+        segment_len = header_len;
     }
     
-    size_t sdnv_len = SDNV::encoding_len(block_len);
+    size_t sdnv_len = SDNV::encoding_len(segment_len);
 
     // we need to format all the headers at once, so make sure the
-    // buffer has enough space for that. note that the block on the
+    // buffer has enough space for that. note that the segment on the
     // wire might include some payload bytes that we don't need to
     // handle here.
     size_t min_buffer_len = 1 + 1 + sdnv_len + header_len;
@@ -603,8 +603,8 @@ StreamConvergenceLayer::Connection::start_next_bundle()
     }
 
     log_debug("send_start_bundle: sending "
-              "START_BUNDLE for bundle %d: initial block len %zu [hdrs %zu]",
-              current_inflight_->bundle_->bundleid_, block_len, header_len);
+              "START_BUNDLE for bundle %d: initial segment len %zu [hdrs %zu]",
+              current_inflight_->bundle_->bundleid_, segment_len, header_len);
     
     u_char* bp = (u_char*)sendbuf_.end();
     size_t len = sendbuf_.tailbytes();
@@ -612,10 +612,10 @@ StreamConvergenceLayer::Connection::start_next_bundle()
     *bp++ = START_BUNDLE;
     len--;
     
-    *bp++ = DATA_BLOCK;
+    *bp++ = DATA_SEGMENT;
     len--;
     
-    int cc = SDNV::encode(block_len, bp, len);
+    int cc = SDNV::encode(segment_len, bp, len);
     ASSERT(cc == (int)sdnv_len);
         
     bp  += sdnv_len;
@@ -628,13 +628,13 @@ StreamConvergenceLayer::Connection::start_next_bundle()
     current_inflight_->sent_data_.set(0, header_len);
 
     // now that the header is done, we record the amount of the first
-    // block that's left to send and then call send_data_todo to send
+    // segment that's left to send and then call send_data_todo to send
     // out the payload. if there's nothing left to do (i.e. the first
-    // block is exactly the length of the headers), then we return
+    // segment is exactly the length of the headers), then we return
     // true to indicate that we want to make another pass through
-    send_block_todo_ = block_len - header_len;
+    send_segment_todo_ = segment_len - header_len;
 
-    if (send_block_todo_ == 0) {
+    if (send_segment_todo_ == 0) {
         note_data_sent();
         send_data();
         return true;
@@ -645,18 +645,18 @@ StreamConvergenceLayer::Connection::start_next_bundle()
 
 //----------------------------------------------------------------------
 bool
-StreamConvergenceLayer::Connection::send_next_block(InFlightBundle* inflight)
+StreamConvergenceLayer::Connection::send_next_segment(InFlightBundle* inflight)
 {
     if (sendbuf_.tailbytes() == 0) {
         return false;
     }
 
-    ASSERT(send_block_todo_ == 0);
+    ASSERT(send_segment_todo_ == 0);
 
     StreamLinkParams* params = stream_lparams();
     Bundle* bundle = inflight->bundle_.object();
 
-    // we must have already sent at least the header block
+    // we must have already sent at least the header segment
     ASSERT(!inflight->sent_data_.empty());
 
     size_t bytes_sent   = inflight->sent_data_.last() + 1;
@@ -664,38 +664,38 @@ StreamConvergenceLayer::Connection::send_next_block(InFlightBundle* inflight)
     size_t payload_len  = bundle->payload_.length();
 
     if (payload_sent == payload_len) {
-        log_debug("send_next_block: "
+        log_debug("send_next_segment: "
                   "already sent all %zu bytes of payload, finishing bundle",
                   payload_len);
         return finish_bundle(inflight);
     }
     
-    size_t block_len = std::min((size_t)params->block_length_,
-                                payload_len - payload_sent);
+    size_t segment_len = std::min((size_t)params->segment_length_,
+                                  payload_len - payload_sent);
     
-    ASSERT(payload_sent + block_len <= payload_len);
+    ASSERT(payload_sent + segment_len <= payload_len);
 
-    size_t sdnv_len = SDNV::encoding_len(block_len);
+    size_t sdnv_len = SDNV::encoding_len(segment_len);
     
     if (sendbuf_.tailbytes() < 1 + sdnv_len) {
-        log_debug("send_next_block: "
-                  "not enough space for block header [need %zu, have %zu]",
+        log_debug("send_next_segment: "
+                  "not enough space for segment header [need %zu, have %zu]",
                   1 + sdnv_len, sendbuf_.tailbytes());
         return false;
     }
     
-    log_debug("send_next_block: "
-              "starting %zu byte block [payload range %zu..%zu]",
-              block_len, payload_sent, payload_sent + block_len);
+    log_debug("send_next_segment: "
+              "starting %zu byte segment [payload range %zu..%zu]",
+              segment_len, payload_sent, payload_sent + segment_len);
 
     u_char* bp = (u_char*)sendbuf_.end();
-    *bp++ = DATA_BLOCK;
-    int cc = SDNV::encode(block_len, bp, sendbuf_.tailbytes() - 1);
+    *bp++ = DATA_SEGMENT;
+    int cc = SDNV::encode(segment_len, bp, sendbuf_.tailbytes() - 1);
     ASSERT(cc == (int)sdnv_len);
     bp += sdnv_len;
     
     sendbuf_.fill(1 + sdnv_len);
-    send_block_todo_ = block_len;
+    send_segment_todo_ = segment_len;
 
     // send_data_todo actually does the deed
     return send_data_todo(inflight);
@@ -705,14 +705,14 @@ StreamConvergenceLayer::Connection::send_next_block(InFlightBundle* inflight)
 bool
 StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
 {
-    ASSERT(send_block_todo_ != 0);
+    ASSERT(send_segment_todo_ != 0);
     
-    while (send_block_todo_ != 0 && sendbuf_.tailbytes() != 0) {
+    while (send_segment_todo_ != 0 && sendbuf_.tailbytes() != 0) {
         u_char* bp = (u_char*)sendbuf_.end();
         
         size_t bytes_sent     = inflight->sent_data_.last() + 1;
         size_t payload_offset = bytes_sent - inflight->header_block_length_;
-        size_t send_len       = std::min(send_block_todo_, sendbuf_.tailbytes());
+        size_t send_len       = std::min(send_segment_todo_, sendbuf_.tailbytes());
     
         Bundle* bundle = inflight->bundle_.object();
         bundle->payload_.read_data(payload_offset, send_len, bp,
@@ -722,12 +722,12 @@ StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
         inflight->sent_data_.set(bytes_sent, send_len);
     
         log_debug("send_data_todo: "
-                  "sent %zu/%zu of current block from payload offset %zu "
+                  "sent %zu/%zu of current segment from payload offset %zu "
                   "(%zu todo), updated sent_data *%p",
-                  send_len, send_block_todo_, payload_offset,
-                  send_block_todo_ - send_len, &inflight->sent_data_);
+                  send_len, send_segment_todo_, payload_offset,
+                  send_segment_todo_ - send_len, &inflight->sent_data_);
 
-        send_block_todo_ -= send_len;
+        send_segment_todo_ -= send_len;
 
         note_data_sent();
         send_data();
@@ -736,7 +736,7 @@ StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
             return true;
     }
 
-    return (send_block_todo_ == 0);
+    return (send_segment_todo_ == 0);
 }
 
 //----------------------------------------------------------------------
@@ -921,11 +921,11 @@ StreamConvergenceLayer::Connection::process_data()
         return;
     }
 
-    // if a data block is bigger than the receive buffer. when
-    // processing a data block, we mark the unread amount in the
-    // data_block_remaining_ field so if that's not zero, we need to
+    // if a data segment is bigger than the receive buffer. when
+    // processing a data segment, we mark the unread amount in the
+    // data_segment_remaining_ field so if that's not zero, we need to
     // drain it, then fall through to handle the rest of the buffer
-    if (recv_block_todo_ != 0) {
+    if (recv_segment_todo_ != 0) {
         bool ok = handle_data_todo();
         
         if (!ok) {
@@ -953,11 +953,11 @@ StreamConvergenceLayer::Connection::process_data()
         case END_BUNDLE:
             ok = handle_end_bundle();
             break;
-        case DATA_BLOCK:
-            ok = handle_data_block();
+        case DATA_SEGMENT:
+            ok = handle_data_segment();
             break;
-        case ACK_BLOCK:
-            ok = handle_ack_block();
+        case ACK_SEGMENT:
+            ok = handle_ack_segment();
             break;
         case KEEPALIVE:
             ok = handle_keepalive();
@@ -1047,7 +1047,7 @@ StreamConvergenceLayer::Connection::handle_end_bundle()
     IncomingBundle* incoming = incoming_.back();
 
     if (incoming->rcvd_data_.empty()) {
-        log_err("protocol error: got END_BUNDLE with no DATA_BLOCK");
+        log_err("protocol error: got END_BUNDLE with no DATA_SEGMENT");
 
         // XXX/demmer protocol error
         break_contact(ContactEvent::BROKEN);
@@ -1100,23 +1100,23 @@ StreamConvergenceLayer::Connection::handle_end_bundle()
 
 //----------------------------------------------------------------------
 bool
-StreamConvergenceLayer::Connection::handle_data_block()
+StreamConvergenceLayer::Connection::handle_data_segment()
 {
     if (incoming_.empty()) {
-        log_err("protocol error: got data block before START_BUNDLE");
+        log_err("protocol error: got data segment before START_BUNDLE");
         break_contact(ContactEvent::BROKEN);
         return false;
     }
 
     u_char* bp = (u_char*)recvbuf_.start();
 
-    size_t block_offset;
-    u_int32_t block_len;
+    size_t segment_offset;
+    u_int32_t segment_len;
     
-    int sdnv_len = SDNV::decode(bp + 1, recvbuf_.fullbytes() - 1, &block_len);
+    int sdnv_len = SDNV::decode(bp + 1, recvbuf_.fullbytes() - 1, &segment_len);
 
     if (sdnv_len < 0) {
-        log_debug("handle_data_block: too few bytes for sdnv (%zu)",
+        log_debug("handle_data_segment: too few bytes for sdnv (%zu)",
                   recvbuf_.fullbytes());
         return false;
     }
@@ -1126,7 +1126,7 @@ StreamConvergenceLayer::Connection::handle_data_block()
     // in data for. Others are waiting for acks to be sent.
     IncomingBundle* incoming = incoming_.back();
     
-    // if this is the first block, try to parse the headers and create
+    // if this is the first segment, try to parse the headers and create
     // the bundle structure. if we can't handle it fully, we leave the
     // partial header bytes in the buffer (potentially increasing its
     // size) and return to wait for more data to arrive.
@@ -1138,15 +1138,15 @@ StreamConvergenceLayer::Connection::handle_data_block()
                                                              bp + 1 + sdnv_len,
                                                              rcvd_bytes);
         if (header_len < 0) {
-            log_debug("handle_data_block: "
+            log_debug("handle_data_segment: "
                       "not enough data to parse bundle headers [have %zu]",
                       recvbuf_.fullbytes());
             delete bundle;
             return false;
         }
 
-        log_debug("handle_data_block: "
-                  "got header blocks [len %u] for bundle *%p",
+        log_debug("handle_data_segment: "
+                  "got header segments [len %u] for bundle *%p",
                   header_len, bundle);
         
         incoming->bundle_ = bundle;
@@ -1154,39 +1154,39 @@ StreamConvergenceLayer::Connection::handle_data_block()
         recvbuf_.consume(1 + sdnv_len + header_len);
         incoming->rcvd_data_.set(0, header_len);
 
-        block_offset = 0;
-        recv_block_todo_ = block_len - header_len;
+        segment_offset = 0;
+        recv_segment_todo_ = segment_len - header_len;
 
     } else {
         // this is a chunk of payload and/or tail block
-        block_offset          = incoming->rcvd_data_.num_contiguous();
-        size_t payload_offset = block_offset - incoming->header_block_length_;
+        segment_offset          = incoming->rcvd_data_.num_contiguous();
+        size_t payload_offset = segment_offset - incoming->header_block_length_;
         (void)payload_offset;
 
-        log_debug("handle_data_block: "
-                  "got block of length %u at offset %zu "
+        log_debug("handle_data_segment: "
+                  "got segment of length %u at offset %zu "
                   "(payload offset %zu/%zu)",
-                  block_len, block_offset, payload_offset,
+                  segment_len, segment_offset, payload_offset,
                   incoming->bundle_->payload_.length());
         
-        if (block_offset != incoming->ack_data_.last() + 1) {
-            log_err("XXX/demmer block offset %zu last ack %zu",
-                    block_offset, incoming->ack_data_.last());
+        if (segment_offset != incoming->ack_data_.last() + 1) {
+            log_err("XXX/demmer segment offset %zu last ack %zu",
+                    segment_offset, incoming->ack_data_.last());
         }
         
         recvbuf_.consume(1 + sdnv_len);
         
-        recv_block_todo_ = block_len;
+        recv_segment_todo_ = segment_len;
     }
     
-    incoming->ack_data_.set(block_offset);
-    incoming->ack_data_.set(block_offset + block_len - 1);
+    incoming->ack_data_.set(segment_offset);
+    incoming->ack_data_.set(segment_offset + segment_len - 1);
 
-    log_debug("handle_data_block: "
-              "updated recv_data (block_offset %zu) *%p ack_data *%p",
-              block_offset, &incoming->rcvd_data_, &incoming->ack_data_);
+    log_debug("handle_data_segment: "
+              "updated recv_data (segment_offset %zu) *%p ack_data *%p",
+              segment_offset, &incoming->rcvd_data_, &incoming->ack_data_);
 
-    if (recv_block_todo_ != 0) {
+    if (recv_segment_todo_ != 0) {
         handle_data_todo();
     }
     
@@ -1200,7 +1200,7 @@ StreamConvergenceLayer::Connection::handle_data_todo()
     // We shouldn't get ourselves here unless there's something
     // incoming and there's something left to read
     ASSERT(!incoming_.empty());
-    ASSERT(recv_block_todo_ != 0);
+    ASSERT(recv_segment_todo_ != 0);
     
     // Note that there may be more than one incoming bundle on the
     // IncomingList. There's always only one (at the back) that we're
@@ -1211,15 +1211,15 @@ StreamConvergenceLayer::Connection::handle_data_todo()
     size_t rcvd_len       = recvbuf_.fullbytes();
     size_t payload_offset = rcvd_offset - incoming->header_block_length_;
     size_t payload_len    = incoming->bundle_->payload_.length();
-    size_t chunk_len      = std::min(rcvd_len, recv_block_todo_);
+    size_t chunk_len      = std::min(rcvd_len, recv_segment_todo_);
 
     if (rcvd_len == 0) {
         return false; // nothing to do
     }
     
     log_debug("handle_data_todo: "
-              "reading todo block %zu/%zu at payload offset %zu/%zu",
-              chunk_len, recv_block_todo_, payload_offset, payload_len);
+              "reading todo segment %zu/%zu at payload offset %zu/%zu",
+              chunk_len, recv_segment_todo_, payload_offset, payload_len);
     
     if (chunk_len + payload_offset > payload_len) {
         log_err("NEED TO HANDLE BLOCKS AFTER THE PAYLOAD");
@@ -1230,7 +1230,7 @@ StreamConvergenceLayer::Connection::handle_data_todo()
     u_char* bp = (u_char*)recvbuf_.start();
     incoming->bundle_->payload_.write_data(bp, payload_offset, chunk_len);
 
-    recv_block_todo_ -= chunk_len;
+    recv_segment_todo_ -= chunk_len;
     recvbuf_.consume(chunk_len);
 
     incoming->rcvd_data_.set(rcvd_offset, chunk_len);
@@ -1239,8 +1239,8 @@ StreamConvergenceLayer::Connection::handle_data_todo()
               "updated recv_data (rcvd_offset %zu) *%p ack_data *%p",
               rcvd_offset, &incoming->rcvd_data_, &incoming->ack_data_);
     
-    if (recv_block_todo_ == 0) {
-        return true; // completed block
+    if (recv_segment_todo_ == 0) {
+        return true; // completed segment
     }
 
     return false;
@@ -1248,14 +1248,14 @@ StreamConvergenceLayer::Connection::handle_data_todo()
 
 //----------------------------------------------------------------------
 bool
-StreamConvergenceLayer::Connection::handle_ack_block()
+StreamConvergenceLayer::Connection::handle_ack_segment()
 {
     u_char* bp = (u_char*)recvbuf_.start();
     u_int32_t acked_len;
     int sdnv_len = SDNV::decode(bp + 1, recvbuf_.fullbytes() - 1, &acked_len);
     
     if (sdnv_len < 0) {
-        log_debug("handle_ack_block: too few bytes for sdnv (%zu)",
+        log_debug("handle_ack_segment: too few bytes for sdnv (%zu)",
                   recvbuf_.fullbytes());
         return false;
     }
@@ -1263,7 +1263,7 @@ StreamConvergenceLayer::Connection::handle_ack_block()
     recvbuf_.consume(1 + sdnv_len);
 
     if (inflight_.empty()) {
-        log_err("protocol error: got ack block with no inflight bundle");
+        log_err("protocol error: got ack segment with no inflight bundle");
         break_contact(ContactEvent::BROKEN);
         return false;
     }
@@ -1292,7 +1292,7 @@ StreamConvergenceLayer::Connection::handle_ack_block()
     // case we can pop it off the list and post a
     // BundleTransmittedEvent
     if (acked_len == inflight->formatted_length_) {
-        log_debug("handle_ack_block: "
+        log_debug("handle_ack_segment: "
                   "got final ack for %zu byte range -- acked_len %u, ack_data *%p",
                   (size_t)acked_len - ack_begin, acked_len, &inflight->ack_data_);
 
@@ -1310,7 +1310,7 @@ StreamConvergenceLayer::Connection::handle_ack_block()
         check_completed(inflight);
         
     } else {
-        log_debug("handle_ack_block: "
+        log_debug("handle_ack_segment: "
                   "got acked_len %u (%zu byte range) -- ack_data *%p",
                   acked_len, (size_t)acked_len - ack_begin, &inflight->ack_data_);
     }

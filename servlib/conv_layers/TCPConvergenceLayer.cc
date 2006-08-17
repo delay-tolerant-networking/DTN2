@@ -431,9 +431,9 @@ TCPConvergenceLayer::Connection::disconnect()
 {
     if (sock_->state() != oasys::IPSocket::CLOSED) {
         // we can only send a shutdown byte if we're not in the middle
-        // of sending a block, otherwise the shutdown byte could be
+        // of sending a segment, otherwise the shutdown byte could be
         // interpreted as a part of the payload
-        if (send_block_todo_ == 0) {
+        if (send_segment_todo_ == 0) {
             log_debug("disconnect: trying to send shutdown byte");
             char typecode = SHUTDOWN;
             sock_->write(&typecode, 1);

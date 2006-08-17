@@ -5,15 +5,15 @@ dtn::config
 
 set clayer tcp
 set length 5000
-set blocklen 0
+set segmentlen 0
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set clayer $val
     } elseif {$var == "-length" || $var == "length"} {
         set length $val	
-    } elseif {$var == "-blocklen" || $var == "blocklen"} {
-        set blocklen $val	
+    } elseif {$var == "-segmentlen" || $var == "segmentlen"} {
+        set segmentlen $val	
     } else {
 	puts "ERROR: unrecognized test option '$var'"
 	exit 1
@@ -24,8 +24,8 @@ puts "* Configuring $clayer interfaces / links"
 dtn::config_interface $clayer
 
 set linkopts ""
-if {$blocklen != 0} {
-    set linkopts "block_length=$blocklen"
+if {$segmentlen != 0} {
+    set linkopts "segment_length=$segmentlen"
 }
     
 dtn::config_linear_topology ALWAYSON $clayer true $linkopts
