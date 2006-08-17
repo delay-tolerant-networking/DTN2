@@ -54,12 +54,8 @@ namespace dtn {
 
 struct UDPConvergenceLayer::Params UDPConvergenceLayer::defaults_;
 
-/******************************************************************************
- *
- * UDPConvergenceLayer
- *
- *****************************************************************************/
 
+//----------------------------------------------------------------------
 UDPConvergenceLayer::UDPConvergenceLayer()
     : IPConvergenceLayer("UDPConvergenceLayer", "udp")
 {
@@ -67,11 +63,11 @@ UDPConvergenceLayer::UDPConvergenceLayer()
     defaults_.local_port_		= 5000;
     defaults_.remote_addr_		= INADDR_NONE;
     defaults_.remote_port_		= 0;
+    defaults_.rate_			= 0; // unlimited
+    defaults_.bucket_depth_		= 0; // default
 }
 
-/**
- * Parse variable args into a parameter structure.
- */
+//----------------------------------------------------------------------
 bool
 UDPConvergenceLayer::parse_params(Params* params,
                                   int argc, const char** argv,
@@ -83,6 +79,8 @@ UDPConvergenceLayer::parse_params(Params* params,
     p.addopt(new oasys::UInt16Opt("local_port", &params->local_port_));
     p.addopt(new oasys::InAddrOpt("remote_addr", &params->remote_addr_));
     p.addopt(new oasys::UInt16Opt("remote_port", &params->remote_port_));
+    p.addopt(new oasys::UIntOpt("rate", &params->rate_));
+    p.addopt(new oasys::UIntOpt("bucket_depth_", &params->bucket_depth_));
 
     if (! p.parse(argc, argv, invalidp)) {
         return false;
@@ -91,9 +89,7 @@ UDPConvergenceLayer::parse_params(Params* params,
     return true;
 };
 
-/**
- * Bring up a new interface.
- */
+//----------------------------------------------------------------------
 bool
 UDPConvergenceLayer::interface_up(Interface* iface,
                                   int argc, const char* argv[])
@@ -146,9 +142,7 @@ UDPConvergenceLayer::interface_up(Interface* iface,
     return true;
 }
 
-/**
- * Bring down the interface.
- */
+//----------------------------------------------------------------------
 bool
 UDPConvergenceLayer::interface_down(Interface* iface)
 {
@@ -168,9 +162,7 @@ UDPConvergenceLayer::interface_down(Interface* iface)
     return true;
 }
 
-/**
- * Dump out CL specific interface information.
- */
+//----------------------------------------------------------------------
 void
 UDPConvergenceLayer::dump_interface(Interface* iface,
                                     oasys::StringBuffer* buf)
@@ -188,12 +180,7 @@ UDPConvergenceLayer::dump_interface(Interface* iface,
     }
 }
 
-/**
- * Create any CL-specific components of the Link.
- *
- * This parses and validates the parameters and stores them in the
- * CLInfo slot in the Link class.
- */
+//----------------------------------------------------------------------
 bool
 UDPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 {
@@ -245,9 +232,7 @@ UDPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     return true;
 }
 
-/**
- * Dump out CL specific link information.
- */
+//----------------------------------------------------------------------
 void
 UDPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 {
@@ -260,6 +245,7 @@ UDPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
                  intoa(params->remote_addr_), params->remote_port_);
 }
 
+//----------------------------------------------------------------------
 bool
 UDPConvergenceLayer::open_contact(const ContactRef& contact)
 {
@@ -279,36 +265,25 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
     
     Params* params = (Params*)link->cl_info();
 
-    // create a new connected socket for the contact
+    // create a new sender structure
     Sender* sender = new Sender(link->contact());
-    sender->logpathf("%s/conn/%s:%d", logpath_, intoa(addr), port);
-    sender->set_logfd(false);
 
-    if (params->local_addr_ != INADDR_NONE || params->local_port_ != 0)
-    {
-        if (sender->bind(params->local_addr_, params->local_port_) != 0) {
-            log_err("error binding to %s:%d: %s",
-                    intoa(params->local_addr_), params->local_port_,
-                    strerror(errno));
-            delete sender;
-            return false;
-        }
-    }
-    
-    if (sender->connect(addr, port) != 0) {
-        log_err("error issuing udp connect to %s:%d: %s",
-                intoa(addr), port, strerror(errno));
+    if (!sender->init(params, addr, port)) {
+        log_err("error initializing contact");
+        BundleDaemon::post(
+            new LinkStateChangeRequest(link, Link::UNAVAILABLE,
+                                       ContactEvent::NO_INFO));
         delete sender;
         return false;
     }
-    
+        
     contact->set_cl_info(sender);
-
     BundleDaemon::post(new ContactUpEvent(link->contact()));
     
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 UDPConvergenceLayer::close_contact(const ContactRef& contact)
 {
@@ -324,11 +299,7 @@ UDPConvergenceLayer::close_contact(const ContactRef& contact)
     return true;
 }
 
-/**
- * Send bundles queued for the contact. We only expect there to be
- * one bundle queued at any time since this is called immediately
- * when the bundle is queued on the contact.
- */
+//----------------------------------------------------------------------
 void
 UDPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
@@ -340,14 +311,20 @@ UDPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     }
     ASSERT(contact == sender->contact_);
 
-    sender->send_bundle(bundle); // consumes bundle reference
+    bool ok = sender->send_bundle(bundle); // consumes bundle reference
+
+    if (ok) {
+        BundleDaemon::post(
+            new BundleTransmittedEvent(bundle, contact,
+                                       bundle->payload_.length(),
+                                       0));
+    } else {
+        BundleDaemon::post(
+            new BundleTransmitFailedEvent(bundle, contact));
+    }
 }
 
-/******************************************************************************
- *
- * UDPConvergenceLayer::Receiver
- *
- *****************************************************************************/
+//----------------------------------------------------------------------
 UDPConvergenceLayer::Receiver::Receiver(UDPConvergenceLayer::Params* params)
     : IOHandlerBase(new oasys::Notifier("/dtn/cl/udp/receiver")),
       UDPClient("/dtn/cl/udp/receiver"),
@@ -357,6 +334,7 @@ UDPConvergenceLayer::Receiver::Receiver(UDPConvergenceLayer::Params* params)
     params_ = *params;
 }
 
+//----------------------------------------------------------------------
 void
 UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 {
@@ -395,6 +373,7 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         new BundleReceivedEvent(bundle, EVENTSRC_PEER, payload_len));
 }
 
+//----------------------------------------------------------------------
 void
 UDPConvergenceLayer::Receiver::run()
 {
@@ -424,28 +403,73 @@ UDPConvergenceLayer::Receiver::run()
     }
 }
 
-/******************************************************************************
- *
- * UDPConvergenceLayer::Sender
- *
- *****************************************************************************/
-
-/**
- * Constructor for the active connection side of a connection.
- */
+//----------------------------------------------------------------------
 UDPConvergenceLayer::Sender::Sender(const ContactRef& contact)
-    : contact_(contact.object(), "UDPCovergenceLayer::Sender")
+    : Logger("UDPConvergenceLayer::Sender",
+             "/dtn/cl/udp/sender/%p", this),
+      socket_(logpath_),
+      rate_socket_(logpath_, 0, 0),
+      contact_(contact.object(), "UDPCovergenceLayer::Sender")
 {
 }
 
-/* 
- * Send one bundle.
- */
+//----------------------------------------------------------------------
+bool
+UDPConvergenceLayer::Sender::init(Params* params,
+                                  in_addr_t addr, u_int16_t port)
+    
+{
+    log_debug("initializing sender");
+
+    params_ = params;
+    
+    socket_.logpathf("%s/conn/%s:%d", logpath_, intoa(addr), port);
+    socket_.set_logfd(false);
+
+    if (params->local_addr_ != INADDR_NONE || params->local_port_ != 0)
+    {
+        if (socket_.bind(params->local_addr_, params->local_port_) != 0) {
+            log_err("error binding to %s:%d: %s",
+                    intoa(params->local_addr_), params->local_port_,
+                    strerror(errno));
+            return false;
+        }
+    }
+    
+    if (socket_.connect(addr, port) != 0) {
+        log_err("error issuing udp connect to %s:%d: %s",
+                intoa(addr), port, strerror(errno));
+        return false;
+    }
+
+    if (params->rate_ != 0) {
+        rate_socket_.bucket()->set_rate(params->rate_);
+
+        if (params->bucket_depth_ != 0) {
+            rate_socket_.bucket()->set_depth(params->bucket_depth_);
+        }
+        
+        log_debug("initialized rate controller: rate %u depth %u",
+                  rate_socket_.bucket()->rate(),
+                  rate_socket_.bucket()->depth());
+    }
+
+    return true;
+}
+    
+//----------------------------------------------------------------------
 bool 
 UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 {
-    bool ok;
     int header_len;
+
+    size_t formatted_len = BundleProtocol::formatted_length(bundle);
+    if (formatted_len > UDPConvergenceLayer::MAX_BUNDLE_LEN) {
+        log_err("send_bundle: bundle too big (%zu > %zu)",
+                formatted_len, UDPConvergenceLayer::MAX_BUNDLE_LEN);
+        return false;
+    }
+        
     size_t payload_len = bundle->payload_.length();
 
     // stuff in the bundle headers
@@ -470,24 +494,16 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
                                BundlePayload::FORCE_COPY);
 
     // write it out the socket and make sure we wrote it all
-    int cc = write((char*)buf_, header_len + payload_len);
+    int cc = socket_.write((char*)buf_, header_len + payload_len);
     if (cc == (int)(header_len + payload_len)) {
-        log_info("send_bundle: sent bundle length %d", cc);
-        BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_,
-                                       bundle->payload_.length(),
-                                       0));
-        ok = true;
+        log_info("send_bundle: successfully sent bundle length %d", cc);
+        return true;
     } else {
-        BundleDaemon::post(
-            new BundleTransmitFailedEvent(bundle, contact_));
         
         log_err("send_bundle: error sending bundle (wrote %d/%zu): %s",
                 cc, (header_len + payload_len), strerror(errno));
-        ok = false;
+        return false;
     }
-
-    return ok;
 }
 
 } // namespace dtn

@@ -40,6 +40,7 @@
 
 #include <oasys/io/UDPClient.h>
 #include <oasys/thread/Thread.h>
+#include <oasys/io/RateLimitedSocket.h>
 
 #include "IPConvergenceLayer.h"
 
@@ -113,6 +114,9 @@ public:
         u_int16_t local_port_;		///< Local port to bind to
         in_addr_t remote_addr_;		///< Peer address to connect to
         u_int16_t remote_port_;		///< Peer port to connect to
+
+        u_int32_t rate_;		///< Rate (in bps)
+        u_int32_t bucket_depth_;	///< Token bucket depth (in bits)
     };
     
     /**
@@ -165,12 +169,17 @@ protected:
     /*
      * Helper class that wraps the sender-side per-contact state.
      */
-    class Sender : public CLInfo, public oasys::UDPClient {
+    class Sender : public CLInfo, public Logger {
     public:
         /**
          * Destructor.
          */
         virtual ~Sender() {}
+
+        /**
+         * Initialize the sender (the "real" constructor).
+         */
+        bool init(Params* params, in_addr_t addr, u_int16_t port);
         
     private:
         friend class UDPConvergenceLayer;
@@ -185,6 +194,21 @@ protected:
          */
         bool send_bundle(Bundle* bundle);
 
+        /**
+         * Pointer to the link parameters.
+         */
+        Params* params_;
+
+        /**
+         * The udp client socket.
+         */
+        oasys::UDPClient socket_;
+
+        /**
+         * Rate-limited socket that's optionally enabled.
+         */
+        oasys::RateLimitedSocket rate_socket_;
+        
         /**
          * The contact that we're representing.
          */
