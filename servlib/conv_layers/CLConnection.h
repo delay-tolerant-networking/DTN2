@@ -138,7 +138,7 @@ protected:
      * Start or continue transmission of bundle data or cl acks. This
      * is called each time through the main run loop. Note that in
      * general, this function should send one "unit" of data, i.e. a
-     * block of bundle data, a packet, etc.
+     * chunk of bundle data, a packet, etc.
      *
      * @returns true if some data was sent, which will trigger another
      * call, or false if the main loop should poll() on the socket
@@ -212,16 +212,13 @@ protected:
             : bundle_(b, "CLConnection::InFlightBundle"),
               formatted_length_(0),
               header_block_length_(0),
-              tail_block_length_(0),
-              partial_block_todo_(0) {}
+              tail_block_length_(0) {}
         
         BundleRef bundle_;
 
         size_t formatted_length_;
         size_t header_block_length_;
         size_t tail_block_length_;
-        
-        size_t partial_block_todo_;
         
         DataBitmap sent_data_;
         DataBitmap ack_data_;
