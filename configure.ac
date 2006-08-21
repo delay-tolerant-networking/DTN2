@@ -65,6 +65,7 @@ AC_OASYS_CONFIG_TCL
 AC_OASYS_CONFIG_STORAGE
 AC_OASYS_CONFIG_GOOGLE_PERFTOOLS
 AC_OASYS_CONFIG_BLUEZ
+AC_OASYS_CONFIG_EXPAT
 
 dnl -------------------------------------------------------------------------
 dnl Output

@@ -884,6 +884,7 @@ Optional Packages:
                           location of a google perftools installation (default
                           none)
   --with-bluez            compile in bluetooth support (default try)
+  --with-expat=DIR        location of an expat installation (default try)
 
 Some influential environment variables:
   CC          C compiler command
@@ -8342,6 +8343,168 @@ echo "$as_me: error: can't find bluez headers or library" >&2;}
    { (exit 1); exit 1; }; }
         fi
     fi
+
+
+
+# Check whether --with-expat or --without-expat was given.
+if test "${with_expat+set}" = set; then
+  withval="$with_expat"
+  ac_expatdir=$withval
+fi;
+
+    echo "$as_me:$LINENO: checking whether expat support should be enabled" >&5
+echo $ECHO_N "checking whether expat support should be enabled... $ECHO_C" >&6
+
+                if test "$ac_expatdir" = no ; then
+    echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+    LIBEXPAT_ENABLED=0
+    else
+
+    if test "$ac_expatdir" = try ; then
+       echo "$as_me:$LINENO: result: try" >&5
+echo "${ECHO_T}try" >&6
+    else
+       echo "$as_me:$LINENO: result: yes (dir $ac_expatdir)" >&5
+echo "${ECHO_T}yes (dir $ac_expatdir)" >&6
+    fi
+
+    LIBEXPAT_ENABLED=1
+
+cat >>confdefs.h <<_ACEOF
+#define LIBEXPAT_ENABLED 1
+_ACEOF
+
+
+                            if test "$ac_expatdir" = yes -a ! x$oasys_cv_path_expat_h = x ; then
+        echo "checking for expat installation... (cached) $oasys_cv_path_expat_h/expat.h, $oasys_cv_path_expat_lib -l$oasys_cv_lib_expat"
+    else
+
+    oasys_cv_path_expat_h=
+    oasys_cv_path_expat_lib=
+    oasys_cv_lib_expat=
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    ac_save_LDFLAGS="$LDFLAGS"
+    ac_save_LIBS="$LIBS"
+
+    if test "$ac_expatdir" = system -o \
+            "$ac_expatdir" = yes -o \
+            "$ac_expatdir" = "" ;
+    then
+        ac_expatincdirs="/usr/include /usr/local/include"
+        ac_expatlibdirs="/usr/lib     /usr/local/lib"
+    else
+        ac_expatincdirs="$ac_expatdir/include"
+        ac_expatlibdirs="$ac_expatdir/lib"
+    fi
+
+    for ac_expatincdir in $ac_expatincdirs; do
+    for ac_expatlibdir in $ac_expatlibdirs; do
+        ac_expatlib="expat"
+
+	CPPFLAGS="$ac_save_CPPFLAGS -I$ac_expatincdir"
+	LDFLAGS="$ac_save_LDFLAGS -L$ac_expatlibdir"
+	if test x"$STATIC" = x"libs" ; then
+		LIBS="-Wl,-Bstatic -l$ac_expatlib -Wl,-Bdynamic $ac_save_LIBS"
+	else
+		LIBS="-l$ac_expatlib $ac_save_LIBS"
+	fi
+
+        echo "$as_me:$LINENO: checking for expat in $ac_expatincdir, $ac_expatlibdir, -l$ac_expatlib" >&5
+echo $ECHO_N "checking for expat in $ac_expatincdir, $ac_expatlibdir, -l$ac_expatlib... $ECHO_C" >&6
+	cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+                #include <expat.h>
+
+int
+main ()
+{
+
+	        XML_Parser *parser;
+                parser = XML_ParserCreate(NULL);
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+              echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+              oasys_cv_path_expat_h=$ac_expatincdir
+              oasys_cv_path_expat_lib=$ac_expatlibdir
+              oasys_cv_lib_expat=$ac_expatlib
+              break 4
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+    done
+    done
+
+    CPPFLAGS="$ac_save_CPPFLAGS"
+    LDFLAGS="$ac_save_LDFLAGS"
+    LIBS="$ac_save_LIBS"
+
+    echo "$as_me:$LINENO: checking whether libexpat was found" >&5
+echo $ECHO_N "checking whether libexpat was found... $ECHO_C" >&6
+    if test ! x$oasys_cv_path_expat_h = x ; then
+        echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+    elif test $ac_expatdir = try ; then
+        echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+    else
+        { { echo "$as_me:$LINENO: error: can't find usable expat installation" >&5
+echo "$as_me: error: can't find usable expat installation" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    fi
+
+    if test ! $oasys_cv_path_expat_h = /usr/include ; then
+        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_expat_h"
+    fi
+
+    if test ! $oasys_cv_path_expat_lib = /usr/lib ; then
+        OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_expat_lib"
+    fi
+
+    OASYS_LIBS="$OASYS_LIBS -l$oasys_cv_lib_expat"
+
+    fi # LIBEXPAT_ENABLED
 
 
 

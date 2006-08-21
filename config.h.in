@@ -108,6 +108,9 @@
 /* whether berkeley db storage support is enabled */
 #undef LIBDB_ENABLED
 
+/* whether expat is enabled */
+#undef LIBEXPAT_ENABLED
+
 /* whether the mysql embedded server is enabled */
 #undef LIBMYSQLD_ENABLED
 
