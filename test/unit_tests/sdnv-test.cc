@@ -27,6 +27,8 @@ test(u_int64_t val, int expected_len)
                 val, expected_len, len);
         return UNIT_TEST_FAILED;
     }
+    
+    int errno_; const char* strerror_;
 
     CHECK_EQUAL_U64(val, val2);
 

@@ -55,6 +55,8 @@ payload_test(BundlePayload::location_t initial_location,
     BundlePayload p(&l);
     bzero(buf, sizeof(buf));
 
+    int errno_; const char* strerror_;
+
     log_debug("/test", "checking initialization");
     p.init(1, initial_location);
     CHECK_EQUAL(p.location(), initial_location);
@@ -159,7 +161,7 @@ main(int argc, const char** argv)
     BundlePayload::payloaddir_.assign(".bundle-payload-test");
     
     BundlePayloadTester t("bundle payload test");
-    t.run_tests(argc, argv);
+    t.run_tests(argc, argv, true);
 
     system("rm -rf .bundle-payload-test");
 }

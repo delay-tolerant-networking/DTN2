@@ -49,6 +49,7 @@ protocol_test(Bundle* b1)
 {
     u_char buf[32768];
     int encode_len, decode_len;
+    int errno_; const char* strerror_;
 
     encode_len = BundleProtocol::format_header_blocks(b1, buf, sizeof(buf));
     CHECK(encode_len != -1);
