@@ -53,6 +53,7 @@ bump-version:
 #
 # Test rules
 #
+test: tests
 tests: 
 	$(MAKE) all
 	$(MAKE) -C oasys tests
