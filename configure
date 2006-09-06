@@ -8350,6 +8350,8 @@ echo "$as_me: error: can't find bluez headers or library" >&2;}
 if test "${with_expat+set}" = set; then
   withval="$with_expat"
   ac_expatdir=$withval
+else
+  ac_expatdir=try
 fi;
 
     echo "$as_me:$LINENO: checking whether expat support should be enabled" >&5
@@ -8390,6 +8392,7 @@ _ACEOF
 
     if test "$ac_expatdir" = system -o \
             "$ac_expatdir" = yes -o \
+            "$ac_expatdir" = try -o \
             "$ac_expatdir" = "" ;
     then
         ac_expatincdirs="/usr/include /usr/local/include"
@@ -8467,6 +8470,8 @@ else
 sed 's/^/| /' conftest.$ac_ext >&5
 
 
+              echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
 
 fi
 rm -f conftest.err conftest.$ac_objext \
