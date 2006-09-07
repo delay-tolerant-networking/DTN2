@@ -289,6 +289,16 @@ namespace eval dtn {
     }
 
     # dtnd "bundle stats" functions
+
+    proc get_bundle_stat {id name} {
+        set stats [regsub -all -- {--} [dtn::tell_dtnd $id "bundle stats"] ""]
+	foreach {val stat_type} $stats {
+	    if {$stat_type == $name} {
+		return $val
+	    }
+	}
+	error "unknown stat $name"
+    }
     
     proc check_bundle_stats {id args} {
         set stats [dtn::tell_dtnd $id "bundle stats"]
@@ -357,6 +367,16 @@ namespace eval dtn {
     }
 
     # dtnd "link stats" functions
+    
+    proc get_link_stat {id link name} {
+        set stats [regsub -all -- {--} [dtn::tell_dtnd $id "link stats $link"] ""]
+	foreach {val stat_type} $stats {
+	    if {$stat_type == $name} {
+		return $val
+	    }
+	}
+	error "unknown stat $name"
+    }
     
     proc check_link_stats {id link args} {
         set stats [dtn::tell_dtnd $id "link stats $link"]
