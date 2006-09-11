@@ -27,7 +27,7 @@ namespace eval dtn {
 	    return $pids
 	}
 	
-	set exec_opts "-i $id -c $test::testname.conf"
+	set exec_opts "-i $id -c $test::testname.conf --seed $opt(seed)"
 
 	append exec_opts " $other_opts"
 
