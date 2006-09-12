@@ -6542,6 +6542,7 @@ echo "$as_me: error: can't find usable tcl.h" >&2;}
 
 
 
+
     ac_dbvers='4.4 4.3 4.2'
     ac_dbdir='yes'
 
@@ -6967,6 +6968,10 @@ echo "${ECHO_T}$ac_cv_search_request_init" >&6
 if test "$ac_cv_search_request_init" != no; then
   test "$ac_cv_search_request_init" = "none required" || LIBS="$ac_cv_search_request_init $LIBS"
 
+else
+  { { echo "$as_me:$LINENO: error: can't find request_init() in libwrap" >&5
+echo "$as_me: error: can't find request_init() in libwrap" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
        echo "$as_me:$LINENO: checking for library containing exp" >&5
@@ -7091,6 +7096,10 @@ echo "${ECHO_T}$ac_cv_search_exp" >&6
 if test "$ac_cv_search_exp" != no; then
   test "$ac_cv_search_exp" = "none required" || LIBS="$ac_cv_search_exp $LIBS"
 
+else
+  { { echo "$as_me:$LINENO: error: can't find exp() in libm" >&5
+echo "$as_me: error: can't find exp() in libm" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
        echo "$as_me:$LINENO: checking for library containing crypt" >&5
@@ -7215,6 +7224,10 @@ echo "${ECHO_T}$ac_cv_search_crypt" >&6
 if test "$ac_cv_search_crypt" != no; then
   test "$ac_cv_search_crypt" = "none required" || LIBS="$ac_cv_search_crypt $LIBS"
 
+else
+  { { echo "$as_me:$LINENO: error: can't find crypt() in libcrypt" >&5
+echo "$as_me: error: can't find crypt() in libcrypt" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
        echo "$as_me:$LINENO: checking for library containing compress" >&5
@@ -7339,6 +7352,10 @@ echo "${ECHO_T}$ac_cv_search_compress" >&6
 if test "$ac_cv_search_compress" != no; then
   test "$ac_cv_search_compress" = "none required" || LIBS="$ac_cv_search_compress $LIBS"
 
+else
+  { { echo "$as_me:$LINENO: error: can't find compress() in libz" >&5
+echo "$as_me: error: can't find compress() in libz" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
     fi
@@ -7365,6 +7382,12 @@ fi
         ac_mysqlincdirs="$ac_mysqldir/include"
         ac_mysqllibdirs="$ac_mysqldir/lib"
     fi
+
+    ac_ext=cc
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
     for ac_mysqlincdir in $ac_mysqlincdirs; do
 
@@ -7401,7 +7424,7 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -7479,7 +7502,7 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -7509,6 +7532,12 @@ fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
     done
+    ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
 
     CPPFLAGS="$ac_save_CPPFLAGS"
     LDFLAGS="$ac_save_LDFLAGS"
@@ -7753,7 +7782,6 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
     fi
-
 
 
 
