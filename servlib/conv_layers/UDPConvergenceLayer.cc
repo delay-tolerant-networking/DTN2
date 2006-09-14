@@ -465,7 +465,7 @@ UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 
     size_t formatted_len = BundleProtocol::formatted_length(bundle);
     if (formatted_len > UDPConvergenceLayer::MAX_BUNDLE_LEN) {
-        log_err("send_bundle: bundle too big (%zu > %zu)",
+        log_err("send_bundle: bundle too big (%zu > %u)",
                 formatted_len, UDPConvergenceLayer::MAX_BUNDLE_LEN);
         return false;
     }
