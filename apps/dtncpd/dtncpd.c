@@ -193,6 +193,11 @@ main(int argc, const char** argv)
 
         memset(&bundle, 0, sizeof(bundle));
         memset(&payload, 0, sizeof(payload));
+        memset(&dirpath, 0, sizeof(dirpath));
+        memset(&filename, 0, sizeof(filename));
+        memset(&filepath, 0, sizeof(filepath));
+        memset(&host, 0, sizeof(host));
+        memset(&st, 0, sizeof(st));
         
         printf("dtn_recv [%s]...\n", local_eid.uri);
     
@@ -253,17 +258,19 @@ main(int argc, const char** argv)
         
         // bundle name is the name of the bundle payload file
         buffer = payload.dtn_bundle_payload_t_u.buf.buf_val;
+        // bufsize is the length of the payload file (not what we want to print)
         bufsize = payload.dtn_bundle_payload_t_u.buf.buf_len;
+        // st contains (among other things) size of payload file
+        ret = stat(buffer, &st);
 
         printf ("======================================\n");
         printf (" File Received at %s\n", ctime(&current));
         printf ("   host   : %s\n", host);
         printf ("   path   : %s\n", dirpath);
         printf ("   file   : %s\n", filename);
-        printf ("   size   : %d bytes\n", bufsize);
         printf ("   loc    : %s\n", filepath);
+        printf ("   size   : %d bytes\n", (int) st.st_size);
         
-        if (debug) printf ("--------------------------------------\n");
 
         if (file_or_mem == DTN_PAYLOAD_FILE) {
             int cmdlen = 5 + strlen(buffer) + strlen(filepath);
@@ -272,8 +279,8 @@ main(int argc, const char** argv)
             if (cmd) {
                 snprintf(cmd, cmdlen, "mv %.*s %s", bufsize, buffer,
                          filepath);
-                printf("Moving payload to final filename: '%s'\n", cmd);
                 system(cmd);
+                printf("Moving payload to final filename: '%s'\n", cmd);
                 free(cmd);
             } else {
                 printf("Out of memory. Find file in %*s.\n", bufsize,
@@ -289,6 +296,7 @@ main(int argc, const char** argv)
                          filepath);
                 continue;
             }
+            if (debug) printf ("--------------------------------------\n");
         
             marker = 0;
             while (marker < bufsize)
@@ -359,9 +367,11 @@ main(int argc, const char** argv)
                     marker ++;
                 }
             }
+            printf ("   size   : %d bytes\n", bufsize);
         }
     
         printf ("======================================\n");
+        dtn_free_payload(&payload);
     }
 
     dtn_close(handle);
