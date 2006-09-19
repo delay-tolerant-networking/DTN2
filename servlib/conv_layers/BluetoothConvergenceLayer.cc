@@ -120,8 +120,7 @@ BluetoothConvergenceLayer::interface_up(Interface* iface,
     // check for valid Bluetooth address or device name
     if (bacmp(&params->local_addr_,BDADDR_ANY) == 0 ) {
         // try to read bdaddr from HCI device name
-        oasys::Bluetooth::hci_get_bdaddr(params->hcidev_.c_str(),
-                                         &params->local_addr_);
+        oasys::Bluetooth::hci_get_bdaddr(&params->local_addr_);
         if (bacmp(&params->local_addr_,BDADDR_ANY) == 0 ) {
             // cannot proceed without valid local Bluetooth device
             log_err("invalid local address setting of BDADDR_ANY");
@@ -204,14 +203,12 @@ BluetoothConvergenceLayer::dump_interface(Interface* iface,
 {
     Params* params = &((Listener*)iface->cl_info())->params_;
 
-    char buff[18];
     buf->appendf("\tlocal_addr: %s device: %s\n",
-                 oasys::Bluetooth::batostr(&params->local_addr_,buff),
-                 params->hcidev_.c_str());
+                 bd2str(params->local_addr_), params->hcidev_.c_str());
 
     if (bacmp(&params->remote_addr_,BDADDR_ANY) != 0)
         buf->appendf("\tremote_addr: %s\n",
-                     oasys::Bluetooth::batostr(&params->remote_addr_,buff));
+                     bd2str(params->remote_addr_));
 
     if (params->neighbor_poll_interval_ > 0) 
         buf->appendf("\tneighbor_poll_interval: %d\n",
@@ -256,16 +253,14 @@ BluetoothConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     // check that the local interface is valid
     if (bacmp(&params->local_addr_,BDADDR_ANY) == 0) {
         // try to read local adapter's address
-        oasys::Bluetooth::hci_get_bdaddr(params->hcidev_.c_str(),
-                                         &params->local_addr_);
+        oasys::Bluetooth::hci_get_bdaddr(&params->local_addr_);
         if (bacmp(&params->local_addr_,BDADDR_ANY) == 0) {
             log_err("invalid local address setting of BDADDR_ANY");
             return false;
         }
     }
 
-    char buff[18];
-    link->set_local(oasys::Bluetooth::batostr(&params->local_addr_,buff));
+    link->set_local(bd2str(params->local_addr_));
 
     // Nothing further, if OpLink
     if (link->type() == Link::OPPORTUNISTIC) {
@@ -291,11 +286,8 @@ BluetoothConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 {
     Params* params = (Params*) link->cl_info();
 
-    char buff[18];
-    buf->appendf("\tlocal_addr: %s\n",
-                 oasys::Bluetooth::batostr(&params->local_addr_,buff));
-    buf->appendf("\tremote_addr: %s\n",
-                 oasys::Bluetooth::batostr(&params->remote_addr_,buff));
+    buf->appendf("\tlocal_addr: %s\n", bd2str(params->local_addr_));
+    buf->appendf("\tremote_addr: %s\n", bd2str(params->remote_addr_));
 }
 
 /**
@@ -443,20 +435,17 @@ BluetoothConvergenceLayer::ConnectionManager::listener(bdaddr_t& addr)
         return NULL;
     }
 
-    char buff[18];
-    (void)buff;
-
     // Search listeners
     it_ = l_map_.find(addr);
     if( it_ != l_map_.end() ) {
         log_debug("Retrieving Listener(%p) for bdaddr %s",
-                  (*it_).second,oasys::Bluetooth::batostr(&addr,buff));
+                  (*it_).second,bd2str(addr));
         return (*it_).second;
     }
 
     // No luck!
     log_debug("Nothing found in ConnectionManager for bdaddr %s",
-              oasys::Bluetooth::batostr(&addr,buff));
+              bd2str(addr));
 
     return NULL;
 }
@@ -466,7 +455,7 @@ BluetoothConvergenceLayer::ConnectionManager::delListener(Listener* l)
 {
     ASSERT(l != NULL);
 
-    bdaddr_t addr = l->local_addr();
+    bdaddr_t addr; l->local_addr(addr);
     return (l_map_.erase(addr) > 0);
 }
 
@@ -474,17 +463,11 @@ void
 BluetoothConvergenceLayer::ConnectionManager::addListener(Listener* l)
 {
     ASSERT(l != NULL);
-
-    char buff[18];
-    (void)buff;
-    
-    bdaddr_t addr;
-    l->local_addr(addr);
-
+    bdaddr_t addr; l->local_addr(addr);
     ASSERT(bacmp(&addr,BDADDR_ANY) != 0);
 
     log_debug("Adding Listener(%p) for bdaddr %s",
-              l,oasys::Bluetooth::batostr(&addr,buff));
+              l,bd2str(addr));
     l_map_[addr]=l;
 }
 
@@ -523,20 +506,17 @@ BluetoothConvergenceLayer::ConnectionManager::connection(
 
         // Failure state ... dump then panic
 
-        char buff[18];
         // Dump listeners
         for(it_ = l_map_.begin(); it_ != l_map_.end(); it_++) {
             Listener *l = (*it_).second;
             bdaddr_t ba = (*it_).first;
             (void)l;
             (void)ba;
-            log_debug("Listener\tListener %p bdaddr %s",
-                      l,oasys::Bluetooth::batostr(&ba,buff));
+            log_debug("Listener\tListener %p bdaddr %s",l,bd2str(ba));
         }
         // Complain loudly
         PANIC("ConnectionManager: new connection requested for %s "
-              "where no previous listener existed",
-              oasys::Bluetooth::batostr(&addr,buff));
+              "where no previous listener existed",bd2str(addr));
     }
 
     // not reached
@@ -602,8 +582,7 @@ BluetoothConvergenceLayer::Connection::Connection(
       contact_("BluetoothConvergenceLayer::Connection"),
       announce_("BluetoothConvergenceLayer::Connection")
 {
-    char buff[18];
-    logpath_appendf("/%s",oasys::Bluetooth::batostr(&remote_addr,buff));
+    logpath_appendf("/%s",bd2str(remote_addr));
 
     queue_ = new BlockingBundleList(logpath_);
     queue_->notifier()->logpath_appendf("/queue");
@@ -634,8 +613,7 @@ BluetoothConvergenceLayer::Connection::Connection(
       contact_("BluetoothConvergenceLayer::Connection"),
       announce_("BluetoothConvergenceLayer::Connection")
 {
-    char buff[18];
-    logpathf("/dtn/cl/bt/passive-conn/%s:%d", oasys::Bluetooth::batostr(&remote_addr,buff),
+    logpathf("/dtn/cl/bt/passive-conn/%s:%d", bd2str(remote_addr),
              channel);
     queue_ = NULL;
     Thread::set_flag(Thread::DELETE_ON_EXIT);
@@ -772,9 +750,6 @@ BluetoothConvergenceLayer::Connection::run()
 bool
 BluetoothConvergenceLayer::Connection::send_announce()
 {
-    char buff[18]; //used by oasys::batostr below
-    (void)buff;
-
     bdaddr_t remote;
     sock_->remote_addr(remote);
 
@@ -790,8 +765,7 @@ BluetoothConvergenceLayer::Connection::send_announce()
             BundleDaemon::instance()->local_eid());
     }
 
-    log_debug("attempting to contact %s with ANNOUNCE",
-              oasys::Bluetooth::batostr(&remote,buff));
+    log_debug("attempting to contact %s with ANNOUNCE", bd2str(remote));
 
     oasys::StaticStringBuffer<1024> buf;
     buf.appendf("BTCL AnnounceBundle:\n");
@@ -1228,7 +1202,10 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
     // be complete (as indicated by passing the rcvd_len)
     ASSERT(rcvd_len <= bundle->payload_.length());
     BundleDaemon::post(
-        new BundleReceivedEvent(bundle, EVENTSRC_PEER, rcvd_len));
+        new BundleReceivedEvent(bundle, EVENTSRC_PEER,
+                                rcvd_len,
+                                contact_.object())
+    );
     
     // snoop on bundles to see if Announce bundle crosses by
     EndpointID eid;
@@ -1236,11 +1213,10 @@ BluetoothConvergenceLayer::Connection::recv_bundle()
 
         ASSERT(params_.neighbor_poll_interval_ > 0);
 
-        char buff[18];
         bdaddr_t remote;
         sock_->remote_addr(remote);
         const char *nexthop =
-            (const char *) oasys::Bluetooth::batostr(&remote,buff);
+            (const char *) bd2str(remote);
 
         // AnnounceBundle has been received, which either means
         // 1) this is the first news we've heard of remote
@@ -1516,14 +1492,11 @@ bool
 BluetoothConvergenceLayer::Connection::connect()
 {
     ASSERT(sock_->state() != oasys::BluetoothSocket::ESTABLISHED);
-    char buff[18];
-    (void)buff;
     
     bdaddr_t ba;
     sock_->remote_addr(ba);
     ASSERT(bacmp(&ba,BDADDR_ANY) != 0);
-    log_debug("connect: connecting to %s ... ",
-              oasys::Bluetooth::batostr(&ba,buff));
+    log_debug("connect: connecting to %s ... ", bd2str(ba));
 
     // before attempting to scan the remote host for available channels,
     // shut down the local listener to release its channel for bind()
@@ -1994,8 +1967,7 @@ shutdown:
 void
 BluetoothConvergenceLayer::NeighborDiscovery::send_announce(bdaddr_t remote)
 {
-    char buff[18]; // used by oasys::batostr
-    const char *nexthop = oasys::Bluetooth::batostr(&remote,buff);
+    const char *nexthop = bd2str(remote);
 
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
     Link* link = cm->find_link_to(cl_, nexthop);
@@ -2026,7 +1998,7 @@ BluetoothConvergenceLayer::NeighborDiscovery::run()
     }
 
     // register DTN service with local SDP daemon
-    oasys::BluetoothServiceRegistration sdp_reg(&params_.local_addr_);
+    oasys::BluetoothServiceRegistration sdp_reg("dtnd");
     if (sdp_reg.success() == false) {
         log_err("SDP registration failed");
         return;
@@ -2057,14 +2029,13 @@ BluetoothConvergenceLayer::NeighborDiscovery::run()
         }
 
         // enumerate any remote Bluetooth adapters in range
-        oasys::BluetoothInquiryInfo bii;
-        while (next(bii) != -1) {
+        bdaddr_t addr;
+        while (next(addr) != -1) {
 
             // query SDP daemon on remote host for DTN's registration
             oasys::BluetoothServiceDiscoveryClient sdpclient;
-            sdpclient.set_local_addr(params_.local_addr_);
-            if (sdpclient.is_dtn_router(bii.addr_)) {
-                send_announce(bii.addr_);
+            if (sdpclient.is_dtn_router(addr)) {
+                send_announce(addr);
             }
             if (should_stop()) break;
         }
