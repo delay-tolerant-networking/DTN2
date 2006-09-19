@@ -216,11 +216,13 @@ public:
      */
     BundleReceivedEvent(Bundle* bundle,
                         event_source_t source,
-                        size_t bytes_received = 0)
+                        size_t bytes_received = 0,
+                        Contact* originator = NULL)
 
         : BundleEvent(BUNDLE_RECEIVED),
           bundleref_(bundle, "BundleReceivedEvent"),
-          source_(source)
+          source_(source),
+          contact_(originator, "BundleReceivedEvent")
     {
         if (bytes_received != 0)
             bytes_received_ = bytes_received;
@@ -236,6 +238,9 @@ public:
 
     /// The total bytes actually received
     size_t bytes_received_;
+
+    /// Contact from which bundle was received, if applicable
+    ContactRef contact_;
 };
 
 /**
