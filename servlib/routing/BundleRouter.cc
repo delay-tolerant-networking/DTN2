@@ -118,7 +118,6 @@ BundleRouter::initialize()
  */
 BundleRouter::~BundleRouter()
 {
-    NOTIMPLEMENTED;
 }
 
 } // namespace dtn

@@ -36,12 +36,9 @@
 
 namespace dtn {
 
-/**
- * Destructor (never called)
- */
+//----------------------------------------------------------------------
 Scheme::~Scheme()
 {
-    PANIC("Scheme destructor should never be called");
 }
 
 } // namespace dtn

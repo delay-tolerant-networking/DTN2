@@ -53,6 +53,11 @@ class EndpointIDPattern;
 class Scheme {
 public:
     /**
+     * Destructor -- should be called only at shutdown time.
+     */
+    virtual ~Scheme();
+    
+    /**
      * Validate that the given ssp is legitimate for this scheme. If
      * the 'is_pattern' paraemeter is true, then the ssp is being
      * validated as an EndpointIDPattern.
@@ -82,12 +87,6 @@ public:
         (void)tag;
         return false;
     }
-    
-protected:
-    /**
-     * Destructor (never called);
-     */
-    virtual ~Scheme();
 };
     
 }

@@ -54,6 +54,12 @@ TableBasedRouter::TableBasedRouter(const char* classname,
 }
 
 //----------------------------------------------------------------------
+TableBasedRouter::~TableBasedRouter()
+{
+    delete route_table_;
+}
+
+//----------------------------------------------------------------------
 void
 TableBasedRouter::add_route(RouteEntry *entry)
 {

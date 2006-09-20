@@ -59,6 +59,12 @@ private:
      */
     SchemeTable();
 
+    /**
+     * Destructor cleans up the known schemes and is called at
+     * shutdown time.
+     */
+    virtual ~SchemeTable();
+
 public:
     /**
      * Find the appropriate Scheme instance based on the URI

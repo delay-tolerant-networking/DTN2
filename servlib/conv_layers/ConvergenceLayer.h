@@ -40,6 +40,7 @@
 
 #include <string>
 #include <vector>
+#include <oasys/util/Singleton.h>
 
 #include "contacts/Contact.h"
 #include "contacts/Interface.h"
@@ -195,14 +196,18 @@ protected:
      */
     const char* name_;
 
-    /**
-     * Use a static vector to enumerate the convergence layers that
-     * are currently implemented.
-     */
-    typedef std::vector<ConvergenceLayer*> CLVec;
-    static CLVec clayers_;
 };
 
+/**
+ * Use a singleton vector to enumerate the convergence layers that
+ * are currently implemented.
+ */
+class CLVector : public oasys::Singleton<CLVector>,
+                 public std::vector<ConvergenceLayer*> {
+public:
+    virtual ~CLVector();
+};
+    
 /**
  * Abstract base class for convergence layer specific state stored in
  * an interface / contact / link.

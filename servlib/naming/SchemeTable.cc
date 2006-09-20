@@ -48,11 +48,7 @@ namespace dtn {
 template <>
 SchemeTable* oasys::Singleton<SchemeTable>::instance_ = 0;
 
-/**
- * Constructor -- instantiates and registers all known schemes. Called
- * from the singleton instance() method the first time the table is
- * accessed.
- */
+//----------------------------------------------------------------------
 SchemeTable::SchemeTable()
 {
     table_["dtn"]	= DTNScheme::instance();
@@ -64,12 +60,13 @@ SchemeTable::SchemeTable()
     table_["tca"]   = TCAScheme::instance();
 }
 
-/**
- * Find the appropriate Scheme instance based on the URI
- * scheme of the endpoint id scheme.
- *
- * @return the instance if it exists or NULL if there's no match
- */ 
+//----------------------------------------------------------------------
+SchemeTable::~SchemeTable()
+{
+    table_.clear();
+}
+
+//----------------------------------------------------------------------
 Scheme*
 SchemeTable::lookup(const std::string& scheme_str)
 {

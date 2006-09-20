@@ -433,9 +433,8 @@ DTND::main(int argc, char* argv[])
     log_notice("/dtnd", "command loop exited... shutting down daemon");
     oasys::TclCommandInterp::shutdown();
     dtnserver->shutdown();
-
-    // doesn't return
-    NOTREACHED;
+    delete dtnserver;
+    delete apiserver;
 
     return 0;
 }

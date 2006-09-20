@@ -60,7 +60,9 @@
 
 namespace dtn {
 
-BundleDaemon* BundleDaemon::instance_ = NULL;
+template <>
+BundleDaemon* oasys::Singleton<BundleDaemon, false>::instance_ = NULL;
+
 BundleDaemon::Params BundleDaemon::params_;
 
 //----------------------------------------------------------------------
@@ -85,6 +87,21 @@ BundleDaemon::BundleDaemon()
 
     app_shutdown_proc_ = NULL;
     app_shutdown_data_ = NULL;
+}
+
+//----------------------------------------------------------------------
+BundleDaemon::~BundleDaemon()
+{
+    delete pending_bundles_;
+    delete custody_bundles_;
+    
+    delete contactmgr_;
+    delete fragmentmgr_;
+    delete reg_table_;
+    delete router_;
+
+    delete actions_;
+    delete eventq_;
 }
 
 //----------------------------------------------------------------------

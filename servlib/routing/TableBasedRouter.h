@@ -57,6 +57,11 @@ protected:
     TableBasedRouter(const char* classname, const std::string& name);
 
     /**
+     * Destructor.
+     */
+    virtual ~TableBasedRouter();
+
+    /**
      * Event handler overridden from BundleRouter / BundleEventHandler
      * that dispatches to the type specific handlers where
      * appropriate.

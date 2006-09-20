@@ -46,7 +46,8 @@
 
 namespace dtn {
 
-ConvergenceLayer::CLVec ConvergenceLayer::clayers_;
+template<>
+CLVector* oasys::Singleton<CLVector>::instance_ = NULL;
 
 //----------------------------------------------------------------------
 ConvergenceLayer::~ConvergenceLayer()
@@ -57,7 +58,7 @@ ConvergenceLayer::~ConvergenceLayer()
 void
 ConvergenceLayer::add_clayer(ConvergenceLayer* cl)
 {
-    clayers_.push_back(cl);
+    CLVector::instance()->push_back(cl);
 }
     
 //----------------------------------------------------------------------
@@ -78,11 +79,22 @@ ConvergenceLayer::init_clayers()
 }
 
 //----------------------------------------------------------------------
+CLVector::~CLVector()
+{
+    while (!empty()) {
+        delete back();
+        pop_back();
+    }
+}
+
+//----------------------------------------------------------------------
 ConvergenceLayer*
 ConvergenceLayer::find_clayer(const char* name)
 {
-    CLVec::iterator iter;
-    for (iter = clayers_.begin(); iter != clayers_.end(); ++iter)
+    CLVector::iterator iter;
+    for (iter = CLVector::instance()->begin();
+         iter != CLVector::instance()->end();
+         ++iter)
     {
         if (strcasecmp(name, (*iter)->name()) == 0) {
             return *iter;

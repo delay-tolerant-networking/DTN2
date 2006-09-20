@@ -69,22 +69,20 @@ class RegistrationTable;
  * BundleActions class that it is given, which in turn effect all the
  * operations.
  */
-class BundleDaemon : public BundleEventHandler, public oasys::Thread {
+class BundleDaemon : public oasys::Singleton<BundleDaemon, false>,
+                     public BundleEventHandler,
+                     public oasys::Thread
+{
 public:
-    /**
-     * Singleton accessor.
-     */
-    static BundleDaemon* instance() {
-        if (instance_ == NULL) {
-            PANIC("BundleDaemon::init not called yet");
-        }
-        return instance_;
-    }
-
     /**
      * Constructor.
      */
     BundleDaemon();
+
+    /**
+     * Destructor (called at shutdown time).
+     */
+    virtual ~BundleDaemon();
 
     /**
      * Virtual initialization function, overridden in the simulator to
@@ -419,9 +417,6 @@ protected:
  
     /// Application-specific shutdown data
     void* app_shutdown_data_;
-
-    /// The static instance
-    static BundleDaemon* instance_;
 };
 
 } // namespace dtn

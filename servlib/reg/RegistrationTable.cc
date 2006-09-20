@@ -44,14 +44,19 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 RegistrationTable::RegistrationTable()
     : Logger("RegistrationTable", "/dtn/registration/table")
 {
 }
 
+//----------------------------------------------------------------------
 RegistrationTable::~RegistrationTable()
 {
-    NOTREACHED;
+    while (! reglist_.empty()) {
+        delete reglist_.front();
+        reglist_.pop_front();
+    }
 }
 
 //----------------------------------------------------------------------
