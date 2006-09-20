@@ -368,7 +368,11 @@ namespace eval dtn {
 
     # dtnd "link stats" functions
     
-    proc get_link_stat {id link name} {
+    proc get_link_stat {id link {name "all"} } {
+	if {$name == "all"} {
+	    return [dtn::tell_dtnd $id "link stats $link"]
+	}
+
         set stats [regsub -all -- {--} [dtn::tell_dtnd $id "link stats $link"] ""]
 	foreach {val stat_type} $stats {
 	    if {$stat_type == $name} {
