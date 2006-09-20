@@ -52,9 +52,8 @@ ShutdownCommand::ShutdownCommand(DTNServer* dtnserver, const char* cmd)
 void
 ShutdownCommand::call_exit(void* clientData)
 {
-    DTNServer* dtnserver = (DTNServer*)clientData;
+    (void)clientData;
     oasys::TclCommandInterp::instance()->exit_event_loop();
-    dtnserver->shutdown();
 }
 
 int
