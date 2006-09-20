@@ -276,9 +276,6 @@ DTNServer::shutdown()
     BundleDaemon::instance()->post_and_wait(new ShutdownRequest(), &done);
     
     close_datastore();
-    
-    oasys::Log::shutdown();
-    exit(0);
 }
 
 void
