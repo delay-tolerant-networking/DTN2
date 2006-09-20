@@ -84,65 +84,67 @@ DTNTunnel::DTNTunnel()
 void
 DTNTunnel::get_options(int argc, char* argv[])
 {
-    oasys::Getopt::addopt(
+    oasys::Getopt opts;
+    
+    opts.addopt(
         new oasys::StringOpt('o', "output", &logfile_, "<output>",
                              "file name for error logging output "
                              "(- indicates stdout)"));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::StringOpt('l', NULL, &loglevelstr_, "<level>",
                              "default log level [debug|warn|info|crit]"));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::BoolOpt('L', "listen", &listen_,
                            "run in listen mode for incoming CONN bundles"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::UIntOpt('e', "expiration", &expiration_, "<secs>",
                            "expiration time"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::BoolOpt('t', "tcp", &tcp_,
                            "proxy for TCP connections"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::BoolOpt('u', "udp", &udp_,
                            "proxy for UDP traffic"));
     
     bool dest_eid_set = false;
-    oasys::Getopt::addopt(
+    opts.addopt(
         new dtn::APIEndpointIDOpt('d', "dest_eid", &dest_eid_, "<eid>",
                                   "destination endpoint id", &dest_eid_set));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new dtn::APIEndpointIDOpt("local_eid_override", &local_eid_, "<eid>",
                                   "local endpoint id"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::InAddrOpt("laddr", &local_addr_, "<addr>",
                              "local address to listen on"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::UInt16Opt("lport", &local_port_, "<port>",
                              "local port to listen on"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::InAddrOpt("rhost", &remote_addr_, "<addr>",
                              "remote host/address to proxy for"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::UInt16Opt("rport", &remote_port_, "<port>",
                              "remote port to proxy"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::UIntOpt('z', "max_size", &max_size_, "<bytes>",
                            "maximum bundle size for stream transports (e.g. tcp)"));
     
-    int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
+    int remainder = opts.getopt(argv[0], argc, argv);
     if (remainder != argc) {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
  usage:
-        oasys::Getopt::usage(argv[0]);
+        opts.usage(argv[0]);
         exit(1);
     }
     

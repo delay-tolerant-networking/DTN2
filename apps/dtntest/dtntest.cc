@@ -646,20 +646,21 @@ main(int argc, char** argv)
     
     oasys::TclCommandInterp::init("dtn-test");
     interp = oasys::TclCommandInterp::instance();
-    
-    oasys::Getopt::addopt(
+
+    oasys::Getopt opts;
+    opts.addopt(
         new oasys::StringOpt('c', "conf", &conf_file, "<conf>",
                              "set the configuration file", &conf_file_set));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::BoolOpt('d', "daemon", &daemon,
                            "run as a daemon"));
     
-    int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
+    int remainder = opts.getopt(argv[0], argc, argv);
     if (remainder != argc) 
     {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
-        oasys::Getopt::usage("dtn-test");
+        opts.usage("dtn-test");
         exit(1);
     }
 

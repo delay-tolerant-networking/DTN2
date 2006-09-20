@@ -131,59 +131,60 @@ DTND::get_options(int argc, char* argv[])
 {
     
     // Register all command line options
-    oasys::Getopt::addopt(
+    oasys::Getopt opts;
+    opts.addopt(
         new oasys::BoolOpt('v', "version", &print_version_,
                            "print version information and exit"));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::StringOpt('o', "output", &logfile_, "<output>",
                              "file name for logging output "
                              "(default - indicates stdout)"));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::StringOpt('l', NULL, &loglevelstr_, "<level>",
                              "default log level [debug|warn|info|crit]"));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::StringOpt('c', "conf", &conf_file_, "<conf>",
                              "set the configuration file", &conf_file_set_));
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::BoolOpt('d', "daemonize", &daemonize_,
                            "run as a daemon"));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::BoolOpt('t', "tidy", &storage_config_.tidy_,
                            "clear database and initialize tables on startup"));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::BoolOpt(0, "init-db", &storage_config_.init_,
                            "initialize database on startup"));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::IntOpt('s', "seed", &random_seed_, "<seed>",
                           "random number generator seed", &random_seed_set_));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::InAddrOpt(0, "console-addr", &consolecmd_->addr_, "<addr>",
                              "set the console listening addr (default off)"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::UInt16Opt(0, "console-port", &consolecmd_->port_, "<port>",
                              "set the console listening port (default off)"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::IntOpt('i', 0, &testcmd_->id_, "<id>",
                           "set the test id"));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::BoolOpt('f', 0, &testcmd_->fork_,
                            "test scripts should fork child daemons"));
 
-    int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
+    int remainder = opts.getopt(argv[0], argc, argv);
     if (remainder != argc) 
     {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
-        oasys::Getopt::usage("dtnd");
+        opts.usage("dtnd");
         exit(1);
     }
 }
@@ -368,7 +369,7 @@ DTND::main(int argc, char* argv[])
     
     log_notice("/dtnd", "DTN daemon starting up... (pid %d)", getpid());
     oasys::FatalSignals::init("dtnd");
-    
+
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
         log_crit("/dtnd", "Can't init TCL");
@@ -429,7 +430,7 @@ DTND::main(int argc, char* argv[])
 
     run_console();
 
-    log_info("/dtnd", "command loop exited... shutting down daemon");
+    log_notice("/dtnd", "command loop exited... shutting down daemon");
     oasys::TclCommandInterp::shutdown();
     dtnserver->shutdown();
 

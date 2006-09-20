@@ -72,27 +72,28 @@ main(int argc, char** argv)
     std::string        logfile("-");
     std::string        loglevelstr;
     oasys::log_level_t loglevel;
-    
-    oasys::Getopt::addopt(
+
+    oasys::Getopt opts;
+    opts.addopt(
         new oasys::StringOpt('c', "conf", &conf_file, "<conf>",
                              "set the configuration file", &conf_file_set));
     
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::IntOpt('s', "seed", &random_seed, "seed",
                           "random number generator seed", &random_seed_set));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::StringOpt('o', "output", &logfile, "<output>",
                              "file name for logging output "
                              "(default - indicates stdout)"));
 
-    oasys::Getopt::addopt(
+    opts.addopt(
         new oasys::StringOpt('l', NULL, &loglevelstr, "<level>",
                              "default log level [debug|warn|info|crit]"));
 
-    oasys::Getopt::getopt(argv[0], argc, argv);
+    opts.getopt(argv[0], argc, argv);
 
-    int remainder = oasys::Getopt::getopt(argv[0], argc, argv);
+    int remainder = opts.getopt(argv[0], argc, argv);
 
     if (!conf_file_set && remainder != argc) {
         conf_file.assign(argv[remainder]);
@@ -102,13 +103,13 @@ main(int argc, char** argv)
 
     if (remainder != argc) {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
-        oasys::Getopt::usage("dtnsim");
+        opts.usage("dtnsim");
         exit(1);
     }
 
     if (!conf_file_set) {
         fprintf(stderr, "must set the simulator conf file\n");
-        oasys::Getopt::usage("dtnsim");
+        opts.usage("dtnsim");
         exit(1);
     }
 
