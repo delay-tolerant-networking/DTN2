@@ -41,6 +41,7 @@
 #include <vector>
 #include <oasys/debug/Log.h>
 #include "ForwardingInfo.h"
+#include "BundleProtocol.h"
 
 namespace dtn {
 
@@ -115,6 +116,20 @@ public:
      * @param bundle		the new bundle
      */
     virtual void inject_bundle(Bundle* bundle);
+
+    /**
+     * Attempt to delete a bundle from the system.
+     *
+     * @param bundle       The bundle
+     * @param reason       Bundle Status Report reason code
+     * @param log_on_error Set to false to suppress error logging
+     *
+     * @return      true if successful
+     */
+    virtual bool delete_bundle(Bundle* bundle,
+                               BundleProtocol::status_report_reason_t
+                                 reason = BundleProtocol::REASON_NO_ADDTL_INFO,
+                               bool log_on_error = true);
 
 protected:
     // The protected functions (exposed only to the BundleDaemon) and

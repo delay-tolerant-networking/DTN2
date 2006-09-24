@@ -152,6 +152,22 @@ BundleActions::inject_bundle(Bundle* bundle)
 }
 
 //----------------------------------------------------------------------
+bool
+BundleActions::delete_bundle(Bundle* bundle,
+                             BundleProtocol::status_report_reason_t reason,
+                             bool log_on_error)
+{
+    log_debug("attempting to delete bundle *%p from data store", bundle);
+    bool del =
+        BundleDaemon::instance()->try_delete_from_pending(bundle, reason);
+
+    if (log_on_error && !del) {
+        log_err("Failed to delete bundle *%p from data store", bundle);
+    }
+    return del;
+}
+
+//----------------------------------------------------------------------
 void
 BundleActions::store_add(Bundle* bundle)
 {
@@ -180,7 +196,8 @@ BundleActions::store_del(Bundle* bundle)
     log_debug("removing bundle %d from data store", bundle->bundleid_);
     bool removed = BundleStore::instance()->del(bundle->bundleid_);
     if (! removed) {
-        log_crit("error adding bundle %d to data store!!", bundle->bundleid_);
+        log_crit("error removing bundle %d from data store!!",
+                 bundle->bundleid_);
     }
 }
 
