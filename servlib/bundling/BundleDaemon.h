@@ -245,6 +245,8 @@ public:
     }
     
 protected:
+    friend class BundleActions;
+
     /**
      * Initialize and load in the registrations.
      */
@@ -340,14 +342,16 @@ protected:
      * Remove the bundle from the pending list and data store, and
      * cancel the expiration timer.
      */
-    void delete_from_pending(Bundle* bundle, status_report_reason_t reason);
+    bool delete_from_pending(Bundle* bundle, status_report_reason_t reason);
 
     /**
      * Check if we should delete this bundle, called once it's been
      * transmitted or delivered at least once. If so, call
      * delete_from_pending.
      */
-    void try_delete_from_pending(Bundle* bundle);
+    bool try_delete_from_pending(Bundle* bundle,
+                                 status_report_reason_t reason = 
+                                     BundleProtocol::REASON_NO_ADDTL_INFO);
 
     /**
      * Check if there are any bundles in the pending queue that match

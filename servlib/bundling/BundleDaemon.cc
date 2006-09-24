@@ -1256,7 +1256,7 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 }
 
 //----------------------------------------------------------------------
-void
+bool
 BundleDaemon::delete_from_pending(Bundle* bundle,
                                   status_report_reason_t reason)
 {
@@ -1291,11 +1291,14 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
     } else {
         log_err("unexpected error removing bundle from pending list");
     }
+
+    return erased;
 }
 
 //----------------------------------------------------------------------
-void
-BundleDaemon::try_delete_from_pending(Bundle* bundle)
+bool
+BundleDaemon::try_delete_from_pending(Bundle* bundle,
+                                      status_report_reason_t reason)
 {
     /*
      * Check to see if we should remove the bundle from the pending
@@ -1321,19 +1324,19 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
         if (bundle->expiration_timer_ == NULL) {
             log_debug("try_delete_from_pending(*%p): bundle already expired",
                       bundle);
-            return;
+            return false;
         }
         
         log_err("try_delete_from_pending(*%p): bundle not in pending list!",
                 bundle);
-        return;
+        return false;
     }
 
     if (!params_.early_deletion_) {
         log_debug("try_delete_from_pending(*%p): not deleting because "
                   "early deletion disabled",
                   bundle);
-        return;
+        return false;
     }
 
     size_t num_mappings = bundle->num_mappings();
@@ -1341,7 +1344,7 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
         log_debug("try_delete_from_pending(*%p): not deleting because "
                   "bundle has %zu mappings",
                   bundle, num_mappings);
-        return;
+        return false;
     }
     
     size_t num_in_flight = bundle->fwdlog_.get_count(ForwardingInfo::IN_FLIGHT);
@@ -1349,10 +1352,10 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
         log_debug("try_delete_from_pending(*%p): not deleting because "
                   "bundle in flight on %zu links",
                   bundle, num_in_flight);
-        return;
+        return false;
     }
 
-    delete_from_pending(bundle, BundleProtocol::REASON_NO_ADDTL_INFO);
+    return delete_from_pending(bundle, reason);
 }
 
 //----------------------------------------------------------------------
