@@ -17,7 +17,7 @@ proc tell_dtntest {id args} {
 
 namespace eval dtn {
     proc run_dtnd { id {other_opts "-t"} } {
-	global opt net::host net::portbase net::extra test::testname
+	global opt net::host net::portbase test::testname
 	
 	if {$id == "*"} {
 	    set pids ""
@@ -37,7 +37,7 @@ namespace eval dtn {
     }
 
     proc run_dtntest { id {other_opts ""}} {
-	global opt net::host net::portbase net::extra test::testname
+	global opt net::host net::portbase test::testname
 	
 	if {$id == "*"} {
 	    set pids ""
@@ -101,7 +101,7 @@ namespace eval dtn {
     }
 
     proc run_app { id app_name {exec_args ""} } {
-	global opt net::host net::portbase net::extra test::testname
+	global opt net::host net::portbase test::testname
 	
 	if {$id == "*"} {
 	    set pids ""

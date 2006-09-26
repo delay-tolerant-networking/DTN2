@@ -59,17 +59,20 @@ proc standard_manifest {} {
 # Utility proc to get the adjusted port number for various things
 #
 proc get_port {what id} {
-    global net::portbase
+    global net::portbase net::used_ports
     set dtn_portbase $net::portbase($id)
     
     switch -- $what {
-	console { return [expr $dtn_portbase + 0] }
-	api	{ return [expr $dtn_portbase + 1] }
-	tcp	{ return [expr $dtn_portbase + 2] }
-	udp	{ return [expr $dtn_portbase + 2] }
-	dtntest	{ return [expr $dtn_portbase + 3] }
+	console { set port [expr $dtn_portbase + 0] }
+	api	{ set port [expr $dtn_portbase + 1] }
+	tcp	{ set port [expr $dtn_portbase + 2] }
+	udp	{ set port [expr $dtn_portbase + 2] }
+	dtntest	{ set port [expr $dtn_portbase + 3] }
 	default { return -1 }
     }
+
+    lappend net::used_ports($id) $port
+    return $port
 }
 
 #
