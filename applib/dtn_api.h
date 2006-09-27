@@ -194,18 +194,18 @@ extern int dtn_cancel_poll(dtn_handle_t handle);
  *
  *************************************************************/
 
-/*
+/**
  * Copy the contents of one eid into another.
  */
 extern void dtn_copy_eid(dtn_endpoint_id_t* dst, dtn_endpoint_id_t* src);
 
-/*
+/**
  * Parse a string into an endpoint id structure, validating that it is
  * in fact a valid endpoint id (i.e. a URI).
  */
 extern int dtn_parse_eid_string(dtn_endpoint_id_t* eid, const char* str);
 
-/*
+/**
  * Sets the value of the given payload structure to either a memory
  * buffer or a file location.
  *
@@ -216,7 +216,7 @@ extern int dtn_set_payload(dtn_bundle_payload_t* payload,
                            dtn_bundle_payload_location_t location,
                            char* val, int len);
 
-/*
+/**
  * Frees dynamic storage allocated by the xdr for a bundle payload in
  * dtn_recv.
  */
