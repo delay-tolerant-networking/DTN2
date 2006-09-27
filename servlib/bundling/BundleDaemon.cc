@@ -874,10 +874,6 @@ BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
 void
 BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 {
-    // XXX/demmer should also store the contact in the request -- that
-    // way we can tell if it's still relevant or if it refers to
-    // something in the past
-    
     Link* link = request->link_;
     Link::state_t new_state = request->state_;
     Link::state_t old_state = request->old_state_;
