@@ -379,9 +379,9 @@ StreamConvergenceLayer::Connection::send_pending_data()
     }
     
     // now check if there are acks we need to send -- even if it
-    // returns true, we continue on and try to send some real payload
-    // data, otherwise we could get starved by arriving data and never
-    // send anything out.
+    // returns true (i.e. we sent an ack), we continue on and try to
+    // send some real payload data, otherwise we could get starved by
+    // arriving data and never send anything out.
     bool sent_ack = send_pending_acks();
     
     // check if we need to start a new bundle. if we do, then
@@ -405,6 +405,8 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         return false; // nothing to do
     }
     IncomingBundle* incoming = incoming_.front();
+    DataBitmap::iterator iter = incoming->ack_data_.begin();
+    bool generated_ack = false;
     
     // when data segment headers are received, the last bit of the
     // segment is marked in ack_data.
@@ -418,13 +420,16 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     // to make sure we've actually gotten the segment, since the bit
     // is marked in ack_data when the segment is begun.
 
-    if (incoming->ack_data_.empty()) {
-        return false; // nothing to do
+    if (iter == incoming->ack_data_.end()) {
+        // XXX/demmer this is lame... the END_BUNDLE message comes
+        // after the last segment, so until the protocol changes s.t.
+        // END_BUNDLE is just a bundle segment with an appropriate bit
+        // set, we need to check whether we've received the END_BUNDLE
+        // (and set total_length_) to know if we're done with this
+        // bundle
+        goto check_done;
     }
 
-    DataBitmap::iterator iter = incoming->ack_data_.begin();
-    bool generated_ack = false;
-    
     while (1) {
         size_t rcvd_bytes  = incoming->rcvd_data_.last() + 1;
         size_t ack_len     = *iter + 1;
@@ -480,6 +485,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     // now, check if a) we've gotten everything we're supposed to
     // (i.e. total_length_ isn't zero), and b) we're done with all the
     // acks we need to send
+ check_done:
     if ((incoming->total_length_ != 0) &&
         (incoming->total_length_ == incoming->acked_length_))
     {
