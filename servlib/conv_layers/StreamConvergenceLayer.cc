@@ -404,94 +404,75 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     if (contact_broken_ || incoming_.empty()) {
         return false; // nothing to do
     }
-    
     IncomingBundle* incoming = incoming_.front();
+    
+    // when data segment headers are received, the last bit of the
+    // segment is marked in ack_data.
+    //
+    // therefore, to figure out what acks should be sent for those
+    // segments, we set the start iterator to skip past everything
+    // we've already acked (recorded in acked_length_), then check to
+    // see if we're at the end, or if there's more to ack. 
+    //
+    // however, we have to be careful to check the recv_data as well
+    // to make sure we've actually gotten the segment, since the bit
+    // is marked in ack_data when the segment is begun.
 
     if (incoming->ack_data_.empty()) {
         return false; // nothing to do
     }
 
-    // when data segment headers are received, the first and last bit of
-    // the segment are marked in ack_data.
-    //
-    // therefore, to figure out what acks should be sent for those
-    // segments, we set the start iterator to be the last byte in the
-    // contiguous range at the beginning of ack_data_, thereby
-    // skipping everything that's already been acked. we then set the
-    // end iterator to the next byte to be acked (i.e. the last byte
-    // in the range that was received). the length to be acked is
-    // therefore the range up to and including the end byte
-    //
-    // however, we have to be careful to check the recv_data as well
-    // to make sure we've actually gotten the segment.
-    DataBitmap::iterator start = incoming->ack_data_.begin();
-    start.skip_contiguous();
-    DataBitmap::iterator end = start + 1;
-
-    size_t received_bytes = incoming->rcvd_data_.last() + 1;
-
-    int sent_start = -1;
-    size_t last_ack = 0;
-    while (end != incoming->ack_data_.end()) {
-        size_t ack_len   = *end + 1;
-        size_t segment_len = ack_len - *start;
+    DataBitmap::iterator iter = incoming->ack_data_.begin();
+    bool generated_ack = false;
+    
+    while (1) {
+        size_t rcvd_bytes  = incoming->rcvd_data_.last() + 1;
+        size_t ack_len     = *iter + 1;
+        size_t segment_len = ack_len - incoming->acked_length_;
         (void)segment_len;
-
-        if (ack_len > received_bytes) {
+        
+        if (ack_len > rcvd_bytes) {
             log_debug("send_pending_acks: "
                       "waiting to send ack length %zu for %zu byte segment "
                       "since only received %zu",
-                      ack_len, segment_len, received_bytes);
+                      ack_len, segment_len, rcvd_bytes);
             break;
         }
 
         // make sure we have space in the send buffer
         size_t encoding_len = 1 + SDNV::encoding_len(ack_len);
-        if (encoding_len <= sendbuf_.tailbytes()) {
-            log_debug("send_pending_acks: "
-                      "sending ack length %zu for %zu byte segment "
-                      "[range %zu..%zu]",
-                      ack_len, segment_len, *start, *end);
-
-            if (sent_start == -1) {
-                sent_start = *start;
-            }
-            
-            ASSERT(last_ack <= ack_len);
-            last_ack = ack_len;
-            
-            *sendbuf_.end() = ACK_SEGMENT;
-            int len = SDNV::encode(ack_len, (u_char*)sendbuf_.end() + 1,
-                                   sendbuf_.tailbytes() - 1);
-            ASSERT(encoding_len = len + 1);
-            sendbuf_.fill(encoding_len);
-
-        } else {
+        if (encoding_len > sendbuf_.tailbytes()) {
             log_debug("send_pending_acks: "
                       "no space for ack in buffer (need %zu, have %zu)",
                       encoding_len, sendbuf_.tailbytes());
             break;
         }
+        
+        log_debug("send_pending_acks: "
+                  "sending ack length %zu for %zu byte segment "
+                  "[range %zu..%zu]",
+                  ack_len, segment_len, incoming->acked_length_, *iter);
+        
+        *sendbuf_.end() = ACK_SEGMENT;
+        int len = SDNV::encode(ack_len, (u_char*)sendbuf_.end() + 1,
+                               sendbuf_.tailbytes() - 1);
+        ASSERT(encoding_len = len + 1);
+        sendbuf_.fill(encoding_len);
 
-        // advance the two iterators to the next segment
-        start = end + 1;
-        if (start == incoming->ack_data_.end()) {
+        generated_ack = true;
+        incoming->acked_length_ = ack_len;
+        incoming->ack_data_.clear(*iter);
+        iter = incoming->ack_data_.begin();
+        
+        if (iter == incoming->ack_data_.end()) {
             break;
         }
         
-        end  = start + 1;
-
         log_debug("send_pending_acks: "
-                  "found another gap (%zu, %zu)", *start, *end);
+                  "found another segment (%zu)", *iter);
     }
-
-    if (last_ack != 0) {
-        incoming->ack_data_.set(0, last_ack);
-        
-        log_debug("send_pending_acks: "
-                  "updated ack_data for ack length %zu: *%p ",
-                  last_ack, &incoming->ack_data_);
-        
+    
+    if (generated_ack) {
         send_data();
         note_data_sent();
     }
@@ -500,7 +481,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     // (i.e. total_length_ isn't zero), and b) we're done with all the
     // acks we need to send
     if ((incoming->total_length_ != 0) &&
-        (incoming->ack_data_.num_contiguous() == incoming->total_length_))
+        (incoming->total_length_ == incoming->acked_length_))
     {
         log_debug("send_pending_acks: acked all %zu bytes of bundle %d",
                   incoming->total_length_, incoming->bundle_->bundleid_);
@@ -517,7 +498,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     }
 
     // return true if we've sent something
-    return (last_ack != 0);
+    return generated_ack;
 }
 
          
@@ -1159,7 +1140,7 @@ StreamConvergenceLayer::Connection::handle_data_segment()
 
     } else {
         // this is a chunk of payload and/or tail block
-        segment_offset          = incoming->rcvd_data_.num_contiguous();
+        segment_offset        = incoming->rcvd_data_.num_contiguous();
         size_t payload_offset = segment_offset - incoming->header_block_length_;
         (void)payload_offset;
 
@@ -1169,17 +1150,11 @@ StreamConvergenceLayer::Connection::handle_data_segment()
                   segment_len, segment_offset, payload_offset,
                   incoming->bundle_->payload_.length());
         
-        if (segment_offset != incoming->ack_data_.last() + 1) {
-            log_err("XXX/demmer segment offset %zu last ack %zu",
-                    segment_offset, incoming->ack_data_.last());
-        }
-        
         recvbuf_.consume(1 + sdnv_len);
         
         recv_segment_todo_ = segment_len;
     }
     
-    incoming->ack_data_.set(segment_offset);
     incoming->ack_data_.set(segment_offset + segment_len - 1);
 
     log_debug("handle_data_segment: "

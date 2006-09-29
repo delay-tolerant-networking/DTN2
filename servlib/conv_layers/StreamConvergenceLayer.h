@@ -81,18 +81,21 @@ namespace dtn {
  * and IncomingList), then rely on send_pending_data to send the
  * appropriate responses.
  *
- * To record the segments we've sent, we fill in the sent_data_ sparse
- * bitmap with the range of bytes as we send segments out. As acks
- * come in, we extend the ack_data_ field to match. Once the whole
- * bundle is acked, the entry is removed from the InFlightList.
+ * The InflightBundle is used to record state about bundle
+ * transmissions. To record the segments that have been sent, we fill
+ * in the sent_data_ sparse bitmap with the range of bytes as we send
+ * segments out. As acks arrive, we extend the ack_data_ field to
+ * match. Once the whole bundle is acked, the entry is removed from
+ * the InFlightList.
  *
+ * The IncomingBundle is used to record state about bundle reception.
+ * The rcvd_data_ bitmap is extended contiguously with the amount of
+ * data that has been received, including partially received segments.
  * To track segments that we have received but haven't yet acked, we
  * set a single bit for the offset of the end of the segment in the
- * ack_data_ bitmap as well as extending the contiguous range in
- * rcvd_data_. That way, the gap in the ack_data_ structure expresses
- * the individual segment lengths that were sent by the peer. Then,
- * once the acks are sent, we fill in the contiguous range to identify
- * as such.
+ * ack_data_ bitmap. We also separately record the total range of acks
+ * that have been previously sent in acked_length_. As we send acks
+ * out, we clear away the bits in ack_data_
  */
 class StreamConvergenceLayer : public ConnectionConvergenceLayer {
 public:

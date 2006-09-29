@@ -244,16 +244,17 @@ protected:
         IncomingBundle(Bundle* b)
             : bundle_(b, "CLConnection::IncomingBundle"),
               total_length_(0),
-              header_block_length_(0) {}
+              header_block_length_(0),
+              acked_length_(0) {}
 
         BundleRef bundle_;
         
         size_t total_length_;
         size_t header_block_length_;
+        size_t acked_length_;
 
         DataBitmap rcvd_data_;
         DataBitmap ack_data_;
-
     private:
         // make sure we don't copy the structure by leaving the copy
         // constructor undefined
