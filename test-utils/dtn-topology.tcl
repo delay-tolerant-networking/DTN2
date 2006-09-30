@@ -56,9 +56,9 @@ proc get_link_name {cl src dst} {
 # Add a link and optionally a route from a to b.
 #
 proc config_link {id peerid type cl with_routes link_args} {
-    global dtn::link_names
+    global dtn::link_names net::internal_host
     
-    set peeraddr $net::host($peerid)
+    set peeraddr $net::internal_host($peerid)
     set peerport [dtn::get_port $cl $peerid]
     set link [new_link_name $cl $id $peerid]
     set peer_eid  dtn://host-$peerid

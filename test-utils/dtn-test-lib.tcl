@@ -17,7 +17,7 @@ proc tell_dtntest {id args} {
 
 namespace eval dtn {
     proc run_dtnd { id {other_opts "-t"} } {
-	global opt net::host net::portbase test::testname
+	global opt net::portbase test::testname
 	
 	if {$id == "*"} {
 	    set pids ""
@@ -37,7 +37,7 @@ namespace eval dtn {
     }
 
     proc run_dtntest { id {other_opts ""}} {
-	global opt net::host net::portbase test::testname
+	global opt net::listen_addr net::portbase test::testname
 	
 	if {$id == "*"} {
 	    set pids ""
@@ -50,10 +50,8 @@ namespace eval dtn {
 	set confname "$test::testname.dtntest.conf"
 	set exec_opts "-c $confname"
 	append exec_opts " $other_opts"
-
-	set addr [gethostbyname $net::host($id)]
-	
-	lappend exec_env DTNAPI_ADDR $addr
+        
+	lappend exec_env DTNAPI_ADDR $net::listen_addr($id)
 	lappend exec_env DTNAPI_PORT [dtn::get_port api $id]
 
 	return [run::run $id "dtntest" $exec_opts \
@@ -101,7 +99,7 @@ namespace eval dtn {
     }
 
     proc run_app { id app_name {exec_args ""} } {
-	global opt net::host net::portbase test::testname
+	global opt net::listen_addr net::portbase test::testname
 	
 	if {$id == "*"} {
 	    set pids ""
@@ -111,9 +109,7 @@ namespace eval dtn {
 	    return $pids
 	}
 
-	set addr [gethostbyname $net::host($id)]
-	
-	lappend exec_env DTNAPI_ADDR $addr
+	lappend exec_env DTNAPI_ADDR $net::listen_addr($id)
 	lappend exec_env DTNAPI_PORT [dtn::get_port api $id]
 	
 	return [run::run $id "$app_name" $exec_args \
@@ -169,7 +165,7 @@ namespace eval dtn {
 	return [eval "tell::tell $net::host($id) \
 		[dtn::get_port dtntest $id] $args"]
     }
-
+    
     # generic checker function
     proc check {args} {
 	set orig_args $args
@@ -291,6 +287,14 @@ namespace eval dtn {
     # dtnd "bundle stats" functions
 
     proc get_bundle_stat {id name} {
+        if {$id == "*"} {
+            set ret ""
+            foreach id [net::nodelist] {
+                append ret [get_bundle_stat $id $name]
+            }
+            return $ret
+        }
+        
         set stats [regsub -all -- {--} [dtn::tell_dtnd $id "bundle stats"] ""]
 	foreach {val stat_type} $stats {
 	    if {$stat_type == $name} {
@@ -345,8 +349,6 @@ namespace eval dtn {
     # dtnd "link state" functions
 
     proc check_link_state { id link state } {
-	global net::host
-	
 	set result [tell_dtnd $id "link state $link"]
 
 	if {$result != $state} {
@@ -369,6 +371,29 @@ namespace eval dtn {
     # dtnd "link stats" functions
     
     proc get_link_stat {id link {name "all"} } {
+        if {$id == "*"} {
+            set ret ""
+            foreach id [net::nodelist] {
+                append ret [get_link_stat $id $link $name]
+            }
+            return $ret
+        }
+        
+	if {$link == "*"} {
+	    set links [dtn::tell_dtnd $id link dump]
+	    set ret "Stats for all links on node $id:\n"
+	    foreach line [split $links "\n"] {
+		set link [lindex [split $line] 0]
+                if {$link == ""} {
+                    continue
+                }
+		append ret "$link: [get_link_stat $id $link $name]\n"
+	    }
+
+            append ret "\n"
+            return $ret
+	}
+
 	if {$name == "all"} {
 	    return [dtn::tell_dtnd $id "link stats $link"]
 	}

@@ -91,12 +91,13 @@ proc is_bidirectional {cl} {
 # Create a new interface for the given convergence layer
 #
 proc config_interface {cl args} {
+    global net::listen_addr
     foreach id [net::nodelist] {
-	set host $net::host($id)
+	set addr $net::listen_addr($id)
 	set port [dtn::get_port $cl $id]
 	
 	conf::add dtnd $id [eval list interface add ${cl}0 $cl \
-		local_addr=[gethostbyname $host] local_port=$port $args]
+		local_addr=$addr local_port=$port $args]
     }
 }
 
@@ -104,9 +105,9 @@ proc config_interface {cl args} {
 # Configure the console server
 #
 proc config_console {} {
-    global opt
+    global opt net::listen_addr
     foreach id [net::nodelist] {
-	conf::add dtnd $id "console set addr [gethostbyname $net::host($id)]"
+	conf::add dtnd $id "console set addr $net::listen_addr($id)"
 	conf::add dtnd $id "console set port [dtn::get_port console $id]"
 	if {! $opt(xterm)} {
 	    conf::add dtnd $id "console set stdio false"
@@ -119,7 +120,7 @@ proc config_console {} {
 #
 proc config_api_server {} {
     foreach id [net::nodelist] {
-	conf::add dtnd $id "api set local_addr [gethostbyname $net::host($id)]"
+	conf::add dtnd $id "api set local_addr $net::listen_addr($id)"
 	conf::add dtnd $id "api set local_port [dtn::get_port api $id]"
     }
 }
@@ -154,7 +155,7 @@ proc config_dtntest {} {
 	conf::add dtntest $id \
 		"console set stdio false"
 	conf::add dtntest $id \
-		"console set addr [gethostbyname $net::host($id)]"
+		"console set addr $net::listen_addr($id)"
 	conf::add dtntest $id \
 		"console set port [dtn::get_port dtntest $id]"
     }
