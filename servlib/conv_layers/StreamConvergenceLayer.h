@@ -190,6 +190,7 @@ protected:
         /// @{ utility functions used by derived classes
         void initiate_contact();
         void process_data();
+        void check_keepalive();
         /// @}
 
     private:

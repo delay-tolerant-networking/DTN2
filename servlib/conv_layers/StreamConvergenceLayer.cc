@@ -869,17 +869,32 @@ StreamConvergenceLayer::Connection::handle_poll_timeout()
                       elapsed, elapsed2, idle_close_time * 1000);
         }
     }
-    
+
     // check if it's time for us to send a keepalive (i.e. that we
     // haven't sent some data or another keepalive in at least the
     // configured keepalive_interval)
+    check_keepalive();
+}
+
+//----------------------------------------------------------------------
+void
+StreamConvergenceLayer::Connection::check_keepalive()
+{
+    struct timeval now;
+    u_int elapsed, elapsed2;
+
+    StreamLinkParams* params = dynamic_cast<StreamLinkParams*>(params_);
+    ASSERT(params != NULL);
+
+    ::gettimeofday(&now, 0);
+    
     if (params->keepalive_interval_ != 0) {
         elapsed  = TIMEVAL_DIFF_MSEC(now, data_sent_);
         elapsed2 = TIMEVAL_DIFF_MSEC(now, keepalive_sent_);
 
         if (std::min(elapsed, elapsed2) > (params->keepalive_interval_ * 1000))
         {
-            log_debug("handle_poll_timeout: sending keepalive");
+            log_debug("check_keepalive: sending keepalive");
             send_keepalive();
         }
     }
