@@ -491,7 +491,10 @@ TCPConvergenceLayer::Connection::handle_poll_activity()
     if (sock_pollfd_->revents & POLLIN) {
         recv_data();
         process_data();
-        check_keepalive();
+
+        if (! contact_broken_) {
+            check_keepalive();
+        }
     }
 }
 
