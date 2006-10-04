@@ -61,7 +61,8 @@ CLConnection::CLConnection(const char*       classname,
       active_connector_(active_connector),
       num_pollfds_(0),
       poll_timeout_(-1),
-      contact_broken_(false)
+      contact_broken_(false),
+      num_pending_(0)
 {
     sendbuf_.reserve(params_->sendbuf_len_);
     recvbuf_.reserve(params_->recvbuf_len_);
@@ -131,7 +132,10 @@ CLConnection::run()
         }
 
         int timeout = more_to_send ? 0 : poll_timeout_;
-        
+
+        log_debug("calling poll on %d fds with timeout %d",
+                  num_pollfds_ + 1, timeout);
+                                                 
         int cc = oasys::IO::poll_multiple(pollfds_, num_pollfds_ + 1,
                                           timeout, NULL, logpath_);
 
@@ -153,6 +157,38 @@ CLConnection::run()
             return;
         }
     }
+}
+
+//----------------------------------------------------------------------
+void
+CLConnection::queue_bundle(Bundle* bundle)
+{
+    /*
+     * Called by the main BundleDaemon thread... push a new CLMsg onto
+     * the queue and potentially set the BUSY state on the link. Note
+     * that it's important to update num_pending before pushing the
+     * message onto the queue since the latter might trigger a context
+     * switch.
+     */
+    LinkParams* params = dynamic_cast<LinkParams*>(contact_->link()->cl_info());
+    ASSERT(params != NULL);
+    
+    oasys::atomic_incr(&num_pending_);
+    
+    if (num_pending_.value >= params->busy_queue_depth_)
+    {
+        log_debug("%d bundles pending, setting BUSY state",
+                  num_pending_.value);
+        contact_->link()->set_state(Link::BUSY);
+    }
+    else
+    {
+        log_debug("%d bundles pending -- leaving state as-is",
+                  num_pending_.value);
+    }
+
+    cmdqueue_.push_back(
+        CLConnection::CLMsg(CLConnection::CLMSG_SEND_BUNDLE, bundle));
 }
 
 //----------------------------------------------------------------------
@@ -181,18 +217,38 @@ CLConnection::process_command()
     default:
         PANIC("invalid CLMsg typecode %d", msg.type_);
     }
+}
 
-    // check if we need to unblock the link by clearing the BUSY
-    // state. note that we only post the BUSY->AVAILABLE event when
-    // the command queue passes back to be within the threshold to
-    // limit the number of redundant events posted to the daemon
-    if (contact_ != NULL && contact_->link()->state() == Link::BUSY)
+//----------------------------------------------------------------------
+void
+CLConnection::check_unblock_link()
+{
+    /*
+     * Check if we need to unblock the link by clearing the BUSY
+     * state. Note that we only do this when the link first goes back
+     * below the threshold since otherwise we'll flood the router with
+     * incorrect BUSY->AVAILABLE events.
+     */
+    LinkParams* params = dynamic_cast<LinkParams*>(contact_->link()->cl_info());
+    ASSERT(params != NULL);
+
+    oasys::atomic_decr(&num_pending_);
+    ASSERT((int)num_pending_.value >= 0);
+
+    if (contact_->link()->state() == Link::BUSY)
     {
-        if (cmdqueue_.size() == (params_->busy_queue_depth_ - 1)) {
+        if (num_pending_.value == (params->busy_queue_depth_ - 1))
+        {
+            log_debug("%d bundles pending, clearing BUSY state", num_pending_.value);
             BundleDaemon::post(
                 new LinkStateChangeRequest(contact_->link(),
                                            Link::AVAILABLE,
                                            ContactEvent::UNBLOCKED));
+        }
+        else
+        {
+            log_debug("%d bundles pending, leaving state as-is",
+                      num_pending_.value);
         }
     }
 }

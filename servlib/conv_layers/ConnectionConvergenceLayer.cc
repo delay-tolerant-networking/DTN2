@@ -266,18 +266,7 @@ ConnectionConvergenceLayer::send_bundle(const ContactRef& contact,
     CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
     ASSERT(conn != NULL);
 
-    LinkParams* params = dynamic_cast<LinkParams*>(contact->link()->cl_info());
-    ASSERT(params != NULL);
-    
-    conn->cmdqueue_.push_back(
-        CLConnection::CLMsg(CLConnection::CLMSG_SEND_BUNDLE, bundle));
-    
-    // to prevent the queue from filling up, set the busy state to
-    // apply backpressure
-    if (conn->cmdqueue_.size() >= params->busy_queue_depth_)
-    {
-        contact->link()->set_state(Link::BUSY);
-    }
+    conn->queue_bundle(bundle);
 }
 
 } // namespace dtn

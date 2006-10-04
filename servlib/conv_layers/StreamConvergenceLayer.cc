@@ -286,6 +286,16 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
                                      (contacthdr.flags & REACTIVE_FRAG_ENABLED);
 
     /*
+     * Make sure to readjust poll_timeout in case we have a smaller
+     * keepalive interval than data timeout
+     */
+    if (params->keepalive_interval_ != 0 &&
+        (params->keepalive_interval_ * 1000) < params->data_timeout_)
+    {
+        poll_timeout_ = params->keepalive_interval_ * 1000;
+    }
+     
+    /*
      * Now skip the sdnv that encodes the announce bundle length since
      * we parsed it above.
      */
@@ -751,6 +761,7 @@ StreamConvergenceLayer::Connection::finish_bundle(InFlightBundle* inflight)
     current_inflight_ = NULL;
     
     check_completed(inflight);
+    check_unblock_link();
     
     return true;
 }
@@ -835,13 +846,14 @@ StreamConvergenceLayer::Connection::handle_poll_timeout()
     elapsed = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
     if (elapsed > params->data_timeout_) {
         log_info("handle_poll_timeout: no data heard for %d msecs "
-                 "(keepalive_sent %u.%u, data_rcvd %u.%u, now %u.%u) "
+                 "(keepalive_sent %u.%u, data_rcvd %u.%u, now %u.%u, poll_timeout %d) "
                  "-- closing contact",
                  elapsed,
                  (u_int)keepalive_sent_.tv_sec,
                  (u_int)keepalive_sent_.tv_usec,
                  (u_int)data_rcvd_.tv_sec, (u_int)data_rcvd_.tv_usec,
-                 (u_int)now.tv_sec, (u_int)now.tv_usec);
+                 (u_int)now.tv_sec, (u_int)now.tv_usec,
+                 poll_timeout_);
             
         break_contact(ContactEvent::BROKEN);
         return;
@@ -892,10 +904,33 @@ StreamConvergenceLayer::Connection::check_keepalive()
         elapsed  = TIMEVAL_DIFF_MSEC(now, data_sent_);
         elapsed2 = TIMEVAL_DIFF_MSEC(now, keepalive_sent_);
 
-        if (std::min(elapsed, elapsed2) > (params->keepalive_interval_ * 1000))
+        // XXX/demmer this is bogus -- we should really adjust
+        // poll_timeout to take into account the next time we should
+        // send a keepalive
+        // 
+        // give a 500ms fudge to the keepalive interval to make sure
+        // we send it when we should
+        if (std::min(elapsed, elapsed2) > ((params->keepalive_interval_ * 1000) - 500))
         {
-            log_debug("check_keepalive: sending keepalive");
+            log_info("check_keepalive: sending keepalive");
             send_keepalive();
+        }
+    }
+
+    // XXX/demmer this is to fix a strange and not yet understood race
+    // condition
+    if (contact_->link()->state() == Link::BUSY &&
+        num_pending_.value == 0)
+    {
+        elapsed = TIMEVAL_DIFF_MSEC(now, data_sent_);
+        if (elapsed > 5000) {
+            log_warn("0 bundles pending and %d msecs since last xmit, "
+                     "clearing BUSY state",
+                     elapsed);
+            BundleDaemon::post(
+                new LinkStateChangeRequest(contact_->link(),
+                                           Link::AVAILABLE,
+                                           ContactEvent::UNBLOCKED));
         }
     }
 }
@@ -1218,7 +1253,9 @@ StreamConvergenceLayer::Connection::handle_data_todo()
               chunk_len, recv_segment_todo_, payload_offset, payload_len);
     
     if (chunk_len + payload_offset > payload_len) {
-        log_err("NEED TO HANDLE BLOCKS AFTER THE PAYLOAD");
+        log_err("NEED TO HANDLE BLOCKS AFTER THE PAYLOAD "
+                "(rcvd_offset %zu rcvd_len %zu chunk_len %zu payload_offset %zu payload_len %zu)",
+                rcvd_offset, rcvd_len, chunk_len, payload_offset, payload_len);
         break_contact(ContactEvent::BROKEN);
         return false;
     }

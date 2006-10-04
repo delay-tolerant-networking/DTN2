@@ -40,6 +40,7 @@
 
 #include <list>
 #include <oasys/debug/Log.h>
+#include <oasys/thread/Atomic.h>
 #include <oasys/thread/MsgQueue.h>
 #include <oasys/thread/Thread.h>
 #include <oasys/util/SparseBitmap.h>
@@ -81,6 +82,11 @@ public:
      */
     void set_contact(const ContactRef& contact) { contact_ = contact; }
 
+    /**
+     * Queue a bundle for transmission
+     */
+    void queue_bundle(Bundle* bundle);
+
 protected:
     /**
      * Main run loop.
@@ -88,7 +94,8 @@ protected:
     void run();
 
     /// @{
-    /// Utility functions 
+    /// Utility functions
+    void check_unblock_link();
     void contact_up();
     void break_contact(ContactEvent::reason_t reason);
     void close_contact();
@@ -283,6 +290,7 @@ protected:
     InFlightList	inflight_;	///< Bundles going out the wire
     IncomingList	incoming_;	///< Bundles arriving on the wire
     volatile bool	contact_broken_; ///< Contact has been broken
+    oasys::atomic_t     num_pending_;	///< Bundles pending transmission
 };
 
 } // namespace dtn
