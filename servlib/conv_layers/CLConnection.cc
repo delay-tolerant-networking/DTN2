@@ -430,18 +430,25 @@ CLConnection::handle_announce_bundle(Bundle* announce)
 
         ASSERT(nexthop_ != ""); // the derived class must have set the
                                 // nexthop in the constructor
-        
+
         ContactManager* cm = BundleDaemon::instance()->contactmgr();
+        oasys::ScopeLock l(cm->lock(), "CLConnection::handle_announce_bundle");
 
         Link* link = cm->find_link_to(cl_, "", announce->source_,
                                       Link::OPPORTUNISTIC,
                                       Link::AVAILABLE | Link::UNAVAILABLE);
 
-        if (link != NULL) {
+        // XXX/demmer remove check for no contact
+        if (link != NULL && (link->contact() == NULL)) {
             link->set_nexthop(nexthop_);
             log_debug("found idle opportunistic link *%p", link);
             
         } else {
+            if (link != NULL) {
+                log_warn("in-use opportunistic link *%p returned from "
+                         "ContactManager::find_link_to", link);
+            }
+            
             link = cm->new_opportunistic_link(cl_,
                                               nexthop_.c_str(),
                                               announce->source_);
