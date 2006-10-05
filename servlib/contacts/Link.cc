@@ -86,6 +86,8 @@ Link::create_link(const std::string& name, link_type_t type,
 
     argc -= count;
 
+    // XXX/demmer need to pass invalid_argp to the convergence layer
+
     // notify the convergence layer, which parses the rest of the
     // arguments
     ASSERT(link->clayer_);
