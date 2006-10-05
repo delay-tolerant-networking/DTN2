@@ -465,8 +465,9 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         
         log_debug("send_pending_acks: "
                   "sending ack length %zu for %zu byte segment "
-                  "[range %zu..%zu]",
-                  ack_len, segment_len, incoming->acked_length_, *iter);
+                  "[range %zu..%zu] ack_data *%p",
+                  ack_len, segment_len, incoming->acked_length_, *iter,
+                  &incoming->ack_data_);
         
         *sendbuf_.end() = ACK_SEGMENT;
         int len = SDNV::encode(ack_len, (u_char*)sendbuf_.end() + 1,
@@ -912,7 +913,6 @@ StreamConvergenceLayer::Connection::check_keepalive()
         // we send it when we should
         if (std::min(elapsed, elapsed2) > ((params->keepalive_interval_ * 1000) - 500))
         {
-            log_info("check_keepalive: sending keepalive");
             send_keepalive();
         }
     }
@@ -927,7 +927,9 @@ StreamConvergenceLayer::Connection::check_keepalive()
             log_warn("0 bundles pending and %d msecs since last xmit, "
                      "clearing BUSY state",
                      elapsed);
-            BundleDaemon::post(
+
+            // see comment in CLConnection.cc why we post at head
+            BundleDaemon::post_at_head(
                 new LinkStateChangeRequest(contact_->link(),
                                            Link::AVAILABLE,
                                            ContactEvent::UNBLOCKED));

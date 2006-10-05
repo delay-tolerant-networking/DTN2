@@ -240,7 +240,13 @@ CLConnection::check_unblock_link()
         if (num_pending_.value == (params->busy_queue_depth_ - 1))
         {
             log_debug("%d bundles pending, clearing BUSY state", num_pending_.value);
-            BundleDaemon::post(
+
+            // XXX/demmer post the AVAILABLE event at the head of the
+            // event queue, since we want it to be processed quickly
+            // in case there's a backlog of events. this whole issue
+            // of backpressure needs to be worked through in a much
+            // better way.
+            BundleDaemon::post_at_head(
                 new LinkStateChangeRequest(contact_->link(),
                                            Link::AVAILABLE,
                                            ContactEvent::UNBLOCKED));
