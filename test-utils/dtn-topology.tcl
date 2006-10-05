@@ -6,12 +6,18 @@ namespace eval dtn {
 
 set router_type "static"
 
+set eid_pattern {dtn://host-$id}
+
+proc get_eid {id} {
+    return [subst $dtn::eid_pattern]
+}
+
 proc config_topology_common {with_routes} {
-    global dtn::router_type
+    global dtn::router_type dtn::local_eid_pattern
     
     foreach id [net::nodelist] {
 	conf::add dtnd $id "route set type $router_type"
-	conf::add dtnd $id "route local_eid dtn://host-$id"
+	conf::add dtnd $id "route local_eid [get_eid $id]"
 	conf::add dtnd $id "route set add_nexthop_routes $with_routes"
     }
 }
@@ -61,7 +67,7 @@ proc config_link {id peerid type cl with_routes link_args} {
     set peeraddr $net::internal_host($peerid)
     set peerport [dtn::get_port $cl $peerid]
     set link [new_link_name $cl $id $peerid]
-    set peer_eid  dtn://host-$peerid
+    set peer_eid  [get_eid $peerid]
 
     # For bidirectional convergence layers, we configure an ONDEMAND
     # or ALWAYSON link in only one direction, since the other side
@@ -98,7 +104,7 @@ proc config_linear_topology {type cl with_routes {link_args ""}} {
 
 	    for {set dest [expr $id + 2]} {$dest <= $last} {incr dest} {
 		conf::add dtnd $id \
-			"route add dtn://host-$dest/* $link"
+			"route add [get_eid $dest]/* $link"
 	    }
 	}
 	
@@ -110,7 +116,7 @@ proc config_linear_topology {type cl with_routes {link_args ""}} {
 	    if {$with_routes} {
 		for {set dest [expr $id - 2]} {$dest >= 0} {incr dest -1} {
 		    conf::add dtnd $id \
-			    "route add dtn://host-$dest/* $link"
+			    "route add [get_eid $dest]/* $link"
 		}
 	    }
 	}
@@ -144,7 +150,7 @@ proc config_tree_topology {type cl {link_args ""}} {
 	    eval link add link-$child $childaddr:$childport \
 		    $type $cl $link_args
 	    
-	    route add dtn://host-$child/* link-$child
+	    route add [get_eid $child]/* link-$child
 	}
     }
 
@@ -157,8 +163,8 @@ proc config_tree_topology {type cl {link_args ""}} {
 	eval link add link-$parent $parentaddr:$parentport \
 		$type $cl $link_args
 	
-	route add dtn://host-$parent/* link-$parent
-	set route_to_root dtn://$parentaddr
+	route add [get_eid $parent]/* link-$parent
+	set route_to_root [get_eid $parentaddr]
 	
 	for {set child [expr $id * 10]} \
 		{$child <= [expr ($id * 10) + 9]} \
@@ -169,7 +175,7 @@ proc config_tree_topology {type cl {link_args ""}} {
 	    eval link add link-$child $childaddr:$childport \
 		    $type $cl $link_args
 	    
-	    route add dtn://host-$child/* link-$child
+	    route add [get_eid $child]/* link-$child
 	}
     }
 
@@ -182,8 +188,8 @@ proc config_tree_topology {type cl {link_args ""}} {
 	eval link add link-$parent $parentaddr:$parentport \
 		$type $cl $link_args
 	
-	route add dtn://host-$parent/* link-$parent
-	set route_to_root dtn://$parentaddr
+	route add [get_eid $parent]/* link-$parent
+	set route_to_root [get_eid $parentaddr]
 
 	if {$id <= 154} {
 	    set child [expr $id + 100]
@@ -192,7 +198,7 @@ proc config_tree_topology {type cl {link_args ""}} {
 	    eval link add link-$child $childaddr:$childport \
 		    $type $cl $link_args
 	    
-	    route add dtn://host-$child/* link-$child
+	    route add [get_eid $child]/* link-$child
 	}
     }
 
@@ -204,8 +210,8 @@ proc config_tree_topology {type cl {link_args ""}} {
 	eval link add link-$parent $parentaddr:$parentport \
 		$type $cl $link_args
 	
-	route add dtn://host-$parent/* link-$parent
-	set route_to_root dtn://$parentaddr
+	route add [get_eid $parent]/* link-$parent
+	set route_to_root [get_eid $parentaddr]
     }
 }
 
@@ -239,26 +245,26 @@ proc config_diamond_topology {type cl with_routes {link_args ""}} {
     config_link 0 1 $type $cl $with_routes $link_args
     config_link 0 2 $type $cl $with_routes $link_args
     
-    conf::add dtnd 0 "route add dtn://host-3/* $cl-link:0-1"
-    conf::add dtnd 0 "route add dtn://host-3/* $cl-link:0-2"
+    conf::add dtnd 0 "route add [get_eid 3]/* $cl-link:0-1"
+    conf::add dtnd 0 "route add [get_eid 3]/* $cl-link:0-2"
     
     config_link 1 0 $type $cl $with_routes $link_args
     config_link 1 3 $type $cl $with_routes $link_args
 
-    conf::add dtnd 1 "route add dtn://host-2/* $cl-link:1-0"
-    conf::add dtnd 1 "route add dtn://host-2/* $cl-link:1-3"
+    conf::add dtnd 1 "route add [get_eid 2]/* $cl-link:1-0"
+    conf::add dtnd 1 "route add [get_eid 2]/* $cl-link:1-3"
     
     config_link 2 0 $type $cl $with_routes $link_args
     config_link 2 3 $type $cl $with_routes $link_args
 
-    conf::add dtnd 2 "route add dtn://host-1/* $cl-link:2-0"
-    conf::add dtnd 2 "route add dtn://host-1/* $cl-link:2-3"
+    conf::add dtnd 2 "route add [get_eid 1]/* $cl-link:2-0"
+    conf::add dtnd 2 "route add [get_eid 1]/* $cl-link:2-3"
     
     config_link 3 1 $type $cl $with_routes $link_args
     config_link 3 2 $type $cl $with_routes $link_args
 
-    conf::add dtnd 3 "route add dtn://host-0/* $cl-link:3-1"
-    conf::add dtnd 3 "route add dtn://host-0/* $cl-link:3-2"
+    conf::add dtnd 3 "route add [get_eid 0]/* $cl-link:3-1"
+    conf::add dtnd 3 "route add [get_eid 0]/* $cl-link:3-2"
 }
 
 # namespace dtn
