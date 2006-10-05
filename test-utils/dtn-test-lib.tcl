@@ -290,9 +290,13 @@ namespace eval dtn {
         if {$id == "*"} {
             set ret ""
             foreach id [net::nodelist] {
-                append ret [get_bundle_stat $id $name]
+                append ret "$id: [get_bundle_stat $id $name]\n"
             }
             return $ret
+        }
+
+        if {$name == "all"} {
+            return [dtn::tell_dtnd $id "bundle stats"]
         }
         
         set stats [regsub -all -- {--} [dtn::tell_dtnd $id "bundle stats"] ""]
@@ -302,6 +306,10 @@ namespace eval dtn {
 	    }
 	}
 	error "unknown stat $name"
+    }
+
+    proc get_bundle_stats {id name} {
+        return [get_bundle_stat $id $name]
     }
     
     proc check_bundle_stats {id args} {
@@ -331,6 +339,18 @@ namespace eval dtn {
 	    }
 	    after 500
 	}
+    }
+
+    proc get_bundle_daemon_stats {id} {
+        if {$id == "*"} {
+            set ret ""
+            foreach id [net::nodelist] {
+                append ret "$id: [get_bundle_daemon_stats $id]\n"
+            }
+            return $ret
+        }
+
+        return [tell_dtnd $id bundle daemon_stats]
     }
 
     # separate procedure because this one requires an explicit list
@@ -381,16 +401,14 @@ namespace eval dtn {
         
 	if {$link == "*"} {
 	    set links [dtn::tell_dtnd $id link dump]
-	    set ret "Stats for all links on node $id:\n"
 	    foreach line [split $links "\n"] {
 		set link [lindex [split $line] 0]
                 if {$link == ""} {
                     continue
                 }
-		append ret "$link: [get_link_stat $id $link $name]\n"
+		append ret "$id $link: [get_link_stat $id $link $name]\n"
 	    }
 
-            append ret "\n"
             return $ret
 	}
 
