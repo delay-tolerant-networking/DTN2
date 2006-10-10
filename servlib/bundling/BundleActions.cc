@@ -52,7 +52,7 @@ BundleActions::open_link(Link* link)
 {
     log_debug("opening link %s", link->name());
 
-    if (link->isopen()) {
+    if (link->isopen() || link->contact() != NULL) {
         log_err("not opening link %s since already open", link->name());
         return;
     }
