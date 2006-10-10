@@ -899,6 +899,12 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
     log_info("LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p",
              Link::state_to_str(old_state), Link::state_to_str(new_state),
              ContactEvent::reason_to_str(reason), link);
+
+    //avoid a race condition caused by opening a partially closed link
+    if(new_state == Link::OPEN)
+    {
+    	oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_link_state_change_request");
+    }
     
     switch(new_state) {
     case Link::UNAVAILABLE:
