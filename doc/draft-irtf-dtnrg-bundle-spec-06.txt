@@ -1,14 +1,14 @@
 
 
 
-
-
-
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    Delay Tolerant Networking Research Group                    K. Scott 
    Internet Draft                                 The MITRE Corporation 
-   <draft-irtf-dtnrg-bundle-spec-04.txt>                                
-   November 2005                                            S. Burleigh 
-   Expires: May 2006                          Jet Propulsion Laboratory 
+   <draft-irtf-dtnrg-bundle-spec-06.txt>                                
+   August 2006                                              S. Burleigh 
+   Expires: February 2007                     Jet Propulsion Laboratory 
 
     
     
@@ -19,35 +19,35 @@ Status of this Memo
     
    By submitting this Internet-Draft, each author represents that any 
    applicable patent or other IPR claims of which he or she is aware 
-   have been or will be disclosed, and any of which he or she       
-   becomes aware will be disclosed, in accordance with Section 6 of BCP 
-   79. 
-        
+   have been or will be disclosed, and any of which he or she becomes 
+   aware will be disclosed, in accordance with Section 6 of BCP 79. 
+    
    Internet-Drafts are working documents of the Internet Engineering 
    Task Force (IETF), its areas, and its working groups.  Note that 
    other groups may also distribute working documents as Internet-
-   Drafts.    
-        
+   Drafts. 
+    
    Internet-Drafts are draft documents valid for a maximum of six months 
    and may be updated, replaced, or obsoleted by other documents at any 
    time.  It is inappropriate to use Internet-Drafts as reference 
-   material or to cite them other than as "work in progress."  
-        
+   material or to cite them other than as "work in progress." 
+    
    The list of current Internet-Drafts can be accessed at 
-   http://www.ietf.org/ietf/1id-abstracts.txt.  
-        
+   http://www.ietf.org/ietf/1id-abstracts.txt. 
+    
    The list of Internet-Draft Shadow Directories can be accessed at 
-   http://www.ietf.org/shadow.html.  
+   http://www.ietf.org/shadow.html. 
     
    This document was produced within the IRTF's Delay Tolerant 
-   Networking Research Group (DTNRG).  See http://www.dtnrg.org for more 
-   information.  
+   Networking Research Group (DTNRG) and represents the consensus of all 
+   of the active contributors to this Group.  See http://www.dtnrg.org 
+   for more information. 
  
 Abstract 
     
-   This document describes the end-to-end protocol, header formats, and 
+   This document describes the end-to-end protocol, block formats, and 
    abstract service description for the exchange of messages (bundles) 
-   in Delay Tolerant Networking (DTN).   
+   in Delay Tolerant Networking (DTN). 
  
 Conventions used in this document 
     
@@ -57,17 +57,9 @@ Conventions used in this document
  
  
  
-K. Scott and S. Burleigh    Expires - May 2006                [Page 1] 
 
-
-
-
-
-
-
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
+K. Scott and S. Burleigh      Expires - February 2007      [Page 1] 
+Internet Draft      Bundle Protocol Specification        August 2006 
  
  
 Table of Contents 
@@ -75,67 +67,60 @@ Table of Contents
    1.          Introduction..........................................3 
    2.          Service Description...................................4 
       2.1      Definitions...........................................4 
-      2.2      Implementation architectures..........................8 
+      2.2      Implementation architectures..........................9 
       2.3      Services offered by bundle protocol agents............9 
-   3.          Bundle Format........................................10 
-      3.1      Canonical Bundle Header Format.......................10 
-      3.2      Bundle Processing Flags..............................10 
-      3.3      Header Processing Flags..............................11 
-      3.4      Self-Delimiting Numeric Values (SDNV)................11 
-      3.5      Endpoint IDs.........................................12 
-      3.6      Formats of Bundle Headers............................13 
-        3.6.1  Primary Bundle Header................................15 
-        3.6.2  Bundle Payload Header................................18 
-   4.          Bundle Processing....................................18 
-      4.1      Generation of administrative records.................19 
-      4.2      Bundle transmission..................................19 
-      4.3      Bundle dispatching...................................20 
-      4.4      Bundle forwarding....................................20 
-        4.4.1  Forwarding Contraindicated...........................21 
-        4.4.2  Forwarding Failed....................................22 
-      4.5      Bundle expiration....................................22 
-      4.6      Bundle reception.....................................23 
-      4.7      Local bundle delivery................................23 
-      4.8      Bundle Fragmentation.................................24 
-      4.9      Application Data Unit Reassembly.....................25 
-      4.10     Custody transfer.....................................26 
-        4.10.1 Custody acceptance...................................26 
-        4.10.2 Custody release......................................27 
-      4.11     Custody transfer success.............................27 
-      4.12     Custody transfer failure.............................27 
-      4.13     Bundle deletion......................................28 
-      4.14     Discarding a bundle..................................28 
-      4.15     Canceling a transmission.............................28 
-      4.16     Polling..............................................28 
-      4.17     Acknowledging an application data unit...............28 
-   5.          Administrative record processing.....................29 
-      5.1      Administrative records...............................29 
-        5.1.1  Bundle Status Reports................................29 
-        5.1.2  Custody Signals......................................33 
-      5.2      Generation of administrative records.................35 
-      5.3      Reception of custody signals.........................36 
-   6.          Services Required of the Convergence Layer...........36 
-      6.1      The Convergence Layer................................36 
-      6.2      Summary of Convergence Layer Services................36 
-   7.          Security Considerations..............................37 
-   8.          IANA Considerations..................................38 
-   9.          Normative References.................................38 
-   10.         Informative References...............................38 
+   3.          Bundle Format.........................................9 
+      3.1      Canonical Bundle Block Format.........................9 
+      3.2      Bundle Processing Flags...............................9 
+      3.3      Block Processing Flags................................9 
+      3.4      Self-Delimiting Numeric Values (SDNV).................9 
+      3.5      Endpoint IDs..........................................9 
+      3.6      Formats of Bundle Blocks..............................9 
+        3.6.1  Primary Bundle Block..................................9 
+        3.6.2  Bundle Payload Block..................................9 
+      3.7      Extension Blocks......................................9 
+      3.8      Dictionary revision...................................9 
+   4.          Bundle Processing.....................................9 
+      4.1      Generation of administrative records..................9 
+      4.2      Bundle transmission...................................9 
+      4.3      Bundle dispatching....................................9 
+      4.4      Bundle forwarding.....................................9 
+        4.4.1  Forwarding Contraindicated............................9 
+        4.4.2  Forwarding Failed.....................................9 
+      4.5      Bundle expiration.....................................9 
+      4.6      Bundle reception......................................9 
+      4.7      Local bundle delivery.................................9 
+      4.8      Bundle Fragmentation..................................9 
+      4.9      Application Data Unit Reassembly......................9 
+      4.10     Custody transfer......................................9 
+        4.10.1 Custody acceptance....................................9 
+        4.10.2 Custody release.......................................9 
+      4.11     Custody transfer success..............................9 
+      4.12     Custody transfer failure..............................9 
+      4.13     Bundle deletion.......................................9 
+      4.14     Discarding a bundle...................................9 
+      4.15     Canceling a transmission..............................9 
+      4.16     Polling...............................................9 
+   5.          Administrative record processing......................9 
+      5.1      Administrative records................................9 
+        5.1.1  Bundle Status Reports.................................9 
+        5.1.2  Custody Signals.......................................9 
+      5.2      Generation of administrative records..................9 
+      5.3      Reception of custody signals..........................9 
+   6.          Services Required of the Convergence Layer............9 
+      6.1      The Convergence Layer.................................9 
+      6.2      Summary of Convergence Layer Services.................9 
+   7.          Security Considerations...............................9 
+   8.          IANA Considerations...................................9 
+   9.          Normative References..................................9 
  
  
-K. Scott and S. Burleigh      Expires - May 2006           [Page 2] 
-
-
-
-
-
-
-
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
+K. Scott and S. Burleigh      Expires - February 2007      [Page 2] 
+Internet Draft      Bundle Protocol Specification        August 2006 
  
  
+   10.         Informative References................................9 
+
 1.   Introduction 
     
    This document describes version 4 of the Delay Tolerant 
@@ -161,47 +146,54 @@ Internet Draft      Bundle Protocol Specification      November 2005
    overview of DTN concepts. 
     
    BP's location within the standard protocol stack is as shown in 
-   Figure 1.  BP uses the 'native' internet protocols for communications 
-   within a given internet.  Note that 'internet' in the preceding is 
+   Figure 1.  BP uses the "native" internet protocols for communications 
+   within a given internet.  Note that "internet" in the preceding is 
    used in a general sense and does not necessarily refer to TCP/IP.  
    The interface between the common bundle protocol and a specific 
    internetwork protocol suite is termed a "convergence layer adapter".  
    Figure 1 shows three distinct transport and network protocols 
    (denoted T1/N1, T2,N2, and T3/N3). 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007      [Page 3] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    +-----------+                                         +-----------+  
    |   BP app  |                                         |   BP app  |  
    +---------v-|   +->>>>>>>>>>v-+     +->>>>>>>>>>v-+   +-^---------+  
    |    BP   v |   | ^    BP   v |     | ^    BP   v |   | ^   BP    |  
    +---------v-+   +-^---------v-+     +-^---------v-+   +-^---------+  
    | Trans1  v |   + ^  T1/T2  v |     + ^  T2/T3  v |   | ^  Trans3 |  
-   +---------v-+   +-^---------v-+     +-^---------v +   +-^---------+  
+   +---------v-+   +-^---------v-+     +-^---------v +   +-^---------+  
    | Net1    v |   | ^  N1/N2  v |     | ^  N2/N3  v |   | ^  Net3   |  
    +---------v-+   +-^---------v +     +-^---------v-+   +-^---------+  
    |         >>>>>>>>^         >>>>>>>>>>^         >>>>>>>>^         |  
-   +-----------+   +------------+      +-------------+   +-----------+  
+   +-----------+   +-------------+     +-------------+   +-----------+  
     
-   |                     |                    |                      |  
-   |<--  An internet --->|                    |<--- An internet  --->|  
-   |                     |                    |                      | 
+   |                      |                   |                      |  
+   |<--- An internet  --->|                   |<--- An internet  --->|  
+   |                      |                   |                      | 
     
    Figure 1: The bundle protocol sits at the application layer of the 
              Internet model. 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006           [Page 3] 
-
-
-
-
-
-
-
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
     
    This document describes the format of the protocol data units (called 
    bundles) passed between entities participating in BP communications.  
@@ -223,24 +215,32 @@ Internet Draft      Bundle Protocol Specification      November 2005
 2.1 Definitions 
     
    Bundle – A bundle is a protocol data unit of the DTN bundle protocol.  
-   Multiple instances of the same bundle (the same unit of DTN protocol 
-   data) might exist concurrently in different parts of a network - 
-   possibly in different representations - in the memory local to one or 
-   more bundle nodes and/or in transit between nodes.  In the context of 
-   the operation of a bundle node, a bundle is an instance of some 
-   bundle in the network that is in that node's local memory.  
+   Each bundle comprises a sequence of two or more "blocks" of protocol 
+   data, which serve various purposes.  Multiple instances of the same 
+   bundle (the same unit of DTN protocol data) might exist concurrently 
+   in different parts of a network - possibly in different 
+   representations - in the memory local to one or more bundle nodes 
+   and/or in transit between nodes.  In the context of the operation of 
+   a bundle node, a bundle is an instance of some bundle in the network 
+   that is in that node's local memory.  
     
    Bundle payload – A bundle payload (or simply "payload") is the 
    application data whose conveyance to the bundle's destination is the 
    purpose for the transmission of a given bundle.  The terms "bundle 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007      [Page 4] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    content", "bundle payload", and "payload" are used interchangeably in 
-   this document.  The "nominal" payload for a bundle forwarded in 
+   this document.  The "nominal" payload for a bundle forwarded in 
    response to a bundle transmission request is the application data 
    unit whose location is provided as a parameter to that request.  The 
    nominal payload for a bundle forwarded in response to reception of 
    that bundle is the payload of the received bundle. 
     
-   Fragment – A fragment is a bundle whose payload header contains a 
+   Fragment – A fragment is a bundle whose payload block contains a 
    fragmentary payload.  A fragmentary payload is either the first N 
    bytes or the last N bytes of some other payload – either a nominal 
    payload or a fragmentary payload – of length M, such that 0 < N < M. 
@@ -249,25 +249,10 @@ Internet Draft      Bundle Protocol Specification      November 2005
    simply a "node") is any entity that can send and/or receive bundles.  
    In the most familiar case a bundle node is instantiated as a single 
    process running on a general-purpose computer, but in general the 
-   definition is meant to be broader; a bundle node might alternatively 
+   definition is meant to be broader: a bundle node might alternatively 
    be a thread, an object in an object-oriented operating system, a 
    special-purpose hardware device, etc.  Each bundle node has three 
    conceptual components, defined below: a "bundle protocol agent", a 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006           [Page 4] 
-
-
-
-
-
-
-
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    set of zero or more "convergence layer adapters", and an "application 
    agent". 
     
@@ -293,19 +278,25 @@ Internet Draft      Bundle Protocol Specification      November 2005
    component that utilizes the BP services to effect communication for 
    some purpose.  The application agent in turn has two elements, an 
    administrative element and an application-specific element.  The 
-   application-specific element of an AA constructs, requests 
+   application-specific element of an AA constructs, requests 
    transmission of, accepts delivery of, and processes application-
    specific application data units; the only interface between the BPA 
    and the application-specific element of the AA is the BP service 
    interface.  The administrative element of an AA constructs and 
    requests transmission of administrative records (status reports and 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007      [Page 5] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    custody signals), and it accepts delivery of and processes any 
-   custody signals that the node receives; in addition to the BP service 
-   interface, there is a (conceptual) private control interface between 
-   the BPA and the administrative element of the AA that enables each to 
-   direct the other to take action under specific circumstances.  In the 
-   case of a node that serves simply as a "router" in the overlay 
-   network, the AA may have no application-specific element at all; the 
+   custody signals that the node receives.  In addition to the BP 
+   service interface, there is a (conceptual) private control interface 
+   between the BPA and the administrative element of the AA that enables 
+   each to direct the other to take action under specific circumstances.  
+   In the case of a node that serves simply as a "router" in the overlay 
+   network, the AA may have no application-specific element at all.  The 
    application-specific elements of other nodes' AAs may perform 
    arbitrarily complex application functions, perhaps even offering 
    multiplexed DTN communication services to a number of other 
@@ -319,21 +310,6 @@ Internet Draft      Bundle Protocol Specification      November 2005
    Bundle endpoint – A bundle endpoint (or simply "endpoint") is a set 
    of zero or more bundle nodes that all identify themselves for BP 
    purposes by some single text string, called a "bundle endpoint ID" 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006           [Page 5] 
-
-
-
-
-
-
-
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    (or, in this document, simply "endpoint ID"; endpoint IDs are 
    described in detail in 3.5 below).   The special case of an endpoint 
    that never contains more than one node is termed a "singleton" 
@@ -352,7 +328,7 @@ Internet Draft      Bundle Protocol Specification      November 2005
    believes are in the "minimum reception group" of that endpoint.  The 
    minimum reception group of an endpoint may be any one of the 
    following: (a) ALL of the nodes registered in an endpoint that is 
-   permitted to contain multiple nodes (in which case forwarding to the 
+   permitted to contain multiple nodes (in which case forwarding to the 
    endpoint is functionally similar to "multicast" operations in the 
    Internet, though possibly very different in implementation); (b) ANY 
    N of the nodes registered in an endpoint that is permitted to contain 
@@ -365,6 +341,12 @@ Internet Draft      Bundle Protocol Specification      November 2005
    group for a given endpoint can be determined from the endpoint's ID 
    (again, see 3.5 below): for some endpoint ID "schemes", the nature of 
    the minimum reception group is fixed - in a manner that is defined by 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007      [Page 6] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    the scheme - for all endpoints identified under the scheme; for other 
    schemes, the nature of the minimum reception group is indicated by 
    some lexical feature of the "scheme-specific part" of the endpoint 
@@ -385,21 +367,6 @@ Internet Draft      Bundle Protocol Specification      November 2005
         registration until (a) this bundle is the least recently 
         received of all bundles currently deliverable subject to this 
         registration and (b) either the registration is polled or else 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006           [Page 6] 
-
-
-
-
-
-
-
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
         the registration is in Active state; 
     
       o "abandon" (see below) delivery of the bundle subject to this 
@@ -411,7 +378,7 @@ Internet Draft      Bundle Protocol Specification      November 2005
    subject to this registration must cause the bundle to be delivered 
    automatically as soon as it is the least recently received bundle 
    that is currently deliverable subject to the registration.  While the 
-   state of a registration is Passive, reception of a bundle that is 
+   state of a registration is Passive, reception of a bundle that is 
    deliverable subject to this registration must cause delivery of the 
    bundle to be abandoned or deferred as mandated by the registration's 
    current delivery failure action; in the latter case, any additional 
@@ -428,10 +395,18 @@ Internet Draft      Bundle Protocol Specification      November 2005
    registration characterizing the node's membership in the destination 
    endpoint.  A bundle is considered to have been delivered at a node 
    subject to a registration as soon as the application data unit that 
-   is the payload of the bundle, together with relevant metadata (an 
-   implementation matter), has been presented to the node's application 
-   agent in a manner consistent with the state of that registration and, 
-   as applicable, the registration's delivery failure action.       
+   is the payload of the bundle, together with the value of the bundle's 
+   "Acknowledgement by application is requested" flag and any other 
+   relevant metadata (an implementation matter), has been presented to 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007      [Page 7] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
+   the node's application agent in a manner consistent with the state of 
+   that registration and, as applicable, the registration's delivery 
+   failure action. 
     
    Deliverability, Abandonment – A bundle is considered "deliverable" 
    subject to a registration if and only if (a) the bundle's destination 
@@ -451,26 +426,11 @@ Internet Draft      Bundle Protocol Specification      November 2005
    silently, i.e., the discarding of a bundle does not result in 
    generation of an administrative record.  "Retention constraints" are 
    elements of bundle state that prevent a bundle from being discarded; 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006           [Page 7] 
-
-
-
-
-
-
-
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    a bundle cannot be discarded while it has any retention constraints.  
    A bundle protocol agent "deletes" a bundle in response to some 
    anomalous condition by notifying the bundle's report-to endpoint of 
    the deletion (provided such notification is warranted; see 4.13 for 
-   details) and then arbitrarily removing all of the bundle's retention 
+   details) and then arbitrarily removing all of the bundle's retention 
    constraints, enabling the bundle to be discarded.  
     
    Transmission – A transmission is a sustained effort by a node's 
@@ -490,11 +450,17 @@ Internet Draft      Bundle Protocol Specification      November 2005
    bundle, (b) notification is received that the bundle has been 
    delivered at the (sole) node registered in the bundle's destination 
    endpoint, or (c) the bundle is explicitly deleted for some reason, 
-   such as lifetime expiration; the condition(s) under which custody of 
+   such as lifetime expiration.  The condition(s) under which custody of 
    a bundle whose destination is not a singleton endpoint may be 
    released are not defined in this specification.  To "refuse custody" 
    of a bundle is to decide not to accept custody of the bundle.  A 
    "custodial node" of a bundle is a node that has accepted custody of 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007      [Page 8] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    the bundle and has not yet released that custody.  A "custodian" of a 
    bundle is a singleton endpoint whose sole member is one of the 
    bundle's custodial nodes. 
@@ -517,27 +483,12 @@ Internet Draft      Bundle Protocol Specification      November 2005
    application-specific elements of the application agent.  The 
    application-specific element of the application agent functions as a 
    server, offering bundle protocol service over a local area network: 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006           [Page 8] 
-
-
-
-
-
-
-
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    it responds to remote procedure calls from application processes (on 
    the same computer and/or remote computers) that need to communicate 
    via the bundle protocol.  The server supports its clients by creating 
    a new (conceptual) node for each one and registering each such node 
    in a client-specified endpoint; the conceptual nodes managed by the 
-   server function as clients' Bundle Protocol service access points.      
+   server function as clients' Bundle Protocol service access points. 
     
    b) Peer application nodes 
     
@@ -561,6 +512,12 @@ K. Scott and S. Burleigh      Expires - May 2006           [Page 8]
     
    d) Dedicated bundle router 
     
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007      [Page 9] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    Each computer constitutes a single bundle node that functions solely 
    as a high-performance bundle forwarder.  Many standard functions of 
    the bundle protocol agent, the convergence layer adapters, and the 
@@ -582,53 +539,52 @@ K. Scott and S. Burleigh      Expires - May 2006           [Page 8]
       d) transmitting a bundle to an identified bundle endpoint; 
       e) canceling a transmission; 
       f) polling a registration that is in passive state; 
-      g) delivering a received bundle; 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006           [Page 9] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
-      h) acknowledging receipt of a bundle's contents. 
+      g) delivering a received bundle. 
     
 3.   Bundle Format 
     
-   Each bundle shall be a concatenated sequence of at least two bundle 
-   header structures.  The first header in the sequence must be a 
-   primary bundle header, and no bundle may have more than one primary 
-   bundle header.  Additional bundle protocol headers of other types may 
-   follow the primary header to support extensions to the Bundle 
-   Protocol, such as the Bundle Security Protocol.  At most one of the 
-   headers in the sequence may be a payload header.  The last header in 
-   the sequence must have the "last header" flag (in its header 
-   processing control flags) set to 1; for every other header in the 
-   bundle after the primary header, this flag must be set to zero. 
+   Each bundle shall be a concatenated sequence of at least two block 
+   structures.  The first block in the sequence must be a primary bundle 
+   block, and no bundle may have more than one primary bundle block.  
+   Additional bundle protocol blocks of other types may follow the 
+   primary block to support extensions to the Bundle Protocol, such as 
+   the Bundle Security Protocol [5].  At most one of the blocks in the 
+   sequence may be a payload block.  The last block in the sequence must 
+   have the "last block" flag (in its block processing control flags) 
+   set to 1; for every other block in the bundle after the primary 
+   block, this flag must be set to zero. 
     
-3.1 Canonical Bundle Header Format 
+3.1 Canonical Bundle Block Format 
     
-   Every bundle header of every type other than the primary bundle 
-   header comprises the following elements, in this order: 
-      o Header type code, expressed as an 8-bit unsigned binary 
-        integer.  Bundle header type code 1 indicates that the header 
-        is a bundle payload header.  All other values of the header 
-        type code are reserved for future use. 
-      o Header processing control flags, a set of eight 1-bit flag 
+   Every bundle block of every type other than the primary bundle block 
+   comprises the following elements, in this order: 
+      o Block type code, expressed as an 8-bit unsigned binary integer.  
+        Bundle block type code 1 indicates that the block is a bundle 
+        payload block.  Block type codes 192 through 255 are not 
+        defined in this specification and are available for private 
+        and/or experimental use.  All other values of the block type 
+        code are reserved for future use. 
+      o Block processing control flags, a set of eight 1-bit flag 
         values. 
-      o Header data length, an unsigned integer expressed as an SDNV 
-        (explained below).  The Header data length field contains the 
-        aggregate length of all remaining fields of the header, i.e., 
-        the header-type-specific data fields. 
-      o Header-type-specific data fields, whose format and order are 
+      o Block data length, an unsigned integer expressed as an SDNV 
+        (explained below).  The Block data length field contains the 
+        aggregate length of all remaining fields of the block, i.e., 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 10] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
+        the block-type-specific data fields. 
+      o Block-type-specific data fields, whose format and order are 
         type-specific and whose aggregate length in octets is the value 
-        of the header data length field.  All multi-byte header-type-
+        of the block data length field.  All multi-byte block-type-
         specific data fields are represented in network byte order. 
  
 3.2 Bundle Processing Flags 
     
    The following Boolean processing control flags are present only in 
-   the bundle processing control flags byte of the primary bundle header 
+   the bundle processing control flags byte of the primary bundle block 
    of each bundle: 
     
    00000001 -  Bundle is a fragment. 
@@ -636,48 +592,46 @@ K. Scott and S. Burleigh      Expires - May 2006           [Page 9]
    00000100 -  Bundle must not be fragmented. 
    00001000 -  Custody transfer is requested. 
    00010000 -  Destination endpoint is a singleton. 
-   00100000 -  Reserved for future use. 
+   00100000 -  Acknowledgement by application is requested. 
    01000000 -  Reserved for future use. 
    10000000 -  Reserved for future use. 
     
    If the bundle processing control flags indicate that the bundle's 
    application data unit is an administrative record, then the custody 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 10] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    transfer requested flag must be zero.  If the custody transfer 
    requested flag is 1 then the sending node requests that the receiving 
    node accept custody of the bundle. 
     
-3.3 Header Processing Flags 
+3.3 Block Processing Flags 
     
    The following Boolean processing control flags are present in the 
-   header processing control flags byte of every bundle header other 
-   than the primary bundle header of each bundle: 
+   block processing control flags byte of every bundle block other than 
+   the primary bundle block of each bundle: 
     
-   00000001 -  Header must be replicated in every fragment. 
-   00000010 -  Transmit status report if header can't be processed. 
-   00000100 -  Discard bundle if header can't be processed. 
-   00001000 -  Last header. 
-   00010000 -  Reserved for future use. 
-   00100000 -  Reserved for future use. 
+   00000001 -  Block must be replicated in every fragment. 
+   00000010 -  Transmit status report if block can't be processed. 
+   00000100 -  Discard bundle if block can't be processed. 
+   00001000 -  Last block. 
+   00010000 -  Discard block if it can't be processed. 
+   00100000 -  Block was forwarded without being processed. 
    01000000 -  Reserved for future use. 
    10000000 -  Reserved for future use. 
     
-   For each bundle whose primary header's bundle processing control 
-   flags (see above) indicate that the bundle's application data unit is 
-   an administrative record, the "Transmit status report if header can't 
-   be processed" flag in the header processing flags element of every 
-   other header in the bundle must be zero.   
+   For each bundle whose primary block's bundle processing control flags 
+   (see above) indicate that the bundle's application data unit is an 
+   administrative record, the "Transmit status report if block can't be 
+   processed" flag in the block processing flags element of every other 
+   block in the bundle must be zero. 
  
 3.4 Self-Delimiting Numeric Values (SDNV) 
     
    The design of the bundle protocol attempts to reconcile minimal 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 11] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    consumption of transmission bandwidth with: 
       o extensibility to address requirements not yet identified, and 
       o scalability across a wide range of network scales and payload 
@@ -685,13 +639,13 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 10]
     
    A key strategic element in the design is the use of self-delimiting 
    numeric values (SDNVs).  The SDNV encoding scheme is closely adapted 
-   from the Abstract Syntax Notation One [ASN1] scheme for encoding 
-   Object Identifier Arcs.  An SDNV is a numeric value encoded in N 
-   octets, the last of which has its most significant bit (MSB) set to 
-   zero; the MSB of every other octet in the SDNV must be set to 1.  The 
-   value encoded in an SDNV is the unsigned binary number obtained by 
-   concatenating into a single bit string the 7 least significant bits 
-   of each octet of the SDNV. 
+   from the Abstract Syntax Notation One Basic Encoding Rules for 
+   subidentifiers within an  object identifier value [9].  An SDNV is a 
+   numeric value encoded in N octets, the last of which has its most 
+   significant bit (MSB) set to zero; the MSB of every other octet in 
+   the SDNV must be set to 1.  The value encoded in an SDNV is the 
+   unsigned binary number obtained by concatenating into a single bit 
+   string the 7 least significant bits of each octet of the SDNV. 
     
    The following examples illustrate the encoding scheme for various 
    hexadecimal values.  
@@ -701,14 +655,6 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 10]
             {100 1010 1} {0 011 1100}  
             = 10010101 00111100 
     
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 11] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    0x1234 : 0001 0010 0011 0100 
           =    1 0010 0011 0100  
             is encoded as 
@@ -731,24 +677,37 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 11]
    (in concept) padded with high-order zero bits to make its bitwise 
    length a multiple of 7 before encoding.  Also note that, while there 
    is no theoretical limit on the size of an SDNV field, the overhead of 
-   the SDNV scheme is 1/8-th of the bitwise length of the value to be 
-   encoded.  In order to encode an 64-bit numeric value, an SDNV field 
-   of 9 octets is required.  128 bits of overhead would be consumed in 
-   encoding a 1024-bit RSA encryption key directly in an SDNV. 
+   the SDNV scheme is 1:7, i.e., one bit of overhead for every 7 bits of 
+   actual data to be encoded.  Thus a 7-octet value (a 56-bit quantity 
+   with no leading zeroes) would be encoded in an 8-octet SDNV; an 8-
+   octet value (a 64-bit quantity with no leading zeroes) would be 
+   encoded in a 10-octet SDNV (one octet containing the high-order bit 
+   of the value padded with six leading zero bits, followed by nine 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 12] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
+   octets containing the remaining 63 bits of the value).  148 bits of 
+   overhead would be consumed in encoding a 1024-bit RSA encryption key 
+   directly in an SDNV.  In general, an N-bit quantity with no leading 
+   zeroes is encoded in an SDNV occupying ceil(N/7) octets, where ceil 
+   is the integer ceiling function. 
     
    An SDNV can be used to represent both very large and very small 
    integer values.  However, SDNV is clearly not the best way to 
    represent every numeric value.  For example, an SDNV is a poor way to 
    represent an integer whose value typically falls in the range 128 to 
    255.  In general, though, we believe that SDNV representation of 
-   numeric values in bundle headers yields the smallest bundle header 
-   sizes without sacrificing scalability. 
+   numeric values in bundle blocks yields the smallest block sizes 
+   without sacrificing scalability. 
     
 3.5 Endpoint IDs 
     
    The destinations of bundles are bundle endpoints, identified by text 
    strings termed "endpoint IDs" (see section 2.1).  Each endpoint ID 
-   conveyed in any bundle header takes the form of a Uniform Resource 
+   conveyed in any bundle block takes the form of a Uniform Resource 
    Identifier (URI; [RFC3986]).  As such, each endpoint ID can be 
    characterized as having this general structure: 
     
@@ -757,26 +716,18 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 11]
    As used for the purposes of the bundle protocol, neither the length 
    of a scheme name nor the length of an SSP may exceed 1023 bytes. 
     
-   Bundle headers cite a number of endpoint IDs for various purposes of 
+   Bundle blocks cite a number of endpoint IDs for various purposes of 
    the bundle protocol.  Many, though not necessarily all, of the 
-   endpoint IDs referred to in the headers of a given bundle are 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 12] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
-   conveyed in the "dictionary" byte array in the bundle's primary 
-   header.  This array is simply the concatenation of any number of 
-   null-terminated scheme names and SSPs. 
+   endpoint IDs referred to in the blocks of a given bundle are conveyed 
+   in the "dictionary" byte array in the bundle's primary block.  This 
+   array is simply the concatenation of any number of null-terminated 
+   scheme names and SSPs. 
     
    "Endpoint ID references" are used to cite endpoint IDs that are 
    contained in the dictionary; all endpoint ID citations in the primary 
-   bundle header are endpoint ID references, and other bundle headers 
-   may contain endpoint ID references as well.  Each endpoint ID 
-   reference is an ordered pair of 16-bit unsigned integers: 
+   bundle block are endpoint ID references, and other bundle blocks may 
+   contain endpoint ID references as well.  Each endpoint ID reference 
+   is an ordered pair of 16-bit unsigned integers: 
      
       o The offset, within the dictionary, of the first character of 
         the referenced endpoint ID's scheme name. 
@@ -784,11 +735,17 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 12]
       o The offset, within the dictionary, of the first character of 
         the referenced endpoint ID's SSP. 
  
-   This encoding enables a degree of header compression: when the source 
+   This encoding enables a degree of block compression: when the source 
    and report-to of a bundle are the same endpoint, for example, the 
    text of that endpoint's ID may be cited twice yet appear only once in 
    the dictionary. 
     
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 13] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    The scheme identified by the <scheme name> in an endpoint ID is a set 
    of syntactic and semantic rules that fully explain how to parse and 
    interpret the SSP.  The set of allowable schemes is effectively 
@@ -800,38 +757,57 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 12]
         representation of the null endpoint ID "dtn:none".  The 
         forwarding of a bundle to the null endpoint is never 
         contraindicated, and the minimum reception group for the null 
-        endpoint is the empty set.  
+        endpoint is the empty set. 
     
-   Note that, although the endpoint IDs conveyed in bundle headers are 
+   Note that, although the endpoint IDs conveyed in bundle blocks are 
    expressed as URIs, implementations of the BP service interface may 
    support expression of endpoint IDs in some internationalized manner 
-   (e.g., IRIs; see RFC 3987).  
+   (e.g., IRIs; see RFC 3987). 
     
-3.6 Formats of Bundle Headers 
+3.6 Formats of Bundle Blocks 
     
-   This section describes the formats of the primary header and payload 
-   header.  Rules for processing these headers appear in section 4 of 
-   this document. 
+   This section describes the formats of the primary block and payload 
+   block.  Rules for processing these blocks appear in section 4 of this 
+   document. 
     
    Note that supplementary DTN protocol specifications (including, but 
-   not restricted to, the Bundle Security Protocol) may require that BP 
-   implementations conforming to those protocols construct and process 
-   additional headers. 
+   not restricted to, the Bundle Security Protocol [5]) may require that 
+   BP implementations conforming to those protocols construct and 
+   process additional blocks. 
     
-   The format of the two basic BP headers is shown in Figure 2 below. 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 13] 
+   The format of the two basic BP blocks is shown in Figure 2 below. 
 
 
-Internet Draft      Bundle Protocol Specification      November 2005 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
  
-Primary Bundle Header 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 14] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
+Primary Bundle Block 
 +----------------+----------------+----------------+----------------+ 
 |    Version     |  Proc. Flags   |   COS Flags    |   SRR Flags    | 
 +----------------+----------------+----------------+----------------+ 
-|                          [Header length (*)]                      | 
+|                          [Block length (*)]                      | 
 +----------------+----------------+---------------------------------+ 
 |   Destination scheme offset     |     Destination SSP offset      | 
 +----------------+----------------+----------------+----------------+ 
@@ -858,9 +834,9 @@ Primary Bundle Header
     
     
     
-Bundle Payload Header 
+Bundle Payload Block 
 +----------------+----------------+----------------+----------------+ 
-|  Header type   |  Proc. Flags   |        Header length(*****)     | 
+|  Block type   |  Proc. Flags   |        Block length(*****)     | 
 +----------------+----------------+----------------+----------------+ 
 |                                                                   | 
 |                     Bundle Payload (variable)                     | 
@@ -870,48 +846,46 @@ Bundle Payload Header
 |                                                                   | 
 +-------------------------------------------------------------------+ 
     
-                 Figure 2:   Bundle header formats. 
+                 Figure 2:   Bundle block formats. 
    Notes: 
     
-   (*)  The header length field of the Primary Bundle Header is an SDNV 
+   (*)  The block length field of the Primary Bundle Block is an SDNV 
    and is therefore variable-length.  A four-octet SDNV is shown here 
    for convenience in representation. 
     
-   (**)  The dictionary length field of the Primary Bundle Header is an 
+   (**)  The dictionary length field of the Primary Bundle Block is an 
  
  
-K. Scott and S. Burleigh      Expires - May 2006          [Page 14] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 15] 
+Internet Draft      Bundle Protocol Specification        August 2006 
  
  
    SDNV and is therefore variable-length.  A four-octet SDNV is shown 
    here for convenience in representation. 
     
-   (***)  The fragment offset field of the Primary Bundle Header is 
-   present only if the Fragment flag in the header's processing flags 
+   (***)  The fragment offset field of the Primary Bundle Block is 
+   present only if the Fragment flag in the block's processing flags 
    byte is set to 1.  It is an SDNV and is therefore variable-length; a 
    four-octet SDNV is shown here for convenience in representation. 
     
    (****)  The total application data unit length field of the Primary 
-   Bundle Header is present only if the Fragment flag in the header's 
+   Bundle Block is present only if the Fragment flag in the block's 
    processing flags byte is set to 1.  It is an SDNV and is therefore 
    variable-length; a four-octet SDNV is shown here for convenience in 
    representation. 
     
-   (*****)  The header length field of the Payload Header is an SDNV and 
+   (*****)  The block length field of the Payload Block is an SDNV and 
    is therefore variable-length.  A two-octet SDNV is shown here for 
    convenience in representation. 
     
-3.6.1 Primary Bundle Header 
+3.6.1 Primary Bundle Block 
     
-   The primary bundle header contains the basic information needed to 
+   The primary bundle block contains the basic information needed to 
    route bundles to their destinations.  The fields of the primary 
-   bundle header are: 
+   bundle block are: 
     
    Version.  A 1-byte field indicating the version of the bundle 
-          protocol that constructed this header.  The present document 
+          protocol that constructed this block.  The present document 
           describes version 0x04 of the bundle protocol. 
     
    Bundle Processing Control Flags.  The Bundle Processing Control Flags 
@@ -925,7 +899,7 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 14]
           bulk, 01 = normal, 10 = expedited, 11 is reserved for future 
           use. 
     
-   Status Report Request Flags.  The status report request flags 
+   Status Report Request Flags.  The status report request (SRR) flags 
           indicate the source node's requests for bundle status report 
           generation.  If the bundle processing control flags indicate 
           that the bundle's application data unit is an administrative 
@@ -939,38 +913,34 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 14]
 
  
  
-K. Scott and S. Burleigh      Expires - May 2006          [Page 15] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 16] 
+Internet Draft      Bundle Protocol Specification        August 2006 
  
  
          Table 1: Status Report Request Flag Meanings 
     
-         +---------+--------------------------------------------+ 
-         |  Value  |                  Meaning                   | 
-         +=========+============================================+ 
-         |   0x00  |  No status reports requested.              | 
-         +---------+--------------------------------------------+ 
-         |   0x01  |  Request reporting of bundle reception.    | 
-         +---------+--------------------------------------------+ 
-         |   0x02  |  Request reporting of custody acceptance.  | 
-         +---------+--------------------------------------------+ 
-         |   0x04  |  Request reporting of bundle forwarding.   | 
-         +---------+--------------------------------------------+ 
-         |   0x08  |  Request reporting of bundle delivery.     | 
-         +---------+--------------------------------------------+ 
-         |   0x10  |  Request reporting of bundle deletion.     | 
-         +---------+--------------------------------------------+ 
-         |   0x20  |  Request acknowledgement by application.   | 
-         +---------+--------------------------------------------+ 
-         |   0x40  |  Unused.                                   | 
-         +---------+--------------------------------------------+ 
-         |   0x80  |  Unused.                                   | 
-         +---------+--------------------------------------------+ 
+         +----------+--------------------------------------------+ 
+         |  Value   |                  Meaning                   | 
+         +==========+============================================+ 
+         | 00000001 |  Request reporting of bundle reception.    | 
+         +----------+--------------------------------------------+ 
+         | 00000010 |  Request reporting of custody acceptance.  | 
+         +----------+--------------------------------------------+ 
+         | 00000100 |  Request reporting of bundle forwarding.   | 
+         +----------+--------------------------------------------+ 
+         | 00001000 |  Request reporting of bundle delivery.     | 
+         +----------+--------------------------------------------+ 
+         | 00010000 |  Request reporting of bundle deletion.     | 
+         +----------+--------------------------------------------+ 
+         | 00100000 |  Unused.                                   | 
+         +----------+--------------------------------------------+ 
+         | 01000000 |  Unused.                                   | 
+         +----------+--------------------------------------------+ 
+         | 10000000 |  Unused.                                   | 
+         +----------+--------------------------------------------+ 
     
-   Header Length.  The Header Length field is an SDNV that contains the 
-          aggregate length of all remaining fields of the header. 
+   Block Length.  The Block Length field is an SDNV that contains the 
+          aggregate length of all remaining fields of the block. 
     
    Destination Scheme Offset.  The Destination Scheme Offset field 
           contains the offset within the dictionary byte array of the 
@@ -996,16 +966,14 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 15]
           the offset within the dictionary byte array of the scheme name 
           of the ID of the endpoint to which status reports pertaining 
           to the forwarding and delivery of this bundle are to be 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 16] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
           transmitted. 
     
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 17] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    Report-to SSP Offset.  The Report-to SSP Offset field contains the 
           offset within the dictionary byte array of the scheme-specific 
           part of the ID of the endpoint to which status reports 
@@ -1013,7 +981,7 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 16]
           to be transmitted. 
     
    Custodian Scheme Offset.  The "current custodian endpoint ID" of a 
-          primary bundle header identifies an endpoint whose membership 
+          primary bundle block identifies an endpoint whose membership 
           includes the node that most recently accepted custody of the 
           bundle upon forwarding this bundle.  The Custodian Scheme 
           Offset field contains the offset within the dictionary byte 
@@ -1055,53 +1023,99 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 16]
           contains the length of the dictionary byte array. 
     
    Dictionary.  The Dictionary field is an array of bytes formed by 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 17] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
           concatenating the null-terminated scheme names and SSPs of all 
-          endpoint IDs referenced by any fields in this Primary Header 
+          endpoint IDs referenced by any fields in this Primary Block 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 18] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
           together with, potentially, other endpoint IDs referenced by 
-          fields in other TBD DTN protocol headers.  Its length is given 
+          fields in other TBD DTN protocol blocks.  Its length is given 
           by the value of the Dictionary Length field. 
     
    Fragment Offset.  If the Bundle Processing Control Flags of this 
-          Primary header indicate that the bundle is a fragment, then 
-          the Fragment Offset field is an SDNV indicating the offset 
-          from the start of the original application data unit at which 
-          the bytes comprising the payload of this bundle were located.  
-          If not, then the Fragment Offset field is omitted from the 
-          header. 
+          Primary block indicate that the bundle is a fragment, then the 
+          Fragment Offset field is an SDNV indicating the offset from 
+          the start of the original application data unit at which the 
+          bytes comprising the payload of this bundle were located.  If 
+          not, then the Fragment Offset field is omitted from the block. 
     
    Total Application Data Unit Length.  If the Bundle Processing Control 
-          Flags of this Primary header indicate that the bundle is a 
+          Flags of this Primary block indicate that the bundle is a 
           fragment, then the Total Application Data Unit Length field is 
           an SDNV indicating the total length of the original 
           application data unit of which this bundle's payload is a 
           part.  If not, then the Total Application Data Unit Length 
-          field is omitted from the header. 
+          field is omitted from the block. 
  
-3.6.2 Bundle Payload Header 
+3.6.2 Bundle Payload Block 
     
-   The fields of the bundle payload header are: 
+   The fields of the bundle payload block are: 
     
-   Header Type.  The Header Type field is a 1-byte field that indicates 
-          the type of the header.  For the bundle payload header this 
+   Block Type.  The Block Type field is a 1-byte field that indicates 
+          the type of the block.  For the bundle payload block this 
           field contains the value 1. 
     
-   Header Processing Control Flags.  The Header Processing Control Flags 
-          field is a 1-byte field that contains the header processing 
+   Block Processing Control Flags.  The Block Processing Control Flags 
+          field is a 1-byte field that contains the block processing 
           control flags discussed in section 3.3 above. 
     
-   Header Length.  The Header Length field is an SDNV that contains the 
-          aggregate length of all remaining fields of the header – which 
+   Block Length.  The Block Length field is an SDNV that contains the 
+          aggregate length of all remaining fields of the block – which 
           is to say, the length of the bundle's payload. 
  
    Payload.  The application data carried by this bundle. 
+    
+3.7  Extension Blocks 
+    
+   "Extension blocks" are all blocks other than the primary and payload 
+   blocks.  Because extension blocks are not defined in the Bundle 
+   Protocol specification (the present document), not all nodes 
+   conforming to this specification will necessarily instantiate Bundle 
+   Protocol implementations that include procedures for processing (that 
+   is, recognizing, parsing, acting on, and/or producing) all extension 
+   blocks.  It is therefore possible for a node to receive a bundle that 
+   includes extension blocks which the node cannot process. 
+    
+   Any extension block that contains citations of endpoint IDs that are 
+   contained in the dictionary of the bundle's primary block should have 
+   the "Discard block if it can't be processed" flag set to 1 in the 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 19] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
+   block processing flags element of that extension block. 
+    
+   Any extension block that has neither the "Discard block if it can't 
+   be processed" flag nor the "Discard bundle if block can't be 
+   processed" flag set to 1 in its block processing flags element must 
+   not contain any citations of endpoint IDs that are contained in the 
+   dictionary of the bundle's primary block. 
+    
+   Whenever a bundle is forwarded that contains one or more extension 
+   blocks that could not be processed, the "Block was forwarded without 
+   being processed" flag must be set to 1 within the block processing 
+   flags of each such block.  For each block flagged in this way, the 
+   flag may optionally be cleared (i.e., set to zero) by another node 
+   that subsequently receives the bundle and is able to process that 
+   block; the specifications defining the various extension blocks are 
+   expected to define the circumstances under which this flag may be 
+   cleared, if any. 
+    
+3.8  Dictionary revision 
+    
+   Any of the strings (scheme names and SSPs) in a bundle's dictionary 
+   to which no endpoint ID references in the bundle currently refer may 
+   be removed from the dictionary at the time the bundle is forwarded. 
+    
+   Whenever removal of a string from the dictionary causes the offsets 
+   (within the dictionary byte array) of any other strings to change, 
+   all endpoint ID references that refer to those strings must be 
+   adjusted at the same time. 
     
 4.   Bundle Processing 
     
@@ -1110,18 +1124,10 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 17]
    Application Agent administrative element of each bundle node.  They 
    are neither exhaustive nor exclusive.  That is, supplementary DTN 
    protocol specifications (including, but not restricted to, the Bundle 
-   Security Protocol) may require that additional measures be taken at 
-   specified junctures in these procedures.  Such additional measures 
+   Security Protocol [5]) may require that additional measures be taken 
+   at specified junctures in these procedures.  Such additional measures 
    shall not override or supersede the mandated bundle protocol 
    procedures, except that they may in some cases make these procedures 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 18] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    moot by requiring, for example, that implementations conforming to 
    the supplementary protocol terminate the processing of a given 
    incoming or outgoing bundle due to a fault condition recognized by 
@@ -1133,6 +1139,12 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 18]
    transmission requests presented by nodes' application agents.  When 
    required to "generate" an administrative record (a bundle status 
    report or a custody signal), the bundle protocol agent itself is 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 20] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    responsible for causing a new bundle to be transmitted, conveying 
    that record.  In concept, the bundle protocol agent discharges this 
    responsibility by directing the administrative element of the node's 
@@ -1140,7 +1152,7 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 18]
    transmission as detailed in section 5 below; in practice, the manner 
    in which administrative record generation is accomplished is an 
    implementation matter, provided the constraints noted in section 5 
-   are observed.   
+   are observed. 
     
    Notes on administrative record terminology: 
     
@@ -1159,28 +1171,17 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 18]
    e. A "bundle deletion status report" is a bundle status report with 
    the "reporting node deleted the bundle" flag set to 1. 
     
-   f. An "acknowledgement status report" is a bundle status report with 
-   the "acknowledged by application" flag set to 1. 
-    
-   g. A "Succeeded" custody signal is a custody signal with the "custody 
+   f. A "Succeeded" custody signal is a custody signal with the "custody 
    transfer succeeded" flag set to 1.    
     
-   h. A "Failed" custody signal is a custody signal with the "custody 
+   g. A "Failed" custody signal is a custody signal with the "custody 
    transfer succeeded" flag set to zero. 
     
-   i. The "current custodian" of a bundle is the endpoint identified by 
-   the current custodian endpoint ID in the bundle's primary header. 
+   h. The "current custodian" of a bundle is the endpoint identified by 
+   the current custodian endpoint ID in the bundle's primary block. 
     
 4.2 Bundle transmission 
     
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 19] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    The steps in processing a bundle transmission request are: 
     
    Step 1: If custody transfer is requested for this bundle transmission 
@@ -1188,8 +1189,19 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 19]
       then either the bundle protocol agent must commit to accepting 
       custody of the bundle – in which case processing proceeds from 
       Step 2 - or else the request cannot be honored and all remaining 
-      steps of this procedure must be skipped. 
+      steps of this procedure must be skipped.  The bundle protocol 
+      agent must not commit to accepting custody of a bundle if the 
+      conditions under which custody of the bundle may be accepted are 
+      not satisfied.  The conditions under which a node may accept 
+      custody of a bundle whose destination is not a singleton endpoint 
+      are not defined in this specification.  
     
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 21] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    Step 2: Transmission of the bundle is initiated.  An outbound bundle 
       must be created per the parameters of the bundle transmission 
       request, with current custodian endpoint ID set to the null 
@@ -1232,14 +1244,6 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 19]
         this document.  If the agent finds it impossible to select any 
         endpoint(s) to forward the bundle to, then forwarding is 
         contraindicated. 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 20] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
     
      o Provided the bundle protocol agent succeeded in selecting the 
         endpoint(s) to forward the bundle to, the bundle protocol agent 
@@ -1249,6 +1253,12 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 20]
         in which the appropriate convergence layer adapters are 
         selected may depend on the scheme name in the destination 
         endpoint ID but in any case is beyond the scope of this 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 22] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
         document.  If the agent finds it impossible to select 
         convergence layer adapters to use in forwarding this bundle, 
         then forwarding is contraindicated. 
@@ -1276,9 +1286,9 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 20]
       sending procedures with regard to this bundle: 
     
       o  If the "request reporting of bundle forwarding" flag in the 
-          bundle's class of service field is set to 1, then a bundle 
-          forwarding status report must be generated, destined for the 
-          bundle's report-to endpoint ID.  If the bundle has the 
+          bundle's status report request field is set to 1, then a 
+          bundle forwarding status report must be generated, destined 
+          for the bundle's report-to endpoint ID.  If the bundle has the 
           retention constraint "custody accepted" and all of the nodes 
           in the minimum reception group of the endpoint selected for 
           forwarding are known to be unable to send bundles back to this 
@@ -1291,23 +1301,21 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 20]
     
 4.4.1 Forwarding Contraindicated 
     
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 21] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    The steps in responding to contraindication of forwarding for some 
    reason are: 
     
    Step 1: The bundle protocol agent must determine whether or not to 
       declare failure in forwarding the bundle for this reason.  Note: 
       this decision is likely to be influenced by the reason for which 
-      forwarding is contraindicated.  
+      forwarding is contraindicated. 
     
    Step 2: If forwarding failure is declared, then the Forwarding Failed 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 23] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
       procedure defined in 4.4.2 must be followed.  Otherwise, (a) if 
       the bundle's custody transfer requested flag (in the bundle 
       processing flags field) is set to 1 then the custody transfer 
@@ -1345,19 +1353,11 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 21]
     
    A bundle expires when the current time is greater than the bundle's 
    creation time plus its lifetime as specified in the primary bundle 
-   header.  Bundle expiration may occur at any point in the processing 
+   block.  Bundle expiration may occur at any point in the processing 
    of a bundle.  When a bundle expires, the bundle protocol agent must 
    delete the bundle for the reason "lifetime expired": the bundle 
    deletion procedure defined in 4.13 must be followed. 
     
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 22] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
 4.6 Bundle reception 
     
    The steps in processing a bundle received from another node are: 
@@ -1366,24 +1366,43 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 22]
       the bundle. 
     
    Step 2: If the "request reporting of bundle reception" flag in the 
-      bundle's class of service field is set to 1, then a bundle 
+      bundle's status report request field is set to 1, then a bundle 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 24] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
       reception status report with reason code "No additional 
       information" must be generated, destined for the bundle's report-
       to endpoint ID. 
     
-   Step 3: If any header in the bundle cannot be processed: 
+   Step 3: For each block in the bundle that is an extension block that 
+      the bundle protocol agent cannot process: 
     
-      o  If the header processing flags in the header indicate that a 
+      o  If the block processing flags in that block indicate that a 
           status report must be generated in this event, then a bundle 
-          reception status report with reason code "Header 
+          reception status report with reason code "Block 
           unintelligible" must be generated, destined for the bundle's 
           report-to endpoint ID. 
      
-     o  If the header processing flags in that header indicate that 
-          the bundle must be discarded in this event, then the bundle 
-          protocol agent must delete the bundle for the reason "Header 
-          unintelligible": the bundle deletion procedure defined in 4.13 
-          must be followed.  Otherwise, processing proceeds from Step 4. 
+     o  If the block processing flags in that block indicate that the 
+          bundle must be discarded in this event, then the bundle 
+          protocol agent must delete the bundle for the reason "Block 
+          unintelligible"; the bundle deletion procedure defined in 4.13 
+          must be followed and all remaining steps of the bundle 
+          reception procedure must be skipped. 
+     
+     o  If the block processing flags in that block do NOT indicate 
+          that the bundle must be discarded in this event but do 
+          indicate that the block must be discarded, then the bundle 
+          protocol agent must remove this block from the bundle. 
+     
+     o  If the block processing flags in that block indicate NEITHER 
+          that the bundle must be discarded NOR that the block must be 
+          discarded, then the bundle protocol agent must set to 1 the 
+          "Block was forwarded without being processed" flag in the 
+          block processing flags of the block. 
     
    Step 4: If the bundle's custody transfer requested flag (in the 
       bundle processing flags field) is set to 1 and the bundle has the 
@@ -1405,18 +1424,16 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 22]
     
 4.7 Local bundle delivery 
       
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 25] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    The steps in processing a bundle that is destined for an endpoint of 
    which this node is a member are: 
     
    Step 1: If the received bundle is a fragment, the application data 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 23] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
       unit reassembly procedure described in 4.9 must be followed.  If 
       this procedure results in reassembly of the entire original 
       application data unit, processing of this bundle (whose 
@@ -1440,10 +1457,10 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 23]
    Step 3: As soon as the bundle has been delivered: 
     
       o  If the "request reporting of bundle delivery" flag in the 
-          bundle's class of service field is set to 1, then a bundle 
-          delivery status report must be generated, destined for the 
-          bundle's report-to endpoint ID.  Note that this status report 
-          only states that the payload has been delivered to the 
+          bundle's status report request field is set to 1, then a 
+          bundle delivery status report must be generated, destined for 
+          the bundle's report-to endpoint ID.  Note that this status 
+          report only states that the payload has been delivered to the 
           application agent, not that the application agent has 
           processed that payload. 
     
@@ -1465,24 +1482,23 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 23]
    accessible only via intermittent contacts and no upcoming contact is 
    long enough to enable the forwarding of the entire bundle. 
     
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 26] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    The size of a bundle can be reduced by "fragmenting" the bundle.  To 
    fragment a bundle whose payload is of size M is to replace it with 
    two "fragments" – new bundles with the same source endpoint ID and 
    creation timestamp as the original bundle – whose payloads are the 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 24] 
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    first N and the last (M – N) bytes of the original bundle's payload, 
    where 0 < N < M.  Note that fragments may themselves be fragmented, 
    so fragmentation may in effect replace the original bundle with more 
    than two fragments.  (However, there is only one 'level' of 
    fragmentation, as in IP fragmentation.) 
     
-   Any bundle whose primary header's bundle processing flags do NOT 
+   Any bundle whose primary block's bundle processing flags do NOT 
    indicate that it must not be fragmented may be fragmented at any 
    time, for any purpose, at the discretion of the bundle protocol 
    agent. 
@@ -1496,20 +1512,20 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 24]
         different parts of the network, may be overlapping subsets of 
         the original bundle's payload. 
       
-     o  The bundle processing flags in the primary header of each 
+     o  The bundle processing flags in the primary block of each 
         fragment must be modified to indicate that the bundle is a 
         fragment, and both fragment offset and total application data 
         unit length must be provided at the end of each fragment's 
-        primary bundle header. 
+        primary bundle block. 
       
-      o All fragments must contain the same headers as the original 
-        bundle, except that (a) the primary headers of the fragments 
+      o All fragments must contain the same blocks as the original 
+        bundle, except that (a) the primary blocks of the fragments 
         will differ from that of the fragmented bundle as noted above, 
-        (b) the payload headers of fragments will differ from that of 
-        the fragmented bundle, and (c) any header whose header 
-        processing flags do NOT indicate that the header must be 
-        replicated in every fragment should be replicated only in the 
-        fragment whose fragment offset is zero.  
+        (b) the payload blocks of fragments will differ from that of 
+        the fragmented bundle, and (c) any block whose block processing 
+        flags do NOT indicate that the block must be replicated in 
+        every fragment should be replicated only in the fragment whose 
+        fragment offset is zero.  
    
 4.9 Application Data Unit Reassembly 
     
@@ -1518,23 +1534,21 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 24]
   the same source endpoint ID and creation timestamp as this fragment, 
   together with the payload of this fragment, forms a byte array whose 
   length is equal to the total application data unit length in the 
-  fragment's primary header, then: 
+  fragment's primary block, then: 
    
      o  This byte array – the reassembled application data unit – must 
         replace the payload of this fragment. 
       
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 27] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
      o  The "Reassembly pending" retention constraint must be removed 
         from every other fragment whose payload is a subset of the 
         reassembled application data unit. 
     
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 25] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
   Note: reassembly of application data units from fragments occurs at 
   destination endpoints as necessary; an application data unit may also 
   be reassembled at some other endpoint on the route to the 
@@ -1551,7 +1565,7 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 25]
   may involve both resource and policy considerations; however, if the 
   bundle protocol agent has committed to accepting custody of the 
   bundle (as described in Step 1 of 4.2) then custody must be accepted. 
-      
+    
   If the bundle protocol agent elects to accept custody of the bundle, 
   then it must follow the custody acceptance procedure defined in 
   4.10.1. 
@@ -1569,7 +1583,7 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 25]
   bundle. 
    
   If the "request custody acceptance reporting" flag in the bundle's 
-  class of service field is set to 1, a custody acceptance status 
+  status report request field is set to 1, a custody acceptance status 
   report must be generated, destined for the report-to endpoint ID of 
   the bundle.  However, if a bundle reception status report was 
   generated for this bundle (step 1 of 4.6) then this report should be 
@@ -1581,19 +1595,18 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 25]
    
   The bundle protocol agent must assert the new current custodian for 
   the bundle.  It does so by changing the current custodian endpoint ID 
-  in the bundle's primary header to the endpoint ID of one of the 
+  in the bundle's primary block to the endpoint ID of one of the 
   singleton endpoints in which the node is registered.  This may entail 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 28] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
   appending that endpoint ID's null-terminated scheme name and SSP to 
-  the dictionary byte array in the bundle's primary header, and in some 
+  the dictionary byte array in the bundle's primary block, and in some 
   case it may also enable the (optional) removal of the current 
   custodian endpoint ID's scheme name and/or SSP from the dictionary. 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 26] 
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    
   The bundle protocol agent may set a custody transfer countdown timer 
   for this bundle; upon expiration of this timer prior to expiration of 
@@ -1642,17 +1655,16 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 26]
    failure was inferred from expiration of a custody transfer timer or 
    was asserted by a "Failed" custody signal with the "Depleted storage" 
    reason code, the bundle protocol agent might choose to re-forward the 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 29] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    bundle, possibly on a different route (section 4.4).  Receipt of a 
    "Failed" custody signal with the "Redundant reception" reason code, 
    on the other hand, might cause the bundle protocol agent to release 
    custody of the bundle and to revise its algorithm for computing 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 27] 
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    countdown intervals for custody transfer timers. 
    
 4.13 Bundle deletion 
@@ -1670,9 +1682,9 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 27]
           endpoint ID. 
     
       Otherwise, if the "request reporting of bundle deletion" flag in 
-      the bundle's class of service field is set to 1, then a bundle 
-      deletion status report citing the reason for deletion must be 
-      generated, destined for the bundle's report-to endpoint ID. 
+      the bundle's status report request field is set to 1, then a 
+      bundle deletion status report citing the reason for deletion must 
+      be generated, destined for the bundle's report-to endpoint ID. 
     
    Step 2: All of the bundle's retention constraints must be removed. 
    
@@ -1696,27 +1708,19 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 27]
    recently received bundle that is deliverable subject to the indicated 
    registration, if any. 
     
-4.17 Acknowledging an application data unit 
-    
-   When requested to acknowledge to an indicated report-to endpoint the 
-   bundle transmission request identified by an indicated source 
-   endpoint ID and bundle creation timestamp, the bundle protocol agent 
-   must generate an acknowledgement status report for that transmission 
-   request, destined for that report-to-endpoint. 
- 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 28] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
 5.   Administrative record processing 
     
 5.1 Administrative records 
     
-   Two types of administrative records have been defined to date: bundle 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 30] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
+   Administrative records are standard application data units that are 
+   used in providing some of the features of the Bundle Protocol.  Two 
+   types of administrative records have been defined to date: bundle 
    status reports and custody signals. 
     
    Every administrative record consists of a four-bit record type code 
@@ -1729,9 +1733,9 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 28]
          +---------+--------------------------------------------+ 
          |  Value  |                  Meaning                   | 
          +=========+============================================+ 
-         |  0x01   |  Bundle status report.                     | 
+         |  0001   |  Bundle status report.                     | 
          +---------+--------------------------------------------+ 
-         |  0x02   |  Custody signal.                           | 
+         |  0010   |  Custody signal.                           | 
          +---------+--------------------------------------------+ 
          | (other) |  Reserved for future use.                  | 
          +---------+--------------------------------------------+ 
@@ -1743,7 +1747,7 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 28]
          +---------+--------------------------------------------+ 
          |  Value  |                  Meaning                   | 
          +=========+============================================+ 
-         |  0x01   |  Record is for a fragment; fragment        | 
+         |  0001   |  Record is for a fragment; fragment        | 
          |         |  offset and length fields are present.     | 
          +---------+--------------------------------------------+ 
          | (other) |  Reserved for future use.                  | 
@@ -1763,20 +1767,71 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 28]
     
    The transmission of 'bundle status reports' under specified 
    conditions is an option that can be invoked when transmission of a 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 29] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    bundle is requested.  These reports are intended to provide 
    information about how bundles are progressing through the system, 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 31] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    including notices of receipt, custody transfer, forwarding, final 
    delivery, and deletion.  They are transmitted to the Report-to 
    endpoints of bundles. 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 32] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    Format of Bundle Status Report for bundle 'X': 
     
 +----------------+----------------+----------------+----------------+ 
@@ -1805,10 +1860,6 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 29]
                                                                     | 
 +----------------+----------------+----------------+----------------+ 
 |                                                                    
-+     Time of acknowledgement of bundle X (8 bytes, if present)     + 
-                                                                    | 
-+----------------+----------------+----------------+----------------+ 
-|                                                                    
 +           Copy of bundle X's Creation Timestamp (8 bytes)         + 
                                                                     | 
 +----------------+----------------+----------------+----------------+ 
@@ -1822,14 +1873,6 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 29]
     
    (*)  The Fragment Offset field, if present, is an SDNV and is 
    therefore variable-length.  A three-octet SDNV is shown here for 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 30] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    convenience in representation. 
     
    (**)  The Fragment Length field, if present, is an SDNV and is 
@@ -1839,6 +1882,13 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 30]
    (***)  The source endpoint ID length field is an SDNV and is 
    therefore variable-length.  A three-octet SDNV is shown here for 
    convenience in representation. 
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 33] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
     
    The fields in a bundle status report are: 
     
@@ -1846,31 +1896,31 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 30]
     
          Table 4: Status Flags for Bundle Status Reports 
     
-         +---------+--------------------------------------------+ 
-         |  Value  |                  Meaning                   | 
-         +=========+============================================+ 
-         |  0x01   |  Reporting node received bundle.           | 
-         +---------+--------------------------------------------+ 
-         |  0x02   |  Reporting node accepted custody of bundle.| 
-         +---------+--------------------------------------------+ 
-         |  0x04   |  Reporting node forwarded the bundle.      | 
-         +---------+--------------------------------------------+ 
-         |  0x08   |  Reporting node delivered the bundle.      | 
-         +---------+--------------------------------------------+ 
-         |  0x10   |  Reporting node deleted the bundle.        | 
-         +---------+--------------------------------------------+ 
-         |  0x20   |  Acknowledged by application.              | 
-         +---------+--------------------------------------------+ 
-         |  0x40   |  Unused.                                   | 
-         +---------+--------------------------------------------+ 
-         |  0x80   |  Unused.                                   | 
-         +---------+--------------------------------------------+ 
+         +----------+--------------------------------------------+ 
+         |  Value   |                  Meaning                   | 
+         +==========+============================================+ 
+         | 00000001 |  Reporting node received bundle.           | 
+         +----------+--------------------------------------------+ 
+         | 00000010 |  Reporting node accepted custody of bundle.| 
+         +----------+--------------------------------------------+ 
+         | 00000100 |  Reporting node forwarded the bundle.      | 
+         +----------+--------------------------------------------+ 
+         | 00001000 |  Reporting node delivered the bundle.      | 
+         +----------+--------------------------------------------+ 
+         | 00010000 |  Reporting node deleted the bundle.        | 
+         +----------+--------------------------------------------+ 
+         | 00100000 |  Unused.                                   | 
+         +----------+--------------------------------------------+ 
+         | 01000000 |  Unused.                                   | 
+         +----------+--------------------------------------------+ 
+         | 10000000 |  Unused.                                     | 
+         +----------+--------------------------------------------+ 
     
    Reason code.  A 1-byte field explaining the value of the flags in the 
           status flags byte.  The list of status report reason codes 
           provided here is neither exhaustive nor exclusive; 
           supplementary DTN protocol specifications (including, but not 
-          restricted to, the Bundle Security Protocol) may define 
+          restricted to, the Bundle Security Protocol [5]) may define 
           additional reason codes.  Status report reason codes are 
           defined as follows: 
 
@@ -1881,12 +1931,19 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 30]
 
 
 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 31] 
 
 
-Internet Draft      Bundle Protocol Specification      November 2005 
+
+
+
+
+
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 34] 
+Internet Draft      Bundle Protocol Specification        August 2006 
  
  
     
@@ -1911,7 +1968,7 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 31]
          +---------+--------------------------------------------+ 
          |  0x07   |  No timely contact with next node on route.| 
          +---------+--------------------------------------------+ 
-         |  0x08   |  Header unintelligible.                    | 
+         |  0x08   |  Block unintelligible.                    | 
          +---------+--------------------------------------------+ 
          | (other) |  Reserved for future use.                  | 
          +---------+--------------------------------------------+ 
@@ -1942,10 +1999,8 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 31]
  
  
  
-K. Scott and S. Burleigh      Expires - May 2006          [Page 32] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 35] 
+Internet Draft      Bundle Protocol Specification        August 2006 
  
  
    Time of Delivery (if present).  If the bundle-delivered bit is set in 
@@ -1956,11 +2011,6 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 32]
    Time of Deletion (if present).  If the bundle-deleted bit is set in 
           the status flags, then a DTN time indicating the time at which 
           the bundle was deleted at the reporting node is included here. 
-    
-   Time of Acknowledgement (if present).  If the bundle-acknowledged-by-
-          application bit is set in the status flags, then a DTN time 
-          indicating the time at which the bundle was acknowledged by 
-          the application at the reporting node is included here. 
     
    Creation Timestamp of Subject Bundle.  A copy of the creation 
           timestamp of the bundle that caused the status report to be 
@@ -1981,32 +2031,6 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 32]
     
    Custody signals have the following format. 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 33] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    Custody Signal regarding bundle 'X': 
     
 +----------------+----------------+----------------+----------------+ 
@@ -2030,6 +2054,12 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 33]
    Notes: 
     
    (*)  The Fragment Offset field, if present, is an SDNV and is 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 36] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    therefore variable-length.  A three-octet SDNV is shown here for 
    convenience in representation. 
     
@@ -2046,26 +2076,6 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 33]
    Status.  A 1-byte field containing a 1-bit "custody transfer 
    succeeded" flag followed by a 7-bit reason code explaining the value 
    of that flag.  Custody signal reason codes are defined as follows: 
-
-
-
-
-
-
-
-
-
-
-
-
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 34] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
     
          Table 6: Custody Signal Reason Codes 
     
@@ -2089,7 +2099,7 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 34]
          +---------+--------------------------------------------+ 
          |  0x07   |  No timely contact with next node on route.| 
          +---------+--------------------------------------------+ 
-         |  0x08   |  Header unintelligible.                    | 
+         |  0x08   |  Block unintelligible.                    | 
          +---------+--------------------------------------------+ 
          | (other) |  Reserved for future use.                  | 
          +---------+--------------------------------------------+ 
@@ -2101,6 +2111,12 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 34]
     
    Fragment length.  If the bundle fragment bit is set in the status 
           flags, then the length of the payload of the subject bundle is 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 37] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
           included here. 
     
    Time of Signal.  A DTN time indicating the time at which the signal 
@@ -2117,14 +2133,6 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 34]
     
 5.2 Generation of administrative records 
     
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 35] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    Whenever the application agent's administrative element is directed 
    by the bundle protocol agent to generate an administrative record 
    with reference to some bundle, the following procedure must be 
@@ -2160,11 +2168,17 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 35]
     
    The successful operation of the end-to-end bundle protocol depends on 
    the  operation  of  underlying  protocols  at  what  is  termed  the 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 38] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    "convergence layer"; these protocols accomplish communication between 
    nodes.  A wide variety of protocols may serve this purpose, so long 
    as each convergence layer protocol adapter provides a defined minimal 
    set of services to the bundle protocol agent.  This convergence layer 
-   service specification enumerates those services.     
+   service specification enumerates those services. 
     
 6.2 Summary of Convergence Layer Services 
     
@@ -2176,20 +2190,12 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 35]
         that are reachable via the convergence layer protocol; 
     
       b) delivering to the bundle protocol agent a bundle that was sent 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 36] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
         by a remote bundle node via the convergence layer protocol. 
     
    The convergence layer service interface specified here is neither 
    exhaustive nor exclusive.  That is, supplementary DTN protocol 
    specifications (including, but not restricted to, the Bundle Security 
-   Protocol) may expect convergence layer adapters which serve BP 
+   Protocol [5]) may expect convergence layer adapters which serve BP 
    implementations conforming to those protocols to provide additional 
    services. 
     
@@ -2219,6 +2225,12 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 36]
    ensuring confidentiality of the data as it traverses the network.  
    Without integrity, the bundle payload data might be corrupted while 
    in transit without the destination able to detect it.  Similarly, the 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 39] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
    data source can be concerned with ensuring that the data can only be 
    used by those authorized; hence the need for confidentiality. 
     
@@ -2230,48 +2242,52 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 36]
    As a result, bundle security is concerned with the authenticity, 
    integrity, and confidentiality of bundles conveyed among bundle 
    nodes.  This is accomplished via the use of three, independent 
-   security specific bundle headers which may be used together to 
-   provide multiple bundle security services or independently of one 
-   another, depending on perceived security threats, mandated security 
-   requirements, and security policies that must be enforced.   
+   security specific bundle blocks which may be used together to provide 
+   multiple bundle security services or independently of one another, 
+   depending on perceived security threats, mandated security 
+   requirements, and security policies that must be enforced. 
     
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 37] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
-   The Bundle Authentication Header (BAH) ensures the authenticity and 
+   The Bundle Authentication Block (BAB) ensures the authenticity and 
    integrity of bundles on a hop-by-hop basis between bundle nodes.  The 
-   BAH allows each bundle node to verify a bundle’s authenticity before 
+   BAB allows each bundle node to verify a bundle’s authenticity before 
    processing or forwarding the bundle.  In this way, entities that are 
    not authorized to send bundles will have unauthorized transmissions 
    blocked by security-aware bundle nodes. 
     
    Additionally, to provide "security-source" to "security-destination" 
-   bundle authenticity and integrity, the Payload Security Header (PSH) 
+   bundle authenticity and integrity, the Payload Security Block (PSB) 
    is used.  A "security-source" may not actually be the origination 
    point of the bundle but instead may be the first point along the path 
    that is security-aware and is able to apply security services.  For 
    example, an enclave of networked systems may generate bundles but 
    only their gateway may be required and/or able to apply security 
-   services.  The PSH allows any security-enabled entity along the 
+   services.  The PSB allows any security-enabled entity along the 
    delivery path, in addition to the "security-destination" (the 
    recipient counterpart to the "security-source"), to ensure the 
-   bundle’s authenticity.   
+   bundle’s authenticity. 
     
    Finally, to provide payload confidentiality, the use of the 
-   Confidentiality Header (CH) is available.  The bundle payload may be 
+   Confidentiality Block (CB) is available.  The bundle payload may be 
    encrypted to provide "security-source" to "security-destination" 
-   payload confidentiality/privacy.  The CH indicates the cryptographic 
+   payload confidentiality/privacy.  The CB indicates the cryptographic 
    algorithm and key IDs that were used to encrypt the payload. 
+    
+   Note that removal of strings from the dictionary at a given point in 
+   a bundle's end-to-end path, and attendant adjustment of endpoint ID 
+   references in the blocks of that bundle, may make it necessary to re-
+   compute values in one or more of the bundle's security blocks.  
     
    Inclusion of the Bundle Security Protocol in any Bundle Protocol 
    implementation is RECOMMENDED.  Use of the Bundle Security Protocol 
    in Bundle Protocol operations is OPTIONAL. 
     
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 40] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
 8. IANA Considerations 
     
    The new Uniform Resource Identifier scheme "dtn", defined by the 
@@ -2294,14 +2310,6 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 37]
     
 10.  Informative References 
     
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 38] 
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    [1] Bradner, S., "Key words for use in RFCs to Indicate Requirement 
        Levels", BCP 14, RFC 2119, March 1997 
     
@@ -2328,39 +2336,74 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 38]
    [8] K. Fall, " A Delay-Tolerant Network Architecture for Challenged 
        Internets", SIGCOMM 2003 
     
+   [9] Abstract Syntax Notation One (ASN.1), "ASN.1 Encoding Rules: 
+       Specification of Basic Encoding Rules (BER), Canonical Encoding 
+       Rules (CER) and Distinguished Encoding Rules (DER)", ITU-T Rec. 
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 41] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
+       X.690 (2002) | ISO/IEC 8825-1:2002 
+    
+Acknowledgements 
+ 
+   The authors gratefully acknowledge the contributions of Dr. Vint Cerf 
+   of Google, Dr. Kevin Fall of Intel Corporation, Michael Demmer of the 
+   University  of  California  at  Berkeley,  Adrian  Hooke  and  Leigh 
+   Torgerson of the Jet Propulsion Laboratory, Stephen Farrell of 
+   Trinity College Dublin, and Robert Durst and Susan Symington of The 
+   MITRE Corporation.  Thanks to Howard Weiss of SPARTA, Inc., for the 
+   text of section 7 and to Manikantan Ramadas of Ohio University for 
+   most  of  the  text  of  section  3.4,  which  is  adapted  from  the 
+   specification for the Licklider Transmission Protocol. 
+    
 Author's Addresses 
     
-   Dr. Keith L. Scott              Scott C. Burleigh 
-   The MITRE Corporation           Jet Propulsion Laboratory 
-   7515 Colshire Drive             4800 Oak Grove Drive 
-   McLean, VA 22102                M/S: 179-206 
-   Telephone  +1 (703) 883-6547    Pasadena, CA 91109-8099 
-   FAX +1 (703) 883-7142           Telephone +1 (818) 393-3353 
-   Email kscott@mitre.org          FAX +1 (818) 354-1075 
-                                   Email Scott.Burleigh@jpl.nasa.gov  
+Dr. Keith L. Scott              Scott C. Burleigh 
+The MITRE Corporation           Jet Propulsion Laboratory 
+7515 Colshire Drive             4800 Oak Grove Drive 
+McLean, VA 22102                M/S: 179-206 
+Telephone  +1  (703)  883-6547 Pasadena, CA 91109-8099 
+FAX +1 (703) 883-7142           Telephone +1 (818) 393-3353 
+Email kscott@mitre.org          FAX +1 (818) 354-1075 
+                                Email Scott.Burleigh@jpl.nasa.gov  
     
    Please refer comments to dtn-interest@mailman.dtnrg.org.  The Delay 
    Tolerant Networking Research Group (DTNRG) web site is located at 
-   http://www.dtnrg.org.  
+   http://www.dtnrg.org. 
  
-Intellectual Property Statement 
-        
+Copyright Notice  
+ 
+   Copyright (C) The Internet Society (2006).  This document is subject 
+   to the rights, licenses and restrictions contained in BCP 78, and 
+   except as set forth therein, the authors retain all their rights. 
+    
+Disclaimer 
+ 
+   This document and the information contained herein are provided on an 
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS 
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET 
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, 
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE 
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED 
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. 
+    
+
+
+ 
+ 
+K. Scott and S. Burleigh      Expires - February 2007     [Page 42] 
+Internet Draft      Bundle Protocol Specification        August 2006 
+ 
+ 
+Intellectual Property 
+    
    The IETF takes no position regarding the validity or scope of any 
    Intellectual Property Rights or other rights that might be claimed to 
    pertain to the implementation or use of the technology described in 
    this document or the extent to which any license under such rights 
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 39] 
-
-
-
-
-
-
-Internet Draft      Bundle Protocol Specification      November 2005 
- 
- 
    might or might not be available; nor does it represent that it has 
    made any independent effort to identify any such rights.  Information 
    on the procedures with respect to rights in RFC documents can be 
@@ -2378,43 +2421,35 @@ K. Scott and S. Burleigh      Expires - May 2006          [Page 39]
    rights that may cover technology that may be required to implement  
    this standard.  Please address the information to the IETF at ietf- 
    ipr@ietf.org. 
-        
-Disclaimer  
- 
-   This document and the information contained herein are provided on an 
-   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS 
-   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET 
-   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, 
-   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE 
-   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED 
-   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. 
     
-Copyright Notice  
+Release Statement 
+   
+  By submitting this Internet-Draft, the authors accept the provisions 
+  of Section 4 of RFC 3667. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
-   Copyright (C) The Internet Society (2005).  This document is subject 
-   to the rights, licenses and restrictions contained in BCP 78, and 
-   except as set forth therein, the authors retain all their rights.   
-        
-Acknowledgements 
  
-   The authors gratefully acknowledge the contributions of Dr. Vint Cerf 
-   of MCI, Dr. Kevin Fall and Michael Demmer of Intel Corporation, 
-   Adrian Hooke and Leigh Torgerson of the Jet Propulsion Laboratory, 
-   Stephen Farrell of Trinity College Dublin, and Robert Durst and Susan 
-   Symington of The MITRE Corporation.  Thanks to Howard Weiss of 
-   SPARTA, Inc., for the text of section 7 and to Manikantan Ramadas of 
-   Ohio University for most of the text of section 3.4, which is adapted 
-   from the specification for the Licklider Transmission Protocol. 
-    
-
-        
-
-
-
-
- 
- 
-K. Scott and S. Burleigh      Expires - May 2006          [Page 40] 
-
-
+K. Scott and S. Burleigh      Expires - February 2007     [Page 43] 
 
