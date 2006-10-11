@@ -29,6 +29,9 @@ in your extensions:
 - Method / function names should have all lowercase letters with words
   separated by underscores: e.g. send_bundle()
 
+- Class member variables should be distinguished from local variables
+  with a trailing underscore, e.g. bundle_.
+
 - Macros and constants should be all capital letters with underscores
   to separate words. e.g. #define MAX_TUPLE_LENGTH 256
 
