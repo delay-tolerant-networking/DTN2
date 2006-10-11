@@ -70,6 +70,7 @@ BundleCommand::BundleCommand()
     add_to_help("dump <id>", "dump a specific bundle");
     add_to_help("dump_tcl <id>", "dump a bundle as a tcl list");
     add_to_help("dump_ascii <id>", "dump the bundle in ascii");
+    add_to_help("expire <id>", "force a specific bundle to expire");
 }
 
 BundleCommand::InjectOpts::InjectOpts()
@@ -248,9 +249,10 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
     } else if (!strcmp(cmd, "info") ||
                !strcmp(cmd, "dump") ||
                !strcmp(cmd, "dump_tcl") ||
-               !strcmp(cmd, "dump_ascii"))
+               !strcmp(cmd, "dump_ascii") ||
+               !strcmp(cmd, "expire"))
     {
-        // bundle [info|dump|dump_ascii] <id>
+        // bundle [info|dump|dump_ascii|expire] <id>
         if (objc != 3) {
             wrong_num_args(objc, objv, 2, 3, 3);
             return TCL_ERROR;
@@ -288,18 +290,22 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             set_objresult(result);
             return ok;
             
-        } else {
+        } else if (strcmp(cmd, "dump_ascii") == 0) {
             size_t len = bundle->payload_.length();
             oasys::HexDumpBuffer buf(len);
             const u_char* bp =
                 bundle->payload_.read_data(0, len, (u_char*)buf.data());
             
-            // XXX/demmer inefficient
             buf.append((const char*)bp, len);
             if (!strcmp(cmd, "dump")) {
                 buf.hexify();
             }
             set_result(buf.c_str());
+
+        } else if (strcmp(cmd, "expire") == 0) {
+            BundleDaemon::instance()->post_at_head(
+                new BundleExpiredEvent(bundle.object()));
+            return TCL_OK;
         }
         
         return TCL_OK;

@@ -757,7 +757,10 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 
     log_info("BUNDLE_EXPIRED *%p", bundle);
 
-    ASSERT(bundle->expiration_timer_ == NULL);
+    // note that there may or may not still be a pending expiration
+    // timer, since this event may be coming from the console, in
+    // which case we just fall through to delete_from_pending which
+    // will cancel the timer
 
     // check if we have custody, if so, remove it
     if (bundle->local_custody_) {
