@@ -998,13 +998,22 @@ void
 BundleDaemon::handle_contact_up(ContactUpEvent* event)
 {
     const ContactRef& contact = event->contact_;
-    log_info("CONTACT_UP *%p (contact %p)", contact->link(), contact.object());
-    
     Link* link = contact->link();
-    ASSERT(link->contact() == contact);
+    
+    //ignore stale notifications that an old contact is up
+    oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_contact_up");
+    if(link->contact() != contact)
+    {
+	log_info("CONTACT_UP *%p (contact %p) being ignored (old contact)", contact->link(), contact.object());
+        return;
+    }
+    
+    log_info("CONTACT_UP *%p (contact %p)", contact->link(), contact.object());
     link->set_state(Link::OPEN);
     link->stats_.contacts_++;
 }
+
+
 
 //----------------------------------------------------------------------
 void
