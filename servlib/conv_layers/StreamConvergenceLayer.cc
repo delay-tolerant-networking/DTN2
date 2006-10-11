@@ -859,6 +859,14 @@ StreamConvergenceLayer::Connection::handle_poll_timeout()
         break_contact(ContactEvent::BROKEN);
         return;
     }
+    
+    //make sure the contact still exists
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    oasys::ScopeLock l(cm->lock(),"StreamConvergenceLayer::Connection::handle_poll_timeout");
+    if(contact_ == NULL)
+    {
+        return;
+    }
 
     // check if the connection has been idle for too long
     // (on demand links only)
