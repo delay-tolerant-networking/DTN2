@@ -901,9 +901,10 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
              ContactEvent::reason_to_str(reason), link);
 
     //avoid a race condition caused by opening a partially closed link
-    if(new_state == Link::OPEN)
+    oasys::ScopeLock l;
+    if (new_state == Link::OPEN)
     {
-    	oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_link_state_change_request");
+        l.set_lock(contactmgr_->lock(), "BundleDaemon::handle_link_state_change_request");
     }
     
     switch(new_state) {
