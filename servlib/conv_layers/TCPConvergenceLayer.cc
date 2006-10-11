@@ -469,7 +469,7 @@ TCPConvergenceLayer::Connection::handle_poll_activity()
             
         if (sock_->state() == oasys::IPSocket::CONNECTING) {
             int result = sock_->async_connect_result();
-            if (result == 0) {
+            if (result == 0 && sendbuf_.fullbytes() == 0) {
                 log_debug("delayed_connect to %s:%d succeeded",
                           intoa(sock_->remote_addr()), sock_->remote_port());
                 initiate_contact();
