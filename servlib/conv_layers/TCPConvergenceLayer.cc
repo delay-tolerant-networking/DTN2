@@ -486,7 +486,13 @@ TCPConvergenceLayer::Connection::handle_poll_activity()
         
         send_data();
     }
-
+    
+    //check that the connection was not broken during the data send
+    if (contact_broken_)
+    {
+	return;
+    }
+    
     // finally, check for incoming data
     if (sock_pollfd_->revents & POLLIN) {
         recv_data();
