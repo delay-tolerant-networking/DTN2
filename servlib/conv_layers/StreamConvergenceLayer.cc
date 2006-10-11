@@ -394,6 +394,12 @@ StreamConvergenceLayer::Connection::send_pending_data()
     // arriving data and never send anything out.
     bool sent_ack = send_pending_acks();
     
+    //if the connection failed during ack transmission, stop
+    if(contact_broken_)
+    {
+    	return sent_ack;
+    }
+
     // check if we need to start a new bundle. if we do, then
     // start_next_bundle handles the correct return code
     bool sent_data;
