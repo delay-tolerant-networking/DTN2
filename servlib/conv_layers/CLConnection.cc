@@ -356,31 +356,33 @@ CLConnection::close_contact()
     // for (if reactive fragmentation is enabled)
     if (! incoming_.empty()) {
         IncomingBundle* incoming = incoming_.back();
-            
-        size_t rcvd_len = incoming->rcvd_data_.last() + 1;
+        if(!incoming->rcvd_data_.empty())
+        {  
+            size_t rcvd_len = incoming->rcvd_data_.last() + 1;
         
-        if ((incoming->total_length_ == 0) && 
-            params->reactive_frag_enabled_ &&
-            (rcvd_len > incoming->header_block_length_))
-        {
-            log_debug("partial arrival of bundle: "
-                      "got %zu bytes [hdr %zu payload %zu]",
-                      rcvd_len, incoming->header_block_length_,
-                      incoming->bundle_->payload_.length());
+            if ((incoming->total_length_ == 0) && 
+                params->reactive_frag_enabled_ &&
+                (rcvd_len > incoming->header_block_length_))
+            {
+                log_debug("partial arrival of bundle: "
+                          "got %zu bytes [hdr %zu payload %zu]",
+                          rcvd_len, incoming->header_block_length_,
+                          incoming->bundle_->payload_.length());
             
-            // XXX/demmer need to fix the fragmentation code to assume the
-            // event includes the header bytes as well as the payload.
+                // XXX/demmer need to fix the fragmentation code to assume the
+                // event includes the header bytes as well as the payload.
             
-            size_t payload_rcvd = rcvd_len - incoming->header_block_length_;
+                size_t payload_rcvd = rcvd_len - incoming->header_block_length_;
             
-            // make sure the payload file is closed
-            ASSERT(incoming->bundle_.object() != NULL);
-            incoming->bundle_->payload_.close_file();
+                // make sure the payload file is closed
+                ASSERT(incoming->bundle_.object() != NULL);
+                incoming->bundle_->payload_.close_file();
             
-            BundleDaemon::post(
-                new BundleReceivedEvent(incoming->bundle_.object(),
-                                        EVENTSRC_PEER,
-                                        payload_rcvd));
+                BundleDaemon::post(
+                    new BundleReceivedEvent(incoming->bundle_.object(),
+                                            EVENTSRC_PEER,
+                                            payload_rcvd));
+            }
         }
     }
 
