@@ -65,7 +65,7 @@ ContactManager::~ContactManager()
 void
 ContactManager::add_link(Link* link)
 {
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::add_link");
     
     log_debug("adding link %s", link->name());
     links_->insert(link);
@@ -77,7 +77,7 @@ ContactManager::add_link(Link* link)
 void
 ContactManager::del_link(Link *link)
 {
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::del_link");
     
     log_debug("deleting link %s", link->name());
     if (!has_link(link)) {
@@ -94,7 +94,7 @@ ContactManager::del_link(Link *link)
 bool
 ContactManager::has_link(Link *link)
 {
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::has_link");
     
     LinkSet::iterator iter = links_->find(link);
     if (iter == links_->end())
@@ -106,7 +106,7 @@ ContactManager::has_link(Link *link)
 Link*
 ContactManager::find_link(const char* name)
 {
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::find_link");
     
     LinkSet::iterator iter;
     Link* link = NULL;
@@ -141,7 +141,7 @@ ContactManager::LinkAvailabilityTimer::timeout(const struct timeval& now)
 void
 ContactManager::reopen_link(Link* link)
 {
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::reopen_link");
     
     log_debug("reopen link %s", link->name());
 
@@ -162,7 +162,7 @@ ContactManager::reopen_link(Link* link)
 void
 ContactManager::handle_link_available(LinkAvailableEvent* event)
 {
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::handle_link_available");
     
     AvailabilityTimerMap::iterator iter;
     iter = availability_timers_.find(event->link_);
@@ -186,7 +186,7 @@ ContactManager::handle_link_available(LinkAvailableEvent* event)
 void
 ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
 {
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::handle_link_unavailable");
     
     // don't do anything for links that aren't ondemand or alwayson
     if (event->link_->type() != Link::ONDEMAND &&
@@ -264,7 +264,7 @@ ContactManager::find_link_to(ConvergenceLayer* cl,
                              Link::link_type_t type,
                              u_int states)
 {
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::find_link_to");
     
     LinkSet::iterator iter;
     Link* link = NULL;
@@ -311,7 +311,7 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
     log_debug("new_opportunistic_link: cl %s nexthop %s remote_eid %s",
               cl->name(), nexthop.c_str(), remote_eid.c_str());
     
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::new_opportunistic_link");
 
     // find a unique link name
     char name[64];
@@ -336,7 +336,7 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
 void
 ContactManager::dump(oasys::StringBuffer* buf) const
 {
-    oasys::ScopeLock l(&lock_, "ContactManager");
+    oasys::ScopeLock l(&lock_, "ContactManager::dump");
     
     buf->append("Links:\n");
     LinkSet::iterator iter;
