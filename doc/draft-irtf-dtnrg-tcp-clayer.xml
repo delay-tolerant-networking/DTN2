@@ -141,8 +141,8 @@
    RFC, or any other public document. These prior versions of the
    protocol were, however, implemented in
    the <xref target="refs.dtnimpl"> DTN reference
-   implementation</xref>, in prior releases, hence this specification
-   reflects those prior versions.
+   implementation</xref>, in prior releases, hence the current version
+   number reflects those prior versions.
 </t>
 
 <t>
@@ -216,21 +216,24 @@
 <list style="hanging" hangIndent="5">
    <t></t>
    
-   <t hangText="TCP Session --">A TCP Session refers to the connection
-      using the TCP network transport. XXX cite something from the TCP
-      RFC.
+   <t hangText="TCP Connection --">A "TCP connection" refers to the
+      transport connection using the TCP as transport protocol. XXX
+      cite something from the TCP RFC.
    </t>
    <t></t>
    
-   <t hangText="Connection --">A connection is a TCPCL communication
-      session between two bundle nodes. The lifetime of a connection
-      is one-to-one with the lifetime of an underlying TCP session.
-      Therefore a TCPCL connection is initated when a bundle node
-      initiates a TCP session to be initiated for the purposes of
-      bundle communication. A connection is terminated when the TCP
-      session ends, due either to one or both nodes actively
-      terminating the connection or due to network errors causing a
-      failure of the session.
+   <t hangText="TCPCL Connection --">A TCPCL connection
+      (as opposed to a TCP connection)
+      is a TCPCL communication relationship between two bundle
+      nodes. The lifetime of a TCPCL connection is one-to-one with the lifetime
+      of an underlying TCP connection.  Therefore a TCPCL connection is
+      initated when a bundle node initiates a TCP connection to be
+      initiated for the purposes of bundle communication. A TCPCL connection is
+      terminated when the TCP connection ends, due either to one or
+      both nodes actively terminating the TCP connection or due to network
+      errors causing a failure of the TCP connection. For the remainder of this
+      document, the term "connection" without the prefix "TCPCL" shall refer
+      to a TCPCL connection.
    </t>
    <t></t>
 
@@ -238,16 +241,16 @@
       are a set of values used to affect the operation of the TCPCL
       for a given connection. The manner in which these parameters are
       conveyed to the bundle node and thereby to the TCPCL is
-      implementation dependant. However, the mechanism by which two
+      implementation-dependent. However, the mechanism by which two
       bundle nodes exchange and negotiate the values to be used for a
-      given connection is described in Secion <xref
+      given session is described in Section <xref
       target="sec:negotiation"/>.
    </t>
    <t></t>
 
    <t hangText="Connection initiator --">The connection initiator is
       the bundle node that causes the establishment of a new
-      connection by creating a new TCP session (for example, by using
+      connection by creating a new TCP connection (for example, by using
       the connect() call in the BSD sockets API) and then following
       the procedures described in <xref
       target="sec:connection_establishment"/>.
@@ -285,7 +288,7 @@
 
 <t>
    First one node establishes a connection to the other by initiating
-   a TCP session. At the beginning of the connection, an initial
+   a TCP connection. At the beginning of the connection, an initial
    contact header is exchanged in both directions to set parameters of
    the connection. In addition, a single AnnounceBundle is transmitted
    by each party (preceded by an SDNV containing the total length of
@@ -297,21 +300,21 @@
    Once the connection is established, bundles can be transmitted in
    either direction. Each bundle is transmitted in one or more logical
    segments of formatted bundle data. To transmit a bundle, a node
-   first sends a START_BUNDLE message code, followed by one or more
-   logical data segments, and then finally an END_BUNDLE code. Each
-   logical data segment is comprised of a DATA_SEGMENT code, an SDNV
-   containing the length of the segment, and finally the byte range of
-   the bundle data. The choice of the length to use for segments is an
-   implementation manner.
+   sends a sequence of one or more logical data segments. Each logical
+   data segment contains a DATA_SEGMENT code, an SDNV containing the
+   length of the segment, and finally the byte range of the bundle
+   data. The choice of the length to use for segments is an
+   implementation manner. The first segment for a bundle must set the
+   'start' flag and the last must set the 'end' flag.
 </t>
 <t>
    An optional feature of the protocol is for the receiving node to
-   send acknowledgements as bundle data segments arrive. The rationale
-   behind these acknowledgements is to enable the sender node to
-   determine how much of the bundle has been received, so that in case
-   the connection is interrupted, it can perform reactive
-   fragmentation to avoid re-sending the already transmitted part of
-   the bundle.
+   send acknowledgements as bundle data segments arrive
+   (ACK_SEGMENT). The rationale behind these acknowledgements is to
+   enable the sender node to determine how much of the bundle has been
+   received, so that in case the connection is interrupted, it can
+   perform reactive fragmentation to avoid re-sending the already
+   transmitted part of the bundle.
 </t>
 <t>
    When acknowledgements are enabled, then for each data segment that
@@ -321,14 +324,27 @@
    transmission, then ack segments may be interleaved with data
    segments.
 </t>
+<!-- jo -->
+<t>
+   Another optional feature is that a receiver may interrupt the
+   transmission of a bundle at any point in time by replying with a
+   negative acknowledgement (REFUSE_BUNDLE) which causes the sender to
+   stop transmission of the current bundle, after completing transmission
+   of all partially sent data segments. Note: This allows a
+   receiver detecting that it already has a certain bundle
+   to interrupt transmission as early as possible and thus save
+   transmission capacity for other bundles. 
+</t>
 <t>
    For connections that are idle, a KEEPALIVE code may optionally be
    sent at a negotiated interval. Finally, before connections close, a
    SHUTDOWN code is sent on the channel.
+   After a SHUTDOWN message, the sender of this message may send
+   further acknowledgements (ACK_SEGMENT) but no further data
+   (DATA_SEGMENT) messages.  A SHUTDOWN message may also be used to
+   refuse a connection setup by a peer.
 </t>
 
-<section title="Example Data Flow">
-   
 <figure anchor="fig:example_flow"
         title="A simple visual example of the flow of protocol
         messages on a single TCP session between two nodes (A and B)">
@@ -336,8 +352,9 @@
    <preamble>
       The following figure visually depicts the protocol exchange for
       a simple session, showing the connection establishment, and the
-      transmission of a single bundle split into two data segments (of
-      lengths L1 and L2) from Node A to Node B. 
+      transmission of a single bundle split into three data segments
+      (of lengths L1, L2, and L3) from Node A to Node B. No error or
+      rejection conditions are shown in this figure.
    </preamble>
 
 <artwork>
@@ -348,34 +365,25 @@
    |     Contact Header      | -&gt;   &lt;- |     Contact Header      |
    +-------------------------+         +-------------------------+
                                       
+   +-------------------------+         
+   |   DATA_SEGMENT (start)  | -&gt;              
+   |    SDNV length [L1]     | -&gt;              
+   |    Bundle Data 0..L1    | -&gt;              
+   +-------------------------+         
    +-------------------------+         +-------------------------+
-   |     Announce Bundle     | -&gt;   &lt;- |     Announce Bundle     |
+   |     DATA_SEGMENT        | -&gt;   &lt;- |       ACK_SEGMENT       |
+   |    SDNV length [L2]     | -&gt;   &lt;- |     SDNV length [L1]    |
+   |    Bundle Data L1..L2   | -&gt;      +-------------------------+
+   +-------------------------+      
    +-------------------------+         +-------------------------+
-                                       
-   +-------------------------+         
-   |      START_BUNDLE       | -&gt;              
-   +-------------------------+         
-   |      DATA_SEGMENT       | -&gt;              
-   +-------------------------+         
-   |      SDNV length [L1]   | -&gt;              
-   +-------------------------+         
-   |     Bundle Data 0..L1   | -&gt;              
-   +-------------------------+         
+   |    DATA_SEGMENT (end)   | -&gt;   &lt;- |       ACK_SEGMENT       |
+   |     SDNV length [L3]    | -&gt;   &lt;- |   SDNV length [L1+L2]   |
+   |    Bundle Data L2..L3   | -&gt;     +-------------------------+
+   +-------------------------+      
                                        +-------------------------+
                                     &lt;- |       ACK_SEGMENT       |
-   +-------------------------+         +-------------------------+
-   |      DATA_SEGMENT       | -&gt;   &lt;- |     SDNV Length [L1]    |
-   +-------------------------+         +-------------------------+
-   |      SDNV length [L2]   | -&gt;
-   +-------------------------+   
-   |     Bundle Data L1..L2  | -&gt;
-   +-------------------------+   
+                                    &lt;- |  SDNV length [L1+L2+L3] |
                                        +-------------------------+
-                                    &lt;- |       ACK_SEGMENT       |
-                                       +-------------------------+
-   +-------------------------+      &lt;- |    SDNV Length [L1+L2]  |
-   |       END_BUNDLE        | -&gt;      +-------------------------+
-   +-------------------------+   
 
    +-------------------------+         +-------------------------+
    |       SHUTDOWN          | -&gt;   &lt;- |         SHUTDOWN        |
@@ -384,7 +392,6 @@
 </artwork>
 </figure>
 
-</section> <!-- Example Data Flow -->
 </section> <!-- General Protocol Description -->
 
 <section title="Connection Establishment" anchor="sec:connection_establishment">
@@ -393,18 +400,18 @@
    For bundle transmissions to occur using the TCPCL, a connection
    must first be established between communicating nodes. The manner
    in which a bundle node makes the decision to establish such a
-   connection is implementation dependant. For example, some
+   connection is implementation dependant.  For example, some
    connections may be opened proactively and maintained for as long as
    is possible given the network conditions, while other connections
    may be opened only when there is a bundle that is queued for
-   transmission over it.
+   transmission and the routing algorithm selects a certain next hop node.
 </t>
 
 <t>
    To establish a TCPCL connection, a node must first establish a TCP
-   session with the intended peer node, typically by using the
+   connection with the intended peer node, typically by using the
    services provided by the operating system. If the node is unable to
-   establish a connection for any reason, then it is an implementation
+   establish a TCP connection for any reason, then it is an implementation
    manner to determine how to handle the failed connection. For
    example, a node may decide to re-attempt to establish the
    connection, perhaps after some delay or it may attempt to find an
@@ -412,10 +419,11 @@
 </t>
 
 <t>
-   Once a TCP session is established, both the connection initiator
-   and the connection acceptor should immediately transmit a contact
-   header over the session. The format of the contact header is
-   described in <xref target="sec:contact_header"/>.
+   Once a TCP connection is established, the connection initiator MUST
+   immediately transmit a contact header over the TCP connection.  The
+   connection acceptor MUST also immediately transmit a contact
+   header over the TCP connection.  The format of the contact header
+   is described in <xref target="sec:contact_header"/>).
 </t>
 
 <t>
@@ -425,18 +433,16 @@
 </t>
 
 <t>
-   After negotiation, both nodes transmit an announcement bundle
-   (AnnounceBundle). This exchange is used to inform the Bundle
-   Protocol Agent running at each end of the connection of the
-   Endpoint Identifier (EID) of the other party, as well as any
-   additional capabilities that may be communicated. The format of the
-   AnnounceBundle is described in <xref target="sec:announce_bundle"/>
-   </t>
+   After receiving the contact header from the other node, either node
+   MAY also refuse the connection by sending a SHUTDOWN message.  If
+   connection setup is refused a reason MUST be included in the
+   SHUTDOWN message. 
+</t>
 
 <section title="Contact Header" anchor="sec:contact_header">
 
 <t>
-Once a TCP session is established, both parties exchange a contact
+Once a TCP connection is established, both parties exchange a contact
 header. This section describes the format of the contact header and
 the meaning of its fields.
 </t>
@@ -448,12 +454,16 @@ the meaning of its fields.
    </preamble>
    
    <artwork>
-                     1                   2                   3  
+                     1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +---------------+---------------+---------------+---------------+
 |                          magic='dtn!'                         |
 +---------------+---------------+---------------+---------------+
 |     version   |     flags     |      keepalive_interval       |
++---------------+---------------+---------------+---------------+
+|                     local eid length (SDNV)                   |
++---------------+---------------+---------------+---------------+
+|                      local eid (variable)                     |
 +---------------+---------------+---------------+---------------+
    </artwork>
 </figure>
@@ -475,9 +485,34 @@ The fields of the contact header are:
    <t></t>
 
    <t hangText="flags:"> A one byte field containing optional
-      connection flags. The first six bits are unused and must be set
-      to zero. The last two bits are interpreted as follows:
+      connection flags. The first five bits are unused and must be set
+      to zero. The last three bits are interpreted as follows:
    </t>
+   <t></t>
+
+   <t hangText="keepalive_interval:"> A two byte integer field
+      containing the number of seconds between exchanges of keepalive
+      messages on the connection (see <xref target="sec:keepalive"/>).
+      This value is in network byte order, as are all other multi-byte
+      fields described in this protocol.
+   </t>
+   <t></t>
+
+   <t hangText="local eid length:"> A variable length SDNV field
+      containing the length of the endpoint identifier (EID) for some
+      singleton endpoint in which the sending node is a member. A four
+      byte SDNV is depicted for clarity of the figure.
+   </t>
+   <t></t>
+   
+   <t hangText="local eid:"> An octet string containing the EID
+      of some singleton endpoint in which the sending node is a
+      member, in the canonical format of &lt;scheme
+      name&gt;:&lt;scheme-specific part&gt;. A four byte EID
+      is shown the clarity of the figure.
+   </t>
+   <t></t>
+
 </list>
 </t>
 
@@ -492,20 +527,13 @@ The fields of the contact header are:
    <c>00000010</c>
    <c>Request enabling of reactive fragmentation.</c>
 
+   <c>00000100</c>
+   <c>Indicate support for negative acknowledgements. This flags MUST
+      NOT be used unless support for acknowledgements is also
+      indicated.
+   </c>
+
 </texttable>
-
-<t>
-<list style="hanging" hangIndent="5">
-
-   <t hangText="keepalive_interval:"> A two byte integer field
-      containing the number of seconds between exchanges of keepalive
-      messages on the connection (see <xref target="sec:keepalive"/>).
-      This value is in network byte order, as are all other multi-byte
-      fields described in this protocol.
-   </t>
-   <t></t>
-
-</list>
 
 <t>
    The manner in which values are configured and chosen for the
@@ -513,7 +541,6 @@ The fields of the contact header are:
    implementation dependent.
 </t>
 
-</t>
 </section> <!-- Contact header -->
 
 <section title="Validation and parameter negotiation" anchor="sec:negotiation">
@@ -527,10 +554,10 @@ the connection parameters.
 
 <t>
 If the magic string is not present or is not valid, the connection
-must be terminated. The intent of the magic string is to provide a
+MUST be terminated. The intent of the magic string is to provide a
 some protection against an inadvertent TCP connection by a different
 protocol than the one described in this document. To prevent a flood
-of repeated connections from a misconfigured application, a node may
+of repeated connections from a misconfigured application, a node MAY
 elect to hold an invalid connection open and idle for some time before
 closing it.
 </t>
@@ -538,7 +565,7 @@ closing it.
 <t>
 If a node receives a contact header containing a version that is
 greater than the current version of the protocol that the node
-implements, then the node should interpret all fields and messages as
+implements, then the node SHOULD interpret all fields and messages as
 it would normally. If a node receives a contact header with a version
 that is lower than the version of the protocol that the node
 implements, the node may either terminate the connection due to the
@@ -566,7 +593,12 @@ following manner:
       the corresponding flag is set in both contact headers.
    </t>
    <t></t>
-
+   <t>Negative acknowledgements to interrupt transmission (actually:
+   refure reception) of a bundle may only be used iff both peers
+   indicate support for negative acknowledements in their contact
+   header.
+   </t>
+   <t></t>
    <t>The keealive_interval parameter should be set to the minimum
       value from both contact headers. If one or both contact headers
       contains the value zero, then the keepalive feature (described
@@ -579,52 +611,21 @@ following manner:
 <t>
 Once this process of parameter negotiation is completed, the protocol
 defines no additional mechanism to change the parameters of an
-established connection; to effect such a change, the connection must
+established connection; to effect such a change, the connection MUST
 be terminated and a new connection established.
 </t>
 
+<!--
+      demmer: took this out
+<t>
+After the negotiation, arbitrary messages MAY be exchanged between the
+two peers.  If a peer does not understand a message, it MUST skip and
+silently ignore it.  In particular, receiving an unknown message
+SHOULD NOT lead to termination of the TCP connection.
+</t>
+-->
+
 </section> <!-- Negotiation -->
-
-<section title="Announcement Bundle Exchange" anchor="sec:announce_bundle">
-
-<t>
-   IMPLEMENTATION NOTE: The format of this announcement bundle is
-   likely to change before the eventual publication of this document
-   as an RFC. In particular, its format should be described in an
-   external document that is referenced by this specification.
-</t>
-
-<t>
-   Immediately following the contact header exchange, a single bundle
-   is always transmitted over the link. The contents of the bundle are
-   defined as follows:
-</t>
-
-<t>
-   The source endpoint identifier is set to an endpoint identifier
-   (EID) for some singleton endpoint that the node is a member. In the
-   case that a node is a member of multilple singleton endpoints, it
-   is an implementation manner to determine which identifier is used
-   in the announcement bundle. The destination, report-to, and
-   custodian endpoint identifiers shall be set to the null endpoint ID
-   ("dtn:none").
-</t>
-
-<t>
-   The Announcement Bundle is defined as a new type of Administrative
-   record with a type code of 0x05. As such, the payload of the bundle
-   is a single byte long, with the value 0x05 in the high-order four
-   bits of the byte, and the lower four bits used for administrative
-   record flags. As none of the defined flags apply to this bundle,
-   the lower-order four bits shall be set to zero.
-</t>
-   
-<t>
-   Based on these values, the format of the bundle is determined by
-   the current version of the bundle protocol specification.
-</t>
-
-</section> <!-- Announcement Bundle Exchange -->
 
 </section> <!-- Connection Establishment -->
 
@@ -640,9 +641,24 @@ bundles over the connection.
 
 <t>
 After the initial exchange of a contact header, all messages
-transmitted over the connection are denoted by a one byte message type
-code.
+transmitted over the connection are denoted by a one octet header with
+the following structure:
 </t>
+
+<artwork>
+    0 1 2 3 4 5 6 7 
+   +-+-+-+-+-+-+-+-+
+   | type  | flags |
+   +-+-+-+-+-+-+-+-+
+
+</artwork>
+
+<list style="hanging" hangIndent="5">
+   <t>type: Indicates the type of the message as per table
+      <xref target="types:codes"/> below</t>
+
+   <t>flags: Optional flags defined on a per message type basis.</t>
+</list>
 
 <texttable anchor="types:codes"
            title="TCPCL Header Types">
@@ -653,86 +669,89 @@ code.
    <ttcol align="center" valign="top" width="25%">Type</ttcol>
    <ttcol align="center" valign="top" width="10%">Code</ttcol>
    <ttcol align="left"   valign="top" width="65%">Comment</ttcol>
-   
-   <c>START_BUNDLE</c>
-   <c>0x01</c>
-   <c>Commences the transmission of a new bundle,
-      described in section <xref target="sec:bundle_data"/>.
-   </c>
-   <c>&nbsp;</c><c></c><c></c>
-
-   <c>END_BUNDLE</c>
-   <c>0x02</c>
-   <c>Indicates the completion of transmission of a bundle,
-      described in section <xref target="sec:bundle_data"/>.
-   </c>
-   <c>&nbsp;</c><c></c><c></c>
 
    <c>DATA_SEGMENT</c>
-   <c>0x03</c>
+   <c>0x01</c>
    <c>Indicates the transmission of a segment of bundle data,
-      described in section <xref target="sec:bundle_data"/>.
-   </c>
+      described in section <xref target="sec:bundle_data"/>.</c>
    <c>&nbsp;</c><c></c><c></c>
 
    <c>ACK_SEGMENT</c>
-   <c>0x04</c>
-   <c>Acknowledges reception of a data segment. Following this type
-      code, a node transmits an SDNV denoting the cumulative length of
-      all received segments.</c>
+   <c>0x02</c>
+   <c>Acknowledges reception of a data segment, described in section
+      <xref target="sec:acks"/></c>
+   <c>&nbsp;</c><c></c><c></c>
+
+   <c>REFUSE_BUNDLE</c>
+   <c>0x03</c>
+   <c>Indicates that the transmission of the current bundle shall be
+      stopped, decscribed in section <xref target="sec:refusal"/>.</c>
    <c>&nbsp;</c><c></c><c></c>
 
    <c>KEEPALIVE</c>
-   <c>0x05</c>
+   <c>0x04</c>
    <c>Keepalive message for the connection, described in
       <xref target="sec:keepalive"/>.</c>
    <c>&nbsp;</c><c></c><c></c>
    
    <c>SHUTDOWN</c>
-   <c>0x06</c>
+   <c>0x05</c>
    <c>Indicates that one of the nodes participating in the connection
       wishes to cleanly terminate the connection, described in
-      <xref target="sec:termination"/>.
-   </c>
+      <xref target="sec:termination"/>.</c>
+   <c>&nbsp;</c><c></c><c></c>
+
 </texttable>
 </section> <!-- Message type codes -->
 
-   
 <section title="Bundle Data Transmission" anchor="sec:bundle_data">
 
 <t>
-   Each bundle is transmitted in one or more data segments; to begin
-   this sequence, a node sends a START_BUNDLE message, then sends the
-   segments (each preceded by a DATA_SEGMENT type code), then
-   completes the transmission by sending an END_BUNDLE message.
+   Each bundle is transmitted in one or more data segments. The format
+   of a data segment message is as follows:
+</t>
+
+<artwork>
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | 0x01  |0|0|S|E|   length ...    |  contents....               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+</artwork>
+<t>
+   The flags portion of the message header octet contains two optional
+   values, denoted 'S' and 'E' above. The 'S' bit MUST be set to one
+   iff it precedes the transmission of the first segment of a new
+   bundle. The 'E' bit MUST be set to one when transmitting the last
+   segment of a bundle.
 </t>
 <t>
    Determining the segment size is an implementation manner. In
    particular, a node may, based on local policy or configuration,
-   only ever transmit bundle data in a single segment. However a node
-   must be able to receive a bundle that has been tranmsmitted in any
+   only ever transmit bundle data in a single segment, in which case
+   both the 'S' and 'E' bits MUST be set to one. However a node must
+   be able to receive a bundle that has been tranmsmitted in any
    segment size.
 </t>
 <t>
    In the bundle protocol specification, a single bundle is comprised
    of a primary bundle block, plus zero or more additional bundle
    blocks. The relationship between the protocol blocks and the
-   convergence layer segments is underfined. In particular, a segment
-   may contain more than one protocol block; alternatively, a single
-   protocol block (such as the payload) may be split into multiple
-   segments.
+   convergence layer segments is an implementation-specific decision.
+   In particular, a segment may contain more than one protocol block;
+   alternatively, a single protocol block (such as the payload) may be
+   split into multiple segments.
 </t>
 <t>
-   Once a transmission of a bundle has commenced, the node must only
-   send segments related to that bundle until it sends an END_BUNDLE
-   message. However, the node need not transmit the entire bundle
-   before sending the END_BUNDLE message. Once any data segment of the
-   bundle is complete, the node may send an END_BUNDLE message and
-   then cease transmission of the bundle.
+   Once a transmission of a bundle has commenced, the node MUST only
+   send segments related to that bundle until it sends a segment with
+   the 'E' bit set.
 </t>
 <t>
-   Each segment transmission is preceded by a DATA_SEGMENT type code
-   and an SDNV containing the length of that segment.
+   Following the message header, the length field is an SDNV
+   containing the number of bytes of bundle data that are transmitted
+   in this segment. Following this length is the actual data contents.
 </t>
 </section> <!-- Bundle Data -->
 
@@ -760,18 +779,65 @@ code.
 </t>
 
 <t>
-   To transmit a data segment acknowledgement header, a node first
-   transmits a ACK_SEGMENT message type code, then transmits an SDNV
-   containing the cumulative length of the received segment(s) of the
-   current bundle. For example, suppose the sending node transmits
-   four segments of bundle data with lengths 100, 200, 500, and 1000
-   respectively. After receiving the first segment, the node sends an
-   acknowledgement of length 100. After the second segment is
-   received, the node sends an acknowledgement of length 300. The
-   third and fourth acknowledgements are of length 800 and 1800
-   respectively.
+   The format of a bundle acknowledgement is:
 </t>
 
+<artwork>
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | 0x02  |0|0|0|0|   acknowledged length ...                     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</artwork>
+
+<t>
+   To transmit an acknowledgement, a node first transmits a message
+   header with the ACK_SEGMENT type code and all flags set to zero,
+   then transmits an SDNV containing the cumulative length of the
+   received segment(s) of the current bundle. For example, suppose the
+   sending node transmits four segments of bundle data with lengths
+   100, 200, 500, and 1000 respectively. After receiving the first
+   segment, the node sends an acknowledgement of length 100. After the
+   second segment is received, the node sends an acknowledgement of
+   length 300. The third and fourth acknowledgements are of length 800
+   and 1800 respectively.
+</t>
+
+</section>
+
+<!-- jo -->
+<section title="Bundle Refusal" anchor="sec:refusal">
+
+<t>
+   As bundles may be large, the TCPCL supports an optional mechanisms
+   by which a receiving node may indicate to the sender that it does
+   not want to receive the corresponding bundle.
+</t>
+<t>
+   To do so, upon receiving a DATA_SEGMENT message, the node may
+   transmit a REFUSE_BUNDLE message. As data segments and
+   acknowledgements may cross on the wire, the data segment (and thus
+   the bundle) that is being refused is implicitly identified by the
+   sequence in which positive and negative acknowledgements are
+   received.
+</t>
+<t>
+   The receiver MUST have acknowledged (positively or negatively) all
+   other received DATA_SEGMENTs before the one to be refused so that
+   the sender can identify the bundles accepted and refused by means
+   of a simple FIFO list of segments and acknowledgments.
+</t>
+<t>
+   The bundle refusal MAY be sent before the entire data segment is
+   received. If a sender receives a REFUSE_BUNDLE message, the sender
+   MUST complete the transmission of any partially-sent DATA_SEGMENT
+   message (so that the receiver stays in sync). The sender MUST NOT
+   commence transmission of any further segments of the rejected
+   bundles subsequently. Note, however, that this requirement does not
+   ensure that a node will not receive another DATA_SEGMENT for the
+   same bundle after transmitting a REFUSE_BUNDLE message since
+   messages may cross on the wire.
+</t>
 </section>
 
 <section title="Keepalive Messages" anchor="sec:keepalive">
@@ -813,13 +879,93 @@ code.
    This section describes the procedures for ending a TCPCL connection.
 </t>
 
+<!-- jo --> 
+
 <section title="Shutdown Message" anchor="sec:shutdown">
 <t>
-   To cleanly shut down a connection, a one byte message type code of
-   SHUTDOWN may be transmitted at any time by either the sender or the
-   receiver. When a node receives a SHUTDOWN message, it should send a
-   SHUTDOWN message in return, then close the connection and clean up
-   the TCP session.
+   To cleanly shut down a connection, a SHUTDOWN message can be
+   transmitted by either the sender or the receiver at any point
+   following complete transmission of any other message. In case
+   acknowledgements have been negotiated, it is advisable to
+   acknowledge all received data segments first and then shut down the
+   connection.
+</t>
+
+<t>
+   The format of the shutdown message is as follows:
+</t>
+
+<artwork>
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | 0x03  |0|0|R|D| reason (opt)  | reconnection delay (opt, SDNV) ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+</artwork>
+
+<t>
+   It is possible for a node to convey additional information
+   regarding the reason for connection termination. To do so, the node
+   sets the 'R' bit in the message header flags, and transmits a
+   one-byte reason code immediately following the message header. The
+   specified values of the reason code are:
+</t>
+
+<texttable anchor="shutdown:reason"
+           title="Shutdown Reason Codes">
+   <ttcol align="center" valign="top" width="10%">Code</ttcol>
+   <ttcol align="left"   valign="top" width="30%">Meaning</ttcol>
+   <ttcol align="left"   valign="top" width="60%">Comment</ttcol>
+
+   <c>0x00</c>
+   <c>Idle timeout</c>
+   <c>The connection is being closed due to idleness.</c>
+   <c>&nbsp;</c><c></c><c></c>
+
+
+   <c>0x01</c>
+   <c>Version mismatch</c>
+   <c>The node cannot conform to the specified TCPCL protocol
+      version.</c>
+   <c>&nbsp;</c><c></c><c></c>
+
+   <c>0x02</c>
+   <c>Busy</c>
+   <c>The node is too busy to handle the current connection.</c>
+
+</texttable>
+
+<t>
+   It is also possible to convey a requested reconnection delay to
+   indicate how long the other node must wait before attempting
+   connection re-establishment. To do so, the node sets the 'D' bit in
+   the message header flags, then transmits an SDNV specifying the
+   requested delay, in seconds, following the message header (and
+   optionally the shutdown reason code). The value 0 shall be
+   interpreted as an infinite delay, i.e. that the node should not
+   ever re-establish the connection. In contrast, if the node does not
+   wish to request a delay, it should omit the delay field (and set
+   the 'D' bit to zero).
+</t>
+
+<t>
+   A connection shutdown MAY occur immediately after TCP connection
+   establishment or reception of a contact header (and prior to any
+   further data exchange).  This may, for example, be used to notify a
+   the initiator that the node is currenly not capable of or willing
+   to communicate.  Note, however, that a node MUST always send the
+   contact header to its peer first.
+</t>
+
+<t>
+   If either node terminates a connection prematurely in this manner,
+   it SHOULD send a SHUTDOWN message and MUST indicate a reason code
+   unless the incoming connection did not include the magic string.
+   If a node does not want its peer to re-open the connection
+   immediately, it SHOULD specify the reason code RETRY_LATER and
+   indicate when the peer is allowed to attempt another connection
+   setup.
 </t>
 
 <t>
@@ -828,10 +974,10 @@ code.
    still should close the TCP connection. In particular, if the
    connection is interrupted while a node is in the process of
    transmitting a bundle data segment, then the node may identify that
-   the connection should be before it has completed the transmission
-   of the data segment. Thus were the node to transmit the SHUTDOWN
-   message, the receiving node might erroneously interpret the
-   SHUTDOWN message to be part of the data segment.
+   the connection should be terminated before it has completed the
+   transmission of the data segment. Thus were the node to transmit
+   the SHUTDOWN message, the receiving node might erroneously
+   interpret the SHUTDOWN message to be part of the data segment.
 </t>
 </section>
 
@@ -847,8 +993,8 @@ code.
    If there is a configured time to close idle links, then if no
    bundle data (other than keepalive messages) has been received for
    at least that amount of time, then either node may terminate the
-   session by transmitting a one byte message type code of SHUTDOWN
-   (as described in <xref target="types:codes"/>) and closing the TCP
+   session by transmitting a SHUTDOWN message indicating the reason
+   code of 'idle timeout' (as described above) and closing the TCP
    session.
 </t>
 
