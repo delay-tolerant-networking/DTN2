@@ -1,0 +1,1064 @@
+
+
+
+DTN Research Group                                          S. Symington
+Internet-Draft                                     The MITRE Corporation
+Expires: April 16, 2007                                 October 13, 2006
+
+
+             Delay-Tolerant Networking Retransmission Block
+             draft-symington-dtnrg-bundle-retrans-block-00
+
+Status of this Memo
+
+   By submitting this Internet-Draft, each author represents that any
+   applicable patent or other IPR claims of which he or she is aware
+   have been or will be disclosed, and any of which he or she becomes
+   aware will be disclosed, in accordance with Section 6 of BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as Internet-
+   Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt.
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+   This Internet-Draft will expire on April 16, 2007.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (2006).
+
+Abstract
+
+   This document defines an optional extension block, called a
+   Retransmission Block, that may be used with the Bundle Protocol [2]
+   within the context of a Delay-Tolerant Network architecture [4].  The
+   Retransmission Block (RB) is designed to be inserted by a custodian
+   when re-forwarding a bundle, so as to mark the bundle as a legitimate
+   custody-based retransmission rather than an unauthorized bundle
+   duplicate.  By providing a way for nodes that receive the re-
+   forwarded bundle to distinguish it from an unauthorized duplicate,
+   the RB enables those nodes whose local security policies do not
+
+
+
+Symington                Expires April 16, 2007                 [Page 1]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+   permit them to forward replayed bundles to detect and delete
+   unauthorized bundle replays but forward authorized custody-based
+   bundle retransmissions.  This document defines the format and
+   processing of this new Retransmission Block.
+
+
+Table of Contents
+
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
+   2.  Background and Motivation  . . . . . . . . . . . . . . . . . .  4
+     2.1.  Replay Detection as Currently Provided in the Bundle
+           Protocol . . . . . . . . . . . . . . . . . . . . . . . . .  4
+     2.2.  The Denial-of-Service Threat . . . . . . . . . . . . . . .  4
+     2.3.  Detecting Duplicates is Largely a Matter of Local
+           Policy . . . . . . . . . . . . . . . . . . . . . . . . . .  5
+     2.4.  Not All Duplicates are Bad . . . . . . . . . . . . . . . .  5
+     2.5.  A Mechanism for Distinguishing Legitimate Replays from
+           Illegitimate Replays is Required . . . . . . . . . . . . .  6
+   3.  The Treatment of Replays Must Be a Defined Aspect of
+       Security Policy  . . . . . . . . . . . . . . . . . . . . . . .  7
+   4.  Replays versus Loops . . . . . . . . . . . . . . . . . . . . .  8
+   5.  Ramifications of Allowing Support for the Retransmission
+       Block to be Optional . . . . . . . . . . . . . . . . . . . . . 10
+   6.  Retransmission Block Format  . . . . . . . . . . . . . . . . . 12
+   7.  Retransmission Block Processing  . . . . . . . . . . . . . . . 13
+     7.1.  Bundle Reception . . . . . . . . . . . . . . . . . . . . . 13
+     7.2.  Replay Detection and Suppression . . . . . . . . . . . . . 13
+     7.3.  Keeping Track of Bundles Received  . . . . . . . . . . . . 13
+     7.4.  Bundle Forwarding  . . . . . . . . . . . . . . . . . . . . 14
+     7.5.  Custodial Retransmission . . . . . . . . . . . . . . . . . 14
+   8.  Security Considerations  . . . . . . . . . . . . . . . . . . . 15
+   9.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . . 16
+   10. References . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+     10.1. Normative References . . . . . . . . . . . . . . . . . . . 17
+     10.2. Informative References . . . . . . . . . . . . . . . . . . 17
+   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . . 18
+   Intellectual Property and Copyright Statements . . . . . . . . . . 19
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                 [Page 2]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+1.  Introduction
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119 [1].
+
+   The DTN bundle protocol [2] defines the bundle as its protocol data
+   unit.  A bundle consists of a primary bundle block, which is defined
+   in the Bundle Protocol, followed by at least one other type of bundle
+   block.  The Bundle Protocol defines a single other type of bundle
+   block, called a Bundle Payload block.  This document defines an
+   additional, optional, bundle block called a Retransmission Block.
+   This block is designed to be inserted by a custodian node into a
+   bundle that the custodian is re-forwarding in response to a custody
+   transfer failure.  The intent of this Retransmission Block is to mark
+   a re-forwarded bundle as such, so that when the bundle is received at
+   downstream nodes that detect it to be a duplicate of a previously-
+   received bundle, those nodes can understand it to be a legitimate
+   retransmission that should be preserved rather than an unauthorized
+   replay that may (according to local policy) be deleted.
+
+   The capabilities described in this document are OPTIONAL for
+   deployment with the Bundle Protocol.  Bundle Protocol implementations
+   claiming to support Retransmission Blocks MUST be capable of:
+
+      -Generating a Retransmission Block and inserting it into a bundle,
+
+      -Logging the relevant fields of all bundles received until those
+      bundles expire,
+
+      -Receiving bundles containing a Retransmission Block and using the
+      information contained in this Retransmission Block (in conjunction
+      with the information from logged bundles) to make replay
+      suppression decisions,
+
+      -Deleting a Retransmission Block from a bundle
+
+   as defined in this document.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                 [Page 3]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+2.  Background and Motivation
+
+2.1.  Replay Detection as Currently Provided in the Bundle Protocol
+
+   The Bundle Security Protocol defines an "at-most-once-delivery"
+   registration option that, when used by a node that is registering in
+   a particular endpoint, indicates that exactly one copy of each bundle
+   destined for that endpoint that is received at that node shall be
+   delivered at that node.  If the at-most-once-delivery option is used
+   with a given endpoint ID registration, the registering node is
+   required to check all bundles that it receives with that destination
+   endpoint ID to determine if the bundle has already been delivered at
+   that node.  If it has, the bundle must be discarded.  This is a
+   limited form of replay detection because it requires a node to keep
+   track of only the bundles that have been delivered at that node; it
+   does not apply to bundles that the node receives for forwarding.  It
+   is designed to protect applications from receiving duplicate bundles,
+   but it is not intended to protect the network from denial of service
+   attacks that can result from replayed bundles.
+
+2.2.  The Denial-of-Service Threat
+
+   As discussed in the DTN Security Overview [5], due to the resource-
+   scarcity that characterizes DTNs, unauthorized access and use of DTNs
+   is a serious concern.  DTNs, by definition, may suffer from network
+   disconnections, limited bandwidth, limited battery power, and other
+   challenges, and the transmission of unauthorized bundles wastes
+   precious network resources.  The DTN security protocol already
+   includes some mechanisms to protect against unauthorized use of the
+   DTN.  For example, an attacker wanting to launch a denial of service
+   attack on a DTN by injecting a bogus bundle into the network or by
+   copying a legitimate bundle from the network, modifying it, and
+   injecting this modified copy into the network can be thwarted by the
+   use of the Bundle Authentication Block (BAB).  Use of the BAB enables
+   each node that receives a bundle to check the validity of the
+   security result in the BAB to determine whether the bundle is
+   legitimate or not.  Bogus or modified bundles will be detected at the
+   very first node at which they are received, and thus will be deleted
+   from the network at the earliest possible opportunity.  Replayed
+   bundles, on the other hand, can not be detected by checking the
+   validity of the bundle's BAB because the value of the BAB will be
+   correct.  Replayed bundles will only be deleted from the network when
+   they expire.  Given the high latency typical in some DTNs, bundles
+   may be valid for days or weeks.  For those networks in which waiting
+   for replayed bundles to expire is not an adequate form of protection
+   against the unauthorized use of the network posed by replayed
+   bundles, additional measures will be required to actively detect and
+   delete replayed bundles.
+
+
+
+Symington                Expires April 16, 2007                 [Page 4]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+2.3.  Detecting Duplicates is Largely a Matter of Local Policy
+
+   Detecting duplicate bundles at any given node is largely a matter of
+   local security policy and enforcement.  A node could be configured to
+   maintain a record of every bundle it receives, check every new bundle
+   received against the list of bundles that have already been received,
+   and delete any duplicates.  A concern with this approach is the
+   potentially large amount of state that could accumulate and use up
+   storage at any given node.  This state can be minimized by only
+   storing those parts of the bundle needed to identify it uniquely
+   (source EID, creation timestamp, and fragment offset-if present), and
+   keeping this information only until the time that the bundle expires
+   (creation timestamp added to lifetime).  However, because bundles may
+   be valid for long periods in a DTN, the amount of storage that may be
+   required could still be substantial enough to pose a burden on the
+   node.  If the amount of information that needs to be stored exceeds
+   the available storage, some duplicates could go undetected.
+
+2.4.  Not All Duplicates are Bad
+
+   Although detecting duplicates is a fairly straightforward local
+   matter, detecting which of these duplicates are unauthorized and
+   should therefore be deleted is more involved, and has protocol
+   implications.  Simply being able to detect and delete duplicate
+   bundles is not sufficient in a DTN, because not all duplicate bundles
+   are unwanted replays.  As discussed in the security overview, there
+   are instances within DTNs in which replayed messages are desirable
+   and in fact necessary.  As a first example, in some instances, the
+   optimal path to a destination will involve routing loops, such that
+   the nodes on this loop will receive the same bundle for forwarding
+   more than once.  As a second example, the DTN protocol includes a
+   custody-based retransmission mechanism that may result in a custodian
+   re-forwarding a bundle when the bundle's retransmission timer expires
+   or when the custodian receives a "failed" custody signal for the
+   bundle.  These re-forwarded bundles are legitimate replays that are
+   required in order to enable custody transfer to operate correctly.
+
+   On the other hand, there are also illegitimate replays.  Some
+   illegitimate replays are introduced unintentionally by the routing
+   protocols; these replays are not needed in order to deliver the
+   bundle, but rather are the result of routing or forwarding mistakes.
+   Other illegitimate replays are more pernicious, being introduced
+   intentionally by malicious intruders.  Ideally, a node would be able
+   to distinguish illegitimate replays from legitimate ones so that it
+   can know which duplicate bundles to delete and which to forward.
+
+
+
+
+
+
+Symington                Expires April 16, 2007                 [Page 5]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+2.5.  A Mechanism for Distinguishing Legitimate Replays from
+      Illegitimate Replays is Required
+
+   When routing loops or custody transfer is being used in a DTN, replay
+   detection cannot be handled merely as a matter of locally detecting
+   and deleting duplicate bundles because there is no way for a local
+   node to independently distinguish legitimate replays from
+   illegitimate replays.  Instead, a protocol mechanism is required to
+   assist the local duplicate suppression mechanism in making this
+   distinction.
+
+   As discussed in the DTN Security Overview, to accommodate intentional
+   replays that are part of the routing protocol but suppress replays
+   that are the result of routing protocol errors, replay detection
+   schemes may need to be specified and enforced as part of the bundle
+   routing algorithm used.
+
+   If the security requirements of a network are such that replays must
+   not be allowed, then that network must either not use a routing
+   protocol that allows routing loops or, if it does use a routing
+   protocol that allows loops, this routing protocol must also include a
+   mechanism for detecting and suppressing unintentional routing loops.
+   The details of such a mechanism would most likely be specific to the
+   routing protocol and as such they are not addressed in this document.
+
+   In addition, if the security requirements of a network are such that
+   replays must not be allowed, then that network must either not use
+   custody transfer of bundles or, if it does use custody transfer of
+   bundles, it must also include a mechanism for detecting and
+   suppressing duplicate bundles that are not the result of custodial
+   retransmissions.  This paper defines the DTN Retransmission Block as
+   an optional Bundle Protocol block that can be used to mark bundles
+   that are the result of custodial retransmission, thereby enabling
+   these bundles to be distinguished from both unintentional replays and
+   replays that are the result of intentional, malicious attacks.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                 [Page 6]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+3.  The Treatment of Replays Must Be a Defined Aspect of Security Policy
+
+   An additional component of a DTN node's security policy should be
+   whether or not replays are allowed to be forwarded by that node.  If
+   replay forwarding is not allowed, the node must implement mechanisms
+   to detect and delete replays.  In the context of a node that does not
+   implement the optional Retransmission Block defined in this document
+   but at which replay forwarding is not allowed, all duplicate bundles
+   must be deleted, where duplicate bundles are defined as bundles that
+   have the same source EID, time stamp, and fragment offset (if
+   present).  In the context of a node that does implement the optional
+   protocol extensions defined in this document, unauthorized replays
+   can be distinguished from legitimate replays such that only
+   unauthorized replays must be deleted.  The processing steps with
+   regard to replay protection at an arbitrary node are defined as
+   follows:
+
+      If replays are allowed, then no additional requirements are levied
+      on that node.
+
+      If replays are not allowed and if the node supports the optional
+      Retransmission Block defined in this document, then the node MUST
+      delete all duplicate bundles that it receives that can not be
+      legitimate custodial retransmissions.  A received duplicate bundle
+      can not be a legitimate custodial retransmission if it:
+
+         -Has the same custodian EID as the previously-received
+         duplicate, but it does not also have a Retransmission Block
+         that was inserted by that custodian, or
+
+         -Has the same custodian and Retransmission Block as the
+         previously-received duplicate.
+
+      If replays are not allowed and if the node does not support the
+      optional Retransmission Block defined in this document, then the
+      node MUST delete all duplicate bundles that it receives (at the
+      risk of also deleting all legitimate custodial retransmissions
+      that it receives).
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                 [Page 7]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+4.  Replays versus Loops
+
+   The procedures for deleting all duplicate bundles that can not be
+   legitimate custodial retransmissions above will result in the
+   deletion of not only replays, but also of bundles that loop through
+   the network multiple times.  If the looping is unintentional, due to
+   routing or forwarding errors, deletion of these bundles is desirable.
+   If the looping is intentional, however, then the deletion of a bundle
+   in such a loop is not desirable.  For example, if a custodial node,
+   C, needs to free up disk space by temporarily transferring custody
+   and storage of a bundle to some sort of "auxiliary storage" node that
+   is not on the path to the bundle's destination until the path to the
+   destination becomes connected, then the path from the custodian C to
+   the auxiliary storage node and back would constitute an intentional
+   routing loop.  In order to free up its storage space when sending the
+   bundle to auxiliary storage, custody of the bundle would be
+   transferred from node C to the auxiliary storage node.  When the
+   bundle is sent back to node C from auxiliary storage, the auxiliary
+   storage node would be listed as the bundle's custodian.  According to
+   the procedures for deleting duplicate bundles that can not be
+   legitimate custodial retransmissions described earlier in Section 3,
+   this bundle would not be deleted by node C because it does not have
+   the same custodian as it had when it was initially received by node
+   C. If for some reason this storing of the bundle at the auxiliary
+   storage node has to be performed a second time, however, then the
+   procedures above will not suffice to spare this bundle from deletion.
+
+   If node C receives the bundle from auxiliary storage and forwards it
+   back to auxiliary storage without taking custody of it, auxiliary
+   storage will delete this copy of the bundle, but it will still be
+   custodian of the bundle and will still have it in storage.  This case
+   is not a problem.  If, on the other hand, node C receives the bundle
+   from auxiliary storage and takes custody of the bundle before
+   forwarding it back to auxiliary storage, the auxiliary storage node
+   will delete this bundle (but the auxiliary storage node will not
+   still be custodian of the bundle and will not still have the bundle
+   in storage) because the auxiliary storage node has already received
+   this bundle with node C listed as its custodian and this bundle does
+   not contain a retransmission block because node C did not forward it
+   as a custodial retransmission.
+
+   There are several possible approaches that may be taken to address
+   this problem by attempting to process bundles that are in "desirable"
+   loops and discard bundles that are in "undesirable" loops, while
+   staying within the procedures defined above for deleting duplicate
+   bundles that can not be legitimate custodial retransmissions.  For
+   example, custodial nodes that make use of auxiliary storage nodes
+   might be configured to accept duplicate bundles received from
+
+
+
+Symington                Expires April 16, 2007                 [Page 8]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+   auxiliary storage nodes, and vice versa.  Alternatively, a special
+   block might be defined to mark a bundle that a custodial node is
+   sending to an auxiliary storage node for storage and custody
+   transfer.  As long as a bundle is marked such that it is intended for
+   auxiliary storage, it could be accepted and stored at the auxiliary
+   storage node, even if it is a duplicate of a previously-received
+   bundle.  If the auxiliary storage node treats all subsequent
+   forwardings of a bundle after the first forwarding as though the
+   forwarding were the result of a custodial retransmission by inserting
+   a Retransmission Block into the bundle, bundles could be circulated
+   between custodians and their auxiliary storage nodes multiple times
+   without being summarily deleted.  Using these solution approaches,
+   there would be no limit to the number of times a bundle could be
+   offloaded to auxiliary storage, if needed.  A risk of implementing
+   these approaches, however, is that bundles that unintentionally loop
+   between a custodian and its auxiliary storage node may not be
+   discarded.  Furthermore, these approaches assume that all intentional
+   loops can be known a priori, so that nodes can be configured to
+   accept duplicate bundles looping through them or that at least one
+   node in the loop can be configured to insert Retransmission Blocks
+   into the looping bundles to protect them from being discarded.  These
+   approaches do not necessarily work for loops that arise
+   opportunistically, being unplanned but useful, unless there is a
+   mechanism within the loop for retransmission blocks to be inserted
+   into the looping bundle as appropriate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                 [Page 9]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+5.  Ramifications of Allowing Support for the Retransmission Block to be
+    Optional
+
+   The objective of the DTN Retransmission Block is to make custodially-
+   retransmitted bundles distinguishable from unintentional and
+   malicious replays.  Because support for the Retransmission Block is
+   optional, it may not be supported by all nodes in the DTN.  Failure
+   to support the Retransmission Block at one or more nodes in the DTN
+   may result in the erroneous deletion of bundles that are legitimate
+   retransmissions because:
+
+      A node that does not support the Retransmission Block but that is
+      configured to suppress replays will delete all duplicate bundles,
+      whether or not they include Retransmission Blocks that mark them
+      as being legitimate retransmissions.
+
+      A custodial node that does not support the Retransmission Block
+      but that legitimately retransmits a bundle will not include a
+      Retransmission Block to mark the bundle as a legitimate
+      retransmission, so that when the bundle is received at a
+      downstream node that is configured to suppress replays, the bundle
+      will be deleted by that downstream node (even if that downstream
+      node supports the Retransmission Block).
+
+   A DTN cannot completely support both replay suppression and custodial
+   retransmission if some of its nodes do not support the Retransmission
+   Block.  If all unintentional replays must be suppressed and custodial
+   retransmission must be supported, all nodes in the network must
+   support the Retransmission Block.  If one or more nodes does not
+   support the Retransmission Block, then if these nodes are configured
+   to suppress replays, they will delete custodial retransmissions that
+   they receive and issue custodial retransmissions that are vulnerable
+   to being deleted downstream; if they are configured to forward
+   replays, then they will forward all replays, both intentional and
+   malicious ones.
+
+   Nodes that do not support the Retransmission Block cannot create,
+   recognize, or process a Retransmission Block.  If the Retransmission
+   Block Processing Flags indicate that a bundle must be deleted if the
+   Retransmission Block cannot be processed, then all nodes that do not
+   support the Retransmission Block will delete all custodial
+   retransmissions, even if these nodes are not configured to suppress
+   replays.  If the Retransmission Block Processing Flags indicate that
+   the Retransmission Block must be deleted if it cannot be processed,
+   then all nodes that do not support the Retransmission Block will
+   strip the Retransmission Block out of every custodial retransmission
+   that they forward, leaving these custodial retransmissions vulnerable
+   to downstream deletion by nodes that suppress replays (even if those
+
+
+
+Symington                Expires April 16, 2007                [Page 10]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+   downstream nodes support the Retransmission Block).
+
+   If not all nodes in the DTN support the Retransmission Block, then to
+   preserve support for custodial retransmission while maximizing replay
+   suppression, the security policies of the nodes and the Block
+   Processing Flags in the Retransmission Block should be configured as
+   follows:
+
+      -The "Discard bundle if block can't be processed" Block Processing
+      Flag SHOULD NOT be set,
+
+      -The "Discard block if it can't be processed" Block Processing
+      Flag SHOULD NOT be set,
+
+      -Nodes that support the Retransmission Block should be configured
+      to delete all replays that can not be custodial retransmissions,
+
+      -Nodes that do not support the Retransmission Block should be
+      configured to forward duplicates (so that they don't inadvertently
+      delete custodial retransmissions), and
+
+      -Nodes that do not support the Retransmission Block should be
+      configured not to take custody of bundles (to ensure that
+      custodial retransmissions will always include Retransmission
+      Blocks).
+
+   The above configuration ensures that custodial retransmissions will
+   not be erroneously deleted, and that all illegitimate replays that
+   are received at nodes that support the Retransmission Block will be
+   deleted.  Only replays that are received at nodes that do not support
+   the Retransmission Block will be forwarded and allowed to remain in
+   the network.  If these are forwarded to a node that supports the
+   Retransmission Block, however, they will be deleted at that node.
+   Therefore, a network configured in this way is vulnerable to a
+   denial-of-service attack only from replayed bundles that circulate
+   exclusively among nodes that do not support the Retransmission Block.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                [Page 11]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+6.  Retransmission Block Format
+
+   The Retransmission Block (RB) is a new block that MAY be included in
+   a bundle.  A RB uses the Canonical Bundle Block Format as defined in
+   the Bundle Protocol [2].  That is, it is comprised of the following
+   elements:
+
+      -Block-type code (one byte) - defined as in all bundle protocol
+      blocks except the primary bundle block (as described in the Bundle
+      Protocol).  The block type code for the Retransmission Block is
+      0x07.
+
+      -Block processing control flags (one byte) - defined as in all
+      bundle protocol blocks except the primary bundle block (as
+      described in the Bundle Protocol).  The following block processing
+      control flag MUST NOT be set:
+
+         -Block must be replicated in every fragment
+
+      -Block data length (SDNV) - defined as in all bundle protocol
+      blocks except the primary bundle block.  SDNV encoding is
+      described in the Bundle Protocol.
+
+      -Block-type-specific data fields as follows:
+
+         - EID Scheme Offset of retransmitting custodian - a 16-bit
+         unsigned integer; its value is the offset within the dictionary
+         byte array of the first character of the scheme name of the EID
+         of the retransmitting custodian that inserted this block.
+
+         -EID SSP Offset of retransmitting custodian - a 16-bit unsigned
+         integer; its value is the offset within the dictionary byte
+         array of the first character of the scheme-specific part of the
+         EID of the retransmitting custodian that inserted this block.
+
+         - Retransmission sequence number (one byte) - An unsigned
+         integer indicating the number of times this bundle has been
+         retransmitted by this custodian.
+
+   The structure of a Retransmission Block is as follows:
+
+   Retransmission Block Format:
+   +-----+------+-------+-------------+------+----------------+
+   |Type |Flags |Length |EID Scheme |EID SSP | Retransmission |
+   |     |      |       | offset    | offset |  Sequence Num. |
+   +-----+------+-------+-------------+------+----------------+
+
+   Figure 1
+
+
+
+Symington                Expires April 16, 2007                [Page 12]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+7.  Retransmission Block Processing
+
+   The following are the processing steps that a bundle node must take
+   relative to generation, reception, and processing of Retransmission
+   Blocks.
+
+7.1.  Bundle Reception
+
+   According to the Bundle Protocol, if a node receives a bundle that it
+   currently has in custody as custodian, that node will send a "Failed"
+   custody signal for this bundle to the bundle's listed current
+   custodian, but receipt of this duplicate bundle will not cause the
+   bundle to be either delivered at that node or forwarded to another
+   node.
+
+   Upon receipt of a bundle that the node does not currently have in
+   custody, the node SHALL delete the bundle's Retransmission Block if
+   the endpoint ID referred to by the EID Scheme and EID SSP offsets in
+   the Retransmission Block is not the same as the endpoint ID referred
+   to by the Custodian scheme and Custodian SSP offsets in the Primary
+   Bundle Block.  The node SHALL also delete all strings (scheme names
+   and scheme-specific parts-SSPs) in the bundle's dictionary to which
+   no endpoint ID references in the bundle currently refer (if any).
+
+7.2.  Replay Detection and Suppression
+
+   If a node's security policy indicates that replays are not allowed
+   and if a bundle is received such that the bundle's source EID,
+   timestamp, and fragment offset (if it has one) are identical to those
+   in a bundle that the node had previously received, then
+
+      -If the received bundle does not include a Retransmission Block
+      and its custodian EID is the same as it was in a previously-
+      received duplicate bundle, the bundle MUST be deleted.
+
+      -If the received bundle does include a Retransmission Block and
+      all the values in it are the same as all the values in the
+      Retransmission Block of the previously-received, duplicate bundle,
+      the bundle MUST be deleted.
+
+7.3.  Keeping Track of Bundles Received
+
+   If replays are not allowed at this node, and if a bundle will not be
+   deleted as a replay, the source EID, timestamp, fragment offset (if
+   any), custodian EID (if the bundle does not include a Retransmission
+   Block) and Retransmission Block (if any) of the received bundle MUST
+   be stored at this node for comparison with future received bundles.
+
+
+
+
+Symington                Expires April 16, 2007                [Page 13]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+7.4.  Bundle Forwarding
+
+   As part of the custody acceptance procedures, the accepting node MUST
+   delete the bundle's Retransmission Block (if it has one).
+
+7.5.  Custodial Retransmission
+
+   Upon deciding to re-forward a bundle as a result of custody transfer
+   failure, the re-forwarding custodian MUST:
+
+      - insert a Retransmission Block into the bundle if the bundle does
+      not already include one, or
+
+      - increment the retransmission sequence number in the
+      Retransmission Block if the bundle does already include one
+
+   In either case, the EID Scheme offset and the EID SSP offset in the
+   Retransmission Block must refer to the EID of the re-forwarding
+   custodian as it appears in the bundle.
+
+   If a custodian decides to re-forward only a fragment of a bundle that
+   it had previously forwarded, the re-forwarded fragment will not be a
+   duplicate of any bundle that had previously been transmitted by this
+   custodian.  Therefore, the re-forwarded fragment SHALL NOT include a
+   Retransmission Block.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                [Page 14]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+8.  Security Considerations
+
+   Each node's local security policy will determine whether replays will
+   be detected and suppressed at that node or whether replays will be
+   forwarded indiscriminately.  When deciding upon a node's security
+   policy, it is worth noting that in most networks, the Bundle
+   Authentication Block (BAB) must be used in conjunction with replay
+   detection and suppression.  It does not make sense to detect and
+   suppress replayed bundles without first authenticating that those
+   bundles have not been modified.  Without use of the BAB to
+   authenticate that a bundle has been forwarded in tact, a network is
+   vulnerable to denial of service attacks launched merely by the
+   injection of any spurious bundles into the network or the
+   modification of any authentic bundles.  There seems little value in
+   protecting against denial-of-service attacks resulting from replayed
+   bundles if denial-of-service attacks resulting from such modified or
+   spurious bundles will be permitted.  Therefore, in determining the
+   security policy of a node, it will usually be the case that nodes
+   that do not allow replays must also require received bundles to
+   include BABs.
+
+   Because the RB may be inserted at any custodian in the network and
+   deleted at any subsequent custodian, its integrity can't be protected
+   by an end-to-end Payload Security Block (PSB) [3].  Its integrity
+   must be protected by the BAB.  If the integrity of the RB is not
+   protected by the BAB, then a malicious intruder could modify the RB
+   to inject many illegitimately replayed bundles, yet give the RB
+   values such that these bundles appear to be legitimate
+   retransmissions.  As currently defined, protection for the RB will be
+   included when using the mandatory BAH-HMAC ciphersuite defined in the
+   Bundle Security Protocol, given that this ciphersuite uses the strict
+   canonicalisation algorithm.
+
+   If a node is compromised, this BAB doesn't help to protect against
+   replays, but then the network has a lot more vulnerabilities than
+   just a vulnerability to replays.  If a node is compromised, any
+   bundle could be created and injected into the network.  The RB
+   mechanism is no more vulnerable to misuse by a compromised node than
+   are any of the other security mechanisms.
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                [Page 15]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+9.  IANA Considerations
+
+   None at this time.  If the bundle protocol becomes a standards track
+   protocol, then we may want to consider having IANA establish a
+   register of block types, of which the Retransmission Block would be
+   one.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                [Page 16]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+10.  References
+
+10.1.  Normative References
+
+   [1]  Bradner, S. and J. Reynolds, "Key words for use in RFCs to
+        Indicate Requirement Levels", RFC 2119, October 1997.
+
+   [2]  Scott, K. and S. Burleigh, "Bundle Protocol Specification",
+        draft-irtf-dtnrg-bundle-spec-05.txt, work-in-progress,
+        April 2006.
+
+   [3]  Symington, S., Farrell, S., and H. Weiss, "Bundle Security
+        Protocol Specification",
+        draft-irtf-dtnrg-bundle-security-01.txt, work-in-progress,
+        March 2006.
+
+10.2.  Informative References
+
+   [4]  Cerf, V., Burleigh, S., Hooke, A., Torgerson, L., Durst, R.,
+        Scott, K., Fall, K., and H. Weiss, "Delay-Tolerant Network
+        Architecture", draft-irtf-dtnrg-arch-05.txt, work-in-progress,
+        March 2006.
+
+   [5]  Farrell, S., Symington, S., and H. Weiss, "Delay-Tolerant
+        Network Security Overview",
+        draft-irtf-dtnrg-sec-overview-01.txt, work-in-progress,
+        March 2006.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                [Page 17]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+Author's Address
+
+   Susan Flynn Symington
+   The MITRE Corporation
+   7515 Colshire Drive
+   McLean, VA  22102
+   US
+
+   Phone: +1 (703) 983-7209
+   Email: susan@mitre.org
+   URI:   http://mitre.org/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires April 16, 2007                [Page 18]
+
+Internet-Draft          DTN Retransmission Block            October 2006
+
+
+Intellectual Property Statement
+
+   The IETF takes no position regarding the validity or scope of any
+   Intellectual Property Rights or other rights that might be claimed to
+   pertain to the implementation or use of the technology described in
+   this document or the extent to which any license under such rights
+   might or might not be available; nor does it represent that it has
+   made any independent effort to identify any such rights.  Information
+   on the procedures with respect to rights in RFC documents can be
+   found in BCP 78 and BCP 79.
+
+   Copies of IPR disclosures made to the IETF Secretariat and any
+   assurances of licenses to be made available, or the result of an
+   attempt made to obtain a general license or permission for the use of
+   such proprietary rights by implementers or users of this
+   specification can be obtained from the IETF on-line IPR repository at
+   http://www.ietf.org/ipr.
+
+   The IETF invites any interested party to bring to its attention any
+   copyrights, patents or patent applications, or other proprietary
+   rights that may cover technology that may be required to implement
+   this standard.  Please address the information to the IETF at
+   ietf-ipr@ietf.org.
+
+
+Disclaimer of Validity
+
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+Copyright Statement
+
+   Copyright (C) The Internet Society (2006).  This document is subject
+   to the rights, licenses and restrictions contained in BCP 78, and
+   except as set forth therein, the authors retain all their rights.
+
+
+Acknowledgment
+
+   Funding for the RFC Editor function is currently provided by the
+   Internet Society.
+
+
+
+
+Symington                Expires April 16, 2007                [Page 19]
+

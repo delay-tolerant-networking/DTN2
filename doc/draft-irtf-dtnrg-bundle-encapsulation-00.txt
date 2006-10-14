@@ -1,0 +1,672 @@
+
+
+
+DTN Research Group                                          S. Symington
+Internet-Draft                                                  R. Durst
+Expires: January 29, 2007                                       K. Scott
+                                                   The MITRE Corporation
+                                                           July 28, 2006
+
+
+        Delay-Tolerant Networking Bundle-in-Bundle Encapsulation
+                draft-irtf-dtnrg-bundle-encapsulation-00
+
+Status of this Memo
+
+   By submitting this Internet-Draft, each author represents that any
+   applicable patent or other IPR claims of which he or she is aware
+   have been or will be disclosed, and any of which he or she becomes
+   aware will be disclosed, in accordance with Section 6 of BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as Internet-
+   Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt.
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+   This Internet-Draft will expire on January 29, 2007.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (2006).
+
+Abstract
+
+   This document defines an additional administrative record type to be
+   used with the Bundle Protocol [2] within the context of a Delay-
+   Tolerant Network architecture [5].  This new administrative record
+   type, called a Bundle-in-Bundle Encapsulation Administrative Record,
+   is designed to be used to encapsulate one or more bundles inside of
+   another bundle.  When an administrative record of the bundle-in-
+   bundle encapsulation type is carried as the payload of a bundle, it
+
+
+
+Symington, et al.       Expires January 29, 2007                [Page 1]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+   provides a mechanism for transmitting one or more bundles as part of
+   the payload of another bundle.  This administrative record type is
+   expected to be of general use in DTN.  It may be used, for example,
+   to encapsulate a multicast bundle inside of a unicast bundle, or to
+   encapsulate a bundle with one type of security protection inside of a
+   bundle with a different type of security protection.  This document
+   defines the format and processing of this new bundle-in-bundle
+   encapsulation administrative record type.
+
+
+Table of Contents
+
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
+   2.  Bundle-in-Bundle Encapsulation Administrative Record Format  .  4
+   3.  Bundle-in-Bundle Encapsulation Administrative Record
+       Processing . . . . . . . . . . . . . . . . . . . . . . . . . .  5
+     3.1.  Generation and Transmission of an Encapsulated Bundle
+           or Bundles . . . . . . . . . . . . . . . . . . . . . . . .  5
+     3.2.  Local Delivery of an Encapsulating Bundle  . . . . . . . .  6
+   4.  Security Considerations  . . . . . . . . . . . . . . . . . . .  8
+   5.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . .  9
+   6.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+     6.1.  Normative References . . . . . . . . . . . . . . . . . . . 10
+     6.2.  Informative References . . . . . . . . . . . . . . . . . . 10
+   Authors' Addresses . . . . . . . . . . . . . . . . . . . . . . . . 11
+   Intellectual Property and Copyright Statements . . . . . . . . . . 12
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires January 29, 2007                [Page 2]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+1.  Introduction
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119 [1].
+
+   The DTN bundle protocol [2] defines the bundle as its protocol data
+   unit and also defines two types of administrative records that may be
+   carried as the payload of bundles.  This document defines an
+   additional administrative record type.  This new administrative
+   record type, called a Bundle-in-Bundle Encapsulation Administrative
+   Record, is designed to be used to encapsulate one or more bundles
+   inside of another bundle.  When an administrative record of the
+   bundle-in-bundle encapsulation type is carried as the payload of a
+   bundle, it provides a mechanism for transmitting one or more bundles
+   as part of another bundle.  This administrative record type is
+   expected to be of general use in DTN.  It may be used, for example,
+   to encapsulate a multicast bundle inside of a unicast bundle, or to
+   encapsulate a bundle with one type of security protection inside of a
+   bundle with a different type of security protection.  This document
+   defines the format and processing of this new bundle-in-bundle
+   encapsulation administrative record type.
+
+   The capabilities described in this document are OPTIONAL for
+   deployment with the Bundle Protocol.  Bundle Protocol implementations
+   claiming to support bundle-in-bundle encapsulation MUST be capable of
+   both:
+
+      -generating and sending bundles containing Bundle-in-Bundle
+      Encapsulation administrative records, and
+
+      -receiving and processing bundles containing Bundle-in-Bundle
+      Encapsulation administrative records
+
+   as defined in this document.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires January 29, 2007                [Page 3]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+2.  Bundle-in-Bundle Encapsulation Administrative Record Format
+
+   The basic format of every administrative record is defined in the
+   Bundle Protocol.  The bundle-in-bundle encapsulation administrative
+   record also has this basic format.  That is, it is comprised of the
+   following elements:
+
+      -Record type code (four bits) - as in all administrative records.
+      The administrative record type code value for the bundle-in-bundle
+      encapsulation administrative record is 0x03.
+
+      -Administrative record flags - (four bits) - as in all
+      administrative records.
+
+      -Administrative record type-specific record content as follows:
+
+         -Encapsulated Bundles field - contains a sequence of one or
+         more bundles that are to be extracted from this administrative
+         record for further processing (e.g., delivery and/or
+         forwarding).
+
+   The format of the a bundle-in-bundle encapsulation administrative
+   record is as follows:
+
+   Bundle-in-Bundle Encapsulation Administrative Record Type Format
+   +---------------+---------------+--------------+
+   | Admin. Record | Admin. Record | Encapsulated |
+   | Type Code     |    flags      |  Bundles     |
+   +---------------+---------------+--------------+
+
+
+   Figure 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires January 29, 2007                [Page 4]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+3.  Bundle-in-Bundle Encapsulation Administrative Record Processing
+
+   For the most part, the processing of a bundle that contains a bundle-
+   in-bundle encapsulation administrative record type is the same as the
+   processing of any other bundle.  The main difference between a bundle
+   that contains a bundle-in-bundle encapsulation administrative record
+   type and a bundle with a generic payload is what happens before
+   generation and after delivery of the bundle.  The generation and
+   initial transmission of all bundles is in response to bundle
+   transmission requests posed by a node's application agent.  For most
+   bundles, the transmission request comes from an application, via the
+   node's application agent, to the node's bundle protocol agent.  For
+   bundles that contain administrative records, the bundle protocol
+   agent itself is responsible for causing the new bundle to be
+   generated and transmitted because it directs the administrative
+   element of the node's application agent to construct the
+   administrative record and request its transmission.  For bundles that
+   contain bundle-in-bundle encapsulation administrative records, in
+   particular, the receipt by a node of a bundle that is to be
+   encapsulated in the bundle-in-bundle encapsulation administrative
+   record is what causes the bundle protocol agent to direct the
+   administrative element of the node's application agent to construct
+   the bundle-in-bundle encapsulation administrative record and request
+   its transmission.
+
+   Similarly, upon delivery of a bundle containing a bundle-in-bundle
+   encapsulation administrative record, processing of the bundle does
+   not end with this delivery.  The administrative element of the node's
+   application agent to which the bundle-in-bundle encapsulation
+   administrative record was delivered is expected to extract the
+   encapsulated bundle or bundles from the bundle-in-bundle
+   encapsulation administrative record and then pass them down to its
+   bundle protocol agent for further processing, followed by forwarding
+   and/or delivery, as appropriate.  This section describes the steps
+   that are particular to the processing of bundles containing bundle-
+   in-bundle encapsulation administrative records.  In particular, it
+   focuses on the processing that occurs prior to and during generation
+   of these bundles, and during and after delivery of these bundles,
+   because these periods of processing are what distinguish the
+   processing of bundles containing bundle-in-bundle encapsulation
+   administrative records from the processing of other bundles.
+
+3.1.  Generation and Transmission of an Encapsulated Bundle or Bundles
+
+   To take a received bundle (or bundles) and forward this bundle as
+   part of a bundle-in-bundle encapsulation administrative record that
+   is carried as the payload of another bundle, a node must perform the
+   following steps:
+
+
+
+Symington, et al.       Expires January 29, 2007                [Page 5]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+      The node SHALL process the received bundle for forwarding as if it
+      were going to simply forward the bundle.  Some of the processing
+      steps include, for example:
+
+         -Processing the security extension blocks [4] (if any)
+         contained in the bundle, as appropriate (e.g., verifying the
+         security result in the Bundle Authentication Block and deleting
+         this block, verifying the security result in the Payload
+         Security Block if the node is the security destination, etc.).
+
+         -Deleting all Previous Hop Insertion Blocks from the bundle (if
+         any).
+
+         -If the bundle should (according to local policy) be given one
+         or more Previous Hop Insertion Blocks [3], these blocks SHALL
+         be inserted into the bundle.
+
+         -If the bundle should be given one or more security extension
+         blocks such as a Bundle Authentication, Payload Security, or
+         Confidentiality Block, the appropriate security blocks SHALL be
+         inserted into the bundle.
+
+      Next, the node's bundle protocol agent MUST direct the
+      administrative element of the node's application agent to
+      construct an encapsulating bundle.  This encapsulating bundle will
+      have as its payload a bundle-in-bundle encapsulation
+      administrative record of type 0x03, as described in the previous
+      section.  The bundle or bundle's to be encapsulated MUST be placed
+      in the "Encapsulated Bundles" field of this administrative record.
+
+3.2.  Local Delivery of an Encapsulating Bundle
+
+   Upon delivery of a bundle with a payload that is a Bundle-in-Bundle
+   Encapsulation administrative record, the administrative element of
+   the application agent of the node at which the bundle was delivered
+   SHALL perform the following processing steps:
+
+      Extract the encapsulated bundle(s) from the bundle-in-bundle
+      encapsulation administrative record.
+
+      Pass each of these de-encapsulated bundles in their entirety to
+      the node's bundle protocol agent.
+
+   Upon receipt of each of these de-encapsulated bundles, the bundle
+   protocol agent SHALL process each bundle as if it had just been
+   received from another node.  Some of these processing steps include,
+   for example:
+
+
+
+
+Symington, et al.       Expires January 29, 2007                [Page 6]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+      -Processing the security extension blocks [4] (if any) contained
+      in the bundle, as appropriate (e.g., verifying the security result
+      in the Bundle Authentication Block and deleting this block,
+      verifying the security result in the Payload Security Block if the
+      node is the security destination, etc.).
+
+      -Deleting all Previous Hop Insertion Blocks from the bundle (if
+      any).
+
+      -If the bundle should (according to local policy) be given one or
+      more Previous Hop Insertion Blocks [3], these blocks SHALL be
+      inserted into the bundle.
+
+      -The bundle protocol agent SHALL deliver the bundle, if
+      appropriate,
+
+      -The bundle protocol agent SHALL perform custody transfer and/or
+      status reporting procedures on the bundle as directed by the
+      bundle's custody transfer and status report request flags.
+
+      -If the bundle should be given one or more security extension
+      blocks such as a Bundle Authentication, Payload Security, or
+      Confidentiality Block, the appropriate security blocks SHALL be
+      inserted into the bundle.
+
+      -The bundle protocol agent SHALL forward the bundle to all
+      appropriate endpoints.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires January 29, 2007                [Page 7]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+4.  Security Considerations
+
+   There are two documents that pertain to providing security within DTN
+   [4] [6].  The security blocks and other protection mechanisms defined
+   and described in those documents apply completely to the protection
+   of bundle-in-bundle encapsulation administrative records, in the
+   sense that administrative records are simply carried in bundles as
+   the content of the payload field in the Bundle Payload block.  All
+   security protection mechanisms that apply to the Bundle Payload
+   block, therefore, also apply to protection of bundle-in-bundle
+   encapsulation administrative records.  In particular, all three
+   mandatory ciphersuites defined in the Bundle Security Protocol
+   provide protection for the bundle-in-bundle encapsulation
+   administrative record.
+
+   It should be noted that when a bundle is encapsulated, the
+   encapsulated bundle itself may be protected by one or more security
+   blocks.  In particular, it may contain a Bundle Authentication block
+   (BAB), which is designed to be processed by a next-hop neighboring
+   node.  If a bundle with a BAB is encapsulated by one node and it is
+   received and de-encapsulated by a non-neighboring node, the de-
+   encapsulating node must be capable of validating the security result
+   in that BAB if its security policy requires such validation.
+   Therefore, encapsulation of bundles protected by BABs may require
+   that keys that are normally only shared between neighbors be
+   distributed further in the DTN so that they are shared by the
+   encapsulating and de-encapsulating nodes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires January 29, 2007                [Page 8]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+5.  IANA Considerations
+
+   None at this time.  If the bundle protocol becomes a standards track
+   protocol, then we may want to consider having IANA establish a
+   register of administrative record types.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires January 29, 2007                [Page 9]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+6.  References
+
+6.1.  Normative References
+
+   [1]  Bradner, S. and J. Reynolds, "Key words for use in RFCs to
+        Indicate Requirement Levels", RFC 2119, October 1997.
+
+   [2]  Scott, K. and S. Burleigh, "Bundle Protocol Specification",
+        draft-irtf-dtnrg-bundle-spec-05.txt, work-in-progress,
+        April 2006.
+
+   [3]  Symington, S., "Delay-Tolerant Networking Previous Hop Insertion
+        Block", draft-irtf-dtnrg-bundle-previous-hop-block-00.txt, work-
+        in-progress, July 2006.
+
+   [4]  Symington, S., Farrell, S., and H. Weiss, "Bundle Security
+        Protocol Specification",
+        draft-irtf-dtnrg-bundle-security-01.txt, work-in-progress,
+        March 2006.
+
+6.2.  Informative References
+
+   [5]  Cerf, V., Burleigh, S., Hooke, A., Torgerson, L., Durst, R.,
+        Scott, K., Fall, K., and H. Weiss, "Delay-Tolerant Network
+        Architecture", draft-irtf-dtnrg-arch-05.txt, work-in-progress,
+        March 2006.
+
+   [6]  Farrell, S., Symington, S., and H. Weiss, "Delay-Tolerant
+        Network Security Overview",
+        draft-irtf-dtnrg-sec-overview-01.txt, work-in-progress,
+        March 2006.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires January 29, 2007               [Page 10]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+Authors' Addresses
+
+   Susan Flynn Symington
+   The MITRE Corporation
+   7515 Colshire Drive
+   McLean, VA  22102
+   US
+
+   Phone: +1 (703) 983-7209
+   Email: susan@mitre.org
+   URI:   http://mitre.org/
+
+
+   Robert C. Durst
+   The MITRE Corporation
+   7515 Colshire Drive
+   McLean, VA  22102
+   US
+
+   Phone: +1 (703) 983-7535
+   Email: durst@mitre.org
+   URI:   http://mitre.org/
+
+
+   Keith L. Scott
+   The MITRE Corporation
+   7515 Colshire Drive
+   McLean, VA  22102
+   US
+
+   Phone: +1 (703) 983-6547
+   Email: kscott@mitre.org
+   URI:   http://mitre.org/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires January 29, 2007               [Page 11]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+
+
+Intellectual Property Statement
+
+   The IETF takes no position regarding the validity or scope of any
+   Intellectual Property Rights or other rights that might be claimed to
+   pertain to the implementation or use of the technology described in
+   this document or the extent to which any license under such rights
+   might or might not be available; nor does it represent that it has
+   made any independent effort to identify any such rights.  Information
+   on the procedures with respect to rights in RFC documents can be
+   found in BCP 78 and BCP 79.
+
+   Copies of IPR disclosures made to the IETF Secretariat and any
+   assurances of licenses to be made available, or the result of an
+   attempt made to obtain a general license or permission for the use of
+   such proprietary rights by implementers or users of this
+   specification can be obtained from the IETF on-line IPR repository at
+   http://www.ietf.org/ipr.
+
+   The IETF invites any interested party to bring to its attention any
+   copyrights, patents or patent applications, or other proprietary
+   rights that may cover technology that may be required to implement
+   this standard.  Please address the information to the IETF at
+   ietf-ipr@ietf.org.
+
+
+Disclaimer of Validity
+
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+Copyright Statement
+
+   Copyright (C) The Internet Society (2006).  This document is subject
+   to the rights, licenses and restrictions contained in BCP 78, and
+   except as set forth therein, the authors retain all their rights.
+
+
+Acknowledgment
+
+   Funding for the RFC Editor function is currently provided by the
+   Internet Society.
+
+
+
+
+Symington, et al.       Expires January 29, 2007               [Page 12]
+

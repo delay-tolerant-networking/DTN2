@@ -1,0 +1,672 @@
+
+
+
+DTN Research Group                                          S. Symington
+Internet-Draft                                     The MITRE Corporation
+Expires: January 29, 2007                                  July 28, 2006
+
+
+         Delay-Tolerant Networking Previous Hop Insertion Block
+             draft-irtf-dtnrg-bundle-previous-hop-block-00
+
+Status of this Memo
+
+   By submitting this Internet-Draft, each author represents that any
+   applicable patent or other IPR claims of which he or she is aware
+   have been or will be disclosed, and any of which he or she becomes
+   aware will be disclosed, in accordance with Section 6 of BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as Internet-
+   Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt.
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+   This Internet-Draft will expire on January 29, 2007.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (2006).
+
+Abstract
+
+   This document defines an extension block that may be used with the
+   Bundle Protocol [2] within the context of a Delay-Tolerant Network
+   architecture [4].  This Previous Hop Insertion Block is designed to
+   be inserted by a forwarding node to provide information to its next-
+   hop receiving node.  This block is always removed from the bundle by
+   the receiving node so that it's duration within the bundle lasts for
+   exactly one hop.  It provides a general insertion capability to
+   enable any node that forwards a bundle to insert an arbitrary record
+   (or records) of information into the bundle.  While this block is
+
+
+
+Symington               Expires January 29, 2007                [Page 1]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+   defined to provide an arbitrary insertion capability, this
+   specification also defines two specific, mandatory, information
+   record formats for the information that may be carried in the
+   Previous Hop Insertion block.  Using these mandatory information
+   record formats, an insertion block may be used to carry the
+   inserting/forwarding node's endpoint ID (EID), which may be required
+   in some circumstances to support certain routing protocols (e.g.,
+   flood routing).  This document defines the format and processing of
+   this Previous Hop Insertion Block.
+
+
+Table of Contents
+
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
+   2.  Previous Hop Insertion Block Format  . . . . . . . . . . . . .  5
+   3.  Previous Hop Insertion Block Processing  . . . . . . . . . . .  6
+     3.1.  Bundle Transmission  . . . . . . . . . . . . . . . . . . .  6
+     3.2.  Bundle Forwarding  . . . . . . . . . . . . . . . . . . . .  6
+     3.3.  Bundle Reception . . . . . . . . . . . . . . . . . . . . .  6
+   4.  Mandatory Information Record Formats . . . . . . . . . . . . .  7
+     4.1.  EID-only . . . . . . . . . . . . . . . . . . . . . . . . .  7
+     4.2.  EID-with-Timestamp . . . . . . . . . . . . . . . . . . . .  7
+   5.  Security Considerations  . . . . . . . . . . . . . . . . . . .  8
+   6.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . .  9
+   7.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+     7.1.  Normative References . . . . . . . . . . . . . . . . . . . 10
+     7.2.  Informative References . . . . . . . . . . . . . . . . . . 10
+   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . . 11
+   Intellectual Property and Copyright Statements . . . . . . . . . . 12
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington               Expires January 29, 2007                [Page 2]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+1.  Introduction
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119 [1].
+
+   The DTN bundle protocol [2] defines the bundle as its protocol data
+   unit.  A bundle consists of a primary bundle block, which is defined
+   in the Bundle Protocol, followed by at least one other type of bundle
+   block.  The Bundle Protocol defines a single other type of bundle
+   block, called a Bundle Payload block.  This document defines an
+   additional, optional, bundle block called a Previous Hop Insertion
+   Block.  This block is designed to be used by a forwarding node to
+   insert information into a bundle before forwarding that bundle.  The
+   intent of this Previous Hop Insertion Block is to provide a general
+   insertion mechanism such that an arbitrary record of information may
+   be inserted into the bundle by a forwarding node for consumption by
+   the next-hop receiving node.  The lifetime of the Previous Hop
+   Insertion Block is always exactly one hop in the DTN, so if a bundle
+   containing a Previous Hop Insertion Block is received, the receiving
+   node is assured that the information in this block was inserted by
+   the previous node; likewise, the information in this block is not
+   retained with the bundle when the bundle is forwarded.
+
+   The information record(s) to be inserted into the block may have any
+   content and format, providing the content and format have been
+   defined and documented in order to enable the information to be
+   understood.  In this specification we define two specific information
+   record formats for use in the insertion block that MUST be supported.
+   Each of these formats includes a field for the endpoint ID
+   information of the inserting node.  Insertion of a node's EID into a
+   bundle's Previous Hop Insertion Block enables the inserting/
+   forwarding node to provide its EID to its next-hop receiving node.
+   This previous-hop EID information may be required in some
+   circumstances to support various routing protocols (e.g., flood
+   routing).  Although there may be some situations in which a node that
+   receives a bundle may be able to infer the EID of the node that
+   forwarded the bundle to it, there are other situations in which the
+   EID of the forwarding node will not be able to be inferred by the
+   receiving node.  In these situations, if there is a requirement that
+   the receiving node be able to determine the EID of the forwarding
+   node, the forwarding node must provide this information in the
+   bundle.  This specification defines the mechanism, i.e. the Previous
+   Hop Insertion Block, used in conjunction with either an EID-only or
+   an EID-with-timestamp information record format, whereby a node can
+   insert its EID (and possibly other information) into a bundle before
+   forwarding it.
+
+
+
+
+Symington               Expires January 29, 2007                [Page 3]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+   Using the information record formats that are defined in this
+   document, the information that is provided in the insertion blocks at
+   each node may include not only the EID of the inserting/forwarding
+   node, but also a time stamp.  This information may be further
+   expanded or altered through the future definition of additional
+   information record formats to provide an arbitrary information record
+   insertion capability.  This document defines the format and
+   processing of the Previous Hop Insertion Block.  It also defines two
+   mandatory information record formats.
+
+   The capabilities described in this document are OPTIONAL for
+   deployment with the Bundle Protocol.  Bundle Protocol implementations
+   claiming to support Previous Hop Insertion Blocks MUST be capable of:
+
+      -Generating a Previous Hop Insertion Block and inserting it into a
+      bundle,
+
+      -Receiving bundles containing a Previous Hop Insertion Block and
+      making the information contained in this Previous Hop Insertion
+      Block's information record field available for use, e.g., in
+      forwarding decisions.
+
+      -Deleting a Previous Hop Insertion Block from a bundle
+
+   as defined in this document.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington               Expires January 29, 2007                [Page 4]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+2.  Previous Hop Insertion Block Format
+
+   The Previous Hop Insertion Block uses the Canonical Bundle Block
+   Format as defined in the bundle protocol [2].  That is, it is
+   comprised of the following elements:
+
+      -Block-type code (one byte) - defined as in all bundle protocol
+      blocks except the primary bundle block (as described in the Bundle
+      Protocol).  The block type code for the Previous Hop Insertion
+      Block is 0x05
+
+      -Block processing control flags (one byte) - defined as in all
+      bundle protocol blocks except the primary bundle block (as
+      described in the Bundle Protocol).  The following block processing
+      control flag MUST be set:
+
+         -Discard block if it can't be processed.
+
+      -Block data length (SDNV) - defined as in all bundle protocol
+      blocks except the primary bundle block.  SDNV encoding is
+      described in the bundle protocol.
+
+      -Block-type-specific data fields as follows:
+
+         -Information Record Format ID - A one-byte-long field.  Its
+         value identifies the format of the information record that
+         comes later in the block.  Some mandatory information record
+         formats are specified in Section 4.  Additional information
+         record formats MAY be defined in separate specifications.
+
+         -Information Record - Contains the data being inserted by the
+         forwarding node, formatted as identified by the value of the
+         Information Record Format ID field.
+
+   The Structure of a Previous Hop Insertion Block is as follows:
+
+   Previous Hop Insertion Block Format:
+   +-----+------+-------+-------------+-------------+
+   |Type |Flags |Length |Info. Record |Info. Record |
+   |     |      |       | Format ID   |             |
+   +-----+------+-------+-------------+-------------+
+
+   Figure 1
+
+
+
+
+
+
+
+
+Symington               Expires January 29, 2007                [Page 5]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+3.  Previous Hop Insertion Block Processing
+
+   The following are the processing steps that a bundle node must take
+   relative to generation, reception, and processing of Previous Hop
+   Insertion Blocks.
+
+3.1.  Bundle Transmission
+
+   When an outbound bundle is created per the parameters of the bundle
+   transmission request, this bundle MAY (as influenced by local policy)
+   include one or more Previous Hop Insertion Blocks (as defined in this
+   specification).
+
+3.2.  Bundle Forwarding
+
+   Before forwarding a bundle, the node SHALL delete all of the Previous
+   Hop Insertion Blocks that were in the bundle when it was received.
+   The node SHALL delete all strings (scheme names and scheme-specific
+   parts--SSPs) in the bundle's dictionary to which no endpoint ID
+   references in the bundle currently refer (if any).
+
+   The node MAY insert one or more Previous Hop Insertion Blocks into
+   the bundle before forwarding it, as dictated by local policy.
+
+3.3.  Bundle Reception
+
+   If the bundle includes one or more Previous Hop Insertion Blocks, the
+   information records in these blocks SHALL be made available for use
+   at this node (e.g., in forwarding decisions).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington               Expires January 29, 2007                [Page 6]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+4.  Mandatory Information Record Formats
+
+   This section defines the mandatory information record formats for
+   this specification.  Additional formats may be defined elsewhere.
+
+4.1.  EID-only
+
+   The EID-only record format has record-format ID 0x00000001.
+
+   The EID-only record format consists of two fields:
+
+      The EID Scheme Offset - a 16-bit unsigned integer; its value is
+      the offset within the dictionary byte array of the first character
+      of the scheme name of the EID of the inserting/forwarding node.
+
+      The EID SSP Offset - a 16-bit unsigned integer; its value is the
+      offset within the dictionary byte array of the first character of
+      the scheme-specific part of the EID of the inserting/forwarding
+      node.
+
+4.2.  EID-with-Timestamp
+
+   The EID-with-Timestamp record format has record-format ID 0x00000002.
+
+   The EID-with-Timestamp record format consists of three fields, the
+   first two of which are the same as the fields in the EID-only record
+   format:
+
+      The EID Scheme Offset - a 16-bit unsigned integer; its value is
+      the offset within the dictionary byte array of the first character
+      of the scheme name of the EID of the inserting/forwarding node.
+
+      The EID SSP Offset - a 16-bit unsigned integer; its value is the
+      offset within the dictionary byte array of the first character of
+      the scheme-specific part of the EID of the inserting/forwarding
+      node.
+
+      The Elapsed Time field - The Elapsed Time field is a 4-byte field
+      that indicates the time at which the bundle is being processed by
+      the forwarding node, encoded as a number of seconds past the
+      bundle's creation time.
+
+
+
+
+
+
+
+
+
+
+Symington               Expires January 29, 2007                [Page 7]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+5.  Security Considerations
+
+   There are two documents that pertain to providing security within
+   DTN: the DTN Security Overview [5] and the Bundle Security Protocol
+   [3].  These documents define three security-related blocks to provide
+   hop-by-hop authentication, end-to-end authentication, and end-to-end
+   confidentiality of bundles or parts of bundles, as well as a set of
+   mandatory ciphersuites that may be used to calculate security results
+   carried in these security blocks.  All ciphersuites that use the
+   strict canonicalisation algorithm [3] to calculate and verify
+   security results (e.g., many hop-by-hop authentication ciphersuites)
+   apply to all blocks in the bundle, and so would apply to bundles that
+   include an optional Previous Hop Insertion Block and would include
+   that block in the calculation of their security result.  In
+   particular, bundles including the optional Previous Hop Insertion
+   Block would be protected in their entirety for the duration of a
+   single hop, from a forwarding node to an adjacent receiving node (but
+   not from source to destination), using the mandatory BAH-HMAC
+   ciphersuite defined in the Bundle Security Protocol.  Ciphersuites
+   that use the mutable canonicalisation algorithm to calculate and
+   verify security results (e.g., the mandatory PSH-RSA-SHA256
+   ciphersuite and most end-to-end authentication ciphersuites) will
+   (correctly) omit the Previous Hop Insertion Block from their
+   calculation.  The fact that several different instantiations of this
+   block may be present in the bundle as the bundle transits the network
+   will not interfere with end-to-end security protection when using
+   ciphersuites that use mutable canonicalisation.  Lastly, the Previous
+   Hop Insertion Block will not be encrypted by the mandatory CH-RSA-
+   AES-PAYLOAD-PSH end-to-end confidentiality ciphersuite, which only
+   allows for payload and PSH encryption.
+
+   The Bundle Authentication Block (BAB) currently includes a mandatory
+   security source field over which an authenticator is calculated.
+   This security source field contains the EID of the node forwarding
+   the bundle.  If a bundle's dictionary already contains both strings
+   (the scheme and the SSP) that comprise the EID of the forwarding
+   node, however, e.g., as a result of the inclusion of an EID-only or
+   an EID-with-Timestamp-formatted information record in a Previous Hop
+   Insertion Block that is in the bundle, then it would be redundant to
+   include the forwarding node's EID in the BAB as well.  In this case,
+   it would make sense to omit the security source field from the BAB.
+   However, as currently defined, the security source field is mandatory
+   in the BAB.  The BAB should be redefined to make the security source
+   field optional to enable the elimination of such potential
+   redundancy.
+
+
+
+
+
+
+Symington               Expires January 29, 2007                [Page 8]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+6.  IANA Considerations
+
+   None at this time.  If the bundle protocol becomes a standards track
+   protocol, then we may want to consider having IANA establish a
+   register of header types, and in particular for this specification a
+   separate register of information record formats.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington               Expires January 29, 2007                [Page 9]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+7.  References
+
+7.1.  Normative References
+
+   [1]  Bradner, S. and J. Reynolds, "Key words for use in RFCs to
+        Indicate Requirement Levels", RFC 2119, October 1997.
+
+   [2]  Scott, K. and S. Burleigh, "Bundle Protocol Specification",
+        draft-irtf-dtnrg-bundle-spec-05.txt, work-in-progress,
+        April 2006.
+
+   [3]  Symington, S., Farrell, S., and H. Weiss, "Bundle Security
+        Protocol Specification",
+        draft-irtf-dtnrg-bundle-security-01.txt, work-in-progress,
+        March 2006.
+
+7.2.  Informative References
+
+   [4]  Cerf, V., Burleigh, S., Hooke, A., Torgerson, L., Durst, R.,
+        Scott, K., Fall, K., and H. Weiss, "Delay-Tolerant Network
+        Architecture", draft-irtf-dtnrg-arch-05.txt, work-in-progress,
+        March 2006.
+
+   [5]  Farrell, S., Symington, S., and H. Weiss, "Delay-Tolerant
+        Network Security Overview",
+        draft-irtf-dtnrg-sec-overview-01.txt, work-in-progress,
+        March 2006.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington               Expires January 29, 2007               [Page 10]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+Author's Address
+
+   Susan Flynn Symington
+   The MITRE Corporation
+   7515 Colshire Drive
+   McLean, VA  22102
+   US
+
+   Phone: +1 (703) 983-7209
+   Email: susan@mitre.org
+   URI:   http://mitre.org/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington               Expires January 29, 2007               [Page 11]
+
+Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+
+
+Intellectual Property Statement
+
+   The IETF takes no position regarding the validity or scope of any
+   Intellectual Property Rights or other rights that might be claimed to
+   pertain to the implementation or use of the technology described in
+   this document or the extent to which any license under such rights
+   might or might not be available; nor does it represent that it has
+   made any independent effort to identify any such rights.  Information
+   on the procedures with respect to rights in RFC documents can be
+   found in BCP 78 and BCP 79.
+
+   Copies of IPR disclosures made to the IETF Secretariat and any
+   assurances of licenses to be made available, or the result of an
+   attempt made to obtain a general license or permission for the use of
+   such proprietary rights by implementers or users of this
+   specification can be obtained from the IETF on-line IPR repository at
+   http://www.ietf.org/ipr.
+
+   The IETF invites any interested party to bring to its attention any
+   copyrights, patents or patent applications, or other proprietary
+   rights that may cover technology that may be required to implement
+   this standard.  Please address the information to the IETF at
+   ietf-ipr@ietf.org.
+
+
+Disclaimer of Validity
+
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+Copyright Statement
+
+   Copyright (C) The Internet Society (2006).  This document is subject
+   to the rights, licenses and restrictions contained in BCP 78, and
+   except as set forth therein, the authors retain all their rights.
+
+
+Acknowledgment
+
+   Funding for the RFC Editor function is currently provided by the
+   Internet Society.
+
+
+
+
+Symington               Expires January 29, 2007               [Page 12]
+
