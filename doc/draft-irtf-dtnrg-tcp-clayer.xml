@@ -39,7 +39,25 @@
       </address>
    </author>
 
-   <date month="August" year="2006"/>
+   <author initials="J." surname="Ott" fullname="Joerg Ott">
+      <organization abbrev="XXX">
+         XXX
+      </organization>
+
+      <address>
+         <postal>
+            <street>XXX</street>
+            <city>XXX</city>
+            <region>XXX</region>
+            <code>XXX</code>
+            <country>XXX</country>
+         </postal>
+
+         <email>XXX</email>
+      </address>
+   </author>
+
+   <date month="October" year="2006"/>
 
    <abstract>
       <t>
@@ -74,8 +92,7 @@
    services of a "convergence layer adapter" (CLA) to send and receive
    bundles using an underlying internet protocol. This document
    describes one such convergence layer adapter that uses the
-   well-known <xref target="refs.tcprfc">Transmission Control Protocol
-   (TCP)</xref>.
+   well-known Transmission Control Protocol (TCP).
 </t>
 
 <t>
@@ -140,16 +157,18 @@
    Versions 0, 1, and 2 were never specified in any Internet Draft,
    RFC, or any other public document. These prior versions of the
    protocol were, however, implemented in
-   the <xref target="refs.dtnimpl"> DTN reference
+   the <xref target="refs.dtnimpl">DTN reference
    implementation</xref>, in prior releases, hence the current version
    number reflects those prior versions.
 </t>
 
+<!--
 <t>
    The current protocol is implemented by the DTN reference
    implementation release 2.3.0. XXX Should release this before
    publishing this document.
 </t>
+-->
 
 </section> <!-- Introduction -->
 
@@ -162,7 +181,8 @@
    Protocol Specification</xref>. To the extent in which terms appear
    in both documents, they are intended to have the same meaning.
 </t>
-   
+
+<t>
 <list style="hanging" hangIndent="5">
    <t hangText="Bundle --">A bundle is a protocol data unit of the DTN
       bundle protocol.
@@ -204,6 +224,7 @@
    </t>
    <t></t>
 </list>
+</t>
 </section> <!-- BPDefinitions -->
    
 <section title="Definitions specific to the TCPCL Protocol">
@@ -216,9 +237,8 @@
 <list style="hanging" hangIndent="5">
    <t></t>
    
-   <t hangText="TCP Connection --">A "TCP connection" refers to the
-      transport connection using the TCP as transport protocol. XXX
-      cite something from the TCP RFC.
+   <t hangText="TCP Connection --">A TCP connection refers to a
+      network connection using TCP as the as transport protocol.
    </t>
    <t></t>
    
@@ -290,22 +310,20 @@
    First one node establishes a connection to the other by initiating
    a TCP connection. At the beginning of the connection, an initial
    contact header is exchanged in both directions to set parameters of
-   the connection. In addition, a single AnnounceBundle is transmitted
-   by each party (preceded by an SDNV containing the total length of
-   the bundle). The source endpoint identifier of this bundle is used
-   to identify the local identity of each DTN node.
+   the connection and exchange a singleton endpoint identifier for
+   each node, to denote the bundle-layer identity of each DTN node.
 </t>
 
 <t>
    Once the connection is established, bundles can be transmitted in
    either direction. Each bundle is transmitted in one or more logical
-   segments of formatted bundle data. To transmit a bundle, a node
-   sends a sequence of one or more logical data segments. Each logical
-   data segment contains a DATA_SEGMENT code, an SDNV containing the
+   segments of formatted bundle data. Each logical data segment
+   consists of a DATA_SEGMENT message header, an SDNV containing the
    length of the segment, and finally the byte range of the bundle
    data. The choice of the length to use for segments is an
    implementation manner. The first segment for a bundle must set the
-   'start' flag and the last must set the 'end' flag.
+   'start' flag and the last must set the 'end' flag in the
+   DATA_SEGMENT message header.
 </t>
 <t>
    An optional feature of the protocol is for the receiving node to
@@ -329,33 +347,52 @@
    Another optional feature is that a receiver may interrupt the
    transmission of a bundle at any point in time by replying with a
    negative acknowledgement (REFUSE_BUNDLE) which causes the sender to
-   stop transmission of the current bundle, after completing transmission
-   of all partially sent data segments. Note: This allows a
-   receiver detecting that it already has a certain bundle
-   to interrupt transmission as early as possible and thus save
-   transmission capacity for other bundles. 
+   stop transmission of the current bundle, after completing
+   transmission of all partially sent data segments. Note: This allows
+   a receiver that detects it already has received a certain bundle to
+   interrupt transmission as early as possible and thus save
+   transmission capacity for other bundles.
 </t>
 <t>
    For connections that are idle, a KEEPALIVE code may optionally be
-   sent at a negotiated interval. Finally, before connections close, a
-   SHUTDOWN code is sent on the channel.
-   After a SHUTDOWN message, the sender of this message may send
-   further acknowledgements (ACK_SEGMENT) but no further data
-   (DATA_SEGMENT) messages.  A SHUTDOWN message may also be used to
-   refuse a connection setup by a peer.
+   sent at a negotiated interval. This is used to convey liveness
+   information.
+</t>
+<t>
+   Finally, before connections close, a SHUTDOWN code is sent on the
+   channel. After sending a SHUTDOWN message, the sender of this
+   message may send further acknowledgements (ACK_SEGMENT or
+   REFUSE_BUNDLE) but no further data messages (DATA_SEGMENT). A
+   SHUTDOWN message may also be used to refuse a connection setup by a
+   peer.
+</t>
+
+<section title="Example message exchange" anchor="sec:example">
+
+<t>
+   The following figure visually depicts the protocol exchange for
+   a simple session, showing the connection establishment, and the
+   transmission of a single bundle split into three data segments
+   (of lengths L1, L2, and L3) from Node A to Node B.
+</t>
+
+<t>
+   Note that the sending node may transmit multiple DATA_SEGMENT
+   messages without necessarily waiting for the corresponding
+   ACK_SEGMENT responses. This enables pipelining of messages on a
+   channel. Although this example only demonstrates a single bundle
+   transmission, it is also possible to pipeline multiple DATA_SEGMENT
+   messages for different bundles without necessarily waiting for
+   ACK_SEGMENT messages to be returned for each one.
+</t>
+
+<t>
+   No error or rejection conditions are shown in this example.
 </t>
 
 <figure anchor="fig:example_flow"
         title="A simple visual example of the flow of protocol
         messages on a single TCP session between two nodes (A and B)">
-
-   <preamble>
-      The following figure visually depicts the protocol exchange for
-      a simple session, showing the connection establishment, and the
-      transmission of a single bundle split into three data segments
-      (of lengths L1, L2, and L3) from Node A to Node B. No error or
-      rejection conditions are shown in this figure.
-   </preamble>
 
 <artwork>
              Node A                              Node B
@@ -378,7 +415,7 @@
    +-------------------------+         +-------------------------+
    |    DATA_SEGMENT (end)   | -&gt;   &lt;- |       ACK_SEGMENT       |
    |     SDNV length [L3]    | -&gt;   &lt;- |   SDNV length [L1+L2]   |
-   |    Bundle Data L2..L3   | -&gt;     +-------------------------+
+   |    Bundle Data L2..L3   | -&gt;      +-------------------------+
    +-------------------------+      
                                        +-------------------------+
                                     &lt;- |       ACK_SEGMENT       |
@@ -391,6 +428,8 @@
 
 </artwork>
 </figure>
+
+</section> <!-- Example Data Flow -->
 
 </section> <!-- General Protocol Description -->
 
@@ -594,7 +633,7 @@ following manner:
    </t>
    <t></t>
    <t>Negative acknowledgements to interrupt transmission (actually:
-   refure reception) of a bundle may only be used iff both peers
+   refuse reception) of a bundle may only be used iff both peers
    indicate support for negative acknowledements in their contact
    header.
    </t>
@@ -650,12 +689,13 @@ the following structure:
    +-+-+-+-+-+-+-+-+
    | type  | flags |
    +-+-+-+-+-+-+-+-+
-
 </artwork>
 
 <list style="hanging" hangIndent="5">
-   <t>type: Indicates the type of the message as per table
+   <t>type: Indicates the type of the message as per
       <xref target="types:codes"/> below</t>
+
+   <t></t>
 
    <t>flags: Optional flags defined on a per message type basis.</t>
 </list>
@@ -667,35 +707,35 @@ the following structure:
       The types and values for the message type code are as follows.
    </preamble>
    <ttcol align="center" valign="top" width="25%">Type</ttcol>
-   <ttcol align="center" valign="top" width="10%">Code</ttcol>
-   <ttcol align="left"   valign="top" width="65%">Comment</ttcol>
+   <ttcol align="left" valign="top" width="5%">Code</ttcol>
+   <ttcol align="left"   valign="top" width="70%">Comment</ttcol>
 
    <c>DATA_SEGMENT</c>
-   <c>0x01</c>
+   <c>0x1</c>
    <c>Indicates the transmission of a segment of bundle data,
-      described in section <xref target="sec:bundle_data"/>.</c>
+      described in <xref target="sec:bundle_data"/>.</c>
    <c>&nbsp;</c><c></c><c></c>
 
    <c>ACK_SEGMENT</c>
-   <c>0x02</c>
-   <c>Acknowledges reception of a data segment, described in section
+   <c>0x2</c>
+   <c>Acknowledges reception of a data segment, described in
       <xref target="sec:acks"/></c>
    <c>&nbsp;</c><c></c><c></c>
 
    <c>REFUSE_BUNDLE</c>
-   <c>0x03</c>
+   <c>0x3</c>
    <c>Indicates that the transmission of the current bundle shall be
-      stopped, decscribed in section <xref target="sec:refusal"/>.</c>
+      stopped, decscribed in <xref target="sec:refusal"/>.</c>
    <c>&nbsp;</c><c></c><c></c>
 
    <c>KEEPALIVE</c>
-   <c>0x04</c>
+   <c>0x4</c>
    <c>Keepalive message for the connection, described in
       <xref target="sec:keepalive"/>.</c>
    <c>&nbsp;</c><c></c><c></c>
    
    <c>SHUTDOWN</c>
-   <c>0x05</c>
+   <c>0x5</c>
    <c>Indicates that one of the nodes participating in the connection
       wishes to cleanly terminate the connection, described in
       <xref target="sec:termination"/>.</c>
@@ -715,16 +755,21 @@ the following structure:
                         1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   | 0x01  |0|0|S|E|   length ...    |  contents....               |
+   |  0x1  |0|0|S|E|   length ...    |  contents....               |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 </artwork>
+
+<t>
+   The type portion of the message header contains the value 0x1.
+</t>
+   
 <t>
    The flags portion of the message header octet contains two optional
-   values, denoted 'S' and 'E' above. The 'S' bit MUST be set to one
-   iff it precedes the transmission of the first segment of a new
-   bundle. The 'E' bit MUST be set to one when transmitting the last
-   segment of a bundle.
+   values in the two low-order bits, denoted 'S' and 'E' above. The
+   'S' bit MUST be set to one iff it precedes the transmission of the
+   first segment of a new bundle. The 'E' bit MUST be set to one when
+   transmitting the last segment of a bundle.
 </t>
 <t>
    Determining the segment size is an implementation manner. In
@@ -736,17 +781,18 @@ the following structure:
 </t>
 <t>
    In the bundle protocol specification, a single bundle is comprised
-   of a primary bundle block, plus zero or more additional bundle
-   blocks. The relationship between the protocol blocks and the
-   convergence layer segments is an implementation-specific decision.
-   In particular, a segment may contain more than one protocol block;
-   alternatively, a single protocol block (such as the payload) may be
-   split into multiple segments.
+   of a primary bundle block, a payload block, and zero or more
+   additional bundle blocks. The relationship between the protocol
+   blocks and the convergence layer segments is an
+   implementation-specific decision. In particular, a segment may
+   contain more than one protocol block; alternatively, a single
+   protocol block (such as the payload) may be split into multiple
+   segments.
 </t>
 <t>
    Once a transmission of a bundle has commenced, the node MUST only
-   send segments related to that bundle until it sends a segment with
-   the 'E' bit set.
+   send segments containing sequential portions of that bundle until
+   it sends a segment with the 'E' bit set.
 </t>
 <t>
    Following the message header, the length field is an SDNV
@@ -764,7 +810,7 @@ the following structure:
    has processed some amount of transmitted data. Thus after
    transmitting some data, a bundle protocol agent needs an additional
    mechanism to determine whether the receiving agent has successfully
-   received the transmitted data.
+   received the segment.
 </t>
 
 <t>
@@ -786,7 +832,7 @@ the following structure:
                         1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   | 0x02  |0|0|0|0|   acknowledged length ...                     |
+   |  0x2  |0|0|0|0|   acknowledged length ...                     |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 </artwork>
 
@@ -899,7 +945,7 @@ the following structure:
                         1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   | 0x03  |0|0|R|D| reason (opt)  | reconnection delay (opt, SDNV) ...
+   |  0x3  |0|0|R|D| reason (opt)  | reconnection delay (opt)      |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 </artwork>
@@ -914,9 +960,9 @@ the following structure:
 
 <texttable anchor="shutdown:reason"
            title="Shutdown Reason Codes">
-   <ttcol align="center" valign="top" width="10%">Code</ttcol>
+   <ttcol align="center" valign="top" width="5%">Code</ttcol>
    <ttcol align="left"   valign="top" width="30%">Meaning</ttcol>
-   <ttcol align="left"   valign="top" width="60%">Comment</ttcol>
+   <ttcol align="left"   valign="top" width="65%">Comment</ttcol>
 
    <c>0x00</c>
    <c>Idle timeout</c>
@@ -946,7 +992,8 @@ the following structure:
    interpreted as an infinite delay, i.e. that the node should not
    ever re-establish the connection. In contrast, if the node does not
    wish to request a delay, it should omit the delay field (and set
-   the 'D' bit to zero).
+   the 'D' bit to zero). Note that in the figure above, a two octet
+   SDNV is shown for convenience in representation.
 </t>
 
 <t>
@@ -961,11 +1008,11 @@ the following structure:
 <t>
    If either node terminates a connection prematurely in this manner,
    it SHOULD send a SHUTDOWN message and MUST indicate a reason code
-   unless the incoming connection did not include the magic string.
-   If a node does not want its peer to re-open the connection
-   immediately, it SHOULD specify the reason code RETRY_LATER and
-   indicate when the peer is allowed to attempt another connection
-   setup.
+   unless the incoming connection did not include the magic string. If
+   a node does not want its peer to re-open the connection
+   immediately, it SHOULD set the 'D' bit in the flags and include a
+   reconnection delay to indicate when the peer is allowed to attempt
+   another connection setup.
 </t>
 
 <t>
@@ -993,9 +1040,10 @@ the following structure:
    If there is a configured time to close idle links, then if no
    bundle data (other than keepalive messages) has been received for
    at least that amount of time, then either node may terminate the
-   session by transmitting a SHUTDOWN message indicating the reason
-   code of 'idle timeout' (as described above) and closing the TCP
-   session.
+   connection by transmitting a SHUTDOWN message indicating the reason
+   code of 'idle timeout' (as described above). After receiving a
+   SHUTDOWN message in response, both sides may close the TCP
+   connection.
 </t>
 
 </section> <!-- Idle shutdown -->
@@ -1008,11 +1056,45 @@ the following structure:
       in <xref target="RFC2119"/>.</t> </section>
 
 <section title="Security Considerations">
-   <t>XXX something about DOS and peer identification</t>
+<t>
+   One security consideration for this protocol relates to the fact
+   that nodes present their endpoint identifier as part of the
+   connection header exchange. It would be possible for a node to
+   falsify this value and present the identity of a singleton endpoint
+   in which the node is not a member, essentially masquerading as
+   another DTN node. If this identifier is used without further
+   verification as a means to determine which bundles are transmitted
+   over the connection, then the node that has falsified its identity
+   may be able to obtain bundles that it should not have.
+</t>
+
+<t>
+   These concerns may be mitigated through the use of
+   the <xref target="refs.dtnsecurity">Bundle Security
+   Protocols</xref>. In particular, the Bundle Authentication Header
+   defines mechanism for secure exchange of bundles between DTN nodes.
+   Thus an implementation could delay trusting the presented endpoint
+   identifier until the node can securely validate that its peer is in
+   fact the only member of the given singleton endpoint.
+</t>
+   
+<t>
+   Another consideration for this protocol relates to denial of
+   service attacks. A node may send a large amount of data over a TCP
+   connection, requiring the receiving node to either handle the data,
+   attempt to stop the flood of data by sending a REFUSE_BUNDLE
+   message, or forcibly terminate the connection. This burden could
+   cause denial of service on other, well-behaving connections. There
+   is also nothing to prevent a malicious node from continually
+   establishing connections and repeatedly trying to send copious
+   amounts of bundle data.
+</t>
+
 </section>
 
 <section title="IANA Considerations">
-   <t>XXX something about a well-known port</t>
+   <t>There should be a well-known TCP port assignment for this
+      protocol.</t>
 </section>
 
 </middle>
@@ -1021,11 +1103,15 @@ the following structure:
 <references>
    <reference anchor="RFC2119">
       <front>
-         <title>XXX</title>
-         <author initials="X." surname="YZ" fullname="XYZ">
-            <organization abbrev="XXX">XXX</organization>
+         <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+         <author initials="S." surname="Bradner" fullname="Scott Bradner">
+            <organization abbrev="Harvard University">
+               Harvard University
+            </organization>
          </author>
+         <date month="March" year="1997"/>
       </front>
+      <seriesInfo name="RFC" value="2119"/>
    </reference>
 
    <reference anchor="refs.dtnarch">
@@ -1036,9 +1122,10 @@ the following structure:
                MCI/Jet Propulsion Laboratory
             </organization>
          </author>
+         <date month="September" year="2006"/>
       </front>
-      <format type='TXT' octets='0'
-              target='http://somewhere'/>
+      <seriesInfo name="work in progress, Internet Draft"
+                  value="draft-irtf-dtnrg-arch-06.txt"/>
    </reference>
    
    <reference anchor="refs.bundleproto">
@@ -1055,32 +1142,99 @@ the following structure:
                Jet Propulsion Laboratory
             </organization>
          </author>
+         <date month="August" year="2006"/>
       </front>
+      <seriesInfo name="work in progress,"
+                  value="Internet Draft draft-irtf-dtnrg-bundle-security-02.txt"/>
       <format type='TXT' octets='0'
               target='http://somewhere'/>
    </reference>
    
+   <reference anchor="refs.dtnsecurity">
+      <front>
+         <title>Bundle Security Protocol Specification</title>
+         <author initials="S." surname="Symington" fullname="Susan Symington">
+            <organization abbrev="The MITRE Corporation">
+               The MITRE Corporation
+            </organization>
+         </author>
+         
+         <author initials="S." surname="Farrell" fullname="Stephen Farrell">
+            <organization abbrev="Trinity College Dublin">
+               Trinity College Dublin
+            </organization>
+         </author>
+
+         <author initials="H." surname="Weiss" fullname="Howard Weiss">
+            <organization abbrev="SPARTA, Inc">
+               SPARTA, Inc
+            </organization>
+         </author>
+
+          <date month="October" year="2006"/>
+      </front>
+      <seriesInfo name="work in progress, Internet Draft"
+                  value="draft-irtf-dtnrg-bundle-security-02.txt"/>
+   </reference>
+
+   <!--  demmer: better to reference the code than the tech report -->
+<!--   
    <reference anchor="refs.dtnimpl">
       <front>
          <title>Implementing Delay Tolerant Networking</title>
-         <author initials="M." surname="Demmer et al"
-                 fullname="Michael Demmer et al">
+         <author initials="M." surname="Demmer" fullname="Michael Demmer">
             <organization abbrev="UC Berkeley / Intel Research">
                University of California, Berkeley
                Intel Research Berkeley
             </organization>
          </author>
-      </front>
-      <format type='TXT' octets='0'
-              target='http://somewhere'/>
-   </reference>
+         
+         <author initials="E." surname="Brewer" fullname="Eric Brewer">
+            <organization abbrev="UC Berkeley">
+               University of California, Berkeley
+            </organization>
+         </author>
+         
+         <author initials="K." surname="Fall" fullname="Kevin Fall">
+            <organization abbrev="Intel Research Berkeley">
+               Intel Research Berkeley
+            </organization>
+         </author>
+         
+         <author initials="S." surname="Jain" fullname="Sushant Jain">
+            <organization abbrev="Intel Research Berkeley">
+               Intel Research Berkeley
+            </organization>
+         </author>
+         
+         <author initials="M." surname="Ho" fullname="Melissa Ho">
+            <organization abbrev="UC Berkeley">
+               University of California, Berkeley
+            </organization>
+         </author>
+         
+         <author initials="R." surname="Patra" fullname="Rabin Patra">
+            <organization abbrev="UC Berkeley">
+               University of California, Berkeley
+            </organization>
+         </author>
 
-   <reference anchor="refs.tcprfc">
+         <date month="December" year="2004"/>
+         
+      </front>
+
+      <seriesInfo name="Intel Research Berkeley Technical Report"
+                  value="IRB-TR-04-020"/>
+   </reference>
+   -->
+
+   <reference anchor="refs.dtnimpl" target="http://www.dtnrg.org/Code"> 
       <front>
-         <title>XXX TCP RFC</title>
+         <title>Delay Tolerant Networking Reference Implementation</title>
+         <author initials="" surname="DTNRG" fullname="Delay Tolerant Networking Research Group">
+         </author>
       </front>
    </reference>
-   
 </references>
 </back>
 
