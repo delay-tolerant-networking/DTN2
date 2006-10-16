@@ -840,6 +840,15 @@ StreamConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
 void
 StreamConvergenceLayer::Connection::handle_poll_timeout()
 {
+    //Allow the BundleDaemon to call for a close of the connection if a shutdown is in progress
+    //This must be done to avoid a deadlock caused by simultaneous poll_timeout and close_contact activities
+    //Sleep a bit to avoid continuous handle_poll_timeout calls
+    if(BundleDaemon::shutting_down())
+    {
+        sleep(1);
+        return;
+    }
+
     struct timeval now;
     u_int elapsed, elapsed2;
 
