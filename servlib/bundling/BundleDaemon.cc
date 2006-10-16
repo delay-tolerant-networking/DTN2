@@ -65,6 +65,8 @@ BundleDaemon* oasys::Singleton<BundleDaemon, false>::instance_ = NULL;
 
 BundleDaemon::Params BundleDaemon::params_;
 
+bool BundleDaemon::shutting_down_ = false;
+
 //----------------------------------------------------------------------
 BundleDaemon::BundleDaemon()
     : BundleEventHandler("BundleDaemon", "/dtn/bundle/daemon"),
@@ -1178,6 +1180,8 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
 void
 BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 {
+    shutting_down_ = true;
+
     (void)request;
     
     log_notice("Received shutdown request");

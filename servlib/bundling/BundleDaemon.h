@@ -243,6 +243,15 @@ public:
         app_shutdown_proc_ = proc;
         app_shutdown_data_ = data;
     }
+
+    /**
+     * Accessor for the BundleDaemon's shutdown status
+     */
+    static bool shutting_down()
+    {
+     	return shutting_down_;
+    }
+
     
 protected:
     friend class BundleActions;
@@ -421,6 +430,9 @@ protected:
  
     /// Application-specific shutdown data
     void* app_shutdown_data_;
+
+    // indicator that a BundleDaemon shutdown is in progress
+    static bool shutting_down_;
 };
 
 } // namespace dtn
