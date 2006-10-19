@@ -58,6 +58,8 @@ char data_source[1024]; // filename or message, depending on type
 char * arg_dest         = NULL;
 char * arg_target       = NULL;
 
+int    expiration_time  = 60 * 60; // default is 1 hour
+
 void parse_options(int, char**);
 dtn_endpoint_id_t * parse_eid(dtn_handle_t handle, dtn_endpoint_id_t * eid, 
                           char * str);
@@ -123,7 +125,7 @@ main(int argc, char** argv)
     }
 
     // set the expiration time (one hour)
-    bundle_spec.expiration = 3600;
+    bundle_spec.expiration = expiration_time;
     
     // set the return receipt option
     bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
@@ -189,11 +191,12 @@ main(int argc, char** argv)
 void print_usage()
 {
     fprintf(stderr,
-            "usage: %s [filename] [destination_eid] "
-            "[remote-name]\n", progname);
+            "usage: %s [--expiration sec] <filename> <destination_eid> <remote-name>\n", 
+            progname);
     fprintf(stderr,
             "    Remote filename is optional; defaults to the "
-            "local filename.\n");
+            "local filename.\n\n"
+            "Bundle expiration time is in seconds.\n");
     
     exit(1);
 }
@@ -202,11 +205,33 @@ void parse_options(int argc, char**argv)
 {
     progname = argv[0];
 
-    if (argc < 3)
+    // expiration time in seconds
+    if (argc < 2)
+        goto bail;
+
+    if (strcmp(argv[1], "--expiration") == 0)
     {
-        print_usage();
+        argv++;
+        argc--;
+        
+        if (argc < 2)
+            goto bail;
+        
+        expiration_time = atoi(argv[1]);
+        if (expiration_time == 0)
+        {
+            fprintf(stderr, 
+                    "Expiration time must be > 0\n");
         exit(1);
     }
+
+        argv++;
+        argc--;
+    }
+
+    // parse the normal arguments
+    if (argc < 3)
+        goto bail;
 
     if (argv[1][0] == '/') sprintf(data_source, "%s", argv[1]);
     else sprintf(data_source, "%s/%s", getenv("PWD"), argv[1]);
@@ -221,6 +246,12 @@ void parse_options(int argc, char**argv)
         arg_target = strrchr(data_source, '/');
         if (arg_target == 0) arg_target = data_source;
     }
+
+    return;
+
+  bail:
+        print_usage();
+        exit(1);
 }
 
 dtn_endpoint_id_t * parse_eid(dtn_handle_t handle, 
