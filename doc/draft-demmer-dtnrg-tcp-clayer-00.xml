@@ -1,0 +1,1270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
+    <!ENTITY rfc2119 PUBLIC '' 
+      'http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml'>
+]>
+
+<rfc category="exp" ipr="full3978" docName="draft-demmer-dtnrg-tcp-clayer-00.txt">
+ 
+<?xml-stylesheet type="text/xsl" href="rfc2629.xslt" ?>
+
+<?rfc toc="yes"?>
+<?rfc sortrefs="yes" ?>
+<?rfc iprnotified="no"?>
+<?rfc compact="yes"?>
+
+<front>
+   <title abbrev="DTN TCP Convergence Layer">
+      Delay Tolerant Networking TCP Convergence Layer Protocol
+   </title>
+
+   <workgroup>Delay Tolerant Networking Research Group</workgroup>
+
+   <author initials="M.J." surname="Demmer" fullname="Michael J. Demmer">
+      <organization abbrev="UC Berkeley">
+         University of California, Berkeley
+      </organization>
+
+      <address>
+         <postal>
+            <street>Computer Science Division</street>
+            <street>445 Soda Hall</street>
+            <city>Berkeley</city>
+            <region>CA</region>
+            <code>94720-1776</code>
+            <country>US</country>
+         </postal>
+
+         <email>demmer@cs.berkeley.edu</email>
+      </address>
+   </author>
+
+   <author initials="J." surname="Ott" fullname="Joerg Ott">
+      <organization abbrev="Helsinki University of Technology">
+         Helsinki University of Technology
+      </organization>
+
+      <address>
+         <postal>
+	    <street>Networking Laboratory</street>
+            <street>PO Box 3000</street>
+            <city>TKK</city>
+            <code>02015</code>
+            <country>Finland</country>
+         </postal>
+
+         <email>jo@netlab.tkk.fi</email>
+      </address>
+   </author>
+
+   <date month="October" year="2006"/>
+
+   <abstract>
+      <t>
+         This document describes the protocol for the TCP-based
+         Convergence Layer for Delay Tolerant Networking (DTN).
+      </t>
+   </abstract>
+
+</front>
+
+<middle>
+
+<section title="Introduction">
+<t>
+   This document describes the TCP-based convergence layer protocol for
+   Delay Tolerant Networking (TCPCL). Delay Tolerant Networking is an
+   end-to-end architecture providing communications in and/or through
+   highly stressed environments, including those with intermittent
+   connectivity, long and/or variable delays, and high bit error
+   rates. More detailed descriptions of the rationale and capabilities
+   of these networks can be found in the <xref target="refs.dtnarch">
+   Delay-Tolerant Network Architecture</xref> Internet Draft.
+</t>
+
+<t>
+   An important goal of the DTN architecture is to accomodate a wide
+   range of networking technologies and environments. The protocol
+   used for DTN communications is the <xref target="refs.bundleproto">
+   Bundling Protocol (BP)</xref>, an application-layer protocol that
+   is used to construct a store-and-forward overlay network. As
+   described in the bundle protocol specification, BP requires the
+   services of a "convergence layer adapter" (CLA) to send and receive
+   bundles using an underlying internet protocol. This document
+   describes one such convergence layer adapter that uses the
+   well-known Transmission Control Protocol (TCP).
+</t>
+
+<t>
+   The locations of the TCPCL and BP in the Internet model protocol
+   stack are shown in Figure <xref target="fig:protocol_stack"/>. In
+   particular, both the BP and the TCPCL reside above the transport
+   layer, i.e., at the application layer.
+</t>
+
+<figure anchor="fig:protocol_stack"
+        title="The locations of the bundle protocol and the TCP
+        convergence layer protocol in the Internet protocol stack">
+
+   <artwork>
+   +-------------------------+ 
+   |     DTN Application     | -\
+   +-------------------------|   |
+   |  Bundle Protocol (BP)   |   -> Application Layer
+   +-------------------------+   |
+   | TCP Conv. Layer (TCPCL) | -/
+   +-------------------------+ 
+   |          TCP            | ---> Transport Layer
+   +-------------------------+
+   |           IP            | ---> Network Layer
+   +-------------------------+
+   |   Link-Layer Protocol   | ---> Link Layer
+   +-------------------------+
+   |    Physical Medium      | ---> Physical Layer
+   +-------------------------+
+   </artwork>
+</figure>
+
+<t>
+   This document describes the format of the protocol data units
+   passed between entities participating in TCPCL communications. This
+   document does not address:
+</t>
+
+<t>
+<list style="hanging" hangIndent="5">
+   <t>
+      The format of protocol data units of the bundling protocol, as
+      those are defined elsewhere <xref target="refs.bundleproto"/>.
+   </t>
+   <t></t>
+   
+   <t>
+      Mechanisms for locating or identifying other bundle nodes within
+      an internet.
+   </t>
+   <t></t>
+
+   <t>
+      Operational logic or procedures used to implement this protocol.
+   </t>
+   <t></t>
+</list>
+</t>
+
+<t>
+   Note that this document describes version 3 of the protocol.
+   Versions 0, 1, and 2 were never specified in any Internet Draft,
+   RFC, or any other public document. These prior versions of the
+   protocol were, however, implemented in
+   the <xref target="refs.dtnimpl">DTN reference
+   implementation</xref>, in prior releases, hence the current version
+   number reflects the existence of those prior versions.
+</t>
+
+<!--
+<t>
+   The current protocol is implemented by the DTN reference
+   implementation release 2.3.0. XXX Should release this before
+   publishing this document.
+</t>
+-->
+
+</section> <!-- Introduction -->
+
+<section title="Definitions">
+
+<section title="Definitions Relating to the Bundle Protocol">   
+
+<t>The following set of definitions are abbreviated versions of those
+   which appear in the <xref target="refs.bundleproto"> Bundle
+   Protocol Specification</xref>. To the extent in which terms appear
+   in both documents, they are intended to have the same meaning.
+</t>
+
+<t>
+<list style="hanging" hangIndent="5">
+   <t hangText="Bundle --">A bundle is a protocol data unit of the DTN
+      bundle protocol.
+   </t>
+   <t></t>
+   
+   <t hangText="Bundle payload --">A bundle payload (or simply
+      "payload") is the application data whose conveyance to the
+      bundle's destination is the purpose for the transmission of a
+      given bundle.
+   </t>
+   <t></t>
+
+   <t hangText="Fragment --">A fragment is a bundle whose payload
+      contains a range of bytes from another bundle's payload.
+   </t>
+   <t></t>
+
+   <t hangText="Bundle node --">A bundle node (or simply a "node") is
+      any entity that can send and/or receive bundles. The particular
+      instantiation of this entity is deliberately unconstrained,
+      allowing for implementations in software libraries, long-running
+      processes, or even hardware. One component of the bundle node is
+      the implementation of a convergence layer adapter.
+   </t>
+   <t></t>
+
+   <t hangText="Convergence layer adapter --">A convergence layer
+      adapter (CLA) sends and receives bundles utilizing the services
+      of some 'native' internet protocol. This document describes the
+      manner in which a CLA sends and receives bundles when using the
+      TCP protocol for inter-node communication.
+   </t>
+   <t></t>
+
+   <t hangText="Self Describing Numeric Value --">A self describing
+      numeric value (SDNV) is a variable length encoding for integer
+      values, defined in the bundle protocol specification.
+   </t>
+   <t></t>
+</list>
+</t>
+</section> <!-- BPDefinitions -->
+   
+<section title="Definitions specific to the TCPCL Protocol">
+
+<t>This section contains definitions that are interpreted to be
+   specific to the operation of the TCPCL protocol, as described
+   below.
+</t>
+
+<list style="hanging" hangIndent="5">
+   <t></t>
+   
+   <t hangText="TCP Connection --">A TCP connection refers to a
+      transport connection using TCP as the transport protocol.
+   </t>
+   <t></t>
+   
+   <t hangText="TCPCL Connection --">A TCPCL connection
+      (as opposed to a TCP connection)
+      is a TCPCL communication relationship between two bundle
+      nodes. The lifetime of a TCPCL connection is one-to-one with the lifetime
+      of an underlying TCP connection.  Therefore a TCPCL connection is
+      initiated when a bundle node initiates a TCP connection to be
+      established for the purposes of bundle communication. A TCPCL connection is
+      terminated when the TCP connection ends, due either to one or
+      both nodes actively terminating the TCP connection or due to network
+      errors causing a failure of the TCP connection. For the remainder of this
+      document, the term "connection" without the prefix "TCPCL" shall refer
+      to a TCPCL connection.
+   </t>
+   <t></t>
+
+   <t hangText="Connection parameters --">The connection parameters
+      are a set of values used to affect the operation of the TCPCL
+      for a given connection. The manner in which these parameters are
+      conveyed to the bundle node and thereby to the TCPCL is
+      implementation-dependent. However, the mechanism by which two
+      bundle nodes exchange and negotiate the values to be used for a
+      given session is described in Section <xref
+      target="sec:negotiation"/>.
+   </t>
+   <t></t>
+
+   <t hangText="Connection initiator --">The connection initiator is
+      the bundle node that causes the establishment of a new
+      connection by creating a new TCP connection (for example, by using
+      the connect() call in the BSD sockets API) and then following
+      the procedures described in <xref
+      target="sec:connection_establishment"/>.
+   </t>
+   <t></t>
+
+   <t hangText="Connection acceptor --">The connection acceptor is the
+      bundle node that establishes a connection in response to an
+      active connection attempt by another bundle node (for example,
+      by using the listen() and accept() calls of the BSD sockets API)
+      and then following the procedures described in <xref
+      target="sec:connection_establishment"/>.
+   </t>
+   <t></t>
+
+   <t hangText="Transmission --">Transmission refers to the procedures
+      and mechanisms (described below) for conveyance of a bundle from
+      one node to another.
+   </t>
+   <t></t>
+
+   <t></t>
+</list>
+
+</section> <!-- TCPCL Definitions -->
+
+</section> <!-- Definitions -->
+
+<section title="General Protocol Description" anchor="sec:general_description">
+
+<t>
+   This protocol provides bundle conveyance over a TCP connection and
+   specifies the encapsulation of bundles as well as procedures for
+   TCP connection and teardown.  The general operation of the protocol
+   is as follows:
+</t>
+
+<t>
+   First one node establishes a connection to the other by initiating
+   a TCP connection. At the beginning of the connection, an initial
+   contact header is exchanged in both directions to set parameters of
+   the connection and exchange a singleton endpoint identifier for
+   each node, to denote the bundle-layer identity of each DTN node.
+</t>
+
+<t>
+   Once the connection is established, bundles can be transmitted in
+   either direction. Each bundle is transmitted in one or more logical
+   segments of formatted bundle data. Each logical data segment
+   consists of a DATA_SEGMENT message header, an SDNV containing the
+   length of the segment, and finally the byte range of the bundle
+   data. The choice of the length to use for segments is an
+   implementation manner. The first segment for a bundle must set the
+   'start' flag and the last must set the 'end' flag in the
+   DATA_SEGMENT message header.
+</t>
+<t>
+   An optional feature of the protocol is for the receiving node to
+   send acknowledgements as bundle data segments arrive
+   (ACK_SEGMENT). The rationale behind these acknowledgements is to
+   enable the sender node to determine how much of the bundle has been
+   received, so that in case the connection is interrupted, it can
+   perform reactive fragmentation to avoid re-sending the already
+   transmitted part of the bundle.
+</t>
+<t>
+   When acknowledgements are enabled, then for each data segment that
+   is received, the receiving node sends an ACK_SEGMENT code followed
+   by an SDNV containing the cumulative length of the bundle that has
+   been received. Note that in the case of concurrent bidirectional
+   transmission, then ack segments may be interleaved with data
+   segments.
+</t>
+<!-- jo -->
+<t>
+   Another optional feature is that a receiver may interrupt the
+   transmission of a bundle at any point in time by replying with a
+   negative acknowledgement (REFUSE_BUNDLE) which causes the sender to
+   stop transmission of the current bundle, after completing
+   transmission of all partially sent data segments. Note: This allows
+   a receiver that detects it already has received a certain bundle to
+   interrupt transmission as early as possible and thus save
+   transmission capacity for other bundles.
+</t>
+<t>
+   For connections that are idle, a KEEPALIVE message may optionally be
+   sent at a negotiated interval. This is used to convey liveness
+   information.
+</t>
+<t>
+   Finally, before connections close, a SHUTDOWN message is sent on
+   the channel. After sending a SHUTDOWN message, the sender of this
+   message may send further acknowledgements (ACK_SEGMENT or
+   REFUSE_BUNDLE) but no further data messages (DATA_SEGMENT). A
+   SHUTDOWN message may also be used to refuse a connection setup by a
+   peer.
+</t>
+
+<section title="Example message exchange" anchor="sec:example">
+
+<t>
+   The following figure visually depicts the protocol exchange for
+   a simple session, showing the connection establishment, and the
+   transmission of a single bundle split into three data segments
+   (of lengths L1, L2, and L3) from Node A to Node B.
+</t>
+
+<t>
+   Note that the sending node may transmit multiple DATA_SEGMENT
+   messages without necessarily waiting for the corresponding
+   ACK_SEGMENT responses. This enables pipelining of messages on a
+   channel. Although this example only demonstrates a single bundle
+   transmission, it is also possible to pipeline multiple DATA_SEGMENT
+   messages for different bundles without necessarily waiting for
+   ACK_SEGMENT messages to be returned for each one.
+</t>
+
+<t>
+   No errors or rejections are shown in this example.
+</t>
+
+<figure anchor="fig:example_flow"
+        title="A simple visual example of the flow of protocol
+        messages on a single TCP session between two nodes (A and B)">
+
+<artwork>
+             Node A                              Node B
+             ======                              ======
+
+   +-------------------------+         +-------------------------+
+   |     Contact Header      | -&gt;   &lt;- |     Contact Header      |
+   +-------------------------+         +-------------------------+
+                                      
+   +-------------------------+         
+   |   DATA_SEGMENT (start)  | -&gt;              
+   |    SDNV length [L1]     | -&gt;              
+   |    Bundle Data 0..L1    | -&gt;              
+   +-------------------------+         
+   +-------------------------+         +-------------------------+
+   |     DATA_SEGMENT        | -&gt;   &lt;- |       ACK_SEGMENT       |
+   |    SDNV length [L2]     | -&gt;   &lt;- |     SDNV length [L1]    |
+   |    Bundle Data L1..L2   | -&gt;      +-------------------------+
+   +-------------------------+      
+   +-------------------------+         +-------------------------+
+   |    DATA_SEGMENT (end)   | -&gt;   &lt;- |       ACK_SEGMENT       |
+   |     SDNV length [L3]    | -&gt;   &lt;- |   SDNV length [L1+L2]   |
+   |    Bundle Data L2..L3   | -&gt;      +-------------------------+
+   +-------------------------+      
+                                       +-------------------------+
+                                    &lt;- |       ACK_SEGMENT       |
+                                    &lt;- |  SDNV length [L1+L2+L3] |
+                                       +-------------------------+
+
+   +-------------------------+         +-------------------------+
+   |       SHUTDOWN          | -&gt;   &lt;- |         SHUTDOWN        |
+   +-------------------------+         +-------------------------+
+
+</artwork>
+</figure>
+
+</section> <!-- Example Data Flow -->
+
+</section> <!-- General Protocol Description -->
+
+<section title="Connection Establishment" anchor="sec:connection_establishment">
+
+<t>
+   For bundle transmissions to occur using the TCPCL, a connection
+   must first be established between communicating nodes. The manner
+   in which a bundle node makes the decision to establish such a
+   connection is implementation dependant.  For example, some
+   connections may be opened proactively and maintained for as long as
+   is possible given the network conditions, while other connections
+   may be opened only when there is a bundle that is queued for
+   transmission and the routing algorithm selects a certain next hop node.
+</t>
+
+<t>
+   To establish a TCPCL connection, a node must first establish a TCP
+   connection with the intended peer node, typically by using the
+   services provided by the operating system. If the node is unable to
+   establish a TCP connection for any reason, then it is an implementation
+   manner to determine how to handle the failed connection. For
+   example, a node may decide to re-attempt to establish the
+   connection, perhaps after some delay or it may attempt to find an
+   alternate route for bundle data.
+</t>
+
+<t>
+   Note: If a node re-attempts a connection establishment, it SHOULD
+   ensure that it does not overwhelm its target with repeated
+   connection setup attempts and SHOULD use a (binary) exponential
+   backoff to determine the timeout after which to retry.
+</t>
+
+<t>
+   Once a TCP connection is established, the connection initiator MUST
+   immediately transmit a contact header over the TCP connection.  The
+   connection acceptor MUST also immediately transmit a contact
+   header over the TCP connection.  The format of the contact header
+   is described in <xref target="sec:contact_header"/>).
+</t>
+
+<t>
+   Upon receipt of the contact header, both nodes perform the
+   validation and negotiation procedures defined in
+   <xref target="sec:negotiation"/>
+</t>
+
+<t>
+   After receiving the contact header from the other node, either node
+   MAY also refuse the connection by sending a SHUTDOWN message.  If
+   connection setup is refused a reason MUST be included in the
+   SHUTDOWN message. 
+</t>
+
+<section title="Contact Header" anchor="sec:contact_header">
+
+<t>
+Once a TCP connection is established, both parties exchange a contact
+header. This section describes the format of the contact header and
+the meaning of its fields.
+</t>
+   
+<figure anchor="fig:contact_header"
+   title="Contact Header Format">
+   <preamble>
+      The format for the Contact Header is as follows:
+   </preamble>
+   
+   <artwork>
+                     1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++---------------+---------------+---------------+---------------+
+|                          magic='dtn!'                         |
++---------------+---------------+---------------+---------------+
+|     version   |     flags     |      keepalive_interval       |
++---------------+---------------+---------------+---------------+
+|                     local eid length (SDNV)                   |
++---------------+---------------+---------------+---------------+
+|                      local eid (variable)                     |
++---------------+---------------+---------------+---------------+
+   </artwork>
+</figure>
+
+<t>
+The fields of the contact header are:
+</t>
+
+<t>
+<list style="hanging" hangIndent="5">
+   <t hangText="magic:"> A four byte field that always contains the
+      byte sequence 0x64 0x76 0x6e 0x21, i.e. the ASCII string "dtn!".
+   </t>
+   <t></t>
+   
+   <t hangText="version:"> A one byte field value containing the
+      current version of the protocol.
+   </t>
+   <t></t>
+
+   <t hangText="flags:"> A one byte field containing optional
+      connection flags. The first five bits are unused and must be set
+      to zero. The last three bits are interpreted as follows:
+   </t>
+   <t></t>
+
+   <t hangText="keepalive_interval:"> A two byte integer field
+      containing the number of seconds between exchanges of keepalive
+      messages on the connection (see <xref target="sec:keepalive"/>).
+      This value is in network byte order, as are all other multi-byte
+      fields described in this protocol.
+   </t>
+   <t></t>
+
+   <t hangText="local eid length:"> A variable length SDNV field
+      containing the length of the endpoint identifier (EID) for some
+      singleton endpoint in which the sending node is a member. A four
+      byte SDNV is depicted for clarity of the figure.
+   </t>
+   <t></t>
+   
+   <t hangText="local eid:"> An octet string containing the EID
+      of some singleton endpoint in which the sending node is a
+      member, in the canonical format of &lt;scheme
+      name&gt;:&lt;scheme-specific part&gt;. A four byte EID
+      is shown the clarity of the figure.
+   </t>
+   <t></t>
+
+</list>
+</t>
+
+<texttable anchor="contact:flags"
+           title="Contact Header Flags">
+   <ttcol align="center">Value</ttcol>
+   <ttcol align="left">Meaning</ttcol>
+
+   <c>00000001</c>
+   <c>Request acknowledgement of bundle segments.</c>
+
+   <c>00000010</c>
+   <c>Request enabling of reactive fragmentation.</c>
+
+   <c>00000100</c>
+   <c>Indicate support for negative acknowledgements. This flags MUST
+      NOT be used unless support for acknowledgements is also
+      indicated.
+   </c>
+
+</texttable>
+
+<t>
+   The manner in which values are configured and chosen for the
+   various flags and parameters in the contact header is
+   implementation dependent.
+</t>
+
+</section> <!-- Contact header -->
+
+<section title="Validation and parameter negotiation" anchor="sec:negotiation">
+
+<t>
+Upon reception of the contact header, both the connection initiator
+and the connection acceptor follow the following procedures for
+ensuring the validity of the connection and to negotiate values for
+the connection parameters.
+</t>
+
+<t>
+If the magic string is not present or is not valid, the connection
+MUST be terminated. The intent of the magic string is to provide a
+some protection against an inadvertent TCP connection by a different
+protocol than the one described in this document. To prevent a flood
+of repeated connections from a misconfigured application, a node MAY
+elect to hold an invalid connection open and idle for some time before
+closing it.
+</t>
+
+<t>
+If a node receives a contact header containing a version that is
+greater than the current version of the protocol that the node
+implements, then the node SHOULD interpret all fields and messages as
+it would normally. If a node receives a contact header with a version
+that is lower than the version of the protocol that the node
+implements, the node may either terminate the connection due to the
+version mismatch, or may adapt its operation to conform to the older
+version of the protocol. This decision is an implementation manner.
+</t>
+
+<t>
+A node calculates the parameters for a connection by negotiating the
+values from its own preferences (conveyed by the contact header it
+sent) with the preferences of the peer node (expressed in the contact
+header that it received). This negotiation should proceed in the
+following manner:
+</t>
+
+<list style="hanging" hangIndent="5">
+   <t></t>
+   
+   <t>The segment acknowledgements enabled parameter is set to true
+      iff the corresponding flag is set in both contact headers.
+   </t>
+   <t></t>
+
+   <t>The reactive fragmentation enabled parameter is set to true iff
+      the corresponding flag is set in both contact headers.
+   </t>
+   <t></t>
+   <t>Negative acknowledgements to interrupt transmission (actually:
+   refuse reception) of a bundle may only be used iff both peers
+   indicate support for negative acknowledements in their contact
+   header.
+   </t>
+   <t></t>
+   <t>The keealive_interval parameter should be set to the minimum
+      value from both contact headers. If one or both contact headers
+      contains the value zero, then the keepalive feature (described
+      in <xref target="sec:keepalive"/>) is disabled.
+   </t>
+   <t></t>
+   
+</list>
+
+<t>
+Once this process of parameter negotiation is completed, the protocol
+defines no additional mechanism to change the parameters of an
+established connection; to effect such a change, the connection MUST
+be terminated and a new connection established.
+</t>
+
+<!--
+      demmer: took this out
+<t>
+After the negotiation, arbitrary messages MAY be exchanged between the
+two peers.  If a peer does not understand a message, it MUST skip and
+silently ignore it.  In particular, receiving an unknown message
+SHOULD NOT lead to termination of the TCP connection.
+</t>
+-->
+
+</section> <!-- Negotiation -->
+
+</section> <!-- Connection Establishment -->
+
+<section title="Established Connection Operation">
+
+<t>
+This section describes the protocol operation for the duration of an
+established connection, including the mechanisms for transmitting
+bundles over the connection.
+</t>
+
+<section title="Message Type Codes" anchor="sec:types">
+
+<t>
+After the initial exchange of a contact header, all messages
+transmitted over the connection are denoted by a one octet header with
+the following structure:
+</t>
+
+<artwork>
+    0 1 2 3 4 5 6 7 
+   +-+-+-+-+-+-+-+-+
+   | type  | flags |
+   +-+-+-+-+-+-+-+-+
+</artwork>
+
+<list style="hanging" hangIndent="5">
+   <t hangText="type:">Indicates the type of the message as per
+      <xref target="types:codes"/> below</t>
+
+   <t></t>
+
+   <t hangText="flags:">Optional flags defined on a per message type basis.</t>
+</list>
+
+<t>
+   The types and values for the message type code are as follows.
+</t>
+
+<texttable anchor="types:codes"
+           title="TCPCL Header Types">
+
+   <ttcol align="center" valign="top" width="25%">Type</ttcol>
+   <ttcol align="left" valign="top" width="5%">Code</ttcol>
+   <ttcol align="left"   valign="top" width="70%">Comment</ttcol>
+
+   <c>DATA_SEGMENT</c>
+   <c>0x1</c>
+   <c>Indicates the transmission of a segment of bundle data,
+      described in <xref target="sec:bundle_data"/>.</c>
+   <c>&nbsp;</c><c></c><c></c>
+
+   <c>ACK_SEGMENT</c>
+   <c>0x2</c>
+   <c>Acknowledges reception of a data segment, described in
+      <xref target="sec:acks"/></c>
+   <c>&nbsp;</c><c></c><c></c>
+
+   <c>REFUSE_BUNDLE</c>
+   <c>0x3</c>
+   <c>Indicates that the transmission of the current bundle shall be
+      stopped, decscribed in <xref target="sec:refusal"/>.</c>
+   <c>&nbsp;</c><c></c><c></c>
+
+   <c>KEEPALIVE</c>
+   <c>0x4</c>
+   <c>Keepalive message for the connection, described in
+      <xref target="sec:keepalive"/>.</c>
+   <c>&nbsp;</c><c></c><c></c>
+   
+   <c>SHUTDOWN</c>
+   <c>0x5</c>
+   <c>Indicates that one of the nodes participating in the connection
+      wishes to cleanly terminate the connection, described in
+      <xref target="sec:termination"/>.</c>
+   <c>&nbsp;</c><c></c><c></c>
+
+</texttable>
+
+<t>
+   Open Issue: Currently, the message code implicitly identifies the
+   expected message length, possibly in combination with some flags.
+   This may limit backwards compatible extensibility: an "old"
+   endpoint may not know about a "new" message code or extension flag
+   and hence may not be able to skip the unknown (part of the)
+   message, even though it would otherwise be perfectly capable of
+   interoperating (at reduced functionality).  Therefore, we may want
+   to consider providing an explicit length indication if the message
+   length is more than a single octet.  Options include: (a) always
+   including a length field, (b) using one bit of the flags to
+   indicate whether or not length field is present (which then would
+   be the case for all messages of more than one byte length), and (c)
+   relying on a new version number for all extensions.
+</t>
+
+</section> <!-- Message type codes -->
+
+<section title="Bundle Data Transmission" anchor="sec:bundle_data">
+
+<t>
+   Each bundle is transmitted in one or more data segments. The format
+   of a data segment message is as follows:
+</t>
+
+<artwork>
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  0x1  |0|0|S|E|   length ...    |  contents....               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+</artwork>
+
+<t>
+   The type portion of the message header contains the value 0x1.
+</t>
+   
+<t>
+   The flags portion of the message header octet contains two optional
+   values in the two low-order bits, denoted 'S' and 'E' above. The
+   'S' bit MUST be set to one iff it precedes the transmission of the
+   first segment of a new bundle. The 'E' bit MUST be set to one when
+   transmitting the last segment of a bundle.
+</t>
+<t>
+   Determining the segment size is an implementation manner. In
+   particular, a node may, based on local policy or configuration,
+   only ever transmit bundle data in a single segment, in which case
+   both the 'S' and 'E' bits MUST be set to one. However a node must
+   be able to receive a bundle that has been tranmsmitted in any
+   segment size.
+</t>
+<t>
+   In the bundle protocol specification, a single bundle comprises
+   of a primary bundle block, a payload block, and zero or more
+   additional bundle blocks. The relationship between the protocol
+   blocks and the convergence layer segments is an
+   implementation-specific decision. In particular, a segment may
+   contain more than one protocol block; alternatively, a single
+   protocol block (such as the payload) may be split into multiple
+   segments.
+</t>
+<t>
+   Once a transmission of a bundle has commenced, the node MUST only
+   send segments containing sequential portions of that bundle until
+   it sends a segment with the 'E' bit set.
+</t>
+<t>
+   Following the message header, the length field is an SDNV
+   containing the number of bytes of bundle data that are transmitted
+   in this segment. Following this length is the actual data contents.
+</t>
+</section> <!-- Bundle Data -->
+
+<section title="Bundle Acknowledgements" anchor="sec:acks">
+
+<t>
+   Although the TCP transport provides reliable transfer of data
+   between hosts, the typical BSD sockets interface provides no means
+   to inform a sending application of when the receiving application
+   has processed some amount of transmitted data. Thus after
+   transmitting some data, a bundle protocol agent needs an additional
+   mechanism to determine whether the receiving agent has successfully
+   received the segment.
+</t>
+
+<t>
+   To this end, the TCPCL protocol offers an optional feature whereby
+   a receiving node transmits acknowledgements of reception of data
+   segments. This feature is enabled if and only if during the
+   exchange of contact headers, both parties set the flag to indicate
+   that segment acknowledgements are enabled (see
+   <xref target="sec:contact_header"/>). If so, then the receiver must
+   transmit a bundle acknowledgement header when it successfully
+   receives each data segment.
+</t>
+
+<t>
+   The format of a bundle acknowledgement is:
+</t>
+
+<artwork>
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  0x2  |0|0|0|0|   acknowledged length ...                     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</artwork>
+
+<t>
+   To transmit an acknowledgement, a node first transmits a message
+   header with the ACK_SEGMENT type code and all flags set to zero,
+   then transmits an SDNV containing the cumulative length of the
+   received segment(s) of the current bundle. For example, suppose the
+   sending node transmits four segments of bundle data with lengths
+   100, 200, 500, and 1000 respectively. After receiving the first
+   segment, the node sends an acknowledgement of length 100. After the
+   second segment is received, the node sends an acknowledgement of
+   length 300. The third and fourth acknowledgements are of length 800
+   and 1800 respectively.
+</t>
+
+</section>
+
+<!-- jo -->
+<section title="Bundle Refusal" anchor="sec:refusal">
+
+<t>
+   As bundles may be large, the TCPCL supports an optional mechanisms
+   by which a receiving node may indicate to the sender that it does
+   not want to receive the corresponding bundle.
+</t>
+<t>
+   To do so, upon receiving a DATA_SEGMENT message, the node may
+   transmit a REFUSE_BUNDLE message. As data segments and
+   acknowledgements may cross on the wire, the data segment (and thus
+   the bundle) that is being refused is implicitly identified by the
+   sequence in which positive and negative acknowledgements are
+   received.
+</t>
+<t>
+   The receiver MUST have acknowledged (positively or negatively) all
+   other received DATA_SEGMENTs before the one to be refused so that
+   the sender can identify the bundles accepted and refused by means
+   of a simple FIFO list of segments and acknowledgments.
+</t>
+<t>
+   The bundle refusal MAY be sent before the entire data segment is
+   received. If a sender receives a REFUSE_BUNDLE message, the sender
+   MUST complete the transmission of any partially-sent DATA_SEGMENT
+   message (so that the receiver stays in sync). The sender MUST NOT
+   commence transmission of any further segments of the rejected
+   bundle subsequently. Note, however, that this requirement does not
+   ensure that a node will not receive another DATA_SEGMENT for the
+   same bundle after transmitting a REFUSE_BUNDLE message since
+   messages may cross on the wire; if this happens, subsequent
+   segments of the bundle SHOULD be refused with a REFUSE_BUNDLE
+   message, too.
+</t>
+</section>
+
+<section title="Keepalive Messages" anchor="sec:keepalive">
+<t>
+   The protocol includes a provision for transmission of keepalive
+   messages over the TCP connection to help determine if the
+   connection has been disrupted.
+</t>
+
+<t>
+   As described in <xref target="sec:contact_header"/>, one of the
+   parameters in the contact header is the keepalive_interval. Both
+   sides populate this field with their requested intervals (in
+   seconds) between keepalive messages.
+</t>
+
+<t>
+   The format of a keepalive message is a one byte message type code
+   of KEEPALIVE (as described in <xref target="types:codes"/>, with no
+   additional data. Both sides should send a keepalive message
+   whenever the negotiated interval has elapsed with no transmission
+   of any message (keepalive or other).
+</t>
+
+<t>
+   If no message (keepalive or other) has been received for at least
+   twice the keepalive interval, then either party may terminate the
+   session by transmitting a one byte message type code of SHUTDOWN
+   (as described in <xref target="types:codes"/>) and closing the TCP
+   connection.
+</t>
+</section> <!-- Keepalives -->
+
+</section> <!-- Established session -->
+
+<section title="Connection Termination" anchor="sec:termination">
+
+<t>
+   This section describes the procedures for ending a TCPCL connection.
+</t>
+
+<!-- jo --> 
+
+<section title="Shutdown Message" anchor="sec:shutdown">
+<t>
+   To cleanly shut down a connection, a SHUTDOWN message can be
+   transmitted by either the initiator or the acceptor at any point
+   following complete transmission of any other message. In case
+   acknowledgements have been negotiated, it is advisable to
+   acknowledge all received data segments first and then shut down the
+   connection.
+</t>
+
+<t>
+   The format of the shutdown message is as follows:
+</t>
+
+<artwork>
+                        1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  0x3  |0|0|R|D| reason (opt)  | reconnection delay (opt)      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+</artwork>
+
+<t>
+   It is possible for a node to convey additional information
+   regarding the reason for connection termination. To do so, the node
+   sets the 'R' bit in the message header flags, and transmits a
+   one-byte reason code immediately following the message header. The
+   specified values of the reason code are:
+</t>
+
+<texttable anchor="shutdown:reason"
+           title="Shutdown Reason Codes">
+   <ttcol align="center" valign="top" width="5%">Code</ttcol>
+   <ttcol align="left"   valign="top" width="30%">Meaning</ttcol>
+   <ttcol align="left"   valign="top" width="65%">Comment</ttcol>
+
+   <c>0x00</c>
+   <c>Idle timeout</c>
+   <c>The connection is being closed due to idleness.</c>
+   <c>&nbsp;</c><c></c><c></c>
+
+
+   <c>0x01</c>
+   <c>Version mismatch</c>
+   <c>The node cannot conform to the specified TCPCL protocol
+      version.</c>
+   <c>&nbsp;</c><c></c><c></c>
+
+   <c>0x02</c>
+   <c>Busy</c>
+   <c>The node is too busy to handle the current connection.</c>
+
+</texttable>
+
+<t>
+   It is also possible to convey a requested reconnection delay to
+   indicate how long the other node must wait before attempting
+   connection re-establishment. To do so, the node sets the 'D' bit in
+   the message header flags, then transmits an SDNV specifying the
+   requested delay, in seconds, following the message header (and
+   optionally the shutdown reason code). The value 0 shall be
+   interpreted as an infinite delay, i.e. that the node should not
+   ever re-establish the connection. In contrast, if the node does not
+   wish to request a delay, it should omit the delay field (and set
+   the 'D' bit to zero). Note that in the figure above, a two octet
+   SDNV is shown for convenience in representation.
+</t>
+
+<t>
+   A connection shutdown MAY occur immediately after TCP connection
+   establishment or reception of a contact header (and prior to any
+   further data exchange).  This may, for example, be used to notify a
+   the initiator that the node is currenly not capable of or willing
+   to communicate.  Note, however, that a node MUST always send the
+   contact header to its peer first.
+</t>
+
+<t>
+   If either node terminates a connection prematurely in this manner,
+   it SHOULD send a SHUTDOWN message and MUST indicate a reason code
+   unless the incoming connection did not include the magic string. If
+   a node does not want its peer to re-open the connection
+   immediately, it SHOULD set the 'D' bit in the flags and include a
+   reconnection delay to indicate when the peer is allowed to attempt
+   another connection setup.
+</t>
+
+<t>
+   If a connection is terminated before another protocol message has
+   completed, then the node must not transmit the SHUTDOWN message but
+   still should close the TCP connection. In particular, if the
+   connection is interrupted while a node is in the process of
+   transmitting a bundle data segment, then the node may identify that
+   the connection should be terminated before it has completed the
+   transmission of the data segment. Thus were the node to transmit
+   the SHUTDOWN message, the receiving node might erroneously
+   interpret the SHUTDOWN message to be part of the data segment.
+</t>
+</section>
+
+<section title="Idle Connection Shutdown" anchor="sec:idle">
+<t>
+   The protocol includes a provision for clean shutdown of idle TCP
+   connections. Determining the length of time to wait before closing
+   idle connections, if they are to be closed at all, is an
+   implementation and configuration matter.
+</t>
+
+<t>
+   If there is a configured time to close idle links, then if no
+   bundle data (other than keepalive messages) has been received for
+   at least that amount of time, then either node may terminate the
+   connection by transmitting a SHUTDOWN message indicating the reason
+   code of 'idle timeout' (as described above). After receiving a
+   SHUTDOWN message in response, both sides may close the TCP
+   connection.
+</t>
+
+</section> <!-- Idle shutdown -->
+</section> <!-- Connection Termination -->
+
+<section title="Requirements notation">
+   <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+      NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
+      "OPTIONAL" in this document are to be interpreted as described
+      in <xref target="RFC2119"/>.</t> </section>
+
+<section title="Security Considerations">
+<t>
+   One security consideration for this protocol relates to the fact
+   that nodes present their endpoint identifier as part of the
+   connection header exchange. It would be possible for a node to
+   fake this value and present the identity of a singleton endpoint
+   in which the node is not a member, essentially masquerading as
+   another DTN node. If this identifier is used without further
+   verification as a means to determine which bundles are transmitted
+   over the connection, then the node that has falsified its identity
+   may be able to obtain bundles that it should not have.
+</t>
+
+<t>
+   These concerns may be mitigated through the use of
+   the <xref target="refs.dtnsecurity">Bundle Security
+   Protocols</xref>. In particular, the Bundle Authentication Header
+   defines mechanism for secure exchange of bundles between DTN nodes.
+   Thus an implementation could delay trusting the presented endpoint
+   identifier until the node can securely validate that its peer is in
+   fact the only member of the given singleton endpoint.
+</t>
+   
+<t>
+   Another consideration for this protocol relates to denial of
+   service attacks. A node may send a large amount of data over a TCP
+   connection, requiring the receiving node to either handle the data,
+   attempt to stop the flood of data by sending a REFUSE_BUNDLE
+   message, or forcibly terminate the connection. This burden could
+   cause denial of service on other, well-behaving connections. There
+   is also nothing to prevent a malicious node from continually
+   establishing connections and repeatedly trying to send copious
+   amounts of bundle data.
+</t>
+
+</section>
+
+<section title="IANA Considerations">
+   <t>There should be a well-known TCP port assignment for this
+      protocol.</t>
+</section>
+
+</middle>
+
+<back>
+<references>
+   <reference anchor="RFC2119">
+      <front>
+         <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+         <author initials="S." surname="Bradner" fullname="Scott Bradner">
+            <organization abbrev="Harvard University">
+               Harvard University
+            </organization>
+         </author>
+         <date month="March" year="1997"/>
+      </front>
+      <seriesInfo name="RFC" value="2119"/>
+   </reference>
+
+   <reference anchor="refs.dtnarch">
+      <front>
+         <title>Delay-Tolerant Network Architecture</title>
+         <author initials="V." surname="Cerf et al" fullname="Vinton Cerf">
+            <organization abbrev="MCI/Jet Propulsion Laboratory">
+               MCI/Jet Propulsion Laboratory
+            </organization>
+         </author>
+         <date month="September" year="2006"/>
+      </front>
+      <seriesInfo name="work in progress, Internet Draft"
+                  value="draft-irtf-dtnrg-arch-06.txt"/>
+   </reference>
+   
+   <reference anchor="refs.bundleproto">
+      <front>
+         <title>Bundle Protocol Specification</title>
+         <author initials="K." surname="Scott" fullname="Keith Scott">
+            <organization abbrev="The MITRE Corporation">
+               The MITRE Corporation
+            </organization>
+         </author>
+         
+         <author initials="S." surname="Burleigh" fullname="Scott Burleigh">
+            <organization abbrev="Jet Propulsion Laboratory">
+               Jet Propulsion Laboratory
+            </organization>
+         </author>
+         <date month="August" year="2006"/>
+      </front>
+      <seriesInfo name="work in progress,"
+                  value="Internet Draft draft-irtf-dtnrg-bundle-security-02.txt"/>
+      <format type='TXT' octets='0'
+              target='http://somewhere'/>
+   </reference>
+   
+   <reference anchor="refs.dtnsecurity">
+      <front>
+         <title>Bundle Security Protocol Specification</title>
+         <author initials="S." surname="Symington" fullname="Susan Symington">
+            <organization abbrev="The MITRE Corporation">
+               The MITRE Corporation
+            </organization>
+         </author>
+         
+         <author initials="S." surname="Farrell" fullname="Stephen Farrell">
+            <organization abbrev="Trinity College Dublin">
+               Trinity College Dublin
+            </organization>
+         </author>
+
+         <author initials="H." surname="Weiss" fullname="Howard Weiss">
+            <organization abbrev="SPARTA, Inc">
+               SPARTA, Inc
+            </organization>
+         </author>
+
+          <date month="October" year="2006"/>
+      </front>
+      <seriesInfo name="work in progress, Internet Draft"
+                  value="draft-irtf-dtnrg-bundle-security-02.txt"/>
+   </reference>
+
+   <!--  demmer: better to reference the code than the tech report -->
+<!--   
+   <reference anchor="refs.dtnimpl">
+      <front>
+         <title>Implementing Delay Tolerant Networking</title>
+         <author initials="M." surname="Demmer" fullname="Michael Demmer">
+            <organization abbrev="UC Berkeley / Intel Research">
+               University of California, Berkeley
+               Intel Research Berkeley
+            </organization>
+         </author>
+         
+         <author initials="E." surname="Brewer" fullname="Eric Brewer">
+            <organization abbrev="UC Berkeley">
+               University of California, Berkeley
+            </organization>
+         </author>
+         
+         <author initials="K." surname="Fall" fullname="Kevin Fall">
+            <organization abbrev="Intel Research Berkeley">
+               Intel Research Berkeley
+            </organization>
+         </author>
+         
+         <author initials="S." surname="Jain" fullname="Sushant Jain">
+            <organization abbrev="Intel Research Berkeley">
+               Intel Research Berkeley
+            </organization>
+         </author>
+         
+         <author initials="M." surname="Ho" fullname="Melissa Ho">
+            <organization abbrev="UC Berkeley">
+               University of California, Berkeley
+            </organization>
+         </author>
+         
+         <author initials="R." surname="Patra" fullname="Rabin Patra">
+            <organization abbrev="UC Berkeley">
+               University of California, Berkeley
+            </organization>
+         </author>
+
+         <date month="December" year="2004"/>
+         
+      </front>
+
+      <seriesInfo name="Intel Research Berkeley Technical Report"
+                  value="IRB-TR-04-020"/>
+   </reference>
+   -->
+
+   <reference anchor="refs.dtnimpl" target="http://www.dtnrg.org/Code"> 
+      <front>
+         <title>Delay Tolerant Networking Reference Implementation</title>
+         <author initials="" surname="DTNRG" fullname="Delay Tolerant Networking Research Group">
+         </author>
+      </front>
+   </reference>
+</references>
+</back>
+
+</rfc>
