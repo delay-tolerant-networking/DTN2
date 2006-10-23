@@ -223,7 +223,7 @@ RegistrationTable::dump(oasys::StringBuffer* buf) const
     {
         Registration* reg = *i;
 
-        buf->appendf("id %u: %s %s (%s%s) expiration %d\n",
+        buf->appendf("id %u: %s %s (%s%s) [expiration %d]\n",
                      reg->regid(),
                      reg->active() ? "active" : "passive",
                      reg->endpoint().c_str(),
