@@ -147,6 +147,9 @@
 /* whether postgres support is enabled */
 #undef POSTGRES_ENABLED
 
+/* whether readline is actually BSD's libedit */
+#undef READLINE_IS_EDITLINE
+
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
