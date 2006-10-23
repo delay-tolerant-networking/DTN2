@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/thread/SpinLock.h>
+#include <oasys/util/ScratchBuffer.h>
 #include <oasys/util/StringBuffer.h>
 
 #include "BundlePayload.h"
@@ -372,8 +373,11 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
     // XXX/mho: todo - for cases where we're creating a fragment from
     // an existing bundle, make a hard link for the new fragment and
     // store the offset in base_offset_
-    u_char buf[len];
-    const u_char* bp = src->read_data(src_offset, len, buf, KEEP_FILE_OPEN);
+
+    // XXX/demmer todo -- we should copy the payload in max-length chunks
+    
+    oasys::ScratchBuffer<u_char*, 1024> buf(len);
+    const u_char* bp = src->read_data(src_offset, len, buf.buf(), KEEP_FILE_OPEN);
     internal_write(bp, dst_offset, len);
 }
 
