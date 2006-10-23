@@ -60,6 +60,7 @@ class BundleList;
 class BundleRouter;
 class ContactManager;
 class FragmentManager;
+class PingRegistration;
 class RegistrationTable;
 
 /**
@@ -388,6 +389,9 @@ protected:
 
     /// The administrative registration
     AdminRegistration* admin_reg_;
+
+    /// The ping registration
+    PingRegistration* ping_reg_;
 
     /// The contact manager
     ContactManager* contactmgr_;

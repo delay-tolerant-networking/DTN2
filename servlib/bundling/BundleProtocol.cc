@@ -865,8 +865,6 @@ BundleProtocol::get_admin_type(const Bundle* bundle, admin_record_type_t* type)
 
 	CASE(ADMIN_STATUS_REPORT);
 	CASE(ADMIN_CUSTODY_SIGNAL);
-	CASE(ADMIN_ECHO);
-	CASE(ADMIN_NULL);
 	CASE(ADMIN_ANNOUNCE);
 
 #undef  CASE

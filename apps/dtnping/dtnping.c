@@ -64,7 +64,7 @@ int expiration = 30;
 char dest_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char source_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char replyto_eid_str[DTN_MAX_ENDPOINT_ID] = "";
-char* payload_str = "dtn_ping!";
+char* payload_str = "dtnping!";
 
 int
 main(int argc, const char** argv)
@@ -83,6 +83,7 @@ main(int argc, const char** argv)
     int debug = 1;
     char demux[64];
     char payload_buf[1024];
+    int dest_len = 0;
 
     struct timeval start, end;
     
@@ -105,7 +106,7 @@ main(int argc, const char** argv)
     // make sure they supplied a valid destination eid or
     // "localhost", in which case we just use the local daemon
     if (strcmp(dest_eid_str, "localhost") == 0) {
-        dtn_build_local_eid(handle, &ping_spec.dest, "");
+        dtn_build_local_eid(handle, &ping_spec.dest, "ping");
         
     } else {
         if (dtn_parse_eid_string(&ping_spec.dest, dest_eid_str)) {
@@ -113,6 +114,13 @@ main(int argc, const char** argv)
                     dest_eid_str);
             exit(1);
         }
+    }
+
+    dest_len = strlen(ping_spec.dest.uri);
+    if ((dest_len < 4) ||
+        (strcmp(ping_spec.dest.uri + dest_len - 4, "ping") != 0))
+    {
+        fprintf(stderr, "\nWARNING: ping destination does not end in \"ping\"\n\n");
     }
     
     // if the user specified a source eid, register on it.
@@ -133,21 +141,16 @@ main(int argc, const char** argv)
     if (debug) printf("source_eid [%s]\n", source_eid.uri);
     dtn_copy_eid(&ping_spec.source, &source_eid);
     
-    // now parse the replyto eid, if specified. otherwise just use
-    // the source eid
+    // now parse the replyto eid, if specified
     if (replyto_eid_str[0] != '\0') {
         if (dtn_parse_eid_string(&ping_spec.replyto, replyto_eid_str)) {
             fprintf(stderr, "invalid replyto eid string '%s'\n",
                     replyto_eid_str);
             exit(1);
         }
-        
-    } else {
-        dtn_copy_eid(&ping_spec.replyto, &source_eid);
+        if (debug) printf("replyto_eid [%s]\n", ping_spec.replyto.uri);
     }
 
-    if (debug) printf("replyto_eid [%s]\n", ping_spec.replyto.uri);
-    
     // now create a new registration based on the source
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &source_eid);
@@ -186,14 +189,11 @@ main(int argc, const char** argv)
     // set the expiration time
     ping_spec.expiration = expiration;
 
-    // fill in a payload of a single type code of 0x3 (echo request)
-    // and no flags, followed by a short payload string to verify the
-    // echo feature
-    payload_buf[0] = 0x3 << 4;
-    strcpy(&payload_buf[1], payload_str);
-
+    // fill in a short payload string to verify the echo feature
+    strcpy(&payload_buf[0], payload_str);
     memset(&ping_payload, 0, sizeof(ping_payload));
-    dtn_set_payload(&ping_payload, DTN_PAYLOAD_MEM, payload_buf, 1 + strlen(payload_str));
+    dtn_set_payload(&ping_payload, DTN_PAYLOAD_MEM,
+                    payload_buf, strlen(payload_str));
     
     printf("PING [%s]...\n", ping_spec.dest.uri);
     
@@ -226,8 +226,8 @@ main(int argc, const char** argv)
         printf("%d bytes from [%s]: '%.*s' time=%0.2f ms\n",
                reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
                reply_spec.source.uri,
-               reply_payload.dtn_bundle_payload_t_u.buf.buf_len - 1,
-               reply_payload.dtn_bundle_payload_t_u.buf.buf_val + 1,
+               strlen(payload_str),
+               reply_payload.dtn_bundle_payload_t_u.buf.buf_val,
                ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                 (double)(end.tv_usec - start.tv_usec)/1000.0));
         fflush(stdout);

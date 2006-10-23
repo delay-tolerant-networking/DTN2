@@ -72,7 +72,7 @@ NAMING_SRCS :=					\
 	naming/EthernetScheme.cc		\
 	naming/StringScheme.cc			\
 	naming/WildcardScheme.cc		\
-	naming/TCAScheme.cc		\
+	naming/TCAScheme.cc			\
 
 REGISTRATION_SRCS :=				\
 	reg/AdminRegistration.cc		\
@@ -80,6 +80,7 @@ REGISTRATION_SRCS :=				\
 	reg/Registration.cc			\
 	reg/RegistrationTable.cc		\
 	reg/LoggingRegistration.cc		\
+	reg/PingRegistration.cc			\
 	reg/TclRegistration.cc			\
 
 ROUTING_SRCS :=					\

@@ -51,6 +51,7 @@
 #include "contacts/ContactManager.h"
 #include "reg/AdminRegistration.h"
 #include "reg/APIRegistration.h"
+#include "reg/PingRegistration.h"
 #include "reg/Registration.h"
 #include "reg/RegistrationTable.h"
 #include "routing/BundleRouter.h"
@@ -1444,6 +1445,20 @@ BundleDaemon::load_registrations()
     admin_reg_ = new AdminRegistration();
     {
         RegistrationAddedEvent e(admin_reg_, EVENTSRC_ADMIN);
+        handle_event(&e);
+    }
+
+    EndpointID ping_eid(local_eid());
+    bool ok = ping_eid.append_service_tag("ping");
+    if (!ok) {
+        log_crit("local eid (%s) scheme must be able to append service tags",
+                 local_eid().c_str());
+        exit(1);
+    }
+    
+    ping_reg_ = new PingRegistration(ping_eid);
+    {
+        RegistrationAddedEvent e(ping_reg_, EVENTSRC_ADMIN);
         handle_event(&e);
     }
 

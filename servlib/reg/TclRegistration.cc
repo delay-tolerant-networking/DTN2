@@ -431,20 +431,6 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 
     //-------------------------------------------
 
-    case BundleProtocol::ADMIN_ECHO:
-    {
-        addElement(Tcl_NewStringObj("Admin Echo Signal", -1));
-        break;
-    }
-    
-    //-------------------------------------------
-
-    case BundleProtocol::ADMIN_NULL:
-    {
-        addElement(Tcl_NewStringObj("Admin Null Signal", -1));
-        break;
-    }
-    
     default:
         sprintf(tmp_buf,
                 "Error: Unknown Status Report Type 0x%x", admin_type);

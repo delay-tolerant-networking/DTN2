@@ -38,90 +38,38 @@
 
 #include <oasys/util/ScratchBuffer.h>
 
-#include "AdminRegistration.h"
+#include "PingRegistration.h"
 #include "RegistrationTable.h"
 #include "bundling/BundleDaemon.h"
-#include "bundling/BundleProtocol.h"
-#include "bundling/CustodySignal.h"
-#include "routing/BundleRouter.h"
 
 namespace dtn {
 
-AdminRegistration::AdminRegistration()
-    : Registration(ADMIN_REGID,
-                   BundleDaemon::instance()->local_eid(),
-                   Registration::DEFER,
-                   0)
+PingRegistration::PingRegistration(const EndpointID& eid)
+    : Registration(PING_REGID, eid, Registration::DEFER, 0)
 {
-    logpathf("/dtn/reg/admin");
+    logpathf("/dtn/reg/ping");
     set_active(true);
 }
 
 void
-AdminRegistration::deliver_bundle(Bundle* bundle)
+PingRegistration::deliver_bundle(Bundle* bundle)
 {
-    u_char typecode;
-
     size_t payload_len = bundle->payload_.length();
-    oasys::ScratchBuffer<u_char*, 256> scratch(payload_len);
-    const u_char* payload_buf = 
-        bundle->payload_.read_data(0, payload_len, scratch.buf(payload_len));
+    log_debug("%zu byte ping from %s",
+              payload_len, bundle->source_.c_str());
     
-    log_debug("got %zu byte bundle", payload_len);
-        
-    if (payload_len == 0) {
-        log_err("admin registration got 0 byte bundle *%p", bundle);
-        goto done;
-    }
+    Bundle* reply = new Bundle();
+    reply->source_.assign(bundle->dest_);
+    reply->dest_.assign(bundle->source_);
+    reply->replyto_.assign(EndpointID::NULL_EID());
+    reply->custodian_.assign(EndpointID::NULL_EID());
+    reply->expiration_ = bundle->expiration_;
 
-    /*
-     * As outlined in the bundle specification, the first four bits of
-     * all administrative bundles hold the type code, with the
-     * following values:
-     *
-     * 0x1     - bundle status report
-     * 0x2     - custodial signal
-     * 0x3     - echo request
-     * 0x4     - null request
-     * 0x5     - announce
-     * (other) - reserved
-     */
-    typecode = payload_buf[0] >> 4;
+    reply->payload_.set_length(payload_len);
+    reply->payload_.write_data(&bundle->payload_, 0, payload_len, 0);
+    reply->payload_.close_file();
     
-    switch(typecode) {
-    case BundleProtocol::ADMIN_STATUS_REPORT:
-    {
-        log_err("status report *%p received at admin registration", bundle);
-        break;
-    }
-    
-    case BundleProtocol::ADMIN_CUSTODY_SIGNAL:
-    {
-        log_info("ADMIN_CUSTODY_SIGNAL *%p received", bundle);
-        CustodySignal::data_t data;
-        
-        bool ok = CustodySignal::parse_custody_signal(&data, payload_buf, payload_len);
-        if (!ok) {
-            log_err("malformed custody signal *%p", bundle);
-            break;
-        }
-
-        BundleDaemon::post(new CustodySignalEvent(data));
-
-        break;
-    }
-    case BundleProtocol::ADMIN_ANNOUNCE:
-    {
-        log_info("ADMIN_ANNOUNCE from %s", bundle->source_.c_str());
-        break;
-    }
-        
-    default:
-        log_warn("unexpected admin bundle with type 0x%x *%p",
-                 typecode, bundle);
-    }    
-
- done:
+    BundleDaemon::post(new BundleReceivedEvent(reply, EVENTSRC_ADMIN, payload_len));
     BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
 }
 
