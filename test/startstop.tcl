@@ -5,6 +5,16 @@ dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ONDEMAND tcp true
 
+set clean 0
+foreach var $opt(opts) {
+    if {$var == "-clean"} {
+	set clean 1
+    } else {
+	puts "ERROR: unrecognized test option '$var'"
+	exit 1
+    }
+}
+
 test::script {
     puts "* Startstop test script executing..."
     dtn::run_dtnd *
@@ -19,10 +29,10 @@ test::script {
     puts "* Waiting for dtnd to quit"
     run::wait_for_programs
 
-    puts "* Running new dtnds"
-    dtn::run_dtnd *
-}
-
-test::exit_script {
-    puts "* Leaving dtn daemons running for the test utils to kill them..."
+    if {! $clean} {
+	puts "* Running new dtnds"
+	dtn::run_dtnd *
+	
+	puts "* Leaving dtn daemons running for the test utils to kill them..."
+    }
 }
