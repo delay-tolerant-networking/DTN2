@@ -52,7 +52,7 @@ LoggingRegistration::LoggingRegistration(const EndpointIDPattern& endpoint)
     : Registration(GlobalStore::instance()->next_regid(),
                    endpoint, Registration::DEFER, 0)
 {
-    logpathf("/registration/logging/%d", regid_);
+    logpathf("/dtn/reg/logging/%d", regid_);
     set_active(true);
     
     log_info("new logging registration on endpoint %s", endpoint.c_str());
