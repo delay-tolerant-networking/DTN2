@@ -112,6 +112,16 @@ public:
     }
 
     /**
+     * Set the string and parse it.
+     * @return true if the string is a valid id, false if not.
+     */
+    bool assign(const char* str, size_t len)
+    {
+        str_.assign(str, len);
+        return parse();
+    }
+
+    /**
      * Set the string from component pieces and parse it.
      * @return true if the string is a valid id, false if not.
      */
