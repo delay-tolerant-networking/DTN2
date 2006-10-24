@@ -49,7 +49,12 @@ AdminRegistration::deliver_bundle(Bundle* bundle)
     log_debug("got %zu byte bundle", payload_len);
         
     if (payload_len == 0) {
-        log_err("admin registration got 0 byte bundle *%p", bundle);
+        log_err("admin registration got 0 byte *%p", bundle);
+        goto done;
+    }
+
+    if (!bundle->is_admin_) {
+        log_warn("non-admin *%p sent to local eid", bundle);
         goto done;
     }
 
