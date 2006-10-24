@@ -36,7 +36,7 @@ test::script {
     for {set i $last_node} {$i >= 0} {incr i -1} {
 	puts "* Dtnping'ing from node $last_node to dtn://host-$i\
 	    for $num_pings pings (one per second)"
-	set pid [dtn::run_app $last_node dtnping "-c $num_pings dtn://host-$i"]
+	set pid [dtn::run_app $last_node dtnping "-c $num_pings dtn://host-$i/ping"]
 	after [expr ($num_pings -1) * 1000]
 	run::wait_for_pid_exit $last_node $pid 30000
     }
