@@ -58,15 +58,6 @@ test::script {
     dtn::wait_for_bundle_stats 2 {0 pending 0 custody}
     dtn::wait_for_bundle_stats 3 {0 pending 0 custody}
 
-    puts "* opening backward links"
-    dtn::tell_dtnd 3 link open tcp-link:3-2
-    dtn::tell_dtnd 2 link open tcp-link:2-1
-    dtn::tell_dtnd 1 link open tcp-link:1-0
-
-    dtn::wait_for_link_state 3 tcp-link:3-2 OPEN
-    dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
-    dtn::wait_for_link_state 1 tcp-link:1-0 OPEN
-
     puts "* opening link from 0-1"
     dtn::tell_dtnd 0 link open tcp-link:0-1
     dtn::wait_for_link_state 0 tcp-link:0-1 OPEN
@@ -100,7 +91,7 @@ test::script {
 
     dtn::tell_dtnd * bundle reset_stats
 
-    set custody_timer_opts "custody_timer_base=5 custody_timer_lifetime_pct=0"
+    set custody_timer_opts "custody_timer_min=5 custody_timer_lifetime_pct=0"
 
     puts "* removing route from node 1"
     dtn::tell_dtnd 1 route del $dst_route
@@ -166,7 +157,7 @@ test::script {
 
     dtn::tell_dtnd * bundle reset_stats
 
-    set custody_timer_opts "custody_timer_base=5 custody_timer_lifetime_pct=0"
+    set custody_timer_opts "custody_timer_min=5 custody_timer_lifetime_pct=0"
 
     puts "* speeding up custody timer for route on node 0"
     dtn::tell_dtnd 0 route del $dst_route
