@@ -62,14 +62,14 @@ test::script {
 	    is_admin 0 source $source dest $dest
     
     puts "* Checking that bundle was received"
-    dtn::check_bundle_stats 0 1 received
-    dtn::check_bundle_stats 1 1 transmitted
-    dtn::check_bundle_stats 2 1 transmitted
+    dtn::wait_for_bundle_stat 0 1 received
+    dtn::wait_for_bundle_stat 1 1 transmitted
+    dtn::wait_for_bundle_stat 2 1 transmitted
 
     puts "* Checking that bundle still pending"
-    dtn::check_bundle_stats 0 1 pending
-    dtn::check_bundle_stats 1 1 pending
-    dtn::check_bundle_stats 2 1 pending
+    dtn::wait_for_bundle_stat 0 1 pending
+    dtn::wait_for_bundle_stat 1 1 pending
+    dtn::wait_for_bundle_stat 2 1 pending
 
     puts "* Stopping and restarting link"
     dtn::tell_dtnd 2 link close tcp-link:2-1
@@ -78,13 +78,13 @@ test::script {
     dtn::wait_for_link_state 2 tcp-link:2-1 OPEN
 
     puts "* Checking that bundle was not retransmitted"
-    dtn::check_bundle_stats 0 1 received
-    dtn::check_bundle_stats 1 1 transmitted
-    dtn::check_bundle_stats 2 1 transmitted
+    dtn::wait_for_bundle_stat 0 1 received
+    dtn::wait_for_bundle_stat 1 1 transmitted
+    dtn::wait_for_bundle_stat 2 1 transmitted
     
-    dtn::check_bundle_stats 0 1 pending
-    dtn::check_bundle_stats 1 1 pending
-    dtn::check_bundle_stats 2 1 pending
+    dtn::wait_for_bundle_stat 0 1 pending
+    dtn::wait_for_bundle_stat 1 1 pending
+    dtn::wait_for_bundle_stat 2 1 pending
     
     puts "* Test success!"
 }
