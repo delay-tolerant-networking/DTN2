@@ -331,6 +331,8 @@ public:
         NO_INFO,	///< No additional info
         USER,		///< User action (i.e. console / config)
         BROKEN,		///< Unexpected session interruption
+        CL_ERROR,	///< Convergence layer protocol error
+        CL_VERSION,	///< Convergence layer version mismatch
         SHUTDOWN,	///< Clean connection shutdown
         RECONNECT,	///< Re-establish link after failure
         IDLE,		///< Idle connection shut down by the CL
@@ -348,6 +350,8 @@ public:
         case USER: 	return "user action";
         case SHUTDOWN: 	return "peer shut down";
         case BROKEN:	return "connection broken";
+        case CL_ERROR: 	return "cl protocol error";
+        case CL_VERSION:return "cl version mismatch";
         case RECONNECT:	return "re-establishing connection";
         case IDLE:	return "connection idle";
         case TIMEOUT:	return "schedule timed out";

@@ -428,15 +428,6 @@ void
 BluetoothConvergenceLayer::Connection::disconnect()
 {
     if (sock_->state() != oasys::BluetoothSocket::CLOSED) {
-        // we can only send a shutdown byte if we're not in the middle
-        // of sending a segment, otherwise the shutdown byte could be
-        // interpreted as a part of the payload
-        if (send_segment_todo_ == 0) {
-            log_debug("disconnect: trying to send shutdown byte");
-            char typecode = SHUTDOWN;
-            sock_->write(&typecode, 1);
-        }
-
         sock_->close();
     }
 }

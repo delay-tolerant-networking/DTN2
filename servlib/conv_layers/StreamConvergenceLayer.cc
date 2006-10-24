@@ -69,6 +69,9 @@ StreamConvergenceLayer::parse_link_params(LinkParams* lparams,
     p.addopt(new oasys::UIntOpt("segment_length",
                                 &params->segment_length_));
     
+    p.addopt(new oasys::UInt8Opt("cl_version",
+                                 &cl_version_));
+    
     int count = p.parse_and_shift(argc, argv, invalidp);
     if (count == -1) {
         return false;
@@ -119,7 +122,8 @@ StreamConvergenceLayer::Connection::Connection(const char* classname,
     : CLConnection(classname, logpath, cl, params, active_connector),
       current_inflight_(NULL),
       send_segment_todo_(0),
-      recv_segment_todo_(0)
+      recv_segment_todo_(0),
+      breaking_contact_(false)
 {
 }
 
@@ -234,15 +238,21 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     if (contacthdr.magic != MAGIC) {
         log_warn("remote sent magic number 0x%.8x, expected 0x%.8x "
                  "-- disconnecting.", contacthdr.magic, MAGIC);
-        break_contact(ContactEvent::BROKEN);
+        break_contact(ContactEvent::CL_ERROR);
         return;
     }
-    
+
+    /*
+     * In this implementation, we can't handle other versions than our
+     * own, but if the other side presents a higher version, we allow
+     * it to go through and thereby allow them to downgrade to this
+     * version.
+     */
     u_int8_t cl_version = ((StreamConvergenceLayer*)cl_)->cl_version_;
-    if (contacthdr.version != cl_version) {
+    if (contacthdr.version < cl_version) {
         log_warn("remote sent version %d, expected version %d "
                  "-- disconnecting.", contacthdr.version, cl_version);
-        break_contact(ContactEvent::BROKEN);
+        break_contact(ContactEvent::CL_VERSION);
         return;
     }
 
@@ -289,9 +299,7 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     if (! peer_eid.assign(recvbuf_.start(), peer_eid_len)) {
         log_err("protocol error: invalid endpoint id '%s' (len %llu)",
                 peer_eid.c_str(), peer_eid_len);
-
-        // XXX/demmer protocol error
-        break_contact(ContactEvent::BROKEN);
+        break_contact(ContactEvent::CL_ERROR);
         return;
     }
 
@@ -985,7 +993,7 @@ StreamConvergenceLayer::Connection::process_data()
         default:
             log_err("invalid CL message type code 0x%x (flags 0x%x)",
                     type >> 4, flags);
-            break_contact(ContactEvent::BROKEN);
+            break_contact(ContactEvent::CL_ERROR);
             return;
         }
 
@@ -1040,7 +1048,7 @@ StreamConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
             IncomingBundle* incoming = incoming_.back();
             if (incoming->total_length_ == 0) {
                 log_err("protocol error: got BUNDLE_START before bundle completed");
-                break_contact(ContactEvent::BROKEN);
+                break_contact(ContactEvent::CL_ERROR);
                 return false;
             }
         }
@@ -1053,7 +1061,7 @@ StreamConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
     {
         log_err("protocol error: "
                 "first data segment doesn't have BUNDLE_START flag set");
-        break_contact(ContactEvent::BROKEN);
+        break_contact(ContactEvent::CL_ERROR);
         return false;
     }
 
@@ -1189,7 +1197,7 @@ StreamConvergenceLayer::Connection::handle_data_todo()
         log_err("NEED TO HANDLE BLOCKS AFTER THE PAYLOAD "
                 "(rcvd_offset %zu rcvd_len %zu chunk_len %zu payload_offset %zu payload_len %zu)",
                 rcvd_offset, rcvd_len, chunk_len, payload_offset, payload_len);
-        break_contact(ContactEvent::BROKEN);
+        break_contact(ContactEvent::CL_ERROR);
         return false;
     }
 
@@ -1235,8 +1243,7 @@ StreamConvergenceLayer::Connection::check_completed(IncomingBundle* incoming)
         // event for the bundle
         incoming->rcvd_data_.clear();
 
-        // XXX/demmer protocol error
-        break_contact(ContactEvent::BROKEN);
+        break_contact(ContactEvent::CL_ERROR);
         return;
     }
 
@@ -1274,7 +1281,7 @@ StreamConvergenceLayer::Connection::handle_ack_segment(u_int8_t flags)
 
     if (inflight_.empty()) {
         log_err("protocol error: got ack segment with no inflight bundle");
-        break_contact(ContactEvent::BROKEN);
+        break_contact(ContactEvent::CL_ERROR);
         return false;
     }
 
@@ -1292,7 +1299,7 @@ StreamConvergenceLayer::Connection::handle_ack_segment(u_int8_t flags)
     if (acked_len < ack_begin) {
         log_err("protocol error: got ack for length %u but already acked up to %zu",
                 acked_len, ack_begin);
-        break_contact(ContactEvent::BROKEN);
+        break_contact(ContactEvent::CL_ERROR);
         return false;
     }
     
@@ -1335,7 +1342,7 @@ StreamConvergenceLayer::Connection::handle_refuse_bundle(u_int8_t flags)
     (void)flags;
     log_debug("got refuse_bundle message");
     log_err("REFUSE_BUNDLE not implemented");
-    break_contact(ContactEvent::BROKEN);
+    break_contact(ContactEvent::CL_ERROR);
     return true;
 }
 //----------------------------------------------------------------------
@@ -1346,6 +1353,97 @@ StreamConvergenceLayer::Connection::handle_keepalive(u_int8_t flags)
     log_debug("got keepalive message");
     recvbuf_.consume(1);
     return true;
+}
+
+//----------------------------------------------------------------------
+void
+StreamConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
+{
+    // it's possible that we can end up calling break_contact multiple
+    // times, if for example we have an error when sending out the
+    // shutdown message below. we simply ignore the multiple calls
+    if (breaking_contact_) {
+        return;
+    }
+    breaking_contact_ = true;
+    
+    // we can only send a shutdown byte if we're not in the middle
+    // of sending a segment, otherwise the shutdown byte could be
+    // interpreted as a part of the payload
+    bool send_shutdown = false;
+    shutdown_reason_t shutdown_reason = SHUTDOWN_NO_REASON;
+
+    switch (reason) {
+    case ContactEvent::USER:
+        // if the user is closing this link, we say that we're busy
+        send_shutdown = true;
+        shutdown_reason = SHUTDOWN_BUSY;
+        break;
+        
+    case ContactEvent::IDLE:
+        // if we're idle, indicate as such
+        send_shutdown = true;
+        shutdown_reason = SHUTDOWN_IDLE_TIMEOUT;
+        break;
+        
+    case ContactEvent::SHUTDOWN:
+        // if the other side shuts down first, we send the
+        // corresponding SHUTDOWN byte for a clean handshake, but
+        // don't give any more reason
+        send_shutdown = true;
+        break;
+        
+    case ContactEvent::BROKEN:
+    case ContactEvent::CL_ERROR:
+        // no shutdown 
+        send_shutdown = false;
+        break;
+
+    case ContactEvent::CL_VERSION:
+        // version mismatch
+        send_shutdown = true;
+        shutdown_reason = SHUTDOWN_VERSION_MISMATCH;
+        break;
+        
+    case ContactEvent::INVALID:
+    case ContactEvent::NO_INFO:
+    case ContactEvent::RECONNECT:
+    case ContactEvent::TIMEOUT:
+    case ContactEvent::UNBLOCKED:
+        NOTREACHED;
+        break;
+    }
+
+    // of course, we can't send anything if we were interrupted in the
+    // middle of sending a block.
+    //
+    // XXX/demmer if we receive a SHUTDOWN byte from the other side,
+    // we don't have any way of continuing to transmit our own blocks
+    // and then shut down afterwards
+    if (send_shutdown && 
+        sendbuf_.fullbytes() == 0 &&
+        send_segment_todo_ == 0)
+    {
+        log_debug("break_contact: sending shutdown");
+        char typecode = SHUTDOWN;
+        if (shutdown_reason != SHUTDOWN_NO_REASON) {
+            typecode |= SHUTDOWN_HAS_REASON;
+        }
+
+        // XXX/demmer should we send a reconnect delay??
+
+        *sendbuf_.end() = typecode;
+        sendbuf_.fill(1);
+
+        if (shutdown_reason != SHUTDOWN_NO_REASON) {
+            *sendbuf_.end() = shutdown_reason;
+            sendbuf_.fill(1);
+        }
+
+        send_data();
+    }
+        
+    CLConnection::break_contact(reason);
 }
 
 //----------------------------------------------------------------------
@@ -1374,23 +1472,40 @@ StreamConvergenceLayer::Connection::handle_shutdown(u_int8_t flags)
 
     // now handle the message, first skipping the typecode byte
     recvbuf_.consume(1);
-    
+
+    shutdown_reason_t reason = SHUTDOWN_NO_REASON;
     if (flags & SHUTDOWN_HAS_REASON)
     {
-        log_notice("got SHUTDOWN reason code: 0x%x",
-                   *recvbuf_.start());
+        switch (*recvbuf_.start()) {
+        case SHUTDOWN_NO_REASON:
+            reason = SHUTDOWN_NO_REASON;
+            break;
+        case SHUTDOWN_IDLE_TIMEOUT:
+            reason = SHUTDOWN_IDLE_TIMEOUT;
+            break;
+        case SHUTDOWN_VERSION_MISMATCH:
+            reason = SHUTDOWN_VERSION_MISMATCH;
+            break;
+        case SHUTDOWN_BUSY:
+            reason = SHUTDOWN_BUSY;
+            break;
+        default:
+            log_err("invalid shutdown reason code 0x%x", *recvbuf_.start());
+        }
+
         recvbuf_.consume(1);
     }
 
+    u_int16_t delay = 0;
     if (flags & SHUTDOWN_HAS_DELAY)
     {
-        u_int16_t delay;
         memcpy(&delay, recvbuf_.start(), 2);
         delay = ntohs(delay);
-        
-        log_notice("got SHUTDOWN reconnection delay: %u", delay);
         recvbuf_.consume(2);
     }
+
+    log_info("got SHUTDOWN (%s) [reconnect delay %u]",
+             shutdown_reason_to_str(reason), delay);
 
     break_contact(ContactEvent::SHUTDOWN);
     

@@ -119,7 +119,7 @@ protected:
         REFUSE_BUNDLE	= 0x3 << 4,	///< reject reception of current bundle
         KEEPALIVE	= 0x4 << 4,	///< keepalive packet
         SHUTDOWN	= 0x5 << 4,	///< about to shutdown
-    } stream_cl_msg_type_t;
+    } msg_type_t;
 
     /**
      * Valid flags for the DATA_SEGMENT message.
@@ -127,7 +127,7 @@ protected:
     typedef enum {
         BUNDLE_START	= 0x1 << 1,	///< First segment of a bundle
         BUNDLE_END	= 0x1 << 0,	///< Last segment of a bundle
-    } stream_cl_data_segment_flags_t;
+    } data_segment_flags_t;
     
     /**
      * Valid flags for the SHUTDOWN message.
@@ -135,16 +135,31 @@ protected:
     typedef enum {
         SHUTDOWN_HAS_REASON = 0x1 << 1,	///< Has reason code
         SHUTDOWN_HAS_DELAY  = 0x1 << 0,	///< Has reconnect delay
-    } stream_cl_shutdown_flags_t;
+    } shutdown_flags_t;
     
     /**
      * Values for the SHUTDOWN reason codes
      */
     typedef enum {
-        SHUTDOWN_IDLE_TIMEOUT 	  = 0x0, ///< Idle connection shutdown
-        SHUTDOWN_VERSION_MISMATCH = 0x1, ///< Version mismatch
-        SHUTDOWN_BUSY  		  = 0x2, ///< Busy node
-    } stream_cl_shutdown_reason_t;
+        SHUTDOWN_NO_REASON	  = 0xff, ///< no reason code (never sent)
+        SHUTDOWN_IDLE_TIMEOUT 	  = 0x0,  ///< idle connection
+        SHUTDOWN_VERSION_MISMATCH = 0x1,  ///< version mismatch
+        SHUTDOWN_BUSY  		  = 0x2,  ///< node is busy
+    } shutdown_reason_t;
+
+    /**
+     * Convert a reason code to a string.
+     */
+    static const char* shutdown_reason_to_str(shutdown_reason_t reason)
+    {
+        switch (reason) {
+        case SHUTDOWN_NO_REASON: 	return "no reason";
+        case SHUTDOWN_IDLE_TIMEOUT: 	return "idle connection";
+        case SHUTDOWN_VERSION_MISMATCH: return "version mismatch";
+        case SHUTDOWN_BUSY: 		return "node is busy";
+        }
+        NOTREACHED;
+    }
     
     /**
      * Link parameters shared among all stream based convergence layers.
@@ -185,6 +200,7 @@ protected:
         void handle_send_bundle(Bundle* bundle);
         void handle_cancel_bundle(Bundle* bundle);
         void handle_poll_timeout();
+        void break_contact(ContactEvent::reason_t reason);
         /// @}
 
     protected:
@@ -240,6 +256,8 @@ protected:
         struct timeval data_rcvd_;	///< Timestamp for idle/keepalive timer
         struct timeval data_sent_;	///< Timestamp for idle timer
         struct timeval keepalive_sent_;	///< Timestamp for keepalive timer
+        bool breaking_contact_;		///< Bit to catch multiple calls to
+                                        ///< break_contact 
     };
 
     /// For some gcc variants, this typedef seems to be needed
