@@ -73,13 +73,13 @@ protected:
     void run();
 
     /// @{
-    /// Utility functions
-    void check_unblock_link();
-    void contact_up();
-    void break_contact(ContactEvent::reason_t reason);
-    void close_contact();
-    void process_command();
-    void find_contact(const EndpointID& peer_eid);
+    /// Utility functions, all virtual so subclasses could override them
+    virtual void check_unblock_link();
+    virtual void contact_up();
+    virtual void break_contact(ContactEvent::reason_t reason);
+    virtual void close_contact();
+    virtual void process_command();
+    virtual void find_contact(const EndpointID& peer_eid);
     /// @}
 
     /**
