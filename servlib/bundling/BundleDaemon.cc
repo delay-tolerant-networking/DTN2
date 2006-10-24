@@ -1134,14 +1134,16 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
                 bundle, link);
     }
 
-    // add an entry to the forwarding log to indicate that we got the
-    // custody failure signal. this simplifies the task of routers, as
-    // the most recent entry in the log will not be SENT, so the
-    // router will know to retransmit the bundle.
-    bundle->fwdlog_.add_entry(link, ForwardingInfo::INVALID_ACTION,
-                              ForwardingInfo::CUSTODY_TIMEOUT,
-                              CustodyTimerSpec::defaults_);
-
+    // modify the TRANSMITTED entry in the forwarding log to indicate
+    // that we got a custody timeout. then when the routers go through
+    // to figure out whether the bundle needs to be re-sent, the
+    // TRANSMITTED entry is no longer in there
+    bool ok = bundle->fwdlog_.update(link, ForwardingInfo::CUSTODY_TIMEOUT);
+    if (!ok) {
+        log_err("custody timeout can't find ForwardingLog entry for link *%p",
+                link);
+    }
+    
     delete timer;
 
     // now fall through to let the router handle the event, typically
