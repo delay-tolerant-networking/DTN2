@@ -6,6 +6,23 @@
 # Copyright (C) 2003 Free Software Foundation, Inc.
 # This configure script is free software; the Free Software Foundation
 # gives unlimited permission to copy, distribute and modify it.
+#
+#
+#    Copyright 2005-2006 Intel Corporation
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
+
 ## --------------------- ##
 ## M4sh Initialization.  ##
 ## --------------------- ##
@@ -1000,6 +1017,23 @@ if $ac_init_version; then
 Copyright (C) 2003 Free Software Foundation, Inc.
 This configure script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it.
+
+
+   Copyright 2005-2006 Intel Corporation
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
 _ACEOF
   exit 0
 fi
@@ -1366,10 +1400,10 @@ ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 
 
 
-# Stick a comment in the generated file so people know what to do.
 
 
-# This is handy to re-run configure but use any options you used before.
+
+
 
 # Check whether --with-previous-options or --without-previous-options was given.
 if test "${with_previous_options+set}" = set; then
@@ -1384,7 +1418,6 @@ fi
 
 fi;
 
-# First set srcdir and builddir, calculated above in AC_CONFIG_SRCDIR
 echo "$as_me:$LINENO: checking location of source directory" >&5
 echo $ECHO_N "checking location of source directory... $ECHO_C" >&6
 SRCDIR=`(cd $srcdir && pwd)`
