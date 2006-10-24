@@ -418,10 +418,8 @@ CLConnection::close_contact()
 
 //----------------------------------------------------------------------
 void
-CLConnection::handle_announce_bundle(Bundle* announce)
+CLConnection::find_contact(const EndpointID& peer_eid)
 {
-    log_debug("got announce bundle: source eid %s", announce->source_.c_str());
-
     /*
      * Now we may need to find or create an appropriate opportunistic
      * link for the connection.
@@ -440,9 +438,9 @@ CLConnection::handle_announce_bundle(Bundle* announce)
                                 // nexthop in the constructor
 
         ContactManager* cm = BundleDaemon::instance()->contactmgr();
-        oasys::ScopeLock l(cm->lock(), "CLConnection::handle_announce_bundle");
+        oasys::ScopeLock l(cm->lock(), "CLConnection::find_contact");
 
-        Link* link = cm->find_link_to(cl_, "", announce->source_,
+        Link* link = cm->find_link_to(cl_, "", peer_eid,
                                       Link::OPPORTUNISTIC,
                                       Link::AVAILABLE | Link::UNAVAILABLE);
 
@@ -459,7 +457,7 @@ CLConnection::handle_announce_bundle(Bundle* announce)
             
             link = cm->new_opportunistic_link(cl_,
                                               nexthop_.c_str(),
-                                              announce->source_);
+                                              peer_eid);
             log_debug("created new opportunistic link *%p", link);
         }
         

@@ -100,7 +100,7 @@ protected:
     void break_contact(ContactEvent::reason_t reason);
     void close_contact();
     void process_command();
-    void handle_announce_bundle(Bundle* bundle);
+    void find_contact(const EndpointID& peer_eid);
     /// @}
 
     /**

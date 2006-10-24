@@ -110,35 +110,62 @@ protected:
      * Values for ContactHeader flags.
      */
     typedef enum {
-        SEGMENT_ACK_ENABLED   = 0x1,	///< segment acks requested
-        REACTIVE_FRAG_ENABLED = 0x2,	///< reactive fragmentation enabled
+        SEGMENT_ACK_ENABLED   = 1 << 0,	///< segment acks requested
+        REACTIVE_FRAG_ENABLED = 1 << 1,	///< reactive fragmentation enabled
+        NEGATIVE_ACK_ENABLED  = 1 << 2,	///< refuse bundle enabled
     } contact_header_flags_t;
 
     /**
-     * Contact initiation header. Sent at the beginning of a contact,
-     * and immediately followed by a SDNV length of the AnnounceBundle
-     * then the bundle itself.
+     * Contact initiation header. Sent at the beginning of a contact. 
      */
     struct ContactHeader {
         u_int32_t magic;		///< magic word (MAGIC: "dtn!")
         u_int8_t  version;		///< cl protocol version
         u_int8_t  flags;		///< connection flags (see above)
         u_int16_t keepalive_interval;	///< seconds between keepalive packets
+        // SDNV   local_eid_length           local eid length
+        // byte[] local_eid                  local eid data
     } __attribute__((packed));
 
     /**
-     * Valid type codes for the protocol headers.
+     * Valid type codes for the protocol messages, shifted into the
+     * high-order four bits of the byte. The lower four bits are used
+     * for per-message flags, defined below.
      */
     typedef enum {
-        START_BUNDLE	= 0x1,		///< begin a new bundle transmission
-        END_BUNDLE	= 0x2,		///< end of a bundle transmission
-        DATA_SEGMENT	= 0x3,		///< a segment of bundle data
+        DATA_SEGMENT	= 0x1 << 4,	///< a segment of bundle data
                                         ///< (followed by a SDNV segment length)
-        ACK_SEGMENT	= 0x4,		///< acknowledgement of a segment
+        ACK_SEGMENT	= 0x2 << 4,	///< acknowledgement of a segment
                                         ///< (followed by a SDNV ack length)
-        KEEPALIVE	= 0x5,		///< keepalive packet
-        SHUTDOWN	= 0x6,		///< about to shutdown
-    } stream_cl_header_type_t;
+        REFUSE_BUNDLE	= 0x3 << 4,	///< reject reception of current bundle
+        KEEPALIVE	= 0x4 << 4,	///< keepalive packet
+        SHUTDOWN	= 0x5 << 4,	///< about to shutdown
+    } stream_cl_msg_type_t;
+
+    /**
+     * Valid flags for the DATA_SEGMENT message.
+     */
+    typedef enum {
+        BUNDLE_START	= 0x1 << 1,	///< First segment of a bundle
+        BUNDLE_END	= 0x1 << 0,	///< Last segment of a bundle
+    } stream_cl_data_segment_flags_t;
+    
+    /**
+     * Valid flags for the SHUTDOWN message.
+     */
+    typedef enum {
+        SHUTDOWN_HAS_REASON = 0x1 << 1,	///< Has reason code
+        SHUTDOWN_HAS_DELAY  = 0x1 << 0,	///< Has reconnect delay
+    } stream_cl_shutdown_flags_t;
+    
+    /**
+     * Values for the SHUTDOWN reason codes
+     */
+    typedef enum {
+        SHUTDOWN_IDLE_TIMEOUT 	  = 0x0, ///< Idle connection shutdown
+        SHUTDOWN_VERSION_MISMATCH = 0x1, ///< Version mismatch
+        SHUTDOWN_BUSY  		  = 0x2, ///< Busy node
+    } stream_cl_shutdown_reason_t;
     
     /**
      * Link parameters shared among all stream based convergence layers.
@@ -146,6 +173,7 @@ protected:
     class StreamLinkParams : public ConnectionConvergenceLayer::LinkParams {
     public:
         bool  segment_ack_enabled_;	///< Use per-segment acks
+        bool  negative_ack_enabled_;	///< Enable negative acks
         u_int keepalive_interval_;	///< Seconds between keepalive packets
         u_int segment_length_;		///< Maximum size of transmitted segments
 
@@ -206,13 +234,13 @@ protected:
         void send_keepalive();
         
         void handle_contact_initiation();
-        bool handle_start_bundle();
-        bool handle_end_bundle();
-        bool handle_data_segment();
+        bool handle_data_segment(u_int8_t flags);
         bool handle_data_todo();
-        bool handle_ack_segment();
-        bool handle_keepalive();
-        bool handle_shutdown();
+        bool handle_ack_segment(u_int8_t flags);
+        bool handle_refuse_bundle(u_int8_t flags);
+        bool handle_keepalive(u_int8_t flags);
+        bool handle_shutdown(u_int8_t flags);
+        void check_completed(IncomingBundle* incoming);
         /// @}
 
         /**
