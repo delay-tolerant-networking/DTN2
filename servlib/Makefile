@@ -52,10 +52,9 @@ CONTACT_SRCS :=					\
 	contacts/ScheduledLink.cc		\
 
 CONV_LAYER_SRCS :=				\
-	conv_layers/BluetoothConvergenceLayer.cc \
-	conv_layers/Bluetooth2ConvergenceLayer.cc \
+	conv_layers/BluetoothConvergenceLayer.cc  \
 	conv_layers/ConnectionConvergenceLayer.cc \
-	conv_layers/CLConnection.cc \
+	conv_layers/CLConnection.cc 		\
 	conv_layers/ConvergenceLayer.cc		\
 	conv_layers/EthConvergenceLayer.cc	\
 	conv_layers/FileConvergenceLayer.cc	\
