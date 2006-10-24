@@ -205,7 +205,7 @@ main(int argc, const char** argv)
         printf("%d bytes from [%s]: '%.*s' time=%0.2f ms\n",
                reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
                reply_spec.source.uri,
-               strlen(payload_str),
+               (u_int)strlen(payload_str),
                reply_payload.dtn_bundle_payload_t_u.buf.buf_val,
                ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                 (double)(end.tv_usec - start.tv_usec)/1000.0));
