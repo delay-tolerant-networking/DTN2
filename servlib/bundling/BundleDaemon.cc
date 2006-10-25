@@ -1100,7 +1100,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
     oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::handle_custody_timeout");
 
     bool found = false;
-    CustodyTimer* timer;
+    CustodyTimer* timer = NULL;
     CustodyTimerVec::iterator iter;
     for (iter = bundle->custody_timers_.begin();
          iter != bundle->custody_timers_.end();
