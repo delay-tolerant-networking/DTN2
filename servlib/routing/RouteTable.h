@@ -20,6 +20,7 @@
 #include <set>
 #include <oasys/debug/Log.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/serialize/Serialize.h>
 
 #include "RouteEntry.h"
 
@@ -96,9 +97,25 @@ public:
      */
     int size() { return route_table_.size(); }
 
+    /**
+     * Return the routing table.  Asserts that the RouteTable
+     * spin lock is held by the caller.
+     */
+    const RouteEntryVec *route_table();
+
+    /**
+     * Accessor for the RouteTable internal lock.
+     */
+    oasys::Lock* lock() { return &lock_; }
+
 protected:
     /// The routing table itself
     RouteEntryVec route_table_;
+
+    /**
+     * Lock to protect internal data structures.
+     */
+    mutable oasys::SpinLock lock_;
 };
 
 } // namespace dtn

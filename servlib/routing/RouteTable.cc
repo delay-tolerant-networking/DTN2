@@ -54,6 +54,8 @@ RouteTable::add_entry(RouteEntry* entry)
 bool
 RouteTable::del_entry(const EndpointIDPattern& dest, Link* next_hop)
 {
+    oasys::ScopeLock l(&lock_, "RouteTable");
+
     RouteEntryVec::iterator iter;
     RouteEntry* entry;
 
@@ -80,6 +82,8 @@ RouteTable::del_entry(const EndpointIDPattern& dest, Link* next_hop)
 size_t
 RouteTable::del_entries(const EndpointIDPattern& dest)
 {
+    oasys::ScopeLock l(&lock_, "RouteTable");
+
     RouteEntryVec::iterator iter;
     RouteEntry* entry;
 
@@ -117,6 +121,8 @@ RouteTable::del_entries(const EndpointIDPattern& dest)
 size_t
 RouteTable::del_entries_for_nexthop(Link* next_hop)
 {
+    oasys::ScopeLock l(&lock_, "RouteTable");
+
     RouteEntryVec::iterator iter;
     RouteEntry* entry;
 
@@ -166,6 +172,8 @@ size_t
 RouteTable::get_matching(const EndpointID& eid, Link* next_hop,
                          RouteEntryVec* entry_vec) const
 {
+    oasys::ScopeLock l(&lock_, "RouteTable");
+
     RouteEntryVec::const_iterator iter;
     RouteEntry* entry;
     size_t count = 0;
@@ -204,4 +212,17 @@ RouteTable::dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
         (*iter)->dump(buf, long_eids);
     }
 }
+
+/**
+ * Return the routing table.  Asserts that the RouteTable spin lock is held
+ * by the caller.
+ */
+const RouteEntryVec *
+RouteTable::route_table()
+{
+    ASSERTF(lock_.is_locked_by_me(),
+            "RouteTable::route_table must be called while holding lock");
+    return &route_table_;
+}
+
 } // namespace dtn
