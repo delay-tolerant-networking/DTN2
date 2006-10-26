@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 
+namespace dtn {
 
 // TODO: Make individual subclass for each TcaControlBundle type
 // and add strong argument checking (number of args, syntax, even semantic
@@ -111,5 +112,6 @@ public:
     void append_arg(const std::string& arg) { args_.push_back(arg); }
 };
 
+} // namespace dtn
 
 #endif /* _TCA_CONTROLBUNDLE_H_ */
