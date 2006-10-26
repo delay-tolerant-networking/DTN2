@@ -27,6 +27,7 @@ BUNDLING_SRCS := 				\
 	bundling/Bundle.cc			\
 	bundling/BundleActions.cc		\
 	bundling/BundleDaemon.cc		\
+	bundling/BundleEvent.cc			\
 	bundling/BundleEventHandler.cc		\
 	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\
@@ -35,6 +36,7 @@ BUNDLING_SRCS := 				\
 	bundling/BundleTimestamp.cc		\
 	bundling/CustodySignal.cc		\
 	bundling/CustodyTimer.cc		\
+	bundling/ForwardingInfo.cc		\
 	bundling/ForwardingLog.cc		\
 	bundling/FragmentManager.cc		\
 	bundling/ExpirationTimer.cc		\
@@ -99,6 +101,7 @@ REGISTRATION_SRCS :=				\
 	reg/TclRegistration.cc			\
 
 ROUTING_SRCS :=					\
+	routing/ExternalRouter.cc		\
 	routing/BundleRouter.cc			\
 	routing/FloodBundleRouter.cc		\
 	routing/NeighborhoodRouter.cc		\
