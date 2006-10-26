@@ -13,7 +13,6 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
 #include <oasys/util/OptParser.h>
 
 #include "Link.h"
@@ -135,12 +134,13 @@ Link::serialize(oasys::SerializeAction* a)
         type_ = str_to_link_type(type_str.c_str());
         ASSERT(type_ != LINK_INVALID);
     } else {
-        type_str = link_type_to_str(type_);
+        type_str = link_type_to_str(link_type_t(type_));
         a->process("type",     &type_str);
     }
     
     a->process("nexthop",  &nexthop_);
     a->process("name",     &name_);
+    a->process("state",    &state_);
     a->process("reliable", &reliable_);
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
@@ -150,6 +150,8 @@ Link::serialize(oasys::SerializeAction* a)
     } else {
         cl_name = clayer_->name();
         a->process("clayer", &cl_name);
+        if ((state_ == OPEN) || (state_ == BUSY))
+            a->process("clinfo", contact_->cl_info());
     }
 
     a->process("remote_eid",         &remote_eid_);
@@ -225,12 +227,12 @@ void
 Link::set_state(state_t new_state)
 {
     log_debug("set_state %s -> %s",
-              state_to_str(state_), state_to_str(new_state));
+              state_to_str(state_t(state_)), state_to_str(new_state));
 
 #define ASSERT_STATE(condition)                         \
     if (!(condition)) {                                 \
         log_err("set_state %s -> %s: expected %s",      \
-                state_to_str(state_),                   \
+                state_to_str(state_t(state_)),          \
                 state_to_str(new_state),                \
                 #condition);                            \
     }
@@ -272,7 +274,7 @@ Link::open()
 
     if (state_ != AVAILABLE) {
         log_crit("Link::open in state %s: expected state AVAILABLE",
-                 state_to_str(state_));
+                 state_to_str(state_t(state_)));
         return;
     }
 
@@ -320,7 +322,8 @@ Link::format(char* buf, size_t sz) const
 {
     return snprintf(buf, sz, "%s [%s %s %s %s]",
                     name(), nexthop(), remote_eid_.c_str(),
-                    link_type_to_str(type_), state_to_str(state_));
+                    link_type_to_str(link_type_t(type_)),
+                    state_to_str(state_t(state_)));
 }
 
 //----------------------------------------------------------------------
@@ -336,8 +339,8 @@ Link::dump(oasys::StringBuffer* buf)
                  "min_retry_interval: %u\n"
                  "max_retry_interval: %u\n",
                  name(), 
-                 link_type_to_str(type_),
-                 state_to_str(state_),
+                 link_type_to_str(link_type_t(type_)),
+                 state_to_str(state_t(state_)),
                  nexthop(),
                  remote_eid_.c_str(),
                  params_.mtu_,

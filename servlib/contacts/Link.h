@@ -258,12 +258,12 @@ public:
     /**
      * Return the type of the link.
      */
-    link_type_t type() { return type_; }
+    link_type_t type() { return link_type_t(type_); }
 
     /**
      * Return the string for of the link.
      */
-    const char* type_str() { return link_type_to_str(type_); }
+    const char* type_str() { return link_type_to_str(link_type_t(type_)); }
 
     /**
      * Return whether or not the link is open.
@@ -289,7 +289,7 @@ public:
     /**
      * Return the actual state.
      */
-    state_t state() { return state_; }
+    state_t state() { return state_t(state_); }
 
     /**
      * Sets the state of the link. Performs various assertions to
@@ -530,10 +530,10 @@ protected:
     virtual void close();
 
     /// Type of the link
-    link_type_t type_;
+    int type_;
 
     /// State of the link
-    state_t state_;
+    int state_;
 
     /// Local address (optional)
     std::string local_;
