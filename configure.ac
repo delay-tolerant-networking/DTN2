@@ -99,6 +99,7 @@ AC_OASYS_CONFIG_STORAGE
 AC_OASYS_CONFIG_GOOGLE_PERFTOOLS
 AC_OASYS_CONFIG_BLUEZ
 AC_OASYS_CONFIG_EXPAT
+AC_OASYS_CONFIG_XERCES
 AC_OASYS_CONFIG_TCLREADLINE
 
 dnl -------------------------------------------------------------------------
@@ -165,4 +166,8 @@ if test $MYSQL_ENABLED = 1 ; then
   else
      echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqld"
   fi
+fi
+
+if test $XERCES_C_ENABLED = 1 ; then
+  echo "  xerces-c: -I$oasys_cv_lib_xerces_c/include -L$oasys_cv_lib_xerces_c/lib -lxerces-c"
 fi
