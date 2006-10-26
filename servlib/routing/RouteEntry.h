@@ -18,6 +18,7 @@
 #define _BUNDLE_ROUTEENTRY_H_
 
 #include <oasys/debug/Formatter.h>
+#include <oasys/serialize/Serialize.h>
 
 #include "bundling/CustodyTimer.h"
 #include "bundling/ForwardingInfo.h"
@@ -49,7 +50,8 @@ class RouteEntryInfo;
  * bundle arrives that matches the route entry. This new link is then
  * typically added to the route table.
  */
-class RouteEntry : public oasys::Formatter {
+class RouteEntry : public oasys::Formatter,
+                   public oasys::SerializableObject {
 public:
     /**
      * Default constructor requires a destination pattern and a link.
@@ -83,6 +85,11 @@ public:
      * long_eids vector.
      */
     void dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const;
+
+    /**
+     * Virtual from SerializableObject
+     */
+    virtual void serialize( oasys::SerializeAction *a );
     
     /// The pattern that matches bundles' destination eid
     EndpointIDPattern dest_pattern_;
@@ -100,7 +107,7 @@ public:
     Link* next_hop_;
         
     /// Forwarding action code 
-    ForwardingInfo::action_t action_;
+    int action_;
 
     /// Custody timer specification
     CustodyTimerSpec custody_timeout_;

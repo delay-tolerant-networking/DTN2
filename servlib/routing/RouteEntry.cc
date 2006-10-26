@@ -68,7 +68,7 @@ RouteEntry::parse_options(int argc, const char** argv, const char** invalidp)
         {"copy",    ForwardingInfo::COPY_ACTION},
 	{0, 0}
     };
-    p.addopt(new oasys::EnumOpt("action", fwdopts, (int*)&action_));
+    p.addopt(new oasys::EnumOpt("action", fwdopts, &action_));
 
     int num2 = p.parse_and_shift(argc, argv, invalidp);
     if (num2 == -1) {
@@ -93,7 +93,7 @@ RouteEntry::format(char* bp, size_t sz) const
     return snprintf(bp, sz, "%s -> %s (%s)",
                     dest_pattern_.c_str(),
                     next_hop_->nexthop(),
-                    ForwardingInfo::action_to_str(action_));
+                    ForwardingInfo::action_to_str(ForwardingInfo::action_t(action_)));
 }
 
 //----------------------------------------------------------------------
@@ -152,11 +152,23 @@ RouteEntry::dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
                  (bundle_cos_ & (1 << Bundle::COS_NORMAL))    ? '1' : '0',
                  (bundle_cos_ & (1 << Bundle::COS_EXPEDITED)) ? '1' : '0',
                  next_hop_->name(),
-                 ForwardingInfo::action_to_str(action_),
+                 ForwardingInfo::action_to_str(ForwardingInfo::action_t(action_)),
                  route_priority_,
                  custody_timeout_.min_,
                  custody_timeout_.lifetime_pct_,
                  custody_timeout_.max_);
+}
+
+//----------------------------------------------------------------------
+void
+RouteEntry::serialize(oasys::SerializeAction *a)
+{
+    a->process("dest_pattern", &dest_pattern_);
+    a->process("source_pattern", &source_pattern_);
+    a->process("route_priority", &route_priority_);
+    a->process("action", &action_);
+    a->process("link", (u_char *) next_hop_->name(),
+        strlen(next_hop_->name()));
 }
 
 //----------------------------------------------------------------------
