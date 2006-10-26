@@ -75,33 +75,33 @@ protected:
                                 const std::string& payload);
 
     bool handle_reg_received(const dtn_bundle_spec_t& spec,
-                             const TcaControlBundle& cb);
-    bool route_reg(const dtn_bundle_spec_t& spec, const TcaControlBundle& cb);
-    bool gate_reg(const dtn_bundle_spec_t& spec, const TcaControlBundle& cb);
+                             const dtn::TcaControlBundle& cb);
+    bool route_reg(const dtn_bundle_spec_t& spec, const dtn::TcaControlBundle& cb);
+    bool gate_reg(const dtn_bundle_spec_t& spec, const dtn::TcaControlBundle& cb);
 
-    bool handle_unb(const dtn_bundle_spec_t& spec, const TcaControlBundle& cb);
+    bool handle_unb(const dtn_bundle_spec_t& spec, const dtn::TcaControlBundle& cb);
 
     bool handle_coa_sent(const dtn_bundle_spec_t& spec,
-                         const TcaControlBundle& cb);
+                         const dtn::TcaControlBundle& cb);
 
     bool handle_link_announce(const dtn_bundle_spec_t& spec,
-                              const TcaControlBundle& cb);
+                              const dtn::TcaControlBundle& cb);
 
-    bool handle_ask(const dtn_bundle_spec_t& spec, const TcaControlBundle& cb);
+    bool handle_ask(const dtn_bundle_spec_t& spec, const dtn::TcaControlBundle& cb);
 
     bool handle_ask_received(const dtn_bundle_spec_t& spec,
-                             const TcaControlBundle& cb);
+                             const dtn::TcaControlBundle& cb);
 
     bool handle_ask_sent(const dtn_bundle_spec_t& spec,
-                         const TcaControlBundle& cb);
+                         const dtn::TcaControlBundle& cb);
 
-    bool handle_adv(const dtn_bundle_spec_t& spec, const TcaControlBundle& cb);
+    bool handle_adv(const dtn_bundle_spec_t& spec, const dtn::TcaControlBundle& cb);
 
     bool handle_adv_sent(const dtn_bundle_spec_t& spec,
-                         const TcaControlBundle& cb);
+                         const dtn::TcaControlBundle& cb);
 
     bool handle_routes(const dtn_bundle_spec_t& spec,
-                       const TcaControlBundle& cb);
+                       const dtn::TcaControlBundle& cb);
 
     bool ask(const std::string& link);  // experimental
     bool get_routes();

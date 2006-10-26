@@ -89,7 +89,7 @@ make_spec(dtn_bundle_spec_t& spec,
 
 
 static bool
-check_nargs(const TcaControlBundle& cb, uint n_expected)
+check_nargs(const dtn::TcaControlBundle& cb, uint n_expected)
 {
     if (cb.args_.size() != n_expected)
     {
@@ -225,52 +225,52 @@ bool
 TcaController::handle_bundle_received(const dtn_bundle_spec_t& spec,
                                       const std::string& payload)
 {
-    TcaControlBundle cb(payload);
+    dtn::TcaControlBundle cb(payload);
 
     // handle control bundles:
     switch (cb.type_)
     {
-        case TcaControlBundle::CB_LINK_ANNOUNCE:
+        case dtn::TcaControlBundle::CB_LINK_ANNOUNCE:
             handle_link_announce(spec, cb);
             break;
-        case TcaControlBundle::CB_ASK:
+        case dtn::TcaControlBundle::CB_ASK:
             handle_ask(spec, cb);
             break;
-        case TcaControlBundle::CB_ASK_RECEIVED:
+        case dtn::TcaControlBundle::CB_ASK_RECEIVED:
             handle_ask_received(spec, cb);
             break;
-        case TcaControlBundle::CB_ASK_SENT:
+        case dtn::TcaControlBundle::CB_ASK_SENT:
             handle_ask_sent(spec, cb);
             break;
-        case TcaControlBundle::CB_ADV:
+        case dtn::TcaControlBundle::CB_ADV:
             handle_adv(spec, cb);
             break;
-        case TcaControlBundle::CB_ADV_SENT:
+        case dtn::TcaControlBundle::CB_ADV_SENT:
             handle_adv_sent(spec, cb);
             break;
-        case TcaControlBundle::CB_REG_RECEIVED:
+        case dtn::TcaControlBundle::CB_REG_RECEIVED:
             handle_reg_received(spec, cb);
             break;
-        case TcaControlBundle::CB_UNB:
+        case dtn::TcaControlBundle::CB_UNB:
             handle_unb(spec, cb);
             break;
-        case TcaControlBundle::CB_COA:
+        case dtn::TcaControlBundle::CB_COA:
             // all of the real coa logic is in the bundle_tranmitted handler
             // in bundle layer
             break;
-        case TcaControlBundle::CB_COA_SENT:
+        case dtn::TcaControlBundle::CB_COA_SENT:
             handle_coa_sent(spec, cb);
             break;
-        case TcaControlBundle::CB_ROUTES:
+        case dtn::TcaControlBundle::CB_ROUTES:
             handle_routes(spec, cb);
             break;
-        case TcaControlBundle::CB_LINK_AVAILABLE:
+        case dtn::TcaControlBundle::CB_LINK_AVAILABLE:
             break;
-        case TcaControlBundle::CB_LINK_UNAVAILABLE:
+        case dtn::TcaControlBundle::CB_LINK_UNAVAILABLE:
             break;
-        case TcaControlBundle::CB_CONTACT_UP:
+        case dtn::TcaControlBundle::CB_CONTACT_UP:
             break;
-        case TcaControlBundle::CB_CONTACT_DOWN:
+        case dtn::TcaControlBundle::CB_CONTACT_DOWN:
             break;
         default:
             printf("TcaController: unrecognized bundle code received: '%s'\n",
@@ -284,7 +284,7 @@ TcaController::handle_bundle_received(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_reg_received(const dtn_bundle_spec_t& spec,
-                                   const TcaControlBundle& cb)
+                                   const dtn::TcaControlBundle& cb)
 {
     switch (role_)
     {
@@ -308,7 +308,7 @@ TcaController::handle_reg_received(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_unb(const dtn_bundle_spec_t& spec,
-                          const TcaControlBundle& cb)
+                          const dtn::TcaControlBundle& cb)
 {
     (void)spec;
     
@@ -344,7 +344,7 @@ TcaController::handle_unb(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_coa_sent(const dtn_bundle_spec_t& spec,
-                               const TcaControlBundle& cb)
+                               const dtn::TcaControlBundle& cb)
 {
     (void)spec;
     
@@ -382,7 +382,7 @@ TcaController::handle_coa_sent(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_link_announce(const dtn_bundle_spec_t& spec,
-                                    const TcaControlBundle& cb)
+                                    const dtn::TcaControlBundle& cb)
 {
     (void)spec;
             
@@ -397,7 +397,7 @@ TcaController::handle_link_announce(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_ask(const dtn_bundle_spec_t& spec,
-                          const TcaControlBundle& cb)
+                          const dtn::TcaControlBundle& cb)
 {
     (void)spec;
     (void)cb;
@@ -409,10 +409,10 @@ TcaController::handle_ask(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_ask_received(const dtn_bundle_spec_t& spec,
-                                   const TcaControlBundle& cb)
+                                   const dtn::TcaControlBundle& cb)
 {
     (void)spec;
-    TcaWrappedBundle wb(cb);
+    dtn::TcaWrappedBundle wb(cb);
 
     // respond by adding a route and sending adv
 
@@ -436,10 +436,10 @@ TcaController::handle_ask_received(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_ask_sent(const dtn_bundle_spec_t& spec,
-                               const TcaControlBundle& cb)
+                               const dtn::TcaControlBundle& cb)
 {
     (void)spec;
-    TcaWrappedBundle wb(cb);
+    dtn::TcaWrappedBundle wb(cb);
 
     // respond by deleting the route
     TcaEndpointID dest_eid = wb.dest(); // dest of original ask
@@ -452,7 +452,7 @@ TcaController::handle_ask_sent(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_adv(const dtn_bundle_spec_t& spec,
-                          const TcaControlBundle& cb)
+                          const dtn::TcaControlBundle& cb)
 {
     (void)spec;
     (void)cb;
@@ -465,10 +465,10 @@ TcaController::handle_adv(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_adv_sent(const dtn_bundle_spec_t& spec,
-                               const TcaControlBundle& cb)
+                               const dtn::TcaControlBundle& cb)
 {
     (void)spec;
-    TcaWrappedBundle wb(cb);
+    dtn::TcaWrappedBundle wb(cb);
 
     // respond by deleting the route
     // TODO: This is actually more complicated! We should only delete the
@@ -486,7 +486,7 @@ TcaController::handle_adv_sent(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::handle_routes(const dtn_bundle_spec_t& spec,
-                             const TcaControlBundle& cb)
+                             const dtn::TcaControlBundle& cb)
 {
     (void)spec;
 
@@ -501,7 +501,7 @@ TcaController::handle_routes(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::route_reg(const dtn_bundle_spec_t& spec,
-                         const TcaControlBundle& cb)
+                         const dtn::TcaControlBundle& cb)
 {
     (void)spec;
     // A (small) problem is that we will get 2 links for a node that
@@ -511,7 +511,7 @@ TcaController::route_reg(const dtn_bundle_spec_t& spec,
 
     if (!check_nargs(cb, 4)) return false;
 
-    TcaWrappedBundle wb(cb);
+    dtn::TcaWrappedBundle wb(cb);
 
     std::string mobile_eid = wb.args_[2];
     std::string last_hop = wb.args_[3];
@@ -558,10 +558,10 @@ TcaController::route_reg(const dtn_bundle_spec_t& spec,
 
 bool
 TcaController::gate_reg(const dtn_bundle_spec_t& spec,
-                        const TcaControlBundle& cb)
+                        const dtn::TcaControlBundle& cb)
 {
     (void)spec;
-    TcaWrappedBundle wb(cb);
+    dtn::TcaWrappedBundle wb(cb);
 
     std::string mobile_eid = wb.args_[2];
     std::string last_hop = wb.args_[3];
