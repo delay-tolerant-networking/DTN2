@@ -102,6 +102,11 @@ public:
      * Format the given StringBuffer with current routing info.
      */
     virtual void get_routing_state(oasys::StringBuffer* buf) = 0;
+
+    /**
+     * for registration with the BundleDaemon
+     */
+    virtual void shutdown();
     
 protected:
     /**

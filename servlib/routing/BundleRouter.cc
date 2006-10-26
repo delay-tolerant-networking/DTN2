@@ -17,14 +17,18 @@
 
 #include <stdlib.h>
 
+#include <config.h>
 #include "BundleRouter.h"
 #include "bundling/BundleDaemon.h"
+#include "bundling/BundleActions.h"
+#include "bundling/BundleList.h"
 
 #include "StaticBundleRouter.h"
 #include "FloodBundleRouter.h"
 #include "NeighborhoodRouter.h"
 #include "ProphetRouter.h"
 #include "LinkStateRouter.h"
+#include "ExternalRouter.h"
 #include "TcaRouter.h"
 
 namespace dtn {
@@ -62,6 +66,11 @@ BundleRouter::create_router(const char* type)
     else if (!strcmp(type, "tca_gateway")) {
         return new TcaRouter(TcaRouter::TCA_GATEWAY);
     }
+#ifdef XERCES_C_ENABLED
+    else if (strcmp(type, "external") == 0) {
+            return new ExternalRouter();
+    }    
+#endif
     else {
         PANIC("unknown type %s for router", type);
     }
@@ -76,11 +85,11 @@ BundleRouter::BundleRouter(const char* classname, const std::string& name)
 {
     logpathf("/dtn/route/%s", name.c_str());
     
-    actions_ = BundleDaemon::instance()->actions();
+        actions_ = BundleDaemon::instance()->actions();
 
-    // XXX/demmer maybe change this?
-    pending_bundles_ = BundleDaemon::instance()->pending_bundles();
-    custody_bundles_ = BundleDaemon::instance()->custody_bundles();
+        // XXX/demmer maybe change this?
+        pending_bundles_ = BundleDaemon::instance()->pending_bundles();
+        custody_bundles_ = BundleDaemon::instance()->custody_bundles();
 }
 
 /* 
@@ -96,6 +105,14 @@ BundleRouter::initialize()
  * Destructor
  */
 BundleRouter::~BundleRouter()
+{
+}
+
+/**
+ * for registration with the BundleDaemon
+ */
+void
+BundleRouter::shutdown()
 {
 }
 
