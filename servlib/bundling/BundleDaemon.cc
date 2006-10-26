@@ -69,6 +69,9 @@ BundleDaemon::BundleDaemon()
 
     app_shutdown_proc_ = NULL;
     app_shutdown_data_ = NULL;
+
+    rtr_shutdown_proc_ = 0;
+    rtr_shutdown_data_ = 0;
 }
 
 //----------------------------------------------------------------------
@@ -762,6 +765,131 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 
 //----------------------------------------------------------------------
 void
+BundleDaemon::handle_bundle_send(BundleSendRequest* event)
+{
+    Link *link = contactmgr_->find_link(event->link_.c_str());
+
+    if(!link) return;
+
+    BundleRef br = pending_bundles_->find(event->bundleid_);
+
+    if(!br.object()) {
+        br = custody_bundles_->find(event->bundleid_);
+
+        if(!br.object()) {
+            return;
+        }
+    }
+
+    ForwardingInfo::action_t fwd_action =
+        ForwardingInfo::action_t(event->action_);
+
+    if(fwd_action == ForwardingInfo::INVALID_ACTION) {
+        return;
+    }
+
+    bool result = actions_->send_bundle(br.object(), link,
+        fwd_action, CustodyTimerSpec::defaults_);
+
+    if(result == false) {
+        // log something
+        // BundleTransmitFailed?
+    }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
+{
+    Link *link = contactmgr_->find_link(event->link_.c_str());
+
+    if(!link) {
+        return;
+    }
+
+    BundleRef br = pending_bundles_->find(event->bundleid_);
+
+    if(!br.object()) {
+        br = custody_bundles_->find(event->bundleid_);
+
+        if(!br.object()) {
+            return;
+        }
+    }
+
+    bool result = actions_->cancel_bundle(br.object(), link);
+
+    if(result == false) {
+        // log something
+        // BundleTransmitFailed?
+    }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
+{
+    // the new bundle is *not* placed on the pending queue or
+    // in durable storage (no call to BundleActions::inject_bundle)
+
+    Link *link = contactmgr_->find_link(event->link_.c_str());
+
+    if(!link) {
+        return;
+    }
+
+    // make a bundle
+    Bundle *bundle=new Bundle();
+    if(bundle->source_.assign(event->src_) &&
+        bundle->dest_.assign(event->dest_)) {
+
+        if(! bundle->replyto_.assign(event->replyto_))
+            bundle->replyto_.assign(EndpointID::NULL_EID());
+
+        if(! bundle->custodian_.assign(event->custodian_))
+            bundle->custodian_.assign(EndpointID::NULL_EID()); 
+
+        // bundle COS defaults to COS_BULK
+        bundle->priority_ = event->priority_;
+
+        // bundle expiration (on remote dtn nodes)
+        // defaults to 5 minutes
+        if(event->expiration_ == 0)
+            bundle->expiration_ = 300;
+        else
+            bundle->expiration_ = event->expiration_;
+
+        // set the payload
+        const u_char *payload = (const u_char*)event->payload_.c_str();
+        bundle->payload_.set_data(payload,sizeof(payload));
+
+        // send attempt
+        bool success = false;
+        success = actions_->send_bundle(bundle, link,
+            ForwardingInfo::action_t(event->action_),
+            CustodyTimerSpec::defaults_);
+        if(!success)
+            delete bundle;
+
+    } else
+        delete bundle;
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_query(BundleQueryRequest*)
+{
+    BundleDaemon::post_at_head(new BundleReportEvent());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_report(BundleReportEvent*)
+{
+}
+
+//----------------------------------------------------------------------
+void
 BundleDaemon::handle_registration_added(RegistrationAddedEvent* event)
 {
     Registration* registration = event->registration_;
@@ -860,9 +988,14 @@ void
 BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 {
     Link* link = request->link_;
-    Link::state_t new_state = request->state_;
-    Link::state_t old_state = request->old_state_;
-    ContactEvent::reason_t reason = request->reason_;
+    if (! link) {
+        log_warn("LINK_STATE_CHANGE_REQUEST received invalid link");
+        return;
+    }
+
+    Link::state_t new_state = Link::state_t(request->state_);
+    Link::state_t old_state = Link::state_t(request->old_state_);
+    int reason = request->reason_;
     
     if (link->contact() != request->contact_) {
         log_warn("stale LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p: "
@@ -893,7 +1026,8 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             return;
         }
         link->set_state(new_state);
-        post_at_head(new LinkUnavailableEvent(link, reason));
+        post_at_head(new LinkUnavailableEvent(link,
+                     ContactEvent::reason_t(reason)));
         break;
 
     case Link::AVAILABLE:
@@ -917,7 +1051,8 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             return;
         }
 
-        post_at_head(new LinkAvailableEvent(link, reason));
+        post_at_head(new LinkAvailableEvent(link,
+                     ContactEvent::reason_t(reason)));
         break;
         
     case Link::BUSY:
@@ -949,7 +1084,8 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         // If the link is open (not OPENING), we need a ContactDownEvent
         if (link->isopen()) {
             ASSERT(link->contact() != NULL);
-            post_at_head(new ContactDownEvent(link->contact(), reason));
+            post_at_head(new ContactDownEvent(link->contact(),
+                         ContactEvent::reason_t(reason)));
         }
 
         // close the link
@@ -961,7 +1097,8 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
             link->set_state(Link::AVAILABLE);
         } else {
             link->set_state(Link::UNAVAILABLE);
-            post_at_head(new LinkUnavailableEvent(link, reason));
+            post_at_head(new LinkUnavailableEvent(link,
+                         ContactEvent::reason_t(reason)));
         }
     
         break;
@@ -969,6 +1106,26 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
     default:
         PANIC("unhandled state %s", Link::state_to_str(new_state));
     }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_create(LinkCreateRequest*)
+{
+    NOTIMPLEMENTED;
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_query(LinkQueryRequest*)
+{
+    BundleDaemon::post_at_head(new LinkReportEvent());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_report(LinkReportEvent*)
+{
 }
   
 //----------------------------------------------------------------------
@@ -999,13 +1156,26 @@ BundleDaemon::handle_contact_down(ContactDownEvent* event)
 {
     const ContactRef& contact = event->contact_;
     Link* link = contact->link();
-    ContactEvent::reason_t reason = event->reason_;
+    int reason = event->reason_;
     
     log_info("CONTACT_DOWN *%p (%s) (contact %p)",
              link, ContactEvent::reason_to_str(reason), contact.object());
 
     // we don't need to do anything here since we just generated this
     // event in response to a link state change request
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_contact_query(ContactQueryRequest*)
+{
+    BundleDaemon::post_at_head(new ContactReportEvent());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_contact_report(ContactReportEvent*)
+{
 }
 
 //----------------------------------------------------------------------
@@ -1040,6 +1210,19 @@ void
 BundleDaemon::handle_route_del(RouteDelEvent* event)
 {
     log_info("ROUTE_DEL %s", event->dest_.c_str());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_route_query(RouteQueryRequest*)
+{
+    BundleDaemon::post_at_head(new RouteReportEvent());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_route_report(RouteReportEvent*)
+{
 }
 
 //----------------------------------------------------------------------
@@ -1157,7 +1340,7 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
     shutting_down_ = true;
 
     (void)request;
-    
+
     log_notice("Received shutdown request");
 
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_shutdown");
@@ -1174,6 +1357,11 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
             log_debug("Shutdown: closing link *%p\n", link);
             link->close();
         }
+    }
+
+    // call the rtr shutdown procedure
+    if (rtr_shutdown_proc_) {
+        (*rtr_shutdown_proc_)(rtr_shutdown_data_);
     }
 
     // call the app shutdown procedure

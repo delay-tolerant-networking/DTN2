@@ -19,6 +19,7 @@
 
 #include <string>
 #include <sys/time.h>
+#include <oasys/serialize/Serialize.h>
 #include "CustodyTimer.h"
 
 namespace dtn {
@@ -33,7 +34,7 @@ namespace dtn {
  * action, for instance if they don't want to retransmit to the same
  * next hop twice.
  */
-class ForwardingInfo {
+class ForwardingInfo : public oasys::SerializableObject{
 public:
     /**
      * The forwarding action type codes.
@@ -46,7 +47,7 @@ public:
 
     static inline const char* action_to_str(action_t action)
     {
-        switch(action) {
+        switch(action_t(action)) {
         case INVALID_ACTION:	return "INVALID";
         case FORWARD_ACTION:	return "FORWARD";
         case COPY_ACTION:	return "COPY";
@@ -69,7 +70,7 @@ public:
 
     static const char* state_to_str(state_t state)
     {
-        switch(state) {
+        switch(state_t(state)) {
         case NONE:      	return "NONE";
         case IN_FLIGHT: 	return "IN_FLIGHT";
         case TRANSMITTED:      	return "TRANSMITTED";
@@ -85,6 +86,16 @@ public:
      * Default constructor.
      */
     ForwardingInfo()
+        : state_(NONE),
+          action_(INVALID_ACTION),
+          clayer_(""),
+          nexthop_(""),
+          custody_timer_() {}
+
+    /*
+     * Constructor for serialization.
+     */
+    ForwardingInfo(const oasys::Builder&)
         : state_(NONE),
           action_(INVALID_ACTION),
           clayer_(""),
@@ -116,9 +127,11 @@ public:
         state_ = new_state;
         ::gettimeofday(&timestamp_, 0);
     }
+
+    virtual void serialize( oasys::SerializeAction *a );
     
-    state_t          state_;		///< State of the transmission
-    action_t	     action_;           ///< Forwarding action
+    int              state_;		///< State of the transmission
+    int              action_;           ///< Forwarding action
     std::string      clayer_;		///< Convergence layer for the contact
     std::string      nexthop_;		///< CL-specific nexthop string
     struct timeval   timestamp_;	///< Timestamp of last state update

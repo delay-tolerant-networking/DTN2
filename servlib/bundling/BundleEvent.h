@@ -22,6 +22,12 @@
 #include "BundleList.h"
 #include "CustodySignal.h"
 #include "contacts/Link.h"
+#include "contacts/Interface.h"
+
+#include <oasys/serialize/Serialize.h>
+
+#include <netinet/in.h>
+#include <rpc/rpc.h>
 
 namespace dtn {
 
@@ -45,17 +51,28 @@ typedef enum {
     BUNDLE_TRANSMITTED,		///< Bundle or fragment successfully sent
     BUNDLE_TRANSMIT_FAILED,	///< Bundle or fragment successfully sent
     BUNDLE_DELIVERED,		///< Bundle locally delivered
+    BUNDLE_DELIVERY,		///< Bundle delivery (with payload)
     BUNDLE_EXPIRED,		///< Bundle expired
     BUNDLE_FREE,		///< No more references to the bundle
     BUNDLE_FORWARD_TIMEOUT,	///< A Mapping timed out
+    BUNDLE_SEND,                ///< Send a bundle
+    BUNDLE_CANCEL,              ///< Cancel a bundle transmission
+    BUNDLE_INJECT,              ///< Inject a bundle
+    BUNDLE_QUERY,               ///< Bundle query
+    BUNDLE_REPORT,              ///< Response to bundle query
 
     CONTACT_UP,		        ///< Contact is up
     CONTACT_DOWN,		///< Contact abnormally terminated
+    CONTACT_QUERY,              ///< Contact query
+    CONTACT_REPORT,             ///< Response to contact query
 
     LINK_CREATED,		///< Link is created into the system
     LINK_DELETED,		///< Link is deleted from the system
     LINK_AVAILABLE,		///< Link is available
     LINK_UNAVAILABLE,		///< Link is unavailable
+    LINK_CREATE,                ///< Create and open a new link
+    LINK_QUERY,                 ///< Link query
+    LINK_REPORT,                ///< Response to link query
 
     LINK_STATE_CHANGE_REQUEST,	///< Link state should be changed
 
@@ -67,6 +84,8 @@ typedef enum {
 
     ROUTE_ADD,			///< Add a new entry to the route table
     ROUTE_DEL,			///< Remove an entry from the route table
+    ROUTE_QUERY,                ///< Static route query
+    ROUTE_REPORT,               ///< Response to static route query
 
     CUSTODY_SIGNAL,		///< Custody transfer signal received
     CUSTODY_TIMEOUT,		///< Custody transfer timer fired
@@ -80,25 +99,36 @@ typedef enum {
  * Conversion function from an event to a string.
  */
 inline const char*
-event_to_str(event_type_t event)
+event_to_str(event_type_t event, bool xml=false)
 {
     switch(event) {
 
-    case BUNDLE_RECEIVED:	return "BUNDLE_RECEIVED";
-    case BUNDLE_TRANSMITTED:	return "BUNDLE_TRANSMITTED";
-    case BUNDLE_TRANSMIT_FAILED:return "BUNDLE_TRANSMIT_FAILED";
+    case BUNDLE_RECEIVED:	return xml ? "bundle_received_event" : "BUNDLE_RECEIVED";
+    case BUNDLE_TRANSMITTED:	return xml ? "bundle_transmitted_event" : "BUNDLE_TRANSMITTED";
+    case BUNDLE_TRANSMIT_FAILED:return xml ? "bundle_transmit_failed_event" : "BUNDLE_TRANSMIT_FAILED";
     case BUNDLE_DELIVERED:	return "BUNDLE_DELIVERED";
-    case BUNDLE_EXPIRED:	return "BUNDLE_EXPIRED";
+    case BUNDLE_DELIVERY:	return xml ? "bundle_delivery_event" : "BUNDLE_DELIVERY";
+    case BUNDLE_EXPIRED:	return xml ? "bundle_expired_event" : "BUNDLE_EXPIRED";
     case BUNDLE_FREE:		return "BUNDLE_FREE";
     case BUNDLE_FORWARD_TIMEOUT:return "BUNDLE_FORWARD_TIMEOUT";
+    case BUNDLE_SEND:           return xml ? "send_bundle_action" : "BUNDLE_SEND";
+    case BUNDLE_CANCEL:         return xml ? "cancel_bundle_action" : "BUNDLE_CANCEL";
+    case BUNDLE_INJECT:         return xml ? "inject_bundle_action" : "BUNDLE_INJECT";
+    case BUNDLE_QUERY:          return xml ? "bundle_query" : "BUNDLE_QUERY";
+    case BUNDLE_REPORT:         return xml ? "bundle_report" : "BUNDLE_REPORT";
 
-    case CONTACT_UP:		return "CONTACT_UP";
-    case CONTACT_DOWN:		return "CONTACT_DOWN";
+    case CONTACT_UP:		return xml ? "contact_up_event" : "CONTACT_UP";
+    case CONTACT_DOWN:		return xml ? "contact_down_event" : "CONTACT_DOWN";
+    case CONTACT_QUERY:         return xml ? "contact_query" : "CONTACT_QUERY";
+    case CONTACT_REPORT:        return xml ? "contact_report" : "CONTACT_REPORT";
 
-    case LINK_CREATED:		return "LINK_CREATED";
-    case LINK_DELETED:		return "LINK_DELETED";
-    case LINK_AVAILABLE:	return "LINK_AVAILABLE";
-    case LINK_UNAVAILABLE:	return "LINK_UNAVAILABLE";
+    case LINK_CREATED:		return xml ? "link_created_event" : "LINK_CREATED";
+    case LINK_DELETED:		return xml ? "link_deleted_event" : "LINK_DELETED";
+    case LINK_AVAILABLE:	return xml ? "link_available_event" : "LINK_AVAILABLE";
+    case LINK_UNAVAILABLE:	return xml ? "link_unavailable_event" : "LINK_UNAVAILABLE";
+    case LINK_CREATE:           return "LINK_CREATE";
+    case LINK_QUERY:            return xml ? "link_query" : "LINK_QUERY";
+    case LINK_REPORT:           return xml ? "link_report" : "LINK_REPORT";
 
     case LINK_STATE_CHANGE_REQUEST:return "LINK_STATE_CHANGE_REQUEST";
 
@@ -108,11 +138,13 @@ event_to_str(event_type_t event)
     case REGISTRATION_REMOVED:	return "REGISTRATION_REMOVED";
     case REGISTRATION_EXPIRED:	return "REGISTRATION_EXPIRED";
 
-    case ROUTE_ADD:		return "ROUTE_ADD";
-    case ROUTE_DEL:		return "ROUTE_DEL";
+    case ROUTE_ADD:		return xml ? "route_add_event" : "ROUTE_ADD";
+    case ROUTE_DEL:		return xml ? "route_delete_event" : "ROUTE_DEL";
+    case ROUTE_QUERY:           return xml ? "route_query" : "ROUTE_QUERY";
+    case ROUTE_REPORT:          return xml ? "route_report" : "ROUTE_REPORT";
 
-    case CUSTODY_SIGNAL:	return "CUSTODY_SIGNAL";
-    case CUSTODY_TIMEOUT:	return "CUSTODY_TIMEOUT";
+    case CUSTODY_SIGNAL:	return xml ? "custody_signal_event" : "CUSTODY_SIGNAL";
+    case CUSTODY_TIMEOUT:	return xml ? "custody_timeout_event" : "CUSTODY_TIMEOUT";
     
     case DAEMON_SHUTDOWN:	return "SHUTDOWN";
     case DAEMON_STATUS:		return "DAEMON_STATUS";
@@ -125,17 +157,36 @@ event_to_str(event_type_t event)
  * Possible sources for events.
  */
 typedef enum {
-    EVENTSRC_PEER  = 1,		///< a peer router
-    EVENTSRC_APP   = 2,		///< a local application
-    EVENTSRC_STORE = 3,		///< the data store
-    EVENTSRC_ADMIN = 4,		///< the admin logic
+    EVENTSRC_PEER   = 1,        ///< a peer dtn forwarder
+    EVENTSRC_APP    = 2,	///< a local application
+    EVENTSRC_STORE  = 3,	///< the data store
+    EVENTSRC_ADMIN  = 4,	///< the admin logic
     EVENTSRC_FRAGMENTATION = 5	///< the fragmentation engine
 } event_source_t;
 
 /**
+ * Conversion function from a source to a string
+ * suitable for use with plug-in arch XML messaging.
+ */
+inline const char*
+source_to_str(event_source_t source)
+{
+    switch(source) {
+
+    case EVENTSRC_PEER:             return "peer";
+    case EVENTSRC_APP:              return "application";
+    case EVENTSRC_STORE:            return "dataStore";
+    case EVENTSRC_ADMIN:            return "admin";
+    case EVENTSRC_FRAGMENTATION:    return "fragmentation";
+
+    default:                        return "(invalid source type)";
+    }
+}
+
+/**
  * Event base class.
  */
-class BundleEvent {
+class BundleEvent : public oasys::SerializableObject {
 public:
     /**
      * The event type code.
@@ -173,6 +224,9 @@ public:
         }
     }
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+
 protected:
     /**
      * Constructor (protected since one of the subclasses should
@@ -209,11 +263,14 @@ public:
             bytes_received_ = bundle->payload_.length();
     }
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
     /// The newly arrived bundle
     BundleRef bundleref_;
 
     /// The source of the bundle
-    event_source_t source_;
+    int source_;
 
     /// The total bytes actually received
     size_t bytes_received_;
@@ -234,6 +291,9 @@ public:
           contact_(contact.object(), "BundleTransmittedEvent"),
           bytes_sent_(bytes_sent),
           reliably_sent_(reliably_sent) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 
     /// The transmitted bundle
     BundleRef bundleref_;
@@ -262,6 +322,9 @@ public:
           bundleref_(bundle, "BundleTransmitFailedEvent"),
           contact_(contact.object(), "BundleTransmitFailedEvent") {}
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
     /// The transmitted bundle
     BundleRef bundleref_;
 
@@ -279,12 +342,35 @@ public:
           bundleref_(bundle, "BundleDeliveredEvent"),
           registration_(registration) {}
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
 
     /// The delivered bundle
     BundleRef bundleref_;
 
     /// The registration that got it
     Registration* registration_;
+};
+
+/**
+ * Event class for local bundle delivery.
+ */
+class BundleDeliveryEvent : public BundleEvent {
+public:
+    BundleDeliveryEvent(Bundle* bundle,
+                         event_source_t source)
+        : BundleEvent(BUNDLE_DELIVERY),
+          bundleref_(bundle, "BundleDeliveryEvent"),
+          source_(source) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
+    /// The bundle we're delivering
+    BundleRef bundleref_;
+
+    /// The source of the bundle
+    int source_;
 };
 
 /**
@@ -295,6 +381,9 @@ public:
     BundleExpiredEvent(Bundle* bundle)
         : BundleEvent(BUNDLE_EXPIRED),
           bundleref_(bundle, "BundleExpiredEvent") {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 
     /// The expired bundle
     BundleRef bundleref_;
@@ -312,6 +401,9 @@ public:
         // should be processed only by the daemon
         daemon_only_ = true;
     }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
     
     /// The freed bundle
     Bundle* bundle_;
@@ -343,7 +435,7 @@ public:
     /**
      * Reason to string conversion.
      */
-    static const char* reason_to_str(reason_t reason) {
+    static const char* reason_to_str(int reason) {
         switch(reason) {
         case INVALID:	return "INVALID";
         case NO_INFO:	return "no additional info";
@@ -364,7 +456,10 @@ public:
     ContactEvent(event_type_t type, reason_t reason = NO_INFO)
         : BundleEvent(type), reason_(reason) {}
 
-    reason_t reason_;	///< reason code for the event
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+
+    int reason_;	///< reason code for the event
 };
 
 /**
@@ -375,6 +470,9 @@ public:
     ContactUpEvent(const ContactRef& contact)
         : ContactEvent(CONTACT_UP),
           contact_(contact.object(), "ContactUpEvent") {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 
     /// The contact that is up
     ContactRef contact_;
@@ -389,8 +487,34 @@ public:
         : ContactEvent(CONTACT_DOWN, reason),
           contact_(contact.object(), "ContactDownEvent") {}
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
     /// The contact that is now down
     ContactRef contact_;
+};
+
+/**
+ * Event classes for contact queries and responses
+ */
+class ContactQueryRequest: public BundleEvent {
+public:
+    ContactQueryRequest() : BundleEvent(CONTACT_QUERY)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+};
+
+class ContactReportEvent : public BundleEvent {
+public:
+    ContactReportEvent() : BundleEvent(CONTACT_REPORT) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 };
 
 /**
@@ -400,6 +524,9 @@ class LinkCreatedEvent : public ContactEvent {
 public:
     LinkCreatedEvent(Link* link)
         : ContactEvent(LINK_CREATED, ContactEvent::USER), link_(link) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 
     Link* link_;
 };
@@ -411,6 +538,9 @@ class LinkDeletedEvent : public ContactEvent {
 public:
     LinkDeletedEvent(Link* link)
         : ContactEvent(LINK_DELETED, ContactEvent::USER), link_(link) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 
     /// The link that is up
     Link* link_;
@@ -424,6 +554,9 @@ public:
     LinkAvailableEvent(Link* link, reason_t reason)
         : ContactEvent(LINK_AVAILABLE, reason), link_(link) {}
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
     Link* link_;
 };
 
@@ -434,6 +567,9 @@ class LinkUnavailableEvent : public ContactEvent {
 public:
     LinkUnavailableEvent(Link* link, reason_t reason)
         : ContactEvent(LINK_UNAVAILABLE, reason), link_(link) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 
     /// The link that is up
     Link* link_;
@@ -462,17 +598,28 @@ public:
         old_state_ = link->state();
     }
 
+    LinkStateChangeRequest(const oasys::Builder&,
+                           state_t state, reason_t reason)
+        : ContactEvent(LINK_STATE_CHANGE_REQUEST, reason),
+          state_(state), contact_("LinkStateChangeRequest")
+    {
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
     /// The link to be changed
     Link* link_;
 
     /// Requested state
-    state_t state_;
+    int state_;
     
     /// The active Contact when the request was made
     ContactRef contact_;
 
     /// State when the request was made
-    state_t old_state_;
+    int old_state_;
 };
 
 /**
@@ -484,11 +631,14 @@ public:
         : BundleEvent(REGISTRATION_ADDED), registration_(reg),
           source_(source) {}
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+
     /// The newly added registration
     Registration* registration_;
 
     /// Why is the registration added
-    event_source_t source_;
+    int source_;
 };
 
 /**
@@ -498,6 +648,9 @@ class RegistrationRemovedEvent : public BundleEvent {
 public:
     RegistrationRemovedEvent(Registration* reg)
         : BundleEvent(REGISTRATION_REMOVED), registration_(reg) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
 
     /// The to-be-removed registration
     Registration* registration_;
@@ -511,6 +664,9 @@ public:
     RegistrationExpiredEvent(u_int32_t regid)
         : BundleEvent(REGISTRATION_EXPIRED), regid_(regid) {}
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+
     /// The to-be-removed registration id
     u_int32_t regid_;
 };
@@ -522,6 +678,9 @@ class RouteAddEvent : public BundleEvent {
 public:
     RouteAddEvent(RouteEntry* entry)
         : BundleEvent(ROUTE_ADD), entry_(entry) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 
     /// The route table entry to be added
     RouteEntry* entry_;
@@ -535,8 +694,34 @@ public:
     RouteDelEvent(const EndpointIDPattern& dest)
         : BundleEvent(ROUTE_DEL), dest_(dest) {}
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
     /// The destination eid to be removed
     EndpointIDPattern dest_;
+};
+
+/**
+ * Event classes for static route queries and responses
+ */
+class RouteQueryRequest: public BundleEvent {
+public:
+    RouteQueryRequest() : BundleEvent(ROUTE_QUERY)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+};
+
+class RouteReportEvent : public BundleEvent {
+public:
+    RouteReportEvent() : BundleEvent(ROUTE_REPORT) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
 };
 
 /**
@@ -552,6 +737,9 @@ public:
         fragments->move_contents(&fragments_);
     }
 
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+
     /// The newly reassembled bundle
     BundleRef bundle_;
 
@@ -566,6 +754,9 @@ class CustodySignalEvent : public BundleEvent {
 public:
     CustodySignalEvent(const CustodySignal::data_t& data)
         : BundleEvent(CUSTODY_SIGNAL), data_(data) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
     
     /// The parsed data from the custody transfer signal
     CustodySignal::data_t data_;
@@ -580,6 +771,9 @@ public:
         : BundleEvent(CUSTODY_TIMEOUT),
           bundle_(bundle, "CustodyTimeoutEvent"),
           link_(link) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 
     ///< The bundle whose timer fired
     BundleRef bundle_;
@@ -600,6 +794,9 @@ public:
     {
         daemon_only_ = true;
     }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
 };
 
 /**
@@ -611,6 +808,153 @@ public:
     {
         daemon_only_ = true;
     }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+};
+
+/**
+ * Event class for sending a bundle
+ */
+class BundleSendRequest: public BundleEvent {
+public:
+    BundleSendRequest() : BundleEvent(BUNDLE_SEND)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
+    ///< Bundle ID
+    u_int32_t bundleid_;
+
+    ///< Link on which to send the bundle
+    std::string link_;
+
+    ///< Forwarding action to use when sending bundle
+    int action_;
+};
+
+/**
+ * Event class for canceling a bundle transmission
+ */
+class BundleCancelRequest: public BundleEvent {
+public:
+    BundleCancelRequest() : BundleEvent(BUNDLE_CANCEL)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
+    ///< Bundle ID
+    u_int32_t bundleid_;
+
+    ///< Link where the bundle is destined
+    std::string link_;
+};
+
+/**
+ * Event class for injecting a bundle
+ */
+class BundleInjectRequest: public BundleEvent {
+public:
+    BundleInjectRequest() : BundleEvent(BUNDLE_INJECT)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
+    // Bundle properties
+    std::string src_;
+    std::string dest_;
+    std::string replyto_;
+    std::string custodian_;
+    u_int8_t    priority_;
+    u_int32_t   expiration_;
+    std::string payload_;
+
+    // Outgoing link
+    std::string link_;
+
+    // Forwarding action
+    int action_;
+};
+
+/**
+ * Event classes for bundle queries and responses
+ */
+class BundleQueryRequest: public BundleEvent {
+public:
+    BundleQueryRequest() : BundleEvent(BUNDLE_QUERY)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+};
+
+class BundleReportEvent : public BundleEvent {
+public:
+    BundleReportEvent() : BundleEvent(BUNDLE_REPORT) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+};
+
+/**
+ * Event class for creating and opening a link
+ */
+class LinkCreateRequest: public BundleEvent {
+public:
+    LinkCreateRequest() : BundleEvent(LINK_CREATE)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {
+        NOTIMPLEMENTED;
+    }
+
+    ///< Next hop destination
+    std::string endpoint_;
+
+    ///< Egress interface
+    Interface *interface_;
+};
+
+/**
+ * Event classes for link queries and responses
+ */
+class LinkQueryRequest: public BundleEvent {
+public:
+    LinkQueryRequest() : BundleEvent(LINK_QUERY)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+};
+
+class LinkReportEvent : public BundleEvent {
+public:
+    LinkReportEvent() : BundleEvent(LINK_REPORT) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
 };
 
 } // namespace dtn

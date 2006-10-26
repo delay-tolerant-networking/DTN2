@@ -53,6 +53,26 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
     case BUNDLE_FREE:
         handle_bundle_free((BundleFreeEvent*)e);
         break;
+
+    case BUNDLE_SEND:
+        handle_bundle_send((BundleSendRequest*)e);
+        break;
+
+    case BUNDLE_CANCEL:
+        handle_bundle_cancel((BundleCancelRequest*)e);
+        break;
+
+    case BUNDLE_INJECT:
+        handle_bundle_inject((BundleInjectRequest*)e);
+        break;
+
+    case BUNDLE_QUERY:
+        handle_bundle_query((BundleQueryRequest*)e);
+        break;
+
+    case BUNDLE_REPORT:
+        handle_bundle_report((BundleReportEvent*)e);
+        break;
         
     case REGISTRATION_ADDED:
         handle_registration_added((RegistrationAddedEvent*)e);
@@ -74,12 +94,28 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_route_del((RouteDelEvent*)e);
         break;
 
+    case ROUTE_QUERY:
+        handle_route_query((RouteQueryRequest*)e);
+        break;
+
+    case ROUTE_REPORT:
+        handle_route_report((RouteReportEvent*)e);
+        break;
+
     case CONTACT_UP:
         handle_contact_up((ContactUpEvent*)e);
         break;
 
     case CONTACT_DOWN:
         handle_contact_down((ContactDownEvent*)e);
+        break;
+
+    case CONTACT_QUERY:
+        handle_contact_query((ContactQueryRequest*)e);
+        break;
+
+    case CONTACT_REPORT:
+        handle_contact_report((ContactReportEvent*)e);
         break;
 
     case LINK_CREATED:
@@ -100,6 +136,18 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
 
     case LINK_STATE_CHANGE_REQUEST:
         handle_link_state_change_request((LinkStateChangeRequest*)e);
+        break;
+
+    case LINK_CREATE:
+        handle_link_create((LinkCreateRequest*)e);
+        break;
+
+    case LINK_QUERY:
+        handle_link_query((LinkQueryRequest*)e);
+        break;
+
+    case LINK_REPORT:
+        handle_link_report((LinkReportEvent*)e);
         break;
         
     case REASSEMBLY_COMPLETED:
@@ -177,6 +225,46 @@ BundleEventHandler::handle_bundle_free(BundleFreeEvent*)
 }
 
 /**
+ * Default event handler for bundle send requests
+ */
+void
+BundleEventHandler::handle_bundle_send(BundleSendRequest*)
+{
+}
+
+/**
+ * Default event handler for send bundle request cancellations
+ */
+void
+BundleEventHandler::handle_bundle_cancel(BundleCancelRequest*)
+{
+}
+
+/**
+ * Default event handler for bundle inject requests
+ */
+void
+BundleEventHandler::handle_bundle_inject(BundleInjectRequest*)
+{
+}
+
+/**
+ * Default event handler for bundle query requests.
+ */
+void
+BundleEventHandler::handle_bundle_query(BundleQueryRequest*)
+{
+}
+
+/**
+ * Default event handler for bundle reports.
+ */
+void
+BundleEventHandler::handle_bundle_report(BundleReportEvent*)
+{
+}
+
+/**
  * Default event handler when a new application registration
  * arrives.
  */
@@ -214,6 +302,22 @@ BundleEventHandler::handle_contact_up(ContactUpEvent*)
  */
 void
 BundleEventHandler::handle_contact_down(ContactDownEvent*)
+{
+}
+
+/**
+ * Default event handler for contact query requests.
+ */
+void
+BundleEventHandler::handle_contact_query(ContactQueryRequest*)
+{
+}
+
+/**
+ * Default event handler for contact reports.
+ */
+void
+BundleEventHandler::handle_contact_report(ContactReportEvent*)
 {
 }
 
@@ -258,6 +362,30 @@ BundleEventHandler::handle_link_state_change_request(LinkStateChangeRequest*)
 }
 
 /**
+ * Default event handler for link create requests.
+ */
+void
+BundleEventHandler::handle_link_create(LinkCreateRequest*)
+{
+}
+
+/**
+ * Default event handler for link query requests.
+ */
+void
+BundleEventHandler::handle_link_query(LinkQueryRequest*)
+{
+}
+
+/**
+ * Default event handler for link reports.
+ */
+void
+BundleEventHandler::handle_link_report(LinkReportEvent*)
+{
+}
+
+/**
  * Default event handler when reassembly is completed.
  */
 void
@@ -280,6 +408,22 @@ BundleEventHandler::handle_route_add(RouteAddEvent*)
  */
 void
 BundleEventHandler::handle_route_del(RouteDelEvent*)
+{
+}
+
+/**
+ * Default event handler for static route query requests.
+ */
+void
+BundleEventHandler::handle_route_query(RouteQueryRequest*)
+{
+}
+
+/**
+ * Default event handler for static route reports.
+ */
+void
+BundleEventHandler::handle_route_report(RouteReportEvent*)
 {
 }
 

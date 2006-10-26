@@ -28,6 +28,7 @@
 #include "BundleEvent.h"
 #include "BundleEventHandler.h"
 #include "BundleProtocol.h"
+#include "BundleActions.h"
 
 namespace dtn {
 
@@ -225,6 +226,15 @@ public:
     }
 
     /**
+     * Set a router-specific shutdown handler.
+     */
+    void set_rtr_shutdown(ShutdownProc proc, void* data)
+    {
+        rtr_shutdown_proc_ = proc;
+        rtr_shutdown_data_ = data;
+    }
+
+    /**
      * Accessor for the BundleDaemon's shutdown status
      */
     static bool shutting_down()
@@ -266,17 +276,29 @@ protected:
     void handle_bundle_delivered(BundleDeliveredEvent* event);
     void handle_bundle_expired(BundleExpiredEvent* event);
     void handle_bundle_free(BundleFreeEvent* event);
+    void handle_bundle_send(BundleSendRequest* event);
+    void handle_bundle_cancel(BundleCancelRequest* event);
+    void handle_bundle_inject(BundleInjectRequest* event);
+    void handle_bundle_query(BundleQueryRequest* event);
+    void handle_bundle_report(BundleReportEvent* event);
     void handle_registration_added(RegistrationAddedEvent* event);
     void handle_registration_removed(RegistrationRemovedEvent* event);
     void handle_registration_expired(RegistrationExpiredEvent* event);
     void handle_contact_up(ContactUpEvent* event);
     void handle_contact_down(ContactDownEvent* event);
+    void handle_contact_query(ContactQueryRequest* event);
+    void handle_contact_report(ContactReportEvent* event);
     void handle_link_available(LinkAvailableEvent* event);    
     void handle_link_unavailable(LinkUnavailableEvent* event);
     void handle_link_state_change_request(LinkStateChangeRequest* request);
+    void handle_link_create(LinkCreateRequest* event);
+    void handle_link_query(LinkQueryRequest* event);
+    void handle_link_report(LinkReportEvent* event);
     void handle_reassembly_completed(ReassemblyCompletedEvent* event);
     void handle_route_add(RouteAddEvent* event);
     void handle_route_del(RouteDelEvent* event);
+    void handle_route_query(RouteQueryRequest* event);
+    void handle_route_report(RouteReportEvent* event);
     void handle_custody_signal(CustodySignalEvent* event);
     void handle_custody_timeout(CustodyTimeoutEvent* event);
     void handle_shutdown_request(ShutdownRequest* event);
@@ -413,6 +435,12 @@ protected:
  
     /// Application-specific shutdown data
     void* app_shutdown_data_;
+
+    /// Router-specific shutdown handler
+    ShutdownProc rtr_shutdown_proc_;
+
+    /// Router-specific shutdown data
+    void* rtr_shutdown_data_;
 
     // indicator that a BundleDaemon shutdown is in progress
     static bool shutting_down_;

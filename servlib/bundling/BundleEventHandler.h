@@ -89,6 +89,31 @@ protected:
     virtual void handle_bundle_free(BundleFreeEvent* event);
 
     /**
+     * Default event handler for bundle send requests
+     */
+    virtual void handle_bundle_send(BundleSendRequest* event);
+
+    /**
+     * Default event handler for send bundle request cancellations
+     */
+    virtual void handle_bundle_cancel(BundleCancelRequest* event);
+
+    /**
+     * Default event handler for bundle inject requests
+     */
+    virtual void handle_bundle_inject(BundleInjectRequest* event);
+
+    /**
+     * Default event handler for bundle query requests.
+     */
+    virtual void handle_bundle_query(BundleQueryRequest* request);
+
+    /**
+     * Default event handler for bundle reports.
+     */
+    virtual void handle_bundle_report(BundleReportEvent* request);
+
+    /**
      * Default event handler when a new application registration
      * arrives.
      */
@@ -113,6 +138,16 @@ protected:
      * Default event handler when a contact is down.
      */
     virtual void handle_contact_down(ContactDownEvent* event);
+
+    /**
+     * Default event handler for contact query requests.
+     */
+    virtual void handle_contact_query(ContactQueryRequest* request);
+
+    /**
+     * Default event handler for contact reports.
+     */
+    virtual void handle_contact_report(ContactReportEvent* request);
 
     /**
      * Default event handler when a new link is created.
@@ -140,6 +175,21 @@ protected:
     virtual void handle_link_state_change_request(LinkStateChangeRequest* req);
 
     /**
+     * Default event handler for link create requests.
+     */
+    virtual void handle_link_create(LinkCreateRequest* request);
+
+    /**
+     * Default event handler for link query requests.
+     */
+    virtual void handle_link_query(LinkQueryRequest* request);
+
+    /**
+     * Default event handler for link reports.
+     */
+    virtual void handle_link_report(LinkReportEvent* request);
+
+    /**
      * Default event handler when reassembly is completed.
      */
     virtual void handle_reassembly_completed(ReassemblyCompletedEvent* event);
@@ -155,6 +205,16 @@ protected:
      * or management interface.
      */
     virtual void handle_route_del(RouteDelEvent* event);
+
+    /**
+     * Default event handler for static route query requests.
+     */
+    virtual void handle_route_query(RouteQueryRequest* request);
+
+    /**
+     * Default event handler for static route reports.
+     */
+    virtual void handle_route_report(RouteReportEvent* request);
 
     /**
      * Default event handler when custody signals are received.

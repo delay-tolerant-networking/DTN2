@@ -58,7 +58,7 @@ ForwardingLog::get_latest_entry(Link* link) const
         return ForwardingInfo::NONE;
     }
 
-    return info.state_;
+    return ForwardingLog::state_t(info.state_);
 }
 
 //----------------------------------------------------------------------
@@ -118,11 +118,11 @@ ForwardingLog::dump(oasys::StringBuffer* buf) const
         const ForwardingInfo* info = &(*iter);
         
         buf->appendf("\t%s -> %s %u.%u [%s cl:%s] [custody min %d pct %d max %d]\n",
-                     ForwardingInfo::state_to_str(info->state_),
+                     ForwardingInfo::state_to_str(ForwardingInfo::state_t(info->state_)),
                      info->clayer_.c_str(),
                      (u_int)info->timestamp_.tv_sec,
                      (u_int)info->timestamp_.tv_usec,
-                     ForwardingInfo::action_to_str(info->action_),
+                     ForwardingInfo::action_to_str(ForwardingInfo::action_t(info->action_)),
                      info->nexthop_.c_str(),
                      info->custody_timer_.min_,
                      info->custody_timer_.lifetime_pct_,

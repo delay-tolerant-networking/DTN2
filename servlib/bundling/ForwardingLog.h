@@ -19,6 +19,7 @@
 
 #include <vector>
 
+#include <oasys/serialize/SerializableVector.h>
 #include "ForwardingInfo.h"
 
 namespace oasys {
@@ -47,7 +48,7 @@ class ForwardingLog;
  * transmission. Thus the accessors below always return / update the
  * last entry in the log for a given link.
  */
-class ForwardingLog {
+class ForwardingLog : public oasys::SerializableVector<ForwardingInfo>{
 public:
     typedef ForwardingInfo::state_t state_t;
 
