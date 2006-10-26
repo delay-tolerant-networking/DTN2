@@ -39,7 +39,7 @@ Registration::failure_action_toa(failure_action_t action)
 //----------------------------------------------------------------------
 Registration::Registration(u_int32_t regid,
                            const EndpointIDPattern& endpoint,
-                           failure_action_t action,
+                           int action,
                            u_int32_t expiration,
                            const std::string& script)
     
@@ -117,7 +117,7 @@ Registration::serialize(oasys::SerializeAction* a)
 {
     a->process("endpoint", &endpoint_);
     a->process("regid", &regid_);
-    a->process("action", (u_int32_t*)&failure_action_);
+    a->process("action", &failure_action_);
     a->process("script", &script_);
     a->process("creation_time", &creation_time_);
     a->process("expiration", &expiration_);

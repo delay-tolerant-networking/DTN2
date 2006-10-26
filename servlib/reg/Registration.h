@@ -47,6 +47,7 @@ public:
     static const u_int32_t ADMIN_REGID = 0;
     static const u_int32_t LINKSTATEROUTER_REGID = 1;
     static const u_int32_t PING_REGID = 2;
+    static const u_int32_t EXTERNALROUTER_REGID = 3;
     static const u_int32_t MAX_RESERVED_REGID = 9;
     
     /**
@@ -74,7 +75,7 @@ public:
      */
     Registration(u_int32_t regid,
                  const EndpointIDPattern& endpoint,
-                 failure_action_t action,
+                 int action,
                  u_int32_t expiration,
                  const std::string& script = "");
 
@@ -93,7 +94,7 @@ public:
     u_int32_t	             durable_key()       { return regid_; }
     u_int32_t	             regid()	         { return regid_; }
     const EndpointIDPattern& endpoint()          { return endpoint_; } 
-    failure_action_t         failure_action()    { return failure_action_; }
+    failure_action_t         failure_action()    { return failure_action_t(failure_action_); }
     const std::string&       script()            { return script_; }
     u_int32_t	             expiration()	 { return expiration_; }
     bool                     active()            { return active_; }
@@ -134,7 +135,7 @@ protected:
     
     u_int32_t regid_;
     EndpointIDPattern endpoint_;
-    failure_action_t failure_action_;	
+    int failure_action_;	
     std::string script_;
     u_int32_t expiration_;
     u_int32_t creation_time_;
