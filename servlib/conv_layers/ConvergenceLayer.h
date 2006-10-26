@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <oasys/util/Singleton.h>
+#include <oasys/serialize/Serialize.h>
 
 #include "contacts/Contact.h"
 #include "contacts/Interface.h"
@@ -191,9 +192,14 @@ public:
  * Abstract base class for convergence layer specific state stored in
  * an interface / contact / link.
  */
-class CLInfo {
+class CLInfo : public oasys::SerializableObject {
 public:
     virtual ~CLInfo() {}
+
+    /**
+     * Virtual from SerializableObject
+     */
+    virtual void serialize( oasys::SerializeAction *) {}
 };
 
 } // namespace dtn

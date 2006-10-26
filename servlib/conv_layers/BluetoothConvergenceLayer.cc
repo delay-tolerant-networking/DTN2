@@ -30,6 +30,33 @@ namespace dtn {
 BluetoothConvergenceLayer::BluetoothLinkParams
     BluetoothConvergenceLayer::default_link_params_(true);
 
+void
+BluetoothConvergenceLayer::BluetoothLinkParams::serialize(
+                                    oasys::SerializeAction *a) {
+    char *la = batostr(&local_addr_);
+    char *ra = batostr(&remote_addr_);
+
+    a->process("local_addr", (u_char *) la);
+    a->process("remote_addr", (u_char *) ra);
+    a->process("channel", &channel_);
+
+    // from StreamLinkParams
+    a->process("segment_ack_enabled", &segment_ack_enabled_);
+    a->process("negative_ack_enabled", &negative_ack_enabled_);
+    a->process("keepalive_interval", &keepalive_interval_);
+    a->process("segment_length", &segment_length_);
+
+    // from LinkParams
+    a->process("busy_queue_depth", &busy_queue_depth_);
+    a->process("reactive_frag_enabled", &reactive_frag_enabled_);
+    a->process("sendbuf_len", &sendbuf_len_);
+    a->process("recvbuf_len", &recvbuf_len_);
+    a->process("data_timeout", &data_timeout_);
+
+    free(la);
+    free(ra);
+}
+
 //----------------------------------------------------------------------
 BluetoothConvergenceLayer::BluetoothLinkParams::BluetoothLinkParams(
                                                     bool init_defaults )

@@ -19,6 +19,7 @@
 
 #include <oasys/io/TCPClient.h>
 #include <oasys/io/TCPServer.h>
+#include <oasys/serialize/Serialize.h>
 
 #include "StreamConvergenceLayer.h"
 
@@ -125,6 +126,11 @@ protected:
          * Destructor.
          */
         virtual ~Connection();
+
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize(oasys::SerializeAction *a);
 
     protected:
         friend class TCPConvergenceLayer;

@@ -341,6 +341,38 @@ TCPConvergenceLayer::Connection::~Connection()
 
 //----------------------------------------------------------------------
 void
+TCPConvergenceLayer::Connection::serialize(oasys::SerializeAction *a)
+{
+    TCPLinkParams *params = tcp_lparams();
+    if (! params) return;
+
+    oasys::Intoa local_addr = oasys::Intoa(params->local_addr_);
+    const char * local_addr_str = local_addr.buf();
+    oasys::Intoa remote_addr = oasys::Intoa(params->remote_addr_);
+    const char * remote_addr_str = remote_addr.buf();
+
+    a->process("local_addr",
+        (u_char *) local_addr_str, strlen(local_addr_str));
+    a->process("remote_addr",
+        (u_char *) remote_addr_str, strlen(remote_addr_str));
+    a->process("remote_port", &params->remote_port_);
+
+    // from StreamLinkParams
+    a->process("segment_ack_enabled", &params->segment_ack_enabled_);
+    a->process("negative_ack_enabled", &params->negative_ack_enabled_);
+    a->process("keepalive_interval", &params->keepalive_interval_);
+    a->process("segment_length", &params->segment_length_);
+
+    // from LinkParams
+    a->process("busy_queue_depth", &params->busy_queue_depth_);
+    a->process("reactive_frag_enabled", &params->reactive_frag_enabled_);
+    a->process("sendbuf_length", &params->sendbuf_len_);
+    a->process("recvbuf_length", &params->recvbuf_len_);
+    a->process("data_timeout", &params->data_timeout_);
+}
+
+//----------------------------------------------------------------------
+void
 TCPConvergenceLayer::Connection::initialize_pollfds()
 {
     sock_pollfd_ = &pollfds_[0];

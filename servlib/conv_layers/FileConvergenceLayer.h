@@ -81,6 +81,11 @@ protected:
          */
         void stop();
 
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize( oasys::SerializableObject *) {}
+
     protected:
         /**
          * Main thread function.

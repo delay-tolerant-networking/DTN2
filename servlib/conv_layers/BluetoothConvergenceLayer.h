@@ -50,6 +50,11 @@ public:
      */
     class BluetoothLinkParams : public StreamLinkParams {
     public:
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize( oasys::SerializeAction*a );
+
         bdaddr_t local_addr_;  ///< Local address to bind to
         bdaddr_t remote_addr_; ///< Remote address to bind to
         u_int8_t channel_;     ///< default channel

@@ -89,6 +89,11 @@ public:
      */
     class Params : public CLInfo {
     public:
+        /**
+         * Virtual from SerializableObject
+         */
+        virtual void serialize( oasys::SerializeAction *a );
+
         in_addr_t local_addr_;		///< Local address to bind to
         u_int16_t local_port_;		///< Local port to bind to
         in_addr_t remote_addr_;		///< Peer address to connect to

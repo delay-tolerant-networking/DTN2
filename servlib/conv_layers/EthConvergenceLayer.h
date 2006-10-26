@@ -96,7 +96,7 @@ public:
 	  if(timer)
               delete timer;
 	}
-        
+
         // Name of the device 
         char if_name_[IFNAMSIZ];
 
