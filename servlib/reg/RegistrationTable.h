@@ -95,6 +95,17 @@ public:
      */
     void dump(oasys::StringBuffer* buf) const;
 
+    /**
+     * Return the routing table.  Asserts that the RegistrationTable
+     * spin lock is held by the caller.
+     */
+    const RegistrationList *reg_list() const;
+
+    /**
+     * Accessor for the RouteTable internal lock.
+     */
+    oasys::Lock* lock() const { return &lock_; }
+
 protected:
     /**
      * Internal method to find the location of the given registration.
@@ -107,6 +118,11 @@ protected:
      * prefix match on demux strings in matching_registrations.
      */
     RegistrationList reglist_;
+
+    /**
+     * Lock to protect internal data structures.
+     */
+    mutable oasys::SpinLock lock_;
 };
 
 } // namespace dtn

@@ -59,6 +59,8 @@ RegistrationTable::find(u_int32_t regid, RegistrationList::iterator* iter)
 Registration*
 RegistrationTable::get(u_int32_t regid) const
 {
+    oasys::ScopeLock l(&lock_, "RegistrationTable");
+
     RegistrationList::iterator iter;
 
     // the const_cast lets us use the same find method for get as we
@@ -90,6 +92,8 @@ RegistrationTable::get(const EndpointIDPattern& eid) const
 bool
 RegistrationTable::add(Registration* reg, bool add_to_store)
 {
+    oasys::ScopeLock l(&lock_, "RegistrationTable");
+
     // put it in the list
     reglist_.push_back(reg);
 
@@ -122,6 +126,8 @@ RegistrationTable::add(Registration* reg, bool add_to_store)
 bool
 RegistrationTable::del(u_int32_t regid)
 {
+    oasys::ScopeLock l(&lock_, "RegistrationTable");
+
     RegistrationList::iterator iter;
 
     log_info("removing registration %d", regid);
@@ -147,6 +153,8 @@ RegistrationTable::del(u_int32_t regid)
 bool
 RegistrationTable::update(Registration* reg)
 {
+    oasys::ScopeLock l(&lock_, "RegistrationTable");
+
     log_info("updating registration %d/%s",
              reg->regid(), reg->endpoint().c_str());
 
@@ -171,6 +179,8 @@ int
 RegistrationTable::get_matching(const EndpointID& demux,
                                 RegistrationList* reg_list) const
 {
+    oasys::ScopeLock l(&lock_, "RegistrationTable");
+
     int count = 0;
     
     RegistrationList::const_iterator iter;
@@ -197,6 +207,8 @@ RegistrationTable::get_matching(const EndpointID& demux,
 void
 RegistrationTable::dump(oasys::StringBuffer* buf) const
 {
+    oasys::ScopeLock l(&lock_, "RegistrationTable");
+
     RegistrationList::const_iterator i;
     for (i = reglist_.begin(); i != reglist_.end(); ++i)
     {
@@ -211,6 +223,18 @@ RegistrationTable::dump(oasys::StringBuffer* buf) const
                         reg->script().c_str() : "",
                      reg->expiration());
     }
+}
+
+/**
+ * Return the routing table.  Asserts that the RegistrationTable
+ * spin lock is held by the caller.
+ */
+const RegistrationList *
+RegistrationTable::reg_list() const
+{
+    ASSERTF(lock_.is_locked_by_me(),
+            "RegistrationTable::reg_list must be called while holding lock");
+    return &reglist_;
 }
 
 } // namespace dtn
