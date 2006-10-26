@@ -14,8 +14,10 @@
  *    limitations under the License.
  */
 
+#include <config.h>
 
 #include <oasys/util/StringBuffer.h>
+#include <oasys/serialize/XMLSerialize.h>
 
 #include "RouteCommand.h"
 #include "CompletionNotifier.h"
@@ -28,6 +30,7 @@
 
 #include "routing/BundleRouter.h"
 #include "routing/RouteEntry.h"
+#include "routing/ExternalRouter.h"
 
 namespace dtn {
 
@@ -48,6 +51,27 @@ RouteCommand::RouteCommand()
     add_to_help("add <dest> <link/endpoint> [opts]", "add a route");
     add_to_help("del <dest> <link/endpoint>", "delete a route");
     add_to_help("dump", "dump all of the static routes");
+
+#ifdef XERCES_C_ENABLED
+    bind_i("server_port", &ExternalRouter::server_port, 8001,
+           "UDP port for IPC with external router(s)");
+
+    bind_i("hello_interval", &ExternalRouter::hello_interval, 30,
+           "seconds between hello messages");
+
+    bind_s("schema", &ExternalRouter::schema, "/etc/dtn/router.xsd",
+           "The external router interface message schema.");
+
+    bind_b("xml_server_validation",
+           &ExternalRouter::server_validation, true,
+           "Perform xml validation on plug-in interface messages "
+           "(default is true)");
+
+    bind_b("xml_client_validation",
+           &ExternalRouter::client_validation, false,
+           "Include meta-info in xml messages so plug-in routers"
+           "can perform validation (default is false)");
+#endif
 }
 
 int
