@@ -19,6 +19,7 @@
 
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Formatter.h>
+#include <oasys/serialize/Serialize.h>
 #include <oasys/util/Ref.h>
 #include <oasys/util/RefCountedObject.h>
 
@@ -46,7 +47,8 @@ class Link;
  * the last reference is removed.
  */
 class Contact : public oasys::RefCountedObject,
-                public oasys::Logger
+                public oasys::Logger,
+                public oasys::SerializableObject
 {
 public:
     /**
@@ -88,6 +90,11 @@ public:
      * Virtual from formatter
      */
     int format(char* buf, size_t sz) const;
+
+    /**
+     * Virtual from SerializableObject
+     */
+    virtual void serialize( oasys::SerializeAction *a );
 
     /// Time when the contact begin
     struct timeval start_time_;

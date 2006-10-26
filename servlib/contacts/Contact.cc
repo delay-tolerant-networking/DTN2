@@ -57,4 +57,19 @@ Contact::format(char* buf, size_t sz) const
                     (u_int32_t)start_time_.tv_usec);
 }
 
+void
+Contact::serialize(oasys::SerializeAction *a)
+{
+    // casting won't be necessary after port to oasys::Time
+    a->process("start_time_sec",
+        reinterpret_cast< u_int32_t * >(&start_time_.tv_sec));
+    a->process("start_time_usec",
+        reinterpret_cast< u_int32_t * >(&start_time_.tv_usec));
+
+    a->process("duration", &duration_ms_);
+    a->process("bps", &bps_);
+    a->process("latency", &latency_ms_);
+    a->process("link", link_);
+}
+
 } // namespace dtn
