@@ -39,7 +39,7 @@ SDNV::encode(u_int64_t val, u_char* bp, size_t len)
     } while (tmp != 0);
 
     ASSERT(val_len > 0);
-    ASSERT(val_len <= 10);
+    ASSERT(val_len <= MAX_LENGTH);
 
     /*
      * Make sure we have enough buffer space.
@@ -112,7 +112,9 @@ SDNV::decode(const u_char* bp, size_t len, u_int64_t* val)
      * one bit in the first byte of the encoding (i.e. the 64'th bit
      * of the original value).
      */
-    if ((val_len > 10) || ((val_len == 10) && (*start != 0x81))) {
+    if ((val_len > MAX_LENGTH) ||
+        ((val_len == MAX_LENGTH) && (*start != 0x81)))
+    {
         log_err("/dtn/bundle/sdnv", "overflow value in sdnv!!!");
         return -1;
     }

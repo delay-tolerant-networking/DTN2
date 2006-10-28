@@ -41,6 +41,12 @@ namespace dtn {
 class SDNV {
 public:
     /**
+     * The maximum length for this SDNV implementation is 10 bytes,
+     * since the maximum value is 64 bits wide.
+     */
+    static const size_t MAX_LENGTH = 10;
+    
+    /**
      * Return the number of bytes needed to encode the given value.
      */
     static size_t encoding_len(u_int64_t val);
