@@ -902,8 +902,7 @@ Optional Packages:
                           none)
   --with-bluez            compile in bluetooth support (default try)
   --with-expat=DIR        location of an expat installation (default try)
-  --with-xerces-c=DIR     location of a xerces-c installation (default
-                          /usr/local)
+  --with-xerces-c=DIR     location of a xerces-c installation (default try)
   --with-tclreadline      enable or disable tclreadline (default try)
 
 Some influential environment variables:
@@ -8653,54 +8652,86 @@ _ACEOF
     fi # ac_expatdir != no
 
 
-                ac_with_xerces_c='/usr/local'
 
 # Check whether --with-xerces-c or --without-xerces-c was given.
 if test "${with_xerces_c+set}" = set; then
   withval="$with_xerces_c"
   ac_with_xerces_c=$withval
+else
+  ac_with_xerces_c=try
 fi;
 
-                echo "$as_me:$LINENO: checking for xerces-c library installation" >&5
-echo $ECHO_N "checking for xerces-c library installation... $ECHO_C" >&6
-if test "${oasys_cv_lib_xerces_c+set}" = set; then
+    echo "$as_me:$LINENO: checking whether xerces-c support should be enabled" >&5
+echo $ECHO_N "checking whether xerces-c support should be enabled... $ECHO_C" >&6
+
+                if test "$ac_with_xerces_c" = no; then
+        echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+        XERCES_C_ENABLED=0
+    else
+
+                if test "$ac_with_xerces_c" = try \
+         -o "$ac_with_xerces_c" = yes \
+         -o "$ac_with_xerces_c" = "" ; then
+        echo "$as_me:$LINENO: result: try" >&5
+echo "${ECHO_T}try" >&6
+        ac_xerces_inst_dirs="/usr /usr/local"
+    else
+        echo "$as_me:$LINENO: result: yes (dir $ac_with_xerces_c)" >&5
+echo "${ECHO_T}yes (dir $ac_with_xerces_c)" >&6
+        ac_xerces_inst_dirs="$ac_with_xerces_c"
+    fi
+
+    ac_save_CPPFLAGS="$CPPFLAGS"
+    ac_save_LDFLAGS="$LDFLAGS"
+    ac_save_LIBS="$LIBS"
+
+    echo "$as_me:$LINENO: checking whether xerces-c (>= v2.7.0) was found" >&5
+echo $ECHO_N "checking whether xerces-c (>= v2.7.0) was found... $ECHO_C" >&6
+    if test "${oasys_cv_path_xerces_c+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-        if test -d "$ac_with_xerces_c"; then
-            ac_ext=cc
+        for ac_xerces_inst_dir in $ac_xerces_inst_dirs; do
+            if test -d "$ac_xerces_inst_dir"; then
+                ac_ext=cc
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
-            ac_save_LIBS="$LIBS"
-            LIBS="-L$ac_with_xerces_c/lib -lxerces-c"
-            ac_save_CPPFLAGS="$CPPFLAGS"
-            CPPFLAGS="-I$ac_with_xerces_c/include"
+                CPPFLAGS="-I$ac_xerces_inst_dir/include"
+                LDFLAGS="-L$ac_xerces_inst_dir/lib"
+                LIBS="-lxerces-c"
 
-            cat >conftest.$ac_ext <<_ACEOF
+                cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
-                        #include <xercesc/util/PlatformUtils.hpp>
-                        #include <xercesc/util/XMLString.hpp>
-                        #include <xercesc/dom/DOM.hpp>
+                            #include <xercesc/util/PlatformUtils.hpp>
+                            #include <xercesc/util/XMLString.hpp>
+                            #include <xercesc/dom/DOM.hpp>
 
 int
 main ()
 {
 
-                        xercesc::XMLPlatformUtils::Initialize();
-                        {
-                            xercesc::DOMImplementation* impl
-                                = xercesc::DOMImplementationRegistry::getDOMImplementation
-                                    (xercesc::XMLString::transcode("XML 1.0"));
-                        }
-                        xercesc::XMLPlatformUtils::Terminate();
+                            #if _XERCES_VERSION >= 20700
+
+                            xercesc::XMLPlatformUtils::Initialize();
+                            {
+                                xercesc::DOMImplementation* impl
+                                    = xercesc::DOMImplementationRegistry::getDOMImplementation
+                                        (xercesc::XMLString::transcode("XML 1.0"));
+                            }
+                            xercesc::XMLPlatformUtils::Terminate();
+
+                            #else
+                                #error
+                            #endif
 
   ;
   return 0;
@@ -8729,43 +8760,51 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
 
-                    oasys_cv_lib_xerces_c="$ac_with_xerces_c"
+                        oasys_cv_path_xerces_c="$ac_xerces_inst_dir"
+                        break
 
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
 
-                    oasys_cv_lib_xerces_c=""
+                        oasys_cv_path_xerces_c=
 
 
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
-
-            LIBS="$ac_save_LIBS"
-            CPPFLAGS="$ac_save_CPPFLAGS"
-
-        fi
-
+            fi
+        done
 
 fi
-echo "$as_me:$LINENO: result: $oasys_cv_lib_xerces_c" >&5
-echo "${ECHO_T}$oasys_cv_lib_xerces_c" >&6
 
-    if test -z "$oasys_cv_lib_xerces_c"; then
+
+    CPPFLAGS="$ac_save_CPPFLAGS"
+    LDFLAGS="$ac_save_LDFLAGS"
+    LIBS="$ac_save_LIBS"
+
+    if test -z "$oasys_cv_path_xerces_c"; then
+        echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
         XERCES_C_ENABLED=0
     else
+	echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
         XERCES_C_ENABLED=1
 
 cat >>confdefs.h <<\_ACEOF
 #define XERCES_C_ENABLED 1
 _ACEOF
 
-        OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_lib_xerces_c/include"
-        OASYS_LIBS="$OASYS_LIBS -L$oasys_cv_lib_xerces_c/lib -lxerces-c"
+        if test ! "$oasys_cv_path_xerces_c" = /usr ; then
+            OASYS_CPPFLAGS="$OASYS_CPPFLAGS -I$oasys_cv_path_xerces_c/include"
+            OASYS_LDFLAGS="$OASYS_LDFLAGS -L$oasys_cv_path_xerces_c/lib"
+        fi
+        OASYS_LIBS="$OASYS_LIBS -lxerces-c"
     fi
 
+    fi
 
 
 
@@ -8961,7 +9000,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   cat conftest.err >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?
@@ -10397,8 +10437,4 @@ if test $MYSQL_ENABLED = 1 ; then
   else
      echo "  mysql: $oasys_cv_path_mysql_h/mysql.h -L $oasys_cv_path_mysql_lib -lmysqld"
   fi
-fi
-
-if test $XERCES_C_ENABLED = 1 ; then
-  echo "  xerces-c: -I$oasys_cv_lib_xerces_c/include -L$oasys_cv_lib_xerces_c/lib -lxerces-c"
 fi
