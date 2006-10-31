@@ -15,6 +15,9 @@
  */
 
 #include <string>
+#include <sys/types.h>
+#include <netinet/in.h>
+
 #include "Bundle.h"
 #include "BundleProtocol.h"
 #include "PrimaryBlockProcessor.h"
