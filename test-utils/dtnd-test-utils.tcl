@@ -78,6 +78,33 @@ proc default_bundle_arrived {regid bundle_data} {
 	    continue
 	}
 
+        if {$key == "recv_blocks"} {
+            # A SerializableVector is serialized as:
+            #   size <size> element <elt1> element <elt2>...
+            set nblocks [lindex $val 1]
+            log /test notice "recv_blocks: ($nblocks)\n"
+            set isprimary 1
+            foreach {xxx block} [lrange $val 2 end] {
+                array set block_info $block
+                if {$isprimary} {
+                    set type primary
+                    set flags 0
+                    set isprimary 0
+                } else {
+                    binary scan $block_info(contents) cc type flags
+                    set type  [format "0x%x" $type]
+                    set flags [format "0x%x" $flags]
+                }
+                log /test notice "\t\
+                        type $type flags $flags\
+                        length $block_info(length)\
+                        data_length $block_info(data_length)\
+                        data_offset $block_info(data_offset)"
+            }
+
+            continue
+        }
+
 	log /test notice "$key:\t $val"
 	
 	lappend bundle_info($guid) $key $val

@@ -22,149 +22,117 @@
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/util/StringUtils.h>
 
+#include "BlockProcessor.h"
 #include "Bundle.h"
 #include "BundleProtocol.h"
 #include "BundleTimestamp.h"
+#include "PrimaryBlockProcessor.h"
 #include "SDNV.h"
+#include "UnknownBlockProcessor.h"
 
 namespace dtn {
 
-//----------------------------------------------------------------------
-struct DictionaryEntry {
-    DictionaryEntry(const std::string& s, size_t off)
-	: str(s), offset(off) {}
+//////////////////////////////////////////////////////////////////////
 
-    std::string str;
-    size_t offset;
-};
+// XXX NEW INTERFACE
 
-class DictionaryVector : public std::vector<DictionaryEntry> {};
+BlockProcessor* BundleProtocol::processors_[256];
 
 //----------------------------------------------------------------------
 void
-BundleProtocol::add_to_dictionary(const EndpointID& eid,
-                                  DictionaryVector* dict,
-                                  size_t* dictlen)
+BundleProtocol::register_processor(BlockProcessor* bp)
 {
-    /*
-     * For the scheme and ssp parts of the given endpoint id, see if
-     * they've already appeared in the vector. If not, add them, and
-     * record their length (with the null terminator) in the running
-     * length total.
-     */
-    DictionaryVector::iterator iter;
-    bool found_scheme = false;
-    bool found_ssp = false;
-
-    for (iter = dict->begin(); iter != dict->end(); ++iter) {
-	if (iter->str == eid.scheme_str())
-	    found_scheme = true;
-
-	if (iter->str == eid.ssp())
-	    found_ssp = true;
-    }
-
-    if (found_scheme == false) {
-	dict->push_back(DictionaryEntry(eid.scheme_str(), *dictlen));
-	*dictlen += (eid.scheme_str().length() + 1);
-    }
-
-    if (found_ssp == false) {
-	dict->push_back(DictionaryEntry(eid.ssp(), *dictlen));
-	*dictlen += (eid.ssp().length() + 1);
-    }
+    // can't override an existing processor
+    ASSERT(processors_[bp->block_type()] == 0);
+    processors_[bp->block_type()] = bp;
 }
 
 //----------------------------------------------------------------------
-void
-BundleProtocol::get_dictionary_offsets(DictionaryVector *dict,
-                                       EndpointID eid,
-                                       u_int16_t* scheme_offset,
-                                       u_int16_t* ssp_offset)
+BlockProcessor*
+BundleProtocol::find_processor(u_int8_t type)
 {
-    DictionaryVector::iterator iter;
-    for (iter = dict->begin(); iter != dict->end(); ++iter) {
-	if (iter->str == eid.scheme_str())
-	    *scheme_offset = htons(iter->offset);
-
-	if (iter->str == eid.ssp())
-	    *ssp_offset = htons(iter->offset);
+    BlockProcessor* ret = processors_[type];
+    if (ret == 0) {
+        ret = UnknownBlockProcessor::instance();
     }
+    return ret;
 }
 
 //----------------------------------------------------------------------
-size_t
-BundleProtocol::get_primary_len(const Bundle* bundle,
-                                DictionaryVector* dict,
-                                size_t* dictionary_len,
-                                size_t* primary_var_len)
+int
+BundleProtocol::consume(Bundle* bundle,
+                        u_char* data,
+                        size_t  len,
+                        bool*   last)
 {
     static const char* log = "/dtn/bundle/protocol";
-    size_t primary_len = 0;
-    *dictionary_len = 0;
-    *primary_var_len = 0;
+    size_t origlen = len;
+    *last = false;
     
-    /*
-     * We need to figure out the total length of the primary block,
-     * except for the SDNV used to encode the length itself and the
-     * three byte preamble (PrimaryBlock1).
-     *
-     * First, we determine the size of the dictionary by first
-     * figuring out all the unique strings, and in the process,
-     * remembering their offsets and summing up their lengths
-     * (including the null terminator for each).
-     */
-    add_to_dictionary(bundle->dest_,      dict, dictionary_len);
-    add_to_dictionary(bundle->source_,    dict, dictionary_len);
-    add_to_dictionary(bundle->custodian_, dict, dictionary_len);
-    add_to_dictionary(bundle->replyto_,   dict, dictionary_len);
-
-    (void)log; // in case NDEBUG is defined
-    log_debug(log, "generated dictionary length %zu", *dictionary_len);
-
-    *primary_var_len += SDNV::encoding_len(*dictionary_len);
-    *primary_var_len += *dictionary_len;
-
-    /*
-     * If the bundle is a fragment, we need to include space for the
-     * fragment offset and the original payload length.
-     *
-     * Note: Any changes to this protocol must be reflected into the
-     * FragmentManager since it depends on this length when
-     * calculating fragment sizes.
-     */
-    if (bundle->is_fragment_) {
-	*primary_var_len += SDNV::encoding_len(bundle->frag_offset_);
-	*primary_var_len += SDNV::encoding_len(bundle->orig_length_);
+    // special case for first time we get called, since we need to
+    // create a BlockInfo struct for the primary block without knowing
+    // the typecode or the length
+    if (bundle->recv_blocks_.empty()) {
+        log_debug(log, "first block... creating primary block info");
+        bundle->recv_blocks_.push_back(BlockInfo(find_processor(PRIMARY_BLOCK)));
     }
 
-    /*
-     * Tack on the size of the PrimaryBlock2, 
-     */
-    *primary_var_len += sizeof(PrimaryBlock2);
+    // loop as long as there is data left to process
+    while (len != 0) {
+        log_debug(log, "consume has %zu bytes left to process", len);
+        BlockInfo& info = bundle->recv_blocks_.back();
 
-    /*
-     * Finally, add up the initial PrimaryBlock1 plus the size of the
-     * SDNV to encode the variable length part, plus the variable
-     * length part itself.
-     */
-    primary_len = sizeof(PrimaryBlock1) +
-                  SDNV::encoding_len(*primary_var_len) +
-                  *primary_var_len;
+        // if the last received block is complete, create a new one
+        // and push it onto the vector. at this stage we consume all
+        // blocks, even if there's no BlockProcessor that understands
+        // how to parse it
+        if (info.complete()) {
+            bundle->recv_blocks_.push_back(BlockInfo(find_processor(*data)));
+            info = bundle->recv_blocks_.back();
+        }
+        
+        // now we know that the block isn't complete, so we tell it to
+        // consume a chunk of data
+        log_debug(log, "block type 0x%x incomplete, calling consume again",
+                  info.type());
+        
+        int cc = info.owner()->consume(bundle, &info, data, len);
+        if (cc < 0) {
+            log_err(log, "protocol error handling block 0x%x", info.type());
+            return -1;
+        }
+        
+        // decrement the amount that was just handled from the overall
+        // total. verify that the block was either completed or
+        // consumed all the data that was passed in.
+        len  -= cc;
+        data += cc;
+        if (info.complete()) {
+            log_debug(log, "consumed %u bytes, completed block type 0x%x",
+                      cc, info.type());
+
+            // check if we're done with the bundle
+            if (info.flags() & BLOCK_FLAG_LAST_BLOCK) {
+                log_debug(log, "got last block flag, bundle complete");
+                *last = true;
+                break;
+            }
+                
+        } else {
+            log_debug(log, "consumed %u bytes, block type 0x%x still incomplete",
+                      cc, info.type());
+            ASSERT(len == 0);
+        }
+    }
     
-    log_debug(log, "get_primary_len(bundle %d): %zu",
-              bundle->bundleid_, primary_len);
-    
-    return primary_len;
+    log_debug(log, "consume completed, %zu/%zu bytes consumed",
+              origlen - len, origlen);
+    return origlen - len;
 }
 
-//----------------------------------------------------------------------
-size_t
-BundleProtocol::get_payload_block_len(const Bundle* bundle)
-{
-    return (sizeof(BlockPreamble) +
-            SDNV::encoding_len(bundle->payload_.length()));
-}
+//////////////////////////////////////////////////////////////////////
+//
+// OLD INTERFACE: only supports primary and payload
 
 //----------------------------------------------------------------------
 int
@@ -172,169 +140,38 @@ BundleProtocol::format_header_blocks(const Bundle* bundle,
                                      u_char* buf, size_t len)
 {
     static const char* log = "/dtn/bundle/protocol";
-    DictionaryVector dict;
-    size_t orig_len = len;      // original length of the buffer
-    size_t primary_len = 0;     // total length of the primary block
-    size_t primary_var_len = 0; // length of the variable part of the primary
-    size_t dictionary_len = 0;  // length of the dictionary
-    int encoding_len = 0;	// use an int to handle -1 return values
+    
+    BlockProcessor* primary_bp = find_processor(PRIMARY_BLOCK);
+    BlockProcessor* payload_bp = find_processor(PAYLOAD_BLOCK);
+    
+    BlockInfo primary(primary_bp);
+    BlockInfo payload(payload_bp);
 
-    /*
-     * Grab the primary block length and make sure we have enough
-     * space in the buffer for it.
-     */
-    primary_len = get_primary_len(bundle, &dict, &dictionary_len,
-                                  &primary_var_len);
-    if (len < primary_len) {
-	return -1;
+    primary_bp->generate(bundle, NULL, &primary, false);
+    payload_bp->generate(bundle, NULL, &payload, true);
+
+    size_t primary_len = primary.full_length();
+    ASSERT(primary_len == primary.contents().len());
+    ASSERT(primary_len == primary.data_length());
+    ASSERT(primary_len == primary.full_length());
+    
+    size_t payload_hdr_len = payload.data_offset();
+    ASSERT(payload_hdr_len == payload.contents().len());
+    ASSERT(payload_hdr_len <= payload.full_length());
+
+    if (primary_len + payload_hdr_len > len) {
+        log_debug(log, "format_header_blocks: "
+                  "need %zu bytes primary + %zu payload_hdr, only have %zu",
+                  primary_len, payload_hdr_len, len);
+        return -1; // too short
     }
     
-    (void)log; // in case NDEBUG is defined
-    log_debug(log, "primary length %zu (preamble %zu var length %zu)",
-              primary_len,
-	      (sizeof(PrimaryBlock1) + SDNV::encoding_len(primary_var_len)),
-	      primary_var_len);
+    primary_bp->produce(bundle, &primary, buf, 0, primary_len);
+    payload_bp->produce(bundle, &payload, buf + primary_len, 0, payload_hdr_len);
     
-    /*
-     * Ok, stuff in the preamble and the total block length.
-     */
-    PrimaryBlock1* primary1              = (PrimaryBlock1*)buf;
-    primary1->version		          = CURRENT_VERSION;
-    primary1->bundle_processing_flags     = format_bundle_flags(bundle);
-    primary1->class_of_service_flags	  = format_cos_flags(bundle);
-    primary1->status_report_request_flags = format_srr_flags(bundle);
-    
-    encoding_len = SDNV::encode(primary_var_len,
-				&primary1->block_length[0], len - 3);
-    ASSERT(encoding_len > 0);
-    buf += (sizeof(PrimaryBlock1) + encoding_len);
-    len -= (sizeof(PrimaryBlock1) + encoding_len);
-
-    /*
-     * Now fill in the PrimaryBlock2.
-     */
-    PrimaryBlock2* primary2 = (PrimaryBlock2*)buf;
-
-    get_dictionary_offsets(&dict, bundle->dest_,
-                           &primary2->dest_scheme_offset,
-                           &primary2->dest_ssp_offset);
-
-    get_dictionary_offsets(&dict, bundle->source_,
-                           &primary2->source_scheme_offset,
-                           &primary2->source_ssp_offset);
-
-    get_dictionary_offsets(&dict, bundle->custodian_,
-                           &primary2->custodian_scheme_offset,
-                           &primary2->custodian_ssp_offset);
-
-    get_dictionary_offsets(&dict, bundle->replyto_,
-                           &primary2->replyto_scheme_offset,
-                           &primary2->replyto_ssp_offset);
-
-    set_timestamp(&primary2->creation_ts, &bundle->creation_ts_);
-    u_int32_t lifetime = htonl(bundle->expiration_);
-    memcpy(&primary2->lifetime, &lifetime, sizeof(lifetime));
-
-    buf += sizeof(PrimaryBlock2);
-    len -= sizeof(PrimaryBlock2);
-
-    /*
-     * Stuff in the dictionary length and dictionary bytes.
-     */
-    encoding_len = SDNV::encode(dictionary_len, buf, len);
-    ASSERT(encoding_len > 0);
-    buf += encoding_len;
-    len -= encoding_len;
-
-    DictionaryVector::iterator dict_iter;
-    for (dict_iter = dict.begin(); dict_iter != dict.end(); ++dict_iter) {
-	strcpy((char*)buf, dict_iter->str.c_str());
-	buf += dict_iter->str.length() + 1;
-	len -= dict_iter->str.length() + 1;
-    }
-    
-    if (oasys::__log_enabled(oasys::LOG_DEBUG, "/dtn/bundle/protocol/dictionary")) {
-        oasys::StringBuffer dict_copy;
-        ASSERT(buf[-1] == '\0');
-        char* bp = (char*)buf - dictionary_len;
-        while (bp != (char*)buf) {
-            dict_copy.appendf("%s ", bp);
-            bp += strlen(bp) + 1;
-        }
-
-        log_debug("/dtn/bundle/protocol/dictionary",
-                  "len %zu, value: '%s'", dictionary_len, dict_copy.c_str());
-                  
-        log_debug("/dtn/bundle/protocol/dictionary",
-                  "offsets: dest %u,%u source %u,%u, "
-                  "custodian %u,%u replyto %u,%u",
-                  ntohs(primary2->dest_scheme_offset),
-                  ntohs(primary2->dest_ssp_offset),
-                  ntohs(primary2->source_scheme_offset),
-                  ntohs(primary2->source_ssp_offset),
-                  ntohs(primary2->custodian_scheme_offset),
-                  ntohs(primary2->custodian_ssp_offset),
-                  ntohs(primary2->replyto_scheme_offset),
-                  ntohs(primary2->replyto_ssp_offset));
-    }
-
-    /*
-     * If the bundle is a fragment, stuff in SDNVs for the fragment
-     * offset and original length.
-     */
-    if (bundle->is_fragment_) {
-	encoding_len = SDNV::encode(bundle->frag_offset_, buf, len);
-	ASSERT(encoding_len > 0);
-	buf += encoding_len;
-	len -= encoding_len;
-
-	encoding_len = SDNV::encode(bundle->orig_length_, buf, len);
-	ASSERT(encoding_len > 0);
-	buf += encoding_len;
-	len -= encoding_len;
-    }
-
-#ifndef NDEBUG
-    {
-        DictionaryVector dict2;
-        size_t dict2_len = 0;
-        size_t p2len;
-        size_t len2 = get_primary_len(bundle, &dict2, &dict2_len, &p2len);
-        ASSERT(len2 == (orig_len - len));
-    }
-#endif
-
-    // safety assertion
-    ASSERT(primary_len == (orig_len - len));
-
-    // XXX/demmer deal with other experimental blocks
-
-    /*
-     * Handle the payload block. Note that we don't stuff in the
-     * actual payload here, even though it's technically part of the
-     * "payload block".
-     */
-    u_int32_t payload_len = bundle->payload_.length();
-    if (len < (sizeof(BlockPreamble) +
-	       SDNV::encoding_len(payload_len)))
-    {
-	return -1;
-    }
-
-    BlockPreamble* payload_block = (BlockPreamble*)buf;
-    payload_block->type  = PAYLOAD_BLOCK;
-    payload_block->flags = BLOCK_FLAG_LAST_BLOCK;
-    buf += sizeof(BlockPreamble);
-    len -= sizeof(BlockPreamble);
-
-    encoding_len = SDNV::encode(payload_len, buf, len);
-    ASSERT(encoding_len > 0);
-    buf += encoding_len;
-    len -= encoding_len;
-
-    // return the total buffer length consumed
-    log_debug(log, "encoding done -- total length %zu", (orig_len - len));
-    return orig_len - len;
+    log_debug(log, "format_header_blocks done -- total length %zu",
+              (primary_len + payload_hdr_len));
+    return primary_len + payload_hdr_len;
 }
 
 //----------------------------------------------------------------------
@@ -344,246 +181,60 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
 {
     static const char* log = "/dtn/bundle/protocol";
     size_t origlen = len;
-    int encoding_len;
 
-    /*
-     * First the three bytes of the PrimaryBlock1
-     */
-    PrimaryBlock1* primary1;
-    if (len < sizeof(PrimaryBlock1)) {
- tooshort1:
-	log_debug(log, "buffer too short (parsed %zu/%zu)",
-		  (origlen - len), origlen);
-	return -1;
+    BlockProcessor* primary_bp = find_processor(PRIMARY_BLOCK);
+    BlockProcessor* payload_bp = find_processor(PAYLOAD_BLOCK);
+
+    ASSERT(bundle->recv_blocks_.empty());
+    bundle->recv_blocks_.push_back(BlockInfo(primary_bp));
+    bundle->recv_blocks_.push_back(BlockInfo(payload_bp));
+
+    BlockInfo& primary = *(bundle->recv_blocks_.begin());
+    BlockInfo& payload = *(bundle->recv_blocks_.begin() + 1);
+
+    int primary_len = primary_bp->consume(bundle, &primary, buf, len);
+
+    if (primary_len == -1) {
+        log_err(log, "protocol error parsing primary");
+        bundle->recv_blocks_.clear();
+        return -1;
+    }
+    
+    if (!primary.complete()) {
+        log_debug(log, "buffer too short to consume primary");
+        bundle->recv_blocks_.clear();
+        return -1;
     }
 
-    primary1 = (PrimaryBlock1*)buf;
-    buf += sizeof(PrimaryBlock1);
-    len -= sizeof(PrimaryBlock1);
+    ASSERT(primary_len <= (int)len);
+    ASSERT(primary_len == (int)primary.full_length());
+    ASSERT(primary_len == (int)primary.contents().len());
 
-    log_debug(log, "parsed primary block 1: version %d", primary1->version);
+    buf += primary_len;
+    len -= primary_len;
 
-    if (primary1->version != CURRENT_VERSION) {
-	log_warn(log, "protocol version mismatch %d != %d",
-		 primary1->version, CURRENT_VERSION);
-	return -1;
+    int payload_hdr_len = payload_bp->consume_preamble(&payload, buf, len);
+
+    if (payload_hdr_len == -1) {
+        log_err(log, "protocol error parsing payload");
+        bundle->recv_blocks_.clear();
+        return -1;
+    }
+    
+    if (payload.data_offset() == 0) {
+        log_debug(log, "buffer too short to consume primary");
+        bundle->recv_blocks_.clear();
+        return -1;
     }
 
-    parse_bundle_flags(bundle, primary1->bundle_processing_flags);
-    parse_cos_flags(bundle, primary1->class_of_service_flags);
-    parse_srr_flags(bundle, primary1->status_report_request_flags);
+    len -= payload_hdr_len;
 
-    /*
-     * Now parse the SDNV that describes the total primary block
-     * length.
-     */
-    u_int32_t primary_len;
-    encoding_len = SDNV::decode(buf, len, &primary_len);
-    if (encoding_len == -1) {
-	goto tooshort1;
-    }
-
-    buf += encoding_len;
-    len -= encoding_len;
-
-    log_debug(log, "parsed primary block length %u", primary_len);
-
-    /*
-     * Check if the advertised length is bigger than the amount we
-     * have.
-     */
-    if (len < primary_len) {
-	goto tooshort1;
-    }
-
-    /*
-     * Still, we need to make sure that the sender didn't lie and that
-     * we really do have enough for the decoding...
-     */
-    if (len < sizeof(PrimaryBlock2)) {
- tooshort2:
-	log_err(log, "primary block advertised incorrect length: "
-		"advertised %u, total buffer %zu", primary_len, len);
-	return -1;
-    }
-
-    /*
-     * Parse the PrimaryBlock2
-     */
-    PrimaryBlock2* primary2    = (PrimaryBlock2*)buf;
-    buf += sizeof(PrimaryBlock2);
-    len -= sizeof(PrimaryBlock2);
-
-    get_timestamp(&bundle->creation_ts_, &primary2->creation_ts);
-    u_int32_t lifetime;
-    memcpy(&lifetime, &primary2->lifetime, sizeof(lifetime));
-    bundle->expiration_ = ntohl(lifetime);
-
-    /*
-     * Read the dictionary length.
-     */
-    u_int32_t dictionary_len = 0;
-    encoding_len = SDNV::decode(buf, len, &dictionary_len);
-    if (encoding_len < 0) {
-	goto tooshort2;
-    }
-    buf += encoding_len;
-    len -= encoding_len;
-
-    /*
-     * Verify that we have the whole dictionary.
-     */
-    if (len < dictionary_len) {
-	goto tooshort2;
-    }
-
-    /*
-     * Make sure that the dictionary ends with a null byte.
-     */
-    if (buf[dictionary_len - 1] != '\0') {
-	log_err(log, "dictionary does not end with a NULL character!");
-	return -1;
-    }
-
-    /*
-     * Now use the dictionary buffer to parse out the various endpoint
-     * identifiers, making sure that none of them peeks past the end
-     * of the dictionary block.
-     */
-    u_char* dictionary = buf;
-    buf += dictionary_len;
-    len -= dictionary_len;
-
-    u_int16_t scheme_offset, ssp_offset;
-
-    if (oasys::__log_enabled(oasys::LOG_DEBUG, "/dtn/bundle/protocol/dictionary")) {
-        oasys::StringBuffer dict_copy;
-        ASSERT(buf[-1] == '\0');
-        char* bp = (char*)buf - dictionary_len;
-        while (bp != (char*)buf) {
-            dict_copy.appendf("%s ", bp);
-            bp += strlen(bp) + 1;
-        }
-
-        log_debug("/dtn/bundle/protocol/dictionary",
-                  "len %u, value: '%s'", dictionary_len, dict_copy.c_str());
-    }
-                  
-
-#define EXTRACT_DICTIONARY_EID(_what)                                   \
-    memcpy(&scheme_offset, &primary2->_what##_scheme_offset, 2);        \
-    memcpy(&ssp_offset, &primary2->_what##_ssp_offset, 2);              \
-    scheme_offset = ntohs(scheme_offset);                               \
-    ssp_offset = ntohs(ssp_offset);                                     \
-									\
-    if (scheme_offset >= (dictionary_len - 1)) {                        \
-	log_err(log, "illegal offset for %s scheme dictionary offset: " \
-		"offset %d, total length %u", #_what,                   \
-		scheme_offset, dictionary_len);                         \
-	return -1;                                                      \
-    }                                                                   \
-									\
-    if (ssp_offset >= (dictionary_len - 1)) {                           \
-	log_err(log, "illegal offset for %s ssp dictionary offset: "    \
-		"offset %d, total length %u", #_what,                   \
-		ssp_offset, dictionary_len);                            \
-	return -1;                                                      \
-    }                                                                   \
-    bundle->_what##_.assign((char*)&dictionary[scheme_offset],          \
-			    (char*)&dictionary[ssp_offset]);            \
-									\
-									\
-    if (! bundle->_what##_.valid()) {                                   \
-	log_err(log, "invalid %s endpoint id '%s': "                    \
-                "scheme '%s' offset %u ssp '%s' offset %u/%u", #_what,  \
-		bundle->_what##_.c_str(),                               \
-                bundle->_what##_.scheme_str().c_str(),                  \
-                scheme_offset,                                          \
-                bundle->_what##_.ssp().c_str(),                         \
-                ssp_offset, dictionary_len);                            \
-        return -1;                                                      \
-    }                                                                   \
-									\
-    log_debug(log, "parsed %s eid (offsets %d, %d) %s", #_what,         \
-	      scheme_offset, ssp_offset, bundle->_what##_.c_str());     \
-
-    EXTRACT_DICTIONARY_EID(source);
-    EXTRACT_DICTIONARY_EID(dest);
-    EXTRACT_DICTIONARY_EID(custodian);
-    EXTRACT_DICTIONARY_EID(replyto);
-
-    if (bundle->is_fragment_) {
-	encoding_len = SDNV::decode(buf, len, &bundle->frag_offset_);
-	if (encoding_len == -1) {
-	    goto tooshort2;
-	}
-	buf += encoding_len;
-	len -= encoding_len;
-
-	encoding_len = SDNV::decode(buf, len, &bundle->orig_length_);
-	if (encoding_len == -1) {
-	    goto tooshort2;
-	}
-	buf += encoding_len;
-	len -= encoding_len;
-
-	log_debug(log, "parsed fragmentation info: offset %u, orig_len %u",
-		  bundle->frag_offset_, bundle->orig_length_);
-    }
-
-    /*
-     * Parse the other blocks, all of which have a preamble and an
-     * SDNV for their length.
-     */
-    while (len != 0) {
-	if (len <= sizeof(BlockPreamble)) {
-	    goto tooshort1;
-	}
-
-	BlockPreamble* preamble = (BlockPreamble*)buf;
-	buf += sizeof(BlockPreamble);
-	len -= sizeof(BlockPreamble);
-
-	// note that we don't support lengths bigger than 4 bytes
-	// here. this should be fixed when the bundle payload class
-	// supports big payloads.
-	u_int32_t block_len;
-	encoding_len = SDNV::decode(buf, len, &block_len);
-	if (encoding_len == -1) {
-	    goto tooshort1;
-	}
-	buf += encoding_len;
-	len -= encoding_len;
-
-	switch (preamble->type) {
-	case PAYLOAD_BLOCK: {
-	    bundle->payload_.set_length(block_len);
-	    log_debug(log, "parsed payload length %zu",
-		      bundle->payload_.length());
-
-            // XXX/demmer add support for blocks after the payload block
-            if (! (preamble->flags & BLOCK_FLAG_LAST_BLOCK)) {
-                log_crit(log,
-                         "this implementation cannot handle blocks after "
-                         "the payload!!");
-            }
-            
-	    // note that we don't actually snarf in the payload here
-	    // since it's handled by the caller, and since the payload
-	    // must be the last thing we handle in this function,
-	    // we're done.
-	    goto done;
-	}
-            
-	default:
-	    // XXX/demmer handle extension blocks.
-	    log_err(log, "unknown block code 0x%x", preamble->type);
-	    return -1;
-	}
-    }
-
+    bundle->payload_.set_length(payload.data_length());
+    
     // that's all we parse, return the amount we consumed
- done:
+    log_debug(log, "parse_header_blocks succeeded: %d primary %d payload header",
+              primary_len, payload_hdr_len);
+    
     return origlen - len;
 }
 
@@ -591,14 +242,9 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
 size_t
 BundleProtocol::header_block_length(const Bundle* bundle)
 {
-    DictionaryVector dict;
-    size_t dictionary_len;
-    size_t primary_var_len;
-
-    // XXX/demmer if this ends up being slow, we can cache it in the bundle
-    
-    return (get_primary_len(bundle, &dict, &dictionary_len, &primary_var_len) +
-            get_payload_block_len(bundle));
+    return PrimaryBlockProcessor::get_primary_len(bundle) +
+        sizeof(BlockPreamble) +
+        SDNV::encoding_len(bundle->payload_.length());
 }
 
 //----------------------------------------------------------------------
@@ -703,128 +349,6 @@ BundleProtocol::get_timestamp(BundleTimestamp* tv, const u_char* ts)
     
     memcpy(&tmp, ts, sizeof(u_int32_t));
     tv->seqno_ = ntohl(tmp);
-}
-
-//----------------------------------------------------------------------
-u_int8_t
-BundleProtocol::format_bundle_flags(const Bundle* bundle)
-{
-    u_int8_t flags = 0;
-
-    if (bundle->is_fragment_) {
-	flags |= BUNDLE_IS_FRAGMENT;
-    }
-
-    if (bundle->is_admin_) {
-	flags |= BUNDLE_IS_ADMIN;
-    }
-
-    if (bundle->do_not_fragment_) {
-	flags |= BUNDLE_DO_NOT_FRAGMENT;
-    }
-
-    if (bundle->custody_requested_) {
-        flags |= BUNDLE_CUSTODY_XFER_REQUESTED;
-    }
-
-    if (bundle->singleton_dest_) {
-        flags |= BUNDLE_SINGLETON_DESTINATION;
-    }
-
-    return flags;
-}
-
-//----------------------------------------------------------------------
-void
-BundleProtocol::parse_bundle_flags(Bundle* bundle, u_int8_t flags)
-{
-    if (flags & BUNDLE_IS_FRAGMENT) {
-	bundle->is_fragment_ = true;
-    }
-
-    if (flags & BUNDLE_IS_ADMIN) {
-	bundle->is_admin_ = true;
-    }
-
-    if (flags & BUNDLE_DO_NOT_FRAGMENT) {
-	bundle->do_not_fragment_ = true;
-    }
-
-    if (flags & BUNDLE_CUSTODY_XFER_REQUESTED) {
-	bundle->custody_requested_ = true;
-    }
-
-    if (flags & BUNDLE_SINGLETON_DESTINATION) {
-	bundle->singleton_dest_ = true;
-    }
-}
-
-//----------------------------------------------------------------------
-u_int8_t
-BundleProtocol::format_cos_flags(const Bundle* b)
-{
-    u_int8_t cos_flags = 0;
-
-    cos_flags = ((b->priority_ & 0x3) << 6);
-
-    return cos_flags;
-}
-
-//----------------------------------------------------------------------
-void
-BundleProtocol::parse_cos_flags(Bundle* b, u_int8_t cos_flags)
-{
-    b->priority_ = ((cos_flags >> 6) & 0x3);
-}
-
-//----------------------------------------------------------------------
-u_int8_t
-BundleProtocol::format_srr_flags(const Bundle* b)
-{
-    u_int8_t srr_flags = 0;
-    
-    if (b->receive_rcpt_)
-	srr_flags |= STATUS_RECEIVED;
-
-    if (b->custody_rcpt_)
-	srr_flags |= STATUS_CUSTODY_ACCEPTED;
-
-    if (b->forward_rcpt_)
-	srr_flags |= STATUS_FORWARDED;
-
-    if (b->delivery_rcpt_)
-	srr_flags |= STATUS_DELIVERED;
-
-    if (b->deletion_rcpt_)
-	srr_flags |= STATUS_DELETED;
-
-    if (b->app_acked_rcpt_)
-        srr_flags |= STATUS_ACKED_BY_APP;
-
-    return srr_flags;
-}
-    
-//----------------------------------------------------------------------
-void
-BundleProtocol::parse_srr_flags(Bundle* b, u_int8_t srr_flags)
-{
-    if (srr_flags & STATUS_RECEIVED)
-	b->receive_rcpt_ = true;
-
-    if (srr_flags & STATUS_CUSTODY_ACCEPTED)
-	b->custody_rcpt_ = true;
-
-    if (srr_flags & STATUS_FORWARDED)
-	b->forward_rcpt_ = true;
-
-    if (srr_flags & STATUS_DELIVERED)
-	b->delivery_rcpt_ = true;
-
-    if (srr_flags & STATUS_DELETED)
-	b->deletion_rcpt_ = true;
-
-    if (srr_flags & STATUS_ACKED_BY_APP)
-	b->app_acked_rcpt_ = true;
 }
 
 //----------------------------------------------------------------------

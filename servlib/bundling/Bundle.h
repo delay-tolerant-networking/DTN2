@@ -26,6 +26,7 @@
 #include <oasys/thread/SpinLock.h>
 #include <oasys/util/StringBuffer.h>
 
+#include "BlockInfo.h"
 #include "BundlePayload.h"
 #include "BundleTimestamp.h"
 #include "CustodyTimer.h"
@@ -235,6 +236,8 @@ public:
     ExpirationTimer* expiration_timer_;	///< The expiration timer
     CustodyTimerVec custody_timers_; ///< Live custody timers for this bundle
 
+    BlockInfoVec recv_blocks_;	///< BP blocks as they arrived off the wire
+    LinkBlockVec xmit_blocks_;	///< Vector of {outgoing link, blockvec}
 protected:
     friend class BundleList;
     

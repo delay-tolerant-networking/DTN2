@@ -21,17 +21,64 @@
 
 namespace dtn {
 
+class BlockInfo;
+class BlockProcessor;
 class Bundle;
 class BundleTimestamp;
-class DictionaryVector;
 class EndpointID;
 
 /**
- * Class used to convert a Bundle to / from the bundle protocol
- * specification for the "on-the-wire" representation.
+ * Centralized class used to convert a Bundle to / from the bundle
+ * protocol specification for the "on-the-wire" representation.
+ *
+ * The actual implementation of this is mostly encapsulated in the
+ * BlockProcessor class hierarchy.
  */
 class BundleProtocol {
 public:
+    //----------------------------------------------------------------------
+    //
+    // XXX: NEW INTERFACE TO THE BUNDLE PROTOCOL CLASS
+    //
+
+    /**
+     * Register a new BlockProcessor handler to handle the given block
+     * type code when received off the wire.
+     */
+    static void register_processor(BlockProcessor* bp);
+
+    /**
+     * Find the appropriate BlockProcessor for the given block type
+     * code.
+     */
+    static BlockProcessor* find_processor(u_int8_t type);
+
+    /**
+     * Parse the supplied chunk of arriving data and append it to the
+     * rcvd_blocks_ list in the given bundle, finding the appropriate
+     * BlockProcessor element and calling its receive() handler.
+     *
+     * When called repeatedly for arriving chunks of data, this
+     * properly fills in the entire bundle, including the in_blocks_
+     * record of the arriving blocks and the payload (which is stored
+     * externally).
+     *
+     * @return the length of data consumed or -1 on protocol error,
+     * plus sets *last to true if the bundle is complete.
+     */
+    static int consume(Bundle* bundle, u_char* data, size_t len, bool* last);
+
+private:
+    /**
+     * Array of registered BlockProcessor handlers -- fixed size since
+     * there can be at most one handler per protocol type
+     */
+    static BlockProcessor* processors_[256];
+    
+    //
+    //----------------------------------------------------------------------
+public:
+
     /**
      * Fill in the given buffer with the formatted bundle blocks that
      * should go before the payload data, including the payload block
@@ -58,7 +105,7 @@ public:
      */
     static int parse_header_blocks(Bundle* bundle,
                                    u_char* buf, size_t len);
-    
+
     /**
      * Fill in the given buffer with the formatted bundle blocks that
      * should go after the payload data.
@@ -129,13 +176,13 @@ public:
     static int parse_bundle(Bundle* bundle, u_char* buf, size_t len);
 
     /**
-     * Store a DTN timestamp into a 64-bit timestamp suitable for
+     * Store a DTN timestamp into a 64-bit value suitable for
      * transmission over the network.
      */
     static void set_timestamp(u_char* bp, const BundleTimestamp* tv);
 
     /**
-     * Store a struct timeval into a 64-bit timestamp suitable for
+     * Store a DTN timestamp into a 64-bit value suitable for
      * transmission over the network. The implementation doesn't
      * require the 64-bit destination to be word-aligned so it is safe
      * to cast here.
@@ -145,14 +192,14 @@ public:
     }
 
     /**
-     * Retrieve a struct timeval from a 64-bit timestamp that was
+     * Retrieve a DTN timestamp from a 64-bit value that was
      * transmitted over the network. This does not require the
      * timestamp to be word-aligned.
      */
     static void get_timestamp(BundleTimestamp* tv, const u_char* bp);
 
     /**
-     * Retrieve a struct timeval from a 64-bit timestamp that was
+     * Retrieve a DTN timestamp from a 64-bit value that was
      * transmitted over the network. This does not require the
      * timestamp to be word-aligned.
      */
@@ -166,53 +213,12 @@ public:
     static const int CURRENT_VERSION = 0x04;
 
     /**
-     * Values for bundle processing flags that appear in the primary
-     * block.
+     * Valid type codes for bundle blocks.
      */
     typedef enum {
-        BUNDLE_IS_FRAGMENT             = 1 << 0,
-        BUNDLE_IS_ADMIN                = 1 << 1,
-        BUNDLE_DO_NOT_FRAGMENT         = 1 << 2,
-        BUNDLE_CUSTODY_XFER_REQUESTED  = 1 << 3,
-        BUNDLE_SINGLETON_DESTINATION   = 1 << 4
-    } bundle_processing_flag_t;
-    
-    /**
-     * The first fixed-field portion of the primary bundle block
-     * preamble structure.
-     */
-    struct PrimaryBlock1 {
-        u_int8_t version;
-        u_int8_t bundle_processing_flags;
-        u_int8_t class_of_service_flags;
-        u_int8_t status_report_request_flags;
-        u_char   block_length[0]; // SDNV
-    } __attribute__((packed));
-
-    /**
-     * The remainder of the fixed-length part of the primary bundle
-     * block that immediately follows the block length.
-     */
-    struct PrimaryBlock2 {
-        u_int16_t dest_scheme_offset;
-        u_int16_t dest_ssp_offset;
-        u_int16_t source_scheme_offset;
-        u_int16_t source_ssp_offset;
-        u_int16_t replyto_scheme_offset;
-        u_int16_t replyto_ssp_offset;
-        u_int16_t custodian_scheme_offset;
-        u_int16_t custodian_ssp_offset;
-        u_int64_t creation_ts;
-        u_int32_t lifetime;
-
-    } __attribute__((packed));
-
-    /**
-     * Valid type codes for bundle blocks other than the primary
-     * block.
-     */
-    typedef enum {
-        PAYLOAD_BLOCK          = 0x01
+        PRIMARY_BLOCK          = 0x00,	///< INTERNAL USE ONLY -- NOT IN SPEC
+        PAYLOAD_BLOCK          = 0x01, 
+        PREVIOUS_HOP_BLOCK     = 0x05
     } bundle_block_type_t;
 
     /**
@@ -302,32 +308,6 @@ public:
      */
     static bool get_admin_type(const Bundle* bundle,
                                admin_record_type_t* type);
-
-protected:
-    static size_t get_primary_len(const Bundle* bundle,
-                                  DictionaryVector* dict,
-                                  size_t* dictionary_len,
-                                  size_t* primary_var_len);
-
-    static size_t get_payload_block_len(const Bundle* bundle);
-    
-    static void add_to_dictionary(const EndpointID& eid,
-                                  DictionaryVector* dict,
-                                  size_t* dictlen);
-    
-    static void get_dictionary_offsets(DictionaryVector *dict,
-                                       EndpointID eid,
-                                       u_int16_t* scheme_offset,
-                                       u_int16_t* ssp_offset);
-    
-    static u_int8_t format_bundle_flags(const Bundle* bundle);
-    static void parse_bundle_flags(Bundle* bundle, u_int8_t flags);
-
-    static u_int8_t format_cos_flags(const Bundle* bundle);
-    static void parse_cos_flags(Bundle* bundle, u_int8_t cos_flags);
-
-    static u_int8_t format_srr_flags(const Bundle* bundle);
-    static void parse_srr_flags(Bundle* bundle, u_int8_t srr_flags);
 };
 
 } // namespace dtn

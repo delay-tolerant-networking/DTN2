@@ -24,6 +24,8 @@
 
 BUNDLING_SRCS := 				\
 	bundling/AnnounceBundle.cc		\
+	bundling/BlockInfo.cc			\
+	bundling/BlockProcessor.cc		\
 	bundling/Bundle.cc			\
 	bundling/BundleActions.cc		\
 	bundling/BundleDaemon.cc		\
@@ -40,7 +42,10 @@ BUNDLING_SRCS := 				\
 	bundling/ForwardingLog.cc		\
 	bundling/FragmentManager.cc		\
 	bundling/ExpirationTimer.cc		\
+	bundling/PayloadBlockProcessor.cc	\
+	bundling/PrimaryBlockProcessor.cc	\
 	bundling/SDNV.cc			\
+	bundling/UnknownBlockProcessor.cc	\
 
 CONTACT_SRCS :=					\
 	contacts/AlwaysOnLink.cc		\

@@ -26,6 +26,8 @@
 #include "CustodySignal.h"
 #include "ExpirationTimer.h"
 #include "FragmentManager.h"
+#include "PayloadBlockProcessor.h"
+#include "PrimaryBlockProcessor.h"
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
 #include "reg/AdminRegistration.h"
@@ -96,6 +98,10 @@ BundleDaemon::do_init()
     actions_ = new BundleActions();
     eventq_ = new oasys::MsgQueue<BundleEvent*>(logpath_);
     eventq_->notify_when_empty();
+
+    // register default block processor handlers
+    BundleProtocol::register_processor(new PrimaryBlockProcessor());
+    BundleProtocol::register_processor(new PayloadBlockProcessor());
 }
 
 //----------------------------------------------------------------------
