@@ -198,6 +198,20 @@ ExternalRouter::handle_event(BundleEvent *event)
         // Delete this route from our static routing table
         RouteDelEvent *rae = dynamic_cast< RouteDelEvent * >(event);
         route_table_->del_entries(rae->dest_);
+    } else if (event->type_ == BUNDLE_TRANSMITTED) {
+        // Do not pass transmit events for deleted contacts
+        BundleTransmittedEvent *event = dynamic_cast< BundleTransmittedEvent * >(event);
+        if(event->contact_ == NULL)
+	{
+	    return;
+	}
+    } else if (event->type_ == BUNDLE_TRANSMIT_FAILED) {
+        // Do not pass transmit failed events for deleted contacts
+        BundleTransmitFailedEvent *event = dynamic_cast< BundleTransmitFailedEvent * >(event);
+        if(event->contact_ == NULL)
+	{
+	    return;
+	}
     }
 
     // serialize the event
