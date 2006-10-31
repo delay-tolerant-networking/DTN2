@@ -32,6 +32,26 @@ skip that step and pass --without-db to the DTN2 configure invocation.
 % make
 % make install
 
+If the build presents trouble, the following note from the
+comp.lang.tcl archive may be helpful:
+
+   Re: multiple definition of `fixstrtod' while cross-compiling tcl
+   From: Eric Hassold <hassold at evolane.fr>
+   Date: Mon Dec 05 2005 - 22:33:38 CET
+
+   Tcl configure script makes some pessimistic assumptions when
+   cross-compiling (when AC_TRY_RUN can't run). One of them is guessing
+   libc has no strtod when small test program can't be run. Some AC_TRY_RUN
+   should actually be replaced by AC_TRY_LINK to provide better estimate.
+
+   Anyway, as a work-around, you may force configure detection, defining
+      export ac_cv_func_strtod=yes
+   before running ./configure. You may also have to force
+      export tcl_cv_strtod_buggy=1
+   so that Tcl will define its own fixstrtod() symbol, which will call
+   uclibc's strtod(). Works fine in our nightly built process, compiling
+   Tcl for arm-linux/uclibc.
+
 (In the unpacked Berkeley DB source dir)
 % cd build_unix
 % ../dist/configure --prefix=/opt/arm-linux-libraries \
