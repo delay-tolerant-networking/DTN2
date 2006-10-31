@@ -542,16 +542,21 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 void
 BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
+    Bundle* bundle = event->bundleref_.object();
+
     /*
      * Check that a close contact event has not already deleted this contact.
      * If it has, we will disregard the transmission notice.
      */
     if(event->contact_ == NULL)
     {
+    	log_info("BUNDLE_TRANSMITTED id:%d (%zu bytes_sent/%zu reliable) -> unknown contact",
+             bundle->bundleid_,
+             event->bytes_sent_,
+             event->reliably_sent_);
     	return;
     }
 
-    Bundle* bundle = event->bundleref_.object();
     Link* link = event->contact_->link();
     
     /*
@@ -664,18 +669,20 @@ void
 BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
 {
     /*
+     * The bundle was delivered to a next-hop contact.
+     */
+    Bundle* bundle = event->bundleref_.object();
+
+    /*
      * Check that a close contact event has not already deleted this contact.
      * If it has, we will disregard the failed transmission notice.
      */
     if(event->contact_ == NULL)
     {
+    	log_info("BUNDLE_TRANSMIT_FAILED id:%d -> unknown contact",
+             bundle->bundleid_);
     	return;
     }
-
-    /*
-     * The bundle was delivered to a next-hop contact.
-     */
-    Bundle* bundle = event->bundleref_.object();
 
     log_info("BUNDLE_TRANSMIT_FAILED id:%d -> %s (%s)",
              bundle->bundleid_,
