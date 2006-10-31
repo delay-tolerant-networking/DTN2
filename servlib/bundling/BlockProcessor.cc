@@ -132,10 +132,12 @@ int
 BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
                         u_char* buf, size_t len)
 {
+    (void)bundle;
+    
     static const char* log = "/dtn/bundle/protocol";
+    (void)log;
     
     size_t consumed = 0;
-    (void)bundle;
 
     ASSERT(! block->complete());
 

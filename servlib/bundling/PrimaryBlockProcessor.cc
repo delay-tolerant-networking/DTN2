@@ -174,6 +174,10 @@ PrimaryBlockProcessor::debug_dump_dictionary(const char* bp, size_t len,
               ntohs(primary2->custodian_ssp_offset),
               ntohs(primary2->replyto_scheme_offset),
               ntohs(primary2->replyto_ssp_offset));
+#else
+    (void)bp;
+    (void)len;
+    (void)primary2;
 #endif
 }
 

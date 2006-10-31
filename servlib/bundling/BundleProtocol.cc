@@ -17,7 +17,6 @@
 
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <algorithm>
 
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/util/StringUtils.h>
@@ -140,6 +139,7 @@ BundleProtocol::format_header_blocks(const Bundle* bundle,
                                      u_char* buf, size_t len)
 {
     static const char* log = "/dtn/bundle/protocol";
+    (void)log;
     
     BlockProcessor* primary_bp = find_processor(PRIMARY_BLOCK);
     BlockProcessor* payload_bp = find_processor(PAYLOAD_BLOCK);
