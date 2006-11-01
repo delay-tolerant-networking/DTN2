@@ -73,9 +73,11 @@ test::script {
     puts "* Opening link to dtnd 1"
     dtn::tell_dtnd 0 link open $clayer-link:0-1
 
-    puts "* Waiting for all bundles to flow"
-    dtn::wait_for_bundle_stats 0 "0 pending" [expr 10000 + ($count * 100)]
-    dtn::wait_for_bundle_stats 1 "$count pending"  [expr 10000 + ($count * 100)]
+    puts "* Waiting for all bundles to flow (up to 5 minutes)"
+    set timeout [expr 5 * 60 * 1000]
+    
+    dtn::wait_for_bundle_stats 0 "0 pending"       $timeout
+    dtn::wait_for_bundle_stats 1 "$count pending"  $timeout
 
     puts "* Checking that the link stayed open"
     dtn::check_link_stats 0 $clayer-link:0-1 "1 contacts"
@@ -88,16 +90,16 @@ test::script {
     dtn::wait_for_dtnd 3
 
     puts "* Starting dtnrecv on node 3"
-    set rcvpid [dtn::run_app 3 dtnrecv "$dest -q -n $count"]
+    set rcvpid [dtn::run_app 3 dtnrecv "-q -n $count $dest"]
 
     puts "* Opening links"
     dtn::tell_dtnd 2 link open $clayer-link:2-3
     dtn::tell_dtnd 1 link open $clayer-link:1-2
 
     puts "* Waiting for all bundles to be delivered"
-    dtn::wait_for_bundle_stats 1 "0 pending"  [expr 10000 + ($count * 100)]
-    dtn::wait_for_bundle_stats 2 "0 pending"  [expr 10000 + ($count * 100)]
-    dtn::wait_for_bundle_stats 3 "$count delivered"  [expr 10000 + ($count * 100)]
+    dtn::wait_for_bundle_stats 1 "0 pending"        $timeout
+    dtn::wait_for_bundle_stats 2 "0 pending"        $timeout
+    dtn::wait_for_bundle_stats 3 "$count delivered" $timeout
 
     puts "* Checking that all links stayed open"
     dtn::check_link_stats 0 $clayer-link:0-1 "1 contacts"
