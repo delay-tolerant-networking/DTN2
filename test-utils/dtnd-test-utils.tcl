@@ -86,17 +86,20 @@ proc default_bundle_arrived {regid bundle_data} {
             set isprimary 1
             foreach {xxx block} [lrange $val 2 end] {
                 array set block_info $block
+                set type [format "0x%x" $block_info(block_type)]
+                
                 if {$isprimary} {
-                    set type primary
-                    set flags 0
+                    set type2 primary
+                    binary scan $block_info(contents) cc version flags
+                    set flags [format "0x%x" $flags]
                     set isprimary 0
                 } else {
-                    binary scan $block_info(contents) cc type flags
-                    set type  [format "0x%x" $type]
+                    binary scan $block_info(contents) cc type2 flags
+                    set type2 [format "0x%x" $type2]
                     set flags [format "0x%x" $flags]
                 }
                 log /test notice "\t\
-                        type $type flags $flags\
+                        type $type ($type2) flags $flags\
                         length $block_info(length)\
                         data_length $block_info(data_length)\
                         data_offset $block_info(data_offset)"
