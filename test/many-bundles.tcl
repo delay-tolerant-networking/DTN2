@@ -52,7 +52,7 @@ test::script {
     puts "* Sending $count bundles of length $length"
     for {set i 0} {$i < $count} {incr i} {
 	set timestamp($i) [dtn::tell_dtnd 0 sendbundle $source $dest\
-		length=$length expiration=300]
+		length=$length expiration=3600]
     }
 
     puts "* Checking that all the bundles are queued"
