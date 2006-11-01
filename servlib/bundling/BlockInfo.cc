@@ -15,12 +15,15 @@
  */
 
 #include "BlockInfo.h"
+#include "BlockProcessor.h"
+#include "BundleProtocol.h"
 
 namespace dtn {
 
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(BlockProcessor* owner)
     : owner_(owner),
+      block_type_(owner->block_type()),
       contents_(),
       data_length_(0),
       data_offset_(0),
@@ -38,6 +41,13 @@ BlockInfo::BlockInfo(oasys::Builder& builder)
 void
 BlockInfo::serialize(oasys::SerializeAction* a)
 {
+    a->process("block_type", &block_type_);
+    if (a->action_code() == oasys::Serialize::UNMARSHAL) {
+        // need to re-assign the owner
+        owner_ = BundleProtocol::find_processor(block_type_);
+    }
+    ASSERT(block_type_ == owner_->block_type());
+    
     u_int32_t length = contents_.len();
     a->process("length", &length);
     
@@ -51,11 +61,8 @@ BlockInfo::serialize(oasys::SerializeAction* a)
     a->process("contents", contents_.buf(), length);
     a->process("data_length", &data_length_);
     a->process("data_offset", &data_offset_);
+    a->process("complete", &complete_);
 
-    if (a->action_code() == oasys::Serialize::UNMARSHAL) {
-        // XXX/demmer TODO
-        NOTIMPLEMENTED;
-    }
 }
 
 //----------------------------------------------------------------------

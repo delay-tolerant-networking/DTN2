@@ -67,6 +67,7 @@ public:
 
 protected:
     BlockProcessor* owner_;       ///< Owner of this block
+    u_int8_t	    block_type_;  ///< Extracted from owner
     DataBuffer      contents_;    ///< Copy of the off-the-wire block,
                                   ///  with length set to the amount that's
                                   ///  currently in the buffer
