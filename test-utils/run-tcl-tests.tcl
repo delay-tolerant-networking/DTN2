@@ -54,7 +54,6 @@ set tests(basic) {
     "storage.tcl"		"-storage_type filesysdb"
     "tcp-bogus-link.tcl"	""
     "version-mismatch.tcl"	""
-#    "writeblocked.tcl"		""
 }
 
 # the performance test group
