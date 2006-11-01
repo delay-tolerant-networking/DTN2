@@ -360,7 +360,8 @@ CLConnection::close_contact()
                 BundleDaemon::post(
                     new BundleReceivedEvent(incoming->bundle_.object(),
                                             EVENTSRC_PEER,
-                                            payload_rcvd));
+                                            payload_rcvd,
+                                            contact_.object()));
             }
         }
     }
