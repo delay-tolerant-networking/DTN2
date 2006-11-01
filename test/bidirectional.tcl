@@ -20,11 +20,14 @@ net::num_nodes 3
 manifest::file apps/dtnsend/dtnsend dtnsend
 manifest::file apps/dtnrecv/dtnrecv dtnrecv
 
-set cl tcp
+set cl    tcp
+set count 200
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
 	set cl $val
+    } elseif {$var == "-count" || $var == "count"} {
+	set count $val
     } else {
 	puts "ERROR: unrecognized test option '$var'"
 	exit 1
@@ -47,7 +50,6 @@ test::script {
     set eid1 dtn://host-0/test
     set eid2 dtn://host-$last/test
 
-    set count 200
     set sleep 100
 
     # ----------------------------------------------------------------------
@@ -62,16 +64,16 @@ test::script {
     dtn::wait_for_dtnd *
 
     puts "* Running senders / receivers for $count bundles, sleep $sleep"
-    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q -n $count"]
-    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -q -n $count"]
+    set rcvpid1 [dtn::run_app 0     dtnrecv "-q -n $count $eid1"]
+    set rcvpid2 [dtn::run_app $last dtnrecv "-q -n $count $eid2"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
-    puts "* Waiting for senders / receivers to complete"
-    run::wait_for_pid_exit 0     $sndpid1
-    run::wait_for_pid_exit $last $sndpid2
-    run::wait_for_pid_exit 0     $rcvpid1
-    run::wait_for_pid_exit $last $rcvpid2
+    puts "* Waiting for senders / receivers to complete (up to 5 mins)"
+    run::wait_for_pid_exit 0     $sndpid1 [expr 5 * 60 * 1000]
+    run::wait_for_pid_exit $last $sndpid2 [expr 5 * 60 * 1000]
+    run::wait_for_pid_exit 0     $rcvpid1 [expr 5 * 60 * 1000]
+    run::wait_for_pid_exit $last $rcvpid2 [expr 5 * 60 * 1000]
     
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
@@ -85,7 +87,7 @@ test::script {
     }
 
     puts "* Checking link stats"
-    dtn::check_link_stats 0 $cl-link:0-1 1 contacts 200 bundles_transmitted
+    dtn::check_link_stats 0 $cl-link:0-1 1 contacts $count bundles_transmitted
     dtn::check_link_stats 1 $cl-link:1-0 1 contacts
 
     puts "* Stopping dtnds"
@@ -103,8 +105,8 @@ test::script {
     dtn::wait_for_dtnd *
     
     puts "* Running senders / receivers for $count bundles, sleep $sleep"
-    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q -n $count"]
-    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -q -n $count"]
+    set rcvpid1 [dtn::run_app 0     dtnrecv "-q -n $count $eid1"]
+    set rcvpid2 [dtn::run_app $last dtnrecv "-q -n $count $eid2"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
@@ -125,11 +127,11 @@ test::script {
 	puts "Node $i: [dtn::tell_dtnd $i bundle stats]"
     }
 
-    puts "* Waiting for senders / receivers to complete"
-    run::wait_for_pid_exit 0     $sndpid1 60000
-    run::wait_for_pid_exit $last $sndpid2 60000
-    run::wait_for_pid_exit 0     $rcvpid1 60000
-    run::wait_for_pid_exit $last $rcvpid2 60000
+    puts "* Waiting for senders / receivers to complete (up to 5 mins)"
+    run::wait_for_pid_exit 0     $sndpid1 [expr 5 * 60 * 1000]
+    run::wait_for_pid_exit $last $sndpid2 [expr 5 * 60 * 1000]
+    run::wait_for_pid_exit 0     $rcvpid1 [expr 5 * 60 * 1000]
+    run::wait_for_pid_exit $last $rcvpid2 [expr 5 * 60 * 1000]
      
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
@@ -161,8 +163,8 @@ test::script {
     dtn::wait_for_dtnd *
     
     puts "* Running senders / receivers for $count bundles, sleep $sleep"
-    set rcvpid1 [dtn::run_app 0     dtnrecv "$eid1 -q"]
-    set rcvpid2 [dtn::run_app $last dtnrecv "$eid2 -q"]
+    set rcvpid1 [dtn::run_app 0     dtnrecv "-q $eid1"]
+    set rcvpid2 [dtn::run_app $last dtnrecv "-q $eid2"]
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
