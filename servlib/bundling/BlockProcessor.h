@@ -91,13 +91,11 @@ public:
      * Second callback for transmitting a bundle. This pass should
      * generate any data for the block that does not depend on other
      * blocks' contents.
-     *
-     * The base class implementation does nothing.
      */
     virtual void generate(const Bundle* bundle,
                           Link*         link,
                           BlockInfo*    block,
-                          bool          last);
+                          bool          last) = 0;
 
     /**
      * Third callback for transmitting a bundle. This pass should

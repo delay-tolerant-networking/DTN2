@@ -32,7 +32,8 @@ public:
     UnknownBlockProcessor();
     
     /// @{ Virtual from BlockProcessor
-    int consume(BlockInfo* block, u_char* buf, size_t len);
+    void generate(const Bundle* bundle, Link* link,
+                  BlockInfo* block, bool last);
     /// @}
 };
 

@@ -216,19 +216,6 @@ BlockProcessor::prepare(const Bundle* bundle, LinkBlocks* blocks)
 
 //----------------------------------------------------------------------
 void
-BlockProcessor::generate(const Bundle* bundle,
-                         Link*         link,
-                         BlockInfo*    block,
-                         bool          last)
-{
-    (void)bundle;
-    (void)link;
-    (void)block;
-    (void)last;
-}
-
-//----------------------------------------------------------------------
-void
 BlockProcessor::finalize(const Bundle* bundle, Link* link, BlockInfo* block)
 {
     (void)bundle;

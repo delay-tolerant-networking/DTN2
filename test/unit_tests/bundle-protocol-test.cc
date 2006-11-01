@@ -31,7 +31,7 @@ protocol_test(Bundle* b1)
     int errno_; const char* strerror_;
 
     encode_len = BundleProtocol::format_header_blocks(b1, buf, sizeof(buf));
-    CHECK(encode_len != -1);
+    CHECK(encode_len > 0);
     
     Bundle* b2 = new Bundle(oasys::Builder::builder());
     b2->bundleid_ = 0;
@@ -62,6 +62,11 @@ protocol_test(Bundle* b1)
     CHECK_EQUAL(b1->payload_.length(),     b2->payload_.length());
 
     return true;
+}
+
+DECLARE_TEST(Init) {
+    BundleProtocol::init_default_processors();
+    return UNIT_TEST_PASSED;
 }
 
 DECLARE_TEST(Basic)
@@ -137,6 +142,7 @@ DECLARE_TEST(AllFlags)
 }
 
 DECLARE_TESTER(BundleProtocolTest) {
+    ADD_TEST(Init);
     ADD_TEST(Basic);
     ADD_TEST(Fragment);
     ADD_TEST(AllFlags);

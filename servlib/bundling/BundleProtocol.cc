@@ -25,6 +25,7 @@
 #include "Bundle.h"
 #include "BundleProtocol.h"
 #include "BundleTimestamp.h"
+#include "PayloadBlockProcessor.h"
 #include "PrimaryBlockProcessor.h"
 #include "SDNV.h"
 #include "UnknownBlockProcessor.h"
@@ -55,6 +56,15 @@ BundleProtocol::find_processor(u_int8_t type)
         ret = UnknownBlockProcessor::instance();
     }
     return ret;
+}
+
+//----------------------------------------------------------------------
+void
+BundleProtocol::init_default_processors()
+{
+    // register default block processor handlers
+    BundleProtocol::register_processor(new PrimaryBlockProcessor());
+    BundleProtocol::register_processor(new PayloadBlockProcessor());
 }
 
 //----------------------------------------------------------------------

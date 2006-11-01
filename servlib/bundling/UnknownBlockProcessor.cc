@@ -28,4 +28,21 @@ UnknownBlockProcessor::UnknownBlockProcessor()
 {
 }
 
+//----------------------------------------------------------------------
+void
+UnknownBlockProcessor::generate(const Bundle* bundle,
+                                Link*         link,
+                                BlockInfo*    block,
+                                bool          last)
+{
+    (void)bundle;
+    (void)link;
+    (void)block;
+    (void)last;
+
+    // XXX/demmer this should copy the block from the corresponding
+    // one on the input side
+    NOTREACHED;
+}
+
 } // namespace dtn

@@ -54,6 +54,11 @@ public:
     static BlockProcessor* find_processor(u_int8_t type);
 
     /**
+     * Initialize the default set of block processors.
+     */
+    static void init_default_processors();
+
+    /**
      * Parse the supplied chunk of arriving data and append it to the
      * rcvd_blocks_ list in the given bundle, finding the appropriate
      * BlockProcessor element and calling its receive() handler.
