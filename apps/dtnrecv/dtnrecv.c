@@ -297,6 +297,11 @@ main(int argc, char** argv)
     }
 
     // loop waiting for bundles
+    if (count == 0) {
+        printf("looping forever to receive bundles\n");
+    } else {
+        printf("looping to receive %d bundles\n", count);
+    }
     for (i = 0; (count == 0) || (i < count); ++i) {
         memset(&spec, 0, sizeof(spec));
         memset(&payload, 0, sizeof(payload));
