@@ -23,7 +23,36 @@
 using namespace oasys;
 using namespace dtn;
 
-bool
+Bundle*
+new_bundle()
+{
+    Bundle* b = new Bundle(oasys::Builder::builder());
+    b->bundleid_		= 0;
+    b->is_fragment_		= false;
+    b->is_admin_		= false;
+    b->do_not_fragment_		= false;
+    b->in_datastore_       	= false;
+    b->custody_requested_	= false;
+    b->local_custody_      	= false;
+    b->singleton_dest_     	= true;
+    b->priority_		= 0;
+    b->receive_rcpt_		= false;
+    b->custody_rcpt_		= false;
+    b->forward_rcpt_		= false;
+    b->delivery_rcpt_		= false;
+    b->deletion_rcpt_		= false;
+    b->app_acked_rcpt_		= false;
+    b->orig_length_		= 0;
+    b->frag_offset_		= 0;
+    b->expiration_		= 0;
+    b->owner_              	= "";
+    b->creation_ts_.seconds_ 	= 0;
+    b->creation_ts_.seqno_   	= 0;
+    b->payload_.init(0, BundlePayload::NODATA);
+    return b;
+}
+
+int
 protocol_test(Bundle* b1)
 {
     u_char buf[32768];
@@ -33,9 +62,7 @@ protocol_test(Bundle* b1)
     encode_len = BundleProtocol::format_header_blocks(b1, buf, sizeof(buf));
     CHECK(encode_len > 0);
     
-    Bundle* b2 = new Bundle(oasys::Builder::builder());
-    b2->bundleid_ = 0;
-    b2->payload_.init(0, BundlePayload::NODATA);
+    Bundle* b2 = new_bundle();
     
     decode_len = BundleProtocol::parse_header_blocks(b2, buf, encode_len);
     CHECK_EQUAL(decode_len, encode_len);
@@ -61,7 +88,7 @@ protocol_test(Bundle* b1)
     CHECK_EQUAL(b1->orig_length_,          b2->orig_length_);
     CHECK_EQUAL(b1->payload_.length(),     b2->payload_.length());
 
-    return true;
+    return UNIT_TEST_PASSED;
 }
 
 DECLARE_TEST(Init) {
@@ -71,28 +98,27 @@ DECLARE_TEST(Init) {
 
 DECLARE_TEST(Basic)
 {
-    Bundle* bundle = new Bundle(oasys::Builder::builder());
+    Bundle* bundle = new_bundle();
     bundle->bundleid_ = 10;
+    
     bundle->payload_.init(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://source.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
     bundle->custodian_.assign("dtn:none");
     bundle->replyto_.assign("dtn:none");
-    
     bundle->expiration_ = 1000;
     bundle->creation_ts_.seconds_ = 10101010;
     bundle->creation_ts_.seqno_ = 44556677;
     bundle->payload_.set_length(1024);
 
-    CHECK(protocol_test(bundle));
-
-    return UNIT_TEST_PASSED;
+    return protocol_test(bundle);
 }
 
 DECLARE_TEST(Fragment)
 {
-    Bundle* bundle = new Bundle(oasys::Builder::builder());
+    Bundle* bundle = new_bundle();
     bundle->bundleid_ = 10;
+
     bundle->payload_.init(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://frag.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
@@ -104,15 +130,14 @@ DECLARE_TEST(Fragment)
     bundle->frag_offset_ = 123456789;
     bundle->orig_length_ = 1234567890;
     
-    CHECK(protocol_test(bundle));
-
-    return UNIT_TEST_PASSED;
+    return protocol_test(bundle);
 }
 
 DECLARE_TEST(AllFlags)
 {
-    Bundle* bundle = new Bundle(oasys::Builder::builder());
+    Bundle* bundle = new_bundle();
     bundle->bundleid_ = 10;
+
     bundle->payload_.init(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://source.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
@@ -133,9 +158,7 @@ DECLARE_TEST(AllFlags)
     bundle->creation_ts_.seconds_  = 10101010;
     bundle->creation_ts_.seqno_ = 44556677;
 
-    CHECK(protocol_test(bundle));
-
-    return UNIT_TEST_PASSED;
+    return protocol_test(bundle);
 
     // XXX/demmer add tests for malformed / mangled headers, too long
     // sdnv's, etc
