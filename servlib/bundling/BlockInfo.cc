@@ -23,7 +23,7 @@ namespace dtn {
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(BlockProcessor* owner)
     : owner_(owner),
-      block_type_(owner->block_type()),
+      owner_type_(owner->block_type()),
       contents_(),
       data_length_(0),
       data_offset_(0),
@@ -38,15 +38,42 @@ BlockInfo::BlockInfo(oasys::Builder& builder)
 }
 
 //----------------------------------------------------------------------
+u_int8_t
+BlockInfo::type() const
+{
+    if (owner_->block_type() == BundleProtocol::PRIMARY_BLOCK) {
+        return BundleProtocol::PRIMARY_BLOCK;
+    }
+
+    if (contents_.len() == 0) {
+        return 0xff;
+    }
+
+    return contents_.buf()[0];
+}
+
+//----------------------------------------------------------------------
+u_int8_t
+BlockInfo::flags() const
+{
+    if (owner_->block_type() == BundleProtocol::PRIMARY_BLOCK) {
+        return 0x0;
+    }
+
+    ASSERT(contents_.len() >= 2);
+    return contents_.buf()[1];
+}
+
+//----------------------------------------------------------------------
 void
 BlockInfo::serialize(oasys::SerializeAction* a)
 {
-    a->process("block_type", &block_type_);
+    a->process("owner_type", &owner_type_);
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         // need to re-assign the owner
-        owner_ = BundleProtocol::find_processor(block_type_);
+        owner_ = BundleProtocol::find_processor(owner_type_);
     }
-    ASSERT(block_type_ == owner_->block_type());
+    ASSERT(owner_type_ == owner_->block_type());
     
     u_int32_t length = contents_.len();
     a->process("length", &length);

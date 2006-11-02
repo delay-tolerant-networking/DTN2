@@ -45,8 +45,6 @@ public:
 
     /// @{ Accessors
     BlockProcessor*   owner()       const { return owner_; }
-    u_int8_t          type()        const { return contents_.buf()[0]; }
-    u_int8_t          flags()       const { return contents_.buf()[1]; }
     const DataBuffer& contents()    const { return contents_; }
     u_int32_t	      data_length() const { return data_length_; }
     u_int32_t	      data_offset() const { return data_offset_; }
@@ -61,13 +59,20 @@ public:
     void        set_data_offset(u_int32_t o) { data_offset_ = o; }
     DataBuffer* writable_contents()          { return &contents_; }
     /// @}
+
+    /// @{ These accessors need special case processing since the
+    /// primary block doesn't have the fields in the same place.
+    u_int8_t type()  const;
+    u_int8_t flags() const;
+    /// @}
+
     
     /// Virtual from SerializableObject
     virtual void serialize(oasys::SerializeAction* action);
 
 protected:
     BlockProcessor* owner_;       ///< Owner of this block
-    u_int8_t	    block_type_;  ///< Extracted from owner
+    u_int8_t	    owner_type_;  ///< Extracted from owner
     DataBuffer      contents_;    ///< Copy of the off-the-wire block,
                                   ///  with length set to the amount that's
                                   ///  currently in the buffer
