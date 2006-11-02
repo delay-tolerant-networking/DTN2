@@ -86,7 +86,7 @@ proc default_bundle_arrived {regid bundle_data} {
             set isprimary 1
             foreach {xxx block} [lrange $val 2 end] {
                 array set block_info $block
-                set type [format "0x%x" $block_info(block_type)]
+                set type [format "0x%x" $block_info(owner_type)]
                 
                 if {$isprimary} {
                     set type2 primary
