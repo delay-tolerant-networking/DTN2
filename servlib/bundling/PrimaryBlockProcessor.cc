@@ -431,7 +431,7 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
     
     if (! block->complete()) {
         ASSERT(cc == (int)len);
-        return len;
+        return consumed + cc;
     }
 
     /*

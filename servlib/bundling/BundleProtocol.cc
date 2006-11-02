@@ -89,25 +89,28 @@ BundleProtocol::consume(Bundle* bundle,
     // loop as long as there is data left to process
     while (len != 0) {
         log_debug(log, "consume has %zu bytes left to process", len);
-        BlockInfo& info = bundle->recv_blocks_.back();
+        BlockInfo* info = &bundle->recv_blocks_.back();
 
         // if the last received block is complete, create a new one
         // and push it onto the vector. at this stage we consume all
         // blocks, even if there's no BlockProcessor that understands
         // how to parse it
-        if (info.complete()) {
+        if (info->complete()) {
             bundle->recv_blocks_.push_back(BlockInfo(find_processor(*data)));
-            info = bundle->recv_blocks_.back();
+            info = &bundle->recv_blocks_.back();
+            log_debug(log, "previous block complete, created new BlockInfo type 0x%x",
+                      info->owner()->block_type());
         }
         
         // now we know that the block isn't complete, so we tell it to
         // consume a chunk of data
-        log_debug(log, "block type 0x%x incomplete, calling consume again",
-                  info.type());
+        log_debug(log, "block processor 0x%x type 0x%x incomplete, calling consume "
+                  "(%zu bytes already buffered)",
+                  info->owner()->block_type(), info->type(), info->contents().len());
         
-        int cc = info.owner()->consume(bundle, &info, data, len);
+        int cc = info->owner()->consume(bundle, info, data, len);
         if (cc < 0) {
-            log_err(log, "protocol error handling block 0x%x", info.type());
+            log_err(log, "protocol error handling block 0x%x", info->type());
             return -1;
         }
         
@@ -116,12 +119,12 @@ BundleProtocol::consume(Bundle* bundle,
         // consumed all the data that was passed in.
         len  -= cc;
         data += cc;
-        if (info.complete()) {
+        if (info->complete()) {
             log_debug(log, "consumed %u bytes, completed block type 0x%x",
-                      cc, info.type());
+                      cc, info->type());
 
             // check if we're done with the bundle
-            if (info.flags() & BLOCK_FLAG_LAST_BLOCK) {
+            if (info->flags() & BLOCK_FLAG_LAST_BLOCK) {
                 log_debug(log, "got last block flag, bundle complete");
                 *last = true;
                 break;
@@ -129,7 +132,7 @@ BundleProtocol::consume(Bundle* bundle,
                 
         } else {
             log_debug(log, "consumed %u bytes, block type 0x%x still incomplete",
-                      cc, info.type());
+                      cc, info->type());
             ASSERT(len == 0);
         }
     }

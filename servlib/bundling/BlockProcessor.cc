@@ -65,6 +65,13 @@ BlockProcessor::consume_preamble(BlockInfo* block,
     ASSERT(contents->nfree() >= tocopy);
     memcpy(contents->end(), buf, tocopy);
     contents->set_len(contents->len() + tocopy);
+
+    // Make sure we have at least one byte of sdnv before trying to
+    // parse it.
+    if (contents->len() < preamble_size + 1) {
+        ASSERT(tocopy == len);
+        return len;
+    }
     
     // Now we try decoding the sdnv that contains the actual block
     // length. If we can't, then we have a partial preamble, so we can
@@ -93,9 +100,12 @@ BlockProcessor::consume_preamble(BlockInfo* block,
     block->set_data_offset(preamble_size + sdnv_len);
     contents->set_len(preamble_size + sdnv_len);
 
-    log_debug(log, "BlockProcessor consumed preamble %zu/%u for block type 0x%x",
-              preamble_size + sdnv_len - prev_consumed,
-              block->full_length(), block->type());
+    log_debug(log, "BlockProcessor type 0x%x "
+              "consumed preamble %zu/%u for block type (0x%x): "
+              "data_offset %u data_length %u",
+              block_type(), preamble_size + sdnv_len - prev_consumed,
+              block->full_length(), block->type(),
+              block->data_offset(), block->data_length());
     
     // Finally, be careful to return only the amount of the buffer
     // that we needed to complete the preamble.
@@ -168,7 +178,7 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
     
     // Now make sure there's still something left to do for the block,
     // otherwise it should have been marked as complete
-    ASSERT(block->data_length() > block->contents().len());
+    ASSERT(block->full_length() > block->contents().len());
 
     // make sure the contents buffer has enough space
     block->writable_contents()->reserve(block->full_length());
@@ -190,8 +200,9 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
     len -= tocopy;
     consumed += tocopy;
 
-    log_debug(log, "BlockProcessor consumed %zu/%u for block type 0x%x (%s)",
-              consumed, block->full_length(), block->type(),
+    log_debug(log, "BlockProcessor type 0x%x "
+              "consumed %zu/%u for block type 0x%x (%s)",
+              block_type(), consumed, block->full_length(), block->type(),
               block->complete() ? "complete" : "not complete");
     
     return consumed;

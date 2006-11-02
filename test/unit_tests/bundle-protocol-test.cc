@@ -26,8 +26,10 @@ using namespace dtn;
 Bundle*
 new_bundle()
 {
+    static int next_bundleid = 10;
+    
     Bundle* b = new Bundle(oasys::Builder::builder());
-    b->bundleid_		= 0;
+    b->bundleid_		= next_bundleid++;
     b->is_fragment_		= false;
     b->is_admin_		= false;
     b->do_not_fragment_		= false;
@@ -48,23 +50,56 @@ new_bundle()
     b->owner_              	= "";
     b->creation_ts_.seconds_ 	= 0;
     b->creation_ts_.seqno_   	= 0;
-    b->payload_.init(0, BundlePayload::NODATA);
+    b->payload_.init(b->bundleid_);
     return b;
 }
 
+#define NO_CHUNKS      1
+#define ONEBYTE_CHUNKS 2
+#define RANDOM_CHUNKS  3 
+
 int
-protocol_test(Bundle* b1)
+protocol_test(Bundle* b1, int chunks)
 {
+#define AVG_CHUNK 16
+    
+    u_char payload1[32768];
+    u_char payload2[32768];
     u_char buf[32768];
     int encode_len, decode_len;
     int errno_; const char* strerror_;
 
-    encode_len = BundleProtocol::format_header_blocks(b1, buf, sizeof(buf));
+    Bundle* b2;
+    
+    encode_len = BundleProtocol::format_bundle(b1, buf, sizeof(buf));
     CHECK(encode_len > 0);
-    
-    Bundle* b2 = new_bundle();
-    
-    decode_len = BundleProtocol::parse_header_blocks(b2, buf, encode_len);
+
+    // extract the payload before we swing the payload directory
+    b1->payload_.read_data(0, b1->payload_.length(),
+                           payload1, BundlePayload::FORCE_COPY);
+        
+    b2 = new_bundle();
+
+    if (chunks == NO_CHUNKS) {
+        decode_len = BundleProtocol::parse_bundle(b2, buf, encode_len);
+    } else {
+        bool complete = false;
+        decode_len = 0;
+        do {
+            size_t chunk_size =
+                (chunks == ONEBYTE_CHUNKS) ? 1 : oasys::Random::rand(AVG_CHUNK);
+            
+            int cc = BundleProtocol::consume(b2,
+                                             &buf[decode_len],
+                                             chunk_size,
+                                             &complete);
+
+            ASSERT((cc == (int)chunk_size) || complete);
+            decode_len += cc;
+            ASSERT(decode_len <= encode_len);
+        } while (!complete);
+    }
+
     CHECK_EQUAL(decode_len, encode_len);
 
     CHECK_EQUALSTR(b1->source_.c_str(),    b2->source_.c_str());
@@ -88,6 +123,22 @@ protocol_test(Bundle* b1)
     CHECK_EQUAL(b1->orig_length_,          b2->orig_length_);
     CHECK_EQUAL(b1->payload_.length(),     b2->payload_.length());
 
+    b2->payload_.read_data(0, b2->payload_.length(),
+                           payload2, BundlePayload::FORCE_COPY);
+
+    bool payload_ok = true;
+    for (u_int i = 0; i < b2->payload_.length(); ++i) {
+        if (payload1[i] != payload2[i]) {
+            log_err("/test", "payload mismatch at byte %d: 0x%x != 0x%x",
+                    i, payload1[i], payload2[i]);
+            payload_ok = false;
+        }
+    }
+    CHECK(payload_ok);
+    
+    delete b1;
+    delete b2;
+
     return UNIT_TEST_PASSED;
 }
 
@@ -96,12 +147,29 @@ DECLARE_TEST(Init) {
     return UNIT_TEST_PASSED;
 }
 
-DECLARE_TEST(Basic)
+#define DECLARE_BP_TESTS(_what)                                 \
+DECLARE_TEST(_what ## NoChunks) {                               \
+    return protocol_test(init_ ## _what (), NO_CHUNKS);         \
+}                                                               \
+                                                                \
+DECLARE_TEST(_what ## OneByteChunks) {                          \
+    return protocol_test(init_ ## _what (), ONEBYTE_CHUNKS);    \
+}                                                               \
+                                                                \
+DECLARE_TEST(_what ## RandomChunks) {                           \
+    return protocol_test(init_ ## _what (), RANDOM_CHUNKS);     \
+}                                                               \
+
+#define ADD_BP_TESTS(_what)                     \
+ADD_TEST(_what ## NoChunks);                    \
+ADD_TEST(_what ## OneByteChunks);               \
+ADD_TEST(_what ## RandomChunks);
+
+Bundle* init_Basic()
 {
     Bundle* bundle = new_bundle();
-    bundle->bundleid_ = 10;
+    bundle->payload_.set_data("test payload");
     
-    bundle->payload_.init(10, BundlePayload::NODATA);
     bundle->source_.assign("dtn://source.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
     bundle->custodian_.assign("dtn:none");
@@ -109,17 +177,17 @@ DECLARE_TEST(Basic)
     bundle->expiration_ = 1000;
     bundle->creation_ts_.seconds_ = 10101010;
     bundle->creation_ts_.seqno_ = 44556677;
-    bundle->payload_.set_length(1024);
 
-    return protocol_test(bundle);
+    return bundle;
 }
 
-DECLARE_TEST(Fragment)
+DECLARE_BP_TESTS(Basic);
+
+Bundle* init_Fragment()
 {
     Bundle* bundle = new_bundle();
-    bundle->bundleid_ = 10;
-
-    bundle->payload_.init(10, BundlePayload::NODATA);
+    bundle->payload_.set_data("test payload");
+    
     bundle->source_.assign("dtn://frag.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
     bundle->custodian_.assign("dtn:none");
@@ -130,15 +198,16 @@ DECLARE_TEST(Fragment)
     bundle->frag_offset_ = 123456789;
     bundle->orig_length_ = 1234567890;
     
-    return protocol_test(bundle);
+    return bundle;
 }
 
-DECLARE_TEST(AllFlags)
+DECLARE_BP_TESTS(Fragment);
+
+Bundle* init_AllFlags()
 {
     Bundle* bundle = new_bundle();
-    bundle->bundleid_ = 10;
-
-    bundle->payload_.init(10, BundlePayload::NODATA);
+    bundle->payload_.set_data("test payload");
+    
     bundle->source_.assign("dtn://source.dtn/test");
     bundle->dest_.assign("dtn://dest.dtn/test");
     bundle->custodian_.assign("dtn:none");
@@ -158,17 +227,51 @@ DECLARE_TEST(AllFlags)
     bundle->creation_ts_.seconds_  = 10101010;
     bundle->creation_ts_.seqno_ = 44556677;
 
-    return protocol_test(bundle);
+    return bundle;
+}
+
+DECLARE_BP_TESTS(AllFlags);
+
+Bundle* init_RandomPayload()
+{
+    Bundle* bundle = new_bundle();
+
+    u_char payload[4096];
+    for (u_int i = 0; i < sizeof(payload); ++i) {
+        payload[i] = oasys::Random::rand(26) + 'a';
+    }
+    bundle->payload_.set_data(payload, sizeof(payload));
+    
+    bundle->source_.assign("dtn://source.dtn/test");
+    bundle->dest_.assign("dtn://dest.dtn/test");
+    bundle->custodian_.assign("dtn:none");
+    bundle->replyto_.assign("dtn:none");
+
+    return bundle;
+}
+
+DECLARE_BP_TESTS(RandomPayload);
+
+DECLARE_TESTER(BundleProtocolTest) {
+    ADD_TEST(Init);
+    ADD_BP_TESTS(Basic);
+    ADD_BP_TESTS(Fragment);
+    ADD_BP_TESTS(AllFlags);
+    ADD_BP_TESTS(RandomPayload);
 
     // XXX/demmer add tests for malformed / mangled headers, too long
     // sdnv's, etc
 }
 
-DECLARE_TESTER(BundleProtocolTest) {
-    ADD_TEST(Init);
-    ADD_TEST(Basic);
-    ADD_TEST(Fragment);
-    ADD_TEST(AllFlags);
-}
+int
+main(int argc, const char** argv)
+{
+    system("rm -rf .bundle-protocol-test");
+    system("mkdir  .bundle-protocol-test");
+    BundlePayload::payloaddir_.assign(".bundle-protocol-test");
+    
+    BundleProtocolTest t("bundle protocol test");
+    t.run_tests(argc, argv, true);
 
-DECLARE_TEST_FILE(BundleProtocolTest, "bundle protocol test");
+    system("rm -rf .bundle-protocol-test");
+}
