@@ -93,7 +93,8 @@ RouteEntry::format(char* bp, size_t sz) const
     return snprintf(bp, sz, "%s -> %s (%s)",
                     dest_pattern_.c_str(),
                     next_hop_->nexthop(),
-                    ForwardingInfo::action_to_str(ForwardingInfo::action_t(action_)));
+                    ForwardingInfo::action_to_str(
+                        static_cast<ForwardingInfo::action_t>(action_)));
 }
 
 //----------------------------------------------------------------------
@@ -152,7 +153,8 @@ RouteEntry::dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
                  (bundle_cos_ & (1 << Bundle::COS_NORMAL))    ? '1' : '0',
                  (bundle_cos_ & (1 << Bundle::COS_EXPEDITED)) ? '1' : '0',
                  next_hop_->name(),
-                 ForwardingInfo::action_to_str(ForwardingInfo::action_t(action_)),
+                 ForwardingInfo::action_to_str(
+                    static_cast<ForwardingInfo::action_t>(action_)),
                  route_priority_,
                  custody_timeout_.min_,
                  custody_timeout_.lifetime_pct_,

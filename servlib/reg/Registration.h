@@ -94,7 +94,8 @@ public:
     u_int32_t	             durable_key()       { return regid_; }
     u_int32_t	             regid()	         { return regid_; }
     const EndpointIDPattern& endpoint()          { return endpoint_; } 
-    failure_action_t         failure_action()    { return failure_action_t(failure_action_); }
+    failure_action_t         failure_action()    { return static_cast<failure_action_t>
+                                                              (failure_action_); }
     const std::string&       script()            { return script_; }
     u_int32_t	             expiration()	 { return expiration_; }
     bool                     active()            { return active_; }

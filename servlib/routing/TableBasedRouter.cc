@@ -215,7 +215,8 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
         log_debug("should_fwd bundle %d: "
                   "skip %s due to forwarding log entry %s",
                   bundle->bundleid_, route->next_hop_->name(),
-                  ForwardingInfo::state_to_str(ForwardingInfo::state_t(info.state_)));
+                  ForwardingInfo::state_to_str(
+                      static_cast<ForwardingInfo::state_t>(info.state_)));
         return false;
     }
 
@@ -240,14 +241,16 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
         log_debug("should_fwd bundle %d: "
                   "match %s: forwarding log entry %s TRANSMIT_FAILED %d",
                   bundle->bundleid_, route->next_hop_->name(),
-                  ForwardingInfo::state_to_str(ForwardingInfo::state_t(info.state_)),
+                  ForwardingInfo::state_to_str(
+                      static_cast<ForwardingInfo::state_t>(info.state_)),
                   bundle->bundleid_);
         
     } else {
         log_debug("should_fwd bundle %d: "
                   "match %s: forwarding log entry %s",
                   bundle->bundleid_, route->next_hop_->name(),
-                  ForwardingInfo::state_to_str(ForwardingInfo::state_t(info.state_)));
+                  ForwardingInfo::state_to_str(
+                      static_cast<ForwardingInfo::state_t>(info.state_)));
     }
 
     return true;
