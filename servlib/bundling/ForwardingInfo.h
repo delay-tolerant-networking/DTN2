@@ -47,7 +47,7 @@ public:
 
     static inline const char* action_to_str(action_t action)
     {
-        switch(action_t(action)) {
+        switch(action) {
         case INVALID_ACTION:	return "INVALID";
         case FORWARD_ACTION:	return "FORWARD";
         case COPY_ACTION:	return "COPY";
@@ -70,7 +70,7 @@ public:
 
     static const char* state_to_str(state_t state)
     {
-        switch(state_t(state)) {
+        switch(state) {
         case NONE:      	return "NONE";
         case IN_FLIGHT: 	return "IN_FLIGHT";
         case TRANSMITTED:      	return "TRANSMITTED";
