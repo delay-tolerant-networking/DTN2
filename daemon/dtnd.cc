@@ -407,14 +407,28 @@ DTND::main(int argc, char* argv[])
             exec_command(testcmd_->initscript_.c_str());
     }
 
+    // allow startup messages to be flushed to standard-out before
+    // the prompt is displayed
+    oasys::Thread::yield();
+    usleep(500000);
+    
     run_console();
 
     log_notice("/dtnd", "command loop exited... shutting down daemon");
     oasys::TclCommandInterp::shutdown();
     dtnserver->shutdown();
+    
+    // close out servers
     delete dtnserver;
     delete apiserver;
-
+    
+    // give other threads (like logging) a moment to catch up before exit
+    oasys::Thread::yield();
+    sleep(1);
+    
+    // kill logging
+    oasys::Log::shutdown();
+    
     return 0;
 }
 
