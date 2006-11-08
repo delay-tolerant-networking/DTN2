@@ -139,6 +139,8 @@ ForwardingLog::add_entry(Link* link,
                          state_t state,
                          const CustodyTimerSpec& custody_timer)
 {
+    oasys::ScopeLock l(lock_, "ForwardingLog::add_entry");
+    
     log_.push_back(ForwardingInfo(state, action, link->clayer()->name(),
                                   link->nexthop(), custody_timer));
 }
