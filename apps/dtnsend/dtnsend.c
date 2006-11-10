@@ -37,6 +37,7 @@ int sleep_time          = 0;
 // bundle options
 int expiration          = 3600; // expiration timer (default one hour)
 int delivery_receipts   = 0;    // request end to end delivery receipts
+int delete_receipts     = 0;    // request deletion receipts
 int forwarding_receipts = 0;    // request per hop departure
 int custody             = 0;    // request custody transfer
 int custody_receipts    = 0;    // request per custodian receipts
@@ -146,6 +147,12 @@ main(int argc, char** argv)
         bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
     }
 
+    if (delete_receipts)
+    {
+        // set the delivery receipt option
+        bundle_spec.dopts |= DOPTS_DELETE_RCPT;
+    }
+
     if (forwarding_receipts)
     {
         // set the forward receipt option
@@ -243,6 +250,7 @@ void print_usage()
     fprintf(stderr, " -c request custody transfer\n");
     fprintf(stderr, " -C request custody transfer receipts\n");
     fprintf(stderr, " -D request for end-to-end delivery receipt\n");
+    fprintf(stderr, " -X request for deletion receipt\n");
     fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
@@ -259,7 +267,7 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHr:s:d:e:n:woDFRcCt:p:i:z:");
+        c = getopt(argc, argv, "vhHr:s:d:e:n:woDXFRcCt:p:i:z:");
         switch (c)
         {
         case 'v':
@@ -290,6 +298,9 @@ void parse_options(int argc, char**argv)
             break;
         case 'D':
             delivery_receipts = 1;
+            break;
+        case 'X':
+            delete_receipts = 1;
             break;
         case 'F':
             forwarding_receipts = 1;
