@@ -43,6 +43,7 @@ BUNDLING_SRCS := 				\
 	bundling/FragmentManager.cc		\
 	bundling/ExpirationTimer.cc		\
 	bundling/PayloadBlockProcessor.cc	\
+	bundling/PreviousHopBlockProcessor.cc	\
 	bundling/PrimaryBlockProcessor.cc	\
 	bundling/SDNV.cc			\
 	bundling/UnknownBlockProcessor.cc	\

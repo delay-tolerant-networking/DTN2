@@ -122,6 +122,7 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("              dest: %s\n", dest_.c_str());
     buf->appendf("         custodian: %s\n", custodian_.c_str());
     buf->appendf("           replyto: %s\n", replyto_.c_str());
+    buf->appendf("           prevhop: %s\n", prevhop_.c_str());
     buf->appendf("    payload_length: %zu\n", payload_.length());
     buf->appendf("          priority: %d\n", priority_);
     buf->appendf(" custody_requested: %s\n", bool_to_str(custody_requested_));
@@ -156,6 +157,7 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("dest", &dest_);
     a->process("custodian", &custodian_);
     a->process("replyto", &replyto_);
+    a->process("prevhop", &prevhop_);    
     a->process("priority", &priority_);
     a->process("custody_requested", &custody_requested_);
     a->process("local_custody", &local_custody_);

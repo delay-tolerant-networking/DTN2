@@ -35,7 +35,8 @@ Link::Params Link::default_params_ = {
     default_params_.mtu_                = 0,
     default_params_.min_retry_interval_ = 5,
     default_params_.max_retry_interval_ = 10 * 60,
-    default_params_.idle_close_time_    = 0
+    default_params_.idle_close_time_    = 0,
+    default_params_.prevhop_hdr_        = false
 };
 
 //----------------------------------------------------------------------
@@ -179,6 +180,7 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
                                 &params_.max_retry_interval_));
     p.addopt(new oasys::UIntOpt("idle_close_time",
                                 &params_.idle_close_time_));
+    p.addopt(new oasys::BoolOpt("prevhop_hdr", &params_.prevhop_hdr_));
     
     int ret = p.parse_and_shift(argc, argv, invalidp);
     if (ret == -1) {
@@ -332,21 +334,25 @@ void
 Link::dump(oasys::StringBuffer* buf)
 {
     buf->appendf("Link %s:\n"
+                 "clayer: %s\n"
                  "type: %s\n"
                  "state: %s\n"
                  "nexthop: %s\n"
                  "remote eid: %s\n"
                  "mtu: %u\n"
                  "min_retry_interval: %u\n"
-                 "max_retry_interval: %u\n",
-                 name(), 
+                 "max_retry_interval: %u\n"
+                 "prevhop_hdr: %s\n",
+                 name(),
+                 clayer_->name(),
                  link_type_to_str(static_cast<link_type_t>(type_)),
                  state_to_str(static_cast<state_t>(state_)),
                  nexthop(),
                  remote_eid_.c_str(),
                  params_.mtu_,
                  params_.min_retry_interval_,
-                 params_.max_retry_interval_);
+                 params_.max_retry_interval_,
+                 params_.prevhop_hdr_ ? "true" : "false");
     
     clayer_->dump_link(this, buf);
 }

@@ -440,6 +440,12 @@ public:
          * opportunistic links.
          */
         u_int idle_close_time_;
+
+        /**
+         * Whether or not to send the previous hop header on this
+         * link. Default is false.
+         */
+        bool prevhop_hdr_;
     };
 
     /**

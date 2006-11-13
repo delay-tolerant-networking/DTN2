@@ -203,6 +203,7 @@ public:
     EndpointID dest_;		///< Destination eid
     EndpointID custodian_;	///< Current custodian eid
     EndpointID replyto_;	///< Reply-To eid
+    EndpointID prevhop_;	///< Previous hop eid
     bool is_fragment_;		///< Fragmentary Bundle
     bool is_admin_;		///< Administrative record bundle
     bool do_not_fragment_;	///< Bundle shouldn't be fragmented
@@ -237,7 +238,7 @@ public:
     CustodyTimerVec custody_timers_; ///< Live custody timers for this bundle
 
     BlockInfoVec recv_blocks_;	///< BP blocks as they arrived off the wire
-    LinkBlockVec xmit_blocks_;	///< Vector of {outgoing link, blockvec}
+    LinkBlockSet xmit_blocks_;	///< Block vector for each link
 protected:
     friend class BundleList;
     

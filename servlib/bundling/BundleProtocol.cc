@@ -27,6 +27,7 @@
 #include "Bundle.h"
 #include "BundleTimestamp.h"
 #include "PayloadBlockProcessor.h"
+#include "PreviousHopBlockProcessor.h"
 #include "PrimaryBlockProcessor.h"
 #include "SDNV.h"
 #include "UnknownBlockProcessor.h"
@@ -67,6 +68,7 @@ BundleProtocol::init_default_processors()
 {
     // register default block processor handlers
     BundleProtocol::register_processor(new PrimaryBlockProcessor());
+    BundleProtocol::register_processor(new PreviousHopBlockProcessor());
     BundleProtocol::register_processor(new PayloadBlockProcessor());
 }
 
