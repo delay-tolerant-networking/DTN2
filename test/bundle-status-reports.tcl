@@ -15,7 +15,7 @@
 #
 
 test::name bundle-status-reports
-net::num_nodes 3
+net::default_num_nodes 3
 
 dtn::config
 
@@ -91,7 +91,7 @@ test::script {
     # test the SR's
     test_sr delivery_rcpt sr_delivered_time $dest_node
     test_sr forward_rcpt  sr_forwarded_time [lrange $all_nodes 1 end]
-    test_sr receive_rcpt  sr_received_time $all_nodes
+    test_sr receive_rcpt  sr_received_time  [lrange $all_nodes 0 [expr $last_node - 1]]
     
     # need to cut the link to create a deletion SR:
     dtn::tell_dtnd 1 link close tcp-link:1-0
