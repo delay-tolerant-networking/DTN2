@@ -121,6 +121,8 @@ BlockProcessor::generate_preamble(BlockInfo* block,
                                   size_t     data_length)
 {
     static const char* log = "/dtn/bundle/protocol";
+    (void)log;
+    
     size_t sdnv_len = SDNV::encoding_len(data_length);
     ASSERT(block->contents().len() == 0);
     ASSERT(block->contents().buf_len() >=
