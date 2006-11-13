@@ -22,6 +22,7 @@ dtn::config
 set clayer tcp
 set length 5000
 set segmentlen 0
+set prevhop_hdr 0
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
@@ -30,6 +31,8 @@ foreach {var val} $opt(opts) {
         set length $val	
     } elseif {$var == "-segmentlen" || $var == "segmentlen"} {
         set segmentlen $val	
+    } elseif {$var == "-prevhop_hdr" || $var == "prevhop_hdr"} {
+        set prevhop_hdr 1
     } else {
 	puts "ERROR: unrecognized test option '$var'"
 	exit 1
@@ -41,7 +44,11 @@ dtn::config_interface $clayer
 
 set linkopts ""
 if {$segmentlen != 0} {
-    set linkopts "segment_length=$segmentlen"
+    append linkopts "segment_length=$segmentlen "
+}
+
+if {$prevhop_hdr} {
+    append linkopts "prevhop_hdr=1 "
 }
     
 dtn::config_linear_topology ALWAYSON $clayer true $linkopts
@@ -82,7 +89,6 @@ test::script {
 	set outgoing_link $clayer-link:$i-[expr $i - 1]
 	dtn::wait_for_bundle_stats $i {1 transmitted}
 	dtn::wait_for_link_stat $i $outgoing_link 1 bundles_transmitted
-	dtn::wait_for_link_stat $i $outgoing_link $length bytes_transmitted
 	dtn::wait_for_link_stat $i $outgoing_link 0 bundles_inflight
 	dtn::wait_for_link_stat $i $outgoing_link 0 bytes_inflight
     }
