@@ -110,17 +110,28 @@ TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
 void
 TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
 {
+    // if we're configured to do so, create a route entry for the eid
+    // specified by the link when it connected. if it's a dtn://xyz
+    // URI that doesn't have anything following the "hostname" part,
+    // we add a wildcard of '/*' to match all service tags.
+    
     if (Config.add_nexthop_routes_) {
         Link* link = event->link_;
         EndpointID eid = link->remote_eid();
-
-        if (! eid.equals(EndpointID::NULL_EID()) ) {
-            // create route entry, post new route event
-            RouteEntry *entry = new RouteEntry(
-                EndpointIDPattern(eid.str() + std::string("/*")), link);
-            entry->action_ = ForwardingInfo::FORWARD_ACTION;
-            BundleDaemon::post(new RouteAddEvent(entry));
+        std::string eid_str = eid.str();
+        
+        if (eid.scheme_str() == "dtn" &&
+            eid.ssp().length() > 2 &&
+            eid.ssp()[0] == '/' &&
+            eid.ssp()[1] == '/' &&
+            eid.ssp().find('/', 2) == std::string::npos)
+        {
+            eid_str += std::string("/*");
         }
+        
+        RouteEntry *entry = new RouteEntry(EndpointIDPattern(eid_str), link);
+        entry->action_ = ForwardingInfo::FORWARD_ACTION;
+        BundleDaemon::post(new RouteAddEvent(entry));
     }
 }
 
