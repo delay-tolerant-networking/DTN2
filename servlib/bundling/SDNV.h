@@ -91,6 +91,6 @@ public:
 
 } // namespace dtn
 
-#endif __cplusplus
+#endif /* __cplusplus */
 
 #endif /* _SDNV_H_ */
