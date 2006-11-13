@@ -546,7 +546,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         // ack = false
         BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact_,
-                                       header_len + payload_len, false);
+                                       header_len + payload_len, false));
         ok = true;
     }
 
