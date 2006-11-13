@@ -116,6 +116,17 @@ doxygen:
 	doxygen doc/doxyfile
 
 #
+# Generate XML schema documentation
+# Requires:
+#     xsddoc-1.0 (http://xframe.sourceforge.net/xsddoc/)
+#     java
+#
+xsddoc:
+	mkdir -p doc/router-xsddoc
+	xsddoc -t "External Router Interface" -o doc/router-xsddoc -q \
+		daemon/router.xsd
+
+#
 # Build a TAGS database. Note this includes all the sources so it gets
 # header files as well.
 #
