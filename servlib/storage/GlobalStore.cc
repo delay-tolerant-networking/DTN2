@@ -19,16 +19,20 @@
 #include <oasys/storage/StorageConfig.h>
 #include <oasys/serialize/TypeShims.h>
 #include <oasys/thread/Mutex.h>
+#include <oasys/util/MD5.h>
 
 #include "GlobalStore.h"
-#include "reg/Registration.h"
+#include "bundling/Bundle.h"
+#include "reg/APIRegistration.h"
 
 namespace dtn {
 
-const u_int32_t GlobalStore::CURRENT_VERSION = 2;
+//----------------------------------------------------------------------
+const u_int32_t GlobalStore::CURRENT_VERSION = 3;
 static const char* GLOBAL_TABLE = "globals";
 static const char* GLOBAL_KEY   = "global_key";
 
+//----------------------------------------------------------------------
 class Globals : public oasys::SerializableObject
 {
 public:
@@ -38,24 +42,28 @@ public:
     u_int32_t version_;         ///< on-disk copy of CURRENT_VERSION
     u_int32_t next_bundleid_;	///< running serial number for bundles
     u_int32_t next_regid_;	///< running serial number for registrations
-
+    u_char digest_[oasys::MD5::MD5LEN];	///< MD5 digest of all serialized fields
+    
     /**
      * Virtual from SerializableObject.
      */
     virtual void serialize(oasys::SerializeAction* a);
-
 };
 
+//----------------------------------------------------------------------
 void
 Globals::serialize(oasys::SerializeAction* a)
 {
     a->process("version",       &version_);
     a->process("next_bundleid", &next_bundleid_);
     a->process("next_regid",    &next_regid_);
+    a->process("digest",	digest_, 16);
 }
 
+//----------------------------------------------------------------------
 GlobalStore* GlobalStore::instance_;
 
+//----------------------------------------------------------------------
 GlobalStore::GlobalStore()
     : Logger("GlobalStore", "/dtn/storage/%s", GLOBAL_TABLE),
       globals_(NULL), store_(NULL)
@@ -65,6 +73,7 @@ GlobalStore::GlobalStore()
                              true /* quiet */);
 }
 
+//----------------------------------------------------------------------
 int
 GlobalStore::init(const oasys::StorageConfig& cfg, 
                   oasys::DurableStore*        store)
@@ -78,6 +87,7 @@ GlobalStore::init(const oasys::StorageConfig& cfg,
     return instance_->do_init(cfg, store);
 }
 
+//----------------------------------------------------------------------
 int
 GlobalStore::do_init(const oasys::StorageConfig& cfg, 
                      oasys::DurableStore*        store)
@@ -109,6 +119,7 @@ GlobalStore::do_init(const oasys::StorageConfig& cfg,
         globals_->version_       = CURRENT_VERSION;
         globals_->next_bundleid_ = 0;
         globals_->next_regid_    = Registration::MAX_RESERVED_REGID + 1;
+        calc_digest(globals_->digest_);
 
         // store the new value
         err = store_->put(oasys::StringShim(GLOBAL_KEY), globals_,
@@ -133,6 +144,7 @@ GlobalStore::do_init(const oasys::StorageConfig& cfg,
     return 0;
 }
 
+//----------------------------------------------------------------------
 GlobalStore::~GlobalStore()
 {
     delete store_;
@@ -140,11 +152,7 @@ GlobalStore::~GlobalStore()
     delete lock_;
 }
 
-/**
- * Get a new bundle id, updating the value in the store
- *
- * (was db_update_bundle_id, db_restore_bundle_id)
- */
+//----------------------------------------------------------------------
 u_int32_t
 GlobalStore::next_bundleid()
 {
@@ -162,12 +170,7 @@ GlobalStore::next_bundleid()
     return ret;
 }
     
-/**
- * Get a new unique registration id, updating the running value in
- * the persistent table.
- *
- * (was db_new_regID, db_update_registration_id, db_restore_registration_id)
- */
+//----------------------------------------------------------------------
 u_int32_t
 GlobalStore::next_regid()
 {
@@ -185,9 +188,35 @@ GlobalStore::next_regid()
     return ret;
 }
 
-/**
- * Load in the globals.
- */
+//----------------------------------------------------------------------
+void
+GlobalStore::calc_digest(u_char* digest)
+{
+    // we create a dummy Bundle and a Registration (and in the future
+    // a link), then take their serialized form and MD5 it, such that
+    // adding or deleting a field will change the digest
+    Bundle b(oasys::Builder::builder());
+    APIRegistration r(oasys::Builder::builder());
+
+    oasys::StringSerialize s(oasys::Serialize::CONTEXT_LOCAL,
+                             oasys::StringSerialize::INCLUDE_NAME |
+                             oasys::StringSerialize::INCLUDE_TYPE |
+                             oasys::StringSerialize::SCHEMA_ONLY);
+
+    s.action(&b);
+    s.action(&r);
+
+    oasys::MD5 md5;
+    md5.update(s.buf().data(), s.buf().length());
+    md5.finalize();
+
+    log_debug("calculated digest %s for serialize string '%s'",
+              md5.digest_ascii().c_str(), s.buf().c_str());
+
+    memcpy(digest, md5.digest(), oasys::MD5::MD5LEN);
+}
+
+//----------------------------------------------------------------------
 bool
 GlobalStore::load()
 {
@@ -213,10 +242,23 @@ GlobalStore::load()
         return false;
     }
 
+    u_char digest[oasys::MD5::MD5LEN];
+    calc_digest(digest);
+
+    if (memcmp(digest, globals_->digest_, oasys::MD5::MD5LEN) != 0) {
+        log_crit("datastore digest mismatch: "
+                 "expected %s, database contains %s",
+                 oasys::hex2str(digest, oasys::MD5::MD5LEN).c_str(),
+                 oasys::hex2str(globals_->digest_, oasys::MD5::MD5LEN).c_str());
+        log_crit("(implies serialized schema change)");
+        return false;
+    }
+
     loaded_ = true;
     return true;
 }
 
+//----------------------------------------------------------------------
 void
 GlobalStore::update()
 {
@@ -236,6 +278,7 @@ GlobalStore::update()
     }
 }
 
+//----------------------------------------------------------------------
 void
 GlobalStore::close()
 {

@@ -113,6 +113,11 @@ protected:
      */
     void update();
 
+    /**
+     * Calculate a digest of on-disk serialized objects.
+     */
+    void calc_digest(u_char* digest);
+
     bool loaded_;
     Globals* globals_;
     oasys::SingleTypeDurableTable<Globals>* store_;
