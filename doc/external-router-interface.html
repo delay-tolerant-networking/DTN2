@@ -1,0 +1,255 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>DTN External Router Interface</title><meta name="generator" content="DocBook XSL Stylesheets V1.69.1"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="d0e1"></a>DTN External Router Interface</h2></div><div><h3 class="subtitle"><i>DRAFT</i></h3></div><div><p class="releaseinfo">Approved for Public Release; Distribution Unlimited. Case
+    Number: 06-1215</p></div><div><p class="copyright">Copyright &copy; 2006 The MITRE Corporation. All rights reserved.</p></div><div><div class="revhistory"><table border="1" width="100%" summary="Revision history"><tr><th align="left" valign="top" colspan="2"><b>Revision History</b></th></tr><tr><td align="left">Revision 0.90</td><td align="left">11.13.06</td></tr></table></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="section"><a href="#d0e24">Overview</a></span></dt><dt><span class="section"><a href="#Section2">Interface Operation</a></span></dt><dt><span class="section"><a href="#Section3">Protocol Elements</a></span></dt><dd><dl><dt><span class="section"><a href="#d0e111">Rendezvous</a></span></dt><dt><span class="section"><a href="#d0e142">Links and Contacts</a></span></dt><dt><span class="section"><a href="#d0e189">Routes</a></span></dt><dt><span class="section"><a href="#d0e204">Bundles</a></span></dt><dt><span class="section"><a href="#d0e246">Peer Router Communication</a></span></dt><dt><span class="section"><a href="#d0e265">Failure Recovery</a></span></dt></dl></dd><dt><span class="appendix"><a href="#AppendixA">A. New Configuration Directives</a></span></dt><dt><span class="appendix"><a href="#AppendixB">B. Interface Design FAQ</a></span></dt></dl></div><div class="section" lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e24"></a>Overview</h2></div></div></div><p>A new implementation architecture is under development that promises
+    to ease the task of adding new capabilities to DTN. Using generic external
+    interfaces, third-party developers will be able to implement plug-in
+    modules without having to rewrite or understand the internal workings of
+    the DTN2 reference implementation (RI). Plug-in modules are stand-alone
+    processes designed to work in collaboration with DTN. In the longer term,
+    this effort provides the basis for extending commercial off-the-shelf
+    (COTS) DTN implementations with domain specific capabilities.</p><p>The External Router Interface, documented here, is the first DTN
+    external interface designed to move bundle forwarding decisions to an
+    external process or processes. Benefits of this interface include:</p><div class="itemizedlist"><ul type="disc"><li><p>Classified and proprietary bundle routing algorithms are
+        protected.</p></li><li><p>External routers may be written in any programming language (XML
+        based interface).</p></li><li><p>Prototyping of new bundle routing algorithms is
+        streamlined.</p></li><li><p>Routing algorithms may be added and removed at runtime.</p></li></ul></div><p>This guide is directed at external router developers and to those
+    interested in an early product of the new DTN implementation architecture.
+    <a href="#Section2" title="Interface Operation">"Interface Operation"</a> describes interface
+    fundamentals such as underlying protocols and message structure. <a href="#Section3" title="Protocol Elements">"Protocol Elements"</a> introduces the set of router
+    interface messages used for inter-process communication. <a href="#AppendixA" title="A.&nbsp;New Configuration Directives">Appendix A</a> summarizes new configuration options
+    introduced with the DTN2 RI external router interface implementation.
+    <a href="#AppendixB" title="B.&nbsp;Interface Design FAQ">Appendix B</a> is an interface design FAQ of
+    sorts that attempts to address questions that often arise when first
+    learning about the interface.</p><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Important</h3><p>Please note that the external router interface is still evolving
+      and will likely be modified as experience is gained externalizing DTN
+      bundle routers. Future work on other interfaces, including
+      convergence-layer and storage interfaces, may also impact the interface.
+      The latest "bleeding edge" version of the DTN2 RI includes support for
+      the external router interface documented here and is available at <a href="http://www.dtnrg.org" target="_top">www.dtnrg.org</a>.</p></div></div><div class="section" lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="Section2"></a>Interface Operation</h2></div></div></div><p>Before diving into the details, this section discusses the overall
+    design and operation of the router interface. When compiled, the DTN2 RI
+    2.2.0 release (the latest formal DTN2 release as of this writing) produces
+    one multi-threaded executable, a DTN daemon. This daemon is a complete DTN
+    node; it accepts bundles from a number of built-in convergence layers,
+    provides persistent bundle storage, delivers bundles to local DTN
+    applications, selects routes using built-in routing logic, and forwards
+    bundles to peer DTN nodes. For the purposes of this document, a <span class="">forwarder</span> is a DTN daemon as described above, but one
+    that depends on external routing processes to make bundle routing
+    decisions on its behalf.</p><p>The forwarder communicates with external routing processes:</p><div class="itemizedlist"><ul type="disc"><li><p>with an XML-based messaging protocol</p></li><li><p>using a well-known IPv4 multicast address and UDP port</p></li><li><p>on local or remote hosts</p></li></ul></div><p>Before forwarders and external routers can communicate, they each
+    must join the all-routers multicast group (224.0.0.2) and bind to a
+    well-known UDP port. Forwarders are not aware if zero, one, or more
+    external routers have joined the multicast group. It is the responsibility
+    of the system administrator to ensure router availability.</p><p>Nothing in the interface design precludes running forwarders and
+    external routers on different hosts, however this approach is not
+    recommended especially in wireless and/or bandwidth-constrained
+    environments. The interface is fairly chatty, UDP is unreliable, and there
+    is a high risk of packet loss leading to a breakdown in synchronized
+    state. (The DTN2 RI external router interface is hard coded to use the
+    loopback interface and therefore requires forwarders and external routers
+    to reside on the same host.)</p><p>Inter-process messages are XML-based and must be valid against the
+    <a href="router-xsddoc/index.html" target="_top">external router XML schema</a>.
+    Interface messages are broadly divided into four categories. Event
+    messages are issued by forwarders to indicate state changes that may be of
+    interest to external routers. Request messages are sent by external
+    routers to direct forwarders to perform an action (e.g. "forward the
+    bundle with ID 56 out link tcp0"). Query and report messages are used by
+    external routers to synchronize their state with forwarders after bootup
+    or during failure recovery. The proper usage and interpretation of each
+    interface message is covered in the next section.</p><p>How does the forwarder authenticate external processes? It doesn't.
+    The forwarder makes the assumption that (local or remote) external routers
+    are within the same security domain. In addition, system administrators
+    must ensure there exists one authoritative router or policy module per DTN
+    "node&#8221;, or that multiple external routers are configured in a cooperative
+    manner to correctly handle all events.</p><p>In addition to external routers, other "read-only" types of
+    processes may join the all-routers multicast group. An external logging
+    application, for example, could be written to display the current state of
+    the forwarder simply by listening to external router interface messages.
+    However, this concept is not pursued further in this document. The
+    following discussion is limited to inter-process communication between
+    forwarders and external routers.</p></div><div class="section" lang="en"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="Section3"></a>Protocol Elements</h2></div></div></div><p>This section describes each interface message according to purpose.
+    Hyper-links to generated schema documentation are located throughout the
+    text. To generate the documentation, <span class="type">cd</span> to the top level
+    directory of DTN2 source code and type <span class="type">make xsddoc</span>. You will
+    need <a href="http://xframe.sourceforge.net/xsddoc/" target="_top">xsddoc-1.0</a>
+    and java installed for this to work.</p><div class="section" lang="en"><div class="titlepage"><div><div><h3 class="title"><a name="d0e111"></a>Rendezvous</h3></div></div></div><p>When a forwarder is configured for external routing, it
+      periodically multicasts hello messages to announce its presence to
+      external routers. Each hello message includes the EID of the sender and
+      the interval in seconds between each message. For example, the
+      message</p><p><code class="literal">&lt;dtn eid="dtn://nodeX"
+      hello_interval="30"/&gt;</code></p><p>notifies external routers that the DTN forwarder with EID
+      dtn://nodeX is running and will send another hello message in 30
+      seconds. Router implementations may filter incoming messages by EID if
+      it becomes necessary to run more than one forwarder on a single
+      platform.</p><p>After routers receive one or more hello messages from any (or a
+      specific) DTN node, they must synchronize their state with the
+      forwarder. Several routing interface messages are designed to facilitate
+      state synchronization and have a common format. If x represents
+      meta-information of interest, the message x_query prompts the forwarder
+      to send an x_report message. For example, a <a href="router-xsddoc/noNamespace/element/bundle_query.html" target="_top">bundle_query</a>
+      message asks the forwarder to generate and send a bundle_report
+      message.</p><p>Routers may query the forwarder for four types of
+      meta-information. <a href="router-xsddoc/noNamespace/element/contact_report.html" target="_top">contact_report</a>
+      includes meta-information on all open connections between the local
+      forwarder and remote forwarders. Low-level convergence layer
+      meta-information is also included for each contact. <a href="router-xsddoc/noNamespace/element/link_report.html" target="_top">link_report</a>
+      contains meta information on all forwarder links regardless of the
+      current state. <a href="router-xsddoc/noNamespace/element/route_report.html" target="_top">route_report</a>
+      is composed of meta-information on all static routes configured on the
+      DTN console (if any). <a href="router-xsddoc/noNamespace/element/bundle_report.html" target="_top">bundle_report</a>
+      lists meta-information on each bundle stored by the local
+      forwarder.</p><p>After synchronizing their state with a forwarder, external routers
+      process incoming events as they arrive and send requests when
+      necessary.</p></div><div class="section" lang="en"><div class="titlepage"><div><div><h3 class="title"><a name="d0e142"></a>Links and Contacts</h3></div></div></div><p>DTN links represent a one way communication channel to next hop
+      DTN nodes. Links are either explicitly created in the forwarder
+      configuration file (<code class="filename">dtn.conf</code>) or spring into
+      existence as a result of the neighbor discovery mechanism. Four types of
+      links exist: <span class="emphasis"><em>always on</em></span>, <span class="emphasis"><em>on
+      demand</em></span>, <span class="emphasis"><em>scheduled</em></span>, and
+      <span class="emphasis"><em>opportunistic</em></span>. <a href="router-xsddoc/noNamespace/element/link_created_event.html" target="_top">link_created_event</a>
+      messages announce the existence of new links and include such attributes
+      as name, type, and destination EID along with other meta-information.
+      <a href="router-xsddoc/noNamespace/element/link_deleted_event.html" target="_top">link_deleted_event</a>
+      notifies external routers that a named link has been destroyed. <a href="router-xsddoc/noNamespace/element/link_available_event.html" target="_top">link_available_event</a>
+      and <a href="router-xsddoc/noNamespace/element/link_unavaiable.html" target="_top">link_unavailable_event</a>
+      messages are automatically generated by the forwarder when links are
+      open or closed respectively.</p><p>The forwarder attempts to keep always on and opportunistic links
+      open always. Scheduled links are automatically opened and closed
+      according to configured start and duration settings. On demand links,
+      however, must be explicitly opened by the router using an <a href="router-xsddoc/noNamespace/element/open_link_request.html" target="_top">open_link_request</a>.
+      After on demand links are idle for a set period of time (currently 30
+      seconds), they are closed by the forwarder.</p><p>When the state of any link is either open or busy, a contact
+      element is also available which tracks connection and convergence layer
+      statistics that may be useful to routing algorithms. <a href="router-xsddoc/noNamespace/element/contact_up_event.html" target="_top">contact_up_event</a>
+      and <a href="router-xsddoc/noNamespace/element/contact_down_event.html" target="_top">contact_down_event</a>
+      messages notify routers when contacts are available or
+      unavailable.</p><p>Most link and contact messages carry a coarse "reason" attribute
+      to explain what prompted each link state change.</p></div><div class="section" lang="en"><div class="titlepage"><div><div><h3 class="title"><a name="d0e189"></a>Routes</h3></div></div></div><p>The primary function of DTN external routers is to maintain a
+      forwarding information base of optimal next hop DTN nodes for remote EID
+      prefixes. Routes to remote EID prefixes are either statically
+      configured, learned from the DTN neighbor discovery mechanism, or
+      learned from peer router communications. Specific DTN routing algorithms
+      and implementations are beyond the scope of this document.</p><p>Static routes may be configured in the forwarder configuration
+      file or directly on the DTN console. When static routes are specified, a
+      <a href="router-xsddoc/noNamespace/element/route_add_event.html" target="_top">route_add_event</a>
+      is multicast to external routers. Router implementations may choose to
+      add static routes to internal routing tables (possibly with an
+      identifying marker indicating the source or administrative distance) or
+      simply ignore their existence. The <a href="router-xsddoc/noNamespace/element/route_delete_event.html" target="_top">route_delete_event</a>
+      message is issued when a static route has been deleted at the DTN
+      console.</p><p>The external router interface does not include messages to support
+      the display of external routing tables on the DTN console. All but the
+      most simplistic external routers should have their own "console" for
+      configuration and routing table displays.</p></div><div class="section" lang="en"><div class="titlepage"><div><div><h3 class="title"><a name="d0e204"></a>Bundles</h3></div></div></div><p>Bundles arriving at a forwarder, either from a remote DTN node or
+      from a local application, are announced with a <a href="router-xsddoc/noNamespace/element/bundle_received_event.html" target="_top">bundle_received_event</a>
+      message. Bundle payload is not forwarded over the interface, only
+      meta-information.</p><p>When an opportunity exists to forward a bundle, the external
+      router issues a <a href="router-xsddoc/noNamespace/element/send_bundle_request.html" target="_top">send_bundle_request</a>
+      which includes the local bundle id, name of the outgoing link, and the
+      desired forwarding behavior. Meta-information about the bundle should
+      not be erased until a positive acknowledgement is received from the
+      forwarder.</p><p><a href="router-xsddoc/noNamespace/element/bundle_transmitted_eventt.html" target="_top">bundle_transmitted_event</a>
+      states that a bundle has been successfully transmitted using the
+      identified contact. On reliable links, this means acknowledgements were
+      received, on unreliable links, a best effort attempt was made to send
+      the bundle. A failed transmission is indicated by the <a href="router-xsddoc/noNamespace/element/bundle_transmit_failed_eventt.html" target="_top">bundle_transmit_failed_event</a>
+      message and may warrant a retransmission by the router if
+      possible.</p><p>For successfully transmitted bundles, routers can release all
+      resources dedicated to tracking the bundle unless the sender had
+      requested custody transfer. If custody was requested, the router must
+      continue to track the bundle until it receives a corresponding custody
+      message. If custody was accepted by a downstream DTN node, a <a href="router-xsddoc/noNamespace/element/custody_signal_event.html" target="_top">custody_signal_event</a>
+      is generated. Bundle meta-information can now be released by the router.
+      If custody failed, indicated by the <span class="emphasis"><em>succeeded</em></span>
+      attribute in the <a href="router-xsddoc/noNamespace/element/custody_signal_event.html" target="_top">custody_signal_event</a>,
+      or the router receives a <a href="router-xsddoc/noNamespace/element/custody_timeout_event.html" target="_top">custody_timeout_event</a>
+      (i.e. no response from a downstream DTN node), the router may attempt to
+      retransmit the bundle if possible.</p><p><a href="router-xsddoc/noNamespace/element/bundle_expired_event.html" target="_top">bundle_expired_event</a>
+      notifies the router that a bundle has expired and is being deleted from
+      the store. External routers should remove all records of the
+      bundle.</p><p><a href="router-xsddoc/noNamespace/element/cancel_bundle_event.html" target="_top">cancel_bundle_request</a>
+      asks the forwarder to abort a previous send_bundle request if possible.
+      (As of this writing, cancel_bundle_request is not implemented in the
+      DTN2 RI.)</p></div><div class="section" lang="en"><div class="titlepage"><div><div><h3 class="title"><a name="d0e246"></a>Peer Router Communication</h3></div></div></div><p>Many routing algorithms require information exchange between peer
+      routers. Communication between peer DTN external routers boils down to
+      identifying methods for sending and receiving router message bundles.
+      Two methods are currently available; the first utilizes the DTN2
+      application interface and the second is offered by the external router
+      interface itself.</p><p>External router developers may elect to build their external
+      routers with two personalities, to behave as an external router and as a
+      DTN application. The external router interface handles all bundle
+      forwarding tasks while the application interface is used to send and
+      receive peer router messages. In order for this method to work, external
+      routers must register with the forwarder as a DTN application and supply
+      a well-known service tag for bundle deliveries. It seems intuitive that
+      the service tag would signify the routing algorithm. For example, an
+      external router implementing a flooding algorithm may register with the
+      forwarder using the service tag "flood_rtr".</p><p>This approach offers several benefits: the DTN application
+      interface is reliable, there is no limit on bundle size, and
+      router-originated bundles follow the same path as "normal" application
+      bundles and are subject to the same policies. Cons include increased
+      development complexity and the fact that external routers can't specify
+      an outgoing link using the application API. The forwarder defers to the
+      external router the decision of where to forward router-originated
+      bundles.</p><p>The second alternative is to send locally generated bundle
+      payloads to the forwarder on <a href="router-xsddoc/noNamespace/element/inject_bundle_request.html" target="_top">inject_bundle_request</a>
+      messages. Destination EID, outgoing link, and other attributes required
+      for bundle forwarding are supplied as well as the payload to inject.
+      Router-originated bundle payloads are assumed to be binary blobs and are
+      Base64 encoded. No attempt is made to decode or process
+      router-originated bundle payloads except by the destination remote
+      router process. Forwarders notify external routers of successful or
+      failed transmissions in the same manner as "normal" bundles (I need to
+      check this...). Unlike DTN application bundles, router injected bundles
+      are not cached. If transmission fails, bundles are dropped.</p><p>At boot-up, the external router interface registers with the
+      forwarder to receive all bundles destined to &#8220;ext.rtr/*&#8221;. As in the
+      previous example, a service tag is chosen by the external router
+      developer to uniquely identify the router. Arriving bundles matching the
+      registration "ext_rtr/*" are announced with the <a href="router-xsddoc/noNamespace/element/bundle_delivery_event.html" target="_top">bundle_delivery_event</a>
+      message. Upon receipt of this message, routers must examine the bundle's
+      destination EID to determine the intended recipient of the bundle.
+      Bundle payloads are read in or otherwise accessed using the filename
+      attribute associated with bundle payload meta-information.</p></div><div class="section" lang="en"><div class="titlepage"><div><div><h3 class="title"><a name="d0e265"></a>Failure Recovery</h3></div></div></div><p>Since IPC between forwarders and external routers is
+      connectionless, one process can fail without the other's immediate
+      knowledge. Consider the case where there is one forwarder process and
+      one external router process. Five states are possible 1) both process
+      are up, 2) forwarder is up, external router is down, 3) forwarder is
+      down, external router is up, 4) forwarder crashes and comes back up
+      within a hello interval, and 5) both processes are down. Obviously, Case
+      1 does not belong in a Failure Recovery Section.</p><p>A discussion of Case 2 yields an interesting point. The forwarder
+      does not monitor whether zero, one, or more external routers are running
+      and/or are members of the all-routers multicast group. Event messages
+      are multicast to the all-routers group, by the forwarder, regardless of
+      external router state. When an external router is restarted, it should
+      immediately synchronize its state with the forwarder in much the same
+      manner as the initial bootup sequence discussed in the previous
+      section.</p><p>There are two instances in the life of a forwarder where the hello
+      message includes an additional attribute. The "alert" attribute provides
+      additional information about the overall state of the forwarder and
+      facilitates failure recovery in the remaining cases. Two values are
+      currently valid: "justBooted" and "shuttingDown". At bootup, the
+      forwarder always sends the "justBooted" alert with the first hello
+      message. When the forwarder is shut down in an orderly fashion (by
+      issuing "quit" at the console for example), a hello message is
+      immediately sent that includes the "shuttingDown" alert. However, if the
+      forwarder should crash or is otherwise shutdown in an unorderly manner,
+      there is no guarantee that a "shuttingDown" alert will be sent.</p><p>For Case 3, the external router determines the forwarder is down
+      either by receiving a hello message with a "shuttingDown" alert or after
+      hello interval seconds have passed without receiving a message. At this
+      point, the router must stop sending messages, wait until another hello
+      message is received, synchronize its state with the forwarder, and
+      resume normal operations.</p><p>The external router knows it is dealing with Case 4 if it receives
+      a "justBooted" alert in less than or equal to one hello interval. The
+      router must stop sending messages, synchronize its state with the
+      forwarder, and resume normal operations.</p><p>Towards the goal of making DTN a turnkey solution, additional
+      "helper" processes are being developed whose sole purpose is to watch
+      and restart forwarders and external routers if and when they fail.
+      Helper processes will play a critical role in addressing Cases 2 -
+      5.</p></div></div><div class="appendix" lang="en"><h2 class="title" style="clear: both"><a name="AppendixA"></a>A.&nbsp;New Configuration Directives</h2><p>This section describes four new configuration directives that
+    accompany the DTNRG RI external router interface.</p><p>To enable the external router feature, set the forwarder router type
+    to "external".</p><p><code class="literal">route set type external</code></p><p>Next, provide the full pathname of the XML schema file "router.xsd"
+    (originally located in the DTN2 source distribution daemon
+    directory).</p><p><code class="literal">route set schema &lt;pathname&gt;</code></p><p>The remaining directives are optional (i.e. they have default
+    values).</p><p>The default UDP port for external router communications is 8001. To
+    change it, include the following directive in
+    <code class="filename">dtn.conf</code>.</p><p><code class="literal">route set server_port &lt;udp port&gt;</code></p><p>The number of seconds between forwarder hello messages can also be
+    changed from the default of 30 seconds.</p><p><code class="literal">route set hello_interval &lt;seconds&gt;</code></p></div><div class="appendix" lang="en"><h2 class="title" style="clear: both"><a name="AppendixB"></a>B.&nbsp;Interface Design FAQ</h2><p>Why multicast?</p><p></p><p>Why UDP?</p><p></p><p>Why XML?</p><p></p><p>...</p></div></div></body></html>
