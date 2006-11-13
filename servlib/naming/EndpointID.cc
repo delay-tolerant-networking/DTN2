@@ -140,7 +140,6 @@ EndpointID::serialize(oasys::SerializeAction* a)
     a->process("uri", &str_);
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         parse();
-        ASSERT(valid_);
     }
 }
 
