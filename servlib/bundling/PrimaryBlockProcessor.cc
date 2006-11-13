@@ -588,12 +588,15 @@ void
 PrimaryBlockProcessor::generate(const Bundle* bundle,
                                 Link*         link,
                                 BlockInfo*    block,
-                                bool          last)
+                                bool last)
 {
     (void)link;
 
-    ASSERT(!last); // primary can't be last
-    
+    /*
+     * The primary can't be last since there must be a payload block
+     */
+    ASSERT(!last);
+
     static const char* log = "/dtn/bundle/protocol";
     DictionaryVector dict;
     size_t primary_len = 0;     // total length of the primary block

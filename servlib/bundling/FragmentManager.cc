@@ -69,12 +69,25 @@ FragmentManager::create_fragment(Bundle* bundle, size_t offset, size_t length)
 }
 
 //----------------------------------------------------------------------
-void
-FragmentManager::convert_to_fragment(Bundle* bundle, size_t length)
+bool
+FragmentManager::try_to_convert_to_fragment(Bundle* bundle,
+                                            size_t  payload_offset,
+                                            size_t  bytes_rcvd)
 {
-    size_t payload_len = bundle->payload_.length();
-    ASSERT(payload_len > length);
+    if (bytes_rcvd <= payload_offset) {
+        return false; // can't do anything
+    }
+    
+    size_t payload_len  = bundle->payload_.length();
+    size_t payload_rcvd = std::min(payload_len, bytes_rcvd - payload_offset);
 
+    if (payload_rcvd >= payload_len) {
+        return false; // nothing to do
+    }
+    
+    log_debug("partial bundle *%p, making reactive fragment of %zu bytes",
+              bundle, bytes_rcvd);
+        
     if (! bundle->is_fragment_) {
         bundle->is_fragment_ = true;
         bundle->orig_length_ = payload_len;
@@ -83,9 +96,10 @@ FragmentManager::convert_to_fragment(Bundle* bundle, size_t length)
         // if it was already a fragment, the fragment headers are
         // already correct
     }
-
-    // truncate the payload
-    bundle->payload_.truncate(length);
+    
+    bundle->payload_.truncate(payload_rcvd);
+    
+    return true;
 }
 
 //----------------------------------------------------------------------
@@ -240,9 +254,7 @@ FragmentManager::proactively_fragment(Bundle* bundle, size_t max_length)
         ASSERT(fragment);
         
         BundleDaemon::post(
-            new BundleReceivedEvent(fragment,
-                                    EVENTSRC_FRAGMENTATION,
-                                    fraglen));
+            new BundleReceivedEvent(fragment, EVENTSRC_FRAGMENTATION));
         offset += fraglen;
         todo -= fraglen;
         ++count;
@@ -255,17 +267,23 @@ FragmentManager::proactively_fragment(Bundle* bundle, size_t max_length)
 
 //----------------------------------------------------------------------
 bool
-FragmentManager::try_to_reactively_fragment(Bundle* bundle, size_t bytes_sent)
+FragmentManager::try_to_reactively_fragment(Bundle* bundle,
+                                            size_t  payload_offset,
+                                            size_t  bytes_sent)
 {
-    size_t payload_len = bundle->payload_.length();
+    if (bytes_sent <= payload_offset) {
+        return false; // can't do anything
+    }
     
-    if ((bytes_sent == 0) || (bytes_sent == payload_len))
-    {
+    size_t payload_len  = bundle->payload_.length();
+    size_t payload_sent = std::min(payload_len, bytes_sent - payload_offset);
+    
+    if (payload_sent >= payload_len) {
         return false; // nothing to do
     }
     
-    size_t frag_off = bytes_sent;
-    size_t frag_len = payload_len - bytes_sent;
+    size_t frag_off = payload_sent;
+    size_t frag_len = payload_len - payload_sent;
 
     log_debug("creating reactive fragment (offset %zu len %zu/%zu)",
               frag_off, frag_len, payload_len);
@@ -275,7 +293,7 @@ FragmentManager::try_to_reactively_fragment(Bundle* bundle, size_t bytes_sent)
 
     // treat the new fragment as if it just arrived
     BundleDaemon::post_at_head(
-        new BundleReceivedEvent(tail, EVENTSRC_FRAGMENTATION, frag_len));
+        new BundleReceivedEvent(tail, EVENTSRC_FRAGMENTATION));
 
     return true;
 }

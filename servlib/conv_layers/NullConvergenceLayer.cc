@@ -33,11 +33,15 @@ NullConvergenceLayer::open_contact(const ContactRef& contact)
 void
 NullConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
-    log_debug("send_bundle *%p to *%p", bundle, contact.object());
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(contact->link());
+    ASSERT(blocks != NULL);
+    size_t total_len = BundleProtocol::total_length(blocks);
+    
+    log_debug("send_bundle *%p to *%p (total len %zu)",
+              bundle, contact.object(), total_len);
     
     BundleDaemon::post(
-        new BundleTransmittedEvent(bundle, contact,
-                                   bundle->payload_.length(), 0));
+        new BundleTransmittedEvent(bundle, contact, total_len, 0));
 }
 
 } // namespace dtn

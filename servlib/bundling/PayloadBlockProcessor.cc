@@ -47,6 +47,8 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
         len -= cc;
 
         consumed += cc;
+
+        ASSERT(bundle->payload_.length() == 0);
     }
     
     // If we still don't know the data offset, we must have consumed
@@ -55,11 +57,18 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
         ASSERT(len == 0);
     }
 
-    // If there's nothing left to do, we can bail for now.
-    if (len == 0)
+    // If there's nothing left to do, we can bail for now, though we
+    // need to be careful to properly set the complete bit to both
+    // handle zero-length bundles and partially received preambles
+    if (len == 0) {
+        if (block->data_offset() != 0 && block->data_length() == 0) {
+            block->set_complete(true);
+        }
         return consumed;
+    }
     
-    // Otherwise, the buffer should hold just the preamble
+    // Otherwise, the buffer should always hold just the preamble
+    // since we store the rest in the payload file
     ASSERT(block->contents().len() == block->data_offset());
 
     // Now make sure there's still something left to do for the block,
@@ -110,8 +119,11 @@ PayloadBlockProcessor::generate(const Bundle* bundle,
 
 //----------------------------------------------------------------------
 void
-PayloadBlockProcessor::produce(const Bundle* bundle, BlockInfo* block,
-                               u_char* buf, size_t offset, size_t len)
+PayloadBlockProcessor::produce(const Bundle*    bundle,
+                               const BlockInfo* block,
+                               u_char*          buf,
+                               size_t           offset,
+                               size_t           len)
 {
     // First copy out the specified range of the preamble
     if (offset < block->data_offset()) {
@@ -128,7 +140,8 @@ PayloadBlockProcessor::produce(const Bundle* bundle, BlockInfo* block,
     // Adjust offset to account for the preamble
     size_t payload_offset = offset - block->data_offset();
 
-    bundle->payload_.read_data(payload_offset, len, buf,
+    size_t tocopy = std::min(len, bundle->payload_.length() - payload_offset);
+    bundle->payload_.read_data(payload_offset, tocopy, buf,
                                BundlePayload::FORCE_COPY);
 }
 

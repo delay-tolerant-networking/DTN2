@@ -22,10 +22,12 @@
 namespace dtn {
 
 class BlockInfo;
+class BlockInfoVec;
 class BlockProcessor;
 class Bundle;
 class BundleTimestamp;
 class EndpointID;
+class Link;
 
 /**
  * Centralized class used to convert a Bundle to / from the bundle
@@ -59,6 +61,44 @@ public:
     static void init_default_processors();
 
     /**
+     * Generate a BlockInfoVec for the outgoing link and put it into
+     * xmit_blocks_.
+     *
+     * @return a pointer to the new block list
+     */
+    static BlockInfoVec* prepare_blocks(Bundle* bundle, Link* link);
+    
+    /**
+     * Generate contents for the given BlockInfoVec on the given Link.
+     *
+     * @return the total length of the formatted blocks for this bundle.
+     */
+    static size_t generate_blocks(Bundle*       bundle,
+                                  BlockInfoVec* blocks,
+                                  Link*         link);
+
+    /**
+     * Return the total length of the formatted bundle block data.
+     */
+    static size_t total_length(const BlockInfoVec* blocks);
+    
+    /**
+     * Temporary helper function to find the offset of the first byte
+     * of the payload in a block list.
+     */
+    static size_t payload_offset(const BlockInfoVec* blocks);
+    
+    /**
+     * Copies out a chunk of formatted bundle data at a specified
+     * offset from the provided BlockList.
+     *
+     * @return the length of the chunk produced (up to the supplied
+     * length) and sets *last to true if the bundle is complete.
+     */
+    static size_t produce(const Bundle* bundle, const BlockInfoVec* blocks,
+                          u_char* data, size_t offset, size_t len, bool* last);
+    
+    /**
      * Parse the supplied chunk of arriving data and append it to the
      * rcvd_blocks_ list in the given bundle, finding the appropriate
      * BlockProcessor element and calling its receive() handler.
@@ -72,6 +112,15 @@ public:
      * plus sets *last to true if the bundle is complete.
      */
     static int consume(Bundle* bundle, u_char* data, size_t len, bool* last);
+
+    /**
+     * Loop through the bundle's received block list to validate each
+     * entry.
+     *
+     * @return true if the bundle is valid, false if it should be
+     * deleted.
+     */
+    static bool validate(Bundle* bundle);
 
 private:
     /**
@@ -223,7 +272,7 @@ public:
     typedef enum {
         PRIMARY_BLOCK          = 0x00,	///< INTERNAL USE ONLY -- NOT IN SPEC
         PAYLOAD_BLOCK          = 0x01, 
-        PREVIOUS_HOP_BLOCK     = 0x05
+        PREVIOUS_HOP_BLOCK     = 0x05,
     } bundle_block_type_t;
 
     /**
@@ -231,10 +280,12 @@ public:
      * except the primary block.
      */
     typedef enum {
-        BLOCK_FLAG_REPLICATE		= 1 << 0,
-        BLOCK_FLAG_REPORT_ONERROR	= 1 << 1,
-        BLOCK_FLAG_DISCARD_ONERROR	= 1 << 2,
-        BLOCK_FLAG_LAST_BLOCK		= 1 << 3,
+        BLOCK_FLAG_REPLICATE		   = 1 << 0,
+        BLOCK_FLAG_REPORT_ONERROR	   = 1 << 1,
+        BLOCK_FLAG_DISCARD_BUNDLE_ONERROR  = 1 << 2,
+        BLOCK_FLAG_LAST_BLOCK		   = 1 << 3,
+        BLOCK_FLAG_DISCARD_BLOCK_ONERROR   = 1 << 4,
+        BLOCK_FLAG_FORWARDED_UNPROCESSED   = 1 << 5
     } block_flag_t;
 
     /**

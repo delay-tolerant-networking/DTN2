@@ -309,13 +309,11 @@ UDPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     }
     ASSERT(contact == sender->contact_);
 
-    bool ok = sender->send_bundle(bundle); // consumes bundle reference
+    int len = sender->send_bundle(bundle); // consumes bundle reference
 
-    if (ok) {
+    if (len > 0) {
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact,
-                                       bundle->payload_.length(),
-                                       0));
+            new BundleTransmittedEvent(bundle, contact, len, 0));
     } else {
         BundleDaemon::post(
             new BundleTransmitFailedEvent(bundle, contact));
@@ -336,39 +334,29 @@ UDPConvergenceLayer::Receiver::Receiver(UDPConvergenceLayer::Params* params)
 void
 UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 {
-    Bundle* bundle = NULL;       
-    int header_len;
+    // the payload should contain a full bundle
+    Bundle* bundle = new Bundle();
     
-    // parse the headers into a new bundle. this sets the payload_len
-    // appropriately in the new bundle and returns the number of bytes
-    // consumed for the bundle headers
-    bundle = new Bundle();
-    header_len = BundleProtocol::parse_header_blocks(bundle, bp, len);
+    bool complete = false;
+    int cc = BundleProtocol::consume(bundle, bp, len, &complete);
 
-    if (header_len < 0) {
-        log_err("process_data: invalid or too short bundle header");
-        delete bundle;
-        return;
-    }
-    
-    size_t payload_len = bundle->payload_.length();
-
-    if (len != header_len + payload_len) {
-        log_err("process_data: error in bundle lengths: "
-                "bundle_length %zu, header_length %d, payload_length %zu",
-                len, header_len, payload_len);
+    if (cc < 0) {
+        log_err("process_data: bundle protocol error");
         delete bundle;
         return;
     }
 
-    // store the payload and notify the daemon
-    bundle->payload_.set_data(bp + header_len, payload_len);
+    if (!complete) {
+        log_err("process_data: incomplete bundle");
+        delete bundle;
+        return;
+    }
     
-    log_debug("process_data: new bundle id %d arrival, payload length %zu",
-	      bundle->bundleid_, bundle->payload_.length());
+    log_debug("process_data: new bundle id %d arrival, length %zu (payload %zu)",
+	      bundle->bundleid_, len, bundle->payload_.length());
     
     BundleDaemon::post(
-        new BundleReceivedEvent(bundle, EVENTSRC_PEER, payload_len));
+        new BundleReceivedEvent(bundle, EVENTSRC_PEER, len));
 }
 
 //----------------------------------------------------------------------
@@ -456,51 +444,32 @@ UDPConvergenceLayer::Sender::init(Params* params,
 }
     
 //----------------------------------------------------------------------
-bool 
+int
 UDPConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 {
-    int header_len;
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(contact_->link());
+    ASSERT(blocks != NULL);
 
-    size_t formatted_len = BundleProtocol::formatted_length(bundle);
-    if (formatted_len > UDPConvergenceLayer::MAX_BUNDLE_LEN) {
+    bool complete = false;
+    size_t total_len = BundleProtocol::produce(bundle, blocks,
+                                               buf_, 0, sizeof(buf_),
+                                               &complete);
+    if (!complete) {
+        size_t formatted_len = BundleProtocol::total_length(blocks);
         log_err("send_bundle: bundle too big (%zu > %u)",
                 formatted_len, UDPConvergenceLayer::MAX_BUNDLE_LEN);
-        return false;
+        return -1;
     }
         
-    size_t payload_len = bundle->payload_.length();
-
-    // stuff in the bundle headers
-    header_len =
-        BundleProtocol::format_header_blocks(bundle, buf_, sizeof(buf_));
-    if (header_len < 0) {
-        log_err("send_bundle: bundle header too big for buffer (len %zu)",
-                sizeof(buf_));
-        return false;
-    }
-
-    // check that the payload isn't too big (it should have been
-    // fragmented by the higher layers)
-    if (payload_len > (sizeof(buf_) - header_len)) {
-        log_err("send_bundle: bundle payload + headers (length %zu) too big",
-                header_len + payload_len);
-        return false;
-    }
-
-    // read the payload data into the buffer
-    bundle->payload_.read_data(0, payload_len, &buf_[header_len],
-                               BundlePayload::FORCE_COPY);
-
     // write it out the socket and make sure we wrote it all
-    int cc = socket_.write((char*)buf_, header_len + payload_len);
-    if (cc == (int)(header_len + payload_len)) {
+    int cc = socket_.write((char*)buf_, total_len);
+    if (cc == (int)total_len) {
         log_info("send_bundle: successfully sent bundle length %d", cc);
-        return true;
+        return total_len;
     } else {
-        
         log_err("send_bundle: error sending bundle (wrote %d/%zu): %s",
-                cc, (header_len + payload_len), strerror(errno));
-        return false;
+                cc, total_len, strerror(errno));
+        return -1;
     }
 }
 

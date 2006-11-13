@@ -22,9 +22,9 @@
 namespace dtn {
 
 class BlockInfo;
+class BlockInfoVec;
 class Bundle;
 class Link;
-class LinkBlocks;
 
 /**
  * Base class for the protocol handling of bundle blocks, including
@@ -80,13 +80,16 @@ public:
     /**
      * First callback to generate blocks for the output pass. The
      * function is expected to initialize an appropriate BlockInfo
-     * structure in the given LinkBlocks list.
+     * structure in the given BlockInfoVec.
      *
      * The base class simply initializes an empty BlockInfo with the
      * appropriate owner_ pointer.
      */
-    virtual void prepare(const Bundle* bundle, LinkBlocks* blocks);
-
+    virtual void prepare(const Bundle*    bundle,
+                         Link*            link,
+                         BlockInfoVec*    blocks,
+                         const BlockInfo* source);
+    
     /**
      * Second callback for transmitting a bundle. This pass should
      * generate any data for the block that does not depend on other
@@ -96,7 +99,7 @@ public:
                           Link*         link,
                           BlockInfo*    block,
                           bool          last) = 0;
-
+    
     /**
      * Third callback for transmitting a bundle. This pass should
      * generate any data (such as security signatures) for the block
@@ -118,12 +121,20 @@ public:
      * Note that the supplied offset + length must be less than or
      * equal to the total length of the block.
      */
-    virtual void produce(const Bundle* bundle, BlockInfo* block,
+    virtual void produce(const Bundle* bundle, const BlockInfo* block,
                          u_char* buf, size_t offset, size_t len);
-                                                            
+
+    /**
+     * General hook to set up a block with the given contents. Used
+     * for testing generic extension blocks.
+     */
+    void init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
+                    u_char* bp, size_t len);
+    
 protected:
     // XXX/demmer temporary until we get rid of the old interface
     friend class BundleProtocol;
+    friend class BlockInfo;
     
     /**
      * Consume a fixed-length preamble (defaulting to the standard

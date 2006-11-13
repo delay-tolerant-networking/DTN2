@@ -14,8 +14,10 @@
  *    limitations under the License.
  */
 
-#include "BundleProtocol.h"
 #include "UnknownBlockProcessor.h"
+
+#include "BlockInfo.h"
+#include "BundleProtocol.h"
 
 namespace dtn {
 
@@ -37,12 +39,41 @@ UnknownBlockProcessor::generate(const Bundle* bundle,
 {
     (void)bundle;
     (void)link;
-    (void)block;
-    (void)last;
+    
+    // This can only be called if there was a corresponding block in
+    // the input path
+    const BlockInfo* source = block->source();
+    ASSERT(source != NULL);
+    ASSERT(source->owner() == this);
 
-    // XXX/demmer this should copy the block from the corresponding
-    // one on the input side
-    NOTREACHED;
+    // We shouldn't be here if the block has the following flags set
+    ASSERT((source->flags() &
+            BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR) == 0);
+    ASSERT((source->flags() &
+            BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR) == 0);
+    
+    // The source better have some contents, but doesn't need to have
+    // any data necessarily
+    ASSERT(source->contents().len() != 0);
+    ASSERT(source->data_offset() != 0);
+    
+    u_int8_t flags = source->flags();
+    if (last) {
+        flags |= BundleProtocol::BLOCK_FLAG_LAST_BLOCK;
+    } else {
+        flags &= ~BundleProtocol::BLOCK_FLAG_LAST_BLOCK;
+    }
+
+    generate_preamble(block, source->type(), flags,
+                      source->data_length());
+    ASSERT(block->data_offset() == source->data_offset());
+    ASSERT(block->data_length() == source->data_length());
+    
+    BlockInfo::DataBuffer* contents = block->writable_contents();
+    memcpy(contents->buf()          + block->data_offset(),
+           source->contents().buf() + block->data_offset(),
+           block->data_length());
+    contents->set_len(block->full_length());
 }
 
 } // namespace dtn

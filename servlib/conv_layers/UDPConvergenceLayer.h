@@ -175,8 +175,9 @@ protected:
         
         /**
          * Send one bundle.
+         * @return the length of the bundle sent or -1 on error
          */
-        bool send_bundle(Bundle* bundle);
+        int send_bundle(Bundle* bundle);
 
         /**
          * Pointer to the link parameters.

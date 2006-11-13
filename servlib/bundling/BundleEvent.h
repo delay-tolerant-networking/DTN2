@@ -255,12 +255,9 @@ public:
         : BundleEvent(BUNDLE_RECEIVED),
           bundleref_(bundle, "BundleReceivedEvent"),
           source_(source),
+          bytes_received_(bytes_received),
           contact_(originator, "BundleReceivedEvent")
     {
-        if (bytes_received != 0)
-            bytes_received_ = bytes_received;
-        else
-            bytes_received_ = bundle->payload_.length();
     }
 
     // Virtual function inherited from SerializableObject

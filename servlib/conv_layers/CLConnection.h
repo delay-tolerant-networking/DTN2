@@ -196,15 +196,15 @@ protected:
     public:
         InFlightBundle(Bundle* b)
             : bundle_(b, "CLConnection::InFlightBundle"),
-              formatted_length_(0),
-              header_block_length_(0),
-              tail_block_length_(0) {}
+              total_length_(0),
+              send_complete_(false)
+        {}
         
         BundleRef bundle_;
+        BlockInfoVec* blocks_;
 
-        size_t formatted_length_;
-        size_t header_block_length_;
-        size_t tail_block_length_;
+        size_t total_length_;
+        bool   send_complete_;
         
         DataBitmap sent_data_;
         DataBitmap ack_data_;
@@ -230,13 +230,11 @@ protected:
         IncomingBundle(Bundle* b)
             : bundle_(b, "CLConnection::IncomingBundle"),
               total_length_(0),
-              header_block_length_(0),
               acked_length_(0) {}
 
         BundleRef bundle_;
         
         size_t total_length_;
-        size_t header_block_length_;
         size_t acked_length_;
 
         DataBitmap rcvd_data_;

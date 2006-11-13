@@ -342,11 +342,11 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         len -= header_len;
         bundle->payload_.append_data(bp, len);
         
-        log_debug("process_data: new bundle id %d arrival, payload length %d",
-                  bundle->bundleid_, bundle->payload_.length());
+        log_debug("process_data: new bundle id %d arrival, bundle length %d",
+                  bundle->bundleid_, bundle_len);
         
         BundleDaemon::post(
-            new BundleReceivedEvent(bundle, EVENTSRC_PEER, len));
+            new BundleReceivedEvent(bundle, EVENTSRC_PEER, bundle_len));
     }
 }
 
@@ -546,7 +546,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         // ack = false
         BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact_,
-                                       bundle->payload_.length(), false));
+                                       header_len + payload_len, false);
         ok = true;
     }
 

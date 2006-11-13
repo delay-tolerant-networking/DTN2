@@ -21,9 +21,10 @@
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/util/StringUtils.h>
 
+#include "BundleProtocol.h"
+#include "BlockInfo.h"
 #include "BlockProcessor.h"
 #include "Bundle.h"
-#include "BundleProtocol.h"
 #include "BundleTimestamp.h"
 #include "PayloadBlockProcessor.h"
 #include "PrimaryBlockProcessor.h"
@@ -31,6 +32,8 @@
 #include "UnknownBlockProcessor.h"
 
 namespace dtn {
+
+static const char* LOG = "/dtn/bundle/protocol";
 
 //////////////////////////////////////////////////////////////////////
 
@@ -68,13 +71,212 @@ BundleProtocol::init_default_processors()
 }
 
 //----------------------------------------------------------------------
+BlockInfoVec*
+BundleProtocol::prepare_blocks(Bundle* bundle, Link* link)
+{
+    // create a new block list for the outgoing link by first calling
+    // prepare on all the BlockProcessor classes for the blocks that
+    // arrived on the link
+    BlockInfoVec* xmit_blocks = bundle->xmit_blocks_.create_blocks(link);
+    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
+
+    // if there is a received block, the first one better be the primary
+    if (recv_blocks->size() > 0) {
+        ASSERT(recv_blocks->front().owner()->block_type() == PRIMARY_BLOCK);
+    }
+    
+    for (BlockInfoVec::iterator iter = recv_blocks->begin();
+         iter != recv_blocks->end();
+         ++iter)
+    {
+        iter->owner()->prepare(bundle, link, xmit_blocks, &*iter);
+    }
+
+    // now we also make sure to prepare() on any registered processors
+    // that don't already have a block in the output list. this
+    // handles the case where we have a locally generated block with
+    // nothing in the recv_blocks vector
+    //
+    // XXX/demmer this needs some options for the router to select
+    // which block elements should be in the list, i.e. security, etc
+    for (int i = 0; i < 256; ++i) {
+        BlockProcessor* bp = find_processor(i);
+        if (bp == UnknownBlockProcessor::instance()) {
+            continue;
+        }
+
+        if (! xmit_blocks->has_block(i)) {
+            bp->prepare(bundle, link, xmit_blocks, NULL);
+        }
+    }
+
+    return xmit_blocks;
+}
+
+//----------------------------------------------------------------------
+size_t
+BundleProtocol::generate_blocks(Bundle*       bundle,
+                                BlockInfoVec* blocks,
+                                Link*         link)
+{
+    // now assert there's at least 2 blocks (primary + payload) and
+    // that the primary is first
+    ASSERT(blocks->size() >= 2);
+    ASSERT(blocks->front().type() == PRIMARY_BLOCK);
+
+    // now we make another pass through the list and call generate on
+    // each block processor
+    BlockInfoVec::iterator last_block = blocks->end() - 1;
+    for (BlockInfoVec::iterator iter = blocks->begin();
+         iter != blocks->end();
+         ++iter)
+    {
+        bool last = (iter == last_block);
+        iter->owner()->generate(bundle, link, &*iter, last);
+
+        log_debug(LOG, "generated block (owner 0x%x type 0x%x) "
+                  "data_offset %u data_length %u contents length %zu",
+                  iter->owner()->block_type(), iter->type(),
+                  iter->data_offset(), iter->data_length(),
+                  iter->contents().len());
+        
+        if (last) {
+            ASSERT((iter->flags() & BLOCK_FLAG_LAST_BLOCK) != 0);
+        } else {
+            ASSERT((iter->flags() & BLOCK_FLAG_LAST_BLOCK) == 0);
+        }
+    }
+    
+    // make a final pass through, calling finalize() and extracting
+    // the block length
+    size_t total_len = 0;
+    for (BlockInfoVec::iterator iter = blocks->begin();
+         iter != blocks->end();
+         ++iter)
+    {
+        iter->owner()->finalize(bundle, link, &*iter);
+        total_len += iter->full_length();
+    }
+    
+    return total_len;
+}
+
+//----------------------------------------------------------------------
+size_t
+BundleProtocol::total_length(const BlockInfoVec* blocks)
+{
+    size_t ret = 0;
+    for (BlockInfoVec::const_iterator iter = blocks->begin();
+         iter != blocks->end();
+         ++iter)
+    {
+        ret += iter->full_length();
+    }
+
+    return ret;
+}
+
+//----------------------------------------------------------------------
+size_t
+BundleProtocol::payload_offset(const BlockInfoVec* blocks)
+{
+    size_t ret = 0;
+    for (BlockInfoVec::const_iterator iter = blocks->begin();
+         iter != blocks->end();
+         ++iter)
+    {
+        if (iter->owner()->block_type() == PAYLOAD_BLOCK) {
+            ret += iter->data_offset();
+            return ret;
+        }
+
+        ret += iter->full_length();
+    }
+
+    return ret;
+}
+
+//----------------------------------------------------------------------
+size_t
+BundleProtocol::produce(const Bundle* bundle, const BlockInfoVec* blocks,
+                        u_char* data, size_t offset, size_t len, bool* last)
+{
+    size_t origlen = len;
+    *last = false;
+
+    if (len == 0)
+        return 0;
+    
+    // advance past any blocks that are skipped by the given offset
+    BlockInfoVec::const_iterator iter = blocks->begin();
+    while (offset >= iter->full_length()) {
+        log_debug(LOG, "BundleProtocol::produce skipping block type 0x%x "
+                  "since offset %zu >= block length %u",
+                  iter->type(), offset, iter->full_length());
+        
+        offset -= iter->full_length();
+        iter++;
+        ASSERT(iter != blocks->end());
+    }
+    
+    // the offset should be within the bounds of this block
+    ASSERT(iter != blocks->end());
+        
+    // figure out the amount to generate from this block
+    while (1) {
+        size_t remainder = iter->full_length() - offset;
+        size_t tocopy    = std::min(len, remainder);
+        log_debug(LOG, "BundleProtocol::produce copying %zu/%zu bytes from "
+                  "block type 0x%x at offset %zu",
+                  tocopy, remainder, iter->type(), offset);
+        iter->owner()->produce(bundle, &*iter, data, offset, tocopy);
+        
+        len    -= tocopy;
+        data   += tocopy;
+        offset = 0;
+
+        // if we've copied out the full amount the user asked for,
+        // we're done. note that we need to check the corner case
+        // where we completed the block exactly to properly set the
+        // *last bit
+        if (len == 0) {
+            if ((tocopy == remainder) &&
+                (iter->flags() & BLOCK_FLAG_LAST_BLOCK))
+            {
+                ASSERT(iter + 1 == blocks->end());
+                *last = true;
+            }
+            
+            break;
+        }
+
+        // we completed the current block, so we're done if this
+        // is the lat block, even if there's space in the user buffer
+        ASSERT(tocopy == remainder);
+        if (iter->flags() & BLOCK_FLAG_LAST_BLOCK) {
+            ASSERT(iter + 1 == blocks->end());
+            *last = true;
+            break;
+        }
+        
+        ++iter;
+        ASSERT(iter != blocks->end());
+    }
+    
+    log_debug(LOG, "BundleProtocol::produce complete: "
+              "produced %zu bytes, bundle %s",
+              origlen - len, *last ? "complete" : "not complete");
+    
+    return origlen - len;
+}
+    
+//----------------------------------------------------------------------
 int
 BundleProtocol::consume(Bundle* bundle,
                         u_char* data,
                         size_t  len,
                         bool*   last)
 {
-    static const char* log = "/dtn/bundle/protocol";
     size_t origlen = len;
     *last = false;
     
@@ -82,13 +284,14 @@ BundleProtocol::consume(Bundle* bundle,
     // create a BlockInfo struct for the primary block without knowing
     // the typecode or the length
     if (bundle->recv_blocks_.empty()) {
-        log_debug(log, "first block... creating primary block info");
+        log_debug(LOG, "consume: got first block... "
+                  "creating primary block info");
         bundle->recv_blocks_.push_back(BlockInfo(find_processor(PRIMARY_BLOCK)));
     }
 
     // loop as long as there is data left to process
     while (len != 0) {
-        log_debug(log, "consume has %zu bytes left to process", len);
+        log_debug(LOG, "consume: %zu bytes left to process", len);
         BlockInfo* info = &bundle->recv_blocks_.back();
 
         // if the last received block is complete, create a new one
@@ -98,19 +301,22 @@ BundleProtocol::consume(Bundle* bundle,
         if (info->complete()) {
             bundle->recv_blocks_.push_back(BlockInfo(find_processor(*data)));
             info = &bundle->recv_blocks_.back();
-            log_debug(log, "previous block complete, created new BlockInfo type 0x%x",
+            log_debug(LOG, "consume: previous block complete, "
+                      "created new BlockInfo type 0x%x",
                       info->owner()->block_type());
         }
         
         // now we know that the block isn't complete, so we tell it to
         // consume a chunk of data
-        log_debug(log, "block processor 0x%x type 0x%x incomplete, calling consume "
-                  "(%zu bytes already buffered)",
-                  info->owner()->block_type(), info->type(), info->contents().len());
+        log_debug(LOG, "consume: block processor 0x%x type 0x%x incomplete, "
+                  "calling consume (%zu bytes already buffered)",
+                  info->owner()->block_type(), info->type(),
+                  info->contents().len());
         
         int cc = info->owner()->consume(bundle, info, data, len);
         if (cc < 0) {
-            log_err(log, "protocol error handling block 0x%x", info->type());
+            log_err(LOG, "consume: protocol error handling block 0x%x",
+                    info->type());
             return -1;
         }
         
@@ -119,27 +325,34 @@ BundleProtocol::consume(Bundle* bundle,
         // consumed all the data that was passed in.
         len  -= cc;
         data += cc;
-        if (info->complete()) {
-            log_debug(log, "consumed %u bytes, completed block type 0x%x",
-                      cc, info->type());
 
+        log_debug(LOG, "consume: consumed %u bytes of block type 0x%x (%s)",
+                  cc, info->type(),
+                  info->complete() ? "complete" : "not completE");
+
+        if (info->complete()) {
             // check if we're done with the bundle
             if (info->flags() & BLOCK_FLAG_LAST_BLOCK) {
-                log_debug(log, "got last block flag, bundle complete");
                 *last = true;
                 break;
             }
                 
         } else {
-            log_debug(log, "consumed %u bytes, block type 0x%x still incomplete",
-                      cc, info->type());
             ASSERT(len == 0);
         }
     }
     
-    log_debug(log, "consume completed, %zu/%zu bytes consumed",
-              origlen - len, origlen);
+    log_debug(LOG, "consume completed, %zu/%zu bytes consumed %s",
+              origlen - len, origlen, *last ? "(completed bundle)" : "");
     return origlen - len;
+}
+
+//----------------------------------------------------------------------
+bool
+BundleProtocol::validate(Bundle* bundle)
+{
+    (void)bundle;
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -151,9 +364,6 @@ int
 BundleProtocol::format_header_blocks(const Bundle* bundle,
                                      u_char* buf, size_t len)
 {
-    static const char* log = "/dtn/bundle/protocol";
-    (void)log;
-    
     BlockProcessor* primary_bp = find_processor(PRIMARY_BLOCK);
     BlockProcessor* payload_bp = find_processor(PAYLOAD_BLOCK);
     
@@ -173,7 +383,7 @@ BundleProtocol::format_header_blocks(const Bundle* bundle,
     ASSERT(payload_hdr_len <= payload.full_length());
 
     if (primary_len + payload_hdr_len > len) {
-        log_debug(log, "format_header_blocks: "
+        log_debug(LOG, "format_header_blocks: "
                   "need %zu bytes primary + %zu payload_hdr, only have %zu",
                   primary_len, payload_hdr_len, len);
         return -1; // too short
@@ -182,7 +392,7 @@ BundleProtocol::format_header_blocks(const Bundle* bundle,
     primary_bp->produce(bundle, &primary, buf, 0, primary_len);
     payload_bp->produce(bundle, &payload, buf + primary_len, 0, payload_hdr_len);
     
-    log_debug(log, "format_header_blocks done -- total length %zu",
+    log_debug(LOG, "format_header_blocks done -- total length %zu",
               (primary_len + payload_hdr_len));
     return primary_len + payload_hdr_len;
 }
@@ -192,7 +402,6 @@ int
 BundleProtocol::parse_header_blocks(Bundle* bundle,
                                     u_char* buf, size_t len)
 {
-    static const char* log = "/dtn/bundle/protocol";
     size_t origlen = len;
 
     BlockProcessor* primary_bp = find_processor(PRIMARY_BLOCK);
@@ -208,13 +417,13 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
     int primary_len = primary_bp->consume(bundle, &primary, buf, len);
 
     if (primary_len == -1) {
-        log_err(log, "protocol error parsing primary");
+        log_err(LOG, "protocol error parsing primary");
         bundle->recv_blocks_.clear();
         return -1;
     }
     
     if (!primary.complete()) {
-        log_debug(log, "buffer too short to consume primary");
+        log_debug(LOG, "buffer too short to consume primary");
         bundle->recv_blocks_.clear();
         return -1;
     }
@@ -229,13 +438,13 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
     int payload_hdr_len = payload_bp->consume_preamble(&payload, buf, len);
 
     if (payload_hdr_len == -1) {
-        log_err(log, "protocol error parsing payload");
+        log_err(LOG, "protocol error parsing payload");
         bundle->recv_blocks_.clear();
         return -1;
     }
     
     if (payload.data_offset() == 0) {
-        log_debug(log, "buffer too short to consume primary");
+        log_debug(LOG, "buffer too short to consume primary");
         bundle->recv_blocks_.clear();
         return -1;
     }
@@ -245,7 +454,8 @@ BundleProtocol::parse_header_blocks(Bundle* bundle,
     bundle->payload_.set_length(payload.data_length());
     
     // that's all we parse, return the amount we consumed
-    log_debug(log, "parse_header_blocks succeeded: %d primary %d payload header",
+    log_debug(LOG, "parse_header_blocks succeeded: "
+              "%d primary %d payload header",
               primary_len, payload_hdr_len);
     
     return origlen - len;

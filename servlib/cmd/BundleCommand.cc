@@ -175,7 +175,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         log_debug("inject %d byte bundle %s->%s", payload_len,
                   b->source_.c_str(), b->dest_.c_str());
 
-        BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP, payload_len));
+        BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP));
 
         // return the creation timestamp (can use with source EID to
         // create a globally unique bundle identifier

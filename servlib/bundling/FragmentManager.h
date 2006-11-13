@@ -90,13 +90,22 @@ public:
     int proactively_fragment(Bundle* bundle, size_t max_length);
 
     /**
-     * If only part of the given bundle was sent successfully, create
-     * a new fragment for the unsent portion.
+     * If only part of the given bundle was sent successfully, split
+     * it into two. The original bundle
      *
      * Return true if a fragment was created
      */
-    bool try_to_reactively_fragment(Bundle* bundle, size_t bytes_sent);
+    bool try_to_reactively_fragment(Bundle* bundle, size_t payload_offset,
+                                    size_t bytes_sent);
 
+    /**
+     * Convert a partially received bundle into a fragment.
+     *
+     * Return true if a fragment was created
+     */
+    bool try_to_convert_to_fragment(Bundle* bundle, size_t payload_offset,
+                                    size_t bytes_rcvd);
+    
     /**
      * Given a newly arrived bundle fragment, append it to the table
      * of fragments and see if it allows us to reassemble the bundle.

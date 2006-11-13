@@ -212,7 +212,7 @@ BundleDaemon::generate_status_report(Bundle* orig_bundle,
     BundleStatusReport::create_status_report(report, orig_bundle,
                                              local_eid_, flag, reason);
     
-    BundleReceivedEvent e(report, EVENTSRC_ADMIN, report->payload_.length());
+    BundleReceivedEvent e(report, EVENTSRC_ADMIN);
     handle_event(&e);
 }
 
@@ -237,7 +237,7 @@ BundleDaemon::generate_custody_signal(Bundle* bundle, bool succeeded,
     CustodySignal::create_custody_signal(signal, bundle, local_eid_,
                                          succeeded, reason);
     
-    BundleReceivedEvent e(signal, EVENTSRC_ADMIN, signal->payload_.length());
+    BundleReceivedEvent e(signal, EVENTSRC_ADMIN);
     handle_event(&e);
 }
 
@@ -458,13 +458,13 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * Check if the bundle isn't complete. If so, do reactive
      * fragmentation.
      */
-    if (event->bytes_received_ != bundle->payload_.length()) {
-        log_debug("partial bundle, making reactive fragment of %zu bytes",
-                  event->bytes_received_);
-
-        fragmentmgr_->convert_to_fragment(bundle, event->bytes_received_);
+    if (event->source_ == EVENTSRC_PEER) {
+        ASSERT(event->bytes_received_ != 0);
+        size_t payload_offset = BundleProtocol::payload_offset(&bundle->recv_blocks_);
+        fragmentmgr_->try_to_convert_to_fragment(bundle, payload_offset,
+                                                 event->bytes_received_);
     }
-
+    
     /*
      * Check if the bundle is a duplicate, i.e. shares a source id,
      * timestamp, and fragmentation information with some other bundle
@@ -494,6 +494,10 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         event->daemon_only_ = true;
         return;
     }
+
+    /*
+     * Check all BlockProcessors to validate the bundle.
+     */
     
     /*
      * Add the bundle to the master pending queue and the data store
@@ -549,9 +553,10 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * Check that a close contact event has not already deleted this contact.
      * If it has, we will disregard the transmission notice.
      */
-    if(event->contact_ == NULL)
+    if (event->contact_ == NULL)
     {
-    	log_info("BUNDLE_TRANSMITTED id:%d (%zu bytes_sent/%zu reliable) -> unknown contact",
+    	log_info("BUNDLE_TRANSMITTED id:%d (%zu bytes_sent/%zu reliable) -> "
+                 "unknown contact",
              bundle->bundleid_,
              event->bytes_sent_,
              event->reliably_sent_);
@@ -566,7 +571,10 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * yet the transmitted length is only the amount reported by the
      * event.
      */
-    size_t total_len = BundleProtocol::formatted_length(bundle);
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+    ASSERT(blocks != NULL);
+        
+    size_t total_len = BundleProtocol::total_length(blocks);
     
     stats_.bundles_transmitted_++;
     link->stats()->bundles_transmitted_++;
@@ -603,14 +611,14 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         (event->reliably_sent_ == 0))
     {
         bundle->fwdlog_.update(link, ForwardingInfo::TRANSMIT_FAILED);
+        bundle->xmit_blocks_.delete_blocks(link);
         return;
     }
 
     /*
      * Update the forwarding log
      */
-    bundle->fwdlog_.update(link,
-                           ForwardingInfo::TRANSMITTED);
+    bundle->fwdlog_.update(link, ForwardingInfo::TRANSMITTED);
                             
     /*
      * Grab the updated forwarding log information so we can find the
@@ -625,13 +633,24 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * Check for reactive fragmentation. If the bundle was only
      * partially sent, then a new bundle received event for the tail
      * part of the bundle will be processed immediately after this
-     * event. For reliable convergence latyer
+     * event.
      */
     if (link->reliable_) {
-        fragmentmgr_->try_to_reactively_fragment(bundle, event->reliably_sent_);
+        fragmentmgr_->try_to_reactively_fragment(bundle,
+                                                 BundleProtocol::payload_offset(blocks),
+                                                 event->reliably_sent_);
     } else {
-        fragmentmgr_->try_to_reactively_fragment(bundle, event->bytes_sent_);
+        fragmentmgr_->try_to_reactively_fragment(bundle,
+                                                 BundleProtocol::payload_offset(blocks),
+                                                 event->bytes_sent_);
     }
+
+    /*
+     * Remove the formatted block info from the bundle since we don't
+     * need it any more.
+     */
+    bundle->xmit_blocks_.delete_blocks(link);
+    blocks = NULL;
 
     /*
      * Generate the forwarding status report if requested
@@ -678,13 +697,16 @@ BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
      * Check that a close contact event has not already deleted this contact.
      * If it has, we will disregard the failed transmission notice.
      */
-    if(event->contact_ == NULL)
+    if (event->contact_ == NULL)
     {
     	log_info("BUNDLE_TRANSMIT_FAILED id:%d -> unknown contact",
              bundle->bundleid_);
     	return;
     }
 
+    Link* link = event->contact_->link();
+    bundle->xmit_blocks_.delete_blocks(link);
+    
     log_info("BUNDLE_TRANSMIT_FAILED id:%d -> %s (%s)",
              bundle->bundleid_,
              event->contact_->link()->name(),
@@ -1219,8 +1241,7 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
 
     // post a new event for the newly reassembled bundle
     post_at_head(new BundleReceivedEvent(event->bundle_.object(),
-                                         EVENTSRC_FRAGMENTATION,
-                                         event->bundle_->payload_.length()));
+                                         EVENTSRC_FRAGMENTATION));
 }
 
 

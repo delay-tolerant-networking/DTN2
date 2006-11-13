@@ -21,9 +21,10 @@
 namespace dtn {
 
 //----------------------------------------------------------------------
-BlockInfo::BlockInfo(BlockProcessor* owner)
+BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
     : owner_(owner),
       owner_type_(owner->block_type()),
+      source_(source),
       contents_(),
       data_length_(0),
       data_offset_(0),
@@ -33,6 +34,13 @@ BlockInfo::BlockInfo(BlockProcessor* owner)
 
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(oasys::Builder& builder)
+    : owner_(NULL),
+      owner_type_(0),
+      source_(NULL),
+      contents_(),
+      data_length_(0),
+      data_offset_(0),
+      complete_(false)
 {
     (void)builder;
 }
@@ -66,6 +74,14 @@ BlockInfo::flags() const
 
 //----------------------------------------------------------------------
 void
+BlockInfo::set_flag(u_int8_t flag)
+{
+    ASSERT(contents_.len() >= 2);
+    contents_.buf()[1] &= flag;
+}
+
+//----------------------------------------------------------------------
+void
 BlockInfo::serialize(oasys::SerializeAction* a)
 {
     a->process("owner_type", &owner_type_);
@@ -89,20 +105,62 @@ BlockInfo::serialize(oasys::SerializeAction* a)
     a->process("data_length", &data_length_);
     a->process("data_offset", &data_offset_);
     a->process("complete", &complete_);
+}
 
+//----------------------------------------------------------------------
+const BlockInfo*
+BlockInfoVec::find_block(u_int8_t type) const
+{
+    for (const_iterator iter = begin(); iter != end(); ++iter) {
+        if (iter->type() == type ||
+            iter->owner()->block_type() == type)
+        {
+            return &*iter;
+        }
+    }
+    return false;
 }
 
 //----------------------------------------------------------------------
 BlockInfoVec*
-LinkBlockVec::find_info(Link* link)
+LinkBlockSet::create_blocks(Link* link)
 {
-    for (iterator iter = begin(); iter != end(); ++iter) {
+    ASSERT(find_blocks(link) == NULL);
+    entries_.push_back(Entry(link));
+    return &(entries_.back().blocks_);
+}
+
+//----------------------------------------------------------------------
+BlockInfoVec*
+LinkBlockSet::find_blocks(Link* link)
+{
+    for (iterator iter = entries_.begin();
+         iter != entries_.end();
+         ++iter)
+    {
         if (iter->link_ == link) {
-            return &(iter->info_vec_);
+            return &(iter->blocks_);
         }
     }
     return NULL;
 }
 
+//----------------------------------------------------------------------
+void
+LinkBlockSet::delete_blocks(Link* link)
+{
+    for (iterator iter = entries_.begin();
+         iter != entries_.end();
+         ++iter)
+    {
+        if (iter->link_ == link) {
+            entries_.erase(iter);
+            return;
+        }
+    }
+    
+    PANIC("LinkBlockVec::delete_blocks: "
+          "no block vector for link *%p", link);
+}
 
 } // namespace dtn

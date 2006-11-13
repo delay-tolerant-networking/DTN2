@@ -37,14 +37,16 @@ public:
     /// sufficient to cover most blocks and avoid mallocs.
     typedef oasys::ScratchBuffer<u_char*, 64> DataBuffer;
     
-    /// Default constructor assigns the owner
-    BlockInfo(BlockProcessor* owner);
+    /// Default constructor assigns the owner and optionally the
+    /// BlockInfo source (i.e. the block as it arrived off the wire)
+    BlockInfo(BlockProcessor* owner, const BlockInfo* source = NULL);
 
     /// Constructor for unserializing
     BlockInfo(oasys::Builder& builder);
 
     /// @{ Accessors
     BlockProcessor*   owner()       const { return owner_; }
+    const BlockInfo*  source()      const { return source_; }
     const DataBuffer& contents()    const { return contents_; }
     u_int32_t	      data_length() const { return data_length_; }
     u_int32_t	      data_offset() const { return data_offset_; }
@@ -64,55 +66,77 @@ public:
     /// primary block doesn't have the fields in the same place.
     u_int8_t type()  const;
     u_int8_t flags() const;
+    void     set_flag(u_int8_t flag);
     /// @}
 
-    
     /// Virtual from SerializableObject
     virtual void serialize(oasys::SerializeAction* action);
 
 protected:
-    BlockProcessor* owner_;       ///< Owner of this block
-    u_int8_t	    owner_type_;  ///< Extracted from owner
-    DataBuffer      contents_;    ///< Copy of the off-the-wire block,
-                                  ///  with length set to the amount that's
-                                  ///  currently in the buffer
-    u_int32_t       data_length_; ///< Length of the block data (w/o preamble)
-    u_int32_t       data_offset_; ///< Offset of first byte of the block data
-    bool            complete_;    ///< Whether or not this block is complete
+    BlockProcessor*  owner_;       ///< Owner of this block
+    u_int8_t	     owner_type_;  ///< Extracted from owner
+    const BlockInfo* source_;      ///< Owner of this block
+    DataBuffer       contents_;    ///< Block contents with length set to
+                                   ///  the amount currently in the buffer
+    u_int32_t        data_length_; ///< Length of the block data (w/o preamble)
+    u_int32_t        data_offset_; ///< Offset of first byte of the block data
+    bool             complete_;    ///< Whether or not this block is complete
 };
 
 /**
  * Class for a vector of BlockInfo structures.
  */
 class BlockInfoVec : public oasys::SerializableVector<BlockInfo> {
+public:
+    /**
+     * Find the block for the given type.
+     *
+     * @return the block or NULL if not found
+     */
+    const BlockInfo* find_block(u_int8_t type) const;
+    
+    /**
+     * Check if an entry exists in the vector for the given block type.
+     */
+    bool has_block(u_int8_t type) const { return find_block(type) != NULL; }
 };
 
 /**
- * Simple class to wrap a BlockInfoVec and an outgoing link.
+ * A set of BlockInfoVecs, one for each outgoing link.
  */
-class LinkBlocks {
+class LinkBlockSet {
 public:
-    LinkBlocks() {}
-
-    LinkBlocks(const BlockInfoVec& info_vec, Link* link)
-        : info_vec_(info_vec), link_(link) {}
-
-    BlockInfoVec info_vec_;
-    Link*        link_;
-};
-
-/**
- * A vector of LinkBlockVec structs, one for each outgoing link for
- * each bundle.
- */
-class LinkBlockVec : public std::vector<LinkBlocks> {
-public:
+    /**
+     * Create a new BlockInfoVec for the given link.
+     *
+     * @return Pointer to the new BlockInfoVec
+     */
+    BlockInfoVec* create_blocks(Link* link);
+    
     /**
      * Find the BlockInfoVec for the given link.
      *
      * @return Pointer to the BlockInfoVec or NULL if not found
      */
-    BlockInfoVec* find_info(Link* link);
+    BlockInfoVec* find_blocks(Link* link);
+    
+    /**
+     * Remove the BlockInfoVec for the given link.
+     */
+    void delete_blocks(Link* link);
+
+protected:
+    struct Entry {
+        Entry(Link* link = NULL)
+            : blocks_(), link_(link) {}
+        
+        BlockInfoVec blocks_;
+        Link*        link_;
+    };
+
+    typedef std::vector<Entry> Vector;
+    typedef std::vector<Entry>::iterator iterator;
+    Vector entries_;
 };
 
 } // namespace dtn

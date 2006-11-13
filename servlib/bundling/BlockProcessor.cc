@@ -120,6 +120,7 @@ BlockProcessor::generate_preamble(BlockInfo* block,
                                   u_int8_t   flags,
                                   size_t     data_length)
 {
+    static const char* log = "/dtn/bundle/protocol";
     size_t sdnv_len = SDNV::encoding_len(data_length);
     ASSERT(block->contents().len() == 0);
     ASSERT(block->contents().buf_len() >=
@@ -127,7 +128,7 @@ BlockProcessor::generate_preamble(BlockInfo* block,
 
     BundleProtocol::BlockPreamble* bp =
         (BundleProtocol::BlockPreamble*)block->writable_contents()->buf();
-
+    
     bp->type  = type;
     bp->flags = flags;
     SDNV::encode(data_length, &bp->length[0], sdnv_len);
@@ -135,6 +136,12 @@ BlockProcessor::generate_preamble(BlockInfo* block,
     block->set_data_length(data_length);
     block->set_data_offset(sizeof(*bp) + sdnv_len);
     block->writable_contents()->set_len(sizeof(*bp) + sdnv_len);
+
+    log_debug(log, "BlockProcessor type 0x%x "
+              "generated preamble for block type 0x%x flags 0x%x: "
+              "data_offset %u data_length %u",
+              block_type(), block->type(), block->flags(),
+              block->data_offset(), block->data_length());
 }
 
 //----------------------------------------------------------------------
@@ -175,10 +182,11 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
     // If there's nothing left to do, we can bail for now.
     if (len == 0)
         return consumed;
-    
+
     // Now make sure there's still something left to do for the block,
     // otherwise it should have been marked as complete
-    ASSERT(block->full_length() > block->contents().len());
+    ASSERT(block->data_length() == 0 ||
+           block->full_length() > block->contents().len());
 
     // make sure the contents buffer has enough space
     block->writable_contents()->reserve(block->full_length());
@@ -219,10 +227,14 @@ BlockProcessor::validate(const Bundle* bundle, BlockInfo* block)
 
 //----------------------------------------------------------------------
 void
-BlockProcessor::prepare(const Bundle* bundle, LinkBlocks* blocks)
+BlockProcessor::prepare(const Bundle*    bundle,
+                        Link*            link,
+                        BlockInfoVec*    blocks,
+                        const BlockInfo* source)
 {
     (void)bundle;
-    blocks->info_vec_.push_back(BlockInfo(this));
+    (void)link;
+    blocks->push_back(BlockInfo(this, source));
 }
 
 //----------------------------------------------------------------------
@@ -236,13 +248,27 @@ BlockProcessor::finalize(const Bundle* bundle, Link* link, BlockInfo* block)
 
 //----------------------------------------------------------------------
 void
-BlockProcessor::produce(const Bundle* bundle, BlockInfo* block,
+BlockProcessor::produce(const Bundle* bundle, const BlockInfo* block,
                         u_char* buf, size_t offset, size_t len)
 {
     (void)bundle;
+    ASSERT(offset < block->contents().len());
     ASSERT(block->contents().len() >= offset + len);
     memcpy(buf, block->contents().buf() + offset, len);
 }
 
+//----------------------------------------------------------------------
+void
+BlockProcessor::init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
+                           u_char* bp, size_t len)
+{
+    ASSERT(block->owner() != NULL);
+    generate_preamble(block, type, flags, len);
+    ASSERT(block->data_offset() != 0);
+    block->writable_contents()->reserve(block->full_length());
+    block->writable_contents()->set_len(block->full_length());
+    memcpy(block->writable_contents()->buf() + block->data_offset(),
+           bp, len);
+}
 
 } // namespace dtn

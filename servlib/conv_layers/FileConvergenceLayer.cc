@@ -272,8 +272,9 @@ FileConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 
     // cons up a transmission event and pass it to the router
     bool acked = false;
+    // XXX/demmer total_len
     BundleDaemon::post(
-        new BundleTransmittedEvent(bundle, contact, payload_len, acked));
+        new BundleTransmittedEvent(bundle, contact, total_len, acked));
         
     log_debug("bundle id %d successfully transmitted", bundle->bundleid_);
 #endif // notimplemented
@@ -412,6 +413,7 @@ FileConvergenceLayer::Scanner::run()
             }
 
             // all set, notify the router
+            // XXX/demmer need length here
             BundleDaemon::post(
                 new BundleReceivedEvent(bundle, EVENTSRC_PEER));
         }

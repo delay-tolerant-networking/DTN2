@@ -500,10 +500,18 @@ TCPConvergenceLayer::Connection::handle_poll_activity()
         recv_data();
         process_data();
 
+        // Sanity check to make sure that there's space in the buffer
+        // for a subsequent read_data() call
+        if (recvbuf_.tailbytes() == 0) {
+            log_err("process_data left no space in recvbuf!!");
+        }
+
         if (! contact_broken_) {
             check_keepalive();
         }
+
     }
+
 }
 
 //----------------------------------------------------------------------

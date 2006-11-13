@@ -65,7 +65,14 @@ BundleActions::send_bundle(Bundle* bundle, Link* link,
                            ForwardingInfo::action_t action,
                            const CustodyTimerSpec& custody_timer)
 {
-    size_t total_len = BundleProtocol::formatted_length(bundle);
+    // XXX/demmer this should be moved somewhere in the router
+    // interface so it can select options for the outgoing bundle
+    // blocks (e.g. security)
+    BlockInfoVec* blocks = BundleProtocol::prepare_blocks(bundle, link);
+    size_t total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
+
+    ASSERT(blocks->size() > 2 ||
+           total_len == BundleProtocol::formatted_length(bundle));
     
     log_debug("send bundle *%p to %s link %s (%s) (total len %zu)",
               bundle, link->type_str(), link->name(), link->nexthop(),
