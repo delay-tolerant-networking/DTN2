@@ -14,16 +14,47 @@
  *    limitations under the License.
  */
 
-
+/*
+ * This file is a little funky since it's compiled into both C and C++
+ * (after being #included into sdnv-c.c).
+ */
+#ifdef __cplusplus
+#include "SDNV.h"
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
 
-#include "SDNV.h"
+#define SDNV_FN(_what) SDNV::_what
 
 namespace dtn {
 
+#else // ! __cplusplus
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <oasys/compat/inttypes.h>
+
+#define SDNV_FN(_what) sdnv_##_what
+
+//----------------------------------------------------------------------
+#define ASSERT(x)                                               \
+do {                                                            \
+    if (! (x)) {                                                \
+        fprintf(stderr, "ASSERTION FAILED (" #x ") at %s:%d\n", \
+                __FILE__, __LINE__);                            \
+        exit(1);                                                \
+    }                                                           \
+} while (0)
+            
+//----------------------------------------------------------------------
+#define log_err(p, args...) fprintf(stderr, "error: (" p ") " args);
+
+#define MAX_LENGTH 10
+
+#endif // __cplusplus
+            
+//----------------------------------------------------------------------
 int
-SDNV::encode(u_int64_t val, u_char* bp, size_t len)
+SDNV_FN(encode)(u_int64_t val, u_char* bp, size_t len)
 {
     u_char* start = bp;
 
@@ -66,17 +97,19 @@ SDNV::encode(u_int64_t val, u_char* bp, size_t len)
     return val_len;
 }
 
+//----------------------------------------------------------------------
 size_t
-SDNV::encoding_len(u_int64_t val)
+SDNV_FN(encoding_len)(u_int64_t val)
 {
     u_char buf[16];
-    int ret = encode(val, buf, sizeof(buf));
+    int ret = SDNV_FN(encode)(val, buf, sizeof(buf));
     ASSERT(ret != -1 && ret != 0);
     return ret;
 }
 
+//----------------------------------------------------------------------
 int
-SDNV::decode(const u_char* bp, size_t len, u_int64_t* val)
+SDNV_FN(decode)(const u_char* bp, size_t len, u_int64_t* val)
 {
     const u_char* start = bp;
     
@@ -127,4 +160,7 @@ SDNV::decode(const u_char* bp, size_t len, u_int64_t* val)
     return val_len;
 }
 
+#ifdef __cplusplus
 } // namespace dtn
+#endif
+

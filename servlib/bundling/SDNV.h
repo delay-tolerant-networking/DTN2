@@ -19,6 +19,8 @@
 
 #include <oasys/compat/inttypes.h>
 
+#ifdef __cplusplus
+
 namespace dtn {
 
 /**
@@ -88,5 +90,7 @@ public:
 };
 
 } // namespace dtn
+
+#endif __cplusplus
 
 #endif /* _SDNV_H_ */

@@ -27,6 +27,7 @@ CLIENTLIB_SRCS := 			\
 		dtn_api.c		\
 		dtn_ipc.c		\
 		APIEndpointIDOpt.cc	\
+		sdnv-c.c		\
 
 # Sources for the server side of the library
 SERVERLIB_SRCS := 			\
