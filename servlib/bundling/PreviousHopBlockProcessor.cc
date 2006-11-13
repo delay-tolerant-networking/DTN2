@@ -35,7 +35,7 @@ PreviousHopBlockProcessor::prepare(const Bundle*    bundle,
                                    BlockInfoVec*    blocks,
                                    const BlockInfo* source)
 {
-    if (! link->params().prevhop_hdr_) {
+    if (link == NULL || !link->params().prevhop_hdr_) {
         return;
     }
     
