@@ -450,7 +450,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     /*
      * Send the reception receipt 
      */
-    if (bundle->receive_rcpt_ && (event->source_ != EVENTSRC_STORE)) {
+    if (bundle->receive_rcpt_ && (event->source_ == EVENTSRC_PEER)) {
         generate_status_report(bundle, BundleProtocol::STATUS_RECEIVED);
     }
 
