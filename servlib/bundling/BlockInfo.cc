@@ -14,6 +14,7 @@
  *    limitations under the License.
  */
 
+#include <oasys/debug/Log.h>
 #include "BlockInfo.h"
 #include "BlockProcessor.h"
 #include "BundleProtocol.h"
@@ -22,7 +23,8 @@ namespace dtn {
 
 //----------------------------------------------------------------------
 BlockInfo::BlockInfo(BlockProcessor* owner, const BlockInfo* source)
-    : owner_(owner),
+    : SerializableObject(),
+      owner_(owner),
       owner_type_(owner->block_type()),
       source_(source),
       contents_(),
@@ -121,13 +123,33 @@ BlockInfoVec::find_block(u_int8_t type) const
     return false;
 }
 
+
+//----------------------------------------------------------------------
+LinkBlockSet::Entry::Entry(Link* link)
+    : blocks_(NULL), link_(link)
+{
+}
+
+//----------------------------------------------------------------------
+LinkBlockSet::~LinkBlockSet()
+{
+    for (iterator iter = entries_.begin();
+         iter != entries_.end();
+         ++iter)
+    {
+        delete iter->blocks_;
+        iter->blocks_ = 0;
+    }
+}
+
 //----------------------------------------------------------------------
 BlockInfoVec*
 LinkBlockSet::create_blocks(Link* link)
 {
     ASSERT(find_blocks(link) == NULL);
     entries_.push_back(Entry(link));
-    return &(entries_.back().blocks_);
+    entries_.back().blocks_ = new BlockInfoVec();
+    return entries_.back().blocks_;
 }
 
 //----------------------------------------------------------------------
@@ -139,7 +161,7 @@ LinkBlockSet::find_blocks(Link* link)
          ++iter)
     {
         if (iter->link_ == link) {
-            return &(iter->blocks_);
+            return iter->blocks_;
         }
     }
     return NULL;
@@ -154,6 +176,7 @@ LinkBlockSet::delete_blocks(Link* link)
          ++iter)
     {
         if (iter->link_ == link) {
+            delete iter->blocks_;
             entries_.erase(iter);
             return;
         }

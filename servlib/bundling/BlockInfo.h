@@ -107,6 +107,11 @@ public:
 class LinkBlockSet {
 public:
     /**
+     * Destructor that clears the set.
+     */
+    virtual ~LinkBlockSet();
+    
+    /**
      * Create a new BlockInfoVec for the given link.
      *
      * @return Pointer to the new BlockInfoVec
@@ -126,12 +131,18 @@ public:
     void delete_blocks(Link* link);
 
 protected:
+    /**
+     * Struct to hold a block list and a link pointer. Note that we
+     * allow the STL vector to copy the pointers to both the block
+     * list and the link pointer. This is safe because the lifetime of
+     * the BlockInfoVec object is defined by create_blocks() and
+     * delete_blocks().
+     */
     struct Entry {
-        Entry(Link* link = NULL)
-            : blocks_(), link_(link) {}
+        Entry(Link* link);
         
-        BlockInfoVec blocks_;
-        Link*        link_;
+        BlockInfoVec* blocks_;
+        Link*         link_;
     };
 
     typedef std::vector<Entry> Vector;
