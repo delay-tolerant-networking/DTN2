@@ -225,6 +225,21 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             </xs:simpleType>
         </xs:union>
     </xs:simpleType>
+
+    <xs:simpleType name="failureActionType">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+0 = Drop bundles
+1 = Spool bundles until requested
+2 = Execute the specified callback procedure
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:unsignedByte">
+            <xs:enumeration value="0"/>
+            <xs:enumeration value="1"/>
+            <xs:enumeration value="2"/>
+        </xs:restriction>
+    </xs:simpleType>
     
     <!-- Bundle Type -->
     
@@ -410,13 +425,71 @@ For bundle fragments, offset into the file (todo)
         <xs:attributeGroup ref="payloadAttributes"/>
     </xs:complexType>
 
+    <xs:attributeGroup name="blockInfoAttributes">
+        <xs:attribute name="owner_type" type="xs:unsignedByte" use="required">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+Extracted from owner
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="length" type="xs:unsignedInt" use="required">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+Length of block contents
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="contents" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+Block contents
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="data_length" type="xs:unsignedInt" use="required">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+Length of the block data (w/o preamble)
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="data_offset" type="xs:unsignedInt" use="required">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+Offset of first byte of the block data
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="complete" type="xs:boolean" use="required">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+Whether or not this block is complete
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:attributeGroup>
+
+    <xs:complexType name="recvBlocksType">
+        <xs:sequence>
+            <xs:element name="element" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                    <xs:attributeGroup ref="blockInfoAttributes"/>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="size" type="xs:unsignedInt"/>
+    </xs:complexType>
+
     <xs:complexType name="bundleType">
         <xs:sequence>
             <xs:element name="source" type="eidType"/>
             <xs:element name="dest" type="eidType"/>
             <xs:element name="custodian" type="eidType"/>
             <xs:element name="replyto" type="eidType"/>
+            <xs:element name="prevhop" type="eidType"/>
             <xs:element name="payload" type="payloadType"/>
+            <xs:element name="recv_blocks" type="recvBlocksType"/>
         </xs:sequence>
         <xs:attributeGroup ref="bundleAttributes"/>
     </xs:complexType>
@@ -771,6 +844,23 @@ Next hop link.
         <xs:attribute name="orig_creation_seqno" type="xs:unsignedInt" use="required"/>
     </xs:attributeGroup>
 
+    <!-- Registration Type -->
+
+    <xs:attributeGroup name="registrationAttributes">
+        <xs:attribute name="regid" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="action" type="failureActionType" use="required"/>
+        <xs:attribute name="script" type="xs:string" use="required"/>
+        <xs:attribute name="creation_time" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="expiration" type="xs:unsignedInt" use="required"/>
+    </xs:attributeGroup>
+
+    <xs:complexType name="registrationType">
+        <xs:sequence>
+            <xs:element name="endpoint" type="eidType"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="registrationAttributes"/>
+    </xs:complexType>
+
 <!-- EVENTS -->
 
     <!-- Bundle Received Event -->
@@ -1012,6 +1102,50 @@ Signals a bundle custody transfer timeout.
         </xs:complexType>
     </xs:element>
 
+    <!-- Registration Added Event -->
+
+    <xs:element name="registration_added_event">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+Signals a new application registration
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="registration" type="registrationType"/>
+            </xs:sequence>
+            <xs:attribute name="source" type="eventSourceType" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Registration Removed Event -->
+
+    <xs:element name="registration_removed_event">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+Signals a registration removal
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="registration" type="registrationType"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Registration Expired Event -->
+
+    <xs:element name="registration_expired_event">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+Signals a registration expiration
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:attribute name="regid" type="xs:unsignedInt" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
 <!-- REQUESTS --> 
 
     <!-- Open Link Request -->
@@ -1195,6 +1329,9 @@ Carry two or more router message on a single packet.
             <xs:element ref="route_delete_event" minOccurs="0"/>
             <xs:element ref="custody_signal_event" minOccurs="0"/>
             <xs:element ref="custody_timeout_event" minOccurs="0"/>
+            <xs:element ref="registration_added_event" minOccurs="0"/>
+            <xs:element ref="registration_removed_event" minOccurs="0"/>
+            <xs:element ref="registration_expired_event" minOccurs="0"/>
             <xs:element ref="open_link_request" minOccurs="0"/>
             <xs:element ref="send_bundle_request" minOccurs="0"/>
             <xs:element ref="cancel_bundle_request" minOccurs="0"/>
