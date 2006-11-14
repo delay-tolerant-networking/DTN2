@@ -22,12 +22,8 @@
 #include "BundleList.h"
 #include "CustodySignal.h"
 #include "contacts/Link.h"
-#include "contacts/Interface.h"
 
 #include <oasys/serialize/Serialize.h>
-
-#include <netinet/in.h>
-#include <rpc/rpc.h>
 
 namespace dtn {
 
@@ -39,6 +35,7 @@ namespace dtn {
 
 class Bundle;
 class Contact;
+class Interface;
 class Registration;
 class RouteEntry;
 class Link;
