@@ -179,10 +179,7 @@ ExternalRouter::handle_event(BundleEvent *event)
     // Preprocess events based upon type
     if ((event->type_ == BUNDLE_DELIVERED) ||
         (event->type_ == LINK_CREATE) ||
-        (event->type_ == REASSEMBLY_COMPLETED) ||
-        (event->type_ == REGISTRATION_ADDED) ||
-        (event->type_ == REGISTRATION_REMOVED) ||
-        (event->type_ == REGISTRATION_EXPIRED)) {
+        (event->type_ == REASSEMBLY_COMPLETED)) {
         // Filter out events not supported by the external router interface
         return;
     } else if (event->type_ == BUNDLE_RECEIVED) {
@@ -267,7 +264,8 @@ ExternalRouter::shutdown()
 ExternalRouter::ModuleServer::ModuleServer()
     : IOHandlerBase(new oasys::Notifier("/router/external/moduleserver")),
       Thread("/router/external/moduleserver"),
-      parser_(true, ExternalRouter::schema.c_str()),
+      parser_(ExternalRouter::server_validation,
+              ExternalRouter::schema.c_str()),
       lock_(new oasys::SpinLock())
 {
     // router interface and external routers must be able to bind
