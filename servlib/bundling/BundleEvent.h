@@ -131,9 +131,9 @@ event_to_str(event_type_t event, bool xml=false)
 
     case REASSEMBLY_COMPLETED:	return "REASSEMBLY_COMPLETED";
 
-    case REGISTRATION_ADDED:	return "REGISTRATION_ADDED";
-    case REGISTRATION_REMOVED:	return "REGISTRATION_REMOVED";
-    case REGISTRATION_EXPIRED:	return "REGISTRATION_EXPIRED";
+    case REGISTRATION_ADDED:	return xml ? "registration_added_event" : "REGISTRATION_ADDED";
+    case REGISTRATION_REMOVED:	return xml ? "registration_removed_event" : "REGISTRATION_REMOVED";
+    case REGISTRATION_EXPIRED:	return xml ? "registration_expired_event" : "REGISTRATION_EXPIRED";
 
     case ROUTE_ADD:		return xml ? "route_add_event" : "ROUTE_ADD";
     case ROUTE_DEL:		return xml ? "route_delete_event" : "ROUTE_DEL";
@@ -626,7 +626,7 @@ public:
           source_(source) {}
 
     // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
+    virtual void serialize(oasys::SerializeAction*);
 
     /// The newly added registration
     Registration* registration_;
@@ -644,7 +644,7 @@ public:
         : BundleEvent(REGISTRATION_REMOVED), registration_(reg) {}
 
     // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
+    virtual void serialize(oasys::SerializeAction*);
 
     /// The to-be-removed registration
     Registration* registration_;
@@ -659,7 +659,7 @@ public:
         : BundleEvent(REGISTRATION_EXPIRED), regid_(regid) {}
 
     // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
+    virtual void serialize(oasys::SerializeAction*);
 
     /// The to-be-removed registration id
     u_int32_t regid_;

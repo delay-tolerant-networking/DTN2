@@ -237,6 +237,25 @@ LinkStateChangeRequest::serialize(oasys::SerializeAction* a)
 }
 
 void
+RegistrationAddedEvent::serialize(oasys::SerializeAction *a)
+{
+    a->process("registration", registration_);
+    a->process("source", &source_);
+}
+
+void
+RegistrationRemovedEvent::serialize(oasys::SerializeAction *a)
+{
+    a->process("registration", registration_);
+}
+
+void
+RegistrationExpiredEvent::serialize(oasys::SerializeAction *a)
+{
+    a->process("regid", &regid_);
+}
+
+void
 RouteAddEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("route_entry", entry_);
