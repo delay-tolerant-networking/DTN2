@@ -125,19 +125,19 @@ ROUTING_SRCS :=					\
 	routing/LinkStateGraph.cc		\
 	routing/LinkStateRouter.cc		\
 	routing/LinkScheduleEstimator.cc	\
+	routing/Prophet.cc			\
+	routing/ProphetController.cc		\
+	routing/ProphetEncounter.cc		\
+	routing/ProphetLists.cc			\
+	routing/ProphetNode.cc			\
+	routing/ProphetRouter.cc		\
+	routing/ProphetTLV.cc			\
 	routing/RouteEntry.cc			\
 	routing/RouteTable.cc			\
 	routing/TableBasedRouter.cc		\
 	routing/TcaEndpointID.cc                \
 	routing/TcaControlBundle.cc             \
 	routing/TcaRouter.cc                    \
-	routing/Prophet.cc			\
-	routing/ProphetNode.cc			\
-	routing/ProphetLists.cc			\
-	routing/ProphetTLV.cc			\
-	routing/ProphetEncounter.cc		\
-	routing/ProphetController.cc		\
-	routing/ProphetRouter.cc		\
 
 OLD_STORAGE_SRCS :=				\
 	storage/GlobalStore.cc			\
