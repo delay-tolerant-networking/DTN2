@@ -57,7 +57,7 @@ proc check {} {
 	    bundleid     0 \
 	    source       $source_eid1 \
 	    dest         $dest_eid1   \
-	    expiration   20	      \
+	    expiration   30	      \
 	    payload_len  [string length $payload]  \
 	    payload_data $payload
 
@@ -81,7 +81,7 @@ proc check {} {
     dtn::check_reg_data 0 11   \
 	    regid        11        \
 	    endpoint     $reg_eid2 \
-	    expiration   20        \
+	    expiration   30        \
 	    action       0
 }
 
@@ -97,12 +97,12 @@ test::script {
 	    "flamebox-ignore ign scheduling IMMEDIATE expiration"
 
     puts "* injecting two bundles"
-    tell_dtnd 0 bundle inject $source_eid1 $dest_eid1 $payload expiration=20
+    tell_dtnd 0 bundle inject $source_eid1 $dest_eid1 $payload expiration=30
     tell_dtnd 0 bundle inject $source_eid2 $dest_eid2 $payload expiration=10
 
     puts "* running dtnrecv to create registrations"
     set pid1 [dtn::run_app 0 dtnrecv "-x $reg_eid1 -e 10"]
-    set pid2 [dtn::run_app 0 dtnrecv "-x $reg_eid2 -f drop -e 20"]
+    set pid2 [dtn::run_app 0 dtnrecv "-x $reg_eid2 -f drop -e 30"]
 
     run::wait_for_pid_exit 0 $pid1
     run::wait_for_pid_exit 0 $pid2
@@ -112,6 +112,7 @@ test::script {
 
     puts "* restarting dtnd without the tidy option"
     dtn::stop_dtnd 0
+    after 2000
     dtn::run_dtnd 0 {}
     dtn::wait_for_dtnd 0
 
@@ -122,10 +123,11 @@ test::script {
     dtn::stop_dtnd 0
 
     puts "* waiting for expirations to elapse"
-    after 12000
+    after 10000
 
     puts "* restarting dtnd"
     dtn::run_dtnd 0 {}
+    after 2000
     dtn::wait_for_dtnd 0
 
     puts "* checking that 1 bundle expired"
@@ -136,7 +138,7 @@ test::script {
     dtn::check test_reg_exists 0 11
 
     puts "* waiting for the others to expire"
-    after 10000
+    after 20000
 
     puts "* checking they're expired"
     dtn::check_bundle_stats 0 0 pending
@@ -145,6 +147,7 @@ test::script {
 
     puts "* restarting again"
     dtn::stop_dtnd 0
+    after 5000
     dtn::run_dtnd 0 {}
     dtn::wait_for_dtnd 0
 
