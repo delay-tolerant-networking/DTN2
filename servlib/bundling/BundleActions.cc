@@ -144,8 +144,7 @@ BundleActions::delete_bundle(Bundle* bundle,
                              bool log_on_error)
 {
     log_debug("attempting to delete bundle *%p from data store", bundle);
-    bool del =
-        BundleDaemon::instance()->try_delete_from_pending(bundle, reason);
+    bool del = BundleDaemon::instance()->delete_bundle(bundle, reason);
 
     if (log_on_error && !del) {
         log_err("Failed to delete bundle *%p from data store", bundle);

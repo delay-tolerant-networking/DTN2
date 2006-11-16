@@ -353,17 +353,25 @@ protected:
      * Remove the bundle from the pending list and data store, and
      * cancel the expiration timer.
      */
-    bool delete_from_pending(Bundle* bundle, status_report_reason_t reason);
+    bool delete_from_pending(Bundle* bundle);
 
     /**
      * Check if we should delete this bundle, called once it's been
      * transmitted or delivered at least once. If so, call
      * delete_from_pending.
      */
-    bool try_delete_from_pending(Bundle* bundle,
-                                 status_report_reason_t reason = 
-                                     BundleProtocol::REASON_NO_ADDTL_INFO);
+    bool try_delete_from_pending(Bundle* bundle);
 
+    /**
+     * Delete (rather than silently discard) a bundle, e.g., an expired
+     * bundle. Releases custody of the bundle, removes fragmentation state
+     * for the bundle if necessary, removes the bundle from the pending
+     * list, and sends a bundle deletion status report if necessary.
+     */
+    bool delete_bundle(Bundle* bundle,
+                       status_report_reason_t reason =
+                           BundleProtocol::REASON_NO_ADDTL_INFO);
+    
     /**
      * Check if there are any bundles in the pending queue that match
      * the source id, timestamp, and fragmentation offset/length

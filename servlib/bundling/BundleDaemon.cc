@@ -792,21 +792,10 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 
     // note that there may or may not still be a pending expiration
     // timer, since this event may be coming from the console, in
-    // which case we just fall through to delete_from_pending which
-    // will cancel the timer
+    // which case we just fall through to delete_bundle which will
+    // cancel the timer
 
-    // check if we have custody, if so, remove it
-    if (bundle->local_custody_) {
-        release_custody(bundle);
-    }
-
-    // delete the bundle from the pending list
-    delete_from_pending(bundle, BundleProtocol::REASON_LIFETIME_EXPIRED);
-
-    // XXX/demmer check if the bundle is a fragment awaiting reassembly
-    
-    // XXX/demmer should try to cancel transmission on any links where
-    // the bundle is active
+    delete_bundle(bundle, BundleProtocol::REASON_LIFETIME_EXPIRED);
     
     // fall through to notify the routers
 }
@@ -1485,8 +1474,7 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
 
 //----------------------------------------------------------------------
 bool
-BundleDaemon::delete_from_pending(Bundle* bundle,
-                                  status_report_reason_t reason)
+BundleDaemon::delete_from_pending(Bundle* bundle)
 {
     log_debug("removing bundle *%p from pending list", bundle);
 
@@ -1508,15 +1496,7 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
 
     bool erased = pending_bundles_->erase(bundle);
 
-    if (erased) {
-        if (bundle->deletion_rcpt_ &&
-            (reason != BundleProtocol::REASON_NO_ADDTL_INFO))
-        {
-            generate_status_report(bundle,
-                                   BundleProtocol::STATUS_DELETED,
-                                   reason);
-        }
-    } else {
+    if (!erased) {
         log_err("unexpected error removing bundle from pending list");
     }
 
@@ -1525,8 +1505,7 @@ BundleDaemon::delete_from_pending(Bundle* bundle,
 
 //----------------------------------------------------------------------
 bool
-BundleDaemon::try_delete_from_pending(Bundle* bundle,
-                                      status_report_reason_t reason)
+BundleDaemon::try_delete_from_pending(Bundle* bundle)
 {
     /*
      * Check to see if we should remove the bundle from the pending
@@ -1583,7 +1562,41 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle,
         return false;
     }
 
-    return delete_from_pending(bundle, reason);
+    return delete_from_pending(bundle);
+}
+
+//----------------------------------------------------------------------
+bool
+BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
+{
+    // send a bundle deletion status report if we have custody or the
+    // bundle's deletion status report request flag is set and a reason
+    // for deletion is provided
+    bool send_status = (bundle->local_custody_ ||
+                       (bundle->deletion_rcpt_ &&
+                        reason != BundleProtocol::REASON_NO_ADDTL_INFO));
+	
+    // check if we have custody, if so, remove it
+    if (bundle->local_custody_) {
+        release_custody(bundle);
+    }
+
+    // check if bundle is a fragment, if so, remove any fragmentation state
+    if (bundle->is_fragment_) {
+        fragmentmgr_->delete_fragment(bundle);
+    }
+
+    // delete the bundle from the pending list
+    bool erased = delete_from_pending(bundle);
+
+    if (erased && send_status) {
+        generate_status_report(bundle, BundleProtocol::STATUS_DELETED, reason);
+    }
+
+    // XXX/demmer should try to cancel transmission on any links where
+    // the bundle is active
+
+    return erased;
 }
 
 //----------------------------------------------------------------------
