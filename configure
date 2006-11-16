@@ -904,6 +904,7 @@ Optional Packages:
   --with-expat=DIR        location of an expat installation (default try)
   --with-xerces-c=DIR     location of a xerces-c installation (default try)
   --with-tclreadline      enable or disable tclreadline (default try)
+  --with-zlib             compile in zlib support (default try)
 
 Some influential environment variables:
   CC          C compiler command
@@ -8980,6 +8981,176 @@ cat >>confdefs.h <<_ACEOF
 #define TCLREADLINE_ENABLED $TCLREADLINE_ENABLED
 _ACEOF
 
+
+
+
+
+# Check whether --with-zlib or --without-zlib was given.
+if test "${with_zlib+set}" = set; then
+  withval="$with_zlib"
+  ac_use_zlib=$withval
+else
+  ac_use_zlib=try
+fi;
+
+    echo "$as_me:$LINENO: checking whether zlib support should be enabled" >&5
+echo $ECHO_N "checking whether zlib support should be enabled... $ECHO_C" >&6
+
+    if test "$ac_use_zlib" = "no"; then
+        echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+    else
+        echo "$as_me:$LINENO: result: $ac_use_zlib" >&5
+echo "${ECHO_T}$ac_use_zlib" >&6
+
+                                echo "$as_me:$LINENO: checking for library containing compress" >&5
+echo $ECHO_N "checking for library containing compress... $ECHO_C" >&6
+if test "${ac_cv_search_compress+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+ac_cv_search_compress=no
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char compress ();
+int
+main ()
+{
+compress ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_compress="none required"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+if test "$ac_cv_search_compress" = no; then
+  for ac_lib in z; do
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+    cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char compress ();
+int
+main ()
+{
+compress ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_search_compress="-l$ac_lib"
+break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+  done
+fi
+LIBS=$ac_func_search_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_search_compress" >&5
+echo "${ECHO_T}$ac_cv_search_compress" >&6
+if test "$ac_cv_search_compress" != no; then
+  test "$ac_cv_search_compress" = "none required" || LIBS="$ac_cv_search_compress $LIBS"
+  ac_has_libz="yes"
+fi
+
+
+                                echo "$as_me:$LINENO: checking whether zlib support was found" >&5
+echo $ECHO_N "checking whether zlib support was found... $ECHO_C" >&6
+
+                                if test "$ac_has_libz" = yes ; then
+
+cat >>confdefs.h <<\_ACEOF
+#define OASYS_ZLIB_ENABLED 1
+_ACEOF
+
+          echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+
+	elif test "$ac_use_zlib" = "try" ; then
+          echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+
+        else
+          { { echo "$as_me:$LINENO: error: can't find zlib library" >&5
+echo "$as_me: error: can't find zlib library" >&2;}
+   { (exit 1); exit 1; }; }
+        fi
+    fi
 
 
 

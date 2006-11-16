@@ -101,6 +101,7 @@ AC_OASYS_CONFIG_BLUEZ
 AC_OASYS_CONFIG_EXPAT
 AC_OASYS_CONFIG_XERCES
 AC_OASYS_CONFIG_TCLREADLINE
+AC_OASYS_CONFIG_ZLIB
 
 dnl -------------------------------------------------------------------------
 dnl Output

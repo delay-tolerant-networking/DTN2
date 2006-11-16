@@ -129,6 +129,9 @@
 /* whether oasys memory debugging is enabled */
 #undef OASYS_DEBUG_MEMORY_ENABLED
 
+/* whether zlib support is enabled */
+#undef OASYS_ZLIB_ENABLED
+
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
 
