@@ -73,6 +73,15 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/TCPConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
 
+DISCOVERY_SRCS :=				\
+	discovery/DiscoveryTable.cc		\
+	discovery/Discovery.cc			\
+	discovery/IPDiscovery.cc		\
+	discovery/BluetoothDiscovery.cc		\
+	discovery/Announce.cc			\
+	discovery/IPAnnounce.cc			\
+	discovery/BluetoothAnnounce.cc		\
+
 CMD_SRCS :=					\
 	cmd/APICommand.cc			\
 	cmd/BundleCommand.cc			\
@@ -85,6 +94,8 @@ CMD_SRCS :=					\
 	cmd/ShutdownCommand.cc			\
 	cmd/StorageCommand.cc			\
 	cmd/TestCommand.cc			\
+	cmd/DiscoveryCommand.cc			\
+	cmd/ProphetCommand.cc			\
 
 NAMING_SRCS :=					\
 	naming/EndpointID.cc			\
@@ -111,7 +122,6 @@ ROUTING_SRCS :=					\
 	routing/BundleRouter.cc			\
 	routing/FloodBundleRouter.cc		\
 	routing/NeighborhoodRouter.cc		\
-	routing/ProphetRouter.cc		\
 	routing/LinkStateGraph.cc		\
 	routing/LinkStateRouter.cc		\
 	routing/LinkScheduleEstimator.cc	\
@@ -121,6 +131,13 @@ ROUTING_SRCS :=					\
 	routing/TcaEndpointID.cc                \
 	routing/TcaControlBundle.cc             \
 	routing/TcaRouter.cc                    \
+	routing/Prophet.cc			\
+	routing/ProphetNode.cc			\
+	routing/ProphetLists.cc			\
+	routing/ProphetTLV.cc			\
+	routing/ProphetEncounter.cc		\
+	routing/ProphetController.cc		\
+	routing/ProphetRouter.cc		\
 
 OLD_STORAGE_SRCS :=				\
 	storage/GlobalStore.cc			\
@@ -142,6 +159,7 @@ SERVLIB_SRCS := 				\
 	$(BUNDLING_SRCS) 			\
 	$(CONTACT_SRCS)				\
 	$(CONV_LAYER_SRCS)			\
+	$(DISCOVERY_SRCS)			\
 	$(CMD_SRCS) 				\
 	$(NAMING_SRCS) 				\
 	$(REGISTRATION_SRCS)			\
