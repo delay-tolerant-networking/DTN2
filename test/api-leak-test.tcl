@@ -90,6 +90,7 @@ test::script {
 
 test::exit_script {
     puts "* Stopping dtnd and dtntest"
-    dtn::stop_dtnd 0
+    dtn::tell_dtntest 0 dtn_close $h
     dtn::stop_dtntest 0
+    dtn::stop_dtnd 0
 }
