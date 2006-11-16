@@ -23,6 +23,8 @@
 
 #include "TCPConvergenceLayer.h"
 #include "IPConvergenceLayerUtils.h"
+#include "bundling/BundleDaemon.h"
+#include "contacts/ContactManager.h"
 
 namespace dtn {
 
@@ -402,8 +404,7 @@ TCPConvergenceLayer::Connection::connect()
     // handle_poll_activity
     log_debug("connect: connecting to %s:%d...",
               intoa(sock_->remote_addr()), sock_->remote_port());
-    ASSERT(contact_ != NULL);
-    ASSERT(contact_->link()->isopening());
+    ASSERT(contact_ == NULL || contact_->link()->isopening());
     ASSERT(sock_->state() != oasys::IPSocket::ESTABLISHED);
     int ret = sock_->connect(sock_->remote_addr(), sock_->remote_port());
 
