@@ -861,8 +861,8 @@ RouteEntry*
 TcaRouter::create_route(const std::string& pattern, Link* p_link)
 {
 
-    log_debug("TcaRouter::create_route: pattern=%s, p_link=%d",
-            pattern.c_str(), int(p_link));
+    log_debug("TcaRouter::create_route: pattern=%s, p_link=%p",
+            pattern.c_str(), p_link);
 
     RouteEntry* p_entry = new RouteEntry(pattern, p_link);
     p_entry->action_ = ForwardingInfo::COPY_ACTION;
