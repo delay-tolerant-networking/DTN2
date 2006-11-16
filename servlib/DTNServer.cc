@@ -39,10 +39,13 @@
 #include "cmd/ParamCommand.h"
 #include "cmd/RegistrationCommand.h"
 #include "cmd/RouteCommand.h"
+#include "cmd/DiscoveryCommand.h"
+#include "cmd/ProphetCommand.h"
 #include "cmd/ShutdownCommand.h"
 #include "cmd/StorageCommand.h"
 
 #include "conv_layers/ConvergenceLayer.h"
+#include "discovery/DiscoveryTable.h"
 
 #include "naming/SchemeTable.h"
 
@@ -206,6 +209,8 @@ DTNServer::init_commands()
     interp->reg(new ParamCommand());
     interp->reg(new RegistrationCommand());
     interp->reg(new RouteCommand());
+    interp->reg(new DiscoveryCommand());
+    interp->reg(new ProphetCommand());
     interp->reg(new ShutdownCommand(this, "shutdown"));
     interp->reg(new ShutdownCommand(this, "quit"));
     interp->reg(new StorageCommand(storage_config_));
@@ -220,6 +225,7 @@ DTNServer::init_components()
     ConvergenceLayer::init_clayers();
     InterfaceTable::init();
     BundleDaemon::init();
+    DiscoveryTable::init();
     
     log_debug("intialized dtn components");
 }
