@@ -104,6 +104,7 @@ protected:
     bool                listen_;
     dtn_endpoint_id_t 	local_eid_;
     dtn_endpoint_id_t 	dest_eid_;
+    bool		custody_;
     u_int		expiration_;
     bool                tcp_;
     bool                udp_;

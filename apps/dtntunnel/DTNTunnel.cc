@@ -46,6 +46,7 @@ DTNTunnel::DTNTunnel()
       logfile_("-"),
       send_lock_("/dtntunnel", oasys::Mutex::TYPE_RECURSIVE, true),
       listen_(false),
+      custody_(false),
       expiration_(30),
       tcp_(false),
       udp_(false),
@@ -77,6 +78,9 @@ DTNTunnel::get_options(int argc, char* argv[])
     opts.addopt(
         new oasys::BoolOpt('L', "listen", &listen_,
                            "run in listen mode for incoming CONN bundles"));
+    
+    opts.addopt(
+        new oasys::BoolOpt('c', "custody", &custody_, "use custody transfer"));
     
     opts.addopt(
         new oasys::UIntOpt('e', "expiration", &expiration_, "<secs>",
@@ -280,6 +284,9 @@ DTNTunnel::send_bundle(dtn::APIBundle* bundle, dtn_endpoint_id_t* dest_eid)
     dtn_copy_eid(&spec.dest,   dest_eid);
     spec.priority   = COS_NORMAL;
     spec.dopts      = DOPTS_NONE;
+    if (custody_) {
+        spec.dopts |= DOPTS_CUSTODY;
+    }
     spec.expiration = expiration_;
 
     dtn_bundle_payload_t payload;
