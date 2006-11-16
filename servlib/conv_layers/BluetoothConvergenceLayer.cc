@@ -1,5 +1,5 @@
 /*
- *    Copyright 2006 Intel Corporation
+ *    Copyright 2006 Baylor University
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ BluetoothConvergenceLayer::BluetoothLinkParams::BluetoothLinkParams(
 //----------------------------------------------------------------------
 BluetoothConvergenceLayer::BluetoothConvergenceLayer()
     : StreamConvergenceLayer("BluetoothConvergenceLayer",
-                             "bt2",BTCL_VERSION)
+                             "bt",BTCL_VERSION)
 {
 }
 
@@ -239,16 +239,6 @@ BluetoothConvergenceLayer::interface_up(Interface* iface,
     listener->listen();
     listener->start();
 
-    // scan for neighbors
-    if (neighbor_poll_interval > 0) {
-        log_debug("Starting up neighbor polling with interval=%d",
-                  neighbor_poll_interval);
-        listener->nd_ = new NeighborDiscovery(this,
-                                              neighbor_poll_interval);
-        listener->nd_->logpathf("%s/neighbordiscovery",logpath_);
-        listener->nd_->start();
-    }
-
     // store the new listener object in the cl specific portion of the
     // interface
     iface->set_cl_info(listener);
@@ -275,18 +265,6 @@ BluetoothConvergenceLayer::interface_down(Interface* iface)
         oasys::Thread::yield();
     }
 
-    NeighborDiscovery* nd = listener->nd_;
-
-    if (nd != NULL) {
-        nd->set_should_stop();
-        nd->interrupt();
-        while (! nd->is_stopped()) {
-            oasys::Thread::yield();
-        }
-        delete nd;
-        listener->nd_ = NULL; // not that it matters ... ?
-    }
-
     delete listener;
     return true;
 }
@@ -307,9 +285,9 @@ BluetoothConvergenceLayer::dump_interface(Interface* iface,
 
 //----------------------------------------------------------------------
 BluetoothConvergenceLayer::Listener::Listener(BluetoothConvergenceLayer* cl)
-    : IOHandlerBase(new oasys::Notifier("/dtn/cl/bt2/listener")),
-      RFCOMMServerThread("/dtn/cl/bt2/listener",oasys::Thread::INTERRUPTABLE),
-      cl_(cl), nd_(NULL)
+    : IOHandlerBase(new oasys::Notifier("/dtn/cl/bt/listener")),
+      RFCOMMServerThread("/dtn/cl/bt/listener",oasys::Thread::INTERRUPTABLE),
+      cl_(cl)
 {
     logfd_ = false;
 }
@@ -597,111 +575,15 @@ BluetoothConvergenceLayer::Connection::recv_data()
               recvbuf_.tailbytes());
     int cc = sock_->read(recvbuf_.end(), recvbuf_.tailbytes());
     if (cc < 1) {
-        // why does RFCOMM return POLLIN when it doesn't have anything!??
-        if (errno != EAGAIN) {
-            log_info("remote connection unexpectedly closed: %s (%d)",
-                     strerror(errno),errno);
-            break_contact(ContactEvent::BROKEN);
-            ASSERTF(0,"EAGAIN bug on BT2CL");
-        }
+        log_info("remote connection unexpectedly closed: %s (%d)",
+                 strerror(errno),errno);
+        break_contact(ContactEvent::BROKEN);
         return;
     }
 
     log_debug("recv_data: read %d bytes, rcvbuf has %zu bytes",
               cc, recvbuf_.fullbytes());
     recvbuf_.fill(cc);
-}
-
-//----------------------------------------------------------------------
-void
-BluetoothConvergenceLayer::NeighborDiscovery::initiate_contact(bdaddr_t remote)
-{
-    // First let's find out what we know about this remote addr
-    std::string nexthop = bd2str(remote);
-
-    ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    Link* link = cm->find_link_to(cl_, nexthop);
-
-    if (link == NULL) {
-        BluetoothConvergenceLayer::BluetoothLinkParams* params =
-            dynamic_cast<BluetoothConvergenceLayer::BluetoothLinkParams*>(
-                cl_->new_link_params());
-        bacpy(&params->remote_addr_,&remote);
-        CLConnection* conn = cl_->new_connection(params);
-        conn->start(); // good morning starshine, the earth says, hello!
-        // contact/link setup happens elsewhere in the CL
-
-        // back off for a while
-        sleep(100);
-    } else {
-        // nothing else to do
-        log_debug("found %s running DTN, already linked via %s",
-                  nexthop.c_str(), link->name());
-    }
-}
-
-//----------------------------------------------------------------------
-void
-BluetoothConvergenceLayer::NeighborDiscovery::run()
-{
-    if (poll_interval_ == 0) {
-        return;
-    }
-
-    // register DTN service with local SDP daemon
-    oasys::BluetoothServiceRegistration sdp_reg("dtnd",
-                           BundleDaemon::instance()->local_eid().c_str());
-    if (sdp_reg.success() == false) {
-        log_err("SDP registration failed");
-        return;
-    }
-
-    // loop forever (until interrupted)
-    while (true) {
-
-        // randomize the sleep time:
-        // the point is that two nodes with zero prior knowledge of each other
-        // need to be able to discover each other in a reasonably short time.
-        // if common practice is that all set their poll_interval to 1 or 30
-        // or x then there's the chance of synchronization or syncopation such
-        // that discovery doesn't happen.
-        int sleep_time = oasys::Random::rand(poll_interval_);
-
-        log_debug("sleep_time %d",sleep_time);
-        sleep(sleep_time);
-
-        // initiate inquiry on local Bluetooth controller
-        int nr = inquire(); // blocks until inquiry process completes
-
-        if (should_stop()) break;
-
-        if (nr < 0) {
-            log_debug("no Bluetooth devices in range");
-            continue;
-        }
-
-        // enumerate any remote Bluetooth adapters in range
-        bdaddr_t addr;
-        while (next(addr) != -1) {
-
-            // query SDP daemon on remote host for DTN's registration
-            oasys::BluetoothServiceDiscoveryClient sdpclient;
-            if (sdpclient.is_dtn_router(addr)) {
-                log_info("Discovered DTN router %s at %s channel %d\n",
-                         sdpclient.remote_eid().c_str(),
-                         bd2str(addr),sdpclient.channel()); 
-                initiate_contact(addr);
-            }
-            if (should_stop()) break;
-        }
-        if (should_stop()) break;
-
-        // flush results of previous inquiry
-        reset();
-    }
-
-    // interrupted! unregister
-    log_info("Bluetooth inquiry interrupted by user");
 }
 
 } // dtn

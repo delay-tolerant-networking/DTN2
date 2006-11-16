@@ -1,3 +1,19 @@
+/*
+ *    Copyright 2006 Baylor University
+ * 
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ * 
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
 #ifndef _BLUETOOTH_CONVERGENCE_LAYER_
 #define _BLUETOOTH_CONVERGENCE_LAYER_
 
@@ -8,7 +24,6 @@
 #include <errno.h>
 extern int errno;
 
-#include <bluetooth/bluetooth.h>
 #include <oasys/bluez/BluetoothInquiry.h>
 #include <oasys/bluez/RFCOMMClient.h>
 #include <oasys/bluez/RFCOMMServer.h>
@@ -17,6 +32,8 @@ extern int errno;
 #include "StreamConvergenceLayer.h"
 
 namespace dtn {
+
+class BluetoothAnnounce;
 
 /**
  * The Bluetooth Convergence Layer.
@@ -69,8 +86,9 @@ public:
      */
     static BluetoothLinkParams default_link_params_;
 
-
 protected:
+    friend class BluetoothAnnounce;
+
     /// @{ virtual from ConvergenceLayer
     bool set_link_defaults(int argc, const char* argv[],
                            const char** invalidp);
@@ -86,9 +104,6 @@ protected:
     virtual CLConnection* new_connection(LinkParams* params);
     /// @}
 
-    // forward decl
-    class NeighborDiscovery;
-
     /**
      * Helper class (and thread) that listens on a registered
      * interface for new connections.
@@ -98,11 +113,8 @@ protected:
         Listener(BluetoothConvergenceLayer* cl);
         void accepted(int fd, bdaddr_t addr, u_int8_t channel);
 
-        /// The BT2CL instance
+        /// The BTCL instance
         BluetoothConvergenceLayer* cl_;
-
-        /// Neighbor Discovery instance
-        NeighborDiscovery* nd_;
     };
 
     /**
@@ -165,43 +177,6 @@ protected:
         struct pollfd*        sock_pollfd_; ///< Poll structure for the socket 
     };
 
-    class NeighborDiscovery : public oasys::BluetoothInquiry,
-                              public oasys::Thread
-    {
-    public:
-        NeighborDiscovery(BluetoothConvergenceLayer *cl,
-                          u_int poll_interval,
-                          const char* logpath = "/dtn/cl/bt/neighbordiscovery")
-            : Thread("NeighborDiscovery"), cl_(cl)
-        {
-            poll_interval_ = poll_interval;
-            ASSERT(poll_interval_ > 0);
-            Thread::set_flag(Thread::INTERRUPTABLE);
-            set_logpath(logpath);
-            memset(&local_addr_,0,sizeof(bdaddr_t));
-            oasys::Bluetooth::hci_get_bdaddr(&local_addr_);
-        }
-
-        ~NeighborDiscovery() {}
-
-        u_int poll_interval() {
-            return poll_interval_;
-        }
-
-        // 0 indicates no polling
-        void poll_interval(u_int poll_int) {
-            poll_interval_ = poll_int;
-        }
-
-    protected:
-        void run();
-        void initiate_contact(bdaddr_t remote);
-
-        u_int poll_interval_; ///< seconds between neighbor discovery polling
-        BluetoothConvergenceLayer* cl_;
-        bdaddr_t local_addr_; ///< used for SDP bind
-
-    }; // NeighborDiscovery
 }; // BluetoothConvergenceLayer
 
 } // namespace dtn
