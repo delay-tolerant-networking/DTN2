@@ -114,6 +114,11 @@ public:
      */
     void process_for_reassembly(Bundle* fragment);
 
+    /**
+     * Delete reassembly state for a bundle.
+     */
+    void delete_fragment(Bundle* fragment);
+    
  protected:
     /// Reassembly state structure
     struct ReassemblyState {

@@ -365,6 +365,51 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
     delete state;
 }
 
+//----------------------------------------------------------------------
+void
+FragmentManager::delete_fragment(Bundle* fragment)
+{
+    ReassemblyState* state;
+    ReassemblyTable::iterator iter;
 
+    ASSERT(fragment->is_fragment_);
+
+    // cons up the key to do the table lookup and look for reassembly state
+    std::string hash_key;
+    get_hash_key(fragment, &hash_key);
+    iter = reassembly_table_.find(hash_key);
+
+    // no reassembly state, simply return
+    if (iter == reassembly_table_.end()) {
+        return;
+    }
+
+    state = iter->second;
+
+    // remove the fragment from the reassembly list
+    bool erased = state->fragments_.erase(fragment);
+
+    // fragment was not in reassembly list, simply return
+    if (!erased) {
+        return;
+    }
+
+    // create a null buffer; the "null" character is used as padding in
+    // the partially reassembled bundle file
+    u_char buf[fragment->payload_.length()];
+    memset(buf, '\0', fragment->payload_.length());
+    
+    // remove the fragment data from the partially reassembled bundle file
+    state->bundle_->payload_.reopen_file();
+    state->bundle_->payload_.write_data(buf, fragment->frag_offset_,
+                                        fragment->payload_.length());
+    state->bundle_->payload_.close_file();
+
+    // delete reassembly state if no fragments now exist
+    if (state->fragments_.size() == 0) {
+        reassembly_table_.erase(hash_key);
+        delete state;
+    }
+}
 
 } // namespace dtn
