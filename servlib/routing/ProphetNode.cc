@@ -59,6 +59,7 @@ ProphetNode::update_pvalue()
     // B is the node just encountered, represented by this ProphetNode instance
     ASSERT(p_value_ >= 0.0 && p_value_ <= 1.0);
     double prev = p_value_;
+    (void)prev;
     p_value_ = p_value_ + (1.0 - p_value_) * params_->encounter_;
     log_debug("update_pvalue: before %.2f after %.2f",prev,p_value_);
 }
@@ -79,6 +80,7 @@ ProphetNode::update_transitive(double ab, double bc)
     ASSERT(ab >= 0.0 && ab <= 1.0);
     ASSERT(bc >= 0.0 && bc <= 1.0);
     double prev = p_value_;
+    (void)prev;
     p_value_ = p_value_ + (1.0 - p_value_) * ab * bc * params_->beta_;
     log_debug("update_transitive: ab %.2f bc %.2f before %.2f after %.2f",
               ab,bc,prev,p_value_);
@@ -107,6 +109,7 @@ ProphetNode::update_age()
     else if ( timeunits > 1 )
         gfactor = pow( params_->gamma_, timeunits );
     double prev = p_value_;
+    (void)prev;
     p_value_ *= gfactor;
     log_debug("update_age: timeunits %u before %.2f after %.2f",
               timeunits,prev,p_value_);
