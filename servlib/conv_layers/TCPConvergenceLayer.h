@@ -25,6 +25,8 @@
 
 namespace dtn {
 
+class IPAnnounce;
+
 /**
  * The TCP Convergence Layer.
  */
@@ -72,6 +74,8 @@ public:
     static TCPLinkParams default_link_params_;
 
 protected:
+    friend class IPAnnounce;
+
     /// @{ Virtual from ConvergenceLayer
     bool set_link_defaults(int argc, const char* argv[],
                            const char** invalidp);
