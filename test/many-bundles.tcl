@@ -60,6 +60,7 @@ test::script {
 
     puts "* Restarting dtnd 0"
     dtn::stop_dtnd 0
+    after 5000
     dtn::run_dtnd 0 ""
 
     puts "* Checking that all bundles were re-read from the database"
