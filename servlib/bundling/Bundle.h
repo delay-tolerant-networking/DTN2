@@ -169,7 +169,7 @@ public:
     bool receipt_requested()
     {
         return (receive_rcpt_ || custody_rcpt_ || forward_rcpt_ ||
-                delivery_rcpt_ || delivery_rcpt_);
+                delivery_rcpt_ || deletion_rcpt_);
     }
     
     /**
