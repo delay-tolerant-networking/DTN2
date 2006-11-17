@@ -107,7 +107,11 @@ install:
 	[ x$(DTN_USER) = x ] || chown -R $(DTN_USER) $(DESTDIR)$(bindir)
 
 	mkdir -p $(DESTDIR)/etc/
-	$(INSTALL_DATA) daemon/dtn.conf $(DESTDIR)/etc/dtn.conf
+	if [ -f $(DESTDIR)/etc/dtn.conf ]; then \
+		echo "WARNING: $(DESTDIR)/etc/dtn.conf exists -- not overwriting"; \
+	else \
+		$(INSTALL_DATA) daemon/dtn.conf $(DESTDIR)/etc/dtn.conf; \
+	fi
 
 #
 # Generate the doxygen documentation
