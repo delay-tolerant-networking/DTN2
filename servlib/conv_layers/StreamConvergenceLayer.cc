@@ -825,7 +825,8 @@ StreamConvergenceLayer::Connection::check_keepalive()
 
     // XXX/demmer this is to fix a strange and not yet understood race
     // condition
-    if (contact_->link()->state() == Link::BUSY &&
+    if (contact_ != NULL &&
+        contact_->link()->state() == Link::BUSY &&
         num_pending_.value == 0)
     {
         elapsed = TIMEVAL_DIFF_MSEC(now, data_sent_);

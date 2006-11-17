@@ -84,6 +84,7 @@ proc get_port {what id} {
 	tcp	{ set port [expr $dtn_portbase + 2] }
 	udp	{ set port [expr $dtn_portbase + 2] }
 	dtntest	{ set port [expr $dtn_portbase + 3] }
+	misc	{ set port [expr $dtn_portbase + 4] }
 	default { return -1 }
     }
 

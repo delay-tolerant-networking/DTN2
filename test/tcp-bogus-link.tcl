@@ -14,10 +14,13 @@
 #    limitations under the License.
 #
 
+manifest::file apps/dtntest/dtntest dtntest
+
 test::name tcp-bogus-link
 net::num_nodes 1
 
 dtn::config
+dtn::config_interface tcp
 
 test::script {
     puts "* Running dtnd"
@@ -49,6 +52,38 @@ test::script {
 
     puts "* Checking link is UNAVAILABLE"
     dtn::wait_for_link_state 0 bogus UNAVAILABLE
+
+    puts "* Running dtntest"
+    dtn::run_dtntest 0
+
+    puts "* Bumping down the link data timeout"
+    dtn::tell_dtnd 0 link set_cl_defaults tcp data_timeout=2000 
+
+    puts "* Connecting with a bogus socket"
+    set sock [dtn::tell_dtntest 0 socket $net::host(0) [dtn::get_port tcp 0]]
+
+    puts "* Waiting for data timeout"
+    after 5000
+
+    puts "* Closing the socket"
+    dtn::tell_dtntest 0 close $sock
+
+    puts "* Running a bogus server socket"
+    dtn::tell_dtntest 0 proc connected {args} {}
+    set sock [dtn::tell_dtntest 0 socket -server connected \
+            -myaddr $net::host(0) [dtn::get_port misc 0]]
+
+    puts "* Creating a link to the new socket"
+    dtn::tell_dtnd 0 link add l-test $net::host(0):[dtn::get_port misc 0] ALWAYSON tcp
+    
+    puts "* Checking that link is in state OPENING"
+    dtn::check_link_state 0 l-test OPENING
+    
+    puts "* Waiting for contact header timeout"
+    after 5000
+    
+    puts "* Checking that link is in state UNAVAILABLE"
+    dtn::check_link_state 0 l-test UNAVAILABLE
     
     puts "* Test success!"
 }
@@ -56,4 +91,7 @@ test::script {
 test::exit_script {
     puts "* Stopping all dtnds"
     dtn::stop_dtnd *
+
+    puts "* Stopping dtntest"
+    dtn::stop_dtntest *
 }
