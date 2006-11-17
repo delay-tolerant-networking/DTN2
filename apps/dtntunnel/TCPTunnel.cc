@@ -16,6 +16,7 @@
 
 
 #include <oasys/io/NetUtils.h>
+#include <oasys/util/Time.h>
 #include "DTNTunnel.h"
 #include "TCPTunnel.h"
 
@@ -213,6 +214,14 @@ TCPTunnel::Connection::run()
     u_int32_t next_recv_seqno = 0;
     bool sock_eof = false;
 
+    // outgoing (tcp -> dtn) / incoming (dtn -> tcp) bundles
+    dtn::APIBundle* b_xmit = NULL;
+    dtn::APIBundle* b_recv = NULL;
+
+    // time values to implement nagle
+    oasys::Time tbegin, tnow;
+    ASSERT(tbegin.sec_ == 0);
+    
     // header for outgoing bundles
     DTNTunnel::BundleHeader hdr;
     hdr.protocol_    = IPPROTO_TCP;
@@ -230,6 +239,7 @@ TCPTunnel::Connection::run()
 
             // send an empty bundle back
             dtn::APIBundle* b = new dtn::APIBundle();
+            hdr.eof_ = 1;
             memcpy(b->payload_.buf(sizeof(hdr)), &hdr, sizeof(hdr));
             b->payload_.set_len(sizeof(hdr));
             if (tunnel->send_bundle(b, &dest_eid_) != DTN_SUCCESS) {
@@ -257,45 +267,76 @@ TCPTunnel::Connection::run()
         // on the message queue
         log_debug("blocking in poll...");
         int nfds = sock_eof ? 1 : 2;
-        int nready = oasys::IO::poll_multiple(pollfds, nfds, -1, NULL, logpath_);
-        if (nready <= 0) {
+
+        int timeout = -1;
+        if (tbegin.sec_ != 0) {
+            timeout = tunnel->delay();
+        }
+        
+        int nready = oasys::IO::poll_multiple(pollfds, nfds, timeout, NULL, logpath_);
+        if (nready == oasys::IOERROR) {
             log_err("unexpected error in poll: %s", strerror(errno));
             goto done;
         }
 
         // check first for activity on the socket
         if (sock_poll->revents != 0) {
-            dtn::APIBundle* b = new dtn::APIBundle();
+            if (b_xmit == NULL) {
+                b_xmit = new dtn::APIBundle();
+                b_xmit->payload_.reserve(sizeof(hdr) + tunnel->max_size());
+                hdr.seqno_ = ntohl(send_seqno++);
+                memcpy(b_xmit->payload_.buf(), &hdr, sizeof(hdr));
+                b_xmit->payload_.set_len(sizeof(hdr));
+            }
 
-            u_int payload_len = tunnel->max_size();
-            char* bp = b->payload_.buf(sizeof(hdr) + payload_len);
-            int ret = sock_.read(bp + sizeof(hdr), payload_len);
+            tbegin.get_time();
+            
+            u_int payload_todo = sizeof(hdr) + tunnel->max_size() -
+                                 b_xmit->payload_.len();
+            char* bp = b_xmit->payload_.end();
+            int ret = sock_.read(bp, payload_todo);
             if (ret < 0) {
                 log_err("error reading from socket: %s", strerror(errno));
-                delete b;
+                delete b_xmit;
                 goto done;
             }
 
-            hdr.seqno_ = ntohl(send_seqno++);
-            b->payload_.set_len(sizeof(hdr) + ret);
-            memcpy(b->payload_.buf(), &hdr, sizeof(hdr));
-            if (tunnel->send_bundle(b, &dest_eid_) != DTN_SUCCESS)
-		exit(1);
-            else
-                log_info("sent %d byte payload to dtn", ret);
+            b_xmit->payload_.set_len(b_xmit->payload_.len() + ret);
 
             if (ret == 0) {
+                DTNTunnel::BundleHeader* hdrp =
+                    (DTNTunnel::BundleHeader*)b_xmit->payload_.buf();
+                hdrp->eof_ = 1;
                 sock_eof = true;
             }
+        }
+
+        // now check if we should send the outgoing bundle
+        tnow.get_time();
+        if ((b_xmit != NULL) &&
+            ((sock_eof == true) ||
+             (b_xmit->payload_.len() == (sizeof(hdr) + tunnel->max_size())) ||
+             ((tnow - tbegin).in_milliseconds() >= tunnel->delay())))
+        {
+            size_t len = b_xmit->payload_.len();
+            if (tunnel->send_bundle(b_xmit, &dest_eid_) != DTN_SUCCESS)
+		exit(1);
+            else {
+                log_info("sent %zu byte payload to dtn", len);
+                b_xmit = NULL;
+            }
+            
+            tbegin.sec_ = 0;
+            tbegin.usec_ = 0;
         }
         
         // now check for activity on the incoming bundle queue
         if (msg_poll->revents != 0) {
-            dtn::APIBundle* b = queue_.pop_blocking();
-            ASSERT(b);
+            b_recv = queue_.pop_blocking();
+            ASSERT(b_recv);
 
             DTNTunnel::BundleHeader* recv_hdr =
-                (DTNTunnel::BundleHeader*)b->payload_.buf();
+                (DTNTunnel::BundleHeader*)b_recv->payload_.buf();
 
             u_int32_t recv_seqno = ntohl(recv_hdr->seqno_);
 
@@ -305,30 +346,35 @@ TCPTunnel::Connection::run()
             if (recv_seqno != next_recv_seqno) {
                 log_err("got out of order bundle: seqno %d, expected %d",
                         recv_seqno, next_recv_seqno);
-                delete b;
+                delete b_recv;
                 goto done;
             }
             ++next_recv_seqno;
 
-            u_int len = b->payload_.len() - sizeof(hdr);
+            u_int len = b_recv->payload_.len() - sizeof(hdr);
 
             if (len == 0) {
                 log_info("got zero byte payload... closing connection");
                 sock_.close();
-                delete b;
+                delete b_recv;
                 goto done;
             }
             
-            int cc = sock_.writeall(b->payload_.buf() + sizeof(hdr), len);
+            int cc = sock_.writeall(b_recv->payload_.buf() + sizeof(hdr), len);
             if (cc != (int)len) {
                 log_err("error writing payload to socket: %s", strerror(errno));
-                delete b;
+                delete b_recv;
                 goto done;
             }
-
-            log_info("sent %d byte payload to client", len);
             
-            delete b;
+            log_info("sent %d byte payload to client", len);
+
+            if (recv_hdr->eof_) {
+                log_info("bundle had eof bit set... closing connection");
+                sock_.close();
+            }
+            
+            delete b_recv;
         }
     }
 

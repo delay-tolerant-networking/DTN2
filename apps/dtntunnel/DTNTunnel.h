@@ -49,15 +49,20 @@ public:
     /// XXX/demmer if this is used for non-IP tunnels, the address
     /// fields will need to be union'd or something like that
     struct BundleHeader {
-        BundleHeader() {} 
-
+        BundleHeader()
+        {
+            memset(this, 0, sizeof(BundleHeader));
+        }
+        
         BundleHeader(u_int8_t  protocol,
+                     u_int8_t  eof,
                      u_int32_t seqno,
                      u_int32_t client_addr,
                      u_int32_t remote_addr,
                      u_int16_t client_port,
                      u_int16_t remote_port)
             : protocol_(protocol),
+              eof_(eof),
               seqno_(seqno),
               client_addr_(client_addr),
               remote_addr_(remote_addr),
@@ -67,6 +72,7 @@ public:
         }
 
         u_int8_t  protocol_;
+        u_int8_t  eof_;
         u_int32_t seqno_;
         u_int32_t client_addr_;
         u_int32_t remote_addr_;
@@ -88,6 +94,7 @@ public:
 
     /// Accessors
     u_int max_size()              { return max_size_; }
+    u_int delay()                 { return delay_; }
     dtn_endpoint_id_t* dest_eid() { return &dest_eid_; }
 
 protected:
@@ -112,6 +119,7 @@ protected:
     u_int16_t		local_port_;
     in_addr_t		remote_addr_;
     u_int16_t		remote_port_;
+    u_int		delay_;
     u_int		max_size_;
 
     void init_log();

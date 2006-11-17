@@ -54,6 +54,7 @@ DTNTunnel::DTNTunnel()
       local_port_(0),
       remote_addr_(INADDR_NONE),
       remote_port_(0),
+      delay_(0),
       max_size_(4096)
 {
     memset(&local_eid_, 0, sizeof(local_eid_));
@@ -118,6 +119,10 @@ DTNTunnel::get_options(int argc, char* argv[])
     opts.addopt(
         new oasys::UInt16Opt("rport", &remote_port_, "<port>",
                              "remote port to proxy"));
+    
+    opts.addopt(
+        new oasys::UIntOpt('D', "delay", &delay_, "<millisecs>",
+                           "nagle delay in msecs for stream transports (e.g. tcp)"));
     
     opts.addopt(
         new oasys::UIntOpt('z', "max_size", &max_size_, "<bytes>",
