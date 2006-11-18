@@ -283,7 +283,7 @@ TCPTunnel::Connection::run()
         if (sock_poll->revents != 0) {
             if (b_xmit == NULL) {
                 b_xmit = new dtn::APIBundle();
-                b_xmit->payload_.reserve(sizeof(hdr) + tunnel->max_size());
+                b_xmit->payload_.reserve(tunnel->max_size());
                 hdr.seqno_ = ntohl(send_seqno++);
                 memcpy(b_xmit->payload_.buf(), &hdr, sizeof(hdr));
                 b_xmit->payload_.set_len(sizeof(hdr));
@@ -291,8 +291,7 @@ TCPTunnel::Connection::run()
 
             tbegin.get_time();
             
-            u_int payload_todo = sizeof(hdr) + tunnel->max_size() -
-                                 b_xmit->payload_.len();
+            u_int payload_todo = tunnel->max_size() - b_xmit->payload_.len();
             char* bp = b_xmit->payload_.end();
             int ret = sock_.read(bp, payload_todo);
             if (ret < 0) {
@@ -315,7 +314,7 @@ TCPTunnel::Connection::run()
         tnow.get_time();
         if ((b_xmit != NULL) &&
             ((sock_eof == true) ||
-             (b_xmit->payload_.len() == (sizeof(hdr) + tunnel->max_size())) ||
+             (b_xmit->payload_.len() == tunnel->max_size()) ||
              ((tnow - tbegin).in_milliseconds() >= tunnel->delay())))
         {
             size_t len = b_xmit->payload_.len();
