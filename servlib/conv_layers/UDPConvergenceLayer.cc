@@ -58,7 +58,7 @@ UDPConvergenceLayer::UDPConvergenceLayer()
     : IPConvergenceLayer("UDPConvergenceLayer", "udp")
 {
     defaults_.local_addr_		= INADDR_ANY;
-    defaults_.local_port_		= 5000;
+    defaults_.local_port_		= UDPCL_DEFAULT_PORT;
     defaults_.remote_addr_		= INADDR_NONE;
     defaults_.remote_port_		= 0;
     defaults_.rate_			= 0; // unlimited

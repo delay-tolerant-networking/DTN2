@@ -38,9 +38,9 @@ public:
     static const u_int8_t TCPCL_VERSION = 0x03;
 
     /**
-     * Default port used by the tcp cl. XXX/demmer change this value
+     * Default port used by the tcp cl.
      */
-    static const u_int16_t TCPCL_DEFAULT_PORT = 5000;
+    static const u_int16_t TCPCL_DEFAULT_PORT = 4556;
     
     /**
      * Constructor.

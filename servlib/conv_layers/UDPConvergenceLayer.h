@@ -33,6 +33,11 @@ public:
     static const u_int MAX_BUNDLE_LEN = 65507;
 
     /**
+     * Default port used by the udp cl.
+     */
+    static const u_int16_t UDPCL_DEFAULT_PORT = 4556;
+    
+    /**
      * Constructor.
      */
     UDPConvergenceLayer();
