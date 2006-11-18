@@ -450,11 +450,15 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         iter = incoming->ack_data_.begin();
         
         if (iter == incoming->ack_data_.end()) {
+            // XXX/demmer this should check if there's another bundle
+            // with acks we could send
             break;
         }
         
         log_debug("send_pending_acks: "
                   "found another segment (%zu)", *iter);
+
+        
     }
     
     if (generated_ack) {
@@ -1017,6 +1021,10 @@ StreamConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
     
     incoming->ack_data_.set(segment_offset + segment_len - 1);
 
+    log_debug("handle_data_segment: "
+              "updated ack_data (segment_offset %zu) *%p ack_data *%p",
+              segment_offset, &incoming->rcvd_data_, &incoming->ack_data_);
+
 
     // if this is the last segment for the bundle, we calculate and
     // store the total length in the IncomingBundle structure so
@@ -1030,10 +1038,6 @@ StreamConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
                   incoming->total_length_);
     }
     
-    log_debug("handle_data_segment: "
-              "updated recv_data (segment_offset %zu) *%p ack_data *%p",
-              segment_offset, &incoming->rcvd_data_, &incoming->ack_data_);
-
     recv_segment_todo_ = segment_len;
     handle_data_todo();
     
