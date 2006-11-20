@@ -32,7 +32,7 @@ test(u_int64_t val, int expected_len)
     len = SDNV::encode(val, buf, sizeof(buf));
     if (len != expected_len) {
         log_err("/sdnv/test", "encode %llu expected %d byte(s), used %d",
-                val, expected_len, len);
+                U64FMT(val), expected_len, len);
         return UNIT_TEST_FAILED;
     }
 
@@ -40,7 +40,7 @@ test(u_int64_t val, int expected_len)
     len = SDNV::decode(buf, len, &val2);
     if (len != expected_len) {
         log_err("/sdnv/test", "decode %llu expected %d byte(s), used %d",
-                val, expected_len, len);
+                U64FMT(val), expected_len, len);
         return UNIT_TEST_FAILED;
     }
     

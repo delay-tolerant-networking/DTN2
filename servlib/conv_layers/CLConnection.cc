@@ -294,15 +294,15 @@ CLConnection::close_contact()
         ASSERT(inflight->bundle_.object() != NULL);
         inflight->bundle_->payload_.close_file();
 
-        size_t sent_bytes  = inflight->sent_data_.num_contiguous();
-        size_t acked_bytes = inflight->ack_data_.num_contiguous();
+        u_int32_t sent_bytes  = inflight->sent_data_.num_contiguous();
+        u_int32_t acked_bytes = inflight->ack_data_.num_contiguous();
         
         if ((! params->reactive_frag_enabled_) ||
             (sent_bytes == 0) ||
             (contact_->link()->is_reliable() && acked_bytes == 0))
         {
             log_debug("posting transmission failed event "
-                      "(reactive fragmentation %s, %s link, acked_bytes %zu)",
+                      "(reactive fragmentation %s, %s link, acked_bytes %u)",
                       params->reactive_frag_enabled_ ? "enabled" : "disabled",
                       contact_->link()->is_reliable() ? "reliable" : "unreliable",
                       acked_bytes);

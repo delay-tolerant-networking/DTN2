@@ -186,7 +186,7 @@ protected:
     /**
      * Typedef for bitmaps used to record sent/received/acked data.
      */
-    typedef oasys::SparseBitmap<size_t> DataBitmap;
+    typedef oasys::SparseBitmap<u_int32_t> DataBitmap;
    
     /**
      * Struct used to record bundles that are in-flight along with
@@ -203,8 +203,8 @@ protected:
         BundleRef bundle_;
         BlockInfoVec* blocks_;
 
-        size_t total_length_;
-        bool   send_complete_;
+        u_int32_t total_length_;
+        bool      send_complete_;
         
         DataBitmap sent_data_;
         DataBitmap ack_data_;
@@ -234,8 +234,8 @@ protected:
 
         BundleRef bundle_;
         
-        size_t total_length_;
-        size_t acked_length_;
+        u_int32_t total_length_;
+        u_int32_t acked_length_;
 
         DataBitmap rcvd_data_;
         DataBitmap ack_data_;

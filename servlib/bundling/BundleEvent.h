@@ -246,7 +246,7 @@ public:
      */
     BundleReceivedEvent(Bundle* bundle,
                         event_source_t source,
-                        size_t bytes_received = 0,
+                        u_int32_t bytes_received = 0,
                         Contact* originator = NULL)
 
         : BundleEvent(BUNDLE_RECEIVED),
@@ -267,7 +267,7 @@ public:
     int source_;
 
     /// The total bytes actually received
-    size_t bytes_received_;
+    u_int32_t bytes_received_;
 
     /// Contact from which bundle was received, if applicable
     ContactRef contact_;
@@ -279,7 +279,7 @@ public:
 class BundleTransmittedEvent : public BundleEvent {
 public:
     BundleTransmittedEvent(Bundle* bundle, const ContactRef& contact,
-                           size_t bytes_sent, size_t reliably_sent)
+                           u_int32_t bytes_sent, u_int32_t reliably_sent)
         : BundleEvent(BUNDLE_TRANSMITTED),
           bundleref_(bundle, "BundleTransmittedEvent"),
           contact_(contact.object(), "BundleTransmittedEvent"),
@@ -296,12 +296,12 @@ public:
     ContactRef contact_;
 
     /// Total number of bytes sent
-    size_t bytes_sent_;
+    u_int32_t bytes_sent_;
 
     /// If the convergence layer that we sent on is reliable, this is
     /// the count of the bytes reliably sent, which must be less than
     /// or equal to the bytes transmitted
-    size_t reliably_sent_;
+    u_int32_t reliably_sent_;
 };
 
 /**

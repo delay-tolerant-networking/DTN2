@@ -411,12 +411,12 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     // bundle, including all options, otherwise, a more terse log
     if (log_enabled(oasys::LOG_DEBUG)) {
         oasys::StaticStringBuffer<1024> buf;
-        buf.appendf("BUNDLE_RECEIVED%s: (%zu bytes recvd)\n",
+        buf.appendf("BUNDLE_RECEIVED%s: (%u bytes recvd)\n",
                     source_str, event->bytes_received_);
         bundle->format_verbose(&buf);
         log_multiline(oasys::LOG_DEBUG, buf.c_str());
     } else {
-        log_info("BUNDLE_RECEIVED%s *%p (%zu bytes recvd)",
+        log_info("BUNDLE_RECEIVED%s *%p (%u bytes recvd)",
                  source_str, bundle, event->bytes_received_);
     }
     
@@ -555,7 +555,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      */
     if (event->contact_ == NULL)
     {
-    	log_info("BUNDLE_TRANSMITTED id:%d (%zu bytes_sent/%zu reliable) -> "
+    	log_info("BUNDLE_TRANSMITTED id:%d (%u bytes_sent/%u reliable) -> "
                  "unknown contact",
              bundle->bundleid_,
              event->bytes_sent_,
@@ -583,7 +583,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     link->stats()->bytes_transmitted_ += event->bytes_sent_;
     link->stats()->bytes_inflight_ -= total_len;
     
-    log_info("BUNDLE_TRANSMITTED id:%d (%zu bytes_sent/%zu reliable) -> %s (%s)",
+    log_info("BUNDLE_TRANSMITTED id:%d (%u bytes_sent/%u reliable) -> %s (%s)",
              bundle->bundleid_,
              event->bytes_sent_,
              event->reliably_sent_,

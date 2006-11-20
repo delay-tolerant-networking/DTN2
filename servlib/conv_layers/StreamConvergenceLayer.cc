@@ -310,7 +310,7 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     EndpointID peer_eid;
     if (! peer_eid.assign(recvbuf_.start(), peer_eid_len)) {
         log_err("protocol error: invalid endpoint id '%s' (len %llu)",
-                peer_eid.c_str(), peer_eid_len);
+                peer_eid.c_str(), U64FMT(peer_eid_len));
         break_contact(ContactEvent::CL_ERROR);
         return;
     }
@@ -434,7 +434,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         
         log_debug("send_pending_acks: "
                   "sending ack length %zu for %zu byte segment "
-                  "[range %zu..%zu] ack_data *%p",
+                  "[range %u..%u] ack_data *%p",
                   ack_len, segment_len, incoming->acked_length_, *iter,
                   &incoming->ack_data_);
         
@@ -456,9 +456,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
         }
         
         log_debug("send_pending_acks: "
-                  "found another segment (%zu)", *iter);
-
-        
+                  "found another segment (%u)", *iter);
     }
     
     if (generated_ack) {
@@ -473,7 +471,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     if ((incoming->total_length_ != 0) &&
         (incoming->total_length_ == incoming->acked_length_))
     {
-        log_debug("send_pending_acks: acked all %zu bytes of bundle %d",
+        log_debug("send_pending_acks: acked all %u bytes of bundle %d",
                   incoming->total_length_, incoming->bundle_->bundleid_);
         
         incoming_.pop_front();
@@ -482,7 +480,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     else
     {
         log_debug("send_pending_acks: "
-                  "still need to send acks -- acked_range %zu",
+                  "still need to send acks -- acked_range %u",
                   incoming->ack_data_.num_contiguous());
     }
 
@@ -672,9 +670,9 @@ StreamConvergenceLayer::Connection::check_completed(InFlightBundle* inflight)
         return;
     }
 
-    size_t acked_len = inflight->ack_data_.num_contiguous();
+    u_int32_t acked_len = inflight->ack_data_.num_contiguous();
     if (acked_len < inflight->total_length_) {
-        log_debug("check_completed: bundle %d only acked %zu/%zu",
+        log_debug("check_completed: bundle %d only acked %u/%u",
                   inflight->bundle_->bundleid_,
                   acked_len, inflight->total_length_);
         return;
@@ -1034,7 +1032,7 @@ StreamConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
         incoming->total_length_ = incoming->rcvd_data_.num_contiguous() +
                                   segment_len;
         
-        log_debug("got BUNDLE_END: total length %zu",
+        log_debug("got BUNDLE_END: total length %u",
                   incoming->total_length_);
     }
     
@@ -1102,7 +1100,7 @@ StreamConvergenceLayer::Connection::handle_data_todo()
 void
 StreamConvergenceLayer::Connection::check_completed(IncomingBundle* incoming)
 {
-    size_t rcvd_len = incoming->rcvd_data_.last() + 1;
+    u_int32_t rcvd_len = incoming->rcvd_data_.last() + 1;
 
     // if we don't know the total length yet, we haven't seen the
     // BUNDLE_END message
@@ -1110,10 +1108,10 @@ StreamConvergenceLayer::Connection::check_completed(IncomingBundle* incoming)
         return;
     }
     
-    size_t formatted_len =
+    u_int32_t formatted_len =
         BundleProtocol::total_length(&incoming->bundle_->recv_blocks_);
     
-    log_debug("check_completed: rcvd %zu / %zu (formatted length %zu)",
+    log_debug("check_completed: rcvd %u / %u (formatted length %u)",
               rcvd_len, incoming->total_length_, formatted_len);
 
     if (rcvd_len < incoming->total_length_) {
@@ -1122,7 +1120,7 @@ StreamConvergenceLayer::Connection::check_completed(IncomingBundle* incoming)
     
     if (rcvd_len > incoming->total_length_) {
         log_err("protocol error: received too much data -- "
-                "got %zu, total length %zu",
+                "got %u, total length %u",
                 rcvd_len, incoming->total_length_);
 
         // we pretend that we got nothing so the cleanup code in
@@ -1137,8 +1135,8 @@ protocol_err:
     // validate that the total length as conveyed by the convergence
     // layer matches the length according to the bundle protocol
     if (incoming->total_length_ != formatted_len) {
-        log_err("protocol error: CL total length %zu "
-                "doesn't match bundle protocol total %zu",
+        log_err("protocol error: CL total length %u "
+                "doesn't match bundle protocol total %u",
                 incoming->total_length_, formatted_len);
         goto protocol_err;
         

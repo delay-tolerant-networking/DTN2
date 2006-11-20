@@ -230,12 +230,12 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     size_t header_len, bundle_len;
     struct ether_header* ethhdr=(struct ether_header*)bp;
     
-    log_debug("Received DTN packet on interface %s, %d.",if_name_, len);    
+    log_debug("Received DTN packet on interface %s, %zu.",if_name_, len);    
 
     // copy in the ethcl header.
     if (len < sizeof(EthCLHeader)) {
         log_err("process_data: "
-                "incoming packet too small (len = %d)", len);
+                "incoming packet too small (len = %zu)", len);
         return;
     }
     memcpy(&ethclhdr, bp+sizeof(struct ether_header), sizeof(EthCLHeader));
@@ -314,7 +314,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         // eth cl header
         bundle_len = len - sizeof(EthCLHeader) - sizeof(struct ether_header);
         
-        log_debug("process_data: got ethcl header -- bundle id %d, length %d",
+        log_debug("process_data: got ethcl header -- bundle id %d, length %zu",
                   ntohl(ethclhdr.bundle_id), bundle_len);
         
         // skip past the cl header
@@ -331,7 +331,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         size_t payload_len = bundle->payload_.length();
         if (bundle_len != header_len + payload_len) {
             log_err("process_data: error in bundle lengths: "
-                    "bundle_length %d, header_length %d, payload_length %d",
+                    "bundle_length %zu, header_length %zu, payload_length %zu",
                     bundle_len, header_len, payload_len);
             delete bundle;
             return;
@@ -342,7 +342,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         len -= header_len;
         bundle->payload_.append_data(bp, len);
         
-        log_debug("process_data: new bundle id %d arrival, bundle length %d",
+        log_debug("process_data: new bundle id %d arrival, bundle length %zu",
                   bundle->bundleid_, bundle_len);
         
         BundleDaemon::post(
@@ -509,7 +509,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
 
     size_t payload_len = bundle->payload_.length();
     
-    log_info("send_bundle: bundle id %d, header_length %d payload_length %d",
+    log_info("send_bundle: bundle id %d, header_length %u payload_length %zu",
               bundle->bundleid_, header_len, payload_len);
     
     oasys::StringBuffer payload_buf(payload_len);
