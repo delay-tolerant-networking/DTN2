@@ -259,7 +259,8 @@ DTNServer::shutdown()
     oasys::Notifier done("/dtnserver/shutdown");
     log_info("DTNServer shutdown called, posting shutdown request to daemon");
     BundleDaemon::instance()->post_and_wait(new ShutdownRequest(), &done);
-    
+
+    DiscoveryTable::instance()->shutdown();
     close_datastore();
 }
 
