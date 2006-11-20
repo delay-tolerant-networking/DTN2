@@ -93,6 +93,9 @@ IPDiscovery::configure(int argc, const char* argv[])
     oasys::StringBuffer buf("%s:%d",intoa(local_addr_),port_);
     local_.assign(buf.c_str());
 
+    oasys::StringBuffer to("%s:%d",intoa(remote_addr_),port_);
+    to_addr_.assign(to.c_str());
+
     if (socket_.bind(local_addr_,port_) != 0)
     {
         log_err("bind failed");
