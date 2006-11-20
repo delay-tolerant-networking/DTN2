@@ -19,12 +19,10 @@
 
 #include <oasys/debug/Log.h>
 #include <oasys/thread/MsgQueue.h>
+#include <oasys/util/Time.h>
 #include "naming/EndpointID.h"
 #include "contacts/Link.h"
 #include <sys/types.h> 
-
-#include <vector>
-#include <queue>
 
 #include "routing/Prophet.h"
 #include "routing/ProphetNode.h"
@@ -33,9 +31,6 @@
 
 #include "bundling/BundleList.h"
 #include "bundling/BundleActions.h"
-
-// debug mode
-#define _PROPHET_ENCOUNTER_TEST_DRIVER_
 
 /**
  * Pages and paragraphs refer to IETF Prophet, March 2006
@@ -131,8 +126,7 @@ private:
         oasys::Thread("ProphetEncounter"),
         oasys::Logger("ProphetEncounter",pe.logpath_),
         cmdqueue_("/dtn/route/prophet/encounter"),
-        to_be_fwd_("ProphetEncounter to be forwarded") 
-    {}
+        to_be_fwd_("ProphetEncounter to be forwarded") {}
 
 public:
     virtual ~ProphetEncounter();
@@ -228,7 +222,6 @@ public:
         cmdqueue_.push_back(PEMsg(PEMSG_HELLO_INTERVAL_CHANGED));
     }
 protected:
-    typedef std::list<ProphetTLV*> TLVList;
 
     /**
      * ProphetEncounter's main responsibility is to implement the 
@@ -267,7 +260,7 @@ protected:
     void send_bundle_offer();
 
     /**
-     * Queue an outbound TLV.  If tid is non-zero, set Prophet header 
+     * Send an outbound TLV.  If tid is non-zero, set Prophet header 
      * to use it, otherwise generate a new tid.
      */
     //#{
@@ -284,15 +277,19 @@ protected:
             u_int32_t tid = 0,
             Prophet::header_result_t result = Prophet::NoSuccessAck);
     //@}
-    bool send_prophet_tlv();
     
     /**
-     * Parse through outbound TLV queue and return a match,
-     * otherwise create and return a new one
+     * Create and return a new ProphetTLV
      */
     ProphetTLV* outbound_tlv(u_int32_t tid,
-                             Prophet::header_result_t result,
-                             Prophet::prophet_tlv_t type);
+                             Prophet::header_result_t result);
+
+    bool send_prophet_tlv();
+
+    /**
+     * Check link status to determine whether ok to forward
+     */
+    bool should_fwd(Bundle* bundle);
 
     /**
      * Given a bundle, forward to remote
@@ -310,9 +307,9 @@ protected:
     u_int16_t remote_instance_; ///< local's instance for remote
     std::string remote_addr_; ///< Sender Local Address for remote
     u_int16_t local_instance_; ///< remote's instance for local
-    u_int32_t deadcount_; ///< count of intervals with no beacon
     u_int32_t tid_; ///< transaction ID from peer's most recent TLV
     u_int32_t timeout_; ///< poll timeout
+    u_int32_t ack_count_; ///< Section 5.2.1, Note 2, no more than 2 ACKs ...
     Link* next_hop_;  ///< Link object for this encounter
     bool synsender_; ///< whether active or passive during hello phase
     bool initiator_; ///< whether active or passive during information exchange
@@ -322,16 +319,16 @@ protected:
     bool dictsent_; ///< whether dictionary has been sent 
     volatile bool neighbor_gone_; ///< indicates underlying CL signal
     prophet_state_t state_; ///< represents which phase of Prophet FSM
-    ProphetDictionary ribd_; ///< dictionary for EndpointID to StringID lookups
+    ProphetDictionary ribd_; ///< dictionary for EID to StringID lookups
     BundleOfferList offers_; ///< List of offers received from remote
     BundleOfferList requests_; ///< List of offers requested from remote
     oasys::MsgQueue<PEMsg> cmdqueue_; ///< command dispatch queue
     ProphetTable remote_nodes_; ///< list of remote's p_values
     BundleList to_be_fwd_; ///< holding tank in case of blocked send
-    TLVList outbound_tlv_; ///< holding tank of pending outbound TLV's
     Prophet::header_result_t result_; ///< whether a response is requested
-    struct timeval data_rcvd_; ///< last time a message was received
-    struct timeval data_sent_; ///< last time a message was sent
+    oasys::Time data_sent_; ///< last time a message was sent
+    oasys::Time data_rcvd_; ///< last time a message was received
+    ProphetTLV* outbound_tlv_; ///< outbound Prophet control messages
     oasys::SpinLock* state_lock_; ///< control access to state_ variable
     oasys::SpinLock* otlv_lock_; ///< control access to outbound_tlv_ variable
 }; // ProphetEncounter

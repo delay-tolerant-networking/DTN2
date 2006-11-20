@@ -25,8 +25,6 @@
 #include <oasys/util/Random.h>
 #include <oasys/util/ScratchBuffer.h>
 
-#include <queue>
-
 namespace dtn {
 
 ProphetEncounter::ProphetEncounter(Link* nexthop,
@@ -36,7 +34,6 @@ ProphetEncounter::ProphetEncounter(Link* nexthop,
       oracle_(oracle),
       remote_instance_(0),
       local_instance_(Prophet::UniqueID::instance()->instance_id()),
-      deadcount_(0),
       tid_(0),
       timeout_(0),
       next_hop_(nexthop),
@@ -47,6 +44,7 @@ ProphetEncounter::ProphetEncounter(Link* nexthop,
       state_(WAIT_NB),
       cmdqueue_("/dtn/route"),
       to_be_fwd_("ProphetEncounter to be forwarded"),
+      outbound_tlv_(NULL),
       state_lock_(new oasys::SpinLock()),
       otlv_lock_(new oasys::SpinLock())
 {
@@ -72,16 +70,14 @@ ProphetEncounter::ProphetEncounter(Link* nexthop,
     timeout_ = oracle->params()->hello_interval_ * 100;
 
     // zero out timers
-    ::gettimeofday(&data_rcvd_,0);
-    ::gettimeofday(&data_sent_,0);
-    
-    // initialize with "permission" to send
-    // convert from ms to sec
-    data_sent_.tv_sec -= ( (timeout_/1000) + 1 );
+    data_sent_.get_time();
+    data_rcvd_.get_time();
     
     // initialize lists
     offers_.set_type(BundleOffer::OFFER);
     requests_.set_type(BundleOffer::RESPONSE);
+
+    ack_count_ = 0;
 }
 
 ProphetEncounter::~ProphetEncounter() {
@@ -134,7 +130,7 @@ ProphetEncounter::set_state(prophet_state_t new_state)
         synsent_ = false;
         synrcvd_ = false;
         estab_ = false;
-        deadcount_ = 0;
+        ack_count_ = 0;
         timeout_ = oracle_->params()->hello_interval_ * 100;
         break;
     case SYNSENT:
@@ -153,6 +149,14 @@ ProphetEncounter::set_state(prophet_state_t new_state)
                oldstate == ESTAB ||
                oldstate == SYNSENT);
         estab_ = true;
+        if (initiator_ == true)
+        {
+            set_state(CREATE_DR);
+        }
+        else
+        {
+            set_state(WAIT_DICT);
+        }
         break;
     case WAIT_DICT:
         ASSERT(oldstate == ESTAB ||
@@ -188,6 +192,15 @@ ProphetEncounter::set_state(prophet_state_t new_state)
     case WAIT_INFO:
         ASSERT(oldstate == REQUEST ||
                oldstate == OFFER);
+        // On the first phase of INFO_EXCHANGE,
+        // synsender_ is initiator and !synsender_ is
+        // listener.  During this phase, immediately
+        // switch roles and continue.
+        if ((synsender_ && initiator_) ||
+            (!synsender_ && !initiator_))
+        {
+            switch_info_role();
+        }
         break;
     default:
         PANIC("Unknown Prophet state: %d", (int)new_state);
@@ -243,6 +256,7 @@ ProphetEncounter::handle_bundle_received(Bundle* b)
             enqueue_bundle_tlv(requests_,
                     Prophet::UniqueID::tid(),
                     Prophet::NoSuccessAck);
+            send_prophet_tlv();
             set_state(WAIT_INFO);
         }
     }
@@ -254,8 +268,6 @@ ProphetEncounter::receive_tlv(ProphetTLV* pt)
     log_debug("receive_tlv");
     // alert thread to new bundle
     cmdqueue_.push_back(PEMsg(PEMSG_PROPHET_TLV_RECEIVED,pt));
-    // update timer
-    ::gettimeofday(&data_rcvd_,0);
 }
 
 void
@@ -264,6 +276,47 @@ ProphetEncounter::neighbor_gone()
     log_debug("neighbor_gone");
     // alert thread to status change
     cmdqueue_.push_back(PEMsg(PEMSG_NEIGHBOR_GONE,NULL));
+}
+
+bool
+ProphetEncounter::should_fwd(Bundle* bundle)
+{
+    ForwardingInfo info;
+    bool found = bundle->fwdlog_.get_latest_entry(next_hop_,&info);
+
+    if (found) {
+        ASSERT(info.state_ != ForwardingInfo::NONE);
+    } else {
+        ASSERT(info.state_ == ForwardingInfo::NONE);
+    }
+
+    if (info.state_ == ForwardingInfo::TRANSMITTED ||
+        info.state_ == ForwardingInfo::IN_FLIGHT)
+    {
+        log_debug("should_fwd bundle %d: "
+                  "skip %s due to forwarding log entry %s",
+                  bundle->bundleid_, next_hop_->name(),
+                  ForwardingInfo::state_to_str(
+                      static_cast<ForwardingInfo::state_t>(info.state_)));
+        return false;
+    }
+
+    if (info.state_ == ForwardingInfo::TRANSMIT_FAILED) {
+        log_debug("should_fwd bundle %d: "
+                  "match %s: forwarding log entry %s TRANSMIT_FAILED %d",
+                  bundle->bundleid_, next_hop_->name(),
+                  ForwardingInfo::state_to_str(
+                      static_cast<ForwardingInfo::state_t>(info.state_)),
+                  bundle->bundleid_); 
+    } else {
+        log_debug("should_fwd bundle %d: "
+                  "match %s: forwarding log entry %s",
+                  bundle->bundleid_, next_hop_->name(),
+                  ForwardingInfo::state_to_str(
+                      static_cast<ForwardingInfo::state_t>(info.state_)));
+    }
+
+    return true;
 }
 
 void
@@ -295,8 +348,8 @@ ProphetEncounter::fwd_to_nexthop(Bundle* bundle,bool add_front)
 
         if (ref.object() == NULL)
         {
-            ref = NULL;
-            break;
+            log_err("Unexpected NULL pointer in to_be_fwd_ list");
+            continue;
         }
 
         Bundle* b = ref.object();
@@ -308,7 +361,7 @@ ProphetEncounter::fwd_to_nexthop(Bundle* bundle,bool add_front)
         ASSERTF(ok == true,"failed to send bundle");
 
         // update timestamp
-        ::gettimeofday(&data_sent_,0);
+        data_sent_.get_time();
 
         // update Prophet stats on this bundle
         oracle_->stats()->update_stats(b,remote_nodes_.p_value(b));
@@ -327,9 +380,16 @@ void
 ProphetEncounter::handle_prophet_tlv(ProphetTLV* pt)
 {
     ASSERT(pt != NULL);
-    log_debug("handle_prophet_tlv (tid %d,%s)",
-               pt->transaction_id(),
-               Prophet::result_to_str(pt->result()));
+
+    data_rcvd_.get_time();
+
+    oasys::StringBuffer buf;
+    pt->dump(&buf);
+    log_debug("handle_prophet_tlv (tid %u,%s,%zu entries)\n"
+              "Inbound TLV\n\n%s\n",
+              pt->transaction_id(),
+              Prophet::result_to_str(pt->result()),
+              pt->num_tlv(),buf.c_str());
 
     tid_ = pt->transaction_id();
 
@@ -351,19 +411,15 @@ ProphetEncounter::handle_prophet_tlv(ProphetTLV* pt)
         switch(tlv->typecode()) {
             case Prophet::HELLO_TLV:
                 ok = handle_hello_tlv((HelloTLV*)tlv,pt);
-                delete (HelloTLV*) tlv;
                 break;
             case Prophet::RIBD_TLV:
                 ok = handle_ribd_tlv((RIBDTLV*)tlv,pt);
-                delete (RIBDTLV*) tlv;
                 break;
             case Prophet::RIB_TLV:
                 ok = handle_rib_tlv((RIBTLV*)tlv,pt);
-                delete (RIBTLV*) tlv;
                 break;
             case Prophet::BUNDLE_TLV:
                 ok = handle_bundle_tlv((BundleTLV*)tlv,pt);
-                delete (BundleTLV*) tlv;
                 break;
             case Prophet::UNKNOWN_TLV:
             case Prophet::ERROR_TLV:
@@ -371,12 +427,9 @@ ProphetEncounter::handle_prophet_tlv(ProphetTLV* pt)
                 PANIC("Unexpected TLV type received by ProphetEncounter: %d",
                       tlv->typecode());
         }
+        delete tlv;
     }
-    if (ok == true) 
-    {
-        deadcount_ = 0;
-    }
-    else
+    if (ok != true)
     {
         log_debug("killing off %zu unread TLVs",pt->list().size());
         // free up memory
@@ -435,6 +488,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                 enqueue_hello(Prophet::SYNACK,
                               pt->transaction_id(),
                               Prophet::Success);
+                send_prophet_tlv();
                 set_state(SYNRCVD);
                 return true;
             }
@@ -450,6 +504,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                     enqueue_hello(Prophet::ACK,
                                   pt->transaction_id(),
                                   Prophet::Success);
+                    send_prophet_tlv();
                     set_state(ESTAB);
                 }
                 else
@@ -457,6 +512,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                     enqueue_hello(Prophet::RSTACK,
                                   pt->transaction_id(),
                                   Prophet::Failure);
+                    send_prophet_tlv();
                     set_state(SYNSENT);
                 }
             }
@@ -467,6 +523,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                 enqueue_hello(Prophet::SYNACK,
                               pt->transaction_id(),
                               Prophet::Success);
+                send_prophet_tlv();
                 set_state(SYNRCVD);
             }
             else
@@ -475,6 +532,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                 enqueue_hello(Prophet::RSTACK,
                               pt->transaction_id(),
                               Prophet::Failure);
+                send_prophet_tlv();
                 set_state(SYNSENT);
             }
 
@@ -490,6 +548,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                     enqueue_hello(Prophet::ACK,
                                   pt->transaction_id(),
                                   Prophet::Success);
+                    send_prophet_tlv();
                     set_state(ESTAB);
                 }
                 else
@@ -497,6 +556,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                     enqueue_hello(Prophet::RSTACK,
                                   pt->transaction_id(),
                                   Prophet::Failure);
+                    send_prophet_tlv();
                     set_state(SYNRCVD);
                 }
             }
@@ -507,6 +567,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                 enqueue_hello(Prophet::SYNACK,
                               pt->transaction_id(),
                               Prophet::Success);
+                send_prophet_tlv();
                 set_state(SYNRCVD);
             }
             else
@@ -517,6 +578,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                     enqueue_hello(Prophet::ACK,
                                   pt->transaction_id(),
                                   Prophet::Success);
+                    send_prophet_tlv();
                     set_state(ESTAB);
                 }
                 else
@@ -524,6 +586,7 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                     enqueue_hello(Prophet::RSTACK,
                                   pt->transaction_id(),
                                   Prophet::Failure);
+                    send_prophet_tlv();
                     set_state(SYNRCVD);
                 }
             }
@@ -534,24 +597,45 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
 
             if (ht->hf() == Prophet::SYN || ht->hf() == Prophet::SYNACK)
             {
-                enqueue_hello(Prophet::ACK,
-                              pt->transaction_id(),
-                              Prophet::Success);
+                // Section 5.2.1, Note 2: No more than two ACKs should be
+                // sent within any time period of length defined by the timer.
+                // Thus, one ACK MUST be sent every time the timer expires.
+                // In addition, one further ACK may be sent between timer
+                // expirations if the incoming message is a SYN or SYNACK.
+                // This additional ACK allows the Hello functions to reach
+                // synchronisation more quickly.
+                if (ack_count_ < 2)
+                {
+                    ++ack_count_;
+                    enqueue_hello(Prophet::ACK,
+                                  pt->transaction_id(),
+                                  Prophet::Success);
+                    send_prophet_tlv();
+                }
             }
             else
             if (ht->hf() == Prophet::ACK)
             {
                 if (hello_b && hello_c)
                 {
-                    enqueue_hello(Prophet::ACK,
-                                  pt->transaction_id(),
-                                  Prophet::Success);
+                    // Section 5.2.1, Note 3: No more than one ACK should
+                    // be sent within any time period of length defined by
+                    // the timer.
+                    if (ack_count_ < 1) 
+                    {
+                        ++ack_count_;
+                        enqueue_hello(Prophet::ACK,
+                                      pt->transaction_id(),
+                                      Prophet::Success);
+                        send_prophet_tlv();
+                    }
                 }
                 else
                 {
                     enqueue_hello(Prophet::RSTACK,
                                   pt->transaction_id(),
                                   Prophet::Failure);
+                    send_prophet_tlv();
                 }
             }
             return true;
@@ -584,7 +668,6 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
         default:
             if (ht->hf() == Prophet::ACK)
             {
-                ::gettimeofday(&data_rcvd_,0);
                 return true;
             }
             log_err("Unrecognized state %s and HF %d",
@@ -600,17 +683,29 @@ ProphetEncounter::handle_bad_protocol(u_int32_t tid)
 {
     log_debug("handle_bad_protocol");
 
+    // Section 5.2, Note 1: No more than two SYN or SYNACK messages should
+    // be sent within any time period of length defined by the timer.
+    oasys::Time now;
+    now.get_time();
+    if ((now - data_sent_).in_milliseconds() < (timeout_ / 2))
+    {
+        log_debug("flow control engaged, skipping");
+        return false;
+    }
+
     prophet_state_t state = get_state("handle_bad_protocol");
     if (state == SYNSENT)
     {
         enqueue_hello(Prophet::SYN,
                       tid, Prophet::Failure);
+        send_prophet_tlv();
     }
     else
     if (state == SYNRCVD)
     {
         enqueue_hello(Prophet::SYNACK,
                       tid, Prophet::Failure);
+        send_prophet_tlv();
     }
     return false;
 }
@@ -635,9 +730,9 @@ ProphetEncounter::handle_ribd_tlv(RIBDTLV* rt,ProphetTLV* pt)
             u_int16_t sid = (*i).first;
             EndpointID eid = Prophet::eid_to_routeid((*i).second);
             ASSERT(ribd_.assign(eid,sid) == true);
-            buf.appendf("%04d: %s\n",sid,eid.c_str());
         }
-        log_debug(buf.c_str());
+        ribd_.dump(&buf);
+        log_debug("\n%s\n",buf.c_str());
         set_state(WAIT_RIB);
         return true;
     }
@@ -733,6 +828,7 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
         enqueue_hello(Prophet::ACK,
                       pt->transaction_id(),
                       Prophet::Failure);
+        send_prophet_tlv();
         set_state(WAIT_DICT);
         return false;
     }
@@ -744,28 +840,36 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
         oracle_->bundles()->vector(vec);
 
         // pull in the bundle request from this TLV
-        ASSERT(requests_.type() == BundleOffer::RESPONSE);
-        requests_ = bt->list();
+        size_t num = bt->list().size();
         log_debug("handle_bundle_tlv(OFFER) received list of %zu elements",
-                   requests_.size());
+                  num);
 
         // list size 0 has special meaning
-        if (requests_.size() == 0)
+        if (num == 0)
         {
             set_state(WAIT_INFO);
         }
         else
+        if (vec.size() > 0)
         {
             oasys::ScopeLock l(requests_.lock(),"handle_bundle_tlv");
+            requests_ = bt->list();
+            ASSERT(requests_.type() == BundleOffer::RESPONSE);
+
+            // track which have been sent, to delete outside the loop
+            std::vector<u_int> to_delete;
             for (BundleOfferList::iterator i = requests_.begin();
                 i != requests_.end();
                 i++)
             {
+                BundleOffer* bo = (*i);
+                ASSERT (bo != NULL);
                 u_int32_t cts = (*i)->creation_ts();
                 u_int16_t sid = (*i)->sid();
                 EndpointID eid = ribd_.find(sid);
 
-                ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
+                ASSERTF(eid.equals(EndpointID::NULL_EID()) == false,
+                        "null eid found for sid %d",sid);
 
                 // find any Bundles with destination that matches
                 // this routeid and with creation ts that matches cts
@@ -774,12 +878,23 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
                                  // don't send ACK'd bundles
                 if (b != NULL && !oracle_->acks()->is_ackd(b)) {
 
+                    ASSERT(should_fwd(b));
+
                     // enqueue to send over the link to peer
                     fwd_to_nexthop(b);
 
                     // remove from list so as only to forward once
-                    requests_.remove_bundle(cts,sid);
+                    to_delete.push_back(cts);
+                    to_delete.push_back((u_int)sid);
                 }
+            }
+
+            ASSERT(to_delete.empty() || (to_delete.size() % 2 == 0));
+            for(u_int i = 0; i < to_delete.size() - 1; i+=2)
+            {
+                u_int cts = to_delete[i];
+                u_int sid = to_delete[i+1];
+                requests_.remove_bundle(cts,sid);
             }
 
             set_state(OFFER);
@@ -840,17 +955,16 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
                 //XXX/wilson
                 // need to to something intelligent here w.r.t. custody
                 bool custody = false;
-                requests_.push_back(
-                            new BundleOffer(cts,sid,
-                                    custody,accept,false,
-                                    BundleOffer::RESPONSE));
+                requests_.add_offer(cts,sid,custody,accept,false);
             }
         }
         // request in order of most likely to deliver
         requests_.sort(&ribd_,oracle_->nodes(),synsender_ ? 0 : 1);
+        ASSERT(requests_.type() == BundleOffer::RESPONSE);
         enqueue_bundle_tlv(requests_,
                            pt->transaction_id(),
                            Prophet::Success);
+        send_prophet_tlv();
         set_state(REQUEST);
         if(requests_.size() == 0)
         {
@@ -874,7 +988,6 @@ ProphetEncounter::handle_poll_timeout()
 {
     log_debug("handle_poll_timeout");
 
-    deadcount_++;
     prophet_state_t state = get_state("handle_poll_timeout");
     switch(state) {
         case SYNSENT:
@@ -884,32 +997,47 @@ ProphetEncounter::handle_poll_timeout()
                 enqueue_hello(Prophet::SYN,
                               Prophet::UniqueID::tid(),
                               Prophet::NoSuccessAck);
+                send_prophet_tlv();
             }
             break;
         case SYNRCVD:
             enqueue_hello(Prophet::SYNACK,
                           tid_,
                           Prophet::Success);
+            send_prophet_tlv();
             break;
         case ESTAB:
-            if (initiator_ == true)
+            // Section 5.2.1, Note 2: No more than two ACKs should be
+            // sent within any time period of length defined by the timer.
+            // Thus, one ACK MUST be sent every time the timer expires.
+            // In addition, one further ACK may be sent between timer
+            // expirations if the incoming message is a SYN or SYNACK.
+            // This additional ACK allows the Hello functions to reach
+            // synchronisation more quickly.
+            if (ack_count_ >= 2)
             {
-                set_state(CREATE_DR);
+                ack_count_ = 0;
             }
-            else
+            else 
             {
-                set_state(WAIT_DICT);
+                ++ack_count_;
+                enqueue_hello(Prophet::ACK,
+                              Prophet::UniqueID::tid(),
+                              Prophet::NoSuccessAck);
+                send_prophet_tlv();
             }
             break;
         case WAIT_DICT:
             enqueue_hello(Prophet::ACK,
                           tid_,
                           Prophet::Success);
+            send_prophet_tlv();
             break;
         case WAIT_RIB:
             enqueue_hello(Prophet::ACK,
                           tid_,
                           Prophet::Success);
+            send_prophet_tlv();
             set_state(WAIT_DICT);
             break;
         case CREATE_DR:
@@ -929,29 +1057,21 @@ ProphetEncounter::handle_poll_timeout()
                 enqueue_bundle_tlv(requests_,
                                    tid_,
                                    Prophet::Success);
+                send_prophet_tlv();
             }
             break;
         case OFFER:
             send_bundle_offer();
             break;
         case WAIT_INFO:
-            // On the first phase of INFO_EXCHANGE,
-            // synsender_ is initiator and !synsender_ is
-            // listener.  During this phase, immediately
-            // switch roles and continue.
-            if ((synsender_ && initiator_) ||
-                (!synsender_ && !initiator_))
+            // After switching from 1st phase (see set_state), wait for
+            // 1/2 hello_dead before switching phases
             {
-                switch_info_role();
-            }
-            // otherwise, wait for 1/2 hello_dead before
-            // switching phases
-            else
-            {
-                struct timeval now;
-                ::gettimeofday(&now,0);
-                u_int diff = TIMEVAL_DIFF_MSEC(now,data_sent_);
+                oasys::Time now;
+                now.get_time();
+
                 u_int timeout = oracle_->params()->hello_dead_ * timeout_ / 2;
+                u_int diff = (now - data_sent_).in_milliseconds();
                 if ( diff <= timeout )
                 {
                     log_debug("wait_info: timediff %u timeout %u",
@@ -1021,67 +1141,64 @@ ProphetEncounter::send_bundle_offer()
 
     bool update_dictionary = false;
 
+    // reset to sanity
+    offers_.set_type(BundleOffer::OFFER);
+
     // Grab a list of Bundles from queueing policy enforcer
     BundleVector vec;
     oracle_->bundles()->vector(vec);
 
-    // Create ordering based on priority_queue using forwarding strategy 
-    FwdStrategy* fs = FwdStrategy::strategy(
-                            oracle_->params()->fs_,
-                            oracle_->nodes(),
-                            &remote_nodes_);
-
-    // Create strategy-based decider for whether to forward a bundle
-    ProphetDecider* d = ProphetDecider::decider(
-                            oracle_->params()->fs_,
-                            oracle_->nodes(),
-                            &remote_nodes_,
-                            next_hop_,
-                            oracle_->params()->max_forward_,
-                            oracle_->stats());
-
-    // Combine into priority_queue for bundle offer ordering
-    ProphetBundleOffer offer(vec,fs,d);
-    if (offers_.empty())
-        offers_.set_type(BundleOffer::OFFER);
-    else
+    if (vec.size() > 0)
     {
-        BundleOffer* bo = offers_.front();
-        ASSERT(bo->type() == offers_.type());
-    }
+        // Create ordering based on priority_queue using forwarding strategy 
+        FwdStrategy* fs = FwdStrategy::strategy(
+                                oracle_->params()->fs_,
+                                oracle_->nodes(),
+                                &remote_nodes_);
 
-    while(!offer.empty())
-    {
-        Bundle* b = offer.top();
-        offer.pop();
+        // Create strategy-based decider for whether to forward a bundle
+        ProphetDecider* d = ProphetDecider::decider(
+                                oracle_->params()->fs_,
+                                oracle_->nodes(),
+                                &remote_nodes_,
+                                next_hop_,
+                                oracle_->params()->max_forward_,
+                                oracle_->stats());
 
-        EndpointID eid = Prophet::eid_to_routeid(b->dest_);
-        u_int16_t sid = ribd_.find(eid);
+        // Combine into priority_queue for bundle offer ordering
+        ProphetBundleOffer offer(vec,fs,d);
 
-        // either not found or initiator's EID
-        if (sid == 0) 
+        while(!offer.empty())
         {
-            if (ribd_.is_assigned(eid) == true &&
-                synsender_ == true)
+            Bundle* b = offer.top();
+            offer.pop();
+
+            EndpointID eid = Prophet::eid_to_routeid(b->dest_);
+            u_int16_t sid = ribd_.find(eid);
+
+            // either not found or initiator's EID
+            if (sid == 0) 
+            {
+                if (ribd_.is_assigned(eid) == true &&
+                    synsender_ == true)
+                {
+                    // local destination, don't offer
+                    continue;
+                }
+
+                sid = ribd_.insert(eid);
+                update_dictionary = true;
+            }
+            else
+            if (sid == 1 && synsender_ == false)
             {
                 // local destination, don't offer
                 continue;
             }
 
-            sid = ribd_.insert(eid);
-            update_dictionary = true;
+            // add bundle listing to the offer
+            offers_.add_offer(b,sid);
         }
-        else
-        if (sid == 1 && synsender_ == false)
-        {
-            // local destination, don't offer
-            continue;
-        }
-
-        ASSERT(offers_.type() == BundleOffer::OFFER);
-
-        // add bundle listing to the offer
-        offers_.add_offer(b,sid);
     }
 
     // Now append all known ACKs
@@ -1120,6 +1237,7 @@ ProphetEncounter::send_bundle_offer()
     enqueue_bundle_tlv(offers_,
                        Prophet::UniqueID::tid(),
                        Prophet::NoSuccessAck);
+    send_prophet_tlv();
 }
 
 void
@@ -1204,112 +1322,80 @@ ProphetEncounter::send_dictionary()
         rib.push_back(new RIBNode(node,sid));
     }
 
-    enqueue_ribd(ribd_,
-                 Prophet::UniqueID::tid(),
-                 Prophet::NoSuccessAck);
-    enqueue_rib(rib);
+    u_int32_t tid = Prophet::UniqueID::tid();
+    enqueue_ribd(ribd_,tid,Prophet::NoSuccessAck);
+    enqueue_rib(rib,tid,Prophet::NoSuccessAck);
+    send_prophet_tlv();
+}
+
+ProphetTLV*
+ProphetEncounter::outbound_tlv(u_int32_t tid,
+                               Prophet::header_result_t result)
+{
+    oasys::ScopeLock l(otlv_lock_,"outbound_tlv");
+    if (outbound_tlv_ == NULL)
+    {
+        outbound_tlv_ = new ProphetTLV(result,
+                              local_instance_,
+                              remote_instance_,
+                              tid);
+    }
+    else
+    {
+        if (outbound_tlv_->transaction_id() != tid)
+        {
+            log_err("mismatched tid: TLV %u tid %u",
+                    outbound_tlv_->transaction_id(),
+                    tid);
+            return NULL;
+        }
+
+        if (outbound_tlv_->result() != result)
+        {
+            log_err("mismatched result field: TLV %s result %s",
+                    Prophet::result_to_str(outbound_tlv_->result()),
+                    Prophet::result_to_str(result));
+            return NULL;
+        }
+    }
+    return outbound_tlv_;
 }
 
 bool
 ProphetEncounter::send_prophet_tlv()
 {
     oasys::ScopeLock l(otlv_lock_,"send_prophet_tlv");
-    ASSERT(outbound_tlv_.size() != 0);
-
     if (neighbor_gone_ == true) return false;
+    if (outbound_tlv_ == NULL) return false;
 
-    // establish some flow control
-    struct timeval now;
-    ::gettimeofday(&now,0);
-    if ( TIMEVAL_DIFF_MSEC(now,data_sent_) <= (timeout_ / 2)) 
+    ASSERT(outbound_tlv_->num_tlv() > 0);
+
+    bool retval = false;
+    // encapsulate ProphetTLV into Bundle and queue up
+    BundleRef b("ProphetEncounter send_prophet_tlv");
+    b = new Bundle();
+    if (outbound_tlv_->create_bundle(b.object(),
+                          BundleDaemon::instance()->local_eid(),
+                          next_hop_->remote_eid()))
     {
-        log_debug("flow control: timediff %u timeout_ %u",
-                (u_int)TIMEVAL_DIFF_MSEC(now,data_sent_), timeout_);
-        return false;
+        oasys::StringBuffer buf;
+        outbound_tlv_->dump(&buf);
+        log_debug("Outbound TLV\n"
+                  "\n%s\n",buf.c_str());
+
+        // enqueue before non-control bundles
+        fwd_to_nexthop(b.object(),true);
+        retval = true;
+    }
+    else
+    {
+        log_err("Failed to write out ProphetTLV");
+        retval = false;
     }
 
-    ProphetTLV* pt;
-
-    while ((pt = outbound_tlv_.front()) != NULL)
-    {
-        // encapsulate ProphetTLV into Bundle and queue up
-        BundleRef b("ProphetEncounter send_prophet_tlv");
-        b = new Bundle();
-        if (pt->create_bundle(b.object(),
-                              BundleDaemon::instance()->local_eid(),
-                              next_hop_->remote_eid()))
-        {
-            // enqueue before non-control bundles
-            fwd_to_nexthop(b.object(),true);
-        }
-        else
-        {
-            log_err("Failed to write out ProphetTLV");
-            return false;
-        }
-
-        // clear out what we've sent
-        outbound_tlv_.pop_front();
-        delete pt;
-    } 
-
-    return true;
-}
-
-ProphetTLV*
-ProphetEncounter::outbound_tlv(u_int32_t tid,
-                               Prophet::header_result_t result,
-                               Prophet::prophet_tlv_t type)
-{
-    oasys::ScopeLock l(otlv_lock_,"outbound_tlv");
-    ProphetTLV* tlv = NULL;
-
-    // first check if similar TLV type already enqueued
-    for(TLVList::iterator i = outbound_tlv_.begin();
-        i != outbound_tlv_.end();
-        i++)
-    {
-        tlv = *i;
-        ProphetTLV::List list = tlv->list();
-        for(ProphetTLV::List::const_iterator j =
-                (ProphetTLV::List::const_iterator) list.begin();
-            j != list.end();
-            j++)
-        {
-            BaseTLV* bt = *j;
-            if (bt->typecode() == type)
-                return NULL;
-        }
-    }
-
-    // tlv now points to last TLV in queue
-    // and no other tlv is of same type
-    if (tlv != NULL)
-    {
-        // test whether tid and result are compatible
-        // if no match, create new tlv below
-        if (((tid != 0) &&
-             (tlv->transaction_id() != tid)) ||
-            (tlv->result() != result))
-        {
-            tlv = NULL;
-        }
-        else
-            // shrink the list by one,
-            // caller is expected to add it back in
-            outbound_tlv_.pop_back();
-    }
-
-    // create new TLV if no match above
-    if (tlv == NULL)
-    {
-        tlv = new ProphetTLV(result,
-                             local_instance_,
-                             remote_instance_,
-                             tid);
-    }
-
-    return tlv;
+    delete outbound_tlv_;
+    outbound_tlv_ = NULL;
+    return retval;
 }
 
 void
@@ -1317,27 +1403,19 @@ ProphetEncounter::enqueue_hello(Prophet::hello_hf_t hf,
                                 u_int32_t tid,
                                 Prophet::header_result_t result)
 {
-    oasys::ScopeLock l(otlv_lock_,"enqueue_hello");
-    log_debug("enqueue_hello %s %d %s",
+    log_debug("enqueue_hello %s %u %s",
                Prophet::hf_to_str(hf), tid,
                Prophet::result_to_str(result));
 
-    // look for matching header already in queue
-    ProphetTLV* tlv = outbound_tlv(tid,result,Prophet::HELLO_TLV);
+    oasys::ScopeLock l(otlv_lock_,"enqueue_hello");
+    ProphetTLV* tlv = outbound_tlv(tid,result);
+    HelloTLV *ht = new HelloTLV(hf,
+                                oracle_->params()->hello_interval_,
+                                BundleDaemon::instance()->local_eid(),
+                                logpath_);
 
-    if (tlv == NULL )
-    {
-        log_debug("duplicate hello message already queued");
-        return;
-    }
-
-    tlv->add_tlv(
-        new HelloTLV(hf,
-                     oracle_->params()->hello_interval_,
-                     BundleDaemon::instance()->local_eid(),
-                     logpath_)
-    );
-    outbound_tlv_.push_back(tlv);
+    ASSERT(tlv != NULL);
+    tlv->add_tlv(ht);
 }
 
 void
@@ -1345,22 +1423,16 @@ ProphetEncounter::enqueue_ribd(const ProphetDictionary& ribd,
                                u_int32_t tid,
                                Prophet::header_result_t result)
 {
-    oasys::ScopeLock l(otlv_lock_,"enqueue_ribd");
     log_debug("enqueue_ribd (%zu entries) %u %s",
                ribd.size(),tid,
                Prophet::result_to_str(result));
 
-    // look for matching header already in queue
-    ProphetTLV* tlv = outbound_tlv(tid,result,Prophet::RIBD_TLV);
+    oasys::ScopeLock l(otlv_lock_,"enqueue_ribd");
+    ProphetTLV* tlv = outbound_tlv(tid,result);
+    RIBDTLV *rt = new RIBDTLV(ribd,logpath_);
 
-    if (tlv == NULL)
-    {
-        log_debug("duplicate dictionary already queued");
-        return;
-    }
-
-    tlv->add_tlv(new RIBDTLV(ribd,logpath_));
-    outbound_tlv_.push_back(tlv);
+    ASSERT(tlv != NULL);
+    tlv->add_tlv(rt);
 }
 
 void
@@ -1368,26 +1440,18 @@ ProphetEncounter::enqueue_rib(const RIBTLV::List& nodes,
                               u_int32_t tid,
                               Prophet::header_result_t result)
 {
-    oasys::ScopeLock l(otlv_lock_,"enqueue_rib");
     log_debug("enqueue_rib (%zu entries)",nodes.size());
 
-    // look for matching header already in queue
-    ProphetTLV* tlv = outbound_tlv(tid,result,Prophet::RIB_TLV);
+    oasys::ScopeLock l(otlv_lock_,"enqueue_rib");
+    ProphetTLV* tlv = outbound_tlv(tid,result);
+    RIBTLV *rt = new RIBTLV(nodes,
+                            oracle_->params()->relay_node_,
+                            oracle_->params()->custody_node_,
+                            oracle_->params()->internet_gw_,
+                            logpath_);
 
-    if (tlv == NULL)
-    {
-        log_debug("duplicate RIB already queued");
-        return;
-    }
-
-    tlv->add_tlv(
-        new RIBTLV(nodes,
-                   oracle_->params()->relay_node_,
-                   oracle_->params()->custody_node_,
-                   oracle_->params()->internet_gw_,
-                   logpath_)
-    );
-    outbound_tlv_.push_back(tlv);
+    ASSERT(tlv != NULL);
+    tlv->add_tlv(rt);
 }
 
 void
@@ -1395,20 +1459,14 @@ ProphetEncounter::enqueue_bundle_tlv(const BundleOfferList& bundles,
                                      u_int32_t tid,
                                      Prophet::header_result_t result)
 {
-    oasys::ScopeLock l(otlv_lock_,"enqueue_bundle_tlv");
     log_debug("enqueue_bundle_tlv (%zu entries)",bundles.size());
 
-    // look for matching header already in queue
-    ProphetTLV* tlv = outbound_tlv(tid,result,Prophet::BUNDLE_TLV);
+    oasys::ScopeLock l(otlv_lock_,"enqueue_bundle_tlv");
+    ProphetTLV* tlv = outbound_tlv(tid,result);
+    BundleTLV* bt = new BundleTLV(bundles,logpath_);
 
-    if (tlv == NULL)
-    {
-        log_debug("duplicate Bundle TLV already queued");
-        return;
-    }
-
-    tlv->add_tlv(new BundleTLV(bundles,logpath_));
-    outbound_tlv_.push_back(tlv);
+    ASSERT(tlv != NULL);
+    tlv->add_tlv(bt);
 }
 
 void
@@ -1471,6 +1529,7 @@ ProphetEncounter::run() {
         enqueue_hello(Prophet::SYN,
                       Prophet::UniqueID::tid(),
                       Prophet::NoSuccessAck);
+        send_prophet_tlv();
         set_state(SYNSENT);
         ASSERT(ribd_.assign(local,0));
         ASSERT(ribd_.assign(remote,1));
@@ -1491,18 +1550,11 @@ ProphetEncounter::run() {
     */
 
     u_int timeout = timeout_;
-    deadcount_ = 0;
     while (neighbor_gone_ == false) {
 
         if (cmdqueue_.size() != 0)
         {
             process_command();
-            continue;
-        }
-
-        if ((outbound_tlv_.size() != 0) &&
-            send_prophet_tlv())
-        {
             continue;
         }
 
@@ -1534,8 +1586,10 @@ ProphetEncounter::run() {
             break;
         } 
 
-        if (deadcount_ >= oracle_->params()->hello_dead_) {
-            log_err("%d silent Hello intervals, giving up",deadcount_);
+        oasys::Time now;
+        now.get_time();
+        if ((now-data_rcvd_).in_milliseconds() >= (oracle_->params()->hello_dead_ * timeout_)) {
+            log_err("%d silent Hello intervals, giving up",oracle_->params()->hello_dead_);
             break;
         }
     }
