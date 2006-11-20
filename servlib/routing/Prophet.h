@@ -521,9 +521,9 @@ struct Prophet {
     } bundle_response_flags_t;
 
     /**
-      * Forwarding strategies
-      * p. 17, 3.6
-      */
+     * Forwarding strategies
+     * p. 17, 3.6
+     */
     typedef enum {
         INVALID_FS = 0,
         GRTR,
