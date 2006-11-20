@@ -79,8 +79,8 @@ Discovery::~Discovery()
 void
 Discovery::dump(oasys::StringBuffer* buf)
 {
-    buf->appendf("%s af %s: %zu announce\n",
-                 name_.c_str(),af_.c_str(),list_.size());
+    buf->appendf("%s af %s: %zu announce %s\n",
+                 name_.c_str(),af_.c_str(),list_.size(),to_addr_.c_str());
     for (iterator i = list_.begin(); i != list_.end(); i++)
     {
         buf->appendf("\tannounce %s type %s advertising %s every %d sec\n",
