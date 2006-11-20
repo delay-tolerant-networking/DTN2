@@ -19,6 +19,118 @@
 
 namespace dtn {
 
+void
+BaseTLV::dump(oasys::StringBuffer* buf)
+{
+    buf->appendf("-+-+-+-\nTLV Type: %s\n" 
+                 "Flags: %d\n"
+                 "Length: %d\n",
+                 Prophet::tlv_to_str(typecode_),flags_,length_);
+}
+
+void
+HelloTLV::dump(oasys::StringBuffer* buf)
+{
+    BaseTLV::dump(buf);
+    buf->appendf("HF: %s\n"
+                 "Timer: %d\n"
+                 "Sender: %s\n",
+                 Prophet::hf_to_str(hf_),timer_,sender_.c_str());
+}
+
+void
+RIBDTLV::dump(oasys::StringBuffer* buf)
+{
+    BaseTLV::dump(buf);
+    buf->appendf("RIBD Entries: %zu\n",ribd_.size());
+    // ProphetDictionary
+    ribd_.dump(buf);
+}
+
+void
+RIBTLV::dump(oasys::StringBuffer* buf)
+{
+    BaseTLV::dump(buf);
+    buf->appendf("Relay: %s\n"
+                 "Custody: %s\n"
+                 "Internet GW: %s\n"
+                 "RIB Entries: %zu\n",
+                 relay_ ? "true" : "false",
+                 custody_ ? "true" : "false",
+                 internet_ ? "true" : "false",
+                 nodes_.size());
+    for(PointerList<RIBNode>::iterator i = nodes_.begin();
+        i != nodes_.end();
+        i++)
+    {
+        (*i)->dump(buf);
+    }
+}
+
+void
+BundleTLV::dump(oasys::StringBuffer* buf)
+{
+    BaseTLV::dump(buf);
+    buf->appendf("Type: %s\n"
+                 "Bundle Entries: %zu\n",
+                 BundleOffer::type_to_str(list_.type()),
+                 list_.size());
+    // BundleOfferList
+    list_.dump(buf);
+}
+
+void
+ProphetTLV::dump(oasys::StringBuffer* buf)
+{
+    buf->appendf("ProphetTLV Header\n-----------------\n" 
+                 "Result: %s\n"
+                 "Sender: %d\n"
+                 "Receiver: %d\n"
+                 "TransactionID: %d\n"
+                 "Length: %d\n"
+                 "Entries: %zu\n",
+                 Prophet::result_to_str(result_),
+                 sender_instance_,
+                 receiver_instance_,
+                 tid_,
+                 parsedlen_,
+                 num_tlv());
+    for(iterator i = list_.begin(); i != list_.end(); i++)
+    {
+        switch((*i)->typecode())
+        {
+            case Prophet::HELLO_TLV:
+            {
+                HelloTLV* p = dynamic_cast<HelloTLV*>(*i);
+                p->dump(buf);
+                break;
+            }
+            case Prophet::RIBD_TLV:
+            {
+                RIBDTLV* p = dynamic_cast<RIBDTLV*>(*i);
+                p->dump(buf);
+                break;
+            }
+            case Prophet::RIB_TLV:
+            {
+                RIBTLV* p = dynamic_cast<RIBTLV*>(*i);
+                p->dump(buf);
+                break;
+            }
+            case Prophet::BUNDLE_TLV:
+            {
+                BundleTLV* p = dynamic_cast<BundleTLV*>(*i);
+                p->dump(buf);
+                break;
+            }
+            case Prophet::UNKNOWN_TLV:
+            default:
+                buf->appendf("Unknown TLV\n");
+                break;
+        }
+    }
+}
+
 bool
 HelloTLV::deserialize(u_char* buffer, size_t len)
 {
@@ -304,6 +416,9 @@ BundleTLV::deserialize(u_char* buffer, size_t len)
     len        -= hdrlen;
     amt_read   += hdrlen;
 
+    ASSERT(list_.empty());
+    ASSERT(list_.type() == BundleOffer::UNDEFINED);
+
     size_t entrylen = Prophet::BundleOfferEntrySize;
     while (len >= entrylen &&
            amt_read + entrylen <= length_ &&
@@ -323,10 +438,24 @@ BundleTLV::deserialize(u_char* buffer, size_t len)
         // initialize to inferred type, if not yet defined
         if (list_.type() == BundleOffer::UNDEFINED) { 
             ASSERT(list_.empty());
-            list_ = BundleOfferList(type);
+            list_.set_type(type);
         }
 
-        ASSERT(list_.type() == type);
+        ASSERTF(list_.type() == type,"\n%s != %s\n"
+                "cts %d\n"
+                "sid %d\n"
+                "custody %s\n"
+                "accept %s\n"
+                "ack %s\n"
+                "offer_count %d\n",
+                BundleOffer::type_to_str(list_.type()),
+                BundleOffer::type_to_str(type),
+                cts,sid,
+                custody ? "true" : "false",
+                accept ? "true" : "false",
+                ack ? "true" : "false",
+                ntohs(hdr->offer_count));
+
         list_.add_offer(cts,sid,custody,accept,ack);
 
         len        -= entrylen;
@@ -490,7 +619,7 @@ ProphetTLV::deserialize(u_char* bp, size_t buflen)
     u_int16_t submessage_num = ntohs(hdr->submessage_num);
 
     if (submessage_flag == true || submessage_num != 0) {
-        // log somethinga ... Prophet fragmentation is unsupported
+        // log something ... Prophet fragmentation is unsupported
         return false;
     }
 
@@ -742,8 +871,8 @@ RIBDTLV::serialize(u_char* bp, size_t len)
 
 size_t
 RIBTLV::write_rib_entry(u_int16_t sid, double pvalue,
-                             bool relay, bool custody, bool internet,
-                             u_char* buffer, size_t len)
+                        bool relay, bool custody, bool internet,
+                        u_char* buffer, size_t len)
 {
     size_t rib_sz = Prophet::RIBEntrySize;
     if (len < rib_sz)
@@ -859,7 +988,8 @@ BundleTLV::write_bundle_offer(u_int32_t cts, u_int16_t sid,
     }
     else 
     {
-        log_debug("Bundle entry with undefined type, skipping");
+        log_debug("Bundle entry with undefined type (%d), skipping",
+                  (int)type);
         return 0;
     }
     p->dest_string_id = htons(sid);

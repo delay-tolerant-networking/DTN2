@@ -120,6 +120,8 @@ public:
     void set_age_factor(u_int ms_per_unit) {
         params_->kappa_ = ms_per_unit;
     }
+
+    void dump(oasys::StringBuffer* buf);
     
 protected:
     /**
@@ -156,6 +158,7 @@ public:
         sid_ = a.sid_;
         return *this;
     }
+    void dump(oasys::StringBuffer* buf);
     u_int16_t sid_;
 }; // RIBNode
 
@@ -172,7 +175,17 @@ public:
         RESPONSE
     } bundle_offer_t;
 
-    // set true for Offer, false for Response
+    static const char* type_to_str(bundle_offer_t type)
+    {
+        switch(type) {
+        case OFFER: return "OFFER";
+        case RESPONSE: return "RESPONSE";
+        case UNDEFINED:
+        default: break;
+        }
+        return "UNDEFINED";
+    }
+
     BundleOffer(bundle_offer_t type = UNDEFINED)
         : oasys::Logger("BundleOffer",BUNDLE_OFFER_LOGPATH),
           cts_(0), sid_(0),
@@ -185,7 +198,10 @@ public:
           cts_(b.cts_), sid_(b.sid_), custody_(b.custody_),
           accept_(b.accept_), ack_(b.ack_),
           type_(b.type_)
-    {}
+    {
+        ASSERTF((type_ == OFFER) || (type_ == RESPONSE),
+                "type_==%d",(int)type_);
+    }
 
     BundleOffer(u_int32_t cts, u_int16_t sid, bool custody=false,
                 bool accept=false, bool ack=false,
@@ -194,7 +210,10 @@ public:
           cts_(cts), sid_(sid),
           custody_(custody), accept_(accept), ack_(ack),
           type_(type)
-    {}
+    {
+        ASSERTF((type_ == OFFER) || (type_ == RESPONSE),
+                "type_==%d",(int)type_);
+    }
 
     BundleOffer& operator= (const BundleOffer& b) {
         cts_     = b.cts_;
@@ -203,6 +222,8 @@ public:
         accept_  = b.accept_;
         ack_     = b.ack_;
         type_    = b.type_;
+        ASSERTF((type_ == OFFER) || (type_ == RESPONSE),
+                "type_==%d",(int)type_);
         return *this;
     }
 
@@ -218,6 +239,8 @@ public:
     bool accept() const { return accept_; }
     bool ack() const { return ack_; }
     bundle_offer_t type() const { return type_; }
+
+    void dump(oasys::StringBuffer* buf);
 
 protected:
 

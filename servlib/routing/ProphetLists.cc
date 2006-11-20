@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#include <oasys/util/Time.h>
+#include "ProphetTLV.h"
+
 #include "ProphetLists.h"
 
 namespace dtn {
@@ -169,6 +172,25 @@ ProphetAckAgeTimer::timeout(const struct timeval& now)
     reschedule();
 }
 
+void
+ProphetDictionary::dump(oasys::StringBuffer* buf)
+{
+    for(const_iterator i = rribd_.begin(); i != rribd_.end(); i++)
+    {
+        // print out SID -> EndpointID
+        buf->appendf("%d %s\n",(*i).first,(*i).second.c_str());
+    }
+}
+
+void
+BundleOfferList::dump(oasys::StringBuffer* buf)
+{
+    for(const_iterator i = list_.begin(); i != list_.end(); i++)
+    {
+        (*i)->dump(buf);
+    }
+}
+
 ProphetDictionary::ProphetDictionary(const EndpointID& sender,
                                      const EndpointID& receiver)
     : guess_(0)
@@ -243,8 +265,10 @@ ProphetDictionary::assign(const EndpointID& eid, u_int16_t sid)
     {
         EndpointID sender = rribd_[0];
         EndpointID receiver = rribd_[1];
-        ASSERT(eid.equals(sender) && sid == 0);
-        ASSERT(eid.equals(receiver) && sid == 1);
+        if (eid.equals(sender) && sid != 0)
+            return false;
+        if (eid.equals(receiver) && sid != 1)
+            return false;
     }
 
     // first attempt to insert into forward lookup
@@ -283,39 +307,19 @@ BundleOfferList::sort(ProphetDictionary* ribd,
                       u_int16_t sid)
 {
     oasys::ScopeLock l(lock_,"BundleOfferList::prioritize");
-    std::vector<BundleOffer*> list(list_.begin(),list_.end());
-    std::sort(list.begin(),list.end(),BundleOfferComp(ribd,nodes));
-    list_.clear();
-    // move any bundles destined for local node to front of list
-    for(std::vector<BundleOffer*>::iterator i = list.begin();
-        i != list.end();
-        i++)
-    {
-        BundleOffer* bo = (*i);
-        if (bo->sid() == sid) 
-        {
-            list_.push_front(bo);
-        }
-        else
-        {
-            list_.push_back(bo);
-        }
-    }
+    std::sort(list_.begin(),list_.end(),BundleOfferSIDComp(ribd,nodes,sid));
 }
 
 bool
 BundleOfferList::remove_bundle(u_int32_t cts, u_int16_t sid)
 {
     oasys::ScopeLock l(lock_,"BundleOfferList::remove_bundle");
-    BundleOffer* retval = NULL;
     for (iterator i = list_.begin(); 
          i != list_.end();
          i++)
     {
         if ((*i)->creation_ts() == cts && (*i)->sid() == sid) {
-            retval = *i;
             list_.erase(i);
-            delete retval;
             return true;
         }
     }

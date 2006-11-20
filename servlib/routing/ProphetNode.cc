@@ -40,6 +40,44 @@ ProphetNode::ProphetNode(const ProphetNode& n)
 {
 }
 
+void
+RIBNode::dump(oasys::StringBuffer* buf)
+{
+    buf->appendf("\tSID %d\n",sid_);
+    ProphetNode::dump(buf);
+}
+
+void
+ProphetNode::dump(oasys::StringBuffer* buf)
+{
+    buf->appendf("\tEndpointID %s\n"
+                 "\tP Value %0.2f\n"
+                 "\tRelay %s\n"
+                 "\tCustody %s\n"
+                 "\tInternet GW %s\n",
+                 remote_eid_.c_str(),
+                 p_value_,
+                 relay_ ? "true" : "false",
+                 custody_ ? "true" : "false",
+                 internet_gateway_ ? "true" : "false");
+}
+
+void
+BundleOffer::dump(oasys::StringBuffer* buf)
+{
+    buf->appendf("\t%s\n"
+                 "\tCreation TS %d\n"
+                 "\tSID %d\n"
+                 "\tCustody %s\n"
+                 "\tAccept %s\n"
+                 "\tAck %s\n",
+                 type_to_str(type_),
+                 cts_, sid_,
+                 custody_ ? "true" : "false",
+                 accept_ ? "true" : "false",
+                 ack_ ? "true" : "false");
+}
+
 bool
 ProphetNode::route_to_me(const EndpointID& eid) const
 {

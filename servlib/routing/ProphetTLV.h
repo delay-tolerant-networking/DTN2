@@ -61,6 +61,7 @@ public:
     u_int16_t length() { return length_; }
 
     virtual size_t serialize(u_char* bp,size_t len) = 0;
+    virtual void dump(oasys::StringBuffer* buf);
 
 protected:
     BaseTLV(Prophet::prophet_tlv_t typecode = Prophet::UNKNOWN_TLV,
@@ -99,6 +100,7 @@ public:
     const EndpointID& sender() { return sender_; }
 
     size_t serialize(u_char*,size_t);
+    void dump(oasys::StringBuffer* buf);
 
 protected:
     friend class TLVFactory<HelloTLV>;
@@ -134,6 +136,7 @@ public:
     const ProphetDictionary& ribd() const { return ribd_; }
 
     size_t serialize(u_char*,size_t);
+    void dump(oasys::StringBuffer* buf);
 protected:
     /**
      * Serialize EndpointID out to buffer size len using
@@ -194,6 +197,7 @@ public:
     bool internet_gateway() { return internet_ ;}
 
     size_t serialize(u_char*,size_t);
+    void dump(oasys::StringBuffer* buf);
 protected:
     friend class TLVFactory<RIBTLV>;
 
@@ -250,6 +254,7 @@ public:
     BundleOffer::bundle_offer_t type() { return list_.type(); }
 
     size_t serialize(u_char*,size_t);
+    void dump(oasys::StringBuffer* buf);
 protected:
     friend class TLVFactory<BundleTLV>;
 
@@ -265,7 +270,9 @@ protected:
 
     BundleTLV(const char* logpath) :
         BaseTLV(Prophet::BUNDLE_TLV,logpath)
-    {}
+    {
+        ASSERT(list_.type() == BundleOffer::UNDEFINED);
+    }
 
     bool deserialize(u_char*,size_t);
 
@@ -311,11 +318,14 @@ public:
 
     // caller is responsible for memory cleanup on returned pointer
     BaseTLV* get_tlv(); 
+
     // ProphetTLV will clean up memory on submitted pointer
     void add_tlv(BaseTLV* tlv);
 
     // look but don't touch!
     const List& list() const { return list_; }
+
+    void dump(oasys::StringBuffer* buf);
 
 #ifndef PROPHET_TLV_TEST
 protected:

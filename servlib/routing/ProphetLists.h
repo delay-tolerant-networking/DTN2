@@ -75,21 +75,21 @@ public:
  * Creates copies of members instead of copies of pointers to members
  */
 template <class T>
-class PointerList : public std::list<T*>
+class PointerList : public std::vector<T*>
 {
 public:
-    typedef std::list<T*> List;
-    typedef typename std::list<T*>::iterator iterator;
-    typedef typename std::list<T*>::const_iterator const_iterator;
+    typedef std::vector<T*> List;
+    typedef typename std::vector<T*>::iterator iterator;
+    typedef typename std::vector<T*>::const_iterator const_iterator;
 
     PointerList()
-        : std::list<T*>()
+        : std::vector<T*>()
     {
         clear();
     }
 
     PointerList(const PointerList& a)
-        : std::list<T*>()
+        : std::vector<T*>()
     {
         clear();
         copy_from(a);
@@ -102,6 +102,7 @@ public:
 
     PointerList& operator= (const PointerList& a)
     {
+        clear();
         copy_from(a);
         return *this;
     }
@@ -124,20 +125,17 @@ protected:
             i != List::end();
             i++)
         {
-            T* p = *i;
-            delete p;
+            delete *i;
         }
     }
 
     void copy_from(const PointerList& a)
     {
-        clear();
         for(const_iterator i = a.begin();
             i != a.end();
             i++)
         {
-            T* p = *i;
-            List::push_back(new T(*p));
+            push_back(new T(**i));
         }
     }
 }; // template PointerList
@@ -243,6 +241,16 @@ public:
     EndpointID find(u_int16_t id) const;
 
     /**
+     * Convenience function
+     */
+    EndpointID sender() const { return find(0); }
+
+    /**
+     * Convenience function
+     */
+    EndpointID receiver() const { return find(1); }
+
+    /**
      * If EID is already indexed, return true; else false
      */
     bool is_assigned(const EndpointID& eid) const;
@@ -284,6 +292,11 @@ public:
      */
     void clear();
 
+    /**
+     * Write out text representation to string buffer
+     */
+    void dump(oasys::StringBuffer *buf);
+
     ProphetDictionary& operator= (const ProphetDictionary& d)
     {
         ribd_ = d.ribd_;
@@ -319,6 +332,27 @@ struct BundleOfferComp : public std::less<BundleOffer*>
     ProphetTable* nodes_;
 };
 
+struct BundleOfferSIDComp : public BundleOfferComp
+{
+    BundleOfferSIDComp(ProphetDictionary* ribd,
+                       ProphetTable* local,
+                       u_int16_t sid)
+        : BundleOfferComp(ribd,local), sid_(sid) {}
+
+    bool operator()(const BundleOffer* a,const BundleOffer* b) const
+    {
+        // prioritize based on SID
+        if (a->sid() != b->sid())
+        {
+            if (a->sid() == sid_) return true;
+            if (b->sid() == sid_) return true;
+        }
+        // otherwise use parent's ordering
+        return BundleOfferComp::operator()(a,b);
+    }
+    u_int16_t sid_;
+};
+
 /**
  * BundleOfferList represents a BundleOfferTLV as received from 
  * or sent to remote
@@ -331,9 +365,8 @@ public:
 
     BundleOfferList(BundleOffer::bundle_offer_t type =
                     BundleOffer::UNDEFINED)
-        : list_(), type_(type), lock_(new oasys::SpinLock())
+        : type_(type), lock_(new oasys::SpinLock())
     {
-        list_.clear();
     }
 
     BundleOfferList(const BundleOfferList& list)
@@ -369,11 +402,6 @@ public:
      * Removes all entries from list
      */
     void clear();
-
-    /**
-     * Adds entry to back of list
-     */
-    void push_back(BundleOffer* bo);
 
     /**
      * Add an entry from BundleOfferList
@@ -443,7 +471,14 @@ public:
     void set_type(BundleOffer::bundle_offer_t type) {type_ = type;}
     BundleOffer::bundle_offer_t type() const { return type_; }
 
+    void dump(oasys::StringBuffer *buf);
+
 protected:
+    /**
+     * Adds entry to back of list
+     */
+    void push_back(BundleOffer* bo);
+
     List list_;
     BundleOffer::bundle_offer_t type_;
     oasys::SpinLock* lock_;
@@ -902,13 +937,14 @@ class ProphetBundleOffer : public std::priority_queue<Bundle*>
 protected:
     typedef std::priority_queue<Bundle*> BundleQueue;
 public:
-    ProphetBundleOffer(BundleVector& bundles,
+    ProphetBundleOffer(const BundleVector& bundles,
                        FwdStrategy* comp,
                        ProphetDecider* decider)
         : BundleQueue(*comp),
           list_(bundles),comp_(comp),decide_(decider)
     {
-        for(BundleVector::iterator i = bundles.begin();
+        for(BundleVector::const_iterator i =
+                (BundleVector::const_iterator) bundles.begin();
             i != bundles.end(); 
             i++ )
         {
