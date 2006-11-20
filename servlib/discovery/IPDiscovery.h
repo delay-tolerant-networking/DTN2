@@ -90,9 +90,9 @@ public:
     /**
      * Close main socket, causing thread to exit
      */
-    void shutdown() { shutdown_ = true; socket_.close(); }
+    void shutdown() { shutdown_ = true; socket_.get_notifier()->notify(); }
 
-    virtual ~IPDiscovery() { shutdown(); }
+    virtual ~IPDiscovery() {}
 
 protected:
     friend class Discovery;
