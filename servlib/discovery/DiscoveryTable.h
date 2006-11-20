@@ -50,6 +50,8 @@ public:
 
     void dump(oasys::StringBuffer* buf);
 
+    void shutdown();
+
 protected:
     friend class DiscoveryCommand;
     friend class oasys::Singleton<DiscoveryTable>;

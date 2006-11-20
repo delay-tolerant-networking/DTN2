@@ -30,6 +30,11 @@ DiscoveryTable::DiscoveryTable()
 
 DiscoveryTable::~DiscoveryTable()
 {
+}
+
+void
+DiscoveryTable::shutdown()
+{
     for(DiscoveryList::iterator i = dlist_.begin();
         i != dlist_.end();
         i++)
@@ -38,6 +43,7 @@ DiscoveryTable::~DiscoveryTable()
         d->shutdown();
         delete d;
     }
+    dlist_.clear();
 }
 
 bool
