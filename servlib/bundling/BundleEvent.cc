@@ -274,8 +274,8 @@ CustodySignalEvent::serialize(oasys::SerializeAction *a)
     a->process("admin_flags", &data_.admin_flags_);
     a->process("succeeded", &data_.succeeded_);
     a->process("reason", &data_.reason_);
-    //a->process("orig_frag_offset", &data_.orig_frag_offset_);
-    //a->process("orig_frag_length", &data_.orig_frag_length_);
+    a->process("orig_frag_offset", &data_.orig_frag_offset_);
+    a->process("orig_frag_length", &data_.orig_frag_length_);
     a->process("custody_signal_seconds", &data_.custody_signal_tv_.seconds_);
     a->process("custody_signal_seqno", &data_.custody_signal_tv_.seqno_);
     a->process("orig_creation_seconds", &data_.orig_creation_tv_.seconds_);
