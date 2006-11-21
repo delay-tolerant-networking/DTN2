@@ -836,8 +836,8 @@ Next hop link.
         <xs:attribute name="admin_flags" type="xs:unsignedByte" use="required"/>
         <xs:attribute name="succeeded" type="xs:boolean" use="required"/>
         <xs:attribute name="reason" type="xs:unsignedByte" use="required"/>
-        <!--<xs:attribute name="orig_frag_offset" type="xs:unsignedLong" use="required"/>-->
-        <!--<xs:attribute name="orig_frag_length" type="xs:unsignedLong" use="required"/>-->
+        <xs:attribute name="orig_frag_offset" type="xs:unsignedLong" use="required"/>
+        <xs:attribute name="orig_frag_length" type="xs:unsignedLong" use="required"/>
         <xs:attribute name="custody_signal_seconds" type="xs:unsignedInt" use="required"/>
         <xs:attribute name="custody_signal_seqno" type="xs:unsignedInt" use="required"/>
         <xs:attribute name="orig_creation_seconds" type="xs:unsignedInt" use="required"/>
