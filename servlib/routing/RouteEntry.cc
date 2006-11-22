@@ -169,8 +169,7 @@ RouteEntry::serialize(oasys::SerializeAction *a)
     a->process("source_pattern", &source_pattern_);
     a->process("route_priority", &route_priority_);
     a->process("action", &action_);
-    a->process("link", (u_char *) next_hop_->name(),
-        strlen(next_hop_->name()));
+    a->process("link", const_cast<std::string *>(&next_hop_->name_str()));
 }
 
 //----------------------------------------------------------------------
