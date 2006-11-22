@@ -440,7 +440,7 @@ Length of block contents
                 </xs:documentation>
             </xs:annotation>
         </xs:attribute>
-        <xs:attribute name="contents" type="xs:string" use="required">
+        <xs:attribute name="contents" type="xs:base64Binary" use="required">
             <xs:annotation>
                 <xs:documentation xml:lang="en">
 Block contents
