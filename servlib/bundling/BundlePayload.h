@@ -132,7 +132,14 @@ public:
     /**
      * Return the file state.
      */
-    bool is_file_open() { return file_->is_open(); }
+    bool is_file_open()
+    {
+        if (file_ == NULL) {
+            return false;
+        }
+
+        return file_->is_open(); 
+    }
 
     /**
      * Copy (or link) the payload to the given file client object
