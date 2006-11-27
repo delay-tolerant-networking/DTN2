@@ -65,6 +65,13 @@ BundleActions::send_bundle(Bundle* bundle, Link* link,
                            ForwardingInfo::action_t action,
                            const CustodyTimerSpec& custody_timer)
 {
+    if(bundle->xmit_blocks_.find_blocks(link) != NULL)
+    {
+        log_err("link not ready to handle another bundle, dropping send request");
+        return false;
+    }
+
+
     // XXX/demmer this should be moved somewhere in the router
     // interface so it can select options for the outgoing bundle
     // blocks (e.g. security)
