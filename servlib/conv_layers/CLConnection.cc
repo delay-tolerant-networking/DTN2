@@ -309,12 +309,13 @@ CLConnection::close_contact()
             
             BundleDaemon::post(
                 new BundleTransmitFailedEvent(inflight->bundle_.object(),
-                                              contact_));
+                                              contact_, contact_->link()));
             
         } else {
             BundleDaemon::post(
                 new BundleTransmittedEvent(inflight->bundle_.object(),
-                                           contact_, sent_bytes, acked_bytes));
+                                           contact_, contact_->link(),
+                                           sent_bytes, acked_bytes));
         }
 
         inflight_.pop_front();
@@ -377,7 +378,9 @@ CLConnection::close_contact()
             if (msg.type_ == CLMSG_SEND_BUNDLE) {
                 BundleDaemon::post(
                     new BundleTransmitFailedEvent(msg.bundle_.object(),
-                                                  contact_));
+                                                  contact_,
+                                                  contact_->link()));
+
             }
         }
     }

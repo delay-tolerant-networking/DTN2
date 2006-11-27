@@ -536,7 +536,9 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     int total = sizeof(EthCLHeader) + sizeof(struct ether_header) +
                 header_len + payload_len;
     if (cc != total) {
-        BundleDaemon::post(new BundleTransmitFailedEvent(bundle, contact_));
+        BundleDaemon::post(new BundleTransmitFailedEvent(bundle,
+                                                         contact_,
+                                                         contact_->link()));
         log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
                 cc, total, strerror(errno));
         ok = false;
@@ -545,7 +547,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         // since this is an unreliable protocol, acked_len = 0, and
         // ack = false
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact_,
+            new BundleTransmittedEvent(bundle, contact_,contact_->link(),
                                        header_len + payload_len, false));
         ok = true;
     }

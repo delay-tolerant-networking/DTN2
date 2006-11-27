@@ -549,21 +549,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
     Bundle* bundle = event->bundleref_.object();
 
-    /*
-     * Check that a close contact event has not already deleted this contact.
-     * If it has, we will disregard the transmission notice.
-     */
-    if (event->contact_ == NULL)
-    {
-    	log_info("BUNDLE_TRANSMITTED id:%d (%u bytes_sent/%u reliable) -> "
-                 "unknown contact",
-             bundle->bundleid_,
-             event->bytes_sent_,
-             event->reliably_sent_);
-    	return;
-    }
-
-    Link* link = event->contact_->link();
+    Link* link = event->link_;
     
     /*
      * Update statistics. Note that the link's inflight length must
@@ -693,18 +679,7 @@ BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
      */
     Bundle* bundle = event->bundleref_.object();
 
-    /*
-     * Check that a close contact event has not already deleted this contact.
-     * If it has, we will disregard the failed transmission notice.
-     */
-    if (event->contact_ == NULL)
-    {
-    	log_info("BUNDLE_TRANSMIT_FAILED id:%d -> unknown contact",
-             bundle->bundleid_);
-    	return;
-    }
-
-    Link* link = event->contact_->link();
+    Link* link = event->link_;
     bundle->xmit_blocks_.delete_blocks(link);
     
     log_info("BUNDLE_TRANSMIT_FAILED id:%d -> %s (%s)",

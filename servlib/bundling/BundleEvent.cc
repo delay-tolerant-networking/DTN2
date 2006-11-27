@@ -66,6 +66,7 @@ BundleTransmittedEvent::serialize(oasys::SerializeAction *a)
     a->process("reliably_sent", &reliably_sent_);
     a->process("bundle", bundleref_.object());
     a->process("contact", contact_.object());
+    a->process("link", link_);
 }
 
 void
@@ -73,6 +74,7 @@ BundleTransmitFailedEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("bundle", bundleref_.object());
     a->process("contact", contact_.object());
+    a->process("link", link_);
 }
 
 void

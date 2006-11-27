@@ -279,12 +279,14 @@ public:
 class BundleTransmittedEvent : public BundleEvent {
 public:
     BundleTransmittedEvent(Bundle* bundle, const ContactRef& contact,
-                           u_int32_t bytes_sent, u_int32_t reliably_sent)
+                           Link* link, u_int32_t bytes_sent,
+                           u_int32_t reliably_sent)
         : BundleEvent(BUNDLE_TRANSMITTED),
           bundleref_(bundle, "BundleTransmittedEvent"),
           contact_(contact.object(), "BundleTransmittedEvent"),
           bytes_sent_(bytes_sent),
-          reliably_sent_(reliably_sent) {}
+          reliably_sent_(reliably_sent),
+          link_(link) {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
@@ -302,6 +304,11 @@ public:
     /// the count of the bytes reliably sent, which must be less than
     /// or equal to the bytes transmitted
     u_int32_t reliably_sent_;
+
+    /// The link over which the bundle was sent
+    /// (may not have a contact when the transmission result is reported)
+    Link* link_;
+
 };
 
 /**
@@ -311,10 +318,12 @@ public:
  */
 class BundleTransmitFailedEvent : public BundleEvent {
 public:
-    BundleTransmitFailedEvent(Bundle* bundle, const ContactRef& contact)
+     BundleTransmitFailedEvent(Bundle* bundle, const ContactRef& contact,
+                               Link* link)
         : BundleEvent(BUNDLE_TRANSMIT_FAILED),
           bundleref_(bundle, "BundleTransmitFailedEvent"),
-          contact_(contact.object(), "BundleTransmitFailedEvent") {}
+          contact_(contact.object(), "BundleTransmitFailedEvent"),
+          link_(link) {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
@@ -324,6 +333,10 @@ public:
 
     /// The contact where the bundle was attempted to be sent
     ContactRef contact_;
+
+    /// The link over which the bundle was sent
+    /// (may not have a contact when the transmission result is reported)
+    Link* link_;
 };
 
 /**

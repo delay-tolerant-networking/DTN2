@@ -1204,6 +1204,7 @@ StreamConvergenceLayer::Connection::handle_ack_segment(u_int8_t flags)
         BundleDaemon::post(
             new BundleTransmittedEvent(inflight->bundle_.object(),
                                        contact_,
+                                       contact_->link(),
                                        inflight->sent_data_.num_contiguous(),
                                        inflight->ack_data_.num_contiguous()));
 

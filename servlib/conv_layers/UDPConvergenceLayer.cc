@@ -313,10 +313,11 @@ UDPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 
     if (len > 0) {
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact, len, 0));
+            new BundleTransmittedEvent(bundle, contact,
+                                       contact->link(), len, 0));
     } else {
         BundleDaemon::post(
-            new BundleTransmitFailedEvent(bundle, contact));
+            new BundleTransmitFailedEvent(bundle, contact,contact->link()));
     }
 }
 
