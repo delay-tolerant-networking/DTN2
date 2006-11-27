@@ -200,7 +200,7 @@ int
 dtnipc_send(dtnipc_handle_t* handle, dtnapi_message_type_t type)
 {
     int ret;
-    size_t len, msglen;
+    u_int32_t len, msglen;
     
     // pack the message code in the fourth byte of the buffer and the
     // message length into the next four. we don't use xdr routines
@@ -251,7 +251,7 @@ int
 dtnipc_recv(dtnipc_handle_t* handle, int* status)
 {
     int ret;
-    size_t len, nread;
+    u_int32_t len, nread;
     u_int32_t statuscode;
 
     // reset the xdr decoder before reading in any data
