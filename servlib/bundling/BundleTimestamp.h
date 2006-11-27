@@ -42,11 +42,11 @@ struct BundleTimestamp {
      * up to date with the protocol.
      */
     static bool check_local_clock();
-
+	
     /**
      * The number of seconds between 1/1/1970 and 1/1/2000.
      */
-    static const u_int32_t TIMEVAL_CONVERSION = 946684800;
+    static u_int32_t TIMEVAL_CONVERSION;
 };
 
 } // namespace dtn

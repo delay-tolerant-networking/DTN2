@@ -20,15 +20,19 @@
 
 #include "BundleTimestamp.h"
 
-
 namespace dtn {
+
+/**
+ * The number of seconds between 1/1/1970 and 1/1/2000.
+ */
+u_int32_t BundleTimestamp::TIMEVAL_CONVERSION = 946684800;
 
 u_int32_t
 BundleTimestamp::get_current_time()
 {
     struct timeval now;
     ::gettimeofday(&now, 0);
-
+    
     ASSERT((u_int)now.tv_sec > TIMEVAL_CONVERSION);
     return now.tv_sec - TIMEVAL_CONVERSION;
 }
@@ -48,7 +52,4 @@ BundleTimestamp::check_local_clock()
 
     return true;
 }
-
-
-
 } // namespace dtn
