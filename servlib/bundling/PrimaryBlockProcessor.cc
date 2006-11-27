@@ -400,10 +400,10 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
             return -1; // protocol error
         }
 
-        // If the data offset or data length aren't set, then the
-        // whole buffer must have been consumed since there's not
-        // enough data to parse the length.
-        if (block->data_offset() == 0 || block->data_length() == 0) {
+        // If the data offset isn't set, then the whole buffer must
+        // have been consumed since there's not enough data to parse
+        // the length.
+        if (block->data_offset() == 0) {
             ASSERT(cc == (int)len);
             return cc;
         }
@@ -415,6 +415,11 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
         len -= cc;
 
         consumed += cc;
+
+        if (block->data_length() == 0) {
+            log_err(log, "got primary block with zero length");
+            return -1; // protocol error
+        }
     }
 
     /*
