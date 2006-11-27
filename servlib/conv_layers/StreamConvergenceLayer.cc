@@ -410,7 +410,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     // in ack_data is marked when the segment is begun, not when it's
     // completed
     while (1) {
-        size_t rcvd_bytes  = incoming->rcvd_data_.last() + 1;
+        size_t rcvd_bytes  = incoming->rcvd_data_.num_contiguous();
         size_t ack_len     = *iter + 1;
         size_t segment_len = ack_len - incoming->acked_length_;
         (void)segment_len;
@@ -1037,9 +1037,7 @@ StreamConvergenceLayer::Connection::handle_data_segment(u_int8_t flags)
     }
     
     recv_segment_todo_ = segment_len;
-    handle_data_todo();
-    
-    return true;
+    return handle_data_todo();
 }
 
 //----------------------------------------------------------------------
@@ -1100,7 +1098,7 @@ StreamConvergenceLayer::Connection::handle_data_todo()
 void
 StreamConvergenceLayer::Connection::check_completed(IncomingBundle* incoming)
 {
-    u_int32_t rcvd_len = incoming->rcvd_data_.last() + 1;
+    u_int32_t rcvd_len = incoming->rcvd_data_.num_contiguous();
 
     // if we don't know the total length yet, we haven't seen the
     // BUNDLE_END message
