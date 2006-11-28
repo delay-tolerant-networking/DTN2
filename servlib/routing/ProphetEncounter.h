@@ -40,6 +40,7 @@ namespace dtn {
 
 class ProphetOracle {
 public:
+    virtual ~ProphetOracle() {}
     virtual ProphetParams*      params() = 0;
     virtual ProphetBundleQueue* bundles() = 0;
     virtual ProphetTable*       nodes() = 0;
