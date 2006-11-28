@@ -50,7 +50,7 @@ class ProphetNode : public oasys::Logger
 public:
 
     ProphetNode(ProphetNodeParams* params = NULL,
-            const char* logpath = "/dtn/route/prophet/node");
+                const char* logpath = "/dtn/route/prophet/node");
     ProphetNode(const ProphetNode& node);
 
     virtual ~ProphetNode() {}
