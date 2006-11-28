@@ -870,10 +870,10 @@ public:
             b->fwdlog_.get_transmission_count(ForwardingInfo::COPY_ACTION);
         if (num_fwd < max_fwd_)
         {
-            log_debug("NF %lu, max NF %d: ok to fwd *%p",num_fwd,max_fwd_,b);
+            log_debug("NF %zu, max NF %d: ok to fwd *%p",num_fwd,max_fwd_,b);
             return true;
         }
-        log_debug("NF %lu, max NF %d: do not fwd *%p",num_fwd,max_fwd_,b);
+        log_debug("NF %zu, max NF %d: do not fwd *%p",num_fwd,max_fwd_,b);
         return false;
     }
     
@@ -932,7 +932,7 @@ public:
             b->fwdlog_.get_transmission_count(ForwardingInfo::COPY_ACTION);
         bool ok = ((stats_->get_p_max(b) < remote_->p_value(b)) &&
                    (num_fwd < max_fwd_));
-        log_debug("NF %lu, Max NF %d, max P %0.2f, remote P %0.2f, %s fwd *%p",
+        log_debug("NF %zu, Max NF %d, max P %0.2f, remote P %0.2f, %s fwd *%p",
                   num_fwd,max_fwd_,stats_->get_p_max(b),remote_->p_value(b),
                   ok ? "ok to" : "do not", b);
         return ok;
