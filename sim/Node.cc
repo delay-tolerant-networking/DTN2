@@ -56,7 +56,7 @@ Node::do_init()
 void
 Node::post_event(BundleEvent* event, bool at_back)
 {
-    
+    (void)at_back;
     log_debug("posting event (%p) with type %s at %s ",event, event->type_str(),at_back ? "back" : "head");
 	
     eventq_->push(event);
