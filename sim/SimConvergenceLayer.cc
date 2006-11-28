@@ -28,6 +28,9 @@
 
 namespace dtnsim {
 
+/**
+ * Simulator implementation of the CLInfo abstract class
+ */
 class SimCLInfo : public CLInfo {
 public:
     SimCLInfo()
@@ -87,9 +90,10 @@ SimConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 bool
 SimConvergenceLayer::open_contact(const ContactRef& contact)
 {
-    log_debug("opening contact for link *%p", link);
+    log_debug("opening contact for link [*%p]", contact.object());
     
     BundleDaemon::post(new ContactUpEvent(contact));
+	
     return true;
 }
 
@@ -112,11 +116,12 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 
     size_t len;
     bool reliable = info->params_.reliable_;
-
-    len = bundle->payload_.length();
-       
+	
+    //len = bundle->payload_.length();
+    len = BundleProtocol::formatted_length(bundle);
+	
     BundleTransmittedEvent* tx_event =
-        new BundleTransmittedEvent(bundle, contact,contact->link(),
+        new BundleTransmittedEvent(bundle, contact, contact->link(),
                                    len, reliable ? len : 0);
 
     Simulator::post(new SimRouterEvent(Simulator::time(),

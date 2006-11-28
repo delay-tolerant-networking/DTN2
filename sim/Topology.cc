@@ -39,5 +39,4 @@ Topology::find_node(const char* name)
 
     return (*iter).second;
 }
-
 } // namespace dtnsim

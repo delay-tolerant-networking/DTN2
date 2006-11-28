@@ -21,6 +21,13 @@
 #include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
 
+#include "SimConvergenceLayer.h"
+#include "contacts/ContactManager.h"
+#include "contacts/Link.h"
+#include "naming/EndpointID.h"
+
+
+
 namespace dtnsim {
 
 Connectivity* Connectivity::instance_(NULL);
@@ -188,6 +195,7 @@ Connectivity::process(SimEvent *e)
     SimConnectivityEvent* ce = (SimConnectivityEvent*)e;
 
     set_state(ce->n1_.c_str(), ce->n2_.c_str(), *ce->state_);
+	
     delete ce->state_; // XXX/demmer yuck
 }
 

@@ -32,6 +32,12 @@
 #include "cmd/ParamCommand.h"
 #include "naming/SchemeTable.h"
 
+#include "servlib/bundling/BundleTimestamp.h"
+#include "servlib/bundling/BundleProtocol.h"
+#include "oasys/storage/MemoryStore.h"
+#include "oasys/storage/StorageConfig.h"
+
+
 /**
  * Namespace for the dtn simulator
  */
@@ -43,6 +49,9 @@ using namespace dtnsim;
 int
 main(int argc, char** argv)
 {
+    // reset timeval conversion, so timestamps are ok 
+    dtn::BundleTimestamp::TIMEVAL_CONVERSION = 0;
+	
     // command line parameter vars
     int                random_seed;
     bool               random_seed_set = false;
@@ -107,39 +116,56 @@ main(int argc, char** argv)
 
     // Initialize the simulator first and foremost since it's needed
     // for LogSim::gettimeofday
-    Simulator* s = new Simulator();
+    Simulator* s = new Simulator(new oasys::StorageConfig(
+                                     "storage","memorydb","",""));
     Simulator::init(s);
-
+    
     // Initialize logging
     oasys::Log::init("-", loglevel, "--");
-    log_info("/sim", "dtn simulator initializing...");
+    log_info("/dtsim", "dtn simulator initializing...");
 
     // seed the random number generator
     if (!random_seed_set) {
-      struct timeval tv;
-      gettimeofday(&tv, NULL);
-      random_seed = tv.tv_usec;
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        random_seed = tv.tv_usec;
     }
-    log_info("/sim", "random seed is %u\n", random_seed);
+    log_info("/dtsim", "random seed is %u\n", random_seed);
     oasys::Random::seed(random_seed);
     
     // Set up the command interpreter
-    oasys::TclCommandInterp::init(argv[0]);
+    if (oasys::TclCommandInterp::init(argv[0]) != 0)
+    {
+        log_crit("/dtsim", "Can't init TCL");
+        exit(1);
+    }
+	
     oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
     interp->reg(new ConnCommand());
     interp->reg(new ParamCommand());
     interp->reg(new SimCommand());
+    log_info("/dtsim","registered dtnsim commands");
 
-    // Set up components
+    // initializing data store to memorydb
+    if (!Simulator::instance()->init_datastore()) {
+        log_err("/dtnsim", "error initializing data store, exiting...");
+        exit(1);
+    }
+	
     SchemeTable::create();
     SimConvergenceLayer::init();
     ConvergenceLayer::add_clayer(SimConvergenceLayer::instance());
-
+    BundleProtocol::init_default_processors();
+    log_info("/dtsim","intialized dtnsim components");
+	
+    log_info("/dtsim","parsing configuration file %s...", conf_file.c_str());
     if (interp->exec_file(conf_file.c_str()) != 0) {
-        log_err("/sim", "error in configuration file, exiting...");
+        log_err("/dtsim", "error in configuration file, exiting...");
         exit(1);
     }
-
+    
     // Run the event loop of simulator
-    Simulator::instance()->run();
+    Simulator::instance()->run();	
+	
+    Simulator::instance()->close_datastore();
 }

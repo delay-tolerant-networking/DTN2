@@ -27,17 +27,15 @@ class ConnState;
 class SimEventHandler;
 
 /******************************************************************************
- *
  * Event Types
- *
  *****************************************************************************/
 typedef enum {
     SIM_ROUTER_EVENT = 0x1,	///< Event to be delivered to the router
-    SIM_ADD_LINK,		///< Link added
-    SIM_DEL_LINK,		///< Link deleted
-    SIM_ADD_ROUTE,		///< Route added
-    SIM_DEL_ROUTE,		///< Route deleted
-    SIM_CONTACT_UP,		///< SimContact is available
+    SIM_ADD_LINK,			///< Link added
+    SIM_DEL_LINK,			///< Link deleted
+    SIM_ADD_ROUTE,			///< Route added
+    SIM_DEL_ROUTE,			///< Route deleted
+    SIM_CONTACT_UP,			///< SimContact is available
     SIM_CONTACT_DOWN,		///< SimContact abnormally terminated
     SIM_CONNECTIVITY,		///< Event for the connectivity module
     SIM_NEXT_SENDTIME,		///< Used by traffic agent to send data
@@ -65,9 +63,7 @@ sim_ev2str(sim_event_type_t event) {
 }
 
 /******************************************************************************
- *
  * Base Event Class
- *
  *****************************************************************************/
 class SimEvent {
 public:
@@ -94,9 +90,7 @@ private:
 
 
 /******************************************************************************
- *
  * SimEventCompare
- *
  *****************************************************************************/
 class SimEventCompare {
 public:
@@ -110,10 +104,8 @@ public:
 };
 
 /*******************************************************************
- *
  * SimRouterEvent -- catch all event class to wrap delivering an event
  * to the bundle router at a particular time.
- *
  ******************************************************************/
 class SimRouterEvent : public SimEvent {
 public:
@@ -124,9 +116,7 @@ public:
 };
 
 /*******************************************************************
- *
  * SimAddLinkEvent
- *
  ******************************************************************/
 class SimAddLinkEvent : public SimEvent {
 public:
@@ -137,9 +127,7 @@ public:
 };
 
 /*******************************************************************
- *
  * SimDelLinkEvent
- *
  ******************************************************************/
 class SimDelLinkEvent : public SimEvent {
 public:
@@ -150,9 +138,7 @@ public:
 };
 
 /*******************************************************************
- *
  * SimAddRouteEvent
- *
  ******************************************************************/
 class SimAddRouteEvent : public SimEvent {
 public:
@@ -166,16 +152,14 @@ public:
 };
 
 /*******************************************************************
- *
  * SimConnectivityEvent
- *
  ******************************************************************/
 class SimConnectivityEvent : public SimEvent {
 public:
     SimConnectivityEvent(double time, SimEventHandler* handler,
                          const char* n1, const char* n2, ConnState* state)
-    : SimEvent(SIM_CONNECTIVITY, time, handler),
-      n1_(n1), n2_(n2), state_(state) {}
+        : SimEvent(SIM_CONNECTIVITY, time, handler),
+          n1_(n1), n2_(n2), state_(state) {}
 
     std::string n1_, n2_;
     ConnState* state_;

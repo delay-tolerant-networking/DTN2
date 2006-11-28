@@ -129,6 +129,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         resultf("node route: unsupported subcommand %s", subcmd);
         return TCL_ERROR;
     }
+	
     else if (strcmp(cmd, "link") == 0)
     {
         if (strcmp(subcmd, "add") == 0) {
@@ -137,38 +138,38 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
                 wrong_num_args(argc, argv, 2, 7, INT_MAX);
                 return TCL_ERROR;
             }
-
+			
             const char* name = argv[4];
             const char* nexthop_name = argv[5];
             const char* type_str = argv[6];
             
             Node* nexthop = Topology::find_node(nexthop_name);
-
             if (!nexthop) {
                 resultf("invalid next hop node %s", nexthop_name);
                 return TCL_ERROR;
             }
-                
+			
             Link::link_type_t type = Link::str_to_link_type(type_str);
             if (type == Link::LINK_INVALID) {
                 resultf("invalid link type %s", type_str);
                 return TCL_ERROR;
             }
-
+			
             SimConvergenceLayer* simcl = SimConvergenceLayer::instance();
-            Link* link = Link::create_link(name, type, simcl, nexthop->name(),
-                                           argc - 7, &argv[7]);
+						
+            Link* link = Link::create_link(name, type, simcl, nexthop->name(), 
+                                           argc - 7, &argv[7]);										   
             if (!link)
                 return TCL_ERROR;
             
             Simulator::post(new SimAddLinkEvent(time, node_, link));
-
             return TCL_OK;
         }
 
         resultf("node link: unsupported subcommand %s", subcmd);
         return TCL_ERROR;
     }
+	
     else if (strcmp(cmd, "registration") == 0)
     {
         if (strcmp(subcmd, "add") == 0) {
@@ -185,6 +186,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             Registration* r = new SimRegistration(node_, eid);
             RegistrationAddedEvent* e =
                 new RegistrationAddedEvent(r, EVENTSRC_ADMIN);
+            
             Simulator::post(new SimRouterEvent(time, node_, e));
             
             return TCL_OK;
@@ -195,6 +197,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     else if (strcmp(cmd, "tragent") == 0)
     {
+        // <node> X tragent <src> <dst> <args>
         if (argc < 5) {
             wrong_num_args(argc, argv, 3, 5, INT_MAX);
             return TCL_ERROR;

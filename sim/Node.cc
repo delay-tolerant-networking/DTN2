@@ -54,8 +54,11 @@ Node::do_init()
  * modified event queue.
  */
 void
-Node::post_event(BundleEvent* event)
+Node::post_event(BundleEvent* event, bool at_back)
 {
+    
+    log_debug("posting event (%p) with type %s at %s ",event, event->type_str(),at_back ? "back" : "head");
+	
     eventq_->push(event);
 }
 
@@ -72,7 +75,9 @@ Node::process_bundle_events()
         eventq_->pop();
         handle_event(event);
         delete event;
+        log_debug("event (%p) %s processed and deleted",event,event->type_str());
     }
+    log_debug("done processing all bundle events");
 }
 
 

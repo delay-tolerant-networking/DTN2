@@ -62,7 +62,7 @@ public:
      * Virtual post function, overridden in the simulator to use the
      * modified event queue.
      */
-    virtual void post_event(BundleEvent* event);
+    virtual void post_event(BundleEvent* event, bool at_back = true);
     
     /**
      * Virtual function from SimEventHandler
@@ -121,27 +121,7 @@ public:
     {
         return next_regid_++;
     }
-    
-//     /**
-//      * Action when informed that message transmission is finished.
-//      * Invoked by SimContact
-//      */
-//     virtual  void chewing_complete(SimContact* c, double size, Message* msg) = 0;
-    
-//     /**
-//      * Action when a contact opens/closes
-//      * Invoked by SimContact
-//      */
-//     virtual  void open_contact(SimContact* c) = 0;
-//     virtual  void close_contact(SimContact* c) = 0;
 
-//     /**
-//      * Action when the MESSAGE_RECEIVED event arrives
-//      */
-//     virtual  void message_received(Message* msg) = 0;
-    
-//     virtual  void create_consumer() {};
-    
 protected:
     const std::string   name_;
     u_int32_t		next_bundleid_;

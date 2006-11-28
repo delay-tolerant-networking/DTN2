@@ -24,8 +24,6 @@
 
 #include "routing/BundleRouter.h"
 
-// #include "SimConvergenceLayer.h"
-// #include "TrAgent.h"
 
 using namespace dtn;
 
@@ -36,7 +34,7 @@ SimCommand::SimCommand()
 {
     bind_d("runtill", &Simulator::runtill_, "Run simulation for this many steps.");
     bind_s("route_type", &BundleRouter::Config.type_, "static",
-        "What type of router to use.");
+           "What type of router to use.");
 }
 
 int
@@ -58,7 +56,7 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
     const char* cmd = argv[2];
     
     if (strcmp(cmd, "create_node") == 0) {
-        // sim <time> node create <name>
+        // sim <time> create_node <name>
         if (argc < 4) {
             wrong_num_args(argc, argv, 2, 4, 4);
             return TCL_ERROR;
@@ -86,92 +84,97 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
         
         return TCL_OK;
     }
-    
-//     if (strcmp(cmd, "create_consumer") == 0) {
-//         if (argc < 4) {
-//             wrong_num_args(argc, argv, 2, 4, 4);
-//             return TCL_ERROR;
-//         }
-//         int id = atoi(argv[3]) ;
-//         Topology::create_consumer(id);       
-//         log_info("create_consumer %d \n",id);
-//     }
-    
-//     // simulator time create_contact <id> <src> <dst> <bw> <delay> <isup> <up> <down>
-//     if (strcmp(cmd, "create_contact") == 0) {
-//         if (argc < 11) {
-//             wrong_num_args(argc, argv, 2, 11, 11);
-//             return TCL_ERROR;
-//         }
-        
-//         int id = atoi(argv[3]) ;
-//         int src = atoi(argv[4]) ;
-//         int dst = atoi(argv[5]) ;
-//         int  bw = atoi(argv[6]) ;
-//         int delay = atoi(argv[7]) ;
-//         int isup =  atoi(argv[8]) ;
-//         int up = atoi(argv[9]) ;
-//         int down = atoi(argv[10]) ;
-        
-//         Topology::create_contact(id,src,dst,bw,delay,isup,up,down);
-//         log_info("new contact: (%d->%d), param:[%d,%d] \n",src,dst,bw,delay);
 
+/* 
+    // sim <time> create_contact <id> <src> <dst> <bw> <delay> <isup> <up> <down>
+    if (strcmp(cmd, "create_contact") == 0) {
+		if (argc < 11) {
+               wrong_num_args(argc, argv, 2, 11, 11);
+               return TCL_ERROR;
+		}
 
+		int id = atoi(argv[3]) ;
+		int src = atoi(argv[4]) ;
+		int dst = atoi(argv[5]) ;
+		int  bw = atoi(argv[6]) ;
+		int delay = atoi(argv[7]) ;
+		int isup =  atoi(argv[8]) ;
+		int up = atoi(argv[9]) ;
+		int down = atoi(argv[10]) ;
+        
+		Topology::create_contact(id,src,dst,bw,delay,isup,up,down);
+		log_info("new contact: (%d->%d), param:[%d,%d] \n",src,dst,bw,delay);
+		   
+		return TCL_OK;
+    }
 
-        
-        
-//     }
+///
+    // sim <time> cup <contact_id> <>
+	if (strcmp(cmd, "cup") == 0) {
+		int id = atoi(argv[3]) ;
+		bool forever = false;
+		if (argc == 5) {
+			if (atoi(argv[4]) != 0) forever = true;
+		}
+		
+		Event_contact_up* e = 
+			new Event_contact_up(time,Topology::contact(id));
+		
+		e->forever_ = forever;
+		Simulator::post(e);
+		
+		return TCL_OK;
+    }
+/
+    // sim <time> cdown <contact_id> <>
+	if (strcmp(cmd, "cdown") == 0) {
+		int id = atoi(argv[3]) ;
+		bool forever = false;
+		if (argc == 5) {
+			if (atoi(argv[4]) != 0) forever = true;
+		}
+		Event_contact_down* e = 
+			new Event_contact_down(time,Topology::contact(id));
+		e->forever_ = forever;
+		Simulator::post(e);
+		return TCL_OK;
+	}
+	
+	// sim <time> create_tr <src> <dst> <size> <batch> <reps> <gap>
+	if (strcmp(cmd, "create_tr") == 0) {
+		if (argc < 9) {
+			wrong_num_args(argc, argv, 2, 9,9);
+			return TCL_ERROR;
+		}
+		int src = atoi(argv[3]) ;
+		int dst = atoi(argv[4]) ;
+		int size = atoi(argv[5]) ;
+		int batch = atoi(argv[6]) ;
+		int reps = atoi(argv[7]) ;
+		int gap = atoi(argv[8]) ;
+		TrAgent* tr = new TrAgent(time,src,dst,size,batch,reps,gap);
+		tr->start();
+		log_info("creating traffic btw (src,dst) (%d,%d)",src,dst);
+		//return TCL_OK;
+	}	
     
-//     // simulator time tr <size> <batch> <reps> <gap>
-//     if (strcmp(cmd, "create_tr") == 0) {
-//         if (argc < 9) {
-//             wrong_num_args(argc, argv, 2, 9,9);
-//             return TCL_ERROR;
-//         }
-//         int src = atoi(argv[3]) ;
-//         int dst = atoi(argv[4]) ;
-//         int size = atoi(argv[5]) ;
-//         int batch = atoi(argv[6]) ;
-//         int reps = atoi(argv[7]) ;
-//         int gap = atoi(argv[8]) ;
-//         TrAgent* tr = new TrAgent(time,src,dst,size,batch,reps,gap);
-//         tr->start();
-//         log_info("creating traffic btw (src,dst) (%d,%d)",src,dst);
-//     }
-    
-    
-//     if (strcmp(cmd, "cup") == 0) {
-//         int id = atoi(argv[3]) ;
-//         bool forever = false;
-//         if (argc == 5) {
-//             if (atoi(argv[4]) != 0) forever = true;
-//         }
-//         Event_contact_up* e = 
-//             new Event_contact_up(time,Topology::contact(id));
-//         e->forever_ = forever;
-//         Simulator::post(e);
-//     }
+     if (strcmp(cmd, "create_consumer") == 0) {
+         if (argc < 4) {
+             wrong_num_args(argc, argv, 2, 4, 4);
+             return TCL_ERROR;
+         }
+         int id = atoi(argv[3]) ;
+         Topology::create_consumer(id);       
+         log_info("create_consumer %d \n",id);
+     }
 
-    
-//     if (strcmp(cmd, "cdown") == 0) {
-//         int id = atoi(argv[3]) ;
-//         bool forever = false;
-//         if (argc == 5) {
-//             if (atoi(argv[4]) != 0) forever = true;
-//         }
-        
-//         Event_contact_down* e = 
-//             new Event_contact_down(time,Topology::contact(id));
-//         e->forever_ = forever;
-//         Simulator::post(e);
-//     }
-    
-//     if (strcmp(cmd, "print_stats") == 0) {
-//         Event_print_stats* e = 
-//             new Event_print_stats(time,Simulator::instance());
-//         log_info("COM: print_stats at:%3f event:%p",time,e);
-//         Simulator::post(e);
-//     }
+	if (strcmp(cmd, "print_stats") == 0) {
+           Event_print_stats* e = 
+               new Event_print_stats(time,Simulator::instance());
+           log_info("COM: print_stats at:%3f event:%p",time,e);
+           Simulator::post(e);
+       }
+*/
 
     resultf("sim: unsupported subcommand %s", cmd);
     return TCL_ERROR;

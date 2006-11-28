@@ -26,7 +26,7 @@
 namespace dtnsim {
 
 class Node;
-class SimContact;
+
 
 /**
  * The class that maintains the topology of the network
@@ -42,18 +42,9 @@ public:
     static NodeTable* node_table() { return &nodes_; }
 
 protected:
-    static NodeTable nodes_;
-    
-//     static void create_link(const char* src, const char* dst
-//     static void create_contact(const char* src, const char* dst, 
-//                                int bw, int delay, int isup, int up, int down);
-    
-//     static const int MAX_NODES  = 100;
-//     static const int MAX_CONTACTS = 1000;
-    
-//     static int num_contacts_;
-//     static int contacts() { return num_contacts_ ; }
-
+    static NodeTable nodes_;    
+    static const int MAX_NODES  = 100;
+	
 };
 } // namespace dtnsim
 
