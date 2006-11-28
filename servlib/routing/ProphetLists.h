@@ -64,14 +64,9 @@ struct ProphetParams : public ProphetNodeParams
     double epsilon_;        ///< minimum allowed pvalue before dropping node
 };
 
-class BundleVector : public std::vector<Bundle*>
-{
-public:
-    Bundle* find(const EndpointID& dest, u_int32_t cts) const;
-};
-
 /**
  * Auto deletes pointers in list destructor
+ * This object assumes ownership for member pointers
  * Creates copies of members instead of copies of pointers to members
  */
 template <class T>
@@ -82,12 +77,15 @@ public:
     typedef typename std::vector<T*>::iterator iterator;
     typedef typename std::vector<T*>::const_iterator const_iterator;
 
+    /**
+     * Default constructor
+     */
     PointerList()
-        : std::vector<T*>()
-    {
-        clear();
-    }
+        : std::vector<T*>() {}
 
+    /**
+     * Copy constructor
+     */
     PointerList(const PointerList& a)
         : std::vector<T*>()
     {
@@ -95,11 +93,17 @@ public:
         copy_from(a);
     }
 
+    /**
+     * Destructor
+     */
     virtual ~PointerList()
     {
         clear();
     }
 
+    /**
+     * Assignment operator creates deep copy, not pointer copy
+     */
     PointerList& operator= (const PointerList& a)
     {
         clear();
@@ -107,18 +111,29 @@ public:
         return *this;
     }
 
+    /**
+     * Deletes member pointed to by iterator, then removes pointer
+     */
     void erase(iterator i)
     {
         delete (*i);
         List::erase(i);
     }
 
+    /**
+     * Delete all member variables, then remove pointers from 
+     * container
+     */
     void clear()
     {
         free();
         List::clear();
     }
 protected:
+
+    /**
+     * Free memory pointed to by member variables
+     */
     void free()
     {
         for(iterator i = List::begin();
@@ -129,6 +144,9 @@ protected:
         }
     }
 
+    /**
+     * Utility function to perform deep copy from peer object
+     */
     void copy_from(const PointerList& a)
     {
         for(const_iterator i = a.begin();
@@ -142,6 +160,9 @@ protected:
 
 typedef PointerList<ProphetNode> ProphetNodeList;
 
+/**
+ * Comparator for EndpointID sequencing
+ */
 struct less_eid_ 
 {
     bool operator() (const EndpointID& a, const EndpointID& b) const
@@ -151,7 +172,7 @@ struct less_eid_
 };
 
 /**
- * Container for pvalues
+ * Container for pvalues. Assumes ownership of memory pointed to by Node*
  */
 class ProphetTable
 {
@@ -159,22 +180,54 @@ public:
     typedef std::map<EndpointID,ProphetNode*,less_eid_> rib_table;
     typedef std::map<EndpointID,ProphetNode*,less_eid_>::iterator iterator;
 
+    /**
+     * Default constructor
+     */
     ProphetTable();
-    ~ProphetTable(){ delete lock_; }
 
+    /**
+     * Destructor
+     */
+    ~ProphetTable();
+
+    /**
+     * Given an EndpointID, returns pointer to ProphetNode if found,
+     * else returns NULL
+     */
     ProphetNode* find(const EndpointID& eid) const;
+
+    /**
+     * Given a pointer to ProphetNode*, assumes ownership of memory pointed
+     * to by *node, updates member (replacing if exists)
+     */
     void update(ProphetNode* node);
 
+    /**
+     * Convenience functions for looking up predictability value
+     */
+    ///@{
     double p_value(const Bundle* b) const
     {
         return p_value(Prophet::eid_to_routeid(b->dest_));
     }
     double p_value(const EndpointID& eid) const;
+    ///@}
 
+    /**
+     * Create copy of list 
+     */
     size_t dump_table(ProphetNodeList& list) const;
 
+    /**
+     * Returns number of members in ProphetTable
+     */
     size_t size() const { return table_.size(); }
-    void clear() { table_.clear(); }
+
+    /**
+     * Frees memory pointed to by member nodes, then removes node pointers
+     * from list
+     */
+    void clear() { free(); table_.clear(); }
 
     /**
      * Caller must hold lock() when calling iterator
@@ -186,11 +239,23 @@ public:
      */
     iterator end();
 
-    // remove any nodes with p_value < epsilon
+    /**
+     * For maintenance routines, remove any nodes with p_value < epsilon
+     */
     void truncate(double epsilon);
 
+    /**
+     * Returns a pointer to member SpinLock for synchronizing concurrent
+     * access
+     */
     oasys::SpinLock* lock() { return lock_; }
 protected:
+
+    /**
+     * Clean up memory pointed to by member variables
+     */
+    void free();
+
     oasys::SpinLock* lock_;
     rib_table table_;
 }; // ProphetTable
@@ -198,9 +263,8 @@ protected:
 /**
  * Scans the list of ProphetNodes and applies aging algorithm to the pvalues
  */
-class ProphetTableAgeTimer :
-    public oasys::Timer,
-    public oasys::Logger
+class ProphetTableAgeTimer : public oasys::Timer,
+                             public oasys::Logger
 {
 public:
     ProphetTableAgeTimer(ProphetTable* table, u_int period, double epsilon) :
@@ -209,7 +273,7 @@ public:
     { reschedule(); }
     void timeout(const struct timeval& now);
 protected:
-    void reschedule() { schedule_in(1000*period_); }
+    void reschedule();
     ProphetTable* table_;
     u_int period_;
     double epsilon_;
@@ -510,6 +574,16 @@ public:
     bool insert(const EndpointID& eid, u_int32_t cts, u_int32_t ets = 0);
 
     /**
+     * Convenience wrapper
+     */
+    bool insert(Bundle *b)
+    {
+        return insert(Prophet::eid_to_routeid(b->dest_),
+                      b->creation_ts_.seconds_,
+                      b->expiration_);
+    }
+
+    /**
      * Insert ProphetAck; return true on success, else false if ACK 
      * already exists
      */
@@ -568,7 +642,7 @@ public:
     { reschedule(); }
     void timeout(const struct timeval& now);
 protected:
-    void reschedule() { schedule_in(1000*period_); }
+    void reschedule();
     ProphetAckList* list_;
     u_int period_;
 }; // ProphetAckAgeTimer
@@ -736,7 +810,7 @@ public:
     inline bool should_fwd(const Bundle* bundle) const;
 protected:
     ProphetDecider(Link* nexthop)
-        : oasys::Logger("ProphetDecider","/dtn/route/prophet"),
+        : oasys::Logger("ProphetDecider","/dtn/route/decider"),
           next_hop_(nexthop),
           route_(Prophet::eid_to_route(nexthop->remote_eid()))
     {}
@@ -758,9 +832,18 @@ public:
             return false;
         if (route_.match(b->dest_))
             return true;
-        return local_->p_value(b) < remote_->p_value(b);
+        if (local_->p_value(b) < remote_->p_value(b))
+        {
+            log_debug("remote p %0.2f local p %0.2f: ok to fwd *%p",
+                      remote_->p_value(b),local_->p_value(b),b);
+            return true;
+        }
+        log_debug("remote p %0.2f local p %0.2f: do not fwd *%p",
+                  remote_->p_value(b),local_->p_value(b),b);
+        return false;
     }
 
+    virtual ~FwdDeciderGRTR() {}
 protected:
     friend class ProphetDecider;
     FwdDeciderGRTR(ProphetTable* local, ProphetTable* remote, Link* nexthop)
@@ -785,9 +868,16 @@ public:
             return true;
         size_t num_fwd = 
             b->fwdlog_.get_transmission_count(ForwardingInfo::COPY_ACTION);
-        return num_fwd < max_fwd_;
+        if (num_fwd < max_fwd_)
+        {
+            log_debug("NF %d, max NF %d: ok to fwd *%p",num_fwd,max_fwd_,b);
+            return true;
+        }
+        log_debug("NF %d, max NF %d: do not fwd *%p",num_fwd,max_fwd_,b);
+        return false;
     }
     
+    virtual ~FwdDeciderGTMX() {}
 protected:
     friend class ProphetDecider;
     FwdDeciderGTMX(ProphetTable* local, ProphetTable* remote,
@@ -808,9 +898,14 @@ public:
             return false;
         if (route_.match(b->dest_))
             return true;
-        return stats_->get_p_max(b) < remote_->p_value(b);
+        bool ok = stats_->get_p_max(b) < remote_->p_value(b);
+        log_debug("max P %0.2f, remote P %0.2f, %s fwd *%p",
+                  stats_->get_p_max(b),remote_->p_value(b),
+                  ok ? "ok to" : "do not", b);
+        return ok;
     }
 
+    virtual ~FwdDeciderGRTRPLUS() {}
 protected:
     friend class ProphetDecider;
     FwdDeciderGRTRPLUS(ProphetTable* local, ProphetTable* remote,
@@ -835,9 +930,15 @@ public:
             return true;
         size_t num_fwd = 
             b->fwdlog_.get_transmission_count(ForwardingInfo::COPY_ACTION);
-        return ((stats_->get_p_max(b) < remote_->p_value(b)) &&
-                (num_fwd < max_fwd_));
+        bool ok = ((stats_->get_p_max(b) < remote_->p_value(b)) &&
+                   (num_fwd < max_fwd_));
+        log_debug("NF %d, Max NF %d, max P %0.2f, remote P %0.2f, %s fwd *%p",
+                  num_fwd,max_fwd_,stats_->get_p_max(b),remote_->p_value(b),
+                  ok ? "ok to" : "do not", b);
+        return ok;
     }
+
+    virtual ~FwdDeciderGTMXPLUS() {}
 protected:
     friend class ProphetDecider;
     FwdDeciderGTMXPLUS(ProphetTable* local, ProphetTable* remote,
@@ -932,19 +1033,22 @@ ProphetDecider::should_fwd(const Bundle* bundle) const
  * Helper class to enforce forwarding strategies, used to organize
  * BundleOfferTLV 
  */
-class ProphetBundleOffer : public std::priority_queue<Bundle*>
+class ProphetBundleOffer : public std::priority_queue<Bundle*>,
+                           public oasys::Logger
 {
 protected:
     typedef std::priority_queue<Bundle*> BundleQueue;
 public:
-    ProphetBundleOffer(const BundleVector& bundles,
+    ProphetBundleOffer(const BundleList& bundles,
                        FwdStrategy* comp,
                        ProphetDecider* decider)
         : BundleQueue(*comp),
-          list_(bundles),comp_(comp),decide_(decider)
+          oasys::Logger("ProphetBundleOffer","/dtn/route/offer"),
+          list_("ProphetBundleOffer"),comp_(comp),decide_(decider)
     {
-        for(BundleVector::const_iterator i =
-                (BundleVector::const_iterator) bundles.begin();
+        oasys::ScopeLock l(bundles.lock(),"ProphetBundleOffer constructor");
+        for(BundleList::const_iterator i =
+                (BundleList::const_iterator) bundles.begin();
             i != bundles.end(); 
             i++ )
         {
@@ -956,12 +1060,24 @@ public:
     {
         // not every bundle gets forwarded to every neighbor
         if(decide_->operator()(b))
+        {
             BundleQueue::push(b);
+            list_.push_back(b);
+            log_debug("offering *%p",b);
+        }
+        else
+        {
+            log_debug("not offering *%p",b);
+        }
+    }
+    void pop()
+    {
+        list_.erase(top());
+        BundleQueue::pop();
     }
 
 protected:
-
-    BundleVector list_;
+    BundleList list_;
     FwdStrategy* comp_;
     ProphetDecider* decide_;
 };
@@ -1102,6 +1218,13 @@ QueueComp::queuecomp(Prophet::q_policy_t qp,
     }
 }
 
+struct ProphetBundleList
+{
+    static Bundle* find(const BundleList& list,
+                        const EndpointID& dest,
+                        u_int32_t creation_ts);
+};
+
 /**
  * Helper class to enforce bundle queueing policies
  * This frankenstein (with BundleList member AND priority_queue's Bundle* 
@@ -1139,29 +1262,35 @@ public:
 
     virtual ~ProphetBundleQueue() {}
 
+    oasys::SpinLock* lock() const { return bundles_.lock(); }
+
 #define seq_ BundleBPQ::PriorityQueue::c
 #define comp_ BundleBPQ::PriorityQueue::comp
     /**
-     * copy out a sequence from internal heap, in sorted order
-     * according to QueueComp; among other purposes, one use for this
-     * is to seed BundleOfferTLV's (via ProphetBundleOffer)
+     * copy out a sequence from internal heap; among other purposes, one
+     * use for this is to seed BundleOfferTLV's (via ProphetBundleOffer)
+     *
+     * To export this list, caller must hold lock() on this object
      */
-    size_t vector(BundleVector& vec) const
+    size_t bundle_list(BundleList& list) const
     {
-        vec.clear();
+        ASSERT(lock()->is_locked_by_me());
         // copy out a new sequence of internal heap
-        vec.assign(seq_.begin(), seq_.end());
-        // convert from heap ordering to Compare ordering
-        // worst case is O(n log n)
-        std::sort_heap(vec.begin(),vec.end(),comp_);
-        return vec.size();
+        for(BundleList::const_iterator i =
+                (BundleList::const_iterator)bundles_.begin();
+            i!=bundles_.end();
+            i++)
+        {
+            list.push_back(*i);
+        }
+        return list.size();
     }
 
     void drop_bundle(Bundle* b)
     {
-        BundleBPQ::Sequence::iterator i =
-            std::find(seq_.begin(),seq_.end(),b);
-        if (i != c.end()) {
+        BundleBPQ::Sequence::iterator i = std::find(seq_.begin(),seq_.end(),b);
+        if (i != c.end())
+        {
             erase_member(i);
             make_heap(seq_.begin(),seq_.end(),comp_);
         }
@@ -1184,6 +1313,7 @@ public:
 
     void set_comp(QueueComp* c)
     {
+        oasys::ScopeLock l(lock(),"set_comp");
         comp_ = *c;
         make_heap(seq_.begin(),seq_.end(),comp_);
     }
@@ -1192,11 +1322,12 @@ protected:
     void erase_member(iterator pos) {
         BundleBPQ::erase_member(pos);
         bundles_.erase(*pos);
-        if(actions_ != NULL)
-        actions_->delete_bundle(*pos,BundleProtocol::REASON_DEPLETED_STORAGE);
+        //if(actions_ != NULL)
+        //actions_->delete_bundle(*pos,BundleProtocol::REASON_DEPLETED_STORAGE);
     }
 
     void enforce_bound() {
+        oasys::ScopeLock l(lock(),"enforce_bound");
         // business as usual, unless LEPR
         if (params_->qp_ != Prophet::LEPR) {
             BundleBPQ::enforce_bound();
@@ -1213,7 +1344,7 @@ protected:
         std::reverse(seq_.begin(),seq_.end());
 
         // find suitable victims until threshold is reached
-        for (BundleVector::iterator i = seq_.begin();
+        for (BundleBPQ::Sequence::iterator i = seq_.begin();
              (i != seq_.end()) && (cur_size_ > max_size_);
              i++)
         {

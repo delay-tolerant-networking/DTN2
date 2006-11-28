@@ -21,33 +21,18 @@
 
 namespace dtn {
 
-/**
- * Given a route ID and creation timestamp,
- * find and return a Bundle with matching dest ID
- */
-Bundle*
-BundleVector::find(const EndpointID& dest,
-                   u_int32_t creation_ts) const
-{
-    EndpointIDPattern route = Prophet::eid_to_route(dest);
-    for(const_iterator i = begin();
-        i != end();
-        i++)
-    {
-        Bundle* b = *i;
-        if (b->creation_ts_.seconds_ == creation_ts &&
-            route.match(b->dest_))
-        {
-            return b;
-        }
-    }
-    return NULL;
-}
-
 ProphetTable::ProphetTable()
     : lock_(new oasys::SpinLock())
 {
     table_.clear();
+}
+
+ProphetTable::~ProphetTable()
+{
+    oasys::ScopeLock l(lock_,"destructor");
+    clear();
+    l.unlock();
+    delete lock_;
 }
 
 ProphetNode*
@@ -56,7 +41,7 @@ ProphetTable::find(const EndpointID& eid) const
     ASSERT( eid.equals(EndpointID::NULL_EID()) == false );
     EndpointID routeid = Prophet::eid_to_routeid(eid);
 
-    oasys::ScopeLock(lock_,"ProphetTable::find");
+    oasys::ScopeLock l(lock_,"ProphetTable::find");
     rib_table::const_iterator it =
         (rib_table::const_iterator) table_.find(routeid);
     if(it != table_.end()) {
@@ -81,7 +66,7 @@ ProphetTable::update(ProphetNode* node)
     EndpointID eid(node->remote_eid());
     ASSERT( eid.equals(EndpointID::NULL_EID()) == false );
 
-    oasys::ScopeLock(lock_,"ProphetTable::update");
+    oasys::ScopeLock l(lock_,"ProphetTable::update");
 
     // grab an iterator to insertion point in rib_table
     rib_table::iterator lb = table_.lower_bound(eid);
@@ -104,7 +89,7 @@ ProphetTable::update(ProphetNode* node)
 size_t
 ProphetTable::dump_table(ProphetNodeList& list) const
 { 
-    oasys::ScopeLock(lock_,"ProphetTable::dump_table");
+    oasys::ScopeLock l(lock_,"ProphetTable::dump_table");
     size_t num = 0;
     for(rib_table::const_iterator rti =  table_.begin();
                                   rti != table_.end();
@@ -133,7 +118,7 @@ ProphetTable::end()
 void
 ProphetTable::truncate(double epsilon)
 {
-    oasys::ScopeLock(lock_,"ProphetTable::truncate");
+    oasys::ScopeLock l(lock_,"ProphetTable::truncate");
     for(iterator i = table_.begin();
         i != table_.end();
         i++)
@@ -148,15 +133,35 @@ ProphetTable::truncate(double epsilon)
 }
 
 void
+ProphetTable::free()
+{
+    oasys::ScopeLock l(lock_,"ProphetTable::free");
+    for(iterator i = table_.begin();
+        i != table_.end();
+        i++)
+    {
+        delete((*i).second);
+    }
+}
+
+void
+ProphetTableAgeTimer::reschedule()
+{
+    struct timeval when;
+    ::gettimeofday(&when,0);
+    when.tv_sec += period_;
+    schedule_at(&when);
+}
+
+void
 ProphetTableAgeTimer::timeout(const struct timeval& now)
 {
     (void)now;
     int c = 0;
-    oasys::ScopeLock(table_->lock(),"ProphetTableAgeTimer");
+    oasys::ScopeLock l(table_->lock(),"ProphetTableAgeTimer");
     ProphetTable::iterator i = table_->begin();
     while(i != table_->end()) {
-        ProphetNode* node = (*i).second;
-        node->update_age();
+        (*i).second->update_age();
         i++; c++;
     }
     table_->truncate(epsilon_);
@@ -165,10 +170,20 @@ ProphetTableAgeTimer::timeout(const struct timeval& now)
 }
 
 void
+ProphetAckAgeTimer::reschedule()
+{
+    struct timeval when;
+    ::gettimeofday(&when,0);
+    when.tv_sec += period_;
+    schedule_at(&when);
+}
+
+void
 ProphetAckAgeTimer::timeout(const struct timeval& now)
 {
     (void)now;
-    list_->expire(); // no arg means, use current time
+                                      // no arg means, use current time
+    log_debug("aged %zu prophet ACKs",list_->expire());
     reschedule();
 }
 
@@ -219,6 +234,7 @@ ProphetDictionary::ProphetDictionary(const ProphetDictionary& pd)
 bool
 ProphetDictionary::is_assigned(const EndpointID& eid) const
 {
+    ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
     ribd::const_iterator it =
         (ribd::const_iterator) ribd_.find(eid);
     if (it != ribd_.end()) {
@@ -230,6 +246,7 @@ ProphetDictionary::is_assigned(const EndpointID& eid) const
 u_int16_t
 ProphetDictionary::find(const EndpointID& eid) const
 {
+    ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
     ribd::const_iterator it =
         (ribd::const_iterator) ribd_.find(eid);
     if (it != ribd_.end()) {
@@ -251,6 +268,7 @@ ProphetDictionary::find(u_int16_t id) const
 u_int16_t
 ProphetDictionary::insert(const EndpointID& eid)
 {
+    ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
     u_int16_t sid = ribd_.size();
     bool res = assign(eid,sid);
     return res ? sid : 0;
@@ -259,6 +277,7 @@ ProphetDictionary::insert(const EndpointID& eid)
 bool
 ProphetDictionary::assign(const EndpointID& eid, u_int16_t sid)
 {
+    ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
     // validate internal state
     ASSERT(ribd_.size() == rribd_.size());
     if (ribd_.size() >= 2) 
@@ -306,7 +325,7 @@ BundleOfferList::sort(ProphetDictionary* ribd,
                       ProphetTable* nodes,
                       u_int16_t sid)
 {
-    oasys::ScopeLock l(lock_,"BundleOfferList::prioritize");
+    oasys::ScopeLock l(lock_,"BundleOfferList::sort");
     std::sort(list_.begin(),list_.end(),BundleOfferSIDComp(ribd,nodes,sid));
 }
 
@@ -371,9 +390,12 @@ BundleOfferList::add_offer(u_int32_t cts, u_int16_t sid,
 }
 
 void
-BundleOfferList::add_offer(Bundle* b,u_int16_t sid)
+BundleOfferList::add_offer(Bundle* bundle,u_int16_t sid)
 {
     oasys::ScopeLock l(lock_,"BundleOfferList::add_offer");
+    BundleRef b("BundleOfferList::add_offer");
+    b = bundle;
+    if (b.object() == NULL) return;
     ASSERT(type_ != BundleOffer::UNDEFINED);
     list_.push_back(new BundleOffer(b->creation_ts_.seconds_, sid,
                               b->custody_requested_, false, false, type_));
@@ -433,7 +455,7 @@ ProphetAckList::ProphetAckList()
 ProphetAckList::~ProphetAckList()
 {
     {
-        oasys::ScopeLock(lock_,"ProphetAckList::destructor");
+        oasys::ScopeLock l(lock_,"ProphetAckList::destructor");
         palist::iterator iter;
         while(!acks_.empty()) {
             ProphetAck* a;
@@ -450,7 +472,7 @@ ProphetAckList::~ProphetAckList()
 size_t
 ProphetAckList::count(const EndpointID& eid) const
 {
-    oasys::ScopeLock(lock_,"ProphetAckList::count");
+    oasys::ScopeLock l(lock_,"ProphetAckList::count");
     size_t retval = 0;
     ProphetAck p(eid);
     // cts_ defaults to 0
@@ -468,7 +490,7 @@ ProphetAckList::count(const EndpointID& eid) const
 bool
 ProphetAckList::insert(const EndpointID& eid, u_int32_t cts, u_int32_t ets)
 {
-    oasys::ScopeLock(lock_,"ProphetAckList::insert");
+    oasys::ScopeLock l(lock_,"ProphetAckList::insert");
     if (ets == 0)
         ets = cts + 86400;  // keep ACK for one day unless spec'd otherwise
     ProphetAck* p = new ProphetAck(eid,cts,ets);
@@ -481,14 +503,14 @@ ProphetAckList::insert(const EndpointID& eid, u_int32_t cts, u_int32_t ets)
 bool
 ProphetAckList::insert(ProphetAck* p)
 {
-    oasys::ScopeLock(lock_,"ProphetAckList::insert");
+    oasys::ScopeLock l(lock_,"ProphetAckList::insert");
     return acks_.insert(p).second;
 }
 
 size_t
 ProphetAckList::expire(u_int32_t older_than)
 {
-    oasys::ScopeLock(lock_,"ProphetAckList::expire");
+    oasys::ScopeLock l(lock_,"ProphetAckList::expire");
     oasys::Time now(older_than);
     size_t how_many = 0;
     if(older_than == 0)
@@ -511,7 +533,7 @@ size_t
 ProphetAckList::fetch(const EndpointIDPattern& eid,
                       PointerList<ProphetAck>& list) const
 {
-    oasys::ScopeLock(lock_,"ProphetAckList::fetch");
+    oasys::ScopeLock l(lock_,"ProphetAckList::fetch");
     size_t retval = 0;
     palist::iterator iter = acks_.begin();
     while( iter != acks_.end() ) {
@@ -527,7 +549,7 @@ ProphetAckList::fetch(const EndpointIDPattern& eid,
 bool
 ProphetAckList::is_ackd(const EndpointID& eid, u_int32_t cts) const
 {
-    oasys::ScopeLock(lock_,"ProphetAckList::fetch");
+    oasys::ScopeLock l(lock_,"ProphetAckList::fetch");
     ProphetAck p(eid);
     palist::iterator iter = acks_.lower_bound(&p);
     while (iter != acks_.end())
@@ -544,7 +566,7 @@ ProphetStats::~ProphetStats()
 {
     // For each member of pstats, delete the new'd memory
     {
-        oasys::ScopeLock(lock_,"ProphetStats::destructor");
+        oasys::ScopeLock l(lock_,"ProphetStats::destructor");
         iterator i = pstats_.begin();
         while( i != pstats_.end() ) {
             ProphetStatsEntry* pse = (*i).second;
@@ -560,7 +582,7 @@ ProphetStats::~ProphetStats()
 ProphetStatsEntry*
 ProphetStats::find_entry(const Bundle* b)
 {
-    oasys::ScopeLock(lock_,"ProphetStats::find_entry");
+    ASSERT(lock_->is_locked_by_me());
     u_int32_t id = b->bundleid_;
     ProphetStatsEntry* pse = NULL;
     const_iterator it = (const_iterator) pstats_.find(id);
@@ -577,7 +599,7 @@ ProphetStats::find_entry(const Bundle* b)
 void
 ProphetStats::update_stats(const Bundle* b, double p)
 {
-    oasys::ScopeLock(lock_,"ProphetStats::update_stats");
+    oasys::ScopeLock l(lock_,"ProphetStats::update_stats");
     ProphetStatsEntry* pse = find_entry(b);
 
     ASSERT(pse != NULL);
@@ -598,7 +620,7 @@ ProphetStats::update_stats(const Bundle* b, double p)
 double
 ProphetStats::get_p_max(const Bundle* b)
 {
-    oasys::ScopeLock(lock_,"ProphetStats::get_p_max");
+    oasys::ScopeLock l(lock_,"ProphetStats::get_p_max");
     ProphetStatsEntry* pse = find_entry(b);
     return pse->p_max_;
 }
@@ -606,7 +628,7 @@ ProphetStats::get_p_max(const Bundle* b)
 double
 ProphetStats::get_mopr(const Bundle* b)
 {
-    oasys::ScopeLock(lock_,"ProphetStats::get_mopr");
+    oasys::ScopeLock l(lock_,"ProphetStats::get_mopr");
     ProphetStatsEntry* pse = find_entry(b);
     return pse->mopr_;
 }
@@ -614,7 +636,7 @@ ProphetStats::get_mopr(const Bundle* b)
 double
 ProphetStats::get_lmopr(const Bundle* b)
 {
-    oasys::ScopeLock(lock_,"ProphetStats::get_lmopr");
+    oasys::ScopeLock l(lock_,"ProphetStats::get_lmopr");
     ProphetStatsEntry* pse = find_entry(b);
     return pse->lmopr_;
 }
@@ -622,14 +644,37 @@ ProphetStats::get_lmopr(const Bundle* b)
 void
 ProphetStats::drop_bundle(const Bundle* b)
 {
-    oasys::ScopeLock(lock_,"ProphetStats::drop_bundle");
+    oasys::ScopeLock l(lock_,"ProphetStats::drop_bundle");
     ProphetStatsEntry* pse = NULL;
     iterator it = pstats_.find(b->bundleid_);
     if (it != pstats_.end())
+    {
         pse = (*it).second;
-    delete pse;
-    pstats_.erase(it);
-    dropped_++;
+        pstats_.erase(it);
+        delete pse;
+        dropped_++;
+    }
+}
+
+Bundle*
+ProphetBundleList::find(const BundleList& list,
+                        const EndpointID& dest,
+                        u_int32_t cts)
+{
+    oasys::ScopeLock l(list.lock(), "ProphetBundleList::find");
+    EndpointIDPattern route = Prophet::eid_to_route(dest);
+    for(BundleList::const_iterator i =
+            (BundleList::const_iterator) list.begin();
+        i != list.end();
+        i++)
+    {
+        if ((*i)->creation_ts_.seconds_ == cts &&
+            route.match((*i)->dest_))
+        {
+            return *i;
+        }
+    }
+    return NULL;
 }
 
 } // namespace dtn
