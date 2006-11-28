@@ -40,7 +40,6 @@ namespace dtn {
 
 class ProphetOracle {
 public:
-    virtual ~ProphetOracle() {}
     virtual ProphetParams*      params() = 0;
     virtual ProphetBundleQueue* bundles() = 0;
     virtual ProphetTable*       nodes() = 0;
@@ -241,29 +240,84 @@ protected:
         remote_addr_ = next_hop_->nexthop();
     }
 
+    /**
+     * Process command received from IPC via MsgQueue
+     */
     void process_command();
 
+    /**
+     * Demultiplex TLV by typecode and dispatch to appropriate handler
+     */
     void handle_prophet_tlv(ProphetTLV* pt);
+
+    /**
+     * Hello TLV handler
+     */
     bool handle_hello_tlv(HelloTLV* hello,ProphetTLV* pt);
+
+    /**
+     * Dictionary TLV handler
+     */
     bool handle_ribd_tlv(RIBDTLV* ribd,ProphetTLV* pt);
+
+    /**
+     * Delivery predictability TLV handler
+     */
     bool handle_rib_tlv(RIBTLV* rib,ProphetTLV* pt);
+
+    /**
+     * Bundle offer/request TLV handler
+     */
     bool handle_bundle_tlv(BundleTLV* btlv,ProphetTLV* pt);
+
+    /**
+     * Handles irregularities in protocol
+     */
     bool handle_bad_protocol(u_int32_t tid);
+
+    /**
+     * Cleanup
+     */
     void handle_neighbor_gone();
+
+    /**
+     * State-appropriate response to timeout
+     */
     void handle_poll_timeout();
 
+    /**
+     * As per Prophet I-D, this implementation makes a single-threaded pass
+     * through each of the Information Exchange phases (Initiator and
+     * Listener); this method facilitates the switch between phases
+     */
     void switch_info_role();
 
+    /**
+     * Reset local dictionary to 0 for sender, 1 for listener (as per
+     * Hello phase roles)
+     */
+    void reset_ribd();
+
+    /**
+     * Interrupt run() if necessary, to respond to console imperative
+     */
     void handle_hello_interval_changed();
 
+    /**
+     * Package and send local dictionary and RIB
+     */
     void send_dictionary();
+
+    /**
+     * Package and send Bundle offer (or request, as appropriate)
+     */
     void send_bundle_offer();
 
     /**
      * Send an outbound TLV.  If tid is non-zero, set Prophet header 
      * to use it, otherwise generate a new tid.
      */
-    //#{
+    ///@{
     void enqueue_hello(Prophet::hello_hf_t hf,
             u_int32_t tid = 0,
             Prophet::header_result_t result = Prophet::NoSuccessAck);
@@ -276,7 +330,7 @@ protected:
     void enqueue_bundle_tlv(const BundleOfferList& list,
             u_int32_t tid = 0,
             Prophet::header_result_t result = Prophet::NoSuccessAck);
-    //@}
+    ///@}
     
     /**
      * Create and return a new ProphetTLV
@@ -284,6 +338,9 @@ protected:
     ProphetTLV* outbound_tlv(u_int32_t tid,
                              Prophet::header_result_t result);
 
+    /**
+     * Encapsulate outbound TLV into Bundle, hand off to Link for delivery
+     */
     bool send_prophet_tlv();
 
     /**
@@ -300,8 +357,10 @@ protected:
      * Convenience function enforces valid state transitions and 
      * controls concurrent requests for access to state variable
      */
+    ///@{
     void set_state(prophet_state_t);
     prophet_state_t get_state(const char* where);
+    ///@}
 
     ProphetOracle* oracle_; ///< calling parent
     u_int16_t remote_instance_; ///< local's instance for remote
