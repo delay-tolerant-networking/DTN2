@@ -51,6 +51,11 @@ public:
     void handle_bundle_received(BundleReceivedEvent*);
 
     /**
+     * Handler for bundle delivered signal
+     */
+    void handle_bundle_delivered(BundleReceivedEvent*);
+
+    /**
      * Handler for bundle end-of-life
      */
     void handle_bundle_expired(BundleExpiredEvent*);

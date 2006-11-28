@@ -77,6 +77,13 @@ ProphetRouter::handle_bundle_received(BundleReceivedEvent *event)
 }
 
 void
+ProphetRouter::handle_bundle_delivered(BundleReceivedEvent* event)
+{
+    Bundle* bundle = event->bundleref_.object();
+    oracle_->handle_bundle_delivered(bundle);
+}
+
+void
 ProphetRouter::handle_bundle_expired(BundleExpiredEvent *event)
 {
     Bundle* bundle = event->bundleref_.object();
