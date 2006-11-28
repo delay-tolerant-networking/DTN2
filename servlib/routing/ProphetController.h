@@ -131,6 +131,11 @@ public:
     void handle_bundle_expired(Bundle*);
 
     /**
+     * Handler for bundle delivered event
+     */
+    void handle_bundle_delivered(Bundle*);
+
+    /**
      * Handler for when a busy link becomes available
      */
     void handle_link_state_change_request(const ContactRef&);

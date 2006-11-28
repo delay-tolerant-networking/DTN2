@@ -166,7 +166,7 @@ ProphetController::new_neighbor(const ContactRef& contact)
     log_info("NEW_NEIGHBOR signal from *%p",contact.object());
     Link* link = contact.object()->link();
     ProphetEncounter* pe = find_instance(link);
-    if (pe == NULL)
+    if (pe == NULL && !link->remote_eid().equals(EndpointID::NULL_EID()))
     {
         pe = new ProphetEncounter(link, this);
         if (!reg(pe))
@@ -240,7 +240,7 @@ ProphetController::handle_bundle_received(Bundle* bundle,const ContactRef& conta
             }
 
             // our way of signalling Bundle Delivered
-            bundles_->drop_bundle(bundle);
+            actions_->delete_bundle(bundle,BundleProtocol::REASON_NO_ADDTL_INFO);
         }
     }
 
@@ -262,13 +262,33 @@ ProphetController::handle_bundle_received(Bundle* bundle,const ContactRef& conta
     }
 }
 
+void
+ProphetController::handle_bundle_delivered(Bundle* b)
+{
+    BundleRef bundle("handle_bundle_delivered");
+    bundle = b;
+    if (bundle.object() == NULL) return;
+
+    // add to ack list
+    acks_.insert(bundle.object());
+
+    // drop from local store
+    bundle = NULL;
+    bundles_->drop_bundle(b);
+}
+
 void 
 ProphetController::handle_bundle_expired(Bundle* b)
 {
+    BundleRef bundle("handle_bundle_expired");
+    bundle = b;
+    if (bundle.object() == NULL) return;
+
     // drop stats entry for this bundle
-    pstats_.drop_bundle(b);
+    pstats_.drop_bundle(bundle.object());
 
     // dequeue from Prophet's bundle store
+    bundle = NULL;
     bundles_->drop_bundle(b);
 }
 
