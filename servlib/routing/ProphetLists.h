@@ -46,6 +46,21 @@ namespace dtn {
  */
 struct ProphetParams : public ProphetNodeParams
 {
+    ProphetParams()
+        : ProphetNodeParams(),
+          fs_(Prophet::GRTR),
+          qp_(Prophet::FIFO),
+          hello_interval_(Prophet::HELLO_INTERVAL),
+          hello_dead_(Prophet::HELLO_DEAD),
+          max_forward_(Prophet::DEFAULT_NUM_F_MAX),
+          min_forward_(Prophet::DEFAULT_NUM_F_MIN),
+          max_usage_(0xffffffff),
+          age_period_(Prophet::AGE_PERIOD),
+          relay_node_(false),
+          custody_node_(false),
+          internet_gw_(false),
+          epsilon_(0.0039) {}
+          
     Prophet::fwd_strategy_t fs_;      ///< bundle forwarding strategy
     Prophet::q_policy_t     qp_;      ///< bundle queuing policy
 

@@ -27,33 +27,47 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
 {
     inited_ = false;
     
-    bind_s("type",	&cfg->type_, "What storage system to use.");
-    bind_b("tidy",	&cfg->tidy_, "Same as the --tidy argument to dtnd.");
-    bind_b("init_db",	&cfg->init_, "Same as the --init-db argument to dtnd.");
-    bind_i("tidy_wait",	&cfg->tidy_wait_,
-           "How long to wait before really doing the tidy operation.");
-    bind_s("dbname",	&cfg->dbname_, "The database name.");
-    bind_s("dbdir",	&cfg->dbdir_,  "The database directory.");
-    bind_s("payloaddir",&BundlePayload::payloaddir_,
-        "directory for payloads while in transit");
+    bind_var(new oasys::StringOpt("type", &cfg->type_,
+                                  "type", "What storage system to use."));
+    bind_var(new oasys::StringOpt("dbname", &cfg->dbname_,
+                                  "name", "The database name."));
+    bind_var(new oasys::StringOpt("dbdir", &cfg->dbdir_,
+                                  "dir", "The database directory."));
 
-    bind_i("fs_fd_cache_size", &cfg->fs_fd_cache_size_, 
-           "number of open fds to cache");
+    bind_var(new oasys::BoolOpt("init_db", &cfg->init_,
+                                "Same as the --init-db argument to dtnd."));
+    bind_var(new oasys::BoolOpt("tidy",	&cfg->tidy_,
+                                "Same as the --tidy argument to dtnd."));
+    bind_var(new oasys::IntOpt("tidy_wait", &cfg->tidy_wait_,
+                               "time",
+                               "How long to wait before really doing "
+                               "the tidy operation."));
 
-    bind_b("db_mpool", &cfg->db_mpool_, "use mpool in Berkeley DB");
-    bind_b("db_log", &cfg->db_log_, "use logging in Berkeley DB");
-    bind_b("db_txn", &cfg->db_txn_, "use transactions in Berkeley DB");
-    bind_b("db_sharefile", &cfg->db_sharefile_, "use shared database file");
-    bind_i("db_max_tx",   &cfg->db_max_tx_,
-           "max # of active transactions in Berkeley DB");
-    bind_i("db_max_locks", &cfg->db_max_locks_,
-           "max # of active locks in Berkeley DB");
-    bind_i("db_max_lockers", &cfg->db_max_lockers_,
-           "max # of active locking threads in Berkeley DB");
-    bind_i("db_max_lockedobjs", &cfg->db_max_lockedobjs_,
-           "max # of active locked objects in Berkeley DB");
-    bind_i("db_lockdetect",   &cfg->db_lockdetect_,
-           "frequency to check for Berkeley DB deadlocks (zero disables locking)");
+    bind_var(new oasys::IntOpt("fs_fd_cache_size", &cfg->fs_fd_cache_size_, 
+                               "num", "number of open fds to cache"));
+
+    bind_var(new oasys::BoolOpt("db_mpool", &cfg->db_mpool_,
+                                "use mpool in Berkeley DB"));
+    bind_var(new oasys::BoolOpt("db_log", &cfg->db_log_,
+                                "use logging in Berkeley DB"));
+    bind_var(new oasys::BoolOpt("db_txn", &cfg->db_txn_,
+                                "use transactions in Berkeley DB"));
+    bind_var(new oasys::BoolOpt("db_sharefile", &cfg->db_sharefile_,
+                                "use shared database file"));
+    bind_var(new oasys::IntOpt("db_max_tx", &cfg->db_max_tx_,
+                               "num", "max # of active transactions in Berkeley DB"));
+    bind_var(new oasys::IntOpt("db_max_locks", &cfg->db_max_locks_,
+                               "num", "max # of active locks in Berkeley DB"));
+    bind_var(new oasys::IntOpt("db_max_lockers", &cfg->db_max_lockers_,
+                               "num", "max # of active locking threads in Berkeley DB"));
+    bind_var(new oasys::IntOpt("db_max_lockedobjs", &cfg->db_max_lockedobjs_,
+                               "num", "max # of active locked objects in Berkeley DB"));
+    bind_var(new oasys::IntOpt("db_lockdetect", &cfg->db_lockdetect_,
+                               "freq", "frequency to check for Berkeley DB deadlocks "
+                               "(zero disables locking)"));
+
+    bind_var(new oasys::StringOpt("payloaddir", &BundlePayload::payloaddir_,
+                                  "dir", "directory for payloads while in transit"));
 }
 
 } // namespace dtn

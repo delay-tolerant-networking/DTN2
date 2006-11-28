@@ -32,9 +32,10 @@ namespace dtnsim {
 SimCommand::SimCommand()
     : TclCommand("sim")
 {
-    bind_d("runtill", &Simulator::runtill_, "Run simulation for this many steps.");
-    bind_s("route_type", &BundleRouter::Config.type_, "static",
-           "What type of router to use.");
+    bind_var(new oasys::DoubleOpt("runtill", &Simulator::runtill_,
+                                  "steps", "Run simulation for this many steps"));
+    bind_var(new oasys::StringOpt("route_type", &BundleRouter::config_.type_,
+                                  "type", "What type of router to use"));
 }
 
 int

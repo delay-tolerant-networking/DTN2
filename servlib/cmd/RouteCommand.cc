@@ -37,40 +37,50 @@ namespace dtn {
 RouteCommand::RouteCommand()
     : TclCommand("route")
 {
-    bind_s("type", &BundleRouter::Config.type_, "static",
-           "Which routing algorithm to use.");
+    bind_var(new oasys::StringOpt("type", &BundleRouter::config_.type_, 
+                                  "type", "Which routing algorithm to use."));
 
-    bind_b("add_nexthop_routes",
-           &BundleRouter::Config.add_nexthop_routes_, true,
-           "Whether or not to automatically add routes for next hop links");
+    bind_var(new oasys::BoolOpt("add_nexthop_routes",
+                                &BundleRouter::config_.add_nexthop_routes_,
+                                "Whether or not to automatically add routes "
+                                "for next hop links"));
     
-    bind_i("default_priority",
-           &BundleRouter::Config.default_priority_, 0,
-           "Default priority for new routes (initially zero)");
+    bind_var(new oasys::IntOpt("default_priority",
+                               &BundleRouter::config_.default_priority_,
+                               "priority",
+                               "Default priority for new routes "
+                               "(initially zero)"));
     
     add_to_help("add <dest> <link/endpoint> [opts]", "add a route");
     add_to_help("del <dest> <link/endpoint>", "delete a route");
     add_to_help("dump", "dump all of the static routes");
 
 #ifdef XERCES_C_ENABLED
-    bind_i("server_port", &ExternalRouter::server_port, 8001,
-           "UDP port for IPC with external router(s)");
+    bind_var(new oasys::UInt16Opt("server_port",
+                                  &ExternalRouter::server_port,
+                                  "port",
+                                  "UDP port for IPC with external router(s)"));
+    
+    bind_var(new oasys::UInt16Opt("hello_interval",
+                                  &ExternalRouter::hello_interval,
+                                  "interval",
+                                  "seconds between hello messages"));
+    
+    bind_var(new oasys::StringOpt("schema", &ExternalRouter::schema,
+                                  "file",
+                                  "The external router interface "
+                                  "message schema."));
 
-    bind_i("hello_interval", &ExternalRouter::hello_interval, 30,
-           "seconds between hello messages");
-
-    bind_s("schema", &ExternalRouter::schema, "/etc/dtn/router.xsd",
-           "The external router interface message schema.");
-
-    bind_b("xml_server_validation",
-           &ExternalRouter::server_validation, true,
-           "Perform xml validation on plug-in interface messages "
-           "(default is true)");
-
-    bind_b("xml_client_validation",
-           &ExternalRouter::client_validation, false,
-           "Include meta-info in xml messages so plug-in routers"
-           "can perform validation (default is false)");
+    bind_var(new oasys::BoolOpt("xml_server_validation",
+                                &ExternalRouter::server_validation,
+                                "Perform xml validation on plug-in "
+                                "interface messages (default is true)"));
+    
+    bind_var(new oasys::BoolOpt("xml_client_validation",
+                                &ExternalRouter::client_validation,
+                                "Include meta-info in xml messages "
+                                "so plug-in routers"
+                                "can perform validation (default is false)"));
 #endif
 }
 

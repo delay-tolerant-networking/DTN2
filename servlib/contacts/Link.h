@@ -410,6 +410,11 @@ public:
      */
     struct Params {
         /**
+         * Default constructor.
+         */
+        Params();
+        
+        /**
          * MTU of the link, used to control proactive fragmentation.
          */
         u_int mtu_;

@@ -30,9 +30,9 @@ namespace dtn {
 /*
  * Configurable settings.
  */
-std::string BundlePayload::payloaddir_;
-size_t BundlePayload::mem_threshold_;
-bool BundlePayload::test_no_remove_;
+std::string BundlePayload::payloaddir_ = "";
+size_t BundlePayload::mem_threshold_ = 16384;
+bool BundlePayload::test_no_remove_ = false;
 
 /**
  * Constructor

@@ -30,14 +30,15 @@
 namespace dtn {
 
 //----------------------------------------------------------------------
-/// Default parameters, values set in ParamCommand
-Link::Params Link::default_params_ = {
-    default_params_.mtu_                = 0,
-    default_params_.min_retry_interval_ = 5,
-    default_params_.max_retry_interval_ = 10 * 60,
-    default_params_.idle_close_time_    = 0,
-    default_params_.prevhop_hdr_        = false
-};
+/// Default parameters, values overridden in ParamCommand
+Link::Params::Params()
+    : mtu_(0),
+      min_retry_interval_(5),
+      max_retry_interval_(10 * 60),
+      idle_close_time_(0),
+      prevhop_hdr_(false) {}
+
+Link::Params Link::default_params_;
 
 //----------------------------------------------------------------------
 Link*

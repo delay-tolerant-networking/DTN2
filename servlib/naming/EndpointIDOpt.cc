@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-
+#include <oasys/util/StringBuffer.h>
 #include "EndpointIDOpt.h"
 #include "EndpointID.h"
 
@@ -46,6 +46,12 @@ EndpointIDOpt::set(const char* val, size_t len)
         *setp_ = true;
     
     return 0;
+}
+
+void
+EndpointIDOpt::get(oasys::StringBuffer* buf)
+{
+    buf->append(((EndpointID*)valp_)->c_str());
 }
 
 } // namespace dtn

@@ -155,10 +155,6 @@ DTND::get_options(int argc, char* argv[])
         new oasys::IntOpt('i', 0, &testcmd_->id_, "<id>",
                           "set the test id"));
     
-    opts.addopt(
-        new oasys::BoolOpt('f', 0, &testcmd_->fork_,
-                           "test scripts should fork child daemons"));
-
     int remainder = opts.getopt(argv[0], argc, argv);
     if (remainder != argc) 
     {

@@ -20,7 +20,7 @@
 namespace dtn {
 
 TestCommand::TestCommand()
-    : TclCommand("test"), id_(0), fork_(false)
+    : TclCommand("test"), id_(0)
 {
     add_to_help("segfault", "Generate a segfault.");
     add_to_help("panic", "Trigger a panic.");
@@ -30,10 +30,12 @@ TestCommand::TestCommand()
 void
 TestCommand::bind_vars()
 {
-    bind_i("id", &id_, "The test id. (Defualt is 0.)");
-    bind_s("initscript", &initscript_, "The script to start.");
-    bind_s("argv", &argv_, "A string to pass as the argument to the script.");
-    bind_b("fork", &fork_, "A boolean to control forking. (Default is false.)");
+    bind_var(new oasys::IntOpt("id", &id_, "id",
+                               "The test id. (Default is 0.)"));
+    bind_var(new oasys::StringOpt("initscript", &initscript_, "script",
+                                  "The script to start."));
+    bind_var(new oasys::StringOpt("argv", &argv_, "args",
+                                  "A string to pass as the argument to the script."));
 }
 
 int

@@ -43,6 +43,13 @@ namespace dtn {
 template <>
 BundleDaemon* oasys::Singleton<BundleDaemon, false>::instance_ = NULL;
 
+BundleDaemon::Params::Params()
+    :  early_deletion_(true),
+       accept_custody_(true),
+       reactive_frag_enabled_(true),
+       retry_reliable_unacked_(true),
+       test_permuted_delivery_(false) {}
+
 BundleDaemon::Params BundleDaemon::params_;
 
 bool BundleDaemon::shutting_down_ = false;
@@ -1714,7 +1721,7 @@ BundleDaemon::run()
         exit(1);
     }
     
-    router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
+    router_ = BundleRouter::create_router(BundleRouter::config_.type_.c_str());
     router_->initialize();
     
     load_registrations();

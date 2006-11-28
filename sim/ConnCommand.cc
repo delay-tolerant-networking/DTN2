@@ -27,7 +27,8 @@ namespace dtnsim {
 ConnCommand::ConnCommand()
     : TclCommand("conn")
 {
-    bind_s("type", &Connectivity::type_, "Connectivity type.");
+    bind_var(new oasys::StringOpt("type", &Connectivity::type_,
+                                  "type", "Connectivity type."));
     
     add_to_help("up", "Take connection up XXX");
     add_to_help("down", "Take connection down XXX");

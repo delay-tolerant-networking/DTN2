@@ -69,7 +69,9 @@ public:
      * Config variables. These must be static since they're set by the
      * config parser before any router objects are created.
      */
-    static struct config_t {
+    static struct Config {
+        Config();
+        
         /// The routing algorithm type
         std::string type_;
         
@@ -80,7 +82,7 @@ public:
         /// Default priority for new routes
         int default_priority_;
                 
-    } Config;
+    } config_;
     
     /**
      * Destructor

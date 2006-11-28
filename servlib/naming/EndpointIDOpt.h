@@ -61,6 +61,7 @@ public:
     
 protected:
     int set(const char* val, size_t len);
+    void get(oasys::StringBuffer* buf);
 };
 
 } // namespace dtn

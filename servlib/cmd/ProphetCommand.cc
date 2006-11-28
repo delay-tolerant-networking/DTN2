@@ -27,58 +27,69 @@ namespace dtn {
 ProphetCommand::ProphetCommand()
     : TclCommand("prophet")
 {
+    bind_var(new oasys::DoubleOpt("encounter",
+                                  &ProphetRouter::params_.encounter_,
+                                  "val",
+                                  "predictability initialization constant "
+                                  "(between 0 and 1)"));
 
-    // See Prophet.h for default values
-    ProphetRouter::params_.hello_interval_ = Prophet::HELLO_INTERVAL;
-    ProphetRouter::params_.max_usage_      = 0xffffffff;
-                   fwd_strategy_           = "grtr";
-    ProphetRouter::params_.fs_             = Prophet::GRTR;
-                   q_policy_               = "fifo";
-    ProphetRouter::params_.qp_             = Prophet::FIFO;
+    bind_var(new oasys::DoubleOpt("beta", &ProphetRouter::params_.beta_, 
+                                  "val",
+                                  "weight factor for transitive predictability "
+                                  "(between 0 and 1)"));
 
-    bind_d("encounter", &ProphetRouter::params_.encounter_,
-           Prophet::DEFAULT_P_ENCOUNTER,
-           "predictability initialization constant (between 0 and 1)");
+    bind_var(new oasys::DoubleOpt("gamma", &ProphetRouter::params_.gamma_, 
+                                  "val",
+                                  "weight factor for predictability aging "
+                                  "(between 0 and 1)"));
 
-    bind_d("beta", &ProphetRouter::params_.beta_, Prophet::DEFAULT_BETA,
-           "weight factor for transitive predictability (between 0 and 1)");
+    bind_var(new oasys::UIntOpt("kappa", &ProphetRouter::params_.kappa_, 
+                                "val",
+                                "scaling factor for aging equation"));
 
-    bind_d("gamma", &ProphetRouter::params_.gamma_, Prophet::DEFAULT_GAMMA,
-           "weight factor for predictability aging (between 0 and 1)");
+    bind_var(new oasys::UIntOpt("hello_dead", &ProphetRouter::params_.hello_dead_,
+                                "num",
+                                "number of HELLO intervals before "
+                                "peer considered unreachable"));
 
-    bind_i("kappa", &ProphetRouter::params_.kappa_, Prophet::DEFAULT_KAPPA,
-           "scaling factor for aging equation");
+    bind_var(new oasys::UIntOpt("max_forward",
+                                &ProphetRouter::params_.max_forward_,
+                                "num",
+                                "max times to forward bundle using GTMX"));
 
-    bind_i("hello_dead", &ProphetRouter::params_.hello_dead_,
-           Prophet::HELLO_DEAD,
-           "number of HELLO intervals before peer considered unreachable");
+    bind_var(new oasys::UIntOpt("min_forward",
+                                &ProphetRouter::params_.min_forward_,
+                                "num",
+                                "min times to forward bundle using LEPR"));
 
-    bind_i("max_forward", &ProphetRouter::params_.max_forward_,
-           Prophet::DEFAULT_NUM_F_MAX,
-           "max times to forward bundle using GTMX");
+    bind_var(new oasys::UIntOpt("age_period", &ProphetRouter::params_.age_period_,
+                                "val",
+                                "timer setting for aging algorithm and "
+                                "Prophet ACK expiry"));
 
-    bind_i("min_forward", &ProphetRouter::params_.min_forward_,
-           Prophet::DEFAULT_NUM_F_MIN,
-           "min times to forward bundle using LEPR");
+    bind_var(new oasys::BoolOpt("relay_node",
+                                &ProphetRouter::params_.relay_node_,
+                                "whether this node forwards bundles "
+                                "outside Prophet domain"));
 
-    bind_i("age_period", &ProphetRouter::params_.age_period_,
-           Prophet::AGE_PERIOD,
-           "timer setting for aging algorithm and Prophet ACK expiry");
+    bind_var(new oasys::BoolOpt("custody_node",
+                                &ProphetRouter::params_.custody_node_,
+                                "whether this node will accept "
+                                "custody transfers"));
 
-    bind_b("relay_node", &ProphetRouter::params_.relay_node_, false,
-           "whether this node forwards bundles outside Prophet domain");
-
-    bind_b("custody_node", &ProphetRouter::params_.custody_node_, false,
-           "whether this node will accept custody transfers");
-
-    bind_b("internet_gw", &ProphetRouter::params_.internet_gw_, false,
-           "whether this node forwards bundles to Internet domain");
+    bind_var(new oasys::BoolOpt("internet_gw",
+                                &ProphetRouter::params_.internet_gw_,
+                                "whether this node forwards bundles to "
+                                "Internet domain"));
 
     // smallest double that can fit into 8 bits:  0.0039
-    bind_d("epsilon", &ProphetRouter::params_.epsilon_, 0.0039,
-            "lower limit on predictability before dropping route");
+    bind_var(new oasys::DoubleOpt("epsilon", &ProphetRouter::params_.epsilon_,
+                                  "val",
+                                  "lower limit on predictability before "
+                                  "dropping route"));
 
-    add_to_help("queue_policy <policy>","set queue policy to one of the following:\n"
+    add_to_help("queue_policy <policy>",
+                "set queue policy to one of the following:\n"
                 "\tfifo\tfirst in first out\n"
                 "\tmofo\tevict most forwarded first\n"
                 "\tmopr\tevict most favorably forwarded first\n"

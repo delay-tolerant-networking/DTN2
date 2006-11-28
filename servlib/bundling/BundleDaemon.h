@@ -186,9 +186,12 @@ public:
     }
 
     /**
-     * General daemon parameters, initialized in ParamCommand.
+     * General daemon parameters
      */
     struct Params {
+        /// Default constructor
+        Params();
+        
         /// Whether or not to delete bundles before they're expired if
         /// all routers / registrations have handled it
         bool early_deletion_;
@@ -201,9 +204,6 @@ public:
         
         /// Whether or not to retry unacked transmissions on reliable CLs.
         bool retry_reliable_unacked_;
-
-        /// Threshold for proactive fragmentation
-        size_t proactive_frag_threshold_;
 
         /// Test hook to permute bundles before delivering to registrations
         bool test_permuted_delivery_;

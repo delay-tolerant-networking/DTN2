@@ -26,61 +26,71 @@ namespace dtn {
 ParamCommand::ParamCommand() 
     : TclCommand("param")
 {
-    bind_i("payload_mem_threshold",
-           (int*)&BundlePayload::mem_threshold_, 16384,
-           "The bundle size below which bundles are held in memory. "
-           "(Default is 16k.)");
+    bind_var(new oasys::UIntOpt("payload_mem_threshold",
+                                (u_int*)&BundlePayload::mem_threshold_,
+                                "size",
+                                "The bundle size below which bundles "
+                                "are held in memory. "
+                                "(Default is 16k.)"));
 
-    bind_b("payload_test_no_remove",
-           &BundlePayload::test_no_remove_, false,
-           "Boolean to control not removing bundles (for testing).");
+    bind_var(new oasys::BoolOpt("payload_test_no_remove",
+                                &BundlePayload::test_no_remove_,
+                                "Boolean to control not removing bundles "
+                                "(for testing)."));
 
-    bind_i("proactive_frag_threshold",
-           (int*)&BundleDaemon::params_.proactive_frag_threshold_, -1,
-           "Proactively fragment bundles to this size. (0 is off.)");
+    bind_var(new oasys::BoolOpt("early_deletion",
+                                &BundleDaemon::params_.early_deletion_,
+                                "Delete forwarded / delivered bundles "
+                                "before they've expired "
+                                "(default is true)"));
 
-    bind_b("early_deletion",
-           &BundleDaemon::params_.early_deletion_, true,
-           "Delete forwarded / delivered bundles before they've expired "
-           "(default is true)");
+    bind_var(new oasys::BoolOpt("accept_custody",
+                                &BundleDaemon::params_.accept_custody_,
+                                "Accept custody when requested "
+                                "(default is true)"));
+             
+    bind_var(new oasys::BoolOpt("reactive_frag_enabled",
+                                &BundleDaemon::params_.reactive_frag_enabled_,
+                                "Is reactive fragmentation enabled "
+                                "(default is true)"));
 
-    bind_b("accept_custody",
-           &BundleDaemon::params_.accept_custody_, true,
-           "Accept custody when requested (default is true)");
+    bind_var(new oasys::BoolOpt("retry_reliable_unacked",
+                                &BundleDaemon::params_.retry_reliable_unacked_,
+                                "Retry unacked transmissions on reliable CLs "
+                                "(default is true)"));
 
-    bind_b("reactive_frag_enabled",
-           &BundleDaemon::params_.reactive_frag_enabled_, true,
-           "Is reactive fragmentation enabled (default is true)");
+    bind_var(new oasys::BoolOpt("test_permuted_delivery",
+                                &BundleDaemon::params_.test_permuted_delivery_,
+                                "Permute the order of bundles before "
+                                "delivering to registrations"));
 
-    bind_b("retry_reliable_unacked",
-           &BundleDaemon::params_.retry_reliable_unacked_, true,
-           "Retry unacked transmissions on reliable CLs (default is true)");
+    bind_var(new oasys::UIntOpt("link_min_retry_interval",
+                               &Link::default_params_.min_retry_interval_,
+                               "interval",
+                                "Default minimum connection retry "
+                               "interval for links"));
 
-    bind_b("test_permuted_delivery",
-           &BundleDaemon::params_.test_permuted_delivery_, false,
-           "Permute the order of bundles before delivering to registrations");
+    bind_var(new oasys::UIntOpt("link_max_retry_interval",
+                                &Link::default_params_.max_retry_interval_,
+                                "interval",
+                                "Default maximum connection retry "
+                                "interval for links"));
 
-    bind_i("link_min_retry_interval",
-           &Link::default_params_.min_retry_interval_, 5,
-           "Default minimum connection retry interval for links");
-
-    bind_i("link_max_retry_interval",
-           &Link::default_params_.max_retry_interval_, 10 * 60,
-           "Default maximum connection retry interval for links");
-
-    // defaults for these are set in the CustodyTimerSpec defaults
-    // static initializer
-    bind_i("custody_timer_min",
-           &CustodyTimerSpec::defaults_.min_,
-           "default value for custody timer min");
+    bind_var(new oasys::UIntOpt("custody_timer_min",
+                                &CustodyTimerSpec::defaults_.min_,
+                                "min",
+                                "default value for custody timer min"));
     
-    bind_i("custody_timer_lifetime_pct",
-           &CustodyTimerSpec::defaults_.lifetime_pct_,
-           "default value for custody timer lifetime percentage");
+    bind_var(new oasys::UIntOpt("custody_timer_lifetime_pct",
+                                &CustodyTimerSpec::defaults_.lifetime_pct_,
+                                "pct",
+                                "default value for custody timer "
+                                "lifetime percentage"));
     
-    bind_i("custody_timer_max",
-           &CustodyTimerSpec::defaults_.max_,
-           "default value for custody timer max");
+    bind_var(new oasys::UIntOpt("custody_timer_max",
+                                &CustodyTimerSpec::defaults_.max_,
+                                "max",
+                                "default value for custody timer max"));
 }
     
 } // namespace dtn

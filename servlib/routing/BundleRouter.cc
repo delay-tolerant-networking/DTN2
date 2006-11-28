@@ -34,9 +34,14 @@
 namespace dtn {
 
 /**
- * Config defaults are set in RouteCommand.cc
+ * Config defaults.
  */
-BundleRouter::config_t BundleRouter::Config;
+BundleRouter::Config::Config()
+    : type_("static"),
+      add_nexthop_routes_(true),
+      default_priority_(0) {}
+
+BundleRouter::Config BundleRouter::config_;
 
 /**
  * Factory method to create the correct subclass of BundleRouter

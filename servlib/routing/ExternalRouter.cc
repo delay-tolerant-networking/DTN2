@@ -493,11 +493,11 @@ void external_rtr_shutdown(void *)
 }
 
 // Initialize ExternalRouter parameters
-u_int16_t ExternalRouter::server_port;
-u_int16_t ExternalRouter::hello_interval;
-std::string ExternalRouter::schema;
-bool ExternalRouter::server_validation;
-bool ExternalRouter::client_validation;
+u_int16_t ExternalRouter::server_port = 8001;
+u_int16_t ExternalRouter::hello_interval = 30;
+std::string ExternalRouter::schema = "/etc/dtn.router.xsd";
+bool ExternalRouter::server_validation = true;
+bool ExternalRouter::client_validation = false;
 
 } // namespace dtn
 #endif // XERCES_C_ENABLED

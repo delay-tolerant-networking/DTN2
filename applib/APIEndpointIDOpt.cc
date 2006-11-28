@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-
+#include <oasys/util/StringBuffer.h>
 #include "APIEndpointIDOpt.h"
 #include "dtn_api.h"
 
@@ -55,6 +55,12 @@ APIEndpointIDOpt::set(const char* val, size_t len)
         *setp_ = true;
     
     return 0;
+}
+
+void
+APIEndpointIDOpt::get(oasys::StringBuffer* buf)
+{
+    buf->append(((dtn_endpoint_id_t*)valp_)->uri);
 }
 
 } // namespace dtn

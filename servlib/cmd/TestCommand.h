@@ -44,7 +44,6 @@ public:
     int id_;			///< sets the test node id
     std::string initscript_;	///< tcl script to run at init
     std::string argv_;		///< "list" of space-separated args
-    bool fork_;			///< hook for test scripts to fork off children
 };
 
 } // namespace dtn

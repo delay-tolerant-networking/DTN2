@@ -115,7 +115,7 @@ TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
     // URI that doesn't have anything following the "hostname" part,
     // we add a wildcard of '/*' to match all service tags.
     
-    if (Config.add_nexthop_routes_) {
+    if (config_.add_nexthop_routes_) {
         Link* link = event->link_;
         EndpointID eid = link->remote_eid();
         std::string eid_str = eid.str();

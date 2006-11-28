@@ -36,10 +36,16 @@ namespace dtn {
 
 struct ProphetNodeParams
 {
+    ProphetNodeParams()
+        : encounter_(Prophet::DEFAULT_P_ENCOUNTER),
+          beta_(Prophet::DEFAULT_BETA),
+          gamma_(Prophet::DEFAULT_GAMMA),
+          kappa_(Prophet::DEFAULT_KAPPA) {}
+    
     double encounter_; ///< initialization for p_value
     double beta_;      ///< transivity weight
     double gamma_;     ///< aging weight
-    u_int   kappa_;    ///< milliseconds per unit time
+    u_int  kappa_;     ///< milliseconds per unit time
 };
 
 /**

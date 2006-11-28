@@ -37,7 +37,7 @@ RouteEntry::RouteEntry(const EndpointIDPattern& dest_pattern, Link* link)
       custody_timeout_(),
       info_(NULL)
 {
-    route_priority_ = BundleRouter::Config.default_priority_;
+    route_priority_ = BundleRouter::config_.default_priority_;
 }
 
 //----------------------------------------------------------------------

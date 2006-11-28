@@ -46,7 +46,7 @@ Node::do_init()
     eventq_ = new std::queue<BundleEvent*>();
 
     BundleDaemon::instance_ = this;
-    router_ = BundleRouter::create_router(BundleRouter::Config.type_.c_str());
+    router_ = BundleRouter::create_router(BundleRouter::config_.type_.c_str());
 }
 
 /**
