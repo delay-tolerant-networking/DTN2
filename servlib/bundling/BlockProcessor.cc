@@ -180,6 +180,12 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
     if (block->data_offset() == 0) {
         ASSERT(len == 0);
     }
+
+    // If the preamble is complete (i.e., data offset is non-zero) and
+    // the block's data length is zero, then mark the block as complete
+    if (block->data_offset() != 0 && block->data_length() == 0) {
+        block->set_complete(true);
+    }
     
     // If there's nothing left to do, we can bail for now.
     if (len == 0)
