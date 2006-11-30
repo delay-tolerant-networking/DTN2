@@ -20,6 +20,8 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleList.h"
 #include <oasys/thread/SpinLock.h>
+#include "storage/BundleStore.h"
+#include "storage/DTNStorageConfig.h"
 
 using namespace dtn;
 using namespace oasys;
@@ -60,47 +62,32 @@ payload_test(BundlePayload::location_t initial_location,
 
     log_debug("/test", "checking append_data");
     p.set_length(18);
-    p.reopen_file();
-    CHECK(p.is_file_open());
     p.append_data((u_char*)"ABCDE", 5);
-    CHECK(p.is_file_open());
-    data = p.read_data(0, 15, buf, BundlePayload::KEEP_FILE_OPEN);
+    data = p.read_data(0, 15, buf);
     CHECK_EQUALSTRN((char*)data, "abcdefghijABCDE", 15);
-    CHECK(p.is_file_open());
 
     p.append_data((u_char*)"FGH", 3);
-    CHECK(p.is_file_open());
     data = p.read_data(0, 18, buf);
     CHECK_EQUAL(p.length(), 18);
     CHECK_EQUALSTRN((char*)data, "abcdefghijABCDEFGH", 18);
-    p.close_file();
-    CHECK(! p.is_file_open());
     
     log_debug("/test", "checking write_data overwrite");
-    p.reopen_file();
     p.write_data((u_char*)"BCD", 1, 3);
     data = p.read_data(0, 18, buf);
-    p.close_file();
     CHECK_EQUAL(p.length(), 18);
     CHECK_EQUALSTRN((char*)data, "aBCDefghijABCDEFGH", 18);
-    CHECK(! p.is_file_open());
 
     log_debug("/test", "checking write_data with gap");
-    p.reopen_file();
     p.set_length(30);
     p.write_data((u_char*)"XXXXX", 25, 5);
     CHECK_EQUAL(p.length(), 30);
 
-    p.reopen_file();
     p.write_data((u_char*)"_______", 18, 7);
     data = p.read_data(0, 30, buf);
-    p.close_file();
     CHECK_EQUAL(p.length(), 30);
     CHECK_EQUALSTR((char*)data, "aBCDefghijABCDEFGH_______XXXXX");
-    CHECK(! p.is_file_open());
 
     log_debug("/test", "checking FORCE_COPY");
-    p.reopen_file();
     data = p.read_data(0, 30, buf, BundlePayload::FORCE_COPY);
     CHECK(data == buf);
 
@@ -137,10 +124,15 @@ main(int argc, const char** argv)
 {
     system("rm -rf .bundle-payload-test");
     system("mkdir  .bundle-payload-test");
-    BundlePayload::payloaddir_.assign(".bundle-payload-test");
+    DTNStorageConfig cfg("", "memorydb", "", "");
+    cfg.payload_dir_.assign(".bundle-payload-test");
+    Log::init();
+    oasys::DurableStore ds("/test/ds");
+    ds.create_store(cfg);
+    BundleStore::init(cfg, &ds);
     
     BundlePayloadTester t("bundle payload test");
-    t.run_tests(argc, argv, true);
+    t.run_tests(argc, argv, false);
 
     system("rm -rf .bundle-payload-test");
 }
