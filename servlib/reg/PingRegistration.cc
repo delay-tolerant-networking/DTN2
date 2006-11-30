@@ -46,7 +46,6 @@ PingRegistration::deliver_bundle(Bundle* bundle)
 
     reply->payload_.set_length(payload_len);
     reply->payload_.write_data(&bundle->payload_, 0, payload_len, 0);
-    reply->payload_.close_file();
     
     BundleDaemon::post(new BundleReceivedEvent(reply, EVENTSRC_ADMIN));
     BundleDaemon::post(new BundleDeliveredEvent(bundle, this));

@@ -63,7 +63,6 @@ FragmentManager::create_fragment(Bundle* bundle, size_t offset, size_t length)
     // initialize payload
     fragment->payload_.set_length(length);
     fragment->payload_.write_data(&bundle->payload_, offset, length, 0);
-    fragment->payload_.close_file();
 
     return fragment;
 }
@@ -261,7 +260,6 @@ FragmentManager::proactively_fragment(Bundle* bundle, size_t max_length)
         
     } while (todo > 0);
 
-    bundle->payload_.close_file();
     return count;
 }
 
@@ -289,7 +287,6 @@ FragmentManager::try_to_reactively_fragment(Bundle* bundle,
               frag_off, frag_len, payload_len);
     
     Bundle* tail = create_fragment(bundle, frag_off, frag_len);
-    bundle->payload_.close_file();
 
     // treat the new fragment as if it just arrived
     BundleDaemon::post_at_head(
@@ -334,8 +331,6 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
         state = iter->second;
         log_debug("found reassembly state for key %s (%zu fragments)",
                   hash_key.c_str(), state->fragments_.size());
-
-        state->bundle_->payload_.reopen_file();
     }
 
     // stick the fragment on the reassembly list
@@ -350,7 +345,6 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
 
     state->bundle_->payload_.write_data(&fragment->payload_, 0, fraglen,
                                         fragment->frag_offset_);
-    state->bundle_->payload_.close_file();
     
     // check see if we're done
     if (!check_completed(state)) {
@@ -400,10 +394,8 @@ FragmentManager::delete_fragment(Bundle* fragment)
     memset(buf, '\0', fragment->payload_.length());
     
     // remove the fragment data from the partially reassembled bundle file
-    state->bundle_->payload_.reopen_file();
     state->bundle_->payload_.write_data(buf, fragment->frag_offset_,
                                         fragment->payload_.length());
-    state->bundle_->payload_.close_file();
 
     // delete reassembly state if no fragments now exist
     if (state->fragments_.size() == 0) {

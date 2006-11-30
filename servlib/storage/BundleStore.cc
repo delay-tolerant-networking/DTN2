@@ -17,15 +17,85 @@
 
 #include "BundleStore.h"
 #include "bundling/Bundle.h"
+#include "storage/DTNStorageConfig.h"
 
 namespace dtn {
 
-BundleStore* BundleStore::instance_;
+template <>
+BundleStore* oasys::Singleton<BundleStore, false>::instance_ = 0;
 
-BundleStore::BundleStore()
-    : BundleStoreImpl("BundleStore", "/dtn/storage/bundles",
-                      "bundle", "bundles")
+//----------------------------------------------------------------------
+BundleStore::BundleStore(const DTNStorageConfig& cfg)
+    : bundles_("BundleStore", "/dtn/storage/bundles",
+               "bundle", "bundles"),
+      payload_dir_(cfg.payload_dir_),
+      payload_quota_(cfg.payload_quota_),
+      payload_fdcache_("/dtn/storage/bundles/fdcache", cfg.payload_fd_cache_size_),
+      total_size_(0)
 {
+}
+
+//----------------------------------------------------------------------
+int
+BundleStore::init(const DTNStorageConfig& cfg,
+                  oasys::DurableStore*    store)
+{
+    if (instance_ != NULL) {
+        PANIC("BundleStore::init called multiple times");
+    }
+    instance_ = new BundleStore(cfg);
+    return instance_->bundles_.do_init(cfg, store);
+}
+
+//----------------------------------------------------------------------
+bool
+BundleStore::add(Bundle* bundle)
+{
+    bool ret = bundles_.add(bundle);
+    if (ret) {
+        total_size_ += bundle->payload_.length();
+    }
+
+    return ret;
+}
+
+//----------------------------------------------------------------------
+Bundle*
+BundleStore::get(u_int32_t bundleid)
+{
+    return bundles_.get(bundleid);
+}
+    
+//----------------------------------------------------------------------
+bool
+BundleStore::update(Bundle* bundle)
+{
+    return bundles_.update(bundle);
+}
+
+//----------------------------------------------------------------------
+bool
+BundleStore::del(Bundle* bundle)
+{
+    bool ret = bundles_.del(bundle->bundleid_);
+    if (ret) {
+        total_size_ -= bundle->payload_.length();
+    }
+    return ret;
+}
+
+//----------------------------------------------------------------------
+BundleStore::iterator*
+BundleStore::new_iterator()
+{
+    return bundles_.new_iterator();
+}
+        
+//----------------------------------------------------------------------
+void
+BundleStore::close()
+{
+    bundles_.close();
 }
 
 

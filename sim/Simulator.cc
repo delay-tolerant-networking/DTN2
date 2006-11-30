@@ -33,7 +33,7 @@ double Simulator::time_ = 0;
 double Simulator::runtill_ = -1;
 
 
-Simulator::Simulator(oasys::StorageConfig* storage_config) 
+Simulator::Simulator(DTNStorageConfig* storage_config) 
     : Logger("Simulator", "/dtnsim/main"), 
       eventq_(),
       storage_config_(storage_config),

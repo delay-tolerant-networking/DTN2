@@ -20,11 +20,9 @@
 
 #include "SimEvent.h"
 #include "SimEventHandler.h"
+#include "storage/DTNStorageConfig.h"
 
-#include "oasys/storage/MemoryStore.h"
-#include "oasys/storage/StorageConfig.h"
-
-//namespace oasys { class DurableStore; }
+#include <oasys/storage/MemoryStore.h>
 
 namespace dtnsim {
 
@@ -58,7 +56,7 @@ public:
     /**
      * Constructor.
      */
-    Simulator(oasys::StorageConfig* storage_config);
+    Simulator(DTNStorageConfig* storage_config);
 	
     /**
      * Destructor.
@@ -82,7 +80,7 @@ public:
     
     static double runtill_;		///< time to end the simulation
     
-    oasys::StorageConfig* storage_config() { return storage_config_; }
+    DTNStorageConfig* storage_config() { return storage_config_; }
     bool init_datastore();
     void close_datastore();
 	
@@ -102,8 +100,8 @@ private:
                         std::vector<SimEvent*>,
                         SimEventCompare> eventq_;
 	
-    oasys::StorageConfig* storage_config_;
-    oasys::DurableStore*  store_;
+    DTNStorageConfig*    storage_config_;
+    oasys::DurableStore* store_;
 };
 
 } // namespace dtnsim

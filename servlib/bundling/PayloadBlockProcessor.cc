@@ -87,9 +87,7 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
     }
 
     bundle->payload_.set_length(rcvd + tocopy);
-    bundle->payload_.reopen_file();
     bundle->payload_.write_data(buf, rcvd, tocopy);
-    bundle->payload_.close_file();
 
     consumed += tocopy;
 

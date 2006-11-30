@@ -85,14 +85,12 @@ public:
     location_t location() const { return location_; }
     
     /**
-     * Set the payload data and length, closing the payload file after
-     * it's been written to.
+     * Set the payload data and length.
      */
     void set_data(const u_char* bp, size_t len);
 
     /**
-     * Set the payload data, closing the payload file after it's been
-     * written to.
+     * Set the payload data and length.
      */
     void set_data(const std::string& data)
     {
@@ -101,45 +99,21 @@ public:
 
     /**
      * Append a chunk of payload data. Assumes that the length was
-     * previously set. Keeps the payload file open.
+     * previously set. 
      */
     void append_data(const u_char* bp, size_t len);
 
     /**
-     * Write a chunk of payload data at the specified offset. Keeps
-     * the payload file open.
+     * Write a chunk of payload data at the specified offset.
      */
     void write_data(const u_char* bp, size_t offset, size_t len);
 
     /**
      * Writes len bytes of payload data from from another payload at
-     * the given src_offset to the given dst_offset. Keeps the payload
-     * file open.
+     * the given src_offset to the given dst_offset.
      */
     void write_data(BundlePayload* src, size_t src_offset,
                     size_t len, size_t dst_offset);
-
-    /**
-     * Reopen the payload file.
-     */
-    void reopen_file();
-    
-    /**
-     * Close the payload file.
-     */
-    void close_file();
-
-    /**
-     * Return the file state.
-     */
-    bool is_file_open()
-    {
-        if (file_ == NULL) {
-            return false;
-        }
-
-        return file_->is_open(); 
-    }
 
     /**
      * Copy (or link) the payload to the given file client object
@@ -159,7 +133,6 @@ public:
      * Valid flags to read_data.
      */
     typedef enum {
-        KEEP_FILE_OPEN = 0x1,	///< Don't close file after read
         FORCE_COPY     = 0x2,	///< Always copy payload, even for in-memory
                                 ///  bundles
     } read_data_flags_t;
@@ -196,19 +169,20 @@ public:
     /*
      * Tunable parameters
      */
-    static std::string payloaddir_; ///< directory to store payload files
+    // XXX/demmer remove these
     static size_t mem_threshold_;   ///< maximum bundle size to keep in memory
     static bool test_no_remove_;    ///< test: don't rm payload files
 
 protected:
+    void pin_file();
+    void unpin_file();
     void internal_write(const u_char* bp, size_t offset, size_t len);
 
     location_t location_;	///< location of the data (disk or memory)
     std::string data_;		///< the actual payload data if in memory
     size_t length_;     	///< the payload length
     size_t rcvd_length_;     	///< the payload length we actually have
-    std::string fname_;		///< payload file name
-    oasys::FileIOClient* file_;	///< file handle if on disk
+    oasys::FileIOClient file_;	///< file handle
     size_t cur_offset_;		///< cache of current fd position
     size_t base_offset_;	///< for fragments, offset into the file (todo)
     oasys::SpinLock* lock_;	///< the lock for the given bundle

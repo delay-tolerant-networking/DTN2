@@ -146,7 +146,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             // as garbage. 
             b->payload_.set_length(options.length_);
             if (payload_len != 0) {
-                b->payload_.append_data(payload_data, payload_len);
+                b->payload_.write_data(payload_data, payload_len, 0);
             }
 
             // make sure to write a byte at the end of the payload to
@@ -154,7 +154,6 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             // actually got all the data
             u_char byte = 0;
             b->payload_.write_data(&byte, options.length_ - 1, 1);
-            b->payload_.close_file();
             
             payload_len = options.length_;
         } else {

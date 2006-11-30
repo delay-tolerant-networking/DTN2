@@ -642,7 +642,6 @@ StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
 bool
 StreamConvergenceLayer::Connection::finish_bundle(InFlightBundle* inflight)
 {
-    ASSERT(! inflight->bundle_->payload_.is_file_open());
     ASSERT(inflight->send_complete_);
     
     ASSERT(current_inflight_ == inflight);

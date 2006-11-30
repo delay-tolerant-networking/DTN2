@@ -20,6 +20,8 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleProtocol.h"
 #include "bundling/UnknownBlockProcessor.h"
+#include "storage/BundleStore.h"
+#include "storage/DTNStorageConfig.h"
 
 using namespace oasys;
 using namespace dtn;
@@ -385,10 +387,18 @@ main(int argc, const char** argv)
 {
     system("rm -rf .bundle-protocol-test");
     system("mkdir  .bundle-protocol-test");
-    BundlePayload::payloaddir_.assign(".bundle-protocol-test");
+
+    DTNStorageConfig cfg("", "memorydb", "", "");
+    cfg.payload_dir_.assign(".bundle-protocol-test");
+
+    Log::init();
+    oasys::DurableStore ds("/test/ds");
+    ds.create_store(cfg);
+    
+    BundleStore::init(cfg, &ds);
     
     BundleProtocolTest t("bundle protocol test");
-    t.run_tests(argc, argv, true);
+    t.run_tests(argc, argv, false);
 
     system("rm -rf .bundle-protocol-test");
 }

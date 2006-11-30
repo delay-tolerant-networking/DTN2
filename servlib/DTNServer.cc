@@ -18,7 +18,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <oasys/storage/StorageConfig.h>
 #include <oasys/storage/BerkeleyDBStore.h>
 #include <oasys/io/FileUtils.h>
 
@@ -58,6 +57,7 @@
 #include "storage/LinkStore.h"
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
+#include "storage/DTNStorageConfig.h"
 
 //#include <oasys/storage/MySQLStore.h>
 //#include <oasys/storage/PostgresqlStore.h>
@@ -65,7 +65,7 @@
 namespace dtn {
 
 DTNServer::DTNServer(const char* logpath,
-                     oasys::StorageConfig* storage_config)
+                     DTNStorageConfig* storage_config)
     : Logger("DTNServer", logpath),
       init_(false),
       in_shutdown_(0),
@@ -113,19 +113,19 @@ DTNServer::init_datastore()
     {
         // remove bundle data directory (the db contents are cleaned
         // up by the implementation)
-        if (!tidy_dir(BundlePayload::payloaddir_.c_str())) {
+        if (!tidy_dir(storage_config_->payload_dir_.c_str())) {
             return false;
         }
     }
 
     if (storage_config_->init_)
     {
-        if (!init_dir(BundlePayload::payloaddir_.c_str())) {
+        if (!init_dir(storage_config_->payload_dir_.c_str())) {
             return false;
         }
     }
 
-    if (!validate_dir(BundlePayload::payloaddir_.c_str())) {
+    if (!validate_dir(storage_config_->payload_dir_.c_str())) {
         return false;
     }
 

@@ -14,15 +14,13 @@
  *    limitations under the License.
  */
 
-
-#include <oasys/storage/StorageConfig.h>
-
 #include "StorageCommand.h"
 #include "bundling/BundlePayload.h"
+#include "storage/DTNStorageConfig.h"
 
 namespace dtn {
 
-StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
+StorageCommand::StorageCommand(DTNStorageConfig* cfg)
     : TclCommand(cfg->cmd_.c_str())
 {
     inited_ = false;
@@ -66,8 +64,18 @@ StorageCommand::StorageCommand(oasys::StorageConfig* cfg)
                                "freq", "frequency to check for Berkeley DB deadlocks "
                                "(zero disables locking)"));
 
-    bind_var(new oasys::StringOpt("payloaddir", &BundlePayload::payloaddir_,
-                                  "dir", "directory for payloads while in transit"));
+    bind_var(new oasys::StringOpt("payloaddir", &cfg->payload_dir_, "dir",
+                                  "directory for payloads while in transit"));
+    
+    bind_var(new oasys::UInt64Opt("payload_quota",
+                                  &cfg->payload_quota_, "bytes",
+                                  "storage quota for bundle payloads "
+                                  "(0 is unlimited)"));
+    
+    bind_var(new oasys::UIntOpt("payload_fd_cache_size",
+                                &cfg->payload_fd_cache_size_, "num",
+                                "number of payload file descriptors to keep "
+                                "open in a cache"));
 }
 
 } // namespace dtn

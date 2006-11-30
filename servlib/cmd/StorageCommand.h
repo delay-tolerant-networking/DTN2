@@ -21,12 +21,14 @@
 
 namespace dtn {
 
+class DTNStorageConfig;
+
 /**
  * Class to control the storage system.
  */
 class StorageCommand : public oasys::TclCommand {
 public:    
-    StorageCommand(oasys::StorageConfig* config);
+    StorageCommand(DTNStorageConfig* config);
     
 protected:
     bool inited_;

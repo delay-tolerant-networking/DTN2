@@ -754,7 +754,6 @@ APIClient::handle_send()
         payload_len = finfo.st_size;
         b->payload_.set_length(payload_len);
 
-        b->payload_.reopen_file();
         left = payload_len;
         r = 0;
         while (left > 0)
@@ -773,7 +772,6 @@ APIClient::handle_send()
         }
 
         fclose(file);
-        b->payload_.close_file();
         break;
         
     default:

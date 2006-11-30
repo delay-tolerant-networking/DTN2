@@ -116,7 +116,7 @@ main(int argc, char** argv)
 
     // Initialize the simulator first and foremost since it's needed
     // for LogSim::gettimeofday
-    Simulator* s = new Simulator(new oasys::StorageConfig(
+    Simulator* s = new Simulator(new DTNStorageConfig(
                                      "storage","memorydb","",""));
     Simulator::init(s);
     

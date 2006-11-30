@@ -445,16 +445,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
 
     /*
-     * Log a warning if the convergence layer didn't close the bundle
-     * payload file.
-     */
-    if (bundle->payload_.is_file_open()) {
-        log_warn("bundle id %d arrived with payload file still open",
-                 bundle->bundleid_);
-        bundle->payload_.close_file();
-    }
-    
-    /*
      * Send the reception receipt 
      */
     if (bundle->receive_rcpt_ && (event->source_ == EVENTSRC_PEER)) {

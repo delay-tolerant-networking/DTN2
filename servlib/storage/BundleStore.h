@@ -20,59 +20,76 @@
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/serialize/TypeShims.h>
 #include <oasys/storage/InternalKeyDurableTable.h>
+#include <oasys/util/OpenFdCache.h>
+#include <oasys/util/Singleton.h>
 
 namespace dtn {
 
 class Bundle;
+class DTNStorageConfig;
 
 /**
- * Convenience typedef for the oasys template parent class.
+ * The class for bundle storage is an instantiation of an oasys
+ * durable table to store the bundle metadata, tracking logic for the
+ * storage total, and other support classes for the payloads.
  */
-typedef oasys::InternalKeyDurableTable<
-    oasys::UIntShim, u_int32_t, Bundle> BundleStoreImpl;
-
-/**
- * The class for bundle storage is simply an instantiation of the
- * generic oasys durable table interface.
- */
-class BundleStore : public BundleStoreImpl {
+class BundleStore : public oasys::Singleton<BundleStore, false> {
 public:
-    /**
-     * Singleton instance accessor.
-     */
-    static BundleStore* instance() {
-        if (instance_ == NULL) {
-            PANIC("BundleStore::init not called yet");
-        }
-        return instance_;
-    }
-
+    /// Helper class typedefs
+    typedef oasys::OpenFdCache<std::string> FdCache;
+    typedef oasys::InternalKeyDurableTable<
+        oasys::UIntShim, u_int32_t, Bundle> BundleTable;
+    typedef BundleTable::iterator iterator;
+    
     /**
      * Boot time initializer that takes as a parameter the storage
      * configuration to use.
      */
-    static int init(const oasys::StorageConfig& cfg,
-                    oasys::DurableStore*        store) 
-    {
-        if (instance_ != NULL) {
-            PANIC("BundleStore::init called multiple times");
-        }
-        instance_ = new BundleStore();
-        return instance_->do_init(cfg, store);
-    }
+    static int init(const DTNStorageConfig& cfg,
+                    oasys::DurableStore*    store);
     
     /**
      * Constructor.
      */
-    BundleStore();
+    BundleStore(const DTNStorageConfig& cfg);
 
-    /**
-     * Return true if initialization has completed.
-     */
-    static bool initialized() { return (instance_ != NULL); }
+    /// Add a new bundle
+    bool add(Bundle* bundle);
+
+    /// Retrieve a bundle
+    Bundle* get(u_int32_t bundleid);
+    
+    /// Update the metabundle for the bundle
+    bool update(Bundle* bundle);
+
+    /// Delete the bundle
+    bool del(Bundle* bundle);
+
+    /// Return a new iterator
+    iterator* new_iterator();
+        
+    /// Close down the table
+    void close();
+
+    /// @{ Accessors
+    const std::string& payload_dir()     { return payload_dir_; }
+    u_int64_t          payload_quota()   { return payload_quota_; }
+    FdCache*           payload_fdcache() { return &payload_fdcache_; }
+    u_int64_t          total_size()      { return total_size_; }
+    /// @}
     
 protected:
-    static BundleStore* instance_; ///< singleton instance
+    friend class BundleDaemon;
+
+    /// When the bundle store is loaded at boot time, we need to reset
+    /// the in-memory total_size_ parameter
+    void set_total_size(u_int64_t sz) { total_size_ = sz; }
+    
+    BundleTable bundles_;	///< Bundle metabundle table
+    std::string payload_dir_;	///< Path where the payloads are stored
+    u_int64_t payload_quota_;	///< Quota for payload sizes
+    FdCache payload_fdcache_;	///< File descriptor cache
+    u_int64_t total_size_;	///M Total size in the data store
 };
 
 } // namespace dtn

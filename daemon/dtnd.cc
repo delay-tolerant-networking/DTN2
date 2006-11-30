@@ -24,7 +24,6 @@
 #include <oasys/debug/Log.h>
 #include <oasys/io/NetUtils.h>
 #include <oasys/memory/Memory.h>
-#include <oasys/storage/StorageConfig.h>
 #include <oasys/tclcmd/ConsoleCommand.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
@@ -35,6 +34,7 @@
 #include "applib/APIServer.h"
 #include "cmd/TestCommand.h"
 #include "servlib/DTNServer.h"
+#include "storage/DTNStorageConfig.h"
 
 extern const char* dtn_version;
 
@@ -64,7 +64,7 @@ protected:
     std::string           logfile_;
     TestCommand*          testcmd_;
     oasys::ConsoleCommand* consolecmd_;
-    oasys::StorageConfig  storage_config_;
+    DTNStorageConfig      storage_config_;
 
     void get_options(int argc, char* argv[]);
     void daemonize();

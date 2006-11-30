@@ -18,14 +18,13 @@
 #define _DTNSERVER_H_
 
 #include <oasys/debug/Logger.h>
-#include <oasys/storage/StorageConfig.h>
 #include <oasys/thread/Atomic.h>
-
-namespace oasys { class DurableStore; }
+#include <oasys/storage/DurableStore.h>
 
 namespace dtn {
 
 class APIServer;
+class DTNStorageConfig;
 
 /*!
  * Encapsulation class for the "guts" of the server library.
@@ -33,10 +32,10 @@ class APIServer;
 class DTNServer : public oasys::Logger {
 public:
     DTNServer(const char* logpath,
-              oasys::StorageConfig* storage_config);
+              DTNStorageConfig* storage_config);
     ~DTNServer();
     
-    oasys::StorageConfig* storage_config() { return storage_config_; }
+    DTNStorageConfig* storage_config() { return storage_config_; }
 
     /*! Initialize storage, components
      *
@@ -71,7 +70,7 @@ private:
     bool init_;
     oasys::atomic_t in_shutdown_;
 
-    oasys::StorageConfig* storage_config_;
+    DTNStorageConfig*     storage_config_;
     oasys::DurableStore*  store_;
     APIServer*            api_server_;
 

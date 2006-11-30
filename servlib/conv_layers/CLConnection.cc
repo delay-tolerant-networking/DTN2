@@ -289,11 +289,6 @@ CLConnection::close_contact()
     // failed events
     while (! inflight_.empty()) {
         InFlightBundle* inflight = inflight_.front();
-
-        // make sure the payload file is closed
-        ASSERT(inflight->bundle_.object() != NULL);
-        inflight->bundle_->payload_.close_file();
-
         u_int32_t sent_bytes  = inflight->sent_data_.num_contiguous();
         u_int32_t acked_bytes = inflight->ack_data_.num_contiguous();
         
@@ -342,10 +337,6 @@ CLConnection::close_contact()
                           rcvd_len, header_block_length,
                           incoming->bundle_->payload_.length());
              
-                // make sure the payload file is closed
-                ASSERT(incoming->bundle_.object() != NULL);
-                incoming->bundle_->payload_.close_file();
-            
                 BundleDaemon::post(
                     new BundleReceivedEvent(incoming->bundle_.object(),
                                             EVENTSRC_PEER, rcvd_len,
