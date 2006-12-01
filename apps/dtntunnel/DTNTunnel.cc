@@ -47,15 +47,15 @@ DTNTunnel::DTNTunnel()
       send_lock_("/dtntunnel", oasys::Mutex::TYPE_RECURSIVE, true),
       listen_(false),
       custody_(false),
-      expiration_(30),
+      expiration_(600),
       tcp_(false),
       udp_(false),
       local_addr_(INADDR_ANY),
       local_port_(0),
       remote_addr_(INADDR_NONE),
       remote_port_(0),
-      delay_(0),
-      max_size_(4096)
+      delay_(1000),
+      max_size_(32 * 1024)
 {
     memset(&local_eid_, 0, sizeof(local_eid_));
     memset(&dest_eid_,  0, sizeof(dest_eid_));
@@ -311,14 +311,11 @@ DTNTunnel::send_bundle(dtn::APIBundle* bundle, dtn_endpoint_id_t* dest_eid)
     memset(&bundle_id, 0, sizeof(bundle_id));
 
     err = dtn_send(send_handle_, &spec, &payload, &bundle_id);
+
     if (err != 0) {
-        log_err("error sending bundle: %s",
-                dtn_strerror(dtn_errno(recv_handle_)));
-        return err;
+        return dtn_errno(send_handle_);
     }
-
-    log_info("sent %zu byte bundle", bundle->payload_.len());
-
+    
     return DTN_SUCCESS;
 }
 

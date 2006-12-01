@@ -212,7 +212,9 @@ TCPTunnel::Connection::run()
     DTNTunnel* tunnel = DTNTunnel::instance();
     u_int32_t send_seqno = 0;
     u_int32_t next_recv_seqno = 0;
+    u_int32_t total_sent = 0;
     bool sock_eof = false;
+    bool dtn_blocked = false;
 
     // outgoing (tcp -> dtn) / incoming (dtn -> tcp) bundles
     dtn::APIBundle* b_xmit = NULL;
@@ -242,7 +244,10 @@ TCPTunnel::Connection::run()
             hdr.eof_ = 1;
             memcpy(b->payload_.buf(sizeof(hdr)), &hdr, sizeof(hdr));
             b->payload_.set_len(sizeof(hdr));
-            if (tunnel->send_bundle(b, &dest_eid_) != DTN_SUCCESS) {
+            int err;
+            if ((err = tunnel->send_bundle(b, &dest_eid_)) != DTN_SUCCESS) {
+                log_err("error sending connect reply bundle: %s",
+                        dtn_strerror(err));
     		tcptun_->kill_connection(this);
 		exit(1);
 	    }
@@ -263,17 +268,20 @@ TCPTunnel::Connection::run()
         sock_poll->events        = POLLIN | POLLERR;
         sock_poll->revents       = 0;
 
-        // if the socket already had an eof, we just poll for activity
-        // on the message queue
+        // if the socket already had an eof or if dtn is write
+        // blocked, we just poll for activity on the message queue
         log_debug("blocking in poll...");
-        int nfds = sock_eof ? 1 : 2;
+        int nfds = (sock_eof || dtn_blocked) ? 1 : 2;
 
         int timeout = -1;
-        if (tbegin.sec_ != 0) {
+        if (dtn_blocked) {
+            timeout = 1000; // one second between retries
+        } else if (tbegin.sec_ != 0) {
             timeout = tunnel->delay();
         }
         
-        int nready = oasys::IO::poll_multiple(pollfds, nfds, timeout, NULL, logpath_);
+        int nready = oasys::IO::poll_multiple(pollfds, nfds, timeout,
+                                              NULL, logpath_);
         if (nready == oasys::IOERROR) {
             log_err("unexpected error in poll: %s", strerror(errno));
             goto done;
@@ -289,24 +297,27 @@ TCPTunnel::Connection::run()
                 b_xmit->payload_.set_len(sizeof(hdr));
             }
 
-            tbegin.get_time();
-            
             u_int payload_todo = tunnel->max_size() - b_xmit->payload_.len();
-            char* bp = b_xmit->payload_.end();
-            int ret = sock_.read(bp, payload_todo);
-            if (ret < 0) {
-                log_err("error reading from socket: %s", strerror(errno));
-                delete b_xmit;
-                goto done;
-            }
 
-            b_xmit->payload_.set_len(b_xmit->payload_.len() + ret);
-
-            if (ret == 0) {
-                DTNTunnel::BundleHeader* hdrp =
-                    (DTNTunnel::BundleHeader*)b_xmit->payload_.buf();
-                hdrp->eof_ = 1;
-                sock_eof = true;
+            if (payload_todo != 0) {
+                tbegin.get_time();
+                
+                char* bp = b_xmit->payload_.end();
+                int ret = sock_.read(bp, payload_todo);
+                if (ret < 0) {
+                    log_err("error reading from socket: %s", strerror(errno));
+                    delete b_xmit;
+                    goto done;
+                }
+                
+                b_xmit->payload_.set_len(b_xmit->payload_.len() + ret);
+                
+                if (ret == 0) {
+                    DTNTunnel::BundleHeader* hdrp =
+                        (DTNTunnel::BundleHeader*)b_xmit->payload_.buf();
+                    hdrp->eof_ = 1;
+                    sock_eof = true;
+                }
             }
         }
 
@@ -318,15 +329,25 @@ TCPTunnel::Connection::run()
              ((tnow - tbegin).in_milliseconds() >= tunnel->delay())))
         {
             size_t len = b_xmit->payload_.len();
-            if (tunnel->send_bundle(b_xmit, &dest_eid_) != DTN_SUCCESS)
-		exit(1);
-            else {
-                log_info("sent %zu byte payload to dtn", len);
+            int err = tunnel->send_bundle(b_xmit, &dest_eid_);
+            if (err == DTN_SUCCESS) {
+                total_sent += len;
+                log_info("sent %zu byte payload #%u to dtn (%u total)",
+                         len, send_seqno, total_sent);
                 b_xmit = NULL;
+                tbegin.sec_ = 0;
+                tbegin.usec_ = 0;
+                dtn_blocked = false;
+                
+            } else if (err == DTN_ENOSPACE) {
+                log_info("no space for %zu byte payload... "
+                         "setting dtn_blocked", len);
+                dtn_blocked = true;
+                continue;
+            } else {
+                log_err("error sending bundle: %s", dtn_strerror(err));
+		exit(1);
             }
-            
-            tbegin.sec_ = 0;
-            tbegin.usec_ = 0;
         }
         
         // now check for activity on the incoming bundle queue

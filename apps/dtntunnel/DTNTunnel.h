@@ -83,6 +83,8 @@ public:
 
     /// Hook for various tunnel classes to send a bundle. Assumes
     /// ownership of the passed-in bundle
+    ///
+    /// @return DTN_SUCCESS on success, a DTN_ERRNO value on error
     int send_bundle(dtn::APIBundle* bundle, dtn_endpoint_id_t* dest_eid);
 
     /// Called for arriving bundles
