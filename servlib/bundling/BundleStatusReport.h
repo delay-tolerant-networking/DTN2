@@ -80,6 +80,11 @@ public:
      */
     static bool parse_status_report(data_t* data,
                                     const u_char* bp, u_int len);
+
+    /**
+     * Return a string version of the reason code.
+     */
+    static const char* reason_to_str(u_int8_t reason);
 };
 
 } // namespace dtn

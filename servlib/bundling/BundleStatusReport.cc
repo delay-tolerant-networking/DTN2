@@ -259,4 +259,41 @@ bool BundleStatusReport::parse_status_report(data_t* data,
     return true;
 }
 
+//----------------------------------------------------------------------
+const char*
+BundleStatusReport::reason_to_str(u_int8_t reason)
+{
+    switch (reason) {
+    case BundleProtocol::REASON_NO_ADDTL_INFO:
+        return "no additional information";
+
+    case BundleProtocol::REASON_LIFETIME_EXPIRED:
+        return "lifetime expired";
+
+    case BundleProtocol::REASON_FORWARDED_UNIDIR_LINK:
+        return "forwarded over unidirectional link";
+
+    case BundleProtocol::REASON_TRANSMISSION_CANCELLED:
+        return "transmission cancelled";
+
+    case BundleProtocol::REASON_DEPLETED_STORAGE:
+        return "depleted storage";
+
+    case BundleProtocol::REASON_ENDPOINT_ID_UNINTELLIGIBLE:
+        return "endpoint id unintelligible";
+
+    case BundleProtocol::REASON_NO_ROUTE_TO_DEST:
+        return "no known route to destination";
+
+    case BundleProtocol::REASON_NO_TIMELY_CONTACT:
+        return "no timely contact";
+
+    case BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE:
+        return "block unintelligible";
+
+    default:
+        return "(unknown reason)";
+    }
+}
+
 } // namespace dtn
