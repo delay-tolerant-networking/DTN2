@@ -263,54 +263,8 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
         
         // Reason Code:
         addElement(Tcl_NewStringObj("sr_reason", -1));
-        switch (sr.reason_code_) {
-        case BundleProtocol::REASON_NO_ADDTL_INFO:
-            addElement(Tcl_NewStringObj("No additional information.", -1));
-            break;
-            
-        case BundleProtocol::REASON_LIFETIME_EXPIRED:
-            addElement(Tcl_NewStringObj("Lifetime expired.", -1));
-            break;
-            
-        case BundleProtocol::REASON_FORWARDED_UNIDIR_LINK:
-            addElement(Tcl_NewStringObj("Forwarded Over Unidirectional Link.", -1));
-            break;
-                        
-        case BundleProtocol::REASON_TRANSMISSION_CANCELLED:
-            addElement(Tcl_NewStringObj("Transmission cancelled.", -1));
-            break;
-            
-        case BundleProtocol::REASON_DEPLETED_STORAGE:
-            addElement(Tcl_NewStringObj("Depleted storage.", -1));
-            break;
-            
-        case BundleProtocol::REASON_ENDPOINT_ID_UNINTELLIGIBLE:
-            addElement(
-                Tcl_NewStringObj("Destination endpoint ID unintelligible.", -1));
-            break;
-            
-        case BundleProtocol::REASON_NO_ROUTE_TO_DEST:
-            addElement(
-                Tcl_NewStringObj("No known route to destination from here.", -1));
-            break;
-            
-        case BundleProtocol::REASON_NO_TIMELY_CONTACT:
-            addElement(
-                Tcl_NewStringObj("No timely contact with next node on route.", -1));
-            break;
-            
-        case BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE:
-            addElement(
-                Tcl_NewStringObj("Block unintelligible.", -1));
-            break;
-            
-        default:
-            sprintf(tmp_buf, "Error: Unknown Status Report Reason Code 0x%x",
-                    sr.reason_code_);
-            addElement(Tcl_NewStringObj(tmp_buf, -1));
-            break;
-        }
-
+        addElement(Tcl_NewStringObj(BundleStatusReport::reason_to_str(sr.reason_code_), -1));
+        
         // Bundle creation timestamp
         addElement(Tcl_NewStringObj("orig_creation_ts", -1));
         sprintf(tmp_buf, "%u.%u",
