@@ -102,6 +102,11 @@ protected:
      * Default event handler for bundle inject requests
      */
     virtual void handle_bundle_inject(BundleInjectRequest* event);
+    
+    /**
+     * Default event handler for a bundle accept request probe.
+     */
+    virtual void handle_bundle_accept(BundleAcceptRequest* event);
 
     /**
      * Default event handler for bundle query requests.

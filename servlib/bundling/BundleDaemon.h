@@ -279,6 +279,7 @@ protected:
     void handle_bundle_send(BundleSendRequest* event);
     void handle_bundle_cancel(BundleCancelRequest* event);
     void handle_bundle_inject(BundleInjectRequest* event);
+    void handle_bundle_accept(BundleAcceptRequest* event);
     void handle_bundle_query(BundleQueryRequest* event);
     void handle_bundle_report(BundleReportEvent* event);
     void handle_registration_added(RegistrationAddedEvent* event);

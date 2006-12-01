@@ -27,6 +27,7 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
+#include "bundling/BundleStatusReport.h"
 #include "cmd/APICommand.h"
 #include "reg/APIRegistration.h"
 #include "reg/RegistrationTable.h"
@@ -652,7 +653,7 @@ APIClient::handle_unbind()
 int
 APIClient::handle_send()
 {
-    Bundle* b;
+    BundleRef b;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
 
@@ -725,35 +726,75 @@ APIClient::handle_send()
     // expiration time
     b->expiration_ = spec.expiration;
 
-    // finally, the payload
+    // set up the payload, including calculating its length, but don't
+    // copy it in yet
     size_t payload_len;
-    switch ( payload.location ) {
+    char filename[PATH_MAX];
+
+    switch (payload.location) {
     case DTN_PAYLOAD_MEM:
-        b->payload_.set_data((u_char*)payload.dtn_bundle_payload_t_u.buf.buf_val,
-                             payload.dtn_bundle_payload_t_u.buf.buf_len);
         payload_len = payload.dtn_bundle_payload_t_u.buf.buf_len;
         break;
         
     case DTN_PAYLOAD_FILE:
-        char filename[PATH_MAX];
-        FILE * file;
         struct stat finfo;
-        int r, left;
-        u_char buffer[4096];
-
         sprintf(filename, "%.*s", 
                 (int)payload.dtn_bundle_payload_t_u.filename.filename_len,
                 payload.dtn_bundle_payload_t_u.filename.filename_val);
 
-        if (stat(filename, &finfo) || (file = fopen(filename, "r")) == NULL)
+        if (stat(filename, &finfo) != 0)
         {
             log_err("payload file %s does not exist!", filename);
             return DTN_EINVAL;
         }
         
         payload_len = finfo.st_size;
-        b->payload_.set_length(payload_len);
+        break;
 
+    default:
+        log_err("payload.location of %d unknown", payload.location);
+        return DTN_EINVAL;
+    }
+    
+    b->payload_.set_length(payload_len);
+
+    // before filling in the payload, we first probe the router to
+    // determine if there's sufficient storage for the bundle
+    bool result;
+    int  reason;
+    BundleDaemon::post_and_wait(
+        new BundleAcceptRequest(b, EVENTSRC_APP, &result, &reason),
+        &notifier_);
+
+    if (!result) {
+        log_info("DTN_SEND bundle not accepted: reason %s",
+                 BundleStatusReport::reason_to_str(reason));
+
+        switch (reason) {
+        case BundleProtocol::REASON_DEPLETED_STORAGE:
+            return DTN_ENOSPACE;
+        default:
+            return DTN_EINTERNAL;
+        }
+    }
+
+    switch (payload.location) {
+    case DTN_PAYLOAD_MEM:
+        b->payload_.set_data((u_char*)payload.dtn_bundle_payload_t_u.buf.buf_val,
+                             payload.dtn_bundle_payload_t_u.buf.buf_len);
+        break;
+        
+    case DTN_PAYLOAD_FILE:
+        FILE* file;
+        int r, left;
+        u_char buffer[4096];
+
+        if ((file = fopen(filename, "r")) == NULL)
+        {
+            log_err("payload file %s can't be opened!", filename);
+            return DTN_EINVAL;
+        }
+        
         left = payload_len;
         r = 0;
         while (left > 0)
@@ -785,11 +826,11 @@ APIClient::handle_send()
     id.creation_secs    = b->creation_ts_.seconds_;
     id.creation_subsecs = b->creation_ts_.seqno_;
     
-    log_info("DTN_SEND bundle *%p", b);
-    
+    log_info("DTN_SEND bundle *%p", b.object());
+
     // deliver the bundle
     // Note: the bundle state may change once it has been posted
-    BundleDaemon::post_and_wait(new BundleReceivedEvent(b, EVENTSRC_APP),
+    BundleDaemon::post_and_wait(new BundleReceivedEvent(b.object(), EVENTSRC_APP),
                                 &notifier_);
 
     // return the bundle id struct

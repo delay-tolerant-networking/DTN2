@@ -120,6 +120,15 @@ BundleInjectRequest::serialize(oasys::SerializeAction* a)
 }
 
 void
+BundleAcceptRequest::serialize(oasys::SerializeAction *a)
+{
+    // XXX/demmer this request needs a better API since we can't get
+    // the result out using the current interface
+    a->process("source", &source_);
+    a->process("bundle", bundle_.object());
+}
+
+void
 BundleReportEvent::serialize(oasys::SerializeAction *a)
 {
     BundleDaemon *bd = BundleDaemon::instance();

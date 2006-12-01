@@ -380,6 +380,19 @@ BundleDaemon::check_registrations(Bundle* bundle)
 
 //----------------------------------------------------------------------
 void
+BundleDaemon::handle_bundle_accept(BundleAcceptRequest* request)
+{
+    *request->result_ =
+        router_->accept_bundle(request->bundle_.object(), request->reason_);
+
+    log_info("BUNDLE_ACCEPT_REQUEST: bundle *%p %s (reason %s)",
+             request->bundle_.object(),
+             *request->result_ ? "accepted" : "not accepted",
+             BundleStatusReport::reason_to_str(*request->reason_));
+}
+    
+//----------------------------------------------------------------------
+void
 BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
 {
     Bundle* bundle = event->bundleref_.object();
@@ -1629,6 +1642,10 @@ BundleDaemon::handle_event(BundleEvent* event)
     }
 
     stats_.events_processed_++;
+
+    if (event->processed_notifier_) {
+        event->processed_notifier_->notify();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -1683,13 +1700,19 @@ BundleDaemon::load_bundles()
     BundleStore::iterator* iter = bundle_store->new_iterator();
 
     log_notice("loading bundles from data store");
+
+    u_int64_t total_size = 0;
+    
     for (iter->begin(); iter->more(); iter->next()) {
         bundle = bundle_store->get(iter->cur_val());
+        
         if (bundle == NULL) {
             log_err("error loading bundle %d from data store",
                     iter->cur_val());
             continue;
         }
+
+        total_size += bundle->durable_size();
         
         BundleReceivedEvent e(bundle, EVENTSRC_STORE);
         handle_event(&e);
@@ -1699,6 +1722,8 @@ BundleDaemon::load_bundles()
         // let them queue up and handle them later when we're done
         // loading all the bundles
     }
+    
+    bundle_store->set_total_size(total_size);
 
     delete iter;
 }

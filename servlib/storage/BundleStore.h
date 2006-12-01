@@ -22,11 +22,11 @@
 #include <oasys/storage/InternalKeyDurableTable.h>
 #include <oasys/util/OpenFdCache.h>
 #include <oasys/util/Singleton.h>
+#include "DTNStorageConfig.h"
 
 namespace dtn {
 
 class Bundle;
-class DTNStorageConfig;
 
 /**
  * The class for bundle storage is an instantiation of an oasys
@@ -72,8 +72,8 @@ public:
     void close();
 
     /// @{ Accessors
-    const std::string& payload_dir()     { return payload_dir_; }
-    u_int64_t          payload_quota()   { return payload_quota_; }
+    const std::string& payload_dir()     { return cfg_.payload_dir_; }
+    u_int64_t          payload_quota()   { return cfg_.payload_quota_; }
     FdCache*           payload_fdcache() { return &payload_fdcache_; }
     u_int64_t          total_size()      { return total_size_; }
     /// @}
@@ -85,9 +85,8 @@ protected:
     /// the in-memory total_size_ parameter
     void set_total_size(u_int64_t sz) { total_size_ = sz; }
     
+    const DTNStorageConfig& cfg_; ///< Storage configuration
     BundleTable bundles_;	///< Bundle metabundle table
-    std::string payload_dir_;	///< Path where the payloads are stored
-    u_int64_t payload_quota_;	///< Quota for payload sizes
     FdCache payload_fdcache_;	///< File descriptor cache
     u_int64_t total_size_;	///M Total size in the data store
 };

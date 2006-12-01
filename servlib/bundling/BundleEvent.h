@@ -55,6 +55,7 @@ typedef enum {
     BUNDLE_SEND,                ///< Send a bundle
     BUNDLE_CANCEL,              ///< Cancel a bundle transmission
     BUNDLE_INJECT,              ///< Inject a bundle
+    BUNDLE_ACCEPT_REQUEST,	///< Request acceptance of a new bundle
     BUNDLE_QUERY,               ///< Bundle query
     BUNDLE_REPORT,              ///< Response to bundle query
 
@@ -111,6 +112,7 @@ event_to_str(event_type_t event, bool xml=false)
     case BUNDLE_SEND:           return xml ? "send_bundle_action" : "BUNDLE_SEND";
     case BUNDLE_CANCEL:         return xml ? "cancel_bundle_action" : "BUNDLE_CANCEL";
     case BUNDLE_INJECT:         return xml ? "inject_bundle_action" : "BUNDLE_INJECT";
+    case BUNDLE_ACCEPT_REQUEST:	return xml ? "bundle_accept_request" : "BUNDLE_ACCEPT_REQUEST";
     case BUNDLE_QUERY:          return xml ? "bundle_query" : "BUNDLE_QUERY";
     case BUNDLE_REPORT:         return xml ? "bundle_report" : "BUNDLE_REPORT";
 
@@ -211,15 +213,9 @@ public:
 
     /**
      * Need a virtual destructor to make sure all the right bits are
-     * cleaned up and to notify any threads that are waiting for the
-     * event to be processed.
+     * cleaned up.
      */
-    virtual ~BundleEvent()
-    {
-        if (processed_notifier_) {
-            processed_notifier_->notify();
-        }
-    }
+    virtual ~BundleEvent() {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction*) {}
@@ -893,6 +889,47 @@ public:
 
     // Forwarding action
     int action_;
+};
+
+/**
+ * Event class to optionally probe if a bundle can be accepted by the
+ * system before a BundleReceivedEvent is posted. Currently used for
+ * backpressure via the API.
+ *
+ * Note that the bundle may not be completely constructed when this
+ * event is posted. In particular, the payload need not be filled in
+ * yet, and other security fields may not be present. At a minimum
+ * though, the fields from the primary block and the payload length
+ * must be known.
+ */
+class BundleAcceptRequest : public BundleEvent {
+public:
+    BundleAcceptRequest(const BundleRef& bundle,
+                        event_source_t   source,
+                        bool*            result,
+                        int*             reason)
+        : BundleEvent(BUNDLE_ACCEPT_REQUEST),
+          bundle_(bundle.object(), "BundleAcceptRequest"),
+          source_(source),
+          result_(result),
+          reason_(reason)
+    {
+    }
+    
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
+    /// The newly arrived bundle
+    BundleRef bundle_;
+
+    /// The source of the event
+    int source_;
+
+    /// Pointer to the expected result
+    bool* result_;
+
+    /// Pointer to the reason code
+    int* reason_;
 };
 
 /**

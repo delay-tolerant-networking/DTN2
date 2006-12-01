@@ -17,7 +17,6 @@
 
 #include "BundleStore.h"
 #include "bundling/Bundle.h"
-#include "storage/DTNStorageConfig.h"
 
 namespace dtn {
 
@@ -26,15 +25,15 @@ BundleStore* oasys::Singleton<BundleStore, false>::instance_ = 0;
 
 //----------------------------------------------------------------------
 BundleStore::BundleStore(const DTNStorageConfig& cfg)
-    : bundles_("BundleStore", "/dtn/storage/bundles",
+    : cfg_(cfg),
+      bundles_("BundleStore", "/dtn/storage/bundles",
                "bundle", "bundles"),
-      payload_dir_(cfg.payload_dir_),
-      payload_quota_(cfg.payload_quota_),
-      payload_fdcache_("/dtn/storage/bundles/fdcache", cfg.payload_fd_cache_size_),
+      payload_fdcache_("/dtn/storage/bundles/fdcache",
+                       cfg.payload_fd_cache_size_),
       total_size_(0)
 {
 }
-
+\
 //----------------------------------------------------------------------
 int
 BundleStore::init(const DTNStorageConfig& cfg,
@@ -53,9 +52,8 @@ BundleStore::add(Bundle* bundle)
 {
     bool ret = bundles_.add(bundle);
     if (ret) {
-        total_size_ += bundle->payload_.length();
+        total_size_ += bundle->durable_size();
     }
-
     return ret;
 }
 
@@ -79,7 +77,8 @@ BundleStore::del(Bundle* bundle)
 {
     bool ret = bundles_.del(bundle->bundleid_);
     if (ret) {
-        total_size_ -= bundle->payload_.length();
+        ASSERT(total_size_ >= bundle->durable_size());
+        total_size_ -= bundle->durable_size();
     }
     return ret;
 }

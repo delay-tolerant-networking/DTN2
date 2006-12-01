@@ -29,6 +29,7 @@ class DTNStorageConfig;
 class StorageCommand : public oasys::TclCommand {
 public:    
     StorageCommand(DTNStorageConfig* config);
+    int exec(int argc, const char** argv, Tcl_Interp* interp);
     
 protected:
     bool inited_;

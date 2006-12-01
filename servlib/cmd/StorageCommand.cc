@@ -16,6 +16,7 @@
 
 #include "StorageCommand.h"
 #include "bundling/BundlePayload.h"
+#include "storage/BundleStore.h"
 #include "storage/DTNStorageConfig.h"
 
 namespace dtn {
@@ -76,6 +77,31 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
                                 &cfg->payload_fd_cache_size_, "num",
                                 "number of payload file descriptors to keep "
                                 "open in a cache"));
+
+    add_to_help("usage", "print the current storage usage");
+}
+
+//----------------------------------------------------------------------
+int
+StorageCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
+{
+    (void)interp;
+    
+    if (argc < 2) {
+        resultf("need a storage subcommand");
+        return TCL_ERROR;
+    }
+
+    const char* cmd = argv[1];
+
+    if (!strcmp(cmd, "usage")) {
+        // storage usage
+        resultf("bundles %llu", U64FMT(BundleStore::instance()->total_size()));
+        return TCL_OK;
+    }
+
+    resultf("unknown storage subcommand %s", cmd);
+    return TCL_ERROR;
 }
 
 } // namespace dtn

@@ -81,7 +81,10 @@ public:
         
         /// Default priority for new routes
         int default_priority_;
-                
+
+        /// Storage quota for bundle payloads
+        u_int64_t storage_quota_;
+        
     } config_;
     
     /**
@@ -99,6 +102,18 @@ public:
      * BundleEventHandler for clarity).
      */
     virtual void handle_event(BundleEvent* event) = 0;
+
+    /**
+     * Synchronous probe indicating whether or not this bundle should
+     * be accepted by the system.
+     *
+     * The default implementation checks if the bundle size will
+     * exceed the configured storage quota (if any).
+     *
+     * @return true if the bundle was accepted. if false, then errp is
+     * set to a value from BundleProtocol::status_report_reason_t
+     */
+    virtual bool accept_bundle(Bundle* bundle, int* errp);
     
     /**
      * Format the given StringBuffer with current routing info.

@@ -109,6 +109,13 @@ public:
     u_int32_t durable_key() { return bundleid_; }
 
     /**
+     * Hook for the bundle store implementation to count the storage
+     * impact of this bundle. Currently just returns the payload
+     * length but should be extended to include the metadata as well.
+     */
+    size_t durable_size() { return payload_.length(); }
+    
+    /**
      * Return the bundle's reference count, corresponding to the
      * number of entries in the mappings set, i.e. the number of
      * BundleLists that have a reference to this bundle, as well as

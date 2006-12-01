@@ -66,6 +66,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_inject((BundleInjectRequest*)e);
         break;
 
+    case BUNDLE_ACCEPT_REQUEST:
+        handle_bundle_accept((BundleAcceptRequest*)e);
+        break;
+
     case BUNDLE_QUERY:
         handle_bundle_query((BundleQueryRequest*)e);
         break;
@@ -245,6 +249,14 @@ BundleEventHandler::handle_bundle_cancel(BundleCancelRequest*)
  */
 void
 BundleEventHandler::handle_bundle_inject(BundleInjectRequest*)
+{
+}
+
+/**
+ * Default event handler for a bundle accept request probe.
+ */
+void
+BundleEventHandler::handle_bundle_accept(BundleAcceptRequest*)
 {
 }
 
