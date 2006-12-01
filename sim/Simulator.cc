@@ -47,6 +47,7 @@ Simulator::init_datastore()
     // override defaults from oasys storage config
     storage_config_->db_max_tx_ = 1000;
     storage_config_->init_ = true;
+    storage_config_->leave_clean_file_ = false;
 	
     store_ = new oasys::DurableStore("/dtn/storage");
     int err = store_->create_store(*storage_config_);
