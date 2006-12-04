@@ -857,6 +857,7 @@ APIClient::handle_recv()
     oasys::ScratchBuffer<u_char*> buf;
     APIRegistration*              reg = NULL;
     bool                          sock_ready = false;
+    oasys::FileIOClient           tmpfile;
 
     // unpack the arguments
     if ((!xdr_dtn_bundle_payload_location_t(&xdr_decode_, &location)) ||
@@ -925,7 +926,6 @@ APIClient::handle_recv()
         }
         
     } else if (location == DTN_PAYLOAD_FILE) {
-        oasys::FileIOClient tmpfile;
         char *tdir, templ[64];
 
         tdir = getenv("TMP");
