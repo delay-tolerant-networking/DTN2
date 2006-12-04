@@ -125,7 +125,9 @@ main(int argc, const char** argv)
     system("rm -rf .bundle-payload-test");
     system("mkdir  .bundle-payload-test");
     DTNStorageConfig cfg("", "memorydb", "", "");
+    cfg.init_ = true;
     cfg.payload_dir_.assign(".bundle-payload-test");
+    cfg.leave_clean_file_ = false;
     Log::init();
     oasys::DurableStore ds("/test/ds");
     ds.create_store(cfg);

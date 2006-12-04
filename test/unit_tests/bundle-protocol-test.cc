@@ -389,7 +389,9 @@ main(int argc, const char** argv)
     system("mkdir  .bundle-protocol-test");
 
     DTNStorageConfig cfg("", "memorydb", "", "");
+    cfg.init_ = true;
     cfg.payload_dir_.assign(".bundle-protocol-test");
+    cfg.leave_clean_file_ = false;
 
     Log::init();
     oasys::DurableStore ds("/test/ds");
