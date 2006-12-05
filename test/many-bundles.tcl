@@ -18,11 +18,10 @@ test::name many-bundles
 net::num_nodes 4
 manifest::file apps/dtnrecv/dtnrecv dtnrecv
 
-dtn::config
-
-set clayer tcp
-set count  5000
-set length 10
+set clayer       tcp
+set count        5000
+set length       10
+set storage_type berkeleydb
 
 foreach {var val} $opt(opts) {
     if {$var == "-cl" || $var == "cl"} {
@@ -31,6 +30,8 @@ foreach {var val} $opt(opts) {
         set count $val	
     } elseif {$var == "-length" || $var == "length"} {
         set length $val	
+    } elseif {$var == "-storage_type" } {
+	set storage_type $val
     } else {
 	puts "ERROR: unrecognized test option '$var'"
 	exit 1
@@ -38,10 +39,13 @@ foreach {var val} $opt(opts) {
 }
 
 puts "* Configuring $clayer interfaces / links"
+dtn::config -storage_type $storage_type
 dtn::config_interface $clayer
 dtn::config_linear_topology OPPORTUNISTIC $clayer true
 
 test::script {
+    set starttime [clock seconds]
+    
     puts "* Running dtnd 0"
     dtn::run_dtnd 0
     dtn::wait_for_dtnd 0
@@ -114,6 +118,10 @@ test::script {
     run::wait_for_pid_exit 3 $rcvpid
 
     puts "* Test success!"
+
+    set elapsed [expr [clock seconds] - $starttime]
+    puts "* TEST TIME: $elapsed seconds"
+
 }
 
 test::exit_script {
