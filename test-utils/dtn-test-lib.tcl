@@ -88,10 +88,10 @@ namespace eval dtn {
 	    tell_dtnd $id shutdown
 	    after 500
 	} err] {
-	    puts "ERROR: error in shutdown of dtnd id $id"
+	    puts "ERROR: error in shutdown of dtnd id $id: $err"
 	}
 	catch {
-	    tell::close_socket $net::host($id) [dtn::get_port console $id]
+	    tell::wait_for_close $net::host($id) [dtn::get_port console $id]
 	}
     }
     

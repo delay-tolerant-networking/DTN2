@@ -180,8 +180,8 @@ test::script {
 	after $sleep
 	
 	puts "* Killing node 1"
-	tell::close_socket $net::host(1) [dtn::get_port console 1]
 	run::kill_pid 1 $pids(1) KILL	
+	tell::wait_for_close $net::host(1) [dtn::get_port console 1]
 
 	set sleep [expr int(5000 * rand())]
 	puts "* Sleeping for $sleep msecs"
