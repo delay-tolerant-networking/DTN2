@@ -89,8 +89,8 @@ test::script {
 	set outgoing_link $clayer-link:$i-[expr $i - 1]
 	dtn::wait_for_bundle_stats $i {1 transmitted}
 	dtn::wait_for_link_stat $i $outgoing_link 1 bundles_transmitted
-	dtn::wait_for_link_stat $i $outgoing_link 0 bundles_inflight
-	dtn::wait_for_link_stat $i $outgoing_link 0 bytes_inflight
+	dtn::wait_for_link_stat $i $outgoing_link 0 bundles_queued
+	dtn::wait_for_link_stat $i $outgoing_link 0 bytes_queued
     }
 	
     puts "* Test success!"

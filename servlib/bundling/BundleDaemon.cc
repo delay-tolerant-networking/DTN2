@@ -562,7 +562,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     Link* link = event->link_;
     
     /*
-     * Update statistics. Note that the link's inflight length must
+     * Update statistics. Note that the link's queued length must
      * always be decremented by the full formatted size of the bundle,
      * yet the transmitted length is only the amount reported by the
      * event.
@@ -574,10 +574,10 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     
     stats_.bundles_transmitted_++;
     link->stats()->bundles_transmitted_++;
-    link->stats()->bundles_inflight_--;
+    link->stats()->bundles_queued_--;
 
     link->stats()->bytes_transmitted_ += event->bytes_sent_;
-    link->stats()->bytes_inflight_ -= total_len;
+    link->stats()->bytes_queued_ -= total_len;
     
     log_info("BUNDLE_TRANSMITTED id:%d (%u bytes_sent/%u reliable) -> %s (%s)",
              bundle->bundleid_,

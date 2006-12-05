@@ -96,6 +96,7 @@ Link::Link(const std::string& name, link_type_t type,
        nexthop_(nexthop),
        name_(name),
        reliable_(false),
+       queue_(std::string("Link ") + name),
        contact_("Link"),
        clayer_(cl),
        cl_info_(NULL),
@@ -117,6 +118,7 @@ Link::Link(const oasys::Builder&)
       nexthop_(""),
       name_(""),
       reliable_(false),
+      queue_(""),
       contact_("Link"),
       clayer_(NULL),
       cl_info_(NULL),
@@ -366,14 +368,14 @@ Link::dump_stats(oasys::StringBuffer* buf)
                  "%u contacts -- "
                  "%u bundles_transmitted -- "
                  "%u bytes_transmitted -- "
-                 "%u bundles_inflight -- "
-                 "%u bytes_inflight ",
+                 "%u bundles_queued -- "
+                 "%u bytes_queued ",
                  stats_.contact_attempts_,
                  stats_.contacts_,
                  stats_.bundles_transmitted_,
                  stats_.bytes_transmitted_,
-                 stats_.bundles_inflight_,
-                 stats_.bytes_inflight_);
+                 stats_.bundles_queued_,
+                 stats_.bytes_queued_);
 }
 
 } // namespace dtn

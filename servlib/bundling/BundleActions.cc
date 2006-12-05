@@ -108,8 +108,8 @@ BundleActions::send_bundle(Bundle* bundle, Link* link,
     bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
                               custody_timer);
 
-    link->stats()->bundles_inflight_++;
-    link->stats()->bytes_inflight_ += total_len;
+    link->stats()->bundles_queued_++;
+    link->stats()->bytes_queued_ += total_len;
     
     ASSERT(link->contact() != NULL);
     link->clayer()->send_bundle(link->contact(), bundle);

@@ -180,8 +180,8 @@ struct RoutePriorityGT {
     bool operator() (RouteEntry* a, RouteEntry* b) {
         if (a->route_priority_ == b->route_priority_)
         {
-            return (a->next_hop_->stats()->bytes_inflight_ <
-                    b->next_hop_->stats()->bytes_inflight_);
+            return (a->next_hop_->stats()->bytes_queued_ <
+                    b->next_hop_->stats()->bytes_queued_);
         }
         
         return a->route_priority_ > b->route_priority_;

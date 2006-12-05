@@ -246,6 +246,11 @@ public:
      * Return the identifier name of this list.
      */
     const std::string& name() const { return name_; }
+
+    /**
+     * Set the name (useful for classes that are unserialized).
+     */
+    void set_name(const std::string& name);
     
 protected:
     /**

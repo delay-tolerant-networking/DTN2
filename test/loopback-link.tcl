@@ -64,8 +64,7 @@ test::script {
     
     puts "* Checking stats"
     dtn::check_bundle_stats 0 0 pending 1 transmitted 2 received 1 delivered
-    dtn::check_link_stats 0 loopback-link \
-	    0 bundles_inflight 1 bundles_transmitted
+    dtn::check_link_stats 0 loopback-link 0 bundles_queued 1 bundles_transmitted
     
     puts "* Test success!"
 }

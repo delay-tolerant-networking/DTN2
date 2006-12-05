@@ -396,6 +396,11 @@ public:
     const EndpointID& remote_eid() { return remote_eid_; }
 
     /**
+     * Accessor for the link's queue of bundles.
+     */
+    BundleList* queue() { return &queue_; }
+
+    /**
      * Virtual from formatter
      */
     int format(char* buf, size_t sz) const;
@@ -492,6 +497,17 @@ public:
         u_int bytes_transmitted_;
 
         /**
+         * Number of bundles currently queued on the link.
+         */
+        u_int bundles_queued_;
+
+        /**
+         * Count of bytes currently queued on the link (not counting
+         * convergence layer overhead).
+         */
+        u_int bytes_queued_;
+        
+        /**
          * Number of bundles currently in flight.
          */
         u_int bundles_inflight_;
@@ -502,7 +518,7 @@ public:
          */
         u_int bytes_inflight_;
     };
-    
+
     /**
      * Accessor for the stats structure.
      */
@@ -564,6 +580,9 @@ protected:
 
     /// Default parameters of the link
     static Params default_params_;
+
+    /// Queue of bundles currently active or pending transmission on the Link
+    BundleList queue_;
 
     /// Stats for the link
     mutable Stats stats_;

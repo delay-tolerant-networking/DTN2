@@ -28,13 +28,17 @@ namespace dtn {
 // XXX/demmer want some sort of expiration handler registration per
 // list so things know when their bundles have been expired
 
-// XXX/demmer don't always create the notifier to save on open file
-// descriptors... we only really need it for the contact
-
 BundleList::BundleList(const std::string& name)
     : Logger("BundleList", "/dtn/bundle/list/%s", name.c_str()),
       name_(name), lock_(new oasys::SpinLock()), notifier_(NULL)
 {
+}
+
+void
+BundleList::set_name(const std::string& name)
+{
+    name_ = name;
+    logpathf("/dtn/bundle/list/%s", name.c_str());
 }
 
 BundleList::~BundleList()
