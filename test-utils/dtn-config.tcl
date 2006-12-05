@@ -155,12 +155,21 @@ proc config_null_link {} {
 # Configure storage
 #
 proc config_storage {type} {
+    set extra ""
+
+    if {$type == "berkeleydb-no-txn"} {
+        set type "berkeleydb"
+        append extra "storage set db_txn false\n"
+        append extra "storage set db_log false\n"
+    }
+    
     conf::add dtnd * [subst {
 storage set tidy_wait  0
 storage set payloaddir bundles
 storage set type       $type
 storage set dbname     DTN
 storage set dbdir      db
+$extra
     }]
 }
 
