@@ -975,8 +975,8 @@ struct timeval set( double sec ) {
 struct timeval add( double sec ) {
     struct timeval mTime;
 
-    mTime.tv_sec  += (long) sec;
-    mTime.tv_usec += (long) ((sec - ((long) sec )) * 1000000);
+    mTime.tv_sec  = (long) sec;
+    mTime.tv_usec = (long) ((sec - ((long) sec )) * 1000000);
 
     // watch for overflow
     if ( mTime.tv_usec >= 1000000 ) {
