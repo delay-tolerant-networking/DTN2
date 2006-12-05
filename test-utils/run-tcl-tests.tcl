@@ -31,8 +31,6 @@ if {[llength $argv] < 1} {
 # the basic test group
 set tests(basic) {
     "alwayson-links.tcl"	""
-    "api-leak-test.tcl"		""
-    "bidirectional.tcl"         ""
     "bundle-status-reports.tcl"	""
     "custody-transfer.tcl"      ""
     "dtn-ping.tcl"		""
@@ -41,7 +39,6 @@ set tests(basic) {
     "inflight-expiration.tcl"	""
     "ipc-version-test.tcl"	""
     "loopback-link.tcl"		""
-    "many-bundles.tcl"		""
     "multipath-forwarding.tcl"	""
     "ondemand-links.tcl"	""
     "no-duplicate-send.tcl"	""
@@ -57,8 +54,13 @@ set tests(basic) {
     "version-mismatch.tcl"	""
 }
 
-# the performance test group
-set tests(perf) {
+# the stress test group
+set tests(stress) {
+    "api-leak-test.tcl"		""
+    "bidirectional.tcl"         ""
+    "many-bundles.tcl"		""
+    "many-bundles.tcl"		"-storage_type berkeleydb-no-txn"
+    "many-bundles.tcl"		"-storage_type filesysdb"
     "dtn-perf.tcl"		""
     "dtn-perf.tcl"		"-payload_len 50B"
     "dtn-perf.tcl"		"-payload_len 5MB  -file_payload"
