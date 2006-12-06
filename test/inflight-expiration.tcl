@@ -51,7 +51,7 @@ test::script {
     dtn::wait_for_bundle_stats 0 {1 expired}
     
     puts "* Checking that bundle is still in flight"
-    dtn::check_link_stats 0 tcp-link:0-1 {1 bundles_inflight}
+    dtn::check_link_stats 0 tcp-link:0-1 {1 bundles_queued}
     
     puts "* Checking that its not pending"
     dtn::wait_for_bundle_stats 0 {0 pending}
