@@ -182,11 +182,24 @@ protocol_test(Bundle* b1, int chunks)
             CHECK_EQUAL(block1->data_offset(), block2->data_offset());
             CHECK_EQUAL(block1->data_length(), block2->data_length());
 
+            u_int8_t flags1 = block1->flags();
+            u_int8_t flags2 = block2->flags();
+            CHECK((flags2 & BundleProtocol::BLOCK_FLAG_FORWARDED_UNPROCESSED) != 0);
+            flags2 &= ~BundleProtocol::BLOCK_FLAG_FORWARDED_UNPROCESSED;
+            CHECK_EQUAL(flags1, flags2);
+            
             const u_char* contents1 = block1->contents().buf();
             const u_char* contents2 = block2->contents().buf();
             bool contents_ok = true;
             
-            for (u_int i = 0; i < block1->full_length(); ++i) {
+            if (block1->type() != block2->type()) {
+                log_err("/test", "extension block type mismatch: %d != %d",
+                        block1->type(), block2->type());
+                contents_ok = false;
+            }
+
+            // skip the type / flags bytes
+            for (u_int i = 2; i < block1->full_length(); ++i) {
                 if (contents1[i] != contents2[i]) {
                     log_err("/test", "extension block mismatch at byte %d: "
                             "0x%x != 0x%x",
