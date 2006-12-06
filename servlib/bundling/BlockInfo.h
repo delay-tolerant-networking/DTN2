@@ -53,6 +53,9 @@ public:
     u_int32_t	      full_length() const { return data_offset_ + data_length_; }
     u_char*           data()        const { return contents_.buf() + data_offset_; }
     bool              complete()    const { return complete_; }
+    bool              primary_block() const;
+    bool              payload_block() const;
+    bool              last_block() const;
     ///@}
 
     /// @{ Mutating accessors

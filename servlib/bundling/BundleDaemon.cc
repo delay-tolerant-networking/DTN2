@@ -458,13 +458,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     }
 
     /*
-     * Send the reception receipt 
-     */
-    if (bundle->receive_rcpt_ && (event->source_ == EVENTSRC_PEER)) {
-        generate_status_report(bundle, BundleProtocol::STATUS_RECEIVED);
-    }
-
-    /*
      * Check if the bundle isn't complete. If so, do reactive
      * fragmentation.
      */
@@ -473,6 +466,34 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         size_t payload_offset = BundleProtocol::payload_offset(&bundle->recv_blocks_);
         fragmentmgr_->try_to_convert_to_fragment(bundle, payload_offset,
                                                  event->bytes_received_);
+    }
+
+    // validate a bundle, including all bundle blocks, received from a peer
+    if (event->source_ == EVENTSRC_PEER) { 
+        status_report_reason_t
+            reception_reason = BundleProtocol::REASON_NO_ADDTL_INFO,
+            deletion_reason = BundleProtocol::REASON_NO_ADDTL_INFO;
+
+        bool accept_bundle = BundleProtocol::validate(bundle, &reception_reason,
+                                                              &deletion_reason);
+        /*
+         * Send the reception receipt if requested within the primary block
+         * or a block validation error was encountered.
+         */
+        if (bundle->receive_rcpt_ ||
+            reception_reason != BundleProtocol::REASON_NO_ADDTL_INFO) {
+            generate_status_report(bundle, BundleProtocol::STATUS_RECEIVED,
+                                   reception_reason);
+        }
+
+        /*
+         * Delete a bundle if a validation error was encountered.
+         */
+        if (!accept_bundle) {
+            delete_bundle(bundle, deletion_reason);
+            event->daemon_only_ = true;
+            return;
+        }
     }
     
     /*
@@ -1572,7 +1593,10 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     }
 
     // delete the bundle from the pending list
-    bool erased = delete_from_pending(bundle);
+    bool erased = true;
+    if (bundle->is_queued_on(pending_bundles_)) {
+        erased = delete_from_pending(bundle);
+    }
 
     if (erased && send_status) {
         generate_status_report(bundle, BundleProtocol::STATUS_DELETED, reason);

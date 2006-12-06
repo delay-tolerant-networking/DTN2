@@ -114,13 +114,30 @@ public:
     static int consume(Bundle* bundle, u_char* data, size_t len, bool* last);
 
     /**
+     * Bundle Status Report "Reason Code" flags
+     */
+    typedef enum {
+	REASON_NO_ADDTL_INFO              = 0x00,
+	REASON_LIFETIME_EXPIRED           = 0x01,
+	REASON_FORWARDED_UNIDIR_LINK      = 0x02,
+	REASON_TRANSMISSION_CANCELLED     = 0x03,
+	REASON_DEPLETED_STORAGE           = 0x04,
+	REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
+	REASON_NO_ROUTE_TO_DEST           = 0x06,
+	REASON_NO_TIMELY_CONTACT          = 0x07,
+	REASON_BLOCK_UNINTELLIGIBLE       = 0x08,
+    } status_report_reason_t;
+
+    /**
      * Loop through the bundle's received block list to validate each
      * entry.
      *
      * @return true if the bundle is valid, false if it should be
      * deleted.
      */
-    static bool validate(Bundle* bundle);
+    static bool validate(Bundle* bundle,
+                         status_report_reason_t* reception_reason,
+                         status_report_reason_t* deletion_reason);
 
 private:
     /**
@@ -327,21 +344,6 @@ public:
         STATUS_UNUSED		= 0x40,
         STATUS_UNUSED2		= 0x80,
     } status_report_flag_t;
-
-    /**
-     * Bundle Status Report "Reason Code" flags
-     */
-    typedef enum {
-	REASON_NO_ADDTL_INFO              = 0x00,
-	REASON_LIFETIME_EXPIRED           = 0x01,
-	REASON_FORWARDED_UNIDIR_LINK      = 0x02,
-	REASON_TRANSMISSION_CANCELLED     = 0x03,
-	REASON_DEPLETED_STORAGE           = 0x04,
-	REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
-	REASON_NO_ROUTE_TO_DEST           = 0x06,
-	REASON_NO_TIMELY_CONTACT          = 0x07,
-	REASON_BLOCK_UNINTELLIGIBLE       = 0x08,
-    } status_report_reason_t;
 
     /**
      * Custody Signal Reason Codes

@@ -32,6 +32,23 @@ UnknownBlockProcessor::UnknownBlockProcessor()
 
 //----------------------------------------------------------------------
 void
+UnknownBlockProcessor::prepare(const Bundle*    bundle,
+                               Link*            link,
+                               BlockInfoVec*    blocks,
+                               const BlockInfo* source)
+{
+    ASSERT(source != NULL);
+    ASSERT(source->owner() == this);
+
+    if (source->flags() & BundleProtocol::BLOCK_FLAG_DISCARD_BLOCK_ONERROR) {
+        return;
+    }
+
+    BlockProcessor::prepare(bundle, link, blocks, source);
+}
+
+//----------------------------------------------------------------------
+void
 UnknownBlockProcessor::generate(const Bundle* bundle,
                                 Link*         link,
                                 BlockInfo*    block,
@@ -63,6 +80,7 @@ UnknownBlockProcessor::generate(const Bundle* bundle,
     } else {
         flags &= ~BundleProtocol::BLOCK_FLAG_LAST_BLOCK;
     }
+    flags |= BundleProtocol::BLOCK_FLAG_FORWARDED_UNPROCESSED;
 
     generate_preamble(block, source->type(), flags,
                       source->data_length());
@@ -74,6 +92,31 @@ UnknownBlockProcessor::generate(const Bundle* bundle,
            source->contents().buf() + block->data_offset(),
            block->data_length());
     contents->set_len(block->full_length());
+}
+
+//----------------------------------------------------------------------
+bool
+UnknownBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
+                 BundleProtocol::status_report_reason_t* reception_reason,
+                 BundleProtocol::status_report_reason_t* deletion_reason)
+{
+    // check for generic block errors
+    if (!BlockProcessor::validate(bundle, block,
+                                  reception_reason, deletion_reason)) {
+        return false;
+    }
+
+    // extension blocks of unknown type are considered to be "invalid"
+    if (block->flags() & BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR) {
+        *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+        return false;
+    }
+
+    if (block->flags() & BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) {
+        *reception_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+    }
+
+    return true;
 }
 
 } // namespace dtn

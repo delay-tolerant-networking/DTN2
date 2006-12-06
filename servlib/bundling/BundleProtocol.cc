@@ -351,9 +351,77 @@ BundleProtocol::consume(Bundle* bundle,
 
 //----------------------------------------------------------------------
 bool
-BundleProtocol::validate(Bundle* bundle)
+BundleProtocol::validate(Bundle* bundle,
+                         status_report_reason_t* reception_reason,
+                         status_report_reason_t* deletion_reason)
 {
-    (void)bundle;
+    int primary_blocks = 0, payload_blocks = 0;
+    BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
+ 
+    // a bundle must include at least two blocks (primary and payload)
+    if (recv_blocks->size() < 2) {
+        log_err(LOG, "bundle fails to contain at least two blocks");
+        *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+        return false;
+    }
+
+    // the first block of a bundle must be a primary block
+    if (!recv_blocks->front().primary_block()) {
+        log_err(LOG, "bundle fails to contain a primary block");
+        *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+        return false;
+    }
+
+    // validate each individual block
+    BlockInfoVec::iterator last_block = recv_blocks->end() - 1;
+    for (BlockInfoVec::iterator iter = recv_blocks->begin();
+         iter != recv_blocks->end();
+         ++iter)
+    {
+	if (iter->primary_block()) {
+            primary_blocks++;
+	}
+
+        if (iter->payload_block()) {
+            payload_blocks++;
+        }
+
+        if (!iter->owner()->validate(bundle, &*iter, reception_reason,
+                                                     deletion_reason)) {
+            return false;
+        }
+
+        // a bundle's last block must be flagged as such,
+        // and all other blocks should not be flagged
+	if (iter == last_block) {
+            if (!iter->last_block()) {
+                log_err(LOG, "bundle's last block not flagged");
+                *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+                return false;
+            }
+        } else {
+            if (iter->last_block()) {
+                log_err(LOG, "bundle block incorrectly flagged as last");
+                *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+                return false;
+            }
+        }
+    }
+
+    // a bundle must contain one, and only one, primary block
+    if (primary_blocks != 1) {
+        log_err(LOG, "bundle contains %d primary blocks", primary_blocks);
+        *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+        return false;
+    }
+	   
+    // a bundle must not contain more than one payload block
+    if (payload_blocks > 1) {
+        log_err(LOG, "bundle contains %d payload blocks", payload_blocks);
+        *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+        return false;
+    }
+
     return true;
 }
 

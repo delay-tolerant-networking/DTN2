@@ -83,6 +83,27 @@ BlockInfo::set_flag(u_int8_t flag)
 }
 
 //----------------------------------------------------------------------
+bool
+BlockInfo::primary_block() const
+{
+    return (owner_->block_type() == BundleProtocol::PRIMARY_BLOCK);
+}
+
+//----------------------------------------------------------------------
+bool
+BlockInfo::payload_block() const
+{
+    return (owner_->block_type() == BundleProtocol::PAYLOAD_BLOCK);
+}
+
+//----------------------------------------------------------------------
+bool
+BlockInfo::last_block() const
+{
+    return (flags() & BundleProtocol::BLOCK_FLAG_LAST_BLOCK);
+}
+
+//----------------------------------------------------------------------
 void
 BlockInfo::serialize(oasys::SerializeAction* a)
 {

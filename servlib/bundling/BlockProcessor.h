@@ -19,6 +19,8 @@
 
 #include <oasys/compat/inttypes.h>
 
+#include "BundleProtocol.h"
+
 namespace dtn {
 
 class BlockInfo;
@@ -75,7 +77,9 @@ public:
      *
      * @return true if the block passes validation
      */
-    virtual bool validate(const Bundle* bundle, BlockInfo* block);
+    virtual bool validate(const Bundle* bundle, BlockInfo* block,
+                     BundleProtocol::status_report_reason_t* reception_reason,
+                     BundleProtocol::status_report_reason_t* deletion_reason);
 
     /**
      * First callback to generate blocks for the output pass. The

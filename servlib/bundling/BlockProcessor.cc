@@ -18,7 +18,7 @@
 
 #include "BlockProcessor.h"
 #include "BlockInfo.h"
-#include "BundleProtocol.h"
+#include "Bundle.h"
 #include "SDNV.h"
 
 namespace dtn {
@@ -226,10 +226,25 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
 
 //----------------------------------------------------------------------
 bool
-BlockProcessor::validate(const Bundle* bundle, BlockInfo* block)
+BlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
+                    BundleProtocol::status_report_reason_t* reception_reason,
+                    BundleProtocol::status_report_reason_t* deletion_reason)
 {
-    (void)bundle;
-    (void)block;
+    static const char * log = "/dtn/bundle/protocol";
+    (void)reception_reason;
+
+    // An administrative bundle MUST NOT contain an extension block
+    // with a processing flag that requires a reception status report
+    // be transmitted in the case of an error
+    if (bundle->is_admin_ &&
+        !block->primary_block() &&
+        block->flags() & BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) {
+        log_err(log, "invalid block flag 0x%x for received admin bundle",
+                BundleProtocol::BLOCK_FLAG_REPORT_ONERROR);
+        *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+        return false;
+    }
+	
     return true;
 }
 
@@ -249,9 +264,12 @@ BlockProcessor::prepare(const Bundle*    bundle,
 void
 BlockProcessor::finalize(const Bundle* bundle, Link* link, BlockInfo* block)
 {
-    (void)bundle;
     (void)link;
-    (void)block;
+	
+    if (bundle->is_admin_ && !block->primary_block()) {
+        ASSERT((block->flags() &
+                BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) == 0);
+    }
 }
 
 //----------------------------------------------------------------------
