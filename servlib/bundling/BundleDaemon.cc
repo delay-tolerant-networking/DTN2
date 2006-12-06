@@ -43,6 +43,9 @@ namespace dtn {
 template <>
 BundleDaemon* oasys::Singleton<BundleDaemon, false>::instance_ = NULL;
 
+bool
+BundleDaemon::is_simulator_ = false;
+
 BundleDaemon::Params::Params()
     :  early_deletion_(true),
        accept_custody_(true),
@@ -474,8 +477,10 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
             reception_reason = BundleProtocol::REASON_NO_ADDTL_INFO,
             deletion_reason = BundleProtocol::REASON_NO_ADDTL_INFO;
 
-        bool accept_bundle = BundleProtocol::validate(bundle, &reception_reason,
-                                                              &deletion_reason);
+        bool accept_bundle = is_simulator_ ? true :
+                             BundleProtocol::validate(bundle,
+                                                      &reception_reason,
+                                                      &deletion_reason);
         /*
          * Send the reception receipt if requested within the primary block
          * or a block validation error was encountered.

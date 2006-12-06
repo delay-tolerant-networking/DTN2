@@ -242,6 +242,13 @@ public:
      	return shutting_down_;
     }
 
+    /**
+     * Accessor for the simulator bit.
+     */
+    static bool is_simulator()
+    {
+        return is_simulator_;
+    }
     
 protected:
     friend class BundleActions;
@@ -453,6 +460,9 @@ protected:
 
     // indicator that a BundleDaemon shutdown is in progress
     static bool shutting_down_;
+
+    // bit that's set when we're running in the simulator
+    static bool is_simulator_;
 };
 
 } // namespace dtn

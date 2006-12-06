@@ -34,6 +34,8 @@ Node::Node(const char* name)
 {
     logpathf("/node/%s", name);
     log_info("node %s initializing...", name);
+
+    BundleDaemon::is_simulator_ = true;
 }
 
 /**
