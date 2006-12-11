@@ -108,7 +108,7 @@ install:
 
 	mkdir -p $(DESTDIR)/etc/
 	if [ -f $(DESTDIR)/etc/dtn.conf ]; then \
-		echo "WARNING: $(DESTDIR)/etc/dtn.conf exists -- not overwriting"; \
+		echo "WAR" "NING: $(DESTDIR)/etc/dtn.conf exists -- not overwriting"; \
 	else \
 		$(INSTALL_DATA) daemon/dtn.conf $(DESTDIR)/etc/dtn.conf; \
 	fi
