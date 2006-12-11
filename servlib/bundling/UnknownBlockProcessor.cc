@@ -107,13 +107,13 @@ UnknownBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
     }
 
     // extension blocks of unknown type are considered to be "invalid"
+    if (block->flags() & BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) {
+        *reception_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+    }
+
     if (block->flags() & BundleProtocol::BLOCK_FLAG_DISCARD_BUNDLE_ONERROR) {
         *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
         return false;
-    }
-
-    if (block->flags() & BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) {
-        *reception_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
     }
 
     return true;
