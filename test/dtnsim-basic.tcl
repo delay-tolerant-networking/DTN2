@@ -18,7 +18,7 @@ test::name dtnsim-basic
 net::default_num_nodes 1
 
 manifest::file sim/dtnsim dtnsim
-manifest::file sim/send-one-bundle.conf send-one-bundle.conf
+manifest::file $base_test_dir/sim/send-one-bundle.conf send-one-bundle.conf
 
 test::script {
     puts "* Running simulator"
