@@ -47,7 +47,7 @@ Connectivity::create_conn()
         // just the base class
         return new Connectivity(); 
     } else {
-        __log_crit("/connectivity", "invalid connectivity module type %s",
+        log_crit_p("/connectivity", "invalid connectivity module type %s",
                    type_.c_str());
         return NULL;
     }

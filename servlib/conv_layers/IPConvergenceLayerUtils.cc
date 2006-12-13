@@ -49,8 +49,8 @@ IPConvergenceLayerUtils::parse_nexthop(const char* nexthop,
         u_int32_t portval = strtoul(colon + 1, &endstr, 10);
         
         if (*endstr != '\0' || portval > 65535) {
-            log_warn(log, "invalid port %s in next hop '%s'",
-                     colon + 1, nexthop);
+            log_warn_p(log, "invalid port %s in next hop '%s'",
+                       colon + 1, nexthop);
             return false;
         }
 
@@ -64,8 +64,8 @@ IPConvergenceLayerUtils::parse_nexthop(const char* nexthop,
 
     // now look up the hostname
     if (oasys::gethostbyname(host, addr) != 0) {
-        log_warn(log, "invalid hostname '%s' in next hop %s",
-                 host, nexthop);
+        log_warn_p(log, "invalid hostname '%s' in next hop %s",
+                   host, nexthop);
         return false;
     }
     

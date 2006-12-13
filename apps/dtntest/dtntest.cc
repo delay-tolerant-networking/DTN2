@@ -659,11 +659,11 @@ main(int argc, char** argv)
         interp->exec_file(conf_file.c_str());
     }
     
-    log_notice("/dtn-test", "dtn-test starting up...");
+    log_notice_p("/dtn-test", "dtn-test starting up...");
     
     if (console_cmd->port_ != 0) {
-        log_notice("/dtn-test", "starting console on %s:%d",
-                   intoa(console_cmd->addr_), console_cmd->port_);
+        log_notice_p("/dtn-test", "starting console on %s:%d",
+                     intoa(console_cmd->addr_), console_cmd->port_);
         interp->command_server("dtn-test", console_cmd->addr_, console_cmd->port_);
     }
 
@@ -674,7 +674,7 @@ main(int argc, char** argv)
             command_loop(console_cmd->prompt_.c_str());
     }
 
-    log_notice("/dtn-test", "dtn-test shutting down...");
+    log_notice_p("/dtn-test", "dtn-test shutting down...");
     delete State::instance();
     oasys::TclCommandInterp::shutdown();
     oasys::Log::shutdown();

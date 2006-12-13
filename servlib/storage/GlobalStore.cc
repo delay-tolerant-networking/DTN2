@@ -128,10 +128,10 @@ GlobalStore::do_init(const oasys::StorageConfig& cfg,
         if (err == oasys::DS_EXISTS) 
         {
             // YUCK
-            __log_err("/dtnd", "Initializing datastore which already exists.");
+            log_err_p("/dtnd", "Initializing datastore which already exists.");
             exit(1);
         } else if (err != 0) {
-            log_err("unknown error initializing global store");
+            log_err_p("/dtnd", "unknown error initializing global store");
             return err;
         }
         

@@ -38,29 +38,29 @@ payload_test(BundlePayload::location_t initial_location,
 
     int errno_; const char* strerror_;
 
-    log_debug("/test", "checking initialization");
+    log_debug_p("/test", "checking initialization");
     p.init(1, initial_location);
     CHECK_EQUAL(p.location(), initial_location);
     CHECK(p.length() == 0);
     
-    log_debug("/test", "checking set_data");
+    log_debug_p("/test", "checking set_data");
     p.set_data((const u_char*)"abcdefghijklmnopqrstuvwxyz", 26);
     CHECK_EQUAL(p.location(), expected_location);
     CHECK_EQUAL(p.length(), 26);
     
-    log_debug("/test", "checking read_data");
+    log_debug_p("/test", "checking read_data");
     data = p.read_data(0, 26, buf);
     CHECK_EQUALSTR((char*)data, "abcdefghijklmnopqrstuvwxyz");
     data = p.read_data(10, 5, buf);
     CHECK_EQUALSTRN((char*)data, "klmno", 5);
     
-    log_debug("/test", "checking truncate");
+    log_debug_p("/test", "checking truncate");
     p.truncate(10);
     data = p.read_data(0, 10, buf);
     CHECK_EQUAL(p.length(), 10);
     CHECK_EQUALSTRN((char*)data, "abcdefghij", 10);
 
-    log_debug("/test", "checking append_data");
+    log_debug_p("/test", "checking append_data");
     p.set_length(18);
     p.append_data((u_char*)"ABCDE", 5);
     data = p.read_data(0, 15, buf);
@@ -71,13 +71,13 @@ payload_test(BundlePayload::location_t initial_location,
     CHECK_EQUAL(p.length(), 18);
     CHECK_EQUALSTRN((char*)data, "abcdefghijABCDEFGH", 18);
     
-    log_debug("/test", "checking write_data overwrite");
+    log_debug_p("/test", "checking write_data overwrite");
     p.write_data((u_char*)"BCD", 1, 3);
     data = p.read_data(0, 18, buf);
     CHECK_EQUAL(p.length(), 18);
     CHECK_EQUALSTRN((char*)data, "aBCDefghijABCDEFGH", 18);
 
-    log_debug("/test", "checking write_data with gap");
+    log_debug_p("/test", "checking write_data with gap");
     p.set_length(30);
     p.write_data((u_char*)"XXXXX", 25, 5);
     CHECK_EQUAL(p.length(), 30);
@@ -87,7 +87,7 @@ payload_test(BundlePayload::location_t initial_location,
     CHECK_EQUAL(p.length(), 30);
     CHECK_EQUALSTR((char*)data, "aBCDefghijABCDEFGH_______XXXXX");
 
-    log_debug("/test", "checking FORCE_COPY");
+    log_debug_p("/test", "checking FORCE_COPY");
     data = p.read_data(0, 30, buf, BundlePayload::FORCE_COPY);
     CHECK(data == buf);
 

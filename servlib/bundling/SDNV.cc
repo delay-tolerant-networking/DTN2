@@ -46,7 +46,7 @@ do {                                                            \
 } while (0)
             
 //----------------------------------------------------------------------
-#define log_err(p, args...) fprintf(stderr, "error: (" p ") " args);
+#define log_err_p(p, args...) fprintf(stderr, "error: (" p ") " args);
 
 #define MAX_LENGTH 10
 
@@ -148,7 +148,7 @@ SDNV_FN(decode)(const u_char* bp, size_t len, u_int64_t* val)
     if ((val_len > MAX_LENGTH) ||
         ((val_len == MAX_LENGTH) && (*start != 0x81)))
     {
-        log_err("/dtn/bundle/sdnv", "overflow value in sdnv!!!");
+        log_err_p("/dtn/bundle/sdnv", "overflow value in sdnv!!!");
         return -1;
     }
 

@@ -91,9 +91,9 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
 
     consumed += tocopy;
 
-    log_debug(log, "PayloadBlockProcessor consumed %zu/%u (%s)",
-              consumed, block->full_length(), 
-              block->complete() ? "complete" : "not complete");
+    log_debug_p(log, "PayloadBlockProcessor consumed %zu/%u (%s)",
+                consumed, block->full_length(), 
+                block->complete() ? "complete" : "not complete");
     
     return consumed;
 }

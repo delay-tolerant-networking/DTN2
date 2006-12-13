@@ -57,7 +57,7 @@ check_nargs(const TcaControlBundle& cb, uint n_expected)
 {
     if (cb.args_.size() != n_expected)
     {
-        log_err("dtn/tca", "TcaRouter: bundle '%s' contains wrong number "
+        log_err_p("dtn/tca", "TcaRouter: bundle '%s' contains wrong number "
                   "of args. %d expected.", cb.str().c_str(), n_expected);
         return false;
     }
@@ -73,23 +73,23 @@ log_bundle(const std::string& comment, const Bundle* b, bool include_payload)
     (void)b;
     
     if (include_payload)
-        log_debug("/dtn/tca", "%s [%s] -> [%s] : '%s'", comment.c_str(),
-                b->source_.str().c_str(), b->dest_.c_str(),
-                get_payload_str(b).c_str());
+        log_debug_p("/dtn/tca", "%s [%s] -> [%s] : '%s'", comment.c_str(),
+                    b->source_.str().c_str(), b->dest_.c_str(),
+                    get_payload_str(b).c_str());
     else
-        log_debug("/dtn/tca", "%s [%s] -> [%s]", comment.c_str(),
-                b->source_.str().c_str(), b->dest_.c_str());
+        log_debug_p("/dtn/tca", "%s [%s] -> [%s]", comment.c_str(),
+                    b->source_.str().c_str(), b->dest_.c_str());
 } 
     
 
 static void
 log_controlbundle(const TcaControlBundle& cb)
 {
-    log_debug("/dtn/tca", "    code='%s', args=%d",
-              cb.code_.c_str(), (u_int)cb.args_.size());
+    log_debug_p("/dtn/tca", "    code='%s', args=%d",
+                cb.code_.c_str(), (u_int)cb.args_.size());
     for (unsigned int i=0; i<cb.args_.size(); ++i)
     {
-        log_debug("/dtn/tca", "        '%s'", cb.args_[i].c_str());
+        log_debug_p("/dtn/tca", "        '%s'", cb.args_[i].c_str());
     }
 }
 

@@ -249,7 +249,7 @@ DTND::seed_random()
         random_seed_ = tv.tv_usec;
     }
     
-    log_notice("/dtnd", "random seed is %u\n", random_seed_);
+    log_notice_p("/dtnd", "random seed is %u\n", random_seed_);
     oasys::Random::seed(random_seed_);
 }
 
@@ -306,8 +306,8 @@ DTND::run_console()
 {
     // launch the console server
     if (consolecmd_->port_ != 0) {
-        log_info("/dtnd", "starting console on %s:%d",
-                 intoa(consolecmd_->addr_), consolecmd_->port_);
+        log_info_p("/dtnd", "starting console on %s:%d",
+                   intoa(consolecmd_->addr_), consolecmd_->port_);
         
         oasys::TclCommandInterp::instance()->
             command_server(consolecmd_->prompt_.c_str(),
@@ -342,12 +342,12 @@ DTND::main(int argc, char* argv[])
 
     init_log();
     
-    log_notice("/dtnd", "DTN daemon starting up... (pid %d)", getpid());
+    log_notice_p("/dtnd", "DTN daemon starting up... (pid %d)", getpid());
     oasys::FatalSignals::init("dtnd");
 
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
-        log_crit("/dtnd", "Can't init TCL");
+        log_crit_p("/dtnd", "Can't init TCL");
         notify_and_exit(1);
     }
 
@@ -365,17 +365,17 @@ DTND::main(int argc, char* argv[])
     init_testcmd(argc, argv);
 
     if (! dtnserver->parse_conf_file(conf_file_, conf_file_set_)) {
-        log_err("/dtnd", "error in configuration file, exiting...");
+        log_err_p("/dtnd", "error in configuration file, exiting...");
         notify_and_exit(1);
     }
 
     if (storage_config_.init_)
     {
-        log_notice("/dtnd", "initializing persistent data store");
+        log_notice_p("/dtnd", "initializing persistent data store");
     }
 
     if (! dtnserver->init_datastore()) {
-        log_err("/dtnd", "error initializing data store, exiting...");
+        log_err_p("/dtnd", "error initializing data store, exiting...");
         notify_and_exit(1);
     }
     
@@ -383,7 +383,7 @@ DTND::main(int argc, char* argv[])
     if (storage_config_.init_ && !storage_config_.tidy_)
     {
         dtnserver->close_datastore();
-        log_info("/dtnd", "database initialization complete.");
+        log_info_p("/dtnd", "database initialization complete.");
         notify_and_exit(0);
     }
 
@@ -410,7 +410,7 @@ DTND::main(int argc, char* argv[])
     
     run_console();
 
-    log_notice("/dtnd", "command loop exited... shutting down daemon");
+    log_notice_p("/dtnd", "command loop exited... shutting down daemon");
     oasys::TclCommandInterp::shutdown();
     dtnserver->shutdown();
     

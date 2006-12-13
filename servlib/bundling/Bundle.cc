@@ -57,7 +57,7 @@ Bundle::init(u_int32_t id)
     creation_ts_.seconds_ = BundleTimestamp::get_current_time();
     creation_ts_.seqno_   = bundleid_;
 
-    log_debug("/dtn/bundle", "Bundle::init bundle id %d", id);
+    log_debug_p("/dtn/bundle", "Bundle::init bundle id %d", id);
 }
 
 //----------------------------------------------------------------------
@@ -89,7 +89,7 @@ Bundle::Bundle(const oasys::Builder&)
 //----------------------------------------------------------------------
 Bundle::~Bundle()
 {
-    log_debug("/dtn/bundle/free", "destroying bundle id %d", bundleid_);
+    log_debug_p("/dtn/bundle/free", "destroying bundle id %d", bundleid_);
     
     ASSERT(mappings_.size() == 0);
     bundleid_ = 0xdeadf00d;
@@ -226,10 +226,10 @@ Bundle::add_ref(const char* what1, const char* what2)
     
     ASSERT(refcount_ >= 0);
     int ret = ++refcount_;
-    log_debug("/dtn/bundle/refs",
-              "bundle id %d (%p): refcount %d -> %d (%zu mappings) add %s %s",
-              bundleid_, this, refcount_ - 1, refcount_,
-              mappings_.size(), what1, what2);
+    log_debug_p("/dtn/bundle/refs",
+                "bundle id %d (%p): refcount %d -> %d (%zu mappings) add %s %s",
+                bundleid_, this, refcount_ - 1, refcount_,
+                mappings_.size(), what1, what2);
     return ret;
 }
 
@@ -246,10 +246,10 @@ Bundle::del_ref(const char* what1, const char* what2)
             "called when bundle is already being freed!", bundleid_, this);
     
     int ret = --refcount_;
-    log_debug("/dtn/bundle/refs",
-              "bundle id %d (%p): refcount %d -> %d (%zu mappings) del %s %s",
-              bundleid_, this, refcount_ + 1, refcount_,
-              mappings_.size(), what1, what2);
+    log_debug_p("/dtn/bundle/refs",
+                "bundle id %d (%p): refcount %d -> %d (%zu mappings) del %s %s",
+                bundleid_, this, refcount_ + 1, refcount_,
+                mappings_.size(), what1, what2);
     
     if (refcount_ != 0) {
         return ret;
@@ -257,9 +257,9 @@ Bundle::del_ref(const char* what1, const char* what2)
 
     freed_ = true;
     
-    log_debug("/dtn/bundle",
-              "bundle id %d (%p): no more references, posting free event",
-              bundleid_, this);
+    log_debug_p("/dtn/bundle",
+                "bundle id %d (%p): no more references, posting free event",
+                bundleid_, this);
 
     BundleDaemon::instance()->post(new BundleFreeEvent(this));
     

@@ -112,16 +112,16 @@ PrimaryBlockProcessor::extract_dictionary_eid(EndpointID* eid,
     ssp_offset = ntohs(ssp_offset);
 
     if (scheme_offset >= (dictionary_len - 1)) {
-	log_err(log, "illegal offset for %s scheme dictionary offset: "
-		"offset %d, total length %u", what,
-		scheme_offset, dictionary_len);
+	log_err_p(log, "illegal offset for %s scheme dictionary offset: "
+                  "offset %d, total length %u", what,
+                  scheme_offset, dictionary_len);
 	return false;
     }
 
     if (ssp_offset >= (dictionary_len - 1)) {
-	log_err(log, "illegal offset for %s ssp dictionary offset: "
-		"offset %d, total length %u", what,
-		ssp_offset, dictionary_len);
+	log_err_p(log, "illegal offset for %s ssp dictionary offset: "
+                  "offset %d, total length %u", what,
+                  ssp_offset, dictionary_len);
 	return false;
     }
     
@@ -129,18 +129,18 @@ PrimaryBlockProcessor::extract_dictionary_eid(EndpointID* eid,
                 (char*)&dictionary[ssp_offset]);
 
     if (! eid->valid()) {
-	log_err(log, "invalid %s endpoint id '%s': "
-                "scheme '%s' offset %u/%u ssp '%s' offset %u/%u",
-                what, eid->c_str(),
-                eid->scheme_str().c_str(),
-                scheme_offset, dictionary_len,
-                eid->ssp().c_str(),
-                ssp_offset, dictionary_len);
+	log_err_p(log, "invalid %s endpoint id '%s': "
+                  "scheme '%s' offset %u/%u ssp '%s' offset %u/%u",
+                  what, eid->c_str(),
+                  eid->scheme_str().c_str(),
+                  scheme_offset, dictionary_len,
+                  eid->ssp().c_str(),
+                  ssp_offset, dictionary_len);
         return false;                                                      
     }                                                                   
     
-    log_debug(log, "parsed %s eid (offsets %u, %u) %s", 
-	      what, scheme_offset, ssp_offset, eid->c_str());
+    log_debug_p(log, "parsed %s eid (offsets %u, %u) %s", 
+                what, scheme_offset, ssp_offset, eid->c_str());
     return true;
 }
 
@@ -160,20 +160,20 @@ PrimaryBlockProcessor::debug_dump_dictionary(const char* bp, size_t len,
         bp += strlen(bp) + 1;
     }
 
-    log_debug("/dtn/bundle/protocol",
-              "dictionary len %zu, value: '%s'", len, dict_copy.c_str());
+    log_debug_p("/dtn/bundle/protocol",
+                "dictionary len %zu, value: '%s'", len, dict_copy.c_str());
                   
-    log_debug("/dtn/bundle/protocol",
-              "dictionary offsets: dest %u,%u source %u,%u, "
-              "custodian %u,%u replyto %u,%u",
-              ntohs(primary2->dest_scheme_offset),
-              ntohs(primary2->dest_ssp_offset),
-              ntohs(primary2->source_scheme_offset),
-              ntohs(primary2->source_ssp_offset),
-              ntohs(primary2->custodian_scheme_offset),
-              ntohs(primary2->custodian_ssp_offset),
-              ntohs(primary2->replyto_scheme_offset),
-              ntohs(primary2->replyto_ssp_offset));
+    log_debug_p("/dtn/bundle/protocol",
+                "dictionary offsets: dest %u,%u source %u,%u, "
+                "custodian %u,%u replyto %u,%u",
+                ntohs(primary2->dest_scheme_offset),
+                ntohs(primary2->dest_ssp_offset),
+                ntohs(primary2->source_scheme_offset),
+                ntohs(primary2->source_ssp_offset),
+                ntohs(primary2->custodian_scheme_offset),
+                ntohs(primary2->custodian_ssp_offset),
+                ntohs(primary2->replyto_scheme_offset),
+                ntohs(primary2->replyto_ssp_offset));
 #else
     (void)bp;
     (void)len;
@@ -331,7 +331,7 @@ PrimaryBlockProcessor::get_primary_len(const Bundle* bundle,
     add_to_dictionary(bundle->replyto_,   dict, dictionary_len);
 
     (void)log; // in case NDEBUG is defined
-    log_debug(log, "generated dictionary length %zu", *dictionary_len);
+    log_debug_p(log, "generated dictionary length %zu", *dictionary_len);
 
     *primary_var_len += SDNV::encoding_len(*dictionary_len);
     *primary_var_len += *dictionary_len;
@@ -363,8 +363,8 @@ PrimaryBlockProcessor::get_primary_len(const Bundle* bundle,
                   SDNV::encoding_len(*primary_var_len) +
                   *primary_var_len;
     
-    log_debug(log, "get_primary_len(bundle %d): %zu",
-              bundle->bundleid_, primary_len);
+    log_debug_p(log, "get_primary_len(bundle %d): %zu",
+                bundle->bundleid_, primary_len);
     
     return primary_len;
 }
@@ -409,7 +409,7 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
         }
 
         // Ok, we now know the whole length
-        log_debug(log, "parsed primary block length %u (preamble %u)",
+        log_debug_p(log, "parsed primary block length %u (preamble %u)",
                   block->data_length(), block->data_offset());
         buf += cc;
         len -= cc;
@@ -417,7 +417,7 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
         consumed += cc;
 
         if (block->data_length() == 0) {
-            log_err(log, "got primary block with zero length");
+            log_err_p(log, "got primary block with zero length");
             return -1; // protocol error
         }
     }
@@ -457,12 +457,12 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
      * Process the PrimaryBlock1
      */
     PrimaryBlock1* primary1 = (PrimaryBlock1*)buf;
-    log_debug(log, "parsed primary block 1: version %d length %u",
-              primary1->version, block->data_length());
+    log_debug_p(log, "parsed primary block 1: version %d length %u",
+                primary1->version, block->data_length());
     
     if (primary1->version != BundleProtocol::CURRENT_VERSION) {
-	log_warn(log, "protocol version mismatch %d != %d",
-		 primary1->version, BundleProtocol::CURRENT_VERSION);
+	log_warn_p(log, "protocol version mismatch %d != %d",
+                   primary1->version, BundleProtocol::CURRENT_VERSION);
 	return -1;
     }
     
@@ -491,10 +491,10 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
     int       frag_length_len = 0;
     if (len < sizeof(PrimaryBlock2)) {
 tooshort:
-	log_err(log, "primary block advertised incorrect length %u: "
-		"fixed-length %u, dict_sdnv %d, dict %u, frag %d %d",
-                block->data_length(), primary2_len, dict_sdnv_len,
-                dictionary_len, frag_offset_len, frag_length_len);
+	log_err_p(log, "primary block advertised incorrect length %u: "
+                  "fixed-length %u, dict_sdnv %d, dict %u, frag %d %d",
+                  block->data_length(), primary2_len, dict_sdnv_len,
+                  dictionary_len, frag_offset_len, frag_length_len);
 	return -1;
     }
 
@@ -531,7 +531,7 @@ tooshort:
      * Make sure that the dictionary ends with a null byte.
      */
     if (buf[dictionary_len - 1] != '\0') {
-	log_err(log, "dictionary does not end with a NULL character!");
+	log_err_p(log, "dictionary does not end with a NULL character!");
 	return -1;
     }
 
@@ -581,8 +581,8 @@ tooshort:
 	buf += frag_length_len;
 	len -= frag_length_len;
 
-	log_debug(log, "parsed fragmentation info: offset %u, orig_len %u",
-		  bundle->frag_offset_, bundle->orig_length_);
+	log_debug_p(log, "parsed fragmentation info: offset %u, orig_len %u",
+                    bundle->frag_offset_, bundle->orig_length_);
     }
 
     return consumed;
@@ -625,10 +625,10 @@ PrimaryBlockProcessor::generate(const Bundle* bundle,
     int     len = primary_len;
     
     (void)log; // in case NDEBUG is defined
-    log_debug(log, "generating primary: length %zu (preamble %zu var length %zu)",
-              primary_len,
-	      (sizeof(PrimaryBlock1) + SDNV::encoding_len(primary_var_len)),
-	      primary_var_len);
+    log_debug_p(log, "generating primary: length %zu (preamble %zu var length %zu)",
+                primary_len,
+                (sizeof(PrimaryBlock1) + SDNV::encoding_len(primary_var_len)),
+                primary_var_len);
     
     /*
      * Ok, stuff in the preamble and the total block length.

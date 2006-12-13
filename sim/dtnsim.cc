@@ -122,7 +122,7 @@ main(int argc, char** argv)
     
     // Initialize logging
     oasys::Log::init("-", loglevel, "--");
-    log_info("/dtsim", "dtn simulator initializing...");
+    log_info_p("/dtsim", "dtn simulator initializing...");
 
     // seed the random number generator
     if (!random_seed_set) {
@@ -130,13 +130,13 @@ main(int argc, char** argv)
         gettimeofday(&tv, NULL);
         random_seed = tv.tv_usec;
     }
-    log_info("/dtsim", "random seed is %u\n", random_seed);
+    log_info_p("/dtsim", "random seed is %u\n", random_seed);
     oasys::Random::seed(random_seed);
     
     // Set up the command interpreter
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
-        log_crit("/dtsim", "Can't init TCL");
+        log_crit_p("/dtsim", "Can't init TCL");
         exit(1);
     }
 	
@@ -144,11 +144,11 @@ main(int argc, char** argv)
     interp->reg(new ConnCommand());
     interp->reg(new ParamCommand());
     interp->reg(new SimCommand());
-    log_info("/dtsim","registered dtnsim commands");
+    log_info_p("/dtsim","registered dtnsim commands");
 
     // initializing data store to memorydb
     if (!Simulator::instance()->init_datastore()) {
-        log_err("/dtnsim", "error initializing data store, exiting...");
+        log_err_p("/dtnsim", "error initializing data store, exiting...");
         exit(1);
     }
 	
@@ -156,11 +156,11 @@ main(int argc, char** argv)
     SimConvergenceLayer::init();
     ConvergenceLayer::add_clayer(SimConvergenceLayer::instance());
     BundleProtocol::init_default_processors();
-    log_info("/dtsim","intialized dtnsim components");
+    log_info_p("/dtsim","intialized dtnsim components");
 	
-    log_info("/dtsim","parsing configuration file %s...", conf_file.c_str());
+    log_info_p("/dtsim","parsing configuration file %s...", conf_file.c_str());
     if (interp->exec_file(conf_file.c_str()) != 0) {
-        log_err("/dtsim", "error in configuration file, exiting...");
+        log_err_p("/dtsim", "error in configuration file, exiting...");
         exit(1);
     }
     

@@ -88,7 +88,8 @@ BlockProcessor::consume_preamble(BlockInfo* block,
 
     if (block_len > 0xFFFFFFFFLL) {
         // XXX/demmer implement big blocks
-        log_err(log, "overflow in SDNV value for block type 0x%x", *contents->buf());
+        log_err_p(log, "overflow in SDNV value for block type 0x%x",
+                  *contents->buf());
         return -1;
     }
 
@@ -100,12 +101,12 @@ BlockProcessor::consume_preamble(BlockInfo* block,
     block->set_data_offset(preamble_size + sdnv_len);
     contents->set_len(preamble_size + sdnv_len);
 
-    log_debug(log, "BlockProcessor type 0x%x "
-              "consumed preamble %zu/%u for block type (0x%x): "
-              "data_offset %u data_length %u",
-              block_type(), preamble_size + sdnv_len - prev_consumed,
-              block->full_length(), block->type(),
-              block->data_offset(), block->data_length());
+    log_debug_p(log, "BlockProcessor type 0x%x "
+                "consumed preamble %zu/%u for block type (0x%x): "
+                "data_offset %u data_length %u",
+                block_type(), preamble_size + sdnv_len - prev_consumed,
+                block->full_length(), block->type(),
+                block->data_offset(), block->data_length());
     
     // Finally, be careful to return only the amount of the buffer
     // that we needed to complete the preamble.
@@ -139,11 +140,11 @@ BlockProcessor::generate_preamble(BlockInfo* block,
     block->set_data_offset(sizeof(*bp) + sdnv_len);
     block->writable_contents()->set_len(sizeof(*bp) + sdnv_len);
 
-    log_debug(log, "BlockProcessor type 0x%x "
-              "generated preamble for block type 0x%x flags 0x%x: "
-              "data_offset %u data_length %u",
-              block_type(), block->type(), block->flags(),
-              block->data_offset(), block->data_length());
+    log_debug_p(log, "BlockProcessor type 0x%x "
+                "generated preamble for block type 0x%x flags 0x%x: "
+                "data_offset %u data_length %u",
+                block_type(), block->type(), block->flags(),
+                block->data_offset(), block->data_length());
 }
 
 //----------------------------------------------------------------------
@@ -216,10 +217,10 @@ BlockProcessor::consume(Bundle* bundle, BlockInfo* block,
     len -= tocopy;
     consumed += tocopy;
 
-    log_debug(log, "BlockProcessor type 0x%x "
-              "consumed %zu/%u for block type 0x%x (%s)",
-              block_type(), consumed, block->full_length(), block->type(),
-              block->complete() ? "complete" : "not complete");
+    log_debug_p(log, "BlockProcessor type 0x%x "
+                "consumed %zu/%u for block type 0x%x (%s)",
+                block_type(), consumed, block->full_length(), block->type(),
+                block->complete() ? "complete" : "not complete");
     
     return consumed;
 }
@@ -239,8 +240,8 @@ BlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
     if (bundle->is_admin_ &&
         !block->primary_block() &&
         block->flags() & BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) {
-        log_err(log, "invalid block flag 0x%x for received admin bundle",
-                BundleProtocol::BLOCK_FLAG_REPORT_ONERROR);
+        log_err_p(log, "invalid block flag 0x%x for received admin bundle",
+                  BundleProtocol::BLOCK_FLAG_REPORT_ONERROR);
         *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
         return false;
     }

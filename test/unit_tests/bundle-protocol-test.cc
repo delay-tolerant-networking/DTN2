@@ -156,8 +156,8 @@ protocol_test(Bundle* b1, int chunks)
     bool payload_ok = true;
     for (u_int i = 0; i < b2->payload_.length(); ++i) {
         if (payload1[i] != payload2[i]) {
-            log_err("/test", "payload mismatch at byte %d: 0x%x != 0x%x",
-                    i, payload1[i], payload2[i]);
+            log_err_p("/test", "payload mismatch at byte %d: 0x%x != 0x%x",
+                      i, payload1[i], payload2[i]);
             payload_ok = false;
         }
     }
@@ -193,17 +193,17 @@ protocol_test(Bundle* b1, int chunks)
             bool contents_ok = true;
             
             if (block1->type() != block2->type()) {
-                log_err("/test", "extension block type mismatch: %d != %d",
-                        block1->type(), block2->type());
+                log_err_p("/test", "extension block type mismatch: %d != %d",
+                          block1->type(), block2->type());
                 contents_ok = false;
             }
 
             // skip the type / flags bytes
             for (u_int i = 2; i < block1->full_length(); ++i) {
                 if (contents1[i] != contents2[i]) {
-                    log_err("/test", "extension block mismatch at byte %d: "
-                            "0x%x != 0x%x",
-                            i, contents1[i], contents2[i]);
+                    log_err_p("/test", "extension block mismatch at byte %d: "
+                              "0x%x != 0x%x",
+                              i, contents1[i], contents2[i]);
                     contents_ok = false;
                 }
             }

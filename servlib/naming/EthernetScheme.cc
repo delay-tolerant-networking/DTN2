@@ -90,8 +90,8 @@ EthernetScheme::match(const EndpointIDPattern& pattern,
     // sanity check
     ASSERT(pattern.scheme() == this);
     
-    log_debug("/dtn/scheme/ethernet",
-              "matching %s against %s.", pattern.ssp().c_str(), eid.ssp().c_str());
+    log_debug_p("/dtn/scheme/ethernet",
+                "matching %s against %s.", pattern.ssp().c_str(), eid.ssp().c_str());
 
     size_t patternlen = pattern.ssp().length();
     

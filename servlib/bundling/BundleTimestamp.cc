@@ -44,9 +44,15 @@ BundleTimestamp::check_local_clock()
     ::gettimeofday(&now, 0);
 
     if ((u_int)now.tv_sec < TIMEVAL_CONVERSION) {
-        log_err("/dtn/bundle/timestamp", "invalid local clock setting: "
-                "current time '%s' is before Jan 1, 2000",
-                ctime((const time_t*)&now.tv_sec));
+        logf("/dtn/bundle/timestamp", oasys::LOG_ERR,
+             "invalid local clock setting: "
+             "current time '%s' is before Jan 1, 2000",
+             ctime((const time_t*)&now.tv_sec));
+
+        log_err_p("/dtn/bundle/timestamp",
+                          "invalid local clock setting: "
+                          "current time '%s' is before Jan 1, 2000",
+                          ctime((const time_t*)&now.tv_sec));
         return false;
     }
 

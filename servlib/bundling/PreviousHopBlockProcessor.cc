@@ -92,9 +92,9 @@ PreviousHopBlockProcessor::consume(Bundle* bundle, BlockInfo* block,
     }
 
     if (! bundle->prevhop_.assign((char*)block->data(), block->data_length())) {
-        log_err("/dtn/bundle/protocol",
-                "error parsing previous hop eid '%.*s",
-                block->data_length(), block->data());
+        log_err_p("/dtn/bundle/protocol",
+                  "error parsing previous hop eid '%.*s",
+                  block->data_length(), block->data());
         return -1;
     }
     

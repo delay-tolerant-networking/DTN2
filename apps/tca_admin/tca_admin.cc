@@ -176,7 +176,7 @@ int
 main(int argc, const char** argv)
 {
     oasys::Log::init("-", oasys::LOG_NOTICE, "", "~/.tcadebug");
-    log_notice("/tca/admin", "tca_admin starting up");
+    log_notice_p("/tca/admin", "tca_admin starting up");
     
     parse_options(argc, argv);
 
