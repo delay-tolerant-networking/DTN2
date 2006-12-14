@@ -227,7 +227,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 {
     Bundle* bundle = NULL;       
     EthCLHeader ethclhdr;
-    size_t header_len, bundle_len;
+    size_t bundle_len;
     struct ether_header* ethhdr=(struct ether_header*)bp;
     
     log_debug("Received DTN packet on interface %s, %zu.",if_name_, len);    
@@ -320,28 +320,23 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         // skip past the cl header
         bp  += (sizeof(EthCLHeader) + sizeof(struct ether_header));
         len -= (sizeof(EthCLHeader) + sizeof(struct ether_header));
-        
-        // parse the headers into a new bundle. this sets the payload_len
-        // appropriately in the new bundle and returns the number of bytes
-        // consumed for the bundle headers
+
         bundle = new Bundle();
-        header_len =
-            BundleProtocol::parse_header_blocks(bundle, (u_char*)bp, len);
-        
-        size_t payload_len = bundle->payload_.length();
-        if (bundle_len != header_len + payload_len) {
-            log_err("process_data: error in bundle lengths: "
-                    "bundle_length %zu, header_length %zu, payload_length %zu",
-                    bundle_len, header_len, payload_len);
+        bool complete = false;
+        int cc = BundleProtocol::consume(bundle, bp, len, &complete);
+
+        if (cc < 0) {
+            log_err("process_data: bundle protocol error");
             delete bundle;
             return;
         }
-        
-        // store the payload and notify the daemon
-        bp  += header_len;
-        len -= header_len;
-        bundle->payload_.append_data(bp, len);
-        
+
+        if (!complete) {
+            log_err("process_data: incomplete bundle");
+            delete bundle;
+            return;
+        }
+
         log_debug("process_data: new bundle id %d arrival, bundle length %zu",
                   bundle->bundleid_, bundle_len);
         
@@ -470,13 +465,12 @@ bool
 EthConvergenceLayer::Sender::send_bundle(Bundle* bundle) 
 {
     int cc;
-    int iovcnt = 1; // BundleProtocol::MAX_IOVCNT; 
-    struct iovec iov[iovcnt + 3];
+    struct iovec iov[3];
         
     EthCLHeader ethclhdr;
     struct ether_header hdr;
 
-    memset(iov,0,(iovcnt+3)*sizeof(struct iovec));
+    memset(iov,0,sizeof(iov));
     
     // iovec slot 0 holds the ethernet header
 
@@ -500,30 +494,29 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     ethclhdr.type       = ETHCL_BUNDLE;
     ethclhdr.bundle_id	= htonl(bundle->bundleid_);    
 
-    // fill in the rest of the iovec with the bundle header
+    // iovec slot 2 for the bundle
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(contact_->link());
+    ASSERT(blocks != NULL);
 
-    u_int16_t header_len =
-        BundleProtocol::format_header_blocks(bundle, buf_, sizeof(buf_));
+    bool complete = false;
+    size_t total_len = BundleProtocol::produce(bundle, blocks,
+                                               buf_, 0, sizeof(buf_),
+                                               &complete);
+    if (!complete) {
+        size_t formatted_len = BundleProtocol::total_length(blocks);
+        log_err("send_bundle: bundle too big (%zu > %u)",
+                formatted_len, MAX_ETHER_PACKET);
+        return -1;
+    }
+
     iov[2].iov_base = (char *)buf_;
-    iov[2].iov_len  = (size_t)header_len;
-
-    size_t payload_len = bundle->payload_.length();
-    
-    log_info("send_bundle: bundle id %d, header_length %u payload_length %zu",
-              bundle->bundleid_, header_len, payload_len);
-    
-    oasys::StringBuffer payload_buf(payload_len);
-    const u_char* payload_data =
-        bundle->payload_.read_data(0, payload_len, (u_char*)payload_buf.data());
-    
-    iov[iovcnt + 2].iov_base = (char*)payload_data;
-    iov[iovcnt + 2].iov_len = payload_len;
+    iov[2].iov_len  = total_len;
     
     // We're done assembling the packet. Now write the whole thing to
     // the socket!
     log_info("Sending bundle out interface %s",if_name_);
 
-    cc=IO::writevall(sock_, iov, iovcnt+3);
+    cc=IO::writevall(sock_, iov, 3);
     if(cc<0) {
         perror("send");
         log_err("Send failed!\n");
@@ -532,9 +525,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     
     // check that we successfully wrote it all
     bool ok;
-    
-    int total = sizeof(EthCLHeader) + sizeof(struct ether_header) +
-                header_len + payload_len;
+    int total = sizeof(EthCLHeader) + sizeof(struct ether_header) + total_len;
     if (cc != total) {
         BundleDaemon::post(new BundleTransmitFailedEvent(bundle,
                                                          contact_,
@@ -548,7 +539,7 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
         // ack = false
         BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact_,contact_->link(),
-                                       header_len + payload_len, false));
+                                       total_len, false));
         ok = true;
     }
 
