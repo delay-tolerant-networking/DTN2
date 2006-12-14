@@ -1,6 +1,48 @@
 Release Notes for DTN2
 ----------------------
 
+2.3.0 (December 2006?)
+---------------------
+
+- Rewritten and documented TCP convergence layer, with support for
+  bidirectional communication over a single socket.
+
+- Default port used by TCP & UDP convergence layers is now 4556, newly
+  registered with IANA.
+
+- Improvements to the Bluetooth convergence layer (by Jeff Wilson) to
+  use the same common stream based convergence layer base class as is
+  used by TCP.
+
+- Refactored bundle protocol handling code into separate block
+  processing modules allowing for easier integration of security and
+  other extension blocks.
+
+- Integrated full support for extension blocks.
+
+- External router interface (by MITRE) using XML to communicate
+  between the router and the daemon.
+
+- Initial support for a neighborhood discovery mechanism (by Jeff
+  Wilson) using either UDP multicast/broadcast or Bluetooth's builtin
+  service discovery protocols.
+
+- Major enhancements to the Prophet router implementation (by Jeff
+  Wilson).
+
+- Added dtntunnel and dtncat applications. Reworked and enhanced the
+  dtnping application.
+
+- Modified the core for 64-bit compatibility.
+
+- Various stability and performance improvements.
+
+- Resurrection of the dtnsim simulator (by Seguti Gutierrez-Nolasco)
+  for simple bundle transmission.
+
+- Switched most of the code from the Intel Open Source License to the
+  Apache License.
+
 2.2.0 (March 2006)
 ------------------
 
