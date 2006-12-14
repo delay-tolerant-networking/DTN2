@@ -179,20 +179,30 @@ struct dtn_bundle_spec_t {
 % * in which case the payload structure contains the filename, or in
 % * memory where the struct has the actual data.
 % *
+% * If the location specifies that the payload is in a temp file, then
+% * the daemon assumes ownership of the file and should have sufficient
+% * permissions to move or rename it.
+% * 
 % * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
 % * bundle payload that can be sent or received in memory.
+% *
+% *     DTN_PAYLOAD_MEM		- copy contents from memory
+% *     DTN_PAYLOAD_FILE	- file copy the contents of the file
+% *     DTN_PAYLOAD_TEMP_FILE	- assume ownership of the file
 % */
 enum dtn_bundle_payload_location_t {
     DTN_PAYLOAD_FILE,
-    DTN_PAYLOAD_MEM
+    DTN_PAYLOAD_MEM,
+    DTN_PAYLOAD_TEMP_FILE
 };
 
 union dtn_bundle_payload_t switch(dtn_bundle_payload_location_t location)
 {
- case DTN_PAYLOAD_FILE:
-     opaque	filename<DTN_MAX_PATH_LEN>;
- case DTN_PAYLOAD_MEM:
-     opaque	buf<DTN_MAX_BUNDLE_MEM>;
+case DTN_PAYLOAD_FILE:
+case DTN_PAYLOAD_TEMP_FILE:
+    opaque	filename<DTN_MAX_PATH_LEN>;
+case DTN_PAYLOAD_MEM:
+    opaque	buf<DTN_MAX_BUNDLE_MEM>;
 };
 
 %
@@ -204,12 +214,3 @@ struct dtn_bundle_id_t {
     u_int               creation_secs;
     u_int               creation_subsecs;
 };
-
-%
-%/**
-% * Bundle authentication data. TBD
-% */
-struct dtn_bundle_auth_t {
-    opaque	blob<DTN_MAX_AUTHDATA>;
-};
-

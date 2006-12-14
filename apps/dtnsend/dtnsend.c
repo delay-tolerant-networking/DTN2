@@ -241,7 +241,7 @@ void print_usage()
     fprintf(stderr, " -s <eid|demux_string> source eid)\n");
     fprintf(stderr, " -d <eid|demux_string> destination eid)\n");
     fprintf(stderr, " -r <eid|demux_string> reply to eid)\n");
-    fprintf(stderr, " -t <f|m|d> payload type: file, message, or date\n");
+    fprintf(stderr, " -t <f|t|m|d> payload type: file, tmpfile, message, or date\n");
     fprintf(stderr, " -p <filename|string> payload data\n");
     fprintf(stderr, " -e <time> expiration time in seconds (default: one hour)\n");
     fprintf(stderr, " -i <regid> registration id for reply to\n");
@@ -354,6 +354,7 @@ void parse_options(int argc, char**argv)
     switch (arg_type)
     {
     case 'f': payload_type = DTN_PAYLOAD_FILE; break;
+    case 't': payload_type = DTN_PAYLOAD_TEMP_FILE; break;
     case 'm': payload_type = DTN_PAYLOAD_MEM; break;
     case 'd': 
         payload_type = DTN_PAYLOAD_MEM;

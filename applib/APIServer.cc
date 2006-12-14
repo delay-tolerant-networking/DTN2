@@ -737,6 +737,7 @@ APIClient::handle_send()
         break;
         
     case DTN_PAYLOAD_FILE:
+    case DTN_PAYLOAD_TEMP_FILE:
         struct stat finfo;
         sprintf(filename, "%.*s", 
                 (int)payload.dtn_bundle_payload_t_u.filename.filename_len,
@@ -815,9 +816,18 @@ APIClient::handle_send()
         fclose(file);
         break;
         
-    default:
-        log_err("payload.location of %d unknown", payload.location);
-        return DTN_EINVAL;
+    case DTN_PAYLOAD_TEMP_FILE:
+        if (! b->payload_.replace_with_file(filename)) {
+            log_err("payload file %s can't be linked or copied",
+                    filename);
+            return DTN_EINVAL;
+        }
+        
+        if (::unlink(filename) != 0) {
+            log_err("error unlinking payload temp file: %s",
+                    strerror(errno));
+            // continue on since this is non-fatal
+        }
     }
 
     //  before posting the received event, fill in the bundle id struct
@@ -951,8 +961,10 @@ APIClient::handle_recv()
             b->payload_.copy_file(&tmpfile);
         }
 
-        payload.dtn_bundle_payload_t_u.filename.filename_val = (char*)tmpfile.path();
-        payload.dtn_bundle_payload_t_u.filename.filename_len = tmpfile.path_len();
+        payload.dtn_bundle_payload_t_u.filename.filename_val =
+            (char*)tmpfile.path();
+        payload.dtn_bundle_payload_t_u.filename.filename_len =
+            tmpfile.path_len();
         tmpfile.close();
         
     } else {

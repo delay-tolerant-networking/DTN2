@@ -576,6 +576,7 @@ dtn_set_payload(dtn_bundle_payload_t* payload,
         payload->dtn_bundle_payload_t_u.buf.buf_len = len;
         break;
     case DTN_PAYLOAD_FILE:
+    case DTN_PAYLOAD_TEMP_FILE:
         payload->dtn_bundle_payload_t_u.filename.filename_val = val;
         payload->dtn_bundle_payload_t_u.filename.filename_len = len;
         break;

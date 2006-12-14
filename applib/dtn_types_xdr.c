@@ -18,8 +18,7 @@
  *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
- */
-
+*/
 
 /**********************************
  * This file defines the types used in the DTN client API. The structures are
@@ -39,12 +38,12 @@
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256 /* max endpoint_id size (bytes) */
-#define DTN_MAX_PATH_LEN PATH_MAX /* max path length */
-#define DTN_MAX_EXEC_LEN ARG_MAX /* length of string passed to exec() */
-#define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
-#define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
-#define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
+#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
+#define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
+#define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
+#define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
+#define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
+#define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -236,8 +235,16 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
  * in which case the payload structure contains the filename, or in
  * memory where the struct has the actual data.
  *
+ * If the location specifies that the payload is in a temp file, then
+ * the daemon assumes ownership of the file and should have sufficient
+ * permissions to move or rename it.
+ * 
  * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
  * bundle payload that can be sent or received in memory.
+ *
+ *     DTN_PAYLOAD_MEM		- copy contents from memory
+ *     DTN_PAYLOAD_FILE	- file copy the contents of the file
+ *     DTN_PAYLOAD_TEMP_FILE	- assume ownership of the file
  */
 
 bool_t
@@ -259,6 +266,7 @@ xdr_dtn_bundle_payload_t (XDR *xdrs, dtn_bundle_payload_t *objp)
 		 return FALSE;
 	switch (objp->location) {
 	case DTN_PAYLOAD_FILE:
+	case DTN_PAYLOAD_TEMP_FILE:
 		 if (!xdr_bytes (xdrs, (char **)&objp->dtn_bundle_payload_t_u.filename.filename_val, (u_int *) &objp->dtn_bundle_payload_t_u.filename.filename_len, DTN_MAX_PATH_LEN))
 			 return FALSE;
 		break;
@@ -286,20 +294,6 @@ xdr_dtn_bundle_id_t (XDR *xdrs, dtn_bundle_id_t *objp)
 	 if (!xdr_u_int (xdrs, &objp->creation_secs))
 		 return FALSE;
 	 if (!xdr_u_int (xdrs, &objp->creation_subsecs))
-		 return FALSE;
-	return TRUE;
-}
-
-/**
- * Bundle authentication data. TBD
- */
-
-bool_t
-xdr_dtn_bundle_auth_t (XDR *xdrs, dtn_bundle_auth_t *objp)
-{
-	register int32_t *buf;
-
-	 if (!xdr_bytes (xdrs, (char **)&objp->blob.blob_val, (u_int *) &objp->blob.blob_len, DTN_MAX_AUTHDATA))
 		 return FALSE;
 	return TRUE;
 }

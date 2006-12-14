@@ -27,8 +27,7 @@ extern "C" {
  *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
- */
-
+*/
 
 /**********************************
  * This file defines the types used in the DTN client API. The structures are
@@ -48,12 +47,12 @@ extern "C" {
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256 /* max endpoint_id size (bytes) */
-#define DTN_MAX_PATH_LEN PATH_MAX /* max path length */
-#define DTN_MAX_EXEC_LEN ARG_MAX /* length of string passed to exec() */
-#define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
-#define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
-#define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
+#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
+#define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
+#define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
+#define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
+#define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
+#define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -196,13 +195,22 @@ typedef struct dtn_bundle_spec_t dtn_bundle_spec_t;
  * in which case the payload structure contains the filename, or in
  * memory where the struct has the actual data.
  *
+ * If the location specifies that the payload is in a temp file, then
+ * the daemon assumes ownership of the file and should have sufficient
+ * permissions to move or rename it.
+ * 
  * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
  * bundle payload that can be sent or received in memory.
+ *
+ *     DTN_PAYLOAD_MEM		- copy contents from memory
+ *     DTN_PAYLOAD_FILE	- file copy the contents of the file
+ *     DTN_PAYLOAD_TEMP_FILE	- assume ownership of the file
  */
 
 enum dtn_bundle_payload_location_t {
 	DTN_PAYLOAD_FILE = 0,
 	DTN_PAYLOAD_MEM = 1,
+	DTN_PAYLOAD_TEMP_FILE = 2,
 };
 typedef enum dtn_bundle_payload_location_t dtn_bundle_payload_location_t;
 
@@ -232,18 +240,6 @@ struct dtn_bundle_id_t {
 };
 typedef struct dtn_bundle_id_t dtn_bundle_id_t;
 
-/**
- * Bundle authentication data. TBD
- */
-
-struct dtn_bundle_auth_t {
-	struct {
-		u_int blob_len;
-		char *blob_val;
-	} blob;
-};
-typedef struct dtn_bundle_auth_t dtn_bundle_auth_t;
-
 /* the xdr functions */
 
 #if defined(__STDC__) || defined(__cplusplus)
@@ -259,7 +255,6 @@ extern  bool_t xdr_dtn_bundle_spec_t (XDR *, dtn_bundle_spec_t*);
 extern  bool_t xdr_dtn_bundle_payload_location_t (XDR *, dtn_bundle_payload_location_t*);
 extern  bool_t xdr_dtn_bundle_payload_t (XDR *, dtn_bundle_payload_t*);
 extern  bool_t xdr_dtn_bundle_id_t (XDR *, dtn_bundle_id_t*);
-extern  bool_t xdr_dtn_bundle_auth_t (XDR *, dtn_bundle_auth_t*);
 
 #else /* K&R C */
 extern bool_t xdr_dtn_endpoint_id_t ();
@@ -274,7 +269,6 @@ extern bool_t xdr_dtn_bundle_spec_t ();
 extern bool_t xdr_dtn_bundle_payload_location_t ();
 extern bool_t xdr_dtn_bundle_payload_t ();
 extern bool_t xdr_dtn_bundle_id_t ();
-extern bool_t xdr_dtn_bundle_auth_t ();
 
 #endif /* K&R C */
 
