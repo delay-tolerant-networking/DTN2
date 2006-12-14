@@ -61,12 +61,12 @@ Bundle::init(u_int32_t id)
 }
 
 //----------------------------------------------------------------------
-Bundle::Bundle()
+Bundle::Bundle(BundlePayload::location_t location)
     : payload_(&lock_), fwdlog_(&lock_)
 {
     u_int32_t id = GlobalStore::instance()->next_bundleid();
     init(id);
-    payload_.init(id);
+    payload_.init(id, location);
     refcount_	      = 0;
     expiration_timer_ = NULL;
     freed_	      = false;
