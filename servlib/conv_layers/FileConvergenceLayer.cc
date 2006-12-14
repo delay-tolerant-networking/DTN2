@@ -303,6 +303,10 @@ FileConvergenceLayer::Scanner::Scanner(int secs_per_scan,
 void
 FileConvergenceLayer::Scanner::run()
 {
+    // XXX/demmer fix me 
+    NOTIMPLEMENTED;
+    
+    /*
     FileHeader filehdr;
     DIR* dir = opendir(dir_.c_str());
     struct dirent* dirent;
@@ -315,7 +319,7 @@ FileConvergenceLayer::Scanner::run()
         log_err("error in opendir");
         return;
     }
-    
+
     while (run_) {
         seekdir(dir, 0);
 
@@ -420,6 +424,7 @@ FileConvergenceLayer::Scanner::run()
             
         sleep(secs_per_scan_);
     }
+    */
     log_info("exiting");
 }
 

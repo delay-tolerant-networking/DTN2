@@ -78,9 +78,6 @@ BundleActions::send_bundle(Bundle* bundle, Link* link,
     BlockInfoVec* blocks = BundleProtocol::prepare_blocks(bundle, link);
     size_t total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
 
-    ASSERT(blocks->size() > 2 ||
-           total_len == BundleProtocol::formatted_length(bundle));
-    
     log_debug("send bundle *%p to %s link %s (%s) (total len %zu)",
               bundle, link->type_str(), link->name(), link->nexthop(),
               total_len);

@@ -38,11 +38,6 @@ class Link;
  */
 class BundleProtocol {
 public:
-    //----------------------------------------------------------------------
-    //
-    // XXX: NEW INTERFACE TO THE BUNDLE PROTOCOL CLASS
-    //
-
     /**
      * Register a new BlockProcessor handler to handle the given block
      * type code when received off the wire.
@@ -138,113 +133,6 @@ public:
     static bool validate(Bundle* bundle,
                          status_report_reason_t* reception_reason,
                          status_report_reason_t* deletion_reason);
-
-private:
-    /**
-     * Array of registered BlockProcessor handlers -- fixed size since
-     * there can be at most one handler per protocol type
-     */
-    static BlockProcessor* processors_[256];
-    
-    //
-    //----------------------------------------------------------------------
-public:
-
-    /**
-     * Fill in the given buffer with the formatted bundle blocks that
-     * should go before the payload data, including the payload block
-     * header (i.e. typecode, flags, and length) but none of the
-     * payload data.
-     *
-     * @return the total length of the formatted blocks or -1 on error
-     * (i.e. too small of a buffer)
-     */
-    static int format_header_blocks(const Bundle* bundle,
-                                    u_char* buf, size_t len);
-    
-    /**
-     * Parse the received blocks, filling in the bundle with the
-     * relevant data if successful. This succeeds iff the buffer
-     * contains a payload block header, and returns the length of all
-     * blocks up to the first byte of payload data.
-     *
-     * Note that this implementation doesn't support sizes bigger than
-     * 4GB for the headers.
-     *
-     * @return the length of the header blocks or -1 on error (i.e.
-     * not enough data in buffer)
-     */
-    static int parse_header_blocks(Bundle* bundle,
-                                   u_char* buf, size_t len);
-
-    /**
-     * Fill in the given buffer with the formatted bundle blocks that
-     * should go after the payload data.
-     *
-     * @return the total length of the formatted blocks or -1 on error
-     * (i.e. too small of a buffer)
-     */
-    static int format_tail_blocks(const Bundle* bundle,
-                                  u_char* buf, size_t len)
-    {
-        (void)bundle;
-        (void)buf;
-        (void)len;
-            
-        return 0; // no trailing blocks implemented yet
-    }
-    
-    /**
-     * Parse the blocks received after the payload data, filling in
-     * the bundle with the relevant data if successful.
-     *
-     * @return the length of the header blocks or -1 on error (i.e.
-     * not enough data in buffer)
-     */
-    static int parse_tail_blocks(Bundle* bundle,
-                                 u_char* buf, size_t len)
-    {
-        (void)bundle;
-        (void)buf;
-        (void)len;
-        return 0;
-    }
-    
-    /**
-     * Return the length of the header blocks.
-     */
-    static size_t header_block_length(const Bundle* bundle);
-    
-    /**
-     * Return the length of the tail blocks.
-     */
-    static size_t tail_block_length(const Bundle* bundle)
-    {
-        (void)bundle;
-        return 0;
-    }
-    
-    /**
-     * Return the length of the on-the-wire bundle protocol format for
-     * the whole bundle, i.e. 
-     */
-    static size_t formatted_length(const Bundle* bundle);
-    
-    /**
-     * Format the whole bundle, stuffing it in the supplied buffer.
-     *
-     * @return the total length of the formatted bundle or -1 on error
-     * (i.e. too small of a buffer)
-     */
-    static int format_bundle(const Bundle* bundle, u_char* buf, size_t len);
-
-    /**
-     * Parse a whole bundle.
-     *
-     * @return the total length of the parsed bundle or -1 on error
-     * (i.e. too small of a buffer)
-     */
-    static int parse_bundle(Bundle* bundle, u_char* buf, size_t len);
 
     /**
      * Store a DTN timestamp into a 64-bit value suitable for
@@ -366,6 +254,14 @@ public:
      */
     static bool get_admin_type(const Bundle* bundle,
                                admin_record_type_t* type);
+
+private:
+    /**
+     * Array of registered BlockProcessor handlers -- fixed size since
+     * there can be at most one handler per protocol type
+     */
+    static BlockProcessor* processors_[256];
+
 };
 
 } // namespace dtn
