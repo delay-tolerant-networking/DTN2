@@ -34,57 +34,19 @@ double Simulator::runtill_ = -1;
 
 
 Simulator::Simulator(DTNStorageConfig* storage_config) 
-    : Logger("Simulator", "/dtnsim/main"), 
+    : DTNServer("/dtnsim/sim", storage_config), 
       eventq_(),
-      storage_config_(storage_config),
       store_(0)
 {
-}
+    Logger::classname_ = "Simulator";
 
-bool
-Simulator::init_datastore()
-{
     // override defaults from oasys storage config
-    storage_config_->db_max_tx_ = 1000;
-    storage_config_->init_ = true;
-    storage_config_->leave_clean_file_ = false;
-	
-    store_ = new oasys::DurableStore("/dtn/storage");
-    int err = store_->create_store(*storage_config_);
-    if (err != 0) {
-        log_crit("error creating storage system");
-        return false;
-    }
-	
-    if ((GlobalStore::init(*storage_config_, store_)		!= 0) || 
-        (BundleStore::init(*storage_config_, store_)		!= 0) ||
-        //(LinkStore::init(*storage_config_, store_)			!= 0) ||
-        (RegistrationStore::init(*storage_config_, store_)	!= 0))
-    {
-        log_crit("error initializing data store");
-        return false;
-    }
-
-    // load in the global store here since that will check the
-    // database version and exit if there's a mismatch
-    if (!GlobalStore::instance()->load()) {
-        return false;
-    }
-	
-    return true;	
-}	
-
-void
-Simulator::close_datastore()
-{
-    log_notice("closing data store");
-    
-    RegistrationStore::instance()->close();
-    //LinkStore::instance()->close();
-    BundleStore::instance()->close();
-    GlobalStore::instance()->close();
-
-    delete_z(store_);
+    storage_config->type_ = "memorydb";
+    storage_config->init_ = true;
+    storage_config->tidy_ = true;
+    storage_config->tidy_wait_ = 0;
+    storage_config->leave_clean_file_ = false;
+    storage_config->payload_dir_ = "/tmp/dtnsim_payloads";
 }
 
 void

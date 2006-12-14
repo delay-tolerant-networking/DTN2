@@ -146,17 +146,17 @@ main(int argc, char** argv)
     interp->reg(new SimCommand());
     log_info_p("/dtsim","registered dtnsim commands");
 
-    // initializing data store to memorydb
-    if (!Simulator::instance()->init_datastore()) {
-        log_err_p("/dtnsim", "error initializing data store, exiting...");
-        exit(1);
-    }
-	
     SchemeTable::create();
     SimConvergenceLayer::init();
     ConvergenceLayer::add_clayer(SimConvergenceLayer::instance());
     BundleProtocol::init_default_processors();
     log_info_p("/dtsim","intialized dtnsim components");
+	
+    // initializing data store to memorydb
+    if (!Simulator::instance()->init_datastore()) {
+        log_err_p("/dtnsim", "error initializing data store, exiting...");
+        exit(1);
+    }
 	
     log_info_p("/dtsim","parsing configuration file %s...", conf_file.c_str());
     if (interp->exec_file(conf_file.c_str()) != 0) {

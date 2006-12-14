@@ -18,18 +18,17 @@
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
 
+#include "DTNServer.h"
 #include "SimEvent.h"
 #include "SimEventHandler.h"
 #include "storage/DTNStorageConfig.h"
-
-#include <oasys/storage/MemoryStore.h>
 
 namespace dtnsim {
 
 /**
  * The main simulator class. This defines the main event loop
  */
-class Simulator : public oasys::Logger, public SimEventHandler {
+class Simulator : public DTNServer, public SimEventHandler {
 public:
     /**
      * Singleton instance accessor.
@@ -80,10 +79,6 @@ public:
     
     static double runtill_;		///< time to end the simulation
     
-    DTNStorageConfig* storage_config() { return storage_config_; }
-    bool init_datastore();
-    void close_datastore();
-	
 protected:
     static Simulator* instance_;	///< singleton instance
     void process(SimEvent* e);		///< virtual from SimEventHandler
@@ -100,7 +95,6 @@ private:
                         std::vector<SimEvent*>,
                         SimEventCompare> eventq_;
 	
-    DTNStorageConfig*    storage_config_;
     oasys::DurableStore* store_;
 };
 

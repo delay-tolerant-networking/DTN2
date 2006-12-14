@@ -95,14 +95,12 @@ TrAgent::process(SimEvent* e)
 void
 TrAgent::send_bundle()
 {
-    Bundle* b = new Bundle(oasys::Builder::builder());
+    Bundle* b = new Bundle(BundlePayload::NODATA);
 	
     //oasys::StaticStringBuffer<1024> buf;
     //b->format_verbose(&buf);
     //log_multiline(oasys::LOG_DEBUG, buf.c_str());
 	
-    b->bundleid_ = node_->next_bundleid();
-    b->payload_.init(b->bundleid_, BundlePayload::NODATA);
     b->source_.assign(src_);
     b->replyto_.assign(src_);
     b->custodian_.assign(EndpointID::NULL_EID());

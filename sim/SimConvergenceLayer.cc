@@ -114,22 +114,48 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 
     ASSERT(src_node != dst_node);
 
-    size_t len;
     bool reliable = info->params_.reliable_;
-	
-    //len = bundle->payload_.length();
-    len = BundleProtocol::formatted_length(bundle);
-	
+
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(contact->link());
+    ASSERT(blocks != NULL);
+
+    // since we don't really have any payload to send, we find the
+    // payload block and overwrite the data_length to be zero, then
+    // adjust the payload_ on the new bundle
+    if (bundle->payload_.location() == BundlePayload::NODATA) {
+        BlockInfo* payload = const_cast<BlockInfo*>(
+            blocks->find_block(BundleProtocol::PAYLOAD_BLOCK));
+        ASSERT(payload != NULL);
+        payload->set_data_length(0);
+    }
+    
+    bool complete = false;
+    size_t len = BundleProtocol::produce(bundle, blocks,
+                                         buf_, 0, sizeof(buf_),
+                                         &complete);
+    ASSERTF(complete, "BundleProtocol non-payload blocks must fit in "
+            "65 K buffer size");
+
+    size_t total_len = len + bundle->payload_.length();
+
+    complete = false;
+    Bundle* new_bundle = new Bundle(bundle->payload_.location());
+    int cc = BundleProtocol::consume(new_bundle, buf_, len, &complete);
+    ASSERT(cc == (int)len);
+    ASSERT(complete);
+
+    if (bundle->payload_.location() == BundlePayload::NODATA) {
+        new_bundle->payload_.set_length(bundle->payload_.length());
+    }
+            
     BundleTransmittedEvent* tx_event =
         new BundleTransmittedEvent(bundle, contact, contact->link(),
-                                   len, reliable ? len : 0);
-
+                                   total_len, reliable ? total_len : 0);
     Simulator::post(new SimRouterEvent(Simulator::time(),
                                        src_node, tx_event));
 
     BundleReceivedEvent* rcv_event =
-        new BundleReceivedEvent(bundle, EVENTSRC_PEER, len);
-    
+        new BundleReceivedEvent(bundle, EVENTSRC_PEER, total_len);
     Simulator::post(new SimRouterEvent(Simulator::time(),
                                        dst_node, rcv_event));
 }

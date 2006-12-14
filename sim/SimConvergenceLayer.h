@@ -57,6 +57,7 @@ public:
     
 protected:
     static SimConvergenceLayer* instance_;
+    u_char buf_[65536];
 };
 
 } // namespace dtnsim

@@ -106,22 +106,6 @@ public:
         return (Node*)instance_;
     }
 
-    /**
-     * Return the next available bundle id.
-     */
-    u_int32_t next_bundleid()
-    {
-        return next_bundleid_++;
-    }
-
-    /**
-     * Return the next available registration id.
-     */
-    u_int32_t next_regid()
-    {
-        return next_regid_++;
-    }
-
 protected:
     const std::string   name_;
     u_int32_t		next_bundleid_;

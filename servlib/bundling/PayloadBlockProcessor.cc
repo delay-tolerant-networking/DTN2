@@ -57,6 +57,13 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
         ASSERT(len == 0);
     }
 
+    // Special case for the simulator -- if the payload location is
+    // NODATA, then we're done.
+    if (bundle->payload_.location() == BundlePayload::NODATA) {
+        block->set_complete(true);
+        return consumed;
+    }
+
     // If there's nothing left to do, we can bail for now, though we
     // need to be careful to properly set the complete bit to both
     // handle zero-length bundles and partially received preambles

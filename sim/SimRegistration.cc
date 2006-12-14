@@ -23,13 +23,15 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleEvent.h"
+#include "storage/GlobalStore.h"
 
 using namespace dtn;
 
 namespace dtnsim {
 
 SimRegistration::SimRegistration(Node* node, const EndpointID& endpoint)
-    : Registration(node->next_regid(), endpoint, DEFER, 0), node_(node)
+    : Registration(GlobalStore::instance()->next_regid(),
+                   endpoint, DEFER, 0), node_(node)
 {
     logpathf("/reg/%s/%d", node->name(), regid_);
 

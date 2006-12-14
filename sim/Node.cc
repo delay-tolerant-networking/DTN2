@@ -29,8 +29,7 @@ using namespace dtn;
 namespace dtnsim {
 
 Node::Node(const char* name)
-    : BundleDaemon(), name_(name),
-      next_bundleid_(0), next_regid_(Registration::MAX_RESERVED_REGID)
+    : BundleDaemon(), name_(name)
 {
     logpathf("/node/%s", name);
     log_info("node %s initializing...", name);
