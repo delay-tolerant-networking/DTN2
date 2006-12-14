@@ -213,8 +213,48 @@ BundlePayload::copy_file(oasys::FileIOClient* dst)
 {
     pin_file();
     file_.lseek(0, SEEK_SET);
-    file_.copy_contents(length(), dst);
+    file_.copy_contents(dst, length());
     unpin_file();
+}
+
+//----------------------------------------------------------------------
+bool
+BundlePayload::replace_with_file(const char* path)
+{
+    std::string payload_path = file_.path();
+    file_.unlink();
+    int err = ::link(path, payload_path.c_str());
+    if (err == 0) {
+        file_.set_path(payload_path);
+        log_debug("replace_with_file: successfully created link to %s",
+                  path);
+        return true;
+    }
+
+    err = errno;
+    if (err == EXDEV) {
+        // copy the contents if they're on different filesystems
+        log_debug("replace_with_file: link failed: %s", strerror(err));
+        
+        oasys::FileIOClient src;
+        int fd = src.open(path, O_RDONLY, &err);
+        if (fd < 0) {
+            log_err("error opening path '%s' for reading: %s",
+                    path, strerror(err));
+            return false;
+        }
+        
+        file_.set_path(payload_path);
+        pin_file();
+        src.copy_contents(&file_);
+        unpin_file();
+        src.close();
+        return true;
+    }
+
+    log_err("error linking to path '%s': %s",
+            path, strerror(err));
+    return false;
 }
     
 //----------------------------------------------------------------------

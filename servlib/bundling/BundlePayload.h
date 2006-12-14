@@ -119,6 +119,12 @@ public:
      * Copy (or link) the payload to the given file client object
      */
     void copy_file(oasys::FileIOClient* dst);
+
+    /**
+     * Replace the underlying file with a hard link to the given path
+     * or a copy of the file contents if the link can't be created.
+     */
+    bool replace_with_file(const char* path);
     
     /**
      * Get a pointer to the in-memory data buffer.
