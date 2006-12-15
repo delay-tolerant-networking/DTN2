@@ -57,9 +57,9 @@ new_bundle()
     return b;
 }
 
-#define NO_CHUNKS      1
+#define ONE_CHUNK      1
 #define ONEBYTE_CHUNKS 2
-#define RANDOM_CHUNKS  3 
+#define RANDOM_CHUNKS  3
 
 int
 protocol_test(Bundle* b1, int chunks)
@@ -74,58 +74,82 @@ protocol_test(Bundle* b1, int chunks)
 
     Bundle* b2;
 
-    if (chunks == NO_CHUNKS) {
-        encode_len = BundleProtocol::format_bundle(b1, buf, sizeof(buf));
-    } else {
-        BlockInfoVec* blocks = BundleProtocol::prepare_blocks(b1, NULL);
-        encode_len = BundleProtocol::generate_blocks(b1, blocks, NULL);
-        
-        bool complete = false;
-        int produce_len = 0;
-        do {
-            size_t chunk_size =
-                (chunks == ONEBYTE_CHUNKS) ? 1 : oasys::Random::rand(AVG_CHUNK);
-            
-            size_t cc = BundleProtocol::produce(b1, blocks,
-                                                &buf[produce_len],
-                                                produce_len,
-                                                chunk_size,
-                                                &complete);
-            
-            ASSERT((cc == chunk_size) || complete);
-            produce_len += cc;
-            ASSERT(produce_len <= encode_len);
-        } while (!complete);
+    BlockInfoVec* blocks = BundleProtocol::prepare_blocks(b1, NULL);
+    encode_len = BundleProtocol::generate_blocks(b1, blocks, NULL);
+    
+    bool complete = false;
+    int produce_len = 0;
+    do {
+        size_t chunk_size;
+        switch(chunks) {
+        case ONE_CHUNK:
+            chunk_size = encode_len;
+            ASSERT(encode_len < (int)sizeof(buf));
+            break;
 
-        ASSERT(produce_len == encode_len);
-    }
+        case ONEBYTE_CHUNKS:
+            chunk_size = 1;
+            break;
+
+        case RANDOM_CHUNKS:
+            chunk_size = oasys::Random::rand(AVG_CHUNK);
+            break;
+
+        default:
+            NOTREACHED;
+        }
+            
+        size_t cc = BundleProtocol::produce(b1, blocks,
+                                            &buf[produce_len],
+                                            produce_len,
+                                            chunk_size,
+                                            &complete);
+            
+        ASSERT((cc == chunk_size) || complete);
+        produce_len += cc;
+        ASSERT(produce_len <= encode_len);
+    } while (!complete);
+    
+    ASSERT(produce_len == encode_len);
     CHECK(encode_len > 0);
-
+    
     // extract the payload before we swing the payload directory
     b1->payload_.read_data(0, b1->payload_.length(),
                            payload1, BundlePayload::FORCE_COPY);
         
     b2 = new_bundle();
 
-    if (chunks == NO_CHUNKS) {
-        decode_len = BundleProtocol::parse_bundle(b2, buf, encode_len);
-    } else {
-        bool complete = false;
-        decode_len = 0;
-        do {
-            size_t chunk_size =
-                (chunks == ONEBYTE_CHUNKS) ? 1 : oasys::Random::rand(AVG_CHUNK);
-            
-            int cc = BundleProtocol::consume(b2,
-                                             &buf[decode_len],
-                                             chunk_size,
-                                             &complete);
+    complete = false;
+    decode_len = 0;
+    do {
+        size_t chunk_size;
+        switch(chunks) {
+        case ONE_CHUNK:
+            chunk_size = encode_len;
+            ASSERT(encode_len < (int)sizeof(buf));
+            break;
 
-            ASSERT((cc == (int)chunk_size) || complete);
-            decode_len += cc;
-            ASSERT(decode_len <= encode_len);
-        } while (!complete);
-    }
+        case ONEBYTE_CHUNKS:
+            chunk_size = 1;
+            break;
+
+        case RANDOM_CHUNKS:
+            chunk_size = oasys::Random::rand(AVG_CHUNK);
+            break;
+
+        default:
+            NOTREACHED;
+        }
+            
+        int cc = BundleProtocol::consume(b2,
+                                         &buf[decode_len],
+                                         chunk_size,
+                                         &complete);
+        
+        ASSERT((cc == (int)chunk_size) || complete);
+        decode_len += cc;
+        ASSERT(decode_len <= encode_len);
+    } while (!complete);
 
     CHECK_EQUAL(decode_len, encode_len);
 
@@ -163,8 +187,8 @@ protocol_test(Bundle* b1, int chunks)
     }
     CHECK(payload_ok);
 
-    // check extension blocks (doesn't work w/o chunks)
-    if (chunks != NO_CHUNKS && b1->recv_blocks_.size() != 0)
+    // check extension blocks
+    if (b1->recv_blocks_.size() != 0)
     {
         for (BlockInfoVec::iterator iter = b1->recv_blocks_.begin();
              iter != b1->recv_blocks_.end();
@@ -224,8 +248,8 @@ DECLARE_TEST(Init) {
 }
 
 #define DECLARE_BP_TESTS(_what)                                 \
-DECLARE_TEST(_what ## NoChunks) {                               \
-    return protocol_test(init_ ## _what (), NO_CHUNKS);         \
+DECLARE_TEST(_what ## OneChunk) {                               \
+    return protocol_test(init_ ## _what (), ONE_CHUNK);         \
 }                                                               \
                                                                 \
 DECLARE_TEST(_what ## OneByteChunks) {                          \
@@ -237,7 +261,7 @@ DECLARE_TEST(_what ## RandomChunks) {                           \
 }                                                               \
 
 #define ADD_BP_TESTS(_what)                     \
-ADD_TEST(_what ## NoChunks);                    \
+ADD_TEST(_what ## OneChunk);                    \
 ADD_TEST(_what ## OneByteChunks);               \
 ADD_TEST(_what ## RandomChunks);
 
@@ -398,6 +422,9 @@ DECLARE_TESTER(BundleProtocolTest) {
 int
 main(int argc, const char** argv)
 {
+    BundleProtocolTest t("bundle protocol test");
+    t.init_logging(argc, argv);
+    
     system("rm -rf .bundle-protocol-test");
     system("mkdir  .bundle-protocol-test");
 
@@ -406,13 +433,12 @@ main(int argc, const char** argv)
     cfg.payload_dir_.assign(".bundle-protocol-test");
     cfg.leave_clean_file_ = false;
 
-    Log::init();
+    
     oasys::DurableStore ds("/test/ds");
     ds.create_store(cfg);
     
     BundleStore::init(cfg, &ds);
     
-    BundleProtocolTest t("bundle protocol test");
     t.run_tests(argc, argv, false);
 
     system("rm -rf .bundle-protocol-test");
