@@ -1473,7 +1473,7 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
                  (u_int)bundle->creation_ts_.seqno_,
                  BundleTimestamp::TIMEVAL_CONVERSION,
                  (u_int)now.tv_sec, (u_int)now.tv_usec);
-        
+        expiration_time = now;
         ok_to_route = false;
     }
 
