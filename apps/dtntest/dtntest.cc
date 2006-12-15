@@ -290,6 +290,10 @@ public:
         size_t payload_data_len_;
         char   payload_file_[DTN_MAX_PATH_LEN];
         size_t payload_file_len_;
+        u_int  block_type_;
+        u_int  block_flags_;
+        char   block_content_[DTN_MAX_BLOCK_LEN];
+        size_t block_content_len_;
     };
 
     // we use a single parser and options struct for the command for
@@ -331,6 +335,12 @@ public:
                                              opts_.payload_file_,
                                              &opts_.payload_file_len_,
                                              sizeof(opts_.payload_file_)));
+        parser_.addopt(new oasys::UIntOpt("block_type", &opts_.block_type_));
+        parser_.addopt(new oasys::UIntOpt("block_flags", &opts_.block_flags_));
+        parser_.addopt(new oasys::CharBufOpt("block_content",
+                                             opts_.block_content_,
+                                             &opts_.block_content_len_,
+                                             sizeof(opts_.block_content_)));
     }
     
     int exec(int argc, const char **argv,  Tcl_Interp* interp)
@@ -403,6 +413,20 @@ public:
 
         }
 
+        dtn_extension_block_t block;
+        memset(&block, 0, sizeof(block));
+        if (opts_.block_type_ > 0 && opts_.block_type_ < 255) {
+            block.type = opts_.block_type_;
+	    if (opts_.block_flags_ < 255) {
+                block.flags = opts_.block_flags_;
+            }
+            block.data.data_len = opts_.block_content_len_;
+            block.data.data_val = opts_.block_content_;
+
+            spec.blocks.blocks_len = 1;
+            spec.blocks.blocks_val = &block;
+        }
+	
         dtn_bundle_id_t id;
         memset(&id, 0, sizeof(id));
         
