@@ -122,19 +122,20 @@ DECLARE_TESTER(BundlePayloadTester) {
 int
 main(int argc, const char** argv)
 {
+    BundlePayloadTester t("bundle payload test");
+    t.init(argc, argv, true);
+    
     system("rm -rf .bundle-payload-test");
     system("mkdir  .bundle-payload-test");
     DTNStorageConfig cfg("", "memorydb", "", "");
     cfg.init_ = true;
     cfg.payload_dir_.assign(".bundle-payload-test");
     cfg.leave_clean_file_ = false;
-    Log::init();
     oasys::DurableStore ds("/test/ds");
     ds.create_store(cfg);
     BundleStore::init(cfg, &ds);
     
-    BundlePayloadTester t("bundle payload test");
-    t.run_tests(argc, argv, false);
+    t.run_tests();
 
     system("rm -rf .bundle-payload-test");
 }

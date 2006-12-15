@@ -423,7 +423,7 @@ int
 main(int argc, const char** argv)
 {
     BundleProtocolTest t("bundle protocol test");
-    t.init_logging(&argc, &argv);
+    t.init(argc, argv, true);
     
     system("rm -rf .bundle-protocol-test");
     system("mkdir  .bundle-protocol-test");
@@ -433,13 +433,12 @@ main(int argc, const char** argv)
     cfg.payload_dir_.assign(".bundle-protocol-test");
     cfg.leave_clean_file_ = false;
 
-    
     oasys::DurableStore ds("/test/ds");
     ds.create_store(cfg);
     
     BundleStore::init(cfg, &ds);
     
-    t.run_tests(argc, argv, false);
+    t.run_tests();
 
     system("rm -rf .bundle-protocol-test");
 }
