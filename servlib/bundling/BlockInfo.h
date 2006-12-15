@@ -77,7 +77,7 @@ public:
 
 protected:
     BlockProcessor*  owner_;       ///< Owner of this block
-    u_int8_t	     owner_type_;  ///< Extracted from owner
+    u_int16_t	     owner_type_;  ///< Extracted from owner
     const BlockInfo* source_;      ///< Owner of this block
     DataBuffer       contents_;    ///< Block contents with length set to
                                    ///  the amount currently in the buffer

@@ -176,6 +176,7 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("frag_offset", &frag_offset_);
     a->process("owner", &owner_);
     a->process("recv_blocks", &recv_blocks_);
+    a->process("api_blocks", &api_blocks_);
     
     // XXX/TODO serialize the forwarding log and make sure it's
     // updated on disk as it changes in memory

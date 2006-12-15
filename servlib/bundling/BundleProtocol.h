@@ -175,9 +175,10 @@ public:
      * Valid type codes for bundle blocks.
      */
     typedef enum {
-        PRIMARY_BLOCK          = 0x00,	///< INTERNAL USE ONLY -- NOT IN SPEC
-        PAYLOAD_BLOCK          = 0x01, 
-        PREVIOUS_HOP_BLOCK     = 0x05,
+        PRIMARY_BLOCK          = 0x000,	///< INTERNAL USE ONLY -- NOT IN SPEC
+        PAYLOAD_BLOCK          = 0x001, 
+        PREVIOUS_HOP_BLOCK     = 0x005,
+        API_EXTENSION_BLOCK    = 0x100, ///< INTERNAL USE ONLY -- NOT IN SPEC
     } bundle_block_type_t;
 
     /**

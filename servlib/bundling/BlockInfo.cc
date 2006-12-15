@@ -17,6 +17,7 @@
 #include <oasys/debug/Log.h>
 #include "BlockInfo.h"
 #include "BlockProcessor.h"
+#include "APIBlockProcessor.h"
 #include "BundleProtocol.h"
 
 namespace dtn {
@@ -66,7 +67,7 @@ BlockInfo::type() const
 u_int8_t
 BlockInfo::flags() const
 {
-    if (owner_->block_type() == BundleProtocol::PRIMARY_BLOCK) {
+    if (type() == BundleProtocol::PRIMARY_BLOCK) {
         return 0x0;
     }
 
@@ -86,14 +87,14 @@ BlockInfo::set_flag(u_int8_t flag)
 bool
 BlockInfo::primary_block() const
 {
-    return (owner_->block_type() == BundleProtocol::PRIMARY_BLOCK);
+    return (type() == BundleProtocol::PRIMARY_BLOCK);
 }
 
 //----------------------------------------------------------------------
 bool
 BlockInfo::payload_block() const
 {
-    return (owner_->block_type() == BundleProtocol::PAYLOAD_BLOCK);
+    return (type() == BundleProtocol::PAYLOAD_BLOCK);
 }
 
 //----------------------------------------------------------------------
@@ -110,7 +111,11 @@ BlockInfo::serialize(oasys::SerializeAction* a)
     a->process("owner_type", &owner_type_);
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         // need to re-assign the owner
-        owner_ = BundleProtocol::find_processor(owner_type_);
+        if (owner_type_ == BundleProtocol::API_EXTENSION_BLOCK) {
+            owner_ = APIBlockProcessor::instance();
+        } else {
+            owner_ = BundleProtocol::find_processor(owner_type_);
+        }
     }
     ASSERT(owner_type_ == owner_->block_type());
     

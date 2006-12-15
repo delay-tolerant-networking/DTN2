@@ -77,10 +77,11 @@ BundleProtocol::prepare_blocks(Bundle* bundle, Link* link)
     // arrived on the link
     BlockInfoVec* xmit_blocks = bundle->xmit_blocks_.create_blocks(link);
     BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
+    BlockInfoVec* api_blocks = &bundle->api_blocks_;
 
     // if there is a received block, the first one better be the primary
     if (recv_blocks->size() > 0) {
-        ASSERT(recv_blocks->front().owner()->block_type() == PRIMARY_BLOCK);
+        ASSERT(recv_blocks->front().type() == PRIMARY_BLOCK);
     }
     
     for (BlockInfoVec::iterator iter = recv_blocks->begin();
@@ -106,6 +107,14 @@ BundleProtocol::prepare_blocks(Bundle* bundle, Link* link)
         if (! xmit_blocks->has_block(i)) {
             bp->prepare(bundle, link, xmit_blocks, NULL);
         }
+    }
+
+    // locally generated bundles need to include blocks specified at the API
+    for (BlockInfoVec::iterator iter = api_blocks->begin();
+         iter != api_blocks->end();
+         ++iter)
+    {
+        iter->owner()->prepare(bundle, link, xmit_blocks, &*iter);
     }
 
     return xmit_blocks;
@@ -183,7 +192,7 @@ BundleProtocol::payload_offset(const BlockInfoVec* blocks)
          iter != blocks->end();
          ++iter)
     {
-        if (iter->owner()->block_type() == PAYLOAD_BLOCK) {
+        if (iter->type() == PAYLOAD_BLOCK) {
             ret += iter->data_offset();
             return ret;
         }

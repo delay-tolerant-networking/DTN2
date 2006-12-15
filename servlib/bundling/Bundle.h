@@ -248,6 +248,7 @@ public:
     CustodyTimerVec custody_timers_; ///< Live custody timers for this bundle
 
     BlockInfoVec recv_blocks_;	///< BP blocks as they arrived off the wire
+    BlockInfoVec api_blocks_;	///< BP blocks as they arrived from API
     LinkBlockSet xmit_blocks_;	///< Block vector for each link
 protected:
     friend class BundleList;
