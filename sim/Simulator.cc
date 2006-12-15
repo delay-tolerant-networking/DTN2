@@ -46,7 +46,8 @@ Simulator::Simulator(DTNStorageConfig* storage_config)
     storage_config->tidy_ = true;
     storage_config->tidy_wait_ = 0;
     storage_config->leave_clean_file_ = false;
-    storage_config->payload_dir_ = "/tmp/dtnsim_payloads";
+    storage_config->payload_dir_ = std::string("/tmp/dtnsim_payloads_") +
+                                   getenv("USER");
 }
 
 void
