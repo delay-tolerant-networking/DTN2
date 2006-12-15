@@ -48,6 +48,12 @@ int wait_for_report     = 0;    // wait for bundle status reports
 char * data_source      = NULL; // filename or message, depending on type
 char date_buf[256];             // buffer for date payloads
 
+// extension block information
+int extension_block     = 0;
+u_int block_type        = 0;
+u_int block_flags       = BLOCK_FLAG_NONE;
+char * block_buf        = NULL;
+
 // specified options for bundle eids
 char * arg_replyto      = NULL;
 char * arg_source       = NULL;
@@ -76,6 +82,7 @@ main(int argc, char** argv)
     dtn_bundle_id_t bundle_id;
     dtn_bundle_payload_t send_payload;
     dtn_bundle_payload_t reply_payload;
+    dtn_extension_block_t block;
     struct timeval start, end;
     
     // force stdout to always be line buffered, even if output is
@@ -177,6 +184,18 @@ main(int argc, char** argv)
         bundle_spec.dopts |= DOPTS_RECEIVE_RCPT;
     }
     
+    // set extension block information
+    memset(&block, 0, sizeof(block));
+    if (extension_block == 1) {
+        block.type = block_type;
+        block.flags = block_flags;
+        block.data.data_len = strlen(block_buf);
+        block.data.data_val = block_buf;
+
+        bundle_spec.blocks.blocks_len = 1;
+        bundle_spec.blocks.blocks_val = &block;
+    }
+    
     // loop, sending sends and getting replies.
     for (i = 0; i < copies; ++i) {
         gettimeofday(&start, NULL);
@@ -226,6 +245,11 @@ main(int argc, char** argv)
     }
 
     dtn_close(handle);
+ 
+    if (block_buf != NULL) {
+        free(block_buf);
+        block_buf = NULL;
+    }
     
     return 0;
 }
@@ -254,6 +278,9 @@ void print_usage()
     fprintf(stderr, " -R request for bundle reception receipts\n");
     fprintf(stderr, " -F request for bundle forwarding receipts\n");
     fprintf(stderr, " -w wait for bundle status reports\n");
+    fprintf(stderr, " -E <int> include extension block and specify type\n");
+    fprintf(stderr, " -P <int> flag value(s) to include in extension block\n");
+    fprintf(stderr, " -S <string> extension block content\n");
     
     exit(1);
 }
@@ -267,7 +294,7 @@ void parse_options(int argc, char**argv)
 
     while (!done)
     {
-        c = getopt(argc, argv, "vhHr:s:d:e:n:woDXFRcCt:p:i:z:");
+        c = getopt(argc, argv, "vhHr:s:d:e:n:woDXFRcCt:p:i:z:E:P:S:");
         switch (c)
         {
         case 'v':
@@ -326,6 +353,16 @@ void parse_options(int argc, char**argv)
         case 'z':
             sleep_time = atoi(optarg);
             break;
+        case 'E':
+            extension_block = 1;
+            block_type = atoi(optarg);
+            break;
+        case 'P':
+            block_flags = atoi(optarg);
+            break;
+        case 'S':
+            block_buf = strdup(optarg);
+            break;
         case -1:
             done = 1;
             break;
@@ -364,6 +401,20 @@ void parse_options(int argc, char**argv)
         fprintf(stderr, "dtnsend: type argument '%d' invalid\n", arg_type);
         print_usage();
         exit(1);
+    }
+
+    if (extension_block == 1) {
+        if (block_type > 255) {
+            fprintf(stderr, "dtnsend: invalid block type %d\n", block_type);
+            print_usage();
+            exit(1);
+        }
+
+        if (block_flags > 255) {
+            fprintf(stderr, "dtnsend: invalid block flags %d\n", block_flags);
+            print_usage();
+            exit(1);
+        }
     }
 }
 
