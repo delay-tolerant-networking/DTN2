@@ -423,7 +423,7 @@ int
 main(int argc, const char** argv)
 {
     BundleProtocolTest t("bundle protocol test");
-    t.init_logging(argc, argv);
+    t.init_logging(&argc, &argv);
     
     system("rm -rf .bundle-protocol-test");
     system("mkdir  .bundle-protocol-test");
