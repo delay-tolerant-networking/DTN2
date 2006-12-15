@@ -38,12 +38,14 @@
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
+#define DTN_MAX_ENDPOINT_ID 256		/* max endpoint_id size (bytes) */
 #define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
 #define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
 #define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
 #define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
 #define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
+#define DTN_MAX_BLOCK_LEN 64		/* length of block data */
+#define DTN_MAX_BLOCKS 256		/* number of blocks in bundle */
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -207,6 +209,47 @@ xdr_dtn_bundle_delivery_opts_t (XDR *xdrs, dtn_bundle_delivery_opts_t *objp)
 }
 
 /**
+ * Extension block flags. Note that multiple flags may be selected
+ * for a given block.
+ *
+ *     BLOCK_FLAG_NONE          - no flags
+ *     BLOCK_FLAG_REPLICATE     - block must be replicated in every fragment
+ *     BLOCK_FLAG_REPORT        - transmit report if block can't be processed
+ *     BLOCK_FLAG_DELETE_BUNDLE - delete bundle if block can't be processed
+ *     BLOCK_FLAG_LAST          - last block
+ *     BLOCK_FLAG_DISCARD_BLOCK - discard block if it can't be processed
+ *     BLOCK_FLAG_UNPROCESSED   - block was forwarded without being processed
+ */
+
+bool_t
+xdr_dtn_extension_block_flags_t (XDR *xdrs, dtn_extension_block_flags_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
+}
+
+/**
+ * Extension block.
+ */
+
+bool_t
+xdr_dtn_extension_block_t (XDR *xdrs, dtn_extension_block_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_u_int (xdrs, &objp->type))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->flags))
+		 return FALSE;
+	 if (!xdr_bytes (xdrs, (char **)&objp->data.data_val, (u_int *) &objp->data.data_len, DTN_MAX_BLOCK_LEN))
+		 return FALSE;
+	return TRUE;
+}
+
+/**
  * Bundle metadata.
  */
 
@@ -226,6 +269,9 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 	 if (!xdr_int (xdrs, &objp->dopts))
 		 return FALSE;
 	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
+		 return FALSE;
+	 if (!xdr_array (xdrs, (char **)&objp->blocks.blocks_val, (u_int *) &objp->blocks.blocks_len, DTN_MAX_BLOCKS,
+		sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
 		 return FALSE;
 	return TRUE;
 }

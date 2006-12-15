@@ -47,12 +47,14 @@ extern "C" {
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
+#define DTN_MAX_ENDPOINT_ID 256		/* max endpoint_id size (bytes) */
 #define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
 #define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
 #define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
 #define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
 #define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
+#define DTN_MAX_BLOCK_LEN 64		/* length of block data */
+#define DTN_MAX_BLOCKS 256		/* number of blocks in bundle */
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -177,6 +179,44 @@ enum dtn_bundle_delivery_opts_t {
 typedef enum dtn_bundle_delivery_opts_t dtn_bundle_delivery_opts_t;
 
 /**
+ * Extension block flags. Note that multiple flags may be selected
+ * for a given block.
+ *
+ *     BLOCK_FLAG_NONE          - no flags
+ *     BLOCK_FLAG_REPLICATE     - block must be replicated in every fragment
+ *     BLOCK_FLAG_REPORT        - transmit report if block can't be processed
+ *     BLOCK_FLAG_DELETE_BUNDLE - delete bundle if block can't be processed
+ *     BLOCK_FLAG_LAST          - last block
+ *     BLOCK_FLAG_DISCARD_BLOCK - discard block if it can't be processed
+ *     BLOCK_FLAG_UNPROCESSED   - block was forwarded without being processed
+ */
+
+enum dtn_extension_block_flags_t {
+	BLOCK_FLAG_NONE = 0,
+	BLOCK_FLAG_REPLICATE = 1,
+	BLOCK_FLAG_REPORT = 2,
+	BLOCK_FLAG_DELETE_BUNDLE = 4,
+	BLOCK_FLAG_LAST = 8,
+	BLOCK_FLAG_DISCARD_BLOCK = 16,
+	BLOCK_FLAG_UNPROCESSED = 32,
+};
+typedef enum dtn_extension_block_flags_t dtn_extension_block_flags_t;
+
+/**
+ * Extension block.
+ */
+
+struct dtn_extension_block_t {
+	u_int type;
+	u_int flags;
+	struct {
+		u_int data_len;
+		char *data_val;
+	} data;
+};
+typedef struct dtn_extension_block_t dtn_extension_block_t;
+
+/**
  * Bundle metadata.
  */
 
@@ -187,6 +227,10 @@ struct dtn_bundle_spec_t {
 	dtn_bundle_priority_t priority;
 	int dopts;
 	dtn_timeval_t expiration;
+	struct {
+		u_int blocks_len;
+		dtn_extension_block_t *blocks_val;
+	} blocks;
 };
 typedef struct dtn_bundle_spec_t dtn_bundle_spec_t;
 
@@ -251,6 +295,8 @@ extern  bool_t xdr_dtn_reg_failure_action_t (XDR *, dtn_reg_failure_action_t*);
 extern  bool_t xdr_dtn_reg_info_t (XDR *, dtn_reg_info_t*);
 extern  bool_t xdr_dtn_bundle_priority_t (XDR *, dtn_bundle_priority_t*);
 extern  bool_t xdr_dtn_bundle_delivery_opts_t (XDR *, dtn_bundle_delivery_opts_t*);
+extern  bool_t xdr_dtn_extension_block_flags_t (XDR *, dtn_extension_block_flags_t*);
+extern  bool_t xdr_dtn_extension_block_t (XDR *, dtn_extension_block_t*);
 extern  bool_t xdr_dtn_bundle_spec_t (XDR *, dtn_bundle_spec_t*);
 extern  bool_t xdr_dtn_bundle_payload_location_t (XDR *, dtn_bundle_payload_location_t*);
 extern  bool_t xdr_dtn_bundle_payload_t (XDR *, dtn_bundle_payload_t*);
@@ -265,6 +311,8 @@ extern bool_t xdr_dtn_reg_failure_action_t ();
 extern bool_t xdr_dtn_reg_info_t ();
 extern bool_t xdr_dtn_bundle_priority_t ();
 extern bool_t xdr_dtn_bundle_delivery_opts_t ();
+extern bool_t xdr_dtn_extension_block_flags_t ();
+extern bool_t xdr_dtn_extension_block_t ();
 extern bool_t xdr_dtn_bundle_spec_t ();
 extern bool_t xdr_dtn_bundle_payload_location_t ();
 extern bool_t xdr_dtn_bundle_payload_t ();

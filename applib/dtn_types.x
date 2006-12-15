@@ -44,6 +44,8 @@
 %#define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
 %#define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
 %#define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
+%#define DTN_MAX_BLOCK_LEN 64           /* length of block data */
+%#define DTN_MAX_BLOCKS 256             /* number of blocks in bundle */
 
 %
 %/**
@@ -162,6 +164,39 @@ enum dtn_bundle_delivery_opts_t {
 
 %
 %/**
+% * Extension block flags. Note that multiple flags may be selected
+% * for a given block.
+% *
+% *     BLOCK_FLAG_NONE          - no flags
+% *     BLOCK_FLAG_REPLICATE     - block must be replicated in every fragment
+% *     BLOCK_FLAG_REPORT        - transmit report if block can't be processed
+% *     BLOCK_FLAG_DELETE_BUNDLE - delete bundle if block can't be processed
+% *     BLOCK_FLAG_LAST          - last block
+% *     BLOCK_FLAG_DISCARD_BLOCK - discard block if it can't be processed
+% *     BLOCK_FLAG_UNPROCESSED   - block was forwarded without being processed
+% */
+enum dtn_extension_block_flags_t {
+    BLOCK_FLAG_NONE          = 0,
+    BLOCK_FLAG_REPLICATE     = 1,
+    BLOCK_FLAG_REPORT        = 2,
+    BLOCK_FLAG_DELETE_BUNDLE = 4,
+    BLOCK_FLAG_LAST          = 8,
+    BLOCK_FLAG_DISCARD_BLOCK = 16,
+    BLOCK_FLAG_UNPROCESSED   = 32
+};
+
+%
+%/**
+% * Extension block.
+% */
+struct dtn_extension_block_t {
+    u_int                       type;
+    u_int                       flags;
+    opaque                      data<DTN_MAX_BLOCK_LEN>;
+};
+
+%
+%/**
 % * Bundle metadata.
 % */
 struct dtn_bundle_spec_t {
@@ -171,6 +206,7 @@ struct dtn_bundle_spec_t {
     dtn_bundle_priority_t	priority;
     int				dopts;
     dtn_timeval_t		expiration;
+    dtn_extension_block_t       blocks<DTN_MAX_BLOCKS>;
 };
 
 %

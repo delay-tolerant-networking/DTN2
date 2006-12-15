@@ -24,10 +24,12 @@
 #include <oasys/util/XDRUtils.h>
 
 #include "APIServer.h"
+#include "bundling/APIBlockProcessor.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleStatusReport.h"
+#include "bundling/SDNV.h"
 #include "cmd/APICommand.h"
 #include "reg/APIRegistration.h"
 #include "reg/RegistrationTable.h"
@@ -726,6 +728,30 @@ APIClient::handle_send()
     // expiration time
     b->expiration_ = spec.expiration;
 
+    for (u_int i = 0; i < spec.blocks.blocks_len; i++) {
+        dtn_extension_block_t* block = &spec.blocks.blocks_val[i];
+	    
+        b->api_blocks_.push_back(BlockInfo(APIBlockProcessor::instance()));
+        BlockInfo* info = &b->api_blocks_.back();
+
+        BundleProtocol::BlockPreamble* bp =
+            (BundleProtocol::BlockPreamble*)info->writable_contents()->buf();
+        bp->type = block->type;
+        bp->flags = block->flags;
+
+        size_t sdnv_len = SDNV::encoding_len(block->data.data_len);
+        SDNV::encode(block->data.data_len, &bp->length[0], sdnv_len);
+
+        info->set_data_length(block->data.data_len);
+        info->set_data_offset(sizeof(*bp) + sdnv_len);
+        info->writable_contents()->set_len(sizeof(*bp) + sdnv_len);
+
+        memcpy(bp + info->data_offset(),
+               block->data.data_val,
+               info->data_length());
+        info->writable_contents()->set_len(info->full_length());
+    }
+    
     // set up the payload, including calculating its length, but don't
     // copy it in yet
     size_t payload_len;
@@ -918,6 +944,8 @@ APIClient::handle_recv()
 
     // XXX/demmer copy delivery options and class of service fields
 
+    // XXX copy extension blocks
+    
     // XXX/demmer verify bundle size constraints
     payload.location = location;
     
