@@ -22,6 +22,7 @@
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 void
 BundleStatusReport::create_status_report(Bundle*           bundle,
                                          const Bundle*     orig_bundle,
@@ -150,10 +151,7 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
     bundle->payload_.set_data(scratch.buf(), report_length);
 }
 
-/**
- * Parse a byte stream containing a Status Report Payload and store
- * the fields in the given struct. Returns false if parsing failed.
- */
+//----------------------------------------------------------------------
 bool BundleStatusReport::parse_status_report(data_t* data,
                                              const u_char* bp, u_int len)
 {
@@ -257,6 +255,34 @@ bool BundleStatusReport::parse_status_report(data_t* data,
     }
     
     return true;
+}
+
+//----------------------------------------------------------------------
+bool
+BundleStatusReport::parse_status_report(data_t* data,
+                                        const Bundle* bundle)
+{
+    BundleProtocol::admin_record_type_t admin_type;
+    if (! BundleProtocol::get_admin_type(bundle, &admin_type)) {
+        return false;
+    }
+
+    if (admin_type != BundleProtocol::ADMIN_STATUS_REPORT) {
+        return false;
+    }
+
+    size_t payload_len = bundle->payload_.length();
+    if (payload_len > 16384) {
+        log_err_p("/dtn/bundle/protocol",
+                  "status report length %zu too big to be parsed!!",
+                  payload_len);
+        return false;
+    }
+
+    oasys::ScratchBuffer<u_char*, 256> buf;
+    buf.reserve(payload_len);
+    const u_char* bp = bundle->payload_.read_data(0, payload_len, buf.buf());
+    return parse_status_report(data, bp, payload_len);
 }
 
 //----------------------------------------------------------------------

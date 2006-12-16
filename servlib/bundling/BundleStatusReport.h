@@ -82,6 +82,13 @@ public:
                                     const u_char* bp, u_int len);
 
     /**
+     * Parse the payload of the given bundle into the given struct.
+     * Returns false if the bundle is not a well formed status report.
+     */
+    static bool parse_status_report(data_t* data,
+                                    const Bundle* bundle);
+
+    /**
      * Return a string version of the reason code.
      */
     static const char* reason_to_str(u_int8_t reason);
