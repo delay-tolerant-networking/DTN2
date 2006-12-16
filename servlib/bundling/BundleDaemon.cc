@@ -1444,6 +1444,9 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
         actions_->store_add(bundle);
     }
 
+    struct timeval now;
+    gettimeofday(&now, 0);
+    
     // schedule the bundle expiration timer
     struct timeval expiration_time;
     expiration_time.tv_sec =
@@ -1451,10 +1454,8 @@ BundleDaemon::add_to_pending(Bundle* bundle, bool add_to_store)
         bundle->creation_ts_.seconds_ + 
         bundle->expiration_;
     
-    expiration_time.tv_usec = 0;
+    expiration_time.tv_usec = now.tv_usec;
     
-    struct timeval now;
-    gettimeofday(&now, 0);
     long int when = expiration_time.tv_sec - now.tv_sec;
 
     bool ok_to_route = true;
