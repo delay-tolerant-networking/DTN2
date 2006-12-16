@@ -214,8 +214,8 @@ main(int argc, char** argv)
 
         if (verbose) fprintf(stdout, "bundle sent successfully: id %s,%u.%u\n",
                              bundle_id.source.uri,
-                             bundle_id.creation_secs,
-                             bundle_id.creation_subsecs);
+                             bundle_id.creation_ts.secs,
+                             bundle_id.creation_ts.seqno);
 
         if (wait_for_report)
         {
@@ -233,7 +233,7 @@ main(int argc, char** argv)
             gettimeofday(&end, NULL);
 
             printf("got %d byte report from [%s]: time=%.1f ms\n",
-                   reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
+                   reply_payload.buf.buf_len,
                    reply_spec.source.uri,
                    ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
                     (double)(end.tv_usec - start.tv_usec)/1000.0));

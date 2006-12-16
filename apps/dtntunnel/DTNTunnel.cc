@@ -328,7 +328,7 @@ DTNTunnel::handle_bundle(dtn_bundle_spec_t* spec,
     b->spec_ = *spec;
     ASSERT(payload->location == DTN_PAYLOAD_MEM);
 
-    int len = payload->dtn_bundle_payload_t_u.buf.buf_len;
+    int len = payload->buf.buf_len;
 
     if (len < (int)sizeof(BundleHeader)) {
         log_err("too short bundle: len %d < sizeof bundle header", len);
@@ -337,7 +337,7 @@ DTNTunnel::handle_bundle(dtn_bundle_spec_t* spec,
     }
     
     char* dst = b->payload_.buf(len);
-    memcpy(dst, payload->dtn_bundle_payload_t_u.buf.buf_val, len);
+    memcpy(dst, payload->buf.buf_val, len);
     b->payload_.set_len(len);
     
     BundleHeader* hdr = (BundleHeader*)dst;
@@ -384,8 +384,7 @@ DTNTunnel::main(int argc, char* argv[])
             break;
         }
 
-        log_info("got %d byte bundle",
-                 payload.dtn_bundle_payload_t_u.buf.buf_len);
+        log_info("got %d byte bundle", payload.buf.buf_len);
 
         handle_bundle(&spec, &payload);
 

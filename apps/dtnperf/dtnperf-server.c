@@ -193,7 +193,7 @@ int main(int argc, char** argv)
         }
         if (debug) printf(" bundle received\n");
         count++;
-        total += payload.dtn_bundle_payload_t_u.buf.buf_len;
+        total += payload.buf.buf_len;
 
         // mark current time
         if (debug) printf("[debug] marking time...");
@@ -203,7 +203,7 @@ int main(int argc, char** argv)
         if (aggregate == 0) {
             printf("%s : %d bytes from %s\n",
                    ctime(&current),
-                   payload.dtn_bundle_payload_t_u.buf.buf_len,
+                   payload.buf.buf_len,
                    spec.source.uri);
         } else if (count % aggregate == 0) {
             printf("%s : %d bundles, total length %d bytes\n",
@@ -249,8 +249,8 @@ int main(int argc, char** argv)
         if (debug) printf("[debug] filepath = %s\n", filepath);
 
         // bundle name is the name of the bundle payload file
-        buffer = payload.dtn_bundle_payload_t_u.buf.buf_val;
-        bufsize = payload.dtn_bundle_payload_t_u.buf.buf_len;
+        buffer = payload.buf.buf_val;
+        bufsize = payload.buf.buf_len;
 
         if (debug) {
             printf ("======================================\n");
@@ -273,7 +273,7 @@ int main(int argc, char** argv)
         } else { // if bundle was saved into memory
 
             if (debug) {
-                for (k=0; k < (int)payload.dtn_bundle_payload_t_u.buf.buf_len; k++)
+                for (k=0; k < (int)payload.buf.buf_len; k++)
                 {
                     if (buffer[k] >= ' ' && buffer[k] <= '~')
                         s_buffer[k%BUFSIZE] = buffer[k];
@@ -308,7 +308,7 @@ int main(int argc, char** argv)
                         k++;
                     }
                     printf("   |  %.*s\n",
-                           (int)payload.dtn_bundle_payload_t_u.buf.buf_len%BUFSIZE, s_buffer);
+                           (int)payload.buf.buf_len%BUFSIZE, s_buffer);
                 } // if
 
                 printf ("======================================\n");

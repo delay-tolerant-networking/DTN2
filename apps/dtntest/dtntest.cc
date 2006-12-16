@@ -438,7 +438,7 @@ public:
         }
 
         resultf("%s,%u.%u",
-                id.source.uri, id.creation_secs, id.creation_subsecs);
+                id.source.uri, id.creation_ts.secs, id.creation_ts.seqno);
         return TCL_OK;
     }
 };
@@ -590,9 +590,9 @@ public:
         
         if (!opts_.payload_mem_) {
             char payload_path[PATH_MAX];
-            memcpy(payload_path, payload.dtn_bundle_payload_t_u.filename.filename_val,
-                   payload.dtn_bundle_payload_t_u.filename.filename_len);
-            payload_path[payload.dtn_bundle_payload_t_u.filename.filename_len] = 0;
+            memcpy(payload_path, payload.filename.filename_val,
+                   payload.filename.filename_len);
+            payload_path[payload.filename.filename_len] = 0;
             
             err = unlink(payload_path);
             if (err != 0) {

@@ -38,14 +38,14 @@
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256		/* max endpoint_id size (bytes) */
+#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
 #define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
 #define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
 #define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
 #define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
 #define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
-#define DTN_MAX_BLOCK_LEN 64		/* length of block data */
-#define DTN_MAX_BLOCKS 256		/* number of blocks in bundle */
+#define DTN_MAX_BLOCK_LEN 64           /* length of block data */
+#define DTN_MAX_BLOCKS 256             /* number of blocks in bundle */
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -99,6 +99,18 @@ xdr_dtn_timeval_t (XDR *xdrs, dtn_timeval_t *objp)
  * An infinite wait is a timeout of -1.
  */
 #define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
+
+bool_t
+xdr_dtn_timestamp_t (XDR *xdrs, dtn_timestamp_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_u_int (xdrs, &objp->secs))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->seqno))
+		 return FALSE;
+	return TRUE;
+}
 
 /**
  * Specification of a service tag used in building a local endpoint
@@ -277,16 +289,103 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 }
 
 /**
+ * Type definition for a unique bundle identifier. Returned from dtn_send
+ * after the daemon has assigned the creation_secs and creation_subsecs,
+ * in which case orig_length and frag_offset are always zero, and also in
+ * status report data in which case they may be set if the bundle is
+ * fragmented.
+ */
+
+bool_t
+xdr_dtn_bundle_id_t (XDR *xdrs, dtn_bundle_id_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->creation_ts))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->frag_offset))
+		 return FALSE;
+	 if (!xdr_u_int (xdrs, &objp->orig_length))
+		 return FALSE;
+	return TRUE;
+}
+/**
+ * Bundle Status Report "Reason Code" flags
+ */
+
+bool_t
+xdr_dtn_status_report_reason_t (XDR *xdrs, dtn_status_report_reason_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
+}
+/**
+ * Bundle Status Report status flags that indicate which timestamps in
+ * the status report structure are valid.
+ */
+
+bool_t
+xdr_dtn_status_report_flags_t (XDR *xdrs, dtn_status_report_flags_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_enum (xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
+}
+
+/**
+ * Type definition for a bundle status report.
+ */
+
+bool_t
+xdr_dtn_bundle_status_report_t (XDR *xdrs, dtn_bundle_status_report_t *objp)
+{
+	register int32_t *buf;
+
+	 if (!xdr_dtn_bundle_id_t (xdrs, &objp->bundle_id))
+		 return FALSE;
+	 if (!xdr_dtn_status_report_reason_t (xdrs, &objp->reason))
+		 return FALSE;
+	 if (!xdr_dtn_status_report_flags_t (xdrs, &objp->flags))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->receipt_ts))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->custody_tv_))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->forwarding_tv_))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->delivery_tv_))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->deletion_tv_))
+		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->ack_by_app_tv_))
+		 return FALSE;
+	return TRUE;
+}
+
+/**
  * The payload of a bundle can be sent or received either in a file,
  * in which case the payload structure contains the filename, or in
- * memory where the struct has the actual data.
+ * memory where the struct contains the data in-band, in the 'buf'
+ * field.
  *
- * If the location specifies that the payload is in a temp file, then
- * the daemon assumes ownership of the file and should have sufficient
- * permissions to move or rename it.
+ * When sending a bundle, if the location specifies that the payload
+ * is in a temp file, then the daemon assumes ownership of the file
+ * and should have sufficient permissions to move or rename it.
  * 
  * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
  * bundle payload that can be sent or received in memory.
+ * 
+ * When receiving a bundle that is a status report, then the
+ * status_report pointer will be non-NULL and will point to a
+ * dtn_bundle_status_report_t structure which contains the parsed fields
+ * of the status report.
  *
  *     DTN_PAYLOAD_MEM		- copy contents from memory
  *     DTN_PAYLOAD_FILE	- file copy the contents of the file
@@ -310,36 +409,11 @@ xdr_dtn_bundle_payload_t (XDR *xdrs, dtn_bundle_payload_t *objp)
 
 	 if (!xdr_dtn_bundle_payload_location_t (xdrs, &objp->location))
 		 return FALSE;
-	switch (objp->location) {
-	case DTN_PAYLOAD_FILE:
-	case DTN_PAYLOAD_TEMP_FILE:
-		 if (!xdr_bytes (xdrs, (char **)&objp->dtn_bundle_payload_t_u.filename.filename_val, (u_int *) &objp->dtn_bundle_payload_t_u.filename.filename_len, DTN_MAX_PATH_LEN))
-			 return FALSE;
-		break;
-	case DTN_PAYLOAD_MEM:
-		 if (!xdr_bytes (xdrs, (char **)&objp->dtn_bundle_payload_t_u.buf.buf_val, (u_int *) &objp->dtn_bundle_payload_t_u.buf.buf_len, DTN_MAX_BUNDLE_MEM))
-			 return FALSE;
-		break;
-	default:
-		return FALSE;
-	}
-	return TRUE;
-}
-
-/**
- * Type definition for a bundle identifier as returned from dtn_send.
- */
-
-bool_t
-xdr_dtn_bundle_id_t (XDR *xdrs, dtn_bundle_id_t *objp)
-{
-	register int32_t *buf;
-
-	 if (!xdr_dtn_endpoint_id_t (xdrs, &objp->source))
+	 if (!xdr_bytes (xdrs, (char **)&objp->filename.filename_val, (u_int *) &objp->filename.filename_len, DTN_MAX_PATH_LEN))
 		 return FALSE;
-	 if (!xdr_u_int (xdrs, &objp->creation_secs))
+	 if (!xdr_bytes (xdrs, (char **)&objp->buf.buf_val, (u_int *) &objp->buf.buf_len, DTN_MAX_BUNDLE_MEM))
 		 return FALSE;
-	 if (!xdr_u_int (xdrs, &objp->creation_subsecs))
+	 if (!xdr_pointer (xdrs, (char **)&objp->status_report, sizeof (dtn_bundle_status_report_t), (xdrproc_t) xdr_dtn_bundle_status_report_t))
 		 return FALSE;
 	return TRUE;
 }

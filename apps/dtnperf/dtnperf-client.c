@@ -458,7 +458,7 @@ int main(int argc, char** argv)
         // show the report
         if (csv_out == 0) {
             printf("%d bundles sent, each with a %ld bytes payload\n", bundles_sent, bundle_payload);
-            show_report(reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
+            show_report(reply_payload.buf.buf_len,
                         reply_spec.source.uri,
                         start,
                         end,
@@ -593,7 +593,7 @@ int main(int argc, char** argv)
                     // show the PARTIAL report (verbose mode)
                     if (verbose) {
                         printf("[%d/%d] ", j+1, n_bundles);
-                        show_report(reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
+                        show_report(reply_payload.buf.buf_len,
                                     bundle_spec.source.uri,
                                     p_start,
                                     p_end,
@@ -609,7 +609,7 @@ int main(int argc, char** argv)
 
             // show the TOTAL report
             if (csv_out == 0) {
-                show_report(reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
+                show_report(reply_payload.buf.buf_len,
                             reply_spec.source.uri,
                             start,
                             end,

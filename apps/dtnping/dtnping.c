@@ -37,13 +37,25 @@ usage()
 
 void doOptions(int argc, const char **argv);
 
-int sleepVal = 1;
+int interval = 1;
 int count = 0;
 int expiration = 30;
 char dest_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char source_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char replyto_eid_str[DTN_MAX_ENDPOINT_ID] = "";
-char* payload_str = "dtnping!";
+
+#define MAX_PINGS_IN_FLIGHT 1024
+
+#define TIMEVAL_DIFF_MSEC(t1, t2) \
+    ((unsigned long int)(((t1).tv_sec  - (t2).tv_sec)  * 1000) + \
+     (((t1).tv_usec - (t2).tv_usec) / 1000))
+
+typedef struct {
+    char      ping[8]; // dtn_ping!
+    u_int32_t seqno;
+    u_int32_t nonce;
+    u_int32_t time;
+} ping_payload_t;
 
 int
 main(int argc, const char** argv)
@@ -57,15 +69,22 @@ main(int argc, const char** argv)
     dtn_bundle_spec_t ping_spec;
     dtn_bundle_spec_t reply_spec;
     dtn_bundle_payload_t ping_payload;
+    ping_payload_t payload_contents;
+    ping_payload_t* recv_contents;
     dtn_bundle_payload_t reply_payload;
+    dtn_bundle_status_report_t* sr_data;
     dtn_bundle_id_t bundle_id;
     int debug = 1;
     char demux[64];
-    char payload_buf[1024];
     int dest_len = 0;
+    struct timeval send_times[MAX_PINGS_IN_FLIGHT];
+    dtn_timestamp_t creation_times[MAX_PINGS_IN_FLIGHT];
+    struct timeval now, recv_start, recv_end;
+    u_int32_t nonce;
+    u_int32_t seqno = 0;
+    int time_until_send;
+    const char* ping_str = "dtnping!";
 
-    struct timeval start, end;
-    
     // force stdout to always be line buffered, even if output is
     // redirected to a pipe or file
     setvbuf(stdout, (char *)NULL, _IOLBF, 0);
@@ -74,6 +93,10 @@ main(int argc, const char** argv)
 
     memset(&ping_spec, 0, sizeof(ping_spec));
 
+    gettimeofday(&now, 0);
+    srand(now.tv_sec);
+    nonce = rand();
+    
     // open the ipc handle
     int err = dtn_open(&handle);
     if (err != DTN_SUCCESS) {
@@ -116,20 +139,11 @@ main(int argc, const char** argv)
         dtn_build_local_eid(handle, &source_eid, demux);
     }
 
-    // set the source eid in the bundle spec
+    // set the source and replyto eids in the bundle spec
     if (debug) printf("source_eid [%s]\n", source_eid.uri);
     dtn_copy_eid(&ping_spec.source, &source_eid);
+    dtn_copy_eid(&ping_spec.replyto, &source_eid);
     
-    // now parse the replyto eid, if specified
-    if (replyto_eid_str[0] != '\0') {
-        if (dtn_parse_eid_string(&ping_spec.replyto, replyto_eid_str)) {
-            fprintf(stderr, "invalid replyto eid string '%s'\n",
-                    replyto_eid_str);
-            exit(1);
-        }
-        if (debug) printf("replyto_eid [%s]\n", ping_spec.replyto.uri);
-    }
-
     // now create a new registration based on the source
     memset(&reginfo, 0, sizeof(reginfo));
     dtn_copy_eid(&reginfo.endpoint, &source_eid);
@@ -143,80 +157,153 @@ main(int argc, const char** argv)
     }    
     if (debug) printf("dtn_register succeeded, regid %d\n", regid);
 
-    // check for any bundles queued for the registration
-    if (debug) printf("checking for bundles already queued...\n");
-    do {
-        memset(&reply_spec, 0, sizeof(reply_spec));
-        memset(&reply_payload, 0, sizeof(reply_payload));
-        
-        ret = dtn_recv(handle, &reply_spec,
-                       DTN_PAYLOAD_MEM, &reply_payload, 0);
-
-        if (ret == 0) {
-            fprintf(stderr, "error: unexpected ping already queued... "
-                    "discarding\n");
-        } else if (dtn_errno(handle) != DTN_ETIMEOUT) {
-            fprintf(stderr, "error: "
-                    "unexpected error checking for queued bundles: %s\n",
-                    dtn_strerror(dtn_errno(handle)));
-            exit(1);
-        }
-
-        dtn_free_payload(&reply_payload);
-    } while (ret == 0);
-    
-    // set the expiration time
+    // set the expiration time and request deletion status reports
     ping_spec.expiration = expiration;
+    ping_spec.dopts = DOPTS_DELETE_RCPT;
 
-    // fill in a short payload string to verify the echo feature
-    strcpy(&payload_buf[0], payload_str);
-    memset(&ping_payload, 0, sizeof(ping_payload));
-    dtn_set_payload(&ping_payload, DTN_PAYLOAD_MEM,
-                    payload_buf, strlen(payload_str));
-    
     printf("PING [%s]...\n", ping_spec.dest.uri);
+    if (interval == 0) {
+        printf("WARNING: zero second interval will result in flooding pings!!\n");
+    }
     
-    // loop, sending pings and getting replies.
+    // loop, sending pings and polling for activity
     for (i = 0; count == 0 || i < count; ++i) {
-        gettimeofday(&start, NULL);
+        gettimeofday(&send_times[seqno], NULL);
+        
+        // fill in a short payload string, a nonce, and a sequence number
+        // to verify the echo feature and make sure we're not getting
+        // duplicate responses or ping responses from another app
+        memcpy(&payload_contents.ping, ping_str, 8);
+        payload_contents.seqno = seqno;
+        payload_contents.nonce = nonce;
+        payload_contents.time = send_times[seqno].tv_sec;
+        
+        memset(&ping_payload, 0, sizeof(ping_payload));
+        dtn_set_payload(&ping_payload, DTN_PAYLOAD_MEM,
+                        (char*)&payload_contents, sizeof(payload_contents));
         
         memset(&bundle_id, 0, sizeof(bundle_id));
-                    
         if ((ret = dtn_send(handle, &ping_spec, &ping_payload,
                             &bundle_id)) != 0) {
             fprintf(stderr, "error sending bundle: %d (%s)\n",
                     ret, dtn_strerror(dtn_errno(handle)));
             exit(1);
         }
+        
+        creation_times[seqno] = bundle_id.creation_ts;
 
         memset(&reply_spec, 0, sizeof(reply_spec));
         memset(&reply_payload, 0, sizeof(reply_payload));
-        
-        // now we block waiting for the echo reply
-        if ((ret = dtn_recv(handle, &reply_spec,
-                            DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
-        {
-            fprintf(stderr, "error getting ping reply: %d (%s)\n",
-                    ret, dtn_strerror(dtn_errno(handle)));
-            exit(1);
-        }
-        gettimeofday(&end, NULL);
 
-        printf("%d bytes from [%s]: '%.*s' time=%0.2f ms\n",
-               reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
-               reply_spec.source.uri,
-               (u_int)strlen(payload_str),
-               reply_payload.dtn_bundle_payload_t_u.buf.buf_val,
-               ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-                (double)(end.tv_usec - start.tv_usec)/1000.0));
-        fflush(stdout);
-        dtn_free_payload(&reply_payload);
+        // now loop waiting for replies / status reports until it's
+        // time to send again
+        time_until_send = interval * 1000;
+        do {
+            gettimeofday(&recv_start, 0);
+            if ((ret = dtn_recv(handle, &reply_spec,
+                                DTN_PAYLOAD_MEM, &reply_payload, time_until_send)) < 0)
+            {
+                if (dtn_errno(handle) == DTN_ETIMEOUT) {
+                    break; // time to send again
+                }
+                
+                fprintf(stderr, "error getting ping reply: %d (%s)\n",
+                        ret, dtn_strerror(dtn_errno(handle)));
+                exit(1);
+            }
+            gettimeofday(&recv_end, 0);
+            
+            if (reply_payload.status_report != NULL)
+            {
+                sr_data = reply_payload.status_report;
+                if (sr_data->flags != STATUS_DELETED) {
+                    fprintf(stderr, "(bad status report from %s: flags 0x%x)\n",
+                            reply_spec.source.uri, sr_data->flags);
+                    goto next;
+                }
+
+                // find the seqno corresponding to the original
+                // transmission time in the status report
+                int j = 0;
+                for (j = 0; j < MAX_PINGS_IN_FLIGHT; ++j) {
+                    if (creation_times[j].secs  ==
+                            sr_data->bundle_id.creation_ts.secs &&
+                        creation_times[j].seqno ==
+                            sr_data->bundle_id.creation_ts.seqno)
+                    {
+                        printf("bundle deleted at [%s] (%s): seqno=%d, time=%ld ms\n",
+                               reply_spec.source.uri,
+                               dtn_status_report_reason_to_str(sr_data->reason),
+                               j, TIMEVAL_DIFF_MSEC(recv_end, send_times[j]));
+                        goto next;
+                    }
+                }
+
+                printf("bundle deleted at [%s] (%s): ERROR: can't find seqno\n",
+                       reply_spec.source.uri, 
+                       dtn_status_report_reason_to_str(sr_data->reason));
+            }
+            else {
+                if (reply_payload.buf.buf_len != sizeof(ping_payload_t))
+                {
+                    printf("%d bytes from [%s]: ERROR: length != %zu\n",
+                           reply_payload.buf.buf_len,
+                           reply_spec.source.uri,
+                           sizeof(ping_payload_t));
+                    goto next;
+                }
+
+                recv_contents = (ping_payload_t*)reply_payload.buf.buf_val;
+                
+                if (recv_contents->seqno > MAX_PINGS_IN_FLIGHT)
+                {
+                    printf("%d bytes from [%s]: ERROR: invalid seqno %d\n",
+                           reply_payload.buf.buf_len,
+                           reply_spec.source.uri,
+                           recv_contents->seqno);
+                    goto next;
+                }
+
+                if (recv_contents->nonce != nonce)
+                {
+                    printf("%d bytes from [%s]: ERROR: invalid nonce %u != %u\n",
+                           reply_payload.buf.buf_len,
+                           reply_spec.source.uri,
+                           recv_contents->nonce, nonce);
+                    goto next;
+                }
+
+                if (recv_contents->time != (u_int32_t)send_times[seqno].tv_sec)
+                {
+                    printf("%d bytes from [%s]: ERROR: time mismatch %u != %lu\n",
+                           reply_payload.buf.buf_len,
+                           reply_spec.source.uri,
+                           recv_contents->time,
+                           (long unsigned int)send_times[seqno].tv_sec);
+                    goto next;
+                }
+                
+                printf("%d bytes from [%s]: '%.*s' seqno=%d, time=%ld ms\n",
+                       reply_payload.buf.buf_len,
+                       reply_spec.source.uri,
+                       (u_int)strlen(ping_str),
+                       reply_payload.buf.buf_val,
+                       recv_contents->seqno,
+                       TIMEVAL_DIFF_MSEC(recv_end, send_times[recv_contents->seqno]));
+                fflush(stdout);
+            }
+next:
+            dtn_free_payload(&reply_payload);
+            time_until_send -= TIMEVAL_DIFF_MSEC(recv_end, recv_start);
+
+        } while (time_until_send > 0);
         
-        sleep(sleepVal);
+        seqno++;
+        seqno %= MAX_PINGS_IN_FLIGHT;
     }
 
     dtn_close(handle);
-    
+
     return 0;
 }
 
@@ -233,7 +320,7 @@ doOptions(int argc, const char **argv)
             count = atoi(optarg);
             break;
         case 'i':
-            sleepVal = atoi(optarg);
+            interval = atoi(optarg);
             break;
         case 'e':
             expiration = atoi(optarg);
@@ -243,9 +330,6 @@ doOptions(int argc, const char **argv)
             break;
         case 's':
             strcpy(source_eid_str, optarg);
-            break;
-        case 'r':
-            strcpy(replyto_eid_str, optarg);
             break;
         case 'h':
             usage();

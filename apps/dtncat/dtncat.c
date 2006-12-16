@@ -171,9 +171,8 @@ from_bundles()
             exit(EXIT_FAILURE);
         }
 
-        bytes = primary_payload.dtn_bundle_payload_t_u.buf.buf_len;
-        buffer =
-	  (char *) primary_payload.dtn_bundle_payload_t_u.buf.buf_val;
+        bytes  = primary_payload.buf.buf_len;
+        buffer = (char *) primary_payload.buf.buf_val;
         total_bytes += bytes;
 
 	// write to stdout
@@ -188,10 +187,10 @@ from_bundles()
         }
         
         fprintf(info, "%d bytes from [%s]: transit time=%d ms\n",
-               primary_payload.dtn_bundle_payload_t_u.buf.buf_len,
+               primary_payload.buf.buf_len,
                receive_spec.source.uri, 0);
 
-        for (k=0; k < primary_payload.dtn_bundle_payload_t_u.buf.buf_len; k++) {
+        for (k=0; k < primary_payload.buf.buf_len; k++) {
             if (buffer[k] >= ' ' && buffer[k] <= '~')
                 s_buffer[k%BUFSIZ] = buffer[k];
             else
@@ -225,7 +224,7 @@ from_bundles()
                 k++;
             }
             fprintf(info,"   |  %.*s\n",
-              (int)primary_payload.dtn_bundle_payload_t_u.buf.buf_len%BUFSIZ, 
+              (int)primary_payload.buf.buf_len%BUFSIZ, 
                    s_buffer);
         }
 	fprintf(info,"\n");
@@ -333,7 +332,7 @@ to_bundles()
     
 	if (verbose)
 	    fprintf(info, "got %d byte report from [%s]: time=%.1f ms\n",
-	       reply_payload.dtn_bundle_payload_t_u.buf.buf_len,
+	       reply_payload.buf.buf_len,
 	       reply_spec.source.uri,
 	       ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
 		(double)(end.tv_usec - start.tv_usec)/1000.0));

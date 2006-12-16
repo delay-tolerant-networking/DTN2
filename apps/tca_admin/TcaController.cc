@@ -905,15 +905,15 @@ TcaController::recv_bundle(dtn_bundle_spec_t& spec,
         return false;
     }
 
-    int n = recv_payload.dtn_bundle_payload_t_u.buf.buf_len;
+    int n = recv_payload.buf.buf_len;
     char s_buf[n+1];
-    memcpy(s_buf, recv_payload.dtn_bundle_payload_t_u.buf.buf_val, n);
+    memcpy(s_buf, recv_payload.buf.buf_val, n);
     s_buf[n] = '\0';
 
     payload = s_buf;
 
     printf("%d bytes from [%s]: %s\n",
-               // recv_payload.dtn_bundle_payload_t_u.buf.buf_len,
+               // recv_payload.buf.buf_len,
                n,
                spec.source.uri,
                payload.c_str());

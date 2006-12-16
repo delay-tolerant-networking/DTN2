@@ -564,6 +564,7 @@ dtn_set_payload(dtn_bundle_payload_t* payload,
                 dtn_bundle_payload_location_t location,
                 char* val, int len)
 {
+    memset(payload, 0, sizeof(dtn_bundle_payload_t));
     payload->location = location;
 
     if (location == DTN_PAYLOAD_MEM && len > DTN_MAX_BUNDLE_MEM) {
@@ -572,13 +573,13 @@ dtn_set_payload(dtn_bundle_payload_t* payload,
     
     switch (location) {
     case DTN_PAYLOAD_MEM:
-        payload->dtn_bundle_payload_t_u.buf.buf_val = val;
-        payload->dtn_bundle_payload_t_u.buf.buf_len = len;
+        payload->buf.buf_val = val;
+        payload->buf.buf_len = len;
         break;
     case DTN_PAYLOAD_FILE:
     case DTN_PAYLOAD_TEMP_FILE:
-        payload->dtn_bundle_payload_t_u.filename.filename_val = val;
-        payload->dtn_bundle_payload_t_u.filename.filename_len = len;
+        payload->filename.filename_val = val;
+        payload->filename.filename_len = len;
         break;
     }
 
@@ -590,4 +591,41 @@ void
 dtn_free_payload(dtn_bundle_payload_t* payload)
 {
     xdr_free((xdrproc_t)xdr_dtn_bundle_payload_t, (char*)payload);
+}
+
+//----------------------------------------------------------------------
+const char*
+dtn_status_report_reason_to_str(dtn_status_report_reason_t reason)
+{
+    switch (reason) {
+    case REASON_NO_ADDTL_INFO:
+        return "no additional information";
+
+    case REASON_LIFETIME_EXPIRED:
+        return "lifetime expired";
+
+    case REASON_FORWARDED_UNIDIR_LINK:
+        return "forwarded over unidirectional link";
+
+    case REASON_TRANSMISSION_CANCELLED:
+        return "transmission cancelled";
+
+    case REASON_DEPLETED_STORAGE:
+        return "depleted storage";
+
+    case REASON_ENDPOINT_ID_UNINTELLIGIBLE:
+        return "endpoint id unintelligible";
+
+    case REASON_NO_ROUTE_TO_DEST:
+        return "no known route to destination";
+
+    case REASON_NO_TIMELY_CONTACT:
+        return "no timely contact";
+
+    case REASON_BLOCK_UNINTELLIGIBLE:
+        return "block unintelligible";
+
+    default:
+        return "(unknown reason)";
+    }
 }

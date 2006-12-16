@@ -236,9 +236,9 @@ main(int argc, const char** argv)
         sprintf(filepath, "%s/%s/%s/%s", bundle_dir, host, dirpath, filename);
         
         // bundle name is the name of the bundle payload file
-        buffer = payload.dtn_bundle_payload_t_u.buf.buf_val;
+        buffer = payload.buf.buf_val;
         // bufsize is the length of the payload file (not what we want to print)
-        bufsize = payload.dtn_bundle_payload_t_u.buf.buf_len;
+        bufsize = payload.buf.buf_len;
         // st contains (among other things) size of payload file
         ret = stat(buffer, &st);
 

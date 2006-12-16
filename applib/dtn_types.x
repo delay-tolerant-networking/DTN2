@@ -78,6 +78,14 @@ typedef u_int dtn_timeval_t;
 % */
 %#define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
 
+/**
+ * A dtn timestamp contains seconds and a sequence number.
+ */
+struct dtn_timestamp_t {
+    u_int secs;
+    u_int seqno;
+};
+
 %
 %/**
 % * Specification of a service tag used in building a local endpoint
@@ -211,16 +219,81 @@ struct dtn_bundle_spec_t {
 
 %
 %/**
+% * Type definition for a unique bundle identifier. Returned from dtn_send
+% * after the daemon has assigned the creation_secs and creation_subsecs,
+% * in which case orig_length and frag_offset are always zero, and also in
+% * status report data in which case they may be set if the bundle is
+% * fragmented.
+% */
+struct dtn_bundle_id_t {
+    dtn_endpoint_id_t   source;
+    dtn_timestamp_t     creation_ts;
+    u_int               frag_offset;
+    u_int               orig_length;
+};
+
+%/**
+% * Bundle Status Report "Reason Code" flags
+% */
+enum dtn_status_report_reason_t {
+    REASON_NO_ADDTL_INFO	      = 0x00,
+    REASON_LIFETIME_EXPIRED	      = 0x01,
+    REASON_FORWARDED_UNIDIR_LINK      = 0x02,
+    REASON_TRANSMISSION_CANCELLED     = 0x03,
+    REASON_DEPLETED_STORAGE	      = 0x04,
+    REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
+    REASON_NO_ROUTE_TO_DEST	      = 0x06,
+    REASON_NO_TIMELY_CONTACT	      = 0x07,
+    REASON_BLOCK_UNINTELLIGIBLE	      = 0x08
+};
+
+%/**
+% * Bundle Status Report status flags that indicate which timestamps in
+% * the status report structure are valid.
+% */
+enum dtn_status_report_flags_t {
+    STATUS_RECEIVED		= 0x01,
+    STATUS_CUSTODY_ACCEPTED	= 0x02,
+    STATUS_FORWARDED		= 0x04,
+    STATUS_DELIVERED		= 0x08,
+    STATUS_DELETED		= 0x10,
+    STATUS_ACKED_BY_APP		= 0x20
+};
+
+%
+%/**
+% * Type definition for a bundle status report.
+% */
+struct dtn_bundle_status_report_t {
+    dtn_bundle_id_t 		bundle_id;
+    dtn_status_report_reason_t 	reason;
+    dtn_status_report_flags_t 	flags;
+    dtn_timestamp_t		receipt_ts;
+    dtn_timestamp_t 		custody_ts;
+    dtn_timestamp_t 		forwarding_ts;
+    dtn_timestamp_t 		delivery_ts;
+    dtn_timestamp_t 		deletion_ts;
+    dtn_timestamp_t 		ack_by_app_ts;
+};
+
+%
+%/**
 % * The payload of a bundle can be sent or received either in a file,
 % * in which case the payload structure contains the filename, or in
-% * memory where the struct has the actual data.
+% * memory where the struct contains the data in-band, in the 'buf'
+% * field.
 % *
-% * If the location specifies that the payload is in a temp file, then
-% * the daemon assumes ownership of the file and should have sufficient
-% * permissions to move or rename it.
+% * When sending a bundle, if the location specifies that the payload
+% * is in a temp file, then the daemon assumes ownership of the file
+% * and should have sufficient permissions to move or rename it.
 % * 
 % * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
 % * bundle payload that can be sent or received in memory.
+% * 
+% * When receiving a bundle that is a status report, then the
+% * status_report pointer will be non-NULL and will point to a
+% * dtn_bundle_status_report_t structure which contains the parsed fields
+% * of the status report.
 % *
 % *     DTN_PAYLOAD_MEM		- copy contents from memory
 % *     DTN_PAYLOAD_FILE	- file copy the contents of the file
@@ -232,21 +305,10 @@ enum dtn_bundle_payload_location_t {
     DTN_PAYLOAD_TEMP_FILE
 };
 
-union dtn_bundle_payload_t switch(dtn_bundle_payload_location_t location)
+struct dtn_bundle_payload_t
 {
-case DTN_PAYLOAD_FILE:
-case DTN_PAYLOAD_TEMP_FILE:
-    opaque	filename<DTN_MAX_PATH_LEN>;
-case DTN_PAYLOAD_MEM:
-    opaque	buf<DTN_MAX_BUNDLE_MEM>;
-};
-
-%
-%/**
-% * Type definition for a bundle identifier as returned from dtn_send.
-% */
-struct dtn_bundle_id_t {
-    dtn_endpoint_id_t   source;
-    u_int               creation_secs;
-    u_int               creation_subsecs;
+    dtn_bundle_payload_location_t location;
+    opaque                        filename<DTN_MAX_PATH_LEN>;
+    opaque                        buf<DTN_MAX_BUNDLE_MEM>;
+    dtn_bundle_status_report_t*   status_report;
 };

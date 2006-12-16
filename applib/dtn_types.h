@@ -47,14 +47,14 @@ extern "C" {
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256		/* max endpoint_id size (bytes) */
+#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
 #define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
 #define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
 #define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
 #define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
 #define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
-#define DTN_MAX_BLOCK_LEN 64		/* length of block data */
-#define DTN_MAX_BLOCKS 256		/* number of blocks in bundle */
+#define DTN_MAX_BLOCK_LEN 64           /* length of block data */
+#define DTN_MAX_BLOCKS 256             /* number of blocks in bundle */
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -86,6 +86,12 @@ typedef u_int dtn_timeval_t;
  * An infinite wait is a timeout of -1.
  */
 #define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
+
+struct dtn_timestamp_t {
+	u_int secs;
+	u_int seqno;
+};
+typedef struct dtn_timestamp_t dtn_timestamp_t;
 
 /**
  * Specification of a service tag used in building a local endpoint
@@ -235,16 +241,85 @@ struct dtn_bundle_spec_t {
 typedef struct dtn_bundle_spec_t dtn_bundle_spec_t;
 
 /**
+ * Type definition for a unique bundle identifier. Returned from dtn_send
+ * after the daemon has assigned the creation_secs and creation_subsecs,
+ * in which case orig_length and frag_offset are always zero, and also in
+ * status report data in which case they may be set if the bundle is
+ * fragmented.
+ */
+
+struct dtn_bundle_id_t {
+	dtn_endpoint_id_t source;
+	dtn_timestamp_t creation_ts;
+	u_int frag_offset;
+	u_int orig_length;
+};
+typedef struct dtn_bundle_id_t dtn_bundle_id_t;
+/**
+ * Bundle Status Report "Reason Code" flags
+ */
+
+enum dtn_status_report_reason_t {
+	REASON_NO_ADDTL_INFO = 0x00,
+	REASON_LIFETIME_EXPIRED = 0x01,
+	REASON_FORWARDED_UNIDIR_LINK = 0x02,
+	REASON_TRANSMISSION_CANCELLED = 0x03,
+	REASON_DEPLETED_STORAGE = 0x04,
+	REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
+	REASON_NO_ROUTE_TO_DEST = 0x06,
+	REASON_NO_TIMELY_CONTACT = 0x07,
+	REASON_BLOCK_UNINTELLIGIBLE = 0x08,
+};
+typedef enum dtn_status_report_reason_t dtn_status_report_reason_t;
+/**
+ * Bundle Status Report status flags that indicate which timestamps in
+ * the status report structure are valid.
+ */
+
+enum dtn_status_report_flags_t {
+	STATUS_RECEIVED = 0x01,
+	STATUS_CUSTODY_ACCEPTED = 0x02,
+	STATUS_FORWARDED = 0x04,
+	STATUS_DELIVERED = 0x08,
+	STATUS_DELETED = 0x10,
+	STATUS_ACKED_BY_APP = 0x20,
+};
+typedef enum dtn_status_report_flags_t dtn_status_report_flags_t;
+
+/**
+ * Type definition for a bundle status report.
+ */
+
+struct dtn_bundle_status_report_t {
+	dtn_bundle_id_t bundle_id;
+	dtn_status_report_reason_t reason;
+	dtn_status_report_flags_t flags;
+	dtn_timestamp_t receipt_ts;
+	dtn_timestamp_t custody_tv_;
+	dtn_timestamp_t forwarding_tv_;
+	dtn_timestamp_t delivery_tv_;
+	dtn_timestamp_t deletion_tv_;
+	dtn_timestamp_t ack_by_app_tv_;
+};
+typedef struct dtn_bundle_status_report_t dtn_bundle_status_report_t;
+
+/**
  * The payload of a bundle can be sent or received either in a file,
  * in which case the payload structure contains the filename, or in
- * memory where the struct has the actual data.
+ * memory where the struct contains the data in-band, in the 'buf'
+ * field.
  *
- * If the location specifies that the payload is in a temp file, then
- * the daemon assumes ownership of the file and should have sufficient
- * permissions to move or rename it.
+ * When sending a bundle, if the location specifies that the payload
+ * is in a temp file, then the daemon assumes ownership of the file
+ * and should have sufficient permissions to move or rename it.
  * 
  * Note that there is a limit (DTN_MAX_BUNDLE_MEM) on the maximum size
  * bundle payload that can be sent or received in memory.
+ * 
+ * When receiving a bundle that is a status report, then the
+ * status_report pointer will be non-NULL and will point to a
+ * dtn_bundle_status_report_t structure which contains the parsed fields
+ * of the status report.
  *
  *     DTN_PAYLOAD_MEM		- copy contents from memory
  *     DTN_PAYLOAD_FILE	- file copy the contents of the file
@@ -260,29 +335,17 @@ typedef enum dtn_bundle_payload_location_t dtn_bundle_payload_location_t;
 
 struct dtn_bundle_payload_t {
 	dtn_bundle_payload_location_t location;
-	union {
-		struct {
-			u_int filename_len;
-			char *filename_val;
-		} filename;
-		struct {
-			u_int buf_len;
-			char *buf_val;
-		} buf;
-	} dtn_bundle_payload_t_u;
+	struct {
+		u_int filename_len;
+		char *filename_val;
+	} filename;
+	struct {
+		u_int buf_len;
+		char *buf_val;
+	} buf;
+	dtn_bundle_status_report_t *status_report;
 };
 typedef struct dtn_bundle_payload_t dtn_bundle_payload_t;
-
-/**
- * Type definition for a bundle identifier as returned from dtn_send.
- */
-
-struct dtn_bundle_id_t {
-	dtn_endpoint_id_t source;
-	u_int creation_secs;
-	u_int creation_subsecs;
-};
-typedef struct dtn_bundle_id_t dtn_bundle_id_t;
 
 /* the xdr functions */
 
@@ -290,6 +353,7 @@ typedef struct dtn_bundle_id_t dtn_bundle_id_t;
 extern  bool_t xdr_dtn_endpoint_id_t (XDR *, dtn_endpoint_id_t*);
 extern  bool_t xdr_dtn_reg_id_t (XDR *, dtn_reg_id_t*);
 extern  bool_t xdr_dtn_timeval_t (XDR *, dtn_timeval_t*);
+extern  bool_t xdr_dtn_timestamp_t (XDR *, dtn_timestamp_t*);
 extern  bool_t xdr_dtn_service_tag_t (XDR *, dtn_service_tag_t*);
 extern  bool_t xdr_dtn_reg_failure_action_t (XDR *, dtn_reg_failure_action_t*);
 extern  bool_t xdr_dtn_reg_info_t (XDR *, dtn_reg_info_t*);
@@ -298,14 +362,18 @@ extern  bool_t xdr_dtn_bundle_delivery_opts_t (XDR *, dtn_bundle_delivery_opts_t
 extern  bool_t xdr_dtn_extension_block_flags_t (XDR *, dtn_extension_block_flags_t*);
 extern  bool_t xdr_dtn_extension_block_t (XDR *, dtn_extension_block_t*);
 extern  bool_t xdr_dtn_bundle_spec_t (XDR *, dtn_bundle_spec_t*);
+extern  bool_t xdr_dtn_bundle_id_t (XDR *, dtn_bundle_id_t*);
+extern  bool_t xdr_dtn_status_report_reason_t (XDR *, dtn_status_report_reason_t*);
+extern  bool_t xdr_dtn_status_report_flags_t (XDR *, dtn_status_report_flags_t*);
+extern  bool_t xdr_dtn_bundle_status_report_t (XDR *, dtn_bundle_status_report_t*);
 extern  bool_t xdr_dtn_bundle_payload_location_t (XDR *, dtn_bundle_payload_location_t*);
 extern  bool_t xdr_dtn_bundle_payload_t (XDR *, dtn_bundle_payload_t*);
-extern  bool_t xdr_dtn_bundle_id_t (XDR *, dtn_bundle_id_t*);
 
 #else /* K&R C */
 extern bool_t xdr_dtn_endpoint_id_t ();
 extern bool_t xdr_dtn_reg_id_t ();
 extern bool_t xdr_dtn_timeval_t ();
+extern bool_t xdr_dtn_timestamp_t ();
 extern bool_t xdr_dtn_service_tag_t ();
 extern bool_t xdr_dtn_reg_failure_action_t ();
 extern bool_t xdr_dtn_reg_info_t ();
@@ -314,9 +382,12 @@ extern bool_t xdr_dtn_bundle_delivery_opts_t ();
 extern bool_t xdr_dtn_extension_block_flags_t ();
 extern bool_t xdr_dtn_extension_block_t ();
 extern bool_t xdr_dtn_bundle_spec_t ();
+extern bool_t xdr_dtn_bundle_id_t ();
+extern bool_t xdr_dtn_status_report_reason_t ();
+extern bool_t xdr_dtn_status_report_flags_t ();
+extern bool_t xdr_dtn_bundle_status_report_t ();
 extern bool_t xdr_dtn_bundle_payload_location_t ();
 extern bool_t xdr_dtn_bundle_payload_t ();
-extern bool_t xdr_dtn_bundle_id_t ();
 
 #endif /* K&R C */
 

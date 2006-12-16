@@ -655,7 +655,6 @@ APIClient::handle_unbind()
 int
 APIClient::handle_send()
 {
-    BundleRef b;
     dtn_bundle_spec_t spec;
     dtn_bundle_payload_t payload;
 
@@ -670,12 +669,14 @@ APIClient::handle_send()
         return DTN_EXDR;
     }
 
+    BundleRef b("APIClient::handle_send");
     b = new Bundle();
-
-    // make sure the xdr unpacked call to malloc is cleaned up
-    oasys::ScopeMalloc m((payload.location == DTN_PAYLOAD_MEM) ?
-                         payload.dtn_bundle_payload_t_u.buf.buf_val :
-                         payload.dtn_bundle_payload_t_u.filename.filename_val);
+    
+    // make sure any xdr calls to malloc are cleaned up
+    oasys::ScopeXDRFree f1((xdrproc_t)xdr_dtn_bundle_spec_t,
+                           (char*)&spec);
+    oasys::ScopeXDRFree f2((xdrproc_t)xdr_dtn_bundle_payload_t,
+                           (char*)&payload);
     
     // assign the addressing fields
     b->source_.assign(&spec.source);
@@ -730,26 +731,13 @@ APIClient::handle_send()
 
     for (u_int i = 0; i < spec.blocks.blocks_len; i++) {
         dtn_extension_block_t* block = &spec.blocks.blocks_val[i];
-	    
+
         b->api_blocks_.push_back(BlockInfo(APIBlockProcessor::instance()));
         BlockInfo* info = &b->api_blocks_.back();
-
-        BundleProtocol::BlockPreamble* bp =
-            (BundleProtocol::BlockPreamble*)info->writable_contents()->buf();
-        bp->type = block->type;
-        bp->flags = block->flags;
-
-        size_t sdnv_len = SDNV::encoding_len(block->data.data_len);
-        SDNV::encode(block->data.data_len, &bp->length[0], sdnv_len);
-
-        info->set_data_length(block->data.data_len);
-        info->set_data_offset(sizeof(*bp) + sdnv_len);
-        info->writable_contents()->set_len(sizeof(*bp) + sdnv_len);
-
-        memcpy(bp + info->data_offset(),
-               block->data.data_val,
-               info->data_length());
-        info->writable_contents()->set_len(info->full_length());
+        APIBlockProcessor::instance()->
+            init_block(info, block->type, block->flags,
+                       (u_char*)block->data.data_val,
+                       block->data.data_len);
     }
     
     // set up the payload, including calculating its length, but don't
@@ -759,15 +747,15 @@ APIClient::handle_send()
 
     switch (payload.location) {
     case DTN_PAYLOAD_MEM:
-        payload_len = payload.dtn_bundle_payload_t_u.buf.buf_len;
+        payload_len = payload.buf.buf_len;
         break;
         
     case DTN_PAYLOAD_FILE:
     case DTN_PAYLOAD_TEMP_FILE:
         struct stat finfo;
         sprintf(filename, "%.*s", 
-                (int)payload.dtn_bundle_payload_t_u.filename.filename_len,
-                payload.dtn_bundle_payload_t_u.filename.filename_val);
+                (int)payload.filename.filename_len,
+                payload.filename.filename_val);
 
         if (stat(filename, &finfo) != 0)
         {
@@ -807,8 +795,8 @@ APIClient::handle_send()
 
     switch (payload.location) {
     case DTN_PAYLOAD_MEM:
-        b->payload_.set_data((u_char*)payload.dtn_bundle_payload_t_u.buf.buf_val,
-                             payload.dtn_bundle_payload_t_u.buf.buf_len);
+        b->payload_.set_data((u_char*)payload.buf.buf_val,
+                             payload.buf.buf_len);
         break;
         
     case DTN_PAYLOAD_FILE:
@@ -859,8 +847,8 @@ APIClient::handle_send()
     //  before posting the received event, fill in the bundle id struct
     dtn_bundle_id_t id;
     memcpy(&id.source, &spec.source, sizeof(dtn_endpoint_id_t));
-    id.creation_secs    = b->creation_ts_.seconds_;
-    id.creation_subsecs = b->creation_ts_.seqno_;
+    id.creation_ts.secs  = b->creation_ts_.seconds_;
+    id.creation_ts.seqno = b->creation_ts_.seqno_;
     
     log_info("DTN_SEND bundle *%p", b.object());
 
@@ -889,6 +877,7 @@ APIClient::handle_recv()
     dtn_bundle_spec_t             spec;
     dtn_bundle_payload_t          payload;
     dtn_bundle_payload_location_t location;
+    dtn_bundle_status_report_t    status_report;
     dtn_timeval_t                 timeout;
     oasys::ScratchBuffer<u_char*> buf;
     APIRegistration*              reg = NULL;
@@ -935,6 +924,7 @@ APIClient::handle_recv()
     
     memset(&spec, 0, sizeof(spec));
     memset(&payload, 0, sizeof(payload));
+    memset(&status_report, 0, sizeof(status_report));
 
     // copyto will malloc string buffer space that needs to be freed
     // at the end of the fn
@@ -942,7 +932,15 @@ APIClient::handle_recv()
     b->dest_.copyto(&spec.dest);
     b->replyto_.copyto(&spec.replyto);
 
-    // XXX/demmer copy delivery options and class of service fields
+    spec.dopts = 0;
+    if (b->custody_requested_) spec.dopts |= DOPTS_CUSTODY;
+    if (b->delivery_rcpt_)     spec.dopts |= DOPTS_DELIVERY_RCPT;
+    if (b->receive_rcpt_)      spec.dopts |= DOPTS_RECEIVE_RCPT;
+    if (b->forward_rcpt_)      spec.dopts |= DOPTS_FORWARD_RCPT;
+    if (b->custody_rcpt_)      spec.dopts |= DOPTS_CUSTODY_RCPT;
+    if (b->deletion_rcpt_)     spec.dopts |= DOPTS_DELETE_RCPT;
+
+    spec.expiration = b->expiration_;
 
     // XXX copy extension blocks
     
@@ -954,17 +952,19 @@ APIClient::handle_recv()
         // XXX/demmer verify bounds
 
         size_t payload_len = b->payload_.length();
-        payload.dtn_bundle_payload_t_u.buf.buf_len = payload_len;
+        payload.buf.buf_len = payload_len;
         if (payload_len != 0) {
             buf.reserve(payload_len);
-            payload.dtn_bundle_payload_t_u.buf.buf_val =
+            payload.buf.buf_val =
                 (char*)b->payload_.read_data(0, payload_len, buf.buf());
         } else {
-            payload.dtn_bundle_payload_t_u.buf.buf_val = 0;
+            payload.buf.buf_val = 0;
         }
         
     } else if (location == DTN_PAYLOAD_FILE) {
         char *tdir, templ[64];
+
+        // XXX/demmer do this with a hard link
 
         tdir = getenv("TMP");
         if (tdir == NULL) {
@@ -989,17 +989,35 @@ APIClient::handle_recv()
             b->payload_.copy_file(&tmpfile);
         }
 
-        payload.dtn_bundle_payload_t_u.filename.filename_val =
-            (char*)tmpfile.path();
-        payload.dtn_bundle_payload_t_u.filename.filename_len =
-            tmpfile.path_len();
+        payload.filename.filename_val = (char*)tmpfile.path();
+        payload.filename.filename_len = tmpfile.path_len();
         tmpfile.close();
         
     } else {
         log_err("payload location %d not understood", location);
         return DTN_EINVAL;
     }
+    
+    /*
+     * If the bundle is a status report, parse it and copy out the
+     * data into the status report.
+     */
+    BundleStatusReport::data_t sr_data;
+    if (BundleStatusReport::parse_status_report(&sr_data, b))
+    {
+        payload.status_report = &status_report;
+        sr_data.orig_source_eid_.copyto(&status_report.bundle_id.source);
+        status_report.bundle_id.creation_ts.secs =
+            sr_data.orig_creation_tv_.seconds_;
+        status_report.bundle_id.creation_ts.seqno =
+            sr_data.orig_creation_tv_.seqno_;
+        status_report.bundle_id.frag_offset = sr_data.orig_frag_offset_;
+        status_report.bundle_id.orig_length = sr_data.orig_frag_length_;
 
+        status_report.reason = (dtn_status_report_reason_t)sr_data.reason_code_;
+        status_report.flags =  (dtn_status_report_flags_t)sr_data.status_flags_;
+    }
+    
     if (!xdr_dtn_bundle_spec_t(&xdr_encode_, &spec))
     {
         log_err("internal error in xdr: xdr_dtn_bundle_spec_t");
@@ -1011,6 +1029,9 @@ APIClient::handle_recv()
         log_err("internal error in xdr: xdr_dtn_bundle_payload_t");
         return DTN_EXDR;
     }
+
+    // prevent xdr_free of non-malloc'd pointer
+    payload.status_report = NULL;
     
     log_info("DTN_RECV: "
              "successfully delivered bundle %d to registration %d",

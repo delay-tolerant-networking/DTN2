@@ -318,7 +318,7 @@ main(int argc, char** argv)
             goto err;
         }
 
-        total_bytes += payload.dtn_bundle_payload_t_u.buf.buf_len;
+        total_bytes += payload.buf.buf_len;
 
         if (quiet) {
             dtn_free_payload(&payload);
@@ -326,11 +326,11 @@ main(int argc, char** argv)
         }
         
         printf("%d bytes from [%s]: transit time=%d ms\n",
-               payload.dtn_bundle_payload_t_u.buf.buf_len,
+               payload.buf.buf_len,
                spec.source.uri, 0);
 
-        buffer = (unsigned char *) payload.dtn_bundle_payload_t_u.buf.buf_val;
-        for (k=0; k < payload.dtn_bundle_payload_t_u.buf.buf_len; k++)
+        buffer = (unsigned char *) payload.buf.buf_val;
+        for (k=0; k < payload.buf.buf_len; k++)
         {
             if (buffer[k] >= ' ' && buffer[k] <= '~')
                 s_buffer[k%BUFSIZE] = buffer[k];
@@ -365,7 +365,7 @@ main(int argc, char** argv)
                 k++;
             }
             printf("   |  %.*s\n",
-              (int)payload.dtn_bundle_payload_t_u.buf.buf_len%BUFSIZE, 
+                   (int)payload.buf.buf_len%BUFSIZE, 
                    s_buffer);
         }
 	printf("\n");
@@ -376,11 +376,11 @@ main(int argc, char** argv)
     printf("dtnrecv (pid %d) exiting: %d bundles received, %d total bytes\n\n",
            getpid(), i, total_bytes);
 
- done:
+done:
     dtn_close(handle);
     return 0;
 
- err:
+err:
     dtn_close(handle);
     return 1;
 }

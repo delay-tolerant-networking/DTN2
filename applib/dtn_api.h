@@ -201,6 +201,11 @@ extern int dtn_set_payload(dtn_bundle_payload_t* payload,
  */
 void dtn_free_payload(dtn_bundle_payload_t* payload);
 
+/**
+ * Return a string version of a status report reason code.
+ */
+const char* dtn_status_report_reason_to_str(dtn_status_report_reason_t err);
+
 #ifdef  __cplusplus
 }
 #endif
