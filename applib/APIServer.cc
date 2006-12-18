@@ -990,7 +990,7 @@ APIClient::handle_recv()
         }
 
         payload.filename.filename_val = (char*)tmpfile.path();
-        payload.filename.filename_len = tmpfile.path_len();
+        payload.filename.filename_len = tmpfile.path_len() + 1;
         tmpfile.close();
         
     } else {
