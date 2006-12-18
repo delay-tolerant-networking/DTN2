@@ -70,7 +70,7 @@ main(int argc, const char** argv)
     dtn_bundle_spec_t reply_spec;
     dtn_bundle_payload_t ping_payload;
     ping_payload_t payload_contents;
-    ping_payload_t* recv_contents;
+    ping_payload_t recv_contents;
     dtn_bundle_payload_t reply_payload;
     dtn_bundle_status_report_t* sr_data;
     dtn_bundle_id_t bundle_id;
@@ -253,32 +253,33 @@ main(int argc, const char** argv)
                     goto next;
                 }
 
-                recv_contents = (ping_payload_t*)reply_payload.buf.buf_val;
+                memcpy(&recv_contents, reply_payload.buf.buf_val,
+                       sizeof(recv_contents));
                 
-                if (recv_contents->seqno > MAX_PINGS_IN_FLIGHT)
+                if (recv_contents.seqno > MAX_PINGS_IN_FLIGHT)
                 {
                     printf("%d bytes from [%s]: ERROR: invalid seqno %d\n",
                            reply_payload.buf.buf_len,
                            reply_spec.source.uri,
-                           recv_contents->seqno);
+                           recv_contents.seqno);
                     goto next;
                 }
 
-                if (recv_contents->nonce != nonce)
+                if (recv_contents.nonce != nonce)
                 {
                     printf("%d bytes from [%s]: ERROR: invalid nonce %u != %u\n",
                            reply_payload.buf.buf_len,
                            reply_spec.source.uri,
-                           recv_contents->nonce, nonce);
+                           recv_contents.nonce, nonce);
                     goto next;
                 }
 
-                if (recv_contents->time != (u_int32_t)send_times[seqno].tv_sec)
+                if (recv_contents.time != (u_int32_t)send_times[seqno].tv_sec)
                 {
                     printf("%d bytes from [%s]: ERROR: time mismatch %u != %lu\n",
                            reply_payload.buf.buf_len,
                            reply_spec.source.uri,
-                           recv_contents->time,
+                           recv_contents.time,
                            (long unsigned int)send_times[seqno].tv_sec);
                     goto next;
                 }
@@ -288,8 +289,9 @@ main(int argc, const char** argv)
                        reply_spec.source.uri,
                        (u_int)strlen(ping_str),
                        reply_payload.buf.buf_val,
-                       recv_contents->seqno,
-                       TIMEVAL_DIFF_MSEC(recv_end, send_times[recv_contents->seqno]));
+                       recv_contents.seqno,
+                       TIMEVAL_DIFF_MSEC(recv_end,
+                                         send_times[recv_contents.seqno]));
                 fflush(stdout);
             }
 next:
