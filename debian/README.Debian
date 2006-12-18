@@ -4,16 +4,21 @@ DTN for Debian
 This debian package does not conform to any of the real Debian
 policies or guidelines, but it's been included here for convenience.
 
-The process used to build the debian packages was:
+The process used to build the debian packages is:
 
-cvs export -r <release_tag> -d dtn_<version> DTN2
-dpkg-source -b dtn_<version>
-cd dtn_<version> && debuild -r fakeroot binary
+First update the debian/changelog, typically using:
+dch -v <version>
+
+Then check in the updated changelog.
+
+cvs export -r <release_tag> -d dtn-<version> DTN2
+dpkg-source -b dtn-<version>
+cd dtn-<version> && debuild -r fakeroot binary
 
 Then, to buld the apt repository, the following commands were used:
 
-reprepro -b <repository_dir> includedeb sarge dtn_2.2.0-1_i386.deb
+reprepro -b <repository_dir> includedeb sarge dtn-<version>_i386.deb
 reprepro -b <repository_dir> -S contrib -P optional \
-	 includedsc sarge dtn_2.2.0-1.dsc
+	 includedsc sarge dtn_-<version>.dsc
 
 
