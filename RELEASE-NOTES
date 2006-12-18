@@ -1,7 +1,7 @@
 Release Notes for DTN2
 ----------------------
 
-2.3.0 (December 2006?)
+2.3.0 (December 2006)
 ---------------------
 
 - Rewritten and documented TCP convergence layer, with support for
