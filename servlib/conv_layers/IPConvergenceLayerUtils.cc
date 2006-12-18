@@ -27,10 +27,9 @@ namespace dtn {
  * @return true if the conversion was successful, false
  */
 bool
-IPConvergenceLayerUtils::parse_nexthop(const char* nexthop,
+IPConvergenceLayerUtils::parse_nexthop(const char* logpath, const char* nexthop,
                                        in_addr_t* addr, u_int16_t* port)
 {
-    static const char* log = "/dtn/cl/iputils";
     const char* host;
     std::string tmp;
                         
@@ -49,7 +48,7 @@ IPConvergenceLayerUtils::parse_nexthop(const char* nexthop,
         u_int32_t portval = strtoul(colon + 1, &endstr, 10);
         
         if (*endstr != '\0' || portval > 65535) {
-            log_warn_p(log, "invalid port %s in next hop '%s'",
+            log_warn_p(logpath, "invalid port %s in next hop '%s'",
                        colon + 1, nexthop);
             return false;
         }
@@ -64,7 +63,7 @@ IPConvergenceLayerUtils::parse_nexthop(const char* nexthop,
 
     // now look up the hostname
     if (oasys::gethostbyname(host, addr) != 0) {
-        log_warn_p(log, "invalid hostname '%s' in next hop %s",
+        log_warn_p(logpath, "invalid hostname '%s' in next hop %s",
                    host, nexthop);
         return false;
     }

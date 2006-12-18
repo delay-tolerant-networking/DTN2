@@ -113,6 +113,11 @@ public:
         LinkParams(bool init_defaults);
     };
 
+    /**
+     * Parse and validate the nexthop address for the given link.
+     */
+    virtual bool parse_nexthop(Link* link, LinkParams* params) = 0;
+
 protected:
     /**
      * Create a new LinkParams structure.
@@ -127,11 +132,6 @@ protected:
                                    int argc, const char** argv,
                                    const char** invalidp);
     
-    /**
-     * Parse and validate the nexthop address for the given link.
-     */
-    virtual bool parse_nexthop(Link* link, LinkParams* params) = 0;
-
     /**
      * After the link parameters are parsed, do any initialization of
      * the link that's necessary before starting up a connection.

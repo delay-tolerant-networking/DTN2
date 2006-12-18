@@ -191,7 +191,7 @@ protected:
          */
         Connection(const char* classname,
                    const char* logpath,
-                   ConvergenceLayer* cl,
+                   StreamConvergenceLayer* cl,
                    StreamLinkParams* params,
                    bool active_connector);
 

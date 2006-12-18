@@ -38,7 +38,7 @@ public:
      *
      * @return true if the conversion was successful, false
      */
-    static bool parse_nexthop(const char* nexthop,
+    static bool parse_nexthop(const char* logpath, const char* nexthop,
                               in_addr_t* addr, u_int16_t* port);
 };
 

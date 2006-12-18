@@ -47,7 +47,7 @@ public:
      */
     CLConnection(const char* classname,
                  const char* logpath,
-                 ConvergenceLayer* cl,
+                 ConnectionConvergenceLayer* cl,
                  LinkParams* params,
                  bool active_connector);
 
@@ -253,7 +253,7 @@ protected:
     ContactRef          contact_;	///< Ref to the Contact
     bool		contact_up_;	///< Has contact_up been called
     oasys::MsgQueue<CLMsg> cmdqueue_;	///< Queue of commands from daemon
-    ConvergenceLayer*   cl_;		///< Pointer to the CL
+    ConnectionConvergenceLayer* cl_;	///< Pointer to the CL
     LinkParams*		params_;	///< Pointer to Link parameters, or
                                         ///< to defaults until Link is bound
     bool                active_connector_; ///< Should we connect() or accept()

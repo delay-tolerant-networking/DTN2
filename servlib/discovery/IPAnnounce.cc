@@ -107,7 +107,7 @@ IPAnnounce::handle_neighbor_discovered(const std::string& nexthop,
     in_addr_t remote_addr;
     u_int16_t remote_port;
 
-    if (! IPConvergenceLayerUtils::parse_nexthop(nexthop.c_str(),
+    if (! IPConvergenceLayerUtils::parse_nexthop(logpath_, nexthop.c_str(),
                                                  &remote_addr, &remote_port))
         return;
 

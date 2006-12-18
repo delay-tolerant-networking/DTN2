@@ -111,17 +111,20 @@ TCPConvergenceLayer::parse_nexthop(Link* link, LinkParams* lparams)
     TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(lparams);
     ASSERT(params != NULL);
 
-    if (! IPConvergenceLayerUtils::parse_nexthop(link->nexthop(),
-                                                 &params->remote_addr_,
-                                                 &params->remote_port_)) {
-        log_err("invalid next hop address '%s'", link->nexthop());
-        return false;
+    if (params->remote_addr_ == INADDR_NONE || params->remote_port_ == 0)
+    {
+        if (! IPConvergenceLayerUtils::parse_nexthop(logpath_, link->nexthop(),
+                                                     &params->remote_addr_,
+                                                     &params->remote_port_)) {
+            return false;
+        }
     }
     
     if (params->remote_addr_ == INADDR_ANY ||
         params->remote_addr_ == INADDR_NONE)
     {
-        log_err("invalid host in next hop address '%s'", link->nexthop());
+        log_warn("can't lookup hostname in next hop address '%s'",
+                 link->nexthop());
         return false;
     }
     
@@ -292,12 +295,6 @@ TCPConvergenceLayer::Connection::Connection(TCPConvergenceLayer* cl,
     sock_->logpathf("%s/sock", logpath_);
     sock_->set_logfd(false);
 
-    // cache the remote addr and port in the fields in the socket
-    // since we want to actually connect to the peer side from the
-    // Connection thread, not from the caller thread
-    sock_->set_remote_addr(params->remote_addr_);
-    sock_->set_remote_port(params->remote_port_);
-
     sock_->init_socket();
     sock_->set_nonblocking(true);
 
@@ -399,6 +396,21 @@ TCPConvergenceLayer::Connection::initialize_pollfds()
 void
 TCPConvergenceLayer::Connection::connect()
 {
+    // the first thing we do is try to parse the next hop address...
+    // if we're unable to do so, the link can't be opened.
+    if (! cl_->parse_nexthop(contact_->link(), params_)) {
+        log_info("can't resolve nexthop address '%s'",
+                 contact_->link()->nexthop());
+        break_contact(ContactEvent::BROKEN);
+        return;
+    }
+
+    // cache the remote addr and port in the fields in the socket
+    TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(params_);
+    ASSERT(params != NULL);
+    sock_->set_remote_addr(params->remote_addr_);
+    sock_->set_remote_port(params->remote_port_);
+
     // start a connection to the other side... in most cases, this
     // returns EINPROGRESS, in which case we wait for a call to
     // handle_poll_activity

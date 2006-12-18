@@ -187,24 +187,10 @@ UDPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     
     log_debug("adding %s link %s", link->type_str(), link->nexthop());
 
-    // validate the link next hop address
-    if (! IPConvergenceLayer::parse_nexthop(link->nexthop(), &addr, &port)) {
-        log_err("invalid next hop address '%s'", link->nexthop());
-        return false;
-    }
-
-    // make sure it's really a valid address
-    if (addr == INADDR_ANY || addr == INADDR_NONE) {
-        log_err("invalid host in next hop address '%s'", link->nexthop());
-        return false;
-    }
-    
-    // make sure the port was specified
-    if (port == 0) {
-        log_err("port not specified in next hop address '%s'",
-                link->nexthop());
-        return false;
-    }
+    // Parse the nexthop address but don't bail if the parsing fails,
+    // since the remote host may not be resolvable at initialization
+    // time and we retry in open_contact
+    parse_nexthop(link->nexthop(), &addr, &port);
 
     // Create a new parameters structure, parse the options, and store
     // them in the link's cl info slot
@@ -253,19 +239,31 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
     Link* link = contact->link();
     log_debug("opening contact for link *%p", link);
     
-    // parse out the address / port from the nexthop address. note
-    // that these should have been validated in init_link() above, so
-    // we ASSERT as such
-    bool valid = parse_nexthop(link->nexthop(), &addr, &port);
-    ASSERT(valid == true);
-    ASSERT(addr != INADDR_NONE && addr != INADDR_ANY);
-    ASSERT(port != 0);
-    
-    Params* params = (Params*)link->cl_info();
+    // parse out the address / port from the nexthop address
+    if (! parse_nexthop(link->nexthop(), &addr, &port)) {
+        log_err("invalid next hop address '%s'", link->nexthop());
+        return false;
+    }
 
+    // make sure it's really a valid address
+    if (addr == INADDR_ANY || addr == INADDR_NONE) {
+        log_err("can't lookup hostname in next hop address '%s'",
+                link->nexthop());
+        return false;
+    }
+
+    // make sure the port was specified
+    if (port == 0) {
+        log_err("port not specified in next hop address '%s'",
+                link->nexthop());
+        return false;
+    }
+
+    Params* params = (Params*)link->cl_info();
+    
     // create a new sender structure
     Sender* sender = new Sender(link->contact());
-
+    
     if (!sender->init(params, addr, port)) {
         log_err("error initializing contact");
         BundleDaemon::post(

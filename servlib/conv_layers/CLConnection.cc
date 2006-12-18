@@ -27,7 +27,7 @@ namespace dtn {
 //----------------------------------------------------------------------
 CLConnection::CLConnection(const char*       classname,
                            const char*       logpath,
-                           ConvergenceLayer* cl,
+                           ConnectionConvergenceLayer* cl,
                            LinkParams*       params,
                            bool              active_connector)
     : Thread(classname),

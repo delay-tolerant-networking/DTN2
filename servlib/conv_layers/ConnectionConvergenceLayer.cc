@@ -111,11 +111,11 @@ ConnectionConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
     // them in the link's cl info slot.
     LinkParams* params = new_link_params();
 
-    if (! parse_nexthop(link, params)) {
-        log_err("error parsing link nexthop '%s'", link->nexthop());
-        delete params;
-        return false;
-    }
+    // Try to parse the link's next hop, but continue on even if the
+    // parse fails since the hostname may not be resolvable when we
+    // initialize the link. Each subclass is responsible for
+    // re-checking when opening the link.
+    parse_nexthop(link, params);
     
     const char* invalid;
     if (! parse_link_params(params, argc, argv, &invalid)) {

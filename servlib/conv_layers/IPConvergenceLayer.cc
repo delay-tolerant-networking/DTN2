@@ -63,7 +63,7 @@ IPConvergenceLayer::parse_nexthop(const char* nexthop,
 
     // now look up the hostname
     if (oasys::gethostbyname(host, addr) != 0) {
-        log_warn("invalid hostname '%s' in next hop %s",
+        log_warn("can't lookup hostname '%s' in next hop %s",
                  host, nexthop);
         return false;
     }
