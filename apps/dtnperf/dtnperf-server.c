@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "dtn_api.h"
+#include <sys/stat.h>
 
 #define BUFSIZE 16
 #define BUNDLE_DIR_DEFAULT "/var/dtn/dtnperf"
@@ -193,7 +194,18 @@ int main(int argc, char** argv)
         }
         if (debug) printf(" bundle received\n");
         count++;
-        total += payload.buf.buf_len;
+
+        size_t len;
+        if (pl_type == DTN_PAYLOAD_MEM) {
+            len = payload.buf.buf_len;
+        } else {
+            struct stat st;
+            memset(&st, 0, sizeof(st));
+            stat(payload.filename.filename_val, &st);
+            len = st.st_size;
+        }
+        
+        total += len;
 
         // mark current time
         if (debug) printf("[debug] marking time...");
@@ -201,9 +213,9 @@ int main(int argc, char** argv)
         if (debug) printf(" done\n");
 
         if (aggregate == 0) {
-            printf("%s : %d bytes from %s\n",
+            printf("%s : %zu bytes from %s\n",
                    ctime(&current),
-                   payload.buf.buf_len,
+                   len,
                    spec.source.uri);
         } else if (count % aggregate == 0) {
             printf("%s : %d bundles, total length %d bytes\n",
@@ -265,9 +277,11 @@ int main(int argc, char** argv)
 
         if (pl_type == DTN_PAYLOAD_FILE) { // if bundle was saved into file
 
-            if (debug) printf("[debug] renaming file %s -> %s...", buffer, filepath);
-            if (rename(buffer, filepath) != 0) {
-                printf("[ERROR] Couldn't rename %s -> %s: %s", buffer, filepath, strerror(errno));
+            if (debug) printf("[debug] renaming file %s -> %s...",
+                              payload.filename.filename_val, filepath);
+            if (rename(payload.filename.filename_val, filepath) != 0) {
+                printf("[ERROR] Couldn't rename %s -> %s: %s\n",
+                       payload.filename.filename_val, filepath, strerror(errno));
             }
 
         } else { // if bundle was saved into memory
