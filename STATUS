@@ -2,19 +2,20 @@
 	     Status of the DTN2 Reference Implementation
 	     ===========================================
 
-This document describes the general features of this implementation
-and summarizes the relationship between the implementation and the
-various Internet Drafts that describe Delay Tolerant Networking, the
-Bundle Protocol, and other related protocols.
+This document describes the high-level features of version 2.3.0 of
+the DTN2 reference implementation and summarizes the relationship
+between the implementation and the various Internet Drafts that
+describe Delay Tolerant Networking, the Bundle Protocol, and other
+related protocols.
 
-The current version of the code is based on the Bundle Protocol
-Specification Internet Draft version 4, and the Delay Tolerant
-Networking Architecture Internet Draft version 4, both released in
-December of 2005.
+The current version of the DTN2 code is based on the Bundle Protocol
+Specification Internet Draft version 6, and the Delay Tolerant
+Networking Architecture Internet Draft version 6, both released in
+September of 2006. The TCP convergence layer is based on the Delay
+Tolerant Networking TCP Convergence Layer Protocol draft version 0.
 
-A copy of these documents can be obtained from:
-http://www.ietf.org/internet-drafts/draft-irtf-dtnrg-bundle-spec-04.txt
-http://www.ietf.org/internet-drafts/draft-irtf-dtnrg-arch-04.txt
+A copy of these documents (and possibly more recent versions) can be
+obtained from the ietf.org web site.
 
 
 			 The Bundle Protocol
@@ -29,55 +30,43 @@ implemented include the following:
 - Bundle expirations (based on timers)
 - Registrations (with expiration timers)
 - Persistent storage of bundles
-- Bundle fragmentation (proactive and reactive)
+- Bundle fragmentation (reactive)
 - Bundle fragment reassembly
+- Custody Transfer
 - Bundle Status Reports:
   - Received
   - Forwarded 
   - Delivered
   - Deleted
+  - Custody Acceptance
+- Extension blocks
+
 
 The features that are not yet implemented include:
 
-- Custody Transfer
 - Bundle Status Reports:
   - Acknowledged by Application 
-  - Custody Acceptance
-
-Unfortunately, this particular document went through some late changes
-after the bulk of this implementation was completed, so there are some
-minor discrepancies between the specification and qthe code. This
-shortcoming will be addressed in the next release.
+- Bundle Security blocks
+- Proactive Fragmentation
 
 
 			  Convergence Layers
 			  ------------------
 
-The following Convergence Layers have been implemented. As of yet
-there are no Internet Drafts or other specification documents that
-describe these protocols. 
+The following Convergence Layers have been implemented. 
 
 -- TCP Convergence Layer
 
+An internet draft (draft-demmer-dtnrg-tcp-clayer-00.txt) has been
+published describing the TCP convergence layer protocol.
+
 The TCP convergence layer offers a reliable communication channel
-between DTN nodes. All bundle communication is unidirectional, thus
-two neighboring nodes will need to maintain two TCP connections, one
-in each direction) to exchange bundle data.
-
-The protocol returns an acknowledgement message when part or all of
-the bundle is received. These acknowledgements allowing the sender
-side to determine whether or not the bundle can be removed from the
-data store. Also, the partial acknowledgements are used to implement
+between DTN nodes. All bundle communication is now bidirectional. The
+protocol returns an acknowledgement message when part or all of the
+bundle is received. These acknowledgements allowing the sender side to
+determine whether or not the bundle can be removed from the data
+store. Also, the partial acknowledgements are used to implement
 reactive fragmentation.
-
-The protocol has (newly added) support for pipelining bundles, that
-is, having more than one bundle being sent over the wire at a given
-time. This support aims to address problems on long-delay links.
-
-The protocol also has support for connection by the receiver side.
-This is intended for situations where one of a pair of DTN nodes is
-sitting behind a firewall or NAT box such that the other side cannot
-initiate a connection to the node.
 
 -- UDP Convergence Layer
 
@@ -97,8 +86,8 @@ in this case 1518 bytes.
 This convergence layer also includes support for neighbor discovery
 through the use of periodic beacon packets.
 
-** Note -- this support is currently disabled for lack of testing. It
-   is intended to be re-enabled in a future release.
+** Note -- this convergence layer is currently disabled for lack of
+   testing. It is intended to be re-enabled in a future release.
    
 
 			 Link / Contact Types
@@ -170,4 +159,4 @@ ethernet scheme URI is eth://01:23:45:ab:cd:ef
 
 ======================================================================
 
-Last updated: December 16, 2005
+Last updated: December 18, 2006
