@@ -285,7 +285,8 @@ ContactManager::find_link_to(ConvergenceLayer* cl,
 Link*
 ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
                                        const std::string& nexthop,
-                                       const EndpointID& remote_eid)
+                                       const EndpointID& remote_eid,
+                                       const std::string* link_name)
 {
     log_debug("new_opportunistic_link: cl %s nexthop %s remote_eid %s",
               cl->name(), nexthop.c_str(), remote_eid.c_str());
@@ -295,12 +296,25 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
     // find a unique link name
     char name[64];
     Link* link = NULL;
-    do {
-        snprintf(name, sizeof(name), "opportunistic-%d",
-                 opportunistic_cnt_);
-        opportunistic_cnt_++;
-        link = find_link(name);
-    } while (link != NULL);
+    
+    if (link_name) {
+        strncpy(name, link_name->c_str(), sizeof(name));
+        
+        while ( find_link(name) ) {
+            snprintf(name, sizeof(name), "%d-%s", opportunistic_cnt_,
+                     link_name->c_str());
+            opportunistic_cnt_++;
+        }
+    }
+    
+    else {
+        do {
+            snprintf(name, sizeof(name), "opportunistic-%d",
+                    opportunistic_cnt_);
+            opportunistic_cnt_++;
+            link = find_link(name);
+        } while (link != NULL);
+    }
         
     link = Link::create_link(name, Link::OPPORTUNISTIC, cl,
                              nexthop.c_str(), 0, NULL);

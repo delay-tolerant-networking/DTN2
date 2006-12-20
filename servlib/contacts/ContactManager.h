@@ -143,7 +143,8 @@ public:
      */
     Link* new_opportunistic_link(ConvergenceLayer* cl,
                                  const std::string& nexthop,
-                                 const EndpointID& remote_eid);
+                                 const EndpointID& remote_eid,
+                                 const std::string* link_name = NULL);
     
 protected:
     
