@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>DTN2 Manual: TCP Convergence Layer</title>
+  <link rel="stylesheet" type="text/css" href="manual.css">
+</head>
+<body>
+<h1>External Convergence Layer
+</h1>
+<p>The external convergence layer (ECL) is the gateway between DTN2 and
+convergence layer adapters (CLAs) running outside of DTN2. External
+CLAs connect to DTN2 through a socket and exchange XML messages. The
+first of these messages is one that announces the presence of the new
+CLA, giving its name (usually the name of the protocol that the CLA
+implements) to the ECL.<br>
+</p>
+<h2>ECLA Commands</h2>
+<p>The following commands are available to control the ECL. The
+commands are of the form:<br>
+</p>
+<pre style="margin-left: 40px;">ecla &lt;command&gt; &lt;arguments&gt;<br></pre>
+<br>
+<table style="text-align: left; width: 50%;" border="0" cellpadding="2"
+ cellspacing="2">
+  <tbody>
+    <tr>
+      <th
+ style="vertical-align: top; background-color: grey; text-align: center;"><span
+ style="font-weight: bold;">Name</span><br>
+      </th>
+      <th
+ style="vertical-align: top; background-color: grey; text-align: center;"><span
+ style="font-weight: bold;">Description</span><br>
+      </th>
+      <th style="vertical-align: top;">Arguments<br>
+      </th>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">start<br>
+      </td>
+      <td style="vertical-align: top;">Start the ECL by adding it to
+DTN2's list of convergence layers and listening for connections from
+external CLAs.<br>
+      </td>
+      <td style="vertical-align: top;">None<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<p><br>
+</p>
+<h2>ECLA Parameters</h2>
+<p>The following parameters are available to control the ECL. The
+commands are of the form:<br>
+</p>
+<pre style="margin-left: 40px;">ecla set &lt;parameter&gt; &lt;value&gt;<br></pre>
+<br>
+<table style="text-align: left; width: 50%;" border="0" cellpadding="2"
+ cellspacing="2">
+  <tbody>
+    <tr>
+      <th style="vertical-align: top; text-align: center;"><span
+ style="font-weight: bold;">Name</span><br>
+      </th>
+      <th style="vertical-align: top; text-align: center;"><span
+ style="font-weight: bold;">Type</span><br>
+      </th>
+      <th style="vertical-align: top; text-align: center;"><span
+ style="font-weight: bold;">Default</span><br>
+      </th>
+      <th style="vertical-align: top; text-align: center;"><span
+ style="font-weight: bold;">Comment</span><br>
+      </th>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">schema<br>
+      </td>
+      <td style="vertical-align: top;">String<br>
+      </td>
+      <td style="vertical-align: top;">None<br>
+      </td>
+      <td style="vertical-align: top;">The path to the schema (XSD)
+file defining the messages between the ECL and CLAs. The ECL will not
+work if this is not set correctly.<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">server_addr<br>
+      </td>
+      <td style="vertical-align: top;">IP address or a DNS hostname</td>
+      <td style="vertical-align: top;">127.0.0.1<br>
+      </td>
+      <td style="vertical-align: top;">The address on which to listen
+for connections from external CLAs.<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">server_port<br>
+      </td>
+      <td style="vertical-align: top;">IP port number<br>
+      </td>
+      <td style="vertical-align: top;">5070<br>
+      </td>
+      <td style="vertical-align: top;">The port on which to listen for
+connections from external CLAs.<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<p><br>
+</p>
+<h2>Interfaces and Links</h2>
+<p>Interfaces and links for external CLAs are created and manipulated
+in the same way as are those for built-in CLAs. The &lt;conv_layer&gt;
+field of the "interface add" and "link add" commands must be "extcl".
+There is only one required argument -- "protocol=&lt;cla_name&gt;" --
+that must follow that. This argument specifies the actual external CLA
+on which to create the interface or link and should match the name
+given by one of the CLAs. Any other arguments following
+"protocol=&lt;cla_name&gt;" will be passed through to the external CLA.
+For example, the following will create an interface on an external CLA
+that implements TCP (and is named "tcp"):<br>
+</p>
+<pre style="margin-left: 40px;">interface add iface_tcp0 extcl protocol=tcp local_addr=127.0.1.1 local_port=5000<br></pre>
+<p>The following will create a link on the same external CLA:<br>
+</p>
+<pre style="margin-left: 40px;">link add link_tcp0 127.0.1.2:5000 ONDEMAND extcl protocol=tcp<br></pre>
+<p>If an interface or a link is added on a protocol for which there yet
+exists no CLA, the interface or link will be held until such a CLA
+connects. In this case, links will remain UNAVAILABLE until the CLA
+connects.<br>
+</p>
+</body>
+</html>
