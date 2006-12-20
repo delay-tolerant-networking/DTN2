@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+<!--
+Copyright 2004-2006 BBN Technologies Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations
+under the License.
+
+$Id$
+-->
+
+
+<xs:simpleType name="linkTypeType">
+    <xs:restriction base="xs:string">
+        <xs:enumeration value="alwayson"/>
+        <xs:enumeration value="ondemand"/>
+        <xs:enumeration value="scheduled"/>
+        <xs:enumeration value="opportunistic"/>
+    </xs:restriction>
+</xs:simpleType>
+
+<xs:simpleType name="linkStateType">
+    <xs:restriction base="xs:string">
+        <xs:enumeration value="unavailable"/>
+        <xs:enumeration value="available"/>
+        <xs:enumeration value="opening"/>
+        <xs:enumeration value="open"/>
+        <xs:enumeration value="busy"/>
+        <xs:enumeration value="closed"/>
+    </xs:restriction>
+</xs:simpleType>
+
+<xs:simpleType name="linkStateReasonType">
+    <xs:restriction base="xs:string">
+        <xs:enumeration value="no_info"/>
+        <xs:enumeration value="user"/>
+        <xs:enumeration value="broken"/>
+        <xs:enumeration value="shutdown"/>
+        <xs:enumeration value="reconnect"/>
+        <xs:enumeration value="idle"/>
+        <xs:enumeration value="timeout"/>
+        <xs:enumeration value="unblocked"/>
+    </xs:restriction>
+</xs:simpleType>
+                
+
+<xs:element name="UpEvent">
+    <xs:complexType>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="UpReplyEvent">
+    <xs:complexType>
+        <xs:attribute name="localEID" type="xs:string" use="required"/>
+        <xs:attribute name="incomingBundleDir" type="xs:string" use="required"/>
+        <xs:attribute name="outgoingBundleDir" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="InterfaceCreateRequest">
+    <xs:complexType>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="arguments" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="InterfaceCreatedEvent">
+    <xs:complexType>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="InterfaceDestroyRequest">
+    <xs:complexType>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="LinkCreateRequest">
+    <xs:complexType>
+        <xs:attribute name="type" type="linkTypeType" use="required"/>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="remoteEID" type="xs:string" use="optional"/>
+        <xs:attribute name="nextHop" type="xs:string" use="required"/>
+        <xs:attribute name="arguments" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+    
+
+<xs:element name="LinkCreatedEvent">
+    <xs:complexType>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="nextHop" type="xs:string" use="optional"/>
+        <xs:attribute name="peerEID" type="xs:string" use="optional"/>
+        <xs:attribute name="discovered" type="xs:boolean" use="required"/>
+    </xs:complexType>
+</xs:element>
+    
+
+<xs:element name="LinkOpenRequest">
+    <xs:complexType>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="LinkCloseRequest">
+    <xs:complexType>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="LinkStateChangedEvent">
+    <xs:complexType>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="newState" type="linkStateType" use="required"/>
+        <xs:attribute name="reason" type="linkStateReasonType" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+    
+<xs:element name="BundleSendRequest">
+    <xs:complexType>
+        <xs:attribute name="bundleID" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="linkName" type="xs:string" use="required"/>
+        <xs:attribute name="filename" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="BundleHeaderReceivedEvent">
+    <xs:complexType>
+        <xs:attribute name="linkName" type="xs:string" use="required"/>
+        <xs:attribute name="appendedLength" type="xs:unsignedInt" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="BundleHeaderReceiveReplyEvent">
+    <xs:complexType>
+        <xs:attribute name="bundleID" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="linkName" type="xs:string" use="required"/>
+        <xs:attribute name="payloadFileName" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="BundlePayloadReceivedEvent">
+    <xs:complexType>
+        <xs:attribute name="bundleID" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="interfaceName" type="xs:string" use="required"/>
+        <xs:attribute name="bytesReceived" type="xs:unsignedInt" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="BundleReceivedEvent">
+    <xs:complexType>
+        <xs:attribute name="payloadFile" type="xs:string" use="required"/>
+        <xs:attribute name="bytesReceived" type="xs:unsignedInt" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="BundleTransmittedEvent">
+    <xs:complexType>
+        <xs:attribute name="bundleID" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="linkName" type="xs:string" use="required"/>
+        <xs:attribute name="bytesSent" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="reliablySent" type="xs:unsignedInt" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="BundleTransmitFailedEvent">
+    <xs:complexType>
+        <xs:attribute name="bundleID" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="linkName" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="dtn">
+    <xs:complexType>
+        <xs:all>
+            <xs:element ref="UpEvent" minOccurs="0"/>
+            <xs:element ref="UpReplyEvent" minOccurs="0"/>
+            <xs:element ref="InterfaceCreateRequest" minOccurs="0"/>
+            <xs:element ref="InterfaceDestroyRequest" minOccurs="0"/>
+            <xs:element ref="InterfaceCreatedEvent" minOccurs="0"/>
+            <xs:element ref="LinkCreateRequest" minOccurs="0"/>
+            <xs:element ref="LinkCreatedEvent" minOccurs="0"/>
+            <xs:element ref="LinkOpenRequest" minOccurs="0"/>
+            <xs:element ref="LinkCloseRequest" minOccurs="0"/>
+            <xs:element ref="LinkStateChangedEvent" minOccurs="0"/>
+            <xs:element ref="BundleSendRequest" minOccurs="0"/>
+            <xs:element ref="BundleHeaderReceivedEvent" minOccurs="0"/>
+            <xs:element ref="BundleHeaderReceiveReplyEvent" minOccurs="0"/>
+            <xs:element ref="BundlePayloadReceivedEvent" minOccurs="0"/>
+            <xs:element ref="BundleReceivedEvent" minOccurs="0"/>
+            <xs:element ref="BundleTransmittedEvent" minOccurs="0"/>
+            <xs:element ref="BundleTransmitFailedEvent" minOccurs="0"/>
+        </xs:all>
+        <xs:attribute name="eid" type="xs:string" use="optional"/>
+    </xs:complexType>
+</xs:element>
+
+</xs:schema>
