@@ -73,6 +73,10 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/StreamConvergenceLayer.cc   \
 	conv_layers/TCPConvergenceLayer.cc	\
 	conv_layers/UDPConvergenceLayer.cc	\
+	conv_layers/ExternalConvergenceLayer.cc	\
+	conv_layers/ECLModule.cc \
+	conv_layers/CLEvent.cc \
+	conv_layers/CLEventHandler.cc \
 
 DISCOVERY_SRCS :=				\
 	discovery/DiscoveryTable.cc		\
@@ -97,6 +101,7 @@ CMD_SRCS :=					\
 	cmd/TestCommand.cc			\
 	cmd/DiscoveryCommand.cc			\
 	cmd/ProphetCommand.cc			\
+	cmd/ECLACommand.cc			\
 
 NAMING_SRCS :=					\
 	naming/EndpointID.cc			\
