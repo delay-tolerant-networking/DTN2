@@ -42,6 +42,7 @@
 #include "cmd/ProphetCommand.h"
 #include "cmd/ShutdownCommand.h"
 #include "cmd/StorageCommand.h"
+#include "cmd/ECLACommand.h"
 
 #include "conv_layers/ConvergenceLayer.h"
 #include "discovery/DiscoveryTable.h"
@@ -214,6 +215,10 @@ DTNServer::init_commands()
     interp->reg(new ShutdownCommand(this, "shutdown"));
     interp->reg(new ShutdownCommand(this, "quit"));
     interp->reg(new StorageCommand(storage_config_));
+
+#ifdef XERCES_C_ENABLED    
+    interp->reg(new ECLACommand());
+#endif
 
     log_debug("registered dtn commands");
 }
