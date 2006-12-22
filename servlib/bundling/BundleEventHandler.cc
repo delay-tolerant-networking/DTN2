@@ -138,6 +138,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_link_unavailable((LinkUnavailableEvent*)e);
         break;
 
+    case LINK_BUSY:
+        handle_link_busy((LinkBusyEvent*)e);
+        break;
+
     case LINK_STATE_CHANGE_REQUEST:
         handle_link_state_change_request((LinkStateChangeRequest*)e);
         break;
@@ -362,6 +366,14 @@ BundleEventHandler::handle_link_available(LinkAvailableEvent*)
  */
 void
 BundleEventHandler::handle_link_unavailable(LinkUnavailableEvent*)
+{
+}
+
+/**
+ * Default event handler when a link is busy 
+ */
+void
+BundleEventHandler::handle_link_busy(LinkBusyEvent*)
 {
 }
 
