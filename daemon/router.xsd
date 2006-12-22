@@ -116,13 +116,11 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <xs:simpleType name="bundleForwardActionType">
         <xs:annotation>
             <xs:documentation xml:lang="en">
-0 = invalid action,
 1 = forward bundle only to one next hop,
 2 = forward a copy of the bundle,
             </xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:unsignedByte">
-            <xs:enumeration value="0"/>
             <xs:enumeration value="1"/>
             <xs:enumeration value="2"/>
         </xs:restriction>
@@ -135,11 +133,14 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 1 = no additional info,
 2 = user action,
 3 = unexpected session interruption,
-4 = clean connection shutdown,
-5 = re-establish link after failure,
-6 = idle connection shut down by the CL,
-7 = scheduled link ended duration
-8 = no longer busy
+4 = convergence layer protocol error
+5 = convergence layer version mismatch
+6 = clean connection shutdown,
+7 = re-establish link after failure,
+8 = idle connection shut down by the CL,
+9 = scheduled link ended duration
+10 = link is busy
+11 = link no longer busy
             </xs:documentation>
         </xs:annotation>
         <xs:restriction base="xs:unsignedByte">
@@ -152,6 +153,9 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <xs:enumeration value="6"/>
             <xs:enumeration value="7"/>
             <xs:enumeration value="8"/>
+            <xs:enumeration value="9"/>
+            <xs:enumeration value="10"/>
+            <xs:enumeration value="11"/>
         </xs:restriction>
     </xs:simpleType>
     
@@ -391,13 +395,6 @@ Declared DTN node that "owns" the bundle (could be empty).
     </xs:complexType>
 
     <xs:attributeGroup name="payloadAttributes">
-        <xs:attribute name="filename" type="xs:string" use="required">
-            <xs:annotation>
-                <xs:documentation xml:lang="en">
-Payload file name on local dtn node.
-                </xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
         <xs:attribute name="length" type="xs:unsignedInt" use="required">
             <xs:annotation>
                 <xs:documentation xml:lang="en">
@@ -470,7 +467,7 @@ Whether or not this block is complete
         </xs:attribute>
     </xs:attributeGroup>
 
-    <xs:complexType name="recvBlocksType">
+    <xs:complexType name="blockListType">
         <xs:sequence>
             <xs:element name="element" minOccurs="0" maxOccurs="unbounded">
                 <xs:complexType>
@@ -489,7 +486,8 @@ Whether or not this block is complete
             <xs:element name="replyto" type="eidType"/>
             <xs:element name="prevhop" type="eidType"/>
             <xs:element name="payload" type="payloadType"/>
-            <xs:element name="recv_blocks" type="recvBlocksType"/>
+            <xs:element name="recv_blocks" type="blockListType"/>
+            <xs:element name="api_blocks" type="blockListType"/>
         </xs:sequence>
         <xs:attributeGroup ref="bundleAttributes"/>
     </xs:complexType>
@@ -892,6 +890,7 @@ Signals a bundle or bundle fragment transmission.
             <xs:sequence>
                 <xs:element name="bundle" type="bundleType"/>
                 <xs:element name="contact" type="contactType"/>
+                <xs:element name="link" type="linkType"/>
             </xs:sequence>
             <xs:attribute name="bytes_sent" type="xs:unsignedInt" use="required"/>
             <xs:attribute name="reliably_sent" type="xs:unsignedInt" use="required"/>
@@ -1037,6 +1036,21 @@ Signals a link as unavailable.
                 <xs:element name="link" type="linkType"/>
             </xs:sequence>
             <xs:attribute name="reason" type="contactReasonType" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Link Busy Event -->
+    
+    <xs:element name="link_busy_event">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+Signals a link as busy.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="link" type="linkType"/>
+            </xs:sequence>
         </xs:complexType>
     </xs:element>
     
@@ -1325,6 +1339,7 @@ Carry two or more router message on a single packet.
             <xs:element ref="link_deleted_event" minOccurs="0"/>
             <xs:element ref="link_available_event" minOccurs="0"/>
             <xs:element ref="link_unavailable_event" minOccurs="0"/>
+            <xs:element ref="link_busy_event" minOccurs="0"/>
             <xs:element ref="route_add_event" minOccurs="0"/>
             <xs:element ref="route_delete_event" minOccurs="0"/>
             <xs:element ref="custody_signal_event" minOccurs="0"/>
