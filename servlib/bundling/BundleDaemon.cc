@@ -816,33 +816,16 @@ void
 BundleDaemon::handle_bundle_send(BundleSendRequest* event)
 {
     Link *link = contactmgr_->find_link(event->link_.c_str());
-
-    if(!link) return;
+    if (! link) return;
 
     BundleRef br = pending_bundles_->find(event->bundleid_);
-
-    if(!br.object()) {
-        br = custody_bundles_->find(event->bundleid_);
-
-        if(!br.object()) {
-            return;
-        }
-    }
+    if (! br.object()) return;
 
     ForwardingInfo::action_t fwd_action =
-        ForwardingInfo::action_t(event->action_);
+        (ForwardingInfo::action_t)event->action_;
 
-    if(fwd_action == ForwardingInfo::INVALID_ACTION) {
-        return;
-    }
-
-    bool result = actions_->send_bundle(br.object(), link,
+    actions_->send_bundle(br.object(), link,
         fwd_action, CustodyTimerSpec::defaults_);
-
-    if(result == false) {
-        // log something
-        // BundleTransmitFailed?
-    }
 }
 
 //----------------------------------------------------------------------
@@ -850,76 +833,58 @@ void
 BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
 {
     Link *link = contactmgr_->find_link(event->link_.c_str());
-
-    if(!link) {
-        return;
-    }
+    if(!link) return;
 
     BundleRef br = pending_bundles_->find(event->bundleid_);
+    if(!br.object()) return;
 
-    if(!br.object()) {
-        br = custody_bundles_->find(event->bundleid_);
-
-        if(!br.object()) {
-            return;
-        }
-    }
-
-    bool result = actions_->cancel_bundle(br.object(), link);
-
-    if(result == false) {
-        // log something
-        // BundleTransmitFailed?
-    }
+    actions_->cancel_bundle(br.object(), link);
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
 {
-    // the new bundle is *not* placed on the pending queue or
-    // in durable storage (no call to BundleActions::inject_bundle)
-
     Link *link = contactmgr_->find_link(event->link_.c_str());
+    if (! link) return;
 
-    if(!link) {
-        return;
-    }
+    EndpointID src(event->src_); 
+    EndpointID dest(event->dest_); 
+    if ((! src.valid()) || (! dest.valid())) return; 
 
-    // make a bundle
+    // The new bundle is *not* placed on the pending queue or
+    // in durable storage (no call to BundleActions::inject_bundle)
     Bundle *bundle=new Bundle();
-    if(bundle->source_.assign(event->src_) &&
-        bundle->dest_.assign(event->dest_)) {
 
-        if(! bundle->replyto_.assign(event->replyto_))
-            bundle->replyto_.assign(EndpointID::NULL_EID());
+    bundle->source_.assign(src);
+    bundle->dest_.assign(dest);
 
-        if(! bundle->custodian_.assign(event->custodian_))
-            bundle->custodian_.assign(EndpointID::NULL_EID()); 
+    if (! bundle->replyto_.assign(event->replyto_))
+        bundle->replyto_.assign(EndpointID::NULL_EID());
 
-        // bundle COS defaults to COS_BULK
-        bundle->priority_ = event->priority_;
+    if (! bundle->custodian_.assign(event->custodian_))
+        bundle->custodian_.assign(EndpointID::NULL_EID()); 
 
-        // bundle expiration (on remote dtn nodes)
-        // defaults to 5 minutes
-        if(event->expiration_ == 0)
-            bundle->expiration_ = 300;
-        else
-            bundle->expiration_ = event->expiration_;
+    // bundle COS defaults to COS_BULK
+    bundle->priority_ = event->priority_;
 
-        // set the payload
-        const u_char *payload = (const u_char*)event->payload_.c_str();
-        bundle->payload_.set_data(payload,sizeof(payload));
+    // bundle expiration on remote dtn nodes
+    // defaults to 5 minutes
+    if(event->expiration_ == 0)
+        bundle->expiration_ = 300;
+    else
+        bundle->expiration_ = event->expiration_;
 
-        // send attempt
-        bool success = false;
-        success = actions_->send_bundle(bundle, link,
-            ForwardingInfo::action_t(event->action_),
-            CustodyTimerSpec::defaults_);
-        if(!success)
-            delete bundle;
+    // set the payload
+    const u_char *payload = (const u_char*)event->payload_.c_str();
+    bundle->payload_.set_data(payload,sizeof(payload));
 
-    } else
+    // send attempt
+    bool success = false;
+    success = actions_->send_bundle(bundle, link,
+        ForwardingInfo::action_t(event->action_),
+        CustodyTimerSpec::defaults_);
+    if(!success)
         delete bundle;
 }
 
@@ -1029,6 +994,16 @@ BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
     ASSERT(!link->isavailable());
     
     log_info("LINK UNAVAILABLE *%p", link);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_busy(LinkBusyEvent* event)
+{
+    Link* link = event->link_;
+    ASSERT(link->isbusy());
+    
+    log_info("LINK BUSY *%p", link);
 }
 
 //----------------------------------------------------------------------
