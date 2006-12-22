@@ -159,6 +159,7 @@ CLConnection::queue_bundle(Bundle* bundle)
         log_debug("%d bundles pending, setting BUSY state",
                   num_pending_.value);
         contact_->link()->set_state(Link::BUSY);
+        BundleDaemon::post_at_head(new LinkBusyEvent(contact_->link()));
     }
     else
     {
