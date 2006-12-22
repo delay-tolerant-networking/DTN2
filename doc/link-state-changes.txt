@@ -88,15 +88,10 @@ bundle daemon, the link has a BUSY state that should be respected by
 the routers in that they should not call send_bundle on a busy link.
 For connection oriented CLs, the queue that manages bundle flow
 between the main thread and the CL thread can be capped at a maximum
-depth, which when exceeded, will put the link into BUSY state. The
-connection thread should check for this state when a bundle is sent
-out and deliver a LinkAvailableEvent to re-enable the link and inform
-the router(s) that there is a new opportunity to send bundles.
-
-XXX/demmer this is strange w.r.t. the router interface since they
-don't get notified when the link becomes busy, but they do get
-notified when the link is available again... i should really add a
-LinkBusyEvent
+depth, which when exceeded, will put the link into BUSY state and post a
+LinkBusyEvent. The connection thread should check for this state when a
+bundle is sent out and deliver a LinkAvailableEvent to re-enable the link
+and inform the router(s) that there is a new opportunity to send bundles.
 
 ---
 
