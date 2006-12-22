@@ -68,6 +68,7 @@ typedef enum {
     LINK_DELETED,		///< Link is deleted from the system
     LINK_AVAILABLE,		///< Link is available
     LINK_UNAVAILABLE,		///< Link is unavailable
+    LINK_BUSY,  		///< Link is busy 
     LINK_CREATE,                ///< Create and open a new link
     LINK_QUERY,                 ///< Link query
     LINK_REPORT,                ///< Response to link query
@@ -125,6 +126,7 @@ event_to_str(event_type_t event, bool xml=false)
     case LINK_DELETED:		return xml ? "link_deleted_event" : "LINK_DELETED";
     case LINK_AVAILABLE:	return xml ? "link_available_event" : "LINK_AVAILABLE";
     case LINK_UNAVAILABLE:	return xml ? "link_unavailable_event" : "LINK_UNAVAILABLE";
+    case LINK_BUSY:     	return xml ? "link_busy_event" : "LINK_BUSY";
     case LINK_CREATE:           return "LINK_CREATE";
     case LINK_QUERY:            return xml ? "link_query" : "LINK_QUERY";
     case LINK_REPORT:           return xml ? "link_report" : "LINK_REPORT";
@@ -432,7 +434,8 @@ public:
         RECONNECT,	///< Re-establish link after failure
         IDLE,		///< Idle connection shut down by the CL
         TIMEOUT,	///< Scheduled link ended duration
-        UNBLOCKED	///< No longer busy
+        BLOCKED, 	///< Link is busy
+        UNBLOCKED	///< Link is no longer busy
     } reason_t;
 
     /**
@@ -575,6 +578,21 @@ public:
     virtual void serialize(oasys::SerializeAction* a);
 
     /// The link that is up
+    Link* link_;
+};
+
+/**
+ * Event class for link busy events
+ */
+class LinkBusyEvent : public ContactEvent {
+public:
+    LinkBusyEvent(Link* link)
+        : ContactEvent(LINK_BUSY, ContactEvent::BLOCKED), link_(link) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
+    /// The link that is busy
     Link* link_;
 };
 

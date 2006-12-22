@@ -216,6 +216,12 @@ LinkUnavailableEvent::serialize(oasys::SerializeAction *a)
 }
 
 void
+LinkBusyEvent::serialize(oasys::SerializeAction *a)
+{
+    a->process("link", link_);
+}
+
+void
 LinkReportEvent::serialize(oasys::SerializeAction *a)
 {
     BundleDaemon *bd = BundleDaemon::instance();
