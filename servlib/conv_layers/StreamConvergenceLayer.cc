@@ -1291,6 +1291,7 @@ StreamConvergenceLayer::Connection::break_contact(ContactEvent::reason_t reason)
     case ContactEvent::NO_INFO:
     case ContactEvent::RECONNECT:
     case ContactEvent::TIMEOUT:
+    case ContactEvent::BLOCKED:
     case ContactEvent::UNBLOCKED:
         NOTREACHED;
         break;
