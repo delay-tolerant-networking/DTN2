@@ -345,8 +345,8 @@ TCPConvergenceLayer::Connection::serialize(oasys::SerializeAction *a)
     TCPLinkParams *params = tcp_lparams();
     if (! params) return;
 
-    a->process("local_addr", new oasys::InAddr(&params->local_addr_));
-    a->process("remote_addr", new oasys::InAddr(&params->remote_addr_));
+    a->process("local_addr", oasys::InAddrPtr(&params->local_addr_));
+    a->process("remote_addr", oasys::InAddrPtr(&params->remote_addr_));
     a->process("remote_port", &params->remote_port_);
 
     // from StreamLinkParams

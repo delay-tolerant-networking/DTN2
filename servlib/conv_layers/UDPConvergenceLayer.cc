@@ -37,8 +37,8 @@ struct UDPConvergenceLayer::Params UDPConvergenceLayer::defaults_;
 void
 UDPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
 {
-    a->process("local_addr", new oasys::InAddr(&local_addr_));
-    a->process("remote_addr", new oasys::InAddr(&remote_addr_));
+    a->process("local_addr", oasys::InAddrPtr(&local_addr_));
+    a->process("remote_addr", oasys::InAddrPtr(&remote_addr_));
     a->process("local_port", &local_port_);
     a->process("remote_port", &remote_port_);
     a->process("rate", &rate_);
