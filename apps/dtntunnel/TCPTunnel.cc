@@ -215,6 +215,7 @@ TCPTunnel::Connection::run()
     u_int32_t total_sent = 0;
     bool sock_eof = false;
     bool dtn_blocked = false;
+    bool first = true;
 
     // outgoing (tcp -> dtn) / incoming (dtn -> tcp) bundles
     dtn::APIBundle* b_xmit = NULL;
@@ -269,17 +270,18 @@ TCPTunnel::Connection::run()
         sock_poll->revents       = 0;
 
         // if the socket already had an eof or if dtn is write
-        // blocked, we just poll for activity on the message queue
-        log_debug("blocking in poll...");
+        // blocked, we just poll for activity on the message queue to
+        // look for data that needs to be returned out the TCP socket
         int nfds = (sock_eof || dtn_blocked) ? 1 : 2;
 
         int timeout = -1;
-        if (dtn_blocked) {
+        if (first || dtn_blocked) {
             timeout = 1000; // one second between retries
         } else if (tbegin.sec_ != 0) {
             timeout = tunnel->delay();
         }
         
+        log_debug("blocking in poll... (timeout %d)", timeout);
         int nready = oasys::IO::poll_multiple(pollfds, nfds, timeout,
                                               NULL, logpath_);
         if (nready == oasys::IOERROR) {
@@ -287,16 +289,21 @@ TCPTunnel::Connection::run()
             goto done;
         }
 
-        // check first for activity on the socket
-        if (sock_poll->revents != 0) {
-            if (b_xmit == NULL) {
-                b_xmit = new dtn::APIBundle();
-                b_xmit->payload_.reserve(tunnel->max_size());
-                hdr.seqno_ = ntohl(send_seqno++);
-                memcpy(b_xmit->payload_.buf(), &hdr, sizeof(hdr));
-                b_xmit->payload_.set_len(sizeof(hdr));
-            }
+        // check if we need to create a new bundle, either because
+        // this is the first time through and we'll need to send an
+        // initial bundle to create the connection on the remote side,
+        // or because there's data on the socket.
+        if ((first || sock_poll->revents != 0) && (b_xmit == NULL)) {
+            first = false;
+            b_xmit = new dtn::APIBundle();
+            b_xmit->payload_.reserve(tunnel->max_size());
+            hdr.seqno_ = ntohl(send_seqno++);
+            memcpy(b_xmit->payload_.buf(), &hdr, sizeof(hdr));
+            b_xmit->payload_.set_len(sizeof(hdr));
+        }
 
+        // now we check if there really is data on the socket
+        if (sock_poll->revents != 0) {
             u_int payload_todo = tunnel->max_size() - b_xmit->payload_.len();
 
             if (payload_todo != 0) {
@@ -373,21 +380,17 @@ TCPTunnel::Connection::run()
 
             u_int len = b_recv->payload_.len() - sizeof(hdr);
 
-            if (len == 0) {
-                log_info("got zero byte payload... closing connection");
-                sock_.close();
-                delete b_recv;
-                goto done;
+            if (len != 0) {
+                int cc = sock_.writeall(b_recv->payload_.buf() + sizeof(hdr), len);
+                if (cc != (int)len) {
+                    log_err("error writing payload to socket: %s", strerror(errno));
+                    delete b_recv;
+                    goto done;
+                }
+
+                log_info("sent %d byte payload to client", len);
             }
             
-            int cc = sock_.writeall(b_recv->payload_.buf() + sizeof(hdr), len);
-            if (cc != (int)len) {
-                log_err("error writing payload to socket: %s", strerror(errno));
-                delete b_recv;
-                goto done;
-            }
-            
-            log_info("sent %d byte payload to client", len);
 
             if (recv_hdr->eof_) {
                 log_info("bundle had eof bit set... closing connection");
