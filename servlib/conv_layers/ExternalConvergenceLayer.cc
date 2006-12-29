@@ -209,7 +209,12 @@ ExternalConvergenceLayer::open_contact(const ContactRef& contact)
     Link* link = contact->link();
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
-    ASSERT(resource);
+
+    if(!resource){
+        log_err( "Cannot open contact on link that does not exist" );
+        return false;
+    }
+
     
     if (!resource->module) {
         log_err( "Cannot open contact on unclaimed link %s", link->name() );
