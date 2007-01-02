@@ -27,6 +27,7 @@ $Id$
 #include <oasys/util/StringBuffer.h>
 #include <oasys/serialize/XMLSerialize.h>
 
+
 #include "ECLModule.h"
 #include "bundling/BundleDaemon.h"
 #include "storage/BundleStore.h"
@@ -825,6 +826,10 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
                                   const std::string& link_name)
 {
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    
+    //lock the contact manager so no one opens the link before we do
+    oasys::ScopeLock l(cm->lock(), "ECLModule::create_discovered_link");
+    
     Link* link = cm->new_opportunistic_link(&cl_, nexthop, EndpointID(peer_eid),
                                             &link_name);
 
