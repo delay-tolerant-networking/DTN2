@@ -1001,9 +1001,15 @@ void
 BundleDaemon::handle_link_busy(LinkBusyEvent* event)
 {
     Link* link = event->link_;
-    ASSERT(link->isbusy());
-    
-    log_info("LINK BUSY *%p", link);
+    if(link->isbusy())
+    {    
+        log_info("LINK BUSY *%p", link);
+    }
+    else
+    {
+        log_info("STALE LINK BUSY NOTIFICATION FOR LINK *%p -- not telling the router or the contact manager", link);
+	event->daemon_only_ = true;
+    }
 }
 
 //----------------------------------------------------------------------
