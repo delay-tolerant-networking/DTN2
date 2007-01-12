@@ -19,6 +19,7 @@
 
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
+#include <oasys/thread/Timer.h>
 
 #include "SimEvent.h"
 #include "SimEventHandler.h"
@@ -27,22 +28,20 @@
 namespace dtnsim {
 class Node;
 
-class TrAgent : public SimEventHandler, public oasys::Logger {
+class TrAgent : public oasys::Timer, public oasys::Logger {
 public:
-    static TrAgent* init(Node* node, double start_time,
-                         const EndpointID& src, const EndpointID& dst,
+    static TrAgent* init(const EndpointID& src, const EndpointID& dst,
                          int argc, const char** argv);
 
     virtual ~TrAgent() {}
 
-    void process(SimEvent *e);
+    void timeout(const struct timeval& now);
 
 private:
-    TrAgent(Node* node, const EndpointID& src, const EndpointID& dst);
+    TrAgent(const EndpointID& src, const EndpointID& dst);
     
     void send_bundle();
 
-    Node* node_;	///< node where the traffic is injected
     EndpointID src_;	///< source eid
     EndpointID dst_;	///< destination eid
     int size_;		///< size of each message

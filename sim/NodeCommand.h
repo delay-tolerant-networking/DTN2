@@ -19,6 +19,9 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+#include "cmd/LinkCommand.h"
+#include "cmd/RouteCommand.h"
+
 namespace dtnsim {
 
 class Node;
@@ -29,14 +32,14 @@ class Node;
 class NodeCommand : public oasys::TclCommand {
 public:
     NodeCommand(Node* node);
-   
-    /**
-     * Virtual from CommandModule.
-     */
+
+    /// virtual from TclCommand
     virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
 
 protected:
     Node* node_;
+    dtn::LinkCommand  link_cmd_;
+    dtn::RouteCommand route_cmd_;
 };
 
 } // namespace dtnsim

@@ -14,6 +14,8 @@
  *    limitations under the License.
  */
 
+#include <oasys/tclcmd/TclCommand.h>
+
 #include "Simulator.h"
 #include "Node.h"
 #include "Topology.h"
@@ -27,12 +29,13 @@ using namespace dtn;
 
 namespace dtnsim {
 
+//----------------------------------------------------------------------
 Simulator* Simulator::instance_; ///< singleton instance
 
 double Simulator::time_ = 0;
 double Simulator::runtill_ = -1;
 
-
+//----------------------------------------------------------------------
 Simulator::Simulator(DTNStorageConfig* storage_config) 
     : DTNServer("/dtnsim/sim", storage_config), 
       eventq_(),
@@ -50,21 +53,57 @@ Simulator::Simulator(DTNStorageConfig* storage_config)
                                    getenv("USER");
 }
 
+//----------------------------------------------------------------------
 void
 Simulator::post(SimEvent* e)
 {	
     instance_->eventq_.push(e);
 }
 
+//----------------------------------------------------------------------
 void
 Simulator::exit() 
 {
     ::exit(0);
 }
 
-/**
- * The main simulator thread that fires the next event
- */
+//----------------------------------------------------------------------
+int
+Simulator::run_node_events()
+{
+    bool done;
+    int next_timer;
+    do {
+        done = true;
+        next_timer = -1;
+        
+        Topology::NodeTable::iterator iter;
+        for (iter =  Topology::node_table()->begin();
+             iter != Topology::node_table()->end();
+             ++iter)
+        {
+            Node* node = iter->second;
+            node->set_active();
+        
+            int next = oasys::TimerSystem::instance()->run_expired_timers();
+            if (next != -1) {
+                if (next_timer == -1) {
+                    next_timer = next;
+                } else {
+                    next_timer = std::min(next_timer, next);
+                }
+            }
+        
+            if (node->process_bundle_events()) {
+                done = false;
+            }
+        }
+    } while (!done);
+
+    return next_timer;
+}
+
+//----------------------------------------------------------------------
 void
 Simulator::run()
 {
@@ -72,29 +111,34 @@ Simulator::run()
     log->set_prefix("--");
     
     log_debug("Starting Simulator event loop...");
-    is_running_ = true;
-
-    log_debug("Handling events posted from the configuration...");
-    Topology::NodeTable::iterator iter;
-
-    for (iter =  Topology::node_table()->begin();
-         iter != Topology::node_table()->end();
-         ++iter)
-    {
-        Node* node = iter->second;
-        node->set_active();
-        node->process_bundle_events();
-    }
-	
-    log->set_prefix("--");
-    log_debug("Entering the event loop...");
-    while(!eventq_.empty()) {
+    
+    while (1) {
+        int next_timer_ms = run_node_events();
+        double next_timer = (next_timer_ms == -1) ? INT_MAX :
+                            time_ + (((double)next_timer_ms) / 1000);
+        double next_event = INT_MAX;
         log->set_prefix("--");
-        if (is_running_) {
-            SimEvent* e = eventq_.top();
+        
+        SimEvent* e = NULL;
+        if (! eventq_.empty()) {
+            e = eventq_.top();
+            next_event = e->time();
+        }
+        
+        if ((next_timer_ms == -1) && (e == NULL)) {
+            log_info("Simulator loop done -- no pending events or timers");
+            break;
+        }
+        else if (next_timer < next_event) {
+            time_ = next_timer;
+            log_debug("advancing time by %u ms to %f for next timer",
+                      next_timer_ms, time_);
+        }
+        else {
+            ASSERT(e != NULL);
             eventq_.pop();
-            /* Move the clock */
             time_ = e->time();
+
             if (e->is_valid()) {
                 ASSERT(e->handler() != NULL);
                 /* Process the event */
@@ -102,35 +146,58 @@ Simulator::run()
                           e, e->type_str(), time_);
                 e->handler()->process(e);
             }
-            if ((Simulator::runtill_ != -1) &&
-                (time_ > Simulator::runtill_)) {
-                log_info("Exiting simulation. "
-                         "Current time (%f) > Max time (%f)",
-                         time_, Simulator::runtill_);
-                break;
-            }
-        } // if is_running_
+        }
+        
+        if ((Simulator::runtill_ != -1) &&
+            (time_ > Simulator::runtill_)) {
+            log_info("Exiting simulation. "
+                     "Current time (%f) > Max time (%f)",
+                     time_, Simulator::runtill_);
+            break;
+        }
+
     }
     log_info("eventq is empty, time is %f", time_);
 }
 
-extern "C" {
-int
+//----------------------------------------------------------------------
+void
+Simulator::pause()
+{
+    oasys::StaticStringBuffer<128> cmd;
+    cmd.appendf("puts \"Simulator paused at time %f...\"", time_);
+    oasys::TclCommandInterp::instance()->exec_command(cmd.c_str());
+    
+    oasys::TclCommandInterp::instance()->exec_command(
+        "simple_command_loop \"dtnsim% \"");
+}
+
+//----------------------------------------------------------------------
+/**
+ * Override gettimeofday to return the simulator time.
+ */
+extern "C" int
 gettimeofday(struct timeval *tv, struct timezone *tz)
 {
     (void)tz;
     double now = Simulator::time();
-    tv->tv_sec = (long int) now;
-    tv->tv_usec = (int) ((now - tv->tv_sec) * 100000.0);
+    DOUBLE_TO_TIMEVAL(now, *tv);
     return 0;
 }
-}
 
+//----------------------------------------------------------------------
 void
 Simulator::process(SimEvent *e)
 {
-    (void)e;
-    NOTIMPLEMENTED;
+    switch (e->type()) {
+    case SIM_AT_EVENT:
+        oasys::TclCommandInterp::instance()->
+            exec_command(((SimAtEvent*)e)->cmd_.c_str());
+        break;
+        
+    default:
+        NOTREACHED;
+    }
 }
 
 } // namespace dtnsim

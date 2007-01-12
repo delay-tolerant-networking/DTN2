@@ -42,7 +42,7 @@ public:
      * Log each bundle's arrival time (and the bundle itself) in a big
      * arrivals table.
      */
-    std::map<double, Bundle*> arrivals_;
+    std::map<double, BundleRef> arrivals_;
     
 protected:
     Node* node_;

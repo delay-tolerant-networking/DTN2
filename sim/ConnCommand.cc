@@ -39,32 +39,24 @@ ConnCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
 {
     (void)tclinterp;
     
-    if (argc < 3) {
-        wrong_num_args(argc, argv, 2, 4, INT_MAX);
+    if (argc < 2) {
+        wrong_num_args(argc, argv, 1, 2, INT_MAX);
         return TCL_ERROR;
     }
     
-    // pull out the time
-    char* end;
-    double time = strtod(argv[1], &end);
-    if (*end != '\0') {
-        resultf("time value '%s' invalid", argv[1]);
-        return TCL_ERROR;
-    }
-
-    const char* cmd = argv[2];
+    const char* cmd = argv[1];
 
     Connectivity* conn = Connectivity::instance();
 
     if (!strcmp(cmd, "up") || !strcmp(cmd, "down")) {
         // conn <time> <up|down> <n1> <n2> <args>
-        if (argc < 5) {
-            wrong_num_args(argc, argv, 2, 5, INT_MAX);
+        if (argc < 4) {
+            wrong_num_args(argc, argv, 2, 4, INT_MAX);
             return TCL_ERROR;
         }
 
-        const char* n1_name = argv[3];
-        const char* n2_name = argv[4];
+        const char* n1_name = argv[2];
+        const char* n2_name = argv[3];
 
         if (strcmp(n1_name, "*") != 0 &&
             Topology::find_node(n1_name) == NULL)
@@ -80,28 +72,27 @@ ConnCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
             return TCL_ERROR;
         }
         
-        ConnState* s = new ConnState();
+        ConnState s;
         const char* invalid;
-        if (! s->parse_options(argc - 5, argv + 5, &invalid)) {
+        if (! s.parse_options(argc - 4, argv + 4, &invalid)) {
             resultf("invalid option '%s'", invalid);
-            delete s;
             return TCL_ERROR;
         }
         
-        s->open_ = !strcmp(cmd, "up");
+        s.open_ = !strcmp(cmd, "up");
 
         Simulator::post(
-            new SimConnectivityEvent(time, conn, n1_name, n2_name, s));
+            new SimConnectivityEvent(Simulator::time(),conn,
+                                     n1_name, n2_name, s));
 
         return TCL_OK;
 
     } else {
         // dispatch to the connectivity module itself
-        if (! conn->exec(argc - 3, argv + 3)) {
+        if (! conn->exec(argc - 2, argv + 2)) {
             resultf("conn: error handling command");
             return TCL_ERROR;
         }
-
 
         return TCL_OK;
     }

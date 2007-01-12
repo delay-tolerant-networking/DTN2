@@ -60,6 +60,7 @@ main(int argc, char** argv)
     std::string        logfile("-");
     std::string        loglevelstr;
     oasys::log_level_t loglevel;
+    bool               daemon = false;
 
     oasys::Getopt opts;
     opts.addopt(
@@ -78,6 +79,10 @@ main(int argc, char** argv)
     opts.addopt(
         new oasys::StringOpt('l', NULL, &loglevelstr, "<level>",
                              "default log level [debug|warn|info|crit]"));
+
+    opts.addopt(
+        new oasys::BoolOpt('d', "daemonize", &daemon,
+                           "run as a daemon"));
 
     opts.getopt(argv[0], argc, argv);
 
@@ -122,7 +127,7 @@ main(int argc, char** argv)
     
     // Initialize logging
     oasys::Log::init("-", loglevel, "--");
-    log_info_p("/dtsim", "dtn simulator initializing...");
+    log_info_p("/dtnsim", "dtn simulator initializing...");
 
     // seed the random number generator
     if (!random_seed_set) {
@@ -130,13 +135,13 @@ main(int argc, char** argv)
         gettimeofday(&tv, NULL);
         random_seed = tv.tv_usec;
     }
-    log_info_p("/dtsim", "random seed is %u\n", random_seed);
+    log_info_p("/dtnsim", "random seed is %u\n", random_seed);
     oasys::Random::seed(random_seed);
     
     // Set up the command interpreter
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
-        log_crit_p("/dtsim", "Can't init TCL");
+        log_crit_p("/dtnsim", "Can't init TCL");
         exit(1);
     }
 	
@@ -144,13 +149,13 @@ main(int argc, char** argv)
     interp->reg(new ConnCommand());
     interp->reg(new ParamCommand());
     interp->reg(new SimCommand());
-    log_info_p("/dtsim","registered dtnsim commands");
+    log_info_p("/dtnsim","registered dtnsim commands");
 
     SchemeTable::create();
     SimConvergenceLayer::init();
     ConvergenceLayer::add_clayer(SimConvergenceLayer::instance());
     BundleProtocol::init_default_processors();
-    log_info_p("/dtsim","intialized dtnsim components");
+    log_info_p("/dtnsim","intialized dtnsim components");
 	
     // initializing data store to memorydb
     if (!Simulator::instance()->init_datastore()) {
@@ -158,14 +163,21 @@ main(int argc, char** argv)
         exit(1);
     }
 	
-    log_info_p("/dtsim","parsing configuration file %s...", conf_file.c_str());
+    log_info_p("/dtnsim","parsing configuration file %s...", conf_file.c_str());
     if (interp->exec_file(conf_file.c_str()) != 0) {
-        log_err_p("/dtsim", "error in configuration file, exiting...");
+        log_err_p("/dtnsim", "error in configuration file, exiting...");
         exit(1);
     }
     
     // Run the event loop of simulator
-    Simulator::instance()->run();	
+    Simulator::instance()->run();
+
+    if (! daemon) {
+        // Run the command interpreter loop
+        oasys::TclCommandInterp::instance()->exec_command(
+            "puts \"Simulation complete -- entering console (Control-D to exit)...\"");
+        oasys::TclCommandInterp::instance()->command_loop("dtnsim% ");
+    }
 	
     Simulator::instance()->close_datastore();
 }

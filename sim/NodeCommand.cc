@@ -39,11 +39,6 @@ namespace dtnsim {
 NodeCommand::NodeCommand(Node* node)
     : TclCommand(node->name()), node_(node)
 {
-    add_to_help("<time> route", "XXX");
-    add_to_help("<time> add", "XXX");
-    add_to_help("<time> tragent", "XXX");
-    add_to_help("<time> link", "XXX");
-    add_to_help("<time> registration", "XXX");
 }
 
 int
@@ -51,16 +46,12 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
     (void)interp;
     
-    if (argc < 3) {
-        wrong_num_args(argc, argv, 2, 4, INT_MAX);
-        return TCL_ERROR;
-    }
-
-    // pull out the time and subcommand
-    char* end;
-    double time = strtod(argv[1], &end);
-    if (*end != '\0') {
-        resultf("time value '%s' invalid", argv[1]);
+    if (argc < 2) {
+        wrong_num_args(argc, argv, 2, 2, INT_MAX);
+    add_to_help("route", "XXX");
+    add_to_help("link", "XXX");
+    add_to_help("tragent", "XXX");
+    add_to_help("registration", "XXX");
         return TCL_ERROR;
     }
 
@@ -69,112 +60,78 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     // time in the node so any posted events happen in the future
     node_->set_active();
 
-    const char* cmd = argv[2];
+    const char* cmd = argv[1];
     const char* subcmd = NULL;
-    if (argc >= 4) {
-        subcmd = argv[3];
+    if (argc >= 3) {
+        subcmd = argv[2];
     }
 
     if (strcmp(cmd, "route") == 0)
     {
-        if (strcmp(subcmd, "local_eid") == 0) {
-            if (time != 0) {
-                resultf("node %s %s must be run at time 0", cmd, subcmd);
-                return TCL_ERROR;
-            }
-        
-            if (argc == 4) {
-                // <node> 0 route local_eid
-                set_result(node_->local_eid().c_str());
-                return TCL_OK;
-                
-            } else if (argc == 5) {
-                // <node> 0 route local_eid <eid>
-                node_->set_local_eid(argv[4]);
-
-                if (! node_->local_eid().valid()) {
-                    resultf("invalid eid '%s'", argv[4]);
-                    return TCL_ERROR;
-                }
-                return TCL_OK;
-            } else {
-                wrong_num_args(argc, argv, 4, 4, 5);
-                return TCL_ERROR;
-            }
-        }
-        else if (strcmp(subcmd, "add") == 0)
-        {
-            // <node> X route add <dest> <link/node>
-            if (argc != 6) {
-                wrong_num_args(argc, argv, 2, 6, 6);
-                return TCL_ERROR;
-            }
-
-            const char* dest_str = argv[4];
-            const char* nexthop = argv[5];
-
-            log_debug("adding route to %s through %s", dest_str, nexthop);
-            
-            EndpointIDPattern dest(dest_str);
-            if (!dest.valid()) {
-                resultf("invalid destination eid %s", dest_str);
-                return TCL_ERROR;
-            }
-
-            Simulator::post(new SimAddRouteEvent(time, node_, dest, nexthop));
-            
-            return TCL_OK;
-        }
-        
-        resultf("node route: unsupported subcommand %s", subcmd);
-        return TCL_ERROR;
+        return route_cmd_.exec(argc - 1, argv + 1, interp);
     }
+//         if (strcmp(subcmd, "local_eid") == 0) {
+//             if (time != 0) {
+//                 resultf("node %s %s must be run at time 0", cmd, subcmd);
+//                 return TCL_ERROR;
+//             }
+        
+//             if (argc == 4) {
+//                 // <node> 0 route local_eid
+//                 set_result(node_->local_eid().c_str());
+//                 return TCL_OK;
+                
+//             } else if (argc == 5) {
+//                 // <node> 0 route local_eid <eid>
+//                 node_->set_local_eid(argv[4]);
+
+//                 if (! node_->local_eid().valid()) {
+//                     resultf("invalid eid '%s'", argv[4]);
+//                     return TCL_ERROR;
+//                 }
+//                 return TCL_OK;
+//             } else {
+//                 wrong_num_args(argc, argv, 4, 4, 5);
+//                 return TCL_ERROR;
+//             }
+//         }
+//         else if (strcmp(subcmd, "add") == 0)
+//         {
+//             // <node> X route add <dest> <link/node>
+//             if (argc != 6) {
+//                 wrong_num_args(argc, argv, 2, 6, 6);
+//                 return TCL_ERROR;
+//             }
+
+//             const char* dest_str = argv[4];
+//             const char* nexthop = argv[5];
+
+//             log_debug("adding route to %s through %s", dest_str, nexthop);
+            
+//             EndpointIDPattern dest(dest_str);
+//             if (!dest.valid()) {
+//                 resultf("invalid destination eid %s", dest_str);
+//                 return TCL_ERROR;
+//             }
+
+//             Simulator::post(new SimAddRouteEvent(time, node_, dest, nexthop));
+            
+//             return TCL_OK;
+//         }
+        
+//         resultf("node route: unsupported subcommand %s", subcmd);
+//         return TCL_ERROR;
+//     }
 	
     else if (strcmp(cmd, "link") == 0)
     {
-        if (strcmp(subcmd, "add") == 0) {
-            // <node1> X link add <name> <peer> <type> <args>
-            if (argc < 6) {
-                wrong_num_args(argc, argv, 2, 7, INT_MAX);
-                return TCL_ERROR;
-            }
-			
-            const char* name = argv[4];
-            const char* nexthop_name = argv[5];
-            const char* type_str = argv[6];
-            
-            Node* nexthop = Topology::find_node(nexthop_name);
-            if (!nexthop) {
-                resultf("invalid next hop node %s", nexthop_name);
-                return TCL_ERROR;
-            }
-			
-            Link::link_type_t type = Link::str_to_link_type(type_str);
-            if (type == Link::LINK_INVALID) {
-                resultf("invalid link type %s", type_str);
-                return TCL_ERROR;
-            }
-			
-            SimConvergenceLayer* simcl = SimConvergenceLayer::instance();
-						
-            Link* link = Link::create_link(name, type, simcl, nexthop->name(), 
-                                           argc - 7, &argv[7]);										   
-            if (!link)
-                return TCL_ERROR;
-            
-            Simulator::post(new SimAddLinkEvent(time, node_, link));
-            return TCL_OK;
-        }
-
-        resultf("node link: unsupported subcommand %s", subcmd);
-        return TCL_ERROR;
+        return link_cmd_.exec(argc - 1, argv + 1, interp);
     }
-	
     else if (strcmp(cmd, "registration") == 0)
     {
         if (strcmp(subcmd, "add") == 0) {
-            // <node> X registration add <eid>
-            const char* eid_str = argv[4];
+            // <node> registration add <eid>
+            const char* eid_str = argv[3];
             EndpointIDPattern eid(eid_str);
 
             if (!eid.valid()) {
@@ -186,8 +143,8 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             Registration* r = new SimRegistration(node_, eid);
             RegistrationAddedEvent* e =
                 new RegistrationAddedEvent(r, EVENTSRC_ADMIN);
-            
-            Simulator::post(new SimRouterEvent(time, node_, e));
+
+            node_->post_event(e);
             
             return TCL_OK;
         }        
@@ -197,14 +154,14 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     else if (strcmp(cmd, "tragent") == 0)
     {
-        // <node> X tragent <src> <dst> <args>
+        // <node> tragent <src> <dst> <args>
         if (argc < 5) {
             wrong_num_args(argc, argv, 3, 5, INT_MAX);
             return TCL_ERROR;
         }
         
-        const char* src = argv[3];
-        const char* dst = argv[4];
+        const char* src = argv[2];
+        const char* dst = argv[3];
 
         // see if src/dest are node names, in which case we use its
         // local eid as the source address
@@ -232,16 +189,21 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             }
         }
         
-        TrAgent* a = TrAgent::init(node_, time, src_eid, dst_eid,
-                                   argc - 5, argv + 5);
+        TrAgent* a = TrAgent::init(src_eid, dst_eid,
+                                   argc - 4, argv + 4);
         if (!a) {
             resultf("error in tragent config");
             return TCL_ERROR;
         }
         
         return TCL_OK;
-    }
 
+    } else if (!strcmp(cmd, "stats")) {
+        oasys::StringBuffer buf("Bundle Statistics: ");
+        node_->get_bundle_stats(&buf);
+        set_result(buf.c_str());
+        return TCL_OK;
+    }
     else
     {
         resultf("node: unsupported subcommand %s", cmd);

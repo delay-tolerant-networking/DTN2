@@ -18,11 +18,11 @@ test::name dtnsim-basic
 net::default_num_nodes 1
 
 manifest::file sim/dtnsim dtnsim
-manifest::file $base_test_dir/sim/send-one-bundle.conf send-one-bundle.conf
+manifest::file $base_test_dir/sim/conf/send-one-bundle.conf send-one-bundle.conf
 
 test::script {
     puts "* Running simulator"
-    set pid [run::run 0 "dtnsim" "-c send-one-bundle.conf" "" "" ""]
+    set pid [run::run 0 "dtnsim" "-c send-one-bundle.conf -d" "" "" ""]
     run::wait_for_pid_exit 0 $pid
     puts "* Test success!"
 }

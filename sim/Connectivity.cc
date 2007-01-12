@@ -188,15 +188,13 @@ Connectivity::lookup(Node* n1, Node* n2)
 void
 Connectivity::process(SimEvent *e)
 {
-    if (e->type() != SIM_CONNECTIVITY) {
+    if (e->type() != SIM_CONN_EVENT) {
         PANIC("no Node handler for event %s", e->type_str());
     }
 
     SimConnectivityEvent* ce = (SimConnectivityEvent*)e;
 
-    set_state(ce->n1_.c_str(), ce->n2_.c_str(), *ce->state_);
-	
-    delete ce->state_; // XXX/demmer yuck
+    set_state(ce->n1_.c_str(), ce->n2_.c_str(), ce->state_);
 }
 
 /**

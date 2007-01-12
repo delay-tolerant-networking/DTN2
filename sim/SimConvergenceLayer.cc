@@ -151,13 +151,12 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     BundleTransmittedEvent* tx_event =
         new BundleTransmittedEvent(bundle, contact, contact->link(),
                                    total_len, reliable ? total_len : 0);
-    Simulator::post(new SimRouterEvent(Simulator::time(),
-                                       src_node, tx_event));
+    src_node->post_event(tx_event);
 
     BundleReceivedEvent* rcv_event =
-        new BundleReceivedEvent(bundle, EVENTSRC_PEER, total_len);
-    Simulator::post(new SimRouterEvent(Simulator::time(),
-                                       dst_node, rcv_event));
+        new BundleReceivedEvent(new_bundle, EVENTSRC_PEER, total_len);
+
+    dst_node->post_event(rcv_event);
 }
 
 

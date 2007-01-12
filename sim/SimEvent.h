@@ -18,6 +18,7 @@
 #define _DTN_SIM_EVENT_H_
 
 #include "bundling/BundleEvent.h"
+#include "Connectivity.h"
 
 using namespace dtn;
 
@@ -30,15 +31,8 @@ class SimEventHandler;
  * Event Types
  *****************************************************************************/
 typedef enum {
-    SIM_ROUTER_EVENT = 0x1,	///< Event to be delivered to the router
-    SIM_ADD_LINK,			///< Link added
-    SIM_DEL_LINK,			///< Link deleted
-    SIM_ADD_ROUTE,			///< Route added
-    SIM_DEL_ROUTE,			///< Route deleted
-    SIM_CONTACT_UP,			///< SimContact is available
-    SIM_CONTACT_DOWN,		///< SimContact abnormally terminated
-    SIM_CONNECTIVITY,		///< Event for the connectivity module
-    SIM_NEXT_SENDTIME,		///< Used by traffic agent to send data
+    SIM_CONN_EVENT = 0x1,	///< Event for the connectivity module
+    SIM_AT_EVENT,		///< Generic event for delayed execution
     
 } sim_event_type_t;
 
@@ -48,15 +42,8 @@ typedef enum {
 static const char* 
 sim_ev2str(sim_event_type_t event) {
     switch (event) {
-    case SIM_ROUTER_EVENT:		return "SIM_ROUTER_EVENT";
-    case SIM_ADD_LINK:			return "SIM_ADD_LINK";
-    case SIM_DEL_LINK:			return "SIM_DEL_LINK";
-    case SIM_ADD_ROUTE:			return "SIM_ADD_ROUTE";
-    case SIM_DEL_ROUTE:			return "SIM_DEL_ROUTE";
-    case SIM_CONTACT_UP:		return "SIM_CONTACT_UP";
-    case SIM_CONTACT_DOWN:		return "SIM_CONTACT_DOWN";
-    case SIM_CONNECTIVITY:		return "SIM_CONNECTIVITY";
-    case SIM_NEXT_SENDTIME:		return "SIM_NEXT_SENDTIME";
+    case SIM_CONN_EVENT:		return "SIM_CONN_EVENT";
+    case SIM_AT_EVENT:			return "SIM_AT_EVENT";
     }
 
     NOTREACHED;
@@ -88,7 +75,6 @@ private:
     bool valid_;		///< Indicator if the event was cancelled
 };
 
-
 /******************************************************************************
  * SimEventCompare
  *****************************************************************************/
@@ -104,65 +90,30 @@ public:
 };
 
 /*******************************************************************
- * SimRouterEvent -- catch all event class to wrap delivering an event
- * to the bundle router at a particular time.
- ******************************************************************/
-class SimRouterEvent : public SimEvent {
-public:
-    SimRouterEvent(double time, SimEventHandler* handler, BundleEvent* event)
-	: SimEvent(SIM_ROUTER_EVENT, time, handler), event_(event) {}
-    
-    BundleEvent* event_;
-};
-
-/*******************************************************************
- * SimAddLinkEvent
- ******************************************************************/
-class SimAddLinkEvent : public SimEvent {
-public:
-    SimAddLinkEvent(double time, SimEventHandler* handler, Link* link)
-	: SimEvent(SIM_ADD_LINK, time, handler), link_(link) {}
-    
-    Link* link_;
-};
-
-/*******************************************************************
- * SimDelLinkEvent
- ******************************************************************/
-class SimDelLinkEvent : public SimEvent {
-public:
-    SimDelLinkEvent(double time, SimEventHandler* handler, Link* link)
-	: SimEvent(SIM_DEL_LINK, time, handler), link_(link) {}
-    
-    Link* link_;
-};
-
-/*******************************************************************
- * SimAddRouteEvent
- ******************************************************************/
-class SimAddRouteEvent : public SimEvent {
-public:
-    SimAddRouteEvent(double time, SimEventHandler* handler,
-                     const EndpointIDPattern& dest, const char* nexthop)
-	: SimEvent(SIM_ADD_ROUTE, time, handler),
-          dest_(dest), nexthop_(nexthop) {}
-    
-    EndpointIDPattern dest_;
-    std::string nexthop_;
-};
-
-/*******************************************************************
  * SimConnectivityEvent
  ******************************************************************/
 class SimConnectivityEvent : public SimEvent {
 public:
     SimConnectivityEvent(double time, SimEventHandler* handler,
-                         const char* n1, const char* n2, ConnState* state)
-        : SimEvent(SIM_CONNECTIVITY, time, handler),
+                         const char* n1, const char* n2,
+                         const ConnState& state)
+        : SimEvent(SIM_CONN_EVENT, time, handler),
           n1_(n1), n2_(n2), state_(state) {}
 
     std::string n1_, n2_;
-    ConnState* state_;
+    ConnState state_;
+};
+
+/*******************************************************************
+ * SimAtEvent
+ ******************************************************************/
+class SimAtEvent : public SimEvent {
+public:
+    SimAtEvent(double time, SimEventHandler* handler,
+               const std::string& cmd)
+        : SimEvent(SIM_AT_EVENT, time, handler), cmd_(cmd) {}
+
+    std::string cmd_;
 };
 
 } // namespace dtnsim

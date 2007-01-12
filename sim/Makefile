@@ -26,23 +26,6 @@ SRCDIR   := ..
 BUILDDIR := ..
 endif
 
-OLD_SIM_SRCS :=	\
-	dtnsim.cc	\
-	Event.cc	\
-	Message.cc	\
-	GlueNode.cc 	\
-	SimpleNode.cc 	\
-	SimulatorCommand.cc	\
-	Simulator.cc	\
-	SimContact.cc	\
-	Simdtn2Command.cc \
-	Topology.cc	\
-	TrAgent.cc	\
-	LogSim.cc	\
-	FloodConsumer.cc\
-
-#	Statistics.cc \
-
 SIM_SRCS := \
 	dtnsim.cc		\
 	Connectivity.cc		\

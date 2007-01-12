@@ -14,6 +14,7 @@
  *    limitations under the License.
  */
 
+#include <oasys/thread/Timer.h>
 #include "SimEvent.h"
 #include "Node.h"
 #include "SimBundleActions.h"
@@ -28,6 +29,7 @@ using namespace dtn;
 
 namespace dtnsim {
 
+//----------------------------------------------------------------------
 Node::Node(const char* name)
     : BundleDaemon(), name_(name)
 {
@@ -37,98 +39,67 @@ Node::Node(const char* name)
     BundleDaemon::is_simulator_ = true;
 }
 
-/**
- * Virtual initialization function.
- */
+//----------------------------------------------------------------------
 void
 Node::do_init()
 {
     actions_ = new SimBundleActions();
     eventq_ = new std::queue<BundleEvent*>();
-
+    
     BundleDaemon::instance_ = this;
     router_ = BundleRouter::create_router(BundleRouter::config_.type_.c_str());
+
+    // forcibly create a new timer system
+    oasys::Singleton<oasys::TimerSystem>::force_set_instance(NULL);
+    oasys::TimerSystem::create();
+    timersys_ = oasys::TimerSystem::instance();
 }
 
-/**
- * Virtual post function, overridden in the simulator to use the
- * modified event queue.
- */
+//----------------------------------------------------------------------
 void
 Node::post_event(BundleEvent* event, bool at_back)
 {
     (void)at_back;
-    log_debug("posting event (%p) with type %s at %s ",event, event->type_str(),at_back ? "back" : "head");
+    log_debug("posting event (%p) with type %s at %s ",
+              event, event->type_str(),at_back ? "back" : "head");
 	
     eventq_->push(event);
 }
 
-/**
- * Process all pending bundle events until the queue is empty.
- */
-void
-Node::process_bundle_events()
+//----------------------------------------------------------------------
+bool
+Node::process_one_bundle_event()
 {
-    log_debug("processing all bundle events");
     BundleEvent* event;
-    while (!eventq_->empty()) {
+    if (!eventq_->empty()) {
         event = eventq_->front();
         eventq_->pop();
         handle_event(event);
         delete event;
         log_debug("event (%p) %s processed and deleted",event,event->type_str());
+        return true;
     }
-    log_debug("done processing all bundle events");
+    return false;
 }
 
+//----------------------------------------------------------------------
+bool
+Node::process_bundle_events()
+{
+    log_debug("processing all bundle events");
+    bool processed_event = false;
+    while (process_one_bundle_event()) {
+        processed_event = true;
+    }
+    return processed_event;
+}
 
+//----------------------------------------------------------------------
 void
 Node::process(SimEvent* simevent)
 {
-    set_active();
-    
-    log_debug("handling event %s", simevent->type_str());
-
-    switch(simevent->type()) {
-    case SIM_ROUTER_EVENT:
-        post_event(((SimRouterEvent*)simevent)->event_);
-        break;
-
-    case SIM_ADD_LINK: {
-        SimAddLinkEvent* e = (SimAddLinkEvent*)simevent;
-
-        // Add the link to contact manager, which posts a
-        // LinkCreatedEvent to the daemon
-        contactmgr_->add_link(e->link_);
-        
-        break;
-    }
-        
-    case SIM_ADD_ROUTE: {
-        SimAddRouteEvent* e = (SimAddRouteEvent*)simevent;
-        
-        Link* link = contactmgr()->find_link(e->nexthop_.c_str());
-
-        // XXX/demmer handle search by endpoint
-
-        if (link == NULL) {
-            PANIC("no such link or node exists %s", e->nexthop_.c_str());
-        }
-
-        // XXX/demmer fix this ForwardingInfo::COPY_ACTION
-        RouteEntry* entry = new RouteEntry(e->dest_, link);
-        entry->action_ = ForwardingInfo::COPY_ACTION;
-        post_event(new RouteAddEvent(entry));
-        break;
-    }
-            
-    default:
-        PANIC("no Node handler for event %s", simevent->type_str());
-    }
-    
-    process_bundle_events();
-
-    delete simevent;
+    (void)simevent;
+    NOTREACHED;
 }
 
 } // namespace dtnsim

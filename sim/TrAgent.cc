@@ -15,6 +15,8 @@
  */
 
 
+#include <math.h>
+
 #include <oasys/util/Options.h>
 #include <oasys/util/OptParser.h>
 
@@ -27,19 +29,20 @@
 
 namespace dtnsim {
 
-TrAgent::TrAgent(Node* node, const EndpointID& src, const EndpointID& dst)
-    : Logger("TrAgent", "/sim/tragent/%s", node->name()),
-      node_(node), src_(src), dst_(dst),
+//----------------------------------------------------------------------
+TrAgent::TrAgent(const EndpointID& src, const EndpointID& dst)
+    : Logger("TrAgent", "/sim/tragent/%s", Node::active_node()->name()),
+      src_(src), dst_(dst),
       size_(0), reps_(0), batch_(1), interval_(0)
 {
 }
 
+//----------------------------------------------------------------------
 TrAgent*
-TrAgent::init(Node* node, double start_time, 
-              const EndpointID& src, const EndpointID& dst,
+TrAgent::init(const EndpointID& src, const EndpointID& dst,
               int argc, const char** argv)
 {
-    TrAgent* a = new TrAgent(node, src, dst);
+    TrAgent* a = new TrAgent(src, dst);
 
     oasys::OptParser p;
     p.addopt(new oasys::IntOpt("size", &a->size_));
@@ -68,30 +71,27 @@ TrAgent::init(Node* node, double start_time,
         return NULL;
     }
 
-    Simulator::post(new SimEvent(SIM_NEXT_SENDTIME, start_time, a));
+    a->schedule_immediate();
     return a;
 }
 
+//----------------------------------------------------------------------
 void
-TrAgent::process(SimEvent* e)
+TrAgent::timeout(const struct timeval& /* now */)
 {
-    if (e->type() == SIM_NEXT_SENDTIME) {
-        for (int i = 0; i < batch_; i++) {
-            send_bundle();
-        }
+    for (int i = 0; i < batch_; i++) {
+        send_bundle();
+    }
         
-        if (--reps_ > 0) {
-            double sendtime = Simulator::time() + interval_;
-            Simulator::post(new SimEvent(SIM_NEXT_SENDTIME, sendtime, this));
-        } else {
-            log_debug("all batches finished");
-        }
-
+    if (--reps_ > 0) {
+        log_debug("scheduling timer in %u ms", (u_int)(interval_ * 1000));
+        schedule_in((int)(interval_ * 1000));
     } else {
-        PANIC("unhandlable event %s", e->type_str());
+        log_debug("all batches finished");
     }
 }
 
+//----------------------------------------------------------------------
 void
 TrAgent::send_bundle()
 {
@@ -125,17 +125,13 @@ TrAgent::send_bundle()
     b->do_not_fragment_	= false;
     b->in_datastore_ = false;
     //b->orig_length_	= 0;
-    //b->frag_offset_	= 0;
-  	
-	
-    log_info("N[%s]: GEN id:%d %s -> %s size:%d",
-             node_->name(), b->bundleid_, src_.c_str(), dst_.c_str(), size_);	
-		
-    log_debug("Posting(new SimRouterEvent(%f,%s,BundleReceivedEvent)",
-              Simulator::time(), node_->name());	
+    //b->frag_offset_	= 0;  	
     
-    BundleReceivedEvent* e = new BundleReceivedEvent(b, EVENTSRC_APP, size_);
-    Simulator::post(new SimRouterEvent(Simulator::time(), node_, e));
+    log_info("N[%s]: GEN id:%d %s -> %s size:%d",
+             Node::active_node()->name(), b->bundleid_,
+             src_.c_str(), dst_.c_str(), size_);	
+		
+    BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP, size_));
 }
 
 

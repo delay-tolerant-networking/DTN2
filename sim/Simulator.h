@@ -76,21 +76,30 @@ public:
      * Main run loop.
      */
     void run();
+
+    /**
+     * Pause execution of the simulator, running a console loop until
+     * it exits.
+     */
+    void pause();
     
     static double runtill_;		///< time to end the simulation
     
-protected:
-    static Simulator* instance_;	///< singleton instance
-    void process(SimEvent* e);		///< virtual from SimEventHandler
-
 private:
-    
-    static double time_;	///< current time (static to avoid object)
+    /**
+     * Virtual from SimEventHandler
+     */
+    void process(SimEvent* e);
 
-    bool is_running_;	///< maintains the state if the simulator is
-    			///< running or paused
-                     
-    
+    /**
+     * Handle all bundle events at nodes returning the amount of time
+     *(in ms) until the next timer is due.
+     */
+    int run_node_events();
+
+    static Simulator* instance_;	///< singleton instance
+    static double time_;		///< current time (static to avoid object)
+
     std::priority_queue<SimEvent*,
                         std::vector<SimEvent*>,
                         SimEventCompare> eventq_;

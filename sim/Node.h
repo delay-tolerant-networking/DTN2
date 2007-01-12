@@ -70,9 +70,14 @@ public:
     virtual void process(SimEvent *e);
 
     /**
+     * Drain and process a bundle event from the queue, if one exists.
+     */
+    bool process_one_bundle_event();
+
+    /**
      * Process all pending bundle events until the queue is empty.
      */
-    void process_bundle_events();
+    bool process_bundle_events();
     
     /**
      * Accessor for name.
@@ -95,6 +100,7 @@ public:
     void set_active()
     {
         instance_ = this;
+        oasys::Singleton<oasys::TimerSystem>::force_set_instance(timersys_);
         oasys::Log::instance()->set_prefix(name_.c_str());
     }
 
@@ -111,6 +117,7 @@ protected:
     u_int32_t		next_bundleid_;
     u_int32_t		next_regid_;
     std::queue<BundleEvent*>* eventq_;
+    oasys::TimerSystem* timersys_;
 };
 
 } // namespace dtnsim
