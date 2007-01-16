@@ -19,7 +19,6 @@
 #include "bundling/BundleActions.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleList.h"
-#include "bundling/AnnounceBundle.h"
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
 #include <oasys/util/StringBuffer.h>

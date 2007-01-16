@@ -17,7 +17,6 @@
 
 #include <oasys/util/OptParser.h>
 #include "StreamConvergenceLayer.h"
-#include "bundling/AnnounceBundle.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/SDNV.h"
 #include "bundling/TempBundle.h"
