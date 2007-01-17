@@ -179,7 +179,8 @@ ExternalRouter::handle_event(BundleEvent *event)
     // Preprocess events based upon type
     if ((event->type_ == BUNDLE_DELIVERED) ||
         (event->type_ == LINK_CREATE) ||
-        (event->type_ == REASSEMBLY_COMPLETED)) {
+        (event->type_ == REASSEMBLY_COMPLETED) ||
+        (event->type_ == BUNDLE_ACCEPT_REQUEST)) {
         // Filter out events not supported by the external router interface
         return;
     } else if (event->type_ == BUNDLE_RECEIVED) {
@@ -436,8 +437,10 @@ ExternalRouter::HelloTimer::~HelloTimer()
 
 // Timeout callback for the hello timer
 void
-ExternalRouter::HelloTimer::timeout(const struct timeval &)
+ExternalRouter::HelloTimer::timeout(const struct timeval &now)
 {
+    (void)now;
+
     static oasys::StringBuffer hello(
         "<dtn eid=\"%s\" hello_interval=\"%i\"/>",
         BundleDaemon::instance()->local_eid().c_str(),
