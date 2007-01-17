@@ -909,6 +909,7 @@ Signals a failed transmission, which can occur if a link closes after a router h
             <xs:sequence>
                 <xs:element name="bundle" type="bundleType"/>
                 <xs:element name="contact" type="contactType"/>
+                <xs:element name="link" type="linkType"/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
