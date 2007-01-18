@@ -26,7 +26,6 @@
 namespace dtn {
 
 class Bundle;
-class BundleList;
 class ConvergenceLayer;
 class CLInfo;
 class Link;
