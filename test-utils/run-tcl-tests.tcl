@@ -35,6 +35,7 @@ set tests(basic) {
     "custody-transfer.tcl"      ""
     "dtn-ping.tcl"		""
     "dtnsim-basic.tcl"		""
+    "extension-block.tcl"       ""
     "flood-router.tcl"		""
     "inflight-expiration.tcl"	""
     "ipc-version-test.tcl"	""
