@@ -143,7 +143,7 @@ ProphetController::dump_state(oasys::StringBuffer* buf)
 }
 
 ProphetEncounter*
-ProphetController::find_instance(Link* link)
+ProphetController::find_instance(const LinkRef& link)
 {
     oasys::ScopeLock l(lock_,"find_instance");
     enc_set::iterator it = encounters_.begin();
@@ -164,7 +164,7 @@ void
 ProphetController::new_neighbor(const ContactRef& contact)
 {
     log_info("NEW_NEIGHBOR signal from *%p",contact.object());
-    Link* link = contact.object()->link();
+    LinkRef link = contact.object()->link();
     ProphetEncounter* pe = find_instance(link);
     if (pe == NULL && !link->remote_eid().equals(EndpointID::NULL_EID()))
     {
@@ -181,7 +181,7 @@ ProphetController::new_neighbor(const ContactRef& contact)
 void
 ProphetController::neighbor_gone(const ContactRef& contact)
 {
-    Link* link = contact.object()->link();
+    LinkRef link = contact.object()->link();
     log_info("NEIGHBOR_GONE signal from *%p",contact.object());
     ProphetEncounter* pe = NULL;
     if((pe = find_instance(link)) != NULL)

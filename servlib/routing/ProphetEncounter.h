@@ -114,7 +114,7 @@ public:
      * @param nexthop Link on which new neighbor detected
      * @param controller parent caller
      */
-    ProphetEncounter(Link* nexthop,
+    ProphetEncounter(const LinkRef& nexthop,
                      ProphetOracle* oracle);
 
 private:
@@ -188,7 +188,7 @@ public:
     bool operator< (const ProphetEncounter& p) const;
     bool operator< (u_int16_t instance) const;
 
-    Link* next_hop() const {return next_hop_;}
+    const LinkRef& next_hop() const {return next_hop_;}
 
     /**
      * Page 34, section 5.2<br>
@@ -370,7 +370,7 @@ protected:
     u_int32_t tid_; ///< transaction ID from peer's most recent TLV
     u_int32_t timeout_; ///< poll timeout
     u_int32_t ack_count_; ///< Section 5.2.1, Note 2, no more than 2 ACKs ...
-    Link* next_hop_;  ///< Link object for this encounter
+    LinkRef next_hop_;  ///< Link object for this encounter
     bool synsender_; ///< whether active or passive during hello phase
     bool initiator_; ///< whether active or passive during information exchange
     bool synsent_;  ///< whether Hello SYN has been sent

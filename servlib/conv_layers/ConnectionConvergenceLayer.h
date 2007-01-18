@@ -80,9 +80,9 @@ public:
     ConnectionConvergenceLayer(const char* logpath, const char* cl_name);
 
     /// @{ Virtual from ConvergenceLayer
-    bool init_link(Link* link, int argc, const char* argv[]);
-    void dump_link(Link* link, oasys::StringBuffer* buf);
-    bool reconfigure_link(Link* link, int argc, const char* argv[]);
+    bool init_link(const LinkRef& link, int argc, const char* argv[]);
+    void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
+    bool reconfigure_link(const LinkRef& link, int argc, const char* argv[]);
     bool open_contact(const ContactRef& contact);
     bool close_contact(const ContactRef& contact);
     void send_bundle(const ContactRef& contact, Bundle* bundle);
@@ -116,7 +116,7 @@ public:
     /**
      * Parse and validate the nexthop address for the given link.
      */
-    virtual bool parse_nexthop(Link* link, LinkParams* params) = 0;
+    virtual bool parse_nexthop(const LinkRef& link, LinkParams* params) = 0;
 
 protected:
     /**
@@ -136,7 +136,7 @@ protected:
      * After the link parameters are parsed, do any initialization of
      * the link that's necessary before starting up a connection.
      */
-    virtual bool finish_init_link(Link* link, LinkParams* params);
+    virtual bool finish_init_link(const LinkRef& link, LinkParams* params);
     
     /**
      * Create a new CL-specific connection object.

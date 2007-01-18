@@ -18,6 +18,7 @@
 #define _LINKSTATE_ROUTER_H_
 
 #include "bundling/BundleEventHandler.h"
+#include "contacts/Link.h"
 #include "BundleRouter.h"
 #include "LinkStateGraph.h"
 #include "reg/Registration.h"
@@ -77,7 +78,8 @@ protected:
      * outgoing_link - the link through which to send the announcement
      * edge - the edge that the announcement is all about
      */
-    void send_announcement(LinkStateGraph::Edge* edge, Link* outgoing_link, bool exists);
+    void send_announcement(LinkStateGraph::Edge* edge,
+                           const LinkRef& outgoing_link, bool exists);
 
     void handle_bundle_received(BundleReceivedEvent* event);
 

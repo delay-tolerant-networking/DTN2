@@ -252,7 +252,7 @@ BlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
 //----------------------------------------------------------------------
 void
 BlockProcessor::prepare(const Bundle*    bundle,
-                        Link*            link,
+                        const LinkRef&   link,
                         BlockInfoVec*    blocks,
                         const BlockInfo* source)
 {
@@ -263,7 +263,9 @@ BlockProcessor::prepare(const Bundle*    bundle,
 
 //----------------------------------------------------------------------
 void
-BlockProcessor::finalize(const Bundle* bundle, Link* link, BlockInfo* block)
+BlockProcessor::finalize(const Bundle*  bundle,
+                         const LinkRef& link,
+                         BlockInfo*     block)
 {
     (void)link;
 	

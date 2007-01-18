@@ -20,6 +20,8 @@
 #include <set>
 #include <oasys/debug/Formatter.h>
 #include <oasys/serialize/Serialize.h>
+#include <oasys/util/Ref.h>
+#include <oasys/util/RefCountedObject.h>
 
 #include "bundling/BundleList.h"
 #include "naming/EndpointID.h"
@@ -34,9 +36,14 @@ class Contact;
 class Link;
 
 /**
+ * Typedef for a reference on a link.
+ */
+typedef oasys::Ref<Link> LinkRef;
+
+/**
  * Set of links
  */
-class LinkSet : public std::set<Link*> {};
+class LinkSet : public std::set<LinkRef> {};
 
 /**
  * Abstraction for a DTN link, i.e. a one way communication channel to
@@ -90,7 +97,7 @@ class LinkSet : public std::set<Link*> {};
  * created whenever a new connection is made to a peer or when a
  * connection arrives from a peer. 
  */
-class Link : public oasys::Formatter,
+class Link : public oasys::RefCountedObject,
              public oasys::Logger,
              public oasys::SerializableObject {
 public:
@@ -223,10 +230,11 @@ public:
     /**
      * Static function to create appropriate link object from link type.
      */
-    static Link* create_link(const std::string& name, link_type_t type,
-                             ConvergenceLayer* cl, const char* nexthop,
-                             int argc, const char* argv[],
-                             const char** invalid_argp = NULL);
+    static LinkRef create_link(const std::string& name, link_type_t type,
+                               ConvergenceLayer* cl, const char* nexthop,
+                               int argc, const char* argv[],
+                               const char** invalid_argp = NULL);
+
     /**
      * Constructor / Destructor
      */

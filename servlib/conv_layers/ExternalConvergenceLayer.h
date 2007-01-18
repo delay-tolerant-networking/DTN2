@@ -124,9 +124,9 @@ class ECLLinkResource : public ECLResource {
 public:
     
     ECLLinkResource(std::string p, CLLinkCreateRequest* create, ECLModule* m,
-                    Link* l, bool disc);
+                    const LinkRef& l, bool disc);
     
-    Link* link;
+    LinkRef link;
     
     /// The state that the ECLModule knows the link to be in, independent of
     /// the state in the link itself. This is useful for state changes that
@@ -219,8 +219,8 @@ public:
     bool interface_up(Interface* iface, int argc, const char* argv[]);
     bool interface_down(Interface* iface);
     void dump_interface(Interface* iface, oasys::StringBuffer* buf);
-    bool init_link(Link* link, int argc, const char* argv[]);
-    void dump_link(Link* link, oasys::StringBuffer* buf);
+    bool init_link(const LinkRef& link, int argc, const char* argv[]);
+    void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
     bool open_contact(const ContactRef& contact);
     bool close_contact(const ContactRef& contact);
     void send_bundle(const ContactRef& contact, Bundle* bundle);

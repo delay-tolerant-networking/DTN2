@@ -18,7 +18,6 @@
 #include <oasys/thread/SpinLock.h>
 #include <oasys/util/StringBuffer.h>
 #include "conv_layers/ConvergenceLayer.h"
-#include "contacts/Link.h"
 #include "ForwardingLog.h"
 
 namespace dtn {
@@ -31,7 +30,7 @@ ForwardingLog::ForwardingLog(oasys::SpinLock* lock)
 
 //----------------------------------------------------------------------
 bool
-ForwardingLog::get_latest_entry(Link* link, ForwardingInfo* info) const
+ForwardingLog::get_latest_entry(const LinkRef& link, ForwardingInfo* info) const
 {
     oasys::ScopeLock l(lock_, "ForwardingLog::get_latest_state");
     
@@ -51,7 +50,7 @@ ForwardingLog::get_latest_entry(Link* link, ForwardingInfo* info) const
 
 //----------------------------------------------------------------------
 ForwardingLog::state_t
-ForwardingLog::get_latest_entry(Link* link) const
+ForwardingLog::get_latest_entry(const LinkRef& link) const
 {
     ForwardingInfo info;
     if (! get_latest_entry(link, &info)) {
@@ -134,7 +133,7 @@ ForwardingLog::dump(oasys::StringBuffer* buf) const
     
 //----------------------------------------------------------------------
 void
-ForwardingLog::add_entry(Link* link,
+ForwardingLog::add_entry(const LinkRef& link,
                          ForwardingInfo::action_t action,
                          state_t state,
                          const CustodyTimerSpec& custody_timer)
@@ -147,7 +146,7 @@ ForwardingLog::add_entry(Link* link,
 
 //----------------------------------------------------------------------
 bool
-ForwardingLog::update(Link* link, state_t state)
+ForwardingLog::update(const LinkRef& link, state_t state)
 {
     oasys::ScopeLock l(lock_, "ForwardingLog::update");
     

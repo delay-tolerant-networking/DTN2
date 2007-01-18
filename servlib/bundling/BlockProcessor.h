@@ -26,7 +26,6 @@ namespace dtn {
 class BlockInfo;
 class BlockInfoVec;
 class Bundle;
-class Link;
 
 /**
  * Base class for the protocol handling of bundle blocks, including
@@ -90,7 +89,7 @@ public:
      * appropriate owner_ pointer.
      */
     virtual void prepare(const Bundle*    bundle,
-                         Link*            link,
+                         const LinkRef&   link,
                          BlockInfoVec*    blocks,
                          const BlockInfo* source);
     
@@ -99,10 +98,10 @@ public:
      * generate any data for the block that does not depend on other
      * blocks' contents.
      */
-    virtual void generate(const Bundle* bundle,
-                          Link*         link,
-                          BlockInfo*    block,
-                          bool          last) = 0;
+    virtual void generate(const Bundle*  bundle,
+                          const LinkRef& link,
+                          BlockInfo*     block,
+                          bool           last) = 0;
     
     /**
      * Third callback for transmitting a bundle. This pass should
@@ -111,7 +110,9 @@ public:
      *
      * The base class implementation does nothing. 
      */
-    virtual void finalize(const Bundle* bundle, Link* link, BlockInfo* block);
+    virtual void finalize(const Bundle*  bundle,
+                          const LinkRef& link,
+                          BlockInfo*     block);
 
     /**
      * Accessor to virtualize copying contents out from the block

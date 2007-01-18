@@ -31,7 +31,7 @@ PreviousHopBlockProcessor::PreviousHopBlockProcessor()
 //----------------------------------------------------------------------
 void
 PreviousHopBlockProcessor::prepare(const Bundle*    bundle,
-                                   Link*            link,
+                                   const LinkRef&   link,
                                    BlockInfoVec*    blocks,
                                    const BlockInfo* source)
 {
@@ -44,10 +44,10 @@ PreviousHopBlockProcessor::prepare(const Bundle*    bundle,
 
 //----------------------------------------------------------------------
 void
-PreviousHopBlockProcessor::generate(const Bundle* bundle,
-                                    Link*         link,
-                                    BlockInfo*    block,
-                                    bool          last)
+PreviousHopBlockProcessor::generate(const Bundle*  bundle,
+                                    const LinkRef& link,
+                                    BlockInfo*     block,
+                                    bool           last)
 {
     (void)bundle;
     (void)link;

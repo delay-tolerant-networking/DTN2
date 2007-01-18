@@ -86,7 +86,8 @@ ConnectionConvergenceLayer::parse_link_params(LinkParams* params,
 
 //----------------------------------------------------------------------
 void
-ConnectionConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+ConnectionConvergenceLayer::dump_link(const LinkRef& link,
+                                      oasys::StringBuffer* buf)
 {
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
@@ -103,7 +104,8 @@ ConnectionConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 
 //----------------------------------------------------------------------
 bool
-ConnectionConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
+ConnectionConvergenceLayer::init_link(const LinkRef& link,
+                                      int argc, const char* argv[])
 {
     log_debug("adding %s link %s", link->type_str(), link->nexthop());
 
@@ -137,7 +139,8 @@ ConnectionConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 
 //----------------------------------------------------------------------
 bool
-ConnectionConvergenceLayer::finish_init_link(Link* link, LinkParams* params)
+ConnectionConvergenceLayer::finish_init_link(const LinkRef& link,
+                                             LinkParams* params)
 {
     (void)link;
     (void)params;
@@ -146,7 +149,7 @@ ConnectionConvergenceLayer::finish_init_link(Link* link, LinkParams* params)
 
 //----------------------------------------------------------------------
 bool
-ConnectionConvergenceLayer::reconfigure_link(Link* link,
+ConnectionConvergenceLayer::reconfigure_link(const LinkRef& link,
                                              int argc, const char* argv[])
 {
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
@@ -169,7 +172,8 @@ ConnectionConvergenceLayer::reconfigure_link(Link* link,
             (params->sendbuf_len_ >= conn->sendbuf_.fullbytes()))
         {
             log_info("resizing link *%p send buffer from %zu -> %u",
-                     link, conn->sendbuf_.size(), params->sendbuf_len_);
+                     link.object(), conn->sendbuf_.size(),
+                     params->sendbuf_len_);
             conn->sendbuf_.set_size(params->sendbuf_len_);
         }
 
@@ -177,7 +181,8 @@ ConnectionConvergenceLayer::reconfigure_link(Link* link,
             (params->recvbuf_len_ >= conn->recvbuf_.fullbytes()))
         {
             log_info("resizing link *%p recv buffer from %zu -> %u",
-                     link, conn->recvbuf_.size(), params->recvbuf_len_);
+                     link.object(), conn->recvbuf_.size(),
+                     params->recvbuf_len_);
             conn->recvbuf_.set_size(params->recvbuf_len_);
         }
     }
@@ -189,8 +194,8 @@ ConnectionConvergenceLayer::reconfigure_link(Link* link,
 bool
 ConnectionConvergenceLayer::open_contact(const ContactRef& contact)
 {
-    Link* link = contact->link();
-    log_debug("opening contact on link *%p", link);
+    LinkRef link = contact->link();
+    log_debug("opening contact on link *%p", link.object());
     
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);

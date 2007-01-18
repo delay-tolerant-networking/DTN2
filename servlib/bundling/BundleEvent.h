@@ -38,7 +38,6 @@ class Contact;
 class Interface;
 class Registration;
 class RouteEntry;
-class Link;
 
 /**
  * Type codes for events / requests.
@@ -277,14 +276,14 @@ public:
 class BundleTransmittedEvent : public BundleEvent {
 public:
     BundleTransmittedEvent(Bundle* bundle, const ContactRef& contact,
-                           Link* link, u_int32_t bytes_sent,
+                           const LinkRef& link, u_int32_t bytes_sent,
                            u_int32_t reliably_sent)
         : BundleEvent(BUNDLE_TRANSMITTED),
           bundleref_(bundle, "BundleTransmittedEvent"),
           contact_(contact.object(), "BundleTransmittedEvent"),
           bytes_sent_(bytes_sent),
           reliably_sent_(reliably_sent),
-          link_(link) {}
+          link_(link.object(), "BundleTransmittedEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
@@ -305,7 +304,7 @@ public:
 
     /// The link over which the bundle was sent
     /// (may not have a contact when the transmission result is reported)
-    Link* link_;
+    LinkRef link_;
 
 };
 
@@ -316,12 +315,12 @@ public:
  */
 class BundleTransmitFailedEvent : public BundleEvent {
 public:
-     BundleTransmitFailedEvent(Bundle* bundle, const ContactRef& contact,
-                               Link* link)
+    BundleTransmitFailedEvent(Bundle* bundle, const ContactRef& contact,
+                              const LinkRef& link)
         : BundleEvent(BUNDLE_TRANSMIT_FAILED),
           bundleref_(bundle, "BundleTransmitFailedEvent"),
           contact_(contact.object(), "BundleTransmitFailedEvent"),
-          link_(link) {}
+          link_(link.object(), "BundleTransmitFailedEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
@@ -334,7 +333,7 @@ public:
 
     /// The link over which the bundle was sent
     /// (may not have a contact when the transmission result is reported)
-    Link* link_;
+    LinkRef link_;
 };
 
 /**
@@ -528,13 +527,14 @@ public:
  */
 class LinkCreatedEvent : public ContactEvent {
 public:
-    LinkCreatedEvent(Link* link)
-        : ContactEvent(LINK_CREATED, ContactEvent::USER), link_(link) {}
+    LinkCreatedEvent(const LinkRef& link)
+        : ContactEvent(LINK_CREATED, ContactEvent::USER),
+          link_(link.object(), "LinkCreatedEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
 
-    Link* link_;
+    LinkRef link_;
 };
 
 /**
@@ -542,14 +542,15 @@ public:
  */
 class LinkDeletedEvent : public ContactEvent {
 public:
-    LinkDeletedEvent(Link* link)
-        : ContactEvent(LINK_DELETED, ContactEvent::USER), link_(link) {}
+    LinkDeletedEvent(const LinkRef& link)
+        : ContactEvent(LINK_DELETED, ContactEvent::USER),
+          link_(link.object(), "LinkDeletedEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
 
     /// The link that is up
-    Link* link_;
+    LinkRef link_;
 };
 
 /**
@@ -557,13 +558,14 @@ public:
  */
 class LinkAvailableEvent : public ContactEvent {
 public:
-    LinkAvailableEvent(Link* link, reason_t reason)
-        : ContactEvent(LINK_AVAILABLE, reason), link_(link) {}
+    LinkAvailableEvent(const LinkRef& link, reason_t reason)
+        : ContactEvent(LINK_AVAILABLE, reason),
+          link_(link.object(), "LinkAvailableEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
 
-    Link* link_;
+    LinkRef link_;
 };
 
 /**
@@ -571,14 +573,15 @@ public:
  */
 class LinkUnavailableEvent : public ContactEvent {
 public:
-    LinkUnavailableEvent(Link* link, reason_t reason)
-        : ContactEvent(LINK_UNAVAILABLE, reason), link_(link) {}
+    LinkUnavailableEvent(const LinkRef& link, reason_t reason)
+        : ContactEvent(LINK_UNAVAILABLE, reason),
+          link_(link.object(), "LinkUnavailableEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
 
     /// The link that is up
-    Link* link_;
+    LinkRef link_;
 };
 
 /**
@@ -586,14 +589,15 @@ public:
  */
 class LinkBusyEvent : public ContactEvent {
 public:
-    LinkBusyEvent(Link* link)
-        : ContactEvent(LINK_BUSY, ContactEvent::BLOCKED), link_(link) {}
+    LinkBusyEvent(const LinkRef& link)
+        : ContactEvent(LINK_BUSY, ContactEvent::BLOCKED),
+          link_(link.object(), "LinkBusyEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
 
     /// The link that is busy
-    Link* link_;
+    LinkRef link_;
 };
 
 /**
@@ -609,9 +613,10 @@ public:
     /// Shared type code for state_t with Link
     typedef Link::state_t state_t;
 
-    LinkStateChangeRequest(Link* link, state_t state, reason_t reason)
+    LinkStateChangeRequest(const LinkRef& link, state_t state, reason_t reason)
         : ContactEvent(LINK_STATE_CHANGE_REQUEST, reason),
-          link_(link), state_(state), contact_("LinkStateChangeRequest")
+          link_(link.object(), "LinkStateChangeRequest"),
+          state_(state), contact_("LinkStateChangeRequest")
     {
         daemon_only_ = true;
         
@@ -631,7 +636,7 @@ public:
     virtual void serialize(oasys::SerializeAction* a);
 
     /// The link to be changed
-    Link* link_;
+    LinkRef link_;
 
     /// Requested state
     int state_;
@@ -788,10 +793,10 @@ public:
  */
 class CustodyTimeoutEvent : public BundleEvent {
 public:
-    CustodyTimeoutEvent(Bundle* bundle, Link* link)
+    CustodyTimeoutEvent(Bundle* bundle, const LinkRef& link)
         : BundleEvent(CUSTODY_TIMEOUT),
           bundle_(bundle, "CustodyTimeoutEvent"),
-          link_(link) {}
+          link_(link.object(), "CustodyTimeoutEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
@@ -800,7 +805,7 @@ public:
     BundleRef bundle_;
 
     ///< The link it was sent on
-    Link* link_;
+    LinkRef link_;
 };
 
 /**

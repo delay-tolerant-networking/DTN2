@@ -402,25 +402,25 @@ CLConnection::find_contact(const EndpointID& peer_eid)
         ContactManager* cm = BundleDaemon::instance()->contactmgr();
         oasys::ScopeLock l(cm->lock(), "CLConnection::find_contact");
 
-        Link* link = cm->find_link_to(cl_, "", peer_eid,
-                                      Link::OPPORTUNISTIC,
-                                      Link::AVAILABLE | Link::UNAVAILABLE);
+        LinkRef link = cm->find_link_to(cl_, "", peer_eid,
+                                        Link::OPPORTUNISTIC,
+                                        Link::AVAILABLE | Link::UNAVAILABLE);
 
         // XXX/demmer remove check for no contact
         if (link != NULL && (link->contact() == NULL)) {
             link->set_nexthop(nexthop_);
-            log_debug("found idle opportunistic link *%p", link);
+            log_debug("found idle opportunistic link *%p", link.object());
             
         } else {
             if (link != NULL) {
                 log_warn("in-use opportunistic link *%p returned from "
-                         "ContactManager::find_link_to", link);
+                         "ContactManager::find_link_to", link.object());
             }
             
             link = cm->new_opportunistic_link(cl_,
                                               nexthop_.c_str(),
                                               peer_eid);
-            log_debug("created new opportunistic link *%p", link);
+            log_debug("created new opportunistic link *%p", link.object());
         }
         
         ASSERT(! link->isopen());

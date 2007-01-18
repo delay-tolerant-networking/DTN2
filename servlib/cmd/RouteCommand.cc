@@ -111,9 +111,8 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
         const char* name = argv[3];
-        Link* link = NULL;
-        
-        link = BundleDaemon::instance()->contactmgr()->find_link(name);
+
+        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
 
         if (link == NULL) {
             resultf("no such link %s", name);

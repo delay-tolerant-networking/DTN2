@@ -257,7 +257,7 @@ protected:
 
     typedef std::set<ProphetEncounter*> enc_set;
 
-    ProphetEncounter* find_instance(Link* link);
+    ProphetEncounter* find_instance(const LinkRef& link);
 
     /**
      * Prophet parameters, to share among ProphetEncounters

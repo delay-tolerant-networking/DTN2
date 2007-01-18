@@ -21,6 +21,7 @@
 #include <oasys/debug/Log.h>
 #include "ForwardingInfo.h"
 #include "BundleProtocol.h"
+#include "contacts/Link.h"
 
 namespace dtn {
 
@@ -29,7 +30,6 @@ class BundleList;
 class CustodyTimerSpec;
 class EndpointID;
 class Interface;
-class Link;
 class RouterInfo;
 
 /**
@@ -52,13 +52,13 @@ public:
      * convergence layer to complete the session initiation in which
      * case the link state is OPENING.
      */
-    virtual void open_link(Link* link);
+    virtual void open_link(const LinkRef& link);
 
     /**
      * Open a link for bundle transmission. The link should be in an
      * open state for this to be called.
      */
-    virtual void close_link(Link* link);
+    virtual void close_link(const LinkRef& link);
     
     /**
      * Initiate transmission of a bundle out the given link. The link
@@ -71,7 +71,7 @@ public:
      *
      * @return true if the transmission was successfully initiated
      */
-    virtual bool send_bundle(Bundle* bundle, Link* link,
+    virtual bool send_bundle(Bundle* bundle, const LinkRef& link,
                              ForwardingInfo::action_t action,
                              const CustodyTimerSpec& custody_timer);
     
@@ -83,7 +83,7 @@ public:
      *
      * @return			true if successful
      */
-    virtual bool cancel_bundle(Bundle* bundle, Link* link);
+    virtual bool cancel_bundle(Bundle* bundle, const LinkRef& link);
 
     /**
      * Inject a new bundle into the core system, which places it in

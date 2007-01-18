@@ -50,7 +50,7 @@ public:
     /**
      * Remove a route entry.
      */
-    bool del_entry(const EndpointIDPattern& dest, Link* next_hop);
+    bool del_entry(const EndpointIDPattern& dest, const LinkRef& next_hop);
     
     /**
      * Remove all entries to the given endpoint id pattern.
@@ -64,7 +64,7 @@ public:
      *
      * @return the number of entries removed
      **/
-    size_t del_entries_for_nexthop(Link* next_hop);
+    size_t del_entries_for_nexthop(const LinkRef& next_hop);
 
     /**
      * Fill in the entry_set with the list of all entries whose
@@ -73,7 +73,7 @@ public:
      *
      * @return the count of matching entries
      */
-    size_t get_matching(const EndpointID& eid, Link* next_hop,
+    size_t get_matching(const EndpointID& eid, const LinkRef& next_hop,
                         RouteEntryVec* entry_set) const;
     
     /**
@@ -84,9 +84,10 @@ public:
     size_t get_matching(const EndpointID& eid,
                         RouteEntryVec* entry_set) const
     {
-        return get_matching(eid, NULL, entry_set);
+        LinkRef link("RouteTable::get_matching: null");
+        return get_matching(eid, link, entry_set);
     }
-    
+
     /**
      * Dump a string representation of the routing table.
      */

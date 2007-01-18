@@ -140,7 +140,7 @@ ConvergenceLayer::dump_interface(Interface* iface, oasys::StringBuffer* buf)
 
 //----------------------------------------------------------------------
 bool
-ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
+ConvergenceLayer::init_link(const LinkRef& link, int argc, const char* argv[])
 {
     (void)link;
     (void)argc;
@@ -151,7 +151,7 @@ ConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 
 //----------------------------------------------------------------------
 void
-ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+ConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
 {
     (void)link;
     (void)buf;
@@ -159,7 +159,8 @@ ConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
 
 //----------------------------------------------------------------------
 bool
-ConvergenceLayer::reconfigure_link(Link* link, int argc, const char* argv[])
+ConvergenceLayer::reconfigure_link(const LinkRef& link,
+                                   int argc, const char* argv[])
 {
     (void)link;
     (void)argv;

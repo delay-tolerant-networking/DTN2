@@ -21,10 +21,11 @@
 #include <oasys/serialize/SerializableVector.h>
 #include <oasys/util/ScratchBuffer.h>
 
+#include "contacts/Link.h"
+
 namespace dtn {
 
 class BlockProcessor;
-class Link;
 
 /**
  * Class used to store unparsed bundle blocks and associated metadata
@@ -119,19 +120,19 @@ public:
      *
      * @return Pointer to the new BlockInfoVec
      */
-    BlockInfoVec* create_blocks(Link* link);
+    BlockInfoVec* create_blocks(const LinkRef& link);
     
     /**
      * Find the BlockInfoVec for the given link.
      *
      * @return Pointer to the BlockInfoVec or NULL if not found
      */
-    BlockInfoVec* find_blocks(Link* link);
+    BlockInfoVec* find_blocks(const LinkRef& link);
     
     /**
      * Remove the BlockInfoVec for the given link.
      */
-    void delete_blocks(Link* link);
+    void delete_blocks(const LinkRef& link);
 
 protected:
     /**
@@ -142,10 +143,10 @@ protected:
      * delete_blocks().
      */
     struct Entry {
-        Entry(Link* link);
+        Entry(const LinkRef& link);
         
         BlockInfoVec* blocks_;
-        Link*         link_;
+        LinkRef       link_;
     };
 
     typedef std::vector<Entry> Vector;

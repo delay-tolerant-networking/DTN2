@@ -57,22 +57,22 @@ public:
     /**
      * Add a link.
      */
-    void add_link(Link* link);
+    void add_link(const LinkRef& link);
     
     /**
      * Delete a link
      */
-    void del_link(Link* link);
+    void del_link(const LinkRef& link);
     
     /**
      * Check if contact manager already has this link
      */
-    bool has_link(Link* link);
+    bool has_link(const LinkRef& link);
 
     /**
      * Finds link corresponding to this name
      */
-    Link* find_link(const char* name);
+    LinkRef find_link(const char* name);
 
     /**
      * Helper routine to find a link based on criteria:
@@ -85,11 +85,11 @@ public:
      *
      * @return The link if it matches or NULL if there's no match
      */
-    Link* find_link_to(ConvergenceLayer* cl,
-                       const std::string& nexthop,
-                       const EndpointID& remote_eid = EndpointID::NULL_EID(),
-                       Link::link_type_t type = Link::LINK_INVALID,
-                       u_int states = 0xffffffff);
+    LinkRef find_link_to(ConvergenceLayer* cl,
+                         const std::string& nexthop,
+                         const EndpointID& remote_eid = EndpointID::NULL_EID(),
+                         Link::link_type_t type = Link::LINK_INVALID,
+                         u_int states = 0xffffffff);
     
     /**
      * Return the list of links. Asserts that the CM spin lock is held
@@ -141,10 +141,10 @@ public:
      *
      * @return An idle link to represent the new contact
      */
-    Link* new_opportunistic_link(ConvergenceLayer* cl,
-                                 const std::string& nexthop,
-                                 const EndpointID& remote_eid,
-                                 const std::string* link_name = NULL);
+    LinkRef new_opportunistic_link(ConvergenceLayer* cl,
+                                   const std::string& nexthop,
+                                   const EndpointID& remote_eid,
+                                   const std::string* link_name = NULL);
     
 protected:
     
@@ -154,27 +154,27 @@ protected:
     /**
      * Reopen a broken link.
      */
-    void reopen_link(Link* link);
+    void reopen_link(const LinkRef& link);
 
     /**
      * Timer class used to re-enable broken ondemand links.
      */
     class LinkAvailabilityTimer : public oasys::Timer {
     public:
-        LinkAvailabilityTimer(ContactManager* cm, Link* link)
-            : cm_(cm), link_(link) {}
+        LinkAvailabilityTimer(ContactManager* cm, const LinkRef& link)
+            : cm_(cm), link_(link.object(), "LinkAvailabilityTimer") {}
         
         virtual void timeout(const struct timeval& now);
 
         ContactManager* cm_;	///< The contact manager object
-        Link* link_;		///< The link in question
+        LinkRef link_;		///< The link in question
     };
     friend class LinkAvailabilityTimer;
 
     /**
      * Table storing link -> availability timer class.
      */
-    typedef std::map<Link*, LinkAvailabilityTimer*> AvailabilityTimerMap;
+    typedef std::map<LinkRef, LinkAvailabilityTimer*> AvailabilityTimerMap;
     AvailabilityTimerMap availability_timers_;
 
     /**

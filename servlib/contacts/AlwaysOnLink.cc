@@ -31,7 +31,8 @@ void
 AlwaysOnLink::set_initial_state()
 {
     BundleDaemon::post(
-        new LinkStateChangeRequest(this, Link::OPEN, ContactEvent::USER));
+        new LinkStateChangeRequest(LinkRef(this, "AlwaysOnLink"),
+                                   Link::OPEN, ContactEvent::USER));
 }
 
 } // namespace dtn

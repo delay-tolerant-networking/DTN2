@@ -28,9 +28,9 @@ using namespace dtn;
 
 
 NullConvergenceLayer* cl;
-Link* l1;
-Link* l2;
-Link* l3;
+LinkRef l1;
+LinkRef l2;
+LinkRef l3;
 
 DECLARE_TEST(Init) {
 
@@ -49,7 +49,7 @@ DECLARE_TEST(Init) {
 }
 
 bool
-add_entry(RouteTable* t, const std::string& dest, Link* link)
+add_entry(RouteTable* t, const std::string& dest, const LinkRef& link)
 {
     return t->add_entry(new RouteEntry(EndpointIDPattern(dest), link));
 }

@@ -590,10 +590,10 @@ tooshort:
 
 //----------------------------------------------------------------------
 void
-PrimaryBlockProcessor::generate(const Bundle* bundle,
-                                Link*         link,
-                                BlockInfo*    block,
-                                bool last)
+PrimaryBlockProcessor::generate(const Bundle*  bundle,
+                                const LinkRef& link,
+                                BlockInfo*     block,
+                                bool           last)
 {
     (void)link;
 

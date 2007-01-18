@@ -134,8 +134,13 @@ protected:
      *
      * Returns the number of matches found and assigned.
      */
-    virtual int fwd_to_matching(Bundle* bundle, Link* this_link_only = NULL);
+    virtual int fwd_to_matching(Bundle* bundle, const LinkRef& this_link_only);
 
+    virtual int fwd_to_matching(Bundle* bundle) {
+        LinkRef link("TableBasedRouter::fwd_to_matching: null");
+        return fwd_to_matching(bundle, link);
+    }
+    
     /**
      * Called when the next hop link is available for transmission
      * (i.e. either when it first arrives and the contact is brought
@@ -144,7 +149,7 @@ protected:
      * Loops through the bundle list and calls fwd_to_matching on all
      * bundles.
      */
-    virtual void check_next_hop(Link* next_hop);
+    virtual void check_next_hop(const LinkRef& next_hop);
 
     /// The static routing table
     RouteTable* route_table_;

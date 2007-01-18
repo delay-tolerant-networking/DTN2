@@ -41,13 +41,13 @@ Link::Params::Params()
 Link::Params Link::default_params_;
 
 //----------------------------------------------------------------------
-Link*
+LinkRef
 Link::create_link(const std::string& name, link_type_t type,
                   ConvergenceLayer* cl, const char* nexthop,
                   int argc, const char* argv[],
                   const char** invalid_argp)
 {
-    Link* link;
+    LinkRef link("Link::create_link: return value");
     switch(type) {
     case ALWAYSON: 	link = new AlwaysOnLink(name, cl, nexthop); break;
     case ONDEMAND: 	link = new OndemandLink(name, cl, nexthop); break;
@@ -60,8 +60,8 @@ Link::create_link(const std::string& name, link_type_t type,
     // argv appropriately
     int count = link->parse_args(argc, argv, invalid_argp);
     if (count == -1) {
-        delete link;
-        return NULL;
+        link = NULL;
+        return link;
     }
 
     argc -= count;
@@ -72,11 +72,11 @@ Link::create_link(const std::string& name, link_type_t type,
     // arguments
     ASSERT(link->clayer_);
     if (!link->clayer_->init_link(link, argc, argv)) {
-        delete link;
-        return NULL;
+        link = NULL;
+        return link;
     }
     
-    link->logf(oasys::LOG_INFO, "new link *%p", link);
+    link->logf(oasys::LOG_INFO, "new link *%p", link.object());
 
     // now dispatch to the subclass for any initial state events that
     // need to be posted. this needs to be done after all the above is
@@ -90,7 +90,8 @@ Link::create_link(const std::string& name, link_type_t type,
 //----------------------------------------------------------------------
 Link::Link(const std::string& name, link_type_t type,
            ConvergenceLayer* cl, const char* nexthop)
-    :  Logger("Link", "/dtn/link/%s", name.c_str()),
+    :  RefCountedObject("/dtn/link/refs"),
+       Logger("Link", "/dtn/link/%s", name.c_str()),
        type_(type),
        state_(UNAVAILABLE),
        nexthop_(nexthop),
@@ -112,7 +113,8 @@ Link::Link(const std::string& name, link_type_t type,
 
 //----------------------------------------------------------------------
 Link::Link(const oasys::Builder&)
-    : Logger("Link", "/dtn/link/UNKNOWN!!!"),
+    : RefCountedObject("/dtn/link/refs"),
+      Logger("Link", "/dtn/link/UNKNOWN!!!"),
       type_(LINK_INVALID),
       state_(UNAVAILABLE),
       nexthop_(""),
@@ -290,7 +292,7 @@ Link::open()
     // it needs to, it will set the Link state to OPEN and post a
     // ContactUpEvent when it has done the deed
     ASSERT(contact_ == NULL);
-    contact_ = new Contact(this);
+    contact_ = new Contact(LinkRef(this, "Link::open"));
     clayer()->open_contact(contact_);
 
     stats_.contact_attempts_++;
@@ -357,7 +359,7 @@ Link::dump(oasys::StringBuffer* buf)
                  params_.max_retry_interval_,
                  params_.prevhop_hdr_ ? "true" : "false");
     
-    clayer_->dump_link(this, buf);
+    clayer_->dump_link(LinkRef(this, "Link::dump"), buf);
 }
 
 //----------------------------------------------------------------------

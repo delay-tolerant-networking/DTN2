@@ -151,8 +151,8 @@ BlockInfoVec::find_block(u_int8_t type) const
 
 
 //----------------------------------------------------------------------
-LinkBlockSet::Entry::Entry(Link* link)
-    : blocks_(NULL), link_(link)
+LinkBlockSet::Entry::Entry(const LinkRef& link)
+    : blocks_(NULL), link_(link.object(), "LinkBlockSet::Entry")
 {
 }
 
@@ -170,7 +170,7 @@ LinkBlockSet::~LinkBlockSet()
 
 //----------------------------------------------------------------------
 BlockInfoVec*
-LinkBlockSet::create_blocks(Link* link)
+LinkBlockSet::create_blocks(const LinkRef& link)
 {
     ASSERT(find_blocks(link) == NULL);
     entries_.push_back(Entry(link));
@@ -180,7 +180,7 @@ LinkBlockSet::create_blocks(Link* link)
 
 //----------------------------------------------------------------------
 BlockInfoVec*
-LinkBlockSet::find_blocks(Link* link)
+LinkBlockSet::find_blocks(const LinkRef& link)
 {
     for (iterator iter = entries_.begin();
          iter != entries_.end();
@@ -195,7 +195,7 @@ LinkBlockSet::find_blocks(Link* link)
 
 //----------------------------------------------------------------------
 void
-LinkBlockSet::delete_blocks(Link* link)
+LinkBlockSet::delete_blocks(const LinkRef& link)
 {
     for (iterator iter = entries_.begin();
          iter != entries_.end();
@@ -209,7 +209,7 @@ LinkBlockSet::delete_blocks(Link* link)
     }
     
     PANIC("LinkBlockVec::delete_blocks: "
-          "no block vector for link *%p", link);
+          "no block vector for link *%p", link.object());
 }
 
 } // namespace dtn

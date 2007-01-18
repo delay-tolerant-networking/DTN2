@@ -27,10 +27,10 @@ namespace dtn {
 /**
  * Constructor
  */
-Contact::Contact(Link* link)
+Contact::Contact(const LinkRef& link)
     : RefCountedObject("/dtn/contact/refs"),
       Logger("Contact", "/dtn/contact/%s",link->name()),
-      link_(link), cl_info_(NULL)
+      link_(link.object(), "Contact"), cl_info_(NULL)
 {
     ::gettimeofday(&start_time_, 0);
     duration_ms_ = 0;
@@ -69,7 +69,7 @@ Contact::serialize(oasys::SerializeAction *a)
     a->process("duration", &duration_ms_);
     a->process("bps", &bps_);
     a->process("latency", &latency_ms_);
-    a->process("link", link_);
+    a->process("link", link_.object());
 }
 
 } // namespace dtn

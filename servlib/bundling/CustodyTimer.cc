@@ -66,9 +66,9 @@ CustodyTimerSpec::parse_options(int argc, const char* argv[],
 //----------------------------------------------------------------------
 CustodyTimer::CustodyTimer(const struct timeval& xmit_time,
                            const CustodyTimerSpec& spec,
-                           Bundle* bundle, Link* link)
+                           Bundle* bundle, const LinkRef& link)
     : Logger("CustodyTimer", "/dtn/bundle/custody_timer"),
-      bundle_(bundle, "CustodyTimer"), link_(link)
+      bundle_(bundle, "CustodyTimer"), link_(link.object(), "CustodyTimer")
 {
     struct timeval tv = xmit_time;
     u_int32_t delay = spec.calculate_timeout(bundle);

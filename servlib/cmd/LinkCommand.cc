@@ -86,7 +86,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link != NULL) {
             resultf("link name %s already exists, use different name", name);
             return TCL_ERROR;
@@ -97,7 +97,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         const char* invalid_arg = "(unknown)";
         link = Link::create_link(name, type, cl, nexthop, argc - 6, &argv[6],
                                  &invalid_arg);
-        if (!link) {
+        if (link == NULL) {
             resultf("invalid link option: %s", invalid_arg);
             return TCL_ERROR;
         }
@@ -116,7 +116,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         const char* name = argv[2];
         
-        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link == NULL) {
             resultf("link %s doesn't exist", name);
             return TCL_ERROR;
@@ -148,7 +148,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         const char* name = argv[2];
         
-        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link == NULL) {
             resultf("link %s doesn't exist", name);
             return TCL_ERROR;
@@ -172,7 +172,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         const char* name = argv[2];
         
-        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link == NULL) {
             resultf("link %s doesn't exist", name);
             return TCL_ERROR;
@@ -198,7 +198,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         const char* name = argv[2];
 
-        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link == NULL) {
             resultf("link %s doesn't exist", name);
             return TCL_ERROR;
@@ -263,7 +263,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
         const char* name = argv[2];
 
-        Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
         if (link == NULL) {
             resultf("link %s doesn't exist", name);
             return TCL_ERROR;
@@ -289,12 +289,13 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             for (LinkSet::const_iterator i = links->begin();
                  i != links->end(); ++i)
             {
-                append_resultf("*%p\n", *i);
+                append_resultf("*%p\n", (*i).object());
             }
         } else if (argc == 3) {
             const char* name = argv[2];
             
-            Link* link = BundleDaemon::instance()->contactmgr()->find_link(name);
+            LinkRef link =
+                BundleDaemon::instance()->contactmgr()->find_link(name);
             if (link == NULL) {
                 resultf("link %s doesn't exist", name);
                 return TCL_ERROR;

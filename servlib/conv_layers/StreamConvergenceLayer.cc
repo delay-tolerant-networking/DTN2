@@ -83,7 +83,8 @@ StreamConvergenceLayer::parse_link_params(LinkParams* lparams,
 
 //----------------------------------------------------------------------
 bool
-StreamConvergenceLayer::finish_init_link(Link* link, LinkParams* lparams)
+StreamConvergenceLayer::finish_init_link(const LinkRef& link,
+                                         LinkParams* lparams)
 {
     StreamLinkParams* params = dynamic_cast<StreamLinkParams*>(lparams);
     ASSERT(params != NULL);
@@ -98,7 +99,7 @@ StreamConvergenceLayer::finish_init_link(Link* link, LinkParams* lparams)
 
 //----------------------------------------------------------------------
 void
-StreamConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+StreamConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
 {
     ConnectionConvergenceLayer::dump_link(link, buf);
     
@@ -770,7 +771,7 @@ StreamConvergenceLayer::Connection::handle_poll_timeout()
     // (on demand links only)
     if (contact_->link()->type() == Link::ONDEMAND) {
         u_int idle_close_time = contact_->link()->params().idle_close_time_;
-        
+
         elapsed  = TIMEVAL_DIFF_MSEC(now, data_rcvd_);
         elapsed2 = TIMEVAL_DIFF_MSEC(now, data_sent_);
         

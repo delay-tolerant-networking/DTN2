@@ -19,20 +19,20 @@
 #include <oasys/util/StringBuffer.h>
 #include "BundleRouter.h"
 #include "RouteEntry.h"
-#include "contacts/Link.h"
 #include "naming/EndpointIDOpt.h"
 
 namespace dtn {
 
 //----------------------------------------------------------------------
-RouteEntry::RouteEntry(const EndpointIDPattern& dest_pattern, Link* link)
+RouteEntry::RouteEntry(const EndpointIDPattern& dest_pattern,
+                       const LinkRef& link)
     : dest_pattern_(dest_pattern),
       source_pattern_(EndpointID::WILDCARD_EID()),
       bundle_cos_((1 << Bundle::COS_BULK) |
                   (1 << Bundle::COS_NORMAL) |
                   (1 << Bundle::COS_EXPEDITED)),
       route_priority_(0),
-      next_hop_(link),
+      next_hop_(link.object(), "RouteEntry"),
       action_(ForwardingInfo::FORWARD_ACTION),
       custody_timeout_(),
       info_(NULL)

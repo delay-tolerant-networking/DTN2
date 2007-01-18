@@ -19,11 +19,11 @@
 
 #include <oasys/thread/Timer.h>
 #include "bundling/BundleRef.h"
+#include "contacts/Link.h"
 
 namespace dtn {
 
 class Bundle;
-class Link;
 
 /**
  * Utility class to abstract out various parameters that can be used
@@ -103,7 +103,7 @@ public:
     /** Constructor */
     CustodyTimer(const struct timeval& xmit_time,
                  const CustodyTimerSpec& spec,
-                 Bundle* bundle, Link* link);
+                 Bundle* bundle, const LinkRef& link);
 
     /** Virtual timeout function */
     void timeout(const struct timeval& now);
@@ -112,7 +112,7 @@ public:
     BundleRef bundle_;
 
     ///< The link that it was transmitted on
-    Link* link_;
+    LinkRef link_;
 };
 
 /**

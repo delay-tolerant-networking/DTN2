@@ -115,7 +115,7 @@ TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
     // URI that doesn't have anything following the "hostname" part,
     // we add a wildcard of '/*' to match all service tags.
     
-    Link* link = event->link_;
+    LinkRef link = event->link_;
     EndpointID eid = link->remote_eid();
     std::string eid_str = eid.str();
     
@@ -174,11 +174,11 @@ TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
 void
 TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
 {
-    Link* link = route->next_hop_;
+    LinkRef link = route->next_hop_;
 
     // if the link is open and not busy, send the bundle to it
     if (link->isopen() && !link->isbusy()) {
-        log_debug("sending *%p to *%p", bundle, link);
+        log_debug("sending *%p to *%p", bundle, link.object());
         actions_->send_bundle(bundle, link,
                               ForwardingInfo::action_t(route->action_),
                               route->custody_timeout_);
@@ -186,7 +186,8 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
 
     // if the link is available and not open, open it
     else if (link->isavailable() && (!link->isopen()) && (!link->isopening())) {
-        log_debug("opening *%p because a message is intended for it", link);
+        log_debug("opening *%p because a message is intended for it",
+                  link.object());
         actions_->open_link(link);
     }
 
@@ -195,15 +196,15 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
     else {
         if (!link->isavailable()) {
             log_debug("can't forward *%p to *%p because link not available",
-                      bundle, link);
+                      bundle, link.object());
         } else if (! link->isopen()) {
             log_debug("can't forward *%p to *%p because link not open",
-                      bundle, link);
+                      bundle, link.object());
         } else if (link->isbusy()) {
             log_debug("can't forward *%p to *%p because link is busy",
-                      bundle, link);
+                      bundle, link.object());
         } else {
-            log_debug("can't forward *%p to *%p", bundle, link);
+            log_debug("can't forward *%p to *%p", bundle, link.object());
         }
     }
 }
@@ -270,7 +271,7 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
 
 //----------------------------------------------------------------------
 int
-TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* this_link_only)
+TableBasedRouter::fwd_to_matching(Bundle* bundle, const LinkRef& this_link_only)
 {
     RouteEntryVec matches;
     RouteEntryVec::iterator iter;
@@ -301,7 +302,7 @@ TableBasedRouter::fwd_to_matching(Bundle* bundle, Link* this_link_only)
 
 //----------------------------------------------------------------------
 void
-TableBasedRouter::check_next_hop(Link* next_hop)
+TableBasedRouter::check_next_hop(const LinkRef& next_hop)
 {
     log_debug("check_next_hop %s: checking pending bundle list...",
               next_hop->nexthop());

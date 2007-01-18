@@ -70,7 +70,7 @@ BundleProtocol::init_default_processors()
 
 //----------------------------------------------------------------------
 BlockInfoVec*
-BundleProtocol::prepare_blocks(Bundle* bundle, Link* link)
+BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
 {
     // create a new block list for the outgoing link by first calling
     // prepare on all the BlockProcessor classes for the blocks that
@@ -122,9 +122,9 @@ BundleProtocol::prepare_blocks(Bundle* bundle, Link* link)
 
 //----------------------------------------------------------------------
 size_t
-BundleProtocol::generate_blocks(Bundle*       bundle,
-                                BlockInfoVec* blocks,
-                                Link*         link)
+BundleProtocol::generate_blocks(Bundle*        bundle,
+                                BlockInfoVec*  blocks,
+                                const LinkRef& link)
 {
     // now assert there's at least 2 blocks (primary + payload) and
     // that the primary is first

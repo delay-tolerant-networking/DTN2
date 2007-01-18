@@ -30,9 +30,9 @@ public:
     PreviousHopBlockProcessor();
     
     /// @{ Virtual from BlockProcessor
-    void prepare(const Bundle* bundle, Link* link,
+    void prepare(const Bundle* bundle, const LinkRef& link,
                  BlockInfoVec* blocks, const BlockInfo* source);
-    void generate(const Bundle* bundle, Link* link,
+    void generate(const Bundle* bundle, const LinkRef& link,
                   BlockInfo* block, bool last);
     int consume(Bundle* bundle, BlockInfo* block, u_char* buf, size_t len);
     /// @}

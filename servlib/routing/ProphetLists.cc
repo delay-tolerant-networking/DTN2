@@ -21,6 +21,8 @@
 
 namespace dtn {
 
+const LinkRef ProphetDecider::null_link_("ProphetDecider null");
+	
 ProphetTable::ProphetTable()
     : lock_(new oasys::SpinLock())
 {

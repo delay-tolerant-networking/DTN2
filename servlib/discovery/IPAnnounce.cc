@@ -112,7 +112,7 @@ IPAnnounce::handle_neighbor_discovered(const std::string& nexthop,
         return;
 
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    Link* link = cm->find_link_to(cl_, nexthop);
+    LinkRef link = cm->find_link_to(cl_, nexthop);
 
     if (link != NULL)
         return; // XXX/wilson do we want to pass along the signal regardless?

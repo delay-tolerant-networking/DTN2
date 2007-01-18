@@ -26,6 +26,7 @@
 #include "CustodySignal.h"
 #include "ExpirationTimer.h"
 #include "FragmentManager.h"
+#include "contacts/Link.h"
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
 #include "reg/AdminRegistration.h"
@@ -585,7 +586,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
     Bundle* bundle = event->bundleref_.object();
 
-    Link* link = event->link_;
+    LinkRef link = event->link_;
     
     /*
      * Update statistics. Note that the link's queued length must
@@ -715,7 +716,7 @@ BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
      */
     Bundle* bundle = event->bundleref_.object();
 
-    Link* link = event->link_;
+    LinkRef link = event->link_;
     bundle->xmit_blocks_.delete_blocks(link);
     
     log_info("BUNDLE_TRANSMIT_FAILED id:%d -> %s (%s)",
@@ -815,8 +816,8 @@ BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 void
 BundleDaemon::handle_bundle_send(BundleSendRequest* event)
 {
-    Link *link = contactmgr_->find_link(event->link_.c_str());
-    if (! link) return;
+    LinkRef link = contactmgr_->find_link(event->link_.c_str());
+    if (link == NULL) return;
 
     BundleRef br = pending_bundles_->find(event->bundleid_);
     if (! br.object()) return;
@@ -832,8 +833,8 @@ BundleDaemon::handle_bundle_send(BundleSendRequest* event)
 void
 BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
 {
-    Link *link = contactmgr_->find_link(event->link_.c_str());
-    if(!link) return;
+    LinkRef link = contactmgr_->find_link(event->link_.c_str());
+    if (link == NULL) return;
 
     BundleRef br = pending_bundles_->find(event->bundleid_);
     if(!br.object()) return;
@@ -845,8 +846,8 @@ BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
 void
 BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
 {
-    Link *link = contactmgr_->find_link(event->link_.c_str());
-    if (! link) return;
+    LinkRef link = contactmgr_->find_link(event->link_.c_str());
+    if (link == NULL) return;
 
     EndpointID src(event->src_); 
     EndpointID dest(event->dest_); 
@@ -980,34 +981,34 @@ BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
 void
 BundleDaemon::handle_link_available(LinkAvailableEvent* event)
 {
-    Link* link = event->link_;
+    LinkRef link = event->link_;
     ASSERT(link->isavailable());
 
-    log_info("LINK_AVAILABLE *%p", link);
+    log_info("LINK_AVAILABLE *%p", link.object());
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
 {
-    Link* link = event->link_;
+    LinkRef link = event->link_;
     ASSERT(!link->isavailable());
     
-    log_info("LINK UNAVAILABLE *%p", link);
+    log_info("LINK UNAVAILABLE *%p", link.object());
 }
 
 //----------------------------------------------------------------------
 void
 BundleDaemon::handle_link_busy(LinkBusyEvent* event)
 {
-    Link* link = event->link_;
-    if(link->isbusy())
+    LinkRef link = event->link_;
+    if (link->isbusy())
     {    
-        log_info("LINK BUSY *%p", link);
+        log_info("LINK BUSY *%p", link.object());
     }
     else
     {
-        log_info("STALE LINK BUSY NOTIFICATION FOR LINK *%p -- not telling the router or the contact manager", link);
+        log_info("STALE LINK BUSY NOTIFICATION FOR LINK *%p -- not telling the router or the contact manager", link.object());
 	event->daemon_only_ = true;
     }
 }
@@ -1016,8 +1017,8 @@ BundleDaemon::handle_link_busy(LinkBusyEvent* event)
 void
 BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 {
-    Link* link = request->link_;
-    if (! link) {
+    LinkRef link = request->link_;
+    if (link == NULL) {
         log_warn("LINK_STATE_CHANGE_REQUEST received invalid link");
         return;
     }
@@ -1030,14 +1031,14 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         log_warn("stale LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p: "
                  "contact %p != current contact %p", 
                  Link::state_to_str(old_state), Link::state_to_str(new_state),
-                 ContactEvent::reason_to_str(reason), link,
+                 ContactEvent::reason_to_str(reason), link.object(),
                  request->contact_.object(), link->contact().object());
         return;
     }
 
     log_info("LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p",
              Link::state_to_str(old_state), Link::state_to_str(new_state),
-             ContactEvent::reason_to_str(reason), link);
+             ContactEvent::reason_to_str(reason), link.object());
 
     //avoid a race condition caused by opening a partially closed link
     oasys::ScopeLock l;
@@ -1051,7 +1052,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         if (link->state() != Link::AVAILABLE) {
             log_err("LINK_STATE_CHANGE_REQUEST *%p: "
                     "tried to set state UNAVAILABLE in state %s",
-                    link, Link::state_to_str(link->state()));
+                    link.object(), Link::state_to_str(link->state()));
             return;
         }
         link->set_state(new_state);
@@ -1076,7 +1077,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         } else {
             log_err("LINK_STATE_CHANGE_REQUEST *%p: "
                     "tried to set state AVAILABLE in state %s",
-                    link, Link::state_to_str(link->state()));
+                    link.object(), Link::state_to_str(link->state()));
             return;
         }
 
@@ -1105,7 +1106,7 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
         if (! link->isopen() && ! link->isopening()) {
             log_err("LINK_STATE_CHANGE_REQUEST *%p: "
                     "setting state CLOSED (%s) in unexpected state %s",
-                    link, ContactEvent::reason_to_str(reason),
+                    link.object(), ContactEvent::reason_to_str(reason),
                     link->state_to_str(link->state()));
             break;
         }
@@ -1162,17 +1163,18 @@ void
 BundleDaemon::handle_contact_up(ContactUpEvent* event)
 {
     const ContactRef& contact = event->contact_;
-    Link* link = contact->link();
+    LinkRef link = contact->link();
     
     //ignore stale notifications that an old contact is up
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_contact_up");
     if(link->contact() != contact)
     {
-	log_info("CONTACT_UP *%p (contact %p) being ignored (old contact)", contact->link(), contact.object());
+	log_info("CONTACT_UP *%p (contact %p) being ignored (old contact)",
+                 link.object(), contact.object());
         return;
     }
     
-    log_info("CONTACT_UP *%p (contact %p)", contact->link(), contact.object());
+    log_info("CONTACT_UP *%p (contact %p)", link.object(), contact.object());
     link->set_state(Link::OPEN);
     link->stats_.contacts_++;
 }
@@ -1184,11 +1186,12 @@ void
 BundleDaemon::handle_contact_down(ContactDownEvent* event)
 {
     const ContactRef& contact = event->contact_;
-    Link* link = contact->link();
+    LinkRef link = contact->link();
     int reason = event->reason_;
     
     log_info("CONTACT_DOWN *%p (%s) (contact %p)",
-             link, ContactEvent::reason_to_str(reason), contact.object());
+             link.object(), ContactEvent::reason_to_str(reason),
+             contact.object());
 
     // we don't need to do anything here since we just generated this
     // event in response to a link state change request
@@ -1303,9 +1306,9 @@ void
 BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
 {
     Bundle* bundle = event->bundle_.object();
-    Link*   link   = event->link_;
+    LinkRef link   = event->link_;
     
-    log_info("CUSTODY_TIMEOUT *%p, *%p", bundle, link);
+    log_info("CUSTODY_TIMEOUT *%p, *%p", bundle, link.object());
     
     // remove and delete the expired timer from the bundle
     oasys::ScopeLock l(&bundle->lock_, "BundleDaemon::handle_custody_timeout");
@@ -1334,7 +1337,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
 
     if (!found) {
         log_err("custody timeout for *%p *%p: timer not found in bundle list",
-                bundle, link);
+                bundle, link.object());
         return;
     }
 
@@ -1342,7 +1345,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
     
     if (!pending_bundles_->contains(bundle)) {
         log_err("custody timeout for *%p *%p: bundle not in pending list",
-                bundle, link);
+                bundle, link.object());
     }
 
     // modify the TRANSMITTED entry in the forwarding log to indicate
@@ -1352,7 +1355,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
     bool ok = bundle->fwdlog_.update(link, ForwardingInfo::CUSTODY_TIMEOUT);
     if (!ok) {
         log_err("custody timeout can't find ForwardingLog entry for link *%p",
-                link);
+                link.object());
     }
     
     delete timer;
@@ -1375,14 +1378,13 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
     
     const LinkSet* links = contactmgr_->links();
     LinkSet::const_iterator iter;
-    Link* link = NULL;
 
     // close any open links
     for (iter = links->begin(); iter != links->end(); ++iter)
     {
-        link = *iter;
+        LinkRef link = *iter;
         if (link->isopen()) {
-            log_debug("Shutdown: closing link *%p\n", link);
+            log_debug("Shutdown: closing link *%p\n", link.object());
             link->close();
         }
     }

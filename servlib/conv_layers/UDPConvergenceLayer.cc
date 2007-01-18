@@ -172,7 +172,8 @@ UDPConvergenceLayer::dump_interface(Interface* iface,
 
 //----------------------------------------------------------------------
 bool
-UDPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
+UDPConvergenceLayer::init_link(const LinkRef& link,
+                               int argc, const char* argv[])
 {
     in_addr_t addr;
     u_int16_t port = 0;
@@ -210,7 +211,7 @@ UDPConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 
 //----------------------------------------------------------------------
 void
-UDPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+UDPConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
 {
     Params* params = (Params*)link->cl_info();
     
@@ -228,8 +229,8 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
     in_addr_t addr;
     u_int16_t port;
 
-    Link* link = contact->link();
-    log_debug("opening contact for link *%p", link);
+    LinkRef link = contact->link();
+    log_debug("opening contact for link *%p", link.object());
     
     // parse out the address / port from the nexthop address
     if (! parse_nexthop(link->nexthop(), &addr, &port)) {

@@ -264,14 +264,14 @@ protected:
     typedef ConnectionConvergenceLayer::LinkParams LinkParams;
 
     /// @{ Virtual from ConvergenceLayer
-    void dump_link(Link* link, oasys::StringBuffer* buf);
+    void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
     /// @}
     
     /// @{ Virtual from ConnectionConvergenceLayer
     bool parse_link_params(LinkParams* params,
                            int argc, const char** argv,
                            const char** invalidp);
-    bool finish_init_link(Link* link, LinkParams* params);
+    bool finish_init_link(const LinkRef& link, LinkParams* params);
     /// @}
 
 };

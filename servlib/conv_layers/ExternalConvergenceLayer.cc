@@ -134,7 +134,8 @@ ExternalConvergenceLayer::dump_interface(Interface* iface,
 }
 
 bool
-ExternalConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
+ExternalConvergenceLayer::init_link(const LinkRef& link,
+                                    int argc, const char* argv[])
 {
     std::string proto_option;
     oasys::OptParser parser;
@@ -193,7 +194,8 @@ ExternalConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
 }
 
 void
-ExternalConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+ExternalConvergenceLayer::dump_link(const LinkRef& link,
+                                    oasys::StringBuffer* buf)
 {
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
@@ -206,7 +208,7 @@ ExternalConvergenceLayer::open_contact(const ContactRef& contact)
 {
     oasys::ScopeLock(&global_resource_lock_, "open_contact");
     
-    Link* link = contact->link();
+    LinkRef link = contact->link();
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
 
@@ -234,7 +236,7 @@ ExternalConvergenceLayer::close_contact(const ContactRef& contact)
 {
     oasys::ScopeLock(&global_resource_lock_, "open_contact");
     
-    Link* link = contact->link();
+    LinkRef link = contact->link();
     ECLLinkResource* resource =
                      dynamic_cast<ECLLinkResource*>( link->cl_info() );
     
@@ -259,7 +261,7 @@ ExternalConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
     oasys::ScopeLock(&global_resource_lock_, "send_bundle");
     
-    Link* link = contact->link();
+    LinkRef link = contact->link();
     if ( !link->cl_info() ) {
         log_err("Link %s has no cl_info", link->name() );
         BundleDaemon::post( new BundleTransmitFailedEvent(bundle, contact,
@@ -443,8 +445,9 @@ ExternalConvergenceLayer::Listener::accepted(int fd, in_addr_t addr,
 
 
 ECLLinkResource::ECLLinkResource(std::string p, CLLinkCreateRequest* create,
-                                 ECLModule* m, Link* l, bool disc) :
+                                 ECLModule* m, const LinkRef& l, bool disc) :
     ECLResource(p, create, m),
+    link(l.object(), "ECLLinkResource"),
     bundle_mutex_("/dtn/cl/parts/bundle_mutex")
 {
     link = l;

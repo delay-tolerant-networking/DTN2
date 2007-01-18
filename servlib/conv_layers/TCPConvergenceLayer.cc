@@ -84,7 +84,7 @@ TCPConvergenceLayer::parse_link_params(LinkParams* lparams,
 
 //----------------------------------------------------------------------
 void
-TCPConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+TCPConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
 {
     StreamConvergenceLayer::dump_link(link, buf);
     
@@ -106,7 +106,7 @@ TCPConvergenceLayer::set_link_defaults(int argc, const char* argv[],
 
 //----------------------------------------------------------------------
 bool
-TCPConvergenceLayer::parse_nexthop(Link* link, LinkParams* lparams)
+TCPConvergenceLayer::parse_nexthop(const LinkRef& link, LinkParams* lparams)
 {
     TCPLinkParams* params = dynamic_cast<TCPLinkParams*>(lparams);
     ASSERT(params != NULL);

@@ -152,8 +152,8 @@ EthConvergenceLayer::open_contact(const ContactRef& contact)
 {
     eth_addr_t addr;
 
-    Link* link = contact->link();
-    log_debug("opening contact to link *%p", link);
+    LinkRef link = contact->link();
+    log_debug("opening contact to link *%p", link.object());
 
     // parse out the address from the contact nexthop
     if (! EthernetScheme::parse(link->nexthop(), &addr)) {
@@ -262,12 +262,12 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         ConvergenceLayer* cl = ConvergenceLayer::find_clayer("eth");
         EndpointID remote_eid(bundles_string);
 
-        Link* link=cm->find_link_to(cl,
-                                    next_hop_string,
-                                    remote_eid,
-                                    Link::OPPORTUNISTIC);
+        LinkRef link=cm->find_link_to(cl,
+                                      next_hop_string,
+                                      remote_eid,
+                                      Link::OPPORTUNISTIC);
         
-        if(!link)
+        if(link == NULL)
         {
             log_info("Discovered next_hop %s on interface %s.",
                      next_hop_string, if_name_);
@@ -415,7 +415,7 @@ EthConvergenceLayer::Sender::Sender(char* if_name,
 {
     struct ifreq req;
     struct sockaddr_ll iface;
-    Link *link = contact->link();
+    LinkRef link = contact->link();
 
     memset(src_hw_addr_.octet, 0, 6); // determined in Sender::run()
     EthernetScheme::parse(link->nexthop(), &dst_hw_addr_);
@@ -659,13 +659,13 @@ EthConvergenceLayer::BeaconTimer::timeout(const struct timeval& now)
 {
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
     ConvergenceLayer* cl = ConvergenceLayer::find_clayer("eth");
-    Link * l = cm->find_link_to(cl, next_hop_);
+    LinkRef l = cm->find_link_to(cl, next_hop_);
 
     (void)now;
 
     log_info("Neighbor %s timer expired.",next_hop_);
 
-    if(l == 0) {
+    if(l == NULL) {
       log_warn("No link for next_hop %s.",next_hop_);
     }
     else if(l->isopen()) {

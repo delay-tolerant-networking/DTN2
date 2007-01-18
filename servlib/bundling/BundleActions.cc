@@ -27,7 +27,7 @@ namespace dtn {
 
 //----------------------------------------------------------------------
 void
-BundleActions::open_link(Link* link)
+BundleActions::open_link(const LinkRef& link)
 {
     log_debug("opening link %s", link->name());
 
@@ -46,7 +46,7 @@ BundleActions::open_link(Link* link)
 
 //----------------------------------------------------------------------
 void
-BundleActions::close_link(Link* link)
+BundleActions::close_link(const LinkRef& link)
 {
     log_debug("closing link %s", link->name());
 
@@ -61,7 +61,7 @@ BundleActions::close_link(Link* link)
 
 //----------------------------------------------------------------------
 bool
-BundleActions::send_bundle(Bundle* bundle, Link* link,
+BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
                            ForwardingInfo::action_t action,
                            const CustodyTimerSpec& custody_timer)
 {
@@ -115,7 +115,7 @@ BundleActions::send_bundle(Bundle* bundle, Link* link,
 
 //----------------------------------------------------------------------
 bool
-BundleActions::cancel_bundle(Bundle* bundle, Link* link)
+BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
 {
     log_debug("cancel bundle *%p on %s link %s (%s)",
               bundle, link->type_str(), link->name(), link->nexthop());

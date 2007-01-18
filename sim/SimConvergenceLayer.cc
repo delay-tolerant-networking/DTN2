@@ -64,7 +64,8 @@ SimConvergenceLayer::SimConvergenceLayer()
 }
 
 bool
-SimConvergenceLayer::init_link(Link* link, int argc, const char* argv[])
+SimConvergenceLayer::init_link(const LinkRef& link,
+                               int argc, const char* argv[])
 {
     oasys::OptParser p;
 

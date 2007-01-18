@@ -92,7 +92,7 @@ protected:
     /// @{ virtual from ConvergenceLayer
     bool set_link_defaults(int argc, const char* argv[],
                            const char** invalidp);
-    void dump_link(Link* link, oasys::StringBuffer* buf);
+    void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
     /// @}
 
     /// @{ virtual from ConnectionConvergenceLayer
@@ -100,7 +100,7 @@ protected:
     virtual bool parse_link_params(LinkParams* params, int argc,
                                    const char** argv,
                                    const char** invalidp);
-    virtual bool parse_nexthop(Link* link, LinkParams* params);
+    virtual bool parse_nexthop(const LinkRef& link, LinkParams* params);
     virtual CLConnection* new_connection(LinkParams* params);
     /// @}
 

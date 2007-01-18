@@ -23,10 +23,10 @@
 #include "bundling/CustodyTimer.h"
 #include "bundling/ForwardingInfo.h"
 #include "naming/EndpointID.h"
+#include "contacts/Link.h"
 
 namespace dtn {
 
-class Link;
 class RouteEntryInfo;
 
 /**
@@ -56,7 +56,7 @@ public:
     /**
      * Default constructor requires a destination pattern and a link.
      */
-    RouteEntry(const EndpointIDPattern& dest_pattern, Link* link);
+    RouteEntry(const EndpointIDPattern& dest_pattern, const LinkRef& link);
 
     /**
      * Destructor.
@@ -104,7 +104,7 @@ public:
     u_int route_priority_;
         
     /// Next hop link
-    Link* next_hop_;
+    LinkRef next_hop_;
         
     /// Forwarding action code 
     int action_;

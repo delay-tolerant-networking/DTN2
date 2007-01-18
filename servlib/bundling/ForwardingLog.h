@@ -21,6 +21,7 @@
 
 #include <oasys/serialize/SerializableVector.h>
 #include "ForwardingInfo.h"
+#include "contacts/Link.h"
 
 namespace oasys {
 class SpinLock;
@@ -29,7 +30,6 @@ class StringBuffer;
 
 namespace dtn {
 
-class Link;
 class ForwardingLog;
 
 /**
@@ -61,12 +61,12 @@ public:
     /**
      * Get the most recent entry for the given link from the log.
      */
-    bool get_latest_entry(Link* link, ForwardingInfo* info) const;
+    bool get_latest_entry(const LinkRef& link, ForwardingInfo* info) const;
     
     /**
      * Get the most recent state for the given link from the log.
      */
-    state_t get_latest_entry(Link* link) const;
+    state_t get_latest_entry(const LinkRef& link) const;
     
     /**
      * Return the transmission count of the bundle, optionally
@@ -81,7 +81,7 @@ public:
     /**
      * Add a new forwarding info entry for the given link.
      */
-    void add_entry(Link* link,
+    void add_entry(const LinkRef& link,
                    ForwardingInfo::action_t action,
                    state_t state,
                    const CustodyTimerSpec& custody_timer);
@@ -92,7 +92,7 @@ public:
      *
      * @return true if the next hop entry was found
      */
-    bool update(Link* link, state_t state);
+    bool update(const LinkRef& link, state_t state);
     
     /**
      * Return a count of the number of entries in the given state.

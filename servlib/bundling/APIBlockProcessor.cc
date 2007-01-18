@@ -47,10 +47,10 @@ APIBlockProcessor::consume(Bundle* bundle,
 
 //----------------------------------------------------------------------
 void
-APIBlockProcessor::generate(const Bundle* bundle,
-                            Link*         link,
-                            BlockInfo*    block,
-                            bool          last)
+APIBlockProcessor::generate(const Bundle*  bundle,
+                            const LinkRef& link,
+                            BlockInfo*     block,
+                            bool           last)
 {
     (void)bundle;
     (void)link;

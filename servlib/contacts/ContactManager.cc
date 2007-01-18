@@ -42,19 +42,19 @@ ContactManager::~ContactManager()
 
 //----------------------------------------------------------------------
 void
-ContactManager::add_link(Link* link)
+ContactManager::add_link(const LinkRef& link)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::add_link");
     
     log_debug("adding link %s", link->name());
-    links_->insert(link);
+    links_->insert(LinkRef(link.object(), "ContactManager"));
     
     BundleDaemon::post(new LinkCreatedEvent(link));
 }
 
 //----------------------------------------------------------------------
 void
-ContactManager::del_link(Link *link)
+ContactManager::del_link(const LinkRef& link)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::del_link");
     
@@ -71,7 +71,7 @@ ContactManager::del_link(Link *link)
 
 //----------------------------------------------------------------------
 bool
-ContactManager::has_link(Link *link)
+ContactManager::has_link(const LinkRef& link)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::has_link");
     
@@ -82,20 +82,21 @@ ContactManager::has_link(Link *link)
 }
 
 //----------------------------------------------------------------------
-Link*
+LinkRef
 ContactManager::find_link(const char* name)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::find_link");
     
     LinkSet::iterator iter;
-    Link* link = NULL;
-    for (iter = links_->begin(); iter != links_->end(); ++iter)
-    {
-        link = *iter;
-        if (strcasecmp(link->name(), name) == 0)
+    LinkRef link("ContaceManager::find_link: return value");
+    
+    for (iter = links_->begin(); iter != links_->end(); ++iter) {
+        if (strcasecmp((*iter)->name(), name) == 0) {
+            link = *iter;
             return link;
+        }
     }
-    return NULL;
+    return link;
 }
 
 //----------------------------------------------------------------------
@@ -118,7 +119,7 @@ ContactManager::LinkAvailabilityTimer::timeout(const struct timeval& now)
 
 //----------------------------------------------------------------------
 void
-ContactManager::reopen_link(Link* link)
+ContactManager::reopen_link(const LinkRef& link)
 {
     oasys::ScopeLock l(&lock_, "ContactManager::reopen_link");
     
@@ -192,7 +193,7 @@ ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
     // retry_interval will be initialized to zero so we set it to the
     // minimum here. the retry interval is reset in the link open
     // event handler.
-    Link* link = event->link_;
+    LinkRef link = event->link_;
     if (link->retry_interval_ == 0) {
         link->retry_interval_ = link->params().min_retry_interval_;
     }
@@ -223,7 +224,7 @@ ContactManager::handle_link_unavailable(LinkUnavailableEvent* event)
 void
 ContactManager::handle_contact_up(ContactUpEvent* event)
 {
-    Link* link = event->contact_->link();
+    LinkRef link = event->contact_->link();
     if (link->type() == Link::ONDEMAND ||
         link->type() == Link::ALWAYSON)
     {
@@ -236,7 +237,7 @@ ContactManager::handle_contact_up(ContactUpEvent* event)
 }
 
 //----------------------------------------------------------------------
-Link*
+LinkRef
 ContactManager::find_link_to(ConvergenceLayer* cl,
                              const std::string& nexthop,
                              const EndpointID& remote_eid,
@@ -246,7 +247,7 @@ ContactManager::find_link_to(ConvergenceLayer* cl,
     oasys::ScopeLock l(&lock_, "ContactManager::find_link_to");
     
     LinkSet::iterator iter;
-    Link* link = NULL;
+    LinkRef link("ContactManager::find_link_to: return value");
     
     log_debug("find_link_to: cl %s nexthop %s remote_eid %s "
               "type %s states 0x%x",
@@ -261,28 +262,27 @@ ContactManager::find_link_to(ConvergenceLayer* cl,
            (remote_eid != EndpointID::NULL_EID()) ||
            (type != Link::LINK_INVALID));
     
-    for (iter = links_->begin(); iter != links_->end(); ++iter)
-    {
-        link = *iter;
-
-        if ( ((type == Link::LINK_INVALID) || (type == link->type())) &&
-             ((cl == NULL) || (link->clayer() == cl)) &&
-             ((nexthop == "") || (nexthop == link->nexthop())) &&
+    for (iter = links_->begin(); iter != links_->end(); ++iter) {
+        if ( ((type == Link::LINK_INVALID) || (type == (*iter)->type())) &&
+             ((cl == NULL) || ((*iter)->clayer() == cl)) &&
+             ((nexthop == "") || (nexthop == (*iter)->nexthop())) &&
              ((remote_eid == EndpointID::NULL_EID()) ||
-              (remote_eid == link->remote_eid())) &&
-             ((states & link->state()) != 0) )
+              (remote_eid == (*iter)->remote_eid())) &&
+             ((states & (*iter)->state()) != 0) )
         {
-            log_debug("find_link_to: matched link *%p", link);
+            link = *iter;
+            log_debug("ContactManager::find_link_to: "
+                      "matched link *%p", link.object());
             return link;
         }
     }
 
-    log_debug("find_link_to: no match");
-    return NULL;
+    log_debug("ContactManager::find_link_to: no match");
+    return link;
 }
 
 //----------------------------------------------------------------------
-Link*
+LinkRef
 ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
                                        const std::string& nexthop,
                                        const EndpointID& remote_eid,
@@ -295,12 +295,11 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
 
     // find a unique link name
     char name[64];
-    Link* link = NULL;
     
     if (link_name) {
         strncpy(name, link_name->c_str(), sizeof(name));
         
-        while ( find_link(name) ) {
+        while (find_link(name) != NULL) {
             snprintf(name, sizeof(name), "%d-%s", opportunistic_cnt_,
                      link_name->c_str());
             opportunistic_cnt_++;
@@ -312,13 +311,12 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
             snprintf(name, sizeof(name), "opportunistic-%d",
                     opportunistic_cnt_);
             opportunistic_cnt_++;
-            link = find_link(name);
-        } while (link != NULL);
+        } while (find_link(name) != NULL);
     }
         
-    link = Link::create_link(name, Link::OPPORTUNISTIC, cl,
-                             nexthop.c_str(), 0, NULL);
-    ASSERTF(link, "unexpected error creating opportunistic link!!");
+    LinkRef link = Link::create_link(name, Link::OPPORTUNISTIC, cl,
+                                     nexthop.c_str(), 0, NULL);
+    ASSERTF(link.object(), "unexpected error creating opportunistic link!!");
     link->set_remote_eid(remote_eid);
     add_link(link);
     
@@ -333,11 +331,8 @@ ContactManager::dump(oasys::StringBuffer* buf) const
     
     buf->append("Links:\n");
     LinkSet::iterator iter;
-    Link* link = NULL;
-    for (iter = links_->begin(); iter != links_->end(); ++iter)
-    {
-        link = *iter;
-        buf->appendf("*%p\n", link);
+    for (iter = links_->begin(); iter != links_->end(); ++iter) {
+        buf->appendf("*%p\n", (*iter).object());
     }
 }
 

@@ -16,7 +16,6 @@
 
 
 #include "RouteTable.h"
-#include "contacts/Link.h"
 
 namespace dtn {
 
@@ -52,7 +51,7 @@ RouteTable::add_entry(RouteEntry* entry)
  * Remove a route entry.
  */
 bool
-RouteTable::del_entry(const EndpointIDPattern& dest, Link* next_hop)
+RouteTable::del_entry(const EndpointIDPattern& dest, const LinkRef& next_hop)
 {
     oasys::ScopeLock l(&lock_, "RouteTable");
 
@@ -119,7 +118,7 @@ RouteTable::del_entries(const EndpointIDPattern& dest)
 }
 
 size_t
-RouteTable::del_entries_for_nexthop(Link* next_hop)
+RouteTable::del_entries_for_nexthop(const LinkRef& next_hop)
 {
     oasys::ScopeLock l(&lock_, "RouteTable");
 
@@ -169,7 +168,7 @@ RouteTable::del_entries_for_nexthop(Link* next_hop)
  * @return the count of matching entries
  */
 size_t
-RouteTable::get_matching(const EndpointID& eid, Link* next_hop,
+RouteTable::get_matching(const EndpointID& eid, const LinkRef& next_hop,
                          RouteEntryVec* entry_vec) const
 {
     oasys::ScopeLock l(&lock_, "RouteTable");

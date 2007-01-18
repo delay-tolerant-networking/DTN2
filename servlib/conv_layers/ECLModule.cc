@@ -830,9 +830,10 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
     //lock the contact manager so no one opens the link before we do
     oasys::ScopeLock l(cm->lock(), "ECLModule::create_discovered_link");
     
-    Link* link = cm->new_opportunistic_link(&cl_, nexthop, EndpointID(peer_eid),
-                                            &link_name);
-
+    LinkRef link = cm->new_opportunistic_link(&cl_, nexthop,
+                                              EndpointID(peer_eid),
+                                              &link_name);
+    
     // Create the resource holder for this link.
     ECLLinkResource* resource =
             new ECLLinkResource(name_, NULL, this, link, true);

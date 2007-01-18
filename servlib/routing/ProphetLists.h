@@ -25,6 +25,7 @@
 #include "naming/EndpointID.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleActions.h"
+#include "contacts/Link.h"
 #include <oasys/util/BoundedPriorityQueue.h>
 #include <oasys/util/URL.h>
 
@@ -813,24 +814,25 @@ class ProphetDecider : public oasys::Logger
 {
 public:
     inline static ProphetDecider* decider(
-                      Prophet::fwd_strategy_t fs,
-                      ProphetTable* local = NULL,
-                      ProphetTable* remote = NULL,
-                      Link* nexthop = NULL,
-                      u_int max_forward = 0,
-                      ProphetStats* stats = NULL
-                  );
+        Prophet::fwd_strategy_t fs,
+        ProphetTable* local = NULL,
+        ProphetTable* remote = NULL,
+        const LinkRef& nexthop = ProphetDecider::null_link_,
+        u_int max_forward = 0,
+        ProphetStats* stats = NULL);
     virtual ~ProphetDecider() {}
     virtual bool operator() (const Bundle*) const = 0;
     inline bool should_fwd(const Bundle* bundle) const;
 protected:
-    ProphetDecider(Link* nexthop)
+    ProphetDecider(const LinkRef& nexthop)
         : oasys::Logger("ProphetDecider","/dtn/route/decider"),
-          next_hop_(nexthop),
+          next_hop_(nexthop.object(), "ProphetDecider"),
           route_(Prophet::eid_to_route(nexthop->remote_eid()))
     {}
 
-    Link* next_hop_;
+    static const LinkRef null_link_;
+    
+    LinkRef next_hop_;
     EndpointIDPattern route_;
 };
 
@@ -861,7 +863,8 @@ public:
     virtual ~FwdDeciderGRTR() {}
 protected:
     friend class ProphetDecider;
-    FwdDeciderGRTR(ProphetTable* local, ProphetTable* remote, Link* nexthop)
+    FwdDeciderGRTR(ProphetTable* local, ProphetTable* remote,
+                   const LinkRef& nexthop)
         : ProphetDecider(nexthop), local_(local), remote_(remote)
     {
         ASSERT(local != NULL);
@@ -896,7 +899,7 @@ public:
 protected:
     friend class ProphetDecider;
     FwdDeciderGTMX(ProphetTable* local, ProphetTable* remote,
-                   Link* nexthop, u_int max_forward)
+                   const LinkRef& nexthop, u_int max_forward)
         : FwdDeciderGRTR(local,remote,nexthop),
           max_fwd_(max_forward)
     {}
@@ -924,7 +927,7 @@ public:
 protected:
     friend class ProphetDecider;
     FwdDeciderGRTRPLUS(ProphetTable* local, ProphetTable* remote,
-                       Link* nexthop, ProphetStats* stats)
+                       const LinkRef& nexthop, ProphetStats* stats)
         : FwdDeciderGRTR(local,remote,nexthop),
           stats_(stats)
     {
@@ -957,7 +960,8 @@ public:
 protected:
     friend class ProphetDecider;
     FwdDeciderGTMXPLUS(ProphetTable* local, ProphetTable* remote,
-                       Link* nexthop, ProphetStats* stats, u_int max_forward)
+                       const LinkRef& nexthop, ProphetStats* stats,
+                       u_int max_forward)
         : FwdDeciderGRTRPLUS(local,remote,nexthop,stats), max_fwd_(max_forward)
     {}
 
@@ -969,7 +973,7 @@ protected:
  */
 ProphetDecider*
 ProphetDecider::decider( Prophet::fwd_strategy_t fs, ProphetTable* local,
-                         ProphetTable* remote, Link* nexthop,
+                         ProphetTable* remote, const LinkRef& nexthop,
                          u_int max_forward, ProphetStats* stats )
 {
     ProphetDecider* pd = NULL;

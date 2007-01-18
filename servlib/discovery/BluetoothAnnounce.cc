@@ -88,7 +88,7 @@ BluetoothAnnounce::handle_neighbor_discovered(const std::string& nexthop,
     ASSERT(type() == "bt");
 
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    Link* link = cm->find_link_to(cl_, "", remote_eid);
+    LinkRef link = cm->find_link_to(cl_, "", remote_eid);
     if (link != NULL)
         return; // log something? send up signal regardless?
 

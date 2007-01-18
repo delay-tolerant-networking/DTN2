@@ -19,6 +19,8 @@
 
 #include <sys/types.h>
 
+#include "contacts/Link.h"
+
 namespace dtn {
 
 class BlockInfo;
@@ -27,7 +29,6 @@ class BlockProcessor;
 class Bundle;
 class BundleTimestamp;
 class EndpointID;
-class Link;
 
 /**
  * Centralized class used to convert a Bundle to / from the bundle
@@ -61,16 +62,16 @@ public:
      *
      * @return a pointer to the new block list
      */
-    static BlockInfoVec* prepare_blocks(Bundle* bundle, Link* link);
+    static BlockInfoVec* prepare_blocks(Bundle* bundle, const LinkRef& link);
     
     /**
      * Generate contents for the given BlockInfoVec on the given Link.
      *
      * @return the total length of the formatted blocks for this bundle.
      */
-    static size_t generate_blocks(Bundle*       bundle,
-                                  BlockInfoVec* blocks,
-                                  Link*         link);
+    static size_t generate_blocks(Bundle*        bundle,
+                                  BlockInfoVec*  blocks,
+                                  const LinkRef& link);
 
     /**
      * Return the total length of the formatted bundle block data.

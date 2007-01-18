@@ -33,7 +33,7 @@ UnknownBlockProcessor::UnknownBlockProcessor()
 //----------------------------------------------------------------------
 void
 UnknownBlockProcessor::prepare(const Bundle*    bundle,
-                               Link*            link,
+                               const LinkRef&   link,
                                BlockInfoVec*    blocks,
                                const BlockInfo* source)
 {
@@ -49,10 +49,10 @@ UnknownBlockProcessor::prepare(const Bundle*    bundle,
 
 //----------------------------------------------------------------------
 void
-UnknownBlockProcessor::generate(const Bundle* bundle,
-                                Link*         link,
-                                BlockInfo*    block,
-                                bool          last)
+UnknownBlockProcessor::generate(const Bundle*  bundle,
+                                const LinkRef& link,
+                                BlockInfo*     block,
+                                bool           last)
 {
     (void)bundle;
     (void)link;

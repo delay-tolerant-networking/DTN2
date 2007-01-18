@@ -119,7 +119,8 @@ BluetoothConvergenceLayer::parse_link_params(LinkParams* lparams,
 
 //----------------------------------------------------------------------
 void
-BluetoothConvergenceLayer::dump_link(Link* link, oasys::StringBuffer* buf)
+BluetoothConvergenceLayer::dump_link(const LinkRef& link,
+                                     oasys::StringBuffer* buf)
 {
     StreamConvergenceLayer::dump_link(link,buf);
     BluetoothLinkParams* params =
@@ -140,7 +141,8 @@ BluetoothConvergenceLayer::set_link_defaults(int argc, const char* argv[],
 
 //----------------------------------------------------------------------
 bool
-BluetoothConvergenceLayer::parse_nexthop(Link* link, LinkParams* lparams)
+BluetoothConvergenceLayer::parse_nexthop(const LinkRef& link,
+                                         LinkParams* lparams)
 {
     BluetoothLinkParams* params = dynamic_cast<BluetoothLinkParams*>(lparams);
     ASSERT(params != NULL);

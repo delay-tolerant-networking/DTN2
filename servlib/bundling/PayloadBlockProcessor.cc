@@ -107,10 +107,10 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
 
 //----------------------------------------------------------------------
 void
-PayloadBlockProcessor::generate(const Bundle* bundle,
-                                Link*         link,
-                                BlockInfo*    block,
-                                bool          last)
+PayloadBlockProcessor::generate(const Bundle*  bundle,
+                                const LinkRef& link,
+                                BlockInfo*     block,
+                                bool           last)
 {
     (void)link;
     

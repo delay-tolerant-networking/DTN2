@@ -36,7 +36,9 @@ OndemandLink::OndemandLink(std::string name,
 void
 OndemandLink::set_initial_state()
 {
-    BundleDaemon::post(new LinkAvailableEvent(this, ContactEvent::NO_INFO));
+    BundleDaemon::post(
+        new LinkAvailableEvent(LinkRef(this, "OndemandLink"),
+                               ContactEvent::NO_INFO));
 }
 
 

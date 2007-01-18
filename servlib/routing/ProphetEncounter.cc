@@ -27,7 +27,7 @@
 
 namespace dtn {
 
-ProphetEncounter::ProphetEncounter(Link* nexthop,
+ProphetEncounter::ProphetEncounter(const LinkRef& nexthop,
                                    ProphetOracle* oracle)
     : oasys::Thread("ProphetEncounter",oasys::Thread::DELETE_ON_EXIT),
       oasys::Logger("ProphetEncounter","/dtn/route"),
@@ -36,7 +36,7 @@ ProphetEncounter::ProphetEncounter(Link* nexthop,
       local_instance_(Prophet::UniqueID::instance()->instance_id()),
       tid_(0),
       timeout_(0),
-      next_hop_(nexthop),
+      next_hop_(nexthop.object(), "ProphetEncounter"),
       synsender_(false),initiator_(false),
       synsent_(false),synrcvd_(false),
       estab_(false),
@@ -355,7 +355,7 @@ ProphetEncounter::fwd_to_nexthop(Bundle* b,bool add_front)
         }
 
         Bundle* b = ref.object();
-        log_debug("sending *%p to *%p", b, next_hop_);
+        log_debug("sending *%p to *%p", b, next_hop_.object());
 
         bool ok = oracle_->actions()->send_bundle(b,next_hop_,
                                                   ForwardingInfo::COPY_ACTION,
@@ -988,7 +988,7 @@ ProphetEncounter::handle_neighbor_gone()
     log_debug("handle_neighbor_gone");
     neighbor_gone_ = true;
     log_info("*%p - %u received NEIGHBOR_GONE signal",
-             next_hop_,local_instance_);
+             next_hop_.object(),local_instance_);
 }
 
 void

@@ -66,7 +66,7 @@ BundleTransmittedEvent::serialize(oasys::SerializeAction *a)
     a->process("reliably_sent", &reliably_sent_);
     a->process("bundle", bundleref_.object());
     a->process("contact", contact_.object());
-    a->process("link", link_);
+    a->process("link", link_.object());
 }
 
 void
@@ -74,7 +74,7 @@ BundleTransmitFailedEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("bundle", bundleref_.object());
     a->process("contact", contact_.object());
-    a->process("link", link_);
+    a->process("link", link_.object());
 }
 
 void
@@ -191,34 +191,34 @@ void
 LinkCreatedEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("reason", &reason_);
-    a->process("link", link_);
+    a->process("link", link_.object());
 }
 
 void
 LinkDeletedEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("reason", &reason_);
-    a->process("link", link_);
+    a->process("link", link_.object());
 }
 
 void
 LinkAvailableEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("reason", &reason_);
-    a->process("link", link_);
+    a->process("link", link_.object());
 }
 
 void
 LinkUnavailableEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("reason", &reason_);
-    a->process("link", link_);
+    a->process("link", link_.object());
 }
 
 void
 LinkBusyEvent::serialize(oasys::SerializeAction *a)
 {
-    a->process("link", link_);
+    a->process("link", link_.object());
 }
 
 void
@@ -232,7 +232,7 @@ LinkReportEvent::serialize(oasys::SerializeAction *a)
     LinkSet::const_iterator j;
 
     for(j = links->begin(); j != links->end(); ++j) {
-        a->process("link", *j);
+        a->process("link", (*j).object());
     }
 }
 
@@ -246,7 +246,7 @@ LinkStateChangeRequest::serialize(oasys::SerializeAction* a)
         BundleDaemon *bd = BundleDaemon::instance();
         link_ = bd->contactmgr()->find_link(link.c_str());
 
-        if (link_) {
+        if (link_ != NULL) {
             contact_   = link_->contact();
             old_state_ = link_->state();
         }
@@ -305,7 +305,7 @@ void
 CustodyTimeoutEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("bundle", bundle_.object());
-    a->process("link", link_);
+    a->process("link", link_.object());
 }
 
 } // namespace dtn

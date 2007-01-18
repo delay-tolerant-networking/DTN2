@@ -30,6 +30,9 @@ class ConvergenceLayer;
 class CLInfo;
 class Link;
 
+// re-defined from Link.h
+typedef oasys::Ref<Link> LinkRef;
+
 /**
  * Encapsulation of an active connection to a next-hop DTN contact.
  * This is basically a repository for any state about the contact
@@ -53,7 +56,7 @@ public:
     /**
      * Constructor
      */
-    Contact(Link* link);
+    Contact(const LinkRef& link);
 
 private:
     /**
@@ -83,7 +86,7 @@ public:
     /**
      * Accessor to the link
      */
-    Link* link() { return link_; }
+    const LinkRef& link() { return link_; }
 
     /**
      * Virtual from formatter
@@ -108,8 +111,7 @@ public:
     u_int32_t latency_ms_;
 
 protected:
-    Link* link_ ; 	///< Pointer to parent link on which this
-    			///  contact exists
+    LinkRef link_ ; 	///< Parent link on which this contact exists
     
     CLInfo* cl_info_;	///< convergence layer specific info
 };

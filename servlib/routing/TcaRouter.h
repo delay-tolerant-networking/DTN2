@@ -86,12 +86,15 @@ protected:
     // fwd function to broadcast a bundle to everybody in the route table
     virtual int fwd_to_all(Bundle* bundle);
 
-
-    virtual int fwd_to_matching(Bundle* bundle, Link* next_hop = NULL);
-
+    virtual int fwd_to_matching(Bundle* bundle, const LinkRef& next_hop);
+    virtual int fwd_to_matching(Bundle* bundle) {
+        LinkRef link("TcaRouter::fwd_to_matching: null");
+        return fwd_to_matching(bundle, link);
+    }
+    
     // fwd function with special forwarding rules for default route
     // used for forwarding unbound tca bundles and some tca control bundles
-    virtual int fwd_to_matching_r(Bundle* bundle, Link* next_hop,
+    virtual int fwd_to_matching_r(Bundle* bundle, const LinkRef& next_hop,
                                   ForwardingRule fwd_rule);
 
     bool on_coa_transmitted(Bundle* b, const TcaControlBundle& cb);
@@ -127,10 +130,10 @@ protected:
     ForwardingRule get_forwarding_rule(Bundle* b);
 
     // create a link entry for the given address
-    Link* create_link(const std::string& link_addr);
+    LinkRef create_link(const std::string& link_addr);
 
     // create a route entry for the given endpoint pattern, specified link
-    RouteEntry* create_route(const std::string& pattern, Link* p_link);
+    RouteEntry* create_route(const std::string& pattern, const LinkRef& p_link);
 
     // create a route *and link* if necessary, for the given endpoint pattern,
     // given link address

@@ -322,7 +322,7 @@ TcaRouter::fwd_to_all(Bundle* bundle)
 // including link_available and on contact_up.
 
 int
-TcaRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
+TcaRouter::fwd_to_matching(Bundle* bundle, const LinkRef& next_hop)
 {
     ForwardingRule fwd_rule = get_forwarding_rule(bundle);
     return fwd_to_matching_r(bundle, next_hop, fwd_rule);
@@ -334,7 +334,7 @@ TcaRouter::fwd_to_matching(Bundle* bundle, Link* next_hop)
 // where "if necessary" means iff there are no non-default routes.
 
 int
-TcaRouter::fwd_to_matching_r(Bundle* bundle, Link* next_hop,
+TcaRouter::fwd_to_matching_r(Bundle* bundle, const LinkRef& next_hop,
                              ForwardingRule fwd_rule)
 {
     log_debug("TcaRouter::fwd_to_matching_r: owner='%s'",
@@ -493,7 +493,8 @@ TcaRouter::handle_register(Bundle* b)
     {
         // The local admin app sent this bundle. Just forward it to the
         // default route:
-        fwd_to_matching_r(b, NULL, FWD_UDR_EXCLUSIVELY);
+        LinkRef link("TcaRouter::handle_register: fwd_to_matching null");
+        fwd_to_matching_r(b, link, FWD_UDR_EXCLUSIVELY);
     }
     else
     {
@@ -536,7 +537,8 @@ TcaRouter::handle_coa(Bundle* b)
     log_debug("TcaRouter: COA bundle received");
 
     // Propagate it along the reverse path, ignoring default route:
-   fwd_to_matching_r(b, NULL, FWD_UDR_NEVER);
+    LinkRef link("TcaRouter::handle_coa: fwd_to_matching null");
+    fwd_to_matching_r(b, link, FWD_UDR_NEVER);
 
     // The old route is deleted after the coa bundle has been
     // transmitted, from on_coa_transmitted
@@ -575,7 +577,8 @@ TcaRouter::handle_ask(Bundle* b, const TcaControlBundle& cb)
     {
         // if the ask originated at this node, just forward it to
         // matching, omitting the default route.
-        fwd_to_matching_r(b, NULL, FWD_UDR_NEVER);
+        LinkRef link("TcaRouter::handle_ask: fwd_to_matching null");
+        fwd_to_matching_r(b, link, FWD_UDR_NEVER);
     }
     else
     {
@@ -720,7 +723,8 @@ TcaRouter::handle_tca_unbound_bundle(Bundle* bundle)
 {
     log_debug("TcaRouter::handle_tca_unbound_bundle...");
 
-    int n_matches = fwd_to_matching_r(bundle, NULL, FWD_UDR_IFNECESSARY);
+    LinkRef link("TcaRouter::handle_tca_unbound_bundle: fwd_to_matching null");
+    int n_matches = fwd_to_matching_r(bundle, link, FWD_UDR_IFNECESSARY);
 
     if (n_matches == 0)
     {
@@ -820,7 +824,7 @@ TcaRouter::get_forwarding_rule(Bundle* b)
 // exist.
 // link_addr must be in the form "tcp://host:port"
 
-Link*
+LinkRef
 TcaRouter::create_link(const std::string& link_addr)
 {
     // Note that deleting the old one and re-creating it is the wrong
@@ -836,18 +840,20 @@ TcaRouter::create_link(const std::string& link_addr)
     ContactManager* p_man = BundleDaemon::instance()->contactmgr();
 
     // Check if there's an existing link of the same name.
-    Link* p_link = p_man->find_link(host.c_str());
+    LinkRef p_link("TcaRouter::create_link: return value");
+	   
+    p_link = p_man->find_link(host.c_str());
     if (p_link != NULL) return p_link;
 
     ConvergenceLayer* cl = ConvergenceLayer::find_clayer(clayer_name.c_str());
     if (!cl) {
         log_err("TcaRouter: create_link failed: invalid convergence layer"
                   " '%s'", clayer_name.c_str());
-        return NULL;
+        return p_link;
     }
  
     p_link = Link::create_link(host, Link::ONDEMAND, cl, host.c_str(), 0, NULL);
-    if (!p_link) return NULL;
+    if (p_link == NULL) return p_link;
         
     // Add the link to contact manager's table, which posts a
     // LinkCreatedEvent to the daemon
@@ -858,11 +864,11 @@ TcaRouter::create_link(const std::string& link_addr)
 
 
 RouteEntry*
-TcaRouter::create_route(const std::string& pattern, Link* p_link)
+TcaRouter::create_route(const std::string& pattern, const LinkRef& p_link)
 {
 
     log_debug("TcaRouter::create_route: pattern=%s, p_link=%p",
-            pattern.c_str(), p_link);
+            pattern.c_str(), p_link.object());
 
     RouteEntry* p_entry = new RouteEntry(pattern, p_link);
     p_entry->action_ = ForwardingInfo::COPY_ACTION;
@@ -878,8 +884,8 @@ TcaRouter::create_route(const std::string& pattern,
                         const std::string& link_addr)
 {
     // First find the right link, or create a new one if necesary
-    Link* p_link = create_link(link_addr);
-    if (!p_link)
+    LinkRef p_link = create_link(link_addr);
+    if (p_link == NULL)
     {
         log_err("TcaRouter::create_route: create_link failed");
         return false;

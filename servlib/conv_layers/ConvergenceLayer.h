@@ -22,6 +22,7 @@
 #include <oasys/util/Singleton.h>
 #include <oasys/serialize/Serialize.h>
 
+#include "contacts/Link.h"
 #include "contacts/Contact.h"
 #include "contacts/Interface.h"
 
@@ -83,17 +84,18 @@ public:
     /**
      * Create any CL-specific components of the Link.
      */
-    virtual bool init_link(Link* link, int argc, const char* argv[]);
+    virtual bool init_link(const LinkRef& link, int argc, const char* argv[]);
 
     /**
      * Dump out CL specific link information.
      */
-    virtual void dump_link(Link* link, oasys::StringBuffer* buf);
+    virtual void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
 
     /**
      * Post-initialization, parse any CL-specific options for the link.
      */
-    virtual bool reconfigure_link(Link* link, int argc, const char* argv[]);
+    virtual bool reconfigure_link(const LinkRef& link,
+                                  int argc, const char* argv[]);
 
     /**
      * Open a new contact for the given link. The implementation will

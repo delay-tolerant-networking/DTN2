@@ -183,9 +183,9 @@ LinkStateRouter::handle_bundle_received(BundleReceivedEvent* event)
     EndpointID eid(nextHop->eid_);
     ASSERT(eid.valid());
            
-    Link* link=cm->find_link_to(NULL, "", eid);
+    LinkRef link=cm->find_link_to(NULL, "", eid);
 
-    ASSERT(link!=0); // if the link is in the graph, it better exist too
+    ASSERT(link!=NULL); // if the link is in the graph, it better exist too
 
     // Send the bundle on the appropriate link.
     // XXX/demmer fixme
@@ -219,7 +219,7 @@ LinkStateRouter::flood_announcement(LinkStateGraph::Edge* edge, bool exists)
 
 void
 LinkStateRouter::send_announcement(LinkStateGraph::Edge* edge,
-                                   Link* outgoing_link, bool exists)
+                                   const LinkRef& outgoing_link, bool exists)
 {
     LinkStateAnnouncement lsa;
     memset(&lsa,0,sizeof(lsa));

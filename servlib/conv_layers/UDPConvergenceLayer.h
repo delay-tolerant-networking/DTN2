@@ -60,12 +60,12 @@ public:
     /**
      * Create any CL-specific components of the Link.
      */
-    bool init_link(Link* link, int argc, const char* argv[]);
+    bool init_link(const LinkRef& link, int argc, const char* argv[]);
     
     /**
      * Dump out CL specific link information.
      */
-    void dump_link(Link* link, oasys::StringBuffer* buf);
+    void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
     
     /**
      * Open the connection to a given contact and send/listen for 
