@@ -29,7 +29,6 @@
 namespace dtn {
 
 //----------------------------------------------------------------------
-size_t BundlePayload::mem_threshold_ = 16384;
 bool BundlePayload::test_no_remove_ = false;
 
 //----------------------------------------------------------------------
@@ -48,11 +47,13 @@ BundlePayload::init(int bundleid, location_t location)
     
     logpathf("/dtn/bundle/payload/%d", bundleid);
 
-    // initialize the file handle for the backing store, but
-    // immediately close it
-    if (location == NODATA) {
+    // nothing to do if there's no backing file
+    if (location == MEMORY || location == NODATA) {
         return;
     }
+
+    // initialize the file handle for the backing store, but
+    // immediately close it
     BundleStore* bs = BundleStore::instance();
     oasys::StringBuffer path("%s/bundle_%d.dat",
                              bs->payload_dir().c_str(), bundleid);
@@ -114,7 +115,7 @@ BundlePayload::init_from_store(int bundleid)
 //----------------------------------------------------------------------
 BundlePayload::~BundlePayload()
 {
-    if (location_ != NODATA && file_.is_open()) {
+    if (location_ == DISK && file_.is_open()) {
         BundleStore::instance()->payload_fdcache()->close(file_.path());
         file_.set_fd(-1); // avoid duplicate close
         
@@ -134,21 +135,14 @@ BundlePayload::serialize(oasys::SerializeAction* a)
 
 //----------------------------------------------------------------------
 void
-BundlePayload::set_length(size_t length, location_t new_location)
+BundlePayload::set_length(size_t length)
 {
     oasys::ScopeLock l(lock_, "BundlePayload::set_length");
-
     length_ = length;
-
-    if (location_ == UNDETERMINED) {
-        if (new_location == UNDETERMINED) {
-            location_ = (length_ < mem_threshold_) ? MEMORY : DISK;
-        } else {
-            location_ = new_location;
-        }
+    if (location_ == MEMORY) {
+        data_.reserve(length);
+        data_.set_len(length);
     }
-
-    ASSERT(location_ != UNDETERMINED);
 }
 
 
@@ -156,6 +150,10 @@ BundlePayload::set_length(size_t length, location_t new_location)
 void
 BundlePayload::pin_file()
 {
+    if (location_ != DISK) {
+        return;
+    }
+    
     BundleStore* bs = BundleStore::instance();
     int fd = bs->payload_fdcache()->get_and_pin(file_.path());
     
@@ -182,6 +180,10 @@ BundlePayload::pin_file()
 void
 BundlePayload::unpin_file()
 {
+    if (location_ != DISK) {
+        return;
+    }
+    
     BundleStore::instance()->payload_fdcache()->unpin(file_.path());
 }
 
@@ -196,21 +198,26 @@ BundlePayload::truncate(size_t length)
     length_ = length;
     rcvd_length_ = length;
     cur_offset_ = length;
-
-    if (location_ == MEMORY) {
-        data_.resize(length);
-        ASSERT(data_.length() == length);
+    
+    switch (location_) {
+    case MEMORY:
+        data_.set_len(length);
+        break;
+    case DISK:
+        pin_file();
+        file_.truncate(length);
+        unpin_file();
+        break;
+    case NODATA:
+        NOTREACHED;
     }
-
-    pin_file();
-    file_.truncate(length);
-    unpin_file();
 }
 
 //----------------------------------------------------------------------
 void
 BundlePayload::copy_file(oasys::FileIOClient* dst)
 {
+    ASSERT(location_ == DISK);
     pin_file();
     file_.lseek(0, SEEK_SET);
     file_.copy_contents(dst, length());
@@ -221,6 +228,7 @@ BundlePayload::copy_file(oasys::FileIOClient* dst)
 bool
 BundlePayload::replace_with_file(const char* path)
 {
+    ASSERT(location_ == DISK);
     std::string payload_path = file_.path();
     file_.unlink();
     int err = ::link(path, payload_path.c_str());
@@ -262,54 +270,30 @@ void
 BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
 {
     // the caller should have pinned the fd
-    
-    ASSERT(file_.is_open());
+    if (location_ == DISK) {
+        ASSERT(file_.is_open());
+    }
     ASSERT(lock_->is_locked_by_me());
-    ASSERT(location_ != NODATA && location_ != UNDETERMINED);
+    ASSERT(length_ >= (offset + len));
 
-    if (location_ == MEMORY) {
-
-        // case 1: appending new data
-        if (offset == data_.length()) {
-            data_.append((const char*)bp, len);
+    switch (location_) {
+    case MEMORY:
+        memcpy(data_.buf() + offset, bp, len);
+        break;
+    case DISK:
+        // check if we need to seek
+        if (cur_offset_ != offset) {
+            file_.lseek(offset, SEEK_SET);
+            cur_offset_ = offset;
         }
-        
-        // case 2: adding data after an empty space, so need some
-        // intermediate padding
-        else if (offset > data_.length()) {
-            data_.append(offset - data_.length(), '\0');
-            data_.append((const char*)bp, len);
-        }
-
-        // case 3: fully overwriting data in the buffer
-        else if ((offset + len) <= data_.length()) {
-            data_.replace(offset, len, (const char*)bp, len);
-        }
-
-        // that should cover it all
-        else {
-            PANIC("unexpected case in internal_write: "
-                  "data.length=%zu offset=%zu len=%zu",
-                  data_.length(), offset, len);
-        }
-
-        // sanity check
-        ASSERTF(data_.length() >= offset + len,
-                "length=%zu offset=%zu len=%zu",
-                data_.length(), offset, len);
+        file_.writeall((char*)bp, len);
+        cur_offset_ += len;
+        break;
+    case NODATA:
+        NOTREACHED;
     }
     
-    // check if we need to seek
-    if (cur_offset_ != offset) {
-        file_.lseek(offset, SEEK_SET);
-        cur_offset_ = offset;
-    }
-
-    file_.writeall((char*)bp, len);
-
-    cur_offset_  += len;
     rcvd_length_ = std::max(rcvd_length_, offset + len);
-
     ASSERT(rcvd_length_ <= length_);
 }
 
@@ -317,14 +301,15 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
 void
 BundlePayload::set_data(const u_char* bp, size_t len)
 {
-    oasys::ScopeLock l(lock_, "BundlePayload::set_data");
-    
-    ASSERT(rcvd_length_ == 0);
     set_length(len);
-    
-    pin_file();
-    internal_write(bp, base_offset_, len);
-    unpin_file();
+    write_data(bp, 0, len);
+}
+
+//----------------------------------------------------------------------
+void
+BundlePayload::set_data(const std::string& data)
+{
+    set_data((const u_char*)(data.data()), data.length());
 }
 
 //----------------------------------------------------------------------
@@ -332,17 +317,13 @@ void
 BundlePayload::append_data(const u_char* bp, size_t len)
 {
     oasys::ScopeLock l(lock_, "BundlePayload::append_data");
-    
-    ASSERT(length_ > 0);
-    pin_file();
-    
-    // check if we need to seek
-    if (cur_offset_ != rcvd_length_) {
-        file_.lseek(rcvd_length_, SEEK_SET);
-        cur_offset_ = rcvd_length_;
+
+    if (rcvd_length_ + len > length_) {
+        set_length(rcvd_length_ + len);
     }
     
-    internal_write(bp, base_offset_ + cur_offset_, len);
+    pin_file();
+    internal_write(bp, rcvd_length_, len);
     unpin_file();
 }
 
@@ -354,7 +335,7 @@ BundlePayload::write_data(const u_char* bp, size_t offset, size_t len)
     
     ASSERT(length_ >= (len + offset));
     pin_file();
-    internal_write(bp, base_offset_ + offset, len);
+    internal_write(bp, offset, len);
     unpin_file();
 }
 
@@ -365,7 +346,8 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
 {
     oasys::ScopeLock l(lock_, "BundlePayload::write_data");
 
-    log_debug("write_data: file=%s length_=%zu src_offset=%zu dst_offset=%zu len %zu",
+    log_debug("write_data: file=%s length_=%zu src_offset=%zu "
+              "dst_offset=%zu len %zu",
               file_.path(),
               length_, src_offset, dst_offset, len);
 
@@ -388,7 +370,7 @@ BundlePayload::write_data(BundlePayload* src, size_t src_offset,
 
 //----------------------------------------------------------------------
 const u_char*
-BundlePayload::read_data(size_t offset, size_t len, u_char* buf, int flags)
+BundlePayload::read_data(size_t offset, size_t len, u_char* buf)
 {
     oasys::ScopeLock l(lock_, "BundlePayload::read_data");
     
@@ -399,18 +381,15 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf, int flags)
     ASSERTF(rcvd_length_ >= (offset + len),
             "rcvd_length=%zu offset=%zu len=%zu",
             rcvd_length_, offset, len);
-    
-    if (location_ == MEMORY) {
-        if (flags & FORCE_COPY) {
-            memcpy(buf, data_.data() + offset, len);
-            return buf;
-        } else {
-            return (u_char*)data_.data() + offset;
-        }
-        
-    } else {
-        ASSERT(buf);
 
+    ASSERT(buf != NULL);
+    
+    switch(location_) {
+    case MEMORY:
+        memcpy(buf, data_.buf() + offset, len);
+        break;
+
+    case DISK:
         pin_file();
         
         // check if we need to seek first
@@ -420,11 +399,15 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf, int flags)
         
         file_.readall((char*)buf, len);
         cur_offset_ = offset + len;
-
-        unpin_file();
         
-        return buf;
+        unpin_file();
+        break;
+
+    case NODATA:
+        NOTREACHED;
     }
+
+    return buf;
 }
 
 

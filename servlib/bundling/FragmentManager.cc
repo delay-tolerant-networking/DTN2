@@ -323,9 +323,7 @@ FragmentManager::process_for_reassembly(Bundle* fragment)
         state->bundle_ = new Bundle();
         fragment->copy_metadata(state->bundle_.object());
         state->bundle_->is_fragment_ = false;
-        
-        state->bundle_->payload_.set_length(fragment->orig_length_,
-                                            BundlePayload::DISK);
+        state->bundle_->payload_.set_length(fragment->orig_length_);
         reassembly_table_[hash_key] = state;
     } else {
         state = iter->second;

@@ -114,8 +114,7 @@ protocol_test(Bundle* b1, int chunks)
     CHECK(encode_len > 0);
     
     // extract the payload before we swing the payload directory
-    b1->payload_.read_data(0, b1->payload_.length(),
-                           payload1, BundlePayload::FORCE_COPY);
+    b1->payload_.read_data(0, b1->payload_.length(), payload1);
         
     b2 = new_bundle();
 
@@ -174,8 +173,7 @@ protocol_test(Bundle* b1, int chunks)
     CHECK_EQUAL(b1->orig_length_,          b2->orig_length_);
     CHECK_EQUAL(b1->payload_.length(),     b2->payload_.length());
 
-    b2->payload_.read_data(0, b2->payload_.length(),
-                           payload2, BundlePayload::FORCE_COPY);
+    b2->payload_.read_data(0, b2->payload_.length(), payload2);
 
     bool payload_ok = true;
     for (u_int i = 0; i < b2->payload_.length(); ++i) {

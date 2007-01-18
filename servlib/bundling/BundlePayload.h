@@ -46,16 +46,15 @@ public:
      * Options for payload location state.
      */
     typedef enum {
-        MEMORY = 1,		/// copy of the payload kept in memory
-        DISK = 2,		/// payload only kept on disk
-        UNDETERMINED = 3,	/// determine MEMORY or DISK based on threshold
-        NODATA = 4,		/// no data storage at all (used for simulator)
+        MEMORY = 1,	/// in memory only (TempBundle)
+        DISK   = 2,	/// on disk
+        NODATA = 3,	/// no data storage at all (used for simulator)
     } location_t;
     
     /**
      * Actual payload initialization function.
      */
-    void init(int bundleid, location_t location = UNDETERMINED);
+    void init(int bundleid, location_t location = DISK);
   
     /**
      * Initialization when re-reading the database
@@ -64,10 +63,8 @@ public:
   
     /**
      * Set the payload length in preparation for filling in with data.
-     * Optionally also force-sets the location, or leaves it based on
-     * configured parameters.
      */
-    void set_length(size_t len, location_t location = UNDETERMINED);
+    void set_length(size_t len);
 
     /**
      * Truncate the payload. Used for reactive fragmentation.
@@ -92,19 +89,17 @@ public:
     /**
      * Set the payload data and length.
      */
-    void set_data(const std::string& data)
-    {
-        set_data((u_char*)data.data(), data.length());
-    }
+    void set_data(const std::string& data);
 
     /**
-     * Append a chunk of payload data. Assumes that the length was
-     * previously set. 
+     * Append a chunk of payload data, possibly extending the length
+     * to accomodate the new data.
      */
     void append_data(const u_char* bp, size_t len);
 
     /**
-     * Write a chunk of payload data at the specified offset.
+     * Write a chunk of payload data at the specified offset. The
+     * length must have been previously set to at least offset + len.
      */
     void write_data(const u_char* bp, size_t offset, size_t len);
 
@@ -127,32 +122,19 @@ public:
     bool replace_with_file(const char* path);
     
     /**
-     * Get a pointer to the in-memory data buffer.
+     * Get a pointer to the in-memory scratch buffer.
      */
-    const u_char* memory_data()
+    oasys::ScratchBuffer<u_char*>* memory_buf()
     {
         ASSERT(location_ == MEMORY);
-        return (const u_char*)data_.c_str();
+        return &data_;
     }
 
     /**
-     * Valid flags to read_data.
+     * Copy out a chunk of payload data into the supplied buffer.
+     * @return pointer to the buffer for convenience
      */
-    typedef enum {
-        FORCE_COPY     = 0x2,	///< Always copy payload, even for in-memory
-                                ///  bundles
-    } read_data_flags_t;
-    
-    /**
-     * Return a pointer to a chunk of payload data. For in-memory
-     * bundles, this will just be a pointer to the data buffer (unless
-     * the FORCE_COPY flag is set).
-     *
-     * Otherwise, it will call read() into the supplied buffer (which
-     * must be >= len).
-     */
-    const u_char* read_data(size_t offset, size_t len, u_char* buf,
-                            int flags = 0);
+    const u_char* read_data(size_t offset, size_t len, u_char* buf);
 
     /**
      * Since read_data doesn't really change anything of substance in
@@ -160,11 +142,10 @@ public:
      * define a "const" variant that just casts itself away and calls
      * the normal variant.
      */
-    const u_char* read_data(size_t offset, size_t len, u_char* buf,
-                            int flags = 0) const
+    const u_char* read_data(size_t offset, size_t len, u_char* buf) const
     {
         return const_cast<BundlePayload*>(this)->
-            read_data(offset, len, buf, flags);
+            read_data(offset, len, buf);
     }
      
     /**
@@ -172,11 +153,6 @@ public:
      */
     virtual void serialize(oasys::SerializeAction* a);
 
-    /*
-     * Tunable parameters
-     */
-    // XXX/demmer remove these
-    static size_t mem_threshold_;   ///< maximum bundle size to keep in memory
     static bool test_no_remove_;    ///< test: don't rm payload files
 
 protected:
@@ -184,8 +160,8 @@ protected:
     void unpin_file();
     void internal_write(const u_char* bp, size_t offset, size_t len);
 
-    location_t location_;	///< location of the data (disk or memory)
-    std::string data_;		///< the actual payload data if in memory
+    location_t location_;	///< location of the data 
+    oasys::ScratchBuffer<u_char*> data_; ///< payload data if in memory
     size_t length_;     	///< the payload length
     size_t rcvd_length_;     	///< the payload length we actually have
     oasys::FileIOClient file_;	///< file handle

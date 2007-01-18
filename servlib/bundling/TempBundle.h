@@ -28,12 +28,13 @@ namespace dtn {
  * This is intended to be used for AnnounceBundles and other cases in
  * which the bundle is only needed to be sent over the wire and is
  * then immediately destroyed.
- *
- * XXX/demmer do this for real
  */
 class TempBundle : public Bundle {
 public:
-    TempBundle() : Bundle() {}
+    /**
+     * Constructor which forces the payload location to memory.
+     */
+    TempBundle() : Bundle(BundlePayload::MEMORY) {}    
 };
 
 } // namespace DTN

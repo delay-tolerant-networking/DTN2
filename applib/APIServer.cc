@@ -982,7 +982,7 @@ APIClient::handle_recv()
         }
         
         if (b->payload_.location() == BundlePayload::MEMORY) {
-            tmpfile.writeall((char*)b->payload_.memory_data(),
+            tmpfile.writeall((char*)b->payload_.memory_buf()->buf(),
                              b->payload_.length());
             
         } else {

@@ -27,8 +27,7 @@ using namespace dtn;
 using namespace oasys;
 
 int
-payload_test(BundlePayload::location_t initial_location,
-             BundlePayload::location_t expected_location)
+payload_test(BundlePayload::location_t location)
 {
     u_char buf[64];
     const u_char* data;
@@ -39,13 +38,13 @@ payload_test(BundlePayload::location_t initial_location,
     int errno_; const char* strerror_;
 
     log_debug_p("/test", "checking initialization");
-    p.init(1, initial_location);
-    CHECK_EQUAL(p.location(), initial_location);
+    p.init(1, location);
+    CHECK_EQUAL(p.location(), location);
     CHECK(p.length() == 0);
     
     log_debug_p("/test", "checking set_data");
     p.set_data((const u_char*)"abcdefghijklmnopqrstuvwxyz", 26);
-    CHECK_EQUAL(p.location(), expected_location);
+    CHECK_EQUAL(p.location(), location);
     CHECK_EQUAL(p.length(), 26);
     
     log_debug_p("/test", "checking read_data");
@@ -87,34 +86,18 @@ payload_test(BundlePayload::location_t initial_location,
     CHECK_EQUAL(p.length(), 30);
     CHECK_EQUALSTR((char*)data, "aBCDefghijABCDEFGH_______XXXXX");
 
-    log_debug_p("/test", "checking FORCE_COPY");
-    data = p.read_data(0, 30, buf, BundlePayload::FORCE_COPY);
-    CHECK(data == buf);
-
     return UNIT_TEST_PASSED;
 }
 
-DECLARE_TEST(ForcedMemoryPayloadTest) {
-    return payload_test(BundlePayload::MEMORY, BundlePayload::MEMORY);
-}
-
-DECLARE_TEST(ForcedDiskPayloadTest) {
-    return payload_test(BundlePayload::DISK, BundlePayload::DISK);
-}
-
 DECLARE_TEST(MemoryPayloadTest) {
-    BundlePayload::mem_threshold_ = 100;
-    return payload_test(BundlePayload::UNDETERMINED, BundlePayload::MEMORY);
+    return payload_test(BundlePayload::MEMORY);
 }
 
 DECLARE_TEST(DiskPayloadTest) {
-    BundlePayload::mem_threshold_ = 10;
-    return payload_test(BundlePayload::UNDETERMINED, BundlePayload::DISK);
+    return payload_test(BundlePayload::DISK);
 }
 
 DECLARE_TESTER(BundlePayloadTester) {
-    ADD_TEST(ForcedMemoryPayloadTest);
-    ADD_TEST(ForcedDiskPayloadTest);
     ADD_TEST(MemoryPayloadTest);
     ADD_TEST(DiskPayloadTest);
 }

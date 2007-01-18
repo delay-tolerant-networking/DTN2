@@ -69,10 +69,11 @@ public:
      * Default constructor to create an empty bundle, initializing all
      * fields to defaults and allocating a new bundle id.
      *
-     * To support the simulator, the location can be overridden to be
+     * For temporary bundles, the location can be set to MEMORY, and
+     * to support the simulator, the location can be overridden to be
      * BundlePayload::NODATA.
      */
-    Bundle(BundlePayload::location_t location = BundlePayload::UNDETERMINED);
+    Bundle(BundlePayload::location_t location = BundlePayload::DISK);
 
     /**
      * Constructor when re-reading the database.

@@ -146,8 +146,7 @@ PayloadBlockProcessor::produce(const Bundle*    bundle,
     size_t payload_offset = offset - block->data_offset();
 
     size_t tocopy = std::min(len, bundle->payload_.length() - payload_offset);
-    bundle->payload_.read_data(payload_offset, tocopy, buf,
-                               BundlePayload::FORCE_COPY);
+    bundle->payload_.read_data(payload_offset, tocopy, buf);
 }
 
 } // namespace dtn

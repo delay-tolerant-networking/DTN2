@@ -26,13 +26,6 @@ namespace dtn {
 ParamCommand::ParamCommand() 
     : TclCommand("param")
 {
-    bind_var(new oasys::UIntOpt("payload_mem_threshold",
-                                (u_int*)&BundlePayload::mem_threshold_,
-                                "size",
-                                "The bundle size below which bundles "
-                                "are held in memory. "
-                                "(Default is 16k.)"));
-
     bind_var(new oasys::BoolOpt("payload_test_no_remove",
                                 &BundlePayload::test_no_remove_,
                                 "Boolean to control not removing bundles "
