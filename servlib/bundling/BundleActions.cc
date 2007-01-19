@@ -85,6 +85,8 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
     if (link->state() != Link::OPEN) {
         log_err("send bundle *%p to %s link %s (%s): link not open!!",
                 bundle, link->type_str(), link->name(), link->nexthop());
+        BundleDaemon::instance()->post(
+            new BundleTransmitFailedEvent(bundle, link->contact(), link));
         return false;
     }
 
