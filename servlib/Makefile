@@ -23,7 +23,6 @@
 #
 
 BUNDLING_SRCS := 				\
-	bundling/AnnounceBundle.cc		\
         bundling/APIBlockProcessor.cc           \
 	bundling/BlockInfo.cc			\
 	bundling/BlockProcessor.cc		\
