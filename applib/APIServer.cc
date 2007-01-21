@@ -941,6 +941,8 @@ APIClient::handle_recv()
     if (b->deletion_rcpt_)     spec.dopts |= DOPTS_DELETE_RCPT;
 
     spec.expiration = b->expiration_;
+    spec.creation_ts.secs = b->creation_ts_.seconds_;
+    spec.creation_ts.seqno = b->creation_ts_.seqno_;
 
     // XXX copy extension blocks
     

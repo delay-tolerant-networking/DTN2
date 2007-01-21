@@ -47,14 +47,14 @@ extern "C" {
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
-#define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
-#define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
-#define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
-#define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
-#define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
-#define DTN_MAX_BLOCK_LEN 64           /* length of block data */
-#define DTN_MAX_BLOCKS 256             /* number of blocks in bundle */
+#define DTN_MAX_ENDPOINT_ID 256 /* max endpoint_id size (bytes) */
+#define DTN_MAX_PATH_LEN PATH_MAX /* max path length */
+#define DTN_MAX_EXEC_LEN ARG_MAX /* length of string passed to exec() */
+#define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
+#define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
+#define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
+#define DTN_MAX_BLOCK_LEN 64 /* length of block data */
+#define DTN_MAX_BLOCKS 256 /* number of blocks in bundle */
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -233,6 +233,7 @@ struct dtn_bundle_spec_t {
 	dtn_bundle_priority_t priority;
 	int dopts;
 	dtn_timeval_t expiration;
+	dtn_timestamp_t creation_ts;
 	struct {
 		u_int blocks_len;
 		dtn_extension_block_t *blocks_val;
@@ -295,11 +296,11 @@ struct dtn_bundle_status_report_t {
 	dtn_status_report_reason_t reason;
 	dtn_status_report_flags_t flags;
 	dtn_timestamp_t receipt_ts;
-	dtn_timestamp_t custody_tv_;
-	dtn_timestamp_t forwarding_tv_;
-	dtn_timestamp_t delivery_tv_;
-	dtn_timestamp_t deletion_tv_;
-	dtn_timestamp_t ack_by_app_tv_;
+	dtn_timestamp_t custody_ts;
+	dtn_timestamp_t forwarding_ts;
+	dtn_timestamp_t delivery_ts;
+	dtn_timestamp_t deletion_ts;
+	dtn_timestamp_t ack_by_app_ts;
 };
 typedef struct dtn_bundle_status_report_t dtn_bundle_status_report_t;
 

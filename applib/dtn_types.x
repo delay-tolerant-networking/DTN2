@@ -214,6 +214,7 @@ struct dtn_bundle_spec_t {
     dtn_bundle_priority_t	priority;
     int				dopts;
     dtn_timeval_t		expiration;
+    dtn_timestamp_t		creation_ts;
     dtn_extension_block_t       blocks<DTN_MAX_BLOCKS>;
 };
 

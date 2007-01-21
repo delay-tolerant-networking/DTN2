@@ -43,7 +43,7 @@ extern "C" {
  * Make sure to bump this when changing any data structures, message
  * types, adding functions, etc.
  */
-#define DTN_IPC_VERSION 3
+#define DTN_IPC_VERSION 4
 
 /**
  * Default api ports. The handshake port is used for initial contact

@@ -38,14 +38,14 @@
  * Constants.
  * (Note that we use #defines to get the comments as well)
  */
-#define DTN_MAX_ENDPOINT_ID 256	/* max endpoint_id size (bytes) */
-#define DTN_MAX_PATH_LEN PATH_MAX	/* max path length */
-#define DTN_MAX_EXEC_LEN ARG_MAX	/* length of string passed to exec() */
-#define DTN_MAX_AUTHDATA 1024		/* length of auth/security data*/
-#define DTN_MAX_REGION_LEN 64		/* 64 chars "should" be long enough */
-#define DTN_MAX_BUNDLE_MEM 50000	/* biggest in-memory bundle is ~50K*/
-#define DTN_MAX_BLOCK_LEN 64           /* length of block data */
-#define DTN_MAX_BLOCKS 256             /* number of blocks in bundle */
+#define DTN_MAX_ENDPOINT_ID 256 /* max endpoint_id size (bytes) */
+#define DTN_MAX_PATH_LEN PATH_MAX /* max path length */
+#define DTN_MAX_EXEC_LEN ARG_MAX /* length of string passed to exec() */
+#define DTN_MAX_AUTHDATA 1024 /* length of auth/security data*/
+#define DTN_MAX_REGION_LEN 64 /* 64 chars "should" be long enough */
+#define DTN_MAX_BUNDLE_MEM 50000 /* biggest in-memory bundle is ~50K*/
+#define DTN_MAX_BLOCK_LEN 64 /* length of block data */
+#define DTN_MAX_BLOCKS 256 /* number of blocks in bundle */
 
 /**
  * Specification of a dtn endpoint id, i.e. a URI, implemented as a
@@ -282,6 +282,8 @@ xdr_dtn_bundle_spec_t (XDR *xdrs, dtn_bundle_spec_t *objp)
 		 return FALSE;
 	 if (!xdr_dtn_timeval_t (xdrs, &objp->expiration))
 		 return FALSE;
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->creation_ts))
+		 return FALSE;
 	 if (!xdr_array (xdrs, (char **)&objp->blocks.blocks_val, (u_int *) &objp->blocks.blocks_len, DTN_MAX_BLOCKS,
 		sizeof (dtn_extension_block_t), (xdrproc_t) xdr_dtn_extension_block_t))
 		 return FALSE;
@@ -356,15 +358,15 @@ xdr_dtn_bundle_status_report_t (XDR *xdrs, dtn_bundle_status_report_t *objp)
 		 return FALSE;
 	 if (!xdr_dtn_timestamp_t (xdrs, &objp->receipt_ts))
 		 return FALSE;
-	 if (!xdr_dtn_timestamp_t (xdrs, &objp->custody_tv_))
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->custody_ts))
 		 return FALSE;
-	 if (!xdr_dtn_timestamp_t (xdrs, &objp->forwarding_tv_))
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->forwarding_ts))
 		 return FALSE;
-	 if (!xdr_dtn_timestamp_t (xdrs, &objp->delivery_tv_))
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->delivery_ts))
 		 return FALSE;
-	 if (!xdr_dtn_timestamp_t (xdrs, &objp->deletion_tv_))
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->deletion_ts))
 		 return FALSE;
-	 if (!xdr_dtn_timestamp_t (xdrs, &objp->ack_by_app_tv_))
+	 if (!xdr_dtn_timestamp_t (xdrs, &objp->ack_by_app_ts))
 		 return FALSE;
 	return TRUE;
 }
