@@ -265,7 +265,7 @@ XSD_TOOL_RTR_ARGS := \
 	--cxx-regex /router.xsd/ExternalRouterXSD.cc/ \
 
 # Regenerate XML bindings. 
-xsd_bindings: conv_layers/clevent.xsd routing/router.xsd
+xsdbindings: conv_layers/clevent.xsd
 ifdef XSD_TOOL
 	$(XSD_TOOL) cxx-tree $(XSD_TOOL_COMMON_ARGS) $(XSD_TOOL_CLA_ARGS) conv_layers/clevent.xsd
 #	$(XSD_TOOL) cxx-tree $(XSD_TOOL_COMMON_ARGS) $(XSD_TOOL_RTR_ARGS) routing/router.xsd

@@ -111,6 +111,7 @@ install:
 		echo "WAR" "NING: $(DESTDIR)/etc/dtn.conf exists -- not overwriting"; \
 	else \
 		$(INSTALL_DATA) daemon/dtn.conf $(DESTDIR)/etc/dtn.conf; \
+		$(INSTALL_DATA) servlib/routing/router.xsd $(DESTDIR)/etc/router.xsd; \
 	fi
 
 #
@@ -129,6 +130,9 @@ xsddoc:
 	mkdir -p doc/router-xsddoc
 	xsddoc -t "External Router Interface" -o doc/router-xsddoc -q \
 		daemon/router.xsd
+
+xsdbindings:
+	$(MAKE) -C servlib xsdbindings
 
 #
 # Build a TAGS database. Note this includes all the sources so it gets
