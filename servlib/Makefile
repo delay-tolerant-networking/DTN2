@@ -75,6 +75,7 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/ExternalConvergenceLayer.cc	\
 	conv_layers/ECLModule.cc \
 	conv_layers/CLEventHandler.cc \
+	conv_layers/clevent.cc \
 
 DISCOVERY_SRCS :=				\
 	discovery/DiscoveryTable.cc		\
