@@ -1,19 +1,19 @@
-/*
-Copyright 2004-2006 BBN Technologies Corporation
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at http://www.apache.org/licenses/LICENSE-2.0
- 
-Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied.
-    
-See the License for the specific language governing permissions and limitations
-under the License.
-
-$Id$
-*/
+/* Copyright 2004-2006 BBN Technologies Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy
+ * of the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *
+ * $Id$
+ */
 
 #ifndef _ECLMODULE_H_
 #define _ECLMODULE_H_
@@ -34,6 +34,13 @@ $Id$
 
 #include "ExternalConvergenceLayer.h"
 #include "CLEventHandler.h"
+#include "clevent.h"
+
+#define POST_MESSAGE(module_ptr, message_name, message) do { \
+    cl_message* container = new cl_message(); \
+    container->message_name(message); \
+    module_ptr->post_message(container); \
+} while (false);
 
 namespace dtn {
 
@@ -74,9 +81,15 @@ public:
      * @param event - The message to be transmitted.  This class assumes
      *      responsibility for deleting the event when it is no longer needed.
      */
-    void post_event(CLEvent* event);
+    void post_message(cl_message* message);
     
     
+    /** Have the module take a resource.
+     * 
+     * If the resource is an interface, it will be added to iface_list_. If it
+     * is a link, it will be added to normal_links_. In either case, the
+     * resource's 'create_message' will be sent to the ECLA.
+     */
     void take_resource(ECLResource* resource);
 
 
@@ -95,22 +108,25 @@ public:
      *      be deleted by the caller.
      */
     ECLInterfaceResource* remove_interface(const std::string& name);
-
+    
     
     /** Retrieve the module's name, which should be the name of the protocol
      * that it supports.
      */
     const std::string& name() const { return name_; }
-
+    
 protected:
-    void handle_cl_up(CLUpEvent* event);
-    void handle_cl_interface_created(CLInterfaceCreatedEvent* event);
-    void handle_cl_link_created(CLLinkCreatedEvent* event);
-    void handle_cl_link_state_changed(CLLinkStateChangedEvent* event);
-    void handle_cl_bundle_transmitted(CLBundleTransmittedEvent* event);
-    void handle_cl_bundle_transmit_failed(CLBundleTransmitFailedEvent* event);
-    void handle_cl_bundle_received(CLBundleReceivedEvent* event);
-
+    void handle(const cla_add_request& message);
+    void handle(const interface_created_event& message);
+    void handle(const link_created_event& message);
+    void handle(const link_opened_event& message);
+    void handle(const link_closed_event& message);
+    void handle(const link_state_changed_event& message);
+    void handle(const link_deleted_event& message);
+    void handle(const bundle_transmitted_event& message);
+    void handle(const bundle_cancelled_event& message);
+    void handle(const bundle_received_event& message);
+    
     /** Take resources from the resource list that belong to this module.
      */
     void take_resources();
@@ -142,8 +158,7 @@ private:
      *       may be unnecessarily complex.
      */
     void read_cycle();
-
-
+    
     /** Send a message to the external module.
      *
      * This will build the XML document from the CLEvent and send it and any
@@ -154,7 +169,7 @@ private:
      *
      * @return 0 if the message was successfully sent, -1 if it was not.
      */
-    int send_event(CLEvent* event);
+    int send_message(const cl_message* message);
     
     /** Prepare a bundle to be sent by the CLA.
      * 
@@ -165,7 +180,7 @@ private:
      * name of this file (relative to bundle_out_path_).
      * 
      */
-    int prepare_bundle_to_send(CLBundleSendRequest* send_request);
+    int prepare_bundle_to_send(cl_message* message);
     
     
     /** Clean up after a bundle when it cannot be sent.
@@ -187,7 +202,7 @@ private:
      * 
      */
     void bundle_send_failed(ECLLinkResource* link_resource,
-                            OutgoingBundle* outgoing_bundle,
+                            Bundle* bundle,
                             bool erase_from_list); 
 
     /** Retrieve an interface from the interface list.
@@ -243,26 +258,14 @@ private:
      */
     void cleanup();
     
-    unsigned next_bundle_id_;
-    
     /// This module's protocol name.
     std::string name_;
 
-    /// The stuff that we put at the begining of XML documents with schema
-    /// name, XML version, etc.
-    std::string xml_header_;
-    
     /// The path where bundles going out to the CLA are stored.
     std::string bundle_in_path_;
     
     /// The path where bundles comming in from the CLA are stored.
     std::string bundle_out_path_;
-
-    /// The end-of-data index into the appendedData buffer of event_.
-    size_t append_i_;
-
-    /// The event currently being processed by read_cycle().
-    CLEvent* event_;
 
     /// Raw data buffer for read_cycle().
     char read_buffer_[READ_BUFFER_SIZE];
@@ -280,11 +283,8 @@ private:
     oasys::Mutex iface_list_lock_;
 
     /// The list of normal (non-temporary) links.
-    LinkHashMap normal_links_;
+    LinkHashMap link_list_;
 
-    /// The list of temporary/discovered links
-    LinkHashMap temp_links_;
-    
     /// Semaphore for normal_links_ and temp_links_. It is OK for two threads
     /// to read either of these at the same time, but they must be locked
     /// when makeing changes to them.
@@ -294,7 +294,7 @@ private:
     oasys::TCPClient socket_;
 
     /// The queue for messages to be sent to the external module.
-    oasys::MsgQueue<CLEvent*> event_queue_;
+    oasys::MsgQueue<cl_message*> message_queue_;
 
     /// The parser used to parse XML messages from the external module.
     oasys::XercesXMLUnmarshal parser_;

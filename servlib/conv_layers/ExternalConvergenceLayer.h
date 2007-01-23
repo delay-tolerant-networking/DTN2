@@ -1,19 +1,19 @@
-/*
-Copyright 2004-2006 BBN Technologies Corporation
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at http://www.apache.org/licenses/LICENSE-2.0
- 
-Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied.
-    
-See the License for the specific language governing permissions and limitations
-under the License.
-
-$Id$
-*/
+/* Copyright 2004-2006 BBN Technologies Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy
+ * of the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *
+ * $Id$
+ */
 
 #ifndef _EXTERNAL_CONVERGENCE_LAYER_H_
 #define _EXTERNAL_CONVERGENCE_LAYER_H_
@@ -30,19 +30,22 @@ $Id$
 #include <oasys/io/TCPServer.h>
 
 #include "ConvergenceLayer.h"
-#include "CLEvent.h"
+#include "clevent.h"
+#include "bundling/BundleList.h"
+#include "bundling/BundleEvent.h"
+
+class dtn::clmessage::bundleAttributes;
 
 namespace dtn {
 
 using __gnu_cxx::hash_multimap;
 using __gnu_cxx::hash;
 
-using namespace dtn::clevent;
-
-class Link;
 class Interface;
 class Contact;
 class ECLModule;
+
+typedef ::xsd::cxx::tree::sequence<clmessage::Parameter> ParamSequence;
 
 /** Base class for resources that should be owned by an ECLModule.
  * 
@@ -54,7 +57,6 @@ class ECLModule;
 class ECLResource : public CLInfo {
 public:
     virtual ~ECLResource() {
-        // We cloned our own copy of this, so its our responsibility.
         delete create_message;
     }
     
@@ -63,21 +65,20 @@ public:
     
     /// The CLEvent that will create this resource, in case we must send
     /// it again.
-    CLEvent* create_message;
+    clmessage::cl_message* create_message;
     
     /// The module that owns this resource (this will be NULL if the resource
     /// is unclaimed).
     ECLModule* module;
     
+    oasys::Mutex lock;
+    
 protected:
-    ECLResource(std::string p, CLEvent* create, ECLModule* m) {
+    ECLResource(std::string p, clmessage::cl_message* create, ECLModule* m) :
+    lock("ECLResource") {
         protocol = p;
         module = m;
-        
-        if (create)
-            create_message = create->clone();
-        else
-            create_message = NULL;
+        create_message = create;
     }
 };
 
@@ -86,7 +87,7 @@ protected:
  */
 class ECLInterfaceResource : public ECLResource {
 public:
-    ECLInterfaceResource(std::string p, CLInterfaceCreateRequest* create,
+    ECLInterfaceResource(std::string p, clmessage::cl_message* create,
     ECLModule* m, Interface* i) : ECLResource(p, create, m) {
         interface = i;
     }
@@ -95,37 +96,14 @@ public:
 };
 
 
-/** Represents a bundle being sent on a particular link.
- */
-class OutgoingBundle {
-public:
-    OutgoingBundle(Bundle* b, Contact* c) {
-        bundle = b;
-        contact = c;
-    }    
-    
-    /// The bundle being sent.
-    BundleRef bundle;
-    
-    /// The contact that we are sending to.
-    ContactRef contact;
-    
-    /// The path to this bundle in the outgoing bundle directory.
-    std::string path;
-};
-
-typedef hash_multimap< u_int32_t, OutgoingBundle, hash<u_int32_t> >
-        OutgoingBundleSet;
-
-
 /** Represents a single Link.
  */
 class ECLLinkResource : public ECLResource {
 public:
-    
-    ECLLinkResource(std::string p, CLLinkCreateRequest* create, ECLModule* m,
+    ECLLinkResource(std::string p, clmessage::cl_message* create, ECLModule* m,
                     const LinkRef& l, bool disc);
     
+    /// Reference to the link that this Resource represents.
     LinkRef link;
     
     /// The state that the ECLModule knows the link to be in, independent of
@@ -152,25 +130,27 @@ public:
      * @return The OutgoingBundle object for the requested bundle if it
      *         exists on the outgoing bundle list, NULL if it does not.
      */
-    OutgoingBundle* get_outgoing_bundle(u_int32_t bundleid);
+    BundleRef get_outgoing_bundle(clmessage::bundleAttributes bundle_attribs);
+    
+    bool has_outgoing_bundle(Bundle* bundle);
     
     
     /** Erase a bundle from this link's outgoing bundle list.
      * 
      * @param outgoing_bundle  The bundle to be removed from the outgoing list.
      */
-    void erase_outgoing_bundle(OutgoingBundle* outgoing_bundle);
+    void erase_outgoing_bundle(Bundle* bundle);
     
     
     /** Get the actual outgoing bundle list.
      * 
      * This is used in ECLModule::cleanup() to iterate through the list.
      */
-    OutgoingBundleSet& get_bundle_set();
+    BundleList& get_bundle_set();
     
 private:
-    OutgoingBundleSet outgoing_bundles_;
-    oasys::Mutex bundle_mutex_;
+    /// The list of bundles going out on this link.
+    BundleList outgoing_bundles_;
 };
 
 
@@ -220,10 +200,14 @@ public:
     bool interface_down(Interface* iface);
     void dump_interface(Interface* iface, oasys::StringBuffer* buf);
     bool init_link(const LinkRef& link, int argc, const char* argv[]);
+    void delete_link(const LinkRef& link);
     void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
     bool open_contact(const ContactRef& contact);
     bool close_contact(const ContactRef& contact);
     void send_bundle(const ContactRef& contact, Bundle* bundle);
+    bool cancel_bundle(const LinkRef& link, Bundle* bundle);
+    bool is_queued(const LinkRef& link, Bundle* bundle);
+
     
     /** Take unclaimed resources intended for a given protocol.
      * 
@@ -278,6 +262,8 @@ public:
     /// BPA and the CLA. This is set with the command 'ecla set xsd_file'
     static std::string schema_;
     
+    static bool client_validation_;
+    
     /// The address on which the Listener thread will listen. This is set with
     /// the command 'ecla set listen_addr'
     static in_addr_t server_addr_;
@@ -286,9 +272,15 @@ public:
     /// the command 'ecla set listen_port'
     static u_int16_t server_port_;
     
+    /// This is used in ECLModule::send_message() to generate the XML
+    /// namespace/schema info at the start of every message.
+    static xml_schema::namespace_infomap namespace_map_;
+
+    
     /// ECLModule locks this when it enters ECLModule::cleanup() to prevent
     /// race conditions on resources that are being cleaned up.
     oasys::Mutex global_resource_lock_;
+    
     
 private:
     /** Thread to listen for connections from new external modules.
@@ -316,6 +308,35 @@ private:
      */
     void add_resource(ECLResource* resource);
     
+    /** Delete a resource.
+     * 
+     * This will remove the resource from the list of unclaimed resources and
+     * call 'delete' on the pointer.
+     */
+    void delete_resource(ECLResource* resource);
+
+    
+    /** Convert an arg vector to a ParamSequence.
+     * 
+     * This will take a number of strings (in argv) in the form 'name=value'
+     * and convert them to a ParamSequence suitable for XML messages.
+     * 
+     * @param argc  Number of arguments in argv.
+     * @param argv  The vector of arguments.
+     * @param param_sequence  An instance of ParamSequence that will be
+     *                        populated with the parameters.
+     */
+    void build_param_sequence(int argc, const char* argv[],
+                              ParamSequence& param_sequence);
+    
+    /** Fill in the fields of a bundleAttributes object.
+     * 
+     * This will complete the bundleAttributes instance based on the given
+     * bundle.
+     */
+    void fill_bundle_attributes(const Bundle* bundle,
+                                clmessage::bundleAttributes& attribs);
+        
     /// The list of active modules.
     std::list<ECLModule*> module_list_;
     
@@ -330,6 +351,21 @@ private:
     
     /// The thread listening for new modules.
     Listener listener_;
+};
+
+
+/** Functions for converting between various DTN2 types and their corresponding
+ * value in the clmessage namespace.
+ */
+class XMLConvert {
+public:
+    static clmessage::linkTypeType convert_link_type(Link::link_type_t type);
+    static Link::link_type_t convert_link_type(clmessage::linkTypeType type);
+    
+    static Link::state_t convert_link_state(clmessage::linkStateType state);
+    
+    static ContactEvent::reason_t convert_link_reason(
+            clmessage::linkReasonType reason);
 };
 
 } // namespace dtn

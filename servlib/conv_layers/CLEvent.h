@@ -1,448 +1,4902 @@
-/*
-Copyright 2004-2006 BBN Technologies Corporation
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at http://www.apache.org/licenses/LICENSE-2.0
- 
-Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied.
-    
-See the License for the specific language governing permissions and limitations
-under the License.
-
-$Id$
-*/
-
-#ifndef _CL_EVENT_H_
-#define _CL_EVENT_H_
-
-#include <config.h>
-#ifdef XERCES_C_ENABLED
-
-#include <string>
-
-#include <oasys/serialize/Serialize.h>
-
-#include <contacts/Link.h>
-#include <bundling/BundleEvent.h>
-
-namespace dtn {
-
-namespace clevent {
-
-typedef enum {
-    CL_BUNDLE_RECEIVED = 0x1,  ///< New bundle arrival
-    CL_BUNDLE_HEADER_RECEIVED,
-    CL_BUNDLE_HEADER_RECEIVE_REPLY,
-    CL_BUNDLE_PAYLOAD_RECEIVED,
-    CL_BUNDLE_SEND,
-    CL_BUNDLE_TRANSMITTED,     ///< Bundle or fragment successfully sent
-    CL_BUNDLE_TRANSMIT_FAILED, ///< Bundle or fragment successfully sent
-
-    CL_LINK_CREATED,       ///< Link is created into the system
-    CL_LINK_DELETED,       ///< Link is deleted from the system
-    CL_LINK_STATE_CHANGED,
-    CL_LINK_OPEN,
-    CL_LINK_CLOSE,
-    CL_LINK_AVAILABLE,     ///< Link is available
-    CL_LINK_UNAVAILABLE,       ///< Link is unavailable
-    CL_LINK_CREATE,                ///< Create and open a new link
-
-    CL_INTERFACE_CREATE,
-    CL_INTERFACE_CREATED,
-    CL_INTERFACE_DESTROY,
-    CL_INTERFACE_DELETED,
-
-    CL_UP,
-    CL_UP_REPLY,
-    CL_DOWN,
-
-} cl_event_type_t;
-
-class CLEvent : public oasys::SerializableObject {
-public:
-    CLEvent(const CLEvent& copy);
-    virtual ~CLEvent();
-
-    cl_event_type_t type() const { return type_value; }
-    
-    virtual CLEvent* clone() const = 0;
-    virtual void serialize(oasys::SerializeAction* a);
-    virtual std::string event_name() const { return std::string("clEvent"); }
-    std::string serialize_name() const { return event_name(); }
-
-    static CLEvent* instantiate(const std::string& tag);
-    
-    size_t appendedLength;
-    u_char* appendedData;
-
-protected:
-    CLEvent(cl_event_type_t type, size_t append_length = 0,
-            u_char* append_data = NULL);
-
-private:
-    cl_event_type_t type_value;
-};
-
-
-/** Announce that a new external convergence layer has started.
- * 
- * This should be the first message sent by the CLA, and the CLA should expect
- * to see CLUpReplyEvent shortly thereafter.
- * 
- * @param name - The name of the CLA, usually the protocol that it supports.
- */
-class CLUpEvent : public CLEvent {
-public:
-    CLUpEvent() : CLEvent(CL_UP) { }
-    CLUpEvent(const std::string& n);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLUpEvent(*this); }
-    std::string event_name() const { return std::string("UpEvent"); }
-
-    std::string name;
-};
-
-
-/** Reply from the BPA to a CLUpEvent.
- * 
- * This is the first message sent by the BPA after receiving a CLUpEvent. The
- * CLA should not send any messages until it receives this.
- * 
- * @param localEID - The EID of the node on which the BPA and CLA are running.
- * @param payloadDir - The directory (absolute path) where bundles are located.
- */
-class CLUpReplyEvent : public CLEvent {
-public:
-    CLUpReplyEvent() : CLEvent(CL_UP_REPLY) { }
-    CLUpReplyEvent(const std::string& eid, const std::string& inDir,
-                   const std::string& outDir);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLUpReplyEvent(*this); }
-    std::string event_name() const { return std::string("UpReplyEvent"); }
-
-    std::string localEID;
-    std::string incomingBundleDir;
-    std::string outgoingBundleDir;
-};
-
-
-/** Request from the BPA for the CLA to create an interface.
- * 
- * When the interface is created, the CLA should reply with a
- * CLInterfaceCreatedEvent.
- * 
- * @todo  There should be a CLInterfaceCreationFailedEvent.
- * 
- * @param name  The name of the interface.
- * @param arguments  The CL-specific arguments for this interface.
- */
-class CLInterfaceCreateRequest : public CLEvent {
-public:
-    CLInterfaceCreateRequest() : CLEvent(CL_INTERFACE_CREATE) { }
-    CLInterfaceCreateRequest(const std::string& n, int argc, const char** argv);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLInterfaceCreateRequest(*this); }
-    std::string event_name() const { return std::string("InterfaceCreateRequest"); }
-
-    std::string name;
-    std::string arguments;
-};
-
-
-/** Response from the CLA when an interface has been created.
- * 
- * This should be sent in reply to CLInterfaceCreateRequest when the interface
- * has been successfully created.
- * 
- * @param name  The name of the interface, as given in the corresponding
- *              CLInterfaceCreateRequest.
- */
-class CLInterfaceCreatedEvent : public CLEvent {
-public:
-    CLInterfaceCreatedEvent() : CLEvent(CL_INTERFACE_CREATED) { }
-    CLInterfaceCreatedEvent(const std::string& n);
-
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLInterfaceCreatedEvent(*this); }
-    std::string event_name() const { return std::string("InterfaceCreatedEvent"); }
-
-    std::string name;
-};
-
-
-/** Request from the BPA for the CLA to close down and destroy an interface.
- * 
- * @param name  The name of the interface to close.
- */
-class CLInterfaceDestroyRequest : public CLEvent {
-public:
-    CLInterfaceDestroyRequest() : CLEvent(CL_INTERFACE_DESTROY) { }
-    CLInterfaceDestroyRequest(const std::string& n);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLInterfaceDestroyRequest(*this); }
-    std::string event_name() const { return std::string("InterfaceDestroyRequest"); }
-
-    std::string name;
-};
-
-
-/** Request from the BPA for the CLA to create a link.
- * 
- * The CLA should create the link and reply with CLLinkCreatedEvent.
- * 
- * @todo  There should be a CLLinkCreationFailedEvent.
- * 
- * @param type  The type of link to create.
- * @param name  The name of the link.
- * @param nextHop  The CL-specific string for the next hop in the link.
- * @param arguments  The CL-specific arguments for this link.
- */
-class CLLinkCreateRequest : public CLEvent {
-public:
-    CLLinkCreateRequest() : CLEvent(CL_LINK_CREATE) { }
-    CLLinkCreateRequest(Link::link_type_t t,
-                        const std::string& n,
-                        const std::string& eid,
-                        const std::string& nh,
-                        int argc, const char** argv);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLLinkCreateRequest(*this); }
-    std::string event_name() const { return std::string("LinkCreateRequest"); }
-
-    Link::link_type_t type;
-    std::string name;
-    std::string remoteEID;
-    std::string nextHop;
-    std::string arguments;
-};
-
-
-/** Response from the CLA when a link has been created.
- * 
- * This should be sent either in reply to CLLinkCreateRequest when the link
- * has been successfully created, or when the CLA has discovered a new link. If
- * this link was discovered by the CLA, the 'discovered' attribute should be
- * 'true'.
- * 
- * @param name  The name of the link.
- * @param nextHop  If the link is discovered, this is the next hop for the link.
- *                 Otherwise, this attribute is unused.
- * @param peerEID  If the link is discovered, this is the EID of the other node
- *                 on the link. Otherwise, this attribute is unused.
- * @param discovered  If 'true', this link was discovered by the CLA; if
- *                    'false', this message is in response to a
- *                    CLLinkCreateRequest.
- */
-class CLLinkCreatedEvent : public CLEvent {
-public:
-    CLLinkCreatedEvent() : CLEvent(CL_LINK_CREATED) { }
-    CLLinkCreatedEvent(const std::string& n);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLLinkCreatedEvent(*this); }
-    std::string event_name() const { return std::string("LinkCreatedEvent"); }
-
-    std::string name;
-    std::string nextHop;
-    std::string peerEID;
-    bool discovered;
-};
-
-
-/** Request from the BPA for the CLA to attempt to open a link.
- * 
- * This message should only be sent for a given link after the
- * CLLinkCreatedEvent has been received for that link. If the CLA is successful
- * in opening the link, a CLLinkStateChangedEvent with a 'newState' of 'open'
- * will be sent back.
- * 
- * @param name  The name of the link to open.
- */
-class CLLinkOpenRequest : public CLEvent {
-public:
-    CLLinkOpenRequest() : CLEvent(CL_LINK_OPEN) { }
-    CLLinkOpenRequest(const std::string& n);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLLinkOpenRequest(*this); }
-    std::string event_name() const { return std::string("LinkOpenRequest"); }
-
-    std::string name;
-};
-
-
-/** Request from the BPA for the CLA to close a link.
- * 
- * The CLA will close the link and send a CLLinkStateChangedEvent with a 
- * 'newState' of 'closed'.
- * 
- * @param name  The name of the link to close.
- */
-class CLLinkCloseRequest : public CLEvent {
-public:
-    CLLinkCloseRequest() : CLEvent(CL_LINK_CLOSE) { }
-    CLLinkCloseRequest(const std::string& n);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLLinkCloseRequest(*this); }
-    std::string event_name() const { return std::string("LinkCloseRequest"); }
-
-    std::string name;
-};
-
-
-/** Notice from the CLA to the BPA that the state of a link has changed.
- * 
- * The change may be the result of current network conditions, a closure
- * after an idle period, or a CLLinkOpenRequest or CLLinkCloseRequest from the
- * BPA.
- * 
- * @param name  The name of the link whose state has changed.
- * @param newState  The new state of the link.
- * @param reason  The reason for the change in state.
- */
-class CLLinkStateChangedEvent : public CLEvent {
-public:
-    CLLinkStateChangedEvent() : CLEvent(CL_LINK_STATE_CHANGED) { }
-    CLLinkStateChangedEvent(const std::string& n, Link::state_t s,
-                            ContactEvent::reason_t r);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLLinkStateChangedEvent(*this); }
-    std::string event_name() const { return std::string("LinkStateChangedEvent"); }
-
-    std::string name;
-    Link::state_t newState;
-    ContactEvent::reason_t reason;
-};
-
-
-/** Request from the BPA for the CLA to send a bundle.
- * 
- * @todo  Decide how bundle and headers are moving.
- * 
- * @param bundleID  The ID given to the bundle by the BPA.
- * @param linkName  The name of the link on which to send the bundle.
- * @param payloadFile
- */
-class CLBundleSendRequest : public CLEvent {
-public:
-    CLBundleSendRequest() : CLEvent(CL_BUNDLE_SEND) { }
-    CLBundleSendRequest(u_int32_t bid, const std::string& ln,
-                        const std::string& fn);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLBundleSendRequest(*this); }
-    std::string event_name() const { return std::string("BundleSendRequest"); }
-
-    u_int32_t bundleID;
-    std::string linkName;
-    std::string filename;
-};
-
-
-/**
- */
-class CLBundleTransmittedEvent : public CLEvent {
-public:
-    CLBundleTransmittedEvent() : CLEvent(CL_BUNDLE_TRANSMITTED) { }
-    CLBundleTransmittedEvent(u_int32_t bID, const std::string& ln, size_t bs,
-                             size_t rs);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLBundleTransmittedEvent(*this); }
-    std::string event_name() const { return std::string("BundleTransmittedEvent"); }
-
-    u_int32_t bundleID;
-    std::string linkName;
-    size_t bytesSent;
-    size_t reliablySent;
-};
-
-
-class CLBundleTransmitFailedEvent : public CLEvent {
-public:
-    CLBundleTransmitFailedEvent() : CLEvent(CL_BUNDLE_TRANSMIT_FAILED) { }
-    CLBundleTransmitFailedEvent(u_int32_t bID, const std::string& ln);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLBundleTransmitFailedEvent(*this); }
-    std::string event_name() const { return std::string("BundleTransmitFailedEvent"); }
-
-    u_int32_t bundleID;
-    std::string linkName;
-};
-
-
-class CLBundleReceivedEvent : public CLEvent {
-public:
-    CLBundleReceivedEvent() : CLEvent(CL_BUNDLE_RECEIVED) { }
-    CLBundleReceivedEvent(const std::string& pf, size_t br);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLBundleReceivedEvent(*this); }
-    std::string event_name() const { return std::string("BundleReceivedEvent"); }
-
-    std::string payloadFile;
-    size_t bytesReceived;
-};
-
-
-class CLBundleHeaderReceivedEvent : public CLEvent {
-public:
-    CLBundleHeaderReceivedEvent() : CLEvent(CL_BUNDLE_HEADER_RECEIVED) { }
-    CLBundleHeaderReceivedEvent(const std::string& link_name);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLBundleHeaderReceivedEvent(*this); }
-    std::string event_name() const { return std::string("BundleHeaderReceivedEvent"); }
-
-    std::string linkName;
-};
-
-
-class CLBundleHeaderReceiveReplyEvent : public CLEvent {
-public:
-    CLBundleHeaderReceiveReplyEvent() : CLEvent(CL_BUNDLE_HEADER_RECEIVE_REPLY) { }
-    CLBundleHeaderReceiveReplyEvent(u_int32_t bid, const std::string& link_name,
-                                    const std::string& pf);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLBundleHeaderReceiveReplyEvent(*this); }
-    std::string event_name() const { return std::string("BundleHeaderReceiveReplyEvent"); }
-
-    u_int32_t bundleID;
-    std::string linkName;
-    std::string payloadFileName;
-};
-
-
-class CLBundlePayloadReceivedEvent : public CLEvent {
-public:
-    CLBundlePayloadReceivedEvent() : CLEvent(CL_BUNDLE_PAYLOAD_RECEIVED) { }
-    CLBundlePayloadReceivedEvent(u_int32_t bid, const std::string& if_name,
-                                 size_t br);
-    
-    void serialize(oasys::SerializeAction* a);
-    CLEvent* clone() const { return new CLBundlePayloadReceivedEvent(*this); }
-    std::string event_name() const { return std::string("BundlePayloadReceivedEvent"); }
-
-    u_int32_t bundleID;
-    std::string interfaceName;
-    size_t bytesReceived;
-};
-
-} // namespace clevent
-
-} // namespace dtn
-
-#endif // XERCES_C_ENABLED
+// Copyright (C) 2005-2006 Code Synthesis Tools CC
+//
+// This program was generated by XML Schema Definition Compiler (XSD)
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 2 as
+// published by the Free Software Foundation.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+//
+// In addition, as a special exception, Code Synthesis Tools CC gives
+// permission to link this program with the Xerces-C++ library (or with
+// modified versions of Xerces-C++ that use the same license as Xerces-C++),
+// and distribute linked combinations including the two. You must obey
+// the GNU General Public License version 2 in all respects for all of
+// the code used other than Xerces-C++. If you modify this copy of the
+// program, you may extend this exception to your version of the program,
+// but you are not obligated to do so. If you do not wish to do so, delete
+// this exception statement from your version.
+//
+// In addition, Code Synthesis Tools CC makes a special exception for
+// the Free/Libre and Open Source Software (FLOSS) which is described
+// in the accompanying FLOSSE file.
+//
+
+#ifndef CLEVENT_H
+#define CLEVENT_H
+
+#include <xsd/cxx/version.hxx>
+
+#if (XSD_INT_VERSION != 2030000L)
+#error XSD runtime version mismatch
 #endif
+
+// Begin prologue.
+//
+//
+// End prologue.
+
+#include <xsd/cxx/pre.hxx>
+
+#include <xsd/cxx/tree/exceptions.hxx>
+#include <xsd/cxx/tree/elements.hxx>
+#include <xsd/cxx/tree/types.hxx>
+#include <xsd/cxx/xml/error-handler.hxx>
+
+#include <xsd/cxx/xml/dom/namespace-infomap.hxx>
+
+namespace xml_schema
+{
+  // anyType and anySimpleType.
+  //
+  typedef ::xsd::cxx::tree::type type;
+  typedef ::xsd::cxx::tree::simple_type<type> simple_type;
+
+  // 8-bit
+  //
+  typedef signed char byte;
+  typedef unsigned char unsigned_byte;
+
+  // 16-bit
+  //
+  typedef short short_;
+  typedef unsigned short unsigned_short;
+
+  // 32-bit
+  //
+  typedef int int_;
+  typedef unsigned int unsigned_int;
+
+  // 64-bit
+  //
+  typedef long long long_;
+  typedef unsigned long long unsigned_long;
+
+  // Supposed to be arbitrary-length integral types.
+  //
+  typedef long long integer;
+  typedef integer non_positive_integer;
+  typedef integer non_negative_integer;
+  typedef integer positive_integer;
+  typedef integer negative_integer;
+
+  // Boolean.
+  //
+  typedef bool boolean;
+
+  // Floating-point types.
+  //
+  typedef float float_;
+  typedef double double_;
+  typedef long double decimal;
+
+  // String types.
+  //
+  typedef ::xsd::cxx::tree::string< char, simple_type > string;
+  typedef ::xsd::cxx::tree::normalized_string< char, string > normalized_string;
+  typedef ::xsd::cxx::tree::token< char, normalized_string > token;
+  typedef ::xsd::cxx::tree::name< char, token > name;
+  typedef ::xsd::cxx::tree::nmtoken< char, token > nmtoken;
+  typedef ::xsd::cxx::tree::nmtokens< char, simple_type, nmtoken> nmtokens;
+  typedef ::xsd::cxx::tree::ncname< char, name > ncname;
+  typedef ::xsd::cxx::tree::language< char, token > language;
+
+  // ID/IDREF.
+  //
+  typedef ::xsd::cxx::tree::id< char, ncname > id;
+  typedef ::xsd::cxx::tree::idref< type, char, ncname > idref;
+  typedef ::xsd::cxx::tree::idrefs< char, simple_type, idref > idrefs;
+
+  // URI.
+  //
+  typedef ::xsd::cxx::tree::uri< char, simple_type > uri;
+
+  // Qualified name.
+  //
+  typedef ::xsd::cxx::tree::qname< char, simple_type, uri, ncname > qname;
+
+  // Binary.
+  //
+  typedef ::xsd::cxx::tree::buffer< char > buffer;
+  typedef ::xsd::cxx::tree::base64_binary< char, simple_type > base64_binary;
+  typedef ::xsd::cxx::tree::hex_binary< char, simple_type > hex_binary;
+
+  // Date/time.
+  //
+  typedef ::xsd::cxx::tree::date< char, simple_type > date;
+  typedef ::xsd::cxx::tree::date_time< char, simple_type > date_time;
+  typedef ::xsd::cxx::tree::duration< char, simple_type > duration;
+  typedef ::xsd::cxx::tree::day< char, simple_type > day;
+  typedef ::xsd::cxx::tree::month< char, simple_type > month;
+  typedef ::xsd::cxx::tree::month_day< char, simple_type > month_day;
+  typedef ::xsd::cxx::tree::year< char, simple_type > year;
+  typedef ::xsd::cxx::tree::year_month< char, simple_type > year_month;
+  typedef ::xsd::cxx::tree::time< char, simple_type > time;
+
+  // Entity.
+  //
+  typedef ::xsd::cxx::tree::entity< char, ncname > entity;
+  typedef ::xsd::cxx::tree::entities< char, simple_type, entity > entities;
+
+  // Exceptions.
+  //
+  typedef ::xsd::cxx::tree::exception< char > exception;
+  typedef ::xsd::cxx::tree::parsing< char > parsing;
+  typedef ::xsd::cxx::tree::expected_element< char > expected_element;
+  typedef ::xsd::cxx::tree::unexpected_element< char > unexpected_element;
+  typedef ::xsd::cxx::tree::expected_attribute< char > expected_attribute;
+  typedef ::xsd::cxx::tree::unexpected_enumerator< char > unexpected_enumerator;
+  typedef ::xsd::cxx::tree::no_type_info< char > no_type_info;
+  typedef ::xsd::cxx::tree::not_derived< char > not_derived;
+  typedef ::xsd::cxx::tree::duplicate_id< char > duplicate_id;
+  typedef ::xsd::cxx::tree::serialization< char > serialization;
+  typedef ::xsd::cxx::tree::no_namespace_mapping< char > no_namespace_mapping;
+  typedef ::xsd::cxx::tree::no_prefix_mapping< char > no_prefix_mapping;
+  typedef ::xsd::cxx::tree::xsi_already_in_use< char > xsi_already_in_use;
+  typedef ::xsd::cxx::tree::bounds< char > bounds;
+
+  // Parsing/serialization error.
+  //
+  typedef ::xsd::cxx::tree::error< char > error;
+  typedef ::xsd::cxx::tree::errors< char > errors;
+
+  // Error handler interface.
+  //
+  typedef ::xsd::cxx::xml::error_handler< char > error_handler;
+
+  // Namespace information. Used in serialization functions.
+  //
+  typedef ::xsd::cxx::xml::dom::namespace_info < char > namespace_info;
+  typedef ::xsd::cxx::xml::dom::namespace_infomap < char > namespace_infomap;
+
+  // Flags and properties.
+  //
+  typedef ::xsd::cxx::tree::flags flags;
+  typedef ::xsd::cxx::tree::properties< char > properties;
+
+  // DOM user data key for back pointers to tree nodes.
+  //
+#ifndef XSD_CXX_TREE_TREE_NODE_KEY_IN___XML_SCHEMA
+#define XSD_CXX_TREE_TREE_NODE_KEY_IN___XML_SCHEMA
+
+  const XMLCh* const tree_node_key = ::xsd::cxx::tree::user_data_keys::node;
+
+#endif
+}
+
+// Forward declarations.
+//
+namespace dtn
+{
+  namespace clmessage
+  {
+    class linkTypeType;
+    class linkStateType;
+    class linkReasonType;
+    class bundlePassMethodType;
+    class percentType;
+    class Parameter;
+    class bundleAttributes;
+    class linkAttributes;
+    class contactAttributes;
+    class cla_add_request;
+    class cla_delete_request;
+    class cla_set_params_request;
+    class cla_params_set_event;
+    class interface_set_defaults_request;
+    class interface_create_request;
+    class interface_created_event;
+    class interface_reconfigure_request;
+    class interface_reconfigured_event;
+    class interface_destroy_request;
+    class eid_reachable_event;
+    class link_set_defaults_request;
+    class link_create_request;
+    class link_created_event;
+    class link_reachable_event;
+    class link_open_request;
+    class link_opened_event;
+    class link_close_request;
+    class link_closed_event;
+    class link_state_changed_event;
+    class link_delete_request;
+    class link_deleted_event;
+    class link_attribute_changed_event;
+    class contact_attribute_changed_event;
+    class bundle_send_request;
+    class bundle_receive_started_event;
+    class bundle_received_event;
+    class bundle_transmitted_event;
+    class bundle_cancel_request;
+    class bundle_cancelled_event;
+    class cl_message;
+  }
+}
+
+
+#ifndef XSD_USE_CHAR
+#define XSD_USE_CHAR
+#endif
+
+#ifndef XSD_CXX_TREE_USE_CHAR
+#define XSD_CXX_TREE_USE_CHAR
+#endif
+
+#include <memory>    // std::auto_ptr
+#include <algorithm> // std::binary_search
+
+#include <xsd/cxx/tree/exceptions.hxx>
+#include <xsd/cxx/tree/elements.hxx>
+#include <xsd/cxx/tree/containers.hxx>
+#include <xsd/cxx/tree/list.hxx>
+
+namespace dtn
+{
+  namespace clmessage
+  {
+    class linkTypeType: public ::xml_schema::string
+    {
+      public:
+      enum _xsd_linkTypeType
+      {
+        alwayson,
+        ondemand,
+        scheduled,
+        predicted,
+        opportunistic
+      };
+
+      linkTypeType ();
+
+      linkTypeType (_xsd_linkTypeType);
+
+      linkTypeType (const ::xml_schema::string&);
+
+      linkTypeType (const ::xercesc::DOMElement&,
+                    ::xml_schema::flags = 0,
+                    ::xml_schema::type* = 0);
+
+      linkTypeType (const ::xercesc::DOMAttr&,
+                    ::xml_schema::flags = 0,
+                    ::xml_schema::type* = 0);
+
+      linkTypeType (const ::std::basic_string< char >&,
+                    const ::xercesc::DOMElement*,
+                    ::xml_schema::flags = 0,
+                    ::xml_schema::type* = 0);
+
+      linkTypeType (const linkTypeType&,
+                    ::xml_schema::flags = 0,
+                    ::xml_schema::type* = 0);
+
+      virtual linkTypeType*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      linkTypeType&
+      operator= (_xsd_linkTypeType);
+
+      virtual
+      operator _xsd_linkTypeType () const
+      {
+        return _xsd_linkTypeType_convert ();
+      }
+
+      protected:
+      _xsd_linkTypeType
+      _xsd_linkTypeType_convert () const;
+
+      public:
+      static const char* const _xsd_linkTypeType_literals_[5];
+      static const _xsd_linkTypeType _xsd_linkTypeType_indexes_[5];
+    };
+
+    class linkStateType: public ::xml_schema::string
+    {
+      public:
+      enum _xsd_linkStateType
+      {
+        unavailable,
+        available,
+        opening,
+        open,
+        busy,
+        closed
+      };
+
+      linkStateType ();
+
+      linkStateType (_xsd_linkStateType);
+
+      linkStateType (const ::xml_schema::string&);
+
+      linkStateType (const ::xercesc::DOMElement&,
+                     ::xml_schema::flags = 0,
+                     ::xml_schema::type* = 0);
+
+      linkStateType (const ::xercesc::DOMAttr&,
+                     ::xml_schema::flags = 0,
+                     ::xml_schema::type* = 0);
+
+      linkStateType (const ::std::basic_string< char >&,
+                     const ::xercesc::DOMElement*,
+                     ::xml_schema::flags = 0,
+                     ::xml_schema::type* = 0);
+
+      linkStateType (const linkStateType&,
+                     ::xml_schema::flags = 0,
+                     ::xml_schema::type* = 0);
+
+      virtual linkStateType*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      linkStateType&
+      operator= (_xsd_linkStateType);
+
+      virtual
+      operator _xsd_linkStateType () const
+      {
+        return _xsd_linkStateType_convert ();
+      }
+
+      protected:
+      _xsd_linkStateType
+      _xsd_linkStateType_convert () const;
+
+      public:
+      static const char* const _xsd_linkStateType_literals_[6];
+      static const _xsd_linkStateType _xsd_linkStateType_indexes_[6];
+    };
+
+    class linkReasonType: public ::xml_schema::string
+    {
+      public:
+      enum _xsd_linkReasonType
+      {
+        no_info,
+        user,
+        broken,
+        shutdown,
+        reconnect,
+        idle,
+        timeout,
+        unblocked
+      };
+
+      linkReasonType ();
+
+      linkReasonType (_xsd_linkReasonType);
+
+      linkReasonType (const ::xml_schema::string&);
+
+      linkReasonType (const ::xercesc::DOMElement&,
+                      ::xml_schema::flags = 0,
+                      ::xml_schema::type* = 0);
+
+      linkReasonType (const ::xercesc::DOMAttr&,
+                      ::xml_schema::flags = 0,
+                      ::xml_schema::type* = 0);
+
+      linkReasonType (const ::std::basic_string< char >&,
+                      const ::xercesc::DOMElement*,
+                      ::xml_schema::flags = 0,
+                      ::xml_schema::type* = 0);
+
+      linkReasonType (const linkReasonType&,
+                      ::xml_schema::flags = 0,
+                      ::xml_schema::type* = 0);
+
+      virtual linkReasonType*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      linkReasonType&
+      operator= (_xsd_linkReasonType);
+
+      virtual
+      operator _xsd_linkReasonType () const
+      {
+        return _xsd_linkReasonType_convert ();
+      }
+
+      protected:
+      _xsd_linkReasonType
+      _xsd_linkReasonType_convert () const;
+
+      public:
+      static const char* const _xsd_linkReasonType_literals_[8];
+      static const _xsd_linkReasonType _xsd_linkReasonType_indexes_[8];
+    };
+
+    class bundlePassMethodType: public ::xml_schema::string
+    {
+      public:
+      enum _xsd_bundlePassMethodType
+      {
+        unknown,
+        filesystem
+      };
+
+      bundlePassMethodType ();
+
+      bundlePassMethodType (_xsd_bundlePassMethodType);
+
+      bundlePassMethodType (const ::xml_schema::string&);
+
+      bundlePassMethodType (const ::xercesc::DOMElement&,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      bundlePassMethodType (const ::xercesc::DOMAttr&,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      bundlePassMethodType (const ::std::basic_string< char >&,
+                            const ::xercesc::DOMElement*,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      bundlePassMethodType (const bundlePassMethodType&,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      virtual bundlePassMethodType*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      bundlePassMethodType&
+      operator= (_xsd_bundlePassMethodType);
+
+      virtual
+      operator _xsd_bundlePassMethodType () const
+      {
+        return _xsd_bundlePassMethodType_convert ();
+      }
+
+      protected:
+      _xsd_bundlePassMethodType
+      _xsd_bundlePassMethodType_convert () const;
+
+      public:
+      static const char* const _xsd_bundlePassMethodType_literals_[2];
+      static const _xsd_bundlePassMethodType _xsd_bundlePassMethodType_indexes_[2];
+    };
+
+    class percentType: public ::xsd::cxx::tree::fundamental_base< ::xml_schema::integer, char, ::xml_schema::simple_type >
+    {
+      public:
+
+      struct _xsd_percentType
+      {
+        typedef ::xml_schema::integer base_;
+      };
+
+      // Constructors.
+      //
+      public:
+      percentType ();
+
+      percentType (const _xsd_percentType::base_& );
+
+      percentType (const ::xercesc::DOMElement&,
+                   ::xml_schema::flags = 0,
+                   ::xml_schema::type* = 0);
+
+      percentType (const ::xercesc::DOMAttr&,
+                   ::xml_schema::flags = 0,
+                   ::xml_schema::type* = 0);
+
+      percentType (const ::std::basic_string< char >&,
+                   const ::xercesc::DOMElement*,
+                   ::xml_schema::flags = 0,
+                   ::xml_schema::type* = 0);
+
+      percentType (const percentType&,
+                   ::xml_schema::flags = 0,
+                   ::xml_schema::type* = 0);
+
+      virtual percentType*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+    };
+
+    class Parameter: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_Parameter
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // name
+      // 
+      public:
+      struct name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const name::type&
+      name () const;
+
+      name::type&
+      name ();
+
+      void
+      name (const name::type&);
+
+      void
+      name (::std::auto_ptr< name::type >);
+
+      // value
+      // 
+      public:
+      struct value
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const value::type&
+      value () const;
+
+      value::type&
+      value ();
+
+      void
+      value (const value::type&);
+
+      void
+      value (::std::auto_ptr< value::type >);
+
+      // Constructors.
+      //
+      public:
+      Parameter ();
+
+      Parameter (const name::type&,
+                 const value::type&);
+
+      Parameter (const ::xercesc::DOMElement&,
+                 ::xml_schema::flags = 0,
+                 ::xml_schema::type* = 0);
+
+      Parameter (const Parameter&,
+                 ::xml_schema::flags = 0,
+                 ::xml_schema::type* = 0);
+
+      virtual Parameter*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< name::type > _xsd_name_;
+      ::xsd::cxx::tree::one< value::type > _xsd_value_;
+    };
+
+    class bundleAttributes: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_bundleAttributes
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // source_eid
+      // 
+      public:
+      struct source_eid
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const source_eid::type&
+      source_eid () const;
+
+      source_eid::type&
+      source_eid ();
+
+      void
+      source_eid (const source_eid::type&);
+
+      void
+      source_eid (::std::auto_ptr< source_eid::type >);
+
+      // timestamp
+      // 
+      public:
+      struct timestamp
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const timestamp::type&
+      timestamp () const;
+
+      timestamp::type&
+      timestamp ();
+
+      void
+      timestamp (const timestamp::type&);
+
+      // is_fragment
+      // 
+      public:
+      struct is_fragment
+      {
+        typedef ::xml_schema::boolean type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const is_fragment::type&
+      is_fragment () const;
+
+      is_fragment::type&
+      is_fragment ();
+
+      void
+      is_fragment (const is_fragment::type&);
+
+      // fragment_length
+      // 
+      public:
+      struct fragment_length
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const fragment_length::container&
+      fragment_length () const;
+
+      fragment_length::container&
+      fragment_length ();
+
+      void
+      fragment_length (const fragment_length::type&);
+
+      void
+      fragment_length (const fragment_length::container&);
+
+      // fragment_offset
+      // 
+      public:
+      struct fragment_offset
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const fragment_offset::container&
+      fragment_offset () const;
+
+      fragment_offset::container&
+      fragment_offset ();
+
+      void
+      fragment_offset (const fragment_offset::type&);
+
+      void
+      fragment_offset (const fragment_offset::container&);
+
+      // Constructors.
+      //
+      public:
+      bundleAttributes ();
+
+      bundleAttributes (const source_eid::type&,
+                        const timestamp::type&,
+                        const is_fragment::type&);
+
+      bundleAttributes (const ::xercesc::DOMElement&,
+                        ::xml_schema::flags = 0,
+                        ::xml_schema::type* = 0);
+
+      bundleAttributes (const bundleAttributes&,
+                        ::xml_schema::flags = 0,
+                        ::xml_schema::type* = 0);
+
+      virtual bundleAttributes*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< source_eid::type > _xsd_source_eid_;
+      ::xsd::cxx::tree::one< timestamp::type > _xsd_timestamp_;
+      ::xsd::cxx::tree::one< is_fragment::type > _xsd_is_fragment_;
+      ::xsd::cxx::tree::optional< fragment_length::type > _xsd_fragment_length_;
+      ::xsd::cxx::tree::optional< fragment_offset::type > _xsd_fragment_offset_;
+    };
+
+    class linkAttributes: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_linkAttributes
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Workaround for g++ bug# 23206.
+      //
+      public:
+      struct type;
+
+      // type
+      // 
+      public:
+      struct type
+      {
+        typedef ::dtn::clmessage::linkTypeType type_;
+        typedef ::xsd::cxx::tree::traits< type_, char > traits;
+      };
+
+      const type::type_&
+      type () const;
+
+      type::type_&
+      type ();
+
+      void
+      type (const type::type_&);
+
+      void
+      type (::std::auto_ptr< type::type_ >);
+
+      // state
+      // 
+      public:
+      struct state
+      {
+        typedef ::dtn::clmessage::linkStateType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const state::type&
+      state () const;
+
+      state::type&
+      state ();
+
+      void
+      state (const state::type&);
+
+      void
+      state (::std::auto_ptr< state::type >);
+
+      // peer_eid
+      // 
+      public:
+      struct peer_eid
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const peer_eid::type&
+      peer_eid () const;
+
+      peer_eid::type&
+      peer_eid ();
+
+      void
+      peer_eid (const peer_eid::type&);
+
+      void
+      peer_eid (::std::auto_ptr< peer_eid::type >);
+
+      // is_reachable
+      // 
+      public:
+      struct is_reachable
+      {
+        typedef ::xml_schema::boolean type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const is_reachable::type&
+      is_reachable () const;
+
+      is_reachable::type&
+      is_reachable ();
+
+      void
+      is_reachable (const is_reachable::type&);
+
+      // is_usable
+      // 
+      public:
+      struct is_usable
+      {
+        typedef ::xml_schema::boolean type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const is_usable::type&
+      is_usable () const;
+
+      is_usable::type&
+      is_usable ();
+
+      void
+      is_usable (const is_usable::type&);
+
+      // how_reliable
+      // 
+      public:
+      struct how_reliable
+      {
+        typedef ::dtn::clmessage::percentType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const how_reliable::type&
+      how_reliable () const;
+
+      how_reliable::type&
+      how_reliable ();
+
+      void
+      how_reliable (const how_reliable::type&);
+
+      void
+      how_reliable (::std::auto_ptr< how_reliable::type >);
+
+      // how_available
+      // 
+      public:
+      struct how_available
+      {
+        typedef ::dtn::clmessage::percentType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const how_available::type&
+      how_available () const;
+
+      how_available::type&
+      how_available ();
+
+      void
+      how_available (const how_available::type&);
+
+      void
+      how_available (::std::auto_ptr< how_available::type >);
+
+      // reactive_fragment
+      // 
+      public:
+      struct reactive_fragment
+      {
+        typedef ::xml_schema::boolean type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const reactive_fragment::type&
+      reactive_fragment () const;
+
+      reactive_fragment::type&
+      reactive_fragment ();
+
+      void
+      reactive_fragment (const reactive_fragment::type&);
+
+      // underlay_address
+      // 
+      public:
+      struct underlay_address
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const underlay_address::type&
+      underlay_address () const;
+
+      underlay_address::type&
+      underlay_address ();
+
+      void
+      underlay_address (const underlay_address::type&);
+
+      void
+      underlay_address (::std::auto_ptr< underlay_address::type >);
+
+      // cla_name
+      // 
+      public:
+      struct cla_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const cla_name::type&
+      cla_name () const;
+
+      cla_name::type&
+      cla_name ();
+
+      void
+      cla_name (const cla_name::type&);
+
+      void
+      cla_name (::std::auto_ptr< cla_name::type >);
+
+      // Constructors.
+      //
+      public:
+      linkAttributes ();
+
+      linkAttributes (const type::type_&,
+                      const state::type&,
+                      const peer_eid::type&,
+                      const is_reachable::type&,
+                      const is_usable::type&,
+                      const how_reliable::type&,
+                      const how_available::type&,
+                      const reactive_fragment::type&,
+                      const underlay_address::type&,
+                      const cla_name::type&);
+
+      linkAttributes (const ::xercesc::DOMElement&,
+                      ::xml_schema::flags = 0,
+                      ::xml_schema::type* = 0);
+
+      linkAttributes (const linkAttributes&,
+                      ::xml_schema::flags = 0,
+                      ::xml_schema::type* = 0);
+
+      virtual linkAttributes*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< type::type_ > _xsd_type_;
+      ::xsd::cxx::tree::one< state::type > _xsd_state_;
+      ::xsd::cxx::tree::one< peer_eid::type > _xsd_peer_eid_;
+      ::xsd::cxx::tree::one< is_reachable::type > _xsd_is_reachable_;
+      ::xsd::cxx::tree::one< is_usable::type > _xsd_is_usable_;
+      ::xsd::cxx::tree::one< how_reliable::type > _xsd_how_reliable_;
+      ::xsd::cxx::tree::one< how_available::type > _xsd_how_available_;
+      ::xsd::cxx::tree::one< reactive_fragment::type > _xsd_reactive_fragment_;
+      ::xsd::cxx::tree::one< underlay_address::type > _xsd_underlay_address_;
+      ::xsd::cxx::tree::one< cla_name::type > _xsd_cla_name_;
+    };
+
+    class contactAttributes: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_contactAttributes
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // start_time
+      // 
+      public:
+      struct start_time
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const start_time::type&
+      start_time () const;
+
+      start_time::type&
+      start_time ();
+
+      void
+      start_time (const start_time::type&);
+
+      // duration
+      // 
+      public:
+      struct duration
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const duration::type&
+      duration () const;
+
+      duration::type&
+      duration ();
+
+      void
+      duration (const duration::type&);
+
+      // bps
+      // 
+      public:
+      struct bps
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const bps::type&
+      bps () const;
+
+      bps::type&
+      bps ();
+
+      void
+      bps (const bps::type&);
+
+      // latency
+      // 
+      public:
+      struct latency
+      {
+        typedef ::xml_schema::integer type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const latency::type&
+      latency () const;
+
+      latency::type&
+      latency ();
+
+      void
+      latency (const latency::type&);
+
+      // packet_loss_prob
+      // 
+      public:
+      struct packet_loss_prob
+      {
+        typedef ::dtn::clmessage::percentType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const packet_loss_prob::type&
+      packet_loss_prob () const;
+
+      packet_loss_prob::type&
+      packet_loss_prob ();
+
+      void
+      packet_loss_prob (const packet_loss_prob::type&);
+
+      void
+      packet_loss_prob (::std::auto_ptr< packet_loss_prob::type >);
+
+      // Constructors.
+      //
+      public:
+      contactAttributes ();
+
+      contactAttributes (const start_time::type&,
+                         const duration::type&,
+                         const bps::type&,
+                         const latency::type&,
+                         const packet_loss_prob::type&);
+
+      contactAttributes (const ::xercesc::DOMElement&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      contactAttributes (const contactAttributes&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      virtual contactAttributes*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< start_time::type > _xsd_start_time_;
+      ::xsd::cxx::tree::one< duration::type > _xsd_duration_;
+      ::xsd::cxx::tree::one< bps::type > _xsd_bps_;
+      ::xsd::cxx::tree::one< latency::type > _xsd_latency_;
+      ::xsd::cxx::tree::one< packet_loss_prob::type > _xsd_packet_loss_prob_;
+    };
+
+    class cla_add_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_cla_add_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // name
+      // 
+      public:
+      struct name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const name::type&
+      name () const;
+
+      name::type&
+      name ();
+
+      void
+      name (const name::type&);
+
+      void
+      name (::std::auto_ptr< name::type >);
+
+      // Constructors.
+      //
+      public:
+      cla_add_request ();
+
+      cla_add_request (const name::type&);
+
+      cla_add_request (const ::xercesc::DOMElement&,
+                       ::xml_schema::flags = 0,
+                       ::xml_schema::type* = 0);
+
+      cla_add_request (const cla_add_request&,
+                       ::xml_schema::flags = 0,
+                       ::xml_schema::type* = 0);
+
+      virtual cla_add_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< name::type > _xsd_name_;
+    };
+
+    class cla_delete_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_cla_delete_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // name
+      // 
+      public:
+      struct name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const name::type&
+      name () const;
+
+      name::type&
+      name ();
+
+      void
+      name (const name::type&);
+
+      void
+      name (::std::auto_ptr< name::type >);
+
+      // Constructors.
+      //
+      public:
+      cla_delete_request ();
+
+      cla_delete_request (const name::type&);
+
+      cla_delete_request (const ::xercesc::DOMElement&,
+                          ::xml_schema::flags = 0,
+                          ::xml_schema::type* = 0);
+
+      cla_delete_request (const cla_delete_request&,
+                          ::xml_schema::flags = 0,
+                          ::xml_schema::type* = 0);
+
+      virtual cla_delete_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< name::type > _xsd_name_;
+    };
+
+    class cla_set_params_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_cla_set_params_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Parameter
+      // 
+      public:
+      struct Parameter
+      {
+        typedef ::dtn::clmessage::Parameter type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const Parameter::container&
+      Parameter () const;
+
+      Parameter::container&
+      Parameter ();
+
+      void
+      Parameter (const Parameter::container&);
+
+      // local_eid
+      // 
+      public:
+      struct local_eid
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const local_eid::container&
+      local_eid () const;
+
+      local_eid::container&
+      local_eid ();
+
+      void
+      local_eid (const local_eid::type&);
+
+      void
+      local_eid (const local_eid::container&);
+
+      void
+      local_eid (::std::auto_ptr< local_eid::type >);
+
+      // create_discovered_links
+      // 
+      public:
+      struct create_discovered_links
+      {
+        typedef ::xml_schema::boolean type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const create_discovered_links::container&
+      create_discovered_links () const;
+
+      create_discovered_links::container&
+      create_discovered_links ();
+
+      void
+      create_discovered_links (const create_discovered_links::type&);
+
+      void
+      create_discovered_links (const create_discovered_links::container&);
+
+      // bundle_pass_method
+      // 
+      public:
+      struct bundle_pass_method
+      {
+        typedef ::dtn::clmessage::bundlePassMethodType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const bundle_pass_method::container&
+      bundle_pass_method () const;
+
+      bundle_pass_method::container&
+      bundle_pass_method ();
+
+      void
+      bundle_pass_method (const bundle_pass_method::type&);
+
+      void
+      bundle_pass_method (const bundle_pass_method::container&);
+
+      void
+      bundle_pass_method (::std::auto_ptr< bundle_pass_method::type >);
+
+      // Constructors.
+      //
+      public:
+      cla_set_params_request ();
+
+      cla_set_params_request (const ::xercesc::DOMElement&,
+                              ::xml_schema::flags = 0,
+                              ::xml_schema::type* = 0);
+
+      cla_set_params_request (const cla_set_params_request&,
+                              ::xml_schema::flags = 0,
+                              ::xml_schema::type* = 0);
+
+      virtual cla_set_params_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::sequence< Parameter::type > _xsd_Parameter_;
+      ::xsd::cxx::tree::optional< local_eid::type > _xsd_local_eid_;
+      ::xsd::cxx::tree::optional< create_discovered_links::type > _xsd_create_discovered_links_;
+      ::xsd::cxx::tree::optional< bundle_pass_method::type > _xsd_bundle_pass_method_;
+    };
+
+    class cla_params_set_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_cla_params_set_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Constructors.
+      //
+      public:
+      cla_params_set_event ();
+
+      cla_params_set_event (const ::xercesc::DOMElement&,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      cla_params_set_event (const ::xercesc::DOMAttr&,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      cla_params_set_event (const ::std::basic_string< char >&,
+                            const ::xercesc::DOMElement*,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      cla_params_set_event (const cla_params_set_event&,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      virtual cla_params_set_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+    };
+
+    class interface_set_defaults_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_interface_set_defaults_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Parameter
+      // 
+      public:
+      struct Parameter
+      {
+        typedef ::dtn::clmessage::Parameter type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const Parameter::container&
+      Parameter () const;
+
+      Parameter::container&
+      Parameter ();
+
+      void
+      Parameter (const Parameter::container&);
+
+      // Constructors.
+      //
+      public:
+      interface_set_defaults_request ();
+
+      interface_set_defaults_request (const ::xercesc::DOMElement&,
+                                      ::xml_schema::flags = 0,
+                                      ::xml_schema::type* = 0);
+
+      interface_set_defaults_request (const interface_set_defaults_request&,
+                                      ::xml_schema::flags = 0,
+                                      ::xml_schema::type* = 0);
+
+      virtual interface_set_defaults_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::sequence< Parameter::type > _xsd_Parameter_;
+    };
+
+    class interface_create_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_interface_create_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Parameter
+      // 
+      public:
+      struct Parameter
+      {
+        typedef ::dtn::clmessage::Parameter type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const Parameter::container&
+      Parameter () const;
+
+      Parameter::container&
+      Parameter ();
+
+      void
+      Parameter (const Parameter::container&);
+
+      // interface_name
+      // 
+      public:
+      struct interface_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const interface_name::type&
+      interface_name () const;
+
+      interface_name::type&
+      interface_name ();
+
+      void
+      interface_name (const interface_name::type&);
+
+      void
+      interface_name (::std::auto_ptr< interface_name::type >);
+
+      // Constructors.
+      //
+      public:
+      interface_create_request ();
+
+      interface_create_request (const interface_name::type&);
+
+      interface_create_request (const ::xercesc::DOMElement&,
+                                ::xml_schema::flags = 0,
+                                ::xml_schema::type* = 0);
+
+      interface_create_request (const interface_create_request&,
+                                ::xml_schema::flags = 0,
+                                ::xml_schema::type* = 0);
+
+      virtual interface_create_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::sequence< Parameter::type > _xsd_Parameter_;
+      ::xsd::cxx::tree::one< interface_name::type > _xsd_interface_name_;
+    };
+
+    class interface_created_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_interface_created_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // interface_name
+      // 
+      public:
+      struct interface_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const interface_name::type&
+      interface_name () const;
+
+      interface_name::type&
+      interface_name ();
+
+      void
+      interface_name (const interface_name::type&);
+
+      void
+      interface_name (::std::auto_ptr< interface_name::type >);
+
+      // Constructors.
+      //
+      public:
+      interface_created_event ();
+
+      interface_created_event (const interface_name::type&);
+
+      interface_created_event (const ::xercesc::DOMElement&,
+                               ::xml_schema::flags = 0,
+                               ::xml_schema::type* = 0);
+
+      interface_created_event (const interface_created_event&,
+                               ::xml_schema::flags = 0,
+                               ::xml_schema::type* = 0);
+
+      virtual interface_created_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< interface_name::type > _xsd_interface_name_;
+    };
+
+    class interface_reconfigure_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_interface_reconfigure_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Parameter
+      // 
+      public:
+      struct Parameter
+      {
+        typedef ::dtn::clmessage::Parameter type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const Parameter::container&
+      Parameter () const;
+
+      Parameter::container&
+      Parameter ();
+
+      void
+      Parameter (const Parameter::container&);
+
+      // interface_name
+      // 
+      public:
+      struct interface_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const interface_name::type&
+      interface_name () const;
+
+      interface_name::type&
+      interface_name ();
+
+      void
+      interface_name (const interface_name::type&);
+
+      void
+      interface_name (::std::auto_ptr< interface_name::type >);
+
+      // up
+      // 
+      public:
+      struct up
+      {
+        typedef ::xml_schema::boolean type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const up::container&
+      up () const;
+
+      up::container&
+      up ();
+
+      void
+      up (const up::type&);
+
+      void
+      up (const up::container&);
+
+      // discovery
+      // 
+      public:
+      struct discovery
+      {
+        typedef ::xml_schema::boolean type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const discovery::container&
+      discovery () const;
+
+      discovery::container&
+      discovery ();
+
+      void
+      discovery (const discovery::type&);
+
+      void
+      discovery (const discovery::container&);
+
+      // Constructors.
+      //
+      public:
+      interface_reconfigure_request ();
+
+      interface_reconfigure_request (const interface_name::type&);
+
+      interface_reconfigure_request (const ::xercesc::DOMElement&,
+                                     ::xml_schema::flags = 0,
+                                     ::xml_schema::type* = 0);
+
+      interface_reconfigure_request (const interface_reconfigure_request&,
+                                     ::xml_schema::flags = 0,
+                                     ::xml_schema::type* = 0);
+
+      virtual interface_reconfigure_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::sequence< Parameter::type > _xsd_Parameter_;
+      ::xsd::cxx::tree::one< interface_name::type > _xsd_interface_name_;
+      ::xsd::cxx::tree::optional< up::type > _xsd_up_;
+      ::xsd::cxx::tree::optional< discovery::type > _xsd_discovery_;
+    };
+
+    class interface_reconfigured_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_interface_reconfigured_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // interface_name
+      // 
+      public:
+      struct interface_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const interface_name::type&
+      interface_name () const;
+
+      interface_name::type&
+      interface_name ();
+
+      void
+      interface_name (const interface_name::type&);
+
+      void
+      interface_name (::std::auto_ptr< interface_name::type >);
+
+      // Constructors.
+      //
+      public:
+      interface_reconfigured_event ();
+
+      interface_reconfigured_event (const interface_name::type&);
+
+      interface_reconfigured_event (const ::xercesc::DOMElement&,
+                                    ::xml_schema::flags = 0,
+                                    ::xml_schema::type* = 0);
+
+      interface_reconfigured_event (const interface_reconfigured_event&,
+                                    ::xml_schema::flags = 0,
+                                    ::xml_schema::type* = 0);
+
+      virtual interface_reconfigured_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< interface_name::type > _xsd_interface_name_;
+    };
+
+    class interface_destroy_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_interface_destroy_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // interface_name
+      // 
+      public:
+      struct interface_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const interface_name::type&
+      interface_name () const;
+
+      interface_name::type&
+      interface_name ();
+
+      void
+      interface_name (const interface_name::type&);
+
+      void
+      interface_name (::std::auto_ptr< interface_name::type >);
+
+      // Constructors.
+      //
+      public:
+      interface_destroy_request ();
+
+      interface_destroy_request (const interface_name::type&);
+
+      interface_destroy_request (const ::xercesc::DOMElement&,
+                                 ::xml_schema::flags = 0,
+                                 ::xml_schema::type* = 0);
+
+      interface_destroy_request (const interface_destroy_request&,
+                                 ::xml_schema::flags = 0,
+                                 ::xml_schema::type* = 0);
+
+      virtual interface_destroy_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< interface_name::type > _xsd_interface_name_;
+    };
+
+    class eid_reachable_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_eid_reachable_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // interface_name
+      // 
+      public:
+      struct interface_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const interface_name::type&
+      interface_name () const;
+
+      interface_name::type&
+      interface_name ();
+
+      void
+      interface_name (const interface_name::type&);
+
+      void
+      interface_name (::std::auto_ptr< interface_name::type >);
+
+      // peer_eid
+      // 
+      public:
+      struct peer_eid
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const peer_eid::type&
+      peer_eid () const;
+
+      peer_eid::type&
+      peer_eid ();
+
+      void
+      peer_eid (const peer_eid::type&);
+
+      void
+      peer_eid (::std::auto_ptr< peer_eid::type >);
+
+      // Constructors.
+      //
+      public:
+      eid_reachable_event ();
+
+      eid_reachable_event (const interface_name::type&,
+                           const peer_eid::type&);
+
+      eid_reachable_event (const ::xercesc::DOMElement&,
+                           ::xml_schema::flags = 0,
+                           ::xml_schema::type* = 0);
+
+      eid_reachable_event (const eid_reachable_event&,
+                           ::xml_schema::flags = 0,
+                           ::xml_schema::type* = 0);
+
+      virtual eid_reachable_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< interface_name::type > _xsd_interface_name_;
+      ::xsd::cxx::tree::one< peer_eid::type > _xsd_peer_eid_;
+    };
+
+    class link_set_defaults_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_set_defaults_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Parameter
+      // 
+      public:
+      struct Parameter
+      {
+        typedef ::dtn::clmessage::Parameter type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const Parameter::container&
+      Parameter () const;
+
+      Parameter::container&
+      Parameter ();
+
+      void
+      Parameter (const Parameter::container&);
+
+      // Constructors.
+      //
+      public:
+      link_set_defaults_request ();
+
+      link_set_defaults_request (const ::xercesc::DOMElement&,
+                                 ::xml_schema::flags = 0,
+                                 ::xml_schema::type* = 0);
+
+      link_set_defaults_request (const link_set_defaults_request&,
+                                 ::xml_schema::flags = 0,
+                                 ::xml_schema::type* = 0);
+
+      virtual link_set_defaults_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::sequence< Parameter::type > _xsd_Parameter_;
+    };
+
+    class link_create_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_create_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Workaround for g++ bug# 23206.
+      //
+      public:
+      struct type;
+
+      // Parameter
+      // 
+      public:
+      struct Parameter
+      {
+        typedef ::dtn::clmessage::Parameter type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const Parameter::container&
+      Parameter () const;
+
+      Parameter::container&
+      Parameter ();
+
+      void
+      Parameter (const Parameter::container&);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // type
+      // 
+      public:
+      struct type
+      {
+        typedef ::dtn::clmessage::linkTypeType type_;
+        typedef ::xsd::cxx::tree::traits< type_, char > traits;
+      };
+
+      const type::type_&
+      type () const;
+
+      type::type_&
+      type ();
+
+      void
+      type (const type::type_&);
+
+      void
+      type (::std::auto_ptr< type::type_ >);
+
+      // peer_eid
+      // 
+      public:
+      struct peer_eid
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const peer_eid::container&
+      peer_eid () const;
+
+      peer_eid::container&
+      peer_eid ();
+
+      void
+      peer_eid (const peer_eid::type&);
+
+      void
+      peer_eid (const peer_eid::container&);
+
+      void
+      peer_eid (::std::auto_ptr< peer_eid::type >);
+
+      // Constructors.
+      //
+      public:
+      link_create_request ();
+
+      link_create_request (const link_name::type&,
+                           const type::type_&);
+
+      link_create_request (const ::xercesc::DOMElement&,
+                           ::xml_schema::flags = 0,
+                           ::xml_schema::type* = 0);
+
+      link_create_request (const link_create_request&,
+                           ::xml_schema::flags = 0,
+                           ::xml_schema::type* = 0);
+
+      virtual link_create_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::sequence< Parameter::type > _xsd_Parameter_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+      ::xsd::cxx::tree::one< type::type_ > _xsd_type_;
+      ::xsd::cxx::tree::optional< peer_eid::type > _xsd_peer_eid_;
+    };
+
+    class link_created_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_created_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // linkAttributes
+      // 
+      public:
+      struct linkAttributes
+      {
+        typedef ::dtn::clmessage::linkAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const linkAttributes::type&
+      linkAttributes () const;
+
+      linkAttributes::type&
+      linkAttributes ();
+
+      void
+      linkAttributes (const linkAttributes::type&);
+
+      void
+      linkAttributes (::std::auto_ptr< linkAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // reason
+      // 
+      public:
+      struct reason
+      {
+        typedef ::dtn::clmessage::linkReasonType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const reason::type&
+      reason () const;
+
+      reason::type&
+      reason ();
+
+      void
+      reason (const reason::type&);
+
+      void
+      reason (::std::auto_ptr< reason::type >);
+
+      // Constructors.
+      //
+      public:
+      link_created_event ();
+
+      link_created_event (const linkAttributes::type&,
+                          const link_name::type&,
+                          const reason::type&);
+
+      link_created_event (const ::xercesc::DOMElement&,
+                          ::xml_schema::flags = 0,
+                          ::xml_schema::type* = 0);
+
+      link_created_event (const link_created_event&,
+                          ::xml_schema::flags = 0,
+                          ::xml_schema::type* = 0);
+
+      virtual link_created_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< linkAttributes::type > _xsd_linkAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+      ::xsd::cxx::tree::one< reason::type > _xsd_reason_;
+    };
+
+    class link_reachable_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_reachable_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // Parameter
+      // 
+      public:
+      struct Parameter
+      {
+        typedef ::dtn::clmessage::Parameter type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::sequence< type > container;
+        typedef container::iterator iterator;
+        typedef container::const_iterator const_iterator;
+      };
+
+      const Parameter::container&
+      Parameter () const;
+
+      Parameter::container&
+      Parameter ();
+
+      void
+      Parameter (const Parameter::container&);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // peer_eid
+      // 
+      public:
+      struct peer_eid
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const peer_eid::type&
+      peer_eid () const;
+
+      peer_eid::type&
+      peer_eid ();
+
+      void
+      peer_eid (const peer_eid::type&);
+
+      void
+      peer_eid (::std::auto_ptr< peer_eid::type >);
+
+      // Constructors.
+      //
+      public:
+      link_reachable_event ();
+
+      link_reachable_event (const link_name::type&,
+                            const peer_eid::type&);
+
+      link_reachable_event (const ::xercesc::DOMElement&,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      link_reachable_event (const link_reachable_event&,
+                            ::xml_schema::flags = 0,
+                            ::xml_schema::type* = 0);
+
+      virtual link_reachable_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::sequence< Parameter::type > _xsd_Parameter_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+      ::xsd::cxx::tree::one< peer_eid::type > _xsd_peer_eid_;
+    };
+
+    class link_open_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_open_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // Constructors.
+      //
+      public:
+      link_open_request ();
+
+      link_open_request (const link_name::type&);
+
+      link_open_request (const ::xercesc::DOMElement&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      link_open_request (const link_open_request&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      virtual link_open_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+    };
+
+    class link_opened_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_opened_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // contactAttributes
+      // 
+      public:
+      struct contactAttributes
+      {
+        typedef ::dtn::clmessage::contactAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const contactAttributes::type&
+      contactAttributes () const;
+
+      contactAttributes::type&
+      contactAttributes ();
+
+      void
+      contactAttributes (const contactAttributes::type&);
+
+      void
+      contactAttributes (::std::auto_ptr< contactAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // Constructors.
+      //
+      public:
+      link_opened_event ();
+
+      link_opened_event (const contactAttributes::type&,
+                         const link_name::type&);
+
+      link_opened_event (const ::xercesc::DOMElement&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      link_opened_event (const link_opened_event&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      virtual link_opened_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< contactAttributes::type > _xsd_contactAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+    };
+
+    class link_close_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_close_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // Constructors.
+      //
+      public:
+      link_close_request ();
+
+      link_close_request (const link_name::type&);
+
+      link_close_request (const ::xercesc::DOMElement&,
+                          ::xml_schema::flags = 0,
+                          ::xml_schema::type* = 0);
+
+      link_close_request (const link_close_request&,
+                          ::xml_schema::flags = 0,
+                          ::xml_schema::type* = 0);
+
+      virtual link_close_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+    };
+
+    class link_closed_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_closed_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // contactAttributes
+      // 
+      public:
+      struct contactAttributes
+      {
+        typedef ::dtn::clmessage::contactAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const contactAttributes::type&
+      contactAttributes () const;
+
+      contactAttributes::type&
+      contactAttributes ();
+
+      void
+      contactAttributes (const contactAttributes::type&);
+
+      void
+      contactAttributes (::std::auto_ptr< contactAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // Constructors.
+      //
+      public:
+      link_closed_event ();
+
+      link_closed_event (const contactAttributes::type&,
+                         const link_name::type&);
+
+      link_closed_event (const ::xercesc::DOMElement&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      link_closed_event (const link_closed_event&,
+                         ::xml_schema::flags = 0,
+                         ::xml_schema::type* = 0);
+
+      virtual link_closed_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< contactAttributes::type > _xsd_contactAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+    };
+
+    class link_state_changed_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_state_changed_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // new_state
+      // 
+      public:
+      struct new_state
+      {
+        typedef ::dtn::clmessage::linkStateType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const new_state::type&
+      new_state () const;
+
+      new_state::type&
+      new_state ();
+
+      void
+      new_state (const new_state::type&);
+
+      void
+      new_state (::std::auto_ptr< new_state::type >);
+
+      // reason
+      // 
+      public:
+      struct reason
+      {
+        typedef ::dtn::clmessage::linkReasonType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const reason::type&
+      reason () const;
+
+      reason::type&
+      reason ();
+
+      void
+      reason (const reason::type&);
+
+      void
+      reason (::std::auto_ptr< reason::type >);
+
+      // Constructors.
+      //
+      public:
+      link_state_changed_event ();
+
+      link_state_changed_event (const link_name::type&,
+                                const new_state::type&,
+                                const reason::type&);
+
+      link_state_changed_event (const ::xercesc::DOMElement&,
+                                ::xml_schema::flags = 0,
+                                ::xml_schema::type* = 0);
+
+      link_state_changed_event (const link_state_changed_event&,
+                                ::xml_schema::flags = 0,
+                                ::xml_schema::type* = 0);
+
+      virtual link_state_changed_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+      ::xsd::cxx::tree::one< new_state::type > _xsd_new_state_;
+      ::xsd::cxx::tree::one< reason::type > _xsd_reason_;
+    };
+
+    class link_delete_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_delete_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // Constructors.
+      //
+      public:
+      link_delete_request ();
+
+      link_delete_request (const link_name::type&);
+
+      link_delete_request (const ::xercesc::DOMElement&,
+                           ::xml_schema::flags = 0,
+                           ::xml_schema::type* = 0);
+
+      link_delete_request (const link_delete_request&,
+                           ::xml_schema::flags = 0,
+                           ::xml_schema::type* = 0);
+
+      virtual link_delete_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+    };
+
+    class link_deleted_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_deleted_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // linkAttributes
+      // 
+      public:
+      struct linkAttributes
+      {
+        typedef ::dtn::clmessage::linkAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const linkAttributes::type&
+      linkAttributes () const;
+
+      linkAttributes::type&
+      linkAttributes ();
+
+      void
+      linkAttributes (const linkAttributes::type&);
+
+      void
+      linkAttributes (::std::auto_ptr< linkAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // reason
+      // 
+      public:
+      struct reason
+      {
+        typedef ::dtn::clmessage::linkReasonType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const reason::type&
+      reason () const;
+
+      reason::type&
+      reason ();
+
+      void
+      reason (const reason::type&);
+
+      void
+      reason (::std::auto_ptr< reason::type >);
+
+      // Constructors.
+      //
+      public:
+      link_deleted_event ();
+
+      link_deleted_event (const linkAttributes::type&,
+                          const link_name::type&,
+                          const reason::type&);
+
+      link_deleted_event (const ::xercesc::DOMElement&,
+                          ::xml_schema::flags = 0,
+                          ::xml_schema::type* = 0);
+
+      link_deleted_event (const link_deleted_event&,
+                          ::xml_schema::flags = 0,
+                          ::xml_schema::type* = 0);
+
+      virtual link_deleted_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< linkAttributes::type > _xsd_linkAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+      ::xsd::cxx::tree::one< reason::type > _xsd_reason_;
+    };
+
+    class link_attribute_changed_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_link_attribute_changed_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // linkAttributes
+      // 
+      public:
+      struct linkAttributes
+      {
+        typedef ::dtn::clmessage::linkAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const linkAttributes::type&
+      linkAttributes () const;
+
+      linkAttributes::type&
+      linkAttributes ();
+
+      void
+      linkAttributes (const linkAttributes::type&);
+
+      void
+      linkAttributes (::std::auto_ptr< linkAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // reason
+      // 
+      public:
+      struct reason
+      {
+        typedef ::dtn::clmessage::linkReasonType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const reason::type&
+      reason () const;
+
+      reason::type&
+      reason ();
+
+      void
+      reason (const reason::type&);
+
+      void
+      reason (::std::auto_ptr< reason::type >);
+
+      // Constructors.
+      //
+      public:
+      link_attribute_changed_event ();
+
+      link_attribute_changed_event (const linkAttributes::type&,
+                                    const link_name::type&,
+                                    const reason::type&);
+
+      link_attribute_changed_event (const ::xercesc::DOMElement&,
+                                    ::xml_schema::flags = 0,
+                                    ::xml_schema::type* = 0);
+
+      link_attribute_changed_event (const link_attribute_changed_event&,
+                                    ::xml_schema::flags = 0,
+                                    ::xml_schema::type* = 0);
+
+      virtual link_attribute_changed_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< linkAttributes::type > _xsd_linkAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+      ::xsd::cxx::tree::one< reason::type > _xsd_reason_;
+    };
+
+    class contact_attribute_changed_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_contact_attribute_changed_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // contactAttributes
+      // 
+      public:
+      struct contactAttributes
+      {
+        typedef ::dtn::clmessage::contactAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const contactAttributes::type&
+      contactAttributes () const;
+
+      contactAttributes::type&
+      contactAttributes ();
+
+      void
+      contactAttributes (const contactAttributes::type&);
+
+      void
+      contactAttributes (::std::auto_ptr< contactAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // reason
+      // 
+      public:
+      struct reason
+      {
+        typedef ::dtn::clmessage::linkReasonType type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const reason::type&
+      reason () const;
+
+      reason::type&
+      reason ();
+
+      void
+      reason (const reason::type&);
+
+      void
+      reason (::std::auto_ptr< reason::type >);
+
+      // Constructors.
+      //
+      public:
+      contact_attribute_changed_event ();
+
+      contact_attribute_changed_event (const contactAttributes::type&,
+                                       const link_name::type&,
+                                       const reason::type&);
+
+      contact_attribute_changed_event (const ::xercesc::DOMElement&,
+                                       ::xml_schema::flags = 0,
+                                       ::xml_schema::type* = 0);
+
+      contact_attribute_changed_event (const contact_attribute_changed_event&,
+                                       ::xml_schema::flags = 0,
+                                       ::xml_schema::type* = 0);
+
+      virtual contact_attribute_changed_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< contactAttributes::type > _xsd_contactAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+      ::xsd::cxx::tree::one< reason::type > _xsd_reason_;
+    };
+
+    class bundle_send_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_bundle_send_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // bundleAttributes
+      // 
+      public:
+      struct bundleAttributes
+      {
+        typedef ::dtn::clmessage::bundleAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const bundleAttributes::type&
+      bundleAttributes () const;
+
+      bundleAttributes::type&
+      bundleAttributes ();
+
+      void
+      bundleAttributes (const bundleAttributes::type&);
+
+      void
+      bundleAttributes (::std::auto_ptr< bundleAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // location
+      // 
+      public:
+      struct location
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const location::type&
+      location () const;
+
+      location::type&
+      location ();
+
+      void
+      location (const location::type&);
+
+      void
+      location (::std::auto_ptr< location::type >);
+
+      // Constructors.
+      //
+      public:
+      bundle_send_request ();
+
+      bundle_send_request (const bundleAttributes::type&,
+                           const link_name::type&,
+                           const location::type&);
+
+      bundle_send_request (const ::xercesc::DOMElement&,
+                           ::xml_schema::flags = 0,
+                           ::xml_schema::type* = 0);
+
+      bundle_send_request (const bundle_send_request&,
+                           ::xml_schema::flags = 0,
+                           ::xml_schema::type* = 0);
+
+      virtual bundle_send_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< bundleAttributes::type > _xsd_bundleAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+      ::xsd::cxx::tree::one< location::type > _xsd_location_;
+    };
+
+    class bundle_receive_started_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_bundle_receive_started_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // location
+      // 
+      public:
+      struct location
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const location::type&
+      location () const;
+
+      location::type&
+      location ();
+
+      void
+      location (const location::type&);
+
+      void
+      location (::std::auto_ptr< location::type >);
+
+      // peer_eid
+      // 
+      public:
+      struct peer_eid
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const peer_eid::container&
+      peer_eid () const;
+
+      peer_eid::container&
+      peer_eid ();
+
+      void
+      peer_eid (const peer_eid::type&);
+
+      void
+      peer_eid (const peer_eid::container&);
+
+      void
+      peer_eid (::std::auto_ptr< peer_eid::type >);
+
+      // Constructors.
+      //
+      public:
+      bundle_receive_started_event ();
+
+      bundle_receive_started_event (const location::type&);
+
+      bundle_receive_started_event (const ::xercesc::DOMElement&,
+                                    ::xml_schema::flags = 0,
+                                    ::xml_schema::type* = 0);
+
+      bundle_receive_started_event (const bundle_receive_started_event&,
+                                    ::xml_schema::flags = 0,
+                                    ::xml_schema::type* = 0);
+
+      virtual bundle_receive_started_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< location::type > _xsd_location_;
+      ::xsd::cxx::tree::optional< peer_eid::type > _xsd_peer_eid_;
+    };
+
+    class bundle_received_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_bundle_received_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // location
+      // 
+      public:
+      struct location
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const location::type&
+      location () const;
+
+      location::type&
+      location ();
+
+      void
+      location (const location::type&);
+
+      void
+      location (::std::auto_ptr< location::type >);
+
+      // bytes_received
+      // 
+      public:
+      struct bytes_received
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const bytes_received::type&
+      bytes_received () const;
+
+      bytes_received::type&
+      bytes_received ();
+
+      void
+      bytes_received (const bytes_received::type&);
+
+      // peer_eid
+      // 
+      public:
+      struct peer_eid
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const peer_eid::container&
+      peer_eid () const;
+
+      peer_eid::container&
+      peer_eid ();
+
+      void
+      peer_eid (const peer_eid::type&);
+
+      void
+      peer_eid (const peer_eid::container&);
+
+      void
+      peer_eid (::std::auto_ptr< peer_eid::type >);
+
+      // Constructors.
+      //
+      public:
+      bundle_received_event ();
+
+      bundle_received_event (const location::type&,
+                             const bytes_received::type&);
+
+      bundle_received_event (const ::xercesc::DOMElement&,
+                             ::xml_schema::flags = 0,
+                             ::xml_schema::type* = 0);
+
+      bundle_received_event (const bundle_received_event&,
+                             ::xml_schema::flags = 0,
+                             ::xml_schema::type* = 0);
+
+      virtual bundle_received_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< location::type > _xsd_location_;
+      ::xsd::cxx::tree::one< bytes_received::type > _xsd_bytes_received_;
+      ::xsd::cxx::tree::optional< peer_eid::type > _xsd_peer_eid_;
+    };
+
+    class bundle_transmitted_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_bundle_transmitted_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // bundleAttributes
+      // 
+      public:
+      struct bundleAttributes
+      {
+        typedef ::dtn::clmessage::bundleAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const bundleAttributes::type&
+      bundleAttributes () const;
+
+      bundleAttributes::type&
+      bundleAttributes ();
+
+      void
+      bundleAttributes (const bundleAttributes::type&);
+
+      void
+      bundleAttributes (::std::auto_ptr< bundleAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // bytes_sent
+      // 
+      public:
+      struct bytes_sent
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const bytes_sent::type&
+      bytes_sent () const;
+
+      bytes_sent::type&
+      bytes_sent ();
+
+      void
+      bytes_sent (const bytes_sent::type&);
+
+      // reliably_sent
+      // 
+      public:
+      struct reliably_sent
+      {
+        typedef ::xml_schema::long_ type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const reliably_sent::type&
+      reliably_sent () const;
+
+      reliably_sent::type&
+      reliably_sent ();
+
+      void
+      reliably_sent (const reliably_sent::type&);
+
+      // Constructors.
+      //
+      public:
+      bundle_transmitted_event ();
+
+      bundle_transmitted_event (const bundleAttributes::type&,
+                                const link_name::type&,
+                                const bytes_sent::type&,
+                                const reliably_sent::type&);
+
+      bundle_transmitted_event (const ::xercesc::DOMElement&,
+                                ::xml_schema::flags = 0,
+                                ::xml_schema::type* = 0);
+
+      bundle_transmitted_event (const bundle_transmitted_event&,
+                                ::xml_schema::flags = 0,
+                                ::xml_schema::type* = 0);
+
+      virtual bundle_transmitted_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< bundleAttributes::type > _xsd_bundleAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+      ::xsd::cxx::tree::one< bytes_sent::type > _xsd_bytes_sent_;
+      ::xsd::cxx::tree::one< reliably_sent::type > _xsd_reliably_sent_;
+    };
+
+    class bundle_cancel_request: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_bundle_cancel_request
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // bundleAttributes
+      // 
+      public:
+      struct bundleAttributes
+      {
+        typedef ::dtn::clmessage::bundleAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const bundleAttributes::type&
+      bundleAttributes () const;
+
+      bundleAttributes::type&
+      bundleAttributes ();
+
+      void
+      bundleAttributes (const bundleAttributes::type&);
+
+      void
+      bundleAttributes (::std::auto_ptr< bundleAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // Constructors.
+      //
+      public:
+      bundle_cancel_request ();
+
+      bundle_cancel_request (const bundleAttributes::type&,
+                             const link_name::type&);
+
+      bundle_cancel_request (const ::xercesc::DOMElement&,
+                             ::xml_schema::flags = 0,
+                             ::xml_schema::type* = 0);
+
+      bundle_cancel_request (const bundle_cancel_request&,
+                             ::xml_schema::flags = 0,
+                             ::xml_schema::type* = 0);
+
+      virtual bundle_cancel_request*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< bundleAttributes::type > _xsd_bundleAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+    };
+
+    class bundle_cancelled_event: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_bundle_cancelled_event
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // bundleAttributes
+      // 
+      public:
+      struct bundleAttributes
+      {
+        typedef ::dtn::clmessage::bundleAttributes type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const bundleAttributes::type&
+      bundleAttributes () const;
+
+      bundleAttributes::type&
+      bundleAttributes ();
+
+      void
+      bundleAttributes (const bundleAttributes::type&);
+
+      void
+      bundleAttributes (::std::auto_ptr< bundleAttributes::type >);
+
+      // link_name
+      // 
+      public:
+      struct link_name
+      {
+        typedef ::xml_schema::string type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+      };
+
+      const link_name::type&
+      link_name () const;
+
+      link_name::type&
+      link_name ();
+
+      void
+      link_name (const link_name::type&);
+
+      void
+      link_name (::std::auto_ptr< link_name::type >);
+
+      // Constructors.
+      //
+      public:
+      bundle_cancelled_event ();
+
+      bundle_cancelled_event (const bundleAttributes::type&,
+                              const link_name::type&);
+
+      bundle_cancelled_event (const ::xercesc::DOMElement&,
+                              ::xml_schema::flags = 0,
+                              ::xml_schema::type* = 0);
+
+      bundle_cancelled_event (const bundle_cancelled_event&,
+                              ::xml_schema::flags = 0,
+                              ::xml_schema::type* = 0);
+
+      virtual bundle_cancelled_event*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::one< bundleAttributes::type > _xsd_bundleAttributes_;
+      ::xsd::cxx::tree::one< link_name::type > _xsd_link_name_;
+    };
+
+    class cl_message: public ::xml_schema::type
+    {
+      public:
+
+      struct _xsd_cl_message
+      {
+        typedef ::xml_schema::type base_;
+      };
+
+      // cla_add_request
+      // 
+      public:
+      struct cla_add_request
+      {
+        typedef ::dtn::clmessage::cla_add_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const cla_add_request::container&
+      cla_add_request () const;
+
+      cla_add_request::container&
+      cla_add_request ();
+
+      void
+      cla_add_request (const cla_add_request::type&);
+
+      void
+      cla_add_request (const cla_add_request::container&);
+
+      void
+      cla_add_request (::std::auto_ptr< cla_add_request::type >);
+
+      // cla_delete_request
+      // 
+      public:
+      struct cla_delete_request
+      {
+        typedef ::dtn::clmessage::cla_delete_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const cla_delete_request::container&
+      cla_delete_request () const;
+
+      cla_delete_request::container&
+      cla_delete_request ();
+
+      void
+      cla_delete_request (const cla_delete_request::type&);
+
+      void
+      cla_delete_request (const cla_delete_request::container&);
+
+      void
+      cla_delete_request (::std::auto_ptr< cla_delete_request::type >);
+
+      // cla_set_params_request
+      // 
+      public:
+      struct cla_set_params_request
+      {
+        typedef ::dtn::clmessage::cla_set_params_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const cla_set_params_request::container&
+      cla_set_params_request () const;
+
+      cla_set_params_request::container&
+      cla_set_params_request ();
+
+      void
+      cla_set_params_request (const cla_set_params_request::type&);
+
+      void
+      cla_set_params_request (const cla_set_params_request::container&);
+
+      void
+      cla_set_params_request (::std::auto_ptr< cla_set_params_request::type >);
+
+      // cla_params_set_event
+      // 
+      public:
+      struct cla_params_set_event
+      {
+        typedef ::dtn::clmessage::cla_params_set_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const cla_params_set_event::container&
+      cla_params_set_event () const;
+
+      cla_params_set_event::container&
+      cla_params_set_event ();
+
+      void
+      cla_params_set_event (const cla_params_set_event::type&);
+
+      void
+      cla_params_set_event (const cla_params_set_event::container&);
+
+      void
+      cla_params_set_event (::std::auto_ptr< cla_params_set_event::type >);
+
+      // interface_set_defaults_request
+      // 
+      public:
+      struct interface_set_defaults_request
+      {
+        typedef ::dtn::clmessage::interface_set_defaults_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const interface_set_defaults_request::container&
+      interface_set_defaults_request () const;
+
+      interface_set_defaults_request::container&
+      interface_set_defaults_request ();
+
+      void
+      interface_set_defaults_request (const interface_set_defaults_request::type&);
+
+      void
+      interface_set_defaults_request (const interface_set_defaults_request::container&);
+
+      void
+      interface_set_defaults_request (::std::auto_ptr< interface_set_defaults_request::type >);
+
+      // interface_create_request
+      // 
+      public:
+      struct interface_create_request
+      {
+        typedef ::dtn::clmessage::interface_create_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const interface_create_request::container&
+      interface_create_request () const;
+
+      interface_create_request::container&
+      interface_create_request ();
+
+      void
+      interface_create_request (const interface_create_request::type&);
+
+      void
+      interface_create_request (const interface_create_request::container&);
+
+      void
+      interface_create_request (::std::auto_ptr< interface_create_request::type >);
+
+      // interface_created_event
+      // 
+      public:
+      struct interface_created_event
+      {
+        typedef ::dtn::clmessage::interface_created_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const interface_created_event::container&
+      interface_created_event () const;
+
+      interface_created_event::container&
+      interface_created_event ();
+
+      void
+      interface_created_event (const interface_created_event::type&);
+
+      void
+      interface_created_event (const interface_created_event::container&);
+
+      void
+      interface_created_event (::std::auto_ptr< interface_created_event::type >);
+
+      // interface_reconfigure_request
+      // 
+      public:
+      struct interface_reconfigure_request
+      {
+        typedef ::dtn::clmessage::interface_reconfigure_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const interface_reconfigure_request::container&
+      interface_reconfigure_request () const;
+
+      interface_reconfigure_request::container&
+      interface_reconfigure_request ();
+
+      void
+      interface_reconfigure_request (const interface_reconfigure_request::type&);
+
+      void
+      interface_reconfigure_request (const interface_reconfigure_request::container&);
+
+      void
+      interface_reconfigure_request (::std::auto_ptr< interface_reconfigure_request::type >);
+
+      // interface_reconfigured_event
+      // 
+      public:
+      struct interface_reconfigured_event
+      {
+        typedef ::dtn::clmessage::interface_reconfigured_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const interface_reconfigured_event::container&
+      interface_reconfigured_event () const;
+
+      interface_reconfigured_event::container&
+      interface_reconfigured_event ();
+
+      void
+      interface_reconfigured_event (const interface_reconfigured_event::type&);
+
+      void
+      interface_reconfigured_event (const interface_reconfigured_event::container&);
+
+      void
+      interface_reconfigured_event (::std::auto_ptr< interface_reconfigured_event::type >);
+
+      // interface_destroy_request
+      // 
+      public:
+      struct interface_destroy_request
+      {
+        typedef ::dtn::clmessage::interface_destroy_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const interface_destroy_request::container&
+      interface_destroy_request () const;
+
+      interface_destroy_request::container&
+      interface_destroy_request ();
+
+      void
+      interface_destroy_request (const interface_destroy_request::type&);
+
+      void
+      interface_destroy_request (const interface_destroy_request::container&);
+
+      void
+      interface_destroy_request (::std::auto_ptr< interface_destroy_request::type >);
+
+      // eid_reachable_event
+      // 
+      public:
+      struct eid_reachable_event
+      {
+        typedef ::dtn::clmessage::eid_reachable_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const eid_reachable_event::container&
+      eid_reachable_event () const;
+
+      eid_reachable_event::container&
+      eid_reachable_event ();
+
+      void
+      eid_reachable_event (const eid_reachable_event::type&);
+
+      void
+      eid_reachable_event (const eid_reachable_event::container&);
+
+      void
+      eid_reachable_event (::std::auto_ptr< eid_reachable_event::type >);
+
+      // link_set_defaults_request
+      // 
+      public:
+      struct link_set_defaults_request
+      {
+        typedef ::dtn::clmessage::link_set_defaults_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_set_defaults_request::container&
+      link_set_defaults_request () const;
+
+      link_set_defaults_request::container&
+      link_set_defaults_request ();
+
+      void
+      link_set_defaults_request (const link_set_defaults_request::type&);
+
+      void
+      link_set_defaults_request (const link_set_defaults_request::container&);
+
+      void
+      link_set_defaults_request (::std::auto_ptr< link_set_defaults_request::type >);
+
+      // link_create_request
+      // 
+      public:
+      struct link_create_request
+      {
+        typedef ::dtn::clmessage::link_create_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_create_request::container&
+      link_create_request () const;
+
+      link_create_request::container&
+      link_create_request ();
+
+      void
+      link_create_request (const link_create_request::type&);
+
+      void
+      link_create_request (const link_create_request::container&);
+
+      void
+      link_create_request (::std::auto_ptr< link_create_request::type >);
+
+      // link_created_event
+      // 
+      public:
+      struct link_created_event
+      {
+        typedef ::dtn::clmessage::link_created_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_created_event::container&
+      link_created_event () const;
+
+      link_created_event::container&
+      link_created_event ();
+
+      void
+      link_created_event (const link_created_event::type&);
+
+      void
+      link_created_event (const link_created_event::container&);
+
+      void
+      link_created_event (::std::auto_ptr< link_created_event::type >);
+
+      // link_reachable_event
+      // 
+      public:
+      struct link_reachable_event
+      {
+        typedef ::dtn::clmessage::link_reachable_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_reachable_event::container&
+      link_reachable_event () const;
+
+      link_reachable_event::container&
+      link_reachable_event ();
+
+      void
+      link_reachable_event (const link_reachable_event::type&);
+
+      void
+      link_reachable_event (const link_reachable_event::container&);
+
+      void
+      link_reachable_event (::std::auto_ptr< link_reachable_event::type >);
+
+      // link_open_request
+      // 
+      public:
+      struct link_open_request
+      {
+        typedef ::dtn::clmessage::link_open_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_open_request::container&
+      link_open_request () const;
+
+      link_open_request::container&
+      link_open_request ();
+
+      void
+      link_open_request (const link_open_request::type&);
+
+      void
+      link_open_request (const link_open_request::container&);
+
+      void
+      link_open_request (::std::auto_ptr< link_open_request::type >);
+
+      // link_opened_event
+      // 
+      public:
+      struct link_opened_event
+      {
+        typedef ::dtn::clmessage::link_opened_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_opened_event::container&
+      link_opened_event () const;
+
+      link_opened_event::container&
+      link_opened_event ();
+
+      void
+      link_opened_event (const link_opened_event::type&);
+
+      void
+      link_opened_event (const link_opened_event::container&);
+
+      void
+      link_opened_event (::std::auto_ptr< link_opened_event::type >);
+
+      // link_close_request
+      // 
+      public:
+      struct link_close_request
+      {
+        typedef ::dtn::clmessage::link_close_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_close_request::container&
+      link_close_request () const;
+
+      link_close_request::container&
+      link_close_request ();
+
+      void
+      link_close_request (const link_close_request::type&);
+
+      void
+      link_close_request (const link_close_request::container&);
+
+      void
+      link_close_request (::std::auto_ptr< link_close_request::type >);
+
+      // link_closed_event
+      // 
+      public:
+      struct link_closed_event
+      {
+        typedef ::dtn::clmessage::link_closed_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_closed_event::container&
+      link_closed_event () const;
+
+      link_closed_event::container&
+      link_closed_event ();
+
+      void
+      link_closed_event (const link_closed_event::type&);
+
+      void
+      link_closed_event (const link_closed_event::container&);
+
+      void
+      link_closed_event (::std::auto_ptr< link_closed_event::type >);
+
+      // link_state_changed_event
+      // 
+      public:
+      struct link_state_changed_event
+      {
+        typedef ::dtn::clmessage::link_state_changed_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_state_changed_event::container&
+      link_state_changed_event () const;
+
+      link_state_changed_event::container&
+      link_state_changed_event ();
+
+      void
+      link_state_changed_event (const link_state_changed_event::type&);
+
+      void
+      link_state_changed_event (const link_state_changed_event::container&);
+
+      void
+      link_state_changed_event (::std::auto_ptr< link_state_changed_event::type >);
+
+      // link_delete_request
+      // 
+      public:
+      struct link_delete_request
+      {
+        typedef ::dtn::clmessage::link_delete_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_delete_request::container&
+      link_delete_request () const;
+
+      link_delete_request::container&
+      link_delete_request ();
+
+      void
+      link_delete_request (const link_delete_request::type&);
+
+      void
+      link_delete_request (const link_delete_request::container&);
+
+      void
+      link_delete_request (::std::auto_ptr< link_delete_request::type >);
+
+      // link_deleted_event
+      // 
+      public:
+      struct link_deleted_event
+      {
+        typedef ::dtn::clmessage::link_deleted_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_deleted_event::container&
+      link_deleted_event () const;
+
+      link_deleted_event::container&
+      link_deleted_event ();
+
+      void
+      link_deleted_event (const link_deleted_event::type&);
+
+      void
+      link_deleted_event (const link_deleted_event::container&);
+
+      void
+      link_deleted_event (::std::auto_ptr< link_deleted_event::type >);
+
+      // link_attribute_changed_event
+      // 
+      public:
+      struct link_attribute_changed_event
+      {
+        typedef ::dtn::clmessage::link_attribute_changed_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const link_attribute_changed_event::container&
+      link_attribute_changed_event () const;
+
+      link_attribute_changed_event::container&
+      link_attribute_changed_event ();
+
+      void
+      link_attribute_changed_event (const link_attribute_changed_event::type&);
+
+      void
+      link_attribute_changed_event (const link_attribute_changed_event::container&);
+
+      void
+      link_attribute_changed_event (::std::auto_ptr< link_attribute_changed_event::type >);
+
+      // contact_attribute_changed_event
+      // 
+      public:
+      struct contact_attribute_changed_event
+      {
+        typedef ::dtn::clmessage::contact_attribute_changed_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const contact_attribute_changed_event::container&
+      contact_attribute_changed_event () const;
+
+      contact_attribute_changed_event::container&
+      contact_attribute_changed_event ();
+
+      void
+      contact_attribute_changed_event (const contact_attribute_changed_event::type&);
+
+      void
+      contact_attribute_changed_event (const contact_attribute_changed_event::container&);
+
+      void
+      contact_attribute_changed_event (::std::auto_ptr< contact_attribute_changed_event::type >);
+
+      // bundle_send_request
+      // 
+      public:
+      struct bundle_send_request
+      {
+        typedef ::dtn::clmessage::bundle_send_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const bundle_send_request::container&
+      bundle_send_request () const;
+
+      bundle_send_request::container&
+      bundle_send_request ();
+
+      void
+      bundle_send_request (const bundle_send_request::type&);
+
+      void
+      bundle_send_request (const bundle_send_request::container&);
+
+      void
+      bundle_send_request (::std::auto_ptr< bundle_send_request::type >);
+
+      // bundle_receive_started_event
+      // 
+      public:
+      struct bundle_receive_started_event
+      {
+        typedef ::dtn::clmessage::bundle_receive_started_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const bundle_receive_started_event::container&
+      bundle_receive_started_event () const;
+
+      bundle_receive_started_event::container&
+      bundle_receive_started_event ();
+
+      void
+      bundle_receive_started_event (const bundle_receive_started_event::type&);
+
+      void
+      bundle_receive_started_event (const bundle_receive_started_event::container&);
+
+      void
+      bundle_receive_started_event (::std::auto_ptr< bundle_receive_started_event::type >);
+
+      // bundle_received_event
+      // 
+      public:
+      struct bundle_received_event
+      {
+        typedef ::dtn::clmessage::bundle_received_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const bundle_received_event::container&
+      bundle_received_event () const;
+
+      bundle_received_event::container&
+      bundle_received_event ();
+
+      void
+      bundle_received_event (const bundle_received_event::type&);
+
+      void
+      bundle_received_event (const bundle_received_event::container&);
+
+      void
+      bundle_received_event (::std::auto_ptr< bundle_received_event::type >);
+
+      // bundle_transmitted_event
+      // 
+      public:
+      struct bundle_transmitted_event
+      {
+        typedef ::dtn::clmessage::bundle_transmitted_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const bundle_transmitted_event::container&
+      bundle_transmitted_event () const;
+
+      bundle_transmitted_event::container&
+      bundle_transmitted_event ();
+
+      void
+      bundle_transmitted_event (const bundle_transmitted_event::type&);
+
+      void
+      bundle_transmitted_event (const bundle_transmitted_event::container&);
+
+      void
+      bundle_transmitted_event (::std::auto_ptr< bundle_transmitted_event::type >);
+
+      // bundle_cancel_request
+      // 
+      public:
+      struct bundle_cancel_request
+      {
+        typedef ::dtn::clmessage::bundle_cancel_request type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const bundle_cancel_request::container&
+      bundle_cancel_request () const;
+
+      bundle_cancel_request::container&
+      bundle_cancel_request ();
+
+      void
+      bundle_cancel_request (const bundle_cancel_request::type&);
+
+      void
+      bundle_cancel_request (const bundle_cancel_request::container&);
+
+      void
+      bundle_cancel_request (::std::auto_ptr< bundle_cancel_request::type >);
+
+      // bundle_cancelled_event
+      // 
+      public:
+      struct bundle_cancelled_event
+      {
+        typedef ::dtn::clmessage::bundle_cancelled_event type;
+        typedef ::xsd::cxx::tree::traits< type, char > traits;
+        typedef ::xsd::cxx::tree::optional< type > container;
+      };
+
+      const bundle_cancelled_event::container&
+      bundle_cancelled_event () const;
+
+      bundle_cancelled_event::container&
+      bundle_cancelled_event ();
+
+      void
+      bundle_cancelled_event (const bundle_cancelled_event::type&);
+
+      void
+      bundle_cancelled_event (const bundle_cancelled_event::container&);
+
+      void
+      bundle_cancelled_event (::std::auto_ptr< bundle_cancelled_event::type >);
+
+      // Constructors.
+      //
+      public:
+      cl_message ();
+
+      cl_message (const ::xercesc::DOMElement&,
+                  ::xml_schema::flags = 0,
+                  ::xml_schema::type* = 0);
+
+      cl_message (const cl_message&,
+                  ::xml_schema::flags = 0,
+                  ::xml_schema::type* = 0);
+
+      virtual cl_message*
+      _clone (::xml_schema::flags = 0,
+              ::xml_schema::type* = 0) const;
+
+      // Implementation.
+      //
+      private:
+      void
+      parse (const ::xercesc::DOMElement&, ::xml_schema::flags);
+
+      ::xsd::cxx::tree::optional< cla_add_request::type > _xsd_cla_add_request_;
+      ::xsd::cxx::tree::optional< cla_delete_request::type > _xsd_cla_delete_request_;
+      ::xsd::cxx::tree::optional< cla_set_params_request::type > _xsd_cla_set_params_request_;
+      ::xsd::cxx::tree::optional< cla_params_set_event::type > _xsd_cla_params_set_event_;
+      ::xsd::cxx::tree::optional< interface_set_defaults_request::type > _xsd_interface_set_defaults_request_;
+      ::xsd::cxx::tree::optional< interface_create_request::type > _xsd_interface_create_request_;
+      ::xsd::cxx::tree::optional< interface_created_event::type > _xsd_interface_created_event_;
+      ::xsd::cxx::tree::optional< interface_reconfigure_request::type > _xsd_interface_reconfigure_request_;
+      ::xsd::cxx::tree::optional< interface_reconfigured_event::type > _xsd_interface_reconfigured_event_;
+      ::xsd::cxx::tree::optional< interface_destroy_request::type > _xsd_interface_destroy_request_;
+      ::xsd::cxx::tree::optional< eid_reachable_event::type > _xsd_eid_reachable_event_;
+      ::xsd::cxx::tree::optional< link_set_defaults_request::type > _xsd_link_set_defaults_request_;
+      ::xsd::cxx::tree::optional< link_create_request::type > _xsd_link_create_request_;
+      ::xsd::cxx::tree::optional< link_created_event::type > _xsd_link_created_event_;
+      ::xsd::cxx::tree::optional< link_reachable_event::type > _xsd_link_reachable_event_;
+      ::xsd::cxx::tree::optional< link_open_request::type > _xsd_link_open_request_;
+      ::xsd::cxx::tree::optional< link_opened_event::type > _xsd_link_opened_event_;
+      ::xsd::cxx::tree::optional< link_close_request::type > _xsd_link_close_request_;
+      ::xsd::cxx::tree::optional< link_closed_event::type > _xsd_link_closed_event_;
+      ::xsd::cxx::tree::optional< link_state_changed_event::type > _xsd_link_state_changed_event_;
+      ::xsd::cxx::tree::optional< link_delete_request::type > _xsd_link_delete_request_;
+      ::xsd::cxx::tree::optional< link_deleted_event::type > _xsd_link_deleted_event_;
+      ::xsd::cxx::tree::optional< link_attribute_changed_event::type > _xsd_link_attribute_changed_event_;
+      ::xsd::cxx::tree::optional< contact_attribute_changed_event::type > _xsd_contact_attribute_changed_event_;
+      ::xsd::cxx::tree::optional< bundle_send_request::type > _xsd_bundle_send_request_;
+      ::xsd::cxx::tree::optional< bundle_receive_started_event::type > _xsd_bundle_receive_started_event_;
+      ::xsd::cxx::tree::optional< bundle_received_event::type > _xsd_bundle_received_event_;
+      ::xsd::cxx::tree::optional< bundle_transmitted_event::type > _xsd_bundle_transmitted_event_;
+      ::xsd::cxx::tree::optional< bundle_cancel_request::type > _xsd_bundle_cancel_request_;
+      ::xsd::cxx::tree::optional< bundle_cancelled_event::type > _xsd_bundle_cancelled_event_;
+    };
+  }
+}
+
+#include <iosfwd>
+
+#include <xercesc/dom/DOMDocument.hpp>
+#include <xercesc/dom/DOMInputSource.hpp>
+#include <xercesc/dom/DOMErrorHandler.hpp>
+
+#include <xsd/cxx/tree/parsing.hxx>
+
+namespace dtn
+{
+  namespace clmessage
+  {
+    // Read from a URI or a local file.
+    //
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (const ::std::basic_string< char >&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (const ::std::basic_string< char >&,
+                 ::xsd::cxx::xml::error_handler< char >&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (const ::std::basic_string< char >&,
+                 ::xercesc::DOMErrorHandler&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+
+    // Read from std::istream.
+    //
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (::std::istream&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (::std::istream&,
+                 ::xsd::cxx::xml::error_handler< char >&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (::std::istream&,
+                 ::xercesc::DOMErrorHandler&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (::std::istream&,
+                 const ::std::basic_string< char >& id,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (::std::istream&,
+                 const ::std::basic_string< char >& id,
+                 ::xsd::cxx::xml::error_handler< char >&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (::std::istream&,
+                 const ::std::basic_string< char >& id,
+                 ::xercesc::DOMErrorHandler&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+
+    // Read from InputSource.
+    //
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (const ::xercesc::DOMInputSource&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (const ::xercesc::DOMInputSource&,
+                 ::xsd::cxx::xml::error_handler< char >&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (const ::xercesc::DOMInputSource&,
+                 ::xercesc::DOMErrorHandler&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+
+
+    // Read from DOM.
+    //
+
+    ::std::auto_ptr< ::dtn::clmessage::cl_message >
+    cl_message_ (const ::xercesc::DOMDocument&,
+                 ::xml_schema::flags = 0,
+                 const ::xsd::cxx::tree::properties< char >& = ::xsd::cxx::tree::properties< char > ());
+  }
+}
+
+#include <iosfwd> // std::ostream&
+
+#include <xercesc/dom/DOMDocument.hpp>
+#include <xercesc/dom/DOMErrorHandler.hpp>
+#include <xercesc/framework/XMLFormatter.hpp>
+
+#include <xsd/cxx/xml/dom/auto-ptr.hxx>
+#include <xsd/cxx/tree/serialization.hxx>
+
+namespace dtn
+{
+  namespace clmessage
+  {
+    void
+    operator<< (::xercesc::DOMElement&,
+                linkTypeType);
+
+    void
+    operator<< (::xercesc::DOMAttr&,
+                linkTypeType);
+
+    void
+    operator<< (::xsd::cxx::tree::list_stream< char >&,
+                linkTypeType);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                linkStateType);
+
+    void
+    operator<< (::xercesc::DOMAttr&,
+                linkStateType);
+
+    void
+    operator<< (::xsd::cxx::tree::list_stream< char >&,
+                linkStateType);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                linkReasonType);
+
+    void
+    operator<< (::xercesc::DOMAttr&,
+                linkReasonType);
+
+    void
+    operator<< (::xsd::cxx::tree::list_stream< char >&,
+                linkReasonType);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                bundlePassMethodType);
+
+    void
+    operator<< (::xercesc::DOMAttr&,
+                bundlePassMethodType);
+
+    void
+    operator<< (::xsd::cxx::tree::list_stream< char >&,
+                bundlePassMethodType);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const percentType&);
+
+    void
+    operator<< (::xercesc::DOMAttr&,
+                const percentType&);
+
+    void
+    operator<< (::xsd::cxx::tree::list_stream< char >&,
+                const percentType&);
+
+    // Serialize to an existing DOM instance.
+    //
+    void
+    cl_message_ (::xercesc::DOMDocument&,
+                 const ::dtn::clmessage::cl_message&,
+                 ::xml_schema::flags = 0);
+
+
+    // Serialize to a new DOM instance.
+    //
+    ::xsd::cxx::xml::dom::auto_ptr< ::xercesc::DOMDocument >
+    cl_message_ (const ::dtn::clmessage::cl_message&, 
+                 const ::xsd::cxx::xml::dom::namespace_infomap< char >&,
+                 ::xml_schema::flags = 0);
+
+
+    // Serialize to XMLFormatTarget.
+    //
+    void
+    cl_message_ (::xercesc::XMLFormatTarget&,
+                 const ::dtn::clmessage::cl_message&, 
+                 const ::xsd::cxx::xml::dom::namespace_infomap< char >&,
+                 const ::std::basic_string< char >& = "UTF-8",
+                 ::xml_schema::flags = 0);
+
+
+    void
+    cl_message_ (::xercesc::XMLFormatTarget&,
+                 const ::dtn::clmessage::cl_message&, 
+                 const ::xsd::cxx::xml::dom::namespace_infomap< char >&,
+                 ::xsd::cxx::xml::error_handler< char >&,
+                 const ::std::basic_string< char >& = "UTF-8",
+                 ::xml_schema::flags = 0);
+
+    void
+    cl_message_ (::xercesc::XMLFormatTarget&,
+                 const ::dtn::clmessage::cl_message&, 
+                 const ::xsd::cxx::xml::dom::namespace_infomap< char >&,
+                 ::xercesc::DOMErrorHandler&,
+                 const ::std::basic_string< char >& = "UTF-8",
+                 ::xml_schema::flags = 0);
+
+
+    // Serialize to std::ostream.
+    //
+    void
+    cl_message_ (::std::ostream&,
+                 const ::dtn::clmessage::cl_message&, 
+                 const ::xsd::cxx::xml::dom::namespace_infomap< char >&,
+                 const ::std::basic_string< char >& = "UTF-8",
+                 ::xml_schema::flags = 0);
+
+
+    void
+    cl_message_ (::std::ostream&,
+                 const ::dtn::clmessage::cl_message&, 
+                 const ::xsd::cxx::xml::dom::namespace_infomap< char >&,
+                 ::xsd::cxx::xml::error_handler< char >&,
+                 const ::std::basic_string< char >& = "UTF-8",
+                 ::xml_schema::flags = 0);
+
+    void
+    cl_message_ (::std::ostream&,
+                 const ::dtn::clmessage::cl_message&, 
+                 const ::xsd::cxx::xml::dom::namespace_infomap< char >&,
+                 ::xercesc::DOMErrorHandler&,
+                 const ::std::basic_string< char >& = "UTF-8",
+                 ::xml_schema::flags = 0);
+
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const Parameter&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const bundleAttributes&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const linkAttributes&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const contactAttributes&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const cla_add_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const cla_delete_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const cla_set_params_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const cla_params_set_event&);
+
+    void
+    operator<< (::xercesc::DOMAttr&,
+                const cla_params_set_event&);
+
+    void
+    operator<< (::xsd::cxx::tree::list_stream< char >&,
+                const cla_params_set_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const interface_set_defaults_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const interface_create_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const interface_created_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const interface_reconfigure_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const interface_reconfigured_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const interface_destroy_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const eid_reachable_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_set_defaults_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_create_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_created_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_reachable_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_open_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_opened_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_close_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_closed_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_state_changed_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_delete_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_deleted_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const link_attribute_changed_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const contact_attribute_changed_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const bundle_send_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const bundle_receive_started_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const bundle_received_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const bundle_transmitted_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const bundle_cancel_request&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const bundle_cancelled_event&);
+
+    void
+    operator<< (::xercesc::DOMElement&,
+                const cl_message&);
+  }
+}
+
+#include <xsd/cxx/post.hxx>
+
+// Begin epilogue.
+//
+//
+// End epilogue.
+
+#endif // CLEVENT_H

@@ -1,19 +1,19 @@
-/*
-Copyright 2004-2006 BBN Technologies Corporation
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at http://www.apache.org/licenses/LICENSE-2.0
- 
-Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied.
-    
-See the License for the specific language governing permissions and limitations
-under the License.
-
-$Id$
-*/
+/* Copyright 2004-2006 BBN Technologies Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy
+ * of the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *
+ * $Id$
+ */
 
 #include <config.h>
 #ifdef XERCES_C_ENABLED
@@ -32,12 +32,15 @@ $Id$
 #include "ExternalConvergenceLayer.h"
 #include "ECLModule.h"
 #include "bundling/BundleDaemon.h"
+#include "contacts/ContactManager.h"
 
 namespace dtn {
 
+bool ExternalConvergenceLayer::client_validation_ = true;
 std::string ExternalConvergenceLayer::schema_ = "";
 in_addr_t ExternalConvergenceLayer::server_addr_ = inet_addr("127.0.0.1");
-u_int16_t ExternalConvergenceLayer::server_port_ = 0;
+u_int16_t ExternalConvergenceLayer::server_port_ = 5070;
+xml_schema::namespace_infomap ExternalConvergenceLayer::namespace_map_;
 
 ExternalConvergenceLayer::ExternalConvergenceLayer() :
 ConvergenceLayer("ExternalConvergenceLayer", "extcl"),
@@ -46,7 +49,7 @@ module_mutex_("/dtn/cl/parts/module_mutex"),
 resource_mutex_("/dtn/cl/parts/resource_mutex"),
 listener_(*this)
 {
-    log_info("ExternalConvergenceLayer started");
+
 }
 
 ExternalConvergenceLayer::~ExternalConvergenceLayer()
@@ -57,7 +60,20 @@ ExternalConvergenceLayer::~ExternalConvergenceLayer()
 void
 ExternalConvergenceLayer::start()
 {
+    log_info("ExternalConvergenceLayer started");
+    
+    // Make sure that we were given a schema file to work with.
+    if ( schema_ == std::string("") ) {
+        log_err("No XML schema file specified."
+                " ExternalConvergenceLayer is disabled.");
+        return;
+    }
+    
     log_info( "Using XML schema file %s", schema_.c_str() );
+    if (client_validation_)
+        namespace_map_[""].schema = schema_.c_str();
+    
+    // Start the listener thread.
     listener_.start();
 }
 
@@ -76,18 +92,32 @@ ExternalConvergenceLayer::interface_up(Interface* iface, int argc,
         log_err("Error parsing interface options: no 'protocol' option given");
         return false;
     }
-
+    
     log_debug( "Adding interface %s for protocol %s", iface->name().c_str(),
                proto_option.c_str() );
-
-    CLInterfaceCreateRequest* request =
-            new CLInterfaceCreateRequest(iface->name(), argc, argv);
-
+    
+    --argc;
+    ++argv;
+    
+    // Turn the remaining arguments into a parameter sequence for XMLization.
+    ParamSequence param_sequence;
+    build_param_sequence(argc, argv, param_sequence);
+    
+    // Create the request message.
+    interface_create_request request;
+    request.interface_name( iface->name() );
+    request.Parameter(param_sequence);
+    
+    cl_message* message = new cl_message();
+    message->interface_create_request(request);
+    
     ECLModule* module = get_module(proto_option);
     ECLInterfaceResource* resource =
-            new ECLInterfaceResource(proto_option, request, module, iface);
+            new ECLInterfaceResource(proto_option, message, module, iface);
 
     iface->set_cl_info(resource);
+    
+    oasys::ScopeLock l(&resource->lock, "interface_up");
 
     // Send the interface to the module if one was found for this protocol...
     if (module) {
@@ -112,9 +142,8 @@ ExternalConvergenceLayer::interface_down(Interface* iface)
     ECLInterfaceResource* resource =
             dynamic_cast<ECLInterfaceResource*>( iface->cl_info() );
     ASSERT(resource);
-
-    // Tell the module to destroy this interface.
-    resource->module->post_event(new CLInterfaceDestroyRequest(iface->name()));
+    
+    oasys::ScopeLock l(&resource->lock, "interface_down");
 
     // Remove this interface from the module's list and delete the resource.
     resource->module->remove_interface( iface->name() );
@@ -154,7 +183,7 @@ ExternalConvergenceLayer::init_link(const LinkRef& link,
         log_err("Error parsing link options: no 'protocol' option given");
         return false;
     }
-
+    
     log_debug( "Adding link %s for protocol %s", link->name(),
                proto_option.c_str() );
     
@@ -166,20 +195,34 @@ ExternalConvergenceLayer::init_link(const LinkRef& link,
         return false;
     }
     
-    CLLinkCreateRequest* request =
-            new CLLinkCreateRequest(link->type(), link->name_str(),
-                                    link->remote_eid().str(),
-                                    std::string( link->nexthop() ),
-                                    argc - 1, argv + 1);
-
+    ++argv;
+    --argc;
+    
+    // Turn the remaining arguments into a parameter sequence for XMLization.
+    ParamSequence param_sequence;
+    build_param_sequence(argc, argv, param_sequence);
+    param_sequence.push_back( clmessage::Parameter( "next_hop",
+                              link->nexthop() ) );
+    
+    // Create the request message.
+    link_create_request request;
+    request.link_name( link->name_str() );
+    request.type( XMLConvert::convert_link_type( link->type() ) );
+    request.peer_eid( link->remote_eid().str() );
+    request.Parameter(param_sequence);
+    
+    cl_message* message = new cl_message();
+    message->link_create_request(request);
+    
     ECLLinkResource* resource =
-            new ECLLinkResource(proto_option, request, module, link, false);
+            new ECLLinkResource(proto_option, message, module, link, false);
+    
+    oasys::ScopeLock l(&resource->lock, "init_link");
+    
     link->set_cl_info(resource);
+    //link->set_flag(Link::CREATE_PENDING);
     
     if (module) {
-        if (link->type() == Link::OPPORTUNISTIC)
-            link->set_state(Link::UNAVAILABLE);
-    
         module->take_resource(resource);
     }
     
@@ -194,9 +237,53 @@ ExternalConvergenceLayer::init_link(const LinkRef& link,
 }
 
 void
+ExternalConvergenceLayer::delete_link(const LinkRef& link)
+{
+    log_debug("ExternalConvergenceLayer::delete_link: "
+              "deleting link %s", link->name());
+
+    /*if (link->isdeleted() || link->cl_info() == NULL) {
+        log_warn("ExternalConverganceLayer::delete_link: "
+                 "link %s already deleted", link->name());
+        return;
+    }*/
+    
+    ECLLinkResource* resource =
+            dynamic_cast<ECLLinkResource*>( link->cl_info() );
+    ASSERT(resource);
+    
+    oasys::ScopeLock l(&resource->lock, "delete_link");
+    
+    // Clear out this link's cl_info.
+    link->set_cl_info(NULL);
+    
+    // If the link is unclaimed, just remove it from the resource list.
+    // This also handles the case of a LinkDeletedEvent coming from the CLA
+    // with out a corresponding LinkDeleteRequest from the user.
+    // NOTE: The ContactManager posts a LinkDeletedEvent, so we do not need
+    // another one.
+    if (resource->module == NULL) {
+        delete_resource(resource);
+        return;
+    }
+    
+    // Otherwise, send a message to the CLA to have it delete the link.
+    link_delete_request request;
+    request.link_name( link->name_str() );
+    POST_MESSAGE(resource->module, link_delete_request, request); 
+}
+
+void
 ExternalConvergenceLayer::dump_link(const LinkRef& link,
                                     oasys::StringBuffer* buf)
 {
+	// Ignore destroyed links
+    if (link->cl_info() == NULL) {
+        log_warn( "Can't dump link information for destroyed link %s",
+                  link->name() );
+        return; 
+    }
+	
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
 
@@ -206,26 +293,43 @@ ExternalConvergenceLayer::dump_link(const LinkRef& link,
 bool
 ExternalConvergenceLayer::open_contact(const ContactRef& contact)
 {
+    log_debug("ExternalConvergenceLayer::open_contact enter");
     oasys::ScopeLock(&global_resource_lock_, "open_contact");
     
     LinkRef link = contact->link();
+    ASSERT(link != NULL);
+    
+    /*if(link->isdeleted() || link->cl_info() == NULL) {
+        log_debug("ExternalConvergenceLayer::open_contact: "
+                  "cannot open contact on deleted link %s", link->name());
+        return false; 
+    }*/
+    
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
-
-    if(!resource){
+    if (!resource) {
         log_err( "Cannot open contact on link that does not exist" );
+        BundleDaemon::post(
+            new LinkStateChangeRequest(link, Link::CLOSED,
+                                       ContactEvent::NO_INFO));
         return false;
     }
-
+    
+    oasys::ScopeLock l(&resource->lock, "open_contact");
     
     if (!resource->module) {
         log_err( "Cannot open contact on unclaimed link %s", link->name() );
+        BundleDaemon::post(
+            new LinkStateChangeRequest(link, Link::CLOSED,
+                                       ContactEvent::NO_INFO));
         return false;
     }
     
     if (resource->known_state != Link::OPEN) {
-        resource->module->post_event( new CLLinkOpenRequest( link->name_str() ) );
-        return false;
+        link_open_request request;
+        request.link_name( link->name_str() );
+        POST_MESSAGE(resource->module, link_open_request, request); 
+        return true;
     }
     
     return true;
@@ -237,11 +341,21 @@ ExternalConvergenceLayer::close_contact(const ContactRef& contact)
     oasys::ScopeLock(&global_resource_lock_, "open_contact");
     
     LinkRef link = contact->link();
+    
+    // Ignore destroyed links
+	if (link->cl_info() == NULL) {
+		log_warn( "Ignoring close contact request for destroyed link %s",
+                  link->name() );
+		return true; 
+	}
+    
     ECLLinkResource* resource =
                      dynamic_cast<ECLLinkResource*>( link->cl_info() );
+    ASSERT(resource);
     
-    // This indicates that the closing originated in the ECLModule. In that
-    // case, resource->module has probably already been NULLed out.
+    oasys::ScopeLock l(&resource->lock, "close_contact");
+    
+    // This indicates that the closing originated in the ECLModule.
     if (resource->known_state == Link::CLOSED)
         return true;
     
@@ -250,8 +364,12 @@ ExternalConvergenceLayer::close_contact(const ContactRef& contact)
         return true;
     }
     
-    resource->known_state = Link::CLOSED;                     
-    resource->module->post_event( new CLLinkCloseRequest( link->name_str() ) );
+    resource->known_state = Link::CLOSED;
+                         
+    // Send a link close request to the CLA.
+    link_close_request request;
+    request.link_name( link->name_str() );
+    POST_MESSAGE(resource->module, link_close_request, request); 
     
     return true;
 }
@@ -262,16 +380,21 @@ ExternalConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     oasys::ScopeLock(&global_resource_lock_, "send_bundle");
     
     LinkRef link = contact->link();
-    if ( !link->cl_info() ) {
-        log_err("Link %s has no cl_info", link->name() );
-        BundleDaemon::post( new BundleTransmitFailedEvent(bundle, contact,
-                            contact->link() ) );
+    ASSERT(link != NULL);
+    
+    /*if (link->isdeleted() || link->cl_info() == NULL) {
+        log_debug("ExternalConvergenceLayer::send_bundle: "
+                  "cannot send bundle on deleted link %s", link->name());
+        BundleDaemon::post(
+            new BundleTransmitFailedEvent(bundle, contact, link));
         return;
-    }
+    }*/
 
     ECLLinkResource* resource =
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
     ASSERT(resource);
+    
+    oasys::ScopeLock l(&resource->lock, "send_bundle");
 
     // Make sure that this link is claimed by a module before trying to send
     // something through it.
@@ -283,13 +406,87 @@ ExternalConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
         return;
     }
     
-    log_debug( "Sending bundle on link %s", contact->link()->name() );
-
-    CLBundleSendRequest* request = new CLBundleSendRequest( bundle->bundleid_,
-            link->name(), std::string() );
-
+    log_debug( "Sending bundle %d on link %s", bundle->bundleid_,
+               contact->link()->name() );
+    
+    // Figure out the relative and absolute path to the file.
+    oasys::StringBuffer filename_buf("bundle%d", bundle->bundleid_);
+    std::string filename = std::string( filename_buf.c_str() );
+    
+    // Create the request message.
+    bundle_send_request request;
+    request.location(filename);
+    request.link_name( link->name_str() );
+    
+    // Create and fill in the bundle attributes for this bundle.
+    bundleAttributes bundle_attribs;
+    fill_bundle_attributes(bundle, bundle_attribs);
+    request.bundleAttributes(bundle_attribs);
+    
+    // Pass the bundle and the message on to the ECLModule.
     resource->add_outgoing_bundle(bundle);
-    resource->module->post_event(request);
+    POST_MESSAGE(resource->module, bundle_send_request, request);
+}
+
+
+bool
+ExternalConvergenceLayer::cancel_bundle(const LinkRef& link,
+                                        Bundle* bundle)
+{
+    oasys::ScopeLock(&global_resource_lock_, "cancel_bundle");
+    
+    /*if (link->isdeleted() || link->cl_info() == NULL) {
+        log_debug("ExternalConvergenceLayer::cancel_bundle: "
+                "Cannot cancel bundle on deleted link %s", link->name());
+        return false;
+    }*/
+
+    ECLLinkResource* resource =
+            dynamic_cast<ECLLinkResource*>( link->cl_info() );
+    ASSERT(resource);
+    
+    oasys::ScopeLock l(&resource->lock, "cancel_bundle");
+
+    // Make sure that this link is claimed by a module.
+    if (!resource->module) {
+        log_err("Cannot cancel bundle on nonexistent CL %s through link %s",
+                resource->protocol.c_str(), link->name());
+        return false;
+    }
+    
+    log_info( "Cancelling bundle %d on link %s", bundle->bundleid_,
+               link->name() );
+    
+    // Create the request message.
+    bundle_cancel_request request;
+    request.link_name( link->name_str() );
+    
+    // Create and fill in the bundle attributes for this bundle.
+    bundleAttributes bundle_attribs;
+    fill_bundle_attributes(bundle, bundle_attribs);
+    request.bundleAttributes(bundle_attribs);
+    
+    POST_MESSAGE(resource->module, bundle_cancel_request, request);
+    return true;
+}
+
+bool 
+ExternalConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
+{
+    oasys::ScopeLock(&global_resource_lock_, "is_queued");
+    
+    // Ignore deleted links.
+    /*if (link->isdeleted() || link->cl_info() == NULL)
+        return false;*/
+
+    ECLLinkResource* resource =
+            dynamic_cast<ECLLinkResource*>( link->cl_info() );
+    ASSERT(resource);
+    
+    oasys::ScopeLock l(&resource->lock, "is_queued");
+    
+    // Check with the resource to see if the bundle is queued on it.
+    return resource->has_outgoing_bundle(bundle);
 }
 
 void
@@ -339,6 +536,49 @@ ExternalConvergenceLayer::add_resource(ECLResource* resource)
     resource_list_.push_back(resource);
 }
 
+void
+ExternalConvergenceLayer::build_param_sequence(int argc, const char* argv[],
+        ParamSequence& param_sequence)
+{
+    for (int arg_i = 0; arg_i < argc; ++arg_i) {
+        std::string arg_string(argv[arg_i]);
+        
+        // Split the string in two around the '='.
+        unsigned index = arg_string.find('=');
+        if (index == std::string::npos) {
+            log_warn("Invalid parameter: %s", argv[arg_i]);
+            continue;
+        }
+        
+        // Create a Parameter object from the two sides of the string.
+        std::string lhs = arg_string.substr(0, index);
+        std::string rhs = arg_string.substr(index + 1);
+        param_sequence.push_back( clmessage::Parameter(lhs, rhs) );
+    }
+}
+
+void
+ExternalConvergenceLayer::fill_bundle_attributes(const Bundle* bundle,
+                                                 bundleAttributes& attribs)
+{
+    attribs.source_eid( bundle->source_.str() );
+    attribs.is_fragment(bundle->is_fragment_);
+    
+    // The timestamp in the XML element is a single 'long', rather than the
+    // struct timeval used in DTN2.
+    bundleAttributes::timestamp::type ts;
+    ts = (bundleAttributes::timestamp::type)bundle->creation_ts_.seconds_ << 32
+            | bundle->creation_ts_.seqno_;
+    attribs.timestamp(ts);
+    
+    // fragment_offset and fragment_length are required only if is_fragment
+    // is true.
+    if (bundle->is_fragment_) {
+        attribs.fragment_offset(bundle->frag_offset_);
+        attribs.fragment_length(bundle->orig_length_);
+    }
+}
+
 std::list<ECLResource*>
 ExternalConvergenceLayer::take_resources(std::string name, ECLModule* owner)
 {
@@ -365,6 +605,14 @@ ExternalConvergenceLayer::take_resources(std::string name, ECLModule* owner)
 
     return new_list;
 }
+
+void
+ExternalConvergenceLayer::delete_resource(ECLResource* resource)
+{
+    oasys::ScopeLock lock(&resource_mutex_, "delete_resource");
+    resource_list_.remove(resource);
+    delete resource;
+}    
 
 void
 ExternalConvergenceLayer::give_resources(std::list<ECLInterfaceResource*>& list)
@@ -444,52 +692,115 @@ ExternalConvergenceLayer::Listener::accepted(int fd, in_addr_t addr,
 }
 
 
-ECLLinkResource::ECLLinkResource(std::string p, CLLinkCreateRequest* create,
+ECLLinkResource::ECLLinkResource(std::string p, clmessage::cl_message* create,
                                  ECLModule* m, const LinkRef& l, bool disc) :
     ECLResource(p, create, m),
     link(l.object(), "ECLLinkResource"),
-    bundle_mutex_("/dtn/cl/parts/bundle_mutex")
+    outgoing_bundles_("outgoing_bundles")
 {
-    link = l;
     known_state = Link::UNAVAILABLE;
     is_discovered = disc;
 }
 
 void
 ECLLinkResource::add_outgoing_bundle(Bundle* bundle) {
-    oasys::ScopeLock lock(&bundle_mutex_, "add_outgoing_bundle");
-    
-    OutgoingBundle outgoing( bundle, link->contact().object() );    
-    outgoing_bundles_.insert( OutgoingBundleSet::value_type(bundle->bundleid_,
-                              outgoing) );
+    outgoing_bundles_.push_back(bundle);
 }
 
-OutgoingBundle*
-ECLLinkResource::get_outgoing_bundle(u_int32_t bundleid)
+BundleRef
+ECLLinkResource::get_outgoing_bundle(clmessage::bundleAttributes bundle_attribs)
 {
-    oasys::ScopeLock lock(&bundle_mutex_, "get_outgoing_bundle");
-    OutgoingBundleSet::iterator bundle_i =
-            outgoing_bundles_.find(bundleid);
+    EndpointID eid( bundle_attribs.source_eid() );
+    BundleTimestamp timestamp;
+    timestamp.seconds_ = bundle_attribs.timestamp() >> 32;
+    timestamp.seqno_ = bundle_attribs.timestamp() & 0xffffffff;
     
-    if ( bundle_i == outgoing_bundles_.end() )
-        return NULL;
+    return outgoing_bundles_.find(eid, timestamp);
+}
 
-    return &bundle_i->second;
+bool
+ECLLinkResource::has_outgoing_bundle(Bundle* bundle)
+{
+    return outgoing_bundles_.contains(bundle);
 }
 
 void
-ECLLinkResource::erase_outgoing_bundle(OutgoingBundle* outgoing_bundle)
+ECLLinkResource::erase_outgoing_bundle(Bundle* bundle)
 {
-    oasys::ScopeLock lock(&bundle_mutex_, "erase_outgoing_bundle");
-    outgoing_bundles_.erase(outgoing_bundle->bundle->bundleid_);
+    outgoing_bundles_.erase(bundle);
 }
 
-OutgoingBundleSet&
+BundleList&
 ECLLinkResource::get_bundle_set() 
 {
     return outgoing_bundles_;
 }
 
+
+clmessage::linkTypeType
+XMLConvert::convert_link_type(Link::link_type_t type)
+{
+    switch (type) {
+        case Link::ALWAYSON: return linkTypeType(linkTypeType::alwayson);
+        case Link::ONDEMAND: return linkTypeType(linkTypeType::ondemand);
+        case Link::SCHEDULED: return linkTypeType(linkTypeType::scheduled);
+        case Link::OPPORTUNISTIC: 
+            return linkTypeType(linkTypeType::opportunistic);
+        default: break;
+    }
+    
+    return linkTypeType();
+}
+
+Link::link_type_t
+XMLConvert::convert_link_type(clmessage::linkTypeType type)
+{
+    switch (type) {
+        case linkTypeType::alwayson: return Link::ALWAYSON;
+        case linkTypeType::ondemand: return Link::ONDEMAND;
+        case linkTypeType::scheduled: return Link::SCHEDULED;
+        case linkTypeType::opportunistic: return Link::OPPORTUNISTIC;
+        default: break;
+    }
+        
+    return Link::LINK_INVALID;
+}
+
+Link::state_t 
+XMLConvert::convert_link_state(clmessage::linkStateType state) 
+{
+    switch (state) {
+        case linkStateType::unavailable: return Link::UNAVAILABLE;
+        case linkStateType::available: return Link::AVAILABLE;
+        case linkStateType::opening: return Link::OPENING;
+        case linkStateType::open: return Link::OPEN;
+        case linkStateType::busy: return Link::BUSY;
+        case linkStateType::closed: return Link::CLOSED;
+        default: break;
+    }
+    
+    ASSERT(false);
+    return Link::CLOSED;
+}
+
+ContactEvent::reason_t
+XMLConvert::convert_link_reason(clmessage::linkReasonType reason)
+{
+    switch (reason) {
+        case linkReasonType::no_info: return ContactEvent::NO_INFO;
+        case linkReasonType::user: return ContactEvent::USER;
+        case linkReasonType::broken: return ContactEvent::BROKEN;
+        case linkReasonType::shutdown: return ContactEvent::SHUTDOWN;
+        case linkReasonType::reconnect: return ContactEvent::RECONNECT;
+        case linkReasonType::idle: return ContactEvent::IDLE;
+        case linkReasonType::timeout: return ContactEvent::TIMEOUT;
+        case linkReasonType::unblocked: return ContactEvent::UNBLOCKED;
+        default: break;
+    }
+    
+    return ContactEvent::INVALID;
+}
+    
 } // namespace dtn
 
 #endif // XERCES_C_ENABLED
