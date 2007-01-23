@@ -74,7 +74,6 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/UDPConvergenceLayer.cc	\
 	conv_layers/ExternalConvergenceLayer.cc	\
 	conv_layers/ECLModule.cc \
-	conv_layers/CLEvent.cc \
 	conv_layers/CLEventHandler.cc \
 
 DISCOVERY_SRCS :=				\
@@ -228,5 +227,52 @@ endif
 # Include the common rules.
 #
 -include ../Rules.make
+
+#
+# Rules to regenerate XML bindings if the 'xsd' tool is present.
+#
+
+# Arguments used to generate both the ECLA and external router bindings.
+XSD_TOOL_COMMON_ARGS := \
+	--generate-serialization \
+	--generate-default-ctor \
+	--morph-anonymous \
+	--hxx-suffix .h \
+	--cxx-suffix .cc \
+	--cxx-prologue '\#include <config.h>' \
+	--cxx-prologue '\#ifdef XERCES_C_ENABLED' \
+	--cxx-epilogue '\#endif' \
+	
+# Arguments used to regenerate the ECLA bindings.
+XSD_TOOL_CLA_ARGS := \
+	--root-element cl_message \
+	--namespace-map =dtn::clmessage \
+	--output-dir conv_layers \
+	
+# Arguments used to regenerate the external router bindings.
+XSD_TOOL_RTR_ARGS := \
+	--root-element bpa \
+	--namespace-map =dtn::rtrmessage \
+	--output-dir routing \
+	--custom-type linkType=/linkType_base \
+	--custom-type bundleType=/bundleType_base \
+	--custom-type contactType=/contactType_base \
+	--custom-type routeEntryType=/routeEntryType_base \
+	--custom-type registrationType=/registrationType_base \
+	--hxx-epilogue '\#include "ExternalRouterXSD-custom.h"' \
+	--hxx-regex /router.xsd/ExternalRouterXSD.h/ \
+	--cxx-regex /router.xsd/ExternalRouterXSD.cc/ \
+
+# Regenerate XML bindings. 
+xsd_bindings: conv_layers/clevent.xsd routing/router.xsd
+ifdef XSD_TOOL
+	$(XSD_TOOL) cxx-tree $(XSD_TOOL_COMMON_ARGS) $(XSD_TOOL_CLA_ARGS) conv_layers/clevent.xsd
+#	$(XSD_TOOL) cxx-tree $(XSD_TOOL_COMMON_ARGS) $(XSD_TOOL_RTR_ARGS) routing/router.xsd
+else
+	@echo "ERROR:   configure was unable to find the xsd tool needed to"
+	@echo "         regenerate the XML bindings."
+	@echo "         Use the --with-xsd-tool=(name) option with configure"
+	@echo "         specify the location of this tool."
+endif
 
 endif
