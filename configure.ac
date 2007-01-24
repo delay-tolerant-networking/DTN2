@@ -102,6 +102,7 @@ AC_OASYS_CONFIG_EXPAT
 AC_OASYS_CONFIG_XERCES
 AC_OASYS_CONFIG_TCLREADLINE
 AC_OASYS_CONFIG_ZLIB
+AC_OASYS_CONFIG_XSD
 
 dnl -------------------------------------------------------------------------
 dnl Output
