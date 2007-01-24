@@ -9316,14 +9316,14 @@ else
 fi
 
     if test -z "$XSD_TOOL" ; then
-       { echo "$as_me:$LINENO: WARNING: Cannot find a working xsd tool" >&5
-echo "$as_me: WARNING: Cannot find a working xsd tool" >&2;}
-       { echo "$as_me:$LINENO: WARNING:    You will not be able to regenerate XML schema bindings" >&5
-echo "$as_me: WARNING:    You will not be able to regenerate XML schema bindings" >&2;}
-       { echo "$as_me:$LINENO: WARNING:    if you make changes to the .xsd file" >&5
-echo "$as_me: WARNING:    if you make changes to the .xsd file" >&2;}
-       { echo "$as_me:$LINENO: WARNING:    Use --with-xsd-tool=(name) to specify the location of this tool" >&5
-echo "$as_me: WARNING:    Use --with-xsd-tool=(name) to specify the location of this tool" >&2;}
+       { echo "$as_me:$LINENO: Cannot find a working xsd tool" >&5
+echo "$as_me: Cannot find a working xsd tool" >&6;}
+       { echo "$as_me:$LINENO:    You will not be able to regenerate XML schema bindings" >&5
+echo "$as_me:    You will not be able to regenerate XML schema bindings" >&6;}
+       { echo "$as_me:$LINENO:    if you make changes to the .xsd file" >&5
+echo "$as_me:    if you make changes to the .xsd file" >&6;}
+       { echo "$as_me:$LINENO:    Use --with-xsd-tool=(name) to specify the location of this tool" >&5
+echo "$as_me:    Use --with-xsd-tool=(name) to specify the location of this tool" >&6;}
     fi
 
 
