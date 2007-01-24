@@ -74,8 +74,9 @@ protocol_test(Bundle* b1, int chunks)
 
     Bundle* b2;
 
-    BlockInfoVec* blocks = BundleProtocol::prepare_blocks(b1, NULL);
-    encode_len = BundleProtocol::generate_blocks(b1, blocks, NULL);
+    LinkRef link("protocol_test");
+    BlockInfoVec* blocks = BundleProtocol::prepare_blocks(b1, link);
+    encode_len = BundleProtocol::generate_blocks(b1, blocks, link);
     
     bool complete = false;
     int produce_len = 0;
