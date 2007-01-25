@@ -33,6 +33,8 @@ IPDiscovery::IPDiscovery(const std::string& name)
     mcast_ttl_ = 1;
     port_ = 0;
     shutdown_ = false;
+
+    socket_.logpathf("%s/sock", logpath_);
 }
 
 bool
@@ -111,6 +113,7 @@ IPDiscovery::configure(int argc, const char* argv[])
 void
 IPDiscovery::run()
 {
+    log_debug("discovery thread running");
     oasys::ScratchBuffer<u_char*> buf(1024);
     u_char* bp = buf.buf(1024);
 
@@ -123,12 +126,13 @@ IPDiscovery::run()
 
         // only send out beacon(s) once per interval
         u_int min_diff = INT_MAX;
-        u_int min_int  = INT_MAX;
         for (iterator iter = list_.begin(); iter != list_.end(); iter++)
         {
             IPAnnounce* announce = dynamic_cast<IPAnnounce*>(*iter);
-            if (announce->interval_remaining() == 0)
+            u_int remaining = announce->interval_remaining();
+            if (remaining == 0)
             {
+                log_debug("announce ready for sending");
                 len = announce->format_advertisement(bp,1024);
                 cc = socket_.sendto((char*)bp,len,0,remote_addr_,port_);
                 if (cc != (int) len)
@@ -139,27 +143,28 @@ IPDiscovery::run()
                     // quit thread on error
                     return;
                 }
+                min_diff = announce->interval();
             }
             else
-            if (announce->interval_remaining() < min_diff)
             {
-                min_diff = announce->interval_remaining();
-            }
-
-            if (announce->interval() < min_int)
-            {
-                min_int = announce->interval();
+                log_debug("announce not ready: %u ms remaining", remaining);
+                if (remaining < min_diff) {
+                    min_diff = announce->interval_remaining();
+                }
             }
         }
 
         // figure out whatever time is left (if poll has already fired within
         // interval ms) and set up poll timeout
-        u_int timeout = (min_diff >= min_int) ? min_int :
-                                               (min_int - min_diff);
+        u_int timeout = min_diff;
 
+        log_debug("polling on socket: timeout %u", timeout);
         cc = socket_.poll_sockfd(POLLIN,NULL,timeout);
 
-        if (shutdown_) break;
+        if (shutdown_) {
+            log_debug("shutdown bit set, exiting thread");
+            break;
+        }
 
         // if timeout, then flip back around and send beacons
         if (cc == oasys::IOTIMEOUT || cc == oasys::IOINTR)

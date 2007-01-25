@@ -12,6 +12,9 @@
 /* Define to 1 if you have the <bluetooth/bluetooth.h> header file. */
 #undef HAVE_BLUETOOTH_BLUETOOTH_H
 
+/* Define to 1 if you have the <dns_sd.h> header file. */
+#undef HAVE_DNS_SD_H
+
 /* Define to 1 if you have the <err.h> header file. */
 #undef HAVE_ERR_H
 
@@ -125,6 +128,9 @@
 
 /* whether bluetooth support is enabled */
 #undef OASYS_BLUETOOTH_ENABLED
+
+/* whether bonjour support is enabled */
+#undef OASYS_BONJOUR_ENABLED
 
 /* whether oasys memory debugging is enabled */
 #undef OASYS_DEBUG_MEMORY_ENABLED

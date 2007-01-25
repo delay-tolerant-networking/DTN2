@@ -35,13 +35,6 @@ class BluetoothAnnounce : public Announce
 {
 public:
     /**
-     * When Inquiry/SDP discover a new node, this method is called
-     * to initiate Contact with remote peer
-     */
-    void handle_neighbor_discovered(const std::string& nexthop,
-                                    const EndpointID& remote_eid);
-
-    /**
      * Not used by Bluetooth, since queries and beacons
      * use builtin Inquiry and SDP mechanisms
      */

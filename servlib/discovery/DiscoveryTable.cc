@@ -63,24 +63,27 @@ DiscoveryTable::find(const std::string& name,
 bool
 DiscoveryTable::add(const std::string& name,
                     const char* afname,
-                    int argc, const char* argv[])
+                    int argc, const char* argv[],
+                    const char** error)
 {
     DiscoveryList::iterator iter;
 
     if (find(name, &iter))
     {
-        log_err("discovery agent %s already exists",name.c_str());
+        *error = "agent exists with that name";
         return false;
     }
 
     std::string af(afname);
-    Discovery* disc = Discovery::create_discovery(name,afname,argc,argv);
+    Discovery* disc = Discovery::create_discovery(name, afname, argc, argv,
+                                                  error);
 
-    if (disc == NULL)
+    if (disc == NULL) {
         return false;
+    }
     
     log_info("adding discovery agent %s (%s)",name.c_str(),afname);
-
+    
     dlist_.push_back(disc);
     return true;
 }

@@ -20,7 +20,6 @@
 
 #include <oasys/util/OptParser.h>
 #include <oasys/bluez/Bluetooth.h>
-#include "contacts/ContactManager.h"
 #include "bundling/BundleDaemon.h"
 #include "conv_layers/BluetoothConvergenceLayer.h"
 
@@ -74,35 +73,6 @@ size_t
 BluetoothAnnounce::format_advertisement(u_char*,size_t)
 {
     return 0;
-}
-
-void
-BluetoothAnnounce::handle_neighbor_discovered(const std::string& nexthop,
-                                              const EndpointID& remote_eid)
-{
-    (void)remote_eid;
-    (void)nexthop;
-    bdaddr_t remote_addr;
-    oasys::Bluetooth::strtoba(nexthop.c_str(),&remote_addr);
-
-    ASSERT(type() == "bt");
-
-    ContactManager* cm = BundleDaemon::instance()->contactmgr();
-    LinkRef link = cm->find_link_to(cl_, "", remote_eid);
-    if (link != NULL)
-        return; // log something? send up signal regardless?
-
-    BluetoothConvergenceLayer* btcl = 
-        dynamic_cast<BluetoothConvergenceLayer*>(cl_);
-
-    BluetoothConvergenceLayer::BluetoothLinkParams* params =
-        dynamic_cast<BluetoothConvergenceLayer::BluetoothLinkParams*>
-            (btcl->new_link_params());
-
-    bacpy(&params->remote_addr_,&remote_addr);
-
-    CLConnection* conn = btcl->new_connection(params);
-    conn->start();
 }
 
 } // dtn

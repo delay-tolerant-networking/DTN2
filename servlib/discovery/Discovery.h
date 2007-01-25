@@ -69,7 +69,8 @@ public:
      */
     static Discovery* create_discovery(const std::string& name,
                                        const std::string& afname,
-                                       int argc, const char* argv[]);
+                                       int argc, const char* argv[],
+                                       const char** error);
     /**
      * Append snapshot of object state to StringBuffer
      */
@@ -93,7 +94,7 @@ public:
     bool remove(const char* name);
 
     /**
-     * Distribute neighbor discovery out to registered DiscoveryInfo objects
+     * Handle neighbor discovery out to registered DiscoveryInfo objects
      */
     void handle_neighbor_discovered(const std::string& cl_type,
                                     const std::string& cl_addr,
@@ -125,11 +126,11 @@ protected:
      */
     bool find(const char *name, iterator* iter);
 
-    std::string name_; ///< name of discovery agent
-    std::string af_; ///< address family
+    std::string name_;    ///< name of discovery agent
+    std::string af_;      ///< address family
     std::string to_addr_; ///< outbound address of advertisements sent
     std::string local_;   ///< address of beacon listener
-    List list_; ///< registered DiscoveryInfo objects
+    List list_; 	  ///< registered Announce objects
 private:
     Discovery(const Discovery&)
         : oasys::Logger("Discovery","/no/loggy/here")

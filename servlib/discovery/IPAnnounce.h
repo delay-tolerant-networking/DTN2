@@ -32,14 +32,6 @@ class IPAnnounce : public Announce
 {
 public:
     /**
-     * Upon receipt of a beacon, the parent Discovery will deliver 
-     * details to this callback method so that TCPCL or UDPCL
-     * can initiate contact to the advertising node
-     */
-    void handle_neighbor_discovered(const std::string& nexthop,
-                                    const EndpointID& remote_eid);
-
-    /**
      * Serialize announcement out to buffer
      */
     size_t format_advertisement(u_char* buf, size_t len);

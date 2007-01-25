@@ -78,13 +78,14 @@ CONV_LAYER_SRCS :=				\
 	conv_layers/clevent.cc \
 
 DISCOVERY_SRCS :=				\
-	discovery/DiscoveryTable.cc		\
-	discovery/Discovery.cc			\
-	discovery/IPDiscovery.cc		\
-	discovery/BluetoothDiscovery.cc		\
 	discovery/Announce.cc			\
-	discovery/IPAnnounce.cc			\
 	discovery/BluetoothAnnounce.cc		\
+	discovery/BluetoothDiscovery.cc		\
+	discovery/BonjourDiscovery.cc		\
+	discovery/Discovery.cc			\
+	discovery/DiscoveryTable.cc		\
+	discovery/IPAnnounce.cc			\
+	discovery/IPDiscovery.cc		\
 
 CMD_SRCS :=					\
 	cmd/APICommand.cc			\

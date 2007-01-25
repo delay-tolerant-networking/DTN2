@@ -44,7 +44,7 @@ public:
     }
 
     bool add(const std::string& name, const char* addr_family,
-             int argc, const char* argv[]);
+             int argc, const char* argv[], const char** error);
 
     bool del(const std::string& name);
 

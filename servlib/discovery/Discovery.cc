@@ -18,17 +18,17 @@
 
 #include <oasys/util/Options.h>
 #include <oasys/util/StringBuffer.h>
-#include "IPDiscovery.h"
-
-#ifdef OASYS_BLUETOOTH_ENABLED
-#include "BluetoothDiscovery.h"
-#endif
-
 #include "Announce.h"
+#include "BluetoothDiscovery.h"
+#include "BonjourDiscovery.h"
 #include "Discovery.h"
+#include "IPDiscovery.h"
+#include "contacts/ContactManager.h"
+#include "bundling/BundleDaemon.h"
 
 namespace dtn {
 
+//----------------------------------------------------------------------
 Discovery::Discovery(const std::string& name,
                      const std::string& af)
     : oasys::Logger("Discovery","/dtn/discovery/%s",af.c_str()),
@@ -36,19 +36,26 @@ Discovery::Discovery(const std::string& name,
 {
 }
 
+//----------------------------------------------------------------------
 Discovery*
 Discovery::create_discovery(const std::string& name,
                             const std::string& af,
-                            int argc, const char* argv[])
+                            int argc, const char* argv[],
+                            const char** error)
 {
     Discovery* disc = NULL;
     if (af == "ip")
     {
         disc = new IPDiscovery(name);
     }
+#ifdef OASYS_BONJOUR_ENABLED
+    else if (af == "bonjour")
+    {
+        disc = new BonjourDiscovery(name);
+    }
+#endif
 #ifdef OASYS_BLUETOOTH_ENABLED 
-    else
-    if (af == "bt")
+    else if (af == "bt")
     {
         disc = new BluetoothDiscovery(name);
     }
@@ -56,6 +63,7 @@ Discovery::create_discovery(const std::string& name,
     else
     {
         // not a recognized address family
+        *error = "unknown address family";
         return NULL;
     }
 
@@ -68,6 +76,7 @@ Discovery::create_discovery(const std::string& name,
     return disc;
 }
 
+//----------------------------------------------------------------------
 Discovery::~Discovery()
 {
     for (iterator i = list_.begin(); i != list_.end(); i++)
@@ -76,6 +85,7 @@ Discovery::~Discovery()
     }
 }
 
+//----------------------------------------------------------------------
 void
 Discovery::dump(oasys::StringBuffer* buf)
 {
@@ -91,6 +101,7 @@ Discovery::dump(oasys::StringBuffer* buf)
     }
 }
 
+//----------------------------------------------------------------------
 bool
 Discovery::announce(const char* name, int argc, const char* argv[])
 {
@@ -129,6 +140,7 @@ Discovery::announce(const char* name, int argc, const char* argv[])
     return true;
 }
 
+//----------------------------------------------------------------------
 bool
 Discovery::remove(const char* name)
 {
@@ -146,20 +158,7 @@ Discovery::remove(const char* name)
     return true;
 }
 
-void
-Discovery::handle_neighbor_discovered(const std::string& type,
-                                      const std::string& cl_addr,
-                                      const EndpointID& remote_eid)
-{
-    for (iterator i = list_.begin(); i != list_.end(); i++)
-    {
-        if ((*i)->type() == type)
-        {
-            (*i)->handle_neighbor_discovered(cl_addr,remote_eid);
-        }
-    }
-}
-
+//----------------------------------------------------------------------
 bool
 Discovery::find(const char* name, Discovery::iterator* iter)
 {
@@ -175,4 +174,39 @@ Discovery::find(const char* name, Discovery::iterator* iter)
     return false;
 }
 
-};
+//----------------------------------------------------------------------
+void
+Discovery::handle_neighbor_discovered(const std::string& cl_type,
+                                      const std::string& cl_addr,
+                                      const EndpointID& remote_eid)
+{
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+
+    ConvergenceLayer* cl = ConvergenceLayer::find_clayer(cl_type.c_str());
+    if (cl == NULL) {
+        log_err("handle_neighbor_discovered: "
+                "unknown convergence layer type '%s'", cl_type.c_str());
+        return;
+    }
+
+    // Look for match on convergence layer and remote EID
+    LinkRef link("Announce::handle_neighbor_discovered");
+    link = cm->find_link_to(cl, "", remote_eid);
+
+    if (link == NULL)
+    {
+        link = cm->new_opportunistic_link(cl, cl_addr, remote_eid);
+    }
+
+    ASSERTF(link != NULL, "new_opportunistic_link gave back a NULL pointer");
+    if (!link->isavailable())
+    {
+        // request to set link available
+        BundleDaemon::post(
+            new LinkStateChangeRequest(link, Link::AVAILABLE,
+                                       ContactEvent::DISCOVERY)
+            );
+    }
+}
+
+} // namespace dtn

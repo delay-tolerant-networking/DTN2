@@ -427,6 +427,7 @@ public:
         NO_INFO,	///< No additional info
         USER,		///< User action (i.e. console / config)
         BROKEN,		///< Unexpected session interruption
+        DISCOVERY,	///< Dynamically discovered link
         CL_ERROR,	///< Convergence layer protocol error
         CL_VERSION,	///< Convergence layer version mismatch
         SHUTDOWN,	///< Clean connection shutdown
@@ -434,7 +435,7 @@ public:
         IDLE,		///< Idle connection shut down by the CL
         TIMEOUT,	///< Scheduled link ended duration
         BLOCKED, 	///< Link is busy
-        UNBLOCKED	///< Link is no longer busy
+        UNBLOCKED,	///< Link is no longer busy
     } reason_t;
 
     /**
@@ -445,6 +446,7 @@ public:
         case INVALID:	return "INVALID";
         case NO_INFO:	return "no additional info";
         case USER: 	return "user action";
+        case DISCOVERY: return "link discovery";
         case SHUTDOWN: 	return "peer shut down";
         case BROKEN:	return "connection broken";
         case CL_ERROR: 	return "cl protocol error";

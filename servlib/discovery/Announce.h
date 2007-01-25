@@ -58,14 +58,7 @@ public:
      * address info to be advertised by parent Discovery
      */
     const std::string& local_addr() { return local_; }
-
-    /**
-     * Hook for derived classes to parse information received
-     * by Discovery
-     */
-    virtual void handle_neighbor_discovered(const std::string& cl_addr,
-                                            const EndpointID& remote_eid) = 0;
-
+    
     /**
      * Hook for derived classes to format information to be advertised
      */

@@ -30,8 +30,9 @@ DiscoveryCommand::DiscoveryCommand()
                 "<channel=N> <unicast=true|false>]",
                 "add discovery agent (address family can be ip or bt "
                 "[Bluetooth])");
+    
     add_to_help("del <discovery_name>","remove discovery agent"); 
-    // discovery add_cl <name> <discovery name> <cl type> [<args>]
+
     add_to_help("announce <cl_name> <discovery_name> <cl_type> "
                 "<interval=N> [<cl_addr=A.B.C.D> <cl_port=N>]",
                 "announce the address of a local interface (convergence "
@@ -71,9 +72,12 @@ DiscoveryCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         const char* name = argv[2];
         const char* afname = argv[3];
 
-        if (! DiscoveryTable::instance()->add(name,afname,argc - 4,argv + 4))
+        const char* err = "(unknown error)";
+        if (! DiscoveryTable::instance()->add(name, afname,
+                                              argc - 4, argv + 4,
+                                              &err))
         {
-            resultf("error adding agent %s", name);
+            resultf("error adding agent %s: %s", name, err);
             return TCL_ERROR;
         }
         return TCL_OK;
