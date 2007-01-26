@@ -67,12 +67,13 @@ BundleOffer::dump(oasys::StringBuffer* buf)
 {
     buf->appendf("\t%s\n"
                  "\tCreation TS %d\n"
+                 "\tSeqNo %d\n"
                  "\tSID %d\n"
                  "\tCustody %s\n"
                  "\tAccept %s\n"
                  "\tAck %s\n",
                  type_to_str(type_),
-                 cts_, sid_,
+                 cts_, seq_, sid_,
                  custody_ ? "true" : "false",
                  accept_ ? "true" : "false",
                  ack_ ? "true" : "false");
@@ -100,6 +101,8 @@ ProphetNode::update_pvalue()
     (void)prev;
     p_value_ = p_value_ + (1.0 - p_value_) * params_->encounter_;
     log_debug("update_pvalue: before %.2f after %.2f",prev,p_value_);
+    // update age to reflect data "freshness"
+    age_.get_time();
 }
 
 /**
@@ -122,6 +125,8 @@ ProphetNode::update_transitive(double ab, double bc)
     p_value_ = p_value_ + (1.0 - p_value_) * ab * bc * params_->beta_;
     log_debug("update_transitive: ab %.2f bc %.2f before %.2f after %.2f",
               ab,bc,prev,p_value_);
+    // update age to reflect data "freshness"
+    age_.get_time();
 }
 
 /**
@@ -165,19 +170,21 @@ ProphetNode::time_to_units(oasys::Time diff)
 }
 
 ProphetAck::ProphetAck()
-    : dest_id_(EndpointID::NULL_EID()), cts_(0)
+    : dest_id_(EndpointID::NULL_EID()),
+      cts_(0), seq_(0), ets_(0)
 {
 }
 
 ProphetAck::ProphetAck(const EndpointID& eid,
                        u_int32_t cts,
+                       u_int32_t seq,
                        u_int32_t ets)
-    : dest_id_(eid), cts_(cts), ets_(ets)
+    : dest_id_(eid), cts_(cts), seq_(seq), ets_(ets)
 {
 }
 
 ProphetAck::ProphetAck(const ProphetAck& p)
-    : dest_id_(p.dest_id_), cts_(p.cts_)
+    : dest_id_(p.dest_id_), cts_(p.cts_), seq_(p.seq_), ets_(p.ets_)
 {
     ASSERT(!dest_id_.equals(EndpointID::NULL_EID()));
 }
@@ -186,7 +193,12 @@ bool
 ProphetAck::operator<(const ProphetAck& p) const
 {
     if(dest_id_.equals(p.dest_id_))
-        return (cts_ < p.cts_);
+    {
+        if (cts_ == p.cts_)
+            return seq_ < p.seq_;
+        else
+            return (cts_ < p.cts_);
+    }
     return (dest_id_.str() < p.dest_id_.str());
 }
 
@@ -195,6 +207,8 @@ ProphetAck::operator=(const ProphetAck& p)
 {
     dest_id_ = p.dest_id_;
     cts_ = p.cts_;
+    seq_ = p.seq_;
+    ets_ = p.ets_;
     return *this;
 }
 

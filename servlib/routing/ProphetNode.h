@@ -194,26 +194,25 @@ public:
 
     BundleOffer(bundle_offer_t type = UNDEFINED)
         : oasys::Logger("BundleOffer",BUNDLE_OFFER_LOGPATH),
-          cts_(0), sid_(0),
+          cts_(0), seq_(0), sid_(0),
           custody_(false), accept_(false), ack_(false),
           type_(type)
     {}
 
     BundleOffer(const BundleOffer& b) 
         : oasys::Logger("BundleOffer",BUNDLE_OFFER_LOGPATH),
-          cts_(b.cts_), sid_(b.sid_), custody_(b.custody_),
-          accept_(b.accept_), ack_(b.ack_),
-          type_(b.type_)
+          cts_(b.cts_), seq_(b.seq_), sid_(b.sid_), custody_(b.custody_),
+          accept_(b.accept_), ack_(b.ack_), type_(b.type_)
     {
         ASSERTF((type_ == OFFER) || (type_ == RESPONSE),
                 "type_==%d",(int)type_);
     }
 
-    BundleOffer(u_int32_t cts, u_int16_t sid, bool custody=false,
-                bool accept=false, bool ack=false,
+    BundleOffer(u_int32_t cts, u_int32_t seq, u_int16_t sid,
+                bool custody=false, bool accept=false, bool ack=false,
                 bundle_offer_t type=UNDEFINED)
         : oasys::Logger("BundleOffer",BUNDLE_OFFER_LOGPATH),
-          cts_(cts), sid_(sid),
+          cts_(cts), seq_(seq), sid_(sid),
           custody_(custody), accept_(accept), ack_(ack),
           type_(type)
     {
@@ -223,6 +222,7 @@ public:
 
     BundleOffer& operator= (const BundleOffer& b) {
         cts_     = b.cts_;
+        seq_     = b.seq_;
         sid_     = b.sid_;
         custody_ = b.custody_;
         accept_  = b.accept_;
@@ -235,11 +235,17 @@ public:
 
     bool operator< (const BundleOffer& b) const {
         if (sid_ == b.sid_)
-            return (cts_ < b.cts_);
+        {
+            if (cts_ == b.cts_)
+                return seq_ < b.seq_;
+            else
+                return (cts_ < b.cts_);
+        }
         return (sid_ < b.sid_);
     }
 
     u_int32_t creation_ts() const { return cts_; }
+    u_int32_t seqno() const { return seq_; }
     u_int16_t sid() const { return sid_; }
     bool custody() const { return custody_; }
     bool accept() const { return accept_; }
@@ -251,6 +257,7 @@ public:
 protected:
 
     u_int32_t cts_; ///< Creation timestamp
+    u_int32_t seq_; ///< sub-second sequence number 
     u_int16_t sid_; ///< string id of bundle destination
     bool      custody_;
     bool      accept_;
@@ -262,7 +269,10 @@ protected:
 class ProphetAck {
 public:
     ProphetAck();
-    ProphetAck(const EndpointID& eid,u_int32_t cts=0,u_int32_t ets=0);
+    ProphetAck(const EndpointID& eid,
+               u_int32_t cts=0,
+               u_int32_t seq=0,
+               u_int32_t ets=0);
     ProphetAck(const ProphetAck&);
 
     ProphetAck& operator= (const ProphetAck&);
@@ -270,6 +280,7 @@ public:
 
     EndpointID dest_id_; ///< destination EndpointID
     u_int32_t  cts_;     ///< creation timestamp
+    u_int32_t  seq_;     ///< sub-second sequence number
     u_int32_t  ets_;     ///< expiration timestamp
 }; // ProphetAck
 
