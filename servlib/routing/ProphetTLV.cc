@@ -129,6 +129,7 @@ ProphetTLV::dump(oasys::StringBuffer* buf)
                 break;
         }
     }
+    buf->appendf("\n");
 }
 
 bool
@@ -179,11 +180,14 @@ RIBDTLV::read_ras_entry(u_int16_t* sid,
     Prophet::RoutingAddressString* ras =
         (Prophet::RoutingAddressString*) buffer;
     size_t retval = ras_sz;
+    ASSERT(sid != NULL);
     *sid = ntohs(ras->string_id);
+    ASSERT(*sid != ProphetDictionary::INVALID_SID);
     // must be even multiple of 4 bytes
     size_t copylen = FOUR_BYTE_ALIGN(ras->length);
     if (len - retval >= copylen) {
         std::string eidstr((char*)&ras->ra_string[0],ras->length);
+        ASSERT(eid != NULL);
         eid->assign(eidstr);
         ASSERT(eid->equals(EndpointID::NULL_EID())==false);
         retval += copylen;
@@ -221,7 +225,7 @@ RIBDTLV::deserialize(u_char* buffer, size_t len)
 
     u_int16_t sid;
     EndpointID eid;
-    ribd_.clear();
+    ASSERT(ribd_.size() == 0);
     while (ribd_entry_count-- > 0) {
 
         // deserialize RAS from buffer
@@ -254,12 +258,17 @@ RIBTLV::read_rib_entry(u_int16_t* sid, double* pvalue, bool* relay,
     if (len < rib_sz)
         return 0;
     Prophet::RIBEntry* rib = (Prophet::RIBEntry*) buffer;
+    ASSERT(sid != NULL);
     *sid = ntohs(rib->string_id);
+    ASSERT(pvalue != NULL);
     *pvalue   = ((rib->pvalue & 0xff) + 0.0) / (256.0);
+    ASSERT(relay != NULL);
     *relay    = ((rib->flags & Prophet::RELAY_NODE) ==
                                Prophet::RELAY_NODE);
+    ASSERT(custody != NULL);
     *custody  = ((rib->flags & Prophet::CUSTODY_NODE) ==
                                Prophet::CUSTODY_NODE);
+    ASSERT(internet != NULL);
     *internet = ((rib->flags & Prophet::INTERNET_GW_NODE) ==
                                Prophet::INTERNET_GW_NODE);
     log_debug("read_rib_entry: read %zu bytes from %zu byte buffer",
@@ -332,7 +341,8 @@ RIBTLV::deserialize(u_char* buffer, size_t len)
 }
 
 size_t
-BundleTLV::read_bundle_offer(u_int32_t *cts, u_int16_t *sid,
+BundleTLV::read_bundle_offer(u_int32_t *cts, u_int32_t *seq,
+                             u_int16_t *sid,
                              bool *custody, bool *accept, bool *ack,
                              BundleOffer::bundle_offer_t *type,
                              u_char* bp, size_t len)
@@ -357,30 +367,41 @@ BundleTLV::read_bundle_offer(u_int32_t *cts, u_int16_t *sid,
     // infer whether Bundle offer or Bundle response or error
     if ((flags & offer_mask) == flags)
     {
+        ASSERT (type != NULL);
         *type = BundleOffer::OFFER;
+        ASSERT (custody != NULL);
         *custody = ((flags & Prophet::CUSTODY_OFFERED) == 
                             Prophet::CUSTODY_OFFERED);
+        ASSERT (ack != NULL);
         *ack = ((flags & Prophet::PROPHET_ACK) ==
                          Prophet::PROPHET_ACK);
     }
     else
     if ((flags & response_mask) == flags)
     {
+        ASSERT (type != NULL);
         *type = BundleOffer::RESPONSE;
+        ASSERT (custody != NULL);
         *custody = ((flags & Prophet::CUSTODY_ACCEPTED) == 
                              Prophet::CUSTODY_ACCEPTED);
+        ASSERT (accept != NULL);
         *accept = ((flags & Prophet::BUNDLE_ACCEPTED) ==
                             Prophet::BUNDLE_ACCEPTED);
     }
     else
     {
+        ASSERT (type != NULL);
         *type = BundleOffer::UNDEFINED;
         log_debug("illegal flag on Bundle entry: %x",flags);
         return 0;
     }
 
+    ASSERT (sid != NULL);
     *sid = ntohs(p->dest_string_id);
+    ASSERT (cts != NULL);
     *cts = ntohl(p->creation_timestamp);
+    ASSERT (seq != NULL);
+    *seq = ntohl(p->seqno);
     return boe_sz;
 }
 
@@ -393,7 +414,7 @@ BundleTLV::deserialize(u_char* buffer, size_t len)
     size_t hdrlen = Prophet::BundleOfferTLVHeaderSize;
     size_t amt_read = 0;
     if (hdr->type != typecode_) {
-        log_debug("read_bundle_offer: looking for TLV type %u but got %u",
+        log_debug("deserialize: looking for TLV type %u but got %u",
                   typecode_,hdr->type);
         return false;
     }
@@ -425,13 +446,14 @@ BundleTLV::deserialize(u_char* buffer, size_t len)
            offer_count-- > 0)
     {
         u_int32_t cts = 0;
+        u_int32_t seq = 0;
         u_int16_t sid = 0;
         bool custody = false,
              accept = false,
              ack = false;
         BundleOffer::bundle_offer_t type = BundleOffer::UNDEFINED;
 
-        if (read_bundle_offer(&cts,&sid,&custody,&accept,&ack,&type,
+        if (read_bundle_offer(&cts,&seq,&sid,&custody,&accept,&ack,&type,
                     buffer,len) == 0)
             break;
 
@@ -443,6 +465,7 @@ BundleTLV::deserialize(u_char* buffer, size_t len)
 
         ASSERTF(list_.type() == type,"\n%s != %s\n"
                 "cts %d\n"
+                "seq %d\n"
                 "sid %d\n"
                 "custody %s\n"
                 "accept %s\n"
@@ -450,13 +473,13 @@ BundleTLV::deserialize(u_char* buffer, size_t len)
                 "offer_count %d\n",
                 BundleOffer::type_to_str(list_.type()),
                 BundleOffer::type_to_str(type),
-                cts,sid,
+                cts,seq,sid,
                 custody ? "true" : "false",
                 accept ? "true" : "false",
                 ack ? "true" : "false",
                 ntohs(hdr->offer_count));
 
-        list_.add_offer(cts,sid,custody,accept,ack);
+        list_.add_offer(cts,seq,sid,custody,accept,ack);
 
         len        -= entrylen;
         amt_read   += entrylen;
@@ -678,12 +701,8 @@ ProphetTLV::create_bundle(Bundle* b,
 
     ASSERT (b != NULL);
 
-    EndpointID src(local), dest(remote);
-    src.append_service_tag("prophet");
-    dest.append_service_tag("prophet");
-
-    b->source_.assign(src);
-    b->dest_.assign(dest);
+    b->source_.assign(local);
+    b->dest_.assign(remote);
     b->replyto_.assign(EndpointID::NULL_EID());
     b->custodian_.assign(EndpointID::NULL_EID());
     b->expiration_ = 3600;
@@ -874,6 +893,7 @@ RIBTLV::write_rib_entry(u_int16_t sid, double pvalue,
                         bool relay, bool custody, bool internet,
                         u_char* buffer, size_t len)
 {
+    ASSERT(sid != ProphetDictionary::INVALID_SID);
     size_t rib_sz = Prophet::RIBEntrySize;
     if (len < rib_sz)
         return 0;
@@ -960,7 +980,7 @@ RIBTLV::serialize(u_char* bp, size_t len)
 }
 
 size_t
-BundleTLV::write_bundle_offer(u_int32_t cts, u_int16_t sid,
+BundleTLV::write_bundle_offer(u_int32_t cts, u_int32_t seq, u_int16_t sid,
                               bool custody, bool accept, bool ack,
                               BundleOffer::bundle_offer_t type,
                               u_char* bp, size_t len)
@@ -994,6 +1014,7 @@ BundleTLV::write_bundle_offer(u_int32_t cts, u_int16_t sid,
     }
     p->dest_string_id = htons(sid);
     p->creation_timestamp = htonl(cts);
+    p->seqno = htonl(seq);
     return boe_sz;
 }
 
@@ -1027,8 +1048,8 @@ BundleTLV::serialize(u_char* bp, size_t len)
     while (i != list_.end()) {
         BundleOffer* bo = *i;
 
-        size_t boe_sz = write_bundle_offer(bo->creation_ts(),bo->sid(),
-                            bo->custody(),bo->accept(),bo->ack(),
+        size_t boe_sz = write_bundle_offer(bo->creation_ts(),bo->seqno(),
+                            bo->sid(),bo->custody(),bo->accept(),bo->ack(),
                             bo->type(),bp,len);
 
         if (boe_sz == 0)

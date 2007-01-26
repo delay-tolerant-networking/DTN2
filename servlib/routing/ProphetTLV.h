@@ -258,12 +258,12 @@ public:
 protected:
     friend class TLVFactory<BundleTLV>;
 
-    size_t read_bundle_offer(u_int32_t *cts, u_int16_t *sid, 
+    size_t read_bundle_offer(u_int32_t *cts, u_int32_t *seq, u_int16_t *sid,
                              bool *custody, bool *accept, bool *ack,
                              BundleOffer::bundle_offer_t *type,
                              u_char* bp, size_t len);
 
-    size_t write_bundle_offer(u_int32_t cts, u_int16_t sid,
+    size_t write_bundle_offer(u_int32_t cts, u_int32_t seq, u_int16_t sid,
                               bool custody, bool accept, bool ack,
                               BundleOffer::bundle_offer_t type,
                               u_char* bp, size_t len);
