@@ -297,7 +297,7 @@ protected:
      * Reset local dictionary to 0 for sender, 1 for listener (as per
      * Hello phase roles)
      */
-    void reset_ribd();
+    void reset_ribd(const char* where);
 
     /**
      * Interrupt run() if necessary, to respond to console imperative
@@ -347,7 +347,7 @@ protected:
     /**
      * Check link status to determine whether ok to forward
      */
-    bool should_fwd(Bundle* bundle);
+    bool should_fwd(Bundle* bundle,bool hard_fail = true);
 
     /**
      * Given a bundle, forward to remote
@@ -376,7 +376,6 @@ protected:
     bool synsent_;  ///< whether Hello SYN has been sent
     bool synrcvd_;  ///< whether Hello SYN has been received
     bool estab_;    ///< whether Hello sequence has been completed
-    bool dictsent_; ///< whether dictionary has been sent 
     volatile bool neighbor_gone_; ///< indicates underlying CL signal
     prophet_state_t state_; ///< represents which phase of Prophet FSM
     ProphetDictionary ribd_; ///< dictionary for EID to StringID lookups

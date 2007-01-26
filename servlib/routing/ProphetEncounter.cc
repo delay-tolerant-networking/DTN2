@@ -171,7 +171,6 @@ ProphetEncounter::set_state(prophet_state_t new_state)
                oldstate == WAIT_RIB ||
                oldstate == OFFER ||
                oldstate == WAIT_INFO);
-        reset_ribd();
         break;
     case WAIT_RIB:
         ASSERT(oldstate == WAIT_DICT ||
@@ -180,7 +179,10 @@ ProphetEncounter::set_state(prophet_state_t new_state)
     case OFFER:
         ASSERT(oldstate == OFFER ||
                oldstate == WAIT_RIB);
-        send_bundle_offer();
+        if (oldstate == WAIT_RIB)
+        {
+            send_bundle_offer();
+        }
         break;
     case CREATE_DR:
         ASSERT(oldstate == ESTAB ||
@@ -188,7 +190,6 @@ ProphetEncounter::set_state(prophet_state_t new_state)
                oldstate == WAIT_DICT ||
                oldstate == SEND_DR ||
                oldstate == REQUEST);
-        reset_ribd();
         break;
     case SEND_DR:
         ASSERT(oldstate == CREATE_DR ||
@@ -230,23 +231,26 @@ ProphetEncounter::handle_bundle_received(Bundle* bundle)
     BundleRef b("handle_bundle_received");
     b = bundle;
     log_debug("handle_bundle_received *%p",bundle);
+    prophet_state_t state = get_state("handle_bundle_received");
 
     // Is this bundle destined for the attached peer?
     EndpointIDPattern route = Prophet::eid_to_route(next_hop_->remote_eid());
     if (route.match(b->dest_))
     {
         // short-circuit the protocol and forward to attached peer
-        if (should_fwd(b.object()))
+        if (should_fwd(b.object(),false))
         {
             fwd_to_nexthop(b.object());
         }
     }
 
-    if (get_state("handle_bundle_received") == REQUEST)
+    // Check status of outstanding requests
+    if (state == REQUEST)
     {
         u_int32_t cts = b->creation_ts_.seconds_;
+        u_int32_t seq = b->creation_ts_.seqno_;
         u_int16_t sid = ribd_.find(Prophet::eid_to_routeid(b->dest_));
-        requests_.remove_bundle(cts,sid);
+        requests_.remove_bundle(cts,seq,sid);
 
         // no requests remaining means the end of bundle exchange
         // so signal as such with 0-sized bundle request
@@ -272,11 +276,12 @@ ProphetEncounter::neighbor_gone()
 {
     log_debug("neighbor_gone");
     // alert thread to status change
+    neighbor_gone_ = true;
     cmdqueue_.push_back(PEMsg(PEMSG_NEIGHBOR_GONE,NULL));
 }
 
 bool
-ProphetEncounter::should_fwd(Bundle* b)
+ProphetEncounter::should_fwd(Bundle* b,bool hard_fail)
 {
     BundleRef bundle("should_fwd");
     ForwardingInfo info;
@@ -298,6 +303,14 @@ ProphetEncounter::should_fwd(Bundle* b)
                   bundle->bundleid_, next_hop_->name(),
                   ForwardingInfo::state_to_str(
                       static_cast<ForwardingInfo::state_t>(info.state_)));
+        if (hard_fail)
+        {
+            PANIC("neighbor requested bundle that has already been sent");
+        }
+        else
+        {
+            log_err("neighbor requested bundle that has already been sent");
+        }
         return false;
     }
 
@@ -371,7 +384,7 @@ ProphetEncounter::fwd_to_nexthop(Bundle* b,bool add_front)
             i != to_be_fwd_.end(); i++)
     {
         log_debug("can't forward *%p to *%p because link is busy",
-                   *i, link);
+                   *i, next_hop_.object());
     }
 }
 
@@ -385,10 +398,11 @@ ProphetEncounter::handle_prophet_tlv(ProphetTLV* pt)
     oasys::StringBuffer buf;
     pt->dump(&buf);
     log_debug("handle_prophet_tlv (tid %u,%s,%zu entries)\n"
-              "Inbound TLV\n\n%s\n",
+              "Inbound TLV\n",
               pt->transaction_id(),
               Prophet::result_to_str(pt->result()),
-              pt->num_tlv(),buf.c_str());
+              pt->num_tlv());
+    log_debug("%s",buf.c_str());
 
     tid_ = pt->transaction_id();
 
@@ -428,7 +442,7 @@ ProphetEncounter::handle_prophet_tlv(ProphetTLV* pt)
         }
         delete tlv;
     }
-    if (ok != true)
+    if (ok != true && pt->list().size() != 0)
     {
         log_debug("killing off %zu unread TLVs",pt->list().size());
         // free up memory
@@ -450,8 +464,9 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
                    (remote_addr_ == next_hop_->nexthop());
     bool hello_c = (local_instance_ == pt->receiver_instance());
 
+    prophet_state_t state = get_state("handle_hello_tlv");
     log_info("received HF %s in state %s",Prophet::hf_to_str(ht->hf()),
-             state_to_str(get_state("handle_hello_tlv")));
+             state_to_str(state));
 
     // negotiate to minimum timer (in 100ms units)
     u_int timeout = std::min(
@@ -476,7 +491,6 @@ ProphetEncounter::handle_hello_tlv(HelloTLV* ht,ProphetTLV* pt)
             return true; // discard, no further processing
     }
     
-    prophet_state_t state = get_state("handle_hello_tlv");
     switch(state) {
 
         case WAIT_NB:
@@ -719,6 +733,10 @@ ProphetEncounter::handle_ribd_tlv(RIBDTLV* rt,ProphetTLV* pt)
     if (state == WAIT_DICT ||
         state == WAIT_RIB)
     {
+        if (state == WAIT_DICT)
+        {
+            reset_ribd("handle_ribd_tlv(WAIT_DICT)");
+        }
         ProphetDictionary remote = rt->ribd();
         log_debug("handle_ribd_tlv has %zu entries",remote.size());
         oasys::StringBuffer buf("handle_ribd_tlv\n");
@@ -740,7 +758,7 @@ ProphetEncounter::handle_ribd_tlv(RIBDTLV* rt,ProphetTLV* pt)
     if (state == OFFER)
     {
         // resend bundle offer
-        set_state(OFFER);
+        send_bundle_offer();
         return true;
     }
 
@@ -792,8 +810,19 @@ ProphetEncounter::handle_rib_tlv(RIBTLV* rt,ProphetTLV* pt)
             u_int16_t sid = rib->sid_;
             EndpointID eid = Prophet::eid_to_routeid(ribd_.find(sid));
             ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
-            node = new ProphetNode(oracle_->params());
-            node->set_eid(eid);
+            
+            // look up previous information
+            node = oracle_->nodes()->find(eid);
+
+            // else create new node
+            if (node == NULL)
+            {
+                node = new ProphetNode(oracle_->params());
+                node->set_eid(eid);
+            }
+            ASSERT(
+               node->remote_eid().equals(EndpointID::NULL_EID()) == false
+            );
             node->set_relay(rib->relay());
             node->set_custody(rib->custody());
             node->set_internet_gw(rib->internet_gw());
@@ -838,8 +867,8 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
     if (state == OFFER)
     {
         // grab a list of Bundles from main Prophet store
-        oasys::ScopeLock l(oracle_->bundles()->lock(),
-                           "ProphetEncounter::handle_bundle_tlv");
+        oasys::ScopeLock obl(oracle_->bundles()->lock(),
+                             "ProphetEncounter::handle_bundle_tlv");
         oracle_->bundles()->bundle_list(list);
 
         // pull in the bundle request from this TLV
@@ -855,18 +884,20 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
         else
         if (list.size() > 0)
         {
-            oasys::ScopeLock l(requests_.lock(),"handle_bundle_tlv");
-            requests_ = bt->list();
-            ASSERT(requests_.type() == BundleOffer::RESPONSE);
+            // Pull off the Bundle request received from peer
+            BundleOfferList br_rcvd(BundleOffer::RESPONSE);
 
-            // track which items to delete but delay until after loop
-            std::vector<std::pair<u_int32_t,u_int16_t> > to_delete;
-            for (BundleOfferList::iterator i = requests_.begin();
-                i != requests_.end(); i++)
+            oasys::ScopeLock brl(br_rcvd.lock(),"handle_bundle_tlv");
+            br_rcvd = bt->list();
+
+            // Walk down each request and attempt to fulfill
+            for (BundleOfferList::iterator i = br_rcvd.begin();
+                i != br_rcvd.end(); i++)
             {
                 BundleOffer* bo = (*i);
                 ASSERT (bo != NULL);
                 u_int32_t cts = (*i)->creation_ts();
+                u_int32_t seq = (*i)->seqno();
                 u_int16_t sid = (*i)->sid();
                 EndpointID eid = ribd_.find(sid);
 
@@ -876,32 +907,25 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
                 // find any Bundles with destination that matches
                 // this routeid and with creation ts that matches cts
                 BundleRef b("handle_bundle_tlv");
-                b = ProphetBundleList::find(list,eid,cts);
+                b = ProphetBundleList::find(list,eid,cts,seq);
 
-                if (b.object() != NULL &&
-                    // don't send ACK'd bundles
-                    !oracle_->acks()->is_ackd(b.object()))
+                if (b.object() != NULL)
                 {
-
+                    // check link status, forwarding log, etc
                     if(should_fwd(b.object()))
                     {
                         // enqueue to send over the link to peer
                         fwd_to_nexthop(b.object());
 
-                        // remove from list so as only to forward once
-                        to_delete.push_back(
-                                std::pair<u_int32_t,u_int16_t>(cts,sid));
                     }
+                }
+                else
+                {
+                    log_info("bundle not found: peer requested %s (%u:%u)",
+                             eid.c_str(),cts,seq);
                 }
             }
 
-            for(std::vector<std::pair<u_int32_t,u_int16_t> >::iterator
-                    i = to_delete.begin(); i != to_delete.end(); i++)
-            {
-                requests_.remove_bundle((*i).first,(*i).second);
-            }
-
-            set_state(OFFER);
         }
         return true;
     }
@@ -909,15 +933,15 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
     if (state == SEND_DR)
     {
         // grab list of bundles
-        oasys::ScopeLock l(oracle_->bundles()->lock(),
+        oasys::ScopeLock obl(oracle_->bundles()->lock(),
                            "ProphetEncounter::handle_bundle_tlv");
         oracle_->bundles()->bundle_list(list);
 
         // read out the Bundle offer from the TLV
-        ASSERT(offers_.type() == BundleOffer::OFFER);
         offers_ = bt->list();
         log_debug("handle_bundle_tlv(SEND_DR) received list of %zu elements",
-                   requests_.size());
+                   offers_.size());
+        ASSERT(offers_.type() != BundleOffer::RESPONSE);
 
         // prepare a new request
         requests_.clear();
@@ -929,6 +953,7 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
              i++)
         {
             u_int32_t cts = (*i)->creation_ts();
+            u_int32_t seq = (*i)->seqno();
             u_int16_t sid = (*i)->sid();
             EndpointID eid = ribd_.find(sid);
 
@@ -940,30 +965,30 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
                 u_int32_t ets = 0;
                 // must delete any ACK'd bundles
                 BundleRef b("handle_bundle_tlv");
-                b = ProphetBundleList::find(list,eid,cts);
+                b = ProphetBundleList::find(list,eid,cts,seq);
                 if (b.object() != NULL)
                 {
                     ets = b->expiration_;
                     oracle_->bundles()->drop_bundle(b.object());
-
-                    // list is now invalid, reload!
-                    list.clear();
-                    oracle_->bundles()->bundle_list(list);
+                    oracle_->actions()->delete_bundle(b.object(),
+                            BundleProtocol::REASON_NO_ADDTL_INFO);
+                    list.erase(b.object());
                 }
                 
                 // preserve this ACK for future encounters
-                oracle_->acks()->insert(eid,cts,ets);
+                oracle_->acks()->insert(eid,cts,seq,ets);
             }
             else
-            // don't request if I already have it!
-            if (ProphetBundleList::find(list,eid,cts) == NULL)
+            // only request if I don't already have it!
+            if (ProphetBundleList::find(list,eid,cts,seq) == NULL)
             {
                 bool accept = true;
                 //XXX/wilson
                 // need to to something intelligent here w.r.t. custody
                 bool custody = false;
-                requests_.add_offer(cts,sid,custody,accept,false);
-                log_debug("requesting bundle, cts %d, sid %d",cts,sid);
+                requests_.add_offer(cts,seq,sid,custody,accept,false);
+                log_debug("requesting bundle, cts:seq %d:%d, sid %d",
+                          cts,seq,sid);
             }
         }
         // request in order of most likely to deliver
@@ -1093,10 +1118,11 @@ ProphetEncounter::handle_poll_timeout()
 }
 
 void
-ProphetEncounter::reset_ribd()
+ProphetEncounter::reset_ribd(const char* where)
 {
     EndpointID local(BundleDaemon::instance()->local_eid()),
                remote(next_hop_->remote_eid());
+    log_debug("resetting Prophet dictionary (%s)",where);
     ribd_.clear();
     if (synsender_ == true)
     { 
@@ -1145,7 +1171,7 @@ ProphetEncounter::switch_info_role()
 void
 ProphetEncounter::dump_state(oasys::StringBuffer* buf)
 {
-    buf->appendf("%05d  %10s  %s\n",remote_instance_,
+    buf->appendf("%05d  %10s  %s\n",local_instance_,
                  state_to_str(state_),
                  next_hop_->remote_eid().c_str());
 }
@@ -1161,9 +1187,8 @@ ProphetEncounter::send_bundle_offer()
     ASSERT( state == WAIT_RIB ||
             state == OFFER );
 
-    bool update_dictionary = false;
-
     // reset to sanity
+    offers_.clear();
     offers_.set_type(BundleOffer::OFFER);
 
     // Grab a list of Bundles from queueing policy enforcer
@@ -1203,18 +1228,17 @@ ProphetEncounter::send_bundle_offer()
             EndpointID eid = Prophet::eid_to_routeid(b->dest_);
             u_int16_t sid = ribd_.find(eid);
 
-            // either not found or initiator's EID
+            ASSERTF(sid != ProphetDictionary::INVALID_SID,
+                    "failed on dictionary lookup for %s",eid.c_str());
+
             if (sid == 0) 
             {
-                if (ribd_.is_assigned(eid) == true &&
-                    synsender_ == true)
-                {
-                    // local destination, don't offer
-                    continue;
-                }
-
-                sid = ribd_.insert(eid);
-                update_dictionary = true;
+                // if sid is assigned in this ribd, it had better be the
+                // synsender (protocol initiator).
+                // if sid is not assigned in this ribd, then it's an error
+                // since this phase of the protocol cannot send RIBD updates
+                ASSERT(ribd_.is_assigned(eid) == true && synsender_ == true);
+                continue;
             }
             else
             if (sid == 1 && synsender_ == false)
@@ -1225,7 +1249,9 @@ ProphetEncounter::send_bundle_offer()
 
             // add bundle listing to the offer
             offers_.add_offer(b.object(),sid);
-            log_debug("offering bundle *%p (sid %d)",b.object(),sid);
+            log_debug("offering bundle *%p (cts:seq %d:%d,sid %d)",
+                      b.object(),b.object()->creation_ts_.seconds_,
+                      b.object()->creation_ts_.seqno_,sid);
         }
 
         delete fs;
@@ -1245,27 +1271,25 @@ ProphetEncounter::send_bundle_offer()
         EndpointID eid = Prophet::eid_to_routeid(pa->dest_id_);
         u_int16_t sid = ribd_.find(eid);
 
-        if (sid == 0)
+        // can't find this EID in the dictionary
+        if (sid == ProphetDictionary::INVALID_SID)
         {
-            if (ribd_.is_assigned(eid) == false)
-            {
-                sid = ribd_.insert(eid);
-            }
+            // unable to send ACK during this exchange, skip for now
+            continue;
+        }
 
-            if (sid != 0) 
-            {
-                update_dictionary = true;
-            }
+        // don't send ACK to peer if peer is original Bundle's destination
+        if ( (synsender_ == true && sid == 1) ||
+             (synsender_ != true && sid == 0) )
+        {
+            continue;
         }
         
         // add ACK to the list
-        offers_.add_offer(pa->cts_,sid,false,false,true);
-        log_debug("appending ACK to bundle offer: cts %d, sid %d",
-                  pa->cts_,sid);
+        offers_.add_offer(pa->cts_,pa->seq_,sid,false,false,true);
+        log_debug("appending ACK to bundle offer: cts:seq %d:%d, sid %d",
+                  pa->cts_,pa->seq_,sid);
     }
-
-    if (update_dictionary)
-        send_dictionary();
 
     enqueue_bundle_tlv(offers_);
     send_prophet_tlv();
@@ -1286,6 +1310,14 @@ ProphetEncounter::send_dictionary()
     // EIDs for peer endpoints in this exchange
     EndpointID local(BundleDaemon::instance()->local_eid()),
                remote(next_hop_->remote_eid());
+
+    prophet_state_t state = get_state("send_dictionary");
+
+    // sanity
+    if (state == CREATE_DR)
+    {
+        reset_ribd("send_dictionary(CREATE_DR)");
+    }
 
     // ASSERT protocol invariants
     if (synsender_ == true)
@@ -1328,7 +1360,7 @@ ProphetEncounter::send_dictionary()
             continue;
         }
 
-        ASSERT(sid != 0);
+        ASSERT(sid != ProphetDictionary::INVALID_SID);
         rib.push_back(new RIBNode(node,sid));
     }
 
@@ -1367,6 +1399,10 @@ ProphetEncounter::outbound_tlv(u_int32_t tid,
                                Prophet::header_result_t result)
 {
     oasys::ScopeLock l(otlv_lock_,"outbound_tlv");
+    if (tid == 0)
+    {
+        tid = Prophet::UniqueID::tid();
+    }
     if (outbound_tlv_ == NULL)
     {
         outbound_tlv_ = new ProphetTLV(result,
@@ -1405,17 +1441,23 @@ ProphetEncounter::send_prophet_tlv()
     ASSERT(outbound_tlv_->num_tlv() > 0);
 
     bool retval = false;
-    // encapsulate ProphetTLV into Bundle and queue up
+    
     BundleRef b("ProphetEncounter send_prophet_tlv");
     b = new Bundle();
-    if (outbound_tlv_->create_bundle(b.object(),
-                          BundleDaemon::instance()->local_eid(),
-                          next_hop_->remote_eid()))
+
+    // append Prophet service tag (in emulation of Registration)
+    EndpointID src(BundleDaemon::instance()->local_eid()),
+               dst(next_hop_->remote_eid());
+    src.append_service_tag("prophet");
+    dst.append_service_tag("prophet");
+
+    // encapsulate ProphetTLV into Bundle and queue up
+    if (outbound_tlv_->create_bundle(b.object(),src,dst))
     {
         oasys::StringBuffer buf;
         outbound_tlv_->dump(&buf);
-        log_debug("Outbound TLV\n"
-                  "\n%s\n",buf.c_str());
+        log_debug("Outbound TLV\n");
+        log_debug("%s\n",buf.c_str());
 
         // enqueue before non-control bundles
         fwd_to_nexthop(b.object(),true);
@@ -1593,7 +1635,7 @@ ProphetEncounter::run() {
 
         short revents = 0;
         int cc = oasys::IO::poll_single(cmdqueue_.read_fd(),
-                                        POLL_IN,&revents,timeout);
+                                        POLLIN,&revents,timeout);
 
         if (neighbor_gone_ == true) break;
         if (cc == oasys::IOTIMEOUT)
