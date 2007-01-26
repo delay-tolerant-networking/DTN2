@@ -18,13 +18,12 @@
 #include "bundling/Bundle.h"
 #include "bundling/BundleRef.h"
 #include "bundling/BundleList.h"
+#include "bundling/BundleProtocol.h"
 #include "bundling/BundleDaemon.h"
 #include "ProphetController.h"
 #include <oasys/thread/Lock.h>
 #include <oasys/util/Random.h>
 #include <oasys/util/ScratchBuffer.h>
-
-#include <queue>
 
 namespace dtn {
 
@@ -44,7 +43,7 @@ ProphetController::do_init(ProphetParams* params,
     params_ = params;
     actions_ = actions;
 
-    bundles_ = new ProphetBundleQueue(list, actions, params,
+    bundles_ = new ProphetBundleQueue(list, params,
                            *(QueueComp::queuecomp(params->qp_,
                                                 &pstats_,
                                                 &nodes_)));
@@ -84,6 +83,7 @@ ProphetController::~ProphetController()
 void 
 ProphetController::shutdown()
 {
+    log_notice("processing shutdown event");
     {
         oasys::ScopeLock l(lock_,"destructor");
         enc_set::iterator it = encounters_.begin();
@@ -206,10 +206,12 @@ ProphetController::handle_bundle_received(Bundle* bundle,const ContactRef& conta
     if (node == NULL && !routeid.equals(BundleDaemon::instance()->local_eid()))
     {
         node = new ProphetNode(params_);
-        node->set_eid(Prophet::eid_to_routeid(bundle->dest_));
+        node->set_eid(routeid);
         nodes_.update(node);
     }
 
+    // This is pretty much a hack, redundant to Registration; it's necessary to
+    // preserve the association of Bundle to Contact, needed by ProphetEncounter
     if (prophet_eid_.equals(bundle->dest_))
     {
         // attempt to read out Prophet control message
@@ -270,25 +272,28 @@ ProphetController::handle_bundle_delivered(Bundle* b)
     if (bundle.object() == NULL) return;
 
     // add to ack list
-    acks_.insert(bundle.object());
+    if (acks_.insert(bundle.object()))
+    {
+        log_info("inserting Prophet ack for *%p",bundle.object());
+    }
+    else
+    {
+        log_info("failed to insert Prophet ack for *%p",bundle.object());
+    }
 
     // drop from local store
     bundle = NULL;
     bundles_->drop_bundle(b);
+    actions_->delete_bundle(b,BundleProtocol::REASON_NO_ADDTL_INFO);
 }
 
 void 
 ProphetController::handle_bundle_expired(Bundle* b)
 {
-    BundleRef bundle("handle_bundle_expired");
-    bundle = b;
-    if (bundle.object() == NULL) return;
-
     // drop stats entry for this bundle
-    pstats_.drop_bundle(bundle.object());
+    pstats_.drop_bundle(b);
 
     // dequeue from Prophet's bundle store
-    bundle = NULL;
     bundles_->drop_bundle(b);
 }
 
@@ -302,6 +307,23 @@ ProphetController::handle_link_state_change_request(const ContactRef& c)
         // attempt to send queued bundles, if any
         pe->flush_pending();
     }
+}
+
+bool
+ProphetController::accept_bundle(Bundle* bundle,int* errp)
+{
+    if (bundles_->current() + bundle->payload_.length() >
+            bundles_->max())
+    {
+        log_info("accept_bundle: rejecting bundle *%p since "
+                 "cur size %u + bundle size %zu > %u",
+                 bundle,bundles_->current(),
+                 bundle->payload_.length(),bundles_->max());
+        *errp = BundleProtocol::REASON_DEPLETED_STORAGE;
+        return false;
+    }
+    *errp = 0;
+    return true;
 }
 
 } // namespace dtn

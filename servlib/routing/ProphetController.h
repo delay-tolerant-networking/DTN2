@@ -247,6 +247,8 @@ public:
     }
     
     static bool is_init() { return instance_ != NULL; } 
+
+    bool accept_bundle(Bundle*,int*);
 protected:
 
     /**
