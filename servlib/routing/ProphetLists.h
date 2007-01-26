@@ -261,6 +261,12 @@ public:
     void truncate(double epsilon);
 
     /**
+     * For maintenance routines, invoke age calculation on each node; return
+     * number of nodes visited
+     */
+    int age_nodes();
+
+    /**
      * Returns a pointer to member SpinLock for synchronizing concurrent
      * access
      */
@@ -305,6 +311,8 @@ public:
     typedef std::map<u_int16_t,EndpointID> rribd;
     typedef rribd::const_iterator const_iterator;
 
+    static const u_int16_t INVALID_SID;
+
     ProphetDictionary(const EndpointID& sender = EndpointID::NULL_EID(),
                       const EndpointID& receiver = EndpointID::NULL_EID());
     ProphetDictionary(const ProphetDictionary& pd);
@@ -323,12 +331,12 @@ public:
     /**
      * Convenience function
      */
-    EndpointID sender() const { return find(0); }
+    const EndpointID& sender() const { return sender_; }
 
     /**
      * Convenience function
      */
-    EndpointID receiver() const { return find(1); }
+    const EndpointID receiver() const { return receiver_; }
 
     /**
      * If EID is already indexed, return true; else false
@@ -379,6 +387,8 @@ public:
 
     ProphetDictionary& operator= (const ProphetDictionary& d)
     {
+        sender_ = d.sender_;
+        receiver_ = d.receiver_;
         ribd_ = d.ribd_;
         rribd_ = d.rribd_;
         guess_ = d.guess_;
@@ -391,6 +401,8 @@ protected:
         guess_ += FOUR_BYTE_ALIGN(len + Prophet::RoutingAddressStringSize);
     }
 
+    EndpointID sender_;
+    EndpointID receiver_;
     ribd      ribd_;
     rribd     rribd_;
     size_t    guess_;
@@ -398,7 +410,7 @@ protected:
 
 struct BundleOfferComp : public std::less<BundleOffer*>
 {
-    BundleOfferComp(ProphetDictionary* ribd, ProphetTable* local)
+    BundleOfferComp(const ProphetDictionary* ribd, ProphetTable* local)
         : ribd_(ribd), nodes_(local) {}
 
     bool operator()(const BundleOffer* a, const BundleOffer* b) const
@@ -408,13 +420,13 @@ struct BundleOfferComp : public std::less<BundleOffer*>
         return nodes_->p_value(ea) > nodes_->p_value(eb);
     }
     
-    ProphetDictionary* ribd_;
+    const ProphetDictionary* ribd_;
     ProphetTable* nodes_;
 };
 
 struct BundleOfferSIDComp : public BundleOfferComp
 {
-    BundleOfferSIDComp(ProphetDictionary* ribd,
+    BundleOfferSIDComp(const ProphetDictionary* ribd,
                        ProphetTable* local,
                        u_int16_t sid)
         : BundleOfferComp(ribd,local), sid_(sid) {}
@@ -466,7 +478,7 @@ public:
      * Use delivery predictability to sort requests in priority order
      * then move local-destined requests to front of resultant list
      */
-    void sort(ProphetDictionary* ribd, ProphetTable* nodes, u_int16_t sid);
+    void sort(const ProphetDictionary* ribd, ProphetTable* nodes, u_int16_t sid);
 
     /**
      * Returns number of entries in list
@@ -492,12 +504,12 @@ public:
      * Remove an entry from BundleOfferList; true if found (and removed)
      * else false if did not exist
      */
-    bool remove_bundle(u_int32_t cts, u_int16_t sid);
+    bool remove_bundle(u_int32_t cts, u_int32_t seq, u_int16_t sid);
 
     /**
      * Convenience function to add an entry to BundleOfferList
      */
-    void add_offer(u_int32_t cts, u_int16_t sid,
+    void add_offer(u_int32_t cts, u_int32_t seq, u_int16_t sid,
                    bool custody=false, bool accept=false, bool ack=false);
 
     /**
@@ -508,7 +520,7 @@ public:
     /**
      * Return pointer to BundleOffer if found, else NULL
      */
-    BundleOffer* find(u_int32_t cts, u_int16_t sid) const;
+    BundleOffer* find(u_int32_t cts, u_int32_t seq, u_int16_t sid) const;
 
     BundleOffer::bundle_offer_t type() { return type_; }
 
@@ -586,18 +598,19 @@ public:
     /**
      * Insert a ProphetAck with the provided attributes; return true if
      * inserted, else false if ACK already exists
+     *
+     * Expiration is a time difference in sec, as with dtn::Bundle; if ets
+     * is 0, then one day is used (86,400 sec)
      */
-    bool insert(const EndpointID& eid, u_int32_t cts, u_int32_t ets = 0);
+    bool insert(const EndpointID& eid,
+                u_int32_t cts,
+                u_int32_t seq = 0,
+                u_int32_t ets = 0);
 
     /**
      * Convenience wrapper
      */
-    bool insert(Bundle *b)
-    {
-        return insert(Prophet::eid_to_routeid(b->dest_),
-                      b->creation_ts_.seconds_,
-                      b->expiration_);
-    }
+    bool insert(Bundle *b);
 
     /**
      * Insert ProphetAck; return true on success, else false if ACK 
@@ -619,21 +632,14 @@ public:
     /**
      * Answer whether this Bundle has been ACK'd
      */
-    bool is_ackd(const EndpointID& eid, u_int32_t cts) const;
-    bool is_ackd(Bundle* b) const
-    {
-        return is_ackd(
-                Prophet::eid_to_routeid(b->dest_),
-                b->creation_ts_.seconds_);
-    }
+    bool is_ackd(const EndpointID& eid, u_int32_t cts, u_int32_t seq = 0) const;
+    bool is_ackd(Bundle* b) const;
 
     /**
-     * Visit every ACK in the list, and delete those for which
-     * the expiration time is older than the time provided; return
-     * the number of elements deleted
-     * (If older_than==0 use current time)
+     * Visit every ACK in the list, and delete those for which the
+     * expiration has passed; return the number of elements deleted
      */
-    size_t expire(u_int32_t older_than = 0);
+    size_t expire();
 
     /**
      * Number of elements contained
@@ -849,14 +855,16 @@ public:
             return false;
         if (route_.match(b->dest_))
             return true;
-        if (local_->p_value(b) < remote_->p_value(b))
+        double local_p = local_->p_value(b);
+        double remote_p = remote_->p_value(b);
+        if (local_p < remote_p)
         {
             log_debug("remote p %0.2f local p %0.2f: ok to fwd *%p",
-                      remote_->p_value(b),local_->p_value(b),b);
+                      remote_p,local_p,b);
             return true;
         }
         log_debug("remote p %0.2f local p %0.2f: do not fwd *%p",
-                  remote_->p_value(b),local_->p_value(b),b);
+                  remote_p,local_p,b);
         return false;
     }
 
@@ -1052,19 +1060,17 @@ ProphetDecider::should_fwd(const Bundle* bundle) const
  * Helper class to enforce forwarding strategies, used to organize
  * BundleOfferTLV 
  */
-class ProphetBundleOffer : public std::priority_queue<Bundle*>,
-                           public oasys::Logger
+class ProphetBundleOffer : public oasys::Logger
 {
-protected:
-    typedef std::priority_queue<Bundle*> BundleQueue;
 public:
     ProphetBundleOffer(const BundleList& bundles,
                        FwdStrategy* comp,
                        ProphetDecider* decider)
-        : BundleQueue(*comp),
-          oasys::Logger("ProphetBundleOffer","/dtn/route/offer"),
+        : oasys::Logger("ProphetBundleOffer","/dtn/route/offer"),
+          queue_(*comp),
           list_("ProphetBundleOffer"),comp_(comp),decide_(decider)
     {
+        ASSERT(decider != NULL);
         oasys::ScopeLock l(bundles.lock(),"ProphetBundleOffer constructor");
         for(BundleList::const_iterator i =
                 (BundleList::const_iterator) bundles.begin();
@@ -1080,22 +1086,38 @@ public:
         // not every bundle gets forwarded to every neighbor
         if(decide_->operator()(b))
         {
-            BundleQueue::push(b);
+            queue_.push(b);
             list_.push_back(b);
-            log_debug("offering *%p",b);
+            log_debug("offering *%p (cts:seq %d:%d)",b,
+                      b->creation_ts_.seconds_,b->creation_ts_.seqno_);
         }
         else
         {
-            log_debug("not offering *%p",b);
+            log_debug("not offering *%p (cts:seq %d:%d)",b,
+                      b->creation_ts_.seconds_,b->creation_ts_.seqno_);
         }
+        ASSERT(list_.size() == queue_.size());
     }
     void pop()
     {
-        list_.erase(top());
-        BundleQueue::pop();
+        list_.erase(queue_.top());
+        queue_.pop();
+    }
+    bool empty() const
+    {
+        return queue_.empty();
+    }
+    Bundle* top() const
+    {
+        return queue_.top();
+    }
+    size_t size() const
+    { 
+        return queue_.size();
     }
 
 protected:
+    std::priority_queue<Bundle*> queue_;
     BundleList list_;
     FwdStrategy* comp_;
     ProphetDecider* decide_;
@@ -1241,7 +1263,8 @@ struct ProphetBundleList
 {
     static Bundle* find(const BundleList& list,
                         const EndpointID& dest,
-                        u_int32_t creation_ts);
+                        u_int32_t creation_ts,
+                        u_int32_t seqno);
 };
 
 /**
@@ -1259,12 +1282,11 @@ class ProphetBundleQueue :
 public:
     typedef oasys::BoundedPriorityQueue<Bundle*,BundleSz,QueueComp> BundleBPQ;
 
-    ProphetBundleQueue(const BundleList* list, BundleActions* actions,
+    ProphetBundleQueue(const BundleList* list,
                        ProphetParams* params,
                        QueueComp comp = QueueCompFIFO())
         : BundleBPQ(comp,params->max_usage_),
           bundles_("ProphetBundleQueue"),
-          actions_(actions),
           params_(params)
     {
         ASSERT(list!=NULL);
@@ -1341,8 +1363,6 @@ protected:
     void erase_member(iterator pos) {
         BundleBPQ::erase_member(pos);
         bundles_.erase(*pos);
-        //if(actions_ != NULL)
-        //actions_->delete_bundle(*pos,BundleProtocol::REASON_DEPLETED_STORAGE);
     }
 
     void enforce_bound() {
@@ -1377,7 +1397,6 @@ protected:
     }
 
     BundleList bundles_;
-    BundleActions* actions_;
     ProphetParams* params_;
 #undef seq_
 #undef comp_

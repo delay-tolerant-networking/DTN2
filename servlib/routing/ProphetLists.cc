@@ -22,6 +22,7 @@
 namespace dtn {
 
 const LinkRef ProphetDecider::null_link_("ProphetDecider null");
+const u_int16_t ProphetDictionary::INVALID_SID = 0xffff;
 	
 ProphetTable::ProphetTable()
     : lock_(new oasys::SpinLock())
@@ -46,7 +47,8 @@ ProphetTable::find(const EndpointID& eid) const
     oasys::ScopeLock l(lock_,"ProphetTable::find");
     rib_table::const_iterator it =
         (rib_table::const_iterator) table_.find(routeid);
-    if(it != table_.end()) {
+    if(it != table_.end())
+    {
         return (ProphetNode*) (*it).second;
     }
     return NULL;
@@ -83,7 +85,8 @@ ProphetTable::update(ProphetNode* node)
         if (node != old) delete old;
     }
     // otherwise shove it in, right here
-    else {
+    else
+    {
         table_.insert(lb,rib_table::value_type(eid,node));
     }
 }
@@ -146,6 +149,21 @@ ProphetTable::free()
     }
 }
 
+int
+ProphetTable::age_nodes()
+{
+    oasys::ScopeLock l(lock_,"ProphetTable::age_nodes");
+    int c = 0;
+    for(iterator i = table_.begin();
+        i != table_.end();
+        i++)
+    {
+        ((*i).second)->update_age();
+        c++;
+    }
+    return c;
+}
+
 void
 ProphetTableAgeTimer::reschedule()
 {
@@ -159,13 +177,7 @@ void
 ProphetTableAgeTimer::timeout(const struct timeval& now)
 {
     (void)now;
-    int c = 0;
-    oasys::ScopeLock l(table_->lock(),"ProphetTableAgeTimer");
-    ProphetTable::iterator i = table_->begin();
-    while(i != table_->end()) {
-        (*i).second->update_age();
-        i++; c++;
-    }
+    int c = table_->age_nodes();
     table_->truncate(epsilon_);
     reschedule();
     log_debug("aged %d prophet nodes",c);
@@ -184,16 +196,18 @@ void
 ProphetAckAgeTimer::timeout(const struct timeval& now)
 {
     (void)now;
-                                      // no arg means, use current time
-    log_debug("aged %zu prophet ACKs",list_->expire());
+    log_debug("aged %zu of %zu prophet ACKs",list_->expire(),list_->size());
     reschedule();
 }
 
 void
 ProphetDictionary::dump(oasys::StringBuffer* buf)
 {
+    buf->appendf("0 %s\n",sender_.c_str());
+    buf->appendf("1 %s\n",receiver_.c_str());
     for(const_iterator i = rribd_.begin(); i != rribd_.end(); i++)
     {
+        ASSERT(EndpointID::NULL_EID().equals((*i).second) == false);
         // print out SID -> EndpointID
         buf->appendf("%d %s\n",(*i).first,(*i).second.c_str());
     }
@@ -210,26 +224,15 @@ BundleOfferList::dump(oasys::StringBuffer* buf)
 
 ProphetDictionary::ProphetDictionary(const EndpointID& sender,
                                      const EndpointID& receiver)
-    : guess_(0)
+    : sender_(sender), receiver_(receiver), guess_(0)
 {
-    clear();
-    // By definition, sender of SYN is 0 and sender of SYNACK is 1
-    if (sender.equals(EndpointID::NULL_EID()) == false)
-    {
-        ribd_[sender] = 0; // by definition
-        rribd_[0] = sender;
-    }
-    if (receiver.equals(EndpointID::NULL_EID()) == false)
-    {
-        ribd_[receiver] = 1; // by definition
-        rribd_[1] = receiver;
-    }
     // neither sender nor receiver gets encoded into RIBDTLV
     // so no call to update_guess
 }
 
 ProphetDictionary::ProphetDictionary(const ProphetDictionary& pd)
-    : ribd_(pd.ribd_), rribd_(pd.rribd_), guess_(pd.guess_)
+    : sender_(pd.sender_), receiver_(pd.receiver_), ribd_(pd.ribd_),
+      rribd_(pd.rribd_), guess_(pd.guess_)
 {
 }
 
@@ -237,9 +240,14 @@ bool
 ProphetDictionary::is_assigned(const EndpointID& eid) const
 {
     ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
+    if (sender_ == eid || receiver_ == eid)
+    {
+        return true;
+    }
     ribd::const_iterator it =
         (ribd::const_iterator) ribd_.find(eid);
-    if (it != ribd_.end()) {
+    if (it != ribd_.end())
+    {
         return true;
     }
     return false;
@@ -249,17 +257,37 @@ u_int16_t
 ProphetDictionary::find(const EndpointID& eid) const
 {
     ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
+    if (sender_ == eid) 
+    {
+        return 0;
+    }
+    if (receiver_ == eid)
+    {
+        return 1;
+    }
     ribd::const_iterator it =
         (ribd::const_iterator) ribd_.find(eid);
     if (it != ribd_.end()) {
         return (*it).second;
     }
-    return 0;
+    return INVALID_SID;
 }
 
 EndpointID
 ProphetDictionary::find(u_int16_t id) const
 {
+    if (id == 0)
+    {
+        return sender_;
+    }
+    if (id == 1)
+    {
+         return receiver_;
+    }
+    if (id == INVALID_SID)
+    {
+        return EndpointID::NULL_EID();
+    }
     rribd::const_iterator it = (rribd::const_iterator) rribd_.find(id);
     if (it != rribd_.end()) {
         return (*it).second;
@@ -271,7 +299,9 @@ u_int16_t
 ProphetDictionary::insert(const EndpointID& eid)
 {
     ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
-    u_int16_t sid = ribd_.size();
+    // skip past the implicit sender & receiver
+    u_int16_t sid = ribd_.size() + 2;
+    ASSERTF(sid != INVALID_SID,"dictionary full!");
     bool res = assign(eid,sid);
     return res ? sid : 0;
 }
@@ -280,16 +310,34 @@ bool
 ProphetDictionary::assign(const EndpointID& eid, u_int16_t sid)
 {
     ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
+
     // validate internal state
     ASSERT(ribd_.size() == rribd_.size());
-    if (ribd_.size() >= 2) 
+
+    // enforce definition of RIBD
+    if (sid == 0)
     {
-        EndpointID sender = rribd_[0];
-        EndpointID receiver = rribd_[1];
-        if (eid.equals(sender) && sid != 0)
-            return false;
-        if (eid.equals(receiver) && sid != 1)
-            return false;
+        // should not already be defined
+        ASSERT(sender_.equals(EndpointID::NULL_EID()));
+        // should be a valid eid
+        ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
+        return sender_.assign(eid);
+    }
+    if (sid == 1)
+    {
+        // should not already be defined
+        ASSERT(receiver_.equals(EndpointID::NULL_EID()));
+        // should be a valid eid
+        ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
+        return receiver_.assign(eid);
+    }
+
+    if (sid == INVALID_SID)
+    {
+        log_err_p("/dtn/route/prophet",
+                  "Attempt to assign %s to INVALID_SID %u",
+                  eid.c_str(),sid);
+        return false;
     }
 
     // first attempt to insert into forward lookup
@@ -304,26 +352,25 @@ ProphetDictionary::assign(const EndpointID& eid, u_int16_t sid)
         ribd_.erase(eid);
     } else {
         // update on success
-        // skip sender/receiver peer endpoints
-        if ( ! (sid == 0 || sid == 1))
-        {
-            update_guess(eid.str().size());
-        }
+        update_guess(eid.str().size());
     }
-    ASSERT(ribd_.size() == rribd_.size());
+    ASSERTF(ribd_.size() == rribd_.size(),
+            "%zu != %zu",ribd_.size(),rribd_.size());
     return res;
 }
 
 void
 ProphetDictionary::clear() {
     // get rid of the old dictionary
+    sender_ = EndpointID::NULL_EID();
+    receiver_ = EndpointID::NULL_EID();
     ribd_.clear();
     rribd_.clear();
     guess_ = 0;
 }
 
 void
-BundleOfferList::sort(ProphetDictionary* ribd,
+BundleOfferList::sort(const ProphetDictionary* ribd,
                       ProphetTable* nodes,
                       u_int16_t sid)
 {
@@ -332,14 +379,17 @@ BundleOfferList::sort(ProphetDictionary* ribd,
 }
 
 bool
-BundleOfferList::remove_bundle(u_int32_t cts, u_int16_t sid)
+BundleOfferList::remove_bundle(u_int32_t cts, u_int32_t seq, u_int16_t sid)
 {
     oasys::ScopeLock l(lock_,"BundleOfferList::remove_bundle");
     for (iterator i = list_.begin(); 
          i != list_.end();
          i++)
     {
-        if ((*i)->creation_ts() == cts && (*i)->sid() == sid) {
+        if ((*i)->creation_ts() == cts &&
+            (*i)->seqno() == seq &&
+            (*i)->sid() == sid)
+        {
             list_.erase(i);
             return true;
         }
@@ -370,41 +420,42 @@ void
 BundleOfferList::push_back(BundleOffer* bo)
 {
     oasys::ScopeLock l(lock_,"BundleOfferList::push_back");
-    list_.push_back(bo);
+    if (find(bo->creation_ts(),bo->seqno(),bo->sid())==NULL)
+    {
+        list_.push_back(bo);
+    }
 }
 
 void
 BundleOfferList::add_offer(BundleOffer* offer)
 {
-    oasys::ScopeLock l(lock_,"BundleOfferList::add_offer");
     ASSERT(type_ != BundleOffer::UNDEFINED);
     ASSERT(offer->type() == type_);
-    list_.push_back(new BundleOffer(*offer));
+    push_back(new BundleOffer(*offer));
 }
 
 void
-BundleOfferList::add_offer(u_int32_t cts, u_int16_t sid,
+BundleOfferList::add_offer(u_int32_t cts, u_int32_t seq, u_int16_t sid,
         bool custody, bool accept, bool ack)
 {
-    oasys::ScopeLock l(lock_,"BundleOfferList::add_offer");
     ASSERT(type_ != BundleOffer::UNDEFINED);
-    list_.push_back(new BundleOffer(cts, sid, custody, accept, ack, type_));
+    push_back(new BundleOffer(cts, seq, sid, custody, accept, ack, type_));
 }
 
 void
 BundleOfferList::add_offer(Bundle* bundle,u_int16_t sid)
 {
-    oasys::ScopeLock l(lock_,"BundleOfferList::add_offer");
     BundleRef b("BundleOfferList::add_offer");
     b = bundle;
     if (b.object() == NULL) return;
     ASSERT(type_ != BundleOffer::UNDEFINED);
-    list_.push_back(new BundleOffer(b->creation_ts_.seconds_, sid,
+    push_back(new BundleOffer(b->creation_ts_.seconds_,
+                              b->creation_ts_.seqno_, sid,
                               b->custody_requested_, false, false, type_));
 }
 
 BundleOffer*
-BundleOfferList::find(u_int32_t cts, u_int16_t sid) const
+BundleOfferList::find(u_int32_t cts, u_int32_t seq, u_int16_t sid) const
 {
     oasys::ScopeLock l(lock_,"BundleOfferList::find");
     BundleOffer* retval = NULL;
@@ -412,7 +463,10 @@ BundleOfferList::find(u_int32_t cts, u_int16_t sid) const
          i != list_.end();
          i++)
     {
-        if ((*i)->creation_ts() == cts && (*i)->sid() == sid) {
+        if ((*i)->creation_ts() == cts &&
+            (*i)->seqno() == seq &&
+            (*i)->sid() == sid)
+        {
             retval = *i;
             break;
         }
@@ -449,22 +503,18 @@ BundleOfferList::end()
 }
 
 ProphetAckList::ProphetAckList()
-    : lock_(new oasys::SpinLock())
-{
-    acks_.clear();
-}
+    : lock_(new oasys::SpinLock()) {}
 
 ProphetAckList::~ProphetAckList()
 {
     {
+        // clean up memory allocated by this list
         oasys::ScopeLock l(lock_,"ProphetAckList::destructor");
-        palist::iterator iter;
-        while(!acks_.empty()) {
-            ProphetAck* a;
-            iter = acks_.begin();
-            a = *iter;
-            acks_.erase(a);
-            delete a;
+        for(palist::iterator iter = acks_.begin();
+            iter != acks_.end();
+            iter++)
+        {
+            delete (*iter++);
         }
     }
     acks_.clear();
@@ -490,41 +540,49 @@ ProphetAckList::count(const EndpointID& eid) const
 }
 
 bool
-ProphetAckList::insert(const EndpointID& eid, u_int32_t cts, u_int32_t ets)
+ProphetAckList::insert(const EndpointID& eid, u_int32_t cts,
+                       u_int32_t seq, u_int32_t ets)
 {
-    oasys::ScopeLock l(lock_,"ProphetAckList::insert");
+    // keep ACK for one day unless spec'd otherwise
     if (ets == 0)
-        ets = cts + 86400;  // keep ACK for one day unless spec'd otherwise
-    ProphetAck* p = new ProphetAck(eid,cts,ets);
-    if (acks_.insert(p).second)
-        return true;
-    delete p;
-    return false;
+        ets = 86400;
+    return insert(new ProphetAck(eid,cts,seq,ets));
+}
+
+bool
+ProphetAckList::insert(Bundle* b)
+{
+    return insert(Prophet::eid_to_routeid(b->dest_),
+                  b->creation_ts_.seconds_,
+                  b->creation_ts_.seqno_,
+                  b->expiration_);
 }
 
 bool
 ProphetAckList::insert(ProphetAck* p)
 {
     oasys::ScopeLock l(lock_,"ProphetAckList::insert");
-    return acks_.insert(p).second;
+    if (acks_.insert(p).second)
+    {
+        return true;
+    }
+    delete p;
+    return false;
 }
 
 size_t
-ProphetAckList::expire(u_int32_t older_than)
+ProphetAckList::expire()
 {
     oasys::ScopeLock l(lock_,"ProphetAckList::expire");
-    oasys::Time now(older_than);
     size_t how_many = 0;
-    if(older_than == 0)
-        now.get_time();
+    u_int32_t now = BundleTimestamp::get_current_time();
     palist::iterator iter = acks_.begin();
     while(iter != acks_.end()) {
         ProphetAck* p = *iter;
-        if (p->ets_ < (unsigned int) now.sec_) {
+        if ((now - p->cts_) > p->ets_) {
             how_many++;
-            acks_.erase(iter);
+            acks_.erase(iter++);
             delete p;
-            iter = acks_.begin(); // erase() invalidates, we get to start again
         } else
             iter++;
     }
@@ -549,7 +607,9 @@ ProphetAckList::fetch(const EndpointIDPattern& eid,
 }
 
 bool
-ProphetAckList::is_ackd(const EndpointID& eid, u_int32_t cts) const
+ProphetAckList::is_ackd(const EndpointID& eid,
+                        u_int32_t cts,
+                        u_int32_t seq) const
 {
     oasys::ScopeLock l(lock_,"ProphetAckList::fetch");
     ProphetAck p(eid);
@@ -558,10 +618,20 @@ ProphetAckList::is_ackd(const EndpointID& eid, u_int32_t cts) const
     {
         if (!(*iter)->dest_id_.equals(eid))
             break;
-        if ((*iter)->cts_ == cts) 
+        if ((*iter)->cts_ == cts &&
+            (*iter)->seq_ == seq) 
             return true;
     }
     return false;
+}
+
+bool
+ProphetAckList::is_ackd(Bundle* b) const
+{
+    return is_ackd(
+            Prophet::eid_to_routeid(b->dest_),
+            b->creation_ts_.seconds_,
+            b->creation_ts_.seqno_);
 }
 
 ProphetStats::~ProphetStats()
@@ -661,7 +731,8 @@ ProphetStats::drop_bundle(const Bundle* b)
 Bundle*
 ProphetBundleList::find(const BundleList& list,
                         const EndpointID& dest,
-                        u_int32_t cts)
+                        u_int32_t cts,
+                        u_int32_t seq)
 {
     oasys::ScopeLock l(list.lock(), "ProphetBundleList::find");
     EndpointIDPattern route = Prophet::eid_to_route(dest);
@@ -671,6 +742,7 @@ ProphetBundleList::find(const BundleList& list,
         i++)
     {
         if ((*i)->creation_ts_.seconds_ == cts &&
+            (*i)->creation_ts_.seqno_ == seq &&
             route.match((*i)->dest_))
         {
             return *i;
