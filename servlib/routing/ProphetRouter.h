@@ -46,6 +46,11 @@ public:
     void get_routing_state(oasys::StringBuffer*);
 
     /**
+     * Handler for new bundle requests
+     */
+    bool accept_bundle(Bundle* bundle, int* errp);
+
+    /**
      * Handler for new bundle arrivals
      */
     void handle_bundle_received(BundleReceivedEvent*);
@@ -53,7 +58,7 @@ public:
     /**
      * Handler for bundle delivered signal
      */
-    void handle_bundle_delivered(BundleReceivedEvent*);
+    void handle_bundle_delivered(BundleDeliveredEvent*);
 
     /**
      * Handler for bundle end-of-life
@@ -71,6 +76,11 @@ public:
     void handle_contact_up(ContactUpEvent* );
 
     /**
+     * prelude to Prophet's "New Neighbor" signal, section 2.3, p. 13
+     */
+    void handle_link_available(LinkAvailableEvent*);
+
+    /**
      * Prophet's "Neighbor Gone" signal, section 2.3, p. 13
      */
     void handle_contact_down(ContactDownEvent* );
@@ -86,10 +96,19 @@ public:
      */
     static ProphetParams      params_;
 
+    /**
+     * Virtual from BundleRouter
+     */
+    void shutdown();
 protected:
     ProphetController* oracle_;
 
 }; // ProphetRouter
+
+/**
+ * Global shutdown callback function
+ */
+void prophet_router_shutdown(void *);
 
 } // namespace dtn
 

@@ -28,18 +28,29 @@
 
 namespace dtn {
 
+void
+prophet_router_shutdown(void*)
+{
+    BundleDaemon::instance()->router()->shutdown();
+}
+
 ProphetParams ProphetRouter::params_;
 
 ProphetRouter::ProphetRouter()
     : BundleRouter("ProphetRouter", "prophet")
 {
-    log_info("ProphetRouter constructor");
-    // params_ default values are set by ProphetCommand
+    log_debug("ProphetRouter constructor");
+    // params_ default values are set by ProphetLists.h
+}
+
+void
+ProphetRouter::shutdown()
+{
+    oracle_->shutdown();
 }
 
 ProphetRouter::~ProphetRouter()
 {
-    oracle_->shutdown();
     delete oracle_;
 }
 
@@ -51,6 +62,10 @@ ProphetRouter::initialize()
 
     // For convenience, grab hold of that instance variable
     oracle_ = ProphetController::instance();
+
+    // Register the global shutdown function
+    BundleDaemon::instance()->set_rtr_shutdown(
+                prophet_router_shutdown, (void *) 0);
 
     // all done
     log_info("ProphetRouter initialized");
@@ -68,6 +83,12 @@ ProphetRouter::get_routing_state(oasys::StringBuffer* buf)
     oracle_->dump_state(buf);
 }
 
+bool
+ProphetRouter::accept_bundle(Bundle* bundle, int* errp)
+{
+    return oracle_->accept_bundle(bundle,errp);
+}
+
 void
 ProphetRouter::handle_bundle_received(BundleReceivedEvent *event)
 {
@@ -76,7 +97,7 @@ ProphetRouter::handle_bundle_received(BundleReceivedEvent *event)
 }
 
 void
-ProphetRouter::handle_bundle_delivered(BundleReceivedEvent* event)
+ProphetRouter::handle_bundle_delivered(BundleDeliveredEvent* event)
 {
     Bundle* bundle = event->bundleref_.object();
     oracle_->handle_bundle_delivered(bundle);
@@ -102,6 +123,17 @@ ProphetRouter::handle_contact_up(ContactUpEvent* event)
     // ProphetController demux's which ProphetEncounter handles this contact
     // (or creates a new one)
     oracle_->new_neighbor(event->contact_);
+}
+
+void
+ProphetRouter::handle_link_available(LinkAvailableEvent* event)
+{
+    LinkRef link = event->link_;
+    if (!link->isopen())
+    {
+        // request to open link
+        actions_->open_link(link);
+    }
 }
 
 void
