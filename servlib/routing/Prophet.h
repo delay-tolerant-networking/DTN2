@@ -497,6 +497,7 @@ struct Prophet {
         u_int8_t b_flags;
         u_int8_t unused__;
         u_int32_t creation_timestamp; ///< This bundle's creation timestamp
+        u_int32_t seqno; ///< NOT IN SPEC
     } __attribute__((packed));
 
     typedef struct BundleOfferTLVHeader BundleResponseTLVHeader;
@@ -713,9 +714,9 @@ struct Prophet {
     static EndpointID eid_to_routeid(const EndpointID& eid)
     { 
         oasys::URL eid_url(eid.str());
-        EndpointID route;
-        route.assign(eid.scheme_str(),"//" + eid_url.host_);
-        return route;
+        EndpointID routeid;
+        routeid.assign(eid.scheme_str(),"//" + eid_url.host_);
+        return routeid;
     }
 
     /**
