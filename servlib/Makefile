@@ -124,6 +124,8 @@ REGISTRATION_SRCS :=				\
 	reg/TclRegistration.cc			\
 
 ROUTING_SRCS :=					\
+	routing/router.cc			\
+	routing/router-custom.cc		\
 	routing/ExternalRouter.cc		\
 	routing/BundleRouter.cc			\
 	routing/FloodBundleRouter.cc		\
@@ -253,7 +255,7 @@ XSD_TOOL_CLA_ARGS := \
 	
 # Arguments used to regenerate the external router bindings.
 XSD_TOOL_RTR_ARGS := \
-	--root-element bpa \
+	--root-element dtn \
 	--namespace-map =dtn::rtrmessage \
 	--output-dir routing \
 	--custom-type linkType=/linkType_base \
@@ -261,15 +263,13 @@ XSD_TOOL_RTR_ARGS := \
 	--custom-type contactType=/contactType_base \
 	--custom-type routeEntryType=/routeEntryType_base \
 	--custom-type registrationType=/registrationType_base \
-	--hxx-epilogue '\#include "ExternalRouterXSD-custom.h"' \
-	--hxx-regex /router.xsd/ExternalRouterXSD.h/ \
-	--cxx-regex /router.xsd/ExternalRouterXSD.cc/ \
+	--hxx-epilogue '\#include "router-custom.h"'
 
 # Regenerate XML bindings. 
-xsdbindings: conv_layers/clevent.xsd
+xsdbindings: conv_layers/clevent.xsd routing/router.xsd
 ifdef XSD_TOOL
 	$(XSD_TOOL) cxx-tree $(XSD_TOOL_COMMON_ARGS) $(XSD_TOOL_CLA_ARGS) conv_layers/clevent.xsd
-#	$(XSD_TOOL) cxx-tree $(XSD_TOOL_COMMON_ARGS) $(XSD_TOOL_RTR_ARGS) routing/router.xsd
+	$(XSD_TOOL) cxx-tree $(XSD_TOOL_COMMON_ARGS) $(XSD_TOOL_RTR_ARGS) routing/router.xsd
 else
 	@echo "ERROR:   configure was unable to find the xsd tool needed to"
 	@echo "         regenerate the XML bindings."
