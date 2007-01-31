@@ -46,12 +46,11 @@
 #include <config.h>
 #ifdef XERCES_C_ENABLED
 
+#include "router-custom.h"
 #include "BundleRouter.h"
 #include "RouteTable.h"
-
 #include <reg/Registration.h>
 #include <oasys/serialize/XercesXMLSerialize.h>
-
 #include <oasys/io/UDPClient.h>
 
 #define EXTERNAL_ROUTER_SERVICE_TAG "/ext.rtr/*"
@@ -96,31 +95,54 @@ public:
     virtual void initialize();
 
     /**
+     * External router clean shutdown
+     */
+    virtual void shutdown();
+
+    /**
      * Format the given StringBuffer with static routing info.
      * @param buf buffer to fill with the static routing table
      */
     virtual void get_routing_state(oasys::StringBuffer* buf);
 
     /**
-     * Builds a static route XML report
-     */
-    void build_route_report(oasys::SerializeAction *a);
-
-    /**
      * Serialize events and UDP multicast to external routers.
      * @param event BundleEvent to process
      */
     virtual void handle_event(BundleEvent *event);
+    virtual void handle_bundle_received(BundleReceivedEvent *event);
+    virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
+    virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
+    virtual void handle_bundle_expired(BundleExpiredEvent* event);
+    virtual void handle_contact_up(ContactUpEvent* event);
+    virtual void handle_contact_down(ContactDownEvent* event);
+    virtual void handle_link_created(LinkCreatedEvent *event);
+    virtual void handle_link_deleted(LinkDeletedEvent *event);
+    virtual void handle_link_available(LinkAvailableEvent *event);
+    virtual void handle_link_unavailable(LinkUnavailableEvent *event);
+    virtual void handle_link_busy(LinkBusyEvent *event);
+    virtual void handle_registration_added(RegistrationAddedEvent* event);
+    virtual void handle_registration_removed(RegistrationRemovedEvent* event);
+    virtual void handle_registration_expired(RegistrationExpiredEvent* event);
+    virtual void handle_route_add(RouteAddEvent* event);
+    virtual void handle_route_del(RouteDelEvent* event);
+    virtual void handle_custody_signal(CustodySignalEvent* event);
+    virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
+    virtual void handle_link_report(LinkReportEvent *event);
+    virtual void handle_contact_report(ContactReportEvent* event);
+    virtual void handle_bundle_report(BundleReportEvent *event);
+    virtual void handle_route_report(RouteReportEvent* event);
 
-    /**
-     * External router clean shutdown
-     */
-    virtual void shutdown();
+    virtual void send(rtrmessage::dtn &message);
 
 protected:
     class ModuleServer;
     class HelloTimer;
     class ERRegistration;
+
+    // XXX This function should really go in ContactEvent
+    //     but ExternalRouter needs a less verbose version
+    static const char *reason_to_str(int reason);
 
     /// UDP server thread
     ModuleServer *srv_;
@@ -157,18 +179,11 @@ public:
      */
     void process_action(const char *payload);
 
-    /**
-     * Instantiates a new BundleEvent object of the given type.
-     * @param event_tag create a corresponding BundleEvent from this tag
-     * @return a BundleEvent or 0 if the event_tag is not valid
-     */
-    BundleEvent * instantiate(const char *event_tag);
-
     /// Message queue for accepting BundleEvents from ExternalRouter
     oasys::MsgQueue< std::string * > *eventq;
 
     /// Xerces XML validating parser for incoming messages
-    oasys::XercesXMLUnmarshal parser_;
+    oasys::XercesXMLUnmarshal *parser_;
 
     oasys::SpinLock *lock_;
 };

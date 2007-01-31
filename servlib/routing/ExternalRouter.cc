@@ -43,22 +43,32 @@
 #include <config.h>
 #ifdef XERCES_C_ENABLED
 
+#include <memory>
 #include <iostream>
 #include <map>
 #include <sys/ioctl.h>
-#include <tcl.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <sstream>
+#include <xercesc/framework/MemBufFormatTarget.hpp>
 
 #include "ExternalRouter.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleActions.h"
 #include "contacts/ContactManager.h"
 #include "reg/RegistrationTable.h"
-
+#include "conv_layers/ConvergenceLayer.h"
 #include <oasys/io/UDPClient.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/io/IO.h>
+
+#define SEND(event, data) \
+    rtrmessage::dtn message; \
+    message.event(data); \
+    send(message);
+
+#define CATCH(exception) \
+    catch (exception &e) { log_warn(e.what()); }
 
 namespace dtn {
 
@@ -97,29 +107,18 @@ ExternalRouter::initialize()
     srv_ = new ModuleServer();
     srv_->start();
 
-    if (ExternalRouter::client_validation) {
-        oasys::StringBuffer alert_with_ns(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-            "<dtn eid=\"%s\" hello_interval=\"%i\" alert=\"justBooted\" "
-            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-            "xsi:noNamespaceSchemaLocation=\"file://%s\"/>",
-            BundleDaemon::instance()->local_eid().c_str(),
-            ExternalRouter::hello_interval,
-            ExternalRouter::schema.c_str());
-
-        srv_->eventq->push_back(
-            new std::string(alert_with_ns.c_str()));
-    } else {
-        oasys::StringBuffer alert(
-            "<dtn eid=\"%s\" hello_interval=\"%i\" alert=\"justBooted\"/>",
-            BundleDaemon::instance()->local_eid().c_str(),
-            ExternalRouter::hello_interval);
-
-        srv_->eventq->push_back(
-            new std::string(alert.c_str()));
-    }
-
+    rtrmessage::dtn message;
+    message.alert(rtrmessage::dtnStatusType(std::string("justBooted")));
+    message.hello_interval(ExternalRouter::hello_interval);
+    send(message);
     hello_->schedule_in(ExternalRouter::hello_interval * 1000);
+}
+
+void
+ExternalRouter::shutdown()
+{
+    rtrmessage::dtnStatusType e(std::string("shuttingDown"));
+    SEND(alert, e)
 }
 
 // Format the given StringBuffer with static routing info
@@ -142,131 +141,352 @@ ExternalRouter::get_routing_state(oasys::StringBuffer* buf)
                 "\tB: Bulk  N: Normal  E: Expedited\n\n");
 }
 
-// Builds a static route XML report
-void
-ExternalRouter::build_route_report(oasys::SerializeAction *a)
-{
-    oasys::ScopeLock l(route_table_->lock(),
-        "ExternalRouter::build_route_report");
-
-    const RouteEntryVec *re = route_table_->route_table();
-    RouteEntryVec::const_iterator i;
-
-    a->begin_action();
-
-    for(i = re->begin(); i != re->end(); ++i) {
-        a->process("route_entry", *i);
-    }
-
-    a->end_action();
-}
-
 // Serialize events and UDP multicast to external routers
 void
 ExternalRouter::handle_event(BundleEvent *event)
 {
-    static oasys::StringBuffer front_matter(
-        "<dtn eid=\"%s\">",
-        BundleDaemon::instance()->local_eid().c_str());
-
-    static oasys::StringBuffer front_matter_with_ns(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><dtn eid=\"%s\" "
-        "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-        "xsi:noNamespaceSchemaLocation=\"file://%s\">",
-        BundleDaemon::instance()->local_eid().c_str(),
-        ExternalRouter::schema.c_str());
-
-    // Preprocess events based upon type
-    if ((event->type_ == BUNDLE_DELIVERED) ||
-        (event->type_ == LINK_CREATE) ||
-        (event->type_ == REASSEMBLY_COMPLETED) ||
-        (event->type_ == BUNDLE_ACCEPT_REQUEST)) {
-        // Filter out events not supported by the external router interface
-        return;
-    } else if (event->type_ == BUNDLE_RECEIVED) {
-        // Filter out notification of bundles already
-        // delivered to registrations
-        BundleReceivedEvent *bre = dynamic_cast< BundleReceivedEvent * >(event);
-        if (bre->bundleref_->owner_ == "daemon") return;
-    } else if (event->type_ == ROUTE_ADD) {
-        // Add this route to our static routing table
-        RouteAddEvent *rae = dynamic_cast< RouteAddEvent * >(event);
-        route_table_->add_entry(rae->entry_);
-    } else if (event->type_ == ROUTE_DEL) {
-        // Delete this route from our static routing table
-        RouteDelEvent *rae = dynamic_cast< RouteDelEvent * >(event);
-        route_table_->del_entries(rae->dest_);
-    } else if (event->type_ == BUNDLE_TRANSMITTED) {
-        // Do not pass transmit events for deleted contacts
-        BundleTransmittedEvent *event = dynamic_cast< BundleTransmittedEvent * >(event);
-        if(event->contact_ == NULL)
-	{
-	    return;
-	}
-    } else if (event->type_ == BUNDLE_TRANSMIT_FAILED) {
-        // Do not pass transmit failed events for deleted contacts
-        BundleTransmitFailedEvent *event = dynamic_cast< BundleTransmitFailedEvent * >(event);
-        if(event->contact_ == NULL)
-	{
-	    return;
-	}
-    }
-
-    // serialize the event
-    oasys::StringBuffer event_buf;
-
-    if (ExternalRouter::client_validation)
-        event_buf.append(front_matter_with_ns.c_str());
-    else
-        event_buf.append(front_matter.c_str());
-
-    oasys::XMLMarshal event_a(event_buf.expandable_buf(),
-        event_to_str(event->type_, true));
-
-    if (event->type_ == ROUTE_REPORT)
-        // handle route report serialization locally
-        build_route_report(&event_a);
-    else
-        event_a.action(event);
-
-    event_buf.append("</dtn>");
-
-    // give the serialized event to the ModuleServer thread
-    log_debug("ExternalRouter::handle_event (%s) sending:\n %s\n",
-        event_to_str(event->type_), event_buf.c_str());
-    srv_->eventq->push_back(new std::string(event_buf.c_str()));
+    dispatch_event(event);
 }
 
 void
-ExternalRouter::shutdown()
+ExternalRouter::handle_bundle_received(BundleReceivedEvent *event)
 {
-    // Send an alert that we're going away
-    if (ExternalRouter::client_validation) {
-        oasys::StringBuffer alert_with_ns(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-            "<dtn eid=\"%s\" alert=\"shuttingDown\" "
-            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-            "xsi:noNamespaceSchemaLocation=\"file://%s\"/>",
-            BundleDaemon::instance()->local_eid().c_str(),
-            ExternalRouter::schema.c_str());
+    // filter out bundles already delivered
+    if (event->bundleref_->owner_ == "daemon") return;
 
-        srv_->eventq->push_back(
-            new std::string(alert_with_ns.c_str()));
-    } else {
-        oasys::StringBuffer alert(
-            "<dtn eid=\"%s\" alert=\"shuttingDown\"/>",
-            BundleDaemon::instance()->local_eid().c_str());
+    rtrmessage::dtn::bundle_received_event::type e(
+        event->bundleref_.object(),
+        (xml_schema::string)source_to_str((event_source_t)event->source_),
+        event->bytes_received_);
+    SEND(bundle_received_event, e)
+}
 
-        srv_->eventq->push_back(
-            new std::string(alert.c_str()));
+void
+ExternalRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
+{
+    if (event->contact_ == NULL) return;
+
+    rtrmessage::dtn::bundle_transmitted_event::type e(
+        event->bundleref_.object(),
+        event->contact_.object(),
+        event->link_.object(),
+        event->bytes_sent_,
+        event->reliably_sent_);
+    SEND(bundle_transmitted_event, e)
+}
+
+void
+ExternalRouter::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
+{
+    if (event->contact_ == NULL) return;
+
+    rtrmessage::dtn::bundle_transmit_failed_event::type e(
+        event->bundleref_.object(),
+        event->contact_.object(),
+        event->link_.object());
+    SEND(bundle_transmit_failed_event, e)
+}
+
+void
+ExternalRouter::handle_bundle_expired(BundleExpiredEvent* event)
+{
+    rtrmessage::dtn::bundle_expired_event::type e(
+        event->bundleref_.object());
+    SEND(bundle_expired_event, e)
+}
+
+void
+ExternalRouter::handle_contact_up(ContactUpEvent* event)
+{
+    rtrmessage::dtn::contact_up_event::type e(
+        event->contact_.object());
+    SEND(contact_up_event, e)
+}
+
+void
+ExternalRouter::handle_contact_down(ContactDownEvent* event)
+{
+    rtrmessage::dtn::contact_down_event::type e(
+        event->contact_.object(),
+        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
+    SEND(contact_down_event, e)
+}
+
+void
+ExternalRouter::handle_link_created(LinkCreatedEvent *event)
+{
+    rtrmessage::dtn::link_created_event::type e(
+        event->link_.object(),
+        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
+    SEND(link_created_event, e)
+}
+
+void
+ExternalRouter::handle_link_deleted(LinkDeletedEvent *event)
+{
+    rtrmessage::dtn::link_deleted_event::type e(
+        event->link_.object(),
+        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
+    SEND(link_deleted_event, e)
+}
+
+void
+ExternalRouter::handle_link_available(LinkAvailableEvent *event)
+{
+    rtrmessage::dtn::link_available_event::type e(
+        event->link_.object(),
+        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
+    SEND(link_available_event, e)
+}
+
+void
+ExternalRouter::handle_link_unavailable(LinkUnavailableEvent *event)
+{
+    rtrmessage::dtn::link_unavailable_event::type e(
+        event->link_.object(),
+        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
+    SEND(link_unavailable_event, e)
+}
+
+void
+ExternalRouter::handle_link_busy(LinkBusyEvent *event)
+{
+    rtrmessage::dtn::link_busy_event::type e(
+        event->link_.object());
+    SEND(link_busy_event, e)
+}
+
+void
+ExternalRouter::handle_registration_added(RegistrationAddedEvent* event)
+{
+    rtrmessage::dtn::registration_added_event::type e(
+        event->registration_,
+        (xml_schema::string)source_to_str((event_source_t)event->source_));
+    SEND(registration_added_event, e)
+}
+
+void
+ExternalRouter::handle_registration_removed(RegistrationRemovedEvent* event)
+{
+    rtrmessage::dtn::registration_removed_event::type e(
+        event->registration_);
+    SEND(registration_removed_event, e)
+}
+
+void
+ExternalRouter::handle_registration_expired(RegistrationExpiredEvent* event)
+{
+    rtrmessage::dtn::registration_expired_event::type e(
+        event->regid_);
+    SEND(registration_expired_event, e)
+}
+
+void
+ExternalRouter::handle_route_add(RouteAddEvent* event)
+{
+    // update our own static route table first
+    route_table_->add_entry(event->entry_);
+
+    rtrmessage::dtn::route_add_event::type e(
+        event->entry_);
+    SEND(route_add_event, e)
+}
+
+void
+ExternalRouter::handle_route_del(RouteDelEvent* event)
+{
+    // update our own static route table first
+    route_table_->del_entries(event->dest_);
+
+    rtrmessage::dtn::route_delete_event::type e(
+        rtrmessage::eidType(event->dest_.str()));
+    SEND(route_delete_event, e)
+}
+
+void
+ExternalRouter::handle_custody_signal(CustodySignalEvent* event)
+{
+    rtrmessage::dtn::custody_signal_event::type e(
+        rtrmessage::eidType(event->data_.orig_source_eid_.str()),
+        event->data_.admin_type_,
+        event->data_.admin_flags_,
+        event->data_.succeeded_,
+        event->data_.reason_,
+        event->data_.orig_frag_offset_,
+        event->data_.orig_frag_length_,
+        event->data_.custody_signal_tv_.seconds_,
+        event->data_.custody_signal_tv_.seqno_,
+        event->data_.orig_creation_tv_.seconds_,
+        event->data_.orig_creation_tv_.seqno_);
+    SEND(custody_signal_event, e)
+}
+
+void
+ExternalRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
+{
+    rtrmessage::dtn::custody_timeout_event::type e(
+        event->bundle_.object(),
+        event->link_.object());
+    SEND(custody_timeout_event, e)
+}
+
+void
+ExternalRouter::handle_link_report(LinkReportEvent *event)
+{
+    typedef rtrmessage::link_report link_report;
+
+    BundleDaemon *bd = BundleDaemon::instance();
+    oasys::ScopeLock l(bd->contactmgr()->lock(),
+        "ExternalRouter::handle_event");
+
+    (void) event;
+
+    const LinkSet *links = bd->contactmgr()->links();
+    LinkSet::const_iterator i = links->begin();
+    LinkSet::const_iterator end = links->end();
+
+    link_report report;
+    link_report::link::container c;
+
+    for(; i != end; ++i)
+        c.push_back(link_report::link::type((*i).object()));
+
+    report.link(c);
+    SEND(link_report, report)
+}
+
+void
+ExternalRouter::handle_contact_report(ContactReportEvent* event)
+{
+    typedef rtrmessage::contact_report contact_report;
+
+    BundleDaemon *bd = BundleDaemon::instance();
+    oasys::ScopeLock l(bd->contactmgr()->lock(),
+        "ExternalRouter::handle_event");
+
+    (void) event;
+    
+    const LinkSet *links = bd->contactmgr()->links();
+    LinkSet::const_iterator i = links->begin();
+    LinkSet::const_iterator end = links->end();
+
+    contact_report report;
+    contact_report::contact::container c;
+    
+    for(; i != end; ++i) {
+        if ((*i)->contact() != NULL) {
+            c.push_back((*i)->contact().object());
+        }
+    }
+
+    report.contact(c);
+    SEND(contact_report, report)
+}
+
+void
+ExternalRouter::handle_bundle_report(BundleReportEvent *event)
+{
+    typedef rtrmessage::bundle_report bundle_report;
+
+    BundleDaemon *bd = BundleDaemon::instance();
+    oasys::ScopeLock l(bd->pending_bundles()->lock(),
+        "ExternalRouter::handle_event");
+
+    (void) event;
+
+    const BundleList *bundles = bd->pending_bundles();
+    BundleList::const_iterator i = bundles->begin();
+    BundleList::const_iterator end = bundles->end();
+
+    bundle_report report;
+    bundle_report::bundle::container c;
+
+    for(; i != end; ++i)
+        c.push_back(bundle_report::bundle::type(*i));
+
+    report.bundle(c);
+    SEND(bundle_report, report)
+}
+
+void
+ExternalRouter::handle_route_report(RouteReportEvent* event)
+{
+    typedef rtrmessage::route_report route_report;
+
+    oasys::ScopeLock l(route_table_->lock(),
+        "ExternalRouter::handle_event");
+
+    (void) event;
+
+    const RouteEntryVec *re = route_table_->route_table();
+    RouteEntryVec::const_iterator i = re->begin();
+    RouteEntryVec::const_iterator end = re->end();
+
+    route_report report;
+    route_report::route_entry::container c;
+
+    for(; i != end; ++i)
+        c.push_back(route_report::route_entry::type(*i));
+
+    report.route_entry(c);
+    SEND(route_report, report)
+}
+
+void
+ExternalRouter::send(rtrmessage::dtn &message)
+{
+    xercesc::MemBufFormatTarget buf;
+    xml_schema::namespace_infomap map;
+
+    message.eid(BundleDaemon::instance()->local_eid().c_str());
+
+    if (ExternalRouter::client_validation)
+        map[""].schema = ExternalRouter::schema.c_str();
+
+    try {
+        dtn_(buf, message, map, "UTF-8",
+             xml_schema::flags::dont_initialize);
+        srv_->eventq->push_back(new std::string((char *)buf.getRawBuffer()));
+    }
+    catch (xml_schema::serialization &e) {
+        const xml_schema::errors &elist = e.errors();
+        xml_schema::errors::const_iterator i = elist.begin();
+        xml_schema::errors::const_iterator end = elist.end();
+
+        for (; i < end; ++i) {
+            std::cout << (*i).message() << std::endl;
+        }
+    }
+    CATCH(xml_schema::unexpected_element)
+    CATCH(xml_schema::no_namespace_mapping)
+    CATCH(xml_schema::no_prefix_mapping)
+    CATCH(xml_schema::xsi_already_in_use)
+}
+
+const char *
+ExternalRouter::reason_to_str(int reason)
+{
+    switch(reason) {
+        case ContactEvent::NO_INFO:     return "no_info";
+        case ContactEvent::USER:        return "user";
+        case ContactEvent::SHUTDOWN:    return "shutdown";
+        case ContactEvent::BROKEN:      return "broken";
+        case ContactEvent::CL_ERROR:    return "cl_error";
+        case ContactEvent::CL_VERSION:  return "cl_version";
+        case ContactEvent::RECONNECT:   return "reconnect";
+        case ContactEvent::IDLE:        return "idle";
+        case ContactEvent::TIMEOUT:     return "timeout";
+        case ContactEvent::UNBLOCKED:   return "unblocked";
+        default: return "";
     }
 }
 
 ExternalRouter::ModuleServer::ModuleServer()
     : IOHandlerBase(new oasys::Notifier("/router/external/moduleserver")),
       Thread("/router/external/moduleserver"),
-      parser_(ExternalRouter::server_validation,
-              ExternalRouter::schema.c_str()),
+      parser_(new oasys::XercesXMLUnmarshal(
+                  ExternalRouter::server_validation,
+                  ExternalRouter::schema.c_str())),
       lock_(new oasys::SpinLock())
 {
     // router interface and external routers must be able to bind
@@ -371,58 +591,124 @@ void
 ExternalRouter::ModuleServer::process_action(const char *payload)
 {
     // clear any error condition before next parse
-    parser_.reset_error();
-
+    parser_->reset_error();
+    
     // parse the xml payload received
-    const char *event_tag = parser_.parse(payload);
-
+    const xercesc::DOMDocument *doc = parser_->doc(payload);
+    
     // was the message valid?
-    if (parser_.error()) {
+    if (parser_->error()) {
         log_debug("received invalid message");
         return;
     }
 
-    // traverse the XML document, instantiating events
-    do {
-        BundleEvent *action = instantiate(event_tag);
-    
-        if (! action) continue;
+    std::auto_ptr<rtrmessage::dtn> instance;
 
-        // unmarshal the action
-        parser_.action(action);
-    
-        // place the action on the global event queue
-        BundleDaemon::post(action);
-    } while ((event_tag = parser_.parse()) != 0);
-}
+    try {
+        instance = rtrmessage::dtn_(*doc);
+    }
+    CATCH(xml_schema::expected_element)
+    CATCH(xml_schema::unexpected_element)
+    CATCH(xml_schema::expected_attribute)
+    CATCH(xml_schema::unexpected_enumerator)
+    CATCH(xml_schema::no_type_info)
+    CATCH(xml_schema::not_derived)
 
-// Instantiate BundleEvents recognized by the
-// external router interface
-BundleEvent *
-ExternalRouter::ModuleServer::instantiate(const char *event_tag) {
-    std::string action(event_tag);
+    // Check that we have an instance object to work with
+    if (instance.get() == 0)
+        return;
 
-    if (action.find("send_bundle_request") != std::string::npos)
-        return new BundleSendRequest();
-    else if (action.find("cancel_bundle_request") != std::string::npos)
-        return new BundleCancelRequest();
-    else if (action.find("inject_bundle_request") != std::string::npos)
-        return new BundleInjectRequest();
-    else if (action.find("open_link_request") != std::string::npos)
-        return new LinkStateChangeRequest(oasys::Builder::builder(),
-                                          Link::OPENING, ContactEvent::NO_INFO);
-    else if (action.find("create_link_request") != std::string::npos)
-        return new LinkCreateRequest();
-    else if (action.find("link_query") != std::string::npos)
-        return new LinkQueryRequest();
-    else if (action.find("contact_query") != std::string::npos)
-        return new ContactQueryRequest();
-    else if (action.find("bundle_query") != std::string::npos)
-        return new BundleQueryRequest();
-    else if (action.find("route_query") != std::string::npos)
-        return new RouteQueryRequest();
+    // Examine message contents
+    if (instance->send_bundle_request().present()) {
+        log_debug("posting BundleSendRequest");
 
-    return 0;
+        u_int32_t bundleid =
+            instance->send_bundle_request().get().bundleid();
+        std::string link =
+            instance->send_bundle_request().get().link();
+        int action =
+            instance->send_bundle_request().get().fwd_action();
+
+        //XXX Where did the other BundleSendRequest consructor go?
+        BundleSendRequest *request = new BundleSendRequest();
+        request->bundleid_ = bundleid;
+        request->link_ = link;
+        request->action_ = action;
+        BundleDaemon::post(request);
+    }
+
+    if (instance->open_link_request().present()) {
+        BundleDaemon *bd = BundleDaemon::instance();
+        log_debug("posting LinkStateChangeRequest");
+
+        std::string lstr =
+            instance->open_link_request().get().link();
+        LinkRef link = bd->contactmgr()->find_link(lstr.c_str());
+
+        if (link.object() != 0) {
+            BundleDaemon::post(
+                new LinkStateChangeRequest(link, Link::OPENING,
+                                           ContactEvent::NO_INFO));
+        } else {
+            log_warn("attempt to open link %s that doesn't exist!",
+                     lstr.c_str());
+        }
+    }
+
+    if (instance->inject_bundle_request().present()) {
+        log_debug("posting BundleInjectRequest");
+
+        std::string src =
+            instance->inject_bundle_request().get().source();
+        std::string dest =
+            instance->inject_bundle_request().get().dest();
+        std::string link =
+            instance->inject_bundle_request().get().link();
+        xml_schema::base64_binary payload =
+            instance->inject_bundle_request().get().payload();
+
+        //XXX Where did the other BundleInjectRequest constructor go?
+        BundleInjectRequest *request = new BundleInjectRequest();
+        request->src_ = src;
+        request->dest_ = dest;
+        request->link_ = link;
+        request->payload_.assign(payload.data());
+        BundleDaemon::post(request);
+    }
+
+    if (instance->cancel_bundle_request().present()) {
+        log_debug("posting BundleCancelRequest");
+
+        u_int32_t bundleid =
+            instance->cancel_bundle_request().get().bundleid();
+        std::string link =
+            instance->cancel_bundle_request().get().link();
+
+        BundleCancelRequest *request = new BundleCancelRequest();
+        request->bundleid_ = bundleid;
+        request->link_.assign(link);
+        BundleDaemon::post(request);
+    }
+
+    if (instance->link_query().present()) {
+        log_debug("posting LinkQueryRequest");
+        BundleDaemon::post(new LinkQueryRequest());
+    }
+
+    if (instance->bundle_query().present()) {
+        log_debug("posting BundleQueryRequest");
+        BundleDaemon::post(new BundleQueryRequest());
+    }
+
+    if (instance->contact_query().present()) {
+        log_debug("posting ContactQueryRequest");
+        BundleDaemon::post(new ContactQueryRequest());
+    }
+
+    if (instance->route_query().present()) {
+        log_debug("posting RouteQueryRequest");
+        BundleDaemon::post(new RouteQueryRequest());
+    }
 }
 
 ExternalRouter::HelloTimer::HelloTimer(ExternalRouter *router)
@@ -437,30 +723,11 @@ ExternalRouter::HelloTimer::~HelloTimer()
 
 // Timeout callback for the hello timer
 void
-ExternalRouter::HelloTimer::timeout(const struct timeval &now)
+ExternalRouter::HelloTimer::timeout(const struct timeval &)
 {
-    (void)now;
-
-    static oasys::StringBuffer hello(
-        "<dtn eid=\"%s\" hello_interval=\"%i\"/>",
-        BundleDaemon::instance()->local_eid().c_str(),
-        ExternalRouter::hello_interval);
-
-    static oasys::StringBuffer hello_with_ns(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-        "<dtn eid=\"%s\" hello_interval=\"%i\" "
-        "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
-        "xsi:noNamespaceSchemaLocation=\"file://%s\"/>",
-        BundleDaemon::instance()->local_eid().c_str(),
-        ExternalRouter::hello_interval,
-        ExternalRouter::schema.c_str());
-
-    // throw the hello message onto the ModuleServer queue
-    if (ExternalRouter::client_validation)
-        router_->srv_->eventq->push_back(new std::string(hello_with_ns.c_str()));
-    else
-        router_->srv_->eventq->push_back(new std::string(hello.c_str()));
-
+    rtrmessage::dtn message;
+    message.hello_interval(ExternalRouter::hello_interval);
+    router_->send(message);
     schedule_in(ExternalRouter::hello_interval * 1000);
 }
 
@@ -480,11 +747,18 @@ ExternalRouter::ERRegistration::ERRegistration(ExternalRouter *router)
 void
 ExternalRouter::ERRegistration::deliver_bundle(Bundle *bundle)
 {
-    BundleDeliveryEvent *delivery =
-        new BundleDeliveryEvent(bundle, EVENTSRC_PEER);
+    rtrmessage::bundle_delivery_event e(
+        bundle, (xml_schema::string)source_to_str(EVENTSRC_PEER));
 
-    router_->handle_event(delivery);
-    delete delivery;
+    // add the payload
+    int len = bundle->payload_.length();
+    u_char buf[len];
+    bundle->payload_.read_data(0, len, buf); 
+    e.bundle().payload(xml_schema::base64_binary(buf, len));
+
+    rtrmessage::dtn message;
+    message.bundle_delivery_event(e);
+    router_->send(message);
 
     BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
 }
@@ -496,11 +770,11 @@ void external_rtr_shutdown(void *)
 }
 
 // Initialize ExternalRouter parameters
-u_int16_t ExternalRouter::server_port = 8001;
-u_int16_t ExternalRouter::hello_interval = 30;
-std::string ExternalRouter::schema = "/etc/dtn.router.xsd";
-bool ExternalRouter::server_validation = true;
-bool ExternalRouter::client_validation = false;
+u_int16_t ExternalRouter::server_port       = 8001;
+u_int16_t ExternalRouter::hello_interval    =  30;
+std::string ExternalRouter::schema          = "/etc/router.xsd";
+bool ExternalRouter::server_validation      = true;
+bool ExternalRouter::client_validation      = false;
 
 } // namespace dtn
 #endif // XERCES_C_ENABLED
