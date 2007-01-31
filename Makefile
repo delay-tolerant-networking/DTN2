@@ -130,7 +130,7 @@ doxygen:
 xsddoc:
 	mkdir -p doc/router-xsddoc
 	xsddoc -t "External Router Interface" -o doc/router-xsddoc -q \
-		daemon/router.xsd
+		servlib/routing/router.xsd
 
 xsdbindings:
 	$(MAKE) -C servlib xsdbindings
