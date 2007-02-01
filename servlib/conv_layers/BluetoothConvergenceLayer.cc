@@ -122,6 +122,10 @@ void
 BluetoothConvergenceLayer::dump_link(const LinkRef& link,
                                      oasys::StringBuffer* buf)
 {
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+
     StreamConvergenceLayer::dump_link(link,buf);
     BluetoothLinkParams* params =
         dynamic_cast<BluetoothLinkParams*>(link->cl_info());

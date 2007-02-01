@@ -53,14 +53,17 @@ LinkStateRouter::handle_contact_up(ContactUpEvent* event)
     BundleRouter::handle_contact_up(event);
     LinkStateGraph::Vertex *peer, *local;
 
+    LinkRef link = event->contact_->link();
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
     log_info("Contact Up. Adding edges %s <-> %s",
-             BundleDaemon::instance()->local_eid().c_str(),
-             event->contact_->link()->nexthop());
+             BundleDaemon::instance()->local_eid().c_str(), link->nexthop());
 
     // XXX/demmer this is bogus too... fix this whole implementation
     
     local=graph_.getVertex(BundleDaemon::instance()->local_eid().c_str());
-    peer=graph_.getVertex(event->contact_->link()->nexthop());
+    peer=graph_.getVertex(link->nexthop());
 
     /* 
      *  Contact Up means we are able to transmit to the node at the other side. 
@@ -86,7 +89,7 @@ LinkStateRouter::handle_contact_up(ContactUpEvent* event)
      */
     std::set<LinkStateGraph::Edge*> edges=graph_.edges();
     for(std::set<LinkStateGraph::Edge*>::iterator i=edges.begin(); i!=edges.end(); i++)
-        send_announcement((*i), event->contact_->link(), 1);
+        send_announcement((*i), link, 1);
 }
 
 void
@@ -182,10 +185,15 @@ LinkStateRouter::handle_bundle_received(BundleReceivedEvent* event)
     // XXX/demmer fixme
     EndpointID eid(nextHop->eid_);
     ASSERT(eid.valid());
-           
+
     LinkRef link=cm->find_link_to(NULL, "", eid);
 
-    ASSERT(link!=NULL); // if the link is in the graph, it better exist too
+    // The router may not have been notified yet of a deleted link/contact.
+    if (link == NULL) {
+        log_debug("LinkStateRouter::handle_bundle_received: "
+                  "failed to find link to nexthop eid %s", nextHop->eid_);
+        return;
+    }
 
     // Send the bundle on the appropriate link.
     // XXX/demmer fixme

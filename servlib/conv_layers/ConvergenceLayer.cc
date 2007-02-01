@@ -151,6 +151,15 @@ ConvergenceLayer::init_link(const LinkRef& link, int argc, const char* argv[])
 
 //----------------------------------------------------------------------
 void
+ConvergenceLayer::delete_link(const LinkRef& link)
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    log_debug("ConvergenceLayer::delete_link: link %s deleted", link->name());
+}
+
+//----------------------------------------------------------------------
+void
 ConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
 {
     (void)link;

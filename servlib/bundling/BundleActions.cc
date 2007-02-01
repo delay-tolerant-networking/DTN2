@@ -29,7 +29,12 @@ namespace dtn {
 void
 BundleActions::open_link(const LinkRef& link)
 {
-    log_debug("opening link %s", link->name());
+    ASSERT(link != NULL);
+    if (link->isdeleted()) {
+        log_debug("BundleActions::open_link: "
+                  "cannot open deleted link %s", link->name());
+        return;
+    }
 
     if (link->isopen() || link->contact() != NULL) {
         log_err("not opening link %s since already open", link->name());
@@ -41,6 +46,8 @@ BundleActions::open_link(const LinkRef& link)
         return;
     }
     
+    log_debug("BundleActions::open_link: opening link %s", link->name());
+
     link->open();
 }
 
@@ -48,12 +55,14 @@ BundleActions::open_link(const LinkRef& link)
 void
 BundleActions::close_link(const LinkRef& link)
 {
-    log_debug("closing link %s", link->name());
+    ASSERT(link != NULL);
 
     if (! link->isopen() && ! link->isopening()) {
         log_err("not closing link %s since not open", link->name());
         return;
     }
+
+    log_debug("BundleActions::close_link: closing link %s", link->name());
 
     link->close();
     ASSERT(link->contact() == NULL);
@@ -65,12 +74,19 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
                            ForwardingInfo::action_t action,
                            const CustodyTimerSpec& custody_timer)
 {
-    if(bundle->xmit_blocks_.find_blocks(link) != NULL)
-    {
-        log_err("link not ready to handle another bundle, dropping send request");
+    ASSERT(link != NULL);
+    if (link->isdeleted()) {
+        log_warn("BundleActions::send_bundle: "
+                 "failed to send bundle *%p on link %s",
+                 bundle, link->name());
         return false;
     }
 
+    if(bundle->xmit_blocks_.find_blocks(link) != NULL) {
+        log_err("BundleActions::send_bundle: "
+                "link not ready to handle bundle, dropping send request");
+        return false;
+    }
 
     // XXX/demmer this should be moved somewhere in the router
     // interface so it can select options for the outgoing bundle
@@ -81,7 +97,7 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
     log_debug("send bundle *%p to %s link %s (%s) (total len %zu)",
               bundle, link->type_str(), link->name(), link->nexthop(),
               total_len);
-    
+
     if (link->state() != Link::OPEN) {
         log_err("send bundle *%p to %s link %s (%s): link not open!!",
                 bundle, link->type_str(), link->name(), link->nexthop());
@@ -119,7 +135,15 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
 bool
 BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
 {
-    log_debug("cancel bundle *%p on %s link %s (%s)",
+    ASSERT(link != NULL);
+    if (link->isdeleted()) {
+        log_debug("BundleActions::cancel_bundle: "
+                  "cannot cancel bundle on deleted link %s", link->name());
+        return false;
+    }
+
+    log_debug("BundleActions::cancel_bundle: "
+              "cancel bundle *%p on %s link %s (%s)",
               bundle, link->type_str(), link->name(), link->nexthop());
 
     if (link->state() != Link::OPEN) {

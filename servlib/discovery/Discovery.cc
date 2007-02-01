@@ -193,12 +193,17 @@ Discovery::handle_neighbor_discovered(const std::string& cl_type,
     LinkRef link("Announce::handle_neighbor_discovered");
     link = cm->find_link_to(cl, "", remote_eid);
 
-    if (link == NULL)
-    {
+    if (link == NULL) {
         link = cm->new_opportunistic_link(cl, cl_addr, remote_eid);
+        if (link == NULL) {
+            log_debug("Discovery::handle_neighbor_discovered: "
+                      "failed to create opportunistic link");
+            return;
+        }
     }
 
-    ASSERTF(link != NULL, "new_opportunistic_link gave back a NULL pointer");
+    ASSERT(link != NULL);
+
     if (!link->isavailable())
     {
         // request to set link available

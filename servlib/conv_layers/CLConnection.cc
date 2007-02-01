@@ -142,6 +142,9 @@ CLConnection::run()
 void
 CLConnection::queue_bundle(Bundle* bundle)
 {
+    ASSERT(contact_->link() != NULL);
+    ASSERT(contact_->link()->cl_info() != NULL);
+
     /*
      * Called by the main BundleDaemon thread... push a new CLMsg onto
      * the queue and potentially set the BUSY state on the link. Note
@@ -209,13 +212,25 @@ CLConnection::check_unblock_link()
      * below the threshold since otherwise we'll flood the router with
      * incorrect BUSY->AVAILABLE events.
      */
-    LinkParams* params = dynamic_cast<LinkParams*>(contact_->link()->cl_info());
+
+    LinkRef link = contact_->link();
+    ASSERT(link != NULL);
+    oasys::ScopeLock l(link->lock(), "CLConnection::check_unblock_link");
+
+    if (link->isdeleted()) {
+        log_debug("CLConnection::check_unblock_link: "
+                  "cannot unblock deleted link %s", link->name());
+        return;
+    }
+    ASSERT(link->cl_info() != NULL);
+	
+    LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
 
     oasys::atomic_decr(&num_pending_);
     ASSERT((int)num_pending_.value >= 0);
 
-    if (contact_->link()->state() == Link::BUSY)
+    if (link->state() == Link::BUSY)
     {
         if (num_pending_.value == (params->busy_queue_depth_ - 1))
         {
@@ -227,7 +242,7 @@ CLConnection::check_unblock_link()
             // of backpressure needs to be worked through in a much
             // better way.
             BundleDaemon::post_at_head(
-                new LinkStateChangeRequest(contact_->link(),
+                new LinkStateChangeRequest(link,
                                            Link::AVAILABLE,
                                            ContactEvent::UNBLOCKED));
         }
@@ -283,7 +298,11 @@ CLConnection::break_contact(ContactEvent::reason_t reason)
 void
 CLConnection::close_contact()
 {
-    LinkParams* params = dynamic_cast<LinkParams*>(contact_->link()->cl_info());
+    LinkRef link = contact_->link();
+    ASSERT(link != NULL);
+    ASSERT(link->cl_info() != NULL);
+
+    LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
     // drain the inflight queue, posting transmitted or transmit
@@ -295,22 +314,22 @@ CLConnection::close_contact()
         
         if ((! params->reactive_frag_enabled_) ||
             (sent_bytes == 0) ||
-            (contact_->link()->is_reliable() && acked_bytes == 0))
+            (link->is_reliable() && acked_bytes == 0))
         {
             log_debug("posting transmission failed event "
                       "(reactive fragmentation %s, %s link, acked_bytes %u)",
                       params->reactive_frag_enabled_ ? "enabled" : "disabled",
-                      contact_->link()->is_reliable() ? "reliable" : "unreliable",
+                      link->is_reliable() ? "reliable" : "unreliable",
                       acked_bytes);
             
             BundleDaemon::post(
                 new BundleTransmitFailedEvent(inflight->bundle_.object(),
-                                              contact_, contact_->link()));
+                                              contact_, link));
             
         } else {
             BundleDaemon::post(
                 new BundleTransmittedEvent(inflight->bundle_.object(),
-                                           contact_, contact_->link(),
+                                           contact_, link,
                                            sent_bytes, acked_bytes));
         }
 
@@ -371,17 +390,21 @@ CLConnection::close_contact()
                 BundleDaemon::post(
                     new BundleTransmitFailedEvent(msg.bundle_.object(),
                                                   contact_,
-                                                  contact_->link()));
-
+                                                  link));
             }
         }
     }
 }
 
 //----------------------------------------------------------------------
-void
+bool
 CLConnection::find_contact(const EndpointID& peer_eid)
 {
+    if (contact_ != NULL) {
+        log_debug("CLConnection::find_contact: contact already exists");
+        return true;
+    }
+	
     /*
      * Now we may need to find or create an appropriate opportunistic
      * link for the connection.
@@ -394,50 +417,67 @@ CLConnection::find_contact(const EndpointID& peer_eid)
      * If we can't find one, then we create a new opportunistic link
      * for the connection.
      */
-    if (contact_ == NULL) {
+    ASSERT(nexthop_ != ""); // the derived class must have set the
+                            // nexthop in the constructor
 
-        ASSERT(nexthop_ != ""); // the derived class must have set the
-                                // nexthop in the constructor
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    oasys::ScopeLock l(cm->lock(), "CLConnection::find_contact");
 
-        ContactManager* cm = BundleDaemon::instance()->contactmgr();
-        oasys::ScopeLock l(cm->lock(), "CLConnection::find_contact");
+    bool new_link = false;
+    LinkRef link = cm->find_link_to(cl_, "", peer_eid,
+                                    Link::OPPORTUNISTIC,
+                                    Link::AVAILABLE | Link::UNAVAILABLE);
 
-        LinkRef link = cm->find_link_to(cl_, "", peer_eid,
-                                        Link::OPPORTUNISTIC,
-                                        Link::AVAILABLE | Link::UNAVAILABLE);
-
-        // XXX/demmer remove check for no contact
-        if (link != NULL && (link->contact() == NULL)) {
-            link->set_nexthop(nexthop_);
-            log_debug("found idle opportunistic link *%p", link.object());
-            
-        } else {
-            if (link != NULL) {
-                log_warn("in-use opportunistic link *%p returned from "
-                         "ContactManager::find_link_to", link.object());
-            }
-            
-            link = cm->new_opportunistic_link(cl_,
-                                              nexthop_.c_str(),
-                                              peer_eid);
-            log_debug("created new opportunistic link *%p", link.object());
+    if (link == NULL || (link != NULL && link->contact() != NULL)) {
+        if (link != NULL) {
+            log_warn("CLConnection::find_contact: "
+                     "in-use opportunistic link *%p", link.object());
         }
-        
-        ASSERT(! link->isopen());
 
-        contact_ = new Contact(link);
-        contact_->set_cl_info(this);
-        link->set_contact(contact_.object());
+        link = cm->new_opportunistic_link(cl_, nexthop_.c_str(), peer_eid);
+        if (link == NULL) {
+            log_debug("CLConnection::find_contact: "
+                      "failed to create opportunistic link");
+            return false;
+        }
 
-        /*
-         * Now that the connection is established, we swing the
-         * params_ pointer to those of the link, since there's a
-         * chance they've been modified by the user in the past.
-         */
-        LinkParams* lparams = dynamic_cast<LinkParams*>(link->cl_info());
-        ASSERT(lparams != NULL);
-        params_ = lparams;
+        new_link = true;
+        log_debug("CLConnection::find_contact: "
+                  "created new opportunistic link *%p", link.object());
     }
+
+    ASSERT(link != NULL);
+    oasys::ScopeLock link_lock(link->lock(), "CLConnection::find_contact");
+
+    // XXX/demmer remove check for no contact
+    if (!new_link) {
+        ASSERT(link->contact() == NULL);
+        link->set_nexthop(nexthop_);
+        log_debug("CLConnection::find_contact: "
+                  "found idle opportunistic link *%p", link.object());
+    }
+
+    // The link should not be marked for deletion because the
+    // ContactManager is locked.
+    ASSERT(!link->isdeleted());
+
+    ASSERT(link->cl_info() != NULL);
+    ASSERT(!link->isopen());
+
+    contact_ = new Contact(link);
+    contact_->set_cl_info(this);
+    link->set_contact(contact_.object());
+
+    /*
+     * Now that the connection is established, we swing the
+     * params_ pointer to those of the link, since there's a
+     * chance they've been modified by the user in the past.
+     */
+    LinkParams* lparams = dynamic_cast<LinkParams*>(link->cl_info());
+    ASSERT(lparams != NULL);
+    params_ = lparams;
+
+    return true;
 }
 
 

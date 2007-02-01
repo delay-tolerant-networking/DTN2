@@ -89,6 +89,10 @@ void
 ConnectionConvergenceLayer::dump_link(const LinkRef& link,
                                       oasys::StringBuffer* buf)
 {
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+	
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
@@ -107,6 +111,10 @@ bool
 ConnectionConvergenceLayer::init_link(const LinkRef& link,
                                       int argc, const char* argv[])
 {
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() == NULL);
+
     log_debug("adding %s link %s", link->type_str(), link->nexthop());
 
     // Create a new parameters structure, parse the options, and store
@@ -138,6 +146,30 @@ ConnectionConvergenceLayer::init_link(const LinkRef& link,
 }
 
 //----------------------------------------------------------------------
+void
+ConnectionConvergenceLayer::delete_link(const LinkRef& link)
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
+    log_debug("ConnectionConvergenceLayer::delete_link: "
+              "deleting link %s", link->name());
+
+    if (link->isopen() || link->isopening()) {
+        log_debug("ConnectionConvergenceLayer::delete_link: "
+                  "link %s open, deleting link state when contact closed",
+                  link->name());
+        return;
+    }
+
+    ASSERT(link->contact() == NULL);
+    ASSERT(link->cl_info() != NULL);
+
+    delete link->cl_info();
+    link->set_cl_info(NULL);
+}
+
+//----------------------------------------------------------------------
 bool
 ConnectionConvergenceLayer::finish_init_link(const LinkRef& link,
                                              LinkParams* params)
@@ -152,6 +184,10 @@ bool
 ConnectionConvergenceLayer::reconfigure_link(const LinkRef& link,
                                              int argc, const char* argv[])
 {
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+	
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
@@ -195,7 +231,12 @@ bool
 ConnectionConvergenceLayer::open_contact(const ContactRef& contact)
 {
     LinkRef link = contact->link();
-    log_debug("opening contact on link *%p", link.object());
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+
+    log_debug("ConnectionConvergenceLayer::open_contact: "
+              "opening contact on link *%p", link.object());
     
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
@@ -237,6 +278,15 @@ ConnectionConvergenceLayer::close_contact(const ContactRef& contact)
 
     contact->set_cl_info(NULL);
 
+    LinkRef link = contact->link();
+    ASSERT(link != NULL);
+ 
+    if (link->isdeleted()) {
+        ASSERT(link->cl_info() != NULL);
+        delete link->cl_info();
+        link->set_cl_info(NULL);
+    }
+
     return true;
 }
 
@@ -245,11 +295,15 @@ void
 ConnectionConvergenceLayer::send_bundle(const ContactRef& contact,
                                         Bundle* bundle)
 {
-    log_debug("send_bundle *%p to *%p", bundle, contact.object());
+    log_debug("ConnectionConvergenceLayer::send_bundle: "
+              "send bundle *%p to *%p", bundle, contact.object());
 
     CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
     ASSERT(conn != NULL);
 
+    ASSERT(contact->link() != NULL);
+    ASSERT(!contact->link()->isdeleted());
+    
     conn->queue_bundle(bundle);
 }
 

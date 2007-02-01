@@ -35,6 +35,7 @@ LinkCommand::LinkCommand()
     add_to_help("add <name> <next hop> <type> <conv layer> <args>", "add links");
     add_to_help("open <name>", "open the link");
     add_to_help("close <name>", "close the link");
+    add_to_help("delete <name>", "delete the link");
     add_to_help("set_available <name> <true | false>", 
                 "hacky way to make the link available");
     add_to_help("state <name>", "return the state of a link");
@@ -133,7 +134,7 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
         argc -= count;
         
-        if (! link->clayer()->reconfigure_link(link, argc, argv)) {
+        if (!link->reconfigure_link(argc, argv)) {
             return TCL_ERROR;
         }
         
@@ -187,6 +188,24 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             new LinkStateChangeRequest(link, Link::CLOSED,
                                        ContactEvent::USER));
 
+        return TCL_OK;
+
+    } else if (strcmp(cmd, "delete") == 0) {
+        // link delete <name>
+        if (argc != 3) {
+            wrong_num_args(argc, argv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+
+        const char * name = argv[2];
+
+        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
+        if (link == NULL) {
+            resultf("link %s doesn't exist", name);
+            return TCL_ERROR;
+        }
+
+        BundleDaemon::instance()->post(new LinkDeleteRequest(link));
         return TCL_OK;
 
     } else if (strcmp(cmd, "set_available") == 0) {

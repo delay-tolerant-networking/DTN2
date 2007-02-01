@@ -62,8 +62,9 @@ public:
     /**
      * Delete a link
      */
-    void del_link(const LinkRef& link);
-    
+    void del_link(const LinkRef& link,
+                  ContactEvent::reason_t reason = ContactEvent::NO_INFO);
+
     /**
      * Check if contact manager already has this link
      */

@@ -296,11 +296,14 @@ protected:
     void handle_contact_down(ContactDownEvent* event);
     void handle_contact_query(ContactQueryRequest* event);
     void handle_contact_report(ContactReportEvent* event);
+    void handle_link_created(LinkCreatedEvent* event);
+    void handle_link_deleted(LinkDeletedEvent* event);
     void handle_link_available(LinkAvailableEvent* event);    
     void handle_link_unavailable(LinkUnavailableEvent* event);
     void handle_link_busy(LinkBusyEvent* event);
     void handle_link_state_change_request(LinkStateChangeRequest* request);
     void handle_link_create(LinkCreateRequest* event);
+    void handle_link_delete(LinkDeleteRequest* request);
     void handle_link_query(LinkQueryRequest* event);
     void handle_link_report(LinkReportEvent* event);
     void handle_reassembly_completed(ReassemblyCompletedEvent* event);

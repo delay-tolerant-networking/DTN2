@@ -150,15 +150,19 @@ EthConvergenceLayer::interface_down(Interface* iface)
 bool
 EthConvergenceLayer::open_contact(const ContactRef& contact)
 {
-    eth_addr_t addr;
-
     LinkRef link = contact->link();
-    log_debug("opening contact to link *%p", link.object());
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+
+    log_debug("EthConvergenceLayer::open_contact: "
+              "opening contact to link *%p", link.object());
 
     // parse out the address from the contact nexthop
-    if (! EthernetScheme::parse(link->nexthop(), &addr)) {
-        log_err("next hop address '%s' not a valid eth uri",
-                link->nexthop());
+    eth_addr_t addr;
+    if (!EthernetScheme::parse(link->nexthop(), &addr)) {
+        log_err("EthConvergenceLayer::open_contact: "
+                "next hop address '%s' not a valid eth uri", link->nexthop());
         return false;
     }
     
@@ -188,6 +192,21 @@ EthConvergenceLayer::close_contact(const ContactRef& contact)
     return true;
 }
 
+void
+EthConvergenceLayer::delete_link(const LinkRef& link)
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
+    log_debug("EthConvergenceLayer::delete_link: "
+              "deleting link %s", link->name());
+
+    if (link->cl_info() != NULL) {
+        delete link->cl_info();
+        link->set_cl_info(NULL);
+    }
+}
+
 /**
  * Send bundles queued up for the contact.
  */
@@ -201,6 +220,9 @@ EthConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
         return;
     }
     ASSERT(contact == sender->contact_);
+
+    ASSERT(contact->link() != NULL);
+    ASSERT(!contact->link()->isdeleted());
     
     sender->send_bundle(bundle); // consumes bundle reference
 }
@@ -262,37 +284,60 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         ConvergenceLayer* cl = ConvergenceLayer::find_clayer("eth");
         EndpointID remote_eid(bundles_string);
 
-        LinkRef link=cm->find_link_to(cl,
-                                      next_hop_string,
-                                      remote_eid,
-                                      Link::OPPORTUNISTIC);
+        LinkRef link = cm->find_link_to(cl,
+                                        next_hop_string,
+                                        remote_eid,
+                                        Link::OPPORTUNISTIC);
         
-        if(link == NULL)
-        {
-            log_info("Discovered next_hop %s on interface %s.",
+        if(link == NULL) {
+            log_info("EthConvergenceLayer::Receiver::process_data: "
+                     "Discovered next_hop %s on interface %s.",
                      next_hop_string, if_name_);
             
             // registers a new contact with the routing layer
-            link=cm->new_opportunistic_link(
-                cl,
-                next_hop_string,
-                EndpointID(bundles_string));
-            
-            // XXX/demmer I'm not sure about the following
-            if (link->cl_info() == NULL) {
-                link->set_cl_info(new EthCLInfo(if_name_));
-            } else {
-                ASSERT(strcmp(((EthCLInfo*)link->cl_info())->if_name_,
-                              if_name_) == 0);
+            link = cm->new_opportunistic_link(cl,
+                                              next_hop_string,
+                                              EndpointID(bundles_string));
+
+            if (link == NULL) {
+                log_debug("EthConvergenceLayer::Receiver::process_data: "
+                          "failed to create new opportunistic link");
+                return;
             }
+
+            oasys::ScopeLock l(link->lock(), "EthConvergenceLayer::Receiver");
+            // It is doubtful that the link would be deleted already,
+            // but check just in case.
+            if (link->isdeleted()) {
+                log_warn("EthConvergenceLayer::Receiver::process_data: "
+                         "link %s deleted before fully initialized",
+                         link->name());
+                return;
+            }
+            ASSERT(link->cl_info() == NULL);
+            link->set_cl_info(new EthCLInfo(if_name_));
+            l.unlock();
         }
 
-        if(!link->isavailable())
-        {
-            log_info("Got beacon for previously unavailable link");
+        ASSERT(link != NULL);
+        oasys::ScopeLock l(link->lock(), "EthConvergenceLayer::Receiver");
+
+        if (link->isdeleted()) {
+            log_warn("EthConvergenceLayer::Receiver::process_data: "
+                     "link %s already deleted", link->name());
+            return;
+        }
+
+        ASSERT(link->cl_info() != NULL);
+        ASSERT(strcmp(((EthCLInfo*)link->cl_info())->if_name_, if_name_) == 0);
+
+        if(!link->isavailable()) {
+            log_info("EthConvergenceLayer::Receiver::process_data: "
+                     "Got beacon for previously unavailable link %s",
+                     link->name());
             
             // XXX/demmer something should be done here to kick the link...
-            log_err("XXx/demmer do something about link availability");
+            log_err("XXX/demmer do something about link availability");
         }
         
         /**
@@ -307,7 +352,9 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         timer = new BeaconTimer(next_hop_string); 
         timer->schedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
 	
-	((EthCLInfo*)link->cl_info())->timer=timer;
+	((EthCLInfo*)link->cl_info())->timer = timer;
+
+        l.unlock();
     }
     else if(ethclhdr.type == ETHCL_BUNDLE) {
         // infer the bundle length based on the packet length minus the
@@ -659,18 +706,18 @@ EthConvergenceLayer::BeaconTimer::timeout(const struct timeval& now)
 {
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
     ConvergenceLayer* cl = ConvergenceLayer::find_clayer("eth");
-    LinkRef l = cm->find_link_to(cl, next_hop_);
+    LinkRef link = cm->find_link_to(cl, next_hop_);
 
     (void)now;
 
     log_info("Neighbor %s timer expired.",next_hop_);
 
-    if(l == NULL) {
+    if(link == NULL) {
       log_warn("No link for next_hop %s.",next_hop_);
     }
-    else if(l->isopen()) {
+    else if(link->isopen()) {
 	BundleDaemon::post(
-            new LinkStateChangeRequest(l, Link::CLOSED,
+            new LinkStateChangeRequest(link, Link::CLOSED,
                                        ContactDownEvent::BROKEN));
     }
     else {

@@ -90,6 +90,11 @@ protected:
     virtual void handle_link_created(LinkCreatedEvent* event);
 
     /**
+     * Delete all routes that depend on the given link.
+     */
+    virtual void handle_link_deleted(LinkDeletedEvent* event);
+
+    /**
      * Handle a custody transfer timeout.
      */
     virtual void handle_custody_timeout(CustodyTimeoutEvent* event);

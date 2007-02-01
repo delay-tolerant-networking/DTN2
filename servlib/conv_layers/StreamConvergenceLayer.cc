@@ -101,6 +101,10 @@ StreamConvergenceLayer::finish_init_link(const LinkRef& link,
 void
 StreamConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
 {
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+
     ConnectionConvergenceLayer::dump_link(link, buf);
     
     StreamLinkParams* params =
@@ -315,7 +319,13 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
         return;
     }
 
-    find_contact(peer_eid);
+    if (!find_contact(peer_eid)) {
+        ASSERT(contact_ == NULL);
+        log_debug("StreamConvergenceLayer::Connection::"
+                  "handle_contact_initiation: failed to find contact");
+        break_contact(ContactEvent::CL_ERROR);
+        return;
+    }
     recvbuf_.consume(peer_eid_len);
 
     /*

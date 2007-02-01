@@ -168,7 +168,10 @@ FileConvergenceLayer::interface_down(Interface* iface)
 bool
 FileConvergenceLayer::open_contact(const ContactRef& contact)
 {
-    (void)contact;
+    LinkRef link = contact->link();
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
     // XXX/demmer fixme
     
     // parse out the directory from the contact
@@ -204,7 +207,7 @@ FileConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
     (void)contact;
     (void)bundle;
-    
+
     // XXX/demmer fix this at some point
     NOTIMPLEMENTED;
 

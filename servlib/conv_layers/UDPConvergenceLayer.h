@@ -61,7 +61,12 @@ public:
      * Create any CL-specific components of the Link.
      */
     bool init_link(const LinkRef& link, int argc, const char* argv[]);
-    
+
+    /**
+     * Delete any CL-specific components of the Link.
+     */
+    void delete_link(const LinkRef& link);
+
     /**
      * Dump out CL specific link information.
      */

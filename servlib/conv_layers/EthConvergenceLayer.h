@@ -117,7 +117,7 @@ public:
      * Bring down the interface.
      */
     bool interface_down(Interface* iface);
-    
+
     /**
      * Open the connection to a given contact and send/listen for 
      * bundles over this contact.
@@ -128,6 +128,11 @@ public:
      * Close the connnection to the contact.
      */
     bool close_contact(const ContactRef& contact);
+
+    /**
+     * Delete any CL-specific components of the Link.
+     */
+    void delete_link(const LinkRef& link);
 
     /**
      * Send the bundle to the contact

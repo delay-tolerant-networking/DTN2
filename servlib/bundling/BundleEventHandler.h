@@ -190,6 +190,11 @@ protected:
     virtual void handle_link_create(LinkCreateRequest* request);
 
     /**
+     * Default event handler for link delete requests.
+     */
+    virtual void handle_link_delete(LinkDeleteRequest* request);
+
+    /**
      * Default event handler for link query requests.
      */
     virtual void handle_link_query(LinkQueryRequest* request);

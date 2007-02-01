@@ -177,6 +177,10 @@ UDPConvergenceLayer::init_link(const LinkRef& link,
 {
     in_addr_t addr;
     u_int16_t port = 0;
+
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() == NULL);
     
     log_debug("adding %s link %s", link->type_str(), link->nexthop());
 
@@ -211,8 +215,27 @@ UDPConvergenceLayer::init_link(const LinkRef& link,
 
 //----------------------------------------------------------------------
 void
+UDPConvergenceLayer::delete_link(const LinkRef& link)
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+
+    log_debug("UDPConvergenceLayer::delete_link: "
+              "deleting link %s", link->name());
+
+    delete link->cl_info();
+    link->set_cl_info(NULL);
+}
+
+//----------------------------------------------------------------------
+void
 UDPConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
 {
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+	
     Params* params = (Params*)link->cl_info();
     
     buf->appendf("\tlocal_addr: %s local_port: %d\n",
@@ -230,7 +253,12 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
     u_int16_t port;
 
     LinkRef link = contact->link();
-    log_debug("opening contact for link *%p", link.object());
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+    
+    log_debug("UDPConvergenceLayer::open_contact: "
+              "opening contact for link *%p", link.object());
     
     // parse out the address / port from the nexthop address
     if (! parse_nexthop(link->nexthop(), &addr, &port)) {
@@ -256,7 +284,7 @@ UDPConvergenceLayer::open_contact(const ContactRef& contact)
     
     // create a new sender structure
     Sender* sender = new Sender(link->contact());
-    
+
     if (!sender->init(params, addr, port)) {
         log_err("error initializing contact");
         BundleDaemon::post(
@@ -300,15 +328,18 @@ UDPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     }
     ASSERT(contact == sender->contact_);
 
+    LinkRef link = contact->link();
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
     int len = sender->send_bundle(bundle); // consumes bundle reference
 
     if (len > 0) {
         BundleDaemon::post(
-            new BundleTransmittedEvent(bundle, contact,
-                                       contact->link(), len, 0));
+            new BundleTransmittedEvent(bundle, contact, link, len, 0));
     } else {
         BundleDaemon::post(
-            new BundleTransmitFailedEvent(bundle, contact,contact->link()));
+            new BundleTransmitFailedEvent(bundle, contact, link));
     }
 }
 

@@ -587,6 +587,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     Bundle* bundle = event->bundleref_.object();
 
     LinkRef link = event->link_;
+    ASSERT(link != NULL);
     
     /*
      * Update statistics. Note that the link's queued length must
@@ -717,6 +718,8 @@ BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
     Bundle* bundle = event->bundleref_.object();
 
     LinkRef link = event->link_;
+    ASSERT(link != NULL);
+    
     bundle->xmit_blocks_.delete_blocks(link);
     
     log_info("BUNDLE_TRANSMIT_FAILED id:%d -> %s (%s)",
@@ -979,10 +982,46 @@ BundleDaemon::handle_registration_expired(RegistrationExpiredEvent* event)
 
 //----------------------------------------------------------------------
 void
+BundleDaemon::handle_link_created(LinkCreatedEvent* event)
+{
+    LinkRef link = event->link_;
+    ASSERT(link != NULL);
+
+    if (link->isdeleted()) {
+        log_warn("BundleDaemon::handle_link_created: "
+                 "link %s deleted prior to full creation", link->name());
+        event->daemon_only_ = true;
+        return;
+    }
+
+    log_info("LINK_CREATED *%p", link.object());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_deleted(LinkDeletedEvent* event)
+{
+    LinkRef link = event->link_;
+    ASSERT(link != NULL);
+    ASSERT(link->isdeleted());
+
+    log_info("LINK_DELETED *%p", link.object());
+}
+
+//----------------------------------------------------------------------
+void
 BundleDaemon::handle_link_available(LinkAvailableEvent* event)
 {
     LinkRef link = event->link_;
+    ASSERT(link != NULL);
     ASSERT(link->isavailable());
+
+    if (link->isdeleted()) {
+        log_warn("BundleDaemon::handle_link_available: "
+                 "link %s already deleted", link->name());
+        event->daemon_only_ = true;
+        return;
+    }
 
     log_info("LINK_AVAILABLE *%p", link.object());
 }
@@ -992,6 +1031,7 @@ void
 BundleDaemon::handle_link_unavailable(LinkUnavailableEvent* event)
 {
     LinkRef link = event->link_;
+    ASSERT(link != NULL);
     ASSERT(!link->isavailable());
     
     log_info("LINK UNAVAILABLE *%p", link.object());
@@ -1026,10 +1066,17 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
     Link::state_t new_state = Link::state_t(request->state_);
     Link::state_t old_state = Link::state_t(request->old_state_);
     int reason = request->reason_;
+
+    if (link->isdeleted() && new_state != Link::CLOSED) {
+        log_warn("BundleDaemon::handle_link_state_change_request: "
+                 "link %s already deleted; cannot change link state to %s",
+                 link->name(), Link::state_to_str(new_state));
+        return;
+    }
     
     if (link->contact() != request->contact_) {
-        log_warn("stale LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for link *%p: "
-                 "contact %p != current contact %p", 
+        log_warn("stale LINK_STATE_CHANGE_REQUEST [%s -> %s] (%s) for "
+                 "link *%p: contact %p != current contact %p", 
                  Link::state_to_str(old_state), Link::state_to_str(new_state),
                  ContactEvent::reason_to_str(reason), link.object(),
                  request->contact_.object(), link->contact().object());
@@ -1147,6 +1194,18 @@ BundleDaemon::handle_link_create(LinkCreateRequest*)
 
 //----------------------------------------------------------------------
 void
+BundleDaemon::handle_link_delete(LinkDeleteRequest* request)
+{
+    LinkRef link = request->link_;
+    ASSERT(link != NULL);
+
+    if (!link->isdeleted()) {
+        contactmgr_->del_link(link);
+    }
+}
+
+//----------------------------------------------------------------------
+void
 BundleDaemon::handle_link_query(LinkQueryRequest*)
 {
     BundleDaemon::post_at_head(new LinkReportEvent());
@@ -1164,7 +1223,15 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
 {
     const ContactRef& contact = event->contact_;
     LinkRef link = contact->link();
-    
+    ASSERT(link != NULL);
+
+    if (link->isdeleted()) {
+        log_debug("BundleDaemon::handle_contact_up: "
+                  "cannot bring contact up on deleted link %s", link->name());
+        event->daemon_only_ = true;
+        return;
+    }
+
     //ignore stale notifications that an old contact is up
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_contact_up");
     if(link->contact() != contact)
@@ -1186,8 +1253,9 @@ void
 BundleDaemon::handle_contact_down(ContactDownEvent* event)
 {
     const ContactRef& contact = event->contact_;
-    LinkRef link = contact->link();
     int reason = event->reason_;
+    LinkRef link = contact->link();
+    ASSERT(link != NULL);
     
     log_info("CONTACT_DOWN *%p (%s) (contact %p)",
              link.object(), ContactEvent::reason_to_str(reason),
@@ -1307,6 +1375,7 @@ BundleDaemon::handle_custody_timeout(CustodyTimeoutEvent* event)
 {
     Bundle* bundle = event->bundle_.object();
     LinkRef link   = event->link_;
+    ASSERT(link != NULL);
     
     log_info("CUSTODY_TIMEOUT *%p, *%p", bundle, link.object());
     
@@ -1375,7 +1444,7 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
     log_notice("Received shutdown request");
 
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_shutdown");
-    
+
     const LinkSet* links = contactmgr_->links();
     LinkSet::const_iterator iter;
 

@@ -55,7 +55,10 @@ FloodBundleRouter::handle_link_created(LinkCreatedEvent* event)
 {
     LinkRef link = event->link_;
     ASSERT(link != NULL);
-    log_debug("link_created *%p", link.object());
+    ASSERT(!link->isdeleted());
+
+    log_debug("FloodBundleRouter::handle_link_created: "
+              "link_created *%p", link.object());
 
     RouteEntry* entry = new RouteEntry(all_eids_, link);
     entry->action_ = ForwardingInfo::COPY_ACTION;

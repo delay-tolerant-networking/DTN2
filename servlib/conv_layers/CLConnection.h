@@ -79,7 +79,7 @@ protected:
     virtual void break_contact(ContactEvent::reason_t reason);
     virtual void close_contact();
     virtual void process_command();
-    virtual void find_contact(const EndpointID& peer_eid);
+    virtual bool find_contact(const EndpointID& peer_eid);
     /// @}
 
     /**

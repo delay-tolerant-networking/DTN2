@@ -67,6 +67,10 @@ bool
 SimConvergenceLayer::init_link(const LinkRef& link,
                                int argc, const char* argv[])
 {
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() == NULL);
+
     oasys::OptParser p;
 
     SimCLInfo* info = new SimCLInfo();
@@ -88,6 +92,20 @@ SimConvergenceLayer::init_link(const LinkRef& link,
     return true;
 }
 
+void
+SimConvergenceLayer::delete_link(const LinkRef& link)
+{
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
+
+    log_debug("SimConvergenceLayer::delete_link: "
+              "deleting link %s", link->name());
+
+    delete link->cl_info();
+    link->set_cl_info(NULL);
+}
+
 bool
 SimConvergenceLayer::open_contact(const ContactRef& contact)
 {
@@ -101,9 +119,14 @@ SimConvergenceLayer::open_contact(const ContactRef& contact)
 void 
 SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
-    log_debug("send_bundles on contact %s", contact->link()->nexthop());
+    LinkRef link = contact->link();
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    ASSERT(link->cl_info() != NULL);
 
-    SimCLInfo* info = (SimCLInfo*)contact->link()->cl_info();
+    log_debug("send_bundles on contact %s", link->nexthop());
+
+    SimCLInfo* info = (SimCLInfo*)link->cl_info();
     ASSERT(info);
 
     // XXX/demmer add Connectivity check to see if it's open and add
@@ -117,7 +140,7 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 
     bool reliable = info->params_.reliable_;
 
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(contact->link());
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
     ASSERT(blocks != NULL);
 
     // since we don't really have any payload to send, we find the
@@ -150,7 +173,7 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     }
             
     BundleTransmittedEvent* tx_event =
-        new BundleTransmittedEvent(bundle, contact, contact->link(),
+        new BundleTransmittedEvent(bundle, contact, link,
                                    total_len, reliable ? total_len : 0);
     src_node->post_event(tx_event);
 

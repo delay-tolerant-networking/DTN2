@@ -20,6 +20,7 @@
 #include <set>
 #include <oasys/debug/Formatter.h>
 #include <oasys/serialize/Serialize.h>
+#include <oasys/thread/SpinLock.h>
 #include <oasys/util/Ref.h>
 #include <oasys/util/RefCountedObject.h>
 
@@ -245,7 +246,17 @@ public:
      * Constructor for unserialization.
      */
     Link(const oasys::Builder& b);
-    
+
+    /**
+     * Handle and mark deleted link.
+     */
+    virtual void delete_link();
+
+    /**
+     * Reconfigure the link parameters.
+     */
+    virtual bool reconfigure_link(int argc, const char* argv[]);
+
     /**
      * Virtual from SerializableObject
      */
@@ -294,7 +305,12 @@ public:
      * Return whether the link is in the process of opening.
      */
     bool isopening() { return (state_ == OPENING); }
-    
+
+    /**
+     * Returns true if the link has been deleted; otherwise returns false.
+     */
+    bool isdeleted();
+
     /**
      * Return the actual state.
      */
@@ -545,19 +561,24 @@ public:
      */
     void dump_stats(oasys::StringBuffer* buf);
 
+    /**
+     * Accessor for the Link internal lock.
+     */
+    oasys::Lock* lock() { return &lock_; }
+    
 protected:
     friend class BundleActions;
     friend class BundleDaemon;
     friend class ContactManager;
     friend class ParamCommand;
-    
+
     /**
      * Open the link. Protected to make sure only the friend
      * components can call it and virtual to allow subclasses to
      * override it.
      */
     virtual void open();
-    
+
     /**
      * Close the link. Protected to make sure only the friend
      * components can call it and virtual to allow subclasses to
@@ -570,6 +591,9 @@ protected:
 
     /// State of the link
     int state_;
+
+    /// Flag, that when set to true, indicates that the link has been deleted.
+    bool deleted_;
 
     /// Local address (optional)
     std::string local_;
@@ -607,6 +631,9 @@ protected:
     /// Remote's endpoint ID (eg, dtn://hostname.dtn)
     EndpointID remote_eid_;
 
+    /// Lock to protect internal data structures and state.
+    oasys::SpinLock lock_;
+    
     /// Destructor -- protected since links shouldn't be deleted
     virtual ~Link();
 };

@@ -96,26 +96,37 @@ TableBasedRouter::handle_route_del(RouteDelEvent* event)
 void
 TableBasedRouter::handle_contact_up(ContactUpEvent* event)
 {
-    check_next_hop(event->contact_->link());
+    LinkRef link = event->contact_->link();
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
+    check_next_hop(link);
 }
 
 //----------------------------------------------------------------------
 void
 TableBasedRouter::handle_link_available(LinkAvailableEvent* event)
 {
-    check_next_hop(event->link_);
+    LinkRef link = event->link_;
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
+    check_next_hop(link);
 }
 
 //----------------------------------------------------------------------
 void
 TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
 {
+    LinkRef link = event->link_;
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
     // if we're configured to do so, create a route entry for the eid
     // specified by the link when it connected. if it's a dtn://xyz
     // URI that doesn't have anything following the "hostname" part,
     // we add a wildcard of '/*' to match all service tags.
     
-    LinkRef link = event->link_;
     EndpointID eid = link->remote_eid();
     std::string eid_str = eid.str();
     
@@ -134,6 +145,17 @@ TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
         entry->action_ = ForwardingInfo::FORWARD_ACTION;
         BundleDaemon::post(new RouteAddEvent(entry));
     }
+}
+
+//----------------------------------------------------------------------
+void
+TableBasedRouter::handle_link_deleted(LinkDeletedEvent* event)
+{
+    LinkRef link = event->link_;
+    ASSERT(link != NULL);
+    ASSERT(link->isdeleted());
+
+    route_table_->del_entries_for_nexthop(link);
 }
 
 //----------------------------------------------------------------------

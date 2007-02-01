@@ -113,13 +113,20 @@ ProphetRouter::handle_bundle_expired(BundleExpiredEvent *event)
 void
 ProphetRouter::handle_link_created(LinkCreatedEvent* event)
 {
+    LinkRef link = event->link_;
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+	
     // can't do anything with "only" a link, except to police this one ASSERTion
-    ASSERT(event->link_->remote_eid().equals(EndpointID::NULL_EID()) == false);
+    ASSERT(link->remote_eid().equals(EndpointID::NULL_EID()) == false);
 }
 
 void
 ProphetRouter::handle_contact_up(ContactUpEvent* event)
 {
+    ASSERT(event->contact_->link() != NULL);
+    ASSERT(!event->contact_->link()->isdeleted());
+
     // ProphetController demux's which ProphetEncounter handles this contact
     // (or creates a new one)
     oracle_->new_neighbor(event->contact_);
@@ -129,6 +136,9 @@ void
 ProphetRouter::handle_link_available(LinkAvailableEvent* event)
 {
     LinkRef link = event->link_;
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+    
     if (!link->isopen())
     {
         // request to open link
@@ -146,6 +156,17 @@ ProphetRouter::handle_contact_down(ContactDownEvent* event)
 void
 ProphetRouter::handle_link_state_change_request(LinkStateChangeRequest* req)
 {
+    Link::state_t state = Link::state_t(req->state_);
+    LinkRef link = req->link_;
+    ASSERT(link != NULL);
+
+    if (link->isdeleted() && state != Link::CLOSED) {
+        log_debug("ProphetRouter::handle_link_state_change_request: "
+                  "link %s already deleted; cannot change link state to %s",
+                  link->name(), Link::state_to_str(state));
+        return;
+    }
+	
     // Signals the appropriate ProphetEncounter instance to clear any
     // pending outbound queues
     if (req->old_state_ == Link::BUSY && req->state_ == Link::AVAILABLE)

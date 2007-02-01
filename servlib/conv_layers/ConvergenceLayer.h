@@ -87,6 +87,12 @@ public:
     virtual bool init_link(const LinkRef& link, int argc, const char* argv[]);
 
     /**
+     * Delete any CL-specific components of the link (requests pertaining
+     * to this link must be ignored gracefully by the CL in the future).
+     */
+    virtual void delete_link(const LinkRef& link);
+
+    /**
      * Dump out CL specific link information.
      */
     virtual void dump_link(const LinkRef& link, oasys::StringBuffer* buf);

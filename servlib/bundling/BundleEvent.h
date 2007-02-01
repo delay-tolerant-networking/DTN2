@@ -69,6 +69,7 @@ typedef enum {
     LINK_UNAVAILABLE,		///< Link is unavailable
     LINK_BUSY,  		///< Link is busy 
     LINK_CREATE,                ///< Create and open a new link
+    LINK_DELETE,                ///< Delete a link
     LINK_QUERY,                 ///< Link query
     LINK_REPORT,                ///< Response to link query
 
@@ -127,6 +128,7 @@ event_to_str(event_type_t event, bool xml=false)
     case LINK_UNAVAILABLE:	return xml ? "link_unavailable_event" : "LINK_UNAVAILABLE";
     case LINK_BUSY:     	return xml ? "link_busy_event" : "LINK_BUSY";
     case LINK_CREATE:           return "LINK_CREATE";
+    case LINK_DELETE:           return "LINK_DELETE";
     case LINK_QUERY:            return xml ? "link_query" : "LINK_QUERY";
     case LINK_REPORT:           return xml ? "link_report" : "LINK_REPORT";
 
@@ -1001,6 +1003,26 @@ public:
 
     ///< Egress interface
     Interface *interface_;
+};
+
+/**
+ * Event class for requesting deletion of a link.
+ */
+class LinkDeleteRequest: public BundleEvent {
+public:
+    LinkDeleteRequest(const LinkRef& link) :
+        BundleEvent(LINK_DELETE),
+        link_(link.object(), "LinkDeleteRequest")
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from Serializable Object
+    virtual void serialize(oasys::SerializeAction*) {}
+
+    ///< The link to be deleted
+    LinkRef link_;
 };
 
 /**

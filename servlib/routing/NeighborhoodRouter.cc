@@ -38,16 +38,19 @@ NeighborhoodRouter::NeighborhoodRouter()
 void
 NeighborhoodRouter::handle_contact_up(ContactUpEvent* event)
 {
+    LinkRef link = event->contact_->link();
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+
     TableBasedRouter::handle_contact_up(event);
     
-    log_info("Contact Up: *%p adding route", event->contact_.object());
+    log_info("Contact Up: *%p adding route", link.object());
 
     char eidstring[255];
-    sprintf(eidstring, "dtn://%s", event->contact_->link()->nexthop());
+    sprintf(eidstring, "dtn://%s", link->nexthop());
 
     // By default, we add a route for all the next hops we have around. 
-    RouteEntry* entry = new RouteEntry(EndpointIDPattern(eidstring), 
-                                       event->contact_->link());
+    RouteEntry* entry = new RouteEntry(EndpointIDPattern(eidstring), link);
     entry->action_ = ForwardingInfo::FORWARD_ACTION;
     add_route(entry);
 }

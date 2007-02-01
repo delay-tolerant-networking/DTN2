@@ -240,6 +240,9 @@ TcaRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 void
 TcaRouter::handle_contact_up(ContactUpEvent* event)
 {
+    ASSERT(event->contact_->link() != NULL);
+    ASSERT(!event->contact_->link()->isdeleted());
+
     // Note: *must* call the base class handler so that existing bundles
     // can be checked against the new contact.
     TableBasedRouter::handle_contact_up(event);
@@ -261,6 +264,9 @@ TcaRouter::handle_contact_down(ContactDownEvent* event)
 void
 TcaRouter::handle_link_available(LinkAvailableEvent* event)
 {
+    ASSERT(event->link_ != NULL);
+    ASSERT(!event->link_->isdeleted());
+
     // Note: *must* call the base class handler so that existing bundles
     // can be checked against the new link.
     TableBasedRouter::handle_link_available(event);

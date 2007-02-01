@@ -60,6 +60,7 @@ Link::create_link(const std::string& name, link_type_t type,
     // argv appropriately
     int count = link->parse_args(argc, argv, invalid_argp);
     if (count == -1) {
+        link->deleted_ = true;
         link = NULL;
         return link;
     }
@@ -72,6 +73,7 @@ Link::create_link(const std::string& name, link_type_t type,
     // arguments
     ASSERT(link->clayer_);
     if (!link->clayer_->init_link(link, argc, argv)) {
+        link->deleted_ = true;
         link = NULL;
         return link;
     }
@@ -94,6 +96,7 @@ Link::Link(const std::string& name, link_type_t type,
        Logger("Link", "/dtn/link/%s", name.c_str()),
        type_(type),
        state_(UNAVAILABLE),
+       deleted_(false),
        nexthop_(nexthop),
        name_(name),
        reliable_(false),
@@ -117,6 +120,7 @@ Link::Link(const oasys::Builder&)
       Logger("Link", "/dtn/link/UNKNOWN!!!"),
       type_(LINK_INVALID),
       state_(UNAVAILABLE),
+      deleted_(false),
       nexthop_(""),
       name_(""),
       reliable_(false),
@@ -126,6 +130,44 @@ Link::Link(const oasys::Builder&)
       cl_info_(NULL),
       remote_eid_(EndpointID::NULL_EID())
 {
+}
+
+//----------------------------------------------------------------------
+void
+Link::delete_link()
+{
+    oasys::ScopeLock l(&lock_, "Link::delete_link");
+
+    ASSERT(!isdeleted());
+    ASSERT(clayer_ != NULL);
+
+    clayer_->delete_link(LinkRef(this, "Link::delete_link"));
+    deleted_ = true;
+}
+
+//----------------------------------------------------------------------
+bool
+Link::isdeleted()
+{
+    oasys::ScopeLock l(&lock_, "Link::delete_link");
+    return deleted_;
+}
+
+//----------------------------------------------------------------------
+bool
+Link::reconfigure_link(int argc, const char* argv[])
+{
+    oasys::ScopeLock l(&lock_, "Link::reconfigure_link");
+
+    if (isdeleted()) {
+        log_debug("Link::reconfigure_link: "
+                  "cannot reconfigure deleted link %s", name());
+        return false;
+    }
+
+    ASSERT(clayer_ != NULL);
+    return clayer_->reconfigure_link(LinkRef(this, "Link::reconfigure_link"),
+                                     argc, argv);
 }
 
 //----------------------------------------------------------------------
@@ -147,6 +189,7 @@ Link::serialize(oasys::SerializeAction* a)
     a->process("nexthop",  &nexthop_);
     a->process("name",     &name_);
     a->process("state",    &state_);
+    a->process("deleted",  &deleted_);
     a->process("reliable", &reliable_);
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
@@ -217,14 +260,8 @@ Link::set_initial_state()
 //----------------------------------------------------------------------
 Link::~Link()
 {
-    /*
-     * Once they're created, links are never actually deleted.
-     * However, if there's a misconfiguration, then init_link may
-     * delete the link, so we don't want to PANIC here.
-     *
-     * Note also that the destructor of the class is protected so
-     * we're (relatively) sure this constraint does hold.
-     */
+    log_info("DESTROYING LINK %s", name());
+	
     ASSERT(!isopen());
     ASSERT(cl_info_ == NULL);
 }
@@ -278,10 +315,10 @@ Link::set_state(state_t new_state)
 void
 Link::open()
 {
-    log_debug("Link::open");
+    ASSERT(!isdeleted());
 
     if (state_ != AVAILABLE) {
-        log_crit("Link::open in state %s: expected state AVAILABLE",
+        log_crit("Link::open: in state %s: expected state AVAILABLE",
                  state_to_str(static_cast<state_t>(state_)));
         return;
     }
@@ -297,7 +334,7 @@ Link::open()
 
     stats_.contact_attempts_++;
 
-    log_debug("*%p new contact %p", this, contact_.object());
+    log_debug("Link::open: *%p new contact %p", this, contact_.object());
 }
     
 //----------------------------------------------------------------------
@@ -338,10 +375,18 @@ Link::format(char* buf, size_t sz) const
 void
 Link::dump(oasys::StringBuffer* buf)
 {
+    oasys::ScopeLock l(&lock_, "Link::dump");
+
+    if (isdeleted()) {
+        log_debug("Link::dump: cannot dump deleted link %s", name());
+        return;
+    }
+
     buf->appendf("Link %s:\n"
                  "clayer: %s\n"
                  "type: %s\n"
                  "state: %s\n"
+                 "deleted: %s\n"
                  "nexthop: %s\n"
                  "remote eid: %s\n"
                  "mtu: %u\n"
@@ -352,13 +397,15 @@ Link::dump(oasys::StringBuffer* buf)
                  clayer_->name(),
                  link_type_to_str(static_cast<link_type_t>(type_)),
                  state_to_str(static_cast<state_t>(state_)),
+                 (deleted_? "true" : "false"),
                  nexthop(),
                  remote_eid_.c_str(),
                  params_.mtu_,
                  params_.min_retry_interval_,
                  params_.max_retry_interval_,
                  params_.prevhop_hdr_ ? "true" : "false");
-    
+
+    ASSERT(clayer_ != NULL);
     clayer_->dump_link(LinkRef(this, "Link::dump"), buf);
 }
 
@@ -366,6 +413,14 @@ Link::dump(oasys::StringBuffer* buf)
 void
 Link::dump_stats(oasys::StringBuffer* buf)
 {
+    oasys::ScopeLock l(&lock_, "Link::dump_stats");
+
+    if (isdeleted()) {
+        log_debug("Link::dump_stats: "
+                  "cannot dump stats for deleted link %s", name());
+        return;
+    }
+
     buf->appendf("%u contact_attempts -- "
                  "%u contacts -- "
                  "%u bundles_transmitted -- "

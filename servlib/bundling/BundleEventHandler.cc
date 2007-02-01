@@ -150,6 +150,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_link_create((LinkCreateRequest*)e);
         break;
 
+    case LINK_DELETE:
+        handle_link_delete((LinkDeleteRequest*)e);
+        break;
+	
     case LINK_QUERY:
         handle_link_query((LinkQueryRequest*)e);
         break;
@@ -390,6 +394,14 @@ BundleEventHandler::handle_link_state_change_request(LinkStateChangeRequest*)
  */
 void
 BundleEventHandler::handle_link_create(LinkCreateRequest*)
+{
+}
+
+/**
+ * Default event handler for link delete requests.
+ */
+void
+BundleEventHandler::handle_link_delete(LinkDeleteRequest*)
 {
 }
 
