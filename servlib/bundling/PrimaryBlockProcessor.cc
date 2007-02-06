@@ -85,13 +85,18 @@ PrimaryBlockProcessor::get_dictionary_offsets(DictionaryVector *dict,
                                               u_int16_t* scheme_offset,
                                               u_int16_t* ssp_offset)
 {
+    u_int16_t offset;
     DictionaryVector::iterator iter;
     for (iter = dict->begin(); iter != dict->end(); ++iter) {
-	if (iter->str == eid.scheme_str())
-	    *scheme_offset = htons(iter->offset);
+	if (iter->str == eid.scheme_str()) {
+            offset = htons(iter->offset);
+            memcpy(scheme_offset, &offset, sizeof(offset));
+        }
 
-	if (iter->str == eid.ssp())
-	    *ssp_offset = htons(iter->offset);
+	if (iter->str == eid.ssp()) {
+            offset = htons(iter->offset);
+            memcpy(ssp_offset, &offset, sizeof(offset));
+        }
     }
 }
 
