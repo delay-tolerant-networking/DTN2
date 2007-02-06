@@ -87,6 +87,30 @@ public:
         
         return ret;
     }
+
+    /// @{
+    /// Variants of encode/decode that take a char* for the buffer
+    /// instead of a u_char*
+    ///
+    /// XXX/demmer all this crap should be replaced with a byte_t for
+    /// consistency
+    ///
+    static int encode(u_int64_t val, char* bp, size_t len)
+    {
+        return encode(val, (u_char*)bp, len);
+    }
+    
+    static int decode(char* bp, size_t len, u_int64_t* val)
+    {
+        return decode((u_char*)bp, len, val);
+    }
+    
+    static int decode(char* bp, size_t len, u_int32_t* val)
+    {
+        return decode((u_char*)bp, len, val);
+    }
+    /// @}
+
 };
 
 } // namespace dtn
