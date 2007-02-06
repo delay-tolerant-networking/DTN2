@@ -29,6 +29,7 @@
 #include "contacts/Link.h"
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
+#include "conv_layers/ConvergenceLayer.h"
 #include "reg/AdminRegistration.h"
 #include "reg/APIRegistration.h"
 #include "reg/PingRegistration.h"
@@ -1234,7 +1235,7 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
 
     //ignore stale notifications that an old contact is up
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_contact_up");
-    if(link->contact() != contact)
+    if (link->contact() != contact)
     {
 	log_info("CONTACT_UP *%p (contact %p) being ignored (old contact)",
                  link.object(), contact.object());
@@ -1244,9 +1245,18 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     log_info("CONTACT_UP *%p (contact %p)", link.object(), contact.object());
     link->set_state(Link::OPEN);
     link->stats_.contacts_++;
+
+    if (link->queue()->size() != 0) {
+        log_info("sending %zu queued bundles from link to clayer",
+                 link->queue()->size());
+
+        oasys::ScopeLock l(link->queue()->lock(), "BundleDaemon::handle_contact_up");
+        BundleList::iterator i;
+        for (i = link->queue()->begin(); i != link->queue()->end(); ++i) {
+            link->clayer()->send_bundle(contact, *i);
+        }
+    }
 }
-
-
 
 //----------------------------------------------------------------------
 void

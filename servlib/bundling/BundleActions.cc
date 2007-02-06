@@ -98,14 +98,6 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
               bundle, link->type_str(), link->name(), link->nexthop(),
               total_len);
 
-    if (link->state() != Link::OPEN) {
-        log_err("send bundle *%p to %s link %s (%s): link not open!!",
-                bundle, link->type_str(), link->name(), link->nexthop());
-        BundleDaemon::instance()->post(
-            new BundleTransmitFailedEvent(bundle, link->contact(), link));
-        return false;
-    }
-
     ForwardingInfo::state_t state = bundle->fwdlog_.get_latest_entry(link);
     if (state == ForwardingInfo::IN_FLIGHT) {
         log_err("send bundle *%p to %s link %s (%s): already in flight",
@@ -125,9 +117,16 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
 
     link->stats()->bundles_queued_++;
     link->stats()->bytes_queued_ += total_len;
+
+    if (link->state() == Link::OPEN) {
+        ASSERT(link->contact() != NULL);
+        link->clayer()->send_bundle(link->contact(), bundle);
+    } else {
+        log_debug("delayed send of bundle *%p to link *%p: link in state %s",
+                  bundle, link.object(), Link::state_to_str(link->state()));
+        link->queue()->push_back(bundle);
+    }
     
-    ASSERT(link->contact() != NULL);
-    link->clayer()->send_bundle(link->contact(), bundle);
     return true;
 }
 
