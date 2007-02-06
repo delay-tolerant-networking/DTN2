@@ -21,6 +21,9 @@
 /* Define to 1 if you have the <execinfo.h> header file. */
 #undef HAVE_EXECINFO_H
 
+/* Define to 1 if you have the `fdatasync' function. */
+#undef HAVE_FDATASYNC
+
 /* Whether math.h defines fpclassify */
 #undef HAVE_FPCLASSIFY
 
