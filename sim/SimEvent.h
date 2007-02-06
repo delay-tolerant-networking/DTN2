@@ -32,7 +32,8 @@ class SimEventHandler;
  *****************************************************************************/
 typedef enum {
     SIM_CONN_EVENT = 0x1,	///< Event for the connectivity module
-    SIM_AT_EVENT,		///< Generic event for delayed execution
+    SIM_AT_EVENT,		///< Generic event for delayed tcl commands
+    SIM_BUNDLE_EVENT,		///< Generic event for delayed bundle events
     
 } sim_event_type_t;
 
@@ -44,6 +45,7 @@ sim_ev2str(sim_event_type_t event) {
     switch (event) {
     case SIM_CONN_EVENT:		return "SIM_CONN_EVENT";
     case SIM_AT_EVENT:			return "SIM_AT_EVENT";
+    case SIM_BUNDLE_EVENT:		return "SIM_BUNDLE_EVENT";
     }
 
     NOTREACHED;
@@ -114,6 +116,18 @@ public:
         : SimEvent(SIM_AT_EVENT, time, handler), cmd_(cmd) {}
 
     std::string cmd_;
+};
+
+/*******************************************************************
+ * SimBundleEvent
+ ******************************************************************/
+class SimBundleEvent : public SimEvent {
+public:
+    SimBundleEvent(double time, SimEventHandler* handler,
+                   dtn::BundleEvent* event)
+        : SimEvent(SIM_BUNDLE_EVENT, time, handler), event_(event) {}
+
+    dtn::BundleEvent* event_;
 };
 
 } // namespace dtnsim
