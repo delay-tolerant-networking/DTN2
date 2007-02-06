@@ -109,6 +109,15 @@ Simulator::run()
 {
     oasys::Log* log = oasys::Log::instance();
     log->set_prefix("--");
+
+    log_debug("Configuring all nodes");
+    Topology::NodeTable::iterator iter;
+    for (iter = Topology::node_table()->begin();
+         iter != Topology::node_table()->end();
+         ++iter)
+    {
+        iter->second->configure();
+    }
     
     log_debug("Starting Simulator event loop...");
     

@@ -43,16 +43,24 @@ Node::Node(const char* name)
 void
 Node::do_init()
 {
+    BundleDaemon::instance_ = this;
+    
     actions_ = new SimBundleActions();
     eventq_ = new std::queue<BundleEvent*>();
-    
-    BundleDaemon::instance_ = this;
-    router_ = BundleRouter::create_router(BundleRouter::config_.type_.c_str());
 
     // forcibly create a new timer system
     oasys::Singleton<oasys::TimerSystem>::force_set_instance(NULL);
     oasys::TimerSystem::create();
     timersys_ = oasys::TimerSystem::instance();
+}
+
+//----------------------------------------------------------------------
+void
+Node::configure()
+{
+    BundleDaemon::instance_ = this;
+    router_ = BundleRouter::create_router(BundleRouter::config_.type_.c_str());
+    router_->initialize();
 }
 
 //----------------------------------------------------------------------
@@ -96,10 +104,16 @@ Node::process_bundle_events()
 
 //----------------------------------------------------------------------
 void
-Node::process(SimEvent* simevent)
+Node::process(SimEvent* e)
 {
-    (void)simevent;
-    NOTREACHED;
+    switch (e->type()) {
+    case SIM_BUNDLE_EVENT:
+        post_event(((SimBundleEvent*)e)->event_);
+        break;
+        
+    default:
+        NOTREACHED;
+    }
 }
 
 } // namespace dtnsim

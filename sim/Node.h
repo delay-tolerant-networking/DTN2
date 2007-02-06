@@ -54,6 +54,12 @@ public:
     void do_init();
 
     /**
+     * Second pass at initialization, called by the simulator once the
+     * whole config has been parsed.
+     */
+    void configure();
+
+    /**
      * Destructor
      */
     virtual ~Node() {}
