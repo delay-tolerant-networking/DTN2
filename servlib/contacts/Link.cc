@@ -36,7 +36,8 @@ Link::Params::Params()
       min_retry_interval_(5),
       max_retry_interval_(10 * 60),
       idle_close_time_(0),
-      prevhop_hdr_(false) {}
+      prevhop_hdr_(false),
+      cost_(100) {}
 
 Link::Params Link::default_params_;
 
@@ -207,6 +208,7 @@ Link::serialize(oasys::SerializeAction* a)
     a->process("min_retry_interval", &params_.min_retry_interval_);
     a->process("max_retry_interval", &params_.max_retry_interval_);
     a->process("idle_close_time",    &params_.idle_close_time_);
+    a->process("cost",               &params_.cost_);
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         logpathf("/dtn/link/%s", name_.c_str());
@@ -229,6 +231,7 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
     p.addopt(new oasys::UIntOpt("idle_close_time",
                                 &params_.idle_close_time_));
     p.addopt(new oasys::BoolOpt("prevhop_hdr", &params_.prevhop_hdr_));
+    p.addopt(new oasys::UIntOpt("cost", &params_.cost_));
     
     int ret = p.parse_and_shift(argc, argv, invalidp);
     if (ret == -1) {
@@ -260,7 +263,7 @@ Link::set_initial_state()
 //----------------------------------------------------------------------
 Link::~Link()
 {
-    log_info("DESTROYING LINK %s", name());
+    log_debug("destroying link %s", name());
 	
     ASSERT(!isopen());
     ASSERT(cl_info_ == NULL);
@@ -365,9 +368,10 @@ Link::close()
 int
 Link::format(char* buf, size_t sz) const
 {
-    return snprintf(buf, sz, "%s [%s %s %s %s]",
+    return snprintf(buf, sz, "%s [%s %s %s %s state=%s]",
                     name(), nexthop(), remote_eid_.c_str(),
                     link_type_to_str(static_cast<link_type_t>(type_)),
+                    clayer()->name(),
                     state_to_str(static_cast<state_t>(state_)));
 }
 

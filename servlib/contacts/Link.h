@@ -480,6 +480,12 @@ public:
          * link. Default is false.
          */
         bool prevhop_hdr_;
+
+        /**
+         * Abstract cost of the link, used by routing algorithms.
+         * Default is 100.
+         */
+        u_int cost_;
     };
 
     /**
