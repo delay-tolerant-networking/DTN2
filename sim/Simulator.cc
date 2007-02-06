@@ -191,6 +191,13 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
     (void)tz;
     double now = Simulator::time();
     DOUBLE_TO_TIMEVAL(now, *tv);
+
+    // Sometimes converting a double like 100.2 into an timeval
+    // results in a value like of 100.199999 so we fudge it a bit here
+    // to make the output look prettier
+    if ((tv->tv_usec % 1000) == 999) {
+        tv->tv_usec += 1;
+    }
     return 0;
 }
 
