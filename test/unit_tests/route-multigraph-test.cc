@@ -117,7 +117,7 @@ DECLARE_TEST(EdgeOps) {
     return UNIT_TEST_PASSED;
 }
 
-struct HopCountFn {
+struct HopCountFn : public MultiGraph<int, int>::WeightFn {
     u_int32_t operator()(MultiGraph<int, int>::Edge* edge)
     {
         (void)edge;
@@ -125,7 +125,7 @@ struct HopCountFn {
     };
 };
 
-struct EvenOddFn {
+struct EvenOddFn : public MultiGraph<int, int>::WeightFn {
     u_int32_t operator()(MultiGraph<int, int>::Edge* edge)
     {
         // even nodes like even links and odd nodes like odd links
@@ -137,7 +137,7 @@ struct EvenOddFn {
     };
 };
 
-struct HopWeightFn {
+struct HopWeightFn : public MultiGraph<int, int>::WeightFn {
     u_int32_t operator()(MultiGraph<int, int>::Edge* edge)
     {
         return edge->info_;
@@ -160,8 +160,12 @@ DECLARE_TEST(ShortestPathHopCount) {
     for (int i = 0; i < 16; ++i) {
         g.add_edge(nodes[i], nodes[(i + 1) % 16], 0);
     }
+
+    HopCountFn hop_count_fn;
+    EvenOddFn even_odd_fn;
+    HopWeightFn hop_weight_fn;
     
-    DO(g.shortest_path(nodes[0], nodes[4], &path, HopCountFn()));
+    DO(g.shortest_path(nodes[0], nodes[4], &path, &hop_count_fn));
     std::reverse(path.begin(), path.end());
     CHECK_EQUALSTR(path.dump().c_str(), "[0 -> 1(0)] [1 -> 2(0)] [2 -> 3(0)] [3 -> 4(0)]");
 
@@ -170,20 +174,20 @@ DECLARE_TEST(ShortestPathHopCount) {
         g.add_edge(nodes[i], nodes[(i + 1) % 16], 1);
     }
     
-    DO(g.shortest_path(nodes[0], nodes[4], &path, HopCountFn()));
+    DO(g.shortest_path(nodes[0], nodes[4], &path, &hop_count_fn));
     std::reverse(path.begin(), path.end());
     CHECK_EQUALSTR(path.dump().c_str(), "[0 -> 1(0)] [1 -> 2(0)] [2 -> 3(0)] [3 -> 4(0)]");
 
     // Now use a funky even/odd weight function to see that it
     // correctly selects the parallel loop some of the time
-    DO(g.shortest_path(nodes[0], nodes[4], &path, EvenOddFn()));
+    DO(g.shortest_path(nodes[0], nodes[4], &path, &even_odd_fn));
     std::reverse(path.begin(), path.end());
     CHECK_EQUALSTR(path.dump().c_str(), "[0 -> 1(0)] [1 -> 2(1)] [2 -> 3(0)] [3 -> 4(1)]");
 
     // Remove links, disconnecting node 0
     CHECK(g.del_edge(nodes[0], nodes[0]->out_edges_[0]));
     CHECK(g.del_edge(nodes[0], nodes[0]->out_edges_[0]));
-    DO(g.shortest_path(nodes[0], nodes[4], &path, HopCountFn()));
+    DO(g.shortest_path(nodes[0], nodes[4], &path, &hop_count_fn));
     CHECK_EQUAL(path.size(), 0);
 
     // Add a link back, then add backwards links with higher "cost"
@@ -194,13 +198,13 @@ DECLARE_TEST(ShortestPathHopCount) {
 
     // Check that these backwards links are used when we're using the
     // hop count weight fn, but not when we use the cost based one
-    DO(g.shortest_path(nodes[0], nodes[10], &path, HopCountFn()));
+    DO(g.shortest_path(nodes[0], nodes[10], &path, &hop_count_fn));
     std::reverse(path.begin(), path.end());
     CHECK_EQUALSTR(path.dump().c_str(),
                    "[0 -> 15(100)] [15 -> 14(100)] [14 -> 13(100)] "
                    "[13 -> 12(100)] [12 -> 11(100)] [11 -> 10(100)]");
 
-    DO(g.shortest_path(nodes[0], nodes[10], &path, HopWeightFn()));
+    DO(g.shortest_path(nodes[0], nodes[10], &path, &hop_weight_fn));
     std::reverse(path.begin(), path.end());
     CHECK_EQUALSTR(path.dump().c_str(),
                    "[0 -> 1(0)] [1 -> 2(0)] [2 -> 3(0)] [3 -> 4(0)] [4 -> 5(0)] "

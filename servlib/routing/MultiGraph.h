@@ -36,6 +36,7 @@ public:
     class EdgeVector;
     class Node;
     class NodeVector;
+    class WeightFn;
     /// @}
     
     /// Constructor
@@ -56,19 +57,20 @@ public:
     /// Add an edge
     Edge* add_edge(Node* a, Node* b, const _EdgeInfo& info);
 
+    /// Find an edge
+    Edge* find_edge(Node* a, Node* b, const _EdgeInfo& info);
+    
     /// Remove the specified edge from the given node, deleting the
     /// Edge object
     bool del_edge(Node* node, Edge* edge);
     
     /// Find the shortest path between two nodes by running Dijkstra's
     /// algorithm, filling in the edge vector with the best path
-    template <typename _WeightFn>
-    void shortest_path(Node* a, Node* b, EdgeVector* path, _WeightFn weight_fn);
+    void shortest_path(Node* a, Node* b, EdgeVector* path, WeightFn* weight_fn);
 
     /// More limited version of the shortest path that just returns
     /// the next hop edge.
-    template <typename _WeightFn>
-    Edge* best_next_hop(Node* a, Node* b, _WeightFn fn);
+    Edge* best_next_hop(Node* a, Node* b, WeightFn* weight_fn);
 
     /// Clear the contents of the graph
     void clear();
@@ -86,6 +88,13 @@ public:
 
     /// Accessor for the nodes array
     const NodeVector& nodes() { return nodes_; }
+
+    /// The abstract weight function class
+    class WeightFn {
+    public:
+        virtual ~WeightFn() {}
+        virtual u_int32_t operator()(Edge* edge) = 0;
+    };
 
     /// The node class
     class Node {

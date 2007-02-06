@@ -107,6 +107,22 @@ MultiGraph<_NodeInfo,_EdgeInfo>
 
 //----------------------------------------------------------------------
 template <typename _NodeInfo, typename _EdgeInfo>
+inline class MultiGraph<_NodeInfo,_EdgeInfo>::Edge*
+MultiGraph<_NodeInfo,_EdgeInfo>
+::find_edge(Node* a, Node* b, const _EdgeInfo& info)
+{
+    class EdgeVector::const_iterator iter;
+    for (iter = a->out_edges_.begin(); iter != a->out_edges_.end(); ++iter) {
+        if (*iter->info_ == info) {
+            return *iter;
+        }
+    }
+
+    return NULL;
+}
+
+//----------------------------------------------------------------------
+template <typename _NodeInfo, typename _EdgeInfo>
 inline bool
 MultiGraph<_NodeInfo,_EdgeInfo>
 ::del_edge(Node* node, Edge* edge)
@@ -140,14 +156,14 @@ MultiGraph<_NodeInfo,_EdgeInfo>
 
 //----------------------------------------------------------------------
 template <typename _NodeInfo, typename _EdgeInfo>
-template <typename _WeightFn>
 inline void
 MultiGraph<_NodeInfo,_EdgeInfo>
-::shortest_path(Node* a, Node* b, EdgeVector* path, _WeightFn weight_fn)
+::shortest_path(Node* a, Node* b, EdgeVector* path, WeightFn* weight_fn)
 {
     ASSERT(a != NULL);
     ASSERT(b != NULL);
     ASSERT(path != NULL);
+    ASSERT(a != b);
     path->clear();
 
     // first clear the existing distances
@@ -177,9 +193,10 @@ MultiGraph<_NodeInfo,_EdgeInfo>
             ASSERT(edge->source_ == cur);
             ASSERT(peer != cur); // no loops
             
-            u_int32_t weight = weight_fn(edge);
+            u_int32_t weight = (*weight_fn)(edge);
 
-            log_debug("examining edge id %s (weight %u) from %s (distance %u) -> %s (distance %u)",
+            log_debug("examining edge id %s (weight %u) "
+                      "from %s (distance %u) -> %s (distance %u)",
                       oasys::InlineFormatter<_EdgeInfo>().format(edge->info_),
                       weight, cur->id_.c_str(), cur->distance_,
                       peer->id_.c_str(), peer->distance_);
@@ -235,13 +252,12 @@ MultiGraph<_NodeInfo,_EdgeInfo>
 
 //----------------------------------------------------------------------
 template <typename _NodeInfo, typename _EdgeInfo>
-template <typename _WeightFn>
 inline class MultiGraph<_NodeInfo,_EdgeInfo>::Edge*
 MultiGraph<_NodeInfo,_EdgeInfo>
-::best_next_hop(Node* a, Node* b, _WeightFn fn)
+::best_next_hop(Node* a, Node* b, WeightFn* weight_fn)
 {
     EdgeVector path;
-    shortest_path(a, b, &path, fn);
+    shortest_path(a, b, &path, weight_fn);
     if (path.empty()) {
         return NULL;
     }
