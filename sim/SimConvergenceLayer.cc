@@ -36,7 +36,9 @@ public:
     SimCLInfo()
     {
         params_.deliver_partial_ = true;
-        params_.reliable_ = true;
+        params_.reliable_        = true;
+        params_.delay_           = 0.001; // 1ms
+        params_.bps_             = 1000000; // 1Mbps
     }
 
     ~SimCLInfo() {};
@@ -50,6 +52,12 @@ public:
         /// whether or not they were delivered reliably by the
         /// convergence layer
         bool reliable_;
+
+        /// configurable delay
+        double delay_;
+
+        /// configurable bandwidth
+        u_int bps_;
         
     } params_;
 
@@ -80,6 +88,8 @@ SimConvergenceLayer::init_link(const LinkRef& link,
     p.addopt(new oasys::BoolOpt("deliver_partial",
                                 &info->params_.deliver_partial_));
     p.addopt(new oasys::BoolOpt("reliable", &info->params_.reliable_));
+    p.addopt(new oasys::DoubleOpt("delay", &info->params_.delay_));
+    p.addopt(new oasys::UIntOpt("bps", &info->params_.bps_));
     
     const char* invalid;
     if (! p.parse(argc, argv, &invalid)) {
@@ -124,13 +134,13 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() != NULL);
 
-    log_debug("send_bundles on contact %s", link->nexthop());
+    log_debug("send_bundle *%p on link *%p", bundle, link.object());
 
     SimCLInfo* info = (SimCLInfo*)link->cl_info();
     ASSERT(info);
 
     // XXX/demmer add Connectivity check to see if it's open and add
-    // bw/latency restrictions. then move the following events to
+    // bw/delay restrictions. then move the following events to
     // there
 
     Node* src_node = Node::active_node();
@@ -180,7 +190,8 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     BundleReceivedEvent* rcv_event =
         new BundleReceivedEvent(new_bundle, EVENTSRC_PEER, total_len);
 
-    dst_node->post_event(rcv_event);
+    double arrival_time = Simulator::time() + info->params_.delay_;
+    Simulator::post(new SimBundleEvent(arrival_time, dst_node, rcv_event));
 }
 
 
