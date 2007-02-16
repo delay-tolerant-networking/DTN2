@@ -1184,8 +1184,6 @@ APIClient::wait_for_bundle(const char* operation, dtn_timeval_t dtn_timeout,
         return DTN_EINTERNAL;
     }
 
-    ASSERT(nready == 1);
-    
     // if there's data on the socket, that either means the socket was
     // closed by an exiting application or the app is violating the
     // protocol...
