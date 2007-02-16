@@ -15,7 +15,6 @@
  */
 
 
-#include <fcntl.h>
 #include <errno.h>
 #include <string>
 #include <sys/time.h>
@@ -27,6 +26,7 @@
 #include <oasys/tclcmd/ConsoleCommand.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
+#include <oasys/util/Daemonizer.h>
 #include <oasys/util/Getopt.h>
 #include <oasys/util/Random.h>
 #include <oasys/util/StringBuffer.h>
@@ -53,7 +53,7 @@ public:
 
 protected:
     bool                  daemonize_;
-    int                   daemonize_pipe_[2];
+    oasys::Daemonizer     daemonizer_;
     int                   random_seed_;
     bool                  random_seed_set_;
     std::string           conf_file_;
@@ -67,8 +67,6 @@ protected:
     DTNStorageConfig      storage_config_;
 
     void get_options(int argc, char* argv[]);
-    void daemonize();
-    void notify_parent(char status);
     void notify_and_exit(char status);
     void seed_random();
     void init_log();
@@ -96,9 +94,6 @@ DTND::DTND()
 {
     // override defaults from oasys storage config
     storage_config_.db_max_tx_ = 1000;
-
-    daemonize_pipe_[0] = -1;
-    daemonize_pipe_[1] = -1;
 
     testcmd_    = new TestCommand();
     consolecmd_ = new oasys::ConsoleCommand("dtn% ");
@@ -166,74 +161,11 @@ DTND::get_options(int argc, char* argv[])
 
 //----------------------------------------------------------------------
 void
-DTND::daemonize()
-{
-    if (!daemonize_) {
-        return;
-    }
-       
-    /*
-     * If we're running as a daemon, we fork the parent process as
-     * soon as possible, and in particular, before TCL has been
-     * initialized.
-     *
-     * Then, the parent waits on a pipe for the child to notify it as
-     * to whether or not the initialization succeeded.
-     */
-    fclose(stdin);
-    
-    if (pipe(daemonize_pipe_) != 0) {
-        fprintf(stderr, "error creating pipe for daemonize process: %s",
-                strerror(errno));
-        exit(1);
-    }
-
-    pid_t pid = fork();
-    if (pid == -1) {
-        fprintf(stderr, "error forking daemon process: %s",
-                strerror(errno));
-        exit(1);
-    }
-
-    if (pid > 0) {
-        // the parent closes the write half of the pipe, then waits
-        // for the child to return its status on the read half
-        close(daemonize_pipe_[1]);
-        
-        char status;
-        int count = read(daemonize_pipe_[0], &status, 1);
-        if (count != 1) {
-            fprintf(stderr, "error reading from daemon pipe: %s",
-                    strerror(errno));
-            exit(1);
-        }
-
-        close(daemonize_pipe_[1]);
-        exit(status);
-
-    } else {
-        // the child continues on in a new session, closing the
-        // unneeded read half of the pipe
-        close(daemonize_pipe_[0]);
-        setsid();
-    }
-}
-
-//----------------------------------------------------------------------
-void
-DTND::notify_parent(char status)
-{
-    if (daemonize_) {
-        write(daemonize_pipe_[1], &status, 1);
-        close(daemonize_pipe_[1]);
-    }
-}
-
-//----------------------------------------------------------------------
-void
 DTND::notify_and_exit(char status)
 {
-    notify_parent(status);
+    if (daemonize_) {
+        daemonizer_.notify_parent(status);
+    }
     exit(status);
 }
 
@@ -338,7 +270,9 @@ DTND::main(int argc, char* argv[])
         exit(0);
     }
 
-    daemonize();
+    if (daemonize_) {
+        daemonizer_.daemonize(true);
+    }
 
     init_log();
     
@@ -389,7 +323,9 @@ DTND::main(int argc, char* argv[])
 
     // if we've daemonized, now is the time to notify our parent
     // process that we've successfully initialized
-    notify_parent(0);
+    if (daemonize_) {
+        daemonizer_.notify_parent(0);
+    }
     
     dtnserver->start();
     apiserver->bind_listen_start(apiserver->local_addr(), 
