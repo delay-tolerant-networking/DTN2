@@ -28,7 +28,11 @@
 #include "dtn_api.h"
 #include "APIEndpointIDOpt.h"
 
+#include <oasys/io/NetUtils.h>
+#include <oasys/util/Daemonizer.h>
 #include <oasys/util/Getopt.h>
+#include <oasys/util/StringBuffer.h>
+#include <oasys/util/StringUtils.h>
 
 #include "DTNTunnel.h"
 #include "TCPTunnel.h"
@@ -46,16 +50,17 @@ DTNTunnel::DTNTunnel()
       loglevel_(LOG_DEFAULT_THRESHOLD),
       logfile_("-"),
       send_lock_("/dtntunnel", oasys::Mutex::TYPE_RECURSIVE, true),
+      daemonize_(false),
       listen_(false),
       custody_(false),
       expiration_(600),
-      tcp_(false),
+      tcp_(true),
       udp_(false),
-      local_addr_(INADDR_ANY),
+      local_addr_(htonl(INADDR_ANY)),
       local_port_(0),
-      remote_addr_(INADDR_NONE),
+      remote_addr_(htonl(INADDR_NONE)),
       remote_port_(0),
-      delay_(1000),
+      delay_(0),
       max_size_(32 * 1024)
 {
     memset(&local_eid_, 0, sizeof(local_eid_));
@@ -90,37 +95,19 @@ DTNTunnel::get_options(int argc, char* argv[])
     
     opts.addopt(
         new oasys::BoolOpt('t', "tcp", &tcp_,
-                           "proxy for TCP connections"));
+                           "proxy for TCP connections (default)"));
     
     opts.addopt(
         new oasys::BoolOpt('u', "udp", &udp_,
-                           "proxy for UDP traffic"));
-    
-    bool dest_eid_set = false;
-    opts.addopt(
-        new dtn::APIEndpointIDOpt('d', "dest_eid", &dest_eid_, "<eid>",
-                                  "destination endpoint id", &dest_eid_set));
+                           "proxy for UDP traffic instead of tcp"));
     
     opts.addopt(
-        new dtn::APIEndpointIDOpt("local_eid_override", &local_eid_, "<eid>",
-                                  "local endpoint id"));
+        new oasys::BoolOpt('d', "damonize", &daemonize_, "daemonize"));
     
     opts.addopt(
-        new oasys::InAddrOpt("laddr", &local_addr_, "<addr>",
-                             "local address to listen on"));
-    
-    opts.addopt(
-        new oasys::UInt16Opt("lport", &local_port_, "<port>",
-                             "local port to listen on"));
-    
-    opts.addopt(
-        new oasys::InAddrOpt("rhost", &remote_addr_, "<addr>",
-                             "remote host/address to proxy for"));
-    
-    opts.addopt(
-        new oasys::UInt16Opt("rport", &remote_port_, "<port>",
-                             "remote port to proxy"));
-    
+        new dtn::APIEndpointIDOpt("local_eid", &local_eid_, "<eid>",
+                                  "local endpoint id override"));
+
     opts.addopt(
         new oasys::UIntOpt('D', "delay", &delay_, "<millisecs>",
                            "nagle delay in msecs for stream transports (e.g. tcp)"));
@@ -128,29 +115,77 @@ DTNTunnel::get_options(int argc, char* argv[])
     opts.addopt(
         new oasys::UIntOpt('z', "max_size", &max_size_, "<bytes>",
                            "maximum bundle size for stream transports (e.g. tcp)"));
-    
-    int remainder = opts.getopt(argv[0], argc, argv);
-    if (remainder != argc) {
-        fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
- usage:
-        opts.usage(argv[0]);
-        exit(1);
+
+    std::string tunnel;
+    bool tunnel_set = false;
+    opts.addopt(
+        new oasys::StringOpt('T', "tunnel", &tunnel, "<spec>",
+                             "tunnel specification [lhost:]lport:rhost:rport",
+                             &tunnel_set));
+
+    if (udp_) {
+        tcp_ = false;
     }
     
+    bool dest_eid_set = false;
+    int remainder = opts.getopt(argv[0], argc, argv, "<destination eid>");
+    if (remainder == argc - 1) {
+        if (dtn_parse_eid_string(&dest_eid_, argv[argc-1]) == -1) {
+            fprintf(stderr, "invalid destination endpoint id '%s'\n",
+                    argv[argc - 1]);
+            goto usage;
+        } else {
+            dest_eid_set = true;
+        }
+        
+    } else if (remainder != argc) {
+        fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
+ usage:
+        opts.usage(argv[0], "<destination eid>");
+        exit(1);
+    }
+
+    // parse the tunnel spec
+    if (tunnel_set) {
+        std::vector<std::string> tokens;
+        int ntoks = oasys::tokenize(tunnel, ":", &tokens);
+        if (ntoks < 3 || ntoks > 4) {
+            fprintf(stderr, "invalid tunnel specification %s: bad format\n",
+                    tunnel.c_str());
+            goto usage;
+        }
+
+        if (ntoks == 4) {
+            if (oasys::gethostbyname(tokens[0].c_str(), &local_addr_) != 0) {
+                fprintf(stderr, "invalid tunnel specification %s: local addr %s invalid\n",
+                        tunnel.c_str(), tokens[0].c_str());
+                goto usage;
+            }
+        }
+    
+        local_port_ = atoi(tokens[ntoks - 3].c_str());
+
+        if (oasys::gethostbyname(tokens[ntoks - 2].c_str(), &remote_addr_) != 0) {
+            fprintf(stderr, "invalid tunnel specification %s: remote host %s invalid\n",
+                    tunnel.c_str(), tokens[ntoks - 2].c_str());
+            goto usage;
+        }
+    
+        remote_port_ = atoi(tokens[ntoks - 1].c_str());
+    }
+
 #define CHECK_OPT(_condition, _err) \
     if ((_condition)) { \
         fprintf(stderr, "error: " _err "\n"); \
         goto usage; \
     }
-    
+
     //
     // TODO?:  couldn't we use these in listen mode to over-ride
     // what is provided at the sender? -kfall.  Also: mcast for udp?
     //
     if (listen_) {
         CHECK_OPT(dest_eid_set, "setting destination eid is "
-                  "meaningless in listen mode");
-        CHECK_OPT((tcp_ != false) || (udp_ != false), "setting tcp or udp is "
                   "meaningless in listen mode");
         CHECK_OPT(local_port_  != 0,  "setting local port is "
                   "meaningless in listen mode");
@@ -167,7 +202,6 @@ DTNTunnel::get_options(int argc, char* argv[])
                   "cannot set both tcp and udp mode");
         CHECK_OPT(local_addr_  == INADDR_NONE, "local addr is invalid");
         CHECK_OPT(local_port_  == 0,  "must set local port");
-        CHECK_OPT(remote_addr_ == INADDR_NONE, "must set remote host");
         CHECK_OPT(remote_port_ == 0,  "must set remote port");
     }
     
@@ -195,6 +229,15 @@ DTNTunnel::init_log()
         }
     }
     oasys::Log::init(logfile_.c_str(), loglevel_, "", "~/.dtndebug");
+
+    if (daemonize_) {
+        if (logfile_ == "-") {
+            fprintf(stderr, "daemon mode requires setting of -o <logfile>\n");
+            exit(1);
+        }
+        
+        oasys::Log::instance()->redirect_stdio();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -236,8 +279,21 @@ DTNTunnel::init_registration()
         exit(1);
     }
 
+    oasys::StaticStringBuffer<128> demux;
+    if (listen_) {
+        demux.appendf("dtntunnel");
+    } else {
+        demux.appendf("dtntunnel?dest_eid=%s&tunnel=%s-%s:%u-%s:%u",
+                      dest_eid_.uri,
+                      tcp_ ? "tcp" : "udp",
+                      intoa(local_addr_),
+                      local_port_,
+                      intoa(remote_addr_),
+                      remote_port_);
+    }
+    
     if (local_eid_.uri[0] == '\0') {
-        err = dtn_build_local_eid(recv_handle_, &local_eid_, "dtntunnel");
+        err = dtn_build_local_eid(recv_handle_, &local_eid_, demux.c_str());
         if (err != DTN_SUCCESS) {
             log_crit("can't build local eid: %s",
                      dtn_strerror(dtn_errno(recv_handle_)));
@@ -364,6 +420,12 @@ int
 DTNTunnel::main(int argc, char* argv[])
 {
     get_options(argc, argv);
+
+    if (daemonize_) {
+        oasys::Daemonizer d;
+        d.daemonize(false);
+    }
+    
     init_log();
     log_notice("DTNTunnel starting up...");
 

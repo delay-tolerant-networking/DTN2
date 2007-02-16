@@ -112,6 +112,13 @@ TCPTunnel::handle_bundle(dtn::APIBundle* bundle)
     i = connections_.find(key);
 
     if (i == connections_.end()) {
+        if (hdr.seqno_ != 0) {
+            log_warn("got bundle with seqno %d but no connection, ignoring",
+                     hdr.seqno_);
+            delete bundle;
+            return;
+        }
+        
         log_info("new connection %s:%d -> %s:%d",
                  intoa(hdr.client_addr_),
                  hdr.client_port_,
@@ -146,7 +153,10 @@ TCPTunnel::Listener::Listener(TCPTunnel* t,
       remote_addr_(remote_addr),
       remote_port_(remote_port)
 {
-    bind_listen_start(listen_addr, listen_port);
+    if (bind_listen_start(listen_addr, listen_port) != 0) {
+        log_err("can't initialize listener socket, bailing");
+        exit(1);
+    }
 }
 
 //----------------------------------------------------------------------
@@ -360,7 +370,15 @@ TCPTunnel::Connection::run()
         // now check for activity on the incoming bundle queue
         if (msg_poll->revents != 0) {
             b_recv = queue_.pop_blocking();
-            ASSERT(b_recv);
+
+            // if a NULL bundle is put on the queue, then the main
+            // thread is signalling that we should abort the
+            // connection
+            if (b_recv == NULL)
+            {
+                log_info("got signal to abort connection");
+                goto done;
+            }
 
             DTNTunnel::BundleHeader* recv_hdr =
                 (DTNTunnel::BundleHeader*)b_recv->payload_.buf();
@@ -413,9 +431,23 @@ TCPTunnel::Connection::handle_bundle(dtn::APIBundle* bundle)
         (DTNTunnel::BundleHeader*)bundle->payload_.buf();
     
     u_int32_t recv_seqno = ntohl(hdr->seqno_);
+
+    // if the seqno is in the past, then it's likely the other side
+    // restarted, so we put a null APIBundle pointer onto the queue to
+    // wake up the connection thread and signal it that it's time to
+    // die.
+    if (recv_seqno < next_seqno_)
+    {
+        log_warn("got seqno %u, but already delivered up to %u: "
+                 "closing connection",
+                 recv_seqno, next_seqno_);
+        queue_.push_back(NULL);
+        return;
+    }
     
-    // if it's out of order, stick it in the reorder table and return
-    if (recv_seqno != next_seqno_)
+    // otherwise, if it's not the next one expected, put it on the
+    // queue and wait for the one that's missing
+    else if (recv_seqno != next_seqno_)
     {
         log_info("got out of order bundle: expected seqno %d, got %d",
                  next_seqno_, recv_seqno);

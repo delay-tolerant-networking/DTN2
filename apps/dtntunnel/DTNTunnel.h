@@ -110,6 +110,7 @@ protected:
     dtn_handle_t 	recv_handle_;
     dtn_handle_t 	send_handle_;
     oasys::Mutex	send_lock_;
+    bool		daemonize_;
     bool                listen_;
     dtn_endpoint_id_t 	local_eid_;
     dtn_endpoint_id_t 	dest_eid_;
