@@ -17,6 +17,7 @@
 
 #include <ctype.h>
 #include <oasys/debug/Log.h>
+#include <oasys/util/Glob.h>
 #include <oasys/util/URL.h>
 
 #include "DTNScheme.h"
@@ -27,26 +28,21 @@ namespace dtn {
 template <>
 DTNScheme* oasys::Singleton<DTNScheme>::instance_ = 0;
 
-/**
- * Validate that the given ssp is legitimate for this scheme. If
- * the 'is_pattern' parameter is true, then the ssp is being
- * validated as an EndpointIDPattern.
- *
- * @return true if valid
- */
+//----------------------------------------------------------------------
 bool
 DTNScheme::validate(const std::string& ssp, bool is_pattern)
 {
+    (void)is_pattern;
+    
     // first check for the special ssp that is simply "none"
     if (ssp == "none") {
         return true;
     }
     
     // use the oasys builtin class for URLs, though we need to re-add
-    // the dtn: since it was stripped by the basic endpoint id parsing
-    std::string url_str = "dtn:";
-    url_str.append(ssp);
-    oasys::URL url(url_str);
+    // the dtn scheme since it was stripped by the basic endpoint id
+    // parsing
+    oasys::URL url("dtn", ssp);
     if (! url.valid()) {
         return false;
     }
@@ -59,12 +55,9 @@ DTNScheme::validate(const std::string& ssp, bool is_pattern)
     for (iter = url.host_.begin(); iter != url.host_.end(); ++iter) {
         char c = *iter;
         
-        if (isalnum(c) || (c == '_') || (c == '-') || (c == '.'))
+        if (isalnum(c) || (c == '_') || (c == '-') || (c == '.') || (c == '*'))
             continue;
-
-        if (is_pattern && (c == '*'))
-            continue;
-
+        
         log_debug_p("/dtn/scheme/dtn",
                     "ssp '%s' contains invalid hostname character '%c'",
                     ssp.c_str(), c);
@@ -75,11 +68,7 @@ DTNScheme::validate(const std::string& ssp, bool is_pattern)
     return true;
 }
 
-/**
- * Match the given ssp with the given pattern.
- *
- * @return true if it matches
- */
+//----------------------------------------------------------------------
 bool
 DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
 {
@@ -114,20 +103,23 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
                    pattern.c_str());
         return false;
     }
-    
+
     // check for a wildcard host specifier e.g dtn://*
     if (pattern_url.host_ == "*" && pattern_url.path_ == "")
     {
         return true;
     }
     
-    // match the host part of the urls (though if the pattern host is
-    // "*", fall through to the rest of the comparison)
-    if ((pattern_url.host_ != "*") &&
-        (pattern_url.host_ != eid_url.host_))
+    // use glob rules to match the hostname part -- note that we don't
+    // distinguish between which one has the glob patterns so we run
+    // glob in both directions looking for a match
+    if (! (oasys::Glob::fixed_glob(pattern_url.host_.c_str(),
+                                   eid_url.host_.c_str()) ||
+           oasys::Glob::fixed_glob(eid_url.host_.c_str(),
+                                   pattern_url.host_.c_str())) )
     {
         log_debug_p("/dtn/scheme/dtn",
-                    "match(%s, %s) failed: url hosts not equal ('%s' != '%s')",
+                    "match(%s, %s) failed: url hosts don't glob ('%s' != '%s')",
                     eid_url.c_str(), pattern_url.c_str(),
                     pattern_url.host_.c_str(), eid_url.host_.c_str());
         return false;
@@ -143,50 +135,36 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
 
-    // check for a wildcard path or an exact match of the path strings
-    if ((pattern_url.path_ == "*") ||
-        (pattern_url.path_ == eid_url.path_))
+    // check for a glob match of the path strings
+    if (! (oasys::Glob::fixed_glob(pattern_url.path_.c_str(),
+                                   eid_url.path_.c_str()) ||
+           oasys::Glob::fixed_glob(eid_url.path_.c_str(),
+                                   pattern_url.path_.c_str())) )
     {
         log_debug_p("/dtn/scheme/dtn",
-                    "match(%s, %s) succeeded: pattern '%s' ssp '%s'",
+                    "match(%s, %s) failed: paths don't glob ('%s' != '%s')",
                     eid_url.c_str(), pattern_url.c_str(),
-                    pattern_url.host_.c_str(), eid_url.host_.c_str());
-        return true;
+                    pattern_url.path_.c_str(), eid_url.path_.c_str());
+        return false;
     }
 
-    // finally, try supporting a trailing * to truncate the path match
-    size_t patternlen = pattern_url.path_.length();
-    if (patternlen >= 1 && pattern_url.path_[patternlen-1] == '*') {
-        patternlen--;
-        
-        if (pattern_url.path_.substr(0, patternlen) ==
-            eid_url.path_.substr(0, patternlen))
-        {
-            log_debug_p("/dtn/scheme/dtn",
-                        "match(%s, %s) substring succeeded: "
-                        "pattern '%s' ssp '%s'",
-                        eid_url.c_str(), pattern_url.c_str(),
-                        pattern_url.host_.c_str(), eid_url.host_.c_str());
-            return true;
-        }
+    // finally, check for an exact match of the url parameters
+    if (! (pattern_url.params_ == eid_url.params_))
+    {
+        log_debug_p("/dtn/scheme/dtn",
+                    "match(%s, %s) failed: parameter mismatch",
+                    eid_url.c_str(), pattern_url.c_str());
+        return false;
     }
-    
-    // XXX/demmer TODO: support CIDR style matching for explicit
-    // dotted-quad ip addresses
-    
-    return false;
+
+    return true;
 }
 
-/**
- * Append the given service tag to the ssp in a scheme-specific
- * manner.
- *
- * @return true if this scheme is capable of service tags and the
- * tag is a legal one, false otherwise.
- */
+//----------------------------------------------------------------------
 bool
 DTNScheme::append_service_tag(std::string* ssp, const char* tag)
 {
+    
     if (tag[0] != '/') {
         ssp->push_back('/');
     }

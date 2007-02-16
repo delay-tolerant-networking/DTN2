@@ -152,8 +152,60 @@ DECLARE_TEST(DTNMatch) {
              "dtn://tier.cs.berkeley.edu");
 
     EIDMATCH(MATCH,
+             "dtn://*/",
+             "dtn://tier.cs.berkeley.edu/");
+
+    EIDMATCH(MATCH,
+             "dtn://*/*",
+             "dtn://tier.cs.berkeley.edu/");
+
+    EIDMATCH(MATCH,
+             "dtn://*/*",
+             "dtn://tier.cs.berkeley.edu/something");
+
+    EIDMATCH(MATCH,
              "dtn://*/demux/*",
              "dtn://tier.cs.berkeley.edu/demux/something");
+
+    EIDMATCH(MATCH,
+             "dtn://*.edu/foo",
+             "dtn://tier.cs.berkeley.edu/foo");
+
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/foo",
+             "dtn://*.edu/foo");
+    
+    EIDMATCH(MATCH,
+             "dtn://tier.*.berkeley.*/foo",
+             "dtn://tier.cs.berkeley.edu/foo");
+    
+    EIDMATCH(MATCH,
+             "dtn://*.edu/*",
+             "dtn://tier.cs.berkeley.edu/foo");
+
+    EIDMATCH(MATCH,
+             "dtn://*.*.*.edu/*",
+             "dtn://tier.cs.berkeley.edu/foo");
+
+    EIDMATCH(MATCH,
+             "dtn://*.edu/f*",
+             "dtn://tier.cs.berkeley.edu/foo");
+
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=",
+             "dtn://tier.cs.berkeley.edu/demux?foo=");
+
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar");
+
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar&bar=baz",
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar&bar=baz");
+
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=3&d=4",
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=3&d=4");
 
     // invalid matches
     EIDMATCH(NOMATCH,
@@ -171,6 +223,23 @@ DECLARE_TEST(DTNMatch) {
     EIDMATCH(NOMATCH,
              "dtn://host1/demux",
              "dtn://host1/demux/something");
+
+    EIDMATCH(NOMATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=",
+             "dtn://tier.cs.berkeley.edu/demux?bar=");
+
+    EIDMATCH(NOMATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
+             "dtn://tier.cs.berkeley.edu/demux?foo=baz");
+
+    EIDMATCH(NOMATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
+             "dtn://tier.cs.berkeley.edu/demux?bar=foo");
+
+    EIDMATCH(NOMATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=3&d=4",
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=4&d=3");
+
 
     // the none ssp never matches
     EIDMATCH(NOMATCH,
@@ -260,7 +329,9 @@ DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(DTNMatch);
     ADD_TEST(Wildcard);
     ADD_TEST(WildcardMatch);
+#ifdef __linux__
     ADD_TEST(Ethernet);
+#endif
     ADD_TEST(String);
     ADD_TEST(StringMatch);
 }
