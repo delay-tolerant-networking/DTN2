@@ -67,6 +67,8 @@ ProphetRouter::initialize()
     BundleDaemon::instance()->set_rtr_shutdown(
                 prophet_router_shutdown, (void *) 0);
 
+    oracle_->load_prophet_nodes();
+    
     // all done
     log_info("ProphetRouter initialized");
 }
