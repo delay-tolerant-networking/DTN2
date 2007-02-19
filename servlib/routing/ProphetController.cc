@@ -20,10 +20,13 @@
 #include "bundling/BundleList.h"
 #include "bundling/BundleProtocol.h"
 #include "bundling/BundleDaemon.h"
+#include "storage/BundleStore.h"
 #include "ProphetController.h"
 #include <oasys/thread/Lock.h>
 #include <oasys/util/Random.h>
 #include <oasys/util/ScratchBuffer.h>
+
+#include "storage/ProphetStore.h"
 
 namespace dtn {
 
@@ -78,6 +81,36 @@ ProphetController::~ProphetController()
     delete ack_age_timer_;
     delete bundles_;
     delete lock_;
+}
+
+void
+ProphetController::load_prophet_nodes()
+{
+    ProphetNode* node;
+    ProphetStore* prophet_store = ProphetStore::instance();
+    ProphetStore::iterator* iter = prophet_store->new_iterator();
+
+    log_notice("loading prophet nodes from data store");
+
+    for (iter->begin(); iter->more(); iter->next()) {
+        EndpointID eid = iter->cur_val();
+        log_debug("prophet_store iterator at %s", eid.c_str());
+        node = prophet_store->get(iter->cur_val());
+
+        if (node == NULL) {
+            log_err("error loading node data from data store");
+            continue;
+        }
+
+        node->set_params(params_);
+        nodes_.update(node);
+    }
+    delete iter;
+
+    // once deserialized, calculate the age effect
+    nodes_.age_nodes();
+    // then trim off anything below minimum predictability
+    nodes_.truncate(params_->epsilon_);
 }
 
 void 
@@ -312,8 +345,24 @@ ProphetController::handle_link_state_change_request(const ContactRef& c)
 bool
 ProphetController::accept_bundle(Bundle* bundle,int* errp)
 {
-    if (bundles_->current() + bundle->payload_.length() >
-            bundles_->max())
+    // first ask the basic question: do we relay to other nodes?
+    if (params_->relay_node_ == false)
+    {
+        // reject any messages from remote source that don't concern local node 
+        if (! (Prophet::route_to_me(bundle->source_) ||
+               Prophet::route_to_me(bundle->dest_)) )
+        {
+            return false;
+        }
+    }
+
+    // synch up with BundleStore
+    if (BundleStore::instance()->payload_quota() != bundles_->max())
+        bundles_->set_max(BundleStore::instance()->payload_quota());
+
+    // answer the question
+    if (bundles_->max() != 0 &&
+        bundles_->current() + bundle->payload_.length() > bundles_->max())
     {
         log_info("accept_bundle: rejecting bundle *%p since "
                  "cur size %u + bundle size %zu > %u",

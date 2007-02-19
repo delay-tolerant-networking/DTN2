@@ -33,8 +33,6 @@
 #include "bundling/BundleList.h"
 #include "bundling/BundleActions.h"
 
-#include "reg/Registration.h"
-
 /**
  * Pages and paragraphs refer to IETF Prophet, March 2006
  */
@@ -195,24 +193,6 @@ public:
     }
 
     /**
-     * Callback to handle max_usage change
-     */
-    void handle_max_usage_change(u_int max_usage)
-    {
-        if (max_usage != params_->max_usage_)
-        {
-            log_info("changing max_usage from %u to %u",
-                     params_->max_usage_,max_usage);
-            params_->max_usage_ = max_usage;
-            bundles_->set_max(max_usage);
-        }
-        else
-        {
-            log_info("not changing max_usage (no difference)");
-        }
-    }
-
-    /**
      * Callback to shutdown ProphetEncounter threads prior to destructor
      */
     void shutdown();
@@ -249,6 +229,12 @@ public:
     static bool is_init() { return instance_ != NULL; } 
 
     bool accept_bundle(Bundle*,int*);
+
+    /**
+     * Bootstrap from permanent storage
+     */
+    void load_prophet_nodes();
+
 protected:
 
     /**
