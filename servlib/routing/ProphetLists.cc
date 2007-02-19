@@ -18,14 +18,16 @@
 #include "ProphetTLV.h"
 
 #include "ProphetLists.h"
+#include "storage/ProphetStore.h"
 
 namespace dtn {
 
 const LinkRef ProphetDecider::null_link_("ProphetDecider null");
 const u_int16_t ProphetDictionary::INVALID_SID = 0xffff;
 	
-ProphetTable::ProphetTable()
-    : lock_(new oasys::SpinLock())
+ProphetTable::ProphetTable(bool store)
+    : lock_(new oasys::SpinLock()),
+      store_(store)
 {
     table_.clear();
 }
@@ -65,8 +67,10 @@ ProphetTable::p_value(const EndpointID& eid) const
 }
 
 void
-ProphetTable::update(ProphetNode* node)
+ProphetTable::update(ProphetNode* node, bool add_to_store)
 {
+    ASSERT( node != NULL );
+    ASSERT( node->params() != NULL );
     EndpointID eid(node->remote_eid());
     ASSERT( eid.equals(EndpointID::NULL_EID()) == false );
 
@@ -83,11 +87,55 @@ ProphetTable::update(ProphetNode* node)
         ProphetNode* old = lb->second;
         lb->second = node;
         if (node != old) delete old;
+        if (add_to_store) store_update(node);
     }
     // otherwise shove it in, right here
     else
     {
         table_.insert(lb,rib_table::value_type(eid,node));
+        if (add_to_store) store_add(node);
+    }
+}
+
+void
+ProphetTable::store_add(ProphetNode* node)
+{
+    if (store_)
+    {
+        if (!ProphetStore::instance()->add(node))
+        {
+            log_crit_p("/dtn/route/prophet/table",
+                       "error inserting node for %s into data store!",
+                       node->remote_eid().c_str());
+        }
+    }
+}
+
+void
+ProphetTable::store_update(ProphetNode* node)
+{
+    if (store_)
+    {
+        if (!ProphetStore::instance()->update(node))
+        {
+            log_crit_p("/dtn/route/prophet/table",
+                       "error updating node for %s in data store!",
+                       node->remote_eid().c_str());
+        }
+    }
+}
+
+void
+ProphetTable::store_del(ProphetNode* node)
+{
+    if (store_)
+    {
+        if (!ProphetStore::instance()->del(node))
+        {
+            log_crit_p("/dtn/route/prophet/table",
+                       "error removing node for %s from data store",
+                       node->remote_eid().c_str());
+        }
     }
 }
 
@@ -132,6 +180,7 @@ ProphetTable::truncate(double epsilon)
         if (node->p_value() < epsilon)
         {
             table_.erase(i);
+            store_del(node);
             delete node;
         }
     }

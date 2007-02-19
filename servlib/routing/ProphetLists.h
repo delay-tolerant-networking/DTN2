@@ -25,6 +25,7 @@
 #include "naming/EndpointID.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleActions.h"
+#include "storage/BundleStore.h"
 #include "contacts/Link.h"
 #include <oasys/util/BoundedPriorityQueue.h>
 #include <oasys/util/URL.h>
@@ -43,7 +44,7 @@ namespace dtn {
 
 /**
  * Common parameters shared between the one ProphetController and the
- * many ProphetEncounters.
+ * many ProphetEncounters, that pertain to this local node.
  */
 struct ProphetParams : public ProphetNodeParams
 {
@@ -55,29 +56,26 @@ struct ProphetParams : public ProphetNodeParams
           hello_dead_(Prophet::HELLO_DEAD),
           max_forward_(Prophet::DEFAULT_NUM_F_MAX),
           min_forward_(Prophet::DEFAULT_NUM_F_MIN),
-          max_usage_(0xffffffff),
           age_period_(Prophet::AGE_PERIOD),
-          relay_node_(false),
-          custody_node_(false),
-          internet_gw_(false),
-          epsilon_(0.0039) {}
+          epsilon_(0.0039),
+          relay_node_(true),
+          internet_gw_(false) {}
           
-    Prophet::fwd_strategy_t fs_;      ///< bundle forwarding strategy
-    Prophet::q_policy_t     qp_;      ///< bundle queuing policy
+    Prophet::fwd_strategy_t fs_; ///< bundle forwarding strategy
+    Prophet::q_policy_t     qp_; ///< bundle queuing policy
 
     u_int8_t hello_interval_; ///< delay between HELLO beacons (100ms units)
-    u_int   hello_dead_;     ///< hello_intervals before peer considered offline
+    u_int   hello_dead_;  ///< hello_intervals before peer considered offline
 
-    u_int   max_forward_;    ///< max times to forward bundle using GTMX
-    u_int   min_forward_;    ///< min times to forward before dropping (LEPR)
-    u_int   max_usage_;      ///< max bytes to allow consumed by bundles
+    u_int   max_forward_; ///< max times to forward bundle using GTMX
+    u_int   min_forward_; ///< min times to forward before dropping (LEPR)
 
-    u_int   age_period_;     ///< seconds between aging cycles (Section 3.8)
+    u_int   age_period_;  ///< seconds between aging cycles (Section 3.8)
 
-    bool   relay_node_;     ///< whether Prophet bridges to non-Prophet domains
-    bool   custody_node_;   ///< whether this node will accept custody txfrs
-    bool   internet_gw_;    ///< whether this node bridges to Internet domain
-    double epsilon_;        ///< minimum allowed pvalue before dropping node
+    double epsilon_;      ///< minimum allowed pvalue before dropping node
+
+    bool   relay_node_;   ///< whether this node relays bundles to other nodes
+    bool   internet_gw_;  ///< whether this node bridges to Internet domain
 };
 
 /**
@@ -199,7 +197,7 @@ public:
     /**
      * Default constructor
      */
-    ProphetTable();
+    ProphetTable(bool store=true);
 
     /**
      * Destructor
@@ -216,7 +214,7 @@ public:
      * Given a pointer to ProphetNode*, assumes ownership of memory pointed
      * to by *node, updates member (replacing if exists)
      */
-    void update(ProphetNode* node);
+    void update(ProphetNode* node,bool add_to_store=true);
 
     /**
      * Convenience functions for looking up predictability value
@@ -274,12 +272,28 @@ public:
 protected:
 
     /**
+     * Add the given node to the data store
+     */
+    void store_add(ProphetNode* node);
+
+    /**
+     * Update the given node in the data store
+     */
+    void store_update(ProphetNode* node);
+
+    /**
+     * Delete the given node from the data store
+     */
+    void store_del(ProphetNode* node);
+
+    /**
      * Clean up memory pointed to by member variables
      */
     void free();
 
     oasys::SpinLock* lock_;
     rib_table table_;
+    bool store_;
 }; // ProphetTable
 
 /**
@@ -415,9 +429,13 @@ struct BundleOfferComp : public std::less<BundleOffer*>
 
     bool operator()(const BundleOffer* a, const BundleOffer* b) const
     {
-        const EndpointID ea = ribd_->find(a->sid()); 
-        const EndpointID eb = ribd_->find(b->sid());
-        return nodes_->p_value(ea) > nodes_->p_value(eb);
+        if (a->sid() != b->sid())
+        {
+            const EndpointID ea = ribd_->find(a->sid());
+            const EndpointID eb = ribd_->find(b->sid());
+            return nodes_->p_value(ea) > nodes_->p_value(eb);
+        }
+        return (*a < *b);
     }
     
     const ProphetDictionary* ribd_;
@@ -705,8 +723,22 @@ protected:
     oasys::SpinLock* lock_;
 }; // ProphetStats
 
+// forward declaration
+class ProphetBundleQueue;
+
+class ProphetOracle {
+public:
+    virtual ~ProphetOracle()    {}
+    virtual ProphetParams*      params() = 0;
+    virtual ProphetBundleQueue* bundles() = 0;
+    virtual ProphetTable*       nodes() = 0;
+    virtual BundleActions*      actions() = 0;
+    virtual ProphetAckList*     acks() = 0;
+    virtual ProphetStats*       stats() = 0;
+};
+
 /**
- * Forwarding strategy null comparator (GRTR, GTMX, GRTR_PLUS, GTMX_PLUS)
+ * Forwarding strategy base comparator (GRTR, GTMX, GRTR_PLUS, GTMX_PLUS)
  */
 class FwdStrategy : public std::less<Bundle*>
 {
@@ -715,13 +747,12 @@ public:
     FwdStrategy(const FwdStrategy& fs)
         : fs_(fs.fs_)
     {}
-    bool operator() (const Bundle*, const Bundle*) const
+    bool operator() (const Bundle* a, const Bundle* b) const
     {
-        return false;
+        return a->bundleid_ < b->bundleid_;
     }
-    inline static FwdStrategy* strategy( Prophet::fwd_strategy_t fs,
-                                         ProphetTable* local = NULL,
-                                         ProphetTable* remote = NULL );
+    inline static FwdStrategy* strategy( ProphetOracle* po,
+                                         ProphetTable* remote );
 protected:
     FwdStrategy(Prophet::fwd_strategy_t fs = Prophet::INVALID_FS)
         : fs_(fs)
@@ -785,12 +816,11 @@ protected:
  * Factory method for strategy comparators
  */
 FwdStrategy*
-FwdStrategy::strategy( Prophet::fwd_strategy_t fs,
-                       ProphetTable* local,
+FwdStrategy::strategy( ProphetOracle* oracle,
                        ProphetTable* remote )
 {
     FwdStrategy *f = NULL;
-    switch (fs) 
+    switch (oracle->params()->fs_)
     {
         case Prophet::GRTR:
         case Prophet::GTMX:
@@ -799,15 +829,14 @@ FwdStrategy::strategy( Prophet::fwd_strategy_t fs,
             f = new FwdStrategy();
             break;
         case Prophet::GRTR_SORT:
-            //f = (FwdStrategy*) new FwdStrategyCompGRTRSORT(local,remote);
-            f = new FwdStrategyCompGRTRSORT(local,remote);
+            f = new FwdStrategyCompGRTRSORT(oracle->nodes(),remote);
             break;
         case Prophet::GRTR_MAX:
-            //f = (FwdStrategy*) new FwdStrategyCompGRTRMAX(remote);
             f = new FwdStrategyCompGRTRMAX(remote);
             break;
         default:
-            PANIC("Invalid forwarding strategy: %d",(int)fs);
+            PANIC("Invalid forwarding strategy: %d",
+                  (int)oracle->params()->fs_);
             break;
     }
     return f;
@@ -820,26 +849,25 @@ class ProphetDecider : public oasys::Logger
 {
 public:
     inline static ProphetDecider* decider(
-        Prophet::fwd_strategy_t fs,
-        ProphetTable* local = NULL,
+        ProphetOracle* oracle,
         ProphetTable* remote = NULL,
-        const LinkRef& nexthop = ProphetDecider::null_link_,
-        u_int max_forward = 0,
-        ProphetStats* stats = NULL);
+        const LinkRef& nexthop = ProphetDecider::null_link_);
     virtual ~ProphetDecider() {}
     virtual bool operator() (const Bundle*) const = 0;
     inline bool should_fwd(const Bundle* bundle) const;
 protected:
-    ProphetDecider(const LinkRef& nexthop)
+    ProphetDecider(const LinkRef& nexthop, bool relay)
         : oasys::Logger("ProphetDecider","/dtn/route/decider"),
           next_hop_(nexthop.object(), "ProphetDecider"),
-          route_(Prophet::eid_to_route(nexthop->remote_eid()))
+          route_(Prophet::eid_to_route(nexthop->remote_eid())),
+          remote_relay_(relay)
     {}
 
     static const LinkRef null_link_;
     
     LinkRef next_hop_;
     EndpointIDPattern route_;
+    bool remote_relay_;
 };
 
 /**
@@ -855,6 +883,10 @@ public:
             return false;
         if (route_.match(b->dest_))
             return true;
+        // if no route match and remote is not a relay,
+        // don't bother forwarding this bundle
+        else if (!remote_relay_)
+            return false;
         double local_p = local_->p_value(b);
         double remote_p = remote_->p_value(b);
         if (local_p < remote_p)
@@ -872,8 +904,8 @@ public:
 protected:
     friend class ProphetDecider;
     FwdDeciderGRTR(ProphetTable* local, ProphetTable* remote,
-                   const LinkRef& nexthop)
-        : ProphetDecider(nexthop), local_(local), remote_(remote)
+                   const LinkRef& nexthop, bool relay)
+        : ProphetDecider(nexthop,relay), local_(local), remote_(remote)
     {
         ASSERT(local != NULL);
         ASSERT(remote != NULL);
@@ -907,8 +939,9 @@ public:
 protected:
     friend class ProphetDecider;
     FwdDeciderGTMX(ProphetTable* local, ProphetTable* remote,
-                   const LinkRef& nexthop, u_int max_forward)
-        : FwdDeciderGRTR(local,remote,nexthop),
+                   const LinkRef& nexthop, u_int max_forward,
+                   bool relay)
+        : FwdDeciderGRTR(local,remote,nexthop,relay),
           max_fwd_(max_forward)
     {}
 
@@ -935,8 +968,9 @@ public:
 protected:
     friend class ProphetDecider;
     FwdDeciderGRTRPLUS(ProphetTable* local, ProphetTable* remote,
-                       const LinkRef& nexthop, ProphetStats* stats)
-        : FwdDeciderGRTR(local,remote,nexthop),
+                       const LinkRef& nexthop, ProphetStats* stats,
+                       bool relay)
+        : FwdDeciderGRTR(local,remote,nexthop,relay),
           stats_(stats)
     {
         ASSERT(stats != NULL);
@@ -969,8 +1003,9 @@ protected:
     friend class ProphetDecider;
     FwdDeciderGTMXPLUS(ProphetTable* local, ProphetTable* remote,
                        const LinkRef& nexthop, ProphetStats* stats,
-                       u_int max_forward)
-        : FwdDeciderGRTRPLUS(local,remote,nexthop,stats), max_fwd_(max_forward)
+                       u_int max_forward, bool relay)
+        : FwdDeciderGRTRPLUS(local,remote,nexthop,stats,relay),
+          max_fwd_(max_forward)
     {}
 
     u_int max_fwd_;
@@ -980,31 +1015,46 @@ protected:
  * Factory method for creating decider instance
  */
 ProphetDecider*
-ProphetDecider::decider( Prophet::fwd_strategy_t fs, ProphetTable* local,
-                         ProphetTable* remote, const LinkRef& nexthop,
-                         u_int max_forward, ProphetStats* stats )
+ProphetDecider::decider( ProphetOracle* oracle,
+                         ProphetTable* remote,
+                         const LinkRef& nexthop)
 {
     ProphetDecider* pd = NULL;
-    switch(fs) {
+    ProphetNode* rnode =
+        oracle->nodes()->find(Prophet::eid_to_routeid(nexthop->remote_eid()));
+    if (rnode == NULL)
+    {
+        log_err_p("/dtn/route/prophet/decider",
+                  "Can't find node instance for remote (%s)",
+                   nexthop->remote_eid().c_str());
+        return NULL;
+    }
+    switch (oracle->params()->fs_)
+    {
         case Prophet::GRTR:
         case Prophet::GRTR_SORT:
         case Prophet::GRTR_MAX:
-            pd = (ProphetDecider*) new FwdDeciderGRTR(local,remote,nexthop);
+            pd = new FwdDeciderGRTR(oracle->nodes(),remote,nexthop,
+                                    rnode->relay());
             break;
         case Prophet::GTMX:
-            pd = (ProphetDecider*) new
-                FwdDeciderGTMX(local,remote,nexthop,max_forward);
+            pd = new FwdDeciderGTMX(oracle->nodes(),remote,nexthop,
+                                    oracle->params()->max_forward_,
+                                    rnode->relay());
             break;
         case Prophet::GRTR_PLUS:
-            pd = (ProphetDecider*) new
-                FwdDeciderGRTRPLUS(local,remote,nexthop,stats);
+            pd = new FwdDeciderGRTRPLUS(oracle->nodes(),remote,nexthop,
+                                        oracle->stats(),rnode->relay());
             break;
         case Prophet::GTMX_PLUS:
-            pd = (ProphetDecider*) new
-                FwdDeciderGTMXPLUS(local,remote,nexthop,stats,max_forward);
+            pd = new FwdDeciderGTMXPLUS(oracle->nodes(),remote,nexthop,
+                                        oracle->stats(),
+                                        oracle->params()->max_forward_,
+                                        rnode->relay());
             break;
         default:
-            PANIC("Invalid forwarding strategy: %d",(int)fs);
+            PANIC("Invalid forwarding strategy: %d",
+                  (int)oracle->params()->fs_);
             break;
     }
     return pd;
@@ -1285,7 +1335,7 @@ public:
     ProphetBundleQueue(const BundleList* list,
                        ProphetParams* params,
                        QueueComp comp = QueueCompFIFO())
-        : BundleBPQ(comp,params->max_usage_),
+        : BundleBPQ(comp,BundleStore::instance()->payload_quota()),
           bundles_("ProphetBundleQueue"),
           params_(params)
     {
@@ -1366,6 +1416,7 @@ protected:
     }
 
     void enforce_bound() {
+        if (max_size_ == 0) return;
         oasys::ScopeLock l(lock(),"enforce_bound");
         // business as usual, unless LEPR
         if (params_->qp_ != Prophet::LEPR) {
