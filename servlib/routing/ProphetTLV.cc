@@ -249,6 +249,22 @@ RIBDTLV::deserialize(u_char* buffer, size_t len)
     return (amt_read == length_);
 }
 
+void
+RIBTLV::decode_flags(u_int8_t flags, bool* relay,
+                     bool* custody, bool* internet)
+{
+    ASSERT(relay != NULL);
+    ASSERT(custody != NULL);
+    ASSERT(internet != NULL);
+
+    //XXX/wilson CUSTODY_NODE just doesn't make much sense without
+    //           RELAY_NODE but where's the best place to enforce that?
+    *relay    = ((flags & Prophet::RELAY_NODE) == Prophet::RELAY_NODE);
+    *custody  = ((flags & Prophet::CUSTODY_NODE) == Prophet::CUSTODY_NODE);
+    *internet = ((flags & Prophet::INTERNET_GW_NODE) ==
+                          Prophet::INTERNET_GW_NODE);
+}
+
 size_t
 RIBTLV::read_rib_entry(u_int16_t* sid, double* pvalue, bool* relay,
                        bool* custody, bool* internet,
@@ -262,15 +278,7 @@ RIBTLV::read_rib_entry(u_int16_t* sid, double* pvalue, bool* relay,
     *sid = ntohs(rib->string_id);
     ASSERT(pvalue != NULL);
     *pvalue   = ((rib->pvalue & 0xff) + 0.0) / (256.0);
-    ASSERT(relay != NULL);
-    *relay    = ((rib->flags & Prophet::RELAY_NODE) ==
-                               Prophet::RELAY_NODE);
-    ASSERT(custody != NULL);
-    *custody  = ((rib->flags & Prophet::CUSTODY_NODE) ==
-                               Prophet::CUSTODY_NODE);
-    ASSERT(internet != NULL);
-    *internet = ((rib->flags & Prophet::INTERNET_GW_NODE) ==
-                               Prophet::INTERNET_GW_NODE);
+    decode_flags(rib->flags,relay,custody,internet);
     log_debug("read_rib_entry: read %zu bytes from %zu byte buffer",
               rib_sz,len);
     return rib_sz;
@@ -295,7 +303,9 @@ RIBTLV::deserialize(u_char* buffer, size_t len)
     if (len < length_)
         return 0;
 
-    flags_  = hdr->flags;
+    // set flags for this peer
+    flags_    = hdr->flags;
+    decode_flags(flags_,&relay_,&custody_,&internet_);
 
     size_t rib_entry_count = ntohs(hdr->rib_string_count);
     u_char* bp = buffer + hdrsz;

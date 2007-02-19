@@ -201,6 +201,9 @@ public:
 protected:
     friend class TLVFactory<RIBTLV>;
 
+    static void decode_flags(u_int8_t flags,
+                   bool* relay, bool* custody,
+                   bool* internet);
     size_t write_rib_entry(u_int16_t sid,
                            double pvalue,
                            bool relay,
