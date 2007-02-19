@@ -20,6 +20,7 @@
 #include "ProphetCommand.h"
 #include "routing/BundleRouter.h"
 #include "routing/Prophet.h"
+// default settings for ProphetRouter::params_ are set in ProphetLists.h
 #include "routing/ProphetRouter.h"
 
 namespace dtn {
@@ -70,19 +71,14 @@ ProphetCommand::ProphetCommand()
     bind_var(new oasys::BoolOpt("relay_node",
                                 &ProphetRouter::params_.relay_node_,
                                 "whether this node forwards bundles "
-                                "outside Prophet domain"));
-
-    bind_var(new oasys::BoolOpt("custody_node",
-                                &ProphetRouter::params_.custody_node_,
-                                "whether this node will accept "
-                                "custody transfers"));
+                                "to other Prophet nodes"));
 
     bind_var(new oasys::BoolOpt("internet_gw",
                                 &ProphetRouter::params_.internet_gw_,
                                 "whether this node forwards bundles to "
                                 "Internet domain"));
 
-    // smallest double that can fit into 8 bits:  0.0039
+    // smallest double that can fit into 8 bits:  0.0039 (1/255)
     bind_var(new oasys::DoubleOpt("epsilon", &ProphetRouter::params_.epsilon_,
                                   "val",
                                   "lower limit on predictability before "
@@ -106,7 +102,7 @@ ProphetCommand::ProphetCommand()
                 "\tgrtr_sort\tforward if \"grtr\" and sort desc by P_remote - P_local\n"
                 "\tgrtr_max\tforward if \"grtr\" and sort desc by P_remote\n");
 
-    add_to_help("max_usage <bytes>","set upper limit on bundle store utilization");
+    add_to_help("max_usage","not used - superceded by \"storage payload_quota\"");
 }
 
 int
@@ -114,12 +110,6 @@ ProphetCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 {
     (void)interp;
     
-    /*
-       wish list:
-            - define a Prophet node: EID, pvalue, custody, relay, internet
-            - define "show" command for each Prophet variable
-     */
-
     if (argc != 2)
     {
         resultf("prophet: wrong number of arguments, got %d looking for 2",
@@ -217,23 +207,9 @@ ProphetCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     else
     if (strncmp(cmd,"max_usage",strlen("max_usage")) == 0)
     {
-        u_int max_usage;
-        p.addopt(new oasys::UIntOpt("max_usage",
-                 &max_usage,"usage in bytes",
-                 "upper limit on Bundle storage utilization"));
-
-        if (! p.parse(argc,argv,&invalid))
-        {
-            resultf("bad parameter for max_usage: %s",invalid);
-            return TCL_ERROR;
-        }
-
-        if (ProphetController::is_init())
-            ProphetController::instance()->handle_max_usage_change(max_usage);
-        else
-            ProphetRouter::params_.max_usage_ = max_usage;
-
-        resultf("max_usage set to %d",max_usage);
+        resultf("\"prophet max_usage\" no longer supported, please refer to "
+                "\"storage payload_quota\"");
+        return TCL_ERROR;
     }
 
     return TCL_OK;
