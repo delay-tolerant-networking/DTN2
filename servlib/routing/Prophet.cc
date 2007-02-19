@@ -15,10 +15,22 @@
  */
 
 #include "Prophet.h"
+#include "bundling/BundleDaemon.h"
 
 namespace dtn {
+
 Prophet::UniqueID* Prophet::UniqueID::instance_ = NULL;
+
 const double Prophet::DEFAULT_P_ENCOUNTER;
 const double Prophet::DEFAULT_BETA;
 const double Prophet::DEFAULT_GAMMA;
+
+bool
+Prophet::route_to_me(const EndpointID& eid)
+{
+    EndpointID local = BundleDaemon::instance()->local_eid();
+    EndpointIDPattern route = eid_to_route(local);
+    return route.match(eid);
+}
+
 } // dtn

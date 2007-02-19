@@ -729,6 +729,11 @@ struct Prophet {
         return route;
     }
 
+    /**
+     * Convenience function to compute whether EID is a route to local
+     */
+     static bool route_to_me(const EndpointID& eid);
+
 }; // struct Prophet
 
 }; // dtn
