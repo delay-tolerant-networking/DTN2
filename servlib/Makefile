@@ -158,6 +158,7 @@ OLD_STORAGE_SRCS :=				\
 
 STORAGE_SRCS :=					\
 	storage/BundleStore.cc			\
+	storage/ProphetStore.cc			\
 	storage/LinkStore.cc			\
 	storage/GlobalStore.cc			\
 	storage/RegistrationStore.cc		\
@@ -246,13 +247,13 @@ XSD_TOOL_COMMON_ARGS := \
 	--cxx-prologue '\#include <config.h>' \
 	--cxx-prologue '\#ifdef XERCES_C_ENABLED' \
 	--cxx-epilogue '\#endif' \
-	
+
 # Arguments used to regenerate the ECLA bindings.
 XSD_TOOL_CLA_ARGS := \
 	--root-element cl_message \
 	--namespace-map =dtn::clmessage \
 	--output-dir conv_layers \
-	
+
 # Arguments used to regenerate the external router bindings.
 XSD_TOOL_RTR_ARGS := \
 	--root-element dtn \
