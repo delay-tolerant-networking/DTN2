@@ -43,6 +43,7 @@ ProphetEncounter::ProphetEncounter(const LinkRef& nexthop,
       neighbor_gone_(false),
       state_(WAIT_NB),
       cmdqueue_("/dtn/route"),
+      remote_nodes_(false),
       to_be_fwd_("ProphetEncounter to be forwarded"),
       outbound_tlv_(NULL),
       state_lock_(new oasys::SpinLock()),
@@ -281,7 +282,7 @@ ProphetEncounter::neighbor_gone()
 }
 
 bool
-ProphetEncounter::should_fwd(Bundle* b,bool hard_fail)
+ProphetEncounter::should_fwd(Bundle* b,bool log_fail)
 {
     BundleRef bundle("should_fwd");
     ForwardingInfo info;
@@ -303,11 +304,7 @@ ProphetEncounter::should_fwd(Bundle* b,bool hard_fail)
                   bundle->bundleid_, next_hop_->name(),
                   ForwardingInfo::state_to_str(
                       static_cast<ForwardingInfo::state_t>(info.state_)));
-        if (hard_fail)
-        {
-            PANIC("neighbor requested bundle that has already been sent");
-        }
-        else
+        if (log_fail)
         {
             log_err("neighbor requested bundle that has already been sent");
         }
@@ -373,7 +370,11 @@ ProphetEncounter::fwd_to_nexthop(Bundle* b,bool add_front)
         bool ok = oracle_->actions()->send_bundle(b,next_hop_,
                                                   ForwardingInfo::COPY_ACTION,
                                                   CustodyTimerSpec());
-        ASSERTF(ok == true,"failed to send bundle");
+        if (!ok)
+        {
+            log_err("failed to send bundle");
+            break;
+        }
 
         // update Prophet stats on this bundle
         oracle_->stats()->update_stats(b,remote_nodes_.p_value(b));
@@ -806,8 +807,8 @@ ProphetEncounter::handle_rib_tlv(RIBTLV* rt,ProphetTLV* pt)
             i != rib.end();
             i++)
         {
-            RIBNode* rib = (*i);
-            u_int16_t sid = rib->sid_;
+            RIBNode* ribnode = (*i);
+            u_int16_t sid = ribnode->sid_;
             EndpointID eid = Prophet::eid_to_routeid(ribd_.find(sid));
             ASSERT(eid.equals(EndpointID::NULL_EID()) == false);
             
@@ -823,19 +824,19 @@ ProphetEncounter::handle_rib_tlv(RIBTLV* rt,ProphetTLV* pt)
             ASSERT(
                node->remote_eid().equals(EndpointID::NULL_EID()) == false
             );
-            node->set_relay(rib->relay());
-            node->set_custody(rib->custody());
-            node->set_internet_gw(rib->internet_gw());
+            node->set_relay(ribnode->relay());
+            node->set_custody(ribnode->custody());
+            node->set_internet_gw(ribnode->internet_gw());
 
             // apply transitive contact algorithm
-            node->update_transitive(peer_pvalue,rib->p_value());
+            node->update_transitive(peer_pvalue,ribnode->p_value());
 
             // update node table
             oracle_->nodes()->update(node);
 
             // keep mirror copy of remote's RIB
             ProphetNode* rn = new ProphetNode(*node);
-            rn->set_pvalue(rib->p_value());
+            rn->set_pvalue(ribnode->p_value());
             remote_nodes_.update(rn);
         }
 
@@ -973,6 +974,7 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
                     oracle_->actions()->delete_bundle(b.object(),
                             BundleProtocol::REASON_NO_ADDTL_INFO);
                     list.erase(b.object());
+                    log_debug("dropping *%p due to Prophet ack",b.object());
                 }
                 
                 // preserve this ACK for future encounters
@@ -983,9 +985,10 @@ ProphetEncounter::handle_bundle_tlv(BundleTLV* bt,ProphetTLV* pt)
             if (ProphetBundleList::find(list,eid,cts,seq) == NULL)
             {
                 bool accept = true;
-                //XXX/wilson
-                // need to to something intelligent here w.r.t. custody
-                bool custody = false;
+                // local settings that indicate whether custody is accepted
+                // AND'd with remote's indication whether custody is requested
+                bool custody = (BundleDaemon::params_.accept_custody_ &&
+                                (*i)->custody());
                 requests_.add_offer(cts,seq,sid,custody,accept,false);
                 log_debug("requesting bundle, cts:seq %d:%d, sid %d",
                           cts,seq,sid);
@@ -1199,20 +1202,17 @@ ProphetEncounter::send_bundle_offer()
 
     if (list.size() > 0)
     {
-        // Create ordering based on priority_queue using forwarding strategy 
+        // Comparator to order bundles based on priority_queue using
+        // forwarding strategy 
         FwdStrategy* fs = FwdStrategy::strategy(
-                                oracle_->params()->fs_,
-                                oracle_->nodes(),
+                                oracle_,
                                 &remote_nodes_);
 
         // Create strategy-based decider for whether to forward a bundle
         ProphetDecider* d = ProphetDecider::decider(
-                                oracle_->params()->fs_,
-                                oracle_->nodes(),
+                                oracle_,
                                 &remote_nodes_,
-                                next_hop_,
-                                oracle_->params()->max_forward_,
-                                oracle_->stats());
+                                next_hop_);
 
         // Combine into priority_queue for bundle offer ordering
         ProphetBundleOffer offer(list,fs,d);
@@ -1526,7 +1526,7 @@ ProphetEncounter::enqueue_rib(const RIBTLV::List& nodes,
     ProphetTLV* tlv = outbound_tlv(tid,result);
     RIBTLV *rt = new RIBTLV(nodes,
                             oracle_->params()->relay_node_,
-                            oracle_->params()->custody_node_,
+                            BundleDaemon::params_.accept_custody_,
                             oracle_->params()->internet_gw_,
                             logpath_);
 

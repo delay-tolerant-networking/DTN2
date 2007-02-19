@@ -38,17 +38,6 @@
 
 namespace dtn {
 
-class ProphetOracle {
-public:
-    virtual ~ProphetOracle() {}
-    virtual ProphetParams*      params() = 0;
-    virtual ProphetBundleQueue* bundles() = 0;
-    virtual ProphetTable*       nodes() = 0;
-    virtual BundleActions*      actions() = 0;
-    virtual ProphetAckList*     acks() = 0;
-    virtual ProphetStats*       stats() = 0;
-};
-
 /**
  * Section 4.4.4, p. 28
  * The Routing Information Base lists the destinations a node knows of,
@@ -347,7 +336,7 @@ protected:
     /**
      * Check link status to determine whether ok to forward
      */
-    bool should_fwd(Bundle* bundle,bool hard_fail = true);
+    bool should_fwd(Bundle* bundle,bool log_fail = true);
 
     /**
      * Given a bundle, forward to remote
