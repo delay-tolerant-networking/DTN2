@@ -24,6 +24,7 @@
 #include "GlobalStore.h"
 #include "bundling/Bundle.h"
 #include "reg/APIRegistration.h"
+#include "routing/ProphetNode.h"
 
 namespace dtn {
 
@@ -197,6 +198,7 @@ GlobalStore::calc_digest(u_char* digest)
     // adding or deleting a field will change the digest
     Bundle b(oasys::Builder::builder());
     APIRegistration r(oasys::Builder::builder());
+    ProphetNode n(oasys::Builder::builder());
 
     oasys::StringSerialize s(oasys::Serialize::CONTEXT_LOCAL,
                              oasys::StringSerialize::INCLUDE_NAME |
@@ -205,6 +207,7 @@ GlobalStore::calc_digest(u_char* digest)
 
     s.action(&b);
     s.action(&r);
+    s.action(&n);
 
     oasys::MD5 md5;
     md5.update(s.buf().data(), s.buf().length());
