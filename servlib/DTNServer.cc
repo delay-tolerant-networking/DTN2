@@ -55,6 +55,7 @@
 #include "routing/BundleRouter.h"
 
 #include "storage/BundleStore.h"
+#include "storage/ProphetStore.h"
 #include "storage/LinkStore.h"
 #include "storage/GlobalStore.h"
 #include "storage/RegistrationStore.h"
@@ -132,6 +133,7 @@ DTNServer::init_datastore()
 
     if ((GlobalStore::init(*storage_config_, store_)       != 0) || 
         (BundleStore::init(*storage_config_, store_)       != 0) ||
+        (ProphetStore::init(*storage_config_, store_)       != 0) ||
         (LinkStore::init(*storage_config_, store_)         != 0) ||
         (RegistrationStore::init(*storage_config_, store_) != 0))
     {
@@ -242,6 +244,7 @@ DTNServer::close_datastore()
     
     RegistrationStore::instance()->close();
     LinkStore::instance()->close();
+    ProphetStore::instance()->close();
     BundleStore::instance()->close();
     GlobalStore::instance()->close();
 
