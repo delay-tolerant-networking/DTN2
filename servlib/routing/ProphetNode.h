@@ -23,6 +23,7 @@
 #include <oasys/util/URL.h>
 #include "naming/EndpointID.h"
 #include "bundling/BundleEvent.h"
+#include <oasys/serialize/Serialize.h>
 
 #include <vector>
 #include <map>
@@ -51,13 +52,16 @@ struct ProphetNodeParams
 /**
  * ProphetNode stores state for a remote node as identified by remote_eid
  */
-class ProphetNode : public oasys::Logger
+class ProphetNode : public oasys::Logger,
+                    public oasys::Formatter,
+                    public oasys::SerializableObject
 {
 public:
 
     ProphetNode(ProphetNodeParams* params = NULL,
                 const char* logpath = "/dtn/route/prophet/node");
     ProphetNode(const ProphetNode& node);
+    ProphetNode(const oasys::Builder&);
 
     virtual ~ProphetNode() {}
 
@@ -70,7 +74,8 @@ public:
     bool route_to_me(const EndpointID& eid) const;
 
     void set_eid( const EndpointID& eid ) { remote_eid_.assign(eid); }
-    void set_pvalue( double d ) { 
+    void set_pvalue( double d )
+    { 
         if ( d >= 0.0 && d <= 1.0 ) p_value_ = d;
     }
     void set_relay( bool relay ) { relay_ = relay; }
@@ -79,7 +84,8 @@ public:
     void set_age( oasys::Time t ) {age_.sec_=t.sec_; age_.usec_=t.usec_;}
     void set_age_now() { age_.get_time(); }
 
-    ProphetNode& operator= (const ProphetNode& p) {
+    ProphetNode& operator= (const ProphetNode& p)
+    {
         p_value_ = p.p_value_;
         relay_   = p.relay_;
         custody_ = p.custody_;
@@ -90,10 +96,27 @@ public:
         return *this;
     }
 
-    double encounter() const {return params_->encounter_;}
-    double beta() const {return params_->beta_;}
-    double gamma() const {return params_->gamma_;}
-    u_int  age_factor() const {return params_->kappa_;}
+    /**
+     * Hook for the generic durable table implementation to know what
+     * the key is for the database.
+     */
+    EndpointID durable_key() { return remote_eid_; }
+
+    /**
+     * Virtual from Formatter
+     */
+    int format(char *buf, size_t sz) const;
+
+    /**
+     * Virtual from Formatter
+     */
+    void format_verbose(oasys::StringBuffer *buf);
+
+    /**
+     * Virtual from SerializableObject
+     */
+    void serialize(oasys::SerializeAction* a);
+
     /**
      * We have just seen this node, update delivery predictability metric
      * p. 9, 2.1.1, equation 1
@@ -111,24 +134,21 @@ public:
      */
     void update_age();
 
-    bool set_encounter( double d ) {
-        if ( d >= 0.0 && d <= 1.0 ) { params_->encounter_ = d; return true; }
-        return false;
-    }
-    bool set_beta( double d ) {
-        if ( d >= 0.0 && d <= 1.0 ) { params_->beta_ = d; return true; }
-        return false;
-    }
-    bool set_gamma( double d ) {
-        if ( d >= 0.0 && d <= 1.0 ) { params_->gamma_ = d; return true; }
-        return false;
-    }
-    void set_age_factor(u_int ms_per_unit) {
-        params_->kappa_ = ms_per_unit;
-    }
-
     void dump(oasys::StringBuffer* buf);
     
+    /**
+     * Called by deserialization method
+     */
+    void set_params(ProphetNodeParams* params)
+    {
+        ASSERT(params != NULL && params_ == NULL);
+        params_ = params;
+    }
+
+    const ProphetNodeParams* params() const
+    {
+        return params_;
+    }
 protected:
     /**
      * Use kappa_ milliseconds per unit to convert t (as a diff)

@@ -24,9 +24,9 @@ ProphetNode::ProphetNode(
         ProphetNodeParams* params,
         const char* logbase)
     : oasys::Logger("ProphetNode",logbase),
-      params_(params),
-      p_value_(0.0), relay_(false), custody_(false),
-      internet_gateway_(false), remote_eid_(EndpointID::NULL_EID())
+      params_(params), p_value_(0.0), relay_(true),
+      custody_(true), internet_gateway_(false),
+      remote_eid_(EndpointID::NULL_EID())
 {
     age_.get_time(); // fill with current time
 }
@@ -34,10 +34,49 @@ ProphetNode::ProphetNode(
 ProphetNode::ProphetNode(const ProphetNode& n)
     : oasys::Logger("ProphetNode",
                     ((oasys::Logger)n).logpath()),
+      oasys::Formatter(),
+      oasys::SerializableObject(),
       params_(n.params_),
       p_value_(n.p_value_), relay_(n.relay_), custody_(n.custody_),
       internet_gateway_(n.internet_gateway_), remote_eid_(n.remote_eid_)
 {
+}
+
+ProphetNode::ProphetNode(const oasys::Builder&)
+    : oasys::Logger("ProphetNode","/dtn/route/prophet"),
+      params_(NULL), p_value_(0.0), relay_(false), custody_(false),
+      internet_gateway_(false), remote_eid_(EndpointID::NULL_EID())
+{
+}
+
+int
+ProphetNode::format(char* buf, size_t sz) const
+{
+    oasys::Time t = age_;
+    return snprintf(buf, sz, "prophet node %s %0.4f (%s%s%s last mod %u ms ago)",
+                    remote_eid_.c_str(), p_value_,
+                    relay_ ? "relay " : "",
+                    custody_ ? "custody " : "",
+                    internet_gateway_ ? "internet gw " : "",
+                    t.elapsed_ms());
+}
+
+void
+ProphetNode::format_verbose(oasys::StringBuffer* buf)
+{
+    dump(buf);
+}
+
+void
+ProphetNode::serialize(oasys::SerializeAction* a)
+{
+    a->process("remote_eid",&remote_eid_);
+    //XXX/wilson This stinks, should be a double
+    a->process("p_value",(u_int64_t*)&p_value_);
+    a->process("age",&age_.sec_);
+    a->process("custody",&custody_);
+    a->process("relay",&relay_);
+    a->process("internet_gw",&internet_gateway_);
 }
 
 void
@@ -51,15 +90,17 @@ void
 ProphetNode::dump(oasys::StringBuffer* buf)
 {
     buf->appendf("\tEndpointID %s\n"
-                 "\tP Value %0.2f\n"
+                 "\tP Value %0.4f\n"
                  "\tRelay %s\n"
                  "\tCustody %s\n"
-                 "\tInternet GW %s\n",
+                 "\tInternet GW %s\n"
+                 "\tLast mod %d ms ago\n",
                  remote_eid_.c_str(),
                  p_value_,
                  relay_ ? "true" : "false",
                  custody_ ? "true" : "false",
-                 internet_gateway_ ? "true" : "false");
+                 internet_gateway_ ? "true" : "false",
+                 age_.elapsed_ms());
 }
 
 void
@@ -162,6 +203,7 @@ u_int
 ProphetNode::time_to_units(oasys::Time diff)
 {
     // params_->kappa_ is in units of milliseconds per timeunit
+    ASSERT(params_->kappa_ > 0.0);
     u_int retval = (u_int) diff.sec_ * 1000 / params_->kappa_;
     retval += (u_int) diff.usec_ / (1000 * params_->kappa_);
     log_debug("time_to_units: diff sec %u usec %u timeunits %u",
