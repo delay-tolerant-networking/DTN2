@@ -42,6 +42,25 @@ struct BundleTimestamp {
      * up to date with the protocol.
      */
     static bool check_local_clock();
+
+    /**
+     * Operator overload for use in STL data structures.
+     */
+    bool operator==(const BundleTimestamp& other) const
+    {
+        return seconds_ == other.seconds_ &&
+            seqno_ == other.seqno_;
+    }
+	
+    /**
+     * Operator overload for use in STL data structures.
+     */
+    bool operator<(const BundleTimestamp& other) const
+    {
+        if (seconds_ < other.seconds_) return true;
+        else if (seconds_ > other.seconds_) return false;
+        return (seqno_ < other.seqno_);
+    }
 	
     /**
      * The number of seconds between 1/1/1970 and 1/1/2000.
