@@ -221,22 +221,32 @@ PrimaryBlockProcessor::parse_bundle_flags(Bundle* bundle, u_int8_t flags)
 {
     if (flags & BUNDLE_IS_FRAGMENT) {
 	bundle->is_fragment_ = true;
+    } else {
+        bundle->is_fragment_ = false;
     }
 
     if (flags & BUNDLE_IS_ADMIN) {
 	bundle->is_admin_ = true;
+    } else {
+        bundle->is_admin_ = false;
     }
 
     if (flags & BUNDLE_DO_NOT_FRAGMENT) {
 	bundle->do_not_fragment_ = true;
+    } else {
+        bundle->do_not_fragment_ = false;
     }
 
     if (flags & BUNDLE_CUSTODY_XFER_REQUESTED) {
 	bundle->custody_requested_ = true;
+    } else {
+        bundle->custody_requested_ = false;
     }
 
     if (flags & BUNDLE_SINGLETON_DESTINATION) {
 	bundle->singleton_dest_ = true;
+    } else {
+        bundle->singleton_dest_ = false;
     }
 }
 
