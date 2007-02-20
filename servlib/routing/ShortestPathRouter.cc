@@ -380,18 +380,18 @@ ShortestPathRouter::parse_lsa_bundle(Bundle* bundle, LSAVector* lsa_vec)
 tooshort:
         log_warn("parse_lsa_bundle: message too short at byte %zu/%zu "
                  "(%llu/%llu processed)",
-                 origlen - buflen, origlen, done, count);
+                 origlen - buflen, origlen, U64FMT(done), U64FMT(count));
         return false;
     }
     bp     += sdnv_len;
     buflen -= sdnv_len;
     
     if (count == 0) {
-        log_warn("parse_lsa_bundle: got vector of %llu LSA elements", count);
+        log_warn("parse_lsa_bundle: got vector of %llu LSA elements", U64FMT(count));
         return false;
     }
 
-    log_debug("parse_lsa_bundle: got vector of %llu LSA elements", count);
+    log_debug("parse_lsa_bundle: got vector of %llu LSA elements", U64FMT(count));
     for (done = 0; done < count; ++done) {
         lsa_vec->push_back(LSA());
         LSA* lsa = &(lsa_vec->back());
@@ -411,7 +411,7 @@ tooshort:
 invalid_eid:
             log_warn("parse_lsa_bundle: got invalid eid '%.*s' at byte %zu/%zu "
                      "(%llu/%llu processed)",
-                     (int)len, (char*)bp, origlen - buflen, origlen, done, count);
+                     (int)len, (char*)bp, origlen - buflen, origlen, U64FMT(done), U64FMT(count));
             return false;
         }
         bp     += len;
