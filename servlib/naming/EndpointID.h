@@ -135,6 +135,15 @@ public:
     }
 
     /**
+     * Operator overload for STL comparison-based data structures
+     * (such as a std::map).
+     */
+    bool operator<(const EndpointID& other) const
+    {
+        return str_ < other.str_;
+    }
+
+    /**
      * Set the string from the API type dtn_endpoint_id_t
      *
      * @return true if the string is a valid id, false if not.
