@@ -29,6 +29,7 @@
 #include "NeighborhoodRouter.h"
 #include "ProphetRouter.h"
 #include "LinkStateRouter.h"
+#include "ShortestPathRouter.h"
 #include "ExternalRouter.h"
 #include "TcaRouter.h"
 
@@ -61,6 +62,9 @@ BundleRouter::create_router(const char* type)
     }
     else if (strcmp(type, "linkstate") == 0) {
         return new LinkStateRouter();
+    }    
+    else if (strcmp(type, "shortest_path") == 0) {
+        return new ShortestPathRouter();
     }    
     else if (!strcmp(type, "tca_router")) {
         return new TcaRouter(TcaRouter::TCA_ROUTER);

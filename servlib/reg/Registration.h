@@ -48,6 +48,7 @@ public:
     static const u_int32_t LINKSTATEROUTER_REGID = 1;
     static const u_int32_t PING_REGID = 2;
     static const u_int32_t EXTERNALROUTER_REGID = 3;
+    static const u_int32_t SHORTESTPATHROUTER_REGID = 1;
     static const u_int32_t MAX_RESERVED_REGID = 9;
     
     /**
