@@ -111,7 +111,6 @@ public:
 
     private:
         friend class MultiGraph;
-        friend class MultiGraph::DijkstraCompare;
         
         /// @{ Dijkstra algorithm state
         u_int32_t distance_;
