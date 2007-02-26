@@ -35,15 +35,22 @@ options:
  -s &lt;eid|demux_string&gt; source eid)
  -d &lt;eid|demux_string&gt; destination eid)
  -r &lt;eid|demux_string&gt; reply to eid)
- -t &lt;f|m|d&gt; payload type: file, message, or date
+ -t &lt;f|t|m|d&gt; payload type: file, tmpfile, message, or date
  -p &lt;filename|string&gt; payload data
- -v verbose
- -h help
- -n copies of the bundle to send
- -e request for end-to-end return receipt
- -f request for bundle forwarding receipts
+ -e &lt;time&gt; expiration time in seconds (default: one hour)
+ -i &lt;regid&gt; registration id for reply to
+ -n &lt;int&gt; copies of the bundle to send
+ -z &lt;time&gt; msecs to sleep between transmissions
+ -c request custody transfer
+ -C request custody transfer receipts
+ -D request for end-to-end delivery receipt
+ -X request for deletion receipt
+ -R request for bundle reception receipts
+ -F request for bundle forwarding receipts
  -w wait for bundle status reports
- -i registration id for reply to
+ -E &lt;int&gt; include extension block and specify type
+ -P &lt;int&gt; flag value(s) to include in extension block
+ -S &lt;string&gt; extension block content
 </pre></blockquote>
 
 <p>
@@ -57,24 +64,22 @@ First, let's send in a little test message that we will be
 able to see inside the daemon, and then will be able to fetch with
 <tt>dtnrecv</tt>.
 
-<blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend -s bundles://internet/host://dtn-a/me
-    -d bundles://internet/host://dtn-a/testing
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend
+    -s dtn://dtn-a.dtn/me
+    -d dtn://dtn-a.dtn/testing
     -t m -p "testing"</font></pre></blockquote>
 
 <p> You can use a command like that, but instead of using the example
 hostname <i>dtn-a</i>, use the local eid you configured in your
-dtn.conf file. When you run <tt>dtnsend</tt>, you should see a line
-like this show up in the window where dtnd is running:
-
-<blockquote><pre>[1109563831.574628 /route info] BUNDLE_RECEIVED id:0 (7 of 7 bytes)</pre></blockquote>
+dtn.conf file. 
 
 <p>
-In that window, type "bundle list". You should get something
-like this:
+In the window where dtnd is running, type "bundle list". You should
+get something like this:
 
 <blockquote><pre>dtn% <font color=blue>bundle list</font>
 Currently Pending Bundles (1):
-        0  : bundles://internet/host://dtn-a/me -&gt; bundles://internet/host://dtn-a/testing length 7
+        0  : dtn://dtn-a.dtn/me -&gt; dtn://dtn-a.dtn/testing length 7
 </pre></blockquote>
 
 <p>
@@ -114,15 +119,16 @@ the endpoint who's bundles you want to pick up. Because
 <tt>dtnrecv</tt> cannot pick up bundles from across the DTN, but only
 on the local node, it's options are much simpler.
 
-<blockquote><pre>$ <font color=blue>DTN2/apps/dtnrecv/dtnrecv testing</font>
-opening connection to dtn router...
-opened connection to dtn router...
-calling dtn_build_local_eid.
-local_eid [internet host://dtn-a/testing]
-dtn_register succeeded, regid 0xa
-dtn_recv [internet host://dtn-a/testing]...
-7 bytes from [internet host://dtn-a/me]: transit time=0 ms
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtnrecv/dtnrecv dtn://dtn-a.dtn/testing</font>
+dtnrecv (pid 29614) starting up
+find registration succeeded, regid 0
+register succeeded, regid 13
+looping forever to receive bundles
+dtn_recv [dtn://dtn-a.dtn/testing]...
+7 bytes from [dtn://dtn-a.dtn/me]: transit time=0 ms
 0000000 7465 7374 696e 67                       |  testing
+
+dtn_recv [dtn://dtn-a.dtn/testing]...
 <font color=blue>Ctrl-C</font></pre></blockquote>
 
 <p>
@@ -189,10 +195,10 @@ we specified with the -s option. The -w argument tells
 <tt>dtnsend</tt> to wait for incoming messages to the reply
 endpoint. So, here's an example of it in action:
 
-<blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend -e -w -s bundles://internet/host://dtn-a/me
-    -d bundles://internet/host://dtn-a/testing
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtnsend/dtnsend -e -w -s dtn://dtn-a.dtn/me
+    -d dtn://dtn-a.dtn/testing
     -t m -p "testing"</font>
-got 67 byte report from [internet host://dtn-a]: time=18893.0 ms
+got 67 byte report from [dtn://dtn-a.dtn]: time=18893.0 ms
 </pre></blockquote>
 
 <p>
@@ -265,15 +271,15 @@ files.
 <blockquote><pre>$ <font color=blue>mkdir /home/fred/dtn/incoming</font>
 $ <font color=blue>DTN2/apps/dtncpd/dtncpd /home/fred/dtn/incoming</font>
 opening connection to dtn router...
-local_eid [internet host://dtn-a/dtncp/recv:*]
+local_eid [dtn://dtn-a.dtn/dtncp/recv:*]
 dtn_register succeeded, regid 0xa
-dtn_recv [internet host://dtn-a/dtncp/recv:*]...
+dtn_recv [dtn://dtn-a.dtn/dtncp/recv:*]...
 </pre></blockquote>
 
 <p>
 In another window, we copy a file:
 
-<blockquote><pre>$ <font color=blue>DTN2/apps/dtncp/dtncp /etc/motd bundles://internet/host://dtn-a</font></pre></blockquote>
+<blockquote><pre>$ <font color=blue>DTN2/apps/dtncp/dtncp /etc/motd dtn://dtn-a.dtn</font></pre></blockquote>
 
 <p>
 And in the first window, <tt>dtncpd</tt> says:

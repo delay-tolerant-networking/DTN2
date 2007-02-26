@@ -30,9 +30,8 @@ is <tt>fred</tt> and that you want dtnd to write into
 <tt>/home/fred/dtn/dtn.conf</tt>. Edit the <tt>dtn.conf</tt> file. For
 this tutorial, we'll use the simplest database to configure,
 BerkeleyDB. Leave the <i>storage set type berkeleydb</i> line alone.
-In other tutorials, you'll see how to use a SQL database. Set the
-<i>payloaddir</i> to <tt>/home/fred/dtn/bundles</tt> and set the
-<i>dbdir</i> to <tt>/home/fred/dtn/db</tt>.
+Set the <i>payloaddir</i> to <tt>/home/fred/dtn/bundles</tt> and set
+the <i>dbdir</i> to <tt>/home/fred/dtn/db</tt>.
 
 <p> The <i>dbdir</i> directory is where persistent objects that DTN2 uses to
 manage its internal state live. This database will remain fairly small. It
@@ -279,9 +278,9 @@ source_eid [dtn://dtn-a.dtn/ping.2384]
 replyto_eid [dtn://dtn-a.dtn/ping.2384]
 dtn_register succeeded, regid 0x11
 checking for bundles already queued...
-PING [dtn://dtn-a.dtn/]...
-68 bytes from [dtn://dtn-a.dtn]: time=161.00 ms
-68 bytes from [dtn://dtn-a.dtn]: time=228.00 ms
+PING [dtn://dtn-a.dtn/ping]...
+68 bytes from [dtn://dtn-a.dtn/ping]: time=161.00 ms
+68 bytes from [dtn://dtn-a.dtn/ping]: time=228.00 ms
 <font color=blue>Ctrl-C</font></pre></blockquote>
 
 <h2> What next? </h2>
