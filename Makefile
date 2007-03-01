@@ -112,7 +112,7 @@ install:
 	else \
 		$(INSTALL_DATA) daemon/dtn.conf $(DESTDIR)/etc/dtn.conf; \
 		$(INSTALL_DATA) servlib/routing/router.xsd $(DESTDIR)/etc/router.xsd; \
-		$(INSTALL_DATA) servlib/conv_layer/clevent.xsd $(DESTDIR)/etc/clevent.xsd; \
+		$(INSTALL_DATA) servlib/conv_layers/clevent.xsd $(DESTDIR)/etc/clevent.xsd; \
 	fi
 
 #
