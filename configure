@@ -4354,7 +4354,6 @@ fi
 
 
 
-    CPPFLAGS="$CPPFLAGS -pthread"
     echo "$as_me:$LINENO: checking for library containing pthread_create" >&5
 echo $ECHO_N "checking for library containing pthread_create... $ECHO_C" >&6
 if test "${ac_cv_search_pthread_create+set}" = set; then
