@@ -330,7 +330,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all oasys"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR BUILDDIR AR ac_ct_AR RANLIB ac_ct_RANLIB DEBUG OPTIMIZE OPTIMIZE_WARN PROFILE STATIC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SHLIBS SHLIB_EXT PICFLAGS LDFLAGS_SHLIB TARGET CXX CXXFLAGS ac_ct_CXX CPP EGREP DEPFLAGS AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE XSD_TOOL ac_ct_XSD_TOOL OASYS_LIBS subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR BUILDDIR AR ac_ct_AR RANLIB ac_ct_RANLIB DEBUG OPTIMIZE OPTIMIZE_WARN PROFILE STATIC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SHLIBS SHLIB_EXT PICFLAGS RPATH LDFLAGS_SHLIB TARGET CXX CXXFLAGS ac_ct_CXX CPP EGREP DEPFLAGS AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE XSD_TOOL ac_ct_XSD_TOOL OASYS_LIBS subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -2803,6 +2803,48 @@ echo "$as_me: error: internal error in configure script" >&2;}
 		 echo "$as_me:$LINENO: result: $SHLIB_EXT" >&5
 echo "${ECHO_T}$SHLIB_EXT" >&6
 
+		 echo "$as_me:$LINENO: checking if the compiler supports -Wl,--rpath=." >&5
+echo $ECHO_N "checking if the compiler supports -Wl,--rpath=.... $ECHO_C" >&6
+		 LDFLAGS="$LDFLAGS -Wl,-rpath=/foo"
+		 cat >conftest.$ac_ext <<_ACEOF
+void myfunc() {}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  rpath=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+rpath=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+		 echo "$as_me:$LINENO: result: $rpath" >&5
+echo "${ECHO_T}$rpath" >&6
+		 if [ $rpath = yes ] ; then
+		     RPATH="-Wl,-rpath=. -Wl,-rpath=\$(prefix)/lib"
+		 fi
                  break
              fi
            done
@@ -2811,6 +2853,7 @@ echo "${ECHO_T}$SHLIB_EXT" >&6
        CFLAGS=$ac_save_CFLAGS
        LDFLAGS=$ac_save_LDFLAGS
     fi
+
 
 
 
@@ -11199,6 +11242,7 @@ s,@OBJEXT@,$OBJEXT,;t t
 s,@SHLIBS@,$SHLIBS,;t t
 s,@SHLIB_EXT@,$SHLIB_EXT,;t t
 s,@PICFLAGS@,$PICFLAGS,;t t
+s,@RPATH@,$RPATH,;t t
 s,@LDFLAGS_SHLIB@,$LDFLAGS_SHLIB,;t t
 s,@TARGET@,$TARGET,;t t
 s,@CXX@,$CXX,;t t
