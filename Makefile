@@ -92,6 +92,9 @@ install:
 	[ -d $(DESTDIR)$(bindir) ] || \
 	    (mkdir -p $(DESTDIR)$(bindir); chmod 755 $(DESTDIR)$(bindir))
 
+	[ -d $(DESTDIR)$(libdir) ] || \
+	    (mkdir -p $(DESTDIR)$(libdir); chmod 755 $(DESTDIR)$(libdir))
+
 	for prog in daemon/dtnd \
 		    tools/dtnd-control \
 		    apps/dtncat/dtncat \
@@ -102,6 +105,13 @@ install:
 		    apps/dtnsend/dtnsend \
 		    apps/dtntunnel/dtntunnel ; do \
 	    ($(INSTALL_PROGRAM) $$prog $(DESTDIR)$(bindir)) ; \
+	done
+
+	for lib in oasys/liboasys.so \
+		   oasys/liboasyscompat.so \
+		   applib/libdtnapi.so \
+	           applib/libdtnapi++.so ; do \
+	    ($(INSTALL_PROGRAM) $$lib $(DESTDIR)$(libdir)) ; \
 	done
 
 	[ x$(DTN_USER) = x ] || chown -R $(DTN_USER) $(DESTDIR)$(bindir)

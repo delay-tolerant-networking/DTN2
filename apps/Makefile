@@ -77,7 +77,7 @@ dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 #
 dtntest/dtntest: dtntest/dtntest.o
 	$(CXX) $(CFLAGS) $^ -o $@ \
-		$(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS) 
+		$(LDFLAGS) $(DTN_LIBS) -ldtnapi++ -loasys $(OASYS_LIBS) $(LIBS) 
 
 #
 # Rules for dtntunnel
@@ -86,7 +86,7 @@ dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \
 		     dtntunnel/UDPTunnel.o
 	$(CXX) $(CFLAGS) $^ -o $@ \
-		$(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS) 
+		$(LDFLAGS) $(DTN_LIBS) -ldtnapi++ -loasys $(OASYS_LIBS) $(LIBS) 
 
 #
 # Rules for tca_admin
