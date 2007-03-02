@@ -111,6 +111,9 @@ public:
 
     private:
         friend class MultiGraph;
+
+        // XXX/demmer see below
+        // friend class MultiGraph::DijkstraCompare;
         
         /// @{ Dijkstra algorithm state
         u_int32_t distance_;
@@ -121,10 +124,17 @@ public:
         /// @} 
     };
 
+    /// XXX/demmer this stupid helper function is needed because
+    /// DijkstraCompare can't be made a friend class of Node without
+    /// crashing gcc 3.4
+    static u_int32_t NodeDistance(Node* n) {
+        return n->distance_;
+    }
+
     /// Helper class to compute Dijkstra distance
     struct DijkstraCompare {
         bool operator()(Node* a, Node* b) const {
-            return a->distance_ > b->distance_;
+            return NodeDistance(a) > NodeDistance(b);
         }
     };
 
