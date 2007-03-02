@@ -100,9 +100,9 @@ libdtnapi++.a: $(CLIENT_EXTRA_OBJS)
 	$(AR) ruc $@ $^
 	$(RANLIB) $@ || true
 
-libdtnapi++.so: $(CLIENT_EXTRA_OBJS)
+libdtnapi++.$(SHLIB_EXT): $(CLIENT_EXTRA_OBJS)
 	rm -f $@
-	$(CXX) $^ $(LDFLAGS_SHLIB) $(LDFLAGS) -o $@
+	$(CXX) $^ $(LDFLAGS_SHLIB) $(LDFLAGS) -L../oasys -loasys -L. -ldtnapi -o $@
 
 foo:
 	echo $(CLIENTLIB)
