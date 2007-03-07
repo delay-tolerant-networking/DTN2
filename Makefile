@@ -107,10 +107,10 @@ install:
 	    ($(INSTALL_PROGRAM) $$prog $(DESTDIR)$(bindir)) ; \
 	done
 
-	for lib in oasys/liboasys.so \
-		   oasys/liboasyscompat.so \
-		   applib/libdtnapi.so \
-	           applib/libdtnapi++.so ; do \
+	[ x$(SHLIBS) = x ] || for lib in oasys/liboasys.$(SHLIB_EXT) \
+		   oasys/liboasyscompat.$(SHLIB_EXT) \
+		   applib/libdtnapi.$(SHLIB_EXT) \
+	           applib/libdtnapi++.$(SHLIB_EXT) ; do \
 	    ($(INSTALL_PROGRAM) $$lib $(DESTDIR)$(libdir)) ; \
 	done
 
