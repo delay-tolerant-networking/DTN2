@@ -329,6 +329,18 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     recvbuf_.consume(peer_eid_len);
 
     /*
+     * Make sure that the link's remote eid field is properly set.
+     */
+    LinkRef link = contact_->link();
+    if (link->remote_eid().str() == "dtn:none") {
+        link->set_remote_eid(peer_eid);
+    } else if (link->remote_eid() != peer_eid) {
+        log_warn("handle_contact_initiation: "
+                 "remote eid mismatch: link remote eid %s, peer eid %s",
+                 link->remote_eid().c_str(), peer_eid.c_str());
+    }
+    
+    /*
      * Finally, we note that the contact is now up.
      */
     contact_up();

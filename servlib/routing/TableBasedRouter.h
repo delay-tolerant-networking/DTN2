@@ -156,6 +156,12 @@ protected:
      */
     virtual void check_next_hop(const LinkRef& next_hop);
 
+    /**
+     * When new links are added or opened, and if we're configured to
+     * add nexthop routes, try to add a new route for the given link.
+     */
+    void add_nexthop_route(const LinkRef& link);
+
     /// The static routing table
     RouteTable* route_table_;
 };

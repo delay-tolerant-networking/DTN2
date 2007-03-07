@@ -94,12 +94,47 @@ TableBasedRouter::handle_route_del(RouteDelEvent* event)
 
 //----------------------------------------------------------------------
 void
+TableBasedRouter::add_nexthop_route(const LinkRef& link)
+{
+    // if we're configured to do so, create a route entry for the eid
+    // specified by the link when it connected. if it's a dtn://xyz
+    // URI that doesn't have anything following the "hostname" part,
+    // we add a wildcard of '/*' to match all service tags.
+    
+    EndpointID eid = link->remote_eid();
+    std::string eid_str = eid.str();
+    
+    if (config_.add_nexthop_routes_ && eid != EndpointID::NULL_EID())
+    { 
+        if (eid.scheme_str() == "dtn" &&
+            eid.ssp().length() > 2 &&
+            eid.ssp()[0] == '/' &&
+            eid.ssp()[1] == '/' &&
+            eid.ssp().find('/', 2) == std::string::npos)
+        {
+            eid_str += std::string("/*");
+        }
+
+        EndpointIDPattern eid_pattern(eid_str);
+
+        RouteEntryVec ignored;
+        if (route_table_->get_matching(eid_pattern, link, &ignored) == 0) {
+            RouteEntry *entry = new RouteEntry(eid_pattern, link);
+            entry->action_ = ForwardingInfo::FORWARD_ACTION;
+            add_route(entry);
+        }
+    }
+}
+
+//----------------------------------------------------------------------
+void
 TableBasedRouter::handle_contact_up(ContactUpEvent* event)
 {
     LinkRef link = event->contact_->link();
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
 
+    add_nexthop_route(link);
     check_next_hop(link);
 }
 
@@ -122,29 +157,7 @@ TableBasedRouter::handle_link_created(LinkCreatedEvent* event)
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
 
-    // if we're configured to do so, create a route entry for the eid
-    // specified by the link when it connected. if it's a dtn://xyz
-    // URI that doesn't have anything following the "hostname" part,
-    // we add a wildcard of '/*' to match all service tags.
-    
-    EndpointID eid = link->remote_eid();
-    std::string eid_str = eid.str();
-    
-    if (config_.add_nexthop_routes_ && eid != EndpointID::NULL_EID())
-    { 
-        if (eid.scheme_str() == "dtn" &&
-            eid.ssp().length() > 2 &&
-            eid.ssp()[0] == '/' &&
-            eid.ssp()[1] == '/' &&
-            eid.ssp().find('/', 2) == std::string::npos)
-        {
-            eid_str += std::string("/*");
-        }
-        
-        RouteEntry *entry = new RouteEntry(EndpointIDPattern(eid_str), link);
-        entry->action_ = ForwardingInfo::FORWARD_ACTION;
-        BundleDaemon::post(new RouteAddEvent(entry));
-    }
+    add_nexthop_route(link);
 }
 
 //----------------------------------------------------------------------
