@@ -35,7 +35,7 @@ public:
      * Destructor -- should be called only at shutdown time.
      */
     virtual ~Scheme();
-    
+
     /**
      * Validate that the given ssp is legitimate for this scheme. If
      * the 'is_pattern' paraemeter is true, then the ssp is being
@@ -65,6 +65,15 @@ public:
         (void)ssp;
         (void)tag;
         return false;
+    }
+
+    /**
+     * Check if the given ssp is a singleton endpoint id.
+     */
+    virtual bool is_singleton(const std::string& ssp)
+    {
+        (void)ssp;
+        return true;
     }
 };
     

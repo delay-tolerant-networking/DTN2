@@ -67,6 +67,11 @@ public:
      * tag is a legal one, false otherwise.
      */
     virtual bool append_service_tag(std::string* ssp, const char* tag);
+
+    /**
+     * Check if the given ssp is a singleton endpoint id.
+     */
+    virtual bool is_singleton(const std::string& ssp);
     
 private:
     friend class oasys::Singleton<DTNScheme>;

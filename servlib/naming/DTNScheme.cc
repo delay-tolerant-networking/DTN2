@@ -148,7 +148,7 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
 
-    // finally, check for an exact match of the url parameters
+    // finally, check for a glob match of the url parameters
     if (! (pattern_url.params_ == eid_url.params_))
     {
         log_debug_p("/dtn/scheme/dtn",
@@ -169,6 +169,19 @@ DTNScheme::append_service_tag(std::string* ssp, const char* tag)
         ssp->push_back('/');
     }
     ssp->append(tag);
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+DTNScheme::is_singleton(const std::string& ssp)
+{
+    // if there's a * in the hostname part of the URL, then it's not a
+    // singleton endpoint
+    oasys::URL url("dtn", ssp);
+    if (url.host_.find('*') != std::string::npos) {
+        return false;
+    }
     return true;
 }
 
