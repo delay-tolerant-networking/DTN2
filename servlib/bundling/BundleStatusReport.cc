@@ -196,6 +196,9 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         BundleProtocol::get_timestamp(&data->receipt_tv_, bp);
         bp  += sizeof(u_int64_t);
         len -= sizeof(u_int64_t);
+    } else {
+        data->receipt_tv_.seconds_ = 0;
+        data->receipt_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_CUSTODY_ACCEPTED) {
@@ -203,6 +206,9 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         BundleProtocol::get_timestamp(&data->custody_tv_, bp);
         bp  += sizeof(u_int64_t);
         len -= sizeof(u_int64_t);
+    } else {
+        data->custody_tv_.seconds_ = 0;
+        data->custody_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_FORWARDED) {
@@ -210,6 +216,9 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         BundleProtocol::get_timestamp(&data->forwarding_tv_, bp);
         bp  += sizeof(u_int64_t);
         len -= sizeof(u_int64_t);
+    } else {
+        data->forwarding_tv_.seconds_ = 0;
+        data->forwarding_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_DELIVERED) {
@@ -217,6 +226,9 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         BundleProtocol::get_timestamp(&data->delivery_tv_, bp);
         bp  += sizeof(u_int64_t);
         len -= sizeof(u_int64_t);
+    } else {
+        data->delivery_tv_.seconds_ = 0;
+        data->delivery_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_DELETED) {
@@ -224,13 +236,19 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         BundleProtocol::get_timestamp(&data->deletion_tv_, bp);
         bp  += sizeof(u_int64_t);
         len -= sizeof(u_int64_t);
+    } else {
+        data->deletion_tv_.seconds_ = 0;
+        data->deletion_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_ACKED_BY_APP) {
         if (len < sizeof(u_int64_t)) { return false; }
-        BundleProtocol::get_timestamp(&data->acknowledgement_tv_, bp);
+        BundleProtocol::get_timestamp(&data->ack_by_app_tv_, bp);
         bp  += sizeof(u_int64_t);
         len -= sizeof(u_int64_t);
+    } else {
+        data->ack_by_app_tv_.seconds_ = 0;
+        data->ack_by_app_tv_.seqno_   = 0;
     }
 
     

@@ -1018,6 +1018,19 @@ APIClient::handle_recv()
 
         status_report.reason = (dtn_status_report_reason_t)sr_data.reason_code_;
         status_report.flags =  (dtn_status_report_flags_t)sr_data.status_flags_;
+
+        status_report.receipt_ts.secs     = sr_data.receipt_tv_.seconds_;
+        status_report.receipt_ts.seqno    = sr_data.receipt_tv_.seqno_;
+        status_report.custody_ts.secs     = sr_data.custody_tv_.seconds_;
+        status_report.custody_ts.seqno    = sr_data.custody_tv_.seqno_;
+        status_report.forwarding_ts.secs  = sr_data.forwarding_tv_.seconds_;
+        status_report.forwarding_ts.seqno = sr_data.forwarding_tv_.seqno_;
+        status_report.delivery_ts.secs    = sr_data.delivery_tv_.seconds_;
+        status_report.delivery_ts.seqno   = sr_data.delivery_tv_.seqno_;
+        status_report.deletion_ts.secs    = sr_data.deletion_tv_.seconds_;
+        status_report.deletion_ts.seqno   = sr_data.deletion_tv_.seqno_;
+        status_report.ack_by_app_ts.secs  = sr_data.ack_by_app_tv_.seconds_;
+        status_report.ack_by_app_ts.seqno = sr_data.ack_by_app_tv_.seqno_;
     }
     
     if (!xdr_dtn_bundle_spec_t(&xdr_encode_, &spec))

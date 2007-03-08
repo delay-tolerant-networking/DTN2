@@ -53,7 +53,7 @@ public:
         BundleTimestamp forwarding_tv_;
         BundleTimestamp delivery_tv_;
         BundleTimestamp deletion_tv_;
-        BundleTimestamp acknowledgement_tv_;
+        BundleTimestamp ack_by_app_tv_;
         BundleTimestamp orig_creation_tv_;
         EndpointID      orig_source_eid_;
     };

@@ -258,7 +258,7 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
         APPEND_TIMESTAMP(STATUS_DELETED,
                          "sr_deleted_time",      deletion_tv_);
         APPEND_TIMESTAMP(STATUS_ACKED_BY_APP,
-                         "sr_acked_by_app_time", acknowledgement_tv_);
+                         "sr_acked_by_app_time", ack_by_app_tv_);
 #undef APPEND_TIMESTAMP
         
         // Reason Code:
