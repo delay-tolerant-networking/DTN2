@@ -28,6 +28,7 @@ SINGLE_SOURCE_APPS := 			\
 	dtncp/dtncp			\
 	dtncpd/dtncpd			\
 	dtnping/dtnping			\
+	dtnping/dtntraceroute		\
 	dtnperf/dtnperf-client		\
 	dtnperf/dtnperf-server		\
 	dtnrecv/dtnrecv			\

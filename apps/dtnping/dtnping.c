@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include "dtnping.h"
 #include "dtn_api.h"
 
 const char *progname;
@@ -45,17 +46,6 @@ char source_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char replyto_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 
 #define MAX_PINGS_IN_FLIGHT 1024
-
-#define TIMEVAL_DIFF_MSEC(t1, t2) \
-    ((unsigned long int)(((t1).tv_sec  - (t2).tv_sec)  * 1000) + \
-     (((t1).tv_usec - (t2).tv_usec) / 1000))
-
-typedef struct {
-    char      ping[8]; // dtn_ping!
-    u_int32_t seqno;
-    u_int32_t nonce;
-    u_int32_t time;
-} ping_payload_t;
 
 int
 main(int argc, const char** argv)
@@ -83,7 +73,6 @@ main(int argc, const char** argv)
     u_int32_t nonce;
     u_int32_t seqno = 0;
     int time_until_send;
-    const char* ping_str = "dtnping!";
 
     // force stdout to always be line buffered, even if output is
     // redirected to a pipe or file
@@ -173,7 +162,7 @@ main(int argc, const char** argv)
         // fill in a short payload string, a nonce, and a sequence number
         // to verify the echo feature and make sure we're not getting
         // duplicate responses or ping responses from another app
-        memcpy(&payload_contents.ping, ping_str, 8);
+        memcpy(&payload_contents.ping, PING_STR, 8);
         payload_contents.seqno = seqno;
         payload_contents.nonce = nonce;
         payload_contents.time = send_times[seqno].tv_sec;
@@ -274,20 +263,22 @@ main(int argc, const char** argv)
                     goto next;
                 }
 
-                if (recv_contents.time != (u_int32_t)send_times[seqno].tv_sec)
+                if (recv_contents.time != (u_int32_t)send_times[recv_contents.seqno].tv_sec)
                 {
-                    printf("%d bytes from [%s]: ERROR: time mismatch %u != %lu\n",
+                    printf("%d bytes from [%s]: ERROR: time mismatch -- "
+                           "seqno %u reply time %u != send time %lu\n",
                            reply_payload.buf.buf_len,
                            reply_spec.source.uri,
+                           recv_contents.seqno,
                            recv_contents.time,
-                           (long unsigned int)send_times[seqno].tv_sec);
+                           (long unsigned int)send_times[recv_contents.seqno].tv_sec);
                     goto next;
                 }
                 
                 printf("%d bytes from [%s]: '%.*s' seqno=%d, time=%ld ms\n",
                        reply_payload.buf.buf_len,
                        reply_spec.source.uri,
-                       (u_int)strlen(ping_str),
+                       (u_int)strlen(PING_STR),
                        reply_payload.buf.buf_val,
                        recv_contents.seqno,
                        TIMEVAL_DIFF_MSEC(recv_end,

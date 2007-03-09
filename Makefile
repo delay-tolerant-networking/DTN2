@@ -101,6 +101,7 @@ install:
 		    apps/dtncp/dtncp \
 		    apps/dtncpd/dtncpd \
 		    apps/dtnping/dtnping \
+		    apps/dtnping/dtntraceroute \
 		    apps/dtnrecv/dtnrecv \
 		    apps/dtnsend/dtnsend \
 		    apps/dtntunnel/dtntunnel ; do \
