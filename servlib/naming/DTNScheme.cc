@@ -148,15 +148,7 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
 
-    // finally, check for a glob match of the url parameters
-    if (! (pattern_url.params_ == eid_url.params_))
-    {
-        log_debug_p("/dtn/scheme/dtn",
-                    "match(%s, %s) failed: parameter mismatch",
-                    eid_url.c_str(), pattern_url.c_str());
-        return false;
-    }
-
+    // ignore the query parameter strings, so they still match the glob'd routes
     return true;
 }
 
