@@ -24,6 +24,7 @@ proc config {args} {
     conf::add dtnd * {source "dtnd-test-utils.tcl"}
 
     # defaults
+    set router_type static
     set storage_type berkeleydb
     set null_link true
     
@@ -31,6 +32,10 @@ proc config {args} {
     while {$i < [llength $args]} {
 	set arg [lindex $args $i]
 	switch -- $arg {
+	    -router_type  -
+	    --router_type {
+		set router_type [lindex $args [incr i]]
+	    }
 	    -storage_type  -
 	    --storage_type {
 		set storage_type [lindex $args [incr i]]
@@ -56,6 +61,7 @@ proc config {args} {
 	dtn::config_null_link
     }
 
+    set dtn::router_type $router_type
     dtn::config_dtntest
 }
 
