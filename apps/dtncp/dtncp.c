@@ -90,11 +90,11 @@ main(int argc, char** argv)
     memset(&bundle_spec, 0, sizeof(bundle_spec));
 
     // destination host is specified at run time, demux is hardcoded
-    sprintf(demux, "%s/dtncp/recv?%s", arg_dest, arg_target);
+    sprintf(demux, "%s/dtncp/recv?file=%s", arg_dest, arg_target);
     parse_eid(handle, &bundle_spec.dest, demux);
 
     // source is local eid with file path as demux string
-    sprintf(demux, "/dtncp/send?%s", data_source);
+    sprintf(demux, "/dtncp/send?source=%s", data_source);
     parse_eid(handle, &bundle_spec.source, demux);
 
     if (verbose)

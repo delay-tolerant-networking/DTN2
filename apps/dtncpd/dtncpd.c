@@ -53,7 +53,7 @@ main(int argc, const char** argv)
     dtn_reg_id_t regid;
     dtn_bundle_spec_t bundle;
     dtn_bundle_payload_t payload;
-    char* endpoint;
+    const char* endpoint_demux;
     int debug = 1;
 
     char * bundle_dir = 0;
@@ -115,9 +115,6 @@ main(int argc, const char** argv)
         usage();
     }
 
-    // designated endpoint
-    endpoint = "/dtncp/recv?*";
-
     // open the ipc handle
     if (debug) printf("opening connection to dtn router...\n");
     int err = dtn_open(&handle);
@@ -129,7 +126,8 @@ main(int argc, const char** argv)
 
     // build a local eid based on the configuration of our dtn
     // router plus the demux string
-    dtn_build_local_eid(handle, &local_eid, endpoint);
+    endpoint_demux = "/dtncp/recv?file=*";
+    dtn_build_local_eid(handle, &local_eid, endpoint_demux);
     if (debug) printf("local_eid [%s]\n", local_eid.uri);
 
     // try to find an existin registration, or create a new
@@ -203,15 +201,16 @@ main(int argc, const char** argv)
         strncpy(host, &bundle.source.uri[6], host_len);
         
         // extract directory from destination path (everything
-        // following std demux)
-        dirpath = strstr(bundle.dest.uri, "/dtncp/recv?");
+        // following std demux, except the '*')
+        endpoint_demux = "/dtncp/recv?file=";
+        dirpath = strstr(bundle.dest.uri, endpoint_demux);
         if (!dirpath) {
-            fprintf(stderr, "can't find /dtncp/recv? in uri '%s'\n",
-                    bundle.dest.uri);
+            fprintf(stderr, "can't find %s demux in uri '%s'\n",
+                    endpoint_demux, bundle.dest.uri);
             exit(1);
         }
         
-        dirpath += 12; // skip /dtncp/recv?
+        dirpath += strlen(endpoint_demux); // skip std demux
         if (dirpath[0] == '/') dirpath++; // skip leading slash
 
         // filename is everything following last /
