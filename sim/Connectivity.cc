@@ -194,6 +194,15 @@ Connectivity::process(SimEvent *e)
 
     SimConnectivityEvent* ce = (SimConnectivityEvent*)e;
 
+    if (ce->state_.open_) {
+        log_info("CONN OPEN %s -> %s (bw %u latency %u)",
+                 ce->n1_.c_str(), ce->n2_.c_str(),
+                 ce->state_.bw_, ce->state_.latency_);
+    } else {
+        log_info("CONN CLOSED %s -> %s",
+                 ce->n1_.c_str(), ce->n2_.c_str());
+    }
+        
     set_state(ce->n1_.c_str(), ce->n2_.c_str(), ce->state_);
 }
 
