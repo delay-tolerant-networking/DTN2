@@ -134,6 +134,11 @@ namespace eval dtn {
 	
     }
 
+    proc run_app_and_wait { id app_name {exec_args ""} } {
+        set pid [run_app $id $app_name $exec_args]
+        run::wait_for_pid_exit $id $pid
+    }
+
     proc wait_for_dtnd {id} {
 	global net::host
 	
@@ -193,7 +198,7 @@ namespace eval dtn {
 	}
 
 	set result [eval $args]
-	if {$result != $expected} {
+ 	if {$result != $expected} {
 	    error "check '$orig_args' failed"
 	}
     }
