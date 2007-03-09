@@ -1,0 +1,2687 @@
+
+
+DTN Research Group                                           A. Lindgren
+Internet-Draft                                                  A. Doria
+Expires: September 6, 2006                Lulea University of Technology
+                                                           March 5, 2006
+
+
+  Probabilistic Routing Protocol for Intermittently Connected Networks
+                    draft-lindgren-dtnrg-prophet-02
+
+Status of this Memo
+
+   By submitting this Internet-Draft, each author represents that any
+   applicable patent or other IPR claims of which he or she is aware
+   have been or will be disclosed, and any of which he or she becomes
+   aware will be disclosed, in accordance with Section 6 of BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as Internet-
+   Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt.
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+   This Internet-Draft will expire on September 6, 2006.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (2006).
+
+Abstract
+
+   This document defines PRoPHET, a Probabilistic Routing Protocol using
+   History of Encounters and Transitivity.  PRoPHET is a routing
+   protocol for intermittently connected networks, where there is no
+   guarantee that a fully connected path between source and destination
+   exists at any time, rendering traditional routing protocols unable to
+   deliver messages between hosts.  These networks are examples of
+   networks where the Delay-Tolerant Network architecture[1] is
+   applicable.  The document presents an architectural overview followed
+
+
+
+Lindgren & Doria        Expires September 6, 2006               [Page 1]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   by the protocol specification.
+
+Table of Contents
+
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  4
+     1.1   Background . . . . . . . . . . . . . . . . . . . . . . . .  6
+     1.2   Relation to the Delay-Tolerant Networking architecture . .  8
+   2.  Architecture . . . . . . . . . . . . . . . . . . . . . . . . .  8
+     2.1   PRoPHET  . . . . . . . . . . . . . . . . . . . . . . . . .  8
+       2.1.1   Delivery predictability calculation  . . . . . . . . .  9
+       2.1.2   Forwarding Strategies and Queueing Policies  . . . . . 11
+     2.2   Bundle Agent to Routing Agent Interface  . . . . . . . . . 12
+     2.3   Lower Layer Requirements and Interface . . . . . . . . . . 12
+   3.  Protocol Overview  . . . . . . . . . . . . . . . . . . . . . . 13
+     3.1   Neighbor Awareness . . . . . . . . . . . . . . . . . . . . 13
+     3.2   Information Exchange Phase . . . . . . . . . . . . . . . . 13
+       3.2.1   Routing Information Base Dictionary  . . . . . . . . . 14
+     3.3   Routing Algorithm  . . . . . . . . . . . . . . . . . . . . 14
+     3.4   Bundle Passing . . . . . . . . . . . . . . . . . . . . . . 15
+       3.4.1   Custody  . . . . . . . . . . . . . . . . . . . . . . . 15
+     3.5   When a Bundle Reaches its Destination  . . . . . . . . . . 16
+     3.6   Forwarding Strategies  . . . . . . . . . . . . . . . . . . 16
+     3.7   Queueing Policies  . . . . . . . . . . . . . . . . . . . . 18
+     3.8   Aging of Delivery Predictability . . . . . . . . . . . . . 19
+   4.  Message Formats  . . . . . . . . . . . . . . . . . . . . . . . 20
+     4.1   Messages . . . . . . . . . . . . . . . . . . . . . . . . . 20
+     4.2   Header . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+     4.3   TLV Structure  . . . . . . . . . . . . . . . . . . . . . . 24
+     4.4   TLVs . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+       4.4.1   Hello TLV  . . . . . . . . . . . . . . . . . . . . . . 24
+       4.4.2   Error TLV  . . . . . . . . . . . . . . . . . . . . . . 26
+       4.4.3   Routing Information Base Dictionary TLV  . . . . . . . 27
+       4.4.4   Routing Information Base TLV . . . . . . . . . . . . . 28
+       4.4.5   Bundle Offer and Response TLV  . . . . . . . . . . . . 29
+   5.  Detailed Operation . . . . . . . . . . . . . . . . . . . . . . 31
+     5.1   High Level State Tables  . . . . . . . . . . . . . . . . . 31
+     5.2   Hello Procedure  . . . . . . . . . . . . . . . . . . . . . 33
+       5.2.1   State Tables . . . . . . . . . . . . . . . . . . . . . 35
+     5.3   Information exchange and bundle passing phase  . . . . . . 36
+       5.3.1   State Tables . . . . . . . . . . . . . . . . . . . . . 37
+   6.  Security Considerations  . . . . . . . . . . . . . . . . . . . 40
+     6.1   Attacks on the operation of the protocol . . . . . . . . . 40
+       6.1.1   Black hole attack  . . . . . . . . . . . . . . . . . . 40
+       6.1.2   Limited black hole attack/identity spoofing  . . . . . 41
+       6.1.3   Fake PRoPHET ACKs  . . . . . . . . . . . . . . . . . . 41
+       6.1.4   Bundle store overflow  . . . . . . . . . . . . . . . . 42
+       6.1.5   Bundle store overflow with delivery predictability
+               manipulation . . . . . . . . . . . . . . . . . . . . . 42
+
+
+
+Lindgren & Doria        Expires September 6, 2006               [Page 2]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+     6.2   Interactions with External Routing Domains . . . . . . . . 43
+   7.  Implementation Experience  . . . . . . . . . . . . . . . . . . 43
+   8.  Acknowledgements . . . . . . . . . . . . . . . . . . . . . . . 43
+   9.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 44
+       Authors' Addresses . . . . . . . . . . . . . . . . . . . . . . 45
+   A.  PRoPHET Example  . . . . . . . . . . . . . . . . . . . . . . . 45
+   B.  Neighbor Discovery Example . . . . . . . . . . . . . . . . . . 46
+       Intellectual Property and Copyright Statements . . . . . . . . 48
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006               [Page 3]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+1.  Introduction
+
+   The Probabilistic Routing Protocol using History of Encounters and
+   Transitivity (PRoPHET) algorithm enables communication between
+   participating nodes wishing to communicate in an intermittently
+   connected network where at least some of the nodes are mobile.  One
+   of the most basic requirements for 'traditional' (IP) networking is
+   that there must exist a fully connected path between communication
+   endpoints for the duration of a communication session in order for
+   communication to be possible.  There are, however, a number of
+   scenarios where connectivity is intermittent so that this is not the
+   case (thus rendering the end-to-end use of traditional networking
+   protocols impossible), but where it still is desirable to allow
+   communication between nodes (see Section 1.1 for a survey of such
+   scenarios).
+
+   To introduce the work, consider a network of mobile nodes using
+   wireless communication with a limited range which is less than the
+   typical excursion distances over which the nodes travel.
+   Communication between a pair of nodes at a particular instant is only
+   possible when the distance between the nodes is less than the range
+   of the wireless communication.  This means that, even if messages are
+   forwarded through other nodes acting as intermediate routes, there is
+   no guarantee of finding a viable continuous path when it is needed to
+   transmit a message.
+
+   One way to enable communication in such scenarios, is by allowing
+   messages to be buffered at intermediate nodes for a longer time than
+   normally occurs in the queues of conventional routers (c.f.  Delay
+   Tolerant Networking [1]).  It would then be possible to exploit the
+   mobility of a subset of the nodes to bring messages closer to their
+   destination by transferring messages to other nodes as they meet.
+   Figure 1 shows how the mobility of nodes in such a scenario can be
+   used to eventually deliver a message to its destination.  In this
+   figure, the four sub-figures (a) - (d) represent the physical
+   positions of four nodes (A, B, C, and D) at four time instants,
+   increasing from (a) to (d) and associated radio ranges.  At the start
+   time node A has a message (indicated by a * next to that node) to be
+   delivered to node D, but there does not exist a path between nodes A
+   and D because of the limited range of available wireless connections.
+   As shown in sub-figures (a) - (d), the mobility of the nodes allows
+   the message to first be transferred to node B, then to node C, and
+   when finally node C moves within range of node D, it can deliver the
+   message to its final destination.  This technique is known as
+   'transitive networking'.
+
+   Real users are not likely to move around randomly, but rather move in
+   a predictable fashion based on human traffic patterns (e.g., roads or
+
+
+
+Lindgren & Doria        Expires September 6, 2006               [Page 4]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   foot paths), and on repeating behavioral patterns (e.g., going to
+   work or the market and returning home).  This means that if a node
+   has visited a location or been in contact with a certain node several
+   times before, it is likely that it will visit that location or meet
+   that node again.
+
+   In previously discussed mechanisms to enable communication in
+   intermittently connected networks, such as Epidemic Routing[3], very
+   general approaches have been taken to the problem at hand.  There
+   have, however, not been any attempts to make use of assumed knowledge
+   of different (mobility) properties of the nodes in the network in a
+   truly distributed way.
+
+   In an environment where buffer space and bandwidth are infinite,
+   Epidemic Routing will give an optimal solution to the problem of
+   routing in an intermittently connected network with regard to message
+   delivery ratio and latency.  However, in most cases neither bandwidth
+   nor buffer space is infinite, but instead they are rather scarce
+   resources, especially in the case of sensor networks.  We define an
+   alternative to Epidemic Routing, with lower demands on buffer space
+   and bandwidth, and with equal or better performance in cases where
+   those resources are limited, and without loss of generality in
+   scenarios where it is applicable.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006               [Page 5]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+     +----------------------------+   +----------------------------+
+     |                      ___   |   |                      ___   |
+     |      ___            /   \  |   |                     /   \  |
+     |     /   \          (  D  ) |   |                    (  D  ) |
+     |    (  B  )          \___/  |   |     ___             \___/  |
+     |     \___/    ___           |   |    /___\    ___            |
+     |___          /   \          |   |   (/ B*\)  /   \           |
+     |   \        (  C  )         |   |   (\_A_/) (  C  )          |
+     | A* )        \___/          |   |    \___/   \___/           |
+     |___/                        |   |                            |
+     +----------------------------+   +----------------------------+
+              (a) Time t                     (b) Time (t + dt)
+     +----------------------------+   +----------------------------+
+     |        _____         ___   |   |        ___           ___   |
+     |       / / \ \       /   \  |   |       /   \         /___\  |
+     |      ( (B C* )     (  D  ) |   |      (  B  )       (/ D*\) |
+     |       \_\_/_/       \___/  |   |       \___/        (\_C_/) |
+     |     ___                    |   |     ___             \___/  |
+     |    /   \                   |   |    /   \                   |
+     |   (  A  )                  |   |   (  A  )                  |
+     |    \___/                   |   |    \___/                   |
+     |                            |   |                            |
+     +----------------------------+   +----------------------------+
+          (c) Time (t + 2*dt)               (d) Time (t + 3*dt)
+
+
+               Figure 1: Example of transitive communication
+
+   This document presents a framework for probabilistic routing in
+   intermittently connected networks, using an assumption of non-random
+   mobility of nodes to improve the delivery rate of messages while
+   keeping buffer usage and communication overhead at a low level.
+   First, a probabilistic metric called delivery predictability is
+   defined.  The document then goes on to define a probabilistic routing
+   protocol using this metric.
+
+1.1  Background
+
+   The kinds of communication networks addressed in this document are
+   only viable for applications that can tolerate long delays and are
+   able to deal with extended periods of being disconnected.  In
+   practice there are many different scenarios and situations where
+   communication is inherently intermittent, and in which it is of high
+   value to develop methods of communication despite the limitations on
+   applications.  This section presents a selection of situations where
+   it appears that these kinds of communication offer valuable solutions
+   to realistic problems.
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006               [Page 6]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   The semi-nomadic Saami population of reindeer herders in the north of
+   Sweden follow the movement of the reindeer and when in their summer
+   camps, no fixed infrastructure is available.  The herders would find
+   it useful to be able to communicate with the rest of the world
+   through, for example, mobile relays attached to snowmobiles and all-
+   terrain vehicles (ATVs), or carried as small devices in a backpack,
+   to (for example) obtain weather forecasts, conduct herd business,
+   receive RSS feeds, send and receive personal email, and maintain the
+   supply of educational material for children in the parties[6].
+   Similar problems exist between rural villages in India and in other
+   regions where the Internet infrastructure is less well developed or
+   is only available at prices which are beyond the means of the local
+   population.  The DakNet project[7] has deployed store-and-forward
+   ring networks connecting a number of villages through relays on buses
+   and motorcycles in India and Cambodia.
+
+   While satellite networks often rely on very well defined trajectories
+   and predictable encounters, there are cases when connectivity between
+   them can be intermittent and opportunistic.  In military war-time
+   scenarios and disaster recovery situations, soldiers, human rights
+   observers, or rescue personnel are often in hostile environments
+   where no infrastructure can be assumed to be present, or if present,
+   cannot be relied upon.  Furthermore, the units may be sparsely
+   distributed so that connectivity between them is intermittent and
+   infrequent.
+
+   In sensor networks, a large number of sensors are usually deployed in
+   the area in which measurements are to be performed.  To ensure
+   connectivity among the sensors and to get measurements from the
+   entire area, it is common to deploy a very large number of sensors.
+   If sensors can be mobile and transitive communication techniques can
+   be used between them, the number of sensors required can be reduced,
+   and new areas where regular sensor networks have been too expensive
+   or difficult to deploy, can be monitored.
+
+   Experiments have been done with attaching sensors to seals, vastly
+   increasing the number of oceanic temperature readings compared to
+   using a number of fixed sensors, and in a similar project sensors are
+   attached to whales[5].  To allow scientists to analyze the collected
+   data, it must somehow be transferred to a data sink, even though
+   connectivity among the seals and whales is very sparse and
+   intermittent, so the mobility of the animals (and their occasional
+   encounters with each other and networked buoys at feeding grounds)
+   must be relied upon for successful data delivery.
+
+   Resembling the vast areas of the oceans are the plains of Africa in
+   that there are many remote areas with almost no fixed infrastructure
+   and where satellite connectivity is prohibitively expensive.  In the
+
+
+
+Lindgren & Doria        Expires September 6, 2006               [Page 7]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   ZebraNet project, an attempt is made to gain a better understanding
+   of the life and movements of the wildlife in a certain part of Africa
+   by equipping zebras with tracking collars communicating in fashions
+   similar to the ones described above.  Yet another example concerns
+   weather monitoring over large areas such as a national park, where a
+   number of electronic display boards showing weather reports from
+   other parts of the park have been installed.  By equipping hikers
+   with small networked devices, their mobility through the park can be
+   used to spread the weather information throughout the entire park.
+
+1.2  Relation to the Delay-Tolerant Networking architecture
+
+   The Delay-Tolerant Networking (DTN) architecture[1] defines an
+   architecture for communication in environments where traditional
+   communication protocols can not be used due to excessive delays, link
+   outages and other extreme conditions.  The intermittently connected
+   networks considered here are a subset of those covered by the DTN
+   architecture.  The DTN architecture defines routes to be computed
+   based on a collection of 'contacts' indicating the start time,
+   duration, endpoints, forwarding capacity and latency of a link in the
+   topology graph.  These contacts may be deterministic, or may be
+   derived from estimates.  The architecture defines some different
+   types of intermittent contacts.  The ones called opportunistic and
+   predicted are the ones addressed by this protocoll.
+
+   Opportunistic contacts are those that are not scheduled, but rather
+   present themselves unexpectedly and frequently arise due to node
+   mobility.  Predicted contacts are like opportunistic contacts, but
+   based on some information, it might be possible to draw some
+   statistical conclusion on if a contact will be present soon.
+
+   The DTN architecture also defines the bundle protocol [2], which
+   provides a way for applications to 'bundle' an entire session,
+   including both data and meta-data, into a single message, or bundle,
+   that can be sent as a unit.  The bundling protocol also provides end-
+   to-end addressing and reliability.  We build on the bundling
+   protocol, using bundles as the basic data transfer unit.
+
+2.  Architecture
+
+2.1  PRoPHET
+
+   This section describes the main architecture of PRoPHET, a
+   Probabilistic Routing Protocol using History of Encounters and
+   Transitivity.  The protocol leverages the observations made on the
+   non-randomness of human mobility to improve routing performance.
+   Instead of only blindly flooding messages through the network, it
+   applies 'probabilistic routing'.
+
+
+
+Lindgren & Doria        Expires September 6, 2006               [Page 8]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   To accomplish this, a probabilistic metric called 'delivery
+   predictability', 0 <= P_(A,B) <= 1, is established at every node A
+   for each known destination B. This indicates how likely it is that
+   this node will be able to deliver a message to that destination.
+
+   When two PRoPHET nodes meet, they exchange summary vectors which
+   contain the identifiers of the bundles each node carries, and also a
+   delivery predictability vector containing the delivery predictability
+   information for destinations known by the nodes.  This additional
+   information is used to update the internal delivery predictability
+   vector as described below.  After that, the information in the
+   summary vector is used to decide which messages to request from the
+   other node based on the forwarding strategy used (as discussed in
+   Section 2.1.2).
+
+2.1.1  Delivery predictability calculation
+
+   As stated above, PRoPHET relies on calculating a metric based on the
+   probability of encountering a certain node, and using that to support
+   the decision of whether or not to forward a message to a certain
+   node.  In the equations that follow, the updates are being performed
+   by node A, and P_(A,B) is the delivery predictability value that node
+   A has stored for the destination B. If no delivery predictability
+   values is stored for a particular destination B, P_(A,B) is
+   considered to be zero.  Recommended settings for the various
+   parameters are given in Section 3.3.  The calculation of the delivery
+   predictabilities has three parts.  When two nodes meet, the first
+   thing they do is to update the delivery predictability for each
+   other, so that nodes that are often encountered have a high delivery
+   predictability.  This calculation is shown in Equation 1, where 0 <=
+   P_encounter <= 1 is an initialization constant.
+
+   P_(A,B) = P_(A,B)_old + ( 1 - P_(A,B)_old ) * P_encounter         (1)
+
+   If a pair of nodes do not encounter each other during an interval,
+   they are less likely to be good forwarders of messages to each other,
+   thus the delivery predictability values must age, being reduced in
+   the process.  The aging equation is shown in Equation 2, where 0 <=
+   gamma <= 1 is the aging constant, and K is the number of time units
+   that have elapsed since the last time the metric was aged.  The time
+   unit used can differ, and should be defined based on the application
+   and the expected delays in the targeted network.  How to set this
+   properly is discussed in Section 3.8.
+
+   P_(A,B) = P_(A,B)_old * gamma^K                                   (2)
+
+   The delivery predictability also has a transitive property, that is
+   based on the observation that if node A frequently encounters node B,
+
+
+
+Lindgren & Doria        Expires September 6, 2006               [Page 9]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   and node B frequently encounters node C, then node C probably is a
+   good node to forward messages destined for node A to.  Equation 3
+   shows how this transitivity affects the delivery predictability,
+   where 0 <= beta <= 1 is a scaling constant that controls how large an
+   impact the transitivity should have on the delivery predictability.
+
+   P_(A,C) = P_(A,C)_old + ( 1 - P_(A,C)_old ) * P_(A,B) *
+             P_(B,C) * beta                                          (3)
+
+
+2.1.1.1  Optional delivery predictability optimizations
+
+2.1.1.1.1  Smoothing
+
+   To give the delivery predictability a smoother rate of change, a node
+   MAY apply one of the following methods to smooth the metric:
+   1.  Keep a list of NUM_P (the recommended value is 4, which has been
+       shown in simulations to give a good tradeoff between smoothness
+       and rate of response to changes) values for each destination
+       instead of only a single value.  The list is held in order of
+       acquisition.  When a delivery predictability is updated, the
+       value at the 'newest' position in the list is used as input to
+       the equations in Section 2.1.1.  The oldest value in the list is
+       then discarded and the new value is written in the 'newest'
+       position of the list.  When a delivery predictability value is
+       needed (either for sending to a peering PRoPHET node, or for
+       making a forwarding decision), the average of the values in the
+       list is calculated, and that value is then used.  If less than
+       NUM_P values have been entered into the list, only the positions
+       that have been filled should be used for the averaging.
+   2.  In addition to keeping the delivery predictability as described
+       in Section 2.1.1, a node MAY also keep an exponential weighted
+       moving average (EWMA) of the delivery predictability.  The EWMA
+       is then used for making forwarding decisions and to report to
+       peering nodes, but the value calculated according to
+       Section 2.1.1 is still used as input to the calculations of new
+       delivery predictabilities.  The EWMA is calculated according to
+       Equation 4, where 0 <= alpha <= 1 is the weight of the most
+       current value.
+
+       P_ewma = P_ewma_old * (1 - alpha) + P * alpha                 (4)
+
+   The appropriate choice of smoothing algorithm in various
+   circumstances is the subject of ongoing research and a future version
+   of this protocol specification may contain additional advice.
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 10]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+2.1.1.1.2  Removal of low delivery predictabilities
+
+   To reduce the data to be transferred between two nodes, a node MAY
+   treat delivery predictabilities smaller than epsilon, where epsilon
+   is a small number, as if they were zero, and thus they do not need to
+   be included in the list sent during the information exchange phase.
+   If this optimization is used, care must be taken to select epsilon to
+   be smaller than delivery predictability values normally present in
+   the network for destinations for which this node is a forwarder.  It
+   is possible that epsilon could be calculated based on delivery
+   predictability ranges and the amount they change historically, but
+   this has not been investigate yet.
+
+2.1.2  Forwarding Strategies and Queueing Policies
+
+   In traditional routing protocols, choosing where to forward a message
+   is usually a simple task; the message is sent to the neighbor that
+   has the path to the destination with the lowest cost (often the
+   shortest path).  Normally the message is also only sent to a single
+   node since the reliability of paths is relatively high.  However, in
+   the settings we envision here, things are radically different.  The
+   first possibility that must be considered when a message arrives at a
+   node is that there might not be a path to the destination available,
+   so the node has to buffer the message and upon each encounter with
+   another node, the decision must be made on whether or not to transfer
+   a particular message.  Furthermore, it may also be sensible to
+   forward a message to multiple nodes to increase the probability that
+   a message is really delivered to its destination.
+
+   Unfortunately, these decisions are not trivial to make.  In some
+   cases it might be sensible to select a fixed threshold and only give
+   a message to nodes that have a delivery predictability over that
+   threshold for the destination of the message.  On the other hand,
+   when encountering a node with a low delivery predictability, it is
+   not certain that a node with a higher metric will be encountered
+   within reasonable time.  Thus, there can also be situations where we
+   might want to be less strict in deciding who to give messages to.
+   Furthermore, there is the problem of deciding how many nodes to give
+   a certain message to.  Distributing a message to a large number of
+   nodes will of course increase the probability of delivering that
+   particular message to its destination, but this comes at the cost of
+   consuming more system resources for message storage and possibly
+   reducing the probability of other messages being delivered.  On the
+   other hand, giving a message to only a few nodes (maybe even just a
+   single node) will use less system resources, but the probability of
+   delivering a message is lower, and the delay incurred high.
+
+   When resources are constrained, nodes may suffer from storage
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 11]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   shortage, and may have to drop bundles before they have been
+   delivered to their destinations.  Similarly to when deciding whether
+   or not to forward a message, deciding which message to drop to still
+   maintain good performance might require different policies in
+   different scenarios.
+
+   Nodes MAY define their own forwarding strategies and queueing
+   policies that take into account the special conditions applicable to
+   the nodes, and local resource constraints.  Some default strategies
+   and policies that should be suitable for most normal operation are
+   defined in Section 3.6 and Section 3.7.
+
+2.2  Bundle Agent to Routing Agent Interface
+
+   To enable the PRoPHET routing agent to operate properly, it must be
+   aware of the bundles stored at the node, and it must also be able to
+   tell the bundle agent of that node to send a bundle to a peering
+   node.  Therefore, the bundle agent needs to provide the following
+   interface/functionality to the routing agent:
+   Get Bundle List
+        Returns a list of the stored bundles and their attributes to the
+        routing agent.
+   Send Bundle
+        Makes the bundle agent send a specified bundle.
+   Accept Bundle
+        Gives the bundle agent a new bundle to store.
+   Bundle Delivered
+        Tells the bundle agent that a bundle was delivered to its
+        destination.
+   Drop Bundle
+        Makes the bundle agent drop a specified bundle.
+
+2.3  Lower Layer Requirements and Interface
+
+   PRoPHET can be run on a large number of underlying networking
+   technologies.  To accomodate its operation on all kinds of lower
+   layers, it requires the lower layers to provide the following
+   functionality and interfaces.
+   Neighbor discovery and maintenance
+        A PRoPHET node needs to know the identity of its neighbors and
+        when new neighbors appear and old neighbors disappear.  Some
+        wireless networking technologies might already contain
+        mechanisms for detecting neighbors and maintaining this state.
+        To avoid redundancies and inefficiencies, neighbor discovery is
+        thus not included as a part of PRoPHET, but PRoPHET relies on
+        such mechanism in lower layers.  The lower layers MUST provide
+        the two functions listed below.  If the underlying wireless
+        networking technology does not support such services, a simple
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 12]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+        neighbor discovery scheme using local broadcasts of beacon
+        messages could be run in-between PRoPHET and the underlying
+        layer.  An example of a simple neighbor discovery mechanism that
+        could be used is shown in Appendix B.
+        New Neighbor
+             Signals to the PRoPHET agent that a new node has become a
+             neighbor.  A neighbor is here defined as another node that
+             is currently within communication range of the wireless
+             networking technology in use.  The PRoPHET agent should now
+             start the Hello procedure as described in Section 5.2.
+        Neighbor Gone
+             Signals to the PRoPHET agent that one of its neighbors have
+             left.
+   Local Address
+        An address used by the underlying communication layer (e.g. an
+        IP or MAC address) that identifies the sender address of the
+        current message.  This address must be unique among the nodes
+        that can currently communicate, and is only used in conjunction
+        with the Instance numbers to identify a communicating pair of
+        nodes as described in Section 4.2.
+
+3.  Protocol Overview
+
+3.1  Neighbor Awareness
+
+   Since the operation of the protocol is dependent on the encounters of
+   nodes running PRoPHET, the nodes must be able to detect when a new
+   neighbor is present.  The protocol may be run on several different
+   networking technologies, and as some of them might already have
+   methods available for detecting neighbors, PRoPHET does not include a
+   mechanism for neighbor discovery.  Instead, it requires the
+   underlying layer to provide a mechanism to notify the protocol of
+   when neighbors appear and disappear as described in Section 2.3.
+
+   When a new neighbor has been detected, the protocol starts to set up
+   a link with that node through the Hello message exchange as described
+   in Section 5.2.  Once the link has been set up the protocol continues
+   to the Information Exchange Phase (see Section 3.2).
+
+
+3.2  Information Exchange Phase
+
+   The first step in the Information Exchange Phase is for the protocol
+   to send a Routing Information Base Dictionary TLV to the node it is
+   peering with.  This is a dictionary of the addresses of the nodes
+   that will be listed in the Routing Information Base.  After this, a
+   Routing Information Base TLV is sent.  This TLV contains a list of
+   the addresses that the node has heard of, and the corresponding
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 13]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   delivery predictabilities for those nodes, and flags describing the
+   capabilities of the sending node.  Upon reception of this TLV, the
+   node updates its delivery predictability table according to the
+   equations in Section 2.1.1, and using its forwarding strategy (see
+   Section 2.1.2) determines which of its stored bundles it wishes to
+   offer the peering node.  After making this decision, a Bundle Offer
+   TLV is prepared, listing the bundle identifiers and their
+   destinations for all bundles it wishes to offer the other node.  If
+   the Bundle Offer TLV lists a bundle for which the destination was not
+   included in the first Routing Information Base Dictionary TLV sent, a
+   new such TLV is sent first with an incremental update of the
+   dictionary.  When the peering node has a dictionary with all
+   necessary addresses, the Bundle Offer TLV is sent to it.  The Bundle
+   Offer TLV also contains a list of PRoPHET ACKs (see Section 3.5).
+   This phase of the protocol is described in more detail in
+   Section 5.3.
+
+   When a new bundle arrives at a node, the node MAY inspect its list of
+   available neighbors, and if one of them is a cadidate to forward the
+   bundle, a new Bundle Offer TLV MAY be sent to that node.  If two
+   nodes remain connected over a longer period of time, the Information
+   Exchange Phase will be periodically re-initiated to allow new
+   delivery predictability information to be spread through the network
+   and new bundle exchanges to take place.
+
+3.2.1  Routing Information Base Dictionary
+
+   To reduce the overhead of the protocol, the Routing Information Base
+   and Bundle Offer/Request TLVs utilize an address dictionary.  This
+   dictionary maps long variable length addresses as defined in [1] to
+   shorter 16 bit identifiers that are used in place of the addresses in
+   subsequent TLVs.  The dictionary established only persist through a
+   single encounter with a node (while the same link set up by the Hello
+   procedure, with the same instance numbers, remains).
+
+3.3  Routing Algorithm
+
+   The basic routing algorithm of the protocol is described in
+   Section 2.1.  The algorithm uses some parameter values in the
+   calculation of the delivery predictability metric.  These parameters
+   are configurable depending on the usage scenario, but Figure 2
+   provides some recommended default values.
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 14]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   Recommended parameter values
+
+
+     +==================================+
+     |   Parameter  | Recommended value |
+     +==================================+
+     |  P_encounter |       0.75        |
+     +----------------------------------+
+     |     beta     |       0.25        |
+     +----------------------------------+
+     |     gamma    |       0.99        |
+     +==================================+
+
+
+                                 Figure 2
+
+
+3.4  Bundle Passing
+
+   Upon reception of the Bundle Offer TLV, the node inspects the list of
+   bundles and decides which bundles it is willing to store for future
+   forwarding, or that it is able to deliver to their destination.  This
+   decision has to be made using local policies and considering
+   parameters such as available buffer space.  For each such acceptable
+   bundle, the node sends a Bundle Request TLV to its peering node,
+   which in response to that sends the requested bundle.  If a node has
+   some bundles it would prefer to receive ahead of others offered (e.g.
+   bundles that it can deliver to their final destination), it MAY
+   request the bundles in that priority order.  This is often desireable
+   as there is no guarantee that the nodes will remain in contact with
+   each other for long enough to transfer all the acceptable bundles.
+   Otherwise, the node SHOULD assume that the bundles are listed in a
+   priority order determined by the peering node's forwarding strategy,
+   and request bundles in that order.
+
+
+3.4.1  Custody
+
+   To free up local resources, a node MAY give custody of a bundle to
+   another node that offers custody (which is found out during the
+   information exchange phase).  This is done to move the retransmission
+   requirement further toward the destination.  The concept of custody
+   transfer, and more details on the motivation for its use can be found
+   in [1].  When a node accepts custody of a bundle, it MUST keep that
+   bundle until it gets an ACK confirming that it has been delivered to
+   its destination, until another node accepts custody of the bundle, or
+   until the bundle's time to live has expired.  When custody of a
+   bundle has been accepted by another node, the previous custodian MAY
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 15]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   delete that bundle if appropriate to free up local resources.
+
+   The exact policy to use when deciding when to offer and accept
+   custody is something that each node must decide, and is not currently
+   defined.  It is believed that the custody policy in most cases will
+   be a stricter version of the forwarding strategy.
+
+3.5  When a Bundle Reaches its Destination
+
+   When a bundle reaches its destination, a PRoPHET ACK for that bundle
+   is issued.  A PRoPHET ACK is a confirmation that a bundle has been
+   delivered to its destination in the PRoPHET network (bundles might
+   traverse several different types of networks using different routing
+   protocols; thus, this might not be the final destination of the
+   bundle).  When nodes exchange Bundle Offer TLVs, bundles that have
+   been ACKed are also listed, having the "PRoPHET ACK" flag set.  The
+   node that receive this list updates its own list of ACKed bundles to
+   be the union of its previous list and the received list.  To prevent
+   the list of ACKed bundles growing indefinitely, each PRoPHET ACK
+   should have a timeout that MUST NOT be longer than the timeout of the
+   bundle to which the ACK corresponds.
+
+   Nodes MAY keep track of which nodes they have sent PRoPHET ACKs for
+   certain bundles to, and MAY in that case refrain from sending
+   multiple PRoPHET ACKs for the same bundle to the same node.
+
+   If necessary in order to preserve system resources, nodes MAY drop
+   PRoPHET ACKs prematurely, but SHOULD refrain from doing so if
+   possible.
+
+   It is important to keep in mind that PRoPHET ACKs and bundle ACKs[2]
+   are different things.  PRoPHET ACKs are only valid within the PRoPHET
+   part of the network, while bundle ACKs are end-to-end acknowledgments
+   that may go outside of the PRoPHET network.  Care should be taken to
+   ensure that bundle acknowledgments as well as PRoPHET ACKs are
+   created in an efficient way.
+
+3.6  Forwarding Strategies
+
+   During the information exchange phase, nodes need to decide on which
+   bundles they wish to exchange with the peering node.  Because of the
+   large number of scenarios and environments that PRoPHET can be used
+   in, and because of the wide range of devices that may be used, it is
+   not certain that this decision will be based on the same strategy in
+   every case.  Therefore, each node uses a _forwarding strategy_ to
+   make this decision.  Nodes may define their own strategies, but this
+   section defines a few basic forwarding strategies that nodes can use.
+   Note: If the node being encountered is the destination of any of the
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 16]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   bundles being carried, those bundles SHOULD be offered to the
+   destination, even if that would violate the forwarding strategy.
+   Some of the forwarding strategies listed here have been evaluated
+   (together with a number of queueing policies) through simulations,
+   and more information about that and recommendations on which
+   strategies to use in different situations can be found in [4].
+
+   We use the following notation in our descriptions below.  A and B are
+   the nodes that meet, and the strategies are described as they would
+   be applied by node A. The destination node is D. P_(X,Y) denotes the
+   delivery predictability stored at node X for destination Y, and NF is
+   the number of times A has given the bundle to some other node.
+   GRTR
+        Forward the bundle only if P_(B,D) > P_(A,D).
+        When two nodes meet, a bundle is sent to the other node if the
+        delivery predictability of the destination of the bundle is
+        higher at the other node.  The first node does not delete the
+        bundle after sending it as long as there is sufficient buffer
+        space available (since it might encounter a better node, or even
+        the final destination of the bundle in the future).
+   GTMX
+        Forward the bundle only if P_(B,D) > P_(A,D) && NF < NF_max.
+        This strategy is like the previous one, but each bundle is given
+        to at most NF_max other nodes apart from the destination.
+   GRTR+
+        Forward the bundle only if Equation 5 holds, where P_max is the
+        largest delivery predictability reported by a node to which the
+        bundle has been sent so far.
+
+        P_(B,D) > P_(A,D) && P_(B,D) > P_max                         (5)
+
+        This strategy is like GRTR, but nodes keep track of the largest
+        delivery predictability of any node it has forwarded this bundle
+        to, and only forward the bundle again if the currently
+        encountered node has a greater delivery predictability than the
+        maximum previously encountered.
+   GTMX+
+        Forward the bundle only if Equation 6 holds.
+
+        P_(B,D) > P_(A,D) && P_(B,D) > P_max && NF < NF_max          (6)
+
+        This strategy is like GTMX, but nodes keep track of P_max as in
+        GRTR+.
+   GRTRSort
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 17]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+        Select bundles in descending order of the value of P_(B,D) -
+        P_(A,D).  Forward the bundle only if P_(B,D) > P_(A,D).
+        This strategy is like GRTR, but instead of just going through
+        the bundle queue linearly, this strategy looks at the difference
+        in delivery predictabilites for each bundle between the two
+        nodes, and forwards the bundles with the largest difference
+        first.  As bandwidth limitations or disrupted connections may
+        result in not all bundles that would be desirable being
+        exchanged, it could be desirable to first send bundles that get
+        a large improvement in delivery predictability.
+   GRTRMax
+        Select bundles in descending order of P_(B,D).  Forward the
+        bundle only if P_(B,D) > P_(A,D).  This strategy begins by
+        considering the bundles for which the encountered node has the
+        highest delivery predictability.  The motivation for doing this
+        is the same as in GRTRSort, but based on the idea that it is
+        better to give bundles to nodes with high absolute delivery
+        predictabilities, instead of trying to maximize the improvement.
+
+3.7  Queueing Policies
+
+   Because of limited buffer resources, nodes may need to drop some
+   bundles.  As is the case with the forwarding strategies, which bundle
+   to drop is also dependent on the scenario.  Therefore, each node also
+   has a queuing policy that determines how its bundle queue is handled.
+   This section defines a few basic queueing policies, but nodes MAY use
+   other policies if desired.  Some of the queueing policies listed here
+   have been evaluated (together with a number of forwarding strategies)
+   through simulations.  More information about that and recommendations
+   on which policies to use in different situations can be found in [4].
+   FIFO
+        Handle the queue in a FIFO order.  The bundle that was first
+        entered into the queue is the first bundle to be dropped.
+   MOFO - Evict most forwarded first
+        In an attempt to maximize the delivery rate of bundles, this
+        policy requires that the routing agent keeps track of the number
+        of times each bundle has been forwarded to some other node.  The
+        bundle that has been forwarded the largest number of times is
+        the first to be dropped.
+   MOPR - Evict most favorably forwarded first
+        Keep a variable FAV for each bundle in the queue, initialized to
+        zero.  Each time the bundle is forwarded, update FAV according
+        to Equation 7, where P is the predictability metric the node the
+        bundle is forwarded to has for its destination.
+
+        FAV_new = FAV_old + ( 1 - FAV_old ) * P                      (7)
+
+        The bundle with the highest FAV value is the first to be
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 18]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+        dropped.
+   Linear MOPR - Evict most favorably forwarded first; linear increase
+        Keep a variable FAV for each bundle in the queue, initialized to
+        zero.  Each time the bundle is forwarded, update FAV according
+        to Equation 8, where P is the predictability metric the node the
+        bundle is forwarded to has for its destination.
+
+        FAV_new = FAV_old + P                                        (8)
+
+        The bundle with the highest FAV value is the first to be
+        dropped.
+   SHLI - Evict shortest life time first
+        As described in [2], each bundle has a timeout value specifying
+        when it no longer is meaningful to its application and should be
+        deleted.  Since bundles with short remaining time to life will
+        soon be dropped anyway, this policy decides to drop the bundle
+        with the shortest remaining life time first.  To successfully
+        use a policy like this, there need to be some form of time
+        synchronization between nodes so that it is possible to know the
+        exact lifetimes of bundles.  This is however not specific to
+        this routing protocol, but a more general DTN problem.
+   LEPR - Evict least probable first
+        Since the node is least likely to deliver a bundle for which it
+        has a low delivery predictability, drop the bundle for which the
+        node has the lowest delivery predictability, and that has been
+        forwarded at least MF times, which is a minimum number of
+        forwards that a bundle must have been forwarded before being
+        dropped (if such a bundle exists).
+
+   More than one queueing policy MAY be combined in an ordered set,
+   where the first policy is used primarily, the second only being used
+   if there is a need to tie-break between bundles given the same
+   eviction priority by the primary policy, and so on.  As an example,
+   one could select the queueing policy to be {MOFO; SHLI; FIFO}, which
+   would start by dropping the bundle that has been forwarded the
+   largest number of times.  If more than one bundle has been forwarded
+   the same number of times, the one with the shortest remaining life
+   time will be dropped, and if that also is the same, the FIFO policy
+   will be used to drop the bundle first received.
+
+   It is worth noting that obviously nodes MUST NOT drop bundles for
+   which it has custody unless the lifetime expires.
+
+3.8  Aging of Delivery Predictability
+
+   To ensure proper properties of the delivery predictabilities, the
+   parameters determining the rate of aging used for the metric must be
+   set depending on the scenario in which the protocol will be
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 19]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   operating.  Implementations and experiments have given some
+   experience on how to do this, but this is still ongoing work, and no
+   conclusive guidelines on how to set the parameters currently exist.
+
+4.  Message Formats
+
+4.1  Messages
+
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                            Header                             ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                             TLV 1                             ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                .                              |
+      ~                                .                              ~
+      |                                .                              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                             TLV n                             ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+                      Figure 3: Basic message format
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 20]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+4.2  Header
+
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |    Version    |   Flags       |     Result    |     Code      |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |      Receiver Instance        |      Sender Instance          |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                    Transaction Identifier                     |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |S|      SubMessage Number      |           Length              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                          Message Body                         ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                             Figure 4: Header
+
+   Version
+        This version of the PRoPHET Protocol = 1.
+   Flags
+        TBD
+   Result
+        Field  that is used to indicate whether a response is required
+        to the request message if the outcome is successful.  A value of
+        "NoSuccessAck" indicates that the request message does not
+        expect a response if the outcome is successful, and a value of
+        "AckAll" indicates that a response is expected if the outcome is
+        successful.  In both cases a failure response MUST be generated
+        if the request fails.
+        In a response message, the result field can have two values:
+        "Success," and "Failure".  The "Success" results indicates a
+        success response.  All messages that belong to the same success
+        response will have the same Transaction Identifier.  The
+        "Success" result indicates a success response that may be
+        contained in a single message or the final message of a success
+        response spanning multiple messages.
+        ReturnReceipt is a result field used to indicate that an
+        acknowledgement is required for the message.  The default for
+        Messages is that the controller will not acknowledge responses.
+        In the case where an acknowledgement is required, it will set
+        the Result Field to ReturnReceipt in the header of the Message.
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 21]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+        The encoding of the result field is:
+
+           NoSuccessAck:       Result = 1
+           AckAll:             Result = 2
+           Success:            Result = 3
+           Failure:            Result = 4
+           ReturnReceipt       Result = 5
+
+   Code
+        Field gives further information concerning the result in a
+        response message.  It is mostly used to pass an error code in a
+        failure response but can also be used to give further
+        information in a success response message or an event message.
+        In a request message, the code field is not used and is set to
+        zero.
+        If the Code field indicates that the Error TLV is included in
+        the message, further information on the error will be found in
+        the Error TLV, which MUST be the the first TLV after the header.
+
+        The encoding is:
+
+                  PRoPHET Error messages       0x000 - 0x099
+                  Reserved                     0x0A0 - 0x0FE
+                  Error TLV in message             0x0FF
+
+   Sender Instance
+        For messages during the Hello phase with the Hello SYN, Hello
+        SYNACK, and Hello ACK functions, it is the sender's instance
+        number for the link.  It is used to detect when the link comes
+        back up after going down or when the identity of the entity at
+        the other end of the link changes.  The instance number is a 18-
+        bit number that is guaranteed to be unique within the recent
+        past and to change when the link or node comes back up after
+        going down.  Zero is not a valid instance number.  For the
+        RSTACK function, the Sender Instance field is set to the value
+        of the Receiver Instance field from the incoming message that
+        caused the RSTACK function to be generated.  Messages sent after
+        the Hello phase is completed should use the sender's instance
+        number for the link.
+   Receiver Instance
+        For messages during the Hello phase with the Hello SYN, Hello
+        SYNACK, and Hello ACK functions, is what the sender believes is
+        the current instance number for the link, allocated by the
+        entity at the far end of the link.  If the sender of the message
+        does not know the current instance number at the far end of the
+        link, this field SHOULD be set to zero.  For the RSTACK message,
+        the Receiver Instance field is set to the value of the Sender
+        Instance field from the incoming message that caused the RSTACK
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 22]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+        message to be generated.  Messages sent after the Hello phase is
+        completed should use what the sender believes is the current
+        instance number for the link, allocated by the entity at the far
+        end of the link.
+   Transaction Identifier
+        Used to associate a message with its response message.  This
+        should be set in request messages to a value that is unique for
+        the sending host within the recent past.  Reply messages contain
+        the Transaction Indentifier of the request they are responding
+        to.
+   S-flag
+        If S is set then the SubMessage Number field indicates the total
+        number of SubMessage segments that compose the entire message.
+        If it is not set then the SubMessage  Number field indicates the
+        sequence number of this SubMessage segment within the whole
+        message. the S field will only be set in the first sub-message
+        of a sequence.
+   submessage number
+        When a message is segmented because it exceeds the MTU of the
+        link layer, each segment will include a submessage number to
+        indicate its position.  Alternatively, if it is the first
+        submessage in a sequence of submessages, the S flag will be set
+        and this field will contain the total count of submessage
+        segments.
+   Length
+        Length in octets of this message including headers and message
+        body.  If the message is fragmented, this field contains the
+        length of this submessage.
+
+   The protocol also uses a pseudo header with information that MUST be
+   provided by the underlying communication layer.  The following pseudo
+   header fields are defined:
+
+   Sender Local Address
+        An address used by the underlying communication layer as
+        described in Section 2.3 that identifies the sender address of
+        the current message.  This address must be unique among the
+        nodes that can currently communicate, and is only used in
+        conjunction with the Receiver Local Address and the Receiver
+        Instance and Sender Instance to identify a communicating pair of
+        nodes.
+   Receiver Local Address
+        An address used by the underlying communication layer as
+        described in Section 2.3 that identifies the receiver address of
+        the current message.  This address must be unique among the
+        nodes that can currently communicate, and is only used in
+        conjunction with the Sender Local Address and the Receiver
+        Instance and Sender Instance to identify a communicating pair of
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 23]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+        nodes.
+
+4.3  TLV Structure
+
+   All TLVs have the following format, and can be nested.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |    TLV Type   |  TLV Flags    |          TLV Length           |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                           TLV Data                            ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+                           Figure 7: TLV Format
+
+   TLV Type
+        Specific TLVs are defined in Section 4.4.  Each TLV will have
+        fields defined that are specific to the function of that TLV.
+   TLV Flags
+        These are defined per TLV type.
+   TLV Length
+        Length of the TLV in octets, including the TLV header and any
+        nested TLVs.
+
+4.4  TLVs
+
+4.4.1  Hello TLV
+
+   The Hello TLV is used to set up and maintain a link between two
+   PRoPHET nodes.  Hello messages with the SYN function are transmitted
+   periodically as beacons.  The Hello TLV is the first TLV exchanged
+   between two PRoPHET nodes when they encounter each other.  No other
+   TLVs can be exchanged until the first Hello sequenece is completed.
+
+   Once a communication link is established between two PRoPHET nodes,
+   the Hello TLV will be sent once for each interval as defined in the
+   interval timer.  If a node experiences the lapse of HELLO_DEAD Hello
+   intervals without receiving a Hello TLV on an ESTAB connection (as
+   defined in the state machine in Section 5.2), the connection SHOULD
+   be assumed broken.
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 24]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      | TLV Type=0x01 |   resv  |  HF |          TLV Length           |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |    Timer      |  Name Length  |    Sender Name (variable)     |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+
+                        Figure 8: Hello TLV Format
+
+   HF
+        Specifies the function of the Hello TLV.  Four functions are
+        specified for the Hello TLV:
+
+                     SYN:     HF = 1
+                     SYNACK:  HF = 2
+                     ACK:     HF = 3
+                     RSTACK:  HF = 4.
+
+   TLV Data
+   Timer
+        The Timer field is used to inform the receiver of the timer
+        value used in the Hello processing of the sender.  The timer
+        specifies the nominal time between periodic Hello messages.  It
+        is a constant for the duration of a session.  The timer field is
+        specified in units of 100ms.
+   Name Length
+        The Name Length field is used to specify the length of the
+        Sender Name field in octets.  If the name has already been sent
+        at least once in a message with the current Sender Instance, a
+        node MAY choose to set this field to zero, omitting the Sender
+        Name from the Hello TLV.
+   Sender Name
+        The Sender Name field specifies the routable DTN name of the
+        sender that is to be used in updating routing information and
+        making forwarding decisions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 25]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+4.4.2  Error TLV
+
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      | TLV type=0x02 |     Flags     |          TLV Length           |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                               Data                            ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+                        Figure 10: Error TLV Format
+
+   TLV Flags
+        TBD
+   TLV Data
+        TBD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 26]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+4.4.3  Routing Information Base Dictionary TLV
+
+   The Routing Information Base Dictionary includes the list of
+   addresses used in making routing decisions.  The referents remain
+   constant for the duration of a session over a link where the instance
+   numbers remain the same and can be used by both the Routing
+   Information Base messages and the bundle offer messages.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      | TLV type=0xA0 |   Flags       |           Length              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |        RIBD  Entry Count      |          Reserved             |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      ~                                                               ~
+      ~           Variable Length Routing Address Strings             ~
+      ~                                                               ~
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+      Routing Address String
+
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |           String ID 1         |   Length      |    Resv       |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      ~                  Routing Address String 1(variable)           ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                .                              |
+      ~                                .                              ~
+      |                                .                              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |           String ID n         |   Length      |    Resv       |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                   Routing Address String n                    ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+              Figure 11: Routing Information Base Dictionary
+
+   TLV Flags
+        TBD
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 27]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   RIBD Entry Count
+        Number of entries in the database
+   String ID 16 bit identifier that is constant for the duration of a
+        session.  String ID zero is predefined as the node initiating
+        the session through sending the Hello SYN message, and String ID
+        one is predefined as the node responding with the Hello SYNACK
+        message.
+   Length
+        Length of Address String.
+
+4.4.4  Routing Information Base TLV
+
+   The Routing Information Base lists the destinations a node knows of,
+   and the delivery predictabilities it has associated with them.  This
+   information is needed by the PRoPHET algorithm to make decisions on
+   routing and forwarding.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      | TLV Type=0xA1 |   Flags       |           Length              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |      RIB String Count         |           Reserved            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |     RIB  String ID 1          |    P-Value    |  RIB Flag 1   |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      ~                               .                               ~
+      ~                               .                               ~
+      ~                               .                               ~
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |     RIBD String ID n          |    P-Value    |  RIB Flags n  |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                Figure 12: Routing Information Base Header
+
+   Flags
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 28]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+        The encoding of the Header flag field relates to the
+        capabilities of the Source node sending the RIB:
+
+             Flag 0: Relay Node          0b1
+             Flag 1: Custody Node        0b1
+             Flag 2: Internet GW Node    0b1
+             Flag 3: Reserved            0b1
+             Flag 4: Reserved            0b1
+             Flag 5: Reserved            0b1
+             Flag 6: Reserved            0b1
+             Flag 7: Reserved            0b1
+
+   RIB String Count
+        Number of routing entries in the TLV
+   RIB String ID
+        ID string as predefined in the dictionary TLV.
+   P-value
+        Delivery predictability for the destination of this entry as
+        calculated according to the equations in Section 2.1.1.  The
+        encoding of this field is a linear mapping from [0,1] to [0,
+        0xFF].
+   RIB Flag
+
+        The encoding of the RIB flag field is:
+
+             Flag 0: Relay Node          0b1
+             Flag 1: Custody Node        0b1
+             Flag 2: Internet GW Node    0b1
+             Flag 3: Reserved            0b1
+             Flag 4: Reserved            0b1
+             Flag 5: Reserved            0b1
+             Flag 6: Reserved            0b1
+             Flag 7: Reserved            0b1
+
+
+4.4.5  Bundle Offer and Response TLV
+
+   After the routing information has been passed, the node will ask the
+   other node to review available bundles and determine which bundles it
+   will accept for relay.  The source relay will determine which bundles
+   to offer based on relative delivery predictabilities as explained in
+   Section 3.6.  The Bundle Offer TLV also lists the bundles that a
+   PRoPHET acknowledgement has been issued for.  Those bundles have the
+   PRoPHET ACK flag set in their entry in the list.  When a node
+   receives a PRoPHET ACK for a bundle, it MUST remove any copies of
+   that bundle from its buffers, but SHOULD keep an entry of the
+   acknowledged bundle to be able to further propagate the PRoPHET ACK.
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 29]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   The Response message is identical to the request message with the
+   exception that the flag indicate acceptance of the bundle.
+
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      | TLV Type=0xA2 |   Flags       |           Length              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |      Bundle Offer Count       |       Reserved                |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |     Bundle Dest String Id 1   |    B_flags    |    resv       |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                   Bundle 1 Creation Timestamp                 |
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      ~                               .                               ~
+      ~                               .                               ~
+      ~                               .                               ~
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |     Bundle Dest String Id n   |    B_flags    |    resv       |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                   Bundle n Creation Timestamp                 |
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+
+                   Figure 15: Bundle Offer and Response
+
+   TLV Flags
+        TBD
+   Bundle Offer Count
+        Number of bundle offer entries.
+   Bundle Dest String Id
+        ID string of the destination of the bundle as predefined in the
+        dictionary TLV.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 30]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+        The encoding of the B_Flags in the request are:
+
+             Flag 0: Custody Offered     0b1
+             Flag 1: Reserved            0b1
+             Flag 2: Reserved            0b1
+             Flag 3: Reserved            0b1
+             Flag 4: Reserved            0b1
+             Flag 5: Reserved            0b1
+             Flag 6: Reserved            0b1
+             Flag 7: PRoPHET ACK         0b1
+
+        The encoding of the B_flag values in the response are:
+
+             Flag 0: Custody Accepted    0b1
+             Flag 1: Bundle Accepted     0b1
+             Flag 2: Reserved            0b1
+             Flag 3: Reserved            0b1
+             Flag 4: Reserved            0b1
+             Flag 5: Reserved            0b1
+             Flag 6: Reserved            0b1
+             Flag 7: Reserved            0b1
+
+
+
+5.  Detailed Operation
+
+   In this section, some more details on the operation of PRoPHET is
+   given along with state tables to help in implementing the protocol.
+
+5.1  High Level State Tables
+
+   This section gives high level state tables for the operation of
+   PRoPHET.  The following sections will describe each part of the
+   operation in more detail (including state tables for the internal
+   states of those procedures).
+
+   The following states are used in the state tables:
+   WAIT_NB This is the state all nodes start in.  Nodes remain in this
+         state until they are notified that a new neighbor is available.
+         At that point, the Hello procedure should be started with the
+         new neighbor, and the node move into the HELLO state.  It does
+         also need to remain in the WAIT_NB state to ensure that it can
+         detect new neighbors.  This can be handled by creating a new
+         thread or process that enters the HELLO state and takes care of
+         the communication with the new neighbor while the parent
+         remains in WAIT_NB.
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 31]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   HELLO Nodes are in the HELLO state from when a new neighbor is
+         detected until the Hello procedure is completed and a link is
+         established (which happens when the Hello procedure enters the
+         ESTAB state as described in Section 5.2).  If the node is
+         notified that the neighbor is no longer in range before a link
+         has been established, it returns to the WAIT_NB state.
+   INFO_EXCH After a link has been set up by the Hello procedure, a node
+         enters the INFO_EXCH state where the information exchange and
+         bundle passing is done.  The node remains in this state as long
+         as Information Exchange Phase TLVs (Routing RIB, Routing RIB
+         Dictionary) and bundle passing TLVs (Bundle Offer, Bundle
+         Request) are being received.  When an empty Bundle Request TLV
+         (i.e., no more bundles to send) is received, the node starts a
+         timer and enters the WAIT_INFO state.  If the node is notified
+         that the neighbor is no longer in range before all information
+         and bundles have been exchanged, it returns to the WAIT_NB
+         state.
+   WAIT_INFO Nodes enter the WAIT_INFO state after a completed
+         Information Exchange Phase and bundle passing phase.  Nodes
+         remain in this state until a timer expires that means that the
+         Information Exchange Phase should be reinitiated.  If the node
+         is notified that the neighbor is no longer in range before the
+         timer has expired, it returns to the WAIT_NB state.
+
+
+
+    State: WAIT_NB
+
+    +==================================================================+
+    |     Condition    |               Action              | New State |
+    +==================+===================================+===========+
+    |   New Neighbor   | Start Hello procedure for neighbor|   HELLO   |
+    |                  |  Keep waiting for more neighbors  |  WAIT_NB  |
+    +==================================================================+
+
+
+
+
+
+    State: HELLO
+
+    +==================================================================+
+    |    Condition     |               Action              | New State |
+    +==================+===================================+===========+
+    |  Hello TLV rcvd  |                                   |   HELLO   |
+    +------------------+-----------------------------------+-----------+
+    | Enter ESTAB state|  Start Information Exchange Phase | INFO_EXCH |
+    +------------------+-----------------------------------+-----------+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 32]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+    |  Neighbor Gone   |                                   |  WAIT_NB  |
+    +==================================================================+
+
+
+
+
+
+    State: INFO_EXCH
+
+    +==================================================================+
+    |    Condition     |               Action              | New State |
+    +==================+===================================+===========+
+    |Info Exch TLV rcvd|                                   | INFO_EXCH |
+    +------------------+-----------------------------------+-----------+
+    | No more bundles  |            Start timer            | WAIT_INFO |
+    +------------------+-----------------------------------+-----------+
+    |  Neighbor Gone   |                                   |  WAIT_NB  |
+    +==================================================================+
+
+
+
+
+    State: WAIT_INFO
+
+    +==================================================================+
+    |    Condition     |               Action              | New State |
+    +==================+===================================+===========+
+    |  Timer expires   | Restart Information Exchange Phase| INFO_EXCH |
+    +------------------+-----------------------------------+-----------+
+    |  Neighbor Gone   |                                   |  WAIT_NB  |
+    +==================================================================+
+
+
+
+
+      Note x:
+
+5.2  Hello Procedure
+
+   The Hello TLV procedure is described by the following rules and state
+   tables.
+
+   The rules and state tables use the following operations:
+   o  The "Update Peer Verifier" operation is defined as storing the
+      values of the Sender Instance and Sender Local Address fields from
+      a Hello SYN or Hello SYNACK  function received from the entity at
+      the far end of the link.
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 33]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   o  The procedure "Reset the link" is defined as:
+      1.  Generate a new instance number for the link.
+      2.  Delete the peer verifier (set to zero the values of Sender
+          Instance and Sender Local Address previously stored by the
+          Update Peer Verifier operation).
+      3.  Send a SYN message.
+      4.  Enter the SYNSENT state.
+   o  The state tables use the following Boolean terms and operators:
+      A     The Sender Instance in the incoming message matches the
+            value stored from a previous message by the "Update Peer
+            Verifier" operation.
+      B     The Sender Instance and Sender Local Address fields in the
+            incoming message match the values stored from a previous
+            message by the "Update Peer Verifier" operation.
+      C     The Receiver Instance and Receiver Local Address fields in
+            the incoming message match the values of the Sender Instance
+            and Sender Local Address used in outgoing Hello SYN, Hello
+            SYNACK, and Hello ACK messages.
+      SYN   A Hello SYN TLV has been received.
+      SYNACK A Hello SYNACK TLV has been received.
+      ACK   A Hello ACK TLV has been received.
+      "&&"  Represents the logical AND operation
+      "||"  Represents the logical OR operation
+      "!"   Represents the logical negation (NOT) operation.
+   o  A timer is required for the periodic generation of Hello SYN,
+      Hello SYNACK, and Hello ACK messages.  The value of the timer is
+      announced in the Timer field.  To avoid synchronization effects,
+      uniformly distributed random jitter of +/-5% of the Timer field
+      SHOULD be added to the actual interval used for the timer.
+      There are two independent events: the timer expires, and a packet
+      arrives.  The processing rules for these events are:
+
+            Timer Expires:   Reset Timer
+                             If state = SYNSENT Send SYN
+                             If state = SYNRCVD Send SYNACK
+                             If state = ESTAB   Send ACK
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 34]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+             Packet Arrives:
+                 If incoming message is an RSTACK:
+                     If (A && C && !SYNSENT) Reset the link
+                     Else discard the message.
+                 If incoming message is a SYN, SYNACK, or ACK:
+                     Response defined by the following State Tables.
+                 If incoming message is any other PRoPHET TLV and
+                     state != ESTAB:
+                     Discard incoming message.
+                     If state = SYNSENT Send SYN (Note 1)
+                     If state = SYNRCVD Send SYNACK (Note 1)
+
+            Note 1: No more than two SYN or SYNACK messages should be
+            sent within any time period of length defined by the timer.
+
+   o  A connection across a link is considered to be achieved when the
+      protocol reaches the ESTAB state.  All TLVs, other than Hello
+      TLVs, that are received before synchronisation is achieved, will
+      be discarded.
+
+5.2.1  State Tables
+
+
+
+    State: SYNSENT
+
+    +==================================================================+
+    |     Condition    |               Action              | New State |
+    +==================+===================================+===========+
+    |   SYNACK && C    | Update Peer Verifier; Send ACK    |   ESTAB   |
+    +------------------+-----------------------------------+-----------+
+    |   SYNACK && !C   |           Send RSTACK             |  SYNSENT  |
+    +------------------+-----------------------------------+-----------+
+    |       SYN        | Update Peer Verifier; Send SYNACK |  SYNRCVD  |
+    +------------------+-----------------------------------+-----------+
+    |       ACK        |           Send RSTACK             |  SYNSENT  |
+    +==================================================================+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 35]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+    State: SYNRCVD
+
+    +==================================================================+
+    |    Condition     |               Action              | New State |
+    +==================+===================================+===========+
+    |   SYNACK && C    | Update Peer Verifier; Send ACK    |   ESTAB   |
+    +------------------+-----------------------------------+-----------+
+    |   SYNACK && !C   |           Send RSTACK             |  SYNRCVD  |
+    +------------------+-----------------------------------+-----------+
+    |       SYN        | Update Peer Verifier; Send SYNACK |  SYNRCVD  |
+    +------------------+-----------------------------------+-----------+
+    |  ACK && B && C   |             Send ACK              |   ESTAB   |
+    +------------------+-----------------------------------+-----------+
+    | ACK && !(B && C) |           Send RSTACK             |  SYNRCVD  |
+    +==================================================================+
+
+
+
+
+
+    State: ESTAB
+
+    +==================================================================+
+    |    Condition     |               Action              | New State |
+    +==================+===================================+===========+
+    |  SYN || SYNACK   |          Send ACK (note 2)        |   ESTAB   |
+    +------------------+-----------------------------------+-----------+
+    |  ACK && B && C   |          Send ACK (note 3)        |   ESTAB   |
+    +------------------+-----------------------------------+-----------+
+    | ACK && !(B && C) |             Send RSTACK           |   ESTAB   |
+    +==================================================================+
+
+
+
+      Note 2: No more than two ACKs should be sent within any time
+      period of length defined by the timer.  Thus, one ACK MUST be sent
+      every time the timer expires.  In addition, one further ACK may be
+      sent between timer expirations if the incoming message is a SYN or
+      SYNACK.  This additional ACK allows the Hello functions to reach
+      synchronisation more quickly.
+
+      Note 3: No more than one ACK should be sent within any time period
+      of length defined by the timer.
+
+5.3  Information exchange and bundle passing phase
+
+   After the Hello messages have been exchanged, and the nodes are in
+   the ESTAB state, the information exchange and bundle passing phase is
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 36]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   initiated.  This section describes the procedure and shows the state
+   transitions necessary in this phase, and the following sections
+   describe the various TLVs passed in this phase in detail.
+
+5.3.1  State Tables
+
+   This section shows the state transitions that nodes goes through
+   during the information exchange and bundle passing phase.  State
+   tables are given for a "Listener" and for a "Initiator".  Both nodes
+   should assume both roles during this phase, and this can be done
+   either concurrently or sequentially, depending on the implementation.
+
+
+    Listener:
+    ---------
+
+    State: WAIT_DICT
+
+    +==================================================================+
+    |     Condition    |               Action              | New State |
+    +==================+===================================+===========+
+    | Dictionary rcvd  |  Update local dictionary (note 1) | WAIT_RIB  |
+    +------------------+-----------------------------------+-----------+
+    |   ACK received   |                                   | WAIT_DICT |
+    +------------------+-----------------------------------+-----------+
+    |  Timeout(peer)   |        Send ACK (note 2)          | WAIT_DICT |
+    +==================================================================+
+
+
+
+
+
+     State: WAIT_RIB
+
+    +==================================================================+
+    |     Condition    |               Action              | New State |
+    +==================+===================================+===========+
+    |   RIB received   |   Update P ; Send offer (note 3)  |   OFFER   |
+    +------------------+-----------------------------------+-----------+
+    |   ACK received   |                                   | WAIT_DICT |
+    +------------------+-----------------------------------+-----------+
+    | Dictionary rcvd  |      Update local dictionary      | WAIT_RIB  |
+    +------------------+-----------------------------------+-----------+
+    | Bundle req rcd   |            Send ACK               | WAIT_DICT |
+    +------------------+-----------------------------------+-----------+
+    |  Timeout(peer)   |            Send ACK               | WAIT_DICT |
+    +==================================================================+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 37]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+     State: OFFER
+
+    +==================================================================+
+    |     Condition    |               Action              | New State |
+    +==================+===================================+===========+
+    | Bundle req rcvd  |      Send requested bundle(s)     |   OFFER   |
+    | #req bundles!=0  |                                   |           |
+    +------------------+-----------------------------------+-----------+
+    | Bundle req rcvd  |            (note 4)               | WAIT_DICT |
+    | #req bundles==0  |                                   |           |
+    +------------------+-----------------------------------+-----------+
+    |   ACK received   |                                   | WAIT_DICT |
+    +------------------+-----------------------------------+-----------+
+    |  Timeout(info)   |    Resend bundle offer (note 5)   |   OFFER   |
+    +------------------+-----------------------------------+-----------+
+    |  Dict/ACK rcvd   |         Resend bundle offer       |   OFFER   |
+    +==================================================================+
+
+
+
+      Note 1: Both the dictionary and the RIB TLVs may come in the same
+      PRoPHET message.  In that case, the state will change to WAIT_RIB
+      and the RIB will then immediately be processed.
+
+      Note 2: Send an ACK if the timer for the peering node expires.
+      Either the link has been broken, and then the link setup will
+      restart, or it will trigger the information exchange phase to
+      restart.
+
+      Note 3: When the RIB is received it is possible for the PRoPHET
+      agent to update its delivery predictabilities according to
+      Section 2.1.1.  This and the RIB is then used together with the
+      forwarding strategy in use to create a bundle offer TLV.  This is
+      sent to the peering node.
+
+      Note 4: No more bundles are requested by the other node, transfer
+      is complete.
+
+      Note 5: No response to the bundle offer has been received before
+      the timer expired, so we resend the bundle offer.
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 38]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+    Initiator:
+    ----------
+
+    State: CREATE_DR
+
+    +==================================================================+
+    |     Condition    |               Action              | New State |
+    +==================+===================================+===========+
+    |      Always      | Create & send dict & RIB (note 1) |  SEND_DR  |
+    +==================================================================+
+
+
+
+
+
+    State: SEND_DR
+
+    +==================================================================+
+    |     Condition    |               Action              | New State |
+    +==================+===================================+===========+
+    |  Timeout(info)   |  Resend dictionary & RIB (note 2) |  SEND_DR  |
+    +------------------+-----------------------------------+-----------+
+    | Bundle offer rcvd|         Send bundle request       |  REQUEST  |
+    +==================================================================+
+
+
+
+
+
+    State: REQUEST
+
+    +==================================================================+
+    |     Condition    |               Action              | New State |
+    +==================+===================================+===========+
+    |  Timeout(info)   |     Send bundle request for       |  REQUEST  |
+    |                  |     missing bundles (note 3)      |           |
+    +------------------+-----------------------------------+-----------+
+    | Bundle rcvd &&   |       Wait for more bundles       |  REQUEST  |
+    | REQ not fulfilled|            (note 4)               |           |
+    +------------------+-----------------------------------+-----------+
+    | Bundle rcvd &&   |     Send empty bundle request     |  REQUEST  |
+    |  REQ fulfilled   |            (note 4)               |           |
+    +------------------+-----------------------------------+-----------+
+    |   ACK received   |                                   | CREATE_DR |
+    +==================================================================+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 39]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+
+      Note 1: The Initiator always starts by creating dictionary and RIB
+      TLVs, and send them to its peering node.
+
+      Note 2: No response to the RIB has been received before the timer
+      expired, so we resend the dictionary and RIB TLVs.
+
+      Note 3: If the timer expires, and not all requested bundles have
+      been received, send a new bundle request for the missing bundles.
+
+      Note 4: While bundles are received, but there still are requested
+      bundles that have not been received, continue waiting for more
+      bundles.  If all desired bundles have been received, send an empty
+      bundles request message to the peering node to signal that no more
+      bundles should be passed.
+
+6.  Security Considerations
+
+   Currently, PRoPHET does not specify any special security measures.
+   As a routing protocol for intermittently connected networks, PRoPHET
+   is a target for various attacks.  The various known possible
+   vulnerabilities are discussed in this section.
+
+   The attacks described here are not problematic if all nodes in the
+   network can be trusted and are working towards a common goal.  If
+   there exist such a set of nodes, but there also exist malicious
+   nodes, these security problems can be solved by introducing an
+   authentication mechanism when two nodes meet, for example using a
+   public key system.  Thus, only nodes that are known to be members of
+   the trusted group of nodes are allowed to participate in the routing.
+   This of course introduces the additional problem of key distribution,
+   but that is not addressed here.
+
+6.1  Attacks on the operation of the protocol
+
+   There are a number of kinds of attacks on the operation of the
+   protocol that it would be possible to stage on a PRoPHET network.
+   The attacks and possible remedies are listed here.
+
+6.1.1  Black hole attack
+
+   A malicious node sets its delivery predictabilities for all nodes to
+   1, and does not forward any bundles.  This has two effects, both
+   causing messages to be drawn towards the black hole, instead of to
+   its correct destination.
+   1.  A node encountering a malicious node will try to send all its
+       bundles to the malicious node, creating the belief that the
+       bundle has been very favorably forwarded.  Depending on the
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 40]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+       forwarding strategy and queueing policy in use, this might hamper
+       future forwarding of the bundle and/or lead to premature dropping
+       of the bundle.
+   2.  Due to the transitivity, the delivery predictabilities reported
+       by the malicious node will affect the delivery predictabilities
+       of other nodes.  This will create a gradient for all destinations
+       with the black hole as the "center of gravity" towards which all
+       bundles traverse.  This should be particularly severe in
+       connected parts of the network.
+
+6.1.2  Limited black hole attack/identity spoofing
+
+   A malicious node misrepresents itself by claiming to be someone else.
+   The effects of this attack are:
+   1.  The effects of the black hole attack listed above hold for this
+       attack as well, with the exception that only the delivery
+       predictabilities and bundles for one particular destination are
+       affected.  This could be used to "steal" the data that should be
+       going to a particular node.
+   2.  In addition to the above problems, PRoPHET ACKs will be issued
+       for the bundles that are delivered to the malicious node.  This
+       will cause these bundles to be removed from the network, reducing
+       the chance that they will reach their real destination.
+
+6.1.2.1  Attack detection
+
+   It is possible for the destination to detect that this kind of attack
+   has occurred (but it will not be able to prevent it) if it receives a
+   PRoPHET ACK for a message destined to itself but for which it did not
+   receive the corresponding bundle.
+
+6.1.2.2  Attack prevention/solution
+
+   To prevent this attack, some form of authentication between nodes
+   that meet is needed.  One way to achieve this is to use public key
+   cryptography, but then the problem of key distribution needs to be
+   solved.
+
+6.1.3  Fake PRoPHET ACKs
+
+   A malicious node may issue fake PRoPHET ACKs for all bundles (or only
+   bundles for a certain destination if the attack is targeted at a
+   single node) carried by nodes it meet.  The affected bundles will be
+   deleted from the network, greatly reducing their probability of be
+   delivered to the destination.
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 41]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+6.1.3.1  Attack prevention/solution
+
+   If a public key cryptography system is in place, this attack can be
+   prevented by mandating that all PRoPHET ACKs be signed by the
+   destination.  Similarly to other solutions using public key
+   cryptography, this introduces the problem of key distribution.
+
+6.1.4  Bundle store overflow
+
+   After encountering and receiving the delivery predictability
+   information from the victim, a malicious node may generate a large
+   number of bogus bundles for the destination for which the victim has
+   the highest delivery predictability.  This will cause the victim to
+   most likely accept these bundles, filling up its bundle storage,
+   possibly at the expense of other, legitimate, bundles.  This problem
+   is transient as the messages will be removed when the victim meets
+   the destination and delivers the messages.
+
+6.1.4.1  Attack detection
+
+   If it is possible for the destination to figure out that the bundles
+   it is receiving are bogus, it could report that malicious actions are
+   underway.
+
+6.1.4.2  Attack prevention/solution
+
+   This attack could be prevented by requiring sending nodes to sign all
+   bundles they send.  By doing this, intermediate nodes could verify
+   the integrity of the messages before accepting them for forwarding.
+
+6.1.5  Bundle store overflow with delivery predictability manipulation
+
+   A more sophisticated version of the attack in the previous section
+   can be attempted.  The effect of the previous attack was lessened
+   since the destination node of the bogus bundles existed.  This caused
+   bogus bundles to be purged from the network when the destination was
+   encountered.  The malicious node may now use the transitive property
+   of the protocol to boost the victim's delivery predictabilities for a
+   non-existent destination.  After this, it creates a large number of
+   bogus bundles for this non-existent destination and offers them to
+   the victim.  As before, these bundles will fill up the bundle storage
+   of the victim.  The impact of this attack will be greater as there is
+   no probability of the destination being encountered and the bundles
+   being acked.  Thus, they will remain in the bundle storage until they
+   time out (the malicious node may set the timeout to a large value) or
+   until they are evicted by the queueing policy.
+
+   The delivery predictability for the fake destination may spread in
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 42]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   the network due to the transitivity, but this is not a problem, as it
+   will eventually age and fade away.
+
+   The impact of this attack could be increased if multiple malicious
+   nodes collude, as network resources can be consumed at a greater
+   speed and at many different places in the network simultaneously.
+
+6.2  Interactions with External Routing Domains
+
+   Users may opt to connect two regions of sparsely connected nodes
+   through a connected network such as the Internet where another
+   routing protocol is running.  To this network, PRoPHET traffic would
+   look like any other application layer data.  Extra care must be taken
+   in setting up these gateway nodes and their interconnections to make
+   sure that malicious nodes cannot use them to launch attacks on the
+   infrastructure of the connected network.  In particular, the traffic
+   generated should not be significantly more than what a single regular
+   user end host could create on the network.
+
+7.  Implementation Experience
+
+   Currently, two independent implementations of the PRoPHET protocol
+   exist.  The first implementation is written in Java, and has been
+   optimized to run on the Lego MindStorms platform that has very
+   limited resources.  Due to the resource constraints, some parts of
+   the protocol have been simplified or omitted, but the implementation
+   contains all the important mechanisms to ensure proper protocol
+   operation.  The implementation is also highly modular and can be run
+   on another system with only minor modifications (it has currently
+   been shown to run on the Lego MindStorms platform and on regular
+   laptops).  The other implementation is written in C++ and runs in the
+   OmNet++ simulator to enable testing and evaluation of the protocol
+   and new features.  Experience and feedback from the implementors on
+   early versions of the protocol have been incorporated into the
+   current version.
+
+   A prototype implementation of the protocol in C++ that targets Linux
+   systems is currently being implemented and is expected to be
+   available in June 2006.
+
+8.  Acknowledgements
+
+   We would like to thank Olov Schelen, and Kaustubh S. Phanse for
+   valuable discussions regarding various aspects of the protocol.
+   Elwyn Davies has contributed with lots of feedback, both on the
+   technical details of the the protocol as well as the structure of the
+   draft.  The Hello TLV mechanism is loosely based on Adjacency message
+   developed for RFC3292.  Luka Birsa has provided us with feedback from
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 43]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   doing two implementations of the protocol based on various
+   preliminary versions of the draft.  His feedback has helped us make
+   the draft easier to read for an implementor and has improved the
+   protocol.
+
+9.  References
+
+   [1]  Cerf, V., Burleigh, S., Hooke, A., Torgerson, L., Durst, R.,
+        Scott, K., Fall, K., and H. Weiss, "Delay-Tolerant Network
+        Architecture", Internet Draft draft-irtf-dtnrg-arch-04.txt,
+        December 2005.
+
+   [2]  Scott, K. and S. Burleigh, "Bundle Protocol Specification",
+        Internet Draft draft-irtf-dtnrg-bundle-spec-04.txt,
+        November 2005.
+
+   [3]  Vahdat, A. and D. Becker, "Epidemic Routing for Partially
+        Connected Ad Hoc Networks", Duke University Technical Report CS-
+        200006, April 2000.
+
+   [4]  Lindgren, A. and K. Phanse, "Evaluation of Queueing Policies and
+        Forwarding Strategies for Routing in Intermittently Connected
+        Networks", Proceedings of COMSWARE 2006 , January 2006.
+
+   [5]  Small, T. and Z. Haas, "The Shared Wireless Infostation Model -
+        A New Ad Hoc Networking Paradigm (or Where there is a Whale,
+        there is a Way)", Proceedings of The Fourth ACM International
+        Symposium on Mobile Ad Hoc Networking and Computing (MobiHoc
+        2003) pp 233-244, June 2003.
+
+   [6]  Doria, A., Uden, M., and D. Pandey, "Providing connectivity to
+        the Saami nomadic community", Proceedings of the 2nd
+        International Conference on Open Collaborative Design for
+        Sustainable Innovation (dyd 02), Bangalore, India ,
+        December 2002.
+
+   [7]  Pentland, A., Fletcher, R., and A. Hasson, "A Road to Universal
+        Broadband Connectivity", Proceedings of the 2nd International
+        Conference on Open Collaborative Design for Sustainable
+        Innovation (dyd 02), Bangalore, India , December 2002.
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 44]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+Authors' Addresses
+
+   Anders F. Lindgren
+   Lulea University of Technology
+   Lulea  SE-971 87
+   Sweden
+
+   Phone: +46920491489
+   Email: dugdale@sm.luth.se
+   URI:   http://www.sm.luth.se/~dugdale
+
+
+   Avri Doria
+   Lulea University of Technology
+   Lulea  SE-971 87
+   Sweden
+
+   Phone:
+   Email: avri@acm.org
+   URI:   http://psg.com/~avri
+
+Appendix A.  PRoPHET Example
+
+   To help grasp the concepts of PRoPHET, an example is provided to give
+   a understanding of the transitive property of the delivery
+   predictability, and the basic operation of PRoPHET.  In Figure 20, we
+   revisit the scenario where node A has a message it wants to send to
+   node D. In the bottom right corner of subfigures a)-c), the delivery
+   predictability tables for the nodes are shown.  Assume that nodes C
+   and D encounter each other frequently (Figure 20a) ), making the
+   delivery predictability values they have for each other high.  Now
+   assume that node C also frequently encounters node B (Figure 20b) ).
+   B and C will get high delivery predictability values for each other,
+   and the transitive property will also increase the value B has for D
+   to a medium level.  Finally, node B meets node A (Figure 20c) ) that
+   has a message for node D. Figure 20d) shows the message exchange
+   between node A and node B. Summary vectors and delivery
+   predictability information is exchanged, delivery predictabilities
+   are updated, and node A then realized that P_(b,d) > P_(a,d), and
+   thus forwards the message for D to node B.
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 45]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   +----------------------------+   +----------------------------+
+   |                            |   |                            |
+   |                  C         |   |                       D    |
+   |                   D        |   |                            |
+   |       B                    |   |       B C                  |
+   |                            |   |                            |
+   |                            |   |                            |
+   |                            |   |                            |
+   |                            |   |                            |
+   | A*                         |   | A*                         |
+   +-------------+--------------+   +-------------+--------------+
+   |   A  |   B  |   C   |  D   |   |   A  |   B  |   C   |  D   |
+   |B:low |A:low |A:low  |A:low |   |B:low |A:low |A:low  |A:low |
+   |C:low |C:low |B:low  |B:low |   |C:low |C:high|B:high |B:low |
+   |D:low |D:low |D:high |C:high|   |D:low |D:med |D:high |C:high|
+   +-------------+--------------+   +-------------+--------------+
+                 a)                               b)
+   +----------------------------+   A                            B
+   |                            |   |                            |
+   |                       D    |   |Summary vector&delivery pred|
+   |                            |   |--------------------------->|
+   |         C                  |   |Summary vector&delivery pred|
+   |                            |   |<---------------------------|
+   |                            |   |                            |
+   |   B*                       |  Update delivery predictabilities
+   |  A                         |   |                            |
+   |                            |  Packet for D not in SV        |
+   +-------------+--------------+  P(b,d)>P(a,d)                 |
+   |   A  |   B  |   C   |  D   |  Thus, send                    |
+   |B:low |A:low |A:low  |A:low |   |                            |
+   |C:med |C:high|B:high |B:low |   |      Packet for D          |
+   |D:low+|D:med |D:high |C:high|   |--------------------------->|
+   +-------------+--------------+   |                            |
+                 c)                               d)
+
+                        Figure 20: PRoPHET example
+
+
+Appendix B.  Neighbor Discovery Example
+
+   This section outlines an example of a simple neighbor discovery
+   protocol that can be run in-between PRoPHET and underlying layer in
+   case lower layers do not provide methods for neighbor discovery.  It
+   assumes that the underlying layer supports broadcast messages as
+   would be the case if a wireless infrastructure was involved.
+
+   Each node needs to maintain a list of its active neighbors.  The
+   operation of the protocol is as follows:
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 46]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+   1.  Every BEACON_INTERVAL milliseconds, the node does a local
+       broadcast of a beacon that contains its identity and address, as
+       well as the BEACON_INTERVAL value used by the node.
+   2.  Upon reception of a beacon, the following can happen:
+       1.  The sending node is already in the list of active neighbors.
+           Update its entry in the list with the current time, and the
+           node's BEACON_INTERVAL if it has changed.
+       2.  The sending node is not in the list of active neighbors.  Add
+           the node to the list of active neighbors and record the
+           current time and the node's BEACON_INTERVAL.  Notify the
+           PRoPHET agent that a new neighbor is available ("New
+           Neighbor", as described in Section 2.3).
+   3.  If a beacon has not been received from a node in the list of
+       active neighbors within a time period of NUM_ACCEPTED_LOSSES *
+       BEACON_INTERVAL (for the BEACON_INTERVAL used by that node), it
+       should be assumed that this node is no longer a neighbor.  The
+       entry for this node should be removed from the list of active
+       neighbors, and the PRoPHET agent should be notified that a
+       neighbor has left ("Neighbor Gone", as described in Section 2.3).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 47]
+
+Internet-Draft                   PRoPHET                      March 2006
+
+
+Intellectual Property Statement
+
+   The IETF takes no position regarding the validity or scope of any
+   Intellectual Property Rights or other rights that might be claimed to
+   pertain to the implementation or use of the technology described in
+   this document or the extent to which any license under such rights
+   might or might not be available; nor does it represent that it has
+   made any independent effort to identify any such rights.  Information
+   on the procedures with respect to rights in RFC documents can be
+   found in BCP 78 and BCP 79.
+
+   Copies of IPR disclosures made to the IETF Secretariat and any
+   assurances of licenses to be made available, or the result of an
+   attempt made to obtain a general license or permission for the use of
+   such proprietary rights by implementers or users of this
+   specification can be obtained from the IETF on-line IPR repository at
+   http://www.ietf.org/ipr.
+
+   The IETF invites any interested party to bring to its attention any
+   copyrights, patents or patent applications, or other proprietary
+   rights that may cover technology that may be required to implement
+   this standard.  Please address the information to the IETF at
+   ietf-ipr@ietf.org.
+
+
+Disclaimer of Validity
+
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+Copyright Statement
+
+   Copyright (C) The Internet Society (2006).  This document is subject
+   to the rights, licenses and restrictions contained in BCP 78, and
+   except as set forth therein, the authors retain all their rights.
+
+
+Acknowledgment
+
+   Funding for the RFC Editor function is currently provided by the
+   Internet Society.
+
+
+
+
+Lindgren & Doria        Expires September 6, 2006              [Page 48]
+
