@@ -34,6 +34,7 @@ set tests(basic) {
     "bundle-status-reports.tcl"	""
     "custody-transfer.tcl"      ""
     "dtn-ping.tcl"		""
+    "dtn-cp.tcl"		""
     "dtnsim-basic.tcl"		""
     "extension-block.tcl"       ""
     "flood-router.tcl"		""
