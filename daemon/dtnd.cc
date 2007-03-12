@@ -328,8 +328,10 @@ DTND::main(int argc, char* argv[])
     }
     
     dtnserver->start();
-    apiserver->bind_listen_start(apiserver->local_addr(), 
-                                 apiserver->local_port());
+    if (apiserver->enabled()) {
+        apiserver->bind_listen_start(apiserver->local_addr(), 
+                                     apiserver->local_port());
+    }
     oasys::Thread::release_start_barrier(); // run blocked threads
 
     // if the test script specified something to run for the test,

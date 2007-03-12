@@ -46,14 +46,18 @@ public:
 
     // Virtual from TCPServerThread
     void accepted(int fd, in_addr_t addr, u_int16_t port);
+
+    bool       enabled() const { return enabled_; }
+    bool*      enabled_ptr() { return &enabled_; }
     
     in_addr_t  local_addr() const { return local_addr_; }
     in_addr_t* local_addr_ptr() { return &local_addr_; }
     
     u_int16_t  local_port() const { return local_port_; }
     u_int16_t* local_port_ptr() { return &local_port_; }
-    
-private:
+
+protected:
+    bool      enabled_;       ///< whether or not to enable it
     in_addr_t local_addr_;    ///< local address to bind to
     u_int16_t local_port_;    ///< local port to use for api
 };

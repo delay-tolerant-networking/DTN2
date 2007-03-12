@@ -23,6 +23,9 @@ namespace dtn {
 APICommand::APICommand(APIServer* server)
     : TclCommand("api")
 {
+    bind_var(new oasys::BoolOpt("enabled", server->enabled_ptr(),
+                                "Whether or not to enable the api server"));
+    
     bind_var(new oasys::InAddrOpt("local_addr",  server->local_addr_ptr(),
                                   "addr",
                                   "The IP address on which the "
