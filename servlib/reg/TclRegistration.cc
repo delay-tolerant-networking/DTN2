@@ -34,6 +34,8 @@ TclRegistration::TclRegistration(const EndpointIDPattern& endpoint,
     : Registration(GlobalStore::instance()->next_regid(),
                    endpoint, Registration::DEFER, 0) // XXX/demmer expiration??
 {
+    (void)interp;
+    
     logpathf("/dtn/registration/tcl/%d", regid_);
     set_active(true);
 
@@ -41,15 +43,9 @@ TclRegistration::TclRegistration(const EndpointIDPattern& endpoint,
 
     bundle_list_ = new BlockingBundleList(logpath_);
     int fd = bundle_list_->notifier()->read_fd();
-    notifier_channel_ = Tcl_MakeFileChannel((ClientData)fd, TCL_READABLE);
-
-    if (notifier_channel_ == NULL) {
-        log_err("can't create tcl file channel: %s",
-                strerror(Tcl_GetErrno()));
-    } else {
-        log_debug("notifier_channel_ is %p", notifier_channel_);
-        Tcl_RegisterChannel(interp, notifier_channel_);
-    }
+    notifier_channel_ = oasys::TclCommandInterp::instance()->
+                        register_file_channel((ClientData)fd, TCL_READABLE);
+    log_debug("notifier_channel_ is %p", notifier_channel_);
 }
 
 void
