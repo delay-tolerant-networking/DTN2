@@ -21,6 +21,7 @@
 #include <strings.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <sys/time.h>
 
 #include "dtn_api.h"
