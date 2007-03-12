@@ -24,8 +24,6 @@
 #include "config.h"
 #include "DTNServer.h"
 
-#include "applib/APIServer.h"
-
 #include "bundling/BundleDaemon.h"
 
 #include "contacts/InterfaceTable.h"

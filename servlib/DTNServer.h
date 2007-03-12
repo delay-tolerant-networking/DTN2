@@ -23,7 +23,6 @@
 
 namespace dtn {
 
-class APIServer;
 class DTNStorageConfig;
 
 /*!
@@ -72,7 +71,6 @@ private:
 
     DTNStorageConfig*     storage_config_;
     oasys::DurableStore*  store_;
-    APIServer*            api_server_;
 
     bool init_dir(const char* dirname);
     bool tidy_dir(const char* dirname);
