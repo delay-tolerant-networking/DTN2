@@ -15,6 +15,7 @@
  */
 
 
+#include <oasys/tclcmd/TclCommand.h>
 #include <oasys/util/Time.h>
 
 #include "Bundle.h"
@@ -1821,6 +1822,38 @@ BundleDaemon::load_bundles()
 }
 
 //----------------------------------------------------------------------
+bool
+BundleDaemon::DaemonIdleExit::is_idle(const struct timeval& tv)
+{
+    oasys::Time now(tv.tv_sec, tv.tv_usec);
+    u_int elapsed = (now - BundleDaemon::instance()->last_event_).in_milliseconds();
+
+    BundleDaemon* d = BundleDaemon::instance();
+    d->logf(oasys::LOG_DEBUG,
+            "checking if is_idle -- last event was %u msecs ago",
+            elapsed);
+
+    // fudge
+    if (elapsed + 500 > interval_ * 1000) {
+        d->logf(oasys::LOG_NOTICE,
+                "more than %u seconds since last event, "
+                "shutting down daemon due to idle timer",
+                interval_);
+        
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::init_idle_shutdown(int interval)
+{
+    idle_exit_ = new DaemonIdleExit(interval);
+}
+
+//----------------------------------------------------------------------
 void
 BundleDaemon::run()
 {
@@ -1837,6 +1870,8 @@ BundleDaemon::run()
     BundleEvent* event;
 
     oasys::TimerSystem* timersys = oasys::TimerSystem::instance();
+
+    last_event_.get_time();
     
     struct pollfd pollfds[2];
     struct pollfd* event_poll = &pollfds[0];
@@ -1870,7 +1905,10 @@ BundleDaemon::run()
                 log_warn("event %s took %d ms to process",
                          event->type_str(), elapsed);
             }
-        
+
+            // record the last event time
+            last_event_.get_time();
+
             // clean up the event
             delete event;
             

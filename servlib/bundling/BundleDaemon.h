@@ -21,9 +21,12 @@
 
 #include <oasys/compat/inttypes.h>
 #include <oasys/debug/Log.h>
+#include <oasys/tclcmd/IdleTclExit.h>
+#include <oasys/thread/Timer.h>
 #include <oasys/thread/Thread.h>
 #include <oasys/thread/MsgQueue.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/util/Time.h>
 
 #include "BundleEvent.h"
 #include "BundleEventHandler.h"
@@ -249,6 +252,13 @@ public:
     {
         return is_simulator_;
     }
+
+    /**
+     * Initialize an idle shutdown handler that will cleanly exit the
+     * tcl event loop whenever no bundle events have been handled
+     * for the specified interval.
+     */
+    void init_idle_shutdown(int interval);
     
 protected:
     friend class BundleActions;
@@ -467,6 +477,19 @@ protected:
 
     // bit that's set when we're running in the simulator
     static bool is_simulator_;
+
+    /// Class used for the idle timer
+    struct DaemonIdleExit : public oasys::IdleTclExit {
+        DaemonIdleExit(int interval) : IdleTclExit(interval) {}
+        bool is_idle(const struct timeval& now);
+    };
+    friend class DaemonIdleExit;
+    
+    /// Pointer to the idle exit handler (if any)
+    DaemonIdleExit* idle_exit_;
+
+    /// Time value when the last event was handled
+    oasys::Time last_event_;
 };
 
 } // namespace dtn

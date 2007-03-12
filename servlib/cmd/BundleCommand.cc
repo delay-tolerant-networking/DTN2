@@ -50,6 +50,8 @@ BundleCommand::BundleCommand()
     add_to_help("dump_tcl <id>", "dump a bundle as a tcl list");
     add_to_help("dump_ascii <id>", "dump the bundle in ascii");
     add_to_help("expire <id>", "force a specific bundle to expire");
+    add_to_help("daemon_idle_shutdown <secs>",
+                "shut down the bundle daemon after an idle period");
 }
 
 BundleCommand::InjectOpts::InjectOpts()
@@ -288,6 +290,24 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         
         return TCL_OK;
 
+    } else if (!strcmp(cmd, "daemon_idle_shutdown")) {
+        oasys::StringBuffer buf("Bundle Daemon Statistics: ");
+        
+        if (objc != 3) {
+            wrong_num_args(objc, objv, 2, 3, 3);
+            return TCL_ERROR;
+        }
+
+        int interval;
+        if (Tcl_GetIntFromObj(interp, objv[2], &interval) != TCL_OK) {
+            resultf("invalid interval %s",
+                    Tcl_GetStringFromObj(objv[2], 0));
+            return TCL_ERROR;
+        }
+
+        BundleDaemon::instance()->init_idle_shutdown(interval);
+        return TCL_OK;
+        
     } else {
         resultf("unknown bundle subcommand %s", cmd);
         return TCL_ERROR;
