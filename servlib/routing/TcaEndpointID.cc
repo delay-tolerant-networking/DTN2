@@ -58,21 +58,21 @@ void
 TcaEndpointID::parse()
 {
     if (!valid_) return;
-    if (scheme_str_ != "tca")
+    if (scheme_str() != "tca")
     {
         valid_ = false;
         return;
     }
-    if (ssp_.length() <= 2)
+    if (ssp().length() <= 2)
     {
         valid_ = false;
         return;
     }
-    if (ssp_.substr(0,2) != "//")
+    if (ssp().substr(0,2) != "//")
     {
         valid_ = false;
     }
-    std::string nub = ssp_.substr(2, ssp_.length());
+    std::string nub = ssp().substr(2, ssp().length());
 
     int slash = nub.find("/");  // slash between host and app
     if (slash < 0) 

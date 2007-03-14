@@ -24,18 +24,18 @@ template <>
 WildcardScheme* oasys::Singleton<WildcardScheme>::instance_ = 0;
 
 /**
- * Validate that the given ssp is legitimate for this scheme. If
- * the 'is_pattern' paraemeter is true, then the ssp is being
- * validated as an EndpointIDPattern.
+ * Validate that the SSP in the given URI is legitimate for
+ * this scheme. If the 'is_pattern' paraemeter is true, then
+ * the ssp is being validated as an EndpointIDPattern.
  *
  * @return true if valid
  */
 bool
-WildcardScheme::validate(const std::string& ssp, bool is_pattern)
+WildcardScheme::validate(const URI& uri, bool is_pattern)
 {
     // the wildcard scheme can only be used for patterns and must be
     // exactly the string "*"
-    if ((is_pattern == false) || (ssp != "*")) {
+    if ((is_pattern == false) || (uri.ssp() != "*")) {
         return false;
     }
 

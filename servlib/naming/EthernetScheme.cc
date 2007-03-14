@@ -19,7 +19,6 @@
 
 #include <oasys/io/IPSocket.h>
 #include <oasys/io/NetUtils.h>
-#include <oasys/util/URL.h>
 
 #include "EthernetScheme.h"
 #include "EndpointID.h"
@@ -62,20 +61,20 @@ EthernetScheme::parse(const std::string& ssp, eth_addr_t* addr)
 }
 
 /**
- * Validate that the given ssp is legitimate for this scheme. If
- * the 'is_pattern' parameter is true, then the ssp is being
- * validated as an EndpointIDPattern.
+ * Validate that the SSP in the given URI is legitimate for
+ * this scheme. If the 'is_pattern' parameter is true, then
+ * the ssp is being validated as an EndpointIDPattern.
  *
  * @return true if valid
  */
 bool
-EthernetScheme::validate(const std::string& ssp, bool is_pattern)
+EthernetScheme::validate(const URI& uri, bool is_pattern)
 {
     (void)is_pattern;
     
     // make sure it's a valid url
     eth_addr_t addr;
-    return parse(ssp, &addr);
+    return parse(uri.ssp(), &addr);
 }
 
 /**

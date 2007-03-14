@@ -20,11 +20,14 @@
 #include <string>
 #include <oasys/serialize/Serialize.h>
 #include <oasys/serialize/SerializableVector.h>
+#include <oasys/util/URI.h>
 
 struct dtn_endpoint_id_t;
 
 namespace dtn {
 
+typedef oasys::URI URI;
+	
 class EndpointID;
 class EndpointIDPattern;
 class Scheme;
@@ -46,7 +49,7 @@ public:
      * Construct the endpoint id from the given string.
      */
     EndpointID(const std::string& str)
-        : str_(str), scheme_(NULL), valid_(false), is_pattern_(false)
+        : uri_(str), scheme_(NULL), valid_(false), is_pattern_(false)
     {
         parse();
     }
@@ -71,9 +74,7 @@ public:
      */
     bool assign(const EndpointID& other)
     {
-        str_         = other.str_;
-        scheme_str_  = other.scheme_str_;
-        ssp_         = other.ssp_;
+        uri_         = other.uri_;
         scheme_      = other.scheme_;
         valid_       = other.valid_;
         is_pattern_  = other.is_pattern_;
@@ -86,7 +87,7 @@ public:
      */
     bool assign(const std::string& str)
     {
-        str_.assign(str);
+        uri_.assign(str);
         return parse();
     }
 
@@ -96,7 +97,7 @@ public:
      */
     bool assign(const char* str, size_t len)
     {
-        str_.assign(str, len);
+        uri_.assign(str, len);
         return parse();
     }
 
@@ -106,7 +107,7 @@ public:
      */
     bool assign(const std::string& scheme, const std::string& ssp)
     {
-        str_ = scheme + ":" + ssp;
+        uri_.assign(scheme + ":" + ssp);
         return parse();
     }
 
@@ -115,7 +116,7 @@ public:
      */
     bool equals(const EndpointID& other) const
     {
-        return str_ == other.str_;
+        return uri_ == other.uri_;
     }
 
     /**
@@ -123,7 +124,7 @@ public:
      */
     bool operator==(const EndpointID& other) const
     {
-        return str_ == other.str_;
+        return uri_ == other.uri_;
     }
     
     /**
@@ -131,7 +132,7 @@ public:
      */
     bool operator!=(const EndpointID& other) const
     {
-        return str_ != other.str_;
+        return uri_ != other.uri_;
     }
 
     /**
@@ -140,7 +141,7 @@ public:
      */
     bool operator<(const EndpointID& other) const
     {
-        return str_ < other.str_;
+        return uri_ < other.uri_;
     }
 
     /**
@@ -180,13 +181,6 @@ public:
     static const EndpointID NULL_EID() { return EndpointID("dtn:none"); }
     
     /**
-     * Return the special wildcard Endpoint ID. This functionality is
-     * not in the bundle spec, but is used internally to this
-     * implementation.
-     */
-    static const EndpointID WILDCARD_EID() { return EndpointID("*:*"); }
-    
-    /**
      * Virtual from SerializableObject
      */
     virtual void serialize(oasys::SerializeAction* a);
@@ -194,15 +188,16 @@ public:
     /// @{
     /// Accessors and wrappers around the various fields.
     ///
-    const std::string& str()        const { return str_; }
-    const std::string& scheme_str() const { return scheme_str_; }
-    const std::string& ssp()        const { return ssp_; }
+    const URI&         uri()        const { return uri_; }
+    const std::string& str()        const { return uri_.uri(); }
+    const std::string& scheme_str() const { return uri_.scheme(); }
+    const std::string& ssp()        const { return uri_.ssp(); }
     Scheme*            scheme()     const { return scheme_; }
     bool               valid()      const { return valid_; }
     bool               is_pattern() const { return is_pattern_; }
-    const char*        c_str()      const { return str_.c_str(); } 
-    const char*        data()       const { return str_.data(); }
-    size_t             length()     const { return str_.length(); }
+    const char*        c_str()      const { return uri_.uri().c_str(); } 
+    const char*        data()       const { return uri_.uri().data(); }
+    size_t             length()     const { return uri_.uri().length(); }
     ///@}
 
 protected:
@@ -213,10 +208,10 @@ protected:
      */
     bool parse();
 
-    std::string str_;		/* the whole string  */
-    std::string scheme_str_;	/* the scheme string  */
-    std::string ssp_;		/* the scheme-specific part */
+    URI uri_;                   /* endpoint URI */
+
     Scheme* scheme_;		/* the scheme class (if known) */
+
     bool valid_;		/* true iff the endpoint id is valid */
     bool is_pattern_;		/* true iff this is an EndpointIDPattern */
 };
@@ -234,6 +229,7 @@ public:
     EndpointIDPattern() : EndpointID()
     {
         is_pattern_ = true;
+        uri_.set_validate(false);
     }
 
     /**
@@ -242,6 +238,7 @@ public:
     EndpointIDPattern(const std::string& str) : EndpointID()
     {
         is_pattern_ = true;
+        uri_.set_validate(false);
         assign(str);
     }
 
@@ -249,20 +246,17 @@ public:
      * Construct the endpoint id pattern from another.
      */
     EndpointIDPattern(const EndpointIDPattern& other)
-         : EndpointID(other)
-    {
-        is_pattern_ = true;
-        assign(other);
-    }
+         : EndpointID(other) {}
 
     /**
      * Construct the endpoint id pattern from another that is not
      * necessarily a pattern.
      */
-    EndpointIDPattern(const EndpointID& other)
+    EndpointIDPattern(const EndpointID& other) : EndpointID(other)
     {
         is_pattern_ = true;
-        assign(other);
+        uri_.set_validate(false);
+        parse();
     }
 
     /**
@@ -270,7 +264,14 @@ public:
      * scheme.
      */
     bool match(const EndpointID& eid) const;
-   
+
+    /**
+     * Return the special wildcard Endpoint ID. This functionality is
+     * not in the bundle spec, but is used internally to this
+     * implementation.
+     */
+    static const EndpointIDPattern WILDCARD_EID()
+                     { return EndpointIDPattern("*:*"); }
 };
 
 /**

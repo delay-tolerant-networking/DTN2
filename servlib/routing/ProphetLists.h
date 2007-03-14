@@ -28,7 +28,6 @@
 #include "storage/BundleStore.h"
 #include "contacts/Link.h"
 #include <oasys/util/BoundedPriorityQueue.h>
-#include <oasys/util/URL.h>
 
 #include <vector>
 #include <map>

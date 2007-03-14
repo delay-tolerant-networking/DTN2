@@ -17,6 +17,8 @@
 
 #include <ctype.h>
 
+#include <oasys/debug/Log.h>
+
 #include "applib/dtn_types.h"
 #include "EndpointID.h"
 #include "Scheme.h"
@@ -32,55 +34,23 @@ namespace dtn {
 bool
 EndpointID::parse()
 {
-    size_t pos;
+    static const char* log = "/dtn/naming/endpoint/";
 
     scheme_ = NULL;
-    scheme_str_.erase();
-    ssp_.erase();
     valid_ = false;
-    
-    if ((pos = str_.find(':')) == std::string::npos)
-        return false; // no :
 
-    if (pos == 0) {
-        return false; // empty scheme
-    }
-    
-    scheme_str_.assign(str_, 0, pos);
-
-    if (!is_pattern_) {
-        // validate that scheme is composed of legitimate characters
-        // according to the URI spec (RFC 3986)
-        std::string::iterator iter = scheme_str_.begin();
-        if (! isalpha(*iter)) {
-            return false;
-        }
-        ++iter;
-        for (; iter != scheme_str_.end(); ++iter) {
-            char c = *iter;
-            if (isalnum(c) || (c == '+') || (c == '-') || (c == '.'))
-                continue;
-        
-            return false; // invalid character
-        }
+    uri_.parse();
+    if (!uri_.valid()) {
+        log_err_p(log, "EndpointID::parse: invalid URI");
+        return false;
     }
 
-    // XXX/demmer should really validate the rest of it, but the URI
-    // validation rules are actually a bit complex...
-    scheme_ = SchemeTable::instance()->lookup(scheme_str_);
-    
-    if (pos == str_.length() - 1) {
-        return false; // empty scheme or ssp
-    }
-    ssp_.assign(str_, pos + 1, str_.length() - pos);
+    valid_ = true;
 
-
-    if (scheme_) {
-        valid_ = scheme_->validate(ssp_, is_pattern_);
-    } else {
-        valid_ = true;
+    if ((scheme_ = SchemeTable::instance()->lookup(uri_.scheme())) != NULL) {
+        valid_ = scheme_->validate(uri_, is_pattern_);
     }
-    
+
     return valid_;
 }
 
@@ -97,13 +67,18 @@ EndpointID::append_service_tag(const char* tag)
     if (!scheme_)
         return false;
 
-    bool ok = scheme_->append_service_tag(&ssp_, tag);
+    bool ok = scheme_->append_service_tag(uri_.ssp_ptr(), tag);
     if (!ok)
         return false;
 
     // rebuild the string
-    str_ = scheme_str_ + ":" + ssp_;
-    
+    uri_.format();
+    if (!uri_.valid()) {
+        log_err_p("/dtn/naming/endpoint/", "EndpointID::append_service_tag: "
+                                           "failed to format appended URI");
+        return false;
+    }
+
     return true;
 }
 
@@ -115,7 +90,7 @@ EndpointID::append_service_tag(const char* tag)
 bool
 EndpointID::assign(const dtn_endpoint_id_t* eid)
 {
-    str_.assign(eid->uri);
+    uri_.assign(std::string(eid->uri));
     return parse();
 }
     
@@ -126,8 +101,8 @@ EndpointID::assign(const dtn_endpoint_id_t* eid)
 void
 EndpointID::copyto(dtn_endpoint_id_t* eid) const
 {
-    ASSERT(str_.length() <= DTN_MAX_ENDPOINT_ID + 1);
-    strcpy(eid->uri, str_.c_str());
+    ASSERT(uri_.uri().length() <= DTN_MAX_ENDPOINT_ID + 1);
+    strcpy(eid->uri, uri_.uri().c_str());
 }
 
 
@@ -137,7 +112,7 @@ EndpointID::copyto(dtn_endpoint_id_t* eid) const
 void
 EndpointID::serialize(oasys::SerializeAction* a)
 {
-    a->process("uri", &str_);
+    uri_.serialize(a);
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
         parse();
     }

@@ -20,7 +20,6 @@
 #include <oasys/thread/Timer.h>
 #include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
-#include <oasys/util/URL.h>
 
 #include "UDPConvergenceLayer.h"
 #include "bundling/Bundle.h"

@@ -20,7 +20,6 @@
 #include "routing/Prophet.h"
 #include <oasys/debug/Log.h>
 #include <oasys/util/Time.h>
-#include <oasys/util/URL.h>
 #include "naming/EndpointID.h"
 #include "bundling/BundleEvent.h"
 #include <oasys/serialize/Serialize.h>

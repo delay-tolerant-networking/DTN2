@@ -43,13 +43,13 @@ typedef struct ether_addr {
 class EthernetScheme : public Scheme, public oasys::Singleton<EthernetScheme> {
 public:
     /**
-     * Validate that the given ssp is legitimate for this scheme. If
-     * the 'is_pattern' paraemeter is true, then the ssp is being
-     * validated as an EndpointIDPattern.
+     * Validate that the SSP within the given URI is legitimate for
+     * this scheme. If the 'is_pattern' paraemeter is true, then the
+     * ssp is being validated as an EndpointIDPattern.
      *
      * @return true if valid
      */
-    virtual bool validate(const std::string& ssp, bool is_pattern = false);
+    virtual bool validate(const URI& uri, bool is_pattern = false);
 
     /**
      * Match the pattern to the endpoint id in a scheme-specific

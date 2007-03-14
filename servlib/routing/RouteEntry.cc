@@ -27,7 +27,7 @@ namespace dtn {
 RouteEntry::RouteEntry(const EndpointIDPattern& dest_pattern,
                        const LinkRef& link)
     : dest_pattern_(dest_pattern),
-      source_pattern_(EndpointID::WILDCARD_EID()),
+      source_pattern_(EndpointIDPattern::WILDCARD_EID()),
       bundle_cos_((1 << Bundle::COS_BULK) |
                   (1 << Bundle::COS_NORMAL) |
                   (1 << Bundle::COS_EXPEDITED)),

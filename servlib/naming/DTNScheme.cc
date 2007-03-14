@@ -18,7 +18,6 @@
 #include <ctype.h>
 #include <oasys/debug/Log.h>
 #include <oasys/util/Glob.h>
-#include <oasys/util/URL.h>
 
 #include "DTNScheme.h"
 #include "EndpointID.h"
@@ -30,41 +29,15 @@ DTNScheme* oasys::Singleton<DTNScheme>::instance_ = 0;
 
 //----------------------------------------------------------------------
 bool
-DTNScheme::validate(const std::string& ssp, bool is_pattern)
+DTNScheme::validate(const URI& uri, bool is_pattern)
 {
     (void)is_pattern;
-    
-    // first check for the special ssp that is simply "none"
-    if (ssp == "none") {
-        return true;
-    }
-    
-    // use the oasys builtin class for URLs, though we need to re-add
-    // the dtn scheme since it was stripped by the basic endpoint id
-    // parsing
-    oasys::URL url("dtn", ssp);
-    if (! url.valid()) {
+
+    if (!uri.valid()) {
+        log_debug_p("/dtn/scheme/dtn", "DTNScheme::validate: invalid URI");
         return false;
     }
 
-    // validate that the hostname contains only legal chars.
-    // XXX/demmer we could be better about making sure it's really a
-    // legal hostname, i.e. doesn't contain two dots in a row,
-    // something like like www.foo..com 
-    std::string::iterator iter;
-    for (iter = url.host_.begin(); iter != url.host_.end(); ++iter) {
-        char c = *iter;
-        
-        if (isalnum(c) || (c == '_') || (c == '-') || (c == '.') || (c == '*'))
-            continue;
-        
-        log_debug_p("/dtn/scheme/dtn",
-                    "ssp '%s' contains invalid hostname character '%c'",
-                    ssp.c_str(), c);
-
-        return false;
-    }
-    
     return true;
 }
 
@@ -86,26 +59,22 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
     
-    // parse the two strings into URLs for easier manipulation
-    oasys::URL eid_url(eid.str());
-    oasys::URL pattern_url(pattern.str());
-    
-    if (!eid_url.valid()) {
+    if (!eid.uri().valid()) {
         log_warn_p("/dtn/scheme/dtn",
-                   "match error: eid '%s' not a valid url",
+                   "match error: eid '%s' not a valid uri",
                    eid.c_str());
         return false;
     }
     
-    if (!pattern_url.valid()) {
+    if (!pattern.uri().valid()) {
         log_warn_p("/dtn/scheme/dtn",
-                   "match error: pattern '%s' not a valid url",
+                   "match error: pattern '%s' not a valid uri",
                    pattern.c_str());
         return false;
     }
 
     // check for a wildcard host specifier e.g dtn://*
-    if (pattern_url.host_ == "*" && pattern_url.path_ == "")
+    if (pattern.uri().host() == "*" && pattern.uri().path() == "")
     {
         return true;
     }
@@ -113,38 +82,44 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
     // use glob rules to match the hostname part -- note that we don't
     // distinguish between which one has the glob patterns so we run
     // glob in both directions looking for a match
-    if (! (oasys::Glob::fixed_glob(pattern_url.host_.c_str(),
-                                   eid_url.host_.c_str()) ||
-           oasys::Glob::fixed_glob(eid_url.host_.c_str(),
-                                   pattern_url.host_.c_str())) )
+    if (! (oasys::Glob::fixed_glob(pattern.uri().host().c_str(),
+                                   eid.uri().host().c_str()) ||
+           oasys::Glob::fixed_glob(eid.uri().host().c_str(),
+                                   pattern.uri().host().c_str())) )
     {
         log_debug_p("/dtn/scheme/dtn",
-                    "match(%s, %s) failed: url hosts don't glob ('%s' != '%s')",
-                    eid_url.c_str(), pattern_url.c_str(),
-                    pattern_url.host_.c_str(), eid_url.host_.c_str());
+                    "match(%s, %s) failed: uri hosts don't glob ('%s' != '%s')",
+                    eid.uri().c_str(), pattern.uri().c_str(),
+                    pattern.uri().host().c_str(), eid.uri().host().c_str());
         return false;
     }
 
     // make sure the ports are equal (or unspecified in which case they're 0)
-    if (pattern_url.port_ != eid_url.port_)
+    if (pattern.uri().port_num() != eid.uri().port_num())
     {
         log_debug_p("/dtn/scheme/dtn",
-                    "match(%s, %s) failed: url ports not equal (%d != %d)",
-                    eid_url.c_str(), pattern_url.c_str(),
-                    pattern_url.port_, eid_url.port_);
+                    "match(%s, %s) failed: uri ports not equal (%d != %d)",
+                    eid.uri().c_str(), pattern.uri().c_str(),
+                    pattern.uri().port_num(), eid.uri().port_num());
         return false;
     }
 
+    std::string pattern_path(pattern.uri().path());
+    if ((pattern_path.length() >= 2) &&
+        (pattern_path.substr((pattern_path.length() - 2), 2) == "/*")) {
+        pattern_path.replace((pattern_path.length() - 2), 2, 1, '*');
+    }
+
     // check for a glob match of the path strings
-    if (! (oasys::Glob::fixed_glob(pattern_url.path_.c_str(),
-                                   eid_url.path_.c_str()) ||
-           oasys::Glob::fixed_glob(eid_url.path_.c_str(),
-                                   pattern_url.path_.c_str())) )
+    if (! (oasys::Glob::fixed_glob(pattern_path.c_str(),
+                                   eid.uri().path().c_str()) ||
+           oasys::Glob::fixed_glob(eid.uri().path().c_str(),
+                                   pattern_path.c_str())) )
     {
         log_debug_p("/dtn/scheme/dtn",
                     "match(%s, %s) failed: paths don't glob ('%s' != '%s')",
-                    eid_url.c_str(), pattern_url.c_str(),
-                    pattern_url.path_.c_str(), eid_url.path_.c_str());
+                    eid.uri().c_str(), pattern.uri().c_str(),
+                    pattern.uri().path().c_str(), eid.uri().path().c_str());
         return false;
     }
 
@@ -168,10 +143,12 @@ DTNScheme::append_service_tag(std::string* ssp, const char* tag)
 bool
 DTNScheme::is_singleton(const std::string& ssp)
 {
-    // if there's a * in the hostname part of the URL, then it's not a
+    // if there's a * in the hostname part of the URI, then it's not a
     // singleton endpoint
-    oasys::URL url("dtn", ssp);
-    if (url.host_.find('*') != std::string::npos) {
+    oasys::URI uri("dtn:" + ssp);
+
+    uri.parse();
+    if (!uri.valid() || (uri.host().find('*') != std::string::npos)) {
         return false;
     }
     return true;

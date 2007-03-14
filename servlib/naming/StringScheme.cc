@@ -23,18 +23,18 @@ template <>
 StringScheme* oasys::Singleton<StringScheme>::instance_ = 0;
 
 /**
- * Validate that the given ssp is legitimate for this scheme. If
- * the 'is_pattern' paraemeter is true, then the ssp is being
- * validated as an EndpointIDPattern.
+ * Validate that the SSP in the given URI is legitimate for
+ * this scheme. If the 'is_pattern' paraemeter is true, then
+ * the ssp is being validated as an EndpointIDPattern.
  *
  * @return true if valid
  */
 bool
-StringScheme::validate(const std::string& ssp, bool is_pattern)
+StringScheme::validate(const URI& uri, bool is_pattern)
 {
     (void)is_pattern;
     
-    if (ssp == "")
+    if (uri.ssp() == "")
         return false;
     
     return true;

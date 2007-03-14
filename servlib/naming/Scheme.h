@@ -19,7 +19,11 @@
 
 #include <string>
 
+#include <oasys/util/URI.h>
+
 namespace dtn {
+
+typedef oasys::URI URI;
 
 class EndpointID;
 class EndpointIDPattern;
@@ -37,14 +41,13 @@ public:
     virtual ~Scheme();
 
     /**
-     * Validate that the given ssp is legitimate for this scheme. If
-     * the 'is_pattern' paraemeter is true, then the ssp is being
-     * validated as an EndpointIDPattern.
+     * Validate that the SSP within the given URI is legitimate for
+     * this scheme. If the 'is_pattern' paraemeter is true, then the
+     * ssp is being validated as an EndpointIDPattern.
      *
      * @return true if valid
      */
-    virtual bool validate(const std::string& ssp,
-                          bool is_pattern = false) = 0;
+    virtual bool validate(const URI& uri, bool is_pattern = false) = 0;
 
     /**
      * Match the pattern to the endpoint id in a scheme-specific

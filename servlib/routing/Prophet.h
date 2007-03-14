@@ -19,7 +19,7 @@
 
 #include <sys/types.h>
 #include <oasys/thread/SpinLock.h>
-#include <oasys/util/URL.h>
+#include <oasys/util/URI.h>
 #include "naming/EndpointID.h"
 
 /**
@@ -713,9 +713,9 @@ struct Prophet {
      */
     static EndpointID eid_to_routeid(const EndpointID& eid)
     { 
-        oasys::URL eid_url(eid.str());
+        oasys::URI eid_uri(eid.str());
         EndpointID routeid;
-        routeid.assign(eid.scheme_str(),"//" + eid_url.host_);
+        routeid.assign(eid.scheme_str(),"//" + eid_uri.host());
         return routeid;
     }
 

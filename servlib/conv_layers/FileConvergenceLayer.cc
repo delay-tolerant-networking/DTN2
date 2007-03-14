@@ -25,7 +25,7 @@
 
 #include <oasys/io/IO.h>
 #include <oasys/util/StringBuffer.h>
-#include <oasys/util/URL.h>
+#include <oasys/util/URI.h>
 
 #include "FileConvergenceLayer.h"
 #include "bundling/Bundle.h"
@@ -54,33 +54,35 @@ FileConvergenceLayer::extract_dir(const char* nexthop, std::string* dirp)
 {
 
     PANIC("XXX/demmer fix this implementation");
-    
-    oasys::URL url(nexthop);
-    
-    if (! url.valid()) {
-        log_err("extract_dir: next hop ssp '%s' not a valid url", nexthop);
+
+    oasys::URI uri(nexthop);
+
+    uri.parse();
+    if (!uri.valid()) {
+        log_err("FileConvergenceLayer::extract_dir: "
+                "next hop ssp '%s' not a valid uri", nexthop);
         return false;
     }
 
-    // the ssp part of the URL should be of the form:
+    // the ssp part of the URI should be of the form:
     // /path1/path2
 
-    // validate that the "host" part of the url is empty, i.e. that
+    // validate that the "host" part of the uri is empty, i.e. that
     // the filesystem path is absolute
-    if (url.host_.length() != 0) {
+    if (uri.host().length() != 0) {
         log_err("interface eid '%s' specifies a non-absolute path",
                 nexthop);
         return false;
     }
 
     // and make sure there wasn't a port that was parsed out
-    if (url.port_ != 0) {
+    if (!uri.port().empty()) {
         log_err("interface eid '%s' specifies a port", nexthop);
         return false;
     }
 
     dirp->assign("/");
-    dirp->append(url.path_);
+    dirp->append(uri.path());
     return true;
 }
 

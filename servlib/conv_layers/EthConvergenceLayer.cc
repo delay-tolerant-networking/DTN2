@@ -31,7 +31,6 @@
 #include <oasys/io/IO.h>
 #include <oasys/thread/Timer.h>
 #include <oasys/util/OptParser.h>
-#include <oasys/util/URL.h>
 #include <oasys/util/StringBuffer.h>
 
 #include "EthConvergenceLayer.h"
