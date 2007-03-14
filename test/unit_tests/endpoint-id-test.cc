@@ -34,6 +34,11 @@ typedef enum {
 } known_t;
 
 typedef enum {
+    NOTEQUAL = 0,
+    EQUAL    = 1
+} equal_t;
+
+typedef enum {
     NOMATCH = 0,
     MATCH = 1
 } match_t;
@@ -50,12 +55,24 @@ bool known(const char* str)
     return eid.known_scheme();
 }
 
+bool equal(const char* str1, const char* str2)
+{
+    EndpointID eid1(str1);
+    EndpointID eid2(str2);
+    return (eid1 == eid2);
+}
+
 #define EIDCHECK(_valid, _known, _str)          \
 do {                                            \
                                                 \
     CHECK_EQUAL(valid(_str), _valid);           \
     CHECK_EQUAL(known(_str), _known);           \
 } while (0)
+
+#define EIDEQUAL(_equal, _eid1, _eid2)			\
+do {							\
+    CHECK_EQUAL(equal(_eid1, _eid2), _equal);		\
+} while(0)
 
 #define EIDMATCH(_match, _pattern, _eid)                                \
 do {                                                                    \
@@ -72,7 +89,6 @@ DECLARE_TEST(Invalid) {
     // test a bunch of invalid eids
     EIDCHECK(INVALID, UNKNOWN, "");
     EIDCHECK(INVALID, UNKNOWN, "foo");
-    EIDCHECK(INVALID, UNKNOWN, "foo:");
     EIDCHECK(INVALID, UNKNOWN, ":foo");
     EIDCHECK(INVALID, UNKNOWN, "1abc:bar");
     EIDCHECK(INVALID, UNKNOWN, "-abc:bar");
@@ -86,10 +102,11 @@ DECLARE_TEST(Invalid) {
 
 DECLARE_TEST(Unknown) {
     // test some valid but unknown eids
+    EIDCHECK(VALID, UNKNOWN, "foo:");
     EIDCHECK(VALID, UNKNOWN, "foo:bar");
     EIDCHECK(VALID, UNKNOWN, "fooBAR123:bar");
     EIDCHECK(VALID, UNKNOWN, "foo+BAR-123.456:baz");
-    EIDCHECK(VALID, UNKNOWN, "foo:bar/baz/0123456789_-+=<>.,?\'\";:`~");
+    EIDCHECK(VALID, UNKNOWN, "foo:bar/baz/0123456789_-+=.,\';:~");
 
     return UNIT_TEST_PASSED;
 }
@@ -108,11 +125,13 @@ DECLARE_TEST(DTN) {
     // and the lone valid null scheme
     EIDCHECK(VALID,   KNOWN, "dtn:none");
 
+// XXX CEJ These are all valid generic URIs, and the DTN scheme-specific
+//         parsing does not classify these URIs as invalid.
     // and some invalid ones
-    EIDCHECK(INVALID, KNOWN, "dtn:/");
-    EIDCHECK(INVALID, KNOWN, "dtn://");
-    EIDCHECK(INVALID, KNOWN, "dtn:host");
-    EIDCHECK(INVALID, KNOWN, "dtn:/host");
+//    EIDCHECK(INVALID, KNOWN, "dtn:/");
+//    EIDCHECK(INVALID, KNOWN, "dtn://");
+//    EIDCHECK(INVALID, KNOWN, "dtn:host");
+//    EIDCHECK(INVALID, KNOWN, "dtn:/host");
 
     return UNIT_TEST_PASSED;
 }
@@ -224,21 +243,22 @@ DECLARE_TEST(DTNMatch) {
              "dtn://host1/demux",
              "dtn://host1/demux/something");
 
-    EIDMATCH(NOMATCH,
-             "dtn://tier.cs.berkeley.edu/demux?foo=",
-             "dtn://tier.cs.berkeley.edu/demux?bar=");
-
-    EIDMATCH(NOMATCH,
-             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
-             "dtn://tier.cs.berkeley.edu/demux?foo=baz");
-
-    EIDMATCH(NOMATCH,
-             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
-             "dtn://tier.cs.berkeley.edu/demux?bar=foo");
-
-    EIDMATCH(NOMATCH,
-             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=3&d=4",
-             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=4&d=3");
+// XXX CEJ The query component is not used when matching DTN URIs.
+//    EIDMATCH(NOMATCH,
+//             "dtn://tier.cs.berkeley.edu/demux?foo=",
+//             "dtn://tier.cs.berkeley.edu/demux?bar=");
+//
+//    EIDMATCH(NOMATCH,
+//             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
+//             "dtn://tier.cs.berkeley.edu/demux?foo=baz");
+//
+//    EIDMATCH(NOMATCH,
+//             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
+//             "dtn://tier.cs.berkeley.edu/demux?bar=foo");
+//
+//    EIDMATCH(NOMATCH,
+//             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=3&d=4",
+//             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=4&d=3");
 
 
     // the none ssp never matches
@@ -283,6 +303,7 @@ DECLARE_TEST(WildcardMatch) {
     return UNIT_TEST_PASSED;
 }
 
+// XXX CEJ These tests are invalid by RFC 3986
 DECLARE_TEST(Ethernet) {
     EIDCHECK(VALID,   KNOWN, "eth://01:23:45:67:89:ab");
     EIDCHECK(VALID,   KNOWN, "eth://ff:ff:ff:ff:ff:ff");
@@ -322,6 +343,226 @@ DECLARE_TEST(StringMatch) {
     return UNIT_TEST_PASSED;
 }
 
+DECLARE_TEST(URIGenericSyntax) {
+
+    // scheme component validation
+    EIDCHECK(INVALID, UNKNOWN, "");
+    EIDCHECK(INVALID, UNKNOWN, ":");
+    EIDCHECK(INVALID, UNKNOWN, "eid");
+    EIDCHECK(VALID,   UNKNOWN, "e:");
+    EIDCHECK(INVALID, UNKNOWN, "1eid:");
+    EIDCHECK(VALID,   UNKNOWN, "eid1:");
+    EIDCHECK(VALID,   UNKNOWN, "eid123+-.:");
+    EIDCHECK(INVALID, UNKNOWN, "eid123+-.!:");
+
+    // path component validation
+    EIDCHECK(VALID,   UNKNOWN, "eid:");
+    EIDCHECK(VALID,   UNKNOWN, "eid:?");
+    EIDCHECK(VALID,   UNKNOWN, "eid:#");
+    EIDCHECK(VALID,   UNKNOWN, "eid:/");
+    EIDCHECK(VALID,   UNKNOWN, "eid://");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority/");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority//");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority/path/more_path");
+    EIDCHECK(VALID,   UNKNOWN, "eid:path");
+    EIDCHECK(VALID,   UNKNOWN, "eid:/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid:/path/more_path");
+    EIDCHECK(VALID,   UNKNOWN, "eid:/path123-._~!$&;()*+,;=:@");
+    EIDCHECK(VALID,   UNKNOWN, "eid:/path123-._~!$&;()*+,;=:@#");
+    EIDCHECK(INVALID, UNKNOWN, "eid:/path123-._~!$&;()*+,;=:@<");
+    EIDCHECK(INVALID, UNKNOWN, "eid:/path123-._~!$&;()*+,;=:@%");
+    EIDCHECK(INVALID, UNKNOWN, "eid:/path123-._~!$&;()*+,;=:@%1");
+    EIDCHECK(VALID,   UNKNOWN, "eid:/path123-._~!$&;()*+,;=:@%1a");
+    EIDCHECK(VALID,   UNKNOWN, "eid:/%1a");
+
+    // query component validation
+    EIDCHECK(VALID,   UNKNOWN, "eid:?");
+    EIDCHECK(VALID,   UNKNOWN, "eid:path?");
+    EIDCHECK(VALID,   UNKNOWN, "eid:/?");
+    EIDCHECK(VALID,   UNKNOWN, "eid://?");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority?");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority/path?");
+    EIDCHECK(VALID,   UNKNOWN, "eid:?#");
+    EIDCHECK(VALID,   UNKNOWN, "eid:??");
+    EIDCHECK(VALID,   UNKNOWN, "eid:?abc123-._~!$&;()*+,;=:@/?");
+    EIDCHECK(VALID,   UNKNOWN, "eid:?abc123-._~!$&;()*+,;=:@/?#");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority?c3-._~!$&;()*+,;=:@/?");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority/path?c3-._~!$&;()*+,;=:@/?");
+    EIDCHECK(INVALID, UNKNOWN, "eid:?abc123-._~!$&;()*+,;=:@/?<");
+    EIDCHECK(INVALID, UNKNOWN, "eid:?abc123-._~!$&;()*+,;=:@/?%");
+    EIDCHECK(INVALID, UNKNOWN, "eid:?abc123-._~!$&;()*+,;=:@/?%2");
+    EIDCHECK(VALID,   UNKNOWN, "eid:?abc123-._~!$&;()*+,;=:@/?%2b");
+    EIDCHECK(VALID,   UNKNOWN, "eid:?%2b");
+
+    // fragment component validation
+    EIDCHECK(VALID,   UNKNOWN, "eid:#");
+    EIDCHECK(VALID,   UNKNOWN, "eid:path#");
+    EIDCHECK(VALID,   UNKNOWN, "eid:path?#");
+    EIDCHECK(VALID,   UNKNOWN, "eid:/#");
+    EIDCHECK(VALID,   UNKNOWN, "eid://#");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority#");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority/path#");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority/path?#");
+    EIDCHECK(VALID,   UNKNOWN, "eid:#?");
+    EIDCHECK(VALID,   UNKNOWN, "eid:#abc123-._~!$&;()*+,;=:@/?");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority#c3-._~!$&;()*+,;=:@/?");
+    EIDCHECK(VALID,   UNKNOWN, "eid://authority/path#c3-._~!$&;()*+,;=:@/?");
+    EIDCHECK(INVALID, UNKNOWN, "eid:#abc123-._~!$&;()*+,;=:@/?<");
+    EIDCHECK(INVALID, UNKNOWN, "eid:##");
+    EIDCHECK(INVALID, UNKNOWN, "eid:#abc123-._~!$&;()*+,;=:@/?%");
+    EIDCHECK(INVALID, UNKNOWN, "eid:#abc123-._~!$&;()*+,;=:@/?%3");
+    EIDCHECK(VALID,   UNKNOWN, "eid:#abc123-._~!$&;()*+,;=:@/?%3c");
+    EIDCHECK(VALID,   UNKNOWN, "eid:#%3c");
+
+    // authority component validation
+    EIDCHECK(VALID,   UNKNOWN, "eid://");
+    EIDCHECK(VALID,   UNKNOWN, "eid:///path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://@/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo@");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo@/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo@host/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo123-._~!$&;()*+,;=:@/path");
+    EIDCHECK(INVALID, UNKNOWN, "eid://userinfo123-._~!$&;()*+,;=:<@/path");
+    EIDCHECK(INVALID, UNKNOWN, "eid://userinfo123-._~!$&;()*+,;=:%@/path");
+    EIDCHECK(INVALID, UNKNOWN, "eid://userinfo123-._~!$&;()*+,;=:%4@/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo123-._~!$&;()*+,;=:%4d@/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://%4d@/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo@/path@");
+    EIDCHECK(VALID,   UNKNOWN, "eid://host/path@");
+    EIDCHECK(VALID,   UNKNOWN, "eid://:");
+    EIDCHECK(VALID,   UNKNOWN, "eid://:/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://:1/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://:123");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo@:123/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo@host:123/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://host:123");
+    EIDCHECK(INVALID, UNKNOWN, "eid://host:123a");
+    EIDCHECK(VALID,   UNKNOWN, "eid://host");
+    EIDCHECK(VALID,   UNKNOWN, "eid://host/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://host?");
+    EIDCHECK(VALID,   UNKNOWN, "eid://host123-._~!$&;()*+,;=:123/path");
+    EIDCHECK(INVALID, UNKNOWN, "eid://host123-._~!$&;()*+,;=<:123/path");
+    EIDCHECK(INVALID, UNKNOWN, "eid://host123-._~!$&;()*+,;=%:123/path");
+    EIDCHECK(INVALID, UNKNOWN, "eid://host123-._~!$&;()*+,;=%5:123/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://host123-._~!$&;()*+,;=%5e:123/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://%5e:123/path");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo@0.1.2.3:80/path");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[host");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[v]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[v123]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[V123a]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[v123.]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[v123.a]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[v123.abc123-._~!$&;()*+,;=:]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[v123.abc123-._~!$&;()*+,;=:<]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://userinfo@[v123.abc123]:80/path");
+    EIDCHECK(INVALID, UNKNOWN, "eid://userinfo@[v123.abc123]80/path");
+    EIDCHECK(VALID,   UNKNOWN,
+             "eid://[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]");
+    EIDCHECK(INVALID, UNKNOWN,
+             "eid://[fffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]");
+    EIDCHECK(INVALID, UNKNOWN,
+             "eid://[ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[:ff:ff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[::ff:ff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[:ff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[::ff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[:::ff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff:ff:]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff:ff::]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff:]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff::]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff:::]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff::ff:ff:ff:ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[ff:ff:ff:ff::ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:::ff:ff:ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[ff:ff:ff::ff:ff:ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[ff:ff::ff:ff:ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[ff:ff::ff:ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[ff::ff:ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[ff::ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[::ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[::]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[:::]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[gff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[:gff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[::gff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ffg]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff:g]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff::g]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:gff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ffg:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff::ff:ff::ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff::ff:ff:ff:ff:ff::]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[::ff:ff:ff:ff:ff:ff::]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff::.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff:0.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff::0.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:0.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:ff.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:g.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:0.1.2.g]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:0.1..3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:0.1.g3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[0.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[:0.1.2.3]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[::0.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[:::0.1.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[::01.1.2.3]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[::0.1.255.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[::0.1.256.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[::0.1.2.3.4]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[::0.1.2.3xxx]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[::0.1.2]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[::0.1111.2.3]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[0.1.2.3::ff:ff:ff:ff:ff:ff]");
+    EIDCHECK(INVALID, UNKNOWN, "eid://[ff:ff:ff::0.1.2.3::ff:ff:ff]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[ff:ff:ff:ff:ff:ff:0.1.2.3]");
+    EIDCHECK(VALID,   UNKNOWN, "eid://[ff:ff:ff:ff:ff::0.1.2.3]");
+
+    return UNIT_TEST_PASSED;
+}
+
+DECLARE_TEST(URIEquality) {
+
+    EIDEQUAL(EQUAL,    "eid://simpletest", "eid://simpletest");
+    EIDEQUAL(EQUAL,    "eid://simpletest", "eid://SimpleTest");
+    EIDEQUAL(EQUAL,    "example://a/b/c/%7Bfoo%7D",
+                       "example://a/./b/../b/%63/%7bfoo%7d");
+    EIDEQUAL(EQUAL,    "example://a/b/c/%7Bfoo%7D",
+                       "example://a/./b/../b/%63/%7bfoo%7d");
+    EIDEQUAL(EQUAL,    "eid:/test/path", "eid:/test/path");
+    EIDEQUAL(EQUAL,    "eid:/test../path./again.", "eid:/test../path./again.");
+    EIDEQUAL(EQUAL,    "eid:/test../path/again..", "eid:/test../path/again..");
+    EIDEQUAL(EQUAL,    "eid:", "eid:.");
+    EIDEQUAL(EQUAL,    "eid:", "eid:..");
+    EIDEQUAL(EQUAL,    "eid:", "eid:././././.");
+    EIDEQUAL(EQUAL,    "eid:/", "eid:/././././.");
+    EIDEQUAL(EQUAL,    "eid:", "eid:../../../../..");
+    EIDEQUAL(EQUAL,    "eid:/", "eid:/../../../../..");
+    EIDEQUAL(EQUAL,    "eid:/", "eid:/./.././../.");
+    EIDEQUAL(EQUAL,    "eid:/t/e/s/t/", "eid:/t/./e/./s/./t/.");
+    EIDEQUAL(EQUAL,    "eid:/t/e/s/t/", "eid:/t/../t/e/../e/s/../s/t/../t/");
+    EIDEQUAL(EQUAL,    "eid:/t/e/s/t/", "eid:/t/e/../../t/e/s/t/../../s/t/");
+    EIDEQUAL(EQUAL,    "eid:/", "eid:/t/./e/./s/./t/./.././.././.././../.");
+    EIDEQUAL(EQUAL,    "eid:/", "eid:t/./e/./s/./t/./.././.././.././../.");
+    EIDEQUAL(EQUAL,    "eid:/test../path./", "eid:/test../path././again../..");
+    EIDEQUAL(EQUAL,    "eid:/", "eid:/test/..");
+    EIDEQUAL(EQUAL,    "eid:/", "eid:test/..");
+    EIDEQUAL(EQUAL,
+             "eid://%7DUSERc%7B@host.c.%7B:55/Test/c/Path/?Cc%7D#Cc%7B",
+             "EiD://%7dUSER%63%7b@HoST.%63.%7b:55/Test/%63/Path/%7b/../."
+	         "?C%63%7d#C%63%7b");
+	 
+    return UNIT_TEST_PASSED;
+}
+
 DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(Invalid);
     ADD_TEST(Unknown);
@@ -329,11 +570,14 @@ DECLARE_TESTER(EndpointIDTester) {
     ADD_TEST(DTNMatch);
     ADD_TEST(Wildcard);
     ADD_TEST(WildcardMatch);
-#ifdef __linux__
-    ADD_TEST(Ethernet);
-#endif
+// XXX CEJ These tests are invalid by RFC 3986
+//#ifdef __linux__
+//    ADD_TEST(Ethernet);
+//#endif
     ADD_TEST(String);
     ADD_TEST(StringMatch);
+    ADD_TEST(URIGenericSyntax);
+    ADD_TEST(URIEquality);
 }
 
 DECLARE_TEST_FILE(EndpointIDTester, "endpoint id test");
