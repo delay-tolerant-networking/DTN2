@@ -330,7 +330,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all oasys"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR BUILDDIR AR ac_ct_AR RANLIB ac_ct_RANLIB DEBUG OPTIMIZE OPTIMIZE_WARN PROFILE STATIC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SHLIBS SHLIB_EXT PICFLAGS RPATH LDFLAGS_SHLIB TARGET CXX CXXFLAGS ac_ct_CXX CPP EGREP DEPFLAGS AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE XSD_TOOL ac_ct_XSD_TOOL OASYS_LIBS subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS SRCDIR BUILDDIR AR ac_ct_AR RANLIB ac_ct_RANLIB DEBUG OPTIMIZE OPTIMIZE_WARN PROFILE STATIC CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SHLIBS SHLIB_EXT PICFLAGS RPATH LDFLAGS_SHLIB TARGET CXX CXXFLAGS ac_ct_CXX CPP EGREP DEPFLAGS AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE LFSDEFS XSD_TOOL ac_ct_XSD_TOOL OASYS_LIBS subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -5858,13 +5858,14 @@ if test "${with_file_offset_bits+set}" = set; then
   withval="$with_file_offset_bits"
   ac_file_offset_bits=$withval
 fi;
-
-cat >>confdefs.h <<_ACEOF
-#define _FILE_OFFSET_BITS $ac_file_offset_bits
-_ACEOF
-
     echo "$as_me:$LINENO: result: $ac_file_offset_bits" >&5
 echo "${ECHO_T}$ac_file_offset_bits" >&6
+    if test $ac_file_offset_bits = 64 ; then
+        LFSDEFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+    else
+        LFSDEFS="-D_FILE_OFFSET_BITS=$ac_file_offset_bits"
+    fi
+
     echo "$as_me:$LINENO: checking for off_t" >&5
 echo $ECHO_N "checking for off_t... $ECHO_C" >&6
 if test "${ac_cv_type_off_t+set}" = set; then
@@ -11622,6 +11623,7 @@ s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
 s,@INSTALL_SCRIPT@,$INSTALL_SCRIPT,;t t
 s,@INSTALL_DATA@,$INSTALL_DATA,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
+s,@LFSDEFS@,$LFSDEFS,;t t
 s,@XSD_TOOL@,$XSD_TOOL,;t t
 s,@ac_ct_XSD_TOOL@,$ac_ct_XSD_TOOL,;t t
 s,@OASYS_LIBS@,$OASYS_LIBS,;t t

@@ -189,9 +189,6 @@
 /* whether xerces support is enabled */
 #undef XERCES_C_ENABLED
 
-/* preprocessor symbol to control the size of off_t */
-#undef _FILE_OFFSET_BITS
-
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
 
