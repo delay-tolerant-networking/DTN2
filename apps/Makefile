@@ -42,19 +42,21 @@ OTHER_APPS :=				\
 
 APPS := $(SINGLE_SOURCE_APPS) $(OTHER_APPS)
 
-all: ../applib/libdtnapi.a $(APPS) $(MANPAGES)
+DTN_LIBS := ../applib/libdtnapi.a ../oasys/liboasyscompat.a
+DTN_LIBS++ := $(DTN_LIBS) ../applib/libdtnapi++.a ../oasys/liboasys.a
+
+all: $(DTN_LIBS++) $(APPS) $(MANPAGES)
 
 # Fake build target in case the api lib doesn't exist, but allows us
 # to include it as a dependency above so the apps get properly rebuilt
 # for the 'all' target
-../applib/libdtnapi.a:
-	@echo "ERROR: libdtnapi.a must be built before the apps can"
+$(DTN_LIBS++):
+	@echo "ERROR: $@ must be built before the apps can"
 	exit 1
 
 include ../Rules.make
 CFLAGS += -I$(SRCDIR)/applib
 LDFLAGS += -L../applib -L../oasys
-DTN_LIBS := -ldtnapi -loasyscompat
 
 BINFILES += $(APPS)
 
@@ -78,7 +80,7 @@ dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 #
 dtntest/dtntest: dtntest/dtntest.o
 	$(CXX) $(CFLAGS) $^ -o $@ \
-		$(LDFLAGS) $(DTN_LIBS) -ldtnapi++ -loasys $(OASYS_LIBS) $(LIBS) 
+		$(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
 
 #
 # Rules for dtntunnel
@@ -87,7 +89,7 @@ dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \
 		     dtntunnel/UDPTunnel.o
 	$(CXX) $(CFLAGS) $^ -o $@ \
-		$(LDFLAGS) $(DTN_LIBS) -ldtnapi++ -loasys $(OASYS_LIBS) $(LIBS) 
+		$(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
 
 #
 # Rules for tca_admin
@@ -102,7 +104,7 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_rpc.o \
                 tca_admin/libs/sha1.o
 	$(CXX) $(CFLAGS) $^ -o \
-		$@ $(LDFLAGS) $(DTN_LIBS) -loasys $(OASYS_LIBS) $(LIBS)
+		$@ $(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS)
 
 #
 # Default rule for all single source apps
