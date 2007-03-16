@@ -41,7 +41,7 @@ EndpointID::parse()
 
     uri_.parse();
     if (!uri_.valid()) {
-        log_err_p(log, "EndpointID::parse: invalid URI");
+        log_debug_p(log, "EndpointID::parse: invalid URI");
         return false;
     }
 
