@@ -45,12 +45,8 @@ DTNTunnel* oasys::Singleton<DTNTunnel>::instance_ = 0;
 
 //----------------------------------------------------------------------
 DTNTunnel::DTNTunnel()
-    : Logger("DTNTunnel", "/dtntunnel"),
-      loglevelstr_(""),
-      loglevel_(LOG_DEFAULT_THRESHOLD),
-      logfile_("-"),
+    : App("DTNTunnel", "dtntunnel"),
       send_lock_("/dtntunnel", oasys::Mutex::TYPE_RECURSIVE, true),
-      daemonize_(false),
       listen_(false),
       custody_(false),
       expiration_(600),
@@ -61,7 +57,9 @@ DTNTunnel::DTNTunnel()
       remote_addr_(htonl(INADDR_NONE)),
       remote_port_(0),
       delay_(0),
-      max_size_(32 * 1024)
+      max_size_(32 * 1024),
+      tunnel_spec_(""),
+      tunnel_spec_set_(false)
 {
     memset(&local_eid_, 0, sizeof(local_eid_));
     memset(&dest_eid_,  0, sizeof(dest_eid_));
@@ -69,66 +67,56 @@ DTNTunnel::DTNTunnel()
 
 //----------------------------------------------------------------------
 void
-DTNTunnel::get_options(int argc, char* argv[])
+DTNTunnel::fill_options()
 {
-    oasys::Getopt opts;
+    App::fill_default_options(DAEMONIZE_OPT);
     
-    opts.addopt(
-        new oasys::StringOpt('o', "output", &logfile_, "<output>",
-                             "file name for error logging output "
-                             "(- indicates stdout)"));
-
-    opts.addopt(
-        new oasys::StringOpt('l', NULL, &loglevelstr_, "<level>",
-                             "default log level [debug|warn|info|crit]"));
-
-    opts.addopt(
+    opts_.addopt(
         new oasys::BoolOpt('L', "listen", &listen_,
                            "run in listen mode for incoming CONN bundles"));
     
-    opts.addopt(
+    opts_.addopt(
         new oasys::BoolOpt('c', "custody", &custody_, "use custody transfer"));
     
-    opts.addopt(
+    opts_.addopt(
         new oasys::UIntOpt('e', "expiration", &expiration_, "<secs>",
                            "expiration time"));
     
-    opts.addopt(
+    opts_.addopt(
         new oasys::BoolOpt('t', "tcp", &tcp_,
                            "proxy for TCP connections (default)"));
     
-    opts.addopt(
+    opts_.addopt(
         new oasys::BoolOpt('u', "udp", &udp_,
                            "proxy for UDP traffic instead of tcp"));
     
-    opts.addopt(
-        new oasys::BoolOpt('d', "damonize", &daemonize_, "daemonize"));
-    
-    opts.addopt(
+    opts_.addopt(
         new dtn::APIEndpointIDOpt("local_eid", &local_eid_, "<eid>",
                                   "local endpoint id override"));
 
-    opts.addopt(
+    opts_.addopt(
         new oasys::UIntOpt('D', "delay", &delay_, "<millisecs>",
                            "nagle delay in msecs for stream transports (e.g. tcp)"));
     
-    opts.addopt(
+    opts_.addopt(
         new oasys::UIntOpt('z', "max_size", &max_size_, "<bytes>",
                            "maximum bundle size for stream transports (e.g. tcp)"));
 
-    std::string tunnel;
-    bool tunnel_set = false;
-    opts.addopt(
-        new oasys::StringOpt('T', "tunnel", &tunnel, "<spec>",
+    opts_.addopt(
+        new oasys::StringOpt('T', "tunnel", &tunnel_spec_, "<spec>",
                              "tunnel specification [lhost:]lport:rhost:rport",
-                             &tunnel_set));
+                             &tunnel_spec_set_));
+}
 
+//----------------------------------------------------------------------
+void
+DTNTunnel::validate_options(int argc, char* const argv[], int remainder)
+{
     if (udp_) {
         tcp_ = false;
     }
     
     bool dest_eid_set = false;
-    int remainder = opts.getopt(argv[0], argc, argv, "<destination eid>");
     if (remainder == argc - 1) {
         if (dtn_parse_eid_string(&dest_eid_, argv[argc-1]) == -1) {
             fprintf(stderr, "invalid destination endpoint id '%s'\n",
@@ -140,25 +128,26 @@ DTNTunnel::get_options(int argc, char* argv[])
         
     } else if (remainder != argc) {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
- usage:
-        opts.usage(argv[0], "<destination eid>");
+usage:
+        opts_.usage(argv[0], "<destination eid>");
         exit(1);
     }
 
     // parse the tunnel spec
-    if (tunnel_set) {
+    if (tunnel_spec_set_) {
         std::vector<std::string> tokens;
-        int ntoks = oasys::tokenize(tunnel, ":", &tokens);
+        int ntoks = oasys::tokenize(tunnel_spec_, ":", &tokens);
         if (ntoks < 3 || ntoks > 4) {
             fprintf(stderr, "invalid tunnel specification %s: bad format\n",
-                    tunnel.c_str());
+                    tunnel_spec_.c_str());
             goto usage;
         }
 
         if (ntoks == 4) {
             if (oasys::gethostbyname(tokens[0].c_str(), &local_addr_) != 0) {
-                fprintf(stderr, "invalid tunnel specification %s: local addr %s invalid\n",
-                        tunnel.c_str(), tokens[0].c_str());
+                fprintf(stderr,
+                        "invalid tunnel specification %s: local addr %s invalid\n",
+                        tunnel_spec_.c_str(), tokens[0].c_str());
                 goto usage;
             }
         }
@@ -166,18 +155,19 @@ DTNTunnel::get_options(int argc, char* argv[])
         local_port_ = atoi(tokens[ntoks - 3].c_str());
 
         if (oasys::gethostbyname(tokens[ntoks - 2].c_str(), &remote_addr_) != 0) {
-            fprintf(stderr, "invalid tunnel specification %s: remote host %s invalid\n",
-                    tunnel.c_str(), tokens[ntoks - 2].c_str());
+            fprintf(stderr,
+                    "invalid tunnel specification %s: remote host %s invalid\n",
+                    tunnel_spec_.c_str(), tokens[ntoks - 2].c_str());
             goto usage;
         }
     
         remote_port_ = atoi(tokens[ntoks - 1].c_str());
     }
 
-#define CHECK_OPT(_condition, _err) \
-    if ((_condition)) { \
-        fprintf(stderr, "error: " _err "\n"); \
-        goto usage; \
+#define CHECK_OPT(_condition, _err)             \
+    if ((_condition)) {                         \
+        fprintf(stderr, "error: " _err "\n");   \
+        goto usage;                             \
     }
 
     //
@@ -206,38 +196,6 @@ DTNTunnel::get_options(int argc, char* argv[])
     }
     
 #undef CHECK_OPT
-}
-
-//----------------------------------------------------------------------
-void
-DTNTunnel::init_log()
-{
-    // Parse the debugging level argument
-    if (loglevelstr_.length() == 0) 
-    {
-        loglevel_ = oasys::LOG_NOTICE;
-    }
-    else 
-    {
-        loglevel_ = oasys::str2level(loglevelstr_.c_str());
-        if (loglevel_ == oasys::LOG_INVALID) 
-        {
-            fprintf(stderr, "invalid level value '%s' for -l option, "
-                    "expected debug | info | warning | error | crit\n",
-                    loglevelstr_.c_str());
-            exit(1);
-        }
-    }
-    oasys::Log::init(logfile_.c_str(), loglevel_, "", "~/.dtndebug");
-
-    if (daemonize_) {
-        if (logfile_ == "-") {
-            fprintf(stderr, "daemon mode requires setting of -o <logfile>\n");
-            exit(1);
-        }
-        
-        oasys::Log::instance()->redirect_stdio();
-    }
 }
 
 //----------------------------------------------------------------------
@@ -419,14 +377,8 @@ DTNTunnel::handle_bundle(dtn_bundle_spec_t* spec,
 int
 DTNTunnel::main(int argc, char* argv[])
 {
-    get_options(argc, argv);
+    init_app(argc, argv);
 
-    if (daemonize_) {
-        oasys::Daemonizer d;
-        d.daemonize(false);
-    }
-    
-    init_log();
     log_notice("DTNTunnel starting up...");
 
     init_tunnel();

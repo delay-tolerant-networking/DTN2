@@ -24,6 +24,7 @@
 #include <oasys/util/Getopt.h>
 #include <oasys/util/Random.h>
 
+#include "dtn-version.h"
 #include "ConnCommand.h"
 #include "Simulator.h"
 #include "SimCommand.h"
@@ -36,112 +37,86 @@
 #include "servlib/bundling/BundleProtocol.h"
 #include "oasys/storage/MemoryStore.h"
 #include "oasys/storage/StorageConfig.h"
-
-
-/**
- * Namespace for the dtn simulator
- */
-namespace dtnsim {}
+#include "oasys/util/App.h"
 
 using namespace dtn;
 using namespace dtnsim;
 
-int
-main(int argc, char** argv)
-{
-    // reset timeval conversion, so timestamps are ok 
-    dtn::BundleTimestamp::TIMEVAL_CONVERSION = 0;
-	
-    // command line parameter vars
-    int                random_seed;
-    bool               random_seed_set = false;
-    std::string        conf_file;
-    bool               conf_file_set = false;
-    std::string        logfile("-");
-    std::string        loglevelstr;
-    oasys::log_level_t loglevel;
-    bool               daemon = false;
+class DTNSim : public oasys::App {
+public:
+    DTNSim();
+    void fill_options();
+    void validate_options(int argc,
+                          char* const argv[],
+                          int remainder);
+    int main(int argc, char* const argv[]);
 
-    oasys::Getopt opts;
-    opts.addopt(
-        new oasys::StringOpt('c', "conf", &conf_file, "<conf>",
-                             "set the configuration file", &conf_file_set));
+protected:
+    bool console_;
+};
     
-    opts.addopt(
-        new oasys::IntOpt('s', "seed", &random_seed, "seed",
-                          "random number generator seed", &random_seed_set));
+//----------------------------------------------------------------------
+DTNSim::DTNSim()
+    : App("DTNSim", "dtnsim", dtn_version),
+      console_(false)
+{
+}
 
-    opts.addopt(
-        new oasys::StringOpt('o', "output", &logfile, "<output>",
-                             "file name for logging output "
-                             "(default - indicates stdout)"));
+//----------------------------------------------------------------------
+void
+DTNSim::fill_options()
+{
+    App::fill_default_options(CONF_FILE_OPT);
 
-    opts.addopt(
-        new oasys::StringOpt('l', NULL, &loglevelstr, "<level>",
-                             "default log level [debug|warn|info|crit]"));
+    opts_.addopt(
+        new oasys::BoolOpt('C', "console", &console_,
+                           "run the tcl console after simulation exits"));
+}
 
-    opts.addopt(
-        new oasys::BoolOpt('d', "daemonize", &daemon,
-                           "run as a daemon"));
-
-    opts.getopt(argv[0], argc, argv);
-
-    int remainder = opts.getopt(argv[0], argc, argv);
-
-    if (!conf_file_set && remainder != argc) {
-        conf_file.assign(argv[remainder]);
-        conf_file_set = true;
+//----------------------------------------------------------------------
+void
+DTNSim::validate_options(int argc,
+                         char* const argv[],
+                         int remainder)
+{
+    if (!conf_file_set_ && remainder != argc) {
+        conf_file_.assign(argv[remainder]);
+        conf_file_set_ = true;
         remainder++;
     }
 
     if (remainder != argc) {
         fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
-        opts.usage("dtnsim");
+        opts_.usage("dtnsim");
         exit(1);
     }
 
-    if (!conf_file_set) {
+    if (!conf_file_set_) {
         fprintf(stderr, "must set the simulator conf file\n");
-        opts.usage("dtnsim");
+        opts_.usage("dtnsim");
         exit(1);
     }
+}
 
-    // Parse the debugging level argument
-    if (loglevelstr.length() == 0) {
-        loglevel = LOG_DEFAULT_THRESHOLD;
-    } else {
-        loglevel = oasys::str2level(loglevelstr.c_str());
-        if (loglevel == oasys::LOG_INVALID) {
-            fprintf(stderr, "invalid level value '%s' for -l option, "
-                    "expected debug | info | warning | error | crit\n",
-                    loglevelstr.c_str());
-            exit(1);
-        }
-    }
-
+//----------------------------------------------------------------------
+int
+DTNSim::main(int argc, char* const argv[])
+{
+    init_app(argc, argv);
+    
+    // reset timeval conversion, so timestamps are ok 
+    dtn::BundleTimestamp::TIMEVAL_CONVERSION = 0;
+    
     // Initialize the simulator first and foremost since it's needed
     // for LogSim::gettimeofday
     Simulator* s = new Simulator(new DTNStorageConfig(
                                      "storage","memorydb","",""));
     Simulator::init(s);
     
-    // Initialize logging
-    oasys::Log::init("-", loglevel, "--");
-    log_info_p("/dtnsim", "dtn simulator initializing...");
-
-    // seed the random number generator
-    if (!random_seed_set) {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        random_seed = tv.tv_usec;
-    }
-    log_info_p("/dtnsim", "random seed is %u\n", random_seed);
-    oasys::Random::seed(random_seed);
-    
     // Set up the command interpreter
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
-        log_crit_p("/dtnsim", "Can't init TCL");
+        log_crit("Can't init TCL");
         exit(1);
     }
 	
@@ -149,30 +124,30 @@ main(int argc, char** argv)
     interp->reg(new ConnCommand());
     interp->reg(new ParamCommand());
     interp->reg(new SimCommand());
-    log_info_p("/dtnsim","registered dtnsim commands");
+    log_info("registered dtnsim commands");
 
     SchemeTable::create();
     SimConvergenceLayer::init();
     ConvergenceLayer::add_clayer(SimConvergenceLayer::instance());
     BundleProtocol::init_default_processors();
-    log_info_p("/dtnsim","intialized dtnsim components");
+    log_info("intialized dtnsim components");
 	
     // initializing data store to memorydb
     if (!Simulator::instance()->init_datastore()) {
-        log_err_p("/dtnsim", "error initializing data store, exiting...");
+        log_err("error initializing data store, exiting...");
         exit(1);
     }
 	
-    log_info_p("/dtnsim","parsing configuration file %s...", conf_file.c_str());
-    if (interp->exec_file(conf_file.c_str()) != 0) {
-        log_err_p("/dtnsim", "error in configuration file, exiting...");
+    log_info("parsing configuration file %s...", conf_file_.c_str());
+    if (interp->exec_file(conf_file_.c_str()) != 0) {
+        log_err("error in configuration file, exiting...");
         exit(1);
     }
     
     // Run the event loop of simulator
     Simulator::instance()->run();
 
-    if (! daemon) {
+    if (console_) {
         // Run the command interpreter loop
         oasys::TclCommandInterp::instance()->exec_command(
             "puts \"Simulation complete -- entering console (Control-D to exit)...\"");
@@ -180,4 +155,13 @@ main(int argc, char** argv)
     }
 	
     Simulator::instance()->close_datastore();
+
+    return 0;
+}
+
+//----------------------------------------------------------------------
+int main(int argc, char* const argv[])
+{
+    DTNSim d;
+    return d.main(argc, argv);
 }

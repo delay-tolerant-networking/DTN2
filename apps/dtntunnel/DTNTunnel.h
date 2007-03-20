@@ -25,6 +25,7 @@
 #include <APIBundleQueue.h>
 #include <oasys/debug/Log.h>
 #include <oasys/thread/Mutex.h>
+#include <oasys/util/App.h>
 #include <oasys/util/Singleton.h>
 
 namespace dtntunnel {
@@ -35,7 +36,7 @@ class UDPTunnel;
 /**
  * Main wrapper class for the DTN Tunnel.
  */
-class DTNTunnel : public oasys::Logger,
+class DTNTunnel : public oasys::App,
                   public oasys::Singleton<DTNTunnel>
 {
 public:
@@ -94,23 +95,22 @@ public:
     /// Main application loop
     int main(int argc, char* argv[]);
 
+    /// Virtual from oasys::App
+    void fill_options();
+    void validate_options(int argc, char* const argv[], int remainder);
+
     /// Accessors
     u_int max_size()              { return max_size_; }
     u_int delay()                 { return delay_; }
     dtn_endpoint_id_t* dest_eid() { return &dest_eid_; }
 
 protected:
-    std::string         loglevelstr_;
-    oasys::log_level_t  loglevel_;
-    std::string         logfile_;
-
     UDPTunnel*          udptunnel_;
     TCPTunnel*          tcptunnel_;
 
     dtn_handle_t 	recv_handle_;
     dtn_handle_t 	send_handle_;
     oasys::Mutex	send_lock_;
-    bool		daemonize_;
     bool                listen_;
     dtn_endpoint_id_t 	local_eid_;
     dtn_endpoint_id_t 	dest_eid_;
@@ -124,11 +124,11 @@ protected:
     u_int16_t		remote_port_;
     u_int		delay_;
     u_int		max_size_;
+    std::string	        tunnel_spec_;
+    bool	        tunnel_spec_set_;
 
-    void init_log();
     void init_tunnel();
     void init_registration();
-    void get_options(int argc, char* argv[]);
 };
 
 } // namespace dtntunnel

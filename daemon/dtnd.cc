@@ -19,16 +19,13 @@
 #include <string>
 #include <sys/time.h>
 
-#include <oasys/debug/FatalSignals.h>
 #include <oasys/debug/Log.h>
 #include <oasys/io/NetUtils.h>
-#include <oasys/memory/Memory.h>
 #include <oasys/tclcmd/ConsoleCommand.h>
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/thread/Timer.h>
-#include <oasys/util/Daemonizer.h>
+#include <oasys/util/App.h>
 #include <oasys/util/Getopt.h>
-#include <oasys/util/Random.h>
 #include <oasys/util/StringBuffer.h>
 
 #include "applib/APIServer.h"
@@ -46,45 +43,26 @@ namespace dtn {
 /**
  * Thin class that implements the daemon itself.
  */
-class DTND {
+class DTND : public oasys::App {
 public:
     DTND();
     int main(int argc, char* argv[]);
 
 protected:
-    bool                  daemonize_;
-    oasys::Daemonizer     daemonizer_;
-    int                   random_seed_;
-    bool                  random_seed_set_;
-    std::string           conf_file_;
-    bool                  conf_file_set_;
-    bool                  print_version_;
-    std::string           loglevelstr_;
-    oasys::log_level_t    loglevel_;
-    std::string           logfile_;
     TestCommand*          testcmd_;
     oasys::ConsoleCommand* consolecmd_;
     DTNStorageConfig      storage_config_;
-
-    void get_options(int argc, char* argv[]);
-    void notify_and_exit(char status);
-    void seed_random();
-    void init_log();
+    
+    // virtual from oasys::App
+    void fill_options();
+    
     void init_testcmd(int argc, char* argv[]);
     void run_console();
 };
 
 //----------------------------------------------------------------------
 DTND::DTND()
-    : daemonize_(false),
-      random_seed_(0),
-      random_seed_set_(false),
-      conf_file_(""),
-      conf_file_set_(false),
-      print_version_(false),
-      loglevelstr_(""),
-      loglevel_(LOG_DEFAULT_THRESHOLD),
-      logfile_("-"),
+    : App("DTND", "dtnd", dtn_version),
       testcmd_(NULL),
       consolecmd_(NULL),
       storage_config_("storage",	// command name
@@ -92,6 +70,10 @@ DTND::DTND()
                       "DTN",		// DB name
                       "/var/dtn/db")	// DB directory
 {
+    // override default logging settings
+    loglevel_ = oasys::LOG_NOTICE;
+    debugpath_ = "~/.dtndebug";
+    
     // override defaults from oasys storage config
     storage_config_.db_max_tx_ = 1000;
 
@@ -101,122 +83,29 @@ DTND::DTND()
 
 //----------------------------------------------------------------------
 void
-DTND::get_options(int argc, char* argv[])
+DTND::fill_options()
 {
+    fill_default_options(DAEMONIZE_OPT | CONF_FILE_OPT);
     
-    // Register all command line options
-    oasys::Getopt opts;
-    opts.addopt(
-        new oasys::BoolOpt('v', "version", &print_version_,
-                           "print version information and exit"));
-
-    opts.addopt(
-        new oasys::StringOpt('o', "output", &logfile_, "<output>",
-                             "file name for logging output "
-                             "(default - indicates stdout)"));
-
-    opts.addopt(
-        new oasys::StringOpt('l', NULL, &loglevelstr_, "<level>",
-                             "default log level [debug|warn|info|crit]"));
-
-    opts.addopt(
-        new oasys::StringOpt('c', "conf", &conf_file_, "<conf>",
-                             "set the configuration file", &conf_file_set_));
-    opts.addopt(
-        new oasys::BoolOpt('d', "daemonize", &daemonize_,
-                           "run as a daemon"));
-
-    opts.addopt(
+    opts_.addopt(
         new oasys::BoolOpt('t', "tidy", &storage_config_.tidy_,
                            "clear database and initialize tables on startup"));
 
-    opts.addopt(
+    opts_.addopt(
         new oasys::BoolOpt(0, "init-db", &storage_config_.init_,
                            "initialize database on startup"));
 
-    opts.addopt(
-        new oasys::IntOpt('s', "seed", &random_seed_, "<seed>",
-                          "random number generator seed", &random_seed_set_));
-
-    opts.addopt(
+    opts_.addopt(
         new oasys::InAddrOpt(0, "console-addr", &consolecmd_->addr_, "<addr>",
                              "set the console listening addr (default off)"));
     
-    opts.addopt(
+    opts_.addopt(
         new oasys::UInt16Opt(0, "console-port", &consolecmd_->port_, "<port>",
                              "set the console listening port (default off)"));
     
-    opts.addopt(
+    opts_.addopt(
         new oasys::IntOpt('i', 0, &testcmd_->id_, "<id>",
                           "set the test id"));
-    
-    int remainder = opts.getopt(argv[0], argc, argv);
-    if (remainder != argc) 
-    {
-        fprintf(stderr, "invalid argument '%s'\n", argv[remainder]);
-        opts.usage("dtnd");
-        exit(1);
-    }
-}
-
-//----------------------------------------------------------------------
-void
-DTND::notify_and_exit(char status)
-{
-    if (daemonize_) {
-        daemonizer_.notify_parent(status);
-    }
-    exit(status);
-}
-
-//----------------------------------------------------------------------
-void
-DTND::seed_random()
-{
-    // seed the random number generator
-    if (!random_seed_set_) 
-    {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        random_seed_ = tv.tv_usec;
-    }
-    
-    log_notice_p("/dtnd", "random seed is %u\n", random_seed_);
-    oasys::Random::seed(random_seed_);
-}
-
-//----------------------------------------------------------------------
-void
-DTND::init_log()
-{
-    // Parse the debugging level argument
-    if (loglevelstr_.length() == 0) 
-    {
-        loglevel_ = oasys::LOG_NOTICE;
-    }
-    else 
-    {
-        loglevel_ = oasys::str2level(loglevelstr_.c_str());
-        if (loglevel_ == oasys::LOG_INVALID) 
-        {
-            fprintf(stderr, "invalid level value '%s' for -l option, "
-                    "expected debug | info | warning | error | crit\n",
-                    loglevelstr_.c_str());
-            notify_and_exit(1);
-        }
-    }
-    oasys::Log::init(logfile_.c_str(), loglevel_, "", "~/.dtndebug");
-    oasys::Log::instance()->add_reparse_handler(SIGHUP);
-    oasys::Log::instance()->add_rotate_handler(SIGUSR1);
-
-    if (daemonize_) {
-        if (logfile_ == "-") {
-            fprintf(stderr, "daemon mode requires setting of -o <logfile>\n");
-            notify_and_exit(1);
-        }
-        
-        oasys::Log::instance()->redirect_stdio();
-    }
 }
 
 //----------------------------------------------------------------------
@@ -258,34 +147,15 @@ DTND::run_console()
 int
 DTND::main(int argc, char* argv[])
 {
-#ifdef OASYS_DEBUG_MEMORY_ENABLED
-    oasys::DbgMemInfo::init();
-#endif
+    init_app(argc, argv);
 
-    get_options(argc, argv);
-
-    if (print_version_) 
-    {
-        printf("%s\n", dtn_version);
-        exit(0);
-    }
-
-    if (daemonize_) {
-        daemonizer_.daemonize(true);
-    }
-
-    init_log();
-    
     log_notice_p("/dtnd", "DTN daemon starting up... (pid %d)", getpid());
-    oasys::FatalSignals::init("dtnd");
 
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
         log_crit_p("/dtnd", "Can't init TCL");
         notify_and_exit(1);
     }
-
-    seed_random();
 
     // stop thread creation b/c of initialization dependencies
     oasys::Thread::activate_start_barrier();
