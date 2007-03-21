@@ -38,10 +38,9 @@ BINFILES :=				\
 	unit_tests/bundle-protocol-test	\
 	unit_tests/bundle-timestamp-test\
 	unit_tests/endpoint-id-test	\
+	unit_tests/route-multigraph-test\
 	unit_tests/route-table-test	\
 	unit_tests/sdnv-test		\
-
-#	unit_tests/route-multigraph-test\
 
 unit_tests: $(BINFILES)
 
