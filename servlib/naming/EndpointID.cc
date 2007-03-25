@@ -67,15 +67,19 @@ EndpointID::append_service_tag(const char* tag)
     if (!scheme_)
         return false;
 
-    bool ok = scheme_->append_service_tag(uri_.ssp_ptr(), tag);
+    bool ok = scheme_->append_service_tag(&uri_, tag);
     if (!ok)
         return false;
 
     // rebuild the string
     uri_.format();
     if (!uri_.valid()) {
-        log_err_p("/dtn/naming/endpoint/", "EndpointID::append_service_tag: "
-                                           "failed to format appended URI");
+        log_err_p("/dtn/naming/endpoint/",
+                  "EndpointID::append_service_tag: "
+                  "failed to format appended URI");
+        
+        // XXX/demmer this leaves the URI in a bogus state... that
+        // doesn't seem good since this really shouldn't ever happen
         return false;
     }
 

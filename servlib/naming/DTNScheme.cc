@@ -129,13 +129,17 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
 
 //----------------------------------------------------------------------
 bool
-DTNScheme::append_service_tag(std::string* ssp, const char* tag)
+DTNScheme::append_service_tag(URI* uri, const char* tag)
 {
+    // XXX/demmer this would be better if it didn't use the ssp_ptr()
+    // but instead manipulated just the path part of the URI. This
+    // implementation won't work properly if the URI has query
+    // parameters, etc. following the path.
     
     if (tag[0] != '/') {
-        ssp->push_back('/');
+        uri->ssp_ptr()->push_back('/');
     }
-    ssp->append(tag);
+    uri->ssp_ptr()->append(tag);
     return true;
 }
 

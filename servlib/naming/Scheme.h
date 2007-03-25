@@ -57,15 +57,15 @@ public:
                        const EndpointID& eid) = 0;
     
     /**
-     * Append the given service tag to the ssp in a scheme-specific
+     * Append the given service tag to the uri in a scheme-specific
      * manner. By default, the scheme is not capable of this.
      *
      * @return true if this scheme is capable of service tags and the
      * tag is a legal one, false otherwise.
      */
-    virtual bool append_service_tag(std::string* ssp, const char* tag)
+    virtual bool append_service_tag(URI* uri, const char* tag)
     {
-        (void)ssp;
+        (void)uri;
         (void)tag;
         return false;
     }
