@@ -23,7 +23,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include <sys/socket.h>
-#include <sys/signal.h>
 
 #include "dtn_api.h"
 #include "APIEndpointIDOpt.h"
@@ -214,9 +213,6 @@ DTNTunnel::init_tunnel()
                                      remote_addr_, remote_port_);
         }
     }
-
-    // ignore SIGPIPE
-    signal(SIGPIPE, SIG_IGN);
 }
 
 //----------------------------------------------------------------------
