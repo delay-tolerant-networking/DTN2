@@ -233,6 +233,7 @@ BundlePayload::replace_with_file(const char* path)
     file_.unlink();
     int err = ::link(path, payload_path.c_str());
     if (err == 0) {
+        // unlink() clobbered path_ in file_, so we have to set it again.
         file_.set_path(payload_path);
         log_debug("replace_with_file: successfully created link to %s",
                   path);
