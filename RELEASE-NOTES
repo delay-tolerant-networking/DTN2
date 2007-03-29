@@ -1,6 +1,560 @@
 Release Notes for DTN2
 ----------------------
 
+Interim notes for BBN check-in 
+------------------------------
+(We expect these to be boiled down before the next official release.)
+
+New Files
+---------
+DS-related changes:
+ oasys/aclocal/externaldatastore.ac
+	* add --with-eds for external data store support
+
+ oasys/storage/DataStore.{cc,h}
+	* Abstract root of the external data store model. Declares
+	  the C++ interface for external data stores, which correponds
+	  closely to the XML schema.
+
+ oasys/storage/DS.xsd
+ oasys/storage/DS.{cc,h}
+	* XML schema description and (c++-tree) derived C++ files for
+	  client-server messages for external data store.
+
+ oasys/storage/ExternalDurableStore.{cc,h}
+ oasys/storage/ExternalDurableTableImpl.{cc,h}
+ oasys/storage/ExternalDurableTableIterator.{cc,h}
+	* Connect external data stores to dtn2's DurableStoreImpl
+	  and DurableTableImpl.
+
+ oasys/storage/DataStoreProxy.{cc,h}
+	* Concrete client-side (i.e. dtn2) implementation of the
+	  DataStore interface. Handlers make remote calls to an
+	  external server, using the DS.{cc,h} classes and the xerces-c
+	  library to construct, serialize, and deserialize the
+	  messages.
+
+ oasys/storage/DataStoreServer.{cc,h}
+	* Extension of DataStore to simplify writing external data
+	  store servers. Provides member functions to handle the wire
+	  format (using both fds and iostreams); marshal messages to,
+	  and unmarshal from, XML; a member function to dispatch a
+	  message to the appropriate handler (converting between the
+	  XML object form and the argument list form); and a member
+	  function that implements a simple receive/dispatch/reply
+	  loop. This code is not linked into dtn2, but lives here
+	  because is used by external data stores that are oasys
+	  clients.
+
+ oasys/serialize/LinearSerializeAction.{cc,h}
+	* New SerializeAction that linearizes an object into a vector
+	  of strings. Used by the external data store.
+
+DP-related changes:
+ servlib/bundling/GbofId.cc
+ servlib/bundling/GbofId.h
+     The GbofId class was added to allow bundles to identified by their
+     GBOF (global-bundle-or-fragment) ID, which consist of source EID,
+     creation timestamp, "is fragment" flag, fragment-length, and
+     fragment offset. (See DTN Reference System Architecture document
+     for more details on GBOF ID.) 
+
+Other:
+ servlib/contacts/NamedAttribute.h
+     This file defines and implements the AttributeName and NamedAttribute
+     classes that maintain (key,value) attributes/parameters used for various
+     configuration functions. Vectors of each class are also defined to
+     maintain lists of attributes/parameters.
+
+ oasys/test/xml-serialize-test.cc
+	* unit test for XMLSerialize
+
+Changed Files
+-------------
+Small changes:
+ Makefile
+	* always install the .xsd files, not just if dtn.conf doesn't exist
+	* rebuild DS .xsd file when xsd bindings are rebuilt
+ config.h.in
+ oasys/config.h.in
+ oasys/aclocal/storage.ac
+	* add external DS
+ daemon/dtn.conf
+	* Update for external data stores, include new configuration variables
+	  and example settings.
+	* Add commented-out description of early_deletion parameter.
+ oasys/Makefile
+	* Additions for building external DS.
+ oasys/Sources.mk
+	* add XMLSerialize.cc, XercesXMLSerialize.cc
+ oasys/aclocal/expat.ac
+	* bugfix
+ oasys/thread/Thread.h
+	* mark flags_ volatile 
+ servlib/Makefile
+	* external router changes (including addition of GbofId)
+ servlib/routing/ShortestPathRouter.cc
+	* bugfix (uninitialized variable used)
+
+DS-related changes: 
+ oasys/serialize/XMLSerialize.cc
+ oasys/serialize/XMLSerialize.h
+	* Add missing BufferCarrier process functions
+
+ oasys/storage/DurableStore.cc
+	* create an external data store if requested
+
+ oasys/storage/StorageConfig.h
+ servlib/cmd/StorageCommand.cc
+	* Add server_port_ and schema_ as config options (external data store)
+
+ oasys/xml/XMLObject.cc
+ oasys/xml/XMLObject.h
+	* xml-ize standard symbols ("'&<>)
+
+DP-related changes:
+ servlib/routing/ExternalRouter.cc
+ servlib/routing/ExternalRouter.h
+ servlib/routing/router.xsd
+     Updated interface to match that of the DTN Reference System
+     Architecture docment. Changes include adding new message types,
+     modifying message parameter types, and modifying the parameter set of
+     some existing messages. Message types already implemented, but not
+     mentioned in the Architecture document, were left as is. They were
+     left unmodified to avoid affecting others that rely on those message
+     types. The one exception is BundleTransmitFailed message type. Since
+     it is no longer handled internally (see CL changes below), it was
+     removed from the external router interface.
+
+ servlib/routing/router-custom.cc
+ servlib/routing/router-custom.h
+     Added wrappers for key-value pair, GBOF ID, and EID types. Modified
+     link and contact type wrappers to reflect changes to the external
+     router interface presented in the DTN Reference System Architecture
+     document. 
+
+ servlib/bundling/BundleList.cc (goes with GbofId addition)
+ servlib/bundling/BundleList.h (goes with GbofId addition)
+     Added ability to search bundle list using a bundle's GBOF ID.
+
+Other:
+ apps/dtncp/dtncp.c
+     * The delivery receipt option was hardcoded to ON. Now a cmd line
+       switch (-D) turns ON the delivery receipt option. By default, the
+       option is OFF.
+ 
+     * Note: This change changes the default behavior, but we felt that
+       adding a cmd line switch that turns OFF the option would be
+       counter-intuitive for the user.
+
+ servlib/bundling/Bundle.cc
+	* Call init() in builder constructor, otherwise flags are
+	  uninitialized when parsing the bundle header
+ servlib/bundling/Bundle.h
+	* COS_INVALID added
+ servlib/cmd/BundleCommand.cc
+	* bundle cancel command added
+
+Bug fixes:
+ servlib/bundling/BlockInfo.cc
+	* fix checking for last block flags on blocks too small to contain them
+ servlib/bundling/BundleActions.cc
+	* scope lock  the contact manager before opening a link to avoid a race
+	   condition where the link's state changes during the opening call
+	* handle persistent/non-persistent convergence layer queues during
+	   bundle sends and bundle send cancels. Persistent 
+	   queues retain their bundles through link down/up events. If a 
+	   convergence layer, like the External one, has persistent link queues, 
+	   bundles are sent immediately to them, and are only sent once. If a 
+	   convergence layer does not have persistent link queues, bundle objects 
+	   to be sent are added to the link object's queue_ and copied to the 
+	   convergence layer each time a contact up occurs. If the contact is up 
+	   when the send occurs, the bundles is also copied immediately to the 
+	   convergence layer.
+ servlib/bundling/ForwardingInfo.cc
+ servlib/bundling/ForwardingInfo.h
+	* Added remote_eid_ and link_name_ such for use in ForwardingLog
+ servlib/bundling/ForwardingLog.cc
+	* Search for and modify entries by remote_eid_, link_name_, and clayer_
+	   instead of clayer_ and nexthop_. CLs may change the nexthop when the link
+	   should be treated the same by the BPA.  Remote_eid_, link_name_, and clayer_
+	   should identify a link in a way such that, when these 3 fields match those in a
+	   compared link, the two links are equivalent.
+ servlib/bundling/BundleDaemon.cc
+	* Added more detailed logging in the main event loop to show when the loop
+	   is starting events, finishing them, and waiting, as well as how many events
+	   are waiting to be processed
+	* When the deletion of a bundle is called for, cancel that bundle's send on
+	   all links
+	* On contact up events, send all bundles in a link's persistent queue if
+	   that link's CL does not have persistent queues
+	* Log about modifications to the forwarding logs (BPA bugs often
+	   manifest themselves through inappropriate modification requests)
+	* Don't panic when a bundletransmitted event occurs with no blocks on
+	   that link since the transmitted event can occur long after the link has
+	   canceled the bundle transmit (clearing the blocks)
+
+Added/changed events:
+ servlib/bundling/BundleDaemon.cc (event parts)
+ servlib/bundling/BundleDaemon.h
+     Added event_queue_size() used for debugging.
+
+     Many BundleEvents were added to implement the external DP and CLA
+     interfaces. A few events were changed to conform better to those
+     interfaces.
+
+     Removed (commented out) handlers for BundleTransmitFailedEvent,
+     as bundles can remain queued on closed links.
+
+     Changed event handlers:
+         handle_bundle_send()
+             This was changed to look up a bundle by GBOF ID instead of
+             the internal bundle ID.
+         handle_bundle_cancel()
+             This was changed allow the cancel request to use either the
+             GBOF ID or the internal bundle ID.
+         handle_bundle_inject()
+             This handler was changed because the BPA's response to
+             BundleInjectRequest changed. Previously this request sent
+             the bundle immediately after creating it, and now this
+             request only creates the bundle, requiring a separate send
+             request to send it. As a result, the bundle must be kept
+             around in the pending_bundles_ queue (unlike before) and a
+             BundleInjectedEvent is posted to provide a handle to the new
+             bundle.
+         handle_link_create()
+             This was implemented (it existed before but was NOTIMPLEMENTED)
+             using the new key, value pair attributes as specified in the
+             DP interface.
+
+     New event handlers:
+         handle_bundle_cancelled()
+             This handler cleans up after a bundle send has been
+             cancelled much like handle_bundle_transmit_failed did.
+         handle_bundle_attributes_query()
+         handle_bundle_attributes_report()
+             These work similarly to previously added events such as
+             bundle_query and bundle_report.
+         handle_link_reconfigure()
+             This handler passes the key, value attribute pairs
+             to the Link (see reconfigure_link additions to Link and
+             ConvergenceLayer, below).
+         handle_link_attribute_changed()
+             This handles an event posted by a CLA to alert the BPA that
+             a link attribute has changed. This event handler keeps track
+             of values that are stored in the corresponding Link object
+             so that the state is consistent with the CLA's state.
+         handle_bundle_queued_query()
+             This queries the CLA (the is_queued() CLA methods were
+             implemented for this, see below) and posts a report.
+         handle_eid_reachable_query()
+             This also queries the CLA (the is_eid_reachable() CLA method
+             was added for this, see below) and posts a report.
+         handle_link_attributes_query()
+         handle_iface_attributes_query()
+         handle_cla_parameters_query()
+             These simply pass the query to the CLA corresponding to the
+             named link, interface, or CLA, and the CLA is expected to
+             post a report event.
+         handle_bundle_queued_report()
+         handle_eid_reachable_report()
+         handle_link_attributes_report()
+         handle_iface_attributes_report()
+         handle_cla_parameters_report()
+             These are for reports for the corresponding above five
+	     queries.
+         handle_cla_set_params()
+             This handler passes the request directly to the CLA.
+
+ servlib/bundling/BundleEvent.cc
+ servlib/bundling/BundleEvent.h
+     As described for BundleDaemon, many BundleEvents were added, a few
+     were changed, and BundleTransmitFailedEvent was removed (commented
+     out). Also, some comments were corrected.
+
+     Changed events:
+         LinkCreatedEvent
+         LinkDeletedEvent
+             These were changed only to allow a "reason" other than
+             ContactEvent::USER.
+        BundleSendRequest
+             This event was changed to refer to a GBOF ID instead of an
+             internal bundle ID.
+             The serialize() method was also removed (see above).
+        BundleCancelRequest
+             This event was changed to allow either a GBOF ID or an
+             internal bundle ID.
+             The serialize() method was also removed (see above).
+        BundleInjectRequest
+             A request ID had to be added so that the new bundle
+             announced in the BundleInjectedEvent can be matched to the
+             request that generated the bundle.
+        LinkCreateRequest
+             This event was implemented and as such the guts of the event
+             changed to match to the DP interface spec.
+
+     Added events:
+         BundleSendCancelledEvent
+             Pretty straightforward.
+         BundleInjectedEvent
+             This provides a pointer to the newly created bundle, with
+             the request ID from the BundleInjectRequest that created it.
+         BundleAttributesQueryRequest
+             This request provides for a list of attributes that can be
+             queried (the full list is described in the router.xsd file).
+             The contents of arbitrary extension blocks can be requested
+             as well.
+         BundleAttributesReportEvent
+             The BundleAttributes query/report pair works very similarly
+             to events such as BundleQueryRequest/BundleReportEvent --
+             the report has a handle on the bundle itself, which
+             describes all the attributes, and the list of which
+             attributes are requested and it's up to the ExternalRouter
+             to put the attributes of interest in the external message.
+         ContactAttributeChangedEvent
+             This event doesn't need the key, value pairs since all
+             contact attributes are set when there's a change.
+         LinkReconfigureRequest
+         LinkAttributeChangedEvent
+         CLASetParamsRequest
+         CLAParamsSetEvent
+         SetLinkDefaultsRequest
+             These events maintain the list of key, value pairs from the
+             DP/CLA interfaces.
+         NewEIDReachableEvent
+         BundleQueuedQueryRequest
+         BundleQueuedReportEvent
+         EIDReachableQueryRequest
+         EIDReachableReportEvent
+             Pretty straightforward.
+         LinkAttributesQueryRequest
+         LinkAttributesReportEvent
+         IfaceAttributesQueryRequest
+         IfaceAttributesReportEvent
+         CLAParametersQueryRequest
+         CLAParametersReportEvent
+             These events maintain the lists or keys or of key, value
+             pairs from the DP/CLA interfaces.
+
+ servlib/bundling/BundleEventHandler.cc
+ servlib/bundling/BundleEventHandler.h
+     Removed (commented out) handlers for BundleTransmitFailedEvent.
+     Added all the new event handlers (which are listed for
+     BundleDaemon).
+
+ servlib/routing/TableBasedRouter.cc
+ servlib/routing/TableBasedRouter.h
+     Removed (commented out) handlers for BundleTransmitFailedEvent.
+
+ContactManager::add_new_link:
+ servlib/contacts/ContactManager.cc
+ servlib/contacts/ContactManager.h
+     The way in which Links are added to the ContactManager was changed,
+     as proposed at the beginning of January.
+
+     The add_new_link method was added to replace add_link; this method
+     adds the Link to the set of links only if another link with the same
+     name does not already exist. This replaces tests for the link name
+     followed by an add with a more atomic operation. The method returns
+     true if the link was successfully added, and false if a link of the
+     same name already exists.
+
+     Because an external CLA link's creation might be delayed, the
+     add_new_link method does not post a LinkCreatedEvent automatically
+     if a flag has been set on the link indicating the CLA will post the
+     event later instead.
+
+         bool add_new_link(const LinkRef & link);
+     
+     To support add_new_link, a new has_link method that searches by link
+     name was added as well.
+
+         bool has_link(const char* name);
+
+     This change means that a link could be deleted after creation if the
+     name was in use, so initializing the link (with the
+     Link::set_initial_state() method) is not done in Link::create_link()
+     any longer. set_initial_state() is called only if the link was
+     successfully added as signaled by a LinkCreatedEvent, so a handler
+     for this event has been added to the ContactManager to call
+     set_initial_state().
+
+         void handle_link_created(LinkCreatedEvent* event);
+
+     Finally, the new_opportunistic_link method was changed to use
+     add_new_link() instead of add_link().
+
+ servlib/cmd/LinkCommand.cc
+ servlib/routing/TcaRouter.cc
+     Calls to ContactManager::add_link() were changed to use
+     ContactManager::add_new_link().
+
+ servlib/contacts/Link.cc
+ servlib/contacts/Link.h
+     The set_initial_state() call was moved to ContactManager as
+     described above. Additionally, a create_pending_ flag (and
+     corresponding accessors) was added so that a CLA may specify that
+     the ContactManager should not post a LinkCreatedEvent.
+
+     To support the DP and external CLA interfaces, a flag for whether a
+     link is "usable" has been added, and two fields have been added to
+     the Stats, availability_, and reliability_ (to be filled in by the
+     CLA if known).
+
+     Also to support the DP interface's RequestReconfigureLink, a second
+     reconfigure_link method was added which uses an AttributeVector (the
+     list of arbitrary key, value pairs used by the DP/External CLA
+     interfaces) instead of argc and argv. The AttributeVector could be
+     converted but one problem with this is that *all* the attributes
+     must be passed to the external CLAs, not just the CLA-specific
+     attributes that should be passed to the internal CLAs, so the
+     preexisting reconfigure_link would need to be changed to treat the
+     external CLA differently. The Link's reconfigure_link in turn calls
+     a new reconfigure_link for the ConvergenceLayer with the same
+     AttributeVector; this is not implemented on any internal CLAs at the
+     moment.
+
+         virtual void reconfigure_link(AttributeVector& params);
+
+External CL changes:
+ servlib/conv_layers/ECLModule.cc
+ servlib/conv_layers/ECLModule.h
+ servlib/conv_layers/ExternalConvergenceLayer.cc
+ servlib/conv_layers/ExternalConvergenceLayer.h
+ servlib/conv_layers/CLEventHandler.cc
+ servlib/conv_layers/CLEventHandler.h
+ servlib/conv_layers/clevent.xsd
+     The DTNRG tree already contained an initial set of these files that used
+     the cxx-tree tools. The changes since then have all been made to bring
+     the ECLA system up to date with the architecture document.
+     
+     For now, ExternalConvergenceLayer is the only ConvergenceLayer subclass
+     that reimplements has_persistent_link_queue() to return true.
+
+Other CL changes:
+ servlib/conv_layers/CLConnection.cc
+ servlib/conv_layers/CLConnection.h
+     The following method was added to the CLConnection class to support the
+     CLA interface.
+
+         bool is_queued(Bundle* bundle);
+
+     The method returns true if the given bundle is queued for transmission
+     on the connection; otherwise false is returned. Note that in the event
+     that the CLConnection::queue_bundle() method has been called, but the
+     resulting CLMSG_SEND_BUNDLE message has not yet been processed, this
+     method will return false.
+
+     BundleTransmitFailedEvents are no longer posted.
+
+     In CLConnection::run() the connection event loop is exited after
+     returning from event polling and the contact_broken_ field has been set.
+
+     In CLConnection::break_contact() the contact_broken_ field is set to
+     true prior to the possible call to CLConnection::disconnect().
+
+ servlib/conv_layers/ConnectionConvergenceLayer.cc
+ servlib/conv_layers/ConnectionConvergenceLayer.h
+     The ConnectionCovergenceLayer class is updated to support the is_queued()
+     method inherited from the ConvergenceLayer base class. The method
+     further queries the connection (i.e., CLConnection instance) associated
+     with the link given in the query.
+
+ servlib/conv_layers/ConvergenceLayer.cc
+ servlib/conv_layers/ConvergenceLayer.h
+     Convergence layers now provide the function
+     has_persistent_link_queues (which defaults to false).
+
+     The following methods were added to the ConvergenceLayer class to
+     allow a CL to be explicitely shutdown.
+
+         static void shutdown_clayers();
+         virtual void shutdown();
+
+     BundleDaemon::handle_shutdown_request() calls shutdown_clayers(), which
+     in turn calls the shutdown() method for each registered convergence
+     layers. The base class implemenation of shutdown() does nothing.
+
+     The following methods were added to the ConvergenceLayer class to
+     support the CLA interface.
+
+     virtual bool set_cla_parameters(AttributeVector &params);
+         This method is expected to (re)set the values of the given
+         convergence layer parameters. If any of the parameters is invalid,
+         then no parameters are set. True is returned if all the parameters
+         are successfully set; otherwise false is returned.
+
+     virtual bool reconfigure_link(const LinkRef& link, AttributeVector& params)
+         This method is expected to (re)set the values of the given
+         CL-specific link parameters. If any of the parameters is invalid,
+         then no parameters are set. True is returned if all the parameters
+         are successfully set; otherwise false is returned.
+
+     virtual void is_eid_reachable(
+                      const std::string& query_id,
+                      Interface* iface,
+                      const std::string& endpoint);
+         This method is expected to eventually result in the posting of an
+         EIDReachableReportEvent that reports if the given endpoint ID is
+         reachable via the given interface. The base class implemenation
+         simply posts an event that reports false.
+
+     virtual void query_link_attributes(
+                      const std::string& query_id,
+                      const LinkRef& link,
+                      const AttributeNameVector& attributes);
+         This method is expected to eventually result in the posting of a
+         LinkAttributesReportEvent that reports the current values of the
+         given link attributes. The base class implementation simply posts
+         an event that reports the values of no attributes.
+
+     virtual void query_iface_attributes(
+                      const std::string& query_id,
+                      Interface* iface,
+                      const AttributeNameVector& attributes);
+         This method is expected to eventually result in the posting of an
+         IfaceAttributesReportEvent that reports the current values of the
+         given interface attributes. The base class implementation simply
+         posts an event that reports the values of no attributes.
+
+     virtual void query_cla_parameters(
+                      const std::string& query_id,
+                      const AttributeNameVector& parameters);
+         This method is expected to eventually result in the posting of a
+         CLAParametersReportEvent that reports the current value of the
+         given convergence layer parameters. The base class implementation
+         simply posts an event that reports the values of no parameters.
+
+ servlib/conv_layers/EthConvergenceLayer.cc
+ servlib/conv_layers/EthConvergenceLayer.h
+     The EthConvergenceLayer class is updated to support the is_queued()
+     method inherited from the ConvergenceLayer base class. The Ethernet
+     convergence layer does not maintain an output queue, so this method
+     simply returns false.
+
+     BundleTransmitFailedEvents are no longer posted.
+
+ servlib/conv_layers/StreamConvergenceLayer.cc(John)
+ servlib/conv_layers/StreamConvergenceLayer.h
+	* Added contact_initiated_ to avoid performing poll_timeout actions
+	   on connections which have not been established yet
+	* Avoid use of data_rcvd_ before it has been set
+	* Don't panic when bundle blocks have been cleared from the outgoing
+	   queue because a cancel bundle may have processed in the main loop.
+
+ servlib/conv_layers/TCPConvergenceLayer.cc (John)
+	* Added more checks for contact broken
+
+ servlib/conv_layers/UDPConvergenceLayer.cc
+ servlib/conv_layers/UDPConvergenceLayer.h
+     The UDPConvergenceLayer class is updated to support the is_queued()
+     method inherited from the ConvergenceLayer base class. The UDP
+     convergence layer does not maintain an output queue, so this method
+     simply returns false.
+
+     BundleTransmitFailedEvents are no longer posted.
+
+
 2.3.0 (December 2006)
 ---------------------
 
