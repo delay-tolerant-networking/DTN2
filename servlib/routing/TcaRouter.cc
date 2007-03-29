@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include "conv_layers/ConvergenceLayer.h"
 #include "bundling/BundleActions.h"
@@ -847,7 +850,7 @@ TcaRouter::create_link(const std::string& link_addr)
 
     // Check if there's an existing link of the same name.
     LinkRef p_link("TcaRouter::create_link: return value");
-	   
+           
     p_link = p_man->find_link(host.c_str());
     if (p_link != NULL) return p_link;
 
@@ -863,9 +866,15 @@ TcaRouter::create_link(const std::string& link_addr)
         
     // Add the link to contact manager's table, which posts a
     // LinkCreatedEvent to the daemon
-    BundleDaemon::instance()->contactmgr()->add_link(p_link);
-    return p_link;
+    if (!p_man->add_new_link(p_link)) {
+        p_link->delete_link();
+        log_err("TcaRouter::create_link: "
+                "failed to add new link %s", p_link->name());
+        p_link = NULL;
+        return p_link;
+    }
 
+    return p_link;
 }
 
 

@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "StorageCommand.h"
 #include "bundling/BundlePayload.h"
 #include "storage/BundleStore.h"
@@ -35,7 +39,7 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
 
     bind_var(new oasys::BoolOpt("init_db", &cfg->init_,
                                 "Same as the --init-db argument to dtnd."));
-    bind_var(new oasys::BoolOpt("tidy",	&cfg->tidy_,
+    bind_var(new oasys::BoolOpt("tidy", &cfg->tidy_,
                                 "Same as the --tidy argument to dtnd."));
     bind_var(new oasys::IntOpt("tidy_wait", &cfg->tidy_wait_,
                                "time",
@@ -77,6 +81,17 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
                                 &cfg->payload_fd_cache_size_, "num",
                                 "number of payload file descriptors to keep "
                                 "open in a cache"));
+
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DS_ENABLED)
+    bind_var(new oasys::UInt16Opt("server_port",
+                                  &cfg->server_port_,
+                                  "port number",
+                                  "TCP port for IPC to external data store"));
+
+    bind_var(new oasys::StringOpt("schema", &cfg->schema_, "pathname",
+                                  "File containing the XML schema for the "
+                                  "external data store interface"));
+#endif // defined(XERCES_C_ENABLED) && defined(EXTERNAL_DS_ENABLED)
 
     add_to_help("usage", "print the current storage usage");
 }

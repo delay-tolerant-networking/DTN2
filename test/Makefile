@@ -64,12 +64,12 @@ COMPONENT_LIBS := \
 #
 unit_tests/%-test.o: unit_tests/%-test.cc
 	@rm -f $@; mkdir -p $(@D)
-	$(CXX) $(CFLAGS) -c $< -o $@	
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 %-test: unit_tests/%-test
 unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
 	@rm -f $@; mkdir -p $(@D)
-	$(CXX) $(CFLAGS) $< $(COMPONENT_LIBS) \
+	$(CXX) $(CXXFLAGS) $< $(COMPONENT_LIBS) \
 		-o $@ $(LDFLAGS) $(LIBS)  $(OASYS_LIBS)
 
 #
@@ -77,7 +77,7 @@ unit_tests/%-test: unit_tests/%-test.o $(COMPONENT_LIBS)
 #
 unit_tests/bundle-timestamp-test.o: unit_tests/bundle-timestamp-test.cc
 	@rm -f $@; mkdir -p $(@D)
-	$(CXX) $(CFLAGS) -Wno-cast-align -c $< -o $@	
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -Wno-cast-align -c $< -o $@	
 
 #
 # Include the common rules

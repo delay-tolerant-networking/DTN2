@@ -90,6 +90,8 @@ public:
           action_(INVALID_ACTION),
           clayer_(""),
           nexthop_(""),
+          remote_eid_(""),
+          link_name_(""),
           custody_timer_() {}
 
     /*
@@ -100,6 +102,8 @@ public:
           action_(INVALID_ACTION),
           clayer_(""),
           nexthop_(""),
+          remote_eid_(""),
+          link_name_(""),
           custody_timer_() {}
     
     /**
@@ -109,11 +113,15 @@ public:
                    action_t action,
                    const std::string& clayer,
                    const std::string& nexthop,
+                   const std::string& remote_eid,
+                   const std::string& link_name,
                    const CustodyTimerSpec& custody_timer)
         : state_(NONE),
           action_(action),
           clayer_(clayer),
           nexthop_(nexthop),
+          remote_eid_(remote_eid),
+          link_name_(link_name),
           custody_timer_(custody_timer)
     {
         set_state(state);
@@ -129,11 +137,16 @@ public:
     }
 
     virtual void serialize( oasys::SerializeAction *a );
-    
     int              state_;		///< State of the transmission
     int              action_;           ///< Forwarding action
     std::string      clayer_;		///< Convergence layer for the contact
+    									///< this should not change
     std::string      nexthop_;		///< CL-specific nexthop string
+    									///< A link's nexthop can change	
+    std::string      remote_eid_;	///< the EID of target of this link
+    									///< this should not change
+    std::string      link_name_;    ///< The name of the link object
+    									///< this should not change
     struct timeval   timestamp_;	///< Timestamp of last state update
     CustodyTimerSpec custody_timer_;	///< Custody timer information 
 };

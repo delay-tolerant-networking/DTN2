@@ -88,7 +88,8 @@ typedef enum {
     DTN_SEND			= 10,
     DTN_RECV			= 11,
     DTN_BEGIN_POLL		= 12,
-    DTN_CANCEL_POLL		= 13
+    DTN_CANCEL_POLL		= 13,
+    DTN_CANCEL          = 14
 } dtnapi_message_type_t;
 
 /**

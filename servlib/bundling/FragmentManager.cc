@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include "Bundle.h"
 #include "BundleEvent.h"
@@ -21,6 +24,8 @@
 #include "BundleList.h"
 #include "BundleRef.h"
 #include "FragmentManager.h"
+#include "BlockInfo.h"
+#include "BundleProtocol.h"
 
 namespace dtn {
 
@@ -69,23 +74,25 @@ FragmentManager::create_fragment(Bundle* bundle, size_t offset, size_t length)
 
 //----------------------------------------------------------------------
 bool
-FragmentManager::try_to_convert_to_fragment(Bundle* bundle,
-                                            size_t  payload_offset,
-                                            size_t  bytes_rcvd)
+FragmentManager::try_to_convert_to_fragment(Bundle* bundle)
 {
-    if (bytes_rcvd <= payload_offset) {
+    const BlockInfo *payload_block
+        = bundle->recv_blocks_.find_block(BundleProtocol::PAYLOAD_BLOCK);
+    if (!payload_block) {
         return false; // can't do anything
     }
-    
-    size_t payload_len  = bundle->payload_.length();
-    size_t payload_rcvd = std::min(payload_len, bytes_rcvd - payload_offset);
+
+    // the payload is already truncated to the length that was recieved
+    size_t payload_len  = payload_block->data_length();
+    size_t payload_rcvd = bundle->payload_.length();
 
     if (payload_rcvd >= payload_len) {
+        ASSERT(payload_block->complete() || payload_len == 0);
         return false; // nothing to do
     }
     
     log_debug("partial bundle *%p, making reactive fragment of %zu bytes",
-              bundle, bytes_rcvd);
+              bundle, payload_rcvd);
         
     if (! bundle->is_fragment_) {
         bundle->is_fragment_ = true;
@@ -95,8 +102,6 @@ FragmentManager::try_to_convert_to_fragment(Bundle* bundle,
         // if it was already a fragment, the fragment headers are
         // already correct
     }
-    
-    bundle->payload_.truncate(payload_rcvd);
     
     return true;
 }
@@ -269,6 +274,10 @@ FragmentManager::try_to_reactively_fragment(Bundle* bundle,
                                             size_t  payload_offset,
                                             size_t  bytes_sent)
 {
+    if (bundle->do_not_fragment_) {
+        return false; // can't do anything
+    }
+
     if (bytes_sent <= payload_offset) {
         return false; // can't do anything
     }

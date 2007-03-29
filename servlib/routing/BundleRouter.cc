@@ -14,10 +14,12 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdlib.h>
 
-#include <config.h>
 #include "BundleRouter.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleActions.h"
@@ -72,7 +74,7 @@ BundleRouter::create_router(const char* type)
     else if (!strcmp(type, "tca_gateway")) {
         return new TcaRouter(TcaRouter::TCA_GATEWAY);
     }
-#ifdef XERCES_C_ENABLED
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
     else if (strcmp(type, "external") == 0) {
         return new ExternalRouter();
     }    

@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "BundleRouter.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleActions.h"
@@ -118,7 +122,7 @@ ProphetRouter::handle_link_created(LinkCreatedEvent* event)
     LinkRef link = event->link_;
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
-	
+        
     // can't do anything with "only" a link, except to police this one ASSERTion
     ASSERT(link->remote_eid().equals(EndpointID::NULL_EID()) == false);
 }
@@ -168,7 +172,7 @@ ProphetRouter::handle_link_state_change_request(LinkStateChangeRequest* req)
                   link->name(), Link::state_to_str(state));
         return;
     }
-	
+        
     // Signals the appropriate ProphetEncounter instance to clear any
     // pending outbound queues
     if (req->old_state_ == Link::BUSY && req->state_ == Link::AVAILABLE)

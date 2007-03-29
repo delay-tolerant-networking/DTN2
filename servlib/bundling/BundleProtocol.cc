@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -166,6 +169,15 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
     }
     
     return total_len;
+}
+
+//----------------------------------------------------------------------
+void
+BundleProtocol::delete_blocks(Bundle* bundle, const LinkRef& link)
+{
+    ASSERT(bundle != NULL);
+
+    bundle->xmit_blocks_.delete_blocks(link);
 }
 
 //----------------------------------------------------------------------
@@ -335,7 +347,7 @@ BundleProtocol::consume(Bundle* bundle,
 
         log_debug_p(LOG, "consume: consumed %u bytes of block type 0x%x (%s)",
                     cc, info->type(),
-                    info->complete() ? "complete" : "not completE");
+                    info->complete() ? "complete" : "not complete");
 
         if (info->complete()) {
             // check if we're done with the bundle
@@ -371,7 +383,7 @@ BundleProtocol::validate(Bundle* bundle,
     }
 
     // the first block of a bundle must be a primary block
-    if (!recv_blocks->front().primary_block()) {
+    if (recv_blocks->front().type() != BundleProtocol::PRIMARY_BLOCK) {
         log_err_p(LOG, "bundle fails to contain a primary block");
         *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
         return false;
@@ -383,11 +395,11 @@ BundleProtocol::validate(Bundle* bundle,
          iter != recv_blocks->end();
          ++iter)
     {
-	if (iter->primary_block()) {
+        if (iter->type() == BundleProtocol::PRIMARY_BLOCK) {
             primary_blocks++;
-	}
+        }
 
-        if (iter->payload_block()) {
+        if (iter->type() == BundleProtocol::PAYLOAD_BLOCK) {
             payload_blocks++;
         }
 
@@ -398,9 +410,19 @@ BundleProtocol::validate(Bundle* bundle,
 
         // a bundle's last block must be flagged as such,
         // and all other blocks should not be flagged
-	if (iter == last_block) {
+        if (iter == last_block) {
             if (!iter->last_block()) {
                 log_err_p(LOG, "bundle's last block not flagged");
+                *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+                return false;
+            }
+            // if the last block is not complete and it's not the payload
+            // block, an extension block has been truncated, and there is
+            // no way to reactively fragment it
+            if (iter->type() != BundleProtocol::PAYLOAD_BLOCK
+		&& !iter->complete()) {
+                log_err_p(LOG, "bundle's last block incomplete and "
+                               "cannot be fragmented");
                 *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
                 return false;
             }
@@ -419,7 +441,7 @@ BundleProtocol::validate(Bundle* bundle,
         *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
         return false;
     }
-	   
+           
     // a bundle must not contain more than one payload block
     if (payload_blocks > 1) {
         log_err_p(LOG, "bundle contains %d payload blocks", payload_blocks);
@@ -463,7 +485,7 @@ bool
 BundleProtocol::get_admin_type(const Bundle* bundle, admin_record_type_t* type)
 {
     if (! bundle->is_admin_) {
-	return false;
+        return false;
     }
 
     u_char buf[16];
@@ -473,9 +495,9 @@ BundleProtocol::get_admin_type(const Bundle* bundle, admin_record_type_t* type)
     {
 #define CASE(_what) case _what: *type = _what; return true;
 
-	CASE(ADMIN_STATUS_REPORT);
-	CASE(ADMIN_CUSTODY_SIGNAL);
-	CASE(ADMIN_ANNOUNCE);
+        CASE(ADMIN_STATUS_REPORT);
+        CASE(ADMIN_CUSTODY_SIGNAL);
+        CASE(ADMIN_ANNOUNCE);
 
 #undef  CASE
     default:

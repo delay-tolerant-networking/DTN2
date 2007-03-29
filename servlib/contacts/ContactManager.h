@@ -55,10 +55,11 @@ public:
      *
      *********************************************/
     /**
-     * Add a link.
+     * Add a link if the contact manager does not already have a link
+     * by the same name.
      */
-    void add_link(const LinkRef& link);
-    
+    bool add_new_link(const LinkRef & link);
+
     /**
      * Delete a link
      */
@@ -66,10 +67,16 @@ public:
                   ContactEvent::reason_t reason = ContactEvent::NO_INFO);
 
     /**
-     * Check if contact manager already has this link
+     * Check if contact manager already has this link.
      */
     bool has_link(const LinkRef& link);
-
+    
+    /**
+     *
+     * Check if contact manager already has a link by the same name.
+     */
+    bool has_link(const char* name);
+    
     /**
      * Finds link corresponding to this name
      */
@@ -115,6 +122,11 @@ public:
     {
         dispatch_event(event);
     }
+    
+    /**
+     * Event handler when a link has been created.
+     */
+    void handle_link_created(LinkCreatedEvent* event);
     
     /**
      * Event handler when a link becomes unavailable.

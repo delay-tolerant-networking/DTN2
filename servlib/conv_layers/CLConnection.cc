@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/util/OptParser.h>
 
@@ -34,7 +37,7 @@ CLConnection::CLConnection(const char*       classname,
       Logger(classname, logpath),
       contact_(classname),
       contact_up_(false),
-      cmdqueue_(logpath),
+      cmdqueue_(logpath, &inflight_lock_, false),
       cl_(cl),
       params_(params),
       active_connector_(active_connector),
@@ -117,7 +120,14 @@ CLConnection::run()
                                                  
         int cc = oasys::IO::poll_multiple(pollfds_, num_pollfds_ + 1,
                                           timeout, NULL, logpath_);
-
+                                          
+        // check again here for contact broken since we don't want to
+        // act on the poll result if the contact is broken
+        if (contact_broken_) {
+            log_debug("contact_broken set, exiting main loop");
+            return;
+        }
+        
         if (cc == oasys::IOTIMEOUT)
         {
             handle_poll_timeout();
@@ -175,6 +185,26 @@ CLConnection::queue_bundle(Bundle* bundle)
 }
 
 //----------------------------------------------------------------------
+bool
+CLConnection::is_queued(Bundle* bundle)
+{
+    oasys::ScopeLock l(inflight_lock(), "CLConnection::is_queued");
+
+    InFlightList::const_iterator iter;
+    for (iter = inflight_.begin(); iter != inflight_.end(); ++iter) {
+        if ((*iter)->bundle_ == bundle) {
+            return true;
+        }
+    }
+
+    // This method will return false in the event that the
+    // CLConnection::queue_bundle() method has been called,
+    // but the resulting CLMSG_SEND_BUNDLE message has not
+    // yet been processed.
+    return false;
+}
+
+//----------------------------------------------------------------------
 void
 CLConnection::process_command()
 {
@@ -223,7 +253,7 @@ CLConnection::check_unblock_link()
         return;
     }
     ASSERT(link->cl_info() != NULL);
-	
+        
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
 
@@ -271,13 +301,13 @@ CLConnection::contact_up()
 void
 CLConnection::break_contact(ContactEvent::reason_t reason)
 {
+        contact_broken_ = true;
+        
     log_debug("break_contact: %s", ContactEvent::reason_to_str(reason));
 
     if (reason != ContactEvent::BROKEN) {
         disconnect();
     }
-
-    contact_broken_ = true;
     
     // if the connection isn't being closed by the user, we need to
     // notify the daemon that either the contact ended or the link
@@ -304,7 +334,9 @@ CLConnection::close_contact()
 
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
-    
+
+    oasys::ScopeLock l(inflight_lock(), "CLConnection::is_queued");
+
     // drain the inflight queue, posting transmitted or transmit
     // failed events
     while (! inflight_.empty()) {
@@ -316,7 +348,7 @@ CLConnection::close_contact()
             (sent_bytes == 0) ||
             (link->is_reliable() && acked_bytes == 0))
         {
-            log_debug("posting transmission failed event "
+            /*log_debug("posting transmission failed event "
                       "(reactive fragmentation %s, %s link, acked_bytes %u)",
                       params->reactive_frag_enabled_ ? "enabled" : "disabled",
                       link->is_reliable() ? "reliable" : "unreliable",
@@ -324,7 +356,7 @@ CLConnection::close_contact()
             
             BundleDaemon::post(
                 new BundleTransmitFailedEvent(inflight->bundle_.object(),
-                                              contact_, link));
+                                              contact_, link));*/
             
         } else {
             BundleDaemon::post(
@@ -386,12 +418,12 @@ CLConnection::close_contact()
 
             log_warn("close_contact: %s still in queue", clmsg_to_str(msg.type_));
             
-            if (msg.type_ == CLMSG_SEND_BUNDLE) {
+            /*if (msg.type_ == CLMSG_SEND_BUNDLE) {
                 BundleDaemon::post(
                     new BundleTransmitFailedEvent(msg.bundle_.object(),
                                                   contact_,
                                                   link));
-            }
+            }*/
         }
     }
 }
@@ -404,7 +436,7 @@ CLConnection::find_contact(const EndpointID& peer_eid)
         log_debug("CLConnection::find_contact: contact already exists");
         return true;
     }
-	
+        
     /*
      * Now we may need to find or create an appropriate opportunistic
      * link for the connection.

@@ -73,6 +73,8 @@ public:
                                   BlockInfoVec*  blocks,
                                   const LinkRef& link);
 
+    static void delete_blocks(Bundle* bundle, const LinkRef& link);
+
     /**
      * Return the total length of the formatted bundle block data.
      */
@@ -113,15 +115,15 @@ public:
      * Bundle Status Report "Reason Code" flags
      */
     typedef enum {
-	REASON_NO_ADDTL_INFO              = 0x00,
-	REASON_LIFETIME_EXPIRED           = 0x01,
-	REASON_FORWARDED_UNIDIR_LINK      = 0x02,
-	REASON_TRANSMISSION_CANCELLED     = 0x03,
-	REASON_DEPLETED_STORAGE           = 0x04,
-	REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
-	REASON_NO_ROUTE_TO_DEST           = 0x06,
-	REASON_NO_TIMELY_CONTACT          = 0x07,
-	REASON_BLOCK_UNINTELLIGIBLE       = 0x08,
+        REASON_NO_ADDTL_INFO              = 0x00,
+        REASON_LIFETIME_EXPIRED           = 0x01,
+        REASON_FORWARDED_UNIDIR_LINK      = 0x02,
+        REASON_TRANSMISSION_CANCELLED     = 0x03,
+        REASON_DEPLETED_STORAGE           = 0x04,
+        REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
+        REASON_NO_ROUTE_TO_DEST           = 0x06,
+        REASON_NO_TIMELY_CONTACT          = 0x07,
+        REASON_BLOCK_UNINTELLIGIBLE       = 0x08,
     } status_report_reason_t;
 
     /**
@@ -176,7 +178,7 @@ public:
      * Valid type codes for bundle blocks.
      */
     typedef enum {
-        PRIMARY_BLOCK          = 0x000,	///< INTERNAL USE ONLY -- NOT IN SPEC
+        PRIMARY_BLOCK          = 0x000, ///< INTERNAL USE ONLY -- NOT IN SPEC
         PAYLOAD_BLOCK          = 0x001, 
         PREVIOUS_HOP_BLOCK     = 0x005,
         API_EXTENSION_BLOCK    = 0x100, ///< INTERNAL USE ONLY -- NOT IN SPEC
@@ -187,10 +189,10 @@ public:
      * except the primary block.
      */
     typedef enum {
-        BLOCK_FLAG_REPLICATE		   = 1 << 0,
-        BLOCK_FLAG_REPORT_ONERROR	   = 1 << 1,
+        BLOCK_FLAG_REPLICATE               = 1 << 0,
+        BLOCK_FLAG_REPORT_ONERROR          = 1 << 1,
         BLOCK_FLAG_DISCARD_BUNDLE_ONERROR  = 1 << 2,
-        BLOCK_FLAG_LAST_BLOCK		   = 1 << 3,
+        BLOCK_FLAG_LAST_BLOCK              = 1 << 3,
         BLOCK_FLAG_DISCARD_BLOCK_ONERROR   = 1 << 4,
         BLOCK_FLAG_FORWARDED_UNPROCESSED   = 1 << 5
     } block_flag_t;
@@ -229,23 +231,23 @@ public:
         STATUS_CUSTODY_ACCEPTED = 0x02,
         STATUS_FORWARDED        = 0x04,
         STATUS_DELIVERED        = 0x08,
-        STATUS_DELETED		= 0x10,
-        STATUS_ACKED_BY_APP	= 0x20,
-        STATUS_UNUSED		= 0x40,
-        STATUS_UNUSED2		= 0x80,
+        STATUS_DELETED          = 0x10,
+        STATUS_ACKED_BY_APP     = 0x20,
+        STATUS_UNUSED           = 0x40,
+        STATUS_UNUSED2          = 0x80,
     } status_report_flag_t;
 
     /**
      * Custody Signal Reason Codes
      */
     typedef enum {
-        CUSTODY_NO_ADDTL_INFO	           = 0x00,
+        CUSTODY_NO_ADDTL_INFO              = 0x00,
         CUSTODY_REDUNDANT_RECEPTION        = 0x03,
         CUSTODY_DEPLETED_STORAGE           = 0x04,
         CUSTODY_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
         CUSTODY_NO_ROUTE_TO_DEST           = 0x06,
         CUSTODY_NO_TIMELY_CONTACT          = 0x07,
-        CUSTODY_BLOCK_UNINTELLIGIBLE	   = 0x08
+        CUSTODY_BLOCK_UNINTELLIGIBLE       = 0x08
     } custody_signal_reason_t;
 
     /**

@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/io/NetUtils.h>
 #include "IPConvergenceLayerUtils.h"

@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
@@ -61,7 +64,7 @@ public:
         
     } params_;
 
-    Node* peer_node_;	///< The receiving node
+    Node* peer_node_;   ///< The receiving node
 };
 
 SimConvergenceLayer* SimConvergenceLayer::instance_;
@@ -122,7 +125,7 @@ SimConvergenceLayer::open_contact(const ContactRef& contact)
     log_debug("opening contact for link [*%p]", contact.object());
     
     BundleDaemon::post(new ContactUpEvent(contact));
-	
+        
     return true;
 }
 

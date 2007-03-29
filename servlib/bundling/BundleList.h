@@ -23,6 +23,7 @@
 
 #include "BundleRef.h"
 #include "naming/EndpointID.h"
+#include "GbofId.h"
 
 namespace oasys {
 class SpinLock;
@@ -193,6 +194,13 @@ public:
      */
     BundleRef find(const EndpointID& source_eid,
                    const BundleTimestamp& creation_ts);
+
+    /**
+     * Search the list for a bundle with the given GBOF ID
+     *
+     * @return the bundle or NULL if not found.
+     */
+    BundleRef find(GbofId& gbof_id);
     
     /**
      * Move all bundles from this list to another.

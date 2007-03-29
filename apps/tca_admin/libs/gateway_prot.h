@@ -31,48 +31,48 @@ extern "C" {
 
 
 enum bamboo_stat {
-	BAMBOO_OK = 0,
-	BAMBOO_CAP = 1,
-	BAMBOO_AGAIN = 2,
+        BAMBOO_OK = 0,
+        BAMBOO_CAP = 1,
+        BAMBOO_AGAIN = 2,
 };
 typedef enum bamboo_stat bamboo_stat;
 
 typedef char bamboo_key[20];
 
 typedef struct {
-	u_int bamboo_value_len;
-	char *bamboo_value_val;
+        u_int bamboo_value_len;
+        char *bamboo_value_val;
 } bamboo_value;
 
 typedef struct {
-	u_int bamboo_placemark_len;
-	char *bamboo_placemark_val;
+        u_int bamboo_placemark_len;
+        char *bamboo_placemark_val;
 } bamboo_placemark;
 
 struct bamboo_put_args {
-	char *application;
-	char *client_library;
-	bamboo_key key;
-	bamboo_value value;
-	int ttl_sec;
+        char *application;
+        char *client_library;
+        bamboo_key key;
+        bamboo_value value;
+        int ttl_sec;
 };
 typedef struct bamboo_put_args bamboo_put_args;
 
 struct bamboo_get_args {
-	char *application;
-	char *client_library;
-	bamboo_key key;
-	int maxvals;
-	bamboo_placemark placemark;
+        char *application;
+        char *client_library;
+        bamboo_key key;
+        int maxvals;
+        bamboo_placemark placemark;
 };
 typedef struct bamboo_get_args bamboo_get_args;
 
 struct bamboo_get_res {
-	struct {
-		u_int values_len;
-		bamboo_value *values_val;
-	} values;
-	bamboo_placemark placemark;
+        struct {
+                u_int values_len;
+                bamboo_value *values_val;
+        } values;
+        bamboo_placemark placemark;
 };
 typedef struct bamboo_get_res bamboo_get_res;
 

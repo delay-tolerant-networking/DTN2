@@ -18,8 +18,7 @@
 #ifndef _EXTERNAL_CONVERGENCE_LAYER_H_
 #define _EXTERNAL_CONVERGENCE_LAYER_H_
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <string>
 #include <list>
@@ -33,8 +32,10 @@
 #include "clevent.h"
 #include "bundling/BundleList.h"
 #include "bundling/BundleEvent.h"
+#include "contacts/NamedAttribute.h"
 
-class dtn::clmessage::bundleAttributes;
+class dtn::clmessage::bundle_attributes;
+class dtn::clmessage::link_config_parameters;
 
 namespace dtn {
 
@@ -45,7 +46,7 @@ class Interface;
 class Contact;
 class ECLModule;
 
-typedef ::xsd::cxx::tree::sequence<clmessage::Parameter> ParamSequence;
+typedef ::xsd::cxx::tree::sequence<clmessage::key_value_pair> KeyValueSequence;
 
 /** Base class for resources that should be owned by an ECLModule.
  * 
@@ -57,28 +58,28 @@ typedef ::xsd::cxx::tree::sequence<clmessage::Parameter> ParamSequence;
 class ECLResource : public CLInfo {
 public:
     virtual ~ECLResource() {
-        delete create_message;
+        delete create_message_;
     }
     
     /// The protocol that this resource is intended for.
-    std::string protocol;
+    std::string protocol_;
     
     /// The CLEvent that will create this resource, in case we must send
     /// it again.
-    clmessage::cl_message* create_message;
+    clmessage::cl_message* create_message_;
     
     /// The module that owns this resource (this will be NULL if the resource
     /// is unclaimed).
-    ECLModule* module;
+    ECLModule* module_;
     
     oasys::Mutex lock;
     
 protected:
     ECLResource(std::string p, clmessage::cl_message* create, ECLModule* m) :
     lock("ECLResource") {
-        protocol = p;
-        module = m;
-        create_message = create;
+        protocol_ = p;
+        module_ = m;
+        create_message_ = create;
     }
 };
 
@@ -89,10 +90,10 @@ class ECLInterfaceResource : public ECLResource {
 public:
     ECLInterfaceResource(std::string p, clmessage::cl_message* create,
     ECLModule* m, Interface* i) : ECLResource(p, create, m) {
-        interface = i;
+        interface_ = i;
     }
     
-    Interface* interface;
+    Interface* interface_;
 };
 
 
@@ -104,15 +105,15 @@ public:
                     const LinkRef& l, bool disc);
     
     /// Reference to the link that this Resource represents.
-    LinkRef link;
+    LinkRef link_;
     
     /// The state that the ECLModule knows the link to be in, independent of
     /// the state in the link itself. This is useful for state changes that
     /// originate at the CL rather than the BPA. 
-    Link::state_t known_state;
+    Link::state_t known_state_;
     
     /// True if this link was discovered rather than created by the BPA.
-    bool is_discovered;
+    bool is_discovered_;
     
     
     /** Add a bundle to this link's outgoing bundle list.
@@ -130,7 +131,7 @@ public:
      * @return The OutgoingBundle object for the requested bundle if it
      *         exists on the outgoing bundle list, NULL if it does not.
      */
-    BundleRef get_outgoing_bundle(clmessage::bundleAttributes bundle_attribs);
+    BundleRef get_outgoing_bundle(clmessage::bundle_attributes bundle_attribs);
     
     bool has_outgoing_bundle(Bundle* bundle);
     
@@ -139,7 +140,7 @@ public:
      * 
      * @param outgoing_bundle  The bundle to be removed from the outgoing list.
      */
-    void erase_outgoing_bundle(Bundle* bundle);
+    bool erase_outgoing_bundle(Bundle* bundle);
     
     
     /** Get the actual outgoing bundle list.
@@ -148,9 +149,45 @@ public:
      */
     BundleList& get_bundle_set();
     
+    /** Set the link's high-water mark.
+     */
+    void set_high_water_mark(int high_water_mark) {
+        high_water_mark_ = high_water_mark;
+    }
+
+    /** Check if the high-water mark would be crossed.
+     * @param queued_bytes  The number of bytes queued on the link.
+     * @return  True if queued_bytes is greater than or equal to the link's
+     *          high-water mark; false otherwise.
+     */
+    bool high_water_mark_crossed(int queued_bytes) const {
+        return (high_water_mark_ > 0 && queued_bytes >= high_water_mark_);
+    }
+    
+    /** Set the link's low-water mark.
+     */
+    void set_low_water_mark(int low_water_mark) {
+        low_water_mark_ = low_water_mark;
+    }
+    
+    /** Check if the low-water mark would be crossed.
+     * @param queued_bytes  The number of bytes queued on the link.
+     * @return  True if queued_bytes is greater than or equal to the link's
+     *          low-water mark; false otherwise.
+    */
+    bool low_water_mark_crossed(int queued_bytes) const {
+        return (queued_bytes <= low_water_mark_);
+    }
+    
 private:
     /// The list of bundles going out on this link.
     BundleList outgoing_bundles_;
+    
+    /// The high-water mark for this link.
+    int high_water_mark_;
+    
+    /// The low-water mark for this link.
+    int low_water_mark_;
 };
 
 
@@ -196,17 +233,34 @@ public:
      */
     void start();
     
+    bool set_cla_parameters(AttributeVector &params);
+    bool set_interface_defaults(int argc, const char* argv[],
+                                const char** invalidp);
     bool interface_up(Interface* iface, int argc, const char* argv[]);
     bool interface_down(Interface* iface);
     void dump_interface(Interface* iface, oasys::StringBuffer* buf);
+    bool set_link_defaults(int argc, const char* argv[], const char** invalidp);
     bool init_link(const LinkRef& link, int argc, const char* argv[]);
     void delete_link(const LinkRef& link);
     void dump_link(const LinkRef& link, oasys::StringBuffer* buf);
+    bool reconfigure_link(const LinkRef& link, int argc, const char* argv[]);
+    void reconfigure_link(const LinkRef& link, AttributeVector& params);
     bool open_contact(const ContactRef& contact);
     bool close_contact(const ContactRef& contact);
     void send_bundle(const ContactRef& contact, Bundle* bundle);
+    void send_bundle_on_down_link(const LinkRef& link, Bundle* bundle);
     bool cancel_bundle(const LinkRef& link, Bundle* bundle);
     bool is_queued(const LinkRef& link, Bundle* bundle);
+    void is_eid_reachable(const std::string& query_id, Interface* iface,
+                          const std::string& endpoint);
+    void query_link_attributes(const std::string& query_id,const LinkRef& link,
+                               const AttributeNameVector& attributes);
+    void query_iface_attributes(const std::string& query_id, Interface* iface,
+                                const AttributeNameVector& attributes);
+    void query_cla_parameters(const std::string& query_id,
+                              const AttributeNameVector& parameters);
+    bool has_persistent_link_queues();
+    void shutdown();
 
     
     /** Take unclaimed resources intended for a given protocol.
@@ -314,28 +368,27 @@ private:
      * call 'delete' on the pointer.
      */
     void delete_resource(ECLResource* resource);
-
     
-    /** Convert an arg vector to a ParamSequence.
+    /** Convert an arg vector to a KeyValueSequence.
      * 
      * This will take a number of strings (in argv) in the form 'name=value'
-     * and convert them to a ParamSequence suitable for XML messages.
+     * and convert them to a KeyValueSequence suitable for XML messages.
      * 
      * @param argc  Number of arguments in argv.
      * @param argv  The vector of arguments.
-     * @param param_sequence  An instance of ParamSequence that will be
+     * @param param_sequence  An instance of KeyValueSequence that will be
      *                        populated with the parameters.
      */
     void build_param_sequence(int argc, const char* argv[],
-                              ParamSequence& param_sequence);
+                              KeyValueSequence& param_sequence);
     
-    /** Fill in the fields of a bundleAttributes object.
+    /** Fill in the fields of a bundle_attributes object.
      * 
-     * This will complete the bundleAttributes instance based on the given
+     * This will complete the bundle_attributes instance based on the given
      * bundle.
      */
     void fill_bundle_attributes(const Bundle* bundle,
-                                clmessage::bundleAttributes& attribs);
+                                clmessage::bundle_attributes& attribs);
         
     /// The list of active modules.
     std::list<ECLModule*> module_list_;
@@ -370,6 +423,6 @@ public:
 
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_CL_ENABLED
 #endif // _EXTERNAL_CONVERGENCE_LAYER_H_
 

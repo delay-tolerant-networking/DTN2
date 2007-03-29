@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <errno.h>
 #include <oasys/debug/Log.h>
@@ -141,7 +144,7 @@ public:
         int               failure_action_;
         u_int             expiration_;
         std::string       script_;
-        bool		  init_passive_;
+        bool              init_passive_;
     };
     
     RegistrationOpts opts_;
@@ -417,7 +420,7 @@ public:
         memset(&block, 0, sizeof(block));
         if (opts_.block_type_ > 0 && opts_.block_type_ < 255) {
             block.type = opts_.block_type_;
-	    if (opts_.block_flags_ < 255) {
+            if (opts_.block_flags_ < 255) {
                 block.flags = opts_.block_flags_;
             }
             block.data.data_len = opts_.block_content_len_;
@@ -426,7 +429,7 @@ public:
             spec.blocks.blocks_len = 1;
             spec.blocks.blocks_val = &block;
         }
-	
+        
         dtn_bundle_id_t id;
         memset(&id, 0, sizeof(id));
         

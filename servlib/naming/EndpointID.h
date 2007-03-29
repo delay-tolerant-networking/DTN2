@@ -27,7 +27,7 @@ struct dtn_endpoint_id_t;
 namespace dtn {
 
 typedef oasys::URI URI;
-	
+        
 class EndpointID;
 class EndpointIDPattern;
 class Scheme;
@@ -60,8 +60,8 @@ public:
     EndpointID(const EndpointID& other)
         : SerializableObject(other)
     {
-	if (&other != this)
-	    assign(other);
+        if (&other != this)
+            assign(other);
     }
 
     /**
@@ -210,10 +210,10 @@ protected:
 
     URI uri_;                   /* endpoint URI */
 
-    Scheme* scheme_;		/* the scheme class (if known) */
+    Scheme* scheme_;            /* the scheme class (if known) */
 
-    bool valid_;		/* true iff the endpoint id is valid */
-    bool is_pattern_;		/* true iff this is an EndpointIDPattern */
+    bool valid_;                /* true iff the endpoint id is valid */
+    bool is_pattern_;           /* true iff this is an EndpointIDPattern */
 };
 
 /**

@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
@@ -66,7 +69,7 @@ RouteEntry::parse_options(int argc, const char** argv, const char** invalidp)
     oasys::EnumOpt::Case fwdopts[] = {
         {"forward", ForwardingInfo::FORWARD_ACTION},
         {"copy",    ForwardingInfo::COPY_ACTION},
-	{0, 0}
+        {0, 0}
     };
     p.addopt(new oasys::EnumOpt("action", fwdopts, &action_));
 

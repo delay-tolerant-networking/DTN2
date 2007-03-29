@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <errno.h>
 #include <string>
@@ -32,6 +35,7 @@
 #include "cmd/TestCommand.h"
 #include "servlib/DTNServer.h"
 #include "storage/DTNStorageConfig.h"
+#include "bundling/BundleDaemon.h"
 
 extern const char* dtn_version;
 
@@ -189,6 +193,12 @@ DTND::main(int argc, char* argv[])
         dtnserver->close_datastore();
         log_info_p("/dtnd", "database initialization complete.");
         notify_and_exit(0);
+    }
+    
+    if (BundleDaemon::instance()->local_eid().equals(EndpointID::NULL_EID()))
+    {
+        log_err_p("/dtnd", "no local eid specified; use the 'route local_eid' command");
+        notify_and_exit(1);
     }
 
     // if we've daemonized, now is the time to notify our parent

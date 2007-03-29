@@ -129,6 +129,9 @@ extern int dtn_send(dtn_handle_t handle,
                     dtn_bundle_payload_t* payload,
                     dtn_bundle_id_t* id);
 
+extern int dtn_cancel(dtn_handle_t handle,
+                      dtn_bundle_id_t* id);
+
 /**
  * Blocking receive for a bundle, filling in the spec and payload
  * structures with the bundle data. The location parameter indicates

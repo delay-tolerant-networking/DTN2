@@ -17,8 +17,6 @@
 #ifndef _BLUETOOTH_CONVERGENCE_LAYER_
 #define _BLUETOOTH_CONVERGENCE_LAYER_
 
-#include <config.h>
-
 #ifdef OASYS_BLUETOOTH_ENABLED
 
 #include <errno.h>

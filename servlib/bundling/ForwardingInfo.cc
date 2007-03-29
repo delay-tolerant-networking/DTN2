@@ -19,6 +19,10 @@
  *    derived from this software without specific prior written permission.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "ForwardingInfo.h"
 
 namespace dtn {
@@ -30,12 +34,15 @@ ForwardingInfo::serialize(oasys::SerializeAction *a)
     a->process("action", &action_);
     a->process("clayer", &clayer_);
     a->process("nextHop", &nexthop_);
+    a->process("remoteEid", &remote_eid_);
+    a->process("linkName", &link_name_);
 
     // casting won't be necessary after port to oasys::Time
-    a->process("timestamp_sec",
-        reinterpret_cast< u_int32_t * >(&timestamp_.tv_sec));
-    a->process("timestamp_usec",
-        reinterpret_cast< u_int32_t * >(&timestamp_.tv_usec));
+    // in the mean time, avoid gcc pointer cast complaints
+    u_int32_t tv_sec_pass = timestamp_.tv_sec;
+    a->process("timestamp_sec",&tv_sec_pass);
+    u_int32_t tv_usec_pass = timestamp_.tv_usec;
+    a->process("timestamp_usec",&tv_usec_pass);
 }
 
 } // namespace dtn

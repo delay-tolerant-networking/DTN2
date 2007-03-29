@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/serialize/TclListSerialize.h>
 #include <oasys/util/ScratchBuffer.h>
@@ -192,7 +195,7 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
     
     addElement(Tcl_NewStringObj("payload_data", -1));
     addElement(Tcl_NewByteArrayObj(const_cast<u_char*>(payload_data), 
-			    	   payload_len));
+                                   payload_len));
 
     // and a pretty formatted creation timestamp
     addElement(Tcl_NewStringObj("creation_ts", -1));

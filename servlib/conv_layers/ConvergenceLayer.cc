@@ -14,7 +14,10 @@
  *    limitations under the License.
  */
 
-#include <config.h>
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "ConvergenceLayer.h"
 #include "EthConvergenceLayer.h"
 #include "FileConvergenceLayer.h"
@@ -22,6 +25,8 @@
 #include "TCPConvergenceLayer.h"
 #include "UDPConvergenceLayer.h"
 #include "BluetoothConvergenceLayer.h"
+
+#include "bundling/BundleDaemon.h"
 
 namespace dtn {
 
@@ -81,6 +86,29 @@ ConvergenceLayer::find_clayer(const char* name)
     }
 
     return NULL;
+}
+
+//----------------------------------------------------------------------
+void
+ConvergenceLayer::shutdown_clayers()
+{
+    CLVector::iterator iter;
+    for (iter = CLVector::instance()->begin();
+         iter != CLVector::instance()->end();
+         ++iter)
+    {
+        (*iter)->shutdown();
+    }
+}
+
+//----------------------------------------------------------------------
+bool
+ConvergenceLayer::set_cla_parameters(AttributeVector &params)
+{
+    (void)params;
+    log_debug("set cla parameters");
+    BundleDaemon::post(new CLAParamsSetEvent(this, ""));
+    return true;
 }
 
 //----------------------------------------------------------------------
@@ -177,12 +205,111 @@ ConvergenceLayer::reconfigure_link(const LinkRef& link,
 }
 
 //----------------------------------------------------------------------
+void
+ConvergenceLayer::reconfigure_link(const LinkRef& link,
+                                   AttributeVector& params)
+{
+    (void)params;
+    log_debug("reconfigure link %s", link->name());
+}
+
+//----------------------------------------------------------------------
 bool
 ConvergenceLayer::close_contact(const ContactRef& contact)
 {
     (void)contact;
     log_debug("closing contact *%p", contact.object());
     return true;
+}
+
+//----------------------------------------------------------------------
+void
+ConvergenceLayer::send_bundle_on_down_link(const LinkRef& link, Bundle* bundle)
+{
+        (void)link;
+        (void)bundle;
+    ASSERT(has_persistent_link_queues());
+}
+
+//----------------------------------------------------------------------
+bool
+ConvergenceLayer::cancel_bundle(const LinkRef& contact, Bundle* bundle)
+{
+    (void)contact;
+    (void)bundle;
+    BundleDaemon::post( new BundleSendCancelledEvent(bundle, contact) );
+    return false;
+}
+
+//----------------------------------------------------------------------
+bool
+ConvergenceLayer::is_queued(const LinkRef& contact, Bundle* bundle)
+{
+    (void)contact;
+    (void)bundle;
+    return false;
+}
+
+//----------------------------------------------------------------------
+void
+ConvergenceLayer::is_eid_reachable(const std::string& query_id,
+                                   Interface* iface,
+                                   const std::string& endpoint)
+{
+    (void)iface;
+    (void)endpoint;
+
+    BundleDaemon::post(new EIDReachableReportEvent(query_id, false));
+}
+
+//----------------------------------------------------------------------
+void
+ConvergenceLayer::query_link_attributes(const std::string& query_id,
+                                        const LinkRef& link,
+                                        const AttributeNameVector& attributes)
+{
+    (void)attributes;
+
+    ASSERT(link != NULL);
+    if (link->isdeleted()) {
+        log_debug("ConvergenceLayer::query_link_attributes: "
+                  "link %s already deleted", link->name());
+        return;
+    }
+
+    AttributeVector attrib_values;
+    BundleDaemon::post(new LinkAttributesReportEvent(query_id, attrib_values));
+}
+
+//----------------------------------------------------------------------
+void
+ConvergenceLayer::query_iface_attributes(const std::string& query_id,
+                                         Interface* iface,
+                                         const AttributeNameVector& attributes)
+{
+    (void)iface;
+    (void)attributes;
+
+    AttributeVector attrib_values;
+    BundleDaemon::post(new IfaceAttributesReportEvent(query_id, attrib_values));
+}
+
+//----------------------------------------------------------------------
+void
+ConvergenceLayer::query_cla_parameters(const std::string& query_id,
+                                       const AttributeNameVector& parameters)
+{
+    (void)parameters;
+
+    AttributeVector param_values;
+    BundleDaemon::post(new CLAParametersReportEvent(query_id, param_values));
+}
+
+//----------------------------------------------------------------------
+bool
+ConvergenceLayer::has_persistent_link_queues()
+{
+    return false;
 }
 
 } // namespace dtn

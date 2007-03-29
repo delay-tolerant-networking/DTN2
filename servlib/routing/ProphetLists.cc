@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <oasys/util/Time.h>
 #include "ProphetTLV.h"
 
@@ -24,7 +28,7 @@ namespace dtn {
 
 const LinkRef ProphetDecider::null_link_("ProphetDecider null");
 const u_int16_t ProphetDictionary::INVALID_SID = 0xffff;
-	
+        
 ProphetTable::ProphetTable(bool store)
     : lock_(new oasys::SpinLock()),
       store_(store)

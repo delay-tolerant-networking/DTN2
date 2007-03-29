@@ -14,7 +14,10 @@
  *    limitations under the License.
  */
 
-#include <config.h>
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #ifdef OASYS_BLUETOOTH_ENABLED
 
 #include <oasys/bluez/Bluetooth.h>

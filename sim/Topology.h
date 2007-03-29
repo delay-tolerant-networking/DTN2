@@ -44,7 +44,7 @@ public:
 protected:
     static NodeTable nodes_;    
     static const int MAX_NODES  = 100;
-	
+        
 };
 } // namespace dtnsim
 

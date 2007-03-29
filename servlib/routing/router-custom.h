@@ -22,12 +22,12 @@
 #ifndef _ROUTER_CUSTOM_H_
 #define _ROUTER_CUSTOM_H_
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
 
 #include "router.h"
 #include "RouteEntry.h"
 #include <bundling/Bundle.h>
+#include <bundling/CustodySignal.h>
 #include <contacts/Link.h>
 #include <reg/Registration.h>
 
@@ -40,9 +40,11 @@ public:
     linkType (const remote_eid::type&,
               const type::type_&,
               const nexthop::type&,
-              const name::type&,
               const state::type&,
-              const reliable::type&,
+              const is_reachable::type& e,
+              const is_usable::type& f,
+              const how_reliable::type& g,
+              const how_available::type& h,
               const clayer::type&,
               const min_retry_interval::type&,
               const max_retry_interval::type&,
@@ -108,19 +110,19 @@ public:
     _clone (::xml_schema::flags = 0,
             ::xml_schema::type* = 0) const;
 
-private:
-    const char * location_to_str(int location);
+    static const char * location_to_str(int location);
 };
 
 class contactType : public contactType_base
 {
 public:
-    contactType (const link::type&,
+    contactType (const link_attr::type&,
                  const start_time_sec::type&,
                  const start_time_usec::type&,
                  const duration::type&,
                  const bps::type&,
-                 const latency::type&);
+                 const latency::type&,
+                 const pkt_loss_prob::type&);
 
     contactType (const ::xercesc::DOMElement&,
                  ::xml_schema::flags = 0,
@@ -133,6 +135,84 @@ public:
     contactType (Contact*);
 
     virtual contactType*
+    _clone (::xml_schema::flags = 0,
+            ::xml_schema::type* = 0) const;
+};
+
+class eidType : public eidType_base
+{
+public:
+    eidType (const uri::type&);
+
+    eidType (const ::xercesc::DOMElement&,
+                ::xml_schema::flags = 0,
+                ::xml_schema::type* = 0);
+
+    eidType (const eidType&,
+                ::xml_schema::flags = 0,
+                ::xml_schema::type* = 0);
+
+    eidType (dtn::EndpointID&);
+
+    eidType (std::string&);
+
+    virtual eidType*
+    _clone (::xml_schema::flags = 0,
+            ::xml_schema::type* = 0) const;
+};
+
+class gbofIdType : public gbofIdType_base
+{
+public:
+    gbofIdType (const source::type&,
+                const creation_ts::type&,
+                const is_fragment::type&,
+                const frag_length::type&,
+                const frag_offset::type&);
+
+    gbofIdType (const ::xercesc::DOMElement&,
+                ::xml_schema::flags = 0,
+                ::xml_schema::type* = 0);
+
+    gbofIdType (const gbofIdType&,
+                ::xml_schema::flags = 0,
+                ::xml_schema::type* = 0);
+
+    gbofIdType (dtn::Bundle*);
+
+    gbofIdType (dtn::CustodySignal::data_t);
+
+    virtual gbofIdType*
+    _clone (::xml_schema::flags = 0,
+            ::xml_schema::type* = 0) const;
+};
+
+class key_value_pair : public key_value_pair_base
+{
+public:
+    key_value_pair (const name::type&,
+                    const bool_value::type&);
+
+    key_value_pair (const name::type&,
+                    const u_int_value::type&);
+
+    key_value_pair (const name::type&,
+                    const int_value::type&);
+
+    key_value_pair (const name::type&,
+                    const str_value::type&);
+
+    key_value_pair (const ::xercesc::DOMElement&,
+                 ::xml_schema::flags = 0,
+                 ::xml_schema::type* = 0);
+
+    key_value_pair (const key_value_pair&,
+                 ::xml_schema::flags = 0,
+                 ::xml_schema::type* = 0);
+
+    key_value_pair (const dtn::NamedAttribute&);
+
+    virtual key_value_pair*
     _clone (::xml_schema::flags = 0,
             ::xml_schema::type* = 0) const;
 };
@@ -160,6 +240,9 @@ public:
     _clone (::xml_schema::flags = 0,
             ::xml_schema::type* = 0) const;
 };
+
+
+// registrationType
 
 class registrationType : public registrationType_base
 {
@@ -194,8 +277,10 @@ public:
     }
 };
 
+std::string lowercase(const char *c_str);
+
 } // namespace rtrmessage
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_DP_ENABLED
 #endif // _ROUTER_CUSTOM_H_

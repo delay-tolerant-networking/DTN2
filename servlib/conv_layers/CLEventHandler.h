@@ -18,8 +18,7 @@
 #ifndef _CL_EVENT_HANDLER_H_
 #define _CL_EVENT_HANDLER_H_
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <oasys/util/StringBuffer.h>
 #include <oasys/serialize/XMLSerialize.h>
@@ -42,18 +41,30 @@ protected:
     //void clear_parser(oasys::XMLUnmarshal& parser);
     
     virtual void handle(const cla_add_request& message) { (void)message; }
+    virtual void handle(const cla_delete_request& message) { (void)message; }
+    virtual void handle(const cla_params_set_event& message) { (void)message; }
     virtual void handle(const interface_created_event& message) { (void)message; }
+    virtual void handle(const interface_reconfigured_event& message) { (void)message; }
+    virtual void handle(const eid_reachable_event& message) { (void)message; }
     virtual void handle(const link_created_event& message) { (void)message; }
     virtual void handle(const link_opened_event& message) { (void)message; }
     virtual void handle(const link_closed_event& message) { (void)message; }
     virtual void handle(const link_state_changed_event& message) { (void)message; }
     virtual void handle(const link_deleted_event& message) { (void)message; }
+    virtual void handle(const link_attribute_changed_event& message) { (void)message; }
+    virtual void handle(const contact_attribute_changed_event& message) { (void)message; }
+    virtual void handle(const link_add_reachable_event& message) { (void)message; }
     virtual void handle(const bundle_transmitted_event& message) { (void)message; }
-    virtual void handle(const bundle_cancelled_event& message) { (void)message; }
+    virtual void handle(const bundle_canceled_event& message) { (void)message; }
+    virtual void handle(const bundle_receive_started_event& message) { (void)message; }
     virtual void handle(const bundle_received_event& message) { (void)message; }
+    virtual void handle(const report_eid_reachable& message) { (void)message; }
+    virtual void handle(const report_link_attributes& message) { (void)message; }
+    virtual void handle(const report_interface_attributes& message) { (void)message; }
+    virtual void handle(const report_cla_parameters& message) { (void)message; }
 }; // class CLEventHandler
 
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_CL_ENABLED
 #endif

@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <sys/stat.h>
 #include <oasys/compat/inet_aton.h>
@@ -30,6 +33,8 @@
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleStatusReport.h"
 #include "bundling/SDNV.h"
+#include "bundling/GbofId.h"
+#include "naming/EndpointID.h"
 #include "cmd/APICommand.h"
 #include "reg/APIRegistration.h"
 #include "reg/RegistrationTable.h"
@@ -281,6 +286,7 @@ APIClient::run()
             DISPATCH(DTN_UNREGISTER,        handle_unregister);
             DISPATCH(DTN_FIND_REGISTRATION, handle_find_registration);
             DISPATCH(DTN_SEND,              handle_send);
+            DISPATCH(DTN_CANCEL,            handle_cancel);
             DISPATCH(DTN_BIND,              handle_bind);
             DISPATCH(DTN_UNBIND,            handle_unbind);
             DISPATCH(DTN_RECV,              handle_recv);
@@ -706,6 +712,34 @@ APIClient::handle_send()
         log_err("invalid priority level %d", (int)spec.priority);
         return DTN_EINVAL;
     };
+    
+    // Bundles with a null source EID are not allowed to request reports or
+    // custody transfer, and must not be fragmented.
+    if (b->source_ == EndpointID::NULL_EID()) {
+        if (spec.dopts) {
+            log_err("bundle with null source EID requested reports and/or "
+                    "custody transfer");
+            return DTN_EINVAL;
+        }
+        
+        b->do_not_fragment_ = true;
+    }
+    
+    else {
+        // The bundle's source EID must be either dtn:none or an EID registered
+        // at this node.
+        const RegistrationTable* reg_table = 
+                BundleDaemon::instance()->reg_table();
+        std::string base_reg_str = b->source_.uri().scheme() + "://" + 
+                b->source_.uri().host();
+        
+        if (!reg_table->get(EndpointIDPattern(base_reg_str)) &&
+            !reg_table->get(EndpointIDPattern(b->source_))) {
+            log_err("this node is not a member of the bundle's source EID (%s)",
+                    b->source_.str().c_str());
+            return DTN_EINVAL;
+        }
+    }
 
     // delivery options
     if (spec.dopts & DOPTS_CUSTODY)
@@ -849,6 +883,8 @@ APIClient::handle_send()
     memcpy(&id.source, &spec.source, sizeof(dtn_endpoint_id_t));
     id.creation_ts.secs  = b->creation_ts_.seconds_;
     id.creation_ts.seqno = b->creation_ts_.seqno_;
+    id.frag_offset = 0;
+    id.orig_length = 0;
     
     log_info("DTN_SEND bundle *%p", b.object());
 
@@ -863,6 +899,46 @@ APIClient::handle_send()
         return DTN_EXDR;
     }
     
+    return DTN_SUCCESS;
+}
+
+//----------------------------------------------------------------------
+int
+APIClient::handle_cancel()
+{
+    dtn_bundle_id_t id;
+
+    memset(&id, 0, sizeof(id));
+    
+    /* Unpack the arguments */
+    if (!xdr_dtn_bundle_id_t(&xdr_decode_, &id))
+    {
+        log_err("error in xdr unpacking arguments");
+        return DTN_EXDR;
+    }
+    
+    GbofId gbof_id;
+    gbof_id.source_ = EndpointID( std::string(id.source.uri) );
+    gbof_id.creation_ts_.seconds_ = id.creation_ts.secs;
+    gbof_id.creation_ts_.seqno_ = id.creation_ts.seqno;
+    gbof_id.is_fragment_ = (id.orig_length > 0);
+    gbof_id.frag_length_ = id.orig_length;
+    gbof_id.frag_offset_ = id.frag_offset;
+    
+    BundleRef bundle;
+    oasys::ScopeLock pending_lock(
+        BundleDaemon::instance()->pending_bundles()->lock(), "handle_cancel");
+    bundle = BundleDaemon::instance()->pending_bundles()->find(gbof_id);
+    
+    if (!bundle.object()) {
+        log_warn("no bundle matching [%s]; cannot cancel", 
+                 gbof_id.str().c_str());
+        return DTN_ENOTFOUND;
+    }
+    
+    log_info("DTN_CANCEL bundle *%p", bundle.object());
+    
+    BundleDaemon::post(new BundleCancelRequest(bundle, std::string()));
     return DTN_SUCCESS;
 }
 

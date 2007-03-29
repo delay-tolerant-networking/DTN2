@@ -18,8 +18,7 @@
 #ifndef _ECLMODULE_H_
 #define _ECLMODULE_H_
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <semaphore.h>
 #include <string>
@@ -92,6 +91,22 @@ public:
      */
     void take_resource(ECLResource* resource);
 
+    /** Shut down this module's thread.
+     * 
+     * The thread will be interrupted by notifying message_queue_. This will
+     * set was_shutdown_ true and call set_should_stop(). There are two
+     * important differences between a normal shutdown from a CLA that
+     * disconnects and a forced shutdown through this method:
+     * 
+     * <ul><li>
+     *      The DELETE_ON_EXIT is not set for the thread after calling this
+     *      method, so the caller is responsible for deleting this object.
+     * <li>
+     *      ExternalConvergenceLayer::remove_module() is not called after
+     *      calling this method.
+     * </ul>
+     */
+    void shutdown();
 
     /** Remove an interface from the list of active interfaces.
      *
@@ -117,21 +132,33 @@ public:
     
 protected:
     void handle(const cla_add_request& message);
+    void handle(const cla_delete_request& message);
+    void handle(const cla_params_set_event& message);
     void handle(const interface_created_event& message);
+    void handle(const interface_reconfigured_event& message);
+    void handle(const eid_reachable_event& message);
     void handle(const link_created_event& message);
     void handle(const link_opened_event& message);
     void handle(const link_closed_event& message);
     void handle(const link_state_changed_event& message);
     void handle(const link_deleted_event& message);
+    void handle(const link_attribute_changed_event& message);
+    void handle(const link_add_reachable_event& message);
+    void handle(const contact_attribute_changed_event& message);
     void handle(const bundle_transmitted_event& message);
-    void handle(const bundle_cancelled_event& message);
+    void handle(const bundle_canceled_event& message);
+    void handle(const bundle_receive_started_event& message);
     void handle(const bundle_received_event& message);
+    void handle(const report_eid_reachable& message);
+    void handle(const report_link_attributes& message);
+    void handle(const report_interface_attributes& message);
+    void handle(const report_cla_parameters& message);
     
     /** Take resources from the resource list that belong to this module.
      */
     void take_resources();
 
-    /** Check if a link exists on either link list.
+    /** Check if a link exists.
      */
     bool link_exists(const std::string& name) const;
 
@@ -142,27 +169,38 @@ private:
     /// The maximum amount of the bundle that we will map when sending to and
     /// receiving from the module.
     static const size_t MAX_BUNDLE_IN_MEMORY = (256 * 1024);
-
+    
+    /** Read a bundle file and create a Bundle* from it.
+     * 
+     * This does the actual work of reading the bundle file and feeding it to
+     * BundleProtocol::consume(). If any error occurs, a message is logged and
+     * the method returns early. Otherwise, if the file is read successfully,
+     * a BundleReceivedEvent will be posted to the BundleDaemon.
+     * 
+     * This is used by handle(bundle_received_event) to handle a fully received
+     * bundle and by cleanup() to handle partial bundles for which we received
+     * a bundle_receive_started_event but no bundle_received_event when
+     * a module goes away.
+     * 
+     * @param location  The file name of the bundle, relative to bundle_in_path_.
+     */
+    void read_bundle_file(const std::string& location);
 
     /** Make the next pass when there is input on the socket.
      *
      * As input comes in on the socket, this will make one pass of at most
      * READ_BUFFER_SIZE bytes.  Based on the current state of things, this could
-     * read the XML document, parse the document into a CLEvent, read any
-     * appended data, and dispatch the completed CLEvent.  The general idea is
-     * that this function should just keep getting called from the main loop
-     * whenever input is available and it will do the above actions as it needs
-     * to and is able to.
-     * 
-     * @todo Since we are not passing the bundle headers over the socket, this
-     *       may be unnecessarily complex.
+     * read the XML document, parse the document into a CLEvent, and dispatch
+     * the completed CLEvent.  The general idea is that this function should
+     * just keep getting called from the main loop whenever input is available
+     * and it will do the above actions as it needs to and is able to.
      */
     void read_cycle();
     
     /** Send a message to the external module.
      *
-     * This will build the XML document from the CLEvent and send it and any
-     * appended data out on the socket.
+     * This will build the XML document from the CLEvent and send it
+     * out on the socket.
      *
      * @param event - The event to send.  Note that this pointer is not deleted
      *      by this method.
@@ -176,7 +214,7 @@ private:
      * This must be called before a CLBundleSendRequest can be sent by
      * send_event(). The entire bundle (all headers and payload) will be
      * written to a file in bundle_out_path_ exactly as it should be sent by
-     * the CLA. The payloadFile attribute of 'event' will be filled with the
+     * the CLA. The 'location' attribute of 'event' will be filled with the
      * name of this file (relative to bundle_out_path_).
      * 
      */
@@ -244,7 +282,6 @@ private:
                                             const std::string& nexthop,
                                             const std::string& link_name);
 
-
     /** Clean up state for this module after loosing contact with it.
      *
      * This will do the work of closing down links, returning resources, and
@@ -258,6 +295,9 @@ private:
      */
     void cleanup();
     
+    static void update_contact_attributes(const contact_attributes& attributes,
+                                          const ContactRef& contact);
+    
     /// This module's protocol name.
     std::string name_;
 
@@ -266,16 +306,30 @@ private:
     
     /// The path where bundles comming in from the CLA are stored.
     std::string bundle_out_path_;
+    
+    /// Indicates that this ECLModule is shutting down due to a call to
+    /// shutdown().
+    bool was_shutdown_;
 
     /// Raw data buffer for read_cycle().
     char read_buffer_[READ_BUFFER_SIZE];
 
     /// String buffer for read_cycle().
     std::vector<char> msg_buffer_;
-
+    
     /// Reference back to the convergence layer.
     ExternalConvergenceLayer& cl_;
-
+    
+    /// Structure used by incoming_bundle_list_
+    struct IncomingBundleRecord {
+        std::string location;
+        std::string peer_eid;
+    };
+    
+    /// The list of bundles for which we have received a
+    /// bundle_receive_started_event but no bundle_received_event.
+    std::list<IncomingBundleRecord> incoming_bundle_list_;
+    
     /// The interface list.
     std::list<ECLInterfaceResource*> iface_list_;
     
@@ -302,5 +356,5 @@ private:
 
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_CL_ENABLED
 #endif // _ECLMODULE_H_

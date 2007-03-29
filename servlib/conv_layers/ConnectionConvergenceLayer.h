@@ -87,6 +87,7 @@ public:
     bool open_contact(const ContactRef& contact);
     bool close_contact(const ContactRef& contact);
     void send_bundle(const ContactRef& contact, Bundle* bundle);
+    bool is_queued(const LinkRef& link, Bundle* bundle);
     /// @}
 
     /**

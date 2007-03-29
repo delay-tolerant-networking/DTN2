@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <oasys/util/ScratchBuffer.h>
 
 #include "ShortestPathRouter.h"
@@ -370,7 +374,7 @@ ShortestPathRouter::parse_lsa_bundle(Bundle* bundle, LSAVector* lsa_vec)
     size_t buflen = bundle->payload_.length();
     size_t origlen = buflen;
     int sdnv_len;
-    u_int64_t done;
+    u_int64_t done = 0;
     u_int64_t count;
     u_int64_t len;
 

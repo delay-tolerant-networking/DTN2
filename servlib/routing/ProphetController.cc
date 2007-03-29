@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <netinet/in.h>
 #include "bundling/Bundle.h"
 #include "bundling/BundleRef.h"

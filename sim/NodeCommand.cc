@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdlib.h>
 
@@ -122,7 +125,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 //         resultf("node route: unsupported subcommand %s", subcmd);
 //         return TCL_ERROR;
 //     }
-	
+        
     else if (strcmp(cmd, "link") == 0)
     {
         return link_cmd_.exec(argc - 1, argv + 1, interp);

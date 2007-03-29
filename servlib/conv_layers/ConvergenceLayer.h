@@ -25,6 +25,7 @@
 #include "contacts/Link.h"
 #include "contacts/Contact.h"
 #include "contacts/Interface.h"
+#include "contacts/NamedAttribute.h"
 
 // forward declaration
 namespace oasys {
@@ -52,6 +53,11 @@ public:
      * Destructor.
      */
     virtual ~ConvergenceLayer();
+
+    /**
+     * Set CL-specific options.
+     */
+    virtual bool set_cla_parameters(AttributeVector &params);
 
     /**
      * Set default interface options.
@@ -103,6 +109,9 @@ public:
     virtual bool reconfigure_link(const LinkRef& link,
                                   int argc, const char* argv[]);
 
+    virtual void reconfigure_link(const LinkRef& link,
+                                  AttributeVector& params);
+
     /**
      * Open a new contact for the given link. The implementation will
      * create a new Contact object (or find one that already exists),
@@ -135,26 +144,63 @@ public:
     virtual void send_bundle(const ContactRef& contact, Bundle* bundle) = 0;
     
     /**
+     * Try to send the given bundle on a link which is down.
+     * This should not be used on convergence layers which do not
+     * have persistent link queues.
+     */
+    virtual void send_bundle_on_down_link(const LinkRef& link, Bundle* bundle);
+    
+    /**
      * Try to cancel transmission of a given bundle on the contact.
      */
-    virtual bool cancel_bundle(const ContactRef& contact, Bundle* bundle)
-    {
-        (void)contact;
-        (void)bundle;
-        return false;
-    }
+    virtual bool cancel_bundle(const LinkRef& contact, Bundle* bundle);
     
     /**
      * Hook to see if the given bundle is queued for transmission on
      * the given contact.
      */
-    virtual bool is_queued(const ContactRef& contact, Bundle* bundle)
-    {
-        (void)contact;
-        (void)bundle;
-        return false;
-    }
-    
+    virtual bool is_queued(const LinkRef& contact, Bundle* bundle);
+
+    /**
+     * Report if the given endpoint is reachable via the given interface.
+     */
+    virtual void is_eid_reachable(const std::string& query_id,
+                                  Interface* iface,
+                                  const std::string& endpoint);
+
+    /**
+     * Report the values of the given link attributes.
+     */
+    virtual void query_link_attributes(const std::string& query_id,
+                                       const LinkRef& link,
+                                       const AttributeNameVector& attributes);
+
+    /**
+     * Report the values of the given interface attributes.
+     */
+    virtual void query_iface_attributes(const std::string& query_id,
+                                        Interface* iface,
+                                        const AttributeNameVector& attributes);
+
+    /** 
+     * Report the values of the convergence layer parameters.
+     */
+    virtual void query_cla_parameters(const std::string& query_id,
+                                      const AttributeNameVector& parameters);
+                                      
+    /**
+     * Some convergence layers (like external ones) retain queued
+     * bundles between link up/down events, while others (like the internal
+     * TCP CL) discard all queued bundles on a link when the link goes down.
+     * Unless overridden by the CL, queues are assumed NOT to be persistent.
+     */
+    virtual bool has_persistent_link_queues();
+
+    /**
+     * Perform any necessary shutdown procedures.
+     */
+    virtual void shutdown() { }
+
     /**
      * Boot-time initialization and registration of statically defined
      * convergence layers.
@@ -167,6 +213,11 @@ public:
      * string.
      */
     static ConvergenceLayer* find_clayer(const char* proto);
+
+    /**
+     * Shutdown all registerd convergence layers.
+     */
+    static void shutdown_clayers();
 
     /**
      * Accessor for the convergence layer name.

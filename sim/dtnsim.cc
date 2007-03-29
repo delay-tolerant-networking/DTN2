@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <errno.h>
 #include <string>
@@ -119,7 +122,7 @@ DTNSim::main(int argc, char* const argv[])
         log_crit("Can't init TCL");
         exit(1);
     }
-	
+        
     oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
     interp->reg(new ConnCommand());
     interp->reg(new ParamCommand());
@@ -153,7 +156,7 @@ DTNSim::main(int argc, char* const argv[])
             "puts \"Simulation complete -- entering console (Control-D to exit)...\"");
         oasys::TclCommandInterp::instance()->command_loop("dtnsim% ");
     }
-	
+        
     Simulator::instance()->close_datastore();
 
     return 0;

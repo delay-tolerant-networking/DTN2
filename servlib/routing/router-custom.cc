@@ -19,8 +19,11 @@
  *    derived from this software without specific prior written permission.
  */
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
 
 #include "router-custom.h"
 #include <conv_layers/TCPConvergenceLayer.h>
@@ -44,14 +47,16 @@ lowercase(const char *c_str)
 linkType::linkType(const remote_eid::type& a,
               const type::type_& b,
               const nexthop::type& c,
-              const name::type& d,
-              const state::type& e,
-              const reliable::type& f,
-              const clayer::type& g,
-              const min_retry_interval::type& h,
-              const max_retry_interval::type& i,
-              const idle_close_time::type& j)
-    : linkType_base(a, b, c, d, e, f, g, h, i, j)
+              const state::type& d,
+              const is_reachable::type& e,
+              const is_usable::type& f,
+              const how_reliable::type& g,
+              const how_available::type& h,
+              const clayer::type& i,
+              const min_retry_interval::type& j,
+              const max_retry_interval::type& k,
+              const idle_close_time::type& l)
+    : linkType_base(a, b, c, d, e, f, g, h, i, j, k, l)
 {
 }
   
@@ -74,9 +79,11 @@ linkType::linkType(Link* l)
         eidType(l->remote_eid().str()),
         linkTypeType(lowercase(l->type_str())),
         l->nexthop(),
-        l->name(),
         (xml_schema::string)lowercase(l->state_to_str(l->state())),
-        l->is_reliable(),
+        true, // @@@ is_reachable (where do we get this from?)
+        l->is_usable(),
+        l->stats()->reliability_,
+        l->stats()->availability_,
         l->clayer()->name(),
         l->params().min_retry_interval_,
         l->params().max_retry_interval_,
@@ -259,13 +266,14 @@ bundleType::location_to_str(int location)
 
 // contactType
 
-contactType::contactType (const link::type& a,
+contactType::contactType (const link_attr::type& a,
                           const start_time_sec::type& b,
                           const start_time_usec::type& c,
                           const duration::type& d,
                           const bps::type& e,
-                          const latency::type& f)
-    : contactType_base (a, b, c, d, e, f)
+                          const latency::type& f,
+                          const pkt_loss_prob::type& g)
+    : contactType_base (a, b, c, d, e, f, g)
 {
 }
 
@@ -290,7 +298,8 @@ contactType::contactType (Contact* c)
         c->start_time_.tv_usec,
         c->duration_ms_,
         c->bps_,
-        c->latency_ms_)
+        c->latency_ms_,
+        0)  // @@@ pkt_loss_prob (where do we get this from?)
 {
 }
 
@@ -301,6 +310,177 @@ contactType::_clone (::xml_schema::flags a,
     return new contactType(*this, a, b);
 }
 
+
+// eidType
+
+eidType::eidType (const uri::type& a)
+    : eidType_base (a)
+{
+}
+
+eidType::eidType (const ::xercesc::DOMElement& a,
+                        ::xml_schema::flags b,
+                        ::xml_schema::type* c)
+    : eidType_base(a, b, c)
+{
+}
+
+eidType::eidType (const eidType& a,
+                        ::xml_schema::flags b,
+                        ::xml_schema::type* c)
+    : eidType_base(a, b, c)
+{
+}
+
+eidType::eidType (dtn::EndpointID& e)
+    : eidType_base (e.str())
+{
+}
+
+eidType::eidType (std::string& a)
+    : eidType_base (a)
+{
+}
+
+eidType*
+eidType::_clone (::xml_schema::flags a,
+                    ::xml_schema::type* b) const
+{
+    return new eidType(*this, a, b);
+}
+
+// gbofIdType
+
+gbofIdType::gbofIdType (const source::type& a,
+                        const creation_ts::type& b,
+                        const is_fragment::type& c,
+                        const frag_length::type& d,
+                        const frag_offset::type& e)
+    : gbofIdType_base (a, b, c, d, e)
+{
+}
+
+gbofIdType::gbofIdType (const ::xercesc::DOMElement& a,
+                        ::xml_schema::flags b,
+                        ::xml_schema::type* c)
+    : gbofIdType_base(a, b, c)
+{
+}
+
+gbofIdType::gbofIdType (const gbofIdType& a,
+                        ::xml_schema::flags b,
+                        ::xml_schema::type* c)
+    : gbofIdType_base(a, b, c)
+{
+}
+
+gbofIdType::gbofIdType (dtn::Bundle* b)
+    : gbofIdType_base (
+        eidType(b->source_.str()),
+        ((::xml_schema::long_ ) b->creation_ts_.seconds_ << 32) | b->creation_ts_.seqno_,
+        b->is_fragment_,
+        b->is_fragment_ ? b->payload_.length() : 0,
+        b->is_fragment_ ? b->frag_offset_ : 0)
+{
+}
+
+gbofIdType::gbofIdType (dtn::CustodySignal::data_t d)
+    : gbofIdType_base (
+        eidType(d.orig_source_eid_.str()),
+        ((::xml_schema::long_ ) d.orig_creation_tv_.seconds_ << 32) | d.orig_creation_tv_.seqno_,
+        d.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT,
+        d.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT ? d.orig_frag_length_ : 0,
+        d.admin_flags_ & BundleProtocol::ADMIN_IS_FRAGMENT ? d.orig_frag_offset_ : 0)
+{
+}
+
+gbofIdType*
+gbofIdType::_clone (::xml_schema::flags a,
+                    ::xml_schema::type* b) const
+{
+    return new gbofIdType(*this, a, b);
+}
+
+// key_value_pair
+
+key_value_pair::key_value_pair (const name::type& a,
+                                const bool_value::type& b)
+    : key_value_pair_base (a)
+{
+  bool_value(b);
+}
+
+key_value_pair::key_value_pair (const name::type& a,
+                                const u_int_value::type& b)
+    : key_value_pair_base (a)
+{
+  u_int_value(b);
+}
+
+key_value_pair::key_value_pair (const name::type& a,
+                                const int_value::type& b)
+    : key_value_pair_base (a)
+{
+  int_value(b);
+}
+
+key_value_pair::key_value_pair (const name::type& a,
+                                const str_value::type& b)
+    : key_value_pair_base (a)
+{
+  str_value(b);
+}
+
+key_value_pair::key_value_pair (const ::xercesc::DOMElement& a,
+                                ::xml_schema::flags b,
+                                ::xml_schema::type* c)
+    : key_value_pair_base(a, b, c)
+{
+}
+
+key_value_pair::key_value_pair (const key_value_pair& a,
+                                ::xml_schema::flags b,
+                                ::xml_schema::type* c)
+    : key_value_pair_base(a, b, c)
+{
+}
+
+key_value_pair::key_value_pair (const dtn::NamedAttribute& na)
+    : key_value_pair_base (na.name())
+{
+    switch(na.type()) {
+        case NamedAttribute::ATTRIBUTE_TYPE_INVALID:
+            // XXX wish I could log warning, logging not available here
+            break;
+
+        case NamedAttribute::ATTRIBUTE_TYPE_INTEGER:
+            int_value(na.int_val());
+            break;
+
+        case NamedAttribute::ATTRIBUTE_TYPE_UNSIGNED_INTEGER:
+            u_int_value(na.u_int_val());
+            break;
+
+        case NamedAttribute::ATTRIBUTE_TYPE_BOOLEAN:
+            bool_value(na.bool_val());
+            break;
+
+        case NamedAttribute::ATTRIBUTE_TYPE_STRING:
+            str_value(na.string_val());
+            break;
+
+        default:
+            // XXX wish I could log warning, logging not available here
+            break;
+        }
+}
+
+key_value_pair*
+key_value_pair::_clone (::xml_schema::flags a,
+                    ::xml_schema::type* b) const
+{
+    return new key_value_pair(*this, a, b);
+}
 
 // routeEntryType
 
@@ -391,4 +571,4 @@ registrationType::_clone (::xml_schema::flags a,
 } // namespace rtrmessage
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_DP_ENABLED

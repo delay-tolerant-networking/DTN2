@@ -55,7 +55,7 @@ $(DTN_LIBS++):
 	exit 1
 
 include ../Rules.make
-CFLAGS += -I$(SRCDIR)/applib
+CPPFLAGS += -I$(SRCDIR)/applib
 LDFLAGS += -L../applib -L../oasys
 
 BINFILES += $(APPS)
@@ -65,11 +65,11 @@ BINFILES += $(APPS)
 #
 dtnmoteproxy/dtnmoteproxy.o: dtnmoteproxy/dtnmoteproxy.c
 	@rm -f $@; mkdir -p $(@D)
-	$(CC) $(CFLAGS) -Wno-cast-align -c $< -o $@
+	$(CC) $(CPPFLAGS) -Wno-cast-align $(CFLAGS) -c $< -o $@
 
 dtnmoteproxy/serialsource.o: dtnmoteproxy/serialsource.c
 	@rm -f $@; mkdir -p $(@D)
-	$(CC) $(CFLAGS) -Wno-cast-align -c $< -o $@
+	$(CC) $(CPPFLAGS) -Wno-cast-align $(CFLAGS) -c $< -o $@
 
 dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 			   dtnmoteproxy/serialsource.o
@@ -79,7 +79,7 @@ dtnmoteproxy/dtnmoteproxy: dtnmoteproxy/dtnmoteproxy.o \
 # Rules for dtntest
 #
 dtntest/dtntest: dtntest/dtntest.o
-	$(CXX) $(CFLAGS) $^ -o $@ \
+	$(CXX) $(CXXFLAGS) $^ -o $@ \
 		$(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
 
 #
@@ -88,7 +88,7 @@ dtntest/dtntest: dtntest/dtntest.o
 dtntunnel/dtntunnel: dtntunnel/DTNTunnel.o \
 		     dtntunnel/TCPTunnel.o \
 		     dtntunnel/UDPTunnel.o
-	$(CXX) $(CFLAGS) $^ -o $@ \
+	$(CXX) $(CXXFLAGS) $^ -o $@ \
 		$(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS) 
 
 #
@@ -103,7 +103,7 @@ tca_admin/tca_admin: tca_admin/tca_admin.o \
                 tca_admin/libs/gateway_prot_xdr.o \
                 tca_admin/libs/gateway_rpc.o \
                 tca_admin/libs/sha1.o
-	$(CXX) $(CFLAGS) $^ -o \
+	$(CXX) $(CXXFLAGS) $^ -o \
 		$@ $(LDFLAGS) $(DTN_LIBS++) $(OASYS_LIBS) $(LIBS)
 
 #

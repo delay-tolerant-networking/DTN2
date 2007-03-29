@@ -163,7 +163,9 @@ protected:
     location_t location_;	///< location of the data 
     oasys::ScratchBuffer<u_char*> data_; ///< payload data if in memory
     size_t length_;     	///< the payload length
-    size_t rcvd_length_;     	///< the payload length we actually have
+    size_t rcvd_length_;     	///< the payload length we actually have - OBSOLETE
+    // length_ is now rcvd_length_ and what was length_ is the
+    // BlockInfo::data_length()!
     oasys::FileIOClient file_;	///< file handle
     size_t cur_offset_;		///< cache of current fd position
     size_t base_offset_;	///< for fragments, offset into the file (todo)

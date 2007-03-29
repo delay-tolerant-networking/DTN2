@@ -21,21 +21,21 @@ typedef struct serial_source *serial_source;
 
 
 typedef enum {
-  msg_unknown_packet_type,	/* packet of unknown type received */
-  msg_ack_timeout, 		/* ack not received within timeout */
-  msg_sync,			/* sync achieved */
-  msg_too_long,			/* greater than MTU (256 bytes) */
-  msg_too_short,		/* less than 4 bytes */
-  msg_bad_sync,			/* unexpected sync byte received */
-  msg_bad_crc,			/* received packet has bad crc */
-  msg_closed,			/* serial port closed itself */
-  msg_no_memory,		/* malloc failed */
-  msg_unix_error		/* check errno for details */
+  msg_unknown_packet_type,      /* packet of unknown type received */
+  msg_ack_timeout,              /* ack not received within timeout */
+  msg_sync,                     /* sync achieved */
+  msg_too_long,                 /* greater than MTU (256 bytes) */
+  msg_too_short,                /* less than 4 bytes */
+  msg_bad_sync,                 /* unexpected sync byte received */
+  msg_bad_crc,                  /* received packet has bad crc */
+  msg_closed,                   /* serial port closed itself */
+  msg_no_memory,                /* malloc failed */
+  msg_unix_error                /* check errno for details */
 } serial_source_msg;
 
 serial_source open_serial_source(const char *device, int baud_rate,
-				 int non_blocking,
-				 void (*message)(serial_source_msg problem));
+                                 int non_blocking,
+                                 void (*message)(serial_source_msg problem));
 /* Effects: opens serial port device at specified baud_rate. If non_blocking
      is true, read_serial_packet calls will be non-blocking (writes are
      always blocking, for now at least)

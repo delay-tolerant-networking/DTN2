@@ -1,0 +1,20 @@
+dnl
+dnl Autoconf support for external convergence layer
+dnl
+
+AC_DEFUN(AC_CONFIG_EXTERNAL_CL, [
+    ac_ecl='no'
+    AC_ARG_WITH(ecl,
+        AC_HELP_STRING([--with-ecl],
+    		   	[external convergence layer support]),
+        ac_ecl=$withval) 
+    dnl
+    dnl First make sure we even want it
+    dnl
+    if test "$ac_ecl" = no; then
+        EXTERNAL_CL_ENABLED=0
+    else
+        EXTERNAL_CL_ENABLED=1
+        AC_DEFINE_UNQUOTED(EXTERNAL_CL_ENABLED, 1, [whether external convergence layer support is enabled])
+    fi # EXTERNAL_CL_ENABLED
+])

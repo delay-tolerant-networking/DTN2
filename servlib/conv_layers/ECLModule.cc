@@ -15,8 +15,11 @@
  * $Id$
  */
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <oasys/io/NetUtils.h>
 #include <oasys/io/FileUtils.h>
@@ -47,7 +50,7 @@ ECLModule::ECLModule(int fd,
                      u_int16_t remote_port,
                      ExternalConvergenceLayer& cl) :
     CLEventHandler("ECLModule", "/dtn/cl/module"),
-    Thread("/dtn/cl/module", Thread::DELETE_ON_EXIT),
+    Thread("/dtn/cl/module", Thread::CREATE_JOINABLE),
     cl_(cl),
     iface_list_lock_("/dtn/cl/parts/iface_list_lock"),
     socket_(fd, remote_addr, remote_port, logpath_),
@@ -55,6 +58,7 @@ ECLModule::ECLModule(int fd,
     parser_( true, cl.schema_.c_str() )
 {
     name_ = "(unknown)";
+    was_shutdown_ = false;
     sem_init(&link_list_sem_, 0, 2);
 }
 
@@ -80,7 +84,7 @@ ECLModule::run()
     while ( !should_stop() ) {
         // Poll for activity on either the event queue or the socket.
         int ret = oasys::IO::poll_multiple(pollfds, 2, -1);
-
+        
         if (ret == oasys::IOINTR) {
             log_debug("Module server interrupted");
             set_should_stop();
@@ -124,7 +128,12 @@ ECLModule::run()
     log_info( "CL %s is shutting down", name_.c_str() );
     
     oasys::ScopeLock lock(&cl_.global_resource_lock_, "ECLModule::run");
-    cl_.remove_module(this);
+    
+    if (!was_shutdown_) {
+        set_flag(Thread::DELETE_ON_EXIT);
+        cl_.remove_module(this);
+    }
+    
     socket_.close();
     cleanup();
 }
@@ -132,7 +141,7 @@ ECLModule::run()
 void
 ECLModule::post_message(cl_message* message)
 {
-    message_queue_.push_back(message);    
+    message_queue_.push_back(message);
 }
 
 ECLInterfaceResource*
@@ -142,13 +151,25 @@ ECLModule::remove_interface(const std::string& name)
     std::list<ECLInterfaceResource*>::iterator iface_i;
 
     for (iface_i = iface_list_.begin(); iface_i != iface_list_.end(); ++iface_i) {
-        if ( (*iface_i)->interface->name() == name) {
+        if ( (*iface_i)->interface_->name() == name) {
             iface_list_.erase(iface_i);
             return *iface_i;
         }
     }
 
     return NULL;
+}
+
+void
+ECLModule::shutdown()
+{
+    oasys::ScopeLock lock(&cl_.global_resource_lock_, "ECLModule::run");
+    log_debug("ECLModule::shutdown() for CLA '%s'", name_.c_str());
+    was_shutdown_ = true;
+    set_should_stop();
+    
+    // This seems to be the only effective way to interrupt the thread.
+    message_queue_.notify();
 }
 
 void
@@ -205,13 +226,16 @@ ECLModule::handle(const cla_add_request& message)
     }
     
     cla_set_params_request request;
+    request.create_discovered_links(false);
     request.local_eid( BundleDaemon::instance()->local_eid().str() );
     request.bundle_pass_method(bundlePassMethodType::filesystem);
+    request.reactive_fragment_enabled(
+            BundleDaemon::params_.reactive_frag_enabled_);
     
-    ParamSequence params;
-    params.push_back( Parameter("incoming_bundle_dir", in_dir.c_str() ) );
-    params.push_back( Parameter("outgoing_bundle_dir", out_dir.c_str() ) );
-    request.Parameter(params);
+    KeyValueSequence params;
+    params.push_back( key_value_pair("incoming_bundle_dir", in_dir.c_str() ) );
+    params.push_back( key_value_pair("outgoing_bundle_dir", out_dir.c_str() ) );
+    request.key_value_pair(params);
     
     POST_MESSAGE(this, cla_set_params_request, request);
     
@@ -231,9 +255,9 @@ ECLModule::take_resource(ECLResource* resource)
         iface_list_lock_.unlock();
 
         log_info( "Module %s acquiring interface %s", name_.c_str(),
-                  iface->interface->name().c_str() );
+                  iface->interface_->name().c_str() );
         
-        cl_message* message = new cl_message(*iface->create_message);
+        cl_message* message = new cl_message(*iface->create_message_);
         post_message(message);
     }
 
@@ -244,15 +268,15 @@ ECLModule::take_resource(ECLResource* resource)
         sem_wait(&link_list_sem_);
         sem_wait(&link_list_sem_);
         
-        link_list_.insert( LinkHashMap::value_type(link->link->name_str(),
+        link_list_.insert( LinkHashMap::value_type(link->link_->name_str(),
                               link) );
         
         sem_post(&link_list_sem_);
         sem_post(&link_list_sem_);
 
         log_info( "Module %s acquiring link %s", name_.c_str(),
-                  link->link->name() );
-        cl_message* message = new cl_message(*link->create_message);
+                  link->link_->name() );
+        cl_message* message = new cl_message(*link->create_message_);
         post_message(message);
     }
     
@@ -263,10 +287,17 @@ ECLModule::take_resource(ECLResource* resource)
 }
 
 void
+ECLModule::handle(const cla_delete_request& message)
+{
+    (void)message;
+    set_should_stop();
+}
+
+void
 ECLModule::take_resources()
 {
-	log_info("Module %s is acquiring appropriate CL resources", name_.c_str());
-	// Find all existing resources that belong to this CLA.
+        log_info("Module %s is acquiring appropriate CL resources", name_.c_str());
+        // Find all existing resources that belong to this CLA.
     std::list<ECLResource*> resource_list_ = cl_.take_resources(name_, this);
     std::list<ECLResource*>::iterator resource_i;
 
@@ -275,6 +306,13 @@ ECLModule::take_resources()
         ECLResource* resource = (*resource_i);
         take_resource(resource);
     }
+}
+
+void 
+ECLModule::handle(const cla_params_set_event& message)
+{
+    (void)message;
+    BundleDaemon::post( new CLAParamsSetEvent(&cl_, name_) );    
 }
 
 void
@@ -289,52 +327,78 @@ ECLModule::handle(const interface_created_event& message)
     }
 }
 
+void 
+ECLModule::handle(const interface_reconfigured_event& message)
+{
+    (void)message;
+}
+
+void
+ECLModule::handle(const eid_reachable_event& message)
+{
+    ECLInterfaceResource* resource = get_interface( message.interface_name() );
+
+    if (!resource) {
+        log_warn( "Got eid_reachable_event for unknown interface %s",
+                  message.interface_name().c_str() );
+        return;
+    }
+
+    BundleDaemon::post(
+        new NewEIDReachableEvent( resource->interface_, message.peer_eid() ) );
+}
+
 void
 ECLModule::handle(const link_created_event& message)
 {
     ECLLinkResource* resource;
     LinkRef link;
-    const clmessage::linkAttributes& link_attribs = message.linkAttributes();
     
     resource = get_link( message.link_name() );
-
-    // If we get an opportunistic link that is not in our list yet, it was
-    // discovered by the CLA, and we should create the link for it.
-    if (!resource && link_attribs.type() == linkTypeType::opportunistic) {
-        resource = create_discovered_link( link_attribs.peer_eid(),
-                                           link_attribs.underlay_address(),
-                                           message.link_name() );
-        return;
-    }
-    
     if (!resource) {
         log_err( "Got link_created_event for unknown link %s",
                  message.link_name().c_str() );
         return;
     }
     
-    link = BundleDaemon::instance()->contactmgr()->
-            find_link( message.link_name().c_str() );
-
-    if (link == NULL) {
-        // The link is not in the ContactManager. This should mean it has
-        // been deleted.
-
+    link = resource->link_;
+    oasys::ScopeLock l(link->lock(), "handle(link_created_event)");
+    if ( link->isdeleted() ) {
         // XXX there may be some steps to take to handle the link having been
         // deleted, but probably they have already been done at deletion time
+        log_info( "Link %s has already been deleted", 
+                  message.link_name().c_str());
+        return;
     }
-    else {
-        // This means that the link was successfully added!
-        // Also, the only code that checks the CREATE_PENDING flag has
-        // already completed (add_new_link must complete before has_link()
-        // can return) so resetting it here is safe.
-        //link->clear_flag(Link::CREATE_PENDING);
+    
+    // Create the outgoing bundle directory for this link.
+    std::string outgoing_dir = bundle_out_path_ + "/" + message.link_name(); 
+    if (oasys::IO::mkdir(outgoing_dir.c_str(), 0777) < 0) {
+        log_err( "Unable to create outgoing bundle directory %s: %s",
+                 outgoing_dir.c_str(), strerror(errno) );
         
-        if (link->state() == Link::UNAVAILABLE)
-            link->set_state(Link::AVAILABLE);
-        
-        BundleDaemon::post(new LinkCreatedEvent(link));
+        set_should_stop();
+        return;
     }
+    
+    link->set_create_pending(false);
+    
+    if (link->state() == Link::UNAVAILABLE)
+        link->set_state(Link::AVAILABLE);
+    
+    // Check for a high-water mark.
+    if ( message.link_attributes().high_water_mark().present() ) {
+        resource->set_high_water_mark(
+                message.link_attributes().high_water_mark().get() );
+    }
+    
+    // Check for a low-water mark.
+    if ( message.link_attributes().low_water_mark().present() ) {
+        resource->set_low_water_mark(
+                message.link_attributes().low_water_mark().get() );
+    }
+    
+    BundleDaemon::post(new LinkCreatedEvent(link));
 }
 
 void
@@ -342,18 +406,32 @@ ECLModule::handle(const link_opened_event& message)
 {
     ECLLinkResource* resource = get_link( message.link_name() );
     
+    // If no link can be found by that name, it may have just been created.
+    // We will wait for an event to get completely through the event queue
+    // before giving up on calling the link open.
     if (!resource) {
-        log_err( "Got link_opened_event for unknown link %s",
-                 message.link_name().c_str() );
-        return;
+        oasys::Notifier* notifier = new oasys::Notifier("/dtn/cl/external");
+        BundleDaemon::post_and_wait(new StatusRequest(), notifier);
+        delete notifier;
+        resource = get_link( message.link_name() );
+        if (!resource) {
+            log_err( "Got link_opened_event for unknown link %s",
+                     message.link_name().c_str() );
+            return;
+        }
     }
-    
-    ContactRef contact = resource->link->contact();
+
+    oasys::ScopeLock l(resource->link_->lock(), "ECLModule::link_opened_evet");
+
+    ContactRef contact = resource->link_->contact();
     if (contact == NULL) {
-        contact = new Contact(resource->link);
-        resource->link->set_contact( contact.object() );
+        contact = new Contact(resource->link_);
+        resource->link_->set_contact( contact.object() );
     }
-    
+
+    l.unlock();
+
+    update_contact_attributes(message.contact_attributes(), contact);
     BundleDaemon::post( new ContactUpEvent(contact) );
 }
 
@@ -368,14 +446,18 @@ ECLModule::handle(const link_closed_event& message)
         return;
     }
     
-    resource->known_state = Link::CLOSED;
-    resource->link->set_state(Link::UNAVAILABLE);
+    resource->known_state_ = Link::CLOSED;
     
-    ContactRef contact = resource->link->contact();
-    if (contact != NULL) {
-        BundleDaemon::post( 
-                new ContactDownEvent(contact, ContactEvent::NO_INFO) );
-    }
+    if (resource->link_->contact() != NULL) {
+        update_contact_attributes( message.contact_attributes(),
+                                   resource->link_->contact() );
+        
+        // It seems like this should be a ContactDownEvent, but that doesn't
+        // actually clear the contact, so DTN2 thinks this link is still open.
+        BundleDaemon::post( new LinkStateChangeRequest(resource->link_,
+                            Link::CLOSED,
+                            ContactEvent::NO_INFO) );
+    } // if
 }
 
 void
@@ -392,22 +474,17 @@ ECLModule::handle(const link_state_changed_event& message)
     
     new_state = XMLConvert::convert_link_state( message.new_state() );
 
-    resource->known_state = new_state;
-    BundleDaemon::post( new LinkStateChangeRequest( resource->link,
+    resource->known_state_ = new_state;
+    BundleDaemon::post( new LinkStateChangeRequest( resource->link_,
         new_state, XMLConvert::convert_link_reason( message.reason() ) ) );
 }
 
 void
 ECLModule::handle(const link_deleted_event& message)
 {
-    ECLLinkResource* resource;
-
-    resource = get_link( message.link_name() );
-    
-    // If we didn't find this link, check with ExternalConvergenceLayer
-    // for anything recently added.
+    ECLLinkResource* resource = get_link( message.link_name() );
     if (!resource) {
-        log_err( "Got link_created_event for unknown link %s",
+        log_err( "Got link_deleted_event for unknown link %s",
                  message.link_name().c_str() );
         return;
     }
@@ -423,17 +500,20 @@ ECLModule::handle(const link_deleted_event& message)
     sem_post(&link_list_sem_);
     sem_post(&link_list_sem_);
     
+    // Lock the resource and clear its module field so that the BundleDaemon
+    // thread can't do anything with it.
+    resource->lock.lock("handle(link_deleted_event)");
+    resource->module_ = NULL;
+    // TODO: Clean up any in-transit bundles for this link.
+    resource->lock.unlock();
+    
     // If the link's cl_info is still set, then the deletion originated at the
     // CLA, not the BPA, and we need to send up a LinkDeleteRequest
     // to get the link removed. Setting the module field NULL will cause
     // delete_link to just delete the resource without sending a request back
     // down here.
-    if (resource->link->cl_info() != NULL) {
-        resource->module = NULL;
-        /*ContactEvent::reason_t reason = XMLConvert::convert_link_reason(
-        	message.reason() );
-        BundleDaemon::instance()->contactmgr()->del_link(resource->link,
-            reason);*/
+    if (resource->link_->cl_info() != NULL) {
+        BundleDaemon::instance()->post(new LinkDeleteRequest(resource->link_));
     }
     
     // Otherwise, we are done with this resource now.
@@ -442,6 +522,129 @@ ECLModule::handle(const link_deleted_event& message)
     else {
         delete resource;
     }
+}
+
+void
+ECLModule::handle(const link_attribute_changed_event& message) 
+{
+    ECLLinkResource* resource = get_link( message.link_name() );
+    if (!resource) {
+        log_err( "Got link_attribute_changed_event for unknown link %s",
+                 message.link_name().c_str() );
+        return;
+    }
+    
+    // Check for a changed high-water mark.
+    if ( message.link_attributes().high_water_mark().present() ) {
+        resource->set_high_water_mark(
+                message.link_attributes().high_water_mark().get() );
+    }
+    
+    // Check for a changed low-water mark.
+    if ( message.link_attributes().low_water_mark().present() ) {
+        resource->set_low_water_mark(
+                message.link_attributes().low_water_mark().get() );
+    }
+    
+    ContactEvent::reason_t reason = 
+            XMLConvert::convert_link_reason( message.reason() );
+    
+    AttributeVector params;
+    const clmessage::link_attributes& attributes = message.link_attributes();
+    // These are the only attributes that should be changed by the CLA; should
+    // there be yet another XSD type?
+    
+    if ( attributes.peer_eid().present() ) {
+        resource->link_->set_remote_eid( 
+            EndpointID( attributes.peer_eid().get() ) );
+    }
+
+    if (attributes.nexthop().present()) {
+        params.push_back(
+            NamedAttribute("nexthop", attributes.nexthop().get()) );
+    }
+    if (attributes.is_reachable().present()) {
+        params.push_back(
+            NamedAttribute("is_reachable", attributes.is_reachable().get()) );
+    }
+    if (attributes.how_reliable().present()) {
+        params.push_back(
+            NamedAttribute("how_reliable", static_cast<int>(attributes.how_reliable().get())) );
+    }
+    if (attributes.how_available().present()) {
+        params.push_back(
+            NamedAttribute("how_available", static_cast<int>(attributes.how_available().get())) );
+    }
+    // put in the key_value_pairs
+    KeyValueSequence::const_iterator iter;
+    for (iter = attributes.key_value_pair().begin();
+         iter != attributes.key_value_pair().end();
+         iter++) {
+        params.push_back( NamedAttribute(iter->name(), iter->value()) );
+    }
+    
+    BundleDaemon::post(
+        new LinkAttributeChangedEvent(resource->link_, params, reason) );
+}
+
+void
+ECLModule::handle(const contact_attribute_changed_event& message) 
+{
+    ECLLinkResource* resource = get_link( message.link_name() );
+    if (!resource) {
+        log_err( "Got link_attribute_changed_event for unknown link %s",
+                 message.link_name().c_str() );
+        return;
+    }
+    
+    update_contact_attributes( message.contact_attributes(),
+                               resource->link_->contact() );
+    
+    ContactEvent::reason_t reason = 
+            XMLConvert::convert_link_reason( message.reason() );
+    
+    BundleDaemon::post(
+            new ContactAttributeChangedEvent(resource->link_->contact(), reason) );
+}
+
+void
+ECLModule::handle(const link_add_reachable_event& message)
+{
+    // Check if the contact manager has a link with that name already
+    // If it does, it may be in the process of deletion.
+    // We will wait for an event to get completely through the event queue
+    // before giving up on creating the new link.
+    LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(message.link_name().c_str());
+    if (link != NULL){
+        oasys::Notifier* notifier = new oasys::Notifier("/dtn/cl/external");
+        BundleDaemon::post_and_wait(new StatusRequest(), notifier);
+        delete notifier;
+        link = BundleDaemon::instance()->contactmgr()->find_link(message.link_name().c_str());
+        if (link != NULL){
+            log_err( "Got link_add_reachable_event for link '%s' that already exists",
+                 message.link_name().c_str() );
+            return;
+        }
+    }
+
+    ECLLinkResource* resource;
+    const clmessage::link_config_parameters& params =
+            message.link_config_parameters();
+    resource = get_link( message.link_name() );
+    if (resource) {
+        log_err( "Got link_add_reachable_event for link '%s' that already exists",
+                 message.link_name().c_str() );
+        return;
+    }
+    
+    if ( !params.nexthop().present() ) {
+        log_err("Got link_add_reachable_event with no nexthop field");
+        return;
+    }
+    
+    resource = create_discovered_link( message.peer_eid(),
+                                       params.nexthop().get(),
+                                       message.link_name() );
 }
 
 void
@@ -456,66 +659,219 @@ ECLModule::handle(const bundle_transmitted_event& message)
     }
 
     BundleRef bundle =
-            resource->get_outgoing_bundle( message.bundleAttributes() );
+            resource->get_outgoing_bundle( message.bundle_attributes() );
     if ( !bundle.object() ) {
         log_err("Got bundle_transmitted_event for unknown bundle");
         return;
     }
     
     // Take this off the outgoing bundle list for this link.
-    resource->erase_outgoing_bundle( bundle.object() );
+    if ( !resource->erase_outgoing_bundle( bundle.object() ) ) {
+        log_err("Unable to remove bundle %d from the link's outgoing bundle list",
+                bundle->bundleid_);
+    }
     
     // Figure out the absolute path to the file.
     oasys::StringBuffer filename("bundle%d", bundle->bundleid_);
-    std::string abs_path = bundle_out_path_ + "/" + filename.c_str();
+    std::string abs_path = bundle_out_path_ + "/" + resource->link_->name_str() +
+            "/" + filename.c_str();
     
     // Delete the bundle file.
     ::remove( abs_path.c_str() );
+    
+    // If we were in state BUSY, see if sending this bundle made us un-busy.
+    if (resource->link_->state() == Link::BUSY) {
+        BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(resource->link_);
+        ASSERT(blocks != NULL);
+        
+        size_t total_len = BundleProtocol::total_length(blocks);
+        int queued_bytes = resource->link_->stats()->bytes_queued_ - total_len;
+        
+        if ( resource->low_water_mark_crossed(queued_bytes) ) {
+            log_info( "Link %s crossed low-water mark; setting OPEN",
+                      resource->link_->name() ); 
+            // Post a state-change to AVAILABLE in order to get back to OPEN.
+            BundleDaemon::post_at_head(
+                    new LinkStateChangeRequest(resource->link_,
+                                               Link::AVAILABLE,
+                                               ContactEvent::UNBLOCKED) );
+        } // if
+        
+        else {
+            log_debug("Low-water mark not crossed; queued bytes: %d",
+                      queued_bytes);
+        }
+    } // if
 
     // Tell the BundleDaemon about this.
     BundleTransmittedEvent* b_event =
             new BundleTransmittedEvent(bundle.object(),
-                                       resource->link->contact(),
-                                       resource->link,
+                                       resource->link_->contact(),
+                                       resource->link_,
                                        message.bytes_sent(),
                                        message.reliably_sent());
-    BundleDaemon::post(b_event);    
+    BundleDaemon::post(b_event);
 }
 
 void
-ECLModule::handle(const bundle_cancelled_event& message)
+ECLModule::handle(const bundle_canceled_event& message)
 {
     // Find the link that this bundle was going to.
     ECLLinkResource* resource = get_link( message.link_name() );
     if (!resource) {
-        log_err( "Got bundle_cancelled_event for unknown link %s",
+        log_err( "Got bundle_canceled_event for unknown link %s",
                  message.link_name().c_str() );
         return;
     }
 
     // Find this bundle on the link's outgoing bundle list.
     BundleRef bundle =
-            resource->get_outgoing_bundle( message.bundleAttributes() );
+            resource->get_outgoing_bundle( message.bundle_attributes() );
     if ( !bundle.object() ) {
-        log_err("Got bundle_cancelled_event for unknown bundle");
+        log_err("Got bundle_canceled_event for unknown bundle");
         return;
     }
     
     // Clean up after the bundle and tell the BPA about it.
     bundle_send_failed(resource, bundle.object(), true);
-    /*BundleDaemon::post( new BundleSendCancelledEvent(bundle.object(),
-                resource->link) );*/
+    BundleDaemon::post( new BundleSendCancelledEvent(bundle.object(),
+                        resource->link_) );
+    
+    // If we were in state BUSY, see if sending this bundle made us un-busy.
+    if (resource->link_->state() == Link::BUSY) {
+        BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(resource->link_);
+        ASSERT(blocks != NULL);
+        
+        size_t total_len = BundleProtocol::total_length(blocks);
+        int queued_bytes = resource->link_->stats()->bytes_queued_ - total_len;
+        
+        if ( resource->low_water_mark_crossed(queued_bytes) ) {
+            log_info( "Link %s crossed low-water mark; setting OPEN",
+                      resource->link_->name() ); 
+            // Post a state-change to AVAILABLE in order to get back to OPEN.
+            BundleDaemon::post_at_head(
+                    new LinkStateChangeRequest(resource->link_,
+                                               Link::AVAILABLE,
+                                               ContactEvent::UNBLOCKED) );
+        } // if
+        
+        else {
+            log_debug("Low-water mark not crossed; queued bytes: %d",
+                      queued_bytes);
+        }
+    } // if
+}
+
+void
+ECLModule::handle(const bundle_receive_started_event& message)
+{
+    IncomingBundleRecord record;
+    record.location = message.location();    
+    if ( message.peer_eid().present() )
+        record.peer_eid = message.peer_eid().get();
+    
+    incoming_bundle_list_.push_back(record);
 }
 
 void
 ECLModule::handle(const bundle_received_event& message)
 {
+    // A bytes_received of 0 means that nothing (or not enough) was received.
+    // We only need to delete the bundle file if it exists.
+    if (message.bytes_received() == 0) {
+        std::string file_path = bundle_in_path_ + "/" + message.location();
+        
+        // If the bundle file exists, delete it.
+        if (oasys::FileUtils::size( file_path.c_str() ) >= 0) {
+            if (::remove( file_path.c_str() ) < 0) {
+                log_err( "Unable to remove bundle file %s: %s", 
+                         file_path.c_str(), strerror(errno) );
+            } // if
+        } // if
+    } // if
+
+    else {
+        read_bundle_file( message.location() );
+    }
+    
+    // Remove the bundle from the incoming bundle list (if we got a
+    // bundle_receive_started_event for it).
+    std::list<IncomingBundleRecord>::iterator incoming_i;
+    for (incoming_i = incoming_bundle_list_.begin();
+    incoming_i != incoming_bundle_list_.end(); ++incoming_i) {
+        if ( incoming_i->location == message.location() ) {
+            incoming_bundle_list_.erase(incoming_i);
+            break;
+        } // if
+    } // for
+}
+
+void 
+ECLModule::handle(const report_eid_reachable& message)
+{
+    BundleDaemon::post(
+            new EIDReachableReportEvent( message.query_id(),
+                                         message.is_reachable() ) );    
+}
+
+void 
+ECLModule::handle(const report_link_attributes& message)
+{
+    AttributeVector attrib_vector;
+    
+    KeyValueSequence::const_iterator iter;
+    for (iter = message.key_value_pair().begin();
+         iter != message.key_value_pair().end();
+         iter++) {
+        attrib_vector.push_back( NamedAttribute(iter->name(), iter->value()) );
+    }
+    
+    BundleDaemon::post( new LinkAttributesReportEvent( message.query_id(),
+                        attrib_vector) );   
+}
+
+void 
+ECLModule::handle(const report_interface_attributes& message) 
+{
+    AttributeVector attrib_vector;
+    
+    KeyValueSequence::const_iterator iter;
+    for (iter = message.key_value_pair().begin();
+         iter != message.key_value_pair().end();
+         iter++) {
+        attrib_vector.push_back( NamedAttribute(iter->name(), iter->value()) );
+    }
+    
+    BundleDaemon::post( new IfaceAttributesReportEvent( message.query_id(),
+                        attrib_vector) );
+}
+
+void 
+ECLModule::handle(const report_cla_parameters& message) 
+{
+    AttributeVector attrib_vector;
+    
+    KeyValueSequence::const_iterator iter;
+    for (iter = message.key_value_pair().begin();
+         iter != message.key_value_pair().end();
+         iter++) {
+        attrib_vector.push_back( NamedAttribute(iter->name(), iter->value()) );
+    }
+
+    BundleDaemon::post( new CLAParametersReportEvent( message.query_id(), 
+                        attrib_vector) );
+}
+
+        
+void
+ECLModule::read_bundle_file(const std::string& location)
+{
     int bundle_fd;
     bool finished = false;
-    size_t file_offset = 0;
+    off_t file_offset = 0;
     struct stat file_stat;
     
-    std::string file_path = bundle_in_path_ + "/" + message.location();
+    std::string file_path = bundle_in_path_ + "/" + location;
     
     // Open up the file.
     bundle_fd = oasys::IO::open(file_path.c_str(), O_RDONLY);
@@ -539,9 +895,9 @@ ECLModule::handle(const bundle_received_event& message)
     // that the bundle is finished or we run out of bytes in the file (these
     // two SHOULD happen at the same time). This loop is to ensure that only
     // MAX_BUNDLE_IN_MEMORY bytes are actually mapped in memory at a time.
-    while (!finished && file_offset < (size_t)file_stat.st_size) {
-        size_t map_size = std::min( (size_t)file_stat.st_size - file_offset,
-                                    MAX_BUNDLE_IN_MEMORY );
+    while (!finished && file_offset < file_stat.st_size) {
+        size_t map_size = std::min(file_stat.st_size - file_offset,
+                                   (off_t)MAX_BUNDLE_IN_MEMORY);
         
         // Map the next chunk of file.
         void* bundle_ptr = oasys::IO::mmap(bundle_fd, file_offset, map_size,
@@ -584,25 +940,19 @@ ECLModule::handle(const bundle_received_event& message)
         log_err( "Unable to remove bundle file %s: %s", file_path.c_str(),
                  strerror(errno) );
     }
-     
-    // If we didn't have a whole bundle, forget about it and bail out.
-    if (!finished) {
-        log_err( "Incomplete bundle in file %s", file_path.c_str() );
+    
+    if (bundle->recv_blocks_.size() < 1) {
+        log_err("Received bundle does not contain enough information");
         delete bundle;
         return;
     }
     
     // If there are unused bytes in the file, log a warning, but
     // continue anyway.
-    if (file_offset < (size_t)file_stat.st_size) {
-        log_warn("Used only %zd of %zd bytes for the bundle", file_offset,
-                 (size_t)file_stat.st_size);
+    if (file_offset < file_stat.st_size) {
+        log_warn("Used only %llu of %llu bytes for the bundle", 
+                 (u_int64_t)file_offset, (u_int64_t)file_stat.st_size);
     }
-    
-    if (message.bytes_received() != file_stat.st_size) {
-        log_warn("bytes_received (%zd) does not match file size (%zd)",
-                 (size_t)message.bytes_received(), (size_t)file_stat.st_size);
-    } 
     
     // Tell the BundleDaemon about this bundle.
     BundleReceivedEvent* b_event =
@@ -682,8 +1032,7 @@ ECLModule::send_message(const cl_message* message)
                 name_.c_str(), msg_string.c_str() );
     
     // Send the message out the socket.
-    int err = socket_.send( (char*)buf.getRawBuffer(), buf.getLen(),
-                            MSG_NOSIGNAL );
+    int err = socket_.send( (char*)buf.getRawBuffer(), buf.getLen(), 0 );
 
     if (err < 0) {
         log_err("Socket error: %s", strerror(err));
@@ -709,19 +1058,16 @@ ECLModule::prepare_bundle_to_send(cl_message* message)
     }
     
     // Find the bundle on the outgoing bundle list.
-    //OutgoingBundle* outgoing_bundle =
     BundleRef bundle = 
-            link_resource->get_outgoing_bundle( request.bundleAttributes() );
+            link_resource->get_outgoing_bundle( request.bundle_attributes() );
     if ( !bundle.object() ) {
         log_err( "Got bundle_send_request for unknown bundle");
         return 0;
     }
     
-    //Bundle* bundle = outgoing_bundle->bundle.object();
-    
     // Grab the bundle blocks for this bundle on this link.
     BlockInfoVec* blocks =
-            bundle->xmit_blocks_.find_blocks(link_resource->link);
+            bundle->xmit_blocks_.find_blocks(link_resource->link_);
     if (!blocks) {
         log_err( "Bundle id %d on link %s has no block vectors",
                  bundle->bundleid_, request.link_name().c_str() );
@@ -729,9 +1075,9 @@ ECLModule::prepare_bundle_to_send(cl_message* message)
     }
     
     // Calculate the total length of this bundle.
-    size_t total_length = BundleProtocol::total_length(blocks);
+    off_t total_length = BundleProtocol::total_length(blocks);
     
-    // Figure out the absolute path to the file.
+    // Figure out the path to the file.
     std::string abs_path = bundle_out_path_ + "/" + request.location();
     
     // Create and open the file.
@@ -752,12 +1098,13 @@ ECLModule::prepare_bundle_to_send(cl_message* message)
         return 0;
     }
     
-    size_t offset = 0;
+    off_t offset = 0;
     bool done = false;
     
     while (offset < total_length) {
         // Calculate the size of the next chunk and map it.
-        size_t map_size = std::min(total_length - offset, MAX_BUNDLE_IN_MEMORY);
+        off_t map_size = std::min(total_length - offset,
+                                  (off_t)MAX_BUNDLE_IN_MEMORY);
         void* bundle_ptr = oasys::IO::mmap(bundle_fd, offset, map_size,
                                            oasys::IO::MMAP_RW);
         if (bundle_ptr == NULL) {
@@ -788,7 +1135,7 @@ ECLModule::bundle_send_failed(ECLLinkResource* link_resource,
                               Bundle* bundle,
                               bool erase_from_list)
 {
-    ContactRef contact = link_resource->link->contact();
+    ContactRef contact = link_resource->link_->contact();
     
     // Take the bundle off of the outgoing bundles list.
     if (erase_from_list)
@@ -798,7 +1145,8 @@ ECLModule::bundle_send_failed(ECLLinkResource* link_resource,
     oasys::StringBuffer filename_buf("bundle%d", bundle->bundleid_);
 
     // Delete the bundle file.
-    ::remove( (bundle_out_path_ + "/" + filename_buf.c_str()).c_str() );
+    ::remove( (bundle_out_path_ + "/" + link_resource->link_->name_str() + "/" +
+            filename_buf.c_str()).c_str() );
 }
 
 ECLInterfaceResource*
@@ -809,7 +1157,7 @@ ECLModule::get_interface(const std::string& name) const
 
     for (iface_i = iface_list_.begin(); iface_i != iface_list_.end();
     ++iface_i) {
-        if ( (*iface_i)->interface->name() == name)
+        if ( (*iface_i)->interface_->name() == name)
             return *iface_i;
     }
 
@@ -852,27 +1200,41 @@ ECLLinkResource*
 ECLModule::create_discovered_link(const std::string& peer_eid,
                                   const std::string& nexthop,
                                   const std::string& link_name)
-{	
+{       
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
     
     //lock the contact manager so no one opens the link before we do
-	oasys::ScopeLock l(cm->lock(), "ECLModule::create_discovered_link");    
-    LinkRef link = cm->new_opportunistic_link(&cl_, nexthop,
-                                              EndpointID(peer_eid),
-                                              &link_name);
-    l.unlock();
+        oasys::ScopeLock l(cm->lock(), "ECLModule::create_discovered_link");
     
+    LinkRef link = Link::create_link(link_name, Link::OPPORTUNISTIC, &cl_,
+                                     nexthop.c_str(), 0, NULL);
     if (link == NULL) {
-        log_debug("ECLModule::create_discovered_link: "
-                  "failed to create new opportunistic link");
+        log_warn("Unexpected error creating opportunistic link");
+        return NULL;
+    }
+
+    LinkRef new_link(link.object(),
+                     "ContactManager::new_opportunistic_link: return value");
+    
+    new_link->set_remote_eid(peer_eid);
+
+    // The LinkCreatedEvent is posted below.
+    new_link->set_create_pending(true);
+    
+    if (!cm->add_new_link(new_link)) {
+        new_link->delete_link();
+        log_err( "Failed to add new opportunistic link %s", new_link->name() );
+        new_link = NULL;
         return NULL;
     }
     
+    l.unlock();
+    
     // Create the resource holder for this link.
     ECLLinkResource* resource =
-            new ECLLinkResource(name_, NULL, this, link, true);
-    link->set_cl_info(resource);
-    link->set_state(Link::AVAILABLE);
+            new ECLLinkResource(name_, NULL, this, new_link, true);
+    new_link->set_cl_info(resource);
+    new_link->set_state(Link::AVAILABLE);
     
     // Wait twice on the semaphore to actually lock it.
     sem_wait(&link_list_sem_);
@@ -885,6 +1247,10 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
     sem_post(&link_list_sem_);
     sem_post(&link_list_sem_);
 
+    // Notify the system that the new link is available for use.
+    new_link->set_create_pending(false);
+    BundleDaemon::post(new LinkCreatedEvent(new_link));
+    
     return resource;
 }
 
@@ -898,12 +1264,15 @@ ECLModule::cleanup() {
         ECLLinkResource* resource = link_i->second;
         
         oasys::ScopeLock res_lock(&resource->lock, "ECLModule::cleanup");
-        resource->known_state = Link::CLOSED;
+        resource->module_ = NULL;
+        resource->known_state_ = Link::CLOSED;
         
         // Only report the closing if the link is currently open (otherwise,
         // the bundle daemon nags).
-        if (resource->link->state() == Link::OPEN) {
-            BundleDaemon::post( new LinkStateChangeRequest(resource->link,
+        Link::state_t current_state = resource->link_->state();
+        if (current_state == Link::OPEN || current_state == Link::BUSY ||
+        current_state == Link::OPENING) {
+            BundleDaemon::post( new LinkStateChangeRequest(resource->link_,
                                 Link::CLOSED, ContactEvent::NO_INFO) );
         }
         
@@ -921,7 +1290,20 @@ ECLModule::cleanup() {
         
         // Clear the list of bundles that we just canceled.
         bundle_set.clear();
+        
+        // Remove the link's outgoing bundle directory.
+        std::string outgoing_dir = bundle_out_path_ + "/" +
+                resource->link_->name_str();
+        ::remove( outgoing_dir.c_str() );
     }
+    
+    // Clean up any bundles for which we received a bundle_receive_started_event
+    // but no bundle_received_event. This will post BundleReceivedEvents for
+    // the partial bundles.
+    std::list<IncomingBundleRecord>::iterator incoming_i;
+    for (incoming_i = incoming_bundle_list_.begin();
+    incoming_i != incoming_bundle_list_.end(); ++incoming_i)
+        read_bundle_file(incoming_i->location);
     
     // At this point, we know that there are no links or interfaces pointing
     // to this module, so no new messages will come in.
@@ -938,6 +1320,17 @@ ECLModule::cleanup() {
     ::remove( bundle_out_path_.c_str() );
 }
 
+void
+ECLModule::update_contact_attributes(const contact_attributes& attributes,
+                                     const ContactRef& contact)
+{
+    contact->start_time_.tv_sec = attributes.start_time() / 1000;
+    contact->start_time_.tv_usec = attributes.start_time() * 1000;
+    contact->duration_ms_ = attributes.duration();
+    contact->bps_ = attributes.bps();
+    contact->latency_ms_ = attributes.latency();
+}
+
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_CL_ENABLED

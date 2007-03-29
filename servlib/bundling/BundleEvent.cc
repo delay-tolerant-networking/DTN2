@@ -19,12 +19,17 @@
  *    derived from this software without specific prior written permission.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <iostream>
 #include "BundleEvent.h"
 #include "BundleDaemon.h"
 #include <routing/RouteTable.h>
 #include <contacts/Contact.h>
 #include <contacts/ContactManager.h>
+#include <contacts/Interface.h>
 #include <reg/Registration.h>
 #include <oasys/util/StringBuffer.h>
 
@@ -48,13 +53,13 @@ BundleTransmittedEvent::serialize(oasys::SerializeAction *a)
     a->process("link", link_.object());
 }
 
-void
+/*void
 BundleTransmitFailedEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("bundle", bundleref_.object());
     a->process("contact", contact_.object());
     a->process("link", link_.object());
-}
+}*/
 
 void
 BundleDeliveryEvent::serialize(oasys::SerializeAction *a)
@@ -70,18 +75,10 @@ BundleExpiredEvent::serialize(oasys::SerializeAction *a)
 }
 
 void
-BundleSendRequest::serialize(oasys::SerializeAction* a)
+BundleSendCancelledEvent::serialize(oasys::SerializeAction* a)
 {
-    a->process("bundleid", &bundleid_);
-    a->process("link", &link_);
-    a->process("fwd_action", &action_);
-}
-
-void
-BundleCancelRequest::serialize(oasys::SerializeAction* a)
-{
-    a->process("bundleid", &bundleid_);
-    a->process("link", &link_);
+    a->process("bundle", bundleref_.object());
+    a->process("link", link_.object());
 }
 
 void
@@ -95,7 +92,16 @@ BundleInjectRequest::serialize(oasys::SerializeAction* a)
     a->process("fwd_action", &action_);
     a->process("priority", &priority_);
     a->process("expiration", &expiration_);
-    a->process("payload", &payload_);
+    u_int64_t length = payload_length_;
+    a->process("payload_length", &length);
+    a->process("request_id", &request_id_);
+}
+
+void
+BundleInjectedEvent::serialize(oasys::SerializeAction *a)
+{
+    a->process("bundle", bundleref_.object());
+    a->process("request_id", &request_id_);
 }
 
 void
@@ -167,6 +173,13 @@ ContactReportEvent::serialize(oasys::SerializeAction *a)
 }
 
 void
+ContactAttributeChangedEvent::serialize(oasys::SerializeAction *a)
+{
+    a->process("reason", &reason_);
+    a->process("contact", contact_.object());
+}
+
+void
 LinkCreatedEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("reason", &reason_);
@@ -189,6 +202,13 @@ LinkAvailableEvent::serialize(oasys::SerializeAction *a)
 
 void
 LinkUnavailableEvent::serialize(oasys::SerializeAction *a)
+{
+    a->process("reason", &reason_);
+    a->process("link", link_.object());
+}
+
+void
+LinkAttributeChangedEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("reason", &reason_);
     a->process("link", link_.object());
@@ -223,8 +243,8 @@ LinkStateChangeRequest::serialize(oasys::SerializeAction* a)
         a->process("link", &link);
 
         BundleDaemon *bd = BundleDaemon::instance();
-        link_ = bd->contactmgr()->find_link(link.c_str());
 
+        link_ = bd->contactmgr()->find_link(link.c_str());
         if (link_ != NULL) {
             contact_   = link_->contact();
             old_state_ = link_->state();
@@ -285,6 +305,15 @@ CustodyTimeoutEvent::serialize(oasys::SerializeAction *a)
 {
     a->process("bundle", bundle_.object());
     a->process("link", link_.object());
+}
+
+void
+NewEIDReachableEvent::serialize(oasys::SerializeAction *a)
+{
+    std::string name = iface_->name();
+
+    a->process("eid", &endpoint_);
+    a->process("interfaceName", &name);
 }
 
 } // namespace dtn

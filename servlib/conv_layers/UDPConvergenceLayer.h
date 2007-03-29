@@ -89,6 +89,11 @@ public:
     void send_bundle(const ContactRef& contact, Bundle* bundle);
 
     /**
+     * Report if the given bundle is queued on the given link.
+     */
+    bool is_queued(const LinkRef& contact, Bundle* bundle);
+
+    /**
      * Tunable parameter structure.
      *
      * Per-link and per-interface settings are configurable via

@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include "Contact.h"
 #include "bundling/Bundle.h"
@@ -61,10 +64,11 @@ void
 Contact::serialize(oasys::SerializeAction *a)
 {
     // casting won't be necessary after port to oasys::Time
-    a->process("start_time_sec",
-        reinterpret_cast< u_int32_t * >(&start_time_.tv_sec));
-    a->process("start_time_usec",
-        reinterpret_cast< u_int32_t * >(&start_time_.tv_usec));
+    // in the mean time, avoid gcc pointer cast complaints
+    u_int32_t tv_sec_pass = start_time_.tv_sec;
+    a->process("start_time_sec",&tv_sec_pass);
+    u_int32_t tv_usec_pass = start_time_.tv_usec;
+    a->process("start_time_usec",&tv_usec_pass);
 
     a->process("duration", &duration_ms_);
     a->process("bps", &bps_);

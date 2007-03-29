@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 // Only works on Linux (for now)
 #ifdef __linux__
@@ -97,7 +100,7 @@ EthConvergenceLayer::interface_up(Interface* iface,
     const char *invalid;
     if (!parse_params(&params, argc, argv, &invalid)) {
         log_err("error parsing interface options: invalid option '%s'",
-		invalid);
+                invalid);
         return false;
     }
 
@@ -167,7 +170,7 @@ EthConvergenceLayer::open_contact(const ContactRef& contact)
     
     // create a new connection for the contact
     Sender* sender = new Sender(((EthCLInfo*)link->cl_info())->if_name_,
-				link->contact());
+                                link->contact());
     contact->set_cl_info(sender);
 
     sender->logpathf("/cl/eth");
@@ -226,6 +229,15 @@ EthConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
     sender->send_bundle(bundle); // consumes bundle reference
 }
 
+bool
+EthConvergenceLayer::is_queued(const LinkRef& contact, Bundle* bundle)
+{
+    (void)contact;
+    (void)bundle;
+
+    /// The Ethernet convergence layer does not maintain an output queue.
+    return false;
+}
 
 /******************************************************************************
  *
@@ -276,7 +288,7 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         EthernetScheme::to_string(&ethhdr->ether_shost[0],
                                   bundles_string);
         char next_hop_string[50], *ptr;
-	memset(next_hop_string,0,50);
+        memset(next_hop_string,0,50);
         ptr = strrchr(bundles_string, '/');
         strcpy(next_hop_string, ptr+1);
         
@@ -340,9 +352,9 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
         }
         
         /**
-	 * If there already is a timer for this link, cancel it, which
-	 * will delete it when it bubbles to the top of the timer
-	 * queue. Then create a new timer.
+         * If there already is a timer for this link, cancel it, which
+         * will delete it when it bubbles to the top of the timer
+         * queue. Then create a new timer.
          */
         BeaconTimer *timer = ((EthCLInfo*)link->cl_info())->timer;
         if (timer)
@@ -350,8 +362,8 @@ EthConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
 
         timer = new BeaconTimer(next_hop_string); 
         timer->schedule_in(ETHCL_BEACON_TIMEOUT_INTERVAL);
-	
-	((EthCLInfo*)link->cl_info())->timer = timer;
+        
+        ((EthCLInfo*)link->cl_info())->timer = timer;
 
         l.unlock();
     }
@@ -402,8 +414,8 @@ EthConvergenceLayer::Receiver::run()
     if((sock = socket(PF_PACKET,SOCK_RAW, htons(ETHERTYPE_DTN))) < 0) { 
         perror("socket");
         log_err("EthConvergenceLayer::Receiver::run() " 
-                "Couldn't open socket.");	
-	exit(1);
+                "Couldn't open socket.");       
+        exit(1);
     }
    
     // figure out the interface index of the device with name if_name_
@@ -536,9 +548,9 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     
     // write the ethcl header
 
-    ethclhdr.version	= ETHCL_VERSION;
+    ethclhdr.version    = ETHCL_VERSION;
     ethclhdr.type       = ETHCL_BUNDLE;
-    ethclhdr.bundle_id	= htonl(bundle->bundleid_);    
+    ethclhdr.bundle_id  = htonl(bundle->bundleid_);    
 
     // iovec slot 2 for the bundle
     BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(contact_->link());
@@ -573,9 +585,9 @@ EthConvergenceLayer::Sender::send_bundle(Bundle* bundle)
     bool ok;
     int total = sizeof(EthCLHeader) + sizeof(struct ether_header) + total_len;
     if (cc != total) {
-        BundleDaemon::post(new BundleTransmitFailedEvent(bundle,
+        /*BundleDaemon::post(new BundleTransmitFailedEvent(bundle,
                                                          contact_,
-                                                         contact_->link()));
+                                                         contact_->link()));*/
         log_err("send_bundle: error writing bundle (wrote %d/%d): %s",
                 cc, total, strerror(errno));
         ok = false;
@@ -715,12 +727,12 @@ EthConvergenceLayer::BeaconTimer::timeout(const struct timeval& now)
       log_warn("No link for next_hop %s.",next_hop_);
     }
     else if(link->isopen()) {
-	BundleDaemon::post(
+        BundleDaemon::post(
             new LinkStateChangeRequest(link, Link::CLOSED,
                                        ContactDownEvent::BROKEN));
     }
     else {
-	log_warn("next_hop %s unexpectedly not open",next_hop_);
+        log_warn("next_hop %s unexpectedly not open",next_hop_);
     }
 }
 

@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 // The servlib/SDNV.cc file can handle being compiled either as C or
 // as C++ so we just include it here
 #include "bundling/SDNV.cc"

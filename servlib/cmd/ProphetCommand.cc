@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <oasys/util/StringBuffer.h>
 #include <oasys/util/OptParser.h>
 
@@ -138,9 +142,11 @@ ProphetCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             {"grtr_max",  Prophet::GRTR_MAX},
             {0, 0}
         };
+        int fs_pass = ProphetRouter::params_.fs_;
         p.addopt(new oasys::EnumOpt("fwd_strategy",
-                    FwdStrategyCases, (int*)&ProphetRouter::params_.fs_, "",
+                    FwdStrategyCases, &fs_pass, "",
                     "forwarding strategies"));
+        ProphetRouter::params_.fs_ = (Prophet::fwd_strategy_t)fs_pass;
         if (! p.parse(argc,argv,&invalid))
         {
             resultf("bad parameter for fwd_strategy: %s",invalid);
@@ -163,10 +169,11 @@ ProphetCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             {"lepr",        Prophet::LEPR},
             {0, 0}
         };
-        Prophet::q_policy_t qp;
+        int qp_pass;
         p.addopt(new oasys::EnumOpt("queue_policy",
-                    QueuePolicyCases, (int*)&qp, "",
+                    QueuePolicyCases, &qp_pass, "",
                     "queueing policies as put forth by Prophet, March 2006"));
+        Prophet::q_policy_t qp = (Prophet::q_policy_t)qp_pass;
         if (! p.parse(argc,argv,&invalid))
         {
             resultf("bad parameter for queue_policy: %s",invalid);

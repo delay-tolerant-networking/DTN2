@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -21,7 +25,6 @@
 #include <oasys/storage/BerkeleyDBStore.h>
 #include <oasys/io/FileUtils.h>
 
-#include "config.h"
 #include "DTNServer.h"
 
 #include "bundling/BundleDaemon.h"
@@ -216,7 +219,7 @@ DTNServer::init_commands()
     interp->reg(new ShutdownCommand(this, "quit"));
     interp->reg(new StorageCommand(storage_config_));
 
-#ifdef XERCES_C_ENABLED    
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
     interp->reg(new ECLACommand());
 #endif
 

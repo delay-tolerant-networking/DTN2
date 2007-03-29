@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "DiscoveryCommand.h"
 #include "discovery/Discovery.h"
 #include "discovery/DiscoveryTable.h"

@@ -14,8 +14,9 @@
  *    limitations under the License.
  */
 
-
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #if SQL_ENABLED
 
@@ -207,9 +208,9 @@ SQLStore::has_table(const char* name) {
     bool retval =  sql_impl_->has_table(name);
     
     if (retval) 
-	log_debug("table with name '%s' exists", name);
+        log_debug("table with name '%s' exists", name);
     else
-    	log_debug("table with name '%s' does not exist", name);
+        log_debug("table with name '%s' does not exist", name);
     return retval; 
 }
 
@@ -249,7 +250,7 @@ SQLStore::exec_query(const char* query)
     log_debug("query result status %d", ret);
     
     if (ret != 0) {
-	PANIC("sql query execution error \n");
+        PANIC("sql query execution error \n");
     }
     return ret;
 }

@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/util/UnitTest.h>
@@ -69,9 +72,9 @@ do {                                            \
     CHECK_EQUAL(known(_str), _known);           \
 } while (0)
 
-#define EIDEQUAL(_equal, _eid1, _eid2)			\
-do {							\
-    CHECK_EQUAL(equal(_eid1, _eid2), _equal);		\
+#define EIDEQUAL(_equal, _eid1, _eid2)                  \
+do {                                                    \
+    CHECK_EQUAL(equal(_eid1, _eid2), _equal);           \
 } while(0)
 
 #define EIDMATCH(_match, _pattern, _eid)                                \
@@ -558,8 +561,8 @@ DECLARE_TEST(URIEquality) {
     EIDEQUAL(EQUAL,
              "eid://%7DUSERc%7B@host.c.%7B:55/Test/c/Path/?Cc%7D#Cc%7B",
              "EiD://%7dUSER%63%7b@HoST.%63.%7b:55/Test/%63/Path/%7b/../."
-	         "?C%63%7d#C%63%7b");
-	 
+                 "?C%63%7d#C%63%7b");
+         
     return UNIT_TEST_PASSED;
 }
 

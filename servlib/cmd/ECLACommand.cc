@@ -15,8 +15,11 @@ under the License.
 $Id$
 */
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <oasys/io/NetUtils.h>
 
@@ -80,4 +83,4 @@ ECLACommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_CL_ENABLED

@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/util/OptParser.h>
 #include "StreamConvergenceLayer.h"
@@ -127,7 +130,8 @@ StreamConvergenceLayer::Connection::Connection(const char* classname,
       current_inflight_(NULL),
       send_segment_todo_(0),
       recv_segment_todo_(0),
-      breaking_contact_(false)
+      breaking_contact_(false),
+      contact_initiated_(false)
 {
 }
 
@@ -199,6 +203,8 @@ StreamConvergenceLayer::Connection::initiate_contact()
 
 
     // XXX/demmer need to add a test for nothing coming back
+    
+    contact_initiated_ = true;
 }
 
 //----------------------------------------------------------------------
@@ -332,7 +338,7 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
      * Make sure that the link's remote eid field is properly set.
      */
     LinkRef link = contact_->link();
-    if (link->remote_eid().str() == "dtn:none") {
+    if (link->remote_eid().str() == EndpointID::NULL_EID().str()) {
         link->set_remote_eid(peer_eid);
     } else if (link->remote_eid() != peer_eid) {
         log_warn("handle_contact_initiation: "
@@ -354,9 +360,19 @@ StreamConvergenceLayer::Connection::handle_send_bundle(Bundle* bundle)
     // push the bundle onto the inflight queue. we'll handle sending
     // the bundle out in the callback for transmit_bundle_data
     InFlightBundle* inflight = new InFlightBundle(bundle);
+    log_debug("trying to find xmit blocks for bundle id:%d on link %s",bundle->bundleid_,contact_->link()->name());
     inflight->blocks_ = bundle->xmit_blocks_.find_blocks(contact_->link());
-    ASSERT(inflight->blocks_ != NULL);
+    
+    //bundle sends can be canceled, so abort if the blocks are removed
+    if(inflight->blocks_ == NULL)
+    {
+    	delete inflight;
+    	return;
+    }
+    
     inflight->total_length_ = BundleProtocol::total_length(inflight->blocks_);
+
+    oasys::ScopeLock l(inflight_lock(), "StreamConvergenceLayer");
     inflight_.push_back(inflight);
 }
 
@@ -423,7 +439,7 @@ StreamConvergenceLayer::Connection::send_pending_acks()
     // when data segment headers are received, the last bit of the
     // segment is marked in ack_data, thus if there's nothing in
     // there, we don't need to send out an ack.
-    if (iter == incoming->ack_data_.end()) {
+    if (iter == incoming->ack_data_.end() || incoming->rcvd_data_.empty()) {
         goto check_done;
     }
 
@@ -516,6 +532,9 @@ bool
 StreamConvergenceLayer::Connection::start_next_bundle()
 {
     ASSERT(current_inflight_ == NULL);
+
+    oasys::ScopeLock l(inflight_lock(),
+                       "StreamConvergenceLayer::Connection::start_next_bundle");
 
     // find the bundle to start (identified by having nothing yet in
     // sent_data) and store it in current_inflight_
@@ -699,6 +718,9 @@ StreamConvergenceLayer::Connection::check_completed(InFlightBundle* inflight)
         return;
     }
 
+    oasys::ScopeLock l(inflight_lock(),
+                       "StreamConvergenceLayer::Connection::check_completed");
+
     log_debug("check_completed: bundle %d transmission complete",
               inflight->bundle_->bundleid_);
     ASSERT(inflight == inflight_.front());
@@ -753,6 +775,13 @@ StreamConvergenceLayer::Connection::handle_poll_timeout()
     {
         sleep(1);
         return;
+    }
+    
+    // avoid performing connection timeout operations on
+    // connections which have not been initiated yet
+    if (!contact_initiated_)
+    {
+    	return;
     }
 
     struct timeval now;
@@ -1184,6 +1213,9 @@ StreamConvergenceLayer::Connection::handle_ack_segment(u_int8_t flags)
     }
 
     recvbuf_.consume(1 + sdnv_len);
+
+    oasys::ScopeLock l(inflight_lock(), "StreamConvergenceLayer::"
+                                        "Connection::handle_ack_segment");
 
     if (inflight_.empty()) {
         log_err("protocol error: got ack segment with no inflight bundle");

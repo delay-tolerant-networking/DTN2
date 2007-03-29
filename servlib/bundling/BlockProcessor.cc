@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <oasys/debug/Log.h>
 
 #include "BlockProcessor.h"
@@ -238,14 +242,14 @@ BlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
     // with a processing flag that requires a reception status report
     // be transmitted in the case of an error
     if (bundle->is_admin_ &&
-        !block->primary_block() &&
+        block->type() != BundleProtocol::PRIMARY_BLOCK &&
         block->flags() & BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) {
         log_err_p(log, "invalid block flag 0x%x for received admin bundle",
                   BundleProtocol::BLOCK_FLAG_REPORT_ONERROR);
         *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
         return false;
     }
-	
+        
     return true;
 }
 
@@ -268,8 +272,8 @@ BlockProcessor::finalize(const Bundle*  bundle,
                          BlockInfo*     block)
 {
     (void)link;
-	
-    if (bundle->is_admin_ && !block->primary_block()) {
+        
+    if (bundle->is_admin_ && block->type() != BundleProtocol::PRIMARY_BLOCK) {
         ASSERT((block->flags() &
                 BundleProtocol::BLOCK_FLAG_REPORT_ONERROR) == 0);
     }

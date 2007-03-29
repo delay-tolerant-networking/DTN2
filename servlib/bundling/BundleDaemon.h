@@ -88,6 +88,14 @@ public:
         instance_ = new BundleDaemon();     
         instance_->do_init();
     }
+    
+    /**
+     * Return the number of events currently waiting for processing
+     */
+    static int event_queue_size()
+    {
+    	return instance_->eventq_->size();
+    }
 
     /**
      * Queues the event at the tail of the queue for processing by the
@@ -289,16 +297,20 @@ protected:
      */
     void handle_bundle_received(BundleReceivedEvent* event);
     void handle_bundle_transmitted(BundleTransmittedEvent* event);
-    void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
+    //void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
     void handle_bundle_delivered(BundleDeliveredEvent* event);
     void handle_bundle_expired(BundleExpiredEvent* event);
     void handle_bundle_free(BundleFreeEvent* event);
     void handle_bundle_send(BundleSendRequest* event);
     void handle_bundle_cancel(BundleCancelRequest* event);
+    void handle_bundle_cancelled(BundleSendCancelledEvent* event);
     void handle_bundle_inject(BundleInjectRequest* event);
+    void handle_bundle_delete(BundleDeleteRequest* request);
     void handle_bundle_accept(BundleAcceptRequest* event);
     void handle_bundle_query(BundleQueryRequest* event);
     void handle_bundle_report(BundleReportEvent* event);
+    void handle_bundle_attributes_query(BundleAttributesQueryRequest* request);
+    void handle_bundle_attributes_report(BundleAttributesReportEvent* event);
     void handle_registration_added(RegistrationAddedEvent* event);
     void handle_registration_removed(RegistrationRemovedEvent* event);
     void handle_registration_expired(RegistrationExpiredEvent* event);
@@ -314,6 +326,7 @@ protected:
     void handle_link_state_change_request(LinkStateChangeRequest* request);
     void handle_link_create(LinkCreateRequest* event);
     void handle_link_delete(LinkDeleteRequest* request);
+    void handle_link_reconfigure(LinkReconfigureRequest* request);
     void handle_link_query(LinkQueryRequest* event);
     void handle_link_report(LinkReportEvent* event);
     void handle_reassembly_completed(ReassemblyCompletedEvent* event);
@@ -325,6 +338,18 @@ protected:
     void handle_custody_timeout(CustodyTimeoutEvent* event);
     void handle_shutdown_request(ShutdownRequest* event);
     void handle_status_request(StatusRequest* event);
+    void handle_cla_set_params(CLASetParamsRequest* request);
+    void handle_bundle_queued_query(BundleQueuedQueryRequest* request);
+    void handle_bundle_queued_report(BundleQueuedReportEvent* event);
+    void handle_eid_reachable_query(EIDReachableQueryRequest* request);
+    void handle_eid_reachable_report(EIDReachableReportEvent* event);
+    void handle_link_attribute_changed(LinkAttributeChangedEvent* event);
+    void handle_link_attributes_query(LinkAttributesQueryRequest* request);
+    void handle_link_attributes_report(LinkAttributesReportEvent* event);
+    void handle_iface_attributes_query(IfaceAttributesQueryRequest* request);
+    void handle_iface_attributes_report(IfaceAttributesReportEvent* event);
+    void handle_cla_parameters_query(CLAParametersQueryRequest* request);
+    void handle_cla_parameters_report(CLAParametersReportEvent* event);
     ///@}
 
     typedef BundleProtocol::custody_signal_reason_t custody_signal_reason_t;

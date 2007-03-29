@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include "TableBasedRouter.h"
 #include "RouteTable.h"
@@ -70,13 +73,13 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 }
 
 //----------------------------------------------------------------------
-void
+/*void
 TableBasedRouter::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
 {
     Bundle* bundle = event->bundleref_.object();
     log_debug("handle bundle transmit failed: *%p", bundle);
     fwd_to_matching(bundle);
-}
+}*/
 
 //----------------------------------------------------------------------
 void

@@ -103,8 +103,7 @@ public:
      *
      * Return true if a fragment was created
      */
-    bool try_to_convert_to_fragment(Bundle* bundle, size_t payload_offset,
-                                    size_t bytes_rcvd);
+    bool try_to_convert_to_fragment(Bundle* bundle);
     
     /**
      * Given a newly arrived bundle fragment, append it to the table

@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "ProphetNode.h"
 #include <netinet/in.h> // for ntoh*,hton*
 #include <math.h> // for pow()
@@ -72,7 +76,8 @@ ProphetNode::serialize(oasys::SerializeAction* a)
 {
     a->process("remote_eid",&remote_eid_);
     //XXX/wilson This stinks, should be a double
-    a->process("p_value",(u_int64_t*)&p_value_);
+    u_int64_t p_value_pass = (u_int64_t)p_value_;
+    a->process("p_value",&p_value_pass);
     a->process("age",&age_.sec_);
     a->process("custody",&custody_);
     a->process("relay",&relay_);

@@ -22,8 +22,7 @@
 #ifndef _EXTERNAL_ROUTER_H_
 #define _EXTERNAL_ROUTER_H_
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
 
 #include "router-custom.h"
 #include "BundleRouter.h"
@@ -91,15 +90,21 @@ public:
     virtual void handle_event(BundleEvent *event);
     virtual void handle_bundle_received(BundleReceivedEvent *event);
     virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
-    virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
+    //virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
+    virtual void handle_bundle_delivered(BundleDeliveredEvent* event);
     virtual void handle_bundle_expired(BundleExpiredEvent* event);
+    virtual void handle_bundle_cancelled(BundleSendCancelledEvent* event);
+    virtual void handle_bundle_injected(BundleInjectedEvent* event);
     virtual void handle_contact_up(ContactUpEvent* event);
     virtual void handle_contact_down(ContactDownEvent* event);
     virtual void handle_link_created(LinkCreatedEvent *event);
     virtual void handle_link_deleted(LinkDeletedEvent *event);
     virtual void handle_link_available(LinkAvailableEvent *event);
     virtual void handle_link_unavailable(LinkUnavailableEvent *event);
+    virtual void handle_link_attribute_changed(LinkAttributeChangedEvent *event);
+    virtual void handle_contact_attribute_changed(ContactAttributeChangedEvent *event);
     virtual void handle_link_busy(LinkBusyEvent *event);
+    virtual void handle_new_eid_reachable(NewEIDReachableEvent* event);
     virtual void handle_registration_added(RegistrationAddedEvent* event);
     virtual void handle_registration_removed(RegistrationRemovedEvent* event);
     virtual void handle_registration_expired(RegistrationExpiredEvent* event);
@@ -108,11 +113,13 @@ public:
     virtual void handle_custody_signal(CustodySignalEvent* event);
     virtual void handle_custody_timeout(CustodyTimeoutEvent* event);
     virtual void handle_link_report(LinkReportEvent *event);
+    virtual void handle_link_attributes_report(LinkAttributesReportEvent *event);
     virtual void handle_contact_report(ContactReportEvent* event);
     virtual void handle_bundle_report(BundleReportEvent *event);
+    virtual void handle_bundle_attributes_report(BundleAttributesReportEvent *event);
     virtual void handle_route_report(RouteReportEvent* event);
 
-    virtual void send(rtrmessage::dtn &message);
+    virtual void send(rtrmessage::bpa &message);
 
 protected:
     class ModuleServer;
@@ -165,6 +172,13 @@ public:
     oasys::XercesXMLUnmarshal *parser_;
 
     oasys::SpinLock *lock_;
+
+private:
+    Link::link_type_t convert_link_type(rtrmessage::linkTypeType type);
+    Bundle::priority_values_t convert_priority(rtrmessage::bundlePriorityType);
+
+    ForwardingInfo::action_t 
+    convert_fwd_action(rtrmessage::bundleForwardActionType);
 };
 
 /**
@@ -206,5 +220,5 @@ void external_rtr_shutdown(void *args);
 
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_DP_ENABLED
 #endif //_EXTERNAL_ROUTER_H_

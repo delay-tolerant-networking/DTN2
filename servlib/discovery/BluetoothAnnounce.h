@@ -17,8 +17,6 @@
 #ifndef _BLUETOOTH_ANNOUNCE_H_
 #define _BLUETOOTH_ANNOUNCE_H_
 
-#include <config.h> 
-
 #ifdef OASYS_BLUETOOTH_ENABLED
 
 #include <oasys/bluez/BluetoothSDP.h>

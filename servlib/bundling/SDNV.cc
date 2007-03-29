@@ -18,6 +18,11 @@
  * This file is a little funky since it's compiled into both C and C++
  * (after being #included into sdnv-c.c).
  */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #ifdef __cplusplus
 #include "SDNV.h"
 #include <oasys/debug/DebugUtils.h>

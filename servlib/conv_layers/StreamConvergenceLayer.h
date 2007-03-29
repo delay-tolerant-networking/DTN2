@@ -258,6 +258,8 @@ protected:
         struct timeval keepalive_sent_;	///< Timestamp for keepalive timer
         bool breaking_contact_;		///< Bit to catch multiple calls to
                                         ///< break_contact 
+        bool contact_initiated_; //< bit to prevent certain actions before
+    	                             //< contact is initiated
     };
 
     /// For some gcc variants, this typedef seems to be needed

@@ -19,6 +19,10 @@
  * It was generated using rpcgen.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "gateway_prot.h"
 
 bool_t
@@ -108,8 +112,9 @@ xdr_bamboo_get_res (XDR *xdrs, bamboo_get_res *objp)
 {
 // LIANG
 //	register int32_t *buf;
-
-	 if (!xdr_array (xdrs, (char **)&objp->values.values_val, (u_int *) &objp->values.values_len, ~0,
+	u_int values_len_pass = objp->values.values_len;
+        char* values_val_pass = (char*)objp->values.values_val;
+	 if (!xdr_array (xdrs, &values_val_pass, &values_len_pass, ~0,
 		sizeof (bamboo_value), (xdrproc_t) xdr_bamboo_value))
 		 return FALSE;
 	 if (!xdr_bamboo_placemark (xdrs, &objp->placemark))

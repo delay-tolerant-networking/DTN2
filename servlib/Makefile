@@ -42,6 +42,7 @@ BUNDLING_SRCS := 				\
 	bundling/ForwardingLog.cc		\
 	bundling/FragmentManager.cc		\
 	bundling/ExpirationTimer.cc		\
+	bundling/GbofId.cc  		        \
 	bundling/PayloadBlockProcessor.cc	\
 	bundling/PreviousHopBlockProcessor.cc	\
 	bundling/PrimaryBlockProcessor.cc	\
@@ -207,7 +208,7 @@ libdtnserv.a: $(SERVLIB_OBJS)
 # distribution.
 #
 debug/arith-native.h: debug/gdtoa-arithchk.c
-	$(CC) $(DEBUG) $(OPTIMIZE) $< -o debug/arithchk
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o debug/arithchk
 	debug/arithchk > $@
 	rm -f debug/arithchk
 
@@ -218,7 +219,7 @@ debug/arith.h:
 debug/Formatter.cc: debug/arith.h
 
 debug/gdtoa-%.o: debug/gdtoa-%.c debug/arith.h
-	$(CC) -g -DINFNAN_CHECK -c $< -o $@
+	$(CC) -DINFNAN_CHECK $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 GENFILES += debug/arith.h debug/arith-native.h debug/arithchk
 
@@ -233,7 +234,7 @@ endif
 #
 # Include the common rules.
 #
--include ../Rules.make
+include ../Rules.make
 
 #
 # Rules to regenerate XML bindings if the 'xsd' tool is present.
@@ -246,27 +247,37 @@ XSD_TOOL_COMMON_ARGS := \
 	--morph-anonymous \
 	--hxx-suffix .h \
 	--cxx-suffix .cc \
-	--cxx-prologue '\#include <config.h>' \
-	--cxx-prologue '\#ifdef XERCES_C_ENABLED' \
-	--cxx-epilogue '\#endif' \
 
 # Arguments used to regenerate the ECLA bindings.
 XSD_TOOL_CLA_ARGS := \
 	--root-element cl_message \
 	--namespace-map =dtn::clmessage \
 	--output-dir conv_layers \
+	--cxx-prologue '\#ifdef HAVE_CONFIG_H' \
+	--cxx-prologue '\#  include <config.h>' \
+	--cxx-prologue '\#endif' \
+	--cxx-prologue '\#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)' \
+	--cxx-epilogue '\#endif' \
 
 # Arguments used to regenerate the external router bindings.
 XSD_TOOL_RTR_ARGS := \
-	--root-element dtn \
+	--root-element bpa \
 	--namespace-map =dtn::rtrmessage \
 	--output-dir routing \
 	--custom-type linkType=/linkType_base \
 	--custom-type bundleType=/bundleType_base \
 	--custom-type contactType=/contactType_base \
+	--custom-type eidType=/eidType_base \
+	--custom-type gbofIdType=/gbofIdType_base \
+	--custom-type key_value_pair=/key_value_pair_base \
 	--custom-type routeEntryType=/routeEntryType_base \
 	--custom-type registrationType=/registrationType_base \
-	--hxx-epilogue '\#include "router-custom.h"'
+	--hxx-epilogue '\#include "router-custom.h"' \
+	--cxx-prologue '\#ifdef HAVE_CONFIG_H' \
+	--cxx-prologue '\#  include <config.h>' \
+	--cxx-prologue '\#endif' \
+	--cxx-prologue '\#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)' \
+	--cxx-epilogue '\#endif' \
 
 # Regenerate XML bindings. 
 xsdbindings: conv_layers/clevent.xsd routing/router.xsd

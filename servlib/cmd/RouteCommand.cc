@@ -14,7 +14,9 @@
  *    limitations under the License.
  */
 
-#include <config.h>
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/util/StringBuffer.h>
 #include <oasys/serialize/XMLSerialize.h>
@@ -55,7 +57,7 @@ RouteCommand::RouteCommand()
     add_to_help("del <dest> <link/endpoint>", "delete a route");
     add_to_help("dump", "dump all of the static routes");
 
-#ifdef XERCES_C_ENABLED
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
     bind_var(new oasys::UInt16Opt("server_port",
                                   &ExternalRouter::server_port,
                                   "port",

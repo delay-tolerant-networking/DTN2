@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <oasys/util/StringBuffer.h>
 #include "APIEndpointIDOpt.h"
 #include "dtn_api.h"

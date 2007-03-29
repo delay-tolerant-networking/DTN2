@@ -14,9 +14,13 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include "gateway_rpc.h"
 #include "gateway_prot.h"
+#include <sys/socket.h>             // needed for AF_INET
 #include <netdb.h>                  // needed for gethostbyname
 #include <string.h>
 #include <stdio.h>

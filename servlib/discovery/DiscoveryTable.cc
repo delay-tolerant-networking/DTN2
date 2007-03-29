@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "Discovery.h"
 #include "DiscoveryTable.h"
 #include "conv_layers/ConvergenceLayer.h"

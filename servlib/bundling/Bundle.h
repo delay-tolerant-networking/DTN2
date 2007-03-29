@@ -187,6 +187,7 @@ public:
      * Values for the bundle priority field.
      */
     typedef enum {
+        COS_INVALID   = -1, 		///< invalid
         COS_BULK      = 0, 		///< lowest priority
         COS_NORMAL    = 1, 		///< regular priority
         COS_EXPEDITED = 2, 		///< important

@@ -70,7 +70,7 @@ protected:
     /**
      * Default event handler when a bundle transmission fails.
      */
-    virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
+    //virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
     
     /**
      * Default event handler when bundles are locally delivered.
@@ -99,10 +99,25 @@ protected:
     virtual void handle_bundle_cancel(BundleCancelRequest* event);
 
     /**
+     * Default event handler for bundle cancellations.
+     */
+    virtual void handle_bundle_cancelled(BundleSendCancelledEvent*);
+
+    /**
      * Default event handler for bundle inject requests
      */
     virtual void handle_bundle_inject(BundleInjectRequest* event);
     
+    /**
+     * Default event handler for bundle injected events.
+     */
+    virtual void handle_bundle_injected(BundleInjectedEvent* event);
+    
+    /**
+     * Default event handler for bundle delete requests.
+     */
+    virtual void handle_bundle_delete(BundleDeleteRequest* request);
+
     /**
      * Default event handler for a bundle accept request probe.
      */
@@ -117,6 +132,16 @@ protected:
      * Default event handler for bundle reports.
      */
     virtual void handle_bundle_report(BundleReportEvent* request);
+
+    /**
+     * Default event handler for bundle attribute query requests.
+     */
+    virtual void handle_bundle_attributes_query(BundleAttributesQueryRequest*);
+
+    /**
+     * Default event handler for bundle attribute reports.
+     */
+    virtual void handle_bundle_attributes_report(BundleAttributesReportEvent*);
 
     /**
      * Default event handler when a new application registration
@@ -153,6 +178,11 @@ protected:
      * Default event handler for contact reports.
      */
     virtual void handle_contact_report(ContactReportEvent* request);
+
+    /**
+     * Default event handler for contact attribute changes.
+     */
+    virtual void handle_contact_attribute_changed(ContactAttributeChangedEvent*);
 
     /**
      * Default event handler when a new link is created.
@@ -195,6 +225,11 @@ protected:
     virtual void handle_link_delete(LinkDeleteRequest* request);
 
     /**
+     * Default event handler for link reconfigure requests.
+     */
+    virtual void handle_link_reconfigure(LinkReconfigureRequest* request);
+
+    /**
      * Default event handler for link query requests.
      */
     virtual void handle_link_query(LinkQueryRequest* request);
@@ -203,6 +238,11 @@ protected:
      * Default event handler for link reports.
      */
     virtual void handle_link_report(LinkReportEvent* request);
+
+    /**
+     * Default event handler for link attribute changes.
+     */
+    virtual void handle_link_attribute_changed(LinkAttributeChangedEvent*);
 
     /**
      * Default event handler when reassembly is completed.
@@ -250,6 +290,40 @@ protected:
      * Default event handler for status requests.
      */
     virtual void handle_status_request(StatusRequest* event);
+
+    /**
+     * Default event handler for CLA parameter set requests.
+     */
+    virtual void handle_cla_set_params(CLASetParamsRequest*);
+
+    /**
+     * Default event handler for CLA parameters set events.
+     */
+    virtual void handle_cla_params_set(CLAParamsSetEvent*);
+
+    /**
+     * Default event handler for set link defaults requests.
+     */
+    virtual void handle_set_link_defaults(SetLinkDefaultsRequest*);
+
+    /**
+     * Default event handler for new EIDs discovered by CLA.
+     */
+    virtual void handle_new_eid_reachable(NewEIDReachableEvent*);
+
+    /**
+     * Default event handlers for queries to and reports from the CLA.
+     */
+    virtual void handle_bundle_queued_query(BundleQueuedQueryRequest*);
+    virtual void handle_bundle_queued_report(BundleQueuedReportEvent*);
+    virtual void handle_eid_reachable_query(EIDReachableQueryRequest*);
+    virtual void handle_eid_reachable_report(EIDReachableReportEvent*);
+    virtual void handle_link_attributes_query(LinkAttributesQueryRequest*);
+    virtual void handle_link_attributes_report(LinkAttributesReportEvent*);
+    virtual void handle_iface_attributes_query(IfaceAttributesQueryRequest*);
+    virtual void handle_iface_attributes_report(IfaceAttributesReportEvent*);
+    virtual void handle_cla_parameters_query(CLAParametersQueryRequest*);
+    virtual void handle_cla_parameters_report(CLAParametersReportEvent*);
 };
 
 } // namespace dtn

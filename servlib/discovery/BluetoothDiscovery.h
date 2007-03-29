@@ -17,8 +17,6 @@
 #ifndef _BT_DISCOVERY_H_
 #define _BT_DISCOVERY_H_
 
-#include <config.h>
-
 #ifdef OASYS_BLUETOOTH_ENABLED
 #include <bluetooth/bluetooth.h>
 

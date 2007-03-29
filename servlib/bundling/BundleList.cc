@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <algorithm>
 #include <stdlib.h>
@@ -366,6 +369,32 @@ BundleList::find(const EndpointID& source_eid,
         if ((*iter)->source_.equals(source_eid) &&
             (*iter)->creation_ts_.seconds_ == creation_ts.seconds_ &&
             (*iter)->creation_ts_.seqno_ == creation_ts.seqno_)
+        {
+            ret = *iter;
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * Search the list for a bundle with the given GBOF ID
+ *
+ * @return the bundle or NULL if not found.
+ */
+BundleRef
+BundleList::find(GbofId& gbof_id)
+{
+    oasys::ScopeLock l(lock_, "BundleList::find");
+    BundleRef ret("BundleList::find() temporary");
+    
+    for (iterator iter = begin(); iter != end(); ++iter) {
+        if (gbof_id.equals( (*iter)->source_,
+                            (*iter)->creation_ts_,
+                            (*iter)->is_fragment_,
+                            (*iter)->payload_.length(),
+                            (*iter)->frag_offset_) )
         {
             ret = *iter;
             return ret;

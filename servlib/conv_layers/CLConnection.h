@@ -66,6 +66,12 @@ public:
      */
     void queue_bundle(Bundle* bundle);
 
+    /**
+     * Returns true if the given bundle is queued for transmission;
+     * otherwise returns false.
+     */
+    bool is_queued(Bundle* bundle);
+
 protected:
     /**
      * Main run loop.
@@ -219,6 +225,12 @@ protected:
      * Typedef for the list of in-flight bundles.
      */
     typedef std::list<InFlightBundle*> InFlightList;
+
+    /**
+     * Lock to protect the access of the in-flight queue.
+     */
+    oasys::SpinLock inflight_lock_;
+    oasys::Lock* inflight_lock() { return &inflight_lock_; }
 
     /**
      * Struct used to record bundles that are in the process of being

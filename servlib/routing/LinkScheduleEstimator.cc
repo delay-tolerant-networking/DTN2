@@ -14,7 +14,9 @@
  *    limitations under the License.
  */
 
-
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include<stdio.h>
 #include<string.h>
@@ -235,9 +237,9 @@ LinkScheduleEstimator::Log* LinkScheduleEstimator::generate_samples(Log &schedul
         }
 
         (*output)[i].start = (unsigned int) oasys::max((unsigned int)0,(start_time_offset +
-							  schedule[schedule_index].start -
-							  start_jitter / 2 +
-							  (unsigned int)(random() % start_jitter)));
+                                                          schedule[schedule_index].start -
+                                                          start_jitter / 2 +
+                                                          (unsigned int)(random() % start_jitter)));
 
         unsigned int duration_jitter_abs = (int)(duration_jitter*
                                         schedule[schedule_index].duration);

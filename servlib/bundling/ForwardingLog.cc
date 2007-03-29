@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/thread/SpinLock.h>
 #include <oasys/util/StringBuffer.h>
@@ -37,11 +40,15 @@ ForwardingLog::get_latest_entry(const LinkRef& link, ForwardingInfo* info) const
     Log::const_reverse_iterator iter;
     for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
     {
-        if (iter->nexthop_ == link->nexthop() &&
-            iter->clayer_  == link->clayer()->name())
+        if (iter->clayer_  == link->clayer()->name() &&
+            iter->link_name_ == link->name())
         {
-            *info = *iter;
-            return true;
+        	if (iter->remote_eid_ == EndpointID::NULL_EID().str() ||
+        	    iter->remote_eid_ == link->remote_eid().str())
+        	{
+        		*info = *iter;
+                return true;
+        	}
         }
     }
 
@@ -116,7 +123,7 @@ ForwardingLog::dump(oasys::StringBuffer* buf) const
     {
         const ForwardingInfo* info = &(*iter);
         
-        buf->appendf("\t%s -> %s %u.%u [%s cl:%s] [custody min %d pct %d max %d]\n",
+        buf->appendf("\t%s -> %s %u.%u [%s cl:%s to %s as link %s] [custody min %d pct %d max %d]\n",
                      ForwardingInfo::state_to_str(
                         static_cast<ForwardingInfo::state_t>(info->state_)),
                      info->clayer_.c_str(),
@@ -125,6 +132,8 @@ ForwardingLog::dump(oasys::StringBuffer* buf) const
                      ForwardingInfo::action_to_str(
                         static_cast<ForwardingInfo::action_t>(info->action_)),
                      info->nexthop_.c_str(),
+                     info->remote_eid_.c_str(),
+                     info->link_name_.c_str(),
                      info->custody_timer_.min_,
                      info->custody_timer_.lifetime_pct_,
                      info->custody_timer_.max_);
@@ -141,7 +150,7 @@ ForwardingLog::add_entry(const LinkRef& link,
     oasys::ScopeLock l(lock_, "ForwardingLog::add_entry");
     
     log_.push_back(ForwardingInfo(state, action, link->clayer()->name(),
-                                  link->nexthop(), custody_timer));
+                                  link->nexthop(), link->remote_eid().str(), link->name(), custody_timer));
 }
 
 //----------------------------------------------------------------------
@@ -153,11 +162,19 @@ ForwardingLog::update(const LinkRef& link, state_t state)
     Log::reverse_iterator iter;
     for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
     {
-        if (iter->nexthop_ == link->nexthop() &&
-            iter->clayer_  == link->clayer()->name())
+        if (iter->clayer_  == link->clayer()->name() &&
+            iter->link_name_ == link->name())
         {
-            iter->set_state(state);
-            return true;
+        	if (iter->remote_eid_ == EndpointID::NULL_EID().str())
+        	{
+        		iter->remote_eid_ = link->remote_eid().str();
+        	}
+        	if (iter->remote_eid_ == link->remote_eid().str())
+        	{
+                iter->set_state(state);
+                iter->nexthop_ = link->nexthop();
+                return true;
+        	}
         }
     }
     

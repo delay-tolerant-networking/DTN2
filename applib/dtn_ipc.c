@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -51,6 +55,7 @@ dtnipc_msgtoa(u_int8_t type)
         CASE(DTN_RECV);
         CASE(DTN_BEGIN_POLL);
         CASE(DTN_CANCEL_POLL);
+        CASE(DTN_CANCEL);
 
     default:
         return "(unknown type)";

@@ -14,7 +14,9 @@
  *    limitations under the License.
  */
 
-#include <config.h>
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/util/Options.h>
 #include <oasys/util/StringBuffer.h>

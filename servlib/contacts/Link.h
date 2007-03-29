@@ -28,6 +28,7 @@
 #include "naming/EndpointID.h"
 
 #include "Contact.h"
+#include "NamedAttribute.h"
 
 namespace dtn {
 
@@ -257,6 +258,8 @@ public:
      */
     virtual bool reconfigure_link(int argc, const char* argv[]);
 
+    virtual void reconfigure_link(AttributeVector& params);
+
     /**
      * Virtual from SerializableObject
      */
@@ -330,6 +333,19 @@ public:
      * are run by the BundleDaemon thread.
      */
     void set_state(state_t state);
+
+    /**
+     * Set/get the create_pending_ flag on the link.
+     */
+    void set_create_pending(bool create_pending = true)
+             { create_pending_ = create_pending; }
+    bool is_create_pending() const { return create_pending_; }
+
+    /**
+     * Set/get the usable_ flag on the link.
+     */
+    void set_usable(bool usable = true) { usable_ = usable; }
+    bool is_usable() const { return usable_; }
 
     /**
      * Return the current contact information (if any).
@@ -547,6 +563,20 @@ public:
          * layer overhead).
          */
         u_int bytes_inflight_;
+
+        /**
+         * The availablity of the link, as measured over time by the
+         * convergence layer.
+         */
+        u_int availability_;
+
+        /**
+         * The reliability of the link, as measured over time by the
+         * convergence layer.  This is different from the is_reliable
+         * setting, which indicates whether the convergence layer should
+         * expect acks from the peer.
+         */
+        u_int reliability_;
     };
 
     /**
@@ -600,6 +630,16 @@ protected:
 
     /// Flag, that when set to true, indicates that the link has been deleted.
     bool deleted_;
+
+    /// Flag, that when set to true, indicates that the creation of the
+    /// link is pending; the convergence layer will post a creation event
+    /// when the creation is complete. While creation is pending, the
+    /// link cannot be opened nor can bundles be queued for it.
+    bool create_pending_;
+
+    /// Flag, that when set to true, indicates that the link is allowed
+    /// to be used to transmit bundles.
+    bool usable_;
 
     /// Local address (optional)
     std::string local_;

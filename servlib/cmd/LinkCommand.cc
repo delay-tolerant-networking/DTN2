@@ -14,7 +14,9 @@
  *    limitations under the License.
  */
 
-
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/thread/Lock.h>
 #include <oasys/util/StringBuffer.h>
@@ -87,14 +89,9 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        LinkRef link = BundleDaemon::instance()->contactmgr()->find_link(name);
-        if (link != NULL) {
-            resultf("link name %s already exists, use different name", name);
-            return TCL_ERROR;
-        }
-
         // Create the link, parsing the cl-specific next hop string
         // and other arguments
+        LinkRef link;
         const char* invalid_arg = "(unknown)";
         link = Link::create_link(name, type, cl, nexthop, argc - 6, &argv[6],
                                  &invalid_arg);
@@ -103,9 +100,15 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        // Add the link to contact manager's table, which posts a
-        // LinkCreatedEvent to the daemon
-        BundleDaemon::instance()->contactmgr()->add_link(link);
+        // Add the link to contact manager's table if it is not already
+        // present. The contact manager will post a LinkCreatedEvent to
+        // the daemon if the link is added successfully.
+        if (!BundleDaemon::instance()->contactmgr()->add_new_link(link)) {
+            // A link of that name already exists
+            link->delete_link();
+            resultf("link name %s already exists, use different name", name);
+            return TCL_ERROR;
+        }
         return TCL_OK;
 
     } else if (strcmp(cmd, "reconfigure") == 0) {

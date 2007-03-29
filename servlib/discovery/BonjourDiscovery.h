@@ -17,7 +17,6 @@
 #ifndef _BONJOUR_DISCOVERY_H_
 #define _BONJOUR_DISCOVERY_H_
 
-#include "config.h"
 #ifdef OASYS_BONJOUR_ENABLED
 
 #include <dns_sd.h>

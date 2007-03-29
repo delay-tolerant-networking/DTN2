@@ -18,12 +18,16 @@
 #define _BUNDLE_EVENT_H_
 
 #include "Bundle.h"
+#include "BundleProtocol.h"
 #include "BundleRef.h"
 #include "BundleList.h"
 #include "CustodySignal.h"
 #include "contacts/Link.h"
+#include "contacts/NamedAttribute.h"
+#include "GbofId.h"
 
 #include <oasys/serialize/Serialize.h>
+#include <oasys/serialize/SerializeHelpers.h>
 
 namespace dtn {
 
@@ -43,54 +47,78 @@ class RouteEntry;
  * Type codes for events / requests.
  */
 typedef enum {
-    BUNDLE_RECEIVED = 0x1,	///< New bundle arrival
-    BUNDLE_TRANSMITTED,		///< Bundle or fragment successfully sent
-    BUNDLE_TRANSMIT_FAILED,	///< Bundle or fragment successfully sent
-    BUNDLE_DELIVERED,		///< Bundle locally delivered
-    BUNDLE_DELIVERY,		///< Bundle delivery (with payload)
-    BUNDLE_EXPIRED,		///< Bundle expired
-    BUNDLE_FREE,		///< No more references to the bundle
-    BUNDLE_FORWARD_TIMEOUT,	///< A Mapping timed out
+    BUNDLE_RECEIVED = 0x1,      ///< New bundle arrival
+    BUNDLE_TRANSMITTED,         ///< Bundle or fragment successfully sent
+    BUNDLE_TRANSMIT_FAILED,     ///< Bundle or fragment successfully sent
+    BUNDLE_DELIVERED,           ///< Bundle locally delivered
+    BUNDLE_DELIVERY,            ///< Bundle delivery (with payload)
+    BUNDLE_EXPIRED,             ///< Bundle expired
+    BUNDLE_FREE,                ///< No more references to the bundle
+    BUNDLE_FORWARD_TIMEOUT,     ///< A Mapping timed out
     BUNDLE_SEND,                ///< Send a bundle
     BUNDLE_CANCEL,              ///< Cancel a bundle transmission
+    BUNDLE_CANCELLED,           ///< Bundle send cancelled
     BUNDLE_INJECT,              ///< Inject a bundle
-    BUNDLE_ACCEPT_REQUEST,	///< Request acceptance of a new bundle
+    BUNDLE_INJECTED,            ///< A bundle was injected
+    BUNDLE_ACCEPT_REQUEST,      ///< Request acceptance of a new bundle
+    BUNDLE_DELETE,              ///< Request deletion of a bundle
     BUNDLE_QUERY,               ///< Bundle query
     BUNDLE_REPORT,              ///< Response to bundle query
+    BUNDLE_ATTRIB_QUERY,        ///< Query for a bundle's attributes
+    BUNDLE_ATTRIB_REPORT,       ///< Report with bundle attributes
 
-    CONTACT_UP,		        ///< Contact is up
-    CONTACT_DOWN,		///< Contact abnormally terminated
+    CONTACT_UP,                 ///< Contact is up
+    CONTACT_DOWN,               ///< Contact abnormally terminated
     CONTACT_QUERY,              ///< Contact query
     CONTACT_REPORT,             ///< Response to contact query
+    CONTACT_ATTRIB_CHANGED,     ///< An attribute changed
 
-    LINK_CREATED,		///< Link is created into the system
-    LINK_DELETED,		///< Link is deleted from the system
-    LINK_AVAILABLE,		///< Link is available
-    LINK_UNAVAILABLE,		///< Link is unavailable
-    LINK_BUSY,  		///< Link is busy 
+    LINK_CREATED,               ///< Link is created into the system
+    LINK_DELETED,               ///< Link is deleted from the system
+    LINK_AVAILABLE,             ///< Link is available
+    LINK_UNAVAILABLE,           ///< Link is unavailable
+    LINK_BUSY,                  ///< Link is busy 
     LINK_CREATE,                ///< Create and open a new link
     LINK_DELETE,                ///< Delete a link
+    LINK_RECONFIGURE,           ///< Reconfigure a link
     LINK_QUERY,                 ///< Link query
     LINK_REPORT,                ///< Response to link query
+    LINK_ATTRIB_CHANGED,        ///< An attribute changed
 
-    LINK_STATE_CHANGE_REQUEST,	///< Link state should be changed
+    LINK_STATE_CHANGE_REQUEST,  ///< Link state should be changed
 
-    REASSEMBLY_COMPLETED,	///< Reassembly completed
+    REASSEMBLY_COMPLETED,       ///< Reassembly completed
 
-    REGISTRATION_ADDED,		///< New registration arrived
-    REGISTRATION_REMOVED,	///< Registration removed
-    REGISTRATION_EXPIRED,	///< Registration expired
+    REGISTRATION_ADDED,         ///< New registration arrived
+    REGISTRATION_REMOVED,       ///< Registration removed
+    REGISTRATION_EXPIRED,       ///< Registration expired
 
-    ROUTE_ADD,			///< Add a new entry to the route table
-    ROUTE_DEL,			///< Remove an entry from the route table
+    ROUTE_ADD,                  ///< Add a new entry to the route table
+    ROUTE_DEL,                  ///< Remove an entry from the route table
     ROUTE_QUERY,                ///< Static route query
     ROUTE_REPORT,               ///< Response to static route query
 
-    CUSTODY_SIGNAL,		///< Custody transfer signal received
-    CUSTODY_TIMEOUT,		///< Custody transfer timer fired
+    CUSTODY_SIGNAL,             ///< Custody transfer signal received
+    CUSTODY_TIMEOUT,            ///< Custody transfer timer fired
 
     DAEMON_SHUTDOWN,            ///< Shut the daemon down cleanly
-    DAEMON_STATUS,		///< No-op event to check the daemon
+    DAEMON_STATUS,              ///< No-op event to check the daemon
+
+    CLA_SET_PARAMS,             ///< Set CLA configuration
+    CLA_PARAMS_SET,             ///< CLA configuration changed
+    CLA_SET_LINK_DEFAULTS,      ///< Set defaults for new links
+    CLA_EID_REACHABLE,          ///< A new EID has been discovered
+
+    CLA_BUNDLE_QUEUED_QUERY,    ///< Query if a bundle is queued at the CLA
+    CLA_BUNDLE_QUEUED_REPORT,   ///< Report if a bundle is queued at the CLA
+    CLA_EID_REACHABLE_QUERY,    ///< Query if an EID is reachable by the CLA
+    CLA_EID_REACHABLE_REPORT,   ///< Report if an EID is reachable by the CLA
+    CLA_LINK_ATTRIB_QUERY,      ///< Query CLA for a link's attributes
+    CLA_LINK_ATTRIB_REPORT,     ///< Report from CLA with link attributes
+    CLA_IFACE_ATTRIB_QUERY,     ///< Query CLA for an interface's attributes
+    CLA_IFACE_ATTRIB_REPORT,    ///< Report from CLA with interface attributes
+    CLA_PARAMS_QUERY,           ///< Query CLA for config parameters
+    CLA_PARAMS_REPORT,          ///< Report from CLA with config paramters
 
 } event_type_t;
 
@@ -102,56 +130,88 @@ event_to_str(event_type_t event, bool xml=false)
 {
     switch(event) {
 
-    case BUNDLE_RECEIVED:	return xml ? "bundle_received_event" : "BUNDLE_RECEIVED";
-    case BUNDLE_TRANSMITTED:	return xml ? "bundle_transmitted_event" : "BUNDLE_TRANSMITTED";
+    case BUNDLE_RECEIVED:       return xml ? "bundle_received_event" : "BUNDLE_RECEIVED";
+    case BUNDLE_TRANSMITTED:    return xml ? "bundle_transmitted_event" : "BUNDLE_TRANSMITTED";
     case BUNDLE_TRANSMIT_FAILED:return xml ? "bundle_transmit_failed_event" : "BUNDLE_TRANSMIT_FAILED";
-    case BUNDLE_DELIVERED:	return "BUNDLE_DELIVERED";
-    case BUNDLE_DELIVERY:	return xml ? "bundle_delivery_event" : "BUNDLE_DELIVERY";
-    case BUNDLE_EXPIRED:	return xml ? "bundle_expired_event" : "BUNDLE_EXPIRED";
-    case BUNDLE_FREE:		return "BUNDLE_FREE";
+    case BUNDLE_DELIVERED:      return xml ? "bundle_delivered_event" : "BUNDLE_DELIVERED";
+    case BUNDLE_DELIVERY:       return xml ? "bundle_delivery_event" : "BUNDLE_DELIVERY";
+    case BUNDLE_EXPIRED:        return xml ? "bundle_expired_event" : "BUNDLE_EXPIRED";
+    case BUNDLE_FREE:           return "BUNDLE_FREE";
     case BUNDLE_FORWARD_TIMEOUT:return "BUNDLE_FORWARD_TIMEOUT";
     case BUNDLE_SEND:           return xml ? "send_bundle_action" : "BUNDLE_SEND";
     case BUNDLE_CANCEL:         return xml ? "cancel_bundle_action" : "BUNDLE_CANCEL";
+    case BUNDLE_CANCELLED:      return xml ? "bundle_cancelled_event" : "BUNDLE_CANCELLED";
     case BUNDLE_INJECT:         return xml ? "inject_bundle_action" : "BUNDLE_INJECT";
-    case BUNDLE_ACCEPT_REQUEST:	return xml ? "bundle_accept_request" : "BUNDLE_ACCEPT_REQUEST";
+    case BUNDLE_INJECTED:         return xml ? "bundle_injected_event" : "BUNDLE_INJECTED";
+    case BUNDLE_ACCEPT_REQUEST: return xml ? "bundle_accept_request" : "BUNDLE_ACCEPT_REQUEST";
+    case BUNDLE_DELETE:         return "BUNDLE_DELETE";
     case BUNDLE_QUERY:          return xml ? "bundle_query" : "BUNDLE_QUERY";
     case BUNDLE_REPORT:         return xml ? "bundle_report" : "BUNDLE_REPORT";
 
-    case CONTACT_UP:		return xml ? "contact_up_event" : "CONTACT_UP";
-    case CONTACT_DOWN:		return xml ? "contact_down_event" : "CONTACT_DOWN";
+    case CONTACT_UP:            return xml ? "contact_up_event" : "CONTACT_UP";
+    case CONTACT_DOWN:          return xml ? "contact_down_event" : "CONTACT_DOWN";
     case CONTACT_QUERY:         return xml ? "contact_query" : "CONTACT_QUERY";
     case CONTACT_REPORT:        return xml ? "contact_report" : "CONTACT_REPORT";
+    case CONTACT_ATTRIB_CHANGED:return xml ? "contact_attrib_change_event" : "CONTACT_ATTRIB_CHANGED";
 
-    case LINK_CREATED:		return xml ? "link_created_event" : "LINK_CREATED";
-    case LINK_DELETED:		return xml ? "link_deleted_event" : "LINK_DELETED";
-    case LINK_AVAILABLE:	return xml ? "link_available_event" : "LINK_AVAILABLE";
-    case LINK_UNAVAILABLE:	return xml ? "link_unavailable_event" : "LINK_UNAVAILABLE";
-    case LINK_BUSY:     	return xml ? "link_busy_event" : "LINK_BUSY";
+    case LINK_CREATED:          return xml ? "link_created_event" : "LINK_CREATED";
+    case LINK_DELETED:          return xml ? "link_deleted_event" : "LINK_DELETED";
+    case LINK_AVAILABLE:        return xml ? "link_available_event" : "LINK_AVAILABLE";
+    case LINK_UNAVAILABLE:      return xml ? "link_unavailable_event" : "LINK_UNAVAILABLE";
+    case LINK_BUSY:             return xml ? "link_busy_event" : "LINK_BUSY";
     case LINK_CREATE:           return "LINK_CREATE";
     case LINK_DELETE:           return "LINK_DELETE";
+    case LINK_RECONFIGURE:      return "LINK_RECONFIGURE";
     case LINK_QUERY:            return xml ? "link_query" : "LINK_QUERY";
     case LINK_REPORT:           return xml ? "link_report" : "LINK_REPORT";
+    case LINK_ATTRIB_CHANGED:   return xml ? "link_attrib_change_event" : "LINK_ATTRIB_CHANGED";
 
     case LINK_STATE_CHANGE_REQUEST:return "LINK_STATE_CHANGE_REQUEST";
 
-    case REASSEMBLY_COMPLETED:	return "REASSEMBLY_COMPLETED";
+    case REASSEMBLY_COMPLETED:  return "REASSEMBLY_COMPLETED";
 
-    case REGISTRATION_ADDED:	return xml ? "registration_added_event" : "REGISTRATION_ADDED";
-    case REGISTRATION_REMOVED:	return xml ? "registration_removed_event" : "REGISTRATION_REMOVED";
-    case REGISTRATION_EXPIRED:	return xml ? "registration_expired_event" : "REGISTRATION_EXPIRED";
+    case REGISTRATION_ADDED:    return xml ? "registration_added_event" : "REGISTRATION_ADDED";
+    case REGISTRATION_REMOVED:  return xml ? "registration_removed_event" : "REGISTRATION_REMOVED";
+    case REGISTRATION_EXPIRED:  return xml ? "registration_expired_event" : "REGISTRATION_EXPIRED";
 
-    case ROUTE_ADD:		return xml ? "route_add_event" : "ROUTE_ADD";
-    case ROUTE_DEL:		return xml ? "route_delete_event" : "ROUTE_DEL";
+    case ROUTE_ADD:             return xml ? "route_add_event" : "ROUTE_ADD";
+    case ROUTE_DEL:             return xml ? "route_delete_event" : "ROUTE_DEL";
     case ROUTE_QUERY:           return xml ? "route_query" : "ROUTE_QUERY";
     case ROUTE_REPORT:          return xml ? "route_report" : "ROUTE_REPORT";
 
-    case CUSTODY_SIGNAL:	return xml ? "custody_signal_event" : "CUSTODY_SIGNAL";
-    case CUSTODY_TIMEOUT:	return xml ? "custody_timeout_event" : "CUSTODY_TIMEOUT";
+    case CUSTODY_SIGNAL:        return xml ? "custody_signal_event" : "CUSTODY_SIGNAL";
+    case CUSTODY_TIMEOUT:       return xml ? "custody_timeout_event" : "CUSTODY_TIMEOUT";
     
-    case DAEMON_SHUTDOWN:	return "SHUTDOWN";
-    case DAEMON_STATUS:		return "DAEMON_STATUS";
+    case DAEMON_SHUTDOWN:       return "SHUTDOWN";
+    case DAEMON_STATUS:         return "DAEMON_STATUS";
         
-    default:			return "(invalid event type)";
+    case CLA_SET_PARAMS:        return xml ? "cla_set_params_action" : "CLA_SET_PARAMS";
+    case CLA_PARAMS_SET:        return xml ? "cla_params_set_event" : "CLA_PARAMS_SET";
+    case CLA_SET_LINK_DEFAULTS: return xml ? "cla_set_link_defaults_action" : "CLA_SET_LINK_DEFAULTS";
+    case CLA_EID_REACHABLE:     return xml ? "cla_eid_reachable_event" : "CLA_EID_REACHABLE";
+
+    case CLA_BUNDLE_QUEUED_QUERY:
+        return xml ? "query_bundle_queued" : "CLA_BUNDLE_QUEUED_QUERY";
+    case CLA_BUNDLE_QUEUED_REPORT:
+        return xml ? "report_bundle_queued" : "CLA_BUNDLE_QUEUED_REPORT";
+    case CLA_EID_REACHABLE_QUERY:
+        return xml ? "query_eid_reachable" : "CLA_EID_REACHABLE_QUERY";
+    case CLA_EID_REACHABLE_REPORT:
+        return xml ? "report_eid_reachable" : "CLA_EID_REACHABLE_REPORT";
+    case CLA_LINK_ATTRIB_QUERY:
+        return xml ? "query_link_attributes" : "CLA_LINK_ATTRIB_QUERY";
+    case CLA_LINK_ATTRIB_REPORT:
+        return xml ? "report_link_attributes" : "CLA_LINK_ATTRIB_REPORT";
+    case CLA_IFACE_ATTRIB_QUERY:
+        return xml ? "query_interface_attributes" : "CLA_IFACE_ATTRIB_QUERY";
+    case CLA_IFACE_ATTRIB_REPORT:
+        return xml ? "report_interface_attributes" : "CLA_IFACE_ATTRIB_REPORT";
+    case CLA_PARAMS_QUERY:
+        return xml ? "query_cla_parameters" : "CLA_PARAMS_QUERY";
+    case CLA_PARAMS_REPORT:
+        return xml ? "report_cla_parameters" : "CLA_PARAMS_REPORT";
+
+    default:                    return "(invalid event type)";
     }
 }
 
@@ -160,10 +220,10 @@ event_to_str(event_type_t event, bool xml=false)
  */
 typedef enum {
     EVENTSRC_PEER   = 1,        ///< a peer dtn forwarder
-    EVENTSRC_APP    = 2,	///< a local application
-    EVENTSRC_STORE  = 3,	///< the data store
-    EVENTSRC_ADMIN  = 4,	///< the admin logic
-    EVENTSRC_FRAGMENTATION = 5	///< the fragmentation engine
+    EVENTSRC_APP    = 2,        ///< a local application
+    EVENTSRC_STORE  = 3,        ///< the data store
+    EVENTSRC_ADMIN  = 4,        ///< the admin logic
+    EVENTSRC_FRAGMENTATION = 5  ///< the fragmentation engine
 } event_source_t;
 
 /**
@@ -315,7 +375,7 @@ public:
  * closes after a router has issued a transmission request but before
  * the bundle is successfully sent.
  */
-class BundleTransmitFailedEvent : public BundleEvent {
+/*class BundleTransmitFailedEvent : public BundleEvent {
 public:
     BundleTransmitFailedEvent(Bundle* bundle, const ContactRef& contact,
                               const LinkRef& link)
@@ -336,7 +396,7 @@ public:
     /// The link over which the bundle was sent
     /// (may not have a contact when the transmission result is reported)
     LinkRef link_;
-};
+};*/
 
 /**
  * Event class for local bundle delivery.
@@ -425,19 +485,19 @@ public:
      * Reason codes for contact state operations
      */
     typedef enum {
-        INVALID = 0,	///< Should not be used
-        NO_INFO,	///< No additional info
-        USER,		///< User action (i.e. console / config)
-        BROKEN,		///< Unexpected session interruption
-        DISCOVERY,	///< Dynamically discovered link
-        CL_ERROR,	///< Convergence layer protocol error
-        CL_VERSION,	///< Convergence layer version mismatch
-        SHUTDOWN,	///< Clean connection shutdown
-        RECONNECT,	///< Re-establish link after failure
-        IDLE,		///< Idle connection shut down by the CL
-        TIMEOUT,	///< Scheduled link ended duration
-        BLOCKED, 	///< Link is busy
-        UNBLOCKED,	///< Link is no longer busy
+        INVALID = 0,    ///< Should not be used
+        NO_INFO,        ///< No additional info
+        USER,           ///< User action (i.e. console / config)
+        BROKEN,         ///< Unexpected session interruption
+        DISCOVERY,      ///< Dynamically discovered link
+        CL_ERROR,       ///< Convergence layer protocol error
+        CL_VERSION,     ///< Convergence layer version mismatch
+        SHUTDOWN,       ///< Clean connection shutdown
+        RECONNECT,      ///< Re-establish link after failure
+        IDLE,           ///< Idle connection shut down by the CL
+        TIMEOUT,        ///< Scheduled link ended duration
+        BLOCKED,        ///< Link is busy
+        UNBLOCKED,      ///< Link is no longer busy
     } reason_t;
 
     /**
@@ -445,18 +505,18 @@ public:
      */
     static const char* reason_to_str(int reason) {
         switch(reason) {
-        case INVALID:	return "INVALID";
-        case NO_INFO:	return "no additional info";
-        case USER: 	return "user action";
+        case INVALID:   return "INVALID";
+        case NO_INFO:   return "no additional info";
+        case USER:      return "user action";
         case DISCOVERY: return "link discovery";
-        case SHUTDOWN: 	return "peer shut down";
-        case BROKEN:	return "connection broken";
-        case CL_ERROR: 	return "cl protocol error";
+        case SHUTDOWN:  return "peer shut down";
+        case BROKEN:    return "connection broken";
+        case CL_ERROR:  return "cl protocol error";
         case CL_VERSION:return "cl version mismatch";
-        case RECONNECT:	return "re-establishing connection";
-        case IDLE:	return "connection idle";
-        case TIMEOUT:	return "schedule timed out";
-        case UNBLOCKED:	return "no longer busy";
+        case RECONNECT: return "re-establishing connection";
+        case IDLE:      return "connection idle";
+        case TIMEOUT:   return "schedule timed out";
+        case UNBLOCKED: return "no longer busy";
         }
         NOTREACHED;
     }
@@ -468,7 +528,7 @@ public:
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction*) {}
 
-    int reason_;	///< reason code for the event
+    int reason_;        ///< reason code for the event
 };
 
 /**
@@ -527,17 +587,34 @@ public:
 };
 
 /**
+ * Event class for a change in contact attributes.
+ */
+class ContactAttributeChangedEvent: public ContactEvent {
+public:
+    ContactAttributeChangedEvent(const ContactRef& contact, reason_t reason)
+        : ContactEvent(CONTACT_ATTRIB_CHANGED, reason),
+          contact_(contact.object(), "ContactAttributeChangedEvent") {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*);
+
+    ///< The link/contact that changed
+    ContactRef contact_;
+};
+
+/**
  * Event class for link creation events
  */
 class LinkCreatedEvent : public ContactEvent {
 public:
-    LinkCreatedEvent(const LinkRef& link)
-        : ContactEvent(LINK_CREATED, ContactEvent::USER),
+    LinkCreatedEvent(const LinkRef& link, reason_t reason = ContactEvent::USER)
+        : ContactEvent(LINK_CREATED, reason),
           link_(link.object(), "LinkCreatedEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
 
+    /// The link that was created
     LinkRef link_;
 };
 
@@ -546,14 +623,14 @@ public:
  */
 class LinkDeletedEvent : public ContactEvent {
 public:
-    LinkDeletedEvent(const LinkRef& link)
-        : ContactEvent(LINK_DELETED, ContactEvent::USER),
+    LinkDeletedEvent(const LinkRef& link, reason_t reason = ContactEvent::USER)
+        : ContactEvent(LINK_DELETED, reason),
           link_(link.object(), "LinkDeletedEvent") {}
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
 
-    /// The link that is up
+    /// The link that was deleted
     LinkRef link_;
 };
 
@@ -569,6 +646,7 @@ public:
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
 
+    /// The link that is available
     LinkRef link_;
 };
 
@@ -584,7 +662,7 @@ public:
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
 
-    /// The link that is up
+    /// The link that is unavailable
     LinkRef link_;
 };
 
@@ -813,10 +891,9 @@ public:
 };
 
 /**
- * Event class for shutting down a daemon. The daemon goes through all
- * the links and call link->close() on them (if they're in one of the
- * open link states), then cleanly closes the various data
- * stores, then calls exit().
+ * Event class for shutting down a daemon. The daemon closes and
+ * deletes all links, then cleanly closes the various data stores,
+ * then calls exit().
  */
 class ShutdownRequest : public BundleEvent {
 public:
@@ -853,12 +930,21 @@ public:
         // should be processed only by the daemon
         daemon_only_ = true;
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
-    ///< Bundle ID
-    u_int32_t bundleid_;
+ 
+    BundleSendRequest(const BundleRef& bundle,
+                      const std::string& link,
+                      int action)
+        : BundleEvent(BUNDLE_SEND),
+          bundle_(bundle.object(), "BundleSendRequest"),
+          link_(link),
+          action_(action)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+ 
+    ///< Bundle to be sent
+    BundleRef bundle_;
 
     ///< Link on which to send the bundle
     std::string link_;
@@ -878,14 +964,40 @@ public:
         daemon_only_ = true;
     }
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
+    BundleCancelRequest(const BundleRef& bundle, const std::string& link) 
+        : BundleEvent(BUNDLE_CANCEL),
+          bundle_(bundle.object(), "BundleCancelRequest"),
+          link_(link)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
 
-    ///< Bundle ID
-    u_int32_t bundleid_;
+    ///< Bundle to be cancelled
+    BundleRef bundle_;
 
     ///< Link where the bundle is destined
     std::string link_;
+};
+
+/**
+ * Event class for succesful cancellation of a bundle send.
+ */
+class BundleSendCancelledEvent : public BundleEvent {
+public:
+    BundleSendCancelledEvent(Bundle* bundle, const LinkRef& link)
+        : BundleEvent(BUNDLE_CANCELLED),
+          bundleref_(bundle, "BundleSendCancelledEvent"),
+          link_(link.object(), "BundleSendCancelledEvent") {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*);
+
+    /// The cancelled bundle
+    BundleRef bundleref_;
+
+    /// The link it was queued on
+    LinkRef link_;
 };
 
 /**
@@ -897,6 +1009,12 @@ public:
     {
         // should be processed only by the daemon
         daemon_only_ = true;
+        payload_ = NULL;
+    }
+    
+    ~BundleInjectRequest() 
+    {
+        delete payload_;
     }
 
     // Virtual function inherited from SerializableObject
@@ -909,13 +1027,67 @@ public:
     std::string custodian_;
     u_int8_t    priority_;
     u_int32_t   expiration_;
-    std::string payload_;
+    u_char*     payload_;
+    size_t      payload_length_;
 
     // Outgoing link
     std::string link_;
 
     // Forwarding action
     int action_;
+
+    // Request ID for the event, to identify corresponding BundleInjectedEvent
+    std::string request_id_;
+};
+
+/**
+ * Event class for a succesful bundle injection
+ */
+class BundleInjectedEvent: public BundleEvent {
+public:
+    BundleInjectedEvent(Bundle *bundle, const std::string &request_id)
+        : BundleEvent(BUNDLE_INJECTED),
+          bundleref_(bundle, "BundleInjectedEvent"),
+          request_id_(request_id)
+    {
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*);
+
+    /// The injected bundle
+    BundleRef bundleref_;
+
+    // Request ID from the inject request
+    std::string request_id_;
+};
+
+/**
+ * Event class for requestion deletion of a bundle
+ */
+class BundleDeleteRequest: public BundleEvent {
+public:
+    BundleDeleteRequest() : BundleEvent(BUNDLE_DELETE)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    BundleDeleteRequest(const BundleRef&       bundle,
+                        BundleProtocol::status_report_reason_t reason)
+        : BundleEvent(BUNDLE_DELETE),
+          bundle_(bundle.object(), "BundleDeleteRequest"),
+          reason_(reason)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    ///< Bundle to be deleted
+    BundleRef bundle_;
+
+    /// The reason code
+    BundleProtocol::status_report_reason_t reason_;
 };
 
 /**
@@ -982,12 +1154,75 @@ public:
     virtual void serialize(oasys::SerializeAction* a);
 };
 
+class BundleAttributesQueryRequest: public BundleEvent {
+public:
+    BundleAttributesQueryRequest(const std::string& query_id,
+                                 const BundleRef& bundle,
+                                 const AttributeNameVector& attribute_names)
+        : BundleEvent(BUNDLE_ATTRIB_QUERY),
+          query_id_(query_id),
+          bundle_(bundle.object(), "BundleAttributesQueryRequest"),
+          attribute_names_(attribute_names) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Query Identifier
+    std::string query_id_;
+
+    ///< Bundle being queried
+    BundleRef bundle_;
+
+    /// bundle attributes requested by name.
+    AttributeNameVector attribute_names_;
+
+    /// extension blocks requested by type/identifier
+    AttributeVector extension_blocks_;
+};
+
+class BundleAttributesReportEvent: public BundleEvent {
+public:
+    BundleAttributesReportEvent(const std::string& query_id,
+                                const BundleRef& bundle,
+                                const AttributeNameVector& attribute_names,
+                                const AttributeVector& extension_blocks)
+        : BundleEvent(BUNDLE_ATTRIB_REPORT),
+          query_id_(query_id),
+          bundle_(bundle.object(), "BundleAttributesReportEvent"),
+          attribute_names_(attribute_names),
+          extension_blocks_(extension_blocks) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Query Identifier
+    std::string query_id_;
+
+    /// Bundle that was queried
+    BundleRef bundle_;
+
+    /// bundle attributes requested by name.
+    AttributeNameVector attribute_names_;
+
+    /// extension blocks requested by type/identifier
+    AttributeVector extension_blocks_;
+};
+
 /**
  * Event class for creating and opening a link
  */
 class LinkCreateRequest: public BundleEvent {
 public:
-    LinkCreateRequest() : BundleEvent(LINK_CREATE)
+    LinkCreateRequest(const std::string &name, Link::link_type_t link_type,
+                      const std::string &endpoint,
+                      ConvergenceLayer *cla, AttributeVector &parameters)
+        : BundleEvent(LINK_CREATE),
+          name_(name),
+          endpoint_(endpoint),
+          link_type_(link_type),
+          cla_(cla),
+          parameters_(parameters)
+        
     {
         // should be processed only by the daemon
         daemon_only_ = true;
@@ -998,11 +1233,45 @@ public:
         NOTIMPLEMENTED;
     }
 
-    ///< Next hop destination
+    ///< Identifier for the link
+    std::string name_;
+
+    ///< Next hop EID
     std::string endpoint_;
 
-    ///< Egress interface
-    Interface *interface_;
+    ///< Type of link
+    Link::link_type_t link_type_;
+
+    ///< CL to use
+    ConvergenceLayer *cla_;
+
+    ///< An optional set of key, value pairs
+    AttributeVector parameters_;
+};
+
+/**
+ * Event class for reconfiguring an existing link.
+ */
+class LinkReconfigureRequest: public BundleEvent {
+public:
+    LinkReconfigureRequest(const LinkRef& link,
+                           AttributeVector &parameters)
+        : BundleEvent(LINK_RECONFIGURE),
+          link_(link.object(), "LinkReconfigureRequest"),
+          parameters_(parameters)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*) {}
+
+    ///< The link to be changed
+    LinkRef link_;
+
+    ///< Set of key, value pairs
+    AttributeVector parameters_;
 };
 
 /**
@@ -1026,6 +1295,30 @@ public:
 };
 
 /**
+ * Event class for a change in link attributes.
+ */
+class LinkAttributeChangedEvent: public ContactEvent {
+public:
+    LinkAttributeChangedEvent(const LinkRef& link,
+                              AttributeVector attributes,
+                              reason_t reason = ContactEvent::NO_INFO)
+        : ContactEvent(LINK_ATTRIB_CHANGED, reason),
+          link_(link.object(), "LinkAttributeChangedEvent"),
+          attributes_(attributes)
+    {
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*);
+
+    ///< The link that changed
+    LinkRef link_;
+
+    ///< Attributes that changed
+    AttributeVector attributes_;
+};
+
+/**
  * Event classes for link queries and responses
  */
 class LinkQueryRequest: public BundleEvent {
@@ -1046,6 +1339,278 @@ public:
 
     // Virtual function inherited from SerializableObject
     virtual void serialize(oasys::SerializeAction* a);
+};
+
+/**
+ * Event class for DP-originated CLA parameter change requests.
+ */
+class CLASetParamsRequest : public BundleEvent {
+public:
+    CLASetParamsRequest(ConvergenceLayer *cla, AttributeVector &parameters)
+        : BundleEvent(CLA_SET_PARAMS), cla_(cla), parameters_(parameters)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    ///< CL to change
+    ConvergenceLayer *cla_;
+
+    ///< Set of key, value pairs
+    AttributeVector parameters_;
+};
+
+/**
+ * Event class for CLA parameter change request completion events.
+ */
+class CLAParamsSetEvent : public BundleEvent {
+public:
+    CLAParamsSetEvent(ConvergenceLayer *cla, std::string name)
+        : BundleEvent(CLA_PARAMS_SET), cla_(cla), name_(name) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    ///< CL that changed
+    ConvergenceLayer *cla_;
+
+    ///< Name of CL (if cla_ is External)
+    std::string name_;
+};
+
+/**
+ * Event class for DP-originated requests to set link defaults.
+ */
+class SetLinkDefaultsRequest : public BundleEvent {
+public:
+    SetLinkDefaultsRequest(AttributeVector &parameters)
+        : BundleEvent(CLA_SET_LINK_DEFAULTS), parameters_(parameters)
+    {
+        // should be processed only by the daemon
+        daemon_only_ = true;
+    }
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    ///< Set of key, value pairs
+    AttributeVector parameters_;
+};
+
+/**
+ * Event class for discovery of a new EID.
+ */
+class NewEIDReachableEvent: public BundleEvent {
+public:
+    NewEIDReachableEvent(Interface* iface, const std::string &endpoint)
+        : BundleEvent(CLA_EID_REACHABLE),
+          iface_(iface),
+          endpoint_(endpoint) {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction*);
+
+    ///< The interface the peer was discovered on
+    Interface* iface_;
+
+    ///> The EID of the discovered peer
+    std::string endpoint_;
+};
+
+/**
+ *  Event classes for queries to and reports from the CLA.
+ */
+
+class CLAQueryReport: public BundleEvent {
+public:
+
+    /// Query Identifier
+    std::string query_id_;
+
+protected:
+
+    /**
+     * Constructor; protected because this class should only be
+     * instantiated via a subclass.
+     */
+    CLAQueryReport(event_type_t type,
+                   const std::string& query_id,
+                   bool daemon_only = false)
+        : BundleEvent(type),
+          query_id_(query_id)
+    {
+        daemon_only_ = daemon_only;
+    }
+};
+
+class BundleQueuedQueryRequest: public CLAQueryReport {
+public:
+    BundleQueuedQueryRequest(const std::string& query_id,
+                             Bundle* bundle,
+                             const LinkRef& link)
+        : CLAQueryReport(CLA_BUNDLE_QUEUED_QUERY, query_id, true),
+          bundle_(bundle, "BundleQueuedQueryRequest"),
+          link_(link.object(), "BundleQueuedQueryRequest") {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Bundle to be checked for queued status.
+    BundleRef bundle_;
+
+    /// Link on which to check if the given bundle is queued.
+    LinkRef link_;
+};
+
+class BundleQueuedReportEvent: public CLAQueryReport {
+public:
+    BundleQueuedReportEvent(const std::string& query_id,
+                            bool is_queued)
+        : CLAQueryReport(CLA_BUNDLE_QUEUED_REPORT, query_id),
+          is_queued_(is_queued) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// True if the queried bundle was queued on the given link;
+    /// otherwise false.
+    bool is_queued_;
+};
+
+class EIDReachableQueryRequest: public CLAQueryReport {
+public:
+    EIDReachableQueryRequest(const std::string& query_id,
+                             Interface* iface,
+                             const std::string& endpoint)
+        : CLAQueryReport(CLA_EID_REACHABLE_QUERY, query_id, true),
+          iface_(iface),
+          endpoint_(endpoint) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Interface on which to check if the given endpoint is reachable.
+    Interface* iface_;
+
+    /// Endpoint to be checked for reachable status.
+    std::string endpoint_;
+};
+
+class EIDReachableReportEvent: public CLAQueryReport {
+public:
+    EIDReachableReportEvent(const std::string& query_id,
+                            bool is_reachable)
+        : CLAQueryReport(CLA_EID_REACHABLE_REPORT, query_id),
+          is_reachable_(is_reachable) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// True if the queried endpoint is reachable via the given interface;
+    /// otherwise false.
+    bool is_reachable_;
+};
+
+class LinkAttributesQueryRequest: public CLAQueryReport {
+public:
+    LinkAttributesQueryRequest(const std::string& query_id,
+                               const LinkRef& link,
+                               const AttributeNameVector& attribute_names)
+        : CLAQueryReport(CLA_LINK_ATTRIB_QUERY, query_id, true),
+          link_(link.object(), "LinkAttributesQueryRequest"),
+          attribute_names_(attribute_names) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Link for which the given attributes are requested.
+    LinkRef link_;
+
+    /// Link attributes requested by name.
+    AttributeNameVector attribute_names_;
+};
+
+class LinkAttributesReportEvent: public CLAQueryReport {
+public:
+    LinkAttributesReportEvent(const std::string& query_id,
+                              const AttributeVector& attributes)
+        : CLAQueryReport(CLA_LINK_ATTRIB_REPORT, query_id),
+          attributes_(attributes) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Link attribute values given by name.
+    AttributeVector attributes_;
+};
+
+class IfaceAttributesQueryRequest: public CLAQueryReport {
+public:
+    IfaceAttributesQueryRequest(const std::string& query_id,
+                                Interface* iface,
+                                const AttributeNameVector& attribute_names)
+        : CLAQueryReport(CLA_IFACE_ATTRIB_QUERY, query_id, true),
+          iface_(iface),
+          attribute_names_(attribute_names) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Interface for which the given attributes are requested.
+    Interface* iface_;
+
+    /// Link attributes requested by name.
+    AttributeNameVector attribute_names_;
+};
+
+class IfaceAttributesReportEvent: public CLAQueryReport {
+public:
+    IfaceAttributesReportEvent(const std::string& query_id,
+                               const AttributeVector& attributes)
+        : CLAQueryReport(CLA_IFACE_ATTRIB_REPORT, query_id),
+          attributes_(attributes) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Interface attribute values by name.
+    AttributeVector attributes_;
+};
+
+class CLAParametersQueryRequest: public CLAQueryReport {
+public:
+    CLAParametersQueryRequest(const std::string& query_id,
+                              ConvergenceLayer* cla,
+                              const AttributeNameVector& parameter_names)
+        : CLAQueryReport(CLA_PARAMS_QUERY, query_id, true),
+          cla_(cla),
+          parameter_names_(parameter_names) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Convergence layer for which the given parameters are requested.
+    ConvergenceLayer* cla_;
+
+    /// Convergence layer parameters requested by name.
+    AttributeNameVector parameter_names_;
+};
+
+class CLAParametersReportEvent: public CLAQueryReport {
+public:
+    CLAParametersReportEvent(const std::string& query_id,
+                             const AttributeVector& parameters)
+        : CLAQueryReport(CLA_PARAMS_REPORT, query_id),
+          parameters_(parameters) {}
+
+    /// Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
+
+    /// Convergence layer parameter values by name.
+    AttributeVector parameters_;
 };
 
 } // namespace dtn

@@ -19,6 +19,10 @@
  * It was generated using rpcgen.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <memory.h> /* for memset */
 #include "gateway_prot.h"
 

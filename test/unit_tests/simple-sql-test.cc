@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdio.h>
 #include <oasys/debug/Log.h>
@@ -73,10 +76,10 @@ playsql(int i) {
        db  =  new PostgresSQLImplementation();
     
     else
-	db =  new MysqlSQLImplementation();
+        db =  new MysqlSQLImplementation();
 
     db->connect(database);
-	   
+           
     db->exec_query("drop table try;");
     
     BundleStore *bstore = new SQLBundleStore(db, "try");

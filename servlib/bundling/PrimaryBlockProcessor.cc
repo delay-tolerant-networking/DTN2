@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <string>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -29,7 +33,7 @@ namespace dtn {
 //----------------------------------------------------------------------
 struct DictionaryEntry {
     DictionaryEntry(const std::string& s, size_t off)
-	: str(s), offset(off) {}
+        : str(s), offset(off) {}
 
     std::string str;
     size_t offset;
@@ -60,21 +64,21 @@ PrimaryBlockProcessor::add_to_dictionary(const EndpointID& eid,
     bool found_ssp = false;
 
     for (iter = dict->begin(); iter != dict->end(); ++iter) {
-	if (iter->str == eid.scheme_str())
-	    found_scheme = true;
+        if (iter->str == eid.scheme_str())
+            found_scheme = true;
 
-	if (iter->str == eid.ssp())
-	    found_ssp = true;
+        if (iter->str == eid.ssp())
+            found_ssp = true;
     }
 
     if (found_scheme == false) {
-	dict->push_back(DictionaryEntry(eid.scheme_str(), *dictlen));
-	*dictlen += (eid.scheme_str().length() + 1);
+        dict->push_back(DictionaryEntry(eid.scheme_str(), *dictlen));
+        *dictlen += (eid.scheme_str().length() + 1);
     }
 
     if (found_ssp == false) {
-	dict->push_back(DictionaryEntry(eid.ssp(), *dictlen));
-	*dictlen += (eid.ssp().length() + 1);
+        dict->push_back(DictionaryEntry(eid.ssp(), *dictlen));
+        *dictlen += (eid.ssp().length() + 1);
     }
 }
 
@@ -88,12 +92,12 @@ PrimaryBlockProcessor::get_dictionary_offsets(DictionaryVector *dict,
     u_int16_t offset;
     DictionaryVector::iterator iter;
     for (iter = dict->begin(); iter != dict->end(); ++iter) {
-	if (iter->str == eid.scheme_str()) {
+        if (iter->str == eid.scheme_str()) {
             offset = htons(iter->offset);
             memcpy(scheme_offset, &offset, sizeof(offset));
         }
 
-	if (iter->str == eid.ssp()) {
+        if (iter->str == eid.ssp()) {
             offset = htons(iter->offset);
             memcpy(ssp_offset, &offset, sizeof(offset));
         }
@@ -117,24 +121,24 @@ PrimaryBlockProcessor::extract_dictionary_eid(EndpointID* eid,
     ssp_offset = ntohs(ssp_offset);
 
     if (scheme_offset >= (dictionary_len - 1)) {
-	log_err_p(log, "illegal offset for %s scheme dictionary offset: "
+        log_err_p(log, "illegal offset for %s scheme dictionary offset: "
                   "offset %d, total length %u", what,
                   scheme_offset, dictionary_len);
-	return false;
+        return false;
     }
 
     if (ssp_offset >= (dictionary_len - 1)) {
-	log_err_p(log, "illegal offset for %s ssp dictionary offset: "
+        log_err_p(log, "illegal offset for %s ssp dictionary offset: "
                   "offset %d, total length %u", what,
                   ssp_offset, dictionary_len);
-	return false;
+        return false;
     }
     
     eid->assign((char*)&dictionary[scheme_offset],
                 (char*)&dictionary[ssp_offset]);
 
     if (! eid->valid()) {
-	log_err_p(log, "invalid %s endpoint id '%s': "
+        log_err_p(log, "invalid %s endpoint id '%s': "
                   "scheme '%s' offset %u/%u ssp '%s' offset %u/%u",
                   what, eid->c_str(),
                   eid->scheme_str().c_str(),
@@ -193,15 +197,15 @@ PrimaryBlockProcessor::format_bundle_flags(const Bundle* bundle)
     u_int8_t flags = 0;
 
     if (bundle->is_fragment_) {
-	flags |= BUNDLE_IS_FRAGMENT;
+        flags |= BUNDLE_IS_FRAGMENT;
     }
 
     if (bundle->is_admin_) {
-	flags |= BUNDLE_IS_ADMIN;
+        flags |= BUNDLE_IS_ADMIN;
     }
 
     if (bundle->do_not_fragment_) {
-	flags |= BUNDLE_DO_NOT_FRAGMENT;
+        flags |= BUNDLE_DO_NOT_FRAGMENT;
     }
 
     if (bundle->custody_requested_) {
@@ -220,31 +224,31 @@ void
 PrimaryBlockProcessor::parse_bundle_flags(Bundle* bundle, u_int8_t flags)
 {
     if (flags & BUNDLE_IS_FRAGMENT) {
-	bundle->is_fragment_ = true;
+        bundle->is_fragment_ = true;
     } else {
         bundle->is_fragment_ = false;
     }
 
     if (flags & BUNDLE_IS_ADMIN) {
-	bundle->is_admin_ = true;
+        bundle->is_admin_ = true;
     } else {
         bundle->is_admin_ = false;
     }
 
     if (flags & BUNDLE_DO_NOT_FRAGMENT) {
-	bundle->do_not_fragment_ = true;
+        bundle->do_not_fragment_ = true;
     } else {
         bundle->do_not_fragment_ = false;
     }
 
     if (flags & BUNDLE_CUSTODY_XFER_REQUESTED) {
-	bundle->custody_requested_ = true;
+        bundle->custody_requested_ = true;
     } else {
         bundle->custody_requested_ = false;
     }
 
     if (flags & BUNDLE_SINGLETON_DESTINATION) {
-	bundle->singleton_dest_ = true;
+        bundle->singleton_dest_ = true;
     } else {
         bundle->singleton_dest_ = false;
     }
@@ -275,19 +279,19 @@ PrimaryBlockProcessor::format_srr_flags(const Bundle* b)
     u_int8_t srr_flags = 0;
     
     if (b->receive_rcpt_)
-	srr_flags |= BundleProtocol::STATUS_RECEIVED;
+        srr_flags |= BundleProtocol::STATUS_RECEIVED;
 
     if (b->custody_rcpt_)
-	srr_flags |= BundleProtocol::STATUS_CUSTODY_ACCEPTED;
+        srr_flags |= BundleProtocol::STATUS_CUSTODY_ACCEPTED;
 
     if (b->forward_rcpt_)
-	srr_flags |= BundleProtocol::STATUS_FORWARDED;
+        srr_flags |= BundleProtocol::STATUS_FORWARDED;
 
     if (b->delivery_rcpt_)
-	srr_flags |= BundleProtocol::STATUS_DELIVERED;
+        srr_flags |= BundleProtocol::STATUS_DELIVERED;
 
     if (b->deletion_rcpt_)
-	srr_flags |= BundleProtocol::STATUS_DELETED;
+        srr_flags |= BundleProtocol::STATUS_DELETED;
 
     if (b->app_acked_rcpt_)
         srr_flags |= BundleProtocol::STATUS_ACKED_BY_APP;
@@ -300,22 +304,22 @@ void
 PrimaryBlockProcessor::parse_srr_flags(Bundle* b, u_int8_t srr_flags)
 {
     if (srr_flags & BundleProtocol::STATUS_RECEIVED)
-	b->receive_rcpt_ = true;
+        b->receive_rcpt_ = true;
 
     if (srr_flags & BundleProtocol::STATUS_CUSTODY_ACCEPTED)
-	b->custody_rcpt_ = true;
+        b->custody_rcpt_ = true;
 
     if (srr_flags & BundleProtocol::STATUS_FORWARDED)
-	b->forward_rcpt_ = true;
+        b->forward_rcpt_ = true;
 
     if (srr_flags & BundleProtocol::STATUS_DELIVERED)
-	b->delivery_rcpt_ = true;
+        b->delivery_rcpt_ = true;
 
     if (srr_flags & BundleProtocol::STATUS_DELETED)
-	b->deletion_rcpt_ = true;
+        b->deletion_rcpt_ = true;
 
     if (srr_flags & BundleProtocol::STATUS_ACKED_BY_APP)
-	b->app_acked_rcpt_ = true;
+        b->app_acked_rcpt_ = true;
 }
 
 //----------------------------------------------------------------------
@@ -360,8 +364,8 @@ PrimaryBlockProcessor::get_primary_len(const Bundle* bundle,
      * calculating fragment sizes.
      */
     if (bundle->is_fragment_) {
-	*primary_var_len += SDNV::encoding_len(bundle->frag_offset_);
-	*primary_var_len += SDNV::encoding_len(bundle->orig_length_);
+        *primary_var_len += SDNV::encoding_len(bundle->frag_offset_);
+        *primary_var_len += SDNV::encoding_len(bundle->orig_length_);
     }
 
     /*
@@ -476,9 +480,9 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
                 primary1->version, block->data_length());
     
     if (primary1->version != BundleProtocol::CURRENT_VERSION) {
-	log_warn_p(log, "protocol version mismatch %d != %d",
+        log_warn_p(log, "protocol version mismatch %d != %d",
                    primary1->version, BundleProtocol::CURRENT_VERSION);
-	return -1;
+        return -1;
     }
     
     parse_bundle_flags(bundle, primary1->bundle_processing_flags);
@@ -506,11 +510,11 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
     int       frag_length_len = 0;
     if (len < sizeof(PrimaryBlock2)) {
 tooshort:
-	log_err_p(log, "primary block advertised incorrect length %u: "
+        log_err_p(log, "primary block advertised incorrect length %u: "
                   "fixed-length %u, dict_sdnv %d, dict %u, frag %d %d",
                   block->data_length(), primary2_len, dict_sdnv_len,
                   dictionary_len, frag_offset_len, frag_length_len);
-	return -1;
+        return -1;
     }
 
     /*
@@ -546,8 +550,8 @@ tooshort:
      * Make sure that the dictionary ends with a null byte.
      */
     if (buf[dictionary_len - 1] != '\0') {
-	log_err_p(log, "dictionary does not end with a NULL character!");
-	return -1;
+        log_err_p(log, "dictionary does not end with a NULL character!");
+        return -1;
     }
 
     /*
@@ -582,21 +586,21 @@ tooshort:
                            dictionary, dictionary_len);
     
     if (bundle->is_fragment_) {
-	frag_offset_len = SDNV::decode(buf, len, &bundle->frag_offset_);
-	if (frag_offset_len == -1) {
-	    goto tooshort;
-	}
-	buf += frag_offset_len;
-	len -= frag_offset_len;
+        frag_offset_len = SDNV::decode(buf, len, &bundle->frag_offset_);
+        if (frag_offset_len == -1) {
+            goto tooshort;
+        }
+        buf += frag_offset_len;
+        len -= frag_offset_len;
 
-	frag_length_len = SDNV::decode(buf, len, &bundle->orig_length_);
-	if (frag_length_len == -1) {
-	    goto tooshort;
-	}
-	buf += frag_length_len;
-	len -= frag_length_len;
+        frag_length_len = SDNV::decode(buf, len, &bundle->orig_length_);
+        if (frag_length_len == -1) {
+            goto tooshort;
+        }
+        buf += frag_length_len;
+        len -= frag_length_len;
 
-	log_debug_p(log, "parsed fragmentation info: offset %u, orig_len %u",
+        log_debug_p(log, "parsed fragmentation info: offset %u, orig_len %u",
                     bundle->frag_offset_, bundle->orig_length_);
     }
 
@@ -622,7 +626,7 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
     size_t primary_len = 0;     // total length of the primary block
     size_t primary_var_len = 0; // length of the variable part of the primary
     size_t dictionary_len = 0;  // length of the dictionary
-    int sdnv_len = 0;		// use an int to handle -1 return values
+    int sdnv_len = 0;           // use an int to handle -1 return values
 
     /*
      * Calculate the primary block length and initialize the buffer.
@@ -649,9 +653,9 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
      * Ok, stuff in the preamble and the total block length.
      */
     PrimaryBlock1* primary1               = (PrimaryBlock1*)buf;
-    primary1->version		          = BundleProtocol::CURRENT_VERSION;
+    primary1->version                     = BundleProtocol::CURRENT_VERSION;
     primary1->bundle_processing_flags     = format_bundle_flags(bundle);
-    primary1->class_of_service_flags	  = format_cos_flags(bundle);
+    primary1->class_of_service_flags      = format_cos_flags(bundle);
     primary1->status_report_request_flags = format_srr_flags(bundle);
     
     sdnv_len = SDNV::encode(primary_var_len,
@@ -698,9 +702,9 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
 
     DictionaryVector::iterator dict_iter;
     for (dict_iter = dict.begin(); dict_iter != dict.end(); ++dict_iter) {
-	strcpy((char*)buf, dict_iter->str.c_str());
-	buf += dict_iter->str.length() + 1;
-	len -= dict_iter->str.length() + 1;
+        strcpy((char*)buf, dict_iter->str.c_str());
+        buf += dict_iter->str.length() + 1;
+        len -= dict_iter->str.length() + 1;
     }
     
     debug_dump_dictionary((char*)buf - dictionary_len, dictionary_len, primary2);
@@ -710,15 +714,15 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
      * offset and original length.
      */
     if (bundle->is_fragment_) {
-	sdnv_len = SDNV::encode(bundle->frag_offset_, buf, len);
-	ASSERT(sdnv_len > 0);
-	buf += sdnv_len;
-	len -= sdnv_len;
+        sdnv_len = SDNV::encode(bundle->frag_offset_, buf, len);
+        ASSERT(sdnv_len > 0);
+        buf += sdnv_len;
+        len -= sdnv_len;
 
-	sdnv_len = SDNV::encode(bundle->orig_length_, buf, len);
-	ASSERT(sdnv_len > 0);
-	buf += sdnv_len;
-	len -= sdnv_len;
+        sdnv_len = SDNV::encode(bundle->orig_length_, buf, len);
+        ASSERT(sdnv_len > 0);
+        buf += sdnv_len;
+        len -= sdnv_len;
     }
 
 #ifndef NDEBUG

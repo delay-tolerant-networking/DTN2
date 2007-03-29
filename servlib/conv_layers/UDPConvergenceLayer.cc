@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <sys/poll.h>
 
 #include <oasys/io/NetUtils.h>
@@ -48,12 +52,12 @@ UDPConvergenceLayer::Params::serialize(oasys::SerializeAction *a)
 UDPConvergenceLayer::UDPConvergenceLayer()
     : IPConvergenceLayer("UDPConvergenceLayer", "udp")
 {
-    defaults_.local_addr_		= INADDR_ANY;
-    defaults_.local_port_		= UDPCL_DEFAULT_PORT;
-    defaults_.remote_addr_		= INADDR_NONE;
-    defaults_.remote_port_		= 0;
-    defaults_.rate_			= 0; // unlimited
-    defaults_.bucket_depth_		= 0; // default
+    defaults_.local_addr_               = INADDR_ANY;
+    defaults_.local_port_               = UDPCL_DEFAULT_PORT;
+    defaults_.remote_addr_              = INADDR_NONE;
+    defaults_.remote_port_              = 0;
+    defaults_.rate_                     = 0; // unlimited
+    defaults_.bucket_depth_             = 0; // default
 }
 
 //----------------------------------------------------------------------
@@ -234,7 +238,7 @@ UDPConvergenceLayer::dump_link(const LinkRef& link, oasys::StringBuffer* buf)
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() != NULL);
-	
+        
     Params* params = (Params*)link->cl_info();
     
     buf->appendf("\tlocal_addr: %s local_port: %d\n",
@@ -337,9 +341,20 @@ UDPConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
         BundleDaemon::post(
             new BundleTransmittedEvent(bundle, contact, link, len, 0));
     } else {
-        BundleDaemon::post(
-            new BundleTransmitFailedEvent(bundle, contact, link));
+        /*BundleDaemon::post(
+            new BundleTransmitFailedEvent(bundle, contact, link));*/
     }
+}
+
+//----------------------------------------------------------------------
+bool
+UDPConvergenceLayer::is_queued(const LinkRef& contact, Bundle* bundle)
+{
+    (void)contact;
+    (void)bundle;
+
+    /// The UDP convergence layer does not maintain an output queue.
+    return false;
 }
 
 //----------------------------------------------------------------------
@@ -375,7 +390,7 @@ UDPConvergenceLayer::Receiver::process_data(u_char* bp, size_t len)
     }
     
     log_debug("process_data: new bundle id %d arrival, length %zu (payload %zu)",
-	      bundle->bundleid_, len, bundle->payload_.length());
+              bundle->bundleid_, len, bundle->payload_.length());
     
     BundleDaemon::post(
         new BundleReceivedEvent(bundle, EVENTSRC_PEER, len));
@@ -395,7 +410,7 @@ UDPConvergenceLayer::Receiver::run()
             break;
         
         ret = recvfrom((char*)buf, MAX_UDP_PACKET, 0, &addr, &port);
-	if (ret <= 0) {	  
+        if (ret <= 0) {   
             if (errno == EINTR) {
                 continue;
             }
@@ -405,9 +420,9 @@ UDPConvergenceLayer::Receiver::run()
             break;
         }
         
-	log_debug("got %d byte packet from %s:%d",
-                  ret, intoa(addr), port);	         
-	process_data(buf, ret);
+        log_debug("got %d byte packet from %s:%d",
+                  ret, intoa(addr), port);               
+        process_data(buf, ret);
     }
 }
 

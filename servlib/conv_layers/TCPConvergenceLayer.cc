@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <sys/poll.h>
 #include <stdlib.h>
@@ -502,7 +505,7 @@ TCPConvergenceLayer::Connection::handle_poll_activity()
     //check that the connection was not broken during the data send
     if (contact_broken_)
     {
-	return;
+        return;
     }
     
     // finally, check for incoming data
@@ -516,7 +519,7 @@ TCPConvergenceLayer::Connection::handle_poll_activity()
             log_err("process_data left no space in recvbuf!!");
         }
 
-        if (! contact_broken_) {
+        if (contact_up_ && ! contact_broken_) {
             check_keepalive();
         }
 

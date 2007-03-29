@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <errno.h>
 #include <stdio.h>
@@ -408,6 +411,34 @@ dtn_send(dtn_handle_t h,
         return DTN_EXDR;
     }
 
+    return 0;
+}
+
+//----------------------------------------------------------------------
+int
+dtn_cancel(dtn_handle_t h,
+           dtn_bundle_id_t* id)
+{
+    dtnipc_handle_t* handle = (dtnipc_handle_t*)h;
+    XDR* xdr_encode = &handle->xdr_encode;
+
+    // check if the handle is in the middle of poll
+    if (handle->in_poll) {
+        handle->err = DTN_EINPOLL;
+        return -1;
+    }
+
+    // pack the arguments
+    if (!xdr_dtn_bundle_id_t(xdr_encode, id)) {
+        handle->err = DTN_EXDR;
+        return -1;
+    }
+
+    // send the message
+    if (dtnipc_send_recv(handle, DTN_CANCEL) < 0) {
+        return -1;
+    }
+    
     return 0;
 }
 

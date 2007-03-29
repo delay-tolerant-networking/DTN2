@@ -51,7 +51,7 @@ struct BundleTimestamp {
         return seconds_ == other.seconds_ &&
             seqno_ == other.seqno_;
     }
-	
+        
     /**
      * Operator overload for use in STL data structures.
      */
@@ -61,7 +61,7 @@ struct BundleTimestamp {
         else if (seconds_ > other.seconds_) return false;
         return (seqno_ < other.seqno_);
     }
-	
+        
     /**
      * The number of seconds between 1/1/1970 and 1/1/2000.
      */

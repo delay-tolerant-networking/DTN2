@@ -24,6 +24,9 @@
  * Now uses serialsource.c to communicate with serial port 
  * Files: crc16.c, misc.c, mote_io.c and mote_io.h are not used anymore */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <sys/types.h>
 #include <signal.h>

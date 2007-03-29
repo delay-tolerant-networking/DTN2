@@ -13,6 +13,11 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <oasys/util/OptParser.h>
 
 #include "Link.h"
@@ -50,11 +55,11 @@ Link::create_link(const std::string& name, link_type_t type,
 {
     LinkRef link("Link::create_link: return value");
     switch(type) {
-    case ALWAYSON: 	link = new AlwaysOnLink(name, cl, nexthop); break;
-    case ONDEMAND: 	link = new OndemandLink(name, cl, nexthop); break;
-    case SCHEDULED: 	link = new ScheduledLink(name, cl, nexthop); break;
+    case ALWAYSON:      link = new AlwaysOnLink(name, cl, nexthop); break;
+    case ONDEMAND:      link = new OndemandLink(name, cl, nexthop); break;
+    case SCHEDULED:     link = new ScheduledLink(name, cl, nexthop); break;
     case OPPORTUNISTIC: link = new OpportunisticLink(name, cl, nexthop); break;
-    default: 		PANIC("bogus link_type_t");
+    default:            PANIC("bogus link_type_t");
     }
 
     // hook for the link subclass that parses any arguments and shifts
@@ -85,7 +90,8 @@ Link::create_link(const std::string& name, link_type_t type,
     // need to be posted. this needs to be done after all the above is
     // completed to avoid potential race conditions if the core of the
     // system tries to use the link before its completely created
-    link->set_initial_state();
+    // MOVED to ContactManager::handle_link_created()
+    // link->set_initial_state();
 
     return link;
 }
@@ -98,6 +104,8 @@ Link::Link(const std::string& name, link_type_t type,
        type_(type),
        state_(UNAVAILABLE),
        deleted_(false),
+       create_pending_(false),
+       usable_(true),
        nexthop_(nexthop),
        name_(name),
        reliable_(false),
@@ -122,6 +130,8 @@ Link::Link(const oasys::Builder&)
       type_(LINK_INVALID),
       state_(UNAVAILABLE),
       deleted_(false),
+      create_pending_(false),
+      usable_(false),
       nexthop_(""),
       name_(""),
       reliable_(false),
@@ -173,6 +183,55 @@ Link::reconfigure_link(int argc, const char* argv[])
 
 //----------------------------------------------------------------------
 void
+Link::reconfigure_link(AttributeVector& params)
+{
+    oasys::ScopeLock l(&lock_, "Link::reconfigure_link");
+
+    if (isdeleted()) {
+        log_debug("Link::reconfigure_link: "
+                  "cannot reconfigure deleted link %s", name());
+        return;
+    }
+
+    AttributeVector::iterator iter;
+    for (iter = params.begin(); iter != params.end(); ) {
+        if (iter->name() == "is_usable") {
+            if (iter->bool_val()) {
+                set_usable(true);
+            } else {
+                set_usable(false);
+            }
+            ++iter;
+
+        } else if (iter->name() == "nexthop") {
+            set_nexthop(iter->string_val());
+            ++iter;
+
+        // Following are DTN2 parameters not listed in the DP interface.
+        } else if (iter->name() == "min_retry_interval") {
+            params_.min_retry_interval_ = iter->u_int_val();
+            iter = params.erase(iter);
+
+        } else if (iter->name() == "max_retry_interval") {
+            params_.max_retry_interval_ = iter->u_int_val();
+            iter = params.erase(iter);
+
+        } else if (iter->name() == "idle_close_time") {
+            params_.idle_close_time_ = iter->u_int_val();
+            iter = params.erase(iter);
+
+        } else {
+            ++iter;
+        }
+    }
+    
+    ASSERT(clayer_ != NULL);
+    return clayer_->reconfigure_link(
+                        LinkRef(this, "Link::reconfigure_link"), params);
+}
+
+//----------------------------------------------------------------------
+void
 Link::serialize(oasys::SerializeAction* a)
 {
     std::string cl_name;
@@ -191,6 +250,7 @@ Link::serialize(oasys::SerializeAction* a)
     a->process("name",     &name_);
     a->process("state",    &state_);
     a->process("deleted",  &deleted_);
+    a->process("usable",   &usable_);
     a->process("reliable", &reliable_);
 
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
@@ -223,6 +283,7 @@ Link::parse_args(int argc, const char* argv[], const char** invalidp)
 
     p.addopt(new dtn::EndpointIDOpt("remote_eid", &remote_eid_));
     p.addopt(new oasys::BoolOpt("reliable", &reliable_));
+    p.addopt(new oasys::StringOpt("nexthop", &nexthop_));
     p.addopt(new oasys::UIntOpt("mtu", &params_.mtu_));
     p.addopt(new oasys::UIntOpt("min_retry_interval",
                                 &params_.min_retry_interval_));
@@ -264,7 +325,7 @@ Link::set_initial_state()
 Link::~Link()
 {
     log_debug("destroying link %s", name());
-	
+        
     ASSERT(!isopen());
     ASSERT(cl_info_ == NULL);
 }
@@ -430,13 +491,17 @@ Link::dump_stats(oasys::StringBuffer* buf)
                  "%u bundles_transmitted -- "
                  "%u bytes_transmitted -- "
                  "%u bundles_queued -- "
-                 "%u bytes_queued ",
+                 "%u bytes_queued -- "
+                 "%u%% available -- "
+                 "%u%% reliable",
                  stats_.contact_attempts_,
                  stats_.contacts_,
                  stats_.bundles_transmitted_,
                  stats_.bytes_transmitted_,
                  stats_.bundles_queued_,
-                 stats_.bytes_queued_);
+                 stats_.bytes_queued_,
+                 stats_.availability_,
+                 stats_.reliability_);
 }
 
 } // namespace dtn

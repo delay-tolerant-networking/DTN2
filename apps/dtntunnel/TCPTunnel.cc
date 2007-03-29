@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/io/NetUtils.h>
 #include <oasys/util/Time.h>
@@ -259,9 +262,9 @@ TCPTunnel::Connection::run()
             if ((err = tunnel->send_bundle(b, &dest_eid_)) != DTN_SUCCESS) {
                 log_err("error sending connect reply bundle: %s",
                         dtn_strerror(err));
-    		tcptun_->kill_connection(this);
-		exit(1);
-	    }
+                tcptun_->kill_connection(this);
+                exit(1);
+            }
             goto done;
         }
     }
@@ -363,7 +366,7 @@ TCPTunnel::Connection::run()
                 continue;
             } else {
                 log_err("error sending bundle: %s", dtn_strerror(err));
-		exit(1);
+                exit(1);
             }
         }
         

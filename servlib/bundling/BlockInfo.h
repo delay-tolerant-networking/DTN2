@@ -46,17 +46,17 @@ public:
     BlockInfo(oasys::Builder& builder);
 
     /// @{ Accessors
-    BlockProcessor*   owner()       const { return owner_; }
-    const BlockInfo*  source()      const { return source_; }
-    const DataBuffer& contents()    const { return contents_; }
-    u_int32_t	      data_length() const { return data_length_; }
-    u_int32_t	      data_offset() const { return data_offset_; }
-    u_int32_t	      full_length() const { return data_offset_ + data_length_; }
-    u_char*           data()        const { return contents_.buf() + data_offset_; }
-    bool              complete()    const { return complete_; }
-    bool              primary_block() const;
-    bool              payload_block() const;
-    bool              last_block() const;
+    BlockProcessor*   owner()          const { return owner_; }
+    const BlockInfo*  source()         const { return source_; }
+    const DataBuffer& contents()       const { return contents_; }
+    u_int32_t         data_length()    const { return data_length_; }
+    u_int32_t         data_offset()    const { return data_offset_; }
+    u_int32_t         full_length()    const { return (data_offset_ +
+                                                       data_length_); }
+    u_char*           data()           const { return (contents_.buf() +
+                                                       data_offset_); }
+    bool              complete()       const { return complete_; }
+    bool              last_block()     const;
     ///@}
 
     /// @{ Mutating accessors
@@ -78,7 +78,7 @@ public:
 
 protected:
     BlockProcessor*  owner_;       ///< Owner of this block
-    u_int16_t	     owner_type_;  ///< Extracted from owner
+    u_int16_t        owner_type_;  ///< Extracted from owner
     const BlockInfo* source_;      ///< Owner of this block
     DataBuffer       contents_;    ///< Block contents with length set to
                                    ///  the amount currently in the buffer

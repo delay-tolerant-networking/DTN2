@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/util/OptParser.h>
 
@@ -92,7 +95,7 @@ ConnectionConvergenceLayer::dump_link(const LinkRef& link,
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() != NULL);
-	
+        
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
@@ -187,7 +190,7 @@ ConnectionConvergenceLayer::reconfigure_link(const LinkRef& link,
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
     ASSERT(link->cl_info() != NULL);
-	
+        
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
     
@@ -305,6 +308,25 @@ ConnectionConvergenceLayer::send_bundle(const ContactRef& contact,
     ASSERT(!contact->link()->isdeleted());
     
     conn->queue_bundle(bundle);
+}
+
+//----------------------------------------------------------------------
+bool
+ConnectionConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
+{
+    ASSERT(link != NULL);
+
+    ContactRef contact = link->contact();
+    if (contact == NULL || contact->cl_info() == NULL) {
+        log_debug("ConnectionConvergenceLayer::is_queued: "
+                  "link %s not fully open", link->name());
+        return false;
+    }
+
+    CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
+    ASSERT(conn != NULL);
+
+    return conn->is_queued(bundle);
 }
 
 } // namespace dtn

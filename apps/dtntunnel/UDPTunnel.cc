@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/io/NetUtils.h>
 
@@ -113,7 +116,7 @@ UDPTunnel::Listener::run()
         b->payload_.set_len(sizeof(hdr) + len);
         
         if (tunnel->send_bundle(b, tunnel->dest_eid()) != DTN_SUCCESS)
-	    exit(1);
+            exit(1);
     }
 }
 

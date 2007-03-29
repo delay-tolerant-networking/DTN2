@@ -3,6 +3,15 @@
 /* configured version of berkeley db */
 #undef BERKELEY_DB_VERSION
 
+/* whether external convergence layer support is enabled */
+#undef EXTERNAL_CL_ENABLED
+
+/* whether external data plane support is enabled */
+#undef EXTERNAL_DP_ENABLED
+
+/* whether external data store support is enabled */
+#undef EXTERNAL_DS_ENABLED
+
 /* whether google perftools support is enabled */
 #undef GOOGLE_PERFTOOLS_ENABLED
 

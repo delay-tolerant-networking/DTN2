@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +41,7 @@ char * arg_dest         = NULL;
 char * arg_target       = NULL;
 
 int    expiration_time  = 60 * 60; // default is 1 hour
+int delivery_receipts   = 0;    // request end to end delivery receipts
 
 void parse_options(int, char**);
 dtn_endpoint_id_t * parse_eid(dtn_handle_t handle, dtn_endpoint_id_t * eid, 
@@ -106,8 +110,11 @@ main(int argc, char** argv)
     // set the expiration time (one hour)
     bundle_spec.expiration = expiration_time;
     
-    // set the return receipt option
-    bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
+    if (delivery_receipts)
+    {
+        // set the delivery receipt option
+        bundle_spec.dopts |= DOPTS_DELIVERY_RCPT;
+    }
 
     // fill in a payload
     memset(&send_payload, 0, sizeof(send_payload));
@@ -142,26 +149,35 @@ main(int argc, char** argv)
         exit(1);
     }
 
-    memset(&reply_spec, 0, sizeof(reply_spec));
-    memset(&reply_payload, 0, sizeof(reply_payload));
-            
-    // now we block waiting for the echo reply
-    if ((ret = dtn_recv(handle, &reply_spec,
-                        DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
-    {
-        fprintf(stderr, "error getting reply: %d (%s)\n",
-                ret, dtn_strerror(dtn_errno(handle)));
-        exit(1);
-    }
-    gettimeofday(&end, NULL);
+    if (delivery_receipts)
+      {
+	memset(&reply_spec, 0, sizeof(reply_spec));
+	memset(&reply_payload, 0, sizeof(reply_payload));
+	
+	// now we block waiting for the echo reply
+	if ((ret = dtn_recv(handle, &reply_spec,
+			    DTN_PAYLOAD_MEM, &reply_payload, -1)) < 0)
+	  {
+	    fprintf(stderr, "error getting reply: %d (%s)\n",
+		    ret, dtn_strerror(dtn_errno(handle)));
+	    exit(1);
+	  }
+	gettimeofday(&end, NULL);
 
 
-    printf("file sent successfully to [%s]: time=%.1f ms\n",
-                   reply_spec.source.uri,
-                   ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
-                    (double)(end.tv_usec - start.tv_usec)/1000.0));
+	printf("file sent successfully to [%s]: time=%.1f ms\n",
+	       reply_spec.source.uri,
+	       ((double)(end.tv_sec - start.tv_sec) * 1000.0 + 
+		(double)(end.tv_usec - start.tv_usec)/1000.0));
+	
+	dtn_free_payload(&reply_payload);
+      } 
+    else 
+      {
+	printf("file sent to [%s]\n",
+	       bundle_spec.dest.uri);
+      }
 
-    dtn_free_payload(&reply_payload);
     dtn_close(handle);
     
     return 0;
@@ -170,11 +186,12 @@ main(int argc, char** argv)
 void print_usage()
 {
     fprintf(stderr,
-            "usage: %s [--expiration sec] <filename> <destination_eid> <remote-name>\n", 
+            "usage: %s [-D] [--expiration sec] <filename> <destination_eid> <remote-name>\n", 
             progname);
     fprintf(stderr,
             "    Remote filename is optional; defaults to the "
             "local filename.\n\n"
+	    "-D disables acknowledgements\n"
             "Bundle expiration time is in seconds.\n");
     
     exit(1);
@@ -201,12 +218,24 @@ void parse_options(int argc, char**argv)
         {
             fprintf(stderr, 
                     "Expiration time must be > 0\n");
-        exit(1);
-    }
+	    exit(1);
+	}
 
         argv++;
         argc--;
     }
+
+    // no reply
+    if (argc < 2)
+        goto bail;
+
+    if (strcmp(argv[1], "-D") == 0)
+      {
+	delivery_receipts = 1;
+	
+        argv++;
+        argc--;
+      }
 
     // parse the normal arguments
     if (argc < 3)

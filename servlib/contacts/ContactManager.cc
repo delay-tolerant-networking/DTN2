@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/util/StringBuffer.h>
 
@@ -41,18 +44,26 @@ ContactManager::~ContactManager()
 }
 
 //----------------------------------------------------------------------
-void
-ContactManager::add_link(const LinkRef& link)
+bool
+ContactManager::add_new_link(const LinkRef& link)
 {
-    oasys::ScopeLock l(&lock_, "ContactManager::add_link");
- 
+    oasys::ScopeLock l(&lock_, "ContactManager::add_new_link");
+
     ASSERT(link != NULL);
     ASSERT(!link->isdeleted());
     
-    log_debug("adding link %s", link->name());
+    log_debug("adding NEW link %s", link->name());
+    if (has_link(link->name())) {
+        return false;
+    }
     links_->insert(LinkRef(link.object(), "ContactManager"));
-    
-    BundleDaemon::post(new LinkCreatedEvent(link));
+
+    if (!link->is_create_pending()) {
+        log_debug("posting LinkCreatedEvent");
+        BundleDaemon::post(new LinkCreatedEvent(link));
+    }
+
+    return true;
 }
 
 //----------------------------------------------------------------------
@@ -110,6 +121,21 @@ ContactManager::has_link(const LinkRef& link)
     if (iter == links_->end())
         return false;
     return true;
+}
+
+//----------------------------------------------------------------------
+bool
+ContactManager::has_link(const char* name)
+{
+    oasys::ScopeLock l(&lock_, "ContactManager::has_link");
+    ASSERT(link != NULL);
+    
+    LinkSet::iterator iter;
+    for (iter = links_->begin(); iter != links_->end(); ++iter) {
+        if (strcasecmp((*iter)->name(), name) == 0)
+            return true;
+    }
+    return false;
 }
 
 //----------------------------------------------------------------------
@@ -176,6 +202,26 @@ ContactManager::reopen_link(const LinkRef& link)
         log_err("availability timer fired for link %s but state is %s",
                 link->name(), Link::state_to_str(link->state()));
     }
+}
+
+//----------------------------------------------------------------------
+void
+ContactManager::handle_link_created(LinkCreatedEvent* event)
+{
+    oasys::ScopeLock l(&lock_, "ContactManager::handle_link_created");
+
+    LinkRef link = event->link_;
+    ASSERT(link != NULL);
+    ASSERT(!link->isdeleted());
+        
+    if (!has_link(link)) {
+        log_err("ContactManager::handle_link_created: "
+                "link %s does not exist", link->name());
+        return;
+    }
+
+    // Post initial state events; MOVED from Link::create_link().
+    link->set_initial_state();
 }
 
 //----------------------------------------------------------------------
@@ -396,7 +442,14 @@ ContactManager::new_opportunistic_link(ConvergenceLayer* cl,
                      "ContactManager::new_opportunistic_link: return value");
     
     new_link->set_remote_eid(remote_eid);
-    add_link(new_link);
+
+    if (!add_new_link(new_link)) {
+        new_link->delete_link();
+        log_err("ContactManager::new_opportunistic_link: "
+                 "failed to add new opportunistic link %s", new_link->name());
+        new_link = NULL;
+    }
+    
     return new_link;
 }
     

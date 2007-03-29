@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include "BundleEventHandler.h"
 
@@ -38,9 +41,9 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_transmitted((BundleTransmittedEvent*)e);
         break;
 
-    case BUNDLE_TRANSMIT_FAILED:
+/*    case BUNDLE_TRANSMIT_FAILED:
         handle_bundle_transmit_failed((BundleTransmitFailedEvent*)e);
-        break;
+        break;*/
 
     case BUNDLE_DELIVERED:
         handle_bundle_delivered((BundleDeliveredEvent*)e);
@@ -62,8 +65,20 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_bundle_cancel((BundleCancelRequest*)e);
         break;
 
+    case BUNDLE_CANCELLED:
+        handle_bundle_cancelled((BundleSendCancelledEvent*)e);
+        break;
+
     case BUNDLE_INJECT:
         handle_bundle_inject((BundleInjectRequest*)e);
+        break;
+
+    case BUNDLE_INJECTED:
+        handle_bundle_injected((BundleInjectedEvent*)e);
+        break;
+
+    case BUNDLE_DELETE:
+        handle_bundle_delete((BundleDeleteRequest*)e);
         break;
 
     case BUNDLE_ACCEPT_REQUEST:
@@ -76,6 +91,14 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
 
     case BUNDLE_REPORT:
         handle_bundle_report((BundleReportEvent*)e);
+        break;
+        
+    case BUNDLE_ATTRIB_QUERY:
+        handle_bundle_attributes_query((BundleAttributesQueryRequest*)e);
+        break;
+
+    case BUNDLE_ATTRIB_REPORT:
+        handle_bundle_attributes_report((BundleAttributesReportEvent*)e);
         break;
         
     case REGISTRATION_ADDED:
@@ -122,6 +145,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_contact_report((ContactReportEvent*)e);
         break;
 
+    case CONTACT_ATTRIB_CHANGED:
+        handle_contact_attribute_changed((ContactAttributeChangedEvent*)e);
+        break;
+
     case LINK_CREATED:
         handle_link_created((LinkCreatedEvent*)e);
         break;
@@ -153,7 +180,11 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
     case LINK_DELETE:
         handle_link_delete((LinkDeleteRequest*)e);
         break;
-	
+
+    case LINK_RECONFIGURE:
+        handle_link_reconfigure((LinkReconfigureRequest*)e);
+        break;
+
     case LINK_QUERY:
         handle_link_query((LinkQueryRequest*)e);
         break;
@@ -162,6 +193,10 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
         handle_link_report((LinkReportEvent*)e);
         break;
         
+    case LINK_ATTRIB_CHANGED:
+        handle_link_attribute_changed((LinkAttributeChangedEvent*)e);
+        break;
+
     case REASSEMBLY_COMPLETED:
         handle_reassembly_completed((ReassemblyCompletedEvent*)e);
         break;
@@ -180,6 +215,62 @@ BundleEventHandler::dispatch_event(BundleEvent* e)
 
     case DAEMON_STATUS:
         handle_status_request((StatusRequest*)e);
+        break;
+
+    case CLA_SET_PARAMS:
+        handle_cla_set_params((CLASetParamsRequest*)e);
+        break;
+
+    case CLA_PARAMS_SET:
+        handle_cla_params_set((CLAParamsSetEvent*)e);
+        break;
+
+    case CLA_SET_LINK_DEFAULTS:
+        handle_set_link_defaults((SetLinkDefaultsRequest*)e);
+        break;
+
+    case CLA_EID_REACHABLE:
+        handle_new_eid_reachable((NewEIDReachableEvent*)e);
+        break;
+
+    case CLA_BUNDLE_QUEUED_QUERY:
+        handle_bundle_queued_query((BundleQueuedQueryRequest*)e);
+        break;
+
+    case CLA_BUNDLE_QUEUED_REPORT:
+        handle_bundle_queued_report((BundleQueuedReportEvent*)e);
+        break;
+
+    case CLA_EID_REACHABLE_QUERY:
+        handle_eid_reachable_query((EIDReachableQueryRequest*)e);
+        break;
+
+    case CLA_EID_REACHABLE_REPORT:
+        handle_eid_reachable_report((EIDReachableReportEvent*)e);
+        break;
+
+    case CLA_LINK_ATTRIB_QUERY:
+        handle_link_attributes_query((LinkAttributesQueryRequest*)e);
+        break;
+
+    case CLA_LINK_ATTRIB_REPORT:
+        handle_link_attributes_report((LinkAttributesReportEvent*)e);
+        break;
+
+    case CLA_IFACE_ATTRIB_QUERY:
+        handle_iface_attributes_query((IfaceAttributesQueryRequest*)e);
+        break;
+
+    case CLA_IFACE_ATTRIB_REPORT:
+        handle_iface_attributes_report((IfaceAttributesReportEvent*)e);
+        break;
+
+    case CLA_PARAMS_QUERY:
+        handle_cla_parameters_query((CLAParametersQueryRequest*)e);
+        break;
+
+    case CLA_PARAMS_REPORT:
+        handle_cla_parameters_report((CLAParametersReportEvent*)e);
         break;
 
     default:
@@ -206,10 +297,10 @@ BundleEventHandler::handle_bundle_transmitted(BundleTransmittedEvent*)
 /**
  * Default event handler when a bundle transmission fails.
  */
-void
+/*void
 BundleEventHandler::handle_bundle_transmit_failed(BundleTransmitFailedEvent*)
 {
-}
+}*/
 
 /**
  * Default event handler when bundles are locally delivered.
@@ -253,10 +344,34 @@ BundleEventHandler::handle_bundle_cancel(BundleCancelRequest*)
 }
 
 /**
+ * Default event handler for bundle cancellations.
+ */
+void
+BundleEventHandler::handle_bundle_cancelled(BundleSendCancelledEvent*)
+{
+}
+
+/**
  * Default event handler for bundle inject requests
  */
 void
 BundleEventHandler::handle_bundle_inject(BundleInjectRequest*)
+{
+}
+
+/**
+ * Default event handler for bundle injected events.
+ */
+void
+BundleEventHandler::handle_bundle_injected(BundleInjectedEvent*)
+{
+}
+
+/**
+ * Default event handler for bundle delete requests.
+ */
+void
+BundleEventHandler::handle_bundle_delete(BundleDeleteRequest*)
 {
 }
 
@@ -281,6 +396,22 @@ BundleEventHandler::handle_bundle_query(BundleQueryRequest*)
  */
 void
 BundleEventHandler::handle_bundle_report(BundleReportEvent*)
+{
+}
+
+/**
+ * Default event handler for bundle attribute query requests.
+ */
+void
+BundleEventHandler::handle_bundle_attributes_query(BundleAttributesQueryRequest*)
+{
+}
+
+/**
+ * Default event handler for bundle attribute reports.
+ */
+void
+BundleEventHandler::handle_bundle_attributes_report(BundleAttributesReportEvent*)
 {
 }
 
@@ -338,6 +469,14 @@ BundleEventHandler::handle_contact_query(ContactQueryRequest*)
  */
 void
 BundleEventHandler::handle_contact_report(ContactReportEvent*)
+{
+}
+
+/**
+ * Default event handler for contact attribute changes.
+ */
+void
+BundleEventHandler::handle_contact_attribute_changed(ContactAttributeChangedEvent*)
 {
 }
 
@@ -406,6 +545,14 @@ BundleEventHandler::handle_link_delete(LinkDeleteRequest*)
 }
 
 /**
+ * Default event handler for link reconfiguration requests.
+ */
+void
+BundleEventHandler::handle_link_reconfigure(LinkReconfigureRequest*)
+{
+}
+
+/**
  * Default event handler for link query requests.
  */
 void
@@ -418,6 +565,14 @@ BundleEventHandler::handle_link_query(LinkQueryRequest*)
  */
 void
 BundleEventHandler::handle_link_report(LinkReportEvent*)
+{
+}
+
+/**
+ * Default event handler for link attribute changes.
+ */
+void
+BundleEventHandler::handle_link_attribute_changed(LinkAttributeChangedEvent*)
 {
 }
 
@@ -492,6 +647,91 @@ BundleEventHandler::handle_shutdown_request(ShutdownRequest*)
  */
 void
 BundleEventHandler::handle_status_request(StatusRequest*)
+{
+}
+
+/**
+ * Default event handler for CLA parameter set requests.
+ */
+void
+BundleEventHandler::handle_cla_set_params(CLASetParamsRequest*)
+{
+}
+
+/**
+ * Default event handler for CLA parameters set events.
+ */
+void
+BundleEventHandler::handle_cla_params_set(CLAParamsSetEvent*)
+{
+}
+
+/**
+ * Default event handler for set link defaults requests.
+ */
+void
+BundleEventHandler::handle_set_link_defaults(SetLinkDefaultsRequest*)
+{
+}
+
+/**
+ * Default event handler for new EIDs discovered by CLA.
+ */
+void
+BundleEventHandler::handle_new_eid_reachable(NewEIDReachableEvent*)
+{
+}
+
+/**
+ * Default event handlers for queries to and reports from the CLA.
+ */
+void
+BundleEventHandler::handle_bundle_queued_query(BundleQueuedQueryRequest*)
+{
+}
+
+void
+BundleEventHandler::handle_bundle_queued_report(BundleQueuedReportEvent*)
+{
+}
+
+void
+BundleEventHandler::handle_eid_reachable_query(EIDReachableQueryRequest*)
+{
+}
+
+void
+BundleEventHandler::handle_eid_reachable_report(EIDReachableReportEvent*)
+{
+}
+
+void
+BundleEventHandler::handle_link_attributes_query(LinkAttributesQueryRequest*)
+{
+}
+
+void
+BundleEventHandler::handle_link_attributes_report(LinkAttributesReportEvent*)
+{
+}
+
+void
+BundleEventHandler::handle_iface_attributes_query(IfaceAttributesQueryRequest*)
+{
+}
+
+void
+BundleEventHandler::handle_iface_attributes_report(IfaceAttributesReportEvent*)
+{
+}
+
+void
+BundleEventHandler::handle_cla_parameters_query(CLAParametersQueryRequest*)
+{
+}
+
+void
+BundleEventHandler::handle_cla_parameters_report(CLAParametersReportEvent*)
 {
 }
 

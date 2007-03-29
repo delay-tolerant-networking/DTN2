@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/tclcmd/TclCommand.h>
 #include <oasys/util/Time.h>
@@ -66,8 +69,7 @@ BundleDaemon::BundleDaemon()
       Thread("BundleDaemon", CREATE_JOINABLE)
 {
     // default local eid
-    // XXX/demmer fixme
-    local_eid_.assign("dtn://localhost.dtn");
+    local_eid_.assign(EndpointID::NULL_EID());
 
     memset(&stats_, 0, sizeof(stats_));
 
@@ -220,7 +222,7 @@ BundleDaemon::generate_status_report(Bundle* orig_bundle,
 {
     log_debug("generating return receipt status report, "
               "flag = 0x%x, reason = 0x%x", flag, reason);
-        
+    
     Bundle* report = new Bundle();
     BundleStatusReport::create_status_report(report, orig_bundle,
                                              local_eid_, flag, reason);
@@ -386,6 +388,18 @@ BundleDaemon::check_registrations(Bundle* bundle)
 
 //----------------------------------------------------------------------
 void
+BundleDaemon::handle_bundle_delete(BundleDeleteRequest* request)
+{
+    if (request->bundle_.object()) {
+        log_info("BUNDLE_DELETE: bundle *%p (reason %s)",
+                 request->bundle_.object(),
+                 BundleStatusReport::reason_to_str(request->reason_));
+        delete_bundle(request->bundle_.object(), request->reason_);
+    }
+}
+
+//----------------------------------------------------------------------
+void
 BundleDaemon::handle_bundle_accept(BundleAcceptRequest* request)
 {
     *request->result_ =
@@ -463,17 +477,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                  bundle->bundleid_, bundle->creation_ts_.seconds_, now);
     }
 
-    /*
-     * Check if the bundle isn't complete. If so, do reactive
-     * fragmentation.
-     */
-    if (event->source_ == EVENTSRC_PEER) {
-        ASSERT(event->bytes_received_ != 0);
-        size_t payload_offset = BundleProtocol::payload_offset(&bundle->recv_blocks_);
-        fragmentmgr_->try_to_convert_to_fragment(bundle, payload_offset,
-                                                 event->bytes_received_);
-    }
-
     // validate a bundle, including all bundle blocks, received from a peer
     if (event->source_ == EVENTSRC_PEER) { 
         status_report_reason_t
@@ -484,6 +487,37 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                              BundleProtocol::validate(bundle,
                                                       &reception_reason,
                                                       &deletion_reason);
+        
+        // According to BP section 3.3, there are certain things that a bundle
+        // with a null source EID should not try to do. Check for these cases
+        // and reject the bundle if any is true.
+        if (bundle->source_ == EndpointID::NULL_EID()) {
+            if (  bundle->receive_rcpt_ ||
+                  bundle->custody_rcpt_ ||
+                  bundle->forward_rcpt_ ||
+                  bundle->delivery_rcpt_ ||
+                  bundle->deletion_rcpt_ ||
+                  bundle->app_acked_rcpt_) {
+                log_err("bundle with null source eid has requested a report");
+                accept_bundle = false;
+                goto reject_bundle;
+            }
+        
+            if (bundle->custody_requested_) {
+                log_err("bundle with null source eid has requested custody "
+                        "transfer");
+                accept_bundle = false;
+                goto reject_bundle;
+            }
+    
+            if (!bundle->do_not_fragment_) {
+                log_err("bundle with null source eid has not set "
+                        "'do-not-fragment' flag");
+                accept_bundle = false;
+                goto reject_bundle;
+            }
+        }
+        
         /*
          * Send the reception receipt if requested within the primary block
          * or a block validation error was encountered.
@@ -497,6 +531,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         /*
          * Delete a bundle if a validation error was encountered.
          */
+reject_bundle:
         if (!accept_bundle) {
             delete_bundle(bundle, deletion_reason);
             event->daemon_only_ = true;
@@ -504,6 +539,15 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         }
     }
     
+    /*
+     * Check if the bundle isn't complete. If so, do reactive
+     * fragmentation.
+     */
+    if (event->source_ == EVENTSRC_PEER) {
+        ASSERT(event->bytes_received_ != 0);
+        fragmentmgr_->try_to_convert_to_fragment(bundle);
+    }
+
     /*
      * Check if the bundle is a duplicate, i.e. shares a source id,
      * timestamp, and fragmentation information with some other bundle
@@ -590,6 +634,23 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 
     LinkRef link = event->link_;
     ASSERT(link != NULL);
+     
+    log_debug("trying to find xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+    
+    // Because a CL is running in another thread or process (External CLs),
+    // we cannot prevent all redundant transmit/cancel/transmit_failed messages.
+    // If an event about a bundle bound for particular link is posted after another,
+    // which it might contradict, the BundleDaemon need not reprocess the event.
+    // The router (DP) might, however, be interested in the new status of the send.
+    if(blocks == NULL)
+    {
+        log_info("received a redundant/conflicting bundle_transmit event about bundle id:%d -> %s (%s)",
+             bundle->bundleid_,
+             link->name(),
+             link->nexthop());
+        return;
+    }
     
     /*
      * Update statistics. Note that the link's queued length must
@@ -597,8 +658,6 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * yet the transmitted length is only the amount reported by the
      * event.
      */
-    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
-    ASSERT(blocks != NULL);
         
     size_t total_len = BundleProtocol::total_length(blocks);
     
@@ -637,13 +696,16 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         (event->reliably_sent_ == 0))
     {
         bundle->fwdlog_.update(link, ForwardingInfo::TRANSMIT_FAILED);
-        bundle->xmit_blocks_.delete_blocks(link);
+        log_debug("trying to delete xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
+        BundleProtocol::delete_blocks(bundle, link);
         return;
     }
 
     /*
      * Update the forwarding log
      */
+    log_debug("trying to update forward log entry on *%p for %s link %s with nexthop %s and remote eid %s",
+              bundle, link->type_str(), link->name(), link->nexthop(),link->remote_eid().c_str());
     bundle->fwdlog_.update(link, ForwardingInfo::TRANSMITTED);
                             
     /*
@@ -652,6 +714,12 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      */
     ForwardingInfo fwdinfo;
     bool ok = bundle->fwdlog_.get_latest_entry(link, &fwdinfo);
+    if(!ok)
+    {
+        oasys::StringBuffer buf;
+        bundle->fwdlog_.dump(&buf);
+        log_debug("%s",buf.c_str());
+    }
     ASSERTF(ok, "no forwarding log entry for transmission");
     ASSERT(fwdinfo.state_ == ForwardingInfo::TRANSMITTED);
     
@@ -675,7 +743,8 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * Remove the formatted block info from the bundle since we don't
      * need it any more.
      */
-    bundle->xmit_blocks_.delete_blocks(link);
+     log_debug("trying to delete xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
+    BundleProtocol::delete_blocks(bundle, link);
     blocks = NULL;
 
     /*
@@ -708,38 +777,67 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * anywhere else.
      */
     try_delete_from_pending(bundle);
+    
+    // remove the bundle from the link's delayed-send queue
+    if (link->queue()->size() != 0) {
+        if(link->queue()->erase(bundle,false))
+        {
+                log_info("removed delayed-send bundle id:%d from link %s queue",
+                 bundle->bundleid_,
+                 link->name());
+        }
+    }
 }
 
 //----------------------------------------------------------------------
-void
+
+/*void
 BundleDaemon::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
 {
-    /*
-     * The bundle was delivered to a next-hop contact.
-     */
+    
+    // The bundle was delivered to a next-hop contact.
+     
     Bundle* bundle = event->bundleref_.object();
 
     LinkRef link = event->link_;
     ASSERT(link != NULL);
     
-    bundle->xmit_blocks_.delete_blocks(link);
+    log_debug("trying to find xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+    
+    // Because a CL is running in another thread or process (External CLs),
+    // we cannot prevent all redundant transmit/cancel/transmit_failed messages.
+    // If an event about a bundle bound for particular link is posted after another,
+    // which it might contradict, the BundleDaemon need not reprocess the event.
+    // The router (DP) might, however, be interested in the new status of the send.
+    if(blocks == NULL)
+    {
+        log_info("received a redundant/conflicting bundle_transmit_failed event about bundle id:%d -> %s (%s)",
+             bundle->bundleid_,
+             link->name(),
+             link->nexthop());
+        return;
+    }
+    
+    log_debug("trying to delete xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
+    BundleProtocol::delete_blocks(bundle, link);
     
     log_info("BUNDLE_TRANSMIT_FAILED id:%d -> %s (%s)",
              bundle->bundleid_,
              event->contact_->link()->name(),
              event->contact_->link()->nexthop());
     
-    /*
-     * Update the forwarding log so routers know to try to retransmit
-     * on the next contact.
-     */
+
+    // Update the forwarding log so routers know to try to retransmit
+    // on the next contact.
+    
     bundle->fwdlog_.update(event->contact_->link(),
                            ForwardingInfo::TRANSMIT_FAILED);
 
-    /*
-     * Fall through to notify the routers
-     */
-}
+    
+    // Fall through to notify the routers
+    
+}*/
 
 //----------------------------------------------------------------------
 void
@@ -822,10 +920,16 @@ void
 BundleDaemon::handle_bundle_send(BundleSendRequest* event)
 {
     LinkRef link = contactmgr_->find_link(event->link_.c_str());
-    if (link == NULL) return;
+    if (link == NULL){
+        log_err("Cannot send bundle on unknown link %s", event->link_.c_str()); 
+        return;
+    }
 
-    BundleRef br = pending_bundles_->find(event->bundleid_);
-    if (! br.object()) return;
+    BundleRef br = event->bundle_;
+    if (! br.object()){
+        log_err("NULL bundle object in BundleSendRequest");
+        return;
+    }
 
     ForwardingInfo::action_t fwd_action =
         (ForwardingInfo::action_t)event->action_;
@@ -838,13 +942,85 @@ BundleDaemon::handle_bundle_send(BundleSendRequest* event)
 void
 BundleDaemon::handle_bundle_cancel(BundleCancelRequest* event)
 {
-    LinkRef link = contactmgr_->find_link(event->link_.c_str());
-    if (link == NULL) return;
+    BundleRef br = event->bundle_;
 
-    BundleRef br = pending_bundles_->find(event->bundleid_);
-    if(!br.object()) return;
+    if(!br.object()) {
+        log_err("NULL bundle object in BundleCancelRequest");
+        return;
+    }
 
-    actions_->cancel_bundle(br.object(), link);
+    // If the request has a link name, we are just canceling the send on
+    // that link.
+    if (!event->link_.empty()) {
+        LinkRef link = contactmgr_->find_link(event->link_.c_str());
+        if (link == NULL) {
+            log_err("BUNDLE_CANCEL no link with name %s", event->link_.c_str());
+            return;
+        }
+
+        log_info("BUNDLE_CANCEL bundle %d on link %s", br->bundleid_,
+                event->link_.c_str());
+        
+        actions_->cancel_bundle(br.object(), link);
+    }
+    
+    // If the request does not have a link name, the bundle itself has been
+    // canceled (probably by an application).
+    else {
+        delete_bundle(br.object());
+    }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
+{
+    Bundle* bundle = event->bundleref_.object();
+
+    LinkRef link = event->link_;
+    
+    log_debug("trying to find xmit blocks for bundle id:%d on link %s",
+            bundle->bundleid_,link->name());
+    BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
+    
+    // Because a CL is running in another thread or process (External CLs),
+    // we cannot prevent all redundant transmit/cancel/transmit_failed 
+    // messages. If an event about a bundle bound for particular link is 
+    // posted after  another, which it might contradict, the BundleDaemon 
+    // need not reprocess the event. The router (DP) might, however, be 
+    // interested in the new status of the send.
+    if(blocks == NULL)
+    {
+        log_info("received a redundant/conflicting bundle_cancelled event "
+                "about bundle id:%d -> %s (%s)",
+            bundle->bundleid_,
+            link->name(),
+            link->nexthop());
+        return;
+    }
+        
+    size_t total_len = BundleProtocol::total_length(blocks);
+    
+    /*
+     * Update statistics. Note that the link's queued length must
+     * always be decremented by the full formatted size of the bundle.
+     */
+    link->stats()->bundles_queued_--;
+    link->stats()->bytes_queued_ -= total_len;
+    
+    log_info("BUNDLE_CANCELLED id:%d -> %s (%s)",
+            bundle->bundleid_,
+            link->name(),
+            link->nexthop());
+    
+    /*
+     * Remove the formatted block info from the bundle since we don't
+     * need it any more.
+     */
+    log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
+            bundle->bundleid_,link->name());
+    BundleProtocol::delete_blocks(bundle, link);
+    blocks = NULL;
 }
 
 //----------------------------------------------------------------------
@@ -856,15 +1032,28 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
 
     EndpointID src(event->src_); 
     EndpointID dest(event->dest_); 
-    if ((! src.valid()) || (! dest.valid())) return; 
-
-    // The new bundle is *not* placed on the pending queue or
+    if ((! src.valid()) || (! dest.valid())) return;
+    
+    // The bundle's source EID must be either dtn:none or an EID 
+    // registered at this node.
+    const RegistrationTable* reg_table = 
+            BundleDaemon::instance()->reg_table();
+    std::string base_reg_str = src.uri().scheme() + "://" + src.uri().host();
+    
+    if (!reg_table->get(EndpointIDPattern(base_reg_str)) && 
+         src != EndpointID::NULL_EID()) {
+        log_err("this node is not a member of the injected bundle's source "
+                "EID (%s)", src.str().c_str());
+        return;
+    }
+    
+    // The new bundle is placed on the pending queue but not
     // in durable storage (no call to BundleActions::inject_bundle)
     Bundle *bundle=new Bundle();
 
     bundle->source_.assign(src);
     bundle->dest_.assign(dest);
-
+    
     if (! bundle->replyto_.assign(event->replyto_))
         bundle->replyto_.assign(EndpointID::NULL_EID());
 
@@ -880,18 +1069,18 @@ BundleDaemon::handle_bundle_inject(BundleInjectRequest* event)
         bundle->expiration_ = 300;
     else
         bundle->expiration_ = event->expiration_;
+    
 
     // set the payload
-    const u_char *payload = (const u_char*)event->payload_.c_str();
-    bundle->payload_.set_data(payload,sizeof(payload));
+    bundle->payload_.set_data(event->payload_, event->payload_length_);
 
-    // send attempt
-    bool success = false;
-    success = actions_->send_bundle(bundle, link,
-        ForwardingInfo::action_t(event->action_),
-        CustodyTimerSpec::defaults_);
-    if(!success)
-        delete bundle;
+    // The injected bundle is no longer sent automatically. It is
+    // instead added to the pending queue so that it can be resent
+    // or sent on multiple links.
+
+    // If add_to_pending returns false, the bundle has already expired
+    if (add_to_pending(bundle, 0))
+        BundleDaemon::post(new BundleInjectedEvent(bundle, event->request_id_));
 }
 
 //----------------------------------------------------------------------
@@ -905,6 +1094,34 @@ BundleDaemon::handle_bundle_query(BundleQueryRequest*)
 void
 BundleDaemon::handle_bundle_report(BundleReportEvent*)
 {
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_attributes_query(BundleAttributesQueryRequest* request)
+{
+    BundleRef &br = request->bundle_;
+    if (! br.object()) return; // XXX or should it post an empty report?
+
+    log_debug(
+        "BundleDaemon::handle_bundle_attributes_query: query %s, bundle *%p",
+        request->query_id_.c_str(), br.object());
+
+    // we need to keep a reference to the bundle because otherwise it may
+    // be deleted before the event is handled
+    BundleDaemon::post(
+        new BundleAttributesReportEvent(request->query_id_,
+                                        br,
+                                        request->attribute_names_,
+                                        request->extension_blocks_));
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_attributes_report(BundleAttributesReportEvent* event)
+{
+    log_debug("BundleDaemon::handle_bundle_attributes_report: query %s",
+              event->query_id_.c_str());
 }
 
 //----------------------------------------------------------------------
@@ -1051,7 +1268,7 @@ BundleDaemon::handle_link_busy(LinkBusyEvent* event)
     else
     {
         log_info("STALE LINK BUSY NOTIFICATION FOR LINK *%p -- not telling the router or the contact manager", link.object());
-	event->daemon_only_ = true;
+        event->daemon_only_ = true;
     }
 }
 
@@ -1189,9 +1406,49 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 
 //----------------------------------------------------------------------
 void
-BundleDaemon::handle_link_create(LinkCreateRequest*)
+BundleDaemon::handle_link_create(LinkCreateRequest* request)
 {
-    NOTIMPLEMENTED;
+    std::string nexthop("");
+
+    int argc = request->parameters_.size();
+    char* argv[argc];
+    AttributeVector::iterator iter;
+    int i = 0;
+    for (iter = request->parameters_.begin();
+         iter != request->parameters_.end();
+         iter++)
+    {
+        if (iter->name() == "nexthop") {
+            nexthop = iter->string_val();
+        }
+        else {
+            std::string arg = iter->name() + iter->string_val();
+            argv[i] = new char[arg.length()+1];
+            memcpy(argv[i], arg.c_str(), arg.length()+1);
+            i++;
+        }
+    }
+    argc = i+1;
+
+    const char *invalidp;
+    LinkRef link = Link::create_link(request->name_, request->link_type_,
+                                     request->cla_, nexthop.c_str(), argc,
+                                     (const char**)argv, &invalidp);
+    for (i = 0; i < argc; i++) {
+        delete argv[i];
+    }
+
+    if (link == NULL) {
+        log_err("LINK_CREATE %s failed", request->name_.c_str());
+        return;
+    }
+    if (!contactmgr_->add_new_link(link)) {
+        log_err("LINK_CREATE %s failed, already exists",
+                request->name_.c_str());
+        link->delete_link();
+        return;
+    }
+    log_info("LINK_CREATE %s: *%p", request->name_.c_str(), link.object());
 }
 
 //----------------------------------------------------------------------
@@ -1201,9 +1458,21 @@ BundleDaemon::handle_link_delete(LinkDeleteRequest* request)
     LinkRef link = request->link_;
     ASSERT(link != NULL);
 
+    log_info("LINK_DELETE *%p", link.object());
     if (!link->isdeleted()) {
         contactmgr_->del_link(link);
     }
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_reconfigure(LinkReconfigureRequest *request)
+{
+    LinkRef link = request->link_;
+    ASSERT(link != NULL);
+
+    link->reconfigure_link(request->parameters_);
+    log_info("LINK_RECONFIGURE *%p", link.object());
 }
 
 //----------------------------------------------------------------------
@@ -1218,7 +1487,163 @@ void
 BundleDaemon::handle_link_report(LinkReportEvent*)
 {
 }
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_queued_query(BundleQueuedQueryRequest* request)
+{
+    LinkRef link = request->link_;
+    ASSERT(link != NULL);
+    ASSERT(link->clayer() != NULL);
+
+    log_debug("BundleDaemon::handle_bundle_queued_query: "
+              "query %s, checking if bundle *%p is queued on link *%p",
+              request->query_id_.c_str(),
+              request->bundle_.object(), link.object());
+    
+    bool is_queued = link->clayer()->is_queued(link, request->bundle_.object());
+    BundleDaemon::post(
+        new BundleQueuedReportEvent(request->query_id_, is_queued));
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_bundle_queued_report(BundleQueuedReportEvent* event)
+{
+    log_debug("BundleDaemon::handle_bundle_queued_report: query %s, %s",
+              event->query_id_.c_str(),
+              (event->is_queued_? "true" : "false"));
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_eid_reachable_query(EIDReachableQueryRequest* request)
+{
+    Interface *iface = request->iface_;
+    ASSERT(iface != NULL);
+    ASSERT(iface->clayer() != NULL);
+
+    log_debug("BundleDaemon::handle_eid_reachable_query: query %s, "
+              "checking if endpoint %s is reachable via interface *%p",
+              request->query_id_.c_str(), request->endpoint_.c_str(), iface);
+
+    iface->clayer()->is_eid_reachable(request->query_id_,
+                                      iface,
+                                      request->endpoint_);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_eid_reachable_report(EIDReachableReportEvent* event)
+{
+    log_debug("BundleDaemon::handle_eid_reachable_report: query %s, %s",
+              event->query_id_.c_str(),
+              (event->is_reachable_? "true" : "false"));
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_attribute_changed(LinkAttributeChangedEvent *event)
+{
+    LinkRef link = event->link_;
+
+    if (link->isdeleted()) {
+        log_debug("BundleDaemon::handle_link_attribute_changed: "
+                  "link %s deleted", link->name());
+        event->daemon_only_ = true;
+        return;
+    }
+
+    // Update any state as necessary
+    AttributeVector::iterator iter;
+    for (iter = event->attributes_.begin();
+         iter != event->attributes_.end();
+         iter++)
+    {
+        if (iter->name() == "nexthop") {
+            link->set_nexthop(iter->string_val());
+        }
+        else if (iter->name() == "how_reliable") {
+            link->stats()->reliability_ = iter->u_int_val();
+        }
+        else if (iter->name() == "how_available") {
+            link->stats()->availability_ = iter->u_int_val();
+        }
+    }
+    log_info("LINK_ATTRIB_CHANGED *%p", link.object());
+}
   
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_attributes_query(LinkAttributesQueryRequest* request)
+{
+    LinkRef link = request->link_;
+    ASSERT(link != NULL);
+    ASSERT(link->clayer() != NULL);
+
+    log_debug("BundleDaemon::handle_link_attributes_query: query %s, link *%p",
+              request->query_id_.c_str(), link.object());
+
+    link->clayer()->query_link_attributes(request->query_id_,
+                                          link,
+                                          request->attribute_names_);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_link_attributes_report(LinkAttributesReportEvent* event)
+{
+    log_debug("BundleDaemon::handle_link_attributes_report: query %s",
+              event->query_id_.c_str());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_iface_attributes_query(
+                  IfaceAttributesQueryRequest* request)
+{
+    Interface *iface = request->iface_;
+    ASSERT(iface != NULL);
+    ASSERT(iface->clayer() != NULL);
+
+    log_debug("BundleDaemon::handle_iface_attributes_query: "
+              "query %s, interface *%p", request->query_id_.c_str(), iface);
+
+    iface->clayer()->query_iface_attributes(request->query_id_,
+                                            iface,
+                                            request->attribute_names_);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_iface_attributes_report(IfaceAttributesReportEvent* event)
+{
+    log_debug("BundleDaemon::handle_iface_attributes_report: query %s",
+              event->query_id_.c_str());
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_cla_parameters_query(CLAParametersQueryRequest* request)
+{
+    ASSERT(request->cla_ != NULL);
+
+    log_debug("BundleDaemon::handle_cla_parameters_query: "
+              "query %s, convergence layer %s",
+              request->query_id_.c_str(), request->cla_->name());
+
+    request->cla_->query_cla_parameters(request->query_id_,
+                                        request->parameter_names_);
+}
+
+//----------------------------------------------------------------------
+void
+BundleDaemon::handle_cla_parameters_report(CLAParametersReportEvent* event)
+{
+    log_debug("Bundledaemon::handle_cla_parameters_report: query %s",
+              event->query_id_.c_str());
+}
+
 //----------------------------------------------------------------------
 void
 BundleDaemon::handle_contact_up(ContactUpEvent* event)
@@ -1238,7 +1663,7 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::handle_contact_up");
     if (link->contact() != contact)
     {
-	log_info("CONTACT_UP *%p (contact %p) being ignored (old contact)",
+        log_info("CONTACT_UP *%p (contact %p) being ignored (old contact)",
                  link.object(), contact.object());
         return;
     }
@@ -1247,9 +1672,14 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     link->set_state(Link::OPEN);
     link->stats_.contacts_++;
 
-    if (link->queue()->size() != 0) {
-        log_info("sending %zu queued bundles from link to clayer",
-                 link->queue()->size());
+        // If the convergence layer doesn't retain bundles between link up/down
+        // events, then we need to copy the delayed-send queue to it from the link
+    if (!(link->clayer()->has_persistent_link_queues())
+            && link->queue()->size() != 0) {
+        log_info("sending %zu delayed-send bundles from link %s to clayer %s",
+                 link->queue()->size(),
+                 link->name(),
+                 link->clayer()->name());
 
         oasys::ScopeLock l(link->queue()->lock(), "BundleDaemon::handle_contact_up");
         BundleList::iterator i;
@@ -1469,6 +1899,9 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
         }
     }
 
+    // Shutdown all actively registered convergence layers.
+    ConvergenceLayer::shutdown_clayers();
+
     // call the rtr shutdown procedure
     if (rtr_shutdown_proc_) {
         (*rtr_shutdown_proc_)(rtr_shutdown_data_);
@@ -1484,6 +1917,14 @@ BundleDaemon::handle_shutdown_request(ShutdownRequest* request)
 
     // fall through -- the DTNServer will close and flush all the data
     // stores
+}
+//----------------------------------------------------------------------
+
+void
+BundleDaemon::handle_cla_set_params(CLASetParamsRequest* request)
+{
+    ASSERT(request->cla_ != NULL);
+    request->cla_->set_cla_parameters(request->parameters_);
 }
 
 //----------------------------------------------------------------------
@@ -1650,7 +2091,7 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     bool send_status = (bundle->local_custody_ ||
                        (bundle->deletion_rcpt_ &&
                         reason != BundleProtocol::REASON_NO_ADDTL_INFO));
-	
+        
     // check if we have custody, if so, remove it
     if (bundle->local_custody_) {
         release_custody(bundle);
@@ -1671,8 +2112,17 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
         generate_status_report(bundle, BundleProtocol::STATUS_DELETED, reason);
     }
 
-    // XXX/demmer should try to cancel transmission on any links where
-    // the bundle is active
+    // We have a choice to track what bundles are active on what links
+    // and then cancel only on appropriate links, or just cancel on every link.
+    // Since canceling a send is not likely the common case, we will cancel
+    // the bundle on all links for now.
+    oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::delete_bundle");
+    const LinkSet* links = contactmgr_->links();
+    LinkSet::const_iterator iter;
+    for (iter = links->begin(); iter != links->end(); ++iter) {
+        actions_->cancel_bundle(bundle, (*iter));
+    }
+    
 
     return erased;
 }
@@ -1716,9 +2166,10 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
     bundle->lock_.lock("BundleDaemon::handle_bundle_free");
 
     if (bundle->in_datastore_) {
+        log_debug("removing freed bundle from data store");
         actions_->store_del(bundle);
     }
-    
+    log_debug("deleting freed bundle");
     delete bundle;
 }
 
@@ -1857,6 +2308,8 @@ BundleDaemon::init_idle_shutdown(int interval)
 void
 BundleDaemon::run()
 {
+    static const char* LOOP_LOG = "/dtn/bundle/daemon/loop";
+    
     if (! BundleTimestamp::check_local_clock()) {
         exit(1);
     }
@@ -1885,11 +2338,15 @@ BundleDaemon::run()
     
     while (1) {
         if (should_stop()) {
+                log_debug("BundleDaemon: stopping");
             break;
         }
 
         int timeout = timersys->run_expired_timers();
 
+                log_debug_p(LOOP_LOG, 
+                "BundleDaemon: checking eventq_->size() > 0, its size is %zu", 
+                eventq_->size());
         if (eventq_->size() > 0) {
             bool ok = eventq_->try_pop(&event);
             ASSERT(ok);
@@ -1897,18 +2354,22 @@ BundleDaemon::run()
             oasys::Time now;
             now.get_time();
         
+                log_debug_p(LOOP_LOG, "BundleDaemon: handling event %s",
+                        event->type_str());
             // handle the event
             handle_event(event);
 
             int elapsed = now.elapsed_ms();
             if (elapsed > 2000) {
-                log_warn("event %s took %d ms to process",
+                log_warn_p(LOOP_LOG, "event %s took %d ms to process",
                          event->type_str(), elapsed);
             }
 
             // record the last event time
             last_event_.get_time();
 
+                log_debug_p(LOOP_LOG, "BundleDaemon: deleting event %s",
+                        event->type_str());
             // clean up the event
             delete event;
             
@@ -1918,29 +2379,31 @@ BundleDaemon::run()
         pollfds[0].revents = 0;
         pollfds[1].revents = 0;
 
+                log_debug_p(LOOP_LOG, "BundleDaemon: poll_multiple waiting for %d ms", 
+                    timeout);
         int cc = oasys::IO::poll_multiple(pollfds, 2, timeout);
-        log_debug("poll returned %d", cc);
+        log_debug_p(LOOP_LOG, "poll returned %d", cc);
 
         if (cc == oasys::IOTIMEOUT) {
-            log_debug("poll timeout");
+            log_debug_p(LOOP_LOG, "poll timeout");
             continue;
 
         } else if (cc <= 0) {
-            log_err("unexpected return %d from poll_multiple!", cc);
+            log_err_p(LOOP_LOG, "unexpected return %d from poll_multiple!", cc);
             continue;
         }
 
         // if the event poll fired, we just go back to the top of the
         // loop to drain the queue
         if (event_poll->revents != 0) {
-            log_debug("poll returned new event to handle");
+            log_debug_p(LOOP_LOG, "poll returned new event to handle");
         }
 
         // if the timer notifier fired, then someone just scheduled a
         // new timer, so we just continue, which will call
         // run_expired_timers and handle it
         if (timer_poll->revents != 0) {
-            log_debug("poll returned new timers to handle");
+            log_debug_p(LOOP_LOG, "poll returned new timers to handle");
             timersys->notifier()->clear();
         }
     }

@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <oasys/thread/Timer.h>
 #include "SimEvent.h"
 #include "Node.h"
@@ -70,7 +74,7 @@ Node::post_event(BundleEvent* event, bool at_back)
     (void)at_back;
     log_debug("posting event (%p) with type %s at %s ",
               event, event->type_str(),at_back ? "back" : "head");
-	
+        
     eventq_->push(event);
 }
 

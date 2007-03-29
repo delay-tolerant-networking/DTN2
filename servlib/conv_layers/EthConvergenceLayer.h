@@ -74,10 +74,10 @@ public:
      * The basic Eth header structure.
      */
     struct EthCLHeader {
-        u_int8_t  version;		///< ethcl protocol version
+        u_int8_t  version;              ///< ethcl protocol version
         u_int8_t  type;                 ///< 
         u_int16_t _padding2;            ///< 
-        u_int32_t bundle_id;		///< bundle identifier at sender
+        u_int32_t bundle_id;            ///< bundle identifier at sender
     } __attribute__((packed));
 
     /**
@@ -87,20 +87,20 @@ public:
     class EthCLInfo : public CLInfo {
       public:
         EthCLInfo(char* if_name) {
-	    memset(if_name_,0,IFNAMSIZ);
+            memset(if_name_,0,IFNAMSIZ);
             strcpy(if_name_,if_name);
-	    timer    = NULL;
+            timer    = NULL;
         }
 
-	~EthCLInfo() {
-	  if(timer)
+        ~EthCLInfo() {
+          if(timer)
               delete timer;
-	}
+        }
 
         // Name of the device 
         char if_name_[IFNAMSIZ];
 
-	BeaconTimer* timer;
+        BeaconTimer* timer;
     };
 
     /**
@@ -139,6 +139,11 @@ public:
      */
     void send_bundle(const ContactRef& contact, Bundle* bundle);
 
+    /**
+     * Report if the given bundle is queued on the given link.
+     */
+    bool is_queued(const LinkRef& contact, Bundle* bundle);
+    
     /**
      * Tunable parameter structure.
      *
@@ -239,10 +244,10 @@ public:
         eth_addr_t src_hw_addr_;
         eth_addr_t dst_hw_addr_; 
 
-	/// The name of the interface the next_hop is behind
+        /// The name of the interface the next_hop is behind
         char if_name_[IFNAMSIZ]; 
         
-	char canary_[7];
+        char canary_[7];
 
        /**
         * Temporary buffer for formatting bundles. Note that the
@@ -287,7 +292,7 @@ protected:
      * Parses parameters during EthConvegenceLayer initialization
      */
     bool parse_params(Params* params, int argc, const char** argv,
-		      const char** invalidp);
+                      const char** invalidp);
 
 private:
     Beacon *if_beacon_;

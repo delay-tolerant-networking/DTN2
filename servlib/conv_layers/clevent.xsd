@@ -132,7 +132,14 @@
 <!-- *********************************************************************** -->
 <!-- Complex types -->
 
-<xs:element name="Parameter">
+<xs:element name="attribute_name">
+    <xs:complexType>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="key_value_pair">
     <xs:complexType>
         <xs:attribute name="name" type="xs:string" use="required"/>
         <xs:attribute name="value" type="xs:string" use="required"/>
@@ -140,10 +147,11 @@
 </xs:element>
 
 
-<xs:element name="bundleAttributes">
+<xs:element name="bundle_attributes">
     <xs:complexType>
         <xs:attribute name="source_eid" type="xs:string" use="required"/>
-        <xs:attribute name="timestamp" type="xs:long" use="required"/>
+        <xs:attribute name="timestamp_seconds" type="xs:long" use="required"/>
+        <xs:attribute name="timestamp_sequence" type="xs:long" use="required"/>
         <xs:attribute name="is_fragment" type="xs:boolean" use="required"/>
         <xs:attribute name="fragment_length" type="xs:long" use="optional"/>
         <xs:attribute name="fragment_offset" type="xs:long" use="optional"/>
@@ -151,23 +159,42 @@
 </xs:element>
 
 
-<xs:element name="linkAttributes">
+<xs:element name="link_attributes">
     <xs:complexType>
-        <xs:attribute name="type" type="linkTypeType" use="required"/>
-        <xs:attribute name="state" type="linkStateType" use="required"/>
-        <xs:attribute name="peer_eid" type="xs:string" use="required"/>
-        <xs:attribute name="is_reachable" type="xs:boolean" use="required"/>
-        <xs:attribute name="is_usable" type="xs:boolean" use="required"/>
-        <xs:attribute name="how_reliable" type="percentType" use="required"/>
-        <xs:attribute name="how_available" type="percentType" use="required"/>
-        <xs:attribute name="reactive_fragment" type="xs:boolean" use="required"/>
-        <xs:attribute name="underlay_address" type="xs:string" use="required"/>
-        <xs:attribute name="cla_name" type="xs:string" use="required"/>
+        <xs:sequence>
+            <xs:element ref="key_value_pair" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        
+        <xs:attribute name="type" type="linkTypeType" use="optional"/>
+        <xs:attribute name="state" type="linkStateType" use="optional"/>
+        <xs:attribute name="peer_eid" type="xs:string" use="optional"/>
+        <xs:attribute name="is_reachable" type="xs:boolean" use="optional"/>
+        <xs:attribute name="is_usable" type="xs:boolean" use="optional"/>
+        <xs:attribute name="how_reliable" type="percentType" use="optional"/>
+        <xs:attribute name="how_available" type="percentType" use="optional"/>
+        <xs:attribute name="reactive_fragment" type="xs:boolean" use="optional"/>
+        <xs:attribute name="nexthop" type="xs:string" use="optional"/>
+        <xs:attribute name="cla_name" type="xs:string" use="optional"/>
+        <xs:attribute name="high_water_mark" type="xs:integer" use="optional"/>
+        <xs:attribute name="low_water_mark" type="xs:integer" use="optional"/>
     </xs:complexType>
 </xs:element>
 
 
-<xs:element name="contactAttributes">
+<xs:element name="link_config_parameters">
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="key_value_pair" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+
+        <xs:attribute name="is_usable" type="xs:boolean" use="optional"/>
+        <xs:attribute name="reactive_fragment" type="xs:boolean" use="optional"/>
+        <xs:attribute name="nexthop" type="xs:string" use="optional"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="contact_attributes">
     <xs:complexType>
         <xs:attribute name="start_time" type="xs:long" use="required"/>
         <xs:attribute name="duration" type="xs:long" use="required"/>
@@ -210,12 +237,13 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="Parameter" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element ref="key_value_pair" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
 
         <xs:attribute name="local_eid" type="xs:string" use="optional"/>
         <xs:attribute name="create_discovered_links" type="xs:boolean" use="optional"/>
         <xs:attribute name="bundle_pass_method" type="bundlePassMethodType" use="optional"/>
+        <xs:attribute name="reactive_fragment_enabled" type="xs:boolean" use="optional"/>
     </xs:complexType>
 </xs:element>
 
@@ -240,7 +268,7 @@
 
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="Parameter" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element ref="key_value_pair" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 </xs:element>
@@ -253,7 +281,7 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="Parameter" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element ref="key_value_pair" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
 
         <xs:attribute name="interface_name" type="xs:string" use="required"/>
@@ -279,7 +307,7 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="Parameter" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element ref="key_value_pair" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         
         <xs:attribute name="interface_name" type="xs:string" use="required"/>
@@ -333,7 +361,7 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="Parameter" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element ref="link_config_parameters" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
     </xs:complexType>
 </xs:element>
@@ -346,7 +374,7 @@
 
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="Parameter" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element ref="link_config_parameters" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
 
         <xs:attribute name="link_name" type="xs:string" use="required"/>
@@ -363,7 +391,7 @@
 
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="linkAttributes" minOccurs="1" maxOccurs="1"/>
+            <xs:element ref="link_attributes" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
 
         <xs:attribute name="link_name" type="xs:string" use="required"/>
@@ -371,22 +399,6 @@
     </xs:complexType>
 </xs:element>
     
-
-<xs:element name="link_reachable_event">
-    <xs:annotation><xs:documentation xml:lang="en">
-        CLA Interface document equivalent: EventAddReachableLink
-    </xs:documentation></xs:annotation>
-    
-    <xs:complexType>
-        <xs:sequence>
-            <xs:element ref="Parameter" minOccurs="0" maxOccurs="unbounded"/>
-        </xs:sequence>
-        
-        <xs:attribute name="link_name" type="xs:string" use="required"/>
-        <xs:attribute name="peer_eid" type="xs:string" use="required"/>
-    </xs:complexType>
-</xs:element>
-
 
 <xs:element name="link_open_request">
     <xs:annotation><xs:documentation xml:lang="en">
@@ -406,7 +418,7 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="contactAttributes" minOccurs="1" maxOccurs="1"/>
+            <xs:element ref="contact_attributes" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
         
         <xs:attribute name="link_name" type="xs:string" use="required"/>
@@ -432,7 +444,7 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="contactAttributes" minOccurs="1" maxOccurs="1"/>
+            <xs:element ref="contact_attributes" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
         
         <xs:attribute name="link_name" type="xs:string" use="required"/>
@@ -449,6 +461,21 @@
         <xs:attribute name="link_name" type="xs:string" use="required"/>
         <xs:attribute name="new_state" type="linkStateType" use="required"/>
         <xs:attribute name="reason" type="linkReasonType" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="link_reconfigure_request">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: RequestReconfigureLink
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="link_config_parameters" minOccurs="1" maxOccurs="1"/>
+        </xs:sequence>
+
+        <xs:attribute name="link_name" type="xs:string" use="required"/>
     </xs:complexType>
 </xs:element>
 
@@ -470,10 +497,6 @@
     </xs:documentation></xs:annotation>
     
     <xs:complexType>
-        <xs:sequence>
-            <xs:element ref="linkAttributes" minOccurs="1" maxOccurs="1"/>
-        </xs:sequence>
-        
         <xs:attribute name="link_name" type="xs:string" use="required"/>
         <xs:attribute name="reason" type="linkReasonType" use="required"/>
     </xs:complexType>
@@ -487,7 +510,7 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="linkAttributes" minOccurs="1" maxOccurs="1"/>
+            <xs:element ref="link_attributes" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
         
         <xs:attribute name="link_name" type="xs:string" use="required"/>
@@ -503,11 +526,27 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="contactAttributes" minOccurs="1" maxOccurs="1"/>
+            <xs:element ref="contact_attributes" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
         
         <xs:attribute name="link_name" type="xs:string" use="required"/>
         <xs:attribute name="reason" type="linkReasonType" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="link_add_reachable_event">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: EventAddReachableLink
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="link_config_parameters" minOccurs="1" maxOccurs="1"/>
+        </xs:sequence>
+        
+        <xs:attribute name="link_name" type="xs:string" use="required"/>
+        <xs:attribute name="peer_eid" type="xs:string" use="required"/>
     </xs:complexType>
 </xs:element>
 
@@ -522,7 +561,7 @@
 
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="bundleAttributes" minOccurs="1" maxOccurs="1"/>
+            <xs:element ref="bundle_attributes" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
         
         <xs:attribute name="link_name" type="xs:string" use="required"/>
@@ -563,7 +602,7 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="bundleAttributes" minOccurs="1" maxOccurs="1"/>
+            <xs:element ref="bundle_attributes" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
         
         <xs:attribute name="link_name" type="xs:string" use="required"/>
@@ -580,7 +619,7 @@
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="bundleAttributes" minOccurs="1" maxOccurs="1"/>
+            <xs:element ref="bundle_attributes" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
         
         <xs:attribute name="link_name" type="xs:string" use="required"/>
@@ -588,17 +627,165 @@
 </xs:element>
 
 
-<xs:element name="bundle_cancelled_event">
+<xs:element name="bundle_canceled_event">
     <xs:annotation><xs:documentation xml:lang="en">
         CLA Interface document equivalent: EventBundleSendCanceled
     </xs:documentation></xs:annotation>
     
     <xs:complexType>
         <xs:sequence>
-            <xs:element ref="bundleAttributes" minOccurs="1" maxOccurs="1"/>
+            <xs:element ref="bundle_attributes" minOccurs="1" maxOccurs="1"/>
         </xs:sequence>
         
         <xs:attribute name="link_name" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<!-- *********************************************************************** -->
+<!-- Query/report messages -->
+
+<xs:element name="query_bundle_queued">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: QueryBundleQueued
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="bundle_attributes" minOccurs="1" maxOccurs="1"/>
+        </xs:sequence>
+        
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
+        <xs:attribute name="link_name" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="report_bundle_queued">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: ReportBundleQueued
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
+        <xs:attribute name="is_queued" type="xs:boolean" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="query_eid_reachable">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: QueryEIDReachable
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
+        <xs:attribute name="interface_name" type="xs:string" use="required"/>
+        <xs:attribute name="peer_eid" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="report_eid_reachable">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: ReportEIDReachable
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
+        <xs:attribute name="is_reachable" type="xs:boolean" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="query_link_attributes">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: QueryLinkAttributes
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="attribute_name" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        
+        <xs:attribute name="link_name" type="xs:string" use="required"/>
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="report_link_attributes">
+    <xs:annotation><xs:documentation xml:lang="en">
+            CLA Interface document equivalent: ReportLinkAttributes
+        </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="key_value_pair" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="query_interface_attributes">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: QueryInterfaceAttributes
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="attribute_name" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        
+        <xs:attribute name="interface_name" type="xs:string" use="required"/>
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="report_interface_attributes">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: ReportInterfaceAttributes
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="key_value_pair" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="query_cla_parameters">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: QueryCLAParameters
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="attribute_name" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:element>
+
+
+<xs:element name="report_cla_parameters">
+    <xs:annotation><xs:documentation xml:lang="en">
+        CLA Interface document equivalent: ReportCLAParameters
+    </xs:documentation></xs:annotation>
+    
+    <xs:complexType>
+        <xs:sequence>
+            <xs:element ref="key_value_pair" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        
+        <xs:attribute name="query_id" type="xs:string" use="required"/>
     </xs:complexType>
 </xs:element>
 
@@ -625,23 +812,35 @@
             <xs:element ref="link_set_defaults_request"/>
             <xs:element ref="link_create_request"/>
             <xs:element ref="link_created_event"/>
-            <xs:element ref="link_reachable_event"/>
             <xs:element ref="link_open_request"/>
             <xs:element ref="link_opened_event"/>
             <xs:element ref="link_close_request"/>
             <xs:element ref="link_closed_event"/>
             <xs:element ref="link_state_changed_event"/>
+            <xs:element ref="link_reconfigure_request"/>
             <xs:element ref="link_delete_request"/>
             <xs:element ref="link_deleted_event"/>
             <xs:element ref="link_attribute_changed_event"/>
             <xs:element ref="contact_attribute_changed_event"/>
+            <xs:element ref="link_add_reachable_event"/>
             
             <xs:element ref="bundle_send_request"/>
             <xs:element ref="bundle_receive_started_event"/>
             <xs:element ref="bundle_received_event"/>
             <xs:element ref="bundle_transmitted_event"/>
             <xs:element ref="bundle_cancel_request"/>
-            <xs:element ref="bundle_cancelled_event"/>
+            <xs:element ref="bundle_canceled_event"/>
+            
+            <xs:element ref="query_bundle_queued"/>
+            <xs:element ref="report_bundle_queued"/>
+            <xs:element ref="query_eid_reachable"/>
+            <xs:element ref="report_eid_reachable"/>
+            <xs:element ref="query_link_attributes"/>
+            <xs:element ref="report_link_attributes"/>
+            <xs:element ref="query_interface_attributes"/>
+            <xs:element ref="report_interface_attributes"/>
+            <xs:element ref="query_cla_parameters"/>
+            <xs:element ref="report_cla_parameters"/>
         </xs:choice>
     </xs:complexType>
 </xs:element>

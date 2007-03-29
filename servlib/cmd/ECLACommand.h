@@ -18,8 +18,7 @@ $Id$
 #ifndef _ECLA_COMMAND_H_
 #define _ECLA_COMMAND_H_
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <oasys/tclcmd/TclCommand.h>
 
@@ -37,5 +36,5 @@ public:
 
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_CL_ENABLED
 #endif // _ECLA_COMMAND_H_ 

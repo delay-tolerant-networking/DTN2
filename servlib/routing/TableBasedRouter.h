@@ -56,7 +56,7 @@ protected:
     /**
      * Handler for transmission failures.
      */
-    virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
+    //virtual void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
     
     /**
      * Default event handler when a new route is added by the command

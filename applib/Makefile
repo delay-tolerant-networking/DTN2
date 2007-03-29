@@ -61,7 +61,7 @@ all: libs
 #
 %_xdr.o: %_xdr.c
 	@rm -f $@; mkdir -p $(@D)
-	$(CC) $(CFLAGS_NOWARN) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS_NOWARN) -c $< -o $@
 
 #
 # Make sure SRCDIR is set (.. by default)
@@ -93,7 +93,7 @@ libdtnapi.a: $(CLIENTLIB_OBJS)
 
 libdtnapi.$(SHLIB_EXT): $(CLIENTLIB_OBJS)
 	rm -f $@
-	$(CXX) $^ $(LDFLAGS_SHLIB) $(LDFLAGS) -o $@
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) $(LDFLAGS) -o $@
 
 libdtnapi++.a: $(CLIENT_EXTRA_OBJS)
 	rm -f $@
@@ -102,7 +102,7 @@ libdtnapi++.a: $(CLIENT_EXTRA_OBJS)
 
 libdtnapi++.$(SHLIB_EXT): $(CLIENT_EXTRA_OBJS)
 	rm -f $@
-	$(CXX) $^ $(LDFLAGS_SHLIB) $(LDFLAGS) -L../oasys -loasys -L. -ldtnapi -o $@
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS_SHLIB) -L../oasys -loasys -L. -ldtnapi $(LDFLAGS) -o $@
 
 foo:
 	echo $(CLIENTLIB)

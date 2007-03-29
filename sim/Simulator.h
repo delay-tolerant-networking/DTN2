@@ -56,7 +56,7 @@ public:
      * Constructor.
      */
     Simulator(DTNStorageConfig* storage_config);
-	
+        
     /**
      * Destructor.
      */
@@ -83,7 +83,7 @@ public:
      */
     void pause();
     
-    static double runtill_;		///< time to end the simulation
+    static double runtill_;             ///< time to end the simulation
     
 private:
     /**
@@ -97,13 +97,13 @@ private:
      */
     int run_node_events();
 
-    static Simulator* instance_;	///< singleton instance
-    static double time_;		///< current time (static to avoid object)
+    static Simulator* instance_;        ///< singleton instance
+    static double time_;                ///< current time (static to avoid object)
 
     std::priority_queue<SimEvent*,
                         std::vector<SimEvent*>,
                         SimEventCompare> eventq_;
-	
+        
     oasys::DurableStore* store_;
 };
 

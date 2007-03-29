@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include <oasys/debug/Log.h>
 #include "BlockInfo.h"
 #include "BlockProcessor.h"
@@ -85,22 +89,13 @@ BlockInfo::set_flag(u_int8_t flag)
 
 //----------------------------------------------------------------------
 bool
-BlockInfo::primary_block() const
-{
-    return (type() == BundleProtocol::PRIMARY_BLOCK);
-}
-
-//----------------------------------------------------------------------
-bool
-BlockInfo::payload_block() const
-{
-    return (type() == BundleProtocol::PAYLOAD_BLOCK);
-}
-
-//----------------------------------------------------------------------
-bool
 BlockInfo::last_block() const
 {
+    //check if it's too small to be flagged as last
+    if (contents_.len() < 2)
+    {
+        return 0;
+    }
     return (flags() & BundleProtocol::BLOCK_FLAG_LAST_BLOCK);
 }
 

@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/thread/SpinLock.h>
@@ -81,7 +84,8 @@ Bundle::Bundle(const oasys::Builder&)
     // fields are set and the payload initialized when loading from
     // the database
     refcount_	      = 0;
-    bundleid_ 	      = 0xffffffff;
+    //bundleid_ 	      = 0xffffffff;
+    init(0xffffffff);
     expiration_timer_ = NULL;
     freed_	      = false;
 }

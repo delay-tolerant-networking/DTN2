@@ -82,6 +82,7 @@ protected:
     int handle_bind();
     int handle_unbind();
     int handle_send();
+    int handle_cancel();
     int handle_recv();
     int handle_begin_poll();
     int handle_cancel_poll();

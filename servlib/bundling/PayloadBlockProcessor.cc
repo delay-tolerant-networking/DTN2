@@ -14,6 +14,10 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "PayloadBlockProcessor.h"
 #include "Bundle.h"
 #include "BundleProtocol.h"
@@ -103,6 +107,41 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
                 block->complete() ? "complete" : "not complete");
     
     return consumed;
+}
+
+//----------------------------------------------------------------------
+bool
+PayloadBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
+                     BundleProtocol::status_report_reason_t* reception_reason,
+                     BundleProtocol::status_report_reason_t* deletion_reason)
+{
+    static const char* log = "/dtn/bundle/protocol";
+
+    // check for generic block errors
+    if (!BlockProcessor::validate(bundle, block,
+                                  reception_reason, deletion_reason)) {
+        return false;
+    }
+
+    if (!block->complete()) {
+        // We do not need the block to be complete because we may be
+        // able to reactively fragment it, but we must have at least
+        // the full preamble to do so.
+        if (block->data_offset() == 0
+            // There is not much value in a 0-byte payload fragment so
+            // discard those as well.
+            || (block->data_length() != 0 && bundle->payload_.length() == 0)
+            // If the bundle should not be fragmented and the payload
+            // block is not complete, we must discard the bundle.
+            || bundle->do_not_fragment_) {
+
+            log_err_p(log, "payload incomplete and cannot be fragmented");
+            *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+            return false;
+        }
+    }
+
+    return true;
 }
 
 //----------------------------------------------------------------------

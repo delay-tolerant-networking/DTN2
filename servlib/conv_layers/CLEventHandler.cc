@@ -15,8 +15,11 @@
  * $Id$
  */
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <exception>
 #include <oasys/serialize/XMLSerialize.h>
@@ -37,15 +40,27 @@ CLEventHandler::dispatch_cl_event(cl_message* message)
     } } while (false);
 
     DISPATCH_MESSAGE(cla_add_request);
+    DISPATCH_MESSAGE(cla_delete_request);
+    DISPATCH_MESSAGE(cla_params_set_event);
     DISPATCH_MESSAGE(interface_created_event);
+    DISPATCH_MESSAGE(interface_reconfigured_event);
+    DISPATCH_MESSAGE(eid_reachable_event);
     DISPATCH_MESSAGE(link_created_event);
     DISPATCH_MESSAGE(link_opened_event);
     DISPATCH_MESSAGE(link_closed_event);
     DISPATCH_MESSAGE(link_state_changed_event);
     DISPATCH_MESSAGE(link_deleted_event);
+    DISPATCH_MESSAGE(link_attribute_changed_event);
+    DISPATCH_MESSAGE(contact_attribute_changed_event);
+    DISPATCH_MESSAGE(link_add_reachable_event);
     DISPATCH_MESSAGE(bundle_transmitted_event);
-    DISPATCH_MESSAGE(bundle_cancelled_event);
+    DISPATCH_MESSAGE(bundle_canceled_event);
+    DISPATCH_MESSAGE(bundle_receive_started_event);
     DISPATCH_MESSAGE(bundle_received_event);
+    DISPATCH_MESSAGE(report_eid_reachable);
+    DISPATCH_MESSAGE(report_link_attributes);
+    DISPATCH_MESSAGE(report_interface_attributes);
+    DISPATCH_MESSAGE(report_cla_parameters);
     
 #undef DISPATCH_MESSAGE
 }
@@ -85,4 +100,4 @@ CLEventHandler::clear_parser(oasys::XMLUnmarshal& parser)
 
 } // namespace dtn
 
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_CL_ENABLED

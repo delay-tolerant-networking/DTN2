@@ -19,22 +19,28 @@
  *    derived from this software without specific prior written permission.
  */
 
-#include <config.h>
-#ifdef XERCES_C_ENABLED
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
+#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
 
 #include <memory>
 #include <iostream>
 #include <map>
 #include <sys/ioctl.h>
 #include <string.h>
+#include <time.h>
 #include <netinet/in.h>
 #include <sstream>
 #include <xercesc/framework/MemBufFormatTarget.hpp>
 
 #include "ExternalRouter.h"
+#include "bundling/GbofId.h"
 #include "bundling/BundleDaemon.h"
 #include "bundling/BundleActions.h"
 #include "contacts/ContactManager.h"
+#include "contacts/NamedAttribute.h"
 #include "reg/RegistrationTable.h"
 #include "conv_layers/ConvergenceLayer.h"
 #include <oasys/io/UDPClient.h>
@@ -42,7 +48,7 @@
 #include <oasys/io/IO.h>
 
 #define SEND(event, data) \
-    rtrmessage::dtn message; \
+    rtrmessage::bpa message; \
     message.event(data); \
     send(message);
 
@@ -50,6 +56,8 @@
     catch (exception &e) { log_warn(e.what()); }
 
 namespace dtn {
+
+using namespace rtrmessage;
 
 ExternalRouter::ExternalRouter()
     : BundleRouter("ExternalRouter", "external")
@@ -86,8 +94,8 @@ ExternalRouter::initialize()
     srv_ = new ModuleServer();
     srv_->start();
 
-    rtrmessage::dtn message;
-    message.alert(rtrmessage::dtnStatusType(std::string("justBooted")));
+    bpa message;
+    message.alert(dtnStatusType(std::string("justBooted")));
     message.hello_interval(ExternalRouter::hello_interval);
     send(message);
     hello_->schedule_in(ExternalRouter::hello_interval * 1000);
@@ -96,7 +104,7 @@ ExternalRouter::initialize()
 void
 ExternalRouter::shutdown()
 {
-    rtrmessage::dtnStatusType e(std::string("shuttingDown"));
+    dtnStatusType e(std::string("shuttingDown"));
     SEND(alert, e)
 }
 
@@ -133,10 +141,17 @@ ExternalRouter::handle_bundle_received(BundleReceivedEvent *event)
     // filter out bundles already delivered
     if (event->bundleref_->owner_ == "daemon") return;
 
-    rtrmessage::dtn::bundle_received_event::type e(
+    bpa::bundle_received_event::type e(
         event->bundleref_.object(),
-        (xml_schema::string)source_to_str((event_source_t)event->source_),
+        event->bundleref_.object()->dest_,
+        event->bundleref_.object()->custodian_,
+        event->bundleref_.object()->replyto_,
+        event->bundleref_.object()->expiration_,
         event->bytes_received_);
+
+    // optional param, so has to be added after constructor call
+    e.prevhop(event->bundleref_.object()->prevhop_);
+
     SEND(bundle_received_event, e)
 }
 
@@ -145,92 +160,168 @@ ExternalRouter::handle_bundle_transmitted(BundleTransmittedEvent* event)
 {
     if (event->contact_ == NULL) return;
 
-    rtrmessage::dtn::bundle_transmitted_event::type e(
+    bpa::data_transmitted_event::type e(
         event->bundleref_.object(),
-        event->contact_.object(),
-        event->link_.object(),
+        event->link_.object()->name_str(),
         event->bytes_sent_,
         event->reliably_sent_);
-    SEND(bundle_transmitted_event, e)
+    SEND(data_transmitted_event, e)
 }
 
-void
+// XXX/acaro Not in DP iface spec. 
+//       Leaving it w/ message name and params matching data_transmitted_event 
+/*void
 ExternalRouter::handle_bundle_transmit_failed(BundleTransmitFailedEvent* event)
 {
     if (event->contact_ == NULL) return;
 
-    rtrmessage::dtn::bundle_transmit_failed_event::type e(
+    bpa::data_transmit_failed_event::type e(
         event->bundleref_.object(),
-        event->contact_.object(),
-        event->link_.object());
-    SEND(bundle_transmit_failed_event, e)
+        event->link_.object()->name_str());
+    SEND(data_transmit_failed_event, e)
+}*/
+
+void
+ExternalRouter::handle_bundle_delivered(BundleDeliveredEvent* event)
+{
+    bpa::bundle_delivered_event::type e(
+        event->bundleref_.object());
+    SEND(bundle_delivered_event, e)
 }
 
 void
 ExternalRouter::handle_bundle_expired(BundleExpiredEvent* event)
 {
-    rtrmessage::dtn::bundle_expired_event::type e(
+    bpa::bundle_expired_event::type e(
         event->bundleref_.object());
     SEND(bundle_expired_event, e)
 }
 
 void
+ExternalRouter::handle_bundle_cancelled(BundleSendCancelledEvent* event)
+{
+    bpa::bundle_send_cancelled_event::type e(
+        event->bundleref_.object(),
+        event->link_.object()->name_str());
+    SEND(bundle_send_cancelled_event, e)
+}
+
+void
+ExternalRouter::handle_bundle_injected(BundleInjectedEvent* event)
+{
+    bpa::bundle_injected_event::type e(
+        event->request_id_,
+        event->bundleref_.object());
+    SEND(bundle_injected_event, e)
+}
+
+void
 ExternalRouter::handle_contact_up(ContactUpEvent* event)
 {
-    rtrmessage::dtn::contact_up_event::type e(
-        event->contact_.object());
-    SEND(contact_up_event, e)
+    ASSERT(event->contact_->link() != NULL);
+    ASSERT(!event->contact_->link()->isdeleted());
+        
+    bpa::link_opened_event::type e(
+        event->contact_.object(),
+        event->contact_->link().object()->name_str());
+    SEND(link_opened_event, e)
 }
 
 void
 ExternalRouter::handle_contact_down(ContactDownEvent* event)
 {
-    rtrmessage::dtn::contact_down_event::type e(
+    bpa::link_closed_event::type e(
         event->contact_.object(),
-        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
-    SEND(contact_down_event, e)
+        event->contact_->link().object()->name_str(),
+        contactReasonType(reason_to_str(event->reason_)));
+    SEND(link_closed_event, e)
 }
 
 void
 ExternalRouter::handle_link_created(LinkCreatedEvent *event)
 {
-    rtrmessage::dtn::link_created_event::type e(
+    ASSERT(event->link_ != NULL);
+    ASSERT(!event->link_->isdeleted());
+        
+    bpa::link_created_event::type e(
         event->link_.object(),
-        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
+        event->link_.object()->name_str(),
+        contactReasonType(reason_to_str(event->reason_)));
     SEND(link_created_event, e)
 }
 
 void
 ExternalRouter::handle_link_deleted(LinkDeletedEvent *event)
 {
-    rtrmessage::dtn::link_deleted_event::type e(
-        event->link_.object(),
-        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
+    ASSERT(event->link_ != NULL);
+
+    bpa::link_deleted_event::type e(
+        event->link_.object()->name_str(),
+        contactReasonType(reason_to_str(event->reason_)));
     SEND(link_deleted_event, e)
 }
 
 void
 ExternalRouter::handle_link_available(LinkAvailableEvent *event)
 {
-    rtrmessage::dtn::link_available_event::type e(
-        event->link_.object(),
-        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
+    ASSERT(event->link_ != NULL);
+    ASSERT(!event->link_->isdeleted());
+        
+    bpa::link_available_event::type e(
+        event->link_.object()->name_str(),
+        contactReasonType(reason_to_str(event->reason_)));
     SEND(link_available_event, e)
 }
 
 void
 ExternalRouter::handle_link_unavailable(LinkUnavailableEvent *event)
 {
-    rtrmessage::dtn::link_unavailable_event::type e(
-        event->link_.object(),
-        rtrmessage::contactReasonType(reason_to_str(event->reason_)));
+    bpa::link_unavailable_event::type e(
+        event->link_.object()->name_str(),
+        contactReasonType(reason_to_str(event->reason_)));
     SEND(link_unavailable_event, e)
+}
+
+void
+ExternalRouter::handle_link_attribute_changed(LinkAttributeChangedEvent *event)
+{
+    ASSERT(event->link_ != NULL);
+    ASSERT(!event->link_->isdeleted());
+        
+    bpa::link_attribute_changed_event::type e(
+        event->link_.object(),
+        event->link_.object()->name_str(),
+        contactReasonType(reason_to_str(event->reason_)));
+    SEND(link_attribute_changed_event, e)
+}
+
+void
+ExternalRouter::handle_new_eid_reachable(NewEIDReachableEvent* event)
+{
+    bpa::eid_reachable_event::type e(
+        event->endpoint_,
+        event->iface_->name());
+    SEND(eid_reachable_event, e)
+}
+
+void
+ExternalRouter::handle_contact_attribute_changed(ContactAttributeChangedEvent *event)
+{
+    ASSERT(event->contact_->link() != NULL);
+    ASSERT(!event->contact_->link()->isdeleted());
+        
+    // @@@ is this right? contact_eid same as link's remote_eid?
+    bpa::contact_attribute_changed_event::type e(
+        eidType(event->contact_->link()->remote_eid().str()), 
+        event->contact_.object(),
+        contactReasonType(reason_to_str(event->reason_)));
+    SEND(contact_attribute_changed_event, e)
 }
 
 void
 ExternalRouter::handle_link_busy(LinkBusyEvent *event)
 {
-    rtrmessage::dtn::link_busy_event::type e(
+    bpa::link_busy_event::type e(
         event->link_.object());
     SEND(link_busy_event, e)
 }
@@ -238,7 +329,7 @@ ExternalRouter::handle_link_busy(LinkBusyEvent *event)
 void
 ExternalRouter::handle_registration_added(RegistrationAddedEvent* event)
 {
-    rtrmessage::dtn::registration_added_event::type e(
+    bpa::registration_added_event::type e(
         event->registration_,
         (xml_schema::string)source_to_str((event_source_t)event->source_));
     SEND(registration_added_event, e)
@@ -247,7 +338,7 @@ ExternalRouter::handle_registration_added(RegistrationAddedEvent* event)
 void
 ExternalRouter::handle_registration_removed(RegistrationRemovedEvent* event)
 {
-    rtrmessage::dtn::registration_removed_event::type e(
+    bpa::registration_removed_event::type e(
         event->registration_);
     SEND(registration_removed_event, e)
 }
@@ -255,7 +346,7 @@ ExternalRouter::handle_registration_removed(RegistrationRemovedEvent* event)
 void
 ExternalRouter::handle_registration_expired(RegistrationExpiredEvent* event)
 {
-    rtrmessage::dtn::registration_expired_event::type e(
+    bpa::registration_expired_event::type e(
         event->regid_);
     SEND(registration_expired_event, e)
 }
@@ -266,7 +357,7 @@ ExternalRouter::handle_route_add(RouteAddEvent* event)
     // update our own static route table first
     route_table_->add_entry(event->entry_);
 
-    rtrmessage::dtn::route_add_event::type e(
+    bpa::route_add_event::type e(
         event->entry_);
     SEND(route_add_event, e)
 }
@@ -277,16 +368,15 @@ ExternalRouter::handle_route_del(RouteDelEvent* event)
     // update our own static route table first
     route_table_->del_entries(event->dest_);
 
-    rtrmessage::dtn::route_delete_event::type e(
-        rtrmessage::eidType(event->dest_.str()));
+    bpa::route_delete_event::type e(
+        eidType(event->dest_.str()));
     SEND(route_delete_event, e)
 }
 
 void
 ExternalRouter::handle_custody_signal(CustodySignalEvent* event)
 {
-    rtrmessage::dtn::custody_signal_event::type e(
-        rtrmessage::eidType(event->data_.orig_source_eid_.str()),
+    custodySignalType attr(
         event->data_.admin_type_,
         event->data_.admin_flags_,
         event->data_.succeeded_,
@@ -297,23 +387,25 @@ ExternalRouter::handle_custody_signal(CustodySignalEvent* event)
         event->data_.custody_signal_tv_.seqno_,
         event->data_.orig_creation_tv_.seconds_,
         event->data_.orig_creation_tv_.seqno_);
+
+    bpa::custody_signal_event::type e(
+        event->data_,
+        attr);
+
     SEND(custody_signal_event, e)
 }
 
 void
 ExternalRouter::handle_custody_timeout(CustodyTimeoutEvent* event)
 {
-    rtrmessage::dtn::custody_timeout_event::type e(
-        event->bundle_.object(),
-        event->link_.object());
+    bpa::custody_timeout_event::type e(
+        event->bundle_.object());
     SEND(custody_timeout_event, e)
 }
 
 void
 ExternalRouter::handle_link_report(LinkReportEvent *event)
 {
-    typedef rtrmessage::link_report link_report;
-
     BundleDaemon *bd = BundleDaemon::instance();
     oasys::ScopeLock l(bd->contactmgr()->lock(),
         "ExternalRouter::handle_event");
@@ -335,10 +427,25 @@ ExternalRouter::handle_link_report(LinkReportEvent *event)
 }
 
 void
+ExternalRouter::handle_link_attributes_report(LinkAttributesReportEvent *event)
+{
+    AttributeVector::const_iterator iter = event->attributes_.begin();
+    AttributeVector::const_iterator end = event->attributes_.end();
+
+    link_attributes_report::report_params::container c;
+
+    for(; iter != end; ++iter) {
+      c.push_back( key_value_pair(*iter) );
+    }
+
+    link_attributes_report e(event->query_id_);
+    e.report_params(c);
+    SEND(link_attributes_report, e)
+}
+
+void
 ExternalRouter::handle_contact_report(ContactReportEvent* event)
 {
-    typedef rtrmessage::contact_report contact_report;
-
     BundleDaemon *bd = BundleDaemon::instance();
     oasys::ScopeLock l(bd->contactmgr()->lock(),
         "ExternalRouter::handle_event");
@@ -365,8 +472,6 @@ ExternalRouter::handle_contact_report(ContactReportEvent* event)
 void
 ExternalRouter::handle_bundle_report(BundleReportEvent *event)
 {
-    typedef rtrmessage::bundle_report bundle_report;
-
     BundleDaemon *bd = BundleDaemon::instance();
     oasys::ScopeLock l(bd->pending_bundles()->lock(),
         "ExternalRouter::handle_event");
@@ -388,10 +493,130 @@ ExternalRouter::handle_bundle_report(BundleReportEvent *event)
 }
 
 void
+ExternalRouter::handle_bundle_attributes_report(BundleAttributesReportEvent *event)
+{
+    BundleRef br = event->bundle_;
+
+    bundleAttributesReportType response;
+
+    AttributeNameVector::iterator i = event->attribute_names_.begin();
+    AttributeNameVector::iterator end = event->attribute_names_.end();
+
+    for (; i != end; ++i) {
+        const std::string& name = i->name();
+
+        if (name == "bundleid")
+            response.bundleid( br->bundleid_ );
+        else if (name == "is_admin")
+            response.is_admin( br->is_admin_ );
+        else if (name == "do_not_fragment")
+            response.do_not_fragment( br->do_not_fragment_ );
+        else if (name == "priority")
+            response.priority(
+                bundlePriorityType(lowercase(br->prioritytoa(br->priority_))) );
+        else if (name == "custody_requested")
+            response.custody_requested( br->custody_requested_ );
+        else if (name == "local_custody")
+            response.local_custody( br->local_custody_ );
+        else if (name == "singleton_dest")
+            response.singleton_dest( br->singleton_dest_ );
+        else if (name == "custody_rcpt")
+            response.custody_rcpt( br->custody_rcpt_ );
+        else if (name == "receive_rcpt")
+            response.receive_rcpt( br->receive_rcpt_ );
+        else if (name == "forward_rcpt")
+            response.forward_rcpt( br->forward_rcpt_ );
+        else if (name == "delivery_rcpt")
+            response.delivery_rcpt( br->delivery_rcpt_ );
+        else if (name == "deletion_rcpt")
+            response.deletion_rcpt( br->deletion_rcpt_ );
+        else if (name == "app_acked_rcpt")
+            response.app_acked_rcpt( br->app_acked_rcpt_ );
+        else if (name == "expiration")
+            response.expiration( br->expiration_ );
+        else if (name == "orig_length")
+            response.orig_length( br->orig_length_ );
+        else if (name == "owner")
+            response.owner( br->owner_ );
+        else if (name == "location")
+            response.location(
+                bundleLocationType(
+                    bundleType::location_to_str(br->payload_.location())) );
+        else if (name == "dest")
+            response.dest( br->dest_ );
+        else if (name == "custodian")
+            response.custodian( br->custodian_ );
+        else if (name == "replyto")
+            response.replyto( br->replyto_ );
+        else if (name == "prevhop")
+            response.prevhop( br->prevhop_ );
+        else if (name == "payload") {
+            int len = br->payload_.length();
+            u_char buf[len];
+            br->payload_.read_data(0, len, buf); 
+            response.payload( xml_schema::base64_binary(buf, len) );
+        }
+        else if (name == "ext_block_list") {
+            bundleAttributesReportType::ext_block_list::container c;
+
+            BlockInfoVec& blocks = br->recv_blocks_;
+            BlockInfoVec::const_iterator iter;
+            int index = 1;
+            for (iter = blocks.begin(); iter != blocks.end(); ++iter)
+            {
+                if (iter->type() != BundleProtocol::PRIMARY_BLOCK
+                    && iter->type() != BundleProtocol::PAYLOAD_BLOCK) {
+
+                    oasys::StringBuffer buf;
+                    buf.appendf("%d", index);
+                    bundleExtBlockQueryType block(iter->type());
+                    block.identifier(buf.c_str());
+                    c.push_back(block);
+                }
+                index++;
+            }
+            response.ext_block_list(c);
+        }
+    }
+
+    if (event->extension_blocks_.size() > 0) {
+        BlockInfoVec& blocks = br->recv_blocks_;
+
+        bundleAttributesReportType::ext_blocks::container c;
+
+        AttributeVector::iterator i = event->extension_blocks_.begin();
+        AttributeVector::iterator end = event->extension_blocks_.begin();
+
+        for (; i != end; ++i) {
+            BlockInfoVec::const_iterator iter;
+            u_int8_t type = i->u_int_val();
+            int index = 1;
+            for (iter = blocks.begin(); iter != blocks.end(); ++iter)
+            {
+                if (iter->type() == type) {
+                    oasys::StringBuffer buf;
+                    buf.appendf("%d", index);
+                    if (i->name() == "" || i->name() == buf.c_str()) {
+                        // @@@ this includes the entire block, header and all
+                        c.push_back(
+                            xml_schema::base64_binary(iter->contents().buf(),
+                                                      iter->contents().len()) );
+                    }
+                }
+                index++;
+            }
+        }
+
+        response.ext_blocks(c);
+    }
+
+    bundle_attributes_report e(event->query_id_, response);
+    SEND(bundle_attributes_report, e)
+}
+
+void
 ExternalRouter::handle_route_report(RouteReportEvent* event)
 {
-    typedef rtrmessage::route_report route_report;
-
     oasys::ScopeLock l(route_table_->lock(),
         "ExternalRouter::handle_event");
 
@@ -412,7 +637,7 @@ ExternalRouter::handle_route_report(RouteReportEvent* event)
 }
 
 void
-ExternalRouter::send(rtrmessage::dtn &message)
+ExternalRouter::send(bpa &message)
 {
     xercesc::MemBufFormatTarget buf;
     xml_schema::namespace_infomap map;
@@ -423,7 +648,7 @@ ExternalRouter::send(rtrmessage::dtn &message)
         map[""].schema = ExternalRouter::schema.c_str();
 
     try {
-        dtn_(buf, message, map, "UTF-8",
+        bpa_(buf, message, map, "UTF-8",
              xml_schema::flags::dont_initialize);
         srv_->eventq->push_back(new std::string((char *)buf.getRawBuffer()));
     }
@@ -470,14 +695,17 @@ ExternalRouter::ModuleServer::ModuleServer()
 {
     // router interface and external routers must be able to bind
     // to the same port
+    if (fd() == -1) {
+        init_socket();
+    }
     const int on = 1;
     setsockopt(fd(), SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-    bind(htonl(INADDR_ANY), ExternalRouter::server_port);
+    bind(htonl(INADDR_ALLRTRS_GROUP), ExternalRouter::server_port);
 
     // join the "all routers" multicast group
     ip_mreq mreq;
     mreq.imr_multiaddr.s_addr = htonl(INADDR_ALLRTRS_GROUP);
-    mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+    mreq.imr_interface.s_addr = htonl(INADDR_LOOPBACK);
     setsockopt(fd(), IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
 
     // source messages from the loopback interface
@@ -514,10 +742,12 @@ ExternalRouter::ModuleServer::run()
     struct pollfd* event_poll = &pollfds[0];
     event_poll->fd = eventq->read_fd();
     event_poll->events = POLLIN;
+    event_poll->revents = 0;
 
     struct pollfd* sock_poll = &pollfds[1];
     sock_poll->fd = fd();
     sock_poll->events = POLLIN;
+    sock_poll->revents = 0;
 
     while (1) {
         if (should_stop()) return;
@@ -581,10 +811,10 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         return;
     }
 
-    std::auto_ptr<rtrmessage::dtn> instance;
+    std::auto_ptr<bpa> instance;
 
     try {
-        instance = rtrmessage::dtn_(*doc);
+        instance = bpa_(*doc);
     }
     CATCH(xml_schema::expected_element)
     CATCH(xml_schema::unexpected_element)
@@ -597,22 +827,34 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
     if (instance.get() == 0)
         return;
 
+    // @@@ Need to add:
+    //      broadcast_send_bundle_request
+
     // Examine message contents
     if (instance->send_bundle_request().present()) {
         log_debug("posting BundleSendRequest");
 
-        u_int32_t bundleid =
-            instance->send_bundle_request().get().bundleid();
+        gbofIdType id =
+            instance->send_bundle_request().get().gbof_id();
         std::string link =
-            instance->send_bundle_request().get().link();
+            instance->send_bundle_request().get().link_id();
         int action =
-            instance->send_bundle_request().get().fwd_action();
+            convert_fwd_action(instance->send_bundle_request().get().fwd_action());
 
-        //XXX Where did the other BundleSendRequest consructor go?
-        BundleSendRequest *request = new BundleSendRequest();
-        request->bundleid_ = bundleid;
-        request->link_ = link;
-        request->action_ = action;
+        GbofId gbof_id;
+        gbof_id.source_ = EndpointID( id.source().uri() );
+        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
+        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
+        gbof_id.is_fragment_ = id.is_fragment();
+        gbof_id.frag_length_ = id.frag_length();
+        gbof_id.frag_offset_ = id.frag_offset();
+
+        BundleDaemon *bd = BundleDaemon::instance();
+        BundleRef br = bd->pending_bundles()->find(gbof_id);
+        BundleSendRequest *request = new BundleSendRequest(br, link, action);
+
+        // @@@ need to handle optional params frag_size, frag_offset, ext_block
+
         BundleDaemon::post(request);
     }
 
@@ -621,7 +863,7 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         log_debug("posting LinkStateChangeRequest");
 
         std::string lstr =
-            instance->open_link_request().get().link();
+            instance->open_link_request().get().link_id();
         LinkRef link = bd->contactmgr()->find_link(lstr.c_str());
 
         if (link.object() != 0) {
@@ -634,44 +876,372 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
         }
     }
 
+    if (instance->close_link_request().present()) {
+        BundleDaemon *bd = BundleDaemon::instance();
+        log_debug("posting LinkStateChangeRequest");
+
+        std::string lstr =
+            instance->close_link_request().get().link_id();
+        LinkRef link = bd->contactmgr()->find_link(lstr.c_str());
+
+        if (link.object() != 0) {
+            BundleDaemon::post(
+                new LinkStateChangeRequest(link, Link::CLOSED,
+                                           ContactEvent::NO_INFO));
+        } else {
+            log_warn("attempt to close link %s that doesn't exist!",
+                     lstr.c_str());
+        }
+    }
+
+    if (instance->add_link_request().present()) {
+        log_debug("posting LinkCreateRequest");
+
+        rtrmessage::add_link_request request
+            = instance->add_link_request().get();
+        std::string clayer = request.clayer();
+        ConvergenceLayer *cl = ConvergenceLayer::find_clayer(clayer.c_str());
+        if (!cl) {
+            log_warn("attempt to create link using non-existent CLA %s",
+                     clayer.c_str());
+        }
+        else {
+            std::string name = request.link_id();
+            Link::link_type_t type = convert_link_type( request.link_type() );
+            std::string eid = request.remote_eid().uri();
+
+            AttributeVector params;
+
+            if (request.link_config_params().present()) {
+                linkConfigType::cl_params::container
+                    c = request.link_config_params().get().cl_params();
+                linkConfigType::cl_params::container::iterator iter;
+
+                for (iter = c.begin(); iter < c.end(); iter++) {
+                    if (iter->bool_value().present())
+                        params.push_back(NamedAttribute(iter->name(), 
+                                                        iter->bool_value()));
+                    else if (iter->u_int_value().present())
+                        params.push_back(NamedAttribute(iter->name(), 
+                                                        iter->u_int_value()));
+                    else if (iter->int_value().present())
+                        params.push_back(NamedAttribute(iter->name(), 
+                                                        iter->int_value()));
+                    else if (iter->str_value().present())
+                        params.push_back(NamedAttribute(iter->name(), 
+                                                        iter->str_value()));
+                    else
+                        log_warn("unknown value type in key-value pair");
+                }
+            }
+
+            BundleDaemon::post(
+                new LinkCreateRequest(name, type, eid, cl, params));
+        }
+    }
+
+    if (instance->delete_link_request().present()) {
+        BundleDaemon *bd = BundleDaemon::instance();
+        log_debug("posting LinkDeleteRequest");
+
+        std::string lstr = instance->delete_link_request().get().link_id();
+        LinkRef link = bd->contactmgr()->find_link(lstr.c_str());
+
+        if (link.object() != 0) {
+            BundleDaemon::post(new LinkDeleteRequest(link));
+        } else {
+            log_warn("attempt to delete link %s that doesn't exist!",
+                     lstr.c_str());
+        }
+    }
+
+    if (instance->reconfigure_link_request().present()) {
+        BundleDaemon *bd = BundleDaemon::instance();
+        log_debug("posting LinkReconfigureRequest");
+
+        rtrmessage::reconfigure_link_request request
+            = instance->reconfigure_link_request().get();
+        std::string lstr = request.link_id();
+        LinkRef link = bd->contactmgr()->find_link(lstr.c_str());
+
+        rtrmessage::linkConfigType request_params=request.link_config_params();
+
+        if (link.object() != 0) {
+            AttributeVector params;
+            if (request_params.is_usable().present()) {
+                params.push_back(NamedAttribute("is_usable", request_params.is_usable().get()));
+            }
+            if (request_params.reactive_frag_enabled().present()) {
+                // xlate between router.xsd/clevent.xsd
+                params.push_back(NamedAttribute("reactive_fragment", request_params.reactive_frag_enabled().get()));
+            }
+            if (request_params.nexthop().present()) {
+                params.push_back(NamedAttribute("nexthop", request_params.nexthop().get()));
+            }
+            // Following are DTN2 parameters not listed in the DP interface
+            if (request_params.min_retry_interval().present()) {
+                params.push_back(
+                    NamedAttribute("min_retry_interval",
+                                   request_params.min_retry_interval().get()));
+            }
+            if (request_params.max_retry_interval().present()) {
+                params.push_back(
+                    NamedAttribute("max_retry_interval",
+                                   request_params.max_retry_interval().get()));
+            }
+            if (request_params.idle_close_time().present()) {
+                params.push_back(
+                    NamedAttribute("idle_close_time",
+                                   request_params.idle_close_time().get()));
+            }
+
+            linkConfigType::cl_params::container
+                c = request_params.cl_params();
+            linkConfigType::cl_params::container::iterator iter;
+
+            for (iter = c.begin(); iter < c.end(); iter++) {
+              if (iter->bool_value().present())
+                params.push_back(NamedAttribute(iter->name(), 
+                                                iter->bool_value()));
+              else if (iter->u_int_value().present())
+                params.push_back(NamedAttribute(iter->name(), 
+                                                iter->u_int_value()));
+              else if (iter->int_value().present())
+                params.push_back(NamedAttribute(iter->name(), 
+                                                iter->int_value()));
+              else if (iter->str_value().present())
+                params.push_back(NamedAttribute(iter->name(), 
+                                                iter->str_value()));
+              else
+                log_warn("unknown value type in key-value pair");
+            }
+
+            BundleDaemon::post(new LinkReconfigureRequest(link, params));
+        } else {
+            log_warn("attempt to reconfigure link %s that doesn't exist!",
+                     lstr.c_str());
+        }
+    }
+
     if (instance->inject_bundle_request().present()) {
         log_debug("posting BundleInjectRequest");
 
-        std::string src =
-            instance->inject_bundle_request().get().source();
-        std::string dest =
-            instance->inject_bundle_request().get().dest();
-        std::string link =
-            instance->inject_bundle_request().get().link();
-        xml_schema::base64_binary payload =
-            instance->inject_bundle_request().get().payload();
+        inject_bundle_request fields = instance->inject_bundle_request().get();
 
         //XXX Where did the other BundleInjectRequest constructor go?
         BundleInjectRequest *request = new BundleInjectRequest();
-        request->src_ = src;
-        request->dest_ = dest;
-        request->link_ = link;
-        request->payload_.assign(payload.data());
+
+        request->src_ = fields.source().uri();
+        request->dest_ = fields.dest().uri();
+        request->link_ = fields.link_id();
+        request->request_id_ = fields.request_id();
+        
+        request->payload_ = new u_char[fields.payload().size()];
+        request->payload_length_ = fields.payload().size();
+        memcpy(request->payload_, fields.payload().data(),
+               fields.payload().size());
+
+        if(fields.replyto().present())
+            request->replyto_ = fields.replyto().get().uri();
+        else
+            request->replyto_ = "";
+
+        if(fields.custodian().present())
+            request->custodian_ = fields.custodian().get().uri();
+        else
+            request->custodian_ = "";
+
+        if(fields.priority().present())
+            request->priority_ = convert_priority( fields.priority().get() );
+        else
+            request->priority_ = Bundle::COS_BULK; // default
+
+        if(fields.expiration().present())
+            request->expiration_ = fields.expiration().get();
+        else
+            request->expiration_ = 0; // default will be used
+
         BundleDaemon::post(request);
     }
 
     if (instance->cancel_bundle_request().present()) {
         log_debug("posting BundleCancelRequest");
 
-        u_int32_t bundleid =
-            instance->cancel_bundle_request().get().bundleid();
+        gbofIdType id =
+            instance->cancel_bundle_request().get().gbof_id();
         std::string link =
-            instance->cancel_bundle_request().get().link();
+            instance->cancel_bundle_request().get().link_id();
 
-        BundleCancelRequest *request = new BundleCancelRequest();
-        request->bundleid_ = bundleid;
-        request->link_.assign(link);
+        GbofId gbof_id;
+        gbof_id.source_ = EndpointID( id.source().uri() );
+        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
+        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
+        gbof_id.is_fragment_ = id.is_fragment();
+        gbof_id.frag_length_ = id.frag_length();
+        gbof_id.frag_offset_ = id.frag_offset();
+
+        BundleDaemon *bd = BundleDaemon::instance();
+        BundleRef br = bd->pending_bundles()->find(gbof_id);
+        if (br.object()) {
+            BundleCancelRequest *request = new BundleCancelRequest(br, link);
+            BundleDaemon::post(request);
+        }
+        else {
+            log_warn("attempt to cancel send of nonexistent bundle %s",
+                     gbof_id.str().c_str());
+        }
+    }
+
+    if (instance->delete_bundle_request().present()) {
+        log_debug("posting BundleDeleteRequest");
+
+        gbofIdType id =
+            instance->delete_bundle_request().get().gbof_id();
+
+        GbofId gbof_id;
+        gbof_id.source_ = EndpointID( id.source().uri() );
+        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
+        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
+        gbof_id.is_fragment_ = id.is_fragment();
+        gbof_id.frag_length_ = id.frag_length();
+        gbof_id.frag_offset_ = id.frag_offset();
+
+        BundleDaemon *bd = BundleDaemon::instance();
+        BundleRef br = bd->pending_bundles()->find(gbof_id);
+        if (br.object()) {
+            BundleDeleteRequest *request =
+                new BundleDeleteRequest(br,
+                                        BundleProtocol::REASON_NO_ADDTL_INFO);
+            BundleDaemon::post(request);
+        }
+        else {
+            log_warn("attempt to delete nonexistent bundle %s",
+                     gbof_id.str().c_str());
+        }
+    }
+
+    if (instance->set_cl_params_request().present()) {
+        log_debug("posting CLASetParamsRequest");
+
+        std::string clayer = instance->set_cl_params_request().get().clayer();
+        ConvergenceLayer *cl = ConvergenceLayer::find_clayer(clayer.c_str());
+        if (!cl) {
+            log_warn("attempt to set parameters for non-existent CLA %s",
+                     clayer.c_str());
+        }
+        else {
+            AttributeVector params;
+
+            set_cl_params_request::cl_params::container
+                c = instance->set_cl_params_request().get().cl_params();
+            set_cl_params_request::cl_params::container::iterator iter;
+
+            for (iter = c.begin(); iter < c.end(); iter++) {
+                if (iter->bool_value().present())
+                    params.push_back(NamedAttribute(iter->name(), 
+                                                    iter->bool_value()));
+                else if (iter->u_int_value().present())
+                    params.push_back(NamedAttribute(iter->name(), 
+                                                    iter->u_int_value()));
+                else if (iter->int_value().present())
+                    params.push_back(NamedAttribute(iter->name(), 
+                                                    iter->int_value()));
+                else if (iter->str_value().present())
+                    params.push_back(NamedAttribute(iter->name(), 
+                                                    iter->str_value()));
+                else
+                    log_warn("unknown value type in key-value pair");
+            }
+
+            BundleDaemon::post(new CLASetParamsRequest(cl, params));
+        }
+    }
+
+    if (instance->bundle_attributes_query().present()) {
+        log_debug("posting BundleAttributesQueryRequest");
+        bundle_attributes_query query =
+            instance->bundle_attributes_query().get();
+        std::string query_id = query.query_id();
+        gbofIdType id = query.gbof_id();
+
+        GbofId gbof_id;
+        gbof_id.source_ = EndpointID( id.source().uri() );
+        gbof_id.creation_ts_.seconds_ = id.creation_ts() >> 32;
+        gbof_id.creation_ts_.seqno_ = id.creation_ts() & 0xffffffff;
+        gbof_id.is_fragment_ = id.is_fragment();
+        gbof_id.frag_length_ = id.frag_length();
+        gbof_id.frag_offset_ = id.frag_offset();
+
+        BundleDaemon *bd = BundleDaemon::instance();
+        BundleRef br = bd->pending_bundles()->find(gbof_id);
+
+        AttributeNameVector attribute_names;
+        AttributeVector extension_blocks;
+        bundle_attributes_query::query_params::container
+            c = query.query_params();
+        bundle_attributes_query::query_params::container::iterator iter;
+
+        for (iter = c.begin(); iter != c.end(); iter++) {
+            bundleAttributesQueryType& q = *iter;
+
+            if (q.query().present()) {
+                attribute_names.push_back( AttributeName(q.query().get()) );
+            }
+            if (q.ext_blocks().present()) {
+                bundleExtBlockQueryType& block = q.ext_blocks().get();
+                // XXX the ext_blocks part of the query may change
+                std::string identifier = "";
+                if (block.identifier().present()) {
+                    identifier = block.identifier().get();
+                }
+                extension_blocks.push_back(
+                    NamedAttribute(identifier, block.type()) );
+            }
+        }
+
+        BundleAttributesQueryRequest* request
+            = new BundleAttributesQueryRequest(query_id, br, attribute_names);
+
+        if (extension_blocks.size() > 0) {
+            request->extension_blocks_ = extension_blocks;
+        }
+
         BundleDaemon::post(request);
     }
 
     if (instance->link_query().present()) {
         log_debug("posting LinkQueryRequest");
         BundleDaemon::post(new LinkQueryRequest());
+    }
+
+    if (instance->link_attributes_query().present()) {
+        BundleDaemon *bd = BundleDaemon::instance();
+        log_debug("posting LinkAttributesQueryRequest");
+
+        link_attributes_query query = instance->link_attributes_query().get();
+        std::string query_id = query.query_id();
+        std::string lstr = query.link_id();
+
+        LinkRef link = bd->contactmgr()->find_link(lstr.c_str());
+
+        if (link.object() != 0) {
+           AttributeNameVector attribute_names;
+
+           link_attributes_query::query_params::container 
+             c = query.query_params();
+           link_attributes_query::query_params::container::iterator iter;
+
+           for (iter = c.begin(); iter < c.end(); iter++) {
+             attribute_names.push_back( AttributeName(*iter) );
+           }
+
+          BundleDaemon::post(new LinkAttributesQueryRequest(query_id, 
+                                                            link, 
+                                                            attribute_names));
+        } else {
+            log_warn("attempt to query attributes of link %s that doesn't exist!",
+                     lstr.c_str());
+        }
     }
 
     if (instance->bundle_query().present()) {
@@ -690,6 +1260,54 @@ ExternalRouter::ModuleServer::process_action(const char *payload)
     }
 }
 
+Link::link_type_t
+ExternalRouter::ModuleServer::convert_link_type(rtrmessage::linkTypeType type)
+{
+    if(type==linkTypeType(linkTypeType::alwayson)){
+        return Link::ALWAYSON;
+    }
+    else if(type==linkTypeType(linkTypeType::ondemand)){
+        return Link::ONDEMAND;
+    }
+    else if(type==linkTypeType(linkTypeType::scheduled)){
+        return Link::SCHEDULED;
+    }
+    else if(type==linkTypeType(linkTypeType::opportunistic)){
+        return Link::OPPORTUNISTIC;
+    }
+
+    return Link::LINK_INVALID;
+}
+
+ForwardingInfo::action_t
+ExternalRouter::ModuleServer::convert_fwd_action(rtrmessage::bundleForwardActionType action)
+{
+    if(action==bundleForwardActionType(bundleForwardActionType::forward)){
+        return ForwardingInfo::FORWARD_ACTION;
+    }
+    else if(action== bundleForwardActionType(bundleForwardActionType::copy)){
+        return ForwardingInfo::COPY_ACTION;
+    }
+
+    return ForwardingInfo::INVALID_ACTION;
+}
+
+Bundle::priority_values_t
+ExternalRouter::ModuleServer::convert_priority(rtrmessage::bundlePriorityType priority)
+{
+    if(priority == bundlePriorityType(bundlePriorityType::bulk)){
+        return Bundle::COS_BULK;
+    }
+    else if(priority == bundlePriorityType(bundlePriorityType::normal)){
+        return Bundle::COS_NORMAL;
+    }
+    else if(priority == bundlePriorityType(bundlePriorityType::expedited)){
+        return Bundle::COS_EXPEDITED;
+    }
+
+    return Bundle::COS_INVALID;
+}
+
 ExternalRouter::HelloTimer::HelloTimer(ExternalRouter *router)
     : router_(router)
 {
@@ -704,7 +1322,7 @@ ExternalRouter::HelloTimer::~HelloTimer()
 void
 ExternalRouter::HelloTimer::timeout(const struct timeval &)
 {
-    rtrmessage::dtn message;
+    bpa message;
     message.hello_interval(ExternalRouter::hello_interval);
     router_->send(message);
     schedule_in(ExternalRouter::hello_interval * 1000);
@@ -726,8 +1344,7 @@ ExternalRouter::ERRegistration::ERRegistration(ExternalRouter *router)
 void
 ExternalRouter::ERRegistration::deliver_bundle(Bundle *bundle)
 {
-    rtrmessage::bundle_delivery_event e(
-        bundle, (xml_schema::string)source_to_str(EVENTSRC_PEER));
+    bundle_delivery_event e(bundle);
 
     // add the payload
     int len = bundle->payload_.length();
@@ -735,7 +1352,7 @@ ExternalRouter::ERRegistration::deliver_bundle(Bundle *bundle)
     bundle->payload_.read_data(0, len, buf); 
     e.bundle().payload(xml_schema::base64_binary(buf, len));
 
-    rtrmessage::dtn message;
+    bpa message;
     message.bundle_delivery_event(e);
     router_->send(message);
 
@@ -750,10 +1367,10 @@ void external_rtr_shutdown(void *)
 
 // Initialize ExternalRouter parameters
 u_int16_t ExternalRouter::server_port       = 8001;
-u_int16_t ExternalRouter::hello_interval    =  30;
+u_int16_t ExternalRouter::hello_interval    = 30;
 std::string ExternalRouter::schema          = "/etc/router.xsd";
 bool ExternalRouter::server_validation      = true;
 bool ExternalRouter::client_validation      = false;
 
 } // namespace dtn
-#endif // XERCES_C_ENABLED
+#endif // XERCES_C_ENABLED && EXTERNAL_DP_ENABLED

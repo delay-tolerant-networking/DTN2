@@ -14,6 +14,9 @@
  *    limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <errno.h>
 #include <sys/types.h>
@@ -120,7 +123,9 @@ BundlePayload::~BundlePayload()
         file_.set_fd(-1); // avoid duplicate close
         
         if (!test_no_remove_)
+        {
             file_.unlink();
+        }
     }
 }
 
