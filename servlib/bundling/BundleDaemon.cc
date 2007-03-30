@@ -488,36 +488,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                                                       &reception_reason,
                                                       &deletion_reason);
         
-        // According to BP section 3.3, there are certain things that a bundle
-        // with a null source EID should not try to do. Check for these cases
-        // and reject the bundle if any is true.
-        if (bundle->source_ == EndpointID::NULL_EID()) {
-            if (  bundle->receive_rcpt_ ||
-                  bundle->custody_rcpt_ ||
-                  bundle->forward_rcpt_ ||
-                  bundle->delivery_rcpt_ ||
-                  bundle->deletion_rcpt_ ||
-                  bundle->app_acked_rcpt_) {
-                log_err("bundle with null source eid has requested a report");
-                accept_bundle = false;
-                goto reject_bundle;
-            }
-        
-            if (bundle->custody_requested_) {
-                log_err("bundle with null source eid has requested custody "
-                        "transfer");
-                accept_bundle = false;
-                goto reject_bundle;
-            }
-    
-            if (!bundle->do_not_fragment_) {
-                log_err("bundle with null source eid has not set "
-                        "'do-not-fragment' flag");
-                accept_bundle = false;
-                goto reject_bundle;
-            }
-        }
-        
         /*
          * Send the reception receipt if requested within the primary block
          * or a block validation error was encountered.
@@ -531,7 +501,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         /*
          * Delete a bundle if a validation error was encountered.
          */
-reject_bundle:
         if (!accept_bundle) {
             delete_bundle(bundle, deletion_reason);
             event->daemon_only_ = true;
