@@ -1,0 +1,799 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[11pt]{article}
+\usepackage{graphicx,times,lscape,fancyheadings,color}
+
+\textwidth 6.5in
+\textheight 9.0in
+\oddsidemargin -0.1in
+\topmargin -0.5in
+\parindent 0.0in
+\parskip 5pt
+
+\setcounter{secnumdepth}{4}
+
+\chead{}
+\input{local-macros}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document} 
+
+\title{DTN Plugin Architecture \\
+{\large Approved for Public Release, Distribution Unlimited.  [2/27/2007]}
+} 
+
+\author{Rajesh Krishnan, Christopher Small, Ram Ramanathan, Joanne Mikkelson, 
+and Prithwish Basu\thanks{Contact: pbasu@bbn.com, 617.873.7742}\\ 
+BBN Technologies, 10 Moulton St, Cambridge MA 02138} 
+\date{\today}
+\maketitle
+
+\tableofcontents
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Introduction} \label{sec:intro}
+
+In this document, we describe a DTN reference system architecture.  The purpose
+of this document is to identify the components of the DTN reference system, 
+and to define and specify the semantics of the interfaces between the 
+components.  
+%We seek feedback from the DTN community on the architecture and
+%the interfaces described here, for possible inclusion in future versions of
+%this document.
+
+The reader is assumed to be familiar with the Bundle Protocol
+specification~\cite{BP-ID}, the Bundle Security Protocol
+specification~\cite{BSP-ID}, and the DTNRG reference
+implementation~\cite{DTN2}.  
+
+A particular goal of this architecture is to enable the community to experiment
+with multiple solutions for persistent storage, routing, naming and late
+binding, policy, and DTN convergence layers, while continuing to build upon a
+common core of open DTNRG standards and software. This is accomplished by
+defining interfaces that allow the experimental features to plug into the
+common core.  In this document, the term {\em system} will refer to the
+SPINDLE-II DTN system (the core of which is based on the DTN2 system), unless
+specified otherwise.  
+
+\subsection{Glossary of Abbreviations and Technical Terms} \label{sec:glossary}
+
+Some commonly used acronyms and terms used throughout this document are listed
+and described below.
+
+\begin{description}
+\item[A/M] Application / Middleware
+\item[BPA] Bundle Protocol Agent
+\item[BP] Bundle Protocol
+\item[BSP] Bundle Security Protocol
+\item[CLA] Convergence Layer Adapter
+\item[DBMS] Database Management System
+\item[DP] Decision Plane
+\item[DS] Data Store
+\item[DTNRG-public] A design specification that will undergo the DTNRG consensus process during DTN Program Phase 2.
+\item[EID] Endpoint IDentifier for denoting a DTN endpoint (see~\cite{BP-ID})
+\item[GBOF-ID] Global Bundle Or Fragment ID
+\item[KB] Knowledge Base
+\item[Link] An association between two DTN endpoints (detailed description in Section \ref{sec:linktypes})
+\item[MANET] Mobile Ad hoc NETwork
+\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Overview} \label{sec:complist}
+
+The high-level components and interfaces of the system are illustrated in 
+Figure \ref{fig:componly}.
+
+%%%%%%%%%%%%
+\begin{figure}[htbp]
+\centering
+\includegraphics[height=3in]{figs/components-toplevel.pdf}
+\caption{\label{fig:componly} Architectural Components and Interfaces}
+\end{figure}
+%%%%%%%%%%%%
+%
+
+The system SHOULD contain the following components (described in
+Section \ref{sec:compdesc}):
+
+\vspace{-4pt}
+\begin{enumerate}
+\setlength{\parskip}{-3pt}
+\item Bundle Protocol Agent (BPA), a DTNRG-public component
+\item Data Store (DS)
+\item Decision Plane (DP)
+\item Convergence Layer Adapter (CLA)
+\item Application/Middleware (A/M)
+\end{enumerate}
+
+Table \ref{tab:comp-functions} summarizes the key functionality provided by
+each of the five components. The above components MAY be implemented in
+separate processes to enable language and tool-chain independence across
+components. 
+
+Instances of the BPA will be also referred to as the {\it core} and instances
+of the other four components shall be referred to as {\it plugins}.  The DS
+SHOULD provide a service that is accessible from all other components of the
+system.\footnote{As a result, the system can support both daemon-centric and
+database-centric concepts of operation.}
+
+The system MUST implement the relevant DTNRG-public interfaces as name below
+and described in Section \ref{sec:interfaces}:
+\vspace{-4pt}
+\begin{enumerate}
+\setlength{\parskip}{-3pt}
+\item Data Store Interface (used by BPA, CLA, DP, and A/M)
+\item Decision Plane Interface (used by BPA)
+\item Convergence Layer Adapter Interface (used by BPA)
+\item Bundle Protocol Agent Interface (used by A/M)
+\end{enumerate}
+
+All interfaces SHOULD be provided using the Inter-Component Communication 
+protocol (discussed in Section \ref{sec:iccp}, defined in a separate document)
+for uniformity.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{landscape}
+\begin{table}[htbp]
+\centering
+{\small
+\begin{tabular}{|p{1.5in}|p{1.5in}|p{1.5in}|p{1.5in}|p{1.5in}|}
+\hline
+{\bf BPA} & {\bf DS} & {\bf CLA} & {\bf DP} & {\bf A/M}\\
+\hline
+Implement the Bundle Protocol specification
+&
+Store, retrieve, and delete key-data pairs
+&
+Provide a bundle transport mechanism
+&
+Receive link and bundle event notifications from the BPA and 
+generate actions (requests).
+&
+Generate, submit, and receive application bundle payloads
+\\
+\hline
+
+Implement the Bundle Security Protocol specification
+&
+Database management for metadata, including schema management,
+and query processing
+&
+Neighbor discovery (via scanning or staring)
+&
+Provide an adaptive dissemination service that can be used 
+by various routing and naming protocols
+&
+Create/remove registration with BPA
+\\
+\hline
+
+Implement the Bundle Protocol Agent Interface (accessed by A/M)
+&
+Knowledge base management for metadata, including ontology management,
+query processing, and rule-based inference
+&
+Link formation, tear-down, and characterization (e.g., delay, capacity, 
+loss) 
+&
+Perform a long-term characterization of available communication 
+opportunities (e.g., computes a cost metric)
+&
+Register procedure(s) for handling delivery failure
+\\
+\hline
+
+Use and implement support for DP interface, CLA interface, and DS interface
+&
+Manage storage of bundles, bundle metadata, registration information, BPA state
+if any, connectivity (historic, current, and scheduled) information, naming
+ontology, and cached content 
+&
+Link status reporting (e.g., in response to queries)
+&
+Process policy inputs and respond to queries regarding decision choices
+that conform to policy
+&
+\\
+\hline
+
+&
+Database triggers
+&
+Implement CLA interface
+&
+Perform forwarding and scheduling decisions for bundles
+&
+\\
+\hline
+
+&
+Implement DS interface
+&
+&
+Perform route computation and/or route discovery
+&
+\\
+\hline
+
+&
+&
+&
+Perform name resolution and distributed name KB management
+&
+\\
+\hline
+
+&
+&
+&
+Implement DP interface
+&
+\\
+\hline
+
+\end{tabular}
+}
+\caption{Summary of functionality of system components \label{tab:comp-functions}}
+\end{table}
+\end{landscape}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Architectural Components} \label{sec:compdesc}
+
+In this section we describe each of the system components mentioned in Section
+\ref{sec:complist} (DS, CLA, DP, A/M). These will be implemented as plug-ins in
+the SPINDLE-II system; in other words, a newly developed module (implemented as
+a process) can be started on the node and its services will be automatically
+available to the other already running DTN processes.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Bundle Protocol Agent}
+\label{sec:bpa}
+
+The bundle protocol agent (BPA) of a DTN node offers bundle protocol (BP)
+services.  The BPA executes procedures of the BP and the Bundle Security
+Protocol (BSP) with help from other components in the system.  The BPA MUST
+comply with the DTNRG specifications for the BP~\cite{BP-ID} and the BSP
+~\cite{BSP-ID}.  
+
+The BPA is responsible for implementing the mechanisms of the bundle protocol,
+but any key decisions (for example, those based on particular policies or
+optimization strategies) that need to be taken during the execution of such
+mechanisms MAY be exported to the {\em Decision Plane (DP)} module.  Typically
+these decisions are indicated within the BP and BSP specifications as local
+policy or implementation issues.
+
+The BPA is responsible for taking actions on every bundle that passes through 
+the DTN node.   For example, the BPA is responsible for reading, creating, 
+and updating fields in the bundle header.
+
+A comprehensive list of functional requirements for the BPA in terms of
+conformance to the BP and BSP can be found in a companion document \cite{MJ}.
+Some key functions are:
+
+\begin{enumerate}
+
+\item Forwarding a bundle to a ``next-hop'' node via a specified convergence
+layer adapter.  The BP specification talks about forwarding to the ``minimum
+reception group'' for each bundle in each of the unicast, multicast, and
+anycast scenarios. The DP must compute these lists and returns them to the BPA
+along with scheduling instructions to handle ``Class of Service'' requirements.
+
+\item Fragmentation and reassembly of bundle payload (both reactive and 
+pro-active).
+
+\item Implementation of the Custody-transfer mechanism in the bundle header,
+sending Custody Acknowledgments, etc.: The decision of whether to accept,
+refuse, or relinquish custody is taken by the DP. Once a decision has been
+made, a list of DP-specified actions such as re-forwarding the bundle may have
+to be taken (depends on policy).
+
+\item Delivery to application: Deliver incoming bundle to application if it is
+{\it registered} on this node; otherwise abandon delivery based on policy.
+
+\item Discarding and Deleting a bundle: If the set of ``retention
+constraints'' on a bundle is empty, then discard the bundle and all references
+to it. Deleting a bundle involves removing all retention constraints and then
+discarding it.  This may happen upon bundle expiration. These mechanisms can
+richly interact with the policy module within the DP.
+
+\item Sending administrative bundles such as status reports.
+
+\item Security functions such as authentication, confidentiality, 
+and data integrity.
+%prevention of DOS over resource strapped networks.
+\end{enumerate}
+
+In addition, the BPA SHOULD {\it implement} the Bundle Protocol Agent Interface that
+can be accessed by applications, and {\it use} the other interfaces listed in
+Section \ref{sec:complist}.
+
+%The interactions between the BPA and other components are described in 
+%Section \ref{sec:XXX}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Data Store}
+\label{sec:ds}
+
+The Data Store (DS) module offers a persistent storage service and is
+responsible for storing bundles, knowledge about bundle metadata, network state
+information (routing tables, name ontology data, content metadata, policy
+rules), and application state information (registrations and other metadata).
+We note that the SPINDLE system may eventually need to cater to a wide spectrum
+of solutions for the data storage layer. These may range from a dumb file
+system residing on Flash memory attached to a low power sensor node to a very
+powerful logic engine running on a powerful DTN node.  Hence a DS in the
+SPINDLE system could exist in one of the following incarnations of increasing
+capability: 
+
+\begin{enumerate}
+\item A simple key-value store (that can be based on a file system) that allows 
+other modules to add, retrieve and delete key-value pairs. Bundles, bundle metadata 
+and network state information can exist in such a store. This may be 
+applicable for resource-strapped devices such as battery-powered sensor 
+nodes.
+
+\item A DBMS that allows other modules to add, delete, and get
+elements with multiple fields information (by its key). An DBMS might 
+expose only {\it canned queries} to other modules, or it might allow other 
+modules to submit queries, e.g. written in SQL.
+
+\item A full fledged knowledge base (KB) that supports deduction or inference
+by means of execution of rules (e.g., Prolog style) on stored facts. In
+addition to add/delete(key)/get(key) features, a KB will support advanced
+deductive database style querying features. Advanced KBs like Flora-2 even
+allow setting up ``triggers'' that fire when a certain rule executes
+successfully, and this typically results in the execution of a specified
+callback function.  A KB will include support for data storage, either
+internally, or via a back-end storage system such as MySQL or Berkeley DB.
+
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Decision Plane} \label{sec:dp}
+
+The Decision Plane component includes the following subcomponents which may
+interact with each other:
+
+\begin{enumerate}
+
+\item {\it Router module:} Functions of a Router module include unicast and
+multicast route computation, generation of next hop(s) for bundles, replication
+and forwarding, bundle scheduling, decision to take custody of a bundle,
+decision to discard a bundle, etc. 
+
+Note that while the BPA performs the forwarding mechanism to a particular CLA,
+it is the Router module that performs the consulting role for the BPA.  Similarly,
+for custody transfer, the BPA performs the mechanism of assuming and
+relinquishing custody and sending a custody-ACK to the previous node, but it
+consults the external router module to decide whether to take custody or not.
+
+\item {\it Adaptive Dissemination module:} This is responsible for determining
+{\it what} network state to distribute, and {\it to whom}, and {\it when}. It
+is also responsible for gathering network state encoded in incoming
+dissemination bundles and populating the KB appropriately, if one exists. For
+example, decisions such as whether to alter the content of a flooded
+network-state bundle before re-dissemination will be taken by this module. This
+module is also responsible for interacting with CLA (via the BPA) to track
+changes in the status of incoming/outgoing links and then capture these changes
+in the ``to-be-disseminated'' network state.  Even though the network state is
+stored in the KB, the dissemination logic may be implemented outside the KB for
+performance reasons, if necessary.
+
+\item {\it Policy module:} This will let users add and delete policies that may
+be stored in the KB, if one exists. Basic functions include interpretation of
+policy, enforcement of policy, and dispatching an event afterward. Performance
+reasons aside, ideally every bundle or network event in the SPINDLE system
+should be subjected to policy enforcement. This advocates a
+``trap-and-dispatch'' (or ``event-condition-action'') style design.  An 
+alternative style is that of ``consultation.'' The policy module listens on 
+a well known port for policy-enforcement requests
+and reacts only when asked.
+
+\item {\it Naming and Late binding module:} This module maintains and
+opportunistically shares name ontologies (or {\it schemes}, as referred to
+in~\cite{BP-ID}) between DTN nodes. This module is called upon to resolve rich
+intentional names to canonical endpoint identifiers of care-of nodes that are
+subsequently used by the Router module. This is also responsible for
+registration and dissemination or synchronization of Name KBs (in particular,
+intentional name to canonical name bindings stored within).
+
+\item {\it Content-based access module:} responsible for performing content
+caching/replication, distributed indexing, and content-addressable search.
+This may use several services from other DP modules, e.g., dissemination, late
+binding, external router.
+
+%{\it does this fall under Decision or App? Or maybe there should be no
+%distinction?}
+
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Convergence Layer Adapter}
+\label{sec:cla}
+
+A Convergence layer adapter's function (as described in \cite{BP-ID}) is to
+send and receive bundles on behalf of the BPA. It achieves this by utilizing
+the services of the native protocol which is supported in one of the {\it
+underlying} networks that the node is homed on. A CLA thus {\it adapts} the
+packet/frame/signal transmission service provided in the underlying network to
+an abstract bundle transmission service that presents itself to the BPA.  
+
+A CLA is responsible for maintaining information about DTN {\it links} (status,
+schedule, and possibly other QoS parameters) and discover them if possible.
+After discovering a DTN peer or monitoring the status of a link, the CLA is
+responsible for generating and posting events to the BPA about such facts.
+These facts then get relayed to the DP and may also be stored in the DS. 
+
+%The CLA may also interact directly (IPC poke?) with some decision modules
+%(adaptive dissemination) for triggered dissemination under certain
+%circumstances. 
+
+%{\it What is the service contract of send/receive with the BP? and how are the
+%CLA params presented to BP?}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Application/Middleware}
+\label{sec:am}
+
+The application agent (also referred to as the A/M module) uses the BP services
+to transmit and receive bundle payloads. This can act as a multiplexed DTN
+communication service to other non-DTN applications running on the node.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Interfaces}
+\label{sec:interfaces}
+
+In this section we describe the primitives for each of the four interfaces 
+identified in Figure \ref{fig:componly}.  
+
+The BPA implements the BPA interface that can be used by A/M and DP to send and
+receive bundles.  
+
+The DP implements the DP interface that is accessed by the BPA to serve various
+decision points identified in the BP (such as routing, scheduling, name
+resolution, custody acceptance, and storage management).
+
+The DS implements the DS interface for storing bundles, bundle metadata,
+application registrations, connectivity information, and other system state.
+The DS interface can be accessed system-wide.  The CLA, for example, may access
+the DS interface for storing and retrieving connectivity information that is
+discovered or scheduled/specified.  The DP, for example, may access the DS
+interface for storing and retrieving information related to routing, naming,
+policy, and content caching/indexing.
+
+The CLA implements the CLA interface which is accessed by the BPA for 
+bundle transport and link management.
+
+We briefly discuss at the end of this section the Inter-Component 
+Communication Protocol (ICCP), the details of which will be described 
+in a separate document.
+
+\subsection{Interface Conventions}
+
+We note that this is a ``semantic'' interface, that is, we expect it to be
+specifying the kinds of things that go across the interface and their meanings,
+not necessarily at a level necessary for implementation. We expect, though,
+that an implementation-level specification can be generated from this easily.
+
+All messages are assumed to be transparently reliably delivered.  This
+functionality may be provided by the inter-component communication protocol
+mentioned in Section \ref{sec:iccp}.
+
+All parameters are assumed to be ``required'' unless specifically
+noted to be ``optional'' (Opt).
+
+The interface messages are named in a top-down hierarchical
+fashion. For example, in the DP and CLA interfaces, at the highest
+level, there are four kinds of messages: Event, Request, Query,
+Report. At the next level, there are Link-specific and Bundle-specific
+messages, for each message type. At a further level, there is
+Created/Deleted, Transmitted/Received etc. which are 
+the next level down.  This naming convention is intended for readability 
+of the specification only. The implementation should adopt/retain the style
+most convenient to it.
+
+Query/Report messages consist of a set of ``paired'' messages---a Query
+message from a plugin to the BPA requesting certain information from the BPA
+and a report message (for that query) from the BPA to the plugin delivering the
+requested information, if possible.\footnote{Note that Query/Report messages are
+possible in the reverse direction as well, e.g., the BPA can send a Query
+message to the CLA or the DS and can expect a Report back.} Unlike the
+Request-Event messages which are only loosely tied, there is a tighter coupling
+between query and report; in particular, a report identifies which query is
+being responded to.
+
+\subsubsection{Links and Link Types} \label{sec:linktypes}
+
+A link in DTN2 is an association between two DTN endpoints. In other words it
+can be represented as a relation between two EIDs which is established over a
+certain convergence layer. A link possesses physical attributes such as
+datarate, (estimated) delay, error rate, loss rate etc. as well as other
+attributes including {\it type}, {\it state}, and other {\it flags}.  A 
+measurement process (in the convergence layer adapter) can track and 
+update the values of these attributes.
+
+\begin{table}
+\centering
+\begin{tabular}{|l|c|c|c||c|c|}
+\multicolumn{1}{c}{ } & \multicolumn{3}{c}{States} & \multicolumn{2}{c}{Flags} \\
+\hline
+Link Type & OPEN, BUSY & UNAVAILABLE & AVAILABLE & UNUSABLE & REACHABLE\footnotemark \\
+\hline
+Persistent (AlwaysOn)             & x & x &   & x &  \\
+\hline
+On-demand            & x & x & x & x &  \\
+\hline
+Opportunistic (Discovered)           & x & x &   & x & x\\
+\hline
+Scheduled            & x & x & x & x & x\\
+\hline
+Predicted            & x & x &   & x & x\\
+\hline
+\end{tabular}
+\caption{\label{table:link-tsf} Link types and possible states/flags.}
+\end{table}
+\footnotetext{Anticipated changes in the way bundle queuing is done for 
+closed links might make the REACHABLE flag unnecessary. Thus this column 
+is likely to disappear in future versions.}
+
+There are three link types implemented in DTN2: Persistent (AlwaysOn),
+On-demand, and Opportunistic (Discovered).\footnote{DTN2 uses AlwaysOn
+to denote what the DTN Architecture refers to as Persistent;
+``Discovered'' is influenced by the term   
+``neighbor discovery'' commonly used in mobile ad hoc networking literature.}
+We extend the semantics of the Opportunistic link to support a wider range 
+of neighbor discovery procedures.  We add the
+remaining two types discussed in the DTN Architecture: Scheduled, and
+Predicted.\footnote{
+There is a Scheduled link type in DTN2 but it is not fully implemented.}
+Not all link states and flags apply to all link types.\footnote{In
+particular, note that there is no discovery for on-demand links, and
+reachability is assumed.} Table \ref{table:link-tsf} depicts the various {\it
+types} of links and their corresponding range of {\it states} and {\it flags}
+that SHOULD be allowed in a DTN system. A detailed description of the various
+link states and flags can be found in Section \ref{sec:linkstates}.
+
+A Persistent (AlwaysOn) link is simply a static link, and it should always 
+be open. The
+link is opened as soon as it is created. If the link closes for any reason the
+link becomes UNAVAILABLE and the BPA will attempt to reopen the link.
+An example of an AlwaysOn link would be a wired connection to a peer such as a
+T1. 
+
+An On-demand link is assumed to be usable at any time as required, but is not
+opened until there are bundles to be sent over the link. When in this state,
+the link is AVAILABLE. Once the link is OPEN, if no bundle traffic is sent over
+an on-demand link for a while, the BPA will consider the link idle and
+automatically close the link, returning it to AVAILABLE. If the link closes for
+any reason other than being idle or being explicitly closed by an operator, the
+link becomes UNAVAILABLE and the BPA will periodically attempt to reopen the
+link. If the link is successfully reopened, the link state returns to OPEN. A
+dial-up connection over a modem would be represented by an
+on-demand link.
+
+An Opportunistic (Discovered) link is used with CLAs when there is no need 
+to form a {\em point-to-point} connection for a link to be open.   
+Discovered links are intended to capture characteristics of communications in 
+multihop broadcast wireless networks (MANETs). Note that
+in a broadcast channel context there really is no ``link'' {\it per se,} but peers
+discover ability to communicate, which we declare as links. 
+%We shall assume, as
+%is consistent with current state of art, that the CLA only discovers and
+%uses two-way communication possibilities. 
+% XXX:  I think above sentence is too strong, I can imagine CLAs that 
+% discover one-way communication possibilities through an out-of-band 
+% mechanism; --krash
+One
+popular way of peer discovery is using a Hello protocol~\cite{OLSR}, where each
+node puts the set of nodes it can hear in the Hello, to help determine
+existence of bidirectional communications. Thus, receiving a hello is {\em not}
+an indication of bidirectional communications, although it is a necessary
+condition.
+
+Discovered links may be constrained, for example, in a ``only k links out 
+of n'' situation.  
+%As long as the CLA can transmit on any k---it need not transmit 
+%simultaneously, but may transmit in round robin. 
+If the situation calls for choosing a particular set of k links and
+locking out the other (for example, if a CLA knows which satellites it
+can associate with but can do so only k at a time), then these would
+not be Discovered links by definition (they are not for point to point
+links).\footnote{In a one-of-many link situation A $\rightarrow$
+one-of(B,C,D), the ``choosing'' is either ``hard'' (i.e., you cannot
+send on the other links for more than a threshold period of time), or
+``soft'' (you can do round robin).  With hard links the DP has to
+first choose the link to use (this may be part of topology control),
+say A $\rightarrow$ C. In this case, both A $\rightarrow$ D and A
+$\rightarrow$ B are both closed and unreachable. With soft links you
+can keep the links open and send on each within milliseconds of each
+other.  In the current semantics, Discovered links only cover the
+``soft type'', that is, when all can be kept open and reachable.}
+
+Thus, with discovered links, any time a peer is
+reachable, bundles can be transmitted or received without any additional
+action, so the link is always OPEN if it is REACHABLE. The link will remain
+open if the peer becomes
+unreachable temporarily, but if the peer remains unreachable for a long time,
+then the link can be considered closed, and the state will be changed to
+UNAVAILABLE (the closed state).
+
+Note that a special case of the Opportunistic link is implemented in DTN2
+which is subsumed by the more general semantics discussed above.  In the 
+current implementation, links are created and opened when a previously 
+unknown peer somehow connects to the node to open a link.  If it can be 
+inferred from this connection that traffic can be sent from the node to this 
+peer, an opportunistic link is created and opened so that bundles may be sent 
+to the new peer. Once an opportunistic link is closed for any reason, it 
+becomes UNAVAILABLE and will only be reopened if the peer opens the
+link again. An example of an opportunistic link is one created when a peer
+opens a TCP or dial-up connection to the node; the node now knows it can
+communicate with and send bundles to the peer that initiated the first
+connection, and represents this fact with an opportunistic link. 
+
+Scheduled links can be thought of as an extension to on-demand links. When a
+scheduled link is created, it is set to AVAILABLE. This means the link is
+available to be opened.
+%Unlike on-demand though, the opening is not under any user's control but under
+%the control of the ``clock''. When the scheduled time comes, it moves
+%automatically into state OPENING. There it waits for a contactUpEvent just
+%like the on-demand link. When this event happens, it moves into OPEN.
+When the scheduled time comes, the BPA will open the link. (This adds a 
+new requirement to the functionality of the BPA.)
+\typeout{XXX If this new requirement is hard, DP can track schedule and open
+at the right instant.} A
+scheduled link is expected to be reachable during the scheduled interval.  If
+the link is still scheduled to be open when it closes, it becomes UNAVAILABLE,
+and otherwise it becomes AVAILABLE until the next time the link is scheduled to
+be opened. If the link is UNAVAILABLE and the link is scheduled to be open,
+the BPA will try to reopen the link,
+like it does for UNAVAILABLE on-demand links, until the end of the scheduled
+opportunity. During the time the link is scheduled to be open, if the CLA can
+ascertain reachability, the REACHABLE flag can be used to provide extra
+information to the DP. A scheduled link would represent, for example,
+communications with a satellite which is overhead at regular intervals.
+
+A predicted link is similar to a discovered link. When created, it is
+UNAVAILABLE. A separate process (perhaps in the DP) computes the next time it
+expects the link to be REACHABLE. However,
+that is used for DP purposes only to make routing decisions, and the link is
+not opened automatically when the predicted time arrives. Instead, the
+discovery process
+%(hellos)
+is initiated shortly before the predicted time by the CLA.
+%When you hear back from the contact, a contactUpEvent forces the state into
+%OPEN. Then the OPEN to BUSY transition and the transitions to UNAVAILABLE are
+%as in discovered links.
+When the neighbor becomes reachable, the link becomes OPEN and then behaves
+like a discovered link: it is OPEN until the peer is unreachable for too long,
+at which point the link is closed and set to UNAVAILABLE. At the end of the
+predicted opportunity, discovery for the peer is discontinued. The difference
+between discovered and predicted links is that for predicted links we don't
+initiate discovery until the predicted time (or shortly before). For CLAs where
+the discovery process is continuous (e.g.\ MANETs), there is no functional
+difference in the CLA between predicted links and discovered links, but even in
+this case, the DP can make decisions based on whether a link has a predicted
+opportunity or not. A regularly observed UAV flyover would be described
+by a predicted link.
+
+\subsubsection{Link States and Flags} \label{sec:linkstates}
+
+The DP and CLA interfaces make use of four link states present in DTN2:
+UNAVAILABLE, AVAILABLE, OPEN, and BUSY.\footnote{DTN2 also has an OPENING state
+used for determining whether ContactDownEvent should be sent, but this state
+need not be used in the interface. The CLA posts EventLinkClosed and the BPA
+may need to keep track of on-demand links for which the RequestOpenLink message
+has been sent and EventLinkOpen has not been received yet, but in the external
+interface the link is simply not OPEN until the EventLinkOpen message has
+arrived.} The link can be in only one of these four states at a given time. Two
+additional states are added: UNUSABLE and REACHABLE. These two states are
+independent of the other four, so the link state should be considered a set of
+flags.
+
+The OPEN and BUSY \typeout{XXX We may want to revisit the idea of changing
+BUSY into a flag distinct from OPEN.} states signify that the
+link is open.  For links whose CLA requires a specific action to be done before
+communication can happen (e.g.\ dialout, set up a TCP connection, initiate a
+route discovery on a MANET to a remote node, etc.), these states mean that
+whatever needs to be done has been done and bundles can be sent on the link.
+For Discovered links, these states indicate that the peer is or very recently
+was reachable.  If the link is BUSY, the CLA is applying back-pressure to the
+BPA by requesting that the BPA not try to send any more bundles over the
+link.\footnote{In DTN2 this is set when the per-CLA bundle queue gets too long
+or as part of LinkAttributeChange Event. The DP would then have to perform a
+query to determine whether this has been set.}
+
+Closed links are either UNAVAILABLE or AVAILABLE. The difference between these
+two states generally pertains to whether or not the BPA must automatically try
+to reopen the link. The state is AVAILABLE is when the link is {\it closed},
+but {\it openable}.  UNAVAILABLE is when the link cannot be opened for some
+reason. The BPA will periodically attempt to reopen UNAVAILABLE links of the
+following types: AlwaysOn, On-demand, and Scheduled. For other link types,
+there is only one kind of closed state, so those links are always UNAVAILABLE
+when closed.
+
+The availability concept has more to do with the {\it ability} to open a link
+rather than policy directives such as ``I think this link is dangerous
+(eavesdroppers in there), so you SHOULD not open it even if it can be''. The
+latter concept is captured by {\it usability}. A link can be marked with the
+UNUSABLE flag based on policy. This flag can be set by the DP. If a link is
+marked UNUSABLE, the BPA and DP should not attempt to open it. 
+Usability is different from availability in that it is not an
+``inability'' but a ``forbidding''. Note that the peer endpoint of an
+UNUSABLE link can still open a link and send bundles to the node; those
+bundles should be accepted and processed by the node because the UNUSABLE
+flag only disallows the local node from opening the link and sending bundles
+over it.
+
+The reachability of a link pertains to the ability to actually communicate over
+the link and talk to the peer. The DTN neighbor discovery process, if enabled,
+will use the underlay network to determine whether other DTN nodes are
+reachable. Nodes should provide their canonical EIDs as part of the discovery
+process so that links may be created and used in future decisions.  When the
+CLA ascertains bidirectional communications with some adequate quality (and
+keeps ascertaining it), the link will be marked REACHABLE. If discovery notices
+that a neighbor has become unreachable, the REACHABLE flag will be cleared.
+The REACHABLE flag is meant to express the communication ability currently
+present in the underlay network and is used to inform decisions made by the DP.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The four interface sections
+\input{ds-interface}
+\input{decision-interface}
+\input{cla-interface}
+\input{bpa-interface}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Inter-Component Communication Protocol} \label{sec:iccp}
+
+Communications between the BPA and other components will use messages
+formatted using XML.  We currently plan to build upon and extend the 
+external router interface protocol developed by MITRE for this purpose.  
+Some extensions to the support the Data Store interface were described in 
+Section~\ref{sec:ds-iccp-impl}.  For example, the MITRE solution 
+uses UDP multicast, but we believe that it will be beneficial to 
+support TCP as well.
+
+Details of this protocol will be described in a separate document.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\begin{thebibliography}{99}
+
+%\bibitem{MaxProp} J. Burgess, B. Gallagher, D. Jensen, and B. L. Levine,
+%``MaxProp: Routing for Vehicle-Based Disruption Tolerant Networks,'' {\em Proc.
+%IEEE Infocom 2006.}
+
+\bibitem{MITRE-IF} J. Bush and R. Durst, ``DTN External Router Interface,''
+{\em Presentation at DARPA DTN Phase 2 Kickoff}, August 2006.
+
+\bibitem{DTN2} M. Demmer, ``DTN2: DTNRG Reference Implementation''. Available
+from {\tt http://www.dtnrg.org}
+
+\bibitem{Flora2} FLORA-2: An Object-Oriented Knowledge Base Language.
+{\tt http://flora.sourceforge.net}
+
+\bibitem{MJ} J. Mikkelson and C. E. Jones, ``Bundle Protocol Agent Functional
+Requirements,'' October 2006 (available upon request).
+
+\bibitem{OLSR} T. Clausen, Ed. and P. Jacquet Ed., ``Optimized Link State 
+Routing Protocol (OLSR),'' {\tt http://ietf.org/rfc/rfc3626.txt}
+
+\bibitem{BP-ID} K. Scott and S. Burleigh, ``Bundle Protocol Specification,''
+IRTF DTNRG Internet Draft revision 06, August 2006.
+
+\bibitem{BSP-ID} S. Symington, S. Farrell, and H. Weiss, ``Bundle Security
+Protocol Specification,'' IRTF DTNRG Internet Draft revision 01, March 2006.
+
+\bibitem{XSB} XSB: A Logic Programming and Deductive Database system.
+{\tt http://xsb.sourceforge.net}
+
+\end{thebibliography}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

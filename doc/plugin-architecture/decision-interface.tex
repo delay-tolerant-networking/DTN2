@@ -1,0 +1,1018 @@
+\subsection{Decision Plane Interface}
+\label{sec:dpintf}
+
+This subsection describes the messages between the Decision Plane (DP) and
+the Bundle Protocol Agent (BPA). It describes the parameters of each message
+and their semantics.
+
+This interface assumes that most of the routing and forwarding related
+{\em control} (i.e. decision making) resides in the DP. In
+particular, the ``forwarding table'' is in the DP, and therefore there
+is no need for route- or next-hop-related information to flow across
+this interface.  The DP computes the next hop and issues a command
+(request) to the BPA to send a particular bundle to a particular (next
+hop) endpoint.
+
+This interface is based on the current DTN2 implementation as implicitly
+documented in \cite{MITRE-IF}
+and extends that interface, both with new messages and with more parameters
+for a message. We have strived to retain the parameter list and the set
+of methods as close as possible to current DTN2 implementation.
+In each message description, we include an item called ``DTN2 $\Delta$''
+($\Delta$ = Difference) which says what the change is relative to
+\cite{MITRE-IF}, and refers to the current DTN2 implementation.
+
+We note that this is a ``semantic'' interface, that is, we expect it to
+be specifying the kinds of things that go across and their meanings,
+not necessarily at a level necessary for implementation. We expect, though,
+that an implementation-level specification (e.g., a C++ header file) can 
+be generated easily enough from this.
+
+All messages are assumed to be transparently reliably delivered. 
+
+All parameters are assumed to be ``required'' unless specifically
+noted to be ``optional'' (Opt).
+
+\subsubsection{Parameter Types}
+
+In order to describe the interface succinctly, we define a few commonly used
+complex parameter types.
+
+The main change over~\cite{MITRE-IF} is the introduction of the Global
+Bundle or Fragment ID (GBOF-ID), which uniquely identifies a bundle
+or fragment globally. The name change is to emphasize two things:
+first, that it is a {\em global id} (distinct from any local
+sequence-number-based identifiers generated at each node), and that it
+identifies either a bundle or a fragment.
+
+\begin{verbatim}
+
+GBOF ID                 := [sourceEID, timestamp, isFragment,
+                           fragment-length, frgmtOffset]
+Link ID                 := Unique string identifying a link
+Link Attributes         := [type, state, peerEID, is-reachable, is-usable,
+                           howReliable, howAvailable, reactive-frag-enabled,
+                           underlayAddress, clName,
+                           all-CLA-specific-link-attributes]
+Link Config Parameters  := A set of the following attributes:
+                           is-usable, reactive-frag-enabled, underlayAddress,
+                           configurable-CLA-specific-link-attributes
+ContactAttributes       := [startTime, duration, bps, latency, pktLossProb,
+                           LinkAttributes]
+custodySignalAttributes := [adminType, adminFlags, succeeded, reason,
+                           originalFragOffset, origFragLength,
+                           custodySignalSec, custodySignalUsec,
+                           originalCreationSec, originalCreationUsec,
+                           originalSourceEID]
+\end{verbatim}
+
+Parameter types used in current DTN2~\cite{MITRE-IF} are slightly
+different in some cases and shown below as a reference for the DTN2
+signature given in each message description below.
+
+\begin{verbatim}
+
+bundle                   := [source, dest, custodian, replyto, payload]
+linkAttributes           := [name, type, state, nextHop, reliable(yes/no),
+                            clName]
+linkType                 := [clInfo, linkAttributes]
+contactAttributes        := [startTimeSec, startTimeUsec, duration, bps, 
+                            latency, link]
+custodySignalAtttributes := [adminType, adminFlags, succeeded, reason,
+                            originalFragOffset, origFragLength,
+                            custodySignalSec, custodySignalUsec,
+                            originalCreationSec, originalCreationUsec,
+                            originalSourceEID]
+\end{verbatim}
+
+
+\subsubsection{Event Messages}
+\label{sec:DP-EventMessages}
+
+The event primitives are triggered by the BPA to notify the DP when a 
+reportable event occurs.\\[1em]
+
+
+\method{EventBundleReceived(GBOF-ID, DestEID, ExpiryTime, Custodian, ReplyTo, BytesReceived, [PreviousHopEID])}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle or fragment that was received.\\
+    {\em Destination EID}: The destination for the bundle.\\
+    {\em Expiry time}: Time (using common local clock) at which the
+    bundle will expire.\\
+    {\em Custodian}: EID of the current custodian of the bundle.\\
+    {\em ReplyTo}: EID same as the reply-to field in the bundle header.\\
+    {\em Bytes received}: Total number of bytes in the bundle payload, 
+    including headers.\\
+    {\em Previous Hop EID (Opt)}: The node from which this bundle was most 
+    recently sent.\\
+
+
+\metD
+    This is sent by the BPA to the DP whenever a bundle is received.
+    The bundle payload itself is retained by the BPA (perhaps in persistent
+    store) and the above parameters are sent. We note that the parameters
+    constitute only a subset of the information available about the received
+    bundle. In the case that the DP requires bundle information not contained
+    in the event, it is expected to use the Query/Report message interface
+    (refer to section~\ref{sec:DP-QueryReportMessages}).
+
+    The expected action from the DP is to decide whether to re-send
+    the bundle and if so how. If it needs to be sent, a sendBundle
+    request is made sometime in the future referring to the GBOF-ID
+    received in the EventBundleReceived message. The Destination EID is
+    used to determine a suitable ``next-hop''. The expiry
+    time may be used to prioritize amongst pending bundles
+    (e.g. sending soon-to-expire bundles first).
+
+    The previous hop EID is optionally indicated to help DP processing, for
+    instance, in flooding-like schemes. It is optional and not mandatory 
+    because it might not always be available (e.g. a bundle that arrives on
+    a USB stick with no previous hop block).
+
+\metM
+    DTN2 Params: (bundle, source, bytesReceived).\\ 
+    Remarks: The specified parameters are a strict superset of the DTN2
+    parameters. The additional parameters
+    (expiry time, previous hop) will help diversify the class of
+    routing algorithms possible.
+
+\metR
+    EventBundleTransmitted \\
+    RequestSendBundle
+}
+
+\method{EventDataTransmitted(GBOF-ID, LinkID, TotalBytesSent, TotalBytesSentReliably)}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle or fragment that was transmitted.\\
+    {\em Link ID}: Identifies the link over which it was transmitted.\\
+    {\em Total bytes sent}: Number of bytes of data (including headers)
+    transmitted.\\
+    {\em Total bytes sent reliably}: Number of bytes of data (including
+    headers) sent reliably. This could be different from total bytes sent
+    if there were no ACKs received for some part of the data.
+
+\metD
+    [Note: The event name has been changed from EventBundleTransmitted
+    to better reflect the semantics]
+    This is generated by the BPA whenever a bundle or a part of a
+    bundle is transmitted successfully. The GBOF ID identifies the
+    bundle or fragment sent (and if it was fragmented, the subsequent
+    fragments currently get different GBOF IDs).
+    If the ``total bytes sent'' is less than the payload
+    plus header size of the bundle, the DP infers that the bundle has
+    been reactively fragmented. The DP may determine whether or not the
+    whole bundle has been sent as follows: the source EID and timestamp
+    uniquely identify the original bundle, and each fragment identifies
+    the range of this bundle that it covers (via the offset/length). With
+    this, the DP can match a set of fragments to an original bundle.
+     However, not all of the bytes need have been sent
+    {\em reliably} for this event. The number of bytes sent unreliably
+    is equal to ``total bytes sent'' minus ``total bytes sent
+    reliably'' and is assumed to be at the tail (suffix) of the
+    bundle/fragment.  No action is expected from DP apart from state
+    changes regarding the disposition of the identified bundle, and
+    perhaps resending the bundle if not all bytes were sent reliably.
+    
+\metM
+    DTN2 Params: (bundle, contact, bytesSent, bytesReliablySent)\\
+    Remarks: The main difference is the use of Link ID rather than contact, 
+    but the former is a superset of the latter and this only generalizes the
+    parameter. Further, the DP typically does not need to know the contact,
+    since it already knows it from the Link ID. Also, the name of the
+    event has been changed.\footnote{New name due to M. Demmer, in feedback
+    to specification.}
+    
+\metR
+    EventBundleReceived\\
+    RequestSendBundle\\
+    RequestInjectBundle
+}
+
+%\method{EventBundleTransmitFailed(GBOF-ID, LinkID, FailureReason)}
+%{
+%\metP
+%    {\em GBOF-ID}: Identifies the bundle whose transmission failed.\\
+%    {\em Link ID}: Identifies the link on which transmission failed.\\
+%    {\em Failure Reason}: Code indicating reason for failure.
+%
+%\metD
+%    This event is generated when the BPA is asked to send a bundle
+%    (for instance, by a call to RequestSendBundle), and is unable to send
+%    any part of the bundle.  Typically (and in the current version of
+%    the code), this happens when reactive fragmentation is turned off
+%    and the contact goes down.  It also happens (in the current
+%    version) when a link is closed---this event is generated for each
+%    bundle that is queued on the link that was closed. Upon receipt of
+%    this event the DP will typically resend the bundle.
+%
+%\metM
+%    DTN2 Params: (bundle, contact)\\
+%    Remarks: Our parameters are a strict superset of the DTN2  parameters. 
+%
+%
+%\metR
+%    EventBundleTransmitted\\
+%    RequestSendBundle\\
+%    RequestInjectBundle
+%}
+
+\method{EventBundleDelivered(GBOF-ID, SourceEID)}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle or fragment delivered.\\
+    {\em Source EID}: Identifies the originator of the bundle.
+
+\metD
+    This event is generated when the node is a member of the destination 
+    endpoint. The DP typically uses this event to note that this is 
+    the ``final'' destination and hence no forwarding is required. It may
+    also use this event to perform purging of duplicate bundles in the network.
+
+\metM
+    DTN2 Params: (bundle, source)\\
+    Remarks: No noteworthy difference.
+
+\metR
+    EventBundleReceived\\
+    EventBundleTransmitted
+}
+
+
+\method{EventBundleExpired(GBOF-ID)}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle whose lifetime has expired.
+
+\metD
+    This event is generated when the lifetime expiration of the identified
+    bundle occurs. It is assumed that the bundle is automatically
+    deleted by the BPA. The DP is not expected to have any action, although
+    it will probably need to clean up state regarding the bundle.
+
+\metM
+    DTN2 Parameters: (bundle)\\
+    Remarks: No noteworthy difference.
+
+\metR
+    None
+}
+
+\method{EventBundleSendCancelled(GBOF-ID, LinkID)}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle whose sending was canceled.\\
+    {\em Link ID}: Identifies the link for which the bundle send was
+    canceled.
+
+\metD
+    This event is sent when a bundle that was previously requested to be 
+    sent using RequestSendBundle is canceled upon a subsequent request of 
+    RequestCancelBundleSend. The DP uses this as a positive confirmation of its
+    request
+
+\metM
+    DTN2 does not have this event.
+
+\metR
+    RequestSendBundle\\
+    RequestCancelBundleSend
+}
+
+
+\method{EventCustodySignal(GBOF-ID, CustodySignalAttributes)}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle or fragment for which a custody signal
+    has been sent.\\
+    {\em CustodySignalAttributes}: This is a complex type defined earlier and  
+    contains the fragment info, creation and signal timestamps, and whether
+    or not custody transfer succeeded and if not the reason.
+
+\metD
+    A custody signal indicates successful or unsuccessful transfer of
+    custody~\cite{BP-ID}. This event is generated at the current custodian
+    when it receives a custody signal from another endpoint. An unsuccessful
+    custody transfer may prompt the DP to look for a different next hop,
+    based on the reason code.
+
+\metM
+    DTN2 Params: (CustodySignalAttributes)\\
+    Remarks: Our signature is similar but pulls out GBOF ID redundantly
+    for uniformity and ease of coding the DP.
+
+\metR
+    EventCustodyTimeout
+}
+
+
+\method{EventCustodyTimeout(GBOF-ID)}
+{
+\metP
+    {\em GBOF ID}: Identifier of the bundle or fragment whose custody has
+    timed out.
+
+\metD
+    This event is generated when no custody signal was received within
+    a configured time. The DP might use this to forward the bundle to
+    a different endpoint.
+
+\metM
+    DTN2 Params: (bundle, linkType)\\
+    Remarks: The DTN2 interface has an extra parameter, namely linkType. 
+    The link parameter records the adjacent link on which a bundle was
+    originally sent. This information is meant for the bundle's forwarding
+    log, and not really necessary for the DP-BPA interface.\footnote{Based
+    on email from J. Bush.}
+
+\metR
+    EventCustodySignal
+
+}
+
+Until now, we have looked at event messages related to bundle handling. We now
+switch to events regarding link dynamics.
+
+\method{EventLinkCreated(LinkID, LinkAttributes, Reason)}
+{
+\metP
+    {\em Link ID}: Name of  the link that was created. Should be
+    used as a handle for all future references to that link.\\
+    {\em Link Attributes}: A complex type defined earlier that gives
+    more information about the link. This includes the type
+    (scheduled/discovered etc.), its state (open, available, unavailable etc),
+     the peer EID on the
+    other end of the link, the convergence layer name, and optionally 
+    an indication of how reliable and how available it is expected to be.
+    The complete list is preliminarily same as in~\cite{MITRE-IF}.\\
+    {\em Reason}: How the link was created. E.g, user, convergence layer, etc.
+    A list of current reason codes with meanings is given in~\cite{MITRE-IF}.
+
+\metD
+    This message is the first event to be generated with regards to a
+    new link. The new link may be created by the user, by the
+    convergence layer or any other means. The BPA names this link and
+    gives some of the attributes of this link. The state of the link
+    upon creation may be dependent on the type of link. Currently, the
+    initial state is AVAILABLE for on-demand, scheduled, and static
+    links, and UNAVAILABLE for discovered and opportunistic
+    links. Upon receipt of this event, the DP is expected to
+    initialize data structures for this link in anticipation of the
+    contact becoming available some time in the future, if not
+    already.
+
+\metM
+    DTN2 Params: (linkType, Reason)\\
+    Remarks: After expanding the complex types, there are no noteworthy
+    differences between DTN2 and specified parameters here. 
+
+\metR
+    EventLinkDeleted\\
+    EventLinkAvailable\\
+    EventLinkOpened\\
+    EventLinkAttributeChange\\
+    RequestAddLink
+}
+
+
+\method{EventLinkDeleted(LinkID, LinkAttributes, Reason)}
+{
+\metP
+    {\em Link ID}: Identifies the deleted link.\\
+    {\em Link Attributes}: Lists the attributes.\footnote{Not convinced this is
+    needed since the link is going away, but kept it in deference to DTN2.}\\
+    {\em Reason}: Why the link was deleted. A list of current reason codes 
+    with meanings is given in~\cite{MITRE-IF}.
+
+\metD
+    This event is generated when a link is deleted. The DP is expected to
+    clean up the data structures associated with the link but no other
+    action is needed. NOTE: The current code does not handle link deletions.
+    This message has been specified in anticipation of the code being able
+    to  handle it some time in future. It should be implemented after such
+    accommodations.
+
+\metM
+    DTN2 Params: (linkType, Reason)\\
+    Remarks: After expanding the complex types, there are no noteworthy
+    differences between DTN2 and specified parameters here. 
+
+\metR
+    EventLinkCreated
+}
+
+\method{EventLinkAvailable(LinkID, LinkAttributes, Reason)}
+{
+\metP
+    {\em Link ID}: Identifies the link that has become available.\\
+    {\em Link Attributes}: More info about the link.\\
+    {\em Reason}: Why the link became available.
+
+\metD
+    This event message is sent when a link that was unavailable earlier
+    now becomes available for use.  The Link Attributes contains the
+    latest value of the link attributes. Upon
+    receipt of this event, the DP might 
+    try and open the link and/or start using the link in its routing
+    computations. This event currently pertains only to on-demand,
+    static, and scheduled links.
+
+\metM
+    DTN2 Parameters: (linkType, reason)\\
+    Remarks: After expanding the complex types, there are no noteworthy
+    differences between DTN2 and specified parameters here. 
+
+\metR
+    EventLinkCreated\\
+    EventLinkUnavailable\\
+    RequestOpenLink
+
+}
+
+\method{EventLinkUnavailable(LinkID, LinkAttributes, Reason)}
+{
+\metP
+    {\em Link ID}: Identifies the link that has become unavailable.\\
+    {\em Link Attributes}: More info about the link.\\
+    {\em Reason}: Why the link became unavailable.
+
+\metD
+    This event message is sent when a link that was previously available
+    now becomes unavailable. The Link
+    Attributes contains the latest value of the link attributes.
+    Upon receipt of this event, the DP might mark the link 
+    as ``down'' and trigger updates to inform other nodes to not use this
+    link.
+
+\metM
+    DTN2 Parameters: (linkType, reason)\\
+    Remarks: After expanding the complex types, there are no noteworthy
+    differences between DTN2 and specified parameters here.
+
+\metR
+    RequestCloseLink\\
+    EventLinkAvailable
+}
+
+\method{EventLinkOpened(LinkID, ContactAttributes)}
+{
+\metP
+    {\em Link ID}: Identifies the link which was just opened.\\
+    {\em Contact Attributes}: Gives info about the nature of communications
+    with this contact---when it starts and stops, data rate, latency, etc.
+
+\metD
+    This event message is sent when a link is opened, either upon request
+    by the DP, or the operator (typical for on-demand and scheduled links)
+    or by the CLA automatically discovering a peer (for discovered and
+    opportunistic links). This event is expected by the DP when it issues
+    a RequestSendBundle, and
+    gives the DP the green signal to go ahead and send bundles to
+    this endpoint. The contact attributes may be used by the DP for
+    scheduling/prioritizing purposes.
+
+\metM
+    DTN2 Params: (contactAttributes)\\
+    Remarks: This is similar to the ContactUpEvent of DTN2. Has been renamed
+    as it better reflects the semantics in the context of this interface. 
+    Modulo this, after expanding the complex types, there are no noteworthy
+    differences between DTN2 and specified parameters.
+
+\metR
+    EventLinkClosed\\
+    EventLinkDeleted\\
+    RequestSendBundle
+
+}
+
+\method{EventLinkClosed(LinkID, ContactAttributes)}
+{
+\metP
+    {\em Link ID}: Identifies the link whose peer endpoint went down.\\
+    {\em Contact Attributes}: Gives info about the nature of communications 
+    with this contact.\footnote{Not convinced this is
+    needed since the contact is going away, but kept it in deference to DTN2.}
+
+\metD
+    This event message is sent when the link is closed. This typically
+    is done by the CLA when it believes that the contact has been down
+    so long that it is not worth keeping the link open. The DP may
+    also explicitly close the link (see RequestCloseLink). The
+    criteria for closing a link may differ depending upon the link
+    type.  The LinkClosed event enables the DP to avoid using this
+    endpoint as a transit endpoint for sending bundles, for example.
+
+\metM
+    DTN2 Params: (contactAttributes)\\
+    Remarks: This is similar to the ContactDownEvent of DTN2. Has
+    been renamed as it better reflects the semantics in the context of
+    this interface. Modulo this, after expanding the complex types,
+    there are no noteworthy differences between DTN2 and specified
+    parameters.
+
+\metR
+    EventLinkOpened
+    RequestCloseLink
+}
+
+    
+\method{EventLinkAttributeChange(LinkID, LinkAttributes, Reason)}
+{
+\metP
+    {\em Link ID}: Identifies the link one of whose attributes has changed.\\
+    {\em Link Attributes}: The latest set of attributes.\\
+    {\em Reason}: A reason for the change.
+
+\metD
+    The message informs the DP of any change in the link attributes,
+    in particular, between creation, availability and contact. For
+    example, when a link becomes available, the set of attributes is
+    updated, but if the attributes change after that, the Link
+    Attribute Change event is generated. Changes in the REACHABILITY
+    and USABILITY flags are also indicated using this event--note
+    that these flags are part of the LinkAttributes complex type.  The
+    DP uses this information to decide whether or not to
+    include/exclude this link from routing considerations based on the
+    new set of attributes.
+
+\metM
+    DTN2 Parameters: DTN2 does not have this message. \\
+    Remarks: This message is most useful in (multi-hop) wireless links 
+    whose properties may change frequently and this may affect routing.
+
+\metR
+    EventLinkCreated\\
+    EventLinkAvailable\\
+    EventLinkOpened\\
+    EventContactAttributeChange
+}
+
+\method{EventContactAttributeChange(ContactEID, ContactAttributes, Reason)}
+{
+\metP
+    {\em Contact EID}: Identifies the contact whose attributes have changed.\\
+    {\em Contact Attributes}: The latest set of attributes for the contact.\\
+    {\em Reason}: A reason for the change.
+
+\metD
+    This message informs the DP of any change in the contact attributes,
+    in particular, after the contact up event has been generated. For
+    example, a contact might go into a very deep fade in a valley and its
+    ``bps'' parameter may drop dramatically. This event serves to inform this
+    to the DP so that routing decisions may be modified accordingly.
+
+\metM
+    DTN2 does not have this message.\\
+    Remarks: This message is most useful in (multi-hop) wireless links
+    whose properties may change frequently and this may affect routing.
+
+\metR
+    EventLinkOpened\\
+    EventLinkAttributeChange
+}
+
+
+\subsubsection{Request Messages}
+\label{sec:DP-RequestMessages}
+
+Request messages are sent by the DP to the BPA. They are ``actions''
+that the DP wants the BPA to perform. Requests do not have an explicit
+associated response. Instead, some combination of event messages and
+timeouts are used to confirm that the requests have been acted
+upon.\\[1em]
+
+\method{RequestOpenLink(LinkID)}
+{
+\metP
+    {\em Link ID}: Identifies the link that the DP wants opened.\\
+
+\metD
+    This message is currently meant for on-demand links only. It is
+    assumed that the link has been created and a EventLinkCreated
+    message was generated by the BPA and received by the DP. The Link
+    ID used here is the same as the Link ID given in the
+    EventLinkCreated interface.  The DP makes this request when it
+    wants to send a bundle to a peer EID on this link, and expects an
+    EventLinkAvailable message in response.  The link is kept open
+    until a RequestCloseLink is issued until deemed idle (see
+    section~\ref{sec:linktypes}).
+
+\metM
+    DTN2 Parameters: (link)\\
+    Remarks: We have two additional parameters, attributes and duration. 
+    This will give more flexibility in how to manage the link. 
+
+\metR
+    EventLinkAvailable\\
+    RequestCloseLink
+}
+
+\method{RequestCloseLink(LinkID)}
+{
+\metP
+    {\em Link ID}: Identifies the link that the DP wants closed.
+
+\metD
+    This request closes a link that the DP is no longer interested in
+    keeping open. However, the DP cannot assume that the BPA actually closed
+    the link. The BPA may not close the link, for example, if other
+    DP processes had wanted the link open. If the DP needs confirmation
+    (it may not, typically, need it), then it should wait for the
+    Link Unavailable event.
+
+\metM
+    DTN2 does not have this message.
+
+\metR
+    RequestOpenLink\\
+    EventLinkUnavailable
+
+}
+
+\method{RequestAddLink(LinkType, PeerEID, CLAName, [LinkConfigParameters])}
+{
+\metP
+    {\em Link Type}: The type of link being added.\\
+    {\em Peer EID}: The endpoint ID for the peer of the link being added.\\
+    {\em CLA Name}: The CLA the link being added should use.\\
+    {\em Link Config Parameters (Opt)}: Describes the link to add. 
+
+\metD
+    This request is meant for the case when the DP knows about certain links
+    that the CLA does not and would like to have them
+    added. The request can supply link attributes. After issuing this,
+    the DP waits for a LinkCreated event to be able to use the link. This
+    event is the confirmation that the request was satisfied.
+
+\metM
+    DTN2 does not have this request.
+
+\metR
+    EventLinkCreated
+}
+
+\method{RequestDeleteLink(LinkID)}
+{
+\metP
+    {\em Link ID}: Identifies the link to be deleted. Taken from the
+    EventLinkCreated call.
+
+\metD
+    This request is for deleting links that the DP added using the
+    RequestAddLink command. The DP should only delete links that it added,
+    and thus, the LinkID should only identify a link that was created
+    due to a RequestAddLink call from the DP. The EventLinkDeleted confirms
+    that the request went through.
+
+\metM
+    DTN2 does not have this request.
+
+\metR
+    RequestAddLink \\
+    EventLinkCreated \\
+    EventLinkDeleted
+}
+    
+\method{RequestReconfigureLink(LinkID, LinkConfigParameters)}
+{
+\metP
+    {\em Link ID}: Identifies the link to be reconfigured.\\
+    {\em Link Config Parameters}: The new set of attributes.
+
+\metD
+    Link parameters may be changed after creation time with this
+    request. Changes are applied immediately where it makes sense, even if the
+    link is open. The Link Config Parameters parameter updates link attributes.
+    The EventLinkAttributeChange confirms that this request went through.
+
+\metM
+    DTN2 does not have this request.
+
+\metR
+    RequestAddLink\\
+    RequestDeleteLink\\
+    EventLinkAttributeChange
+}
+
+    
+\method{RequestSendBundle(GBOF-ID, LinkID, ForwardAction, [FragmentSize, FragmentOffset, ExtensionBlock])}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle that the DP wants sent.\\
+    {\em Link ID}: Identifies the link over which the DP wants the bundle
+    sent.\\
+    {\em Forward Action}: One of ``forward to one next hop'', ``forward a
+    copy''\\
+    {\em Fragment Size (Opt)}: To support proactive fragmentation, this field 
+    specifies that only this many bytes of the bundle ought to be sent.
+    Optional parameter.\\
+    {\em Fragment Offset (Opt)}: To support proactive fragmentation, this 
+    field specifies the offset of the size above.\\
+    {\em Extension Block (Opt)}: To be attached after the bundle protocol 
+    header, contains DP-specific information to be piggybacked to DPs in other
+    endpoints. Optional parameter.
+
+\metD
+    As discussed earlier, received bundles are retained by the BPA, with
+    the event giving some important information to the DP. RequestSendBundle
+    message identifies a retained bundle using the GBOF ID that was given
+    in the BundleReceived event and asks it to be sent over a link
+    identified using a Link ID that was given to it in the Link Created
+    event. The Forward Action further qualifies this transmission, in
+    particular whether it wants a copy retained for further forwarding
+    (as may be done in Epidemic Routing). 
+
+    If the Fragment Size field is specified, then the BPA is expected
+    to fragment the specified bundle and send only the fragment. The
+    BPA retains the rest of the bundle awaiting further send or
+    fragment-and-send instructions from the DP.  The extension block
+    is created by the DP and is requested to be attached verbatim
+    after the BP header. This facility is useful for protocols that
+    require control information to be piggybacked on bundles
+    (e.g.~\cite{MaxProp}).
+
+    A BundleTransmitted event following this request serves to confirm
+    that the action was indeed performed. Note that there is no event for
+    the failure of bundle transmission (such an event was there in a previous
+    version and has been removed). Therefore, the DP is responsible for
+    using some method to decide whether to resend the bundle. For example,
+    it could use a timeout and then cancel the sending of the previous 
+    bundle, and if appropriate, resend it on another link. 
+
+
+\metM
+    DTN2 Params: (bundleId, link, forwardAction)\\
+    Remarks: We have two extra parameters, both optional---the fragment
+    size, to support proactive fragmentation, and the extension 
+    block, to support more sophisticated routing protocols.
+
+\metR
+    EventBundleTransmitted\\
+    RequestCancelSendBundle
+}
+
+\method{RequestBroadcastSendBundle(GBOF-ID, ForwardAction, [FragmentSize, FragmentOffset, ExtensionBlock])}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle that the DP wants sent.\\
+    {\em Forward Action}: One of ``forward to one next hop'', ``forward a
+    copy''\\
+    {\em Fragment Size (Opt)}: To support proactive fragmentation, this field
+    specifies that only this many bytes of the bundle ought to be sent.
+    Optional parameter.\\
+    {\em Fragment Offset (Opt)}: To support proactive fragmentation, this
+    field specifies the offset of the size above.\\
+    {\em Extension Block (Opt)}: To be attached after the bundle protocol
+    header, contains DP-specific information to be piggybacked to DPs in other
+    endpoints. Optional parameter.
+
+\metD
+    This is relevant for broadcast channels only, not point-to-point. In
+    this case, a node might wish to simply transmit the bundle without having
+    it be intended for anyone in particular. Such broadcasting is a key part
+    of MANET operation, one of the network types envisaged for DTNs. Unlike
+    a RequestSendBundle to each and every link (which may be considered a
+    broadcast too), the key here is that there is no link specified---indeed,
+    the node may not even know which other nodes receive this. Intended uses
+    are for bundle flooding, epidemic routing and transmitting DP probes.
+
+    The field semantics are identical to that of RequestSendBundle. 
+
+    A BundleTransmitted event following this request serves to confirm that
+    the action was indeed performed.
+
+\metM
+    DTN2 does not have this message\\
+
+\metR
+    RequestSendBundle\\
+    EventBundleTransmitted\\
+}
+
+\method{RequestCancelBundleSend(GBOF-ID, LinkID)}
+{
+\metP
+    {\em GBOF-ID}: Identifies the bundle whose sending needs to be canceled.\\
+    {\em Link ID}: Identifies the link for which the bundle sending must be
+    canceled.
+
+\metD
+    After having issued a RequestSendBundle, the DP may wish to retract it,
+    if possible. This could happen for instance, if the transmission failed
+    and the DP wants to try another bundle, or if it found out that the
+    bundle has been delivered and does not need to be sent anymore, or  
+    for other reasons. 
+
+\metM
+    DTN2 Message: CancelBundleRequest(bundleId, link)\\
+    Remarks: We presume the CancelBundleRequest is to cancel the {\em sending}
+    of a bundle and not something else, like deleting a bundle. The ``link''
+    parameter is not present in our interface for reasons mentioned above.
+
+\metR
+    RequestSendBundle\\
+    EventBundleSendCancelled
+}
+
+\method{RequestInjectBundle(SourceEID, DestEID, payload, [ReplyTo, Custodian, Priority, Expiration, Forward Action])}
+{
+\metP
+    {\em Source EID}: The EID of this DP/router (the one that is
+    injecting the bundle).\\
+    {\em Dest EID}: Identifies the endpoint, typically a peer, for which 
+    the injected bundle is meant.\footnote{Can a bundle be injected for a
+    non-peer endpoint?}\\
+    {\em Payload}: The information content (data part) of the bundle. Base64
+    encoded~\cite{MITRE-IF}\\
+    {\em ReplyTo (Opt)}: Where delivery notification must be sent.\\
+    {\em Custodian (Opt)}: Current custodian.\\
+    {\em Priority (Opt)}: The priority assigned to this bundle.\\
+    {\em Expiration (Opt)}: The expiration time of this bundle.\\
+    {\em Forw Action (Opt)}: Forwarding action type as in RequestSendBundle.
+
+\metD
+    An injected bundle is meant for peer DP(s). We envisage that DP
+    will subscribe to a well known endpoint like {\tt dtn://ext.dp}
+    and injected bundles will have the destination EID set as {\tt
+    peer-EID/ext.dp/foo} where {\tt foo} is a service tag
+    (e.g. bbn-algo-4). This message only injects a bundle, does not
+    actually cause it to be sent. Sending of an injected bundle should
+    be done using the RequestSendBundle command.  An injected bundle
+    undergoes pretty much the same kinds of operations as a
+    ``regular'' bundle. A EventBundleTransmitted message from the BPA
+    will serve to confirm that the injected bundle has been
+    transmitted.\\
+
+    The DP can also, optionally, specify the other fields that go into
+    the BP header, namely the ReplyTo, Custodian, Priority and
+    Expiration.\footnote{This is not mandatory because the control
+    protocol using the injected bundle usually has a way to get rid of
+    the injected (control) bundles once their utility is
+    over. E.g. using sequence numbers, timestamps etc. So there is no
+    need to additionally mandate an expiration field. However, for control
+    protocols that don't have this facility, this is available as an option.}
+     BPA uses defaults
+    in much the same way it treats application bundles.
+
+\metM
+    DTN2 Params: (source,destination,replyto,custodian,link,fwdAction,priority,expiration,payload)\\
+    Remarks: No noteworthy difference.
+
+\metR
+    RequestSendBundle\\
+    EventBundleTransmitted\\
+}
+
+\method{RequestDeleteBundle(GBOF-ID)}
+{
+\metP
+    {\em GBOF-ID}: Identifies the bundle that the DP wants deleted.
+
+\metD
+    Recall that our architecture calls for the BPA to retain control of
+    the bundle itself (storing etc.) while passing relevant parameters
+    to the DP. If the DP determines that a bundle no longer need be
+    stored, persistently or otherwise, it issues this command to delete
+    the bundle. The DP may want to delete the bundle if it is informed
+    through peer-DP mechanisms that a copy of the bundle was delivered.  
+    This request is useful for replication oriented forwarding, for
+    example, Epidemic Routing. There is no event for confirming that
+    the bundle was deleted. 
+
+\metM
+    DTN2 does not have this request message. 
+
+\metR
+    RequestSendBundle
+}
+
+\method{RequestSetCLAParams(Parameters)}
+{
+\metP
+    {\em Parameters}: A list of (key, value) pairs.
+
+\metD
+    This is a ``pass-through'' request to the BPA to set the convergence
+    layer adapter parameters. The BPA is expected to invoke the message to
+    set CLA parameters using the (key, value) pairs in Parameters. The key
+    identifies the name of the parameter and the value is what the 
+    CLA is supposed to set that parameter to.
+
+\metM
+    DTN2 does not have this request. 
+
+\metR
+    None
+}
+
+\subsubsection{Query/Report Messages}
+\label{sec:DP-QueryReportMessages}
+
+Query/Report messages consist of a set of ``paired'' messages---a Query
+message from the DP to the BPA requesting certain information from the BPA and
+a report message for that query from the BPA to the DP delivering the
+requested information, if possible. Unlike the Request-Event messages which
+are only loosely tied, there is a tighter coupling between query and report,
+in particular a report identifies which query is being responded to.
+
+We have separate query/report messages for bundle and link. As will be
+apparent after reading the structure of the messages, there really isn't
+a need to separate it, but we have done so in deference to DTN2 which
+had it separate.\\[1em]
+
+\method{QueryBundleAttributes(QueryID, QueryParams)}
+{
+\metP
+    {\em  QueryID}: Identifies the query (a handle) to tie the report.\\
+    {\em  QueryParams}: A list of keys. The key identifies which information
+    object is asked for. A list of key types, mutually agreed upon by DP and
+    BPA to be defined somewhere.\footnote{Not currently included in this
+    document.}
+
+\metD
+    This query is for getting the value of any subset of a number of
+    pre-defined bundle attributes, including extension block contents, 
+    including location and contents of injected (control)  bundle payload. 
+    A unique query id is passed and a
+    report message containing the query id is awaited. The report contains
+    the requested information (key, value) pairs (see below).
+
+\metM
+    DTN2 has a bundleQuery message but its parameters are not defined.
+
+\metR
+    ReportBundleAttributes
+}
+
+\method{ReportBundleAttributes(QueryID, ReportParams)}
+{
+\metP
+    {\em QueryID}: Identifies which query is being responded to.\\
+    {\em ReportParams}: A list of (key, value) pairs.
+
+\metD
+    This message is a response to a query and reports the latest value
+    of the bundle attributes that were queried for.  The query id ties
+    the report to the query. The ReportParams contains (key, value)
+    pairs, where each key is taken from the list of keys supplied with
+    the corresponding query, and the value is the value of whatever is
+    requested for by the key.
+
+\metM
+    DTN2 Message: bundleReport(bundleType)\\
+    Remarks: The difference is that the specified message is more generalized,
+    DTN2 message is a specific key, value pair, one which dumps
+    whatever is known about the bundle.
+
+\metR
+    QueryBundleAttributes
+}
+
+\method{QueryLinkAttributes(QueryID, LinkID, QueryParams)}
+{
+\metP
+    {\em  QueryID}: Identifies the query (a handle) to tie the report.\\
+    {\em  Link ID}: Identifies the link whose attributes are sought.\\
+    {\em  QueryParams}: A list of keys. The key identifies which information
+    object is asked for. A list of key types, mutually agreed upon by DP and
+    BPA is defined somewhere.\footnote{Again probably not as part of the arch
+    document?}
+
+\metD
+    This query is for getting the value of any subset of a number of
+    pre-defined link attributes. A unique query id is passed and a
+    report message containing the query id is awaited. The report contains
+    the requested information (key, value) pairs (see below).
+
+\metM
+    DTN2 has a linkQuery but its parameters are not defined.
+
+\metR
+    ReportLinkAttributesReport
+
+}
+
+\method{ReportLinkAttributes(QueryID, ReportParams)}
+{
+\metP
+    {\em QueryID}: Identifies which query is being responded to.\\
+    {\em ReportParams}: A list of (key, value) pairs.
+
+\metD
+    This message is a response to a query and reports the latest value
+    of the link attributes that were queried for.  The query id ties
+    the report to the query. The ReportParams contains (key, value)
+    pairs, where each key is taken from the list of keys supplied with
+    the corresponding query, and the value is the value of whatever is
+    requested for by the key.
+
+\metM
+    DTN2 Message: linkReport(linkType)\\
+    Remarks: The difference is that the specified message is more generalized,
+    DTN2 message is a specific key, value pair, one which dumps
+    whatever is known about the link.
+
+\metR
+    QueryLinkAttributes
+}

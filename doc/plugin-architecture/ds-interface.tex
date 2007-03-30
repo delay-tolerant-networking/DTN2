@@ -1,0 +1,716 @@
+\subsection{Data Store Server Interface}
+
+A data store (DS) retains information across invocations of DTN2
+software; a DS server manages one or more data stores. Clients of the
+DS server include the BPA, the DP, and the CLA; the DS server may also
+be used by applications (A/M module).
+
+DTN2 runs well on small devices, and when augmenting it to support
+external data stores we do not want to make any changes that would put
+this at risk. One of the reasons that DTN2 can run on small devices is
+that it does not require a data store with rich semantics; its data
+model is that of a simple persistent hash table.  When DTN2 stores a
+C++ object, it first serializes the object as a string of octets, and
+then inserts the object into the (abstract) persistent hash table. The
+persistent hash table can be implemented using any number of
+underlying storage methods---files, a simple persistent hash table for
+octet strings, or a more traditional database.
+
+On the other hand, DTN2 also runs well on large devices, and we wish
+to support research that will need a data model that is richer than
+that offered by opaque octet strings. Decision plane components will
+need access to the fields of the persistently stored objects, hence
+our DS interface should provide field-level access.
+
+In addition, we envision two general development models for data
+stores and DP components. First, one or more simple DS servers will be
+developed independently of DP components and made available for
+general use; for some DP components these DS servers will be
+sufficient for their needs. In other cases the DP will need more
+advanced support from the DS server (e.g. will require that the DS
+server be able to perform {\it inference}). Advanced DS servers,
+designed to support these DP components, will likely provide a very
+rich interface to their clients, using a syntax that we cannot know
+{\em a priori}.
+
+We must keep in mind, however, that whatever language the DP uses to
+communicate with its DS server, DTN2 must also be able to communicate
+with that DS server. DTN2 will do this through the use of an external
+DS client stub, and we have as a goal to implement a single stub that
+DTN2 can use to connect to any data store. In this way, researchers
+can innovate in the DP and the DS without having to modify DTN2, and
+can connect their components to any instance of DTN2.
+
+In summary, our requirements for the interface include the following.
+
+\begin{enumerate}
+\item The DS interface should provide support for efficient storage of 
+key-value pair, for small devices with simple DPs. 
+\item The DS interface should provide field-level access to
+objects, for deployments where DP components need access to the
+fields of stored objects, but do not require advanced DS server
+support. 
+\item The DS interface should provide support for advanced
+DS servers (e.g. knowledge bases) that may use data
+definition and manipulation languages that are not known to us beforehand.
+\item All DS servers should support a simple, common interface
+that DTN2 will use. 
+\end{enumerate}
+
+Given requirement 4, we have that all DS servers should
+support a common interface. What should that interface be? Requirement
+1 points us to a simple persistent table of (key, value) pairs, but that
+does not give us field-level access (requirement 2). And any simple
+common interface will restrict the expressiveness of advanced data
+stores / knowledge bases (requirement 3).
+
+Our solution is to provide three levels of functionality:
+
+\begin{itemize}
+\item {\tt pair} storage, which DTN2 will use when the
+DS server does not support field-based access (e.g. when running on
+small devices with a limited DP functionality).
+\item {\tt field} storage, which DTN2 will use when the DS
+server supports elements with multiple fields (e.g. when running
+with a more powerful DP). 
+\item An  {\tt advanced} interface used as a general escape
+mechanism for DP components, allowing them to communicate with DS
+servers using a mutually-agreed-to language (e.g. Prolog, SPARQL,
+RDF/OWL, KIF). The advanced interface will not impose any
+restrictions on the syntax of the messages passed between the DP and
+DS server.
+\end{itemize}
+
+In addition, each DS server will support a simple meta-interface that
+can be used to learn about its capabilities.
+
+We envision the following usage scenarios:
+
+\begin{itemize}
+\item {\em {\tt pair} data store server:} DTN2 stores key-value pairs,
+with the data holding an object serialized as an opaque string of octets.
+As the values are opaque, DP components must be able
+to work without information about the contents of the stored objects.
+\item {\em {\tt field} data store server:} DTN2 stores data as objects
+with multiple named fields. Decision plane components can retrieve objects from the
+DS and inspect the fields of the objects. 
+\item {\em {\tt advanced} data store server:} DTN2 and clients other
+than DP components treat such a server as they would treat
+a simple data store server. Advanced DP components can query
+the DS server to learn what advanced data definition and data
+manipulation languages are supported by the latter, and
+then use these languages to perform advanced operations. As an
+example, a DP component might determine that the DS 
+server supports SPARQL; the component could then
+send SPARQL queries to the DS server.
+\end{itemize}
+
+In short, we see three types of DS servers: simple (key-value) {\tt
+pair} storage servers; {\tt field} servers; and {\tt advanced} servers
+(which will also support {\tt field}-based access).
+
+\subsubsection{Implementation}\label{sec:ds-iccp-impl}
+
+The DS interface is provided using the ICCP (Section~\ref{sec:iccp}), which 
+builds upon the external router interface protocol developed by MITRE. We 
+require some extensions (as described below) to the current MITRE 
+implementation in order to  support the DS interface.
+
+Messages are encoded as XML and transmitted via TCP.  Each
+transmission is preceded by a zero-padded, eight-octet, printable
+ASCII length argument, which specifies specifying the number of octets of
+XML data to follow (e.g. the characters ``00000321'' would precede 321
+bytes of XML data).
+
+XML schema (XSD) files for the client-to-DS server and DS
+server-to-client interfaces will be provided.
+
+The protocol is asynchronous. Clients can layer a synchronous
+interface on top if they so desire (the better to work with DTN2). The
+{\em cookie} argument, present in all request messages, can be used to
+match reply messages with their corresponding requests. The cookie
+argument is not interpreted by the DS server---it is copied directly from
+a request message to the corresponding reply, and is entirely for the
+use of the client.
+
+All DS servers support the standard storage interface, but simple {\tt
+pair} servers can only handle tables with two fields (key and
+value). Advanced servers support the full storage interface.
+
+Each data store can hold a number of named tables---collections of
+(abstractly) homogeneous objects. The elements in each table have some
+number of fields.  As stated above, tables in a {\tt pair}
+store are limited to two fields (key and value); tables in other data
+stores can have more fields. Each table has a distinguished field that
+is used as the key; keys are unique across all elements of the table.
+
+The number of fields per table is fixed at table creation.\footnote{Note that
+we may want to change this, e.g., if the DP wants to add arbitrary
+attribute/value pairs to stored data.} 
+
+\subsubsection{Parameter Types}
+
+\begin{tabular}{|r|p{5in}|}
+\hline
+Cookie & string sent by client, returned by server on corresponding response \\ \hline
+Data Store Type & {\tt pair}, {\tt field}, {\tt advanced} \\ \hline
+DS Handle & an uninterpreted string representing a client's active connection to a data store \\ \hline
+Error code & unsigned int returned from data store (details TBD) \\ \hline
+Key, Data & byte strings \\ \hline
+Keys & a list of encryption keys \\ \hline
+Language & a string identifying a language that can be used to communicate with the DS \\ \hline
+Name & a character string, used to identify data store names, table names, and field names \\ \hline
+Password & a password string \\ \hline
+Quota & a 32-bit signed integer representing a storage quota, in MB \\ \hline
+User & a string identifying a user \\ \hline
+\end{tabular}
+
+\subsubsection{Client to Data Store Server Request Messages}
+
+This section enumerates the request messages that can be sent from
+clients (DTN2, DP components, etc.) to the DS
+server. The following section enumerates the corresponding reply
+messages, which are sent from the DS server to its clients. 
+For each message defined in this section named {\em SomeMessage}
+there will be a corresponding {\em SomeMessageReply} defined below.
+
+\begin{table}
+\centering
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+{\em Store Type} & {\em Data Store} & {\em Table} & {\em Element} & {\em Advanced} \\ \hline \hline
+{\tt pair} & ALL & ALL & Put, Get, Del & --- \\ \hline
+{\tt field} & ALL & ALL & ALL & --- \\ \hline
+{\tt advanced} & ALL & ALL & ALL & ALL \\ \hline
+\end{tabular}
+\caption{\label{table:supported-messages} Messages supported by each data store type.}
+\end{table}
+
+\paragraph {}
+{\bf Data store server messages}
+
+Messages sent from the client to operate on the DS server
+itself---query its capabilities, create a data store, open, close, and
+delete a data store, 
+
+\method{DataStoreCapabilities(cookie)}
+{
+\metP
+    {\em cookie}: character string, returned with reply
+
+\metD
+    Request information about the capabilities of the DS server.
+    Returns the supported languages, store type, and whether or not
+    the DS server supports {\em triggers} (detailed description in
+    Section \ref{sec:dsadvmsg}).
+}
+
+
+\method{DataStoreCreate(name, clear, quota, user, password, keys, cookie)}
+{
+\metP
+    {\em name}: name of data store to create\\
+    {\em clear}: if true, and data store exists, clear it out\\
+    {\em quota (opt)}: maximum size in MB of the data store\\
+    {\em cookie}: character string, returned with reply
+
+    Placeholders for authentication:\\
+    {\em user (opt)}: User name\\
+    {\em password (opt)}: Password\\
+    {\em keys (opt)}: Keys for accessing the data store
+
+\metD
+    Create the named data store, or, if it exists and the {\em clear}
+    flag is set, clearing it.  Authentication parameters are listed
+    here as a placeholder; the details of the authentication procedures
+    are to be worked out.
+
+}
+
+\method{DataStoreDelete(name, user, password, keys, cookie)}
+{
+\metP
+    {\em name}: name of data store to create\\
+    {\em cookie}: character string, returned with reply
+
+    Placeholders for authentication:\\
+    {\em user (opt)}: User name\\
+    {\em password (opt)}: Password\\
+    {\em keys (opt)}: Keys for accessing the data store
+
+\metD
+    Delete the named data store.
+}
+
+\method{DataStoreOpen(name, lease, user, password, keys, cookie)}
+{
+\metP
+    {\em name}: name of data store to open\\
+    {\em lease (opt)}: lease time, in seconds\\
+    {\em cookie}: character string, returned with reply
+
+    Placeholders for authentication:\\
+    {\em user (opt)}: User name\\
+    {\em password (opt)}: Password\\
+    {\em keys (opt)}: Keys for accessing the data store
+
+
+\metD 
+
+Return a handle for the data store. The handle will be valid for the period of
+the lease, or until the connection drops, or the client or server is restarted. 
+}
+
+\method{DataStoreStat(handle, cookie)}
+{
+\metP
+    {\em handle}: A handle to the data store\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    Return a description of the tables in the data store. For now this
+    is just a list of the table names.
+}
+
+
+\method{DataStoreClose(handle, cookie)}
+{
+\metP
+    {\em handle}: handle of data store to close.\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    Drop the connection to the data store. The handle is invalidated.
+}
+
+\paragraph{}
+{\bf Table messages}
+
+Each data store can hold multiple named tables. Table messages are used to
+create, delete, and obtain information about the tables in a data store.
+
+\method{TableCreate(handle, name, keyname, keytype, list(pair(fieldname, fieldtype)), cookie)}
+{
+\metP
+    {\em handle}: handle of the data store\\
+    {\em name}: table name\\
+    {\em keyname}: name of key field\\
+    {\em keytype}: type of key field\\
+    {\em fieldname}: name of a field\\
+    {\em fieldtype}: type of the field\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    Create a named table, with the specified fields. The name of the
+    key field is called out.  The key field should also appear
+    in the list of fieldnames and types. TableCreate is used by all
+    stores, but only two fields (one named key, and one other) can be
+    created when using a {\tt pair} data store. 
+
+    We envision supporting a set of standard simple data types, e.g.
+    integers, strings, booleans, etc. Details are TBD.
+    
+    If there is already a table with that name, the data store returns
+    failure.
+}
+
+\method{TableDel(handle, tablename, cookie)}
+{
+\metP
+    {\em handle}: handle of the data store\\
+    {\em tablename}: table name\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    Delete the named table, and all of its data
+}
+
+\method{TableStat(handle, tablename, cookie)}
+{
+\metP
+    {\em handle}: handle of the data store\\
+    {\em tablename}: table name\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    Return information about the named table, including the table's schema
+    (the names and types of its fields), the number of elements in the table,
+    and, if available, the aggregate size (in MB) of the table.
+}
+
+\method{TableKeys(handle, tablename, cookie)}
+{
+\metP
+    {\em handle}: handle of the data store\\
+    {\em tablename}: table name\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    Return a list of the keys stored in the table.
+}
+
+\paragraph{}
+{\bf Element messages}
+
+\method{Put(handle, tablename, keyval, list(pair(fieldname, value)), cookie)}
+{
+\metP
+    {\em handle}: handle of the data store\\
+    {\em tablename}: table name\\
+    {\em key}: key value for element\\
+    {\em fieldname}: name of field\\
+    {\em value}: value for field\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    {\em Put} is used to add an element to a table. Values for each
+    field in the table must be specified. 
+    If an element with the specified key already exists, the element is replaced.
+}
+
+\method{Get(handle, tablename, key, cookie)}
+{
+\metP
+    {\em handle}: handle of the data store\\
+    {\em tablename}: table name\\
+    {\em key}: key value for element\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    {\em Get} is used to retrieve a single element from the table,
+    based on key. See {\em Select}, below, for a more powerful query
+    interface available with {\tt field} databases.
+}
+
+\method{Del(handle, tablename, key, cookie)}
+{
+\metP
+    {\em handle}: handle of the data store\\
+    {\em tablename}: table name\\
+    {\em key}: key value for element\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    Delete the corresponding element from the named table.  
+}
+
+\method{Select(handle, tablename, list(pair(fieldname to match, value)), list(fieldname to retrieve), howmany, cookie)}
+{ 
+\metP
+    {\em handle}: handle of the data store\\
+    {\em tablename}: table name\\
+    {\em fieldname}: name of field\\
+    {\em value}: some constant value (integer, string, etc).\\
+    {\em howmany (opt)}: maximum number of elements to return\\
+    {\em cookie}: character string, returned with reply
+
+\metD
+    {\tt Field} and {\tt advanced} data stores provide 
+    {\em Select}, a limited query functionality. 
+    Fields of each element in a table are compared for equality with
+    passed-in constant values.\footnote{I.e. no joins.} If an element
+    matches (the fields are equal to the specified constant values)
+    the fields of interest of that element are returned.\footnote{This is
+    for the case where a table stores objects with many fields, but
+    only a few fields are of interest.}
+
+    Returns failure if there are no elements in the table that meet the
+    criteria. 
+
+    If the {\em howmany} field is passed it specifies the maximum
+    number of elements to return. If zero is passed for {\em howmany},
+    returns success (and no elements) if there are any elements that
+    meet the criteria.
+}
+
+\paragraph {}
+{\bf Advanced messages} \label{sec:dsadvmsg}
+
+There are two general-purpose advanced messages for use as an escape
+mechanism when working with DS servers that have capabilities
+outside the realm of the standard interfaces.  These messages provide
+the interface for interacting with a full-fledged knowledge base.
+
+\method{Eval(handle, language, command, cookie)}
+{
+\metP
+    {\em handle}: handle of the data store\\
+    {\em language}: the language used by the command\\
+    {\em command}: the command itself\\
+    {\em cookie}: character string, returned with reply
+    
+\metD
+    The {\em Eval} message is used as a mechanism for clients to send
+    commands directly to the DS server, unencumbered by the
+    syntax defined above. For example, if the data store is
+    implemented using an Oracle database, {\em Eval} can be used to
+    send an arbitrary SQL statement. If the data store is implemented
+    using Flora-2 (see \cite{Flora2} and \cite{XSB}), {\em Eval} can 
+    be used to send a Flora-2 expression.
+
+    If the language is not one of the languages supported by the DS
+    server the request will fail.
+
+    Results are returned as an uninterpreted string of octets.  
+}
+
+\method{Trigger(handle, language, command, cookie)}
+{
+\metP
+    {\em handle}: handle of the data store\\
+    {\em language}: the language used by the command\\
+    {\em command}: the command itself\\
+    {\em cookie}: character string, returned with reply
+    
+\metD
+    The {\em trigger} message is a generalized form of the standard
+    trigger request mechanism found in many data stores and production
+    systems. {\em Trigger} sends a command to the DS server,
+    just as {\em eval}, but unlike an {\em eval}, which generates only
+    a single reply message, a {\em trigger} can generate multiple
+    reply messages. 
+
+%    (In fact, {\em trigger} is more of a hint to the system than it is
+%    strictly necessary. It is a way for the client to tell the data
+%    store to treat the attached command as one that may generate
+%    multiple responses, not a single response.)
+% Trigger are useful in order to support a callback style or an
+% event-condition-action style of operation.  With triggers, the DP 
+% need not look at every event of a particular type; rather it can 
+% simply wait for a condition to be satisifed within the KB.  Triggers
+% therefore allow a mechanism by which the DP can delegate some of the
+% processing responsibility to an intelligent data store
+
+    If the data store does not support triggers the request will fail.
+
+    If the language is not one of the languages supported by the DS
+    server the request will fail.
+}
+
+%%----------------------------------------------------------------
+
+\subsubsection{Data Store Server to Client Reply Messages}
+
+Note: the specifics of error codes are TBD. Assume for now that
+possible error codes include SUCCESS and FAILURE, with more likely to
+be defined. 
+
+\paragraph {}
+{\bf Data store server replies}
+
+\method{DataStoreCapabilitiesReply(cookie, dstype, list(languages),
+supports-triggers, error)}
+{
+\metP
+    {\em dstype}: string ({\tt pair}, {\tt field}, or {\tt advanced}).\\
+    {\em language}: uninterpreted strings, representing a language
+    supported by this DS server (e.g. FLORA-2, KIF,
+    RDF/OWL). The meanings of each string is a private contract
+    between DS server and DP component authors.\\
+    {\em supports-triggers}: boolean, true or false.\\
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Information about the capabilities of the DS server.
+    The supported languages (strings), store type ({\tt pair}, {\tt
+    field}, or {\tt advanced}), and whether or not 
+    the DS server supports {\em triggers} (detailed description in
+    Section \ref{sec:dsadvmsg}).
+}
+
+\method{DataStoreCreateReply(cookie, error)}
+{
+\metP
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Error code indicates whether the data store was successfully
+    created or, if creation failed, why.
+}
+
+
+\method{DataStoreDeleteReply(cookie, error)}
+{
+\metP
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Error code indicates whether the data store was successfully
+    deleted or, if deletion failed, why (e.g. it was currently in use, 
+    it does not exist).
+}
+
+\method{DataStoreOpenReply(handle, cookie, error)}
+{
+\metP
+    {\em handle}: handle for opened data store\\
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD 
+
+    A handle for the opened data store. The handle will be valid for
+    the period of the lease, or until the connection drops, or the
+    client or server is restarted.  
+}
+
+\method{DataStoreStatReply(list(tablename), cookie, error)}
+{
+\metP
+    {\em tablename}: The name of a table\\
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Return the names of the tables in the data store. 
+}
+
+\method{DataStoreCloseReply(cookie, error)}
+{
+\metP
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Error code indicates whether data store was closed successfully.
+    (One possible reason for failure is that the data store is not
+    currently open.)
+}
+
+\paragraph{}
+{\bf Table replies}
+
+Each data store can hold multiple named tables. Table messages are used to
+create, delete, and obtain information about the tables in a data store.
+
+\method{TableCreateReply(cookie, error)}
+{
+\metP
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Error code indicates whether the table could be created. 
+}
+
+\method{TableDelReply(cookie, error)}
+{
+\metP
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Error code indicates whether the table could be deleted. 
+}
+
+\method{TableStatReply(tablestatus, cookie, error)}
+{
+\metP
+    {\em table-status}: information about the table\\
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Specifics of {\em table-status} TBD, but will include information
+    about the table's schema (a list containing the names of its
+    fields and their types) and the number of elements in the table }
+
+\method{TableKeysReply(list(key), cookie, error)}
+{
+\metP
+    {\em key}: a key from the table\\
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    The keys for the elements stored in the table. Error code indicates
+    success or failure (including no such table).  
+
+}
+
+\paragraph{}
+{\bf Element replies}
+
+\method{PutReply(cookie, error)}
+{
+\metP
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Error code indicates whether element was stored.
+}
+
+\method{GetReply(list(pair(fieldname, value)), cookie, error)}
+{
+\metP
+    {\em fieldname}: name of field\\
+    {\em value}: value for field\\
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    The requested value. Error code indicates success or failure
+    (including no such key, no such table).
+}
+
+\method{DelReply(cookie, error)}
+{
+\metP
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Error code indicates success or failure (including no such key, no
+    such table).  
+}
+
+\method{SelectReply(list(list(pair(fieldname, value))), cookie, error)}
+{ 
+\metP
+    {\em fieldname}: name of field\\
+    {\em value}: some constant value (integer, string, etc).\\
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+
+\metD
+    Each sub-list consists of (fieldname, value) information from an element
+    that met the constraints of the Select. 
+
+    Returns failure if there are no elements in the table that meet the
+    criteria, if the table does not exist, if the named fields do not exist.
+}
+
+\paragraph {}
+{\bf Advanced replies}
+
+\method{EvalReply(result, cookie, error)}
+{
+\metP
+    {\em result}: the result itself, an uninterpreted string of octets\\
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+    
+\metD
+    The response from the DS server for the corresponding {\em
+    Eval} message. The payload ({\em result} argument) is whatever the
+    DS server sent. The error code is specified by the DS 
+    server's Eval message handler.  }
+
+\method{TriggerReply(result, cookie, error)}
+{
+\metP
+    {\em result}: the result itself, uninterpreted string of octets\\
+    {\em cookie}: character string sent on request\\
+    {\em error}: error (result) code
+    
+\metD
+    A {\em trigger} message is like an {\em Eval}, but may generate
+    a second reply messages at an arbitrary time in the future.
+
+    A rigorous definition of {\em trigger} semantics is TBD.
+}
+

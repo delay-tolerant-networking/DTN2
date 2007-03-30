@@ -1,0 +1,58 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% spindle2 specific latex macros
+% 2006/08/10
+
+%% Requirements
+
+\newcommand{\refreq}[1]{Requirement~\ref{#1}}
+
+\newtheorem{reqBlock}{REQ}[section]
+
+\newcommand{\reqlabel}[1]{\mbox{\textsc{#1:}}\hfil}
+\newenvironment{reqlist}[1]{%
+  \begin{list}{}{%
+      \renewcommand{\makelabel}{\reqlabel}%
+      \settowidth{\labelwidth}{\mbox{\textsc{#1:}}}%
+      \setlength{\leftmargin}{\labelwidth+\labelsep}%
+    }\itemsep=0pt\parsep=0pt\parskip=0pt}{%
+  \end{list}%
+}
+\newcommand{\req}[2]{%
+  \begin{reqBlock}
+    #1%
+\ifx#2\empty\else%
+\begin{reqlist}{Description}
+  #2
+\end{reqlist}
+\fi
+\end{reqBlock}
+}
+\newcommand{\reqSrc}{\item[Source]}
+\newcommand{\reqQuote}{\item[Quote]}
+\newcommand{\reqYear}{\item[Year]}
+\newcommand{\reqWhen}{\item[When]}
+
+\newcommand{\phase}[1]{\textbf{$\mathbf{[}$\textsc{Phase #1}$\mathbf{]}$}}
+
+% Macros for interface message/primitive definitions. Originally from
+% ADROIT, fixed by clivadas
+
+\newcommand{\metlabel}[1]{\mbox{\textsc{#1}}\hfill}
+\newcommand{\metP}{\item[Parameters]}
+\newcommand{\metD}{\item[Description]}
+\newcommand{\metM}{\item[DTN2 $\Delta$]}
+\newcommand{\metR}{\item[Related]}
+
+\newcommand{\method}[2]{%
+\noindent
+\textbf{#1}
+\begin{list}{}%
+  {\renewcommand{\makelabel}{\metlabel}%
+    \settowidth{\labelwidth}{\mbox{\textsc{OutputXXXXX}}}%
+    \setlength{\leftmargin}{\labelwidth}%
+    \addtolength{\leftmargin}{\labelsep}%
+  }
+  #2
+\end{list}
+\vspace{0.15in}
+}

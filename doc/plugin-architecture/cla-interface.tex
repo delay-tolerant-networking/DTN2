@@ -1,0 +1,860 @@
+\subsection{Convergence Layer Adapter Interface}
+
+A Convergence Layer Adapter is responsible for communication with the underlay
+networks available to the BPA. The CLA provides transmission and reception of
+bundles, and responds to requests to open or close links to neighbor endpoints.
+Where possible, the CLA is responsible for performing DTN neighbor discovery
+and measuring link characteristics.
+
+The CLA interface described here is based on the DTN2 ConvergenceLayer, with
+modifications to create an External CLA interface similar in concept to the
+External Decision Plane (Router) interface. Additional functionality is 
+designed to support discovery and the DP.
+
+Each CLA provides the functionality for use of a particular kind of underlay
+network. Multiple ``interfaces'' may be created by each CLA; each interface
+refers to a single underlay network available to the node. Interfaces are
+responsible for receiving bundles from peer nodes, and performing neighbor
+discovery. Discovery is performed separately on each interface.
+
+A potential or existing connection to another endpoint is represented by a
+link. As in DTN2, a given link is associated with a single CLA. If the node
+can reach a given endpoint via more than one CLA, then there will be a link
+for each. Links will have CLA-specific parameters providing the necessary
+information for opening the link, such as the WEP key for 802.11 or the IP
+address and port for the TCP and UDP CLAs.
+
+It is possible for a single CLA to have more than one link with the same
+destination EID. This would generally only be necessary for situations where
+there are different link parameters, and certain bundles should be sent with
+one set of parameters or another. An example of such a situation is a TCP
+CLA on a system with two hardware interfaces, eth0 and eth1.  If which
+hardware interface the bundle is sent from is irrelevant, than only one link
+to a given EID is needed and the CLA will use the default hardware
+interface. But if the default route for eth1 is a router that tunnels
+traffic in IPsec and the default route for eth0 does not tunnel but has much
+better bandwidth, and we wanted to be able to tunnel sensitive bundles and
+send other bundles on the higher-bandwidth link, two links would be
+needed. An additional link parameter, the IP address to send from, would
+then constrain each link to eth1 or eth0, so that bundles sent on that link
+are transmitted correctly.
+
+Link parameters may constrain how the CLA transmits bundles in ways other
+than a hardware interface. For example, the link parameters may require a
+CLA to use only a particular 802.11 SSID. Each CLA provides a set of link
+parameters specific to it, and can use them to constrain transmission of
+bundles, or provide a default where parameters are optional (such as the IP
+address to send from).
+
+\subsubsection{Parameter Types}
+
+The CLA interface uses some of the same parameter types as the DP
+interface. These include:
+
+\begin{verbatim}
+
+GBOF ID                 := [sourceEID, timestamp, isFragment,
+                           fragment-length, frgmtOffset]
+Link ID                 := Unique string identifying a link
+Link Type               := PERSISTENT, ON_DEMAND, SCHEDULED, PREDICTED,
+                           or OPPORTUNISTIC
+Link Attributes         := [type, state, peerEID, is-reachable, is-usable,
+                           howReliable, howAvailable, reactive-frag-enabled,
+                           underlayAddress, clName,
+                           all-CLA-specific-link-attributes]
+Link Config Parameters  := A set of the following attributes:
+                           is-usable, reactive-frag-enabled, underlayAddress,
+                           configurable-CLA-specific-link-attributes
+ContactAttributes       := [startTime, duration, bps, latency, pktLossProb,
+                           LinkAttributes]
+
+
+\end{verbatim}
+
+Additional parameters include:
+
+\begin{verbatim}
+
+CLA Parameters          := A list of (key, value) pairs
+Interface Parameters    := A list of (key, value) pairs
+Interface ID            := Unique string identifying an interface
+Link State              := OPEN, AVAILABLE, UNAVAILABLE, or BUSY
+Bundle Location         := How to get the bundle to send or where an incoming 
+                           bundle was placed (from the DS or elsewhere)
+
+\end{verbatim}
+
+Interfaces and links have both parameters and attributes associated with
+them. Parameters are used to control behavior, such as whether to perform
+fragmentation or what encryption key should be used, while attributes
+describe state, such as latency or error rate. Note that link attributes
+also include the REACHABLE and UNUSABLE flags.
+
+\subsubsection{Request Messages}
+
+Requests to the CLA are made by the BPA. Some requests may originate from
+the DP and are then passed to the CLA by the BPA.\\[1em]
+
+\method{RequestSetCLAParams(CLAParameters)}
+{
+\metP
+    {\em CLA Parameters}: A list of (key, value) pairs.
+
+\metD
+    This request sets the CLA parameters. These parameters apply to the
+    behavior of the CLA as a whole, not individual interfaces or links. The
+    key identifies the name of the parameter and the value is what the CLA is
+    supposed to set that parameter to. If any of the parameters is invalid,
+    no parameters are set.
+
+    After a CLA has been added (see RequestAddCLA), the BPA should use this
+    message to tell the CLA the canonical EID of this node (for use in
+    discovery) and where to store incoming bundles. The CLA should store
+    bundles as it receives them in the manner specified by this BPA-provided
+    Bundle Location so that the BPA can read them upon receiving
+    EventBundleReceived messages.
+
+    For basic topology management in the CLA, the CLA should at least support a
+    configuration parameter that instructs it to automatically create a link
+    and mark it as REACHABLE and AVAILABLE when a new EID is
+    discovered. Otherwise new links must be created by RequestAddLink.
+
+    CLAs may support more sophisticated topology management functionality,
+    which would be configured/enabled via this request as well. For example,
+    if configured, the CLA would delete discovered links that have been
+    UNREACHABLE for longer than a certain time, based on the presumption that
+    the endpoint will not be reachable again any time soon.
+
+\metR
+    EventCLAParamsSet
+}
+
+\method{RequestSetInterfaceDefaults(InterfaceParameters)}
+{
+\metP
+    {\em Interface Parameters}: A list of (key, value) pairs. The set of key
+    types is CLA-dependent.
+
+\metD
+    This message sets default values for interface parameters. These values are
+    used when a new interface is created, unless they are overridden at
+    creation time by parameters in RequestAddInterface. Changes to the default
+    parameters do not change any preexisting interfaces. If any of the
+    parameters is invalid, no parameters are set.
+
+\metR
+    RequestAddInterface\\
+    RequestReconfigureInterface
+}
+    
+\method{RequestSetLinkDefaults(LinkConfigParameters)}
+{
+\metP
+    {\em Link Config Parameters}: A list of link attributes for which to set
+    defaults.
+%The set of attributes is CLA-dependent.
+
+\metD
+    This message sets default values for link parameters. These values are
+    used when a new link is created, unless overridden at creation time by
+    parameters in RequestAddLink.\footnote{Some parameters may be determined
+    by discovery or a measurement process implemented within the CLA.} Changes 
+    to the default parameters do not change any
+    preexisting links. If any of the parameters is invalid, no parameters are
+    set.
+
+\metR
+    RequestAddLink\\
+    RequestReconfigureLink
+}
+
+\method{RequestAddInterface(InterfaceID, [InterfaceParameters])}
+{
+\metP
+    {\em Interface ID}: Identifies the interface to be added.\\
+    {\em Interface Parameters (Opt)}: A list of (key, value) pairs. The set
+    of key types is CLA-dependent.
+
+\metD
+    This requests that the CLA add an interface with the provided name. Any
+    default parameters for the interface will be used unless overridden by
+    the InterfaceParameters. Bundles sent from another node cannot be
+    received, nor can discovery be performed, until the interface is up.
+    If any of the parameters is invalid, the interface is not added.
+
+\metR
+    EventInterfaceAdded\\
+    RequestReconfigureInterface\\
+    RequestSetInterfaceDefaults
+}
+
+\method{RequestReconfigureInterface(InterfaceID, [InterfaceParameters, UpOrDown, DiscoveryOrNot])}
+{
+\metP
+    {\em Interface ID}: Identifies the interface.\\
+    {\em Interface Parameters (Opt)}: A list of (key, value) pairs. The set
+    of key types is CLA-dependent.\\
+    {\em Up Or Down (Opt)}: This field specifies whether the interface should
+    be brought down or up.\\
+    {\em Discovery or Not (Opt)}: This field specifies whether or not DTN
+    neighbor discovery should be performed on the interface.
+
+\metD
+    This request allows the specified interface to be reconfigured. If
+    provided, the Interface Parameters are the same as those set in
+    RequestSetInterfaceDefaults and RequestAddInterface; the changes are to be
+    applied immediately (if it makes sense). Interfaces are brought up or
+    down with the Up Or Down field. An interface starts down when added, and
+    cannot perform discovery until it is brought up. The Discovery Or Not
+    field allows changing whether discovery is enabled; an interface may be
+    up without discovery being enabled. If any of the parameters is invalid, no
+    parameters are changed.
+
+\metR
+    EventInterfaceReconfigured
+}
+
+\method{RequestDeleteInterface(InterfaceID)}
+{
+\metP
+    {\em Interface ID}: Identifies the interface to be deleted.
+
+\metD
+    This message requests that the interface itself brought down and
+    deleted. Existing links that happen to use the same underlay network
+    as the interface are not affected. However, depending on how the CLA
+    works, such links may no longer be able to send traffic and would
+    eventually become UNAVAILABLE (if applicable).
+
+\metR
+    None
+}
+
+\method{RequestAddLink(LinkID, LinkType, PeerEID, [LinkConfigParameters])}
+{
+\metP
+    {\em Link ID}: Identifies the link to be created.\\
+    {\em Link Type}: The type of link being added.\\
+    {\em Peer EID}: The endpoint ID for the peer of the link being added.\\
+    {\em Link Config Parameters (Opt)}: Describes the link to add.
+% The set of attributes is CLA-dependent.
+
+\metD
+    This message requests that the CLA add a link. The link is not to be
+    opened automatically by the CLA when added.
+%\footnote{Unless it's AlwaysOn?} 
+The link parameters can include the link's UNUSABLE flag.
+%    The underlay address of the peer (called ``nextHop'' in DTN2), if
+%    provided, is also a link parameter.
+    If any of the parameters is invalid, the link is not added.
+
+\metR
+    EventLinkCreated
+}
+
+\method{RequestReconfigureLink(LinkID, LinkConfigParameters)}
+{
+\metP
+    {\em Link ID}: Identifies the link to be reconfigured.\\
+    {\em Link Config Parameters}: The new set of attributes.
+% The set of attributes is CLA-dependent.\\
+
+\metD
+    Link parameters may be changed after creation time with this
+    request. Changes are applied immediately where it makes sense, even if the
+    link is open. This request is also used to set or clear the link's
+    UNUSABLE flag. If any of the parameters is invalid, no parameters are
+    changed.
+
+\metR
+    RequestAddLink
+}
+
+\method{RequestDeleteLink(LinkID)}
+{
+\metP
+    {\em Link ID}: Identifies the link to be deleted.
+
+\metD
+    This is a request to close the link if it is open and then delete it.
+
+    Note that if the CLA is performing neighbor discovery, and has been
+    instructed to create links when peers are found, the CLA may recreate
+    this link if it is re-discovered.
+
+\metR
+    EventLinkDeleted
+}
+
+\method{RequestOpenLink(LinkID)}
+{
+\metD
+    See DP interface (section~\ref{sec:DP-RequestMessages}).
+
+\metR
+    RequestCloseLink
+}
+
+\method{RequestCloseLink(LinkID)}
+{
+\metP
+    {\em Link ID}: Identifies the link that the DP wants closed.
+
+\metD
+    This message requests that the CLA close the link if it is open.
+
+\metR
+    RequestOpenLink
+}
+
+\method{RequestSendBundle(GBOF-ID, LinkID, BundleLocation)}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle that should be sent.\\
+    {\em Link ID}: Identifies the link over which the bundle should be sent.\\
+    {\em Bundle Location}: Specifies from where the CLA should retrieve the
+    bundle to be sent.
+
+\metD
+    This is a request to send the bundle. There is not a parameter for bundle
+    blocks; the assembly of the bundle blocks into a complete bundle must
+    be performed by the BPA. The location of this complete bundle is specified
+    by the Bundle Location field.
+
+\metR
+    EventBundleTransmitted\\
+    EventBundleTransmitFailed\\
+    RequestCancelBundleSend
+}
+
+\method{RequestCancelBundleSend(GBOF-ID, LinkID)}
+{
+\metP
+    {\em GBOF-ID}: Identifies the bundle whose sending needs to be canceled.\\
+    {\em Link ID}: Identifies the link for which the bundle sending must be
+    canceled.
+
+\metD
+    This is a request that the CLA remove the specified bundle from all
+    transmission queues if possible. The CLA will post EventBundleSendCancelled
+    if the cancellation succeeds. If the CLA is currently transmitting the
+    specified bundle, several options may be available. It may still be
+    possible for the CLA to cancel the entire bundle transmission, in which
+    case the cancellation succeeds. If it is not possible to cancel the
+    transmission, the CLA could continue to transmit the bundle, or create a
+    reactive fragment. In these cases, the EventBundleTransmitted message would
+    be sent as normal.
+
+\metR
+    EventBundleSendCancelled\\
+    RequestSendBundle
+}
+
+\subsubsection{Event Messages}
+
+The CLA sends event messages to the BPA.\\[1em]
+
+\method{EventCLAParamsSet()}
+{
+\metP
+    None
+
+\metD
+    This message is sent when a RequestSetCLAParams message has been
+    successfully processed.
+
+\metR
+    RequestSetCLAParams
+}
+
+\method{EventInterfaceAdded(InterfaceID)}
+{
+\metP
+    {\em Interface ID}: Identifies the interface that was added.
+
+\metD
+    This event message is sent when an interface has been successfully added
+    by the CLA. The interface will not be up until it has been brought up
+    by a RequestReconfigureInterface message.
+
+\metR
+    RequestAddInterface\\
+    RequestReconfigureInterface
+}
+
+\method{EventInterfaceReconfigured(InterfaceID)}
+{
+\metP
+    {\em Interface ID}: Identifies the interface that was reconfigured.
+
+\metD
+    This event is sent after reconfiguring an interface in response to
+    the RequestReconfigureInterface message.
+
+\metR
+    RequestReconfigureInterface
+}
+
+\method{EventEIDReachable(InterfaceID, PeerEID)}
+{
+\metP
+    {\em Interface ID}: Identifies the interface from which the peer is
+    reachable.\\
+    {\em Peer EID}: The endpoint ID of the DTN node that can be reached from
+    this interface.
+
+\metD
+    This is a ``pass-through'' event for the BPA; the BPA is expected to
+    pass the message to the DP, and need not take any other action.
+
+    This event message is used only if the CLA has not been configured to
+    automatically create a link when a new neighbor is discovered. (If the CLA
+    has been configured to automatically create a link, when the link is
+    created, reachability is indicated to the DP by the LinkAttributes in the
+    EventLinkCreated message.)
+    When the CLA is not configured to automatically create
+    new links, the EventEIDReachable message is sent to inform the DP that
+    neighbor discovery has determined that a new peer EID is reachable, so that
+    the DP can determine whether to create a corresponding link or not.
+
+\metR
+    RequestAddLink
+}
+
+\method{EventLinkCreated(LinkID, LinkAttributes, Reason)}
+{
+\metD
+    See DP interface (section~\ref{sec:DP-EventMessages}).
+
+\metR
+    RequestAddLink
+}
+
+\method{EventLinkDeleted(LinkID, LinkAttributes, Reason)}
+{
+\metD
+    See DP interface (section~\ref{sec:DP-EventMessages}).
+
+\metR
+    RequestDeleteLink
+}
+
+\method{EventLinkOpened(LinkID, ContactAttributes)}
+{
+\metD
+    See DP interface (section~\ref{sec:DP-EventMessages}).
+
+\metR
+    RequestOpenLink\\
+    EventLinkClosed
+}
+
+\method{EventLinkClosed(LinkID, ContactAttributes)}
+{
+\metD
+    See DP interface (section~\ref{sec:DP-EventMessages}).
+
+\metR
+    RequestCloseLink\\
+    EventLinkOpened
+}
+
+\method{EventLinkAttributeChange(LinkID, LinkAttributes, Reason)}
+{
+\metD
+    See DP interface (section~\ref{sec:DP-EventMessages}).
+
+    This is a ``pass-through'' event for the BPA; the BPA is expected to
+    pass the message to the DP, and need not take any other action.
+
+\metR
+    EventContactAttributeChange
+}
+
+\method{EventContactAttributeChange(LinkID, ContactAttributes, Reason)}
+{
+\metD
+    See DP interface (section~\ref{sec:DP-EventMessages}).
+
+    This is a ``pass-through'' event for the BPA; the BPA is expected to
+    pass the message to the DP, and need not take any other action.
+
+\metR
+    EventLinkAttributeChange
+}
+
+The following event messages inform the BPA that the CLA has added or changed
+the state of a link. In response, the BPA must update any state information it
+maintains for links, by either adding a link or changing the state of an
+existing one. The CLA has already performed the action so the BPA does not need
+to send a request to the CLA to effect the change.\\[1em]
+
+\method{EventLinkStateChange(LinkID, LinkState, Reason)}
+{
+\metP
+    {\em Link ID}: Identifies the link changing state.\\
+    {\em Link State}: The state the link has changed to.\\
+    {\em Reason}: A reason for the change.
+
+\metD
+    When sent by the CLA, this event informs the BPA of a change in the link
+    state based on some knowledge available to the CLA. The BPA should
+    update its own idea of the link state accordingly. The EventLinkOpened and
+    EventLinkClosed messages sent by the CLA set a link's OPEN state. The CLA
+    will send the EventLinkStateChange message for other state changes.
+
+    The CLA will set a link to BUSY when the queue has grown too long and will
+    return the link to OPEN when bundles can be sent again. A problem with
+    this approach must be resolved: a large number of bundle send request
+    messages could be sent between the time the CLA requests the link be
+    changed to BUSY and the time the BPA receives the message and changes
+    the link state. The CLA may not be able to honor these send requests
+    received after requesting the change to BUSY.
+
+    Note: This translates to the current LinkStateChangeRequest event in DTN2,
+    but the CLA has already changed its state so the BPA should only take
+    actions regarding its own link state.
+
+\metR
+    EventLinkOpened\\
+    EventLinkClosed
+}
+
+\method{EventAddReachableLink(LinkID, PeerEID, [LinkConfigParameters])}
+{
+\metP
+    {\em Link ID}: Identifies the link to be created.\\
+    {\em Peer EID}: The endpoint ID for the peer of the link being added.\\
+    {\em Link Parameters (Opt)}: Link attributes that may be set at link
+    creation time, i.e.\ the parameters available for RequestAddLink.
+
+\metD
+    If the CLA is configured to create links when discovery determines a new
+    neighbor is reachable, the CLA must tell the BPA to create the link, so
+    that the BPA can set up the state it keeps for links. This request tells
+    the BPA to create an OPPORTUNISTIC link, and set the link to AVAILABLE.
+    The BPA does not need to send a RequestAddLink message in response, because
+    the CLA has already created the link. The CLA will next send an
+    EventLinkCreated message to inform the DP and BPA of the creation and
+    reachability of the link.
+
+\metR
+    EventLinkCreated\\
+    RequestAddLink
+}
+
+The following events are directly related to bundles.\\[1em]
+
+\method{EventBundleTransmitted(GBOF-ID, LinkID, TotalBytesSent, TotalBytesSentReliably)}
+{
+\metP
+    % copied from DP
+    {\em GBOF ID}: Identifies the bundle or fragment that was transmitted.\\
+    {\em Link ID}: Identifies the link over which it was transmitted.\\
+    {\em Total bytes sent}: Number of bytes of data (including headers)
+    transmitted.\\
+    {\em Total bytes sent reliably}: Number of bytes of data (including
+    headers) sent reliably. This could be different from total bytes sent
+    if there were no ACKs received for some part of the data.
+
+\metD
+    This event message is sent when all or part of a bundle has been
+    transmitted. If the ``total bytes sent'' is less than the payload plus
+    header size of the bundle, the bundle has been reactively fragmented. This
+    can happen if the link is closed during transmission of the bundle. A
+    link parameter controls whether the CLA will attempt to perform reactive
+    fragmentation. If the CLA provides a means for the receiving node to
+    acknowledge receipt of data, ``total bytes sent reliably'' will specify how
+    many of the ``total bytes sent'' were acknowledged.
+
+    If a bundle has been partially transmitted but reactive fragmentation is
+    not performed, EventBundleTransmitFailed will be sent instead. If the
+    bundle send is canceled before any portion of it has been sent, the
+    EventBundleSendCancelled message is sent instead.
+
+\metR
+    EventBundleTransmitFailed\\
+    EventBundleSendCancelled\\
+    RequestSendBundle
+}
+
+\method{EventBundleSendCancelled(GBOF-ID, LinkID)}
+{
+\metP
+    {\em GBOF ID}: Identifies the bundle whose sending was canceled.\\
+    {\em Link ID}: Identifies the link for which the bundle send was
+    canceled.
+
+\metD
+    This message is sent when a bundle that was previously requested to be
+    sent has been successfully canceled by a RequestCancelBundleSend
+    message.
+
+\metR
+    RequestCancelBundleSend
+}
+
+\method{EventBundleReceiveStarted(BundleLocation, [PrevHopEID])}
+{
+\metP
+    {\em Bundle Location}: Specifies where the CLA will store the bundle.\\
+    {\em Previous Hop EID}: The node from which this bundle is being
+    received, when available.
+
+\metD
+    This message is sent by the CLA when it begins to receive a bundle. If
+    the CLA provides a means of acknowledging receipt of data to the peer
+    (such as in the TCP CL), this message must be sent before the CLA
+    acknowledges any of the bundle data. If there is no means of
+    acknowledging receipt of data (such as with the UDP CL), the CLA is not
+    required to send this message to the BPA.
+
+    The motivation for this message is to handle cases where the external
+    CLA crashes or is somehow unable to send messages to the BPA between
+    acknowledging data to the peer and sending the EventBundleReceived
+    message to the BPA. If the CLA acks data and then cannot post the
+    BundleReceivedEvent, the peer transmitting the bundle may assume the
+    bundle is transmitted (or perform reactive fragmentation), yet the
+    bundle has not actually arrived at the BPA. This could result in the
+    bundle or fragment being lost.
+
+    If the BPA finds that the CLA has died, it should collect and process
+    all bundles for which EventBundleReceiveStarted was sent but not
+    EventBundleReceived.
+
+\metR
+    EventBundleReceived
+}
+
+\method{EventBundleReceived(BundleLocation, BytesReceived, [PrevHopEID])}
+{
+\metP
+    {\em Bundle Location}: Specifies where the CLA stored the bundle.\\
+    {\em Bytes Received}: Total number of bytes in the bundle (including
+    headers).\\
+    {\em Previous Hop EID (Opt)}: The node from which this bundle was 
+    received, when available.
+
+\metD
+    This message is sent when the CLA has completed receiving a bundle. If the
+    ``bytes received'' is less than the bundle length, then the bundle has been
+    reactively fragmented. This can happen when the link is closed during
+    reception of the bundle. A link parameter controls whether the CLA will
+    attempt to perform reactive fragmentation. 
+
+\metR
+    EventBundleReceiveStarted
+}
+
+\subsubsection{CLA Registration}
+
+These two requests are used by the CLA at startup and shutdown.
+They are sent from the CLA to the BPA. After connecting to the BPA, the CLA
+sends a RequestAddCLA message to inform the BPA that the CLA has been created
+and is available to handle future requests from the BPA. If the CLA is shutting
+down, it informs the BPA of this fact with a RequestDeleteCLA message.\\[1em]
+
+\method{RequestAddCLA(CLAName)}
+{
+\metP
+    {\em CLA Name}: Identifies the CLA that is requesting to be added.
+
+\metD
+    While starting up, the CLA should send this request after connecting to the
+    BPA. This informs the BPA that the CLA is ready for future requests.
+
+\metR
+    RequestDeleteCLA
+}
+
+\method{RequestDeleteCLA(CLAName)}
+{
+\metP
+    {\em CLA Name}: Identifies the CLA that is being deleted.
+
+\metD
+    When shutting down the CLA sends this request message to inform the BPA
+    that the CLA is shutting down. The BPA is then expected to take correct
+    actions for a CLA going away.
+
+    It is possible for the CLA to die without sending this request, so the BPA
+    should detect this situation and take the correct actions for deleting a
+    CLA.
+
+\metR
+    RequestAddCLA
+}
+
+\subsubsection{Query/Report Messages}
+
+Query messages are sent to the CLA by the BPA. Some queries may originate at
+the DP and simply be passed to the CLA by the BPA. The corresponding Report
+messages are sent from the CLA to the BPA.\\[1em]
+
+\method{QueryBundleQueued(QueryID, GBOF-ID, LinkID)}
+{
+\metP
+    {\em QueryID}: Identifies the query (a handle) to tie the report.\\
+    {\em GBOF-ID}: Identifies the bundle being queried.\\
+    {\em Link ID}: Identifies the link being queried.
+
+\metD
+    This query is for determining whether or not a bundle is currently on
+    the send queue of the given link. A unique query id is passed and a
+    report message containing the query id is awaited. The report contains
+    the requested information.
+
+\metR
+    ReportBundleQueued
+}
+
+\method{ReportBundleQueued(QueryID, YesOrNo)}
+{
+\metP
+    {\em QueryID}: Identifies which query is being responded to.\\
+    {\em YesOrNo}: Yes if the bundle is on the link's send queue.
+
+\metD
+    This message is a response to a query and reports whether or not the
+    specified bundle is currently queued to be transmitted on the specified
+    link. The query id ties the report to the query. 
+
+\metR
+    QueryBundleQueued
+}
+
+\method{QueryEIDReachable(QueryID, InterfaceID, PeerEID)}
+{
+\metP
+    {\em QueryID}: Identifies the query (a handle) to tie the report.\\
+    {\em Interface ID}: Identifies the interface being queried.\\
+    {\em Peer EID}: Identifies the endpoint ID being queried.
+
+\metD
+    This query is for determining whether or not an endpoint ID is reachable
+    from the given interface. A unique query id is passed and a
+    report message containing the query id is awaited. The report contains
+    the requested information.
+
+\metR
+    ReportEIDReachable
+}
+
+\method{ReportEIDReachable(QueryID, YesOrNo)}
+{
+\metP
+    {\em QueryID}: Identifies which query is being responded to.\\
+    {\em YesOrNo}: Yes if the peer endpoint ID is reachable from the queried
+    interface.
+
+\metD
+    This message is a response to a query and reports whether or not the
+    specified endpoint ID is currently reachable from the specified interface.
+    The query id ties the report to the query. 
+
+\metR
+    QueryEIDReachable
+}
+
+\method{QueryLinkAttributes(QueryID, LinkID, QueryParams)}
+{
+\metD
+    See DP interface (section~\ref{sec:DP-QueryReportMessages}).
+%   COMMENT: This would query measured link characteristics. Presumably there
+%   is a well-defined set of characteristics such as bandwidth and RTT,
+%   with additional CLA-specific characteristics available. This could be
+%   allowed to query the parameters set at link creation time as well. It
+%   could also query the link state (open or closed).
+    
+\metR
+    ReportLinkAttributes
+}
+
+\method{ReportLinkAttributes(QueryID, ReportParams)}
+{
+\metD
+    See DP interface (section~\ref{sec:DP-QueryReportMessages}).
+
+\metR
+    QueryLinkAttributes
+}
+
+\method{QueryInterfaceAttributes(QueryID, InterfaceID, QueryParams)}
+{
+\metP
+    % copied from DP
+    {\em QueryID}: Identifies the query (a handle) to tie the report.\\
+    {\em Interface ID}: Identifies the interface being queried.\\
+    {\em QueryParams}: A list of keys. The key identifies which information
+    object is asked for. A list of key types is defined somewhere.
+
+\metD
+    % copied from DP
+    This query is for getting the value of any subset of a number of
+    pre-defined interface attributes. A unique query id is passed and a
+    report message containing the query id is awaited. The report contains
+    the requested information (key,value) pairs (see below).
+
+\metR
+    ReportInterfaceAttributes
+}
+
+\method{ReportInterfaceAttributes(QueryID, ReportParams)}
+{
+\metP
+    % copied from DP
+    {\em QueryID}: Identifies which query is being responded to.\\
+    {\em ReportParams}: A list of (key, value) pairs.
+    
+\metD
+    % copied from DP
+    This message is a response to a query and reports the latest value
+    of the interface attributes that were queried for. The query id ties
+    the report to the query. The ReportParams contains (key, value)
+    pairs, where each key is taken from the list of keys supplied with
+    the corresponding query, and the value is the value of whatever is
+    requested for by the key.
+
+\metR
+    QueryInterfaceAttributes
+}
+
+\method{QueryCLAParameters(QueryID, QueryParams)}
+{
+\metP
+    % copied from DP
+    {\em QueryID}: Identifies the query (a handle) to tie the report.\\
+    {\em Interface ID}: Identifies the interface being queried.\\
+    {\em QueryParams}: A list of keys. The key identifies which information
+    object is asked for. A list of key types is defined somewhere.
+    
+\metD
+    % copied from DP
+    This query is for getting the value of any subset of a number of
+    pre-defined CLA parameters. A unique query id is passed and a
+    report message containing the query id is awaited. The report contains
+    the requested information (key,value) pairs (see below).
+
+\metR
+    ReportCLAParameters
+}
+
+\method{ReportCLAParameters(QueryID, ReportParams)}
+{
+\metP
+    % copied from DP
+    {\em QueryID}: Identifies which query is being responded to.\\
+    {\em ReportParams}: A list of (key, value) pairs.
+    
+\metD
+    % copied from DP
+    This message is a response to a query and reports the latest value
+    of the CLA parameters that were queried for. The query id ties
+    the report to the query. The ReportParams contains (key, value)
+    pairs, where each key is taken from the list of keys supplied with
+    the corresponding query, and the value is the value of whatever is
+    requested for by the key.
+
+\metR
+    QueryCLAParameters
+}
