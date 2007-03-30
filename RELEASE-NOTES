@@ -46,7 +46,7 @@ DS-related changes:
 	  because is used by external data stores that are oasys
 	  clients.
 
- oasys/serialize/LinearSerializeAction.{cc,h}
+ oasys/serialize/StringPairSerialize.{cc,h}
 	* New SerializeAction that linearizes an object into a vector
 	  of strings. Used by the external data store.
 
