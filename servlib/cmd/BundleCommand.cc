@@ -122,11 +122,18 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
         
+        bool eids_valid = true;
         Bundle* b = new Bundle();
-        b->source_.assign(Tcl_GetStringFromObj(objv[2], 0));
-        b->replyto_.assign(Tcl_GetStringFromObj(objv[2], 0));
+        eids_valid &= b->source_.assign(Tcl_GetStringFromObj(objv[2], 0));
+        eids_valid &= b->replyto_.assign(Tcl_GetStringFromObj(objv[2], 0));
         b->custodian_.assign(EndpointID::NULL_EID());
-        b->dest_.assign(Tcl_GetStringFromObj(objv[3], 0));
+        eids_valid &= b->dest_.assign(Tcl_GetStringFromObj(objv[3], 0));
+        
+        if (!eids_valid) {
+            resultf("bad value for one or more EIDs");
+            delete b;
+            return TCL_ERROR;
+        }
         
         int payload_len;
         u_char* payload_data = Tcl_GetByteArrayFromObj(objv[4], &payload_len);
@@ -313,7 +320,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
             const u_char* bp = 
                     bundle->payload_.read_data(0, len, (u_char*)buf.data());
             
-            buf.append((const char*)bp, 0);            
+            buf.append((const char*)bp, len);            
             set_result(buf.c_str());
             
         } else if (strcmp(cmd, "dump") == 0) {
