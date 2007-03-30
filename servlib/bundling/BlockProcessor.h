@@ -151,7 +151,7 @@ protected:
     int consume_preamble(BlockInfo* block,
                          u_char* buf,
                          size_t len,
-                         size_t preamble_size = 0);
+                         u_int64_t* flagp = NULL);
     
     /**
      * Generate the standard preamble for the given block type, flags
@@ -159,8 +159,8 @@ protected:
      */
     void generate_preamble(BlockInfo* block,
                            u_int8_t type,
-                           u_int8_t flags,
-                           size_t data_length);
+                           u_int64_t flags,
+                           u_int64_t data_length);
     
 private:
     /// The block typecode for this handler

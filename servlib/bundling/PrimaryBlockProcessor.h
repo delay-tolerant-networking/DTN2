@@ -34,6 +34,9 @@ public:
     
     /// @{ Virtual from BlockProcessor
     int consume(Bundle* bundle, BlockInfo* block, u_char* buf, size_t len);
+    bool validate(const Bundle* bundle, BlockInfo* block,
+                  BundleProtocol::status_report_reason_t* reception_reason,
+                  BundleProtocol::status_report_reason_t* deletion_reason);
     void generate(const Bundle* bundle, const LinkRef& link,
                   BlockInfo* block, bool last);
     /// @}
@@ -48,38 +51,32 @@ protected:
         BUNDLE_IS_ADMIN                = 1 << 1,
         BUNDLE_DO_NOT_FRAGMENT         = 1 << 2,
         BUNDLE_CUSTODY_XFER_REQUESTED  = 1 << 3,
-        BUNDLE_SINGLETON_DESTINATION   = 1 << 4
+        BUNDLE_SINGLETON_DESTINATION   = 1 << 4,
+        BUNDLE_ACK_BY_APP              = 1 << 5,
+        BUNDLE_UNUSED                  = 1 << 6
     } bundle_processing_flag_t;
     
-    /**
-     * The first fixed-field portion of the primary bundle block
-     * preamble structure.
-     */
-    struct PrimaryBlock1 {
-        u_int8_t version;
-        u_int8_t bundle_processing_flags;
-        u_int8_t class_of_service_flags;
-        u_int8_t status_report_request_flags;
-        u_char   block_length[0]; // SDNV
-    } __attribute__((packed));
-
     /**
      * The remainder of the fixed-length part of the primary bundle
      * block that immediately follows the block length.
      */
-    struct PrimaryBlock2 {
-        u_int16_t dest_scheme_offset;
-        u_int16_t dest_ssp_offset;
-        u_int16_t source_scheme_offset;
-        u_int16_t source_ssp_offset;
-        u_int16_t replyto_scheme_offset;
-        u_int16_t replyto_ssp_offset;
-        u_int16_t custodian_scheme_offset;
-        u_int16_t custodian_ssp_offset;
-        u_int64_t creation_ts;
-        u_int32_t lifetime;
-
-    } __attribute__((packed));
+    struct PrimaryBlock {
+        u_int8_t version;
+        u_int64_t processing_flags;
+        u_int64_t block_length;
+        u_int64_t dest_scheme_offset;
+        u_int64_t dest_ssp_offset;
+        u_int64_t source_scheme_offset;
+        u_int64_t source_ssp_offset;
+        u_int64_t replyto_scheme_offset;
+        u_int64_t replyto_ssp_offset;
+        u_int64_t custodian_scheme_offset;
+        u_int64_t custodian_ssp_offset;
+        u_int64_t creation_time;
+        u_int64_t creation_sequence;
+        u_int64_t lifetime;
+        u_int64_t dictionary_length;
+    };
 
 
     /// @{
@@ -88,14 +85,15 @@ protected:
     
     static size_t get_primary_len(const Bundle* bundle,
                                   DictionaryVector* dict,
-                                  size_t* dictionary_len,
-                                  size_t* primary_var_len);
+                                  PrimaryBlock* primary);
 
     static size_t get_primary_len(const Bundle* bundle);
 
     static void add_to_dictionary(const EndpointID& eid,
                                   DictionaryVector* dict,
-                                  size_t* dictlen);
+                                  u_int64_t* dictlen,
+                                  u_int64_t* scheme_offset,
+                                  u_int64_t* ssp_offset);
     
     static void get_dictionary_offsets(DictionaryVector *dict,
                                        const EndpointID& eid,
@@ -104,22 +102,22 @@ protected:
     
 
     static bool extract_dictionary_eid(EndpointID* eid, const char* what,
-                                       u_int16_t* scheme_offsetp,
-                                       u_int16_t* ssp_offsetp,
+                                       u_int64_t scheme_offset,
+                                       u_int64_t ssp_offset,
                                        u_char* dictionary,
-                                       u_int32_t dictionary_len);
+                                       u_int64_t dictionary_len);
 
-    static void debug_dump_dictionary(const char* bp, size_t len,
-                                      PrimaryBlock2* primary2);
+    static void debug_dump_dictionary(const char* bp,
+                                      const PrimaryBlock& primary);
     
-    static u_int8_t format_bundle_flags(const Bundle* bundle);
-    static void parse_bundle_flags(Bundle* bundle, u_int8_t flags);
+    static u_int64_t format_bundle_flags(const Bundle* bundle);
+    static void parse_bundle_flags(Bundle* bundle, u_int64_t flags);
 
-    static u_int8_t format_cos_flags(const Bundle* bundle);
-    static void parse_cos_flags(Bundle* bundle, u_int8_t cos_flags);
+    static u_int64_t format_cos_flags(const Bundle* bundle);
+    static void parse_cos_flags(Bundle* bundle, u_int64_t cos_flags);
 
-    static u_int8_t format_srr_flags(const Bundle* bundle);
-    static void parse_srr_flags(Bundle* bundle, u_int8_t srr_flags);
+    static u_int64_t format_srr_flags(const Bundle* bundle);
+    static void parse_srr_flags(Bundle* bundle, u_int64_t srr_flags);
     /// @}
 };
 

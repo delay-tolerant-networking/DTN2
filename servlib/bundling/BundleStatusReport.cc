@@ -65,9 +65,9 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
     // 1 byte Reason Code
     // SDNV   [Fragment Offset (if present)]
     // SDNV   [Fragment Length (if present)]
-    // 8 byte Time of {receipt/forwarding/delivery/deletion/custody/app-ack}
+    // SDNVx2 Time of {receipt/forwarding/delivery/deletion/custody/app-ack}
     //        of bundle X
-    // 8 byte Copy of bundle X's Creation Timestamp
+    // SDNVx2 Copy of bundle X's Creation Timestamp
     // SDNV   Length of X's source endpoint ID
     // vari   Source endpoint ID of bundle X
 
@@ -78,13 +78,23 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
     // XXX/matt we may want to change to allow multiple-timestamps per SR
 
     // the non-optional, fixed-length fields above:
-    report_length = 1 + 1 + 1 + 8 + 8;
+    report_length = 1 + 1 + 1;
 
     // the 2 SDNV fragment fields:
     if (orig_bundle->is_fragment_) {
         report_length += SDNV::encoding_len(orig_bundle->frag_offset_);
         report_length += SDNV::encoding_len(orig_bundle->orig_length_);
     }
+
+    // Time field, set to the current time (with no sub-second
+    // accuracy defined at all)
+    BundleTimestamp now;
+    now.seconds_ = BundleTimestamp::get_current_time();
+    now.seqno_   = 0;
+    report_length += BundleProtocol::ts_encoding_len(&now);
+    
+    // The bundle's creation timestamp:
+    report_length += BundleProtocol::ts_encoding_len(&orig_bundle->creation_ts_);
 
     // the Source Endpoint ID:
     report_length += SDNV::encoding_len(orig_source.length()) + orig_source.length();
@@ -125,19 +135,17 @@ BundleStatusReport::create_status_report(Bundle*           bundle,
         len -= sdnv_encoding_len;
     }   
 
-    // Time field, set to the current time (with no sub-second
-    // accuracy defined at all)
-    BundleTimestamp now;
-    now.seconds_ = BundleTimestamp::get_current_time();
-    now.seqno_   = 0;
-    BundleProtocol::set_timestamp(bp, &now);
-    len -= sizeof(u_int64_t);
-    bp  += sizeof(u_int64_t);
+    sdnv_encoding_len = BundleProtocol::set_timestamp(bp, len, &now);
+    ASSERT(sdnv_encoding_len > 0);
+    bp  += sdnv_encoding_len;
+    len -= sdnv_encoding_len;
 
     // Copy of bundle X's Creation Timestamp
-    BundleProtocol::set_timestamp(bp, &orig_bundle->creation_ts_);
-    len -= sizeof(u_int64_t);
-    bp  += sizeof(u_int64_t);
+    sdnv_encoding_len = 
+            BundleProtocol::set_timestamp(bp, len, &orig_bundle->creation_ts_);
+    ASSERT(sdnv_encoding_len > 0);
+    bp  += sdnv_encoding_len;
+    len -= sdnv_encoding_len;
     
     // The 2 Endpoint ID fields:
     sdnv_encoding_len = SDNV::encode(orig_source.length(), bp, len);
@@ -194,73 +202,73 @@ bool BundleStatusReport::parse_status_report(data_t* data,
 
     // The 6 Optional ACK Timestamps:
     
+    int ts_len;
+    
     if (data->status_flags_ & BundleProtocol::STATUS_RECEIVED) {
-        if (len < sizeof(u_int64_t)) { return false; }
-        BundleProtocol::get_timestamp(&data->receipt_tv_, bp);
-        bp  += sizeof(u_int64_t);
-        len -= sizeof(u_int64_t);
+        ts_len = BundleProtocol::get_timestamp(&data->receipt_tv_, bp, len);
+        if (ts_len < 0) { return false; }
+        bp  += ts_len;
+        len -= ts_len;
     } else {
         data->receipt_tv_.seconds_ = 0;
         data->receipt_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_CUSTODY_ACCEPTED) {
-        if (len < sizeof(u_int64_t)) { return false; }
-        BundleProtocol::get_timestamp(&data->custody_tv_, bp);
-        bp  += sizeof(u_int64_t);
-        len -= sizeof(u_int64_t);
+        ts_len = BundleProtocol::get_timestamp(&data->custody_tv_, bp, len);
+        if (ts_len < 0) { return false; }
+        bp  += ts_len;
+        len -= ts_len;
     } else {
         data->custody_tv_.seconds_ = 0;
         data->custody_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_FORWARDED) {
-        if (len < sizeof(u_int64_t)) { return false; }
-        BundleProtocol::get_timestamp(&data->forwarding_tv_, bp);
-        bp  += sizeof(u_int64_t);
-        len -= sizeof(u_int64_t);
+        ts_len = BundleProtocol::get_timestamp(&data->forwarding_tv_, bp, len);
+        if (ts_len < 0) { return false; }
+        bp  += ts_len;
+        len -= ts_len;
     } else {
         data->forwarding_tv_.seconds_ = 0;
         data->forwarding_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_DELIVERED) {
-        if (len < sizeof(u_int64_t)) { return false; }
-        BundleProtocol::get_timestamp(&data->delivery_tv_, bp);
-        bp  += sizeof(u_int64_t);
-        len -= sizeof(u_int64_t);
+        ts_len = BundleProtocol::get_timestamp(&data->delivery_tv_, bp, len);
+        if (ts_len < 0) { return false; }
+        bp  += ts_len;
+        len -= ts_len;
     } else {
         data->delivery_tv_.seconds_ = 0;
         data->delivery_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_DELETED) {
-        if (len < sizeof(u_int64_t)) { return false; }
-        BundleProtocol::get_timestamp(&data->deletion_tv_, bp);
-        bp  += sizeof(u_int64_t);
-        len -= sizeof(u_int64_t);
+        ts_len = BundleProtocol::get_timestamp(&data->deletion_tv_, bp, len);
+        if (ts_len < 0) { return false; }
+        bp  += ts_len;
+        len -= ts_len;
     } else {
         data->deletion_tv_.seconds_ = 0;
         data->deletion_tv_.seqno_   = 0;
     }
 
     if (data->status_flags_ & BundleProtocol::STATUS_ACKED_BY_APP) {
-        if (len < sizeof(u_int64_t)) { return false; }
-        BundleProtocol::get_timestamp(&data->ack_by_app_tv_, bp);
-        bp  += sizeof(u_int64_t);
-        len -= sizeof(u_int64_t);
+        ts_len = BundleProtocol::get_timestamp(&data->ack_by_app_tv_, bp, len);
+        if (ts_len < 0) { return false; }
+        bp  += ts_len;
+        len -= ts_len;
     } else {
         data->ack_by_app_tv_.seconds_ = 0;
         data->ack_by_app_tv_.seqno_   = 0;
     }
-
     
     // Bundle Creation Timestamp
-    if (len < sizeof(u_int64_t)) { return false; }
-    BundleProtocol::get_timestamp(&data->orig_creation_tv_, bp);
-    bp  += sizeof(u_int64_t);
-    len -= sizeof(u_int64_t);
-
+    ts_len = BundleProtocol::get_timestamp(&data->orig_creation_tv_, bp, len);
+    if (ts_len < 0) { return false; }
+    bp  += ts_len;
+    len -= ts_len;
     
     // EID of Bundle
     u_int64_t EID_len;

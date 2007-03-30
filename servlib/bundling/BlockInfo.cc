@@ -23,6 +23,7 @@
 #include "BlockProcessor.h"
 #include "APIBlockProcessor.h"
 #include "BundleProtocol.h"
+#include "SDNV.h"
 
 namespace dtn {
 
@@ -68,23 +69,27 @@ BlockInfo::type() const
 }
 
 //----------------------------------------------------------------------
-u_int8_t
+u_int64_t
 BlockInfo::flags() const
 {
     if (type() == BundleProtocol::PRIMARY_BLOCK) {
         return 0x0;
     }
-
-    ASSERT(contents_.len() >= 2);
-    return contents_.buf()[1];
+    
+    u_int64_t flags;
+    int sdnv_size = SDNV::decode(contents_.buf() + 1, contents_.len() - 1, 
+                                 &flags);
+    ASSERT(sdnv_size > 0);
+    return flags;
 }
 
 //----------------------------------------------------------------------
 void
-BlockInfo::set_flag(u_int8_t flag)
+BlockInfo::set_flag(u_int64_t flag)
 {
-    ASSERT(contents_.len() >= 2);
-    contents_.buf()[1] &= flag;
+    size_t sdnv_len = SDNV::encoding_len(flag);
+    ASSERT(contents_.len() >= 1 + sdnv_len);
+    SDNV::encode(flag, contents_.buf() + 1, sdnv_len);
 }
 
 //----------------------------------------------------------------------
@@ -92,11 +97,12 @@ bool
 BlockInfo::last_block() const
 {
     //check if it's too small to be flagged as last
-    if (contents_.len() < 2)
-    {
-        return 0;
+    if (contents_.len() < 2) {
+            return false;
     }
-    return (flags() & BundleProtocol::BLOCK_FLAG_LAST_BLOCK);
+    
+    u_int64_t flag = flags();
+    return ((flag & BundleProtocol::BLOCK_FLAG_LAST_BLOCK) != 0);
 }
 
 //----------------------------------------------------------------------

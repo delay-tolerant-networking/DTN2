@@ -69,8 +69,8 @@ public:
     /// @{ These accessors need special case processing since the
     /// primary block doesn't have the fields in the same place.
     u_int8_t type()  const;
-    u_int8_t flags() const;
-    void     set_flag(u_int8_t flag);
+    u_int64_t flags() const;
+    void     set_flag(u_int64_t flag);
     /// @}
 
     /// Virtual from SerializableObject

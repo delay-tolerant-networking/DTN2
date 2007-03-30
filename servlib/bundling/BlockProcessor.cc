@@ -43,21 +43,19 @@ int
 BlockProcessor::consume_preamble(BlockInfo* block,
                                  u_char*    buf,
                                  size_t     len,
-                                 size_t     preamble_size)
+                                 u_int64_t* flagp)
 {
     static const char* log = "/dtn/bundle/protocol";
+    int sdnv_len;
     ASSERT(! block->complete());
     ASSERT(block->data_offset() == 0);
 
-    if (preamble_size == 0) {
-        preamble_size = sizeof(BundleProtocol::BlockPreamble);
-    }
-    
     // Since we need to be able to handle a preamble that's split
     // across multiple calls, we proactively copy up to the maximum
     // length of the preamble into the contents buffer, then adjust
     // the length of the buffer accordingly.
-    size_t max_preamble  = preamble_size + SDNV::MAX_LENGTH;
+    size_t max_preamble  = BundleProtocol::PREAMBLE_FIXED_LENGTH +
+            SDNV::MAX_LENGTH * 2;
     size_t prev_consumed = block->contents().len();
     size_t tocopy        = std::min(len, max_preamble - prev_consumed);
     
@@ -72,19 +70,37 @@ BlockProcessor::consume_preamble(BlockInfo* block,
 
     // Make sure we have at least one byte of sdnv before trying to
     // parse it.
-    if (contents->len() < preamble_size + 1) {
+    if (contents->len() <= BundleProtocol::PREAMBLE_FIXED_LENGTH) {
         ASSERT(tocopy == len);
         return len;
     }
+    
+    size_t buf_offset = BundleProtocol::PREAMBLE_FIXED_LENGTH;
+    u_int64_t flags;
+    
+    // Now we try decoding the sdnv that contains the block processing
+    // flags. If we can't, then we have a partial preamble, so we can
+    // assert that the whole incoming buffer was consumed.
+    sdnv_len = SDNV::decode(contents->buf() + buf_offset,
+                            contents->len() - buf_offset,
+                            &flags);
+    if (sdnv_len == -1) {
+        ASSERT(tocopy == len);
+        return len;
+    }
+    
+    if (flagp != NULL)
+        *flagp = flags;
+    
+    buf_offset += sdnv_len;
     
     // Now we try decoding the sdnv that contains the actual block
     // length. If we can't, then we have a partial preamble, so we can
     // assert that the whole incoming buffer was consumed.
     u_int64_t block_len;
-    int sdnv_len =
-        SDNV::decode(contents->buf() + preamble_size,
-                     contents->len() - preamble_size,
-                     &block_len);
+    sdnv_len = SDNV::decode(contents->buf() + buf_offset,
+                            contents->len() - buf_offset,
+                            &block_len);
     if (sdnv_len == -1) {
         ASSERT(tocopy == len);
         return len;
@@ -96,56 +112,62 @@ BlockProcessor::consume_preamble(BlockInfo* block,
                   *contents->buf());
         return -1;
     }
+    
+    buf_offset += sdnv_len;
 
     // We've successfully consumed the preamble so initialize the
     // data_length and data_offset fields of the block and adjust the
     // length field of the contents buffer to include only the
     // preamble part (even though a few more bytes might be in there.
     block->set_data_length(static_cast<u_int32_t>(block_len));
-    block->set_data_offset(preamble_size + sdnv_len);
-    contents->set_len(preamble_size + sdnv_len);
+    block->set_data_offset(buf_offset);
+    contents->set_len(buf_offset);
 
     log_debug_p(log, "BlockProcessor type 0x%x "
-                "consumed preamble %zu/%u for block type (0x%x): "
+                "consumed preamble %zu/%u for block: "
                 "data_offset %u data_length %u",
-                block_type(), preamble_size + sdnv_len - prev_consumed,
-                block->full_length(), block->type(),
+                block_type(), buf_offset + prev_consumed,
+                block->full_length(),
                 block->data_offset(), block->data_length());
     
     // Finally, be careful to return only the amount of the buffer
     // that we needed to complete the preamble.
-    ASSERT(preamble_size + sdnv_len > prev_consumed);
-    return preamble_size + sdnv_len - prev_consumed;
+    ASSERT(buf_offset > prev_consumed);
+    return buf_offset - prev_consumed;
 }
 
 //----------------------------------------------------------------------
 void
 BlockProcessor::generate_preamble(BlockInfo* block,
                                   u_int8_t   type,
-                                  u_int8_t   flags,
-                                  size_t     data_length)
+                                  u_int64_t  flags,
+                                  u_int64_t  data_length)
 {
     static const char* log = "/dtn/bundle/protocol";
     (void)log;
     
-    size_t sdnv_len = SDNV::encoding_len(data_length);
+    size_t flag_sdnv_len = SDNV::encoding_len(flags);
+    size_t length_sdnv_len = SDNV::encoding_len(data_length);
     ASSERT(block->contents().len() == 0);
-    ASSERT(block->contents().buf_len() >=
-           sizeof(BundleProtocol::BlockPreamble) + sdnv_len);
+    ASSERT(block->contents().buf_len() >= BundleProtocol::PREAMBLE_FIXED_LENGTH 
+            + flag_sdnv_len + length_sdnv_len);
 
-    BundleProtocol::BlockPreamble* bp =
-        (BundleProtocol::BlockPreamble*)block->writable_contents()->buf();
+    u_char* bp = block->writable_contents()->buf();
     
-    bp->type  = type;
-    bp->flags = flags;
-    SDNV::encode(data_length, &bp->length[0], sdnv_len);
+    *bp = type;
+    SDNV::encode(flags, bp + BundleProtocol::PREAMBLE_FIXED_LENGTH,
+                 flag_sdnv_len);
+    SDNV::encode(data_length, bp + BundleProtocol::PREAMBLE_FIXED_LENGTH + 
+                 flag_sdnv_len, length_sdnv_len);
 
     block->set_data_length(data_length);
-    block->set_data_offset(sizeof(*bp) + sdnv_len);
-    block->writable_contents()->set_len(sizeof(*bp) + sdnv_len);
+    u_int32_t offset = BundleProtocol::PREAMBLE_FIXED_LENGTH + 
+            flag_sdnv_len + length_sdnv_len;
+    block->set_data_offset(offset);
+    block->writable_contents()->set_len(offset);
 
     log_debug_p(log, "BlockProcessor type 0x%x "
-                "generated preamble for block type 0x%x flags 0x%x: "
+                "generated preamble for block type 0x%x flags 0x%llx: "
                 "data_offset %u data_length %u",
                 block_type(), block->type(), block->flags(),
                 block->data_offset(), block->data_length());

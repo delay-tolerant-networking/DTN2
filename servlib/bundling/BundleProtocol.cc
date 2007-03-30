@@ -453,31 +453,45 @@ BundleProtocol::validate(Bundle* bundle,
 }
 
 //----------------------------------------------------------------------
-void
-BundleProtocol::set_timestamp(u_char* ts, const BundleTimestamp* tv)
+int
+BundleProtocol::set_timestamp(u_char* ts, size_t len, const BundleTimestamp* tv)
 {
-    u_int32_t tmp;
+    int sec_size = SDNV::encode(tv->seconds_, ts, len);
+    if (sec_size < 0)
+        return -1;
 
-    tmp = htonl(tv->seconds_);
-    memcpy(ts, &tmp, sizeof(u_int32_t));
-    ts += sizeof(u_int32_t);
-
-    tmp = htonl(tv->seqno_);
-    memcpy(ts, &tmp, sizeof(u_int32_t));
+    int seqno_size = SDNV::encode(tv->seqno_, ts + sec_size, len - sec_size);
+    if (seqno_size < 0)
+        return -1;
+    
+    return sec_size + seqno_size;
 }
 
 //----------------------------------------------------------------------
-void
-BundleProtocol::get_timestamp(BundleTimestamp* tv, const u_char* ts)
+int
+BundleProtocol::get_timestamp(BundleTimestamp* tv, const u_char* ts, size_t len)
 {
-    u_int32_t tmp;
-
-    memcpy(&tmp, ts, sizeof(u_int32_t));
-    tv->seconds_  = ntohl(tmp);
-    ts += sizeof(u_int32_t);
+    u_int64_t tmp;
     
-    memcpy(&tmp, ts, sizeof(u_int32_t));
-    tv->seqno_ = ntohl(tmp);
+    int sec_size = SDNV::decode(ts, len, &tmp);
+    if (sec_size < 0)
+        return -1;
+    ASSERT(tmp < 0xffffffff);
+    tv->seconds_ = (u_int32_t)tmp;
+    
+    int seqno_size = SDNV::decode(ts + sec_size, len - sec_size, &tmp);
+    if (seqno_size < 0)
+        return -1;
+    ASSERT(tmp < 0xffffffff);
+    tv->seqno_ = (u_int32_t)tmp;
+    
+    return sec_size + seqno_size;
+}
+
+size_t
+BundleProtocol::ts_encoding_len(const BundleTimestamp* tv)
+{
+    return SDNV::encoding_len(tv->seconds_) + SDNV::encoding_len(tv->seqno_);    
 }
 
 //----------------------------------------------------------------------

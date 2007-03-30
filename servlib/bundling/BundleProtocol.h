@@ -141,38 +141,23 @@ public:
      * Store a DTN timestamp into a 64-bit value suitable for
      * transmission over the network.
      */
-    static void set_timestamp(u_char* bp, const BundleTimestamp* tv);
-
-    /**
-     * Store a DTN timestamp into a 64-bit value suitable for
-     * transmission over the network. The implementation doesn't
-     * require the 64-bit destination to be word-aligned so it is safe
-     * to cast here.
-     */
-    static void set_timestamp(u_int64_t* bp, const BundleTimestamp* tv) {
-        set_timestamp((u_char *) bp, tv);
-    }
+    static int set_timestamp(u_char* bp, size_t len, const BundleTimestamp* tv);
 
     /**
      * Retrieve a DTN timestamp from a 64-bit value that was
      * transmitted over the network. This does not require the
      * timestamp to be word-aligned.
      */
-    static void get_timestamp(BundleTimestamp* tv, const u_char* bp);
-
-    /**
-     * Retrieve a DTN timestamp from a 64-bit value that was
-     * transmitted over the network. This does not require the
-     * timestamp to be word-aligned.
-     */
-    static void get_timestamp(BundleTimestamp* tv, const u_int64_t* bp) {
-        get_timestamp(tv, (u_char *) bp);
-    }
+    static int get_timestamp(BundleTimestamp* tv, const u_char* bp, size_t len);
+    
+    static size_t ts_encoding_len(const BundleTimestamp* tv);
 
     /**
      * The current version of the bundling protocol.
      */
-    static const int CURRENT_VERSION = 0x04;
+    static const int CURRENT_VERSION = 0x05;
+    
+    static const unsigned PREAMBLE_FIXED_LENGTH = 1;
 
     /**
      * Valid type codes for bundle blocks.
@@ -227,14 +212,17 @@ public:
      * Bundle Status Report Status Flags
      */
     typedef enum {
-        STATUS_RECEIVED         = 0x01,
-        STATUS_CUSTODY_ACCEPTED = 0x02,
-        STATUS_FORWARDED        = 0x04,
-        STATUS_DELIVERED        = 0x08,
-        STATUS_DELETED          = 0x10,
-        STATUS_ACKED_BY_APP     = 0x20,
-        STATUS_UNUSED           = 0x40,
-        STATUS_UNUSED2          = 0x80,
+        STATUS_RECEIVED         = 1 << 14,
+        STATUS_CUSTODY_ACCEPTED = 1 << 15,
+        STATUS_FORWARDED        = 1 << 16,
+        STATUS_DELIVERED        = 1 << 17,
+        STATUS_DELETED          = 1 << 18,
+        STATUS_UNUSED           = 1 << 19,
+        STATUS_UNUSED2          = 1 << 20,
+        
+        //XXX delete me
+        STATUS_ACKED_BY_APP = 11111
+                
     } status_report_flag_t;
 
     /**

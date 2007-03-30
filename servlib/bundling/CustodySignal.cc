@@ -58,8 +58,8 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     // 1 byte status code
     // SDNV   [Fragment Offset (if present)]
     // SDNV   [Fragment Length (if present)]
-    // 8 byte Time of custody signal
-    // 8 byte Copy of bundle X's Creation Timestamp
+    // SDNVx2 Time of custody signal
+    // SDNVx2 Copy of bundle X's Creation Timestamp
     // SDNV   Length of X's source endpoint ID
     // vari   Source endpoint ID of bundle X
 
@@ -68,13 +68,22 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
     //
 
     // the non-optional, fixed-length fields above:
-    signal_len =  1 + 1 + 8 + 8;
+    signal_len =  1 + 1;
 
     // the 2 SDNV fragment fields:
     if (orig_bundle->is_fragment_) {
         signal_len += SDNV::encoding_len(orig_bundle->frag_offset_);
         signal_len += SDNV::encoding_len(orig_bundle->orig_length_);
     }
+    
+    // Time field, set to the current time:
+    BundleTimestamp now;
+    now.seconds_ = BundleTimestamp::get_current_time();
+    now.seqno_   = 0;
+    signal_len += BundleProtocol::ts_encoding_len(&now);
+    
+    // The bundle's creation timestamp:
+    signal_len += BundleProtocol::ts_encoding_len(&orig_bundle->creation_ts_);
 
     // the Source Endpoint ID length and value
     signal_len += SDNV::encoding_len(orig_bundle->source_.length()) +
@@ -109,21 +118,20 @@ CustodySignal::create_custody_signal(Bundle*           bundle,
         ASSERT(sdnv_encoding_len > 0);
         bp  += sdnv_encoding_len;
         len -= sdnv_encoding_len;
-    }   
-
-    // Time field, set to the current time:
-    BundleTimestamp now;
-    now.seconds_ = BundleTimestamp::get_current_time();
-    now.seqno_   = 0;
-    BundleProtocol::set_timestamp(bp, &now);
-    len -= sizeof(u_int64_t);
-    bp  += sizeof(u_int64_t);
+    }
+    
+    sdnv_encoding_len = BundleProtocol::set_timestamp(bp, len, &now);
+    ASSERT(sdnv_encoding_len > 0);
+    bp  += sdnv_encoding_len;
+    len -= sdnv_encoding_len;
 
     // Copy of bundle X's Creation Timestamp
-    BundleProtocol::set_timestamp(bp, &orig_bundle->creation_ts_);
-    len -= sizeof(u_int64_t);
-    bp  += sizeof(u_int64_t);
-    
+    sdnv_encoding_len = 
+            BundleProtocol::set_timestamp(bp, len, &orig_bundle->creation_ts_);
+    ASSERT(sdnv_encoding_len > 0);
+    bp  += sdnv_encoding_len;
+    len -= sdnv_encoding_len;
+
     // The Endpoint ID length and data
     sdnv_encoding_len = SDNV::encode(orig_bundle->source_.length(), bp, len);
     ASSERT(sdnv_encoding_len > 0);
@@ -175,18 +183,20 @@ CustodySignal::parse_custody_signal(data_t* data,
         bp  += sdnv_bytes;
         len -= sdnv_bytes;
     }
+    
+    int ts_len;
 
     // The signal timestamp
-    if (len < sizeof(u_int64_t)) { return false; }
-    BundleProtocol::get_timestamp(&data->custody_signal_tv_, bp);
-    bp  += sizeof(u_int64_t);
-    len -= sizeof(u_int64_t);
+    ts_len = BundleProtocol::get_timestamp(&data->custody_signal_tv_, bp, len);
+    if (ts_len < 0) { return false; }
+    bp  += ts_len;
+    len -= ts_len;
 
-    // Copy of the bundle's creation timestamp
-    if (len < sizeof(u_int64_t)) { return false; }
-    BundleProtocol::get_timestamp(&data->orig_creation_tv_, bp);
-    bp  += sizeof(u_int64_t);
-    len -= sizeof(u_int64_t);
+    // Bundle Creation Timestamp
+    ts_len = BundleProtocol::get_timestamp(&data->orig_creation_tv_, bp, len);
+    if (ts_len < 0) { return false; }
+    bp  += ts_len;
+    len -= ts_len;
 
     // Source Endpoint ID of Bundle
     u_int64_t EID_len;

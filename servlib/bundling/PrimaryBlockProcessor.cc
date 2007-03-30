@@ -51,7 +51,10 @@ PrimaryBlockProcessor::PrimaryBlockProcessor()
 void
 PrimaryBlockProcessor::add_to_dictionary(const EndpointID& eid,
                                          DictionaryVector* dict,
-                                         size_t* dictlen)
+                                         u_int64_t* dictlen,
+                                         u_int64_t* scheme_offset,
+                                         u_int64_t* ssp_offset)
+                                         
 {
     /*
      * For the scheme and ssp parts of the given endpoint id, see if
@@ -64,19 +67,25 @@ PrimaryBlockProcessor::add_to_dictionary(const EndpointID& eid,
     bool found_ssp = false;
 
     for (iter = dict->begin(); iter != dict->end(); ++iter) {
-        if (iter->str == eid.scheme_str())
+        if (iter->str == eid.scheme_str()) {
             found_scheme = true;
+            *scheme_offset = iter->offset;
+        }
 
-        if (iter->str == eid.ssp())
+        if (iter->str == eid.ssp()) {
             found_ssp = true;
+            *ssp_offset = iter->offset;
+        }
     }
 
     if (found_scheme == false) {
+        *scheme_offset = *dictlen;
         dict->push_back(DictionaryEntry(eid.scheme_str(), *dictlen));
         *dictlen += (eid.scheme_str().length() + 1);
     }
 
     if (found_ssp == false) {
+        *ssp_offset = *dictlen;
         dict->push_back(DictionaryEntry(eid.ssp(), *dictlen));
         *dictlen += (eid.ssp().length() + 1);
     }
@@ -108,28 +117,23 @@ PrimaryBlockProcessor::get_dictionary_offsets(DictionaryVector *dict,
 bool
 PrimaryBlockProcessor::extract_dictionary_eid(EndpointID* eid,
                                               const char* what,
-                                              u_int16_t* scheme_offsetp,
-                                              u_int16_t* ssp_offsetp,
+                                              u_int64_t scheme_offset,
+                                              u_int64_t ssp_offset,
                                               u_char* dictionary,
-                                              u_int32_t dictionary_len)
+                                              u_int64_t dictionary_len)
 {
     static const char* log = "/dtn/bundle/protocol";
-    u_int16_t scheme_offset, ssp_offset;
-    memcpy(&scheme_offset, scheme_offsetp, 2);
-    memcpy(&ssp_offset, ssp_offsetp, 2);
-    scheme_offset = ntohs(scheme_offset);
-    ssp_offset = ntohs(ssp_offset);
 
     if (scheme_offset >= (dictionary_len - 1)) {
         log_err_p(log, "illegal offset for %s scheme dictionary offset: "
-                  "offset %d, total length %u", what,
+                  "offset %llu, total length %llu", what,
                   scheme_offset, dictionary_len);
         return false;
     }
 
     if (ssp_offset >= (dictionary_len - 1)) {
         log_err_p(log, "illegal offset for %s ssp dictionary offset: "
-                  "offset %d, total length %u", what,
+                  "offset %llu, total length %llu", what,
                   ssp_offset, dictionary_len);
         return false;
     }
@@ -139,7 +143,7 @@ PrimaryBlockProcessor::extract_dictionary_eid(EndpointID* eid,
 
     if (! eid->valid()) {
         log_err_p(log, "invalid %s endpoint id '%s': "
-                  "scheme '%s' offset %u/%u ssp '%s' offset %u/%u",
+                  "scheme '%s' offset %llu/%llu ssp '%s' offset %llu/%llu",
                   what, eid->c_str(),
                   eid->scheme_str().c_str(),
                   scheme_offset, dictionary_len,
@@ -148,20 +152,20 @@ PrimaryBlockProcessor::extract_dictionary_eid(EndpointID* eid,
         return false;                                                      
     }                                                                   
     
-    log_debug_p(log, "parsed %s eid (offsets %u, %u) %s", 
+    log_debug_p(log, "parsed %s eid (offsets %llu, %llu) %s", 
                 what, scheme_offset, ssp_offset, eid->c_str());
     return true;
 }
 
 //----------------------------------------------------------------------
 void
-PrimaryBlockProcessor::debug_dump_dictionary(const char* bp, size_t len,
-                                             PrimaryBlock2* primary2)
+PrimaryBlockProcessor::debug_dump_dictionary(const char* bp,
+                                             const PrimaryBlock& primary)
 {
 #ifndef NDEBUG
     oasys::StringBuffer dict_copy;
 
-    const char* end = bp + len;
+    const char* end = bp + primary.dictionary_length;
     ASSERT(end[-1] == '\0');
     
     while (bp != end) {
@@ -170,31 +174,32 @@ PrimaryBlockProcessor::debug_dump_dictionary(const char* bp, size_t len,
     }
 
     log_debug_p("/dtn/bundle/protocol",
-                "dictionary len %zu, value: '%s'", len, dict_copy.c_str());
+                "dictionary len %llu, value: '%s'",
+                primary.dictionary_length,
+                dict_copy.c_str());
                   
     log_debug_p("/dtn/bundle/protocol",
-                "dictionary offsets: dest %u,%u source %u,%u, "
-                "custodian %u,%u replyto %u,%u",
-                ntohs(primary2->dest_scheme_offset),
-                ntohs(primary2->dest_ssp_offset),
-                ntohs(primary2->source_scheme_offset),
-                ntohs(primary2->source_ssp_offset),
-                ntohs(primary2->custodian_scheme_offset),
-                ntohs(primary2->custodian_ssp_offset),
-                ntohs(primary2->replyto_scheme_offset),
-                ntohs(primary2->replyto_ssp_offset));
+                "dictionary offsets: dest %llu,%llu source %llu,%llu, "
+                "custodian %llu,%llu replyto %llu,%llu",
+                primary.dest_scheme_offset,
+                primary.dest_ssp_offset,
+                primary.source_scheme_offset,
+                primary.source_ssp_offset,
+                primary.custodian_scheme_offset,
+                primary.custodian_ssp_offset,
+                primary.replyto_scheme_offset,
+                primary.replyto_ssp_offset);
 #else
     (void)bp;
-    (void)len;
-    (void)primary2;
+    (void)primary;
 #endif
 }
 
 //----------------------------------------------------------------------
-u_int8_t
+u_int64_t
 PrimaryBlockProcessor::format_bundle_flags(const Bundle* bundle)
 {
-    u_int8_t flags = 0;
+    u_int64_t flags = 0;
 
     if (bundle->is_fragment_) {
         flags |= BUNDLE_IS_FRAGMENT;
@@ -215,13 +220,17 @@ PrimaryBlockProcessor::format_bundle_flags(const Bundle* bundle)
     if (bundle->singleton_dest_) {
         flags |= BUNDLE_SINGLETON_DESTINATION;
     }
-
+    
+    if (bundle->app_acked_rcpt_) {
+        flags |= BUNDLE_ACK_BY_APP;
+    }
+    
     return flags;
 }
 
 //----------------------------------------------------------------------
 void
-PrimaryBlockProcessor::parse_bundle_flags(Bundle* bundle, u_int8_t flags)
+PrimaryBlockProcessor::parse_bundle_flags(Bundle* bundle, u_int64_t flags)
 {
     if (flags & BUNDLE_IS_FRAGMENT) {
         bundle->is_fragment_ = true;
@@ -252,31 +261,37 @@ PrimaryBlockProcessor::parse_bundle_flags(Bundle* bundle, u_int8_t flags)
     } else {
         bundle->singleton_dest_ = false;
     }
+    
+    if (flags & BUNDLE_ACK_BY_APP) {
+        bundle->app_acked_rcpt_ = true;
+    } else {
+        bundle->app_acked_rcpt_ = false;
+    }
 }
 
 //----------------------------------------------------------------------
-u_int8_t
+u_int64_t
 PrimaryBlockProcessor::format_cos_flags(const Bundle* b)
 {
-    u_int8_t cos_flags = 0;
+    u_int64_t cos_flags = 0;
 
-    cos_flags = ((b->priority_ & 0x3) << 6);
+    cos_flags = ((b->priority_ & 0x3) << 7);
 
     return cos_flags;
 }
 
 //----------------------------------------------------------------------
 void
-PrimaryBlockProcessor::parse_cos_flags(Bundle* b, u_int8_t cos_flags)
+PrimaryBlockProcessor::parse_cos_flags(Bundle* b, u_int64_t cos_flags)
 {
-    b->priority_ = ((cos_flags >> 6) & 0x3);
+    b->priority_ = ((cos_flags >> 7) & 0x3);
 }
 
 //----------------------------------------------------------------------
-u_int8_t
+u_int64_t
 PrimaryBlockProcessor::format_srr_flags(const Bundle* b)
 {
-    u_int8_t srr_flags = 0;
+    u_int64_t srr_flags = 0;
     
     if (b->receive_rcpt_)
         srr_flags |= BundleProtocol::STATUS_RECEIVED;
@@ -293,15 +308,12 @@ PrimaryBlockProcessor::format_srr_flags(const Bundle* b)
     if (b->deletion_rcpt_)
         srr_flags |= BundleProtocol::STATUS_DELETED;
 
-    if (b->app_acked_rcpt_)
-        srr_flags |= BundleProtocol::STATUS_ACKED_BY_APP;
-
     return srr_flags;
 }
     
 //----------------------------------------------------------------------
 void
-PrimaryBlockProcessor::parse_srr_flags(Bundle* b, u_int8_t srr_flags)
+PrimaryBlockProcessor::parse_srr_flags(Bundle* b, u_int64_t srr_flags)
 {
     if (srr_flags & BundleProtocol::STATUS_RECEIVED)
         b->receive_rcpt_ = true;
@@ -317,44 +329,64 @@ PrimaryBlockProcessor::parse_srr_flags(Bundle* b, u_int8_t srr_flags)
 
     if (srr_flags & BundleProtocol::STATUS_DELETED)
         b->deletion_rcpt_ = true;
-
-    if (srr_flags & BundleProtocol::STATUS_ACKED_BY_APP)
-        b->app_acked_rcpt_ = true;
 }
 
 //----------------------------------------------------------------------
 size_t
 PrimaryBlockProcessor::get_primary_len(const Bundle* bundle,
                                        DictionaryVector* dict,
-                                       size_t* dictionary_len,
-                                       size_t* primary_var_len)
+                                       PrimaryBlock* primary)
 {
     static const char* log = "/dtn/bundle/protocol";
     size_t primary_len = 0;
-    *dictionary_len = 0;
-    *primary_var_len = 0;
+    primary->dictionary_length = 0;
+    primary->block_length = 0;
     
     /*
      * We need to figure out the total length of the primary block,
-     * except for the SDNV used to encode the length itself and the
-     * three byte preamble (PrimaryBlock1).
+     * except for the SDNVs used to encode flags and the length itself and
+     * the one byte version field.
      *
      * First, we determine the size of the dictionary by first
      * figuring out all the unique strings, and in the process,
      * remembering their offsets and summing up their lengths
      * (including the null terminator for each).
      */
-    add_to_dictionary(bundle->dest_,      dict, dictionary_len);
-    add_to_dictionary(bundle->source_,    dict, dictionary_len);
-    add_to_dictionary(bundle->custodian_, dict, dictionary_len);
-    add_to_dictionary(bundle->replyto_,   dict, dictionary_len);
+    add_to_dictionary(bundle->dest_, dict, &primary->dictionary_length,
+                      &primary->dest_scheme_offset,
+                      &primary->dest_ssp_offset);
+    primary->block_length += SDNV::encoding_len(primary->dest_scheme_offset);
+    primary->block_length += SDNV::encoding_len(primary->dest_ssp_offset);
+    
+    add_to_dictionary(bundle->source_, dict, &primary->dictionary_length,
+                      &primary->source_scheme_offset,
+                      &primary->source_ssp_offset);
+    primary->block_length += SDNV::encoding_len(primary->source_scheme_offset);
+    primary->block_length += SDNV::encoding_len(primary->source_ssp_offset);
 
+    add_to_dictionary(bundle->replyto_, dict, &primary->dictionary_length,
+                      &primary->replyto_scheme_offset,
+                      &primary->replyto_ssp_offset);
+    primary->block_length += SDNV::encoding_len(primary->replyto_scheme_offset);
+    primary->block_length += SDNV::encoding_len(primary->replyto_ssp_offset);
+
+    add_to_dictionary(bundle->custodian_, dict, &primary->dictionary_length,
+                      &primary->custodian_scheme_offset,
+                      &primary->custodian_ssp_offset);
+    primary->block_length += SDNV::encoding_len(primary->custodian_scheme_offset);
+    primary->block_length += SDNV::encoding_len(primary->custodian_ssp_offset);
+    
     (void)log; // in case NDEBUG is defined
-    log_debug_p(log, "generated dictionary length %zu", *dictionary_len);
+    log_debug_p(log, "generated dictionary length %llu",
+                primary->dictionary_length);
+    
+    primary->block_length += SDNV::encoding_len(bundle->creation_ts_.seconds_);
+    primary->block_length += SDNV::encoding_len(bundle->creation_ts_.seqno_);
+    primary->block_length += SDNV::encoding_len(bundle->expiration_);
 
-    *primary_var_len += SDNV::encoding_len(*dictionary_len);
-    *primary_var_len += *dictionary_len;
-
+    primary->block_length += SDNV::encoding_len(primary->dictionary_length);
+    primary->block_length += primary->dictionary_length;
+    
     /*
      * If the bundle is a fragment, we need to include space for the
      * fragment offset and the original payload length.
@@ -364,26 +396,32 @@ PrimaryBlockProcessor::get_primary_len(const Bundle* bundle,
      * calculating fragment sizes.
      */
     if (bundle->is_fragment_) {
-        *primary_var_len += SDNV::encoding_len(bundle->frag_offset_);
-        *primary_var_len += SDNV::encoding_len(bundle->orig_length_);
+        primary->block_length += SDNV::encoding_len(bundle->frag_offset_);
+        primary->block_length += SDNV::encoding_len(bundle->orig_length_);
     }
+    
+    // Format the processing flags.
+    primary->processing_flags = format_bundle_flags(bundle);
+    primary->processing_flags |= format_cos_flags(bundle);
+    primary->processing_flags |= format_srr_flags(bundle);
 
     /*
-     * Tack on the size of the PrimaryBlock2, 
+     * Finally, add up the initial preamble and the variable
+     * length part.
      */
-    *primary_var_len += sizeof(PrimaryBlock2);
-
-    /*
-     * Finally, add up the initial PrimaryBlock1 plus the size of the
-     * SDNV to encode the variable length part, plus the variable
-     * length part itself.
-     */
-    primary_len = sizeof(PrimaryBlock1) +
-                  SDNV::encoding_len(*primary_var_len) +
-                  *primary_var_len;
+    primary_len = 1 + SDNV::encoding_len(primary->processing_flags) +
+                  SDNV::encoding_len(primary->block_length) +
+                  primary->block_length;
     
     log_debug_p(log, "get_primary_len(bundle %d): %zu",
                 bundle->bundleid_, primary_len);
+    
+    // Fill in the remaining values of 'primary' just for the sake of returning
+    // a complete data structure.
+    primary->version = BundleProtocol::CURRENT_VERSION;
+    primary->creation_time = bundle->creation_ts_.seconds_;
+    primary->creation_sequence = bundle->creation_ts_.seqno_;
+    primary->lifetime = bundle->expiration_;
     
     return primary_len;
 }
@@ -393,10 +431,9 @@ size_t
 PrimaryBlockProcessor::get_primary_len(const Bundle* bundle)
 {
     DictionaryVector dict;
-    size_t dictionary_len;
-    size_t primary_var_len;
+    PrimaryBlock primary;
 
-    return get_primary_len(bundle, &dict, &dictionary_len, &primary_var_len);
+    return get_primary_len(bundle, &dict, &primary);
 }
 
 //----------------------------------------------------------------------
@@ -405,48 +442,17 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
 {
     static const char* log = "/dtn/bundle/protocol";
     size_t consumed = 0;
+    PrimaryBlock primary;
     
     ASSERT(! block->complete());
     
-    /*
-     * The first thing we need to do is find the length of the primary
-     * block, noting that it may be split across multiple calls. 
-     */
-    if (block->data_length() == 0) {
-        int cc = consume_preamble(block, buf, len, sizeof(PrimaryBlock1));
-        
-        if (cc == -1) {
-            return -1; // protocol error
-        }
-
-        // If the data offset isn't set, then the whole buffer must
-        // have been consumed since there's not enough data to parse
-        // the length.
-        if (block->data_offset() == 0) {
-            ASSERT(cc == (int)len);
-            return cc;
-        }
-
-        // Ok, we now know the whole length
-        log_debug_p(log, "parsed primary block length %u (preamble %u)",
-                  block->data_length(), block->data_offset());
-        buf += cc;
-        len -= cc;
-
-        consumed += cc;
-
-        if (block->data_length() == 0) {
-            log_err_p(log, "got primary block with zero length");
-            return -1; // protocol error
-        }
-    }
-
+    memset(&primary, 0, sizeof(primary));
+    
     /*
      * Now see if this completes the primary by calling into
      * BlockProcessor::consume() to get the default behavior (now that
      * we've found the data length above).
      */
-    ASSERT(block->full_length() > block->contents().len());
     int cc = BlockProcessor::consume(bundle, block, buf, len);
 
     if (cc == -1) {
@@ -472,84 +478,90 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
 
     ASSERT(primary_len == len);
 
-    /*
-     * Process the PrimaryBlock1
-     */
-    PrimaryBlock1* primary1 = (PrimaryBlock1*)buf;
-    log_debug_p(log, "parsed primary block 1: version %d length %u",
-                primary1->version, block->data_length());
+    primary.version = *(u_int8_t*)buf;
+    buf += 1;
+    len -= 1;
     
-    if (primary1->version != BundleProtocol::CURRENT_VERSION) {
+    if (primary.version != BundleProtocol::CURRENT_VERSION) {
         log_warn_p(log, "protocol version mismatch %d != %d",
-                   primary1->version, BundleProtocol::CURRENT_VERSION);
+                   primary.version, BundleProtocol::CURRENT_VERSION);
         return -1;
     }
     
-    parse_bundle_flags(bundle, primary1->bundle_processing_flags);
-    parse_cos_flags(bundle, primary1->class_of_service_flags);
-    parse_srr_flags(bundle, primary1->status_report_request_flags);
+#define PBP_READ_SDNV(location) { \
+    int sdnv_len = SDNV::decode(buf, len, location); \
+    if (sdnv_len < 0) \
+        goto tooshort; \
+    buf += sdnv_len; \
+    len -= sdnv_len; }
+    
+    // Grab the SDNVs representing the flags and the block length.
+    PBP_READ_SDNV(&primary.processing_flags);
+    PBP_READ_SDNV(&primary.block_length);
 
-    /*
-     * Now skip past the PrimaryBlock1 and the SDNV that describes the
-     * total primary block length.
-     */
-    buf += block->data_offset();
-    len -= block->data_offset();
-
+    log_debug_p(log, "parsed primary block: version %d length %u",
+                primary.version, block->data_length());    
+    
+    // Parse the flags.
+    parse_bundle_flags(bundle, primary.processing_flags);
+    parse_cos_flags(bundle, primary.processing_flags);
+    parse_srr_flags(bundle, primary.processing_flags);
+    
+    // What remains in the buffer should now be equal to what the block-length
+    // field advertised.
     ASSERT(len == block->data_length());
-
-    /*
-     * Make sure that the sender didn't lie and that we really do have
-     * enough for the next set of fixed-length fields. We'll return to
-     * this label periodically as we parse different components.
-     */
-    u_int32_t primary2_len    = sizeof(PrimaryBlock2);
-    int       dict_sdnv_len   = 0;
-    u_int32_t dictionary_len  = 0;
-    int       frag_offset_len = 0;
-    int       frag_length_len = 0;
-    if (len < sizeof(PrimaryBlock2)) {
-tooshort:
-        log_err_p(log, "primary block advertised incorrect length %u: "
-                  "fixed-length %u, dict_sdnv %d, dict %u, frag %d %d",
-                  block->data_length(), primary2_len, dict_sdnv_len,
-                  dictionary_len, frag_offset_len, frag_length_len);
+    
+    // Read the various SDNVs up to the start of the dictionary.
+    PBP_READ_SDNV(&primary.dest_scheme_offset);
+    PBP_READ_SDNV(&primary.dest_ssp_offset);
+    PBP_READ_SDNV(&primary.source_scheme_offset);
+    PBP_READ_SDNV(&primary.source_ssp_offset);
+    PBP_READ_SDNV(&primary.replyto_scheme_offset);
+    PBP_READ_SDNV(&primary.replyto_ssp_offset);
+    PBP_READ_SDNV(&primary.custodian_scheme_offset);
+    PBP_READ_SDNV(&primary.custodian_ssp_offset);
+    PBP_READ_SDNV(&primary.creation_time);
+    PBP_READ_SDNV(&primary.creation_sequence);
+    PBP_READ_SDNV(&primary.lifetime);
+    PBP_READ_SDNV(&primary.dictionary_length);
+    
+    // Make sure that the creation timestamp parts and the lifetime fit into
+    // a 32 bit integer.
+    if (primary.creation_time > 0xffffffff) {
+        log_err_p(log, "creation timestamp time is too large: %llu",
+                  primary.creation_time);
         return -1;
     }
 
-    /*
-     * Parse the PrimaryBlock2
-     */
-    PrimaryBlock2* primary2 = (PrimaryBlock2*)buf;
-    buf += sizeof(PrimaryBlock2);
-    len -= sizeof(PrimaryBlock2);
-    
-    BundleProtocol::get_timestamp(&bundle->creation_ts_, &primary2->creation_ts);
-    u_int32_t lifetime;
-    memcpy(&lifetime, &primary2->lifetime, sizeof(lifetime));
-    bundle->expiration_ = ntohl(lifetime);
-
-    /*
-     * Read the dictionary length.
-     */
-    dict_sdnv_len = SDNV::decode(buf, len, &dictionary_len);
-    if (dict_sdnv_len < 0) {
-        goto tooshort;
+    if (primary.creation_sequence > 0xffffffff) {
+        log_err_p(log, "creation timestamp sequence is too large: %llu",
+                  primary.creation_sequence);
+        return -1;
     }
-    buf += dict_sdnv_len;
-    len -= dict_sdnv_len;
+    
+    if (primary.lifetime > 0xffffffff) {
+        log_err_p(log, "lifetime is too large: %llu", primary.lifetime);
+        return -1;
+    }
+    
+    bundle->creation_ts_.seconds_ = (u_int32_t)primary.creation_time;
+    bundle->creation_ts_.seqno_ = (u_int32_t)primary.creation_sequence;
+    bundle->expiration_ = (u_int32_t)primary.lifetime;
 
     /*
      * Verify that we have the whole dictionary.
      */
-    if (len < dictionary_len) {
-        goto tooshort;
+    if (len < primary.dictionary_length) {
+tooshort:
+        log_err_p(log, "primary block advertised incorrect length %u",
+                  block->data_length());
+        return -1;
     }
 
     /*
      * Make sure that the dictionary ends with a null byte.
      */
-    if (buf[dictionary_len - 1] != '\0') {
+    if (buf[primary.dictionary_length - 1] != '\0') {
         log_err_p(log, "dictionary does not end with a NULL character!");
         return -1;
     }
@@ -560,51 +572,138 @@ tooshort:
      * of the dictionary block.
      */
     u_char* dictionary = buf;
-    buf += dictionary_len;
-    len -= dictionary_len;
-
-    debug_dump_dictionary((char*)dictionary, dictionary_len, primary2);
+    buf += primary.dictionary_length;
+    len -= primary.dictionary_length;
 
     extract_dictionary_eid(&bundle->source_, "source",
-                           &primary2->source_scheme_offset,
-                           &primary2->source_ssp_offset,
-                           dictionary, dictionary_len);
+                           primary.source_scheme_offset,
+                           primary.source_ssp_offset,
+                           dictionary, primary.dictionary_length);
     
     extract_dictionary_eid(&bundle->dest_, "dest",
-                           &primary2->dest_scheme_offset,
-                           &primary2->dest_ssp_offset,
-                           dictionary, dictionary_len);
+                           primary.dest_scheme_offset,
+                           primary.dest_ssp_offset,
+                           dictionary, primary.dictionary_length);
     
     extract_dictionary_eid(&bundle->replyto_, "replyto",
-                           &primary2->replyto_scheme_offset,
-                           &primary2->replyto_ssp_offset,
-                           dictionary, dictionary_len);
+                           primary.replyto_scheme_offset,
+                           primary.replyto_ssp_offset,
+                           dictionary, primary.dictionary_length);
     
     extract_dictionary_eid(&bundle->custodian_, "custodian",
-                           &primary2->custodian_scheme_offset,
-                           &primary2->custodian_ssp_offset,
-                           dictionary, dictionary_len);
+                           primary.custodian_scheme_offset,
+                           primary.custodian_ssp_offset,
+                           dictionary, primary.dictionary_length);
     
+    debug_dump_dictionary((char*)dictionary, primary);
+    
+    // If the bundle is a fragment, grab the fragment offset and original
+    // bundle size (and make sure they fit in a 32 bit integer).
     if (bundle->is_fragment_) {
-        frag_offset_len = SDNV::decode(buf, len, &bundle->frag_offset_);
-        if (frag_offset_len == -1) {
-            goto tooshort;
+        u_int64_t sdnv_buf = 0;
+        PBP_READ_SDNV(&sdnv_buf);
+        if (sdnv_buf > 0xffffffff) {
+            log_err_p(log, "fragment offset is too large: %llu", sdnv_buf);
+            return -1;
         }
-        buf += frag_offset_len;
-        len -= frag_offset_len;
-
-        frag_length_len = SDNV::decode(buf, len, &bundle->orig_length_);
-        if (frag_length_len == -1) {
-            goto tooshort;
+        
+        bundle->frag_offset_ = (u_int32_t)sdnv_buf;
+        sdnv_buf = 0;
+        
+        PBP_READ_SDNV(&sdnv_buf);
+        if (sdnv_buf > 0xffffffff) {
+            log_err_p(log, "fragment original length is too large: %llu",
+                      sdnv_buf);
+            return -1;
         }
-        buf += frag_length_len;
-        len -= frag_length_len;
+        
+        bundle->orig_length_ = (u_int32_t)sdnv_buf;
 
         log_debug_p(log, "parsed fragmentation info: offset %u, orig_len %u",
                     bundle->frag_offset_, bundle->orig_length_);
     }
 
+#undef PBP_READ_SDNV
+    
     return consumed;
+}
+
+//----------------------------------------------------------------------
+bool
+PrimaryBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
+                     BundleProtocol::status_report_reason_t* reception_reason,
+                     BundleProtocol::status_report_reason_t* deletion_reason)
+{
+    (void)block;
+    (void)reception_reason;
+    static const char* log = "/dtn/bundle/protocol";
+    
+    // Make sure all four EIDs are valid.
+    bool eids_valid = true;
+    eids_valid &= bundle->source_.valid();
+    eids_valid &= bundle->dest_.valid();
+    eids_valid &= bundle->custodian_.valid();
+    eids_valid &= bundle->replyto_.valid();
+    
+    if (!eids_valid) {
+        log_err_p(log, "bad value for one or more EIDs");
+        *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+        return false;
+    }
+    
+    // According to BP section 3.3, there are certain things that a bundle
+    // with a null source EID should not try to do. Check for these cases
+    // and reject the bundle if any is true.
+    if (bundle->source_ == EndpointID::NULL_EID()) {
+        if ( bundle->receive_rcpt_ ||
+             bundle->custody_rcpt_ ||
+             bundle->forward_rcpt_ ||
+             bundle->delivery_rcpt_ ||
+             bundle->deletion_rcpt_ ||
+             bundle->app_acked_rcpt_ ) {
+            log_err_p(log, "bundle with null source eid has requested a "
+                    "report; rejection it");
+            *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+            return false;
+        }
+    
+        if (bundle->custody_requested_) {
+            log_err_p(log, "bundle with null source eid has requested custody "
+                    "transfer; rejection it");
+            *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+            return false;
+        }
+
+        if (!bundle->do_not_fragment_) {
+            log_err_p(log, "bundle with null source eid has not set "
+                    "'do-not-fragment' flag; rejection it");
+            *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+            return false;
+        }
+    }
+    
+    // Admin bundles cannot request custody transfer.
+    if (bundle->is_admin_) {
+        if (bundle->custody_requested_) {
+            log_err_p(log, "admin bundle requested custody transfer; "
+                      "rejection it");
+            *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+            return false;
+        }
+
+        if ( bundle->receive_rcpt_ ||
+             bundle->custody_rcpt_ ||
+             bundle->forward_rcpt_ ||
+             bundle->delivery_rcpt_ ||
+             bundle->deletion_rcpt_ ||
+             bundle->app_acked_rcpt_ ) {
+            log_err_p(log, "admin bundle has requested a report; rejection it");
+            *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
+            return false;
+        }
+    }
+
+    return true;
 }
 
 //----------------------------------------------------------------------
@@ -624,19 +723,18 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
     static const char* log = "/dtn/bundle/protocol";
     DictionaryVector dict;
     size_t primary_len = 0;     // total length of the primary block
-    size_t primary_var_len = 0; // length of the variable part of the primary
-    size_t dictionary_len = 0;  // length of the dictionary
-    int sdnv_len = 0;           // use an int to handle -1 return values
+    PrimaryBlock primary;
+    
+    memset(&primary, 0, sizeof(primary));
 
     /*
      * Calculate the primary block length and initialize the buffer.
      */
-    primary_len = get_primary_len(bundle, &dict, &dictionary_len,
-                                  &primary_var_len);
+    primary_len = get_primary_len(bundle, &dict, &primary);
     block->writable_contents()->reserve(primary_len);
     block->writable_contents()->set_len(primary_len);
     block->set_data_length(primary_len);
-
+    
     /*
      * Advance buf and decrement len as we go through the process.
      */
@@ -644,62 +742,36 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
     int     len = primary_len;
     
     (void)log; // in case NDEBUG is defined
-    log_debug_p(log, "generating primary: length %zu (preamble %zu var length %zu)",
-                primary_len,
-                (sizeof(PrimaryBlock1) + SDNV::encoding_len(primary_var_len)),
-                primary_var_len);
+    log_debug_p(log, "generating primary: length %zu", primary_len);
     
-    /*
-     * Ok, stuff in the preamble and the total block length.
-     */
-    PrimaryBlock1* primary1               = (PrimaryBlock1*)buf;
-    primary1->version                     = BundleProtocol::CURRENT_VERSION;
-    primary1->bundle_processing_flags     = format_bundle_flags(bundle);
-    primary1->class_of_service_flags      = format_cos_flags(bundle);
-    primary1->status_report_request_flags = format_srr_flags(bundle);
+    // Stick the version number in the first byte.
+    *buf = BundleProtocol::CURRENT_VERSION;
+    ++buf;
+    --len;
     
-    sdnv_len = SDNV::encode(primary_var_len,
-                            &primary1->block_length[0], len - 3);
-    ASSERT(sdnv_len > 0);
-    buf += (sizeof(PrimaryBlock1) + sdnv_len);
-    len -= (sizeof(PrimaryBlock1) + sdnv_len);
-
-    /*
-     * Now fill in the PrimaryBlock2.
-     */
-    PrimaryBlock2* primary2 = (PrimaryBlock2*)buf;
-
-    get_dictionary_offsets(&dict, bundle->dest_,
-                           &primary2->dest_scheme_offset,
-                           &primary2->dest_ssp_offset);
-
-    get_dictionary_offsets(&dict, bundle->source_,
-                           &primary2->source_scheme_offset,
-                           &primary2->source_ssp_offset);
-
-    get_dictionary_offsets(&dict, bundle->custodian_,
-                           &primary2->custodian_scheme_offset,
-                           &primary2->custodian_ssp_offset);
-
-    get_dictionary_offsets(&dict, bundle->replyto_,
-                           &primary2->replyto_scheme_offset,
-                           &primary2->replyto_ssp_offset);
-
-    BundleProtocol::set_timestamp(&primary2->creation_ts, &bundle->creation_ts_);
-    u_int32_t lifetime = htonl(bundle->expiration_);
-    memcpy(&primary2->lifetime, &lifetime, sizeof(lifetime));
-
-    buf += sizeof(PrimaryBlock2);
-    len -= sizeof(PrimaryBlock2);
-
-    /*
-     * Stuff in the dictionary length and dictionary bytes.
-     */
-    sdnv_len = SDNV::encode(dictionary_len, buf, len);
-    ASSERT(sdnv_len > 0);
-    buf += sdnv_len;
-    len -= sdnv_len;
-
+#define PBP_WRITE_SDNV(value) { \
+    int sdnv_len = SDNV::encode(value, buf, len); \
+    ASSERT(sdnv_len > 0); \
+    buf += sdnv_len; \
+    len -= sdnv_len; }
+    
+    // Write out all of the SDNVs
+    PBP_WRITE_SDNV(primary.processing_flags);
+    PBP_WRITE_SDNV(primary.block_length);
+    PBP_WRITE_SDNV(primary.dest_scheme_offset);
+    PBP_WRITE_SDNV(primary.dest_ssp_offset);
+    PBP_WRITE_SDNV(primary.source_scheme_offset);
+    PBP_WRITE_SDNV(primary.source_ssp_offset);
+    PBP_WRITE_SDNV(primary.replyto_scheme_offset);
+    PBP_WRITE_SDNV(primary.replyto_ssp_offset);
+    PBP_WRITE_SDNV(primary.custodian_scheme_offset);
+    PBP_WRITE_SDNV(primary.custodian_ssp_offset);
+    PBP_WRITE_SDNV(bundle->creation_ts_.seconds_);
+    PBP_WRITE_SDNV(bundle->creation_ts_.seqno_);
+    PBP_WRITE_SDNV(bundle->expiration_);
+    PBP_WRITE_SDNV(primary.dictionary_length);
+    
+    // Add the dictionary.
     DictionaryVector::iterator dict_iter;
     for (dict_iter = dict.begin(); dict_iter != dict.end(); ++dict_iter) {
         strcpy((char*)buf, dict_iter->str.c_str());
@@ -707,25 +779,21 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
         len -= dict_iter->str.length() + 1;
     }
     
-    debug_dump_dictionary((char*)buf - dictionary_len, dictionary_len, primary2);
+    debug_dump_dictionary((char*)buf - primary.dictionary_length, primary);
     
     /*
      * If the bundle is a fragment, stuff in SDNVs for the fragment
      * offset and original length.
      */
     if (bundle->is_fragment_) {
-        sdnv_len = SDNV::encode(bundle->frag_offset_, buf, len);
-        ASSERT(sdnv_len > 0);
-        buf += sdnv_len;
-        len -= sdnv_len;
-
-        sdnv_len = SDNV::encode(bundle->orig_length_, buf, len);
-        ASSERT(sdnv_len > 0);
-        buf += sdnv_len;
-        len -= sdnv_len;
+        PBP_WRITE_SDNV(bundle->frag_offset_);
+        PBP_WRITE_SDNV(bundle->orig_length_);
     }
+    
+#undef PBP_WRITE_SDNV
 
-#ifndef NDEBUG
+    // XXX/jward what is this?
+/*#ifndef NDEBUG
     {
         DictionaryVector dict2;
         size_t dict2_len = 0;
@@ -733,7 +801,7 @@ PrimaryBlockProcessor::generate(const Bundle*  bundle,
         size_t len2 = get_primary_len(bundle, &dict2, &dict2_len, &p2len);
         ASSERT(len2 == primary_len);
     }
-#endif
+#endif*/
 
     /*
      * Asuming that get_primary_len is written correctly, len should
