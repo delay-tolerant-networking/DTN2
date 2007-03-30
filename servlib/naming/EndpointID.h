@@ -181,6 +181,11 @@ public:
     static const EndpointID NULL_EID() { return EndpointID("dtn:none"); }
     
     /**
+     * The scheme and SSP parts each must not exceed this length.
+     */
+    static const size_t MAX_EID_PART_LENGTH = 1023;
+    
+    /**
      * Virtual from SerializableObject
      */
     virtual void serialize(oasys::SerializeAction* a);

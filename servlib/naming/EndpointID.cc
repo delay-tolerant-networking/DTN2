@@ -47,6 +47,18 @@ EndpointID::parse()
         log_debug_p(log, "EndpointID::parse: invalid URI");
         return false;
     }
+    
+    if (scheme_str().length() > MAX_EID_PART_LENGTH) {
+        log_err_p(log, "scheme name is too large (>%d)", MAX_EID_PART_LENGTH);
+        valid_ = false;
+        return false;
+    }
+    
+    if (ssp().length() > MAX_EID_PART_LENGTH) {
+        log_err_p(log, "ssp is too large (>%d)", MAX_EID_PART_LENGTH);
+        valid_ = false;
+        return false;
+    }
 
     valid_ = true;
 
