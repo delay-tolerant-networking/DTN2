@@ -1204,12 +1204,18 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
     
     //lock the contact manager so no one opens the link before we do
-        oasys::ScopeLock l(cm->lock(), "ECLModule::create_discovered_link");
+    oasys::ScopeLock l(cm->lock(), "ECLModule::create_discovered_link");
+    
+    if (cm->has_link(link_name.c_str())) {
+        log_err("A link with name %s already exists; can't create duplicate",
+                link_name.c_str());
+        return NULL;
+    }
     
     LinkRef link = Link::create_link(link_name, Link::OPPORTUNISTIC, &cl_,
                                      nexthop.c_str(), 0, NULL);
     if (link == NULL) {
-        log_warn("Unexpected error creating opportunistic link");
+        log_err("Unexpected error creating opportunistic link");
         return NULL;
     }
 
