@@ -536,7 +536,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         
         if (bundle->custody_requested_ && duplicate->local_custody_)
         {
-            // TODO/jward - assert this when retention constraints are done correctly
+        // TODO/jward - assert this when retention constraints are done correctly
             //ASSERT(bundle->has_retention_constraint(Bundle::RETENTION_CUSTODY));
             generate_custody_signal(bundle, false,
                                     BundleProtocol::CUSTODY_REDUNDANT_RECEPTION);
@@ -751,13 +751,6 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         // this node
     }
 
-    /*
-     * Check if we should can delete the bundle from the pending list,
-     * i.e. we don't have custody and it's not being transmitted
-     * anywhere else.
-     */
-    try_delete_from_pending(bundle);
-    
     // remove the bundle from the link's delayed-send queue
     if (link->queue()->size() != 0) {
         if(link->queue()->erase(bundle,false))
@@ -767,6 +760,13 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
                  link->name());
         }
     }
+    
+    /*
+     * Check if we should can delete the bundle from the pending list,
+     * i.e. we don't have custody and it's not being transmitted
+     * anywhere else.
+     */
+    try_delete_from_pending(bundle);
 }
 
 //----------------------------------------------------------------------
