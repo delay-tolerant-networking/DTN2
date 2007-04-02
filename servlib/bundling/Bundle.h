@@ -177,7 +177,7 @@ public:
     /**
      * True if any return receipt fields are set
      */
-    bool receipt_requested()
+    bool receipt_requested() const
     {
         return (receive_rcpt_ || custody_rcpt_ || forward_rcpt_ ||
                 delivery_rcpt_ || deletion_rcpt_);
