@@ -159,8 +159,9 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         // Bundles with a null source EID are not allowed to request reports or
         // custody transfer, and must not be fragmented.
         if (b->source_ == EndpointID::NULL_EID()) {
-            if (b->custody_requested_ || b->receive_rcpt_ || b->custody_rcpt_ ||
-            b->forward_rcpt_ || b->delivery_rcpt_ || b->deletion_rcpt_) {
+            if ( b->custody_requested_ ||
+                 b->receipt_requested() ||
+                 b->app_acked_rcpt_) {
                 log_err("bundle with null source EID cannot request reports or "
                         "custody transfer");
                 delete b;

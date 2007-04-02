@@ -655,12 +655,7 @@ PrimaryBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
     // with a null source EID should not try to do. Check for these cases
     // and reject the bundle if any is true.
     if (bundle->source_ == EndpointID::NULL_EID()) {
-        if ( bundle->receive_rcpt_ ||
-             bundle->custody_rcpt_ ||
-             bundle->forward_rcpt_ ||
-             bundle->delivery_rcpt_ ||
-             bundle->deletion_rcpt_ ||
-             bundle->app_acked_rcpt_ ) {
+        if (bundle->receipt_requested() || bundle->app_acked_rcpt_) { 
             log_err_p(log, "bundle with null source eid has requested a "
                     "report; rejection it");
             *deletion_reason = BundleProtocol::REASON_BLOCK_UNINTELLIGIBLE;
