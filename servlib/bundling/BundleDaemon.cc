@@ -309,6 +309,7 @@ BundleDaemon::accept_custody(Bundle* bundle)
     // it to the custody bundles list
     bundle->custodian_.assign(local_eid_);
     bundle->local_custody_ = true;
+    bundle->add_retention_constraint(Bundle::RETENTION_CUSTODY);
     actions_->store_update(bundle);
     
     custody_bundles_->push_back(bundle);
@@ -336,6 +337,7 @@ BundleDaemon::release_custody(Bundle* bundle)
 
     bundle->custodian_.assign(EndpointID::NULL_EID());
     bundle->local_custody_ = false;
+    bundle->remove_retention_constraint(Bundle::RETENTION_CUSTODY);
     actions_->store_update(bundle);
     
     custody_bundles_->erase(bundle);
@@ -534,6 +536,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         
         if (bundle->custody_requested_ && duplicate->local_custody_)
         {
+            // TODO/jward - assert this when retention constraints are done correctly
+            //ASSERT(bundle->has_retention_constraint(Bundle::RETENTION_CUSTODY));
             generate_custody_signal(bundle, false,
                                     BundleProtocol::CUSTODY_REDUNDANT_RECEPTION);
         }
@@ -568,6 +572,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         return;
     }
     
+    bundle->add_retention_constraint(Bundle::RETENTION_DISPATCH);
+    
     /*
      * If the bundle is a custody bundle and we're configured to take
      * custody, then do so. In case the event was delivered due to a
@@ -581,6 +587,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         
         } else if (bundle->local_custody_) {
             custody_bundles_->push_back(bundle);
+            bundle->add_retention_constraint(Bundle::RETENTION_CUSTODY);
         }
     }
     
@@ -588,6 +595,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * Deliver the bundle to any local registrations that it matches
      */
     check_registrations(bundle);
+    bundle->add_retention_constraint(Bundle::RETENTION_FORWARD);
+    bundle->remove_retention_constraint(Bundle::RETENTION_DISPATCH);
     
     /*
      * Finally, bounce out so the router(s) can do something further
@@ -722,6 +731,8 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     if (bundle->forward_rcpt_) {
         generate_status_report(bundle, BundleProtocol::STATUS_FORWARDED);
     }
+    
+    bundle->remove_retention_constraint(Bundle::RETENTION_FORWARD);
 
     /*
      * Schedule a custody timer if we have custody.
@@ -854,6 +865,8 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
                                     BundleProtocol::CUSTODY_NO_ADDTL_INFO);
         }
     }
+    
+    bundle->remove_retention_constraint(Bundle::RETENTION_FORWARD);
 
     /*
      * Finally, check if we can and should delete the bundle from the
@@ -903,6 +916,7 @@ BundleDaemon::handle_bundle_send(BundleSendRequest* event)
     ForwardingInfo::action_t fwd_action =
         (ForwardingInfo::action_t)event->action_;
 
+    br->add_retention_constraint(Bundle::RETENTION_DISPATCH);
     actions_->send_bundle(br.object(), link,
         fwd_action, CustodyTimerSpec::defaults_);
 }
@@ -2131,6 +2145,9 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
     Bundle* bundle = event->bundle_;
     event->bundle_ = NULL;
     ASSERT(bundle->refcount() == 0);
+    
+    // TODO/jward - assert this when retention constraints are done correctly
+    //ASSERT(!bundle->has_retention_constraint());
 
     bundle->lock_.lock("BundleDaemon::handle_bundle_free");
 
