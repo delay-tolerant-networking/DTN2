@@ -917,7 +917,6 @@ BundleDaemon::handle_bundle_send(BundleSendRequest* event)
     ForwardingInfo::action_t fwd_action =
         (ForwardingInfo::action_t)event->action_;
 
-    br->add_retention_constraint(Bundle::RETENTION_DISPATCH);
     actions_->send_bundle(br.object(), link,
         fwd_action, CustodyTimerSpec::defaults_);
 }
