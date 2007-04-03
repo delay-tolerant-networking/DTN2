@@ -226,8 +226,8 @@ ECLModule::handle(const cla_add_request& message)
     }
     
     cla_set_params_request request;
-    //request.create_discovered_links(false);
-    request.create_discovered_links(true);
+    request.create_discovered_links(false);
+    //request.create_discovered_links(true);
     request.local_eid( BundleDaemon::instance()->local_eid().str() );
     request.bundle_pass_method(bundlePassMethodType::filesystem);
     request.reactive_fragment_enabled(
