@@ -87,8 +87,10 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
         return false;
     }
     
-        log_debug("trying to find xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
-    if(bundle->xmit_blocks_.find_blocks(link) != NULL) {
+    log_debug("trying to find xmit blocks for bundle id:%d on link %s",
+              bundle->bundleid_,link->name());
+
+    if (bundle->xmit_blocks_.find_blocks(link) != NULL) {
         log_err("BundleActions::send_bundle: "
                 "link not ready to handle bundle, dropping send request");
         return false;
@@ -97,7 +99,8 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
     // XXX/demmer this should be moved somewhere in the router
     // interface so it can select options for the outgoing bundle
     // blocks (e.g. security)
-    log_debug("trying to create xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
+    log_debug("trying to create xmit blocks for bundle id:%d on link %s",
+              bundle->bundleid_,link->name());
     BlockInfoVec* blocks = BundleProtocol::prepare_blocks(bundle, link);
     size_t total_len = BundleProtocol::generate_blocks(bundle, blocks, link);
 
@@ -119,57 +122,63 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
         return false;
     }
 
-        // If the convergence layer retains bundles between link up/down
-        // events, send the bundle. If the convergence layer does not,
-        // then we need to copy the bundle to the delayed-send queue
-        // and additionally send it if the link is open.
-        if(link->clayer()->has_persistent_link_queues())
-        {
-                log_debug("adding forward log entry for %s link %s with nexthop %s and remote eid %s to *%p",
-                      link->type_str(), link->name(), link->nexthop(),link->remote_eid().c_str(), bundle);
+    // If the convergence layer retains bundles between link up/down
+    // events, send the bundle. If the convergence layer does not,
+    // then we need to copy the bundle to the delayed-send queue
+    // and additionally send it if the link is open.
+    if (link->clayer()->has_persistent_link_queues())
+    {
+        log_debug("adding forward log entry for %s link %s "
+                  "with nexthop %s and remote eid %s to *%p",
+                  link->type_str(), link->name(),
+                  link->nexthop(), link->remote_eid().c_str(), bundle);
         bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
-                                      custody_timer);
+                                  custody_timer);
         link->stats()->bundles_queued_++;
         link->stats()->bytes_queued_ += total_len;
-                if (link->state() == Link::OPEN) {
-                    link->clayer()->send_bundle(link->contact(), bundle);
-                }
-                else
-                {
-                        link->clayer()->send_bundle_on_down_link(link, bundle);
-                }
-                log_debug("immediate send of bundle *%p to link *%p: link in state %s",
-                      bundle, link.object(), Link::state_to_str(link->state()));
+        if (link->state() == Link::OPEN) {
+            link->clayer()->send_bundle(link->contact(), bundle);
         }
         else
         {
-                // Abort if this link's delayed-send queue already contains the bundle
-                if(link->queue()->contains(bundle))
-                {
-                        return false;
-                }
-                // Otherwise add the bundle to the link's delayed-send queue
-                // and send it if the link is open now
-                else
-                {
-                        log_debug("adding forward log entry for %s link %s with nexthop %s and remote eid %s to *%p",
-                          link->type_str(), link->name(), link->nexthop(),link->remote_eid().c_str(), bundle);
+            link->clayer()->send_bundle_on_down_link(link, bundle);
+        }
+        log_debug("immediate send of bundle *%p to link *%p: link in state %s",
+                  bundle, link.object(), Link::state_to_str(link->state()));
+    }
+    else
+    {
+        // Abort if this link's delayed-send queue already contains the bundle
+        if (link->queue()->contains(bundle))
+        {
+            return false;
+        }
+        // Otherwise add the bundle to the link's delayed-send queue
+        // and send it if the link is open now
+        else
+        {
+            log_debug("adding forward log entry for %s link %s "
+                      "with nexthop %s and remote eid %s to *%p",
+                      link->type_str(), link->name(),
+                      link->nexthop(), link->remote_eid().c_str(), bundle);
             bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
-                                          custody_timer);
+                                      custody_timer);
             link->stats()->bundles_queued_++;
             link->stats()->bytes_queued_ += total_len;
-                        link->queue()->push_back(bundle);
-                if (link->state() == Link::OPEN) {
-                    ASSERT(link->contact() != NULL);
-                    link->clayer()->send_bundle(link->contact(), bundle);
-                    log_debug("immediate send of bundle *%p to link *%p: link in state %s",
-                              bundle, link.object(), Link::state_to_str(link->state()));
-                } else {
-                    log_debug("delayed send of bundle *%p to link *%p: link in state %s",
-                              bundle, link.object(), Link::state_to_str(link->state()));
-                }
-                }               
-        }
+            link->queue()->push_back(bundle);
+            if (link->state() == Link::OPEN) {
+                ASSERT(link->contact() != NULL);
+                link->clayer()->send_bundle(link->contact(), bundle);
+                log_debug("immediate send of bundle *%p to link *%p: "
+                          "link in state %s",
+                          bundle, link.object(), Link::state_to_str(link->state()));
+            } else {
+                log_debug("delayed send of bundle *%p to link *%p: "
+                          "link in state %s",
+                          bundle, link.object(), Link::state_to_str(link->state()));
+            }
+        }               
+    }
     
     return true;
 }
