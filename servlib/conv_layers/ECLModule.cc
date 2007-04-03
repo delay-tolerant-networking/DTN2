@@ -226,7 +226,8 @@ ECLModule::handle(const cla_add_request& message)
     }
     
     cla_set_params_request request;
-    request.create_discovered_links(false);
+    //request.create_discovered_links(false);
+    request.create_discovered_links(true);
     request.local_eid( BundleDaemon::instance()->local_eid().str() );
     request.bundle_pass_method(bundlePassMethodType::filesystem);
     request.reactive_fragment_enabled(
@@ -246,6 +247,10 @@ ECLModule::handle(const cla_add_request& message)
 void 
 ECLModule::take_resource(ECLResource* resource) 
 {
+    oasys::ScopeLock lock(&resource->lock_, "ECLModule::take_resource()");
+    resource->module_ = this;
+    resource->should_delete_ = false;
+    
     // Handle an Interface.
     if ( typeid(*resource) == typeid(ECLInterfaceResource) ) {
         ECLInterfaceResource* iface = (ECLInterfaceResource*)resource;
@@ -296,13 +301,14 @@ ECLModule::handle(const cla_delete_request& message)
 void
 ECLModule::take_resources()
 {
-        log_info("Module %s is acquiring appropriate CL resources", name_.c_str());
-        // Find all existing resources that belong to this CLA.
-    std::list<ECLResource*> resource_list_ = cl_.take_resources(name_, this);
+    log_info("Module %s is acquiring appropriate CL resources", name_.c_str());
+    // Find all existing resources that belong to this CLA.
+    std::list<ECLResource*> resource_list_ = cl_.take_resources(name_);
     std::list<ECLResource*>::iterator resource_i;
 
-    for (resource_i = resource_list_.begin();
-    resource_i != resource_list_.end(); ++resource_i) {
+    for ( resource_i = resource_list_.begin();
+          resource_i != resource_list_.end(); 
+          ++resource_i ) {
         ECLResource* resource = (*resource_i);
         take_resource(resource);
     }
@@ -502,26 +508,25 @@ ECLModule::handle(const link_deleted_event& message)
     
     // Lock the resource and clear its module field so that the BundleDaemon
     // thread can't do anything with it.
-    resource->lock.lock("handle(link_deleted_event)");
+    resource->lock_.lock("handle(link_deleted_event)");
     resource->module_ = NULL;
     // TODO: Clean up any in-transit bundles for this link.
-    resource->lock.unlock();
     
     // If the link's cl_info is still set, then the deletion originated at the
-    // CLA, not the BPA, and we need to send up a LinkDeleteRequest
-    // to get the link removed. Setting the module field NULL will cause
-    // delete_link to just delete the resource without sending a request back
+    // CLA, not the BPA, and we need remove the link from the contact manager
+    // and then delete the resource. Setting the module field NULL (above) will
+    // cause ExternalConvergenceLayer::delete_link (called through 
+    // ContactManager::del_link) to just return without sending a request back
     // down here.
-    if (resource->link_->cl_info() != NULL) {
-        BundleDaemon::instance()->post(new LinkDeleteRequest(resource->link_));
-    }
+    if (resource->link_->cl_info() != NULL)
+        BundleDaemon::instance()->contactmgr()->del_link(resource->link_);
     
-    // Otherwise, we are done with this resource now.
+    // Unlock BEFORE deleting the resource, since the lock will be destroyed.
+    resource->lock_.unlock();
+    cl_.delete_resource(resource);
+    
     // NOTE: The ContactManager posts a LinkDeletedEvent, so we do not need
     // another one.
-    else {
-        delete resource;
-    }
 }
 
 void
@@ -1238,9 +1243,12 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
     
     // Create the resource holder for this link.
     ECLLinkResource* resource =
-            new ECLLinkResource(name_, NULL, this, new_link, true);
+            new ECLLinkResource(name_, NULL, new_link, true);
+    oasys::ScopeLock res_lock(&resource->lock_, "create_discovered_link");
     new_link->set_cl_info(resource);
     new_link->set_state(Link::AVAILABLE);
+    resource->module_ = this;
+    resource->should_delete_ = false;
     
     // Wait twice on the semaphore to actually lock it.
     sem_wait(&link_list_sem_);
@@ -1269,7 +1277,7 @@ ECLModule::cleanup() {
     ++link_i) {
         ECLLinkResource* resource = link_i->second;
         
-        oasys::ScopeLock res_lock(&resource->lock, "ECLModule::cleanup");
+        oasys::ScopeLock res_lock(&resource->lock_, "ECLModule::cleanup");
         resource->module_ = NULL;
         resource->known_state_ = Link::CLOSED;
         

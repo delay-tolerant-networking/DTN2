@@ -212,11 +212,11 @@ ExternalConvergenceLayer::interface_up(Interface* iface, int argc,
     // Find the owner module for this interface, if it exists.
     ECLModule* module = get_module(proto_option);
     ECLInterfaceResource* resource =
-            new ECLInterfaceResource(proto_option, message, module, iface);
+            new ECLInterfaceResource(proto_option, message, iface);
 
     iface->set_cl_info(resource);
     
-    oasys::ScopeLock l(&resource->lock, "interface_up");
+    oasys::ScopeLock l(&resource->lock_, "interface_up");
 
     // Send the interface to the module if one was found for this protocol...
     if (module) {
@@ -425,9 +425,9 @@ ExternalConvergenceLayer::init_link(const LinkRef& link,
     message->link_create_request(request);
     
     ECLLinkResource* resource =
-            new ECLLinkResource(proto_option, message, module, link, false);
+            new ECLLinkResource(proto_option, message, link, false);
     
-    oasys::ScopeLock l(&resource->lock, "init_link");
+    oasys::ScopeLock l(&resource->lock_, "init_link");
     
     link->set_cl_info(resource);
     link->set_create_pending(true);
@@ -460,19 +460,23 @@ ExternalConvergenceLayer::delete_link(const LinkRef& link)
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
     ASSERT(resource);
     
-    oasys::ScopeLock l(&resource->lock, "delete_link");
+    oasys::ScopeLock lock(&resource->lock_, "delete_link");
     
     // Clear out this link's cl_info.
     link->set_cl_info(NULL);
     
     // If the link is unclaimed, just remove it from the resource list.
     // This also handles the case of a LinkDeletedEvent coming from the CLA
-    // with out a corresponding LinkDeleteRequest from the user.
-    // NOTE: The ContactManager posts a LinkDeletedEvent, so we do not need
-    // another one.
+    // without a corresponding LinkDeleteRequest from the user, though in
+    // such a case, ECLModule will delete the resource after this method
+    // returns, so we shouldn't try to delete it here.
     if (resource->module_ == NULL) {
-        l.unlock();
-        delete_resource(resource);
+        lock.unlock();
+        if (resource->should_delete_)
+            delete_resource(resource);
+    
+        // NOTE: The ContactManager posts a LinkDeletedEvent, so we do not
+        // need another one.
         return;
     }
     
@@ -551,7 +555,7 @@ bool ExternalConvergenceLayer::reconfigure_link(const LinkRef& link, int argc,
     KeyValueSequence param_sequence;
     build_param_sequence(argc, argv, param_sequence);
     
-    oasys::ScopeLock l(&resource->lock, "reconfigure_link");
+    oasys::ScopeLock l(&resource->lock_, "reconfigure_link");
     
     // Get a pointer to the old link-create message.
     old_create_message_ = resource->create_message_;
@@ -687,7 +691,7 @@ ExternalConvergenceLayer::open_contact(const ContactRef& contact)
         return false;
     }
     
-    oasys::ScopeLock l(&resource->lock, "open_contact");
+    oasys::ScopeLock l(&resource->lock_, "open_contact");
     
     if (!resource->module_) {
         log_err( "Cannot open contact on unclaimed link %s", link->name() );
@@ -726,7 +730,7 @@ ExternalConvergenceLayer::close_contact(const ContactRef& contact)
                      dynamic_cast<ECLLinkResource*>( link->cl_info() );
     ASSERT(resource);
     
-    oasys::ScopeLock l(&resource->lock, "close_contact");
+    oasys::ScopeLock l(&resource->lock_, "close_contact");
     
     // This indicates that the closing originated in the ECLModule.
     if (resource->known_state_ == Link::CLOSED)
@@ -766,7 +770,7 @@ ExternalConvergenceLayer::send_bundle_on_down_link(const LinkRef& link, Bundle* 
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
     ASSERT(resource);
     
-    oasys::ScopeLock l(&resource->lock, "send_bundle");
+    oasys::ScopeLock l(&resource->lock_, "send_bundle");
 
     // Make sure that this link is claimed by a module before trying to send
     // something through it.
@@ -821,7 +825,7 @@ ExternalConvergenceLayer::cancel_bundle(const LinkRef& link, Bundle* bundle)
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
     ASSERT(resource);
     
-    oasys::ScopeLock l(&resource->lock, "cancel_bundle");
+    oasys::ScopeLock l(&resource->lock_, "cancel_bundle");
 
     // Make sure that this link is claimed by a module.
     if (!resource->module_) {
@@ -865,7 +869,7 @@ ExternalConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
     ASSERT(resource);
     
-    oasys::ScopeLock l(&resource->lock, "is_queued");
+    oasys::ScopeLock l(&resource->lock_, "is_queued");
     
     // Check with the resource to see if the bundle is queued on it.
     return resource->has_outgoing_bundle(bundle);
@@ -880,7 +884,7 @@ ExternalConvergenceLayer::is_eid_reachable(const std::string& query_id,
         dynamic_cast<ECLInterfaceResource*>( iface->cl_info() );
     ASSERT(resource);
     
-    oasys::ScopeLock l(&resource->lock, "is_eid_reachable");
+    oasys::ScopeLock l(&resource->lock_, "is_eid_reachable");
 
     // Make sure that this link is claimed by a module.
     if (!resource->module_) {
@@ -913,7 +917,7 @@ ExternalConvergenceLayer::query_link_attributes(const std::string& query_id,
             dynamic_cast<ECLLinkResource*>( link->cl_info() );
     ASSERT(resource);
     
-    oasys::ScopeLock l(&resource->lock, "query_link_attributes");
+    oasys::ScopeLock l(&resource->lock_, "query_link_attributes");
     if (resource->module_ == NULL) {
         log_err( "query_link_attributes called for unclaimed link %s",
                  link->name() );
@@ -943,7 +947,7 @@ ExternalConvergenceLayer::query_iface_attributes(const std::string& query_id,
             dynamic_cast<ECLInterfaceResource*>( iface->cl_info() );
     ASSERT(resource);
     
-    oasys::ScopeLock l(&resource->lock, "query_iface_attributes");
+    oasys::ScopeLock l(&resource->lock_, "query_iface_attributes");
     if (resource->module_ == NULL) {
         log_err( "query_iface_attributes called for unclaimed interface %s",
                  iface->name().c_str() );
@@ -1119,7 +1123,7 @@ ExternalConvergenceLayer::fill_bundle_attributes(const Bundle* bundle,
 }
 
 std::list<ECLResource*>
-ExternalConvergenceLayer::take_resources(std::string name, ECLModule* owner)
+ExternalConvergenceLayer::take_resources(std::string name)
 {
     oasys::ScopeLock lock(&resource_mutex_, "take_resources");
     std::list<ECLResource*> new_list;
@@ -1127,8 +1131,6 @@ ExternalConvergenceLayer::take_resources(std::string name, ECLModule* owner)
 
     while ( list_i != resource_list_.end() ) {
         if ( (*list_i)->protocol_ == name ) {
-            // Set the resource's new owner and add it to the new list.
-            (*list_i)->module_ = owner;
             new_list.push_back(*list_i);
             
             // Erase this resource from the unclaimed list.
@@ -1156,15 +1158,20 @@ ExternalConvergenceLayer::delete_resource(ECLResource* resource)
 void
 ExternalConvergenceLayer::give_resources(std::list<ECLInterfaceResource*>& list)
 {
-    std::list<ECLInterfaceResource*>::iterator list_i;
-
-    resource_mutex_.lock("give_resources(ECLInterfaceResource)");
-    for (list_i = list.begin(); list_i != list.end(); ++list_i) {
-        (*list_i)->module_ = NULL;
-        resource_list_.push_back( (*list_i) );
+    oasys::ScopeLock l(&resource_mutex_, "give_resources(ECLInterfaceResource)");
+    
+    for ( std::list<ECLInterfaceResource*>::iterator list_i = list.begin();
+          list_i != list.end(); 
+          ++list_i) {
+        ECLInterfaceResource* resource = *list_i;
+        
+        oasys::ScopeLock res_lock(&resource->lock_, "give_resources");
+        resource->module_ = NULL;
+        resource->should_delete_ = true;
+        
+        resource->module_ = NULL;
+        resource_list_.push_back(resource);
     }
-
-    resource_mutex_.unlock();
 
     log_debug( "Got %zu ECLInterfaceResources", list.size() );
     list.clear();
@@ -1174,22 +1181,27 @@ void
 ExternalConvergenceLayer::give_resources(LinkHashMap& list)
 {
     int actual_taken = 0;
-    LinkHashMap::iterator list_i;
+    oasys::ScopeLock l(&resource_mutex_, "give_resources(ECLLinkResource)");
+    
+    for ( LinkHashMap::iterator list_i = list.begin();
+          list_i != list.end(); 
+          ++list_i) {
+        ECLLinkResource* resource = list_i->second;
+        
+        oasys::ScopeLock res_lock(&resource->lock_, "give_resources");
+        resource->module_ = NULL;
+        resource->should_delete_ = true;
 
-    resource_mutex_.lock("give_resources(ECLLinkResource)");
-    for (list_i = list.begin(); list_i != list.end(); ++list_i) {
         // Discovered links should be deleted when their associated CL
         // goes away.
-        if (list_i->second->is_discovered_)
-            BundleDaemon::post( new LinkDeleteRequest(list_i->second->link_) );
+        if (resource->is_discovered_)
+            BundleDaemon::post( new LinkDeleteRequest(resource->link_) );
         
         else {
-            resource_list_.push_back(list_i->second);
+            resource_list_.push_back(resource);
             ++actual_taken;
         }
     }
-
-    resource_mutex_.unlock();
 
     log_debug("Got %d ECLLinkResources", actual_taken);
     list.clear();
@@ -1241,8 +1253,8 @@ ExternalConvergenceLayer::Listener::accepted(int fd, in_addr_t addr,
 
 
 ECLLinkResource::ECLLinkResource(std::string p, clmessage::cl_message* create,
-                                 ECLModule* m, const LinkRef& l, bool disc) :
-    ECLResource(p, create, m),
+                                 const LinkRef& l, bool disc) :
+    ECLResource(p, create),
     link_(l.object(), "ECLLinkResource"),
     outgoing_bundles_("outgoing_bundles")
 {

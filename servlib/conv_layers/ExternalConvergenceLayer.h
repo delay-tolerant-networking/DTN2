@@ -72,14 +72,17 @@ public:
     /// is unclaimed).
     ECLModule* module_;
     
-    oasys::Mutex lock;
+    oasys::Mutex lock_;
+    
+    bool should_delete_;
     
 protected:
-    ECLResource(std::string p, clmessage::cl_message* create, ECLModule* m) :
-    lock("ECLResource") {
+    ECLResource(std::string p, clmessage::cl_message* create) :
+    lock_("ECLResource") {
         protocol_ = p;
-        module_ = m;
         create_message_ = create;
+        module_ = NULL;
+        should_delete_ = true;
     }
 };
 
@@ -89,7 +92,7 @@ protected:
 class ECLInterfaceResource : public ECLResource {
 public:
     ECLInterfaceResource(std::string p, clmessage::cl_message* create,
-    ECLModule* m, Interface* i) : ECLResource(p, create, m) {
+    Interface* i) : ECLResource(p, create) {
         interface_ = i;
     }
     
@@ -101,7 +104,7 @@ public:
  */
 class ECLLinkResource : public ECLResource {
 public:
-    ECLLinkResource(std::string p, clmessage::cl_message* create, ECLModule* m,
+    ECLLinkResource(std::string p, clmessage::cl_message* create,
                     const LinkRef& l, bool disc);
     
     /// Reference to the link that this Resource represents.
@@ -275,7 +278,7 @@ public:
      * 
      * @return A list containing all resources that matched the protocol. 
      */
-    std::list<ECLResource*> take_resources(std::string protocol, ECLModule* owner);
+    std::list<ECLResource*> take_resources(std::string protocol);
     
     
     /** Give a list of Interface resources back to the unclaimed resource list.
@@ -292,6 +295,14 @@ public:
      * the ECLResource::module field set to NULL.
      */
     void give_resources(LinkHashMap& list);
+    
+    
+    /** Delete a resource.
+     * 
+     * This will remove the resource from the list of unclaimed resources and
+     * call 'delete' on the pointer.
+     */
+    void delete_resource(ECLResource* resource);
     
     
     /** Add a module to the active module list.
@@ -361,13 +372,6 @@ private:
     /** Add a resource to the unclaimed resource list.
      */
     void add_resource(ECLResource* resource);
-    
-    /** Delete a resource.
-     * 
-     * This will remove the resource from the list of unclaimed resources and
-     * call 'delete' on the pointer.
-     */
-    void delete_resource(ECLResource* resource);
     
     /** Convert an arg vector to a KeyValueSequence.
      * 
