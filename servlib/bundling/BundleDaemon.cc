@@ -1392,6 +1392,18 @@ BundleDaemon::handle_link_state_change_request(LinkStateChangeRequest* request)
 void
 BundleDaemon::handle_link_create(LinkCreateRequest* request)
 {
+    //lock the contact manager so no one creates a link before we do
+    ContactManager* cm = BundleDaemon::instance()->contactmgr();
+    oasys::ScopeLock l(cm->lock(), "BundleDaemon::handle_link_create");
+    //check for an existing link with that name
+    LinkRef linkCheck = cm->find_link(request->name_.c_str());
+    if(linkCheck != NULL)
+    {
+    	log_err( "Link already exists with name %s, aborting create", request->name_.c_str());
+        request->daemon_only_ = true;
+    	return;
+    }
+  
     std::string nexthop("");
 
     int argc = request->parameters_.size();
