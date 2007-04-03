@@ -516,7 +516,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      */
     if (event->source_ == EVENTSRC_PEER) {
         ASSERT(event->bytes_received_ != 0);
-        fragmentmgr_->try_to_convert_to_fragment(bundle);
+        if (fragmentmgr_->try_to_convert_to_fragment(bundle))
+            bundle->add_retention_constraint(Bundle::RETENTION_REASSEMBLY);
     }
 
     /*
@@ -1712,6 +1713,7 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
     // remove all the fragments from the pending list
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
     while ((ref = event->fragments_.pop_front()) != NULL) {
+        ref->remove_retention_constraint(Bundle::RETENTION_REASSEMBLY);
         try_delete_from_pending(ref.object());
     }
 
@@ -2014,15 +2016,9 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
      * We do this only if:
      *
      * 1) We're configured for early deletion
-     * 2) The bundle isn't queued on any lists other than the pending
-     *    list. This covers the case where we have custody, since the
-     *    bundle will be on the custody_bundles list
+     * 2) The bundle has no retention constraints.
      * 3) The bundle isn't currently in flight, as recorded
      *    in the forwarding log.
-     *
-     * This allows a router (or the custody system) to maintain a
-     * retention constraint by putting the bundle on a list, and
-     * thereby adding a mapping.
      */
 
     if (! bundle->is_queued_on(pending_bundles_))
@@ -2045,13 +2041,14 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
         return false;
     }
 
-    size_t num_mappings = bundle->num_mappings();
-    if (num_mappings != 1) {
+    if (bundle->has_retention_constraint()) {
         log_debug("try_delete_from_pending(*%p): not deleting because "
-                  "bundle has %zu mappings",
-                  bundle, num_mappings);
+                  "bundle has retention constraints: %s",
+                  bundle, 
+                  Bundle::retention_to_string(bundle->retention_).c_str());
         return false;
     }
+    ASSERT(bundle->num_mappings() == 1);
     
     size_t num_in_flight = bundle->fwdlog_.get_count(ForwardingInfo::IN_FLIGHT);
     if (num_in_flight > 0) {
