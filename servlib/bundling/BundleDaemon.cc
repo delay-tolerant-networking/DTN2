@@ -2052,14 +2052,13 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
         return false;
     }
 
-    if (bundle->has_retention_constraint()) {
+    size_t num_mappings = bundle->num_mappings();
+    if (num_mappings != 1) {
         log_debug("try_delete_from_pending(*%p): not deleting because "
-                  "bundle has retention constraints: %s",
-                  bundle, 
-                  Bundle::retention_to_string(bundle->retention_).c_str());
+                  "bundle has %zu mappings",
+                  bundle, num_mappings);
         return false;
     }
-    ASSERT(bundle->num_mappings() == 1);
     
     size_t num_in_flight = bundle->fwdlog_.get_count(ForwardingInfo::IN_FLIGHT);
     if (num_in_flight > 0) {
