@@ -30,7 +30,6 @@
 #include "CustodySignal.h"
 #include "ExpirationTimer.h"
 #include "FragmentManager.h"
-#include "FragmentState.h"
 #include "contacts/Link.h"
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
