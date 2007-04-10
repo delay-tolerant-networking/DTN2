@@ -30,6 +30,7 @@
 #include "CustodySignal.h"
 #include "ExpirationTimer.h"
 #include "FragmentManager.h"
+#include "FragmentState.h"
 #include "contacts/Link.h"
 #include "contacts/Contact.h"
 #include "contacts/ContactManager.h"
@@ -196,8 +197,8 @@ BundleDaemon::get_daemon_stats(oasys::StringBuffer* buf)
     buf->appendf("%zu pending_events -- "
                  "%u processed_events",
                  eventq_->size(),
-                 stats_.events_processed_);
-}
+                 stats_.events_processed_);}
+
 
 //----------------------------------------------------------------------
 void
@@ -309,7 +310,6 @@ BundleDaemon::accept_custody(Bundle* bundle)
     // it to the custody bundles list
     bundle->custodian_.assign(local_eid_);
     bundle->local_custody_ = true;
-    bundle->add_retention_constraint(Bundle::RETENTION_CUSTODY);
     actions_->store_update(bundle);
     
     custody_bundles_->push_back(bundle);
@@ -337,7 +337,6 @@ BundleDaemon::release_custody(Bundle* bundle)
 
     bundle->custodian_.assign(EndpointID::NULL_EID());
     bundle->local_custody_ = false;
-    bundle->remove_retention_constraint(Bundle::RETENTION_CUSTODY);
     actions_->store_update(bundle);
     
     custody_bundles_->erase(bundle);
@@ -516,8 +515,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      */
     if (event->source_ == EVENTSRC_PEER) {
         ASSERT(event->bytes_received_ != 0);
-        if (fragmentmgr_->try_to_convert_to_fragment(bundle))
-            bundle->add_retention_constraint(Bundle::RETENTION_REASSEMBLY);
+        fragmentmgr_->try_to_convert_to_fragment(bundle);
     }
 
     /*
@@ -537,8 +535,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         
         if (bundle->custody_requested_ && duplicate->local_custody_)
         {
-        // TODO/jward - assert this when retention constraints are done correctly
-            //ASSERT(bundle->has_retention_constraint(Bundle::RETENTION_CUSTODY));
             generate_custody_signal(bundle, false,
                                     BundleProtocol::CUSTODY_REDUNDANT_RECEPTION);
         }
@@ -573,8 +569,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         return;
     }
     
-    bundle->add_retention_constraint(Bundle::RETENTION_DISPATCH);
-    
     /*
      * If the bundle is a custody bundle and we're configured to take
      * custody, then do so. In case the event was delivered due to a
@@ -588,7 +582,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         
         } else if (bundle->local_custody_) {
             custody_bundles_->push_back(bundle);
-            bundle->add_retention_constraint(Bundle::RETENTION_CUSTODY);
         }
     }
     
@@ -596,8 +589,6 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * Deliver the bundle to any local registrations that it matches
      */
     check_registrations(bundle);
-    bundle->add_retention_constraint(Bundle::RETENTION_FORWARD);
-    bundle->remove_retention_constraint(Bundle::RETENTION_DISPATCH);
     
     /*
      * Finally, bounce out so the router(s) can do something further
@@ -613,8 +604,9 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
 
     LinkRef link = event->link_;
     ASSERT(link != NULL);
-     
-    log_debug("trying to find xmit blocks for bundle id:%d on link %s",bundle->bundleid_,link->name());
+    
+    log_debug("trying to find xmit blocks for bundle id:%d on link %s",
+              bundle->bundleid_,link->name());
     BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
     
     // Because a CL is running in another thread or process (External CLs),
@@ -624,10 +616,11 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     // The router (DP) might, however, be interested in the new status of the send.
     if(blocks == NULL)
     {
-        log_info("received a redundant/conflicting bundle_transmit event about bundle id:%d -> %s (%s)",
-             bundle->bundleid_,
-             link->name(),
-             link->nexthop());
+        log_info("received a redundant/conflicting bundle_transmit event about "
+                 "bundle id:%d -> %s (%s)",
+                 bundle->bundleid_,
+                 link->name(),
+                 link->nexthop());
         return;
     }
     
@@ -733,8 +726,6 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         generate_status_report(bundle, BundleProtocol::STATUS_FORWARDED);
     }
     
-    bundle->remove_retention_constraint(Bundle::RETENTION_FORWARD);
-
     /*
      * Schedule a custody timer if we have custody.
      */
@@ -867,8 +858,6 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
         }
     }
     
-    bundle->remove_retention_constraint(Bundle::RETENTION_FORWARD);
-
     /*
      * Finally, check if we can and should delete the bundle from the
      * pending list, i.e. we don't have custody and it's not being
@@ -1724,7 +1713,6 @@ BundleDaemon::handle_reassembly_completed(ReassemblyCompletedEvent* event)
     // remove all the fragments from the pending list
     BundleRef ref("BundleDaemon::handle_reassembly_completed temporary");
     while ((ref = event->fragments_.pop_front()) != NULL) {
-        ref->remove_retention_constraint(Bundle::RETENTION_REASSEMBLY);
         try_delete_from_pending(ref.object());
     }
 
@@ -2153,9 +2141,6 @@ BundleDaemon::handle_bundle_free(BundleFreeEvent* event)
     event->bundle_ = NULL;
     ASSERT(bundle->refcount() == 0);
     
-    // TODO/jward - assert this when retention constraints are done correctly
-    //ASSERT(!bundle->has_retention_constraint());
-
     bundle->lock_.lock("BundleDaemon::handle_bundle_free");
 
     if (bundle->in_datastore_) {

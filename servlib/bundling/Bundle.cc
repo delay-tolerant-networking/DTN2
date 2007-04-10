@@ -53,7 +53,6 @@ Bundle::init(u_int32_t id)
     frag_offset_	= 0;
     expiration_		= 0;
     owner_              = "";
-    retention_ = 0;
 
     // as per the spec, the creation timestamp should be calculated as
     // seconds since 1/1/1970, and since the bundle id should be
@@ -148,8 +147,6 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("       orig_length: %d\n", orig_length_);
     buf->appendf("       frag_offset: %d\n", frag_offset_);
     buf->appendf("transmission_count: %zu\n", fwdlog_.get_transmission_count());
-    buf->appendf("         retention: %s\n", 
-                 retention_to_string(retention_).c_str());
 }
 
 //----------------------------------------------------------------------
@@ -182,7 +179,6 @@ Bundle::serialize(oasys::SerializeAction* a)
     a->process("orig_length", &orig_length_);
     a->process("frag_offset", &frag_offset_);
     a->process("owner", &owner_);
-    a->process("retention", &retention_);
     a->process("recv_blocks", &recv_blocks_);
     a->process("api_blocks", &api_blocks_);
     

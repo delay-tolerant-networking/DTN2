@@ -206,48 +206,6 @@ public:
         }
     }
     
-    typedef enum {
-        RETENTION_DISPATCH    = 0x01,
-        RETENTION_FORWARD     = 0x02,
-        RETENTION_CUSTODY     = 0x04,
-        RETENTION_REASSEMBLY  = 0x08,
-        RETENTION_ANY         = 0xff
-    } retention_t;
-    
-    static std::string retention_to_string(u_int32_t retention) {
-        if (retention == 0)
-            return std::string("none");
-        
-        std::string str;
-        if (retention & RETENTION_DISPATCH) str += "DISPATCH ";
-        if (retention & RETENTION_FORWARD) str += "FORWARD ";
-        if (retention & RETENTION_CUSTODY) str += "CUSTODY ";
-        if (retention & RETENTION_REASSEMBLY) str += "REASSEMBLY ";
-        
-        return str;
-    }
-    
-    void add_retention_constraint(retention_t constraint) {
-        retention_ |= constraint;
-        log_debug_p("/dtn/bundle/retention", 
-            "added retention constraint %s to bundle %d; current restraints: %s",
-            retention_to_string(constraint).c_str(), bundleid_,
-            retention_to_string(retention_).c_str());
-    }
-    
-    void remove_retention_constraint(retention_t constraint) {
-        retention_ &= ~constraint;
-        log_debug_p("/dtn/bundle/retention", 
-            "removed retention constraint %s from bundle %d; current restraints: %s",
-            retention_to_string(constraint).c_str(), bundleid_,
-            retention_to_string(retention_).c_str());
-    }
-    
-    bool has_retention_constraint(retention_t constraint = RETENTION_ANY) {
-        return (retention_ & constraint) != 0;
-    }
-
-    
     /*
      * Bundle data fields that correspond to data transferred between
      * nodes according to the bundle protocol (all public to avoid the
@@ -287,7 +245,6 @@ public:
     bool local_custody_;	///< Local node has custody
     std::string owner_;         ///< Declared router that "owns" this
                                 ///  bundle, which could be empty
-    u_int32_t retention_;   ///< Why the bundle is hanging around
     ForwardingLog fwdlog_;	///< Log of bundle forwarding records
     ExpirationTimer* expiration_timer_;	///< The expiration timer
     CustodyTimerVec custody_timers_; ///< Live custody timers for this bundle
