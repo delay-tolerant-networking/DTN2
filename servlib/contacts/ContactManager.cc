@@ -333,7 +333,13 @@ ContactManager::handle_contact_up(ContactUpEvent* event)
 
     LinkRef link = event->contact_->link();
     ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
+
+    if(link->isdeleted())
+    {
+        log_warn("ContactManager::handle_contact_up: "
+                 "link %s is being deleted, not marking its contact up", link->name());
+        return;
+    }
 
     if (!has_link(link)) {
         log_warn("ContactManager::handle_contact_up: "
