@@ -82,7 +82,6 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
                                 "number of payload file descriptors to keep "
                                 "open in a cache"));
 
-#if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DS_ENABLED)
     bind_var(new oasys::UInt16Opt("server_port",
                                   &cfg->server_port_,
                                   "port number",
@@ -91,7 +90,6 @@ StorageCommand::StorageCommand(DTNStorageConfig* cfg)
     bind_var(new oasys::StringOpt("schema", &cfg->schema_, "pathname",
                                   "File containing the XML schema for the "
                                   "external data store interface"));
-#endif // defined(XERCES_C_ENABLED) && defined(EXTERNAL_DS_ENABLED)
 
     add_to_help("usage", "print the current storage usage");
 }
