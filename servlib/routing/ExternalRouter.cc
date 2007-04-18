@@ -1368,7 +1368,7 @@ void external_rtr_shutdown(void *)
 // Initialize ExternalRouter parameters
 u_int16_t ExternalRouter::server_port       = 8001;
 u_int16_t ExternalRouter::hello_interval    = 30;
-std::string ExternalRouter::schema          = "/etc/router.xsd";
+std::string ExternalRouter::schema          = INSTALL_SYSCONFDIR "/router.xsd";
 bool ExternalRouter::server_validation      = true;
 bool ExternalRouter::client_validation      = false;
 

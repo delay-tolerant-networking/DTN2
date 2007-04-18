@@ -115,7 +115,7 @@ char data_unit             ;    // B = bytes, K = kilobytes, M = megabytes
 int fd                     ;    // file descriptor, used with -f option
 int data_written        = 0;    // data written on the file
 int data_read           = 0;    // data read from the file
-char * file_name_src    = "/var/dtn/dtnperf/dtnbuffer.snd";    // name of the SOURCE file to be used
+char * file_name_src    = INSTALL_LOCALSTATEDIR "/dtn/dtnperf/dtnbuffer.snd";    // name of the SOURCE file to be used
 
 /* -------------------------------
  *       function interfaces

@@ -168,7 +168,7 @@ DTNServer::parse_conf_file(std::string& conf_file,
     }
     else if (!conf_file_set) 
     {
-        const char* default_conf[] = { "/etc/dtn.conf", 
+        const char* default_conf[] = { INSTALL_SYSCONFDIR "/dtn.conf", 
                                        "daemon/dtn.conf", 
                                        0 };
         conf_file.clear();
@@ -183,7 +183,8 @@ DTNServer::parse_conf_file(std::string& conf_file,
         if (conf_file.size() == 0)
         {
             log_warn("can't read default config file "
-                     "(tried /etc/dtn.conf and daemon/dtn.conf)...");
+                     "(tried " INSTALL_SYSCONFDIR "/dtn.conf "
+                     "and daemon/dtn.conf)...");
         }
     }
 

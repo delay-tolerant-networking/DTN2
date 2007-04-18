@@ -31,7 +31,7 @@
 #include "dtn_api.h"
 
 #define BUFSIZE 16
-#define BUNDLE_DIR_DEFAULT "/var/dtn/dtncpd-incoming"
+#define BUNDLE_DIR_DEFAULT INSTALL_LOCALSTATEDIR "/dtn/dtncpd-incoming"
 
 static const char *progname;
 

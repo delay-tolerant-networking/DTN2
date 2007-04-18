@@ -76,6 +76,33 @@ BUILDDIR=$builddir
 AC_SUBST([BUILDDIR])
 
 # -------------------------------------------------------------------------
+# Arrange to place files in /etc and /var by default, if --prefix is not used
+# -------------------------------------------------------------------------
+if test "x$prefix" = "xNONE" ; then
+   # possibly the value was overridden without --prefix being used.
+   # This is a slightly imperfect test because conceivably someone might
+   # use something like --sysconfdir=\${prefix}/etc and that will get
+   # clobbered.
+   case $sysconfdir in
+     *[[$]]*) sysconfdir='/etc' ;;
+   esac
+   case $localstatedir in
+     *[[$]]*) localstatedir='/var' ;;
+   esac
+fi
+
+# fully expand the pathnames before they go into the config.h file
+oasys_save_prefix=$prefix
+test "x$prefix" = "xNONE" && prefix=$ac_default_prefix
+eval oasys_conf_dir=`echo $sysconfdir`
+AC_DEFINE_UNQUOTED(INSTALL_SYSCONFDIR, "$oasys_conf_dir",
+                   [directory for config files (default /etc)])
+eval oasys_conf_dir=`echo $localstatedir`
+AC_DEFINE_UNQUOTED(INSTALL_LOCALSTATEDIR, "$oasys_conf_dir",
+                   [directory for local state (default /var)])
+prefix=$oasys_save_prefix
+
+# -------------------------------------------------------------------------
 # Checks for programs and libraries
 # -------------------------------------------------------------------------
 

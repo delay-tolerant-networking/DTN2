@@ -42,11 +42,6 @@ endif
 #
 include Rules.make
 
-# XXX The dtn2 code does not have the hooks required to use configure-generated
-# path names. This is the most expedient fix at the moment.
-localstatedir=/var
-sysconfdir=/etc
-
 #
 # Dependency rules between subdirectories needed for make -j
 #
@@ -87,18 +82,18 @@ dtn-tests:
 # Installation rules
 #
 install:
-	for dir in $(localstatedir)/dtn \
-		   $(localstatedir)/dtn/bundles \
-		   $(localstatedir)/dtn/db ; do \
+	for dir in $(DESTDIR)$(localstatedir)/dtn \
+		   $(DESTDIR)$(localstatedir)/dtn/bundles \
+		   $(DESTDIR)$(localstatedir)/dtn/db ; do \
 	    (mkdir -p $$dir; chmod 755 $$dir; \
 		[ x$(DTN_USER) = x ] || chown $(DTN_USER) $$dir); \
 	done
 
-	[ -d $(bindir) ] || \
-	    (mkdir -p $(bindir); chmod 755 $(bindir))
+	[ -d $(DESTDIR)$(bindir) ] || \
+	    (mkdir -p $(DESTDIR)$(bindir); chmod 755 $(DESTDIR)$(bindir))
 
-	[ -d $(libdir) ] || \
-	    (mkdir -p $(libdir); chmod 755 $(libdir))
+	[ -d $(DESTDIR)$(libdir) ] || \
+	    (mkdir -p $(DESTDIR)$(libdir); chmod 755 $(DESTDIR)$(libdir))
 
 	for prog in daemon/dtnd \
 		    tools/dtnd-control \
@@ -110,27 +105,28 @@ install:
 		    apps/dtnrecv/dtnrecv \
 		    apps/dtnsend/dtnsend \
 		    apps/dtntunnel/dtntunnel ; do \
-	    ($(INSTALL_PROGRAM) $$prog $(bindir)) ; \
+	    ($(INSTALL_PROGRAM) $$prog $(DESTDIR)$(bindir)) ; \
 	done
 
 	[ x$(SHLIBS) = x ] || for lib in oasys/liboasys.$(SHLIB_EXT) \
 		   oasys/liboasyscompat.$(SHLIB_EXT) \
 		   applib/libdtnapi.$(SHLIB_EXT) \
 	           applib/libdtnapi++.$(SHLIB_EXT) ; do \
-	    ($(INSTALL_PROGRAM) $$lib $(libdir)) ; \
+	    ($(INSTALL_PROGRAM) $$lib $(DESTDIR)$(libdir)) ; \
 	done
 
-	[ x$(DTN_USER) = x ] || chown -R $(DTN_USER) $(bindir)
+	[ x$(DTN_USER) = x ] || chown -R $(DTN_USER) $(DESTDIR)$(bindir)
 
-	[ -d $(sysconfdir) ] || mkdir -p $(sysconfdir)
-	if [ -f $(sysconfdir)/dtn.conf ]; then \
-		echo "WARNING: $(sysconfdir)/dtn.conf exists -- not overwriting"; \
+	[ -d $(DESTDIR)$(sysconfdir) ] || mkdir -p $(DESTDIR)$(sysconfdir)
+	if [ -f $(DESTDIR)$(sysconfdir)/dtn.conf ]; then \
+		echo "WARNING: $(DESTDIR)$(sysconfdir)/dtn.conf exists -- not overwriting"; \
 	else \
-		$(INSTALL_DATA) daemon/dtn.conf $(sysconfdir)/dtn.conf; \
+		$(INSTALL_DATA) daemon/dtn.conf $(DESTDIR)$(sysconfdir)/dtn.conf; \
 	fi
 
-	$(INSTALL_DATA) servlib/routing/router.xsd $(sysconfdir)/router.xsd
-	$(INSTALL_DATA) servlib/conv_layers/clevent.xsd $(sysconfdir)/clevent.xsd
+	$(INSTALL_DATA) servlib/routing/router.xsd $(DESTDIR)$(sysconfdir)/router.xsd
+	$(INSTALL_DATA) servlib/conv_layers/clevent.xsd $(DESTDIR)$(sysconfdir)/clevent.xsd
+	$(INSTALL_DATA) oasys/storage/DS.xsd $(DESTDIR)$(sysconfdir)/DS.xsd
 
 #
 # Generate the doxygen documentation
@@ -148,6 +144,12 @@ xsddoc:
 	mkdir -p doc/router-xsddoc
 	xsddoc -t "External Router Interface" -o doc/router-xsddoc -q \
 		servlib/routing/router.xsd
+	mkdir -p doc/cla-xsddoc
+	xsddoc -t "External CLA Interface" -o doc/cla-xsddoc -q \
+		servlib/conv_layers/clevent.xsd
+	mkdir -p doc/router-xsddoc
+	xsddoc -t "External Data Store Interface" -o doc/ds-xsddoc -q \
+		oasys/storage/DS.xsd
 
 xsdbindings:
 	$(MAKE) -C servlib xsdbindings

@@ -120,6 +120,12 @@
 /* Define to 1 if the system has the type `u_int32_t'. */
 #undef HAVE_U_INT32_T
 
+/* directory for local state (default /var) */
+#undef INSTALL_LOCALSTATEDIR
+
+/* directory for config files (default /etc) */
+#undef INSTALL_SYSCONFDIR
+
 /* whether berkeley db storage support is enabled */
 #undef LIBDB_ENABLED
 

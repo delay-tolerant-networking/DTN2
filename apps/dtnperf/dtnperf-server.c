@@ -47,7 +47,7 @@
 #include <sys/stat.h>
 
 #define BUFSIZE 16
-#define BUNDLE_DIR_DEFAULT "/var/dtn/dtnperf"
+#define BUNDLE_DIR_DEFAULT INSTALL_LOCALSTATEDIR "/dtn/dtnperf"
 #define OUTFILE "dtnbuffer.rcv"
 
 /* ------------------------------

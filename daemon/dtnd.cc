@@ -69,10 +69,10 @@ DTND::DTND()
     : App("DTND", "dtnd", dtn_version),
       testcmd_(NULL),
       consolecmd_(NULL),
-      storage_config_("storage",	// command name
-                      "berkeleydb",	// storage type
-                      "DTN",		// DB name
-                      "/var/dtn/db")	// DB directory
+      storage_config_("storage",			// command name
+                      "berkeleydb",			// storage type
+                      "DTN",				// DB name
+                      INSTALL_LOCALSTATEDIR "/dtn/db")	// DB directory
 {
     // override default logging settings
     loglevel_ = oasys::LOG_NOTICE;
