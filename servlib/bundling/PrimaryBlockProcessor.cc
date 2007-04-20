@@ -127,14 +127,14 @@ PrimaryBlockProcessor::extract_dictionary_eid(EndpointID* eid,
     if (scheme_offset >= (dictionary_len - 1)) {
         log_err_p(log, "illegal offset for %s scheme dictionary offset: "
                   "offset %llu, total length %llu", what,
-                  scheme_offset, dictionary_len);
+                  U64FMT(scheme_offset), U64FMT(dictionary_len));
         return false;
     }
 
     if (ssp_offset >= (dictionary_len - 1)) {
         log_err_p(log, "illegal offset for %s ssp dictionary offset: "
                   "offset %llu, total length %llu", what,
-                  ssp_offset, dictionary_len);
+                  U64FMT(ssp_offset), U64FMT(dictionary_len));
         return false;
     }
     
@@ -146,14 +146,14 @@ PrimaryBlockProcessor::extract_dictionary_eid(EndpointID* eid,
                   "scheme '%s' offset %llu/%llu ssp '%s' offset %llu/%llu",
                   what, eid->c_str(),
                   eid->scheme_str().c_str(),
-                  scheme_offset, dictionary_len,
+                  U64FMT(scheme_offset), U64FMT(dictionary_len),
                   eid->ssp().c_str(),
-                  ssp_offset, dictionary_len);
+                  U64FMT(ssp_offset), U64FMT(dictionary_len));
         return false;                                                      
     }                                                                   
     
     log_debug_p(log, "parsed %s eid (offsets %llu, %llu) %s", 
-                what, scheme_offset, ssp_offset, eid->c_str());
+                what, U64FMT(scheme_offset), U64FMT(ssp_offset), eid->c_str());
     return true;
 }
 
@@ -175,20 +175,20 @@ PrimaryBlockProcessor::debug_dump_dictionary(const char* bp,
 
     log_debug_p("/dtn/bundle/protocol",
                 "dictionary len %llu, value: '%s'",
-                primary.dictionary_length,
+                U64FMT(primary.dictionary_length),
                 dict_copy.c_str());
                   
     log_debug_p("/dtn/bundle/protocol",
                 "dictionary offsets: dest %llu,%llu source %llu,%llu, "
                 "custodian %llu,%llu replyto %llu,%llu",
-                primary.dest_scheme_offset,
-                primary.dest_ssp_offset,
-                primary.source_scheme_offset,
-                primary.source_ssp_offset,
-                primary.custodian_scheme_offset,
-                primary.custodian_ssp_offset,
-                primary.replyto_scheme_offset,
-                primary.replyto_ssp_offset);
+                U64FMT(primary.dest_scheme_offset),
+                U64FMT(primary.dest_ssp_offset),
+                U64FMT(primary.source_scheme_offset),
+                U64FMT(primary.source_ssp_offset),
+                U64FMT(primary.custodian_scheme_offset),
+                U64FMT(primary.custodian_ssp_offset),
+                U64FMT(primary.replyto_scheme_offset),
+                U64FMT(primary.replyto_ssp_offset));
 #else
     (void)bp;
     (void)primary;
@@ -378,7 +378,7 @@ PrimaryBlockProcessor::get_primary_len(const Bundle* bundle,
     
     (void)log; // in case NDEBUG is defined
     log_debug_p(log, "generated dictionary length %llu",
-                primary->dictionary_length);
+                U64FMT(primary->dictionary_length));
     
     primary->block_length += SDNV::encoding_len(bundle->creation_ts_.seconds_);
     primary->block_length += SDNV::encoding_len(bundle->creation_ts_.seqno_);
@@ -529,18 +529,18 @@ PrimaryBlockProcessor::consume(Bundle* bundle, BlockInfo* block, u_char* buf, si
     // a 32 bit integer.
     if (primary.creation_time > 0xffffffff) {
         log_err_p(log, "creation timestamp time is too large: %llu",
-                  primary.creation_time);
+                  U64FMT(primary.creation_time));
         return -1;
     }
 
     if (primary.creation_sequence > 0xffffffff) {
         log_err_p(log, "creation timestamp sequence is too large: %llu",
-                  primary.creation_sequence);
+                  U64FMT(primary.creation_sequence));
         return -1;
     }
     
     if (primary.lifetime > 0xffffffff) {
-        log_err_p(log, "lifetime is too large: %llu", primary.lifetime);
+        log_err_p(log, "lifetime is too large: %llu", U64FMT(primary.lifetime));
         return -1;
     }
     
@@ -603,7 +603,7 @@ tooshort:
         u_int64_t sdnv_buf = 0;
         PBP_READ_SDNV(&sdnv_buf);
         if (sdnv_buf > 0xffffffff) {
-            log_err_p(log, "fragment offset is too large: %llu", sdnv_buf);
+            log_err_p(log, "fragment offset is too large: %llu", U64FMT(sdnv_buf));
             return -1;
         }
         
@@ -613,7 +613,7 @@ tooshort:
         PBP_READ_SDNV(&sdnv_buf);
         if (sdnv_buf > 0xffffffff) {
             log_err_p(log, "fragment original length is too large: %llu",
-                      sdnv_buf);
+                      U64FMT(sdnv_buf));
             return -1;
         }
         

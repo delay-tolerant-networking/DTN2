@@ -169,7 +169,7 @@ BlockProcessor::generate_preamble(BlockInfo* block,
     log_debug_p(log, "BlockProcessor type 0x%x "
                 "generated preamble for block type 0x%x flags 0x%llx: "
                 "data_offset %u data_length %u",
-                block_type(), block->type(), block->flags(),
+                block_type(), block->type(), U64FMT(block->flags()),
                 block->data_offset(), block->data_length());
 }
 
