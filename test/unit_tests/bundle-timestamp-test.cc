@@ -31,8 +31,8 @@ DECLARE_TEST(NowTest) {
     now.seconds_ = BundleTimestamp::get_current_time();
     now.seqno_ = 90909;
 
-    BundleProtocol::set_timestamp(&ts, &now);
-    BundleProtocol::get_timestamp(&test, &ts);
+    BundleProtocol::set_timestamp((u_char*)&ts, sizeof(ts), &now);
+    BundleProtocol::get_timestamp(&test, (u_char*)&ts, sizeof(ts));
     
     CHECK_EQUAL(now.seconds_, test.seconds_);
     CHECK_EQUAL(now.seqno_,   test.seqno_);
@@ -42,18 +42,15 @@ DECLARE_TEST(NowTest) {
 
 DECLARE_TEST(AlignmentTest) {
     BundleTimestamp now, test;
-    char buf[16];
-    u_int64_t* ts;
+    u_char buf[16];
 
     now.seconds_ = BundleTimestamp::get_current_time();
     now.seqno_ = 90909;
 
     for (int i = 0; i < 8; ++i) {
-        ts = (u_int64_t*)&buf[i];
+        BundleProtocol::set_timestamp(&buf[i], sizeof(u_int64_t), &now);
+        BundleProtocol::get_timestamp(&test, &buf[i], sizeof(u_int64_t));
         
-        BundleProtocol::set_timestamp(ts, &now);
-        BundleProtocol::get_timestamp(&test, ts);
-
         CHECK_EQUAL(now.seconds_, test.seconds_);
         CHECK_EQUAL(now.seqno_,   test.seqno_);
     }
