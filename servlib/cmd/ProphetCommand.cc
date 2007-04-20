@@ -88,7 +88,7 @@ ProphetCommand::ProphetCommand()
                                   "lower limit on predictability before "
                                   "dropping route"));
 
-    add_to_help("queue_policy <policy>",
+    add_to_help("queue_policy=<policy>",
                 "set queue policy to one of the following:\n"
                 "\tfifo\tfirst in first out\n"
                 "\tmofo\tevict most forwarded first\n"
@@ -97,7 +97,7 @@ ProphetCommand::ProphetCommand()
                 "\tshli\tevict shortest lifetime first\n"
                 "\tlepr\tevice least probable first\n");
 
-    add_to_help("fwd_strategy <strategy>",
+    add_to_help("fwd_strategy=<strategy>",
                 "set forwarding strategy to one of the following:\n"
                 "\tgrtr\tforward if remote's P is greater\n"
                 "\tgtmx\tforward if \"grtr\" and NF < NF_Max\n"
@@ -105,6 +105,10 @@ ProphetCommand::ProphetCommand()
                 "\tgtmx_plus\tforward if \"grtr_plus\" and NF < NF_Max\n"
                 "\tgrtr_sort\tforward if \"grtr\" and sort desc by P_remote - P_local\n"
                 "\tgrtr_max\tforward if \"grtr\" and sort desc by P_remote\n");
+
+    add_to_help("hello_interval=<interval>",
+                "maximum delay between protocol messages, in 100ms units,"
+                " ranging from 1 to 255 (100 ms to 25.5s)");
 
     add_to_help("max_usage","not used - superceded by \"storage payload_quota\"");
 }
