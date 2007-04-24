@@ -75,6 +75,12 @@ BundleExpiredEvent::serialize(oasys::SerializeAction *a)
 }
 
 void
+BundleNotNeededEvent::serialize(oasys::SerializeAction *a)
+{
+    a->process("bundle", bundleref_.object());
+}
+
+void
 BundleSendCancelledEvent::serialize(oasys::SerializeAction* a)
 {
     a->process("bundle", bundleref_.object());

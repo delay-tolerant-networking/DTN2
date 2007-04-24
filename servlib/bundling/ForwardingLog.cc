@@ -36,19 +36,19 @@ bool
 ForwardingLog::get_latest_entry(const LinkRef& link, ForwardingInfo* info) const
 {
     oasys::ScopeLock l(lock_, "ForwardingLog::get_latest_state");
-    
+
+    // iterate backwards through the vector to get the latest entry
     Log::const_reverse_iterator iter;
     for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
     {
-        if (iter->clayer_  == link->clayer()->name() &&
-            iter->link_name_ == link->name())
+        if (iter->link_name() == link->name_str())
         {
-        	if (iter->remote_eid_ == EndpointID::NULL_EID().str() ||
-        	    iter->remote_eid_ == link->remote_eid().str())
-        	{
-        		*info = *iter;
-                return true;
-        	}
+            // This assertion holds as long as the mapping of link
+            // name to remote eid is persistent. This may need to be
+            // revisited once link tables are serialized to disk.
+            ASSERT(iter->remote_eid() == link->remote_eid());
+            *info = *iter;
+            return true;
         }
     }
 
@@ -64,38 +64,36 @@ ForwardingLog::get_latest_entry(const LinkRef& link) const
         return ForwardingInfo::NONE;
     }
 
-    return static_cast<ForwardingLog::state_t>(info.state_);
+    return info.state();
 }
 
 //----------------------------------------------------------------------
 size_t
-ForwardingLog::get_transmission_count(ForwardingInfo::action_t action,
-                                      bool include_inflight) const
+ForwardingLog::get_count(unsigned int states,
+                         unsigned int actions) const
 {
     size_t ret = 0;
     
-    oasys::ScopeLock l(lock_, "ForwardingLog::get_transmission_count");
+    oasys::ScopeLock l(lock_, "ForwardingLog::get_count");
     
     Log::const_iterator iter;
     for (iter = log_.begin(); iter != log_.end(); ++iter)
     {
-        if (iter->state_ == ForwardingInfo::TRANSMITTED ||
-            (include_inflight && (iter->state_ == ForwardingInfo::IN_FLIGHT)))
+        if ((iter->state()  & states) != 0 &&
+            (iter->action() & actions) != 0)
         {
-            if ((action == iter->action_) ||
-                (action == ForwardingInfo::INVALID_ACTION))
-            {
-                ++ret;
-            }
+            ++ret;
         }
     }
-    
+
     return ret;
 }
 
 //----------------------------------------------------------------------
 size_t
-ForwardingLog::get_count(state_t state) const
+ForwardingLog::get_count(const EndpointID& eid,
+                         unsigned int states,
+                         unsigned int actions) const
 {
     size_t ret = 0;
 
@@ -104,7 +102,10 @@ ForwardingLog::get_count(state_t state) const
     Log::const_iterator iter;
     for (iter = log_.begin(); iter != log_.end(); ++iter)
     {
-        if (iter->state_ == state) {
+        if (eid == iter->remote_eid() &&
+            (iter->state()  & states) != 0 &&
+            (iter->action() & actions) != 0)
+        {
             ++ret;
         }
     }
@@ -117,26 +118,22 @@ void
 ForwardingLog::dump(oasys::StringBuffer* buf) const
 {
     oasys::ScopeLock l(lock_, "ForwardingLog::dump");
-    buf->appendf("forwarding log:\n");
     Log::const_iterator iter;
     for (iter = log_.begin(); iter != log_.end(); ++iter)
     {
         const ForwardingInfo* info = &(*iter);
         
-        buf->appendf("\t%s -> %s %u.%u [%s cl:%s to %s as link %s] [custody min %d pct %d max %d]\n",
-                     ForwardingInfo::state_to_str(
-                        static_cast<ForwardingInfo::state_t>(info->state_)),
-                     info->clayer_.c_str(),
-                     (u_int)info->timestamp_.tv_sec,
-                     (u_int)info->timestamp_.tv_usec,
-                     ForwardingInfo::action_to_str(
-                        static_cast<ForwardingInfo::action_t>(info->action_)),
-                     info->nexthop_.c_str(),
-                     info->remote_eid_.c_str(),
-                     info->link_name_.c_str(),
-                     info->custody_timer_.min_,
-                     info->custody_timer_.lifetime_pct_,
-                     info->custody_timer_.max_);
+        buf->appendf("\t%s -> %s [%s] %s at %u.%u "
+                     "[custody min %d pct %d max %d]\n",
+                     ForwardingInfo::state_to_str(info->state()),
+                     info->link_name().c_str(),
+                     info->remote_eid().c_str(),
+                     ForwardingInfo::action_to_str(info->action()),
+                     info->timestamp().sec_,
+                     info->timestamp().usec_,
+                     info->custody_spec().min_,
+                     info->custody_spec().lifetime_pct_,
+                     info->custody_spec().max_);
     }
 }
     
@@ -149,8 +146,8 @@ ForwardingLog::add_entry(const LinkRef& link,
 {
     oasys::ScopeLock l(lock_, "ForwardingLog::add_entry");
     
-    log_.push_back(ForwardingInfo(state, action, link->clayer()->name(),
-                                  link->nexthop(), link->remote_eid().str(), link->name(), custody_timer));
+    log_.push_back(ForwardingInfo(state, action, link->name_str(),
+                                  link->remote_eid(), custody_timer));
 }
 
 //----------------------------------------------------------------------
@@ -162,23 +159,34 @@ ForwardingLog::update(const LinkRef& link, state_t state)
     Log::reverse_iterator iter;
     for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
     {
-        if (iter->clayer_  == link->clayer()->name() &&
-            iter->link_name_ == link->name())
+        if (iter->link_name() == link->name_str())
         {
-        	if (iter->remote_eid_ == EndpointID::NULL_EID().str())
-        	{
-        		iter->remote_eid_ = link->remote_eid().str();
-        	}
-        	if (iter->remote_eid_ == link->remote_eid().str())
-        	{
-                iter->set_state(state);
-                iter->nexthop_ = link->nexthop();
-                return true;
-        	}
+            // This assertion holds as long as the mapping of link
+            // name to remote eid is persistent. This may need to be
+            // revisited once link tables are serialized to disk.
+            ASSERT(iter->remote_eid() == link->remote_eid());
+            iter->set_state(state);
+            return true;
         }
     }
     
     return false;
+}
+
+//----------------------------------------------------------------------
+void
+ForwardingLog::update_all(state_t old_state, state_t new_state)
+{
+    oasys::ScopeLock l(lock_, "ForwardingLog::update_all");
+    
+    Log::reverse_iterator iter;
+    for (iter = log_.rbegin(); iter != log_.rend(); ++iter)
+    {
+        if (iter->state() == old_state)
+        {
+            iter->set_state(new_state);
+        }
+    }
 }
 
 } // namespace dtn

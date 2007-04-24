@@ -53,6 +53,7 @@ typedef enum {
     BUNDLE_DELIVERED,           ///< Bundle locally delivered
     BUNDLE_DELIVERY,            ///< Bundle delivery (with payload)
     BUNDLE_EXPIRED,             ///< Bundle expired
+    BUNDLE_NOT_NEEDED,          ///< Bundle no longer needed
     BUNDLE_FREE,                ///< No more references to the bundle
     BUNDLE_FORWARD_TIMEOUT,     ///< A Mapping timed out
     BUNDLE_SEND,                ///< Send a bundle
@@ -137,6 +138,7 @@ event_to_str(event_type_t event, bool xml=false)
     case BUNDLE_DELIVERY:       return xml ? "bundle_delivery_event" : "BUNDLE_DELIVERY";
     case BUNDLE_EXPIRED:        return xml ? "bundle_expired_event" : "BUNDLE_EXPIRED";
     case BUNDLE_FREE:           return "BUNDLE_FREE";
+    case BUNDLE_NOT_NEEDED:     return "BUNDLE_NOT_NEEDED";
     case BUNDLE_FORWARD_TIMEOUT:return "BUNDLE_FORWARD_TIMEOUT";
     case BUNDLE_SEND:           return xml ? "send_bundle_action" : "BUNDLE_SEND";
     case BUNDLE_CANCEL:         return xml ? "cancel_bundle_action" : "BUNDLE_CANCEL";
@@ -223,7 +225,8 @@ typedef enum {
     EVENTSRC_APP    = 2,        ///< a local application
     EVENTSRC_STORE  = 3,        ///< the data store
     EVENTSRC_ADMIN  = 4,        ///< the admin logic
-    EVENTSRC_FRAGMENTATION = 5  ///< the fragmentation engine
+    EVENTSRC_FRAGMENTATION = 5, ///< the fragmentation engine
+    EVENTSRC_ROUTER = 6         ///< the routing logic
 } event_source_t;
 
 /**
@@ -240,6 +243,7 @@ source_to_str(event_source_t source)
     case EVENTSRC_STORE:            return "dataStore";
     case EVENTSRC_ADMIN:            return "admin";
     case EVENTSRC_FRAGMENTATION:    return "fragmentation";
+    case EVENTSRC_ROUTER:           return "router";
 
     default:                        return "(invalid source type)";
     }
@@ -306,13 +310,15 @@ public:
     BundleReceivedEvent(Bundle* bundle,
                         event_source_t source,
                         u_int32_t bytes_received = 0,
-                        Contact* originator = NULL)
+                        Contact* originator = NULL,
+                        const EndpointID& prevhop = EndpointID::NULL_EID())
 
         : BundleEvent(BUNDLE_RECEIVED),
           bundleref_(bundle, "BundleReceivedEvent"),
           source_(source),
           bytes_received_(bytes_received),
-          contact_(originator, "BundleReceivedEvent")
+          contact_(originator, "BundleReceivedEvent"),
+          prevhop_(prevhop)
     {
     }
 
@@ -330,6 +336,9 @@ public:
 
     /// Contact from which bundle was received, if applicable
     ContactRef contact_;
+
+    /// Previous hop endpoint id
+    EndpointID prevhop_;
 };
 
 /**
@@ -452,6 +461,23 @@ public:
     virtual void serialize(oasys::SerializeAction* a);
 
     /// The expired bundle
+    BundleRef bundleref_;
+};
+
+/**
+ * Event class for use when a retention constraint is lifted but no
+ * other event has occurred to give an opportunity to free the bundle.
+ */
+class BundleNotNeededEvent : public BundleEvent {
+public:
+    BundleNotNeededEvent(Bundle* bundle)
+        : BundleEvent(BUNDLE_NOT_NEEDED),
+          bundleref_(bundle, "BundleNotNeededEvent") {}
+
+    // Virtual function inherited from SerializableObject
+    virtual void serialize(oasys::SerializeAction* a);
+
+    /// The no longer needed bundle
     BundleRef bundleref_;
 };
 

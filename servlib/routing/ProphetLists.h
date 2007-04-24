@@ -924,7 +924,8 @@ public:
         if (route_.match(b->dest_))
             return true;
         size_t num_fwd = 
-            b->fwdlog_.get_transmission_count(ForwardingInfo::COPY_ACTION);
+            b->fwdlog_.get_count(ForwardingInfo::TRANSMITTED,
+                                 ForwardingInfo::COPY_ACTION);
         if (num_fwd < max_fwd_)
         {
             log_debug("NF %zu, max NF %d: ok to fwd *%p",num_fwd,max_fwd_,b);
@@ -988,7 +989,8 @@ public:
         if (route_.match(b->dest_))
             return true;
         size_t num_fwd = 
-            b->fwdlog_.get_transmission_count(ForwardingInfo::COPY_ACTION);
+            b->fwdlog_.get_count(ForwardingInfo::TRANSMITTED,
+                                 ForwardingInfo::COPY_ACTION);
         bool ok = ((stats_->get_p_max(b) < remote_->p_value(b)) &&
                    (num_fwd < max_fwd_));
         log_debug("NF %zu, Max NF %d, max P %0.2f, remote P %0.2f, %s fwd *%p",
@@ -1068,38 +1070,35 @@ ProphetDecider::should_fwd(const Bundle* bundle) const
 
     if (found)
     {
-        ASSERT(info.state_ != ForwardingInfo::NONE);
+        ASSERT(info.state() != ForwardingInfo::NONE);
     }
     else
     {
-        ASSERT(info.state_ == ForwardingInfo::NONE);
+        ASSERT(info.state() == ForwardingInfo::NONE);
     }
 
-    if (info.state_ == ForwardingInfo::TRANSMITTED ||
-        info.state_ == ForwardingInfo::IN_FLIGHT)
+    if (info.state() == ForwardingInfo::TRANSMITTED ||
+        info.state() == ForwardingInfo::IN_FLIGHT)
     {
         log_debug("should_fwd bundle %d: "
                   "skip %s due to forwarding log entry %s",
                   bundle->bundleid_, next_hop_->name(),
-                  ForwardingInfo::state_to_str(
-                      (ForwardingInfo::state_t)info.state_));
+                  ForwardingInfo::state_to_str(info.state()));
         return false;
     }
 
-    if (info.state_ == ForwardingInfo::TRANSMIT_FAILED) {
+    if (info.state() == ForwardingInfo::TRANSMIT_FAILED) {
         log_debug("should_fwd bundle %d: "
                   "match %s: forwarding log entry %s TRANSMIT_FAILED %d",
                   bundle->bundleid_, next_hop_->name(),
-                  ForwardingInfo::state_to_str((ForwardingInfo::state_t)
-                      info.state_),
+                  ForwardingInfo::state_to_str(info.state()),
                   bundle->bundleid_);
 
     } else {
         log_debug("should_fwd bundle %d: "
                   "match %s: forwarding log entry %s",
                   bundle->bundleid_, next_hop_->name(),
-                  ForwardingInfo::state_to_str((ForwardingInfo::state_t)
-                      info.state_));
+                  ForwardingInfo::state_to_str(info.state()));
     }
 
     return true;
@@ -1207,7 +1206,8 @@ struct QueueCompFIFO : public QueueComp
 struct QueueCompMOFO : public QueueComp
 {
 #define NUM_FWD(b) \
-        (b)->fwdlog_.get_transmission_count(ForwardingInfo::COPY_ACTION)
+        (b)->fwdlog_.get_count(ForwardingInfo::TRANSMITTED, \
+                               ForwardingInfo::COPY_ACTION)
     bool operator() (const Bundle* a, const Bundle* b) const
     {
         return (NUM_FWD(a) < NUM_FWD(b));

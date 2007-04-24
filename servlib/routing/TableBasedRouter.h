@@ -18,9 +18,12 @@
 #define _TABLE_BASED_ROUTER_H_
 
 #include "BundleRouter.h"
+#include "DuplicateCache.h"
 
 namespace dtn {
 
+class BundleList;
+class RouteEntryVec;
 class RouteTable;
 
 /**
@@ -52,6 +55,11 @@ protected:
      * bundle to all matching entries in the table.
      */
     virtual void handle_bundle_received(BundleReceivedEvent* event);
+    
+    /**
+     * Event handler when bundles are transmitted.
+     */
+    virtual void handle_bundle_transmitted(BundleTransmittedEvent* event);
     
     /**
      * Handler for transmission failures.
@@ -103,7 +111,12 @@ protected:
      * Dump the routing state.
      */
     void get_routing_state(oasys::StringBuffer* buf);
-    
+
+    /**
+     * Get a tcl version of the routing state.
+     */
+    void tcl_dump_state(oasys::StringBuffer* buf);
+
     /**
      * Add a route entry to the routing table. 
      */
@@ -117,7 +130,7 @@ protected:
     /**
      * Try to forward a bundle to a next hop route.
      */
-    virtual void fwd_to_nexthop(Bundle* bundle, RouteEntry* route);
+    virtual bool fwd_to_nexthop(Bundle* bundle, RouteEntry* route);
 
     /**
      * Check if the bundle should be forwarded to the given next hop.
@@ -145,6 +158,13 @@ protected:
         LinkRef link("TableBasedRouter::fwd_to_matching: null");
         return fwd_to_matching(bundle, link);
     }
+
+    /**
+     * Once a vector of matching routes has been found, sort the
+     * vector. The default uses the route priority, breaking ties by
+     * using the number of bytes queued.
+     */
+    virtual void sort_routes(Bundle* bundle, RouteEntryVec* routes);
     
     /**
      * Called when the next hop link is available for transmission
@@ -157,13 +177,25 @@ protected:
     virtual void check_next_hop(const LinkRef& next_hop);
 
     /**
+     * Go through all known bundles in the system and try to re-route them.
+     */
+    virtual void reroute_all_bundles();
+
+    /**
      * When new links are added or opened, and if we're configured to
      * add nexthop routes, try to add a new route for the given link.
      */
     void add_nexthop_route(const LinkRef& link);
 
-    /// The static routing table
+    /// Cache to check for duplicates
+    DuplicateCache dupcache_;
+
+    /// The routing table
     RouteTable* route_table_;
+
+    /// List of bundles that need to be forwarded but are waiting for
+    /// a link to open
+    BundleList* forward_pending_;
 };
 
 } // namespace dtn

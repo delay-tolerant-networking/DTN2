@@ -132,13 +132,27 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
         return false;
     }
     
-    log_debug("adding forward log entry for %s link %s "
-              "with nexthop %s and remote eid %s to *%p",
-              link->type_str(), link->name(),
-              link->nexthop(), link->remote_eid().c_str(), bundle);
+    // XXX/demmer a better model would have the forwarding log be a
+    // real append-only log of actions, and there would be no update()
+    // interface. The job of get_count would be a bit more complicated
+    // since it would only pay attention to the latest entries
+    if (state == ForwardingInfo::TRANSMIT_PENDING) {
+        log_debug("updating forward log entry for %s link %s "
+                  "with nexthop %s and remote eid %s to *%p "
+                  "from TRANSMIT_PENDING to IN_FLIGHT",
+                  link->type_str(), link->name(),
+                  link->nexthop(), link->remote_eid().c_str(), bundle);
+        bundle->fwdlog_.update(link, ForwardingInfo::IN_FLIGHT);
+
+    } else {
+        log_debug("adding forward log entry for %s link %s "
+                  "with nexthop %s and remote eid %s to *%p",
+                  link->type_str(), link->name(),
+                  link->nexthop(), link->remote_eid().c_str(), bundle);
     
-    bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
-                              custody_timer);
+        bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
+                                  custody_timer);
+    }
 
     link->stats()->bundles_queued_++;
     link->stats()->bytes_queued_ += total_len;

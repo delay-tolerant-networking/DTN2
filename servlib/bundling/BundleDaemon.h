@@ -300,6 +300,7 @@ protected:
     //void handle_bundle_transmit_failed(BundleTransmitFailedEvent* event);
     void handle_bundle_delivered(BundleDeliveredEvent* event);
     void handle_bundle_expired(BundleExpiredEvent* event);
+    void handle_bundle_not_needed(BundleNotNeededEvent* event);
     void handle_bundle_free(BundleFreeEvent* event);
     void handle_bundle_send(BundleSendRequest* event);
     void handle_bundle_cancel(BundleCancelRequest* event);

@@ -295,19 +295,18 @@ ProphetEncounter::should_fwd(Bundle* b,bool log_fail)
     bool found = bundle->fwdlog_.get_latest_entry(next_hop_,&info);
 
     if (found) {
-        ASSERT(info.state_ != ForwardingInfo::NONE);
+        ASSERT(info.state() != ForwardingInfo::NONE);
     } else {
-        ASSERT(info.state_ == ForwardingInfo::NONE);
+        ASSERT(info.state() == ForwardingInfo::NONE);
     }
 
-    if (info.state_ == ForwardingInfo::TRANSMITTED ||
-        info.state_ == ForwardingInfo::IN_FLIGHT)
+    if (info.state() == ForwardingInfo::TRANSMITTED ||
+        info.state() == ForwardingInfo::IN_FLIGHT)
     {
         log_debug("should_fwd bundle %d: "
                   "skip %s due to forwarding log entry %s",
                   bundle->bundleid_, next_hop_->name(),
-                  ForwardingInfo::state_to_str(
-                      static_cast<ForwardingInfo::state_t>(info.state_)));
+                  ForwardingInfo::state_to_str(info.state()));
         if (log_fail)
         {
             log_err("neighbor requested bundle that has already been sent");
@@ -315,19 +314,17 @@ ProphetEncounter::should_fwd(Bundle* b,bool log_fail)
         return false;
     }
 
-    if (info.state_ == ForwardingInfo::TRANSMIT_FAILED) {
+    if (info.state() == ForwardingInfo::TRANSMIT_FAILED) {
         log_debug("should_fwd bundle %d: "
                   "match %s: forwarding log entry %s TRANSMIT_FAILED %d",
                   bundle->bundleid_, next_hop_->name(),
-                  ForwardingInfo::state_to_str(
-                      static_cast<ForwardingInfo::state_t>(info.state_)),
+                  ForwardingInfo::state_to_str(info.state()),
                   bundle->bundleid_); 
     } else {
         log_debug("should_fwd bundle %d: "
                   "match %s: forwarding log entry %s",
                   bundle->bundleid_, next_hop_->name(),
-                  ForwardingInfo::state_to_str(
-                      static_cast<ForwardingInfo::state_t>(info.state_)));
+                  ForwardingInfo::state_to_str(info.state()));
     }
 
     return true;
@@ -1127,6 +1124,8 @@ ProphetEncounter::handle_poll_timeout()
 void
 ProphetEncounter::reset_ribd(const char* where)
 {
+    (void)where;
+    
     EndpointID local(BundleDaemon::instance()->local_eid()),
                remote(next_hop_->remote_eid());
     log_debug("resetting Prophet dictionary (%s)",where);

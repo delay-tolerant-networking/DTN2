@@ -341,9 +341,10 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
     if (link->remote_eid().str() == EndpointID::NULL_EID().str()) {
         link->set_remote_eid(peer_eid);
     } else if (link->remote_eid() != peer_eid) {
-        log_warn("handle_contact_initiation: "
-                 "remote eid mismatch: link remote eid %s, peer eid %s",
+        log_warn("handle_contact_initiation: remote eid mismatch: "
+                 "link remote eid was set to %s, overriding with peer eid %s",
                  link->remote_eid().c_str(), peer_eid.c_str());
+        link->set_remote_eid(peer_eid);
     }
     
     /*
@@ -351,7 +352,6 @@ StreamConvergenceLayer::Connection::handle_contact_initiation()
      */
     contact_up();
 }
-
 
 //----------------------------------------------------------------------
 void
@@ -1194,7 +1194,8 @@ protocol_err:
         new BundleReceivedEvent(incoming->bundle_.object(),
                                 EVENTSRC_PEER,
                                 incoming->total_length_,
-                                contact_.object()));
+                                contact_.object(),
+                                contact_->link()->remote_eid()));
 }
 
 //----------------------------------------------------------------------

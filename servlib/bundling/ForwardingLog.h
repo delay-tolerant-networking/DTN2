@@ -48,7 +48,7 @@ class ForwardingLog;
  * transmission. Thus the accessors below always return / update the
  * last entry in the log for a given link.
  */
-class ForwardingLog : public oasys::SerializableVector<ForwardingInfo>{
+class ForwardingLog : public oasys::SerializableVector<ForwardingInfo> {
 public:
     typedef ForwardingInfo::state_t state_t;
 
@@ -69,14 +69,22 @@ public:
     state_t get_latest_entry(const LinkRef& link) const;
     
     /**
-     * Return the transmission count of the bundle, optionally
-     * including inflight entries as well. If an action is specified
-     * (i.e. not ForwardingInfo::INVALID_ACTION), only count log entries
-     * that match the action code.
+     * Return the count of matching entries. The states and actions
+     * parameters should contain a concatenation of the requested
+     * states/actions to filter the count.
      */
-    size_t get_transmission_count(ForwardingInfo::action_t action =
-                                    ForwardingInfo::INVALID_ACTION,
-                                  bool include_inflight = false) const;
+    size_t get_count(unsigned int states   = ForwardingInfo::ANY_STATE,
+                     unsigned int actions  = ForwardingInfo::ANY_ACTION) const;
+
+    /**
+     * Return the count of matching entries for the given remote
+     * endpoint id. The states and actions parameters should contain a
+     * concatenation of the requested states/actions to filter the
+     * count.
+     */
+    size_t get_count(const EndpointID& eid,
+                     unsigned int states   = ForwardingInfo::ANY_STATE,
+                     unsigned int actions  = ForwardingInfo::ANY_ACTION) const;
     
     /**
      * Add a new forwarding info entry for the given link.
@@ -93,12 +101,12 @@ public:
      * @return true if the next hop entry was found
      */
     bool update(const LinkRef& link, state_t state);
-    
-    /**
-     * Return a count of the number of entries in the given state.
-     */
-    size_t get_count(state_t state) const;
 
+    /**
+     * Update all entries in the given state to the new state.
+     */
+    void update_all(state_t old_state, state_t new_state);
+    
     /**
      * Dump a string representation of the log.
      */
