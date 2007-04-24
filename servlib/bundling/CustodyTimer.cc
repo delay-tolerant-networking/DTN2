@@ -67,22 +67,25 @@ CustodyTimerSpec::parse_options(int argc, const char* argv[],
 }
 
 //----------------------------------------------------------------------
-CustodyTimer::CustodyTimer(const struct timeval& xmit_time,
+CustodyTimer::CustodyTimer(const oasys::Time& xmit_time,
                            const CustodyTimerSpec& spec,
                            Bundle* bundle, const LinkRef& link)
     : Logger("CustodyTimer", "/dtn/bundle/custody_timer"),
       bundle_(bundle, "CustodyTimer"), link_(link.object(), "CustodyTimer")
 {
-    struct timeval tv = xmit_time;
+    oasys::Time time(xmit_time);
     u_int32_t delay = spec.calculate_timeout(bundle);
-    tv.tv_sec += delay;
+    time.sec_ += delay;
 
-    struct timeval now;
-    ::gettimeofday(&now, 0);
     log_info("scheduling timer: xmit_time %u.%u delay %u secs "
-             "(in %lu msecs) for *%p",
-             (u_int)xmit_time.tv_sec, (u_int)xmit_time.tv_usec, delay,
-             TIMEVAL_DIFF_MSEC(tv, now), bundle);
+             "(in %u msecs) for *%p",
+             xmit_time.sec_, xmit_time.usec_, delay,
+             (time - oasys::Time::now()).in_milliseconds(), bundle);
+
+    // XXX/demmer the Timer interface should be changed to use oasys::Time
+    struct timeval tv;
+    tv.tv_sec  = time.sec_;
+    tv.tv_usec = time.usec_;
     schedule_at(&tv);
 }
 

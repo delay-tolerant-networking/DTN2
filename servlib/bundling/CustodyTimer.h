@@ -18,6 +18,7 @@
 #define _CUSTODYTIMER_H_
 
 #include <oasys/thread/Timer.h>
+#include <oasys/util/Time.h>
 #include "bundling/BundleRef.h"
 #include "contacts/Link.h"
 
@@ -101,7 +102,7 @@ public:
 class CustodyTimer : public oasys::Timer, public oasys::Logger {
 public:
     /** Constructor */
-    CustodyTimer(const struct timeval& xmit_time,
+    CustodyTimer(const oasys::Time& xmit_time,
                  const CustodyTimerSpec& spec,
                  Bundle* bundle, const LinkRef& link);
 
