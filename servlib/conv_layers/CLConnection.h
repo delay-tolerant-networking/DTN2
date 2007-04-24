@@ -183,7 +183,7 @@ protected:
         
         CLMsg(clmsg_t type, Bundle* bundle = NULL)
             : type_(type),
-              bundle_(bundle, "ConnectedConvergenceLayer::CLMsg") {}
+              bundle_(bundle, "ConnectionConvergenceLayer::CLMsg") {}
         
         clmsg_t   type_;
         BundleRef bundle_;
