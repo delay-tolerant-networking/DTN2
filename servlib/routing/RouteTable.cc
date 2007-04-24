@@ -22,24 +22,18 @@
 
 namespace dtn {
 
-/**
- * Constructor
- */
+//----------------------------------------------------------------------
 RouteTable::RouteTable(const std::string& router_name)
     : Logger("RouteTable", "/dtn/routing/%s/table", router_name.c_str())
 {
 }
 
-/**
- * Destructor
- */
+//----------------------------------------------------------------------
 RouteTable::~RouteTable()
 {
 }
 
-/**
- * Add a route entry.
- */
+//----------------------------------------------------------------------
 bool
 RouteTable::add_entry(RouteEntry* entry)
 {
@@ -50,9 +44,7 @@ RouteTable::add_entry(RouteEntry* entry)
     return true;
 }
 
-/**
- * Remove a route entry.
- */
+//----------------------------------------------------------------------
 bool
 RouteTable::del_entry(const EndpointIDPattern& dest, const LinkRef& next_hop)
 {
@@ -78,9 +70,7 @@ RouteTable::del_entry(const EndpointIDPattern& dest, const LinkRef& next_hop)
     return false;
 }
 
-/**
- * Remove all entries to the given endpoint id pattern.
- */
+//----------------------------------------------------------------------
 size_t
 RouteTable::del_entries(const EndpointIDPattern& dest)
 {
@@ -120,6 +110,7 @@ RouteTable::del_entries(const EndpointIDPattern& dest)
     return num_found;
 }
 
+//----------------------------------------------------------------------
 size_t
 RouteTable::del_entries_for_nexthop(const LinkRef& next_hop)
 {
@@ -164,12 +155,18 @@ RouteTable::del_entries_for_nexthop(const LinkRef& next_hop)
     return num_found;
 }
 
-/**
- * Fill in the entry_set with the list of all entries whose
- * patterns match the given eid and next hop.
- *
- * @return the count of matching entries
- */
+//----------------------------------------------------------------------
+void
+RouteTable::clear()
+{
+    RouteEntryVec::iterator iter;
+    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+        delete *iter;
+    }
+    route_table_.clear();
+}
+
+//----------------------------------------------------------------------
 size_t
 RouteTable::get_matching(const EndpointID& eid, const LinkRef& next_hop,
                          RouteEntryVec* entry_vec) const
@@ -202,23 +199,37 @@ RouteTable::get_matching(const EndpointID& eid, const LinkRef& next_hop,
     return count;
 }
 
-/**
- * Dump the routing table.
- */
+//----------------------------------------------------------------------
 void
 RouteTable::dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
 {
-    RouteEntry::dump_header(buf);
+    // calculate appropriate lengths for the long endpoint ids
+    int dest_eid_limit   = 10;
+    int source_eid_limit = 10;
+
     RouteEntryVec::const_iterator iter;
     for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
-        (*iter)->dump(buf, long_eids);
+        dest_eid_limit = std::max(dest_eid_limit,
+                                  (int)(*iter)->dest_pattern_.length());
+        source_eid_limit = std::max(dest_eid_limit,
+                                    (int)(*iter)->source_pattern_.length());
+    }
+
+    if (dest_eid_limit > 25) {
+        dest_eid_limit = 25;
+    }
+
+    if (source_eid_limit > 15) {
+        source_eid_limit = 15;
+    }
+    
+    RouteEntry::dump_header(dest_eid_limit, source_eid_limit, buf);
+    for (iter = route_table_.begin(); iter != route_table_.end(); ++iter) {
+        (*iter)->dump(dest_eid_limit, source_eid_limit, buf, long_eids);
     }
 }
 
-/**
- * Return the routing table.  Asserts that the RouteTable spin lock is held
- * by the caller.
- */
+//----------------------------------------------------------------------
 const RouteEntryVec *
 RouteTable::route_table()
 {

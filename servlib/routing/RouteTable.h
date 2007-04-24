@@ -67,6 +67,11 @@ public:
     size_t del_entries_for_nexthop(const LinkRef& next_hop);
 
     /**
+     * Clear the whole route table.
+     */
+    void clear();
+
+    /**
      * Fill in the entry_set with the list of all entries whose
      * patterns match the given eid and next hop. If the next hop is
      * NULL, it is ignored.

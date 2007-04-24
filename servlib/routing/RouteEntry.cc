@@ -37,7 +37,7 @@ RouteEntry::RouteEntry(const EndpointIDPattern& dest_pattern,
       route_priority_(0),
       next_hop_(link.object(), "RouteEntry"),
       action_(ForwardingInfo::FORWARD_ACTION),
-      custody_timeout_(),
+      custody_timeout_(), // XXX/demmer rename to custody_spec
       info_(NULL)
 {
     route_priority_ = BundleRouter::config_.default_priority_;
@@ -100,54 +100,74 @@ RouteEntry::format(char* bp, size_t sz) const
                         static_cast<ForwardingInfo::action_t>(action_)));
 }
 
+static const char* DASHES =
+    "---------------------------------------------"
+    "---------------------------------------------"
+    "---------------------------------------------"
+    "---------------------------------------------"
+    "---------------------------------------------"
+    "---------------------------------------------";
+
 //----------------------------------------------------------------------
 void
-RouteEntry::dump_header(oasys::StringBuffer* buf)
+RouteEntry::dump_header(int dest_eid_limit, int source_eid_limit,
+                        oasys::StringBuffer* buf)
 {
     // though this is a less efficient way of appending this data, it
     // makes it much easier to copy the format string to the ::dump
     // method, and given that it's only used for diagnostics, the
     // performance impact is negligible
-    buf->appendf("%-15s %-10s %3s    %-13s %-7s %5s [%-15s]\n"
-                 "%-15s %-10s %3s    %-13s %-7s %5s [%-5s %-3s %-5s]\n"
-                 "-----------------------------------"
-                 "-------------------------------------------\n",
-                 "destination",
-                 " source",
+    buf->appendf("%-*.*s %-*.*s %3s    %-13s %-7s %5s [%-15s]\n"
+                 "%-*.*s %-*.*s %3s    %-13s %-7s %5s [%-5s %-3s %-5s]\n"
+                 "%.*s\n",
+                 dest_eid_limit, dest_eid_limit, "destination",
+                 source_eid_limit, source_eid_limit, " source",
                  "COS",
                  "link",
                  " fwd  ",
                  "route",
                  "custody timeout",
-                 " endpoint",
-                 "endpoint",
+                 
+                 dest_eid_limit, dest_eid_limit, " endpoint",
+                 source_eid_limit, source_eid_limit, "endpoint",
                  "BNE",
                  "name",
                  "action",
                  "prio",
                  "min",
                  "pct",
-                 "  max");
+                 "  max",
+                 
+                 dest_eid_limit + source_eid_limit + 65,
+                 DASHES);
 }
 
 //----------------------------------------------------------------------
 void
-RouteEntry::dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
+RouteEntry::dump(int dest_eid_limit, int source_eid_limit,
+                 oasys::StringBuffer* buf, EndpointIDVector* long_eids) const
 {
     size_t len;
-    if (dest_pattern_.length() <= 15) {
-        buf->appendf("%-15s ", dest_pattern_.c_str());
+    char tmp[64];
+    if (dest_pattern_.length() <= (size_t)dest_eid_limit) {
+        buf->appendf("%-*.*s ", dest_eid_limit, dest_eid_limit,
+                     dest_pattern_.c_str());
     } else {
-        len = buf->appendf("[%zu]", long_eids->size());
-        buf->appendf("%.*s", 16 - (int)len, "               ");
+        len = snprintf(tmp, sizeof(tmp), "[%zu] ", long_eids->size());
+        buf->appendf("%.*s... %s",
+                     dest_eid_limit - 3 - (int)len,
+                     dest_pattern_.c_str(), tmp);
         long_eids->push_back(dest_pattern_);
     }
     
-    if (source_pattern_.length() <= 10) {
-        buf->appendf("%-10s ", source_pattern_.c_str());
+    if (source_pattern_.length() <= (size_t)source_eid_limit) {
+        buf->appendf("%-*.*s ", source_eid_limit, source_eid_limit,
+                     source_pattern_.c_str());
     } else {
-        len = buf->appendf("[%zu]", long_eids->size());
-        buf->appendf("%.*s", 11 - (int)len, "               ");
+        len = snprintf(tmp, sizeof(tmp), "[%zu] ", long_eids->size());
+        buf->appendf("%.*s... %s",
+                     source_eid_limit - 3 - (int)len,
+                     source_pattern_.c_str(), tmp);
         long_eids->push_back(source_pattern_);
     }
     
@@ -173,29 +193,6 @@ RouteEntry::serialize(oasys::SerializeAction *a)
     a->process("route_priority", &route_priority_);
     a->process("action", &action_);
     a->process("link", const_cast<std::string *>(&next_hop_->name_str()));
-}
-
-//----------------------------------------------------------------------
-/**
- * Functor class to sort a vector by priority.
- */
-struct RoutePriorityGT {
-    bool operator() (RouteEntry* a, RouteEntry* b) {
-        if (a->route_priority_ == b->route_priority_)
-        {
-            return (a->next_hop_->stats()->bytes_queued_ <
-                    b->next_hop_->stats()->bytes_queued_);
-        }
-        
-        return a->route_priority_ > b->route_priority_;
-    }
-};
-
-//----------------------------------------------------------------------
-void
-RouteEntryVec::sort_by_priority()
-{
-    std::sort(begin(), end(), RoutePriorityGT());
 }
 
 } // namespace dtn

@@ -77,19 +77,34 @@ public:
     /**
      * Dump a header string in preparation for subsequent calls to dump();
      */
-    static void dump_header(oasys::StringBuffer* buf);
+    static void dump_header(int dest_eid_limit, int source_eid_limit,
+                            oasys::StringBuffer* buf);
     
     /**
      * Dump a string representation of the route entry. Any endpoint
      * ids that don't fit into the column width get put into the
      * long_eids vector.
      */
-    void dump(oasys::StringBuffer* buf, EndpointIDVector* long_eids) const;
+    void dump(int dest_eid_limit, int source_eid_limit,
+              oasys::StringBuffer* buf, EndpointIDVector* long_eids) const;
 
     /**
      * Virtual from SerializableObject
      */
     virtual void serialize( oasys::SerializeAction *a );
+
+    /// @{ Accessors
+    const EndpointIDPattern& dest()   const { return dest_pattern_; }
+    const EndpointIDPattern& source() const { return source_pattern_; }
+    
+    ForwardingInfo::action_t action() const{
+        return static_cast<ForwardingInfo::action_t>(action_);
+    }
+    const CustodyTimerSpec& custody_timeout() const { return custody_timeout_; }
+    /// @}
+    
+    // XXX/demmer should move fields to be private and everyone should
+    // use accessors
     
     /// The pattern that matches bundles' destination eid
     EndpointIDPattern dest_pattern_;
@@ -102,8 +117,8 @@ public:
     
     /// Route priority
     u_int route_priority_;
-        
-    /// Next hop link
+
+    /// Next hop link (XXX/demmer should rename to link_)
     LinkRef next_hop_;
         
     /// Forwarding action code 
@@ -122,25 +137,40 @@ public:
 };
 
 /**
- * Class for a vector of route entries. Used for the route table
- * itself and for what is returned in get_matching().
- */
-class RouteEntryVec : public std::vector<RouteEntry*> {
-public:
-    /**
-     * Sort the entries in the vector in descending priority order,
-     * i.e. the highest priority first. In case of a tie, select the
-     * link with fewer bytes in flight.
-     */
-    void sort_by_priority();
-};
-
-/**
  * Interface for any per-entry routing algorithm state.
  */
 class RouteEntryInfo {
 public:
     virtual ~RouteEntryInfo() {}
+};
+
+/**
+ * Class for a vector of route entries. Used for the route table
+ * itself and for what is returned in get_matching().
+ */
+class RouteEntryVec : public std::vector<RouteEntry*> {};
+
+/**
+ * Functor class to sort a vector of routes based on forwarding priority.
+ *
+ * First, this sorts based on the next hop eid of the route, since a
+ * multicast bundle might have matching routes to different next hops.
+ * Next the sort examines the priority, finally using the number of
+ * bytes queued to break ties.
+ */
+struct RoutePrioritySort {
+    bool operator() (RouteEntry* a, RouteEntry* b) {
+        int comp = a->next_hop_->remote_eid().compare(b->next_hop_->remote_eid());
+        
+        if (comp < 0) return false;
+        if (comp > 0) return true;
+        
+        if (a->route_priority_ < b->route_priority_) return false;
+        if (a->route_priority_ > b->route_priority_) return true;
+        
+        return (a->next_hop_->stats()->bytes_queued_ <
+                b->next_hop_->stats()->bytes_queued_);
+    }
 };
 
 } // namespace dtn
