@@ -29,7 +29,6 @@ BUNDLING_SRCS := 				\
 	bundling/Bundle.cc			\
 	bundling/BundleActions.cc		\
 	bundling/BundleDaemon.cc		\
-	bundling/BundleEvent.cc			\
 	bundling/BundleEventHandler.cc		\
 	bundling/BundleList.cc			\
 	bundling/BundlePayload.cc		\

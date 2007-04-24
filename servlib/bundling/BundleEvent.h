@@ -26,9 +26,6 @@
 #include "contacts/NamedAttribute.h"
 #include "GbofId.h"
 
-#include <oasys/serialize/Serialize.h>
-#include <oasys/serialize/SerializeHelpers.h>
-
 namespace dtn {
 
 /**
@@ -127,93 +124,84 @@ typedef enum {
  * Conversion function from an event to a string.
  */
 inline const char*
-event_to_str(event_type_t event, bool xml=false)
+event_to_str(event_type_t event)
 {
     switch(event) {
 
-    case BUNDLE_RECEIVED:       return xml ? "bundle_received_event" : "BUNDLE_RECEIVED";
-    case BUNDLE_TRANSMITTED:    return xml ? "bundle_transmitted_event" : "BUNDLE_TRANSMITTED";
-    case BUNDLE_TRANSMIT_FAILED:return xml ? "bundle_transmit_failed_event" : "BUNDLE_TRANSMIT_FAILED";
-    case BUNDLE_DELIVERED:      return xml ? "bundle_delivered_event" : "BUNDLE_DELIVERED";
-    case BUNDLE_DELIVERY:       return xml ? "bundle_delivery_event" : "BUNDLE_DELIVERY";
-    case BUNDLE_EXPIRED:        return xml ? "bundle_expired_event" : "BUNDLE_EXPIRED";
+    case BUNDLE_RECEIVED:       return "BUNDLE_RECEIVED";
+    case BUNDLE_TRANSMITTED:    return "BUNDLE_TRANSMITTED";
+    case BUNDLE_TRANSMIT_FAILED:return "BUNDLE_TRANSMIT_FAILED";
+    case BUNDLE_DELIVERED:      return "BUNDLE_DELIVERED";
+    case BUNDLE_DELIVERY:       return "BUNDLE_DELIVERY";
+    case BUNDLE_EXPIRED:        return "BUNDLE_EXPIRED";
     case BUNDLE_FREE:           return "BUNDLE_FREE";
     case BUNDLE_NOT_NEEDED:     return "BUNDLE_NOT_NEEDED";
     case BUNDLE_FORWARD_TIMEOUT:return "BUNDLE_FORWARD_TIMEOUT";
-    case BUNDLE_SEND:           return xml ? "send_bundle_action" : "BUNDLE_SEND";
-    case BUNDLE_CANCEL:         return xml ? "cancel_bundle_action" : "BUNDLE_CANCEL";
-    case BUNDLE_CANCELLED:      return xml ? "bundle_cancelled_event" : "BUNDLE_CANCELLED";
-    case BUNDLE_INJECT:         return xml ? "inject_bundle_action" : "BUNDLE_INJECT";
-    case BUNDLE_INJECTED:         return xml ? "bundle_injected_event" : "BUNDLE_INJECTED";
-    case BUNDLE_ACCEPT_REQUEST: return xml ? "bundle_accept_request" : "BUNDLE_ACCEPT_REQUEST";
+    case BUNDLE_SEND:           return "BUNDLE_SEND";
+    case BUNDLE_CANCEL:         return "BUNDLE_CANCEL";
+    case BUNDLE_CANCELLED:      return "BUNDLE_CANCELLED";
+    case BUNDLE_INJECT:         return "BUNDLE_INJECT";
+    case BUNDLE_INJECTED:       return "BUNDLE_INJECTED";
+    case BUNDLE_ACCEPT_REQUEST: return "BUNDLE_ACCEPT_REQUEST";
     case BUNDLE_DELETE:         return "BUNDLE_DELETE";
-    case BUNDLE_QUERY:          return xml ? "bundle_query" : "BUNDLE_QUERY";
-    case BUNDLE_REPORT:         return xml ? "bundle_report" : "BUNDLE_REPORT";
+    case BUNDLE_QUERY:          return "BUNDLE_QUERY";
+    case BUNDLE_REPORT:         return "BUNDLE_REPORT";
 
-    case CONTACT_UP:            return xml ? "contact_up_event" : "CONTACT_UP";
-    case CONTACT_DOWN:          return xml ? "contact_down_event" : "CONTACT_DOWN";
-    case CONTACT_QUERY:         return xml ? "contact_query" : "CONTACT_QUERY";
-    case CONTACT_REPORT:        return xml ? "contact_report" : "CONTACT_REPORT";
-    case CONTACT_ATTRIB_CHANGED:return xml ? "contact_attrib_change_event" : "CONTACT_ATTRIB_CHANGED";
+    case CONTACT_UP:            return "CONTACT_UP";
+    case CONTACT_DOWN:          return "CONTACT_DOWN";
+    case CONTACT_QUERY:         return "CONTACT_QUERY";
+    case CONTACT_REPORT:        return "CONTACT_REPORT";
+    case CONTACT_ATTRIB_CHANGED:return "CONTACT_ATTRIB_CHANGED";
 
-    case LINK_CREATED:          return xml ? "link_created_event" : "LINK_CREATED";
-    case LINK_DELETED:          return xml ? "link_deleted_event" : "LINK_DELETED";
-    case LINK_AVAILABLE:        return xml ? "link_available_event" : "LINK_AVAILABLE";
-    case LINK_UNAVAILABLE:      return xml ? "link_unavailable_event" : "LINK_UNAVAILABLE";
-    case LINK_BUSY:             return xml ? "link_busy_event" : "LINK_BUSY";
+    case LINK_CREATED:          return "LINK_CREATED";
+    case LINK_DELETED:          return "LINK_DELETED";
+    case LINK_AVAILABLE:        return "LINK_AVAILABLE";
+    case LINK_UNAVAILABLE:      return "LINK_UNAVAILABLE";
+    case LINK_BUSY:             return "LINK_BUSY";
     case LINK_CREATE:           return "LINK_CREATE";
     case LINK_DELETE:           return "LINK_DELETE";
     case LINK_RECONFIGURE:      return "LINK_RECONFIGURE";
-    case LINK_QUERY:            return xml ? "link_query" : "LINK_QUERY";
-    case LINK_REPORT:           return xml ? "link_report" : "LINK_REPORT";
-    case LINK_ATTRIB_CHANGED:   return xml ? "link_attrib_change_event" : "LINK_ATTRIB_CHANGED";
+    case LINK_QUERY:            return "LINK_QUERY";
+    case LINK_REPORT:           return "LINK_REPORT";
+    case LINK_ATTRIB_CHANGED:   return "LINK_ATTRIB_CHANGED";
 
     case LINK_STATE_CHANGE_REQUEST:return "LINK_STATE_CHANGE_REQUEST";
 
     case REASSEMBLY_COMPLETED:  return "REASSEMBLY_COMPLETED";
 
-    case REGISTRATION_ADDED:    return xml ? "registration_added_event" : "REGISTRATION_ADDED";
-    case REGISTRATION_REMOVED:  return xml ? "registration_removed_event" : "REGISTRATION_REMOVED";
-    case REGISTRATION_EXPIRED:  return xml ? "registration_expired_event" : "REGISTRATION_EXPIRED";
+    case REGISTRATION_ADDED:    return "REGISTRATION_ADDED";
+    case REGISTRATION_REMOVED:  return "REGISTRATION_REMOVED";
+    case REGISTRATION_EXPIRED:  return "REGISTRATION_EXPIRED";
 
-    case ROUTE_ADD:             return xml ? "route_add_event" : "ROUTE_ADD";
-    case ROUTE_DEL:             return xml ? "route_delete_event" : "ROUTE_DEL";
-    case ROUTE_QUERY:           return xml ? "route_query" : "ROUTE_QUERY";
-    case ROUTE_REPORT:          return xml ? "route_report" : "ROUTE_REPORT";
+    case ROUTE_ADD:             return "ROUTE_ADD";
+    case ROUTE_DEL:             return "ROUTE_DEL";
+    case ROUTE_QUERY:           return "ROUTE_QUERY";
+    case ROUTE_REPORT:          return "ROUTE_REPORT";
 
-    case CUSTODY_SIGNAL:        return xml ? "custody_signal_event" : "CUSTODY_SIGNAL";
-    case CUSTODY_TIMEOUT:       return xml ? "custody_timeout_event" : "CUSTODY_TIMEOUT";
+    case CUSTODY_SIGNAL:        return "CUSTODY_SIGNAL";
+    case CUSTODY_TIMEOUT:       return "CUSTODY_TIMEOUT";
     
     case DAEMON_SHUTDOWN:       return "SHUTDOWN";
     case DAEMON_STATUS:         return "DAEMON_STATUS";
         
-    case CLA_SET_PARAMS:        return xml ? "cla_set_params_action" : "CLA_SET_PARAMS";
-    case CLA_PARAMS_SET:        return xml ? "cla_params_set_event" : "CLA_PARAMS_SET";
-    case CLA_SET_LINK_DEFAULTS: return xml ? "cla_set_link_defaults_action" : "CLA_SET_LINK_DEFAULTS";
-    case CLA_EID_REACHABLE:     return xml ? "cla_eid_reachable_event" : "CLA_EID_REACHABLE";
+    case CLA_SET_PARAMS:        return "CLA_SET_PARAMS";
+    case CLA_PARAMS_SET:        return "CLA_PARAMS_SET";
+    case CLA_SET_LINK_DEFAULTS: return "CLA_SET_LINK_DEFAULTS";
+    case CLA_EID_REACHABLE:     return "CLA_EID_REACHABLE";
 
-    case CLA_BUNDLE_QUEUED_QUERY:
-        return xml ? "query_bundle_queued" : "CLA_BUNDLE_QUEUED_QUERY";
-    case CLA_BUNDLE_QUEUED_REPORT:
-        return xml ? "report_bundle_queued" : "CLA_BUNDLE_QUEUED_REPORT";
-    case CLA_EID_REACHABLE_QUERY:
-        return xml ? "query_eid_reachable" : "CLA_EID_REACHABLE_QUERY";
-    case CLA_EID_REACHABLE_REPORT:
-        return xml ? "report_eid_reachable" : "CLA_EID_REACHABLE_REPORT";
-    case CLA_LINK_ATTRIB_QUERY:
-        return xml ? "query_link_attributes" : "CLA_LINK_ATTRIB_QUERY";
-    case CLA_LINK_ATTRIB_REPORT:
-        return xml ? "report_link_attributes" : "CLA_LINK_ATTRIB_REPORT";
-    case CLA_IFACE_ATTRIB_QUERY:
-        return xml ? "query_interface_attributes" : "CLA_IFACE_ATTRIB_QUERY";
-    case CLA_IFACE_ATTRIB_REPORT:
-        return xml ? "report_interface_attributes" : "CLA_IFACE_ATTRIB_REPORT";
-    case CLA_PARAMS_QUERY:
-        return xml ? "query_cla_parameters" : "CLA_PARAMS_QUERY";
-    case CLA_PARAMS_REPORT:
-        return xml ? "report_cla_parameters" : "CLA_PARAMS_REPORT";
+    case CLA_BUNDLE_QUEUED_QUERY:  return "CLA_BUNDLE_QUEUED_QUERY";
+    case CLA_BUNDLE_QUEUED_REPORT: return "CLA_BUNDLE_QUEUED_REPORT";
+    case CLA_EID_REACHABLE_QUERY:  return "CLA_EID_REACHABLE_QUERY";
+    case CLA_EID_REACHABLE_REPORT: return "CLA_EID_REACHABLE_REPORT";
+    case CLA_LINK_ATTRIB_QUERY:    return "CLA_LINK_ATTRIB_QUERY";
+    case CLA_LINK_ATTRIB_REPORT:   return "CLA_LINK_ATTRIB_REPORT";
+    case CLA_IFACE_ATTRIB_QUERY:   return "CLA_IFACE_ATTRIB_QUERY";
+    case CLA_IFACE_ATTRIB_REPORT:  return "CLA_IFACE_ATTRIB_REPORT";
+    case CLA_PARAMS_QUERY:         return "CLA_PARAMS_QUERY";
+    case CLA_PARAMS_REPORT:        return "CLA_PARAMS_REPORT";
 
-    default:                    return "(invalid event type)";
+    default:                   return "(invalid event type)";
+        
     }
 }
 
@@ -252,7 +240,7 @@ source_to_str(event_source_t source)
 /**
  * Event base class.
  */
-class BundleEvent : public oasys::SerializableObject {
+class BundleEvent {
 public:
     /**
      * The event type code.
@@ -283,9 +271,6 @@ public:
      * cleaned up.
      */
     virtual ~BundleEvent() {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
 
 protected:
     /**
@@ -322,9 +307,6 @@ public:
     {
     }
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The newly arrived bundle
     BundleRef bundleref_;
 
@@ -355,9 +337,6 @@ public:
           bytes_sent_(bytes_sent),
           reliably_sent_(reliably_sent),
           link_(link.object(), "BundleTransmittedEvent") {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 
     /// The transmitted bundle
     BundleRef bundleref_;
@@ -393,9 +372,6 @@ public:
           contact_(contact.object(), "BundleTransmitFailedEvent"),
           link_(link.object(), "BundleTransmitFailedEvent") {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The transmitted bundle
     BundleRef bundleref_;
 
@@ -417,9 +393,6 @@ public:
           bundleref_(bundle, "BundleDeliveredEvent"),
           registration_(registration) {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
-
     /// The delivered bundle
     BundleRef bundleref_;
 
@@ -438,9 +411,6 @@ public:
           bundleref_(bundle, "BundleDeliveryEvent"),
           source_(source) {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The bundle we're delivering
     BundleRef bundleref_;
 
@@ -457,9 +427,6 @@ public:
         : BundleEvent(BUNDLE_EXPIRED),
           bundleref_(bundle, "BundleExpiredEvent") {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The expired bundle
     BundleRef bundleref_;
 };
@@ -473,9 +440,6 @@ public:
     BundleNotNeededEvent(Bundle* bundle)
         : BundleEvent(BUNDLE_NOT_NEEDED),
           bundleref_(bundle, "BundleNotNeededEvent") {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 
     /// The no longer needed bundle
     BundleRef bundleref_;
@@ -494,9 +458,6 @@ public:
         daemon_only_ = true;
     }
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
-    
     /// The freed bundle
     Bundle* bundle_;
 };
@@ -551,9 +512,6 @@ public:
     ContactEvent(event_type_t type, reason_t reason = NO_INFO)
         : BundleEvent(type), reason_(reason) {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
-
     int reason_;        ///< reason code for the event
 };
 
@@ -565,9 +523,6 @@ public:
     ContactUpEvent(const ContactRef& contact)
         : ContactEvent(CONTACT_UP),
           contact_(contact.object(), "ContactUpEvent") {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 
     /// The contact that is up
     ContactRef contact_;
@@ -581,9 +536,6 @@ public:
     ContactDownEvent(const ContactRef& contact, reason_t reason)
         : ContactEvent(CONTACT_DOWN, reason),
           contact_(contact.object(), "ContactDownEvent") {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 
     /// The contact that is now down
     ContactRef contact_;
@@ -599,17 +551,11 @@ public:
         // should be processed only by the daemon
         daemon_only_ = true;
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
 };
 
 class ContactReportEvent : public BundleEvent {
 public:
     ContactReportEvent() : BundleEvent(CONTACT_REPORT) {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 };
 
 /**
@@ -620,9 +566,6 @@ public:
     ContactAttributeChangedEvent(const ContactRef& contact, reason_t reason)
         : ContactEvent(CONTACT_ATTRIB_CHANGED, reason),
           contact_(contact.object(), "ContactAttributeChangedEvent") {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*);
 
     ///< The link/contact that changed
     ContactRef contact_;
@@ -637,9 +580,6 @@ public:
         : ContactEvent(LINK_CREATED, reason),
           link_(link.object(), "LinkCreatedEvent") {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The link that was created
     LinkRef link_;
 };
@@ -652,9 +592,6 @@ public:
     LinkDeletedEvent(const LinkRef& link, reason_t reason = ContactEvent::USER)
         : ContactEvent(LINK_DELETED, reason),
           link_(link.object(), "LinkDeletedEvent") {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 
     /// The link that was deleted
     LinkRef link_;
@@ -669,9 +606,6 @@ public:
         : ContactEvent(LINK_AVAILABLE, reason),
           link_(link.object(), "LinkAvailableEvent") {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The link that is available
     LinkRef link_;
 };
@@ -685,9 +619,6 @@ public:
         : ContactEvent(LINK_UNAVAILABLE, reason),
           link_(link.object(), "LinkUnavailableEvent") {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The link that is unavailable
     LinkRef link_;
 };
@@ -700,9 +631,6 @@ public:
     LinkBusyEvent(const LinkRef& link)
         : ContactEvent(LINK_BUSY, ContactEvent::BLOCKED),
           link_(link.object(), "LinkBusyEvent") {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 
     /// The link that is busy
     LinkRef link_;
@@ -740,9 +668,6 @@ public:
         daemon_only_ = true;
     }
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The link to be changed
     LinkRef link_;
 
@@ -765,9 +690,6 @@ public:
         : BundleEvent(REGISTRATION_ADDED), registration_(reg),
           source_(source) {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*);
-
     /// The newly added registration
     Registration* registration_;
 
@@ -783,9 +705,6 @@ public:
     RegistrationRemovedEvent(Registration* reg)
         : BundleEvent(REGISTRATION_REMOVED), registration_(reg) {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*);
-
     /// The to-be-removed registration
     Registration* registration_;
 };
@@ -797,9 +716,6 @@ class RegistrationExpiredEvent : public BundleEvent {
 public:
     RegistrationExpiredEvent(u_int32_t regid)
         : BundleEvent(REGISTRATION_EXPIRED), regid_(regid) {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*);
 
     /// The to-be-removed registration id
     u_int32_t regid_;
@@ -813,9 +729,6 @@ public:
     RouteAddEvent(RouteEntry* entry)
         : BundleEvent(ROUTE_ADD), entry_(entry) {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The route table entry to be added
     RouteEntry* entry_;
 };
@@ -827,9 +740,6 @@ class RouteDelEvent : public BundleEvent {
 public:
     RouteDelEvent(const EndpointIDPattern& dest)
         : BundleEvent(ROUTE_DEL), dest_(dest) {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 
     /// The destination eid to be removed
     EndpointIDPattern dest_;
@@ -845,17 +755,11 @@ public:
         // should be processed only by the daemon
         daemon_only_ = true;
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
 };
 
 class RouteReportEvent : public BundleEvent {
 public:
     RouteReportEvent() : BundleEvent(ROUTE_REPORT) {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
 };
 
 /**
@@ -871,9 +775,6 @@ public:
         fragments->move_contents(&fragments_);
     }
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
-
     /// The newly reassembled bundle
     BundleRef bundle_;
 
@@ -888,9 +789,6 @@ class CustodySignalEvent : public BundleEvent {
 public:
     CustodySignalEvent(const CustodySignal::data_t& data)
         : BundleEvent(CUSTODY_SIGNAL), data_(data) {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
     
     /// The parsed data from the custody transfer signal
     CustodySignal::data_t data_;
@@ -905,9 +803,6 @@ public:
         : BundleEvent(CUSTODY_TIMEOUT),
           bundle_(bundle, "CustodyTimeoutEvent"),
           link_(link.object(), "CustodyTimeoutEvent") {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 
     ///< The bundle whose timer fired
     BundleRef bundle_;
@@ -927,9 +822,6 @@ public:
     {
         daemon_only_ = true;
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
 };
 
 /**
@@ -941,9 +833,6 @@ public:
     {
         daemon_only_ = true;
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
 };
 
 /**
@@ -1016,9 +905,6 @@ public:
           bundleref_(bundle, "BundleSendCancelledEvent"),
           link_(link.object(), "BundleSendCancelledEvent") {}
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*);
-
     /// The cancelled bundle
     BundleRef bundleref_;
 
@@ -1042,9 +928,6 @@ public:
     {
         delete payload_;
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 
     // Bundle properties
     std::string src_;
@@ -1077,9 +960,6 @@ public:
           request_id_(request_id)
     {
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*);
 
     /// The injected bundle
     BundleRef bundleref_;
@@ -1141,9 +1021,6 @@ public:
     {
     }
     
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
-
     /// The newly arrived bundle
     BundleRef bundle_;
 
@@ -1167,17 +1044,11 @@ public:
         // should be processed only by the daemon
         daemon_only_ = true;
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
 };
 
 class BundleReportEvent : public BundleEvent {
 public:
     BundleReportEvent() : BundleEvent(BUNDLE_REPORT) {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 };
 
 class BundleAttributesQueryRequest: public BundleEvent {
@@ -1189,9 +1060,6 @@ public:
           query_id_(query_id),
           bundle_(bundle.object(), "BundleAttributesQueryRequest"),
           attribute_names_(attribute_names) {}
-
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
 
     /// Query Identifier
     std::string query_id_;
@@ -1217,9 +1085,6 @@ public:
           bundle_(bundle.object(), "BundleAttributesReportEvent"),
           attribute_names_(attribute_names),
           extension_blocks_(extension_blocks) {}
-
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
 
     /// Query Identifier
     std::string query_id_;
@@ -1254,11 +1119,6 @@ public:
         daemon_only_ = true;
     }
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {
-        NOTIMPLEMENTED;
-    }
-
     ///< Identifier for the link
     std::string name_;
 
@@ -1290,9 +1150,6 @@ public:
         daemon_only_ = true;
     }
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
-
     ///< The link to be changed
     LinkRef link_;
 
@@ -1313,9 +1170,6 @@ public:
         daemon_only_ = true;
     }
 
-    // Virtual function inherited from Serializable Object
-    virtual void serialize(oasys::SerializeAction*) {}
-
     ///< The link to be deleted
     LinkRef link_;
 };
@@ -1334,9 +1188,6 @@ public:
     {
     }
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*);
-
     ///< The link that changed
     LinkRef link_;
 
@@ -1354,17 +1205,11 @@ public:
         // should be processed only by the daemon
         daemon_only_ = true;
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*) {}
 };
 
 class LinkReportEvent : public BundleEvent {
 public:
     LinkReportEvent() : BundleEvent(LINK_REPORT) {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a);
 };
 
 /**
@@ -1378,9 +1223,6 @@ public:
         // should be processed only by the daemon
         daemon_only_ = true;
     }
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
 
     ///< CL to change
     ConvergenceLayer *cla_;
@@ -1396,9 +1238,6 @@ class CLAParamsSetEvent : public BundleEvent {
 public:
     CLAParamsSetEvent(ConvergenceLayer *cla, std::string name)
         : BundleEvent(CLA_PARAMS_SET), cla_(cla), name_(name) {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
 
     ///< CL that changed
     ConvergenceLayer *cla_;
@@ -1419,9 +1258,6 @@ public:
         daemon_only_ = true;
     }
 
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
-
     ///< Set of key, value pairs
     AttributeVector parameters_;
 };
@@ -1435,9 +1271,6 @@ public:
         : BundleEvent(CLA_EID_REACHABLE),
           iface_(iface),
           endpoint_(endpoint) {}
-
-    // Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction*);
 
     ///< The interface the peer was discovered on
     Interface* iface_;
@@ -1481,9 +1314,6 @@ public:
           bundle_(bundle, "BundleQueuedQueryRequest"),
           link_(link.object(), "BundleQueuedQueryRequest") {}
 
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
-
     /// Bundle to be checked for queued status.
     BundleRef bundle_;
 
@@ -1497,9 +1327,6 @@ public:
                             bool is_queued)
         : CLAQueryReport(CLA_BUNDLE_QUEUED_REPORT, query_id),
           is_queued_(is_queued) {}
-
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
 
     /// True if the queried bundle was queued on the given link;
     /// otherwise false.
@@ -1515,9 +1342,6 @@ public:
           iface_(iface),
           endpoint_(endpoint) {}
 
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
-
     /// Interface on which to check if the given endpoint is reachable.
     Interface* iface_;
 
@@ -1531,9 +1355,6 @@ public:
                             bool is_reachable)
         : CLAQueryReport(CLA_EID_REACHABLE_REPORT, query_id),
           is_reachable_(is_reachable) {}
-
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
 
     /// True if the queried endpoint is reachable via the given interface;
     /// otherwise false.
@@ -1549,9 +1370,6 @@ public:
           link_(link.object(), "LinkAttributesQueryRequest"),
           attribute_names_(attribute_names) {}
 
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
-
     /// Link for which the given attributes are requested.
     LinkRef link_;
 
@@ -1566,9 +1384,6 @@ public:
         : CLAQueryReport(CLA_LINK_ATTRIB_REPORT, query_id),
           attributes_(attributes) {}
 
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
-
     /// Link attribute values given by name.
     AttributeVector attributes_;
 };
@@ -1581,9 +1396,6 @@ public:
         : CLAQueryReport(CLA_IFACE_ATTRIB_QUERY, query_id, true),
           iface_(iface),
           attribute_names_(attribute_names) {}
-
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
 
     /// Interface for which the given attributes are requested.
     Interface* iface_;
@@ -1599,9 +1411,6 @@ public:
         : CLAQueryReport(CLA_IFACE_ATTRIB_REPORT, query_id),
           attributes_(attributes) {}
 
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
-
     /// Interface attribute values by name.
     AttributeVector attributes_;
 };
@@ -1614,9 +1423,6 @@ public:
         : CLAQueryReport(CLA_PARAMS_QUERY, query_id, true),
           cla_(cla),
           parameter_names_(parameter_names) {}
-
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
 
     /// Convergence layer for which the given parameters are requested.
     ConvergenceLayer* cla_;
@@ -1631,9 +1437,6 @@ public:
                              const AttributeVector& parameters)
         : CLAQueryReport(CLA_PARAMS_REPORT, query_id),
           parameters_(parameters) {}
-
-    /// Virtual function inherited from SerializableObject
-    virtual void serialize(oasys::SerializeAction* a) { (void)a; }
 
     /// Convergence layer parameter values by name.
     AttributeVector parameters_;
