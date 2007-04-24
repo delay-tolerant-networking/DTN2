@@ -218,6 +218,9 @@ BonjourDiscovery::handle_register_reply(DNSServiceRef sdRef,
 {
     (void)flags;
     (void)errorCode;
+    (void)name;
+    (void)regtype;
+    (void)domain;
     
     log_debug("handle_register_reply(%s, %s, %s): %s",
               name, regtype, domain, dns_service_strerror(errorCode));
@@ -282,7 +285,8 @@ BonjourDiscovery::handle_resolve(DNSServiceRef sdRef,
         
     (void)sdRef;
     (void)flags;
-
+    (void)interfaceIndex;
+    
     if (errorCode != kDNSServiceErr_NoError) {
         log_warn("handle_resolve(%s, %s): error %s",
                  fullname, hosttarget, dns_service_strerror(errorCode));
