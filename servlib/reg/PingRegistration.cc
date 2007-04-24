@@ -41,7 +41,7 @@ PingRegistration::deliver_bundle(Bundle* bundle)
               payload_len, bundle->source_.c_str());
     
     Bundle* reply = new Bundle();
-    reply->source_.assign(bundle->dest_);
+    reply->source_.assign(endpoint_);
     reply->dest_.assign(bundle->source_);
     reply->replyto_.assign(EndpointID::NULL_EID());
     reply->custodian_.assign(EndpointID::NULL_EID());
