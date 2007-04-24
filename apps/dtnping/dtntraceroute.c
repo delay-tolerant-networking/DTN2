@@ -35,7 +35,7 @@ const char *progname;
 void
 usage()
 {
-    fprintf(stderr, "usage: %s [-c count] [-i interval] [-e expiration] eid\n",
+    fprintf(stderr, "usage: %s [-c count] [-i interval] [-e expiration] [-w waittime] eid\n",
             progname);
     exit(1);
 }
@@ -43,6 +43,7 @@ usage()
 void doOptions(int argc, const char **argv);
 
 int expiration = 30;
+int wait_after_done = 0;
 char dest_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char source_eid_str[DTN_MAX_ENDPOINT_ID] = "";
 char replyto_eid_str[DTN_MAX_ENDPOINT_ID] = "";
@@ -116,7 +117,7 @@ main(int argc, const char** argv)
     // if the user specified a source eid, register on it.
     // otherwise, build a local eid based on the configuration of
     // our dtn router plus the demux string
-    snprintf(demux, sizeof(demux), "/ping.%d", getpid());
+    snprintf(demux, sizeof(demux), "/traceroute.%d", getpid());
     if (source_eid_str[0] != '\0') {
         if (dtn_parse_eid_string(&source_eid, source_eid_str)) {
             fprintf(stderr, "invalid source eid string '%s'\n",
@@ -185,7 +186,7 @@ main(int argc, const char** argv)
     // now loop waiting for replies / status reports until we're done
     done = 0;
     while (1) {
-        int timeout = done ? 0 : -1;
+        int timeout = done ? wait_after_done * 1000 : -1;
         if ((ret = dtn_recv(handle, &reply_spec,
                             DTN_PAYLOAD_MEM, &reply_payload, timeout)) < 0)
         {
@@ -300,7 +301,7 @@ doOptions(int argc, const char **argv)
 
     progname = argv[0];
 
-    while ( (c=getopt(argc, (char **) argv, "he:d:s:r:")) !=EOF ) {
+    while ( (c=getopt(argc, (char **) argv, "he:d:s:r:w:")) !=EOF ) {
         switch (c) {
         case 'e':
             expiration = atoi(optarg);
@@ -313,6 +314,9 @@ doOptions(int argc, const char **argv)
             break;
         case 'h':
             usage();
+            break;
+        case 'w':
+            wait_after_done = atoi(optarg);
             break;
         default:
             break;
