@@ -17,6 +17,10 @@
 #ifndef _BT_DISCOVERY_H_
 #define _BT_DISCOVERY_H_
 
+#ifndef HAVE_CONFIG_STATE
+#error "MUST INCLUDE config.h before including this file"
+#endif
+
 #ifdef OASYS_BLUETOOTH_ENABLED
 #include <bluetooth/bluetooth.h>
 

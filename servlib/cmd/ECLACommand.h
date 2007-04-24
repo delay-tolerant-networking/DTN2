@@ -18,6 +18,10 @@ $Id$
 #ifndef _ECLA_COMMAND_H_
 #define _ECLA_COMMAND_H_
 
+#ifndef HAVE_CONFIG_STATE
+#error "MUST INCLUDE config.h before including this file"
+#endif
+
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <oasys/tclcmd/TclCommand.h>

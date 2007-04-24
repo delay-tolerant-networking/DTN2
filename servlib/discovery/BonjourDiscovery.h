@@ -17,6 +17,10 @@
 #ifndef _BONJOUR_DISCOVERY_H_
 #define _BONJOUR_DISCOVERY_H_
 
+#ifndef HAVE_CONFIG_STATE
+#error "MUST INCLUDE config.h before including this file"
+#endif
+
 #ifdef OASYS_BONJOUR_ENABLED
 
 #include <dns_sd.h>

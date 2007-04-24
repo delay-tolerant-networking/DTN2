@@ -18,6 +18,10 @@
 #ifndef _ECLMODULE_H_
 #define _ECLMODULE_H_
 
+#ifndef HAVE_CONFIG_STATE
+#error "MUST INCLUDE config.h before including this file"
+#endif
+
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_CL_ENABLED)
 
 #include <semaphore.h>

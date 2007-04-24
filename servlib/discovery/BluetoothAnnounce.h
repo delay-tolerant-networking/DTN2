@@ -17,6 +17,10 @@
 #ifndef _BLUETOOTH_ANNOUNCE_H_
 #define _BLUETOOTH_ANNOUNCE_H_
 
+#ifndef HAVE_CONFIG_STATE
+#error "MUST INCLUDE config.h before including this file"
+#endif
+
 #ifdef OASYS_BLUETOOTH_ENABLED
 
 #include <oasys/bluez/BluetoothSDP.h>

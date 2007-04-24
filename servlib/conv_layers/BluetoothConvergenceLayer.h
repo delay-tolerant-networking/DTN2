@@ -17,6 +17,10 @@
 #ifndef _BLUETOOTH_CONVERGENCE_LAYER_
 #define _BLUETOOTH_CONVERGENCE_LAYER_
 
+#ifndef HAVE_CONFIG_STATE
+#error "MUST INCLUDE config.h before including this file"
+#endif
+
 #ifdef OASYS_BLUETOOTH_ENABLED
 
 #include <errno.h>

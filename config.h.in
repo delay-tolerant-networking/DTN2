@@ -21,6 +21,9 @@
 /* Define to 1 if you have the <bluetooth/bluetooth.h> header file. */
 #undef HAVE_BLUETOOTH_BLUETOOTH_H
 
+/* always defined so code can ensure that config.h is properly included */
+#undef HAVE_CONFIG_STATE
+
 /* Define to 1 if you have the <dns_sd.h> header file. */
 #undef HAVE_DNS_SD_H
 
