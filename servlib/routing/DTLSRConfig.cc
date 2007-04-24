@@ -58,7 +58,7 @@ DTLSRConfig::weight_opts_[] =
     {"delay",           DELAY},
     {"estimated_delay", ESTIMATED_DELAY},
     {"estdelay",        ESTIMATED_DELAY},
-    {NULL,              NULL},
+    {NULL,              0},
 };
 
 } // namespace dtn
