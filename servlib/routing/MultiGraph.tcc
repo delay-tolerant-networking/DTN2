@@ -109,11 +109,13 @@ MultiGraph<_NodeInfo,_EdgeInfo>
 template <typename _NodeInfo, typename _EdgeInfo>
 inline class MultiGraph<_NodeInfo,_EdgeInfo>::Edge*
 MultiGraph<_NodeInfo,_EdgeInfo>
-::find_edge(Node* a, Node* b, const _EdgeInfo& info)
+::find_edge(const Node* a, const Node* b, const _EdgeInfo& info)
 {
     class EdgeVector::const_iterator iter;
     for (iter = a->out_edges_.begin(); iter != a->out_edges_.end(); ++iter) {
-        if (*iter->info_ == info) {
+        const Edge* edge = *iter;
+        if ((edge->dest() == b) && (edge->info() == info))
+        {
             return *iter;
         }
     }
@@ -135,9 +137,9 @@ MultiGraph<_NodeInfo,_EdgeInfo>
         {
             // delete the corresponding in_edge pointer, which must
             // exist or else there's some internal inconsistency
-            ei2 = edge->dest_->in_edges_.begin();
+            ei2 = edge->dest()->in_edges_.begin();
             while (1) {
-                ASSERTF(ei2 != edge->dest_->in_edges_.end(),
+                ASSERTF(ei2 != edge->dest()->in_edges_.end(),
                         "out_edge / in_edge mismatch!!");
                 if (*ei2 == edge)
                     break;
@@ -145,7 +147,7 @@ MultiGraph<_NodeInfo,_EdgeInfo>
             }
             
             node->out_edges_.erase(ei);
-            edge->dest_->in_edges_.erase(ei2);
+            edge->dest()->in_edges_.erase(ei2);
             delete edge;
             return true;
         }
@@ -156,16 +158,52 @@ MultiGraph<_NodeInfo,_EdgeInfo>
 
 //----------------------------------------------------------------------
 template <typename _NodeInfo, typename _EdgeInfo>
+inline
+MultiGraph<_NodeInfo,_EdgeInfo>
+::SearchInfo::SearchInfo(Bundle* bundle)
+    : bundle_(bundle)
+{
+    now_.get_time();
+}
+        
+//----------------------------------------------------------------------
+template <typename _NodeInfo, typename _EdgeInfo>
+inline bool
+MultiGraph<_NodeInfo,_EdgeInfo>
+::get_reverse_path(const Node* a, const Node* b, EdgeVector* path)
+{
+    const Node* cur = b;
+    do {
+        ASSERT(cur->prev_->dest() == cur);
+        ASSERT(cur->prev_->source() != cur);
+
+        path->push_back(cur->prev_);
+        cur = cur->prev_->source();
+    } while (cur != a);
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+template <typename _NodeInfo, typename _EdgeInfo>
 inline void
 MultiGraph<_NodeInfo,_EdgeInfo>
-::shortest_path(Node* a, Node* b, EdgeVector* path, WeightFn* weight_fn)
+::shortest_path(const Node* a, const Node* b,
+                EdgeVector* path, WeightFn* weight_fn,
+                Bundle* bundle)
 {
+    log_debug("calculating shortest path from %s -> %s",
+              a->id_.c_str(), b->id_.c_str());
+    
     ASSERT(a != NULL);
     ASSERT(b != NULL);
     ASSERT(path != NULL);
     ASSERT(a != b);
     path->clear();
 
+    // cons up the search info
+    SearchInfo info(bundle);
+    
     // first clear the existing distances
     for (class NodeVector::iterator i = this->nodes_.begin();
          i != this->nodes_.end(); ++i)
@@ -176,33 +214,64 @@ MultiGraph<_NodeInfo,_EdgeInfo>
     }
     
     // compute dijkstra distances
-    oasys::UpdatablePriorityQueue<Node*, std::vector<Node*>, DijkstraCompare> q;
+    oasys::UpdatablePriorityQueue<const Node*,
+        std::vector<const Node*>,
+        DijkstraCompare> q;
     
     a->distance_ = 0;
     q.push(a);
     do {
-        Node* cur = q.top();
+        const Node* cur = q.top();
         q.pop();
 
-        for (class EdgeVector::iterator ei = cur->out_edges_.begin();
+        for (class EdgeVector::const_iterator ei = cur->out_edges_.begin();
              ei != cur->out_edges_.end(); ++ei)
         {
             Edge* edge = *ei;
-            Node* peer = edge->dest_;
+            Node* peer = edge->dest();
 
-            ASSERT(edge->source_ == cur);
+            ASSERT(edge->source() == cur);
             ASSERT(peer != cur); // no loops
             
-            u_int32_t weight = (*weight_fn)(edge);
+            u_int32_t weight = (*weight_fn)(info, edge);
 
             log_debug("examining edge id %s (weight %u) "
                       "from %s (distance %u) -> %s (distance %u)",
-                      oasys::InlineFormatter<_EdgeInfo>().format(edge->info_),
+                      EdgeFormatter().format(edge->info()),
                       weight, cur->id_.c_str(), cur->distance_,
                       peer->id_.c_str(), peer->distance_);
             
-            if (peer->distance_ > cur->distance_ + weight)
+            if (weight != 0xffffffff &&
+                peer->distance_ > cur->distance_ + weight)
             {
+                if (peer->color_ == Node::BLACK)
+                {
+                    log_crit("revisiting black node when "
+                             "calculating shortest path from %s -> %s!!!",
+                             a->id_.c_str(), b->id_.c_str());
+                    
+                    log_crit("cur %s: distance %u edge %s weight %u "
+                             "prev edge %s from %s",
+                             cur->id_.c_str(), cur->distance_,
+                             EdgeFormatter().format(edge->info()),
+                             weight,
+                             cur->prev_
+                               ? EdgeFormatter().format(cur->prev_->info())
+                               : "NULL!",
+                             cur->prev_ ?
+                             cur->prev_->source()->id_.c_str() : "");
+
+                    log_crit("peer %s: distance %u, prev edge %s from %s",
+                             peer->id_.c_str(), peer->distance_,
+                             peer->prev_
+                               ? EdgeFormatter().format(peer->prev_->info())
+                               : "NULL!",
+                             peer->prev_ ?
+                               peer->prev_->source()->id_.c_str() : "");
+
+                    continue;
+                }
+                    
                 peer->distance_ = cur->distance_ + weight;
                 peer->prev_     = edge;
 
@@ -218,9 +287,8 @@ MultiGraph<_NodeInfo,_EdgeInfo>
                     log_debug("updating node %s in queue", peer->id_.c_str());
                     q.update(peer);
                 }
-                else
-                {
-                    PANIC("can't revisit a black node!");
+                else {
+                    NOTREACHED;
                 }
             }
         }
@@ -235,35 +303,40 @@ MultiGraph<_NodeInfo,_EdgeInfo>
     } while (!q.empty());
     
     if (b->distance_ == 0xffffffff) {
+        log_debug("no path found from %s -> %s",
+                  a->id_.c_str(), b->id_.c_str());
         return; // no path
     }
 
-    // now traverse the graph backwards from the destination, filling
-    // in the path
-    Node* cur = b;
-    do {
-        ASSERT(cur->prev_->dest_ == cur);
-        ASSERT(cur->prev_->source_ != cur);
-
-        path->push_back(cur->prev_);
-        cur = cur->prev_->source_;
-    } while (cur != a);
+    get_reverse_path(a, b, path);
+    
+    size_t len = path->size();
+    log_debug("found path of length %zu from %s -> %s",
+              len, a->id_.c_str(), b->id_.c_str());
+    for (size_t i = 0; i < len; ++i) {
+        Edge* e = (*path)[len - i - 1];
+        (void)e;
+        log_debug("hop %zu: %s -> %s %s", i,
+                  e->source()->id_.c_str(), e->dest()->id_.c_str(), 
+                  EdgeFormatter().format(e->info()));
+    }
 }
 
 //----------------------------------------------------------------------
 template <typename _NodeInfo, typename _EdgeInfo>
 inline class MultiGraph<_NodeInfo,_EdgeInfo>::Edge*
 MultiGraph<_NodeInfo,_EdgeInfo>
-::best_next_hop(Node* a, Node* b, WeightFn* weight_fn)
+::best_next_hop(const Node* a, const Node* b, WeightFn* weight_fn,
+                Bundle* bundle)
 {
     EdgeVector path;
-    shortest_path(a, b, &path, weight_fn);
+    shortest_path(a, b, &path, weight_fn, bundle);
     if (path.empty()) {
         return NULL;
     }
 
-    ASSERT(path[0].source_ == a); // sanity
-    return path[0];
+    ASSERT(path.back()->source() == a); // sanity
+    return path.back();
 }
 
 //----------------------------------------------------------------------
@@ -285,8 +358,8 @@ MultiGraph<_NodeInfo,_EdgeInfo>
              ei != (*ni)->out_edges_.end(); ++ei)
         {
             sa.appendf(" %s(%s)", 
-                       (*ei)->dest_->id_.c_str(),
-                       oasys::InlineFormatter<_EdgeInfo>().format((*ei)->info_));
+                       (*ei)->dest()->id_.c_str(),
+                       EdgeFormatter().format((*ei)->info()));
         }
         sa.append("\n");
     }
@@ -306,7 +379,7 @@ MultiGraph<_NodeInfo,_EdgeInfo>
     {
         sa.appendf("%s%s",
                    i == this->begin() ? "" : " ",
-                   (*i)->id_.c_str());
+                   (*i)->id().c_str());
     }
     return sa.desired_length();
 }
@@ -323,11 +396,28 @@ MultiGraph<_NodeInfo,_EdgeInfo>
     {
         sa.appendf("%s[%s -> %s(%s)]",
                    i == this->begin() ? "" : " ",
-                   (*i)->source_->id_.c_str(),
-                   (*i)->dest_->id_.c_str(),
-                   oasys::InlineFormatter<_EdgeInfo>().format((*i)->info_));
+                   (*i)->source()->id().c_str(),
+                   (*i)->dest()->id().c_str(),
+                   EdgeFormatter().format((*i)->info()));
     }
     return sa.desired_length();
+}
+
+//----------------------------------------------------------------------
+template <typename _NodeInfo, typename _EdgeInfo>
+inline void
+MultiGraph<_NodeInfo,_EdgeInfo>
+::EdgeVector::debug_format(oasys::StringBuffer* buf) const
+{
+    class EdgeVector::const_iterator i;
+    for (i = this->begin(); i != this->end(); ++i)
+    {
+        buf->appendf("\t%s -> %s (%s) (distance %u)\n",
+                     (*i)->source()->id().c_str(),
+                     (*i)->dest()->id().c_str(),
+                     EdgeFormatter().format((*i)->info()),
+                     MultiGraph<_NodeInfo,_EdgeInfo>::NodeDistance((*i)->dest()));
+    }
 }
 
 
