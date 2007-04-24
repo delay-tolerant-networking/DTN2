@@ -55,6 +55,7 @@ DuplicateCache::is_duplicate(Bundle* bundle)
     }
 
     Cache::Handle h;
+    v.count_ = 0;
     cache_.put_and_pin(k, v, &h);
     cache_.unpin(h);
     return false;
