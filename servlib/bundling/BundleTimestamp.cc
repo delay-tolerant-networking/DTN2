@@ -36,7 +36,7 @@ BundleTimestamp::get_current_time()
     struct timeval now;
     ::gettimeofday(&now, 0);
     
-    ASSERT((u_int)now.tv_sec > TIMEVAL_CONVERSION);
+    ASSERT((u_int)now.tv_sec >= TIMEVAL_CONVERSION);
     return now.tv_sec - TIMEVAL_CONVERSION;
 }
 
