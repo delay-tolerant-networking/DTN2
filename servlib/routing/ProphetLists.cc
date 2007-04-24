@@ -230,7 +230,9 @@ void
 ProphetTableAgeTimer::timeout(const struct timeval& now)
 {
     (void)now;
+
     int c = table_->age_nodes();
+    (void)c;
     table_->truncate(epsilon_);
     reschedule();
     log_debug("aged %d prophet nodes",c);
