@@ -148,16 +148,14 @@ DTNScheme::append_service_tag(URI* uri, const char* tag)
 
 //----------------------------------------------------------------------
 bool
-DTNScheme::is_singleton(const std::string& ssp)
+DTNScheme::is_singleton(const URI& uri)
 {
     // if there's a * in the hostname part of the URI, then it's not a
     // singleton endpoint
-    oasys::URI uri("dtn:" + ssp);
-
-    uri.parse();
-    if (!uri.valid() || (uri.host().find('*') != std::string::npos)) {
+    if (uri.host().find('*') != std::string::npos) {
         return false;
     }
+    
     return true;
 }
 

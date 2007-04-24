@@ -145,6 +145,14 @@ public:
     }
 
     /**
+     * Three way lexographical comparison
+     */
+    int compare(const EndpointID& other) const
+    {
+        return uri_.compare(other.uri_);
+    }
+
+    /**
      * Set the string from the API type dtn_endpoint_id_t
      *
      * @return true if the string is a valid id, false if not.
@@ -159,6 +167,12 @@ public:
      * service tags
      */
     bool append_service_tag(const char* tag);
+
+    /**
+     * Return whether or not this endpoint id is a singleton or a
+     * multi-node endpoint.
+     */
+    bool is_singleton() const;
 
     /**
      * Copy the endpoint id contents out to the API type

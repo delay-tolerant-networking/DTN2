@@ -38,7 +38,8 @@ bool
 EndpointID::parse()
 {
     static const char* log = "/dtn/naming/endpoint/";
-
+    (void)log;
+    
     scheme_ = NULL;
     valid_ = false;
 
@@ -99,6 +100,14 @@ EndpointID::append_service_tag(const char* tag)
     }
 
     return true;
+}
+
+//----------------------------------------------------------------------
+bool
+EndpointID::is_singleton() const
+{
+    ASSERT(known_scheme());
+    return scheme_->is_singleton(uri_);
 }
 
 /**

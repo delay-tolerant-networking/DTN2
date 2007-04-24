@@ -69,9 +69,9 @@ public:
     virtual bool append_service_tag(URI* uri, const char* tag);
 
     /**
-     * Check if the given ssp is a singleton endpoint id.
+     * Check if the given URI is a singleton EID.
      */
-    virtual bool is_singleton(const std::string& ssp);
+    virtual bool is_singleton(const URI& uri);
     
 private:
     friend class oasys::Singleton<DTNScheme>;

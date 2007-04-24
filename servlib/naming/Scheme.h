@@ -71,11 +71,11 @@ public:
     }
 
     /**
-     * Check if the given ssp is a singleton endpoint id.
+     * Check if the given URI is a singleton endpoint id.
      */
-    virtual bool is_singleton(const std::string& ssp)
+    virtual bool is_singleton(const URI& uri)
     {
-        (void)ssp;
+        (void)uri;
         return true;
     }
 };
