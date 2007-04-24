@@ -20,6 +20,7 @@
 
 #include <oasys/thread/Timer.h>
 #include "SimEvent.h"
+#include "SimLog.h"
 #include "Node.h"
 #include "SimBundleActions.h"
 #include "bundling/BundleDaemon.h"
@@ -62,7 +63,8 @@ Node::do_init()
 void
 Node::configure()
 {
-    BundleDaemon::instance_ = this;
+    set_active();
+
     router_ = BundleRouter::create_router(BundleRouter::config_.type_.c_str());
     router_->initialize();
 }
@@ -118,6 +120,48 @@ Node::process(SimEvent* e)
     default:
         NOTREACHED;
     }
+}
+
+//----------------------------------------------------------------------
+void
+Node::handle_bundle_delivered(BundleDeliveredEvent* event)
+{
+    SimLog::instance()->log_arrive(this, event->bundleref_.object());
+    BundleDaemon::handle_bundle_delivered(event);
+}
+
+//----------------------------------------------------------------------
+void
+Node::handle_bundle_received(BundleReceivedEvent* event)
+{
+    Bundle* bundle = event->bundleref_.object(); 
+    SimLog::instance()->log_recv(this, bundle);
+
+    // XXX/demmer this needs to look at the history of all duplicates,
+    // not just the duplicates right now...
+    
+    Bundle* duplicate = find_duplicate(bundle);
+    if (duplicate != NULL) {
+        SimLog::instance()->log_dup(this, bundle);
+    }
+    BundleDaemon::handle_bundle_received(event);
+}
+
+//----------------------------------------------------------------------
+void
+Node::handle_bundle_transmitted(BundleTransmittedEvent* event)
+{
+    SimLog::instance()->log_xmit(this, event->bundleref_.object());
+    BundleDaemon::handle_bundle_transmitted(event);
+}
+
+
+//----------------------------------------------------------------------
+void
+Node::handle_bundle_expired(BundleExpiredEvent* event)
+{
+    SimLog::instance()->log_expire(this, event->bundleref_.object());
+    BundleDaemon::handle_bundle_expired(event);
 }
 
 } // namespace dtnsim

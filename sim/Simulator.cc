@@ -23,6 +23,7 @@
 #include "Simulator.h"
 #include "Node.h"
 #include "Topology.h"
+#include "SimLog.h"
 #include "bundling/BundleTimestamp.h"
 #include "storage/BundleStore.h"
 #include "storage/LinkStore.h"
@@ -109,6 +110,29 @@ Simulator::run_node_events()
 
 //----------------------------------------------------------------------
 void
+Simulator::log_inqueue_stats()
+{
+    Topology::NodeTable::iterator node_iter;
+    for (node_iter =  Topology::node_table()->begin();
+         node_iter != Topology::node_table()->end();
+         ++node_iter)
+    {
+        Node* node = node_iter->second;
+
+        oasys::ScopeLock l(node->pending_bundles()->lock(), "log_inqueue_stats");
+        BundleList::iterator bundle_iter;
+        for (bundle_iter = node->pending_bundles()->begin();
+             bundle_iter != node->pending_bundles()->end();
+             ++bundle_iter)
+        {
+            Bundle* bundle = *bundle_iter;
+            SimLog::instance()->log_inqueue(node, bundle);
+        }
+    }
+}
+
+//----------------------------------------------------------------------
+void
 Simulator::run()
 {
     oasys::Log* log = oasys::Log::instance();
@@ -166,11 +190,15 @@ Simulator::run()
             log_info("Exiting simulation. "
                      "Current time (%f) > Max time (%f)",
                      time_, Simulator::runtill_);
-            break;
+            goto done;
         }
-
     }
+
     log_info("eventq is empty, time is %f", time_);
+
+done:
+    log_inqueue_stats();
+    SimLog::instance()->flush();
 }
 
 //----------------------------------------------------------------------
@@ -210,11 +238,18 @@ void
 Simulator::process(SimEvent *e)
 {
     switch (e->type()) {
-    case SIM_AT_EVENT:
-        oasys::TclCommandInterp::instance()->
-            exec_command(((SimAtEvent*)e)->cmd_.c_str());
+    case SIM_AT_EVENT: {
+        SimAtEvent* evt = (SimAtEvent*)e;
+        int err = oasys::TclCommandInterp::instance()->
+                  exec_command(evt->objc_, evt->objv_);
+        if (err != 0) {
+            oasys::StringBuffer cmd;
+            cmd.appendf("puts \"ERROR in at command, pausing simulation\"");
+            oasys::TclCommandInterp::instance()->exec_command(cmd.c_str());
+            pause();
+        }
         break;
-        
+    }    
     default:
         NOTREACHED;
     }

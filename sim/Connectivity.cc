@@ -18,29 +18,32 @@
 #  include <config.h>
 #endif
 
-#include "Connectivity.h"
-#include "Node.h"
-#include "SimEvent.h"
 #include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
 
+#include "Connectivity.h"
+#include "Node.h"
+#include "SimEvent.h"
 #include "SimConvergenceLayer.h"
+#include "Topology.h"
+
 #include "contacts/ContactManager.h"
 #include "contacts/Link.h"
 #include "naming/EndpointID.h"
 
-
-
 namespace dtnsim {
 
+//----------------------------------------------------------------------
 Connectivity* Connectivity::instance_(NULL);
 std::string   Connectivity::type_("");
 
+//----------------------------------------------------------------------
 Connectivity::Connectivity()
     : Logger("Connectivity", "/sim/conn")
 {
 }
 
+//----------------------------------------------------------------------
 Connectivity*
 Connectivity::create_conn()
 {
@@ -56,9 +59,7 @@ Connectivity::create_conn()
     }
 }
 
-/**
- * Utility function to parse a bandwidth specification.
- */
+//----------------------------------------------------------------------
 bool
 ConnState::parse_bw(const char* bw_str, int* bw)
 {
@@ -88,35 +89,33 @@ ConnState::parse_bw(const char* bw_str, int* bw)
     }
 }
 
-/**
- * Utility function to parse a time specification.
- */
+//----------------------------------------------------------------------
 bool
-ConnState::parse_time(const char* time_str, int* time)
+ConnState::parse_time(const char* time_str, double* time)
 {
     char* end;
-    *time = 0;
-    *time = strtoul(time_str, &end, 10);
+    *time = strtod(time_str, &end);
 
     if (end == time_str)
         return false;
 
-    if (*end == '\0') { // no specification means ms
+    if (!strcmp(end, "us")) {
+        *time = *time / 1000000.0;
         return true;
-
+        
     } else if (!strcmp(end, "ms")) {
+        *time = *time / 1000.0;
         return true;
 
     } else if (!strcmp(end, "s")) {
-        *time = *time * 1000;
         return true;
 
     } else if (!strcmp(end, "min")) {
-        *time = *time * 1000 * 60;
+        *time = *time * 60;
         return true;
 
     } else if (!strcmp(end, "hr")) {
-        *time = *time * 1000 * 3600;
+        *time = *time * 3600;
         return true;
 
     } else {
@@ -124,10 +123,7 @@ ConnState::parse_time(const char* time_str, int* time)
     }
 }
 
-/**
- * Utility function to fill in the values from a set of options
- * (e.g. bw=10kbps, latency=10ms).
- */
+//----------------------------------------------------------------------
 bool
 ConnState::parse_options(int argc, const char** argv, const char** invalidp)
 {
@@ -155,13 +151,40 @@ ConnState::parse_options(int argc, const char** argv, const char** invalidp)
     return true;
 }
 
-
-/**
- * Set the current connectivity state.
- */
+//----------------------------------------------------------------------
 void
 Connectivity::set_state(const char* n1, const char* n2, const ConnState& s)
 {
+    log_debug("set state %s,%s: %s bw=%d latency=%f",
+              n1, n2, s.open_ ? "up" : "down", s.bw_, s.latency_);
+    
+    // handle wildcards
+    if (!strcmp(n1, "*")) {
+        Topology::NodeTable* nodes = Topology::node_table();
+        
+        for (Topology::NodeTable::iterator iter = nodes->begin();
+             iter != nodes->end(); ++iter)
+        {
+            if (strcmp(iter->second->name(), n2) != 0) {
+                set_state(iter->second->name(), n2, s);
+            }
+        }
+        return;
+    }
+
+    if (!strcmp(n2, "*")) {
+        Topology::NodeTable* nodes = Topology::node_table();
+        
+        for (Topology::NodeTable::iterator iter = nodes->begin();
+             iter != nodes->end(); ++iter)
+        {
+            if (strcmp(n1, iter->second->name()) != 0) {
+                set_state(n1, iter->second->name(), s);
+            }
+        }
+        return;
+    }
+    
     oasys::StringBuffer key("%s,%s", n1, n2);
     StateTable::iterator iter = state_.find(key.c_str());
     if (iter != state_.end()) {
@@ -169,56 +192,22 @@ Connectivity::set_state(const char* n1, const char* n2, const ConnState& s)
     } else {
         state_[key.c_str()] = s;
     }
-
-    log_debug("set state %s,%s: %s bw=%d latency=%d",
-              n1, n2, s.open_ ? "up" : "down", s.bw_, s.latency_);
+    
+    SimConvergenceLayer::instance()->
+        update_connectivity(Topology::find_node(n1),
+                            Topology::find_node(n2), s);
 }
 
-/**
- * Accessor to get the current connectivity state.
- */
+//----------------------------------------------------------------------
 const ConnState*
 Connectivity::lookup(Node* n1, Node* n2)
 {
-    oasys::StringBuffer buf("%s,%s", n1->name(), n2->name());
-    
-    return NULL;
-}
-
-/**
- * Event handler function.
- */
-void
-Connectivity::process(SimEvent *e)
-{
-    if (e->type() != SIM_CONN_EVENT) {
-        PANIC("no Node handler for event %s", e->type_str());
+    oasys::StringBuffer key("%s,%s", n1->name(), n2->name());
+    StateTable::iterator iter = state_.find(key.c_str());
+    if (iter == state_.end()) {
+        return NULL;
     }
-
-    SimConnectivityEvent* ce = (SimConnectivityEvent*)e;
-
-    if (ce->state_.open_) {
-        log_info("CONN OPEN %s -> %s (bw %u latency %u)",
-                 ce->n1_.c_str(), ce->n2_.c_str(),
-                 ce->state_.bw_, ce->state_.latency_);
-    } else {
-        log_info("CONN CLOSED %s -> %s",
-                 ce->n1_.c_str(), ce->n2_.c_str());
-    }
-        
-    set_state(ce->n1_.c_str(), ce->n2_.c_str(), ce->state_);
+    return &iter->second;
 }
-
-/**
- * Hook so implementations can handle arbitrary commands.
- */
-bool
-Connectivity::exec(int argc, const char** argv)
-{
-    (void)argc;
-    (void)argv;
-    return false;
-}
-    
 
 } // namespace dtnsim

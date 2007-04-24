@@ -42,12 +42,13 @@ private:
     
     void send_bundle();
 
-    EndpointID src_;	///< source eid
-    EndpointID dst_;	///< destination eid
-    int size_;		///< size of each message
-    int reps_;		///< total number of reps/batches
-    int batch_;		///< no of messages in each batch
-    double interval_;	///< time gap between two batches
+    EndpointID src_;    ///< source eid
+    EndpointID dst_;    ///< destination eid
+    u_int size_;        ///< size of each message
+    u_int expiration_;  ///< expiration time for each bundle
+    u_int reps_;        ///< total number of reps/batches
+    u_int batch_;       ///< no of messages in each batch
+    double interval_;   ///< time gap between two batches
 };
 
 } // namespace dtnsim

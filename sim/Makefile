@@ -36,6 +36,7 @@ SIM_SRCS := \
 	SimBundleActions.cc	\
 	SimCommand.cc		\
 	SimConvergenceLayer.cc	\
+	SimLog.cc		\
 	SimRegistration.cc	\
 	Topology.cc		\
 	TrAgent.cc		\

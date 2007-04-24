@@ -18,9 +18,11 @@
 #  include <config.h>
 #endif
 
+#include <oasys/io/FileIOClient.h>
 #include <oasys/util/StringBuffer.h>
 
 #include "Simulator.h"
+#include "SimLog.h"
 #include "SimRegistration.h"
 #include "Topology.h"
 #include "bundling/Bundle.h"
@@ -52,10 +54,6 @@ SimRegistration::deliver_bundle(Bundle* bundle)
              payload_len);
 
     BundleDaemon::post(new BundleDeliveredEvent(bundle, this));
-
-    // hold a reference on the bundle to put it in the arrivals table
-    double now = Simulator::time();
-    arrivals_[now] = bundle; 
 }
 
 } // namespace dtnsim

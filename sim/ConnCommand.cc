@@ -52,7 +52,7 @@ ConnCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
     Connectivity* conn = Connectivity::instance();
 
     if (!strcmp(cmd, "up") || !strcmp(cmd, "down")) {
-        // conn <time> <up|down> <n1> <n2> <args>
+        // conn <up|down> <n1> <n2> <args>
         if (argc < 4) {
             wrong_num_args(argc, argv, 2, 4, INT_MAX);
             return TCL_ERROR;
@@ -84,18 +84,7 @@ ConnCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
         
         s.open_ = !strcmp(cmd, "up");
 
-        Simulator::post(
-            new SimConnectivityEvent(Simulator::time(),conn,
-                                     n1_name, n2_name, s));
-
-        return TCL_OK;
-
-    } else {
-        // dispatch to the connectivity module itself
-        if (! conn->exec(argc - 2, argv + 2)) {
-            resultf("conn: error handling command");
-            return TCL_ERROR;
-        }
+        conn->set_state(n1_name, n2_name, s);
 
         return TCL_OK;
     }

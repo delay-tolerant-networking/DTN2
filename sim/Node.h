@@ -84,6 +84,14 @@ public:
      * Process all pending bundle events until the queue is empty.
      */
     bool process_bundle_events();
+
+    /**
+     * Overridden event handlers from BundleDaemon
+     */
+    void handle_bundle_delivered(BundleDeliveredEvent* event);
+    void handle_bundle_received(BundleReceivedEvent* event);
+    void handle_bundle_transmitted(BundleTransmittedEvent* event);
+    void handle_bundle_expired(BundleExpiredEvent* event);
     
     /**
      * Accessor for name.

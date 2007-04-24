@@ -27,6 +27,7 @@
 #include "Simulator.h"
 #include "Node.h"
 #include "SimEvent.h"
+#include "SimLog.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleTimestamp.h"
 
@@ -36,7 +37,7 @@ namespace dtnsim {
 TrAgent::TrAgent(const EndpointID& src, const EndpointID& dst)
     : Logger("TrAgent", "/sim/tragent/%s", Node::active_node()->name()),
       src_(src), dst_(dst),
-      size_(0), reps_(0), batch_(1), interval_(0)
+      size_(0), expiration_(30), reps_(0), batch_(1), interval_(0)
 {
 }
 
@@ -48,9 +49,10 @@ TrAgent::init(const EndpointID& src, const EndpointID& dst,
     TrAgent* a = new TrAgent(src, dst);
 
     oasys::OptParser p;
-    p.addopt(new oasys::IntOpt("size", &a->size_));
-    p.addopt(new oasys::IntOpt("reps", &a->reps_));
-    p.addopt(new oasys::IntOpt("batch", &a->batch_));
+    p.addopt(new oasys::UIntOpt("size", &a->size_));
+    p.addopt(new oasys::UIntOpt("expiration", &a->expiration_));
+    p.addopt(new oasys::UIntOpt("reps", &a->reps_));
+    p.addopt(new oasys::UIntOpt("batch", &a->batch_));
     p.addopt(new oasys::DoubleOpt("interval", &a->interval_));
 
     const char* invalid;
@@ -69,7 +71,7 @@ TrAgent::init(const EndpointID& src, const EndpointID& dst,
         return NULL;
     }
 
-    if (a->interval_ == 0) {
+    if (a->reps_ != 1 && a->interval_ == 0) {
         a->logf(oasys::LOG_ERR, "interval must be set in configuration");
         return NULL;
     }
@@ -82,7 +84,7 @@ TrAgent::init(const EndpointID& src, const EndpointID& dst,
 void
 TrAgent::timeout(const struct timeval& /* now */)
 {
-    for (int i = 0; i < batch_; i++) {
+    for (u_int i = 0; i < batch_; i++) {
         send_bundle();
     }
         
@@ -122,8 +124,8 @@ TrAgent::send_bundle()
     b->app_acked_rcpt_ = false;
     b->creation_ts_.seconds_ = BundleTimestamp::get_current_time();
     b->creation_ts_.seqno_ = b->bundleid_;
-    b->expiration_ = 30;        
-    b->is_fragment_     = false;
+    b->expiration_ = expiration_;
+    b->is_fragment_	= false;
     b->is_admin_ = false;
     b->do_not_fragment_ = false;
     b->in_datastore_ = false;
@@ -132,8 +134,10 @@ TrAgent::send_bundle()
     
     log_info("N[%s]: GEN id:%d %s -> %s size:%d",
              Node::active_node()->name(), b->bundleid_,
-             src_.c_str(), dst_.c_str(), size_);        
-                
+             src_.c_str(), dst_.c_str(), size_);
+
+    SimLog::instance()->log_gen(Node::active_node(), b);
+		
     BundleDaemon::post(new BundleReceivedEvent(b, EVENTSRC_APP, size_));
 }
 

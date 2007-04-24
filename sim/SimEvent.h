@@ -17,8 +17,8 @@
 #ifndef _DTN_SIM_EVENT_H_
 #define _DTN_SIM_EVENT_H_
 
+#include <oasys/tclcmd/TclCommand.h>
 #include "bundling/BundleEvent.h"
-#include "Connectivity.h"
 
 using namespace dtn;
 
@@ -31,10 +31,8 @@ class SimEventHandler;
  * Event Types
  *****************************************************************************/
 typedef enum {
-    SIM_CONN_EVENT = 0x1,	///< Event for the connectivity module
-    SIM_AT_EVENT,		///< Generic event for delayed tcl commands
+    SIM_AT_EVENT = 0x1,		///< Generic event for delayed tcl commands
     SIM_BUNDLE_EVENT,		///< Generic event for delayed bundle events
-    
 } sim_event_type_t;
 
 /**
@@ -43,7 +41,6 @@ typedef enum {
 static const char* 
 sim_ev2str(sim_event_type_t event) {
     switch (event) {
-    case SIM_CONN_EVENT:		return "SIM_CONN_EVENT";
     case SIM_AT_EVENT:			return "SIM_AT_EVENT";
     case SIM_BUNDLE_EVENT:		return "SIM_BUNDLE_EVENT";
     }
@@ -92,30 +89,15 @@ public:
 };
 
 /*******************************************************************
- * SimConnectivityEvent
- ******************************************************************/
-class SimConnectivityEvent : public SimEvent {
-public:
-    SimConnectivityEvent(double time, SimEventHandler* handler,
-                         const char* n1, const char* n2,
-                         const ConnState& state)
-        : SimEvent(SIM_CONN_EVENT, time, handler),
-          n1_(n1), n2_(n2), state_(state) {}
-
-    std::string n1_, n2_;
-    ConnState state_;
-};
-
-/*******************************************************************
  * SimAtEvent
  ******************************************************************/
 class SimAtEvent : public SimEvent {
 public:
-    SimAtEvent(double time, SimEventHandler* handler,
-               const std::string& cmd)
-        : SimEvent(SIM_AT_EVENT, time, handler), cmd_(cmd) {}
-
-    std::string cmd_;
+    SimAtEvent(double time, SimEventHandler* handler)
+        : SimEvent(SIM_AT_EVENT, time, handler), objc_(0) {}
+    
+    int objc_;
+    Tcl_Obj* objv_[64];
 };
 
 /*******************************************************************

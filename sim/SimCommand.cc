@@ -20,13 +20,13 @@
 
 #include <stdlib.h>
 
+#include "routing/BundleRouter.h"
+
+#include "Node.h"
 #include "NodeCommand.h"
 #include "SimCommand.h"
 #include "Simulator.h"
 #include "Topology.h"
-
-#include "routing/BundleRouter.h"
-
 
 using namespace dtn;
 
@@ -89,22 +89,37 @@ SimCommand::exec(int argc, const char** argv, Tcl_Interp* tclinterp)
             return TCL_ERROR;
         }
 
-        std::string cmd = "";
-        for (int i = 3; i < argc; ++i) {
-            cmd += argv[i];
-            cmd += " ";
+        SimAtEvent* e = new SimAtEvent(time, Simulator::instance());
+        e->objc_ = argc - 3;
+        for (int i = 0; i < e->objc_; ++i) {
+            e->objv_[i] = Tcl_NewStringObj(argv[i+3], -1);
+	    Tcl_IncrRefCount(e->objv_[i]);
         }
-        Simulator::post(new SimAtEvent(time, Simulator::instance(), cmd));
+        Simulator::post(e);
         return TCL_OK;
         
     } else if (strcmp(cmd, "run") == 0) {
         Simulator::instance()->run();
         return TCL_OK;
 
+    } else if (strcmp(cmd, "run_events") == 0) {
+        Simulator::instance()->run_node_events();
+        return TCL_OK;
+
     } else if (strcmp(cmd, "pause") == 0) {
         Simulator::instance()->pause();
         return TCL_OK;
-    }
+    } else if (strcmp(cmd, "nodes") == 0) {
+        oasys::StringBuffer buf;
+        Topology::NodeTable* nodes = Topology::node_table();
+        for (Topology::NodeTable::iterator i = nodes->begin();
+             i != nodes->end(); ++i)
+        {
+            buf.appendf("%s ", i->second->name());
+        }
+        set_result(buf.c_str());
+        return TCL_OK;
+    }        
 
     resultf("sim: unsupported subcommand %s", cmd);
     return TCL_ERROR;

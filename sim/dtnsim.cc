@@ -33,7 +33,7 @@
 #include "SimCommand.h"
 #include "SimConvergenceLayer.h"
 #include "contacts/ContactManager.h"
-#include "cmd/ParamCommand.h"
+#include "cmd/RouteCommand.h"
 #include "naming/SchemeTable.h"
 
 #include "servlib/bundling/BundleTimestamp.h"
@@ -56,6 +56,7 @@ public:
 
 protected:
     bool console_;
+    std::string testopts_;
 };
     
 //----------------------------------------------------------------------
@@ -63,6 +64,8 @@ DTNSim::DTNSim()
     : App("DTNSim", "dtnsim", dtn_version),
       console_(false)
 {
+    random_seed_     = 123456789;
+    random_seed_set_ = true;
 }
 
 //----------------------------------------------------------------------
@@ -74,6 +77,10 @@ DTNSim::fill_options()
     opts_.addopt(
         new oasys::BoolOpt('C', "console", &console_,
                            "run the tcl console after simulation exits"));
+
+    opts_.addopt(
+        new oasys::StringOpt('O', "opts", &testopts_,
+                             "<opts>", "simulation options"));
 }
 
 //----------------------------------------------------------------------
@@ -124,8 +131,8 @@ DTNSim::main(int argc, char* const argv[])
     }
         
     oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
-    interp->reg(new ConnCommand());
-    interp->reg(new ParamCommand());
+    interp->reg(new ConnCommand()); 
+    interp->reg(new dtn::RouteCommand());
     interp->reg(new SimCommand());
     log_info("registered dtnsim commands");
 
@@ -135,12 +142,20 @@ DTNSim::main(int argc, char* const argv[])
     BundleProtocol::init_default_processors();
     log_info("intialized dtnsim components");
 	
-    // initializing data store to memorydb
+    // initialize data store to memorydb
     if (!Simulator::instance()->init_datastore()) {
         log_err("error initializing data store, exiting...");
         exit(1);
     }
-	
+
+    oasys::StringBuffer seed_cmd("expr srand(%u)", random_seed_);
+    interp->exec_command(seed_cmd.c_str());
+    
+    // pass command line options through to the simulation test file
+    oasys::StringBuffer opts_cmd("set opts \"%s\"", testopts_.c_str());
+    interp->exec_command(opts_cmd.c_str());
+
+    // parse the simulation file
     log_info("parsing configuration file %s...", conf_file_.c_str());
     if (interp->exec_file(conf_file_.c_str()) != 0) {
         log_err("error in configuration file, exiting...");

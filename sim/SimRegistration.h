@@ -38,12 +38,6 @@ public:
      */
     void deliver_bundle(Bundle* bundle);
 
-    /**
-     * Log each bundle's arrival time (and the bundle itself) in a big
-     * arrivals table.
-     */
-    std::map<double, BundleRef> arrivals_;
-    
 protected:
     Node* node_;
 };

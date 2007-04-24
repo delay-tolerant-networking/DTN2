@@ -45,16 +45,22 @@ NodeCommand::NodeCommand(Node* node)
 }
 
 int
-NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
+NodeCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
 {
-    (void)interp;
+    int argc = objc;
+    const char* argv[objc];
+    for (int i = 0; i < objc; ++i) {
+        argv[i] = Tcl_GetStringFromObj(objv[i], NULL);
+    }
     
     if (argc < 2) {
-        wrong_num_args(argc, argv, 2, 2, INT_MAX);
-    add_to_help("route", "XXX");
-    add_to_help("link", "XXX");
-    add_to_help("tragent", "XXX");
-    add_to_help("registration", "XXX");
+        wrong_num_args(argc, argv, 1, 2, INT_MAX);
+        add_to_help("bundle", "XXX");
+        add_to_help("param", "XXX");
+        add_to_help("link", "XXX");
+        add_to_help("route", "XXX");
+        add_to_help("tragent", "XXX");
+        add_to_help("registration", "XXX");
         return TCL_ERROR;
     }
 
@@ -65,70 +71,25 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
 
     const char* cmd = argv[1];
     const char* subcmd = NULL;
-    if (argc >= 3) {
+    if (objc >= 3) {
         subcmd = argv[2];
     }
 
-    if (strcmp(cmd, "route") == 0)
+    if (strcmp(cmd, "bundle") == 0)
     {
-        return route_cmd_.exec(argc - 1, argv + 1, interp);
+        return bundle_cmd_.exec(objc - 1, objv + 1, interp);
     }
-//         if (strcmp(subcmd, "local_eid") == 0) {
-//             if (time != 0) {
-//                 resultf("node %s %s must be run at time 0", cmd, subcmd);
-//                 return TCL_ERROR;
-//             }
-        
-//             if (argc == 4) {
-//                 // <node> 0 route local_eid
-//                 set_result(node_->local_eid().c_str());
-//                 return TCL_OK;
-                
-//             } else if (argc == 5) {
-//                 // <node> 0 route local_eid <eid>
-//                 node_->set_local_eid(argv[4]);
-
-//                 if (! node_->local_eid().valid()) {
-//                     resultf("invalid eid '%s'", argv[4]);
-//                     return TCL_ERROR;
-//                 }
-//                 return TCL_OK;
-//             } else {
-//                 wrong_num_args(argc, argv, 4, 4, 5);
-//                 return TCL_ERROR;
-//             }
-//         }
-//         else if (strcmp(subcmd, "add") == 0)
-//         {
-//             // <node> X route add <dest> <link/node>
-//             if (argc != 6) {
-//                 wrong_num_args(argc, argv, 2, 6, 6);
-//                 return TCL_ERROR;
-//             }
-
-//             const char* dest_str = argv[4];
-//             const char* nexthop = argv[5];
-
-//             log_debug("adding route to %s through %s", dest_str, nexthop);
-            
-//             EndpointIDPattern dest(dest_str);
-//             if (!dest.valid()) {
-//                 resultf("invalid destination eid %s", dest_str);
-//                 return TCL_ERROR;
-//             }
-
-//             Simulator::post(new SimAddRouteEvent(time, node_, dest, nexthop));
-            
-//             return TCL_OK;
-//         }
-        
-//         resultf("node route: unsupported subcommand %s", subcmd);
-//         return TCL_ERROR;
-//     }
-        
     else if (strcmp(cmd, "link") == 0)
     {
         return link_cmd_.exec(argc - 1, argv + 1, interp);
+    }
+    else if (strcmp(cmd, "param") == 0)
+    {
+        return param_cmd_.exec(argc - 1, argv + 1, interp);
+    }
+    else if (strcmp(cmd, "route") == 0)
+    {
+        return route_cmd_.exec(argc - 1, argv + 1, interp);
     }
     else if (strcmp(cmd, "registration") == 0)
     {
@@ -150,11 +111,31 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             node_->post_event(e);
             
             return TCL_OK;
-        }        
+        } else if (strcmp(subcmd, "list") == 0 || strcmp(subcmd, "dump") == 0) {
+            oasys::StringBuffer buf;
+            node_->reg_table()->dump(&buf);
+            set_result(buf.c_str());
+            return TCL_OK;
+        
+        } else if (strcmp(subcmd, "del") == 0) {
+            const RegistrationTable* regtable = node_->reg_table();
+
+            const char* regid_str = argv[2];
+            int regid = atoi(regid_str);
+
+            Registration* reg = regtable->get(regid);
+            if (!reg) {
+                resultf("no registration exists with id %d", regid);
+                return TCL_ERROR;
+            }
+
+            node_->post_event(new RegistrationRemovedEvent(reg));
+            return TCL_OK;
+
+        }
         resultf("node registration: unsupported subcommand %s", subcmd);
         return TCL_ERROR;
     }
-
     else if (strcmp(cmd, "tragent") == 0)
     {
         // <node> tragent <src> <dst> <args>
@@ -201,14 +182,7 @@ NodeCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         
         return TCL_OK;
 
-    } else if (!strcmp(cmd, "stats")) {
-        oasys::StringBuffer buf("Bundle Statistics: ");
-        node_->get_bundle_stats(&buf);
-        set_result(buf.c_str());
-        return TCL_OK;
-    }
-    else
-    {
+    } else {
         resultf("node: unsupported subcommand %s", cmd);
         return TCL_ERROR;
     }

@@ -18,34 +18,55 @@
 #  include <config.h>
 #endif
 
+#include <queue>
+
 #include <oasys/util/OptParser.h>
 #include <oasys/util/StringBuffer.h>
+#include <oasys/util/TokenBucket.h>
 
 #include "SimConvergenceLayer.h"
+#include "Connectivity.h"
 #include "Node.h"
 #include "Simulator.h"
 #include "Topology.h"
 #include "bundling/Bundle.h"
 #include "bundling/BundleEvent.h"
 #include "bundling/BundleList.h"
+#include "contacts/ContactManager.h"
 
 namespace dtnsim {
 
-/**
- * Simulator implementation of the CLInfo abstract class
- */
-class SimCLInfo : public CLInfo {
+class InFlightBundle;
+
+//----------------------------------------------------------------------
+class SimLink : public CLInfo,
+                public oasys::Logger,
+                public oasys::Timer {
 public:
-    SimCLInfo()
+    struct Params;
+    
+    SimLink(const LinkRef& link,
+            const SimLink::Params& params)
+        : Logger("/dtn/cl/sim/%s", link->name()),
+          link_(link.object(), "SimLink"),
+          params_(params),
+          tb_(((std::string)logpath_ + "/tb").c_str(),
+              params_.capacity_,
+              0xffffffff /* unlimited rate */),
+          reopen_timer_(link)
     {
-        params_.deliver_partial_ = true;
-        params_.reliable_        = true;
-        params_.delay_           = 0.001; // 1ms
-        params_.bps_             = 1000000; // 1Mbps
     }
 
-    ~SimCLInfo() {};
+    ~SimLink() {};
 
+    void send_bundle(Bundle* bundle, size_t total_len, const ConnState& cs);
+
+    void timeout(const timeval& now);
+    void reschedule_arrival();
+
+    /// The dtn Link
+    LinkRef link_;
+    
     struct Params {
         /// if contact closes in the middle of a transmission, deliver
         /// the partially received bytes to the router.
@@ -56,17 +77,151 @@ public:
         /// convergence layer
         bool reliable_;
 
-        /// configurable delay
-        double delay_;
+        /// capacity of the link
+        u_int capacity_;
 
-        /// configurable bandwidth
-        u_int bps_;
+        /// automatically infer the remote eid when the link connects
+        bool set_remote_eid_;
+        
+        /// set the previous hop when bundles arrive
+        bool set_prevhop_;
         
     } params_;
 
-    Node* peer_node_;   ///< The receiving node
+    /// The receiving node
+    Node* peer_node_;	
+
+    /// Helper class to track in flight bundles
+    struct InFlightBundle {
+        InFlightBundle(Bundle*            bundle,
+                       size_t             total_len,
+                       const oasys::Time& arrival_time)
+            : bundle_(bundle, "SimCL::InFlightBundle"),
+              total_len_(total_len),
+              arrival_time_(arrival_time) {}
+
+        BundleRef   bundle_;
+        size_t      total_len_;
+        oasys::Time arrival_time_;
+    };
+
+    /// The List of in flight bundles
+    std::queue<InFlightBundle*> inflight_;
+
+    /// Token bucket to track the link rate
+    oasys::TokenBucket tb_;
+
+    /// Helper class to unblock the link
+    class ReopenTimer : public oasys::Timer {
+    public:
+        ReopenTimer(const LinkRef& link)
+            : link_(link.object(), "SimLink::ReopenTimer") {}
+        
+        void timeout(const timeval& tv);
+        LinkRef link_;
+    };
+
+    /// The reopening timer
+    ReopenTimer reopen_timer_;
 };
 
+//----------------------------------------------------------------------
+void
+SimLink::timeout(const timeval& tv)
+{
+    oasys::Time now(tv.tv_sec, tv.tv_usec);
+    
+    ASSERT(!inflight_.empty());
+
+    // deliver any bundles that have arrived
+    while (!inflight_.empty()) {
+        InFlightBundle* next = inflight_.front();
+        if (next->arrival_time_ <= now) {
+            inflight_.pop();
+            BundleReceivedEvent* rcv_event =
+                new BundleReceivedEvent(next->bundle_.object(),
+                                        EVENTSRC_PEER,
+                                        next->total_len_,
+                                        NULL,
+                                        params_.set_prevhop_ ?
+                                          Node::active_node()->local_eid() :
+                                          EndpointID::NULL_EID());
+            peer_node_->post_event(rcv_event);
+        } else {
+            break;
+        }
+    }
+
+    reschedule_arrival();
+}
+
+//----------------------------------------------------------------------
+void
+SimLink::send_bundle(Bundle* bundle, size_t total_len, const ConnState& cs)
+{
+    oasys::Time arrival_time(Simulator::time() + cs.latency_);
+    inflight_.push(new InFlightBundle(bundle, total_len, arrival_time));
+    reschedule_arrival();
+
+    bool full = !tb_.drain(total_len);
+    
+    log_debug("send_bundle %d: (total len %zu), link %s",
+              bundle->bundleid_, total_len,
+              full ? "capacity full" : "still has capacity");
+    
+    if (full)
+    {
+        if (link_->state() == Link::OPEN) {
+            link_->set_state(Link::BUSY);
+            BundleDaemon::post_at_head(new LinkBusyEvent(link_));
+        }
+        
+        if (! reopen_timer_.pending()) {
+            // wait until we re-reach the bucket's level plus some slop
+            // for the next bundle
+            u_int32_t next_send = tb_.time_to_level(1024);
+            log_debug("scheduling reopen timer in %u ms", next_send);
+            reopen_timer_.schedule_in(next_send);
+        }
+    }
+}
+
+//----------------------------------------------------------------------
+void
+SimLink::reschedule_arrival()
+{
+    if (pending_)
+        return;
+
+    if (inflight_.empty()) {
+        return;
+    }
+
+    InFlightBundle* next = inflight_.front();
+
+    struct timeval tv;
+    tv.tv_sec  = next->arrival_time_.sec_;
+    tv.tv_usec = next->arrival_time_.usec_;
+    schedule_at(&tv);
+}
+
+//----------------------------------------------------------------------
+void
+SimLink::ReopenTimer::timeout(const timeval& /*tv*/)
+{
+    if (link_->state() == Link::BUSY) {
+        BundleDaemon::post_at_head(
+            new LinkStateChangeRequest(link_,
+                                       Link::AVAILABLE,
+                                       ContactEvent::UNBLOCKED));
+    } else {
+        log_warn_p("/dtn/sim/cl",
+                   "reopen timer fired in bad state for link *%p",
+                   link_.object());
+    }
+}
+ 
+//----------------------------------------------------------------------
 SimConvergenceLayer* SimConvergenceLayer::instance_;
 
 SimConvergenceLayer::SimConvergenceLayer()
@@ -74,6 +229,7 @@ SimConvergenceLayer::SimConvergenceLayer()
 {
 }
 
+//----------------------------------------------------------------------
 bool
 SimConvergenceLayer::init_link(const LinkRef& link,
                                int argc, const char* argv[])
@@ -83,28 +239,36 @@ SimConvergenceLayer::init_link(const LinkRef& link,
     ASSERT(link->cl_info() == NULL);
 
     oasys::OptParser p;
+    SimLink::Params params;
 
-    SimCLInfo* info = new SimCLInfo();
-    info->peer_node_ = Topology::find_node(link->nexthop());
-    ASSERT(info->peer_node_);
+    params.deliver_partial_ = true;
+    params.reliable_        = true;
+    params.capacity_        = 64 * 1000; // 64KB
+    params.set_remote_eid_  = true;
+    params.set_prevhop_     = true;
 
-    p.addopt(new oasys::BoolOpt("deliver_partial",
-                                &info->params_.deliver_partial_));
-    p.addopt(new oasys::BoolOpt("reliable", &info->params_.reliable_));
-    p.addopt(new oasys::DoubleOpt("delay", &info->params_.delay_));
-    p.addopt(new oasys::UIntOpt("bps", &info->params_.bps_));
-    
+    p.addopt(new oasys::BoolOpt("deliver_partial", &params.deliver_partial_));
+    p.addopt(new oasys::BoolOpt("reliable", &params.reliable_));
+    p.addopt(new oasys::UIntOpt("capacity", &params.capacity_));
+    p.addopt(new oasys::BoolOpt("set_remote_eid", &params.set_remote_eid_));
+    p.addopt(new oasys::BoolOpt("set_prevhop", &params.set_prevhop_));
+
     const char* invalid;
     if (! p.parse(argc, argv, &invalid)) {
         log_err("error parsing link options: invalid option %s", invalid);
         return false;
     }
 
-    link->set_cl_info(info);
+    SimLink* sl = new SimLink(link, params);
+    sl->peer_node_ = Topology::find_node(link->nexthop());
+
+    ASSERT(sl->peer_node_);
+    link->set_cl_info(sl);
 
     return true;
 }
 
+//----------------------------------------------------------------------
 void
 SimConvergenceLayer::delete_link(const LinkRef& link)
 {
@@ -119,16 +283,39 @@ SimConvergenceLayer::delete_link(const LinkRef& link)
     link->set_cl_info(NULL);
 }
 
+//----------------------------------------------------------------------
 bool
 SimConvergenceLayer::open_contact(const ContactRef& contact)
 {
     log_debug("opening contact for link [*%p]", contact.object());
+
+
+    SimLink* sl = (SimLink*)contact->link()->cl_info();
+    ASSERT(sl);
     
-    BundleDaemon::post(new ContactUpEvent(contact));
-        
+    const ConnState* cs = Connectivity::instance()->
+                          lookup(Node::active_node(), sl->peer_node_);
+    ASSERTF(cs, "can't find connectivity state from %s -> %s",
+            Node::active_node()->name(), sl->peer_node_->name());
+
+    if (cs->open_) {
+        log_debug("opening contact");
+        if (sl->params_.set_remote_eid_) {
+            contact->link()->set_remote_eid(sl->peer_node_->local_eid());
+        }
+        BundleDaemon::post(new ContactUpEvent(contact));
+    } else {
+        log_debug("connectivity is down when trying to open contact");
+        BundleDaemon::post(
+            new LinkStateChangeRequest(contact->link(),
+                                       Link::CLOSED,
+                                       ContactEvent::BROKEN));
+    }
+	
     return true;
 }
 
+//----------------------------------------------------------------------
 void 
 SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 {
@@ -139,19 +326,22 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
 
     log_debug("send_bundle *%p on link *%p", bundle, link.object());
 
-    SimCLInfo* info = (SimCLInfo*)link->cl_info();
-    ASSERT(info);
+    SimLink* sl = (SimLink*)link->cl_info();
+    ASSERT(sl);
 
     // XXX/demmer add Connectivity check to see if it's open and add
     // bw/delay restrictions. then move the following events to
     // there
 
     Node* src_node = Node::active_node();
-    Node* dst_node = info->peer_node_;
+    Node* dst_node = sl->peer_node_;
 
     ASSERT(src_node != dst_node);
 
-    bool reliable = info->params_.reliable_;
+    const ConnState* cs = Connectivity::instance()->lookup(src_node, dst_node);
+    ASSERT(cs);
+    
+    bool reliable = sl->params_.reliable_;
 
     BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
     ASSERT(blocks != NULL);
@@ -190,11 +380,52 @@ SimConvergenceLayer::send_bundle(const ContactRef& contact, Bundle* bundle)
                                    total_len, reliable ? total_len : 0);
     src_node->post_event(tx_event);
 
-    BundleReceivedEvent* rcv_event =
-        new BundleReceivedEvent(new_bundle, EVENTSRC_PEER, total_len);
+    if (link->state() != Link::OPEN) {
+        log_warn("send_bundle in link state %s",
+                 link->state_to_str(link->state()));
+    }
 
-    double arrival_time = Simulator::time() + info->params_.delay_;
-    Simulator::post(new SimBundleEvent(arrival_time, dst_node, rcv_event));
+    sl->send_bundle(new_bundle, total_len, *cs);
+}
+
+//----------------------------------------------------------------------
+void
+SimConvergenceLayer::update_connectivity(Node* n1, Node* n2, const ConnState& cs)
+{
+    ASSERT(n1 != NULL);
+    ASSERT(n2 != NULL);
+
+    n1->set_active();
+    
+    ContactManager* cm = n1->contactmgr();;
+
+    oasys::ScopeLock l(cm->lock(), "SimConvergenceLayer::update_connectivity");
+    const LinkSet* links = cm->links();
+    
+    for (LinkSet::iterator iter = links->begin();
+         iter != links->end();
+         ++iter)
+    {
+        LinkRef link = *iter;
+        SimLink* sl = (SimLink*)link->cl_info();
+        ASSERT(sl);
+
+        // update the token bucket
+        sl->tb_.set_rate(cs.bw_ / 8);
+        
+        if (sl->peer_node_ != n2)
+            continue;
+        
+        log_debug("update_connectivity: checking node %s link %s",
+                  n1->name(), link->name());
+        
+        if (cs.open_ == false && link->state() == Link::OPEN) {
+            log_debug("update_connectivity: closing link %s", link->name());
+            n1->post_event(
+                new LinkStateChangeRequest(link, Link::CLOSED,
+                                           ContactEvent::BROKEN));
+        }
+    }
 }
 
 

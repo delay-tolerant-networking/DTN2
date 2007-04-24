@@ -24,6 +24,9 @@ using namespace dtn;
 
 namespace dtnsim {
 
+struct ConnState;
+class Node;
+
 /**
  * Simulator implementation of the Convergence Layer API.
  */
@@ -55,6 +58,8 @@ public:
     bool open_contact(const ContactRef& contact);
     void send_bundle(const ContactRef& contact, Bundle* bundle);
     /// @}
+
+    void update_connectivity(Node* n1, Node* n2, const ConnState& cs);
     
 protected:
     static SimConvergenceLayer* instance_;

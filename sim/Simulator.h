@@ -78,6 +78,12 @@ public:
     void run();
 
     /**
+     * Handle all bundle events at nodes returning the amount of time
+     * (in ms) until the next timer is due.
+     */
+    int run_node_events();
+
+    /**
      * Pause execution of the simulator, running a console loop until
      * it exits.
      */
@@ -91,11 +97,7 @@ private:
      */
     void process(SimEvent* e);
 
-    /**
-     * Handle all bundle events at nodes returning the amount of time
-     *(in ms) until the next timer is due.
-     */
-    int run_node_events();
+    void log_inqueue_stats();
 
     static Simulator* instance_;        ///< singleton instance
     static double time_;                ///< current time (static to avoid object)

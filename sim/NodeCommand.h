@@ -19,7 +19,9 @@
 
 #include <oasys/tclcmd/TclCommand.h>
 
+#include "cmd/BundleCommand.h"
 #include "cmd/LinkCommand.h"
+#include "cmd/ParamCommand.h"
 #include "cmd/RouteCommand.h"
 
 namespace dtnsim {
@@ -34,12 +36,14 @@ public:
     NodeCommand(Node* node);
 
     /// virtual from TclCommand
-    virtual int exec(int argc, const char** argv, Tcl_Interp* interp);
+    virtual int exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp);
 
 protected:
     Node* node_;
-    dtn::LinkCommand  link_cmd_;
-    dtn::RouteCommand route_cmd_;
+    dtn::BundleCommand bundle_cmd_;
+    dtn::LinkCommand   link_cmd_;
+    dtn::ParamCommand  param_cmd_;
+    dtn::RouteCommand  route_cmd_;
 };
 
 } // namespace dtnsim

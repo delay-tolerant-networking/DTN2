@@ -36,7 +36,7 @@ struct ConnState {
      * Default constructor, also implicitly the default connectivity
      * state.
      */
-    ConnState(): open_(true), bw_(100000), latency_(10) {}
+    ConnState(): open_(true), bw_(100000), latency_(0.01) {}
 
     /**
      * Constructor with explicit settings.
@@ -52,7 +52,7 @@ struct ConnState {
     /**
      * Utility function to parse a time specification.
      */
-    bool parse_time(const char* time_str, int* time);
+    bool parse_time(const char* time_str, double* time);
 
     /**
      * Utility function to fill in the values from a set of options
@@ -60,17 +60,16 @@ struct ConnState {
      */
     bool parse_options(int argc, const char** argv, const char** invalidp);
 
-    
-    bool open_;
-    int	 bw_;
-    int	 latency_;
+    bool   open_;
+    int	   bw_;      // in bps
+    double latency_; // in seconds
 };
 
 /**
  * Base class for the underlying connectivity management between nodes
  * in the simulation.
  */
-class Connectivity : public oasys::Logger, public SimEventHandler {
+class Connectivity : public oasys::Logger {
 public:
     /**
      * Singleton accessor.
@@ -100,16 +99,6 @@ public:
      */
     const ConnState* lookup(Node* n1, Node* n2);
 
-    /**
-     * Event handler function.
-     */
-    virtual void process(SimEvent *e);
-
-    /**
-     * Hook so implementations can handle arbitrary commands.
-     */
-    virtual bool exec(int argc, const char** argv);
-    
 protected:
     friend class ConnCommand;
     
