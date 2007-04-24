@@ -22,6 +22,10 @@
 #ifndef _EXTERNAL_ROUTER_H_
 #define _EXTERNAL_ROUTER_H_
 
+#ifndef HAVE_CONFIG_STATE
+#error "MUST INCLUDE config.h before including this file"
+#endif
+
 #if defined(XERCES_C_ENABLED) && defined(EXTERNAL_DP_ENABLED)
 
 #include "router-custom.h"
