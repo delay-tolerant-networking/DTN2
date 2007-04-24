@@ -32,17 +32,17 @@ DECLARE_TEST(NodeOps) {
 
     DO(a = g.add_node("a", 1));
     CHECK(g.find_node("a") == a);
-    CHECK(g.find_node("a")->info_ == 1);
+    CHECK(g.find_node("a")->info() == 1);
     CHECK_EQUALSTR(g.dump().c_str(), "a ->\n");
         
     DO(b = g.add_node("b", 2));
     CHECK(g.find_node("b") == b);
-    CHECK(g.find_node("b")->info_ == 2);
+    CHECK(g.find_node("b")->info() == 2);
     CHECK_EQUALSTR(g.dump().c_str(), "a ->\n" "b ->\n");
     
     DO(c = g.add_node("c", 3));
     CHECK(g.find_node("c") == c);
-    CHECK(g.find_node("c")->info_ == 3);
+    CHECK(g.find_node("c")->info() == 3);
     CHECK_EQUALSTR(g.dump().c_str(), "a ->\n" "b ->\n" "c ->\n");
 
     CHECK(g.del_node("b"));
@@ -121,7 +121,8 @@ DECLARE_TEST(EdgeOps) {
 }
 
 struct HopCountFn : public MultiGraph<int, int>::WeightFn {
-    u_int32_t operator()(MultiGraph<int, int>::Edge* edge)
+    u_int32_t operator()(const MultiGraph<int, int>::SearchInfo&,
+                         const MultiGraph<int, int>::Edge* edge)
     {
         (void)edge;
         return 1;
@@ -129,10 +130,11 @@ struct HopCountFn : public MultiGraph<int, int>::WeightFn {
 };
 
 struct EvenOddFn : public MultiGraph<int, int>::WeightFn {
-    u_int32_t operator()(MultiGraph<int, int>::Edge* edge)
+    u_int32_t operator()(const MultiGraph<int, int>::SearchInfo&,
+                         const MultiGraph<int, int>::Edge* edge)
     {
         // even nodes like even links and odd nodes like odd links
-        if ((edge->source_->info_ % 2) == (edge->info_)) {
+        if ((edge->source()->info() % 2) == (edge->info())) {
             return 1;
         } else {
             return 10000;
@@ -141,13 +143,28 @@ struct EvenOddFn : public MultiGraph<int, int>::WeightFn {
 };
 
 struct HopWeightFn : public MultiGraph<int, int>::WeightFn {
-    u_int32_t operator()(MultiGraph<int, int>::Edge* edge)
+    u_int32_t operator()(const MultiGraph<int, int>::SearchInfo&,
+                         const MultiGraph<int, int>::Edge* edge)
     {
-        return edge->info_;
+        return edge->info();
     };
 };
 
-DECLARE_TEST(ShortestPathHopCount) {
+struct InfiniteWeightFn : public MultiGraph<int, int>::WeightFn {
+    u_int32_t operator()(const MultiGraph<int, int>::SearchInfo&,
+                         const MultiGraph<int, int>::Edge* edge)
+    {
+        // to properly test this, we assume that the first step has a
+        // valid weight, otherwise everything is just infinite
+        if (edge->source()->info() == 0 &&
+            edge->dest()->info() == 1) {
+            return 1;
+        }
+        return 0xffffffff;
+    };
+};
+
+DECLARE_TEST(ShortestPath) {
     MultiGraph<int, int> g;
     MultiGraph<int, int>::Node* nodes[16];
     MultiGraph<int, int>::EdgeVector path;
@@ -167,6 +184,7 @@ DECLARE_TEST(ShortestPathHopCount) {
     HopCountFn hop_count_fn;
     EvenOddFn even_odd_fn;
     HopWeightFn hop_weight_fn;
+    InfiniteWeightFn infinite_fn;
     
     DO(g.shortest_path(nodes[0], nodes[4], &path, &hop_count_fn));
     std::reverse(path.begin(), path.end());
@@ -188,8 +206,8 @@ DECLARE_TEST(ShortestPathHopCount) {
     CHECK_EQUALSTR(path.dump().c_str(), "[0 -> 1(0)] [1 -> 2(1)] [2 -> 3(0)] [3 -> 4(1)]");
 
     // Remove links, disconnecting node 0
-    CHECK(g.del_edge(nodes[0], nodes[0]->out_edges_[0]));
-    CHECK(g.del_edge(nodes[0], nodes[0]->out_edges_[0]));
+    CHECK(g.del_edge(nodes[0], nodes[0]->out_edges()[0]));
+    CHECK(g.del_edge(nodes[0], nodes[0]->out_edges()[0]));
     DO(g.shortest_path(nodes[0], nodes[4], &path, &hop_count_fn));
     CHECK_EQUAL(path.size(), 0);
 
@@ -212,15 +230,21 @@ DECLARE_TEST(ShortestPathHopCount) {
     CHECK_EQUALSTR(path.dump().c_str(),
                    "[0 -> 1(0)] [1 -> 2(0)] [2 -> 3(0)] [3 -> 4(0)] [4 -> 5(0)] "
                    "[5 -> 6(0)] [6 -> 7(0)] [7 -> 8(0)] [8 -> 9(0)] [9 -> 10(0)]");
+
+    // Finally, check that there's no path to any node if we use the
+    // infinite weight fn.
+    for (int i = 2; i < 16; ++i) {
+        DO(g.shortest_path(nodes[0], nodes[i], &path, &infinite_fn));
+        CHECK_EQUAL(path.size(), 0);
+    }
     
     return UNIT_TEST_PASSED;
 }
 
-
 DECLARE_TESTER(RouteMultiGraphTest) {
     ADD_TEST(NodeOps);
     ADD_TEST(EdgeOps);
-    ADD_TEST(ShortestPathHopCount);
+    ADD_TEST(ShortestPath);
 }
 
 DECLARE_TEST_FILE(RouteMultiGraphTest, "route multigraph test");
