@@ -687,6 +687,7 @@ APIClient::handle_send()
     // assign the addressing fields
     b->source_.assign(&spec.source);
     b->dest_.assign(&spec.dest);
+    b->singleton_dest_ = b->dest_.is_singleton();
     if (spec.replyto.uri[0] == '\0') {
         b->replyto_.assign(EndpointID::NULL_EID());
     } else {
