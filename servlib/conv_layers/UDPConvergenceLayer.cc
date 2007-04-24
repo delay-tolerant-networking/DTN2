@@ -472,9 +472,9 @@ UDPConvergenceLayer::Sender::init(Params* params,
             rate_socket_.bucket()->set_depth(params->bucket_depth_);
         }
         
-        log_debug("initialized rate controller: rate %u depth %u",
-                  rate_socket_.bucket()->rate(),
-                  rate_socket_.bucket()->depth());
+        log_debug("initialized rate controller: rate %llu depth %llu",
+                  U64FMT(rate_socket_.bucket()->rate()),
+                  U64FMT(rate_socket_.bucket()->depth()));
     }
 
     return true;
