@@ -303,8 +303,6 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         if (strcmp(cmd, "info") == 0) {
             oasys::StringBuffer buf;
             bundle->format_verbose(&buf);
-            buf.append("\n");
-            bundle->fwdlog_.dump(&buf);
             set_result(buf.c_str());
 
         } else if (strcmp(cmd, "dump_tcl") == 0) {

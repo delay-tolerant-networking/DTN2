@@ -146,7 +146,17 @@ Bundle::format_verbose(oasys::StringBuffer* buf)
     buf->appendf("   do_not_fragment: %s\n", bool_to_str(do_not_fragment_));
     buf->appendf("       orig_length: %d\n", orig_length_);
     buf->appendf("       frag_offset: %d\n", frag_offset_);
-    buf->appendf("transmission_count: %zu\n", fwdlog_.get_transmission_count());
+    buf->append("\n");
+
+    buf->appendf("forwarding log:\n");
+    fwdlog_.dump(buf);
+    buf->append("\n");
+
+    oasys::ScopeLock l(&lock_, "Bundle::format_verbose");
+    buf->appendf("queued on %zu lists:\n", mappings_.size());
+    for (MappingsIterator i = mappings_begin(); i != mappings_end(); ++i) {
+        buf->appendf("\t%s\n", (*i)->name().c_str());
+    }
 }
 
 //----------------------------------------------------------------------
