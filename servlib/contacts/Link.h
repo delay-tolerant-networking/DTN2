@@ -280,44 +280,43 @@ public:
     /**
      * Return the type of the link.
      */
-    link_type_t type() { return static_cast<link_type_t>(type_); }
+    link_type_t type() const { return static_cast<link_type_t>(type_); }
 
     /**
      * Return the string for of the link.
      */
-    const char* type_str() { return link_type_to_str(
-                                        static_cast<link_type_t>(type_)); }
+    const char* type_str() const { return link_type_to_str(type()); }
 
     /**
      * Return whether or not the link is open.
      */
-    bool isopen() { return ( (state_ == OPEN) ||
-                             (state_ == BUSY) ); }
+    bool isopen() const { return ( (state_ == OPEN) ||
+                                   (state_ == BUSY) ); }
 
     /**
      * Return the availability state of the link.
      */
-    bool isavailable() { return (state_ != UNAVAILABLE); }
+    bool isavailable() const { return (state_ != UNAVAILABLE); }
 
     /**
      * Return the busy state of the link.
      */
-    bool isbusy() { return (state_ == BUSY); }
+    bool isbusy() const { return (state_ == BUSY); }
 
     /**
      * Return whether the link is in the process of opening.
      */
-    bool isopening() { return (state_ == OPENING); }
+    bool isopening() const { return (state_ == OPENING); }
 
     /**
      * Returns true if the link has been deleted; otherwise returns false.
      */
-    bool isdeleted();
+    bool isdeleted() const;
 
     /**
      * Return the actual state.
      */
-    state_t state() { return static_cast<state_t>(state_); }
+    state_t state() const { return static_cast<state_t>(state_); }
 
     /**
      * Sets the state of the link. Performs various assertions to

@@ -158,7 +158,7 @@ Link::delete_link()
 
 //----------------------------------------------------------------------
 bool
-Link::isdeleted()
+Link::isdeleted() const
 {
     oasys::ScopeLock l(&lock_, "Link::delete_link");
     return deleted_;
@@ -242,7 +242,7 @@ Link::serialize(oasys::SerializeAction* a)
         type_ = str_to_link_type(type_str.c_str());
         ASSERT(type_ != LINK_INVALID);
     } else {
-        type_str = link_type_to_str(static_cast<link_type_t>(type_));
+        type_str = link_type_to_str(type());
         a->process("type",     &type_str);
     }
     
@@ -335,13 +335,13 @@ void
 Link::set_state(state_t new_state)
 {
     log_debug("set_state %s -> %s",
-              state_to_str(static_cast<state_t>(state_)),
+              state_to_str(state()),
               state_to_str(new_state));
 
 #define ASSERT_STATE(condition)                             \
     if (!(condition)) {                                     \
         log_err("set_state %s -> %s: expected %s",          \
-                state_to_str(static_cast<state_t>(state_)), \
+                state_to_str(state()), \
                 state_to_str(new_state),                    \
                 #condition);                                \
     }
@@ -383,7 +383,7 @@ Link::open()
 
     if (state_ != AVAILABLE) {
         log_crit("Link::open: in state %s: expected state AVAILABLE",
-                 state_to_str(static_cast<state_t>(state_)));
+                 state_to_str(state()));
         return;
     }
 
@@ -431,9 +431,9 @@ Link::format(char* buf, size_t sz) const
 {
     return snprintf(buf, sz, "%s [%s %s %s %s state=%s]",
                     name(), nexthop(), remote_eid_.c_str(),
-                    link_type_to_str(static_cast<link_type_t>(type_)),
+                    link_type_to_str(type()),
                     clayer()->name(),
-                    state_to_str(static_cast<state_t>(state_)));
+                    state_to_str(state()));
 }
 
 //----------------------------------------------------------------------
@@ -460,8 +460,8 @@ Link::dump(oasys::StringBuffer* buf)
                  "prevhop_hdr: %s\n",
                  name(),
                  clayer_->name(),
-                 link_type_to_str(static_cast<link_type_t>(type_)),
-                 state_to_str(static_cast<state_t>(state_)),
+                 link_type_to_str(type()),
+                 state_to_str(state()),
                  (deleted_? "true" : "false"),
                  nexthop(),
                  remote_eid_.c_str(),
