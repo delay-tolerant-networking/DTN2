@@ -170,6 +170,15 @@ public:
      */
     bool erase(Bundle* bundle, bool used_notifier = false);
 
+    bool erase(const BundleRef& bundle, bool used_notifier = false) {
+        return erase(bundle.object(), used_notifier);
+    }
+
+    /**
+     * Remove the bundle at the given list position.
+     */
+    void erase(iterator& iter, bool used_notifier = false);
+    
     /**
      * Search the list for the given bundle.
      *

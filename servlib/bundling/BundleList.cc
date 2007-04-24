@@ -302,10 +302,29 @@ BundleList::erase(Bundle* bundle, bool used_notifier)
         return false;
     }
 
-    del_bundle(pos, used_notifier);
+    Bundle* b = del_bundle(pos, used_notifier);
+    ASSERT(b == bundle);
     
     bundle->del_ref("bundle_list", name_.c_str());
     return true;
+}
+
+/**
+ * Remove the bundle at the given position from the list.
+ */
+void
+BundleList::erase(iterator& iter, bool used_notifier)
+{
+    Bundle* bundle = *iter;
+    ASSERTF(!bundle->lock_.is_locked_by_me(),
+            "bundle cannot be locked in erase due to potential deadlock");
+    
+    oasys::ScopeLock l(lock_, "BundleList::erase");
+    
+    Bundle* b = del_bundle(iter, used_notifier);
+    ASSERT(b == bundle);
+    
+    bundle->del_ref("bundle_list", name_.c_str());
 }
 
 /**
