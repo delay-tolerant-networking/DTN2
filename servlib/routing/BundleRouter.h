@@ -121,6 +121,21 @@ public:
     virtual void get_routing_state(oasys::StringBuffer* buf) = 0;
 
     /**
+     * Format the given StringBuffer with a tcl-parsable version of
+     * the routing state.
+     *
+     * The expected format is:
+     *
+     *  {
+     *    {dest_eid1 nexthop_link1 [params]}
+     *    {dest_eid2 nexthop_link2 [params]}
+     *  }
+     *
+     * where [params] is a var val list.
+     */
+    virtual void tcl_dump_state(oasys::StringBuffer* buf);
+
+    /**
      * for registration with the BundleDaemon
      */
     virtual void shutdown();

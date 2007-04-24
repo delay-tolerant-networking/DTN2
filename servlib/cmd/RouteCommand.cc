@@ -33,6 +33,7 @@
 #include "routing/BundleRouter.h"
 #include "routing/RouteEntry.h"
 #include "routing/ExternalRouter.h"
+#include "routing/DTLSRConfig.h"
 
 namespace dtn {
 
@@ -52,6 +53,39 @@ RouteCommand::RouteCommand()
                                "priority",
                                "Default priority for new routes "
                                "(initially zero)"));
+
+    bind_var(new oasys::EnumOpt("dtlsr_weight_fn",
+                                DTLSRConfig::instance()->weight_opts_,
+                                (int*)&DTLSRConfig::instance()->weight_fn_,
+                                "fn", "Weight function for the graph"));
+                                  
+    bind_var(new oasys::DoubleOpt("dtlsr_uptime_factor",
+                                  &DTLSRConfig::instance()->uptime_factor_,
+                                  "pct", "Aging pct for cost of down links"));
+
+    bind_var(new oasys::BoolOpt("dtlsr_keep_down_links",
+                                &DTLSRConfig::instance()->keep_down_links_,
+                                "Whether or not to retain down links in the graph"));
+
+    bind_var(new oasys::UIntOpt("dtlsr_recompute_delay",
+                                &DTLSRConfig::instance()->recompute_delay_,
+                                "seconds",
+                                "Delay to compute routes after LSA arrives"));
+
+    bind_var(new oasys::UIntOpt("dtlsr_aging_delay",
+                                &DTLSRConfig::instance()->aging_interval_,
+                                "seconds",
+                                "Interval to locally recompute routes"));
+    
+    bind_var(new oasys::UIntOpt("dtlsr_lsa_interval",
+                                &DTLSRConfig::instance()->lsa_interval_,
+                                "seconds",
+                                "Interval to periodically send LSAs"));
+    
+    bind_var(new oasys::UIntOpt("dtlsr_lsa_lifetime",
+                                &DTLSRConfig::instance()->lsa_lifetime_,
+                                "seconds",
+                                "Lifetime of LSA bundles"));
     
     add_to_help("add <dest> <link/endpoint> [opts]", "add a route");
     add_to_help("del <dest> <link/endpoint>", "delete a route");
@@ -175,6 +209,14 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     else if (strcmp(cmd, "dump") == 0) {
         oasys::StringBuffer buf;
         BundleDaemon::instance()->get_routing_state(&buf);
+        set_result(buf.c_str());
+        return TCL_OK;
+    }
+
+    else if (strcmp(cmd, "dump_tcl") == 0) {
+        // XXX/demmer this could be done better
+        oasys::StringBuffer buf;
+        BundleDaemon::instance()->router()->tcl_dump_state(&buf);
         set_result(buf.c_str());
         return TCL_OK;
     }

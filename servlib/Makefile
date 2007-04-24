@@ -128,6 +128,9 @@ ROUTING_SRCS :=					\
 	routing/router.cc			\
 	routing/router-custom.cc		\
 	routing/DuplicateCache.cc		\
+	routing/DTLSR.cc			\
+	routing/DTLSRConfig.cc			\
+	routing/DTLSRRouter.cc			\
 	routing/ExternalRouter.cc		\
 	routing/BundleRouter.cc			\
 	routing/FloodBundleRouter.cc		\
@@ -144,7 +147,6 @@ ROUTING_SRCS :=					\
 	routing/ProphetTLV.cc			\
 	routing/RouteEntry.cc			\
 	routing/RouteTable.cc			\
-	routing/ShortestPathRouter.cc		\
 	routing/TableBasedRouter.cc		\
 	routing/TcaEndpointID.cc                \
 	routing/TcaControlBundle.cc             \

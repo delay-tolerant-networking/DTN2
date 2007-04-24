@@ -31,7 +31,7 @@
 #include "NeighborhoodRouter.h"
 #include "ProphetRouter.h"
 #include "LinkStateRouter.h"
-#include "ShortestPathRouter.h"
+#include "DTLSRRouter.h"
 #include "ExternalRouter.h"
 #include "TcaRouter.h"
 
@@ -65,8 +65,8 @@ BundleRouter::create_router(const char* type)
     else if (strcmp(type, "linkstate") == 0) {
         return new LinkStateRouter();
     }    
-    else if (strcmp(type, "shortest_path") == 0) {
-        return new ShortestPathRouter();
+    else if (strcmp(type, "dtlsr") == 0) {
+        return new DTLSRRouter();
     }    
     else if (!strcmp(type, "tca_router")) {
         return new TcaRouter(TcaRouter::TCA_ROUTER);
@@ -130,6 +130,13 @@ BundleRouter::accept_bundle(Bundle* bundle, int* errp)
 
     *errp = 0;
     return true;
+}
+
+//----------------------------------------------------------------------
+void
+BundleRouter::tcl_dump_state(oasys::StringBuffer* buf)
+{
+    buf->append("{}");
 }
 
 //----------------------------------------------------------------------
