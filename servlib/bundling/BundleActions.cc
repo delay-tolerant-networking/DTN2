@@ -92,7 +92,8 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
 
     if (bundle->xmit_blocks_.find_blocks(link) != NULL) {
         log_err("BundleActions::send_bundle: "
-                "link not ready to handle bundle, dropping send request");
+                "link not ready to handle bundle (block vector already exists), "
+                "dropping send request");
         return false;
     }
 
@@ -122,62 +123,56 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
         return false;
     }
 
-    // If the convergence layer retains bundles between link up/down
-    // events, send the bundle. If the convergence layer does not,
-    // then we need to copy the bundle to the delayed-send queue
-    // and additionally send it if the link is open.
-    if (link->clayer()->has_persistent_link_queues())
+    // Make sure that the bundle isn't unexpectedly already on the queue
+    if (! link->clayer()->has_persistent_link_queues() &&
+        link->queue()->contains(bundle))
     {
-        log_debug("adding forward log entry for %s link %s "
-                  "with nexthop %s and remote eid %s to *%p",
-                  link->type_str(), link->name(),
-                  link->nexthop(), link->remote_eid().c_str(), bundle);
-        bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
-                                  custody_timer);
-        link->stats()->bundles_queued_++;
-        link->stats()->bytes_queued_ += total_len;
-        if (link->state() == Link::OPEN) {
-            link->clayer()->send_bundle(link->contact(), bundle);
-        }
-        else
-        {
-            link->clayer()->send_bundle_on_down_link(link, bundle);
-        }
+        log_err("send bundle *%p on link *%p: already queued on link",
+                bundle, link.object());
+        return false;
+    }
+    
+    log_debug("adding forward log entry for %s link %s "
+              "with nexthop %s and remote eid %s to *%p",
+              link->type_str(), link->name(),
+              link->nexthop(), link->remote_eid().c_str(), bundle);
+    
+    bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
+                              custody_timer);
+
+    link->stats()->bundles_queued_++;
+    link->stats()->bytes_queued_ += total_len;
+
+    // If the link is open, tell the convergence layer to send the
+    // bundle. Otherwise, we either queue the bundle or kick the
+    // convergence layer to tell it to send the bundle on the down
+    // link, depending on the CL behavior
+    if (link->state() == Link::OPEN)
+    {
         log_debug("immediate send of bundle *%p to link *%p: link in state %s",
                   bundle, link.object(), Link::state_to_str(link->state()));
+
+        // XXX/demmer this is needed due to BBN's recent changes but
+        // it seems like a better model would be to always call
+        // send_bundle or send_bundle_on_down_link. then based on how
+        // the CL itself operates, it either puts the bundle on the
+        // queue or doesn't
+        if (!link->clayer()->has_persistent_link_queues()) {
+            link->queue()->push_back(bundle);
+        }
+        
+        link->clayer()->send_bundle(link->contact(), bundle);
     }
     else
     {
-        // Abort if this link's delayed-send queue already contains the bundle
-        if (link->queue()->contains(bundle))
-        {
-            return false;
-        }
-        // Otherwise add the bundle to the link's delayed-send queue
-        // and send it if the link is open now
-        else
-        {
-            log_debug("adding forward log entry for %s link %s "
-                      "with nexthop %s and remote eid %s to *%p",
-                      link->type_str(), link->name(),
-                      link->nexthop(), link->remote_eid().c_str(), bundle);
-            bundle->fwdlog_.add_entry(link, action, ForwardingInfo::IN_FLIGHT,
-                                      custody_timer);
-            link->stats()->bundles_queued_++;
-            link->stats()->bytes_queued_ += total_len;
+        log_debug("delayed send of bundle *%p to link *%p: link in state %s",
+                  bundle, link.object(), Link::state_to_str(link->state()));
+        
+        if (link->clayer()->has_persistent_link_queues()) {
+            link->clayer()->send_bundle_on_down_link(link, bundle);
+        } else {
             link->queue()->push_back(bundle);
-            if (link->state() == Link::OPEN) {
-                ASSERT(link->contact() != NULL);
-                link->clayer()->send_bundle(link->contact(), bundle);
-                log_debug("immediate send of bundle *%p to link *%p: "
-                          "link in state %s",
-                          bundle, link.object(), Link::state_to_str(link->state()));
-            } else {
-                log_debug("delayed send of bundle *%p to link *%p: "
-                          "link in state %s",
-                          bundle, link.object(), Link::state_to_str(link->state()));
-            }
-        }               
+        }
     }
     
     return true;
@@ -202,23 +197,21 @@ BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
     if (link->queue()->size() != 0) {
         if(link->queue()->erase(bundle,false))
         {
-                log_info("removed delayed-send bundle id:%d from link %s queue",
-                 bundle->bundleid_,
-                 link->name());
+            log_info("removed delayed-send bundle id:%d from link %s queue",
+                     bundle->bundleid_,
+                     link->name());
         }
     }
 
-        // If that bundle has ever been sent on that link, cancel it
-        ForwardingInfo fwdinfo;
-        if(bundle->fwdlog_.get_latest_entry(link, &fwdinfo))
-        {
+    // If that bundle has ever been sent on that link, cancel it
+    ForwardingInfo fwdinfo;
+    if (bundle->fwdlog_.get_latest_entry(link, &fwdinfo))
+    {
         bundle->fwdlog_.update(link, ForwardingInfo::CANCELLED);
-                
         return link->clayer()->cancel_bundle(link, bundle);
-        }
-        
-        return false;
+    }
     
+    return false;
 }
 
 //----------------------------------------------------------------------
