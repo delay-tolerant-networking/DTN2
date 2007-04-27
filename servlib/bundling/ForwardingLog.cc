@@ -46,7 +46,8 @@ ForwardingLog::get_latest_entry(const LinkRef& link, ForwardingInfo* info) const
             // This assertion holds as long as the mapping of link
             // name to remote eid is persistent. This may need to be
             // revisited once link tables are serialized to disk.
-            ASSERT(iter->remote_eid() == link->remote_eid());
+            ASSERT(iter->remote_eid() == EndpointID::NULL_EID() ||
+                   iter->remote_eid() == link->remote_eid());
             *info = *iter;
             return true;
         }
@@ -164,7 +165,8 @@ ForwardingLog::update(const LinkRef& link, state_t state)
             // This assertion holds as long as the mapping of link
             // name to remote eid is persistent. This may need to be
             // revisited once link tables are serialized to disk.
-            ASSERT(iter->remote_eid() == link->remote_eid());
+            ASSERT(iter->remote_eid() == EndpointID::NULL_EID() ||
+                   iter->remote_eid() == link->remote_eid());
             iter->set_state(state);
             return true;
         }
