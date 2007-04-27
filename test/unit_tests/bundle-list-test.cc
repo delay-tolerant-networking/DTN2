@@ -46,6 +46,9 @@ DECLARE_TEST(Init) {
     l2 = new BundleList("list2");
     l3 = new BundleList("list3");
 
+    CHECK(l1->empty());
+    CHECK(l2->empty());
+    CHECK(l3->empty());
     CHECK_EQUAL(l1->size(), 0);
     CHECK_EQUAL(l2->size(), 0);
     CHECK_EQUAL(l3->size(), 0);
@@ -88,6 +91,7 @@ DECLARE_TEST(BasicPushPop) {
         CHECK_EQUAL(bundles[i]->refcount(), 2);
     }
 
+    CHECK(!l1->empty());
     CHECK_EQUAL(l1->size(), COUNT);
     
     for (int i = 0; i < COUNT; ++i) {
@@ -97,6 +101,7 @@ DECLARE_TEST(BasicPushPop) {
         CHECK_EQUAL(bundles[i]->refcount(), 1);
     }
 
+    CHECK(l1->empty());
     CHECK_EQUAL(l1->size(), 0);
 
     return UNIT_TEST_PASSED;
@@ -108,31 +113,37 @@ DECLARE_TEST(ContainsAndErase) {
         l1->push_back(bundles[i]);
         CHECK(l1->contains(bundles[i]));
     }
+    CHECK(!l1->empty());
     CHECK_EQUAL(l1->size(), COUNT);
 
     CHECK(l1->erase(bundles[0]));
     CHECK(! l1->contains(bundles[0]));
     CHECK_EQUAL(bundles[0]->refcount(), 1);
     CHECK_EQUAL(bundles[0]->num_mappings(), 0);
+    CHECK(!l1->empty());
     CHECK_EQUAL(l1->size(), COUNT - 1);
     
     CHECK(! l1->erase(bundles[0]));
     CHECK(! l1->contains(bundles[0]));
     CHECK_EQUAL(bundles[0]->refcount(), 1);
     CHECK_EQUAL(bundles[0]->num_mappings(), 0);
+    CHECK(!l1->empty());
     CHECK_EQUAL(l1->size(), 9);
 
     CHECK(l1->erase(bundles[5]));
     CHECK(! l1->contains(bundles[5]));
     CHECK_EQUAL(bundles[5]->refcount(), 1);
     CHECK_EQUAL(bundles[5]->num_mappings(), 0);
+    CHECK(!l1->empty());
     CHECK_EQUAL(l1->size(), COUNT - 2);
 
     CHECK(! l1->contains(NULL));
     CHECK(! l1->erase(NULL));
+    CHECK(!l1->empty());
     CHECK_EQUAL(l1->size(), COUNT - 2);
 
     l1->clear();
+    CHECK(l1->empty());
     CHECK_EQUAL(l1->size(), 0);
     for (int i = 0; i < COUNT; ++i) {
         CHECK(! l1->contains(bundles[i]));
@@ -174,12 +185,9 @@ DECLARE_TEST(MultipleLists) {
         l = *map_iter;
         CHECK(l->contains(b));
     }
-    
-    for (map_iter = b->mappings_begin();
-         map_iter != b->mappings_end();
-         ++map_iter)
-    {
-        l = *map_iter;
+
+    while (b->num_mappings() != 0) {
+        l = *b->mappings_begin();
         b->lock_.unlock();
         CHECK(l->erase(b));
         b->lock_.lock("test lock");
@@ -205,12 +213,9 @@ DECLARE_TEST(MultipleListRemoval) {
 
         b->lock_.lock("test lock");
         CHECK_EQUAL(b->num_mappings(), 3);
-        
-        for (map_iter = b->mappings_begin();
-             map_iter != b->mappings_end();
-             ++map_iter)
-        {
-            l = *map_iter;
+
+        while (b->num_mappings() != 0) {
+            l = *b->mappings_begin();
             
             CHECK(l->contains(b));
             b->lock_.unlock();
