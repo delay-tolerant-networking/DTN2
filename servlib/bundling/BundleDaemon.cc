@@ -789,13 +789,11 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
     }
 
     // remove the bundle from the link's delayed-send queue
-    if (link->queue()->size() != 0) {
-        if(link->queue()->erase(bundle,false))
-        {
-                log_info("removed delayed-send bundle id:%d from link %s queue",
+    if (link->queue()->erase(bundle, false))
+    {
+        log_info("removed delayed-send bundle id:%d from link %s queue",
                  bundle->bundleid_,
                  link->name());
-        }
     }
     
     /*
@@ -1711,8 +1709,9 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
 
         // If the convergence layer doesn't retain bundles between link up/down
         // events, then we need to copy the delayed-send queue to it from the link
-    if (!(link->clayer()->has_persistent_link_queues())
-            && link->queue()->size() != 0) {
+    if (!link->clayer()->has_persistent_link_queues() &&
+        !link->queue()->empty())
+    {
         log_info("sending %zu delayed-send bundles from link %s to clayer %s",
                  link->queue()->size(),
                  link->name(),
