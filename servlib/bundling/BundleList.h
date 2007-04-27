@@ -227,6 +227,11 @@ public:
     size_t size() const;
 
     /**
+     * Return whether or not the list is empty.
+     */
+    bool empty() const;
+
+    /**
      * Iterator used to iterate through the list. Iterations _must_ be
      * completed while holding the list lock, and this method will
      * assert as such.

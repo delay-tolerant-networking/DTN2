@@ -28,15 +28,14 @@
 
 namespace dtn {
 
-// XXX/demmer want some sort of expiration handler registration per
-// list so things know when their bundles have been expired
-
+//----------------------------------------------------------------------
 BundleList::BundleList(const std::string& name)
     : Logger("BundleList", "/dtn/bundle/list/%s", name.c_str()),
       name_(name), lock_(new oasys::SpinLock()), notifier_(NULL)
 {
 }
 
+//----------------------------------------------------------------------
 void
 BundleList::set_name(const std::string& name)
 {
@@ -44,15 +43,14 @@ BundleList::set_name(const std::string& name)
     logpathf("/dtn/bundle/list/%s", name.c_str());
 }
 
+//----------------------------------------------------------------------
 BundleList::~BundleList()
 {
     clear();
     delete lock_;
 }
 
-/**
- * Peek at the first bundle on the list.
- */
+//----------------------------------------------------------------------
 BundleRef
 BundleList::front()
 {
@@ -66,9 +64,7 @@ BundleList::front()
     return ret;
 }
 
-/**
- * Peek at the last bundle on the list.
- */
+//----------------------------------------------------------------------
 BundleRef
 BundleList::back()
 {
@@ -82,10 +78,7 @@ BundleList::back()
     return ret;
 }
 
-/**
- * Helper routine to insert a bundle immediately before the indicated
- * position.
- */
+//----------------------------------------------------------------------
 void
 BundleList::add_bundle(Bundle* b, const iterator& pos)
 {
@@ -110,9 +103,7 @@ BundleList::add_bundle(Bundle* b, const iterator& pos)
               b->bundleid_, name_.c_str(), this);
 }
 
-/**
- * Add a new bundle to the front of the list.
- */
+//----------------------------------------------------------------------
 void
 BundleList::push_front(Bundle* b)
 {
@@ -121,9 +112,7 @@ BundleList::push_front(Bundle* b)
     add_bundle(b, list_.begin());
 }
 
-/**
- * Add a new bundle to the front of the list.
- */
+//----------------------------------------------------------------------
 void
 BundleList::push_back(Bundle* b)
 {
@@ -132,9 +121,7 @@ BundleList::push_back(Bundle* b)
     add_bundle(b, list_.end());
 }
         
-/**
- * Insert the given bundle sorted by the given sort method.
- */
+//----------------------------------------------------------------------
 void
 BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
 {
@@ -169,10 +156,7 @@ BundleList::insert_sorted(Bundle* b, sort_order_t sort_order)
     add_bundle(b, iter);
 }
 
-/**
- * As a testing hook, insert the given bundle into a random
- * location in the list.
- */
+//----------------------------------------------------------------------
 void
 BundleList::insert_random(Bundle* b)
 {
@@ -182,7 +166,7 @@ BundleList::insert_random(Bundle* b)
 
     iter = begin();
     int location = 0;
-    if (size() != 0) {
+    if (! empty()) {
         location = random() % size();
     }
 
@@ -195,9 +179,7 @@ BundleList::insert_random(Bundle* b)
     add_bundle(b, iter);
 }
 
-/**
- * Helper routine to remove a bundle from the indicated position.
- */
+//----------------------------------------------------------------------
 Bundle*
 BundleList::del_bundle(const iterator& pos, bool used_notifier)
 {
@@ -234,9 +216,7 @@ BundleList::del_bundle(const iterator& pos, bool used_notifier)
     return b;
 }
 
-/**
- * Remove (and return) the first bundle on the list.
- */
+//----------------------------------------------------------------------
 BundleRef
 BundleList::pop_front(bool used_notifier)
 {
@@ -248,7 +228,7 @@ BundleList::pop_front(bool used_notifier)
         return ret;
     }
     
-    ASSERT(list_.size() != 0);
+    ASSERT(!empty());
 
     // Assign the bundle to a temporary reference, then remove the
     // list reference on the bundle and return the temporary
@@ -257,9 +237,7 @@ BundleList::pop_front(bool used_notifier)
     return ret;
 }
 
-/**
- * Remove (and return) the last bundle on the list.
- */
+//----------------------------------------------------------------------
 BundleRef
 BundleList::pop_back(bool used_notifier)
 {
@@ -278,13 +256,7 @@ BundleList::pop_back(bool used_notifier)
     return ret;
 }
 
-/**
- * Remove the given bundle from the list. Returns true if the
- * bundle was successfully removed, false otherwise.
- *
- * Unlike the pop() functions, this does remove the list's
- * reference on the bundle.
- */
+//----------------------------------------------------------------------
 bool
 BundleList::erase(Bundle* bundle, bool used_notifier)
 {
@@ -309,9 +281,7 @@ BundleList::erase(Bundle* bundle, bool used_notifier)
     return true;
 }
 
-/**
- * Remove the bundle at the given position from the list.
- */
+//----------------------------------------------------------------------
 void
 BundleList::erase(iterator& iter, bool used_notifier)
 {
@@ -327,11 +297,7 @@ BundleList::erase(iterator& iter, bool used_notifier)
     bundle->del_ref("bundle_list", name_.c_str());
 }
 
-/**
- * Search the list for the given bundle.
- *
- * @return true if found, false if not
- */
+//----------------------------------------------------------------------
 bool
 BundleList::contains(Bundle* bundle)
 {
@@ -351,11 +317,7 @@ BundleList::contains(Bundle* bundle)
     return ret;
 }
 
-/**
- * Search the list for a bundle with the given id.
- *
- * @return the bundle or NULL if not found.
- */
+//----------------------------------------------------------------------
 BundleRef
 BundleList::find(u_int32_t bundle_id)
 {
@@ -371,12 +333,7 @@ BundleList::find(u_int32_t bundle_id)
     return ret;
 }
 
-/**
- * Search the list for a bundle with the given source eid and
- * timestamp.
- *
- * @return the bundle or NULL if not found.
- */
+//----------------------------------------------------------------------
 BundleRef
 BundleList::find(const EndpointID& source_eid,
                  const BundleTimestamp& creation_ts)
@@ -397,11 +354,7 @@ BundleList::find(const EndpointID& source_eid,
     return ret;
 }
 
-/**
- * Search the list for a bundle with the given GBOF ID
- *
- * @return the bundle or NULL if not found.
- */
+//----------------------------------------------------------------------
 BundleRef
 BundleList::find(GbofId& gbof_id)
 {
@@ -423,9 +376,7 @@ BundleList::find(GbofId& gbof_id)
     return ret;
 }
 
-/**
- * Move all bundles from this list to another.
- */
+//----------------------------------------------------------------------
 void
 BundleList::move_contents(BundleList* other)
 {
@@ -439,9 +390,7 @@ BundleList::move_contents(BundleList* other)
     }
 }
 
-/**
- * Clear out the list.
- */
+//----------------------------------------------------------------------
 void
 BundleList::clear()
 {
@@ -454,9 +403,7 @@ BundleList::clear()
 }
 
 
-/**
- * Return the size of the list.
- */
+//----------------------------------------------------------------------
 size_t
 BundleList::size() const
 {
@@ -464,11 +411,15 @@ BundleList::size() const
     return list_.size();
 }
 
-/**
- * Iterator used to iterate through the list. Iterations _must_ be
- * completed while holding the list lock, and this method will
- * assert as such.
- */
+//----------------------------------------------------------------------
+bool
+BundleList::empty() const
+{
+    oasys::ScopeLock l(lock_, "BundleList::empty");
+    return list_.empty();
+}
+
+//----------------------------------------------------------------------
 BundleList::iterator
 BundleList::begin()
 {
@@ -478,11 +429,7 @@ BundleList::begin()
     return list_.begin();
 }
 
-/**
- * Iterator used to mark the end of the list. Iterations _must_ be
- * completed while holding the list lock, and this method will
- * assert as such.
- */
+//----------------------------------------------------------------------
 BundleList::iterator
 BundleList::end()
 {
@@ -492,11 +439,7 @@ BundleList::end()
     return list_.end();
 }
 
-/**
- * Const iterator used to iterate through the list. Iterations 
- * _must_ be completed while holding the list lock, and this 
- * method will assert as such.
- */
+//----------------------------------------------------------------------
 BundleList::const_iterator
 BundleList::begin() const
 {
@@ -507,11 +450,7 @@ BundleList::begin() const
 }
 
 
-/**
- * Const iterator used to mark the end of the list. Iterations
- * _must_ be completed while holding the list lock, and this
- * method will assert as such.
- */
+//----------------------------------------------------------------------
 BundleList::const_iterator
 BundleList::end() const
 {
@@ -521,25 +460,21 @@ BundleList::end() const
     return list_.end();
 }
 
+//----------------------------------------------------------------------
 BlockingBundleList::BlockingBundleList(const std::string& name)
     : BundleList(name)
 {
     notifier_ = new oasys::Notifier(logpath_);
 }
 
+//----------------------------------------------------------------------
 BlockingBundleList::~BlockingBundleList()
 {
     delete notifier_;
     notifier_ = NULL;
 }
 
-/**
- * Remove (and return) the first bundle on the list, blocking if
- * there are none. 
- *
- * Blocking read can be interrupted by calling BundleList::notify(). 
- * If this is done, the return value will be NULL.
- */
+//----------------------------------------------------------------------
 BundleRef
 BlockingBundleList::pop_blocking(int timeout)
 {
@@ -582,6 +517,5 @@ BlockingBundleList::pop_blocking(int timeout)
     
     return ret;
 }
-
 
 } // namespace dtn
