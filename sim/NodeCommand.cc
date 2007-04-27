@@ -40,7 +40,8 @@ using namespace dtn;
 namespace dtnsim {
 
 NodeCommand::NodeCommand(Node* node)
-    : TclCommand(node->name()), node_(node)
+    : TclCommand(node->name()), node_(node),
+      storage_cmd_(node->storage_config())
 {
 }
 
@@ -90,6 +91,13 @@ NodeCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
     else if (strcmp(cmd, "route") == 0)
     {
         return route_cmd_.exec(argc - 1, argv + 1, interp);
+    }
+    else if (strcmp(cmd, "storage") == 0)
+    {
+        if (subcmd != NULL && !strcmp(subcmd, "set")) {
+            return storage_cmd_.cmd_set(objc - 1, objv + 1, interp);
+        }
+        return storage_cmd_.exec(argc - 1, argv + 1, interp);
     }
     else if (strcmp(cmd, "registration") == 0)
     {

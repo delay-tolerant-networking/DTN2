@@ -34,6 +34,7 @@
 #include "SimConvergenceLayer.h"
 #include "contacts/ContactManager.h"
 #include "cmd/RouteCommand.h"
+#include "cmd/StorageCommand.h"
 #include "naming/SchemeTable.h"
 
 #include "servlib/bundling/BundleTimestamp.h"
@@ -119,35 +120,29 @@ DTNSim::main(int argc, char* const argv[])
     
     // Initialize the simulator first and foremost since it's needed
     // for LogSim::gettimeofday
-    Simulator* s = new Simulator(new DTNStorageConfig(
-                                     "storage","memorydb","",""));
-    Simulator::init(s);
+    Simulator::create();
     
-    // Set up the command interpreter
+    // Set up the command interpreter and all global commands (i.e.
+    // all the ones that aren't node-specific)
     if (oasys::TclCommandInterp::init(argv[0]) != 0)
     {
         log_crit("Can't init TCL");
         exit(1);
     }
-        
     oasys::TclCommandInterp* interp = oasys::TclCommandInterp::instance();
     interp->reg(new ConnCommand()); 
     interp->reg(new dtn::RouteCommand());
     interp->reg(new SimCommand());
     log_info("registered dtnsim commands");
 
+    // set up all the real singleton components
     SchemeTable::create();
     SimConvergenceLayer::init();
     ConvergenceLayer::add_clayer(SimConvergenceLayer::instance());
     BundleProtocol::init_default_processors();
     log_info("intialized dtnsim components");
-	
-    // initialize data store to memorydb
-    if (!Simulator::instance()->init_datastore()) {
-        log_err("error initializing data store, exiting...");
-        exit(1);
-    }
 
+    // seed random number generator in tcl as well
     oasys::StringBuffer seed_cmd("expr srand(%u)", random_seed_);
     interp->exec_command(seed_cmd.c_str());
     
@@ -161,7 +156,7 @@ DTNSim::main(int argc, char* const argv[])
         log_err("error in configuration file, exiting...");
         exit(1);
     }
-    
+
     // Run the event loop of simulator
     Simulator::instance()->run();
 
@@ -171,8 +166,6 @@ DTNSim::main(int argc, char* const argv[])
             "puts \"Simulation complete -- entering console (Control-D to exit)...\"");
         oasys::TclCommandInterp::instance()->command_loop("dtnsim% ");
     }
-        
-    Simulator::instance()->close_datastore();
 
     return 0;
 }

@@ -19,9 +19,15 @@
 
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
+#include <oasys/storage/DurableStore.h>
 
 #include "SimEventHandler.h"
 #include "bundling/BundleDaemon.h"
+#include "storage/DTNStorageConfig.h"
+#include "storage/BundleStore.h"
+#include "storage/LinkStore.h"
+#include "storage/GlobalStore.h"
+#include "storage/RegistrationStore.h"
 
 using namespace dtn;
 
@@ -81,6 +87,11 @@ public:
     bool process_one_bundle_event();
 
     /**
+     * Run the given event immediately.
+     */
+    void run_one_event_now(BundleEvent* event);
+
+    /**
      * Process all pending bundle events until the queue is empty.
      */
     bool process_bundle_events();
@@ -105,18 +116,13 @@ public:
 
     /**
      * Set the node as the "active" node in the simulation. This
-     * swings the static BundleDaemon::instance_ pointer to point to
-     * the node so all singleton accesses throughout the code will
-     * reference the correct node.
+     * swings the static instance_ pointers to point to the node and
+     * its state so all singleton accesses throughout the code will
+     * reference the correct object(s).
      *
      * It also sets the node name as the logging prefix in oasys.
      */
-    void set_active()
-    {
-        instance_ = this;
-        oasys::Singleton<oasys::TimerSystem>::force_set_instance(timersys_);
-        oasys::Log::instance()->set_prefix(name_.c_str());
-    }
+    void set_active();
 
     /**
      * Return the current active node.
@@ -126,12 +132,25 @@ public:
         return (Node*)instance_;
     }
 
+    /**
+     * Accessor for the storage config at this node.
+     */
+    DTNStorageConfig* storage_config() { return &storage_config_; }
+
 protected:
     const std::string   name_;
     u_int32_t		next_bundleid_;
     u_int32_t		next_regid_;
     std::queue<BundleEvent*>* eventq_;
     oasys::TimerSystem* timersys_;
+
+    /// @{ Fake-Durable storage
+    DTNStorageConfig     storage_config_;
+    oasys::DurableStore* store_;
+    BundleStore*         bundle_store_;
+    LinkStore*           link_store_;
+    RegistrationStore*   reg_store_;
+    /// @}
 };
 
 } // namespace dtnsim

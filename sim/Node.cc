@@ -22,7 +22,6 @@
 #include "SimEvent.h"
 #include "SimLog.h"
 #include "Node.h"
-#include "SimBundleActions.h"
 #include "bundling/BundleDaemon.h"
 #include "contacts/ContactManager.h"
 #include "contacts/Link.h"
@@ -36,12 +35,21 @@ namespace dtnsim {
 
 //----------------------------------------------------------------------
 Node::Node(const char* name)
-    : BundleDaemon(), name_(name)
+    : BundleDaemon(), name_(name),
+      storage_config_("storage",
+                      "memorydb",
+                      "DTN", "")
+      
 {
     logpathf("/node/%s", name);
     log_info("node %s initializing...", name);
 
-    BundleDaemon::is_simulator_ = true;
+    storage_config_.init_ = true;
+    storage_config_.tidy_ = true;
+    storage_config_.tidy_wait_ = 0;
+    storage_config_.leave_clean_file_ = false;
+    storage_config_.payload_dir_ = std::string("/tmp/dtnsim_payloads_") +
+                                   getenv("USER");
 }
 
 //----------------------------------------------------------------------
@@ -50,13 +58,57 @@ Node::do_init()
 {
     BundleDaemon::instance_ = this;
     
-    actions_ = new SimBundleActions();
+    actions_ = new BundleActions();
     eventq_ = new std::queue<BundleEvent*>();
 
-    // forcibly create a new timer system
+    // forcibly create a new timer system and storage systems
     oasys::Singleton<oasys::TimerSystem>::force_set_instance(NULL);
     oasys::TimerSystem::create();
     timersys_ = oasys::TimerSystem::instance();
+
+    store_ = new oasys::DurableStore("/dtnsim/storage");
+    store_->create_store(storage_config_);
+
+    // we only have one GlobalStore because it's useful to have unique
+    // bundle ids across all nodes in the system, so initialize it the
+    // first node that gets created
+    if (! GlobalStore::initialized()) {
+        if (GlobalStore::init(storage_config_, store_) != 0) {
+            PANIC("Error initializing GlobalStore");
+        }
+    }
+
+    // the other stores are faux-singletons with an instance per node
+    BundleStore::force_set_instance(NULL);
+    LinkStore::force_set_instance(NULL);
+    RegistrationStore::force_set_instance(NULL);
+
+    log_info("creating storage tables");
+    if ((BundleStore::init(storage_config_, store_) != 0) ||
+        (LinkStore::init(storage_config_, store_) != 0) ||
+        (RegistrationStore::init(storage_config_, store_) != 0))
+    {
+        PANIC("Error initializing storage tables");
+    }
+
+    bundle_store_ = BundleStore::instance();
+    link_store_   = LinkStore::instance();
+    reg_store_    = RegistrationStore::instance();
+}
+
+//----------------------------------------------------------------------
+void
+Node::set_active()
+{
+    if (instance_ == this) return;
+    
+    instance_ = this;
+    oasys::Singleton<oasys::TimerSystem>::force_set_instance(timersys_);
+    oasys::Log::instance()->set_prefix(name_.c_str());
+
+    BundleStore::force_set_instance(bundle_store_);
+    LinkStore::force_set_instance(link_store_);
+    RegistrationStore::force_set_instance(reg_store_);
 }
 
 //----------------------------------------------------------------------
@@ -106,6 +158,17 @@ Node::process_bundle_events()
         processed_event = true;
     }
     return processed_event;
+}
+
+//----------------------------------------------------------------------
+void
+Node::run_one_event_now(BundleEvent* event)
+{
+    Node* cur_active = active_node();
+    set_active();
+    handle_event(event);
+    log_debug("event (%p) %s processed",event,event->type_str());
+    cur_active->set_active();
 }
 
 //----------------------------------------------------------------------

@@ -23,6 +23,7 @@
 #include "cmd/LinkCommand.h"
 #include "cmd/ParamCommand.h"
 #include "cmd/RouteCommand.h"
+#include "cmd/StorageCommand.h"
 
 namespace dtnsim {
 
@@ -44,6 +45,7 @@ protected:
     dtn::LinkCommand   link_cmd_;
     dtn::ParamCommand  param_cmd_;
     dtn::RouteCommand  route_cmd_;
+    dtn::StorageCommand storage_cmd_;
 };
 
 } // namespace dtnsim

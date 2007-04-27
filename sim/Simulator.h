@@ -17,45 +17,30 @@
 #include <queue>
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/debug/Log.h>
+#include <oasys/util/Singleton.h>
 
-#include "DTNServer.h"
 #include "SimEvent.h"
 #include "SimEventHandler.h"
-#include "storage/DTNStorageConfig.h"
 
 namespace dtnsim {
 
 /**
  * The main simulator class. This defines the main event loop
  */
-class Simulator : public DTNServer, public SimEventHandler {
+class Simulator : public oasys::Singleton<Simulator, false>,
+                  public SimEventHandler,
+                  public oasys::Logger
+{
 public:
     /**
-     * Singleton instance accessor.
+     * Return the current simulator time.
      */
-    static Simulator* instance() {
-        if (instance_ == NULL) {
-            PANIC("Simulator::init not called yet");
-        }
-        return instance_;
-    }
-
-    /**
-     *  Initialization
-     */
-    static void init(Simulator* instance) {
-        if (instance_ != NULL) {
-            PANIC("Simulator::init called multiple times");
-        }
-        instance_ = instance;
-    }
-
     static double time() { return time_; }
 
     /**
      * Constructor.
      */
-    Simulator(DTNStorageConfig* storage_config);
+    Simulator();
         
     /**
      * Destructor.
@@ -99,14 +84,11 @@ private:
 
     void log_inqueue_stats();
 
-    static Simulator* instance_;        ///< singleton instance
     static double time_;                ///< current time (static to avoid object)
 
     std::priority_queue<SimEvent*,
                         std::vector<SimEvent*>,
                         SimEventCompare> eventq_;
-        
-    oasys::DurableStore* store_;
 };
 
 } // namespace dtnsim

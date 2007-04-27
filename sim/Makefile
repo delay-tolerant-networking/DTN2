@@ -33,7 +33,6 @@ SIM_SRCS := \
 	Node.cc			\
 	NodeCommand.cc		\
 	Simulator.cc		\
-	SimBundleActions.cc	\
 	SimCommand.cc		\
 	SimConvergenceLayer.cc	\
 	SimLog.cc		\

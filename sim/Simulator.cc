@@ -25,37 +25,24 @@
 #include "Topology.h"
 #include "SimLog.h"
 #include "bundling/BundleTimestamp.h"
-#include "storage/BundleStore.h"
-#include "storage/LinkStore.h"
-#include "storage/GlobalStore.h"
-#include "storage/RegistrationStore.h"
 
 using namespace dtn;
 
 namespace dtnsim {
 
+template<>
+Simulator* oasys::Singleton<Simulator, false>::instance_ = NULL;
+
 //----------------------------------------------------------------------
-Simulator* Simulator::instance_; ///< singleton instance
 
 double Simulator::time_ = 0;
 double Simulator::runtill_ = -1;
 
 //----------------------------------------------------------------------
-Simulator::Simulator(DTNStorageConfig* storage_config) 
-    : DTNServer("/dtnsim/sim", storage_config), 
-      eventq_(),
-      store_(0)
+Simulator::Simulator()
+    : Logger("Simulator", "/dtnsim"),
+      eventq_()
 {
-    Logger::classname_ = "Simulator";
-
-    // override defaults from oasys storage config
-    storage_config->type_ = "memorydb";
-    storage_config->init_ = true;
-    storage_config->tidy_ = true;
-    storage_config->tidy_wait_ = 0;
-    storage_config->leave_clean_file_ = false;
-    storage_config->payload_dir_ = std::string("/tmp/dtnsim_payloads_") +
-                                   getenv("USER");
 }
 
 //----------------------------------------------------------------------
