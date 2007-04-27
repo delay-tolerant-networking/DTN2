@@ -113,9 +113,9 @@ BundleRouter::~BundleRouter()
 bool
 BundleRouter::accept_bundle(Bundle* bundle, int* errp)
 {
-    // XXX/demmer this could (should?) be abstracted into a
-    // StoragePolicy class hierarchy of some sort
-
+    // XXX/demmer this decision should be abstracted into a
+    // StoragePolicy class of some sort. for now just use a
+    // statically-configured payload limit
     BundleStore* bs = BundleStore::instance();
     if (bs->payload_quota() != 0 &&
         (bs->total_size() + bundle->payload_.length() > bs->payload_quota()))
