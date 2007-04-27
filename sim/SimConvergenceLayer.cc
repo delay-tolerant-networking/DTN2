@@ -137,9 +137,11 @@ SimLink::timeout(const timeval& tv)
     while (!inflight_.empty()) {
         InFlightBundle* next = inflight_.front();
         if (next->arrival_time_ <= now) {
+            const BundleRef& bundle = next->bundle_;
+            
             inflight_.pop();
             BundleReceivedEvent* rcv_event =
-                new BundleReceivedEvent(next->bundle_.object(),
+                new BundleReceivedEvent(bundle.object(),
                                         EVENTSRC_PEER,
                                         next->total_len_,
                                         NULL,
@@ -147,6 +149,9 @@ SimLink::timeout(const timeval& tv)
                                           Node::active_node()->local_eid() :
                                           EndpointID::NULL_EID());
             peer_node_->post_event(rcv_event);
+
+            delete next;
+            
         } else {
             break;
         }
