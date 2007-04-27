@@ -20,6 +20,7 @@
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/serialize/TypeShims.h>
 #include <oasys/storage/InternalKeyDurableTable.h>
+#include <oasys/util/Singleton.h>
 
 #include "reg/APIRegistration.h"
 
@@ -35,18 +36,9 @@ typedef oasys::InternalKeyDurableTable<
  * The class for registration storage is simply an instantiation of the
  * generic oasys durable table interface.
  */
-class RegistrationStore : public RegistrationStoreImpl {
+class RegistrationStore : public oasys::Singleton<RegistrationStore, false>,
+                          public RegistrationStoreImpl {
 public:
-    /**
-     * Singleton instance accessor.
-     */
-    static RegistrationStore* instance() {
-        if (instance_ == NULL) {
-            PANIC("RegistrationStore::init not called yet");
-        }
-        return instance_;
-    }
-
     /**
      * Boot time initializer that takes as a parameter the storage
      * configuration to use.
@@ -69,10 +61,7 @@ public:
     /**
      * Return true if initialization has completed.
      */
-    static bool initialized() { return (instance_ != NULL); }
-    
-protected:
-    static RegistrationStore* instance_; ///< singleton instance
+    static bool initialized() { return (instance() != NULL); }
 };
 
 } // namespace dtn

@@ -23,7 +23,8 @@
 
 namespace dtn {
 
-LinkStore* LinkStore::instance_;
+template<>
+LinkStore* oasys::Singleton<LinkStore, false>::instance_ = NULL;
 
 LinkStore::LinkStore()
     : LinkStoreImpl("LinkStore", "/dtn/storage/links", "link", "links")

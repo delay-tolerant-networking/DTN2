@@ -23,7 +23,8 @@
 
 namespace dtn {
 
-RegistrationStore* RegistrationStore::instance_;
+template<>
+RegistrationStore* oasys::Singleton<RegistrationStore, false>::instance_ = NULL;
 
 RegistrationStore::RegistrationStore()
     : RegistrationStoreImpl("RegistrationStore", "/dtn/storage/registrations",

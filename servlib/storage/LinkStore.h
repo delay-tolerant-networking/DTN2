@@ -20,6 +20,7 @@
 #include <oasys/debug/DebugUtils.h>
 #include <oasys/serialize/TypeShims.h>
 #include <oasys/storage/InternalKeyDurableTable.h>
+#include <oasys/util/Singleton.h>
 
 namespace dtn {
 
@@ -35,18 +36,9 @@ typedef oasys::InternalKeyDurableTable<
 /**
  * The class for link storage.
  */
-class LinkStore : public LinkStoreImpl {
+class LinkStore : public oasys::Singleton<LinkStore, false>,
+                  public LinkStoreImpl {
 public:
-    /**
-     * Singleton instance accessor.
-     */
-    static LinkStore* instance() {
-        if (instance_ == NULL) {
-            PANIC("LinkStore::init not called yet");
-        }
-        return instance_;
-    }
-
     /**
      * Boot time initializer that takes as a parameter the storage
      * configuration to use.
@@ -69,10 +61,7 @@ public:
     /**
      * Return true if initialization has completed.
      */
-    static bool initialized() { return (instance_ != NULL); }
-    
-protected:
-    static LinkStore* instance_; ///< singleton instance
+    static bool initialized() { return (instance() != NULL); }
 };
 
 } // namespace dtn
