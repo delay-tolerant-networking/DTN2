@@ -474,11 +474,12 @@ protected:
 
     /// Statistics structure definition
     struct Stats {
-        u_int32_t bundles_received_;
-        u_int32_t bundles_delivered_;
-        u_int32_t bundles_generated_;
-        u_int32_t bundles_transmitted_;
-        u_int32_t bundles_expired_;
+        u_int32_t received_bundles_;
+        u_int32_t delivered_bundles_;
+        u_int32_t generated_bundles_;
+        u_int32_t transmitted_bundles_;
+        u_int32_t expired_bundles_;
+        u_int32_t deleted_bundles_;
         u_int32_t duplicate_bundles_;
         u_int32_t events_processed_;
     };

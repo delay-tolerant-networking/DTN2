@@ -178,15 +178,17 @@ BundleDaemon::get_bundle_stats(oasys::StringBuffer* buf)
                  "%u generated -- "
                  "%u transmitted -- "
                  "%u expired -- "
-                 "%u duplicate",
+                 "%u duplicate -- "
+                 "%u deleted",
                  pending_bundles()->size(),
                  custody_bundles()->size(),
-                 stats_.bundles_received_,
-                 stats_.bundles_delivered_,
-                 stats_.bundles_generated_,
-                 stats_.bundles_transmitted_,
-                 stats_.bundles_expired_,
-                 stats_.duplicate_bundles_);
+                 stats_.received_bundles_,
+                 stats_.delivered_bundles_,
+                 stats_.generated_bundles_,
+                 stats_.transmitted_bundles_,
+                 stats_.expired_bundles_,
+                 stats_.duplicate_bundles_,
+                 stats_.deleted_bundles_);
 }
 
 //----------------------------------------------------------------------
@@ -421,11 +423,11 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
     const char* source_str = "";
     switch (event->source_) {
     case EVENTSRC_PEER:
-        stats_.bundles_received_++;
+        stats_.received_bundles_++;
         break;
         
     case EVENTSRC_APP:
-        stats_.bundles_received_++;
+        stats_.received_bundles_++;
         source_str = " (from app)";
         break;
         
@@ -434,17 +436,17 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         break;
         
     case EVENTSRC_ADMIN:
-        stats_.bundles_generated_++;
+        stats_.generated_bundles_++;
         source_str = " (generated)";
         break;
         
     case EVENTSRC_FRAGMENTATION:
-        stats_.bundles_generated_++;
+        stats_.generated_bundles_++;
         source_str = " (from fragmentation)";
         break;
 
     case EVENTSRC_ROUTER:
-        stats_.bundles_generated_++;
+        stats_.generated_bundles_++;
         source_str = " (from router)";
         break;
 
@@ -511,17 +513,32 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
                                                       &deletion_reason);
         
         /*
-         * Send the reception receipt if requested within the primary block
-         * or a block validation error was encountered.
+         * Send the reception receipt if requested within the primary
+         * block or some other error occurs that requires a reception
+         * status report but may or may not require deleting the whole
+         * bundle.
          */
         if (bundle->receive_rcpt_ ||
-            reception_reason != BundleProtocol::REASON_NO_ADDTL_INFO) {
+            reception_reason != BundleProtocol::REASON_NO_ADDTL_INFO)
+        {
             generate_status_report(bundle, BundleProtocol::STATUS_RECEIVED,
                                    reception_reason);
         }
+
+        /*
+         * If the bundle is valid, probe the router to see if it wants
+         * to accept the bundle.
+         */
+        if (accept_bundle) {
+            int reason = BundleProtocol::REASON_NO_ADDTL_INFO;
+            accept_bundle = router_->accept_bundle(bundle, &reason);
+            deletion_reason = static_cast<BundleProtocol::status_report_reason_t>(reason);
+        }
         
         /*
-         * Delete a bundle if a validation error was encountered.
+         * Delete a bundle if a validation error was encountered or
+         * the router doesn't want to accept the bundle, in both cases
+         * not giving the reception event to the router.
          */
         if (!accept_bundle) {
             delete_bundle(bundle, deletion_reason);
@@ -658,7 +675,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
         
     size_t total_len = BundleProtocol::total_length(blocks);
     
-    stats_.bundles_transmitted_++;
+    stats_.transmitted_bundles_++;
     link->stats()->bundles_transmitted_++;
     link->stats()->bundles_queued_--;
 
@@ -844,7 +861,7 @@ void
 BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
 {
     // update statistics
-    stats_.bundles_delivered_++;
+    stats_.delivered_bundles_++;
     
     /*
      * The bundle was delivered to a registration.
@@ -899,16 +916,15 @@ void
 BundleDaemon::handle_bundle_expired(BundleExpiredEvent* event)
 {
     // update statistics
-    stats_.bundles_expired_++;
+    stats_.expired_bundles_++;
     
     Bundle* bundle = event->bundleref_.object();
 
     log_info("BUNDLE_EXPIRED *%p", bundle);
 
     // note that there may or may not still be a pending expiration
-    // timer, since this event may be coming from the console, in
-    // which case we just fall through to delete_bundle which will
-    // cancel the timer
+    // timer, since this event may be coming from the console, so we
+    // just fall through to delete_bundle which will cancel the timer
 
     delete_bundle(bundle, BundleProtocol::REASON_LIFETIME_EXPIRED);
     
@@ -2118,6 +2134,8 @@ BundleDaemon::try_delete_from_pending(Bundle* bundle)
 bool
 BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
 {
+    ++stats_.deleted_bundles_;
+    
     // send a bundle deletion status report if we have custody or the
     // bundle's deletion status report request flag is set and a reason
     // for deletion is provided
@@ -2129,6 +2147,10 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     if (bundle->local_custody_) {
         release_custody(bundle);
     }
+
+    // XXX/demmer if custody was requested but we didn't take it yet
+    // (due to a validation error, space constraints, etc), then we
+    // should send a custody failed signal here
 
     // check if bundle is a fragment, if so, remove any fragmentation state
     if (bundle->is_fragment_) {
