@@ -36,7 +36,7 @@ BundleStore::BundleStore(const DTNStorageConfig& cfg)
       total_size_(0)
 {
 }
-\
+
 //----------------------------------------------------------------------
 int
 BundleStore::init(const DTNStorageConfig& cfg,
