@@ -104,7 +104,7 @@ public:
         : state_(NONE),
           action_(INVALID_ACTION),
           link_name_(""),
-          remote_eid_(""),
+          remote_eid_(),
           custody_spec_() {}
 
     /*
