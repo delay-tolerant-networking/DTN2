@@ -33,13 +33,13 @@ SchemeTable* oasys::Singleton<SchemeTable>::instance_ = 0;
 //----------------------------------------------------------------------
 SchemeTable::SchemeTable()
 {
-    table_["dtn"]	= DTNScheme::instance();
-    table_["str"]	= StringScheme::instance();
-    table_["*"]		= WildcardScheme::instance();
+    table_["dtn"] = DTNScheme::instance();
+    table_["str"] = StringScheme::instance();
+    table_["*"]   = WildcardScheme::instance();
 #ifdef __linux__
-    table_["eth"]	= EthernetScheme::instance();
+    table_["eth"] = EthernetScheme::instance();
 #endif
-    table_["tca"]   = TCAScheme::instance();
+    table_["tca"] = TCAScheme::instance();
 }
 
 //----------------------------------------------------------------------
