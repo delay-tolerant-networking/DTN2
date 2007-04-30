@@ -28,10 +28,16 @@ namespace dtn {
  */
 class BundleStatusReport {
 public:
-    /**
-     * The status report flags are defined in the BundleProtocol class.
-     */
-    typedef BundleProtocol::status_report_flag_t flag_t;
+    typedef enum {
+        STATUS_RECEIVED         = 0x01,
+        STATUS_CUSTODY_ACCEPTED = 0x02,
+        STATUS_FORWARDED        = 0x04,
+        STATUS_DELIVERED        = 0x08,
+        STATUS_DELETED          = 0x10,
+        STATUS_ACKED_BY_APP     = 0x20,
+        STATUS_UNUSED           = 0x40,
+        STATUS_UNUSED2          = 0x80,
+    } flag_t;
     
     /**
      * The reason codes are defined in the BundleProtocol class.

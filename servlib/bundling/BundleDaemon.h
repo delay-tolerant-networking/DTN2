@@ -32,6 +32,7 @@
 #include "BundleEventHandler.h"
 #include "BundleProtocol.h"
 #include "BundleActions.h"
+#include "BundleStatusReport.h"
 
 namespace dtn {
 
@@ -361,7 +362,7 @@ protected:
      * Locally generate a status report for the given bundle.
      */
     void generate_status_report(Bundle* bundle,
-                                status_report_flag_t flag,
+                                BundleStatusReport::flag_t flag,
                                 status_report_reason_t reason =
                                 BundleProtocol::REASON_NO_ADDTL_INFO);
 

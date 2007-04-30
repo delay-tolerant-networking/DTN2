@@ -219,7 +219,7 @@ BundleDaemon::reset_stats()
 //----------------------------------------------------------------------
 void
 BundleDaemon::generate_status_report(Bundle* orig_bundle,
-                                     status_report_flag_t flag,
+                                     BundleStatusReport::flag_t flag,
                                      status_report_reason_t reason)
 {
     log_debug("generating return receipt status report, "
@@ -318,7 +318,7 @@ BundleDaemon::accept_custody(Bundle* bundle)
     // finally, if the bundle requested custody acknowledgements,
     // deliver them now
     if (bundle->custody_rcpt_) {
-        generate_status_report(bundle, BundleProtocol::STATUS_CUSTODY_ACCEPTED);
+        generate_status_report(bundle, BundleStatusReport::STATUS_CUSTODY_ACCEPTED);
     }
 }
 
@@ -521,7 +521,7 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
         if (bundle->receive_rcpt_ ||
             reception_reason != BundleProtocol::REASON_NO_ADDTL_INFO)
         {
-            generate_status_report(bundle, BundleProtocol::STATUS_RECEIVED,
+            generate_status_report(bundle, BundleStatusReport::STATUS_RECEIVED,
                                    reception_reason);
         }
 
@@ -768,7 +768,7 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * Generate the forwarding status report if requested
      */
     if (bundle->forward_rcpt_) {
-        generate_status_report(bundle, BundleProtocol::STATUS_FORWARDED);
+        generate_status_report(bundle, BundleStatusReport::STATUS_FORWARDED);
     }
     
     /*
@@ -876,7 +876,7 @@ BundleDaemon::handle_bundle_delivered(BundleDeliveredEvent* event)
      */
     if (bundle->delivery_rcpt_)
     {
-        generate_status_report(bundle, BundleProtocol::STATUS_DELIVERED);
+        generate_status_report(bundle, BundleStatusReport::STATUS_DELIVERED);
     }
 
     /*
@@ -2163,7 +2163,7 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     }
 
     if (erased && send_status) {
-        generate_status_report(bundle, BundleProtocol::STATUS_DELETED, reason);
+        generate_status_report(bundle, BundleStatusReport::STATUS_DELETED, reason);
     }
 
     // We have a choice to track what bundles are active on what links

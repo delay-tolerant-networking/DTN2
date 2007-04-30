@@ -239,7 +239,7 @@ TclRegistration::parse_bundle_data(Tcl_Interp* interp,
 
         // Status fields with timestamps:
 #define APPEND_TIMESTAMP(_flag, _what, _field)                          \
-        if (sr.status_flags_ & BundleProtocol::_flag) {                 \
+        if (sr.status_flags_ & BundleStatusReport::_flag) {                 \
             addElement(Tcl_NewStringObj(_what, -1));                    \
             sprintf(tmp_buf, "%u.%u",                                   \
                     sr._field.seconds_, sr._field.seqno_);              \

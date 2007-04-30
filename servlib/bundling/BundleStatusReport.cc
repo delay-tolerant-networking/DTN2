@@ -204,7 +204,7 @@ bool BundleStatusReport::parse_status_report(data_t* data,
     
     int ts_len;
     
-    if (data->status_flags_ & BundleProtocol::STATUS_RECEIVED) {
+    if (data->status_flags_ & BundleStatusReport::STATUS_RECEIVED) {
         ts_len = BundleProtocol::get_timestamp(&data->receipt_tv_, bp, len);
         if (ts_len < 0) { return false; }
         bp  += ts_len;
@@ -214,7 +214,7 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         data->receipt_tv_.seqno_   = 0;
     }
 
-    if (data->status_flags_ & BundleProtocol::STATUS_CUSTODY_ACCEPTED) {
+    if (data->status_flags_ & BundleStatusReport::STATUS_CUSTODY_ACCEPTED) {
         ts_len = BundleProtocol::get_timestamp(&data->custody_tv_, bp, len);
         if (ts_len < 0) { return false; }
         bp  += ts_len;
@@ -224,7 +224,7 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         data->custody_tv_.seqno_   = 0;
     }
 
-    if (data->status_flags_ & BundleProtocol::STATUS_FORWARDED) {
+    if (data->status_flags_ & BundleStatusReport::STATUS_FORWARDED) {
         ts_len = BundleProtocol::get_timestamp(&data->forwarding_tv_, bp, len);
         if (ts_len < 0) { return false; }
         bp  += ts_len;
@@ -234,7 +234,7 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         data->forwarding_tv_.seqno_   = 0;
     }
 
-    if (data->status_flags_ & BundleProtocol::STATUS_DELIVERED) {
+    if (data->status_flags_ & BundleStatusReport::STATUS_DELIVERED) {
         ts_len = BundleProtocol::get_timestamp(&data->delivery_tv_, bp, len);
         if (ts_len < 0) { return false; }
         bp  += ts_len;
@@ -244,7 +244,7 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         data->delivery_tv_.seqno_   = 0;
     }
 
-    if (data->status_flags_ & BundleProtocol::STATUS_DELETED) {
+    if (data->status_flags_ & BundleStatusReport::STATUS_DELETED) {
         ts_len = BundleProtocol::get_timestamp(&data->deletion_tv_, bp, len);
         if (ts_len < 0) { return false; }
         bp  += ts_len;
@@ -254,7 +254,7 @@ bool BundleStatusReport::parse_status_report(data_t* data,
         data->deletion_tv_.seqno_   = 0;
     }
 
-    if (data->status_flags_ & BundleProtocol::STATUS_ACKED_BY_APP) {
+    if (data->status_flags_ & BundleStatusReport::STATUS_ACKED_BY_APP) {
         ts_len = BundleProtocol::get_timestamp(&data->ack_by_app_tv_, bp, len);
         if (ts_len < 0) { return false; }
         bp  += ts_len;
