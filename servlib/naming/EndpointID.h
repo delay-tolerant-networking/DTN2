@@ -192,7 +192,13 @@ public:
      * Return the special endpoint id used for the null endpoint,
      * namely "dtn:none".
      */
-    static const EndpointID NULL_EID() { return EndpointID("dtn:none"); }
+    static const EndpointID& NULL_EID()
+    {
+        if (null_eid_.scheme_ == NULL) {
+            null_eid_.assign("dtn:none");
+        }
+        return null_eid_;
+    }
     
     /**
      * The scheme and SSP parts each must not exceed this length.
@@ -233,6 +239,9 @@ protected:
 
     bool valid_;                /* true iff the endpoint id is valid */
     bool is_pattern_;           /* true iff this is an EndpointIDPattern */
+
+    static EndpointID        null_eid_;
+    static EndpointIDPattern wildcard_eid_;
 };
 
 /**
@@ -289,8 +298,14 @@ public:
      * not in the bundle spec, but is used internally to this
      * implementation.
      */
-    static const EndpointIDPattern WILDCARD_EID()
-                     { return EndpointIDPattern("*:*"); }
+    static const EndpointIDPattern& WILDCARD_EID()
+    {
+        if (wildcard_eid_.scheme_ == NULL) {
+            wildcard_eid_.assign("*:*");
+        }
+
+        return wildcard_eid_;
+    }
 };
 
 /**

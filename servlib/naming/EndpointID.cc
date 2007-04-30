@@ -29,11 +29,11 @@
 
 namespace dtn {
 
-/**
- * Extract and look up the scheme and ssp.
- *
- * @return true if the string is a valid endpoint id, false if not.
- */
+//----------------------------------------------------------------------
+EndpointID        EndpointID::null_eid_;
+EndpointIDPattern EndpointID::wildcard_eid_;
+
+//----------------------------------------------------------------------
 bool
 EndpointID::parse()
 {
@@ -70,13 +70,7 @@ EndpointID::parse()
     return valid_;
 }
 
-/**
- * Append the specified service tag (in a scheme-specific manner)
- * to the ssp.
- *
- * @return true if successful, false if the scheme doesn't support
- * service tags
- */
+//----------------------------------------------------------------------
 bool
 EndpointID::append_service_tag(const char* tag)
 {
@@ -110,11 +104,7 @@ EndpointID::is_singleton() const
     return scheme_->is_singleton(uri_);
 }
 
-/**
- * Set the string from the API type dtn_endpoint_id_t
- *
- * @return true if the string is a valid id, false if not.
- */
+//----------------------------------------------------------------------
 bool
 EndpointID::assign(const dtn_endpoint_id_t* eid)
 {
@@ -122,10 +112,7 @@ EndpointID::assign(const dtn_endpoint_id_t* eid)
     return parse();
 }
     
-/**
- * Copy the endpoint id contents out to the API type
- * dtn_endpoint_id_t.
- */
+//----------------------------------------------------------------------
 void
 EndpointID::copyto(dtn_endpoint_id_t* eid) const
 {
@@ -133,10 +120,7 @@ EndpointID::copyto(dtn_endpoint_id_t* eid) const
     strcpy(eid->uri, uri_.uri().c_str());
 }
 
-
-/**
- * Virtual from SerializableObject
- */
+//----------------------------------------------------------------------
 void
 EndpointID::serialize(oasys::SerializeAction* a)
 {
@@ -146,11 +130,7 @@ EndpointID::serialize(oasys::SerializeAction* a)
     }
 }
 
-
-/**
- * Shortcut to the matching functionality implemented by the
- * scheme.
- */
+//----------------------------------------------------------------------
 bool
 EndpointIDPattern::match(const EndpointID& eid) const
 {
