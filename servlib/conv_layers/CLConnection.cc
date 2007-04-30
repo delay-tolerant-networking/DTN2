@@ -301,7 +301,7 @@ CLConnection::contact_up()
 void
 CLConnection::break_contact(ContactEvent::reason_t reason)
 {
-        contact_broken_ = true;
+    contact_broken_ = true;
         
     log_debug("break_contact: %s", ContactEvent::reason_to_str(reason));
 
