@@ -80,6 +80,7 @@ namespace dtn {
 APIServer::APIServer()
     : TCPServerThread("APIServer", "/dtn/apiserver", DELETE_ON_EXIT)
 {
+    enabled_    = true;
     local_addr_ = htonl(INADDR_LOOPBACK);
     local_port_ = DTN_IPC_PORT;
 
