@@ -140,6 +140,29 @@ proc config_linear_topology {type cl with_routes {link_args ""}} {
 }
 
 #
+# Set up a mesh topology with TCP or UDP
+#
+proc config_mesh_topology {type cl with_routes {link_args ""}} {
+    dtn::config_topology_common $with_routes
+    
+    set last [expr [net::num_nodes] - 1]
+    
+    foreach a [net::nodelist] {
+        foreach b [net::nodelist] {
+            if {$a != $b} {
+                set link [config_link $a $b\
+                        $type $cl $with_routes $link_args]
+            }
+
+            if {$with_routes} {
+		conf::add dtnd $id \
+			"route add [get_eid $dest]/* $link"
+	    }
+	}
+    }
+}
+
+#
 # Set up a tree-based routing topology on nodes 0-254
 #
 #                                 0
