@@ -203,6 +203,13 @@ namespace eval dtn {
 	}
     }
     
+    # generic checker function
+    proc check_equal {result expected} {
+ 	if {$result != $expected} {
+	    error "check result '$result' != expected '$expected'"
+	}
+    }
+    
     # dtn bundle data functions
 
     proc check_bundle_arrived {id bundle_guid} {
@@ -490,4 +497,27 @@ namespace eval dtn {
 	}
     }
 
+    # route state functions
+    proc test_route {id dest link params} {
+        set routes [tell_dtnd $id route dump_tcl]
+        foreach route $routes {
+            set d [lindex $route 0]
+            set l [lindex $route 1]
+            if {$dest == $d && $link == $l} {
+                # XXX/demmer check args
+                return true;
+            }
+        }
+        return false
+    }
+
+    proc wait_for_route {id dest link params {timeout 30000}} {
+        do_until "wait for node $id's route to $dest: link $link $params" \
+                $timeout {
+            if {[test_route $id $dest $link $params ]} {
+                break
+            }
+            after 500
+        }
+    }
 }
