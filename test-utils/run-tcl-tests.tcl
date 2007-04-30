@@ -42,6 +42,7 @@ set tests(basic) {
     "ipc-version-test.tcl"	""
     "loopback-link.tcl"		""
     "multipath-forwarding.tcl"	""
+    "multiple-registrations.tcl" ""
     "ondemand-links.tcl"	""
     "no-duplicate-send.tcl"	""
     "reactive-fragmentation.tcl" ""

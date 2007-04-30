@@ -20,6 +20,7 @@
 
 #include <errno.h>
 #include <oasys/debug/Log.h>
+#include <oasys/io/FileUtils.h>
 #include <oasys/io/NetUtils.h>
 #include <oasys/tclcmd/ConsoleCommand.h>
 #include <oasys/tclcmd/TclCommand.h>
@@ -590,12 +591,18 @@ public:
                     dtn_strerror(dtn_errno(h)));
             return TCL_ERROR;
         }
-        
-        if (!opts_.payload_mem_) {
+
+        int payload_size;
+        if (opts_.payload_mem_) {
+            // return the size
+            payload_size = payload.buf.buf_len;
+        } else {
             char payload_path[PATH_MAX];
             memcpy(payload_path, payload.filename.filename_val,
                    payload.filename.filename_len);
             payload_path[payload.filename.filename_len] = 0;
+
+            payload_size = oasys::FileUtils::size(payload_path);
             
             err = unlink(payload_path);
             if (err != 0) {
@@ -605,8 +612,10 @@ public:
         }
         
         dtn_free_payload(&payload);
-
-        // XXX/demmer should fill in the return with something useful, no?
+        resultf("source %s dest %s replyto %s creation_ts %u.%u payload_size %d",
+                spec.source.uri, spec.dest.uri, spec.replyto.uri,
+                spec.creation_ts.secs, spec.creation_ts.seqno,
+                payload_size);
         
         return TCL_OK;
     }

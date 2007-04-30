@@ -459,12 +459,6 @@ APIClient::handle_register()
                               reginfo.expiration, script);
 
     if (! reginfo.init_passive) {
-        // XXX/demmer fixme to allow multiple registrations
-        if (! bindings_->empty()) {
-            log_err("error: handle already bound to a registration");
-            return DTN_EBUSY;
-        }
-        
         // store the registration in the list for this session
         bindings_->push_back(reg);
         reg->set_active(true);
@@ -598,12 +592,6 @@ APIClient::handle_bind()
         return DTN_EBUSY;
     }
 
-    // XXX/demmer fixme to allow multiple registrations
-    if (! bindings_->empty()) {
-        log_err("error: handle already bound to a registration");
-        return DTN_EBUSY;
-    }
-    
     // store the registration in the list for this session
     bindings_->push_back(api_reg);
     api_reg->set_active(true);
@@ -1217,25 +1205,9 @@ APIClient::wait_for_bundle(const char* operation, dtn_timeval_t dtn_timeout,
 {
     APIRegistration* reg;
     
-    // XXX/demmer implement this for multiple registrations by
-    // building up a poll vector here. for now we assert in bind that
-    // there's only one binding.
-    
     if (bindings_->empty()) {
-        log_err("wait_for_bundle(%s): no bound registration", 
-                operation);
+        log_err("wait_for_bundle(%s): no bound registrations", operation);
         return DTN_EINVAL;
-    }
-    
-    reg = bindings_->front();
-
-    // short-circuit the poll
-    if (reg->bundle_list()->size() != 0) {
-        log_debug("wait_for_bundle(%s): "
-                  "immediately returning bundle for reg %d",
-                  operation, reg->regid());
-        *regp = reg;
-        return 0;
     }
 
     int timeout = (int)dtn_timeout;
@@ -1245,22 +1217,54 @@ APIClient::wait_for_bundle(const char* operation, dtn_timeval_t dtn_timeout,
         return DTN_EINVAL;
     }
 
-    struct pollfd pollfds[2];
-
-    struct pollfd* bundle_poll = &pollfds[0];
-    bundle_poll->fd            = reg->bundle_list()->notifier()->read_fd();
-    bundle_poll->events        = POLLIN;
-    bundle_poll->revents       = 0;
+    // try to optimize by using a statically sized pollfds array,
+    // otherwise we need to malloc the array.
+    //
+    // XXX/demmer this would be cleaner by tweaking the
+    // StaticScratchBuffer class to be handle arrays of arbitrary
+    // sized structs
+    struct pollfd static_pollfds[64];
+    struct pollfd* pollfds;
+    oasys::ScopeMalloc pollfd_malloc;
+    size_t npollfds = 1 + bindings_->size();
+    if (npollfds <= 64) {
+        pollfds = &static_pollfds[0];
+    } else {
+        pollfds = (struct pollfd*)malloc(npollfds * sizeof(struct pollfd));
+        pollfd_malloc = pollfds;
+    }
     
-    struct pollfd* sock_poll   = &pollfds[1];
-    sock_poll->fd              = TCPClient::fd_;
-    sock_poll->events          = POLLIN | POLLERR;
-    sock_poll->revents         = 0;
+    struct pollfd* sock_poll = &pollfds[0];
+    sock_poll->fd            = TCPClient::fd_;
+    sock_poll->events        = POLLIN | POLLERR;
+    sock_poll->revents       = 0;
+
+    // loop through all the registrations -- if one has bundles on its
+    // list, we don't need to poll, just return it immediately.
+    // otherwise we'll need to poll it
+    APIRegistrationList::iterator iter;
+    int i = 1;
+    for (iter = bindings_->begin(); iter != bindings_->end(); ++iter) {
+        reg = *iter;
+            
+        if (! reg->bundle_list()->empty()) {
+            log_debug("wait_for_bundle(%s): "
+                      "immediately returning bundle for reg %d",
+                      operation, reg->regid());
+            *regp = reg;
+            return 0;
+        }
+        
+        pollfds[i].fd      = reg->bundle_list()->notifier()->read_fd();
+        pollfds[i].events  = POLLIN;
+        pollfds[i].revents = 0;
+        ++i;
+    }
 
     log_debug("wait_for_bundle(%s): "
               "blocking to get bundle for registration %d (timeout %d)",
               operation, reg->regid(), timeout);
-    int nready = oasys::IO::poll_multiple(&pollfds[0], 2, timeout,
+    int nready = oasys::IO::poll_multiple(&pollfds[0], npollfds, timeout,
                                           NULL, logpath_);
 
     if (nready == oasys::IOTIMEOUT) {
@@ -1282,21 +1286,23 @@ APIClient::wait_for_bundle(const char* operation, dtn_timeval_t dtn_timeout,
         return 0;
     }
 
-    // otherwise, there should be data on the bundle list
-    if (bundle_poll->revents == 0) {
-        log_crit("wait_for_bundle(%s): unexpected error polling for bundle: "
-                 "neither file descriptor is ready", operation);
-        return DTN_EINTERNAL;
+    // otherwise, there should be data on one (or more) bundle lists, so
+    // scan the list to find the first one.
+    *regp = NULL;
+    for (iter = bindings_->begin(); iter != bindings_->end(); ++iter) {
+        reg = *iter;
+        if (! reg->bundle_list()->empty()) {
+            *regp = reg;
+            break;
+        }
     }
 
-    if (reg->bundle_list()->size() == 0) {
-        log_err("wait_for_bundle(%s): "
-                "bundle list returned ready but no bundle on queue!!",
+    if (*regp == NULL) {
+        log_err("wait_for_bundle(%s): error -- no lists have any bundles",
                 operation);
         return DTN_EINTERNAL;
     }
-
-    *regp = reg;
+    
     return 0;
 }
 
