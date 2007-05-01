@@ -118,17 +118,19 @@ proc config_linear_topology {type cl with_routes {link_args ""}} {
 	    set link [config_link $id [expr $id + 1] \
 	         $type $cl $with_routes $link_args]
 
-	    for {set dest [expr $id + 2]} {$dest <= $last} {incr dest} {
-		conf::add dtnd $id \
-			"route add [get_eid $dest]/* $link"
-	    }
+            if {$with_routes} {
+                for {set dest [expr $id + 2]} {$dest <= $last} {incr dest} {
+                    conf::add dtnd $id \
+                            "route add [get_eid $dest]/* $link"
+                }
+            }
 	}
 	
 	# and previous a hop in chain as well
 	if { $id != 0 } {
 	    set link [config_link $id [expr $id - 1] \
 	        $type $cl $with_routes $link_args]
-
+            
 	    if {$with_routes} {
 		for {set dest [expr $id - 2]} {$dest >= 0} {incr dest -1} {
 		    conf::add dtnd $id \
@@ -283,27 +285,35 @@ proc config_diamond_topology {type cl with_routes {link_args ""}} {
      
     config_link 0 1 $type $cl $with_routes $link_args
     config_link 0 2 $type $cl $with_routes $link_args
-    
-    conf::add dtnd 0 "route add [get_eid 3]/* $cl-link:0-1"
-    conf::add dtnd 0 "route add [get_eid 3]/* $cl-link:0-2"
+
+    if {$with_routes} {
+        conf::add dtnd 0 "route add [get_eid 3]/* $cl-link:0-1"
+        conf::add dtnd 0 "route add [get_eid 3]/* $cl-link:0-2"
+    }
     
     config_link 1 0 $type $cl $with_routes $link_args
     config_link 1 3 $type $cl $with_routes $link_args
 
-    conf::add dtnd 1 "route add [get_eid 2]/* $cl-link:1-0"
-    conf::add dtnd 1 "route add [get_eid 2]/* $cl-link:1-3"
+    if {$with_routes} {
+        conf::add dtnd 1 "route add [get_eid 2]/* $cl-link:1-0"
+        conf::add dtnd 1 "route add [get_eid 2]/* $cl-link:1-3"
+    }
     
     config_link 2 0 $type $cl $with_routes $link_args
     config_link 2 3 $type $cl $with_routes $link_args
 
-    conf::add dtnd 2 "route add [get_eid 1]/* $cl-link:2-0"
-    conf::add dtnd 2 "route add [get_eid 1]/* $cl-link:2-3"
+    if {$with_routes} {
+        conf::add dtnd 2 "route add [get_eid 1]/* $cl-link:2-0"
+        conf::add dtnd 2 "route add [get_eid 1]/* $cl-link:2-3"
+    }
     
     config_link 3 1 $type $cl $with_routes $link_args
     config_link 3 2 $type $cl $with_routes $link_args
 
-    conf::add dtnd 3 "route add [get_eid 0]/* $cl-link:3-1"
-    conf::add dtnd 3 "route add [get_eid 0]/* $cl-link:3-2"
+    if {$with_routes} {
+        conf::add dtnd 3 "route add [get_eid 0]/* $cl-link:3-1"
+        conf::add dtnd 3 "route add [get_eid 0]/* $cl-link:3-2"
+    }
 }
 
 # namespace dtn
