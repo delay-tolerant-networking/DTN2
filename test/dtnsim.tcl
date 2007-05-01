@@ -27,7 +27,7 @@ foreach {var val} $opt(opts) {
 }
 
 if {$conf_path == ""} {
-    error "must specify simulator confif file"
+    error "must specify simulator config file"
 }
 
 if {[file exists $base_test_dir/sim/conf/$conf_path]} {
@@ -35,17 +35,12 @@ if {[file exists $base_test_dir/sim/conf/$conf_path]} {
 }
 
 if {![file exists $conf_path]} {
-    error "simulator conf_path file $conf_path does not exist"
+    error "simulator conf file $conf_path does not exist"
 }
-
-set conf [file tail $conf_path]
-
-manifest::file sim/dtnsim dtnsim
-manifest::file $conf_path $conf
 
 test::script {
     puts "* Running simulator"
-    set pid [run::run 0 "dtnsim" "-c $conf" "" "" ""]
-    run::wait_for_pid_exit 0 $pid
+    exec sim/dtnsim -c $conf_path <@stdin >@stdout 2>@stderr
+    
     puts "* Test success!"
 }
