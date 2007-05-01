@@ -113,6 +113,9 @@ foreach {test testopts} $tests($group) {
     } err ] {
 	puts "unexpected error: $err"
     }
+
+    # give the last test an extra couple seconds to quit
+    after 2000
 }
 
 
