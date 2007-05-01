@@ -25,6 +25,16 @@ dtn::config
 dtn::config_interface tcp
 dtn::config_linear_topology ALWAYSON tcp true
 
+proc wait_for_file {id path {timeout 30000}} {
+    do_until "in wait for file $path at node $id" $timeout {
+        if {[tell_dtnd $id file exists $path]} {
+            return
+        }
+	    
+        after 500
+    }
+}
+    
 test::script {
     puts "* Running dtnds"
     dtn::run_dtnd *
@@ -45,6 +55,7 @@ test::script {
     tell_dtnd 0 {set fd [open test/empty w]; close $fd}
     dtn::check expr [tell_dtnd 0 file size test/empty] == 0
     dtn::run_app_and_wait 0 dtncp "test/empty dtn://host-2"
+    wait_for_file $last_node incoming/host-0/empty
     dtn::check expr [tell_dtnd $last_node file size incoming/host-0/empty] == 0
 
     set dtnd_size [tell_dtnd 0 file size dtnd]
@@ -52,6 +63,9 @@ test::script {
     puts "* Copying the dtnd executable into dtnd.new ($dtnd_size bytes)"
     dtn::run_app_and_wait 0 dtncp "dtnd dtn://host-2 dtnd.new"
 
+    puts "* Waiting for the file to be delivered"
+    wait_for_file $last_node incoming/host-0/dtnd.new
+    
     puts "* Checking that size and md5sum matches"
     dtn::check expr [tell_dtnd $last_node file size \
             incoming/host-0/dtnd.new] == $dtnd_size
