@@ -45,6 +45,11 @@ public:
      * Constructor.
      */
     FloodBundleRouter();
+
+    /**
+     * Initializer.
+     */
+    void initialize();
     
     /**
      * Event handler for new bundle arrivals.

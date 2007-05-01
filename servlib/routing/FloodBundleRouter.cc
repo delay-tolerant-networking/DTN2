@@ -36,10 +36,18 @@ namespace dtn {
 FloodBundleRouter::FloodBundleRouter()
     : TableBasedRouter("FloodBundleRouter", "flood"),
       all_bundles_("FloodBundleRouter::all_bundles"),
-      all_eids_("*:*")
+      all_eids_(EndpointIDPattern::WILDCARD_EID())
 {
     log_info("FloodBundleRouter initialized");
     ASSERT(all_eids_.valid());
+}
+
+//----------------------------------------------------------------------
+void
+FloodBundleRouter::initialize()
+{
+    TableBasedRouter::initialize();
+    config_.add_nexthop_routes_ = false;
 }
 
 //----------------------------------------------------------------------
