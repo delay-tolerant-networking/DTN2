@@ -47,7 +47,7 @@ void
 TableBasedRouter::add_route(RouteEntry *entry)
 {
     route_table_->add_entry(entry);
-    check_next_hop(entry->next_hop_);        
+    reroute_all_bundles();        
 }
 
 //----------------------------------------------------------------------
@@ -331,7 +331,10 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
     }
 
     // check if we're trying to send it right back where it came from
-    if (link->remote_eid() == bundle->prevhop_) {
+    // (and we know something about the remote eid)
+    if (link->remote_eid() != EndpointID::NULL_EID() &&
+        link->remote_eid() == bundle->prevhop_)
+    {
         log_debug("should_fwd bundle %d: "
                   "skip %s since remote eid %s == bundle prevhop",
                   bundle->bundleid_, link->name(), link->remote_eid().c_str());
