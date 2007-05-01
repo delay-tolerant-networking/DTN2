@@ -451,8 +451,9 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
     log_debug("check_next_hop %s -> %s: checking pending bundle list...",
               next_hop->name(), next_hop->nexthop());
 
-    // when the link comes up, any bundles destined for it will have a
-    // transmit pending entry in the forwarding log
+    // when the link comes up or is made available, any bundles
+    // destined for it will have a transmit pending entry in the
+    // forwarding log
     //
     // XXX/demmer this would be easier if they were just on the link
     // queue...
@@ -463,11 +464,6 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
          iter != pending_bundles_->end();
          ++iter)
     {
-        if (! next_hop->isopen()) {
-            log_debug("check_next_hop %s: link not open, stopping loop",
-                      next_hop->name());
-            break;
-        }
         if (next_hop->isbusy()) {
             log_debug("check_next_hop %s: link is busy, stopping loop",
                       next_hop->name());
@@ -481,6 +477,16 @@ TableBasedRouter::check_next_hop(const LinkRef& next_hop)
         bool ok = bundle->fwdlog_.get_latest_entry(next_hop, &info);
 
         if (ok && (info.state() == ForwardingInfo::TRANSMIT_PENDING)) {
+            // if the link is available and not open, open it
+            if (next_hop->isavailable() &&
+                (!next_hop->isopen()) && (!next_hop->isopening()))
+            {
+                log_debug("check_next_hop: "
+                          "opening *%p because a message is intended for it",
+                          next_hop.object());
+                actions_->open_link(next_hop);
+            }
+            
             log_debug("check_next_hop: sending *%p to *%p",
                       bundle.object(), next_hop.object());
             actions_->send_bundle(bundle.object() , next_hop,
