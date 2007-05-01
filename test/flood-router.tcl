@@ -59,15 +59,19 @@ test::script {
 
     puts "* waiting for it to be flooded around"
     dtn::wait_for_bundle_stats 0 {1 pending 2 transmitted}
-    dtn::wait_for_bundle_stats 1 {1 pending 2 transmitted}
-    dtn::wait_for_bundle_stats 2 {1 pending 2 transmitted}
-    dtn::wait_for_bundle_stats 3 {1 pending 2 transmitted}
+    dtn::wait_for_bundle_stats 1 {1 pending 1 transmitted}
+    dtn::wait_for_bundle_stats 2 {1 pending 1 transmitted}
+    dtn::wait_for_bundle_stats 3 {1 pending 1 transmitted}
     
-    puts "* checking that duplicates were detected"
-    dtn::wait_for_bundle_stats 0 {2 duplicate}
-    dtn::wait_for_bundle_stats 1 {1 duplicate}
-    dtn::wait_for_bundle_stats 2 {1 duplicate}
-    dtn::wait_for_bundle_stats 3 {1 duplicate}
+    puts "* checking that duplicates were detected properly"
+    dtn::check_bundle_stats 0 {0 duplicate}
+    if {[dtn::test_bundle_stats 1 {0 duplicate}]} {
+        dtn::check_bundle_stats 2 {1 duplicate}
+    } else {
+        dtn::check_bundle_stats 1 {1 duplicate}
+        dtn::check_bundle_stats 2 {0 duplicate}
+    }
+    dtn::check_bundle_stats 3 {1 duplicate}
 
     puts "* adding links from node 4 to/from nodes 2 and 3"
     tell_dtnd 4 link add $cl-link:4-2 \
@@ -83,8 +87,8 @@ test::script {
 		"$net::host(4):[dtn::get_port $cl 4]" $linktype $cl
     }
     
-    puts "* checking the bundle is flooded to node 4 (and back)"
-    dtn::wait_for_bundle_stats 4 {1 pending 2 transmitted 1 duplicate}
+    puts "* checking the bundle is flooded to node 4 and back out"
+    dtn::wait_for_bundle_stats 4 {1 pending 1 transmitted 1 duplicate}
     
     puts "* waiting for bundle to expire everywhere "
     dtn::wait_for_bundle_stats 0 {0 pending 1 expired}
