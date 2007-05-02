@@ -18,9 +18,10 @@
 #ifndef _GBOFID_H_
 #define _GBOFID_H_
 
+#include <oasys/debug/InlineFormatter.h>
+
 #include "naming/EndpointID.h"
 #include "bundling/BundleTimestamp.h"
-//#include "routing/router.h"
 
 namespace dtn {
 
@@ -31,12 +32,17 @@ class GbofId
 {
 public:
     GbofId();
+    GbofId(EndpointID      source,
+           BundleTimestamp creation_ts,
+           bool            is_fragment,
+           u_int32_t       frag_length,
+           u_int32_t       frag_offset);
     ~GbofId();
 
     /**
      * Compares if GBOF IDs are the same.
      */
-    bool equals(GbofId);
+    bool equals(const GbofId& id) const;
 
     /** 
      * Compares if fields match those of this GBOF ID
@@ -45,18 +51,32 @@ public:
                 BundleTimestamp,
                 bool,
                 u_int32_t,
-                u_int32_t);
-                
+                u_int32_t) const;
+
+    /**
+     * Equality operator.
+     */
+    bool operator==(const GbofId& id) const {
+        return equals(id);
+    }
+    
+    /**
+     * Comparison operator.
+     */
+    bool operator<(const GbofId& other) const;
+    
     /**
      * Returns a string version of the gbof
      */
-    std::string str();
+    std::string str() const;
 
     EndpointID source_;		  ///< Source eid
     BundleTimestamp creation_ts_; ///< Creation timestamp
     bool is_fragment_;		  ///< Fragmentary Bundle
     u_int32_t frag_length_;  	  ///< Length of original bundle
     u_int32_t frag_offset_;	  ///< Offset of fragment in original bundle
+
+    friend class oasys::InlineFormatter<GbofId>;
 };
 
 } // namespace dtn

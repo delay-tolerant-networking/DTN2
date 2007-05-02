@@ -24,20 +24,59 @@
 
 // GBOFID -- Global Bundle Or Fragment ID
 
+namespace oasys {
+
+//----------------------------------------------------------------------
+template<>
+const char*
+InlineFormatter<dtn::GbofId>
+::format(const dtn::GbofId& id)
+{
+    if (! id.is_fragment_) {
+        buf_.appendf("<%s, %u.%u>",
+                     id.source_.c_str(),
+                     id.creation_ts_.seconds_,
+                     id.creation_ts_.seqno_);
+    } else {
+        buf_.appendf("<%s, %u.%u, FRAG len %u offset %u>",
+                     id.source_.c_str(),
+                     id.creation_ts_.seconds_,
+                     id.creation_ts_.seqno_,
+                     id.frag_length_, id.frag_offset_);
+    }
+    return buf_.c_str();
+}
+} // namespace oasys
+
 namespace dtn {
 
+//----------------------------------------------------------------------
 GbofId::GbofId()
 {
-
 }
 
+//----------------------------------------------------------------------
+GbofId::GbofId(EndpointID      source,
+               BundleTimestamp creation_ts,
+               bool            is_fragment,
+               u_int32_t       frag_length,
+               u_int32_t       frag_offset)
+    : source_(source),
+      creation_ts_(creation_ts),
+      is_fragment_(is_fragment),
+      frag_length_(frag_length),
+      frag_offset_(frag_offset)
+{
+}
+
+//----------------------------------------------------------------------
 GbofId::~GbofId()
 {
-
 }
 
+//----------------------------------------------------------------------
 bool
-GbofId::equals(GbofId id)
+GbofId::equals(const GbofId& id) const
 {
     if(source_.equals(id.source_) &&
        creation_ts_.seconds_ == id.creation_ts_.seconds_ &&
@@ -53,12 +92,34 @@ GbofId::equals(GbofId id)
         return false;
 }
 
+//----------------------------------------------------------------------
+bool
+GbofId::operator<(const GbofId& other) const
+{
+    if (source_ < other.source_) return true;
+    if (other.source_ < source_) return false;
+
+    if (creation_ts_ < other.creation_ts_) return true;
+    if (creation_ts_ > other.creation_ts_) return false;
+
+    if (is_fragment_) {
+        if (frag_length_ < other.frag_length_) return true;
+        if (other.frag_length_ < frag_length_) return false;
+
+        if (frag_offset_ < other.frag_offset_) return true;
+        if (other.frag_offset_ < frag_offset_) return false;
+    }
+
+    return false; // all equal
+}
+
+//----------------------------------------------------------------------
 bool
 GbofId::equals(EndpointID source,
                BundleTimestamp creation_ts,
                bool is_fragment,
                u_int32_t frag_length,
-               u_int32_t frag_offset)
+               u_int32_t frag_offset) const
 {
     if(source_.equals(source) &&
        creation_ts_.seconds_ == creation_ts.seconds_ &&
@@ -74,7 +135,9 @@ GbofId::equals(EndpointID source,
         return false;
 }
 
-std::string GbofId::str()
+//----------------------------------------------------------------------
+std::string
+GbofId::str() const
 {
         std::string toReturn;
         
