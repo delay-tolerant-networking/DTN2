@@ -1143,6 +1143,7 @@ BundleDaemon::handle_bundle_attributes_query(BundleAttributesQueryRequest* reque
 void
 BundleDaemon::handle_bundle_attributes_report(BundleAttributesReportEvent* event)
 {
+    (void)event;
     log_debug("BundleDaemon::handle_bundle_attributes_report: query %s",
               event->query_id_.c_str());
 }
@@ -1545,6 +1546,7 @@ BundleDaemon::handle_bundle_queued_query(BundleQueuedQueryRequest* request)
 void
 BundleDaemon::handle_bundle_queued_report(BundleQueuedReportEvent* event)
 {
+    (void)event;
     log_debug("BundleDaemon::handle_bundle_queued_report: query %s, %s",
               event->query_id_.c_str(),
               (event->is_queued_? "true" : "false"));
@@ -1571,6 +1573,7 @@ BundleDaemon::handle_eid_reachable_query(EIDReachableQueryRequest* request)
 void
 BundleDaemon::handle_eid_reachable_report(EIDReachableReportEvent* event)
 {
+    (void)event;
     log_debug("BundleDaemon::handle_eid_reachable_report: query %s, %s",
               event->query_id_.c_str(),
               (event->is_reachable_? "true" : "false"));
@@ -1628,6 +1631,7 @@ BundleDaemon::handle_link_attributes_query(LinkAttributesQueryRequest* request)
 void
 BundleDaemon::handle_link_attributes_report(LinkAttributesReportEvent* event)
 {
+    (void)event;
     log_debug("BundleDaemon::handle_link_attributes_report: query %s",
               event->query_id_.c_str());
 }
@@ -1653,6 +1657,7 @@ BundleDaemon::handle_iface_attributes_query(
 void
 BundleDaemon::handle_iface_attributes_report(IfaceAttributesReportEvent* event)
 {
+    (void)event;
     log_debug("BundleDaemon::handle_iface_attributes_report: query %s",
               event->query_id_.c_str());
 }
@@ -1675,6 +1680,7 @@ BundleDaemon::handle_cla_parameters_query(CLAParametersQueryRequest* request)
 void
 BundleDaemon::handle_cla_parameters_report(CLAParametersReportEvent* event)
 {
+    (void)event;
     log_debug("Bundledaemon::handle_cla_parameters_report: query %s",
               event->query_id_.c_str());
 }

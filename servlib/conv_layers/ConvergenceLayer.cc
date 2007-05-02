@@ -209,6 +209,7 @@ void
 ConvergenceLayer::reconfigure_link(const LinkRef& link,
                                    AttributeVector& params)
 {
+    (void)link;
     (void)params;
     log_debug("reconfigure link %s", link->name());
 }
