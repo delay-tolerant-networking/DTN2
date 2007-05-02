@@ -31,17 +31,18 @@ foreach {var val} $opt(opts) {
 }
 
 dtn::config -storage_type $storage_type
+dtn::config_topology_common false
 
 proc rand_int {} {
     return [expr int(rand() * 1000)]
 }
 
-set source_eid1 dtn://storage-test-src-[rand_int]
-set source_eid2 dtn://storage-test-src-[rand_int]
-set dest_eid1   dtn://storage-test-dst-[rand_int]
-set dest_eid2   dtn://storage-test-dst-[rand_int]
-set reg_eid1    dtn://storage-test-reg-[rand_int]
-set reg_eid2    dtn://storage-test-reg-[rand_int]
+set source_eid1 dtn://host-0/storage-test-src-[rand_int]
+set source_eid2 dtn://host-0/storage-test-src-[rand_int]
+set dest_eid1   dtn://host-0/storage-test-dst-[rand_int]
+set dest_eid2   dtn://host-0/storage-test-dst-[rand_int]
+set reg_eid1    dtn://host-0/storage-test-reg-[rand_int]
+set reg_eid2    dtn://host-0/storage-test-reg-[rand_int]
 
 set payload    "storage test payload"
 

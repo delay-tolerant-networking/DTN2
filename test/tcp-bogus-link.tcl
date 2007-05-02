@@ -21,6 +21,7 @@ net::num_nodes 1
 
 dtn::config
 dtn::config_interface tcp
+dtn::config_topology_common false
 
 test::script {
     puts "* Running dtnd"
