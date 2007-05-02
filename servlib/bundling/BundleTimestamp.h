@@ -58,8 +58,18 @@ struct BundleTimestamp {
     bool operator<(const BundleTimestamp& other) const
     {
         if (seconds_ < other.seconds_) return true;
-        else if (seconds_ > other.seconds_) return false;
+        if (seconds_ > other.seconds_) return false;
         return (seqno_ < other.seqno_);
+    }
+        
+    /**
+     * Operator overload for use in STL data structures.
+     */
+    bool operator>(const BundleTimestamp& other) const
+    {
+        if (seconds_ > other.seconds_) return true;
+        if (seconds_ < other.seconds_) return false;
+        return (seqno_ > other.seqno_);
     }
         
     /**
