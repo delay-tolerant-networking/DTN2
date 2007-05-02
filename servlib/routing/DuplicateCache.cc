@@ -20,22 +20,6 @@
 
 #include "DuplicateCache.h"
 
-namespace oasys {
-
-//----------------------------------------------------------------------
-template<>
-const char*
-InlineFormatter<dtn::DuplicateCache::Key>
-::format(const dtn::DuplicateCache::Key& k)
-{
-    buf_.appendf("<%s, %u.%u>",
-                 k.source_eid_.c_str(),
-                 k.creation_ts_.seconds_,
-                 k.creation_ts_.seqno_);
-    return buf_.c_str();
-}
-} // namespace oasys
-
 namespace dtn {
 
 //----------------------------------------------------------------------
@@ -48,7 +32,11 @@ DuplicateCache::DuplicateCache(size_t capacity)
 bool
 DuplicateCache::is_duplicate(Bundle* bundle)
 {
-    Key k(bundle->source_, bundle->creation_ts_);
+    GbofId k(bundle->source_,
+             bundle->creation_ts_,
+             bundle->is_fragment_,
+             bundle->payload_.length(),
+             bundle->frag_offset_);
     Val v;
     if (cache_.get(k, &v)) {
         return true;

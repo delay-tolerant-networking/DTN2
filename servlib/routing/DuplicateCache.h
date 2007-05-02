@@ -21,13 +21,14 @@
 #include <oasys/util/Cache.h>
 #include <oasys/util/CacheCapacityHelper.h>
 #include "bundling/Bundle.h"
+#include "bundling/GbofId.h"
 
 namespace dtn {
 
 /**
  * Utility class for routers to use to maintain a cache of recently
- * received bundles, indexed by (source_eid, creation_timestamp).
- * Useful for routers to detect duplicate receptions.
+ * received bundles, indexed by GbofId. Useful for routers to detect
+ * duplicate receptions.
  */
 class DuplicateCache {
 public:
@@ -44,30 +45,6 @@ public:
 
 protected:
     /**
-     * Cache key class.
-     */
-    struct Key {
-        Key(EndpointID e, BundleTimestamp ts)
-            : source_eid_(e), creation_ts_(ts) {}
-
-        bool operator<(const Key& other) const
-        {
-            if (source_eid_ < other.source_eid_) {
-                return true;
-            } else if (other.source_eid_ < source_eid_) {
-                return false;
-            }
-            
-            return creation_ts_ < other.creation_ts_;
-        }
-        
-        EndpointID      source_eid_;
-        BundleTimestamp creation_ts_;
-    };
-
-    friend class oasys::InlineFormatter<Key>;
-
-    /**
      * Cache value class.
      */
     struct Val {
@@ -75,8 +52,8 @@ protected:
     };
 
     /// The cache
-    typedef oasys::CacheCapacityHelper<Key, Val> CacheCapacityHelper;
-    typedef oasys::Cache<Key, Val, CacheCapacityHelper> Cache;
+    typedef oasys::CacheCapacityHelper<GbofId, Val> CacheCapacityHelper;
+    typedef oasys::Cache<GbofId, Val, CacheCapacityHelper> Cache;
     Cache cache_;
 };
 
