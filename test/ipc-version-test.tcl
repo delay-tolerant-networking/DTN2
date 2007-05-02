@@ -20,6 +20,7 @@ net::num_nodes 1
 manifest::file apps/dtntest/dtntest dtntest
 
 dtn::config
+dtn::config_topology_common false
 
 set version 54321
 foreach {var val} $opt(opts) {
