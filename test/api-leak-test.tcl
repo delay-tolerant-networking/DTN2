@@ -21,6 +21,7 @@ manifest::file apps/dtntest/dtntest dtntest
 manifest::file Rules.make test-payload.dat
 
 dtn::config
+dtn::config_topology_common false
 
 set count 10000
 foreach {var val} $opt(opts) {
