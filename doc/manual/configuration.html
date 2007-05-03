@@ -188,7 +188,8 @@ networks that your dtnd will talk on.
 <p>
 Syntax: <tt>interface add <i>interface-name</i> <i>convergence-layer</i> [ <i>args</i> ]</tt>
 <br>
-Example: <tt>interface add tcp0 tcp local_host=0.0.0.0 local_port=5000</tt>
+Example: <tt>interface add tcp0 tcp</tt><br>
+Example: <tt>interface add udp0 udp local_host=1.2.3.4 local_port=9999</tt>
 
 <p> When dtnd encounters an <tt>interface add</tt> command, it
 checks to make sure the named interface has not been created before.

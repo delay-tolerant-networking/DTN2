@@ -111,14 +111,13 @@ problem.
 Take a look at the <i>interface add</i> commands a few lines
 down. The command <i>interface add tcp0 tcp</i> adds a
 TCP convergence layer named <i>tcp0</i> to the server. This
-means that the daemon will start listening on port 5000 for incoming
+means that the daemon will start listening on port 4556 for incoming
 connections from other servers in the DTN.
 
 <p>Usually DTN nodes that are communicating via
-TCP listen on port 5000, but that is not an IETF port assignment
-and nothing about the protocol requires operation on that port.
+TCP listen on port 4556, based on the IANA port assignment.
 If you have another application on the same server listening on
-port 5000, you'll need to choose a different port for your dtnd
+port 4556, you'll need to choose a different port for your dtnd
 to use. 
 
 <p> The <i>interface add</i> command can take convergence layer
@@ -171,18 +170,11 @@ that dtnd can find the correct database directory. Put that together
 and you have:
 
 <blockquote><pre>$ <font color=blue>daemon/dtnd -c /home/fred/dtn/dtn.conf --init-db </font>
-[1108493233.189564 /dtnd info] Bundle Daemon Initializing...
-[1108493233.209564 /dtnd info] random seed is 209564
-[1108493233.224564 /dtnd info] parsing configuration file /home/fred/dtn/dtn.conf ...
-[1108493233.231564 /dtnd info] dtnd parsing configuration...
-[1108493233.234564 /interface info] adding interface tcp host://0.0.0.0:5000/
-[1108493233.276564 /dtnd info] dtnd configuration parsing complete
-[1108493233.609564 /storage/berkeleydb info] database file '/home/fred/dtn/db/DTN.db' validated
-[1108493233.615564 /storage/berkeleydb info] initializing globals database table ...
-[1108493233.662564 /storage/berkeleydb info] initializing bundles database table ...
-[1108493233.733564 /storage/berkeleydb info] initializing registration database table...
-[1108493233.948564 /storage/berkeleydb info] closing database file...
-[1108493234.037564 /dtnd info] database initialization complete.
+[1178218919.248562 /dtnd notice] random seed is 248552
+[1178218919.248660 /dtnd notice] DTN daemon starting up... (pid 3268)
+[1178218919.263195 /dtnd notice] initializing persistent data store
+[1178218919.263343 /dtn/storage notice] creating new database directory /var/tmp/dtn/db
+[1178218921.130742 /dtnd notice] closing persistent data store
 </pre>
 </blockquote>
 
@@ -211,24 +203,32 @@ each time you start the server.
 <p>
 Here's an example of starting up the server:
 
-<blockquote><pre>
-[1108500270.498718 /dtnd info] Bundle Daemon Initializing...
-[1108500270.498718 /dtnd info] random seed is 498718
-[1108500270.546718 /dtnd info] parsing configuration file /home/fred/dtn/dtn.conf...
-[1108500270.553718 /dtnd info] dtnd parsing configuration...
-[1108500270.557718 /interface info] adding interface tcp host://0.0.0.0:5000/
-[1108500270.577718 /dtnd info] dtnd configuration parsing complete
-[1108500270.985718 /storage/berkeleydb info] database file '/home/fred/dtn/db/DTN.db' validated
-[1108500271.136718 /tcl info] can't load tclreadline: can't find package tclreadline
-[1108500271.142718 /tcl info] fall back to simple command loop
+<blockquote><pre>$ <font color=blue>daemon/dtnd -c /home/fred/dtn/dtn.conf</font>
+[1178218965.919630 /dtnd notice] random seed is 919621
+[1178218965.919725 /dtnd notice] DTN daemon starting up... (pid 3271)
+[1178218965.943359 /dtn/bundle/daemon notice] loading bundles from data store
+zabar dtn% 
 </pre></blockquote>
 
 <p>
-Note that this installation of TCL is missing the optional
-<i>tclreadline</i> package. As a result we get a warning from dtnd
-at startup, but it will still work correctly. The user interface
-is just slightly more difficult to use because you cannot go back
-through your command history and edit previous commands.
+You get a bit more info if you start up with the '-l info argument':
+
+<blockquote><pre>$ <font color=blue>daemon/dtnd -c /home/fred/dtn/dtn.conf -l info</font>
+[1178219015.034268 /dtnd notice] random seed is 34259
+[1178219015.034621 /dtnd notice] DTN daemon starting up... (pid 3272)
+[1178219015.046752 /dtnd info] parsing configuration file daemon/dtn.conf...
+[1178219015.047142 /dtnd info] dtnd parsing configuration...
+[1178219015.047716 /dtn/interface/table info] adding interface tcp0 (tcp)
+[1178219015.048082 /dtn/interface/table info] adding interface udp0 (udp)
+[1178219015.048606 /dtnd info] dtnd configuration parsing complete
+[1178219015.048853 /dtn/storage info] initializing db name=DTN (not shared), dir=/var/tmp/dtn/db
+[1178219015.054478 /dtn/storage info] datastore /var/tmp/dtn/db was cleanly shut down
+[1178219015.057959 /dtn/bundle/daemon info] REGISTRATION_ADDED 0 dtn://zabar.research.intel-research.net.dtn
+[1178219015.058144 /dtn/bundle/daemon info] REGISTRATION_ADDED 2 dtn://zabar.research.intel-research.net.dtn/ping
+[1178219015.058309 /dtn/bundle/daemon notice] loading bundles from data store
+[1178219015.557741 /dtnd info] starting console on 127.0.0.1:5050
+zabar dtn% 
+</pre></blockquote>
 
 <p>
 Use the online help system to learn what you can do from here. Type
@@ -274,13 +274,11 @@ Here's an example of how to ping a server who's local EID
 is <i>dtn://dtn-a.dtn</i>:
 
 <blockquote><pre>$ <font color=blue>./dtnping localhost</font>
-source_eid [dtn://dtn-a.dtn/ping.2384]
-replyto_eid [dtn://dtn-a.dtn/ping.2384]
-dtn_register succeeded, regid 0x11
-checking for bundles already queued...
-PING [dtn://dtn-a.dtn/ping]...
-68 bytes from [dtn://dtn-a.dtn/ping]: time=161.00 ms
-68 bytes from [dtn://dtn-a.dtn/ping]: time=228.00 ms
+source_eid [dtn://zabar.research.intel-research.net.dtn/ping.3310]
+dtn_register succeeded, regid 10
+PING [dtn://zabar.research.intel-research.net.dtn/ping]...
+20 bytes from [dtn://zabar.research.intel-research.net.dtn/ping]: 'dtnping!' seqno=0, time=212 ms
+20 bytes from [dtn://zabar.research.intel-research.net.dtn/ping]: 'dtnping!' seqno=1, time=297 ms
 <font color=blue>Ctrl-C</font></pre></blockquote>
 
 <h2> What next? </h2>
