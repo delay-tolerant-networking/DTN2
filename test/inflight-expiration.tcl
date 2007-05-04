@@ -53,12 +53,34 @@ test::script {
     puts "* Checking that bundle is still in flight"
     dtn::check_link_stats 0 tcp-link:0-1 {1 bundles_queued}
     
-    puts "* Checking that its not pending"
+    puts "* Checking that it was received but not delivered"
+    dtn::wait_for_bundle_stats 1 {1 received 1 expired 0 delivered}
+
+    puts "* Checking that it was really deleted"
     dtn::wait_for_bundle_stats 0 {0 pending}
     dtn::wait_for_bundle_stats 1 {0 pending}
     
-    puts "* Checking that it was received but not delivered"
+    puts "* Repeating the test, this time with two bundles in flight"
+    tell_dtnd 0 bundle reset_stats
+    tell_dtnd 1 bundle reset_stats
+    
+    set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest \
+	    length=5000 expiration=2]
+    set timestamp [dtn::tell_dtnd 0 sendbundle $source $dest \
+	    length=5000 expiration=2]
+    
+    puts "* Waiting for bundle expirations at source"
+    dtn::wait_for_bundle_stats 0 {2 expired}
+
+    puts "* Checking that only one bundle is still in flight"
+    dtn::wait_for_link_stats 0 tcp-link:0-1 {1 bundles_queued}
+    
+    puts "* Checking that one was received but not delivered"
     dtn::wait_for_bundle_stats 1 {1 received 1 expired 0 delivered}
+
+    puts "* Checking that they both were really deleted"
+    dtn::wait_for_bundle_stats 0 {0 pending}
+    dtn::wait_for_bundle_stats 1 {0 pending}
     
     puts "* Test success!"
 }
