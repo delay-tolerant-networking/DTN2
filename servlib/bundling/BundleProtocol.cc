@@ -227,6 +227,7 @@ BundleProtocol::produce(const Bundle* bundle, const BlockInfoVec* blocks,
         return 0;
     
     // advance past any blocks that are skipped by the given offset
+    ASSERT(!blocks->empty());
     BlockInfoVec::const_iterator iter = blocks->begin();
     while (offset >= iter->full_length()) {
         log_debug_p(LOG, "BundleProtocol::produce skipping block type 0x%x "
