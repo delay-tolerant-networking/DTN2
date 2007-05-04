@@ -227,8 +227,8 @@ ConvergenceLayer::close_contact(const ContactRef& contact)
 void
 ConvergenceLayer::send_bundle_on_down_link(const LinkRef& link, Bundle* bundle)
 {
-        (void)link;
-        (void)bundle;
+    (void)link;
+    (void)bundle;
     ASSERT(has_persistent_link_queues());
 }
 
@@ -238,7 +238,6 @@ ConvergenceLayer::cancel_bundle(const LinkRef& contact, Bundle* bundle)
 {
     (void)contact;
     (void)bundle;
-    BundleDaemon::post( new BundleSendCancelledEvent(bundle, contact) );
     return false;
 }
 
