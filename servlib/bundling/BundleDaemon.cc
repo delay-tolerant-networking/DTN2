@@ -759,8 +759,8 @@ BundleDaemon::handle_bundle_transmitted(BundleTransmittedEvent* event)
      * Remove the formatted block info from the bundle since we don't
      * need it any more.
      */
-     log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
-               bundle->bundleid_,link->name());
+    log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
+              bundle->bundleid_,link->name());
     BundleProtocol::delete_blocks(bundle, link);
     blocks = NULL;
 
@@ -999,11 +999,15 @@ void
 BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
 {
     Bundle* bundle = event->bundleref_.object();
-
     LinkRef link = event->link_;
     
+    log_info("BUNDLE_CANCELLED id:%d -> %s (%s)",
+            bundle->bundleid_,
+            link->name(),
+            link->nexthop());
+    
     log_debug("trying to find xmit blocks for bundle id:%d on link %s",
-            bundle->bundleid_,link->name());
+              bundle->bundleid_, link->name());
     BlockInfoVec* blocks = bundle->xmit_blocks_.find_blocks(link);
     
     // Because a CL is running in another thread or process (External CLs),
@@ -1012,13 +1016,13 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     // posted after  another, which it might contradict, the BundleDaemon 
     // need not reprocess the event. The router (DP) might, however, be 
     // interested in the new status of the send.
-    if(blocks == NULL)
+    if (blocks == NULL)
     {
         log_info("received a redundant/conflicting bundle_cancelled event "
-                "about bundle id:%d -> %s (%s)",
-            bundle->bundleid_,
-            link->name(),
-            link->nexthop());
+                 "about bundle id:%d -> %s (%s)",
+                 bundle->bundleid_,
+                 link->name(),
+                 link->nexthop());
         return;
     }
         
@@ -1031,19 +1035,22 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
     link->stats()->bundles_queued_--;
     link->stats()->bytes_queued_ -= total_len;
     
-    log_info("BUNDLE_CANCELLED id:%d -> %s (%s)",
-            bundle->bundleid_,
-            link->name(),
-            link->nexthop());
-    
     /*
      * Remove the formatted block info from the bundle since we don't
      * need it any more.
      */
     log_debug("trying to delete xmit blocks for bundle id:%d on link %s",
-            bundle->bundleid_,link->name());
+              bundle->bundleid_, link->name());
     BundleProtocol::delete_blocks(bundle, link);
     blocks = NULL;
+
+    /*
+     * Update the forwarding log.
+     */
+    log_debug("trying to update the forwarding log for "
+              "bundle id:%d on link %s to state CANCELLED",
+              bundle->bundleid_, link->name());
+    bundle->fwdlog_.update(link, ForwardingInfo::CANCELLED);
 }
 
 //----------------------------------------------------------------------
@@ -2176,6 +2183,9 @@ BundleDaemon::delete_bundle(Bundle* bundle, status_report_reason_t reason)
     // and then cancel only on appropriate links, or just cancel on every link.
     // Since canceling a send is not likely the common case, we will cancel
     // the bundle on all links for now.
+    //
+    // XXX/demmer this is strange to me as we should be able to figure
+    // out if is_queued() is true for the bundle/link
     oasys::ScopeLock l(contactmgr_->lock(), "BundleDaemon::delete_bundle");
     const LinkSet* links = contactmgr_->links();
     LinkSet::const_iterator iter;
