@@ -208,18 +208,20 @@ BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
               bundle, link->type_str(), link->name(), link->nexthop());
               
     // Remove the bundle from the link's delayed-send queue
-    if (link->queue()->erase(bundle, false))
-    {
-        log_info("removed delayed-send bundle id:%d from link %s queue",
-                 bundle->bundleid_,
-                 link->name());
+    if (link->queue()->size() != 0) {
+        if(link->queue()->erase(bundle,false))
+        {
+            log_info("removed delayed-send bundle id:%d from link %s queue",
+                     bundle->bundleid_,
+                     link->name());
+        }
     }
 
-    // If that bundle is in flight on the link on the link, cancel it
+    // If that bundle has ever been sent on that link, cancel it
     ForwardingInfo fwdinfo;
-    bool ok = bundle->fwdlog_.get_latest_entry(link, &fwdinfo);
-    if (ok && fwdinfo.state() == ForwardingInfo::IN_FLIGHT);
+    if (bundle->fwdlog_.get_latest_entry(link, &fwdinfo))
     {
+        bundle->fwdlog_.update(link, ForwardingInfo::CANCELLED);
         return link->clayer()->cancel_bundle(link, bundle);
     }
     
