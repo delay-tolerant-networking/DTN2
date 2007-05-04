@@ -530,13 +530,6 @@ BluetoothConvergenceLayer::Connection::send_data()
     // socket
     ASSERT(! contact_broken_);
 
-    if (params_->test_write_delay_ != 0) {
-        log_debug("send_data: sleeping for test_write_delay msecs %u",
-                  params_->test_write_delay_);
-
-        usleep(params_->test_write_delay_ * 1000);
-    }
-
     log_debug("send_data: trying to drain %zu bytes from send buffer...",
               sendbuf_.fullbytes());
     ASSERT(sendbuf_.fullbytes() > 0);

@@ -67,6 +67,11 @@ public:
     void queue_bundle(Bundle* bundle);
 
     /**
+     * Cancel a bundle transmission
+     */
+    void cancel_bundle(Bundle* bundle);
+    
+    /**
      * Returns true if the given bundle is queued for transmission;
      * otherwise returns false.
      */

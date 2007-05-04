@@ -312,6 +312,35 @@ ConnectionConvergenceLayer::send_bundle(const ContactRef& contact,
 
 //----------------------------------------------------------------------
 bool
+ConnectionConvergenceLayer::cancel_bundle(const LinkRef& link,
+                                          Bundle* bundle)
+{
+    ASSERT(link->isopen());
+    
+    const ContactRef& contact = link->contact();
+    CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
+    ASSERT(conn != NULL);
+
+    ASSERT(contact->link() == link);
+    ASSERT(! link->isdeleted());
+
+    // XXX/demmer this should be an invariant maintained by the caller
+    if (is_queued(contact->link(), bundle)) {
+        log_debug("ConnectionConvergenceLayer::cancel_bundle: "
+                  "cancelling bundle *%p on *%p", bundle, link.object());
+        conn->cancel_bundle(bundle);
+    } else {
+        log_debug("ConnectionConvergenceLayer::cancel_bundle: "
+                  "not cancelling bundle *%p on *%p since !is_queued()",
+                  bundle, link.object());
+    }
+
+    // XXX/demmer this return value is always bogus so get rid of it
+    return false;
+}
+
+//----------------------------------------------------------------------
+bool
 ConnectionConvergenceLayer::is_queued(const LinkRef& link, Bundle* bundle)
 {
     ASSERT(link != NULL);

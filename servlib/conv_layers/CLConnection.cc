@@ -19,6 +19,7 @@
 #endif
 
 #include <oasys/util/OptParser.h>
+#include <oasys/util/Time.h>
 
 #include "CLConnection.h"
 #include "bundling/BundleDaemon.h"
@@ -77,6 +78,8 @@ CLConnection::run()
         accept();
     }
 
+    oasys::Time next_write(0,0);
+    
     while (true) {
         if (contact_broken_) {
             log_debug("contact_broken set, exiting main loop");
@@ -92,12 +95,47 @@ CLConnection::run()
             continue;
         }
 
-        // send any data there is to send, and if something was sent
-        // out, we'll call poll() with a zero timeout so we can read
-        // any data there is to consume, then return to send another
-        // chunk.
-        bool more_to_send = send_pending_data();
+        oasys::Time now = oasys::Time::now();
+        
+        int timeout;
+        if (params_->test_write_delay_ == 0)
+        {
+            // send any data there is to send. if something was sent
+            // out and there's still more to go, we'll call poll() with a
+            // zero timeout so we can read any data there is to
+            // consume, then return to send another chunk.
+            bool more_to_send = send_pending_data();
+            timeout = more_to_send ? 0 : poll_timeout_;
+        }
+        else
+        {
+            // to implement the test_write_delay we need to track the
+            // time to call write again
+            if (now >= next_write) {
+                bool more_to_send = send_pending_data();
+                if (more_to_send) {
+                    next_write = now;
+                    next_write.add_milliseconds(params_->test_write_delay_);
+                } else {
+                    next_write.sec_  = 0;
+                    next_write.usec_ = 0;
+                }
+            }
 
+            // if next_write is non-zero, then there's more to send.
+            if (next_write.sec_ != 0) {
+                timeout = std::min((u_int32_t)poll_timeout_,
+                                   (next_write - now).in_milliseconds());
+            } else {
+                timeout = poll_timeout_;
+            }
+
+            log_debug("timeout is %u: next_write %u.%u (%u ms from now), poll_timeout %d",
+                      timeout, next_write.sec_, next_write.usec_, 
+                      next_write.sec_ == 0 ? 0 : (next_write - now).in_milliseconds(), poll_timeout_);
+            
+        }
+        
         // check again here for contact broken since we don't want to
         // poll if the socket's been closed
         if (contact_broken_) {
@@ -112,8 +150,6 @@ CLConnection::run()
         for (int i = 0; i < num_pollfds_ + 1; ++i) {
             pollfds_[i].revents = 0;
         }
-
-        int timeout = more_to_send ? 0 : poll_timeout_;
 
         log_debug("calling poll on %d fds with timeout %d",
                   num_pollfds_ + 1, timeout);
@@ -182,6 +218,18 @@ CLConnection::queue_bundle(Bundle* bundle)
 
     cmdqueue_.push_back(
         CLConnection::CLMsg(CLConnection::CLMSG_SEND_BUNDLE, bundle));
+}
+
+//----------------------------------------------------------------------
+void
+CLConnection::cancel_bundle(Bundle* bundle)
+{
+    ASSERT(contact_->link() != NULL);
+    ASSERT(contact_->link()->cl_info() != NULL);
+    ASSERT(is_queued(bundle));
+    
+    cmdqueue_.push_back(
+        CLConnection::CLMsg(CLConnection::CLMSG_CANCEL_BUNDLE, bundle));
 }
 
 //----------------------------------------------------------------------
@@ -335,7 +383,7 @@ CLConnection::close_contact()
     LinkParams* params = dynamic_cast<LinkParams*>(link->cl_info());
     ASSERT(params != NULL);
 
-    oasys::ScopeLock l(inflight_lock(), "CLConnection::is_queued");
+    oasys::ScopeLock l(inflight_lock(), "CLConnection::close_contact");
 
     // drain the inflight queue, posting transmitted or transmit
     // failed events

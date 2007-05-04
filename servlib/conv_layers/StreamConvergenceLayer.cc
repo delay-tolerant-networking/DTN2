@@ -397,6 +397,10 @@ StreamConvergenceLayer::Connection::send_pending_data()
     
     // see if we're broken or write blocked
     if (contact_broken_ || (send_segment_todo_ != 0)) {
+        if (params_->test_write_delay_ != 0) {
+            return true;
+        }
+        
         return false;
     }
     
@@ -570,6 +574,10 @@ StreamConvergenceLayer::Connection::start_next_bundle()
         return false;
     }
 
+    // release the inflight lock before calling send_next_segment
+    // since it might take a while
+    l.unlock();
+
     // now send the first segment for the bundle
     return send_next_segment(current_inflight_);
 }
@@ -674,6 +682,13 @@ StreamConvergenceLayer::Connection::send_data_todo(InFlightBundle* inflight)
         
         if (contact_broken_)
             return true;
+
+        // if test_write_delay is set, then we only send one segment
+        // at a time before bouncing back to poll
+        if (params_->test_write_delay_ != 0) {
+            log_debug("send_data_todo done, returning more to send (send_segment_todo_==%zu) since test_write_delay is non-zero", send_segment_todo_);
+            return true;
+        }
     }
 
     return (send_segment_todo_ == 0);
@@ -757,7 +772,38 @@ StreamConvergenceLayer::Connection::send_keepalive()
 void
 StreamConvergenceLayer::Connection::handle_cancel_bundle(Bundle* bundle)
 {
-    (void)bundle;
+
+    oasys::ScopeLock l(inflight_lock(), "StreamConvergenceLayer::"
+                       "Connection::handle_cancel_bundle");
+    
+    // if the bundle is already actually in flight (i.e. we've already
+    // sent all or part of it), we can't currently cancel it. however,
+    // in the case where it's not already in flight, we can cancel it
+    // and accordingly signal with an event
+    InFlightList::iterator iter;
+    for (iter = inflight_.begin(); iter != inflight_.end(); ++iter) {
+        InFlightBundle* inflight = *iter;
+        if (inflight->bundle_ == bundle)
+        {
+            if (inflight->sent_data_.empty()) {
+                log_debug("handle_cancel_bundle: "
+                          "bundle %d not yet in flight, cancelling send",
+                          bundle->bundleid_);
+                inflight_.erase(iter);
+                BundleDaemon::post(
+                    new BundleSendCancelledEvent(bundle, contact_->link()));
+                return;
+            } else {
+                log_debug("handle_cancel_bundle: "
+                          "bundle %d already in flight, can't cancel send",
+                          bundle->bundleid_);
+                return;
+            }
+        }
+    }
+
+    log_warn("handle_cancel_bundle: "
+             "can't find bundle %d in the in flight list", bundle->bundleid_);
 }
 
 //----------------------------------------------------------------------
