@@ -151,20 +151,11 @@ public:
 class RouteEntryVec : public std::vector<RouteEntry*> {};
 
 /**
- * Functor class to sort a vector of routes based on forwarding priority.
- *
- * First, this sorts based on the next hop eid of the route, since a
- * multicast bundle might have matching routes to different next hops.
- * Next the sort examines the priority, finally using the number of
- * bytes queued to break ties.
+ * Functor class to sort a vector of routes based on forwarding
+ * priority, using the bytes queued to break ties.
  */
 struct RoutePrioritySort {
     bool operator() (RouteEntry* a, RouteEntry* b) {
-        int comp = a->next_hop_->remote_eid().compare(b->next_hop_->remote_eid());
-        
-        if (comp < 0) return false;
-        if (comp > 0) return true;
-        
         if (a->route_priority_ < b->route_priority_) return false;
         if (a->route_priority_ > b->route_priority_) return true;
         
