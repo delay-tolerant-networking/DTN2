@@ -231,8 +231,6 @@ TableBasedRouter::get_routing_state(oasys::StringBuffer* buf)
 void
 TableBasedRouter::tcl_dump_state(oasys::StringBuffer* buf)
 {
-    buf->append("{");
-
     oasys::ScopeLock l(route_table_->lock(),
                        "TableBasedRouter::tcl_dump_state");
 
@@ -241,14 +239,12 @@ TableBasedRouter::tcl_dump_state(oasys::StringBuffer* buf)
          iter != route_table_->route_table()->end(); ++iter)
     {
         const RouteEntry* e = *iter;
-        buf->appendf("{%s %s source_eid %s priority %d}",
+        buf->appendf(" {%s %s source_eid %s priority %d} ",
                      e->dest_pattern_.c_str(),
                      e->next_hop_->name(),
                      e->source_pattern_.c_str(),
                      e->route_priority_);
     }
-    
-    buf->append("}");
 }
 
 //----------------------------------------------------------------------
@@ -380,9 +376,12 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
 
     // otherwise log the reason why we should send it
     log_debug("should_fwd bundle %d: "
-              "match %s: forwarding log entry %s",
+              "match %s: forwarding log entry %s "
+              "(bundles_queued %u bytes_queued %u)",
               bundle->bundleid_, link->name(),
-              ForwardingInfo::state_to_str(info.state()));
+              ForwardingInfo::state_to_str(info.state()),
+              link->stats()->bundles_queued_,
+              link->stats()->bytes_queued_);
     
     return true;
 }
