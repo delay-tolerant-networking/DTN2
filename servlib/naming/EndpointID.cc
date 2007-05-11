@@ -30,8 +30,8 @@
 namespace dtn {
 
 //----------------------------------------------------------------------
-EndpointID        EndpointID::null_eid_;
-EndpointIDPattern EndpointID::wildcard_eid_;
+EndpointID        GlobalEndpointIDs::null_eid_;
+EndpointIDPattern GlobalEndpointIDs::wildcard_eid_;
 
 //----------------------------------------------------------------------
 bool

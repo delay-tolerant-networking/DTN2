@@ -208,13 +208,7 @@ public:
      * Return the special endpoint id used for the null endpoint,
      * namely "dtn:none".
      */
-    static const EndpointID& NULL_EID()
-    {
-        if (null_eid_.scheme_ == NULL) {
-            null_eid_.assign("dtn:none");
-        }
-        return null_eid_;
-    }
+    inline static const EndpointID& NULL_EID();
     
     /**
      * The scheme and SSP parts each must not exceed this length.
@@ -255,9 +249,6 @@ protected:
 
     bool valid_;                /* true iff the endpoint id is valid */
     bool is_pattern_;           /* true iff this is an EndpointIDPattern */
-
-    static EndpointID        null_eid_;
-    static EndpointIDPattern wildcard_eid_;
 };
 
 /**
@@ -314,20 +305,43 @@ public:
      * not in the bundle spec, but is used internally to this
      * implementation.
      */
-    static const EndpointIDPattern& WILDCARD_EID()
-    {
-        if (wildcard_eid_.scheme_ == NULL) {
-            wildcard_eid_.assign("*:*");
-        }
-
-        return wildcard_eid_;
-    }
+    inline static const EndpointIDPattern& WILDCARD_EID();
 };
 
 /**
  * A (serializable) vector of endpoint ids.
  */
 class EndpointIDVector : public oasys::SerializableVector<EndpointID> {};
+
+/**
+ * Helper class to store the global EIDs so that printing an
+ * EndpointID within gdb doesn't result in an infinite recursion.
+ */
+struct GlobalEndpointIDs {
+    static EndpointID        null_eid_;
+    static EndpointIDPattern wildcard_eid_;
+};
+
+//----------------------------------------------------------------------
+inline const EndpointID&
+EndpointID::NULL_EID()
+{
+    if (GlobalEndpointIDs::null_eid_.scheme_ == NULL) {
+        GlobalEndpointIDs::null_eid_.assign("dtn:none");
+    }
+    return GlobalEndpointIDs::null_eid_;
+}
+
+//----------------------------------------------------------------------
+inline const EndpointIDPattern&
+EndpointIDPattern::WILDCARD_EID()
+{
+    if (GlobalEndpointIDs::wildcard_eid_.scheme_ == NULL) {
+        GlobalEndpointIDs::wildcard_eid_.assign("*:*");
+    }
+    
+    return GlobalEndpointIDs::wildcard_eid_;
+}
 
 } // namespace dtn
 
