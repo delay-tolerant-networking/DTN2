@@ -98,6 +98,56 @@ EndpointID::append_service_tag(const char* tag)
 
 //----------------------------------------------------------------------
 bool
+EndpointID::append_service_wildcard()
+{
+    if (!scheme_)
+        return false;
+
+    bool ok = scheme_->append_service_wildcard(&uri_);
+    if (!ok)
+        return false;
+
+    // rebuild the string
+    uri_.format();
+    if (!uri_.valid()) {
+        log_err_p("/dtn/naming/endpoint/",
+                  "EndpointID::append_service_wildcard: "
+                  "failed to format appended URI");
+        
+        // XXX/demmer this leaves the URI in a bogus state... that
+        // doesn't seem good since this really shouldn't ever happen
+        return false;
+    }
+
+    return true;
+}
+
+bool
+EndpointID::remove_service_tag()
+{
+    if (! scheme_)
+        return NULL_EID;
+
+    bool ok = scheme_->remove_service_tag(&uri_);
+    if (!ok)
+        return false;
+
+    // rebuild the string
+    uri_.parse();
+    if (!uri_.valid()) {
+        log_err_p("/dtn/naming/endpoint/",
+                  "EndpointID::remove_service_tag: "
+                  "failed to format reduced URI");
+        
+        // see note in append_service_wildcard() ... :(
+        return false;
+    }
+
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
 EndpointID::is_singleton() const
 {
     ASSERT(known_scheme());

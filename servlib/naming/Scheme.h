@@ -71,6 +71,32 @@ public:
     }
 
     /**
+     * Append wildcard to the uri in a scheme-specific manner. The
+     * default scheme is not capable of this.
+     *
+     * @return true if this scheme is capable of wildcards and the
+     * wildcard is successfully appended, else false.
+     */
+    virtual bool append_service_wildcard(URI* uri)
+    {
+        (void)uri;
+        return false;
+    }
+
+    /**
+     * Reduce URI to node ID in a scheme specific manner. The default
+     * scheme is not capable of this.
+     *
+     * @return true if this scheme is capable of this reduction and 
+     * the reduction is successful, else false.
+     */
+    virtual bool remove_service_tag(URI* uri)
+    {
+        (void)uri;
+        return false;
+    }
+
+    /**
      * Check if the given URI is a singleton endpoint id.
      */
     virtual bool is_singleton(const URI& uri)

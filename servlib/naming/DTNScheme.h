@@ -69,6 +69,24 @@ public:
     virtual bool append_service_tag(URI* uri, const char* tag);
 
     /**
+     * Append a wildcard tag to the uri in a scheme-specific
+     * manner.
+     *
+     * @return true if this scheme is capable of wildcards and the
+     * wildcard is appended, false otherwise.
+     */
+    virtual bool append_service_wildcard(URI* uri);
+
+    /**
+     * Reduce URI to node ID in a scheme specific manner. The default
+     * scheme is not capable of this.
+     *
+     * @return true if this scheme is capable of this reduction and 
+     * the reduction is successful, else false.
+     */
+    virtual bool remove_service_tag(URI* uri);
+
+    /**
      * Check if the given URI is a singleton EID.
      */
     virtual bool is_singleton(const URI& uri);

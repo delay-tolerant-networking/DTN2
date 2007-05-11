@@ -148,6 +148,29 @@ DTNScheme::append_service_tag(URI* uri, const char* tag)
 
 //----------------------------------------------------------------------
 bool
+DTNScheme::append_service_wildcard(URI* uri)
+{
+    if (uri == NULL) return false;
+
+    // only append wildcard if path is empty
+    if (! uri->path().empty())
+        return false;
+
+    uri->ssp_ptr()->append("/*");
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
+DTNScheme::remove_service_tag(URI* uri)
+{
+    if (uri == NULL) return false;
+    uri->assign(uri->scheme() + ':' + uri->authority());
+    return true;
+}
+
+//----------------------------------------------------------------------
+bool
 DTNScheme::is_singleton(const URI& uri)
 {
     // if there's a * in the hostname part of the URI, then it's not a

@@ -169,6 +169,22 @@ public:
     bool append_service_tag(const char* tag);
 
     /**
+     * Append a wildcard (in a scheme-specific manner) to form a route 
+     * pattern.
+     *
+     * @return true if successful, false if the scheme doesn't support
+     * wildcards
+     */
+    bool append_service_wildcard();
+
+    /**
+     * Reduce EndpointID to routing endpoint
+     *
+     * @return true if eid is set to node_id, false otherwise
+     */
+    bool remove_service_tag();
+    
+    /**
      * Return whether or not this endpoint id is a singleton or a
      * multi-node endpoint.
      */
@@ -204,7 +220,7 @@ public:
      * The scheme and SSP parts each must not exceed this length.
      */
     static const size_t MAX_EID_PART_LENGTH = 1023;
-    
+
     /**
      * Virtual from SerializableObject
      */
