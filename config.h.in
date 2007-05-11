@@ -63,6 +63,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* whether pthread_setspecific is defined */
+#undef HAVE_PTHREAD_SETSPECIFIC
+
 /* Define to 1 if you have the `pthread_yield' function. */
 #undef HAVE_PTHREAD_YIELD
 
@@ -152,6 +155,9 @@
 
 /* whether bonjour support is enabled */
 #undef OASYS_BONJOUR_ENABLED
+
+/* whether oasys lock debugging is enabled */
+#undef OASYS_DEBUG_LOCKING_ENABLED
 
 /* whether oasys memory debugging is enabled */
 #undef OASYS_DEBUG_MEMORY_ENABLED
