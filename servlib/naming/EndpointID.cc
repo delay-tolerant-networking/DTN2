@@ -126,7 +126,7 @@ bool
 EndpointID::remove_service_tag()
 {
     if (! scheme_)
-        return NULL_EID;
+        return false;
 
     bool ok = scheme_->remove_service_tag(&uri_);
     if (!ok)
