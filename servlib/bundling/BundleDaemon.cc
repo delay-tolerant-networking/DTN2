@@ -491,7 +491,8 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      */
     if (event->source_ == EVENTSRC_PEER)
     {
-        if (bundle->prevhop_.str() == "dtn:none" || bundle->prevhop_.str() == "")
+        if (bundle->prevhop_       == EndpointID::NULL_EID() ||
+            bundle->prevhop_.str() == "")
         {
             bundle->prevhop_.assign(event->prevhop_);
         }
