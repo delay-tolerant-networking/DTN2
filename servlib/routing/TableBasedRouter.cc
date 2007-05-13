@@ -268,9 +268,9 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
     //
     ForwardingInfo::state_t state = bundle->fwdlog_.get_latest_entry(link);
     if (state != ForwardingInfo::TRANSMIT_PENDING) {
-        bundle->fwdlog_.add_entry(link, route->action(),
-                                  ForwardingInfo::TRANSMIT_PENDING,
-                                  route->custody_timeout());
+        log_debug("adding TRANSMIT_PENDING forward log entry "
+                  "for bundle *%p on link *%p ",
+                  bundle, link.object());
     }
     
     // if the link is available and not open, open it
