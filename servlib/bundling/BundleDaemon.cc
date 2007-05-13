@@ -489,17 +489,20 @@ BundleDaemon::handle_bundle_received(BundleReceivedEvent* event)
      * endpoint id of the link where the bundle arrived, assign the
      * prevhop_ field in the bundle so it's available for routing.
      */
-    if (bundle->prevhop_.str() == "dtn:none" || bundle->prevhop_.str() == "")
+    if (event->source_ == EVENTSRC_PEER)
     {
-        bundle->prevhop_.assign(event->prevhop_);
-    }
+        if (bundle->prevhop_.str() == "dtn:none" || bundle->prevhop_.str() == "")
+        {
+            bundle->prevhop_.assign(event->prevhop_);
+        }
 
-    if (bundle->prevhop_ != event->prevhop_)
-    {
-        log_warn("previous hop mismatch: prevhop header contains '%s' but "
-                 "convergence layer indicates prevhop is '%s'",
-                 bundle->prevhop_.c_str(),
-                 event->prevhop_.c_str());
+        if (bundle->prevhop_ != event->prevhop_)
+        {
+            log_warn("previous hop mismatch: prevhop header contains '%s' but "
+                     "convergence layer indicates prevhop is '%s'",
+                     bundle->prevhop_.c_str(),
+                     event->prevhop_.c_str());
+        }
     }
     
     // validate a bundle, including all bundle blocks, received from a peer
