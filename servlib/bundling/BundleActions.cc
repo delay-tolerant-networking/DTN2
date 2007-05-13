@@ -218,7 +218,7 @@ BundleActions::cancel_bundle(Bundle* bundle, const LinkRef& link)
     // If that bundle is in flight on the link on the link, cancel it
     ForwardingInfo fwdinfo;
     bool ok = bundle->fwdlog_.get_latest_entry(link, &fwdinfo);
-    if (ok && fwdinfo.state() == ForwardingInfo::IN_FLIGHT);
+    if (ok && (fwdinfo.state() == ForwardingInfo::IN_FLIGHT))
     {
         return link->clayer()->cancel_bundle(link, bundle);
     }
