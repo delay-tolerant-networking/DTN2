@@ -315,7 +315,11 @@ bool
 ConnectionConvergenceLayer::cancel_bundle(const LinkRef& link,
                                           Bundle* bundle)
 {
-    ASSERT(link->isopen());
+    if (!link->isopen()) {
+        log_err("cancel_bundle *%p but link *%p isn't open!!",
+                bundle, link.object());
+        return false;
+    }
     
     const ContactRef& contact = link->contact();
     CLConnection* conn = dynamic_cast<CLConnection*>(contact->cl_info());
