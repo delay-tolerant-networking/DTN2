@@ -271,6 +271,9 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
         log_debug("adding TRANSMIT_PENDING forward log entry "
                   "for bundle *%p on link *%p ",
                   bundle, link.object());
+        bundle->fwdlog_.add_entry(link, route->action(),
+                                  ForwardingInfo::TRANSMIT_PENDING,
+                                  route->custody_timeout());
     }
     
     // if the link is available and not open, open it
