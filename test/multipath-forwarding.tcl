@@ -92,8 +92,8 @@ test::script {
     dtn::wait_for_bundle_stats 0 {0 pending 10 transmitted}
     
     puts "* checking they all went on one link"
-    dtn::check_link_stats 0 tcp-link:0-1 10 bundles_transmitted
-    dtn::check_link_stats 0 tcp-link:0-2 0  bundles_transmitted
+    dtn::wait_for_link_stats 0 tcp-link:0-1 {10 bundles_transmitted}
+    dtn::wait_for_link_stats 0 tcp-link:0-2 {0  bundles_transmitted}
 
     puts "* waiting for delivery"
     dtn::wait_for_bundle_stats 3 {0 pending 10 delivered 0 duplicate}
