@@ -258,7 +258,7 @@ DTNTunnel::init_registration()
         }
     }
 
-    log_debug("using local endpoint id %s", local_eid_.uri);
+    log_notice("local endpoint id %s", local_eid_.uri);
 
     u_int32_t regid;
     err = dtn_find_registration(recv_handle_, &local_eid_, &regid);
