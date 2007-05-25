@@ -238,7 +238,7 @@ reader_thread(void *p)
     if (debug > 3) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     while (1) {
-        static unsigned char motedata[BUFSIZ];
+        static unsigned char motedata[BUFSIZ] __attribute__((aligned(8)));
 	int length;
 	int ret;
 
