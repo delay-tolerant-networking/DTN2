@@ -3,13 +3,13 @@
 
 DTN Research Group                                          S. Symington
 Internet-Draft                                                  R. Durst
-Expires: January 29, 2007                                       K. Scott
+Expires: November 12, 2007                                      K. Scott
                                                    The MITRE Corporation
-                                                           July 28, 2006
+                                                            May 11, 2007
 
 
         Delay-Tolerant Networking Bundle-in-Bundle Encapsulation
-                draft-irtf-dtnrg-bundle-encapsulation-00
+                draft-irtf-dtnrg-bundle-encapsulation-01
 
 Status of this Memo
 
@@ -34,11 +34,28 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on January 29, 2007.
+   This Internet-Draft will expire on November 12, 2007.
 
 Copyright Notice
 
-   Copyright (C) The Internet Society (2006).
+   Copyright (C) The IETF Trust (2007).
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires November 12, 2007               [Page 1]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
+
 
 Abstract
 
@@ -49,14 +66,6 @@ Abstract
    is designed to be used to encapsulate one or more bundles inside of
    another bundle.  When an administrative record of the bundle-in-
    bundle encapsulation type is carried as the payload of a bundle, it
-
-
-
-Symington, et al.       Expires January 29, 2007                [Page 1]
-
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
-
-
    provides a mechanism for transmitting one or more bundles as part of
    the payload of another bundle.  This administrative record type is
    expected to be of general use in DTN.  It may be used, for example,
@@ -67,22 +76,59 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
    encapsulation administrative record type.
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires November 12, 2007               [Page 2]
+
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
+
+
 Table of Contents
 
-   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
-   2.  Bundle-in-Bundle Encapsulation Administrative Record Format  .  4
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  4
+   2.  Bundle-in-Bundle Encapsulation Administrative Record Format  .  5
    3.  Bundle-in-Bundle Encapsulation Administrative Record
-       Processing . . . . . . . . . . . . . . . . . . . . . . . . . .  5
+       Processing . . . . . . . . . . . . . . . . . . . . . . . . . .  6
      3.1.  Generation and Transmission of an Encapsulated Bundle
-           or Bundles . . . . . . . . . . . . . . . . . . . . . . . .  5
-     3.2.  Local Delivery of an Encapsulating Bundle  . . . . . . . .  6
-   4.  Security Considerations  . . . . . . . . . . . . . . . . . . .  8
-   5.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . .  9
-   6.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 10
-     6.1.  Normative References . . . . . . . . . . . . . . . . . . . 10
-     6.2.  Informative References . . . . . . . . . . . . . . . . . . 10
-   Authors' Addresses . . . . . . . . . . . . . . . . . . . . . . . . 11
-   Intellectual Property and Copyright Statements . . . . . . . . . . 12
+           or Bundles . . . . . . . . . . . . . . . . . . . . . . . .  6
+     3.2.  Local Delivery of an Encapsulating Bundle  . . . . . . . .  7
+   4.  Security Considerations  . . . . . . . . . . . . . . . . . . .  9
+   5.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . . 10
+   6.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+     6.1.  Normative References . . . . . . . . . . . . . . . . . . . 11
+     6.2.  Informative References . . . . . . . . . . . . . . . . . . 11
+   Authors' Addresses . . . . . . . . . . . . . . . . . . . . . . . . 12
+   Intellectual Property and Copyright Statements . . . . . . . . . . 13
 
 
 
@@ -108,9 +154,19 @@ Table of Contents
 
 
 
-Symington, et al.       Expires January 29, 2007                [Page 2]
+
+
+
+
+
+
+
+
+
+
+Symington, et al.       Expires November 12, 2007               [Page 3]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
 1.  Introduction
@@ -164,9 +220,9 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
 
 
 
-Symington, et al.       Expires January 29, 2007                [Page 3]
+Symington, et al.       Expires November 12, 2007               [Page 4]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
 2.  Bundle-in-Bundle Encapsulation Administrative Record Format
@@ -200,7 +256,7 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
    +---------------+---------------+--------------+
 
 
-   Figure 1
+                                 Figure 1
 
 
 
@@ -220,9 +276,9 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
 
 
 
-Symington, et al.       Expires January 29, 2007                [Page 4]
+Symington, et al.       Expires November 12, 2007               [Page 5]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
 3.  Bundle-in-Bundle Encapsulation Administrative Record Processing
@@ -276,9 +332,9 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
 
 
 
-Symington, et al.       Expires January 29, 2007                [Page 5]
+Symington, et al.       Expires November 12, 2007               [Page 6]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
       The node SHALL process the received bundle for forwarding as if it
@@ -332,9 +388,9 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
 
 
 
-Symington, et al.       Expires January 29, 2007                [Page 6]
+Symington, et al.       Expires November 12, 2007               [Page 7]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
       -Processing the security extension blocks [4] (if any) contained
@@ -351,7 +407,7 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
       inserted into the bundle.
 
       -The bundle protocol agent SHALL deliver the bundle, if
-      appropriate,
+      appropriate.
 
       -The bundle protocol agent SHALL perform custody transfer and/or
       status reporting procedures on the bundle as directed by the
@@ -388,9 +444,9 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
 
 
 
-Symington, et al.       Expires January 29, 2007                [Page 7]
+Symington, et al.       Expires November 12, 2007               [Page 8]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
 4.  Security Considerations
@@ -444,16 +500,17 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
 
 
 
-Symington, et al.       Expires January 29, 2007                [Page 8]
+Symington, et al.       Expires November 12, 2007               [Page 9]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
 5.  IANA Considerations
 
    None at this time.  If the bundle protocol becomes a standards track
    protocol, then we may want to consider having IANA establish a
-   register of administrative record types.
+   register of administrative record types, of which the Bundle-in-
+   Bundle Encapsulation would be one.
 
 
 
@@ -499,10 +556,9 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
 
 
 
-
-Symington, et al.       Expires January 29, 2007                [Page 9]
+Symington, et al.       Expires November 12, 2007              [Page 10]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
 6.  References
@@ -513,30 +569,28 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
         Indicate Requirement Levels", RFC 2119, October 1997.
 
    [2]  Scott, K. and S. Burleigh, "Bundle Protocol Specification",
-        draft-irtf-dtnrg-bundle-spec-05.txt, work-in-progress,
-        April 2006.
+        draft-irtf-dtnrg-bundle-spec-09.txt, work-in-progress,
+        April 2007.
 
    [3]  Symington, S., "Delay-Tolerant Networking Previous Hop Insertion
-        Block", draft-irtf-dtnrg-bundle-previous-hop-block-00.txt, work-
-        in-progress, July 2006.
+        Block", draft-irtf-dtnrg-bundle-previous-hop-block-02.txt, work-
+        in-progress, April 2007.
 
-   [4]  Symington, S., Farrell, S., and H. Weiss, "Bundle Security
-        Protocol Specification",
-        draft-irtf-dtnrg-bundle-security-01.txt, work-in-progress,
-        March 2006.
+   [4]  Symington, S., Farrell, S., Weiss, H., and P. Lovell, "Bundle
+        Security Protocol Specification",
+        draft-irtf-dtnrg-bundle-security-03.txt, work-in-progress,
+        April 2007.
 
 6.2.  Informative References
 
    [5]  Cerf, V., Burleigh, S., Hooke, A., Torgerson, L., Durst, R.,
         Scott, K., Fall, K., and H. Weiss, "Delay-Tolerant Network
-        Architecture", draft-irtf-dtnrg-arch-05.txt, work-in-progress,
-        March 2006.
+        Architecture", RFC 4838, April 2007.
 
-   [6]  Farrell, S., Symington, S., and H. Weiss, "Delay-Tolerant
-        Network Security Overview",
-        draft-irtf-dtnrg-sec-overview-01.txt, work-in-progress,
-        March 2006.
-
+   [6]  Farrell, S., Symington, S., Weiss, H., and P. Lovell, "Delay-
+        Tolerant Network Security Overview",
+        draft-irtf-dtnrg-sec-overview-03.txt, work-in-progress,
+        April 2007.
 
 
 
@@ -556,9 +610,11 @@ Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
 
 
 
-Symington, et al.       Expires January 29, 2007               [Page 10]
+
+
+Symington, et al.       Expires November 12, 2007              [Page 11]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
 Authors' Addresses
@@ -612,12 +668,29 @@ Authors' Addresses
 
 
 
-Symington, et al.       Expires January 29, 2007               [Page 11]
+Symington, et al.       Expires November 12, 2007              [Page 12]
 
-Internet-Draft     DTN Bundle-in-Bundle Encapsulation          July 2006
+Internet-Draft     DTN Bundle-in-Bundle Encapsulation           May 2007
 
 
-Intellectual Property Statement
+Full Copyright Statement
+
+   Copyright (C) The IETF Trust (2007).
+
+   This document is subject to the rights, licenses and restrictions
+   contained in BCP 78, and except as set forth therein, the authors
+   retain all their rights.
+
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY, THE IETF TRUST AND
+   THE INTERNET ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF
+   THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+Intellectual Property
 
    The IETF takes no position regarding the validity or scope of any
    Intellectual Property Rights or other rights that might be claimed to
@@ -642,31 +715,14 @@ Intellectual Property Statement
    ietf-ipr@ietf.org.
 
 
-Disclaimer of Validity
-
-   This document and the information contained herein are provided on an
-   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
-   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
-   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
-   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
-   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
-   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
-
-
-Copyright Statement
-
-   Copyright (C) The Internet Society (2006).  This document is subject
-   to the rights, licenses and restrictions contained in BCP 78, and
-   except as set forth therein, the authors retain all their rights.
-
-
 Acknowledgment
 
-   Funding for the RFC Editor function is currently provided by the
-   Internet Society.
+   Funding for the RFC Editor function is provided by the IETF
+   Administrative Support Activity (IASA).
 
 
 
 
-Symington, et al.       Expires January 29, 2007               [Page 12]
+
+Symington, et al.       Expires November 12, 2007              [Page 13]
 

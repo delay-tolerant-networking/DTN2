@@ -3,11 +3,12 @@
 
 DTN Research Group                                          S. Symington
 Internet-Draft                                     The MITRE Corporation
-Expires: January 29, 2007                                  July 28, 2006
+Intended status: Experimental                           February 1, 2007
+Expires: August 5, 2007
 
 
          Delay-Tolerant Networking Previous Hop Insertion Block
-             draft-irtf-dtnrg-bundle-previous-hop-block-00
+             draft-irtf-dtnrg-bundle-previous-hop-block-01
 
 Status of this Memo
 
@@ -32,11 +33,29 @@ Status of this Memo
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html.
 
-   This Internet-Draft will expire on January 29, 2007.
+   This Internet-Draft will expire on August 5, 2007.
 
 Copyright Notice
 
-   Copyright (C) The Internet Society (2006).
+   Copyright (C) The IETF Trust (2007).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires August 5, 2007                 [Page 1]
+
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
+
 
 Abstract
 
@@ -49,14 +68,6 @@ Abstract
    exactly one hop.  It provides a general insertion capability to
    enable any node that forwards a bundle to insert an arbitrary record
    (or records) of information into the bundle.  While this block is
-
-
-
-Symington               Expires January 29, 2007                [Page 1]
-
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
-
-
    defined to provide an arbitrary insertion capability, this
    specification also defines two specific, mandatory, information
    record formats for the information that may be carried in the
@@ -68,24 +79,58 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
    this Previous Hop Insertion Block.
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires August 5, 2007                 [Page 2]
+
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
+
+
 Table of Contents
 
-   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
-   2.  Previous Hop Insertion Block Format  . . . . . . . . . . . . .  5
-   3.  Previous Hop Insertion Block Processing  . . . . . . . . . . .  6
-     3.1.  Bundle Transmission  . . . . . . . . . . . . . . . . . . .  6
-     3.2.  Bundle Forwarding  . . . . . . . . . . . . . . . . . . . .  6
-     3.3.  Bundle Reception . . . . . . . . . . . . . . . . . . . . .  6
-   4.  Mandatory Information Record Formats . . . . . . . . . . . . .  7
-     4.1.  EID-only . . . . . . . . . . . . . . . . . . . . . . . . .  7
-     4.2.  EID-with-Timestamp . . . . . . . . . . . . . . . . . . . .  7
-   5.  Security Considerations  . . . . . . . . . . . . . . . . . . .  8
-   6.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . .  9
-   7.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 10
-     7.1.  Normative References . . . . . . . . . . . . . . . . . . . 10
-     7.2.  Informative References . . . . . . . . . . . . . . . . . . 10
-   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . . 11
-   Intellectual Property and Copyright Statements . . . . . . . . . . 12
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  4
+   2.  Previous Hop Insertion Block Format  . . . . . . . . . . . . .  6
+   3.  Previous Hop Insertion Block Processing  . . . . . . . . . . .  7
+     3.1.  Bundle Transmission  . . . . . . . . . . . . . . . . . . .  7
+     3.2.  Bundle Forwarding  . . . . . . . . . . . . . . . . . . . .  7
+     3.3.  Bundle Reception . . . . . . . . . . . . . . . . . . . . .  7
+   4.  Mandatory Information Record Formats . . . . . . . . . . . . .  8
+     4.1.  EID-only . . . . . . . . . . . . . . . . . . . . . . . . .  8
+     4.2.  EID-with-Timestamp . . . . . . . . . . . . . . . . . . . .  8
+   5.  Security Considerations  . . . . . . . . . . . . . . . . . . .  9
+   6.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . . 10
+   7.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+     7.1.  Normative References . . . . . . . . . . . . . . . . . . . 11
+     7.2.  Informative References . . . . . . . . . . . . . . . . . . 11
+   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . . 12
+   Intellectual Property and Copyright Statements . . . . . . . . . . 13
 
 
 
@@ -108,9 +153,20 @@ Table of Contents
 
 
 
-Symington               Expires January 29, 2007                [Page 2]
+
+
+
+
+
+
+
+
+
+
+
+Symington                Expires August 5, 2007                 [Page 3]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
 1.  Introduction
@@ -164,9 +220,9 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
 
 
-Symington               Expires January 29, 2007                [Page 3]
+Symington                Expires August 5, 2007                 [Page 4]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
    Using the information record formats that are defined in this
@@ -220,9 +276,9 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
 
 
-Symington               Expires January 29, 2007                [Page 4]
+Symington                Expires August 5, 2007                 [Page 5]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
 2.  Previous Hop Insertion Block Format
@@ -231,15 +287,15 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
    Format as defined in the bundle protocol [2].  That is, it is
    comprised of the following elements:
 
-      -Block-type code (one byte) - defined as in all bundle protocol
-      blocks except the primary bundle block (as described in the Bundle
-      Protocol).  The block type code for the Previous Hop Insertion
-      Block is 0x05
+      -Block-type code (8-bit unsigned binary integer) - defined as in
+      all bundle protocol blocks except the primary bundle block (as
+      described in the Bundle Protocol).  The block type code for the
+      Previous Hop Insertion Block is 0x05
 
-      -Block processing control flags (one byte) - defined as in all
-      bundle protocol blocks except the primary bundle block (as
-      described in the Bundle Protocol).  The following block processing
-      control flag MUST be set:
+      -Block processing control flags (SDNV) - defined as in all bundle
+      protocol blocks except the primary bundle block.  (SDNV encoding
+      is described in the Bundle Protocol.)  The following block
+      processing control flag MUST be set:
 
          -Discard block if it can't be processed.
 
@@ -249,11 +305,11 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
       -Block-type-specific data fields as follows:
 
-         -Information Record Format ID - A one-byte-long field.  Its
-         value identifies the format of the information record that
-         comes later in the block.  Some mandatory information record
-         formats are specified in Section 4.  Additional information
-         record formats MAY be defined in separate specifications.
+         -Information Record Format ID (SDNV) - Its value identifies the
+         format of the information record that comes later in the block.
+         Some mandatory information record formats are specified in
+         Section 4.  Additional information record formats MAY be
+         defined in separate specifications.
 
          -Information Record - Contains the data being inserted by the
          forwarding node, formatted as identified by the value of the
@@ -267,7 +323,7 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
    |     |      |       | Format ID   |             |
    +-----+------+-------+-------------+-------------+
 
-   Figure 1
+                                 Figure 1
 
 
 
@@ -276,9 +332,9 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
 
 
-Symington               Expires January 29, 2007                [Page 5]
+Symington                Expires August 5, 2007                 [Page 6]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
 3.  Previous Hop Insertion Block Processing
@@ -332,9 +388,9 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
 
 
-Symington               Expires January 29, 2007                [Page 6]
+Symington                Expires August 5, 2007                 [Page 7]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
 4.  Mandatory Information Record Formats
@@ -348,14 +404,13 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
    The EID-only record format consists of two fields:
 
-      The EID Scheme Offset - a 16-bit unsigned integer; its value is
-      the offset within the dictionary byte array of the first character
-      of the scheme name of the EID of the inserting/forwarding node.
+      The EID Scheme Offset (SDNV) - its value is the offset within the
+      dictionary byte array of the first character of the scheme name of
+      the EID of the inserting/forwarding node.
 
-      The EID SSP Offset - a 16-bit unsigned integer; its value is the
-      offset within the dictionary byte array of the first character of
-      the scheme-specific part of the EID of the inserting/forwarding
-      node.
+      The EID SSP Offset (SDNV) - its value is the offset within the
+      dictionary byte array of the first character of the scheme-
+      specific part of the EID of the inserting/forwarding node.
 
 4.2.  EID-with-Timestamp
 
@@ -365,19 +420,17 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
    first two of which are the same as the fields in the EID-only record
    format:
 
-      The EID Scheme Offset - a 16-bit unsigned integer; its value is
-      the offset within the dictionary byte array of the first character
-      of the scheme name of the EID of the inserting/forwarding node.
+      The EID Scheme Offset (SDNV) - its value is the offset within the
+      dictionary byte array of the first character of the scheme name of
+      the EID of the inserting/forwarding node.
 
-      The EID SSP Offset - a 16-bit unsigned integer; its value is the
-      offset within the dictionary byte array of the first character of
-      the scheme-specific part of the EID of the inserting/forwarding
-      node.
+      The EID SSP Offset (SDNV) - its value is the offset within the
+      dictionary byte array of the first character of the scheme-
+      specific part of the EID of the inserting/forwarding node.
 
-      The Elapsed Time field - The Elapsed Time field is a 4-byte field
-      that indicates the time at which the bundle is being processed by
-      the forwarding node, encoded as a number of seconds past the
-      bundle's creation time.
+      The Elapsed Time field (SDNV) - indicates the time at which the
+      bundle is being processed by the forwarding node, encoded as a
+      number of seconds past the bundle's creation time.
 
 
 
@@ -388,9 +441,12 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
 
 
-Symington               Expires January 29, 2007                [Page 7]
+
+
+
+Symington                Expires August 5, 2007                 [Page 8]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
 5.  Security Considerations
@@ -444,9 +500,9 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
 
 
-Symington               Expires January 29, 2007                [Page 8]
+Symington                Expires August 5, 2007                 [Page 9]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
 6.  IANA Considerations
@@ -500,9 +556,9 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
 
 
-Symington               Expires January 29, 2007                [Page 9]
+Symington                Expires August 5, 2007                [Page 10]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
 7.  References
@@ -513,25 +569,25 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
         Indicate Requirement Levels", RFC 2119, October 1997.
 
    [2]  Scott, K. and S. Burleigh, "Bundle Protocol Specification",
-        draft-irtf-dtnrg-bundle-spec-05.txt, work-in-progress,
-        April 2006.
+        draft-irtf-dtnrg-bundle-spec-08.txt, work-in-progress,
+        December 2006.
 
    [3]  Symington, S., Farrell, S., and H. Weiss, "Bundle Security
         Protocol Specification",
-        draft-irtf-dtnrg-bundle-security-01.txt, work-in-progress,
-        March 2006.
+        draft-irtf-dtnrg-bundle-security-02.txt, work-in-progress,
+        October 2006.
 
 7.2.  Informative References
 
    [4]  Cerf, V., Burleigh, S., Hooke, A., Torgerson, L., Durst, R.,
         Scott, K., Fall, K., and H. Weiss, "Delay-Tolerant Network
-        Architecture", draft-irtf-dtnrg-arch-05.txt, work-in-progress,
-        March 2006.
+        Architecture", draft-irtf-dtnrg-arch-08.txt, work-in-progress,
+        December 2006.
 
    [5]  Farrell, S., Symington, S., and H. Weiss, "Delay-Tolerant
         Network Security Overview",
-        draft-irtf-dtnrg-sec-overview-01.txt, work-in-progress,
-        March 2006.
+        draft-irtf-dtnrg-sec-overview-02.txt, work-in-progress,
+        October 2006.
 
 
 
@@ -556,9 +612,9 @@ Internet-Draft      DTN Previous Hop Insertion Block           July 2006
 
 
 
-Symington               Expires January 29, 2007               [Page 10]
+Symington                Expires August 5, 2007                [Page 11]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
 Author's Address
@@ -612,12 +668,29 @@ Author's Address
 
 
 
-Symington               Expires January 29, 2007               [Page 11]
+Symington                Expires August 5, 2007                [Page 12]
 
-Internet-Draft      DTN Previous Hop Insertion Block           July 2006
+Internet-Draft      DTN Previous Hop Insertion Block       February 2007
 
 
-Intellectual Property Statement
+Full Copyright Statement
+
+   Copyright (C) The IETF Trust (2007).
+
+   This document is subject to the rights, licenses and restrictions
+   contained in BCP 78, and except as set forth therein, the authors
+   retain all their rights.
+
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY, THE IETF TRUST AND
+   THE INTERNET ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF
+   THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+Intellectual Property
 
    The IETF takes no position regarding the validity or scope of any
    Intellectual Property Rights or other rights that might be claimed to
@@ -642,31 +715,14 @@ Intellectual Property Statement
    ietf-ipr@ietf.org.
 
 
-Disclaimer of Validity
-
-   This document and the information contained herein are provided on an
-   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
-   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
-   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
-   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
-   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
-   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
-
-
-Copyright Statement
-
-   Copyright (C) The Internet Society (2006).  This document is subject
-   to the rights, licenses and restrictions contained in BCP 78, and
-   except as set forth therein, the authors retain all their rights.
-
-
 Acknowledgment
 
-   Funding for the RFC Editor function is currently provided by the
-   Internet Society.
+   Funding for the RFC Editor function is provided by the IETF
+   Administrative Support Activity (IASA).
 
 
 
 
-Symington               Expires January 29, 2007               [Page 12]
+
+Symington                Expires August 5, 2007                [Page 13]
 
