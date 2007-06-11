@@ -131,19 +131,32 @@ public:
             return ret;
         }
 
-        size_t qlen;
-        if (edge->source() == router_->local_node_) {
-            // XXX/demmer use the link queue length if it's locally known
-            qlen = edge->info().params_.qcount_;
-        } else {
-            qlen = edge->info().params_.qcount_;
+        u_int32_t qlen, qsize;
+        // XXX/demmer use the link queue length if it's a local link
+        qlen  = edge->info().params_.qcount_;
+        qsize = edge->info().params_.qsize_;
+        
+        // based on the queue length and link estimates, calculate the
+        // forwarding delay
+        u_int32_t qdelay = (qlen + 1) * edge->info().params_.delay_ / 1000;
+        u_int32_t bwdelay = 0;
+        if (edge->info().params_.bw_ != 0) {
+            // XXX/demmer is bw bits or bytes?
+            bwdelay = qsize / edge->info().params_.bw_;
         }
         
-        // based on the queue length, calculate the forwarding delay
-        u_int32_t delay = (qlen + 1) * edge->info().params_.delay_ / 1000;
-
-        // XXX/demmer also include qbytes_
+        u_int32_t delay = qdelay + bwdelay;
+        log_debug_p("/dtn/route/graph", "weight of edge %s=%u "
+                    "(qlen %u delay %u qdelay %u qsize %u bw %u bwdelay %u)",
+                    edge->info().id_.c_str(), delay,
+                    qlen, edge->info().params_.delay_, qdelay,
+                    qsize, edge->info().params_.bw_, bwdelay);
         
+        // XXX/demmer we might want to have an estimator for bundles
+        // that we've sent out en route to the destination along with
+        // where and when those bundles will be at different routers.
+        // then when LSAs come in, we adjust our estimates accordingly
+
         return delay;
     }
 
@@ -152,7 +165,7 @@ public:
 
 //----------------------------------------------------------------------
 DTLSRRouter::DTLSRRouter()
-    : TableBasedRouter("DTLSRRouter", "shortest_path"),
+    : TableBasedRouter("DTLSRRouter", "dtlsr"),
       announce_tag_("spr"),
       announce_eid_("dtn://*/spr?*"),
       current_lsas_("DTLSRRouter::current_lsas"),
@@ -204,7 +217,7 @@ DTLSRRouter::get_routing_state(oasys::StringBuffer* buf)
 //     invalidate_routes();
 //     recompute_routes();
     
-    buf->appendf("Shortest Path Routing Graph:\n*%p", &graph_);
+    buf->appendf("DTLSR Routing Graph:\n*%p", &graph_);
     buf->appendf("Current routing table:\n");
     TableBasedRouter::get_routing_state(buf);
 }
