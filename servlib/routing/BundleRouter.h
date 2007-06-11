@@ -136,6 +136,12 @@ public:
     virtual void tcl_dump_state(oasys::StringBuffer* buf);
 
     /**
+     * Hook to force route recomputation from the command interpreter.
+     * The default implementation does nothing.
+     */
+    virtual void recompute_routes();
+
+    /**
      * for registration with the BundleDaemon
      */
     virtual void shutdown();

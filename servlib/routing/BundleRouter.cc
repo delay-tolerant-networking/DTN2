@@ -141,6 +141,12 @@ BundleRouter::tcl_dump_state(oasys::StringBuffer* buf)
 
 //----------------------------------------------------------------------
 void
+BundleRouter::recompute_routes()
+{
+}
+
+//----------------------------------------------------------------------
+void
 BundleRouter::shutdown()
 {
 }

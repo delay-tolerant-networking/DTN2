@@ -221,6 +221,13 @@ RouteCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         return TCL_OK;
     }
 
+    else if (strcmp(cmd, "recompute_routes") == 0) {
+        oasys::Time t = oasys::Time::now();
+        BundleDaemon::instance()->router()->recompute_routes();
+        resultf("%u", t.elapsed_ms());
+        return TCL_OK;
+    }
+
     else if (strcmp(cmd, "local_eid") == 0) {
         if (argc == 2) {
             // route local_eid
