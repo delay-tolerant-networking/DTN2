@@ -161,6 +161,7 @@ public:
 
     /**
      * Valid type codes for bundle blocks.
+     * (See http://www.dtnrg.org/wiki/AssignedNamesAndNumbers)
      */
     typedef enum {
         PRIMARY_BLOCK          = 0x000, ///< INTERNAL USE ONLY -- NOT IN SPEC
