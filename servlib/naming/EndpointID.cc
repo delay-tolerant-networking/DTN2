@@ -150,7 +150,11 @@ EndpointID::remove_service_tag()
 bool
 EndpointID::is_singleton() const
 {
-    ASSERT(known_scheme());
+    if (! known_scheme()) {
+        log_crit_p("/dtn/naming/endpoint/",
+                   "is_singleton can't be determined for unknown schemes");
+        return true;  // XXX/demmer is this the right assumptionm?
+    }
     return scheme_->is_singleton(uri_);
 }
 
@@ -185,7 +189,7 @@ bool
 EndpointIDPattern::match(const EndpointID& eid) const
 {
     if (! known_scheme()) {
-        return false;
+        return (*this == eid);
     }
 
     return scheme()->match(*this, eid);
