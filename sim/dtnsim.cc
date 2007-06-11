@@ -164,7 +164,7 @@ DTNSim::main(int argc, char* const argv[])
         // Run the command interpreter loop
         oasys::TclCommandInterp::instance()->exec_command(
             "puts \"Simulation complete -- entering console (Control-D to exit)...\"");
-        oasys::TclCommandInterp::instance()->command_loop("dtnsim% ");
+        Simulator::instance()->run_console(true);
     }
 
     return 0;

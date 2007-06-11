@@ -149,18 +149,6 @@ Node::process_one_bundle_event()
 }
 
 //----------------------------------------------------------------------
-bool
-Node::process_bundle_events()
-{
-    log_debug("processing all bundle events");
-    bool processed_event = false;
-    while (process_one_bundle_event()) {
-        processed_event = true;
-    }
-    return processed_event;
-}
-
-//----------------------------------------------------------------------
 void
 Node::run_one_event_now(BundleEvent* event)
 {

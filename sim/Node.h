@@ -60,6 +60,15 @@ public:
     void do_init();
 
     /**
+     * Override of BundleDaemon::event_queue_size since eventq_ is
+     * shadowed to be a simple std::queue instead of a MsgQueue.
+     */
+    size_t event_queue_size()
+    {
+    	return eventq_->size();
+    }
+    
+    /**
      * Second pass at initialization, called by the simulator once the
      * whole config has been parsed.
      */
@@ -90,11 +99,6 @@ public:
      * Run the given event immediately.
      */
     void run_one_event_now(BundleEvent* event);
-
-    /**
-     * Process all pending bundle events until the queue is empty.
-     */
-    bool process_bundle_events();
 
     /**
      * Overridden event handlers from BundleDaemon

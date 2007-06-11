@@ -36,6 +36,7 @@ Simulator* oasys::Singleton<Simulator, false>::instance_ = NULL;
 //----------------------------------------------------------------------
 
 double Simulator::time_ = 0;
+bool   Simulator::interrupted_ = false;
 double Simulator::runtill_ = -1;
 
 //----------------------------------------------------------------------
@@ -74,6 +75,8 @@ Simulator::run_node_events()
              iter != Topology::node_table()->end();
              ++iter)
         {
+            check_interrupt();
+        
             Node* node = iter->second;
             node->set_active();
         
@@ -86,8 +89,12 @@ Simulator::run_node_events()
                 }
             }
         
-            if (node->process_bundle_events()) {
+            log_debug("processing all bundle events for node %s", node->name());
+            if (node->process_one_bundle_event()) {
                 done = false;
+                while (node->process_one_bundle_event()) {
+                    check_interrupt();
+                }
             }
         }
     } while (!done);
@@ -133,10 +140,15 @@ Simulator::run()
     {
         iter->second->configure();
     }
+
+    log_debug("Setting up interrupt handler");
+    signal(SIGINT, handle_interrupt);
     
     log_debug("Starting Simulator event loop...");
-    
+
     while (1) {
+        check_interrupt();
+
         int next_timer_ms = run_node_events();
         double next_timer = (next_timer_ms == -1) ? INT_MAX :
                             time_ + (((double)next_timer_ms) / 1000);
@@ -195,9 +207,53 @@ Simulator::pause()
     oasys::StaticStringBuffer<128> cmd;
     cmd.appendf("puts \"Simulator paused at time %f...\"", time_);
     oasys::TclCommandInterp::instance()->exec_command(cmd.c_str());
+
+    run_console(false);
+}
+
+//----------------------------------------------------------------------
+void
+Simulator::run_console(bool complete)
+{
+    Node* cur_active = Node::active_node();
+    interrupted_ = true;
     
-    oasys::TclCommandInterp::instance()->exec_command(
-        "simple_command_loop \"dtnsim% \"");
+    if (complete) {
+        oasys::TclCommandInterp::instance()->command_loop("dtnsim% ");
+    } else {
+        // we can't re-enter tclreadline more than once so if it's not
+        // complete we need to use the simple command loop
+        oasys::TclCommandInterp::instance()->exec_command(
+            "simple_command_loop \"dtnsim% \"");
+    }
+    
+    interrupted_ = false;
+    cur_active->set_active();
+}
+
+//----------------------------------------------------------------------
+void
+Simulator::handle_interrupt(int sig)
+{
+    (void)sig;
+    
+    if (interrupted_) {
+        instance()->exit();
+    } else {
+        interrupted_ = true;
+    }
+}
+
+//----------------------------------------------------------------------
+void
+Simulator::check_interrupt()
+{
+    if (interrupted_) {
+        oasys::StaticStringBuffer<128> cmd;
+        cmd.appendf("puts \"Simulator interrupted at time %f...\"", time_);
+        oasys::TclCommandInterp::instance()->exec_command(cmd.c_str());
+        run_console(false);
+    }
 }
 
 //----------------------------------------------------------------------

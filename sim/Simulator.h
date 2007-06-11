@@ -73,7 +73,12 @@ public:
      * it exits.
      */
     void pause();
-    
+
+    /**
+     * Run the command loop.
+     */
+    void run_console(bool complete);
+
     static double runtill_;             ///< time to end the simulation
     
 private:
@@ -89,6 +94,13 @@ private:
     std::priority_queue<SimEvent*,
                         std::vector<SimEvent*>,
                         SimEventCompare> eventq_;
+
+    /*
+     * Handlers for SIGINT to pause the simulation while it's running.
+     */
+    static void handle_interrupt(int sig);
+    void check_interrupt();
+    static bool interrupted_;
 };
 
 } // namespace dtnsim
