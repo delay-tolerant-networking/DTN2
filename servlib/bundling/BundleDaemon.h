@@ -91,11 +91,13 @@ public:
     }
     
     /**
-     * Return the number of events currently waiting for processing
+     * Return the number of events currently waiting for processing.
+     * This is overridden in the simulator since it doesn't use a
+     * MsgQueue.
      */
-    static int event_queue_size()
+    virtual size_t event_queue_size()
     {
-    	return instance_->eventq_->size();
+    	return eventq_->size();
     }
 
     /**

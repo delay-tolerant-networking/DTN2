@@ -71,6 +71,9 @@ BundleDaemon::BundleDaemon()
     // default local eid
     local_eid_.assign(EndpointID::NULL_EID());
 
+    actions_ = NULL;
+    eventq_ = NULL;
+    
     memset(&stats_, 0, sizeof(stats_));
 
     pending_bundles_ = new BundleList("pending_bundles");
@@ -196,9 +199,12 @@ void
 BundleDaemon::get_daemon_stats(oasys::StringBuffer* buf)
 {
     buf->appendf("%zu pending_events -- "
-                 "%u processed_events",
-                 eventq_->size(),
-                 stats_.events_processed_);}
+                 "%u processed_events -- "
+                 "%zu pending_timers",
+                 event_queue_size(),
+                 stats_.events_processed_,
+                 oasys::TimerSystem::instance()->num_pending_timers());
+}
 
 
 //----------------------------------------------------------------------
