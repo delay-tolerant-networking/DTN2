@@ -39,6 +39,7 @@ set tests(basic) {
     "dtnsim.tcl"		"-c bandwidth-test.conf"
     "dtnsim.tcl"		"-c storage-limit-test.conf"
     "dtnsim.tcl"		"-c conn-test.conf"
+    "dtnsim.tcl"		"-c dtlsr.conf"
     "extension-block.tcl"       ""
     "flood-router.tcl"		""
     "inflight-expiration.tcl"	""
@@ -57,6 +58,7 @@ set tests(basic) {
     "storage.tcl"		""
     "storage.tcl"		"-storage_type filesysdb"
     "tcp-bogus-link.tcl"	""
+    "unknown-scheme.tcl"	""
     "version-mismatch.tcl"	""
 }
 
