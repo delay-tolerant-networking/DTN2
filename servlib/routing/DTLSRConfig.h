@@ -35,6 +35,11 @@ public:
     DTLSRConfig();
 
     /**
+     * Administratively assigned area.
+     */
+    std::string area_;
+
+    /**
      * Configurable weight function types.
      */
     typedef enum {

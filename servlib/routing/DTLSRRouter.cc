@@ -584,6 +584,18 @@ DTLSRRouter::update_current_lsa(RoutingGraph::Node* node,
 void
 DTLSRRouter::handle_lsa(Bundle* bundle, LSA* lsa)
 {
+    // First check the LSA bundle destination to see if the sender is
+    // in a different area
+    std::string lsa_area = bundle->dest_.uri().query_value("area");
+    if (config()->area_ != lsa_area) {
+        log_debug("handle_lsa: ignoring LSA since area %s != local area %s",
+                  lsa_area.c_str(), config()->area_.c_str());
+
+        // XXX/demmer this is also an ugly hack
+        bundle->owner_ = "DO_NOT_FORWARD";
+        return;
+    }
+    
     const EndpointID& source = bundle->source_;
     
     RoutingGraph::Node* a = graph_.find_node(source.str());
@@ -671,8 +683,8 @@ DTLSRRouter::handle_lsa_expired(Bundle* bundle)
 //----------------------------------------------------------------------
 void
 DTLSRRouter::generate_link_state(LinkState* ls,
-                                        RoutingGraph::Edge* edge,
-                                        const LinkRef& link)
+                                 RoutingGraph::Edge* edge,
+                                 const LinkRef& link)
 {
     ls->dest_.assign(edge->dest()->id());
     ls->id_.assign(edge->info().id_);
@@ -730,10 +742,14 @@ DTLSRRouter::send_lsa()
               lsa.links_.size());
 
     Bundle* bundle = new TempBundle();
-    
-    snprintf(tmp, sizeof(tmp), "dtn://*/%s?lsa_seqno=%u",
-             announce_tag_, lsa.seqno_);
-    bundle->dest_.append_service_tag(tmp);
+
+    if (config()->area_ != "") {
+        snprintf(tmp, sizeof(tmp), "dtn://*/%s?area=%s;lsa_seqno=%u",
+                 announce_tag_, config()->area_.c_str(), lsa.seqno_);
+    } else {
+        snprintf(tmp, sizeof(tmp), "dtn://*/%s?lsa_seqno=%u",
+                 announce_tag_, lsa.seqno_);
+    }
     bundle->dest_.assign(tmp);
     
     bundle->source_         = BundleDaemon::instance()->local_eid();

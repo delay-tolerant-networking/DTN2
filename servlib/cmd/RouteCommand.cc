@@ -54,6 +54,10 @@ RouteCommand::RouteCommand()
                                "Default priority for new routes "
                                "(initially zero)"));
 
+    bind_var(new oasys::StringOpt("dtlsr_area",
+                                  &DTLSRConfig::instance()->area_,
+                                  "area", "Administrative area for the local node"));
+
     bind_var(new oasys::EnumOpt("dtlsr_weight_fn",
                                 DTLSRConfig::instance()->weight_opts_,
                                 (int*)&DTLSRConfig::instance()->weight_fn_,

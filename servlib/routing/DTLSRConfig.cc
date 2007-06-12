@@ -28,7 +28,8 @@ DTLSRConfig* oasys::Singleton<DTLSRConfig>::instance_ = NULL;
 
 //----------------------------------------------------------------------
 DTLSRConfig::DTLSRConfig()
-    : weight_fn_(ESTIMATED_DELAY),
+    : area_(""),
+      weight_fn_(ESTIMATED_DELAY),
       uptime_factor_(10.0),
       keep_down_links_(true),
       recompute_delay_(1),
