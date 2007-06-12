@@ -17,7 +17,7 @@
 test::name dtlsr
 net::num_nodes 5
 
-dtn::config --router_type dtlsr
+dtn::config --router_type dtlsr --no_null_link
 
 set cl tcp
 
