@@ -511,6 +511,31 @@ namespace eval dtn {
         return false
     }
 
+    proc check_route {id dest link params} {
+        if {![test_route $id $dest $link $params]} {
+            error "ERROR: check_route: expected route on $id \
+                    to $dest ($link $params)"
+        }
+    }
+
+    proc test_no_route {id dest} {
+        set routes [tell_dtnd $id route dump_tcl]
+        foreach route $routes {
+            set d [lindex $route 0]
+            set l [lindex $route 1]
+            if {$dest == $d} {
+                return false
+            }
+        }
+        return true
+    }
+
+    proc check_no_route {id dest} {
+        if {![test_no_route $id $dest]} {
+            error "ERROR: check_route: expected no route on $id to $dest"
+        }
+    }
+
     proc wait_for_route {id dest link params {timeout 30000}} {
         do_until "wait for node $id's route to $dest: link $link $params" \
                 $timeout {
