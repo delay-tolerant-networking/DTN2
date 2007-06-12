@@ -238,7 +238,7 @@ reader_thread(void *p)
     if (debug > 3) printf("dtn_register succeeded, regid 0x%x\n", regid);
 
     while (1) {
-        static unsigned char motedata[BUFSIZ] __attribute__((aligned(8)));
+        static unsigned char motedata[BUFSIZ];
 	int length;
 	int ret;
 
@@ -252,8 +252,10 @@ reader_thread(void *p)
                         length);
                 if (debug > 1) hexdump(motedata, length);
             }
-	    
-	    dataPacket=(DATAPACKET *)(motedata);
+	   
+            // the extra cast to void* is needed to circumvent gcc warnings
+            // about unsafe casting 
+	    dataPacket=(DATAPACKET *)((void*)motedata);
 	    
 	    // skip packets from base mote 
 	    if(dataPacket->origin_mote_id == 0) continue;

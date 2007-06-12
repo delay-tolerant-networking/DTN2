@@ -647,9 +647,11 @@ static void read_and_process(serial_source src)
 static void process_packet(serial_source src, uint8_t *packet, int len)
 {
   int packet_type = packet[0], offset = 1;
-  tos_header * header = (tos_header *) packet;
+  // the extra cast to void* is needed to circumvent gcc warnings 
+  // about unsafe casting
+  tos_header * header = (tos_header *) ((void*)packet);
   OscopeMsg * msg;
-  uint8_t* buf;
+  void* buf;
   tos_header * buf_header;
   OscopeAck * ack;
 #ifdef DEBUG
@@ -659,7 +661,7 @@ static void process_packet(serial_source src, uint8_t *packet, int len)
   // ack oscope messages
   if (header->handler == AM_OSCOPEMSG)
   {
-      msg = (OscopeMsg *) packet + sizeof(tos_header);
+      msg = (OscopeMsg *) ((void*)packet) + sizeof(tos_header);
 
       buf = malloc(sizeof( tos_header) + sizeof( OscopeAck));
       buf_header = (tos_header *) buf; 
