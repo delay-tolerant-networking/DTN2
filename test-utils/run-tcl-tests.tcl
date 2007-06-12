@@ -33,6 +33,8 @@ set tests(basic) {
     "alwayson-links.tcl"	""
     "bundle-status-reports.tcl"	""
     "custody-transfer.tcl"      ""
+    "dtlsr.tcl"			""
+    "dtlsr-areas.tcl"		""
     "dtn-ping.tcl"		""
     "dtn-cp.tcl"		""
     "dtnsim.tcl"		"-c send-one-bundle.conf"
