@@ -128,13 +128,17 @@ DECLARE_TEST(DTN) {
     // and the lone valid null scheme
     EIDCHECK(VALID,   KNOWN, "dtn:none");
 
-// XXX CEJ These are all valid generic URIs, and the DTN scheme-specific
-//         parsing does not classify these URIs as invalid.
     // and some invalid ones
-//    EIDCHECK(INVALID, KNOWN, "dtn:/");
-//    EIDCHECK(INVALID, KNOWN, "dtn://");
-//    EIDCHECK(INVALID, KNOWN, "dtn:host");
-//    EIDCHECK(INVALID, KNOWN, "dtn:/host");
+    EIDCHECK(INVALID, KNOWN, "dtn:/");
+    EIDCHECK(INVALID, KNOWN, "dtn://");
+    EIDCHECK(INVALID, KNOWN, "dtn:host");
+    EIDCHECK(INVALID, KNOWN, "dtn:/host");
+
+    // test the service tag manipulation
+    EndpointID eid;
+    DO(eid.assign("dtn://host"));
+    DO(eid.append_service_tag("/service"));
+    CHECK_EQUALSTR(eid.c_str(), "dtn://host/service");
 
     return UNIT_TEST_PASSED;
 }
@@ -246,23 +250,31 @@ DECLARE_TEST(DTNMatch) {
              "dtn://host1/demux",
              "dtn://host1/demux/something");
 
-// XXX CEJ The query component is not used when matching DTN URIs.
-//    EIDMATCH(NOMATCH,
-//             "dtn://tier.cs.berkeley.edu/demux?foo=",
-//             "dtn://tier.cs.berkeley.edu/demux?bar=");
-//
-//    EIDMATCH(NOMATCH,
-//             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
-//             "dtn://tier.cs.berkeley.edu/demux?foo=baz");
-//
-//    EIDMATCH(NOMATCH,
-//             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
-//             "dtn://tier.cs.berkeley.edu/demux?bar=foo");
-//
-//    EIDMATCH(NOMATCH,
-//             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=3&d=4",
-//             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=4&d=3");
+    // the query component is not used when matching DTN URIs.
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=",
+             "dtn://tier.cs.berkeley.edu/demux?bar=");
 
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
+             "dtn://tier.cs.berkeley.edu/demux?foo=baz");
+
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar",
+             "dtn://tier.cs.berkeley.edu/demux?bar=foo");
+
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=3&d=4",
+             "dtn://tier.cs.berkeley.edu/demux?foo=bar&a=1&b=2&c=4&d=3");
+
+    // the fragment component is not used when matching DTN URIs.
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux#foo",
+             "dtn://tier.cs.berkeley.edu/demux#foo");
+
+    EIDMATCH(MATCH,
+             "dtn://tier.cs.berkeley.edu/demux#foo",
+             "dtn://tier.cs.berkeley.edu/demux#bar");
 
     // the none ssp never matches
     EIDMATCH(NOMATCH,
@@ -560,8 +572,7 @@ DECLARE_TEST(URIEquality) {
     EIDEQUAL(EQUAL,    "eid:/", "eid:test/..");
     EIDEQUAL(EQUAL,
              "eid://%7DUSERc%7B@host.c.%7B:55/Test/c/Path/?Cc%7D#Cc%7B",
-             "EiD://%7dUSER%63%7b@HoST.%63.%7b:55/Test/%63/Path/%7b/../."
-                 "?C%63%7d#C%63%7b");
+             "EiD://%7dUSER%63%7b@HoST.%63.%7b:55/Test/%63/Path/%7b/../.?C%63%7d#C%63%7b");
          
     return UNIT_TEST_PASSED;
 }

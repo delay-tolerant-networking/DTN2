@@ -41,6 +41,12 @@ DTNScheme::validate(const URI& uri, bool is_pattern)
         return false;
     }
 
+    // a valid dtn scheme uri must have a host component in the
+    // authority unless it's the special "dtn:none" uri
+    if (uri.host().length() == 0 && uri.ssp() != "none") {
+        return false;
+    }
+
     return true;
 }
 
@@ -107,6 +113,7 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
 
+    // XXX/demmer I don't understand why this is needed...
     std::string pattern_path(pattern.uri().path());
     if ((pattern_path.length() >= 2) &&
         (pattern_path.substr((pattern_path.length() - 2), 2) == "/*")) {
@@ -126,6 +133,11 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
         return false;
     }
 
+    // XXX/demmer: maybe if the pattern has any query parameters, then
+    // they should match or glob to the equivalent ones in the eid.
+    // parameters present in the eid but not in the pattern should be
+    // ignored
+    
     // ignore the query parameter strings, so they still match the glob'd routes
     return true;
 }
@@ -134,15 +146,11 @@ DTNScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
 bool
 DTNScheme::append_service_tag(URI* uri, const char* tag)
 {
-    // XXX/demmer this would be better if it didn't use the ssp_ptr()
-    // but instead manipulated just the path part of the URI. This
-    // implementation won't work properly if the URI has query
-    // parameters, etc. following the path.
-    
     if (tag[0] != '/') {
-        uri->ssp_ptr()->push_back('/');
+        uri->set_path(std::string("/") + tag);
+    } else {
+        uri->set_path(tag);
     }
-    uri->ssp_ptr()->append(tag);
     return true;
 }
 
@@ -156,7 +164,7 @@ DTNScheme::append_service_wildcard(URI* uri)
     if (! uri->path().empty())
         return false;
 
-    uri->ssp_ptr()->append("/*");
+    uri->set_path("/*");
     return true;
 }
 
@@ -165,7 +173,7 @@ bool
 DTNScheme::remove_service_tag(URI* uri)
 {
     if (uri == NULL) return false;
-    uri->assign(uri->scheme() + ':' + uri->authority());
+    uri->set_path("");
     return true;
 }
 

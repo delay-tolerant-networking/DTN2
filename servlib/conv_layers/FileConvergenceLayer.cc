@@ -60,7 +60,6 @@ FileConvergenceLayer::extract_dir(const char* nexthop, std::string* dirp)
 
     oasys::URI uri(nexthop);
 
-    uri.parse();
     if (!uri.valid()) {
         log_err("FileConvergenceLayer::extract_dir: "
                 "next hop ssp '%s' not a valid uri", nexthop);

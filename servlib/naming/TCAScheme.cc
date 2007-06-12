@@ -165,15 +165,11 @@ TCAScheme::match(const EndpointIDPattern& pattern, const EndpointID& eid)
 bool
 TCAScheme::append_service_tag(URI* uri, const char* tag)
 {
-    // XXX/demmer this would be better if it didn't use the ssp_ptr()
-    // but instead manipulated just the path part of the URI. This
-    // implementation won't work properly if the URI has query
-    // parameters, etc. following the path.
-    
     if (tag[0] != '/') {
-        uri->ssp_ptr()->push_back('/');
+        uri->set_path(std::string("/") + tag);
+    } else {
+        uri->set_path(tag);
     }
-    uri->ssp_ptr()->append(tag);
     return true;
 }
 

@@ -43,7 +43,6 @@ EndpointID::parse()
     scheme_ = NULL;
     valid_ = false;
 
-    uri_.parse();
     if (!uri_.valid()) {
         log_debug_p(log, "EndpointID::parse: invalid URI");
         return false;
@@ -82,7 +81,6 @@ EndpointID::append_service_tag(const char* tag)
         return false;
 
     // rebuild the string
-    uri_.format();
     if (!uri_.valid()) {
         log_err_p("/dtn/naming/endpoint/",
                   "EndpointID::append_service_tag: "
@@ -108,7 +106,6 @@ EndpointID::append_service_wildcard()
         return false;
 
     // rebuild the string
-    uri_.format();
     if (!uri_.valid()) {
         log_err_p("/dtn/naming/endpoint/",
                   "EndpointID::append_service_wildcard: "
@@ -133,7 +130,6 @@ EndpointID::remove_service_tag()
         return false;
 
     // rebuild the string
-    uri_.parse();
     if (!uri_.valid()) {
         log_err_p("/dtn/naming/endpoint/",
                   "EndpointID::remove_service_tag: "

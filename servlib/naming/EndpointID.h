@@ -225,8 +225,8 @@ public:
     ///
     const URI&         uri()        const { return uri_; }
     const std::string& str()        const { return uri_.uri(); }
-    const std::string& scheme_str() const { return uri_.scheme(); }
-    const std::string& ssp()        const { return uri_.ssp(); }
+    const std::string  scheme_str() const { return uri_.scheme(); }
+    const std::string  ssp()        const { return uri_.ssp(); }
     Scheme*            scheme()     const { return scheme_; }
     bool               valid()      const { return valid_; }
     bool               is_pattern() const { return is_pattern_; }
