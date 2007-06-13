@@ -642,7 +642,7 @@ ProphetTLV::deserialize(u_char* bp, size_t buflen)
         return false;
     }
 
-    if (ntohs(hdr->length) != buflen)
+    if (static_cast<size_t>(ntohs(hdr->length)) != buflen)
     {
         log_err("badly formatted Prophet header");
         return false;
