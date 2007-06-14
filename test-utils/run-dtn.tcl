@@ -65,22 +65,13 @@ set defaults [list -net localhost]
 set argv [concat $defaults $argv]
 run::init $argv
 
-# catch and report errors in the test script
-if {[catch {test::run_script} err]} {
-    global errorInfo
-    puts "error in test [test::name]: $errorInfo"
-}
+test::error_script dtn::dump_stats
+test::run_script
 if {!$opt(daemon)} {
     command_loop "dtntest% "
 }
-if {[catch {test::run_exit_script} err]} {
-    global errorInfo
-    puts "error: $errorInfo"
-}
+test::run_exit_script
 run::wait_for_programs
 run::collect_logs
 run::cleanup
-if {[catch {test::run_cleanup_script} err]} {
-    global errorInfo
-    puts "error: $errorInfo"
-}
+test::run_cleanup_script

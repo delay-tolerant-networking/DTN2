@@ -545,4 +545,19 @@ namespace eval dtn {
             after 500
         }
     }
+
+    proc dump_stats {} {
+        puts "============================================================"
+        foreach id [net::nodelist] {
+            puts "Statistics for dtnd $id:"
+            catch [puts [tell_dtnd $id bundle stats]]
+            catch {
+                foreach l [tell_dtnd $id link names] {
+                    puts "Link stats for $l: [tell_dtnd $id link stats $l]"
+                }
+            }
+            catch [puts [tell_dtnd $id route dump]]
+            puts "============================================================"
+        }
+    }
 }
