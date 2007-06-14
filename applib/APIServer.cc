@@ -20,6 +20,7 @@
 
 #include <sys/stat.h>
 #include <oasys/compat/inet_aton.h>
+#include <oasys/compat/rpc.h>
 #include <oasys/io/FileIOClient.h>
 #include <oasys/io/NetUtils.h>
 #include <oasys/util/Pointers.h>
@@ -43,35 +44,6 @@
 
 #ifndef MIN
 #define MIN(x, y) ((x)<(y) ? (x) : (y))
-#endif
-
-
-#ifdef __CYGWIN__
-// Cygwin's xdr.h file is k&r, so we need to make the declarations
-// more specific here to avoid errors when compiling with g++ instead
-// of gcc.
-
-extern "C" {
-    extern void xdrmem_create(XDR *__xdrs, __const caddr_t __addr,
-                              u_int __size, enum xdr_op __xop);
-}
-
-// these defines add a cast to change the function pointer for a function
-// with no args (which we get from xdr.h) into a function pointer with
-// args (i.e. k&r to ansi c).
-
-typedef void (*xdr_setpos_t)(XDR *, int);
-#undef xdr_setpos
-#define xdr_setpos(xdrs, pos) ((xdr_setpos_t)(*(xdrs)->x_ops->x_setpostn))(xdrs, pos)
-
-typedef int (*xdr_getpos_t)(XDR *);
-#undef xdr_getpos
-#define xdr_getpos(xdrs) ((xdr_getpos_t)(*(xdrs)->x_ops->x_getpostn))(xdrs)
-
-typedef int (*xdr_putlong_t)(XDR *, long *);
-#undef xdr_putlong
-#define xdr_putlong(xdrs, ptr) ((xdr_putlong_t)(*(xdrs)->x_ops->x_putlong))(xdrs, ptr)
-
 #endif
 
 namespace dtn {

@@ -17,6 +17,7 @@
 #ifndef _APISERVER_H_
 #define _APISERVER_H_
 
+#include <oasys/compat/rpc.h>
 #include <oasys/debug/Log.h>
 #include <oasys/thread/Thread.h>
 #include <oasys/io/TCPClient.h>
