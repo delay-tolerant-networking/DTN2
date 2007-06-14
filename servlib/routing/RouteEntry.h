@@ -122,7 +122,7 @@ public:
     LinkRef next_hop_;
         
     /// Forwarding action code 
-    int action_;
+    u_int32_t action_;
 
     /// Custody timer specification
     CustodyTimerSpec custody_timeout_;

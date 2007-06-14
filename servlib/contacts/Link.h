@@ -625,7 +625,7 @@ protected:
     int type_;
 
     /// State of the link
-    int state_;
+    u_int32_t state_;
 
     /// Flag, that when set to true, indicates that the link has been deleted.
     bool deleted_;

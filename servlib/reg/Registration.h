@@ -137,7 +137,7 @@ protected:
     
     u_int32_t regid_;
     EndpointIDPattern endpoint_;
-    int failure_action_;	
+    u_int32_t failure_action_;	
     std::string script_;
     u_int32_t expiration_;
     u_int32_t creation_time_;

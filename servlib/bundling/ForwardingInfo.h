@@ -155,8 +155,8 @@ public:
     /// @}
     
 private:
-    int              state_;            ///< State of the transmission
-    int              action_;           ///< Forwarding action
+    u_int32_t        state_;            ///< State of the transmission
+    u_int32_t        action_;           ///< Forwarding action
     std::string      link_name_;        ///< The name of the link
     EndpointID       remote_eid_;       ///< The EID of the next hop node
     oasys::Time      timestamp_;        ///< Timestamp of last state update

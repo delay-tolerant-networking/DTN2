@@ -71,12 +71,17 @@ RouteEntry::parse_options(int argc, const char** argv, const char** invalidp)
         {"copy",    ForwardingInfo::COPY_ACTION},
         {0, 0}
     };
-    p.addopt(new oasys::EnumOpt("action", fwdopts, &action_));
+    int action = 0;
+    p.addopt(new oasys::EnumOpt("action", fwdopts, &action));
 
     int num2 = p.parse_and_shift(argc, argv, invalidp);
     if (num2 == -1) {
         return -1;
     }
+
+    // this is paranoid, but action_ needs to be a u_int32_t since it's
+    // serialized, but EnumOpt takes an int*
+    action_ = action;
     
     if ((bundle_cos_ == 0) || (bundle_cos_ >= (1 << 3))) {
         static const char* s = "invalid cos flags";
