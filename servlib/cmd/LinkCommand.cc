@@ -42,6 +42,7 @@ LinkCommand::LinkCommand()
                 "hacky way to make the link available");
     add_to_help("state <name>", "return the state of a link");
     add_to_help("stats <name>", "dump link statistics");
+    add_to_help("names", "print a list of existing link names");
     add_to_help("dump <name?>", "print the list of existing links or "
                 "detailed info about a single link");
     add_to_help("reconfigure <name> <opt=val> <opt2=val2>...",
@@ -297,6 +298,25 @@ LinkCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             oasys::StringBuffer buf;
             link->dump_stats(&buf);
             set_result(buf.c_str());
+        }
+        return TCL_OK;
+    }
+    else if (strcmp(cmd, "names") == 0) 
+    {
+        // link names
+        if (argc != 2) {
+            wrong_num_args(argc, argv, 2, 2, 2);
+            return TCL_ERROR;
+        }
+
+        ContactManager* cm = BundleDaemon::instance()->contactmgr();
+        oasys::ScopeLock l(cm->lock(), "LinkCommand::exec");
+            
+        const LinkSet* links = cm->links();
+        for (LinkSet::const_iterator i = links->begin();
+             i != links->end(); ++i)
+        {
+            append_resultf("%s\n", (*i)->name());
         }
         return TCL_OK;
     }
