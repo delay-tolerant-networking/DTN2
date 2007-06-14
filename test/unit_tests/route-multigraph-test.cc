@@ -33,44 +33,44 @@ DECLARE_TEST(NodeOps) {
     DO(a = g.add_node("a", 1));
     CHECK(g.find_node("a") == a);
     CHECK(g.find_node("a")->info() == 1);
-    CHECK_EQUALSTR(g.dump().c_str(), "a ->\n");
+    CHECK_EQUALSTR(g.dump(), "a ->\n");
         
     DO(b = g.add_node("b", 2));
     CHECK(g.find_node("b") == b);
     CHECK(g.find_node("b")->info() == 2);
-    CHECK_EQUALSTR(g.dump().c_str(), "a ->\n" "b ->\n");
+    CHECK_EQUALSTR(g.dump(), "a ->\n" "b ->\n");
     
     DO(c = g.add_node("c", 3));
     CHECK(g.find_node("c") == c);
     CHECK(g.find_node("c")->info() == 3);
-    CHECK_EQUALSTR(g.dump().c_str(), "a ->\n" "b ->\n" "c ->\n");
+    CHECK_EQUALSTR(g.dump(), "a ->\n" "b ->\n" "c ->\n");
 
     CHECK(g.del_node("b"));
     CHECK(g.find_node("a") == a);
     CHECK(g.find_node("b") == NULL);
     CHECK(g.find_node("c") == c);
-    CHECK_EQUALSTR(g.dump().c_str(), "a ->\n" "c ->\n");
+    CHECK_EQUALSTR(g.dump(), "a ->\n" "c ->\n");
     
     CHECK(! g.del_node("b"));
     CHECK(g.find_node("a") == a);
     CHECK(g.find_node("b") == NULL);
     CHECK(g.find_node("c") == c);
-    CHECK_EQUALSTR(g.dump().c_str(), "a ->\n" "c ->\n");
+    CHECK_EQUALSTR(g.dump(), "a ->\n" "c ->\n");
     
     CHECK(g.del_node("c"));
     CHECK(g.find_node("a") == a);
     CHECK(g.find_node("b") == NULL);
     CHECK(g.find_node("c") == NULL);
-    CHECK_EQUALSTR(g.dump().c_str(), "a ->\n");
+    CHECK_EQUALSTR(g.dump(), "a ->\n");
     
     DO(c = g.add_node("c", 3));
     CHECK(g.find_node("a") == a);
     CHECK(g.find_node("b") == NULL);
     CHECK(g.find_node("c") == c);
-    CHECK_EQUALSTR(g.dump().c_str(), "a ->\n" "c ->\n");
+    CHECK_EQUALSTR(g.dump(), "a ->\n" "c ->\n");
 
     DO(g.clear());
-    CHECK_EQUALSTR(g.dump().c_str(), "");
+    CHECK_EQUALSTR(g.dump(), "");
     
     return UNIT_TEST_PASSED;
 }
@@ -83,7 +83,7 @@ DECLARE_TEST(EdgeOps) {
     DO(a = g.add_node("a", 1));
     DO(b = g.add_node("b", 2));
     DO(c = g.add_node("c", 3));
-    CHECK_EQUALSTR(g.dump().c_str(),
+    CHECK_EQUALSTR(g.dump(),
                    "a ->\n"
                    "b ->\n"
                    "c ->\n");
@@ -95,7 +95,7 @@ DECLARE_TEST(EdgeOps) {
     DO(ca = g.add_edge(c, a, 4));
     DO(ca2 = g.add_edge(c, a, 5));
 
-    CHECK_EQUALSTR(g.dump().c_str(),
+    CHECK_EQUALSTR(g.dump(),
                    "a -> b(0)\n"
                    "b -> a(1) c(2)\n"
                    "c -> b(3) a(4) a(5)\n");
@@ -103,19 +103,19 @@ DECLARE_TEST(EdgeOps) {
     CHECK(g.del_edge(a, ab));
     CHECK(!g.del_edge(a, ab));
     CHECK(g.del_edge(b, bc));
-    CHECK_EQUALSTR(g.dump().c_str(),
+    CHECK_EQUALSTR(g.dump(),
                    "a ->\n"
                    "b -> a(1)\n"
                    "c -> b(3) a(4) a(5)\n");
     
     DO(ab = g.add_edge(a, b, 0));
-    CHECK_EQUALSTR(g.dump().c_str(),
+    CHECK_EQUALSTR(g.dump(),
                    "a -> b(0)\n"
                    "b -> a(1)\n"
                    "c -> b(3) a(4) a(5)\n");
 
     DO(g.clear());
-    CHECK_EQUALSTR(g.dump().c_str(), "");
+    CHECK_EQUALSTR(g.dump(), "");
     
     return UNIT_TEST_PASSED;
 }
@@ -188,7 +188,7 @@ DECLARE_TEST(ShortestPath) {
     
     DO(g.shortest_path(nodes[0], nodes[4], &path, &hop_count_fn));
     std::reverse(path.begin(), path.end());
-    CHECK_EQUALSTR(path.dump().c_str(), "[0 -> 1(0)] [1 -> 2(0)] [2 -> 3(0)] [3 -> 4(0)]");
+    CHECK_EQUALSTR(path.dump(), "[0 -> 1(0)] [1 -> 2(0)] [2 -> 3(0)] [3 -> 4(0)]");
 
     // Add a parallel ring, see that nothing changes
     for (int i = 0; i < 16; ++i) {
@@ -197,13 +197,13 @@ DECLARE_TEST(ShortestPath) {
     
     DO(g.shortest_path(nodes[0], nodes[4], &path, &hop_count_fn));
     std::reverse(path.begin(), path.end());
-    CHECK_EQUALSTR(path.dump().c_str(), "[0 -> 1(0)] [1 -> 2(0)] [2 -> 3(0)] [3 -> 4(0)]");
+    CHECK_EQUALSTR(path.dump(), "[0 -> 1(0)] [1 -> 2(0)] [2 -> 3(0)] [3 -> 4(0)]");
 
     // Now use a funky even/odd weight function to see that it
     // correctly selects the parallel loop some of the time
     DO(g.shortest_path(nodes[0], nodes[4], &path, &even_odd_fn));
     std::reverse(path.begin(), path.end());
-    CHECK_EQUALSTR(path.dump().c_str(), "[0 -> 1(0)] [1 -> 2(1)] [2 -> 3(0)] [3 -> 4(1)]");
+    CHECK_EQUALSTR(path.dump(), "[0 -> 1(0)] [1 -> 2(1)] [2 -> 3(0)] [3 -> 4(1)]");
 
     // Remove links, disconnecting node 0
     CHECK(g.del_edge(nodes[0], nodes[0]->out_edges()[0]));
@@ -221,13 +221,13 @@ DECLARE_TEST(ShortestPath) {
     // hop count weight fn, but not when we use the cost based one
     DO(g.shortest_path(nodes[0], nodes[10], &path, &hop_count_fn));
     std::reverse(path.begin(), path.end());
-    CHECK_EQUALSTR(path.dump().c_str(),
+    CHECK_EQUALSTR(path.dump(),
                    "[0 -> 15(100)] [15 -> 14(100)] [14 -> 13(100)] "
                    "[13 -> 12(100)] [12 -> 11(100)] [11 -> 10(100)]");
 
     DO(g.shortest_path(nodes[0], nodes[10], &path, &hop_weight_fn));
     std::reverse(path.begin(), path.end());
-    CHECK_EQUALSTR(path.dump().c_str(),
+    CHECK_EQUALSTR(path.dump(),
                    "[0 -> 1(0)] [1 -> 2(0)] [2 -> 3(0)] [3 -> 4(0)] [4 -> 5(0)] "
                    "[5 -> 6(0)] [6 -> 7(0)] [7 -> 8(0)] [8 -> 9(0)] [9 -> 10(0)]");
 
