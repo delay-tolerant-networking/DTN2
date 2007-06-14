@@ -31,9 +31,6 @@
 %#define ARG_MAX _POSIX_ARG_MAX
 %#endif
 %
-%#include <rpc/rpc.h>
-%
-%
 %/**********************************
 % * Constants.
 % * (Note that we use #defines to get the comments as well)

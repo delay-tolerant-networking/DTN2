@@ -40,9 +40,6 @@ extern "C" {
 #define ARG_MAX _POSIX_ARG_MAX
 #endif
 
-#include <rpc/rpc.h>
-
-
 /**********************************
  * Constants.
  * (Note that we use #defines to get the comments as well)
@@ -66,7 +63,7 @@ extern "C" {
  */
 
 struct dtn_endpoint_id_t {
-        char uri[DTN_MAX_ENDPOINT_ID];
+	char uri[DTN_MAX_ENDPOINT_ID];
 };
 typedef struct dtn_endpoint_id_t dtn_endpoint_id_t;
 
@@ -88,8 +85,8 @@ typedef u_int dtn_timeval_t;
 #define DTN_TIMEOUT_INF ((dtn_timeval_t)-1)
 
 struct dtn_timestamp_t {
-        u_int secs;
-        u_int seqno;
+	u_int secs;
+	u_int seqno;
 };
 typedef struct dtn_timestamp_t dtn_timestamp_t;
 
@@ -103,7 +100,7 @@ typedef struct dtn_timestamp_t dtn_timestamp_t;
  */
 
 struct dtn_service_tag_t {
-        char tag[DTN_MAX_ENDPOINT_ID];
+	char tag[DTN_MAX_ENDPOINT_ID];
 };
 typedef struct dtn_service_tag_t dtn_service_tag_t;
 
@@ -121,9 +118,9 @@ typedef struct dtn_service_tag_t dtn_service_tag_t;
  */
 
 enum dtn_reg_failure_action_t {
-        DTN_REG_DROP = 1,
-        DTN_REG_DEFER = 2,
-        DTN_REG_EXEC = 3,
+	DTN_REG_DROP = 1,
+	DTN_REG_DEFER = 2,
+	DTN_REG_EXEC = 3,
 };
 typedef enum dtn_reg_failure_action_t dtn_reg_failure_action_t;
 
@@ -132,15 +129,15 @@ typedef enum dtn_reg_failure_action_t dtn_reg_failure_action_t;
  */
 
 struct dtn_reg_info_t {
-        dtn_endpoint_id_t endpoint;
-        dtn_reg_id_t regid;
-        dtn_reg_failure_action_t failure_action;
-        dtn_timeval_t expiration;
-        bool_t init_passive;
-        struct {
-                u_int script_len;
-                char *script_val;
-        } script;
+	dtn_endpoint_id_t endpoint;
+	dtn_reg_id_t regid;
+	dtn_reg_failure_action_t failure_action;
+	dtn_timeval_t expiration;
+	bool_t init_passive;
+	struct {
+		u_int script_len;
+		char *script_val;
+	} script;
 };
 typedef struct dtn_reg_info_t dtn_reg_info_t;
 
@@ -153,10 +150,10 @@ typedef struct dtn_reg_info_t dtn_reg_info_t;
  */
 
 enum dtn_bundle_priority_t {
-        COS_BULK = 0,
-        COS_NORMAL = 1,
-        COS_EXPEDITED = 2,
-        COS_RESERVED = 3,
+	COS_BULK = 0,
+	COS_NORMAL = 1,
+	COS_EXPEDITED = 2,
+	COS_RESERVED = 3,
 };
 typedef enum dtn_bundle_priority_t dtn_bundle_priority_t;
 
@@ -174,13 +171,13 @@ typedef enum dtn_bundle_priority_t dtn_bundle_priority_t;
  */
 
 enum dtn_bundle_delivery_opts_t {
-        DOPTS_NONE = 0,
-        DOPTS_CUSTODY = 1,
-        DOPTS_DELIVERY_RCPT = 2,
-        DOPTS_RECEIVE_RCPT = 4,
-        DOPTS_FORWARD_RCPT = 8,
-        DOPTS_CUSTODY_RCPT = 16,
-        DOPTS_DELETE_RCPT = 32,
+	DOPTS_NONE = 0,
+	DOPTS_CUSTODY = 1,
+	DOPTS_DELIVERY_RCPT = 2,
+	DOPTS_RECEIVE_RCPT = 4,
+	DOPTS_FORWARD_RCPT = 8,
+	DOPTS_CUSTODY_RCPT = 16,
+	DOPTS_DELETE_RCPT = 32,
 };
 typedef enum dtn_bundle_delivery_opts_t dtn_bundle_delivery_opts_t;
 
@@ -198,13 +195,13 @@ typedef enum dtn_bundle_delivery_opts_t dtn_bundle_delivery_opts_t;
  */
 
 enum dtn_extension_block_flags_t {
-        BLOCK_FLAG_NONE = 0,
-        BLOCK_FLAG_REPLICATE = 1,
-        BLOCK_FLAG_REPORT = 2,
-        BLOCK_FLAG_DELETE_BUNDLE = 4,
-        BLOCK_FLAG_LAST = 8,
-        BLOCK_FLAG_DISCARD_BLOCK = 16,
-        BLOCK_FLAG_UNPROCESSED = 32,
+	BLOCK_FLAG_NONE = 0,
+	BLOCK_FLAG_REPLICATE = 1,
+	BLOCK_FLAG_REPORT = 2,
+	BLOCK_FLAG_DELETE_BUNDLE = 4,
+	BLOCK_FLAG_LAST = 8,
+	BLOCK_FLAG_DISCARD_BLOCK = 16,
+	BLOCK_FLAG_UNPROCESSED = 32,
 };
 typedef enum dtn_extension_block_flags_t dtn_extension_block_flags_t;
 
@@ -213,12 +210,12 @@ typedef enum dtn_extension_block_flags_t dtn_extension_block_flags_t;
  */
 
 struct dtn_extension_block_t {
-        u_int type;
-        u_int flags;
-        struct {
-                u_int data_len;
-                char *data_val;
-        } data;
+	u_int type;
+	u_int flags;
+	struct {
+		u_int data_len;
+		char *data_val;
+	} data;
 };
 typedef struct dtn_extension_block_t dtn_extension_block_t;
 
@@ -227,17 +224,17 @@ typedef struct dtn_extension_block_t dtn_extension_block_t;
  */
 
 struct dtn_bundle_spec_t {
-        dtn_endpoint_id_t source;
-        dtn_endpoint_id_t dest;
-        dtn_endpoint_id_t replyto;
-        dtn_bundle_priority_t priority;
-        int dopts;
-        dtn_timeval_t expiration;
-        dtn_timestamp_t creation_ts;
-        struct {
-                u_int blocks_len;
-                dtn_extension_block_t *blocks_val;
-        } blocks;
+	dtn_endpoint_id_t source;
+	dtn_endpoint_id_t dest;
+	dtn_endpoint_id_t replyto;
+	dtn_bundle_priority_t priority;
+	int dopts;
+	dtn_timeval_t expiration;
+	dtn_timestamp_t creation_ts;
+	struct {
+		u_int blocks_len;
+		dtn_extension_block_t *blocks_val;
+	} blocks;
 };
 typedef struct dtn_bundle_spec_t dtn_bundle_spec_t;
 
@@ -250,10 +247,10 @@ typedef struct dtn_bundle_spec_t dtn_bundle_spec_t;
  */
 
 struct dtn_bundle_id_t {
-        dtn_endpoint_id_t source;
-        dtn_timestamp_t creation_ts;
-        u_int frag_offset;
-        u_int orig_length;
+	dtn_endpoint_id_t source;
+	dtn_timestamp_t creation_ts;
+	u_int frag_offset;
+	u_int orig_length;
 };
 typedef struct dtn_bundle_id_t dtn_bundle_id_t;
 /**
@@ -261,15 +258,15 @@ typedef struct dtn_bundle_id_t dtn_bundle_id_t;
  */
 
 enum dtn_status_report_reason_t {
-        REASON_NO_ADDTL_INFO = 0x00,
-        REASON_LIFETIME_EXPIRED = 0x01,
-        REASON_FORWARDED_UNIDIR_LINK = 0x02,
-        REASON_TRANSMISSION_CANCELLED = 0x03,
-        REASON_DEPLETED_STORAGE = 0x04,
-        REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
-        REASON_NO_ROUTE_TO_DEST = 0x06,
-        REASON_NO_TIMELY_CONTACT = 0x07,
-        REASON_BLOCK_UNINTELLIGIBLE = 0x08,
+	REASON_NO_ADDTL_INFO = 0x00,
+	REASON_LIFETIME_EXPIRED = 0x01,
+	REASON_FORWARDED_UNIDIR_LINK = 0x02,
+	REASON_TRANSMISSION_CANCELLED = 0x03,
+	REASON_DEPLETED_STORAGE = 0x04,
+	REASON_ENDPOINT_ID_UNINTELLIGIBLE = 0x05,
+	REASON_NO_ROUTE_TO_DEST = 0x06,
+	REASON_NO_TIMELY_CONTACT = 0x07,
+	REASON_BLOCK_UNINTELLIGIBLE = 0x08,
 };
 typedef enum dtn_status_report_reason_t dtn_status_report_reason_t;
 /**
@@ -278,12 +275,12 @@ typedef enum dtn_status_report_reason_t dtn_status_report_reason_t;
  */
 
 enum dtn_status_report_flags_t {
-        STATUS_RECEIVED = 0x01,
-        STATUS_CUSTODY_ACCEPTED = 0x02,
-        STATUS_FORWARDED = 0x04,
-        STATUS_DELIVERED = 0x08,
-        STATUS_DELETED = 0x10,
-        STATUS_ACKED_BY_APP = 0x20,
+	STATUS_RECEIVED = 0x01,
+	STATUS_CUSTODY_ACCEPTED = 0x02,
+	STATUS_FORWARDED = 0x04,
+	STATUS_DELIVERED = 0x08,
+	STATUS_DELETED = 0x10,
+	STATUS_ACKED_BY_APP = 0x20,
 };
 typedef enum dtn_status_report_flags_t dtn_status_report_flags_t;
 
@@ -292,15 +289,15 @@ typedef enum dtn_status_report_flags_t dtn_status_report_flags_t;
  */
 
 struct dtn_bundle_status_report_t {
-        dtn_bundle_id_t bundle_id;
-        dtn_status_report_reason_t reason;
-        dtn_status_report_flags_t flags;
-        dtn_timestamp_t receipt_ts;
-        dtn_timestamp_t custody_ts;
-        dtn_timestamp_t forwarding_ts;
-        dtn_timestamp_t delivery_ts;
-        dtn_timestamp_t deletion_ts;
-        dtn_timestamp_t ack_by_app_ts;
+	dtn_bundle_id_t bundle_id;
+	dtn_status_report_reason_t reason;
+	dtn_status_report_flags_t flags;
+	dtn_timestamp_t receipt_ts;
+	dtn_timestamp_t custody_ts;
+	dtn_timestamp_t forwarding_ts;
+	dtn_timestamp_t delivery_ts;
+	dtn_timestamp_t deletion_ts;
+	dtn_timestamp_t ack_by_app_ts;
 };
 typedef struct dtn_bundle_status_report_t dtn_bundle_status_report_t;
 
@@ -322,29 +319,29 @@ typedef struct dtn_bundle_status_report_t dtn_bundle_status_report_t;
  * dtn_bundle_status_report_t structure which contains the parsed fields
  * of the status report.
  *
- *     DTN_PAYLOAD_MEM          - copy contents from memory
- *     DTN_PAYLOAD_FILE - file copy the contents of the file
- *     DTN_PAYLOAD_TEMP_FILE    - assume ownership of the file
+ *     DTN_PAYLOAD_MEM		- copy contents from memory
+ *     DTN_PAYLOAD_FILE	- file copy the contents of the file
+ *     DTN_PAYLOAD_TEMP_FILE	- assume ownership of the file
  */
 
 enum dtn_bundle_payload_location_t {
-        DTN_PAYLOAD_FILE = 0,
-        DTN_PAYLOAD_MEM = 1,
-        DTN_PAYLOAD_TEMP_FILE = 2,
+	DTN_PAYLOAD_FILE = 0,
+	DTN_PAYLOAD_MEM = 1,
+	DTN_PAYLOAD_TEMP_FILE = 2,
 };
 typedef enum dtn_bundle_payload_location_t dtn_bundle_payload_location_t;
 
 struct dtn_bundle_payload_t {
-        dtn_bundle_payload_location_t location;
-        struct {
-                u_int filename_len;
-                char *filename_val;
-        } filename;
-        struct {
-                u_int buf_len;
-                char *buf_val;
-        } buf;
-        dtn_bundle_status_report_t *status_report;
+	dtn_bundle_payload_location_t location;
+	struct {
+		u_int filename_len;
+		char *filename_val;
+	} filename;
+	struct {
+		u_int buf_len;
+		char *buf_val;
+	} buf;
+	dtn_bundle_status_report_t *status_report;
 };
 typedef struct dtn_bundle_payload_t dtn_bundle_payload_t;
 

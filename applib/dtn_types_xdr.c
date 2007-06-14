@@ -3,10 +3,6 @@
  * It was generated using rpcgen.
  */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include "dtn_types.h"
 /*
  *    Copyright 2004-2006 Intel Corporation
@@ -34,9 +30,6 @@
 #ifndef ARG_MAX
 #define ARG_MAX _POSIX_ARG_MAX
 #endif
-
-#include <rpc/rpc.h>
-
 
 /**********************************
  * Constants.
