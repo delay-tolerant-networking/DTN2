@@ -118,27 +118,23 @@ TableBasedRouter::handle_route_del(RouteDelEvent* event)
 void
 TableBasedRouter::add_nexthop_route(const LinkRef& link)
 {
-    // if we're configured to do so, create a route entry for the eid
-    // specified by the link when it connected. if it's a dtn://xyz
-    // URI that doesn't have anything following the "hostname" part,
-    // we add a wildcard of '/*' to match all service tags.
-    
+    // If we're configured to do so, create a route entry for the eid
+    // specified by the link when it connected, using the
+    // scheme-specific code to transform the URI to wildcard
+    // the service part
     EndpointID eid = link->remote_eid();
-    std::string eid_str = eid.str();
-    
     if (config_.add_nexthop_routes_ && eid != EndpointID::NULL_EID())
     { 
-        if (eid.scheme_str() == "dtn" &&
-            eid.ssp().length() > 2 &&
-            eid.ssp()[0] == '/' &&
-            eid.ssp()[1] == '/' &&
-            eid.ssp().find('/', 2) == std::string::npos)
-        {
-            eid_str += std::string("/*");
-        }
+        EndpointIDPattern eid_pattern(link->remote_eid());
 
-        EndpointIDPattern eid_pattern(eid_str);
+        // attempt to build a route pattern from link's remote_eid
+        if (!eid_pattern.append_service_wildcard())
+            // else assign remote_eid as-is
+            eid_pattern.assign(link->remote_eid());
 
+        // XXX/demmer this shouldn't call get_matching but instead
+        // there should be a RouteTable::lookup or contains() method
+        // to find the entry
         RouteEntryVec ignored;
         if (route_table_->get_matching(eid_pattern, link, &ignored) == 0) {
             RouteEntry *entry = new RouteEntry(eid_pattern, link);
@@ -146,6 +142,16 @@ TableBasedRouter::add_nexthop_route(const LinkRef& link)
             add_route(entry);
         }
     }
+}
+
+//----------------------------------------------------------------------
+bool
+TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
+{
+    if (route == NULL)
+        return false;
+    return BundleRouter::should_fwd(bundle,route->next_hop_,
+            (ForwardingInfo::action_t) route->action_);
 }
 
 //----------------------------------------------------------------------
@@ -304,92 +310,6 @@ TableBasedRouter::fwd_to_nexthop(Bundle* bundle, RouteEntry* route)
 }
 
 //----------------------------------------------------------------------
-bool
-TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
-{
-    ForwardingInfo info;
-    const LinkRef& link = route->next_hop_;
-    bool found = bundle->fwdlog_.get_latest_entry(link, &info);
-
-    if (found) {
-        ASSERT(info.state() != ForwardingInfo::NONE);
-    } else {
-        ASSERT(info.state() == ForwardingInfo::NONE);
-    }
-
-    // check if we've already sent or are in the process of sending
-    // the bundle on this link
-    if (info.state() == ForwardingInfo::TRANSMITTED ||
-        info.state() == ForwardingInfo::IN_FLIGHT)
-    {
-        log_debug("should_fwd bundle %d: "
-                  "skip %s due to forwarding log entry %s",
-                  bundle->bundleid_, link->name(),
-                  ForwardingInfo::state_to_str(info.state()));
-        return false;
-    }
-
-    // check if we're trying to send it right back where it came from
-    // (and we know something about the remote eid)
-    if (link->remote_eid() != EndpointID::NULL_EID() &&
-        link->remote_eid() == bundle->prevhop_)
-    {
-        log_debug("should_fwd bundle %d: "
-                  "skip %s since remote eid %s == bundle prevhop",
-                  bundle->bundleid_, link->name(), link->remote_eid().c_str());
-        return false;
-    }
-
-    // check if we've already sent the bundle to the node via some
-    // other link
-    size_t count = bundle->fwdlog_.get_count(
-        link->remote_eid(),
-        ForwardingInfo::TRANSMITTED | ForwardingInfo::IN_FLIGHT);
-    
-    if (count > 0)
-    {
-        log_debug("should_fwd bundle %d: "
-                  "skip %s since already sent %zu times to remote eid %s",
-                  bundle->bundleid_, link->name(),
-                  count, link->remote_eid().c_str());
-        return false;
-    }
-
-    // if the bundle has a a singleton destination endpoint, then
-    // check if we already forwarded it somewhere else. if so, we
-    // shouldn't forward it again
-    if (bundle->singleton_dest_ &&
-        route->action_ == ForwardingInfo::FORWARD_ACTION)
-    {
-        size_t count = bundle->fwdlog_.get_count(
-            ForwardingInfo::TRANSMITTED | ForwardingInfo::IN_FLIGHT,
-            ForwardingInfo::FORWARD_ACTION);
-        
-        if (count > 0) {
-            log_debug("should_fwd bundle %d: "
-                      "skip %s since already transmitted (count %zu)",
-                      bundle->bundleid_, link->name(), count);
-            return false;
-        } else {
-            log_debug("should_fwd bundle %d: "
-                      "link %s ok since transmission count=%zu",
-                      bundle->bundleid_, link->name(), count);
-        }
-    }
-
-    // otherwise log the reason why we should send it
-    log_debug("should_fwd bundle %d: "
-              "match %s: forwarding log entry %s "
-              "(bundles_queued %u bytes_queued %u)",
-              bundle->bundleid_, link->name(),
-              ForwardingInfo::state_to_str(info.state()),
-              link->stats()->bundles_queued_,
-              link->stats()->bytes_queued_);
-    
-    return true;
-}
-
-//----------------------------------------------------------------------
 int
 TableBasedRouter::fwd_to_matching(Bundle* bundle, const LinkRef& this_link_only)
 {
@@ -502,7 +422,7 @@ void
 TableBasedRouter::reroute_all_bundles()
 {
     oasys::ScopeLock l(pending_bundles_->lock(), 
-                       "TableBasedRouter::check_next_hop");
+                       "TableBasedRouter::reroute_all_bundles");
 
     log_debug("reroute_all_bundles... %zu bundles on pending list",
               pending_bundles_->size());

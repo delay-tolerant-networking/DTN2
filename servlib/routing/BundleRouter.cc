@@ -99,6 +99,84 @@ BundleRouter::BundleRouter(const char* classname, const std::string& name)
 }
 
 //----------------------------------------------------------------------
+bool
+BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
+                         ForwardingInfo::action_t action)
+{
+    ForwardingInfo info;
+    bool found = bundle->fwdlog_.get_latest_entry(link, &info);
+
+    if (found) {
+        ASSERT(info.state() != ForwardingInfo::NONE);
+    } else {
+        ASSERT(info.state() == ForwardingInfo::NONE);
+    }
+
+    // check if we've already sent or are in the process of sending
+    // the bundle on this link
+    if (info.state() == ForwardingInfo::TRANSMITTED ||
+        info.state() == ForwardingInfo::IN_FLIGHT)
+    {
+        log_debug("should_fwd bundle %d: "
+                  "skip %s due to forwarding log entry %s",
+                  bundle->bundleid_, link->name(),
+                  ForwardingInfo::state_to_str(info.state()));
+        return false;
+    }
+
+    // check if we're trying to send it right back where it came from
+    if (link->remote_eid() == bundle->prevhop_) {
+        log_debug("should_fwd bundle %d: "
+                  "skip %s since remote eid %s == bundle prevhop",
+                  bundle->bundleid_, link->name(), link->remote_eid().c_str());
+        return false;
+    }
+
+    // check if we've already sent the bundle to the node via some
+    // other link
+    size_t count = bundle->fwdlog_.get_count(
+        link->remote_eid(),
+        ForwardingInfo::TRANSMITTED | ForwardingInfo::IN_FLIGHT);
+
+    if (count > 0)
+    {
+        log_debug("should_fwd bundle %d: "
+                  "skip %s since already sent %zu times to remote eid %s",
+                  bundle->bundleid_, link->name(),
+                  count, link->remote_eid().c_str());
+        return false;
+    }
+
+    // if the bundle has a a singleton destination endpoint, then
+    // check if we already forwarded it somewhere else. if so, we
+    // shouldn't forward it again
+    if (bundle->singleton_dest_ && action == ForwardingInfo::FORWARD_ACTION)
+    {
+        size_t count = bundle->fwdlog_.get_count(
+            ForwardingInfo::TRANSMITTED | ForwardingInfo::IN_FLIGHT, action);
+
+        if (count > 0) {
+            log_debug("should_fwd bundle %d: "
+                      "skip %s since already transmitted (count %zu)",
+                      bundle->bundleid_, link->name(), count);
+            return false;
+        } else {
+            log_debug("should_fwd bundle %d: "
+                      "link %s ok since transmission count=%zu",
+                      bundle->bundleid_, link->name(), count);
+        }
+    }
+
+    // otherwise log the reason why we should send it
+    log_debug("should_fwd bundle %d: "
+              "match %s: forwarding log entry %s",
+              bundle->bundleid_, link->name(),
+              ForwardingInfo::state_to_str(info.state()));
+
+    return true;
+}
+
+//----------------------------------------------------------------------
 void
 BundleRouter::initialize()
 {

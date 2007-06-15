@@ -121,6 +121,16 @@ public:
     virtual void get_routing_state(oasys::StringBuffer* buf) = 0;
 
     /**
+     * Check if the bundle should be forwarded to the given next hop.
+     * Reasons why it would not be forwarded include that it was
+     * already transmitted or is currently in flight on the link, or
+     * that the route indicates ForwardingInfo::FORWARD_ACTION and it
+     * is already in flight on another route.
+     */
+    virtual bool should_fwd(const Bundle* bundle, const LinkRef& link,
+            ForwardingInfo::action_t action = ForwardingInfo::COPY_ACTION);
+
+    /**
      * Format the given StringBuffer with a tcl-parsable version of
      * the routing state.
      *
