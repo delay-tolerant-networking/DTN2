@@ -2,20 +2,20 @@
 	     Status of the DTN2 Reference Implementation
 	     ===========================================
 
-This document describes the high-level features of version 2.3.0 of
+This document describes the high-level features of version 2.4.0 of
 the DTN2 reference implementation and summarizes the relationship
 between the implementation and the various Internet Drafts that
 describe Delay Tolerant Networking, the Bundle Protocol, and other
 related protocols.
 
-The current version of the DTN2 code is based on the Bundle Protocol
-Specification Internet Draft version 6, and the Delay Tolerant
-Networking Architecture Internet Draft version 6, both released in
-September of 2006. The TCP convergence layer is based on the Delay
-Tolerant Networking TCP Convergence Layer Protocol draft version 0.
+The current version of the DTN2 code is based on RFC 4838 on the
+Delay-Tolerant Networking Architecture, and the Bundle Protocol
+Specification Internet Draft version 9. The TCP convergence layer is
+based on the Delay Tolerant Networking TCP Convergence Layer Protocol
+draft version 0.
 
-A copy of these documents (and possibly more recent versions) can be
-obtained from the ietf.org web site.
+A copy of these documents are included in the doc/ directory and can
+be obtained from the ietf.org web site.
 
 
 			 The Bundle Protocol
@@ -57,11 +57,11 @@ The following Convergence Layers have been implemented.
 
 -- TCP Convergence Layer
 
-An internet draft (draft-demmer-dtnrg-tcp-clayer-00.txt) has been
-published describing the TCP convergence layer protocol.
+An internet draft (draft-dtnrg-tcp-clayer-00.txt) has been published
+describing the TCP convergence layer protocol.
 
 The TCP convergence layer offers a reliable communication channel
-between DTN nodes. All bundle communication is now bidirectional. The
+between DTN nodes. All bundle communication is bidirectional. The
 protocol returns an acknowledgement message when part or all of the
 bundle is received. These acknowledgements allowing the sender side to
 determine whether or not the bundle can be removed from the data
@@ -123,9 +123,11 @@ No support for scheduled links is yet implemented.
 			       -------
 
 The implementation offers an interface by which new routing algorithms
-and modules can be easily added to the system. To date, however, the
-only fully implemented algorithm is a simple static router that
-requires manual configuration of routes. 
+and modules can be easily added to the system. 
+
+This release includes two dynamic routing implementations: DTLSR
+(Delay-Tolerant Link State Routing) and Prophet. Additional routing
+implementations can also be integrated using an external API.
 
 We intend for this to be an area of future development, with more
 routing frameworks added in upcoming release(s).
