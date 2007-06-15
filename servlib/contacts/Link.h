@@ -513,7 +513,8 @@ public:
     /**
      * Accessor for the parameter structure.
      */
-    const Params& params() { return params_; }
+    const Params& params() const { return params_; }
+    Params& params() { return params_; }
 
     /*************************************************************
      * Link Statistics
