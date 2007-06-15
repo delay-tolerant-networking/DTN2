@@ -114,6 +114,25 @@ NAMING_SRCS :=					\
 	naming/WildcardScheme.cc		\
 	naming/TCAScheme.cc			\
 
+PROPHET_SRCS :=					\
+	prophet/AckList.cc			\
+	prophet/BundleOffer.cc			\
+	prophet/BundleTLV.cc			\
+	prophet/Controller.cc			\
+	prophet/Decider.cc			\
+	prophet/Dictionary.cc			\
+	prophet/Encounter.cc			\
+	prophet/HelloTLV.cc			\
+	prophet/Node.cc				\
+	prophet/ProphetTLV.cc			\
+	prophet/Repository.cc			\
+	prophet/RIBDTLV.cc			\
+	prophet/RIBTLV.cc			\
+	prophet/Stats.cc			\
+	prophet/Table.cc			\
+	prophet/OfferTLV.cc			\
+	prophet/ResponseTLV.cc			\
+
 REGISTRATION_SRCS :=				\
 	reg/AdminRegistration.cc		\
 	reg/APIRegistration.cc			\
@@ -137,13 +156,12 @@ ROUTING_SRCS :=					\
 	routing/LinkStateGraph.cc		\
 	routing/LinkStateRouter.cc		\
 	routing/LinkScheduleEstimator.cc	\
-	routing/Prophet.cc			\
-	routing/ProphetController.cc		\
-	routing/ProphetEncounter.cc		\
-	routing/ProphetLists.cc			\
+	routing/ProphetBundleCore.cc		\
+	routing/ProphetBundleList.cc		\
+	routing/ProphetLinkList.cc		\
 	routing/ProphetNode.cc			\
+	routing/ProphetNodeList.cc		\
 	routing/ProphetRouter.cc		\
-	routing/ProphetTLV.cc			\
 	routing/RouteEntry.cc			\
 	routing/RouteTable.cc			\
 	routing/TableBasedRouter.cc		\
@@ -175,6 +193,7 @@ SERVLIB_SRCS := 				\
 	$(DISCOVERY_SRCS)			\
 	$(CMD_SRCS) 				\
 	$(NAMING_SRCS) 				\
+	$(PROPHET_SRCS) 			\
 	$(REGISTRATION_SRCS)			\
 	$(ROUTING_SRCS)				\
 	$(STORAGE_SRCS)				\

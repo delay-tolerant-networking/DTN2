@@ -32,15 +32,27 @@ endif
 dtn-tests: unit_tests
 all: dtn-tests
 
-BINFILES :=				\
-	unit_tests/bundle-list-test	\
-	unit_tests/bundle-payload-test	\
-	unit_tests/bundle-protocol-test	\
-	unit_tests/bundle-timestamp-test\
-	unit_tests/endpoint-id-test	\
-	unit_tests/route-multigraph-test\
-	unit_tests/route-table-test	\
-	unit_tests/sdnv-test		\
+BINFILES :=					\
+	unit_tests/bundle-list-test		\
+	unit_tests/bundle-payload-test		\
+	unit_tests/bundle-protocol-test		\
+	unit_tests/bundle-timestamp-test	\
+	unit_tests/endpoint-id-test		\
+	unit_tests/prophet-bundle-core-test 	\
+	unit_tests/prophet-bundle-offer-test 	\
+	unit_tests/prophet-controller-test 	\
+	unit_tests/prophet-decider-test 	\
+	unit_tests/prophet-encounter-test 	\
+	unit_tests/prophet-list-test 		\
+	unit_tests/prophet-node-test 		\
+	unit_tests/prophet-policy-test 		\
+	unit_tests/prophet-repository-test 	\
+	unit_tests/prophet-stats-test 		\
+	unit_tests/prophet-strategy-test 	\
+	unit_tests/prophet-tlv-test 		\
+	unit_tests/route-multigraph-test	\
+	unit_tests/route-table-test		\
+	unit_tests/sdnv-test			\
 
 unit_tests: $(BINFILES)
 
