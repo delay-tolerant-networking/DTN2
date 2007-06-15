@@ -38,6 +38,23 @@ class IPDiscovery : public Discovery,
 public:
 
     /**
+     * If no other options are set for destination, default to sending 
+     * to the IPv4 broadcast address.
+     */
+    const static u_int32_t DEFAULT_DST_ADDR = 0xffffffff;
+
+    /**
+     * If no other options are set for source, use this as default
+     * local address
+     */
+    const static u_int32_t DEFAULT_SRC_ADDR = INADDR_ANY;
+
+    /**
+     * If no other options are set for multicast TTL, set to 1
+     */
+    const static u_int DEFAULT_MCAST_TTL = 1;
+
+    /**
      * On-the-wire (radio, whatever) representation of
      * IP address family's advertisement beacon
      */
@@ -134,6 +151,7 @@ protected:
     in_addr_t remote_addr_;  ///< whether unicast, multicast, or broadcast 
     u_int mcast_ttl_;        ///< TTL hop count for multicast option
     oasys::UDPClient socket_; ///< the socket for beacons in- and out-bound
+    bool persist_;           ///< whether to exit thread on send/recv failures
 };
 
 } // namespace dtn

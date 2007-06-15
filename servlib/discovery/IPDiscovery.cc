@@ -28,15 +28,20 @@ extern int errno;
 
 namespace dtn {
 
+const u_int32_t IPDiscovery::DEFAULT_DST_ADDR = 0xffffffff;
+const u_int32_t IPDiscovery::DEFAULT_SRC_ADDR = INADDR_ANY;
+const u_int IPDiscovery::DEFAULT_MCAST_TTL = 1;
+
 IPDiscovery::IPDiscovery(const std::string& name)
     : Discovery(name,"ip"),
       oasys::Thread("IPDiscovery")
 {
-    remote_addr_ = 0xffffffff;
-    local_addr_ = INADDR_ANY;
-    mcast_ttl_ = 1;
+    remote_addr_ = DEFAULT_DST_ADDR;
+    local_addr_ = DEFAULT_SRC_ADDR;
+    mcast_ttl_ = DEFAULT_MCAST_TTL;
     port_ = 0;
     shutdown_ = false;
+    persist_ = false;
 
     socket_.logpathf("%s/sock", logpath_);
 }
@@ -59,6 +64,7 @@ IPDiscovery::configure(int argc, const char* argv[])
     p.addopt(new oasys::InAddrOpt("local_addr",&local_addr_));
     p.addopt(new oasys::UIntOpt("multicast_ttl",&mcast_ttl_));
     p.addopt(new oasys::BoolOpt("unicast",&unicast));
+    p.addopt(new oasys::BoolOpt("continue_on_error",&persist_));
 
     const char* invalid;
     if (! p.parse(argc,argv,&invalid))
@@ -102,12 +108,6 @@ IPDiscovery::configure(int argc, const char* argv[])
     oasys::StringBuffer to("%s:%d",intoa(remote_addr_),port_);
     to_addr_.assign(to.c_str());
 
-    if (socket_.bind(local_addr_,port_) != 0)
-    {
-        log_err("bind failed");
-        return false;
-    }
-
     log_debug("starting thread"); 
     start();
 
@@ -120,6 +120,29 @@ IPDiscovery::run()
     log_debug("discovery thread running");
     oasys::ScratchBuffer<u_char*> buf(1024);
     u_char* bp = buf.buf(1024);
+
+    // if link state causes bind to fail, then this seems reasonable
+    // otherwise this may be a problem (see bind(2) for list of errors)
+    bool ok = (socket_.bind(local_addr_,port_) == 0);
+    if (persist_)
+    {
+        oasys::Notifier* intr = socket_.get_notifier();
+        while (! ok)
+        {
+            // continue on error ... sleep a bit and try again
+            intr->wait(NULL,10000); // 10 seconds
+
+            if (shutdown_) return;
+
+            ok = (socket_.bind(local_addr_,port_) == 0);
+        }
+    }
+    else
+    if (! ok)
+    {
+        log_err("bind failed");
+        return;
+    }
 
     size_t len = 0;
     int cc = 0;
@@ -136,18 +159,38 @@ IPDiscovery::run()
             u_int remaining = announce->interval_remaining();
             if (remaining == 0)
             {
+                oasys::UDPClient alt;
+                oasys::UDPClient* sock = NULL;
+                // need to bind to CL's local addr to send out on correct interface
+                // if disc already is, then use its socket
+                // else create a new socket that bind()s to the right interface
+                if (socket_.local_addr() == announce->cl_addr())
+                    sock = &socket_;
+                else
+                {
+                    alt.params_ = socket_.params_;
+                    if (alt.bind(announce->cl_addr(),port_) != 0)
+                    {
+                        log_err("failed to bind to %s:%u -- %s (%d)",
+                                intoa(announce->cl_addr()),port_,
+                                strerror(errno),errno);
+                        continue;
+                    }
+                    sock = &alt;
+                }
                 log_debug("announce ready for sending");
                 len = announce->format_advertisement(bp,1024);
-                cc = socket_.sendto((char*)bp,len,0,remote_addr_,port_);
+                cc = sock->sendto((char*)bp,len,0,remote_addr_,port_);
                 if (cc != (int) len)
                 {
                     log_err("sendto failed: %s (%d)",
                             strerror(errno),errno);
 
                     // quit thread on error
-                    return;
+                    if (!persist_) return;
                 }
                 min_diff = announce->interval();
+                alt.close();
             }
             else
             {
@@ -191,7 +234,8 @@ IPDiscovery::run()
             {
                 log_err("error on recvfrom (%d): %s (%d)",cc,
                         strerror(errno),errno);
-                return;
+                if (!persist_) return;
+                else continue;
             }
 
             EndpointID remote_eid;
@@ -202,7 +246,8 @@ IPDiscovery::run()
             {
                 log_warn("unable to parse beacon from %s:%d",
                          intoa(remote_addr),remote_port);
-                return;
+                if (!persist_) return;
+                else continue;
             }
 
             if (remote_eid.equals(BundleDaemon::instance()->local_eid()))
