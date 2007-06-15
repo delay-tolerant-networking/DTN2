@@ -1,5 +1,5 @@
 /*
- *    Copyright 2006 Baylor University
+ *    Copyright 2007 Baylor University
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -18,167 +18,349 @@
 #  include <config.h>
 #endif
 
-#include "BundleRouter.h"
-#include "bundling/Bundle.h"
-#include "bundling/BundleActions.h"
+#include "bundling/BundleProtocol.h"
 #include "bundling/BundleDaemon.h"
-#include "bundling/BundleList.h"
-#include "contacts/Contact.h"
-#include "contacts/ContactManager.h"
-#include <oasys/util/StringBuffer.h>
-#include <stdlib.h>
+#include <oasys/thread/Lock.h>
 
+#include "prophet/QueuePolicy.h"
 #include "ProphetRouter.h"
 
-namespace dtn {
+namespace dtn
+{
 
-void
-prophet_router_shutdown(void*)
+void prophet_router_shutdown(void*)
 {
     BundleDaemon::instance()->router()->shutdown();
 }
 
-ProphetParams ProphetRouter::params_;
+prophet::ProphetParams ProphetRouter::params_;
+
+bool ProphetRouter::is_init_ = false;
 
 ProphetRouter::ProphetRouter()
-    : BundleRouter("ProphetRouter", "prophet")
+    : BundleRouter("ProphetRouter","prophet"),
+      core_(NULL), oracle_(NULL),
+      lock_(new oasys::SpinLock())
 {
-    log_debug("ProphetRouter constructor");
-    // params_ default values are set by ProphetLists.h
-}
-
-void
-ProphetRouter::shutdown()
-{
-    oracle_->shutdown();
 }
 
 ProphetRouter::~ProphetRouter()
 {
     delete oracle_;
+    delete core_;
+    delete lock_;
 }
 
 void
 ProphetRouter::initialize()
 {
-    // Call factory to instantiate ProphetController
-    ProphetController::init(&params_,pending_bundles_,actions_);
+    ASSERT( is_init_ == false );
 
-    // For convenience, grab hold of that instance variable
-    oracle_ = ProphetController::instance();
+    // create local instance of ProphetBundleCore,
+    // prophet::Repository, and prophet::Controller
+    std::string local_eid(BundleDaemon::instance()->local_eid().str());
 
-    // Register the global shutdown function
+    core_ = new ProphetBundleCore(local_eid,actions_,lock_);
+    oracle_ = new prophet::Controller(core_,core_->bundles(),&params_);
+
+    // register the global shutdown function
     BundleDaemon::instance()->set_rtr_shutdown(
-                prophet_router_shutdown, (void *) 0);
+            prophet_router_shutdown, (void *) 0);
 
-    oracle_->load_prophet_nodes();
-    
-    // all done
-    log_info("ProphetRouter initialized");
+    // deserialize any routes from permanent storage 
+    core_->load_prophet_nodes(oracle_->nodes(),&params_);
+
+    is_init_ = true;
+    log_info("ProphetRouter initialization complete");
 }
 
 void
-ProphetRouter::handle_event(BundleEvent* event)
+ProphetRouter::shutdown()
 {
-    dispatch_event(event);
+    log_info("ProphetRouter shutdown");
+    oasys::ScopeLock l(lock_, "shutdown");
+    oracle_->shutdown();
+    core_->shutdown();
+}
+
+void
+ProphetRouter::handle_event(BundleEvent* e)
+{
+    dispatch_event(e);
 }
 
 void
 ProphetRouter::get_routing_state(oasys::StringBuffer* buf)
 {
-    oracle_->dump_state(buf);
+    log_info("ProphetRouter get_routing_state");
+    oasys::ScopeLock l(lock_, "get_routing_state");
+
+    // summarize current number of routes, misc. statistics
+    buf->appendf("ProphetRouter:\n"
+            "  %zu routes, %zu queued bundles, %zu ACKs, %zu active sessions\n",
+            oracle_->nodes()->size(),
+            core_->bundles()->size(),
+            oracle_->acks()->size(),
+            oracle_->size());
+    // iterate over Encounters and query their status
+    buf->appendf("Active Sessions\n");
+    for (prophet::Controller::List::const_iterator i = oracle_->begin();
+            i != oracle_->end(); i++)
+    {
+        buf->appendf(" %4d: %-30s %s timeout %u\n",
+                (*i)->local_instance(),
+                (*i)->nexthop()->remote_eid(),
+                (*i)->state_str(),
+                (*i)->time_remaining());
+    }
+    buf->appendf("Routes\n");
+    for (prophet::Table::const_iterator i = oracle_->nodes()->begin();
+            i != oracle_->nodes()->end(); i++)
+    {
+        buf->appendf("       %-30s: %.2f %s%s%s %lu s old\n",
+                i->second->dest_id(), i->second->p_value(),
+                i->second->relay() ? "R" : " ",
+                i->second->custody() ? "C" : " ",
+                i->second->internet_gw() ? "I" : " ",
+                (time(0) - i->second->age()));
+    }
+    buf->appendf("\n R - relay   C - custody   I - internet gateway \n\n");
+
+    //XXX/wilson debug
+    buf->appendf("Bundles:\n");
+    prophet::BundleList bundles = core_->bundles()->get_bundles();
+    for (prophet::BundleList::iterator i = bundles.begin();
+            i != bundles.end(); i++)
+    {
+        buf->appendf("%s -> %s (%u:%u)\n",
+                (*i)->source_id().c_str(),
+                (*i)->destination_id().c_str(),
+                (*i)->creation_ts(),
+                (*i)->sequence_num());
+    }
 }
 
 bool
 ProphetRouter::accept_bundle(Bundle* bundle, int* errp)
 {
-    return oracle_->accept_bundle(bundle,errp);
-}
+    log_info("ProphetRouter accept_bundle");
+    oasys::ScopeLock l(lock_, "accept_bundle");
 
-void
-ProphetRouter::handle_bundle_received(BundleReceivedEvent *event)
-{
-    Bundle* bundle = event->bundleref_.object();
-    oracle_->handle_bundle_received(bundle,event->contact_);
-}
-
-void
-ProphetRouter::handle_bundle_delivered(BundleDeliveredEvent* event)
-{
-    Bundle* bundle = event->bundleref_.object();
-    oracle_->handle_bundle_delivered(bundle);
-}
-
-void
-ProphetRouter::handle_bundle_expired(BundleExpiredEvent *event)
-{
-    Bundle* bundle = event->bundleref_.object();
-    oracle_->handle_bundle_expired(bundle);
-}
-
-void
-ProphetRouter::handle_link_created(LinkCreatedEvent* event)
-{
-    LinkRef link = event->link_;
-    ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
-        
-    // can't do anything with "only" a link, except to police this one ASSERTion
-    ASSERT(link->remote_eid().equals(EndpointID::NULL_EID()) == false);
-}
-
-void
-ProphetRouter::handle_contact_up(ContactUpEvent* event)
-{
-    ASSERT(event->contact_->link() != NULL);
-    ASSERT(!event->contact_->link()->isdeleted());
-
-    // ProphetController demux's which ProphetEncounter handles this contact
-    // (or creates a new one)
-    oracle_->new_neighbor(event->contact_);
-}
-
-void
-ProphetRouter::handle_link_available(LinkAvailableEvent* event)
-{
-    LinkRef link = event->link_;
-    ASSERT(link != NULL);
-    ASSERT(!link->isdeleted());
-    
-    if (!link->isopen())
+    // first ask base class
+    if (!BundleRouter::accept_bundle(bundle,errp))
     {
-        // request to open link
-        actions_->open_link(link);
+        log_debug("BundleRouter rejects *%p",bundle);
+        return false;
     }
+
+    BundleRef tmp("accept_bundle");
+    tmp = bundle;
+    // retrieve temp prophet handle to Bundle metadata
+    const prophet::Bundle* b = core_->get_temp_bundle(tmp);
+    if (errp != NULL) errp = (int) BundleProtocol::REASON_NO_ADDTL_INFO;
+    // ask controller's opinion on this bundle
+    bool ok = oracle_->accept_bundle(b);
+    // clean up memory used by temporary wrapper
+    delete b;
+    log_debug("do%saccept bundle *%p", ok ? " " : " not ", bundle);
+    return ok;
 }
 
 void
-ProphetRouter::handle_contact_down(ContactDownEvent* event)
+ProphetRouter::handle_bundle_received(BundleReceivedEvent* e)
 {
-    // Let ProphetController know that the contact's off the wire
-    oracle_->neighbor_gone(event->contact_);
-}
+    log_info("ProphetRouter handle_bundle_received");
+    oasys::ScopeLock sl(lock_, "handle_bundle_received");
 
-void
-ProphetRouter::handle_link_state_change_request(LinkStateChangeRequest* req)
-{
-    Link::state_t state = Link::state_t(req->state_);
-    LinkRef link = req->link_;
-    ASSERT(link != NULL);
+    // should not be reached, but somehow still is
+    if (e->source_ == EVENTSRC_STORE)
+        return;
 
-    if (link->isdeleted() && state != Link::CLOSED) {
-        log_debug("ProphetRouter::handle_link_state_change_request: "
-                  "link %s already deleted; cannot change link state to %s",
-                  link->name(), Link::state_to_str(state));
+    const prophet::Link* l = NULL;
+
+    if (e->source_ != EVENTSRC_APP)
+    {
+        Link* link = e->contact_->link().object();
+        if (link == NULL) return;
+
+        // add DTN's Link to BundleCore facade
+        core_->add(e->contact_->link());
+
+        // retrieve prophet's handle to Link metadata
+        l = core_->get_link(link); 
+
+        if (l == NULL) return;
+    }
+
+    // create temporary prophet handle to Bundle metadata
+    const prophet::Bundle* b = core_->get_temp_bundle(e->bundleref_);
+
+    if (b == NULL)
+    {
+        log_err("failed to retrieve prophet handle for *%p",
+                e->bundleref_.object());
         return;
     }
-        
-    // Signals the appropriate ProphetEncounter instance to clear any
-    // pending outbound queues
-    if (req->old_state_ == Link::BUSY && req->state_ == Link::AVAILABLE)
+
+    core_->bundles_.add(b);
+
+    // inform Controller that a new bundle has arrived on this link
+    oracle_->handle_bundle_received(b,l);
+}
+
+void
+ProphetRouter::handle_bundle_delivered(BundleDeliveredEvent* e)
+{
+    log_info("ProphetRouter handle_bundle_delivered");
+    oasys::ScopeLock l(lock_, "handle_bundle_delivered");
+
+    Bundle* bundle = e->bundleref_.object();
+    if (bundle == NULL) return;
+
+    // retrieve prophet's handle to Bundle metadata
+    const prophet::Bundle* b = core_->get_bundle(bundle);
+    if (b == NULL) 
     {
-        oracle_->handle_link_state_change_request(req->contact_);
+        log_err("Failed to convert *%p to prophet object",bundle);
+        return;
+    }
+    // BundleDeliveredEvent means prophet::Ack, which kicks Bundle out of Prophet
+    oracle_->ack(b);
+}
+
+void
+ProphetRouter::handle_bundle_expired(BundleExpiredEvent* e)
+{
+    log_info("ProphetRouter handle_bundle_expired");
+    oasys::ScopeLock l(lock_, "handle_bundle_expired");
+
+    const prophet::Bundle* b = NULL;
+    Bundle* bundle = e->bundleref_.object();
+    if (bundle != NULL && ((b = core_->get_bundle(bundle)) != NULL))
+    {
+        // drop Prophet stats on this bundle
+        oracle_->stats()->drop_bundle(b);
+    }
+
+    core_->del(e->bundleref_);
+}
+
+void 
+ProphetRouter::handle_bundle_transmitted(BundleTransmittedEvent* e)
+{
+    const prophet::Bundle* bundle = core_->get_bundle(e->bundleref_.object());
+    const prophet::Link* link = core_->get_link(e->link_.object());
+    if (bundle != NULL && link != NULL)
+        oracle_->handle_bundle_transmitted(bundle,link);
+}
+
+void
+ProphetRouter::handle_contact_up(ContactUpEvent* e)
+{
+    log_info("ProphetRouter handle_contact_up");
+    oasys::ScopeLock lk(lock_, "handle_contact_up");
+
+    Link* link = e->contact_->link().object();
+    if (link == NULL) return;
+
+    // add DTN's Link to BundleCore facade
+    core_->add(e->contact_->link());
+    // retrieve prophet's handle to Link metadata
+    const prophet::Link* l = core_->get_link(link);
+    if (l == NULL) return;
+    // tell Controller about our new friend
+    oracle_->new_neighbor(l);
+}
+
+void
+ProphetRouter::handle_contact_down(ContactDownEvent* e)
+{
+    log_info("ProphetRouter handle_contact_down");
+    oasys::ScopeLock lk(lock_, "handle_contact_down");
+
+    Link* link = e->contact_->link().object();
+
+    // retrieve prophet's handle to Link metadata
+    const prophet::Link* l = NULL;
+    if (link != NULL &&
+            (l = core_->get_link(e->contact_->link().object())) != NULL)
+        // inform Controller about the loss
+        oracle_->neighbor_gone(l);
+    // drop BundleCore's knowledge about this Link
+    core_->del(e->contact_->link());
+}
+
+void
+ProphetRouter::handle_link_available(LinkAvailableEvent* e)
+{
+    LinkRef next_hop = e->link_;
+    ASSERT(next_hop != NULL);
+    ASSERT(!next_hop->isdeleted());
+
+    // Prophet initiates its protocol based on handle_open_contact,
+    // which fires upon success link open ... so poke it and see 
+    // what happens
+    if (!next_hop->isopen())
+    {
+        // request to open link
+        actions_->open_link(next_hop);
+    }
+
+    // when the link comes up or is made available, any bundles
+    // destined for it will have a transmit pending entry in the
+    // forwarding log
+    //
+    // XXX/demmer this would be easier if they were just on the link
+    // queue...
+    oasys::ScopeLock l(pending_bundles_->lock(),
+                       "ProphetRouter::handle_link_available");
+    BundleList::iterator iter;
+    for (iter = pending_bundles_->begin();
+         iter != pending_bundles_->end();
+         ++iter)
+    {
+        if (next_hop->isbusy())
+        {
+            log_debug("handle_link_available %s: link is busy, stopping loop",
+                      next_hop->name());
+            break;
+        }
+
+        BundleRef bundle("ProphetRouter::handle_link_available");
+        bundle = *iter;
+
+        ForwardingInfo info;
+        bool ok = bundle->fwdlog_.get_latest_entry(next_hop, &info);
+
+        if (ok && (info.state() == ForwardingInfo::TRANSMIT_PENDING))
+        {
+
+            log_debug("handle_link_available: sending *%p to *%p",
+                      bundle.object(), next_hop.object());
+            actions_->send_bundle(bundle.object() , next_hop,
+                    info.action(), info.custody_spec());
+        }
     }
 }
 
-} // namespace dtn
+void
+ProphetRouter::set_queue_policy()
+{
+    log_info("ProphetRouter set_queue_policy");
+    oasys::ScopeLock l(lock_, "set_queue_policy");
+    // tell Controller to reorganize internal bundle policy based on new 
+    // parameters written to params_ by ProphetCommand
+    oracle_->set_queue_policy();
+}
+
+void
+ProphetRouter::set_hello_interval()
+{
+    log_info("ProphetRouter set_hello_interval");
+    oasys::ScopeLock l(lock_, "set_hello_interval");
+    // tell Controller to change internal protocol timeouts based on new
+    // parameters written to params_ by ProphetCommand
+    oracle_->set_hello_interval();
+}
+
+}; // namespace dtn

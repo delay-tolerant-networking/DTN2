@@ -1,5 +1,5 @@
 /*
- *    Copyright 2006 Baylor University
+ *    Copyright 2007 Baylor University
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -17,99 +17,78 @@
 #ifndef _PROPHET_ROUTER_H_
 #define _PROPHET_ROUTER_H_
 
-#include "ProphetController.h"
-#include "bundling/BundleList.h"
-#include "reg/AdminRegistration.h"
+#include "prophet/Alarm.h"
+#include "prophet/Params.h"
+#include "prophet/Controller.h"
+#include "ProphetBundleCore.h"
+#include "BundleRouter.h"
+#include <oasys/thread/SpinLock.h>
 
-namespace dtn {
+namespace dtn
+{
 
-class ProphetRouter : public BundleRouter {
+class ProphetRouter : public BundleRouter
+{
 public:
+    typedef prophet::ProphetParams Params;
+
+    /**
+     * Constructor
+     */
     ProphetRouter();
+
+    /**
+     * Destructor
+     */
     virtual ~ProphetRouter();
 
     /**
-     * post-constructor initialization routine
+     * Post-constructor initialization routine
      */
     void initialize();
 
     /**
-     * Event handler overridden from BundleRouter / BundleEventHandler
-     * that dispatches to the type specific handlers where
-     * appropriate.
+     * Query the router as to whether initialization is complete
      */
-    void handle_event(BundleEvent*);
+    static bool is_init() { return is_init_; }
 
     /**
-     * Dump the routing state.
+     * Write out routing state to StringBuffer
      */
     void get_routing_state(oasys::StringBuffer*);
 
-    /**
-     * Handler for new bundle requests
-     */
-    bool accept_bundle(Bundle* bundle, int* errp);
-
-    /**
-     * Handler for new bundle arrivals
-     */
+    ///@{ Virtual from BundleRouter
+    bool accept_bundle(Bundle*,int*);
+    void handle_event(BundleEvent*);
     void handle_bundle_received(BundleReceivedEvent*);
-
-    /**
-     * Handler for bundle delivered signal
-     */
     void handle_bundle_delivered(BundleDeliveredEvent*);
-
-    /**
-     * Handler for bundle end-of-life
-     */
     void handle_bundle_expired(BundleExpiredEvent*);
-
-    /**
-     * Monitor new links, complain if EID is null
-     */
-    void handle_link_created(LinkCreatedEvent* event);
-
-    /**
-     * Prophet's "New Neighbor" signal, section 2.3, p. 13
-     */
-    void handle_contact_up(ContactUpEvent* );
-
-    /**
-     * prelude to Prophet's "New Neighbor" signal, section 2.3, p. 13
-     */
+    void handle_bundle_transmitted(BundleTransmittedEvent*);
+    void handle_contact_up(ContactUpEvent*);
+    void handle_contact_down(ContactDownEvent*);
     void handle_link_available(LinkAvailableEvent*);
-
-    /**
-     * Prophet's "Neighbor Gone" signal, section 2.3, p. 13
-     */
-    void handle_contact_down(ContactDownEvent* );
-
-    /**
-     * Clear pending outbound queues, if any
-     */
-    void handle_link_state_change_request(LinkStateChangeRequest*);
-
-    /**
-     * Prophet's configuration metrics that are propagated all the
-     * way down to ProphetController, ProphetEncounter, and ProphetNode
-     */
-    static ProphetParams      params_;
-
-    /**
-     * Virtual from BundleRouter
-     */
     void shutdown();
+    ///@}
+
+    ///@{ Callback methods for handling runtime configuration changes
+    void set_queue_policy();
+    void set_hello_interval();
+    ///@}
+
+    /**
+     * Prophet's configuration and default values
+     */
+    static prophet::ProphetParams params_;
+
 protected:
-    ProphetController* oracle_;
 
-}; // ProphetRouter
+    ProphetBundleCore* core_; ///< facade interface into BundleDaemon, etc
+    prophet::Controller* oracle_; ///< list of active Prophet peering sessions
+    oasys::SpinLock* lock_; ///< control concurrent access to core_ and oracle_
+    static bool is_init_; ///< flag to indicate whether initialization has run
 
-/**
- * Global shutdown callback function
- */
-void prophet_router_shutdown(void *);
+}; // class ProphetRouter
 
-} // namespace dtn
+}; // namespace dtn
 
-#endif /* _PROPHET_ROUTER_H_ */
+#endif // _PROPHET_ROUTER_H_

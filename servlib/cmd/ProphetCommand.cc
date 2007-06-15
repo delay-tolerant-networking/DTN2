@@ -21,11 +21,15 @@
 #include <oasys/util/StringBuffer.h>
 #include <oasys/util/OptParser.h>
 
-#include "ProphetCommand.h"
+#include "bundling/BundleDaemon.h"
 #include "routing/BundleRouter.h"
-#include "routing/Prophet.h"
-// default settings for ProphetRouter::params_ are set in ProphetLists.h
+#include "prophet/QueuePolicy.h"
+#include "prophet/FwdStrategy.h"
+#include "prophet/Params.h"
+// default settings for ProphetRouter::params_ are set in prophet/Params.h
 #include "routing/ProphetRouter.h"
+
+#include "ProphetCommand.h"
 
 namespace dtn {
 
@@ -109,8 +113,6 @@ ProphetCommand::ProphetCommand()
     add_to_help("hello_interval=<interval>",
                 "maximum delay between protocol messages, in 100ms units,"
                 " ranging from 1 to 255 (100 ms to 25.5s)");
-
-    add_to_help("max_usage","not used - superceded by \"storage payload_quota\"");
 }
 
 int
@@ -138,19 +140,20 @@ ProphetCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
     {
         oasys::EnumOpt::Case FwdStrategyCases[] =
         {
-            {"grtr",      Prophet::GRTR},
-            {"gtmx",      Prophet::GTMX},
-            {"grtr_plus", Prophet::GRTR_PLUS},
-            {"gtmx_plus", Prophet::GTMX_PLUS},
-            {"grtr_sort", Prophet::GRTR_SORT},
-            {"grtr_max",  Prophet::GRTR_MAX},
+            {"grtr",      prophet::FwdStrategy::GRTR},
+            {"gtmx",      prophet::FwdStrategy::GTMX},
+            {"grtr_plus", prophet::FwdStrategy::GRTR_PLUS},
+            {"gtmx_plus", prophet::FwdStrategy::GTMX_PLUS},
+            {"grtr_sort", prophet::FwdStrategy::GRTR_SORT},
+            {"grtr_max",  prophet::FwdStrategy::GRTR_MAX},
             {0, 0}
         };
         int fs_pass = ProphetRouter::params_.fs_;
         p.addopt(new oasys::EnumOpt("fwd_strategy",
                     FwdStrategyCases, &fs_pass, "",
                     "forwarding strategies"));
-        ProphetRouter::params_.fs_ = (Prophet::fwd_strategy_t)fs_pass;
+        ProphetRouter::params_.fs_ =
+            (prophet::FwdStrategy::fwd_strategy_t)fs_pass;
         if (! p.parse(argc,argv,&invalid))
         {
             resultf("bad parameter for fwd_strategy: %s",invalid);
@@ -158,48 +161,52 @@ ProphetCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
         }
 
         resultf("fwd_strategy set to %s",
-                Prophet::fs_to_str(ProphetRouter::params_.fs_));
+                prophet::FwdStrategy::fs_to_str(ProphetRouter::params_.fs_));
     }
     else
     if (strncmp(cmd,"queue_policy",strlen("queue_policy")) == 0)
     {
         oasys::EnumOpt::Case QueuePolicyCases[] =
         {
-            {"fifo",        Prophet::FIFO},
-            {"mofo",        Prophet::MOFO},
-            {"mopr",        Prophet::MOPR},
-            {"lmopr",       Prophet::LINEAR_MOPR},
-            {"shli",        Prophet::SHLI},
-            {"lepr",        Prophet::LEPR},
+            {"fifo",  prophet::QueuePolicy::FIFO},
+            {"mofo",  prophet::QueuePolicy::MOFO},
+            {"mopr",  prophet::QueuePolicy::MOPR},
+            {"lmopr", prophet::QueuePolicy::LINEAR_MOPR},
+            {"shli",  prophet::QueuePolicy::SHLI},
+            {"lepr",  prophet::QueuePolicy::LEPR},
             {0, 0}
         };
         int qp_pass;
         p.addopt(new oasys::EnumOpt("queue_policy",
                     QueuePolicyCases, &qp_pass, "",
                     "queueing policies as put forth by Prophet, March 2006"));
-        Prophet::q_policy_t qp = (Prophet::q_policy_t)qp_pass;
         if (! p.parse(argc,argv,&invalid))
         {
             resultf("bad parameter for queue_policy: %s",invalid);
             return TCL_ERROR;
         }
 
-        // if instance exists, post a change
-        if (ProphetController::is_init())
-            ProphetController::instance()->handle_queue_policy_change(qp);
-        else 
-        // else push to params where it will get picked up at init time
-            ProphetRouter::params_.qp_ = qp;
+        prophet::QueuePolicy::q_policy_t qp =
+            (prophet::QueuePolicy::q_policy_t)qp_pass;
 
-        resultf("queue_policy set to %s", Prophet::qp_to_str(qp));
+        ProphetRouter::params_.qp_ = qp;
+        if (ProphetRouter::is_init())
+        {
+            ProphetRouter* r = dynamic_cast<ProphetRouter*>(
+                                    BundleDaemon::instance()->router());
+            if (r != NULL)
+                r->set_queue_policy();
+        }
+        resultf("queue_policy set to %s", prophet::QueuePolicy::qp_to_str(qp));
     }
     else
     if (strncmp(cmd,"hello_interval",strlen("hello_interval")) == 0)
     {
         u_int8_t hello_interval;
         p.addopt(new oasys::UInt8Opt("hello_interval",
-                 &hello_interval,"100s of milliseconds",
-                 "100ms time units between HELLO beacons (1 - 255)"));
+                 &hello_interval,"seconds",
+                 "100s of milliseconds between HELLO beacons (between 1 "
+                 "and 255)"));
 
         if (! p.parse(argc,argv,&invalid))
         {
@@ -207,20 +214,15 @@ ProphetCommand::exec(int argc, const char** argv, Tcl_Interp* interp)
             return TCL_ERROR;
         }
 
-        if (ProphetController::is_init())
-            ProphetController::instance()->handle_hello_interval_change(
-                hello_interval);
-        else
-            ProphetRouter::params_.hello_interval_ = hello_interval;
-
+        ProphetRouter::params_.hello_interval_ = hello_interval;
+        if (ProphetRouter::is_init())
+        {
+            ProphetRouter* r = dynamic_cast<ProphetRouter*>(
+                    BundleDaemon::instance()->router());
+            if (r != NULL)
+                r->set_hello_interval();
+        }
         resultf("hello_interval set to %d",hello_interval);
-    }
-    else
-    if (strncmp(cmd,"max_usage",strlen("max_usage")) == 0)
-    {
-        resultf("\"prophet max_usage\" no longer supported, please refer to "
-                "\"storage payload_quota\"");
-        return TCL_ERROR;
     }
 
     return TCL_OK;
