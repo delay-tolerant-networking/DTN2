@@ -50,7 +50,7 @@ fetch(u_int16_t sid,const prophet::Dictionary& ribd)
          i!=(_a).end(); i++) \
         if ( (_b = fetch((*i)->sid(),_ribd)) != NULL) \
         printf("%3d: %-20s %3d %3d %2d %2d %.2f %.2f %.2f %.2f %.2f\n", \
-               i - (_a).begin(), \
+               (int)(i - (_a).begin()), \
                _b->destination_id().c_str(), \
                (*i)->creation_ts(), \
                (*i)->seqno(), \

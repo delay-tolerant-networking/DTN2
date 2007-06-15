@@ -45,7 +45,8 @@ RepCoreImpl repcore(&core);
     printf("pos  dest                 cts ets seq NF sz\n"); \
     for (prophet::BundleList::const_iterator i = (a).begin(); \
          i!=(a).end(); i++) \
-        printf("%3d: %-20s %3d %3d %3d %2d %2d\n",i - (a).begin(), \
+        printf("%3d: %-20s %3d %3d %3d %2d %2d\n", \
+               (int)(i - (a).begin()), \
                (*i)->destination_id().c_str(), \
                (*i)->creation_ts(), \
                (*i)->creation_ts() + (*i)->expiration_ts(), \
@@ -58,7 +59,8 @@ RepCoreImpl repcore(&core);
     printf("pos  dest                 cts seq NF sz PV\n"); \
     for (prophet::BundleList::const_iterator i = (a).begin(); \
          i!=(a).end(); i++) \
-        printf("%3d: %-20s %3d %3d %2d %2d %.2f\n",i - (a).begin(), \
+        printf("%3d: %-20s %3d %3d %2d %2d %.2f\n", \
+               (int)(i - (a).begin()), \
                (*i)->destination_id().c_str(), \
                (*i)->creation_ts(), \
                (*i)->sequence_num(), \
@@ -72,7 +74,7 @@ RepCoreImpl repcore(&core);
     for (prophet::BundleList::const_iterator i = (a).begin(); \
          i!=(a).end(); i++) \
         printf("%3d: %-20s %3d %3d %3d %2d %2d %.02f %.02f  %.02f\n", \
-               i - (a).begin(), \
+               (int)(i - (a).begin()), \
                (*i)->destination_id().c_str(), \
                (*i)->creation_ts(),  \
                (*i)->creation_ts() + (*i)->expiration_ts(), \
