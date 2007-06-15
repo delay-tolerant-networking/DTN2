@@ -30,9 +30,11 @@ namespace dtn {
 class EndpointIDShim : public EndpointID,
                        public oasys::Formatter {
 public:
-    EndpointIDShim() {}
+    EndpointIDShim()
+        : oasys::Formatter() {}
     EndpointIDShim(EndpointID eid)
-        : EndpointID(eid) {}
+        : EndpointID(eid),
+          oasys::Formatter() {}
     virtual ~EndpointIDShim() {}
 
     int format(char *buf, size_t sz) const {
@@ -63,7 +65,7 @@ public:
     bool add(ProphetNode* node);
 
     /// Retrieve a ProphetNode
-    ProphetNode* get(EndpointID remote_eid);
+    ProphetNode* get(const EndpointID& remote_eid);
 
     /// Update the ProphetNode data
     bool update(ProphetNode* node);

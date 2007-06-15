@@ -18,6 +18,7 @@
 #  include <config.h>
 #endif
 
+#include <oasys/debug/Log.h>
 #include "ProphetStore.h"
 
 namespace dtn {
@@ -50,13 +51,17 @@ ProphetStore::init(const oasys::StorageConfig& cfg,
 bool
 ProphetStore::add(ProphetNode* node)
 {
-    return nodes_.add(node);
+    ProphetNode* n = new ProphetNode(*node);
+    bool ok = nodes_.add(n);
+    delete n;
+    return ok;
 }
 
 //----------------------------------------------------------------------
 ProphetNode*
-ProphetStore::get(EndpointID eid)
+ProphetStore::get(const EndpointID& eid)
 {
+    log_debug_p("/dtn/route/store","get(%s)",eid.c_str());
     return nodes_.get(eid);
 }
 
@@ -64,14 +69,18 @@ ProphetStore::get(EndpointID eid)
 bool
 ProphetStore::update(ProphetNode* node)
 {
-    return nodes_.update(node);
+    ProphetNode* n = new ProphetNode(*node);
+    bool ok = nodes_.update(n);
+    delete n;
+    return ok;
 }
 
 //----------------------------------------------------------------------
 bool
 ProphetStore::del(ProphetNode* node)
 {
-    return nodes_.del(node->remote_eid());
+    EndpointID eid(node->dest_id());
+    return nodes_.del(eid);
 }
 
 //----------------------------------------------------------------------
