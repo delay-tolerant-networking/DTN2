@@ -41,18 +41,18 @@ public:
      * If no other options are set for destination, default to sending 
      * to the IPv4 broadcast address.
      */
-    const static u_int32_t DEFAULT_DST_ADDR = 0xffffffff;
+    const static u_int32_t DEFAULT_DST_ADDR;
 
     /**
      * If no other options are set for source, use this as default
      * local address
      */
-    const static u_int32_t DEFAULT_SRC_ADDR = INADDR_ANY;
+    const static u_int32_t DEFAULT_SRC_ADDR;
 
     /**
      * If no other options are set for multicast TTL, set to 1
      */
-    const static u_int DEFAULT_MCAST_TTL = 1;
+    const static u_int DEFAULT_MCAST_TTL;
 
     /**
      * On-the-wire (radio, whatever) representation of
