@@ -11,8 +11,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- *
- * $Id$
  */
 
 #ifndef _ECLMODULE_H_
@@ -188,7 +186,7 @@ private:
      * 
      * @param location  The file name of the bundle, relative to bundle_in_path_.
      */
-    void read_bundle_file(const std::string& location);
+    void read_bundle_file(const std::string& location, const std::string& peer_eid);
 
     /** Make the next pass when there is input on the socket.
      *

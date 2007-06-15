@@ -11,8 +11,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- *
- * $Id$
  */
 
 #ifndef _EXTERNAL_CONVERGENCE_LAYER_H_
@@ -340,6 +338,10 @@ public:
     /// The address on which the Listener thread will listen. This is set with
     /// the command 'ecla set listen_port'
     static u_int16_t server_port_;
+    
+    static bool create_discovered_links_;
+    
+    static bool discovered_prev_hop_header_;
     
     /// This is used in ECLModule::send_message() to generate the XML
     /// namespace/schema info at the start of every message.

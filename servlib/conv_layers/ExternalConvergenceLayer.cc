@@ -40,6 +40,8 @@ bool ExternalConvergenceLayer::client_validation_ = true;
 std::string ExternalConvergenceLayer::schema_ = "";
 in_addr_t ExternalConvergenceLayer::server_addr_ = inet_addr("127.0.0.1");
 u_int16_t ExternalConvergenceLayer::server_port_ = 5070;
+bool ExternalConvergenceLayer::create_discovered_links_ = false;
+bool ExternalConvergenceLayer::discovered_prev_hop_header_ = false;
 xml_schema::namespace_infomap ExternalConvergenceLayer::namespace_map_;
 
 ExternalConvergenceLayer::ExternalConvergenceLayer() :

@@ -84,13 +84,13 @@ ECLModule::run()
         int ret = oasys::IO::poll_multiple(pollfds, 2, -1);
         
         if (ret == oasys::IOINTR) {
-            log_debug("Module server interrupted");
+            log_err("Module server interrupted");
             set_should_stop();
             continue;
         }
 
         if (ret == oasys::IOERROR) {
-            log_debug("Module server error");
+            log_err("Module server error");
             set_should_stop();
             continue;
         }
@@ -224,7 +224,8 @@ ECLModule::handle(const cla_add_request& message)
     }
     
     cla_set_params_request request;
-    request.create_discovered_links(false);
+    request.create_discovered_links(
+            ExternalConvergenceLayer::create_discovered_links_);
     //request.create_discovered_links(true);
     request.local_eid( BundleDaemon::instance()->local_eid().str() );
     request.bundle_pass_method(bundlePassMethodType::filesystem);
@@ -403,6 +404,11 @@ ECLModule::handle(const link_created_event& message)
     }
     
     BundleDaemon::post(new LinkCreatedEvent(link));
+    
+    if (link->type() == Link::OPPORTUNISTIC) {
+        BundleDaemon::post( 
+               new LinkAvailableEvent(link, ContactEvent::NO_INFO) );
+    }
 }
 
 void
@@ -794,7 +800,11 @@ ECLModule::handle(const bundle_received_event& message)
     } // if
 
     else {
-        read_bundle_file( message.location() );
+        std::string peer_eid = EndpointID::NULL_EID().c_str();
+        if ( message.peer_eid().present() )
+            peer_eid = message.peer_eid().get();
+        
+        read_bundle_file(message.location(), peer_eid);
     }
     
     // Remove the bundle from the incoming bundle list (if we got a
@@ -867,7 +877,8 @@ ECLModule::handle(const report_cla_parameters& message)
 
         
 void
-ECLModule::read_bundle_file(const std::string& location)
+ECLModule::read_bundle_file(const std::string& location,
+                            const std::string& peer_eid)
 {
     int bundle_fd;
     bool finished = false;
@@ -960,7 +971,7 @@ ECLModule::read_bundle_file(const std::string& location)
     // Tell the BundleDaemon about this bundle.
     BundleReceivedEvent* b_event =
             new BundleReceivedEvent(bundle, EVENTSRC_PEER, file_stat.st_size,
-                                    NULL);
+                                    NULL, peer_eid);
     BundleDaemon::post(b_event);
 }
 
@@ -1203,7 +1214,7 @@ ECLLinkResource*
 ECLModule::create_discovered_link(const std::string& peer_eid,
                                   const std::string& nexthop,
                                   const std::string& link_name)
-{       
+{
     ContactManager* cm = BundleDaemon::instance()->contactmgr();
     
     //lock the contact manager so no one opens the link before we do
@@ -1221,7 +1232,7 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
         log_err("Unexpected error creating opportunistic link");
         return NULL;
     }
-
+    
     LinkRef new_link(link.object(),
                      "ContactManager::new_opportunistic_link: return value");
     
@@ -1229,6 +1240,9 @@ ECLModule::create_discovered_link(const std::string& peer_eid,
 
     // The LinkCreatedEvent is posted below.
     new_link->set_create_pending(true);
+    
+    if (ExternalConvergenceLayer::discovered_prev_hop_header_)
+        new_link->params().prevhop_hdr_ = true;
     
     if (!cm->add_new_link(new_link)) {
         new_link->delete_link();
@@ -1315,7 +1329,7 @@ ECLModule::cleanup() {
     std::list<IncomingBundleRecord>::iterator incoming_i;
     for (incoming_i = incoming_bundle_list_.begin();
     incoming_i != incoming_bundle_list_.end(); ++incoming_i)
-        read_bundle_file(incoming_i->location);
+        read_bundle_file( incoming_i->location, EndpointID::NULL_EID().c_str() );
     
     // At this point, we know that there are no links or interfaces pointing
     // to this module, so no new messages will come in.
