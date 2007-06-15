@@ -16,20 +16,22 @@ public:
     RepCoreImpl(prophet::BundleCoreTestImpl* core) 
         : core_(core) {}
     virtual ~RepCoreImpl() {}
-    void print_log(const char* name, int level, const char* fmt, ...)
-        PRINTFLIKE(4,5)
-    {
-        printf("[%s][%d]\n",name,level);
-        va_list ap;
-        va_start(ap, fmt);
-        vprintf(fmt, ap);
-        va_end(ap);
-        printf("\n"); 
-    }
+    void print_log(const char* name, int level, const char* fmt, ...) PRINTFLIKE(4,5);
     void drop_bundle(const prophet::Bundle* b) { core_->drop_bundle(b); }
     u_int64_t max_bundle_quota() const { return core_->max_bundle_quota(); }
     prophet::BundleCoreTestImpl* core_;
 };
+
+void 
+RepCoreImpl::print_log(const char* name, int level, const char* fmt, ...)
+{
+    printf("[%s][%d]\n",name,level);
+    va_list ap;
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+    printf("\n"); 
+}
 
 //                           dest_id, cts, seq, ets, size, num_fwd
 prophet::BundleImpl a("dtn://test-a",0xfc,   1,  60,    1,      5);

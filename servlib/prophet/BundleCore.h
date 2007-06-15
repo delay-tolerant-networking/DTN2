@@ -221,7 +221,7 @@ public:
 class BundleCoreTestImpl : public BundleCore
 {
 public:
-    typedef std::basic_string<u_char> BundleBuffer;
+    typedef std::string BundleBuffer;
     BundleCoreTestImpl(const std::string& str = "dtn://somehost")
         : str_(str), max_(0xffff) {}
     virtual ~BundleCoreTestImpl()
@@ -264,7 +264,7 @@ public:
     }
     bool write_bundle(const Bundle* b,const u_char* buf,size_t len)
     { 
-        BundleBuffer bunbuf(buf,len);
+        BundleBuffer bunbuf((char*)buf,len);
         written_.push_back(std::make_pair<const Bundle*,BundleBuffer>(b,bunbuf));
         return written_.back().second.size() <= len;
     }
@@ -325,16 +325,9 @@ public:
         alarms_.push_back(alarm);
         return alarm;
     }
-    inline void print_log(const char* name, int level, const char* fmt, ...)
-        PRINTFLIKE(4,5)
-    {
-        printf("[%s][%d]\n",name,level);
-        va_list ap;
-        va_start(ap, fmt);
-        vprintf(fmt, ap);
-        va_end(ap);
-        printf("\n");
-    }
+    void print_log(const char* name, int level, const char* fmt, ...)
+        PRINTFLIKE(4,5);
+
     ///@}
     void set_max(u_int64_t max) { max_ = max; }
     void set_eid(const std::string& id) { str_.assign(id); }
@@ -348,6 +341,17 @@ public:
     std::list<Alarm*> alarms_;
     prophet::BundleList list_;
 }; // class BundleCoreTestImpl
+
+inline void 
+BundleCoreTestImpl::print_log(const char* name, int level, const char* fmt, ...)
+{
+    printf("[%s][%d]\n",name,level);
+    va_list ap;
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+    printf("\n");
+}
 
 }; // namespace prophet
 

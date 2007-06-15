@@ -28,7 +28,7 @@
         DO( _core.written_.pop_front() ); \
         DO( pt = prophet::ProphetTLV::deserialize(b->source_id(), \
                                              b->destination_id(), \
-                                       buf.data(), buf.size()) ); \
+                                       (u_char*)buf.data(), buf.size()) ); \
     }  while (0)
 
 class TestOracleImpl : public prophet::Oracle
