@@ -36,6 +36,11 @@ public:
      */
     size_t format_advertisement(u_char* buf, size_t len);
 
+    /**
+     * Export cl_addr to use in sending Announcement out on correct interface
+     */
+    const in_addr_t& cl_addr() const { return cl_addr_; }
+
 protected:
     friend class Announce;
 
