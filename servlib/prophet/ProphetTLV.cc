@@ -125,7 +125,7 @@ ProphetTLV::deserialize(const std::string& src,
     if (hdr->version != ProphetParams::PROPHET_VERSION) return NULL;
     if (hdr->flags != 0) return NULL;
     if (hdr->code != 0) return NULL;
-    if (ntohs(hdr->length) > len) return NULL;
+    if (static_cast<size_t>(ntohs(hdr->length)) > len) return NULL;
 
     // Create object and begin copying in from buffer
     ProphetTLV* p = new ProphetTLV();
