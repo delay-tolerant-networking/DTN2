@@ -59,6 +59,11 @@ test::script {
     puts "* Checking that it was really deleted"
     dtn::wait_for_bundle_stats 0 {0 pending}
     dtn::wait_for_bundle_stats 1 {0 pending}
+
+    puts "* Verifying link stats"
+    dtn::wait_for_link_stats 0 tcp-link:0-1 {0 bundles_queued 0 bytes_queued}
+    dtn::wait_for_link_stats 0 tcp-link:0-1 {1 bundles_transmitted}
+    dtn::wait_for_link_stats 0 tcp-link:0-1 {0 bundles_cancelled}
     
     puts "* Repeating the test, this time with two bundles in flight"
     tell_dtnd 0 bundle reset_stats
@@ -81,6 +86,14 @@ test::script {
     puts "* Checking that they both were really deleted"
     dtn::wait_for_bundle_stats 0 {0 pending}
     dtn::wait_for_bundle_stats 1 {0 pending}
+
+    puts "* Checking that only one was transmitted"
+    dtn::wait_for_bundle_stats 0 {1 transmitted}
+    
+    puts "* Verifying link stats"
+    dtn::wait_for_link_stats 0 tcp-link:0-1 {0 bundles_queued 0 bytes_queued}
+    dtn::wait_for_link_stats 0 tcp-link:0-1 {1 bundles_transmitted}
+    dtn::wait_for_link_stats 0 tcp-link:0-1 {1 bundles_cancelled}
     
     puts "* Test success!"
 }
