@@ -565,6 +565,11 @@ public:
         u_int bytes_inflight_;
 
         /**
+         * Number of bundles with cancelled transmissions.
+         */
+        u_int bundles_cancelled_;
+
+        /**
          * The availablity of the link, as measured over time by the
          * convergence layer.
          */

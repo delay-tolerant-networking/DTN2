@@ -1042,6 +1042,7 @@ BundleDaemon::handle_bundle_cancelled(BundleSendCancelledEvent* event)
      * Update statistics. Note that the link's queued length must
      * always be decremented by the full formatted size of the bundle.
      */
+    link->stats()->bundles_cancelled_++;
     link->stats()->bundles_queued_--;
     link->stats()->bytes_queued_ -= total_len;
     

@@ -492,6 +492,7 @@ Link::dump_stats(oasys::StringBuffer* buf)
                  "%u bytes_transmitted -- "
                  "%u bundles_queued -- "
                  "%u bytes_queued -- "
+                 "%u bundles_cancelled -- "
                  "%u%% available -- "
                  "%u%% reliable",
                  stats_.contact_attempts_,
@@ -500,6 +501,7 @@ Link::dump_stats(oasys::StringBuffer* buf)
                  stats_.bytes_transmitted_,
                  stats_.bundles_queued_,
                  stats_.bytes_queued_,
+                 stats_.bundles_cancelled_,
                  stats_.availability_,
                  stats_.reliability_);
 }
