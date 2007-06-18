@@ -134,7 +134,7 @@ public:
      * for testing generic extension blocks.
      */
     void init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                    u_char* bp, size_t len);
+                    const u_char* bp, size_t len);
     
 protected:
     // XXX/demmer temporary until we get rid of the old interface

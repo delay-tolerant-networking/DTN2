@@ -315,7 +315,7 @@ BlockProcessor::produce(const Bundle* bundle, const BlockInfo* block,
 //----------------------------------------------------------------------
 void
 BlockProcessor::init_block(BlockInfo* block, u_int8_t type, u_int8_t flags,
-                           u_char* bp, size_t len)
+                           const u_char* bp, size_t len)
 {
     ASSERT(block->owner() != NULL);
     generate_preamble(block, type, flags, len);

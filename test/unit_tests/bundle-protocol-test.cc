@@ -387,7 +387,7 @@ Bundle* init_UnknownBlocks()
     const char* contents = "this is an extension block";
     UnknownBlockProcessor::instance()->
         init_block(&bundle->recv_blocks_[1], 0xaa, 0x0,
-                   (u_char*)contents, strlen(contents));
+                   (const u_char*)contents, strlen(contents));
 
     UnknownBlockProcessor::instance()->
         init_block(&bundle->recv_blocks_[2], 0xbb,
@@ -396,13 +396,13 @@ Bundle* init_UnknownBlocks()
     UnknownBlockProcessor::instance()->
         init_block(&bundle->recv_blocks_[3],
                    BundleProtocol::PAYLOAD_BLOCK,
-                   0, (u_char*)"test payload", strlen("test payload"));
+                   0, (const u_char*)"test payload", strlen("test payload"));
  
     UnknownBlockProcessor::instance()->
         init_block(&bundle->recv_blocks_[4], 0xcc,
                    BundleProtocol::BLOCK_FLAG_REPLICATE |
                    BundleProtocol::BLOCK_FLAG_LAST_BLOCK,
-                   (u_char*)contents, strlen(contents));
+                   (const u_char*)contents, strlen(contents));
     
     return bundle;
 }
