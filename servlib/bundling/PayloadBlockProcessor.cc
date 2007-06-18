@@ -68,13 +68,15 @@ PayloadBlockProcessor::consume(Bundle*    bundle,
         return consumed;
     }
 
-    // If there's nothing left to do, we can bail for now, though we
-    // need to be careful to properly set the complete bit to both
-    // handle zero-length bundles and partially received preambles
+    // If we've consumed the length (because the data_offset is
+    // non-zero) and the length is zero, then we're done.
+    if (block->data_offset() != 0 && block->data_length() == 0) {
+        block->set_complete(true);
+        return consumed;
+    }
+
+    // Also bail if there's nothing left to do
     if (len == 0) {
-        if (block->data_offset() != 0 && block->data_length() == 0) {
-            block->set_complete(true);
-        }
         return consumed;
     }
     
