@@ -58,6 +58,7 @@ public:
      */
     class TCPLinkParams : public StreamLinkParams {
     public:
+        bool      hexdump_;		///< Log a hexdump of all traffic
         in_addr_t local_addr_;		///< Local address to bind to
         in_addr_t remote_addr_;		///< Peer address used for rcvr-connect
         u_int16_t remote_port_;		///< Peer port used for rcvr-connect

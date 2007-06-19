@@ -23,6 +23,7 @@
 
 #include <oasys/io/NetUtils.h>
 #include <oasys/util/OptParser.h>
+#include <oasys/util/HexDumpBuffer.h>
 
 #include "TCPConvergenceLayer.h"
 #include "IPConvergenceLayerUtils.h"
@@ -37,6 +38,7 @@ TCPConvergenceLayer::TCPLinkParams
 //----------------------------------------------------------------------
 TCPConvergenceLayer::TCPLinkParams::TCPLinkParams(bool init_defaults)
     : StreamLinkParams(init_defaults),
+      hexdump_(false),
       local_addr_(INADDR_ANY),
       remote_addr_(INADDR_NONE),
       remote_port_(TCPCL_DEFAULT_PORT)
@@ -67,6 +69,7 @@ TCPConvergenceLayer::parse_link_params(LinkParams* lparams,
 
     oasys::OptParser p;
     
+    p.addopt(new oasys::BoolOpt("hexdump", &params->hexdump_));
     p.addopt(new oasys::InAddrOpt("local_addr", &params->local_addr_));
     
     int count = p.parse_and_shift(argc, argv, invalidp);
@@ -352,6 +355,7 @@ TCPConvergenceLayer::Connection::serialize(oasys::SerializeAction *a)
     TCPLinkParams *params = tcp_lparams();
     if (! params) return;
 
+    a->process("hexdump", &params->hexdump_);
     a->process("local_addr", oasys::InAddrPtr(&params->local_addr_));
     a->process("remote_addr", oasys::InAddrPtr(&params->remote_addr_));
     a->process("remote_port", &params->remote_port_);
@@ -539,10 +543,17 @@ TCPConvergenceLayer::Connection::send_data()
     log_debug("send_data: trying to drain %zu bytes from send buffer...",
               sendbuf_.fullbytes());
     ASSERT(sendbuf_.fullbytes() > 0);
+
     int cc = sock_->write(sendbuf_.start(), sendbuf_.fullbytes());
     if (cc > 0) {
         log_debug("send_data: wrote %d/%zu bytes from send buffer",
                   cc, sendbuf_.fullbytes());
+        if (tcp_lparams()->hexdump_) {
+            oasys::HexDumpBuffer hex;
+            hex.append((u_char*)sendbuf_.start(), cc);
+            log_multiline(oasys::LOG_ALWAYS, hex.hexify().c_str());
+        }
+        
         sendbuf_.consume(cc);
         
         if (sendbuf_.fullbytes() != 0) {
@@ -599,6 +610,11 @@ TCPConvergenceLayer::Connection::recv_data()
 
     log_debug("recv_data: read %d bytes, rcvbuf has %zu bytes",
               cc, recvbuf_.fullbytes());
+    if (tcp_lparams()->hexdump_) {
+        oasys::HexDumpBuffer hex;
+        hex.append((u_char*)recvbuf_.end(), cc);
+        log_multiline(oasys::LOG_ALWAYS, hex.hexify().c_str());
+    }
     recvbuf_.fill(cc);
 }
 
