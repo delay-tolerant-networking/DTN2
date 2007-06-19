@@ -243,13 +243,14 @@ BundlePayload::replace_with_file(const char* path)
     // now try to make the hard link
     int err = ::link(path, payload_path.c_str());
     if (err == 0) {
+        log_debug("replace_with_file: successfully created link to %s", path);
+
         // unlink() clobbered path_ in file_, so we have to set it
         // again and re-open the copy
         file_.set_path(payload_path);
-        log_debug("replace_with_file: successfully created link to %s", path);
-
-        if (file_.open(payload_path.c_str(), O_RDWR, &err) != 0) {
-            log_err("replace_with_file: error reopening file: %s", strerror(err));
+        if (file_.reopen(O_RDWR) < 0) {
+            log_err("replace_with_file: error reopening file: %s",
+                    strerror(errno));
             return false;
         }
         
@@ -273,8 +274,9 @@ BundlePayload::replace_with_file(const char* path)
         }
         
         file_.set_path(payload_path);
-        if (file_.open(payload_path.c_str(), O_RDWR, &err) != 0) {
-            log_err("replace_with_file: error reopening file: %s", strerror(err));
+        if (file_.reopen(O_RDWR) != 0) {
+            log_err("replace_with_file: error reopening file: %s",
+                    strerror(err));
             return false;
         }
         
