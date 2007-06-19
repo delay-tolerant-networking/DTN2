@@ -63,7 +63,6 @@ payload_test(BundlePayload::location_t location)
     CHECK_EQUALSTRN((char*)data, "abcdefghij", 10);
 
     log_debug_p("/test", "checking append_data");
-    p.set_length(18);
     p.append_data((u_char*)"ABCDE", 5);
     data = p.read_data(0, 15, buf);
     CHECK_EQUALSTRN((char*)data, "abcdefghijABCDE", 15);

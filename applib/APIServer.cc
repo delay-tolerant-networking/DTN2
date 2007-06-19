@@ -799,6 +799,7 @@ APIClient::handle_send()
         FILE* file;
         int r, left;
         u_char buffer[4096];
+        size_t offset;
 
         if ((file = fopen(filename, "r")) == NULL)
         {
@@ -808,14 +809,16 @@ APIClient::handle_send()
         
         left = payload_len;
         r = 0;
+        offset = 0;
         while (left > 0)
         {
             r = fread(buffer, 1, (left>4096)?4096:left, file);
             
             if (r)
             {
-                b->payload_.append_data(buffer, r);
-                left -= r;
+                b->payload_.write_data(buffer, offset, r);
+                left   -= r;
+                offset += r;
             }
             else
             {
