@@ -37,7 +37,7 @@ bool BundlePayload::test_no_remove_ = false;
 //----------------------------------------------------------------------
 BundlePayload::BundlePayload(oasys::SpinLock* lock)
     : Logger("BundlePayload", "/dtn/bundle/payload"),
-      location_(DISK), length_(0), rcvd_length_(0), 
+      location_(DISK), length_(0), 
       cur_offset_(0), base_offset_(0), lock_(lock)
 {
 }
@@ -134,7 +134,6 @@ void
 BundlePayload::serialize(oasys::SerializeAction* a)
 {
     a->process("length",      (u_int32_t*)&length_);
-    a->process("rcvd_length", (u_int32_t*)&rcvd_length_);
     a->process("base_offset", (u_int32_t*)&base_offset_);
 }
 
@@ -199,10 +198,8 @@ BundlePayload::truncate(size_t length)
     oasys::ScopeLock l(lock_, "BundlePayload::truncate");
     
     ASSERT(length <= length_);
-    ASSERT(length <= rcvd_length_);
-    length_ = length;
-    rcvd_length_ = length;
-    cur_offset_ = length;
+    length_     = length;
+    cur_offset_ = length; // XXX/demmer is this right?
     
     switch (location_) {
     case MEMORY:
@@ -233,20 +230,37 @@ BundlePayload::copy_file(oasys::FileIOClient* dst)
 bool
 BundlePayload::replace_with_file(const char* path)
 {
+    oasys::ScopeLock l(lock_, "BundlePayload::replace_with");
+    
     ASSERT(location_ == DISK);
     std::string payload_path = file_.path();
+
+    // first flush the old fd from the cache and unlink the file
+    BundleStore* bs = BundleStore::instance();
+    bs->payload_fdcache()->close(file_.path());
     file_.unlink();
+
+    // now try to make the hard link
     int err = ::link(path, payload_path.c_str());
     if (err == 0) {
-        // unlink() clobbered path_ in file_, so we have to set it again.
+        // unlink() clobbered path_ in file_, so we have to set it
+        // again and re-open the copy
         file_.set_path(payload_path);
-        log_debug("replace_with_file: successfully created link to %s",
-                  path);
-        return true;
-    }
+        log_debug("replace_with_file: successfully created link to %s", path);
 
-    err = errno;
-    if (err == EXDEV) {
+        if (file_.open(payload_path.c_str(), O_RDWR, &err) != 0) {
+            log_err("replace_with_file: error reopening file: %s", strerror(err));
+            return false;
+        }
+        
+    } else {
+        // ::link failed
+        err = errno;
+        if (err != EXDEV) {
+            log_err("error linking to path '%s': %s", path, strerror(err));
+            return false;
+        }
+        
         // copy the contents if they're on different filesystems
         log_debug("replace_with_file: link failed: %s", strerror(err));
         
@@ -259,16 +273,23 @@ BundlePayload::replace_with_file(const char* path)
         }
         
         file_.set_path(payload_path);
-        pin_file();
+        if (file_.open(payload_path.c_str(), O_RDWR, &err) != 0) {
+            log_err("replace_with_file: error reopening file: %s", strerror(err));
+            return false;
+        }
+        
         src.copy_contents(&file_);
-        unpin_file();
         src.close();
-        return true;
     }
 
-    log_err("error linking to path '%s': %s",
-            path, strerror(err));
-    return false;
+    // now need to re-add the entry to the cache
+    ASSERT(file_.fd() != -1);
+    int fd = bs->payload_fdcache()->put_and_pin(file_.path(), file_.fd());
+    if (fd != file_.fd()) {
+        PANIC("duplicate entry in open fd cache");
+    }
+    unpin_file();
+    return true;
 }
     
 //----------------------------------------------------------------------
@@ -298,9 +319,6 @@ BundlePayload::internal_write(const u_char* bp, size_t offset, size_t len)
     case NODATA:
         NOTREACHED;
     }
-    
-    rcvd_length_ = std::max(rcvd_length_, offset + len);
-    ASSERT(rcvd_length_ <= length_);
 }
 
 //----------------------------------------------------------------------
@@ -324,12 +342,11 @@ BundlePayload::append_data(const u_char* bp, size_t len)
 {
     oasys::ScopeLock l(lock_, "BundlePayload::append_data");
 
-    if (rcvd_length_ + len > length_) {
-        set_length(rcvd_length_ + len);
-    }
+    size_t old_length = length_;
+    set_length(length_ + len);
     
     pin_file();
-    internal_write(bp, rcvd_length_, len);
+    internal_write(bp, old_length, len);
     unpin_file();
 }
 
@@ -383,10 +400,6 @@ BundlePayload::read_data(size_t offset, size_t len, u_char* buf)
     ASSERTF(length_ >= (offset + len),
             "length=%zu offset=%zu len=%zu",
             length_, offset, len);
-
-    ASSERTF(rcvd_length_ >= (offset + len),
-            "rcvd_length=%zu offset=%zu len=%zu",
-            rcvd_length_, offset, len);
 
     ASSERT(buf != NULL);
     

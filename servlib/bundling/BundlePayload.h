@@ -92,8 +92,8 @@ public:
     void set_data(const std::string& data);
 
     /**
-     * Append a chunk of payload data, possibly extending the length
-     * to accomodate the new data.
+     * Append a chunk of payload data, extending the length to
+     * accomodate the new data.
      */
     void append_data(const u_char* bp, size_t len);
 
@@ -120,6 +120,15 @@ public:
      * or a copy of the file contents if the link can't be created.
      */
     bool replace_with_file(const char* path);
+
+    /**
+     * Return the filename.
+     */
+    const std::string& filename()
+    {
+        ASSERT(location_ == DISK);
+        return file_.path_str();
+    }
     
     /**
      * Get a pointer to the in-memory scratch buffer.
@@ -163,9 +172,6 @@ protected:
     location_t location_;	///< location of the data 
     oasys::ScratchBuffer<u_char*> data_; ///< payload data if in memory
     size_t length_;     	///< the payload length
-    size_t rcvd_length_;     	///< the payload length we actually have - OBSOLETE
-    // length_ is now rcvd_length_ and what was length_ is the
-    // BlockInfo::data_length()!
     oasys::FileIOClient file_;	///< file handle
     size_t cur_offset_;		///< cache of current fd position
     size_t base_offset_;	///< for fragments, offset into the file (todo)
