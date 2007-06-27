@@ -71,7 +71,9 @@ RouteEntry::parse_options(int argc, const char** argv, const char** invalidp)
         {"copy",    ForwardingInfo::COPY_ACTION},
         {0, 0}
     };
-    int action = 0;
+
+    // default is to not change the action
+    int action = action_;
     p.addopt(new oasys::EnumOpt("action", fwdopts, &action));
 
     int num2 = p.parse_and_shift(argc, argv, invalidp);
