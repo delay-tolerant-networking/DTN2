@@ -128,6 +128,7 @@ BundleCommand::exec(int objc, Tcl_Obj** objv, Tcl_Interp* interp)
         eids_valid &= b->replyto_.assign(Tcl_GetStringFromObj(objv[2], 0));
         b->custodian_.assign(EndpointID::NULL_EID());
         eids_valid &= b->dest_.assign(Tcl_GetStringFromObj(objv[3], 0));
+        b->singleton_dest_ = b->dest_.is_singleton();
         
         if (!eids_valid) {
             resultf("bad value for one or more EIDs");
