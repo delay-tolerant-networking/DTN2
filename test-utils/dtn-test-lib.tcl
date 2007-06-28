@@ -562,6 +562,14 @@ namespace eval dtn {
                     puts "Link stats for $l: [tell_dtnd $id link stats $l]"
                 }
             }
+            puts "============================================================"
+        }
+    }
+
+    proc dump_routes {} {
+        puts "============================================================"
+        foreach id [net::nodelist] {
+            puts "Route table for dtnd $id:"
             catch [puts [tell_dtnd $id route dump]]
             puts "============================================================"
         }

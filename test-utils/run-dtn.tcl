@@ -65,7 +65,7 @@ set defaults [list -net localhost]
 set argv [concat $defaults $argv]
 run::init $argv
 
-test::error_script dtn::dump_stats
+test::error_script { dtn::dump_stats; dtn::dump_routes }
 test::run_script
 if {!$opt(daemon)} {
     command_loop "dtntest% "
