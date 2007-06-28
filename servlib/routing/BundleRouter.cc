@@ -148,12 +148,14 @@ BundleRouter::should_fwd(const Bundle* bundle, const LinkRef& link,
     }
 
     // if the bundle has a a singleton destination endpoint, then
-    // check if we already forwarded it somewhere else. if so, we
-    // shouldn't forward it again
+    // check if we already forwarded it or are planning to forward it
+    // somewhere else. if so, we shouldn't forward it again
     if (bundle->singleton_dest_ && action == ForwardingInfo::FORWARD_ACTION)
     {
         size_t count = bundle->fwdlog_.get_count(
-            ForwardingInfo::TRANSMITTED | ForwardingInfo::IN_FLIGHT, action);
+            ForwardingInfo::TRANSMITTED |
+            ForwardingInfo::IN_FLIGHT   |
+            ForwardingInfo::TRANSMIT_PENDING, action);
 
         if (count > 0) {
             log_debug("should_fwd bundle %d: "
