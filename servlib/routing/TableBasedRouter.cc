@@ -73,6 +73,7 @@ TableBasedRouter::handle_bundle_received(BundleReceivedEvent* event)
 
     if (dupcache_.is_duplicate(bundle)) {
         log_info("ignoring duplicate bundle: *%p", bundle);
+        BundleDaemon::post_at_head(new BundleNotNeededEvent(bundle));
         return;
     }
     
@@ -150,6 +151,7 @@ TableBasedRouter::should_fwd(const Bundle* bundle, RouteEntry* route)
 {
     if (route == NULL)
         return false;
+
     return BundleRouter::should_fwd(bundle,route->next_hop_,
             (ForwardingInfo::action_t) route->action_);
 }
