@@ -553,24 +553,30 @@ namespace eval dtn {
     }
 
     proc dump_stats {} {
+        global errorInfo
         puts "============================================================"
         foreach id [net::nodelist] {
             puts "Statistics for dtnd $id:"
-            catch [puts [tell_dtnd $id bundle stats]]
-            catch {
+            if [catch {
+                puts [tell_dtnd $id bundle stats]
                 foreach l [tell_dtnd $id link names] {
                     puts "Link stats for $l: [tell_dtnd $id link stats $l]"
                 }
+            } err] {
+                puts "$err\n$errorInfo"
             }
             puts "============================================================"
         }
     }
 
     proc dump_routes {} {
+        global errorInfo
         puts "============================================================"
         foreach id [net::nodelist] {
             puts "Route table for dtnd $id:"
-            catch [puts [tell_dtnd $id route dump]]
+            if [catch {puts [tell_dtnd $id route dump]} err] {
+                puts "$err\n$errorInfo"
+            }
             puts "============================================================"
         }
     }
