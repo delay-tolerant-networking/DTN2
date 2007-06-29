@@ -369,11 +369,25 @@ namespace eval dtn {
 	}
     }
 
-    proc get_bundle_daemon_stats {id} {
+    # separate procedure because this one requires an explicit list
+    # argument to allow for optional timeout argument
+    proc wait_for_bundle_stats {id stat_list {timeout 30000}} {
+	foreach {val stat_type} $stat_list {
+	    do_until "in wait for node $id's stat $stat_type = $val" $timeout {
+		if {[test_bundle_stats $id $val $stat_type]} {
+		    break
+		}
+		after 500
+	    }
+	}
+    }
+
+    # daemon stat functions
+    proc get_daemon_stats {id} {
         if {$id == "*"} {
             set ret ""
             foreach id [net::nodelist] {
-                append ret "$id: [get_bundle_daemon_stats $id]\n"
+                append ret "$id: [get_daemon_stats $id]\n"
             }
             return $ret
         }
@@ -381,12 +395,41 @@ namespace eval dtn {
         return [tell_dtnd $id bundle daemon_stats]
     }
 
+    proc check_daemon_stats {id args} {
+        set stats [dtn::tell_dtnd $id "bundle daemon_stats"]
+	foreach {val stat_type} $args {
+	    if {![string match "*$val ${stat_type}*" $stats]} {
+		error "node $id stat check for $stat_type failed \
+		       expected $val but stats=\"$stats\""
+	    }
+	}
+    }
+    
+    proc test_daemon_stats {id args} {
+        set stats [dtn::tell_dtnd $id "bundle daemon_stats"]
+	foreach {val stat_type} $args {
+	    if {![string match "*$val ${stat_type}*" $stats]} {
+		return false
+	    }
+	}
+	return true
+    }
+
+    proc wait_for_daemon_stat {id val stat_type {timeout 30000}} {
+	do_until "in wait for node $id's daemon stat $stat_type = $val" $timeout {
+	    if {[test_daemon_stats $id $val $stat_type]} {
+		break
+	    }
+	    after 500
+	}
+    }
+
     # separate procedure because this one requires an explicit list
     # argument to allow for optional timeout argument
-    proc wait_for_bundle_stats {id stat_list {timeout 30000}} {
+    proc wait_for_daemon_stats {id stat_list {timeout 30000}} {
 	foreach {val stat_type} $stat_list {
-	    do_until "in wait for node $id's stat $stat_type = $val" $timeout {
-		if {[test_bundle_stats $id $val $stat_type]} {
+	    do_until "in wait for node $id's daemon stat $stat_type = $val" $timeout {
+		if {[test_daemon_stats $id $val $stat_type]} {
 		    break
 		}
 		after 500
