@@ -341,6 +341,9 @@ namespace eval dtn {
     }
     
     proc check_bundle_stats {id args} {
+        if {[llength $args] == 1} {
+            set args [lindex $args 0]
+        }
         set stats [dtn::tell_dtnd $id "bundle stats"]
 	foreach {val stat_type} $args {
 	    if {![string match "*$val ${stat_type}*" $stats]} {
@@ -351,6 +354,9 @@ namespace eval dtn {
     }
     
     proc test_bundle_stats {id args} {
+        if {[llength $args] == 1} {
+            set args [lindex $args 0]
+        }
         set stats [dtn::tell_dtnd $id "bundle stats"]
 	foreach {val stat_type} $args {
 	    if {![string match "*$val ${stat_type}*" $stats]} {
