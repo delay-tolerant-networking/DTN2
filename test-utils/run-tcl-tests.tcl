@@ -45,6 +45,7 @@ set tests(basic) {
     "extension-block.tcl"       ""
     "flood-router.tcl"		""
     "inflight-expiration.tcl"	""
+    "inflight-interrupt.tcl"	""
     "ipc-version-test.tcl"	""
     "loopback-link.tcl"		""
     "multipath-forwarding.tcl"	""
