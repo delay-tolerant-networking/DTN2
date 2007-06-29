@@ -171,17 +171,9 @@ BundleActions::send_bundle(Bundle* bundle, const LinkRef& link,
         // send_bundle or send_bundle_on_down_link. then based on how
         // the CL itself operates, it either puts the bundle on the
         // queue or doesn't
-        //
-        // On further examination, the builtin convergence layers
-        // don't need the bundle to be on the Link queue at all,
-        // therefore all this will do is cause the BundleDaemon to
-        // take it off the queue and log a misleading message
-        // indicating that it was a delayed-send bundle. Needless to
-        // say, this all needs re-examination.
-        
-//         if (!link->clayer()->has_persistent_link_queues()) {
-//             link->queue()->push_back(bundle);
-//         }
+        if (!link->clayer()->has_persistent_link_queues()) {
+            link->queue()->push_back(bundle);
+        }
         
         link->clayer()->send_bundle(link->contact(), bundle);
     }
