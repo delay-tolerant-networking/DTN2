@@ -1,0 +1,19 @@
+DTN Instructions for Cygwin
+===========================
+
+This version of the DTN reference implementation has been tested on
+the Cygwin version 1.5.24-2 (released January 2007).
+
+The default settings for DTN's configure script are incorrect for
+Cygwin since the shared library build rules are not valid and there is
+an incompatibility with the tclreadline implementation.
+
+Therefore to build on Cygwin, use the following arguments to the
+configure script:
+
+./configure -C --disable-shlibs --without-tclreadline
+
+There are also some warnings in the Cygwin build that are harmless but
+should be fixed in a future release.
+
+
