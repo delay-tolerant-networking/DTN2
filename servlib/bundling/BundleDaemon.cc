@@ -1731,8 +1731,13 @@ BundleDaemon::handle_contact_up(ContactUpEvent* event)
     link->set_state(Link::OPEN);
     link->stats_.contacts_++;
 
-        // If the convergence layer doesn't retain bundles between link up/down
-        // events, then we need to copy the delayed-send queue to it from the link
+    // If the convergence layer doesn't retain bundles between link up/down
+    // events, then we need to copy the delayed-send queue to it from
+    // the link
+    //
+    // XXX/demmer this can cause problems in cases where the queue
+    // grows long since the link will immediately become BUSY and
+    // therefore not really be "up" any more
     if (!link->clayer()->has_persistent_link_queues() &&
         !link->queue()->empty())
     {
