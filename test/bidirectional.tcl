@@ -34,7 +34,7 @@ foreach {var val} $opt(opts) {
     }
 }
 
-dtn::config
+dtn::config --no_null_link
 
 dtn::config_interface $cl
 dtn::config_linear_topology ALWAYSON $cl true
@@ -74,6 +74,11 @@ test::script {
     run::wait_for_pid_exit $last $sndpid2 [expr 5 * 60 * 1000]
     run::wait_for_pid_exit 0     $rcvpid1 [expr 5 * 60 * 1000]
     run::wait_for_pid_exit $last $rcvpid2 [expr 5 * 60 * 1000]
+
+    puts "* Waiting for all events to be processed"
+    dtn::wait_for_daemon_stats 0 {0 pending_events}
+    dtn::wait_for_daemon_stats 1 {0 pending_events}
+    dtn::wait_for_daemon_stats 2 {0 pending_events}
     
     foreach node [list 0 $last] {
 	puts "* Checking bundle stats on node $node"
@@ -110,16 +115,22 @@ test::script {
     set sndpid1 [dtn::run_app 0     dtnsend "-s $eid1 -d $eid2 -t d -z $sleep -n $count"]
     set sndpid2 [dtn::run_app $last dtnsend "-s $eid2 -d $eid1 -t d -z $sleep -n $count"]
 
-    for {set i 0} {$i < 20} {incr i} {
-	after [expr int(2000 * rand())]
-	puts "* Closing links to/from node 1"
+    for {set i 0} {$i < 100} {incr i} {
+	after [expr int(10000 * rand())]
+
+	puts "* Closing links to/from node 1 ([test::elapsed] seconds elapsed)"
 	tell_dtnd 0 link close $cl-link:0-1
 	tell_dtnd 1 link close $cl-link:1-2
 
-	after [expr int(2000 * rand())]
-	puts "* Opening links to/from node 1"
+        dtn::dump_stats
+        
+	after [expr int(5000 * rand())]
+	puts "* Opening links to/from node 1 ([test::elapsed] seconds elapsed)"
 	tell_dtnd 0 link open $cl-link:0-1
 	tell_dtnd 1 link open $cl-link:1-2
+
+        # if it finishes early, break out of the loop
+        if {[dtn::get_bundle_stats 0 delivered] == $count} { break }
     }
 
     puts "* Done will link closing loop, stats:"
