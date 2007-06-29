@@ -35,7 +35,7 @@ EndpointIDPattern GlobalEndpointIDs::wildcard_eid_;
 
 //----------------------------------------------------------------------
 bool
-EndpointID::parse()
+EndpointID::validate()
 {
     static const char* log = "/dtn/naming/endpoint/";
     (void)log;
@@ -44,7 +44,7 @@ EndpointID::parse()
     valid_ = false;
 
     if (!uri_.valid()) {
-        log_debug_p(log, "EndpointID::parse: invalid URI");
+        log_debug_p(log, "EndpointID::validate: invalid URI");
         return false;
     }
     
@@ -159,7 +159,7 @@ bool
 EndpointID::assign(const dtn_endpoint_id_t* eid)
 {
     uri_.assign(std::string(eid->uri));
-    return parse();
+    return validate();
 }
     
 //----------------------------------------------------------------------
@@ -174,9 +174,9 @@ EndpointID::copyto(dtn_endpoint_id_t* eid) const
 void
 EndpointID::serialize(oasys::SerializeAction* a)
 {
-    uri_.serialize(a);
+    a->process("uri", &uri_);
     if (a->action_code() == oasys::Serialize::UNMARSHAL) {
-        parse();
+        validate();
     }
 }
 

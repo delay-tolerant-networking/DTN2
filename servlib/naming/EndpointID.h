@@ -51,7 +51,7 @@ public:
     EndpointID(const std::string& str)
         : uri_(str), scheme_(NULL), valid_(false), is_pattern_(false)
     {
-        parse();
+        validate();
     }
 
     /**
@@ -82,33 +82,33 @@ public:
     }
         
     /**
-     * Set the string and parse it.
+     * Set the string and validate it.
      * @return true if the string is a valid id, false if not.
      */
     bool assign(const std::string& str)
     {
         uri_.assign(str);
-        return parse();
+        return validate();
     }
 
     /**
-     * Set the string and parse it.
+     * Set the string and validate it.
      * @return true if the string is a valid id, false if not.
      */
     bool assign(const char* str, size_t len)
     {
         uri_.assign(str, len);
-        return parse();
+        return validate();
     }
 
     /**
-     * Set the string from component pieces and parse it.
+     * Set the string from component pieces and validate it.
      * @return true if the string is a valid id, false if not.
      */
     bool assign(const std::string& scheme, const std::string& ssp)
     {
         uri_.assign(scheme + ":" + ssp);
-        return parse();
+        return validate();
     }
 
     /**
@@ -241,7 +241,7 @@ protected:
      *
      * @return true if the string is a valid endpoint id, false if not.
      */
-    bool parse();
+    bool validate();
 
     URI uri_;                   /* endpoint URI */
 
@@ -291,7 +291,7 @@ public:
     {
         is_pattern_ = true;
         uri_.set_validate(false);
-        parse();
+        validate();
     }
 
     /**
