@@ -207,8 +207,12 @@ CLConnection::queue_bundle(Bundle* bundle)
     {
         log_debug("%d bundles pending, setting BUSY state",
                   num_pending_.value);
-        contact_->link()->set_state(Link::BUSY);
-        BundleDaemon::post_at_head(new LinkBusyEvent(contact_->link()));
+        if (contact_->link()->state() == Link::BUSY) {
+            log_warn("queue_bundle called on BUSY link");
+        } else {
+            contact_->link()->set_state(Link::BUSY);
+            BundleDaemon::post_at_head(new LinkBusyEvent(contact_->link()));
+        }
     }
     else
     {
