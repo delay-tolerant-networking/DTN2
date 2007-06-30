@@ -166,8 +166,8 @@ public:
 //----------------------------------------------------------------------
 DTLSRRouter::DTLSRRouter()
     : TableBasedRouter("DTLSRRouter", "dtlsr"),
-      announce_tag_("spr"),
-      announce_eid_("dtn://*/spr?*"),
+      announce_tag_("dtlsr"),
+      announce_eid_("dtn://*/dtlsr?*"),
       current_lsas_("DTLSRRouter::current_lsas"),
       current_eidas_("DTLSRRouter::current_eidas"),
       update_lsa_timer_(this)
