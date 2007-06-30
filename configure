@@ -2782,7 +2782,7 @@ echo "${ECHO_T}no" >&6
                             # Check whether --enable-shlibs or --disable-shlibs was given.
 if test "${enable_shlibs+set}" = set; then
   enableval="$enable_shlibs"
-  shlibs=enableval
+  shlibs=$enableval
 else
   shlibs=yes
 fi;
