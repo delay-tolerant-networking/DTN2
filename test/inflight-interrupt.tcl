@@ -112,9 +112,6 @@ test::script {
 }
 
 test::exit_script {
-    puts "* clearing flamebox ignores"
-    tell_dtnd 1 log /test always "flamebox-ignore-cancel ign1"
-    
     puts "* Stopping all dtnds"
     dtn::stop_dtnd *
 }
