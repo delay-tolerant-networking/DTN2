@@ -1024,6 +1024,11 @@ APIClient::handle_recv()
             return DTN_EINTERNAL;
         }
         
+        if (chmod(tmpfile.path(), 0666) < 0) {
+            log_warn("can't set the permission of temp file to 0666: %s",
+                     strerror(errno));
+        }
+        
         if (b->payload_.location() == BundlePayload::MEMORY) {
             tmpfile.writeall((char*)b->payload_.memory_buf()->buf(),
                              b->payload_.length());
