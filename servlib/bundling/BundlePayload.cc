@@ -274,7 +274,7 @@ BundlePayload::replace_with_file(const char* path)
         }
         
         file_.set_path(payload_path);
-        if (file_.reopen(O_RDWR) != 0) {
+        if (file_.reopen(O_RDWR | O_CREAT) < 0) {
             log_err("replace_with_file: error reopening file: %s",
                     strerror(err));
             return false;
