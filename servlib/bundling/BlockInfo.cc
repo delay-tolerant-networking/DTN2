@@ -137,10 +137,31 @@ BlockInfo::serialize(oasys::SerializeAction* a)
 }
 
 //----------------------------------------------------------------------
+void
+BlockInfoVec::serialize(oasys::SerializeAction* a)
+{
+    // just dispatch to the vector directly
+    vector_.serialize(a);
+}
+
+//----------------------------------------------------------------------
+BlockInfo*
+BlockInfoVec::append_block(BlockProcessor* owner, const BlockInfo* source)
+{
+    oasys::ScopeLock l(lock_, "BlockInfoVec::append_block");
+    vector_.push_back(BlockInfo(owner, source));
+    return &vector_.back();
+}
+
+//----------------------------------------------------------------------
 const BlockInfo*
 BlockInfoVec::find_block(u_int8_t type) const
 {
-    for (const_iterator iter = begin(); iter != end(); ++iter) {
+    oasys::ScopeLock l(lock_, "BlockInfoVec::find_block");
+    
+    for (Vector::const_iterator iter = vector_.begin();
+         iter != vector_.end(); ++iter)
+    {
         if (iter->type() == type ||
             iter->owner()->block_type() == type)
         {
@@ -149,7 +170,6 @@ BlockInfoVec::find_block(u_int8_t type) const
     }
     return false;
 }
-
 
 //----------------------------------------------------------------------
 LinkBlockSet::Entry::Entry(const LinkRef& link)
@@ -173,9 +193,11 @@ LinkBlockSet::~LinkBlockSet()
 BlockInfoVec*
 LinkBlockSet::create_blocks(const LinkRef& link)
 {
+    oasys::ScopeLock l(lock_, "LinkBlockSet::create_blocks");
+    
     ASSERT(find_blocks(link) == NULL);
     entries_.push_back(Entry(link));
-    entries_.back().blocks_ = new BlockInfoVec();
+    entries_.back().blocks_ = new BlockInfoVec(lock_);
     return entries_.back().blocks_;
 }
 
@@ -183,6 +205,8 @@ LinkBlockSet::create_blocks(const LinkRef& link)
 BlockInfoVec*
 LinkBlockSet::find_blocks(const LinkRef& link)
 {
+    oasys::ScopeLock l(lock_, "LinkBlockSet::find_blocks");
+    
     for (iterator iter = entries_.begin();
          iter != entries_.end();
          ++iter)
@@ -198,6 +222,8 @@ LinkBlockSet::find_blocks(const LinkRef& link)
 void
 LinkBlockSet::delete_blocks(const LinkRef& link)
 {
+    oasys::ScopeLock l(lock_, "LinkBlockSet::delete_blocks");
+    
     for (iterator iter = entries_.begin();
          iter != entries_.end();
          ++iter)

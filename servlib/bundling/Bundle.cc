@@ -65,7 +65,8 @@ Bundle::init(u_int32_t id)
 
 //----------------------------------------------------------------------
 Bundle::Bundle(BundlePayload::location_t location)
-    : payload_(&lock_), fwdlog_(&lock_)
+    : payload_(&lock_), fwdlog_(&lock_),
+      recv_blocks_(&lock_), api_blocks_(&lock_), xmit_blocks_(&lock_)
 {
     u_int32_t id = GlobalStore::instance()->next_bundleid();
     init(id);
@@ -77,7 +78,8 @@ Bundle::Bundle(BundlePayload::location_t location)
 
 //----------------------------------------------------------------------
 Bundle::Bundle(const oasys::Builder&)
-    : payload_(&lock_), fwdlog_(&lock_)
+    : payload_(&lock_), fwdlog_(&lock_),
+      recv_blocks_(&lock_), api_blocks_(&lock_), xmit_blocks_(&lock_)
 {
     // don't do anything here except set the id to a bogus default
     // value and make sure the expiration timer is NULL, since the

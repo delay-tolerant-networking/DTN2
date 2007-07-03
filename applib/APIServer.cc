@@ -728,8 +728,8 @@ APIClient::handle_send()
     for (u_int i = 0; i < spec.blocks.blocks_len; i++) {
         dtn_extension_block_t* block = &spec.blocks.blocks_val[i];
 
-        b->api_blocks_.push_back(BlockInfo(APIBlockProcessor::instance()));
-        BlockInfo* info = &b->api_blocks_.back();
+        BlockInfo* info =
+            b->api_blocks_.append_block(APIBlockProcessor::instance());
         APIBlockProcessor::instance()->
             init_block(info, block->type, block->flags,
                        (u_char*)block->data.data_val,

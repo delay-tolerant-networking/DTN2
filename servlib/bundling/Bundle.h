@@ -205,11 +205,18 @@ public:
         default:		return "_UNKNOWN_PRIORITY_";
         }
     }
+
+    /// @{ Accessors (should eventually be for all fields)
+    oasys::Lock* lock() const { return &lock_; }
+    /// @}
     
     /*
      * Bundle data fields that correspond to data transferred between
      * nodes according to the bundle protocol (all public to avoid the
      * need for accessor functions).
+     *
+     * XXX/demmer this is a bad and lazy design and we should actually
+     * make these protected
      */
     EndpointID source_;		///< Source eid
     EndpointID dest_;		///< Destination eid
@@ -239,7 +246,7 @@ public:
      * not transmitted over the network.
      */
     u_int32_t bundleid_;	///< Local bundle identifier
-    oasys::SpinLock lock_;	///< Lock for bundle data that can be
+    mutable oasys::SpinLock lock_; ///< Lock for bundle data that can be
                                 ///  updated by multiple threads
     bool in_datastore_;		///< Is the bundle in the persistent store
     bool local_custody_;	///< Local node has custody

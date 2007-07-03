@@ -284,7 +284,7 @@ BlockProcessor::prepare(const Bundle*    bundle,
 {
     (void)bundle;
     (void)link;
-    blocks->push_back(BlockInfo(this, source));
+    blocks->append_block(this, source);
 }
 
 //----------------------------------------------------------------------

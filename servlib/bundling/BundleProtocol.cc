@@ -75,6 +75,8 @@ BundleProtocol::init_default_processors()
 BlockInfoVec*
 BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
 {
+    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::prepare_blocks");
+    
     // create a new block list for the outgoing link by first calling
     // prepare on all the BlockProcessor classes for the blocks that
     // arrived on the link
@@ -129,6 +131,8 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
                                 BlockInfoVec*  blocks,
                                 const LinkRef& link)
 {
+    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::generate_blocks");
+    
     // now assert there's at least 2 blocks (primary + payload) and
     // that the primary is first
     ASSERT(blocks->size() >= 2);
@@ -220,6 +224,8 @@ size_t
 BundleProtocol::produce(const Bundle* bundle, const BlockInfoVec* blocks,
                         u_char* data, size_t offset, size_t len, bool* last)
 {
+    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::produce");
+    
     size_t origlen = len;
     *last = false;
 
@@ -297,6 +303,8 @@ BundleProtocol::consume(Bundle* bundle,
                         size_t  len,
                         bool*   last)
 {
+    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::consume");
+    
     size_t origlen = len;
     *last = false;
     
@@ -306,7 +314,7 @@ BundleProtocol::consume(Bundle* bundle,
     if (bundle->recv_blocks_.empty()) {
         log_debug_p(LOG, "consume: got first block... "
                     "creating primary block info");
-        bundle->recv_blocks_.push_back(BlockInfo(find_processor(PRIMARY_BLOCK)));
+        bundle->recv_blocks_.append_block(find_processor(PRIMARY_BLOCK));
     }
 
     // loop as long as there is data left to process
@@ -319,8 +327,7 @@ BundleProtocol::consume(Bundle* bundle,
         // blocks, even if there's no BlockProcessor that understands
         // how to parse it
         if (info->complete()) {
-            bundle->recv_blocks_.push_back(BlockInfo(find_processor(*data)));
-            info = &bundle->recv_blocks_.back();
+            info = bundle->recv_blocks_.append_block(find_processor(*data));
             log_debug_p(LOG, "consume: previous block complete, "
                         "created new BlockInfo type 0x%x",
                         info->owner()->block_type());
@@ -373,6 +380,8 @@ BundleProtocol::validate(Bundle* bundle,
                          status_report_reason_t* reception_reason,
                          status_report_reason_t* deletion_reason)
 {
+    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::validate");
+    
     int primary_blocks = 0, payload_blocks = 0;
     BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
  
