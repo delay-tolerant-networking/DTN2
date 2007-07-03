@@ -2797,7 +2797,7 @@ echo "${ECHO_T}$shlibs" >&6
        ac_save_LDFLAGS=$LDFLAGS
        ac_save_CFLAGS=$CFLAGS
        picflags="-fPIC -DPIC"
-       CFLAGS="$picflags $ac_save_CFLAGS"
+       CFLAGS="$picflags $ac_save_CFLAGS -Werror"
        echo "$as_me:$LINENO: checking whether the compiler supports -fPIC" >&5
 echo $ECHO_N "checking whether the compiler supports -fPIC... $ECHO_C" >&6
        cat >conftest.$ac_ext <<_ACEOF
@@ -10713,7 +10713,10 @@ echo "${ECHO_T}try" >&6
 echo "${ECHO_T}yes" >&6
     fi
 
-                echo "$as_me:$LINENO: checking for library containing readline" >&5
+                if test `uname -o` = 'Cygwin' ; then
+        TCLREADLINE_ENABLED=0
+    else
+        echo "$as_me:$LINENO: checking for library containing readline" >&5
 echo $ECHO_N "checking for library containing readline... $ECHO_C" >&6
 if test "${ac_cv_search_readline+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -10841,6 +10844,7 @@ else
   TCLREADLINE_ENABLED=0
 fi
 
+    fi
 
                     if test $TCLREADLINE_ENABLED = 1 ; then
          echo "$as_me:$LINENO: checking whether readline is GNU readline or BSD editline" >&5
