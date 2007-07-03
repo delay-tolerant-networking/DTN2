@@ -1,0 +1,20 @@
+
+Known bugs in the DTN2 reference implementation
+===============================================
+
+* If an opportunistic link goes down while in the middle of sendings
+  one or more bundles, the table based router never cancels the
+  transmission on that link in order to potentially re-route the
+  bundles onto another link.
+
+* Occasionally the stream-based convergence layers get stuck in the
+  BUSY state even though there are no bundles in flight. A temporary
+  workaround relies on a timer to reopen the link but the root cause
+  of this problem still needs to be worked out.
+
+* If a large number of bundles are queued on a Link that does not
+  implement persistent link queues and the link goes down, then when
+  the link reopens, the main BundleDaemon calls send_bundle for all of
+  the queued bundles. This may cause the link to immediately become
+  BUSY, so the contact isn't really up.
+
