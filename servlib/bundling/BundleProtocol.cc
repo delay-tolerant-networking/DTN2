@@ -188,6 +188,8 @@ BundleProtocol::delete_blocks(Bundle* bundle, const LinkRef& link)
 size_t
 BundleProtocol::total_length(const BlockInfoVec* blocks)
 {
+    oasys::ScopeLock l(blocks->lock(), "BundleProtocol::total_length");
+    
     size_t ret = 0;
     for (BlockInfoVec::const_iterator iter = blocks->begin();
          iter != blocks->end();
@@ -203,6 +205,8 @@ BundleProtocol::total_length(const BlockInfoVec* blocks)
 size_t
 BundleProtocol::payload_offset(const BlockInfoVec* blocks)
 {
+    oasys::ScopeLock l(blocks->lock(), "BundleProtocol::total_length");
+    
     size_t ret = 0;
     for (BlockInfoVec::const_iterator iter = blocks->begin();
          iter != blocks->end();
