@@ -190,6 +190,7 @@ protocol_test(Bundle* b1, int chunks)
     CHECK(payload_ok);
 
     // check extension blocks
+    b1->lock()->lock("protocol_test");
     if (b1->recv_blocks_.size() != 0)
     {
         for (BlockInfoVec::iterator iter = b1->recv_blocks_.begin();
@@ -236,7 +237,7 @@ protocol_test(Bundle* b1, int chunks)
             CHECK(contents_ok);
         }
     }
-    
+    b1->lock()->unlock();
     
     delete b1;
     delete b2;
@@ -376,30 +377,32 @@ Bundle* init_UnknownBlocks()
     ASSERT(unknown1_bp == UnknownBlockProcessor::instance());
     ASSERT(unknown2_bp == UnknownBlockProcessor::instance());
     ASSERT(unknown3_bp == UnknownBlockProcessor::instance());
-    
-    bundle->recv_blocks_.push_back(BlockInfo(primary_bp));
-    bundle->recv_blocks_.push_back(BlockInfo(unknown1_bp));
-    bundle->recv_blocks_.push_back(BlockInfo(unknown2_bp));
-    bundle->recv_blocks_.push_back(BlockInfo(payload_bp));
-    bundle->recv_blocks_.push_back(BlockInfo(unknown3_bp));
 
+    BlockInfo *primary, *payload, *unknown1, *unknown2, *unknown3;
+    
     // initialize all blocks other than the primary
+    primary  = bundle->recv_blocks_.append_block(primary_bp);
+    
+    unknown1 = bundle->recv_blocks_.append_block(unknown1_bp);
     const char* contents = "this is an extension block";
     UnknownBlockProcessor::instance()->
-        init_block(&bundle->recv_blocks_[1], 0xaa, 0x0,
+        init_block(unknown1, 0xaa, 0x0,
                    (const u_char*)contents, strlen(contents));
-
+    
+    unknown2 = bundle->recv_blocks_.append_block(unknown2_bp);
     UnknownBlockProcessor::instance()->
-        init_block(&bundle->recv_blocks_[2], 0xbb,
+        init_block(unknown2, 0xbb,
                    BundleProtocol::BLOCK_FLAG_REPLICATE, 0, 0);
- 
+    
+    payload  = bundle->recv_blocks_.append_block(payload_bp);
     UnknownBlockProcessor::instance()->
-        init_block(&bundle->recv_blocks_[3],
+        init_block(payload,
                    BundleProtocol::PAYLOAD_BLOCK,
                    0, (const u_char*)"test payload", strlen("test payload"));
- 
+
+    unknown3 = bundle->recv_blocks_.append_block(unknown3_bp);
     UnknownBlockProcessor::instance()->
-        init_block(&bundle->recv_blocks_[4], 0xcc,
+        init_block(unknown3, 0xcc,
                    BundleProtocol::BLOCK_FLAG_REPLICATE |
                    BundleProtocol::BLOCK_FLAG_LAST_BLOCK,
                    (const u_char*)contents, strlen(contents));
