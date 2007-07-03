@@ -105,7 +105,9 @@ public:
 
     /**
      * Append a block using the given processor and optional source
-     * block.
+     * block. Returns the newly allocated block. Note, however, that
+     * this block pointer may be invalidated with another call to
+     * append_block.
      */
     BlockInfo* append_block(BlockProcessor* owner,
                             const BlockInfo* source = NULL);
@@ -129,8 +131,9 @@ public:
                                __FUNCTION__);
     /// @}
 
-    /// @{ Wrappers around the vector functions that enforce the
-    /// serialized access.
+    /// @{ Wrappers around the vector functions that enforce
+    ///    thread-safe access.
+    oasys::Lock*   lock()  const { return lock_; }
     size_t         size()  const { SCOPELOCK;  return vector_.size();  }
     BlockInfo&     front()       { SCOPELOCK;  return vector_.front(); }
     BlockInfo&     back()        { SCOPELOCK;  return vector_.back();  }
@@ -154,7 +157,7 @@ protected:
     Vector vector_;
     
     /// Pointer to the lock protecting the vector
-    oasys::Lock* lock_;
+    mutable oasys::Lock* lock_;
 };
 
 /**
