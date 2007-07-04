@@ -86,10 +86,10 @@ dtnipc_open(dtnipc_handle_t* handle)
     // bytes), and the return code and length for recv (which is
     // actually eight bytes)
     xdrmem_create(&handle->xdr_encode, handle->buf + 8,
-                  DTN_MAX_API_MSG, XDR_ENCODE);
+                  DTN_MAX_API_MSG - 8, XDR_ENCODE);
     
     xdrmem_create(&handle->xdr_decode, handle->buf + 8,
-                  DTN_MAX_API_MSG, XDR_DECODE);
+                  DTN_MAX_API_MSG - 8, XDR_DECODE);
 
     // open the socket
     handle->sock = socket(PF_INET, SOCK_STREAM, 0);
