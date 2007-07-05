@@ -160,6 +160,13 @@ public:
     bool assign(const dtn_endpoint_id_t* eid);
 
     /**
+     * @ return true if the given EndpointID is contained within
+     *   this EndpointID; otherwise false.
+     */
+    bool subsume(const EndpointID& other)
+             { return uri_.subsume(other.uri_); }
+
+    /**
      * Append the specified service tag (in a scheme-specific manner)
      * to the ssp.
      *
