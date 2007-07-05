@@ -10713,7 +10713,7 @@ echo "${ECHO_T}try" >&6
 echo "${ECHO_T}yes" >&6
     fi
 
-                if test `uname -o` = 'Cygwin' ; then
+                if test `uname -s | sed 's/CYGWIN.*/CYGWIN/'` = 'CYGWIN' ; then
         TCLREADLINE_ENABLED=0
     else
         echo "$as_me:$LINENO: checking for library containing readline" >&5
