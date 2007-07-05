@@ -111,6 +111,11 @@ public:
     }
     /// @}
 
+    /**
+     * Return the number of bytes which comprise the given value.
+     * Assumes that bp points to a valid encoded SDNV.
+     */
+    static size_t len(const u_char* bp);
 };
 
 } // namespace dtn

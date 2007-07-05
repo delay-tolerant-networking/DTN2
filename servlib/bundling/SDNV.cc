@@ -149,6 +149,8 @@ SDNV_FN(decode)(const u_char* bp, size_t len, u_int64_t* val)
      * Note that the only supportable 10 byte SDNV must store exactly
      * one bit in the first byte of the encoding (i.e. the 64'th bit
      * of the original value).
+     * This is OK because a spec update says that behavior
+     * is undefined for values > 64 bits.
      */
     if ((val_len > MAX_LENGTH) ||
         ((val_len == MAX_LENGTH) && (*start != 0x81)))
@@ -162,6 +164,17 @@ SDNV_FN(decode)(const u_char* bp, size_t len, u_int64_t* val)
     // callers just assume that they need more data to decode and
     // don't really check for errors
 
+    return val_len;
+}
+
+//----------------------------------------------------------------------
+size_t
+SDNV_FN(len)(const u_char* bp)
+{
+    size_t          val_len = 1;
+    
+    for ( ; *bp++ & 0x80; ++val_len )
+        ;
     return val_len;
 }
 
