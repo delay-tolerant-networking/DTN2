@@ -137,31 +137,18 @@ BlockInfo::serialize(oasys::SerializeAction* a)
 }
 
 //----------------------------------------------------------------------
-void
-BlockInfoVec::serialize(oasys::SerializeAction* a)
-{
-    // just dispatch to the vector directly
-    vector_.serialize(a);
-}
-
-//----------------------------------------------------------------------
 BlockInfo*
 BlockInfoVec::append_block(BlockProcessor* owner, const BlockInfo* source)
 {
-    oasys::ScopeLock l(lock_, "BlockInfoVec::append_block");
-    vector_.push_back(BlockInfo(owner, source));
-    return &vector_.back();
+    push_back(BlockInfo(owner, source));
+    return &back();
 }
 
 //----------------------------------------------------------------------
 const BlockInfo*
 BlockInfoVec::find_block(u_int8_t type) const
 {
-    oasys::ScopeLock l(lock_, "BlockInfoVec::find_block");
-    
-    for (Vector::const_iterator iter = vector_.begin();
-         iter != vector_.end(); ++iter)
-    {
+    for (const_iterator iter = begin(); iter != end(); ++iter) {
         if (iter->type() == type ||
             iter->owner()->block_type() == type)
         {
@@ -197,7 +184,7 @@ LinkBlockSet::create_blocks(const LinkRef& link)
     
     ASSERT(find_blocks(link) == NULL);
     entries_.push_back(Entry(link));
-    entries_.back().blocks_ = new BlockInfoVec(lock_);
+    entries_.back().blocks_ = new BlockInfoVec();
     return entries_.back().blocks_;
 }
 

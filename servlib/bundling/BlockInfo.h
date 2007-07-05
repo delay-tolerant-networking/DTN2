@@ -89,20 +89,9 @@ protected:
 
 /**
  * Class for a vector of BlockInfo structures.
- *
- * Instead of deriving from oasys::SerializableVector, this class
- * contains one.
  */
-class BlockInfoVec : public oasys::SerializableObject {
+class BlockInfoVec : public oasys::SerializableVector<BlockInfo> {
 public:
-    /// @{ Typedefs for the underlying types
-    typedef oasys::SerializableVector<BlockInfo> Vector;
-    typedef Vector::iterator                     iterator;
-    typedef Vector::const_iterator               const_iterator;
-    /// @}
-    
-    BlockInfoVec(oasys::Lock* lock) : lock_(lock) {}
-
     /**
      * Append a block using the given processor and optional source
      * block. Returns the newly allocated block. Note, however, that
@@ -111,7 +100,7 @@ public:
      */
     BlockInfo* append_block(BlockProcessor* owner,
                             const BlockInfo* source = NULL);
-    
+
     /**
      * Find the block for the given type.
      *
@@ -123,41 +112,6 @@ public:
      * Check if an entry exists in the vector for the given block type.
      */
     bool has_block(u_int8_t type) const { return find_block(type) != NULL; }
-
-    /// @{ Macros for readability    
-    #define SCOPELOCK  oasys::ScopeLock l(lock_, __FUNCTION__);
-    #define ASSERTLOCK ASSERTF(lock_->is_locked_by_me(),                      \
-                               "bundle must be locked to call BlockInfo::%s", \
-                               __FUNCTION__);
-    /// @}
-
-    /// @{ Wrappers around the vector functions that enforce
-    ///    thread-safe access.
-    oasys::Lock*   lock()  const { return lock_; }
-    size_t         size()  const { SCOPELOCK;  return vector_.size();  }
-    BlockInfo&     front()       { SCOPELOCK;  return vector_.front(); }
-    BlockInfo&     back()        { SCOPELOCK;  return vector_.back();  }
-    bool           empty() const { SCOPELOCK;  return vector_.empty(); }
-    iterator       begin()       { ASSERTLOCK; return vector_.begin(); }
-    iterator       end()         { ASSERTLOCK; return vector_.end();   }
-    const_iterator begin() const { ASSERTLOCK; return vector_.begin(); }
-    const_iterator end()   const { ASSERTLOCK; return vector_.end();   }
-    /// @}
-
-    #undef SCOPELOCK
-    #undef ASSERTLOCK
-
-    /**
-     * Virtual from SerializableObject.
-     */
-    void serialize(oasys::SerializeAction* action);
-
-protected:    
-    /// The actual vector
-    Vector vector_;
-    
-    /// Pointer to the lock protecting the vector
-    mutable oasys::Lock* lock_;
 };
 
 /**

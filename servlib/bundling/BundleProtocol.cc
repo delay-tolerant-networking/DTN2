@@ -75,8 +75,6 @@ BundleProtocol::init_default_processors()
 BlockInfoVec*
 BundleProtocol::prepare_blocks(Bundle* bundle, const LinkRef& link)
 {
-    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::prepare_blocks");
-    
     // create a new block list for the outgoing link by first calling
     // prepare on all the BlockProcessor classes for the blocks that
     // arrived on the link
@@ -131,8 +129,6 @@ BundleProtocol::generate_blocks(Bundle*        bundle,
                                 BlockInfoVec*  blocks,
                                 const LinkRef& link)
 {
-    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::generate_blocks");
-    
     // now assert there's at least 2 blocks (primary + payload) and
     // that the primary is first
     ASSERT(blocks->size() >= 2);
@@ -188,8 +184,6 @@ BundleProtocol::delete_blocks(Bundle* bundle, const LinkRef& link)
 size_t
 BundleProtocol::total_length(const BlockInfoVec* blocks)
 {
-    oasys::ScopeLock l(blocks->lock(), "BundleProtocol::total_length");
-    
     size_t ret = 0;
     for (BlockInfoVec::const_iterator iter = blocks->begin();
          iter != blocks->end();
@@ -205,8 +199,6 @@ BundleProtocol::total_length(const BlockInfoVec* blocks)
 size_t
 BundleProtocol::payload_offset(const BlockInfoVec* blocks)
 {
-    oasys::ScopeLock l(blocks->lock(), "BundleProtocol::total_length");
-    
     size_t ret = 0;
     for (BlockInfoVec::const_iterator iter = blocks->begin();
          iter != blocks->end();
@@ -228,8 +220,6 @@ size_t
 BundleProtocol::produce(const Bundle* bundle, const BlockInfoVec* blocks,
                         u_char* data, size_t offset, size_t len, bool* last)
 {
-    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::produce");
-    
     size_t origlen = len;
     *last = false;
 
@@ -307,8 +297,6 @@ BundleProtocol::consume(Bundle* bundle,
                         size_t  len,
                         bool*   last)
 {
-    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::consume");
-    
     size_t origlen = len;
     *last = false;
     
@@ -384,8 +372,6 @@ BundleProtocol::validate(Bundle* bundle,
                          status_report_reason_t* reception_reason,
                          status_report_reason_t* deletion_reason)
 {
-    oasys::ScopeLock l(bundle->lock(), "BundleProtocol::validate");
-    
     int primary_blocks = 0, payload_blocks = 0;
     BlockInfoVec* recv_blocks = &bundle->recv_blocks_;
  
