@@ -441,10 +441,13 @@ protected:
     void deliver_to_registration(Bundle* bundle, Registration* registration);
     
     /**
-     * Check the registration table and deliver the bundle to any that
-     * match.
+     * Check the registration table and optionally deliver the bundle
+     * to any that match.
+     *
+     * @return whether or not any matching registrations were found or
+     * if the bundle is destined for the local node
      */
-    void check_registrations(Bundle* bundle);
+    bool check_local_delivery(Bundle* bundle, bool deliver);
     
     /// The active bundle router
     BundleRouter* router_;
