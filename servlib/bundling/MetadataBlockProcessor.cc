@@ -69,6 +69,7 @@ MetadataBlockProcessor::validate(const Bundle* bundle, BlockInfo* block,
                   BundleProtocol::status_report_reason_t* deletion_reason)
 {
     static const char* log = "/dtn/bundle/protocol";
+    (void) log;
 
     ASSERT(bundle != NULL);
     ASSERT(block != NULL);
@@ -205,7 +206,7 @@ MetadataBlockProcessor::generate(const Bundle*  bundle,
 
     // Determine if the outgoing metadata block was received in the
     // bundle or newly generated; however, both should not be true.
-    MetadataBlock* metadata;
+    MetadataBlock* metadata = NULL;
     bool received_block = false;
     bool generated_block = false;
     
